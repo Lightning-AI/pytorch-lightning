@@ -1,17 +1,16 @@
 from unittest.mock import MagicMock
 
 import pytest
-from lightning_cloud.openapi import V1NetworkConfig
-
 from lightning.app.utilities import port
 from lightning.app.utilities.port import _find_lit_app_port, disable_port, enable_port
+from lightning_cloud.openapi import V1NetworkConfig
 
 
 def test_find_lit_app_port(monkeypatch):
     client = MagicMock()
     monkeypatch.setattr(port, "LightningClient", MagicMock(return_value=client))
 
-    assert 5701 == _find_lit_app_port(5701)
+    assert _find_lit_app_port(5701) == 5701
 
     resp = MagicMock()
     lit_app = MagicMock()
@@ -42,7 +41,7 @@ def test_enable_port(monkeypatch):
     client = MagicMock()
     monkeypatch.setattr(port, "LightningClient", MagicMock(return_value=client))
 
-    assert 5701 == _find_lit_app_port(5701)
+    assert _find_lit_app_port(5701) == 5701
 
     resp = MagicMock()
     lit_app = MagicMock()
@@ -73,7 +72,7 @@ def test_disable_port(monkeypatch):
     client = MagicMock()
     monkeypatch.setattr(port, "LightningClient", MagicMock(return_value=client))
 
-    assert 5701 == _find_lit_app_port(5701)
+    assert _find_lit_app_port(5701) == 5701
 
     resp = MagicMock()
     lit_app = MagicMock()

@@ -15,7 +15,6 @@ import logging
 from unittest.mock import Mock, patch
 
 import pytest
-
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.trainer.trainer import Trainer
 
@@ -48,7 +47,7 @@ def test_no_val_on_train_epoch_loop_restart(tmpdir):
 
 
 @pytest.mark.parametrize(
-    "min_epochs, min_steps, current_epoch, global_step, early_stop, epoch_loop_done, raise_info_msg",
+    ("min_epochs", "min_steps", "current_epoch", "global_step", "early_stop", "epoch_loop_done", "raise_info_msg"),
     [
         (None, None, 1, 4, True, True, False),
         (None, None, 1, 10, True, True, False),
@@ -63,8 +62,7 @@ def test_no_val_on_train_epoch_loop_restart(tmpdir):
 def test_should_stop_early_stopping_conditions_not_met(
     caplog, min_epochs, min_steps, current_epoch, global_step, early_stop, epoch_loop_done, raise_info_msg
 ):
-    """Test that checks that info message is logged when users sets `should_stop` but min conditions are not
-    met."""
+    """Test that checks that info message is logged when users sets `should_stop` but min conditions are not met."""
     trainer = Trainer(min_epochs=min_epochs, min_steps=min_steps, limit_val_batches=0)
     trainer.fit_loop.max_batches = 10
     trainer.should_stop = True
@@ -80,12 +78,13 @@ def test_should_stop_early_stopping_conditions_not_met(
     assert trainer.fit_loop._can_stop_early is early_stop
 
 
-@pytest.mark.parametrize("min_epochs,min_steps,val_count", [(3, None, 3), (None, 3, 2)])
+@pytest.mark.parametrize(("min_epochs", "min_steps", "val_count"), [(3, None, 3), (None, 3, 2)])
 def test_should_stop_triggers_validation_once(min_epochs, min_steps, val_count, tmp_path):
     """Regression test for issue #15708.
 
     Test that the request for `should_stop=True` only triggers validation when Trainer is allowed to stop
     (min_epochs/steps is satisfied).
+
     """
     model = BoringModel()
     trainer = Trainer(
@@ -103,3 +102,58 @@ def test_should_stop_triggers_validation_once(min_epochs, min_steps, val_count, 
     trainer.fit_loop.epoch_loop.val_loop.run = Mock()
     trainer.fit(model)
     assert trainer.fit_loop.epoch_loop.val_loop.run.call_count == val_count
+
+
+def test_training_loop_dataloader_iter_multiple_dataloaders(tmp_path):
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        limit_train_batches=3,
+        limit_val_batches=0,
+        max_epochs=1,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        logger=False,
+        devices=1,
+    )
+
+    class MyModel(BoringModel):
+        batch_start_ins = []
+        step_outs = []
+        batch_end_ins = []
+
+        def on_train_batch_start(self, batch, batch_idx, dataloader_idx=0):
+            self.batch_start_ins.append((batch, batch_idx, dataloader_idx))
+
+        def training_step(self, dataloader_iter):
+            self.step_outs.append(next(dataloader_iter))
+
+        def on_train_batch_end(self, outputs, batch, batch_idx, dataloader_idx=0):
+            self.batch_end_ins.append((batch, batch_idx, dataloader_idx))
+
+    model = MyModel()
+    trainer.fit(model, {"a": [0, 1], "b": [2, 3]})
+
+    assert model.batch_start_ins == [(None, 0, 0)] + model.step_outs[:-1]
+    assert model.step_outs == [({"a": 0, "b": 2}, 0, 0), ({"a": 1, "b": 3}, 1, 0)]
+    assert model.batch_end_ins == model.step_outs
+
+
+def test_no_batch_idx_gradient_accumulation():
+    """Regression test for an issue where excluding the batch_idx from training_step would disable gradient
+    accumulation."""
+
+    class MyModel(BoringModel):
+        last_batch_idx = -1
+
+        def training_step(self, batch):  # no batch_idx
+            return self.step(batch)
+
+        def optimizer_step(self, epoch, batch_idx, *args, **kwargs):
+            assert batch_idx in (1, 3)
+            self.last_batch_idx = batch_idx
+            return super().optimizer_step(epoch, batch_idx, *args, **kwargs)
+
+    trainer = Trainer(fast_dev_run=4, accumulate_grad_batches=2, limit_val_batches=0)
+    model = MyModel()
+    trainer.fit(model)
+    assert model.last_batch_idx == 3

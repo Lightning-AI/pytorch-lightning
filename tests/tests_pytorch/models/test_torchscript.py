@@ -18,10 +18,10 @@ import fsspec
 import pytest
 import torch
 from fsspec.implementations.local import LocalFileSystem
-
 from lightning.fabric.utilities.cloud_io import get_filesystem
 from lightning.pytorch.core.module import LightningModule
 from lightning.pytorch.demos.boring_classes import BoringModel
+
 from tests_pytorch.helpers.advanced_models import BasicGAN, ParityModuleRNN
 from tests_pytorch.helpers.runif import RunIf
 
@@ -135,7 +135,6 @@ def test_torchscript_save_load(tmpdir, modelclass):
 @pytest.mark.parametrize("modelclass", [BoringModel, ParityModuleRNN, BasicGAN])
 def test_torchscript_save_load_custom_filesystem(tmpdir, modelclass):
     """Test that scripted LightningModule is correctly saved and can be loaded with custom filesystems."""
-
     _DUMMY_PRFEIX = "dummy"
     _PREFIX_SEPARATOR = "://"
 

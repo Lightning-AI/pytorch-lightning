@@ -1,0 +1,5 @@
+# NOTE: the upper bound for the package version is only set for CI stability, and it is dropped while installing this package
+#  in case you want to preserve/enforce restrictions on the latest compatible version, add "strict" as an in-line comment
+
+fsspec[http] >2021.06.0, <2023.10.0
+s3fs >=2022.5.0, <2023.7.0

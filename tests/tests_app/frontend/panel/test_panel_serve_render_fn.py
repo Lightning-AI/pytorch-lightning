@@ -1,13 +1,13 @@
 """The panel_serve_render_fn_or_file file gets run by Python to launch a Panel Server with Lightning.
 
 These tests are for serving a render_fn function.
+
 """
 import inspect
 import os
 from unittest import mock
 
 import pytest
-
 from lightning.app.frontend.panel.app_state_watcher import AppStateWatcher
 from lightning.app.frontend.panel.panel_serve_render_fn import _get_render_fn, _get_render_fn_from_environment
 
@@ -41,6 +41,7 @@ def test_get_view_fn_args():
     """We have a helper get_view_fn function that create a function for our view.
 
     If the render_fn provides an argument an AppStateWatcher is provided as argument
+
     """
     result = _get_render_fn()
     assert isinstance(result(), AppStateWatcher)
@@ -61,6 +62,7 @@ def test_get_view_fn_no_args():
     """We have a helper get_view_fn function that create a function for our view.
 
     If the render_fn provides an argument an AppStateWatcher is provided as argument
+
     """
     result = _get_render_fn()
     assert result() == "no_args"

@@ -13,10 +13,9 @@
 # limitations under the License.
 import pytest
 import torch
-from torch.utils.data import Dataset
-
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
+from torch.utils.data import Dataset
 
 
 class RandomDatasetA(Dataset):
@@ -43,7 +42,7 @@ class RandomDatasetB(Dataset):
         return self.len
 
 
-@pytest.mark.parametrize("seq_type", (tuple, list))
+@pytest.mark.parametrize("seq_type", [tuple, list])
 def test_multiple_eval_dataloaders_seq(tmpdir, seq_type):
     class TestModel(BoringModel):
         def validation_step(self, batch, batch_idx, dataloader_idx):

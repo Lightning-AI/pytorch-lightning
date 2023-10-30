@@ -16,12 +16,12 @@ import csv
 import logging
 import os
 from argparse import Namespace
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Set, Union
 
 from torch import Tensor
 
 from lightning.fabric.loggers.logger import Logger, rank_zero_experiment
-from lightning.fabric.utilities.cloud_io import get_filesystem
+from lightning.fabric.utilities.cloud_io import _is_dir, get_filesystem
 from lightning.fabric.utilities.logger import _add_prefix
 from lightning.fabric.utilities.rank_zero import rank_zero_only, rank_zero_warn
 from lightning.fabric.utilities.types import _PATH
@@ -30,8 +30,7 @@ log = logging.getLogger(__name__)
 
 
 class CSVLogger(Logger):
-    r"""
-    Log to the local file system in CSV format.
+    r"""Log to the local file system in CSV format.
 
     Logs are saved to ``os.path.join(root_dir, name, version)``.
 
@@ -50,6 +49,7 @@ class CSVLogger(Logger):
         logger = CSVLogger("path/to/logs/root", name="my_model")
         logger.log_metrics({"loss": 0.235, "acc": 0.75})
         logger.finalize("success")
+
     """
 
     LOGGER_JOIN_CHAR = "-"
@@ -78,6 +78,7 @@ class CSVLogger(Logger):
 
         Returns:
             The name of the experiment.
+
         """
         return self._name
 
@@ -87,6 +88,7 @@ class CSVLogger(Logger):
 
         Returns:
             The version of the experiment if it is specified, else the next version.
+
         """
         if self._version is None:
             self._version = self._get_next_version()
@@ -103,38 +105,42 @@ class CSVLogger(Logger):
 
         By default, it is named ``'version_${self.version}'`` but it can be overridden by passing a string value for the
         constructor's version parameter instead of ``None`` or an int.
+
         """
         # create a pseudo standard path
         version = self.version if isinstance(self.version, str) else f"version_{self.version}"
-        log_dir = os.path.join(self.root_dir, self.name, version)
-        return log_dir
+        return os.path.join(self._root_dir, self.name, version)
 
     @property
     @rank_zero_experiment
     def experiment(self) -> "_ExperimentWriter":
-        """Actual ExperimentWriter object. To use ExperimentWriter features anywhere in your code, do the
-        following.
+        """Actual ExperimentWriter object. To use ExperimentWriter features anywhere in your code, do the following.
 
         Example::
 
             self.logger.experiment.some_experiment_writer_function()
+
         """
         if self._experiment is not None:
             return self._experiment
 
-        os.makedirs(self.root_dir, exist_ok=True)
+        os.makedirs(self._root_dir, exist_ok=True)
         self._experiment = _ExperimentWriter(log_dir=self.log_dir)
         return self._experiment
 
     @rank_zero_only
-    def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:
+    def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:  # type: ignore[override]
         raise NotImplementedError("The `CSVLogger` does not yet support logging hyperparameters.")
 
     @rank_zero_only
-    def log_metrics(self, metrics: Dict[str, Union[Tensor, float]], step: Optional[int] = None) -> None:
+    def log_metrics(  # type: ignore[override]
+        self, metrics: Dict[str, Union[Tensor, float]], step: Optional[int] = None
+    ) -> None:
         metrics = _add_prefix(metrics, self._prefix, self.LOGGER_JOIN_CHAR)
+        if step is None:
+            step = len(self.experiment.metrics)
         self.experiment.log_metrics(metrics, step)
-        if step is not None and (step + 1) % self._flush_logs_every_n_steps == 0:
+        if (step + 1) % self._flush_logs_every_n_steps == 0:
             self.save()
 
     @rank_zero_only
@@ -151,16 +157,17 @@ class CSVLogger(Logger):
         self.save()
 
     def _get_next_version(self) -> int:
-        root_dir = self.root_dir
+        versions_root = os.path.join(self._root_dir, self.name)
 
-        if not self._fs.isdir(root_dir):
-            log.warning("Missing logger folder: %s", root_dir)
+        if not _is_dir(self._fs, versions_root, strict=True):
+            log.warning("Missing logger folder: %s", versions_root)
             return 0
 
         existing_versions = []
-        for d in self._fs.listdir(root_dir, detail=False):
-            name = d[len(root_dir) + 1 :]  # removes parent directories
-            if self._fs.isdir(d) and name.startswith("version_"):
+        for d in self._fs.listdir(versions_root):
+            full_path = d["name"]
+            name = os.path.basename(full_path)
+            if _is_dir(self._fs, full_path) and name.startswith("version_"):
                 existing_versions.append(int(name.split("_")[1]))
 
         if len(existing_versions) == 0:
@@ -170,17 +177,18 @@ class CSVLogger(Logger):
 
 
 class _ExperimentWriter:
-    r"""
-    Experiment writer for CSVLogger.
+    r"""Experiment writer for CSVLogger.
 
     Args:
         log_dir: Directory for the experiment logs
+
     """
 
     NAME_METRICS_FILE = "metrics.csv"
 
     def __init__(self, log_dir: str) -> None:
         self.metrics: List[Dict[str, float]] = []
+        self.metrics_keys: List[str] = []
 
         self._fs = get_filesystem(log_dir)
         self.log_dir = log_dir
@@ -213,12 +221,34 @@ class _ExperimentWriter:
         if not self.metrics:
             return
 
-        last_m = {}
-        for m in self.metrics:
-            last_m.update(m)
-        metrics_keys = list(last_m.keys())
+        new_keys = self._record_new_keys()
+        file_exists = self._fs.isfile(self.metrics_file_path)
 
-        with self._fs.open(self.metrics_file_path, "w", newline="") as f:
-            writer = csv.DictWriter(f, fieldnames=metrics_keys)
-            writer.writeheader()
+        if new_keys and file_exists:
+            # we need to re-write the file if the keys (header) change
+            self._rewrite_with_new_header(self.metrics_keys)
+
+        with self._fs.open(self.metrics_file_path, mode=("a" if file_exists else "w"), newline="") as file:
+            writer = csv.DictWriter(file, fieldnames=self.metrics_keys)
+            if not file_exists:
+                # only write the header if we're writing a fresh file
+                writer.writeheader()
             writer.writerows(self.metrics)
+
+        self.metrics = []  # reset
+
+    def _record_new_keys(self) -> Set[str]:
+        """Records new keys that have not been logged before."""
+        current_keys = set().union(*self.metrics)
+        new_keys = current_keys - set(self.metrics_keys)
+        self.metrics_keys.extend(new_keys)
+        return new_keys
+
+    def _rewrite_with_new_header(self, fieldnames: List[str]) -> None:
+        with self._fs.open(self.metrics_file_path, "r", newline="") as file:
+            metrics = list(csv.DictReader(file))
+
+        with self._fs.open(self.metrics_file_path, "w", newline="") as file:
+            writer = csv.DictWriter(file, fieldnames=fieldnames)
+            writer.writeheader()
+            writer.writerows(metrics)

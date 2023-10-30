@@ -29,7 +29,7 @@ from fastapi import FastAPI, Query, Request
 from starlette.background import BackgroundTask
 from starlette.responses import RedirectResponse
 
-from lightning.app.core.constants import get_lightning_cloud_url, LIGHTNING_CREDENTIAL_PATH
+from lightning.app.core.constants import LIGHTNING_CREDENTIAL_PATH, get_lightning_cloud_url
 from lightning.app.utilities.app_helpers import Logger
 from lightning.app.utilities.network import find_free_network_port
 
@@ -60,6 +60,7 @@ class Auth:
         Returns
         ----------
         True if credentials are available.
+
         """
         if not self.secrets_file.exists():
             logger.debug("Credentials file not found.")
@@ -71,7 +72,7 @@ class Auth:
             return True
 
     def save(self, token: str = "", user_id: str = "", api_key: str = "", username: str = "") -> None:
-        """save credentials to disk."""
+        """Save credentials to disk."""
         self.secrets_file.parent.mkdir(exist_ok=True, parents=True)
         with self.secrets_file.open("w") as f:
             json.dump(
@@ -98,7 +99,7 @@ class Auth:
 
     @property
     def auth_header(self) -> Optional[str]:
-        """authentication header used by lightning-cloud client."""
+        """Authentication header used by lightning-cloud client."""
         if self.api_key:
             token = f"{self.user_id}:{self.api_key}"
             return f"Basic {base64.b64encode(token.encode('ascii')).decode('ascii')}"  # E501
@@ -108,7 +109,7 @@ class Auth:
         )
 
     def _run_server(self) -> None:
-        """start a server to complete authentication."""
+        """Start a server to complete authentication."""
         AuthServer().login_with_browser(self)
 
     def authenticate(self) -> Optional[str]:
@@ -117,6 +118,7 @@ class Auth:
         Returns
         ----------
         authorization header to use when authentication completes.
+
         """
         if not self.load():
             # First try to authenticate from env
@@ -127,7 +129,7 @@ class Auth:
                 self.save("", self.user_id, self.api_key, self.user_id)
                 logger.info("Credentials loaded from environment variables")
                 return self.auth_header
-            elif self.api_key or self.user_id:
+            if self.api_key or self.user_id:
                 raise ValueError(
                     "To use env vars for authentication both "
                     f"{Keys.USER_ID.value} and {Keys.API_KEY.value} should be set."
@@ -137,7 +139,7 @@ class Auth:
             self._run_server()
             return self.auth_header
 
-        elif self.user_id and self.api_key:
+        if self.user_id and self.api_key:
             return self.auth_header
 
         raise ValueError(
@@ -150,7 +152,7 @@ class AuthServer:
     @staticmethod
     def get_auth_url(port: int) -> str:
         redirect_uri = f"http://localhost:{port}/login-complete"
-        params = urlencode(dict(redirectTo=redirect_uri))
+        params = urlencode({"redirectTo": redirect_uri})
         return f"{get_lightning_cloud_url()}/sign-in?{params}"
 
     def login_with_browser(self, auth: Auth) -> None:
@@ -161,13 +163,13 @@ class AuthServer:
         try:
             # check if server is reachable or catch any network errors
             requests.head(url)
-        except requests.ConnectionError as e:
+        except requests.ConnectionError as ex:
             raise requests.ConnectionError(
-                f"No internet connection available. Please connect to a stable internet connection \n{e}"  # E501
+                f"No internet connection available. Please connect to a stable internet connection \n{ex}"  # E501
             )
-        except requests.RequestException as e:
+        except requests.RequestException as ex:
             raise requests.RequestException(
-                f"An error occurred with the request. Please report this issue to Lightning Team \n{e}"  # E501
+                f"An error occurred with the request. Please report this issue to Lightning Team \n{ex}"  # E501
             )
 
         logger.info(
@@ -200,7 +202,7 @@ class AuthServer:
             logger.info("Login Successful")
 
             # Include the credentials in the redirect so that UI will also be logged in
-            params = urlencode(dict(token=token, key=key, userID=user_id))
+            params = urlencode({"token": token, "key": key, "userID": user_id})
 
             return RedirectResponse(
                 url=f"{get_lightning_cloud_url()}/cli-login-successful?{params}",

@@ -17,19 +17,18 @@ from unittest.mock import MagicMock
 import fsspec
 import pytest
 import torch
-
 from lightning.pytorch import Trainer
 from lightning.pytorch.core.saving import load_hparams_from_yaml
 from lightning.pytorch.loggers import CSVLogger
 from lightning.pytorch.loggers.csv_logs import ExperimentWriter
+
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.simple_models import ClassificationModel
 
 
-def test_file_logger_automatic_versioning(tmpdir):
+def test_automatic_versioning(tmpdir):
     """Verify that automatic versioning works."""
-
     root_dir = tmpdir.mkdir("exp")
     root_dir.mkdir("version_0")
     root_dir.mkdir("version_1")
@@ -39,9 +38,8 @@ def test_file_logger_automatic_versioning(tmpdir):
     assert logger.version == 2
 
 
-def test_file_logger_manual_versioning(tmpdir):
+def test_manual_versioning(tmpdir):
     """Verify that manual versioning works."""
-
     root_dir = tmpdir.mkdir("exp")
     root_dir.mkdir("version_0")
     root_dir.mkdir("version_1")
@@ -52,9 +50,8 @@ def test_file_logger_manual_versioning(tmpdir):
     assert logger.version == 1
 
 
-def test_file_logger_named_version(tmpdir):
+def test_named_version(tmpdir):
     """Verify that manual versioning works for string versions, e.g. '2020-02-05-162402'."""
-
     exp_name = "exp"
     tmpdir.mkdir(exp_name)
     expected_version = "2020-02-05-162402"
@@ -68,7 +65,7 @@ def test_file_logger_named_version(tmpdir):
 
 
 @pytest.mark.parametrize("name", ["", None])
-def test_file_logger_no_name(tmpdir, name):
+def test_no_name(tmpdir, name):
     """Verify that None or empty name works."""
     logger = CSVLogger(save_dir=tmpdir, name=name)
     logger.save()
@@ -77,7 +74,7 @@ def test_file_logger_no_name(tmpdir, name):
 
 
 @pytest.mark.parametrize("step_idx", [10, None])
-def test_file_logger_log_metrics(tmpdir, step_idx):
+def test_log_metrics(tmpdir, step_idx):
     logger = CSVLogger(tmpdir)
     metrics = {"float": 0.3, "int": 1, "FloatTensor": torch.tensor(0.1), "IntTensor": torch.tensor(1)}
     logger.log_metrics(metrics, step_idx)
@@ -90,7 +87,7 @@ def test_file_logger_log_metrics(tmpdir, step_idx):
     assert all(n in lines[0] for n in metrics)
 
 
-def test_file_logger_log_hyperparams(tmpdir):
+def test_log_hyperparams(tmpdir):
     logger = CSVLogger(tmpdir)
     hparams = {
         "float": 0.3,
@@ -139,3 +136,49 @@ def test_flush_n_steps(tmpdir):
     logger.save.assert_not_called()
     logger.log_metrics(metrics, step=1)
     logger.save.assert_called_once()
+
+
+def test_metrics_reset_after_save(tmp_path):
+    logger = CSVLogger(tmp_path, flush_logs_every_n_steps=2)
+    metrics = {"test": 1}
+    logger.log_metrics(metrics, step=0)
+    assert logger.experiment.metrics
+    logger.log_metrics(metrics, step=1)  # flush triggered
+    assert not logger.experiment.metrics
+
+
+def test_append_metrics_file(tmp_path):
+    """Test that the logger appends to the file instead of rewriting it on every save."""
+    logger = CSVLogger(tmp_path, name="test", version=0, flush_logs_every_n_steps=1)
+
+    # initial metrics
+    logger.log_metrics({"a": 1, "b": 2})
+    logger.log_metrics({"a": 3, "b": 4})
+
+    # create a new logger to show we append to the existing file
+    logger = CSVLogger(tmp_path, name="test", version=0, flush_logs_every_n_steps=1)
+    logger.log_metrics({"a": 100, "b": 200})
+
+    with open(logger.experiment.metrics_file_path) as file:
+        lines = file.readlines()
+    assert len(lines) == 4  # 1 header + 3 lines of metrics
+
+
+def test_append_columns(tmp_path):
+    """Test that the CSV file gets rewritten with new headers if the columns change."""
+    logger = CSVLogger(tmp_path, flush_logs_every_n_steps=1)
+
+    # initial metrics
+    logger.log_metrics({"a": 1, "b": 2})
+
+    # new key appears
+    logger.log_metrics({"a": 1, "b": 2, "c": 3})
+    with open(logger.experiment.metrics_file_path) as file:
+        header = file.readline().strip()
+        assert set(header.split(",")) == {"step", "a", "b", "c"}
+
+    # key disappears
+    logger.log_metrics({"a": 1, "c": 3})
+    with open(logger.experiment.metrics_file_path) as file:
+        header = file.readline().strip()
+        assert set(header.split(",")) == {"step", "a", "b", "c"}

@@ -264,4 +264,4 @@ Instantiation links are used to automatically determine the order of instantiati
 
     The linking of arguments can be used for more complex cases. For example to derive a value via a function that takes
     multiple settings as input. For more details have a look at the API of `link_arguments
-    <https://jsonargparse.readthedocs.io/en/stable/#jsonargparse.ArgumentParser.link_arguments>`_.
+    <https://jsonargparse.readthedocs.io/en/stable/#jsonargparse.ArgumentLinking.link_arguments>`_.

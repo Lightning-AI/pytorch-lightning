@@ -17,9 +17,8 @@ import logging
 import time
 import uuid
 from itertools import cycle
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple, Type, Union
 from typing import SupportsFloat as Numeric
-from typing import Tuple, Type, Union
 
 import requests
 import uvicorn
@@ -72,9 +71,8 @@ def _maybe_raise_granular_exception(exception: Exception) -> None:
     if isinstance(exception, asyncio.TimeoutError):
         raise HTTPException(408, "Request timed out") from exception
 
-    if isinstance(exception, Exception):
-        if exception.args[0] == "Server disconnected":
-            raise HTTPException(500, "Worker Server disconnected") from exception
+    if isinstance(exception, Exception) and exception.args[0] == "Server disconnected":
+        raise HTTPException(500, "Worker Server disconnected") from exception
 
     logging.exception(exception)
     raise HTTPException(500, exception.args[0]) from exception
@@ -115,8 +113,8 @@ def _create_fastapi(title: str) -> _TrackableFastAPI:
 
 
 class _LoadBalancer(LightningWork):
-    r"""The LoadBalancer is a LightningWork component that collects the requests and sends them to the prediciton
-    API asynchronously using RoundRobin scheduling. It also performs auto batching of the incoming requests.
+    r"""The LoadBalancer is a LightningWork component that collects the requests and sends them to the prediciton API
+    asynchronously using RoundRobin scheduling. It also performs auto batching of the incoming requests.
 
     After enabling you will require to send username and password from the request header for the private endpoints.
 
@@ -132,6 +130,7 @@ class _LoadBalancer(LightningWork):
         api_name: The name to be displayed on the UI. Normally, it is the name of the work class
         cold_start_proxy: The proxy service to use while the work is cold starting.
         **kwargs: Arguments passed to :func:`LightningWork.init` like ``CloudCompute``, ``BuildConfig``, etc.
+
     """
 
     @requires(["aiohttp"])
@@ -181,9 +180,9 @@ class _LoadBalancer(LightningWork):
                 raise ValueError("cold_start_proxy must be of type ColdStartProxy or str")
 
     def get_internal_url(self) -> str:
-        if not self._internal_ip:
-            raise ValueError("Internal IP not set")
-        return f"http://{self._internal_ip}:{self._port}"
+        if not self._public_ip:
+            raise ValueError("Public IP not set")
+        return f"http://{self._public_ip}:{self._port}"
 
     async def send_batch(self, batch: List[Tuple[str, _BatchRequestModel]], server_url: str):
         request_data: List[_LoadBalancer._input_type] = [b[1] for b in batch]
@@ -230,12 +229,14 @@ class _LoadBalancer(LightningWork):
                 logger.error("Server is not found in the status list. This should not happen.")
             if status:
                 return server
+        return None
 
     async def consumer(self):
         """The consumer process that continuously checks for new requests and sends them to the API.
 
         Two instances of this function should not be running with shared `_state_server` as that would create race
         conditions
+
         """
         while True:
             await asyncio.sleep(0.05)
@@ -257,7 +258,9 @@ class _LoadBalancer(LightningWork):
             if batch and (is_batch_ready or is_batch_timeout):
                 self._server_status[server_url] = False
                 # find server with capacity
-                asyncio.create_task(self.send_batch(batch, server_url))
+                # Saving a reference to the result of this function, protects the task disappearing mid-execution
+                # https://docs.python.org/3/library/asyncio-task.html#asyncio.create_task
+                task = asyncio.create_task(self.send_batch(batch, server_url))  # noqa: F841
                 # resetting the batch array, TODO - not locking the array
                 self._batch = self._batch[len(batch) :]
                 self._last_batch_sent = time.time()
@@ -291,6 +294,7 @@ class _LoadBalancer(LightningWork):
         """This function checks if we have processing capacity for one more request or not.
 
         Depends on the value from here, we decide whether we should proxy the request or not
+
         """
         if not self._fastapi_app:
             return False
@@ -312,7 +316,7 @@ class _LoadBalancer(LightningWork):
 
         @fastapi_app.middleware("http")
         async def current_request_counter(request: Request, call_next):
-            if not request.scope["path"] == self.endpoint:
+            if request.scope["path"] != self.endpoint:
                 return await call_next(request)
             fastapi_app.global_request_count += 1
             fastapi_app.num_current_requests += 1
@@ -383,10 +387,11 @@ class _LoadBalancer(LightningWork):
         """Updates works that load balancer distributes requests to.
 
         AutoScaler uses this method to increase/decrease the number of works.
+
         """
         old_server_urls = set(self.servers)
         current_server_urls = {
-            f"http://{server._internal_ip}:{server.port}" for server in server_works if server._internal_ip
+            f"http://{server._public_ip}:{server.port}" for server in server_works if server._internal_ip
         }
 
         # doing nothing if no server work has been added/removed
@@ -456,7 +461,7 @@ class _LoadBalancer(LightningWork):
             logger.warn(
                 "Some dependencies to run the UI are missing. To resolve, run `pip install lightning-api-access`"
             )
-            return
+            return None
 
         if is_running_in_cloud():
             url = f"{self._future_url}{self.endpoint}"
@@ -481,9 +486,8 @@ class _LoadBalancer(LightningWork):
 
 
 class AutoScaler(LightningFlow):
-    """The ``AutoScaler`` can be used to automatically change the number of replicas of the given server in
-    response to changes in the number of incoming requests. Incoming requests will be batched and balanced across
-    the replicas.
+    """The ``AutoScaler`` can be used to automatically change the number of replicas of the given server in response to
+    changes in the number of incoming requests. Incoming requests will be batched and balanced across the replicas.
 
     Args:
         min_replicas: The number of works to start when app initializes.
@@ -499,11 +503,12 @@ class AutoScaler(LightningFlow):
 
     .. testcode::
 
-        import lightning as L
+        from lightning.app import LightningApp
+        from lightning.app.components import AutoScaler
 
         # Example 1: Auto-scaling serve component out-of-the-box
-        app = L.LightningApp(
-            L.app.components.AutoScaler(
+        app = LightningApp(
+            app.components.AutoScaler(
                 MyPythonServer,
                 min_replicas=1,
                 max_replicas=8,
@@ -514,7 +519,7 @@ class AutoScaler(LightningFlow):
 
 
         # Example 2: Customizing the scaling logic
-        class MyAutoScaler(L.app.components.AutoScaler):
+        class MyAutoScaler(AutoScaler):
             def scale(self, replicas: int, metrics: dict) -> int:
                 pending_requests_per_running_or_pending_work = metrics["pending_requests"] / (
                     replicas + metrics["pending_works"]
@@ -533,7 +538,7 @@ class AutoScaler(LightningFlow):
                 return replicas
 
 
-        app = L.LightningApp(
+        app = LightningApp(
             MyAutoScaler(
                 MyPythonServer,
                 min_replicas=1,
@@ -544,6 +549,7 @@ class AutoScaler(LightningFlow):
                 timeout_batching=1,  # for auto batching
             )
         )
+
     """
 
     def __init__(
@@ -609,10 +615,10 @@ class AutoScaler(LightningFlow):
         """Replicates a LightningWork instance with args and kwargs provided via ``__init__``."""
         cloud_compute = self._work_kwargs.get("cloud_compute", None)
         self._work_kwargs.update(
-            dict(
-                start_with_flow=False,
-                cloud_compute=cloud_compute.clone() if cloud_compute else None,
-            )
+            {
+                "start_with_flow": False,
+                "cloud_compute": cloud_compute.clone() if cloud_compute else None,
+            }
         )
         return self._work_cls(*self._work_args, **self._work_kwargs)
 
@@ -621,6 +627,7 @@ class AutoScaler(LightningFlow):
 
         Returns:
             The name of the new work attribute.
+
         """
         work_attribute = uuid.uuid4().hex
         work_attribute = f"worker_{self.num_replicas}_{str(work_attribute)}"
@@ -641,8 +648,7 @@ class AutoScaler(LightningFlow):
     def get_work(self, index: int) -> LightningWork:
         """Returns the ``LightningWork`` instance with the given index."""
         work_attribute = self._work_registry[index]
-        work = getattr(self, work_attribute)
-        return work
+        return getattr(self, work_attribute)
 
     def run(self):
         if not self.load_balancer.is_running:
@@ -664,6 +670,7 @@ class AutoScaler(LightningFlow):
         Returns:
             The target number of running works. The value will be adjusted after this method runs
             so that it satisfies ``min_replicas<=replicas<=max_replicas``.
+
         """
         pending_requests = metrics["pending_requests"]
         active_or_pending_works = replicas + metrics["pending_works"]
@@ -742,8 +749,7 @@ class AutoScaler(LightningFlow):
         self.load_balancer.update_servers(self.workers)
 
     def configure_layout(self):
-        tabs = [
+        return [
             {"name": "Endpoint Info", "content": f"{self.load_balancer.url}/endpoint-info"},
             {"name": "Swagger", "content": self.load_balancer.url},
         ]
-        return tabs

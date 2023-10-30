@@ -117,3 +117,32 @@ Your code is now modular. You can switch out the entire LightningModule implemen
   + model = DopeModel()
 
     ...
+
+
+----
+
+
+************************************
+Access Fabric inside LightningModule
+************************************
+
+You can access the Fabric instance in any of the LightningModule hooks via ``self.fabric``, provided that you called
+``fabric.setup()`` on the module.
+
+.. code-block:: python
+
+    import lightning as L
+
+
+    class LitModel(L.LightningModule):
+        def on_train_start(self):
+            # Access Fabric and its attributes
+            print(self.fabric.world_size)
+
+
+    fabric = L.Fabric()
+    model = fabric.setup(LitModel())
+    model.on_train_start()
+
+To maximize compatibility with LightningModules written for the Lightning Trainer, ``self.trainer`` is also available and will
+reroute to ``self.fabric``.

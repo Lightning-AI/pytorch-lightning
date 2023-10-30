@@ -60,9 +60,8 @@ class Tqdm(_tqdm):
 
 
 class TQDMProgressBar(ProgressBar):
-    r"""
-    This is the default progress bar used by Lightning. It prints to ``stdout`` using the
-    :mod:`tqdm` package and shows up to four different bars:
+    r"""This is the default progress bar used by Lightning. It prints to ``stdout`` using the :mod:`tqdm` package and
+    shows up to four different bars:
 
         - **sanity check progress:** the progress during the sanity check run
         - **train progress:** shows the training progress. It will pause if validation starts and will resume
@@ -98,7 +97,10 @@ class TQDMProgressBar(ProgressBar):
             together. This corresponds to
             :paramref:`~lightning.pytorch.trainer.trainer.Trainer.process_position` in the
             :class:`~lightning.pytorch.trainer.trainer.Trainer`.
+
     """
+
+    BAR_FORMAT = "{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}, {rate_noinv_fmt}{postfix}]"
 
     def __init__(self, refresh_rate: int = 1, process_position: int = 0):
         super().__init__()
@@ -178,19 +180,19 @@ class TQDMProgressBar(ProgressBar):
 
     def init_sanity_tqdm(self) -> Tqdm:
         """Override this to customize the tqdm bar for the validation sanity run."""
-        bar = Tqdm(
+        return Tqdm(
             desc=self.sanity_check_description,
             position=(2 * self.process_position),
             disable=self.is_disabled,
             leave=False,
             dynamic_ncols=True,
             file=sys.stdout,
+            bar_format=self.BAR_FORMAT,
         )
-        return bar
 
     def init_train_tqdm(self) -> Tqdm:
         """Override this to customize the tqdm bar for training."""
-        bar = Tqdm(
+        return Tqdm(
             desc=self.train_description,
             position=(2 * self.process_position),
             disable=self.is_disabled,
@@ -198,12 +200,12 @@ class TQDMProgressBar(ProgressBar):
             dynamic_ncols=True,
             file=sys.stdout,
             smoothing=0,
+            bar_format=self.BAR_FORMAT,
         )
-        return bar
 
     def init_predict_tqdm(self) -> Tqdm:
         """Override this to customize the tqdm bar for predicting."""
-        bar = Tqdm(
+        return Tqdm(
             desc=self.predict_description,
             position=(2 * self.process_position),
             disable=self.is_disabled,
@@ -211,42 +213,42 @@ class TQDMProgressBar(ProgressBar):
             dynamic_ncols=True,
             file=sys.stdout,
             smoothing=0,
+            bar_format=self.BAR_FORMAT,
         )
-        return bar
 
     def init_validation_tqdm(self) -> Tqdm:
         """Override this to customize the tqdm bar for validation."""
         # The train progress bar doesn't exist in `trainer.validate()`
         has_main_bar = self.trainer.state.fn != "validate"
-        bar = Tqdm(
+        return Tqdm(
             desc=self.validation_description,
             position=(2 * self.process_position + has_main_bar),
             disable=self.is_disabled,
             leave=not has_main_bar,
             dynamic_ncols=True,
             file=sys.stdout,
+            bar_format=self.BAR_FORMAT,
         )
-        return bar
 
     def init_test_tqdm(self) -> Tqdm:
         """Override this to customize the tqdm bar for testing."""
-        bar = Tqdm(
+        return Tqdm(
             desc="Testing",
             position=(2 * self.process_position),
             disable=self.is_disabled,
             leave=True,
             dynamic_ncols=True,
             file=sys.stdout,
+            bar_format=self.BAR_FORMAT,
         )
-        return bar
 
     def on_sanity_check_start(self, *_: Any) -> None:
         self.val_progress_bar = self.init_sanity_tqdm()
         self.train_progress_bar = Tqdm(disable=True)  # dummy progress bar
 
     def on_sanity_check_end(self, *_: Any) -> None:
-        self.train_progress_bar.close()
         self.val_progress_bar.close()
+        self.train_progress_bar.close()
 
     def on_train_start(self, *_: Any) -> None:
         self.train_progress_bar = self.init_train_tqdm()
@@ -295,7 +297,7 @@ class TQDMProgressBar(ProgressBar):
         self,
         trainer: "pl.Trainer",
         pl_module: "pl.LightningModule",
-        outputs: Optional[STEP_OUTPUT],
+        outputs: STEP_OUTPUT,
         batch: Any,
         batch_idx: int,
         dataloader_idx: int = 0,
@@ -305,10 +307,10 @@ class TQDMProgressBar(ProgressBar):
             _update_n(self.val_progress_bar, n)
 
     def on_validation_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-        if self._train_progress_bar is not None and trainer.state.fn == "fit":
-            self.train_progress_bar.set_postfix(self.get_metrics(trainer, pl_module))
         self.val_progress_bar.close()
         self.reset_dataloader_idx_tracker()
+        if self._train_progress_bar is not None and trainer.state.fn == "fit":
+            self.train_progress_bar.set_postfix(self.get_metrics(trainer, pl_module))
 
     def on_test_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         self.test_progress_bar = self.init_test_tqdm()
@@ -332,7 +334,7 @@ class TQDMProgressBar(ProgressBar):
         self,
         trainer: "pl.Trainer",
         pl_module: "pl.LightningModule",
-        outputs: Optional[STEP_OUTPUT],
+        outputs: STEP_OUTPUT,
         batch: Any,
         batch_idx: int,
         dataloader_idx: int = 0,
@@ -404,7 +406,7 @@ class TQDMProgressBar(ProgressBar):
         if os.getenv("COLAB_GPU") and refresh_rate == 1:
             # smaller refresh rate on colab causes crashes, choose a higher value
             rank_zero_debug("Using a higher refresh rate on Colab. Setting it to `20`")
-            refresh_rate = 20
+            return 20
         return refresh_rate
 
 
@@ -412,6 +414,7 @@ def convert_inf(x: Optional[Union[int, float]]) -> Optional[Union[int, float]]:
     """The tqdm doesn't support inf/nan values.
 
     We have to convert it to None.
+
     """
     if x is None or math.isinf(x) or math.isnan(x):
         return None

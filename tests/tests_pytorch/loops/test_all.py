@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import pytest
-
 from lightning.pytorch import Callback, Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
+
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -89,7 +89,6 @@ class BatchHookObserverModel(BoringModel):
 )
 def test_callback_batch_on_device(tmpdir, accelerator):
     """Test that the batch object sent to the on_*_batch_start/end hooks is on the right device."""
-
     batch_callback = BatchHookObserverCallback()
 
     model = BatchHookObserverModel()

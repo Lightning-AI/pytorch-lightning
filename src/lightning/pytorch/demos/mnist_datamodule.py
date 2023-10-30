@@ -28,9 +28,6 @@ from lightning.fabric.utilities.imports import _IS_WINDOWS
 from lightning.pytorch import LightningDataModule
 from lightning.pytorch.utilities.imports import _TORCHVISION_AVAILABLE
 
-if _TORCHVISION_AVAILABLE:
-    from torchvision import transforms as transform_lib
-
 _DATASETS_PATH = "./data"
 
 
@@ -41,6 +38,7 @@ class _MNIST(Dataset):
     See https://github.com/Lightning-AI/lightning/pull/7614#discussion_r671183652 for more context.
 
     .. warning::  This is meant for testing/debugging and is experimental.
+
     """
 
     RESOURCES = (
@@ -98,7 +96,7 @@ class _MNIST(Dataset):
         for url in self.RESOURCES:
             logging.info(f"Downloading {url}")
             fpath = os.path.join(data_folder, os.path.basename(url))
-            urllib.request.urlretrieve(url, fpath)
+            urllib.request.urlretrieve(url, fpath)  # noqa: S310
 
     @staticmethod
     def _try_load(path_data: str, trials: int = 30, delta: float = 1.0) -> Tuple[Tensor, Tensor]:
@@ -112,7 +110,7 @@ class _MNIST(Dataset):
             # todo: specify the possible exception
             except Exception as ex:
                 exception = ex
-                time.sleep(delta * random.random())
+                time.sleep(delta * random.random())  # noqa: S311
             else:
                 break
         assert res is not None
@@ -135,8 +133,8 @@ def MNIST(*args: Any, **kwargs: Any) -> Dataset:
             from torchvision.datasets import MNIST
 
             MNIST(_DATASETS_PATH, download=True)
-        except HTTPError as e:
-            print(f"Error {e} downloading `torchvision.datasets.MNIST`")
+        except HTTPError as ex:
+            print(f"Error {ex} downloading `torchvision.datasets.MNIST`")
             torchvision_mnist_available = False
     if not torchvision_mnist_available:
         print("`torchvision.datasets.MNIST` not available. Using our hosted version")
@@ -149,6 +147,7 @@ class MNISTDataModule(LightningDataModule):
 
     >>> MNISTDataModule()  # doctest: +ELLIPSIS
     <...mnist_datamodule.MNISTDataModule object at ...>
+
     """
 
     name = "mnist"
@@ -198,15 +197,17 @@ class MNISTDataModule(LightningDataModule):
 
     def setup(self, stage: str) -> None:
         """Split the train and valid dataset."""
-        extra = dict(transform=self.default_transforms) if self.default_transforms else {}
+        extra = {"transform": self.default_transforms} if self.default_transforms else {}
         dataset: Dataset = MNIST(self.data_dir, train=True, download=False, **extra)
         assert isinstance(dataset, Sized)
         train_length = len(dataset)
-        self.dataset_train, self.dataset_val = random_split(dataset, [train_length - self.val_split, self.val_split])
+        self.dataset_train, self.dataset_val = random_split(
+            dataset, [train_length - self.val_split, self.val_split], generator=torch.Generator().manual_seed(42)
+        )
 
     def train_dataloader(self) -> DataLoader:
         """MNIST train set removes a subset to use for validation."""
-        loader = DataLoader(
+        return DataLoader(
             self.dataset_train,
             batch_size=self.batch_size,
             shuffle=True,
@@ -214,11 +215,10 @@ class MNISTDataModule(LightningDataModule):
             drop_last=True,
             pin_memory=True,
         )
-        return loader
 
     def val_dataloader(self) -> DataLoader:
         """MNIST val set uses a subset of the training set for validation."""
-        loader = DataLoader(
+        return DataLoader(
             self.dataset_val,
             batch_size=self.batch_size,
             shuffle=False,
@@ -226,13 +226,12 @@ class MNISTDataModule(LightningDataModule):
             drop_last=True,
             pin_memory=True,
         )
-        return loader
 
     def test_dataloader(self) -> DataLoader:
         """MNIST test set uses the test split."""
-        extra = dict(transform=self.default_transforms) if self.default_transforms else {}
+        extra = {"transform": self.default_transforms} if self.default_transforms else {}
         dataset = MNIST(self.data_dir, train=False, download=False, **extra)
-        loader = DataLoader(
+        return DataLoader(
             dataset,
             batch_size=self.batch_size,
             shuffle=False,
@@ -240,17 +239,19 @@ class MNISTDataModule(LightningDataModule):
             drop_last=True,
             pin_memory=True,
         )
-        return loader
 
     @property
     def default_transforms(self) -> Optional[Callable]:
         if not _TORCHVISION_AVAILABLE:
             return None
+
+        from torchvision import transforms
+
         if self.normalize:
-            mnist_transforms = transform_lib.Compose(
-                [transform_lib.ToTensor(), transform_lib.Normalize(mean=(0.5,), std=(0.5,))]
+            mnist_transforms = transforms.Compose(
+                [transforms.ToTensor(), transforms.Normalize(mean=(0.5,), std=(0.5,))]
             )
         else:
-            mnist_transforms = transform_lib.ToTensor()
+            mnist_transforms = transforms.ToTensor()
 
         return mnist_transforms

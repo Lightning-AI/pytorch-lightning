@@ -1,8 +1,8 @@
 # app.py
-import lightning as L
+from lightning.app import LightningWork, LightningFlow, LightningApp
 
 
-class EmbeddingProcessor(L.LightningWork):
+class EmbeddingProcessor(LightningWork):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.embeddings = None
@@ -10,15 +10,15 @@ class EmbeddingProcessor(L.LightningWork):
     def run(self):
         print('PROCESSOR: Generating embeddings...')
         fake_embeddings = [[1, 2, 3], [2, 3, 4]]
-        self.embeddings = L.storage.Payload(fake_embeddings)
+        self.embeddings = storage.Payload(fake_embeddings)
 
-class EmbeddingServer(L.LightningWork):
+class EmbeddingServer(LightningWork):
     def run(self, payload):
         print('SERVER: Using embeddings from processor', payload)
         embeddings = payload.value
         print('serving embeddings sent from EmbeddingProcessor: ', embeddings)
 
-class WorkflowOrchestrator(L.LightningFlow):
+class WorkflowOrchestrator(LightningFlow):
     def __init__(self) -> None:
         super().__init__()
         self.processor = EmbeddingProcessor()
@@ -28,4 +28,4 @@ class WorkflowOrchestrator(L.LightningFlow):
         self.processor.run()
         self.server.run(self.processor.embeddings)
 
-app = L.LightningApp(WorkflowOrchestrator())
+app = LightningApp(WorkflowOrchestrator())

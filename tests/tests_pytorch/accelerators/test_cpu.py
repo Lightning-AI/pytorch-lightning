@@ -3,23 +3,23 @@ from pathlib import Path
 from typing import Any, Dict, Union
 from unittest.mock import Mock
 
+import lightning.pytorch as pl
 import pytest
 import torch
-
-import lightning.pytorch as pl
 from lightning.fabric.plugins import TorchCheckpointIO
 from lightning.pytorch import Trainer
 from lightning.pytorch.accelerators import CPUAccelerator
 from lightning.pytorch.demos.boring_classes import BoringModel
-from lightning.pytorch.plugins.precision.precision_plugin import PrecisionPlugin
+from lightning.pytorch.plugins.precision.precision import Precision
 from lightning.pytorch.strategies import SingleDeviceStrategy
+
 from tests_pytorch.helpers.runif import RunIf
 
 
 def test_restore_checkpoint_after_pre_setup_default():
     """Assert default for restore_checkpoint_after_setup is False."""
     plugin = SingleDeviceStrategy(
-        accelerator=CPUAccelerator(), device=torch.device("cpu"), precision_plugin=PrecisionPlugin()
+        accelerator=CPUAccelerator(), device=torch.device("cpu"), precision_plugin=Precision()
     )
     assert not plugin.restore_checkpoint_after_setup
 
@@ -34,13 +34,13 @@ def test_get_device_stats(tmpdir):
     fields = ["cpu_vm_percent", "cpu_percent", "cpu_swap_percent"]
 
     for f in fields:
-        assert any(f in h for h in gpu_stats.keys())
+        assert any(f in h for h in gpu_stats)
 
 
 @pytest.mark.parametrize("restore_after_pre_setup", [True, False])
 def test_restore_checkpoint_after_pre_setup(tmpdir, restore_after_pre_setup):
-    """Test to ensure that if restore_checkpoint_after_setup is True, then we only load the state after pre-
-    dispatch is called."""
+    """Test to ensure that if restore_checkpoint_after_setup is True, then we only load the state after pre- dispatch
+    is called."""
 
     class TestPlugin(SingleDeviceStrategy):
         setup_called = False
@@ -66,7 +66,7 @@ def test_restore_checkpoint_after_pre_setup(tmpdir, restore_after_pre_setup):
 
     plugin = TestPlugin(
         accelerator=CPUAccelerator(),
-        precision_plugin=PrecisionPlugin(),
+        precision_plugin=Precision(),
         device=torch.device("cpu"),
         checkpoint_io=TorchCheckpointIO(),
     )

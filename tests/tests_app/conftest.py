@@ -1,3 +1,4 @@
+import contextlib
 import os
 import shutil
 import signal
@@ -9,9 +10,7 @@ from threading import Thread
 import psutil
 import py
 import pytest
-
 from lightning.app.core import constants
-from lightning.app.storage.path import _storage_root_dir
 from lightning.app.utilities.app_helpers import _collect_child_process_pids
 from lightning.app.utilities.component import _set_context
 from lightning.app.utilities.packaging import cloud_compute
@@ -37,7 +36,7 @@ def pytest_sessionfinish(session, exitstatus):
     # TODO this isn't great. We should have each tests doing it's own cleanup
     current_process = psutil.Process()
     for child in current_process.children(recursive=True):
-        try:
+        with contextlib.suppress(psutil.NoSuchProcess):
             params = child.as_dict() or {}
             cmd_lines = params.get("cmdline", [])
             # we shouldn't kill the resource tracker from multiprocessing. If we do,
@@ -45,8 +44,6 @@ def pytest_sessionfinish(session, exitstatus):
             if cmd_lines and "resource_tracker" in cmd_lines[-1]:
                 continue
             child.kill()
-        except psutil.NoSuchProcess:
-            pass
 
     main_thread = threading.current_thread()
     for t in threading.enumerate():
@@ -57,21 +54,21 @@ def pytest_sessionfinish(session, exitstatus):
         os.kill(child_pid, signal.SIGTERM)
 
 
-@pytest.fixture(scope="function", autouse=True)
+@pytest.fixture(autouse=True)
 def cleanup():
     from lightning.app.utilities.app_helpers import _LightningAppRef
 
     yield
     _LightningAppRef._app_instance = None
     shutil.rmtree("./storage", ignore_errors=True)
-    shutil.rmtree(_storage_root_dir(), ignore_errors=True)
+    shutil.rmtree("./.storage", ignore_errors=True)
     shutil.rmtree("./.shared", ignore_errors=True)
     if os.path.isfile(_APP_CONFIG_FILENAME):
         os.remove(_APP_CONFIG_FILENAME)
     _set_context(None)
 
 
-@pytest.fixture(scope="function", autouse=True)
+@pytest.fixture(autouse=True)
 def clear_app_state_state_variables():
     """Resets global variables in order to prevent interference between tests."""
     yield
@@ -84,18 +81,19 @@ def clear_app_state_state_variables():
         cloud_compute._CLOUD_COMPUTE_STORE.clear()
 
 
-@pytest.fixture
+@pytest.fixture()
 def another_tmpdir(tmp_path: Path) -> py.path.local:
     random_dir = datetime.now().strftime("%m-%d-%Y-%H-%M-%S")
     tmp_path = os.path.join(tmp_path, random_dir)
     return py.path.local(tmp_path)
 
 
-@pytest.fixture
+@pytest.fixture()
 def caplog(caplog):
     """Workaround for https://github.com/pytest-dev/pytest/issues/3697.
 
     Setting ``filterwarnings`` with pytest breaks ``caplog`` when ``not logger.propagate``.
+
     """
     import logging
 
@@ -108,7 +106,7 @@ def caplog(caplog):
         for name in logging.root.manager.loggerDict
         if name.startswith("lightning.app")
     }
-    for name in propagation_dict.keys():
+    for name in propagation_dict:
         logging.getLogger(name).propagate = True
 
     yield caplog
@@ -118,16 +116,17 @@ def caplog(caplog):
         logging.getLogger(name).propagate = propagate
 
 
-@pytest.fixture
+@pytest.fixture()
 def patch_constants(request):
-    """This fixture can be used with indirect parametrization to patch values in `lightning.app.core.constants` for
-    the duration of a test.
+    """This fixture can be used with indirect parametrization to patch values in `lightning.app.core.constants` for the
+    duration of a test.
 
     Example::
 
         @pytest.mark.parametrize("patch_constants", [{"LIGHTNING_CLOUDSPACE_HOST": "any"}], indirect=True)
         def test_my_stuff(patch_constants):
             ...
+
     """
     # Set constants
     old_constants = {}

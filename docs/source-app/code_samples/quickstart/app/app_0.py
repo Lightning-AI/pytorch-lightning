@@ -1,9 +1,9 @@
-import lightning as L
+from lightning.app import LightningWork, LightningFlow, LightningApp
 from docs.quickstart.app_02 import HourLongWork
 
 
-class RootFlow(L.LightningFlow):
-    def __init__(self, child_work_1: L.LightningWork, child_work_2: L.LightningWork):
+class RootFlow(LightningFlow):
+    def __init__(self, child_work_1: LightningWork, child_work_2: LightningWork):
         super().__init__()
         self.child_work_1 = child_work_1
         self.child_work_2 = child_work_2
@@ -18,4 +18,4 @@ class RootFlow(L.LightningFlow):
             print("1 hour later `child_work_2` started!")
 
 
-app = L.LightningApp(RootFlow(HourLongWork(parallel=True), HourLongWork(parallel=True)))
+app = LightningApp(RootFlow(HourLongWork(parallel=True), HourLongWork(parallel=True)))

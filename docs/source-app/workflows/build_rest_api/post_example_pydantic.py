@@ -1,10 +1,10 @@
 from models import NamePostConfig  # 2. Import your custom model.
 
-import lightning as L
+from lightning.app import LightningFlow, LightningApp
 from lightning.app.api import Post
 
 
-class Flow(L.LightningFlow):
+class Flow(LightningFlow):
     # 1. Define the state
     def __init__(self):
         super().__init__()
@@ -29,4 +29,4 @@ class Flow(L.LightningFlow):
         ]
 
 
-app = L.LightningApp(Flow())
+app = LightningApp(Flow())

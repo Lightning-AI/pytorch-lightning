@@ -15,13 +15,14 @@ import os
 import warnings
 from contextlib import contextmanager
 from functools import lru_cache
-from typing import cast, Dict, Generator, List, Optional, Union
+from typing import Generator, List, Optional, Union, cast
 
 import torch
-from lightning_utilities.core.rank_zero import rank_zero_info
 
 from lightning.fabric.accelerators.accelerator import Accelerator
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12, _TORCH_GREATER_EQUAL_2_0
+from lightning.fabric.accelerators.registry import _AcceleratorRegistry
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
+from lightning.fabric.utilities.rank_zero import rank_zero_info
 
 
 class CUDAAccelerator(Accelerator):
@@ -63,11 +64,11 @@ class CUDAAccelerator(Accelerator):
         return num_cuda_devices() > 0
 
     @classmethod
-    def register_accelerators(cls, accelerator_registry: Dict) -> None:
+    def register_accelerators(cls, accelerator_registry: _AcceleratorRegistry) -> None:
         accelerator_registry.register(
             "cuda",
             cls,
-            description=cls.__class__.__name__,
+            description=cls.__name__,
         )
 
 
@@ -87,7 +88,10 @@ def find_usable_cuda_devices(num_devices: int = -1) -> List[int]:
     Warning:
         If multiple processes call this function at the same time, there can be race conditions in the case where
         both processes determine that the device is unoccupied, leading into one of them crashing later on.
+
     """
+    if num_devices == 0:
+        return []
     visible_devices = _get_all_visible_cuda_devices()
     if not visible_devices:
         raise ValueError(
@@ -127,6 +131,7 @@ def _get_all_visible_cuda_devices() -> List[int]:
     Devices masked by the environment variabale ``CUDA_VISIBLE_DEVICES`` won't be returned here. For example, assume you
     have 8 physical GPUs. If ``CUDA_VISIBLE_DEVICES="1,3,6"``, then this function will return the list ``[0, 1, 2]``
     because these are the three visible GPUs after applying the mask ``CUDA_VISIBLE_DEVICES``.
+
     """
     return list(range(num_cuda_devices()))
 
@@ -134,8 +139,7 @@ def _get_all_visible_cuda_devices() -> List[int]:
 # TODO: Remove once minimum supported PyTorch version is 2.0
 @contextmanager
 def _patch_cuda_is_available() -> Generator:
-    """Context manager that safely patches :func:`torch.cuda.is_available` with its NVML-based version if
-    possible."""
+    """Context manager that safely patches :func:`torch.cuda.is_available` with its NVML-based version if possible."""
     if hasattr(torch._C, "_cuda_getDeviceCount") and _device_count_nvml() >= 0 and not _TORCH_GREATER_EQUAL_2_0:
         # we can safely patch is_available if both torch has CUDA compiled and the NVML count is succeeding
         # otherwise, patching is_available could lead to attribute errors or infinite recursion
@@ -155,6 +159,7 @@ def num_cuda_devices() -> int:
 
     Unlike :func:`torch.cuda.device_count`, this function does its best not to create a CUDA context for fork support,
     if the platform allows it.
+
     """
     if _TORCH_GREATER_EQUAL_2_0:
         return torch.cuda.device_count()
@@ -170,6 +175,7 @@ def is_cuda_available() -> bool:
 
     Unlike :func:`torch.cuda.is_available`, this function does its best not to create a CUDA context for fork support,
     if the platform allows it.
+
     """
     # We set `PYTORCH_NVML_BASED_CUDA_CHECK=1` in lightning.fabric.__init__.py
     return torch.cuda.is_available() if _TORCH_GREATER_EQUAL_2_0 else num_cuda_devices() > 0
@@ -227,7 +233,7 @@ def _parse_visible_devices() -> Union[List[int], List[str]]:
 # TODO: Remove once minimum supported PyTorch version is 2.0
 def _raw_device_count_nvml() -> int:
     """Return number of devices as reported by NVML or negative value if NVML discovery/initialization failed."""
-    from ctypes import byref, c_int, CDLL
+    from ctypes import CDLL, byref, c_int
 
     nvml_h = CDLL("libnvidia-ml.so.1")
     rc = nvml_h.nvmlInit()
@@ -246,7 +252,7 @@ def _raw_device_count_nvml() -> int:
 # TODO: Remove once minimum supported PyTorch version is 2.0
 def _raw_device_uuid_nvml() -> Optional[List[str]]:
     """Return list of device UUID as reported by NVML or None if NVM discovery/initialization failed."""
-    from ctypes import byref, c_int, c_void_p, CDLL, create_string_buffer
+    from ctypes import CDLL, byref, c_int, c_void_p, create_string_buffer
 
     nvml_h = CDLL("libnvidia-ml.so.1")
     rc = nvml_h.nvmlInit()
@@ -310,12 +316,13 @@ def _device_count_nvml() -> int:
     """Return number of devices as reported by NVML taking CUDA_VISIBLE_DEVICES into account.
 
     Negative value is returned if NVML discovery or initialization has failed.
+
     """
     visible_devices = _parse_visible_devices()
     if not visible_devices:
         return 0
     try:
-        if type(visible_devices[0]) is str:
+        if isinstance(visible_devices[0], str):
             # Skip MIG parsing
             if visible_devices[0].startswith("MIG-"):
                 return -1
@@ -331,17 +338,13 @@ def _device_count_nvml() -> int:
             for idx, val in enumerate(visible_devices):
                 if cast(int, val) >= raw_cnt:
                     return idx
-    except OSError:
-        return -1
-    except AttributeError:
+    except (OSError, AttributeError):
         return -1
     return len(visible_devices)
 
 
+@lru_cache(1)  # show the warning only ever once
 def _check_cuda_matmul_precision(device: torch.device) -> None:
-    if not _TORCH_GREATER_EQUAL_1_12:
-        # before 1.12, tf32 was used by default
-        return
     major, _ = torch.cuda.get_device_capability(device)
     ampere_or_later = major >= 8  # Ampere and later leverage tensor cores, where this setting becomes useful
     if not ampere_or_later:
@@ -360,7 +363,8 @@ def _check_cuda_matmul_precision(device: torch.device) -> None:
 
 
 def _clear_cuda_memory() -> None:
-    if _TORCH_GREATER_EQUAL_2_0:
+    # strangely, the attribute function be undefined when torch.compile is used
+    if _TORCH_GREATER_EQUAL_2_0 and hasattr(torch._C, "_cuda_clearCublasWorkspaces"):
         # https://github.com/pytorch/pytorch/issues/95668
         torch._C._cuda_clearCublasWorkspaces()
     torch.cuda.empty_cache()

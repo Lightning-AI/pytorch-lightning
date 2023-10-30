@@ -15,6 +15,7 @@ from typing import Any, Dict, List, Optional, Union
 
 import torch
 
+from lightning.fabric.accelerators import _AcceleratorRegistry
 from lightning.fabric.accelerators.mps import MPSAccelerator as _MPSAccelerator
 from lightning.fabric.utilities.device_parser import _parse_gpu_ids
 from lightning.fabric.utilities.types import _DEVICE
@@ -27,6 +28,7 @@ class MPSAccelerator(Accelerator):
     """Accelerator for Metal Apple Silicon GPU devices.
 
     .. warning::  Use of this accelerator beyond import and instantiation is experimental.
+
     """
 
     def setup_device(self, device: torch.device) -> None:
@@ -48,8 +50,7 @@ class MPSAccelerator(Accelerator):
     @staticmethod
     def parse_devices(devices: Union[int, str, List[int]]) -> Optional[List[int]]:
         """Accelerator device parsing logic."""
-        parsed_devices = _parse_gpu_ids(devices, include_mps=True)
-        return parsed_devices
+        return _parse_gpu_ids(devices, include_mps=True)
 
     @staticmethod
     def get_parallel_devices(devices: Union[int, str, List[int]]) -> List[torch.device]:
@@ -66,15 +67,15 @@ class MPSAccelerator(Accelerator):
 
     @staticmethod
     def is_available() -> bool:
-        """MPS is only available for certain torch builds starting at torch>=1.12."""
+        """MPS is only available on a machine with the ARM-based Apple Silicon processors."""
         return _MPSAccelerator.is_available()
 
     @classmethod
-    def register_accelerators(cls, accelerator_registry: Dict) -> None:
+    def register_accelerators(cls, accelerator_registry: _AcceleratorRegistry) -> None:
         accelerator_registry.register(
             "mps",
             cls,
-            description=cls.__class__.__name__,
+            description=cls.__name__,
         )
 
 

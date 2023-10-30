@@ -26,6 +26,7 @@ class AsyncCheckpointIO(_WrappingCheckpointIO):
 
     Args:
         checkpoint_io: A checkpoint IO plugin that is used as the basis for async checkpointing.
+
     """
 
     def __init__(self, checkpoint_io: Optional["CheckpointIO"] = None) -> None:
@@ -41,8 +42,8 @@ class AsyncCheckpointIO(_WrappingCheckpointIO):
             try:
                 assert self.checkpoint_io is not None
                 self.checkpoint_io.save_checkpoint(*args, **kwargs)
-            except BaseException as e:
-                self._error = e
+            except BaseException as ex:
+                self._error = ex
 
         self._executor.submit(_save_checkpoint, *args, **kwargs)
 

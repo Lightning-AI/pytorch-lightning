@@ -2,13 +2,11 @@ from typing import Any, Iterator
 
 import torch
 import torch.nn as nn
+from lightning.fabric import Fabric
 from torch import Tensor
 from torch.nn import Module
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, Dataset, IterableDataset
-
-from lightning.fabric import Fabric
-from lightning.fabric.strategies.fsdp import FSDPStrategy
 
 
 class RandomDataset(Dataset):
@@ -38,15 +36,14 @@ class BoringFabric(Fabric):
         return nn.Linear(32, 2)
 
     def get_optimizer(self, module: Module) -> Optimizer:
-        return torch.optim.SGD(module.parameters(), lr=0.1)
+        return torch.optim.Adam(module.parameters(), lr=0.1)
 
     def get_dataloader(self) -> DataLoader:
         return DataLoader(RandomDataset(32, 64))
 
     def step(self, model: Module, batch: Any) -> Tensor:
         output = model(batch)
-        loss = torch.nn.functional.mse_loss(output, torch.ones_like(output))
-        return loss
+        return torch.nn.functional.mse_loss(output, torch.ones_like(output))
 
     def after_backward(self, model: Module, optimizer: Optimizer) -> None:
         pass
@@ -55,14 +52,10 @@ class BoringFabric(Fabric):
         pass
 
     def run(self) -> None:
-        model = self.get_model()
-        if isinstance(self.strategy, FSDPStrategy):
-            model = self.setup_module(model)
-            optimizer = self.get_optimizer(model)
-            optimizer = self.setup_optimizers(optimizer)
-        else:
-            optimizer = self.get_optimizer(model)
-            model, optimizer = self.setup(model, optimizer)
+        with self.init_module():
+            model = self.get_model()
+        optimizer = self.get_optimizer(model)
+        model, optimizer = self.setup(model, optimizer)
 
         dataloader = self.get_dataloader()
         dataloader = self.setup_dataloaders(dataloader)

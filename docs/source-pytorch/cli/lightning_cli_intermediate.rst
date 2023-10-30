@@ -19,7 +19,7 @@ enable, either install all extras:
 
 .. code:: bash
 
-    pip install "pytorch-lightning[extra]"
+    pip install "lightning[pytorch-extra]"
 
 or if only interested in ``LightningCLI``, just install jsonargparse:
 
@@ -64,9 +64,9 @@ which prints out:
 .. code:: bash
 
     usage: main.py [-h] [-c CONFIG] [--print_config [={comments,skip_null,skip_default}+]]
-            {fit,validate,test,predict,tune} ...
+            {fit,validate,test,predict} ...
 
-    pytorch-lightning trainer command line tool
+    Lightning Trainer command line tool
 
     optional arguments:
     -h, --help            Show this help message and exit.
@@ -78,12 +78,11 @@ which prints out:
     subcommands:
     For more details of each subcommand add it as argument followed by --help.
 
-    {fit,validate,test,predict,tune}
+    {fit,validate,test,predict}
         fit                 Runs the full optimization routine.
         validate            Perform one evaluation epoch over the validation set.
         test                Perform one evaluation epoch over the test set.
         predict             Run inference on your data.
-        tune                Runs routines to tune hyperparameters before training.
 
 
 The message tells us that we have a few available subcommands:
@@ -100,7 +99,6 @@ which you can use depending on your use case:
     $ python main.py validate
     $ python main.py test
     $ python main.py predict
-    $ python main.py tune
 
 ----
 

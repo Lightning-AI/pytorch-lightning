@@ -23,7 +23,7 @@ from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
 
 import torch.nn.utils.prune as pytorch_prune
 from lightning_utilities.core.apply_func import apply_to_collection
-from torch import nn, Tensor
+from torch import Tensor, nn
 from typing_extensions import TypedDict
 
 import lightning.pytorch as pl
@@ -77,8 +77,8 @@ class ModelPruning(Callback):
         verbose: int = 0,
         prune_on_train_epoch_end: bool = True,
     ) -> None:
-        """Model pruning Callback, using PyTorch's prune utilities. This callback is responsible of pruning
-        networks parameters during training.
+        """Model pruning Callback, using PyTorch's prune utilities. This callback is responsible of pruning networks
+        parameters during training.
 
         To learn more about pruning with PyTorch, please take a look at
         `this tutorial <https://pytorch.org/tutorials/intermediate/pruning_tutorial.html>`_.
@@ -155,6 +155,7 @@ class ModelPruning(Callback):
                 if ``pruning_norm`` is not provided when ``"ln_structured"``,
                 if ``pruning_fn`` is neither ``str`` nor :class:`torch.nn.utils.prune.BasePruningMethod`, or
                 if ``amount`` is none of ``int``, ``float`` and ``Callable``.
+
         """
 
         self._use_global_unstructured = use_global_unstructured
@@ -238,6 +239,7 @@ class ModelPruning(Callback):
 
         IF use_global_unstructured, pruning_fn will be resolved into its associated ``PyTorch BasePruningMethod`` ELSE,
         pruning_fn will be resolved into its function counterpart from `torch.nn.utils.prune`.
+
         """
         pruning_meth = (
             _PYTORCH_PRUNING_METHOD[pruning_fn]
@@ -262,6 +264,7 @@ class ModelPruning(Callback):
         """Removes pruning buffers from any pruned modules.
 
         Adapted from https://github.com/pytorch/pytorch/blob/v1.7.1/torch/nn/utils/prune.py#L1118-L1122
+
         """
         for _, module in module.named_modules():
             for k in list(module._forward_pre_hooks):
@@ -279,8 +282,7 @@ class ModelPruning(Callback):
         dst.data = src.data.to(dst.device)
 
     def apply_lottery_ticket_hypothesis(self) -> None:
-        r"""
-        Lottery ticket hypothesis algorithm (see page 2 of the paper):
+        r"""Lottery ticket hypothesis algorithm (see page 2 of the paper):
 
             1. Randomly initialize a neural network :math:`f(x; \theta_0)` (where :math:`\theta_0 \sim \mathcal{D}_\theta`).
             2. Train the network for :math:`j` iterations, arriving at parameters :math:`\theta_j`.
@@ -290,6 +292,7 @@ class ModelPruning(Callback):
         This function implements the step 4.
 
         The ``resample_parameters`` argument can be used to reset the parameters with a new :math:`\theta_z \sim \mathcal{D}_\theta`
+
         """  # noqa: E501
         assert self._original_layers is not None
         for d in self._original_layers.values():
@@ -410,7 +413,7 @@ class ModelPruning(Callback):
         state_dict = pl_module.state_dict()
 
         # find the mask and the original weights.
-        map_pruned_params = {k.replace("_mask", "") for k in state_dict.keys() if k.endswith("_mask")}
+        map_pruned_params = {k.replace("_mask", "") for k in state_dict if k.endswith("_mask")}
         for tensor_name in map_pruned_params:
             orig = state_dict.pop(tensor_name + "_orig")
             mask = state_dict.pop(tensor_name + "_mask")
@@ -440,6 +443,7 @@ class ModelPruning(Callback):
             MisconfigurationException:
                 If ``parameters_to_prune`` doesn't exist in the model, or
                 if ``parameters_to_prune`` is neither a list nor a tuple.
+
         """
         parameters = parameter_names or ModelPruning.PARAMETER_NAMES
 

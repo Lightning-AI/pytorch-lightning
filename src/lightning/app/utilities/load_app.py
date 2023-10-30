@@ -19,15 +19,15 @@ import traceback
 import types
 from contextlib import contextmanager
 from copy import copy
-from typing import Any, Dict, List, Tuple, Type, TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, Any, Dict, List, Tuple, Type, Union
 
 from lightning.app.utilities.exceptions import MisconfigurationException
 
 if TYPE_CHECKING:
-    from lightning.app import LightningApp, LightningFlow, LightningWork
+    from lightning.app.core import LightningApp, LightningFlow, LightningWork
     from lightning.app.plugin.plugin import LightningPlugin
 
-from lightning.app.utilities.app_helpers import _mock_missing_imports, Logger
+from lightning.app.utilities.app_helpers import Logger, _mock_missing_imports
 
 logger = Logger(__name__)
 
@@ -61,6 +61,7 @@ def _load_objects_from_file(
         raise_exception: If ``True`` exceptions will be raised, otherwise exceptions will trigger system exit.
         mock_imports: If ``True`` imports of missing packages will be replaced with a mock. This can allow the object to
             be loaded without installing dependencies.
+
     """
 
     # Taken from StreamLit: https://github.com/streamlit/streamlit/blob/develop/lib/streamlit/script_runner.py#L313
@@ -71,16 +72,15 @@ def _load_objects_from_file(
         code = _create_code(filepath)
         with _create_fake_main_module(filepath) as module:
             try:
-                with _add_to_env(env_vars):
-                    with _patch_sys_argv():
-                        if mock_imports:
-                            with _mock_missing_imports():
-                                exec(code, module.__dict__)
-                        else:
-                            exec(code, module.__dict__)
-            except Exception as e:
+                with _add_to_env(env_vars), _patch_sys_argv():
+                    if mock_imports:
+                        with _mock_missing_imports():
+                            exec(code, module.__dict__)  # noqa: S102
+                    else:
+                        exec(code, module.__dict__)  # noqa: S102
+            except Exception as ex:
                 if raise_exception:
-                    raise e
+                    raise ex
                 _prettifiy_exception(filepath)
 
     return [v for v in module.__dict__.values() if isinstance(v, target_type)], module
@@ -111,6 +111,7 @@ def load_app_from_file(
     Arguments:
         filepath:  The path to the file containing the LightningApp.
         raise_exception: If True, raise an exception if the app cannot be loaded.
+
     """
     from lightning.app.core.app import LightningApp
 
@@ -135,7 +136,6 @@ def load_app_from_file(
 
 def _new_module(name):
     """Create a new module with the given name."""
-
     return types.ModuleType(name)
 
 
@@ -144,6 +144,7 @@ def open_python_file(filename):
 
     In Python 3, we would like all files to be opened with utf-8 encoding. However, some author like to specify PEP263
     headers in their source files with their own encodings. In that case, we should respect the author's encoding.
+
     """
     import tokenize
 
@@ -151,8 +152,7 @@ def open_python_file(filename):
         # Open file respecting PEP263 encoding. If no encoding header is
         # found, opens as utf-8.
         return tokenize.open(filename)
-    else:
-        return open(filename, encoding="utf-8")
+    return open(filename, encoding="utf-8")  # noqa: SIM115
 
 
 def _create_code(script_path: str):
@@ -207,6 +207,7 @@ def _patch_sys_path(append):
 
     Args:
         append: The value to append to the path.
+
     """
     if append in sys.path:
         yield
@@ -235,11 +236,12 @@ def _add_to_env(envs: Dict[str, str]):
 
 @contextmanager
 def _patch_sys_argv():
-    """This function modifies the ``sys.argv`` by extracting the arguments after ``--app_args`` and removed
-    everything else before executing the user app script.
+    """This function modifies the ``sys.argv`` by extracting the arguments after ``--app_args`` and removed everything
+    else before executing the user app script.
 
     The command: ``lightning run app app.py --without-server --app_args --use_gpu --env ...`` will be converted into
     ``app.py --use_gpu``
+
     """
     from lightning.app.cli.lightning_cli import run_app
 
@@ -261,10 +263,7 @@ def _patch_sys_argv():
         matches = [
             argv_slice.index(opt) for opt in options if opt in argv_slice and argv_slice.index(opt) >= first_index
         ]
-        if not matches:
-            last_index = len(argv_slice)
-        else:
-            last_index = min(matches)
+        last_index = len(argv_slice) if not matches else min(matches)
         # 6: last_index is either the fully command or the latest match from the CLI options.
         new_argv = [argv_slice[0]] + argv_slice[first_index:last_index]
 
@@ -279,16 +278,16 @@ def _patch_sys_argv():
 
 
 def component_to_metadata(obj: Union["LightningWork", "LightningFlow"]) -> Dict:
-    from lightning.app import LightningWork
+    from lightning.app.core import LightningWork
 
     extras = {}
 
     if isinstance(obj, LightningWork):
-        extras = dict(
-            local_build_config=obj.local_build_config.to_dict(),
-            cloud_build_config=obj.cloud_build_config.to_dict(),
-            cloud_compute=obj.cloud_compute.to_dict(),
-        )
+        extras = {
+            "local_build_config": obj.local_build_config.to_dict(),
+            "cloud_build_config": obj.cloud_build_config.to_dict(),
+            "cloud_compute": obj.cloud_compute.to_dict(),
+        }
 
     return dict(
         affiliation=obj.name.split("."),
@@ -302,4 +301,4 @@ def component_to_metadata(obj: Union["LightningWork", "LightningFlow"]) -> Dict:
 def extract_metadata_from_app(app: "LightningApp") -> List:
     metadata = {flow.name: component_to_metadata(flow) for flow in app.flows}
     metadata.update({work.name: component_to_metadata(work) for work in app.works})
-    return list(metadata[key] for key in sorted(metadata.keys()))
+    return [metadata[key] for key in sorted(metadata.keys())]

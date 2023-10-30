@@ -6,7 +6,6 @@ from torch import Tensor
 
 
 class ServableModule(ABC, torch.nn.Module):
-
     """The ServableModule provides a simple API to make your model servable.
 
     .. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
@@ -53,6 +52,7 @@ class ServableModule(ABC, torch.nn.Module):
         )
         trainer.fit(ServableBoringModel())
         assert serve_cb.resp.json() == {"output": [0, 1]}
+
     """
 
     @abstractmethod
@@ -68,12 +68,12 @@ class ServableModule(ABC, torch.nn.Module):
 
         The second dictionary contains the name of the ``serve_step`` output variables name as its keys
         and the associated serialization function (e.g function to convert a tensors into payload).
+
         """
 
     @abstractmethod
     def serve_step(self, *args: Tensor, **kwargs: Tensor) -> Dict[str, Tensor]:
-        r"""
-        Returns the predictions of your model as a dictionary.
+        r"""Returns the predictions of your model as a dictionary.
 
         .. code-block:: python
 
@@ -86,6 +86,7 @@ class ServableModule(ABC, torch.nn.Module):
 
         Return:
             - ``dict`` - A dictionary with their associated tensors.
+
         """
 
     @abstractmethod

@@ -27,13 +27,11 @@ logger = Logger(__name__)
 
 def pwd() -> str:
     """Print your current working directory in the Lightning Cloud filesystem."""
-
     if sys.platform == "win32":
         print("`pwd` isn't supported on windows. Open an issue on Github.")
         sys.exit(0)
 
     with Live(Spinner("point", text=Text("pending...", style="white")), transient=True):
-
         root = _pwd()
 
     print(root)

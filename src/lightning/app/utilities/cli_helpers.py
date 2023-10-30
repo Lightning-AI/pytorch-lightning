@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import contextlib
 import functools
 import json
 import os
@@ -47,7 +47,6 @@ def _format_input_env_variables(env_list: tuple) -> Dict[str, str]:
             key: env variable name
             value: env variable value
     """
-
     env_vars_dict = {}
     for env_str in env_list:
         var_parts = env_str.split("=")
@@ -130,6 +129,7 @@ class _LightningAppOpenAPIRetriever:
         Arguments:
             app_id_or_name_or_url: An identified for the app.
             use_cache: Whether to load the openapi spec from the cache.
+
         """
         self.app_id_or_name_or_url = app_id_or_name_or_url
         self.url = None
@@ -183,7 +183,7 @@ class _LightningAppOpenAPIRetriever:
         project = _get_project(client)
         list_apps = client.lightningapp_instance_service_list_lightningapp_instances(project_id=project.project_id)
 
-        app_names = [_get_app_display_name(lightningapp) for lightningapp in list_apps.lightningapps]
+        app_names = [_get_app_display_name(lit_app) for lit_app in list_apps.lightningapps]
 
         if not self.app_id_or_name_or_url:
             print(f"ERROR: Provide an application name, id or url with --app_id=X. Found {app_names}")
@@ -195,10 +195,10 @@ class _LightningAppOpenAPIRetriever:
                     print("The application is starting. Try in a few moments.")
                     sys.exit(0)
                 return app
+        return None
 
     def _collect_open_api_json(self):
         """This function is used to retrieve the current url associated with an id."""
-
         if _is_url(self.app_id_or_name_or_url):
             self.url = self.app_id_or_name_or_url
             assert self.url
@@ -211,14 +211,12 @@ class _LightningAppOpenAPIRetriever:
 
         # 2: If no identifier has been provided, evaluate the local application
         if self.app_id_or_name_or_url is None:
-            try:
+            with contextlib.suppress(requests.exceptions.ConnectionError):
                 self.url = f"http://localhost:{APP_SERVER_PORT}"
                 resp = requests.get(f"{self.url}/openapi.json")
                 if resp.status_code != 200:
                     raise Exception(f"The server didn't process the request properly. Found {resp.json()}")
                 self.openapi = resp.json()
-            except requests.exceptions.ConnectionError:
-                pass
 
         # 3: If an identified was provided or the local evaluation has failed, evaluate the cloud.
         else:
@@ -249,32 +247,23 @@ def _arrow_time_callback(
             raise click.ClickException(f"cannot parse time {value}")
 
 
-def _is_valid_release(release):
-    version, release = release
-    version = packaging.version.parse(version)
-    if any(r["yanked"] for r in release) or version.is_devrelease or version.is_prerelease:
-        return False
-    return True
-
-
 @functools.lru_cache(maxsize=1)
 def _get_newer_version() -> Optional[str]:
-    """Check PyPI for newer versions of ``lightning``, returning the newest version if different from the current
-    or ``None`` otherwise."""
+    """Check PyPI for newer versions of ``lightning``, returning the newest version if different from the current or
+    ``None`` otherwise."""
     if packaging.version.parse(__version__).is_prerelease:
         return None
     try:
         response = requests.get(f"https://pypi.org/pypi/{__package_name__}/json")
-        releases = response.json()["releases"]
+        response_json = response.json()
+        releases = response_json["releases"]
         if __version__ not in releases:
             # Always return None if not installed from PyPI (e.g. dev versions)
             return None
-        releases = {version: release for version, release in filter(_is_valid_release, releases.items())}
-        sorted_releases = sorted(
-            releases.items(), key=lambda release: release[1][0]["upload_time_iso_8601"], reverse=True
-        )
-        latest_version = sorted_releases[0][0]
-        return None if __version__ == latest_version else latest_version
+        latest_version = response_json["info"]["version"]
+        parsed_version = packaging.version.parse(latest_version)
+        is_invalid = response_json["info"]["yanked"] or parsed_version.is_devrelease or parsed_version.is_prerelease
+        return None if __version__ == latest_version or is_invalid else latest_version
     except Exception:
         # Return None if any exception occurs
         return None
@@ -294,6 +283,7 @@ def _check_version_and_upgrade():
     """Checks that the current version of ``lightning`` is the latest on PyPI.
 
     If not, prompt the user to upgrade ``lightning`` for them and re-run the current call in the new version.
+
     """
     new_version = _get_newer_version()
     if new_version:
@@ -316,11 +306,11 @@ def _check_version_and_upgrade():
 
 
 def _check_environment_and_redirect():
-    """Checks that the current ``sys.executable`` is the same as the executable resolved from the current
-    environment.
+    """Checks that the current ``sys.executable`` is the same as the executable resolved from the current environment.
 
     If not, this utility tries to redirect the ``lightning`` call to the environment executable (prompting the user to
     install lightning for them there if needed).
+
     """
     process = subprocess.run(
         ["python", "-c", "import sys; print(sys.executable)"],

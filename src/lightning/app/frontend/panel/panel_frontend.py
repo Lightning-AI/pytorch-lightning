@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """The PanelFrontend wraps your Panel code in your LightningFlow."""
 from __future__ import annotations
 
@@ -36,6 +35,7 @@ def _has_panel_autoreload() -> bool:
     """Returns True if the PANEL_AUTORELOAD environment variable is set to 'yes' or 'true'.
 
     Please note the casing of value does not matter
+
     """
     return os.environ.get("PANEL_AUTORELOAD", "no").lower() in ["yes", "y", "true"]
 
@@ -74,16 +74,16 @@ class PanelFrontend(Frontend):
 
     .. code-block:: python
 
-        import lightning as L
+        from lightning.app import LightningFlow, LightningApp
         from lightning.app.frontend.panel import PanelFrontend
 
 
-        class LitPanel(L.LightningFlow):
+        class LitPanel(LightningFlow):
             def configure_layout(self):
                 return PanelFrontend("panel_app_basic.py")
 
 
-        class LitApp(L.LightningFlow):
+        class LitApp(LightningFlow):
             def __init__(self):
                 super().__init__()
                 self.lit_panel = LitPanel()
@@ -92,13 +92,14 @@ class PanelFrontend(Frontend):
                 return {"name": "home", "content": self.lit_panel}
 
 
-        app = L.LightningApp(LitApp())
+        app = LightningApp(LitApp())
 
     Start the Lightning server with `lightning run app app_basic.py`.
 
     For development you can get Panel autoreload by setting the ``PANEL_AUTORELOAD``
     environment variable to 'yes', i.e. run
     ``PANEL_AUTORELOAD=yes lightning run app app_basic.py``
+
     """
 
     @requires("panel")

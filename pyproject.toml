@@ -13,7 +13,7 @@
 # limitations under the License.
 
 [metadata]
-name = "pytorch-lightning"
+name = "lightning"
 author = "Lightning-AI et al."
 url = "https://github.com/Lightning-AI/lightning"
 
@@ -24,29 +24,26 @@ requires = [
 ]
 
 
-[tool.isort]
-known_first_party = [
-    "examples",
-    "lightning",
-    "lightning_app",
-    "lightning_fabric",
-    "pytorch_lightning",
-    "integrations_app",
-    "tests_app",
-    "tests_cloud",
-    "tests_fabric",
-    "tests_pytorch",
-]
-profile = "black"
-line_length = 120
-force_sort_within_sections = "False"
-order_by_type = "False"
-skip = ["_notebooks"]
-
-
 [tool.black]
 line-length = 120
 exclude = '(_notebooks/.*)'
+
+[tool.docformatter]
+recursive = true
+# this need to be shorter as some docstings are r"""...
+wrap-summaries = 119
+wrap-descriptions = 120
+blank = true
+
+[tool.codespell]
+# Todo: enable also python files in a next step
+skip = '*.py'
+quiet-level = 3
+# comma separated list of words; waiting for:
+#  https://github.com/codespell-project/codespell/issues/2839#issuecomment-1731601603
+# also adding links until they ignored by its: nature
+#  https://github.com/codespell-project/codespell/issues/2243#issuecomment-1732019960
+ignore-words-list = "te, compiletime"
 
 
 [tool.ruff]
@@ -55,9 +52,18 @@ line-length = 120
 select = [
     "E", "W",  # see: https://pypi.org/project/pycodestyle
     "F",  # see: https://pypi.org/project/pyflakes
+    "S",  # see: https://pypi.org/project/flake8-bandit
+]
+extend-select = [
+    "I",  # see: isort
+    "C4",  # see: https://pypi.org/project/flake8-comprehensions
+    "SIM",  # see: https://pypi.org/project/flake8-simplify
+    "RET",  # see: https://pypi.org/project/flake8-return
+    "PT",  # see: https://pypi.org/project/flake8-pytest-style
 ]
 ignore = [
     "E731",  # Do not assign a lambda expression, use a def
+    "S108",
 ]
 # Exclude a variety of commonly ignored directories.
 exclude = [
@@ -66,6 +72,49 @@ exclude = [
     "_notebooks"
 ]
 ignore-init-module-imports = true
+
+[tool.ruff.per-file-ignores]
+".actions/*" = ["S101", "S310"]
+"setup.py" = ["S101"]
+"examples/**" = [
+    "S101",  # Use of `assert` detected
+    "S113",  # todo: Probable use of requests call without
+    "S104",  # Possible binding to all interface
+    "F821",  # Undefined name `...`
+    "S311",  # Standard pseudo-random generators are not suitable for cryptographic purposes
+    "S501",  # Probable use of `requests` call with `verify=False` disabling SSL certificate checks
+    "S108",  # Probable insecure usage of temporary file or directory: "/tmp/data/MNIST"
+]
+"src/**" = [
+    "S101",  # todo: Use of `assert` detected
+    "S105", "S106", "S107",  # todo: Possible hardcoded password: ...
+    "S113",  # todo: Probable use of requests call without timeout
+    "S301",  # todo: `pickle` and modules that wrap it can be unsafe when used to deserialize untrusted data, possible security issue
+    "S324",  # todo: Probable use of insecure hash functions in `hashlib`
+    "S602",  # todo: `subprocess` call with `shell=True` identified, security issue
+    "S603",  # todo: `subprocess` call: check for execution of untrusted input
+    "S605",  # todo: Starting a process with a shell: seems safe, but may be changed in the future; consider rewriting without `shell`
+    "S607",  # todo: Starting a process with a partial executable path
+    "RET504",  # todo:Unnecessary variable assignment before `return` statement
+    "RET503",
+]
+"tests/**" = [
+    "S101",  # Use of `assert` detected
+    "S105", "S106",  # todo: Possible hardcoded password: ...
+    "S301",  # `pickle` and modules that wrap it can be unsafe when used to deserialize untrusted data, possible security issue
+    "S113",  # todo: Probable use of requests call without timeout
+    "S311",  # todo: Standard pseudo-random generators are not suitable for cryptographic purposes
+    "S108",  # todo: Probable insecure usage of temporary file or directory: "/tmp/sys-customizations-sync"
+    "S602",  # todo: `subprocess` call with `shell=True` identified, security issue
+    "S603",  # todo: `subprocess` call: check for execution of untrusted input
+    "S605",  # todo: Starting a process with a shell: seems safe, but may be changed in the future; consider rewriting without `shell`
+    "S607",  # todo: Starting a process with a partial executable path
+    "RET504",  # todo:Unnecessary variable assignment before `return` statement
+    "PT004",  # todo: Fixture `tmpdir_unittest_fixture` does not return anything, add leading underscore
+    "PT011",  # todo: `pytest.raises(ValueError)` is too broad, set the `match` parameter or use a more specific exception
+    "PT012",  # todo: `pytest.raises()` block should contain a single simple statement
+    "PT019",  # todo: Fixture `_` without value is injected as parameter, use `@pytest.mark.usefixtures` instead
+]
 
 [tool.ruff.mccabe]
 # Unlike Flake8, default to a complexity level of 10.
@@ -78,12 +127,6 @@ files = [
 ]
 # This section is for folders with "-" as they are not valid python modules
 exclude = [
-    "src/lightning_app/__about__.py",
-    "src/lightning_app/__setup__.py",
-    "src/lightning_app/__version__.py",
-    "src/lightning_fabric/__about__.py",
-    "src/lightning_fabric/__setup__.py",
-    "src/lightning_fabric/__version__.py",
     "src/lightning/app/cli/app-template",
     "src/lightning/app/cli/component-template",
     "src/lightning/app/cli/react-ui-template",
@@ -133,7 +176,6 @@ module = [
     "lightning.app.components.serve.types.image",
     "lightning.app.components.serve.types.type",
     "lightning.app.components.training",
-    "lightning.app.core.api",
     "lightning.app.frontend.panel.app_state_comm",
     "lightning.app.frontend.panel.app_state_watcher",
     "lightning.app.frontend.panel.panel_frontend",
@@ -142,7 +184,10 @@ module = [
     "lightning.app.frontend.stream_lit",
     "lightning.app.frontend.utils",
     "lightning.app.frontend.web",
-    "lightning.app.perf.pdb",
+    "lightning.app.launcher.launcher",
+    "lightning.app.launcher.lightning_backend",
+    "lightning.app.launcher.lightning_hybrid_backend",
+    "lightning.app.pdb.pdb",
     "lightning.app.runners.backends.backend",
     "lightning.app.runners.backends.cloud",
     "lightning.app.runners.backends.docker",
@@ -169,7 +214,6 @@ module = [
     "lightning.app.utilities.app_logs",
     "lightning.app.utilities.cli_helpers",
     "lightning.app.utilities.cloud",
-    "lightning.app.utilities.cluster_logs",
     "lightning.app.utilities.commands.base",
     "lightning.app.utilities.component",
     "lightning.app.utilities.enum",
@@ -191,9 +235,6 @@ module = [
     "lightning.app.utilities.state",
     "lightning.app.utilities.tracer",
     "lightning.app.utilities.tree",
-    "lightning.store.authentication",
-    "lightning.store.cloud_api",
-    "lightning.store.save",
     "lightning.store.utils",
 ]
 ignore_errors = "True"

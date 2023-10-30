@@ -1,7 +1,7 @@
 :orphan:
 
 #########################################
-Level 11: Explore SOTA scaling techniques
+Level 10: Explore SOTA scaling techniques
 #########################################
 
 In this level you'll explore SOTA techniques to help convergence, stability and scalability.

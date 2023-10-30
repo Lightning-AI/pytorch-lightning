@@ -56,6 +56,7 @@ class _TransferableDataType(ABC):
         ...         return self
         >>> isinstance(CustomObject(), _TransferableDataType)
         True
+
     """
 
     @classmethod
@@ -81,8 +82,8 @@ def move_data_to_device(batch: Any, device: _DEVICE) -> Any:
     See Also:
         - :meth:`torch.Tensor.to`
         - :class:`torch.device`
-    """
 
+    """
     if isinstance(device, str):
         device = torch.device(device)
 
@@ -114,6 +115,7 @@ def convert_tensors_to_scalars(data: Any) -> Any:
     Raises:
         ValueError:
             If tensors inside ``metrics`` contains multiple elements, hence preventing conversion to a scalar.
+
     """
 
     def to_item(value: Tensor) -> Union[int, float, bool]:

@@ -5,7 +5,6 @@ from unittest import mock
 from unittest.mock import ANY, Mock
 
 import pytest
-
 from lightning.app import LightningFlow
 from lightning.app.frontend.stream_lit import StreamlitFrontend
 from lightning.app.utilities.state import AppState

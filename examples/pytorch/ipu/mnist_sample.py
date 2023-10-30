@@ -13,10 +13,9 @@
 # limitations under the License.
 
 import torch
-from torch.nn import functional as F
-
 from lightning.pytorch import LightningModule, Trainer
 from lightning.pytorch.demos.mnist_datamodule import MNISTDataModule
+from torch.nn import functional as F
 
 
 class LitClassifier(LightningModule):
@@ -33,14 +32,12 @@ class LitClassifier(LightningModule):
     def forward(self, x):
         x = x.view(x.size(0), -1)
         x = torch.relu(self.l1(x))
-        x = torch.relu(self.l2(x))
-        return x
+        return torch.relu(self.l2(x))
 
     def training_step(self, batch, batch_idx):
         x, y = batch
         y_hat = self(x)
-        loss = F.cross_entropy(y_hat, y)
-        return loss
+        return F.cross_entropy(y_hat, y)
 
     def validation_step(self, batch, batch_idx):
         x, y = batch
@@ -60,8 +57,7 @@ class LitClassifier(LightningModule):
         # currently IPU poptorch doesn't implicit convert bools to tensor
         # hence we use an explicit calculation for accuracy here. Once fixed in poptorch
         # we can use the accuracy metric.
-        acc = torch.sum(torch.eq(torch.argmax(logits, -1), y).to(torch.float32)) / len(y)
-        return acc
+        return torch.sum(torch.eq(torch.argmax(logits, -1), y).to(torch.float32)) / len(y)
 
     def on_validation_epoch_end(self) -> None:
         # since the training step/validation step and test step are run on the IPU device

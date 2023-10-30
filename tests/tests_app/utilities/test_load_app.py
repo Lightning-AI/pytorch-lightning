@@ -3,7 +3,6 @@ import sys
 from unittest.mock import ANY
 
 import pytest
-
 from lightning.app.utilities.exceptions import MisconfigurationException
 from lightning.app.utilities.load_app import extract_metadata_from_app, load_app_from_file
 
@@ -52,13 +51,14 @@ def test_extract_metadata_from_component():
             "cloud_build_config": {"__build_config__": {"requirements": [], "dockerfile": None, "image": None}},
             "cloud_compute": {
                 "type": "__cloud_compute__",
-                "name": "default",
+                "name": "cpu-small",
                 "disk_size": 0,
                 "idle_timeout": None,
                 "shm_size": 0,
                 "mounts": None,
                 "_internal_id": "default",
                 "interruptible": False,
+                "colocation_group_id": None,
             },
         },
         {
@@ -76,13 +76,14 @@ def test_extract_metadata_from_component():
             "cloud_build_config": {"__build_config__": {"requirements": [], "dockerfile": None, "image": None}},
             "cloud_compute": {
                 "type": "__cloud_compute__",
-                "name": "default",
+                "name": "cpu-small",
                 "disk_size": 0,
                 "idle_timeout": None,
                 "shm_size": 0,
                 "mounts": None,
                 "_internal_id": "default",
                 "interruptible": False,
+                "colocation_group_id": None,
             },
         },
         {"affiliation": ["root", "flow_b"], "cls_name": "FlowB", "module": "__main__", "docstring": "FlowB."},
@@ -102,6 +103,7 @@ def test_extract_metadata_from_component():
                 "mounts": None,
                 "_internal_id": ANY,
                 "interruptible": False,
+                "colocation_group_id": None,
             },
         },
     ]

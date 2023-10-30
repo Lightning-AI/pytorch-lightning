@@ -8,13 +8,10 @@ TPU training (Basic)
 
 ----
 
-.. raw:: html
-
-    <video width="50%" max-width="400px" controls
-    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/yt_thumbs/thumb_tpus.png"
-    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/tpu_cores.mp4"></video>
-
-|
+.. video:: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/tpu_cores.mp4
+    :poster: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/yt_thumbs/thumb_tpus.png
+    :width: 400
+    :muted:
 
 Lightning supports running on TPUs. At this moment, TPUs are available
 on Google Cloud (GCP), Google Colab and Kaggle Environments. For more information on TPUs
@@ -50,8 +47,8 @@ To run on different cores, modify the ``devices`` argument.
     trainer = Trainer(accelerator="tpu", devices=1)
     # run on multiple TPU cores
     trainer = Trainer(accelerator="tpu", devices=8)
-    # run on the 5th core
-    trainer = Trainer(accelerator="tpu", devices=[5])
+    # run on one specific TPU core: the 2nd core (index 1)
+    trainer = Trainer(accelerator="tpu", devices=[1])
     # choose the number of cores automatically
     trainer = Trainer(accelerator="tpu", devices="auto")
 
@@ -92,11 +89,7 @@ To get a TPU on colab, follow these steps:
 
 Google Cloud (GCP)
 ^^^^^^^^^^^^^^^^^^
-You could refer to this `page <https://cloud.google.com/tpu/docs/setup-gcp-account>`_ for getting started with Cloud TPU resources on GCP.
-
-Kaggle
-^^^^^^
-For starting Kaggle projects with TPUs, refer to this `kernel <https://www.kaggle.com/pytorchlightning/pytorch-on-tpu-with-pytorch-lightning>`_.
+You could refer to this `page <https://cloud.google.com/tpu/docs/v4-users-guide>`_ for getting started with Cloud TPU resources on GCP.
 
 ----
 

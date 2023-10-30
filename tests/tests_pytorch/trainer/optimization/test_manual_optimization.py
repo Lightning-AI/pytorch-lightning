@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import collections
+import contextlib
 from copy import deepcopy
 from unittest import mock
 from unittest.mock import ANY, call, patch
@@ -20,11 +21,12 @@ import pytest
 import torch
 import torch.distributed as torch_distrib
 import torch.nn.functional as F
-
+from lightning.fabric.utilities.exceptions import MisconfigurationException
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
-from lightning.pytorch import seed_everything, Trainer
+from lightning.pytorch import Trainer, seed_everything
 from lightning.pytorch.demos.boring_classes import BoringModel, ManualOptimBoringModel
 from lightning.pytorch.strategies import Strategy
+
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -153,7 +155,6 @@ def test_multiple_optimizers_manual_amp(tmpdir, accelerator):
 
 
 class ManualOptimizationExtendedModel(BoringModel):
-
     count = 0
     called = collections.defaultdict(int)
     detach = False
@@ -178,7 +179,6 @@ class ManualOptimizationExtendedModel(BoringModel):
         loss *= 0.1
 
         if self.should_update:
-
             self.manual_backward(loss)
             opt.step()
             opt.zero_grad()
@@ -189,12 +189,10 @@ class ManualOptimizationExtendedModel(BoringModel):
         self.called["on_train_batch_end"] += 1
         after_before = self.layer.weight.clone()
         if self.should_update:
-            try:
+            # TODO: Figure out why 1 every 3 runs, weights don't get updated on count = 4"
+            with contextlib.suppress(Exception):
+                # todo: specify the possible exception
                 assert not torch.equal(self.weight_before, after_before), self.count
-            # todo: specify the possible exception
-            except Exception:
-                # TODO: Figure out why 1 every 3 runs, weights don't get updated on count = 4"
-                pass
         else:
             try:
                 assert torch.equal(self.weight_before, after_before)
@@ -238,7 +236,6 @@ def test_manual_optimization_and_accumulated_gradient(tmpdir):
     seed_everything(234)
 
     class ExtendedModel(BoringModel):
-
         count = 1
         called = collections.defaultdict(int)
         detach = False
@@ -271,7 +268,6 @@ def test_manual_optimization_and_accumulated_gradient(tmpdir):
             loss *= 0.1
 
             if self.should_update:
-
                 self.manual_backward(loss)
                 if self.should_have_updated:
                     opt.step()
@@ -392,9 +388,9 @@ def test_multiple_optimizers_step(tmpdir):
 
 def test_step_with_optimizer_closure(tmpdir):
     """Tests that `step` works with optimizer_closure."""
+    seed_everything(1)
 
     class TestModel(BoringModel):
-
         _losses = []
 
         def __init__(self):
@@ -412,8 +408,7 @@ def test_step_with_optimizer_closure(tmpdir):
                 x = F.dropout(x, 0.1)
                 predictions = self(x)
                 predictions = F.dropout(predictions, 0.1)
-                loss = self.loss(predictions)
-                return loss
+                return self.loss(predictions)
 
             def optimizer_closure():
                 # emulate bayesian optimization.
@@ -508,7 +503,6 @@ def test_step_with_optimizer_closure_with_different_frequencies(mock_sgd_step, m
             mock_adam_step.reset_mock()
 
         def training_step(self, batch, batch_idx):
-
             # emulate gans training
             opt_gen, opt_dis = self.optimizers()
 
@@ -520,8 +514,7 @@ def test_step_with_optimizer_closure_with_different_frequencies(mock_sgd_step, m
                 x = F.dropout(x, 0.1)
                 predictions = self(x)
                 predictions = F.dropout(predictions, 0.1)
-                loss = self.loss(predictions)
-                return loss
+                return self.loss(predictions)
 
             def gen_closure():
                 loss_gen = compute_loss()
@@ -587,7 +580,6 @@ class TesManualOptimizationDDPModel(BoringModel):
         return True
 
     def training_step(self, batch, batch_idx):
-
         # emulate gans training
         opt_gen, opt_dis = self.optimizers()
 
@@ -658,7 +650,6 @@ class TesManualOptimizationDDPModel(BoringModel):
 
 
 def train_manual_optimization(tmpdir, strategy, model_cls=TesManualOptimizationDDPModel):
-
     seed_everything(42)
 
     model = model_cls()
@@ -687,20 +678,17 @@ def train_manual_optimization(tmpdir, strategy, model_cls=TesManualOptimizationD
 @RunIf(min_cuda_gpus=2, standalone=True)
 def test_step_with_optimizer_closure_with_different_frequencies_ddp(tmpdir):
     """Tests that `step` works with optimizer_closure and different accumulated_gradient frequency."""
-
     train_manual_optimization(tmpdir, "ddp")
 
 
 @RunIf(min_cuda_gpus=2)
 def test_step_with_optimizer_closure_with_different_frequencies_ddp_spawn(tmpdir):
     """Tests that `step` works with optimizer_closure and different accumulated_gradient frequency."""
-
     train_manual_optimization(tmpdir, "ddp_spawn")
 
 
 class TestManualOptimizationDDPModelToggleModel(TesManualOptimizationDDPModel):
     def training_step(self, batch, batch_idx):
-
         # emulate gans training
         opt_gen, opt_dis = self.optimizers()
 
@@ -900,3 +888,37 @@ def test_multiple_optimizers_logging(precision, tmpdir):
 
     assert set(trainer.logged_metrics) == {"loss_d", "loss_g"}
     assert set(trainer.progress_bar_metrics) == {"loss_d", "loss_g"}
+
+
+@pytest.mark.parametrize("automatic_optimization", [True, False])
+def test_manual_optimization_with_non_pytorch_scheduler(automatic_optimization):
+    """In manual optimization, the user can provide a custom scheduler that doesn't follow PyTorch's interface."""
+
+    class IncompatibleScheduler:
+        def __init__(self, optimizer):
+            self.optimizer = optimizer
+
+        def state_dict(self):
+            return {}
+
+        def load_state_dict(self, _):
+            pass
+
+    class Model(BoringModel):
+        def __init__(self):
+            super().__init__()
+            self.automatic_optimization = automatic_optimization
+
+        def configure_optimizers(self):
+            optimizer = torch.optim.SGD(self.layer.parameters(), lr=0.1)
+            scheduler = IncompatibleScheduler(optimizer)
+            return [optimizer], [scheduler]
+
+    model = Model()
+    trainer = Trainer(accelerator="cpu", max_epochs=0)
+    if automatic_optimization:
+        with pytest.raises(MisconfigurationException, match="doesn't follow PyTorch's LRScheduler"):
+            trainer.fit(model)
+    else:
+        # No error for manual optimization
+        trainer.fit(model)

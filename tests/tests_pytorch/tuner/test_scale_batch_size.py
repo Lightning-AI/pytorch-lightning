@@ -18,14 +18,14 @@ from unittest.mock import patch
 
 import pytest
 import torch
-from lightning_utilities.test.warning import no_warning_call
-from torch.utils.data import DataLoader
-
 from lightning.pytorch import Trainer
 from lightning.pytorch.callbacks.batch_size_finder import BatchSizeFinder
 from lightning.pytorch.demos.boring_classes import BoringDataModule, BoringModel, RandomDataset
 from lightning.pytorch.tuner.tuning import Tuner
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
+from lightning_utilities.test.warning import no_warning_call
+from torch.utils.data import DataLoader
+
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -58,7 +58,7 @@ class BatchSizeModel(BoringModel):
         return DataLoader(RandomDataset(32, 64), batch_size=getattr(self, "batch_size", 1))
 
 
-@pytest.mark.parametrize(["model_bs", "dm_bs"], [(2, -1), (2, 2), (2, None), (None, 2), (16, 16)])
+@pytest.mark.parametrize(("model_bs", "dm_bs"), [(2, -1), (2, 2), (2, None), (None, 2), (16, 16)])
 def test_scale_batch_size_method_with_model_or_datamodule(tmpdir, model_bs, dm_bs):
     """Test the tuner method `Tuner.scale_batch_size` with a datamodule."""
     trainer = Trainer(default_root_dir=tmpdir, limit_train_batches=1, limit_val_batches=0, max_epochs=1)
@@ -113,7 +113,7 @@ def test_trainer_reset_correctly(tmpdir, trainer_fn):
     assert actual == expected
 
     after_state_dict = model.state_dict()
-    for key in before_state_dict.keys():
+    for key in before_state_dict:
         assert torch.all(
             torch.eq(before_state_dict[key], after_state_dict[key])
         ), "Model was not reset correctly after scaling batch size"
@@ -231,8 +231,7 @@ def test_call_to_trainer_method(tmpdir, scale_method):
 
 
 def test_error_on_dataloader_passed_to_fit(tmpdir):
-    """Verify that when the auto-scale batch size feature raises an error if a train dataloader is passed to
-    fit."""
+    """Verify that when the auto-scale batch size feature raises an error if a train dataloader is passed to fit."""
 
     # only train passed to fit
     model = BatchSizeModel(batch_size=2)
@@ -294,7 +293,7 @@ def test_scale_batch_size_fails_with_unavailable_mode(tmpdir):
 
 
 @pytest.mark.parametrize("scale_method", ["power", "binsearch"])
-@pytest.mark.parametrize("init_batch_size", (8, 17, 64))
+@pytest.mark.parametrize("init_batch_size", [8, 17, 64])
 def test_dataloader_reset_with_scale_batch_size(tmp_path, caplog, scale_method, init_batch_size):
     """Test that train and val dataloaders are reset at every update in scale batch size."""
     model = BatchSizeModel(batch_size=16)
@@ -318,7 +317,7 @@ def test_dataloader_reset_with_scale_batch_size(tmp_path, caplog, scale_method, 
     assert caplog.text.count("greater or equal than the length") == int(new_batch_size == dataset_len)
 
     assert trainer.train_dataloader.batch_size == new_batch_size
-    assert trainer.val_dataloaders.batch_size == init_batch_size
+    assert trainer.val_dataloaders.batch_size == new_batch_size
 
 
 @pytest.mark.parametrize("trainer_fn", ["validate", "test", "predict"])
@@ -449,7 +448,7 @@ def test_batch_size_finder_with_multiple_eval_dataloaders(tmpdir):
         tuner.scale_batch_size(model, method="validate")
 
 
-@pytest.mark.parametrize("scale_method, expected_batch_size", [("power", 62), ("binsearch", 100)])
+@pytest.mark.parametrize(("scale_method", "expected_batch_size"), [("power", 62), ("binsearch", 100)])
 @patch("lightning.pytorch.tuner.batch_size_scaling.is_oom_error", return_value=True)
 def test_dataloader_batch_size_updated_on_failure(_, tmpdir, scale_method, expected_batch_size):
     class CustomBatchSizeModel(BatchSizeModel):
@@ -470,3 +469,20 @@ def test_dataloader_batch_size_updated_on_failure(_, tmpdir, scale_method, expec
     assert new_batch_size == model.batch_size
     assert new_batch_size == expected_batch_size
     assert trainer.train_dataloader.batch_size == expected_batch_size
+
+
+def test_batch_size_finder_callback_val_batches(tmpdir):
+    """Test that `BatchSizeFinder` does not limit the number of val batches during training."""
+    steps_per_trial = 2
+    model = BatchSizeModel(batch_size=16)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        num_sanity_val_steps=0,
+        max_epochs=1,
+        enable_model_summary=False,
+        callbacks=[BatchSizeFinder(steps_per_trial=steps_per_trial, max_trials=1)],
+    )
+    trainer.fit(model)
+
+    assert trainer.num_val_batches[0] == len(trainer.val_dataloaders)
+    assert trainer.num_val_batches[0] != steps_per_trial

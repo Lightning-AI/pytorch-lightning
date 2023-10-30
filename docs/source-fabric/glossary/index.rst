@@ -40,7 +40,7 @@ Glossary
 
 .. displayitem::
     :header: Checkpoint
-    :button_link: ../guide/checkpoints.html
+    :button_link: ../guide/checkpoint.html
     :col_css: col-md-4
 
 .. displayitem::
@@ -64,6 +64,11 @@ Glossary
     :col_css: col-md-4
 
 .. displayitem::
+    :header: FSDP
+    :button_link: ../advanced/model_parallel/fsdp.html
+    :col_css: col-md-4
+
+.. displayitem::
     :header: Gather
     :button_link: ../advanced/distributed_communication.html
     :col_css: col-md-4
@@ -79,8 +84,13 @@ Glossary
     :col_css: col-md-4
 
 .. displayitem::
+    :header: Initialization
+    :button_link: ../advanced/model_init.html
+    :col_css: col-md-4
+
+.. displayitem::
     :header: Jypyter
-    :button_link: ../launch/notebook.html
+    :button_link: ../launch/notebooks.html
     :col_css: col-md-4
 
 .. displayitem::

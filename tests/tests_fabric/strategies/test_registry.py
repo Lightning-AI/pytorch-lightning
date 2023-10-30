@@ -13,12 +13,10 @@
 # limitations under the License.
 
 from lightning.fabric.strategies import STRATEGY_REGISTRY
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12
 
 
 def test_strategy_registry_with_new_strategy():
     class TestStrategy:
-
         strategy_name = "test_strategy"
 
         def __init__(self, param1, param2):
@@ -54,10 +52,12 @@ def test_available_strategies_in_registry():
         "ddp_spawn",
         "ddp_fork",
         "ddp_notebook",
-        "single_tpu",
+        "single_tpu",  # legacy
+        "single_xla",
         "xla",
+        "xla_fsdp",
         "dp",
+        "fsdp",
+        "fsdp_cpu_offload",
     }
-    if _TORCH_GREATER_EQUAL_1_12:
-        expected |= {"fsdp", "fsdp_cpu_offload"}
     assert set(STRATEGY_REGISTRY.available_strategies()) == expected

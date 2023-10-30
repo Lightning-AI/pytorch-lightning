@@ -32,12 +32,9 @@ class SchedulerThread(threading.Thread):
         self._app = app
 
     def run(self) -> None:
-        try:
-            while not self._exit_event.is_set():
-                self._exit_event.wait(self._sleep_time)
-                self.run_once()
-        except Exception as e:
-            raise e
+        while not self._exit_event.is_set():
+            self._exit_event.wait(self._sleep_time)
+            self.run_once()
 
     def run_once(self):
         for call_hash in list(self._app._schedules.keys()):

@@ -1,3 +1,4 @@
+import contextlib
 import os
 import shutil
 import threading
@@ -5,13 +6,13 @@ from subprocess import Popen
 
 import psutil
 import pytest
-
-from integrations_app.public import _PATH_EXAMPLES
 from lightning.app.storage.path import _storage_root_dir
 from lightning.app.utilities.component import _set_context
 from lightning.app.utilities.packaging import cloud_compute
 from lightning.app.utilities.packaging.app_config import _APP_CONFIG_FILENAME
 from lightning.app.utilities.state import AppState
+
+from integrations_app.public import _PATH_EXAMPLES
 
 GITHUB_APP_URLS = {
     "template_react_ui": "https://github.com/Lightning-AI/lightning-template-react.git",
@@ -38,7 +39,7 @@ def pytest_sessionfinish(session, exitstatus):
     # TODO this isn't great. We should have each tests doing it's own cleanup
     current_process = psutil.Process()
     for child in current_process.children(recursive=True):
-        try:
+        with contextlib.suppress(psutil.NoSuchProcess):
             params = child.as_dict() or {}
             cmd_lines = params.get("cmdline", [])
             # we shouldn't kill the resource tracker from multiprocessing. If we do,
@@ -46,8 +47,6 @@ def pytest_sessionfinish(session, exitstatus):
             if cmd_lines and "resource_tracker" in cmd_lines[-1]:
                 continue
             child.kill()
-        except psutil.NoSuchProcess:
-            pass
 
     main_thread = threading.current_thread()
     for t in threading.enumerate():
@@ -55,7 +54,7 @@ def pytest_sessionfinish(session, exitstatus):
             t.join(0)
 
 
-@pytest.fixture(scope="function", autouse=True)
+@pytest.fixture(autouse=True)
 def cleanup():
     from lightning.app.utilities.app_helpers import _LightningAppRef
 
@@ -69,7 +68,7 @@ def cleanup():
     _set_context(None)
 
 
-@pytest.fixture(scope="function", autouse=True)
+@pytest.fixture(autouse=True)
 def clear_app_state_state_variables():
     """Resets global variables in order to prevent interference between tests."""
     yield

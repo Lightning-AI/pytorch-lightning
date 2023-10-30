@@ -16,10 +16,10 @@ Stochastic Weight Averaging Callback
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 """
 from copy import deepcopy
-from typing import Any, Callable, cast, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Union, cast
 
 import torch
-from torch import nn, Tensor
+from torch import Tensor, nn
 from torch.optim.swa_utils import SWALR
 
 import lightning.pytorch as pl
@@ -44,9 +44,7 @@ class StochasticWeightAveraging(Callback):
         avg_fn: Optional[_AVG_FN] = None,
         device: Optional[Union[torch.device, str]] = torch.device("cpu"),
     ):
-        r"""
-
-        Implements the Stochastic Weight Averaging (SWA) Callback to average a model.
+        r"""Implements the Stochastic Weight Averaging (SWA) Callback to average a model.
 
         Stochastic Weight Averaging was proposed in ``Averaging Weights Leads to
         Wider Optima and Better Generalization`` by Pavel Izmailov, Dmitrii
@@ -213,7 +211,8 @@ class StochasticWeightAveraging(Callback):
 
             # We assert that there is only one optimizer on fit start
             default_scheduler_cfg = LRSchedulerConfig(self._swa_scheduler)
-            assert default_scheduler_cfg.interval == "epoch" and default_scheduler_cfg.frequency == 1
+            assert default_scheduler_cfg.interval == "epoch"
+            assert default_scheduler_cfg.frequency == 1
 
             if trainer.lr_scheduler_configs:
                 scheduler_cfg = trainer.lr_scheduler_configs[0]

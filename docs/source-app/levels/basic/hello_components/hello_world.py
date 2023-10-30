@@ -1,12 +1,12 @@
 # app.py
-import lightning as L
+from lightning.app import LightningWork, LightningApp
 
 
-class YourComponent(L.LightningWork):
+class YourComponent(LightningWork):
    def run(self):
       print('RUN ANY PYTHON CODE HERE')
 
 
 
 component = YourComponent()
-app = L.LightningApp(component)
+app = LightningApp(component)

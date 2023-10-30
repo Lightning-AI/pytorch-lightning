@@ -46,6 +46,7 @@ class MNIST(Dataset):
         60000
         >>> torch.bincount(dataset.targets)
         tensor([5923, 6742, 5958, 6131, 5842, 5421, 5918, 6265, 5851, 5949])
+
     """
 
     RESOURCES = (
@@ -103,7 +104,7 @@ class MNIST(Dataset):
         for url in self.RESOURCES:
             logging.info(f"Downloading {url}")
             fpath = os.path.join(data_folder, os.path.basename(url))
-            urllib.request.urlretrieve(url, fpath)
+            urllib.request.urlretrieve(url, fpath)  # noqa: S310
 
     @staticmethod
     def _try_load(path_data, trials: int = 30, delta: float = 1.0):
@@ -115,8 +116,8 @@ class MNIST(Dataset):
             try:
                 res = torch.load(path_data)
             # todo: specify the possible exception
-            except Exception as e:
-                exception = e
+            except Exception as ex:
+                exception = ex
                 time.sleep(delta * random.random())
             else:
                 break
@@ -148,6 +149,7 @@ class TrialMNIST(MNIST):
         [0, 1, 2]
         >>> torch.bincount(dataset.targets)
         tensor([100, 100, 100])
+
     """
 
     def __init__(self, root: str, num_samples: int = 100, digits: Optional[Sequence] = (0, 1, 2), **kwargs):

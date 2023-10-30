@@ -36,8 +36,8 @@ class Interval(LightningEnum):
 
 
 class Timer(Callback):
-    """The Timer callback tracks the time spent in the training, validation, and test loops and interrupts the
-    Trainer if the given time limit for the training loop is reached.
+    """The Timer callback tracks the time spent in the training, validation, and test loops and interrupts the Trainer
+    if the given time limit for the training loop is reached.
 
     Args:
         duration: A string in the format DD:HH:MM:SS (days, hours, minutes seconds), or a :class:`datetime.timedelta`,
@@ -72,6 +72,7 @@ class Timer(Callback):
         timer.time_elapsed("train")
         timer.start_time("validate")
         timer.end_time("test")
+
     """
 
     def __init__(
@@ -124,6 +125,7 @@ class Timer(Callback):
         """Return the time remaining for a particular stage (in seconds)"""
         if self._duration is not None:
             return self._duration - self.time_elapsed(stage)
+        return None
 
     def on_train_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         self._start_time[RunningStage.TRAINING] = time.monotonic()

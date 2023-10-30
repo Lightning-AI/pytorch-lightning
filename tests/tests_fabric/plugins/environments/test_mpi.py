@@ -16,10 +16,8 @@ import os
 from unittest import mock
 from unittest.mock import MagicMock
 
-import numpy as np
-import pytest
-
 import lightning.fabric.plugins.environments.mpi
+import pytest
 from lightning.fabric.plugins.environments import MPIEnvironment
 
 
@@ -58,7 +56,6 @@ def test_detect(monkeypatch):
 @mock.patch.dict(os.environ, {}, clear=True)
 def test_default_attributes(monkeypatch):
     """Test the default attributes when no environment variables are set."""
-
     # pretend mpi4py is available
     monkeypatch.setattr(lightning.fabric.plugins.environments.mpi, "_MPI4PY_AVAILABLE", True)
     mpi4py_mock = MagicMock()
@@ -72,8 +69,7 @@ def test_default_attributes(monkeypatch):
 
 
 def test_init_local_comm(monkeypatch):
-    """Test that it can determine the node rank and local rank based on the hostnames of all participating
-    nodes."""
+    """Test that it can determine the node rank and local rank based on the hostnames of all participating nodes."""
     # pretend mpi4py is available
     monkeypatch.setattr(lightning.fabric.plugins.environments.mpi, "_MPI4PY_AVAILABLE", True)
     mpi4py_mock = MagicMock()
@@ -84,12 +80,12 @@ def test_init_local_comm(monkeypatch):
         env = MPIEnvironment()
 
         hostname_mock.return_value = "host1"
-        env._comm_world.bcast.return_value = np.array(["host1", "host2"])
+        env._comm_world.bcast.return_value = ["host1", "host2"]
         assert env.node_rank() == 0
 
         env._node_rank = None
         hostname_mock.return_value = "host2"
-        env._comm_world.bcast.return_value = np.array(["host1", "host2"])
+        env._comm_world.bcast.return_value = ["host1", "host2"]
         assert env.node_rank() == 1
 
         assert env._comm_local is not None

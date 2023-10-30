@@ -1,17 +1,20 @@
-mypy==1.1.1
-torch==2.0.0
+mypy==1.5.1
+torch==2.1.0
 
 types-Markdown
 types-PyYAML
 types-bleach
 types-cachetools
 types-croniter
+types-paramiko
 types-protobuf
 types-python-dateutil
 types-redis
 types-requests
 types-setuptools
 types-six
+types-tabulate
 types-toml
 types-tzlocal
 types-ujson
+types-decorator

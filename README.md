@@ -12,7 +12,7 @@
 ______________________________________________________________________
 
 <p align="center">
-  <a href="https://www.lightning.ai/">Lightning.ai</a> •
+  <a href="https://lightning.ai/">Lightning.ai</a> •
   <a href="https://lightning.ai/docs/pytorch/stable/">PyTorch Lightning</a> •
   <a href="https://lightning.ai/docs/fabric/stable/">Fabric</a> •
   <a href="https://lightning.ai/docs/app/stable/">Lightning Apps</a> •
@@ -25,9 +25,8 @@ ______________________________________________________________________
 
 [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/pytorch-lightning)](https://pypi.org/project/pytorch-lightning/)
 [![PyPI Status](https://badge.fury.io/py/pytorch-lightning.svg)](https://badge.fury.io/py/pytorch-lightning)
-[![PyPI Status](https://pepy.tech/badge/pytorch-lightning)](https://pepy.tech/project/pytorch-lightning)
-[![Conda](https://img.shields.io/conda/v/conda-forge/pytorch-lightning?label=conda&color=success)](https://anaconda.org/conda-forge/pytorch-lightning)
-[![DockerHub](https://img.shields.io/docker/pulls/pytorchlightning/pytorch_lightning.svg)](https://hub.docker.com/r/pytorchlightning/pytorch_lightning)
+[![PyPI - Downloads](https://img.shields.io/pypi/dm/pytorch-lightning)](https://pepy.tech/project/pytorch-lightning)
+[![Conda](https://img.shields.io/conda/v/conda-forge/lightning?label=conda&color=success)](https://anaconda.org/conda-forge/lightning)
 [![codecov](https://codecov.io/gh/Lightning-AI/lightning/branch/master/graph/badge.svg?token=SmzX8mnKlA)](https://codecov.io/gh/Lightning-AI/lightning)
 
 [![Discord](https://img.shields.io/discord/1077906959069626439?style=plastic)](https://discord.gg/VptPCZkGNa)
@@ -122,14 +121,14 @@ ______________________________________________________________________
 ```python
 # main.py
 # ! pip install torchvision
-import os, torch, torch.nn as nn, torch.utils.data as data, torchvision as tv, torch.nn.functional as F
+import torch, torch.nn as nn, torch.utils.data as data, torchvision as tv, torch.nn.functional as F
 import lightning as L
 
 # --------------------------------
 # Step 1: Define a LightningModule
 # --------------------------------
 # A LightningModule (nn.Module subclass) defines a full *system*
-# (ie: an LLM, difussion model, autoencoder, or simple image classifier).
+# (ie: an LLM, diffusion model, autoencoder, or simple image classifier).
 
 
 class LitAutoEncoder(L.LightningModule):
@@ -161,7 +160,7 @@ class LitAutoEncoder(L.LightningModule):
 # -------------------
 # Step 2: Define data
 # -------------------
-dataset = tv.datasets.MNIST(os.getcwd(), download=True, transform=tv.transforms.ToTensor())
+dataset = tv.datasets.MNIST(".", download=True, transform=tv.transforms.ToTensor())
 train, val = data.random_split(dataset, [55000, 5000])
 
 # -------------------
@@ -337,6 +336,10 @@ Fabric is designed for the most complex models like foundation model scaling, LL
 + import lightning as L
   import torch; import torchvision as tv
 
+ dataset = tv.datasets.CIFAR10("data", download=True,
+                               train=True,
+                               transform=tv.transforms.ToTensor())
+
 + fabric = L.Fabric()
 + fabric.launch()
 
@@ -346,9 +349,6 @@ Fabric is designed for the most complex models like foundation model scaling, LL
 - model.to(device)
 + model, optimizer = fabric.setup(model, optimizer)
 
-  dataset = tv.datasets.CIFAR10("data", download=True,
-                                train=True,
-                                transform=tv.transforms.ToTensor())
   dataloader = torch.utils.data.DataLoader(dataset, batch_size=8)
 + dataloader = fabric.setup_dataloaders(dataloader)
 
@@ -364,6 +364,7 @@ Fabric is designed for the most complex models like foundation model scaling, LL
 -         loss.backward()
 +         fabric.backward(loss)
           optimizer.step()
+          print(loss.data)
 ```
 
 </sub>
@@ -374,6 +375,10 @@ Fabric is designed for the most complex models like foundation model scaling, LL
 import lightning as L
 import torch; import torchvision as tv
 
+dataset = tv.datasets.CIFAR10("data", download=True,
+                              train=True,
+                              transform=tv.transforms.ToTensor())
+
 fabric = L.Fabric()
 fabric.launch()
 
@@ -381,9 +386,6 @@ model = tv.models.resnet18()
 optimizer = torch.optim.SGD(model.parameters(), lr=0.001)
 model, optimizer = fabric.setup(model, optimizer)
 
-dataset = tv.datasets.CIFAR10("data", download=True,
-                              train=True,
-                              transform=tv.transforms.ToTensor())
 dataloader = torch.utils.data.DataLoader(dataset, batch_size=8)
 dataloader = fabric.setup_dataloaders(dataloader)
 
@@ -397,6 +399,7 @@ for epoch in range(num_epochs):
         loss = torch.nn.functional.cross_entropy(outputs, labels)
         fabric.backward(loss)
         optimizer.step()
+        print(loss.data)
 ```
 
 </sub>
@@ -558,7 +561,7 @@ ______________________________________________________________________
 ###### Self-supervised Learning
 
 - [CPC transforms](https://lightning-bolts.readthedocs.io/en/stable/transforms/self_supervised.html#cpc-transforms)
-- [Moco v2 tranforms](https://lightning-bolts.readthedocs.io/en/stable/transforms/self_supervised.html#moco-v2-transforms)
+- [Moco v2 transforms](https://lightning-bolts.readthedocs.io/en/stable/transforms/self_supervised.html#moco-v2-transforms)
 - [SimCLR transforms](https://lightning-bolts.readthedocs.io/en/stable/transforms/self_supervised.html#simclr-transforms)
 
 ###### Convolutional Architectures
@@ -586,7 +589,7 @@ ______________________________________________________________________
 
 ## Continuous Integration
 
-Lightning is rigorously tested across multiple CPUs, GPUs, TPUs, IPUs, and HPUs and against major Python and PyTorch versions.
+Lightning is rigorously tested across multiple CPUs, GPUs and TPUs and against major Python and PyTorch versions.
 
 ###### \*Codecov is > 90%+ but build delays may show less
 
@@ -595,14 +598,13 @@ Lightning is rigorously tested across multiple CPUs, GPUs, TPUs, IPUs, and HPUs 
 
 <center>
 
-|       System / PyTorch ver.        |                                                                                              1.11                                                                                               |                                                                                                              1.12                                                                                                               | 1.13                                                                                                                                                                                                                            | 2.0  |
-| :--------------------------------: | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: | :-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- |
-|        Linux py3.9 \[GPUs\]        |                                                                                                -                                                                                                | [![Build Status](<https://dev.azure.com/Lightning-AI/lightning/_apis/build/status/pytorch-lightning%20(GPUs)?branchName=master>)](https://dev.azure.com/Lightning-AI/lightning/_build/latest?definitionId=24&branchName=master) | [![Build Status](<https://dev.azure.com/Lightning-AI/lightning/_apis/build/status/pytorch-lightning%20(GPUs)?branchName=master>)](https://dev.azure.com/Lightning-AI/lightning/_build/latest?definitionId=24&branchName=master) | Soon |
-|        Linux py3.9 \[TPUs\]        |                                                                                                -                                                                                                |                     [![Test PyTorch - TPU](https://github.com/Lightning-AI/lightning/actions/workflows/tpu-tests.yml/badge.svg)](https://github.com/Lightning-AI/lightning/actions/workflows/tpu-tests.yml)                     |                                                                                                                                                                                                                                 | Soon |
-|        Linux py3.8 \[IPUs\]        |                                                                                                -                                                                                                |                                                                                                                -                                                                                                                | [![Build Status](<https://dev.azure.com/Lightning-AI/lightning/_apis/build/status/pytorch-lightning%20(IPUs)?branchName=master>)](https://dev.azure.com/Lightning-AI/lightning/_build/latest?definitionId=25&branchName=master) | Soon |
-|  Linux (multiple Python versions)  | [![Test PyTorch](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-pytorch.yml/badge.svg)](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-pytorch.yml) |                 [![Test PyTorch](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-pytorch.yml/badge.svg)](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-pytorch.yml)                 | [![Test PyTorch](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-pytorch.yml/badge.svg)](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-pytorch.yml)                                 | Soon |
-|   OSX (multiple Python versions)   | [![Test PyTorch](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-pytorch.yml/badge.svg)](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-pytorch.yml) |                 [![Test PyTorch](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-pytorch.yml/badge.svg)](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-pytorch.yml)                 | [![Test PyTorch](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-pytorch.yml/badge.svg)](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-pytorch.yml)                                 | Soon |
-| Windows (multiple Python versions) | [![Test PyTorch](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-pytorch.yml/badge.svg)](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-pytorch.yml) |                 [![Test PyTorch](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-pytorch.yml/badge.svg)](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-pytorch.yml)                 | [![Test PyTorch](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-pytorch.yml/badge.svg)](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-pytorch.yml)                                 | Soon |
+|       System / PyTorch ver.        |                                                                                                              1.12                                                                                                               | 1.13                                                                                                                                                                                                                            | 2.0                                                                                                                                                                                                                             |                                                                                                               2.1                                                                                                               |
+| :--------------------------------: | :-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: | :-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: | :-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: |:-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------:|
+|        Linux py3.9 \[GPUs\]        | |  |  | [![Build Status](https://dev.azure.com/Lightning-AI/lightning/_apis/build/status%2Fpytorch-lightning%20%28GPUs%29?branchName=master)](https://dev.azure.com/Lightning-AI/lightning/_build/latest?definitionId=24&branchName=master) |
+|        Linux py3.9 \[TPUs\]        |                          |                                                                                                                                                                                                                                 |  [![Test PyTorch - TPU](https://github.com/Lightning-AI/lightning/actions/workflows/tpu-tests.yml/badge.svg)](https://github.com/Lightning-AI/lightning/actions/workflows/tpu-tests.yml)     |      |
+|  Linux (multiple Python versions)  |                 [![Test PyTorch](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-pytorch.yml/badge.svg)](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-pytorch.yml)                 | [![Test PyTorch](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-pytorch.yml/badge.svg)](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-pytorch.yml)                                 | [![Test PyTorch](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-pytorch.yml/badge.svg)](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-pytorch.yml)                                 |                 [![Test PyTorch](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-pytorch.yml/badge.svg)](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-pytorch.yml)                 |
+|   OSX (multiple Python versions)   |                 [![Test PyTorch](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-pytorch.yml/badge.svg)](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-pytorch.yml)                 | [![Test PyTorch](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-pytorch.yml/badge.svg)](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-pytorch.yml)                                 | [![Test PyTorch](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-pytorch.yml/badge.svg)](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-pytorch.yml)                                 |                 [![Test PyTorch](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-pytorch.yml/badge.svg)](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-pytorch.yml)                 |
+| Windows (multiple Python versions) |                 [![Test PyTorch](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-pytorch.yml/badge.svg)](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-pytorch.yml)                 | [![Test PyTorch](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-pytorch.yml/badge.svg)](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-pytorch.yml)                                 | [![Test PyTorch](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-pytorch.yml/badge.svg)](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-pytorch.yml)                                 |                 [![Test PyTorch](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-pytorch.yml/badge.svg)](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-pytorch.yml)                 |
 
 </center>
 </details>
@@ -613,7 +615,7 @@ ______________________________________________________________________
 
 The lightning community is maintained by
 
-- [10+ core contributors](https://lightning.ai/docs/pytorch/latest/governance.html) who are all a mix of professional engineers, Research Scientists, and Ph.D. students from top AI labs.
+- [10+ core contributors](https://lightning.ai/docs/pytorch/latest/community/governance.html) who are all a mix of professional engineers, Research Scientists, and Ph.D. students from top AI labs.
 - 800+ community contributors.
 
 Want to help us build Lightning and reduce boilerplate for thousands of researchers? [Learn how to make your first contribution here](https://lightning.ai/docs/pytorch/stable/generated/CONTRIBUTING.html)

@@ -13,12 +13,11 @@
 # limitations under the License.
 import os
 from unittest import mock
-from unittest.mock import ANY
-
-import pytest
-import torch
+from unittest.mock import ANY, Mock
 
 import lightning.pytorch as pl
+import pytest
+import torch
 from lightning.fabric.plugins import TorchCheckpointIO, XLACheckpointIO
 from lightning.pytorch import Trainer
 from lightning.pytorch.callbacks import ModelCheckpoint
@@ -27,7 +26,6 @@ from lightning.pytorch.demos.boring_classes import BoringModel
 
 def test_finetuning_with_ckpt_path(tmpdir):
     """This test validates that generated ModelCheckpoint is pointing to the right best_model_path during test."""
-
     checkpoint_callback = ModelCheckpoint(monitor="val_loss", dirpath=tmpdir, filename="{epoch:02d}", save_top_k=-1)
 
     class ExtendedBoringModel(BoringModel):
@@ -93,13 +91,16 @@ def test_trainer_save_checkpoint_storage_options(tmpdir, xla_available):
         trainer.save_checkpoint(instance_path)
         io_mock.assert_called_with(ANY, instance_path, storage_options=None)
 
-    with mock.patch(
-        "lightning.pytorch.trainer.connectors.checkpoint_connector._CheckpointConnector.save_checkpoint"
-    ) as cc_mock:
+    checkpoint_mock = Mock()
+    with mock.patch.object(trainer.strategy, "save_checkpoint") as save_mock, mock.patch.object(
+        trainer._checkpoint_connector, "dump_checkpoint", return_value=checkpoint_mock
+    ) as dump_mock:
         trainer.save_checkpoint(instance_path, True)
-        cc_mock.assert_called_with(instance_path, weights_only=True, storage_options=None)
+        dump_mock.assert_called_with(True)
+        save_mock.assert_called_with(checkpoint_mock, instance_path, storage_options=None)
         trainer.save_checkpoint(instance_path, False, instance_storage_options)
-        cc_mock.assert_called_with(instance_path, weights_only=False, storage_options=instance_storage_options)
+        dump_mock.assert_called_with(False)
+        save_mock.assert_called_with(checkpoint_mock, instance_path, storage_options=instance_storage_options)
 
     torch_checkpoint_io = TorchCheckpointIO()
     with pytest.raises(

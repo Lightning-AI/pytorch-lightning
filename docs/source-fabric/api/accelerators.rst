@@ -19,4 +19,4 @@ Accelerators
     CPUAccelerator
     CUDAAccelerator
     MPSAccelerator
-    TPUAccelerator
+    XLAAccelerator

@@ -15,7 +15,6 @@ from tests_app import _PROJECT_ROOT
 
 def test_introspection():
     """This test validates the scanner can find some class within the provided files."""
-
     scanner = Scanner(str(os.path.join(_PROJECT_ROOT, "tests/tests_app/core/scripts/example_1.py")))
     assert scanner.has_class(Rational)
     assert not scanner.has_class(LightningApp)
@@ -39,8 +38,8 @@ def test_introspection_lightning():
 
 @_RunIf(pl=True)
 def test_introspection_lightning_overrides():
-    """This test validates the scanner can find all the subclasses from primitives classes from PyTorch Lightning
-    in the provided files."""
+    """This test validates the scanner can find all the subclasses from primitives classes from PyTorch Lightning in
+    the provided files."""
     scanner = Scanner(str(os.path.join(_PROJECT_ROOT, "tests/tests_app/core/scripts/lightning_cli.py")))
     scan = scanner.scan()
     assert set(scan) == {"LightningDataModule", "LightningModule"}

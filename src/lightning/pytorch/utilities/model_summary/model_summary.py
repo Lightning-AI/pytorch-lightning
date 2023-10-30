@@ -12,18 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Utilities related to model weights summary."""
+
 import contextlib
 import logging
+import math
 from collections import OrderedDict
-from typing import Any, cast, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
-import numpy as np
 import torch
 import torch.nn as nn
 from torch import Tensor
 from torch.utils.hooks import RemovableHandle
 
 import lightning.pytorch as pl
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 from lightning.pytorch.utilities.rank_zero import WarningCache
 
 log = logging.getLogger(__name__)
@@ -31,11 +33,13 @@ warning_cache = WarningCache()
 
 PARAMETER_NUM_UNITS = [" ", "K", "M", "B", "T"]
 UNKNOWN_SIZE = "?"
+LEFTOVER_PARAMS_NAME = "other params"
+NOT_APPLICABLE = "n/a"
 
 
 class LayerSummary:
-    """Summary class for a single layer in a :class:`~lightning.pytorch.core.module.LightningModule`. It collects
-    the following information:
+    """Summary class for a single layer in a :class:`~lightning.pytorch.core.LightningModule`. It collects the
+    following information:
 
     - Type of the layer (e.g. Linear, BatchNorm1d, ...)
     - Input shape
@@ -61,6 +65,7 @@ class LayerSummary:
 
     Args:
         module: A module to summarize
+
     """
 
     def __init__(self, module: nn.Module) -> None:
@@ -74,32 +79,45 @@ class LayerSummary:
         self.detach_hook()
 
     def _register_hook(self) -> Optional[RemovableHandle]:
-        """Registers a hook on the module that computes the input- and output size(s) on the first forward pass. If
-        the hook is called, it will remove itself from the from the module, meaning that recursive models will only
-        record their input- and output shapes once. Registering hooks on :class:`~torch.jit.ScriptModule` is not
-        supported.
+        """Registers a hook on the module that computes the input- and output size(s) on the first forward pass. If the
+        hook is called, it will remove itself from the from the module, meaning that recursive models will only record
+        their input- and output shapes once. Registering hooks on :class:`~torch.jit.ScriptModule` is not supported.
 
         Return:
             A handle for the installed hook, or ``None`` if registering the hook is not possible.
+
         """
 
         def hook(_: nn.Module, inp: Any, out: Any) -> None:
             if len(inp) == 1:
                 inp = inp[0]
+
             self._in_size = parse_batch_shape(inp)
             self._out_size = parse_batch_shape(out)
             assert self._hook_handle is not None
             self._hook_handle.remove()
 
+        def hook_with_kwargs(_: nn.Module, args: Any, kwargs: Any, out: Any) -> None:
+            # We can't write them in the same function, since the forward hook
+            # uses positional arguments.
+
+            inp = (*args, *kwargs.values()) if kwargs is not None else args
+            hook(_, inp, out)
+
         handle = None
         if not isinstance(self._module, torch.jit.ScriptModule):
-            handle = self._module.register_forward_hook(hook)
+            if _TORCH_GREATER_EQUAL_2_0:
+                handle = self._module.register_forward_hook(hook_with_kwargs, with_kwargs=True)
+            else:
+                handle = self._module.register_forward_hook(hook)
+
         return handle
 
     def detach_hook(self) -> None:
         """Removes the forward hook if it was not already removed in the forward pass.
 
         Will be called after the summary is created.
+
         """
         if self._hook_handle is not None:
             self._hook_handle.remove()
@@ -120,13 +138,11 @@ class LayerSummary:
     @property
     def num_parameters(self) -> int:
         """Returns the number of parameters in this module."""
-        return sum(
-            cast(int, np.prod(p.shape)) if not _is_lazy_weight_tensor(p) else 0 for p in self._module.parameters()
-        )
+        return sum(math.prod(p.shape) if not _is_lazy_weight_tensor(p) else 0 for p in self._module.parameters())
 
 
 class ModelSummary:
-    """Generates a summary of all layers in a :class:`~lightning.pytorch.core.module.LightningModule`.
+    """Generates a summary of all layers in a :class:`~lightning.pytorch.core.LightningModule`.
 
     Args:
         model: The model to summarize (also referred to as the root module).
@@ -142,6 +158,9 @@ class ModelSummary:
     intermediate input- and output shapes of all layers. Supported are tensors and
     nested lists and tuples of tensors. All other types of inputs will be skipped and show as `?`
     in the summary table. The summary will also display `?` for layers not used in the forward pass.
+    If there are parameters not associated with any layers or modules, the count of those parameters
+    will be displayed in the table under `other params`. The summary will display `n/a` for module type,
+    in size, and out size.
 
     Example::
 
@@ -177,6 +196,7 @@ class ModelSummary:
         0         Non-trainable params
         132 K     Total params
         0.530     Total estimated model params size (MB)
+
     """
 
     def __init__(self, model: "pl.LightningModule", max_depth: int = 1) -> None:
@@ -237,6 +257,10 @@ class ModelSummary:
         )
 
     @property
+    def total_layer_params(self) -> int:
+        return sum(self.param_nums)
+
+    @property
     def model_size(self) -> float:
         return self.total_parameters * self._precision_megabytes
 
@@ -282,6 +306,7 @@ class ModelSummary:
         """Makes a summary listing with:
 
         Layer Name, Layer Type, Number of Parameters, Input Sizes, Output Sizes, Model Size
+
         """
         arrays = [
             (" ", list(map(str, range(len(self._layer_summary))))),
@@ -293,7 +318,23 @@ class ModelSummary:
             arrays.append(("In sizes", [str(x) for x in self.in_sizes]))
             arrays.append(("Out sizes", [str(x) for x in self.out_sizes]))
 
+        total_leftover_params = self.total_parameters - self.total_layer_params
+        if total_leftover_params > 0:
+            self._add_leftover_params_to_summary(arrays, total_leftover_params)
+
         return arrays
+
+    def _add_leftover_params_to_summary(self, arrays: List[Tuple[str, List[str]]], total_leftover_params: int) -> None:
+        """Add summary of params not associated with module or layer to model summary."""
+        layer_summaries = dict(arrays)
+        layer_summaries[" "].append(" ")
+        layer_summaries["Name"].append(LEFTOVER_PARAMS_NAME)
+        layer_summaries["Type"].append(NOT_APPLICABLE)
+        layer_summaries["Params"].append(get_human_readable_count(total_leftover_params))
+        if "In sizes" in layer_summaries:
+            layer_summaries["In sizes"].append(NOT_APPLICABLE)
+        if "Out sizes" in layer_summaries:
+            layer_summaries["Out sizes"].append(NOT_APPLICABLE)
 
     def __str__(self) -> str:
         arrays = self._get_summary_data()
@@ -313,8 +354,7 @@ def parse_batch_shape(batch: Any) -> Union[str, List]:
         return list(batch.shape)
 
     if isinstance(batch, (list, tuple)):
-        shape = [parse_batch_shape(el) for el in batch]
-        return shape
+        return [parse_batch_shape(el) for el in batch]
 
     return UNKNOWN_SIZE
 
@@ -325,8 +365,8 @@ def _format_summary_table(
     model_size: float,
     *cols: Tuple[str, List[str]],
 ) -> str:
-    """Takes in a number of arrays, each specifying a column in the summary table, and combines them all into one
-    big string defining the summary table that are nicely formatted."""
+    """Takes in a number of arrays, each specifying a column in the summary table, and combines them all into one big
+    string defining the summary table that are nicely formatted."""
     n_rows = len(cols[0][1])
     n_cols = 1 + len(cols)
 
@@ -389,11 +429,12 @@ def get_human_readable_count(number: int) -> str:
 
     Return:
         A string formatted according to the pattern described above.
+
     """
     assert number >= 0
     labels = PARAMETER_NUM_UNITS
-    num_digits = int(np.floor(np.log10(number)) + 1 if number > 0 else 1)
-    num_groups = int(np.ceil(num_digits / 3))
+    num_digits = int(math.floor(math.log10(number)) + 1 if number > 0 else 1)
+    num_groups = int(math.ceil(num_digits / 3))
     num_groups = min(num_groups, len(labels))  # don't abbreviate beyond trillions
     shift = -3 * (num_groups - 1)
     number = number * (10**shift)
@@ -427,5 +468,6 @@ def summarize(lightning_module: "pl.LightningModule", max_depth: int = 1) -> Mod
 
     Return:
         The model summary object
+
     """
     return ModelSummary(lightning_module, max_depth=max_depth)

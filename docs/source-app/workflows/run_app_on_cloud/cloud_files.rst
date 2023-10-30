@@ -36,7 +36,7 @@ For example, the source code directory below with the ``.lightningignore`` file 
     model.pt
     data_dir
 
-A sample ``.lightningignore`` file can be found `here <https://github.com/Lightning-AI/lightning.beta/blob/master/.lightningignore>`_.
+A sample ``.lightningignore`` file can be found `here <https://github.com/Lightning-AI/lightning/blob/master/.lightningignore>`_.
 
 If you are a component author and your components creates local files that you want to ignore, you can do:
 
@@ -62,8 +62,8 @@ We recommend your app contain the following files:
 .. code:: bash
 
     .
-    ├── .lightning        (auto-generated- conatins Lightning configuration)
+    ├── .lightning        (auto-generated- contains Lightning configuration)
     ├── .lightningignore  (contains files not to upload to the cloud)
     ├── app.py
     ├── README.md         (optional- a markdown description of your app)
-    └── requirements.txt  (optional- conatins all your app dependencies)
+    └── requirements.txt  (optional- contains all your app dependencies)

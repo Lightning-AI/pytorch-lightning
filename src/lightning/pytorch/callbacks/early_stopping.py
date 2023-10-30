@@ -21,7 +21,6 @@ Monitor a metric and stop training when it stops improving.
 import logging
 from typing import Any, Callable, Dict, Optional, Tuple
 
-import numpy as np
 import torch
 from torch import Tensor
 
@@ -35,8 +34,7 @@ log = logging.getLogger(__name__)
 
 
 class EarlyStopping(Callback):
-    r"""
-    Monitor a metric and stop training when it stops improving.
+    r"""Monitor a metric and stop training when it stops improving.
 
     Args:
         monitor: quantity to be monitored.
@@ -85,6 +83,7 @@ class EarlyStopping(Callback):
         *monitor, mode*
 
         Read more: :ref:`Persisting Callback State <extensions/callbacks_state:save callback state>`
+
     """
     mode_dict = {"min": torch.lt, "max": torch.gt}
 
@@ -123,7 +122,7 @@ class EarlyStopping(Callback):
             raise MisconfigurationException(f"`mode` can be {', '.join(self.mode_dict.keys())}, got {self.mode}")
 
         self.min_delta *= 1 if self.monitor_op == torch.gt else -1
-        torch_inf = torch.tensor(np.Inf)
+        torch_inf = torch.tensor(torch.inf)
         self.best_score = torch_inf if self.monitor_op == torch.lt else -torch_inf
 
     @property

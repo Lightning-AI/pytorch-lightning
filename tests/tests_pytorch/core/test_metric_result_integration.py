@@ -13,18 +13,12 @@
 # limitations under the License.
 import os
 import pickle
-from contextlib import suppress
+from contextlib import nullcontext, suppress
 from unittest import mock
 
+import lightning.pytorch as pl
 import pytest
 import torch
-from lightning_utilities.test.warning import no_warning_call
-from torch import Tensor, tensor
-from torch.nn import ModuleDict, ModuleList
-from torchmetrics import Metric, MetricCollection
-from torchmetrics.classification import Accuracy
-
-import lightning.pytorch as pl
 from lightning.fabric.utilities.warnings import PossibleUserWarning
 from lightning.pytorch import Trainer
 from lightning.pytorch.callbacks import OnExceptionCheckpoint
@@ -36,6 +30,12 @@ from lightning.pytorch.trainer.connectors.logger_connector.result import (
     _Sync,
 )
 from lightning.pytorch.utilities.imports import _TORCHMETRICS_GREATER_EQUAL_0_11 as _TM_GE_0_11
+from lightning_utilities.test.warning import no_warning_call
+from torch import Tensor, tensor
+from torch.nn import ModuleDict, ModuleList
+from torchmetrics import Metric, MetricCollection
+from torchmetrics.classification import Accuracy
+
 from tests_pytorch.core.test_results import spawn_launch
 from tests_pytorch.helpers.runif import RunIf
 
@@ -67,7 +67,7 @@ def result_reduce_ddp_fn(strategy):
     metric_b = metric_b.to(f"cuda:{rank}")
     metric_c = metric_c.to(f"cuda:{rank}")
 
-    result = _ResultCollection(True, torch.device(f"cuda:{rank}"))
+    result = _ResultCollection(True)
 
     for _ in range(3):
         cumulative_sum = 0
@@ -107,7 +107,7 @@ def test_result_metric_integration():
     metric_b = DummyMetric()
     metric_c = DummyMetric()
 
-    result = _ResultCollection(True, torch.device("cpu"))
+    result = _ResultCollection(True)
 
     for _ in range(3):
         cumulative_sum = 0
@@ -148,7 +148,6 @@ def test_result_metric_integration():
     assert repr(result) == (
         "{"
         "True, "
-        "device(type='cpu'), "
         "{'h.a': _ResultMetric('a', value=DummyMetric()), "
         "'h.b': _ResultMetric('b', value=DummyMetric()), "
         "'h.c': _ResultMetric('c', value=DummyMetric())"
@@ -157,7 +156,7 @@ def test_result_metric_integration():
 
 
 def test_result_collection_simple_loop():
-    result = _ResultCollection(True, torch.device("cpu"))
+    result = _ResultCollection(True)
     current_fx_name = None
     batch_idx = None
 
@@ -205,7 +204,7 @@ def my_sync_dist(x, *_, **__):
 def test_result_collection_restoration(tmpdir):
     """This test make sure metrics are properly reloaded on failure."""
 
-    result = _ResultCollection(True, torch.device("cpu"))
+    result = _ResultCollection(True)
     metric_a = DummyMetric()
     metric_b = DummyMetric()
     metric_c = DummyMetric()
@@ -221,11 +220,9 @@ def test_result_collection_restoration(tmpdir):
         current_fx_name = fx
 
     for epoch in range(2):
-
         cumulative_sum = 0
 
         for i in range(3):
-
             a = metric_a(i)
             b = metric_b(i)
             c = metric_c(i)
@@ -359,7 +356,7 @@ def result_collection_reload(default_root_dir, accelerator="auto", devices=1, **
                 assert metrics["callback"]["tracking"] == expected
                 assert computed_value == 2
 
-                assert self.results["training_step.tracking_2"].value == total * devices
+                assert self.results["training_step.tracking_2"].value == total
                 assert metrics["callback"]["tracking_2"] == expected
                 assert computed_value == 2
                 self.has_validated_sum = True
@@ -397,13 +394,13 @@ def result_collection_reload(default_root_dir, accelerator="auto", devices=1, **
 
 @pytest.mark.parametrize(
     "kwargs",
-    (
+    [
         {},
         pytest.param({"strategy": "ddp", "accelerator": "gpu", "devices": 1}, marks=RunIf(min_cuda_gpus=1)),
         pytest.param(
             {"strategy": "ddp", "accelerator": "gpu", "devices": 2}, marks=RunIf(min_cuda_gpus=2, standalone=True)
         ),
-    ),
+    ],
 )
 def test_result_collection_reload(tmpdir, kwargs):
     result_collection_reload(default_root_dir=tmpdir, **kwargs)
@@ -482,23 +479,34 @@ def test_metric_result_computed_check():
     assert cache is computed_value
 
 
-@pytest.mark.parametrize("floating_dtype", (torch.float, torch.double))
-def test_metric_result_respects_dtype(floating_dtype):
-    torch.set_default_dtype(floating_dtype)
+@pytest.mark.parametrize(
+    ("default_type", "converted_type"),
+    [
+        (torch.half, torch.float),
+        (torch.float, torch.float),
+        (torch.double, torch.double),
+    ],
+)
+def test_metric_result_respects_dtype(default_type, converted_type):
+    from lightning.pytorch.trainer.connectors.logger_connector.result import warning_cache
+
+    warning_cache.clear()
+
+    torch.set_default_dtype(default_type)
     fixed_dtype = torch.long  # default by PyTorch
 
     metadata = _Metadata("foo", "bar")
     metadata.sync = _Sync()
     rm = _ResultMetric(metadata, is_tensor=True)
 
-    assert rm.value.dtype == floating_dtype
+    assert rm.value.dtype == converted_type
     assert rm.cumulated_batch_size.dtype == fixed_dtype
 
     # two fixed point numbers - should be converted
     value, batch_size = tensor(2), 3
     assert value.dtype == fixed_dtype
     with pytest.warns(
-        UserWarning, match=rf"`self.log\('bar', ...\)` in your `foo` .* Converting it to {floating_dtype}"
+        UserWarning, match=rf"`self.log\('bar', ...\)` in your `foo` .* Converting it to {converted_type}"
     ):
         rm.update(value, batch_size)
     # floating and fixed
@@ -507,13 +515,13 @@ def test_metric_result_respects_dtype(floating_dtype):
     total = rm.compute()
 
     assert total == (2 * 3 + 4 * 5) / (5 + 3)
-    assert total.dtype == floating_dtype
+    assert total.dtype == converted_type
 
     # restore to avoid impacting other tests
     torch.set_default_dtype(torch.float)
 
 
-@pytest.mark.parametrize("reduce_fx", ("mean", sum))
+@pytest.mark.parametrize("reduce_fx", ["mean", sum])
 def test_metric_result_dtype_promotion(reduce_fx):
     metadata = _Metadata("foo", "bar", reduce_fx=reduce_fx)
     metadata.sync = _Sync()
@@ -533,7 +541,26 @@ def test_metric_result_dtype_promotion(reduce_fx):
     assert total.dtype == torch.double
 
 
-@pytest.mark.parametrize(["reduce_fx", "expected"], [(max, -2), (min, 2)])
+@pytest.mark.parametrize("input_dtype", [torch.int8, torch.float16, torch.bfloat16])
+def test_metric_result_precision_no_lower_than_float32(input_dtype):
+    """Test that the ResultMetric only stores values in float32 or higher precision for numerical stability."""
+    metadata = _Metadata("foo", "bar", reduce_fx="sum")
+    metadata.sync = _Sync()
+    metric = _ResultMetric(metadata, is_tensor=True)
+    assert metric.value.dtype == torch.float
+
+    # in bfloat16, truncation would occur at 256 (8 bit exponent)
+    # in int8, overflow would occur at 128
+    for i in range(1000):
+        metric.update(tensor(1.0, dtype=input_dtype), 1)
+        assert metric.value.dtype == torch.float32
+
+    total = metric.compute()
+    assert total.item() == 1000.0
+    assert total.dtype == torch.float32
+
+
+@pytest.mark.parametrize(("reduce_fx", "expected"), [(max, -2), (min, 2)])
 def test_result_metric_max_min(reduce_fx, expected):
     metadata = _Metadata("foo", "bar", reduce_fx=reduce_fx)
     metadata.sync = _Sync()
@@ -592,11 +619,14 @@ def test_logger_sync_dist(distributed_env, log_val):
     result_metric.update(log_val, 10)
 
     warning_ctx = pytest.warns if distributed_env and is_tensor else no_warning_call
+    patch_ctx = (
+        mock.patch("torch.distributed.is_initialized", return_value=distributed_env)
+        if isinstance(log_val, Tensor)
+        else nullcontext()
+    )
 
-    with mock.patch(
-        "lightning.pytorch.trainer.connectors.logger_connector.result._distributed_available",
-        return_value=distributed_env,
-    ):
-        with warning_ctx(PossibleUserWarning, match=r"recommended to use `self.log\('bar', ..., sync_dist=True\)`"):
-            value = _ResultCollection._get_cache(result_metric, on_step=False)
-        assert value == 0.5
+    with warning_ctx(
+        PossibleUserWarning, match=r"recommended to use `self.log\('bar', ..., sync_dist=True\)`"
+    ), patch_ctx:
+        value = _ResultCollection._get_cache(result_metric, on_step=False)
+    assert value == 0.5

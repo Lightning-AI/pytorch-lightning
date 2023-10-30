@@ -29,14 +29,14 @@ def _duplicate_checker(js):
 
 
 def string2dict(text):
-    """string2dict parses a JSON string into a dictionary, ensuring no keys are duplicated by accident."""
+    """String2dict parses a JSON string into a dictionary, ensuring no keys are duplicated by accident."""
     if not isinstance(text, str):
         text = text.decode("utf-8")
     try:
         js = json.loads(text, object_pairs_hook=_duplicate_checker)
         return js
-    except ValueError as e:
-        raise ValueError(f"Unable to load JSON: {str(e)}.")
+    except ValueError as ex:
+        raise ValueError(f"Unable to load JSON: {str(ex)}.")
 
 
 def is_openapi(obj):
@@ -49,6 +49,7 @@ def create_openapi_object(json_obj: Dict, target: Any):
 
     Lightning AI uses the target object to make new objects from the given JSON spec so the target must be a valid
     object.
+
     """
     if not isinstance(json_obj, dict):
         raise TypeError("json_obj must be a dictionary")
@@ -71,5 +72,4 @@ def create_openapi_object(json_obj: Dict, target: Any):
         # TODO(sherin) - specifically process list and dict and do the validation. Also do the
         #  verification for enum types
 
-    new_target = target.__class__(**target_attribs)
-    return new_target
+    return target.__class__(**target_attribs)

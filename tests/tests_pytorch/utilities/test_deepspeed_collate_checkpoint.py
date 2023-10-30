@@ -14,11 +14,11 @@
 import os
 
 import torch
-
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.strategies import DeepSpeedStrategy
 from lightning.pytorch.utilities.deepspeed import convert_zero_checkpoint_to_fp32_state_dict
+
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -40,7 +40,6 @@ def test_deepspeed_collate_checkpoint(tmpdir):
     checkpoint_path = os.path.join(tmpdir, "model.pt")
     checkpoint_path = trainer.strategy.broadcast(checkpoint_path)
     trainer.save_checkpoint(checkpoint_path)
-    trainer.strategy.barrier()
     if trainer.is_global_zero:
         # ensure function call works
         output_path = os.path.join(tmpdir, "single_model.pt")

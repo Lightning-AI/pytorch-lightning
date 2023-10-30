@@ -18,10 +18,10 @@ import sys
 from unittest import mock
 
 import pytest
-from lightning_utilities.test.warning import no_warning_call
-
 from lightning.fabric.plugins.environments import SLURMEnvironment
 from lightning.fabric.utilities.warnings import PossibleUserWarning
+from lightning_utilities.test.warning import no_warning_call
+
 from tests_fabric.helpers.runif import RunIf
 
 
@@ -86,7 +86,7 @@ def test_attributes_from_environment_variables(caplog):
 
 
 @pytest.mark.parametrize(
-    "slurm_node_list,expected",
+    ("slurm_node_list", "expected"),
     [
         ("127.0.0.1", "127.0.0.1"),
         ("alpha", "alpha"),
@@ -106,6 +106,13 @@ def test_main_address_from_slurm_node_list(slurm_node_list, expected):
     with mock.patch.dict(os.environ, {"SLURM_NODELIST": slurm_node_list}):
         env = SLURMEnvironment()
         assert env.main_address == expected
+
+
+def test_main_address_and_port_from_env_variable():
+    env = SLURMEnvironment()
+    with mock.patch.dict(os.environ, {"MASTER_ADDR": "1.2.3.4", "MASTER_PORT": "1234"}):
+        assert env.main_address == "1.2.3.4"
+        assert env.main_port == 1234
 
 
 def test_detect():
@@ -148,6 +155,27 @@ def test_srun_variable_validation():
     """Test that we raise useful errors when `srun` variables are misconfigured."""
     with mock.patch.dict(os.environ, {"SLURM_NTASKS": "1"}):
         SLURMEnvironment()
-    with mock.patch.dict(os.environ, {"SLURM_NTASKS": "2"}):
-        with pytest.raises(RuntimeError, match="You set `--ntasks=2` in your SLURM"):
-            SLURMEnvironment()
+    with mock.patch.dict(os.environ, {"SLURM_NTASKS": "2"}), pytest.raises(
+        RuntimeError, match="You set `--ntasks=2` in your SLURM"
+    ):
+        SLURMEnvironment()
+
+
+@mock.patch.dict(os.environ, {"SLURM_NTASKS_PER_NODE": "4", "SLURM_NNODES": "2"})
+def test_validate_user_settings():
+    """Test that the environment can validate the number of devices and nodes set in Fabric/Trainer."""
+    env = SLURMEnvironment()
+    env.validate_settings(num_devices=4, num_nodes=2)
+
+    with pytest.raises(ValueError, match="the number of tasks per node configured .* does not match"):
+        env.validate_settings(num_devices=2, num_nodes=2)
+
+    with pytest.raises(ValueError, match="the number of nodes configured in SLURM .* does not match"):
+        env.validate_settings(num_devices=4, num_nodes=1)
+
+    # in interactive mode, validation is skipped becauses processes get launched by Fabric/Trainer, not SLURM
+    with mock.patch(
+        "lightning.fabric.plugins.environments.slurm.SLURMEnvironment.job_name", return_value="interactive"
+    ):
+        env = SLURMEnvironment()
+        env.validate_settings(num_devices=4, num_nodes=1)  # no error

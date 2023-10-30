@@ -1,5 +1,5 @@
 # !pip install torchvision
-import lightning as L
+from lightning.app import LightningApp, CloudCompute
 from lightning.app.components.serve import PythonServer, Image, Number
 import base64, io, torchvision, torch
 from PIL import Image as PILImage
@@ -26,6 +26,6 @@ class PyTorchServer(PythonServer):
 
 
 component = PyTorchServer(
-   input_type=Image, output_type=Number, cloud_compute=L.CloudCompute('gpu')
+   input_type=Image, output_type=Number, cloud_compute=CloudCompute('gpu')
 )
-app = L.LightningApp(component)
+app = LightningApp(component)

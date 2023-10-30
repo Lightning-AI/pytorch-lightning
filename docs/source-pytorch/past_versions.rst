@@ -1,9 +1,9 @@
 Past PyTorch Lightning versions
 ===============================
 
-PyTorch Lightning evolved over time. Here's the complete history of versions with links to their respective docs.
+PyTorch Lightning :doc:`evolved over time <versioning>`. Here's the history of versions with links to their respective docs.
 
-TO help you with keeping up to spead, check :doc:`Migration guide <./upgrade/migration_guide>`.
+To help you with keeping up to spead, check :doc:`Migration guide <upgrade/migration_guide>`.
 
 .. list-table:: Past versions
    :widths: 5 50 30 15
@@ -20,7 +20,8 @@ TO help you with keeping up to spead, check :doc:`Migration guide <./upgrade/mig
        `1.9.1 <https://lightning.ai/docs/pytorch/1.9.1>`_,
        `1.9.2 <https://lightning.ai/docs/pytorch/1.9.2>`_,
        `1.9.3 <https://lightning.ai/docs/pytorch/1.9.3>`_,
-       `1.9.4 <https://lightning.ai/docs/pytorch/1.9.4>`_
+       `1.9.4 <https://lightning.ai/docs/pytorch/1.9.4>`_,
+       `1.9.5 <https://lightning.ai/docs/pytorch/1.9.5>`_
      - :doc:`from 1.9 to 2.0 <upgrade/from_1_9>`
 
    * - `1.8 <https://github.com/Lightning-AI/lightning/releases/tag/1.8.0>`_
@@ -109,7 +110,7 @@ TO help you with keeping up to spead, check :doc:`Migration guide <./upgrade/mig
        `1.2.6 <https://pytorch-lightning.readthedocs.io/en/1.2.6>`_,
        `1.2.7 <https://pytorch-lightning.readthedocs.io/en/1.2.7>`_,
        `1.2.8 <https://pytorch-lightning.readthedocs.io/en/1.2.8>`_,
-       `1.2.9 <https://pytorch-lightning.readthedocs.io/en/1.2.9>`_,
+       1.2.9,
        `1.2.10 <https://pytorch-lightning.readthedocs.io/en/1.2.10>`_
      -
 

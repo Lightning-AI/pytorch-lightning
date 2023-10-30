@@ -27,8 +27,8 @@ from typing import Any, Callable, Optional
 
 from packaging.version import Version
 
+from lightning.app import _PROJECT_ROOT, _logger, _root_logger
 from lightning.app import __version__ as version
-from lightning.app import _logger, _PROJECT_ROOT, _root_logger
 from lightning.app.core.constants import FRONTEND_DIR, PACKAGE_LIGHTNING
 from lightning.app.utilities.app_helpers import Logger
 from lightning.app.utilities.git import check_github_repository, get_dir_name
@@ -49,7 +49,7 @@ def download_frontend(root: str = _PROJECT_ROOT):
 
     shutil.rmtree(frontend_dir, ignore_errors=True)
 
-    response = urllib.request.urlopen(LIGHTNING_FRONTEND_RELEASE_URL)
+    response = urllib.request.urlopen(LIGHTNING_FRONTEND_RELEASE_URL)  # noqa: S310
 
     file = tarfile.open(fileobj=response, mode="r|gz")
     file.extractall(path=download_dir)
@@ -108,13 +108,14 @@ def get_dist_path_if_editable_install(project_name) -> str:
 
 
 def _prepare_lightning_wheels_and_requirements(root: Path, package_name: str = "lightning") -> Optional[Callable]:
-    """This function determines if lightning is installed in editable mode (for developers) and packages the
-    current lightning source along with the app.
+    """This function determines if lightning is installed in editable mode (for developers) and packages the current
+    lightning source along with the app.
 
     For normal users who install via PyPi or Conda, then this function does not do anything.
+
     """
     if not get_dist_path_if_editable_install(package_name):
-        return
+        return None
 
     os.environ["PACKAGE_NAME"] = "app" if package_name == "lightning" + "_app" else "lightning"
 
@@ -124,7 +125,7 @@ def _prepare_lightning_wheels_and_requirements(root: Path, package_name: str = "
     is_lightning = git_dir_name and git_dir_name == package_name
 
     if (PACKAGE_LIGHTNING is None and not is_lightning) or PACKAGE_LIGHTNING == "0":
-        return
+        return None
 
     download_frontend(_PROJECT_ROOT)
     _prepare_wheel(_PROJECT_ROOT)
@@ -138,17 +139,6 @@ def _prepare_lightning_wheels_and_requirements(root: Path, package_name: str = "
 
     # Don't skip by default
     if (PACKAGE_LIGHTNING or is_lightning) and not bool(int(os.getenv("SKIP_LIGHTING_UTILITY_WHEELS_BUILD", "0"))):
-        # building and copying launcher wheel if installed in editable mode
-        launcher_project_path = get_dist_path_if_editable_install("lightning_launcher")
-        if launcher_project_path:
-            from lightning_launcher.__version__ import __version__ as launcher_version
-
-            # todo: check why logging.info is missing in outputs
-            print(f"Packaged Lightning Launcher with your application. Version: {launcher_version}")
-            _prepare_wheel(launcher_project_path)
-            tar_name = _copy_tar(launcher_project_path, root)
-            tar_files.append(os.path.join(root, tar_name))
-
         # building and copying lightning-cloud wheel if installed in editable mode
         lightning_cloud_project_path = get_dist_path_if_editable_install("lightning_cloud")
         if lightning_cloud_project_path:

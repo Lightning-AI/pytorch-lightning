@@ -16,7 +16,6 @@ from argparse import Namespace
 
 import numpy as np
 import torch
-
 from lightning.fabric.utilities.logger import (
     _add_prefix,
     _convert_params,
@@ -28,9 +27,8 @@ from lightning.fabric.utilities.logger import (
 
 def test_convert_params():
     """Test conversion of params to a dict."""
-
     # Test normal dict, make sure it is unchanged
-    params = dict(string="string", int=1, float=0.1, bool=True, none=None)
+    params = {"string": "string", "int": 1, "float": 0.1, "bool": True, "none": None}
     expected = params.copy()
     assert _convert_params(params) == expected
 
@@ -45,7 +43,6 @@ def test_convert_params():
 
 def test_flatten_dict():
     """Validate flatten_dict can handle nested dictionaries and argparse Namespace."""
-
     # Test basic dict flattening with custom delimiter
     params = {"a": {"b": "c"}}
     params = _flatten_dict(params, "--")
@@ -69,7 +66,8 @@ def test_flatten_dict():
     wrapping_dict = {"params": params}
     params = _flatten_dict(wrapping_dict)
 
-    assert type(params) == dict
+    params_type = type(params)  # way around needed for Ruff's `isinstance` suggestion
+    assert params_type is dict
     assert params["params/a"] == 1
     assert params["params/b"] == 2
     assert "a" not in params
@@ -80,6 +78,7 @@ def test_sanitize_callable_params():
     """Callback function are not serializiable.
 
     Therefore, we get them a chance to return something and if the returned type is not accepted, return None.
+
     """
 
     def return_something():
@@ -106,7 +105,6 @@ def test_sanitize_callable_params():
 
 def test_sanitize_params():
     """Verify sanitize params converts various types to loggable strings."""
-
     params = {
         "float": 0.3,
         "int": 1,
@@ -137,7 +135,6 @@ def test_sanitize_params():
 
 def test_add_prefix():
     """Verify add_prefix modifies the dict keys correctly."""
-
     metrics = {"metric1": 1, "metric2": 2}
     metrics = _add_prefix(metrics, "prefix", "-")
 

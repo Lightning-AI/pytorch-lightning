@@ -25,9 +25,8 @@ from lightning.pytorch.callbacks import Checkpoint
 def _version(loggers: List[Any], separator: str = "_") -> Union[int, str]:
     if len(loggers) == 1:
         return loggers[0].version
-    else:
-        # Concatenate versions together, removing duplicates and preserving order
-        return separator.join(dict.fromkeys(str(logger.version) for logger in loggers))
+    # Concatenate versions together, removing duplicates and preserving order
+    return separator.join(dict.fromkeys(str(logger.version) for logger in loggers))
 
 
 def _scan_checkpoints(checkpoint_callback: Checkpoint, logged_model_time: dict) -> List[Tuple[float, str, float, str]]:
@@ -36,10 +35,10 @@ def _scan_checkpoints(checkpoint_callback: Checkpoint, logged_model_time: dict) 
     Args:
         checkpoint_callback: Checkpoint callback reference.
         logged_model_time: dictionary containing the logged model times.
-    """
 
+    """
     # get checkpoints to be saved with associated score
-    checkpoints = dict()
+    checkpoints = {}
     if hasattr(checkpoint_callback, "last_model_path") and hasattr(checkpoint_callback, "current_score"):
         checkpoints[checkpoint_callback.last_model_path] = (checkpoint_callback.current_score, "latest")
 
@@ -53,7 +52,7 @@ def _scan_checkpoints(checkpoint_callback: Checkpoint, logged_model_time: dict) 
     checkpoints = sorted(
         (Path(p).stat().st_mtime, p, s, tag) for p, (s, tag) in checkpoints.items() if Path(p).is_file()
     )
-    checkpoints = [c for c in checkpoints if c[1] not in logged_model_time.keys() or logged_model_time[c[1]] < c[0]]
+    checkpoints = [c for c in checkpoints if c[1] not in logged_model_time or logged_model_time[c[1]] < c[0]]
     return checkpoints
 
 
@@ -71,11 +70,11 @@ def _log_hyperparams(trainer: "pl.Trainer") -> None:
         inconsistent_keys = []
         for key in lightning_hparams.keys() & datamodule_hparams.keys():
             lm_val, dm_val = lightning_hparams[key], datamodule_hparams[key]
-            if type(lm_val) != type(dm_val):
-                inconsistent_keys.append(key)
-            elif isinstance(lm_val, Tensor) and id(lm_val) != id(dm_val):
-                inconsistent_keys.append(key)
-            elif lm_val != dm_val:
+            if (
+                type(lm_val) != type(dm_val)
+                or (isinstance(lm_val, Tensor) and id(lm_val) != id(dm_val))
+                or lm_val != dm_val
+            ):
                 inconsistent_keys.append(key)
         if inconsistent_keys:
             raise RuntimeError(

@@ -22,12 +22,7 @@ from unittest.mock import call
 import numpy as np
 import pytest
 import torch
-from lightning_utilities.test.warning import no_warning_call
-from torch import Tensor
-from torch.utils.data import DataLoader
-from torchmetrics import Accuracy
-
-from lightning.pytorch import callbacks, Trainer
+from lightning.pytorch import Trainer, callbacks
 from lightning.pytorch.callbacks import EarlyStopping, ModelCheckpoint, TQDMProgressBar
 from lightning.pytorch.core.module import LightningModule
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset, RandomDictDataset
@@ -35,6 +30,11 @@ from lightning.pytorch.loggers.tensorboard import TensorBoardLogger
 from lightning.pytorch.trainer.states import RunningStage
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.imports import _TORCHMETRICS_GREATER_EQUAL_0_11 as _TM_GE_0_11
+from lightning_utilities.test.warning import no_warning_call
+from torch import Tensor
+from torch.utils.data import DataLoader
+from torchmetrics import Accuracy
+
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -142,7 +142,7 @@ def test__training_step__epoch_end__log(tmpdir):
 
 
 @pytest.mark.parametrize(
-    ["batches", "fx", "result"], [(3, min, 0), (3, torch.max, 2), (11, max, 10), (5, "avg", 2), (5, "SUM", 10)]
+    ("batches", "fx", "result"), [(3, min, 0), (3, torch.max, 2), (11, max, 10), (5, "avg", 2), (5, "SUM", 10)]
 )
 def test__training_step__log_max_reduce_fx(tmpdir, batches, fx, result):
     """Tests that log works correctly with different tensor types."""
@@ -212,7 +212,6 @@ def test_log_works_in_train_callback(tmpdir):
     """Tests that log can be called within callback."""
 
     class TestCallback(callbacks.Callback):
-
         count = 0
         choices = [False, True]
 
@@ -344,7 +343,7 @@ class LoggingSyncDistModel(BoringModel):
 
 
 @pytest.mark.parametrize(
-    "devices, accelerator",
+    ("devices", "accelerator"),
     [
         (1, "cpu"),
         (2, "cpu"),
@@ -352,7 +351,6 @@ class LoggingSyncDistModel(BoringModel):
     ],
 )
 def test_logging_sync_dist_true(tmpdir, devices, accelerator):
-
     """Tests to ensure that the sync_dist flag works (should just return the original value)"""
     fake_result = 1
     model = LoggingSyncDistModel(fake_result)
@@ -550,7 +548,7 @@ def test_metric_are_properly_reduced(tmpdir, accelerator):
 
 @pytest.mark.parametrize(
     "value",
-    [None, dict(a=None), dict(a=1), dict(a=dict(b=None)), dict(a=dict(b=1)), "foo", [1, 2, 3], (1, 2, 3), [[1, 2], 3]],
+    [None, {"a": None}, {"a": 1}, {"a": {"b": None}}, {"a": {"b": 1}}, "foo", [1, 2, 3], (1, 2, 3), [[1, 2], 3]],
 )
 def test_log_invalid_raises(tmpdir, value):
     class TestModel(BoringModel):
@@ -779,5 +777,5 @@ def test_unsqueezed_tensor_logging():
     trainer.state.stage = RunningStage.TRAINING
     model._current_fx_name = "training_step"
     model.trainer = trainer
-    model.log("foo", Tensor([1.2]))
+    model.log("foo", Tensor([1.2]), on_epoch=True)
     assert trainer.callback_metrics["foo"].ndim == 0

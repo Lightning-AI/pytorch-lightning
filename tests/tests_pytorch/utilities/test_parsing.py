@@ -12,14 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import inspect
+import threading
 
 import pytest
-from torch.jit import ScriptModule
-
 from lightning.pytorch import LightningDataModule, LightningModule, Trainer
 from lightning.pytorch.utilities.parsing import (
-    _get_init_args,
     AttributeDict,
+    _get_init_args,
     clean_namespace,
     collect_init_args,
     is_picklable,
@@ -28,6 +27,7 @@ from lightning.pytorch.utilities.parsing import (
     lightning_setattr,
     parse_class_init_keys,
 )
+from torch.jit import ScriptModule
 
 unpicklable_function = lambda: None
 
@@ -169,7 +169,7 @@ def test_is_picklable():
         pass
 
     true_cases = [None, True, 123, "str", (123, "str"), max]
-    false_cases = [unpicklable_function, UnpicklableClass, ScriptModule()]
+    false_cases = [unpicklable_function, UnpicklableClass, ScriptModule(), threading.Lock()]
 
     for case in true_cases:
         assert is_picklable(case) is True

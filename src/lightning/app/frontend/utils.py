@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """Utility functions for lightning Frontends."""
 from __future__ import annotations
 
@@ -38,11 +37,11 @@ def _get_flow_state(flow: str) -> AppState:
 
     Returns:
         AppState: An AppState scoped to the current Flow.
+
     """
     app_state = AppState()
     app_state._request_state()  # pylint: disable=protected-access
-    flow_state = _reduce_to_flow_scope(app_state, flow)
-    return flow_state
+    return _reduce_to_flow_scope(app_state, flow)
 
 
 def _get_frontend_environment(flow: str, render_fn_or_file: Callable | str, port: int, host: str) -> os._Environ:
@@ -56,6 +55,7 @@ def _get_frontend_environment(flow: str, render_fn_or_file: Callable | str, port
 
     Returns:
         os._Environ: An environment
+
     """
     env = os.environ.copy()
     env["LIGHTNING_FLOW_NAME"] = flow

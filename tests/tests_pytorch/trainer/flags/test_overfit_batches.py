@@ -16,11 +16,11 @@ from unittest import mock
 
 import pytest
 import torch
-from torch.utils.data import DataLoader, DistributedSampler, RandomSampler, Sampler, SequentialSampler
-
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
 from lightning.pytorch.trainer.states import RunningStage
+from torch.utils.data import DataLoader, DistributedSampler, RandomSampler, Sampler, SequentialSampler
+
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.datasets import SklearnDataset
 from tests_pytorch.helpers.runif import RunIf
@@ -30,7 +30,6 @@ from tests_pytorch.helpers.simple_models import ClassificationModel
 @pytest.mark.parametrize("overfit_batches", [1, 2, 0.1, 0.25, 1.0])
 def test_overfit_basic(tmpdir, overfit_batches):
     """Tests that only training_step can be used when overfitting."""
-
     model = BoringModel()
     model.validation_step = None
     total_train_samples = len(BoringModel().train_dataloader())
@@ -79,7 +78,7 @@ def test_overfit_batches_raises_warning_in_case_of_sequential_sampler(tmpdir):
 
 
 @pytest.mark.parametrize(
-    "stage,mode",
+    ("stage", "mode"),
     [(RunningStage.VALIDATING, "val"), (RunningStage.TESTING, "test"), (RunningStage.PREDICTING, "predict")],
 )
 @pytest.mark.parametrize("overfit_batches", [0.11, 4])

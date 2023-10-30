@@ -15,14 +15,15 @@ from collections import OrderedDict
 
 import pytest
 import torch
-from torch import nn
-from torch.optim import Optimizer, SGD
-from torch.utils.data import DataLoader
-
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12, _TORCH_GREATER_EQUAL_1_13
-from lightning.pytorch import LightningModule, seed_everything, Trainer
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_13
+from lightning.pytorch import LightningModule, Trainer, seed_everything
 from lightning.pytorch.callbacks import BackboneFinetuning, BaseFinetuning, ModelCheckpoint
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
+from torch import nn
+from torch.optim import SGD, Optimizer
+from torch.utils.data import DataLoader
+
+from tests_pytorch.helpers.runif import RunIf
 
 
 class TestBackboneFinetuningCallback(BackboneFinetuning):
@@ -41,7 +42,6 @@ class TestBackboneFinetuningCallback(BackboneFinetuning):
 
 def test_finetuning_callback(tmpdir):
     """Test finetuning callbacks works as expected."""
-
     seed_everything(42)
 
     class FinetuningBoringModel(BoringModel):
@@ -76,7 +76,6 @@ def test_finetuning_callback(tmpdir):
 class TestBackboneFinetuningWarningCallback(BackboneFinetuning):
     def finetune_function(self, pl_module, epoch: int, optimizer):
         """Called when the epoch begins."""
-
         if epoch == 0:
             self.unfreeze_and_add_param_group(
                 pl_module.backbone, optimizer, 0.1, train_bn=self.train_bn, initial_denom_lr=self.initial_denom_lr
@@ -85,7 +84,6 @@ class TestBackboneFinetuningWarningCallback(BackboneFinetuning):
 
 def test_finetuning_callback_warning(tmpdir):
     """Test finetuning callbacks works as expected."""
-
     seed_everything(42)
 
     class FinetuningBoringModel(BoringModel):
@@ -97,15 +95,13 @@ def test_finetuning_callback_warning(tmpdir):
 
         def forward(self, x):
             self.backbone.has_been_used = True
-            x = self.backbone(x)
-            return x
+            return self.backbone(x)
 
         def train_dataloader(self):
             return DataLoader(RandomDataset(32, 64), batch_size=2)
 
         def configure_optimizers(self):
-            optimizer = torch.optim.SGD(self.parameters(), lr=0.1)
-            return optimizer
+            return torch.optim.SGD(self.parameters(), lr=0.1)
 
     chk = ModelCheckpoint(dirpath=tmpdir, save_last=True)
 
@@ -124,7 +120,6 @@ def test_finetuning_callback_warning(tmpdir):
 
 def test_freeze_unfreeze_function(tmpdir):
     """Test freeze properly sets requires_grad on the modules."""
-
     seed_everything(42)
 
     class FreezeModel(LightningModule):
@@ -163,7 +158,6 @@ def test_freeze_unfreeze_function(tmpdir):
 
 def test_unfreeze_and_add_param_group_function(tmpdir):
     """Test unfreeze_and_add_param_group properly unfreeze parameters and add to the correct param_group."""
-
     seed_everything(42)
 
     class FreezeModel(LightningModule):
@@ -215,8 +209,7 @@ class OnEpochLayerFinetuning(BaseFinetuning):
 
 
 def test_base_finetuning_internal_optimizer_metadata(tmpdir):
-    """Test the param_groups updates are properly saved within the internal state of the BaseFinetuning
-    Callbacks."""
+    """Test the param_groups updates are properly saved within the internal state of the BaseFinetuning Callbacks."""
 
     seed_everything(42)
 
@@ -327,21 +320,23 @@ class FinetuningBoringModel(BoringModel):
 
     def configure_optimizers(self):
         parameters = filter(lambda x: x.requires_grad, self.parameters())
-        optimizer = torch.optim.SGD(parameters, lr=0.1)
-        return optimizer
+        return torch.optim.SGD(parameters, lr=0.1)
 
 
 def test_callbacks_restore(tmpdir):
-    """Test callbacks restore is called after optimizers have been re-created but before optimizer states
-    reload."""
+    """Test callbacks restore is called after optimizers have been re-created but before optimizer states reload."""
     chk = ModelCheckpoint(dirpath=tmpdir, save_last=True)
 
     model = FinetuningBoringModel()
     callback = TestCallbacksRestoreCallback()
 
-    trainer_kwargs = dict(
-        default_root_dir=tmpdir, limit_train_batches=1, limit_val_batches=1, callbacks=[callback, chk], max_epochs=2
-    )
+    trainer_kwargs = {
+        "default_root_dir": tmpdir,
+        "limit_train_batches": 1,
+        "limit_val_batches": 1,
+        "callbacks": [callback, chk],
+        "max_epochs": 2,
+    }
 
     trainer = Trainer(**trainer_kwargs)
     trainer.fit(model)
@@ -361,9 +356,8 @@ def test_callbacks_restore(tmpdir):
         "nesterov": False,
         "params": ["layer.3.weight", "layer.3.bias"],
         "maximize": False,
+        "foreach": None,
     }
-    if _TORCH_GREATER_EQUAL_1_12:
-        expected["foreach"] = None
     if _TORCH_GREATER_EQUAL_1_13:
         expected["differentiable"] = False
 
@@ -378,9 +372,8 @@ def test_callbacks_restore(tmpdir):
         "nesterov": False,
         "params": ["layer.0.weight", "layer.0.bias"],
         "maximize": False,
+        "foreach": None,
     }
-    if _TORCH_GREATER_EQUAL_1_12:
-        expected["foreach"] = None
     if _TORCH_GREATER_EQUAL_1_13:
         expected["differentiable"] = False
 
@@ -392,18 +385,18 @@ def test_callbacks_restore(tmpdir):
     trainer.fit(model, ckpt_path=chk.last_model_path)
 
 
+class BackboneBoringModel(BoringModel):
+    def __init__(self):
+        super().__init__()
+        self.layer = nn.Linear(32, 2)
+        self.backbone = nn.Linear(32, 32)
+
+    def forward(self, x):
+        return self.layer(self.backbone(x))
+
+
 def test_callbacks_restore_backbone(tmpdir):
-    """Test callbacks restore is called after optimizers have been re-created but before optimizer states
-    reload."""
-
-    class BackboneBoringModel(BoringModel):
-        def __init__(self):
-            super().__init__()
-            self.layer = nn.Linear(32, 2)
-            self.backbone = nn.Linear(32, 32)
-
-        def forward(self, x):
-            return self.layer(self.backbone(x))
+    """Test callbacks restore is called after optimizers have been re-created but before optimizer states reload."""
 
     ckpt = ModelCheckpoint(dirpath=tmpdir, save_last=True)
     trainer = Trainer(
@@ -426,3 +419,12 @@ def test_callbacks_restore_backbone(tmpdir):
         callbacks=BackboneFinetuning(unfreeze_backbone_at_epoch=1),
     )
     trainer.fit(BackboneBoringModel(), ckpt_path=ckpt.last_model_path)
+
+
+@RunIf(deepspeed=True)
+def test_unsupported_strategies(tmp_path):
+    model = BackboneBoringModel()
+    callback = BackboneFinetuning()
+    trainer = Trainer(accelerator="cpu", strategy="deepspeed", callbacks=[callback])
+    with pytest.raises(NotImplementedError, match="does not support running with the DeepSpeed strategy"):
+        callback.setup(trainer, model, stage=None)

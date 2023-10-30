@@ -22,7 +22,21 @@ body:
         ```
         The error message you got, with the full traceback if available.
         ```
+    validations:
+      required: true
 
+  - type: dropdown
+    id: versions
+    attributes:
+      label: What version are you seeing the problem on?
+      description: select all version where you have experienced this issue
+      multiple: true
+      options:
+        - "v1.8"
+        - "v1.9"
+        - "v2.0"
+        - "v2.1"
+        - "master"
     validations:
       required: true
 

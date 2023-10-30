@@ -31,7 +31,7 @@ from lightning.fabric.utilities.data import (
 from lightning.pytorch.overrides.distributed import _IndexBatchSamplerWrapper
 from lightning.pytorch.trainer.states import RunningStage
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning.pytorch.utilities.rank_zero import rank_zero_warn, WarningCache
+from lightning.pytorch.utilities.rank_zero import WarningCache, rank_zero_warn
 
 BType = Union[Tensor, str, Mapping[Any, "BType"], Iterable["BType"]]
 
@@ -62,6 +62,7 @@ def extract_batch_size(batch: BType) -> int:
 
     Returns:
         ``len(tensor)`` when found, or ``1`` when it hits an empty or non iterable.
+
     """
     error_msg = (
         "We could not infer the batch_size from the batch. Either simplify its structure"
@@ -130,15 +131,13 @@ def _update_dataloader(
     dataloader: DataLoader, sampler: Union[Sampler, Iterable], mode: Optional[RunningStage] = None
 ) -> DataLoader:
     dl_args, dl_kwargs = _get_dataloader_init_args_and_kwargs(dataloader, sampler, mode)
-    dataloader = _reinstantiate_wrapped_cls(dataloader, *dl_args, **dl_kwargs)
-    return dataloader
+    return _reinstantiate_wrapped_cls(dataloader, *dl_args, **dl_kwargs)
 
 
 def _get_dataloader_init_args_and_kwargs(
     dataloader: DataLoader,
     sampler: Union[Sampler, Iterable],
     mode: Optional[RunningStage] = None,
-    disallow_batch_sampler: bool = False,
 ) -> Tuple[Tuple[Any], Dict[str, Any]]:
     if not isinstance(dataloader, DataLoader):
         raise ValueError(f"The dataloader {dataloader} needs to subclass `torch.utils.data.DataLoader`")
@@ -190,7 +189,7 @@ def _get_dataloader_init_args_and_kwargs(
         dl_kwargs["batch_sampler"] = None
         dl_kwargs["sampler"] = None
     else:
-        dl_kwargs.update(_dataloader_init_kwargs_resolve_sampler(dataloader, sampler, mode, disallow_batch_sampler))
+        dl_kwargs.update(_dataloader_init_kwargs_resolve_sampler(dataloader, sampler, mode))
 
     required_args = {
         p.name
@@ -233,97 +232,96 @@ def _dataloader_init_kwargs_resolve_sampler(
     dataloader: DataLoader,
     sampler: Union[Sampler, Iterable],
     mode: Optional[RunningStage] = None,
-    disallow_batch_sampler: bool = False,
 ) -> Dict[str, Any]:
-    """This function is used to handle the sampler, batch_sampler arguments associated within a DataLoader for its
-    re-instantiation.
+    """This function is used to handle the sampler, batch_sampler arguments associated within a DataLoader for its re-
+    instantiation.
 
     If the dataloader is being used for prediction, the sampler will be wrapped into an `_IndexBatchSamplerWrapper`, so
     Lightning can keep track of its indices.
 
-    If there are multiple devices in IPU mode, it is necessary to disallow BatchSampler that isn't instantiated
-    automatically, since `poptorch.DataLoader` will try to increase the batch_size
     """
     is_predicting = mode == RunningStage.PREDICTING
     batch_sampler = getattr(dataloader, "batch_sampler")
     batch_sampler_cls = type(batch_sampler)
 
-    if batch_sampler is not None:
-        if disallow_batch_sampler:
-            # Check that we don't have a PyTorch default batch sampler that was instantiated in DataLoader __init__
-            if not (
-                batch_sampler_cls is BatchSampler
-                and batch_sampler.sampler == sampler
-                and dataloader.batch_size == batch_sampler.batch_size
-            ):
-                raise MisconfigurationException(
-                    "It is not possible to have a batch sampler in your dataloader, "
-                    "when running on multiple IPU devices."
-                )
-        elif batch_sampler_cls is not BatchSampler or is_predicting:
-            if hasattr(batch_sampler, "__pl_saved_args"):
-                args = batch_sampler.__pl_saved_args
-                kwargs = batch_sampler.__pl_saved_kwargs
-                default_kwargs = batch_sampler.__pl_saved_default_kwargs
-                arg_names = batch_sampler.__pl_saved_arg_names
-
-                if is_predicting:
-                    success, args, kwargs = _replace_value_in_saved_args(
-                        "drop_last", False, args, kwargs, default_kwargs, arg_names
-                    )
-                    if not success:
-                        rank_zero_warn(
-                            f"Trying to inject `drop_last=False` into batch sampler since you are predicting, however "
-                            f"it seems the class `{batch_sampler_cls.__qualname__}` does not support it. "
-                            "Your predictions might be incomplete. To mitigate this, expose `drop_last` in "
-                            "the `__init__` method of your custom class."
-                        )
-
-                success, args, kwargs = _replace_value_in_saved_args(
-                    "sampler", sampler, args, kwargs, default_kwargs, arg_names
-                )
-                if not success:
-                    raise TypeError(
-                        "Trying to inject a modified sampler into the batch sampler; however, it seems the class "
-                        f"`{batch_sampler_cls.__qualname__}` does not have an argument called `sampler.` To mitigate "
-                        "this, expose an argument `sampler` in the `__init__` method of your custom class."
-                    )
-
-                batch_sampler = _reinstantiate_wrapped_cls(batch_sampler, *args, **kwargs)
-            else:
-                try:
-                    batch_sampler = batch_sampler_cls(
-                        sampler,
-                        batch_size=batch_sampler.batch_size,
-                        drop_last=(False if is_predicting else batch_sampler.drop_last),
-                    )
-                except TypeError as e:
-                    import re
-
-                    match = re.match(r".*__init__\(\) (got multiple values)|(missing \d required)", str(e))
-                    if not match:
-                        # an unexpected `TypeError`, continue failure
-                        raise
-
-                    # There could either be too few or too many arguments. Customizing the message based on this doesn't
-                    # make much sense since our MisconfigurationException is going to be raised from the original one.
-                    raise MisconfigurationException(
-                        "We tried to re-instantiate your custom batch sampler and failed. "
-                        "To mitigate this, either follow the API of `BatchSampler` or instantiate "
-                        "your custom batch sampler inside `*_dataloader` hooks of your module."
-                    ) from e
+    if batch_sampler is not None and (batch_sampler_cls is not BatchSampler or is_predicting):
+        if hasattr(batch_sampler, "__pl_saved_args"):
+            # This is a PyTorch `BatchSampler` subclass for which we captured the init args
+            args = batch_sampler.__pl_saved_args
+            kwargs = batch_sampler.__pl_saved_kwargs
+            default_kwargs = batch_sampler.__pl_saved_default_kwargs
+            arg_names = batch_sampler.__pl_saved_arg_names
 
             if is_predicting:
-                batch_sampler = _IndexBatchSamplerWrapper(batch_sampler)
+                success, args, kwargs = _replace_value_in_saved_args(
+                    "drop_last", False, args, kwargs, default_kwargs, arg_names
+                )
+                if not success:
+                    rank_zero_warn(
+                        f"Trying to inject `drop_last=False` into batch sampler since you are predicting, however "
+                        f"it seems the class `{batch_sampler_cls.__qualname__}` does not support it. "
+                        "Your predictions might be incomplete. To mitigate this, expose `drop_last` in "
+                        "the `__init__` method of your custom class."
+                    )
 
-            # batch_sampler option is mutually exclusive with batch_size, shuffle, sampler, and drop_last
-            return {
-                "sampler": None,
-                "shuffle": False,
-                "batch_sampler": batch_sampler,
-                "batch_size": 1,
-                "drop_last": False,
-            }
+            success, args, kwargs = _replace_value_in_saved_args(
+                "sampler", sampler, args, kwargs, default_kwargs, arg_names
+            )
+            if not success:
+                raise TypeError(
+                    "Trying to inject a modified sampler into the batch sampler; however, it seems the class "
+                    f"`{batch_sampler_cls.__qualname__}` does not have an argument called `sampler.` To mitigate "
+                    "this, expose an argument `sampler` in the `__init__` method of your custom class."
+                )
+
+            batch_sampler = _reinstantiate_wrapped_cls(batch_sampler, *args, **kwargs)
+        elif hasattr(batch_sampler, "batch_size") and hasattr(batch_sampler, "drop_last"):
+            # This is a sampler for which we could not capture the init args, but it kinda looks like a batch sampler
+            # even if it does not inherit from PyTorch's interface.
+            try:
+                batch_sampler = batch_sampler_cls(
+                    sampler,
+                    batch_size=batch_sampler.batch_size,
+                    drop_last=(False if is_predicting else batch_sampler.drop_last),
+                )
+            except TypeError as ex:
+                import re
+
+                match = re.match(r".*__init__\(\) (got multiple values)|(missing \d required)", str(ex))
+                if not match:
+                    # an unexpected `TypeError`, continue failure
+                    raise
+
+                # There could either be too few or too many arguments. Customizing the message based on this doesn't
+                # make much sense since our MisconfigurationException is going to be raised from the original one.
+                raise TypeError(
+                    " Lightning can't inject a (distributed) sampler into your batch sampler, because it doesn't"
+                    " subclass PyTorch's `BatchSampler`. To mitigate this, either follow the API of `BatchSampler` and"
+                    " instantiate your custom batch sampler inside the `*_dataloader` hook of your module,"
+                    " or set `Trainer(use_distributed_sampler=False)`. If you choose the latter, you will be"
+                    " responsible for handling the distributed sampling within your batch sampler."
+                ) from ex
+        else:
+            # The sampler is not a PyTorch `BatchSampler`, we don't know how to inject a custom sampler or
+            # how to adjust the `drop_last` value
+            raise TypeError(
+                " Lightning can't inject a (distributed) sampler into your batch sampler, because it doesn't"
+                " subclass PyTorch's `BatchSampler`. To mitigate this, either follow the API of `BatchSampler`"
+                " or set `Trainer(use_distributed_sampler=False)`. If you choose the latter, you will be"
+                " responsible for handling the distributed sampling within your batch sampler."
+            )
+
+        if is_predicting:
+            batch_sampler = _IndexBatchSamplerWrapper(batch_sampler)
+
+        # batch_sampler option is mutually exclusive with batch_size, shuffle, sampler, and drop_last
+        return {
+            "sampler": None,
+            "shuffle": False,
+            "batch_sampler": batch_sampler,
+            "batch_size": 1,
+            "drop_last": False,
+        }
 
     return {"sampler": sampler, "shuffle": False, "batch_sampler": None}
 

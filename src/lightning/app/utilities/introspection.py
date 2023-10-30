@@ -15,22 +15,21 @@
 import ast
 import inspect
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Type, TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set, Type, Union
 
 if TYPE_CHECKING:
-    from lightning.app import LightningFlow, LightningWork
+    from lightning.app.core import LightningFlow, LightningWork
 
 
 class LightningVisitor(ast.NodeVisitor):
-    """
-    Base class for visitor that finds class definitions based on
-    class inheritance.
-    Derived classes are expected to define class_name and implement
-    the analyze_class_def method.
+    """Base class for visitor that finds class definitions based on class inheritance. Derived classes are expected to
+    define class_name and implement the analyze_class_def method.
+
     Attributes
     ----------
     class_name: str
         Name of class to identify, to be defined in subclasses.
+
     """
 
     class_name: Optional[str] = None
@@ -55,8 +54,8 @@ class LightningVisitor(ast.NodeVisitor):
 
 
 class LightningModuleVisitor(LightningVisitor):
-    """
-    Finds Lightning modules based on class inheritance.
+    """Finds Lightning modules based on class inheritance.
+
     Attributes
     ----------
     class_name: Optional[str]
@@ -65,6 +64,7 @@ class LightningModuleVisitor(LightningVisitor):
         Names of methods that are part of the LightningModule API.
     hooks: Set[str]
         Names of hooks that are part of the LightningModule API.
+
     """
 
     class_name: Optional[str] = "LightningModule"
@@ -126,14 +126,15 @@ class LightningModuleVisitor(LightningVisitor):
 
 
 class LightningDataModuleVisitor(LightningVisitor):
-    """
-    Finds Lightning data modules based on class inheritance.
+    """Finds Lightning data modules based on class inheritance.
+
     Attributes
     ----------
     class_name: Optional[str]
         Name of class to identify.
     methods: Set[str]
         Names of methods that are part of the LightningDataModule API.
+
     """
 
     class_name = "LightningDataModule"
@@ -149,14 +150,15 @@ class LightningDataModuleVisitor(LightningVisitor):
 
 
 class LightningLoggerVisitor(LightningVisitor):
-    """
-    Finds Lightning loggers based on class inheritance.
+    """Finds Lightning loggers based on class inheritance.
+
     Attributes
     ----------
     class_name: Optional[str]
         Name of class to identify.
     methods: Set[str]
         Names of methods that are part of the Logger API.
+
     """
 
     class_name = "Logger"
@@ -165,14 +167,15 @@ class LightningLoggerVisitor(LightningVisitor):
 
 
 class LightningCallbackVisitor(LightningVisitor):
-    """
-    Finds Lightning callbacks based on class inheritance.
+    """Finds Lightning callbacks based on class inheritance.
+
     Attributes
     ----------
     class_name: Optional[str]
         Name of class to identify.
     methods: Set[str]
         Names of methods that are part of the Logger API.
+
     """
 
     class_name = "Callback"
@@ -217,14 +220,15 @@ class LightningCallbackVisitor(LightningVisitor):
 
 
 class LightningStrategyVisitor(LightningVisitor):
-    """
-    Finds Lightning callbacks based on class inheritance.
+    """Finds Lightning callbacks based on class inheritance.
+
     Attributes
     ----------
     class_name: Optional[str]
         Name of class to identify.
     methods: Set[str]
         Names of methods that are part of the Logger API.
+
     """
 
     class_name = "Strategy"
@@ -271,8 +275,8 @@ class LightningProfilerVisitor(LightningVisitor):
 
 
 class Scanner:
-    """
-    Finds relevant Lightning objects in files in the file system.
+    """Finds relevant Lightning objects in files in the file system.
+
     Attributes
     ----------
     visitor_classes: List[Type]
@@ -284,6 +288,7 @@ class Scanner:
     glob_pattern: str
         Glob pattern to use when looking for files in the path,
         applied when path is a directory. Default is "**/*.py".
+
     """
 
     # TODO: Finalize introspecting the methods from all the discovered methods.
@@ -324,7 +329,6 @@ class Scanner:
                 continue
 
             for node in ast.walk(module):
-
                 if isinstance(node, ast.ImportFrom):
                     for import_from_cls in node.names:
                         classes.append(import_from_cls.name)
@@ -337,14 +341,14 @@ class Scanner:
         return cls.__name__ in classes
 
     def scan(self) -> List[Dict[str, str]]:
-        """
-        Finds Lightning modules in files, returning importable
-        objects.
+        """Finds Lightning modules in files, returning importable objects.
+
         Returns
         -------
         List[Dict[str, Any]]
             List of dicts containing all metadata required
             to import modules found.
+
         """
         modules_found: Dict[str, List[Dict[str, Any]]] = {}
 
@@ -392,6 +396,5 @@ def _is_init_context(component: Union["LightningFlow", "LightningWork"]) -> bool
 
 
 def _is_run_context(component: Union["LightningFlow", "LightningWork"]) -> bool:
-    """Checks whether the call to a component originates from within the context of the component's ``run``
-    method."""
+    """Checks whether the call to a component originates from within the context of the component's ``run`` method."""
     return _is_method_context(component, "run") or _is_method_context(component, "load_state_dict")

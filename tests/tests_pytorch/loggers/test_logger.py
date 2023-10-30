@@ -20,7 +20,6 @@ from unittest.mock import patch
 import numpy as np
 import pytest
 import torch
-
 from lightning.fabric.utilities.logger import _convert_params, _sanitize_params
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringDataModule, BoringModel
@@ -118,7 +117,6 @@ def test_multiple_loggers(tmpdir):
 
 def test_multiple_loggers_pickle(tmpdir):
     """Verify that pickling trainer with multiple loggers works."""
-
     logger1 = CustomLogger()
     logger2 = CustomLogger()
 

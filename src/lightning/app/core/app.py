@@ -20,7 +20,7 @@ import threading
 import warnings
 from copy import deepcopy
 from time import time
-from typing import Dict, List, Optional, Tuple, TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, Dict, List, Optional, Tuple, Union
 
 from deepdiff import DeepDiff, Delta
 from lightning_utilities.core.apply_func import apply_to_collection
@@ -42,18 +42,16 @@ from lightning.app.storage import Drive, Path, Payload
 from lightning.app.storage.path import _storage_root_dir
 from lightning.app.utilities import frontend
 from lightning.app.utilities.app_helpers import (
+    Logger,
     _delta_to_app_state_delta,
-    _handle_is_headless,
-    _is_headless,
     _LightningAppRef,
     _should_dispatch_app,
-    Logger,
 )
 from lightning.app.utilities.app_status import AppStatus
 from lightning.app.utilities.commands.base import _process_requests
 from lightning.app.utilities.component import _convert_paths_after_init, _validate_root_flow
 from lightning.app.utilities.enum import AppStage, CacheCallsKeys
-from lightning.app.utilities.exceptions import CacheMissException, ExitAppException
+from lightning.app.utilities.exceptions import CacheMissException, ExitAppException, LightningFlowException
 from lightning.app.utilities.layout import _collect_layout
 from lightning.app.utilities.proxies import ComponentDelta
 from lightning.app.utilities.scheduler import SchedulerThread
@@ -81,8 +79,8 @@ class LightningApp:
     ) -> None:
         """The Lightning App, or App in short runs a tree of one or more components that interact to create end-to-end
         applications. There are two kinds of components: :class:`~lightning.app.core.flow.LightningFlow` and
-        :class:`~lightning.app.core.work.LightningWork`. This modular design enables you to reuse components
-        created by other users.
+        :class:`~lightning.app.core.work.LightningWork`. This modular design enables you to reuse components created by
+        other users.
 
         The Lightning App alternatively run an event loop triggered by delta changes sent from
         either :class:`~lightning.app.core.work.LightningWork` or from the Lightning UI.
@@ -102,17 +100,6 @@ class LightningApp:
                 set `root_path` to `/myapp`.
                 You can learn more about proxy `here <https://www.fortinet.com/resources/cyberglossary/proxy-server>`_.
 
-
-        Example:
-
-            >>> from lightning.app import LightningFlow, LightningApp
-            >>> from lightning.app.runners import MultiProcessRuntime
-            >>> class RootFlow(LightningFlow):
-            ...     def run(self):
-            ...         self.stop()
-            ...
-            >>> app = LightningApp(RootFlow())  # application can be dispatched using the `runners`.
-            >>> MultiProcessRuntime(app).dispatch()
         """
 
         self.root_path = root_path  # when running behind a proxy
@@ -353,7 +340,6 @@ class LightningApp:
         t0 = time()
 
         while (time() - t0) < self.state_accumulate_wait:
-
             # TODO: Fetch all available deltas at once to reduce queue calls.
             delta: Optional[
                 Union[_DeltaRequest, _APIRequest, _CommandRequest, ComponentDelta]
@@ -368,8 +354,8 @@ class LightningApp:
                     work = None
                     try:
                         work = self.get_component_by_name(delta.id)
-                    except (KeyError, AttributeError) as e:
-                        logger.error(f"The component {delta.id} couldn't be accessed. Exception: {e}")
+                    except (KeyError, AttributeError) as ex:
+                        logger.error(f"The component {delta.id} couldn't be accessed. Exception: {ex}")
 
                     if work:
                         delta = _delta_to_app_state_delta(
@@ -396,8 +382,7 @@ class LightningApp:
         return deltas
 
     def maybe_apply_changes(self) -> Optional[bool]:
-        """Get the deltas from both the flow queue and the work queue, merge the two deltas and update the
-        state."""
+        """Get the deltas from both the flow queue and the work queue, merge the two deltas and update the state."""
         self._send_flow_to_work_deltas(self.state)
 
         if not self.collect_changes:
@@ -434,12 +419,13 @@ class LightningApp:
         for delta in deltas:
             try:
                 state += delta
-            except Exception as e:
-                raise Exception(f"Current State {state}, {delta.to_dict()}") from e
+            except Exception as ex:
+                raise Exception(f"Current State {state}, {delta.to_dict()}") from ex
 
         # new_state = self.populate_changes(self.last_state, state)
         self.set_state(state)
         self._has_updated = True
+        return None
 
     def run_once(self) -> bool:
         """Method used to collect changes and run the root Flow once."""
@@ -450,7 +436,6 @@ class LightningApp:
             self.backend.update_work_statuses(self.works)
 
         self._update_layout()
-        self._update_is_headless()
         self._update_status()
         self.maybe_apply_changes()
 
@@ -463,7 +448,7 @@ class LightningApp:
         if self.stage in (AppStage.STOPPING, AppStage.FAILED):
             return True
 
-        elif self.stage == AppStage.RESTARTING:
+        if self.stage == AppStage.RESTARTING:
             return self._apply_restarting()
 
         t0 = time()
@@ -477,6 +462,9 @@ class LightningApp:
                 self.root.run()
         except CacheMissException:
             self._on_cache_miss_exception()
+        except LightningFlowException:
+            done = True
+            self.stage = AppStage.FAILED
         except (ExitAppException, KeyboardInterrupt):
             done = True
             self.stage = AppStage.STOPPING
@@ -515,6 +503,7 @@ class LightningApp:
         """Entry point of the LightningApp.
 
         This would be dispatched by the Runtime objects.
+
         """
         self._original_state = deepcopy(self.state)
         done = False
@@ -543,20 +532,12 @@ class LightningApp:
         return True
 
     def _update_layout(self) -> None:
-
         if self.backend:
             self.backend.resolve_url(self, base_url=None)
 
         for component in breadth_first(self.root, types=(lightning.app.LightningFlow,)):  # type: ignore[arg-type]
             layout = _collect_layout(self, component)
             component._layout = layout
-
-    def _update_is_headless(self) -> None:
-        self.is_headless = _is_headless(self)
-
-        # If `is_headless` changed, handle it.
-        # This ensures support for apps which dynamically add a UI at runtime.
-        _handle_is_headless(self)
 
     def _update_status(self) -> None:
         old_status = self.status
@@ -596,12 +577,11 @@ class LightningApp:
     def _should_snapshot(self) -> bool:
         if len(self.works) == 0:
             return True
-        elif self._has_updated:
+        if self._has_updated:
             work_finished_status = self._collect_work_finish_status()
             if work_finished_status:
                 return all(work_finished_status.values())
-            else:
-                return True
+            return True
         return False
 
     def state_dict(self) -> Dict:
@@ -628,10 +608,11 @@ class LightningApp:
         available_checkpoints = [c for c in checkpoints if c.startswith(f"v_{version}_")]
         if not available_checkpoints:
             raise FileNotFoundError(f"The version `{version}` wasn't found in {checkpoints}.")
-        elif len(available_checkpoints) > 1:
+        if len(available_checkpoints) > 1:
             raise Exception(f"Found 2 checkpoints `{available_checkpoints}`with the same version.")
         checkpoint_path = os.path.join(checkpoints_dir, available_checkpoints[0])
-        state = pickle.load(open(checkpoint_path, "rb"))
+        with open(checkpoint_path, "rb") as fo:
+            state = pickle.load(fo)
         self.load_state_dict(state)
 
     def _dump_checkpoint(self) -> Optional[str]:
@@ -646,11 +627,7 @@ class LightningApp:
             int(f.split("_")[1]) for f in os.listdir(checkpoints_dir) if f.startswith("v_") and f.endswith(".json")
         )
 
-        if checkpoint_versions:
-            previous_version = checkpoint_versions[-1]
-        else:
-            # initialization
-            previous_version = -1
+        previous_version = checkpoint_versions[-1] if checkpoint_versions else -1
 
         checkpoint_path = os.path.join(checkpoints_dir, f"v_{previous_version + 1}_{time()}.json")
 

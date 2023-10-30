@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import contextlib
 import os
 
 import click
@@ -32,7 +32,6 @@ logger = Logger(__name__)
 @click.option("--recursive", required=False, hidden=True)
 def rm(rm_path: str, r: bool = False, recursive: bool = False) -> None:
     """Delete files on the Lightning Cloud filesystem."""
-
     root = _pwd()
 
     if rm_path in (".", ".."):
@@ -70,7 +69,6 @@ def rm(rm_path: str, r: bool = False, recursive: bool = False) -> None:
     lit_ressources = [lit_resource for lit_resource in lit_cloud_spaces if lit_resource.name == splits[1]]
 
     if len(lit_ressources) == 0:
-
         lit_ressources = [lit_resource for lit_resource in lit_apps if lit_resource.name == splits[1]]
 
         if len(lit_ressources) == 0:
@@ -85,7 +83,7 @@ def rm(rm_path: str, r: bool = False, recursive: bool = False) -> None:
     succeeded = False
 
     for cluster in clusters.clusters:
-        try:
+        with contextlib.suppress(lightning_cloud.openapi.rest.ApiException):
             client.lightningapp_instance_service_delete_project_artifact(
                 project_id=project_id,
                 cluster_id=cluster.cluster_id,
@@ -93,12 +91,11 @@ def rm(rm_path: str, r: bool = False, recursive: bool = False) -> None:
             )
             succeeded = True
             break
-        except lightning_cloud.openapi.rest.ApiException:
-            pass
 
     prefix = os.path.join(*splits)
 
     if succeeded:
         rich.print(_add_colors(f"Successfuly deleted `{prefix}`.", color="green"))
-    else:
-        return _error_and_exit(f"No file or folder named `{prefix}` was found.")
+        return None
+
+    return _error_and_exit(f"No file or folder named `{prefix}` was found.")

@@ -24,6 +24,7 @@ from lightning.fabric.accelerators import CPUAccelerator, CUDAAccelerator, MPSAc
 from lightning.fabric.plugins.precision.precision import _PRECISION_INPUT_STR, _PRECISION_INPUT_STR_ALIAS
 from lightning.fabric.strategies import STRATEGY_REGISTRY
 from lightning.fabric.utilities.device_parser import _parse_gpu_ids
+from lightning.fabric.utilities.distributed import _suggested_max_num_threads
 
 _log = logging.getLogger(__name__)
 
@@ -33,8 +34,8 @@ _SUPPORTED_ACCELERATORS = ("cpu", "gpu", "cuda", "mps", "tpu")
 
 
 def _get_supported_strategies() -> List[str]:
-    """Returns strategy choices from the registry, with the ones removed that are incompatible to be launched from
-    the CLI or ones that require further configuration by the user."""
+    """Returns strategy choices from the registry, with the ones removed that are incompatible to be launched from the
+    CLI or ones that require further configuration by the user."""
     available_strategies = STRATEGY_REGISTRY.available_strategies()
     excluded = r".*(spawn|fork|notebook|xla|tpu|offload).*"
     return [strategy for strategy in available_strategies if not re.match(excluded, strategy)]
@@ -45,9 +46,9 @@ if _CLICK_AVAILABLE:
 
     @click.command(
         "model",
-        context_settings=dict(
-            ignore_unknown_options=True,
-        ),
+        context_settings={
+            "ignore_unknown_options": True,
+        },
     )
     @click.argument(
         "script",
@@ -122,6 +123,7 @@ if _CLICK_AVAILABLE:
 
         SCRIPT_ARGS are the remaining arguments that you can pass to the script itself and are expected to be parsed
         there.
+
         """
         script_args = list(kwargs.pop("script_args", []))
         main(args=Namespace(**kwargs), script_args=script_args)
@@ -131,6 +133,7 @@ def _set_env_variables(args: Namespace) -> None:
     """Set the environment variables for the new processes.
 
     The Fabric connector will parse the arguments set here.
+
     """
     os.environ["LT_CLI_USED"] = "1"
     if args.accelerator is not None:
@@ -162,10 +165,7 @@ def _torchrun_launch(args: Namespace, script_args: List[str]) -> None:
     """This will invoke `torchrun` programmatically to launch the given script in new processes."""
     import torch.distributed.run as torchrun
 
-    if args.strategy == "dp":
-        num_processes = 1
-    else:
-        num_processes = _get_num_processes(args.accelerator, args.devices)
+    num_processes = 1 if args.strategy == "dp" else _get_num_processes(args.accelerator, args.devices)
 
     torchrun_args = [
         f"--nproc_per_node={num_processes}",
@@ -178,7 +178,7 @@ def _torchrun_launch(args: Namespace, script_args: List[str]) -> None:
     torchrun_args.extend(script_args)
 
     # set a good default number of threads for OMP to avoid warnings being emitted to the user
-    os.environ.setdefault("OMP_NUM_THREADS", str(max(1, (os.cpu_count() or 1) // num_processes)))
+    os.environ.setdefault("OMP_NUM_THREADS", str(_suggested_max_num_threads()))
     torchrun.main(torchrun_args)
 
 

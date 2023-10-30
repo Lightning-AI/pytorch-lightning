@@ -15,19 +15,19 @@
 import logging
 import os
 from argparse import Namespace
-from typing import Any, Dict, Mapping, Optional, TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, Any, Dict, Mapping, Optional, Union
 
-import numpy as np
 from lightning_utilities.core.imports import RequirementCache
 from torch import Tensor
 from torch.nn import Module
 
 from lightning.fabric.loggers.logger import Logger, rank_zero_experiment
-from lightning.fabric.utilities.cloud_io import get_filesystem
+from lightning.fabric.utilities.cloud_io import _is_dir, get_filesystem
 from lightning.fabric.utilities.logger import _add_prefix, _convert_params, _flatten_dict
 from lightning.fabric.utilities.logger import _sanitize_params as _utils_sanitize_params
 from lightning.fabric.utilities.rank_zero import rank_zero_only, rank_zero_warn
 from lightning.fabric.utilities.types import _PATH
+from lightning.fabric.wrappers import _unwrap_objects
 
 log = logging.getLogger(__name__)
 
@@ -42,8 +42,7 @@ if TYPE_CHECKING:
 
 
 class TensorBoardLogger(Logger):
-    r"""
-    Log to local file system in `TensorBoard <https://www.tensorflow.org/tensorboard>`_ format.
+    r"""Log to local file system in `TensorBoard <https://www.tensorflow.org/tensorboard>`_ format.
 
     Implemented using :class:`~tensorboardX.SummaryWriter`. Logs are saved to
     ``os.path.join(root_dir, name, version)``. This is the recommended logger in Lightning Fabric.
@@ -76,6 +75,7 @@ class TensorBoardLogger(Logger):
         logger.log_hyperparams({"epochs": 5, "optimizer": "Adam"})
         logger.log_metrics({"acc": 0.75})
         logger.finalize("success")
+
     """
     LOGGER_JOIN_CHAR = "-"
 
@@ -114,6 +114,7 @@ class TensorBoardLogger(Logger):
 
         Returns:
             The name of the experiment.
+
         """
         return self._name
 
@@ -123,6 +124,7 @@ class TensorBoardLogger(Logger):
 
         Returns:
             The experiment version if specified else the next version.
+
         """
         if self._version is None:
             self._version = self._get_next_version()
@@ -134,6 +136,7 @@ class TensorBoardLogger(Logger):
 
         Returns:
             The local path to the save directory where the TensorBoard experiments are saved.
+
         """
         return self._root_dir
 
@@ -143,6 +146,7 @@ class TensorBoardLogger(Logger):
 
         By default, it is named ``'version_${self.version}'`` but it can be overridden by passing a string value for the
         constructor's version parameter instead of ``None`` or an int.
+
         """
         version = self.version if isinstance(self.version, str) else f"version_{self.version}"
         log_dir = os.path.join(self.root_dir, self.name, version)
@@ -158,6 +162,7 @@ class TensorBoardLogger(Logger):
 
         Returns:
             The local path to the sub directory where the TensorBoard experiments are saved.
+
         """
         return self._sub_dir
 
@@ -169,6 +174,7 @@ class TensorBoardLogger(Logger):
         Example::
 
             logger.experiment.some_tensorboard_function()
+
         """
         if self._experiment is not None:
             return self._experiment
@@ -202,20 +208,22 @@ class TensorBoardLogger(Logger):
                     self.experiment.add_scalar(k, v, step)
                 # TODO(fabric): specify the possible exception
                 except Exception as ex:
-                    m = f"\n you tried to log {v} which is currently not supported. Try a dict or a scalar/tensor."
-                    raise ValueError(m) from ex
+                    raise ValueError(
+                        f"\n you tried to log {v} which is currently not supported. Try a dict or a scalar/tensor."
+                    ) from ex
 
     @rank_zero_only
-    def log_hyperparams(
+    def log_hyperparams(  # type: ignore[override]
         self, params: Union[Dict[str, Any], Namespace], metrics: Optional[Dict[str, Any]] = None
     ) -> None:
         """Record hyperparameters. TensorBoard logs with and without saved hyperparameters are incompatible, the
-        hyperparameters are then not displayed in the TensorBoard. Please delete or move the previously saved logs
-        to display the new ones with hyperparameters.
+        hyperparameters are then not displayed in the TensorBoard. Please delete or move the previously saved logs to
+        display the new ones with hyperparameters.
 
         Args:
             params: a dictionary-like container with the hyperparameters
             metrics: Dictionary with metric names as keys and measured quantities as values
+
         """
         params = _convert_params(params)
 
@@ -247,6 +255,7 @@ class TensorBoardLogger(Logger):
     def log_graph(self, model: Module, input_array: Optional[Tensor] = None) -> None:
         model_example_input = getattr(model, "example_input_array", None)
         input_array = model_example_input if input_array is None else input_array
+        model = _unwrap_objects(model)
 
         if input_array is None:
             rank_zero_warn(
@@ -263,8 +272,10 @@ class TensorBoardLogger(Logger):
             getattr(model, "_apply_batch_transfer_handler", None)
         ):
             # this is probably is a LightningModule
-            input_array = model._on_before_batch_transfer(input_array)  # type: ignore[operator]
-            input_array = model._apply_batch_transfer_handler(input_array)  # type: ignore[operator]
+            input_array = model._on_before_batch_transfer(input_array)
+            input_array = model._apply_batch_transfer_handler(input_array)
+            self.experiment.add_graph(model, input_array)
+        else:
             self.experiment.add_graph(model, input_array)
 
     @rank_zero_only
@@ -291,7 +302,7 @@ class TensorBoardLogger(Logger):
         for listing in listdir_info:
             d = listing["name"]
             bn = os.path.basename(d)
-            if self._fs.isdir(d) and bn.startswith("version_"):
+            if _is_dir(self._fs, d) and bn.startswith("version_"):
                 dir_ver = bn.split("_")[1].replace("/", "")
                 existing_versions.append(int(dir_ver))
         if len(existing_versions) == 0:
@@ -303,7 +314,7 @@ class TensorBoardLogger(Logger):
     def _sanitize_params(params: Dict[str, Any]) -> Dict[str, Any]:
         params = _utils_sanitize_params(params)
         # logging of arrays with dimension > 1 is not supported, sanitize as string
-        return {k: str(v) if isinstance(v, (Tensor, np.ndarray)) and v.ndim > 1 else v for k, v in params.items()}
+        return {k: str(v) if hasattr(v, "ndim") and v.ndim > 1 else v for k, v in params.items()}
 
     def __getstate__(self) -> Dict[str, Any]:
         state = self.__dict__.copy()

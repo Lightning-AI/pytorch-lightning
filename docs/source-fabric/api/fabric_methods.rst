@@ -2,6 +2,33 @@
 Fabric Methods
 ##############
 
+launch
+======
+
+With :meth:`~lightning.fabric.fabric.Fabric.launch` you can conveniently launch your script or a function
+into multiple processes for distributed training on a single machine.
+
+.. code-block:: python
+
+    # Launch the script on 2 devices and init distributed backend
+    fabric = Fabric(devices=2)
+    fabric.launch()
+
+The same can be done with code inside a function:
+
+.. code-block:: python
+
+    def run(fabric):
+        # Your distributed code here
+        ...
+
+
+    # Launch a function on 2 devices and init distributed backend
+    fabric = Fabric(devices=2)
+    fabric.launch(run)
+
+For example, you can use the latter for multi-GPU training inside a :doc:`Jupyter notebook <../fundamentals/notebooks>`.
+For launching distributed training with the CLI, multi-node cluster, or cloud, see :doc:`../fundamentals/launch`.
 
 setup
 =====
@@ -68,27 +95,17 @@ This is useful if your model experiences *exploding gradients* during training.
 .. code-block:: python
 
     # Clip gradients to a max value of +/- 0.5
-    fabric.clip_gradients(model, clip_val=0.5)
+    fabric.clip_gradients(model, optimizer, clip_val=0.5)
 
     # Clip gradients such that their total norm is no bigger than 2.0
-    fabric.clip_gradients(model, clip_norm=2.0)
+    fabric.clip_gradients(model, optimizer, max_norm=2.0)
 
     # By default, clipping by norm uses the 2-norm
-    fabric.clip_gradients(model, clip_norm=2.0, norm_type=2)
+    fabric.clip_gradients(model, optimizer, max_norm=2.0, norm_type=2)
 
     # You can also choose the infinity-norm, which clips the largest
     # element among all
-    fabric.clip_gradients(model, clip_norm=2.0, norm_type="inf")
-
-You can also reduce the gradient clipping to just one layer or to the parameters a particular optimizer is referencing (if using multiple optimizers):
-
-.. code-block:: python
-
-    # Clip gradients on a specific layer of your model
-    fabric.clip_gradients(model.fc3, clip_val=1.0)
-
-    # Clip gradients for a specific optimizer if using multiple optimizers
-    fabric.clip_gradients(model, optimizer1, clip_val=1.0)
+    fabric.clip_gradients(model, optimizer, max_norm=2.0, norm_type="inf")
 
 The :meth:`~lightning.fabric.fabric.Fabric.clip_gradients` method is agnostic to the precision and strategy being used.
 Note: Gradient clipping with FSDP is not yet fully supported.
@@ -121,6 +138,26 @@ Make your code reproducible by calling this method at the beginning of your run.
 
 This covers PyTorch, NumPy, and Python random number generators. In addition, Fabric takes care of properly initializing
 the seed of data loader worker processes (can be turned off by passing ``workers=False``).
+
+init_module
+===========
+
+Instantiating a ``nn.Module`` in PyTorch creates all parameters on CPU in float32 precision by default.
+To speed up initialization, you can force PyTorch to create the model directly on the target device and with the desired precision without changing your model code.
+
+.. code-block:: python
+
+    fabric = Fabric(accelerator="cuda", precision="16-true")
+
+    with fabric.init_module():
+        # models created here will be on GPU and in float16
+        model = MyModel()
+
+This eliminates the waiting time to transfer the model parameters from the CPU to the device.
+For strategies that handle large sharded models (FSDP, DeepSpeed), the :meth:`~lightning.fabric.fabric.Fabric.init_module` method will allocate the model parameters on the meta device first before sharding.
+This makes it possible to work with models that are larger than the memory of a single device.
+
+See also: :doc:`../advanced/model_init`
 
 
 autocast
@@ -206,8 +243,28 @@ Fabric will handle the loading part correctly, whether running a single device, 
 
     # Or load everything and restore your objects manually
     checkpoint = fabric.load("./checkpoints/version_2/checkpoint.ckpt")
-    model.load_state_dict(all_states["model"])
+    model.load_state_dict(checkpoint["model"])
     ...
+
+
+To load the state of your model or optimizer from a raw PyTorch checkpoint (not saved with Fabric), use :meth:`~lightning.fabric.fabric.Fabric.load_raw` instead.
+See also: :doc:`../guide/checkpoint`
+
+
+load_raw
+========
+
+Load the state-dict of a model or optimizer from a raw PyTorch checkpoint not saved by Fabric.
+
+.. code-block:: python
+
+    model = MyModel()
+
+    # A model weights file saved by your friend who doesn't use Fabric
+    fabric.load_raw("path/to/model.pt", model)
+
+    # Equivalent to this:
+    # model.load_state_dict(torch.load("path/to/model.pt"))
 
 
 See also: :doc:`../guide/checkpoint`
@@ -264,7 +321,8 @@ The three most common ones, :meth:`~lightning.fabric.fabric.Fabric.broadcast`, :
 
 .. important::
 
-    Every process needs to enter the collective calls. Otherwise, the program will hang!
+    Every process needs to enter the collective calls, and tensors need to have the same shape across all processes.
+    Otherwise, the program will hang!
 
 Learn more about :doc:`distributed communication <../advanced/distributed_communication>`.
 

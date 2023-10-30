@@ -85,7 +85,7 @@ def test_copytree_ignoring_files(tmp_path_factory):
             "dir1/file.tar.gz",
         } == relative_names
 
-    first_level_dirs = [directory for directory in dest.iterdir()]
+    first_level_dirs = list(dest.iterdir())
     assert len(first_level_dirs) == 4  # .lightningignore, dir2, dir1 and dir3
     assert {".lightningignore", "dir2", "dir1", "dir3"} == {d.name for d in first_level_dirs}
 

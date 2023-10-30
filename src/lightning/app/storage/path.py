@@ -18,7 +18,7 @@ import pathlib
 import shutil
 import sys
 from time import sleep
-from typing import Any, List, Optional, Sequence, TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, Any, List, Optional, Sequence, Union
 
 from fsspec import AbstractFileSystem
 from fsspec.implementations.local import LocalFileSystem
@@ -53,6 +53,7 @@ class Path(PathlibPath):
     Args:
         *args: Accepts the same arguments as in :class:`pathlib.Path`
         **kwargs: Accepts the same keyword arguments as in :class:`pathlib.Path`
+
     """
 
     @classmethod
@@ -61,6 +62,7 @@ class Path(PathlibPath):
 
         The Lightning Path overrides this to validate the instantiation in the case parts are passed in individually. In
         such a case we need to validate that all parts have the same `origin` and if not, an error is raised.
+
         """
         if args and isinstance(args[0], str) and args[0].startswith("lit://"):
             parts = list(args)
@@ -105,6 +107,7 @@ class Path(PathlibPath):
         """The name of the LightningWork where this path was first created.
 
         Attaching a Path to a LightningWork will automatically make it the `origin`.
+
         """
         from lightning.app.core.work import LightningWork
 
@@ -115,6 +118,7 @@ class Path(PathlibPath):
         """The name of the LightningWork where this path is being accessed.
 
         By default, this is the same as the :attr:`origin_name`.
+
         """
         from lightning.app.core.work import LightningWork
 
@@ -125,11 +129,12 @@ class Path(PathlibPath):
         """The hash of this Path uniquely identifies the file path and the associated origin Work.
 
         Returns ``None`` if the origin is not defined, i.e., this Path did not yet get attached to a LightningWork.
+
         """
         if self._origin is None:
             return None
         contents = f"{self.origin_name}/{self}"
-        return hashlib.sha1(contents.encode("utf-8")).hexdigest()
+        return hashlib.sha1(contents.encode("utf-8")).hexdigest()  # noqa: S324
 
     @property
     def parents(self) -> Sequence["Path"]:
@@ -152,6 +157,7 @@ class Path(PathlibPath):
         If you strictly want to check local existence only, use :meth:`exists_local` instead. If you strictly want
         to check existence on the remote (regardless of whether the file exists locally or not), use
         :meth:`exists_remote`.
+
         """
         return self.exists_local() or (self._origin and self.exists_remote())
 
@@ -164,6 +170,7 @@ class Path(PathlibPath):
 
         Raises:
             RuntimeError: If the path is not attached to any Work (origin undefined).
+
         """
         # Fail early if we need to check the remote but an origin is not defined
         if not self._origin or self._request_queue is None or self._response_queue is None:
@@ -234,12 +241,12 @@ class Path(PathlibPath):
 
     def to_dict(self) -> dict:
         """Serialize this Path to a dictionary."""
-        return dict(
-            path=str(self),
-            origin_name=self.origin_name,
-            consumer_name=self.consumer_name,
-            metadata=self._metadata,
-        )
+        return {
+            "path": str(self),
+            "origin_name": self.origin_name,
+            "consumer_name": self.consumer_name,
+            "metadata": self._metadata,
+        }
 
     @classmethod
     def from_dict(cls, content: dict) -> "Path":
@@ -272,6 +279,7 @@ class Path(PathlibPath):
 
         Args:
             work: LightningWork to be attached to this Path.
+
         """
         if self._origin is None:
             # Can become an owner only if there is not already one
@@ -363,8 +371,8 @@ class Path(PathlibPath):
         try:
             _copy_files(source_path, destination_path)
             _logger.debug(f"All files copied from {request.path} to {response.path}.")
-        except Exception as e:
-            response.exception = e
+        except Exception as ex:
+            response.exception = ex
         return response
 
 
@@ -374,11 +382,11 @@ def _is_lit_path(path: Union[str, Path]) -> bool:
 
 
 def _shared_local_mount_path() -> pathlib.Path:
-    """Returns the shared directory through which the Copier threads move files from one Work filesystem to
-    another.
+    """Returns the shared directory through which the Copier threads move files from one Work filesystem to another.
 
     The shared directory can be set via the environment variable ``SHARED_MOUNT_DIRECTORY`` and should be pointing to a
     directory that all Works have mounted (shared filesystem).
+
     """
     path = pathlib.Path(os.environ.get("SHARED_MOUNT_DIRECTORY", ".shared"))
     path.mkdir(parents=True, exist_ok=True)
@@ -397,6 +405,7 @@ def _shared_storage_path() -> pathlib.Path:
     The shared path gets set by the environment. Locally, it is pointing to a directory determined by the
     ``SHARED_MOUNT_DIRECTORY`` environment variable. In the cloud, the shared path will point to a S3 bucket. All Works
     have access to this shared dropbox.
+
     """
     storage_path = os.getenv("LIGHTNING_STORAGE_PATH", "")
     if storage_path != "":
@@ -427,16 +436,12 @@ def _filesystem() -> AbstractFileSystem:
     endpoint_url = os.getenv("LIGHTNING_BUCKET_ENDPOINT_URL", "")
     bucket_name = os.getenv("LIGHTNING_BUCKET_NAME", "")
     if endpoint_url != "" and bucket_name != "":
-        key = os.getenv("LIGHTNING_AWS_ACCESS_KEY_ID", "")
-        secret = os.getenv("LIGHTNING_AWS_SECRET_ACCESS_KEY", "")
-        # TODO: Remove when updated on the platform side.
-        if key == "" or secret == "":
-            key = os.getenv("AWS_ACCESS_KEY_ID", "")
-            secret = os.getenv("AWS_SECRET_ACCESS_KEY", "")
-        if key == "" or secret == "":
-            raise RuntimeError("missing S3 bucket credentials")
+        # FIXME: Temporary fix until we remove the injection from the platform
+        if "AWS_ACCESS_KEY_ID" in os.environ:
+            del os.environ["AWS_ACCESS_KEY_ID"]
+            del os.environ["AWS_SECRET_ACCESS_KEY"]
 
-        fs = S3FileSystem(key=key, secret=secret, use_ssl=False, client_kwargs={"endpoint_url": endpoint_url})
+        fs = S3FileSystem()
 
         app_id = os.getenv("LIGHTNING_CLOUD_APP_ID", "")
         if app_id == "":

@@ -26,23 +26,23 @@ References
 [1] https://github.com/openai/baselines/blob/master/baselines/ppo2/ppo2.py
 [2] https://github.com/openai/spinningup
 [3] https://github.com/sid-sundrani/ppo_lightning
+
 """
 import argparse
 from typing import Callable, Iterator, List, Tuple
 
 import gym
 import torch
+from lightning.pytorch import LightningModule, Trainer, cli_lightning_logo, seed_everything
 from torch import nn
 from torch.distributions import Categorical, Normal
 from torch.optim.optimizer import Optimizer
 from torch.utils.data import DataLoader, IterableDataset
 
-from lightning.pytorch import cli_lightning_logo, LightningModule, seed_everything, Trainer
-
 
 def create_mlp(input_shape: Tuple[int], n_actions: int, hidden_size: int = 128):
     """Simple Multi-Layer Perceptron network."""
-    network = nn.Sequential(
+    return nn.Sequential(
         nn.Linear(input_shape[0], hidden_size),
         nn.ReLU(),
         nn.Linear(hidden_size, hidden_size),
@@ -50,12 +50,9 @@ def create_mlp(input_shape: Tuple[int], n_actions: int, hidden_size: int = 128):
         nn.Linear(hidden_size, n_actions),
     )
 
-    return network
-
 
 class ActorCategorical(nn.Module):
-    """Policy network, for discrete action spaces, which returns a distribution and an action given an
-    observation."""
+    """Policy network, for discrete action spaces, which returns a distribution and an action given an observation."""
 
     def __init__(self, actor_net):
         """
@@ -83,6 +80,7 @@ class ActorCategorical(nn.Module):
 
         Returns:
             log probability of the action under pi
+
         """
         return pi.log_prob(actions)
 
@@ -119,6 +117,7 @@ class ActorContinuous(nn.Module):
 
         Returns:
             log probability of the action under pi
+
         """
         return pi.log_prob(actions).sum(axis=-1)
 
@@ -129,14 +128,14 @@ class ExperienceSourceDataset(IterableDataset):
 
     Basic experience source dataset. Takes a generate_batch function that returns an iterator. The logic for the
     experience source and how the batch is generated is defined the Lightning model itself
+
     """
 
     def __init__(self, generate_batch: Callable):
         self.generate_batch = generate_batch
 
     def __iter__(self) -> Iterator:
-        iterator = self.generate_batch()
-        return iterator
+        return self.generate_batch()
 
 
 class PPOLightning(LightningModule):
@@ -147,6 +146,7 @@ class PPOLightning(LightningModule):
     Train:
         trainer = Trainer()
         trainer.fit(model)
+
     """
 
     def __init__(
@@ -234,6 +234,7 @@ class PPOLightning(LightningModule):
 
         Returns:
             Tuple of policy and action
+
         """
         pi, action = self.actor(x)
         value = self.critic(x)
@@ -248,6 +249,7 @@ class PPOLightning(LightningModule):
 
         Returns:
             list of discounted rewards/advantages
+
         """
         assert isinstance(rewards[0], float)
 
@@ -270,14 +272,13 @@ class PPOLightning(LightningModule):
 
         Returns:
             list of advantages
+
         """
         rews = rewards + [last_value]
         vals = values + [last_value]
         # GAE
         delta = [rews[i] + self.gamma * vals[i + 1] - vals[i] for i in range(len(rews) - 1)]
-        adv = self.discount_rewards(delta, self.gamma * self.lam)
-
-        return adv
+        return self.discount_rewards(delta, self.gamma * self.lam)
 
     def generate_trajectory_samples(self) -> Tuple[List[torch.Tensor], List[torch.Tensor], List[torch.Tensor]]:
         """
@@ -285,7 +286,6 @@ class PPOLightning(LightningModule):
         Yield:
            Tuple of Lists containing tensors for states, actions, log probs, qvals and advantage
         """
-
         for step in range(self.steps_per_epoch):
             self.state = self.state.to(device=self.device)
 
@@ -368,19 +368,18 @@ class PPOLightning(LightningModule):
         logp = self.actor.get_log_prob(pi, action)
         ratio = torch.exp(logp - logp_old)
         clip_adv = torch.clamp(ratio, 1 - self.clip_ratio, 1 + self.clip_ratio) * adv
-        loss_actor = -(torch.min(ratio * adv, clip_adv)).mean()
-        return loss_actor
+        return -(torch.min(ratio * adv, clip_adv)).mean()
 
     def critic_loss(self, state, action, logp_old, qval, adv) -> torch.Tensor:
         value = self.critic(state)
-        loss_critic = (qval - value).pow(2).mean()
-        return loss_critic
+        return (qval - value).pow(2).mean()
 
     def training_step(self, batch: Tuple[torch.Tensor, torch.Tensor]):
         """Carries out a single update to actor and critic network from a batch of replay buffer.
 
         Args:
             batch: batch of replay buffer/trajectory data
+
         """
         state, action, old_logp, qval, adv = batch
 
@@ -413,16 +412,14 @@ class PPOLightning(LightningModule):
         return optimizer_actor, optimizer_critic
 
     def optimizer_step(self, *args, **kwargs):
-        """Run 'nb_optim_iters' number of iterations of gradient descent on actor and critic for each data
-        sample."""
+        """Run 'nb_optim_iters' number of iterations of gradient descent on actor and critic for each data sample."""
         for _ in range(self.nb_optim_iters):
             super().optimizer_step(*args, **kwargs)
 
     def _dataloader(self) -> DataLoader:
         """Initialize the Replay Buffer dataset used for retrieving experiences."""
         dataset = ExperienceSourceDataset(self.generate_trajectory_samples)
-        dataloader = DataLoader(dataset=dataset, batch_size=self.batch_size)
-        return dataloader
+        return DataLoader(dataset=dataset, batch_size=self.batch_size)
 
     def train_dataloader(self) -> DataLoader:
         """Get train loader."""

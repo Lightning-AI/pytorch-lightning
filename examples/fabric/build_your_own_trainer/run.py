@@ -1,8 +1,7 @@
+import lightning as L
 import torch
 from torchmetrics.functional.classification.accuracy import accuracy
 from trainer import MyCustomTrainer
-
-import lightning as L
 
 
 class MNISTModule(L.LightningModule):
@@ -41,7 +40,6 @@ class MNISTModule(L.LightningModule):
         return {"loss": loss, "accuracy": accuracy_train}
 
     def configure_optimizers(self):
-
         optim = torch.optim.Adam(self.parameters(), lr=1e-4)
         return optim, {
             "scheduler": torch.optim.lr_scheduler.ReduceLROnPlateau(optim, mode="max", verbose=True),

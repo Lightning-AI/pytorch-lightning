@@ -1,3 +1,4 @@
+import contextlib
 import logging
 import time
 from multiprocessing import Process
@@ -35,6 +36,7 @@ class ServableModuleValidator(Callback):
         port: The port associated with the server.
         timeout: Timeout period in seconds, that the process should wait for the server to start.
         exit_on_failure: Whether to exit the process on failure.
+
     """
 
     def __init__(
@@ -99,11 +101,9 @@ class ServableModuleValidator(Callback):
         ready = False
         t0 = time.time()
         while not ready:
-            try:
+            with contextlib.suppress(requests.exceptions.ConnectionError):
                 resp = requests.get(f"http://{self.host}:{self.port}/ping")
                 ready = resp.status_code == 200
-            except requests.exceptions.ConnectionError:
-                pass
             if time.time() - t0 > self.timeout:
                 process.kill()
                 raise Exception(f"The server didn't start within {self.timeout} seconds.")

@@ -21,15 +21,14 @@ from unittest.mock import patch
 import numpy as np
 import pytest
 import torch
-
 from lightning.pytorch import Callback, Trainer
 from lightning.pytorch.callbacks import EarlyStopping, StochasticWeightAveraging
 from lightning.pytorch.demos.boring_classes import BoringModel, ManualOptimBoringModel
 from lightning.pytorch.loggers import CSVLogger, TensorBoardLogger
 from lightning.pytorch.profilers import AdvancedProfiler, PassThroughProfiler, PyTorchProfiler, SimpleProfiler
-from lightning.pytorch.profilers.pytorch import RegisterRecordFunction, warning_cache
+from lightning.pytorch.profilers.pytorch import _KINETO_AVAILABLE, RegisterRecordFunction, warning_cache
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning.pytorch.utilities.imports import _KINETO_AVAILABLE
+
 from tests_pytorch.helpers.runif import RunIf
 
 PROFILER_OVERHEAD_MAX_TOLERANCE = 0.0005
@@ -40,23 +39,22 @@ def _get_python_cprofile_total_duration(profile):
 
 
 def _sleep_generator(durations):
-    """the profile_iterable method needs an iterable in which we can ensure that we're properly timing how long it
+    """The profile_iterable method needs an iterable in which we can ensure that we're properly timing how long it
     takes to call __next__"""
     for duration in durations:
         time.sleep(duration)
         yield duration
 
 
-@pytest.fixture
+@pytest.fixture()
 def simple_profiler():
     return SimpleProfiler()
 
 
 @pytest.mark.flaky(reruns=3)
-@pytest.mark.parametrize(["action", "expected"], [("a", [3, 1]), ("b", [2]), ("c", [1])])
+@pytest.mark.parametrize(("action", "expected"), [("a", [3, 1]), ("b", [2]), ("c", [1])])
 def test_simple_profiler_durations(simple_profiler, action: str, expected: list):
     """Ensure the reported durations are reasonably accurate."""
-
     for duration in expected:
         with simple_profiler.profile(action):
             time.sleep(duration)
@@ -78,7 +76,6 @@ def test_simple_profiler_overhead(simple_profiler, n_iter=5):
 
 def test_simple_profiler_value_errors(simple_profiler):
     """Ensure errors are raised where expected."""
-
     action = "test"
     with pytest.raises(ValueError):
         simple_profiler.stop(action)
@@ -258,15 +255,14 @@ def test_simple_profiler_summary(tmpdir, extended):
     assert expected_text == summary
 
 
-@pytest.fixture
+@pytest.fixture()
 def advanced_profiler(tmpdir):
     return AdvancedProfiler(dirpath=tmpdir, filename="profiler")
 
 
 @pytest.mark.flaky(reruns=3)
-@pytest.mark.parametrize(["action", "expected"], [("a", [3, 1]), ("b", [2]), ("c", [1])])
+@pytest.mark.parametrize(("action", "expected"), [("a", [3, 1]), ("b", [2]), ("c", [1])])
 def test_advanced_profiler_durations(advanced_profiler, action: str, expected: list):
-
     for duration in expected:
         with advanced_profiler.profile(action):
             time.sleep(duration)
@@ -280,7 +276,7 @@ def test_advanced_profiler_durations(advanced_profiler, action: str, expected: l
 
 @pytest.mark.flaky(reruns=3)
 def test_advanced_profiler_overhead(advanced_profiler, n_iter=5):
-    """ensure that the profiler doesn't introduce too much overhead during training."""
+    """Ensure that the profiler doesn't introduce too much overhead during training."""
     for _ in range(n_iter):
         with advanced_profiler.profile("no-op"):
             pass
@@ -292,7 +288,7 @@ def test_advanced_profiler_overhead(advanced_profiler, n_iter=5):
 
 
 def test_advanced_profiler_describe(tmpdir, advanced_profiler):
-    """ensure the profiler won't fail when reporting the summary."""
+    """Ensure the profiler won't fail when reporting the summary."""
     # record at least one event
     with advanced_profiler.profile("test"):
         pass
@@ -305,7 +301,6 @@ def test_advanced_profiler_describe(tmpdir, advanced_profiler):
 
 def test_advanced_profiler_value_errors(advanced_profiler):
     """Ensure errors are raised where expected."""
-
     action = "test"
     with pytest.raises(ValueError):
         advanced_profiler.stop(action)
@@ -319,7 +314,7 @@ def test_advanced_profiler_deepcopy(advanced_profiler):
     assert deepcopy(advanced_profiler)
 
 
-@pytest.fixture
+@pytest.fixture()
 def pytorch_profiler(tmpdir):
     return PyTorchProfiler(dirpath=tmpdir, filename="profiler")
 
@@ -413,7 +408,7 @@ def test_pytorch_profiler_trainer_fit(fast_dev_run, boring_model_cls, tmpdir):
         assert any(f"fit-{pytorch_profiler.filename}" in f for f in files)
 
 
-@pytest.mark.parametrize("fn, step_name", [("test", "test"), ("validate", "validation"), ("predict", "predict")])
+@pytest.mark.parametrize(("fn", "step_name"), [("test", "test"), ("validate", "validation"), ("predict", "predict")])
 @pytest.mark.parametrize("boring_model_cls", [BoringModel, ManualOptimBoringModel])
 def test_pytorch_profiler_trainer(fn, step_name, boring_model_cls, tmpdir):
     """Ensure that the profiler can be given to the trainer and test step are properly recorded."""
@@ -435,7 +430,6 @@ def test_pytorch_profiler_trainer(fn, step_name, boring_model_cls, tmpdir):
 
 def test_pytorch_profiler_nested(tmpdir):
     """Ensure that the profiler handles nested context."""
-
     pytorch_profiler = PyTorchProfiler(use_cuda=False, dirpath=tmpdir, filename="profiler", schedule=None)
 
     with pytorch_profiler.profile("a"):
@@ -462,6 +456,7 @@ def test_pytorch_profiler_multiple_loggers(tmpdir):
     multiple loggers.
 
     See issue #8157.
+
     """
 
     def look_for_trace(trace_dir):
@@ -493,7 +488,6 @@ def test_pytorch_profiler_nested_emit_nvtx():
 
 
 def test_register_record_function(tmpdir):
-
     use_cuda = torch.cuda.is_available()
     pytorch_profiler = PyTorchProfiler(
         export_to_chrome=False,
@@ -516,9 +510,8 @@ def test_register_record_function(tmpdir):
         model = model.cuda()
         input = input.cuda()
 
-    with pytorch_profiler.profile("a"):
-        with RegisterRecordFunction(model):
-            model(input)
+    with pytorch_profiler.profile("a"), RegisterRecordFunction(model):
+        model(input)
 
     pytorch_profiler.describe()
     event_names = [e.name for e in pytorch_profiler.function_events]
@@ -528,7 +521,7 @@ def test_register_record_function(tmpdir):
     assert "[pl][module]torch.nn.modules.linear.Linear: layer.2" in event_names
 
 
-@pytest.mark.parametrize("cls", (SimpleProfiler, AdvancedProfiler, PyTorchProfiler))
+@pytest.mark.parametrize("cls", [SimpleProfiler, AdvancedProfiler, PyTorchProfiler])
 def test_profiler_teardown(tmpdir, cls):
     """This test checks if profiler teardown method is called when trainer is exiting."""
 
@@ -554,7 +547,7 @@ def test_pytorch_profiler_deepcopy(tmpdir):
 
 
 @pytest.mark.parametrize(
-    ["profiler", "expected"],
+    ("profiler", "expected"),
     [
         (None, PassThroughProfiler),
         (SimpleProfiler(), SimpleProfiler),
@@ -581,7 +574,7 @@ def test_trainer_profiler_incorrect_str_arg():
 
 @pytest.mark.skipif(not _KINETO_AVAILABLE, reason="Requires PyTorch Profiler Kineto")
 @pytest.mark.parametrize(
-    ["trainer_config", "trainer_fn"],
+    ("trainer_config", "trainer_fn"),
     [
         ({"limit_train_batches": 4, "limit_val_batches": 7}, "fit"),
         ({"limit_train_batches": 7, "limit_val_batches": 4, "num_sanity_val_steps": 0}, "fit"),
@@ -609,7 +602,6 @@ def test_pytorch_profiler_raises_warning_for_limited_steps(tmpdir, trainer_confi
 
 def test_profile_callbacks(tmpdir):
     """Checks if profiling callbacks works correctly, specifically when there are two of the same callback type."""
-
     pytorch_profiler = PyTorchProfiler(dirpath=tmpdir, filename="profiler")
     model = BoringModel()
     trainer = Trainer(
@@ -627,3 +619,38 @@ def test_profile_callbacks(tmpdir):
         e.name == "[pl][profile][Callback]EarlyStopping{'monitor': 'train_loss', 'mode': 'min'}.on_validation_start"
         for e in pytorch_profiler.function_events
     )
+
+
+@RunIf(min_python="3.10")
+def test_profiler_table_kwargs_summary_length(tmpdir):
+    """Test if setting max_name_column_width in table_kwargs changes table width."""
+
+    summaries = []
+    # Default table_kwargs (None) sets max_name_column_width to 55
+    for table_kwargs in [{"max_name_column_width": 1}, {"max_name_column_width": 5}, None]:
+        pytorch_profiler = PyTorchProfiler(dirpath=tmpdir, filename="profile", schedule=None, table_kwargs=table_kwargs)
+
+        with pytorch_profiler.profile("a"):
+            torch.ones(1)
+        pytorch_profiler.describe()
+        summaries.append(pytorch_profiler.summary())
+
+    # Check if setting max_name_column_width results in a wider table (more dashes)
+    assert summaries[0].count("-") < summaries[1].count("-")
+    assert summaries[1].count("-") < summaries[2].count("-")
+
+
+def test_profiler_invalid_table_kwargs(tmpdir):
+    """Test if passing invalid keyword arguments raise expected error."""
+
+    for key in {"row_limit", "sort_by"}:
+        with pytest.raises(
+            KeyError,
+            match=f"Found invalid table_kwargs key: {key}. This is already a positional argument of the Profiler.",
+        ):
+            PyTorchProfiler(table_kwargs={key: None}, dirpath=tmpdir, filename="profile")
+
+    for key in {"self", "non_existent_keyword_arg"}:
+        with pytest.raises(KeyError) as exc_info:
+            PyTorchProfiler(table_kwargs={key: None}, dirpath=tmpdir, filename="profile")
+        assert exc_info.value.args[0].startswith(f"Found invalid table_kwargs key: {key}.")

@@ -2,12 +2,12 @@ import os
 from time import sleep
 
 import pytest
-
-from integrations_app.public import _PATH_EXAMPLES
 from lightning.app.testing.testing import run_app_in_cloud
 
+from integrations_app.public import _PATH_EXAMPLES
 
-@pytest.mark.cloud
+
+@pytest.mark.cloud()
 def test_drive_example_cloud() -> None:
     with run_app_in_cloud(os.path.join(_PATH_EXAMPLES, "drive")) as (
         _,
@@ -15,7 +15,6 @@ def test_drive_example_cloud() -> None:
         fetch_logs,
         _,
     ):
-
         has_logs = False
         while not has_logs:
             for log in fetch_logs(["flow"]):

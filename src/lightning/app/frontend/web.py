@@ -44,6 +44,7 @@ class StaticWebFrontend(Frontend):
 
             def configure_layout(self):
                 return StaticWebFrontend("path/to/folder/to/serve")
+
     """
 
     def __init__(self, serve_dir: str) -> None:
@@ -55,14 +56,14 @@ class StaticWebFrontend(Frontend):
         log_file = str(get_logfile())
         self._process = mp.Process(
             target=_start_server,
-            kwargs=dict(
-                host=host,
-                port=port,
-                serve_dir=self.serve_dir,
-                path=f"/{self.flow.name}",
-                log_file=log_file,
-                root_path=root_path,
-            ),
+            kwargs={
+                "host": host,
+                "port": port,
+                "serve_dir": self.serve_dir,
+                "path": f"/{self.flow.name}",
+                "log_file": log_file,
+                "root_path": root_path,
+            },
         )
         self._process.start()
 
@@ -102,8 +103,7 @@ def _start_server(
 
 
 def _get_log_config(log_file: str) -> dict:
-    """Returns a logger configuration in the format expected by uvicorn that sends all logs to the given
-    logfile."""
+    """Returns a logger configuration in the format expected by uvicorn that sends all logs to the given logfile."""
     # Modified from the default config found in uvicorn.config.LOGGING_CONFIG
     return {
         "version": 1,

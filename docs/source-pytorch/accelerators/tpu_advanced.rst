@@ -50,7 +50,7 @@ Example:
 
 
     model = WeightSharingModule()
-    trainer = Trainer(max_epochs=1, accelerator="tpu", devices=8)
+    trainer = Trainer(max_epochs=1, accelerator="tpu")
 
 See `XLA Documentation <https://github.com/pytorch/xla/blob/master/TROUBLESHOOTING.md#xla-tensor-quirks>`_
 

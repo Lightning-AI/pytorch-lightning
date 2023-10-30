@@ -44,6 +44,7 @@ class LSFEnvironment(ClusterEnvironment):
 
     ``JSM_NAMESPACE_RANK``
       The global rank for the task. This environment variable is set by ``jsrun``
+
     """
 
     def __init__(self) -> None:
@@ -88,7 +89,7 @@ class LSFEnvironment(ClusterEnvironment):
         if world_size is None:
             raise ValueError(
                 "Cannot determine world size. Environment variable `JSM_NAMESPACE_SIZE` not found."
-                "Make sure you run your executable with `jsrun`."
+                " Make sure you run your executable with `jsrun`."
             )
         return int(world_size)
 
@@ -101,7 +102,7 @@ class LSFEnvironment(ClusterEnvironment):
         if global_rank is None:
             raise ValueError(
                 "Cannot determine global rank. Environment variable `JSM_NAMESPACE_RANK` not found."
-                "Make sure you run your executable with `jsrun`."
+                " Make sure you run your executable with `jsrun`."
             )
         return int(global_rank)
 
@@ -114,13 +115,13 @@ class LSFEnvironment(ClusterEnvironment):
         if local_rank is None:
             raise ValueError(
                 "Cannot determine local rank. Environment variable `JSM_NAMESPACE_LOCAL_RANK` not found."
-                "Make sure you run your executable with `jsrun`."
+                " Make sure you run your executable with `jsrun`."
             )
         return int(local_rank)
 
     def node_rank(self) -> int:
-        """The node rank is determined by the position of the current hostname in the OpenMPI host rank file stored
-        in ``LSB_DJOB_RANKFILE``."""
+        """The node rank is determined by the position of the current hostname in the OpenMPI host rank file stored in
+        ``LSB_DJOB_RANKFILE``."""
         return self._node_rank
 
     def _get_node_rank(self) -> int:
@@ -128,6 +129,7 @@ class LSFEnvironment(ClusterEnvironment):
 
         The node rank is determined by the position of the current node in the list of hosts used in the job. This is
         calculated by reading all hosts from ``LSB_DJOB_RANKFILE`` and finding this node's hostname in the list.
+
         """
         hosts = self._read_hosts()
         count: Dict[str, int] = {}
@@ -143,6 +145,7 @@ class LSFEnvironment(ClusterEnvironment):
         LSF uses the Job Step Manager (JSM) to manage job steps. Job steps are executed by the JSM from "launch" nodes.
         Each job is assigned a launch node. This launch node will be the first node in the list contained in
         ``LSB_DJOB_RANKFILE``.
+
         """
         var = "LSB_DJOB_RANKFILE"
         rankfile = os.environ.get(var)
@@ -161,6 +164,7 @@ class LSFEnvironment(ClusterEnvironment):
         """A helper for getting the main address.
 
         The main address is assigned to the first node in the list of nodes used for the job.
+
         """
         hosts = self._read_hosts()
         return hosts[0]
@@ -170,6 +174,7 @@ class LSFEnvironment(ClusterEnvironment):
         """A helper function for accessing the main port.
 
         Uses the LSF job ID so all ranks can compute the main port.
+
         """
         # check for user-specified main port
         if "MASTER_PORT" in os.environ:

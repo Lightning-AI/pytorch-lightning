@@ -63,9 +63,10 @@ def _make_resource(resource_dir: str, resource_name: str) -> Tuple[str, str]:
         if bad_file.split("/")[-1] in trouble_names:
             continue
         # find the words and replace
-        content = open(bad_file).read().replace("placeholdername", name_for_files)
-        with open(bad_file, "w") as file:
-            file.write(content)
+        with open(bad_file) as fo:
+            content = fo.read().replace("placeholdername", name_for_files)
+        with open(bad_file, "w") as fw:
+            fw.write(content)
 
     # rename files
     for file_name in files:
@@ -112,10 +113,11 @@ def _capture_valid_app_component_name(value: Optional[str] = None, resource_type
             raise SystemExit(m)
 
     except KeyboardInterrupt:
-        m = f"""
+        raise SystemExit(
+            f"""
         ⚡ {resource_type} init aborted! ⚡
         """
-        raise SystemExit(m)
+        )
 
     return value
 

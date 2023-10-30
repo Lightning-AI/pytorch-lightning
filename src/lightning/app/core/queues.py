@@ -23,6 +23,7 @@ from pathlib import Path
 from typing import Any, Optional, Tuple
 from urllib.parse import urljoin
 
+import backoff
 import requests
 from requests.exceptions import ConnectionError, ConnectTimeout, ReadTimeout
 
@@ -74,10 +75,9 @@ class QueuingSystem(Enum):
     def get_queue(self, queue_name: str) -> "BaseQueue":
         if self == QueuingSystem.MULTIPROCESS:
             return MultiProcessQueue(queue_name, default_timeout=STATE_UPDATE_TIMEOUT)
-        elif self == QueuingSystem.REDIS:
+        if self == QueuingSystem.REDIS:
             return RedisQueue(queue_name, default_timeout=REDIS_QUEUES_READ_DEFAULT_TIMEOUT)
-        else:
-            return HTTPQueue(queue_name, default_timeout=STATE_UPDATE_TIMEOUT)
+        return HTTPQueue(queue_name, default_timeout=STATE_UPDATE_TIMEOUT)
 
     def get_api_response_queue(self, queue_id: Optional[str] = None) -> "BaseQueue":
         queue_name = f"{queue_id}_{API_RESPONSE_QUEUE_CONSTANT}" if queue_id else API_RESPONSE_QUEUE_CONSTANT
@@ -182,6 +182,7 @@ class BaseQueue(ABC):
         timeout:
             Read timeout in seconds, in case of input timeout is 0, the `self.default_timeout` is used.
             A timeout of None can be used to block indefinitely.
+
         """
         pass
 
@@ -190,6 +191,7 @@ class BaseQueue(ABC):
         """Returns True if the queue is running, False otherwise.
 
         Child classes should override this property and implement custom logic as required
+
         """
         return True
 
@@ -244,7 +246,7 @@ class RedisQueue(BaseQueue):
         self.redis = redis.Redis(host=self.host, port=self.port, password=self.password)
 
     def put(self, item: Any) -> None:
-        from lightning.app import LightningWork
+        from lightning.app.core.work import LightningWork
 
         is_work = isinstance(item, LightningWork)
 
@@ -286,8 +288,8 @@ class RedisQueue(BaseQueue):
         timeout:
             Read timeout in seconds, in case of input timeout is 0, the `self.default_timeout` is used.
             A timeout of None can be used to block indefinitely.
-        """
 
+        """
         if timeout is None:
             # this means it's blocking in redis
             timeout = 0
@@ -388,19 +390,30 @@ class HTTPQueue(BaseQueue):
         if timeout is None:
             while True:
                 try:
-                    return self._get()
+                    try:
+                        return self._get()
+                    except requests.exceptions.HTTPError:
+                        pass
                 except queue.Empty:
                     time.sleep(HTTP_QUEUE_REFRESH_INTERVAL)
 
         # make one request and return the result
         if timeout == 0:
-            return self._get()
+            try:
+                return self._get()
+            except requests.exceptions.HTTPError:
+                return None
 
         # timeout is some value - loop until the timeout is reached
         start_time = time.time()
         while (time.time() - start_time) < timeout:
             try:
-                return self._get()
+                try:
+                    return self._get()
+                except requests.exceptions.HTTPError:
+                    if timeout > self.default_timeout:
+                        return None
+                    raise queue.Empty
             except queue.Empty:
                 # Note: In theory, there isn't a need for a sleep as the queue shouldn't
                 # block the flow if the queue is empty.
@@ -409,7 +422,7 @@ class HTTPQueue(BaseQueue):
                 # than the default timeout
                 if timeout > self.default_timeout:
                     time.sleep(0.05)
-                pass
+        return None
 
     def _get(self) -> Any:
         try:
@@ -422,6 +435,7 @@ class HTTPQueue(BaseQueue):
             # we consider the queue is empty to avoid failing the app.
             raise queue.Empty
 
+    @backoff.on_exception(backoff.expo, (RuntimeError, requests.exceptions.HTTPError))
     def put(self, item: Any) -> None:
         if not self.app_id:
             raise ValueError(f"The Lightning App ID couldn't be extracted from the queue name: {self.name}")
@@ -441,8 +455,11 @@ class HTTPQueue(BaseQueue):
         if not self.app_id:
             raise ValueError(f"App ID couldn't be extracted from the queue name: {self.name}")
 
-        val = self.client.get(f"/v1/{self.app_id}/{self._name_suffix}/length")
-        return int(val.text)
+        try:
+            val = self.client.get(f"/v1/{self.app_id}/{self._name_suffix}/length")
+            return int(val.text)
+        except requests.exceptions.HTTPError:
+            return 0
 
     @staticmethod
     def _split_app_id_and_queue_name(queue_name: str) -> Tuple[str, str]:
@@ -450,6 +467,7 @@ class HTTPQueue(BaseQueue):
 
         This can be brittle, as if the queue name creation logic changes, the response values from here wouldn't be
         accurate. Remove this eventually and let the Queue class take app id and name of the queue as arguments
+
         """
         if "_" not in queue_name:
             return "", queue_name

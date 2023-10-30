@@ -1,17 +1,17 @@
 import os
 from collections.abc import Mapping
 from functools import partial
-from typing import Any, cast, Iterable, List, Literal, Optional, Tuple, Union
-
-import torch
-from lightning_utilities import apply_to_collection, is_overridden
-from tqdm import tqdm
+from typing import Any, Iterable, List, Literal, Optional, Tuple, Union, cast
 
 import lightning as L
+import torch
 from lightning.fabric.accelerators import Accelerator
 from lightning.fabric.loggers import Logger
 from lightning.fabric.strategies import Strategy
 from lightning.fabric.wrappers import _unwrap_objects
+from lightning.pytorch.utilities.model_helpers import is_overridden
+from lightning_utilities import apply_to_collection
+from tqdm import tqdm
 
 
 class MyCustomTrainer:
@@ -83,6 +83,7 @@ class MyCustomTrainer:
 
         Warning:
             callbacks written for the lightning trainer (especially making assumptions on the trainer), won't work!
+
         """
 
         self.fabric = L.Fabric(
@@ -136,6 +137,7 @@ class MyCustomTrainer:
                 If not specified, no validation will run.
             ckpt_path: Path to previous checkpoints to resume training from.
                 If specified, will always look for the latest checkpoint within the given directory.
+
         """
         self.fabric.launch()
 
@@ -149,10 +151,10 @@ class MyCustomTrainer:
             # currently, there is no way to support fsdp with model.configure_optimizers in fabric
             # as it would require fabric to hold a reference to the model, which we don't want to.
             raise NotImplementedError("BYOT currently does not support FSDP")
-        else:
-            optimizer, scheduler_cfg = self._parse_optimizers_schedulers(model.configure_optimizers())
-            assert optimizer is not None
-            model, optimizer = self.fabric.setup(model, optimizer)
+
+        optimizer, scheduler_cfg = self._parse_optimizers_schedulers(model.configure_optimizers())
+        assert optimizer is not None
+        model, optimizer = self.fabric.setup(model, optimizer)
 
         # assemble state (current epoch and global step will be added in save)
         state = {"model": model, "optim": optimizer, "scheduler": scheduler_cfg}
@@ -203,9 +205,11 @@ class MyCustomTrainer:
             optimizer: the optimizer, optimizing the LightningModule.
             train_loader: The dataloader yielding the training batches.
             limit_batches: Limits the batches during this training epoch.
-                If greater then the number of batches in the ``train_loader``, this has no effect.
+                If greater than the number of batches in the ``train_loader``, this has no effect.
             scheduler_cfg: The learning rate scheduler configuration.
-                Have a look at :meth:`lightning.pytorch.LightninModule.configure_optimizers` for supported values.
+                Have a look at :meth:`~lightning.pytorch.core.LightningModule.configure_optimizers`
+                for supported values.
+
         """
         self.fabric.call("on_train_epoch_start")
         iterable = self.progbar_wrapper(
@@ -215,8 +219,7 @@ class MyCustomTrainer:
         for batch_idx, batch in enumerate(iterable):
             # end epoch if stopping training completely or max batches for this epoch reached
             if self.should_stop or batch_idx >= limit_batches:
-                self.fabric.call("on_train_epoch_end")
-                return
+                break
 
             self.fabric.call("on_train_batch_start", batch, batch_idx)
 
@@ -267,14 +270,15 @@ class MyCustomTrainer:
             model: the LightningModule to evaluate
             val_loader: The dataloader yielding the validation batches.
             limit_batches: Limits the batches during this validation epoch.
-                If greater then the number of batches in the ``val_loader``, this has no effect.
+                If greater than the number of batches in the ``val_loader``, this has no effect.
+
         """
         # no validation if val_loader wasn't passed
         if val_loader is None:
             return
 
         # no validation but warning if val_loader was passed, but validation_step not implemented
-        elif val_loader is not None and not is_overridden("validation_step", _unwrap_objects(model), L.LightningModule):
+        if val_loader is not None and not is_overridden("validation_step", _unwrap_objects(model)):
             L.fabric.utilities.rank_zero_warn(
                 "Your LightningModule does not have a validation_step implemented, "
                 "but you passed a validation dataloder. Skipping Validation."
@@ -290,11 +294,9 @@ class MyCustomTrainer:
         iterable = self.progbar_wrapper(val_loader, total=min(len(val_loader), limit_batches), desc="Validation")
 
         for batch_idx, batch in enumerate(iterable):
-
             # end epoch if stopping training completely or max batches for this epoch reached
             if self.should_stop or batch_idx >= limit_batches:
-                self.fabric.call("on_validation_epoch_end")
-                return
+                break
 
             self.fabric.call("on_validation_batch_start", batch, batch_idx)
 
@@ -313,13 +315,14 @@ class MyCustomTrainer:
         torch.set_grad_enabled(True)
 
     def training_step(self, model: L.LightningModule, batch: Any, batch_idx: int) -> torch.Tensor:
-        """A single training step, running forward and backward. The optimizer step is called separately, as this
-        is given as a closure to the optimizer step.
+        """A single training step, running forward and backward. The optimizer step is called separately, as this is
+        given as a closure to the optimizer step.
 
         Args:
             model: the lightning module to train
             batch: the batch to run the forward on
             batch_idx: index of the current batch w.r.t the current epoch
+
         """
         outputs: Union[torch.Tensor, Mapping[str, Any]] = model.training_step(batch, batch_idx=batch_idx)
 
@@ -346,9 +349,10 @@ class MyCustomTrainer:
         Args:
             model: The LightningModule to train
             scheduler_cfg: The learning rate scheduler configuration.
-                Have a look at :meth:`lightning.pytorch.LightninModule.configure_optimizers` for supported values.
+                Have a look at :meth:`lightning.pytorch.LightningModule.configure_optimizers` for supported values.
             level: whether we are trying to step on epoch- or step-level
             current_value: Holds the current_epoch if ``level==epoch``, else holds the ``global_step``
+
         """
 
         # no scheduler
@@ -377,11 +381,11 @@ class MyCustomTrainer:
 
         try:
             monitor = possible_monitor_vals[cast(Optional[str], scheduler_cfg["monitor"])]
-        except KeyError as e:
+        except KeyError as ex:
             possible_keys = list(possible_monitor_vals.keys())
             raise KeyError(
                 f"monitor {scheduler_cfg['monitor']} is invalid. Possible values are {possible_keys}."
-            ) from e
+            ) from ex
 
         # rely on model hook for actual step
         model.lr_scheduler_step(scheduler_cfg["scheduler"], monitor)
@@ -397,6 +401,7 @@ class MyCustomTrainer:
         Args:
             iterable: the iterable to wrap with tqdm
             total: the total length of the iterable, necessary in case the number of batches was limited.
+
         """
         if self.fabric.is_global_zero:
             return tqdm(iterable, total=total, **kwargs)
@@ -408,6 +413,7 @@ class MyCustomTrainer:
         Args:
             state: a mapping contaning model, optimizer and lr scheduler
             path: the path to load the checkpoint from
+
         """
         if state is None:
             state = {}
@@ -424,6 +430,7 @@ class MyCustomTrainer:
 
         Args:
             state: A mapping containing model, optimizer and lr scheduler.
+
         """
         if state is None:
             state = {}
@@ -438,6 +445,7 @@ class MyCustomTrainer:
 
         Args:
             checkpoint_dir: the directory to search for checkpoints
+
         """
         if not os.path.isdir(checkpoint_dir):
             return None
@@ -460,6 +468,7 @@ class MyCustomTrainer:
         Args:
             configure_optim_output: The output of ``configure_optimizers``.
                 For supported values, please refer to :meth:`lightning.pytorch.LightningModule.configure_optimizers`.
+
         """
         _lr_sched_defaults = {"interval": "epoch", "frequency": 1, "monitor": "val_loss"}
 
@@ -468,32 +477,27 @@ class MyCustomTrainer:
             return configure_optim_output, None
 
         # single lr scheduler
-        elif isinstance(configure_optim_output, L.fabric.utilities.types.LRScheduler):
+        if isinstance(configure_optim_output, L.fabric.utilities.types.LRScheduler):
             return None, _lr_sched_defaults.update(scheduler=configure_optim_output)
 
         # single lr scheduler config
-        elif isinstance(configure_optim_output, Mapping):
+        if isinstance(configure_optim_output, Mapping):
             _lr_sched_defaults.update(configure_optim_output)
             return None, _lr_sched_defaults
 
         # list or tuple
-        elif isinstance(configure_optim_output, (list, tuple)):
-            if all(
-                [isinstance(_opt_cand, L.fabric.utilities.types.Optimizable) for _opt_cand in configure_optim_output]
-            ):
+        if isinstance(configure_optim_output, (list, tuple)):
+            if all(isinstance(_opt_cand, L.fabric.utilities.types.Optimizable) for _opt_cand in configure_optim_output):
                 # single optimizer in list
                 if len(configure_optim_output) == 1:
                     return configure_optim_output[0][0], None
 
                 raise NotImplementedError("BYOT only supports a single optimizer")
 
-            elif all(
-                [
-                    isinstance(_lr_cand, (L.fabric.utilities.types.LRScheduler, Mapping))
-                    for _lr_cand in configure_optim_output
-                ]
+            if all(
+                isinstance(_lr_cand, (L.fabric.utilities.types.LRScheduler, Mapping))
+                for _lr_cand in configure_optim_output
             ):
-
                 # single scheduler in list
                 if len(configure_optim_output) == 1:
                     return None, self._parse_optimizers_schedulers(configure_optim_output[0])[1]
@@ -518,6 +522,7 @@ class MyCustomTrainer:
             prog_bar: a progressbar (on global rank zero) or an iterable (every other rank).
             candidates: the values to add as postfix strings to the progressbar.
             prefix: the prefix to add to each of these values.
+
         """
         if isinstance(prog_bar, tqdm) and candidates is not None:
             postfix_str = ""

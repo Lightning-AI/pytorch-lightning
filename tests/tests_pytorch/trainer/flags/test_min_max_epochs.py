@@ -1,13 +1,12 @@
 import pytest
-from lightning_utilities.test.warning import no_warning_call
-
 from lightning.fabric.utilities.warnings import PossibleUserWarning
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
+from lightning_utilities.test.warning import no_warning_call
 
 
 @pytest.mark.parametrize(
-    ["min_epochs", "max_epochs", "min_steps", "max_steps"],
+    ("min_epochs", "max_epochs", "min_steps", "max_steps"),
     [
         (None, 3, None, -1),
         (None, None, None, 20),

@@ -80,7 +80,7 @@ class MultiProcessingBackend(Backend):
         if constants.LIGHTNING_CLOUDSPACE_HOST is not None:
             # Override the port if set by the user
             work._port = find_free_network_port()
-            work._host = "0.0.0.0"
+            work._host = "0.0.0.0"  # noqa: S104
             work._future_url = f"https://{work.port}-{constants.LIGHTNING_CLOUDSPACE_HOST}"
 
         app.processes[work.name] = MultiProcessWorkManager(app, work)
@@ -121,7 +121,7 @@ class CloudMultiProcessingBackend(MultiProcessingBackend):
         self.ports = []
 
     def create_work(self, app, work) -> None:
-        work._host = "0.0.0.0"
+        work._host = "0.0.0.0"  # noqa: S104
         nc = enable_port()
         self.ports.append(nc.port)
         work._port = nc.port

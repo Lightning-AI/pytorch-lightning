@@ -5,13 +5,13 @@
 ########################
 Debug your model (basic)
 ########################
+
 **Audience**: Users who want to learn the basics of debugging models.
 
-.. raw:: html
-
-    <video width="50%" max-width="400px" controls
-    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/yt_thumbs/thumb_debugging.png"
-    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/yt/Trainer+flags+7-+debugging_1.mp4"></video>
+.. video:: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/yt/Trainer+flags+7-+debugging_1.mp4
+    :poster: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/yt_thumbs/thumb_debugging.png
+    :width: 400
+    :muted:
 
 ----
 
@@ -51,13 +51,13 @@ The :paramref:`~lightning.pytorch.trainer.trainer.Trainer.fast_dev_run` argument
 
 .. code:: python
 
-    Trainer(fast_dev_run=True)
+    trainer = Trainer(fast_dev_run=True)
 
 To change how many batches to use, change the argument to an integer. Here we run 7 batches of each:
 
 .. code:: python
 
-    Trainer(fast_dev_run=7)
+    trainer = Trainer(fast_dev_run=7)
 
 
 .. note::
@@ -142,7 +142,7 @@ To turn off the autosummary use:
 
 .. code:: python
 
-    Trainer(enable_model_summary=False)
+    trainer = Trainer(enable_model_summary=False)
 
 ----
 

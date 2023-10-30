@@ -1,28 +1,27 @@
 import os
 
-import pytest
-
 import lightning.app as la
+import pytest
 from lightning.app.cli import cmd_init, cmd_react_ui_init
 from lightning.app.testing.helpers import _RunIf
 
 
 @pytest.mark.skipif(os.getenv("GITHUB_ACTIONS") is None, reason="not running in GH actions.")
-@pytest.mark.skip(reason="need to figure out how to mock not having npm")
+@pytest.mark.xfail(strict=False, reason="need to figure out how to mock not having npm")
 def test_missing_npm():
     with pytest.raises(SystemExit, match="This machine is missing 'npm'"):
         cmd_react_ui_init._check_react_prerequisites()
 
 
 @pytest.mark.skipif(os.getenv("GITHUB_ACTIONS") is None, reason="not running in GH actions.")
-@pytest.mark.skip(reason="need to figure out how to mock not having node")
+@pytest.mark.xfail(strict=False, reason="need to figure out how to mock not having node")
 def test_missing_nodejs():
     with pytest.raises(SystemExit, match="This machine is missing 'node'"):
         cmd_react_ui_init._check_react_prerequisites()
 
 
 @pytest.mark.skipif(os.getenv("GITHUB_ACTIONS") is None, reason="not running in GH actions")
-@pytest.mark.skip(reason="need to figure out how to mock not having yarn")
+@pytest.mark.xfail(strict=False, reason="need to figure out how to mock not having yarn")
 def test_missing_yarn():
     with pytest.raises(SystemExit, match="This machine is missing 'yarn'"):
         cmd_react_ui_init._check_react_prerequisites()
@@ -38,13 +37,15 @@ def test_copy_and_setup_react_ui(tmpdir):
     assert len(files) == 3, "should only be 3 objects: readme.md, example_app.py and ui dir"
 
     # make sure index.html has the vite app placeholder
-    index_content = open(dest_dir + "/ui/dist/index.html").read()
+    with open(dest_dir + "/ui/dist/index.html") as fo:
+        index_content = fo.read()
     assert "<title>Vite App</title>" in index_content
 
     # read the compiled js file
     js_file = [x for x in os.listdir(os.path.join(dest_dir, "ui", "dist", "assets")) if ".js" in x]
     js_file = os.path.join(dest_dir, f"ui/dist/assets/{js_file[0]}")
-    index_content = open(js_file).read()
+    with open(js_file) as fo:
+        index_content = fo.read()
 
     # if this is in the compiled file, the compilation worked and the app will work
     assert "Total number of prints in your terminal:" in index_content, "react app was not compiled properly"

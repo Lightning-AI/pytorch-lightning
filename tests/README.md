@@ -12,7 +12,7 @@ To setup a local development environment, install both local and test dependenci
 git clone https://github.com/Lightning-AI/lightning.git
 cd lightning
 
-# install required depedencies
+# install required dependencies
 export PACKAGE_NAME=pytorch
 python -m pip install ".[dev, examples]"
 # install pre-commit (optional)
@@ -74,7 +74,7 @@ There are certain standalone tests, which you can run using:
 Make sure to run coverage on a GPU machine with at least 2 GPUs.
 
 ```bash
-# generate coverage (coverage is also installed as part of dev dependencies under requirements/pytorch/devel.txt)
+# generate coverage (coverage is also installed as part of dev dependencies)
 coverage run --source src/lightning/pytorch -m pytest src/lightning/pytorch tests/tests_pytorch -v
 
 # print coverage stats

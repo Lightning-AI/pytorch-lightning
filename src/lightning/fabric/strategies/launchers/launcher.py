@@ -16,14 +16,14 @@ from typing import Any, Callable
 
 
 class _Launcher(ABC):
-    r"""
-    Abstract base class for all Launchers.
+    r"""Abstract base class for all Launchers.
 
     Launchers are responsible for the creation and instrumentation of new processes so that the
     :class:`~lightning.fabric.strategies.strategy.Strategy` can set up communication between all them.
 
     Subclass this class and override any of the relevant methods to provide a custom implementation depending on
     cluster environment, hardware, strategy, etc.
+
     """
 
     @property

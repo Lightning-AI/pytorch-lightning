@@ -9,11 +9,10 @@
 Early Stopping
 ##############
 
-.. raw:: html
-
-    <video width="50%" max-width="400px" controls
-    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/yt_thumbs/thumb_earlystop.png"
-    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/yt/Trainer+flags+19-+early+stopping_1.mp4"></video>
+.. video:: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/yt/Trainer+flags+19-+early+stopping_1.mp4
+    :poster: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/yt_thumbs/thumb_earlystop.png
+    :width: 400
+    :muted:
 
 
 ***********************
@@ -34,7 +33,7 @@ The :class:`~lightning.pytorch.callbacks.early_stopping.EarlyStopping` callback 
 To enable it:
 
 - Import :class:`~lightning.pytorch.callbacks.early_stopping.EarlyStopping` callback.
-- Log the metric you want to monitor using :meth:`~lightning.pytorch.core.module.LightningModule.log` method.
+- Log the metric you want to monitor using :meth:`~lightning.pytorch.core.LightningModule.log` method.
 - Init the callback, and set ``monitor`` to the logged metric of your choice.
 - Set the ``mode`` based on the metric needs to be monitored.
 - Pass the :class:`~lightning.pytorch.callbacks.early_stopping.EarlyStopping` callback to the :class:`~lightning.pytorch.trainer.trainer.Trainer` callbacks flag.

@@ -3,12 +3,11 @@ import sys
 from unittest import mock
 
 import pytest
-
 from lightning.fabric.utilities.rank_zero import _get_rank
 
 
 @pytest.mark.parametrize(
-    "env_vars, expected",
+    ("env_vars", "expected"),
     [
         ({"RANK": "0"}, 1),
         ({"SLURM_PROCID": "0"}, 1),
@@ -37,7 +36,7 @@ def test_rank_zero_known_environment_variables(env_vars, expected):
 
 
 @pytest.mark.parametrize(
-    "environ,expected_rank",
+    ("environ", "expected_rank"),
     [
         ({"JSM_NAMESPACE_RANK": "3"}, 3),
         ({"JSM_NAMESPACE_RANK": "3", "SLURM_PROCID": "2"}, 2),

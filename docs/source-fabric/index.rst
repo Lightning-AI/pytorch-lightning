@@ -1,63 +1,76 @@
 .. include:: links.rst
 
-####################
-Welcome to ⚡ Fabric
-####################
+##############################
+Welcome to ⚡ Lightning Fabric
+##############################
 
-Fabric is the fast and lightweight way to scale PyTorch models without boilerplate code.
+.. twocolumns::
+   :left:
+      .. image:: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/mov.gif
+         :alt: Animation showing how to convert standard training code to Lightning
+   :right:
+      Fabric is the fast and lightweight way to scale PyTorch models without boilerplate. Convert PyTorch code to Lightning Fabric in 5 lines and get access to SOTA distributed training features (DDP, FSDP, DeepSpeed, mixed precision and more) to scale the largest billion-parameter models.
 
-- Easily switch from running on CPU to GPU (Apple Silicon, CUDA, ...), TPU, multi-GPU or even multi-node training
-- State-of-the-art distributed training strategies (DDP, FSDP, DeepSpeed) and mixed precision out of the box
-- Handles all the boilerplate device logic for you
-- Brings useful tools to help you build a trainer (callbacks, logging, checkpoints, ...)
-- Designed with multi-billion parameter models in mind
+.. raw:: html
 
-|
+   <div class="row" style='font-size: 14px'>
+      <div class='col-md-6'>
+      </div>
+      <div class='col-md-6'>
 
-.. code-block:: diff
+.. raw:: html
 
-      import torch
-      import torch.nn as nn
-      from torch.utils.data import DataLoader, Dataset
-
-    + from lightning.fabric import Fabric
-
-      class PyTorchModel(nn.Module):
-          ...
-
-      class PyTorchDataset(Dataset):
-          ...
-
-    + fabric = Fabric(accelerator="cuda", devices=8, strategy="ddp")
-    + fabric.launch()
-
-    - device = "cuda" if torch.cuda.is_available() else "cpu"
-      model = PyTorchModel(...)
-      optimizer = torch.optim.SGD(model.parameters())
-    + model, optimizer = fabric.setup(model, optimizer)
-      dataloader = DataLoader(PyTorchDataset(...), ...)
-    + dataloader = fabric.setup_dataloaders(dataloader)
-      model.train()
-
-      for epoch in range(num_epochs):
-          for batch in dataloader:
-              input, target = batch
-    -         input, target = input.to(device), target.to(device)
-              optimizer.zero_grad()
-              output = model(input)
-              loss = loss_fn(output, target)
-    -         loss.backward()
-    +         fabric.backward(loss)
-              optimizer.step()
-              lr_scheduler.step()
+      </div>
+   </div>
 
 
-----
+.. raw:: html
+
+   <hr class="docutils" style="margin: 50px 0 50px 0">
 
 
-***********
+Install Lightning
+-----------------
+
+
+.. raw:: html
+
+   <div class="row" style='font-size: 16px'>
+      <div class='col-md-6'>
+
+Pip users
+
+.. code-block:: bash
+
+    pip install lightning
+
+.. raw:: html
+
+      </div>
+      <div class='col-md-6'>
+
+Conda users
+
+.. code-block:: bash
+
+    conda install lightning -c conda-forge
+
+.. raw:: html
+
+      </div>
+   </div>
+
+Or read the :doc:`advanced install guide <fundamentals/installation>`.
+
+You can find our the list of supported PyTorch versions in our :ref:`compatibility matrix <versioning:Compatibility matrix>`.
+
+.. raw:: html
+
+   <hr class="docutils" style="margin: 50px 0 50px 0">
+
+
 Why Fabric?
-***********
+-----------
 
 |
 |
@@ -88,21 +101,77 @@ This makes it easier to develop and debug your PyTorch code as you gradually add
 Fabric provides important tools to remove undesired boilerplate code (distributed, hardware, checkpoints, logging, ...), but leaves the design and orchestration fully up to you.
 
 
-----
+.. raw:: html
 
-************
-Installation
-************
+   <hr class="docutils" style="margin: 50px 0 50px 0">
 
-Fabric ships directly with Lightning. Install it with
+Get Started
+-----------
 
-.. code-block:: bash
+.. raw:: html
 
-    pip install lightning
+    <div class="display-card-container">
+        <div class="row">
 
-For alternative ways to install, read the :doc:`installation guide <fundamentals/installation>`.
+.. Add callout items below this line
 
+.. displayitem::
+    :header: Convert to Fabric in 5 minutes
+    :description: Learn how to add Fabric to your PyTorch code
+    :button_link: fundamentals/convert.html
+    :col_css: col-md-4
+    :height: 150
+    :tag: basic
 
+.. displayitem::
+    :header: Scale your model with Accelerators
+    :description: Take advantage of your hardware with a switch of a flag
+    :button_link: fundamentals/accelerators.html
+    :col_css: col-md-4
+    :height: 150
+    :tag: basic
+
+.. displayitem::
+    :header: Structure your Fabric code
+    :description: Best practices for setting up your training script with Fabric
+    :button_link: fundamentals/code_structure.html
+    :col_css: col-md-4
+    :height: 150
+    :tag: basic
+
+.. displayitem::
+    :header: Launch distributed training
+    :description: Launch a Python script on multiple devices and machines
+    :button_link: fundamentals/launch.html
+    :col_css: col-md-4
+    :height: 150
+    :tag: basic
+
+.. displayitem::
+    :header: Launch Fabric in a notebook
+    :description: Launch on multiple devices from within a Jupyter notebook
+    :button_link: fundamentals/notebooks.html
+    :col_css: col-md-4
+    :height: 150
+    :tag: basic
+
+.. displayitem::
+    :header: Improve performance with Mixed-Precision training
+    :description: Save memory and speed up training using mixed precision
+    :button_link: fundamentals/precision.html
+    :col_css: col-md-4
+    :height: 150
+    :tag: basic
+
+.. raw:: html
+
+        </div>
+    </div>
+
+.. End of callout item section
+
+|
+|
 
 .. raw:: html
 

@@ -3,7 +3,7 @@ Level 3: Save money on cloud costs
 ##################################
 **Audience:** Users who want to use the AWS cloud efficiently.
 
-**Prereqs:** You must have finished `level 1 <../basic/build_a_lightning_component.html>`_.
+**Prereqs:** You must have finished :doc:`level 1 <../basic/build_a_lightning_component>`.
 
 ----
 
@@ -21,11 +21,6 @@ Here are a few features that will enable you save a lot on your cloud costs:
    :enable_run: true
    :tab_rows: 3
    :height: 430px
-
-----
-
-.. include:: ../../cloud/customize_a_lightning_cluster.rst
-
 
 ----
 

@@ -17,9 +17,6 @@ from unittest.mock import Mock
 
 import pytest
 import torch
-from torch import nn
-from torch.optim import Adam, SGD
-
 from lightning.fabric import Fabric
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_13, _TORCH_GREATER_EQUAL_2_0
 from lightning.pytorch import LightningModule, Trainer
@@ -27,6 +24,9 @@ from lightning.pytorch.core.module import _TrainerFabricShim
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.loggers import TensorBoardLogger
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
+from torch import nn
+from torch.optim import SGD, Adam
+
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -284,14 +284,13 @@ def test_toggle_untoggle_3_optimizers_shared_parameters(tmpdir):
 
 
 @pytest.mark.parametrize(
-    "accelerator,device",
+    ("accelerator", "device"),
     [
         pytest.param("gpu", "cuda:0", marks=RunIf(min_cuda_gpus=1)),
         pytest.param("mps", "mps:0", marks=RunIf(mps=True)),
     ],
 )
 def test_device_placement(tmpdir, accelerator, device):
-
     model = BoringModel()
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, accelerator=accelerator, devices=1)
     trainer.fit(model)
@@ -348,7 +347,6 @@ def test_lightning_module_configure_gradient_clipping(tmpdir):
     """Test custom gradient clipping inside `configure_gradient_clipping` hook."""
 
     class TestModel(BoringModel):
-
         has_validated_gradients = False
         custom_gradient_clip_val = 1e-2
 
@@ -426,6 +424,7 @@ def test_lightning_module_scriptable():
     """Test that the LightningModule is `torch.jit.script`-able.
 
     Regression test for #15917.
+
     """
     model = BoringModel()
     trainer = Trainer()
@@ -522,7 +521,7 @@ def test_fabric_log():
 
     # unsupported data type
     with pytest.raises(ValueError, match="`list` values cannot be logged"):
-        wrapped_module.log("invalid", list())
+        wrapped_module.log("invalid", [])
 
     # supported data types
     wrapped_module.log("int", 1)
@@ -564,7 +563,6 @@ def test_fabric_log_dict():
 
 @pytest.mark.parametrize("algo", ["value", "norm"])
 def test_grad_clipping_lm_fabric(algo):
-
     from lightning.pytorch.utilities import GradClipAlgorithmType
 
     class DummyLM(LightningModule):

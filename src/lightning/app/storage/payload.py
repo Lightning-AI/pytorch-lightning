@@ -17,11 +17,11 @@ import pathlib
 import pickle
 from abc import ABC, abstractmethod
 from time import sleep
-from typing import Any, Optional, TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, Any, Optional, Union
 
 from lightning.app.core.constants import REMOTE_STORAGE_WAIT
 from lightning.app.core.queues import BaseQueue
-from lightning.app.storage.path import _filesystem, _shared_storage_path, Path
+from lightning.app.storage.path import Path, _filesystem, _shared_storage_path
 from lightning.app.storage.requests import _ExistsRequest, _ExistsResponse, _GetRequest, _GetResponse
 from lightning.app.utilities.app_helpers import Logger
 from lightning.app.utilities.component import _is_flow_context
@@ -61,17 +61,19 @@ class _BasePayload(ABC):
         """The hash of this Payload uniquely identifies the payload and the associated origin Work.
 
         Returns ``None`` if the origin is not defined, i.e., this Path did not yet get attached to a LightningWork.
+
         """
         if self._origin is None:
             return None
         contents = f"{self.origin_name}/{self.consumer_name}/{self.name}"
-        return hashlib.sha1(contents.encode("utf-8")).hexdigest()
+        return hashlib.sha1(contents.encode("utf-8")).hexdigest()  # noqa: S324
 
     @property
     def origin_name(self) -> str:
         """The name of the LightningWork where this payload was first created.
 
         Attaching a Payload to a LightningWork will automatically make it the `origin`.
+
         """
         from lightning.app.core.work import LightningWork
 
@@ -82,6 +84,7 @@ class _BasePayload(ABC):
         """The name of the LightningWork where this payload is being accessed.
 
         By default, this is the same as the :attr:`origin_name`.
+
         """
         from lightning.app.core.work import LightningWork
 
@@ -91,7 +94,7 @@ class _BasePayload(ABC):
     def _path(self) -> Optional[Path]:
         """Path to the file that the payload value gets serialized to."""
         if not self._name:
-            return
+            return None
         return Path("lit://", self._name)
 
     @abstractmethod
@@ -107,6 +110,7 @@ class _BasePayload(ABC):
 
         Args:
             work: LightningWork to be attached to this Payload.
+
         """
         if self._origin is None:
             # Can become an owner only if there is not already one
@@ -130,6 +134,7 @@ class _BasePayload(ABC):
 
         Raises:
             RuntimeError: If the payload is not attached to any Work (origin undefined).
+
         """
         # Fail early if we need to check the remote but an origin is not defined
         if not self._origin or self._request_queue is None or self._response_queue is None:
@@ -203,12 +208,12 @@ class _BasePayload(ABC):
 
     def to_dict(self) -> dict:
         """Serialize this Path to a dictionary."""
-        return dict(
-            name=self.name,
-            origin_name=self.origin_name,
-            consumer_name=self.consumer_name,
-            metadata=self._metadata,
-        )
+        return {
+            "name": self.name,
+            "origin_name": self.origin_name,
+            "consumer_name": self.consumer_name,
+            "metadata": self._metadata,
+        }
 
     @classmethod
     def from_dict(cls, content: dict) -> "_BasePayload":
@@ -251,8 +256,8 @@ class _BasePayload(ABC):
             response.size = source_path.stat().st_size
             _copy_files(source_path, destination_path)
             _logger.debug(f"All files copied from {request.path} to {response.path}.")
-        except Exception as e:
-            response.exception = e
+        except Exception as ex:
+            response.exception = ex
         return response
 
 
@@ -266,5 +271,4 @@ class Payload(_BasePayload):
 
     def load(self, path: str) -> Any:
         with open(path, "rb") as f:
-            obj = pickle.load(f)
-        return obj
+            return pickle.load(f)

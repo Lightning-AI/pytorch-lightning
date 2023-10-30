@@ -6,11 +6,10 @@ from unittest import mock
 
 import pytest
 import requests_mock
-
 from lightning.app import LightningFlow
 from lightning.app.core import queues
 from lightning.app.core.constants import HTTP_QUEUE_URL
-from lightning.app.core.queues import BaseQueue, QueuingSystem, READINESS_QUEUE_CONSTANT, RedisQueue
+from lightning.app.core.queues import READINESS_QUEUE_CONSTANT, BaseQueue, QueuingSystem, RedisQueue
 from lightning.app.utilities.imports import _is_redis_available
 from lightning.app.utilities.redis import check_if_redis_running
 
@@ -21,6 +20,7 @@ def test_queue_api(queue_type, monkeypatch):
     """Test the Queue API.
 
     This test run all the Queue implementation but we monkeypatch the Redis Queues to avoid external interaction
+
     """
     import redis
 
@@ -103,11 +103,10 @@ def test_redis_queue_read_timeout(redis_mock):
 
 
 @pytest.mark.parametrize(
-    "queue_type, queue_process_mock",
+    ("queue_type", "queue_process_mock"),
     [(QueuingSystem.MULTIPROCESS, multiprocessing)],
 )
 def test_process_queue_read_timeout(queue_type, queue_process_mock, monkeypatch):
-
     context = mock.MagicMock()
     queue_mocked = mock.MagicMock()
     context.Queue = queue_mocked
@@ -218,13 +217,21 @@ class TestHTTPQueue:
 
 def test_unreachable_queue(monkeypatch):
     monkeypatch.setattr(queues, "HTTP_QUEUE_TOKEN", "test-token")
+
     test_queue = QueuingSystem.HTTP.get_queue(queue_name="test_http_queue")
 
-    resp = mock.MagicMock()
-    resp.status_code = 204
+    resp1 = mock.MagicMock()
+    resp1.status_code = 204
+
+    resp2 = mock.MagicMock()
+    resp2.status_code = 201
 
     test_queue.client = mock.MagicMock()
-    test_queue.client.post.return_value = resp
+    test_queue.client.post = mock.Mock(side_effect=[resp1, resp1, resp2])
 
     with pytest.raises(queue.Empty):
         test_queue._get()
+
+    # Test backoff on queue.put
+    test_queue.put("foo")
+    assert test_queue.client.post.call_count == 3

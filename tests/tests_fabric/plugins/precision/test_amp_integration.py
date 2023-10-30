@@ -15,9 +15,8 @@
 import pytest
 import torch
 import torch.nn as nn
-
 from lightning.fabric import Fabric, seed_everything
-from tests_fabric.helpers.models import BoringFabric
+
 from tests_fabric.helpers.runif import RunIf
 
 
@@ -38,28 +37,8 @@ class MixedPrecisionModule(nn.Module):
         return output
 
 
-class MixedPrecisionBoringFabric(BoringFabric):
-
-    expected_dtype: torch.dtype
-
-    def get_model(self):
-        return MixedPrecisionModule(self.expected_dtype)
-
-    def step(self, model, batch):
-        assert model.layer.weight.dtype == torch.float32
-
-        assert batch.dtype == torch.float32
-        output = model(batch)
-        assert output.dtype == torch.float32
-        loss = torch.nn.functional.mse_loss(output, torch.ones_like(output))
-        return loss
-
-    def after_backward(self, model, optimizer):
-        assert model.layer.weight.grad.dtype == torch.float32
-
-
 @pytest.mark.parametrize(
-    "accelerator, precision, expected_dtype",
+    ("accelerator", "precision", "expected_dtype"),
     [
         ("cpu", "16-mixed", torch.bfloat16),
         ("cpu", "bf16-mixed", torch.bfloat16),
@@ -68,9 +47,28 @@ class MixedPrecisionBoringFabric(BoringFabric):
     ],
 )
 def test_amp(accelerator, precision, expected_dtype):
-    fabric = MixedPrecisionBoringFabric(accelerator=accelerator, precision=precision, devices=2, strategy="ddp_spawn")
-    fabric.expected_dtype = expected_dtype
-    fabric.run()
+    fabric = Fabric(accelerator=accelerator, precision=precision, devices=2, strategy="ddp_spawn")
+    fabric.launch(_test_amp, expected_dtype)
+
+
+def _test_amp(fabric, expected_dtype):
+    model = MixedPrecisionModule(expected_dtype)
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.1)
+    model, optimizer = fabric.setup(model, optimizer)
+
+    batch = torch.rand(2, 32, device=fabric.device)
+    assert model.layer.weight.dtype == torch.float32
+    assert batch.dtype == torch.float32
+
+    output = model(batch)
+    assert output.dtype == torch.float32
+
+    loss = torch.nn.functional.mse_loss(output, torch.ones_like(output))
+    fabric.backward(loss)
+    assert model.layer.weight.grad.dtype == torch.float32
+
+    optimizer.step()
+    optimizer.zero_grad()
 
 
 @RunIf(min_torch="1.13", min_cuda_gpus=1)
@@ -79,7 +77,7 @@ def test_amp_fused_optimizer_parity():
         seed_everything(1234)
         fabric = Fabric(accelerator="cuda", precision=16, devices=1)
 
-        model = nn.Linear(10, 10).to(fabric.device)  # TODO: replace with individual setup_model call
+        model = nn.Linear(10, 10).to(fabric.device)  # TODO: replace with individual setup_module call
         optimizer = torch.optim.Adam(model.parameters(), lr=1.0, fused=fused)
 
         model, optimizer = fabric.setup(model, optimizer)

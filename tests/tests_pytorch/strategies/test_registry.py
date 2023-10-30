@@ -14,15 +14,15 @@
 from unittest import mock
 
 import pytest
-
 from lightning.pytorch import Trainer
 from lightning.pytorch.plugins import CheckpointIO
 from lightning.pytorch.strategies import DDPStrategy, DeepSpeedStrategy, FSDPStrategy, StrategyRegistry, XLAStrategy
+
 from tests_pytorch.helpers.runif import RunIf
 
 
 @pytest.mark.parametrize(
-    "strategy_name, init_params",
+    ("strategy_name", "init_params"),
     [
         ("deepspeed", {}),
         ("deepspeed_stage_1", {"stage": 1}),
@@ -33,7 +33,6 @@ from tests_pytorch.helpers.runif import RunIf
     ],
 )
 def test_strategy_registry_with_deepspeed_strategies(strategy_name, init_params):
-
     assert strategy_name in StrategyRegistry
     assert StrategyRegistry[strategy_name]["init_params"] == init_params
     assert StrategyRegistry[strategy_name]["strategy"] == DeepSpeedStrategy
@@ -42,7 +41,6 @@ def test_strategy_registry_with_deepspeed_strategies(strategy_name, init_params)
 @RunIf(deepspeed=True)
 @pytest.mark.parametrize("strategy", ["deepspeed", "deepspeed_stage_2_offload", "deepspeed_stage_3"])
 def test_deepspeed_strategy_registry_with_trainer(tmpdir, strategy):
-
     trainer = Trainer(default_root_dir=tmpdir, strategy=strategy, precision="16-mixed")
 
     assert isinstance(trainer.strategy, DeepSpeedStrategy)
@@ -50,7 +48,7 @@ def test_deepspeed_strategy_registry_with_trainer(tmpdir, strategy):
 
 @RunIf(skip_windows=True)
 @mock.patch("lightning.pytorch.strategies.xla.XLAStrategy.set_world_ranks")
-def test_xla_debug_strategy_registry(_, tpu_available, xla_available):
+def test_xla_debug_strategy_registry(_, tpu_available):
     strategy = "xla_debug"
 
     assert strategy in StrategyRegistry
@@ -61,7 +59,6 @@ def test_xla_debug_strategy_registry(_, tpu_available, xla_available):
     assert isinstance(trainer.strategy, XLAStrategy)
 
 
-@RunIf(min_torch="1.12")
 def test_fsdp_strategy_registry(cuda_count_1):
     strategy = "fsdp"
     assert strategy in StrategyRegistry
@@ -72,7 +69,7 @@ def test_fsdp_strategy_registry(cuda_count_1):
 
 
 @pytest.mark.parametrize(
-    "strategy_name, strategy, expected_init_params",
+    ("strategy_name", "strategy", "expected_init_params"),
     [
         (
             "ddp_find_unused_parameters_false",

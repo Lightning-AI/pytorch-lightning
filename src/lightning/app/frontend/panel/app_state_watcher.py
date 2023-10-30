@@ -11,13 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """The ``AppStateWatcher`` enables a Frontend to:
 
 - subscribe to App state changes
 - to access and change the App state.
 
 This is particularly useful for the ``PanelFrontend`` but can be used by other frontends too.
+
 """
 from __future__ import annotations
 
@@ -33,7 +33,7 @@ _logger = Logger(__name__)
 
 
 if _is_param_available():
-    from param import ClassSelector, edit_constant, Parameterized
+    from param import ClassSelector, Parameterized, edit_constant
 else:
     Parameterized = object
     ClassSelector = dict
@@ -73,6 +73,7 @@ class AppStateWatcher(Parameterized):
     Pydantic which additionally provides powerful and unique features for building reactive apps.
 
     Please note the ``AppStateWatcher`` is a singleton, i.e., only one instance is instantiated
+
     """
 
     state: AppState = ClassSelector(

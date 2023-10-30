@@ -1,10 +1,6 @@
-import logging
-
 from lightning.app import LightningApp, LightningFlow
 from lightning.app.frontend import StreamlitFrontend
 from lightning.app.utilities.state import AppState
-
-logger = logging.getLogger(__name__)
 
 
 class StreamlitUI(LightningFlow):
@@ -37,7 +33,7 @@ class HelloWorld(LightningFlow):
     def run(self):
         self.streamlit_ui.run()
         if self.streamlit_ui.should_print:
-            logger.info(f"{self.counter}: {self.streamlit_ui.message_to_print}")
+            print(f"{self.counter}: {self.streamlit_ui.message_to_print}")
             self.counter += 1
             self.streamlit_ui.should_print = False
 

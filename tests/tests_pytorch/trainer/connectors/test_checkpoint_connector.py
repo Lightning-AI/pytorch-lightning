@@ -17,7 +17,6 @@ from unittest.mock import Mock
 
 import pytest
 import torch
-
 from lightning.pytorch import Trainer
 from lightning.pytorch.callbacks import ModelCheckpoint
 from lightning.pytorch.demos.boring_classes import BoringModel
@@ -83,7 +82,7 @@ def test_hpc_restore_attempt(_, tmpdir):
     # case 2: explicit resume path provided, file not found
     trainer = Trainer(default_root_dir=tmpdir, max_steps=3)
 
-    with pytest.raises(FileNotFoundError, match="Checkpoint at not existing not found. Aborting training."):
+    with pytest.raises(FileNotFoundError, match="Checkpoint file not found: not existing"):
         trainer.fit(model, ckpt_path="not existing")
 
 
@@ -107,7 +106,6 @@ def test_hpc_max_ckpt_version(tmpdir):
 
 def test_ckpt_for_fsspec():
     """Test that the _CheckpointConnector is able to write to fsspec file systems."""
-
     model = BoringModel()
     # hardcoding dir since `tmpdir` can be windows path
     trainer = Trainer(
@@ -133,15 +131,15 @@ def test_loops_restore(tmpdir):
     """Test that required loop state_dict is loaded correctly by checkpoint connector."""
     model = BoringModel()
     checkpoint_callback = ModelCheckpoint(dirpath=tmpdir, save_last=True)
-    trainer_args = dict(
-        default_root_dir=tmpdir,
-        max_epochs=1,
-        limit_train_batches=1,
-        limit_val_batches=1,
-        logger=False,
-        callbacks=[checkpoint_callback],
-        num_sanity_val_steps=0,
-    )
+    trainer_args = {
+        "default_root_dir": tmpdir,
+        "max_epochs": 1,
+        "limit_train_batches": 1,
+        "limit_val_batches": 1,
+        "logger": False,
+        "callbacks": [checkpoint_callback],
+        "num_sanity_val_steps": 0,
+    }
     trainer = Trainer(**trainer_args)
     trainer.fit(model)
 
@@ -152,7 +150,7 @@ def test_loops_restore(tmpdir):
 
     trainer_fns = list(TrainerFn)
     for fn in trainer_fns:
-        trainer_fn = getattr(trainer, f"{fn}_loop")
+        trainer_fn = getattr(trainer, f"{fn.value}_loop")
         trainer_fn.load_state_dict = mock.Mock()
 
     for fn in trainer_fns:
@@ -160,13 +158,13 @@ def test_loops_restore(tmpdir):
         trainer._checkpoint_connector.resume_start(ckpt_path)
         trainer._checkpoint_connector.restore_loops()
 
-        trainer_loop = getattr(trainer, f"{fn}_loop")
+        trainer_loop = getattr(trainer, f"{fn.value}_loop")
         trainer_loop.load_state_dict.assert_called()
         trainer_loop.load_state_dict.reset_mock()
 
         for fn2 in trainer_fns:
             if fn2 != fn:
-                trainer_loop2 = getattr(trainer, f"{fn2}_loop")
+                trainer_loop2 = getattr(trainer, f"{fn2.value}_loop")
                 trainer_loop2.load_state_dict.assert_not_called()
 
 

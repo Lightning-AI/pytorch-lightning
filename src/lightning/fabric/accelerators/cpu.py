@@ -11,11 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Dict, List, Union
+from typing import List, Union
 
 import torch
 
 from lightning.fabric.accelerators.accelerator import Accelerator
+from lightning.fabric.accelerators.registry import _AcceleratorRegistry
 
 
 class CPUAccelerator(Accelerator):
@@ -36,8 +37,7 @@ class CPUAccelerator(Accelerator):
     @staticmethod
     def parse_devices(devices: Union[int, str, List[int]]) -> int:
         """Accelerator device parsing logic."""
-        devices = _parse_cpu_cores(devices)
-        return devices
+        return _parse_cpu_cores(devices)
 
     @staticmethod
     def get_parallel_devices(devices: Union[int, str, List[int]]) -> List[torch.device]:
@@ -56,17 +56,17 @@ class CPUAccelerator(Accelerator):
         return True
 
     @classmethod
-    def register_accelerators(cls, accelerator_registry: Dict) -> None:
+    def register_accelerators(cls, accelerator_registry: _AcceleratorRegistry) -> None:
         accelerator_registry.register(
             "cpu",
             cls,
-            description=cls.__class__.__name__,
+            description=cls.__name__,
         )
 
 
 def _parse_cpu_cores(cpu_cores: Union[int, str, List[int]]) -> int:
     """Parses the cpu_cores given in the format as accepted by the ``devices`` argument in the
-    :class:`~lightning.pytorch.trainer.Trainer`.
+    :class:`~lightning.pytorch.trainer.trainer.Trainer`.
 
     Args:
         cpu_cores: An int > 0.
@@ -77,6 +77,7 @@ def _parse_cpu_cores(cpu_cores: Union[int, str, List[int]]) -> int:
     Raises:
         MisconfigurationException:
             If cpu_cores is not an int > 0
+
     """
     if isinstance(cpu_cores, str) and cpu_cores.strip().isdigit():
         cpu_cores = int(cpu_cores)

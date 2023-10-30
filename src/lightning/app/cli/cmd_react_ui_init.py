@@ -120,12 +120,12 @@ def _check_react_prerequisites() -> None:
     if len(missing_msgs) > 0:
         missing_msg = "\n".join(missing_msgs)
         raise SystemExit(missing_msg)
-    else:
-        m = f"""
-        found npm  version: {npm_version}
-        found node version: {node_version}
-        found yarn version: {yarn_version}
+    logger.info(
+        f"""
+    found npm  version: {npm_version}
+    found node version: {node_version}
+    found yarn version: {yarn_version}
 
-        Pre-requisites met!
-        """
-        logger.info(m)
+    Pre-requisites met!
+    """
+    )

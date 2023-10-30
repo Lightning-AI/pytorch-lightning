@@ -12,13 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-from multiprocessing.queues import SimpleQueue
-from typing import Any, Callable, Optional
+import queue
+from typing import TYPE_CHECKING, Any, Callable, Optional, Union
 
 import torch.multiprocessing as mp
 
-import lightning.pytorch as pl
-from lightning.fabric.accelerators.tpu import _XLA_AVAILABLE
+from lightning.fabric.accelerators.xla import _XLA_AVAILABLE, _using_pjrt
 from lightning.fabric.strategies.launchers.xla import _rank_teardown
 from lightning.fabric.utilities import move_data_to_device
 from lightning.pytorch.strategies.launchers.multiprocessing import (
@@ -28,6 +27,9 @@ from lightning.pytorch.strategies.launchers.multiprocessing import (
 )
 from lightning.pytorch.trainer.states import TrainerFn
 from lightning.pytorch.utilities.rank_zero import rank_zero_debug
+
+if TYPE_CHECKING:
+    import lightning.pytorch as pl
 
 
 class _XLALauncher(_MultiProcessingLauncher):
@@ -44,6 +46,7 @@ class _XLALauncher(_MultiProcessingLauncher):
 
     Args:
         strategy: A reference to the strategy that is used together with this launcher
+
     """
 
     def __init__(self, strategy: "pl.strategies.XLAStrategy") -> None:
@@ -67,17 +70,37 @@ class _XLALauncher(_MultiProcessingLauncher):
             trainer: Optional reference to the :class:`~lightning.pytorch.trainer.trainer.Trainer` for which
                 a selected set of attributes get restored in the main process after processes join.
             **kwargs: Optional keyword arguments to be passed to the given function.
+
         """
-        context = mp.get_context(self._start_method)
-        return_queue = context.SimpleQueue()
+        if self._already_fit and trainer is not None and trainer.state.fn == TrainerFn.FITTING:
+            # resolving https://github.com/Lightning-AI/lightning/issues/18775 will lift this restriction
+            raise NotImplementedError(
+                "Calling `trainer.fit()` twice on the same Trainer instance using a spawn-based strategy is not"
+                " supported. You can work around this by creating a new Trainer instance and passing the"
+                " `fit(ckpt_path=...)` argument."
+            )
+
+        using_pjrt = _using_pjrt()
+        # pjrt requires that the queue is serializable
+        return_queue: Union[queue.Queue, mp.SimpleQueue] = (
+            mp.Manager().Queue() if using_pjrt else mp.get_context(self._start_method).SimpleQueue()
+        )
+
         import torch_xla.distributed.xla_multiprocessing as xmp
+
+        spawn_kwargs = {}
+        nprocs = self._strategy.num_processes
+        if not using_pjrt or nprocs == 1:
+            # avoid warning: "Unsupported nprocs". If it's 1, it will call the launched function directly.
+            # otherwise it will use all devices
+            spawn_kwargs["nprocs"] = nprocs
 
         process_context = xmp.spawn(
             self._wrapping_function,
             args=(trainer, function, args, kwargs, return_queue),
-            nprocs=self._strategy.num_processes,
             start_method=self._start_method,
             join=False,  # we will join ourselves to get the process references
+            **spawn_kwargs,
         )
         # xla will not actually create processes if only 1 device
         if process_context is not None:
@@ -89,6 +112,7 @@ class _XLALauncher(_MultiProcessingLauncher):
         if trainer is None:
             return worker_output
 
+        self._already_fit |= trainer.state.fn == TrainerFn.FITTING
         self._recover_results_in_main_process(worker_output, trainer)
         return worker_output.trainer_results
 
@@ -101,9 +125,18 @@ class _XLALauncher(_MultiProcessingLauncher):
         function: Callable,
         args: Any,
         kwargs: Any,
-        return_queue: SimpleQueue,
+        return_queue: Union[mp.SimpleQueue, queue.Queue],
         global_states: Optional[_GlobalStateSnapshot] = None,
     ) -> None:
+        import torch_xla.core.xla_model as xm
+
+        if _using_pjrt() and len(xm.get_xla_supported_devices()) > 1:
+            # `get_xla_supported_devices` in the spawned process returns the logical devices (2 for v2/v3 and 1 for v4)
+            # so when there's more than one (multithreading), objects need to be deep-copied
+            import copy
+
+            trainer, function, args, kwargs = copy.deepcopy((trainer, function, args, kwargs))
+
         results = function(*args, **kwargs)
 
         if trainer is not None:
@@ -123,12 +156,11 @@ class _XLALauncher(_MultiProcessingLauncher):
             else None
         )
 
-        # requires to compute the state_dict on all processes in case Metrics are present
-        state_dict = trainer.lightning_module.state_dict()
-
         # save the last weights
         weights_path = None
         if trainer.state.fn == TrainerFn.FITTING:
+            # requires to compute the state_dict on all processes in case Metrics are present
+            state_dict = self._strategy.lightning_module_state_dict()
             weights_path = os.path.join(trainer.default_root_dir, ".temp.ckpt")
             self._strategy.checkpoint_io.save_checkpoint(state_dict, weights_path)
 

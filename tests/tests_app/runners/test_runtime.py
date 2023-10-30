@@ -3,10 +3,10 @@ import signal
 from unittest import mock
 
 import pytest
-
 from lightning.app.runners import cloud
 from lightning.app.runners.runtime import dispatch
 from lightning.app.runners.runtime_type import RuntimeType
+
 from tests_app import _PROJECT_ROOT
 
 
@@ -21,7 +21,6 @@ from tests_app import _PROJECT_ROOT
 @mock.patch("lightning.app.runners.backends.cloud.LightningClient", mock.MagicMock())
 def test_dispatch(runtime_type, monkeypatch):
     """This test ensures the runtime dispatch method gets called when using dispatch."""
-
     monkeypatch.setattr(cloud, "CloudBackend", mock.MagicMock())
 
     with pytest.raises(FileNotFoundError, match="doesnt_exists.py"):

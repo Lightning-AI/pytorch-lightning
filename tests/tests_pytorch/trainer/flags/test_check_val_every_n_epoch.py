@@ -12,14 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import pytest
-from torch.utils.data import DataLoader
-
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
 from lightning.pytorch.trainer.trainer import Trainer
+from torch.utils.data import DataLoader
 
 
 @pytest.mark.parametrize(
-    "max_epochs,expected_val_loop_calls,expected_val_batches",
+    ("max_epochs", "expected_val_loop_calls", "expected_val_batches"),
     [(1, 0, [0]), (4, 2, [0, 2, 0, 2]), (5, 2, [0, 2, 0, 2, 0])],
 )
 def test_check_val_every_n_epoch(tmpdir, max_epochs, expected_val_loop_calls, expected_val_batches):

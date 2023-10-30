@@ -32,6 +32,7 @@ class CheckpointIO(ABC):
 
         For some plugins, it is not possible to use a custom checkpoint plugin as checkpointing logic is not
         modifiable.
+
     """
 
     @abstractmethod
@@ -42,6 +43,7 @@ class CheckpointIO(ABC):
             checkpoint: dict containing model and trainer state
             path: write-target path
             storage_options: Optional parameters when saving the model/training states.
+
         """
 
     @abstractmethod
@@ -54,6 +56,7 @@ class CheckpointIO(ABC):
                 locations.
 
         Returns: The loaded checkpoint.
+
         """
 
     @abstractmethod
@@ -62,6 +65,7 @@ class CheckpointIO(ABC):
 
         Args:
             path: Path to checkpoint
+
         """
 
     def teardown(self) -> None:

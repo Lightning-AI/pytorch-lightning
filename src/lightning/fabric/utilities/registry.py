@@ -11,17 +11,59 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import inspect
-from typing import Any
+import logging
+from inspect import getmembers, isclass
+from types import ModuleType
+from typing import Any, List, Type, Union
+
+from lightning_utilities import is_overridden
+
+from lightning.fabric.utilities.imports import _PYTHON_GREATER_EQUAL_3_8_0, _PYTHON_GREATER_EQUAL_3_10_0
+
+_log = logging.getLogger(__name__)
 
 
-def _is_register_method_overridden(mod: type, base_cls: Any, method: str) -> bool:
-    mod_attr = getattr(mod, method)
-    previous_super_cls = inspect.getmro(mod)[1]
+def _load_external_callbacks(group: str) -> List[Any]:
+    """Collect external callbacks registered through entry points.
 
-    if issubclass(previous_super_cls, base_cls):
-        super_attr = getattr(previous_super_cls, method)
+    The entry points are expected to be functions returning a list of callbacks.
+
+    Args:
+        group: The entry point group name to load callbacks from.
+
+    Return:
+        A list of all callbacks collected from external factories.
+
+    """
+    if _PYTHON_GREATER_EQUAL_3_8_0:
+        from importlib.metadata import entry_points
+
+        factories = (
+            entry_points(group=group)
+            if _PYTHON_GREATER_EQUAL_3_10_0
+            else entry_points().get(group, {})  # type: ignore[arg-type]
+        )
     else:
-        return False
+        from pkg_resources import iter_entry_points
 
-    return mod_attr.__code__ is not super_attr.__code__
+        factories = iter_entry_points(group)  # type: ignore[assignment]
+
+    external_callbacks: List[Any] = []
+    for factory in factories:
+        callback_factory = factory.load()
+        callbacks_list: Union[List[Any], Any] = callback_factory()
+        callbacks_list = [callbacks_list] if not isinstance(callbacks_list, list) else callbacks_list
+        if callbacks_list:
+            _log.info(
+                f"Adding {len(callbacks_list)} callbacks from entry point '{factory.name}':"
+                f" {', '.join(type(cb).__name__ for cb in callbacks_list)}"
+            )
+        external_callbacks.extend(callbacks_list)
+    return external_callbacks
+
+
+def _register_classes(registry: Any, method: str, module: ModuleType, parent: Type[object]) -> None:
+    for _, member in getmembers(module, isclass):
+        if issubclass(member, parent) and is_overridden(method, member, parent):
+            register_fn = getattr(member, method)
+            register_fn(registry)

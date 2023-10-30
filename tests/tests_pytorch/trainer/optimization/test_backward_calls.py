@@ -2,7 +2,6 @@ from unittest.mock import patch
 
 import pytest
 import torch
-
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
 

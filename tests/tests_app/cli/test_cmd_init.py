@@ -1,15 +1,15 @@
+import contextlib
 import os
 import re
 import shutil
 import subprocess
 
 import pytest
-
 from lightning.app.cli import cmd_init
+from lightning.app.utilities.imports import _IS_MACOS, _IS_WINDOWS
 
 
 def test_validate_init_name():
-
     # test that a good name works (mix chars)
     value = cmd_init._capture_valid_app_component_name("abc1-cde")
     assert value == "abc1-cde"
@@ -25,17 +25,16 @@ def test_validate_init_name():
     assert "Error: your Lightning app name" in str(e.value)
 
 
-@pytest.mark.skip(reason="need app fast_dev_run to work via CLI")
+@pytest.mark.skipif(_IS_WINDOWS or _IS_MACOS, reason="unsupported OS")  # todo
+@pytest.mark.xfail(strict=False, reason="need app fast_dev_run to work via CLI")
 def test_make_app_template():
     template_name = "app-test-template"
     template_name_folder = re.sub("-", "_", template_name)
 
     # remove the template if there
     template_dir = os.path.join(os.getcwd(), template_name)
-    try:
+    with contextlib.suppress(Exception):
         shutil.rmtree(template_dir)
-    except Exception as e:  # noqa
-        pass
 
     # create template
     subprocess.check_output(f"lightning init app {template_name}", shell=True)
@@ -56,23 +55,19 @@ def test_make_app_template():
     # TODO: verify output
 
     # clean up the template dir
-    try:
+    with contextlib.suppress(Exception):
         shutil.rmtree(template_dir)
-    except Exception as e:  # noqa
-        pass
 
 
-@pytest.mark.skip(reason="need component fast_dev_run to work via CLI")
+@pytest.mark.xfail(strict=False, reason="need component fast_dev_run to work via CLI")
 def test_make_component_template():
     template_name = "component-test-template"
     template_name_folder = re.sub("-", "_", template_name)
 
     # remove the template if there
     template_dir = os.path.join(os.getcwd(), template_name)
-    try:
+    with contextlib.suppress(Exception):
         shutil.rmtree(template_dir)
-    except Exception as e:  # noqa
-        pass
 
     # create template
     subprocess.check_output(f"lightning init component {template_name}", shell=True)
@@ -93,7 +88,5 @@ def test_make_component_template():
     # TODO: verify output
 
     # clean up the template dir
-    try:
+    with contextlib.suppress(Exception):
         shutil.rmtree(template_dir)
-    except Exception as e:  # noqa
-        pass

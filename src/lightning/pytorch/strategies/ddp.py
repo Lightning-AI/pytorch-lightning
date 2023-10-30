@@ -12,8 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import logging
+from contextlib import nullcontext
 from datetime import timedelta
-from typing import Any, Callable, Dict, List, Literal, Optional, Union
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Literal, Optional, Union
 
 import torch
 import torch.distributed
@@ -25,8 +26,9 @@ from torch.optim.optimizer import Optimizer
 import lightning.pytorch as pl
 from lightning.fabric.plugins import CheckpointIO, ClusterEnvironment
 from lightning.fabric.plugins.collectives.torch_collective import default_pg_timeout
+from lightning.fabric.strategies import _StrategyRegistry
 from lightning.fabric.utilities.distributed import (
-    _distributed_available,
+    _distributed_is_initialized,
     _get_default_process_group_backend_for_device,
     _init_dist_connection,
     _sync_ddp_if_available,
@@ -37,19 +39,16 @@ from lightning.fabric.utilities.optimizer import _optimizers_to_device
 from lightning.fabric.utilities.seed import reset_seed
 from lightning.fabric.utilities.types import ReduceOp
 from lightning.pytorch.core.optimizer import LightningOptimizer
-from lightning.pytorch.overrides.base import _LightningModuleWrapperBase, _LightningPrecisionModuleWrapperBase
-from lightning.pytorch.overrides.distributed import prepare_for_backward
-from lightning.pytorch.plugins.precision import PrecisionPlugin
+from lightning.pytorch.overrides.distributed import _register_ddp_comm_hook, _sync_module_states, prepare_for_backward
+from lightning.pytorch.plugins.precision import Precision
 from lightning.pytorch.strategies.launchers import _MultiProcessingLauncher, _SubprocessScriptLauncher
 from lightning.pytorch.strategies.parallel import ParallelStrategy
-from lightning.pytorch.strategies.strategy import TBroadcast
+from lightning.pytorch.strategies.strategy import TBroadcast, _ForwardRedirection
 from lightning.pytorch.trainer.states import TrainerFn
-from lightning.pytorch.utilities.distributed import _register_ddp_comm_hook
 from lightning.pytorch.utilities.exceptions import _augment_message
-from lightning.pytorch.utilities.rank_zero import rank_zero_info, rank_zero_only
-from lightning.pytorch.utilities.types import PredictStep, STEP_OUTPUT, TestStep, ValidationStep
+from lightning.pytorch.utilities.rank_zero import rank_zero_deprecation, rank_zero_info, rank_zero_only
 
-if torch.distributed.is_available():
+if TYPE_CHECKING:
     from torch.distributed.algorithms.model_averaging.averagers import ModelAverager
 
 log = logging.getLogger(__name__)
@@ -73,7 +72,7 @@ class DDPStrategy(ParallelStrategy):
         parallel_devices: Optional[List[torch.device]] = None,
         cluster_environment: Optional[ClusterEnvironment] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
-        precision_plugin: Optional[PrecisionPlugin] = None,
+        precision_plugin: Optional[Precision] = None,
         ddp_comm_state: Optional[object] = None,
         ddp_comm_hook: Optional[Callable] = None,
         ddp_comm_wrapper: Optional[Callable] = None,
@@ -90,7 +89,8 @@ class DDPStrategy(ParallelStrategy):
             checkpoint_io=checkpoint_io,
             precision_plugin=precision_plugin,
         )
-        log.debug(f"{self.__class__.__name__}: initializing DDP plugin")
+        log.debug(f"{self.__class__.__name__}: initializing DDP strategy")
+        self._forward_redirection = _DDPForwardRedirection()
         self._num_nodes = 1
         self._ddp_kwargs = kwargs
         self._ddp_comm_state = ddp_comm_state
@@ -103,7 +103,11 @@ class DDPStrategy(ParallelStrategy):
         self._start_method = start_method
 
     @property
-    def is_distributed(self) -> bool:
+    def is_distributed(self) -> bool:  # pragma: no-cover
+        """Legacy property kept for backwards compatibility."""
+        rank_zero_deprecation(
+            f"`{type(self).__name__}.is_distributed` is deprecated. Use is discouraged.", stacklevel=6
+        )
         return True
 
     @property
@@ -126,7 +130,7 @@ class DDPStrategy(ParallelStrategy):
 
     @property
     def distributed_sampler_kwargs(self) -> Dict[str, Any]:
-        return dict(num_replicas=(self.num_nodes * self.num_processes), rank=self.global_rank)
+        return {"num_replicas": (self.num_nodes * self.num_processes), "rank": self.global_rank}
 
     @property
     def process_group_backend(self) -> Optional[str]:
@@ -153,37 +157,42 @@ class DDPStrategy(ParallelStrategy):
         # skip wrapping the model if we are not fitting as no gradients need to be exchanged
         trainer_fn = trainer.state.fn
 
-        if trainer_fn == TrainerFn.FITTING:
-            if self._layer_sync:
-                assert self.model is not None
-                self.model = self._layer_sync.apply(self.model)
+        if trainer_fn == TrainerFn.FITTING and self._layer_sync:
+            assert self.model is not None
+            self.model = self._layer_sync.apply(self.model)
 
         self.setup_precision_plugin()
 
         if trainer_fn == TrainerFn.FITTING:
+            # do not wrap with DDP if not fitting as there's no gradients to reduce
             self.configure_ddp()
 
             # set up optimizers after the wrapped module has been moved to the device
             self.setup_optimizers(trainer)
             _optimizers_to_device(self.optimizers, self.root_device)
 
-        if trainer_fn == TrainerFn.FITTING:
             import torch.distributed.algorithms.ddp_comm_hooks.post_localSGD_hook as post_localSGD
 
             if isinstance(self._ddp_comm_state, post_localSGD.PostLocalSGDState):
                 self._enable_model_averaging()
+        else:
+            # we need to manually synchronize the module's states since we aren't using the DDP wrapper
+            assert self.model is not None
+            _sync_module_states(self.model)
 
     def _setup_model(self, model: Module) -> DistributedDataParallel:
         """Wraps the model into a :class:`~torch.nn.parallel.distributed.DistributedDataParallel` module."""
         device_ids = self.determine_ddp_device_ids()
         log.debug(f"setting up DDP model with device ids: {device_ids}, kwargs: {self._ddp_kwargs}")
-        return DistributedDataParallel(module=model, device_ids=device_ids, **self._ddp_kwargs)
+        # https://pytorch.org/docs/stable/notes/cuda.html#id5
+        ctx = torch.cuda.stream(torch.cuda.Stream()) if device_ids is not None else nullcontext()
+        with ctx:
+            return DistributedDataParallel(module=model, device_ids=device_ids, **self._ddp_kwargs)
 
     def setup_distributed(self) -> None:
         log.debug(f"{self.__class__.__name__}: setting up distributed...")
         reset_seed()
         self.set_world_ranks()
-        rank_zero_only.rank = self.global_rank
         self._process_group_backend = self._get_process_group_backend()
         assert self.cluster_environment is not None
         _init_dist_connection(self.cluster_environment, self._process_group_backend, timeout=self._timeout)
@@ -192,11 +201,12 @@ class DDPStrategy(ParallelStrategy):
         return self._process_group_backend or _get_default_process_group_backend_for_device(self.root_device)
 
     def set_world_ranks(self) -> None:
-        if self.cluster_environment is None:
-            return
-        self.cluster_environment.set_global_rank(self.node_rank * self.num_processes + self.local_rank)
-        self.cluster_environment.set_world_size(self.num_nodes * self.num_processes)
-        rank_zero_only.rank = self.cluster_environment.global_rank()
+        if self.cluster_environment is not None:
+            self.cluster_environment.set_global_rank(self.node_rank * self.num_processes + self.local_rank)
+            self.cluster_environment.set_world_size(self.num_nodes * self.num_processes)
+        # `LightningEnvironment.set_global_rank` will do this too, but we cannot rely on that implementation detail
+        # additionally, for some implementations, the setter is a no-op, so it's safer to access the getter
+        rank_zero_only.rank = self.global_rank
 
     def _register_ddp_hooks(self) -> None:
         log.debug(f"{self.__class__.__name__}: registering ddp hooks")
@@ -224,11 +234,7 @@ class DDPStrategy(ParallelStrategy):
                 optimizer = optimizer._optimizer
 
             is_distributed_optimizer = isinstance(optimizer, DistributedOptimizer) if not _IS_WINDOWS else False
-            if (
-                is_distributed_optimizer
-                or isinstance(optimizer, ZeroRedundancyOptimizer)
-                or isinstance(optimizer, PostLocalSGDOptimizer)
-            ):
+            if isinstance(optimizer, (ZeroRedundancyOptimizer, PostLocalSGDOptimizer)) or is_distributed_optimizer:
                 raise ValueError(
                     f"Currently model averaging cannot work with a distributed optimizer of type "
                     f"{optimizer.__class__.__name__}."
@@ -253,6 +259,7 @@ class DDPStrategy(ParallelStrategy):
             closure: closure calculating the loss value
             model: reference to the model, optionally defining optimizer step related hooks
             **kwargs: Any extra arguments to ``optimizer.step``
+
         """
         optimizer_output = super().optimizer_step(optimizer, closure, model, **kwargs)
 
@@ -266,8 +273,8 @@ class DDPStrategy(ParallelStrategy):
 
     def configure_ddp(self) -> None:
         log.debug(f"{self.__class__.__name__}: configuring DistributedDataParallel")
-        assert isinstance(self.model, (pl.LightningModule, _LightningPrecisionModuleWrapperBase))
-        self.model = self._setup_model(_LightningModuleWrapperBase(self.model))
+        assert isinstance(self.model, pl.LightningModule)
+        self.model = self._setup_model(self.model)
         self._register_ddp_hooks()
 
     def determine_ddp_device_ids(self) -> Optional[List[int]]:
@@ -276,19 +283,19 @@ class DDPStrategy(ParallelStrategy):
         return [self.root_device.index]
 
     def barrier(self, *args: Any, **kwargs: Any) -> None:
-        if not _distributed_available():
+        if not _distributed_is_initialized():
             return
+
         if torch.distributed.get_backend() == "nccl":
             torch.distributed.barrier(device_ids=self.determine_ddp_device_ids())
         else:
             torch.distributed.barrier()
 
     def broadcast(self, obj: TBroadcast, src: int = 0) -> TBroadcast:
-        if not _distributed_available():
+        if not _distributed_is_initialized():
             return obj
+
         obj = [obj]
-        if self.global_rank != src:
-            obj = [None]  # type: ignore[list-item]
         torch.distributed.broadcast_object_list(obj, src, group=_group.WORLD)
         return obj[0]
 
@@ -318,46 +325,14 @@ class DDPStrategy(ParallelStrategy):
 
         Return:
             reduced value, except when the input was not a tensor the output remains is unchanged
+
         """
         if isinstance(tensor, Tensor):
-            tensor = _sync_ddp_if_available(tensor, group, reduce_op=reduce_op)
+            return _sync_ddp_if_available(tensor, group, reduce_op=reduce_op)
         return tensor
 
-    def training_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
-        assert self.model is not None
-        with self.precision_plugin.train_step_context():
-            return self.model(*args, **kwargs)
-
-    def validation_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
-        with self.precision_plugin.val_step_context():
-            assert self.lightning_module is not None
-            assert self.model is not None
-            if self.lightning_module.trainer.state.fn == TrainerFn.FITTING:
-                # used when calling `trainer.fit`
-                return self.model(*args, **kwargs)
-            else:
-                # used when calling `trainer.validate`
-                assert isinstance(self.model, ValidationStep)
-                return self.model.validation_step(*args, **kwargs)
-
-    def test_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
-        with self.precision_plugin.test_step_context():
-            assert isinstance(self.model, TestStep)
-            return self.model.test_step(*args, **kwargs)
-
-    def predict_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
-        with self.precision_plugin.predict_step_context():
-            assert isinstance(self.model, PredictStep)
-            return self.model.predict_step(*args, **kwargs)
-
-    def post_training_step(self) -> None:
-        assert self.lightning_module is not None
-        if not self.lightning_module.automatic_optimization:
-            assert self.model is not None
-            self.model.require_backward_grad_sync = True  # type: ignore[assignment]
-
     @classmethod
-    def register_strategies(cls, strategy_registry: Dict) -> None:
+    def register_strategies(cls, strategy_registry: _StrategyRegistry) -> None:
         entries = (
             ("ddp", "popen"),
             ("ddp_spawn", "spawn"),
@@ -428,3 +403,15 @@ class DDPStrategy(ParallelStrategy):
             self.model = self._layer_sync.revert(self.model)
 
         super().teardown()
+
+
+class _DDPForwardRedirection(_ForwardRedirection):
+    def on_after_inner_forward(self, wrapper_module: Module, original_module: "pl.LightningModule") -> None:
+        # In manual_optimization, we need to prevent DDP reducer as
+        # it is done manually in `LightningModule.manual_backward`
+        if isinstance(wrapper_module, DistributedDataParallel) and not original_module.automatic_optimization:
+            wrapper_module.require_backward_grad_sync = False
+
+    def on_after_outer_forward(self, wrapper_module: Module, original_module: "pl.LightningModule") -> None:
+        if isinstance(wrapper_module, DistributedDataParallel) and not original_module.automatic_optimization:
+            wrapper_module.require_backward_grad_sync = True

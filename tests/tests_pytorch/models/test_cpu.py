@@ -15,12 +15,12 @@ import os
 from unittest import mock
 
 import torch
+from lightning.pytorch import Trainer, seed_everything
+from lightning.pytorch.callbacks import Callback, EarlyStopping, ModelCheckpoint
+from lightning.pytorch.demos.boring_classes import BoringModel
 
 import tests_pytorch.helpers.pipelines as tpipes
 import tests_pytorch.helpers.utils as tutils
-from lightning.pytorch import Trainer
-from lightning.pytorch.callbacks import Callback, EarlyStopping, ModelCheckpoint
-from lightning.pytorch.demos.boring_classes import BoringModel
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.simple_models import ClassificationModel
@@ -29,6 +29,8 @@ from tests_pytorch.helpers.simple_models import ClassificationModel
 @mock.patch("lightning.fabric.plugins.environments.slurm.SLURMEnvironment.detect", return_value=True)
 def test_cpu_slurm_save_load(_, tmpdir):
     """Verify model save/load/checkpoint on CPU."""
+    seed_everything(42)
+
     model = BoringModel()
 
     # logger file to get meta
@@ -80,7 +82,8 @@ def test_cpu_slurm_save_load(_, tmpdir):
     class _StartCallback(Callback):
         # set the epoch start hook so we can predict before the model does the full training
         def on_train_epoch_start(self, trainer, model):
-            assert trainer.global_step == real_global_step and trainer.global_step > 0
+            assert trainer.global_step == real_global_step
+            assert trainer.global_step > 0
             # predict with loaded model to make sure answers are the same
             mode = model.training
             model.eval()
@@ -100,6 +103,8 @@ def test_cpu_slurm_save_load(_, tmpdir):
 
 
 def test_early_stopping_cpu_model(tmpdir):
+    seed_everything(42)
+
     class ModelTrainVal(BoringModel):
         def validation_step(self, *args, **kwargs):
             output = super().validation_step(*args, **kwargs)
@@ -107,15 +112,15 @@ def test_early_stopping_cpu_model(tmpdir):
             return output
 
     stopping = EarlyStopping(monitor="val_loss", min_delta=0.1)
-    trainer_options = dict(
-        callbacks=[stopping],
-        default_root_dir=tmpdir,
-        gradient_clip_val=1.0,
-        enable_progress_bar=False,
-        accumulate_grad_batches=2,
-        limit_train_batches=0.1,
-        limit_val_batches=0.1,
-    )
+    trainer_options = {
+        "callbacks": [stopping],
+        "default_root_dir": tmpdir,
+        "gradient_clip_val": 1.0,
+        "enable_progress_bar": False,
+        "accumulate_grad_batches": 2,
+        "limit_train_batches": 0.3,
+        "limit_val_batches": 0.1,
+    }
 
     model = ModelTrainVal()
     tpipes.run_model_test(trainer_options, model)
@@ -128,16 +133,18 @@ def test_early_stopping_cpu_model(tmpdir):
 @RunIf(skip_windows=True, sklearn=True)
 def test_multi_cpu_model_ddp(tmpdir):
     """Make sure DDP works."""
-    trainer_options = dict(
-        default_root_dir=tmpdir,
-        enable_progress_bar=False,
-        max_epochs=1,
-        limit_train_batches=0.4,
-        limit_val_batches=0.2,
-        accelerator="cpu",
-        devices=2,
-        strategy="ddp_spawn",
-    )
+    seed_everything(42)
+
+    trainer_options = {
+        "default_root_dir": tmpdir,
+        "enable_progress_bar": False,
+        "max_epochs": 1,
+        "limit_train_batches": 0.4,
+        "limit_val_batches": 0.2,
+        "accelerator": "cpu",
+        "devices": 2,
+        "strategy": "ddp_spawn",
+    }
 
     dm = ClassifDataModule()
     model = ClassificationModel()
@@ -148,7 +155,9 @@ def test_lbfgs_cpu_model(tmpdir):
     """Test each of the trainer options.
 
     Testing LBFGS optimizer
+
     """
+    seed_everything(42)
 
     class ModelSpecifiedOptimizer(BoringModel):
         def __init__(self, optimizer_name, learning_rate):
@@ -157,13 +166,13 @@ def test_lbfgs_cpu_model(tmpdir):
             self.learning_rate = learning_rate
             self.save_hyperparameters()
 
-    trainer_options = dict(
-        default_root_dir=tmpdir,
-        max_epochs=1,
-        enable_progress_bar=False,
-        limit_train_batches=0.2,
-        limit_val_batches=0.2,
-    )
+    trainer_options = {
+        "default_root_dir": tmpdir,
+        "max_epochs": 1,
+        "enable_progress_bar": False,
+        "limit_train_batches": 0.2,
+        "limit_val_batches": 0.2,
+    }
 
     model = ModelSpecifiedOptimizer(optimizer_name="LBFGS", learning_rate=0.004)
     tpipes.run_model_test_without_loggers(trainer_options, model, min_acc=0.01)
@@ -171,15 +180,17 @@ def test_lbfgs_cpu_model(tmpdir):
 
 def test_default_logger_callbacks_cpu_model(tmpdir):
     """Test each of the trainer options."""
-    trainer_options = dict(
-        default_root_dir=tmpdir,
-        max_epochs=1,
-        gradient_clip_val=1.0,
-        overfit_batches=0.20,
-        enable_progress_bar=False,
-        limit_train_batches=0.01,
-        limit_val_batches=0.01,
-    )
+    seed_everything(42)
+
+    trainer_options = {
+        "default_root_dir": tmpdir,
+        "max_epochs": 1,
+        "gradient_clip_val": 1.0,
+        "overfit_batches": 0.20,
+        "enable_progress_bar": False,
+        "limit_train_batches": 0.01,
+        "limit_val_batches": 0.01,
+    }
 
     model = BoringModel()
     tpipes.run_model_test_without_loggers(trainer_options, model, min_acc=0.01)
@@ -191,6 +202,7 @@ def test_default_logger_callbacks_cpu_model(tmpdir):
 
 def test_running_test_after_fitting(tmpdir):
     """Verify test() on fitted model."""
+    seed_everything(42)
 
     class ModelTrainValTest(BoringModel):
         def validation_step(self, *args, **kwargs):
@@ -236,7 +248,9 @@ def test_running_test_no_val(tmpdir):
     """Verify `test()` works on a model with no `val_dataloader`.
 
     It performs train and test only
+
     """
+    seed_everything(42)
 
     class ModelTrainTest(BoringModel):
         def test_step(self, *args, **kwargs):
@@ -275,23 +289,16 @@ def test_running_test_no_val(tmpdir):
     tutils.assert_ok_model_acc(trainer, key="test_loss")
 
 
-def test_simple_cpu(tmpdir):
-    """Verify continue training session on CPU."""
-    model = BoringModel()
-
-    # fit model
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, limit_val_batches=0.1, limit_train_batches=20)
-    trainer.fit(model)
-
-    # traning complete
-    assert trainer.state.finished, "amp + ddp model failed to complete"
-
-
 def test_cpu_model(tmpdir):
     """Make sure model trains on CPU."""
-    trainer_options = dict(
-        default_root_dir=tmpdir, enable_progress_bar=False, max_epochs=1, limit_train_batches=4, limit_val_batches=4
-    )
+    seed_everything(42)
+    trainer_options = {
+        "default_root_dir": tmpdir,
+        "enable_progress_bar": False,
+        "max_epochs": 1,
+        "limit_train_batches": 4,
+        "limit_val_batches": 4,
+    }
 
     model = BoringModel()
     tpipes.run_model_test(trainer_options, model)
@@ -299,17 +306,17 @@ def test_cpu_model(tmpdir):
 
 def test_all_features_cpu_model(tmpdir):
     """Test each of the trainer options."""
-    trainer_options = dict(
-        default_root_dir=tmpdir,
-        gradient_clip_val=1.0,
-        overfit_batches=0.20,
-        enable_progress_bar=False,
-        accumulate_grad_batches=2,
-        max_epochs=1,
-        limit_train_batches=0.4,
-        limit_val_batches=0.4,
-    )
+    seed_everything(42)
+    trainer_options = {
+        "default_root_dir": tmpdir,
+        "gradient_clip_val": 1.0,
+        "overfit_batches": 0.20,
+        "enable_progress_bar": False,
+        "accumulate_grad_batches": 2,
+        "max_epochs": 1,
+        "limit_train_batches": 0.4,
+        "limit_val_batches": 0.4,
+    }
 
     model = BoringModel()
-
-    tpipes.run_model_test(trainer_options, model, min_acc=0.01)
+    tpipes.run_model_test(trainer_options, model)

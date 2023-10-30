@@ -13,10 +13,9 @@
 # limitations under the License.
 from unittest.mock import ANY, MagicMock
 
+import lightning.pytorch as pl
 import pytest
 import torch
-
-import lightning.pytorch as pl
 from lightning.fabric.utilities.warnings import PossibleUserWarning
 from lightning.pytorch import Trainer
 from lightning.pytorch.callbacks import EarlyStopping, ModelCheckpoint
@@ -26,7 +25,7 @@ from lightning.pytorch.utilities.migration.utils import _get_version, _set_legac
 
 
 @pytest.mark.parametrize(
-    "old_checkpoint, new_checkpoint",
+    ("old_checkpoint", "new_checkpoint"),
     [
         (
             {"epoch": 1, "global_step": 23, "checkpoint_callback_best": 0.34},

@@ -35,7 +35,7 @@ A page opens in your browser where you can follow the instructions to complete t
 Launch multi-node training in the cloud
 ***************************************
 
-**Step 1:** Put your code inside a :class:`~lightning_app.core.work.LightningWork`:
+**Step 1:** Put your code inside a ``lightning.app.core.work.LightningWork``:
 
 .. code-block:: python
     :emphasize-lines: 5
@@ -58,7 +58,7 @@ Launch multi-node training in the cloud
             model, optimizer = fabric.setup(model, optimizer)
             ...
 
-**Step 2:** Init a :class:`~lightning_app.core.app.LightningApp` with the ``FabricMultiNode`` component.
+**Step 2:** Init a ``lightning.app.core.app.LightningApp`` with the ``FabricMultiNode`` component.
 Configure the number of nodes, the number of GPUs per node, and the type of GPU:
 
 .. code-block:: python
@@ -103,8 +103,8 @@ Next steps
         <div class="row">
 
 .. displayitem::
-    :header: Lightning App Docs
-    :description: Learn more about apps and the Lightning cloud.
+    :header: Lightning Platform
+    :description: Develop, Train and Deploy models on the cloud
     :col_css: col-md-4
     :button_link: https://lightning.ai
     :height: 150

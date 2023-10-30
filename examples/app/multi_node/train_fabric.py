@@ -1,11 +1,10 @@
 import torch
-
-import lightning as L
+from lightning.app import CloudCompute, LightningApp, LightningWork
 from lightning.app.components import FabricMultiNode
 from lightning.fabric import Fabric
 
 
-class FabricPyTorchDistributed(L.LightningWork):
+class FabricPyTorchDistributed(LightningWork):
     def run(self):
         # 1. Prepare the model
         model = torch.nn.Sequential(
@@ -32,10 +31,10 @@ class FabricPyTorchDistributed(L.LightningWork):
 
 
 # 8 GPUs: (2 nodes of 4 x v100)
-app = L.LightningApp(
+app = LightningApp(
     FabricMultiNode(
         FabricPyTorchDistributed,
-        cloud_compute=L.CloudCompute("gpu-fast-multi"),  # 4 x V100
+        cloud_compute=CloudCompute("gpu-fast-multi"),  # 4 x V100
         num_nodes=2,
     )
 )

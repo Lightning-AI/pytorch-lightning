@@ -1,10 +1,10 @@
 :orphan:
 
-#############################################
-Level 22: Reach 1 trillion parameters on GPUs
-#############################################
+##################################################
+Level 21: Train models with billions of parameters
+##################################################
 
-Scale to 1 trillion+ parameters with multiple distributed strategies.
+Scale to billions of parameters with multiple distributed strategies.
 
 ----
 
@@ -24,8 +24,8 @@ Scale to 1 trillion+ parameters with multiple distributed strategies.
    :tag: intermediate
 
 .. displayitem::
-   :header: Reach 1 trillion parameters on GPUs
-   :description: Scale to 1 trillion params on GPUs with FSDP and Deepspeed.
+   :header: Train models with billions of parameters
+   :description: Scale to billions of params on GPUs with FSDP or Deepspeed.
    :col_css: col-md-6
    :button_link: ../advanced/model_parallel.html
    :height: 150

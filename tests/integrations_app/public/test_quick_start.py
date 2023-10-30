@@ -4,12 +4,12 @@ from unittest import mock
 
 import pytest
 from click.testing import CliRunner
-
-from integrations_app.public import _PATH_EXAMPLES
 from lightning.app import LightningApp
 from lightning.app.cli.lightning_cli import run_app
 from lightning.app.testing.helpers import _RunIf
 from lightning.app.testing.testing import run_app_in_cloud, wait_for
+
+from integrations_app.public import _PATH_EXAMPLES
 
 
 class QuickStartApp(LightningApp):
@@ -25,11 +25,10 @@ class QuickStartApp(LightningApp):
 
 
 # TODO: Investigate why it doesn't work
-@pytest.mark.skip(reason="test is skipped because CI was blocking all the PRs.")
+@pytest.mark.xfail(strict=False, reason="test is skipped because CI was blocking all the PRs.")
 @_RunIf(pl=True, skip_windows=True, skip_linux=True)
 def test_quick_start_example(caplog, monkeypatch):
     """This test ensures the Quick Start example properly train and serve PyTorch Lightning."""
-
     monkeypatch.setattr("logging.getLogger", mock.MagicMock(return_value=logging.getLogger()))
 
     with caplog.at_level(logging.INFO):
@@ -49,7 +48,7 @@ def test_quick_start_example(caplog, monkeypatch):
         assert result.exit_code == 0
 
 
-@pytest.mark.cloud
+@pytest.mark.cloud()
 def test_quick_start_example_cloud() -> None:
     with run_app_in_cloud(os.path.join(_PATH_EXAMPLES, "lightning-quick-start")) as (_, view_page, _, _):
 
@@ -66,5 +65,6 @@ def test_quick_start_example_cloud() -> None:
             locator.wait_for(timeout=10 * 1000)
             if len(locator.all_text_contents()) > 0:
                 return True
+            return None
 
         wait_for(view_page, check_examples)

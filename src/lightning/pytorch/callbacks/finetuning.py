@@ -14,7 +14,8 @@
 r"""
 Finetuning Callback
 ^^^^^^^^^^^^^^^^^^^^
-Freeze and unfreeze models for finetuning purposes
+
+Freeze and unfreeze models for finetuning purposes.
 """
 import logging
 from typing import Any, Callable, Dict, Generator, Iterable, List, Optional, Union
@@ -37,8 +38,7 @@ def multiplicative(epoch: int) -> float:
 
 
 class BaseFinetuning(Callback):
-    r"""
-    This class implements the base logic for writing your own Finetuning Callback.
+    r"""This class implements the base logic for writing your own Finetuning Callback.
 
     .. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
 
@@ -79,6 +79,7 @@ class BaseFinetuning(Callback):
         ...                 optimizer=optimizer,
         ...                 train_bn=True,
         ...             )
+
     """
 
     def __init__(self) -> None:
@@ -92,7 +93,7 @@ class BaseFinetuning(Callback):
 
     def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
         self._restarting = True
-        if "internal_optimizer_metadata" in state_dict:
+        if "internal_optimizer_metadata" in state_dict:  # noqa: SIM401
             self._internal_optimizer_metadata = state_dict["internal_optimizer_metadata"]
         else:
             # compatibility to load from old checkpoints before PR #11887
@@ -111,21 +112,22 @@ class BaseFinetuning(Callback):
 
     @staticmethod
     def flatten_modules(modules: Union[Module, Iterable[Union[Module, Iterable]]]) -> List[Module]:
-        """This function is used to flatten a module or an iterable of modules into a list of its leaf modules
-        (modules with no children) and parent modules that have parameters directly themselves.
+        """This function is used to flatten a module or an iterable of modules into a list of its leaf modules (modules
+        with no children) and parent modules that have parameters directly themselves.
 
         Args:
             modules: A given module or an iterable of modules
 
         Returns:
             List of modules
+
         """
         if isinstance(modules, ModuleDict):
             modules = modules.values()
 
         if isinstance(modules, Iterable):
             _flatten_modules = []
-            for m in modules:
+            for m in modules:  # type: ignore[union-attr]
                 _flatten_modules.extend(BaseFinetuning.flatten_modules(m))
 
             _modules = iter(_flatten_modules)
@@ -147,6 +149,7 @@ class BaseFinetuning(Callback):
             requires_grad: Whether to create a generator for trainable or non-trainable parameters.
         Returns:
             Generator
+
         """
         modules = BaseFinetuning.flatten_modules(modules)
         for mod in modules:
@@ -163,6 +166,7 @@ class BaseFinetuning(Callback):
 
         Args:
             modules: A given module or an iterable of modules
+
         """
         modules = BaseFinetuning.flatten_modules(modules)
         for module in modules:
@@ -178,6 +182,7 @@ class BaseFinetuning(Callback):
 
         Args:
             module: A given module
+
         """
         if isinstance(module, _BatchNorm):
             module.track_running_stats = False
@@ -195,6 +200,7 @@ class BaseFinetuning(Callback):
 
         Returns:
             None
+
         """
         modules = BaseFinetuning.flatten_modules(modules)
         for mod in modules:
@@ -213,6 +219,7 @@ class BaseFinetuning(Callback):
 
         Returns:
             List of parameters not contained in this optimizer param groups
+
         """
         out_params = []
         removed_params = []
@@ -250,6 +257,7 @@ class BaseFinetuning(Callback):
             initial_denom_lr: If no lr is provided, the learning from the first param group will be used
                 and divided by `initial_denom_lr`.
             train_bn: Whether to train the BatchNormalization layers.
+
         """
         BaseFinetuning.make_trainable(modules)
         params_lr = optimizer.param_groups[0]["lr"] if lr is None else float(lr)
@@ -261,6 +269,14 @@ class BaseFinetuning(Callback):
 
     def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: str) -> None:
         self.freeze_before_training(pl_module)
+
+        from lightning.pytorch.strategies import DeepSpeedStrategy
+
+        if isinstance(trainer.strategy, DeepSpeedStrategy):
+            raise NotImplementedError(
+                "The Finetuning callback does not support running with the DeepSpeed strategy."
+                " Choose a different strategy or disable the callback."
+            )
 
     @staticmethod
     def _apply_mapping_to_param_groups(param_groups: List[Dict[str, Any]], mapping: dict) -> List[Dict[str, Any]]:
