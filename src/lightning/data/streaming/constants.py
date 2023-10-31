@@ -23,6 +23,7 @@ _TORCH_GREATER_EQUAL_2_1_0 = RequirementCache("torch>=2.1.0")
 _VIZ_TRACKER_AVAILABLE = RequirementCache("viztracer")
 _LIGHTNING_CLOUD_GREATER_EQUAL_0_5_42 = RequirementCache("lightning-cloud>=0.5.42")
 _BOTO3_AVAILABLE = RequirementCache("boto3")
+_LIGHTNING_SDK_AVAILABLE = RequirementCache("lightning_sdk")
 
 # DON'T CHANGE ORDER
 _TORCH_DTYPES_MAPPING = {

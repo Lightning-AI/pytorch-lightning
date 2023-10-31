@@ -660,6 +660,7 @@ class DataProcessor:
         remote_input_dir: Optional[str] = None,
         remote_output_dir: Optional[str] = None,
         random_seed: Optional[int] = 42,
+        version: Optional[int] = None,
     ):
         """The `DatasetOptimiser` provides an efficient way to process data across multiple machine into chunks to make
         training faster.
@@ -697,7 +698,7 @@ class DataProcessor:
         self.remote_output_dir = (
             remote_output_dir
             if remote_output_dir is not None
-            else (self.dst_resolver(name) if self.dst_resolver else None)
+            else (self.dst_resolver(name, version=version) if self.dst_resolver else None)
         )
         if self.remote_output_dir:
             self.name = self._broadcast_object(self.name)
