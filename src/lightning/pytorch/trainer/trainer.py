@@ -300,7 +300,6 @@ class Trainer:
 
             MisconfigurationException:
                 If ``gradient_clip_algorithm`` is invalid.
-                If ``track_grad_norm`` is not a positive number or inf.
 
         """
         super().__init__()
