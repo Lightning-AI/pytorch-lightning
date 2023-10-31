@@ -11,6 +11,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+import shutil
 from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Type
 from urllib import parse
@@ -63,8 +64,15 @@ class S3Downloader(Downloader):
         )
 
 
-# TODO: Add fsspec support
-_DOWNLOADERS = {"s3://": S3Downloader}
+class LocalDownloader(Downloader):
+    @classmethod
+    def download_file(cls, remote_filepath: str, local_filepath: str) -> None:
+        if not os.path.exists(remote_filepath):
+            raise FileNotFoundError("The provided remote_path doesn't exist: {remote_path}")
+        shutil.copy(remote_filepath, local_filepath)
+
+
+_DOWNLOADERS = {"s3://": S3Downloader, "": LocalDownloader}
 
 
 def get_downloader_cls(remote_dir: str) -> Type[Downloader]:

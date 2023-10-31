@@ -164,7 +164,7 @@ to the class constructor. For example, your model is defined as:
 .. code:: python
 
     # model.py
-    class MyModel(pl.LightningModule):
+    class MyModel(L.LightningModule):
         def __init__(self, criterion: torch.nn.Module):
             self.criterion = criterion
 
@@ -186,7 +186,7 @@ configuration files and automatic creation of objects, so you don't need to do i
 
 .. note::
 
-    Lighting automatically registers all subclasses of :class:`~lightning.pytorch.core.LightningModule`,
+    Lightning automatically registers all subclasses of :class:`~lightning.pytorch.core.LightningModule`,
     so the complete import path is not required for them and can be replaced by the class name.
 
 .. note::

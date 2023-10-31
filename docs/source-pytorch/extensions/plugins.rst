@@ -52,15 +52,15 @@ The full list of built-in precision plugins is listed below.
     :nosignatures:
     :template: classtemplate.rst
 
-    DeepSpeedPrecisionPlugin
-    DoublePrecisionPlugin
-    HalfPrecisionPlugin
-    FSDPPrecisionPlugin
-    MixedPrecisionPlugin
-    PrecisionPlugin
-    XLAPrecisionPlugin
-    TransformerEnginePrecisionPlugin
-    BitsandbytesPrecisionPlugin
+    DeepSpeedPrecision
+    DoublePrecision
+    HalfPrecision
+    FSDPPrecision
+    MixedPrecision
+    Precision
+    XLAPrecision
+    TransformerEnginePrecision
+    BitsandbytesPrecision
 
 More information regarding precision with Lightning can be found :ref:`here <precision>`
 

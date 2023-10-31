@@ -28,7 +28,7 @@ from lightning.pytorch.profilers import (
     XLAProfiler,
 )
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning.pytorch.utilities.imports import _lightning_graphcore_available, _lightning_habana_available
+from lightning.pytorch.utilities.imports import _graphcore_available_and_importable, _habana_available_and_importable
 from lightning.pytorch.utilities.rank_zero import rank_zero_info, rank_zero_warn
 
 
@@ -158,7 +158,7 @@ def _log_device_info(trainer: "pl.Trainer") -> None:
     num_tpu_cores = trainer.num_devices if isinstance(trainer.accelerator, XLAAccelerator) else 0
     rank_zero_info(f"TPU available: {XLAAccelerator.is_available()}, using: {num_tpu_cores} TPU cores")
 
-    if _lightning_graphcore_available():
+    if _graphcore_available_and_importable():
         from lightning_graphcore import IPUAccelerator
 
         num_ipus = trainer.num_devices if isinstance(trainer.accelerator, IPUAccelerator) else 0
@@ -168,7 +168,7 @@ def _log_device_info(trainer: "pl.Trainer") -> None:
         ipu_available = False
     rank_zero_info(f"IPU available: {ipu_available}, using: {num_ipus} IPUs")
 
-    if _lightning_habana_available():
+    if _habana_available_and_importable():
         from lightning_habana import HPUAccelerator
 
         num_hpus = trainer.num_devices if isinstance(trainer.accelerator, HPUAccelerator) else 0
@@ -192,13 +192,13 @@ def _log_device_info(trainer: "pl.Trainer") -> None:
     if XLAAccelerator.is_available() and not isinstance(trainer.accelerator, XLAAccelerator):
         rank_zero_warn("TPU available but not used. You can set it by doing `Trainer(accelerator='tpu')`.")
 
-    if _lightning_graphcore_available():
+    if _graphcore_available_and_importable():
         from lightning_graphcore import IPUAccelerator
 
         if IPUAccelerator.is_available() and not isinstance(trainer.accelerator, IPUAccelerator):
             rank_zero_warn("IPU available but not used. You can set it by doing `Trainer(accelerator='ipu')`.")
 
-    if _lightning_habana_available():
+    if _habana_available_and_importable():
         from lightning_habana import HPUAccelerator
 
         if HPUAccelerator.is_available() and not isinstance(trainer.accelerator, HPUAccelerator):
