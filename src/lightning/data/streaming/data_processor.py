@@ -876,7 +876,7 @@ class DataProcessor:
 
         # Cleanup the cache dir folder to avoid corrupted files from previous run to be there.
         if os.path.exists(cache_dir):
-            rmtree(cache_dir)
+            rmtree(cache_dir, ignore_errors=True)
 
         os.makedirs(cache_dir, exist_ok=True)
 
@@ -884,7 +884,7 @@ class DataProcessor:
 
         # Cleanup the cache data folder to avoid corrupted files from previous run to be there.
         if os.path.exists(cache_data_dir):
-            rmtree(cache_data_dir)
+            rmtree(cache_data_dir, ignore_errors=True)
 
         os.makedirs(cache_data_dir, exist_ok=True)
 

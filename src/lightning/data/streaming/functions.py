@@ -89,7 +89,7 @@ def map(
 
     """
 
-    if num_nodes is None or machine is None or int(os.getenv("DATA_OPTIMIZER_NUM_NODES", 0)) > 0:
+    if num_nodes is None or int(os.getenv("DATA_OPTIMIZER_NUM_NODES", 0)) > 0:
         remote_output_dir = _LightningSrcResolver()(output_dir)
 
         if remote_output_dir is None or "cloudspaces" in remote_output_dir:
@@ -118,7 +118,7 @@ def map(
             studio_id=studio._studio.id,
             teamspace_id=studio._teamspace.id,
             cluster_id=studio._studio.cluster_id,
-            cloud_compute=machine,
+            cloud_compute=machine or studio._studio_api.get_machine(studio._studio.id, studio._teamspace.id),
         )
 
         has_printed = False
@@ -135,8 +135,8 @@ def map(
 
             if not has_printed:
                 cloud_url = get_lightning_cloud_url()
-                job_url = f"{cloud_url}/{studio._owner.name}/{studio._teamspace.name}"
-                job_url += f"/studios/{studio.name}/app?app_id=data-prep"
+                job_url = f"{cloud_url}/{studio._user.username}/{studio._teamspace.name}"
+                job_url += f"/studios/{studio.name}/app?app_id=data-prep&job_name={curr_job.name}"
                 print(f"Find your job at {job_url}")
                 has_printed = True
 
@@ -163,7 +163,7 @@ def chunkify(
     if chunk_size is None and chunk_bytes is None:
         raise ValueError("Either `chunk_size` or `chunk_bytes` needs to be defined.")
 
-    if num_nodes is None or machine is None or int(os.getenv("DATA_OPTIMIZER_NUM_NODES", 0)) > 0:
+    if num_nodes is None or int(os.getenv("DATA_OPTIMIZER_NUM_NODES", 0)) > 0:
         data_processor = DataProcessor(
             name=name,
             num_workers=num_workers or os.cpu_count(),
@@ -191,7 +191,7 @@ def chunkify(
             studio_id=studio._studio.id,
             teamspace_id=studio._teamspace.id,
             cluster_id=studio._studio.cluster_id,
-            cloud_compute=machine,
+            cloud_compute=machine or studio._studio_api.get_machine(studio._studio.id, studio._teamspace.id),
         )
 
         has_printed = False
@@ -208,8 +208,8 @@ def chunkify(
 
             if not has_printed:
                 cloud_url = get_lightning_cloud_url()
-                job_url = f"{cloud_url}/{studio._owner.name}/{studio._teamspace.name}"
-                job_url += f"/studios/{studio.name}/app?app_id=data-prep"
+                job_url = f"{cloud_url}/{studio._user.username}/{studio._teamspace.name}"
+                job_url += f"/studios/{studio.name}/app?app_id=data-prep&job_name={curr_job.name}"
                 print(f"Find your job at {job_url}")
                 has_printed = True
 
