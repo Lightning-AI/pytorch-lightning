@@ -9,7 +9,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
--
+- Added `lightning.pytorch.callbacks.ThroughputMonitor` to track throughput and log it ([#18848](https://github.com/Lightning-AI/lightning/pull/18848))
+
 
 
 ### Changed
@@ -20,7 +21,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Deprecated
 
--
+- Deprecated all precision plugin classes under `lightning.pytorch.plugins` with the suffix `Plugin` in the name ([#18840](https://github.com/Lightning-AI/lightning/pull/18840))
 
 
 ### Removed
@@ -32,6 +33,14 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Fixed an issue when replacing an existing `last.ckpt` file with a symlink ([#18793](https://github.com/Lightning-AI/lightning/pull/18793))
 
+
+- Fixed an issue when `BatchSizeFinder` `steps_per_trial` parameter ends up defining how many validation batches to run during the entire training ([#18394](https://github.com/Lightning-AI/lightning/issues/18394))
+
+
+- Fixed an issue saving the `last.ckpt` file when using `ModelCheckpoint` on a remote filesystem and no logger is used ([#18867](https://github.com/Lightning-AI/lightning/issues/18867))
+
+
+- Refined the FSDP saving logic and error messaging when path exists ([#18884](https://github.com/Lightning-AI/lightning/pull/18884))
 
 
 ## [2.1.0] - 2023-10-11

@@ -12,10 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from lightning.fabric.plugins.precision.transformer_engine import TransformerEnginePrecision as FabricTEPrecision
-from lightning.pytorch.plugins.precision.precision_plugin import PrecisionPlugin
+from lightning.pytorch.plugins.precision.precision import Precision
 
 
-class TransformerEnginePrecisionPlugin(PrecisionPlugin, FabricTEPrecision):
+class TransformerEnginePrecision(Precision, FabricTEPrecision):
     """Plugin for training with fp8 precision via nvidia's
     `Transformer Engine <https://docs.nvidia.com/deeplearning/transformer-engine>`__.
 

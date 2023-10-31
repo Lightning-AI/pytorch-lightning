@@ -47,7 +47,7 @@ If you want to script a different method, you can decorate the method with :func
 
 .. code-block:: python
 
-    class LitMCdropoutModel(pl.LightningModule):
+    class LitMCdropoutModel(L.LightningModule):
         def __init__(self, model, mc_iteration):
             super().__init__()
             self.model = model

@@ -92,7 +92,7 @@ _transform_changelog(
 assist_local.AssistantCLI.pull_docs_files(
     gh_user_repo="Lightning-AI/lightning-Habana",
     target_dir="docs/source-pytorch/integrations/hpu",
-    checkout="tags/1.1.0",
+    checkout="tags/1.2.0",
 )
 assist_local.AssistantCLI.pull_docs_files(
     gh_user_repo="Lightning-AI/lightning-Graphcore",
@@ -385,6 +385,9 @@ nitpick_ignore = [
     ("py:class", "lightning.fabric.utilities.types.ReduceLROnPlateau"),
     ("py:class", "lightning.fabric.utilities.types.Steppable"),
     ("py:class", "lightning.fabric.wrappers._FabricOptimizer"),
+    ("py:class", "lightning.fabric.utilities.throughput.Throughput"),
+    ("py:func", "lightning.fabric.utilities.throughput.measure_flops"),
+    ("py:class", "lightning.fabric.utilities.spike.SpikeDetection"),
     ("py:meth", "lightning.pytorch.Callback.on_exception"),
     ("py:class", "lightning.pytorch.LightningModule"),
     ("py:meth", "lightning.pytorch.LightningModule.on_train_epoch_end"),
@@ -450,7 +453,7 @@ nitpick_ignore = [
     ("py:meth", "optimizer_step"),
     ("py:class", "out_dict"),
     ("py:meth", "prepare_data"),
-    ("py:class", "pytorch_lightning.callbacks.device_stats_monitor.DeviceStatsMonitor"),
+    ("py:class", "lightning.pytorch.callbacks.device_stats_monitor.DeviceStatsMonitor"),
     ("py:meth", "setup"),
     ("py:meth", "test_step"),
     ("py:meth", "toggle_optimizer"),
@@ -585,7 +588,7 @@ from torch.utils.data import IterableDataset, DataLoader, Dataset
 from lightning.pytorch import LightningDataModule, LightningModule, Trainer, seed_everything
 from lightning.pytorch.callbacks import Callback
 from lightning.pytorch.cli import _JSONARGPARSE_SIGNATURES_AVAILABLE as _JSONARGPARSE_AVAILABLE
-from lightning.pytorch.utilities import _TORCHVISION_AVAILABLE
+from lightning.pytorch.utilities.imports import _TORCHVISION_AVAILABLE
 from lightning.fabric.loggers.tensorboard import _TENSORBOARD_AVAILABLE, _TENSORBOARDX_AVAILABLE
 from lightning.pytorch.loggers.neptune import _NEPTUNE_AVAILABLE
 from lightning.pytorch.loggers.comet import _COMET_AVAILABLE

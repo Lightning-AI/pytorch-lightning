@@ -46,7 +46,7 @@ def from_compiled(model: "torch._dynamo.OptimizedModule") -> "pl.LightningModule
     if not isinstance(orig_module, pl.LightningModule):
         _check_mixed_imports(model)
         raise ValueError(
-            f"`model` is expected to be a compiled LightingModule. Found a `{type(orig_module).__name__}` instead"
+            f"`model` is expected to be a compiled LightningModule. Found a `{type(orig_module).__name__}` instead"
         )
 
     orig_module._compiler_ctx = {
