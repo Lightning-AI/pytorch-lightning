@@ -201,94 +201,50 @@ def test_cache_dir_cleanup(tmpdir, monkeypatch):
 
 
 def test_associated_items_to_workers(monkeypatch):
-    begins, workers_user_items = _associated_items_to_workers(1, range(105))
-    assert workers_user_items == [range(0, 105)]
-    assert begins == [0]
-
-    begins, workers_user_items = _associated_items_to_workers(2, range(105))
-    assert workers_user_items == [range(0, 52), range(52, 105)]
-    assert begins == [0, 52]
-
-    begins, workers_user_items = _associated_items_to_workers(3, range(105))
-    assert workers_user_items == [range(0, 35), range(35, 70), range(70, 105)]
-    assert begins == [0, 35, 70]
-
-    begins, workers_user_items = _associated_items_to_workers(4, range(105))
-    assert workers_user_items == [range(0, 26), range(26, 52), range(52, 78), range(78, 105)]
-    assert begins == [0, 26, 52, 78]
+    begins, workers_user_items = _associated_items_to_workers(1, list(range(5)))
+    assert workers_user_items == [list(range(5))]
+    begins, workers_user_items = _associated_items_to_workers(2, list(range(5)))
+    assert workers_user_items == [[0, 2, 4], [1, 3]]
+    begins, workers_user_items = _associated_items_to_workers(3, list(range(5)))
+    assert workers_user_items == [[0, 3], [1, 4], [2]]
+    begins, workers_user_items = _associated_items_to_workers(4, list(range(5)))
+    assert workers_user_items == [[0, 4], [1], [2], [3]]
 
     monkeypatch.setenv("DATA_OPTIMIZER_NUM_NODES", "2")
+    monkeypatch.setenv("DATA_OPTIMIZER_NODE_RANK", "0")
+    begins, workers_user_items = _associated_items_to_workers(1, list(range(5)))
+    assert workers_user_items == [[0, 2, 4]]
+    begins, workers_user_items = _associated_items_to_workers(2, list(range(5)))
+    assert workers_user_items == [[0, 4], [1]]
 
-    begins, workers_user_items = _associated_items_to_workers(1, range(105))
-    assert workers_user_items == [range(0, 52)]
-    assert begins == [0]
-
-    begins, workers_user_items = _associated_items_to_workers(2, range(105))
-    assert workers_user_items == [range(0, 26), range(26, 52)]
-    assert begins == [0, 26]
-
-    begins, workers_user_items = _associated_items_to_workers(3, range(105))
-    assert workers_user_items == [range(0, 17), range(17, 34), range(34, 52)]
-    assert begins == [0, 17, 34]
-
-    begins, workers_user_items = _associated_items_to_workers(4, range(105))
-    assert workers_user_items == [range(0, 13), range(13, 26), range(26, 39), range(39, 52)]
-    assert begins == [0, 13, 26, 39]
-
+    monkeypatch.setenv("DATA_OPTIMIZER_NUM_NODES", "2")
     monkeypatch.setenv("DATA_OPTIMIZER_NODE_RANK", "1")
-
-    begins, workers_user_items = _associated_items_to_workers(1, range(105))
-    assert workers_user_items == [range(52, 105)]
-    assert begins == [0]
-
-    begins, workers_user_items = _associated_items_to_workers(2, range(105))
-    assert workers_user_items == [range(52, 78), range(78, 105)]
-    assert begins == [0, 78 - 52]
-
-    begins, workers_user_items = _associated_items_to_workers(3, range(105))
-    assert workers_user_items == [range(52, 69), range(69, 86), range(86, 105)]
-    assert begins == [0, 69 - 52, 86 - 52]
-
-    begins, workers_user_items = _associated_items_to_workers(4, range(105))
-    assert workers_user_items == [range(52, 65), range(65, 78), range(78, 91), range(91, 105)]
-    assert begins == [0, 65 - 52, 78 - 52, 91 - 52]
+    begins, workers_user_items = _associated_items_to_workers(1, list(range(5)))
+    assert workers_user_items == [[1, 3]]
+    begins, workers_user_items = _associated_items_to_workers(2, list(range(5)))
+    assert workers_user_items == [[2], [3]]
 
     monkeypatch.setenv("DATA_OPTIMIZER_NUM_NODES", "4")
     monkeypatch.setenv("DATA_OPTIMIZER_NODE_RANK", "0")
+    begins, workers_user_items = _associated_items_to_workers(1, list(range(32)))
+    assert workers_user_items == [[0, 4, 8, 12, 16, 20, 24, 28]]
+    begins, workers_user_items = _associated_items_to_workers(2, list(range(32)))
+    assert workers_user_items == [[0, 8, 16, 24], [1, 9, 17, 25]]
+    begins, workers_user_items = _associated_items_to_workers(3, list(range(32)))
+    assert workers_user_items == [[0, 12, 24], [1, 13, 25], [2, 14, 26]]
+    begins, workers_user_items = _associated_items_to_workers(4, list(range(32)))
+    assert workers_user_items == [[0, 16], [1, 17], [2, 18], [3, 19]]
 
-    begins, workers_user_items = _associated_items_to_workers(1, range(105))
-    assert workers_user_items == [range(0, 26)]
-    assert begins == [0]
-
-    begins, workers_user_items = _associated_items_to_workers(2, range(105))
-    assert workers_user_items == [range(0, 13), range(13, 26)]
-    assert begins == [0, 13]
-
-    begins, workers_user_items = _associated_items_to_workers(3, range(105))
-    assert workers_user_items == [range(0, 8), range(8, 16), range(16, 26)]
-    assert begins == [0, 8, 16]
-
-    begins, workers_user_items = _associated_items_to_workers(4, range(105))
-    assert workers_user_items == [range(0, 6), range(6, 12), range(12, 18), range(18, 26)]
-    assert begins == [0, 6, 12, 18]
-
+    monkeypatch.setenv("DATA_OPTIMIZER_NUM_NODES", "4")
     monkeypatch.setenv("DATA_OPTIMIZER_NODE_RANK", "3")
-
-    begins, workers_user_items = _associated_items_to_workers(1, range(105))
-    assert workers_user_items == [range(78, 105)]
-    assert begins == [0]
-
-    begins, workers_user_items = _associated_items_to_workers(2, range(105))
-    assert workers_user_items == [range(78, 91), range(91, 105)]
-    assert begins == [0, 91 - 78]
-
-    begins, workers_user_items = _associated_items_to_workers(3, range(105))
-    assert workers_user_items == [range(78, 87), range(87, 96), range(96, 105)]
-    assert begins == [0, 87 - 78, 96 - 78]
-
-    begins, workers_user_items = _associated_items_to_workers(4, range(105))
-    assert workers_user_items == [range(78, 84), range(84, 90), range(90, 96), range(96, 105)]
-    assert begins == [0, 84 - 78, 90 - 78, 96 - 78]
+    begins, workers_user_items = _associated_items_to_workers(1, list(range(32)))
+    assert workers_user_items == [[3, 7, 11, 15, 19, 23, 27, 31]]
+    begins, workers_user_items = _associated_items_to_workers(2, list(range(32)))
+    assert workers_user_items == [[6, 14, 22, 30], [7, 15, 23, 31]]
+    begins, workers_user_items = _associated_items_to_workers(3, list(range(32)))
+    assert workers_user_items == [[9, 21], [10, 22], [11, 23]]
+    begins, workers_user_items = _associated_items_to_workers(4, list(range(32)))
+    assert workers_user_items == [[12, 28], [13, 29], [14, 30], [15, 31]]
 
 
 class CustomDataChunkRecipe(DataChunkRecipe):
