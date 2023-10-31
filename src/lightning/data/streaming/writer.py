@@ -207,7 +207,7 @@ class BinaryWriter:
         if len(items) == 0:
             raise RuntimeError(
                 "The items shouldn't have an empty length. Something went wrong."
-                f" Found {self._pretty_serialized_items()}."
+                f" Found {self._pretty_serialized_items()} with boundaries: {self._min_index}, {self._max_index}."
             )
 
         sizes = list(map(len, items))
