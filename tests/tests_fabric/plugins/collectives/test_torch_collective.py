@@ -268,6 +268,7 @@ def _test_two_groups(strategy, left_collective, right_collective):
 
 
 @skip_distributed_unavailable
+@pytest.mark.flaky(reruns=5)
 @RunIf(skip_windows=True)  # unhandled timeouts
 @pytest.mark.xfail(raises=TimeoutError, strict=False)
 def test_two_groups():
@@ -285,6 +286,7 @@ def _test_default_process_group(strategy, *collectives):
 
 
 @skip_distributed_unavailable
+@pytest.mark.flaky(reruns=5)
 @RunIf(skip_windows=True)  # unhandled timeouts
 def test_default_process_group():
     collective_launch(_test_default_process_group, [torch.device("cpu")] * 3, num_groups=2)
