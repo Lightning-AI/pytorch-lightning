@@ -6,6 +6,7 @@ import traceback
 import types
 from abc import abstractmethod
 from multiprocessing import Process, Queue
+from pathlib import Path
 from queue import Empty
 from shutil import copyfile, rmtree
 from time import sleep, time
@@ -24,6 +25,7 @@ from lightning.data.streaming.constants import (
     _LIGHTNING_CLOUD_GREATER_EQUAL_0_5_42,
     _TORCH_GREATER_EQUAL_2_1_0,
 )
+from lightning.data.utilities.packing import _pack_greedily
 from lightning.fabric.accelerators.cuda import is_cuda_available
 from lightning.fabric.plugins.environments import LightningEnvironment
 from lightning.fabric.utilities.distributed import (
@@ -198,9 +200,15 @@ def _upload_fn(upload_queue: Queue, remove_queue: Queue, cache_dir: str, remote_
             remove_queue.put([local_filepath])
 
 
-def _associated_items_to_workers(num_workers: int, user_items: List[Any]) -> Tuple[List[int], List[List[Any]]]:
+def _associated_items_to_workers(
+    num_workers: int, user_items: List[Any], weights: List[int]
+) -> Tuple[List[int], List[List[Any]]]:
     # Associate the items to the workers based on number of nodes and node rank.
+
     num_nodes = _get_num_nodes()
+    world_size = num_nodes * num_workers
+    worker_items, _ = _pack_greedily(items=user_items, weights=weights, num_bins=world_size)
+
     current_node_rank = _get_node_rank()
     node_size = len(user_items) // num_nodes
     workers_user_items = []
@@ -401,6 +409,7 @@ class BaseWorker:
             items.append(tree_unflatten(flattened_item, spec))
             self._collected_items += 1
 
+        # TODO: collect items per worker and show they are not overlapping
         self.items = items
 
     def _start_downloaders(self) -> None:
@@ -727,8 +736,21 @@ class DataProcessor:
         if not isinstance(user_items, list):
             raise ValueError("The setup_fn should return a list of item metadata.")
 
+        # TODO: Only do this on node 0, and broadcast the item sizes to the other nodes.
+        item_sizes = []
+        for item in user_items:
+            flattened_item, spec = tree_flatten(item)
+
+            num_bytes = 0
+            for index, element in enumerate(flattened_item):
+                if isinstance(element, str) and (element.startswith(self.input_dir) if self.input_dir is not None else os.path.exists(element)):  # For speed reasons
+                    num_bytes += os.path.getsize(element)
+            item_sizes.append(num_bytes)
+
         # Associate the items to the workers based on num_nodes and node_rank
-        begins, workers_user_items = _associated_items_to_workers(self.num_workers, user_items)
+        begins, workers_user_items = _associated_items_to_workers(
+            num_workers=self.num_workers, user_items=user_items, weights=item_sizes
+        )
         print(f"Setup finished in {round(time() - t0, 3)} seconds. Found {len(user_items)} items to process.")
 
         if self.fast_dev_run:
