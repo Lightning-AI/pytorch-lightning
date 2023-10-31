@@ -530,6 +530,9 @@ def map_fn(output_dir, filepath):
     img.save(os.path.join(output_dir, os.path.basename(filepath)))
 
 
+@pytest.mark.skipif(
+    condition=not _PIL_AVAILABLE or sys.platform == "win32" or sys.platform == "darwin", reason="Requires: ['pil']"
+)
 def test_data_processing_map(monkeypatch, tmpdir):
     from PIL import Image
 
