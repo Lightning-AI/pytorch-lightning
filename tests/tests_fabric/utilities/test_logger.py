@@ -14,6 +14,8 @@
 
 from argparse import Namespace
 
+from dataclasses import dataclass
+
 import numpy as np
 import torch
 from lightning.fabric.utilities.logger import (
@@ -72,6 +74,27 @@ def test_flatten_dict():
     assert params["params/b"] == 2
     assert "a" not in params
     assert "b" not in params
+
+    # Test flattening of dataclass objects
+    @dataclass
+    class A:
+        c: int
+        d: int
+
+    @dataclass
+    class B:
+        a: A
+        b: int
+
+    params = {"params": B(a=A(c=1,d=2), b=3), "param": 4}
+    params = _flatten_dict(params)
+    assert type(params) is dict
+    assert params.pop("param") == 4
+    assert params.pop("params/b") == 3
+    assert params.pop("params/a/c") == 1
+    assert params.pop("params/a/d") == 2
+    assert len(params) == 0
+
 
 
 def test_sanitize_callable_params():

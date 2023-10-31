@@ -15,6 +15,8 @@
 from argparse import Namespace
 from typing import Any, Dict, Mapping, MutableMapping, Optional, Union
 
+from dataclasses import is_dataclass, asdict
+
 import numpy as np
 from torch import Tensor
 
@@ -88,8 +90,11 @@ def _flatten_dict(params: MutableMapping[Any, Any], delimiter: str = "/", parent
     result: Dict[str, Any] = {}
     for k, v in params.items():
         new_key = parent_key + delimiter + str(k) if parent_key else str(k)
-        if isinstance(v, Namespace):
+        if is_dataclass(v):
+            v = asdict(v)
+        elif isinstance(v, Namespace):
             v = vars(v)
+            
         if isinstance(v, MutableMapping):
             result = {**result, **_flatten_dict(v, parent_key=new_key, delimiter=delimiter)}
         else:
