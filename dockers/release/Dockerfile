@@ -36,10 +36,8 @@ RUN \
         unzip ${LIGHTNING_VERSION}.zip ; \
         mv lightning-*/ lightning ; \
         rm *.zip ; \
-    fi
+    fi && \
     # otherwise there is collision with folder name and pkg name on Pypi
-
-RUN \
     cd lightning && \
     pip install setuptools==59.5.0 && \
     PACKAGE_NAME=pytorch pip install '.[extra,loggers,strategies]' --no-cache-dir && \
