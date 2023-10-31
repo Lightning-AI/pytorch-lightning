@@ -58,6 +58,12 @@ class Throughput:
     +--------------------------+-----------------------------------------------------------------------------------+
     | time                   | Total elapsed time                                                                  |
     +--------------------------+-----------------------------------------------------------------------------------+
+    | batches                | Total batches seen                                                                  |
+    +--------------------------+-----------------------------------------------------------------------------------+
+    | samples                | Total samples seen                                                                  |
+    +--------------------------+-----------------------------------------------------------------------------------+
+    | lengths                | Total items seen                                                                    |
+    +--------------------------+-----------------------------------------------------------------------------------+
 
     Example::
 
@@ -97,21 +103,28 @@ class Throughput:
         assert window_size > 1
         # custom class instead of `deque(maxlen=)` because it's easy for users to mess up their timer/counters and log
         # values that do not increase monotonically. this class will raise an error if that happens.
-        self._samples: _MonotonicWindow[int] = _MonotonicWindow(maxlen=window_size)
         self._time: _MonotonicWindow[float] = _MonotonicWindow(maxlen=window_size)
+        self._batches: _MonotonicWindow[int] = _MonotonicWindow(maxlen=window_size)
+        self._samples: _MonotonicWindow[int] = _MonotonicWindow(maxlen=window_size)
         self._lengths: _MonotonicWindow[int] = _MonotonicWindow(maxlen=window_size)
         self._flops: Deque[int] = deque(maxlen=window_size)
 
     def update(
-        self, *, time: float, samples: int, lengths: Optional[int] = None, flops_per_batch: Optional[int] = None
+        self,
+        *,
+        time: float,
+        batches: int,
+        samples: int,
+        lengths: Optional[int] = None,
+        flops_per_batch: Optional[int] = None,
     ) -> None:
         """Update throughput metrics.
 
         Args:
             time: Total elapsed time in seconds. It should monotonically increase by the iteration time with each
                 call.
-            samples: Total samples seen per device. It should monotonically increase by the batch size with each
-                call.
+            batches: Total batches seen per device. It should monotonically increase with each call.
+            samples: Total samples seen per device. It should monotonically increase by the batch size with each call.
             lengths: Total length of the samples seen. It should monotonically increase by the length of a batch with
                 each call.
             flops_per_batch: Flops per batch per device. You can easily compute this by using :func:`measure_flops`.
@@ -119,6 +132,7 @@ class Throughput:
 
         """
         self._time.append(time)
+        self._batches.append(batches)
         self._samples.append(samples)
         if lengths is not None:
             self._lengths.append(lengths)
@@ -133,14 +147,21 @@ class Throughput:
 
     def compute(self) -> _THROUGHPUT_METRICS:
         """Compute throughput metrics."""
-        metrics = {"time": self._time[-1], "samples": self._samples[-1]}
+        metrics = {
+            "time": self._time[-1],
+            "batches": self._batches[-1],
+            "samples": self._samples[-1],
+        }
+        if self._lengths:
+            metrics["lengths"] = self._lengths[-1]
+
         add_global_metrics = self.world_size > 1
         # a different but valid design choice would be to still compute all these metrics even if the window of values
         # has not been filled
         if len(self._time) == self._time.maxlen:
-            elapsed_batches = len(self._samples) - 1
-            elapsed_samples = self._samples[-1] - self._samples[0]
             elapsed_time = self._time[-1] - self._time[0]
+            elapsed_batches = self._batches[-1] - self._batches[0]
+            elapsed_samples = self._samples[-1] - self._samples[0]
             # we are safe from ZeroDivisionError thanks to `_MonotonicWindow`
             dev_samples_per_sec = elapsed_samples / elapsed_time
             dev_batches_per_sec = elapsed_batches / elapsed_time
@@ -157,7 +178,7 @@ class Throughput:
                 )
 
             if len(self._lengths) == self._lengths.maxlen:
-                elapsed_lengths = int(self._lengths[-1]) - int(self._lengths[0])
+                elapsed_lengths = self._lengths[-1] - self._lengths[0]
                 avg_length = elapsed_lengths / elapsed_batches
                 if add_global_metrics:
                     metrics["items_per_sec"] = samples_per_sec * avg_length
@@ -177,8 +198,9 @@ class Throughput:
         return metrics
 
     def reset(self) -> None:
-        self._samples.clear()
         self._time.clear()
+        self._batches.clear()
+        self._samples.clear()
         self._lengths.clear()
         self._flops.clear()
 
@@ -195,10 +217,10 @@ class ThroughputMonitor(Throughput):
         fabric = Fabric(logger=logger)
         throughput = ThroughputMonitor()
         t0 = time()
-        for i in range(1000):
+        for i in range(1, 100):
             do_work()
             if torch.cuda.is_available(): torch.cuda.synchronize()  # required or else time() won't be correct
-            throughput.update(time=time() - t0, samples=i)
+            throughput.update(time=time() - t0, batches=i, samples=i)
             if i % 10 == 0:
                 throughput.compute_and_log(step=i)
 
