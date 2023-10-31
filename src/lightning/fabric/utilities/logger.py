@@ -13,9 +13,8 @@
 # limitations under the License.
 
 from argparse import Namespace
+from dataclasses import asdict, is_dataclass
 from typing import Any, Dict, Mapping, MutableMapping, Optional, Union
-
-from dataclasses import is_dataclass, asdict
 
 import numpy as np
 from torch import Tensor
@@ -94,7 +93,7 @@ def _flatten_dict(params: MutableMapping[Any, Any], delimiter: str = "/", parent
             v = asdict(v)
         elif isinstance(v, Namespace):
             v = vars(v)
-            
+
         if isinstance(v, MutableMapping):
             result = {**result, **_flatten_dict(v, parent_key=new_key, delimiter=delimiter)}
         else:
