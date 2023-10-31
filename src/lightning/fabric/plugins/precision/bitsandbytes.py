@@ -61,7 +61,7 @@ class BitsandbytesPrecision(Precision):
 
     # TODO: we could implement optimizer replacement with
     # - Fabric: Add `Precision.convert_optimizer` from `Strategy.setup_optimizer`
-    # - Trainer: Use `PrecisionPlugin.connect`
+    # - Trainer: Use `Precision.connect`
 
     def __init__(
         self,

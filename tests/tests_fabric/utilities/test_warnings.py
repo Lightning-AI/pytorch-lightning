@@ -62,12 +62,12 @@ if __name__ == "__main__":
     output = stderr.getvalue()
     expected_lines = [
         f"test_warnings.py:{base_line}: test1",
-        f"test_warnings.py:{base_line+1}: test2",
-        f"test_warnings.py:{base_line+3}: test3",
-        f"test_warnings.py:{base_line+4}: test4",
-        f"test_warnings.py:{base_line+6}: test5",
-        f"test_warnings.py:{base_line+9}: test6",
-        f"test_warnings.py:{base_line+10}: test7",
+        f"test_warnings.py:{base_line + 1}: test2",
+        f"test_warnings.py:{base_line + 3}: test3",
+        f"test_warnings.py:{base_line + 4}: test4",
+        f"test_warnings.py:{base_line + 6}: test5",
+        f"test_warnings.py:{base_line + 9}: test6",
+        f"test_warnings.py:{base_line + 10}: test7",
     ]
 
     for ln in expected_lines:
