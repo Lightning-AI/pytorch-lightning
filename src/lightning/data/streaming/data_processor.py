@@ -389,7 +389,6 @@ class BaseWorker:
             items.append(tree_unflatten(flattened_item, spec))
             self._collected_items += 1
 
-        # TODO: collect items per worker and show they are not overlapping
         self.items = items
 
     def _start_downloaders(self) -> None:
