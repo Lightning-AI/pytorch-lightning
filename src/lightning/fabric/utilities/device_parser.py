@@ -13,8 +13,8 @@
 # limitations under the License.
 from typing import List, MutableSequence, Optional, Tuple, Union
 
-import lightning.fabric.accelerators as accelerators  # avoid circular dependency
-from lightning.fabric.plugins.environments.torchelastic import TorchElasticEnvironment
+import torch
+
 from lightning.fabric.utilities.exceptions import MisconfigurationException
 from lightning.fabric.utilities.types import _DEVICE
 
@@ -50,9 +50,7 @@ def _parse_gpu_ids(
     include_cuda: bool = False,
     include_mps: bool = False,
 ) -> Optional[List[int]]:
-    """
-    Parses the GPU IDs given in the format as accepted by the
-    :class:`~lightning.pytorch.trainer.Trainer`.
+    """Parses the GPU IDs given in the format as accepted by the :class:`~lightning.pytorch.trainer.trainer.Trainer`.
 
     Args:
         gpus: An int -1 or string '-1' indicate that all available GPUs should be used.
@@ -73,6 +71,7 @@ def _parse_gpu_ids(
     .. note::
         ``include_cuda`` and ``include_mps`` default to ``False`` so that you only
         have to specify which device type to use and all other devices are not disabled.
+
     """
     # Check that gpus param is None, Int, String or Sequence of Ints
     _check_data_type(gpus)
@@ -89,7 +88,8 @@ def _parse_gpu_ids(
         raise MisconfigurationException("GPUs requested but none are available.")
 
     if (
-        TorchElasticEnvironment.detect()
+        torch.distributed.is_available()
+        and torch.distributed.is_torchelastic_launched()
         and len(gpus) != 1
         and len(_get_all_available_gpus(include_cuda=include_cuda, include_mps=include_mps)) == 1
     ):
@@ -159,8 +159,11 @@ def _get_all_available_gpus(include_cuda: bool = False, include_mps: bool = Fals
     Returns:
         A list of all available GPUs
     """
-    cuda_gpus = accelerators.cuda._get_all_visible_cuda_devices() if include_cuda else []
-    mps_gpus = accelerators.mps._get_all_available_mps_gpus() if include_mps else []
+    from lightning.fabric.accelerators.cuda import _get_all_visible_cuda_devices
+    from lightning.fabric.accelerators.mps import _get_all_available_mps_gpus
+
+    cuda_gpus = _get_all_visible_cuda_devices() if include_cuda else []
+    mps_gpus = _get_all_available_mps_gpus() if include_mps else []
     return cuda_gpus + mps_gpus
 
 
@@ -195,7 +198,8 @@ def _check_data_type(device_ids: object) -> None:
         raise TypeError(f"{msg} None")
     if isinstance(device_ids, (MutableSequence, tuple)):
         for id_ in device_ids:
-            if type(id_) is not int:
+            id_type = type(id_)  # because `isinstance(False, int)` -> True
+            if id_type is not int:
                 raise TypeError(f"{msg} a sequence of {type(id_).__name__}.")
     elif type(device_ids) not in (int, str):
         raise TypeError(f"{msg} {device_ids!r}.")

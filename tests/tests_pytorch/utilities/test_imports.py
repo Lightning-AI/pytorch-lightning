@@ -13,17 +13,16 @@
 # limitations under the License.
 
 import importlib
-import operator
 import subprocess
 import sys
 from textwrap import dedent
 from unittest import mock
 
 import pytest
-from lightning_utilities.core.imports import compare_version, RequirementCache
+from lightning.pytorch.utilities.imports import _OMEGACONF_AVAILABLE
+from lightning_utilities.core.imports import RequirementCache
 from torch.distributed import is_available
 
-from lightning.pytorch.utilities import _OMEGACONF_AVAILABLE
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -98,12 +97,6 @@ def clean_import():
             "lightning.pytorch.cli",
             id="cli",
         ),
-        pytest.param(
-            "lightning_utilities.core.imports.compare_version",
-            _shortcut_patch(compare_version, ("torch", operator.ge, "1.12.0")),
-            "lightning.pytorch.strategies.fsdp",
-            id="fsdp",
-        ),
     ],
 )
 def test_import_with_unavailable_dependencies(patch_name, new_fn, to_import, clean_import):
@@ -149,7 +142,7 @@ def test_import_deepspeed_lazily():
 
         assert 'deepspeed' not in sys.modules
         from lightning.pytorch.strategies import DeepSpeedStrategy
-        from lightning.pytorch.plugins import DeepSpeedPrecisionPlugin
+        from lightning.pytorch.plugins import DeepSpeedPrecision
         assert 'deepspeed' not in sys.modules
 
         import deepspeed

@@ -153,7 +153,7 @@ class Tuner:
 
         """
         if method != "fit":
-            raise MisconfigurationException("method='fit' is an invalid configuration to run lr finder.")
+            raise MisconfigurationException("method='fit' is the only valid configuration to run lr finder.")
 
         _check_tuner_configuration(train_dataloaders, val_dataloaders, dataloaders, method)
         _check_lr_find_configuration(self._trainer)

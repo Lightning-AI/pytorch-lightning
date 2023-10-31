@@ -1,9 +1,8 @@
 import os
 from unittest import mock
 
-from lightning_cloud.openapi.models import V1Project
-
 from lightning.app.utilities.cloud import _get_project, is_running_in_cloud
+from lightning_cloud.openapi.models import V1Project
 
 
 def test_get_project_queries_by_project_id_directly_if_it_is_passed():

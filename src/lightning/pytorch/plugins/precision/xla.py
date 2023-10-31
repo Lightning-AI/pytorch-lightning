@@ -22,11 +22,11 @@ import lightning.pytorch as pl
 from lightning.fabric.accelerators.xla import _XLA_AVAILABLE
 from lightning.fabric.plugins.precision.xla import _PRECISION_INPUT
 from lightning.fabric.utilities.types import Optimizable
-from lightning.pytorch.plugins.precision.precision_plugin import PrecisionPlugin
+from lightning.pytorch.plugins.precision.precision import Precision
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 
 
-class XLAPrecisionPlugin(PrecisionPlugin):
+class XLAPrecision(Precision):
     """Plugin for training with XLA.
 
     Args:

@@ -8,6 +8,7 @@ on:
     branches: [master, "release/*"]
     types: [opened, reopened, ready_for_review, synchronize]
     paths:
+      - ".github/workflows/_flagship-apps.yml"
       - ".github/workflows/ci-flagship-apps.yml"
       - "github/actions/prep-apps/action.yml"
       - "tests/integrations_app/flagship/**"

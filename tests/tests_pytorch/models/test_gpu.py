@@ -18,14 +18,14 @@ from unittest.mock import patch
 
 import pytest
 import torch
-
-import tests_pytorch.helpers.pipelines as tpipes
 from lightning.fabric.plugins.environments import TorchElasticEnvironment
 from lightning.fabric.utilities.device_parser import _parse_gpu_ids
-from lightning.pytorch import seed_everything, Trainer
+from lightning.pytorch import Trainer, seed_everything
 from lightning.pytorch.accelerators import CPUAccelerator, CUDAAccelerator
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
+
+import tests_pytorch.helpers.pipelines as tpipes
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.simple_models import ClassificationModel
@@ -76,7 +76,6 @@ def test_single_gpu_model(tmpdir, devices):
     "devices",
     [
         1,
-        3,
         3,
         [1, 2],
         [0, 1],

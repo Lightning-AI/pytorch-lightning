@@ -55,7 +55,7 @@ Once it's imported, use it inside your app, this example uses it inside a React 
 ************************
 Update the Lightning app
 ************************
-Use `updateLightningState` to update the lightning app. Here we update a vairable called counter.
+Use `updateLightningState` to update the lightning app. Here we update a variable called counter.
 
 .. code-block::
     :emphasize-lines: 11

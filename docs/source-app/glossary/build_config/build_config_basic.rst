@@ -29,7 +29,7 @@ for more granular control.
             ├── requirements.txt  # Requirements specific to the 'train' work
             └── train.py          # Source file for the LightningWork
 
-The requirements.txt file must be located in the same directry as the source file of the LightningWork.
+The requirements.txt file must be located in the same directory as the source file of the LightningWork.
 When the LightningWork starts up, it will pick up the requirements file if present and install all listed packages.
 
 .. note::

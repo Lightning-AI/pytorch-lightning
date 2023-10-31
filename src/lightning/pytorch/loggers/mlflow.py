@@ -22,7 +22,7 @@ import tempfile
 from argparse import Namespace
 from pathlib import Path
 from time import time
-from typing import Any, Callable, Dict, List, Literal, Mapping, Optional, Union
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Literal, Mapping, Optional, Union
 
 import yaml
 from lightning_utilities.core.imports import RequirementCache
@@ -33,6 +33,9 @@ from lightning.pytorch.callbacks.model_checkpoint import ModelCheckpoint
 from lightning.pytorch.loggers.logger import Logger, rank_zero_experiment
 from lightning.pytorch.loggers.utilities import _scan_checkpoints
 from lightning.pytorch.utilities.rank_zero import rank_zero_only, rank_zero_warn
+
+if TYPE_CHECKING:
+    from mlflow.tracking import MlflowClient
 
 log = logging.getLogger(__name__)
 LOCAL_FILE_URI_PREFIX = "file:"
@@ -56,7 +59,7 @@ class MLFlowLogger(Logger):
         mlf_logger = MLFlowLogger(experiment_name="lightning_logs", tracking_uri="file:./ml-runs")
         trainer = Trainer(logger=mlf_logger)
 
-    Use the logger anywhere in your :class:`~lightning.pytorch.core.module.LightningModule` as follows:
+    Use the logger anywhere in your :class:`~lightning.pytorch.core.LightningModule` as follows:
 
     .. code-block:: python
 
@@ -142,10 +145,9 @@ class MLFlowLogger(Logger):
 
     @property
     @rank_zero_experiment
-    def experiment(self) -> Any:
-        r"""
-        Actual MLflow object. To use MLflow features in your
-        :class:`~lightning.pytorch.core.module.LightningModule` do the following.
+    def experiment(self) -> "MlflowClient":
+        r"""Actual MLflow object. To use MLflow features in your :class:`~lightning.pytorch.core.LightningModule` do the
+        following.
 
         Example::
 

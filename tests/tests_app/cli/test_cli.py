@@ -4,7 +4,6 @@ from unittest.mock import MagicMock
 
 import pytest
 from click.testing import CliRunner
-
 from lightning.app import __version__
 from lightning.app.cli.lightning_cli import _main, login, logout, run
 from lightning.app.cli.lightning_cli_delete import delete

@@ -14,14 +14,11 @@
 import os
 
 import torch
-
 from lightning.fabric.accelerators.cuda import _clear_cuda_memory
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12
 
 
 def is_state_dict_equal(state0, state1):
-    eq_fn = torch.equal if _TORCH_GREATER_EQUAL_1_12 else torch.allclose
-    return all(eq_fn(w0.cpu(), w1.cpu()) for w0, w1 in zip(state0.values(), state1.values()))
+    return all(torch.equal(w0.cpu(), w1.cpu()) for w0, w1 in zip(state0.values(), state1.values()))
 
 
 def is_timing_close(timings_torch, timings_fabric, rtol=1e-2, atol=0.1):

@@ -3,7 +3,7 @@ from sklearn import datasets, svm
 from sklearn.model_selection import train_test_split
 
 from lightning import LightningWork
-from lightning.app.storage import Path
+from lightning.app.storage.path import Path
 
 
 class TrainModel(LightningWork):

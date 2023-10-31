@@ -22,7 +22,7 @@ from argparse import Namespace
 from copy import deepcopy
 from enum import Enum
 from pathlib import Path
-from typing import Any, Callable, Dict, IO, Optional, Type, TYPE_CHECKING, Union
+from typing import IO, TYPE_CHECKING, Any, Callable, Dict, Optional, Type, Union
 from warnings import warn
 
 import torch
@@ -30,27 +30,20 @@ import yaml
 from lightning_utilities.core.apply_func import apply_to_collection
 
 import lightning.pytorch as pl
-from lightning.fabric.utilities.cloud_io import _is_dir
+from lightning.fabric.utilities.cloud_io import _is_dir, get_filesystem
 from lightning.fabric.utilities.cloud_io import _load as pl_load
-from lightning.fabric.utilities.cloud_io import get_filesystem
 from lightning.fabric.utilities.types import _MAP_LOCATION_TYPE, _PATH
 from lightning.pytorch.accelerators import CUDAAccelerator, MPSAccelerator, XLAAccelerator
-from lightning.pytorch.utilities import _OMEGACONF_AVAILABLE
+from lightning.pytorch.utilities.imports import _OMEGACONF_AVAILABLE
 from lightning.pytorch.utilities.migration import pl_legacy_patch
 from lightning.pytorch.utilities.migration.utils import _pl_migrate_checkpoint
 from lightning.pytorch.utilities.parsing import AttributeDict, parse_class_init_keys
 from lightning.pytorch.utilities.rank_zero import rank_zero_warn
 
-log = logging.getLogger(__name__)
-
-if _OMEGACONF_AVAILABLE:
-    from omegaconf import OmegaConf
-    from omegaconf.dictconfig import DictConfig
-    from omegaconf.errors import UnsupportedValueType, ValidationError
-
 if TYPE_CHECKING:
     from torch.storage import UntypedStorage
 
+log = logging.getLogger(__name__)
 # the older shall be on the top
 CHECKPOINT_PAST_HPARAMS_KEYS = ("hparams", "module_arguments")  # used in 0.7.6
 
@@ -296,6 +289,9 @@ def load_hparams_from_yaml(config_yaml: _PATH, use_omegaconf: bool = True) -> Di
         hparams = yaml.full_load(fp)
 
     if _OMEGACONF_AVAILABLE and use_omegaconf:
+        from omegaconf import OmegaConf
+        from omegaconf.errors import UnsupportedValueType, ValidationError
+
         with contextlib.suppress(UnsupportedValueType, ValidationError):
             return OmegaConf.create(hparams)
     return hparams
@@ -322,6 +318,10 @@ def save_hparams_to_yaml(config_yaml: _PATH, hparams: Union[dict, Namespace], us
 
     # saving with OmegaConf objects
     if _OMEGACONF_AVAILABLE and use_omegaconf:
+        from omegaconf import OmegaConf
+        from omegaconf.dictconfig import DictConfig
+        from omegaconf.errors import UnsupportedValueType, ValidationError
+
         # deepcopy: hparams from user shouldn't be resolved
         hparams = deepcopy(hparams)
         hparams = apply_to_collection(hparams, DictConfig, OmegaConf.to_container, resolve=True)

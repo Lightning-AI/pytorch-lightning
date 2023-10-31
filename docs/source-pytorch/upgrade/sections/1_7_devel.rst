@@ -74,7 +74,7 @@
      - rely on Torch native AMP
      - `PR12312`_
 
-   * - used ``LightingModule.use_amp`` attribute
+   * - used ``LightningModule.use_amp`` attribute
      - rely on Torch native AMP
      - `PR12315`_
 

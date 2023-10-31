@@ -21,12 +21,12 @@ import numpy as np
 import pytest
 import torch
 import yaml
-
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.loggers import TensorBoardLogger
 from lightning.pytorch.loggers.tensorboard import _TENSORBOARD_AVAILABLE
 from lightning.pytorch.utilities.imports import _OMEGACONF_AVAILABLE
+
 from tests_pytorch.helpers.runif import RunIf
 
 if _OMEGACONF_AVAILABLE:
@@ -312,8 +312,8 @@ def test_tensorboard_save_hparams_to_yaml_once(tmpdir):
 
 @mock.patch("lightning.pytorch.loggers.tensorboard.log")
 def test_tensorboard_with_symlink(log, tmpdir):
-    """Tests a specific failure case when tensorboard logger is used with empty name, symbolic link ``save_dir``,
-    and relative paths."""
+    """Tests a specific failure case when tensorboard logger is used with empty name, symbolic link ``save_dir``, and
+    relative paths."""
     os.chdir(tmpdir)  # need to use relative paths
     source = os.path.join(".", "lightning_logs")
     dest = os.path.join(".", "sym_lightning_logs")

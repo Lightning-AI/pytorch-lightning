@@ -13,10 +13,9 @@
 # limitations under the License.
 
 import torch
-from torch.nn import functional as F
-
 from lightning.pytorch import LightningModule, Trainer
 from lightning.pytorch.demos.mnist_datamodule import MNISTDataModule
+from torch.nn import functional as F
 
 
 class LitClassifier(LightningModule):

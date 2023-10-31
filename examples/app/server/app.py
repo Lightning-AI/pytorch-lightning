@@ -4,12 +4,11 @@ import io
 
 import torch
 import torchvision
-from PIL import Image
-from pydantic import BaseModel
-
 from lightning.app import CloudCompute, LightningApp
 from lightning.app.components.serve import Image as InputImage
 from lightning.app.components.serve import PythonServer
+from PIL import Image
+from pydantic import BaseModel
 
 
 class PyTorchServer(PythonServer):

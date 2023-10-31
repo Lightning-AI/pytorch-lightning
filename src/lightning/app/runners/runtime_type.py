@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from enum import Enum
-from typing import Type, TYPE_CHECKING
+from typing import TYPE_CHECKING, Type
 
 from lightning.app.runners import CloudRuntime, MultiProcessRuntime
 

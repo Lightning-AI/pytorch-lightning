@@ -11,7 +11,7 @@ Deploy models into production (advanced)
 Compile your model to TorchScript
 *********************************
 `TorchScript <https://pytorch.org/docs/stable/jit.html>`_ allows you to serialize your models in a way that it can be loaded in non-Python environments.
-The ``LightningModule`` has a handy method :meth:`~lightning.pytorch.core.module.LightningModule.to_torchscript` that returns a scripted module which you
+The ``LightningModule`` has a handy method :meth:`~lightning.pytorch.core.LightningModule.to_torchscript` that returns a scripted module which you
 can save or directly use.
 
 .. testcode:: python
@@ -47,7 +47,7 @@ If you want to script a different method, you can decorate the method with :func
 
 .. code-block:: python
 
-    class LitMCdropoutModel(pl.LightningModule):
+    class LitMCdropoutModel(L.LightningModule):
         def __init__(self, model, mc_iteration):
             super().__init__()
             self.model = model

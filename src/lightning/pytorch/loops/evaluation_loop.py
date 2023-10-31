@@ -14,7 +14,7 @@
 import os
 import shutil
 import sys
-from collections import ChainMap, defaultdict, OrderedDict
+from collections import ChainMap, OrderedDict, defaultdict
 from typing import Any, DefaultDict, Iterable, Iterator, List, Optional, Tuple, Union
 
 from lightning_utilities.core.apply_func import apply_to_collection
@@ -43,10 +43,6 @@ from lightning.pytorch.utilities.data import has_len_all_ranks
 from lightning.pytorch.utilities.exceptions import SIGTERMException
 from lightning.pytorch.utilities.model_helpers import is_overridden
 from lightning.pytorch.utilities.signature_utils import is_param_in_hook_signature
-
-if _RICH_AVAILABLE:
-    from rich import get_console
-    from rich.table import Column, Table
 
 
 class _EvaluationLoop(_Loop):
@@ -243,9 +239,7 @@ class _EvaluationLoop(_Loop):
         """Runs the ``_on_evaluation_model_eval``, ``_on_evaluation_start`` and ``_on_evaluation_epoch_start``
         hooks."""
         self._verify_dataloader_idx_requirement()
-
         self._on_evaluation_model_eval()
-        self.trainer.lightning_module.zero_grad()
         self._on_evaluation_start()
         self._on_evaluation_epoch_start()
 
@@ -531,6 +525,9 @@ class _EvaluationLoop(_Loop):
             table_headers.insert(0, f"{stage} Metric".capitalize())
 
             if _RICH_AVAILABLE:
+                from rich import get_console
+                from rich.table import Column, Table
+
                 columns = [Column(h, justify="center", style="magenta", width=max_length) for h in table_headers]
                 columns[0].style = "cyan"
 

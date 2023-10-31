@@ -20,9 +20,9 @@ from torch import Tensor
 
 import lightning.pytorch as pl
 from lightning.fabric.plugins import CheckpointIO, ClusterEnvironment
-from lightning.fabric.utilities.distributed import _all_gather_ddp_if_available, ReduceOp
+from lightning.fabric.utilities.distributed import ReduceOp, _all_gather_ddp_if_available
 from lightning.pytorch.plugins import LayerSync
-from lightning.pytorch.plugins.precision import PrecisionPlugin
+from lightning.pytorch.plugins.precision import Precision
 from lightning.pytorch.strategies.strategy import Strategy
 
 
@@ -35,7 +35,7 @@ class ParallelStrategy(Strategy, ABC):
         parallel_devices: Optional[List[torch.device]] = None,
         cluster_environment: Optional[ClusterEnvironment] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
-        precision_plugin: Optional[PrecisionPlugin] = None,
+        precision_plugin: Optional[Precision] = None,
     ):
         super().__init__(accelerator=accelerator, checkpoint_io=checkpoint_io, precision_plugin=precision_plugin)
         self.parallel_devices = parallel_devices
@@ -87,9 +87,9 @@ class ParallelStrategy(Strategy, ABC):
         return _all_gather_ddp_if_available(tensor, group=group, sync_grads=sync_grads)
 
     def reduce_boolean_decision(self, decision: bool, all: bool = True) -> bool:
-        """Reduces a boolean decision over distributed processes. By default is analagous to ``all`` from the
-        standard library, returning ``True`` only if all input decisions evaluate to ``True``. If ``all`` is set to
-        ``False``, it behaves like ``any`` instead.
+        """Reduces a boolean decision over distributed processes. By default is analagous to ``all`` from the standard
+        library, returning ``True`` only if all input decisions evaluate to ``True``. If ``all`` is set to ``False``,
+        it behaves like ``any`` instead.
 
         Args:
             decision: A single input decision.
@@ -97,6 +97,7 @@ class ParallelStrategy(Strategy, ABC):
 
         Returns:
             bool: The reduced boolean decision.
+
         """
         decision = torch.tensor(int(decision), device=self.root_device)
         decision = self.reduce(

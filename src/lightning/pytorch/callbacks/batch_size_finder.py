@@ -23,16 +23,16 @@ from typing import Optional
 import lightning.pytorch as pl
 from lightning.pytorch.callbacks.callback import Callback
 from lightning.pytorch.tuner.batch_size_scaling import _scale_batch_size
-from lightning.pytorch.utilities.exceptions import _TunerExitException, MisconfigurationException
+from lightning.pytorch.utilities.exceptions import MisconfigurationException, _TunerExitException
 from lightning.pytorch.utilities.parsing import lightning_hasattr
 from lightning.pytorch.utilities.rank_zero import rank_zero_warn
 
 
 class BatchSizeFinder(Callback):
-    """The ``BatchSizeFinder`` callback tries to find the largest batch size for a given model that does not give
-    an out of memory (OOM) error. All you need to do is add it as a callback inside Trainer and call
-    ``trainer.{fit,validate,test,predict}``. Internally it calls the respective step function ``steps_per_trial``
-    times for each batch size until one of the batch sizes generates an OOM error.
+    """The ``BatchSizeFinder`` callback tries to find the largest batch size for a given model that does not give an
+    out of memory (OOM) error. All you need to do is add it as a callback inside Trainer and call
+    ``trainer.{fit,validate,test,predict}``. Internally it calls the respective step function ``steps_per_trial`` times
+    for each batch size until one of the batch sizes generates an OOM error.
 
     .. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
 
@@ -103,6 +103,7 @@ class BatchSizeFinder(Callback):
 
         trainer = Trainer(callbacks=[EvalBatchSizeFinder()])
         trainer.test(...)
+
     """
 
     SUPPORTED_MODES = ("power", "binsearch")

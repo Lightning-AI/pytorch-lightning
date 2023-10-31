@@ -8,12 +8,11 @@ import numpy as np
 import torch
 import torchvision
 import torchvision.transforms as T
-from PIL import Image as PILImage
-
-from lightning.pytorch import cli_lightning_logo, LightningDataModule, LightningModule
+from lightning.pytorch import LightningDataModule, LightningModule, cli_lightning_logo
 from lightning.pytorch.cli import LightningCLI
 from lightning.pytorch.serve import ServableModule, ServableModuleValidator
 from lightning.pytorch.utilities.model_helpers import get_torchvision_model
+from PIL import Image as PILImage
 
 DATASETS_PATH = path.join(path.dirname(__file__), "..", "..", "Datasets")
 

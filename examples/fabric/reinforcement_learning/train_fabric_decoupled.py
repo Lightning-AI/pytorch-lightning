@@ -25,17 +25,16 @@ from datetime import datetime
 
 import gymnasium as gym
 import torch
-from rl.agent import PPOLightningAgent
-from rl.utils import linear_annealing, make_env, parse_args, test
-from torch.distributed.algorithms.join import Join
-from torch.utils.data import BatchSampler, DistributedSampler, RandomSampler
-from torchmetrics import MeanMetric
-
 from lightning.fabric import Fabric
 from lightning.fabric.loggers import TensorBoardLogger
 from lightning.fabric.plugins.collectives import TorchCollective
 from lightning.fabric.plugins.collectives.collective import CollectibleGroup
 from lightning.fabric.strategies import DDPStrategy
+from rl.agent import PPOLightningAgent
+from rl.utils import linear_annealing, make_env, parse_args, test
+from torch.distributed.algorithms.join import Join
+from torch.utils.data import BatchSampler, DistributedSampler, RandomSampler
+from torchmetrics import MeanMetric
 
 
 @torch.no_grad()

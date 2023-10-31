@@ -12,25 +12,24 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from unittest import mock
-from unittest.mock import call, Mock
+from unittest.mock import Mock, call
 
 import pytest
 import torch
-from lightning_utilities.test.warning import no_warning_call
-from torch.utils.data import BatchSampler, DistributedSampler
-from torch.utils.data.dataloader import DataLoader
-
 from lightning.fabric.fabric import Fabric
 from lightning.fabric.plugins import Precision
 from lightning.fabric.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_1
 from lightning.fabric.wrappers import (
     _FabricDataLoader,
     _FabricModule,
     _FabricOptimizer,
     _unwrap_objects,
     is_wrapped,
-    warning_cache,
 )
+from torch.utils.data import BatchSampler, DistributedSampler
+from torch.utils.data.dataloader import DataLoader
+
 from tests_fabric.helpers.runif import RunIf
 
 
@@ -78,11 +77,23 @@ def test_fabric_module_method_lookup():
     """Test that access to methods warns about improper use when a wrapper from a strategy is involved."""
 
     class OriginalModule(torch.nn.Module):
-        def method_no_args(self):
+        def __init__(self):
+            super().__init__()
+            self.submodule = torch.nn.Linear(2, 3)
+
+        def forward(self, x):
+            return x
+
+        def method_without_module_invocation(self):
             return 100
 
-        def method_with_args(self, arg, kwarg=1):
+        def method_with_submodule_invocation(self):
+            self.submodule(torch.rand(2, 2))
             return 101
+
+        def method_with_self_invocation(self):
+            self(None)
+            return 102
 
     class ModuleWrapper(torch.nn.Module):
         def __init__(self, module):
@@ -92,21 +103,21 @@ def test_fabric_module_method_lookup():
     # Regular case: forward_module == original_module -> no warnings
     original_module = OriginalModule()
     fabric_module = _FabricModule(forward_module=original_module, precision=Mock(), original_module=original_module)
-    warning_cache.clear()
-    with no_warning_call(UserWarning):
-        assert fabric_module.method_with_args(0) == 101
-    assert not warning_cache
+    assert fabric_module.method_without_module_invocation() == 100
 
     # Special case: original module wrapped by forward module: -> warn if method accepts args
     original_module = OriginalModule()
     wrapped_module = ModuleWrapper(original_module)
     fabric_module = _FabricModule(forward_module=wrapped_module, precision=Mock(), original_module=original_module)
-    warning_cache.clear()
-    with no_warning_call(UserWarning):
-        assert fabric_module.method_no_args() == 100
-    with pytest.warns(UserWarning, match=r"You are calling the method `OriginalModule.method_with_args\(\)` from"):
-        assert fabric_module.method_with_args(0) == 101
-    warning_cache.clear()
+    assert fabric_module.method_without_module_invocation() == 100
+    with pytest.raises(
+        RuntimeError, match=r"You are calling the method `OriginalModule.method_with_submodule_invocation\(\)` from"
+    ):
+        assert fabric_module.method_with_submodule_invocation() == 101
+    with pytest.raises(
+        RuntimeError, match=r"You are calling the method `OriginalModule.method_with_self_invocation\(\)` from"
+    ):
+        assert fabric_module.method_with_self_invocation() == 102
 
 
 def test_fabric_module_setattr():
@@ -184,6 +195,15 @@ def test_fabric_module_state_dict_access():
     fabric_module.load_state_dict({"layer.weight": weight, "layer.bias": bias})
     assert torch.equal(fabric_module.layer.weight, weight)
     assert torch.equal(fabric_module.layer.bias, bias)
+
+    if _TORCH_GREATER_EQUAL_2_1:
+        # Can use additional `assign` argument in PyTorch >= 2.1
+        with torch.device("meta"):
+            original_module = OriginalModule()
+        fabric_module = _FabricModule(wrapped_module, Mock(), original_module=original_module)
+        assert fabric_module.layer.weight.is_meta
+        fabric_module.load_state_dict({"layer.weight": weight, "layer.bias": bias}, assign=True)
+        assert not fabric_module.layer.weight.is_meta
 
 
 @pytest.mark.parametrize(
@@ -293,7 +313,7 @@ def test_fabric_dataloader_iterator():
         ("cpu", "cpu"),
         pytest.param("cpu", "cuda:0", marks=RunIf(min_cuda_gpus=1)),
         pytest.param("cuda:0", "cpu", marks=RunIf(min_cuda_gpus=1)),
-        # pytest.param("cpu", "mps", marks=RunIf(mps=True)),  # TODO: Add once torch.equal is supported
+        pytest.param("cpu", "mps", marks=RunIf(mps=True)),
         pytest.param("mps", "cpu", marks=RunIf(mps=True)),
     ],
 )
@@ -311,11 +331,9 @@ def test_fabric_dataloader_device_placement(src_device_str, dest_device_str):
     iterator = iter(fabric_dataloader)
 
     batch0 = next(iterator)
-    # TODO: torch.equal is not supported on MPS at this time (torch 1.12)
     assert torch.equal(batch0, torch.tensor([0, 1], device=dest_device))
 
     batch1 = next(iterator)
-    # TODO: torch.equal is not supported on MPS at this time (torch 1.12)
     assert torch.equal(batch1["data"], torch.tensor([2, 3], device=dest_device))
 
 
@@ -372,8 +390,8 @@ def test_fabric_optimizer_state_dict():
 
 
 def test_fabric_optimizer_load_state_dict():
-    """Test that the FabricOptimizer can load the state dict on the wrapped optimizer and update its
-    internal `__dict__`."""
+    """Test that the FabricOptimizer can load the state dict on the wrapped optimizer and update its internal
+    `__dict__`."""
     model = torch.nn.Linear(1, 1)
     optimizer = torch.optim.Adam(model.parameters())
     assert not optimizer.state  # a fresh optimizer has no state
@@ -547,7 +565,7 @@ def test_step_method_redirection():
     fabric_module = _FabricModule(forward_module=forward_module, precision=precision, original_module=original_module)
 
     # Regular methods on the original_module are visible and identical on the fabric_module ...
-    assert fabric_module.normal_method == original_module.normal_method
+    assert fabric_module.normal_method.__wrapped__ == original_module.normal_method
 
     # ... but special methods like training_step get redirected to the forward_module
     assert fabric_module.training_step.__name__ == "call_forward_module"

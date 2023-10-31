@@ -15,21 +15,21 @@ import collections
 import os
 from copy import deepcopy
 from unittest import mock
-from unittest.mock import call, MagicMock, patch
-
-import pytest
-import torch
-from torch import nn
-from torch.utils.data import DataLoader
+from unittest.mock import MagicMock, call, patch
 
 import lightning.fabric
+import pytest
+import torch
 from lightning.fabric.utilities.imports import _IS_WINDOWS
 from lightning.pytorch import Trainer
 from lightning.pytorch.accelerators import CPUAccelerator, XLAAccelerator
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
-from lightning.pytorch.plugins import PrecisionPlugin, XLACheckpointIO, XLAPrecisionPlugin
+from lightning.pytorch.plugins import Precision, XLACheckpointIO, XLAPrecision
 from lightning.pytorch.strategies import DDPStrategy, XLAStrategy
 from lightning.pytorch.utilities import find_shared_parameters
+from torch import nn
+from torch.utils.data import DataLoader
+
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.trainer.connectors.test_accelerator_connector import DeviceMock
 from tests_pytorch.trainer.optimization.test_manual_optimization import assert_emtpy_grad
@@ -245,23 +245,16 @@ def test_auto_parameters_tying_tpus_nested_module(tmpdir):
 
 
 def test_tpu_invalid_raises(tpu_available, mps_count_0):
-    strategy = XLAStrategy(accelerator=XLAAccelerator(), precision_plugin=PrecisionPlugin())
-    with pytest.raises(ValueError, match="XLAAccelerator` can only be used with a `XLAPrecisionPlugin"):
-        Trainer(strategy=strategy, devices=8)
-
-    strategy = DDPStrategy(accelerator=XLAAccelerator(), precision_plugin=XLAPrecisionPlugin())
+    strategy = DDPStrategy(accelerator=XLAAccelerator(), precision_plugin=XLAPrecision())
     with pytest.raises(ValueError, match="XLAAccelerator` can only be used with a `SingleDeviceXLAStrategy`"):
         Trainer(strategy=strategy, devices=8)
 
-
-def test_tpu_invalid_raises_set_precision_with_strategy(tpu_available, mps_count_0):
     accelerator = XLAAccelerator()
-    strategy = XLAStrategy(accelerator=accelerator, precision_plugin=PrecisionPlugin())
-    with pytest.raises(ValueError, match="`XLAAccelerator` can only be used with a `XLAPrecisionPlugin`"):
-        Trainer(strategy=strategy, devices=8)
+    with pytest.raises(TypeError, match="can only work with the `XLAPrecision` plugin"):
+        XLAStrategy(accelerator=accelerator, precision_plugin=Precision())
 
     accelerator = XLAAccelerator()
-    strategy = DDPStrategy(accelerator=accelerator, precision_plugin=XLAPrecisionPlugin())
+    strategy = DDPStrategy(accelerator=accelerator, precision_plugin=XLAPrecision())
     with pytest.raises(
         ValueError, match="The `XLAAccelerator` can only be used with a `SingleDeviceXLAStrategy` or `XLAStrategy"
     ):
