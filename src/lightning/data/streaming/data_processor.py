@@ -202,7 +202,7 @@ def _upload_fn(upload_queue: Queue, remove_queue: Queue, cache_dir: str, remote_
 
 def _associated_items_to_workers(
     num_workers: int, user_items: List[Any], weights: Optional[List[int]] = None
-) -> Tuple[List[int], List[List[Any]]]:
+) -> List[List[Any]]:
     # Associate the items to the workers based on number of nodes and node rank.
 
     if weights is None:
@@ -215,7 +215,7 @@ def _associated_items_to_workers(
     worker_items, _ = _pack_greedily(items=user_items, weights=weights, num_bins=world_size)
 
     worker_ids_this_node = range(node_rank * num_workers, (node_rank + 1) * num_workers)
-    return [0], [worker_items[worker_id] for worker_id in worker_ids_this_node]
+    return [worker_items[worker_id] for worker_id in worker_ids_this_node]
 
 
 class BaseWorker:
@@ -223,7 +223,6 @@ class BaseWorker:
         self,
         worker_index: int,
         num_workers: int,
-        start_index: int,
         dataset_name: str,
         node_rank: int,
         data_recipe: "DataRecipe",
@@ -240,7 +239,6 @@ class BaseWorker:
         """The BaseWorker is responsible to process the user data."""
         self.worker_index = worker_index
         self.num_workers = num_workers
-        self.start_index = start_index
         self.dataset_name = dataset_name
         self.node_rank = node_rank
         self.data_recipe = data_recipe
@@ -735,7 +733,7 @@ class DataProcessor:
             item_sizes.append(num_bytes)
 
         # Associate the items to the workers based on num_nodes and node_rank
-        begins, workers_user_items = _associated_items_to_workers(
+        workers_user_items = _associated_items_to_workers(
             num_workers=self.num_workers, user_items=user_items, weights=item_sizes
         )
         print(f"Setup finished in {round(time() - t0, 3)} seconds. Found {len(user_items)} items to process.")
@@ -757,7 +755,7 @@ class DataProcessor:
 
         signal.signal(signal.SIGINT, self._signal_handler)
 
-        self._create_process_workers(data_recipe, begins, workers_user_items)
+        self._create_process_workers(data_recipe, workers_user_items)
 
         print("Workers are ready ! Starting data processing...")
 
@@ -797,7 +795,7 @@ class DataProcessor:
         raise RuntimeError(f"We found the following error {error}.")
 
     def _create_process_workers(
-        self, data_recipe: DataRecipe, begins: List[int], workers_user_items: List[List[Any]]
+        self, data_recipe: DataRecipe, workers_user_items: List[List[Any]]
     ) -> None:
         self.progress_queue = Queue()
         workers: List[DataWorkerProcess] = []
@@ -807,7 +805,6 @@ class DataProcessor:
             worker = DataWorkerProcess(
                 worker_idx,
                 self.num_workers,
-                0,
                 self.name,
                 _get_node_rank(),
                 data_recipe,
