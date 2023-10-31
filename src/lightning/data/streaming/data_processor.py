@@ -748,7 +748,7 @@ class DataProcessor:
         user_items: List[Any] = data_recipe.prepare_structure(self.input_dir)
 
         if not isinstance(user_items, list):
-            raise ValueError("The setup_fn should return a list of item metadata.")
+            raise ValueError("The `prepare_structure` should return a list of item metadata.")
 
         # Associate the items to the workers based on num_nodes and node_rank
         begins, workers_user_items = _associated_items_to_workers(self.num_workers, user_items)

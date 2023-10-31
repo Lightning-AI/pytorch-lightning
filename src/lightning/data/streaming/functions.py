@@ -15,7 +15,7 @@ import os
 from datetime import datetime
 from pathlib import Path
 from types import GeneratorType
-from typing import Any, Callable, List, Optional, Sequence, Union
+from typing import Any, Callable, Optional, Sequence, Union
 
 from lightning.data.streaming.constants import _LIGHTNING_CLOUD_GREATER_EQUAL_0_5_46, _TORCH_GREATER_EQUAL_2_1_0
 from lightning.data.streaming.data_processor import DataChunkRecipe, DataProcessor, DataTransformRecipe, PrettyDirectory
@@ -27,7 +27,7 @@ if _TORCH_GREATER_EQUAL_2_1_0:
     from torch.utils._pytree import tree_flatten
 
 
-def _get_input_dir(inputs: List[Any]) -> str:
+def _get_input_dir(inputs: Sequence[Any]) -> str:
     flattened_item, _ = tree_flatten(inputs[0])
 
     indexed_paths = {
@@ -48,7 +48,7 @@ def _get_input_dir(inputs: List[Any]) -> str:
 
 
 class LambdaDataTransformRecipe(DataTransformRecipe):
-    def __init__(self, fn: Callable[[str, Any], None], inputs: List[Any]):
+    def __init__(self, fn: Callable[[str, Any], None], inputs: Sequence[Any]):
         super().__init__()
         self._fn = fn
         self._inputs = inputs
@@ -64,7 +64,7 @@ class LambdaDataChunkRecipe(DataChunkRecipe):
     def __init__(
         self,
         fn: Callable[[Any], None],
-        inputs: List[Any],
+        inputs: Sequence[Any],
         chunk_size: Optional[int],
         chunk_bytes: Optional[int],
         compression: Optional[str],
