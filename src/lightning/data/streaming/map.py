@@ -17,6 +17,7 @@ from datetime import datetime
 from time import sleep
 from typing import Any, Callable, List, Optional, Union
 
+from lightning.app.core.constants import get_lightning_cloud_url
 from lightning.data.streaming.constants import _LIGHTNING_SDK_AVAILABLE
 from lightning.data.streaming.data_processor import DataProcessor, DataTransformRecipe
 
@@ -75,6 +76,8 @@ def map(
             cloud_compute=machine,
         )
 
+        has_printed = False
+
         while True:
             curr_job = studio._studio_api._client.lightningapp_instance_service_get_lightningapp_instance(
                 project_id=studio._teamspace.id, id=job.id
@@ -84,5 +87,12 @@ def map(
 
             if curr_job.status.phase == "LIGHTNINGAPP_INSTANCE_STATE_STOPPED":
                 break
+
+            if not has_printed:
+                cloud_url = get_lightning_cloud_url()
+                job_url = f"{cloud_url}/{studio._teamspace.name}/{studio._studio.name}"
+                job_url += f"/studios/{studio.name}/app?app_id=data-prep"
+                print(f"Find your job at {job_url}")
+                has_printed = True
 
             sleep(1)
