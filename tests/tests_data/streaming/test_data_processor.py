@@ -530,9 +530,7 @@ def map_fn(output_dir, filepath):
     img.save(os.path.join(output_dir, os.path.basename(filepath)))
 
 
-@pytest.mark.skipif(
-    condition=not _PIL_AVAILABLE or sys.platform == "win32" or sys.platform == "darwin", reason="Requires: ['pil']"
-)
+@pytest.mark.skipif(condition=not _PIL_AVAILABLE or sys.platform == "win32", reason="Requires: ['pil']")
 def test_data_processing_map(monkeypatch, tmpdir):
     from PIL import Image
 
@@ -556,11 +554,12 @@ def test_data_processing_map(monkeypatch, tmpdir):
     resolver.return_value = lambda x: x
     monkeypatch.setattr(functions, "_LightningSrcResolver", resolver)
     monkeypatch.setattr(data_processor_module, "_LightningSrcResolver", resolver)
+    monkeypatch.setattr(data_processor_module, "_LightningTargetResolver", resolver)
 
     inputs = [os.path.join(input_dir, filename) for filename in os.listdir(input_dir)]
     inputs = [filepath for filepath in inputs if os.path.isfile(filepath)]
 
-    map(map_fn, inputs, num_workers=1, output_dir=output_dir)
+    map(map_fn, inputs, num_workers=1, output_dir=output_dir, input_dir=input_dir)
 
     assert sorted(os.listdir(output_dir)) == ["0.JPEG", "1.JPEG", "2.JPEG", "3.JPEG", "4.JPEG"]
 
