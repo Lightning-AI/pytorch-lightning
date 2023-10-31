@@ -391,7 +391,9 @@ class BaseWorker:
             }
 
             if len(indexed_paths) == 0:
-                raise ValueError(f"The provided item {item} didn't contain any filepaths. The input_dir is {self.input_dir}.")
+                raise ValueError(
+                    f"The provided item {item} didn't contain any filepaths. The input_dir is {self.input_dir}."
+                )
 
             paths = []
             for index, path in indexed_paths.items():

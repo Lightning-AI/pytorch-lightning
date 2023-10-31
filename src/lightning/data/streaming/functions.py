@@ -13,9 +13,10 @@
 
 import os
 from datetime import datetime
+from pathlib import Path
 from types import GeneratorType
 from typing import Any, Callable, List, Optional, Sequence, Union
-from pathlib import Path
+
 from lightning.data.streaming.constants import _LIGHTNING_CLOUD_GREATER_EQUAL_0_5_46, _TORCH_GREATER_EQUAL_2_1_0
 from lightning.data.streaming.data_processor import DataChunkRecipe, DataProcessor, DataTransformRecipe, PrettyDirectory
 
@@ -23,7 +24,7 @@ if _LIGHTNING_CLOUD_GREATER_EQUAL_0_5_46:
     from lightning_cloud.resolver import _execute, _LightningSrcResolver
 
 if _TORCH_GREATER_EQUAL_2_1_0:
-    from torch.utils._pytree import PyTree, tree_flatten
+    from torch.utils._pytree import tree_flatten
 
 
 def _get_input_dir(inputs: List[Any]) -> str:
@@ -123,7 +124,7 @@ def map(
             remote_output_dir=PrettyDirectory(output_dir, remote_output_dir),
             fast_dev_run=fast_dev_run,
             version=None,
-            input_dir=_get_input_dir(inputs)
+            input_dir=_get_input_dir(inputs),
         )
         return data_processor.run(LambdaDataTransformRecipe(fn, inputs))
     return _execute(
@@ -169,7 +170,7 @@ def chunkify(
             num_workers=num_workers or os.cpu_count(),
             remote_output_dir=PrettyDirectory(output_dir, remote_output_dir),
             fast_dev_run=fast_dev_run,
-            input_dir=_get_input_dir(inputs)
+            input_dir=_get_input_dir(inputs),
         )
         return data_processor.run(
             LambdaDataChunkRecipe(
