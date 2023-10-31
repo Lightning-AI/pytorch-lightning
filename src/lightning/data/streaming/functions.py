@@ -15,7 +15,8 @@ import os
 import sys
 from datetime import datetime
 from time import sleep
-from typing import Any, Callable, Generator, List, Optional, Sequence, Union
+from types import GeneratorType
+from typing import Any, Callable, List, Optional, Sequence, Union
 
 from lightning.app.core.constants import get_lightning_cloud_url
 from lightning.data.streaming.constants import _LIGHTNING_CLOUD_GREATER_EQUAL_0_5_42, _LIGHTNING_SDK_AVAILABLE
@@ -43,8 +44,15 @@ class LambdaDataTransformRecipe(DataTransformRecipe):
 
 
 class LambdaDataChunkRecipe(DataChunkRecipe):
-    def __init__(self, fn: Callable[[str, Any], None], inputs: List[Any]):
-        super().__init__()
+    def __init__(
+        self,
+        fn: Callable[[str, Any], None],
+        inputs: List[Any],
+        chunk_size: Optional[int],
+        chunk_bytes: Optional[int],
+        compression: Optional[str],
+    ):
+        super().__init__(chunk_size=chunk_size, chunk_bytes=chunk_bytes, compression=compression)
         self._fn = fn
         self._inputs = inputs
 
@@ -52,10 +60,10 @@ class LambdaDataChunkRecipe(DataChunkRecipe):
         return self._inputs
 
     def prepare_item(self, item_metadata: Any) -> Any:  # type: ignore
-        if isinstance(self._fn, Generator):
+        if isinstance(self._fn, GeneratorType):
             yield from self._fn(item_metadata)
         else:
-            return self._fn(item_metadata)
+            yield self._fn(item_metadata)
 
 
 def map(
@@ -152,7 +160,7 @@ def chunkify(
 
     name = name or datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
-    if chunk_size is None or chunk_bytes is None:
+    if chunk_size is None and chunk_bytes is None:
         raise ValueError("Either `chunk_size` or `chunk_bytes` needs to be defined.")
 
     if num_nodes is None or machine is None or int(os.getenv("DATA_OPTIMIZER_NUM_NODES", 0)) > 0:

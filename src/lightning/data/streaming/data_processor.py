@@ -160,7 +160,9 @@ def _remove_target(input_dir: str, cache_dir: str, queue_in: Queue) -> None:
 
         # 3. Iterate through the paths and delete them sequentially.
         for path in paths:
-            if input_dir:
+            if os.path.exists(path):
+                os.remove(path)
+            elif input_dir:
                 cached_filepath = path.replace(input_dir, cache_dir)
 
                 if os.path.exists(cached_filepath):
@@ -459,11 +461,15 @@ class BaseWorker:
             self._current_item = self.items[index]
             item_data_or_generator = self.data_recipe.prepare_item(self._current_item)
             if isinstance(item_data_or_generator, types.GeneratorType):
-                for item_data in item_data_or_generator:
-                    if item_data is not None:
-                        chunk_filepath = self.cache._add_item(self._index_counter, item_data)
-                        self._try_upload(chunk_filepath)
-                        self._index_counter += 1
+                while True:
+                    try:
+                        item_data = next(item_data_or_generator)
+                        if item_data is not None:
+                            chunk_filepath = self.cache._add_item(self._index_counter, item_data)
+                            self._try_upload(chunk_filepath)
+                            self._index_counter += 1
+                    except StopIteration:
+                        break
             elif item_data_or_generator is not None:
                 chunk_filepath = self.cache._add_item(self._index_counter, item_data_or_generator)
                 self._try_upload(chunk_filepath)
@@ -702,7 +708,7 @@ class DataProcessor:
         self.remote_input_dir = (
             str(remote_input_dir)
             if remote_input_dir is not None
-            else ((self.src_resolver(input_dir) if input_dir else None) if self.src_resolver else None)
+            else ((self.src_resolver(str(input_dir)) if input_dir else None) if self.src_resolver else None)
         )
         self.remote_output_dir = (
             remote_output_dir
