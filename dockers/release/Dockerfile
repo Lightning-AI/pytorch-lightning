@@ -24,8 +24,6 @@ ARG LIGHTNING_VERSION=""
 
 COPY ./ /home/lightning/
 
-ENV PACKAGE_NAME=pytorch
-
 # install dependencies
 RUN \
     cd /home && \
@@ -38,11 +36,14 @@ RUN \
         unzip ${LIGHTNING_VERSION}.zip ; \
         mv lightning-*/ lightning ; \
         rm *.zip ; \
-    fi && \
+    fi
     # otherwise there is collision with folder name and pkg name on Pypi
+
+RUN \
     cd lightning && \
     pip install setuptools==59.5.0 && \
-    pip install '.[extra,loggers,strategies]' --no-cache-dir && \
+    PACKAGE_NAME=pytorch pip install '.[extra,loggers,strategies]' --no-cache-dir && \
+    PACKAGE_NAME=lightning pip install '.[extra,loggers,strategies]' --no-cache-dir && \
     cd .. && \
     rm -rf lightning
 
