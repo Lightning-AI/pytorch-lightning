@@ -1471,8 +1471,11 @@ def test_neptune_logger_init_args():
 def test_tensorboard_logger_init_args():
     _test_logger_init_args(
         "TensorBoardLogger",
-        init={"save_dir": "tb"},  # Resolve from TensorBoardLogger.__init__
-        unresolved={"comment": "tb"},  # Resolve from FabricTensorBoardLogger.experiment SummaryWriter local import
+        init={
+            "save_dir": "tb",   # Resolve from TensorBoardLogger.__init
+            "comment": "tb"  # Resolve from FabricTensorBoardLogger.experiment SummaryWriter local import
+        },
+        unresolved={},
     )
 
 
