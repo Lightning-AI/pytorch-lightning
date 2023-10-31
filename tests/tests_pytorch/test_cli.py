@@ -55,7 +55,6 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau, StepLR
 
 from tests_pytorch.helpers.runif import RunIf
 
-
 if _JSONARGPARSE_SIGNATURES_AVAILABLE:
     from jsonargparse import Namespace, lazy_instance
 else:
