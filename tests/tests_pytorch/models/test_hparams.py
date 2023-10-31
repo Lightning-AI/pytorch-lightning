@@ -31,7 +31,8 @@ from lightning.pytorch.core.mixins import HyperparametersMixin
 from lightning.pytorch.core.saving import load_hparams_from_yaml, save_hparams_to_yaml
 from lightning.pytorch.demos.boring_classes import BoringDataModule, BoringModel, RandomDataset
 from lightning.pytorch.loggers import CSVLogger, TensorBoardLogger
-from lightning.pytorch.utilities import _OMEGACONF_AVAILABLE, AttributeDict, is_picklable
+from lightning.pytorch.utilities import AttributeDict, is_picklable
+from lightning.pytorch.utilities.imports import _OMEGACONF_AVAILABLE
 from lightning_utilities.core.imports import RequirementCache
 from lightning_utilities.test.warning import no_warning_call
 from torch.utils.data import DataLoader

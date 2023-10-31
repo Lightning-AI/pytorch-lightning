@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import os
+import shutil
 from contextlib import ExitStack
 from datetime import timedelta
 from functools import partial
@@ -432,8 +432,8 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
 
         # broadcast the path from rank 0 to ensure all the states are saved in a common path
         path = Path(self.broadcast(path))
-        if path.is_dir() and os.listdir(path):
-            raise FileExistsError(f"The checkpoint directory already exists and is not empty: {path}")
+        if path.is_dir() and self._state_dict_type == "full" and not _is_sharded_checkpoint(path):
+            raise IsADirectoryError(f"The checkpoint path exists and is a directory: {path}")
 
         from torch.distributed.checkpoint import FileSystemWriter, save_state_dict
         from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
@@ -454,7 +454,10 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         module = modules[0]
 
         if self._state_dict_type == "sharded":
+            if path.is_file():
+                path.unlink()
             path.mkdir(parents=True, exist_ok=True)
+
             state_dict_ctx = _get_sharded_state_dict_context(module)
 
             # replace the modules and optimizer objects in the state with their local state dict
@@ -483,6 +486,9 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
                 torch.save(metadata, path / _METADATA_FILENAME)
 
         elif self._state_dict_type == "full":
+            if _is_sharded_checkpoint(path):
+                shutil.rmtree(path)
+
             state_dict_ctx = _get_full_state_dict_context(module, world_size=self.world_size)
             full_state: Dict[str, Any] = {}
             with state_dict_ctx:
