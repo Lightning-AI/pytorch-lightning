@@ -6,7 +6,6 @@ import traceback
 import types
 from abc import abstractmethod
 from multiprocessing import Process, Queue
-from pathlib import Path
 from queue import Empty
 from shutil import copyfile, rmtree
 from time import sleep, time
@@ -794,9 +793,7 @@ class DataProcessor:
             w.join(0)
         raise RuntimeError(f"We found the following error {error}.")
 
-    def _create_process_workers(
-        self, data_recipe: DataRecipe, workers_user_items: List[List[Any]]
-    ) -> None:
+    def _create_process_workers(self, data_recipe: DataRecipe, workers_user_items: List[List[Any]]) -> None:
         self.progress_queue = Queue()
         workers: List[DataWorkerProcess] = []
         stop_queues: List[Queue] = []

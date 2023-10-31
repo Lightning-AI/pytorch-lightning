@@ -1,5 +1,5 @@
 from collections import defaultdict
-from typing import Any, List, Dict, Tuple
+from typing import Any, Dict, List, Tuple
 
 
 def _pack_greedily(items: List[Any], weights: List[int], num_bins: int) -> Tuple[Dict[int, List[Any]], Dict[int, int]]:
