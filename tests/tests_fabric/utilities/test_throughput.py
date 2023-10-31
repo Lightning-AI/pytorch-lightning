@@ -120,6 +120,13 @@ def test_throughput():
         "device/samples_per_sec": 2.0,
     }
 
+    throughput = Throughput(window_size=2)
+    with pytest.raises(ValueError, match=r"samples.*to be greater or equal than batches"):
+        throughput.update(time=0, batches=2, samples=1)
+    throughput = Throughput(window_size=2)
+    with pytest.raises(ValueError, match=r"lengths.*to be greater or equal than samples"):
+        throughput.update(time=0, batches=2, samples=2, lengths=1)
+
 
 def mock_train_loop(monitor):
     # simulate lit-gpt style loop

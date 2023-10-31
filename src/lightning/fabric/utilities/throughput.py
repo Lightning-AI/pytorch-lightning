@@ -132,6 +132,8 @@ class Throughput:
 
         """
         self._time.append(time)
+        if samples < batches:
+            raise ValueError(f"Expected samples ({samples}) to be greater or equal than batches ({batches})")
         self._batches.append(batches)
         self._samples.append(samples)
         if lengths is not None:
