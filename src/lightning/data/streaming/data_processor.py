@@ -5,13 +5,14 @@ import tempfile
 import traceback
 import types
 from abc import abstractmethod
+from dataclasses import dataclass
 from multiprocessing import Process, Queue
 from queue import Empty
 from shutil import copyfile, rmtree
 from time import sleep, time
 from typing import Any, Callable, Dict, List, Optional, Tuple, TypeVar, Union
 from urllib import parse
-from dataclasses import dataclass
+
 import torch
 from tqdm.auto import tqdm
 
@@ -648,9 +649,12 @@ class DataTransformRecipe(DataRecipe):
 
 
 @dataclass
-class Directory:
-    pretty_directory: str
+class PrettyDirectory:
+    """Holds a directory and its URL."""
+
     directory: str
+    url: str
+
 
 class DataProcessor:
     def __init__(
@@ -663,7 +667,7 @@ class DataProcessor:
         src_resolver: Optional[Callable[[str], Optional[str]]] = None,
         fast_dev_run: Optional[bool] = None,
         remote_input_dir: Optional[str] = None,
-        remote_output_dir: Optional[Union[str, Directory]] = None,
+        remote_output_dir: Optional[Union[str, PrettyDirectory]] = None,
         random_seed: Optional[int] = 42,
         version: Optional[int] = None,
     ):
@@ -709,9 +713,11 @@ class DataProcessor:
             self.name = self._broadcast_object(self.name)
             # Ensure the remote src dir is the same across all ranks
             self.remote_output_dir = self._broadcast_object(self.remote_output_dir)
-            if isinstance(self.remote_output_dir, Directory):
-                print(f"Storing the files under {self.remote_output_dir.pretty_directory}")
-                self.remote_output_dir = self.remote_output_dir.directory
+            if isinstance(self.remote_output_dir, PrettyDirectory):
+                print(f"Storing the files under {self.remote_output_dir.directory}")
+                self.remote_output_dir = self.remote_output_dir.url
+            else:
+                print(f"Storing the files under {self.remote_output_dir}")
 
         self.random_seed = random_seed
 
