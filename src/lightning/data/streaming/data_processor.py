@@ -166,7 +166,7 @@ def _remove_target(input_dir: str, cache_dir: str, queue_in: Queue) -> None:
                 if os.path.exists(cached_filepath):
                     os.remove(cached_filepath)
 
-            elif os.path.exists(path):
+            elif os.path.exists(path) and "s3_" not in path:
                 os.remove(path)
 
 
@@ -391,7 +391,9 @@ class BaseWorker:
             }
 
             if len(indexed_paths) == 0:
-                raise ValueError(f"The provided item {item} didn't contain any filepaths. {flattened_item}")
+                raise ValueError(
+                    f"The provided item {item} didn't contain any filepaths. The input_dir is {self.input_dir}."
+                )
 
             paths = []
             for index, path in indexed_paths.items():
