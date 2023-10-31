@@ -22,7 +22,7 @@ from lightning.data.streaming.constants import (
     _BOTO3_AVAILABLE,
     _DEFAULT_FAST_DEV_RUN_ITEMS,
     _INDEX_FILENAME,
-    _LIGHTNING_CLOUD_GREATER_EQUAL_0_5_42,
+    _LIGHTNING_CLOUD_GREATER_EQUAL_0_5_46,
     _TORCH_GREATER_EQUAL_2_1_0,
 )
 from lightning.fabric.accelerators.cuda import is_cuda_available
@@ -36,7 +36,7 @@ from lightning.fabric.utilities.distributed import group as _group
 if _TORCH_GREATER_EQUAL_2_1_0:
     from torch.utils._pytree import tree_flatten, tree_unflatten
 
-if _LIGHTNING_CLOUD_GREATER_EQUAL_0_5_42:
+if _LIGHTNING_CLOUD_GREATER_EQUAL_0_5_46:
     from lightning_cloud.resolver import _LightningSrcResolver, _LightningTargetResolver
 
 if _BOTO3_AVAILABLE:
@@ -160,13 +160,14 @@ def _remove_target(input_dir: str, cache_dir: str, queue_in: Queue) -> None:
 
         # 3. Iterate through the paths and delete them sequentially.
         for path in paths:
-            if os.path.exists(path):
-                os.remove(path)
-            elif input_dir:
+            if input_dir:
                 cached_filepath = path.replace(input_dir, cache_dir)
 
                 if os.path.exists(cached_filepath):
                     os.remove(cached_filepath)
+
+            elif os.path.exists(path):
+                os.remove(path)
 
 
 def _upload_fn(upload_queue: Queue, remove_queue: Queue, cache_dir: str, remote_output_dir: str) -> None:

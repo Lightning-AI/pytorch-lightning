@@ -12,22 +12,15 @@
 # limitations under the License.
 
 import os
-import sys
 from datetime import datetime
-from time import sleep
 from types import GeneratorType
 from typing import Any, Callable, List, Optional, Sequence, Union
 
-from lightning.app.core.constants import get_lightning_cloud_url
-from lightning.data.streaming.constants import _LIGHTNING_CLOUD_GREATER_EQUAL_0_5_42, _LIGHTNING_SDK_AVAILABLE
+from lightning.data.streaming.constants import _LIGHTNING_CLOUD_GREATER_EQUAL_0_5_46
 from lightning.data.streaming.data_processor import DataChunkRecipe, DataProcessor, DataTransformRecipe, PrettyDirectory
 
-if _LIGHTNING_SDK_AVAILABLE:
-    from lightning_sdk import Studio
-
-
-if _LIGHTNING_CLOUD_GREATER_EQUAL_0_5_42:
-    from lightning_cloud.resolver import _LightningSrcResolver
+if _LIGHTNING_CLOUD_GREATER_EQUAL_0_5_46:
+    from lightning_cloud.resolver import _execute, _LightningSrcResolver
 
 
 class LambdaDataTransformRecipe(DataTransformRecipe):
@@ -89,6 +82,9 @@ def map(
 
     """
 
+    if len(inputs) == 0:
+        raise ValueError(f"The provided inputs should be non empty. Found {inputs}.")
+
     if num_nodes is None or int(os.getenv("DATA_OPTIMIZER_NUM_NODES", 0)) > 0:
         remote_output_dir = _LightningSrcResolver()(output_dir)
 
@@ -99,48 +95,17 @@ def map(
             )
 
         data_processor = DataProcessor(
-            name=None,
             num_workers=num_workers or os.cpu_count(),
             remote_output_dir=PrettyDirectory(output_dir, remote_output_dir),
             fast_dev_run=fast_dev_run,
             version=None,
         )
-        data_processor.run(LambdaDataTransformRecipe(fn, inputs() if callable(inputs) else inputs))
-    else:
-        if not _LIGHTNING_SDK_AVAILABLE:
-            raise ModuleNotFoundError("The `lightning_sdk` is required.")
-
-        studio = Studio()
-        job = studio._studio_api.create_data_prep_machine_job(
-            f"cd {os.getcwd()} && python {sys.argv[0]}",
-            name=datetime.now().strftime("%Y-%m-%d_%H-%M-%S"),
-            num_instances=num_nodes,
-            studio_id=studio._studio.id,
-            teamspace_id=studio._teamspace.id,
-            cluster_id=studio._studio.cluster_id,
-            cloud_compute=machine or studio._studio_api.get_machine(studio._studio.id, studio._teamspace.id),
-        )
-
-        has_printed = False
-
-        while True:
-            curr_job = studio._studio_api._client.lightningapp_instance_service_get_lightningapp_instance(
-                project_id=studio._teamspace.id, id=job.id
-            )
-            if curr_job.status.phase == "LIGHTNINGAPP_INSTANCE_STATE_FAILED":
-                raise RuntimeError(f"job {curr_job.name} failed!")
-
-            if curr_job.status.phase == "LIGHTNINGAPP_INSTANCE_STATE_STOPPED":
-                break
-
-            if not has_printed:
-                cloud_url = get_lightning_cloud_url()
-                job_url = f"{cloud_url}/{studio._user.username}/{studio._teamspace.name}"
-                job_url += f"/studios/{studio.name}/app?app_id=data-prep&job_name={curr_job.name}"
-                print(f"Find your job at {job_url}")
-                has_printed = True
-
-            sleep(1)
+        return data_processor.run(LambdaDataTransformRecipe(fn, inputs() if callable(inputs) else inputs))
+    return _execute(
+        f"data-prep-map-{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}",
+        num_nodes,
+        machine,
+    )
 
 
 def chunkify(
@@ -158,19 +123,20 @@ def chunkify(
 ) -> None:
     """This function converts a dataset into chunks possibly in a distributed way."""
 
-    name = name or datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    if len(inputs) == 0:
+        raise ValueError(f"The provided inputs should be non empty. Found {inputs}.")
 
     if chunk_size is None and chunk_bytes is None:
         raise ValueError("Either `chunk_size` or `chunk_bytes` needs to be defined.")
 
     if num_nodes is None or int(os.getenv("DATA_OPTIMIZER_NUM_NODES", 0)) > 0:
         data_processor = DataProcessor(
-            name=name,
+            name=name or datetime.now().strftime("%Y-%m-%d_%H-%M-%S"),
             num_workers=num_workers or os.cpu_count(),
             remote_output_dir=output_dir,
             fast_dev_run=fast_dev_run,
         )
-        data_processor.run(
+        return data_processor.run(
             LambdaDataChunkRecipe(
                 fn,
                 inputs() if callable(inputs) else inputs,
@@ -179,38 +145,8 @@ def chunkify(
                 compression=compression,
             )
         )
-    else:
-        if not _LIGHTNING_SDK_AVAILABLE:
-            raise ModuleNotFoundError("The `lightning_sdk` is required.")
-
-        studio = Studio()
-        job = studio._studio_api.create_data_prep_machine_job(
-            f"cd {os.getcwd()} && python {sys.argv[0]}",
-            name=name,
-            num_instances=num_nodes,
-            studio_id=studio._studio.id,
-            teamspace_id=studio._teamspace.id,
-            cluster_id=studio._studio.cluster_id,
-            cloud_compute=machine or studio._studio_api.get_machine(studio._studio.id, studio._teamspace.id),
-        )
-
-        has_printed = False
-
-        while True:
-            curr_job = studio._studio_api._client.lightningapp_instance_service_get_lightningapp_instance(
-                project_id=studio._teamspace.id, id=job.id
-            )
-            if curr_job.status.phase == "LIGHTNINGAPP_INSTANCE_STATE_FAILED":
-                raise RuntimeError(f"job {curr_job.name} failed!")
-
-            if curr_job.status.phase == "LIGHTNINGAPP_INSTANCE_STATE_STOPPED":
-                break
-
-            if not has_printed:
-                cloud_url = get_lightning_cloud_url()
-                job_url = f"{cloud_url}/{studio._user.username}/{studio._teamspace.name}"
-                job_url += f"/studios/{studio.name}/app?app_id=data-prep&job_name={curr_job.name}"
-                print(f"Find your job at {job_url}")
-                has_printed = True
-
-            sleep(1)
+    return _execute(
+        f"data-prep-chunkify-{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}",
+        num_nodes,
+        machine,
+    )
