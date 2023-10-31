@@ -125,7 +125,7 @@ class Throughput:
                 call.
             batches: Total batches seen per device. It should monotonically increase with each call.
             samples: Total samples seen per device. It should monotonically increase by the batch size with each call.
-            lengths: Total length of the samples seen. It should monotonically increase by the length of a batch with
+            lengths: Total length of the samples seen. It should monotonically increase by the lengths of a batch with
                 each call.
             flops_per_batch: Flops per batch per device. You can easily compute this by using :func:`measure_flops`.
                 The value might be different in each device if the batch size is not the same.
@@ -135,6 +135,8 @@ class Throughput:
         self._batches.append(batches)
         self._samples.append(samples)
         if lengths is not None:
+            if lengths < samples:
+                raise ValueError(f"Expected lengths ({lengths}) to be greater or equal than samples ({samples})")
             self._lengths.append(lengths)
             if len(self._samples) != len(self._lengths):
                 raise RuntimeError(

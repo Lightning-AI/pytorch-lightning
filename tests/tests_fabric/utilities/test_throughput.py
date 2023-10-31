@@ -129,7 +129,7 @@ def mock_train_loop(monitor):
     for iter_num in range(1, 6):
         # forward + backward + step + zero_grad ...
         t1 = iter_num + 0.5
-        total_lengths += 2
+        total_lengths += 3 * 2
         monitor.update(
             time=t1 - total_t0,
             batches=iter_num,
@@ -147,18 +147,18 @@ def test_throughput_monitor():
         monitor = ThroughputMonitor(fabric, window_size=4, separator="|")
     mock_train_loop(monitor)
     assert logger_mock.log_metrics.mock_calls == [
-        call(metrics={"time": 1.5, "batches": 1, "samples": 3, "lengths": 2}, step=0),
-        call(metrics={"time": 2.5, "batches": 2, "samples": 6, "lengths": 4}, step=1),
-        call(metrics={"time": 3.5, "batches": 3, "samples": 9, "lengths": 6}, step=2),
+        call(metrics={"time": 1.5, "batches": 1, "samples": 3, "lengths": 6}, step=0),
+        call(metrics={"time": 2.5, "batches": 2, "samples": 6, "lengths": 12}, step=1),
+        call(metrics={"time": 3.5, "batches": 3, "samples": 9, "lengths": 18}, step=2),
         call(
             metrics={
                 "time": 4.5,
                 "batches": 4,
                 "samples": 12,
-                "lengths": 8,
+                "lengths": 24,
                 "device|batches_per_sec": 1.0,
                 "device|samples_per_sec": 3.0,
-                "device|items_per_sec": 6.0,
+                "device|items_per_sec": 18.0,
                 "device|flops_per_sec": 10.0,
                 "device|mfu": 0.1,
             },
@@ -169,10 +169,10 @@ def test_throughput_monitor():
                 "time": 5.5,
                 "batches": 5,
                 "samples": 15,
-                "lengths": 10,
+                "lengths": 30,
                 "device|batches_per_sec": 1.0,
                 "device|samples_per_sec": 3.0,
-                "device|items_per_sec": 6.0,
+                "device|items_per_sec": 18.0,
                 "device|flops_per_sec": 10.0,
                 "device|mfu": 0.1,
             },
@@ -214,21 +214,21 @@ def test_throughput_monitor_world_size():
         monitor.world_size = 2
     mock_train_loop(monitor)
     assert logger_mock.log_metrics.mock_calls == [
-        call(metrics={"time": 1.5, "batches": 1, "samples": 3, "lengths": 2}, step=0),
-        call(metrics={"time": 2.5, "batches": 2, "samples": 6, "lengths": 4}, step=1),
-        call(metrics={"time": 3.5, "batches": 3, "samples": 9, "lengths": 6}, step=2),
+        call(metrics={"time": 1.5, "batches": 1, "samples": 3, "lengths": 6}, step=0),
+        call(metrics={"time": 2.5, "batches": 2, "samples": 6, "lengths": 12}, step=1),
+        call(metrics={"time": 3.5, "batches": 3, "samples": 9, "lengths": 18}, step=2),
         call(
             metrics={
                 "time": 4.5,
                 "batches": 4,
                 "samples": 12,
-                "lengths": 8,
+                "lengths": 24,
                 "device/batches_per_sec": 1.0,
                 "device/samples_per_sec": 3.0,
                 "batches_per_sec": 2.0,
                 "samples_per_sec": 6.0,
-                "items_per_sec": 4.0,
-                "device/items_per_sec": 6.0,
+                "items_per_sec": 12.0,
+                "device/items_per_sec": 18.0,
                 "flops_per_sec": 20.0,
                 "device/flops_per_sec": 10.0,
                 "device/mfu": 0.1,
@@ -240,13 +240,13 @@ def test_throughput_monitor_world_size():
                 "time": 5.5,
                 "batches": 5,
                 "samples": 15,
-                "lengths": 10,
+                "lengths": 30,
                 "device/batches_per_sec": 1.0,
                 "device/samples_per_sec": 3.0,
                 "batches_per_sec": 2.0,
                 "samples_per_sec": 6.0,
-                "items_per_sec": 4.0,
-                "device/items_per_sec": 6.0,
+                "items_per_sec": 12.0,
+                "device/items_per_sec": 18.0,
                 "flops_per_sec": 20.0,
                 "device/flops_per_sec": 10.0,
                 "device/mfu": 0.1,
