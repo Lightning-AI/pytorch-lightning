@@ -204,16 +204,12 @@ def _associated_items_to_workers(
     num_workers: int, user_items: List[Any], weights: Optional[List[int]] = None
 ) -> List[List[Any]]:
     # Associate the items to the workers based on number of nodes and node rank.
-
-    if weights is None:
-        weights = [1] * len(user_items)
-
+    weights = [1] * len(user_items) if weights is None else weights
     num_nodes = _get_num_nodes()
     node_rank = _get_node_rank()
     world_size = num_nodes * num_workers
 
     worker_items, _ = _pack_greedily(items=user_items, weights=weights, num_bins=world_size)
-
     worker_ids_this_node = range(node_rank * num_workers, (node_rank + 1) * num_workers)
     return [worker_items[worker_id] for worker_id in worker_ids_this_node]
 
