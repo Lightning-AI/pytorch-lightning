@@ -201,34 +201,21 @@ def _upload_fn(upload_queue: Queue, remove_queue: Queue, cache_dir: str, remote_
 
 
 def _associated_items_to_workers(
-    num_workers: int, user_items: List[Any], weights: List[int]
+    num_workers: int, user_items: List[Any], weights: Optional[List[int]] = None
 ) -> Tuple[List[int], List[List[Any]]]:
     # Associate the items to the workers based on number of nodes and node rank.
 
+    if weights is None:
+        weights = [1] * len(user_items)
+
     num_nodes = _get_num_nodes()
+    node_rank = _get_node_rank()
     world_size = num_nodes * num_workers
+
     worker_items, _ = _pack_greedily(items=user_items, weights=weights, num_bins=world_size)
 
-    current_node_rank = _get_node_rank()
-    node_size = len(user_items) // num_nodes
-    workers_user_items = []
-    begins = []
-    for node_rank in range(num_nodes):
-        if node_rank != current_node_rank:
-            continue
-        is_last_node = node_rank == num_nodes - 1
-        start_node = node_rank * node_size
-        end_node = len(user_items) if is_last_node else (node_rank + 1) * node_size
-        node_user_items = user_items[start_node:end_node]
-        worker_size = len(node_user_items) // num_workers
-        for worker_idx in range(num_workers):
-            is_last = worker_idx == num_workers - 1
-            begin = worker_idx * worker_size
-            end = len(node_user_items) if is_last else (worker_idx + 1) * worker_size
-            workers_user_items.append(node_user_items[begin:end])
-            begins.append(begin)
-        return begins, workers_user_items
-    raise RuntimeError(f"The current_node_rank {current_node_rank} doesn't exist in {num_nodes}.")
+    worker_ids_this_node = range(node_rank * num_workers, (node_rank + 1) * num_workers)
+    return [0], [worker_items[worker_id] for worker_id in worker_ids_this_node]
 
 
 class BaseWorker:
@@ -743,7 +730,7 @@ class DataProcessor:
 
             num_bytes = 0
             for index, element in enumerate(flattened_item):
-                if isinstance(element, str) and (element.startswith(self.input_dir) if self.input_dir is not None else os.path.exists(element)):  # For speed reasons
+                if isinstance(element, str) and element.startswith(self.input_dir or "") and os.path.exists(element):
                     num_bytes += os.path.getsize(element)
             item_sizes.append(num_bytes)
 
@@ -820,7 +807,7 @@ class DataProcessor:
             worker = DataWorkerProcess(
                 worker_idx,
                 self.num_workers,
-                begins[worker_idx],
+                0,
                 self.name,
                 _get_node_rank(),
                 data_recipe,
@@ -840,30 +827,6 @@ class DataProcessor:
         # Note: Don't store within the loop as weakref aren't serializable
         self.workers = workers
         self.stop_queues = stop_queues
-
-    def _associated_items_to_workers(self, user_items: List[Any]) -> Tuple[List[int], List[List[Any]]]:
-        # Associate the items to the workers based on world_size and node_rank
-        num_nodes = _get_num_nodes()
-        current_node_rank = _get_node_rank()
-        node_size = len(user_items) // num_nodes
-        workers_user_items = []
-        begins = []
-        for node_rank in range(num_nodes):
-            if node_rank != current_node_rank:
-                continue
-            is_last_node = node_rank == num_nodes - 1
-            start_node = node_rank * node_size
-            end_node = len(user_items) if is_last_node else (node_rank + 1) * node_size
-            node_user_items = user_items[start_node:end_node]
-            worker_size = len(node_user_items) // self.num_workers
-            for worker_idx in range(self.num_workers):
-                is_last = worker_idx == self.num_workers - 1
-                begin = worker_idx * worker_size
-                end = len(node_user_items) if is_last else (worker_idx + 1) * worker_size
-                workers_user_items.append(user_items[begin:end])
-                begins.append(begin)
-            return begins, workers_user_items
-        raise RuntimeError(f"The current_node_rank {current_node_rank} doesn't exist in {num_nodes}.")
 
     def _signal_handler(self, signal: Any, frame: Any) -> None:
         """On temrination, we stop all the processes to avoid leaking RAM."""
