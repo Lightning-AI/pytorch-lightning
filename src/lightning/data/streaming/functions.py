@@ -106,6 +106,8 @@ def map(
         machine: When doing remote execution, the machine to use.
 
     """
+    if not isinstance(inputs, Sequence):
+        raise ValueError(f"The provided inputs should be non empty sequence. Found {inputs}.")
 
     if len(inputs) == 0:
         raise ValueError(f"The provided inputs should be non empty. Found {inputs}.")
@@ -119,7 +121,6 @@ def map(
                 " HINT: You can either use `/teamspace/s3_connections/...` or `/teamspace/datasets/...`."
             )
 
-        inputs = inputs() if callable(inputs) else inputs
         data_processor = DataProcessor(
             num_workers=num_workers or os.cpu_count(),
             remote_output_dir=PrettyDirectory(output_dir, remote_output_dir),
@@ -135,7 +136,7 @@ def map(
     )
 
 
-def chunkify(
+def optimize(
     fn: Callable[[Any], Any],
     inputs: Sequence[Any],
     output_dir: str,
@@ -149,7 +150,24 @@ def chunkify(
     machine: Optional[str] = None,
     input_dir: Optional[str] = None,
 ) -> None:
-    """This function converts a dataset into chunks possibly in a distributed way."""
+    """This function converts a dataset into chunks possibly in a distributed way.
+
+    Arguments:
+        fn: A function to be executed over each input element
+        inputs: A sequence of input to be processed by the `fn` function.
+            Each input should contain at least a valid filepath.
+        output_dir: The folder where the processed data should be stored.
+        chunk_size: The maximum number of elements to hold within a chunk.
+        chunk_bytes: The maximum number of bytes to hold within a chunk.
+        compression: The compression algorithm to use over the chunks.
+        num_workers: The number of workers to use during processing
+        fast_dev_run: Whether to use process only a sub part of the inputs
+        num_nodes: When doing remote execution, the number of nodes to use.
+        machine: When doing remote execution, the machine to use.
+
+    """
+    if not isinstance(inputs, Sequence):
+        raise ValueError(f"The provided inputs should be non empty sequence. Found {inputs}.")
 
     if len(inputs) == 0:
         raise ValueError(f"The provided inputs should be non empty. Found {inputs}.")
@@ -166,7 +184,6 @@ def chunkify(
                 " HINT: You can either use `/teamspace/s3_connections/...` or `/teamspace/datasets/...`."
             )
 
-        inputs = inputs() if callable(inputs) else inputs
         data_processor = DataProcessor(
             name=name,
             num_workers=num_workers or os.cpu_count(),
@@ -184,7 +201,7 @@ def chunkify(
             )
         )
     return _execute(
-        f"data-prep-chunkify-{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}",
+        f"data-prep-optimize-{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}",
         num_nodes,
         machine,
     )

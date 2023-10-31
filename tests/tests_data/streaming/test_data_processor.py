@@ -20,7 +20,7 @@ from lightning.data.streaming.data_processor import (
     _upload_fn,
     _wait_for_file_to_exist,
 )
-from lightning.data.streaming.functions import chunkify, map
+from lightning.data.streaming.functions import map, optimize
 from lightning_utilities.core.imports import RequirementCache
 
 _PIL_AVAILABLE = RequirementCache("PIL")
@@ -570,7 +570,7 @@ def test_data_processing_map(monkeypatch, tmpdir):
     assert img.size == (12, 12)
 
 
-def chunkify_fn(filepath):
+def optimize_fn(filepath):
     print(filepath)
     from PIL import Image
 
@@ -578,7 +578,7 @@ def chunkify_fn(filepath):
 
 
 @pytest.mark.skipif(condition=not _PIL_AVAILABLE or sys.platform == "win32", reason="Requires: ['pil']")
-def test_data_processing_chunkify(monkeypatch, tmpdir):
+def test_data_processing_optimize(monkeypatch, tmpdir):
     from PIL import Image
 
     input_dir = os.path.join(tmpdir, "input_dir")
@@ -606,7 +606,7 @@ def test_data_processing_chunkify(monkeypatch, tmpdir):
     monkeypatch.setattr(data_processor_module, "_LightningSrcResolver", resolver)
     monkeypatch.setattr(data_processor_module, "_LightningTargetResolver", resolver)
 
-    chunkify(chunkify_fn, inputs, num_workers=1, output_dir=output_dir, chunk_size=2, input_dir=input_dir)
+    optimize(optimize_fn, inputs, num_workers=1, output_dir=output_dir, chunk_size=2, input_dir=input_dir)
 
     assert sorted(os.listdir(output_dir)) == ["chunk-0-0.bin", "chunk-0-1.bin", "chunk-0-2.bin", "index.json"]
 

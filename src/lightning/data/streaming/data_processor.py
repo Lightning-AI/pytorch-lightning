@@ -167,7 +167,7 @@ def _remove_target(input_dir: str, cache_dir: str, queue_in: Queue) -> None:
                 if os.path.exists(path):
                     os.remove(path)
 
-            elif os.path.exists(path) and "s3_" not in path:
+            elif os.path.exists(path) and "s3_connections" not in path:
                 os.remove(path)
 
 
@@ -465,15 +465,11 @@ class BaseWorker:
             self._current_item = self.items[index]
             item_data_or_generator = self.data_recipe.prepare_item(self._current_item)
             if isinstance(item_data_or_generator, types.GeneratorType):
-                while True:
-                    try:
-                        item_data = next(item_data_or_generator)
-                        if item_data is not None:
-                            chunk_filepath = self.cache._add_item(self._index_counter, item_data)
-                            self._try_upload(chunk_filepath)
-                            self._index_counter += 1
-                    except StopIteration:
-                        break
+                for item_data in item_data_or_generator:
+                    if item_data is not None:
+                        chunk_filepath = self.cache._add_item(self._index_counter, item_data)
+                        self._try_upload(chunk_filepath)
+                        self._index_counter += 1
             elif item_data_or_generator is not None:
                 chunk_filepath = self.cache._add_item(self._index_counter, item_data_or_generator)
                 self._try_upload(chunk_filepath)
