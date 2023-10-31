@@ -3,6 +3,9 @@ from typing import Any, List, Dict, Tuple
 
 
 def _pack_greedily(items: List[Any], weights: List[int], num_bins: int) -> Tuple[Dict[int, List[Any]], Dict[int, int]]:
+    """Greedily pack items with given weights into bins such that the total weight of each bin is roughly equally
+    distributed among all bins."""
+
     if len(items) != len(weights):
         raise ValueError(f"Items and weights must have the same length, got {len(items)} and {len(weights)}.")
     if any(w <= 0 for w in weights):
