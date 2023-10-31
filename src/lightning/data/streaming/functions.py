@@ -39,7 +39,7 @@ class LambdaDataTransformRecipe(DataTransformRecipe):
 class LambdaDataChunkRecipe(DataChunkRecipe):
     def __init__(
         self,
-        fn: Callable[[str, Any], None],
+        fn: Callable[[Any], None],
         inputs: List[Any],
         chunk_size: Optional[int],
         chunk_bytes: Optional[int],

@@ -672,7 +672,7 @@ class DataProcessor:
         num_downloaders: Optional[int] = None,
         delete_cached_files: bool = True,
         src_resolver: Optional[Callable[[str], Optional[str]]] = None,
-        fast_dev_run: Optional[bool] = None,
+        fast_dev_run: Optional[Union[bool, int]] = None,
         remote_input_dir: Optional[str] = None,
         remote_output_dir: Optional[Union[str, PrettyDirectory]] = None,
         random_seed: Optional[int] = 42,
@@ -800,6 +800,7 @@ class DataProcessor:
                 w.join(0)
 
         print("Workers are finished.")
+        assert isinstance(self.remote_output_dir, str)
         data_recipe._done(self.delete_cached_files, self.remote_output_dir)
         print("Finished data processing!")
 
