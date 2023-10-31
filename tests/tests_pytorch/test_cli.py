@@ -1471,8 +1471,8 @@ def test_tensorboard_logger_init_args():
     _test_logger_init_args(
         "TensorBoardLogger",
         init={
-            "save_dir": "tb",   # Resolve from TensorBoardLogger.__init
-            "comment": "tb"  # Resolve from FabricTensorBoardLogger.experiment SummaryWriter local import
+            "save_dir": "tb",  # Resolve from TensorBoardLogger.__init
+            "comment": "tb",  # Resolve from FabricTensorBoardLogger.experiment SummaryWriter local import
         },
         unresolved={},
     )
