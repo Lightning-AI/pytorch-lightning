@@ -15,12 +15,35 @@ import os
 from datetime import datetime
 from types import GeneratorType
 from typing import Any, Callable, List, Optional, Sequence, Union
-
-from lightning.data.streaming.constants import _LIGHTNING_CLOUD_GREATER_EQUAL_0_5_46
+from pathlib import Path
+from lightning.data.streaming.constants import _LIGHTNING_CLOUD_GREATER_EQUAL_0_5_46, _TORCH_GREATER_EQUAL_2_1_0
 from lightning.data.streaming.data_processor import DataChunkRecipe, DataProcessor, DataTransformRecipe, PrettyDirectory
 
 if _LIGHTNING_CLOUD_GREATER_EQUAL_0_5_46:
     from lightning_cloud.resolver import _execute, _LightningSrcResolver
+
+if _TORCH_GREATER_EQUAL_2_1_0:
+    from torch.utils._pytree import PyTree, tree_flatten
+
+
+def _get_input_dir(inputs: List[Any]) -> str:
+    flattened_item, _ = tree_flatten(inputs[0])
+
+    indexed_paths = {
+        index: element
+        for index, element in enumerate(flattened_item)
+        if isinstance(element, str) and os.path.exists(element)
+    }
+
+    if len(indexed_paths) == 0:
+        raise ValueError(f"The provided item {inputs[0]} didn't contain any filepaths.")
+
+    absolute_path = str(Path(indexed_paths[0]).resolve())
+
+    if indexed_paths[0] != absolute_path:
+        raise ValueError("The provided path should be absolute.")
+
+    return "/" + os.path.join(*str(absolute_path).split("/")[:4])
 
 
 class LambdaDataTransformRecipe(DataTransformRecipe):
@@ -94,13 +117,15 @@ def map(
                 " HINT: You can either use `/teamspace/s3_connections/...` or `/teamspace/datasets/...`."
             )
 
+        inputs = inputs() if callable(inputs) else inputs
         data_processor = DataProcessor(
             num_workers=num_workers or os.cpu_count(),
             remote_output_dir=PrettyDirectory(output_dir, remote_output_dir),
             fast_dev_run=fast_dev_run,
             version=None,
+            input_dir=_get_input_dir(inputs)
         )
-        return data_processor.run(LambdaDataTransformRecipe(fn, inputs() if callable(inputs) else inputs))
+        return data_processor.run(LambdaDataTransformRecipe(fn, inputs))
     return _execute(
         f"data-prep-map-{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}",
         num_nodes,
@@ -130,16 +155,26 @@ def chunkify(
         raise ValueError("Either `chunk_size` or `chunk_bytes` needs to be defined.")
 
     if num_nodes is None or int(os.getenv("DATA_OPTIMIZER_NUM_NODES", 0)) > 0:
+        remote_output_dir = _LightningSrcResolver()(output_dir)
+
+        if remote_output_dir is None or "cloudspaces" in remote_output_dir:
+            raise ValueError(
+                f"The provided `output_dir` isn't valid. Found {output_dir}."
+                " HINT: You can either use `/teamspace/s3_connections/...` or `/teamspace/datasets/...`."
+            )
+
+        inputs = inputs() if callable(inputs) else inputs
         data_processor = DataProcessor(
             name=name or datetime.now().strftime("%Y-%m-%d_%H-%M-%S"),
             num_workers=num_workers or os.cpu_count(),
-            remote_output_dir=output_dir,
+            remote_output_dir=PrettyDirectory(output_dir, remote_output_dir),
             fast_dev_run=fast_dev_run,
+            input_dir=_get_input_dir(inputs)
         )
         return data_processor.run(
             LambdaDataChunkRecipe(
                 fn,
-                inputs() if callable(inputs) else inputs,
+                inputs,
                 chunk_size=chunk_size,
                 chunk_bytes=chunk_bytes,
                 compression=compression,
