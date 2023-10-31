@@ -161,10 +161,11 @@ def _remove_target(input_dir: str, cache_dir: str, queue_in: Queue) -> None:
         # 3. Iterate through the paths and delete them sequentially.
         for path in paths:
             if input_dir:
-                cached_filepath = path.replace(input_dir, cache_dir)
+                if not path.startswith(cache_dir):
+                    path = path.replace(input_dir, cache_dir)
 
-                if os.path.exists(cached_filepath):
-                    os.remove(cached_filepath)
+                if os.path.exists(path):
+                    os.remove(path)
 
             elif os.path.exists(path) and "s3_" not in path:
                 os.remove(path)
@@ -558,7 +559,7 @@ class DataRecipe:
     def _setup(self, name: Optional[str]) -> None:
         self._name = name
 
-    def _done(self, delete_cached_files: bool, remote_output_dir: str) -> None:
+    def _done(self, delete_cached_files: bool, remote_output_dir: Any) -> None:
         pass
 
 
@@ -588,7 +589,6 @@ class DataChunkRecipe(DataRecipe):
 
     def _done(self, delete_cached_files: bool, remote_output_dir: str) -> None:
         num_nodes = _get_num_nodes()
-        assert self._name
         cache_dir = _get_cache_dir(self._name)
 
         chunks = [file for file in os.listdir(cache_dir) if file.endswith(".bin")]
@@ -802,7 +802,8 @@ class DataProcessor:
                 w.join(0)
 
         print("Workers are finished.")
-        assert isinstance(self.remote_output_dir, str)
+        if self.remote_output_dir:
+            assert isinstance(self.remote_output_dir, str)
         data_recipe._done(self.delete_cached_files, self.remote_output_dir)
         print("Finished data processing!")
 

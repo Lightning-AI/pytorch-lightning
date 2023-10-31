@@ -91,6 +91,7 @@ def map(
     fast_dev_run: Union[bool, int] = False,
     num_nodes: Optional[int] = None,
     machine: Optional[str] = None,
+    input_dir: Optional[str] = None,
 ) -> None:
     """This function map a callbable over a collection of files possibly in a distributed way.
 
@@ -124,7 +125,7 @@ def map(
             remote_output_dir=PrettyDirectory(output_dir, remote_output_dir),
             fast_dev_run=fast_dev_run,
             version=None,
-            input_dir=_get_input_dir(inputs),
+            input_dir=input_dir or _get_input_dir(inputs),
         )
         return data_processor.run(LambdaDataTransformRecipe(fn, inputs))
     return _execute(
@@ -146,6 +147,7 @@ def chunkify(
     fast_dev_run: bool = False,
     num_nodes: Optional[int] = None,
     machine: Optional[str] = None,
+    input_dir: Optional[str] = None,
 ) -> None:
     """This function converts a dataset into chunks possibly in a distributed way."""
 
@@ -166,11 +168,11 @@ def chunkify(
 
         inputs = inputs() if callable(inputs) else inputs
         data_processor = DataProcessor(
-            name=name or datetime.now().strftime("%Y-%m-%d_%H-%M-%S"),
+            name=name,
             num_workers=num_workers or os.cpu_count(),
             remote_output_dir=PrettyDirectory(output_dir, remote_output_dir),
             fast_dev_run=fast_dev_run,
-            input_dir=_get_input_dir(inputs),
+            input_dir=input_dir or _get_input_dir(inputs),
         )
         return data_processor.run(
             LambdaDataChunkRecipe(
