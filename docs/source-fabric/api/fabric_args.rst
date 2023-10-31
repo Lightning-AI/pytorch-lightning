@@ -149,6 +149,8 @@ An example is the weights quantization plugin Bitsandbytes for 4-bit and 8-bit:
 
 .. code-block:: python
 
+    from lightning.fabric.plugins import BitsandbytesPrecision
+
     precision = BitsandbytesPrecision(mode="nf4-dq", dtype=torch.bfloat16)
     fabric = Fabric(plugins=precision)
 
