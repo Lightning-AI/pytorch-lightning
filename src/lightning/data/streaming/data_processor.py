@@ -213,6 +213,20 @@ def _associated_items_to_workers(
     return [worker_items[worker_id] for worker_id in worker_ids_this_node]
 
 
+def _get_item_filesizes(items: List[Any], base_path: str = "") -> List[int]:
+    """Computes the total size in bytes of all file paths for every datastructure in the given list."""
+    item_sizes = []
+    for item in items:
+        flattened_item, spec = tree_flatten(item)
+
+        num_bytes = 0
+        for index, element in enumerate(flattened_item):
+            if isinstance(element, str) and element.startswith(base_path) and os.path.exists(element):
+                num_bytes += os.path.getsize(element)
+        item_sizes.append(num_bytes)
+    return item_sizes
+
+
 class BaseWorker:
     def __init__(
         self,
@@ -716,15 +730,8 @@ class DataProcessor:
             raise ValueError("The setup_fn should return a list of item metadata.")
 
         # TODO: Only do this on node 0, and broadcast the item sizes to the other nodes.
-        item_sizes = []
-        for item in user_items:
-            flattened_item, spec = tree_flatten(item)
-
-            num_bytes = 0
-            for index, element in enumerate(flattened_item):
-                if isinstance(element, str) and element.startswith(self.input_dir or "") and os.path.exists(element):
-                    num_bytes += os.path.getsize(element)
-            item_sizes.append(num_bytes)
+        # TODO: what if item sizes contains 0's?
+        item_sizes = _get_item_filesizes(user_items, base_path=self.input_dir)
 
         # Associate the items to the workers based on num_nodes and node_rank
         workers_user_items = _associated_items_to_workers(
