@@ -90,7 +90,7 @@ def map(
 
             if not has_printed:
                 cloud_url = get_lightning_cloud_url()
-                job_url = f"{cloud_url}/{studio._org.name}/{studio._teamspace.name}"
+                job_url = f"{cloud_url}/{studio._owner.name}/{studio._teamspace.name}"
                 job_url += f"/studios/{studio.name}/app?app_id=data-prep"
                 print(f"Find your job at {job_url}")
                 has_printed = True
