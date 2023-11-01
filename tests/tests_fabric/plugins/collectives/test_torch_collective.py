@@ -230,8 +230,8 @@ def _test_distributed_collectives_fn(strategy, collective):
     torch.testing.assert_close(out, expected)
 
 
-@skip_distributed_unavailable
 @pytest.mark.skip(reason="test hangs too often")
+@skip_distributed_unavailable
 @pytest.mark.parametrize(
     "n", [1, pytest.param(2, marks=[RunIf(skip_windows=True), pytest.mark.xfail(raises=TimeoutError, strict=False)])]
 )
