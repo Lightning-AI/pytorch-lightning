@@ -48,7 +48,7 @@ logger = logging.Logger(__name__)
 
 def _get_cache_folder() -> str:
     """Returns the cache folder."""
-    return os.getenv("DATA_OPTIMIZER_CACHE_FOLDER", "/cache")
+    return os.getenv("DATA_OPTIMIZER_CACHE_FOLDER", "/cache/chunks")
 
 
 def _get_num_nodes() -> int:

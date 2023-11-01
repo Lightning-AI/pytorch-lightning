@@ -92,6 +92,10 @@ def map(
     num_nodes: Optional[int] = None,
     machine: Optional[str] = None,
     input_dir: Optional[str] = None,
+    name: Optional[str] = None,
+    num_downloaders: Optional[int] = None,
+    versioning: Optional[bool] = False,
+    empty_on_start: Optional[bool] = False,
 ) -> None:
     """This function map a callbable over a collection of files possibly in a distributed way.
 
@@ -104,7 +108,10 @@ def map(
         fast_dev_run: Whether to use process only a sub part of the inputs
         num_nodes: When doing remote execution, the number of nodes to use.
         machine: When doing remote execution, the machine to use.
-
+        name: The name of the processing.
+        num_downloaders: The number of downloaders to use.
+        versioning: Whether to add versionning for each execution.
+        empty_on_start: Whether to delete all data on start.
     """
     if not isinstance(inputs, Sequence):
         raise ValueError(f"The provided inputs should be non empty sequence. Found {inputs}.")
@@ -127,6 +134,8 @@ def map(
             fast_dev_run=fast_dev_run,
             version=None,
             input_dir=input_dir or _get_input_dir(inputs),
+            name=name,
+            num_downloaders=num_downloaders,
         )
         return data_processor.run(LambdaDataTransformRecipe(fn, inputs))
     return _execute(
@@ -149,6 +158,8 @@ def optimize(
     num_nodes: Optional[int] = None,
     machine: Optional[str] = None,
     input_dir: Optional[str] = None,
+    name: Optional[str] = None,
+    num_downloaders: Optional[int] = None,
 ) -> None:
     """This function converts a dataset into chunks possibly in a distributed way.
 
@@ -164,7 +175,8 @@ def optimize(
         fast_dev_run: Whether to use process only a sub part of the inputs
         num_nodes: When doing remote execution, the number of nodes to use.
         machine: When doing remote execution, the machine to use.
-
+        name: The name of the processing.
+        num_downloaders: The number of downloaders to use.
     """
     if not isinstance(inputs, Sequence):
         raise ValueError(f"The provided inputs should be non empty sequence. Found {inputs}.")
@@ -190,6 +202,8 @@ def optimize(
             remote_output_dir=PrettyDirectory(output_dir, remote_output_dir),
             fast_dev_run=fast_dev_run,
             input_dir=input_dir or _get_input_dir(inputs),
+            name=name,
+            num_downloaders=num_downloaders,
         )
         return data_processor.run(
             LambdaDataChunkRecipe(
