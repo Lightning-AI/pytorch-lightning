@@ -168,7 +168,9 @@ class CSVLogger(Logger):
             full_path = d["name"]
             name = os.path.basename(full_path)
             if _is_dir(self._fs, full_path) and name.startswith("version_"):
-                existing_versions.append(int(name.split("_")[1]))
+                dir_ver = name.split("_")[1]
+                if dir_ver.isdigit():
+                    existing_versions.append(int(dir_ver))
 
         if len(existing_versions) == 0:
             return 0
