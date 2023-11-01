@@ -304,7 +304,8 @@ class TensorBoardLogger(Logger):
             bn = os.path.basename(d)
             if _is_dir(self._fs, d) and bn.startswith("version_"):
                 dir_ver = bn.split("_")[1].replace("/", "")
-                existing_versions.append(int(dir_ver))
+                if dir_ver.isdigit():
+                    existing_versions.append(int(dir_ver))
         if len(existing_versions) == 0:
             return 0
 
