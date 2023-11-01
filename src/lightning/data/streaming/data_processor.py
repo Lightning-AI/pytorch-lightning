@@ -814,8 +814,6 @@ class DataProcessor:
             for w in self.workers:
                 w.join(0)
 
-        print(data_recipe)
-
         print("Workers are finished.")
         if self.remote_output_dir:
             assert isinstance(self.remote_output_dir, str)
