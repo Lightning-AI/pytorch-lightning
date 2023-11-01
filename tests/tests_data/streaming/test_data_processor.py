@@ -438,11 +438,12 @@ def test_data_processsor_nlp(tmpdir, monkeypatch):
     seed_everything(42)
 
     monkeypatch.setenv("DATA_OPTIMIZER_CACHE_FOLDER", str(tmpdir))
+    tmpdir.mkdir("dummy2")
 
-    with open(os.path.join(tmpdir, "dummy.txt"), "w") as f:
+    with open(os.path.join(tmpdir / "dummy2", "dummy.txt"), "w") as f:
         f.write("Hello World !")
 
-    data_processor = DataProcessor(name="dummy2", input_dir=tmpdir, num_workers=1, num_downloaders=1)
+    data_processor = DataProcessor(name="name", input_dir=tmpdir, num_workers=1, num_downloaders=1)
     data_processor.run(TextTokenizeRecipe(chunk_size=1024 * 11))
 
 
