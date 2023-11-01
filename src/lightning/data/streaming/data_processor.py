@@ -664,8 +664,8 @@ class PrettyDirectory:
 class DataProcessor:
     def __init__(
         self,
+        input_dir: str,
         name: Optional[str] = None,
-        input_dir: Optional[str] = None,
         num_workers: Optional[int] = None,
         num_downloaders: Optional[int] = None,
         delete_cached_files: bool = True,
@@ -680,8 +680,8 @@ class DataProcessor:
         training faster.
 
         Arguments:
-            name: The name of your dataset.
             input_dir: The path to where the data are stored.
+            name: The name of your dataset.
             num_workers: The number of worker threads to use.
             num_downloaders: The number of file downloaders to use.
             delete_cached_files: Whether to delete the cached files.
@@ -691,8 +691,8 @@ class DataProcessor:
             random_seed: The random seed to be set before shuffling the data.
 
         """
+        self.input_dir = str(input_dir)
         self.name = name
-        self.input_dir = str(input_dir) if input_dir else None
         self.num_workers = num_workers or (1 if fast_dev_run else (os.cpu_count() or 1) * 4)
         self.num_downloaders = num_downloaders or 1
         self.delete_cached_files = delete_cached_files
@@ -705,14 +705,13 @@ class DataProcessor:
         self.error_queue: Queue = Queue()
         self.stop_queues: List[Queue] = []
         self.remote_input_dir = (
-            str(remote_input_dir)
-            if remote_input_dir is not None
-            else ((self.src_resolver(str(input_dir)) if input_dir else None) if self.src_resolver else None)
+            str(remote_input_dir) if remote_input_dir is not None else self.src_resolver(self.input_dir)
         )
         self.remote_output_dir = (
             remote_output_dir
             if remote_output_dir is not None
-            else (self.dst_resolver(name, version=version) if self.dst_resolver else None)
+            # TODO: dst_resolver doesn't take version as an argument???
+            else self.dst_resolver(name, version=version)
         )
         if self.remote_output_dir:
             self.name = self._broadcast_object(self.name)
