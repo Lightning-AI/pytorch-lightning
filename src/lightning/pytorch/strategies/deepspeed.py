@@ -327,6 +327,7 @@ class DeepSpeedStrategy(DDPStrategy):
         assert isinstance(config, dict) or config is None
         return config
 
+    @override
     def setup_distributed(self) -> None:
         if not isinstance(self.accelerator, CUDAAccelerator):
             raise RuntimeError(

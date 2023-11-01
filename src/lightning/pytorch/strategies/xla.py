@@ -185,6 +185,7 @@ class XLAStrategy(DDPStrategy):
         dataloader.batch_sampler = getattr(dataloader._loader, "batch_sampler", None)
         return dataloader
 
+    @override
     def configure_ddp(self) -> None:
         pass
 
@@ -264,6 +265,7 @@ class XLAStrategy(DDPStrategy):
 
         return output
 
+    @override
     def setup_distributed(self) -> None:
         assert self.parallel_devices is not None
         if _using_pjrt() and len(self.parallel_devices) == 1:
@@ -277,6 +279,7 @@ class XLAStrategy(DDPStrategy):
         self._launched = True
         rank_zero_only.rank = self.global_rank
 
+    @override
     def set_world_ranks(self) -> None:
         # accessing global_rank will initialize the XLA computation client. since this is called outside of the spawned
         # processes (by the accelerator connector), we cannot run the code that would normally be here.
