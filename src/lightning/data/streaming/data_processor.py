@@ -86,7 +86,20 @@ def _get_cache_data_dir(name: Optional[str]) -> str:
 
 
 def _get_s3_client() -> Any:
-    return boto3.client("s3", config=botocore.config.Config(retries={"max_attempts": 1000, "mode": "standard"}))
+    from botocore.credentials import InstanceMetadataProvider
+    from botocore.utils import InstanceMetadataFetcher
+
+    provider = InstanceMetadataProvider(iam_role_fetcher=InstanceMetadataFetcher(timeout=1000, num_attempts=2))
+
+    credentials = provider.load()
+
+    return boto3.client(
+        "s3",
+        aws_access_key_id=credentials.access_key,
+        aws_secret_access_key=credentials.secret_key,
+        aws_session_token=credentials.token,
+        config=botocore.config.Config(retries={"max_attempts": 1000, "mode": "standard"}),
+    )
 
 
 def _wait_for_file_to_exist(s3: Any, obj: parse.ParseResult, sleep_time: int = 2) -> Any:
