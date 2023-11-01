@@ -20,6 +20,7 @@ from collections import OrderedDict
 from contextlib import contextmanager
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Dict, Generator, List, Mapping, Optional, Tuple, Union
+from typing_extensions import override
 
 import torch
 from torch.nn import Module
@@ -341,6 +342,7 @@ class DeepSpeedStrategy(DDPStrategy):
             self._format_config()
             self._config_initialized = True
 
+    @override
     def setup(self, trainer: "pl.Trainer") -> None:
         assert self.accelerator is not None
         self.accelerator.setup(trainer)
@@ -376,10 +378,12 @@ class DeepSpeedStrategy(DDPStrategy):
         os.environ["WORLD_SIZE"] = str(self.world_size)
         os.environ["LOCAL_RANK"] = str(self.local_rank)
 
+    @override
     @property
     def restore_checkpoint_after_setup(self) -> bool:
         return True
 
+    @override
     def _setup_model_and_optimizers(
         self, model: Module, optimizers: List[Optimizer]
     ) -> Tuple["deepspeed.DeepSpeedEngine", List[Optimizer]]:
@@ -502,6 +506,7 @@ class DeepSpeedStrategy(DDPStrategy):
             self.lr_scheduler_configs = [lr_scheduler]
         self.model = model
 
+    @override
     @contextmanager
     def tensor_init_context(self, empty_init: Optional[bool] = None) -> Generator[None, None, None]:
         if self.zero_stage_3:
@@ -514,6 +519,7 @@ class DeepSpeedStrategy(DDPStrategy):
         with super().tensor_init_context(empty_init=empty_init):
             yield
 
+    @override
     @contextmanager
     def model_sharded_context(self) -> Generator[None, None, None]:
         import deepspeed
@@ -575,6 +581,7 @@ class DeepSpeedStrategy(DDPStrategy):
     def distributed_sampler_kwargs(self) -> Dict[str, int]:
         return {"num_replicas": self.world_size, "rank": self.global_rank}
 
+    @override
     def setup_optimizers(self, trainer: "pl.Trainer") -> None:
         """Creates optimizers and schedulers.
 
@@ -591,6 +598,7 @@ class DeepSpeedStrategy(DDPStrategy):
         self.optimizers = []
         self.lr_scheduler_configs = []
 
+    @override
     @property
     def handles_gradient_accumulation(self) -> bool:
         """Whether the strategy handles gradient accumulation internally."""
@@ -732,6 +740,7 @@ class DeepSpeedStrategy(DDPStrategy):
     def _multi_device(self) -> bool:
         return self.num_processes > 1 or self.num_nodes > 1
 
+    @override
     def save_checkpoint(self, checkpoint: Dict, filepath: _PATH, storage_options: Optional[Any] = None) -> None:
         """Save model/training states as a checkpoint file through state-dump and file-write.
 
@@ -768,6 +777,7 @@ class DeepSpeedStrategy(DDPStrategy):
         checkpoint = {k: v for k, v in checkpoint.items() if k not in _exclude_keys}
         self.deepspeed_engine.save_checkpoint(filepath, client_state=checkpoint, tag="checkpoint")
 
+    @override
     def load_checkpoint(self, checkpoint_path: _PATH) -> Dict[str, Any]:
         if self.load_full_weights and self.zero_stage_3:
             # Broadcast to ensure we load from the rank 0 checkpoint
@@ -794,6 +804,7 @@ class DeepSpeedStrategy(DDPStrategy):
             )
         return client_state
 
+    @override
     @property
     def lightning_restore_optimizer(self) -> bool:
         assert self.lightning_module is not None
@@ -806,6 +817,7 @@ class DeepSpeedStrategy(DDPStrategy):
             )
         return False
 
+    @override
     def load_model_state_dict(self, checkpoint: Mapping[str, Any]) -> None:
         # override to do nothing, deepspeed engine already loaded the weights in `load_checkpoint()`
         if self.load_full_weights and self.zero_stage_3:
@@ -859,10 +871,12 @@ class DeepSpeedStrategy(DDPStrategy):
 
         load(self.lightning_module, prefix="")
 
+    @override
     def load_optimizer_state_dict(self, checkpoint: Mapping[str, Any]) -> None:
         # Override to do nothing, the deepspeed engine already loaded the states in `load_checkpoint()`
         pass
 
+    @override
     @classmethod
     def register_strategies(cls, strategy_registry: _StrategyRegistry) -> None:
         strategy_registry.register("deepspeed", cls, description="Default DeepSpeed Strategy")

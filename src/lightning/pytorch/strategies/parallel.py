@@ -14,6 +14,7 @@
 from abc import ABC, abstractmethod
 from contextlib import contextmanager
 from typing import Any, Dict, Generator, List, Optional
+from typing_extensions import override
 
 import torch
 from torch import Tensor
@@ -42,6 +43,7 @@ class ParallelStrategy(Strategy, ABC):
         self.cluster_environment: Optional[ClusterEnvironment] = cluster_environment
         self._layer_sync: Optional[LayerSync] = None
 
+    @override
     @property
     @abstractmethod
     def root_device(self) -> torch.device:
@@ -63,6 +65,7 @@ class ParallelStrategy(Strategy, ABC):
     def world_size(self) -> int:
         return self.cluster_environment.world_size() if self.cluster_environment is not None else 1
 
+    @override
     @property
     def is_global_zero(self) -> bool:
         return self.global_rank == 0
@@ -82,10 +85,12 @@ class ParallelStrategy(Strategy, ABC):
             "rank": self.global_rank,
         }
 
+    @override
     def all_gather(self, tensor: Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> Tensor:
         """Perform a all_gather on all processes."""
         return _all_gather_ddp_if_available(tensor, group=group, sync_grads=sync_grads)
 
+    @override
     def reduce_boolean_decision(self, decision: bool, all: bool = True) -> bool:
         """Reduces a boolean decision over distributed processes. By default is analagous to ``all`` from the standard
         library, returning ``True`` only if all input decisions evaluate to ``True``. If ``all`` is set to ``False``,
@@ -121,6 +126,7 @@ class ParallelStrategy(Strategy, ABC):
         else:
             yield None
 
+    @override
     def teardown(self) -> None:
         assert self.cluster_environment is not None
         self.cluster_environment.teardown()

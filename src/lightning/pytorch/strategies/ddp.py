@@ -15,6 +15,7 @@ import logging
 from contextlib import nullcontext
 from datetime import timedelta
 from typing import TYPE_CHECKING, Any, Callable, Dict, List, Literal, Optional, Union
+from typing_extensions import override
 
 import torch
 import torch.distributed
@@ -110,6 +111,7 @@ class DDPStrategy(ParallelStrategy):
         )
         return True
 
+    @override
     @property
     def root_device(self) -> torch.device:
         assert self.parallel_devices is not None
@@ -136,6 +138,7 @@ class DDPStrategy(ParallelStrategy):
     def process_group_backend(self) -> Optional[str]:
         return self._process_group_backend
 
+    @override
     def _configure_launcher(self) -> None:
         assert self.cluster_environment is not None
         if self._start_method == "popen":
@@ -143,10 +146,12 @@ class DDPStrategy(ParallelStrategy):
         else:
             self._launcher = _MultiProcessingLauncher(self, start_method=self._start_method)
 
+    @override
     def setup_environment(self) -> None:
         self.setup_distributed()
         super().setup_environment()
 
+    @override
     def setup(self, trainer: "pl.Trainer") -> None:
         assert self.accelerator is not None
         self.accelerator.setup(trainer)
@@ -180,6 +185,7 @@ class DDPStrategy(ParallelStrategy):
             assert self.model is not None
             _sync_module_states(self.model)
 
+    @override
     def _setup_model(self, model: Module) -> DistributedDataParallel:
         """Wraps the model into a :class:`~torch.nn.parallel.distributed.DistributedDataParallel` module."""
         device_ids = self.determine_ddp_device_ids()
@@ -245,6 +251,7 @@ class DDPStrategy(ParallelStrategy):
             period=self._model_averaging_period, warmup_steps=self._ddp_comm_state.start_localSGD_iter
         )
 
+    @override
     def optimizer_step(
         self,
         optimizer: Optimizer,
@@ -282,6 +289,7 @@ class DDPStrategy(ParallelStrategy):
             return None
         return [self.root_device.index]
 
+    @override
     def barrier(self, *args: Any, **kwargs: Any) -> None:
         if not _distributed_is_initialized():
             return
@@ -291,6 +299,7 @@ class DDPStrategy(ParallelStrategy):
         else:
             torch.distributed.barrier()
 
+    @override
     def broadcast(self, obj: TBroadcast, src: int = 0) -> TBroadcast:
         if not _distributed_is_initialized():
             return obj
@@ -299,6 +308,7 @@ class DDPStrategy(ParallelStrategy):
         torch.distributed.broadcast_object_list(obj, src, group=_group.WORLD)
         return obj[0]
 
+    @override
     def pre_backward(self, closure_loss: Tensor) -> None:
         """Run before precision plugin executes backward."""
         if not isinstance(self.model, DistributedDataParallel):
@@ -307,11 +317,13 @@ class DDPStrategy(ParallelStrategy):
         if not self.lightning_module.automatic_optimization:
             prepare_for_backward(self.model, closure_loss)
 
+    @override
     def model_to_device(self) -> None:
         log.debug(f"{self.__class__.__name__}: moving model to device [{self.root_device}]...")
         assert self.model is not None
         self.model.to(self.root_device)
 
+    @override
     def reduce(
         self, tensor: Tensor, group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = "mean"
     ) -> Tensor:
@@ -331,6 +343,7 @@ class DDPStrategy(ParallelStrategy):
             return _sync_ddp_if_available(tensor, group, reduce_op=reduce_op)
         return tensor
 
+    @override
     @classmethod
     def register_strategies(cls, strategy_registry: _StrategyRegistry) -> None:
         entries = (
@@ -366,6 +379,7 @@ class DDPStrategy(ParallelStrategy):
                 start_method=start_method,
             )
 
+    @override
     def on_exception(self, exception: BaseException) -> None:
         _augment_message(
             exception,
@@ -378,6 +392,7 @@ class DDPStrategy(ParallelStrategy):
             ),
         )
 
+    @override
     def teardown(self) -> None:
         log.debug(f"{self.__class__.__name__}: tearing down strategy")
 
@@ -406,12 +421,15 @@ class DDPStrategy(ParallelStrategy):
 
 
 class _DDPForwardRedirection(_ForwardRedirection):
+    
+    @override
     def on_after_inner_forward(self, wrapper_module: Module, original_module: "pl.LightningModule") -> None:
         # In manual_optimization, we need to prevent DDP reducer as
         # it is done manually in `LightningModule.manual_backward`
         if isinstance(wrapper_module, DistributedDataParallel) and not original_module.automatic_optimization:
             wrapper_module.require_backward_grad_sync = False
 
+    @override
     def on_after_outer_forward(self, wrapper_module: Module, original_module: "pl.LightningModule") -> None:
         if isinstance(wrapper_module, DistributedDataParallel) and not original_module.automatic_optimization:
             wrapper_module.require_backward_grad_sync = True

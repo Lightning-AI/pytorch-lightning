@@ -14,6 +14,7 @@
 import io
 import os
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Union
+from typing_extensions import override
 
 import torch
 from torch import Tensor
@@ -69,6 +70,7 @@ class XLAStrategy(DDPStrategy):
         self._launched = False
         self._sync_module_states = sync_module_states
 
+    @override
     @property  # type: ignore[override]
     def checkpoint_io(self) -> Union[XLACheckpointIO, _WrappingCheckpointIO]:
         plugin = self._checkpoint_io
@@ -77,12 +79,14 @@ class XLAStrategy(DDPStrategy):
             return plugin
         return XLACheckpointIO()
 
+    @override
     @checkpoint_io.setter
     def checkpoint_io(self, io: Optional[Union[XLACheckpointIO, _WrappingCheckpointIO]]) -> None:
         if io is not None and not isinstance(io, (XLACheckpointIO, _WrappingCheckpointIO)):
             raise TypeError(f"The XLA strategy can only work with the `XLACheckpointIO` plugin, found {io}")
         self._checkpoint_io = io
 
+    @override
     @property  # type: ignore[override]
     def precision_plugin(self) -> XLAPrecision:
         plugin = self._precision_plugin
@@ -91,12 +95,14 @@ class XLAStrategy(DDPStrategy):
             return plugin
         return XLAPrecision()
 
+    @override
     @precision_plugin.setter
     def precision_plugin(self, precision_plugin: Optional[XLAPrecision]) -> None:
         if precision_plugin is not None and not isinstance(precision_plugin, XLAPrecision):
             raise TypeError(f"The XLA strategy can only work with the `XLAPrecision` plugin, found {precision_plugin}")
         self._precision_plugin = precision_plugin
 
+    @override
     @property
     def root_device(self) -> torch.device:
         if not self._launched:
@@ -121,9 +127,11 @@ class XLAStrategy(DDPStrategy):
     def world_size(self) -> int:
         return super().world_size if self._launched else 1
 
+    @override
     def _configure_launcher(self) -> None:
         self._launcher = _XLALauncher(self)
 
+    @override
     def setup(self, trainer: "pl.Trainer") -> None:
         assert self.accelerator
         self.accelerator.setup(trainer)
@@ -150,6 +158,7 @@ class XLAStrategy(DDPStrategy):
             self.setup_optimizers(trainer)
             _optimizers_to_device(self.optimizers, self.root_device)
 
+    @override
     def _setup_model(self, model: Module) -> Module:  # type: ignore
         return model
 
@@ -157,6 +166,7 @@ class XLAStrategy(DDPStrategy):
     def distributed_sampler_kwargs(self) -> Dict[str, int]:
         return {"num_replicas": self.world_size, "rank": self.global_rank}
 
+    @override
     def process_dataloader(self, dataloader: object) -> "MpDeviceLoader":
         from torch_xla.distributed.parallel_loader import MpDeviceLoader
 
@@ -173,10 +183,12 @@ class XLAStrategy(DDPStrategy):
     def configure_ddp(self) -> None:
         pass
 
+    @override
     def model_to_device(self) -> None:
         assert self.model is not None
         self.model = self.model.to(self.root_device)
 
+    @override
     def barrier(self, name: Optional[str] = None, *args: Any, **kwargs: Any) -> None:
         if not self._launched:
             return
@@ -188,6 +200,7 @@ class XLAStrategy(DDPStrategy):
             name = ""
         xm.rendezvous(name)
 
+    @override
     def broadcast(self, obj: TBroadcast, src: int = 0) -> TBroadcast:
         if not self._launched:
             return obj
@@ -222,6 +235,7 @@ class XLAStrategy(DDPStrategy):
 
         return obj
 
+    @override
     def reduce(
         self, output: Union[Tensor, Any], group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = None
     ) -> Tensor:
@@ -264,9 +278,11 @@ class XLAStrategy(DDPStrategy):
         # instead it's done in `setup_distributed`
         pass
 
+    @override
     def on_train_batch_start(self, batch: Any, batch_idx: int) -> None:
         _pod_progress_bar_force_stdout(self.global_rank)
 
+    @override
     def save_checkpoint(
         self, checkpoint: Dict[str, Any], filepath: _PATH, storage_options: Optional[Any] = None
     ) -> None:
@@ -277,6 +293,7 @@ class XLAStrategy(DDPStrategy):
         # save on global rank zero only
         super().save_checkpoint(checkpoint, filepath, storage_options=storage_options)
 
+    @override
     def remove_checkpoint(self, filepath: _PATH) -> None:
         """Remove checkpoint filepath from the filesystem.
 
@@ -287,6 +304,7 @@ class XLAStrategy(DDPStrategy):
         if self.local_rank == 0:
             self.checkpoint_io.remove_checkpoint(filepath)
 
+    @override
     def all_gather(self, tensor: Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> Tensor:
         """Function to gather a tensor from several distributed processes.
 
@@ -316,11 +334,13 @@ class XLAStrategy(DDPStrategy):
         tensor = tensor.to(original_device)
         return tensor
 
+    @override
     def teardown(self) -> None:
         super().teardown()
         self._launched = False  # after the Trainer finishes, we aren't inside the spawned region
         os.environ.pop("PT_XLA_DEBUG", None)
 
+    @override
     @classmethod
     def register_strategies(cls, strategy_registry: _StrategyRegistry) -> None:
         strategy_registry.register("xla_debug", cls, description="XLA strategy with `debug` as True", debug=True)
