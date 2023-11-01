@@ -21,7 +21,7 @@ from lightning.data.streaming.constants import _LIGHTNING_CLOUD_GREATER_EQUAL_0_
 from lightning.data.streaming.data_processor import DataChunkRecipe, DataProcessor, DataTransformRecipe, Dir
 
 if _LIGHTNING_CLOUD_GREATER_EQUAL_0_5_46:
-    from lightning_cloud.resolver import _execute, _resolve_dir, _assert_dir_is_empty
+    from lightning_cloud.resolver import _execute, _resolve_dir, _assert_dir_is_empty, _assert_dir_has_index_file
 
 if _TORCH_GREATER_EQUAL_2_1_0:
     from torch.utils._pytree import tree_flatten
@@ -190,6 +190,8 @@ def optimize(
                 f"The provided `output_dir` isn't valid. Found {output_dir.path}."
                 " HINT: You can either use `/teamspace/s3_connections/...` or `/teamspace/datasets/...`."
             )
+
+        _assert_dir_has_index_file(output_dir)
 
         input_dir = _resolve_dir(_get_input_dir(inputs))
 
