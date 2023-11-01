@@ -573,6 +573,7 @@ class DataRecipe:
         self._name = name
 
     def _done(self, delete_cached_files: bool, remote_output_dir: Any) -> None:
+        print("HERE")
         pass
 
 
@@ -809,12 +810,12 @@ class DataProcessor:
                 if current_total == num_items:
                     break
 
-        num_nodes = _get_num_nodes()
-
         # TODO: Understand why it hangs.
-        if num_nodes == 1:
+        if _get_num_nodes() == 1:
             for w in self.workers:
                 w.join(0)
+
+        print(data_recipe)
 
         print("Workers are finished.")
         if self.remote_output_dir:
