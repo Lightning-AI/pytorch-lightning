@@ -229,6 +229,7 @@ class FSDPStrategy(ParallelStrategy):
             )
         self._precision_plugin = precision_plugin
 
+    @override
     @property
     def distributed_sampler_kwargs(self) -> Dict:
         return {"num_replicas": (self.num_nodes * self.num_processes), "rank": self.global_rank}

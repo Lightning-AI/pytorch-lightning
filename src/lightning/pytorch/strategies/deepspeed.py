@@ -577,6 +577,7 @@ class DeepSpeedStrategy(DDPStrategy):
         )
         self.model = model
 
+    @override
     @property
     def distributed_sampler_kwargs(self) -> Dict[str, int]:
         return {"num_replicas": self.world_size, "rank": self.global_rank}

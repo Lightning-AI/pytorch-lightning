@@ -130,6 +130,7 @@ class DDPStrategy(ParallelStrategy):
     def num_processes(self) -> int:
         return len(self.parallel_devices) if self.parallel_devices is not None else 0
 
+    @override
     @property
     def distributed_sampler_kwargs(self) -> Dict[str, Any]:
         return {"num_replicas": (self.num_nodes * self.num_processes), "rank": self.global_rank}

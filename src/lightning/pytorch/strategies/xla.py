@@ -111,18 +111,22 @@ class XLAStrategy(DDPStrategy):
 
         return xm.xla_device()
 
+    @override
     @property
     def global_rank(self) -> int:
         return super().global_rank if self._launched else 0
 
+    @override
     @property
     def local_rank(self) -> int:
         return super().local_rank if self._launched else 0
 
+    @override
     @property
     def node_rank(self) -> int:
         return super().node_rank if self._launched else 0
 
+    @override
     @property
     def world_size(self) -> int:
         return super().world_size if self._launched else 1
@@ -162,6 +166,7 @@ class XLAStrategy(DDPStrategy):
     def _setup_model(self, model: Module) -> Module:  # type: ignore
         return model
 
+    @override
     @property
     def distributed_sampler_kwargs(self) -> Dict[str, int]:
         return {"num_replicas": self.world_size, "rank": self.global_rank}
