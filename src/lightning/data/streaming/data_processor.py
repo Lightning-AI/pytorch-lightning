@@ -573,7 +573,6 @@ class DataRecipe:
         self._name = name
 
     def _done(self, delete_cached_files: bool, remote_output_dir: Any) -> None:
-        print("HERE")
         pass
 
 
@@ -822,6 +821,7 @@ class DataProcessor:
             assert isinstance(self.remote_output_dir, str)
         data_recipe._done(self.delete_cached_files, self.remote_output_dir)
         print("Finished data processing!")
+        os._exit(0)
 
     def _exit_on_error(self, error: str) -> None:
         for w in self.workers:
