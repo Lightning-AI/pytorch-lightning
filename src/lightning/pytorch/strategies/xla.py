@@ -14,11 +14,11 @@
 import io
 import os
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Union
-from typing_extensions import override
 
 import torch
 from torch import Tensor
 from torch.nn import Module
+from typing_extensions import override
 
 import lightning.pytorch as pl
 from lightning.fabric.accelerators.xla import _XLA_AVAILABLE, _XLA_GREATER_EQUAL_2_1, _using_pjrt

@@ -15,7 +15,6 @@ import logging
 from contextlib import nullcontext
 from datetime import timedelta
 from typing import TYPE_CHECKING, Any, Callable, Dict, List, Literal, Optional, Union
-from typing_extensions import override
 
 import torch
 import torch.distributed
@@ -23,6 +22,7 @@ from torch import Tensor
 from torch.nn import Module
 from torch.nn.parallel.distributed import DistributedDataParallel
 from torch.optim.optimizer import Optimizer
+from typing_extensions import override
 
 import lightning.pytorch as pl
 from lightning.fabric.plugins import CheckpointIO, ClusterEnvironment
@@ -421,7 +421,6 @@ class DDPStrategy(ParallelStrategy):
 
 
 class _DDPForwardRedirection(_ForwardRedirection):
-    
     @override
     def on_after_inner_forward(self, wrapper_module: Module, original_module: "pl.LightningModule") -> None:
         # In manual_optimization, we need to prevent DDP reducer as

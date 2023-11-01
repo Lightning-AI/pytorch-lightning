@@ -13,9 +13,9 @@
 # limitations under the License.
 import os
 from typing import Optional, Union
-from typing_extensions import override
 
 import torch
+from typing_extensions import override
 
 import lightning.pytorch as pl
 from lightning.fabric.accelerators.xla import _XLA_AVAILABLE

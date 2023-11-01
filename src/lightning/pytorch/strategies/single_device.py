@@ -14,10 +14,10 @@
 from __future__ import annotations
 
 from typing import Any
-from typing_extensions import override
 
 import torch
 from torch import Tensor
+from typing_extensions import override
 
 import lightning.pytorch as pl
 from lightning.fabric.plugins import CheckpointIO
