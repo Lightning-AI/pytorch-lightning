@@ -80,7 +80,7 @@ class LambdaDataChunkRecipe(DataChunkRecipe):
         if isinstance(self._fn, GeneratorType):
             yield from self._fn(item_metadata)
         else:
-            yield self._fn(item_metadata)
+            yield from self._fn(item_metadata)
 
 
 def map(
