@@ -708,10 +708,7 @@ class DataProcessor:
             str(remote_input_dir) if remote_input_dir is not None else self.src_resolver(self.input_dir)
         )
         self.remote_output_dir = (
-            remote_output_dir
-            if remote_output_dir is not None
-            # TODO: dst_resolver doesn't take version as an argument???
-            else self.dst_resolver(name, version=version)
+            remote_output_dir if remote_output_dir is not None else self.dst_resolver(name, version=version)
         )
         if self.remote_output_dir:
             self.name = self._broadcast_object(self.name)
