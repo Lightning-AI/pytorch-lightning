@@ -74,8 +74,8 @@ def _get_home_folder() -> str:
 def _get_cache_dir(name: Optional[str]) -> str:
     """Returns the cache directory used by the Cache to store the chunks."""
     if name is None:
-        return _get_cache_folder()
-    return os.path.join(_get_cache_folder(), name)
+        return os.path.join(_get_cache_folder(), "chunks")
+    return os.path.join(_get_cache_folder(), "chunks", name)
 
 
 def _get_cache_data_dir(name: Optional[str]) -> str:
