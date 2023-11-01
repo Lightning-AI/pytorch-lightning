@@ -18,10 +18,10 @@ from types import GeneratorType
 from typing import Any, Callable, Optional, Sequence, Union
 
 from lightning.data.streaming.constants import _LIGHTNING_CLOUD_GREATER_EQUAL_0_5_46, _TORCH_GREATER_EQUAL_2_1_0
-from lightning.data.streaming.data_processor import DataChunkRecipe, DataProcessor, DataTransformRecipe, Dir
+from lightning.data.streaming.data_processor import DataChunkRecipe, DataProcessor, DataTransformRecipe
 
 if _LIGHTNING_CLOUD_GREATER_EQUAL_0_5_46:
-    from lightning_cloud.resolver import _execute, _resolve_dir, _assert_dir_is_empty, _assert_dir_has_index_file
+    from lightning_cloud.resolver import _assert_dir_has_index_file, _assert_dir_is_empty, _execute, _resolve_dir
 
 if _TORCH_GREATER_EQUAL_2_1_0:
     from torch.utils._pytree import tree_flatten
@@ -82,6 +82,7 @@ class LambdaDataChunkRecipe(DataChunkRecipe):
         else:
             yield self._fn(item_metadata)
 
+
 def map(
     fn: Callable[[str, Any], None],
     inputs: Sequence[Any],
@@ -105,6 +106,7 @@ def map(
         machine: When doing remote execution, the machine to use.
         name: The name of the processing.
         num_downloaders: The number of downloaders to use.
+
     """
     if not isinstance(inputs, Sequence):
         raise ValueError(f"The provided inputs should be non empty sequence. Found {inputs}.")
@@ -126,7 +128,7 @@ def map(
         input_dir = _resolve_dir(_get_input_dir(inputs))
 
         if input_dir.url is None:
-            raise ValueError(f"We couldn't infer the input_dir from your inputs.")
+            raise ValueError("We couldn't infer the input_dir from your inputs.")
 
         data_processor = DataProcessor(
             input_dir=input_dir,
@@ -172,6 +174,7 @@ def optimize(
         machine: When doing remote execution, the machine to use.
         name: The name of the processing.
         num_downloaders: The number of downloaders to use.
+
     """
     if not isinstance(inputs, Sequence):
         raise ValueError(f"The provided inputs should be non empty sequence. Found {inputs}.")
@@ -196,7 +199,7 @@ def optimize(
         input_dir = _resolve_dir(_get_input_dir(inputs))
 
         if input_dir.url is None:
-            raise ValueError(f"We couldn't infer the input_dir from your inputs.")
+            raise ValueError("We couldn't infer the input_dir from your inputs.")
 
         data_processor = DataProcessor(
             input_dir=input_dir,
