@@ -492,7 +492,7 @@ class WandbLogger(Logger):
             key: The key to be used for logging the audio files
             audios: The list of audio file paths, or numpy arrays to be logged
             step: The step number to be used for logging the audio files
-            **kwargs: Optional kwargs are lists passed to each Wandb.Audio instance (ex: caption, sample_rate).
+            \**kwargs: Optional kwargs are lists passed to each ``Wandb.Audio`` instance (ex: caption, sample_rate).
 
         Optional kwargs are lists passed to each audio (ex: caption, sample_rate).
 
