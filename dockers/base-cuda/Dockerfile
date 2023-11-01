@@ -99,7 +99,7 @@ RUN \
       -r requirements/pytorch/extra.txt \
       -r requirements/pytorch/test.txt \
       -r requirements/pytorch/strategies.txt \
-      -r requirements/pytorch/plugins.txt \
+      -r requirements/fabric/plugins.txt \
       --find-links "https://download.pytorch.org/whl/cu${CUDA_VERSION_MM//'.'/''}/torch_stable.html"
 
 RUN \
