@@ -486,7 +486,7 @@ class WandbLogger(Logger):
 
     @rank_zero_only
     def log_audio(self, key: str, audios: List[Any], step: Optional[int] = None, **kwargs: Any) -> None:
-        """Log audios (numpy arrays, or file paths).
+        r"""Log audios (numpy arrays, or file paths).
 
         Args:
             key: The key to be used for logging the audio files
