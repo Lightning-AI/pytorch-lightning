@@ -190,10 +190,14 @@ def _upload_fn(upload_queue: Queue, remove_queue: Queue, cache_dir: str, remote_
             local_filepath = os.path.join(cache_dir, local_filepath)
 
         if obj.scheme == "s3":
-            s3.upload_file(
-                local_filepath, obj.netloc, os.path.join(obj.path.lstrip("/"), os.path.basename(local_filepath))
-            )
-        elif os.path.isdir(remote_output_dir):
+            try:
+                s3.upload_file(
+                    local_filepath, obj.netloc, os.path.join(obj.path.lstrip("/"), os.path.basename(local_filepath))
+                )
+            except Exception as e:
+                print(e)
+            return
+        if os.path.isdir(remote_output_dir):
             copyfile(local_filepath, os.path.join(remote_output_dir, os.path.basename(local_filepath)))
         else:
             raise ValueError(f"The provided {remote_output_dir} isn't supported.")
