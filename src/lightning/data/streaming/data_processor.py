@@ -75,14 +75,14 @@ def _get_cache_dir(name: Optional[str]) -> str:
     """Returns the cache directory used by the Cache to store the chunks."""
     if name is None:
         return _get_cache_folder()
-    return os.path.join(_get_cache_folder(), name)
+    return os.path.join(_get_cache_folder(), name.lstrip("/"))
 
 
 def _get_cache_data_dir(name: Optional[str]) -> str:
     """Returns the cache data directory used by the DataProcessor workers to download the files."""
     if name is None:
         return os.path.join(_get_cache_folder(), "data")
-    return os.path.join(_get_cache_folder(), "data", name)
+    return os.path.join(_get_cache_folder(), "data", name.lstrip("/"))
 
 
 def _get_s3_client() -> Any:
@@ -120,16 +120,16 @@ def _download_data_target(
         index, paths = r
 
         # 5. Check whether all the files are already downloaded
-        if all(os.path.exists(p.replace(input_dir, cache_dir) if input_dir else p) for p in paths):
+        if all(os.path.exists(p.replace(input_dir.path, cache_dir) if input_dir else p) for p in paths):
             queue_out.put(index)
             continue
 
-        if remote_input_dir is not None:
+        if input_dir.url is not None:
             # 6. Download all the required paths to unblock the current index
             for path in paths:
-                remote_path = path.replace(input_dir, remote_input_dir)
+                remote_path = path.replace(input_dir.path, input_dir.url)
                 obj = parse.urlparse(remote_path)
-                local_path = path.replace(input_dir, cache_dir)
+                local_path = path.replace(input_dir.path, cache_dir)
 
                 if obj.scheme == "s3":
                     dirpath = os.path.dirname(local_path)
@@ -162,7 +162,7 @@ def _remove_target(input_dir: str, cache_dir: str, queue_in: Queue) -> None:
         for path in paths:
             if input_dir:
                 if not path.startswith(cache_dir):
-                    path = path.replace(input_dir, cache_dir)
+                    path = path.replace(input_dir.path, cache_dir)
 
                 if os.path.exists(path):
                     os.remove(path)
@@ -171,9 +171,9 @@ def _remove_target(input_dir: str, cache_dir: str, queue_in: Queue) -> None:
                 os.remove(path)
 
 
-def _upload_fn(upload_queue: Queue, remove_queue: Queue, cache_dir: str, remote_output_dir: str) -> None:
+def _upload_fn(upload_queue: Queue, remove_queue: Queue, cache_dir: str, output_dir: Dir) -> None:
     """This function is used to upload optimised chunks from a local to remote dataset directory."""
-    obj = parse.urlparse(remote_output_dir)
+    obj = parse.urlparse(output_dir.url if output_dir.url else output_dir.path)
 
     if obj.scheme == "s3":
         s3 = _get_s3_client()
@@ -234,7 +234,6 @@ class BaseWorker:
         worker_index: int,
         num_workers: int,
         start_index: int,
-        dataset_name: str,
         node_rank: int,
         data_recipe: "DataRecipe",
         input_dir: Dir,
@@ -250,7 +249,6 @@ class BaseWorker:
         self.worker_index = worker_index
         self.num_workers = num_workers
         self.start_index = start_index
-        self.dataset_name = dataset_name
         self.node_rank = node_rank
         self.data_recipe = data_recipe
         self.input_dir = input_dir
@@ -306,7 +304,7 @@ class BaseWorker:
                     if isinstance(self.data_recipe, DataChunkRecipe):
                         self._handle_data_chunk_recipe_end()
 
-                    if self.remote_output_dir:
+                    if self.output_dir.url:
                         assert self.uploader
                         self.upload_queue.put(None)
                         self.uploader.join()
@@ -348,10 +346,10 @@ class BaseWorker:
         os.environ["DATA_OPTIMIZER_NUM_WORKERS"] = str(self.num_workers)
 
     def _create_cache(self) -> None:
-        self.cache_data_dir = _get_cache_data_dir(self.dataset_name)
+        self.cache_data_dir = _get_cache_data_dir(self.input_dir.path)
         os.makedirs(self.cache_data_dir, exist_ok=True)
 
-        self.cache_chunks_dir = _get_cache_dir(self.dataset_name)
+        self.cache_chunks_dir = _get_cache_dir(self.input_dir.path)
         os.makedirs(self.cache_chunks_dir, exist_ok=True)
 
         if isinstance(self.data_recipe, DataTransformRecipe):
@@ -366,7 +364,7 @@ class BaseWorker:
         self.cache._reader._rank = _get_node_rank() * self.num_workers + self.worker_index
 
     def _try_upload(self, filepath: Optional[str]) -> None:
-        if not filepath or self.remote_output_dir is None:
+        if not filepath or self.output_dir.url is None:
             return
 
         assert os.path.exists(filepath), filepath
@@ -385,20 +383,20 @@ class BaseWorker:
                 for index, element in enumerate(flattened_item)
                 if isinstance(element, str)
                 and (
-                    element.startswith(self.input_dir) if self.input_dir is not None else os.path.exists(element)
+                    element.startswith(self.input_dir.path) if self.input_dir is not None else os.path.exists(element)
                 )  # For speed reasons
             }
 
             if len(indexed_paths) == 0:
                 raise ValueError(
-                    f"The provided item {item} didn't contain any filepaths. The input_dir is {self.input_dir}."
+                    f"The provided item {item} didn't contain any filepaths. The input_dir is {self.input_dir.path}."
                 )
 
             paths = []
             for index, path in indexed_paths.items():
                 paths.append(path)
                 if self.input_dir:
-                    path = path.replace(self.input_dir, self.cache_data_dir)
+                    path = path.replace(self.input_dir.path, self.cache_data_dir)
                 flattened_item[index] = path
 
             self.paths.append(paths)
@@ -445,7 +443,7 @@ class BaseWorker:
         self.remover.start()
 
     def _start_uploader(self) -> None:
-        if self.remote_output_dir is None:
+        if self.output_dir.url is None:
             return
         self.uploader = Process(
             target=_upload_fn,
@@ -453,7 +451,7 @@ class BaseWorker:
                 self.upload_queue,
                 self.remove_queue,
                 self.cache_chunks_dir,
-                self.remote_output_dir,
+                self.output_dir,
             ),
         )
         self.uploader.start()
@@ -717,7 +715,7 @@ class DataProcessor:
         print(f"Setup finished in {round(time() - t0, 3)} seconds. Found {len(user_items)} items to process.")
 
         if self.fast_dev_run:
-            items_to_keep = self.fast_dev_run if isinstance(self.fast_dev_run, int) else _DEFAULT_FAST_DEV_RUN_ITEMS
+            items_to_keep = self.fast_dev_run if type(self.fast_dev_run) is int else _DEFAULT_FAST_DEV_RUN_ITEMS
             workers_user_items = [w[:items_to_keep] for w in workers_user_items]
             print(f"Fast dev run is enabled. Limiting to {items_to_keep} items per process.")
 
@@ -784,12 +782,10 @@ class DataProcessor:
                 worker_idx,
                 self.num_workers,
                 begins[worker_idx],
-                self.name,
                 _get_node_rank(),
                 data_recipe,
                 self.input_dir,
-                self.input_dir,
-                self.remote_output_dir,
+                self.output_dir,
                 worker_user_items,
                 self.progress_queue,
                 self.error_queue,
@@ -845,7 +841,7 @@ class DataProcessor:
 
         os.makedirs(cache_dir, exist_ok=True)
 
-        cache_data_dir = _get_cache_data_dir(self.name)
+        cache_data_dir = _get_cache_data_dir(self.input_dir.path if self.input_dir else None)
 
         # Cleanup the cache data folder to avoid corrupted files from previous run to be there.
         if os.path.exists(cache_data_dir):

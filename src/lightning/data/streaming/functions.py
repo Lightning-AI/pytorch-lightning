@@ -90,7 +90,6 @@ def map(
     fast_dev_run: Union[bool, int] = False,
     num_nodes: Optional[int] = None,
     machine: Optional[str] = None,
-    input_dir: Optional[str] = None,
     num_downloaders: Optional[int] = None,
 ) -> None:
     """This function map a callbable over a collection of files possibly in a distributed way.
@@ -124,8 +123,13 @@ def map(
 
         _assert_dir_is_empty(output_dir)
 
+        input_dir = _resolve_dir(_get_input_dir(inputs))
+
+        if input_dir.url is None:
+            raise ValueError(f"We couldn't infer the input_dir from your inputs.")
+
         data_processor = DataProcessor(
-            input_dir=Dir(input_dir or _get_input_dir(inputs)),
+            input_dir=input_dir,
             output_dir=output_dir,
             num_workers=num_workers or os.cpu_count(),
             fast_dev_run=fast_dev_run,
@@ -150,7 +154,6 @@ def optimize(
     fast_dev_run: bool = False,
     num_nodes: Optional[int] = None,
     machine: Optional[str] = None,
-    input_dir: Optional[str] = None,
     num_downloaders: Optional[int] = None,
 ) -> None:
     """This function converts a dataset into chunks possibly in a distributed way.
@@ -188,8 +191,13 @@ def optimize(
                 " HINT: You can either use `/teamspace/s3_connections/...` or `/teamspace/datasets/...`."
             )
 
+        input_dir = _resolve_dir(_get_input_dir(inputs))
+
+        if input_dir.url is None:
+            raise ValueError(f"We couldn't infer the input_dir from your inputs.")
+
         data_processor = DataProcessor(
-            input_dir=Dir(input_dir or _get_input_dir(inputs)),
+            input_dir=input_dir,
             output_dir=output_dir,
             num_workers=num_workers or os.cpu_count(),
             fast_dev_run=fast_dev_run,
