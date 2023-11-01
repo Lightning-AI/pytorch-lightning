@@ -27,7 +27,7 @@ from lightning.data.streaming.sampler import ChunkedIndex
 from lightning.data.streaming.writer import BinaryWriter
 
 if _LIGHTNING_CLOUD_GREATER_EQUAL_0_5_46:
-    from lightning_cloud.resolver import _find_remote_dir, _try_create_cache_dir
+    from lightning_cloud.resolver import _try_create_cache_dir
 
 logger = logging.Logger(__name__)
 
@@ -36,9 +36,7 @@ class Cache:
     def __init__(
         self,
         cache_dir: Optional[str] = None,
-        remote_dir: Optional[str] = None,
-        name: Optional[str] = None,
-        version: Optional[Union[int, Literal["latest"]]] = "latest",
+        input_dir: Optional[str] = None,
         compression: Optional[str] = None,
         chunk_size: Optional[int] = None,
         chunk_bytes: Optional[int] = None,
@@ -64,24 +62,8 @@ class Cache:
             raise ModuleNotFoundError("PyTorch version 2.1 or higher is required to use the cache.")
 
         self._cache_dir = cache_dir = str(cache_dir) if cache_dir else _try_create_cache_dir(name)
-        if not remote_dir:
-            remote_dir, has_index_file = _find_remote_dir(name, version)
-
-            # When the index exists, we don't care about the chunk_size anymore.
-            if has_index_file and (chunk_size is None and chunk_bytes is None):
-                chunk_size = 2
-
-            # Add the version to the cache_dir to avoid collisions.
-            if remote_dir and os.path.basename(remote_dir).startswith("version_"):
-                cache_dir = os.path.join(cache_dir, os.path.basename(remote_dir))
-
-            if cache_dir:
-                os.makedirs(cache_dir, exist_ok=True)
-
-            self._cache_dir = cache_dir
-
         self._writer = BinaryWriter(cache_dir, chunk_size=chunk_size, chunk_bytes=chunk_bytes, compression=compression)
-        self._reader = BinaryReader(cache_dir, remote_dir=remote_dir, compression=compression, item_loader=item_loader)
+        self._reader = BinaryReader(cache_dir, remote_dir=input_dir, compression=compression, item_loader=item_loader)
         self._is_done = False
         self._distributed_env = _DistributedEnv.detect()
 
