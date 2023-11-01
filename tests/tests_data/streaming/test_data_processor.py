@@ -8,6 +8,8 @@ import pytest
 import torch
 from lightning import seed_everything
 from lightning.data.streaming import data_processor as data_processor_module
+from lightning.data.streaming import functions
+from lightning.data.streaming.cache import Cache
 from lightning.data.streaming.data_processor import (
     DataChunkRecipe,
     DataProcessor,
@@ -18,7 +20,7 @@ from lightning.data.streaming.data_processor import (
     _upload_fn,
     _wait_for_file_to_exist,
 )
-from lightning.data.streaming.map import map
+from lightning.data.streaming.functions import map, optimize
 from lightning_utilities.core.imports import RequirementCache
 
 _PIL_AVAILABLE = RequirementCache("PIL")
@@ -519,7 +521,7 @@ def test_data_process_transform(monkeypatch, tmpdir):
     assert img.size == (12, 12)
 
 
-def fn(output_dir, filepath):
+def map_fn(output_dir, filepath):
     from PIL import Image
 
     img = Image.open(filepath)
@@ -528,31 +530,84 @@ def fn(output_dir, filepath):
     img.save(os.path.join(output_dir, os.path.basename(filepath)))
 
 
+@pytest.mark.skipif(condition=not _PIL_AVAILABLE or sys.platform == "win32", reason="Requires: ['pil']")
 def test_data_processing_map(monkeypatch, tmpdir):
     from PIL import Image
 
+    input_dir = os.path.join(tmpdir, "input_dir")
+    os.makedirs(input_dir, exist_ok=True)
     imgs = []
     for i in range(5):
         np_data = np.random.randint(255, size=(28, 28), dtype=np.uint32)
         img = Image.fromarray(np_data).convert("L")
         imgs.append(img)
-        img.save(os.path.join(tmpdir, f"{i}.JPEG"))
+        img.save(os.path.join(input_dir, f"{i}.JPEG"))
 
     home_dir = os.path.join(tmpdir, "home")
     cache_dir = os.path.join(tmpdir, "cache")
-    remote_output_dir = os.path.join(tmpdir, "target_dir")
-    os.makedirs(remote_output_dir, exist_ok=True)
+    output_dir = os.path.join(tmpdir, "target_dir")
+    os.makedirs(output_dir, exist_ok=True)
     monkeypatch.setenv("DATA_OPTIMIZER_HOME_FOLDER", home_dir)
     monkeypatch.setenv("DATA_OPTIMIZER_CACHE_FOLDER", cache_dir)
 
-    inputs = [os.path.join(tmpdir, filename) for filename in os.listdir(tmpdir)]
+    resolver = mock.MagicMock()
+    resolver.return_value = lambda x: x
+    monkeypatch.setattr(functions, "_LightningSrcResolver", resolver)
+    monkeypatch.setattr(data_processor_module, "_LightningSrcResolver", resolver)
+    monkeypatch.setattr(data_processor_module, "_LightningTargetResolver", resolver)
+
+    inputs = [os.path.join(input_dir, filename) for filename in os.listdir(input_dir)]
     inputs = [filepath for filepath in inputs if os.path.isfile(filepath)]
 
-    map(fn, inputs, num_workers=1, remote_output_dir=remote_output_dir)
+    map(map_fn, inputs, num_workers=1, output_dir=output_dir, input_dir=input_dir)
 
-    assert sorted(os.listdir(remote_output_dir)) == ["0.JPEG", "1.JPEG", "2.JPEG", "3.JPEG", "4.JPEG"]
+    assert sorted(os.listdir(output_dir)) == ["0.JPEG", "1.JPEG", "2.JPEG", "3.JPEG", "4.JPEG"]
 
     from PIL import Image
 
-    img = Image.open(os.path.join(remote_output_dir, "0.JPEG"))
+    img = Image.open(os.path.join(output_dir, "0.JPEG"))
     assert img.size == (12, 12)
+
+
+def optimize_fn(filepath):
+    print(filepath)
+    from PIL import Image
+
+    return [Image.open(filepath), os.path.basename(filepath)]
+
+
+@pytest.mark.skipif(condition=not _PIL_AVAILABLE or sys.platform == "win32", reason="Requires: ['pil']")
+def test_data_processing_optimize(monkeypatch, tmpdir):
+    from PIL import Image
+
+    input_dir = os.path.join(tmpdir, "input_dir")
+    os.makedirs(input_dir, exist_ok=True)
+    imgs = []
+    for i in range(5):
+        np_data = np.random.randint(255, size=(28, 28), dtype=np.uint32)
+        img = Image.fromarray(np_data).convert("L")
+        imgs.append(img)
+        img.save(os.path.join(input_dir, f"{i}.JPEG"))
+
+    home_dir = os.path.join(tmpdir, "home")
+    cache_dir = os.path.join(tmpdir, "cache")
+    output_dir = os.path.join(tmpdir, "target_dir")
+    os.makedirs(output_dir, exist_ok=True)
+    monkeypatch.setenv("DATA_OPTIMIZER_HOME_FOLDER", home_dir)
+    monkeypatch.setenv("DATA_OPTIMIZER_CACHE_FOLDER", cache_dir)
+
+    inputs = [os.path.join(input_dir, filename) for filename in os.listdir(input_dir)]
+    inputs = [filepath for filepath in inputs if os.path.isfile(filepath)]
+
+    resolver = mock.MagicMock()
+    resolver.return_value = lambda x: x
+    monkeypatch.setattr(functions, "_LightningSrcResolver", resolver)
+    monkeypatch.setattr(data_processor_module, "_LightningSrcResolver", resolver)
+    monkeypatch.setattr(data_processor_module, "_LightningTargetResolver", resolver)
+
+    optimize(optimize_fn, inputs, num_workers=1, output_dir=output_dir, chunk_size=2, input_dir=input_dir)
+
+    assert sorted(os.listdir(output_dir)) == ["chunk-0-0.bin", "chunk-0-1.bin", "chunk-0-2.bin", "index.json"]
+
+    cache = Cache(output_dir, chunk_size=1)
+    assert len(cache) == 5
