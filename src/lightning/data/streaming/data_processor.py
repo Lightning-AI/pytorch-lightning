@@ -561,7 +561,10 @@ class DataRecipe:
 
 class DataChunkRecipe(DataRecipe):
     def __init__(
-        self, chunk_size: Optional[int] = None, chunk_bytes: Optional[int] = None, compression: Optional[str] = None
+        self,
+        chunk_size: Optional[int] = None,
+        chunk_bytes: Optional[Union[int, str]] = None,
+        compression: Optional[str] = None,
     ):
         super().__init__()
         if chunk_size is not None and chunk_bytes is not None:
