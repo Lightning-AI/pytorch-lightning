@@ -7,7 +7,7 @@ from lightning.app.cli.lightning_cli import run_app
 from integrations_app.public import _PATH_EXAMPLES
 
 
-@pytest.mark.skipif(True, reason="flaky")
+@pytest.mark.xfail(strict=False, reason="test is skipped because CI was blocking all the PRs.")
 def test_layout_example():
     runner = CliRunner()
     result = runner.invoke(
