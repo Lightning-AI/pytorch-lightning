@@ -5,31 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
-## [Unreleased] - 202X-XX-XX
+## [2.1.1] - 2023-11-02
 
 ### Added
 
--
-
-
-### Changed
-
--
-
-
-### Deprecated
-
--
-
-
-### Removed
-
--
-
-
+- add flow `fail()` ([#18883](https://github.com/Lightning-AI/lightning/pull/18883))
 ### Fixed
 
--
+- Fix failing lightning cli entry point (#18821)
 
 
 
