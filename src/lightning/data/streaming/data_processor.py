@@ -21,7 +21,7 @@ from lightning.data.streaming.constants import (
     _BOTO3_AVAILABLE,
     _DEFAULT_FAST_DEV_RUN_ITEMS,
     _INDEX_FILENAME,
-    _LIGHTNING_CLOUD_GREATER_EQUAL_0_5_46,
+    _LIGHTNING_CLOUD_GREATER_EQUAL_0_5_47,
     _TORCH_GREATER_EQUAL_2_1_0,
 )
 from lightning.fabric.accelerators.cuda import is_cuda_available
@@ -35,7 +35,7 @@ from lightning.fabric.utilities.distributed import group as _group
 if _TORCH_GREATER_EQUAL_2_1_0:
     from torch.utils._pytree import tree_flatten, tree_unflatten
 
-if _LIGHTNING_CLOUD_GREATER_EQUAL_0_5_46:
+if _LIGHTNING_CLOUD_GREATER_EQUAL_0_5_47:
     from lightning_cloud.resolver import Dir, _resolve_dir
 
 if _BOTO3_AVAILABLE:
@@ -119,16 +119,16 @@ def _download_data_target(
         index, paths = r
 
         # 5. Check whether all the files are already downloaded
-        if all(os.path.exists(p.replace(input_dir.path, cache_dir) if input_dir else p) for p in paths):
+        if all(os.path.exists(p.replace(input_dir, cache_dir) if input_dir else p) for p in paths):
             queue_out.put(index)
             continue
 
-        if input_dir.url is not None:
+        if remote_input_dir is not None:
             # 6. Download all the required paths to unblock the current index
             for path in paths:
-                remote_path = path.replace(input_dir.path, input_dir.url)
+                remote_path = path.replace(input_dir, remote_input_dir)
                 obj = parse.urlparse(remote_path)
-                local_path = path.replace(input_dir.path, cache_dir)
+                local_path = path.replace(input_dir, cache_dir)
 
                 if obj.scheme == "s3":
                     dirpath = os.path.dirname(local_path)
@@ -161,7 +161,7 @@ def _remove_target(input_dir: str, cache_dir: str, queue_in: Queue) -> None:
         for path in paths:
             if input_dir:
                 if not path.startswith(cache_dir):
-                    path = path.replace(input_dir.path, cache_dir)
+                    path = path.replace(input_dir, cache_dir)
 
                 if os.path.exists(path):
                     os.remove(path)
@@ -192,10 +192,10 @@ def _upload_fn(upload_queue: Queue, remove_queue: Queue, cache_dir: str, output_
             s3.upload_file(
                 local_filepath, obj.netloc, os.path.join(obj.path.lstrip("/"), os.path.basename(local_filepath))
             )
-        elif os.path.isdir(remote_output_dir):
-            copyfile(local_filepath, os.path.join(remote_output_dir, os.path.basename(local_filepath)))
+        elif os.path.isdir(output_dir.path):
+            copyfile(local_filepath, os.path.join(output_dir.path, os.path.basename(local_filepath)))
         else:
-            raise ValueError(f"The provided {remote_output_dir} isn't supported.")
+            raise ValueError(f"The provided {output_dir.path} isn't supported.")
 
         # Inform the remover to delete the file
         if remove_queue:

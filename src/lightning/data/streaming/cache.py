@@ -18,7 +18,7 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 from lightning.data.datasets.env import _DistributedEnv
 from lightning.data.streaming.constants import (
     _INDEX_FILENAME,
-    _LIGHTNING_CLOUD_GREATER_EQUAL_0_5_46,
+    _LIGHTNING_CLOUD_GREATER_EQUAL_0_5_47,
     _TORCH_GREATER_EQUAL_2_1_0,
 )
 from lightning.data.streaming.item_loader import BaseItemLoader
@@ -26,17 +26,17 @@ from lightning.data.streaming.reader import BinaryReader
 from lightning.data.streaming.sampler import ChunkedIndex
 from lightning.data.streaming.writer import BinaryWriter
 
-if _LIGHTNING_CLOUD_GREATER_EQUAL_0_5_46:
-    from lightning_cloud.resolver import _try_create_cache_dir
-
 logger = logging.Logger(__name__)
+
+if _LIGHTNING_CLOUD_GREATER_EQUAL_0_5_47:
+    from lightning_cloud.resolver import Dir, _resolve_dir, _try_create_cache_dir
 
 
 class Cache:
     def __init__(
         self,
         cache_dir: Optional[str] = None,
-        input_dir: Optional[str] = None,
+        input_dir: Optional[Union[str, Dir]] = None,
         compression: Optional[str] = None,
         chunk_size: Optional[int] = None,
         chunk_bytes: Optional[int] = None,
@@ -46,8 +46,8 @@ class Cache:
         together in order to accelerate fetching.
 
         Arguments:
-            cache_dir: The path to where the chunks will be stored.
-            remote_dir: The path to a remote folder where the data are located.
+            cache_dir: The path to where the chunks will be cached.
+            input_dir: The path to where the chunks are stored.
                 The scheme needs to be added to the path.
             name: The name of dataset in the cloud.
             version: The version of the dataset in the cloud to use. By default, we will use the latest.
@@ -61,9 +61,19 @@ class Cache:
         if not _TORCH_GREATER_EQUAL_2_1_0:
             raise ModuleNotFoundError("PyTorch version 2.1 or higher is required to use the cache.")
 
-        self._cache_dir = cache_dir = str(cache_dir) if cache_dir else _try_create_cache_dir(name)
-        self._writer = BinaryWriter(cache_dir, chunk_size=chunk_size, chunk_bytes=chunk_bytes, compression=compression)
-        self._reader = BinaryReader(cache_dir, remote_dir=input_dir, compression=compression, item_loader=item_loader)
+        self._cache_dir = cache_dir = str(cache_dir) if cache_dir else _try_create_cache_dir()
+        input_dir = _resolve_dir(input_dir)
+        if self._cache_dir is None and input_dir is not None:
+            self._cache_dir = input_dir.path if isinstance(input_dir, Dir) else input_dir
+        self._writer = BinaryWriter(
+            self._cache_dir, chunk_size=chunk_size, chunk_bytes=chunk_bytes, compression=compression
+        )
+        self._reader = BinaryReader(
+            self._cache_dir,
+            remote_input_dir=input_dir.url if isinstance(input_dir, Dir) else None,
+            compression=compression,
+            item_loader=item_loader,
+        )
         self._is_done = False
         self._distributed_env = _DistributedEnv.detect()
 

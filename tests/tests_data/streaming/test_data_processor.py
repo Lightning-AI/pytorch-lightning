@@ -21,6 +21,7 @@ from lightning.data.streaming.data_processor import (
     _wait_for_file_to_exist,
 )
 from lightning.data.streaming.functions import map, optimize
+from lightning_cloud.resolver import Dir
 from lightning_utilities.core.imports import RequirementCache
 
 _PIL_AVAILABLE = RequirementCache("PIL")
@@ -58,7 +59,7 @@ def test_upload_fn(tmpdir):
 
     assert os.listdir(remote_output_dir) == []
 
-    _upload_fn(upload_queue, remove_queue, cache_dir, remote_output_dir)
+    _upload_fn(upload_queue, remove_queue, cache_dir, Dir(path=remote_output_dir, url=remote_output_dir))
 
     assert os.listdir(remote_output_dir) == ["a.txt"]
 
@@ -92,7 +93,7 @@ def test_remove_target(tmpdir):
 
     assert os.listdir(cache_dir) == ["a.txt"]
 
-    _remove_target(input_dir, cache_dir, queue_in)
+    _remove_target(Dir(path=input_dir), cache_dir, queue_in)
 
     assert os.listdir(cache_dir) == []
 
@@ -169,7 +170,7 @@ def test_wait_for_file_to_exist():
 
 
 def test_broadcast_object(tmpdir, monkeypatch):
-    data_processor = DataProcessor(name="dummy", input_dir=tmpdir)
+    data_processor = DataProcessor(input_dir=tmpdir)
     assert data_processor._broadcast_object("dummy") == "dummy"
     monkeypatch.setenv("DATA_OPTIMIZER_NUM_NODES", "2")
     monkeypatch.setattr(data_processor_module, "_distributed_is_initialized", lambda: True)
