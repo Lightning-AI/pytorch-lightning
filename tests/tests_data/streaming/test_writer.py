@@ -19,7 +19,7 @@ import pytest
 from lightning import seed_everything
 from lightning.data.streaming.reader import BinaryReader
 from lightning.data.streaming.sampler import ChunkedIndex
-from lightning.data.streaming.writer import BinaryWriter
+from lightning.data.streaming.writer import _FORMAT_TO_RATIO, BinaryWriter
 from lightning_utilities.core.imports import RequirementCache
 
 _PIL_AVAILABLE = RequirementCache("PIL")
@@ -194,3 +194,12 @@ def test_binary_writer_with_jpeg_and_png(tmpdir):
 
     with pytest.raises(ValueError, match="The data format changed between items"):
         binary_writer[2] = {"x": 2, "y": 1}
+
+
+def test_writer_human_format(tmpdir):
+    for k, v in _FORMAT_TO_RATIO.items():
+        binary_writer = BinaryWriter(tmpdir, chunk_bytes=f"{1}{k}")
+        assert binary_writer._chunk_bytes == v
+
+    binary_writer = BinaryWriter(tmpdir, chunk_bytes="64MB")
+    assert binary_writer._chunk_bytes == 67108864
