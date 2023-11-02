@@ -304,12 +304,13 @@ def measure_flops(
     return flop_counter.get_total_flops()
 
 
-_CUDA_FLOPS = {
+_CUDA_FLOPS: Dict[str, Dict[Union[str, torch.dtype], float]] = {
     # source: https://resources.nvidia.com/en-us-tensor-core/nvidia-tensor-core-gpu-datasheet
     # nvidia publishes spec sheet with a 2x sparsity factor
     "h100-sxm": {
         torch.float64: 67e12,
         torch.float32: 67e12,
+        "tfloat32": 989e12 / 2,
         torch.bfloat16: 1.979e15 / 2,
         torch.float16: 1.979e15 / 2,
         torch.int8: 3.958e15 / 2,
@@ -317,15 +318,22 @@ _CUDA_FLOPS = {
     "h100-pcie": {
         torch.float64: 51e12,
         torch.float32: 51e12,
+        "tfloat32": 756e12 / 2,
         torch.bfloat16: 1.513e15 / 2,
         torch.float16: 1.513e15 / 2,
         torch.int8: 3.026e15 / 2,
     },
     # source: https://www.nvidia.com/content/dam/en-zz/Solutions/Data-Center/a100/pdf/nvidia-a100-datasheet-us-nvidia-1758950-r4-web.pdf
     # sxm and pcie have same flop counts
-    "a100": {torch.float64: 19.5e12, torch.float32: 19.5e12, torch.bfloat16: 312e12, torch.float16: 312e12},
+    "a100": {
+        torch.float64: 19.5e12,
+        torch.float32: 19.5e12,
+        "tfloat32": 156e12,
+        torch.bfloat16: 312e12,
+        torch.float16: 312e12,
+    },
     # source: https://www.nvidia.com/content/dam/en-zz/Solutions/Data-Center/a10/pdf/a10-datasheet.pdf
-    "a10g": {torch.float32: 31.2e12, torch.bfloat16: 125e12, torch.float16: 125e12},
+    "a10g": {torch.float32: 31.2e12, "tfloat32": 62.5e12, torch.bfloat16: 125e12, torch.float16: 125e12},
     # source: https://images.nvidia.com/content/technologies/volta/pdf/volta-v100-datasheet-update-us-1165301-r5.pdf
     "v100-sxm": {torch.float64: 7.8e12, torch.float32: 15.7e12, torch.float16: 125e12},
     "v100-pcie": {torch.float64: 7e12, torch.float32: 14e12, torch.float16: 112e12},
@@ -352,7 +360,13 @@ _TPU_FLOPS = {
 }
 
 
-def get_available_flops(device: torch.device, dtype: torch.dtype) -> Optional[int]:
+def get_available_flops(device: torch.device, dtype: Union[torch.dtype, str]) -> Optional[int]:
+    """Returns the available theoretical FLOPs.
+
+    This is an optimistic upper limit that could only be achievable if only thick matmuls were run in a benchmark
+    environment.
+
+    """
     if device.type == "cuda":
         device_name = torch.cuda.get_device_name(device)
         chip = device_name.lower()
@@ -380,6 +394,11 @@ def get_available_flops(device: torch.device, dtype: torch.dtype) -> Optional[in
             # if we were able to parse the chip, it should be in the flops list
             raise RuntimeError(f"FLOPs not found for {device_name!r}, chip is {chip!r}")
         dtype_to_flops = _CUDA_FLOPS[chip]
+        if dtype is torch.float32:
+            from lightning.fabric.accelerators.cuda import _is_ampere_or_later
+
+            if _is_ampere_or_later() and torch.get_float32_matmul_precision() != "highest":
+                dtype = "tfloat32"
         if dtype not in dtype_to_flops:
             # for example, T4 doesn't support bfloat16. it might also be that we are missing this dtype from the list
             rank_zero_warn(f"{device_name!r} does not support {dtype}")
