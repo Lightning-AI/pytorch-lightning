@@ -35,16 +35,17 @@ class Throughput:
     +------------------------+-------------------------------------------------------------------------------------+
     | Key                    | Value                                                                               |
     +========================+=====================================================================================+
-    | batches_per_sec        | Rolling average (over ``window_size`` most recent batches) of the number of batches |
+    | batches_per_sec        | Rolling average (over ``window_size`` most recent updates) of the number of batches |
     |                        | processed per second                                                                |
     +--------------------------+-----------------------------------------------------------------------------------+
-    | samples_per_sec        | Rolling average (over ``window_size`` most recent batches) of the number of samples |
+    | samples_per_sec        | Rolling average (over ``window_size`` most recent updates) of the number of samples |
     |                        | processed per second                                                                |
     +--------------------------+-----------------------------------------------------------------------------------+
-    | items_per_sec          | Rolling average (over ``window_size`` most recent batches) of the number of items   |
+    | items_per_sec          | Rolling average (over ``window_size`` most recent updates) of the number of items   |
     |                        | processed per second                                                                |
     +--------------------------+-----------------------------------------------------------------------------------+
-    | flops_per_sec          | Estimates flops by flops_per_batch * batches_per_sec                                |
+    | flpps_per_sec          | Rolling average (over ``window_size`` most recent updates) of the number of flops   |
+    |                        | processed per second                                                                |
     +--------------------------+-----------------------------------------------------------------------------------+
     | device/batches_per_sec | batches_per_sec divided by world size                                               |
     +--------------------------+-----------------------------------------------------------------------------------+
@@ -57,6 +58,12 @@ class Throughput:
     | device/mfu             | device/flops_per_sec divided by world size.                                         |
     +--------------------------+-----------------------------------------------------------------------------------+
     | time                   | Total elapsed time                                                                  |
+    +--------------------------+-----------------------------------------------------------------------------------+
+    | batches                | Total batches seen                                                                  |
+    +--------------------------+-----------------------------------------------------------------------------------+
+    | samples                | Total samples seen                                                                  |
+    +--------------------------+-----------------------------------------------------------------------------------+
+    | lengths                | Total items seen                                                                    |
     +--------------------------+-----------------------------------------------------------------------------------+
 
     Example::
@@ -97,50 +104,70 @@ class Throughput:
         assert window_size > 1
         # custom class instead of `deque(maxlen=)` because it's easy for users to mess up their timer/counters and log
         # values that do not increase monotonically. this class will raise an error if that happens.
-        self._samples: _MonotonicWindow[int] = _MonotonicWindow(maxlen=window_size)
         self._time: _MonotonicWindow[float] = _MonotonicWindow(maxlen=window_size)
+        self._batches: _MonotonicWindow[int] = _MonotonicWindow(maxlen=window_size)
+        self._samples: _MonotonicWindow[int] = _MonotonicWindow(maxlen=window_size)
         self._lengths: _MonotonicWindow[int] = _MonotonicWindow(maxlen=window_size)
         self._flops: Deque[int] = deque(maxlen=window_size)
 
     def update(
-        self, *, time: float, samples: int, lengths: Optional[int] = None, flops_per_batch: Optional[int] = None
+        self,
+        *,
+        time: float,
+        batches: int,
+        samples: int,
+        lengths: Optional[int] = None,
+        flops: Optional[int] = None,
     ) -> None:
         """Update throughput metrics.
 
         Args:
             time: Total elapsed time in seconds. It should monotonically increase by the iteration time with each
                 call.
-            samples: Total samples seen per device. It should monotonically increase by the batch size with each
-                call.
-            lengths: Total length of the samples seen. It should monotonically increase by the length of a batch with
+            batches: Total batches seen per device. It should monotonically increase with each call.
+            samples: Total samples seen per device. It should monotonically increase by the batch size with each call.
+            lengths: Total length of the samples seen. It should monotonically increase by the lengths of a batch with
                 each call.
-            flops_per_batch: Flops per batch per device. You can easily compute this by using :func:`measure_flops`.
+            flops: Flops elapased per device since last ``update()`` call. You can easily compute this by using
+                :func:`measure_flops` and multiplying it by the number of batches that have been processed.
                 The value might be different in each device if the batch size is not the same.
 
         """
         self._time.append(time)
+        if samples < batches:
+            raise ValueError(f"Expected samples ({samples}) to be greater or equal than batches ({batches})")
+        self._batches.append(batches)
         self._samples.append(samples)
         if lengths is not None:
+            if lengths < samples:
+                raise ValueError(f"Expected lengths ({lengths}) to be greater or equal than samples ({samples})")
             self._lengths.append(lengths)
             if len(self._samples) != len(self._lengths):
                 raise RuntimeError(
                     f"If lengths are passed ({len(self._lengths)}), there needs to be the same number of samples"
                     f" ({len(self._samples)})"
                 )
-        if flops_per_batch is not None:
-            # sum of flops per batch across ranks
-            self._flops.append(flops_per_batch * self.world_size)
+        if flops is not None:
+            # sum of flops across ranks
+            self._flops.append(flops * self.world_size)
 
     def compute(self) -> _THROUGHPUT_METRICS:
         """Compute throughput metrics."""
-        metrics = {"time": self._time[-1], "samples": self._samples[-1]}
+        metrics = {
+            "time": self._time[-1],
+            "batches": self._batches[-1],
+            "samples": self._samples[-1],
+        }
+        if self._lengths:
+            metrics["lengths"] = self._lengths[-1]
+
         add_global_metrics = self.world_size > 1
         # a different but valid design choice would be to still compute all these metrics even if the window of values
         # has not been filled
         if len(self._time) == self._time.maxlen:
-            elapsed_batches = len(self._samples) - 1
-            elapsed_samples = self._samples[-1] - self._samples[0]
             elapsed_time = self._time[-1] - self._time[0]
+            elapsed_batches = self._batches[-1] - self._batches[0]
+            elapsed_samples = self._samples[-1] - self._samples[0]
             # we are safe from ZeroDivisionError thanks to `_MonotonicWindow`
             dev_samples_per_sec = elapsed_samples / elapsed_time
             dev_batches_per_sec = elapsed_batches / elapsed_time
@@ -157,7 +184,7 @@ class Throughput:
                 )
 
             if len(self._lengths) == self._lengths.maxlen:
-                elapsed_lengths = int(self._lengths[-1]) - int(self._lengths[0])
+                elapsed_lengths = self._lengths[-1] - self._lengths[0]
                 avg_length = elapsed_lengths / elapsed_batches
                 if add_global_metrics:
                     metrics["items_per_sec"] = samples_per_sec * avg_length
@@ -177,8 +204,9 @@ class Throughput:
         return metrics
 
     def reset(self) -> None:
-        self._samples.clear()
         self._time.clear()
+        self._batches.clear()
+        self._samples.clear()
         self._lengths.clear()
         self._flops.clear()
 
@@ -195,10 +223,10 @@ class ThroughputMonitor(Throughput):
         fabric = Fabric(logger=logger)
         throughput = ThroughputMonitor()
         t0 = time()
-        for i in range(1000):
+        for i in range(1, 100):
             do_work()
             if torch.cuda.is_available(): torch.cuda.synchronize()  # required or else time() won't be correct
-            throughput.update(time=time() - t0, samples=i)
+            throughput.update(time=time() - t0, batches=i, samples=i)
             if i % 10 == 0:
                 throughput.compute_and_log(step=i)
 

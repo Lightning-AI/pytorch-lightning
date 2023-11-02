@@ -18,7 +18,7 @@ from typing import Any, Dict, List, Literal, Optional, Tuple, Union
 from lightning.data.datasets.env import _DistributedEnv
 from lightning.data.streaming.constants import (
     _INDEX_FILENAME,
-    _LIGHTNING_CLOUD_GREATER_EQUAL_0_5_42,
+    _LIGHTNING_CLOUD_GREATER_EQUAL_0_5_46,
     _TORCH_GREATER_EQUAL_2_1_0,
 )
 from lightning.data.streaming.item_loader import BaseItemLoader
@@ -26,7 +26,7 @@ from lightning.data.streaming.reader import BinaryReader
 from lightning.data.streaming.sampler import ChunkedIndex
 from lightning.data.streaming.writer import BinaryWriter
 
-if _LIGHTNING_CLOUD_GREATER_EQUAL_0_5_42:
+if _LIGHTNING_CLOUD_GREATER_EQUAL_0_5_46:
     from lightning_cloud.resolver import _find_remote_dir, _try_create_cache_dir
 
 logger = logging.Logger(__name__)
@@ -41,7 +41,7 @@ class Cache:
         version: Optional[Union[int, Literal["latest"]]] = "latest",
         compression: Optional[str] = None,
         chunk_size: Optional[int] = None,
-        chunk_bytes: Optional[int] = None,
+        chunk_bytes: Optional[Union[int, str]] = None,
         item_loader: Optional[BaseItemLoader] = None,
     ):
         """The Cache enables to optimise dataset format for cloud training. This is done by grouping several elements
