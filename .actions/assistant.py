@@ -483,7 +483,7 @@ class AssistantCLI:
             page = fopen.read()
         if as_orphan and ":orphan:" not in page:
             page = ":orphan:\n\n" + page
-        with open(rst_in, "w", encoding="utf-8") as fopen:
+        with open(rst_out, "w", encoding="utf-8") as fopen:
             fopen.write(page)
 
 
