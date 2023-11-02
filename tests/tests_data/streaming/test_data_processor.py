@@ -1,8 +1,9 @@
 import os
+import random
 import sys
 from typing import Any, List
 from unittest import mock
-import random
+
 import numpy as np
 import pytest
 import torch
@@ -16,10 +17,10 @@ from lightning.data.streaming.data_processor import (
     DataTransformRecipe,
     _associated_items_to_workers,
     _download_data_target,
+    _get_item_filesizes,
     _remove_target,
     _upload_fn,
     _wait_for_file_to_exist,
-    _get_item_filesizes,
 )
 from lightning.data.streaming.functions import map, optimize
 from lightning_utilities.core.imports import RequirementCache
@@ -594,7 +595,7 @@ def test_data_processing_optimize(monkeypatch, tmpdir):
 def _generate_file_with_size(file_path, num_bytes):
     assert num_bytes % 8 == 0
     content = bytearray(random.getrandbits(8) for _ in range(num_bytes))
-    with open(file_path, 'wb') as file:
+    with open(file_path, "wb") as file:
         file.write(content)
 
 
@@ -621,7 +622,7 @@ def test_get_item_filesizes(tmp_path):
     num_bytes = _get_item_filesizes(items, base_path=str(tmp_path))
     assert num_bytes == [0, 32, 64, 64 + 128, 0, 256]
 
-    with open(tmp_path / "empty_file", 'w'):
+    with open(tmp_path / "empty_file", "w"):
         pass
     assert os.path.getsize(tmp_path / "empty_file") == 0
     with pytest.raises(RuntimeError, match="has 0 bytes!"):
