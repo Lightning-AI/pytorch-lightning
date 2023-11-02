@@ -113,7 +113,7 @@ def map(
         fast_dev_run: Whether to use process only a sub part of the inputs
         num_nodes: When doing remote execution, the number of nodes to use.
         machine: When doing remote execution, the machine to use.
-        num_downloaders: The number of downloaders to use.
+        num_downloaders: The number of downloaders per worker.
 
     """
     if not isinstance(inputs, Sequence):
@@ -177,7 +177,7 @@ def optimize(
         fast_dev_run: Whether to use process only a sub part of the inputs
         num_nodes: When doing remote execution, the number of nodes to use.
         machine: When doing remote execution, the machine to use.
-        num_downloaders: The number of downloaders to use.
+        num_downloaders: The number of downloaders per worker.
 
     """
     if not isinstance(inputs, Sequence):
