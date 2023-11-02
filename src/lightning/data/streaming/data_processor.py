@@ -234,8 +234,14 @@ def _get_item_filesizes(items: List[Any], base_path: str = "") -> List[int]:
                 num_bytes += os.path.getsize(element)
             # TODO: FIXME
             print(
-                "element:", element, "exists", os.path.exists(element), "starts with", element.startswith(base_path),
-                "size", os.path.getsize(element)
+                "element:",
+                element,
+                "exists",
+                os.path.exists(element),
+                "starts with",
+                element.startswith(base_path),
+                "size",
+                os.path.getsize(element),
             )
         item_sizes.append(num_bytes)
     return item_sizes
