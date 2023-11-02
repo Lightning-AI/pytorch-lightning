@@ -165,7 +165,7 @@ Under the hood, we use `transformer_engine.pytorch.fp8_autocast <https://docs.nv
 Quantization via Bitsandbytes
 *****************************
 
-`bitsandbytes <https://github.com/TimDettmers/bitsandbytes>`__ (BNB) is a library that supports quantizing Linear weights.
+`bitsandbytes <https://github.com/TimDettmers/bitsandbytes>`__ (BNB) is a library that supports quantizing :class:`torch.nn.Linear` weights.
 
 Both 4-bit (`paper reference <https://arxiv.org/abs/2305.14314v1>`__) and 8-bit (`paper reference <https://arxiv.org/abs/2110.02861>`__) quantization is supported.
 Specifically, we support the following modes:
@@ -179,6 +179,7 @@ Specifically, we support the following modes:
 
 While these techniques store weights in 4 or 8 bit, the computation still happens in 16 or 32-bit (float16, bfloat16, float32).
 This is configurable via the dtype argument in the plugin.
+If your model weights can fit on a single device with 16 bit precision, it's recommended that this plugin is not used as it will slow down training.
 
 Quantizing the model will dramatically reduce the weight's memory requirements but  may have a negative impact on the model's performance or runtime.
 
@@ -189,11 +190,11 @@ The :class:`~lightning.pytorch.plugins.precision.bitsandbytes.BitsandbytesPrecis
     from lightning.pytorch.plugins import BitsandbytesPrecisionPlugin
 
     # this will pick out the compute dtype automatically, by default `bfloat16`
-    precision = BitsandbytesPrecisionPlugin("nf4-dq")
+    precision = BitsandbytesPrecisionPlugin(mode="nf4-dq")
     trainer = Trainer(plugins=precision)
 
     # Customize the dtype, or skip some modules
-    precision = BitsandbytesPrecisionPlugin("int8-training", dtype=torch.float16, ignore_modules={"lm_head"})
+    precision = BitsandbytesPrecisionPlugin(mode="int8-training", dtype=torch.float16, ignore_modules={"lm_head"})
     trainer = Trainer(plugins=precision)
 
 
