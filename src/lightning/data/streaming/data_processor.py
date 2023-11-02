@@ -5,12 +5,11 @@ import tempfile
 import traceback
 import types
 from abc import abstractmethod
-from dataclasses import dataclass
 from multiprocessing import Process, Queue
 from queue import Empty
 from shutil import copyfile, rmtree
 from time import sleep, time
-from typing import Any, Callable, Dict, List, Optional, Tuple, TypeVar, Union
+from typing import Any, Dict, List, Optional, Tuple, TypeVar, Union
 from urllib import parse
 
 import torch
@@ -37,7 +36,7 @@ if _TORCH_GREATER_EQUAL_2_1_0:
     from torch.utils._pytree import tree_flatten, tree_unflatten
 
 if _LIGHTNING_CLOUD_GREATER_EQUAL_0_5_46:
-    from lightning_cloud.resolver import _resolve_dir, Dir
+    from lightning_cloud.resolver import Dir, _resolve_dir
 
 if _BOTO3_AVAILABLE:
     import boto3

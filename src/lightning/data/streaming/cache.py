@@ -13,7 +13,7 @@
 
 import logging
 import os
-from typing import Any, Dict, List, Literal, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 from lightning.data.datasets.env import _DistributedEnv
 from lightning.data.streaming.constants import (
