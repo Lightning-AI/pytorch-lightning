@@ -18,6 +18,7 @@ from tqdm.auto import tqdm
 
 from lightning import seed_everything
 from lightning.data.streaming import Cache
+from lightning.data.streaming.client import S3Client
 from lightning.data.streaming.constants import (
     _BOTO3_AVAILABLE,
     _DEFAULT_FAST_DEV_RUN_ITEMS,
@@ -40,7 +41,6 @@ if _LIGHTNING_CLOUD_GREATER_EQUAL_0_5_46:
     from lightning_cloud.resolver import _LightningSrcResolver, _LightningTargetResolver
 
 if _BOTO3_AVAILABLE:
-    import boto3
     import botocore
 
 logger = logging.Logger(__name__)
@@ -85,23 +85,6 @@ def _get_cache_data_dir(name: Optional[str]) -> str:
     return os.path.join(_get_cache_folder(), "data", name)
 
 
-def _get_s3_client() -> Any:
-    from botocore.credentials import InstanceMetadataProvider
-    from botocore.utils import InstanceMetadataFetcher
-
-    provider = InstanceMetadataProvider(iam_role_fetcher=InstanceMetadataFetcher(timeout=3600, num_attempts=2))
-
-    credentials = provider.load()
-
-    return boto3.client(
-        "s3",
-        aws_access_key_id=credentials.access_key,
-        aws_secret_access_key=credentials.secret_key,
-        aws_session_token=credentials.token,
-        config=botocore.config.Config(retries={"max_attempts": 1000, "mode": "standard"}),
-    )
-
-
 def _wait_for_file_to_exist(s3: Any, obj: parse.ParseResult, sleep_time: int = 2) -> Any:
     """This function check."""
     while True:
@@ -118,7 +101,7 @@ def _download_data_target(
     input_dir: str, remote_input_dir: str, cache_dir: str, queue_in: Queue, queue_out: Queue
 ) -> None:
     """This function is used to download data from a remote directory to a cache directory to optimise reading."""
-    s3 = _get_s3_client()
+    s3 = S3Client()
 
     while True:
         # 2. Fetch from the queue
@@ -150,7 +133,7 @@ def _download_data_target(
                     os.makedirs(dirpath, exist_ok=True)
 
                     with open(local_path, "wb") as f:
-                        s3.download_fileobj(obj.netloc, obj.path.lstrip("/"), f)
+                        s3.client.download_fileobj(obj.netloc, obj.path.lstrip("/"), f)
 
                 elif os.path.isfile(remote_path):
                     copyfile(remote_path, local_path)
@@ -189,7 +172,7 @@ def _upload_fn(upload_queue: Queue, remove_queue: Queue, cache_dir: str, remote_
     obj = parse.urlparse(remote_output_dir)
 
     if obj.scheme == "s3":
-        s3 = _get_s3_client()
+        s3 = S3Client()
 
     while True:
         local_filepath: Optional[str] = upload_queue.get()
@@ -204,7 +187,7 @@ def _upload_fn(upload_queue: Queue, remove_queue: Queue, cache_dir: str, remote_
 
         if obj.scheme == "s3":
             try:
-                s3.upload_file(
+                s3.client.upload_file(
                     local_filepath, obj.netloc, os.path.join(obj.path.lstrip("/"), os.path.basename(local_filepath))
                 )
             except Exception as e:
@@ -625,8 +608,8 @@ class DataChunkRecipe(DataRecipe):
             local_filepath = os.path.join(cache_dir, _INDEX_FILENAME)
 
         if obj.scheme == "s3":
-            s3 = _get_s3_client()
-            s3.upload_file(
+            s3 = S3Client()
+            s3.client.upload_file(
                 local_filepath, obj.netloc, os.path.join(obj.path.lstrip("/"), os.path.basename(local_filepath))
             )
         elif os.path.isdir(remote_output_dir):
