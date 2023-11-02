@@ -17,7 +17,7 @@ class S3Client:
     def __init__(self, refetch_interval: int = 3300) -> None:
         self._refetch_interval = refetch_interval
         self._last_time: Optional[float] = None
-        self._has_cloud_space_id: bool = os.getenv("LIGHTNING_CLOUD_SPACE_ID", None) is not None
+        self._has_cloud_space_id: bool = "LIGHTNING_CLOUD_SPACE_ID" in os.environ
         self._client: Optional[Any] = None
 
     @property
