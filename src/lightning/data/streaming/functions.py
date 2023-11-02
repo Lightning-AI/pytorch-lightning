@@ -92,6 +92,7 @@ def map(
     num_nodes: Optional[int] = None,
     machine: Optional[str] = None,
     input_dir: Optional[str] = None,
+    num_downloaders: int = 1,
 ) -> None:
     """This function map a callbable over a collection of files possibly in a distributed way.
 
@@ -104,6 +105,7 @@ def map(
         fast_dev_run: Whether to use process only a sub part of the inputs
         num_nodes: When doing remote execution, the number of nodes to use.
         machine: When doing remote execution, the machine to use.
+        num_downloaders: The number of downloaders per worker.
 
     """
     if not isinstance(inputs, Sequence):
@@ -127,6 +129,7 @@ def map(
             fast_dev_run=fast_dev_run,
             version=None,
             input_dir=input_dir or _get_input_dir(inputs),
+            num_downloaders=num_downloaders,
         )
         return data_processor.run(LambdaDataTransformRecipe(fn, inputs))
     return _execute(
@@ -149,6 +152,7 @@ def optimize(
     num_nodes: Optional[int] = None,
     machine: Optional[str] = None,
     input_dir: Optional[str] = None,
+    num_downloaders: int = 1,
 ) -> None:
     """This function converts a dataset into chunks possibly in a distributed way.
 
@@ -164,6 +168,7 @@ def optimize(
         fast_dev_run: Whether to use process only a sub part of the inputs
         num_nodes: When doing remote execution, the number of nodes to use.
         machine: When doing remote execution, the machine to use.
+        num_downloaders: The number of downloaders per worker.
 
     """
     if not isinstance(inputs, Sequence):
@@ -190,6 +195,7 @@ def optimize(
             remote_output_dir=PrettyDirectory(output_dir, remote_output_dir),
             fast_dev_run=fast_dev_run,
             input_dir=input_dir or _get_input_dir(inputs),
+            num_downloaders=num_downloaders,
         )
         return data_processor.run(
             LambdaDataChunkRecipe(
