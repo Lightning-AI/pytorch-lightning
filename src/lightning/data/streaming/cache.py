@@ -62,6 +62,9 @@ class Cache:
         if not _TORCH_GREATER_EQUAL_2_1_0:
             raise ModuleNotFoundError("PyTorch version 2.1 or higher is required to use the cache.")
 
+        if not _LIGHTNING_CLOUD_GREATER_EQUAL_0_5_47:
+            raise ModuleNotFoundError("Lightning Cloud 0.5.47 or higher is required to use the cache.")
+
         input_dir = _resolve_dir(input_dir)
         self._cache_dir = input_dir.path
         self._writer = BinaryWriter(
