@@ -11,7 +11,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any, List, Literal, Optional, Union
+from typing import Any, List, Optional, Union
 
 import numpy as np
 from torch.utils.data import IterableDataset
@@ -28,8 +28,7 @@ class StreamingDataset(IterableDataset):
 
     def __init__(
         self,
-        name: str,
-        version: Optional[Union[int, Literal["latest"]]] = "latest",
+        input_dir: str,
         cache_dir: Optional[str] = None,
         item_loader: Optional[BaseItemLoader] = None,
         shuffle: bool = False,
@@ -53,12 +52,12 @@ class StreamingDataset(IterableDataset):
         if not isinstance(shuffle, bool):
             raise ValueError(f"Shuffle should be a boolean. Found {shuffle}")
 
-        self.cache = Cache(name=name, version=version, cache_dir=cache_dir, item_loader=item_loader, chunk_bytes=1)
+        self.cache = Cache(input_dir=input_dir, cache_dir=cache_dir, item_loader=item_loader, chunk_bytes=1)
 
         self.cache._reader._try_load_config()
 
         if not self.cache.filled:
-            raise ValueError(f"The provided dataset `{name}` isn't filled up.")
+            raise ValueError(f"The provided dataset `{input_dir}` isn't filled up.")
 
         self.distributed_env = _DistributedEnv.detect()
 
