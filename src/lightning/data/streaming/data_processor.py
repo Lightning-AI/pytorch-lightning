@@ -810,7 +810,7 @@ class DataProcessor:
         print("Finished data processing!")
 
         # TODO: Understand why it is required to avoid long shutdown.
-        if _get_num_nodes() > 0:
+        if _get_num_nodes() > 1:
             os._exit(int(has_failed))
 
     def _exit_on_error(self, error: str) -> None:
