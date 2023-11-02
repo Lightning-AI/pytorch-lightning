@@ -208,6 +208,7 @@ def _associated_items_to_workers(
     num_workers: int, user_items: List[Any], weights: Optional[List[int]] = None
 ) -> List[List[Any]]:
     # Associate the items to the workers based on number of nodes and node rank.
+    print("weights is None: ", weights)
     weights = [1] * len(user_items) if weights is None else weights
     num_nodes = _get_num_nodes()
     node_rank = _get_node_rank()
@@ -216,7 +217,7 @@ def _associated_items_to_workers(
     worker_items, worker_weights = _pack_greedily(items=user_items, weights=weights, num_bins=world_size)
     # TODO: FIXME
     for i, w in enumerate(worker_weights):
-        print(f"Worker {i}: {w / 1e6:.1f} MB, {len(worker_items[i])} items")
+        print(f"Worker {i}: {w} B, {len(worker_items[i])} items")
     worker_ids_this_node = range(node_rank * num_workers, (node_rank + 1) * num_workers)
     return [worker_items[worker_id] for worker_id in worker_ids_this_node]
 
@@ -231,6 +232,11 @@ def _get_item_filesizes(items: List[Any], base_path: str = "") -> List[int]:
         for index, element in enumerate(flattened_item):
             if isinstance(element, str) and element.startswith(base_path) and os.path.exists(element):
                 num_bytes += os.path.getsize(element)
+            # TODO: FIXME
+            print(
+                "element:", element, "exists", os.path.exists(element), "starts with", element.startswith(base_path),
+                "size", os.path.getsize(element)
+            )
         item_sizes.append(num_bytes)
     return item_sizes
 
@@ -754,6 +760,7 @@ class DataProcessor:
         # TODO: Only do this on node 0, and broadcast the item sizes to the other nodes.
         # TODO: what if item sizes contains 0's?
         item_sizes = _get_item_filesizes(user_items, base_path=self.input_dir)
+        print("item sizes", item_sizes)
 
         # Associate the items to the workers based on num_nodes and node_rank
         workers_user_items = _associated_items_to_workers(
