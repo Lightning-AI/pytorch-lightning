@@ -78,16 +78,18 @@ class LambdaDataChunkRecipe(DataChunkRecipe):
         return self._inputs
 
     def prepare_item(self, item_metadata: Any) -> Any:  # type: ignore
-        if isinstance(callable, FunctionType):
-            if inspect.isgeneratorfunction(callable):
-                yield from callable(item_metadata)
+        if isinstance(self._fn, FunctionType):
+            if inspect.isgeneratorfunction(self._fn):
+                yield from self._fn(item_metadata)
             else:
-                yield callable(item_metadata)
+                yield self._fn(item_metadata)
+        elif inspect.isclass(self._fn):
+            if inspect.isgeneratorfunction(self._fn.__call__):  # type: ignore
+                yield from self._fn.__call__(item_metadata)  # type: ignore
+            else:
+                yield self._fn.__call__(item_metadata)  # type: ignore
         else:
-            if inspect.isgeneratorfunction(callable.__call__):
-                yield from callable.__call__(item_metadata)
-            else:
-                yield callable.__call__(item_metadata)
+            raise ValueError(f"The provided {self._fn} isn't supported.")
 
 
 def map(
