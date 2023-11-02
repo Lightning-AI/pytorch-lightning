@@ -17,6 +17,7 @@ from tqdm.auto import tqdm
 
 from lightning import seed_everything
 from lightning.data.streaming import Cache
+from lightning.data.streaming.cache import Dir
 from lightning.data.streaming.client import S3Client
 from lightning.data.streaming.constants import (
     _BOTO3_AVAILABLE,
@@ -37,11 +38,7 @@ if _TORCH_GREATER_EQUAL_2_1_0:
     from torch.utils._pytree import tree_flatten, tree_unflatten
 
 if _LIGHTNING_CLOUD_GREATER_EQUAL_0_5_47:
-    from lightning_cloud.resolver import Dir, _resolve_dir
-else:
-
-    class Dir:
-        pass
+    from lightning_cloud.resolver import _resolve_dir
 
 
 if _BOTO3_AVAILABLE:

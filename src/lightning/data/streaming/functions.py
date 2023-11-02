@@ -83,7 +83,7 @@ class LambdaDataChunkRecipe(DataChunkRecipe):
                 yield from self._fn(item_metadata)
             else:
                 yield self._fn(item_metadata)
-        elif inspect.isclass(self._fn) and callable(self._fn):
+        elif callable(self._fn):
             if inspect.isgeneratorfunction(self._fn.__call__):
                 yield from self._fn.__call__(item_metadata)
             else:

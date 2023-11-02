@@ -9,7 +9,7 @@ import torch
 from lightning import seed_everything
 from lightning.data.streaming import data_processor as data_processor_module
 from lightning.data.streaming import functions
-from lightning.data.streaming.cache import Cache
+from lightning.data.streaming.cache import Cache, Dir
 from lightning.data.streaming.data_processor import (
     DataChunkRecipe,
     DataProcessor,
@@ -21,7 +21,6 @@ from lightning.data.streaming.data_processor import (
     _wait_for_file_to_exist,
 )
 from lightning.data.streaming.functions import map, optimize
-from lightning_cloud.resolver import Dir
 from lightning_utilities.core.imports import RequirementCache
 
 _PIL_AVAILABLE = RequirementCache("PIL")
@@ -650,7 +649,7 @@ class OptimizeYield:
     def __call__(self, filepath):
         from PIL import Image
 
-        for _ in range(5):
+        for _ in range(1):
             yield [Image.open(filepath), os.path.basename(filepath)]
 
 

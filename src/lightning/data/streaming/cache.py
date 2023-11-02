@@ -13,6 +13,7 @@
 
 import logging
 import os
+from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 from lightning.data.datasets.env import _DistributedEnv
@@ -29,11 +30,15 @@ from lightning.data.streaming.writer import BinaryWriter
 logger = logging.Logger(__name__)
 
 if _LIGHTNING_CLOUD_GREATER_EQUAL_0_5_47:
-    from lightning_cloud.resolver import Dir, _resolve_dir
-else:
+    from lightning_cloud.resolver import _resolve_dir
 
-    class Dir:
-        pass
+
+@dataclass
+class Dir:
+    """Holds a directory path and possibly its associated remote URL."""
+
+    path: str
+    url: Optional[str] = None
 
 
 class Cache:

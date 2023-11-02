@@ -19,9 +19,7 @@ from torch.utils.data import IterableDataset
 
 from lightning.data.datasets.env import _DistributedEnv, _WorkerEnv
 from lightning.data.streaming import Cache
-from lightning.data.streaming.constants import (
-    _LIGHTNING_CLOUD_GREATER_EQUAL_0_5_47,
-)
+from lightning.data.streaming.constants import _INDEX_FILENAME, _LIGHTNING_CLOUD_GREATER_EQUAL_0_5_47
 from lightning.data.streaming.item_loader import BaseItemLoader
 from lightning.data.streaming.sampler import ChunkedIndex
 from lightning.data.streaming.shuffle import FullShuffle, NoShuffle, Shuffle
@@ -86,7 +84,10 @@ class StreamingDataset(IterableDataset):
         self.cache._reader._try_load_config()
 
         if not self.cache.filled:
-            raise ValueError(f"The provided dataset `{input_dir}` isn't filled up.")
+            raise ValueError(
+                f"The provided dataset `{input_dir}` doesn't contain any {_INDEX_FILENAME} file."
+                " HINT: Did you successfully optimize a dataset to the provided `input_dir` ?"
+            )
 
         self.distributed_env = _DistributedEnv.detect()
 
