@@ -304,7 +304,7 @@ def measure_flops(
     return flop_counter.get_total_flops()
 
 
-_CUDA_FLOPS = {
+_CUDA_FLOPS: Dict[str, Dict[Union[str, torch.dtype], float]] = {
     # source: https://resources.nvidia.com/en-us-tensor-core/nvidia-tensor-core-gpu-datasheet
     # nvidia publishes spec sheet with a 2x sparsity factor
     "h100-sxm": {
@@ -360,7 +360,7 @@ _TPU_FLOPS = {
 }
 
 
-def get_available_flops(device: torch.device, dtype: torch.dtype) -> Optional[int]:
+def get_available_flops(device: torch.device, dtype: Union[torch.dtype, str]) -> Optional[int]:
     """Returns the available theoretical FLOPs.
 
     This is an optimistic upper limit that could only be achievable if only thick matmuls were run in a benchmark
