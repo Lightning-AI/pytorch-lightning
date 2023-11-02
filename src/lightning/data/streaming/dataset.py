@@ -29,7 +29,6 @@ class StreamingDataset(IterableDataset):
     def __init__(
         self,
         input_dir: str,
-        cache_dir: Optional[str] = None,
         item_loader: Optional[BaseItemLoader] = None,
         shuffle: bool = False,
         drop_last: bool = False,
@@ -52,7 +51,7 @@ class StreamingDataset(IterableDataset):
         if not isinstance(shuffle, bool):
             raise ValueError(f"Shuffle should be a boolean. Found {shuffle}")
 
-        self.cache = Cache(input_dir=input_dir, cache_dir=cache_dir, item_loader=item_loader, chunk_bytes=1)
+        self.cache = Cache(input_dir=input_dir, item_loader=item_loader, chunk_bytes=1)
 
         self.cache._reader._try_load_config()
 

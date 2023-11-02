@@ -21,7 +21,6 @@ import torch
 from lightning import seed_everything
 from lightning.data.datasets.env import _DistributedEnv
 from lightning.data.streaming import Cache
-from lightning.data.streaming import cache as cache_module
 from lightning.data.streaming.dataloader import StreamingDataLoader
 from lightning.data.streaming.dataset import StreamingDataset
 from lightning.data.streaming.item_loader import TokensLoader
@@ -226,17 +225,16 @@ def test_streaming_dataset(tmpdir, monkeypatch):
     seed_everything(42)
 
     os.makedirs(os.path.join(tmpdir, "remote_dir"), exist_ok=True)
-    monkeypatch.setattr(cache_module, "_try_create_cache_dir", lambda name: tmpdir)
 
     with pytest.raises(ValueError, match="The provided dataset"):
-        dataset = StreamingDataset(input_dir=tmpdir, cache_dir=tmpdir)
+        dataset = StreamingDataset(input_dir=tmpdir)
 
     dataset = RandomDataset(128, 64)
     dataloader = StreamingDataLoader(dataset, cache_dir=tmpdir, chunk_bytes=2 << 12)
     for batch in dataloader:
         assert isinstance(batch, torch.Tensor)
 
-    dataset = StreamingDataset(input_dir=tmpdir, cache_dir=tmpdir, item_loader=TokensLoader(block_size=10))
+    dataset = StreamingDataset(input_dir=tmpdir, item_loader=TokensLoader(block_size=10))
 
     assert len(dataset) == 816
     dataset_iter = iter(dataset)

@@ -11,10 +11,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import inspect
 import os
 from datetime import datetime
 from pathlib import Path
-from types import GeneratorType
+from types import FunctionType
 from typing import Any, Callable, Optional, Sequence, Union
 
 from lightning.data.streaming.constants import _LIGHTNING_CLOUD_GREATER_EQUAL_0_5_47, _TORCH_GREATER_EQUAL_2_1_0
@@ -77,10 +78,16 @@ class LambdaDataChunkRecipe(DataChunkRecipe):
         return self._inputs
 
     def prepare_item(self, item_metadata: Any) -> Any:  # type: ignore
-        if isinstance(self._fn, GeneratorType):
-            yield from self._fn(item_metadata)
+        if isinstance(callable, FunctionType):
+            if inspect.isgeneratorfunction(callable):
+                yield from callable(item_metadata)
+            else:
+                yield callable(item_metadata)
         else:
-            yield self._fn(item_metadata)
+            if inspect.isgeneratorfunction(callable.__call__):
+                yield from callable.__call__(item_metadata)
+            else:
+                yield callable.__call__(item_metadata)
 
 
 def map(
@@ -117,7 +124,7 @@ def map(
     if num_nodes is None or int(os.getenv("DATA_OPTIMIZER_NUM_NODES", 0)) > 0:
         output_dir = _resolve_dir(output_dir)
 
-        if output_dir is None or "cloudspaces" in output_dir.url:
+        if output_dir.url and "cloudspaces" in output_dir.url:
             raise ValueError(
                 f"The provided `output_dir` isn't valid. Found {output_dir.path if output_dir else None}."
                 " HINT: You can either use `/teamspace/s3_connections/...` or `/teamspace/datasets/...`."
@@ -126,9 +133,6 @@ def map(
         _assert_dir_is_empty(output_dir)
 
         input_dir = _resolve_dir(_get_input_dir(inputs))
-
-        if input_dir.url is None:
-            raise ValueError("We couldn't infer the input_dir from your inputs.")
 
         data_processor = DataProcessor(
             input_dir=input_dir,
@@ -188,7 +192,7 @@ def optimize(
     if num_nodes is None or int(os.getenv("DATA_OPTIMIZER_NUM_NODES", 0)) > 0:
         output_dir = _resolve_dir(output_dir)
 
-        if output_dir is None or "cloudspaces" in output_dir.url:
+        if output_dir.url is not None and "cloudspaces" in output_dir.url:
             raise ValueError(
                 f"The provided `output_dir` isn't valid. Found {output_dir.path}."
                 " HINT: You can either use `/teamspace/s3_connections/...` or `/teamspace/datasets/...`."
@@ -197,9 +201,6 @@ def optimize(
         _assert_dir_has_index_file(output_dir)
 
         input_dir = _resolve_dir(_get_input_dir(inputs))
-
-        if input_dir.url is None:
-            raise ValueError("We couldn't infer the input_dir from your inputs.")
 
         data_processor = DataProcessor(
             input_dir=input_dir,

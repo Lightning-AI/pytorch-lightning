@@ -81,7 +81,7 @@ def test_streaming_dataset_distributed_no_shuffle(drop_last, tmpdir):
     assert process_1_2[:10] == [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
     assert len(process_1_2) == 50 + int(not drop_last)
 
-    dataset = StreamingDataset(input_dir=tmpdir, cache_dir=tmpdir, shuffle=False, drop_last=drop_last)
+    dataset = StreamingDataset(input_dir=tmpdir, shuffle=False, drop_last=drop_last)
     dataset.distributed_env = _DistributedEnv(2, 1)
     assert len(dataset) == 50
     dataset_iter = iter(dataset)
@@ -131,7 +131,7 @@ def test_streaming_dataset_distributed_no_shuffle(drop_last, tmpdir):
 def test_streaming_dataset_distributed_full_shuffle_odd(drop_last, tmpdir):
     seed_everything(42)
 
-    cache = Cache(cache_dir=tmpdir, chunk_size=10)
+    cache = Cache(input_dir=tmpdir, chunk_size=10)
     for i in range(1097):
         cache[i] = i
 

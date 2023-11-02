@@ -45,11 +45,6 @@ if _BOTO3_AVAILABLE:
 logger = logging.Logger(__name__)
 
 
-def _get_cache_folder() -> str:
-    """Returns the cache folder."""
-    return os.getenv("DATA_OPTIMIZER_CACHE_FOLDER", "/cache/chunks")
-
-
 def _get_num_nodes() -> int:
     """Returns the number of nodes."""
     return int(os.getenv("DATA_OPTIMIZER_NUM_NODES", 1))
@@ -70,18 +65,20 @@ def _get_home_folder() -> str:
     return os.getenv("DATA_OPTIMIZER_HOME_FOLDER", os.path.expanduser("~"))
 
 
-def _get_cache_dir(name: Optional[str]) -> str:
+def _get_cache_dir(name: Optional[str] = None) -> str:
     """Returns the cache directory used by the Cache to store the chunks."""
+    cache_dir = os.getenv("DATA_OPTIMIZER_CACHE_FOLDER", "/cache/chunks")
     if name is None:
-        return _get_cache_folder()
-    return os.path.join(_get_cache_folder(), name.lstrip("/"))
+        return cache_dir
+    return os.path.join(cache_dir, name.lstrip("/"))
 
 
-def _get_cache_data_dir(name: Optional[str]) -> str:
+def _get_cache_data_dir(name: Optional[str] = None) -> str:
     """Returns the cache data directory used by the DataProcessor workers to download the files."""
+    cache_dir = os.getenv("DATA_OPTIMIZER_DATA_CACHE_FOLDER", "/cache/data")
     if name is None:
-        return os.path.join(_get_cache_folder(), "data")
-    return os.path.join(_get_cache_folder(), "data", name.lstrip("/"))
+        return os.path.join(cache_dir)
+    return os.path.join(cache_dir, name.lstrip("/"))
 
 
 def _get_s3_client() -> Any:
@@ -100,9 +97,7 @@ def _wait_for_file_to_exist(s3: Any, obj: parse.ParseResult, sleep_time: int = 2
                 raise e
 
 
-def _download_data_target(
-    input_dir: str, remote_input_dir: str, cache_dir: str, queue_in: Queue, queue_out: Queue
-) -> None:
+def _download_data_target(input_dir: Dir, cache_dir: str, queue_in: Queue, queue_out: Queue) -> None:
     """This function is used to download data from a remote directory to a cache directory to optimise reading."""
     s3 = _get_s3_client()
 
@@ -119,16 +114,19 @@ def _download_data_target(
         index, paths = r
 
         # 5. Check whether all the files are already downloaded
-        if all(os.path.exists(p.replace(input_dir, cache_dir) if input_dir else p) for p in paths):
+        if all(os.path.exists(p.replace(input_dir.path, cache_dir) if input_dir else p) for p in paths):
             queue_out.put(index)
             continue
 
-        if remote_input_dir is not None:
+        if input_dir.url is not None or input_dir.path is not None:
             # 6. Download all the required paths to unblock the current index
             for path in paths:
-                remote_path = path.replace(input_dir, remote_input_dir)
-                obj = parse.urlparse(remote_path)
-                local_path = path.replace(input_dir, cache_dir)
+                local_path = path.replace(input_dir.path, cache_dir)
+
+                if input_dir.url:
+                    path = path.replace(input_dir.path, input_dir.url)
+
+                obj = parse.urlparse(path)
 
                 if obj.scheme == "s3":
                     dirpath = os.path.dirname(local_path)
@@ -138,16 +136,16 @@ def _download_data_target(
                     with open(local_path, "wb") as f:
                         s3.download_fileobj(obj.netloc, obj.path.lstrip("/"), f)
 
-                elif os.path.isfile(remote_path):
-                    copyfile(remote_path, local_path)
+                elif os.path.isfile(path):
+                    copyfile(path, local_path)
                 else:
-                    raise ValueError(f"The provided {remote_input_dir} isn't supported.")
+                    raise ValueError(f"The provided {input_dir.url} isn't supported.")
 
         # 7. Inform the worker the current files are available
         queue_out.put(index)
 
 
-def _remove_target(input_dir: str, cache_dir: str, queue_in: Queue) -> None:
+def _remove_target(input_dir: Dir, cache_dir: str, queue_in: Queue) -> None:
     """This function is used to delete files from the cache directory to minimise disk space."""
     while True:
         # 1. Collect paths
@@ -161,7 +159,7 @@ def _remove_target(input_dir: str, cache_dir: str, queue_in: Queue) -> None:
         for path in paths:
             if input_dir:
                 if not path.startswith(cache_dir):
-                    path = path.replace(input_dir, cache_dir)
+                    path = path.replace(input_dir.path, cache_dir)
 
                 if os.path.exists(path):
                     os.remove(path)
@@ -303,7 +301,7 @@ class BaseWorker:
                     if isinstance(self.data_recipe, DataChunkRecipe):
                         self._handle_data_chunk_recipe_end()
 
-                    if self.output_dir.url:
+                    if self.output_dir.url if self.output_dir.url else self.output_dir.path:
                         assert self.uploader
                         self.upload_queue.put(None)
                         self.uploader.join()
@@ -345,10 +343,10 @@ class BaseWorker:
         os.environ["DATA_OPTIMIZER_NUM_WORKERS"] = str(self.num_workers)
 
     def _create_cache(self) -> None:
-        self.cache_data_dir = _get_cache_data_dir(self.input_dir.path)
+        self.cache_data_dir = _get_cache_data_dir()
         os.makedirs(self.cache_data_dir, exist_ok=True)
 
-        self.cache_chunks_dir = _get_cache_dir(self.input_dir.path)
+        self.cache_chunks_dir = _get_cache_dir()
         os.makedirs(self.cache_chunks_dir, exist_ok=True)
 
         if isinstance(self.data_recipe, DataTransformRecipe):
@@ -363,7 +361,7 @@ class BaseWorker:
         self.cache._reader._rank = _get_node_rank() * self.num_workers + self.worker_index
 
     def _try_upload(self, filepath: Optional[str]) -> None:
-        if not filepath or self.output_dir.url is None:
+        if not filepath or (self.output_dir.url if self.output_dir.url else self.output_dir.path) is None:
             return
 
         assert os.path.exists(filepath), filepath
@@ -412,7 +410,6 @@ class BaseWorker:
                 target=_download_data_target,
                 args=(
                     self.input_dir,
-                    self.input_dir,
                     self.cache_data_dir,
                     to_download_queue,
                     self.ready_to_process_queue,
@@ -442,7 +439,7 @@ class BaseWorker:
         self.remover.start()
 
     def _start_uploader(self) -> None:
-        if self.output_dir.url is None:
+        if self.output_dir.path is None and self.output_dir.url is None:
             return
         self.uploader = Process(
             target=_upload_fn,
@@ -547,7 +544,7 @@ class DataRecipe:
     def __init__(self) -> None:
         self._name: Optional[str] = None
 
-    def _done(self, delete_cached_files: bool, remote_output_dir: Any) -> None:
+    def _done(self, delete_cached_files: bool, output_dir: Dir) -> None:
         pass
 
 
@@ -575,25 +572,25 @@ class DataChunkRecipe(DataRecipe):
     def prepare_item(self, item_metadata: T) -> Any:  # type: ignore
         """The return of this `prepare_item` method is persisted in chunked binary files."""
 
-    def _done(self, delete_cached_files: bool, remote_output_dir: str) -> None:
+    def _done(self, delete_cached_files: bool, output_dir: Dir) -> None:
         num_nodes = _get_num_nodes()
-        cache_dir = _get_cache_dir(self._name)
+        cache_dir = _get_cache_dir()
 
         chunks = [file for file in os.listdir(cache_dir) if file.endswith(".bin")]
-        if chunks and delete_cached_files and remote_output_dir:
+        if chunks and delete_cached_files and output_dir.path is not None:
             raise RuntimeError(f"All the chunks should have been deleted. Found {chunks}")
 
         merge_cache = Cache(cache_dir, chunk_bytes=1)
         node_rank = _get_node_rank()
         merge_cache._merge_no_wait(node_rank if num_nodes > 1 else None)
-        self._upload_index(remote_output_dir, cache_dir, num_nodes, node_rank)
+        self._upload_index(output_dir, cache_dir, num_nodes, node_rank)
 
-    def _upload_index(self, remote_output_dir: str, cache_dir: str, num_nodes: int, node_rank: Optional[int]) -> None:
+    def _upload_index(self, output_dir: Dir, cache_dir: str, num_nodes: int, node_rank: Optional[int]) -> None:
         """This method upload the index file to the remote cloud directory."""
-        if not remote_output_dir:
+        if output_dir.path is None and output_dir.url is None:
             return
 
-        obj = parse.urlparse(remote_output_dir)
+        obj = parse.urlparse(output_dir.url if output_dir.url else output_dir.path)
         if num_nodes > 1:
             local_filepath = os.path.join(cache_dir, f"{node_rank}-{_INDEX_FILENAME}")
         else:
@@ -604,8 +601,8 @@ class DataChunkRecipe(DataRecipe):
             s3.upload_file(
                 local_filepath, obj.netloc, os.path.join(obj.path.lstrip("/"), os.path.basename(local_filepath))
             )
-        elif os.path.isdir(remote_output_dir):
-            copyfile(local_filepath, os.path.join(remote_output_dir, os.path.basename(local_filepath)))
+        elif os.path.isdir(output_dir.path):
+            copyfile(local_filepath, os.path.join(output_dir.path, os.path.basename(local_filepath)))
 
         if num_nodes == 1 or node_rank is None:
             return
@@ -616,19 +613,21 @@ class DataChunkRecipe(DataRecipe):
         if num_nodes == node_rank + 1:
             # Get the index file locally
             for node_rank in range(num_nodes - 1):
-                remote_filepath = os.path.join(remote_output_dir, f"{node_rank}-{_INDEX_FILENAME}")
+                remote_filepath = os.path.join(
+                    output_dir.url if output_dir.url else output_dir.path, f"{node_rank}-{_INDEX_FILENAME}"
+                )
                 node_index_filepath = os.path.join(cache_dir, os.path.basename(remote_filepath))
                 if obj.scheme == "s3":
                     obj = parse.urlparse(remote_filepath)
                     _wait_for_file_to_exist(s3, obj)
                     with open(node_index_filepath, "wb") as f:
                         s3.download_fileobj(obj.netloc, obj.path.lstrip("/"), f)
-                elif os.path.isdir(remote_output_dir):
+                elif os.path.isdir(output_dir.path):
                     copyfile(remote_filepath, node_index_filepath)
 
             merge_cache = Cache(cache_dir, chunk_bytes=1)
             merge_cache._merge_no_wait()
-            self._upload_index(remote_output_dir, cache_dir, 1, None)
+            self._upload_index(output_dir, cache_dir, 1, None)
 
 
 class DataTransformRecipe(DataRecipe):
@@ -761,7 +760,7 @@ class DataProcessor:
                 w.join(0)
 
         print("Workers are finished.")
-        data_recipe._done(self.delete_cached_files, self.output_dir.url)
+        data_recipe._done(self.delete_cached_files, self.output_dir)
         print("Finished data processing!")
 
     def _exit_on_error(self, error: str) -> None:
@@ -799,30 +798,6 @@ class DataProcessor:
         self.workers = workers
         self.stop_queues = stop_queues
 
-    def _associated_items_to_workers(self, user_items: List[Any]) -> Tuple[List[int], List[List[Any]]]:
-        # Associate the items to the workers based on world_size and node_rank
-        num_nodes = _get_num_nodes()
-        current_node_rank = _get_node_rank()
-        node_size = len(user_items) // num_nodes
-        workers_user_items = []
-        begins = []
-        for node_rank in range(num_nodes):
-            if node_rank != current_node_rank:
-                continue
-            is_last_node = node_rank == num_nodes - 1
-            start_node = node_rank * node_size
-            end_node = len(user_items) if is_last_node else (node_rank + 1) * node_size
-            node_user_items = user_items[start_node:end_node]
-            worker_size = len(node_user_items) // self.num_workers
-            for worker_idx in range(self.num_workers):
-                is_last = worker_idx == self.num_workers - 1
-                begin = worker_idx * worker_size
-                end = len(node_user_items) if is_last else (worker_idx + 1) * worker_size
-                workers_user_items.append(user_items[begin:end])
-                begins.append(begin)
-            return begins, workers_user_items
-        raise RuntimeError(f"The current_node_rank {current_node_rank} doesn't exist in {num_nodes}.")
-
     def _signal_handler(self, signal: Any, frame: Any) -> None:
         """On temrination, we stop all the processes to avoid leaking RAM."""
         for stop_queue in self.stop_queues:
@@ -832,7 +807,7 @@ class DataProcessor:
         os._exit(0)
 
     def _cleanup_cache(self) -> None:
-        cache_dir = _get_cache_dir(self.input_dir.path if self.input_dir else None)
+        cache_dir = _get_cache_dir()
 
         # Cleanup the cache dir folder to avoid corrupted files from previous run to be there.
         if os.path.exists(cache_dir):
@@ -840,7 +815,7 @@ class DataProcessor:
 
         os.makedirs(cache_dir, exist_ok=True)
 
-        cache_data_dir = _get_cache_data_dir(self.input_dir.path if self.input_dir else None)
+        cache_data_dir = _get_cache_data_dir()
 
         # Cleanup the cache data folder to avoid corrupted files from previous run to be there.
         if os.path.exists(cache_data_dir):

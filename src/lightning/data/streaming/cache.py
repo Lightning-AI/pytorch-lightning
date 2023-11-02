@@ -29,14 +29,13 @@ from lightning.data.streaming.writer import BinaryWriter
 logger = logging.Logger(__name__)
 
 if _LIGHTNING_CLOUD_GREATER_EQUAL_0_5_47:
-    from lightning_cloud.resolver import Dir, _resolve_dir, _try_create_cache_dir
+    from lightning_cloud.resolver import Dir, _resolve_dir
 
 
 class Cache:
     def __init__(
         self,
-        cache_dir: Optional[str] = None,
-        input_dir: Optional[Union[str, Dir]] = None,
+        input_dir: Optional[Union[str, Dir]],
         compression: Optional[str] = None,
         chunk_size: Optional[int] = None,
         chunk_bytes: Optional[int] = None,
@@ -46,9 +45,7 @@ class Cache:
         together in order to accelerate fetching.
 
         Arguments:
-            cache_dir: The path to where the chunks will be cached.
-            input_dir: The path to where the chunks are stored.
-                The scheme needs to be added to the path.
+            input_dir: The path to where the chunks will be or are stored.
             name: The name of dataset in the cloud.
             version: The version of the dataset in the cloud to use. By default, we will use the latest.
             compression: The name of the algorithm to reduce the size of the chunks.
@@ -61,16 +58,14 @@ class Cache:
         if not _TORCH_GREATER_EQUAL_2_1_0:
             raise ModuleNotFoundError("PyTorch version 2.1 or higher is required to use the cache.")
 
-        self._cache_dir = cache_dir = str(cache_dir) if cache_dir else _try_create_cache_dir()
         input_dir = _resolve_dir(input_dir)
-        if self._cache_dir is None and input_dir is not None:
-            self._cache_dir = input_dir.path if isinstance(input_dir, Dir) else input_dir
+        self._cache_dir = input_dir.path
         self._writer = BinaryWriter(
             self._cache_dir, chunk_size=chunk_size, chunk_bytes=chunk_bytes, compression=compression
         )
         self._reader = BinaryReader(
             self._cache_dir,
-            remote_input_dir=input_dir.url if isinstance(input_dir, Dir) else None,
+            remote_input_dir=input_dir.url,
             compression=compression,
             item_loader=item_loader,
         )
