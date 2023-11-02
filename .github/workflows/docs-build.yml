@@ -14,7 +14,12 @@ on:
       - "docs/**"
       - "_notebooks"
       - "requirements/**"
-      - "src/**"
+      - "src/lightning/app/**"
+      - "src/lightning_app/*"
+      - "src/lightning/fabric/**"
+      - "src/lightning_fabric/*"
+      - "src/lightning/pytorch/**"
+      - "src/pytorch_lightning/*"
       - "setup.py"
       - "pyproject.toml" # includes metadata used in the package creation
       - "!*.md"
