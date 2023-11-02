@@ -17,7 +17,6 @@ from typing import TYPE_CHECKING, Any, Callable, Deque, Dict, List, Optional, Ty
 
 import torch
 
-from lightning.fabric.accelerators.cuda import _is_ampere_or_later
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_1
 from lightning.fabric.utilities.rank_zero import rank_zero_only, rank_zero_warn
 
@@ -395,8 +394,11 @@ def get_available_flops(device: torch.device, dtype: torch.dtype) -> Optional[in
             # if we were able to parse the chip, it should be in the flops list
             raise RuntimeError(f"FLOPs not found for {device_name!r}, chip is {chip!r}")
         dtype_to_flops = _CUDA_FLOPS[chip]
-        if dtype is torch.float32 and _is_ampere_or_later() and torch.get_float32_matmul_precision() != "highest":
-            dtype = "tfloat32"
+        if dtype is torch.float32:
+            from lightning.fabric.accelerators.cuda import _is_ampere_or_later
+
+            if _is_ampere_or_later() and torch.get_float32_matmul_precision() != "highest":
+                dtype = "tfloat32"
         if dtype not in dtype_to_flops:
             # for example, T4 doesn't support bfloat16. it might also be that we are missing this dtype from the list
             rank_zero_warn(f"{device_name!r} does not support {dtype}")
