@@ -5,11 +5,12 @@ import tempfile
 import traceback
 import types
 from abc import abstractmethod
+from dataclasses import dataclass
 from multiprocessing import Process, Queue
 from queue import Empty
 from shutil import copyfile, rmtree
 from time import sleep, time
-from typing import Any, Callable, Dict, List, Optional, Tuple, TypeVar
+from typing import Any, Callable, Dict, List, Optional, Tuple, TypeVar, Union
 from urllib import parse
 
 import torch
@@ -21,7 +22,7 @@ from lightning.data.streaming.constants import (
     _BOTO3_AVAILABLE,
     _DEFAULT_FAST_DEV_RUN_ITEMS,
     _INDEX_FILENAME,
-    _LIGHTNING_CLOUD_GREATER_EQUAL_0_5_42,
+    _LIGHTNING_CLOUD_GREATER_EQUAL_0_5_46,
     _TORCH_GREATER_EQUAL_2_1_0,
 )
 from lightning.fabric.accelerators.cuda import is_cuda_available
@@ -35,7 +36,7 @@ from lightning.fabric.utilities.distributed import group as _group
 if _TORCH_GREATER_EQUAL_2_1_0:
     from torch.utils._pytree import tree_flatten, tree_unflatten
 
-if _LIGHTNING_CLOUD_GREATER_EQUAL_0_5_42:
+if _LIGHTNING_CLOUD_GREATER_EQUAL_0_5_46:
     from lightning_cloud.resolver import _LightningSrcResolver, _LightningTargetResolver
 
 if _BOTO3_AVAILABLE:
@@ -160,10 +161,14 @@ def _remove_target(input_dir: str, cache_dir: str, queue_in: Queue) -> None:
         # 3. Iterate through the paths and delete them sequentially.
         for path in paths:
             if input_dir:
-                cached_filepath = path.replace(input_dir, cache_dir)
+                if not path.startswith(cache_dir):
+                    path = path.replace(input_dir, cache_dir)
 
-                if os.path.exists(cached_filepath):
-                    os.remove(cached_filepath)
+                if os.path.exists(path):
+                    os.remove(path)
+
+            elif os.path.exists(path) and "s3_connections" not in path:
+                os.remove(path)
 
 
 def _upload_fn(upload_queue: Queue, remove_queue: Queue, cache_dir: str, remote_output_dir: str) -> None:
@@ -387,7 +392,9 @@ class BaseWorker:
             }
 
             if len(indexed_paths) == 0:
-                raise ValueError(f"The provided item {item} didn't contain any filepaths. {flattened_item}")
+                raise ValueError(
+                    f"The provided item {item} didn't contain any filepaths. The input_dir is {self.input_dir}."
+                )
 
             paths = []
             for index, path in indexed_paths.items():
@@ -548,7 +555,7 @@ class DataRecipe:
     def _setup(self, name: Optional[str]) -> None:
         self._name = name
 
-    def _done(self, delete_cached_files: bool, remote_output_dir: str) -> None:
+    def _done(self, delete_cached_files: bool, remote_output_dir: Any) -> None:
         pass
 
 
@@ -578,7 +585,6 @@ class DataChunkRecipe(DataRecipe):
 
     def _done(self, delete_cached_files: bool, remote_output_dir: str) -> None:
         num_nodes = _get_num_nodes()
-        assert self._name
         cache_dir = _get_cache_dir(self._name)
 
         chunks = [file for file in os.listdir(cache_dir) if file.endswith(".bin")]
@@ -647,6 +653,14 @@ class DataTransformRecipe(DataRecipe):
         """Use your item metadata to process your files and save the file outputs into `output_dir`."""
 
 
+@dataclass
+class PrettyDirectory:
+    """Holds a directory and its URL."""
+
+    directory: str
+    url: str
+
+
 class DataProcessor:
     def __init__(
         self,
@@ -656,10 +670,11 @@ class DataProcessor:
         num_downloaders: Optional[int] = None,
         delete_cached_files: bool = True,
         src_resolver: Optional[Callable[[str], Optional[str]]] = None,
-        fast_dev_run: Optional[bool] = None,
+        fast_dev_run: Optional[Union[bool, int]] = None,
         remote_input_dir: Optional[str] = None,
-        remote_output_dir: Optional[str] = None,
+        remote_output_dir: Optional[Union[str, PrettyDirectory]] = None,
         random_seed: Optional[int] = 42,
+        version: Optional[int] = None,
     ):
         """The `DatasetOptimiser` provides an efficient way to process data across multiple machine into chunks to make
         training faster.
@@ -692,18 +707,22 @@ class DataProcessor:
         self.remote_input_dir = (
             str(remote_input_dir)
             if remote_input_dir is not None
-            else ((self.src_resolver(input_dir) if input_dir else None) if self.src_resolver else None)
+            else ((self.src_resolver(str(input_dir)) if input_dir else None) if self.src_resolver else None)
         )
         self.remote_output_dir = (
             remote_output_dir
             if remote_output_dir is not None
-            else (self.dst_resolver(name) if self.dst_resolver else None)
+            else (self.dst_resolver(name, version=version) if self.dst_resolver else None)
         )
         if self.remote_output_dir:
             self.name = self._broadcast_object(self.name)
             # Ensure the remote src dir is the same across all ranks
             self.remote_output_dir = self._broadcast_object(self.remote_output_dir)
-            print(f"Storing the files under {self.remote_output_dir}")
+            if isinstance(self.remote_output_dir, PrettyDirectory):
+                print(f"Storing the files under {self.remote_output_dir.directory}")
+                self.remote_output_dir = self.remote_output_dir.url
+            else:
+                print(f"Storing the files under {self.remote_output_dir}")
 
         self.random_seed = random_seed
 
@@ -725,7 +744,7 @@ class DataProcessor:
         user_items: List[Any] = data_recipe.prepare_structure(self.input_dir)
 
         if not isinstance(user_items, list):
-            raise ValueError("The setup_fn should return a list of item metadata.")
+            raise ValueError("The `prepare_structure` should return a list of item metadata.")
 
         # Associate the items to the workers based on num_nodes and node_rank
         begins, workers_user_items = _associated_items_to_workers(self.num_workers, user_items)
@@ -779,6 +798,8 @@ class DataProcessor:
                 w.join(0)
 
         print("Workers are finished.")
+        if self.remote_output_dir:
+            assert isinstance(self.remote_output_dir, str)
         data_recipe._done(self.delete_cached_files, self.remote_output_dir)
         print("Finished data processing!")
 
@@ -856,7 +877,7 @@ class DataProcessor:
 
         # Cleanup the cache dir folder to avoid corrupted files from previous run to be there.
         if os.path.exists(cache_dir):
-            rmtree(cache_dir)
+            rmtree(cache_dir, ignore_errors=True)
 
         os.makedirs(cache_dir, exist_ok=True)
 
@@ -864,7 +885,7 @@ class DataProcessor:
 
         # Cleanup the cache data folder to avoid corrupted files from previous run to be there.
         if os.path.exists(cache_data_dir):
-            rmtree(cache_data_dir)
+            rmtree(cache_data_dir, ignore_errors=True)
 
         os.makedirs(cache_data_dir, exist_ok=True)
 
