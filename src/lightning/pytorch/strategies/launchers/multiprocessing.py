@@ -18,7 +18,6 @@ import tempfile
 from contextlib import suppress
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, List, Literal, NamedTuple, Optional, Union
-from typing_extensions import override
 
 import numpy as np
 import torch
@@ -26,6 +25,7 @@ import torch.backends.cudnn
 import torch.multiprocessing as mp
 from lightning_utilities.core.apply_func import apply_to_collection
 from torch import Tensor
+from typing_extensions import override
 
 import lightning.pytorch as pl
 from lightning.fabric.strategies.launchers.multiprocessing import (
@@ -262,6 +262,7 @@ class _MultiProcessingLauncher(_Launcher):
                 log.info(f"pid {os.getpid()} killing {proc.pid} with {signum}")
                 with suppress(ProcessLookupError):
                     os.kill(proc.pid, signum)
+
     @override
     def __getstate__(self) -> Dict:
         state = self.__dict__.copy()

@@ -15,9 +15,9 @@ import logging
 import os
 import subprocess
 from typing import Any, Callable, List, Optional
-from typing_extensions import override
 
 from lightning_utilities.core.imports import RequirementCache
+from typing_extensions import override
 
 import lightning.pytorch as pl
 from lightning.fabric.plugins import ClusterEnvironment

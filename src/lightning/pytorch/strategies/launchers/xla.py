@@ -14,9 +14,9 @@
 import os
 import queue
 from typing import TYPE_CHECKING, Any, Callable, Optional, Union
-from typing_extensions import override
 
 import torch.multiprocessing as mp
+from typing_extensions import override
 
 from lightning.fabric.accelerators.xla import _XLA_AVAILABLE, _using_pjrt
 from lightning.fabric.strategies.launchers.xla import _rank_teardown
