@@ -552,7 +552,7 @@ def test_data_processing_map(monkeypatch, tmpdir):
 
     monkeypatch.setattr(functions, "_get_input_dir", lambda x: input_dir)
 
-    map(map_fn, inputs, output_dir=Dir(output_dir), num_workers=1)
+    map(map_fn, inputs, output_dir=Dir(str(output_dir)), num_workers=1)
 
     assert sorted(os.listdir(output_dir)) == ["0.JPEG", "1.JPEG", "2.JPEG", "3.JPEG", "4.JPEG"]
 
