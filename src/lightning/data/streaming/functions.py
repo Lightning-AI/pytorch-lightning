@@ -127,7 +127,7 @@ def map(
             fast_dev_run=fast_dev_run,
             version=None,
             input_dir=input_dir or _get_input_dir(inputs),
-            num_downloaders=10,
+            num_downloaders=2,
         )
         return data_processor.run(LambdaDataTransformRecipe(fn, inputs))
     return _execute(
@@ -191,7 +191,7 @@ def optimize(
             remote_output_dir=PrettyDirectory(output_dir, remote_output_dir),
             fast_dev_run=fast_dev_run,
             input_dir=input_dir or _get_input_dir(inputs),
-            num_downloaders=10,
+            num_downloaders=2,
         )
         return data_processor.run(
             LambdaDataChunkRecipe(
