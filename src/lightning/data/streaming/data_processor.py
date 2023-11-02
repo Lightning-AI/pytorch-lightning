@@ -227,7 +227,10 @@ def _get_item_filesizes(items: List[Any], base_path: str = "") -> List[int]:
         num_bytes = 0
         for index, element in enumerate(flattened_item):
             if isinstance(element, str) and element.startswith(base_path) and os.path.exists(element):
-                num_bytes += os.path.getsize(element)
+                file_bytes = os.path.getsize(element)
+                if file_bytes == 0:
+                    raise RuntimeError(f"The file {element} has 0 bytes!")
+                num_bytes += file_bytes
         item_sizes.append(num_bytes)
     return item_sizes
 
@@ -749,7 +752,6 @@ class DataProcessor:
             raise ValueError("The `prepare_structure` should return a list of item metadata.")
 
         # TODO: Only do this on node 0, and broadcast the item sizes to the other nodes.
-        # TODO: what if item sizes contains 0's?
         item_sizes = _get_item_filesizes(user_items, base_path=self.input_dir)
 
         # Associate the items to the workers based on num_nodes and node_rank

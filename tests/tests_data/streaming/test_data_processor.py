@@ -2,7 +2,7 @@ import os
 import sys
 from typing import Any, List
 from unittest import mock
-
+import random
 import numpy as np
 import pytest
 import torch
@@ -19,6 +19,7 @@ from lightning.data.streaming.data_processor import (
     _remove_target,
     _upload_fn,
     _wait_for_file_to_exist,
+    _get_item_filesizes,
 )
 from lightning.data.streaming.functions import map, optimize
 from lightning_utilities.core.imports import RequirementCache
@@ -588,3 +589,40 @@ def test_data_processing_optimize(monkeypatch, tmpdir):
 
     cache = Cache(output_dir, chunk_size=1)
     assert len(cache) == 5
+
+
+def _generate_file_with_size(file_path, num_bytes):
+    assert num_bytes % 8 == 0
+    content = bytearray(random.getrandbits(8) for _ in range(num_bytes))
+    with open(file_path, 'wb') as file:
+        file.write(content)
+
+
+def test_get_item_filesizes(tmp_path):
+    _generate_file_with_size(tmp_path / "file1", 32)
+    _generate_file_with_size(tmp_path / "file2", 64)
+    _generate_file_with_size(tmp_path / "file3", 128)
+    _generate_file_with_size(tmp_path / "file4", 256)
+
+    items = [
+        # not a path
+        "not a path",
+        # single file path
+        str(tmp_path / "file1"),
+        # tuple: one file path
+        (1, 2, str(tmp_path / "file2")),
+        # list: two file paths
+        [str(tmp_path / "file2"), None, str(tmp_path / "file3")],
+        # set: one file path exists, one does not
+        {str(tmp_path / "other" / "other"), None, str(tmp_path / "file4")},
+        # dict: with file path
+        dict(file=str(tmp_path / "file4"), data="not file"),
+    ]
+    num_bytes = _get_item_filesizes(items, base_path=str(tmp_path))
+    assert num_bytes == [0, 32, 64, 64 + 128, 0, 256]
+
+    with open(tmp_path / "empty_file", 'w'):
+        pass
+    assert os.path.getsize(tmp_path / "empty_file") == 0
+    with pytest.raises(RuntimeError, match="has 0 bytes!"):
+        _get_item_filesizes([str(tmp_path / "empty_file")])
