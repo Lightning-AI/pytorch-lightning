@@ -30,6 +30,10 @@ logger = logging.Logger(__name__)
 
 if _LIGHTNING_CLOUD_GREATER_EQUAL_0_5_47:
     from lightning_cloud.resolver import Dir, _resolve_dir
+else:
+
+    class Dir:
+        pass
 
 
 class Cache:

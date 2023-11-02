@@ -38,6 +38,11 @@ if _TORCH_GREATER_EQUAL_2_1_0:
 
 if _LIGHTNING_CLOUD_GREATER_EQUAL_0_5_47:
     from lightning_cloud.resolver import Dir, _resolve_dir
+else:
+
+    class Dir:
+        pass
+
 
 if _BOTO3_AVAILABLE:
     import botocore
