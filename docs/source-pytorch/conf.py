@@ -92,12 +92,12 @@ _transform_changelog(
 assist_local.AssistantCLI.pull_docs_files(
     gh_user_repo="Lightning-AI/lightning-Habana",
     target_dir="docs/source-pytorch/integrations/hpu",
-    checkout="4eca3d9a9744e24e67924ba1534f79b55b59e5cd",  # this is post `tags/1.2.0`
+    checkout="4eca3d9a9744e24e67924ba1534f79b55b59e5cd",  # this is post `refs/tags/1.2.0`
 )
 assist_local.AssistantCLI.pull_docs_files(
     gh_user_repo="Lightning-AI/lightning-Graphcore",
     target_dir="docs/source-pytorch/integrations/ipu",
-    checkout="tags/v0.1.0",
+    checkout="refs/tags/v0.1.0",
     as_orphan=True,  # todo: this can be dropped after new IPU release
 )
 # the IPU also need one image
