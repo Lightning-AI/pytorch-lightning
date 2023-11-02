@@ -53,6 +53,7 @@ select = [
     "E", "W",  # see: https://pypi.org/project/pycodestyle
     "F",  # see: https://pypi.org/project/pyflakes
     "S",  # see: https://pypi.org/project/flake8-bandit
+    "RUF018",  # see: https://docs.astral.sh/ruff/rules/assignment-in-assert
 ]
 extend-select = [
     "I",  # see: isort
@@ -64,6 +65,7 @@ extend-select = [
 ignore = [
     "E731",  # Do not assign a lambda expression, use a def
     "S108",
+    "E203", # conflicts with black
 ]
 # Exclude a variety of commonly ignored directories.
 exclude = [

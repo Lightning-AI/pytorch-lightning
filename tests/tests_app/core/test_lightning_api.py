@@ -537,7 +537,7 @@ def test_configure_api():
     asyncio.set_event_loop(loop)
     results = loop.run_until_complete(asyncio.gather(*coros))
     response_time = time() - t0
-    print(f"RPS: {N/response_time}")
+    print(f"RPS: {N / response_time}")
     assert response_time < 10
     assert len(results) == N
     assert all(r.get("detail", None) == ("HERE" if i % 5 == 0 else None) for i, r in enumerate(results))

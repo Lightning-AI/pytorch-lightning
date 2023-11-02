@@ -70,6 +70,9 @@ class PyTreeLoader(BaseItemLoader):
         if chunk_filepath not in self._chunk_filepaths:
             while not os.path.exists(chunk_filepath):
                 sleep(0.001)
+
+            # Wait to avoid any corruption when the file appears
+            sleep(0.001)
             self._chunk_filepaths[chunk_filepath] = True
 
         with open(chunk_filepath, "rb", 0) as fp:

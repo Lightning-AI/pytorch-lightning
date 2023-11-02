@@ -21,7 +21,7 @@ _DEFAULT_FAST_DEV_RUN_ITEMS = 10
 # This is required for full pytree serialization / deserialization support
 _TORCH_GREATER_EQUAL_2_1_0 = RequirementCache("torch>=2.1.0")
 _VIZ_TRACKER_AVAILABLE = RequirementCache("viztracer")
-_LIGHTNING_CLOUD_GREATER_EQUAL_0_5_42 = RequirementCache("lightning-cloud>=0.5.42")
+_LIGHTNING_CLOUD_GREATER_EQUAL_0_5_46 = RequirementCache("lightning-cloud>=0.5.46")
 _BOTO3_AVAILABLE = RequirementCache("boto3")
 
 # DON'T CHANGE ORDER

@@ -29,7 +29,7 @@ def test_measure_flops():
 def test_throughput_monitor_fit(tmp_path):
     logger_mock = Mock()
     logger_mock.save_dir = tmp_path
-    monitor = ThroughputMonitor(length_fn=lambda x: 2, batch_size_fn=lambda x: 3, window_size=4, separator="|")
+    monitor = ThroughputMonitor(length_fn=lambda x: 3 * 2, batch_size_fn=lambda x: 3, window_size=4, separator="|")
     model = BoringModel()
     model.flops_per_batch = 10
     trainer = Trainer(
@@ -57,17 +57,29 @@ def test_throughput_monitor_fit(tmp_path):
     expected = {
         "train|device|batches_per_sec": 1.0,
         "train|device|samples_per_sec": 3.0,
-        "train|device|items_per_sec": 6.0,
+        "train|device|items_per_sec": 18.0,
         "train|device|flops_per_sec": 10.0,
         "train|device|mfu": 0.1,
         "epoch": 0,
     }
     assert logger_mock.log_metrics.mock_calls == [
-        call(metrics={"train|time": 1.5, "train|samples": 3, "epoch": 0}, step=0),
-        call(metrics={"train|time": 2.5, "train|samples": 6, "epoch": 0}, step=1),
-        call(metrics={"train|time": 3.5, "train|samples": 9, "epoch": 0}, step=2),
-        call(metrics={**expected, "train|time": 4.5, "train|samples": 12}, step=3),
-        call(metrics={**expected, "train|time": 5.5, "train|samples": 15}, step=4),
+        call(
+            metrics={"train|time": 1.5, "train|batches": 1, "train|samples": 3, "train|lengths": 6, "epoch": 0}, step=0
+        ),
+        call(
+            metrics={"train|time": 2.5, "train|batches": 2, "train|samples": 6, "train|lengths": 12, "epoch": 0}, step=1
+        ),
+        call(
+            metrics={"train|time": 3.5, "train|batches": 3, "train|samples": 9, "train|lengths": 18, "epoch": 0}, step=2
+        ),
+        call(
+            metrics={**expected, "train|time": 4.5, "train|batches": 4, "train|samples": 12, "train|lengths": 24},
+            step=3,
+        ),
+        call(
+            metrics={**expected, "train|time": 5.5, "train|batches": 5, "train|samples": 15, "train|lengths": 30},
+            step=4,
+        ),
     ]
 
 
@@ -95,11 +107,12 @@ def test_throughput_monitor_fit_with_validation(tmp_path):
         trainer.fit(model)
 
     assert logger_mock.log_metrics.mock_calls == [
-        call(metrics={"train/time": 7, "train/samples": 1, "epoch": 0}, step=0),
-        call(metrics={"validate/time": 13 - 11, "validate/samples": 1}, step=1),
+        call(metrics={"train/time": 7, "train/batches": 1, "train/samples": 1, "epoch": 0}, step=0),
+        call(metrics={"validate/time": 13 - 11, "validate/batches": 1, "validate/samples": 1}, step=1),
         call(
             metrics={
                 "train/time": 7 + (19 - 13),
+                "train/batches": 2,
                 "train/samples": 2,
                 "train/device/batches_per_sec": ANY,
                 "train/device/samples_per_sec": ANY,
@@ -141,16 +154,16 @@ def test_throughput_monitor_fit_no_length_fn(tmp_path):
         "epoch": 0,
     }
     assert logger_mock.log_metrics.mock_calls == [
-        call(metrics={"train/time": ANY, "train/samples": 3, "epoch": 0}, step=0),
-        call(metrics={**expected, "train/samples": 6}, step=1),
-        call(metrics={**expected, "train/samples": 9}, step=2),
+        call(metrics={"train/time": ANY, "train/batches": 1, "train/samples": 3, "epoch": 0}, step=0),
+        call(metrics={**expected, "train/batches": 2, "train/samples": 6}, step=1),
+        call(metrics={**expected, "train/batches": 3, "train/samples": 9}, step=2),
     ]
 
 
 def test_throughput_monitor_fit_gradient_accumulation(tmp_path):
     logger_mock = Mock()
     logger_mock.save_dir = tmp_path
-    monitor = ThroughputMonitor(length_fn=lambda x: 2, batch_size_fn=lambda x: 3, window_size=4, separator="|")
+    monitor = ThroughputMonitor(length_fn=lambda x: 3 * 2, batch_size_fn=lambda x: 3, window_size=4, separator="|")
     model = BoringModel()
     model.flops_per_batch = 10
 
@@ -194,17 +207,69 @@ def test_throughput_monitor_fit_gradient_accumulation(tmp_path):
     expected = {
         "train|device|batches_per_sec": 1.0,
         "train|device|samples_per_sec": 3.0,
-        "train|device|items_per_sec": 6.0,
+        "train|device|items_per_sec": 18.0,
         "train|device|flops_per_sec": 10.0,
         "train|device|mfu": 0.1,
     }
     assert logger_mock.log_metrics.mock_calls == [
-        call(metrics={"train|time": 2.5, "train|samples": 6, "epoch": 0}, step=0),
-        call(metrics={**expected, "train|time": 4.5, "train|samples": 12, "epoch": 0}, step=1),
-        call(metrics={**expected, "train|time": 5.5, "train|samples": 15, "epoch": 0}, step=2),
-        call(metrics={**expected, "train|time": 7.5, "train|samples": 21, "epoch": 1}, step=3),
-        call(metrics={**expected, "train|time": 9.5, "train|samples": 27, "epoch": 1}, step=4),
-        call(metrics={**expected, "train|time": 10.5, "train|samples": 30, "epoch": 1}, step=5),
+        call(
+            metrics={"train|time": 2.5, "train|batches": 2, "train|samples": 6, "train|lengths": 12, "epoch": 0}, step=0
+        ),
+        call(
+            metrics={
+                **expected,
+                "train|time": 4.5,
+                "train|batches": 4,
+                "train|samples": 12,
+                "train|lengths": 24,
+                "epoch": 0,
+            },
+            step=1,
+        ),
+        call(
+            metrics={
+                **expected,
+                "train|time": 5.5,
+                "train|batches": 5,
+                "train|samples": 15,
+                "train|lengths": 30,
+                "epoch": 0,
+            },
+            step=2,
+        ),
+        call(
+            metrics={
+                **expected,
+                "train|time": 7.5,
+                "train|batches": 7,
+                "train|samples": 21,
+                "train|lengths": 42,
+                "epoch": 1,
+            },
+            step=3,
+        ),
+        call(
+            metrics={
+                **expected,
+                "train|time": 9.5,
+                "train|batches": 9,
+                "train|samples": 27,
+                "train|lengths": 54,
+                "epoch": 1,
+            },
+            step=4,
+        ),
+        call(
+            metrics={
+                **expected,
+                "train|time": 10.5,
+                "train|batches": 10,
+                "train|samples": 30,
+                "train|lengths": 60,
+                "epoch": 1,
+            },
+            step=5,
+        ),
     ]
 
 
@@ -241,9 +306,9 @@ def test_throughput_monitor_eval(tmp_path, fn):
         f"{fn}|device|mfu": ANY,
     }
     assert logger_mock.log_metrics.mock_calls == [
-        call(metrics={**expected, f"{fn}|samples": 9}, step=3),
-        call(metrics={**expected, f"{fn}|samples": 18}, step=6),
+        call(metrics={**expected, f"{fn}|batches": 3, f"{fn}|samples": 9}, step=3),
+        call(metrics={**expected, f"{fn}|batches": 6, f"{fn}|samples": 18}, step=6),
         # the step doesnt repeat
-        call(metrics={**expected, f"{fn}|samples": 27}, step=9),
-        call(metrics={**expected, f"{fn}|samples": 36}, step=12),
+        call(metrics={**expected, f"{fn}|batches": 9, f"{fn}|samples": 27}, step=9),
+        call(metrics={**expected, f"{fn}|batches": 12, f"{fn}|samples": 36}, step=12),
     ]

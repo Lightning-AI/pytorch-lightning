@@ -215,7 +215,7 @@ def test_simple_profiler_summary(tmpdir, extended):
             f"  {'Total time (s)':<15}\t|  {'Percentage %':<15}\t|"
         )
         output_string_len = len(header_string.expandtabs())
-        sep_lines = f"{sep}{'-'* output_string_len}"
+        sep_lines = f"{sep}{'-' * output_string_len}"
         expected_text = (
             f"Profiler Report{sep}"
             f"{sep_lines}"
@@ -236,7 +236,7 @@ def test_simple_profiler_summary(tmpdir, extended):
             f"{sep}|  {'Action':<{max_action_len}s}\t|  {'Mean duration (s)':<15}\t|  {'Total time (s)':<15}\t|"
         )
         output_string_len = len(header_string.expandtabs())
-        sep_lines = f"{sep}{'-'* output_string_len}"
+        sep_lines = f"{sep}{'-' * output_string_len}"
         expected_text = (
             f"Profiler Report{sep}"
             f"{sep_lines}"
