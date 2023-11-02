@@ -38,7 +38,7 @@ class Cache:
         input_dir: Optional[Union[str, Dir]],
         compression: Optional[str] = None,
         chunk_size: Optional[int] = None,
-        chunk_bytes: Optional[int] = None,
+        chunk_bytes: Optional[Union[int, str]] = None,
         item_loader: Optional[BaseItemLoader] = None,
     ):
         """The Cache enables to optimise dataset format for cloud training. This is done by grouping several elements

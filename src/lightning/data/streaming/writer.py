@@ -15,7 +15,7 @@ import json
 import os
 from dataclasses import dataclass
 from time import sleep
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import torch
@@ -29,11 +29,35 @@ if _TORCH_GREATER_EQUAL_2_1_0:
     from torch.utils._pytree import PyTree, tree_flatten, treespec_dumps
 
 
-def _get_data_optimizer_node_rank() -> Optional[int]:
-    node_rank = os.getenv("DATA_OPTIMIZER_NODE_RANK", None)
-    if node_rank is not None:
-        return int(node_rank)
-    return node_rank
+_FORMAT_TO_RATIO = {
+    "kb": 1024,
+    "mb": 1024**2,
+    "gb": 1024**3,
+    "tb": 1024**4,
+    "pb": 1024**5,
+    "eb": 1024**6,
+    "zb": 1024**7,
+    "yb": 1024**8,
+}
+
+
+def _convert_bytes_to_int(bytes_str: str) -> int:
+    """Convert human readable byte format to an integer."""
+    for suffix in _FORMAT_TO_RATIO:
+        bytes_str = bytes_str.lower().strip()
+        if bytes_str.lower().endswith(suffix):
+            try:
+                return int(float(bytes_str[0 : -len(suffix)]) * _FORMAT_TO_RATIO[suffix])
+            except ValueError:
+                raise ValueError(
+                    "".join(
+                        [
+                            f"Unsupported value/suffix {bytes_str}. Supported suffix are ",
+                            f'{["b"] + list(_FORMAT_TO_RATIO.keys())}.',
+                        ]
+                    )
+                )
+    raise ValueError(f"The supported units are {_FORMAT_TO_RATIO.keys()}")
 
 
 @dataclass
@@ -52,7 +76,7 @@ class BinaryWriter:
         self,
         cache_dir: str,
         chunk_size: Optional[int] = None,
-        chunk_bytes: Optional[int] = None,
+        chunk_bytes: Optional[Union[int, str]] = None,
         compression: Optional[str] = None,
         follow_tensor_dimension: bool = True,
     ):
@@ -75,7 +99,7 @@ class BinaryWriter:
 
         self._serializers: Dict[str, Serializer] = _SERIALIZERS
         self._chunk_size = chunk_size
-        self._chunk_bytes = chunk_bytes
+        self._chunk_bytes = _convert_bytes_to_int(chunk_bytes) if isinstance(chunk_bytes, str) else chunk_bytes
         self._compression = compression
 
         self._data_format: Optional[List[str]] = None

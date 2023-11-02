@@ -92,19 +92,20 @@ _transform_changelog(
 assist_local.AssistantCLI.pull_docs_files(
     gh_user_repo="Lightning-AI/lightning-Habana",
     target_dir="docs/source-pytorch/integrations/hpu",
-    checkout="tags/1.2.0",
+    checkout="4eca3d9a9744e24e67924ba1534f79b55b59e5cd",  # this is post `refs/tags/1.2.0`
 )
 assist_local.AssistantCLI.pull_docs_files(
     gh_user_repo="Lightning-AI/lightning-Graphcore",
     target_dir="docs/source-pytorch/integrations/ipu",
-    checkout="tags/v0.1.0",
+    checkout="refs/tags/v0.1.0",
     as_orphan=True,  # todo: this can be dropped after new IPU release
 )
 # the IPU also need one image
 URL_RAW_DOCS_GRAPHCORE = "https://raw.githubusercontent.com/Lightning-AI/lightning-Graphcore/v0.1.0/docs/source"
 for img in ["_static/images/ipu/profiler.png"]:
-    os.makedirs(os.path.dirname(os.path.join(_PATH_HERE, img)), exist_ok=True)
-    urllib.request.urlretrieve(f"{URL_RAW_DOCS_GRAPHCORE}/{img}", os.path.join(_PATH_HERE, img))
+    img_ = os.path.join(_PATH_HERE, "integrations", "ipu", img)
+    os.makedirs(os.path.dirname(img_), exist_ok=True)
+    urllib.request.urlretrieve(f"{URL_RAW_DOCS_GRAPHCORE}/{img}", img_)
 
 
 if _FETCH_S3_ASSETS:
@@ -599,6 +600,9 @@ coverage_skip_undoc_in_source = True
 
 # skip false positive linkcheck errors from anchors
 linkcheck_anchors = False
+
+# A timeout value, in seconds, for the linkcheck builder.
+linkcheck_timeout = 10
 
 # ignore all links in any CHANGELOG file
 linkcheck_exclude_documents = [r"^(.*\/)*CHANGELOG.*$"]

@@ -67,7 +67,7 @@ class LambdaDataChunkRecipe(DataChunkRecipe):
         fn: Callable[[Any], None],
         inputs: Sequence[Any],
         chunk_size: Optional[int],
-        chunk_bytes: Optional[int],
+        chunk_bytes: Optional[Union[int, str]],
         compression: Optional[str],
     ):
         super().__init__(chunk_size=chunk_size, chunk_bytes=chunk_bytes, compression=compression)
@@ -111,7 +111,6 @@ def map(
         fast_dev_run: Whether to use process only a sub part of the inputs
         num_nodes: When doing remote execution, the number of nodes to use.
         machine: When doing remote execution, the machine to use.
-        name: The name of the processing.
         num_downloaders: The number of downloaders to use.
 
     """
@@ -154,7 +153,7 @@ def optimize(
     inputs: Sequence[Any],
     output_dir: str,
     chunk_size: Optional[int] = None,
-    chunk_bytes: Optional[int] = None,
+    chunk_bytes: Optional[Union[int, str]] = None,
     compression: Optional[str] = None,
     num_workers: Optional[int] = None,
     fast_dev_run: bool = False,
@@ -176,7 +175,6 @@ def optimize(
         fast_dev_run: Whether to use process only a sub part of the inputs
         num_nodes: When doing remote execution, the number of nodes to use.
         machine: When doing remote execution, the machine to use.
-        name: The name of the processing.
         num_downloaders: The number of downloaders to use.
 
     """
