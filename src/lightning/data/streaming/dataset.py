@@ -12,15 +12,35 @@
 # limitations under the License.
 
 from typing import Any, List, Optional, Union
-
+import os
 import numpy as np
 from torch.utils.data import IterableDataset
-
+from lightning.data.streaming.constants import (
+    _LIGHTNING_CLOUD_GREATER_EQUAL_0_5_47,
+)
 from lightning.data.datasets.env import _DistributedEnv, _WorkerEnv
 from lightning.data.streaming import Cache
 from lightning.data.streaming.item_loader import BaseItemLoader
 from lightning.data.streaming.sampler import ChunkedIndex
 from lightning.data.streaming.shuffle import FullShuffle, NoShuffle, Shuffle
+
+if _LIGHTNING_CLOUD_GREATER_EQUAL_0_5_47:
+    from lightning_cloud.resolver import Dir, _resolve_dir
+
+def _try_create_cache_dir(create: bool = False):
+    # Get the ids from env variables
+    cluster_id = os.getenv("LIGHTNING_CLUSTER_ID", None)
+    project_id = os.getenv("LIGHTNING_CLOUD_PROJECT_ID", None)
+
+    if cluster_id is None or project_id is None and name is None:
+        return
+
+    cache_dir = os.path.join("/cache/chunks")
+
+    if create:
+        os.makedirs(cache_dir, exist_ok=True)
+
+    return cache_dir
 
 
 class StreamingDataset(IterableDataset):
@@ -50,6 +70,13 @@ class StreamingDataset(IterableDataset):
         super().__init__()
         if not isinstance(shuffle, bool):
             raise ValueError(f"Shuffle should be a boolean. Found {shuffle}")
+
+        input_dir = _resolve_dir(input_dir)
+
+        # Override the provided input_path
+        cache_dir = _try_create_cache_dir()
+        if cache_dir: 
+            input_dir.path = cache_dir
 
         self.cache = Cache(input_dir=input_dir, item_loader=item_loader, chunk_bytes=1)
 

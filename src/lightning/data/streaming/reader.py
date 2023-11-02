@@ -85,8 +85,8 @@ class BinaryReader:
         self._cache_dir = cache_dir
         self._remote_input_dir = remote_input_dir
 
-        if not os.path.exists(self._cache_dir):
-            raise FileNotFoundError(f"The provided cache_dir `{self._cache_dir}` doesn't exist.")
+        # if not os.path.exists(self._cache_dir):
+        #     raise FileNotFoundError(f"The provided cache_dir `{self._cache_dir}` doesn't exist.")
 
         self._compression = compression
         self._intervals: Optional[List[str]] = None

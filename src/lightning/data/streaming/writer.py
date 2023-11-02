@@ -67,8 +67,8 @@ class BinaryWriter:
         """
         self._cache_dir = cache_dir
 
-        if (isinstance(self._cache_dir, str) and not os.path.exists(self._cache_dir)) or self._cache_dir is None:
-            raise FileNotFoundError(f"The provided cache directory `{self._cache_dir}` doesn't exist.")
+        # if (isinstance(self._cache_dir, str) and not os.path.exists(self._cache_dir)) or self._cache_dir is None:
+        #     raise FileNotFoundError(f"The provided cache directory `{self._cache_dir}` doesn't exist.")
 
         if (chunk_size is None and chunk_bytes is None) or (chunk_size and chunk_bytes):
             raise ValueError("Either one of the `chunk_size` or the `chunk_bytes` need to be provided.")
