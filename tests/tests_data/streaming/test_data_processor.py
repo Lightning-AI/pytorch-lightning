@@ -552,7 +552,7 @@ def test_data_processing_map(monkeypatch, tmpdir):
 
     monkeypatch.setattr(functions, "_get_input_dir", lambda x: input_dir)
 
-    map(map_fn, inputs, output_dir=Dir(str(output_dir)), num_workers=1)
+    map(map_fn, inputs, output_dir=output_dir, num_workers=1)
 
     assert sorted(os.listdir(output_dir)) == ["0.JPEG", "1.JPEG", "2.JPEG", "3.JPEG", "4.JPEG"]
 
@@ -563,6 +563,7 @@ def test_data_processing_map(monkeypatch, tmpdir):
 
 
 def optimize_fn(filepath):
+    print(filepath)
     from PIL import Image
 
     return [Image.open(filepath), os.path.basename(filepath)]
@@ -584,7 +585,7 @@ def test_data_processing_optimize(monkeypatch, tmpdir):
     home_dir = os.path.join(tmpdir, "home")
     cache_dir = os.path.join(tmpdir, "cache", "chunks")
     data_cache_dir = os.path.join(tmpdir, "cache", "data")
-    output_dir = os.path.join(tmpdir, "target_dir")
+    output_dir = os.path.join(tmpdir, "output_dir")
     os.makedirs(output_dir, exist_ok=True)
     monkeypatch.setenv("DATA_OPTIMIZER_HOME_FOLDER", home_dir)
     monkeypatch.setenv("DATA_OPTIMIZER_CACHE_FOLDER", cache_dir)
