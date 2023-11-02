@@ -263,7 +263,6 @@ class _MultiProcessingLauncher(_Launcher):
                 with suppress(ProcessLookupError):
                     os.kill(proc.pid, signum)
 
-    @override
     def __getstate__(self) -> Dict:
         state = self.__dict__.copy()
         state["procs"] = []  # SpawnProcess can't be pickled
