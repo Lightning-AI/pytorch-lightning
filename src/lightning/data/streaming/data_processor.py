@@ -785,11 +785,15 @@ class DataProcessor:
                         continue
                     self.workers_tracker[index] = counter
                     new_total = sum(self.workers_tracker.values())
-                if all(not w.is_alive() for w in self.workers):
-                    break
+
                 pbar.update(new_total - current_total)
                 current_total = new_total
                 if current_total == num_items:
+                    break
+
+                # Exit early if all the workers are done.
+                # This means there were some kinda of errors.
+                if all(not w.is_alive() for w in self.workers):
                     break
 
         # TODO: Understand why it hangs.
