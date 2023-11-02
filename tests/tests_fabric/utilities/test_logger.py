@@ -88,12 +88,12 @@ def test_flatten_dict():
 
     params = {"params": B(a=A(c=1,d=2), b=3), "param": 4}
     params = _flatten_dict(params)
-    assert type(params) is dict
-    assert params.pop("param") == 4
-    assert params.pop("params/b") == 3
-    assert params.pop("params/a/c") == 1
-    assert params.pop("params/a/d") == 2
-    assert len(params) == 0
+    assert params == {
+        "param": 4,
+        "params/b": 3,
+        "params/a/c": 1,
+        "params/a/d": 2
+    }
 
 
 
