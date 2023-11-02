@@ -104,7 +104,7 @@ assist_local.AssistantCLI.pull_docs_files(
 URL_RAW_DOCS_GRAPHCORE = "https://raw.githubusercontent.com/Lightning-AI/lightning-Graphcore/v0.1.0/docs/source"
 for img in ["_static/images/ipu/profiler.png"]:
     os.makedirs(os.path.dirname(os.path.join(_PATH_HERE, img)), exist_ok=True)
-    urllib.request.urlretrieve(f"{URL_RAW_DOCS_GRAPHCORE}/{img}", os.path.join(_PATH_HERE, img))
+    urllib.request.urlretrieve(f"{URL_RAW_DOCS_GRAPHCORE}/{img}", os.path.join(_PATH_HERE, "integrations", "ipu", img))
 
 
 if _FETCH_S3_ASSETS:
