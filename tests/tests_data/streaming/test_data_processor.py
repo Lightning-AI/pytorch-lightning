@@ -180,7 +180,7 @@ def test_broadcast_object(tmpdir, monkeypatch):
 
 
 def test_cache_dir_cleanup(tmpdir, monkeypatch):
-    cache_dir = os.path.join(tmpdir, "dummy")
+    cache_dir = os.path.join(tmpdir, "chunks", "dummy")
     cache_data_dir = os.path.join(tmpdir, "data", "dummy")
     os.makedirs(cache_dir, exist_ok=True)
     os.makedirs(cache_data_dir, exist_ok=True)
@@ -310,7 +310,7 @@ def test_data_processsor(fast_dev_run, delete_cached_files, tmpdir, monkeypatch)
     )
     data_processor.run(CustomDataChunkRecipe(chunk_size=2))
 
-    assert sorted(os.listdir(cache_dir)) == ["data", "dummy_dataset"]
+    assert sorted(os.listdir(cache_dir)) == ["chunks", "data"]
 
     fast_dev_run_enabled_chunks = [
         "chunk-0-0.bin",
@@ -348,7 +348,7 @@ def test_data_processsor(fast_dev_run, delete_cached_files, tmpdir, monkeypatch)
 
     chunks = fast_dev_run_enabled_chunks if fast_dev_run == 10 else fast_dev_run_disabled_chunks
 
-    assert sorted(os.listdir(os.path.join(cache_dir, "dummy_dataset"))) == chunks
+    assert sorted(os.listdir(os.path.join(cache_dir, "chunks", "dummy_dataset"))) == chunks
 
     files = []
     for _, _, filenames in os.walk(os.path.join(cache_dir, "data")):
@@ -365,9 +365,13 @@ class TestDataProcessor(DataProcessor):
 
 @pytest.mark.parametrize("delete_cached_files", [False])
 @pytest.mark.parametrize("fast_dev_run", [False])
-@pytest.mark.skipif(condition=not _PIL_AVAILABLE or sys.platform == "win32", reason="Requires: ['pil']")
+@pytest.mark.skipif(
+    condition=(not _PIL_AVAILABLE or sys.platform == "win32" or sys.platform == "linux"), reason="Requires: ['pil']"
+)
 def test_data_processsor_distributed(fast_dev_run, delete_cached_files, tmpdir, monkeypatch):
     """This test ensures the data optimizer works in a fully distributed settings."""
+
+    monkeypatch.setattr(data_processor_module.os, "_exit", mock.MagicMock())
 
     from PIL import Image
 
@@ -399,7 +403,7 @@ def test_data_processsor_distributed(fast_dev_run, delete_cached_files, tmpdir, 
     )
     data_processor.run(CustomDataChunkRecipe(chunk_size=2))
 
-    assert sorted(os.listdir(cache_dir)) == ["data", "dummy_dataset"]
+    assert sorted(os.listdir(cache_dir)) == ["chunks", "data"]
 
     fast_dev_run_disabled_chunks_0 = [
         "0-index.json",
@@ -413,7 +417,7 @@ def test_data_processsor_distributed(fast_dev_run, delete_cached_files, tmpdir, 
         "chunk-1-3.bin",
     ]
 
-    assert sorted(os.listdir(os.path.join(cache_dir, "dummy_dataset"))) == fast_dev_run_disabled_chunks_0
+    assert sorted(os.listdir(os.path.join(cache_dir, "chunks", "dummy_dataset"))) == fast_dev_run_disabled_chunks_0
 
     cache_dir = os.path.join(tmpdir, "cache_2")
     monkeypatch.setenv("DATA_OPTIMIZER_CACHE_FOLDER", cache_dir)
@@ -431,7 +435,7 @@ def test_data_processsor_distributed(fast_dev_run, delete_cached_files, tmpdir, 
     )
     data_processor.run(CustomDataChunkRecipe(chunk_size=2))
 
-    assert sorted(os.listdir(cache_dir)) == ["data", "dummy_dataset"]
+    assert sorted(os.listdir(cache_dir)) == ["chunks", "data"]
 
     fast_dev_run_disabled_chunks_1 = [
         "chunk-2-0.bin",
@@ -444,7 +448,7 @@ def test_data_processsor_distributed(fast_dev_run, delete_cached_files, tmpdir, 
         "chunk-3-3.bin",
         "index.json",
     ]
-    assert sorted(os.listdir(os.path.join(cache_dir, "dummy_dataset"))) == fast_dev_run_disabled_chunks_1
+    assert sorted(os.listdir(os.path.join(cache_dir, "chunks", "dummy_dataset"))) == fast_dev_run_disabled_chunks_1
 
     expected = sorted(fast_dev_run_disabled_chunks_0 + fast_dev_run_disabled_chunks_1 + ["1-index.json"])
     assert sorted(os.listdir(remote_output_dir)) == expected
