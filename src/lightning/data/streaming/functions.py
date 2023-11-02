@@ -66,7 +66,7 @@ class LambdaDataChunkRecipe(DataChunkRecipe):
         fn: Callable[[Any], None],
         inputs: Sequence[Any],
         chunk_size: Optional[int],
-        chunk_bytes: Optional[int],
+        chunk_bytes: Optional[Union[int, str]],
         compression: Optional[str],
     ):
         super().__init__(chunk_size=chunk_size, chunk_bytes=chunk_bytes, compression=compression)
@@ -141,7 +141,7 @@ def optimize(
     inputs: Sequence[Any],
     output_dir: str,
     chunk_size: Optional[int] = None,
-    chunk_bytes: Optional[int] = None,
+    chunk_bytes: Optional[Union[int, str]] = None,
     compression: Optional[str] = None,
     name: Optional[str] = None,
     num_workers: Optional[int] = None,
