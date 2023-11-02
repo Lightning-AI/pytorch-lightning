@@ -5,5 +5,5 @@ numpy >=1.17.2, <1.27.0
 torch >=1.12.0, <2.2.0
 fsspec[http]>2021.06.0, <2023.10.0
 packaging >=20.0, <=23.1
-typing-extensions >=4.0.0, <4.8.0
+typing-extensions >=4.4.0, <4.8.0
 lightning-utilities >=0.8.0, <0.10.0

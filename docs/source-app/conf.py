@@ -444,5 +444,8 @@ coverage_skip_undoc_in_source = True
 # skip false positive linkcheck errors from anchors
 linkcheck_anchors = False
 
+# A timeout value, in seconds, for the linkcheck builder.
+linkcheck_timeout = 10
+
 # ignore all links in any CHANGELOG file
 linkcheck_exclude_documents = [r"^(.*\/)*CHANGELOG.*$"]
