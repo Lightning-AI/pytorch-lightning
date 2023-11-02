@@ -14,9 +14,9 @@ if _BOTO3_AVAILABLE:
 class S3Client:
     # TODO: Generalize to support more cloud providers.
 
-    def __init__(self, refetch_interval=3300) -> None:
+    def __init__(self, refetch_interval: int = 3300) -> None:
         self._refetch_interval = refetch_interval
-        self._last_time: Optional[int] = None
+        self._last_time: Optional[float] = None
         self._has_cloud_space_id: bool = os.getenv("LIGHTNING_CLOUD_SPACE_ID", None) is not None
         self._client: Optional[Any] = None
 
@@ -25,7 +25,7 @@ class S3Client:
         if not self._has_cloud_space_id:
             if self._client is None:
                 self._client = boto3.client(
-                    "s3", config=botocore.config.Config(retries={"max_attempts": 1000, "mode": "standard"})
+                    "s3", config=botocore.config.Config(retries={"max_attempts": 1000, "mode": "adaptive"})
                 )
             return self._client
 
@@ -38,7 +38,7 @@ class S3Client:
                 aws_access_key_id=credentials.access_key,
                 aws_secret_access_key=credentials.secret_key,
                 aws_session_token=credentials.token,
-                config=botocore.config.Config(retries={"max_attempts": 1000, "mode": "standard"}),
+                config=botocore.config.Config(retries={"max_attempts": 1000, "mode": "adaptive"}),
             )
             self._last_time = time()
 
