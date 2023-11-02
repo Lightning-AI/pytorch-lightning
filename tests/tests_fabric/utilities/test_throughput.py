@@ -90,8 +90,8 @@ def test_throughput():
 
     # flops
     throughput = Throughput(available_flops=50, window_size=2)
-    throughput.update(time=1, batches=1, samples=2, flops_per_batch=10, lengths=10)
-    throughput.update(time=2, batches=2, samples=4, flops_per_batch=10, lengths=20)
+    throughput.update(time=1, batches=1, samples=2, flops=10, lengths=10)
+    throughput.update(time=2, batches=2, samples=4, flops=10, lengths=20)
     assert throughput.compute() == {
         "time": 2,
         "batches": 2,
@@ -107,8 +107,8 @@ def test_throughput():
     # flops without available
     throughput.available_flops = None
     throughput.reset()
-    throughput.update(time=1, batches=1, samples=2, flops_per_batch=10, lengths=10)
-    throughput.update(time=2, batches=2, samples=4, flops_per_batch=10, lengths=20)
+    throughput.update(time=1, batches=1, samples=2, flops=10, lengths=10)
+    throughput.update(time=2, batches=2, samples=4, flops=10, lengths=20)
     assert throughput.compute() == {
         "time": 2,
         "batches": 2,
@@ -142,7 +142,7 @@ def mock_train_loop(monitor):
             batches=iter_num,
             samples=iter_num * micro_batch_size,
             lengths=total_lengths,
-            flops_per_batch=10,
+            flops=10,
         )
         monitor.compute_and_log()
 
