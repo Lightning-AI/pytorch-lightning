@@ -28,9 +28,12 @@ from lightning.app.utilities.imports import _IS_WINDOWS
 from lightning.app.utilities.packaging import cloud_compute
 from lightning.app.utilities.redis import check_if_redis_running
 from lightning.app.utilities.warnings import LightningFlowWarning
+from lightning_utilities.core.imports import RequirementCache
 from pympler import asizeof
 
 from tests_app import _PROJECT_ROOT
+
+_STREAMLIT_AVAILABLE = RequirementCache("streamlit")
 
 logger = logging.getLogger()
 
@@ -410,6 +413,7 @@ class AppWithFrontend(LightningApp):
         return super().run_once()
 
 
+@pytest.mark.skipif(not _STREAMLIT_AVAILABLE, reason="requires streaming")
 @mock.patch("lightning.app.frontend.stream_lit.StreamlitFrontend.start_server")
 @mock.patch("lightning.app.frontend.stream_lit.StreamlitFrontend.stop_server")
 def test_app_starts_with_complete_state_copy(_, __):
