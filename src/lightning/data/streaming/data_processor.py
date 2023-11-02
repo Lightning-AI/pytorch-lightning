@@ -214,9 +214,6 @@ def _associated_items_to_workers(
     world_size = num_nodes * num_workers
 
     worker_items, worker_weights = _pack_greedily(items=user_items, weights=weights, num_bins=world_size)
-    # TODO: FIXME
-    for i, w in worker_weights.items():
-        print(f"Worker {i}: {w / 1e9:.2f} GB, {len(worker_items[i])} items")
     worker_ids_this_node = range(node_rank * num_workers, (node_rank + 1) * num_workers)
     return [worker_items[worker_id] for worker_id in worker_ids_this_node]
 
