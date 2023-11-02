@@ -413,7 +413,7 @@ class AppWithFrontend(LightningApp):
         return super().run_once()
 
 
-@pytest.mark.skipif(not _STREAMLIT_AVAILABLE, reason="requires streaming")
+@pytest.mark.skipif(not _STREAMLIT_AVAILABLE, reason="requires streamlit")
 @mock.patch("lightning.app.frontend.stream_lit.StreamlitFrontend.start_server")
 @mock.patch("lightning.app.frontend.stream_lit.StreamlitFrontend.stop_server")
 def test_app_starts_with_complete_state_copy(_, __):
