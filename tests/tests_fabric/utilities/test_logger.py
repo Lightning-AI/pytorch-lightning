@@ -13,7 +13,6 @@
 # limitations under the License.
 
 from argparse import Namespace
-
 from dataclasses import dataclass
 
 import numpy as np
@@ -86,7 +85,7 @@ def test_flatten_dict():
         a: A
         b: int
 
-    params = {"params": B(a=A(c=1,d=2), b=3), "param": 4}
+    params = {"params": B(a=A(c=1, d=2), b=3), "param": 4}
     params = _flatten_dict(params)
     assert params == {
         "param": 4,
@@ -94,7 +93,6 @@ def test_flatten_dict():
         "params/a/c": 1,
         "params/a/d": 2
     }
-
 
 
 def test_sanitize_callable_params():
