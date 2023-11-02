@@ -18,6 +18,7 @@ from tqdm.auto import tqdm
 
 from lightning import seed_everything
 from lightning.data.streaming import Cache
+from lightning.data.streaming.client import S3Client
 from lightning.data.streaming.constants import (
     _BOTO3_AVAILABLE,
     _DEFAULT_FAST_DEV_RUN_ITEMS,
@@ -40,7 +41,6 @@ if _LIGHTNING_CLOUD_GREATER_EQUAL_0_5_46:
     from lightning_cloud.resolver import _LightningSrcResolver, _LightningTargetResolver
 
 if _BOTO3_AVAILABLE:
-    import boto3
     import botocore
 
 logger = logging.Logger(__name__)
@@ -74,8 +74,8 @@ def _get_home_folder() -> str:
 def _get_cache_dir(name: Optional[str]) -> str:
     """Returns the cache directory used by the Cache to store the chunks."""
     if name is None:
-        return _get_cache_folder()
-    return os.path.join(_get_cache_folder(), name)
+        return os.path.join(_get_cache_folder(), "chunks")
+    return os.path.join(_get_cache_folder(), "chunks", name)
 
 
 def _get_cache_data_dir(name: Optional[str]) -> str:
@@ -83,10 +83,6 @@ def _get_cache_data_dir(name: Optional[str]) -> str:
     if name is None:
         return os.path.join(_get_cache_folder(), "data")
     return os.path.join(_get_cache_folder(), "data", name)
-
-
-def _get_s3_client() -> Any:
-    return boto3.client("s3", config=botocore.config.Config(retries={"max_attempts": 1000, "mode": "standard"}))
 
 
 def _wait_for_file_to_exist(s3: Any, obj: parse.ParseResult, sleep_time: int = 2) -> Any:
@@ -105,7 +101,7 @@ def _download_data_target(
     input_dir: str, remote_input_dir: str, cache_dir: str, queue_in: Queue, queue_out: Queue
 ) -> None:
     """This function is used to download data from a remote directory to a cache directory to optimise reading."""
-    s3 = _get_s3_client()
+    s3 = S3Client()
 
     while True:
         # 2. Fetch from the queue
@@ -137,7 +133,7 @@ def _download_data_target(
                     os.makedirs(dirpath, exist_ok=True)
 
                     with open(local_path, "wb") as f:
-                        s3.download_fileobj(obj.netloc, obj.path.lstrip("/"), f)
+                        s3.client.download_fileobj(obj.netloc, obj.path.lstrip("/"), f)
 
                 elif os.path.isfile(remote_path):
                     copyfile(remote_path, local_path)
@@ -176,7 +172,7 @@ def _upload_fn(upload_queue: Queue, remove_queue: Queue, cache_dir: str, remote_
     obj = parse.urlparse(remote_output_dir)
 
     if obj.scheme == "s3":
-        s3 = _get_s3_client()
+        s3 = S3Client()
 
     while True:
         local_filepath: Optional[str] = upload_queue.get()
@@ -190,10 +186,14 @@ def _upload_fn(upload_queue: Queue, remove_queue: Queue, cache_dir: str, remote_
             local_filepath = os.path.join(cache_dir, local_filepath)
 
         if obj.scheme == "s3":
-            s3.upload_file(
-                local_filepath, obj.netloc, os.path.join(obj.path.lstrip("/"), os.path.basename(local_filepath))
-            )
-        elif os.path.isdir(remote_output_dir):
+            try:
+                s3.client.upload_file(
+                    local_filepath, obj.netloc, os.path.join(obj.path.lstrip("/"), os.path.basename(local_filepath))
+                )
+            except Exception as e:
+                print(e)
+            return
+        if os.path.isdir(remote_output_dir):
             copyfile(local_filepath, os.path.join(remote_output_dir, os.path.basename(local_filepath)))
         else:
             raise ValueError(f"The provided {remote_output_dir} isn't supported.")
@@ -611,8 +611,8 @@ class DataChunkRecipe(DataRecipe):
             local_filepath = os.path.join(cache_dir, _INDEX_FILENAME)
 
         if obj.scheme == "s3":
-            s3 = _get_s3_client()
-            s3.upload_file(
+            s3 = S3Client()
+            s3.client.upload_file(
                 local_filepath, obj.netloc, os.path.join(obj.path.lstrip("/"), os.path.basename(local_filepath))
             )
         elif os.path.isdir(remote_output_dir):
@@ -775,6 +775,7 @@ class DataProcessor:
         print("Workers are ready ! Starting data processing...")
 
         current_total = 0
+        has_failed = False
         with tqdm(total=num_items, smoothing=0, position=-1, mininterval=1) as pbar:
             while True:
                 try:
@@ -788,15 +789,20 @@ class DataProcessor:
                         continue
                     self.workers_tracker[index] = counter
                     new_total = sum(self.workers_tracker.values())
+
                 pbar.update(new_total - current_total)
                 current_total = new_total
                 if current_total == num_items:
                     break
 
-        num_nodes = _get_num_nodes()
+                # Exit early if all the workers are done.
+                # This means there were some kinda of errors.
+                if all(not w.is_alive() for w in self.workers):
+                    has_failed = True
+                    break
 
         # TODO: Understand why it hangs.
-        if num_nodes == 1:
+        if _get_num_nodes() == 1:
             for w in self.workers:
                 w.join(0)
 
@@ -805,6 +811,10 @@ class DataProcessor:
             assert isinstance(self.remote_output_dir, str)
         data_recipe._done(self.delete_cached_files, self.remote_output_dir)
         print("Finished data processing!")
+
+        # TODO: Understand why it is required to avoid long shutdown.
+        if _get_num_nodes() > 1:
+            os._exit(int(has_failed))
 
     def _exit_on_error(self, error: str) -> None:
         for w in self.workers:
