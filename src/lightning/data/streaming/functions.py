@@ -84,10 +84,10 @@ class LambdaDataChunkRecipe(DataChunkRecipe):
             else:
                 yield self._fn(item_metadata)
         elif callable(self._fn):
-            if inspect.isgeneratorfunction(self._fn.__call__):
-                yield from self._fn.__call__(item_metadata)
+            if inspect.isgeneratorfunction(self._fn.__call__):  # type: ignore
+                yield from self._fn.__call__(item_metadata)  # type: ignore
             else:
-                yield self._fn.__call__(item_metadata)
+                yield self._fn.__call__(item_metadata)  # type: ignore
         else:
             raise ValueError(f"The provided {self._fn} isn't supported.")
 
