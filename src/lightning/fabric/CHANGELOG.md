@@ -5,37 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
-## [Unreleased] - 202X-XX-XX
-
-### Added
-
--
-
+## [2.1.1] - 2023-11-02
 
 ### Changed
 
 - Calling a method other than `forward` that invokes submodules is now an error when the model is wrapped (e.g., with DDP) ([#18819](https://github.com/Lightning-AI/lightning/pull/18819))
 
-
-
-### Deprecated
-
--
-
-
-### Removed
-
--
-
-
 ### Fixed
 
 - Fixed false-positive warnings about method calls on the Fabric-wrapped module ([#18819](https://github.com/Lightning-AI/lightning/pull/18819))
-
-
 - Refined the FSDP saving logic and error messaging when path exists ([#18884](https://github.com/Lightning-AI/lightning/pull/18884))
-
-
 - Fixed layer conversion under `Fabric.init_module()` context manager when using the `BitsandbytesPrecision` plugin ([#18914](https://github.com/Lightning-AI/lightning/pull/18914))
 
 
