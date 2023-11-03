@@ -617,7 +617,7 @@ def test_get_item_filesizes(tmp_path):
         # list: one file path exists, one does not
         [str(tmp_path / "other" / "other"), None, str(tmp_path / "file4")],
         # dict: with file path
-        dict(file=str(tmp_path / "file4"), data="not file"),
+        {"file": str(tmp_path / "file4"), "data": "not file"},
     ]
     num_bytes = _get_item_filesizes(items, base_path=str(tmp_path))
     assert num_bytes == [0, 32, 64, 64 + 128, 256, 256]
