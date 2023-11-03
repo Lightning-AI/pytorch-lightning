@@ -687,3 +687,85 @@ def test_data_processing_optimize_class_yield(monkeypatch, tmpdir):
 
     cache = Cache(output_dir, chunk_size=1)
     assert len(cache) == 5
+
+
+class Recipe(DataChunkRecipe):
+    def prepare_structure(self, input_dir):
+        filepaths = self.listdir(input_dir)
+        assert len(filepaths) == 2
+        return filepaths
+
+    def prepare_item(self, item):
+        return item
+
+
+def test_file_larger_than_chunk_size(tmp_path, monkeypatch):
+    input_dir = tmp_path / "input_dir"
+    input_dir.mkdir()
+
+    data1 = np.random.randint(0, 10, size=(1000,), dtype=np.uint8)  # 1KB
+    data2 = np.random.randint(0, 10, size=(5000,), dtype=np.uint8)  # 5KB
+    with open(input_dir / "data1", "wb") as f:
+        np.save(f, data1)
+    with open(input_dir / "data2", "wb") as f:
+        np.save(f, data2)
+
+    assert os.path.getsize(input_dir / "data1") == 1128
+    assert os.path.getsize(input_dir / "data2") == 5128
+
+    home_dir = tmp_path / "home"
+    cache_dir = tmp_path / "cache" / "chunks"
+    cache_data_dir = tmp_path / "cache" / "data"
+    monkeypatch.setenv("DATA_OPTIMIZER_HOME_FOLDER", str(home_dir))
+    monkeypatch.setenv("DATA_OPTIMIZER_CACHE_FOLDER", str(cache_dir))
+    monkeypatch.setenv("DATA_OPTIMIZER_DATA_CACHE_FOLDER", str(cache_data_dir))
+
+    data_processor = DataProcessor(
+        input_dir=str(input_dir),
+        num_workers=2,
+    )
+    data_processor.run(Recipe(chunk_size=2))
+    # fast_dev_run_enabled_chunks = [
+    #     "chunk-0-0.bin",
+    #     "chunk-0-1.bin",
+    #     "chunk-0-2.bin",
+    #     "chunk-0-3.bin",
+    #     "chunk-0-4.bin",
+    #     "chunk-1-0.bin",
+    #     "chunk-1-1.bin",
+    #     "chunk-1-2.bin",
+    #     "chunk-1-3.bin",
+    #     "chunk-1-4.bin",
+    #     "index.json",
+    # ]
+    #
+    # fast_dev_run_disabled_chunks = [
+    #     "chunk-0-0.bin",
+    #     "chunk-0-1.bin",
+    #     "chunk-0-2.bin",
+    #     "chunk-0-3.bin",
+    #     "chunk-0-4.bin",
+    #     "chunk-0-5.bin",
+    #     "chunk-0-6.bin",
+    #     "chunk-0-7.bin",
+    #     "chunk-1-0.bin",
+    #     "chunk-1-1.bin",
+    #     "chunk-1-2.bin",
+    #     "chunk-1-3.bin",
+    #     "chunk-1-4.bin",
+    #     "chunk-1-5.bin",
+    #     "chunk-1-6.bin",
+    #     "chunk-1-7.bin",
+    #     "index.json",
+    # ]
+    #
+    # chunks = fast_dev_run_enabled_chunks if fast_dev_run == 10 else fast_dev_run_disabled_chunks
+    #
+    # assert sorted(os.listdir(cache_dir)) == chunks
+    #
+    # files = []
+    # for _, _, filenames in os.walk(os.path.join(cache_dir, "data")):
+    #     files.extend(filenames)
+    #
+    # expected = (0 if delete_cached_files else 20) if fast_dev_run == 10 else (0 if delete_cached_files else 30)
+    # assert len(files) == expected
