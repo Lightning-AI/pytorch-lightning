@@ -438,7 +438,7 @@ def test_data_processsor_nlp(tmpdir, monkeypatch):
     monkeypatch.setenv("DATA_OPTIMIZER_CACHE_FOLDER", os.path.join(tmpdir, "chunks"))
     monkeypatch.setenv("DATA_OPTIMIZER_DATA_CACHE_FOLDER", os.path.join(tmpdir, "data"))
 
-    with open(os.path.join(tmpdir / "dummy2", "dummy.txt"), "w") as f:
+    with open(os.path.join(tmpdir, "dummy.txt"), "w") as f:
         f.write("Hello World !")
 
     data_processor = DataProcessor(input_dir=tmpdir, num_workers=1, num_downloaders=1)
