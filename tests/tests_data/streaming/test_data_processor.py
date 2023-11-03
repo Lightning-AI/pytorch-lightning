@@ -102,7 +102,7 @@ def test_upload_s3_fn(tmpdir, monkeypatch):
         called = True
         from shutil import copyfile
 
-        copyfile(local_filepath, os.path.join(remote_output_dir.path, os.path.basename(local_filepath)))
+        copyfile(local_filepath, os.path.join(remote_output_dir, os.path.basename(local_filepath)))
 
     s3_client.client.upload_file = copy_file
 
@@ -518,6 +518,7 @@ def test_data_processsor_distributed(fast_dev_run, delete_cached_files, tmpdir, 
         "num_bytes": 26657,
         "data_format": "jpeg",
         "compression": None,
+        "num_chunks": 16,
         "num_bytes_per_chunk": [2, 2, 2, 1, 2, 2, 2, 2, 2, 2, 2, 1, 2, 2, 2, 2],
     }
 
