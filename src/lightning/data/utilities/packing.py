@@ -16,7 +16,7 @@ def _pack_greedily(items: List[Any], weights: List[int], num_bins: int) -> Tuple
     bin_weights = {i: 0 for i in range(num_bins)}
 
     for item, weight in sorted_items_and_weights:
-        min_bin_id = min(bin_weights, key=bin_weights.get, default=0)
+        min_bin_id = min(bin_weights, key=(lambda x: bin_weights[x]), default=0)
         bin_contents[min_bin_id].append(item)
         bin_weights[min_bin_id] += weight
 
