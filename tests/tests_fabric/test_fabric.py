@@ -1208,7 +1208,7 @@ def test_verify_launch_called():
         {},
         pytest.param({"precision": "16-true"}, marks=RunIf(min_torch="2.2")),
         pytest.param({"precision": "16-mixed"}, marks=RunIf(min_torch="2.2")),
-        pytest.param({"precision": "bf16-true"}, marks=RunIf(bf16_cuda=True)),
+        pytest.param({"precision": "bf16-true"}, marks=RunIf(min_torch="2.2", bf16_cuda=True)),
         pytest.param({"precision": "64-true"}, marks=RunIf(min_torch="2.2")),
     ],
 )
