@@ -116,6 +116,8 @@ def test_upload_s3_fn(tmpdir, monkeypatch):
 
     assert called
 
+    assert len(paths) == 0
+
     assert os.listdir(remote_output_dir) == ["a.txt"]
 
 
