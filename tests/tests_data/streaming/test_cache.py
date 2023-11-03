@@ -28,7 +28,6 @@ from lightning.fabric import Fabric
 from lightning.pytorch.demos.boring_classes import RandomDataset
 from lightning_utilities.core.imports import RequirementCache
 from lightning_utilities.test.warning import no_warning_call
-
 from torch.utils.data import DataLoader, Dataset
 
 _PIL_AVAILABLE = RequirementCache("PIL")
@@ -256,7 +255,9 @@ def test_create_undersized_and_oversized_chunk(tmp_path):
     cache = Cache(str(tmp_path), chunk_bytes=9000)  # target: 9KB chunks
     with no_warning_call(UserWarning):
         cache[0] = np.random.randint(0, 10, size=(500,), dtype=np.uint8)
-        cache[1] = np.random.randint(0, 10, size=(10000,), dtype=np.uint8)  # this item won't fit in the target chunk size
+        cache[1] = np.random.randint(
+            0, 10, size=(10000,), dtype=np.uint8
+        )  # this item won't fit in the target chunk size
     with pytest.warns(UserWarning, match="An item was larger than the target chunk size"):
         cache[2] = np.random.randint(0, 10, size=(150,), dtype=np.uint8)
     with no_warning_call(UserWarning):
