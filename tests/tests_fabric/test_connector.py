@@ -871,13 +871,15 @@ def test_strategy_str_passed_being_case_insensitive(_, strategy, strategy_cls):
 
 
 @pytest.mark.parametrize(
-    "precision,expected", [
+    "precision,expected",
+    [
         (None, Precision),
         ("64-true", DoublePrecision),
         ("32-true", Precision),
         ("16-true", HalfPrecision),
         ("16-mixed", MixedPrecision),
-    ])
+    ],
+)
 @mock.patch("lightning.fabric.accelerators.cuda.num_cuda_devices", return_value=1)
 def test_precision_from_environment(_, precision, expected):
     """Test that the precision input can be set through the environment variable."""
