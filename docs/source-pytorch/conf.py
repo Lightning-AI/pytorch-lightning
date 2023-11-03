@@ -610,4 +610,5 @@ linkcheck_ignore = [
     r"starter/installation.html$",
     r"^../common/trainer.html#trainer-flags$",
     "https://deepgenerativemodels.github.io/assets/slides/cs236_lecture11.pdf",
+    "https://www.intel.com/content/www/us/en/products/docs/processors/what-is-a-gpu.html",
 ]
