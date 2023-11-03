@@ -66,7 +66,8 @@ class LocalDownloader(Downloader):
     def download_file(cls, remote_filepath: str, local_filepath: str) -> None:
         if not os.path.exists(remote_filepath):
             raise FileNotFoundError("The provided remote_path doesn't exist: {remote_path}")
-        shutil.copy(remote_filepath, local_filepath)
+        if remote_filepath != local_filepath:
+            shutil.copy(remote_filepath, local_filepath)
 
 
 _DOWNLOADERS = {"s3://": S3Downloader, "": LocalDownloader}
@@ -74,6 +75,6 @@ _DOWNLOADERS = {"s3://": S3Downloader, "": LocalDownloader}
 
 def get_downloader_cls(remote_dir: str) -> Type[Downloader]:
     for k, cls in _DOWNLOADERS.items():
-        if remote_dir.startswith(k):
+        if str(remote_dir).startswith(k):
             return cls
     raise ValueError(f"The provided `remote_dir` {remote_dir} doesn't have a downloader associated.")

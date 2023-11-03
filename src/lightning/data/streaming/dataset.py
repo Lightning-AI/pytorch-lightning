@@ -11,16 +11,37 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any, List, Literal, Optional, Union
+import os
+from typing import Any, List, Optional, Union
 
 import numpy as np
 from torch.utils.data import IterableDataset
 
 from lightning.data.datasets.env import _DistributedEnv, _WorkerEnv
 from lightning.data.streaming import Cache
+from lightning.data.streaming.constants import _INDEX_FILENAME, _LIGHTNING_CLOUD_GREATER_EQUAL_0_5_48
 from lightning.data.streaming.item_loader import BaseItemLoader
 from lightning.data.streaming.sampler import ChunkedIndex
 from lightning.data.streaming.shuffle import FullShuffle, NoShuffle, Shuffle
+
+if _LIGHTNING_CLOUD_GREATER_EQUAL_0_5_48:
+    from lightning_cloud.resolver import _resolve_dir
+
+
+def _try_create_cache_dir(create: bool = False) -> Optional[str]:
+    # Get the ids from env variables
+    cluster_id = os.getenv("LIGHTNING_CLUSTER_ID", None)
+    project_id = os.getenv("LIGHTNING_CLOUD_PROJECT_ID", None)
+
+    if cluster_id is None or project_id is None:
+        return None
+
+    cache_dir = os.path.join("/cache/chunks")
+
+    if create:
+        os.makedirs(cache_dir, exist_ok=True)
+
+    return cache_dir
 
 
 class StreamingDataset(IterableDataset):
@@ -28,9 +49,7 @@ class StreamingDataset(IterableDataset):
 
     def __init__(
         self,
-        name: str,
-        version: Optional[Union[int, Literal["latest"]]] = "latest",
-        cache_dir: Optional[str] = None,
+        input_dir: str,
         item_loader: Optional[BaseItemLoader] = None,
         shuffle: bool = False,
         drop_last: bool = False,
@@ -53,12 +72,22 @@ class StreamingDataset(IterableDataset):
         if not isinstance(shuffle, bool):
             raise ValueError(f"Shuffle should be a boolean. Found {shuffle}")
 
-        self.cache = Cache(name=name, version=version, cache_dir=cache_dir, item_loader=item_loader, chunk_bytes=1)
+        input_dir = _resolve_dir(input_dir)
+
+        # Override the provided input_path
+        cache_dir = _try_create_cache_dir()
+        if cache_dir:
+            input_dir.path = cache_dir
+
+        self.cache = Cache(input_dir=input_dir, item_loader=item_loader, chunk_bytes=1)
 
         self.cache._reader._try_load_config()
 
         if not self.cache.filled:
-            raise ValueError(f"The provided dataset `{name}` isn't filled up.")
+            raise ValueError(
+                f"The provided dataset `{input_dir}` doesn't contain any {_INDEX_FILENAME} file."
+                " HINT: Did you successfully optimize a dataset to the provided `input_dir` ?"
+            )
 
         self.distributed_env = _DistributedEnv.detect()
 
