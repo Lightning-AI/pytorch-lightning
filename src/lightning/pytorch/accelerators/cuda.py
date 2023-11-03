@@ -16,9 +16,9 @@ import os
 import shutil
 import subprocess
 from typing import Any, Dict, List, Optional, Union
-from typing_extensions import override
 
 import torch
+from typing_extensions import override
 
 import lightning.pytorch as pl
 from lightning.fabric.accelerators import _AcceleratorRegistry
