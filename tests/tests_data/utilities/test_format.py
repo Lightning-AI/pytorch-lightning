@@ -19,3 +19,6 @@ def test_human_readable_bytes():
     assert _human_readable_bytes(int(1e18 + 6e17)) == "1.6 EB"
     assert _human_readable_bytes(int(1e21)) == "1.0 ZB"
     assert _human_readable_bytes(int(1e21 + 7e20)) == "1.7 ZB"
+    assert _human_readable_bytes(int(1e24)) == "1.0 YB"
+    assert _human_readable_bytes(int(1e24 + 8e23)) == "1.8 YB"
+    assert _human_readable_bytes(int(1e27)) == "1000.0 YB"
