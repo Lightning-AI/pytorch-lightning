@@ -40,5 +40,5 @@ def test_pack_greedily():
         weights=[4, 1, 2, 5, 8, 7, 3, 6, 9],
         num_bins=3,
     )
-    assert bin_contents == {0: ["B", "A", "F"], 1: ["C", "D", "E"], 2: ["G", "H", "I"]}
-    assert bin_weights == {0: 12, 1: 15, 2: 18}
+    assert bin_contents == {0: ["I", "A", "G"], 1: ["E", "D", "C"], 2: ["F", "H", "B"]}
+    assert bin_weights == {0: 16, 1: 15, 2: 14}
