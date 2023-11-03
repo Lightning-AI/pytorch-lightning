@@ -687,13 +687,3 @@ def test_data_processing_optimize_class_yield(monkeypatch, tmpdir):
 
     cache = Cache(output_dir, chunk_size=1)
     assert len(cache) == 5
-
-
-class Recipe(DataChunkRecipe):
-    def prepare_structure(self, input_dir):
-        filepaths = self.listdir(input_dir)
-        assert len(filepaths) == 2
-        return filepaths
-
-    def prepare_item(self, item):
-        return item
