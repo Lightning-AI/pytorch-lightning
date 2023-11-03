@@ -191,7 +191,6 @@ def _upload_fn(upload_queue: Queue, remove_queue: Queue, cache_dir: str, output_
                 )
             except Exception as e:
                 print(e)
-            return
         if os.path.isdir(output_dir.path):
             copyfile(local_filepath, os.path.join(output_dir.path, os.path.basename(local_filepath)))
         else:
