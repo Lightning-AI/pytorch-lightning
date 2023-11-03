@@ -23,7 +23,7 @@ from lightning.data.streaming.constants import (
     _BOTO3_AVAILABLE,
     _DEFAULT_FAST_DEV_RUN_ITEMS,
     _INDEX_FILENAME,
-    _LIGHTNING_CLOUD_GREATER_EQUAL_0_5_47,
+    _LIGHTNING_CLOUD_GREATER_EQUAL_0_5_48,
     _TORCH_GREATER_EQUAL_2_1_0,
 )
 from lightning.fabric.accelerators.cuda import is_cuda_available
@@ -37,7 +37,7 @@ from lightning.fabric.utilities.distributed import group as _group
 if _TORCH_GREATER_EQUAL_2_1_0:
     from torch.utils._pytree import tree_flatten, tree_unflatten
 
-if _LIGHTNING_CLOUD_GREATER_EQUAL_0_5_47:
+if _LIGHTNING_CLOUD_GREATER_EQUAL_0_5_48:
     from lightning_cloud.resolver import _resolve_dir
 
 
