@@ -43,9 +43,9 @@ class ParallelStrategy(Strategy, ABC):
         self.cluster_environment: Optional[ClusterEnvironment] = cluster_environment
         self._layer_sync: Optional[LayerSync] = None
 
-    @override
     @property
     @abstractmethod
+    @override
     def root_device(self) -> torch.device:
         """Return the root device."""
 
@@ -65,8 +65,8 @@ class ParallelStrategy(Strategy, ABC):
     def world_size(self) -> int:
         return self.cluster_environment.world_size() if self.cluster_environment is not None else 1
 
-    @override
     @property
+    @override
     def is_global_zero(self) -> bool:
         return self.global_rank == 0
 

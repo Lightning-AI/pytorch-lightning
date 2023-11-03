@@ -70,8 +70,8 @@ class XLAStrategy(DDPStrategy):
         self._launched = False
         self._sync_module_states = sync_module_states
 
-    @override  # type: ignore[override]
-    @property
+    @property  # type: ignore[override]
+    @override
     def checkpoint_io(self) -> Union[XLACheckpointIO, _WrappingCheckpointIO]:
         plugin = self._checkpoint_io
         if plugin is not None:
@@ -86,8 +86,8 @@ class XLAStrategy(DDPStrategy):
             raise TypeError(f"The XLA strategy can only work with the `XLACheckpointIO` plugin, found {io}")
         self._checkpoint_io = io
 
-    @override  # type: ignore[override]
-    @property
+    @property  # type: ignore[override]
+    @override
     def precision_plugin(self) -> XLAPrecision:
         plugin = self._precision_plugin
         if plugin is not None:
@@ -102,8 +102,8 @@ class XLAStrategy(DDPStrategy):
             raise TypeError(f"The XLA strategy can only work with the `XLAPrecision` plugin, found {precision_plugin}")
         self._precision_plugin = precision_plugin
 
-    @override
     @property
+    @override
     def root_device(self) -> torch.device:
         if not self._launched:
             raise RuntimeError("Accessing the XLA device before processes have spawned is not allowed.")
@@ -111,23 +111,23 @@ class XLAStrategy(DDPStrategy):
 
         return xm.xla_device()
 
-    @override
     @property
+    @override
     def global_rank(self) -> int:
         return super().global_rank if self._launched else 0
 
-    @override
     @property
+    @override
     def local_rank(self) -> int:
         return super().local_rank if self._launched else 0
 
-    @override
     @property
+    @override
     def node_rank(self) -> int:
         return super().node_rank if self._launched else 0
 
-    @override
     @property
+    @override
     def world_size(self) -> int:
         return super().world_size if self._launched else 1
 
@@ -166,8 +166,8 @@ class XLAStrategy(DDPStrategy):
     def _setup_model(self, model: Module) -> Module:  # type: ignore
         return model
 
-    @override
     @property
+    @override
     def distributed_sampler_kwargs(self) -> Dict[str, int]:
         return {"num_replicas": self.world_size, "rank": self.global_rank}
 
@@ -348,8 +348,8 @@ class XLAStrategy(DDPStrategy):
         self._launched = False  # after the Trainer finishes, we aren't inside the spawned region
         os.environ.pop("PT_XLA_DEBUG", None)
 
-    @override
     @classmethod
+    @override
     def register_strategies(cls, strategy_registry: _StrategyRegistry) -> None:
         strategy_registry.register("xla_debug", cls, description="XLA strategy with `debug` as True", debug=True)
         strategy_registry.register(

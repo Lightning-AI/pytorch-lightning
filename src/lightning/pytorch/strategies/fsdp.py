@@ -188,8 +188,8 @@ class FSDPStrategy(ParallelStrategy):
             )
         self._state_dict_type = state_dict_type
 
-    @override
     @property
+    @override
     def root_device(self) -> torch.device:
         assert self.parallel_devices is not None
         return self.parallel_devices[self.local_rank]
@@ -211,8 +211,8 @@ class FSDPStrategy(ParallelStrategy):
             return plugin.mixed_precision_config
         return None
 
-    @override  # type: ignore[override]
-    @property
+    @property  # type: ignore[override]
+    @override
     def precision_plugin(self) -> FSDPPrecision:
         plugin = self._precision_plugin
         if plugin is not None:
@@ -229,18 +229,18 @@ class FSDPStrategy(ParallelStrategy):
             )
         self._precision_plugin = precision_plugin
 
-    @override
     @property
+    @override
     def distributed_sampler_kwargs(self) -> Dict:
         return {"num_replicas": (self.num_nodes * self.num_processes), "rank": self.global_rank}
 
-    @override
     @property
+    @override
     def restore_checkpoint_after_setup(self) -> bool:
         return True
 
-    @override
     @property
+    @override
     def lightning_restore_optimizer(self) -> bool:
         return False
 
@@ -364,8 +364,8 @@ class FSDPStrategy(ParallelStrategy):
     def model_to_device(self) -> None:
         pass
 
-    @override
     @contextmanager
+    @override
     def tensor_init_context(self, empty_init: Optional[bool] = None) -> Generator[None, None, None]:
         empty_init_context: Union[torch.device, _EmptyInit, nullcontext]
         if _TORCH_GREATER_EQUAL_2_1 and empty_init:
@@ -380,8 +380,8 @@ class FSDPStrategy(ParallelStrategy):
         with empty_init_context, self.precision_plugin.tensor_init_context():
             yield
 
-    @override
     @contextmanager
+    @override
     def model_sharded_context(self) -> Generator[None, None, None]:
         log.debug(f"{self.__class__.__name__}: entered model_sharded_context.")
         from torch.distributed.fsdp.fully_sharded_data_parallel import FullyShardedDataParallel
@@ -467,8 +467,8 @@ class FSDPStrategy(ParallelStrategy):
     def get_registered_strategies(cls) -> List[str]:
         return cls._registered_strategies
 
-    @override
     @classmethod
+    @override
     def register_strategies(cls, strategy_registry: _StrategyRegistry) -> None:
         if not torch.distributed.is_available():
             return

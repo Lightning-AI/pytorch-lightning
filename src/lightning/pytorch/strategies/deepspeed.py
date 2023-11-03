@@ -379,8 +379,8 @@ class DeepSpeedStrategy(DDPStrategy):
         os.environ["WORLD_SIZE"] = str(self.world_size)
         os.environ["LOCAL_RANK"] = str(self.local_rank)
 
-    @override
     @property
+    @override
     def restore_checkpoint_after_setup(self) -> bool:
         return True
 
@@ -507,8 +507,8 @@ class DeepSpeedStrategy(DDPStrategy):
             self.lr_scheduler_configs = [lr_scheduler]
         self.model = model
 
-    @override
     @contextmanager
+    @override
     def tensor_init_context(self, empty_init: Optional[bool] = None) -> Generator[None, None, None]:
         if self.zero_stage_3:
             if empty_init is False:
@@ -520,8 +520,8 @@ class DeepSpeedStrategy(DDPStrategy):
         with super().tensor_init_context(empty_init=empty_init):
             yield
 
-    @override
     @contextmanager
+    @override
     def model_sharded_context(self) -> Generator[None, None, None]:
         import deepspeed
 
@@ -578,8 +578,8 @@ class DeepSpeedStrategy(DDPStrategy):
         )
         self.model = model
 
-    @override
     @property
+    @override
     def distributed_sampler_kwargs(self) -> Dict[str, int]:
         return {"num_replicas": self.world_size, "rank": self.global_rank}
 
@@ -600,8 +600,8 @@ class DeepSpeedStrategy(DDPStrategy):
         self.optimizers = []
         self.lr_scheduler_configs = []
 
-    @override
     @property
+    @override
     def handles_gradient_accumulation(self) -> bool:
         """Whether the strategy handles gradient accumulation internally."""
         return True
@@ -806,8 +806,8 @@ class DeepSpeedStrategy(DDPStrategy):
             )
         return client_state
 
-    @override
     @property
+    @override
     def lightning_restore_optimizer(self) -> bool:
         assert self.lightning_module is not None
         # managed by DeepSpeed
@@ -878,8 +878,8 @@ class DeepSpeedStrategy(DDPStrategy):
         # Override to do nothing, the deepspeed engine already loaded the states in `load_checkpoint()`
         pass
 
-    @override
     @classmethod
+    @override
     def register_strategies(cls, strategy_registry: _StrategyRegistry) -> None:
         strategy_registry.register("deepspeed", cls, description="Default DeepSpeed Strategy")
         strategy_registry.register("deepspeed_stage_1", cls, description="DeepSpeed with ZeRO Stage 1 enabled", stage=1)

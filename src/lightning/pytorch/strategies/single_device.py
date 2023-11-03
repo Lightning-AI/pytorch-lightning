@@ -68,8 +68,8 @@ class SingleDeviceStrategy(Strategy):
         """Perform a all_gather on all processes."""
         return tensor
 
-    @override
     @property
+    @override
     def root_device(self) -> torch.device:
         return self._root_device
 
@@ -83,8 +83,8 @@ class SingleDeviceStrategy(Strategy):
         self.model_to_device()
         super().setup(trainer)
 
-    @override
     @property
+    @override
     def is_global_zero(self) -> bool:
         return True
 
@@ -96,8 +96,8 @@ class SingleDeviceStrategy(Strategy):
     def broadcast(self, obj: TBroadcast, src: int = 0) -> TBroadcast:
         return obj
 
-    @override
     @classmethod
+    @override
     def register_strategies(cls, strategy_registry: _StrategyRegistry) -> None:
         strategy_registry.register(
             cls.strategy_name,
