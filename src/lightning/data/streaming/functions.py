@@ -11,17 +11,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import inspect
 import os
 from datetime import datetime
 from pathlib import Path
-from types import GeneratorType
+from types import FunctionType
 from typing import Any, Callable, Optional, Sequence, Union
 
-from lightning.data.streaming.constants import _LIGHTNING_CLOUD_GREATER_EQUAL_0_5_46, _TORCH_GREATER_EQUAL_2_1_0
-from lightning.data.streaming.data_processor import DataChunkRecipe, DataProcessor, DataTransformRecipe, PrettyDirectory
+from lightning.data.streaming.constants import _LIGHTNING_CLOUD_GREATER_EQUAL_0_5_48, _TORCH_GREATER_EQUAL_2_1_0
+from lightning.data.streaming.data_processor import DataChunkRecipe, DataProcessor, DataTransformRecipe
 
-if _LIGHTNING_CLOUD_GREATER_EQUAL_0_5_46:
-    from lightning_cloud.resolver import _execute, _LightningSrcResolver
+if _LIGHTNING_CLOUD_GREATER_EQUAL_0_5_48:
+    from lightning_cloud.resolver import _assert_dir_has_index_file, _assert_dir_is_empty, _execute, _resolve_dir
 
 if _TORCH_GREATER_EQUAL_2_1_0:
     from torch.utils._pytree import tree_flatten
@@ -77,10 +78,18 @@ class LambdaDataChunkRecipe(DataChunkRecipe):
         return self._inputs
 
     def prepare_item(self, item_metadata: Any) -> Any:  # type: ignore
-        if isinstance(self._fn, GeneratorType):
-            yield from self._fn(item_metadata)
+        if isinstance(self._fn, FunctionType):
+            if inspect.isgeneratorfunction(self._fn):
+                yield from self._fn(item_metadata)
+            else:
+                yield self._fn(item_metadata)
+        elif callable(self._fn):
+            if inspect.isgeneratorfunction(self._fn.__call__):  # type: ignore
+                yield from self._fn.__call__(item_metadata)  # type: ignore
+            else:
+                yield self._fn.__call__(item_metadata)  # type: ignore
         else:
-            yield self._fn(item_metadata)
+            raise ValueError(f"The provided {self._fn} isn't supported.")
 
 
 def map(
@@ -91,8 +100,7 @@ def map(
     fast_dev_run: Union[bool, int] = False,
     num_nodes: Optional[int] = None,
     machine: Optional[str] = None,
-    input_dir: Optional[str] = None,
-    num_downloaders: int = 1,
+    num_downloaders: Optional[int] = None,
 ) -> None:
     """This function map a callbable over a collection of files possibly in a distributed way.
 
@@ -115,20 +123,23 @@ def map(
         raise ValueError(f"The provided inputs should be non empty. Found {inputs}.")
 
     if num_nodes is None or int(os.getenv("DATA_OPTIMIZER_NUM_NODES", 0)) > 0:
-        remote_output_dir = _LightningSrcResolver()(output_dir)
+        output_dir = _resolve_dir(output_dir)
 
-        if remote_output_dir is None or "cloudspaces" in remote_output_dir:
+        if output_dir.url and "cloudspaces" in output_dir.url:
             raise ValueError(
-                f"The provided `output_dir` isn't valid. Found {output_dir}."
+                f"The provided `output_dir` isn't valid. Found {output_dir.path if output_dir else None}."
                 " HINT: You can either use `/teamspace/s3_connections/...` or `/teamspace/datasets/...`."
             )
 
+        _assert_dir_is_empty(output_dir)
+
+        input_dir = _resolve_dir(_get_input_dir(inputs))
+
         data_processor = DataProcessor(
+            input_dir=input_dir,
+            output_dir=output_dir,
             num_workers=num_workers or os.cpu_count(),
-            remote_output_dir=PrettyDirectory(output_dir, remote_output_dir),
             fast_dev_run=fast_dev_run,
-            version=None,
-            input_dir=input_dir or _get_input_dir(inputs),
             num_downloaders=num_downloaders,
         )
         return data_processor.run(LambdaDataTransformRecipe(fn, inputs))
@@ -146,13 +157,11 @@ def optimize(
     chunk_size: Optional[int] = None,
     chunk_bytes: Optional[Union[int, str]] = None,
     compression: Optional[str] = None,
-    name: Optional[str] = None,
     num_workers: Optional[int] = None,
     fast_dev_run: bool = False,
     num_nodes: Optional[int] = None,
     machine: Optional[str] = None,
-    input_dir: Optional[str] = None,
-    num_downloaders: int = 1,
+    num_downloaders: Optional[int] = None,
 ) -> None:
     """This function converts a dataset into chunks possibly in a distributed way.
 
@@ -181,20 +190,23 @@ def optimize(
         raise ValueError("Either `chunk_size` or `chunk_bytes` needs to be defined.")
 
     if num_nodes is None or int(os.getenv("DATA_OPTIMIZER_NUM_NODES", 0)) > 0:
-        remote_output_dir = _LightningSrcResolver()(output_dir)
+        output_dir = _resolve_dir(output_dir)
 
-        if remote_output_dir is None or "cloudspaces" in remote_output_dir:
+        if output_dir.url is not None and "cloudspaces" in output_dir.url:
             raise ValueError(
-                f"The provided `output_dir` isn't valid. Found {output_dir}."
+                f"The provided `output_dir` isn't valid. Found {output_dir.path}."
                 " HINT: You can either use `/teamspace/s3_connections/...` or `/teamspace/datasets/...`."
             )
 
+        _assert_dir_has_index_file(output_dir)
+
+        input_dir = _resolve_dir(_get_input_dir(inputs))
+
         data_processor = DataProcessor(
-            name=name,
+            input_dir=input_dir,
+            output_dir=output_dir,
             num_workers=num_workers or os.cpu_count(),
-            remote_output_dir=PrettyDirectory(output_dir, remote_output_dir),
             fast_dev_run=fast_dev_run,
-            input_dir=input_dir or _get_input_dir(inputs),
             num_downloaders=num_downloaders,
         )
         return data_processor.run(
