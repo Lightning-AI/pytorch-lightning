@@ -725,7 +725,7 @@ class DataProcessor:
             raise ValueError("The `prepare_structure` should return a list of item metadata.")
 
         # TODO: Only do this on node 0, and broadcast the item sizes to the other nodes.
-        item_sizes = _get_item_filesizes(user_items, base_path=self.input_dir)
+        item_sizes = _get_item_filesizes(user_items, base_path=self.input_dir.path)
 
         # Associate the items to the workers based on num_nodes and node_rank
         workers_user_items = _associated_items_to_workers(
