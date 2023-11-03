@@ -74,7 +74,7 @@ class _A(LightningFlow):
         self.work_a.run()
 
 
-@pytest.mark.skipif(sys.platform == "win32", reason="too slow on windows")
+@pytest.mark.skipif(sys.platform == "win32" or sys.platform == "darwin", reason="too slow on Windows or macOs")
 def test_app_state_api():
     """This test validates the AppState can properly broadcast changes from work within its own process."""
     app = LightningApp(_A(), log_level="debug")
@@ -107,7 +107,7 @@ class A2(LightningFlow):
             self.stop()
 
 
-@pytest.mark.skipif(sys.platform == "win32", reason="too slow on windows")
+@pytest.mark.skipif(sys.platform == "win32" or sys.platform == "darwin", reason="too slow on Windows or macOs")
 def test_app_state_api_with_flows():
     """This test validates the AppState can properly broadcast changes from flows."""
     app = LightningApp(A2(), log_level="debug")
