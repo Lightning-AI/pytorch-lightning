@@ -517,7 +517,7 @@ class _Result:
     data_format: Optional[str] = None
     compression: Optional[str] = None
     num_chunks: Optional[int] = None
-    num_bytes_per_chunks: Optional[List[int]] = None
+    num_bytes_per_chunk: Optional[List[int]] = None
 
 
 T = TypeVar("T")
@@ -617,7 +617,7 @@ class DataChunkRecipe(DataRecipe):
                 data_format=data_format,
                 compression=config["config"]["compression"],
                 num_chunks=len(config["chunks"]),
-                num_bytes_per_chunks=[c["chunk_size"] for c in config["chunks"]],
+                num_bytes_per_chunk=[c["chunk_size"] for c in config["chunks"]],
             )
         return _Result(
             size=size,
@@ -820,7 +820,7 @@ class DataProcessor:
                 data_format=result.data_format,
                 compression=result.compression,
                 num_chunks=result.num_chunks,
-                num_bytes_per_chunks=result.num_bytes_per_chunks,
+                num_bytes_per_chunk=result.num_bytes_per_chunk,
             )
 
         print("Finished data processing!")
