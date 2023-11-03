@@ -1,3 +1,4 @@
+import json
 import logging
 import os
 import signal
@@ -5,13 +6,14 @@ import tempfile
 import traceback
 import types
 from abc import abstractmethod
+from dataclasses import dataclass
 from multiprocessing import Process, Queue
 from queue import Empty
 from shutil import copyfile, rmtree
 from time import sleep, time
 from typing import Any, Dict, List, Optional, Tuple, TypeVar, Union
 from urllib import parse
-from dataclasses import dataclass
+
 import torch
 from tqdm.auto import tqdm
 
@@ -23,7 +25,7 @@ from lightning.data.streaming.constants import (
     _BOTO3_AVAILABLE,
     _DEFAULT_FAST_DEV_RUN_ITEMS,
     _INDEX_FILENAME,
-    _LIGHTNING_CLOUD_GREATER_EQUAL_0_5_48,
+    _LIGHTNING_CLOUD_GREATER_EQUAL_0_5_50,
     _TORCH_GREATER_EQUAL_2_1_0,
 )
 from lightning.fabric.accelerators.cuda import is_cuda_available
@@ -35,12 +37,12 @@ from lightning.fabric.utilities.distributed import (
 from lightning.fabric.utilities.distributed import group as _group
 
 if _TORCH_GREATER_EQUAL_2_1_0:
-    from torch.utils._pytree import tree_flatten, tree_unflatten
+    from torch.utils._pytree import tree_flatten, tree_unflatten, treespec_loads
 
-if _LIGHTNING_CLOUD_GREATER_EQUAL_0_5_48:
+if _LIGHTNING_CLOUD_GREATER_EQUAL_0_5_50:
+    from lightning_cloud.openapi import V1DatasetType
     from lightning_cloud.resolver import _resolve_dir
     from lightning_cloud.utils.dataset import _create_dataset
-    from lightning_cloud.openapi import V1DatasetType
 
 
 if _BOTO3_AVAILABLE:
@@ -507,14 +509,19 @@ class DataWorkerProcess(BaseWorker, Process):
         BaseWorker.__init__(self, *args, **kwargs)
         Process.__init__(self)
 
+
 @dataclass
 class _Result:
     size: Optional[str] = None
     num_bytes: Optional[str] = None
     data_format: Optional[str] = None
     compression: Optional[str] = None
+    num_chunks: Optional[int] = None
+    num_bytes_per_chunks: Optional[List[int]] = None
+
 
 T = TypeVar("T")
+
 
 class DataRecipe:
     @abstractmethod
@@ -596,13 +603,25 @@ class DataChunkRecipe(DataRecipe):
         merge_cache._merge_no_wait(node_rank if num_nodes > 1 else None)
         self._upload_index(output_dir, cache_dir, num_nodes, node_rank)
 
-        merge_cache._reader._try_load_config()
-        config = merge_cache._reader.config
+        if num_nodes == node_rank + 1:
+            with open(os.path.join(cache_dir, _INDEX_FILENAME)) as f:
+                config = json.load(f)
+
+            size = sum([c["dim"] if c["dim"] is not None else c["chunk_size"] for c in config["chunks"]])
+            num_bytes = sum([c["chunk_bytes"] for c in config["chunks"]])
+            data_format = tree_unflatten(config["config"]["data_format"], treespec_loads(config["config"]["data_spec"]))
+
+            return _Result(
+                size=size,
+                num_bytes=num_bytes,
+                data_format=data_format,
+                compression=config["config"]["compression"],
+                num_chunks=len(config["chunks"]),
+                num_bytes_per_chunks=[c["chunk_size"] for c in config["chunks"]],
+            )
         return _Result(
             size=size,
-            num_bytes=config.chunk_bytes,
-            data_format=str(config.data_format_unflattened),
-            compression=config.compression)
+        )
 
     def _upload_index(self, output_dir: Dir, cache_dir: str, num_nodes: int, node_rank: Optional[int]) -> None:
         """This method upload the index file to the remote cloud directory."""
@@ -779,7 +798,6 @@ class DataProcessor:
                     has_failed = True
                     break
 
-
         num_nodes = _get_num_nodes()
         # TODO: Understand why it hangs.
         if num_nodes == 1:
@@ -793,12 +811,16 @@ class DataProcessor:
             _create_dataset(
                 input_dir=self.input_dir.path,
                 storage_dir=self.output_dir.path,
-                dataset_type=V1DatasetType.CHUNKED if isinstance(data_recipe, DataChunkRecipe) else V1DatasetType.TRANSFORMED,
+                dataset_type=V1DatasetType.CHUNKED
+                if isinstance(data_recipe, DataChunkRecipe)
+                else V1DatasetType.TRANSFORMED,
                 empty=False,
                 size=result.size,
                 num_bytes=result.num_bytes,
                 data_format=result.data_format,
                 compression=result.compression,
+                num_chunks=result.num_chunks,
+                num_bytes_per_chunks=result.num_bytes_per_chunks,
             )
 
         print("Finished data processing!")

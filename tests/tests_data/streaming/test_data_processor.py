@@ -362,7 +362,13 @@ class TestDataProcessor(DataProcessor):
 def test_data_processsor_distributed(fast_dev_run, delete_cached_files, tmpdir, monkeypatch):
     """This test ensures the data optimizer works in a fully distributed settings."""
 
+    seed_everything(42)
+
     monkeypatch.setattr(data_processor_module.os, "_exit", mock.MagicMock())
+
+    _create_dataset_mock = mock.MagicMock()
+
+    monkeypatch.setattr(data_processor_module, "_create_dataset", _create_dataset_mock)
 
     from PIL import Image
 
@@ -442,6 +448,19 @@ def test_data_processsor_distributed(fast_dev_run, delete_cached_files, tmpdir, 
     expected = sorted(fast_dev_run_disabled_chunks_0 + fast_dev_run_disabled_chunks_1 + ["1-index.json"])
 
     assert sorted(os.listdir(remote_output_dir)) == expected
+
+    _create_dataset_mock.assert_called()
+
+    assert _create_dataset_mock._mock_mock_calls[0].kwargs == {
+        "input_dir": str(input_dir),
+        "storage_dir": str(remote_output_dir),
+        "dataset_type": "CHUNKED",
+        "empty": False,
+        "size": 30,
+        "num_bytes": 26657,
+        "data_format": "jpeg",
+        "compression": None,
+    }
 
 
 class TextTokenizeRecipe(DataChunkRecipe):
