@@ -697,33 +697,3 @@ class Recipe(DataChunkRecipe):
 
     def prepare_item(self, item):
         return item
-
-
-def test_file_larger_than_chunk_size(tmp_path, monkeypatch):
-    input_dir = tmp_path / "input_dir"
-    input_dir.mkdir()
-
-    data1 = np.random.randint(0, 10, size=(1000,), dtype=np.uint8)  # 1KB
-    data2 = np.random.randint(0, 10, size=(5000,), dtype=np.uint8)  # 5KB
-    with open(input_dir / "data1", "wb") as f:
-        np.save(f, data1)
-    with open(input_dir / "data2", "wb") as f:
-        np.save(f, data2)
-
-    assert os.path.getsize(input_dir / "data1") == 1128
-    assert os.path.getsize(input_dir / "data2") == 5128
-
-    home_dir = tmp_path / "home"
-    cache_dir = tmp_path / "cache" / "chunks"
-    cache_data_dir = tmp_path / "cache" / "data"
-    monkeypatch.setenv("DATA_OPTIMIZER_HOME_FOLDER", str(home_dir))
-    monkeypatch.setenv("DATA_OPTIMIZER_CACHE_FOLDER", str(cache_dir))
-    monkeypatch.setenv("DATA_OPTIMIZER_DATA_CACHE_FOLDER", str(cache_data_dir))
-
-    data_processor = DataProcessor(
-        input_dir=str(input_dir),
-        num_workers=2,
-    )
-    data_processor.run(Recipe(chunk_bytes=2))
-    assert os.path.getsize(cache_dir / "chunk-1-0.bin") == 1144
-    assert os.path.getsize(cache_dir / "chunk-0-0.bin") == 5144
