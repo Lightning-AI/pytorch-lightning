@@ -4,7 +4,6 @@ import torch.nn
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.plugins.precision.double import LightningDoublePrecisionModule
-from lightning.pytorch.plugins.precision.fsdp import FSDPMixedPrecisionPlugin
 from lightning.pytorch.strategies import DDPStrategy, FSDPStrategy
 
 from tests_pytorch.helpers.runif import RunIf
@@ -50,8 +49,3 @@ def test_fsdp_activation_checkpointing(monkeypatch):
 def test_double_precision_wrapper():
     with pytest.deprecated_call(match=r"The `LightningDoublePrecisionModule` is deprecated and no longer needed"):
         LightningDoublePrecisionModule(BoringModel())
-
-
-def test_fsdp_mixed_precision_plugin():
-    with pytest.deprecated_call(match=r"The `FSDPMixedPrecisionPlugin` is deprecated"):
-        FSDPMixedPrecisionPlugin(precision="16-mixed", device="cuda")

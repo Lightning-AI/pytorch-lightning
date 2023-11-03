@@ -294,7 +294,7 @@ class HookedModel(BoringModel):
                         "kwargs": {"gradient_clip_val": None, "gradient_clip_algorithm": None},
                     },
                     # this is after because it refers to the `LightningModule.optimizer_step` hook which encapsulates
-                    # the actual call to `PrecisionPlugin.optimizer_step`
+                    # the actual call to `Precision.optimizer_step`
                     {
                         "name": "optimizer_step",
                         "args": (current_epoch, i, ANY, ANY),
