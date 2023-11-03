@@ -11,7 +11,7 @@ def _pack_greedily(items: List[Any], weights: List[int], num_bins: int) -> Tuple
     if any(w <= 0 for w in weights):
         raise ValueError("All weights must be positive.")
 
-    sorted_items_and_weights = sorted(zip(items, weights), key=lambda x: x[1])
+    sorted_items_and_weights = sorted(zip(items, weights), key=lambda x: x[1], reverse=True)
     bin_contents = defaultdict(list)
     bin_weights = {i: 0 for i in range(num_bins)}
 

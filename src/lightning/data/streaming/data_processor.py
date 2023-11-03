@@ -215,6 +215,12 @@ def _associated_items_to_workers(
 
     worker_items, worker_weights = _pack_greedily(items=user_items, weights=weights, num_bins=world_size)
     worker_ids_this_node = range(node_rank * num_workers, (node_rank + 1) * num_workers)
+
+    for worker_id, size in worker_weights.items():
+        if worker_id not in worker_ids_this_node:
+            continue
+        print(f"Worker {worker_id} gets {size / 1e6:.1f} MB ({len(worker_items[worker_id])} files)")
+
     return [worker_items[worker_id] for worker_id in worker_ids_this_node]
 
 
