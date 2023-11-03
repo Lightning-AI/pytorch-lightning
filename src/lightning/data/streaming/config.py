@@ -21,7 +21,8 @@ from lightning.data.streaming.item_loader import BaseItemLoader, PyTreeLoader, T
 from lightning.data.streaming.sampler import ChunkedIndex
 
 if _TORCH_GREATER_EQUAL_2_1_0:
-    from torch.utils._pytree import treespec_loads, tree_unflatten
+    from torch.utils._pytree import tree_unflatten, treespec_loads
+
 
 class ChunksConfig:
     def __init__(self, cache_dir: str, remote_dir: Optional[str], item_loader: Optional[BaseItemLoader] = None) -> None:
