@@ -23,7 +23,7 @@ from lightning.data.streaming.constants import (
     _BOTO3_AVAILABLE,
     _DEFAULT_FAST_DEV_RUN_ITEMS,
     _INDEX_FILENAME,
-    _LIGHTNING_CLOUD_GREATER_EQUAL_0_5_48,
+    _LIGHTNING_CLOUD_GREATER_EQUAL_0_5_49,
     _TORCH_GREATER_EQUAL_2_1_0,
 )
 from lightning.fabric.accelerators.cuda import is_cuda_available
@@ -37,8 +37,10 @@ from lightning.fabric.utilities.distributed import group as _group
 if _TORCH_GREATER_EQUAL_2_1_0:
     from torch.utils._pytree import tree_flatten, tree_unflatten
 
-if _LIGHTNING_CLOUD_GREATER_EQUAL_0_5_48:
+if _LIGHTNING_CLOUD_GREATER_EQUAL_0_5_49:
+    from lightning_cloud.openapi import V1DatasetType
     from lightning_cloud.resolver import _resolve_dir
+    from lightning_cloud.utils.dataset import _create_dataset
 
 
 if _BOTO3_AVAILABLE:
@@ -765,13 +767,24 @@ class DataProcessor:
                     has_failed = True
                     break
 
+        num_nodes = _get_num_nodes()
         # TODO: Understand why it hangs.
-        if _get_num_nodes() == 1:
+        if num_nodes == 1:
             for w in self.workers:
                 w.join(0)
 
         print("Workers are finished.")
         data_recipe._done(self.delete_cached_files, self.output_dir)
+
+        if num_nodes == 1 and num_nodes == _get_node_rank() + 1:
+            _create_dataset(
+                input_dir=self.input_dir.path,
+                storage_dir=self.output_dir.path,
+                dataset_type=V1DatasetType.CHUNKED
+                if isinstance(data_recipe, DataChunkRecipe)
+                else V1DatasetType.TRANSFORMED,
+                empty=False,
+            )
         print("Finished data processing!")
 
         # TODO: Understand why it is required to avoid long shutdown.
