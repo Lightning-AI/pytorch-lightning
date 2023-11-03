@@ -28,7 +28,7 @@ from lightning.pytorch.trainer import call
 from lightning.pytorch.utilities import GradClipAlgorithmType
 
 
-class PrecisionPlugin(FabricPrecision, CheckpointHooks):
+class Precision(FabricPrecision, CheckpointHooks):
     """Base class for all plugins handling the precision-specific parts of the training.
 
     The class attribute precision must be overwritten in child classes. The default value reflects fp32 training.
@@ -98,7 +98,7 @@ class PrecisionPlugin(FabricPrecision, CheckpointHooks):
         hook is called.
 
         The closure (generally) runs ``backward`` so this allows inspecting gradients in this hook. This structure is
-        consistent with the ``PrecisionPlugin`` subclasses that cannot pass ``optimizer.step(closure)`` directly.
+        consistent with the ``Precision`` subclasses that cannot pass ``optimizer.step(closure)`` directly.
 
         """
         closure_result = closure()

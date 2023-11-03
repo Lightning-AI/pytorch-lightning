@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import TYPE_CHECKING, Any, Callable, ContextManager, Dict, Literal, Optional
+from typing import TYPE_CHECKING, Any, Callable, ContextManager, Dict, Optional
 
 import torch
 from lightning_utilities import apply_to_collection
@@ -23,9 +23,8 @@ from lightning.fabric.plugins.precision.amp import _optimizer_handles_unscaling
 from lightning.fabric.plugins.precision.fsdp import _PRECISION_INPUT
 from lightning.fabric.plugins.precision.utils import _convert_fp_tensor, _DtypeContextManager
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
-from lightning.fabric.utilities.rank_zero import rank_zero_deprecation
 from lightning.fabric.utilities.types import Optimizable
-from lightning.pytorch.plugins.precision.precision_plugin import PrecisionPlugin
+from lightning.pytorch.plugins.precision.precision import Precision
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 
 if TYPE_CHECKING:
@@ -33,7 +32,7 @@ if TYPE_CHECKING:
     from torch.distributed.fsdp.sharded_grad_scaler import ShardedGradScaler
 
 
-class FSDPPrecisionPlugin(PrecisionPlugin):
+class FSDPPrecision(Precision):
     """Precision plugin for training with Fully Sharded Data Parallel (FSDP).
 
     .. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
@@ -170,22 +169,3 @@ class FSDPPrecisionPlugin(PrecisionPlugin):
     def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
         if self.scaler is not None:
             self.scaler.load_state_dict(state_dict)
-
-
-class FSDPMixedPrecisionPlugin(FSDPPrecisionPlugin):
-    """AMP for Fully Sharded Data Parallel (FSDP) Training.
-
-    .. deprecated:: Use :class:`FSDPPrecisionPlugin` instead.
-
-    .. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
-
-    """
-
-    def __init__(
-        self, precision: Literal["16-mixed", "bf16-mixed"], device: str, scaler: Optional["ShardedGradScaler"] = None
-    ) -> None:
-        rank_zero_deprecation(
-            f"The `{type(self).__name__}` is deprecated."
-            " Use `lightning.pytorch.plugins.precision.FSDPPrecisionPlugin` instead."
-        )
-        super().__init__(precision=precision, scaler=scaler)

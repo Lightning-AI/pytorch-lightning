@@ -14,4 +14,5 @@
 import lightning.pytorch._graveyard._torchmetrics
 import lightning.pytorch._graveyard.hpu
 import lightning.pytorch._graveyard.ipu
+import lightning.pytorch._graveyard.precision
 import lightning.pytorch._graveyard.tpu  # noqa: F401
