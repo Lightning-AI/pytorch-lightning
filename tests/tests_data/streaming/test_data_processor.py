@@ -724,48 +724,6 @@ def test_file_larger_than_chunk_size(tmp_path, monkeypatch):
         input_dir=str(input_dir),
         num_workers=2,
     )
-    data_processor.run(Recipe(chunk_size=2))
-    # fast_dev_run_enabled_chunks = [
-    #     "chunk-0-0.bin",
-    #     "chunk-0-1.bin",
-    #     "chunk-0-2.bin",
-    #     "chunk-0-3.bin",
-    #     "chunk-0-4.bin",
-    #     "chunk-1-0.bin",
-    #     "chunk-1-1.bin",
-    #     "chunk-1-2.bin",
-    #     "chunk-1-3.bin",
-    #     "chunk-1-4.bin",
-    #     "index.json",
-    # ]
-    #
-    # fast_dev_run_disabled_chunks = [
-    #     "chunk-0-0.bin",
-    #     "chunk-0-1.bin",
-    #     "chunk-0-2.bin",
-    #     "chunk-0-3.bin",
-    #     "chunk-0-4.bin",
-    #     "chunk-0-5.bin",
-    #     "chunk-0-6.bin",
-    #     "chunk-0-7.bin",
-    #     "chunk-1-0.bin",
-    #     "chunk-1-1.bin",
-    #     "chunk-1-2.bin",
-    #     "chunk-1-3.bin",
-    #     "chunk-1-4.bin",
-    #     "chunk-1-5.bin",
-    #     "chunk-1-6.bin",
-    #     "chunk-1-7.bin",
-    #     "index.json",
-    # ]
-    #
-    # chunks = fast_dev_run_enabled_chunks if fast_dev_run == 10 else fast_dev_run_disabled_chunks
-    #
-    # assert sorted(os.listdir(cache_dir)) == chunks
-    #
-    # files = []
-    # for _, _, filenames in os.walk(os.path.join(cache_dir, "data")):
-    #     files.extend(filenames)
-    #
-    # expected = (0 if delete_cached_files else 20) if fast_dev_run == 10 else (0 if delete_cached_files else 30)
-    # assert len(files) == expected
+    data_processor.run(Recipe(chunk_bytes=2))
+    assert os.path.getsize(cache_dir / "chunk-1-0.bin") == 1144
+    assert os.path.getsize(cache_dir / "chunk-0-0.bin") == 5144
