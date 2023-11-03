@@ -11,7 +11,7 @@ from shutil import copyfile, rmtree
 from time import sleep, time
 from typing import Any, Dict, List, Optional, Tuple, TypeVar, Union
 from urllib import parse
-
+from dataclasses import dataclass
 import torch
 from tqdm.auto import tqdm
 
@@ -39,6 +39,8 @@ if _TORCH_GREATER_EQUAL_2_1_0:
 
 if _LIGHTNING_CLOUD_GREATER_EQUAL_0_5_48:
     from lightning_cloud.resolver import _resolve_dir
+    from lightning_cloud.utils.dataset import _create_dataset
+    from lightning_cloud.openapi import V1DatasetType
 
 
 if _BOTO3_AVAILABLE:
@@ -191,8 +193,7 @@ def _upload_fn(upload_queue: Queue, remove_queue: Queue, cache_dir: str, output_
                 )
             except Exception as e:
                 print(e)
-            return
-        if os.path.isdir(output_dir.path):
+        elif os.path.isdir(output_dir.path):
             copyfile(local_filepath, os.path.join(output_dir.path, os.path.basename(local_filepath)))
         else:
             raise ValueError(f"The provided {output_dir.path} isn't supported.")
@@ -506,9 +507,14 @@ class DataWorkerProcess(BaseWorker, Process):
         BaseWorker.__init__(self, *args, **kwargs)
         Process.__init__(self)
 
+@dataclass
+class _Result:
+    size: Optional[str] = None
+    num_bytes: Optional[str] = None
+    data_format: Optional[str] = None
+    compression: Optional[str] = None
 
 T = TypeVar("T")
-
 
 class DataRecipe:
     @abstractmethod
@@ -546,8 +552,8 @@ class DataRecipe:
     def __init__(self) -> None:
         self._name: Optional[str] = None
 
-    def _done(self, delete_cached_files: bool, output_dir: Dir) -> None:
-        pass
+    def _done(self, size: int, delete_cached_files: bool, output_dir: Dir) -> _Result:
+        return _Result(size=size)
 
 
 class DataChunkRecipe(DataRecipe):
@@ -577,7 +583,7 @@ class DataChunkRecipe(DataRecipe):
     def prepare_item(self, item_metadata: T) -> Any:  # type: ignore
         """The return of this `prepare_item` method is persisted in chunked binary files."""
 
-    def _done(self, delete_cached_files: bool, output_dir: Dir) -> None:
+    def _done(self, size: str, delete_cached_files: bool, output_dir: Dir) -> _Result:
         num_nodes = _get_num_nodes()
         cache_dir = _get_cache_dir()
 
@@ -589,6 +595,14 @@ class DataChunkRecipe(DataRecipe):
         node_rank = _get_node_rank()
         merge_cache._merge_no_wait(node_rank if num_nodes > 1 else None)
         self._upload_index(output_dir, cache_dir, num_nodes, node_rank)
+
+        merge_cache._reader._try_load_config()
+        config = merge_cache._reader.config
+        return _Result(
+            size=size,
+            num_bytes=config.chunk_bytes,
+            data_format=str(config.data_format_unflattened),
+            compression=config.compression)
 
     def _upload_index(self, output_dir: Dir, cache_dir: str, num_nodes: int, node_rank: Optional[int]) -> None:
         """This method upload the index file to the remote cloud directory."""
@@ -765,13 +779,28 @@ class DataProcessor:
                     has_failed = True
                     break
 
+
+        num_nodes = _get_num_nodes()
         # TODO: Understand why it hangs.
-        if _get_num_nodes() == 1:
+        if num_nodes == 1:
             for w in self.workers:
                 w.join(0)
 
         print("Workers are finished.")
-        data_recipe._done(self.delete_cached_files, self.output_dir)
+        result = data_recipe._done(num_items, self.delete_cached_files, self.output_dir)
+
+        if num_nodes == _get_node_rank() + 1:
+            _create_dataset(
+                input_dir=self.input_dir.path,
+                storage_dir=self.output_dir.path,
+                dataset_type=V1DatasetType.CHUNKED if isinstance(data_recipe, DataChunkRecipe) else V1DatasetType.TRANSFORMED,
+                empty=False,
+                size=result.size,
+                num_bytes=result.num_bytes,
+                data_format=result.data_format,
+                compression=result.compression,
+            )
+
         print("Finished data processing!")
 
         # TODO: Understand why it is required to avoid long shutdown.
