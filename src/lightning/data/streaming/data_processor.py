@@ -512,7 +512,7 @@ class DataWorkerProcess(BaseWorker, Process):
 
 @dataclass
 class _Result:
-    size: Optional[str] = None
+    size: Optional[int] = None
     num_bytes: Optional[str] = None
     data_format: Optional[str] = None
     compression: Optional[str] = None
@@ -590,7 +590,7 @@ class DataChunkRecipe(DataRecipe):
     def prepare_item(self, item_metadata: T) -> Any:  # type: ignore
         """The return of this `prepare_item` method is persisted in chunked binary files."""
 
-    def _done(self, size: str, delete_cached_files: bool, output_dir: Dir) -> _Result:
+    def _done(self, size: int, delete_cached_files: bool, output_dir: Dir) -> _Result:
         num_nodes = _get_num_nodes()
         cache_dir = _get_cache_dir()
 
