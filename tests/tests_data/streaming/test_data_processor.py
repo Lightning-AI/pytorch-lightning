@@ -518,6 +518,7 @@ def test_data_processsor_distributed(fast_dev_run, delete_cached_files, tmpdir, 
         "num_bytes": 26657,
         "data_format": "jpeg",
         "compression": None,
+        "num_bytes_per_chunk": [2, 2, 2, 1, 2, 2, 2, 2, 2, 2, 2, 1, 2, 2, 2, 2],
     }
 
 
