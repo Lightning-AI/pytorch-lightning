@@ -22,6 +22,7 @@ import logging
 import os
 from argparse import Namespace
 from typing import Any, Dict, Optional, Union
+
 from typing_extensions import override
 
 from lightning.fabric.loggers.csv_logs import CSVLogger as FabricCSVLogger

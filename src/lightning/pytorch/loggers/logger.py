@@ -19,9 +19,9 @@ import operator
 from abc import ABC
 from collections import defaultdict
 from typing import Any, Callable, Dict, Mapping, Optional, Sequence
-from typing_extensions import override
 
 import numpy as np
+from typing_extensions import override
 
 from lightning.fabric.loggers import Logger as FabricLogger
 from lightning.fabric.loggers.logger import _DummyExperiment as DummyExperiment  # for backward compatibility
@@ -68,7 +68,7 @@ class DummyLogger(Logger):
     def log_metrics(self, *args: Any, **kwargs: Any) -> None:
         pass
 
-    @override        
+    @override
     def log_hyperparams(self, *args: Any, **kwargs: Any) -> None:
         pass
 

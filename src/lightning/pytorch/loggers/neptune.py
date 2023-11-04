@@ -20,10 +20,10 @@ import logging
 import os
 from argparse import Namespace
 from typing import TYPE_CHECKING, Any, Dict, Generator, List, Optional, Set, Union
-from typing_extensions import override
 
 from lightning_utilities.core.imports import RequirementCache
 from torch import Tensor
+from typing_extensions import override
 
 import lightning.pytorch as pl
 from lightning.fabric.utilities.logger import _add_prefix, _convert_params, _sanitize_callable_params
