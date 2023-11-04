@@ -265,7 +265,7 @@ def test_create_undersized_and_oversized_chunk(tmp_path):
     cache.merge()
 
     assert len(os.listdir(tmp_path)) == 4  # 3 chunks + 1 index file
-    with open(tmp_path / "index.json", "r") as file:
+    with open(tmp_path / "index.json") as file:
         index = json.load(file)
 
     chunks = index["chunks"]
