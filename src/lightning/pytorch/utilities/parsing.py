@@ -208,19 +208,20 @@ def save_hyperparameters(
 class AttributeDict(_AttributeDict):
     """Extended dictionary accessible with dot notation.
 
-        >>> ad = AttributeDict({'key1': 1, 'key2': 'abc'})
-        >>> ad.key1
-        1
-        >>> ad.update({'my-key': 3.14})
-        >>> ad.update(new_key=42)
-        >>> ad.key1 = 2
-        >>> ad
-        "key1":    2
-        "key2":    abc
-        "my-key":  3.14
-        "new_key": 42
+    >>> ad = AttributeDict({'key1': 1, 'key2': 'abc'})
+    >>> ad.key1
+    1
+    >>> ad.update({'my-key': 3.14})
+    >>> ad.update(new_key=42)
+    >>> ad.key1 = 2
+    >>> ad
+    "key1":    2
+    "key2":    abc
+    "my-key":  3.14
+    "new_key": 42
 
-        """
+    """
+
     pass
 
 
