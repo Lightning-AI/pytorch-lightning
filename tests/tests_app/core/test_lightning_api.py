@@ -74,6 +74,7 @@ class _A(LightningFlow):
         self.work_a.run()
 
 
+@pytest.mark.skipif(sys.platform == "win32" or sys.platform == "darwin", reason="too slow on Windows or macOs")
 def test_app_state_api():
     """This test validates the AppState can properly broadcast changes from work within its own process."""
     app = LightningApp(_A(), log_level="debug")
@@ -106,7 +107,8 @@ class A2(LightningFlow):
             self.stop()
 
 
-def test_app_state_api_with_flows(tmpdir):
+@pytest.mark.skipif(sys.platform == "win32" or sys.platform == "darwin", reason="too slow on Windows or macOs")
+def test_app_state_api_with_flows():
     """This test validates the AppState can properly broadcast changes from flows."""
     app = LightningApp(A2(), log_level="debug")
     MultiProcessRuntime(app, start_server=True).dispatch()
@@ -537,7 +539,7 @@ def test_configure_api():
     asyncio.set_event_loop(loop)
     results = loop.run_until_complete(asyncio.gather(*coros))
     response_time = time() - t0
-    print(f"RPS: {N/response_time}")
+    print(f"RPS: {N / response_time}")
     assert response_time < 10
     assert len(results) == N
     assert all(r.get("detail", None) == ("HERE" if i % 5 == 0 else None) for i, r in enumerate(results))

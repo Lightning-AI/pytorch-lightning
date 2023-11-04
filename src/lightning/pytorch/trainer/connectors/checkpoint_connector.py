@@ -26,11 +26,11 @@ from lightning.fabric.plugins.environments.slurm import SLURMEnvironment
 from lightning.fabric.utilities.cloud_io import _is_dir, get_filesystem
 from lightning.fabric.utilities.types import _PATH
 from lightning.pytorch.callbacks import ModelCheckpoint
-from lightning.pytorch.plugins.precision import MixedPrecisionPlugin
+from lightning.pytorch.plugins.precision import MixedPrecision
 from lightning.pytorch.trainer import call
 from lightning.pytorch.trainer.states import TrainerFn
-from lightning.pytorch.utilities import _OMEGACONF_AVAILABLE
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
+from lightning.pytorch.utilities.imports import _OMEGACONF_AVAILABLE
 from lightning.pytorch.utilities.migration import pl_legacy_patch
 from lightning.pytorch.utilities.migration.utils import _pl_migrate_checkpoint
 from lightning.pytorch.utilities.rank_zero import rank_zero_info, rank_zero_warn
@@ -303,7 +303,7 @@ class _CheckpointConnector:
             prec_plugin.load_state_dict(self._loaded_checkpoint[prec_plugin.__class__.__qualname__])
 
         # old checkpoints compatibility
-        if "native_amp_scaling_state" in self._loaded_checkpoint and isinstance(prec_plugin, MixedPrecisionPlugin):
+        if "native_amp_scaling_state" in self._loaded_checkpoint and isinstance(prec_plugin, MixedPrecision):
             prec_plugin.load_state_dict(self._loaded_checkpoint["native_amp_scaling_state"])
 
     def restore_callbacks(self) -> None:

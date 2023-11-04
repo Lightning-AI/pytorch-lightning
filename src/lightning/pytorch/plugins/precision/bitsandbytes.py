@@ -12,10 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from lightning.fabric.plugins.precision.bitsandbytes import BitsandbytesPrecision as FabricBNBPrecision
-from lightning.pytorch.plugins.precision.precision_plugin import PrecisionPlugin
+from lightning.pytorch.plugins.precision.precision import Precision
 
 
-class BitsandbytesPrecisionPlugin(PrecisionPlugin, FabricBNBPrecision):
+class BitsandbytesPrecision(Precision, FabricBNBPrecision):
     """Plugin for quantizing weights with `bitsandbytes <https://github.com/TimDettmers/bitsandbytes>`__.
 
     .. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.

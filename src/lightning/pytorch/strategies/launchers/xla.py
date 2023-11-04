@@ -16,6 +16,7 @@ import queue
 from typing import TYPE_CHECKING, Any, Callable, Optional, Union
 
 import torch.multiprocessing as mp
+from typing_extensions import override
 
 from lightning.fabric.accelerators.xla import _XLA_AVAILABLE, _using_pjrt
 from lightning.fabric.strategies.launchers.xla import _rank_teardown
@@ -55,9 +56,11 @@ class _XLALauncher(_MultiProcessingLauncher):
         super().__init__(strategy=strategy, start_method="fork")
 
     @property
+    @override
     def is_interactive_compatible(self) -> bool:
         return True
 
+    @override
     def launch(self, function: Callable, *args: Any, trainer: Optional["pl.Trainer"] = None, **kwargs: Any) -> Any:
         """Launches processes that run the given function in parallel.
 
@@ -116,6 +119,7 @@ class _XLALauncher(_MultiProcessingLauncher):
         self._recover_results_in_main_process(worker_output, trainer)
         return worker_output.trainer_results
 
+    @override
     def _wrapping_function(
         self,
         # XLA's multiprocessing returns the global index, not the local index as torch's multiprocessing
@@ -147,6 +151,7 @@ class _XLALauncher(_MultiProcessingLauncher):
 
         _rank_teardown(self._strategy.local_rank)
 
+    @override
     def _collect_rank_zero_results(self, trainer: "pl.Trainer", results: Any) -> Optional["_WorkerOutput"]:
         rank_zero_debug("Collecting results from rank 0 process.")
         checkpoint_callback = trainer.checkpoint_callback

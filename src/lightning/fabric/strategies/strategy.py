@@ -138,11 +138,13 @@ class Strategy(ABC):
                 If ``None``, the strategy will decide. Some strategies may not support all options.
 
         """
-        tensor_init_ctx = self.tensor_init_context()
+        precision_module_ctx = self.precision.module_init_context()
         stack = ExitStack()
+        if _TORCH_GREATER_EQUAL_2_0:
+            stack.enter_context(self.root_device)
         if _TORCH_GREATER_EQUAL_1_13:
             stack.enter_context(_EmptyInit(enabled=bool(empty_init)))
-        stack.enter_context(tensor_init_ctx)
+        stack.enter_context(precision_module_ctx)
         return stack
 
     def setup_module_and_optimizers(

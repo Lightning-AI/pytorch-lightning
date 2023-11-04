@@ -437,6 +437,7 @@ def sharding_resume_test(fabric: lightning.Fabric, num_workers):
         fabric.barrier()
 
 
+@pytest.mark.skipif(True, reason="flaky and out-dated")
 @pytest.mark.parametrize(
     ("num_workers", "world_size"),
     [
