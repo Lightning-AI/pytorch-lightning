@@ -19,6 +19,7 @@ import operator
 from abc import ABC
 from collections import defaultdict
 from typing import Any, Callable, Dict, Mapping, Optional, Sequence
+from typing_extensions import override
 
 import numpy as np
 
@@ -63,18 +64,22 @@ class DummyLogger(Logger):
         """Return the experiment object associated with this logger."""
         return self._experiment
 
+    @override
     def log_metrics(self, *args: Any, **kwargs: Any) -> None:
         pass
 
+    @override        
     def log_hyperparams(self, *args: Any, **kwargs: Any) -> None:
         pass
 
     @property
+    @override
     def name(self) -> str:
         """Return the experiment name."""
         return ""
 
     @property
+    @override
     def version(self) -> str:
         """Return the experiment version."""
         return ""
