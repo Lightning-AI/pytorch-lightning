@@ -9,6 +9,7 @@ import numpy as np
 import pytest
 import torch
 from lightning.fabric.utilities.data import (
+    State,
     _get_dataloader_init_args_and_kwargs,
     _replace_dunder_methods,
     _replace_value_in_saved_args,
@@ -18,7 +19,6 @@ from lightning.fabric.utilities.data import (
     has_iterable_dataset,
     has_len,
     suggested_max_num_workers,
-    State,
 )
 from lightning.fabric.utilities.exceptions import MisconfigurationException
 from lightning_utilities.test.warning import no_warning_call

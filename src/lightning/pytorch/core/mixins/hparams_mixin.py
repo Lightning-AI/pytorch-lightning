@@ -17,8 +17,8 @@ import types
 from argparse import Namespace
 from typing import Any, List, MutableMapping, Optional, Sequence, Union
 
-from lightning.pytorch.utilities.parsing import save_hyperparameters
 from lightning.fabric.utilities.data import _AttributeDict
+from lightning.pytorch.utilities.parsing import save_hyperparameters
 
 _PRIMITIVE_TYPES = (bool, int, float, str)
 _ALLOWED_CONFIG_TYPES = (_AttributeDict, MutableMapping, Namespace)

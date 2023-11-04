@@ -23,8 +23,8 @@ from typing import Any, Dict, List, Literal, MutableMapping, Optional, Sequence,
 from torch import nn
 
 import lightning.pytorch as pl
-from lightning.pytorch.utilities.rank_zero import rank_zero_warn
 from lightning.fabric.utilities.data import _AttributeDict
+from lightning.pytorch.utilities.rank_zero import rank_zero_warn
 
 
 class AttributeDict(_AttributeDict):

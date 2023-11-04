@@ -474,6 +474,7 @@ class _AttributeDict(Dict):
     "new_key": 42
 
     """
+
     def __getattr__(self, key: str) -> Optional[Any]:
         try:
             return self[key]
@@ -508,4 +509,5 @@ class State(_AttributeDict):
         >>> state
         "iter_num": 1
         "model":    Linear(in_features=2, out_features=2, bias=True)
+
     """
