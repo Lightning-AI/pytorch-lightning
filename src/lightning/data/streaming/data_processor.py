@@ -87,7 +87,7 @@ def _get_cache_data_dir(name: Optional[str] = None) -> str:
     return os.path.join(cache_dir, name.lstrip("/"))
 
 
-def _wait_for_file_to_exist(s3: Any, obj: parse.ParseResult, sleep_time: int = 2) -> Any:
+def _wait_for_file_to_exist(s3: S3Client, obj: parse.ParseResult, sleep_time: int = 2) -> Any:
     """This function check."""
     while True:
         try:
@@ -808,9 +808,7 @@ class DataProcessor:
         print("Workers are finished.")
         result = data_recipe._done(len(user_items), self.delete_cached_files, self.output_dir)
 
-        print(result)
-
-        if num_nodes == node_rank + 1 and self.fast_dev_run is False:
+        if num_nodes == node_rank + 1:
             _create_dataset(
                 input_dir=self.input_dir.path,
                 storage_dir=self.output_dir.path,
