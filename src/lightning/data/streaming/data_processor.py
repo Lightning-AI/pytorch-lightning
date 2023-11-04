@@ -1,3 +1,4 @@
+import json
 import logging
 import os
 import signal
@@ -5,6 +6,7 @@ import tempfile
 import traceback
 import types
 from abc import abstractmethod
+from dataclasses import dataclass
 from multiprocessing import Process, Queue
 from queue import Empty
 from shutil import copyfile, rmtree
@@ -23,7 +25,7 @@ from lightning.data.streaming.constants import (
     _BOTO3_AVAILABLE,
     _DEFAULT_FAST_DEV_RUN_ITEMS,
     _INDEX_FILENAME,
-    _LIGHTNING_CLOUD_GREATER_EQUAL_0_5_48,
+    _LIGHTNING_CLOUD_GREATER_EQUAL_0_5_50,
     _TORCH_GREATER_EQUAL_2_1_0,
 )
 from lightning.fabric.accelerators.cuda import is_cuda_available
@@ -35,10 +37,12 @@ from lightning.fabric.utilities.distributed import (
 from lightning.fabric.utilities.distributed import group as _group
 
 if _TORCH_GREATER_EQUAL_2_1_0:
-    from torch.utils._pytree import tree_flatten, tree_unflatten
+    from torch.utils._pytree import tree_flatten, tree_unflatten, treespec_loads
 
-if _LIGHTNING_CLOUD_GREATER_EQUAL_0_5_48:
+if _LIGHTNING_CLOUD_GREATER_EQUAL_0_5_50:
+    from lightning_cloud.openapi import V1DatasetType
     from lightning_cloud.resolver import _resolve_dir
+    from lightning_cloud.utils.dataset import _create_dataset
 
 
 if _BOTO3_AVAILABLE:
@@ -191,7 +195,7 @@ def _upload_fn(upload_queue: Queue, remove_queue: Queue, cache_dir: str, output_
                 )
             except Exception as e:
                 print(e)
-        if os.path.isdir(output_dir.path):
+        elif os.path.isdir(output_dir.path):
             copyfile(local_filepath, os.path.join(output_dir.path, os.path.basename(local_filepath)))
         else:
             raise ValueError(f"The provided {output_dir.path} isn't supported.")
@@ -506,6 +510,16 @@ class DataWorkerProcess(BaseWorker, Process):
         Process.__init__(self)
 
 
+@dataclass
+class _Result:
+    size: Optional[int] = None
+    num_bytes: Optional[str] = None
+    data_format: Optional[str] = None
+    compression: Optional[str] = None
+    num_chunks: Optional[int] = None
+    num_bytes_per_chunk: Optional[List[int]] = None
+
+
 T = TypeVar("T")
 
 
@@ -545,8 +559,8 @@ class DataRecipe:
     def __init__(self) -> None:
         self._name: Optional[str] = None
 
-    def _done(self, delete_cached_files: bool, output_dir: Dir) -> None:
-        pass
+    def _done(self, size: int, delete_cached_files: bool, output_dir: Dir) -> _Result:
+        return _Result(size=size)
 
 
 class DataChunkRecipe(DataRecipe):
@@ -576,7 +590,7 @@ class DataChunkRecipe(DataRecipe):
     def prepare_item(self, item_metadata: T) -> Any:  # type: ignore
         """The return of this `prepare_item` method is persisted in chunked binary files."""
 
-    def _done(self, delete_cached_files: bool, output_dir: Dir) -> None:
+    def _done(self, size: int, delete_cached_files: bool, output_dir: Dir) -> _Result:
         num_nodes = _get_num_nodes()
         cache_dir = _get_cache_dir()
 
@@ -588,6 +602,26 @@ class DataChunkRecipe(DataRecipe):
         node_rank = _get_node_rank()
         merge_cache._merge_no_wait(node_rank if num_nodes > 1 else None)
         self._upload_index(output_dir, cache_dir, num_nodes, node_rank)
+
+        if num_nodes == node_rank + 1:
+            with open(os.path.join(cache_dir, _INDEX_FILENAME)) as f:
+                config = json.load(f)
+
+            size = sum([c["dim"] if c["dim"] is not None else c["chunk_size"] for c in config["chunks"]])
+            num_bytes = sum([c["chunk_bytes"] for c in config["chunks"]])
+            data_format = tree_unflatten(config["config"]["data_format"], treespec_loads(config["config"]["data_spec"]))
+
+            return _Result(
+                size=size,
+                num_bytes=num_bytes,
+                data_format=data_format,
+                compression=config["config"]["compression"],
+                num_chunks=len(config["chunks"]),
+                num_bytes_per_chunk=[c["chunk_size"] for c in config["chunks"]],
+            )
+        return _Result(
+            size=size,
+        )
 
     def _upload_index(self, output_dir: Dir, cache_dir: str, num_nodes: int, node_rank: Optional[int]) -> None:
         """This method upload the index file to the remote cloud directory."""
@@ -764,13 +798,31 @@ class DataProcessor:
                     has_failed = True
                     break
 
+        num_nodes = _get_num_nodes()
         # TODO: Understand why it hangs.
-        if _get_num_nodes() == 1:
+        if num_nodes == 1:
             for w in self.workers:
                 w.join(0)
 
         print("Workers are finished.")
-        data_recipe._done(self.delete_cached_files, self.output_dir)
+        result = data_recipe._done(num_items, self.delete_cached_files, self.output_dir)
+
+        if num_nodes == _get_node_rank() + 1:
+            _create_dataset(
+                input_dir=self.input_dir.path,
+                storage_dir=self.output_dir.path,
+                dataset_type=V1DatasetType.CHUNKED
+                if isinstance(data_recipe, DataChunkRecipe)
+                else V1DatasetType.TRANSFORMED,
+                empty=False,
+                size=result.size,
+                num_bytes=result.num_bytes,
+                data_format=result.data_format,
+                compression=result.compression,
+                num_chunks=result.num_chunks,
+                num_bytes_per_chunk=result.num_bytes_per_chunk,
+            )
+
         print("Finished data processing!")
 
         # TODO: Understand why it is required to avoid long shutdown.

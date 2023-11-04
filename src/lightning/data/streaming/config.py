@@ -21,7 +21,7 @@ from lightning.data.streaming.item_loader import BaseItemLoader, PyTreeLoader, T
 from lightning.data.streaming.sampler import ChunkedIndex
 
 if _TORCH_GREATER_EQUAL_2_1_0:
-    from torch.utils._pytree import treespec_loads
+    from torch.utils._pytree import tree_unflatten, treespec_loads
 
 
 class ChunksConfig:
@@ -82,6 +82,24 @@ class ChunksConfig:
         if self._config is None:
             raise RuntimeError("The config should be defined.")
         return self._config["data_format"]
+
+    @property
+    def data_format_unflattened(self) -> Any:
+        if self._config is None:
+            raise RuntimeError("The config should be defined.")
+        return tree_unflatten(self._config["data_format"], self._config["data_spec"])
+
+    @property
+    def compression(self) -> Any:
+        if self._config is None:
+            raise RuntimeError("The config should be defined.")
+        return self._config["compression"]
+
+    @property
+    def chunk_bytes(self) -> int:
+        if self._config is None:
+            raise RuntimeError("The config should be defined.")
+        return self._config["chunk_bytes"]
 
     @property
     def config(self) -> Dict[str, Any]:
