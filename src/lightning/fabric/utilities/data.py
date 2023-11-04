@@ -456,3 +456,56 @@ def _num_cpus_available() -> int:
 
     cpu_count = os.cpu_count()
     return 1 if cpu_count is None else cpu_count
+
+
+class _AttributeDict(Dict):
+    """Extended dictionary accessible with dot notation.
+
+    >>> ad = AttributeDict({'key1': 1, 'key2': 'abc'})
+    >>> ad.key1
+    1
+    >>> ad.update({'my-key': 3.14})
+    >>> ad.update(new_key=42)
+    >>> ad.key1 = 2
+    >>> ad
+    "key1":    2
+    "key2":    abc
+    "my-key":  3.14
+    "new_key": 42
+
+    """
+    def __getattr__(self, key: str) -> Optional[Any]:
+        try:
+            return self[key]
+        except KeyError as exp:
+            raise AttributeError(f'Missing attribute "{key}"') from exp
+
+    def __setattr__(self, key: str, val: Any) -> None:
+        self[key] = val
+
+    def __repr__(self) -> str:
+        if not len(self):
+            return ""
+        max_key_length = max(len(str(k)) for k in self)
+        tmp_name = "{:" + str(max_key_length + 3) + "s} {}"
+        rows = [tmp_name.format(f'"{n}":', self[n]) for n in sorted(self.keys())]
+        return "\n".join(rows)
+
+
+class State(_AttributeDict):
+    """A container to store state variables of your program that you can conveniently save and load with
+    :meth`lightning.fabric.fabric.Fabric.save` and :meth`lightning.fabric.fabric.Fabric.load`.
+
+    Example:
+        >>> import torch
+        >>> model = torch.nn.Linear(2, 2)
+        >>> state = State(model=model, iter_num=0)
+        >>> state.model
+        Linear(in_features=2, out_features=2, bias=True)
+        >>> state.iter_num += 1
+        >>> state.iter_num
+        1
+        >>> state
+        "iter_num": 1
+        "model":    Linear(in_features=2, out_features=2, bias=True)
+    """

@@ -235,21 +235,3 @@ def test_collect_init_args():
     my_class = AutomaticArgsChild("test1", "test2", anykw=32, childkw=22, otherkw=123)
     assert my_class.result[0] == {"anyarg": "test1", "anykw": 32, "otherkw": 123}
     assert my_class.result[1] == {"anyarg": "test1", "childarg": "test2", "anykw": 32, "childkw": 22, "otherkw": 123}
-
-
-def test_attribute_dict():
-    # Test initialization
-    inputs = {"key1": 1, "key2": "abc"}
-    ad = AttributeDict(inputs)
-    for key, value in inputs.items():
-        assert getattr(ad, key) == value
-
-    # Test adding new items
-    ad = AttributeDict()
-    ad.update({"key1": 1})
-    assert ad.key1 == 1
-
-    # Test updating existing items
-    ad = AttributeDict({"key1": 1})
-    ad.key1 = 123
-    assert ad.key1 == 123

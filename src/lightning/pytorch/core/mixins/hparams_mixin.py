@@ -17,10 +17,11 @@ import types
 from argparse import Namespace
 from typing import Any, List, MutableMapping, Optional, Sequence, Union
 
-from lightning.pytorch.utilities.parsing import AttributeDict, save_hyperparameters
+from lightning.pytorch.utilities.parsing import save_hyperparameters
+from lightning.fabric.utilities.data import _AttributeDict
 
 _PRIMITIVE_TYPES = (bool, int, float, str)
-_ALLOWED_CONFIG_TYPES = (AttributeDict, MutableMapping, Namespace)
+_ALLOWED_CONFIG_TYPES = (_AttributeDict, MutableMapping, Namespace)
 
 
 class HyperparametersMixin:
@@ -120,11 +121,11 @@ class HyperparametersMixin:
             self._hparams = hp
 
     @staticmethod
-    def _to_hparams_dict(hp: Union[MutableMapping, Namespace, str]) -> Union[MutableMapping, AttributeDict]:
+    def _to_hparams_dict(hp: Union[MutableMapping, Namespace, str]) -> Union[MutableMapping, _AttributeDict]:
         if isinstance(hp, Namespace):
             hp = vars(hp)
         if isinstance(hp, dict):
-            hp = AttributeDict(hp)
+            hp = _AttributeDict(hp)
         elif isinstance(hp, _PRIMITIVE_TYPES):
             raise ValueError(f"Primitives {_PRIMITIVE_TYPES} are not allowed.")
         elif not isinstance(hp, _ALLOWED_CONFIG_TYPES):
@@ -132,7 +133,7 @@ class HyperparametersMixin:
         return hp
 
     @property
-    def hparams(self) -> Union[AttributeDict, MutableMapping]:
+    def hparams(self) -> Union[_AttributeDict, MutableMapping]:
         """The collection of hyperparameters saved with :meth:`save_hyperparameters`. It is mutable by the user. For
         the frozen set of initial hyperparameters, use :attr:`hparams_initial`.
 
@@ -141,11 +142,11 @@ class HyperparametersMixin:
 
         """
         if not hasattr(self, "_hparams"):
-            self._hparams = AttributeDict()
+            self._hparams = _AttributeDict()
         return self._hparams
 
     @property
-    def hparams_initial(self) -> AttributeDict:
+    def hparams_initial(self) -> _AttributeDict:
         """The collection of hyperparameters saved with :meth:`save_hyperparameters`. These contents are read-only.
         Manual updates to the saved hyperparameters can instead be performed through :attr:`hparams`.
 
@@ -154,6 +155,6 @@ class HyperparametersMixin:
 
         """
         if not hasattr(self, "_hparams_initial"):
-            return AttributeDict()
+            return _AttributeDict()
         # prevent any change
         return copy.deepcopy(self._hparams_initial)

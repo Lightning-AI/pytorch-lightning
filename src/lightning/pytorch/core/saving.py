@@ -37,7 +37,8 @@ from lightning.pytorch.accelerators import CUDAAccelerator, MPSAccelerator, XLAA
 from lightning.pytorch.utilities.imports import _OMEGACONF_AVAILABLE
 from lightning.pytorch.utilities.migration import pl_legacy_patch
 from lightning.pytorch.utilities.migration.utils import _pl_migrate_checkpoint
-from lightning.pytorch.utilities.parsing import AttributeDict, parse_class_init_keys
+from lightning.pytorch.utilities.parsing import parse_class_init_keys
+from lightning.fabric.utilities.data import _AttributeDict
 from lightning.pytorch.utilities.rank_zero import rank_zero_warn
 
 if TYPE_CHECKING:
@@ -190,7 +191,7 @@ def _convert_loaded_hparams(
         return model_args
     # if past checkpoint loaded, convert str to callable
     if isinstance(hparams_type, str):
-        hparams_type = AttributeDict
+        hparams_type = _AttributeDict
     # convert hparams
     return hparams_type(model_args)
 
@@ -313,7 +314,7 @@ def save_hparams_to_yaml(config_yaml: _PATH, hparams: Union[dict, Namespace], us
     # convert Namespace or AD to dict
     if isinstance(hparams, Namespace):
         hparams = vars(hparams)
-    elif isinstance(hparams, AttributeDict):
+    elif isinstance(hparams, _AttributeDict):
         hparams = dict(hparams)
 
     # saving with OmegaConf objects

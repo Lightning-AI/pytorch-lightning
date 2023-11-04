@@ -14,7 +14,7 @@
 """General utilities."""
 
 from lightning.fabric.utilities.apply_func import move_data_to_device
-from lightning.fabric.utilities.data import suggested_max_num_workers
+from lightning.fabric.utilities.data import State, suggested_max_num_workers
 from lightning.fabric.utilities.distributed import is_shared_filesystem
 from lightning.fabric.utilities.enums import LightningEnum
 from lightning.fabric.utilities.rank_zero import (
@@ -37,6 +37,7 @@ __all__ = [
     "rank_zero_only",
     "rank_zero_warn",
     "suggested_max_num_workers",
+    "State",
     "Throughput",
     "ThroughputMonitor",
 ]
