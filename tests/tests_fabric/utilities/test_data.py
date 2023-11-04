@@ -18,6 +18,7 @@ from lightning.fabric.utilities.data import (
     has_iterable_dataset,
     has_len,
     suggested_max_num_workers,
+    State,
 )
 from lightning.fabric.utilities.exceptions import MisconfigurationException
 from lightning_utilities.test.warning import no_warning_call
@@ -640,3 +641,30 @@ def test_suggested_max_num_workers_not_triggering_torch_warning(local_world_size
         DataLoader(range(2), num_workers=(cpu_count + 1))
     with no_warning_call():
         DataLoader(range(2), num_workers=suggested_max_num_workers(local_world_size))
+
+
+def test_state():
+    # init via dict
+    inputs = {"key1": 1, "key2": "abc"}
+    state = State(inputs)
+    for key, value in inputs.items():
+        assert getattr(state, key) == value
+
+    # init via kwargs
+    inputs = {"key1": 1, "key2": "abc"}
+    state = State(**inputs)
+    for key, value in inputs.items():
+        assert getattr(state, key) == value
+
+    # update via dict
+    state = State()
+    state.update({"key1": 1})
+    assert state.key1 == 1
+
+    # update via setter
+    state = State({"key1": 1})
+    state.key1 = 123
+    assert state.key1 == 123
+
+    with pytest.raises(AttributeError, match="has no attribute 'key3'"):
+        _ = state.key3

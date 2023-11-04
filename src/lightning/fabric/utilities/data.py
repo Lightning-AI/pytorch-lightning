@@ -477,8 +477,8 @@ class _AttributeDict(Dict):
     def __getattr__(self, key: str) -> Optional[Any]:
         try:
             return self[key]
-        except KeyError as exp:
-            raise AttributeError(f'Missing attribute "{key}"') from exp
+        except KeyError as e:
+            raise AttributeError(f"'{type(self).__name__}' object has no attribute '{key}'") from e
 
     def __setattr__(self, key: str, val: Any) -> None:
         self[key] = val
