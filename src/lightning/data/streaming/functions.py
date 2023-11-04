@@ -55,8 +55,8 @@ class LambdaDataTransformRecipe(DataTransformRecipe):
         super().__init__()
         self._fn = fn
         self._inputs = inputs
-        self._contains_device = "device" in inspect.signature(self._fn).parameters
-        self._device = None
+        self._contains_device = "device" in inspect.signature(getattr(self._fn, "__call__", self._fn)).parameters
+        self._device: Optional[str] = None
 
     def prepare_structure(self, input_dir: Optional[str]) -> Any:
         return self._inputs
@@ -71,17 +71,18 @@ class LambdaDataTransformRecipe(DataTransformRecipe):
                 self._fn(output_dir, item_metadata)
         elif callable(self._fn):
             if self._contains_device:
-                self._fn.__call__(output_dir, item_metadata, self._device)
+                self._fn.__call__(output_dir, item_metadata, self._device)  # type: ignore
             else:
-                self._fn.__call__(output_dir, item_metadata)
+                self._fn.__call__(output_dir, item_metadata)  # type: ignore
         else:
             raise ValueError(f"The provided {self._fn} isn't supported.")
 
-    def _find_device(self):
+    def _find_device(self) -> None:
         global_rank = os.getenv("DATA_OPTIMIZER_GLOBAL_RANK", None)
-        if torch.cuda.is_available():
+        if torch.cuda.is_available() and global_rank:
             num_gpus = torch.cuda.device_count()
-            self._device = f"cuda:{int(global_rank) % num_gpus}"
+            device = int(global_rank) % num_gpus
+            self._device = f"cuda:{device}"
 
 
 class LambdaDataChunkRecipe(DataChunkRecipe):
