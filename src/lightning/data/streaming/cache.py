@@ -19,7 +19,7 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 from lightning.data.datasets.env import _DistributedEnv
 from lightning.data.streaming.constants import (
     _INDEX_FILENAME,
-    _LIGHTNING_CLOUD_GREATER_EQUAL_0_5_48,
+    _LIGHTNING_CLOUD_GREATER_EQUAL_0_5_50,
     _TORCH_GREATER_EQUAL_2_1_0,
 )
 from lightning.data.streaming.item_loader import BaseItemLoader
@@ -29,7 +29,7 @@ from lightning.data.streaming.writer import BinaryWriter
 
 logger = logging.Logger(__name__)
 
-if _LIGHTNING_CLOUD_GREATER_EQUAL_0_5_48:
+if _LIGHTNING_CLOUD_GREATER_EQUAL_0_5_50:
     from lightning_cloud.resolver import _resolve_dir
 
 
@@ -67,8 +67,8 @@ class Cache:
         if not _TORCH_GREATER_EQUAL_2_1_0:
             raise ModuleNotFoundError("PyTorch version 2.1 or higher is required to use the cache.")
 
-        if not _LIGHTNING_CLOUD_GREATER_EQUAL_0_5_48:
-            raise ModuleNotFoundError("Lightning Cloud 0.5.48 or higher is required to use the cache.")
+        if not _LIGHTNING_CLOUD_GREATER_EQUAL_0_5_50:
+            raise ModuleNotFoundError("Lightning Cloud 0.5.50 or higher is required to use the cache.")
 
         input_dir = _resolve_dir(input_dir)
         self._cache_dir = input_dir.path
