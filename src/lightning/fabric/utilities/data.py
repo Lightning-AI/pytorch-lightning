@@ -459,7 +459,7 @@ def _num_cpus_available() -> int:
 
 
 class _AttributeDict(Dict):
-    def __getattr__(self, key: str) -> Optional[Any]:
+    def __getattr__(self, key: str) -> Any:
         try:
             return self[key]
         except KeyError as e:
