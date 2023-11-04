@@ -806,11 +806,11 @@ class DataProcessor:
                 w.join(0)
 
         print("Workers are finished.")
-        result = data_recipe._done(num_items, self.delete_cached_files, self.output_dir)
+        result = data_recipe._done(len(user_items), self.delete_cached_files, self.output_dir)
 
         print(result)
 
-        if num_nodes == node_rank + 1:
+        if num_nodes == node_rank + 1 and self.fast_dev_run is False:
             _create_dataset(
                 input_dir=self.input_dir.path,
                 storage_dir=self.output_dir.path,
