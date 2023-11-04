@@ -57,8 +57,8 @@ class LambdaDataTransformRecipe(DataTransformRecipe):
         self._inputs = inputs
         self._device: Optional[str] = None
 
-        fn = self._fn if isinstance(self._fn, FunctionType) else self._fn.__call__
-        params = inspect.signature(fn).parameters
+        _fn = self._fn if isinstance(self._fn, FunctionType) else self._fn.__call__  # type: ignore
+        params = inspect.signature(_fn).parameters
         self._contains_device = "device" in params
 
     def prepare_structure(self, input_dir: Optional[str]) -> Any:
