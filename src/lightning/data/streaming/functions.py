@@ -17,9 +17,9 @@ from datetime import datetime
 from pathlib import Path
 from types import FunctionType
 from typing import Any, Callable, Optional, Sequence, Union
-
 from lightning.data.streaming.constants import _LIGHTNING_CLOUD_GREATER_EQUAL_0_5_50, _TORCH_GREATER_EQUAL_2_1_0
 from lightning.data.streaming.data_processor import DataChunkRecipe, DataProcessor, DataTransformRecipe
+import torch
 
 if _LIGHTNING_CLOUD_GREATER_EQUAL_0_5_50:
     from lightning_cloud.resolver import _assert_dir_has_index_file, _assert_dir_is_empty, _execute, _resolve_dir
@@ -53,12 +53,34 @@ class LambdaDataTransformRecipe(DataTransformRecipe):
         super().__init__()
         self._fn = fn
         self._inputs = inputs
+        self._contains_device = "device" in inspect.signature(self._fn).parameters
+        self._device = None
 
     def prepare_structure(self, input_dir: Optional[str]) -> Any:
         return self._inputs
 
     def prepare_item(self, output_dir: str, item_metadata: Any) -> None:  # type: ignore
-        self._fn(output_dir, item_metadata)
+        print('HERE')
+        if self._contains_device and self._device is None:
+            self._find_device()
+        if isinstance(self._fn, FunctionType):
+            if self._contains_device:
+                self._fn(output_dir, item_metadata, self._device)
+            else:
+                self._fn(output_dir, item_metadata)
+        elif callable(self._fn):
+            if self._contains_device:
+                self._fn.__call__(output_dir, item_metadata, self._device)
+            else:
+                self._fn.__call__(output_dir, item_metadata)
+        else:
+            raise ValueError(f"The provided {self._fn} isn't supported.")
+
+    def _find_device(self):
+        global_rank = os.getenv("DATA_OPTIMIZER_GLOBAL_RANK", None)
+        if torch.cuda.is_available():
+            num_gpus = torch.cuda.device_count()
+            self._device = f"cuda:{int(global_rank) % num_gpus}"
 
 
 class LambdaDataChunkRecipe(DataChunkRecipe):
