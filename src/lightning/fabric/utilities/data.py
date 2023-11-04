@@ -484,7 +484,7 @@ class State(_AttributeDict):
     through attribute lookup for convenience.
 
     Use this to define the state of your program, then pass it to
-    :meth`lightning.fabric.fabric.Fabric.save` and :meth`lightning.fabric.fabric.Fabric.load`.
+    :meth:`~lightning.fabric.fabric.Fabric.save` and :meth:`~lightning.fabric.fabric.Fabric.load`.
 
     Example:
         >>> import torch
