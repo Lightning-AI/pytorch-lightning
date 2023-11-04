@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
-## [2.1.1] - 2023-11-02
+## [2.1.1] - 2023-11-06
 
 ### Added
 
@@ -23,6 +23,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Improve map and chunkify ([#18901](https://github.com/Lightning-AI/lightning/pull/18901))
 - Add human readable format for chunk_bytes ([#18925](https://github.com/Lightning-AI/lightning/pull/18925))
 - Improve s3 client support ([#18920](https://github.com/Lightning-AI/lightning/pull/18920))
+- Add dataset creation ([#18940](https://github.com/Lightning-AI/lightning/pull/18940))
 
 
 ## [2.1.0] - 2023-10-11
