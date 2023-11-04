@@ -254,10 +254,8 @@ def test_create_oversized_chunk_single_item(tmp_path):
 def test_create_undersized_and_oversized_chunk(tmp_path):
     cache = Cache(str(tmp_path), chunk_bytes=9000)  # target: 9KB chunks
     with no_warning_call(UserWarning):
-        cache[0] = np.random.randint(0, 10, size=(500,), dtype=np.uint8)
-        cache[1] = np.random.randint(
-            0, 10, size=(10000,), dtype=np.uint8
-        )  # this item won't fit in the target chunk size
+        cache[0] = np.random.randint(0, 10, size=(500,), dtype=np.uint8)  # will result in undersized chunk
+        cache[1] = np.random.randint(0, 10, size=(10000,), dtype=np.uint8)  # will result in oversized chunk
     with pytest.warns(UserWarning, match="An item was larger than the target chunk size"):
         cache[2] = np.random.randint(0, 10, size=(150,), dtype=np.uint8)
     with no_warning_call(UserWarning):
