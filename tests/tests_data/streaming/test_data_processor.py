@@ -786,3 +786,24 @@ def test_lambda_transform_recipe(monkeypatch):
 
     data_recipe.prepare_item("", 1)
     assert called
+
+
+def test_lambda_transform_recipe_class(monkeypatch):
+    torch_mock = mock.MagicMock()
+    torch_mock.cuda.device_count.return_value = 3
+
+    monkeypatch.setattr(functions, "torch", torch_mock)
+    monkeypatch.setenv("DATA_OPTIMIZER_GLOBAL_RANK", 2)
+
+    called = False
+
+    class Transform:
+        def __call__(self, output_dir, item, device):
+            nonlocal called
+            assert device == "cuda:2"
+            called = True
+
+    data_recipe = LambdaDataTransformRecipe(Transform(), range(1))
+
+    data_recipe.prepare_item("", 1)
+    assert called
