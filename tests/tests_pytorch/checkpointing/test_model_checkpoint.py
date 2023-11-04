@@ -557,9 +557,9 @@ def test_model_checkpoint_link_checkpoint(tmp_path):
     assert os.path.realpath(folder_link) == str(new_folder)
 
     # simulate permission error on Windows (creation of symbolic links requires privileges)
-    file = tmp_path / "file"
+    file = tmp_path / "win_file"
     file.touch()
-    link = tmp_path / "link"
+    link = tmp_path / "win_link"
     with mock.patch("lightning.pytorch.callbacks.model_checkpoint.os.symlink", Mock(side_effect=OSError)):
         ModelCheckpoint._link_checkpoint(trainer, filepath=str(file), linkpath=str(link))
     assert not os.path.islink(link)
