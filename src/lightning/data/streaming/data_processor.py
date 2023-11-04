@@ -91,7 +91,7 @@ def _wait_for_file_to_exist(s3: Any, obj: parse.ParseResult, sleep_time: int = 2
     """This function check."""
     while True:
         try:
-            return s3.head_object(Bucket=obj.netloc, Key=obj.path.lstrip("/"))
+            return s3.client.head_object(Bucket=obj.netloc, Key=obj.path.lstrip("/"))
         except botocore.exceptions.ClientError as e:
             if "the HeadObject operation: Not Found" in str(e):
                 sleep(sleep_time)
@@ -659,7 +659,7 @@ class DataChunkRecipe(DataRecipe):
                     obj = parse.urlparse(remote_filepath)
                     _wait_for_file_to_exist(s3, obj)
                     with open(node_index_filepath, "wb") as f:
-                        s3.download_fileobj(obj.netloc, obj.path.lstrip("/"), f)
+                        s3.client.download_fileobj(obj.netloc, obj.path.lstrip("/"), f)
                 elif os.path.isdir(output_dir.path):
                     copyfile(remote_filepath, node_index_filepath)
 
