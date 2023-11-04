@@ -13,6 +13,7 @@
 # limitations under the License.
 
 from argparse import Namespace
+from dataclasses import asdict, is_dataclass
 from typing import Any, Dict, Mapping, MutableMapping, Optional, Union
 
 import numpy as np
@@ -88,8 +89,11 @@ def _flatten_dict(params: MutableMapping[Any, Any], delimiter: str = "/", parent
     result: Dict[str, Any] = {}
     for k, v in params.items():
         new_key = parent_key + delimiter + str(k) if parent_key else str(k)
-        if isinstance(v, Namespace):
+        if is_dataclass(v):
+            v = asdict(v)
+        elif isinstance(v, Namespace):
             v = vars(v)
+
         if isinstance(v, MutableMapping):
             result = {**result, **_flatten_dict(v, parent_key=new_key, delimiter=delimiter)}
         else:

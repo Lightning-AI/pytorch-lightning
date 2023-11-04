@@ -65,7 +65,7 @@ class BinaryReader:
     def __init__(
         self,
         cache_dir: str,
-        remote_dir: Optional[str] = None,
+        remote_input_dir: Optional[str] = None,
         compression: Optional[str] = None,
         item_loader: Optional[BaseItemLoader] = None,
     ) -> None:
@@ -73,7 +73,7 @@ class BinaryReader:
 
         Arguments:
             cache_dir: The path to cache folder.
-            remote_dir: The path to a remote folder where the data are located.
+            remote_input_dir: The path to a remote folder where the data are located.
                 The scheme needs to be added to the path.
             compression: The algorithm to decompress the chunks.
             item_loader: The chunk sampler to create sub arrays from a chunk.
@@ -83,7 +83,7 @@ class BinaryReader:
         warnings.filterwarnings("ignore", message=".*The given buffer is not writable.*")
 
         self._cache_dir = cache_dir
-        self._remote_dir = remote_dir
+        self._remote_input_dir = remote_input_dir
 
         if not os.path.exists(self._cache_dir):
             raise FileNotFoundError(f"The provided cache_dir `{self._cache_dir}` doesn't exist.")
@@ -108,7 +108,7 @@ class BinaryReader:
 
     def _try_load_config(self) -> Optional[ChunksConfig]:
         """Try to load the chunks config if the index files are available."""
-        self._config = ChunksConfig.load(self._cache_dir, self._remote_dir, self._item_loader)
+        self._config = ChunksConfig.load(self._cache_dir, self._remote_input_dir, self._item_loader)
         return self._config
 
     @property

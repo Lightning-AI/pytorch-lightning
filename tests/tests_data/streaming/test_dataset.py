@@ -18,7 +18,6 @@ import torch
 from lightning import seed_everything
 from lightning.data.datasets.env import _DistributedEnv
 from lightning.data.streaming import Cache
-from lightning.data.streaming import cache as cache_module
 from lightning.data.streaming.dataloader import StreamingDataLoader
 from lightning.data.streaming.dataset import StreamingDataset
 from lightning.data.streaming.item_loader import TokensLoader
@@ -30,18 +29,15 @@ from torch.utils.data import DataLoader
 def test_streaming_dataset(tmpdir, monkeypatch):
     seed_everything(42)
 
-    os.makedirs(os.path.join(tmpdir, "remote_dir"), exist_ok=True)
-    monkeypatch.setattr(cache_module, "_try_create_cache_dir", lambda name: tmpdir)
-
-    with pytest.raises(ValueError, match="The provided dataset `choco` isn't filled up."):
-        dataset = StreamingDataset(name="choco", cache_dir=tmpdir)
+    with pytest.raises(ValueError, match="The provided dataset"):
+        dataset = StreamingDataset(input_dir=tmpdir)
 
     dataset = RandomDataset(128, 64)
     dataloader = StreamingDataLoader(dataset, cache_dir=tmpdir, chunk_bytes=2 << 12)
     for batch in dataloader:
         assert isinstance(batch, torch.Tensor)
 
-    dataset = StreamingDataset(name="choco", cache_dir=tmpdir, item_loader=TokensLoader(block_size=10))
+    dataset = StreamingDataset(input_dir=tmpdir, item_loader=TokensLoader(block_size=10))
 
     assert len(dataset) == 816
     dataset_iter = iter(dataset)
@@ -62,7 +58,7 @@ def test_streaming_dataset_distributed_no_shuffle(drop_last, tmpdir):
     cache.done()
     cache.merge()
 
-    dataset = StreamingDataset(name="choco", cache_dir=tmpdir, shuffle=False, drop_last=drop_last)
+    dataset = StreamingDataset(input_dir=tmpdir, shuffle=False, drop_last=drop_last)
 
     assert isinstance(dataset.shuffle, NoShuffle)
 
@@ -85,7 +81,7 @@ def test_streaming_dataset_distributed_no_shuffle(drop_last, tmpdir):
     assert process_1_2[:10] == [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
     assert len(process_1_2) == 50 + int(not drop_last)
 
-    dataset = StreamingDataset(name="choco", cache_dir=tmpdir, shuffle=False, drop_last=drop_last)
+    dataset = StreamingDataset(input_dir=tmpdir, shuffle=False, drop_last=drop_last)
     dataset.distributed_env = _DistributedEnv(2, 1)
     assert len(dataset) == 50
     dataset_iter = iter(dataset)
@@ -135,14 +131,14 @@ def test_streaming_dataset_distributed_no_shuffle(drop_last, tmpdir):
 def test_streaming_dataset_distributed_full_shuffle_odd(drop_last, tmpdir):
     seed_everything(42)
 
-    cache = Cache(tmpdir, chunk_size=10)
+    cache = Cache(input_dir=tmpdir, chunk_size=10)
     for i in range(1097):
         cache[i] = i
 
     cache.done()
     cache.merge()
 
-    dataset = StreamingDataset(name="choco", cache_dir=tmpdir, shuffle=True, drop_last=drop_last)
+    dataset = StreamingDataset(input_dir=tmpdir, shuffle=True, drop_last=drop_last)
 
     assert isinstance(dataset.shuffle, FullShuffle)
 
@@ -157,7 +153,7 @@ def test_streaming_dataset_distributed_full_shuffle_odd(drop_last, tmpdir):
     assert process_1_1[:10] == [785, 788, 782, 783, 789, 787, 786, 781, 784, 780]
     assert len(process_1_1) == 548
 
-    dataset_2 = StreamingDataset(name="choco", cache_dir=tmpdir, shuffle=True, drop_last=drop_last)
+    dataset_2 = StreamingDataset(input_dir=tmpdir, shuffle=True, drop_last=drop_last)
     assert isinstance(dataset_2.shuffle, FullShuffle)
     dataset_2.distributed_env = _DistributedEnv(2, 1)
     assert len(dataset_2) == 548 + int(not drop_last)
@@ -180,7 +176,7 @@ def test_streaming_dataset_distributed_full_shuffle_even(drop_last, tmpdir):
     cache.done()
     cache.merge()
 
-    dataset = StreamingDataset(name="choco", cache_dir=tmpdir, shuffle=True, drop_last=drop_last)
+    dataset = StreamingDataset(input_dir=tmpdir, shuffle=True, drop_last=drop_last)
 
     assert isinstance(dataset.shuffle, FullShuffle)
 
@@ -195,7 +191,7 @@ def test_streaming_dataset_distributed_full_shuffle_even(drop_last, tmpdir):
     assert process_1_1[:10] == [185, 184, 182, 189, 187, 181, 183, 180, 186, 188]
     assert len(process_1_1) == 611
 
-    dataset_2 = StreamingDataset(name="choco", cache_dir=tmpdir, shuffle=True, drop_last=drop_last)
+    dataset_2 = StreamingDataset(input_dir=tmpdir, shuffle=True, drop_last=drop_last)
     assert isinstance(dataset_2.shuffle, FullShuffle)
     dataset_2.distributed_env = _DistributedEnv(2, 1)
     assert len(dataset_2) == 611
@@ -222,12 +218,9 @@ def test_streaming_dataset_deepcopy(tmpdir, monkeypatch):
     cache.done()
     cache.merge()
 
-    monkeypatch.setattr(cache_module, "_find_remote_dir", lambda x, y: (str(remote_dir), True))
-
-    dataset = StreamingDataset(name="choco", cache_dir=tmpdir, shuffle=True)
+    dataset = StreamingDataset(input_dir=remote_dir, shuffle=True)
     assert dataset.cache._reader._prepare_thread is None
-    _ = dataset[0]
-    assert dataset.cache._reader._prepare_thread
+    dataset.cache._reader._prepare_thread = True
     dataloader = DataLoader(dataset, num_workers=1)
 
     batches = []
