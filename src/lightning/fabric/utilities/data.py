@@ -478,7 +478,12 @@ class _AttributeDict(Dict):
 
 
 class State(_AttributeDict):
-    """A container to store state variables of your program that you can conveniently save and load with
+    """A container to store state variables of your program.
+
+    This is a drop-in replacement for a Python dictionary, with the additional functionality to access and modify keys
+    through attribute lookup for convenience.
+
+    Use this to define the state of your program, then pass it to
     :meth`lightning.fabric.fabric.Fabric.save` and :meth`lightning.fabric.fabric.Fabric.load`.
 
     Example:
