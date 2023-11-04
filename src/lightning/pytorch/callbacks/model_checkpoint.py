@@ -36,6 +36,7 @@ from torch import Tensor
 import lightning.pytorch as pl
 from lightning.fabric.utilities.cloud_io import _is_dir, get_filesystem
 from lightning.fabric.utilities.types import _PATH
+from lightning.fabric.utilities.imports import _IS_WINDOWS
 from lightning.pytorch.callbacks import Checkpoint
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.rank_zero import WarningCache, rank_zero_info, rank_zero_warn
@@ -389,7 +390,12 @@ class ModelCheckpoint(Checkpoint):
                 os.remove(linkpath)
             elif os.path.isdir(linkpath):
                 shutil.rmtree(linkpath)
-            os.symlink(filepath, linkpath)
+            try:
+                os.symlink(filepath, linkpath)
+            except OSError:
+                # on Windows, special permissions are required to create symbolic links as a regular user
+                # fall back to copying the file
+                shutil.copy(filepath, linkpath)
         trainer.strategy.barrier()
 
     def _should_skip_saving_checkpoint(self, trainer: "pl.Trainer") -> bool:
