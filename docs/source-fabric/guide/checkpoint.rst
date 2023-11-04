@@ -19,6 +19,10 @@ Put everything into a dictionary, including models and optimizers and whatever m
     # Define the state of your program/loop
     state = {"model1": model1, "model2": model2, "optimizer": optimizer, "iteration": iteration, "hparams": ...}
 
+    # Optional: Use the `State` container for convenient attribute access
+    from lightning.fabric.utilities import State
+
+    state = State(model1=model1, model2=model2, optimizer=optimizer, iteration=iteration, hparams=...)
 
 ----
 
