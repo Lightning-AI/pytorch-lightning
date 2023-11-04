@@ -10,7 +10,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import json
 import os
 import sys
 from functools import partial
@@ -265,9 +265,15 @@ def test_create_undersized_and_oversized_chunk(tmp_path):
 
     cache.done()
     cache.merge()
+
     assert len(os.listdir(tmp_path)) == 4  # 3 chunks + 1 index file
-    metadata_bytes = 167
-    assert os.path.getsize(tmp_path / "chunk-0-0.bin") == 500 + metadata_bytes
-    assert os.path.getsize(tmp_path / "chunk-0-1.bin") == 10000 + metadata_bytes
-    # TODO: Why doesn't this assertion hold?
-    # assert os.path.getsize(tmp_path / "chunk-0-2.bin") == 150 + 200 + metadata_bytes
+    with open(tmp_path / "index.json", "r") as file:
+        index = json.load(file)
+
+    chunks = index["chunks"]
+    assert chunks[0]["chunk_size"] == 1
+    assert chunks[0]["filename"] == "chunk-0-0.bin"
+    assert chunks[1]["chunk_size"] == 1
+    assert chunks[1]["filename"] == "chunk-0-1.bin"
+    assert chunks[2]["chunk_size"] == 2
+    assert chunks[2]["filename"] == "chunk-0-2.bin"
