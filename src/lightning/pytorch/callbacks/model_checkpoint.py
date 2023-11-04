@@ -36,7 +36,6 @@ from torch import Tensor
 import lightning.pytorch as pl
 from lightning.fabric.utilities.cloud_io import _is_dir, get_filesystem
 from lightning.fabric.utilities.types import _PATH
-from lightning.fabric.utilities.imports import _IS_WINDOWS
 from lightning.pytorch.callbacks import Checkpoint
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.rank_zero import WarningCache, rank_zero_info, rank_zero_warn
