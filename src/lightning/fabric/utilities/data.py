@@ -459,22 +459,6 @@ def _num_cpus_available() -> int:
 
 
 class _AttributeDict(Dict):
-    """Extended dictionary accessible with dot notation.
-
-    >>> ad = AttributeDict({'key1': 1, 'key2': 'abc'})
-    >>> ad.key1
-    1
-    >>> ad.update({'my-key': 3.14})
-    >>> ad.update(new_key=42)
-    >>> ad.key1 = 2
-    >>> ad
-    "key1":    2
-    "key2":    abc
-    "my-key":  3.14
-    "new_key": 42
-
-    """
-
     def __getattr__(self, key: str) -> Optional[Any]:
         try:
             return self[key]

@@ -27,10 +27,6 @@ from lightning.fabric.utilities.data import _AttributeDict
 from lightning.pytorch.utilities.rank_zero import rank_zero_warn
 
 
-class AttributeDict(_AttributeDict):
-    pass
-
-
 def is_picklable(obj: object) -> bool:
     """Tests if an object can be pickled."""
     try:
@@ -207,6 +203,25 @@ def save_hyperparameters(
 
     # make a deep copy so there are no other runtime changes reflected
     obj._hparams_initial = copy.deepcopy(obj._hparams)
+
+
+class AttributeDict(_AttributeDict):
+    """Extended dictionary accessible with dot notation.
+
+        >>> ad = AttributeDict({'key1': 1, 'key2': 'abc'})
+        >>> ad.key1
+        1
+        >>> ad.update({'my-key': 3.14})
+        >>> ad.update(new_key=42)
+        >>> ad.key1 = 2
+        >>> ad
+        "key1":    2
+        "key2":    abc
+        "my-key":  3.14
+        "new_key": 42
+
+        """
+    pass
 
 
 def _lightning_get_all_attr_holders(model: "pl.LightningModule", attribute: str) -> List[Any]:
