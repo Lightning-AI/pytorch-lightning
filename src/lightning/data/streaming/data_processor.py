@@ -799,6 +799,7 @@ class DataProcessor:
                     break
 
         num_nodes = _get_num_nodes()
+        node_rank = _get_node_rank()
         # TODO: Understand why it hangs.
         if num_nodes == 1:
             for w in self.workers:
@@ -807,7 +808,9 @@ class DataProcessor:
         print("Workers are finished.")
         result = data_recipe._done(num_items, self.delete_cached_files, self.output_dir)
 
-        if num_nodes == _get_node_rank() + 1:
+        print(result)
+
+        if num_nodes == node_rank + 1:
             _create_dataset(
                 input_dir=self.input_dir.path,
                 storage_dir=self.output_dir.path,
