@@ -17,9 +17,11 @@ from datetime import datetime
 from pathlib import Path
 from types import FunctionType
 from typing import Any, Callable, Optional, Sequence, Union
+
+import torch
+
 from lightning.data.streaming.constants import _LIGHTNING_CLOUD_GREATER_EQUAL_0_5_50, _TORCH_GREATER_EQUAL_2_1_0
 from lightning.data.streaming.data_processor import DataChunkRecipe, DataProcessor, DataTransformRecipe
-import torch
 
 if _LIGHTNING_CLOUD_GREATER_EQUAL_0_5_50:
     from lightning_cloud.resolver import _assert_dir_has_index_file, _assert_dir_is_empty, _execute, _resolve_dir
@@ -60,7 +62,6 @@ class LambdaDataTransformRecipe(DataTransformRecipe):
         return self._inputs
 
     def prepare_item(self, output_dir: str, item_metadata: Any) -> None:  # type: ignore
-        print('HERE')
         if self._contains_device and self._device is None:
             self._find_device()
         if isinstance(self._fn, FunctionType):
