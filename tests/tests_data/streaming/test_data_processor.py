@@ -204,7 +204,7 @@ def test_wait_for_file_to_exist():
             raise botocore.exceptions.ClientError({"Error": {"Code": "404", "Message": "Not Found"}}, "HeadObject")
         return
 
-    s3.head_object = fn
+    s3.client.head_object = fn
 
     _wait_for_file_to_exist(s3, obj, sleep_time=0.01)
 
@@ -213,7 +213,7 @@ def test_wait_for_file_to_exist():
     def fn(*_, **__):
         raise ValueError("HERE")
 
-    s3.head_object = fn
+    s3.client.head_object = fn
 
     with pytest.raises(ValueError, match="HERE"):
         _wait_for_file_to_exist(s3, obj, sleep_time=0.01)
