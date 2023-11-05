@@ -18,6 +18,7 @@ import operator
 import weakref
 from contextlib import contextmanager
 from pathlib import Path
+from typing_extensions import override
 from typing import (
     IO,
     Any,
@@ -654,6 +655,7 @@ class LightningModule(
         data = convert_to_tensors(data, device=self.device)
         return apply_to_collection(data, Tensor, all_gather, group=group, sync_grads=sync_grads)
 
+    @override
     def forward(self, *args: Any, **kwargs: Any) -> Any:
         r"""Same as :meth:`torch.nn.Module.forward`.
 
@@ -1559,6 +1561,7 @@ class LightningModule(
         )
         return cast(Self, loaded)
 
+    @override
     def __getstate__(self) -> Dict[str, Any]:
         state = dict(self.__dict__)
         state["_trainer"] = None
