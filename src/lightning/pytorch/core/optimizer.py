@@ -14,12 +14,12 @@
 from contextlib import contextmanager
 from dataclasses import fields
 from typing import Any, Callable, Dict, Generator, List, Optional, Tuple, Union, overload
-from typing_extensions import override
 from weakref import proxy
 
 import torch
 from torch import optim
 from torch.optim import Optimizer
+from typing_extensions import override
 
 import lightning.pytorch as pl
 from lightning.fabric.utilities.types import Optimizable, ReduceLROnPlateau, _Stateful
@@ -413,7 +413,7 @@ class _MockOptimizer(Optimizer):
     @override
     def zero_grad(self, set_to_none: Optional[bool] = True) -> None:
         pass  # Do Nothing
-    
+
     @override
     def __repr__(self) -> str:
         return "No Optimizer"

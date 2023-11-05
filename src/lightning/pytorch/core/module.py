@@ -18,7 +18,6 @@ import operator
 import weakref
 from contextlib import contextmanager
 from pathlib import Path
-from typing_extensions import override
 from typing import (
     IO,
     Any,
@@ -43,7 +42,7 @@ from torch import ScriptModule, Tensor
 from torch.nn import Module
 from torch.optim.optimizer import Optimizer
 from torchmetrics import Metric, MetricCollection
-from typing_extensions import Self
+from typing_extensions import Self, override
 
 import lightning.fabric as lf
 import lightning.pytorch as pl
