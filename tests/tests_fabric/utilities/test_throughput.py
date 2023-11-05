@@ -61,19 +61,22 @@ def test_get_available_flops(xla_available):
     tpu.reset_mock()
 
 
-@pytest.mark.parametrize("device_name", [
-    # TODO: We need to represent the real names here
-    "h100-hbm3",
-    "h100-pcie",
-    "h100-hbm2e",
-    "a100",
-    "a10g",
-    "V100-sxm",
-    "v100-pcie",
-    "v100s-pcie",
-    "t4",
-    "quadro rtx 5000",
-])
+@pytest.mark.parametrize(
+    "device_name",
+    [
+        # TODO: We need to represent the real names here
+        "h100-hbm3",
+        "h100-pcie",
+        "h100-hbm2e",
+        "a100",
+        "a10g",
+        "V100-sxm",
+        "v100-pcie",
+        "v100s-pcie",
+        "t4",
+        "quadro rtx 5000",
+    ],
+)
 @mock.patch("lightning.fabric.accelerators.cuda._is_ampere_or_later", return_value=False)
 def test_get_available_flops_cuda_mapping_exists(_, device_name):
     """Tests `get_available_flops` against known device names."""
