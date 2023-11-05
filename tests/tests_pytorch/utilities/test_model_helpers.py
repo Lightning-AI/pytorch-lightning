@@ -12,9 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import pytest
+import torch.nn
+
 from lightning.pytorch import LightningDataModule
 from lightning.pytorch.demos.boring_classes import BoringDataModule, BoringModel
-from lightning.pytorch.utilities.model_helpers import _restricted_classmethod, is_overridden
+from lightning.pytorch.utilities.model_helpers import _restricted_classmethod, is_overridden, _eval_mode
 from lightning_utilities import module_available
 
 
@@ -67,3 +69,55 @@ def test_restricted_classmethod():
         RestrictedClass().restricted_cmethod()
 
     RestrictedClass.restricted_cmethod()  # no exception
+
+
+def test_eval_mode():
+    class ChildChildModule(torch.nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.layer = torch.nn.Linear(2, 2)
+            self.dropout = torch.nn.Dropout()
+
+    class ChildModule(torch.nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.child = ChildChildModule()
+            self.dropout = torch.nn.Dropout()
+
+    class RootModule(torch.nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.child1 = ChildModule()
+            self.child2 = ChildModule()
+            self.norm = torch.nn.BatchNorm1d(2)
+
+    # Model with all submodules in the same mode
+    model = RootModule()
+    model.train()
+    with _eval_mode(model):
+        assert all(not m.training for m in model.modules())
+    assert model.training
+    assert all(m.training for m in model.modules())
+    model.eval()
+    with _eval_mode(model):
+        assert all(not m.training for m in model.modules())
+    assert all(not m.training for m in model.modules())
+    model.train()
+
+    # Model with submodules in different modes
+    model.norm.eval()
+    model.child1.eval()
+    model.child2.train()
+    model.child2.child.eval()
+    model.child2.child.layer.train()
+
+    with _eval_mode(model):
+        assert all(not m.training for m in model.modules())
+    assert model.training
+    assert not model.norm.training
+    assert all(not m.training for m in model.child1.modules())
+    assert model.child2.training
+    assert model.child2.dropout.training
+    assert not model.child2.child.training
+    assert model.child2.child.layer.training
+    assert not model.child2.child.dropout.training

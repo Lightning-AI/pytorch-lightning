@@ -13,6 +13,7 @@
 # limitations under the License.
 import inspect
 import os
+from contextlib import contextmanager
 from types import MethodType
 from typing import TYPE_CHECKING, Any, Callable, Generic, Optional, Type, TypeVar
 
@@ -56,6 +57,24 @@ def get_torchvision_model(model_name: str, **kwargs: Any) -> nn.Module:
     if torchvision_greater_equal_0_14:
         return models.get_model(model_name, **kwargs)
     return getattr(models, model_name)(**kwargs)
+
+
+@contextmanager
+def _eval_mode(module: nn.Module):
+    """Switches all modules to `.eval()` mode.
+
+    When exiting the context manager, the modules will restore their previous state.
+    """
+    mode = {}
+    for name, mod in module.named_modules():
+        mode[name] = mod.training
+        mod.training = False
+    yield
+    for name, mod in module.named_modules():
+        if name not in mode:
+            # TODO: warning cache?
+            continue
+        mod.training = mode[name]
 
 
 def _check_mixed_imports(instance: object) -> None:
