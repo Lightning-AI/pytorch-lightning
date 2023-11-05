@@ -382,6 +382,8 @@ def get_available_flops(device: torch.device, dtype: Union[torch.dtype, str]) ->
             chip = "v100-sxm"
         elif "v100-pcie" in chip:
             chip = "v100-pcie"
+        elif "v100s-pcie" in chip:
+            chip = "v100s-pcie"
         elif "t4" in chip:
             chip = "t4"
         elif "quadro rtx 5000" in chip:
