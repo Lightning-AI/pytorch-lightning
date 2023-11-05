@@ -10,7 +10,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import json
 import os
 import sys
 from functools import partial
@@ -27,6 +27,7 @@ from lightning.data.streaming.item_loader import TokensLoader
 from lightning.fabric import Fabric
 from lightning.pytorch.demos.boring_classes import RandomDataset
 from lightning_utilities.core.imports import RequirementCache
+from lightning_utilities.test.warning import no_warning_call
 from torch.utils.data import DataLoader, Dataset
 
 _PIL_AVAILABLE = RequirementCache("PIL")
@@ -242,3 +243,35 @@ def test_streaming_dataset(tmpdir, monkeypatch):
 
     dataloader = DataLoader(dataset, num_workers=2, batch_size=2)
     assert len(dataloader) == 408
+
+
+def test_create_oversized_chunk_single_item(tmp_path):
+    cache = Cache(str(tmp_path), chunk_bytes=700)
+    with pytest.warns(UserWarning, match="An item was larger than the target chunk size"):
+        cache[0] = np.random.randint(0, 10, size=(10000,), dtype=np.uint8)
+
+
+def test_create_undersized_and_oversized_chunk(tmp_path):
+    cache = Cache(str(tmp_path), chunk_bytes=9000)  # target: 9KB chunks
+    with no_warning_call(UserWarning):
+        cache[0] = np.random.randint(0, 10, size=(500,), dtype=np.uint8)  # will result in undersized chunk
+        cache[1] = np.random.randint(0, 10, size=(10000,), dtype=np.uint8)  # will result in oversized chunk
+    with pytest.warns(UserWarning, match="An item was larger than the target chunk size"):
+        cache[2] = np.random.randint(0, 10, size=(150,), dtype=np.uint8)
+    with no_warning_call(UserWarning):
+        cache[3] = np.random.randint(0, 10, size=(200,), dtype=np.uint8)
+
+    cache.done()
+    cache.merge()
+
+    assert len(os.listdir(tmp_path)) == 4  # 3 chunks + 1 index file
+    with open(tmp_path / "index.json") as file:
+        index = json.load(file)
+
+    chunks = index["chunks"]
+    assert chunks[0]["chunk_size"] == 1
+    assert chunks[0]["filename"] == "chunk-0-0.bin"
+    assert chunks[1]["chunk_size"] == 1
+    assert chunks[1]["filename"] == "chunk-0-1.bin"
+    assert chunks[2]["chunk_size"] == 2
+    assert chunks[2]["filename"] == "chunk-0-2.bin"
