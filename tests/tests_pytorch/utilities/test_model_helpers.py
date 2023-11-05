@@ -13,10 +13,9 @@
 # limitations under the License.
 import pytest
 import torch.nn
-
 from lightning.pytorch import LightningDataModule
 from lightning.pytorch.demos.boring_classes import BoringDataModule, BoringModel
-from lightning.pytorch.utilities.model_helpers import _restricted_classmethod, is_overridden, _eval_mode
+from lightning.pytorch.utilities.model_helpers import _eval_mode, _restricted_classmethod, is_overridden
 from lightning_utilities import module_available
 
 

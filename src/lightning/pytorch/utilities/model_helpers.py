@@ -64,6 +64,7 @@ def _eval_mode(module: nn.Module):
     """Switches all modules to `.eval()` mode.
 
     When exiting the context manager, the modules will restore their previous state.
+
     """
     mode = {}
     for name, mod in module.named_modules():
