@@ -12,13 +12,12 @@
 # limitations under the License.
 
 import os
-import uuid
 from typing import Any, List, Optional, Union
 
 import numpy as np
 from torch.utils.data import IterableDataset
 
-from lightning.data.datasets.env import _DistributedEnv, _WorkerEnv, Environment
+from lightning.data.datasets.env import Environment, _DistributedEnv, _WorkerEnv
 from lightning.data.streaming import Cache
 from lightning.data.streaming.constants import _INDEX_FILENAME, _LIGHTNING_CLOUD_GREATER_EQUAL_0_5_50
 from lightning.data.streaming.item_loader import BaseItemLoader
@@ -99,8 +98,9 @@ class StreamingDataset(IterableDataset):
             )
 
         self.shuffler: Shuffle = (
-            FullShuffle(self.cache, self.seed, self.drop_last) if self.shuffle else NoShuffle(self.cache, self.seed,
-                                                                                              self.drop_last)
+            FullShuffle(self.cache, self.seed, self.drop_last)
+            if self.shuffle
+            else NoShuffle(self.cache, self.seed, self.drop_last)
         )
 
     def __len__(self) -> int:
