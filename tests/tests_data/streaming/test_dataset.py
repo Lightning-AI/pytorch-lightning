@@ -242,9 +242,9 @@ def test_streaming_dataset_deepcopy(tmpdir, monkeypatch):
 
 @mock.patch.dict(os.environ, {"LIGHTNING_CLUSTER_ID": "123", "LIGHTNING_CLOUD_PROJECT_ID": "456"})
 @mock.patch("lightning.data.streaming.dataset.os.makedirs")
-def test_try_create_cache_dir(_, monkeypatch):
+def test_try_create_cache_dir(makedirs, monkeypatch):
     cache_dir_1 = _try_create_cache_dir("")
     cache_dir_2 = _try_create_cache_dir("ssdf")
     assert cache_dir_1 != cache_dir_2
     assert cache_dir_1 == "/cache/chunks/d41d8cd98f00b204e9800998ecf8427e"
-    assert len(os_mock.makedirs._mock_mock_calls) == 2
+    assert len(makedirs._mock_mock_calls) == 2
