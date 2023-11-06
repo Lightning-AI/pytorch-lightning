@@ -22,7 +22,7 @@ from lightning.data.streaming.data_processor import (
     _upload_fn,
     _wait_for_file_to_exist,
 )
-from lightning.data.streaming.functions import map, optimize
+from lightning.data.streaming.functions import LambdaDataTransformRecipe, map, optimize
 from lightning_utilities.core.imports import RequirementCache
 
 _PIL_AVAILABLE = RequirementCache("PIL")
@@ -61,6 +61,64 @@ def test_upload_fn(tmpdir):
     assert os.listdir(remote_output_dir) == []
 
     _upload_fn(upload_queue, remove_queue, cache_dir, Dir(path=remote_output_dir, url=remote_output_dir))
+
+    assert os.listdir(remote_output_dir) == ["a.txt"]
+
+
+@pytest.mark.skipif(condition=sys.platform == "win32", reason="Not supported on windows")
+def test_upload_s3_fn(tmpdir, monkeypatch):
+    input_dir = os.path.join(tmpdir, "input_dir")
+    os.makedirs(input_dir, exist_ok=True)
+
+    cache_dir = os.path.join(tmpdir, "cache_dir")
+    os.makedirs(cache_dir, exist_ok=True)
+
+    remote_output_dir = os.path.join(tmpdir, "remote_output_dir")
+    os.makedirs(remote_output_dir, exist_ok=True)
+
+    filepath = os.path.join(input_dir, "a.txt")
+
+    with open(filepath, "w") as f:
+        f.write("HERE")
+
+    upload_queue = mock.MagicMock()
+
+    paths = [filepath, None]
+
+    def fn(*_, **__):
+        value = paths.pop(0)
+        if value is None:
+            return value
+        return value
+
+    upload_queue.get = fn
+
+    remove_queue = mock.MagicMock()
+
+    s3_client = mock.MagicMock()
+
+    called = False
+
+    def copy_file(local_filepath, *args):
+        nonlocal called
+        called = True
+        from shutil import copyfile
+
+        copyfile(local_filepath, os.path.join(remote_output_dir, os.path.basename(local_filepath)))
+
+    s3_client.client.upload_file = copy_file
+
+    monkeypatch.setattr(data_processor_module, "S3Client", mock.MagicMock(return_value=s3_client))
+
+    assert os.listdir(remote_output_dir) == []
+
+    assert not called
+
+    _upload_fn(upload_queue, remove_queue, cache_dir, Dir(path=remote_output_dir, url="s3://url"))
+
+    assert called
+
+    assert len(paths) == 0
 
     assert os.listdir(remote_output_dir) == ["a.txt"]
 
@@ -148,7 +206,7 @@ def test_wait_for_file_to_exist():
             raise botocore.exceptions.ClientError({"Error": {"Code": "404", "Message": "Not Found"}}, "HeadObject")
         return
 
-    s3.head_object = fn
+    s3.client.head_object = fn
 
     _wait_for_file_to_exist(s3, obj, sleep_time=0.01)
 
@@ -157,7 +215,7 @@ def test_wait_for_file_to_exist():
     def fn(*_, **__):
         raise ValueError("HERE")
 
-    s3.head_object = fn
+    s3.client.head_object = fn
 
     with pytest.raises(ValueError, match="HERE"):
         _wait_for_file_to_exist(s3, obj, sleep_time=0.01)
@@ -340,7 +398,13 @@ class TestDataProcessor(DataProcessor):
 def test_data_processsor_distributed(fast_dev_run, delete_cached_files, tmpdir, monkeypatch):
     """This test ensures the data optimizer works in a fully distributed settings."""
 
+    seed_everything(42)
+
     monkeypatch.setattr(data_processor_module.os, "_exit", mock.MagicMock())
+
+    _create_dataset_mock = mock.MagicMock()
+
+    monkeypatch.setattr(data_processor_module, "_create_dataset", _create_dataset_mock)
 
     from PIL import Image
 
@@ -420,6 +484,21 @@ def test_data_processsor_distributed(fast_dev_run, delete_cached_files, tmpdir, 
     expected = sorted(fast_dev_run_disabled_chunks_0 + fast_dev_run_disabled_chunks_1 + ["1-index.json"])
 
     assert sorted(os.listdir(remote_output_dir)) == expected
+
+    _create_dataset_mock.assert_called()
+
+    assert _create_dataset_mock._mock_mock_calls[0].kwargs == {
+        "input_dir": str(input_dir),
+        "storage_dir": str(remote_output_dir),
+        "dataset_type": "CHUNKED",
+        "empty": False,
+        "size": 30,
+        "num_bytes": 26657,
+        "data_format": "jpeg",
+        "compression": None,
+        "num_chunks": 16,
+        "num_bytes_per_chunk": [2, 2, 2, 1, 2, 2, 2, 2, 2, 2, 2, 1, 2, 2, 2, 2],
+    }
 
 
 class TextTokenizeRecipe(DataChunkRecipe):
@@ -665,6 +744,47 @@ def test_data_processing_optimize_class_yield(monkeypatch, tmpdir):
 
     cache = Cache(output_dir, chunk_size=1)
     assert len(cache) == 5
+
+
+def test_lambda_transform_recipe(monkeypatch):
+    torch_mock = mock.MagicMock()
+    torch_mock.cuda.device_count.return_value = 3
+
+    monkeypatch.setattr(functions, "torch", torch_mock)
+    monkeypatch.setenv("DATA_OPTIMIZER_GLOBAL_RANK", 2)
+
+    called = False
+
+    def fn(output_dir, item, device):
+        nonlocal called
+        assert device == "cuda:2"
+        called = True
+
+    data_recipe = LambdaDataTransformRecipe(fn, range(1))
+
+    data_recipe.prepare_item("", 1)
+    assert called
+
+
+def test_lambda_transform_recipe_class(monkeypatch):
+    torch_mock = mock.MagicMock()
+    torch_mock.cuda.device_count.return_value = 3
+
+    monkeypatch.setattr(functions, "torch", torch_mock)
+    monkeypatch.setenv("DATA_OPTIMIZER_GLOBAL_RANK", 2)
+
+    called = False
+
+    class Transform:
+        def __call__(self, output_dir, item, device):
+            nonlocal called
+            assert device == "cuda:2"
+            called = True
+
+    data_recipe = LambdaDataTransformRecipe(Transform(), range(1))
+
+    data_recipe.prepare_item("", 1)
+    assert called
 
 
 def _generate_file_with_size(file_path, num_bytes):

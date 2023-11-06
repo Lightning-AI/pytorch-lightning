@@ -19,12 +19,12 @@ from torch.utils.data import IterableDataset
 
 from lightning.data.datasets.env import _DistributedEnv, _WorkerEnv
 from lightning.data.streaming import Cache
-from lightning.data.streaming.constants import _INDEX_FILENAME, _LIGHTNING_CLOUD_GREATER_EQUAL_0_5_48
+from lightning.data.streaming.constants import _INDEX_FILENAME, _LIGHTNING_CLOUD_GREATER_EQUAL_0_5_50
 from lightning.data.streaming.item_loader import BaseItemLoader
 from lightning.data.streaming.sampler import ChunkedIndex
 from lightning.data.streaming.shuffle import FullShuffle, NoShuffle, Shuffle
 
-if _LIGHTNING_CLOUD_GREATER_EQUAL_0_5_48:
+if _LIGHTNING_CLOUD_GREATER_EQUAL_0_5_50:
     from lightning_cloud.resolver import _resolve_dir
 
 
