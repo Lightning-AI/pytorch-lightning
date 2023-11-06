@@ -14,13 +14,14 @@
 import os
 from unittest import mock
 
+import lightning.data.streaming.dataset as dataset_module
 import pytest
 import torch
 from lightning import seed_everything
 from lightning.data.datasets.env import _DistributedEnv
 from lightning.data.streaming import Cache
 from lightning.data.streaming.dataloader import StreamingDataLoader
-from lightning.data.streaming.dataset import StreamingDataset
+from lightning.data.streaming.dataset import StreamingDataset, _try_create_cache_dir
 from lightning.data.streaming.item_loader import TokensLoader
 from lightning.data.streaming.shuffle import FullShuffle, NoShuffle
 from lightning.pytorch.demos.boring_classes import RandomDataset
@@ -238,3 +239,13 @@ def test_streaming_dataset_deepcopy(tmpdir, monkeypatch):
         batches.append(batch)
 
     assert len(batches) == 10
+
+
+def test_try_create_cache_dir(monkeypatch):
+    os_mock = mock.MagicMock()
+    os_mock.getenv.return_value = "cluster_id"
+    monkeypatch.setattr(dataset_module, "os", os_mock)
+    os_mock.path = os.path
+
+    assert _try_create_cache_dir("") != _try_create_cache_dir("ssdf")
+    assert _try_create_cache_dir("") == "/cache/chunks/d41d8cd98f00b204e9800998ecf8427e"
