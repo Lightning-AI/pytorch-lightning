@@ -56,6 +56,7 @@ class StreamingDataset(IterableDataset):
 
         input_dir = _resolve_dir(input_dir)
 
+        # TODO: Why are we conflating input dir and cache dir into one thing? They are conceptually different!
         # Override the provided input_path
         cache_dir = _try_create_cache_dir()
         if cache_dir:
@@ -64,8 +65,10 @@ class StreamingDataset(IterableDataset):
         self.input_dir = input_dir
         self.item_loader = item_loader
         self.shuffle: bool = shuffle
-        self.distributed_env = _DistributedEnv.detect()
         self.drop_last = drop_last
+        self.seed = seed
+
+        self.distributed_env = _DistributedEnv.detect()
         self.worker_env: Optional[_WorkerEnv] = None
         self.worker_chunks: List[int] = []
         self.worker_intervals: List[List[int]] = []
@@ -74,13 +77,12 @@ class StreamingDataset(IterableDataset):
         self.index = 0
         self.has_triggered_download = False
         self.min_items_per_replica: Optional[int] = None
-        self.seed = seed
         self.current_epoch = 0
         self.random_state = None
         self.shuffler: Optional[Shuffle] = None
 
     def __len__(self) -> int:
-        return self.shuffle.get_len(self.distributed_env, self.current_epoch)
+        return self.shuffler.get_len(self.distributed_env, self.current_epoch)
 
     def __iter__(self) -> "StreamingDataset":
         if self.worker_env is None:
@@ -88,7 +90,6 @@ class StreamingDataset(IterableDataset):
 
         env = Environment(dist_env=self.distributed_env, worker_env=self.worker_env)
 
-        # TODO: Why are we conflating input dir and cache dir into one thing? They are conceptually different!
         self.input_dir.path = os.path.join(self.input_dir.path, str(env.shard_rank))
 
         self.cache = Cache(input_dir=self.input_dir, item_loader=self.item_loader, chunk_bytes=1)
@@ -101,7 +102,7 @@ class StreamingDataset(IterableDataset):
             )
 
         self.shuffler: Shuffle = (
-            FullShuffle(self.cache, self.seed, self.drop_last) if shuffle else NoShuffle(self.cache, self.seed, self.drop_last)
+            FullShuffle(self.cache, self.seed, self.drop_last) if self.shuffle else NoShuffle(self.cache, self.seed, self.drop_last)
         )
 
         chunks_per_replica, intervals_per_replica = self.shuffler.get_chunks_and_intervals_per_ranks(
