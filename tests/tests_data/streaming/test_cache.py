@@ -227,8 +227,9 @@ def test_streaming_dataset(tmpdir, monkeypatch):
 
     os.makedirs(os.path.join(tmpdir, "remote_dir"), exist_ok=True)
 
+    dataset = StreamingDataset(input_dir=tmpdir)
     with pytest.raises(ValueError, match="The provided dataset"):
-        dataset = StreamingDataset(input_dir=tmpdir)
+        iter(dataset)
 
     dataset = RandomDataset(128, 64)
     dataloader = StreamingDataLoader(dataset, cache_dir=tmpdir, chunk_bytes=2 << 12)
