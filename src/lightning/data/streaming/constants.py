@@ -17,6 +17,7 @@ from lightning_utilities.core.imports import RequirementCache
 _INDEX_FILENAME = "index.json"
 _DEFAULT_CHUNK_BYTES = 1 << 26  # 64M B
 _DEFAULT_FAST_DEV_RUN_ITEMS = 10
+_MINIMUM_DISK_SIZE = 50 * 1024 * 1024 * 1024  # 50GB
 
 # This is required for full pytree serialization / deserialization support
 _TORCH_GREATER_EQUAL_2_1_0 = RequirementCache("torch>=2.1.0")

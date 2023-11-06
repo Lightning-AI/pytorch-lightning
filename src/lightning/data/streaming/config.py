@@ -72,6 +72,12 @@ class ChunksConfig:
         self._downloader.download_chunk_from_index(chunk_index)
 
     @property
+    def num_bytes(self) -> List[Tuple[int, int]]:
+        if self._config is None:
+            raise RuntimeError("The config should be defined.")
+        return sum([c["chunk_bytes"] for c in self._config["chunks"]])
+
+    @property
     def intervals(self) -> List[Tuple[int, int]]:
         if self._intervals is None:
             raise RuntimeError("The intervals should be defined.")

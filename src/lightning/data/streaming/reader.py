@@ -19,10 +19,11 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from lightning.data.datasets.env import _DistributedEnv, _WorkerEnv
 from lightning.data.streaming.config import ChunksConfig
-from lightning.data.streaming.constants import _TORCH_GREATER_EQUAL_2_1_0
+from lightning.data.streaming.constants import _MINIMUM_DISK_SIZE, _TORCH_GREATER_EQUAL_2_1_0
 from lightning.data.streaming.item_loader import BaseItemLoader, PyTreeLoader
 from lightning.data.streaming.sampler import ChunkedIndex
 from lightning.data.streaming.serializers import _SERIALIZERS, Serializer
+from lightning.data.utilities.disk import _get_available_amount_of_bytes
 
 warnings.filterwarnings("ignore", message=".*The given buffer is not writable.*")
 
@@ -37,8 +38,9 @@ class PrepareChunksThread(Thread):
         super().__init__(daemon=True)
         self._config = config
         self._chunks_index_to_be_processed: List[int] = []
-        self._chunks_index_to_ready: List[int] = []
+        self._chunks_index_to_be_deleted: List[int] = []
         self._lock = Lock()
+        self._available = _get_available_amount_of_bytes()
 
     def add(self, chunk_indices: List[int]) -> None:
         """Receive the list of the chunk indices to download for the current epoch."""
@@ -47,18 +49,41 @@ class PrepareChunksThread(Thread):
                 if chunk_indice not in self._chunks_index_to_be_processed:
                     self._chunks_index_to_be_processed.append(chunk_indice)
 
+    def delete(self, chunk_indices: List[int]) -> None:
+        """Receive the list of the chunk indices to download for the current epoch."""
+        with self._lock:
+            for chunk_indice in chunk_indices:
+                if chunk_indice not in self._chunks_index_to_be_deleted:
+                    self._chunks_index_to_be_deleted.append(chunk_indice)
+
+    def _delete(self, chunk_index):
+        chunk_filepath, begin, _ = self._config[ChunkedIndex(index=-1, chunk_index=chunk_index)]
+
+        if os.path.exists(chunk_filepath):
+            os.remove(chunk_filepath)
+
     def run(self) -> None:
         while True:
             with self._lock:
+                if len(self._chunks_index_to_be_processed) == 0 and len(self._chunks_index_to_be_deleted) == 0:
+                    sleep(0.0001)
+                    continue
+
+                # Delete the chunks if we are missing disk space.
+                # Check every 10 items to avoid losing too much time on the subprocess
+                if len(self._chunks_index_to_be_deleted) > 10:
+                    if _get_available_amount_of_bytes() < _MINIMUM_DISK_SIZE:
+                        for chunk_index in self._chunks_index_to_be_deleted:
+                            if chunk_index not in self._chunks_index_to_be_processed:
+                                self._delete(chunk_index)
+                    self._chunks_index_to_be_deleted = []
+
                 if len(self._chunks_index_to_be_processed) == 0:
-                    sleep(0.007)
                     continue
 
                 chunk_index = self._chunks_index_to_be_processed.pop(0)
 
-            # TODO: Implement eviction
             self._config.download_chunk_from_index(chunk_index)
-            self._chunks_index_to_ready.append(chunk_index)
 
 
 class BinaryReader:
@@ -98,6 +123,7 @@ class BinaryReader:
         self._prepare_thread: Optional[PrepareChunksThread] = None
         self._chunks_index_to_be_processed: List[int] = []
         self._item_loader = item_loader or PyTreeLoader()
+        self._last_chunk_index: Optional[int] = None
 
     def _get_chunk_index_from_index(self, index: int) -> int:
         # Load the config containing the index
@@ -149,11 +175,15 @@ class BinaryReader:
                     self._chunks_index_to_be_processed.extend(index.chunk_indexes)
                     self._prepare_thread.add(index.chunk_indexes)
 
-            # If the chunk_index isn't already in the download queue, add it.
-            if index.chunk_index not in self._chunks_index_to_be_processed:
+            # If the chunk_index isn't already in the download and delete queues, add it.
+            if index.chunk_index != self._last_chunk_index:
                 assert self._prepare_thread
+
+                if self._last_chunk_index:
+                    self._prepare_thread.delete([self._last_chunk_index])
+
+                self._last_chunk_index = index.chunk_index
                 self._prepare_thread.add([index.chunk_index])
-                self._chunks_index_to_be_processed.append(index.chunk_index)
 
         # Fetch the element
         chunk_filepath, begin, _ = self.config[index]
