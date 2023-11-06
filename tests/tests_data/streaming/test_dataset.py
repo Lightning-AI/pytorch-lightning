@@ -258,6 +258,8 @@ def test_try_create_cache_dir():
         assert _try_create_cache_dir() is None
 
     # the cache dir creating at /cache requires root privileges, so we need to mock `os.makedirs()`
-    with mock.patch.dict("os.environ", {"LIGHTNING_CLUSTER_ID": "abc", "LIGHTNING_CLOUD_PROJECT_ID": "123"}), mock.patch("lightning.data.streaming.dataset.os.makedirs"):
+    with mock.patch.dict(
+        "os.environ", {"LIGHTNING_CLUSTER_ID": "abc", "LIGHTNING_CLOUD_PROJECT_ID": "123"}
+    ), mock.patch("lightning.data.streaming.dataset.os.makedirs"):
         assert _try_create_cache_dir() == "/cache/0/chunks"
         assert _try_create_cache_dir(shard_rank=3) == "/cache/3/chunks"
