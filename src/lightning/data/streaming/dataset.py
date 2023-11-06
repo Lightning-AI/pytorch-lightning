@@ -28,7 +28,7 @@ if _LIGHTNING_CLOUD_GREATER_EQUAL_0_5_50:
     from lightning_cloud.resolver import _resolve_dir
 
 
-def _try_create_cache_dir(create: bool = False) -> Optional[str]:
+def _try_create_cache_dir() -> Optional[str]:
     # Get the ids from env variables
     cluster_id = os.getenv("LIGHTNING_CLUSTER_ID", None)
     project_id = os.getenv("LIGHTNING_CLOUD_PROJECT_ID", None)
@@ -37,10 +37,7 @@ def _try_create_cache_dir(create: bool = False) -> Optional[str]:
         return None
 
     cache_dir = os.path.join("/cache/chunks")
-
-    if create:
-        os.makedirs(cache_dir, exist_ok=True)
-
+    os.makedirs(cache_dir, exist_ok=True)
     return cache_dir
 
 
