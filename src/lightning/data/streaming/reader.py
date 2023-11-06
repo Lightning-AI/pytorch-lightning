@@ -56,7 +56,7 @@ class PrepareChunksThread(Thread):
                 if chunk_indice not in self._chunks_index_to_be_deleted:
                     self._chunks_index_to_be_deleted.append(chunk_indice)
 
-    def _delete(self, chunk_index):
+    def _delete(self, chunk_index: int) -> None:
         chunk_filepath, begin, _ = self._config[ChunkedIndex(index=-1, chunk_index=chunk_index)]
 
         if os.path.exists(chunk_filepath):
