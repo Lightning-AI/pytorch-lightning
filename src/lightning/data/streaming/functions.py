@@ -18,6 +18,8 @@ from pathlib import Path
 from types import FunctionType
 from typing import Any, Callable, Optional, Sequence, Union
 
+import torch
+
 from lightning.data.streaming.constants import _LIGHTNING_CLOUD_GREATER_EQUAL_0_5_50, _TORCH_GREATER_EQUAL_2_1_0
 from lightning.data.streaming.data_processor import DataChunkRecipe, DataProcessor, DataTransformRecipe
 
@@ -53,12 +55,37 @@ class LambdaDataTransformRecipe(DataTransformRecipe):
         super().__init__()
         self._fn = fn
         self._inputs = inputs
+        self._device: Optional[str] = None
+
+        _fn = self._fn if isinstance(self._fn, FunctionType) else self._fn.__call__  # type: ignore
+        params = inspect.signature(_fn).parameters
+        self._contains_device = "device" in params
 
     def prepare_structure(self, input_dir: Optional[str]) -> Any:
         return self._inputs
 
     def prepare_item(self, output_dir: str, item_metadata: Any) -> None:  # type: ignore
-        self._fn(output_dir, item_metadata)
+        if self._contains_device and self._device is None:
+            self._find_device()
+        if isinstance(self._fn, FunctionType):
+            if self._contains_device:
+                self._fn(output_dir, item_metadata, self._device)
+            else:
+                self._fn(output_dir, item_metadata)
+        elif callable(self._fn):
+            if self._contains_device:
+                self._fn.__call__(output_dir, item_metadata, self._device)  # type: ignore
+            else:
+                self._fn.__call__(output_dir, item_metadata)  # type: ignore
+        else:
+            raise ValueError(f"The provided {self._fn} isn't supported.")
+
+    def _find_device(self) -> None:
+        global_rank = os.getenv("DATA_OPTIMIZER_GLOBAL_RANK", None)
+        if torch.cuda.is_available() and global_rank:
+            num_gpus = torch.cuda.device_count()
+            device = int(global_rank) % num_gpus
+            self._device = f"cuda:{device}"
 
 
 class LambdaDataChunkRecipe(DataChunkRecipe):
