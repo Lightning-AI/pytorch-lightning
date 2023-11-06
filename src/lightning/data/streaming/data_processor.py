@@ -18,6 +18,7 @@ import torch
 from tqdm.auto import tqdm
 
 from lightning import seed_everything
+from lightning.app.utilities.network import HTTPClient
 from lightning.data.streaming import Cache
 from lightning.data.streaming.cache import Dir
 from lightning.data.streaming.client import S3Client
@@ -47,6 +48,32 @@ if _LIGHTNING_CLOUD_GREATER_EQUAL_0_5_50:
 
 if _BOTO3_AVAILABLE:
     import botocore
+
+
+class LocalDataProcessorQueue:
+    def register(self, node_rank: int, output_dir: str) -> int:
+        return output_dir
+
+
+def debug_log_callback(message: str, *args: Any, **kwargs: Any) -> None:
+    print(message, *args, **kwargs)
+
+
+class CloudDataProcessorQueue:
+    def __init__(self):
+        self.client = HTTPClient(base_url=os.getenv("LIGHTNING_APP_STATE_URL"), log_callback=debug_log_callback)
+
+    def register(self, node_rank: int, output_dir: str) -> int:
+        return self.client.post(
+            "/register",
+        )
+
+
+def _get_data_processor_queue():
+    if os.getenv("LIGHTNING_CLOUD_SPACE_ID"):
+        return CloudDataProcessorQueue()
+    return LocalDataProcessorQueue()
+
 
 logger = logging.Logger(__name__)
 
