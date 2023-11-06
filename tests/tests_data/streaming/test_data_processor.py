@@ -20,7 +20,7 @@ from lightning.data.streaming.data_processor import (
     _upload_fn,
     _wait_for_file_to_exist,
 )
-from lightning.data.streaming.functions import map, optimize
+from lightning.data.streaming.functions import LambdaDataTransformRecipe, map, optimize
 from lightning_utilities.core.imports import RequirementCache
 
 _PIL_AVAILABLE = RequirementCache("PIL")
@@ -766,3 +766,44 @@ def test_data_processing_optimize_class_yield(monkeypatch, tmpdir):
 
     cache = Cache(output_dir, chunk_size=1)
     assert len(cache) == 5
+
+
+def test_lambda_transform_recipe(monkeypatch):
+    torch_mock = mock.MagicMock()
+    torch_mock.cuda.device_count.return_value = 3
+
+    monkeypatch.setattr(functions, "torch", torch_mock)
+    monkeypatch.setenv("DATA_OPTIMIZER_GLOBAL_RANK", 2)
+
+    called = False
+
+    def fn(output_dir, item, device):
+        nonlocal called
+        assert device == "cuda:2"
+        called = True
+
+    data_recipe = LambdaDataTransformRecipe(fn, range(1))
+
+    data_recipe.prepare_item("", 1)
+    assert called
+
+
+def test_lambda_transform_recipe_class(monkeypatch):
+    torch_mock = mock.MagicMock()
+    torch_mock.cuda.device_count.return_value = 3
+
+    monkeypatch.setattr(functions, "torch", torch_mock)
+    monkeypatch.setenv("DATA_OPTIMIZER_GLOBAL_RANK", 2)
+
+    called = False
+
+    class Transform:
+        def __call__(self, output_dir, item, device):
+            nonlocal called
+            assert device == "cuda:2"
+            called = True
+
+    data_recipe = LambdaDataTransformRecipe(Transform(), range(1))
+
+    data_recipe.prepare_item("", 1)
+    assert called
