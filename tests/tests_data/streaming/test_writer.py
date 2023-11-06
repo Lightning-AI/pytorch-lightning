@@ -19,7 +19,8 @@ import pytest
 from lightning import seed_everything
 from lightning.data.streaming.reader import BinaryReader
 from lightning.data.streaming.sampler import ChunkedIndex
-from lightning.data.streaming.writer import _FORMAT_TO_RATIO, BinaryWriter
+from lightning.data.streaming.writer import BinaryWriter
+from lightning.data.utilities.format import _FORMAT_TO_RATIO
 from lightning_utilities.core.imports import RequirementCache
 
 _PIL_AVAILABLE = RequirementCache("PIL")
@@ -202,4 +203,4 @@ def test_writer_human_format(tmpdir):
         assert binary_writer._chunk_bytes == v
 
     binary_writer = BinaryWriter(tmpdir, chunk_bytes="64MB")
-    assert binary_writer._chunk_bytes == 67108864
+    assert binary_writer._chunk_bytes == 64000000
