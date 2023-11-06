@@ -15,7 +15,8 @@ from lightning.data.streaming.data_processor import (
     DataChunkRecipe,
     DataProcessor,
     DataTransformRecipe,
-    _associated_items_to_workers,
+    _map_items_to_workers_sequentially,
+    _map_items_to_workers_weighted,
     _download_data_target,
     _get_item_filesizes,
     _remove_target,
@@ -251,50 +252,50 @@ def test_cache_dir_cleanup(tmpdir, monkeypatch):
     assert os.listdir(cache_dir) == []
 
 
-def test_associated_items_to_workers(monkeypatch):
-    workers_user_items = _associated_items_to_workers(1, list(range(5)))
+def test_map_items_to_workers_weighted(monkeypatch):
+    workers_user_items = _map_items_to_workers_weighted(1, list(range(5)))
     assert workers_user_items == [list(range(5))]
-    workers_user_items = _associated_items_to_workers(2, list(range(5)))
+    workers_user_items = _map_items_to_workers_weighted(2, list(range(5)))
     assert workers_user_items == [[0, 2, 4], [1, 3]]
-    workers_user_items = _associated_items_to_workers(3, list(range(5)))
+    workers_user_items = _map_items_to_workers_weighted(3, list(range(5)))
     assert workers_user_items == [[0, 3], [1, 4], [2]]
-    workers_user_items = _associated_items_to_workers(4, list(range(5)))
+    workers_user_items = _map_items_to_workers_weighted(4, list(range(5)))
     assert workers_user_items == [[0, 4], [1], [2], [3]]
 
     monkeypatch.setenv("DATA_OPTIMIZER_NUM_NODES", "2")
     monkeypatch.setenv("DATA_OPTIMIZER_NODE_RANK", "0")
-    workers_user_items = _associated_items_to_workers(1, list(range(5)))
+    workers_user_items = _map_items_to_workers_weighted(1, list(range(5)))
     assert workers_user_items == [[0, 2, 4]]
-    workers_user_items = _associated_items_to_workers(2, list(range(5)))
+    workers_user_items = _map_items_to_workers_weighted(2, list(range(5)))
     assert workers_user_items == [[0, 4], [1]]
 
     monkeypatch.setenv("DATA_OPTIMIZER_NUM_NODES", "2")
     monkeypatch.setenv("DATA_OPTIMIZER_NODE_RANK", "1")
-    workers_user_items = _associated_items_to_workers(1, list(range(5)))
+    workers_user_items = _map_items_to_workers_weighted(1, list(range(5)))
     assert workers_user_items == [[1, 3]]
-    workers_user_items = _associated_items_to_workers(2, list(range(5)))
+    workers_user_items = _map_items_to_workers_weighted(2, list(range(5)))
     assert workers_user_items == [[2], [3]]
 
     monkeypatch.setenv("DATA_OPTIMIZER_NUM_NODES", "4")
     monkeypatch.setenv("DATA_OPTIMIZER_NODE_RANK", "0")
-    workers_user_items = _associated_items_to_workers(1, list(range(32)))
+    workers_user_items = _map_items_to_workers_weighted(1, list(range(32)))
     assert workers_user_items == [[0, 4, 8, 12, 16, 20, 24, 28]]
-    workers_user_items = _associated_items_to_workers(2, list(range(32)))
+    workers_user_items = _map_items_to_workers_weighted(2, list(range(32)))
     assert workers_user_items == [[0, 8, 16, 24], [1, 9, 17, 25]]
-    workers_user_items = _associated_items_to_workers(3, list(range(32)))
+    workers_user_items = _map_items_to_workers_weighted(3, list(range(32)))
     assert workers_user_items == [[0, 12, 24], [1, 13, 25], [2, 14, 26]]
-    workers_user_items = _associated_items_to_workers(4, list(range(32)))
+    workers_user_items = _map_items_to_workers_weighted(4, list(range(32)))
     assert workers_user_items == [[0, 16], [1, 17], [2, 18], [3, 19]]
 
     monkeypatch.setenv("DATA_OPTIMIZER_NUM_NODES", "4")
     monkeypatch.setenv("DATA_OPTIMIZER_NODE_RANK", "3")
-    workers_user_items = _associated_items_to_workers(1, list(range(32)))
+    workers_user_items = _map_items_to_workers_weighted(1, list(range(32)))
     assert workers_user_items == [[3, 7, 11, 15, 19, 23, 27, 31]]
-    workers_user_items = _associated_items_to_workers(2, list(range(32)))
+    workers_user_items = _map_items_to_workers_weighted(2, list(range(32)))
     assert workers_user_items == [[6, 14, 22, 30], [7, 15, 23, 31]]
-    workers_user_items = _associated_items_to_workers(3, list(range(32)))
+    workers_user_items = _map_items_to_workers_weighted(3, list(range(32)))
     assert workers_user_items == [[9, 21], [10, 22], [11, 23]]
-    workers_user_items = _associated_items_to_workers(4, list(range(32)))
+    workers_user_items = _map_items_to_workers_weighted(4, list(range(32)))
     assert workers_user_items == [[12, 28], [13, 29], [14, 30], [15, 31]]
 
 

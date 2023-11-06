@@ -206,7 +206,28 @@ def _upload_fn(upload_queue: Queue, remove_queue: Queue, cache_dir: str, output_
             remove_queue.put([local_filepath])
 
 
-def _associated_items_to_workers(
+def _map_items_to_workers_sequentially(num_workers: int, user_items: List[Any]) -> List[List[Any]]:
+    num_nodes = _get_num_nodes()
+    current_node_rank = _get_node_rank()
+    node_size = len(user_items) // num_nodes
+    workers_user_items = []
+    for node_rank in range(num_nodes):
+        if node_rank != current_node_rank:
+            continue
+        is_last_node = node_rank == num_nodes - 1
+        start_node = node_rank * node_size
+        end_node = len(user_items) if is_last_node else (node_rank + 1) * node_size
+        node_user_items = user_items[start_node:end_node]
+        worker_size = len(node_user_items) // num_workers
+        for worker_idx in range(num_workers):
+            is_last = worker_idx == num_workers - 1
+            begin = worker_idx * worker_size
+            end = len(node_user_items) if is_last else (worker_idx + 1) * worker_size
+            workers_user_items.append(node_user_items[begin:end])
+    return workers_user_items
+
+
+def _map_items_to_workers_weighted(
     num_workers: int, user_items: List[Any], weights: Optional[List[int]] = None
 ) -> List[List[Any]]:
     # Associate the items to the workers based on number of nodes and node rank.
@@ -703,6 +724,7 @@ class DataProcessor:
         delete_cached_files: bool = True,
         fast_dev_run: Optional[Union[bool, int]] = None,
         random_seed: Optional[int] = 42,
+        reorder_files: bool = True,
     ):
         """The `DatasetOptimiser` provides an efficient way to process data across multiple machine into chunks to make
         training faster.
@@ -715,6 +737,8 @@ class DataProcessor:
             delete_cached_files: Whether to delete the cached files.
             fast_dev_run: Whether to run a quick dev run.
             random_seed: The random seed to be set before shuffling the data.
+            reorder_files: By default, reorders the files by file size to distribute work equally among all workers.
+                Set this to ``False`` if the order in which samples are processed should be preserved.
 
         """
         self.input_dir = _resolve_dir(input_dir)
@@ -728,6 +752,7 @@ class DataProcessor:
         self.progress_queue: Optional[Queue] = None
         self.error_queue: Queue = Queue()
         self.stop_queues: List[Queue] = []
+        self.reorder_files = reorder_files
 
         if self.input_dir:
             # Ensure the input dir is the same across all nodes
@@ -757,13 +782,17 @@ class DataProcessor:
         if not isinstance(user_items, list):
             raise ValueError("The `prepare_structure` should return a list of item metadata.")
 
-        # TODO: Only do this on node 0, and broadcast the item sizes to the other nodes.
-        item_sizes = _get_item_filesizes(user_items, base_path=self.input_dir.path)
+        if self.reorder_files:
+            # TODO: Only do this on node 0, and broadcast the item sizes to the other nodes.
+            item_sizes = _get_item_filesizes(user_items, base_path=self.input_dir.path)
+            workers_user_items = _map_items_to_workers_weighted(
+                num_workers=self.num_workers, user_items=user_items, weights=item_sizes
+            )
+        else:
+            workers_user_items = _map_items_to_workers_sequentially(
+                num_workers=self.num_workers, user_items=user_items
+            )
 
-        # Associate the items to the workers based on num_nodes and node_rank
-        workers_user_items = _associated_items_to_workers(
-            num_workers=self.num_workers, user_items=user_items, weights=item_sizes
-        )
         print(f"Setup finished in {round(time() - t0, 3)} seconds. Found {len(user_items)} items to process.")
 
         if self.fast_dev_run:
