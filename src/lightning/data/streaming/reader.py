@@ -12,6 +12,7 @@
 # limitations under the License.
 
 import os
+import shutil
 import warnings
 from threading import Lock, Thread
 from time import sleep
@@ -19,11 +20,10 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from lightning.data.datasets.env import _DistributedEnv, _WorkerEnv
 from lightning.data.streaming.config import ChunksConfig
-from lightning.data.streaming.constants import _MINIMUM_DISK_SIZE, _TORCH_GREATER_EQUAL_2_1_0
+from lightning.data.streaming.constants import _TORCH_GREATER_EQUAL_2_1_0
 from lightning.data.streaming.item_loader import BaseItemLoader, PyTreeLoader
 from lightning.data.streaming.sampler import ChunkedIndex
 from lightning.data.streaming.serializers import _SERIALIZERS, Serializer
-from lightning.data.utilities.disk import _get_available_amount_of_bytes
 
 warnings.filterwarnings("ignore", message=".*The given buffer is not writable.*")
 
@@ -34,13 +34,13 @@ if _TORCH_GREATER_EQUAL_2_1_0:
 class PrepareChunksThread(Thread):
     """This thread is responsible to download the chunks associated to a given worker."""
 
-    def __init__(self, config: ChunksConfig) -> None:
+    def __init__(self, config: ChunksConfig, max_cache_size: Optional[int] = None) -> None:
         super().__init__(daemon=True)
         self._config = config
         self._chunks_index_to_be_processed: List[int] = []
         self._chunks_index_to_be_deleted: List[int] = []
         self._lock = Lock()
-        self._available = _get_available_amount_of_bytes()
+        self._max_cache_size = max_cache_size
 
     def add(self, chunk_indices: List[int]) -> None:
         """Receive the list of the chunk indices to download for the current epoch."""
@@ -71,8 +71,8 @@ class PrepareChunksThread(Thread):
 
                 # Delete the chunks if we are missing disk space.
                 # Check every 10 items to avoid losing too much time on the subprocess
-                if len(self._chunks_index_to_be_deleted) > 10:
-                    if _get_available_amount_of_bytes() < _MINIMUM_DISK_SIZE:
+                if self._max_cache_size and len(self._chunks_index_to_be_deleted) > 10:
+                    if shutil.disk_usage(self._config._cache_dir).total >= self._max_cache_size:
                         for chunk_index in self._chunks_index_to_be_deleted:
                             if chunk_index not in self._chunks_index_to_be_processed:
                                 self._delete(chunk_index)
@@ -93,6 +93,7 @@ class BinaryReader:
         remote_input_dir: Optional[str] = None,
         compression: Optional[str] = None,
         item_loader: Optional[BaseItemLoader] = None,
+        max_cache_size: Optional[int] = None,
     ) -> None:
         """The BinaryReader enables to read chunked dataset in an efficient way.
 
@@ -102,6 +103,7 @@ class BinaryReader:
                 The scheme needs to be added to the path.
             compression: The algorithm to decompress the chunks.
             item_loader: The chunk sampler to create sub arrays from a chunk.
+            max_cache_size: The maximum cache size used by the reader when fetching the chunks.
 
         """
         super().__init__()
@@ -124,6 +126,7 @@ class BinaryReader:
         self._chunks_index_to_be_processed: List[int] = []
         self._item_loader = item_loader or PyTreeLoader()
         self._last_chunk_index: Optional[int] = None
+        self._max_cache_size = max_cache_size or os.getenv("MAX_CACHE_SIZE")
 
     def _get_chunk_index_from_index(self, index: int) -> int:
         # Load the config containing the index
@@ -169,7 +172,7 @@ class BinaryReader:
         if self._config and self._config._remote_dir:
             # Create and start the prepare chunks thread
             if self._prepare_thread is None and self._config:
-                self._prepare_thread = PrepareChunksThread(self._config)
+                self._prepare_thread = PrepareChunksThread(self._config, self._max_cache_size)
                 self._prepare_thread.start()
                 if index.chunk_indexes:
                     self._chunks_index_to_be_processed.extend(index.chunk_indexes)
