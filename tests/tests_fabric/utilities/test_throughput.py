@@ -66,15 +66,16 @@ def test_get_available_flops(xla_available):
     [
         # TODO: We need to represent the real names here
         "h100-hbm3",
-        "h100-pcie",
+        "NVIDIA H100 PCIe",
         "h100-hbm2e",
-        "a100",
-        "a10g",
+        "NVIDIA A100 80GB PCIe",
+        "NVIDIA A100-SXM4-40GB",
+        "NVIDIA A10G",
         "V100-sxm",
-        "v100-pcie",
-        "v100s-pcie",
-        "t4",
-        "quadro rtx 5000",
+        "Tesla V100-PCIE-32GB",
+        "Tesla V100S-PCIE-32GB",
+        "Tesla T4",
+        "Quadro RTX 5000 with Max-Q Design",
     ],
 )
 @mock.patch("lightning.fabric.accelerators.cuda._is_ampere_or_later", return_value=False)
