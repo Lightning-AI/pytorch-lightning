@@ -12,6 +12,7 @@
 # limitations under the License.
 
 import os
+from unittest import mock
 
 import pytest
 import torch
@@ -45,6 +46,15 @@ def test_streaming_dataset(tmpdir, monkeypatch):
 
     dataloader = DataLoader(dataset, num_workers=2, batch_size=2)
     assert len(dataloader) == 408
+
+
+@mock.patch.dict(os.environ, {"LIGHTNING_CLUSTER_ID": "123", "LIGHTNING_CLOUD_PROJECT_ID": "456"})
+@mock.patch("lightning.data.streaming.dataset.os.makedirs")
+def test_create_cache_dir_in_lightning_cloud(makedirs_mock, tmpdir):
+    # Locally, we can't actually write to the root filesystem with user privileges, so we need to mock the call
+    with pytest.raises(FileNotFoundError, match="`/cache/chunks` doesn't exist"):
+        StreamingDataset(tmpdir)
+    makedirs_mock.assert_called_once_with("/cache/chunks", exist_ok=True)
 
 
 @pytest.mark.parametrize("drop_last", [False, True])
