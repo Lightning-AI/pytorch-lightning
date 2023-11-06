@@ -9,7 +9,7 @@ ci:
 
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.4.0
+    rev: v4.5.0
     hooks:
       - id: end-of-file-fixer
       - id: trailing-whitespace
@@ -22,7 +22,7 @@ repos:
       - id: detect-private-key
 
   - repo: https://github.com/asottile/pyupgrade
-    rev: v3.14.0
+    rev: v3.15.0
     hooks:
       - id: pyupgrade
         args: ["--py37-plus"]
@@ -43,7 +43,7 @@ repos:
         args: ["--in-place"]
 
   - repo: https://github.com/psf/black
-    rev: 23.9.1
+    rev: 23.10.1
     hooks:
       - id: black
         name: Black code
@@ -77,7 +77,7 @@ repos:
           - flake8-bugbear
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.0.292
+    rev: v0.1.4
     hooks:
       - id: ruff
         args: ["--fix"]
