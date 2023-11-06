@@ -71,7 +71,7 @@ def test_get_available_flops(xla_available):
         "NVIDIA A100 80GB PCIe",
         "NVIDIA A100-SXM4-40GB",
         "NVIDIA A10G",
-        "V100-sxm",
+        "Tesla V100-SXm2-32GB",
         "Tesla V100-PCIE-32GB",
         "Tesla V100S-PCIE-32GB",
         "Tesla T4",
