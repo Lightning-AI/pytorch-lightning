@@ -70,7 +70,7 @@ class PrepareChunksThread(Thread):
                     continue
 
                 # Delete the chunks if we are missing disk space.
-                # Check every 10 items to avoid losing too much time on the subprocess
+                # Check every 10 items to avoid losing too much time
                 if self._max_cache_size and len(self._chunks_index_to_be_deleted) > 10:
                     if shutil.disk_usage(self._config._cache_dir).total >= self._max_cache_size:
                         for chunk_index in self._chunks_index_to_be_deleted:
