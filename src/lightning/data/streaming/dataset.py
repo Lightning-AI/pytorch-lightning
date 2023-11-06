@@ -17,7 +17,7 @@ from typing import Any, List, Optional, Union
 import numpy as np
 from torch.utils.data import IterableDataset
 
-from lightning.data.datasets.env import _DistributedEnv, _WorkerEnv
+from lightning.data.datasets.env import _DistributedEnv, _WorkerEnv, Environment
 from lightning.data.streaming import Cache
 from lightning.data.streaming.constants import _INDEX_FILENAME, _LIGHTNING_CLOUD_GREATER_EQUAL_0_5_50
 from lightning.data.streaming.item_loader import BaseItemLoader
@@ -79,21 +79,10 @@ class StreamingDataset(IterableDataset):
         if cache_dir:
             input_dir.path = cache_dir
 
-        self.cache = Cache(input_dir=input_dir, item_loader=item_loader, chunk_bytes=1)
-
-        self.cache._reader._try_load_config()
-
-        if not self.cache.filled:
-            raise ValueError(
-                f"The provided dataset `{input_dir}` doesn't contain any {_INDEX_FILENAME} file."
-                " HINT: Did you successfully optimize a dataset to the provided `input_dir` ?"
-            )
-
+        self.input_dir = input_dir
+        self.item_loader = item_loader
+        self.shuffle: bool = shuffle
         self.distributed_env = _DistributedEnv.detect()
-
-        self.shuffle: Shuffle = (
-            FullShuffle(self.cache, seed, drop_last) if shuffle else NoShuffle(self.cache, seed, drop_last)
-        )
         self.drop_last = drop_last
         self.worker_env: Optional[_WorkerEnv] = None
         self.worker_chunks: List[int] = []
@@ -106,19 +95,38 @@ class StreamingDataset(IterableDataset):
         self.seed = seed
         self.current_epoch = 0
         self.random_state = None
+        self.shuffler: Optional[Shuffle] = None
 
     def __len__(self) -> int:
         return self.shuffle.get_len(self.distributed_env, self.current_epoch)
 
     def __iter__(self) -> "StreamingDataset":
-        chunks_per_replica, intervals_per_replica = self.shuffle.get_chunks_and_intervals_per_ranks(
+        if self.worker_env is None:
+            self.worker_env = _WorkerEnv.detect()
+
+        env = Environment(dist_env=self.distributed_env, worker_env=self.worker_env)
+
+        # TODO: Why are we conflating input dir and cache dir into one thing? They are conceptually different!
+        self.input_dir.path = os.path.join(self.input_dir.path, str(env.shard_rank))
+
+        self.cache = Cache(input_dir=self.input_dir, item_loader=self.item_loader, chunk_bytes=1)
+        self.cache._reader._try_load_config()
+
+        if not self.cache.filled:
+            raise ValueError(
+                f"The provided dataset `{self.input_dir}` doesn't contain any {_INDEX_FILENAME} file."
+                " HINT: Did you successfully optimize a dataset to the provided `input_dir` ?"
+            )
+
+        self.shuffler: Shuffle = (
+            FullShuffle(self.cache, self.seed, self.drop_last) if shuffle else NoShuffle(self.cache, self.seed, self.drop_last)
+        )
+
+        chunks_per_replica, intervals_per_replica = self.shuffler.get_chunks_and_intervals_per_ranks(
             self.distributed_env, self.current_epoch
         )
         current_chunks = chunks_per_replica[self.distributed_env.global_rank % self.distributed_env.world_size]
         current_intervals = intervals_per_replica[self.distributed_env.global_rank % self.distributed_env.world_size]
-
-        if self.worker_env is None:
-            self.worker_env = _WorkerEnv.detect()
 
         self.worker_chunks = []
         self.worker_intervals = []
@@ -154,7 +162,7 @@ class StreamingDataset(IterableDataset):
 
             interval = self.worker_intervals[self.chunk_index]
             current_indexes = np.arange(interval[0], interval[1])
-            self.current_indexes = self.shuffle(current_indexes)
+            self.current_indexes = self.shuffler(current_indexes)
             self.chunk_index += 1
 
         # Get the first index
