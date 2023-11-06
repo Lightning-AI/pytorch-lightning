@@ -14,7 +14,6 @@
 import os
 from unittest import mock
 
-import lightning.data.streaming.dataset as dataset_module
 import pytest
 import torch
 from lightning import seed_everything
