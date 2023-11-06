@@ -343,11 +343,14 @@ def _device_count_nvml() -> int:
     return len(visible_devices)
 
 
+def _is_ampere_or_later(device: Optional[torch.device] = None) -> bool:
+    major, _ = torch.cuda.get_device_capability(device)
+    return major >= 8  # Ampere and later leverage tensor cores, where this setting becomes useful
+
+
 @lru_cache(1)  # show the warning only ever once
 def _check_cuda_matmul_precision(device: torch.device) -> None:
-    major, _ = torch.cuda.get_device_capability(device)
-    ampere_or_later = major >= 8  # Ampere and later leverage tensor cores, where this setting becomes useful
-    if not ampere_or_later:
+    if not _is_ampere_or_later(device):
         return
     # check that the user hasn't changed the precision already, this works for both `allow_tf32 = True` and
     # `set_float32_matmul_precision`

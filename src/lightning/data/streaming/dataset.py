@@ -11,16 +11,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any, List, Literal, Optional, Union
+import os
+from typing import Any, List, Optional, Union
 
 import numpy as np
 from torch.utils.data import IterableDataset
 
 from lightning.data.datasets.env import _DistributedEnv, _WorkerEnv
 from lightning.data.streaming import Cache
+from lightning.data.streaming.constants import _INDEX_FILENAME, _LIGHTNING_CLOUD_GREATER_EQUAL_0_5_50
 from lightning.data.streaming.item_loader import BaseItemLoader
 from lightning.data.streaming.sampler import ChunkedIndex
 from lightning.data.streaming.shuffle import FullShuffle, NoShuffle, Shuffle
+
+if _LIGHTNING_CLOUD_GREATER_EQUAL_0_5_50:
+    from lightning_cloud.resolver import _resolve_dir
 
 
 class StreamingDataset(IterableDataset):
@@ -28,9 +33,7 @@ class StreamingDataset(IterableDataset):
 
     def __init__(
         self,
-        name: str,
-        version: Optional[Union[int, Literal["latest"]]] = "latest",
-        cache_dir: Optional[str] = None,
+        input_dir: str,
         item_loader: Optional[BaseItemLoader] = None,
         shuffle: bool = False,
         drop_last: bool = False,
@@ -39,9 +42,7 @@ class StreamingDataset(IterableDataset):
         """The streaming dataset can be used once your data have been optimised using the DatasetOptimiser class.
 
         Arguments:
-            name: The name of the optimised dataset.
-            version: The version of the dataset to use.
-            cache_dir: The cache dir where the data would be stored.
+            input_dir: Path to the folder where the input data is stored.
             item_loader: The logic to load an item from a chunk.
             shuffle: Whether to shuffle the data.
             drop_last: If `True`, drops the last items to ensure that
@@ -53,12 +54,22 @@ class StreamingDataset(IterableDataset):
         if not isinstance(shuffle, bool):
             raise ValueError(f"Shuffle should be a boolean. Found {shuffle}")
 
-        self.cache = Cache(name=name, version=version, cache_dir=cache_dir, item_loader=item_loader, chunk_bytes=1)
+        input_dir = _resolve_dir(input_dir)
+
+        # Override the provided input_path
+        cache_dir = _try_create_cache_dir()
+        if cache_dir:
+            input_dir.path = cache_dir
+
+        self.cache = Cache(input_dir=input_dir, item_loader=item_loader, chunk_bytes=1)
 
         self.cache._reader._try_load_config()
 
         if not self.cache.filled:
-            raise ValueError(f"The provided dataset `{name}` isn't filled up.")
+            raise ValueError(
+                f"The provided dataset `{input_dir}` doesn't contain any {_INDEX_FILENAME} file."
+                " HINT: Did you successfully optimize a dataset to the provided `input_dir` ?"
+            )
 
         self.distributed_env = _DistributedEnv.detect()
 
@@ -144,3 +155,11 @@ class StreamingDataset(IterableDataset):
         self.index += 1
 
         return data
+
+
+def _try_create_cache_dir() -> Optional[str]:
+    if "LIGHTNING_CLUSTER_ID" not in os.environ or "LIGHTNING_CLOUD_PROJECT_ID" not in os.environ:
+        return None
+    cache_dir = os.path.join("/cache/chunks")
+    os.makedirs(cache_dir, exist_ok=True)
+    return cache_dir

@@ -22,6 +22,7 @@ from argparse import Namespace
 from typing import Any, Dict, Optional, Union
 
 from torch import Tensor
+from typing_extensions import override
 
 import lightning.pytorch as pl
 from lightning.fabric.loggers.tensorboard import _TENSORBOARD_AVAILABLE
@@ -112,6 +113,7 @@ class TensorBoardLogger(Logger, FabricTensorBoardLogger):
         self.hparams: Union[Dict[str, Any], Namespace] = {}
 
     @property
+    @override
     def root_dir(self) -> str:
         """Parent directory for all tensorboard checkpoint subdirectories.
 
@@ -122,6 +124,7 @@ class TensorBoardLogger(Logger, FabricTensorBoardLogger):
         return os.path.join(super().root_dir, self.name)
 
     @property
+    @override
     def log_dir(self) -> str:
         """The directory for this run's tensorboard checkpoint.
 
@@ -139,6 +142,7 @@ class TensorBoardLogger(Logger, FabricTensorBoardLogger):
         return log_dir
 
     @property
+    @override
     def save_dir(self) -> str:
         """Gets the save directory where the TensorBoard experiments are saved.
 
@@ -148,6 +152,7 @@ class TensorBoardLogger(Logger, FabricTensorBoardLogger):
         """
         return self._root_dir
 
+    @override
     @rank_zero_only
     def log_hyperparams(  # type: ignore[override]
         self, params: Union[Dict[str, Any], Namespace], metrics: Optional[Dict[str, Any]] = None
@@ -174,6 +179,7 @@ class TensorBoardLogger(Logger, FabricTensorBoardLogger):
 
         return super().log_hyperparams(params=params, metrics=metrics)
 
+    @override
     @rank_zero_only
     def log_graph(  # type: ignore[override]
         self, model: "pl.LightningModule", input_array: Optional[Tensor] = None
@@ -200,6 +206,7 @@ class TensorBoardLogger(Logger, FabricTensorBoardLogger):
             with pl.core.module._jit_is_scripting():
                 self.experiment.add_graph(model, input_array)
 
+    @override
     @rank_zero_only
     def save(self) -> None:
         super().save()
@@ -212,6 +219,7 @@ class TensorBoardLogger(Logger, FabricTensorBoardLogger):
         if _is_dir(self._fs, dir_path) and not self._fs.isfile(hparams_file):
             save_hparams_to_yaml(hparams_file, self.hparams)
 
+    @override
     @rank_zero_only
     def finalize(self, status: str) -> None:
         super().finalize(status)
@@ -219,6 +227,7 @@ class TensorBoardLogger(Logger, FabricTensorBoardLogger):
             # saving hparams happens independent of experiment manager
             self.save()
 
+    @override
     def after_save_checkpoint(self, checkpoint_callback: ModelCheckpoint) -> None:
         """Called after model checkpoint callback saves a new checkpoint.
 
@@ -228,6 +237,7 @@ class TensorBoardLogger(Logger, FabricTensorBoardLogger):
         """
         pass
 
+    @override
     def _get_next_version(self) -> int:
         root_dir = self.root_dir
 
@@ -243,7 +253,8 @@ class TensorBoardLogger(Logger, FabricTensorBoardLogger):
             bn = os.path.basename(d)
             if _is_dir(self._fs, d) and bn.startswith("version_"):
                 dir_ver = bn.split("_")[1].replace("/", "")
-                existing_versions.append(int(dir_ver))
+                if dir_ver.isdigit():
+                    existing_versions.append(int(dir_ver))
         if len(existing_versions) == 0:
             return 0
 
