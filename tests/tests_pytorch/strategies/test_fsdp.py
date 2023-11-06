@@ -251,6 +251,7 @@ def test_fsdp_modules_without_parameters(tmp_path):
 
         def training_step(self, batch, batch_idx):
             loss = super().training_step(batch, batch_idx)
+            assert self.metric.device == self.metric.tp.device == torch.device("cuda", 0)
             self.metric(torch.rand(2, 10, device=self.device), torch.randint(0, 10, size=(2,), device=self.device))
             return loss
 
