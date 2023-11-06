@@ -12,6 +12,7 @@
 # limitations under the License.
 
 import os
+import uuid
 from typing import Any, List, Optional, Union
 
 import numpy as np
@@ -56,18 +57,13 @@ class StreamingDataset(IterableDataset):
 
         input_dir = _resolve_dir(input_dir)
 
-        # TODO: Why are we conflating input dir and cache dir into one thing? They are conceptually different!
-        # Override the provided input_path
-        cache_dir = _try_create_cache_dir()
-        if cache_dir:
-            input_dir.path = cache_dir
-
         self.input_dir = input_dir
         self.item_loader = item_loader
         self.shuffle: bool = shuffle
         self.drop_last = drop_last
         self.seed = seed
 
+        self.cache: Optional[Cache] = None
         self.distributed_env = _DistributedEnv.detect()
         self.worker_env: Optional[_WorkerEnv] = None
         self.worker_chunks: List[int] = []
@@ -81,16 +77,17 @@ class StreamingDataset(IterableDataset):
         self.random_state = None
         self.shuffler: Optional[Shuffle] = None
 
-    def __len__(self) -> int:
-        return self.shuffler.get_len(self.distributed_env, self.current_epoch)
-
-    def __iter__(self) -> "StreamingDataset":
+    def _setup_cache(self) -> None:
         if self.worker_env is None:
             self.worker_env = _WorkerEnv.detect()
 
         env = Environment(dist_env=self.distributed_env, worker_env=self.worker_env)
 
-        self.input_dir.path = os.path.join(self.input_dir.path, str(env.shard_rank))
+        # TODO: Why are we conflating input dir and cache dir into one thing? They are conceptually different!
+        # Override the provided input_path
+        cache_dir = _try_create_cache_dir(shard_rank=env.shard_rank)
+        if cache_dir:
+            self.input_dir.path = cache_dir
 
         self.cache = Cache(input_dir=self.input_dir, item_loader=self.item_loader, chunk_bytes=1)
         self.cache._reader._try_load_config()
@@ -102,8 +99,20 @@ class StreamingDataset(IterableDataset):
             )
 
         self.shuffler: Shuffle = (
-            FullShuffle(self.cache, self.seed, self.drop_last) if self.shuffle else NoShuffle(self.cache, self.seed, self.drop_last)
+            FullShuffle(self.cache, self.seed, self.drop_last) if self.shuffle else NoShuffle(self.cache, self.seed,
+                                                                                              self.drop_last)
         )
+
+    def __len__(self) -> int:
+        if self.cache is None:
+            self._setup_cache()
+        assert self.shuffler is not None
+        return self.shuffler.get_len(self.distributed_env, self.current_epoch)
+
+    def __iter__(self) -> "StreamingDataset":
+        if self.cache is None:
+            self._setup_cache()
+        assert self.cache is not None
 
         chunks_per_replica, intervals_per_replica = self.shuffler.get_chunks_and_intervals_per_ranks(
             self.distributed_env, self.current_epoch
@@ -127,6 +136,9 @@ class StreamingDataset(IterableDataset):
         return self
 
     def __getitem__(self, index: Union[ChunkedIndex, int]) -> Any:
+        if self.cache is None:
+            self._setup_cache()
+        assert self.cache is not None
         if isinstance(index, int):
             index = ChunkedIndex(index, self.cache._get_chunk_index_from_index(index))
         return self.cache[index]
@@ -166,9 +178,9 @@ class StreamingDataset(IterableDataset):
         return data
 
 
-def _try_create_cache_dir() -> Optional[str]:
+def _try_create_cache_dir(shard_rank: int = 0) -> Optional[str]:
     if "LIGHTNING_CLUSTER_ID" not in os.environ or "LIGHTNING_CLOUD_PROJECT_ID" not in os.environ:
         return None
-    cache_dir = os.path.join("/cache/chunks")
+    cache_dir = os.path.join("/cache", f"{shard_rank}", "chunks")
     os.makedirs(cache_dir, exist_ok=True)
     return cache_dir
