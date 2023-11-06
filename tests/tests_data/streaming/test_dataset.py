@@ -49,6 +49,15 @@ def test_streaming_dataset(tmpdir, monkeypatch):
     assert len(dataloader) == 408
 
 
+@mock.patch.dict(os.environ, {"LIGHTNING_CLUSTER_ID": "123", "LIGHTNING_CLOUD_PROJECT_ID": "456"})
+@mock.patch("lightning.data.streaming.dataset.os.makedirs")
+def test_create_cache_dir_in_lightning_cloud(makedirs_mock, tmpdir):
+    # Locally, we can't actually write to the root filesystem with user privileges, so we need to mock the call
+    with pytest.raises(FileNotFoundError, match="`/cache/chunks/275876e34cf609db118f3d84b799a790` doesn't exist"):
+        StreamingDataset("dummy")
+    makedirs_mock.assert_called_once_with("/cache/chunks/275876e34cf609db118f3d84b799a790", exist_ok=True)
+
+
 @pytest.mark.parametrize("drop_last", [False, True])
 def test_streaming_dataset_distributed_no_shuffle(drop_last, tmpdir):
     seed_everything(42)
@@ -232,11 +241,15 @@ def test_streaming_dataset_deepcopy(tmpdir, monkeypatch):
     assert len(batches) == 10
 
 
+@mock.patch.dict(os.environ, {"LIGHTNING_CLUSTER_ID": "123", "LIGHTNING_CLOUD_PROJECT_ID": "456"})
 def test_try_create_cache_dir(monkeypatch):
     os_mock = mock.MagicMock()
-    os_mock.getenv.return_value = "cluster_id"
     monkeypatch.setattr(dataset_module, "os", os_mock)
+    os_mock.environ = os.environ
     os_mock.path = os.path
 
-    assert _try_create_cache_dir("") != _try_create_cache_dir("ssdf")
-    assert _try_create_cache_dir("") == "/cache/chunks/d41d8cd98f00b204e9800998ecf8427e"
+    cache_dir_1 = _try_create_cache_dir("")
+    cache_dir_2 = _try_create_cache_dir("ssdf")
+    assert cache_dir_1 != cache_dir_2
+    assert cache_dir_1 == "/cache/chunks/d41d8cd98f00b204e9800998ecf8427e"
+    assert len(os_mock.makedirs._mock_mock_calls) == 2

@@ -11,6 +11,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import hashlib
 import os
 from typing import Any, List, Optional, Union
 
@@ -158,10 +159,8 @@ class StreamingDataset(IterableDataset):
 
 
 def _try_create_cache_dir(input_dir: str) -> Optional[str]:
-    if not os.getenv("LIGHTNING_CLUSTER_ID") or not os.getenv("LIGHTNING_CLOUD_PROJECT_ID"):
+    if "LIGHTNING_CLUSTER_ID" not in os.environ or "LIGHTNING_CLOUD_PROJECT_ID" not in os.environ:
         return None
-    import hashlib
-
     hash_object = hashlib.md5(input_dir.encode())
     cache_dir = os.path.join(f"/cache/chunks/{hash_object.hexdigest()}")
     os.makedirs(cache_dir, exist_ok=True)
