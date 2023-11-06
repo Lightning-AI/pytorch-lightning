@@ -10,7 +10,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import json
 import os
 import sys
 from functools import partial
@@ -21,13 +21,13 @@ import torch
 from lightning import seed_everything
 from lightning.data.datasets.env import _DistributedEnv
 from lightning.data.streaming import Cache
-from lightning.data.streaming import cache as cache_module
 from lightning.data.streaming.dataloader import StreamingDataLoader
 from lightning.data.streaming.dataset import StreamingDataset
 from lightning.data.streaming.item_loader import TokensLoader
 from lightning.fabric import Fabric
 from lightning.pytorch.demos.boring_classes import RandomDataset
 from lightning_utilities.core.imports import RequirementCache
+from lightning_utilities.test.warning import no_warning_call
 from torch.utils.data import DataLoader, Dataset
 
 _PIL_AVAILABLE = RequirementCache("PIL")
@@ -115,7 +115,7 @@ def _cache_for_image_dataset(num_workers, tmpdir, fabric=None):
 
     assert indexes2 != indexes
 
-    streaming_dataset = StreamingDataset(name="dummy", cache_dir=cache_dir)
+    streaming_dataset = StreamingDataset(input_dir=cache_dir)
     for i in range(len(streaming_dataset)):
         cached_data = streaming_dataset[i]
         original_data = dataset.data[i]
@@ -222,38 +222,20 @@ def test_cache_with_auto_wrapping(tmpdir):
             pass
 
 
-def test_cache_with_name(tmpdir, monkeypatch):
-    with pytest.raises(FileNotFoundError, match="The provided cache directory"):
-        Cache(name="something")
-
-    os.makedirs(os.path.join(tmpdir, "something"), exist_ok=True)
-    os.makedirs(os.path.join(tmpdir, "remote_dir"), exist_ok=True)
-    monkeypatch.setattr(cache_module, "_try_create_cache_dir", lambda name: os.path.join(tmpdir, name))
-
-    monkeypatch.setattr(
-        cache_module, "_find_remote_dir", lambda name, _: (os.path.join(tmpdir, "remote_dir", "version_0"), True)
-    )
-    cache = Cache(name="something")
-    assert cache._writer._chunk_size == 2
-    assert cache._writer._cache_dir == os.path.join(tmpdir, "something", "version_0")
-    assert cache._reader._remote_dir == os.path.join(tmpdir, "remote_dir", "version_0")
-
-
 def test_streaming_dataset(tmpdir, monkeypatch):
     seed_everything(42)
 
     os.makedirs(os.path.join(tmpdir, "remote_dir"), exist_ok=True)
-    monkeypatch.setattr(cache_module, "_try_create_cache_dir", lambda name: tmpdir)
 
-    with pytest.raises(ValueError, match="The provided dataset `choco` isn't filled up."):
-        dataset = StreamingDataset(name="choco", cache_dir=tmpdir)
+    with pytest.raises(ValueError, match="The provided dataset"):
+        dataset = StreamingDataset(input_dir=tmpdir)
 
     dataset = RandomDataset(128, 64)
     dataloader = StreamingDataLoader(dataset, cache_dir=tmpdir, chunk_bytes=2 << 12)
     for batch in dataloader:
         assert isinstance(batch, torch.Tensor)
 
-    dataset = StreamingDataset(name="choco", cache_dir=tmpdir, item_loader=TokensLoader(block_size=10))
+    dataset = StreamingDataset(input_dir=tmpdir, item_loader=TokensLoader(block_size=10))
 
     assert len(dataset) == 816
     dataset_iter = iter(dataset)
@@ -261,3 +243,35 @@ def test_streaming_dataset(tmpdir, monkeypatch):
 
     dataloader = DataLoader(dataset, num_workers=2, batch_size=2)
     assert len(dataloader) == 408
+
+
+def test_create_oversized_chunk_single_item(tmp_path):
+    cache = Cache(str(tmp_path), chunk_bytes=700)
+    with pytest.warns(UserWarning, match="An item was larger than the target chunk size"):
+        cache[0] = np.random.randint(0, 10, size=(10000,), dtype=np.uint8)
+
+
+def test_create_undersized_and_oversized_chunk(tmp_path):
+    cache = Cache(str(tmp_path), chunk_bytes=9000)  # target: 9KB chunks
+    with no_warning_call(UserWarning):
+        cache[0] = np.random.randint(0, 10, size=(500,), dtype=np.uint8)  # will result in undersized chunk
+        cache[1] = np.random.randint(0, 10, size=(10000,), dtype=np.uint8)  # will result in oversized chunk
+    with pytest.warns(UserWarning, match="An item was larger than the target chunk size"):
+        cache[2] = np.random.randint(0, 10, size=(150,), dtype=np.uint8)
+    with no_warning_call(UserWarning):
+        cache[3] = np.random.randint(0, 10, size=(200,), dtype=np.uint8)
+
+    cache.done()
+    cache.merge()
+
+    assert len(os.listdir(tmp_path)) == 4  # 3 chunks + 1 index file
+    with open(tmp_path / "index.json") as file:
+        index = json.load(file)
+
+    chunks = index["chunks"]
+    assert chunks[0]["chunk_size"] == 1
+    assert chunks[0]["filename"] == "chunk-0-0.bin"
+    assert chunks[1]["chunk_size"] == 1
+    assert chunks[1]["filename"] == "chunk-0-1.bin"
+    assert chunks[2]["chunk_size"] == 2
+    assert chunks[2]["filename"] == "chunk-0-2.bin"
