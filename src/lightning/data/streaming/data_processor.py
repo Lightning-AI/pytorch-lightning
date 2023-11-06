@@ -789,9 +789,7 @@ class DataProcessor:
                 num_workers=self.num_workers, user_items=user_items, weights=item_sizes
             )
         else:
-            workers_user_items = _map_items_to_workers_sequentially(
-                num_workers=self.num_workers, user_items=user_items
-            )
+            workers_user_items = _map_items_to_workers_sequentially(num_workers=self.num_workers, user_items=user_items)
 
         print(f"Setup finished in {round(time() - t0, 3)} seconds. Found {len(user_items)} items to process.")
 

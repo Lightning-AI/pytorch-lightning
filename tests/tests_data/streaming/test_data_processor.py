@@ -15,10 +15,10 @@ from lightning.data.streaming.data_processor import (
     DataChunkRecipe,
     DataProcessor,
     DataTransformRecipe,
-    _map_items_to_workers_sequentially,
-    _map_items_to_workers_weighted,
     _download_data_target,
     _get_item_filesizes,
+    _map_items_to_workers_weighted,
+    _map_items_to_workers_sequentially,
     _remove_target,
     _upload_fn,
     _wait_for_file_to_exist,
@@ -297,6 +297,53 @@ def test_map_items_to_workers_weighted(monkeypatch):
     assert workers_user_items == [[9, 21], [10, 22], [11, 23]]
     workers_user_items = _map_items_to_workers_weighted(4, list(range(32)))
     assert workers_user_items == [[12, 28], [13, 29], [14, 30], [15, 31]]
+
+
+def test_map_items_to_workers_sequentially(monkeypatch):
+    workers_user_items = _map_items_to_workers_sequentially(1, list(range(5)))
+    assert workers_user_items == [list(range(5))]
+    workers_user_items = _map_items_to_workers_sequentially(2, list(range(5)))
+    assert workers_user_items == [[0, 1], [2, 3, 4]]
+    workers_user_items = _map_items_to_workers_sequentially(3, list(range(5)))
+    assert workers_user_items == [[0], [1], [2, 3, 4]]
+    workers_user_items = _map_items_to_workers_sequentially(4, list(range(5)))
+    assert workers_user_items == [[0], [1], [2], [3, 4]]
+
+    monkeypatch.setenv("DATA_OPTIMIZER_NUM_NODES", "2")
+    monkeypatch.setenv("DATA_OPTIMIZER_NODE_RANK", "0")
+    workers_user_items = _map_items_to_workers_sequentially(1, list(range(5)))
+    assert workers_user_items == [[0, 1]]
+    workers_user_items = _map_items_to_workers_sequentially(2, list(range(5)))
+    assert workers_user_items == [[0], [1]]
+
+    monkeypatch.setenv("DATA_OPTIMIZER_NUM_NODES", "2")
+    monkeypatch.setenv("DATA_OPTIMIZER_NODE_RANK", "1")
+    workers_user_items = _map_items_to_workers_sequentially(1, list(range(5)))
+    assert workers_user_items == [[2, 3, 4]]
+    workers_user_items = _map_items_to_workers_sequentially(2, list(range(5)))
+    assert workers_user_items == [[2], [3, 4]]
+
+    monkeypatch.setenv("DATA_OPTIMIZER_NUM_NODES", "4")
+    monkeypatch.setenv("DATA_OPTIMIZER_NODE_RANK", "0")
+    workers_user_items = _map_items_to_workers_sequentially(1, list(range(32)))
+    assert workers_user_items == [[0, 1, 2, 3, 4, 5, 6, 7]]
+    workers_user_items = _map_items_to_workers_sequentially(2, list(range(32)))
+    assert workers_user_items == [[0, 1, 2, 3], [4, 5, 6, 7]]
+    workers_user_items = _map_items_to_workers_sequentially(3, list(range(32)))
+    assert workers_user_items == [[0, 1], [2, 3], [4, 5, 6, 7]]
+    workers_user_items = _map_items_to_workers_sequentially(4, list(range(32)))
+    assert workers_user_items == [[0, 1], [2, 3], [4, 5], [6, 7]]
+
+    monkeypatch.setenv("DATA_OPTIMIZER_NUM_NODES", "4")
+    monkeypatch.setenv("DATA_OPTIMIZER_NODE_RANK", "3")
+    workers_user_items = _map_items_to_workers_sequentially(1, list(range(32)))
+    assert workers_user_items == [[24, 25, 26, 27, 28, 29, 30, 31]]
+    workers_user_items = _map_items_to_workers_sequentially(2, list(range(32)))
+    assert workers_user_items == [[24, 25, 26, 27], [28, 29, 30, 31]]
+    workers_user_items = _map_items_to_workers_sequentially(3, list(range(32)))
+    assert workers_user_items == [[24, 25], [26, 27], [28, 29, 30, 31]]
+    workers_user_items = _map_items_to_workers_sequentially(4, list(range(32)))
+    assert workers_user_items == [[24, 25], [26, 27], [28, 29], [30, 31]]
 
 
 class CustomDataChunkRecipe(DataChunkRecipe):
