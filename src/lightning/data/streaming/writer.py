@@ -353,7 +353,7 @@ class BinaryWriter:
         # Only for non rank 0
         if self.rank != 0:
             while not os.path.exists(os.path.join(self._cache_dir, _INDEX_FILENAME)):
-                sleep(0.001)
+                sleep(0.01)
             return
 
         # Wait for all indexes to be available
@@ -369,7 +369,7 @@ class BinaryWriter:
 
             # When using the Data Optimizer, we don't use multi processes.
             is_done = len(index_files) == self._distributed_env.world_size * num_workers
-            sleep(0.001)
+            sleep(0.01)
 
         self._merge_no_wait(node_rank=node_rank)
 

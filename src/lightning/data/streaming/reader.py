@@ -66,7 +66,7 @@ class PrepareChunksThread(Thread):
         while True:
             with self._lock:
                 if len(self._chunks_index_to_be_processed) == 0 and len(self._chunks_index_to_be_deleted) == 0:
-                    sleep(0.0001)
+                    sleep(0.005)
                     continue
 
                 # Delete the chunks if we are missing disk space.
