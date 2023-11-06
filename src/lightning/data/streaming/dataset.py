@@ -76,7 +76,7 @@ class StreamingDataset(IterableDataset):
         self.random_state = None
         self.shuffler: Optional[Shuffle] = None
 
-    def _setup_cache(self) -> None:
+    def _setup(self) -> None:
         if self.worker_env is None:
             self.worker_env = _WorkerEnv.detect()
 
@@ -94,10 +94,10 @@ class StreamingDataset(IterableDataset):
         if not self.cache.filled:
             raise ValueError(
                 f"The provided dataset `{self.input_dir}` doesn't contain any {_INDEX_FILENAME} file."
-                " HINT: Did you successfully optimize a dataset to the provided `input_dir` ?"
+                " HINT: Did you successfully optimize a dataset to the provided `input_dir`?"
             )
 
-        self.shuffler: Shuffle = (
+        self.shuffler = (
             FullShuffle(self.cache, self.seed, self.drop_last)
             if self.shuffle
             else NoShuffle(self.cache, self.seed, self.drop_last)
@@ -105,14 +105,16 @@ class StreamingDataset(IterableDataset):
 
     def __len__(self) -> int:
         if self.cache is None:
-            self._setup_cache()
+            self._setup()
         assert self.shuffler is not None
         return self.shuffler.get_len(self.distributed_env, self.current_epoch)
 
     def __iter__(self) -> "StreamingDataset":
         if self.cache is None:
-            self._setup_cache()
+            self._setup()
         assert self.cache is not None
+        assert self.shuffler is not None
+        assert self.worker_env is not None
 
         chunks_per_replica, intervals_per_replica = self.shuffler.get_chunks_and_intervals_per_ranks(
             self.distributed_env, self.current_epoch
@@ -137,7 +139,7 @@ class StreamingDataset(IterableDataset):
 
     def __getitem__(self, index: Union[ChunkedIndex, int]) -> Any:
         if self.cache is None:
-            self._setup_cache()
+            self._setup()
         assert self.cache is not None
         if isinstance(index, int):
             index = ChunkedIndex(index, self.cache._get_chunk_index_from_index(index))
@@ -157,6 +159,8 @@ class StreamingDataset(IterableDataset):
 
             interval = self.worker_intervals[self.chunk_index]
             current_indexes = np.arange(interval[0], interval[1])
+
+            assert self.shuffler is not None
             self.current_indexes = self.shuffler(current_indexes)
             self.chunk_index += 1
 
