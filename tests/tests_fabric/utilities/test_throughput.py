@@ -33,7 +33,7 @@ def test_measure_flops():
     assert fwd_flops < fwd_and_bwd_flops
 
 
-def test_available_flops(xla_available):
+def test_get_available_flops(xla_available):
     with mock.patch("torch.cuda.get_device_name", return_value="NVIDIA H100 PCIe"):
         flops = get_available_flops(torch.device("cuda"), torch.bfloat16)
     assert flops == 1.513e15 / 2
@@ -59,6 +59,30 @@ def test_available_flops(xla_available):
         assert get_available_flops(torch.device("xla"), torch.bfloat16) is None
 
     tpu.reset_mock()
+
+
+@pytest.mark.parametrize(
+    "device_name",
+    [
+        # TODO: We need to represent the real names here
+        "h100-hbm3",
+        "NVIDIA H100 PCIe",
+        "h100-hbm2e",
+        "NVIDIA A100 80GB PCIe",
+        "NVIDIA A100-SXM4-40GB",
+        "NVIDIA A10G",
+        "Tesla V100-SXm2-32GB",
+        "Tesla V100-PCIE-32GB",
+        "Tesla V100S-PCIE-32GB",
+        "Tesla T4",
+        "Quadro RTX 5000 with Max-Q Design",
+    ],
+)
+@mock.patch("lightning.fabric.accelerators.cuda._is_ampere_or_later", return_value=False)
+def test_get_available_flops_cuda_mapping_exists(_, device_name):
+    """Tests `get_available_flops` against known device names."""
+    with mock.patch("lightning.fabric.utilities.throughput.torch.cuda.get_device_name", return_value=device_name):
+        assert get_available_flops(device=torch.device("cuda"), dtype=torch.float32) is not None
 
 
 def test_throughput():
