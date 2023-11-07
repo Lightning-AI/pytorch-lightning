@@ -11,6 +11,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import copy
 import hashlib
 import os
 from typing import Any, List, Optional, Union
@@ -82,11 +83,12 @@ class StreamingDataset(IterableDataset):
 
         # TODO: Why are we conflating input dir and cache dir into one thing? They are conceptually different!
         # Override the provided input_path
-        cache_dir = _try_create_cache_dir(input_dir=self.input_dir.path, shard_rank=env.shard_rank)
-        if cache_dir:
-            self.input_dir.path = cache_dir
+        cache_path = _try_create_cache_dir(input_dir=self.input_dir.path, shard_rank=env.shard_rank)
+        cache_dir = copy.deepcopy(self.input_dir)
+        if cache_path:
+            cache_dir.path = cache_path
 
-        cache = Cache(input_dir=self.input_dir, item_loader=self.item_loader, chunk_bytes=1)
+        cache = Cache(input_dir=cache_dir, item_loader=self.item_loader, chunk_bytes=1)
         cache._reader._try_load_config()
 
         if not cache.filled:
@@ -111,9 +113,8 @@ class StreamingDataset(IterableDataset):
 
     def __iter__(self) -> "StreamingDataset":
         self.worker_env = _WorkerEnv.detect()
-        if self.cache is None:
-            self.cache = self._create_cache(worker_env=self.worker_env)
-            self.shuffler = self._create_shuffler(self.cache)
+        self.cache = self._create_cache(worker_env=self.worker_env)
+        self.shuffler = self._create_shuffler(self.cache)
         assert self.cache is not None
         assert self.shuffler is not None
         assert self.worker_env is not None
