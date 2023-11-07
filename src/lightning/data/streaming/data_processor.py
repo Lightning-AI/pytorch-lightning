@@ -25,7 +25,7 @@ from lightning.data.streaming.constants import (
     _BOTO3_AVAILABLE,
     _DEFAULT_FAST_DEV_RUN_ITEMS,
     _INDEX_FILENAME,
-    _LIGHTNING_CLOUD_GREATER_EQUAL_0_5_50,
+    _LIGHTNING_CLOUD_LATEST,
     _TORCH_GREATER_EQUAL_2_1_0,
 )
 from lightning.data.utilities.packing import _pack_greedily
@@ -40,7 +40,7 @@ from lightning.fabric.utilities.distributed import group as _group
 if _TORCH_GREATER_EQUAL_2_1_0:
     from torch.utils._pytree import tree_flatten, tree_unflatten, treespec_loads
 
-if _LIGHTNING_CLOUD_GREATER_EQUAL_0_5_50:
+if _LIGHTNING_CLOUD_LATEST:
     from lightning_cloud.openapi import V1DatasetType
     from lightning_cloud.resolver import _resolve_dir
     from lightning_cloud.utils.dataset import _create_dataset
