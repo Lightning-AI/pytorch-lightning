@@ -119,7 +119,6 @@ class StreamingDataset(IterableDataset):
         assert self.shuffler is not None
         assert self.worker_env is not None
 
-        # self.worker_env = _WorkerEnv.detect()
         print(self.worker_env.rank)
 
         chunks_per_replica, intervals_per_replica = self.shuffler.get_chunks_and_intervals_per_ranks(
@@ -144,17 +143,15 @@ class StreamingDataset(IterableDataset):
         return self
 
     def __getitem__(self, index: Union[ChunkedIndex, int]) -> Any:
-        if self.cache is None:
-            self._setup()
-        assert self.cache is not None
+        self.worker_env = _WorkerEnv.detect()
+        self.cache = self._create_cache(worker_env=self.worker_env)
+        self.shuffler = self._create_shuffler(self.cache)
         if isinstance(index, int):
             index = ChunkedIndex(index, self.cache._get_chunk_index_from_index(index))
         return self.cache[index]
 
     def __next__(self) -> Any:
         # Prevent to create more batch on a given process
-        # self.worker_env = _WorkerEnv.detect()
-        # print("next", self.worker_env.rank)
 
         if self.index >= len(self):
             self.current_epoch += 1
