@@ -223,7 +223,7 @@ def test_wait_for_file_to_exist():
 
 
 def test_broadcast_object(tmpdir, monkeypatch):
-    data_processor = DataProcessor(input_dir=tmpdir)
+    data_processor = DataProcessor(input_dir=str(tmpdir))
     assert data_processor._broadcast_object("dummy") == "dummy"
     monkeypatch.setenv("DATA_OPTIMIZER_NUM_NODES", "2")
     monkeypatch.setattr(data_processor_module, "_distributed_is_initialized", lambda: True)
@@ -244,7 +244,7 @@ def test_cache_dir_cleanup(tmpdir, monkeypatch):
 
     assert os.listdir(cache_dir) == ["a.txt"]
 
-    data_processor = DataProcessor(input_dir=tmpdir)
+    data_processor = DataProcessor(input_dir=str(tmpdir))
     monkeypatch.setenv("DATA_OPTIMIZER_CACHE_FOLDER", str(cache_dir))
     monkeypatch.setenv("DATA_OPTIMIZER_DATA_CACHE_FOLDER", str(cache_data_dir))
     data_processor._cleanup_cache()
@@ -568,7 +568,7 @@ def test_data_processsor_nlp(tmpdir, monkeypatch):
     with open(os.path.join(tmpdir, "dummy.txt"), "w") as f:
         f.write("Hello World !")
 
-    data_processor = DataProcessor(input_dir=tmpdir, num_workers=1, num_downloaders=1)
+    data_processor = DataProcessor(input_dir=str(tmpdir), num_workers=1, num_downloaders=1)
     data_processor.run(TextTokenizeRecipe(chunk_size=1024 * 11))
 
 
