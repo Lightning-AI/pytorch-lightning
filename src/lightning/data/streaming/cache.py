@@ -57,8 +57,6 @@ class Cache:
 
         Arguments:
             input_dir: The path to where the chunks will be or are stored.
-            name: The name of dataset in the cloud.
-            version: The version of the dataset in the cloud to use. By default, we will use the latest.
             compression: The name of the algorithm to reduce the size of the chunks.
             chunk_bytes: The maximum number of bytes within a chunk.
             chunk_size: The maximum number of items within a chunk.
