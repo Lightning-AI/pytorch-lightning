@@ -68,7 +68,6 @@ class PrepareChunksThread(Thread):
     def run(self) -> None:
         while True:
             with self._lock:
-
                 # Wait for something to do
                 if len(self._chunks_index_to_be_downloaded) == 0 and len(self._chunks_index_to_be_deleted) == 0:
                     sleep(0.01)
@@ -87,7 +86,7 @@ class PrepareChunksThread(Thread):
                 if len(self._chunks_index_to_be_downloaded) == 0:
                     continue
 
-                # If we have already downloaded too many chunks, let's wait for training to catch up. 
+                # If we have already downloaded too many chunks, let's wait for training to catch up.
                 if self._max_cache_size and (self._downloaded_chunks - self._deleted_files) > self._pre_download:
                     sleep(0.01)
                     continue
