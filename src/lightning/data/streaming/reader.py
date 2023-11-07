@@ -47,7 +47,7 @@ class PrepareChunksThread(Thread):
         self._delete_chunks = 0
         self._pre_download = pre_download
 
-    def add(self, chunk_indices: List[int]) -> None:
+    def download(self, chunk_indices: List[int]) -> None:
         """Receive the list of the chunk indices to download for the current epoch."""
         with self._lock:
             for chunk_indice in chunk_indices:
@@ -192,18 +192,17 @@ class BinaryReader:
                 self._prepare_thread.start()
                 if index.chunk_indexes:
                     self._chunks_index_to_be_downloaded.extend(index.chunk_indexes)
-                    self._prepare_thread.add(index.chunk_indexes)
+                    self._prepare_thread.download(index.chunk_indexes)
 
             # If the chunk_index isn't already in the download and delete queues, add it.
             if index.chunk_index != self._last_chunk_index:
                 assert self._prepare_thread
 
-                print(self._last_chunk_index, index.chunk_index)
                 if self._last_chunk_index:
                     self._prepare_thread.delete([self._last_chunk_index])
 
                 self._last_chunk_index = index.chunk_index
-                self._prepare_thread.add([index.chunk_index])
+                self._prepare_thread.download([index.chunk_index])
 
         # Fetch the element
         chunk_filepath, begin, _ = self.config[index]
