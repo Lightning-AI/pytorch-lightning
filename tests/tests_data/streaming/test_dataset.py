@@ -37,19 +37,22 @@ def test_streaming_dataset(tmpdir, monkeypatch):
     with pytest.raises(ValueError, match="The provided dataset"):
         _ = dataset[0]
 
-    dataset = RandomDataset(128, 64)
-    dataloader = DataLoader(dataset)
-    for batch in dataloader:
-        assert isinstance(batch, torch.Tensor)
+    cache = Cache(tmpdir, chunk_size=10)
+    for i in range(12):
+        cache[i] = i
+    cache.done()
+    cache.merge()
 
-    dataset = StreamingDataset(input_dir=tmpdir, item_loader=TokensLoader(block_size=10))
+    dataset = StreamingDataset(input_dir=tmpdir)
 
-    assert len(dataset) == 816
+    assert len(dataset) == 12
     dataset_iter = iter(dataset)
-    assert len(dataset_iter) == 816
+    assert len(dataset_iter) == 12
 
+    dataloader = DataLoader(dataset, num_workers=2, batch_size=1)
+    assert len(dataloader) == 12
     dataloader = DataLoader(dataset, num_workers=2, batch_size=2)
-    assert len(dataloader) == 408
+    assert len(dataloader) == 6
 
 
 @mock.patch.dict(os.environ, {"LIGHTNING_CLUSTER_ID": "123", "LIGHTNING_CLOUD_PROJECT_ID": "456"})
