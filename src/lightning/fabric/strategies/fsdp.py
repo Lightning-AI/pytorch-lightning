@@ -36,6 +36,7 @@ import torch
 from torch import Tensor
 from torch.nn import Module, Parameter
 from torch.optim import Optimizer
+from torchmetrics import Metric
 from typing_extensions import TypeGuard
 
 from lightning.fabric.accelerators import Accelerator
@@ -291,6 +292,10 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
                 device_id=self.root_device.index,
                 **self._fsdp_kwargs,
             )
+
+        # FSDP doesn't move modules without parameters (e.g. Metrics) to the device
+        # https://github.com/pytorch/pytorch/issues/113113
+        _move_torchmetrics_to_device(module, self.root_device)
 
         # activation checkpointing needs to be set up after wrapping the model
         if _TORCH_GREATER_EQUAL_1_13:
@@ -886,3 +891,8 @@ def _has_meta_device_parameters(obj: Union[Module, Optimizer]) -> bool:
     if isinstance(obj, Module):
         return any(t.is_meta for t in obj.parameters())
     raise TypeError(f"Expected `torch.nn.Module` or `torch.optim.Optimizer`, got: {type(obj).__name__}")
+
+
+def _move_torchmetrics_to_device(module: torch.nn.Module, device: torch.device) -> None:
+    for metric in (m for m in module.modules() if isinstance(m, Metric)):
+        metric.to(device)

@@ -22,7 +22,6 @@ import torch
 from torch import Tensor
 from torch.nn import Module
 from torch.optim import Optimizer
-from torchmetrics import Metric
 
 import lightning.pytorch as pl
 from lightning.fabric.plugins import CheckpointIO, ClusterEnvironment
@@ -40,6 +39,7 @@ from lightning.fabric.strategies.fsdp import (
     _is_full_checkpoint,
     _is_sharded_checkpoint,
     _load_raw_module_state,
+    _move_torchmetrics_to_device,
     _optimizer_has_flat_params,
     _setup_activation_checkpointing,
 )
@@ -294,6 +294,7 @@ class FSDPStrategy(ParallelStrategy):
             )
 
         # FSDP doesn't move modules without parameters (e.g. Metrics) to the device
+        # https://github.com/pytorch/pytorch/issues/113113
         _move_torchmetrics_to_device(model, self.root_device)
 
         # activation checkpointing needs to be set up after wrapping the model
@@ -641,8 +642,3 @@ class FSDPStrategy(ParallelStrategy):
             f"The path {str(path)!r} does not point to a valid checkpoint. Make sure the path points to either a"
             " directory with FSDP checkpoint shards, or a single file with a full checkpoint."
         )
-
-
-def _move_torchmetrics_to_device(module: torch.nn.Module, device: torch.device) -> None:
-    for metric in (m for m in module.modules() if isinstance(m, Metric)):
-        metric.to(device)
