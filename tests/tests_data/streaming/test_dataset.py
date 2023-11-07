@@ -12,7 +12,6 @@
 # limitations under the License.
 
 import os
-from re import escape
 from unittest import mock
 
 import pytest
@@ -54,11 +53,11 @@ def test_streaming_dataset(tmpdir, monkeypatch):
 
 @mock.patch.dict(os.environ, {"LIGHTNING_CLUSTER_ID": "123", "LIGHTNING_CLOUD_PROJECT_ID": "456"})
 @mock.patch("lightning.data.streaming.dataset.os.makedirs")
-def test_create_cache_dir_in_lightning_cloud(makedirs_mock, tmpdir):
+def test_create_cache_dir_in_lightning_cloud(makedirs_mock):
     # Locally, we can't actually write to the root filesystem with user privileges, so we need to mock the call
     dataset = StreamingDataset("dummy")
-    expected = os.path.join("/cache", "chunks", "146c0ce47c4c6cf79b3994030ba73ff8", "0")
-    with pytest.raises(FileNotFoundError, match=escape(f"`{expected}` doesn't exist")):
+    expected = os.path.join("/cache", "chunks", "275876e34cf609db118f3d84b799a790", "0")
+    with pytest.raises(FileNotFoundError, match=f"`{expected}` doesn't exist"):
         iter(dataset)
     makedirs_mock.assert_called_once_with(expected, exist_ok=True)
 
