@@ -27,20 +27,20 @@ from torch.utils.data import DataLoader
 def test_streaming_dataset(tmpdir, monkeypatch):
     seed_everything(42)
 
-    dataset = StreamingDataset(input_dir=tmpdir)
+    dataset = StreamingDataset(input_dir=str(tmpdir))
     with pytest.raises(ValueError, match="The provided dataset"):
         iter(dataset)
-    dataset = StreamingDataset(input_dir=tmpdir)
+    dataset = StreamingDataset(input_dir=str(tmpdir))
     with pytest.raises(ValueError, match="The provided dataset"):
         _ = dataset[0]
 
-    cache = Cache(tmpdir, chunk_size=10)
+    cache = Cache(str(tmpdir), chunk_size=10)
     for i in range(12):
         cache[i] = i
     cache.done()
     cache.merge()
 
-    dataset = StreamingDataset(input_dir=tmpdir)
+    dataset = StreamingDataset(input_dir=str(tmpdir))
 
     assert len(dataset) == 12
     dataset_iter = iter(dataset)
@@ -54,7 +54,7 @@ def test_streaming_dataset(tmpdir, monkeypatch):
 
 @mock.patch.dict(os.environ, {"LIGHTNING_CLUSTER_ID": "123", "LIGHTNING_CLOUD_PROJECT_ID": "456"})
 @mock.patch("lightning.data.streaming.dataset.os.makedirs")
-def test_create_cache_dir_in_lightning_cloud(makedirs_mock, tmpdir):
+def test_create_cache_dir_in_lightning_cloud(makedirs_mock):
     # Locally, we can't actually write to the root filesystem with user privileges, so we need to mock the call
     dataset = StreamingDataset("dummy")
     expected = os.path.join("/cache", "chunks", "275876e34cf609db118f3d84b799a790", "0")
@@ -67,14 +67,14 @@ def test_create_cache_dir_in_lightning_cloud(makedirs_mock, tmpdir):
 def test_streaming_dataset_distributed_no_shuffle(drop_last, tmpdir):
     seed_everything(42)
 
-    cache = Cache(tmpdir, chunk_size=10)
+    cache = Cache(str(tmpdir), chunk_size=10)
     for i in range(101):
         cache[i] = i
 
     cache.done()
     cache.merge()
 
-    dataset = StreamingDataset(input_dir=tmpdir, shuffle=False, drop_last=drop_last)
+    dataset = StreamingDataset(input_dir=str(tmpdir), shuffle=False, drop_last=drop_last)
     assert not dataset.shuffle
     _ = dataset[0]  # init shuffler
     assert isinstance(dataset.shuffler, NoShuffle)
@@ -98,7 +98,7 @@ def test_streaming_dataset_distributed_no_shuffle(drop_last, tmpdir):
     assert process_1_2[:10] == [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
     assert len(process_1_2) == 50 + int(not drop_last)
 
-    dataset = StreamingDataset(input_dir=tmpdir, shuffle=False, drop_last=drop_last)
+    dataset = StreamingDataset(input_dir=str(tmpdir), shuffle=False, drop_last=drop_last)
     dataset.distributed_env = _DistributedEnv(2, 1)
     assert len(dataset) == 50
     dataset_iter = iter(dataset)
@@ -148,14 +148,14 @@ def test_streaming_dataset_distributed_no_shuffle(drop_last, tmpdir):
 def test_streaming_dataset_distributed_full_shuffle_odd(drop_last, tmpdir):
     seed_everything(42)
 
-    cache = Cache(input_dir=tmpdir, chunk_size=10)
+    cache = Cache(input_dir=str(tmpdir), chunk_size=10)
     for i in range(1097):
         cache[i] = i
 
     cache.done()
     cache.merge()
 
-    dataset = StreamingDataset(input_dir=tmpdir, shuffle=True, drop_last=drop_last)
+    dataset = StreamingDataset(input_dir=str(tmpdir), shuffle=True, drop_last=drop_last)
     assert dataset.shuffle
     _ = dataset[0]
     assert isinstance(dataset.shuffler, FullShuffle)
@@ -171,7 +171,7 @@ def test_streaming_dataset_distributed_full_shuffle_odd(drop_last, tmpdir):
     assert process_1_1[:10] == [785, 788, 782, 783, 789, 787, 786, 781, 784, 780]
     assert len(process_1_1) == 548
 
-    dataset_2 = StreamingDataset(input_dir=tmpdir, shuffle=True, drop_last=drop_last)
+    dataset_2 = StreamingDataset(input_dir=str(tmpdir), shuffle=True, drop_last=drop_last)
     iter(dataset_2)
     assert isinstance(dataset_2.shuffler, FullShuffle)
     dataset_2.distributed_env = _DistributedEnv(2, 1)
@@ -188,14 +188,14 @@ def test_streaming_dataset_distributed_full_shuffle_odd(drop_last, tmpdir):
 def test_streaming_dataset_distributed_full_shuffle_even(drop_last, tmpdir):
     seed_everything(42)
 
-    cache = Cache(tmpdir, chunk_size=10)
+    cache = Cache(str(tmpdir), chunk_size=10)
     for i in range(1222):
         cache[i] = i
 
     cache.done()
     cache.merge()
 
-    dataset = StreamingDataset(input_dir=tmpdir, shuffle=True, drop_last=drop_last)
+    dataset = StreamingDataset(input_dir=str(tmpdir), shuffle=True, drop_last=drop_last)
     assert dataset.shuffle
     _ = dataset[0]
     assert isinstance(dataset.shuffler, FullShuffle)
@@ -211,7 +211,7 @@ def test_streaming_dataset_distributed_full_shuffle_even(drop_last, tmpdir):
     assert process_1_1[:10] == [185, 184, 182, 189, 187, 181, 183, 180, 186, 188]
     assert len(process_1_1) == 611
 
-    dataset_2 = StreamingDataset(input_dir=tmpdir, shuffle=True, drop_last=drop_last)
+    dataset_2 = StreamingDataset(input_dir=str(tmpdir), shuffle=True, drop_last=drop_last)
     iter(dataset_2)
     assert isinstance(dataset_2.shuffler, FullShuffle)
     dataset_2.distributed_env = _DistributedEnv(2, 1)
@@ -256,14 +256,14 @@ def test_streaming_dataset_deepcopy(tmpdir, monkeypatch):
 
 def test_dataset_cache_recreation(tmpdir):
     """Test that we recreate the cache and other objects only when appropriate."""
-    cache = Cache(tmpdir, chunk_size=10)
+    cache = Cache(str(tmpdir), chunk_size=10)
     for i in range(10):
         cache[i] = i
     cache.done()
     cache.merge()
 
     # repated `len()` calls
-    dataset = StreamingDataset(input_dir=tmpdir)
+    dataset = StreamingDataset(input_dir=str(tmpdir))
     assert not dataset.cache
     assert not dataset.shuffler
     len(dataset)
@@ -274,7 +274,7 @@ def test_dataset_cache_recreation(tmpdir):
     assert dataset.shuffler is shuffler
 
     # repeated `iter()` calls
-    dataset = StreamingDataset(input_dir=tmpdir)
+    dataset = StreamingDataset(input_dir=str(tmpdir))
     assert not dataset.cache
     assert not dataset.shuffler
     iter(dataset)
@@ -289,7 +289,7 @@ def test_dataset_cache_recreation(tmpdir):
     assert dataset.shuffler is not shuffler  # shuffler gets recreated
 
     # repeated `getitem()` calls
-    dataset = StreamingDataset(input_dir=tmpdir)
+    dataset = StreamingDataset(input_dir=str(tmpdir))
     assert not dataset.cache
     assert not dataset.shuffler
     _ = dataset[0]
