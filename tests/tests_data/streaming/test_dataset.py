@@ -56,10 +56,10 @@ def test_streaming_dataset(tmpdir, monkeypatch):
 @mock.patch("lightning.data.streaming.dataset.os.makedirs")
 def test_create_cache_dir_in_lightning_cloud(makedirs_mock, tmpdir):
     # Locally, we can't actually write to the root filesystem with user privileges, so we need to mock the call
-    StreamingDataset("dummy")
-    with pytest.raises(FileNotFoundError, match="`/cache/chunks/275876e34cf609db118f3d84b799a790` doesn't exist"):
+    dataset = StreamingDataset("dummy")
+    with pytest.raises(FileNotFoundError, match="`/cache/275876e34cf609db118f3d84b799a790/0/chunks` doesn't exist"):
         iter(dataset)
-    makedirs_mock.assert_called_once_with("/cache/chunks/275876e34cf609db118f3d84b799a790", exist_ok=True)
+    makedirs_mock.assert_called_once_with("/cache/275876e34cf609db118f3d84b799a790/0/chunks", exist_ok=True)
 
 
 @pytest.mark.parametrize("drop_last", [False, True])
