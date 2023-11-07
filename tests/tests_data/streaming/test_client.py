@@ -1,6 +1,8 @@
+import sys
 from time import sleep, time
 from unittest import mock
 
+import pytest
 from lightning.data.streaming import client
 
 
@@ -21,6 +23,7 @@ def test_s3_client_without_cloud_space_id(monkeypatch):
     boto3.client.assert_called_once()
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason="not supported on windows")
 def test_s3_client_with_cloud_space_id(monkeypatch):
     boto3 = mock.MagicMock()
     monkeypatch.setattr(client, "boto3", boto3)
