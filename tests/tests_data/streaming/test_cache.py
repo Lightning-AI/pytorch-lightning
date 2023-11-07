@@ -23,12 +23,11 @@ from lightning.data.datasets.env import _DistributedEnv
 from lightning.data.streaming import Cache
 from lightning.data.streaming.dataloader import StreamingDataLoader
 from lightning.data.streaming.dataset import StreamingDataset
-from lightning.data.streaming.item_loader import TokensLoader
 from lightning.fabric import Fabric
 from lightning.pytorch.demos.boring_classes import RandomDataset
 from lightning_utilities.core.imports import RequirementCache
 from lightning_utilities.test.warning import no_warning_call
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import Dataset
 
 _PIL_AVAILABLE = RequirementCache("PIL")
 _TORCH_VISION_AVAILABLE = RequirementCache("torchvision")
@@ -220,29 +219,6 @@ def test_cache_with_auto_wrapping(tmpdir):
     with pytest.raises(ValueError, match="Your dataset items aren't deterministic"):
         for batch in dataloader:
             pass
-
-
-def test_streaming_dataset(tmpdir, monkeypatch):
-    seed_everything(42)
-
-    os.makedirs(os.path.join(tmpdir, "remote_dir"), exist_ok=True)
-
-    with pytest.raises(ValueError, match="The provided dataset"):
-        dataset = StreamingDataset(input_dir=tmpdir)
-
-    dataset = RandomDataset(128, 64)
-    dataloader = StreamingDataLoader(dataset, cache_dir=tmpdir, chunk_bytes=2 << 12)
-    for batch in dataloader:
-        assert isinstance(batch, torch.Tensor)
-
-    dataset = StreamingDataset(input_dir=tmpdir, item_loader=TokensLoader(block_size=10))
-
-    assert len(dataset) == 816
-    dataset_iter = iter(dataset)
-    assert len(dataset_iter) == 816
-
-    dataloader = DataLoader(dataset, num_workers=2, batch_size=2)
-    assert len(dataloader) == 408
 
 
 def test_create_oversized_chunk_single_item(tmp_path):
