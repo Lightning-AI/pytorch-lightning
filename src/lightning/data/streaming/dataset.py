@@ -96,7 +96,7 @@ class StreamingDataset(IterableDataset):
                 f"The provided dataset `{self.input_dir}` doesn't contain any {_INDEX_FILENAME} file."
                 " HINT: Did you successfully optimize a dataset to the provided `input_dir`?"
             )
-        
+
         return cache
 
     def _create_shuffler(self, cache: Cache) -> Shuffle:
