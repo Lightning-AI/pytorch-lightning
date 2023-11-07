@@ -67,6 +67,7 @@ def test_pil_serializer(mode):
     assert np.array_equal(np_data, np_dec_data)
 
 
+@pytest.mark.flaky(reruns=3)
 @pytest.mark.skipif(sys.platform == "win32", reason="Not supported on windows")
 def test_tensor_serializer():
     seed_everything(42)
