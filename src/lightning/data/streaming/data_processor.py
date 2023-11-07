@@ -28,6 +28,7 @@ from lightning.data.streaming.constants import (
     _LIGHTNING_CLOUD_GREATER_EQUAL_0_5_50,
     _TORCH_GREATER_EQUAL_2_1_0,
 )
+from lightning.data.utilities.packing import _pack_greedily
 from lightning.fabric.accelerators.cuda import is_cuda_available
 from lightning.fabric.plugins.environments import LightningEnvironment
 from lightning.fabric.utilities.distributed import (
@@ -205,13 +206,11 @@ def _upload_fn(upload_queue: Queue, remove_queue: Queue, cache_dir: str, output_
             remove_queue.put([local_filepath])
 
 
-def _associated_items_to_workers(num_workers: int, user_items: List[Any]) -> Tuple[List[int], List[List[Any]]]:
-    # Associate the items to the workers based on number of nodes and node rank.
+def _map_items_to_workers_sequentially(num_workers: int, user_items: List[Any]) -> List[List[Any]]:
     num_nodes = _get_num_nodes()
     current_node_rank = _get_node_rank()
     node_size = len(user_items) // num_nodes
     workers_user_items = []
-    begins = []
     for node_rank in range(num_nodes):
         if node_rank != current_node_rank:
             continue
@@ -225,9 +224,44 @@ def _associated_items_to_workers(num_workers: int, user_items: List[Any]) -> Tup
             begin = worker_idx * worker_size
             end = len(node_user_items) if is_last else (worker_idx + 1) * worker_size
             workers_user_items.append(node_user_items[begin:end])
-            begins.append(begin)
-        return begins, workers_user_items
-    raise RuntimeError(f"The current_node_rank {current_node_rank} doesn't exist in {num_nodes}.")
+    return workers_user_items
+
+
+def _map_items_to_workers_weighted(
+    num_workers: int, user_items: List[Any], weights: Optional[List[int]] = None
+) -> List[List[Any]]:
+    # Associate the items to the workers based on number of nodes and node rank.
+    weights = [1] * len(user_items) if weights is None else weights
+    num_nodes = _get_num_nodes()
+    node_rank = _get_node_rank()
+    world_size = num_nodes * num_workers
+
+    worker_items, worker_weights = _pack_greedily(items=user_items, weights=weights, num_bins=world_size)
+    worker_ids_this_node = range(node_rank * num_workers, (node_rank + 1) * num_workers)
+
+    for worker_id, size in worker_weights.items():
+        if worker_id not in worker_ids_this_node:
+            continue
+        print(f"Worker {worker_id} gets {size / 1e6:.1f} MB ({len(worker_items[worker_id])} files)")
+
+    return [worker_items[worker_id] for worker_id in worker_ids_this_node]
+
+
+def _get_item_filesizes(items: List[Any], base_path: str = "") -> List[int]:
+    """Computes the total size in bytes of all file paths for every datastructure in the given list."""
+    item_sizes = []
+    for item in items:
+        flattened_item, spec = tree_flatten(item)
+
+        num_bytes = 0
+        for index, element in enumerate(flattened_item):
+            if isinstance(element, str) and element.startswith(base_path) and os.path.exists(element):
+                file_bytes = os.path.getsize(element)
+                if file_bytes == 0:
+                    raise RuntimeError(f"The file {element} has 0 bytes!")
+                num_bytes += file_bytes
+        item_sizes.append(num_bytes)
+    return item_sizes
 
 
 class BaseWorker:
@@ -235,7 +269,6 @@ class BaseWorker:
         self,
         worker_index: int,
         num_workers: int,
-        start_index: int,
         node_rank: int,
         data_recipe: "DataRecipe",
         input_dir: Dir,
@@ -250,7 +283,6 @@ class BaseWorker:
         """The BaseWorker is responsible to process the user data."""
         self.worker_index = worker_index
         self.num_workers = num_workers
-        self.start_index = start_index
         self.node_rank = node_rank
         self.data_recipe = data_recipe
         self.input_dir = input_dir
@@ -692,6 +724,7 @@ class DataProcessor:
         delete_cached_files: bool = True,
         fast_dev_run: Optional[Union[bool, int]] = None,
         random_seed: Optional[int] = 42,
+        reorder_files: bool = True,
     ):
         """The `DatasetOptimiser` provides an efficient way to process data across multiple machine into chunks to make
         training faster.
@@ -704,6 +737,8 @@ class DataProcessor:
             delete_cached_files: Whether to delete the cached files.
             fast_dev_run: Whether to run a quick dev run.
             random_seed: The random seed to be set before shuffling the data.
+            reorder_files: By default, reorders the files by file size to distribute work equally among all workers.
+                Set this to ``False`` if the order in which samples are processed should be preserved.
 
         """
         self.input_dir = _resolve_dir(input_dir)
@@ -717,6 +752,7 @@ class DataProcessor:
         self.progress_queue: Optional[Queue] = None
         self.error_queue: Queue = Queue()
         self.stop_queues: List[Queue] = []
+        self.reorder_files = reorder_files
 
         if self.input_dir:
             # Ensure the input dir is the same across all nodes
@@ -746,8 +782,15 @@ class DataProcessor:
         if not isinstance(user_items, list):
             raise ValueError("The `prepare_structure` should return a list of item metadata.")
 
-        # Associate the items to the workers based on num_nodes and node_rank
-        begins, workers_user_items = _associated_items_to_workers(self.num_workers, user_items)
+        if self.reorder_files:
+            # TODO: Only do this on node 0, and broadcast the item sizes to the other nodes.
+            item_sizes = _get_item_filesizes(user_items, base_path=self.input_dir.path)
+            workers_user_items = _map_items_to_workers_weighted(
+                num_workers=self.num_workers, user_items=user_items, weights=item_sizes
+            )
+        else:
+            workers_user_items = _map_items_to_workers_sequentially(num_workers=self.num_workers, user_items=user_items)
+
         print(f"Setup finished in {round(time() - t0, 3)} seconds. Found {len(user_items)} items to process.")
 
         if self.fast_dev_run:
@@ -767,7 +810,7 @@ class DataProcessor:
 
         signal.signal(signal.SIGINT, self._signal_handler)
 
-        self._create_process_workers(data_recipe, begins, workers_user_items)
+        self._create_process_workers(data_recipe, workers_user_items)
 
         print("Workers are ready ! Starting data processing...")
 
@@ -835,9 +878,7 @@ class DataProcessor:
             w.join(0)
         raise RuntimeError(f"We found the following error {error}.")
 
-    def _create_process_workers(
-        self, data_recipe: DataRecipe, begins: List[int], workers_user_items: List[List[Any]]
-    ) -> None:
+    def _create_process_workers(self, data_recipe: DataRecipe, workers_user_items: List[List[Any]]) -> None:
         self.progress_queue = Queue()
         workers: List[DataWorkerProcess] = []
         stop_queues: List[Queue] = []
@@ -846,7 +887,6 @@ class DataProcessor:
             worker = DataWorkerProcess(
                 worker_idx,
                 self.num_workers,
-                begins[worker_idx],
                 _get_node_rank(),
                 data_recipe,
                 self.input_dir,
