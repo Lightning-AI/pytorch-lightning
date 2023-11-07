@@ -20,10 +20,10 @@ from typing import Any, Callable, Optional, Sequence, Union
 
 import torch
 
-from lightning.data.streaming.constants import _LIGHTNING_CLOUD_GREATER_EQUAL_0_5_50, _TORCH_GREATER_EQUAL_2_1_0
+from lightning.data.streaming.constants import _LIGHTNING_CLOUD_LATEST, _TORCH_GREATER_EQUAL_2_1_0
 from lightning.data.streaming.data_processor import DataChunkRecipe, DataProcessor, DataTransformRecipe
 
-if _LIGHTNING_CLOUD_GREATER_EQUAL_0_5_50:
+if _LIGHTNING_CLOUD_LATEST:
     from lightning_cloud.resolver import _assert_dir_has_index_file, _assert_dir_is_empty, _execute, _resolve_dir
 
 if _TORCH_GREATER_EQUAL_2_1_0:
