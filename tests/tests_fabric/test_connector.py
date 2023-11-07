@@ -871,7 +871,7 @@ def test_strategy_str_passed_being_case_insensitive(_, strategy, strategy_cls):
 
 
 @pytest.mark.parametrize(
-    "precision,expected",
+    ("precision", "expected"),
     [
         (None, Precision),
         ("64-true", DoublePrecision),
