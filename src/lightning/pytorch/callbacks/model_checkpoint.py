@@ -389,7 +389,12 @@ class ModelCheckpoint(Checkpoint):
                 os.remove(linkpath)
             elif os.path.isdir(linkpath):
                 shutil.rmtree(linkpath)
-            os.symlink(filepath, linkpath)
+            try:
+                os.symlink(filepath, linkpath)
+            except OSError:
+                # on Windows, special permissions are required to create symbolic links as a regular user
+                # fall back to copying the file
+                shutil.copy(filepath, linkpath)
         trainer.strategy.barrier()
 
     def _should_skip_saving_checkpoint(self, trainer: "pl.Trainer") -> bool:
