@@ -113,9 +113,6 @@ class StreamingDataset(IterableDataset):
         self.worker_env = _WorkerEnv.detect()
         self.cache = self._create_cache(worker_env=self.worker_env)
         self.shuffler = self._create_shuffler(self.cache)
-        assert self.cache is not None
-        assert self.shuffler is not None
-        assert self.worker_env is not None
 
         chunks_per_replica, intervals_per_replica = self.shuffler.get_chunks_and_intervals_per_ranks(
             self.distributed_env, self.current_epoch
