@@ -38,7 +38,7 @@ def test_streaming_dataset(tmpdir, monkeypatch):
         _ = dataset[0]
 
     dataset = RandomDataset(128, 64)
-    dataloader = StreamingDataLoader(dataset, cache_dir=tmpdir, chunk_bytes=2 << 12)
+    dataloader = DataLoader(dataset)
     for batch in dataloader:
         assert isinstance(batch, torch.Tensor)
 
