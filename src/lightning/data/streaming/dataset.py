@@ -107,9 +107,10 @@ class StreamingDataset(IterableDataset):
         )
 
     def __len__(self) -> int:
-        cache = self._create_cache(worker_env=_WorkerEnv.detect())
-        shuffler = self._create_shuffler(cache)
-        return shuffler.get_len(self.distributed_env, self.current_epoch)
+        if self.shuffler is None:
+            cache = self._create_cache(worker_env=_WorkerEnv.detect())
+            self.shuffler = self._create_shuffler(cache)
+        return self.shuffler.get_len(self.distributed_env, self.current_epoch)
 
     def __iter__(self) -> "StreamingDataset":
         self.worker_env = _WorkerEnv.detect()
@@ -143,9 +144,10 @@ class StreamingDataset(IterableDataset):
         return self
 
     def __getitem__(self, index: Union[ChunkedIndex, int]) -> Any:
-        self.worker_env = _WorkerEnv.detect()
-        self.cache = self._create_cache(worker_env=self.worker_env)
-        self.shuffler = self._create_shuffler(self.cache)
+        if self.cache is None:
+            self.worker_env = _WorkerEnv.detect()
+            self.cache = self._create_cache(worker_env=self.worker_env)
+            self.shuffler = self._create_shuffler(self.cache)
         if isinstance(index, int):
             index = ChunkedIndex(index, self.cache._get_chunk_index_from_index(index))
         return self.cache[index]
