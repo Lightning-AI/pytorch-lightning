@@ -14,7 +14,9 @@
 import math
 from collections import OrderedDict
 from typing import Any, Dict, Optional, Union
+
 from typing_extensions import override
+
 import lightning.pytorch as pl
 from lightning.pytorch import loops  # import as loops to avoid circular imports
 from lightning.pytorch.loops.fetchers import _DataFetcher, _DataLoaderIterDataFetcher

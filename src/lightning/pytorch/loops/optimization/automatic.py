@@ -14,11 +14,11 @@
 from dataclasses import dataclass, field
 from functools import partial
 from typing import Any, Callable, Dict, Mapping, Optional, OrderedDict
-from typing_extensions import override
 
 import torch
 from torch import Tensor
 from torch.optim import Optimizer
+from typing_extensions import override
 
 import lightning.pytorch as pl
 from lightning.pytorch.loops.loop import _Loop

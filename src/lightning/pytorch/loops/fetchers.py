@@ -13,7 +13,9 @@
 # limitations under the License.
 
 from typing import Any, Iterator, List, Optional
+
 from typing_extensions import override
+
 from lightning.fabric.utilities.data import sized_len
 from lightning.pytorch.utilities.combined_loader import _ITERATOR_RETURN, CombinedLoader
 from lightning.pytorch.utilities.exceptions import MisconfigurationException

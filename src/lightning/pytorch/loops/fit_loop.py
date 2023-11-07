@@ -13,8 +13,9 @@
 # limitations under the License.
 import logging
 from typing import Optional, Union
-from typing_extensions import override
+
 import torch
+from typing_extensions import override
 
 import lightning.pytorch as pl
 from lightning.fabric.utilities.data import _set_sampler_epoch, sized_len

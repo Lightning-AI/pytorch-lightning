@@ -13,7 +13,9 @@
 # limitations under the License.
 from dataclasses import asdict, dataclass, field
 from typing import Type
+
 from typing_extensions import override
+
 
 @dataclass
 class _BaseProgress:
