@@ -42,7 +42,9 @@ class PrepareChunksThread(Thread):
         self._lock = Lock()
         self._max_cache_size = max_cache_size
         self._downloaded_chunks = 0
-        self._deleted_files = 0
+        self._processed_chunks = 0
+        self._processed_chunks_counter = 0
+        self._delete_chunks = 0
         self._pre_download = pre_download
 
     def add(self, chunk_indices: List[int]) -> None:
@@ -58,6 +60,8 @@ class PrepareChunksThread(Thread):
             for chunk_indice in chunk_indices:
                 if chunk_indice not in self._chunks_index_to_be_deleted:
                     self._chunks_index_to_be_deleted.append(chunk_indice)
+                    self._processed_chunks += 1
+                    self._processed_chunks_counter += 1
 
     def _delete(self, chunk_index: int) -> None:
         chunk_filepath, begin, _ = self._config[ChunkedIndex(index=-1, chunk_index=chunk_index)]
@@ -68,27 +72,27 @@ class PrepareChunksThread(Thread):
     def run(self) -> None:
         while True:
             with self._lock:
-
                 # Wait for something to do
                 if len(self._chunks_index_to_be_downloaded) == 0 and len(self._chunks_index_to_be_deleted) == 0:
                     sleep(0.01)
                     continue
 
                 # Delete the chunks if we are missing disk space.
-                if self._max_cache_size and len(self._chunks_index_to_be_deleted) > self._pre_download:
+                if self._max_cache_size and self._processed_chunks_counter >= self._pre_download:
                     if shutil.disk_usage(self._config._cache_dir).total >= self._max_cache_size:
                         for chunk_index in self._chunks_index_to_be_deleted:
                             if chunk_index not in self._chunks_index_to_be_downloaded:
                                 self._delete(chunk_index)
-                                self._deleted_files += 1
+                                self._delete_chunks += 1
+                                self._processed_chunks_counter = 0
                     self._chunks_index_to_be_deleted = []
 
                 # If there is no chunks to download, go back to waiting
                 if len(self._chunks_index_to_be_downloaded) == 0:
                     continue
 
-                # If we have already downloaded too many chunks, let's wait for training to catch up. 
-                if self._max_cache_size and (self._downloaded_chunks - self._deleted_files) > self._pre_download:
+                # If we have already downloaded too many chunks, let's wait for processed chunks to catch up
+                if self._max_cache_size and (self._downloaded_chunks - self._processed_chunks) > self._pre_download:
                     sleep(0.01)
                     continue
 
@@ -194,6 +198,7 @@ class BinaryReader:
             if index.chunk_index != self._last_chunk_index:
                 assert self._prepare_thread
 
+                print(self._last_chunk_index, index.chunk_index)
                 if self._last_chunk_index:
                     self._prepare_thread.delete([self._last_chunk_index])
 
