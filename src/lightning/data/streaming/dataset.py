@@ -85,7 +85,7 @@ class StreamingDataset(IterableDataset):
 
         # TODO: Why are we conflating input dir and cache dir into one thing? They are conceptually different!
         # Override the provided input_path
-        cache_dir = _try_create_cache_dir(shard_rank=env.shard_rank)
+        cache_dir = _try_create_cache_dir(input_dir=self.input_dir.path, shard_rank=env.shard_rank)
         if cache_dir:
             self.input_dir.path = cache_dir
 
@@ -187,6 +187,6 @@ def _try_create_cache_dir(input_dir: str, shard_rank: int = 0) -> Optional[str]:
     if "LIGHTNING_CLUSTER_ID" not in os.environ or "LIGHTNING_CLOUD_PROJECT_ID" not in os.environ:
         return None
     hash_object = hashlib.md5(input_dir.encode())
-    cache_dir = os.path.join("/cache", f"{hash_object.hexdigest()}", f"{shard_rank}", "chunks")
+    cache_dir = os.path.join("/cache", hash_object.hexdigest(), str(shard_rank), "chunks")
     os.makedirs(cache_dir, exist_ok=True)
     return cache_dir

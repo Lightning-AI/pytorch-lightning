@@ -253,23 +253,21 @@ def test_streaming_dataset_deepcopy(tmpdir, monkeypatch):
     assert len(batches) == 10
 
 
-@mock.patch.dict(os.environ, {"LIGHTNING_CLUSTER_ID": "123", "LIGHTNING_CLOUD_PROJECT_ID": "456"})
-@mock.patch("lightning.data.streaming.dataset.os.makedirs")
-def test_try_create_cache_dir(makedirs, monkeypatch):
-    cache_dir_1 = _try_create_cache_dir("")
-    cache_dir_2 = _try_create_cache_dir("ssdf")
-    assert cache_dir_1 != cache_dir_2
-    assert cache_dir_1 == "/cache/chunks/d41d8cd98f00b204e9800998ecf8427e"
-    assert len(makedirs._mock_mock_calls) == 2
-
-
 def test_try_create_cache_dir():
     with mock.patch.dict(os.environ, {}, clear=True):
-        assert _try_create_cache_dir() is None
+        assert _try_create_cache_dir("any") is None
 
     # the cache dir creating at /cache requires root privileges, so we need to mock `os.makedirs()`
-    with mock.patch.dict(
-        "os.environ", {"LIGHTNING_CLUSTER_ID": "abc", "LIGHTNING_CLOUD_PROJECT_ID": "123"}
-    ), mock.patch("lightning.data.streaming.dataset.os.makedirs"):
-        assert _try_create_cache_dir() == "/cache/0/chunks"
-        assert _try_create_cache_dir(shard_rank=3) == "/cache/3/chunks"
+    with (
+        mock.patch.dict("os.environ", {"LIGHTNING_CLUSTER_ID": "abc", "LIGHTNING_CLOUD_PROJECT_ID": "123"}),
+        mock.patch("lightning.data.streaming.dataset.os.makedirs") as makedirs_mock,
+    ):
+        cache_dir_1 = _try_create_cache_dir("")
+        cache_dir_2 = _try_create_cache_dir("ssdf")
+        assert cache_dir_1 != cache_dir_2
+        assert cache_dir_1 == "/cache/d41d8cd98f00b204e9800998ecf8427e/0/chunks"
+        assert len(makedirs_mock.mock_calls) == 2
+
+        assert _try_create_cache_dir("dir", shard_rank=0) == "/cache/736007832d2167baaae763fd3a3f3cf1/0/chunks"
+        assert _try_create_cache_dir("dir", shard_rank=1) == "/cache/736007832d2167baaae763fd3a3f3cf1/1/chunks"
+        assert _try_create_cache_dir("dir", shard_rank=2) == "/cache/736007832d2167baaae763fd3a3f3cf1/2/chunks"
