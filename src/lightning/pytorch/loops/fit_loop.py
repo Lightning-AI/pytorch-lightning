@@ -13,7 +13,7 @@
 # limitations under the License.
 import logging
 from typing import Optional, Union
-
+from typing_extensions import override
 import torch
 
 import lightning.pytorch as pl
@@ -117,6 +117,7 @@ class _FitLoop(_Loop):
         return self.epoch_loop.max_steps
 
     @_Loop.restarting.setter
+    @override
     def restarting(self, restarting: bool) -> None:
         # if the last epoch completely finished, we are not actually restarting
         values = self.epoch_progress.current.ready, self.epoch_progress.current.started

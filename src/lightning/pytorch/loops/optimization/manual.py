@@ -15,6 +15,7 @@ from collections import OrderedDict
 from contextlib import suppress
 from dataclasses import dataclass, field
 from typing import Any, Dict
+from typing_extensions import override
 
 from torch import Tensor
 
@@ -59,6 +60,7 @@ class ManualResult(OutputResult):
 
         return cls(extra=extra)
 
+    @override
     def asdict(self) -> Dict[str, Any]:
         return self.extra
 
