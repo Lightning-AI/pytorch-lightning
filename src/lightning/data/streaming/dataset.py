@@ -183,8 +183,7 @@ class StreamingDataset(IterableDataset):
         return data
 
 
-def _try_create_cache_dir(input_dir: str, hard_rank: int = 0) -> Optional[str]:
-def _try_create_cache_dir() -> Optional[str]:
+def _try_create_cache_dir(input_dir: str, shard_rank: int = 0) -> Optional[str]:
     if "LIGHTNING_CLUSTER_ID" not in os.environ or "LIGHTNING_CLOUD_PROJECT_ID" not in os.environ:
         return None
     hash_object = hashlib.md5(input_dir.encode())
