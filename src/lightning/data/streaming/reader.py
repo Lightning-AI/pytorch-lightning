@@ -90,10 +90,10 @@ class BinaryReader:
     def __init__(
         self,
         cache_dir: str,
+        max_cache_size: int,
         remote_input_dir: Optional[str] = None,
         compression: Optional[str] = None,
         item_loader: Optional[BaseItemLoader] = None,
-        max_cache_size: Optional[int] = None,
     ) -> None:
         """The BinaryReader enables to read chunked dataset in an efficient way.
 
@@ -126,7 +126,7 @@ class BinaryReader:
         self._chunks_index_to_be_processed: List[int] = []
         self._item_loader = item_loader or PyTreeLoader()
         self._last_chunk_index: Optional[int] = None
-        self._max_cache_size = max_cache_size or os.getenv("MAX_CACHE_SIZE")
+        self._max_cache_size = int(os.getenv("MAX_CACHE_SIZE", max_cache_size))
 
     def _get_chunk_index_from_index(self, index: int) -> int:
         # Load the config containing the index
