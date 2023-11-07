@@ -146,7 +146,6 @@ class StreamingDataset(IterableDataset):
 
     def __next__(self) -> Any:
         # Prevent to create more batch on a given process
-
         if self.index >= len(self):
             self.current_epoch += 1
             raise StopIteration
