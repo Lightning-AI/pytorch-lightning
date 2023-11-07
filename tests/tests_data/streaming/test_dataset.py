@@ -252,6 +252,54 @@ def test_streaming_dataset_deepcopy(tmpdir, monkeypatch):
     assert len(batches) == 10
 
 
+def test_dataset_cache_recreation(tmpdir):
+    """Test that we recreate the cache and other objects only when appropriate."""
+    cache = Cache(tmpdir, chunk_size=10)
+    for i in range(10):
+        cache[i] = i
+    cache.done()
+    cache.merge()
+
+    # repated `len()` calls
+    dataset = StreamingDataset(input_dir=tmpdir)
+    assert not dataset.cache
+    assert not dataset.shuffler
+    len(dataset)
+    assert not dataset.cache
+    shuffler = dataset.shuffler
+    assert isinstance(shuffler, NoShuffle)
+    len(dataset)
+    assert dataset.shuffler is shuffler
+
+    # repeated `iter()` calls
+    dataset = StreamingDataset(input_dir=tmpdir)
+    assert not dataset.cache
+    assert not dataset.shuffler
+    iter(dataset)
+    cache = dataset.cache
+    shuffler = dataset.shuffler
+    assert isinstance(cache, Cache)
+    assert isinstance(shuffler, NoShuffle)
+    iter(dataset)
+    assert isinstance(dataset.cache, Cache)
+    assert isinstance(dataset.shuffler, NoShuffle)
+    assert dataset.cache is not cache  # cache gets recreated
+    assert dataset.shuffler is not shuffler  # shuffler gets recreated
+
+    # repeated `getitem()` calls
+    dataset = StreamingDataset(input_dir=tmpdir)
+    assert not dataset.cache
+    assert not dataset.shuffler
+    _ = dataset[0]
+    cache = dataset.cache
+    shuffler = dataset.shuffler
+    assert isinstance(cache, Cache)
+    assert isinstance(shuffler, NoShuffle)
+    _ = dataset[1]
+    assert dataset.cache is cache  # cache gets reused
+    assert dataset.shuffler is shuffler  # shuffler gets reused
+
+
 def test_try_create_cache_dir():
     with mock.patch.dict(os.environ, {}, clear=True):
         assert _try_create_cache_dir("any") is None
