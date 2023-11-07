@@ -120,8 +120,6 @@ class StreamingDataset(IterableDataset):
         assert self.shuffler is not None
         assert self.worker_env is not None
 
-        print(self.worker_env.rank)
-
         chunks_per_replica, intervals_per_replica = self.shuffler.get_chunks_and_intervals_per_ranks(
             self.distributed_env, self.current_epoch
         )
