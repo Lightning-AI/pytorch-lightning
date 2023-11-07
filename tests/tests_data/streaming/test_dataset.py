@@ -56,9 +56,9 @@ def test_streaming_dataset(tmpdir, monkeypatch):
 def test_create_cache_dir_in_lightning_cloud(makedirs_mock, tmpdir):
     # Locally, we can't actually write to the root filesystem with user privileges, so we need to mock the call
     dataset = StreamingDataset("dummy")
-    with pytest.raises(FileNotFoundError, match="`/cache/275876e34cf609db118f3d84b799a790/0/chunks` doesn't exist"):
+    with pytest.raises(FileNotFoundError, match="`/cache/chunks/275876e34cf609db118f3d84b799a790/0` doesn't exist"):
         iter(dataset)
-    makedirs_mock.assert_called_once_with("/cache/275876e34cf609db118f3d84b799a790/0/chunks", exist_ok=True)
+    makedirs_mock.assert_called_once_with("/cache/chunks/275876e34cf609db118f3d84b799a790/0", exist_ok=True)
 
 
 @pytest.mark.parametrize("drop_last", [False, True])
@@ -312,9 +312,9 @@ def test_try_create_cache_dir():
         cache_dir_1 = _try_create_cache_dir("")
         cache_dir_2 = _try_create_cache_dir("ssdf")
         assert cache_dir_1 != cache_dir_2
-        assert cache_dir_1 == "/cache/d41d8cd98f00b204e9800998ecf8427e/0/chunks"
+        assert cache_dir_1 == "/cache/chunks/d41d8cd98f00b204e9800998ecf8427e/0"
         assert len(makedirs_mock.mock_calls) == 2
 
-        assert _try_create_cache_dir("dir", shard_rank=0) == "/cache/736007832d2167baaae763fd3a3f3cf1/0/chunks"
-        assert _try_create_cache_dir("dir", shard_rank=1) == "/cache/736007832d2167baaae763fd3a3f3cf1/1/chunks"
-        assert _try_create_cache_dir("dir", shard_rank=2) == "/cache/736007832d2167baaae763fd3a3f3cf1/2/chunks"
+        assert _try_create_cache_dir("dir", shard_rank=0) == "/cache/chunks/736007832d2167baaae763fd3a3f3cf1/0"
+        assert _try_create_cache_dir("dir", shard_rank=1) == "/cache/chunks/736007832d2167baaae763fd3a3f3cf1/1"
+        assert _try_create_cache_dir("dir", shard_rank=2) == "/cache/chunks/736007832d2167baaae763fd3a3f3cf1/2"

@@ -185,6 +185,6 @@ def _try_create_cache_dir(input_dir: str, shard_rank: int = 0) -> Optional[str]:
     if "LIGHTNING_CLUSTER_ID" not in os.environ or "LIGHTNING_CLOUD_PROJECT_ID" not in os.environ:
         return None
     hash_object = hashlib.md5(input_dir.encode())
-    cache_dir = os.path.join("/cache", hash_object.hexdigest(), str(shard_rank), "chunks")
+    cache_dir = os.path.join("/cache", "chunks", hash_object.hexdigest(), str(shard_rank))
     os.makedirs(cache_dir, exist_ok=True)
     return cache_dir
