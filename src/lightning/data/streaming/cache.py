@@ -50,7 +50,7 @@ class Cache:
         chunk_size: Optional[int] = None,
         chunk_bytes: Optional[Union[int, str]] = None,
         item_loader: Optional[BaseItemLoader] = None,
-        max_cache_size: Optional[Union[int, str]] = "200GB",
+        max_cache_size: Union[int, str] = "200GB",
     ):
         """The Cache enables to optimise dataset format for cloud training. This is done by grouping several elements
         together in order to accelerate fetching.
@@ -72,9 +72,6 @@ class Cache:
 
         if not _LIGHTNING_CLOUD_GREATER_EQUAL_0_5_50:
             raise ModuleNotFoundError("Lightning Cloud 0.5.50 or higher is required to use the cache.")
-
-        if max_cache_size is None:
-            raise ValueError("The provided `max_cache_size` should be defined.")
 
         input_dir = _resolve_dir(input_dir)
         self._cache_dir = input_dir.path
