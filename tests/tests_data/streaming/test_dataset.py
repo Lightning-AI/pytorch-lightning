@@ -316,6 +316,12 @@ def test_try_create_cache_dir():
         assert cache_dir_1 == os.path.join("/cache", "chunks", "d41d8cd98f00b204e9800998ecf8427e", "0")
         assert len(makedirs_mock.mock_calls) == 2
 
-        assert _try_create_cache_dir("dir", shard_rank=0) == os.path.join("/cache", "chunks", "736007832d2167baaae763fd3a3f3cf1", "0")
-        assert _try_create_cache_dir("dir", shard_rank=1) == os.path.join("/cache", "chunks", "736007832d2167baaae763fd3a3f3cf1", "1")
-        assert _try_create_cache_dir("dir", shard_rank=2) == os.path.join("/cache", "chunks", "736007832d2167baaae763fd3a3f3cf1", "2")
+        assert _try_create_cache_dir("dir", shard_rank=0) == os.path.join(
+            "/cache", "chunks", "736007832d2167baaae763fd3a3f3cf1", "0"
+        )
+        assert _try_create_cache_dir("dir", shard_rank=1) == os.path.join(
+            "/cache", "chunks", "736007832d2167baaae763fd3a3f3cf1", "1"
+        )
+        assert _try_create_cache_dir("dir", shard_rank=2) == os.path.join(
+            "/cache", "chunks", "736007832d2167baaae763fd3a3f3cf1", "2"
+        )
