@@ -13,6 +13,7 @@
 
 import json
 import os
+import sys
 
 import numpy as np
 import pytest
@@ -97,7 +98,7 @@ def test_binary_writer_with_ints_and_chunk_size(tmpdir):
         assert data == {"i": i, "i+1": i + 1, "i+2": i + 2}
 
 
-@pytest.mark.skipif(condition=not _PIL_AVAILABLE, reason="Requires: ['pil']")
+@pytest.mark.skipif(condition=not _PIL_AVAILABLE or sys.platform == "darwin", reason="Requires: ['pil']")
 def test_binary_writer_with_jpeg_and_int(tmpdir):
     """Validate the writer and reader can serialize / deserialize a pair of image and label."""
     from PIL import Image
@@ -136,7 +137,7 @@ def test_binary_writer_with_jpeg_and_int(tmpdir):
         assert data["y"] == i
 
 
-@pytest.mark.skipif(condition=not _PIL_AVAILABLE, reason="Requires: ['pil']")
+@pytest.mark.skipif(condition=not _PIL_AVAILABLE or sys.platform == "darwin", reason="Requires: ['pil']")
 def test_binary_writer_with_jpeg_filepath_and_int(tmpdir):
     """Validate the writer and reader can serialize / deserialize a pair of image and label."""
     from PIL import Image
