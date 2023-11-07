@@ -25,37 +25,10 @@ from lightning.data.datasets.env import _DistributedEnv, _WorkerEnv
 from lightning.data.streaming.compression import _COMPRESSORS, Compressor
 from lightning.data.streaming.constants import _INDEX_FILENAME, _TORCH_GREATER_EQUAL_2_1_0
 from lightning.data.streaming.serializers import _SERIALIZERS, Serializer
-from lightning.data.utilities.format import _human_readable_bytes
+from lightning.data.utilities.format import _convert_bytes_to_int, _human_readable_bytes
 
 if _TORCH_GREATER_EQUAL_2_1_0:
     from torch.utils._pytree import PyTree, tree_flatten, treespec_dumps
-
-
-_FORMAT_TO_RATIO = {
-    "kb": 1024,
-    "mb": 1024**2,
-    "gb": 1024**3,
-    "tb": 1024**4,
-    "pb": 1024**5,
-    "eb": 1024**6,
-    "zb": 1024**7,
-    "yb": 1024**8,
-}
-
-
-def _convert_bytes_to_int(bytes_str: str) -> int:
-    """Convert human-readable byte format to an integer."""
-    for suffix in _FORMAT_TO_RATIO:
-        bytes_str = bytes_str.lower().strip()
-        if bytes_str.lower().endswith(suffix):
-            try:
-                return int(float(bytes_str[0 : -len(suffix)]) * _FORMAT_TO_RATIO[suffix])
-            except ValueError:
-                raise ValueError(
-                    f"Unsupported value/suffix {bytes_str}. Supported suffix are "
-                    f'{["b"] + list(_FORMAT_TO_RATIO.keys())}.'
-                )
-    raise ValueError(f"The supported units are {_FORMAT_TO_RATIO.keys()}")
 
 
 @dataclass
@@ -380,7 +353,7 @@ class BinaryWriter:
         # Only for non rank 0
         if self.rank != 0:
             while not os.path.exists(os.path.join(self._cache_dir, _INDEX_FILENAME)):
-                sleep(0.001)
+                sleep(0.01)
             return
 
         # Wait for all indexes to be available
@@ -396,7 +369,7 @@ class BinaryWriter:
 
             # When using the Data Optimizer, we don't use multi processes.
             is_done = len(index_files) == self._distributed_env.world_size * num_workers
-            sleep(0.001)
+            sleep(0.01)
 
         self._merge_no_wait(node_rank=node_rank)
 

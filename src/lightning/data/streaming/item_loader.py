@@ -67,12 +67,15 @@ class PyTreeLoader(BaseItemLoader):
     def load_item_from_chunk(self, index: int, chunk_index: int, chunk_filepath: str, begin: int) -> bytes:
         offset = (1 + (index - begin) if index >= begin else index + 1) * 4
 
+        if chunk_filepath in self._chunk_filepaths and not os.path.isfile(chunk_filepath):
+            del self._chunk_filepaths[chunk_filepath]
+
         if chunk_filepath not in self._chunk_filepaths:
             while not os.path.exists(chunk_filepath):
-                sleep(0.001)
+                sleep(0.01)
 
             # Wait to avoid any corruption when the file appears
-            sleep(0.001)
+            sleep(0.01)
             self._chunk_filepaths[chunk_filepath] = True
 
         with open(chunk_filepath, "rb", 0) as fp:
@@ -111,6 +114,7 @@ class TokensLoader(BaseItemLoader):
         self._mmaps: Dict[int, np.memmap] = {}
         self._buffers: Dict[int, bytes] = {}
         self._dtype: Optional[torch.dtype] = None
+        self._chunk_filepaths: Dict[str, bool] = {}
 
     def setup(self, config: Dict, chunks: List) -> None:
         super().setup(config, chunks)
@@ -131,8 +135,16 @@ class TokensLoader(BaseItemLoader):
         return self._intervals
 
     def load_item_from_chunk(self, index: int, chunk_index: int, chunk_filepath: str, begin: int) -> torch.Tensor:
-        while not os.path.exists(chunk_filepath):
-            sleep(0.0001)
+        if chunk_filepath in self._chunk_filepaths and not os.path.isfile(chunk_filepath):
+            del self._chunk_filepaths[chunk_filepath]
+
+        if chunk_filepath not in self._chunk_filepaths:
+            while not os.path.exists(chunk_filepath):
+                sleep(0.01)
+
+            # Wait to avoid any corruption when the file appears
+            sleep(0.01)
+            self._chunk_filepaths[chunk_filepath] = True
 
         if chunk_index not in self._mmaps:
             # TODO: Add deletion and memmap close
