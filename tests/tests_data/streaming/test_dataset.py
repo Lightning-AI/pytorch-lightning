@@ -15,15 +15,11 @@ import os
 from unittest import mock
 
 import pytest
-import torch
 from lightning import seed_everything
 from lightning.data.datasets.env import _DistributedEnv
 from lightning.data.streaming import Cache
-from lightning.data.streaming.dataloader import StreamingDataLoader
 from lightning.data.streaming.dataset import StreamingDataset, _try_create_cache_dir
-from lightning.data.streaming.item_loader import TokensLoader
 from lightning.data.streaming.shuffle import FullShuffle, NoShuffle
-from lightning.pytorch.demos.boring_classes import RandomDataset
 from torch.utils.data import DataLoader
 
 
