@@ -80,9 +80,6 @@ class StreamingDataset(IterableDataset):
 
     def _create_cache(self, worker_env: _WorkerEnv) -> Cache:
         env = Environment(dist_env=self.distributed_env, worker_env=worker_env)
-
-        # TODO: Why are we conflating input dir and cache dir into one thing? They are conceptually different!
-        # Override the provided input_path
         cache_path = _try_create_cache_dir(input_dir=self.input_dir.path, shard_rank=env.shard_rank)
         cache_dir = copy.deepcopy(self.input_dir)
         if cache_path:
