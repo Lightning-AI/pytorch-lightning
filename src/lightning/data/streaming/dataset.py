@@ -77,11 +77,8 @@ class StreamingDataset(IterableDataset):
         self.random_state = None
         self.shuffler: Optional[Shuffle] = None
 
-    def _setup(self) -> None:
-        if self.worker_env is None:
-            self.worker_env = _WorkerEnv.detect()
-
-        env = Environment(dist_env=self.distributed_env, worker_env=self.worker_env)
+    def _create_cache(self, worker_env: _WorkerEnv) -> Cache:
+        env = Environment(dist_env=self.distributed_env, worker_env=worker_env)
 
         # TODO: Why are we conflating input dir and cache dir into one thing? They are conceptually different!
         # Override the provided input_path
@@ -89,33 +86,40 @@ class StreamingDataset(IterableDataset):
         if cache_dir:
             self.input_dir.path = cache_dir
 
-        self.cache = Cache(input_dir=self.input_dir, item_loader=self.item_loader, chunk_bytes=1)
-        self.cache._reader._try_load_config()
+        cache = Cache(input_dir=self.input_dir, item_loader=self.item_loader, chunk_bytes=1)
+        cache._reader._try_load_config()
 
-        if not self.cache.filled:
+        if not cache.filled:
             raise ValueError(
                 f"The provided dataset `{self.input_dir}` doesn't contain any {_INDEX_FILENAME} file."
                 " HINT: Did you successfully optimize a dataset to the provided `input_dir`?"
             )
+        
+        return cache
 
-        self.shuffler = (
-            FullShuffle(self.cache, self.seed, self.drop_last)
+    def _create_shuffler(self, cache: Cache) -> Shuffle:
+        return (
+            FullShuffle(cache, self.seed, self.drop_last)
             if self.shuffle
-            else NoShuffle(self.cache, self.seed, self.drop_last)
+            else NoShuffle(cache, self.seed, self.drop_last)
         )
 
     def __len__(self) -> int:
-        if self.cache is None:
-            self._setup()
-        assert self.shuffler is not None
-        return self.shuffler.get_len(self.distributed_env, self.current_epoch)
+        cache = self._create_cache(worker_env=_WorkerEnv.detect())
+        shuffler = self._create_shuffler(cache)
+        return shuffler.get_len(self.distributed_env, self.current_epoch)
 
     def __iter__(self) -> "StreamingDataset":
+        self.worker_env = _WorkerEnv.detect()
         if self.cache is None:
-            self._setup()
+            self.cache = self._create_cache(worker_env=self.worker_env)
+            self.shuffler = self._create_shuffler(self.cache)
         assert self.cache is not None
         assert self.shuffler is not None
         assert self.worker_env is not None
+
+        # self.worker_env = _WorkerEnv.detect()
+        print(self.worker_env.rank)
 
         chunks_per_replica, intervals_per_replica = self.shuffler.get_chunks_and_intervals_per_ranks(
             self.distributed_env, self.current_epoch
@@ -148,6 +152,9 @@ class StreamingDataset(IterableDataset):
 
     def __next__(self) -> Any:
         # Prevent to create more batch on a given process
+        # self.worker_env = _WorkerEnv.detect()
+        # print("next", self.worker_env.rank)
+
         if self.index >= len(self):
             self.current_epoch += 1
             raise StopIteration
