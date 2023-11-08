@@ -248,6 +248,10 @@ def test_fsdp_modules_without_parameters(tmp_path):
         def __init__(self):
             super().__init__()
             self.metric = Accuracy("multiclass", num_classes=10)
+            assert self.metric.device == self.metric.tp.device == torch.device("cpu")
+
+        def setup(self, stage) -> None:
+            assert self.metric.device == self.metric.tp.device == torch.device("cpu")
 
         def training_step(self, batch, batch_idx):
             loss = super().training_step(batch, batch_idx)
