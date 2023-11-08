@@ -120,7 +120,7 @@ class HyperparametersMixin:
             self._hparams = hp
 
     @staticmethod
-    def _to_hparams_dict(hp: Union[MutableMapping, Namespace, str]) -> Union[MutableMapping, AttributeDict]:
+    def _to_hparams_dict(hp: Union[MutableMapping, Namespace, str]) -> AttributeDict:
         if isinstance(hp, Namespace):
             hp = vars(hp)
         if isinstance(hp, dict):
@@ -132,7 +132,7 @@ class HyperparametersMixin:
         return hp
 
     @property
-    def hparams(self) -> Union[AttributeDict, MutableMapping]:
+    def hparams(self) -> AttributeDict:
         """The collection of hyperparameters saved with :meth:`save_hyperparameters`. It is mutable by the user. For
         the frozen set of initial hyperparameters, use :attr:`hparams_initial`.
 
