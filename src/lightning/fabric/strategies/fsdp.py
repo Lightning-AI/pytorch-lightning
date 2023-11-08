@@ -900,4 +900,4 @@ def _move_torchmetrics_to_device(module: torch.nn.Module, device: torch.device) 
     from torchmetrics import Metric
 
     for metric in (m for m in module.modules() if isinstance(m, Metric)):
-        metric.to(device)
+        metric.to(device)  # `.to()` is in-place
