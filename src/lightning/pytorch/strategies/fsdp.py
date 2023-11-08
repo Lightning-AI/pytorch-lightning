@@ -39,6 +39,7 @@ from lightning.fabric.strategies.fsdp import (
     _is_full_checkpoint,
     _is_sharded_checkpoint,
     _load_raw_module_state,
+    _move_torchmetrics_to_device,
     _optimizer_has_flat_params,
     _setup_activation_checkpointing,
 )
@@ -291,6 +292,8 @@ class FSDPStrategy(ParallelStrategy):
                 device_id=self.root_device.index,
                 **self.kwargs,
             )
+
+        _move_torchmetrics_to_device(model, self.root_device)
 
         # activation checkpointing needs to be set up after wrapping the model
         if _TORCH_GREATER_EQUAL_1_13:
