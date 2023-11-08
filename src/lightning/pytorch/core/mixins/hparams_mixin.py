@@ -111,7 +111,7 @@ class HyperparametersMixin:
                 frame = current_frame.f_back
         save_hyperparameters(self, *args, ignore=ignore, frame=frame)
 
-    def _set_hparams(self, hp: Union[MutableMapping, Namespace, str]) -> None:
+    def _set_hparams(self, hp: Union[MutableMapping, Namespace]) -> None:
         hp = self._to_hparams_dict(hp)
 
         if isinstance(hp, dict) and isinstance(self.hparams, dict):
@@ -120,10 +120,10 @@ class HyperparametersMixin:
             self._hparams = hp
 
     @staticmethod
-    def _to_hparams_dict(hp: Union[MutableMapping, Namespace, str]) -> AttributeDict:
+    def _to_hparams_dict(hp: Union[MutableMapping, Namespace]) -> AttributeDict:
         if isinstance(hp, Namespace):
             hp = vars(hp)
-        if isinstance(hp, dict):
+        if isinstance(hp, MutableMapping):
             hp = AttributeDict(hp)
         elif isinstance(hp, _PRIMITIVE_TYPES):
             raise ValueError(f"Primitives {_PRIMITIVE_TYPES} are not allowed.")
