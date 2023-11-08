@@ -33,10 +33,10 @@ from typing import (
 )
 
 import torch
+from lightning_utilities.core.imports import RequirementCache
 from torch import Tensor
 from torch.nn import Module, Parameter
 from torch.optim import Optimizer
-from lightning_utilities.core.imports import RequirementCache
 from typing_extensions import TypeGuard
 
 from lightning.fabric.accelerators import Accelerator
