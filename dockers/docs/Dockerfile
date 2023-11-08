@@ -56,7 +56,7 @@ RUN \
 
 COPY requirements/docs.txt docs.txt
 
-# NOTE: exlude specific `botocore` bellow as is seems to be corrupted version
+# NOTE: exclude specific `botocore` below as is seems to be corrupted version
 RUN \
     wget https://bootstrap.pypa.io/get-pip.py --progress=bar:force:noscroll --no-check-certificate && \
     python get-pip.py && \

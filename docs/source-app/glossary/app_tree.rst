@@ -18,7 +18,7 @@ What is an Application Component Tree?
 
 Components can be nested to form component trees where the LightningFlows are its branches and LightningWorks are its leaves.
 
-This design enables users to organize and maintain their code with more ease, but more importantly, this helps creating an ecosystem with re-usable components.
+This design enables users to organize and maintain their code with more ease, but more importantly, this helps creating an ecosystem with reusable components.
 
 Here's a basic application with four flows and two works (associated tree structure):
 

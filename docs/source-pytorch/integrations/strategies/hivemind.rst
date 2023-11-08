@@ -69,7 +69,7 @@ We can also offload the optimizer state to the CPU whilst re-using gradient buff
 Offloading Optimizer State to the CPU
 """""""""""""""""""""""""""""""""""""
 
-Offloading the Optimizer state to the CPU works the same as Deepspeed Zero-stage-2-offload, where we save GPU memory by keeping all optimizer states on the CPU.
+Offloading the Optimizer state to the CPU works the same as DeepSpeed Zero-stage-2-offload, where we save GPU memory by keeping all optimizer states on the CPU.
 
 .. note::
     Enabling these flags means that you must pass in a ``scheduler_fn`` to the ``HivemindStrategy`` instead of relying on a scheduler from ``configure_optimizers``.

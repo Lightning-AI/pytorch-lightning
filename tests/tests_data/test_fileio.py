@@ -2,8 +2,7 @@ import os
 from unittest import mock
 
 import pytest
-
-from lightning.data.fileio import is_path, is_url, open_single_file, OpenCloudFileObj, path_to_url
+from lightning.data.fileio import OpenCloudFileObj, is_path, is_url, open_single_file, path_to_url
 
 
 @pytest.mark.parametrize(
@@ -51,13 +50,13 @@ def test_path_to_url_error():
 
 @pytest.mark.parametrize("path", ["s3://my_bucket/da.txt", "abc.txt"])
 @mock.patch("s3fs.S3FileSystem", autospec=True)
-def test_read_single_file_read(patch: mock.Mock, path, tmpdir):
+def test_read_single_file_read(patch: mock.Mock, path, tmp_path):
     from torchdata.datapipes.utils import StreamWrapper
 
     is_s3 = is_url(path)
 
     if not is_s3:
-        path = os.path.join(tmpdir, path)
+        path = os.path.join(tmp_path, path)
         with open(path, "w") as f:
             f.write("mytestfile")
 
@@ -76,13 +75,13 @@ def test_read_single_file_read(patch: mock.Mock, path, tmpdir):
 
 @pytest.mark.parametrize("path", ["s3://my_bucket/da.txt", "abc.txt"])
 @mock.patch("s3fs.S3FileSystem", autospec=True)
-def test_read_single_file_write(patch: mock.Mock, path, tmpdir):
+def test_read_single_file_write(patch: mock.Mock, path, tmp_path):
     from torchdata.datapipes.utils import StreamWrapper
 
     is_s3 = is_url(path)
 
     if not is_s3:
-        path = os.path.join(tmpdir, path)
+        path = os.path.join(tmp_path, path)
 
     file_stream = open_single_file(path, mode="w")
     assert isinstance(file_stream, StreamWrapper)
@@ -98,8 +97,8 @@ def test_read_single_file_write(patch: mock.Mock, path, tmpdir):
             assert f.read() == "mytestfile"
 
 
-def test_open_cloud_file_obj(tmpdir):
-    path = os.path.join(tmpdir, "foo.txt")
+def test_open_cloud_file_obj(tmp_path):
+    path = os.path.join(tmp_path, "foo.txt")
     with open(path, "w") as f:
         f.write("bar!")
 

@@ -15,12 +15,12 @@ import os
 from unittest import mock
 
 import torch
+from lightning.pytorch import Trainer, seed_everything
+from lightning.pytorch.callbacks import Callback, EarlyStopping, ModelCheckpoint
+from lightning.pytorch.demos.boring_classes import BoringModel
 
 import tests_pytorch.helpers.pipelines as tpipes
 import tests_pytorch.helpers.utils as tutils
-from lightning.pytorch import seed_everything, Trainer
-from lightning.pytorch.callbacks import Callback, EarlyStopping, ModelCheckpoint
-from lightning.pytorch.demos.boring_classes import BoringModel
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.simple_models import ClassificationModel
@@ -155,6 +155,7 @@ def test_lbfgs_cpu_model(tmpdir):
     """Test each of the trainer options.
 
     Testing LBFGS optimizer
+
     """
     seed_everything(42)
 
@@ -247,6 +248,7 @@ def test_running_test_no_val(tmpdir):
     """Verify `test()` works on a model with no `val_dataloader`.
 
     It performs train and test only
+
     """
     seed_everything(42)
 

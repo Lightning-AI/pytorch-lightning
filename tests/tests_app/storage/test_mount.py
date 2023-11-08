@@ -1,5 +1,4 @@
 import pytest
-
 from lightning.app.storage.mount import Mount
 
 

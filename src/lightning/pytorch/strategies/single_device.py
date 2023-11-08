@@ -22,7 +22,7 @@ import lightning.pytorch as pl
 from lightning.fabric.plugins import CheckpointIO
 from lightning.fabric.strategies import _StrategyRegistry
 from lightning.fabric.utilities.types import _DEVICE
-from lightning.pytorch.plugins.precision import PrecisionPlugin
+from lightning.pytorch.plugins.precision import Precision
 from lightning.pytorch.strategies.strategy import Strategy, TBroadcast
 
 
@@ -36,7 +36,7 @@ class SingleDeviceStrategy(Strategy):
         device: _DEVICE = "cpu",
         accelerator: pl.accelerators.accelerator.Accelerator | None = None,
         checkpoint_io: CheckpointIO | None = None,
-        precision_plugin: PrecisionPlugin | None = None,
+        precision_plugin: Precision | None = None,
     ):
         super().__init__(accelerator=accelerator, checkpoint_io=checkpoint_io, precision_plugin=precision_plugin)
         if not isinstance(device, torch.device):
@@ -47,7 +47,7 @@ class SingleDeviceStrategy(Strategy):
         self.world_size = 1
 
     def reduce(self, tensor: Any | Tensor, *args: Any, **kwargs: Any) -> Any | Tensor:
-        """Reduces a tensor from several distributed processes to one aggregated tensor. As this plugin only
+        """Reduces a tensor from several distributed processes to one aggregated tensor. Since this strategy only
         operates with a single device, the reduction is simply the identity.
 
         Args:
@@ -57,6 +57,7 @@ class SingleDeviceStrategy(Strategy):
 
         Return:
             the unmodified input as reduction is not needed for single process operation
+
         """
         return tensor
 
@@ -91,5 +92,5 @@ class SingleDeviceStrategy(Strategy):
         strategy_registry.register(
             cls.strategy_name,
             cls,
-            description=cls.__class__.__name__,
+            description=cls.__name__,
         )

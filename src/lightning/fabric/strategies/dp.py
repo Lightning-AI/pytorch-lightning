@@ -28,8 +28,8 @@ from lightning.fabric.utilities.distributed import ReduceOp
 
 
 class DataParallelStrategy(ParallelStrategy):
-    """Implements data-parallel training in a single process, i.e., the model gets replicated to each device and
-    each gets a split of the data."""
+    """Implements data-parallel training in a single process, i.e., the model gets replicated to each device and each
+    gets a split of the data."""
 
     def __init__(
         self,
@@ -56,7 +56,7 @@ class DataParallelStrategy(ParallelStrategy):
         return None
 
     def setup_module(self, module: Module) -> DataParallel:
-        """Wraps the given model into a :class:`~torch.nn.parallel.DataParallel` module."""
+        """Wraps the given model into a :class:`~torch.nn.DataParallel` module."""
         return DataParallel(module=module, device_ids=self.parallel_devices)
 
     def module_to_device(self, module: Module) -> None:
@@ -98,4 +98,4 @@ class DataParallelStrategy(ParallelStrategy):
 
     @classmethod
     def register_strategies(cls, strategy_registry: _StrategyRegistry) -> None:
-        strategy_registry.register("dp", cls, description=cls.__class__.__name__)
+        strategy_registry.register("dp", cls, description=cls.__name__)

@@ -18,10 +18,10 @@ import sys
 from unittest import mock
 
 import pytest
-from lightning_utilities.test.warning import no_warning_call
-
 from lightning.fabric.plugins.environments import SLURMEnvironment
 from lightning.fabric.utilities.warnings import PossibleUserWarning
+from lightning_utilities.test.warning import no_warning_call
+
 from tests_fabric.helpers.runif import RunIf
 
 
@@ -159,3 +159,23 @@ def test_srun_variable_validation():
         RuntimeError, match="You set `--ntasks=2` in your SLURM"
     ):
         SLURMEnvironment()
+
+
+@mock.patch.dict(os.environ, {"SLURM_NTASKS_PER_NODE": "4", "SLURM_NNODES": "2"})
+def test_validate_user_settings():
+    """Test that the environment can validate the number of devices and nodes set in Fabric/Trainer."""
+    env = SLURMEnvironment()
+    env.validate_settings(num_devices=4, num_nodes=2)
+
+    with pytest.raises(ValueError, match="the number of tasks per node configured .* does not match"):
+        env.validate_settings(num_devices=2, num_nodes=2)
+
+    with pytest.raises(ValueError, match="the number of nodes configured in SLURM .* does not match"):
+        env.validate_settings(num_devices=4, num_nodes=1)
+
+    # in interactive mode, validation is skipped becauses processes get launched by Fabric/Trainer, not SLURM
+    with mock.patch(
+        "lightning.fabric.plugins.environments.slurm.SLURMEnvironment.job_name", return_value="interactive"
+    ):
+        env = SLURMEnvironment()
+        env.validate_settings(num_devices=4, num_nodes=1)  # no error

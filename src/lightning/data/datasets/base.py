@@ -2,7 +2,7 @@ from typing import Any, Literal
 
 from torch.utils.data import Dataset as TorchDataset
 
-from lightning.data.backends import _DatasetBackend, LocalDatasetBackend, S3DatasetBackend
+from lightning.data.backends import LocalDatasetBackend, S3DatasetBackend, _DatasetBackend
 from lightning.data.fileio import OpenCloudFileObj
 
 
@@ -11,6 +11,7 @@ class _Dataset(TorchDataset):
 
     Args:
         backend: storage location of the data_source. current options are "s3" or "local"
+
     """
 
     def __init__(self, backend: Literal["local", "s3"] = "local"):
@@ -31,6 +32,7 @@ class _Dataset(TorchDataset):
 
         Returns:
             A stream object of the file.
+
         """
         return OpenCloudFileObj(
             path=file, mode=mode, kwargs_for_open={**self.backend.credentials(), **kwargs_for_open}, **kwargs

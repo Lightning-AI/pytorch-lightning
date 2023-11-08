@@ -41,8 +41,8 @@ Examples
 
 .. displayitem::
     :header: Large Language Models
-    :description: Pre-train a GPT-2 language model on OpenWebText data
-    :button_link: https://github.com/Lightning-AI/nanoGPT/blob/master/train_fabric.py
+    :description: Pre-train a GPT language model on OpenWebText data
+    :button_link: https://github.com/Lightning-AI/lit-gpt/blob/main/pretrain/openwebtext.py
     :col_css: col-md-4
     :height: 150
     :tag: advanced
@@ -53,6 +53,7 @@ Examples
     :button_link: https://github.com/Lightning-AI/lightning/blob/master/examples/fabric/reinforcement_learning
     :col_css: col-md-4
     :height: 150
+    :tag: intermediate
 
 .. displayitem::
     :header: K-Fold Cross Validation
@@ -60,12 +61,14 @@ Examples
     :button_link: https://github.com/Lightning-AI/lightning/tree/master/examples/fabric/kfold_cv
     :col_css: col-md-4
     :height: 150
+    :tag: intermediate
 
 .. displayitem::
     :header: Active Learning
     :description: Coming soon
     :col_css: col-md-4
     :height: 150
+    :tag: intermediate
 
 
 .. raw:: html

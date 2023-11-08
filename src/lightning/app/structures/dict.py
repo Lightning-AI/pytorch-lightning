@@ -29,9 +29,8 @@ def _prepare_name(component: "Component") -> str:
 # TODO: add support and tests for dict operations (insertion, update, etc.)
 class Dict(t.Dict[str, T]):
     def __init__(self, **kwargs: T):
-        """The Dict Object is used to represents dict collection of
-        :class:`~lightning.app.core.work.LightningWork`
-        or :class:`~lightning.app.core.flow.LightningFlow`.
+        """The Dict Object is used to represents dict collection of :class:`~lightning.app.core.work.LightningWork` or
+        :class:`~lightning.app.core.flow.LightningFlow`.
 
         Example:
 
@@ -58,6 +57,7 @@ class Dict(t.Dict[str, T]):
 
         Arguments:
             items: A sequence of LightningWork or LightningFlow.
+
         """
         super().__init__(**kwargs)
         from lightning.app.runners.backends import Backend
@@ -70,7 +70,7 @@ class Dict(t.Dict[str, T]):
             _set_child_name(self, v, k)
 
     def __setitem__(self, k, v):
-        from lightning.app import LightningFlow, LightningWork
+        from lightning.app.core import LightningFlow, LightningWork
 
         if not isinstance(k, str):
             raise Exception("The provided key should be an string")
@@ -89,7 +89,7 @@ class Dict(t.Dict[str, T]):
 
     @property
     def works(self):
-        from lightning.app import LightningFlow, LightningWork
+        from lightning.app.core import LightningFlow, LightningWork
 
         works = [item for item in self.values() if isinstance(item, LightningWork)]
         for flow in [item for item in self.values() if isinstance(item, LightningFlow)]:
@@ -99,8 +99,9 @@ class Dict(t.Dict[str, T]):
 
     @property
     def flows(self):
-        from lightning.app import LightningFlow
-        from lightning.app.structures import Dict, List
+        from lightning.app.core.flow import LightningFlow
+        from lightning.app.structures import Dict as _Dict
+        from lightning.app.structures import List as _List
 
         flows = {}
         for item in self.values():
@@ -108,7 +109,7 @@ class Dict(t.Dict[str, T]):
                 flows[item.name] = item
                 for child_flow in item.flows.values():
                     flows[child_flow.name] = child_flow
-            if isinstance(item, (Dict, List)):
+            if isinstance(item, (_Dict, _List)):
                 for child_flow in item.flows.values():
                     flows[child_flow.name] = child_flow
         return flows
@@ -120,7 +121,7 @@ class Dict(t.Dict[str, T]):
     @property
     def state(self):
         """Returns the state of its flows and works."""
-        from lightning.app import LightningFlow, LightningWork
+        from lightning.app.core import LightningFlow, LightningWork
 
         return {
             "works": {key: item.state for key, item in self.items() if isinstance(item, LightningWork)},
@@ -129,7 +130,7 @@ class Dict(t.Dict[str, T]):
 
     @property
     def state_vars(self):
-        from lightning.app import LightningFlow, LightningWork
+        from lightning.app.core import LightningFlow, LightningWork
 
         return {
             "works": {key: item.state_vars for key, item in self.items() if isinstance(item, LightningWork)},
@@ -138,7 +139,7 @@ class Dict(t.Dict[str, T]):
 
     @property
     def state_with_changes(self):
-        from lightning.app import LightningFlow, LightningWork
+        from lightning.app.core import LightningFlow, LightningWork
 
         return {
             "works": {key: item.state_with_changes for key, item in self.items() if isinstance(item, LightningWork)},

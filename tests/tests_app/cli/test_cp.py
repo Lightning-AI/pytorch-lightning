@@ -4,6 +4,8 @@ from pathlib import PosixPath
 from unittest.mock import MagicMock
 
 import pytest
+from lightning.app.cli.commands import cp
+from lightning.app.cli.commands.cd import _CD_FILE, cd
 from lightning_cloud.openapi import (
     Externalv1Cluster,
     Externalv1LightningappInstance,
@@ -25,9 +27,6 @@ from lightning_cloud.openapi import (
     V1UploadProjectArtifactResponse,
 )
 
-from lightning.app.cli.commands import cp
-from lightning.app.cli.commands.cd import _CD_FILE, cd
-
 
 @pytest.mark.skipif(sys.platform == "win32", reason="not supported on windows yet")
 def test_cp_local_to_remote(tmpdir, monkeypatch):
@@ -48,7 +47,7 @@ def test_cp_local_to_remote(tmpdir, monkeypatch):
     )
 
     result = MagicMock()
-    result.get.return_value = V1UploadProjectArtifactResponse(upload_url="http://foo.bar")
+    result.get.return_value = V1UploadProjectArtifactResponse(urls=["http://foo.bar"])
     client.lightningapp_instance_service_upload_project_artifact.return_value = result
 
     monkeypatch.setattr(cp, "LightningClient", MagicMock(return_value=client))

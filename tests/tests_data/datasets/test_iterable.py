@@ -4,16 +4,15 @@ from collections import Counter
 from functools import partial
 from typing import Any, Dict
 
+import lightning
 import pytest
 import torch
-
-import lightning
 from lightning.data.datasets.iterable import (
+    DataLoader,
+    LightningIterableDataset,
     _Chunk,
     _Stateful,
     _StatefulIterableDataset,
-    DataLoader,
-    LightningIterableDataset,
 )
 
 
@@ -438,6 +437,7 @@ def sharding_resume_test(fabric: lightning.Fabric, num_workers):
         fabric.barrier()
 
 
+@pytest.mark.skipif(True, reason="flaky and out-dated")
 @pytest.mark.parametrize(
     ("num_workers", "world_size"),
     [

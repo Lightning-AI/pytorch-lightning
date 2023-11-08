@@ -16,10 +16,10 @@ import sys
 from typing import List
 from unittest.mock import Mock
 
+import lightning.fabric
 import pytest
 import torch.distributed
-
-import lightning.fabric
+from lightning.fabric.utilities.distributed import _distributed_is_initialized
 
 
 @pytest.fixture(autouse=True)
@@ -57,6 +57,12 @@ def restore_env_variables():
         "POPLAR_ENGINE_OPTIONS",  # set by IPUStrategy
         "CUDA_MODULE_LOADING",  # leaked since PyTorch 1.13
         "CRC32C_SW_MODE",  # set by tensorboardX
+        "OMP_NUM_THREADS",  # set by our launchers
+        # set by XLA FSDP on XRT
+        "XRT_TORCH_DIST_ROOT",
+        "XRT_MESH_SERVICE_ADDRESS",
+        # set by torchdynamo
+        "TRITON_CACHE_DIR",
     }
     leaked_vars.difference_update(allowlist)
     assert not leaked_vars, f"test is leaking environment variable(s): {set(leaked_vars)}"
@@ -66,7 +72,7 @@ def restore_env_variables():
 def teardown_process_group():
     """Ensures that the distributed process group gets closed before the next test runs."""
     yield
-    if torch.distributed.is_available() and torch.distributed.is_initialized():
+    if _distributed_is_initialized():
         torch.distributed.destroy_process_group()
 
 
@@ -89,9 +95,14 @@ def mock_xla_available(monkeypatch: pytest.MonkeyPatch, value: bool = True) -> N
     monkeypatch.setattr(lightning.fabric.accelerators.xla, "_XLA_AVAILABLE", value)
     monkeypatch.setattr(lightning.fabric.plugins.environments.xla, "_XLA_AVAILABLE", value)
     monkeypatch.setattr(lightning.fabric.plugins.precision.xla, "_XLA_AVAILABLE", value)
+    monkeypatch.setattr(lightning.fabric.plugins.io.xla, "_XLA_AVAILABLE", value)
     monkeypatch.setattr(lightning.fabric.strategies.single_xla, "_XLA_AVAILABLE", value)
-    monkeypatch.setattr(lightning.fabric.strategies.xla, "_XLA_AVAILABLE", value)
+    monkeypatch.setattr(lightning.fabric.strategies.xla_fsdp, "_XLA_AVAILABLE", value)
     monkeypatch.setattr(lightning.fabric.strategies.launchers.xla, "_XLA_AVAILABLE", value)
+    monkeypatch.setitem(sys.modules, "torch_xla", Mock())
+    monkeypatch.setitem(sys.modules, "torch_xla.core.xla_model", Mock())
+    monkeypatch.setitem(sys.modules, "torch_xla.experimental", Mock())
+    monkeypatch.setitem(sys.modules, "torch_xla.distributed.fsdp.wrap", Mock())
 
 
 @pytest.fixture()
@@ -103,9 +114,6 @@ def mock_tpu_available(monkeypatch: pytest.MonkeyPatch, value: bool = True) -> N
     mock_xla_available(monkeypatch, value)
     monkeypatch.setattr(lightning.fabric.accelerators.xla.XLAAccelerator, "is_available", lambda: value)
     monkeypatch.setattr(lightning.fabric.accelerators.xla.XLAAccelerator, "auto_device_count", lambda *_: 8)
-    monkeypatch.setitem(sys.modules, "torch_xla", Mock())
-    monkeypatch.setitem(sys.modules, "torch_xla.core.xla_model", Mock())
-    monkeypatch.setitem(sys.modules, "torch_xla.experimental", Mock())
 
 
 @pytest.fixture()
@@ -118,6 +126,7 @@ def caplog(caplog):
     """Workaround for https://github.com/pytest-dev/pytest/issues/3697.
 
     Setting ``filterwarnings`` with pytest breaks ``caplog`` when ``not logger.propagate``.
+
     """
     import logging
 

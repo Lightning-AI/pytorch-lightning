@@ -13,6 +13,8 @@
 # limitations under the License.
 from typing import Any, Dict
 
+from typing_extensions import override
+
 from lightning.fabric.accelerators import _AcceleratorRegistry
 from lightning.fabric.accelerators.xla import XLAAccelerator as FabricXLAAccelerator
 from lightning.fabric.utilities.types import _DEVICE
@@ -23,8 +25,10 @@ class XLAAccelerator(Accelerator, FabricXLAAccelerator):
     """Accelerator for XLA devices, normally TPUs.
 
     .. warning::  Use of this accelerator beyond import and instantiation is experimental.
+
     """
 
+    @override
     def get_device_stats(self, device: _DEVICE) -> Dict[str, Any]:
         """Gets stats for the given XLA device.
 
@@ -33,6 +37,7 @@ class XLAAccelerator(Accelerator, FabricXLAAccelerator):
 
         Returns:
             A dictionary mapping the metrics (free memory and peak memory) to their values.
+
         """
         import torch_xla.core.xla_model as xm
 
@@ -45,5 +50,6 @@ class XLAAccelerator(Accelerator, FabricXLAAccelerator):
         }
 
     @classmethod
+    @override
     def register_accelerators(cls, accelerator_registry: _AcceleratorRegistry) -> None:
-        accelerator_registry.register("tpu", cls, description=cls.__class__.__name__)
+        accelerator_registry.register("tpu", cls, description=cls.__name__)

@@ -12,13 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any, Callable, Protocol, runtime_checkable, Type
+from typing import Any, Callable, Protocol, Type, runtime_checkable
 
 from lightning.app.components.multi_node.base import MultiNode
 from lightning.app.core.queues import MultiProcessQueue
 from lightning.app.core.work import LightningWork
 from lightning.app.utilities.packaging.cloud_compute import CloudCompute
-from lightning.app.utilities.proxies import _proxy_setattr, unwrap, WorkRunExecutor, WorkStateObserver
+from lightning.app.utilities.proxies import WorkRunExecutor, WorkStateObserver, _proxy_setattr, unwrap
 
 
 @runtime_checkable

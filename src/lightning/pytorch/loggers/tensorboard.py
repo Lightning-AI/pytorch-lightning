@@ -22,10 +22,12 @@ from argparse import Namespace
 from typing import Any, Dict, Optional, Union
 
 from torch import Tensor
+from typing_extensions import override
 
 import lightning.pytorch as pl
-from lightning.fabric.loggers.tensorboard import _TENSORBOARD_AVAILABLE, _TENSORBOARDX_AVAILABLE
+from lightning.fabric.loggers.tensorboard import _TENSORBOARD_AVAILABLE
 from lightning.fabric.loggers.tensorboard import TensorBoardLogger as FabricTensorBoardLogger
+from lightning.fabric.utilities.cloud_io import _is_dir
 from lightning.fabric.utilities.logger import _convert_params
 from lightning.fabric.utilities.types import _PATH
 from lightning.pytorch.callbacks import ModelCheckpoint
@@ -35,13 +37,6 @@ from lightning.pytorch.utilities.imports import _OMEGACONF_AVAILABLE
 from lightning.pytorch.utilities.rank_zero import rank_zero_only, rank_zero_warn
 
 log = logging.getLogger(__name__)
-
-if _OMEGACONF_AVAILABLE:
-    from omegaconf import Container, OmegaConf
-
-# Skip doctests if requirements aren't available
-if not (_TENSORBOARD_AVAILABLE or _TENSORBOARDX_AVAILABLE):
-    __doctest_skip__ = ["TensorBoardLogger", "TensorBoardLogger.*"]
 
 
 class TensorBoardLogger(Logger, FabricTensorBoardLogger):
@@ -57,6 +52,7 @@ class TensorBoardLogger(Logger, FabricTensorBoardLogger):
     Example:
 
     .. testcode::
+        :skipif: not _TENSORBOARD_AVAILABLE or not _TENSORBOARDX_AVAILABLE
 
         from lightning.pytorch import Trainer
         from lightning.pytorch.loggers import TensorBoardLogger
@@ -85,16 +81,6 @@ class TensorBoardLogger(Logger, FabricTensorBoardLogger):
             arguments in this logger. To automatically flush to disk, `max_queue` sets the size
             of the queue for pending logs before flushing. `flush_secs` determines how many seconds
             elapses before flushing.
-
-    Example:
-        >>> import shutil, tempfile
-        >>> tmp = tempfile.mkdtemp()
-        >>> tbl = TensorBoardLogger(tmp)
-        >>> tbl.log_hyperparams({"epochs": 5, "optimizer": "Adam"})
-        >>> tbl.log_metrics({"acc": 0.75})
-        >>> tbl.log_metrics({"acc": 0.9})
-        >>> tbl.finalize("success")
-        >>> shutil.rmtree(tmp)
     """
     NAME_HPARAMS_FILE = "hparams.yaml"
 
@@ -127,20 +113,24 @@ class TensorBoardLogger(Logger, FabricTensorBoardLogger):
         self.hparams: Union[Dict[str, Any], Namespace] = {}
 
     @property
+    @override
     def root_dir(self) -> str:
         """Parent directory for all tensorboard checkpoint subdirectories.
 
         If the experiment name parameter is an empty string, no experiment subdirectory is used and the checkpoint will
         be saved in "save_dir/version"
+
         """
         return os.path.join(super().root_dir, self.name)
 
     @property
+    @override
     def log_dir(self) -> str:
         """The directory for this run's tensorboard checkpoint.
 
         By default, it is named ``'version_${self.version}'`` but it can be overridden by passing a string value for the
         constructor's version parameter instead of ``None`` or an int.
+
         """
         # create a pseudo standard path ala test-tube
         version = self.version if isinstance(self.version, str) else f"version_{self.version}"
@@ -152,26 +142,33 @@ class TensorBoardLogger(Logger, FabricTensorBoardLogger):
         return log_dir
 
     @property
+    @override
     def save_dir(self) -> str:
         """Gets the save directory where the TensorBoard experiments are saved.
 
         Returns:
             The local path to the save directory where the TensorBoard experiments are saved.
+
         """
         return self._root_dir
 
+    @override
     @rank_zero_only
     def log_hyperparams(  # type: ignore[override]
         self, params: Union[Dict[str, Any], Namespace], metrics: Optional[Dict[str, Any]] = None
     ) -> None:
         """Record hyperparameters. TensorBoard logs with and without saved hyperparameters are incompatible, the
-        hyperparameters are then not displayed in the TensorBoard. Please delete or move the previously saved logs
-        to display the new ones with hyperparameters.
+        hyperparameters are then not displayed in the TensorBoard. Please delete or move the previously saved logs to
+        display the new ones with hyperparameters.
 
         Args:
             params: a dictionary-like container with the hyperparameters
             metrics: Dictionary with metric names as keys and measured quantities as values
+
         """
+        if _OMEGACONF_AVAILABLE:
+            from omegaconf import Container, OmegaConf
+
         params = _convert_params(params)
 
         # store params to output
@@ -182,6 +179,7 @@ class TensorBoardLogger(Logger, FabricTensorBoardLogger):
 
         return super().log_hyperparams(params=params, metrics=metrics)
 
+    @override
     @rank_zero_only
     def log_graph(  # type: ignore[override]
         self, model: "pl.LightningModule", input_array: Optional[Tensor] = None
@@ -208,6 +206,7 @@ class TensorBoardLogger(Logger, FabricTensorBoardLogger):
             with pl.core.module._jit_is_scripting():
                 self.experiment.add_graph(model, input_array)
 
+    @override
     @rank_zero_only
     def save(self) -> None:
         super().save()
@@ -217,9 +216,10 @@ class TensorBoardLogger(Logger, FabricTensorBoardLogger):
         hparams_file = os.path.join(dir_path, self.NAME_HPARAMS_FILE)
 
         # save the metatags file if it doesn't exist and the log directory exists
-        if self._fs.isdir(dir_path) and not self._fs.isfile(hparams_file):
+        if _is_dir(self._fs, dir_path) and not self._fs.isfile(hparams_file):
             save_hparams_to_yaml(hparams_file, self.hparams)
 
+    @override
     @rank_zero_only
     def finalize(self, status: str) -> None:
         super().finalize(status)
@@ -227,14 +227,17 @@ class TensorBoardLogger(Logger, FabricTensorBoardLogger):
             # saving hparams happens independent of experiment manager
             self.save()
 
+    @override
     def after_save_checkpoint(self, checkpoint_callback: ModelCheckpoint) -> None:
         """Called after model checkpoint callback saves a new checkpoint.
 
         Args:
             checkpoint_callback: the model checkpoint callback instance
+
         """
         pass
 
+    @override
     def _get_next_version(self) -> int:
         root_dir = self.root_dir
 
@@ -248,9 +251,10 @@ class TensorBoardLogger(Logger, FabricTensorBoardLogger):
         for listing in listdir_info:
             d = listing["name"]
             bn = os.path.basename(d)
-            if self._fs.isdir(d) and bn.startswith("version_"):
+            if _is_dir(self._fs, d) and bn.startswith("version_"):
                 dir_ver = bn.split("_")[1].replace("/", "")
-                existing_versions.append(int(dir_ver))
+                if dir_ver.isdigit():
+                    existing_versions.append(int(dir_ver))
         if len(existing_versions) == 0:
             return 0
 

@@ -25,6 +25,7 @@ and replace ``loss.backward()`` with ``self.backward(loss)``.
 Accelerate your training loop by setting the ``--accelerator``, ``--strategy``, ``--devices`` options directly from
 the command line. See ``lightning run model --help`` or learn more from the documentation:
 https://lightning.ai/docs/fabric.
+
 """
 
 import argparse
@@ -35,12 +36,10 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 import torchvision.transforms as T
+from lightning.fabric import Fabric, seed_everything
 from torch.optim.lr_scheduler import StepLR
 from torchmetrics.classification import Accuracy
 from torchvision.datasets import MNIST
-
-from lightning.fabric import Fabric  # import Fabric
-from lightning.fabric import seed_everything
 
 DATASETS_PATH = path.join(path.dirname(__file__), "..", "..", "..", "Datasets")
 
@@ -80,7 +79,7 @@ def run(hparams):
     transform = T.Compose([T.ToTensor(), T.Normalize((0.1307,), (0.3081,))])
 
     # Let rank 0 download the data first, then everyone will load MNIST
-    with fabric.rank_zero_first():
+    with fabric.rank_zero_first(local=False):  # set `local=True` if your filesystem is not shared between machines
         train_dataset = MNIST(DATASETS_PATH, download=fabric.is_global_zero, train=True, transform=transform)
         test_dataset = MNIST(DATASETS_PATH, download=fabric.is_global_zero, train=False, transform=transform)
 

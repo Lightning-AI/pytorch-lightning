@@ -17,7 +17,7 @@ import asyncio
 import base64
 import os
 import platform
-from typing import Any, Dict, Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Dict, Optional
 
 import requests
 import uvicorn
@@ -63,7 +63,7 @@ class _DefaultOutputData(BaseModel):
 
 
 class Image(BaseModel):
-    image: Optional[str]
+    image: Optional[str] = None
 
     @staticmethod
     def get_sample_data() -> Dict[Any, Any]:
@@ -74,27 +74,19 @@ class Image(BaseModel):
 
     @staticmethod
     def request_code_sample(url: str) -> str:
-        return (
-            """import base64
+        return f"""
+import base64
 from pathlib import Path
 import requests
 
 imgurl = "https://raw.githubusercontent.com/Lightning-AI/LAI-Triton-Server-Component/main/catimage.png"
 img = requests.get(imgurl).content
 img = base64.b64encode(img).decode("UTF-8")
-response = requests.post('"""
-            + url
-            + """', json={
-"image": img
-})
+response = requests.post('{url}', json={{"image": img}})
 # If you are using basic authentication for your app, you should add your credentials to the request:
-# response = requests.post('"""
-            + url
-            + """', json={
-# "image": img
-# }, auth=requests.auth.HTTPBasicAuth('your_username', 'your_password'))
+# auth = requests.auth.HTTPBasicAuth('your_username', 'your_password')
+# response = requests.post('{url}', json={{"image": img}}, auth=auth)
 """
-        )
 
     @staticmethod
     def response_code_sample() -> str:
@@ -105,11 +97,11 @@ Path("response.png").write_bytes(img)
 
 
 class Category(BaseModel):
-    category: Optional[int]
+    category: Optional[int] = None
 
     @staticmethod
     def get_sample_data() -> Dict[Any, Any]:
-        return {"prediction": 463}
+        return {"category": 463}
 
     @staticmethod
     def response_code_sample() -> str:
@@ -118,7 +110,7 @@ class Category(BaseModel):
 
 
 class Text(BaseModel):
-    text: Optional[str]
+    text: Optional[str] = None
 
     @staticmethod
     def get_sample_data() -> Dict[Any, Any]:
@@ -126,30 +118,24 @@ class Text(BaseModel):
 
     @staticmethod
     def request_code_sample(url: str) -> str:
-        return (
-            """import base64
+        return f"""
+import base64
 from pathlib import Path
 import requests
 
-response = requests.post('"""
-            + url
-            + """', json={
-"text": "A portrait of a person looking away from the camera"
-})
+response = requests.post('{url}', json={{
+    "text": "A portrait of a person looking away from the camera"
+}})
 # If you are using basic authentication for your app, you should add your credentials to the request:
-# response = requests.post('"""
-            + url
-            + """', json={
-# "text": "A portrait of a person looking away from the camera"
-# }, auth=requests.auth.HTTPBasicAuth('your_username', 'your_password'))
+# response = requests.post('{url}', json={{
+#     "text": "A portrait of a person looking away from the camera"
+# }}, auth=requests.auth.HTTPBasicAuth('your_username', 'your_password'))
 """
-        )
 
 
 class Number(BaseModel):
-    # deprecated
-    # TODO remove this in favour of Category
-    prediction: Optional[int]
+    # deprecated - TODO remove this in favour of Category
+    prediction: Optional[int] = None
 
     @staticmethod
     def get_sample_data() -> Dict[Any, Any]:
@@ -211,6 +197,7 @@ class PythonServer(LightningWork, abc.ABC):
             ...         return {"prediction": self._model(request.image)}
             ...
             >>> app = LightningApp(SimpleServer())
+
         """
         super().__init__(parallel=True, **kwargs)
         if not issubclass(input_type, BaseModel):
@@ -228,6 +215,7 @@ class PythonServer(LightningWork, abc.ABC):
 
         Note that this will be called exactly once on every work machines. So if you have multiple machines for serving,
         this will be called on each of them.
+
         """
         return
 
@@ -243,6 +231,7 @@ class PythonServer(LightningWork, abc.ABC):
 
         This method must be overriden by the user with the prediction logic. The pre/post processing, actual prediction
         using the model(s) etc goes here
+
         """
         pass
 
@@ -325,6 +314,7 @@ class PythonServer(LightningWork, abc.ABC):
         """Run method takes care of configuring and setting up a FastAPI server behind the scenes.
 
         Normally, you don't need to override this method.
+
         """
         self.setup(*args, **kwargs)
 

@@ -15,14 +15,14 @@
 import logging
 import os
 from argparse import Namespace
-from typing import Any, Dict, Mapping, Optional, TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, Any, Dict, Mapping, Optional, Union
 
 from lightning_utilities.core.imports import RequirementCache
 from torch import Tensor
 from torch.nn import Module
 
 from lightning.fabric.loggers.logger import Logger, rank_zero_experiment
-from lightning.fabric.utilities.cloud_io import get_filesystem
+from lightning.fabric.utilities.cloud_io import _is_dir, get_filesystem
 from lightning.fabric.utilities.logger import _add_prefix, _convert_params, _flatten_dict
 from lightning.fabric.utilities.logger import _sanitize_params as _utils_sanitize_params
 from lightning.fabric.utilities.rank_zero import rank_zero_only, rank_zero_warn
@@ -75,6 +75,7 @@ class TensorBoardLogger(Logger):
         logger.log_hyperparams({"epochs": 5, "optimizer": "Adam"})
         logger.log_metrics({"acc": 0.75})
         logger.finalize("success")
+
     """
     LOGGER_JOIN_CHAR = "-"
 
@@ -113,6 +114,7 @@ class TensorBoardLogger(Logger):
 
         Returns:
             The name of the experiment.
+
         """
         return self._name
 
@@ -122,6 +124,7 @@ class TensorBoardLogger(Logger):
 
         Returns:
             The experiment version if specified else the next version.
+
         """
         if self._version is None:
             self._version = self._get_next_version()
@@ -133,6 +136,7 @@ class TensorBoardLogger(Logger):
 
         Returns:
             The local path to the save directory where the TensorBoard experiments are saved.
+
         """
         return self._root_dir
 
@@ -142,6 +146,7 @@ class TensorBoardLogger(Logger):
 
         By default, it is named ``'version_${self.version}'`` but it can be overridden by passing a string value for the
         constructor's version parameter instead of ``None`` or an int.
+
         """
         version = self.version if isinstance(self.version, str) else f"version_{self.version}"
         log_dir = os.path.join(self.root_dir, self.name, version)
@@ -157,6 +162,7 @@ class TensorBoardLogger(Logger):
 
         Returns:
             The local path to the sub directory where the TensorBoard experiments are saved.
+
         """
         return self._sub_dir
 
@@ -168,6 +174,7 @@ class TensorBoardLogger(Logger):
         Example::
 
             logger.experiment.some_tensorboard_function()
+
         """
         if self._experiment is not None:
             return self._experiment
@@ -210,12 +217,13 @@ class TensorBoardLogger(Logger):
         self, params: Union[Dict[str, Any], Namespace], metrics: Optional[Dict[str, Any]] = None
     ) -> None:
         """Record hyperparameters. TensorBoard logs with and without saved hyperparameters are incompatible, the
-        hyperparameters are then not displayed in the TensorBoard. Please delete or move the previously saved logs
-        to display the new ones with hyperparameters.
+        hyperparameters are then not displayed in the TensorBoard. Please delete or move the previously saved logs to
+        display the new ones with hyperparameters.
 
         Args:
             params: a dictionary-like container with the hyperparameters
             metrics: Dictionary with metric names as keys and measured quantities as values
+
         """
         params = _convert_params(params)
 
@@ -294,9 +302,10 @@ class TensorBoardLogger(Logger):
         for listing in listdir_info:
             d = listing["name"]
             bn = os.path.basename(d)
-            if self._fs.isdir(d) and bn.startswith("version_"):
+            if _is_dir(self._fs, d) and bn.startswith("version_"):
                 dir_ver = bn.split("_")[1].replace("/", "")
-                existing_versions.append(int(dir_ver))
+                if dir_ver.isdigit():
+                    existing_versions.append(int(dir_ver))
         if len(existing_versions) == 0:
             return 0
 

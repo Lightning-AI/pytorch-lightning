@@ -2,11 +2,11 @@ import os
 
 import torch
 
-import lightning as L
-from lightning.app.storage import Path
+from lightning.app import LightningWork, LightningFlow, LightningApp
+from lightning.app.storage.path import Path
 
 
-class ModelTraining(L.LightningWork):
+class ModelTraining(LightningWork):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.checkpoints_path = Path("./checkpoints")
@@ -21,7 +21,7 @@ class ModelTraining(L.LightningWork):
         torch.save(checkpoint_2, str(checkpoint_path).format("2"))
 
 
-class ModelDeploy(L.LightningWork):
+class ModelDeploy(LightningWork):
     def __init__(self, ckpt_path, *args, **kwargs):
         super().__init__()
         self.ckpt_path = ckpt_path
@@ -34,7 +34,7 @@ class ModelDeploy(L.LightningWork):
         print(f"Loaded checkpoint_2: {checkpoint_2}")
 
 
-class LitApp(L.LightningFlow):
+class LitApp(LightningFlow):
     def __init__(self):
         super().__init__()
         self.train = ModelTraining()
@@ -45,4 +45,4 @@ class LitApp(L.LightningFlow):
         self.deploy.run()
 
 
-app = L.LightningApp(LitApp())
+app = LightningApp(LitApp())

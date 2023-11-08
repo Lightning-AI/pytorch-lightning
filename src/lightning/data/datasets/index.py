@@ -10,6 +10,7 @@ def get_index(s3_connection_path: str, index_file_path: str) -> bool:
 
     Returns:
         Returns True is the index got created and False if it wasn't
+
     """
 
     if s3_connection_path.startswith("/data/"):
@@ -59,7 +60,7 @@ def _create_index(data_connection_path: str, index_file_path: str) -> bool:
         list_from = f"s3://{data_connection_path}" if not os.path.isdir(data_connection_path) else data_connection_path
 
         if not os.path.exists(os.path.dirname(index_file_path)):
-            os.makedirs(os.path.dirname(index_file_path))
+            os.makedirs(os.path.dirname(index_file_path), exist_ok=True)
 
         with open(index_file_path, "w") as f:
             _create_index_recursive(root=list_from, write_to=f)
@@ -82,6 +83,7 @@ def _get_index(data_connection_path: str, index_file_path: str) -> bool:
 
     Returns:
         True if the index retrieved
+
     """
 
     PROJECT_ID_ENV = "LCP_ID"

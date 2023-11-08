@@ -14,7 +14,6 @@
 from copy import deepcopy
 
 import pytest
-
 from lightning.pytorch.loops.progress import (
     _BaseProgress,
     _OptimizerProgress,
@@ -93,6 +92,7 @@ def test_optimizer_progress_default_factory():
     """Ensure that the defaults are created appropriately.
 
     If `default_factory` was not used, the default would be shared between instances.
+
     """
     p1 = _OptimizerProgress()
     p2 = _OptimizerProgress()

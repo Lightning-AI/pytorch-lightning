@@ -14,11 +14,11 @@
 from functools import partial
 
 import torch
-from torchmetrics.functional import accuracy
-
 from lightning.pytorch import LightningDataModule, LightningModule, Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.utilities.imports import _TORCHMETRICS_GREATER_EQUAL_0_11 as _TM_GE_0_11
+from torchmetrics.functional import accuracy
+
 from tests_pytorch.helpers.utils import get_default_logger, load_model_from_checkpoint
 
 
@@ -71,6 +71,11 @@ def run_model_test(
         f"The change in the model's parameter norm is {change_ratio:.1f}"
         f" relative to the initial norm, but expected a change by >={min_change_ratio}"
     )
+
+    if trainer.world_size != trainer.num_devices:
+        # we're in multinode. unless the filesystem is shared, only the main node will have access to the checkpoint
+        # since we cannot know this, the code below needs to be skipped
+        return
 
     # test model loading
     _ = load_model_from_checkpoint(trainer.checkpoint_callback.best_model_path, type(model))

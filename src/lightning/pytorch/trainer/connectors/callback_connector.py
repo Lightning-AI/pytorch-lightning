@@ -161,6 +161,7 @@ class _CallbackConnector:
         callbacks already present in the trainer callbacks list, it will replace them.
         In addition, all :class:`~lightning.pytorch.callbacks.model_checkpoint.ModelCheckpoint` callbacks
         will be pushed to the end of the list, ensuring they run last.
+
         """
         trainer = self.trainer
 
@@ -171,7 +172,15 @@ class _CallbackConnector:
         model_callbacks = [model_callbacks] if not isinstance(model_callbacks, Sequence) else model_callbacks
         model_callback_types = {type(c) for c in model_callbacks}
         trainer_callback_types = {type(c) for c in trainer.callbacks}
-        override_types = model_callback_types.intersection(trainer_callback_types)
+        # edge case: if an unmodified callback was added, the logic below would filter it
+        trainer_callback_types.discard(Callback)
+        # exclude trainer callbacks of the same class or subclass
+        override_types = set()
+        for model_cb in model_callback_types:
+            for trainer_cb in trainer_callback_types:
+                if issubclass(model_cb, trainer_cb):
+                    override_types.add(trainer_cb)
+                    break
         if override_types:
             rank_zero_info(
                 "The following callbacks returned in `LightningModule.configure_callbacks` will override"
@@ -187,9 +196,9 @@ class _CallbackConnector:
 
     @staticmethod
     def _reorder_callbacks(callbacks: List[Callback]) -> List[Callback]:
-        """Moves all the tuner specific callbacks at the beginning of the list and all the `ModelCheckpoint`
-        callbacks to the end of the list. The sequential order within the group of checkpoint callbacks is
-        preserved, as well as the order of all other callbacks.
+        """Moves all the tuner specific callbacks at the beginning of the list and all the `ModelCheckpoint` callbacks
+        to the end of the list. The sequential order within the group of checkpoint callbacks is preserved, as well as
+        the order of all other callbacks.
 
         Args:
             callbacks: A list of callbacks.
@@ -197,6 +206,7 @@ class _CallbackConnector:
         Return:
             A new list in which the first elements are tuner specific callbacks and last elements are ModelCheckpoints
             if there were any present in the input.
+
         """
         tuner_callbacks: List[Callback] = []
         other_callbacks: List[Callback] = []

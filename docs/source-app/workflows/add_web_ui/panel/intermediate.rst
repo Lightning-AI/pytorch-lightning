@@ -6,7 +6,7 @@ Add a web UI with Panel (intermediate)
 
 **Audience:** Users who want to communicate between the Lightning App and Panel.
 
-**Prereqs:** Must have read the `Panel basic <basic.html>`_ guide.
+**Prereqs:** Must have read the :doc:`Panel basic <basic>` guide.
 
 ----
 

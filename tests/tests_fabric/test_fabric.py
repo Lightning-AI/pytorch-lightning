@@ -12,18 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+import sys
 from re import escape
 from unittest import mock
-from unittest.mock import ANY, call, MagicMock, Mock, PropertyMock
+from unittest.mock import ANY, MagicMock, Mock, PropertyMock, call
 
 import pytest
 import torch
 import torch.distributed
 import torch.nn.functional
-from lightning_utilities.test.warning import no_warning_call
-from torch import nn
-from torch.utils.data import DataLoader, DistributedSampler, RandomSampler, Sampler, SequentialSampler, TensorDataset
-
 from lightning.fabric.accelerators.xla import _using_pjrt
 from lightning.fabric.fabric import Fabric
 from lightning.fabric.plugins import Precision
@@ -41,6 +38,10 @@ from lightning.fabric.utilities.exceptions import MisconfigurationException
 from lightning.fabric.utilities.seed import pl_worker_init_function, seed_everything
 from lightning.fabric.utilities.warnings import PossibleUserWarning
 from lightning.fabric.wrappers import _FabricDataLoader, _FabricModule, _FabricOptimizer
+from lightning_utilities.test.warning import no_warning_call
+from torch import nn
+from torch.utils.data import DataLoader, DistributedSampler, RandomSampler, Sampler, SequentialSampler, TensorDataset
+
 from tests_fabric.helpers.runif import RunIf
 
 
@@ -120,8 +121,8 @@ def test_setup_compiled_module(setup_method):
 @pytest.mark.parametrize("move_to_device", [True, False])
 @pytest.mark.parametrize("setup_method", ["setup", "setup_module"])
 def test_setup_module_move_to_device(setup_method, move_to_device, accelerator, initial_device, target_device):
-    """Test that `move_to_device` leads to parameters being moved to the correct device and that the device
-    attributes on the wrapper are updated."""
+    """Test that `move_to_device` leads to parameters being moved to the correct device and that the device attributes
+    on the wrapper are updated."""
     initial_device = torch.device(initial_device)
     target_device = torch.device(target_device)
     expected_device = target_device if move_to_device else initial_device
@@ -149,8 +150,7 @@ def test_setup_module_move_to_device(setup_method, move_to_device, accelerator, 
 @pytest.mark.parametrize("move_to_device", [True, False])
 @pytest.mark.parametrize("setup_method", ["setup", "setup_module"])
 def test_setup_module_parameters_on_different_devices(setup_method, move_to_device):
-    """Test that a warning is emitted when model parameters are on a different device prior to calling
-    `setup()`."""
+    """Test that a warning is emitted when model parameters are on a different device prior to calling `setup()`."""
     device0 = torch.device("cpu")
     device1 = torch.device("cuda", 0)
 
@@ -162,8 +162,9 @@ def test_setup_module_parameters_on_different_devices(setup_method, move_to_devi
 
     setup_method = getattr(fabric, setup_method)
 
+    match = r"has 2 parameters on different devices \(for example '1.weight' on cuda:0 and '0.weight' on cpu\)"
     if move_to_device:
-        with pytest.warns(PossibleUserWarning, match="has parameters on different devices"):
+        with pytest.warns(PossibleUserWarning, match=match):
             fabric_model = setup_method(model, move_to_device=move_to_device)
 
         # both have the same device now
@@ -171,7 +172,7 @@ def test_setup_module_parameters_on_different_devices(setup_method, move_to_devi
         assert module0.weight.device == module0.bias.device == device1
         assert module1.weight.device == module1.bias.device == device1
     else:
-        with no_warning_call(expected_warning=PossibleUserWarning, match="has parameters on different devices"):
+        with no_warning_call(expected_warning=PossibleUserWarning, match=match):
             setup_method(model, move_to_device=move_to_device)
 
 
@@ -262,14 +263,28 @@ def test_setup_optimizers_twice_fails():
 
 @pytest.mark.parametrize("strategy_cls", [DeepSpeedStrategy, XLAStrategy])
 def test_setup_optimizers_not_supported(strategy_cls):
-    """Test that `setup_optimizers` validates the strategy supports setting up model and optimizers
-    independently."""
+    """Test that `setup_optimizers` validates the strategy supports setting up model and optimizers independently."""
     fabric = Fabric()
     fabric._launched = True  # pretend we have launched multiple processes
     model = nn.Linear(1, 2)
     optimizer = torch.optim.Adam(model.parameters())
     fabric._strategy = Mock(spec=strategy_cls)
     with pytest.raises(RuntimeError, match=escape("requires the model and optimizer(s) to be set up jointly through")):
+        fabric.setup_optimizers(optimizer)
+
+
+@RunIf(min_cuda_gpus=1, min_torch="2.1")
+def test_setup_optimizer_on_meta_device():
+    """Test that the setup-methods validate that the optimizer doesn't have references to meta-device parameters."""
+    fabric = Fabric(strategy="fsdp", devices=1)
+    fabric._launched = True  # pretend we have launched multiple processes
+    with fabric.init_module(empty_init=True):
+        model = nn.Linear(1, 2)
+    assert model.weight.is_meta
+    optimizer = torch.optim.Adam(model.parameters())  # optimizer references meta device params
+    with pytest.raises(RuntimeError, match="The optimizer has references to the model's meta-device parameters"):
+        fabric.setup(model, optimizer)
+    with pytest.raises(RuntimeError, match="The optimizer has references to the model's meta-device parameters"):
         fabric.setup_optimizers(optimizer)
 
 
@@ -334,13 +349,23 @@ def test_setup_dataloaders_captures_dataloader_arguments(ctx_manager):
 
 
 def test_setup_dataloaders_raises_for_unknown_custom_args():
-    """Test that an error raises when custom dataloaders with unknown arguments are created from outside Fabric's
-    run method."""
-    fabric = Fabric()
+    """Test that an error raises when custom dataloaders with unknown arguments are created from outside Fabric's run
+    method."""
 
     class CustomDataLoader(DataLoader):
         def __init__(self, new_arg, *args, **kwargs):
             super().__init__(range(5), *args, **kwargs)
+
+    dataloader = CustomDataLoader(2, batch_size=2)
+
+    # If no distributed sampler is required, reinstantiation is not necessary
+    fabric = Fabric(devices=1)
+    fabric_dataloader = fabric.setup_dataloaders(dataloader)
+    assert fabric_dataloader._dataloader is dataloader
+
+    # If a distributed sampler is required, sampler needs to be reinstantiatied
+    fabric = Fabric(devices=2, accelerator="cpu")
+    fabric._launched = True
 
     with pytest.raises(
         MisconfigurationException,
@@ -349,8 +374,6 @@ def test_setup_dataloaders_raises_for_unknown_custom_args():
             r"The missing attributes are \['new_arg'\]"
         ),
     ):
-        # The dataloader was not created within the run function, and therefore init args were not intercepted
-        dataloader = CustomDataLoader(2, batch_size=2)
         fabric.setup_dataloaders(dataloader)
 
 
@@ -387,9 +410,10 @@ def test_setup_dataloaders_distributed_sampler_not_needed():
     custom_sampler = Mock(spec=Sampler)
     dataloader = DataLoader(Mock(), sampler=custom_sampler)
 
-    # keep the custom sampler when not needed to replace
+    # if no distributed sampler is required, dataloader reinstantiation is not necessary
     fabric = Fabric(devices=1)
     fabric_dataloader = fabric.setup_dataloaders(dataloader, use_distributed_sampler=True)
+    assert fabric_dataloader._dataloader is dataloader
     assert fabric_dataloader.sampler is custom_sampler
 
 
@@ -483,8 +507,7 @@ def test_seed_everything():
     ],
 )
 def test_setup_dataloaders_replace_custom_sampler(strategy):
-    """Test that asking to replace a custom sampler results in an error when a distributed sampler would be
-    needed."""
+    """Test that asking to replace a custom sampler results in an error when a distributed sampler would be needed."""
     custom_sampler = Mock(spec=Sampler)
     dataloader = DataLoader(Mock(), sampler=custom_sampler)
 
@@ -719,9 +742,9 @@ def test_overridden_run_and_cli_not_allowed():
 
 
 def test_module_sharding_context():
-    """Test that the sharding context manager gets applied when the strategy supports it and is a no-op
-    otherwise."""
+    """Test that the sharding context manager gets applied when the strategy supports it and is a no-op otherwise."""
     fabric = Fabric()
+    fabric._launched = True
     fabric._strategy = MagicMock(spec=DDPStrategy, module_sharded_context=Mock())
     with pytest.warns(DeprecationWarning, match="sharded_model"), fabric.sharded_model():
         pass
@@ -1156,12 +1179,57 @@ def test_verify_launch_called():
     with pytest.raises(RuntimeError, match=r"you must call `.launch\(\)`"):
         fabric._validate_launched()
 
+    # Methods
     method_names = ("setup", "setup_module", "setup_dataloaders", "broadcast", "barrier", "all_reduce", "all_gather")
     for method_name in method_names:
         method = getattr(fabric, method_name)
         with pytest.raises(RuntimeError, match=r"you must call `.launch\(\)`"):
             method(Mock())
 
+    # Context managers
+    ctx_manager_names = ("init_module",)
+    for ctx_manager_name in ctx_manager_names:
+        ctx_manager = getattr(fabric, ctx_manager_name)
+        with pytest.raises(RuntimeError, match=r"you must call `.launch\(\)`"), ctx_manager():
+            pass  # the error is raised in the context manager and caught by `pytest.raises`
+
     fabric.launch()
     assert fabric._launched
     fabric._validate_launched()
+
+
+@pytest.mark.skipif(sys.platform == "darwin", reason="https://github.com/pytorch/pytorch/issues/95708")
+@RunIf(dynamo=True)
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {},
+        pytest.param({"precision": "16-true"}, marks=pytest.mark.xfail(raises=RuntimeError, match="Unsupported")),
+        pytest.param({"precision": "64-true"}, marks=pytest.mark.xfail(raises=RuntimeError, match="Unsupported")),
+    ],
+)
+def test_fabric_with_torchdynamo_fullgraph(kwargs):
+    class MyModel(torch.nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.l = torch.nn.Linear(10, 10)
+
+        def forward(self, x):
+            # forward gets compiled
+            assert torch._dynamo.is_compiling()
+            return self.l(x)
+
+    def fn(model, x):
+        assert torch._dynamo.is_compiling()
+        a = x * 10
+        return model(a)
+
+    fabric = Fabric(devices=1, **kwargs)
+    model = MyModel()
+    fmodel = fabric.setup(model)
+    # we are compiling a function that calls model.forward() inside
+    cfn = torch.compile(fn, fullgraph=True)
+    x = torch.randn(10, 10, device=fabric.device)
+    # pass the fabric wrapped model to the compiled function, so that it gets compiled too
+    out = cfn(fmodel, x)
+    assert isinstance(out, torch.Tensor)

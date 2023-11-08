@@ -25,7 +25,9 @@ _PATH_HERE = os.path.abspath(os.path.dirname(__file__))
 _PATH_ROOT = os.path.realpath(os.path.join(_PATH_HERE, "..", ".."))
 sys.path.insert(0, os.path.abspath(_PATH_ROOT))
 
-SPHINX_MOCK_REQUIREMENTS = int(os.environ.get("SPHINX_MOCK_REQUIREMENTS", True))
+_SPHINX_MOCK_REQUIREMENTS = int(os.environ.get("SPHINX_MOCK_REQUIREMENTS", True))
+_FAST_DOCS_DEV = int(os.environ.get("FAST_DOCS_DEV", True))
+_FETCH_S3_ASSETS = int(os.getenv("DOCS_FETCH_ASSETS", not _FAST_DOCS_DEV))
 
 # -- Project information -----------------------------------------------------
 
@@ -46,16 +48,18 @@ github_repo = project
 
 # -- Project documents -------------------------------------------------------
 
-
-fetch_external_assets(
-    docs_folder=_PATH_HERE, assets_folder="_static/fetched-s3-assets", retrieve_pattern=r"https?://[-a-zA-Z0-9_]+\.s3\.[-a-zA-Z0-9()_\\+.\\/=]+"
-)
+if _FETCH_S3_ASSETS:
+    fetch_external_assets(
+        docs_folder=_PATH_HERE,
+        assets_folder="_static/fetched-s3-assets",
+        retrieve_pattern=r"https?://[-a-zA-Z0-9_]+\.s3\.[-a-zA-Z0-9()_\\+.\\/=]+"
+    )
 
 # -- General configuration ---------------------------------------------------
 
 # If your documentation needs a minimal Sphinx version, state it here.
 
-needs_sphinx = "4.5"
+needs_sphinx = "5.3"
 
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
@@ -250,8 +254,56 @@ epub_exclude_files = ["search.html"]
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3", None),
     "torch": ("https://pytorch.org/docs/stable/", None),
-    # "numpy": ("https://docs.scipy.org/doc/numpy/", None),
+    "numpy": ("https://docs.scipy.org/doc/numpy/", None),
 }
+
+nitpicky = True
+
+
+nitpick_ignore = [
+    ("py:class", "typing.Self"),
+    # missing in generated API
+    ("py:exc", "MisconfigurationException"),
+    # TODO: generated list of all existing ATM, need to be fixed
+    ('py:exc', 'ApiException'),
+    ('py:class', 'BaseModel'),
+    ('py:exc', 'LightningPlatformException'),
+    ('py:class', 'forwarded'),
+    ('py:class', 'lightning.app.api.http_methods.Delete'),
+    ('py:class', 'lightning.app.api.http_methods.Get'),
+    ('py:class', 'lightning.app.api.http_methods.HttpMethod'),
+    ('py:class', 'lightning.app.api.http_methods.Post'),
+    ('py:class', 'lightning.app.api.http_methods.Put'),
+    ('py:class', 'lightning.app.components.python.TracerPythonScript'),
+    ('py:func', 'lightning.app.pdb.set_trace'),
+    ('py:class', 'lightning.app.runners.runtime.Runtime'),
+    ('py:class', 'lightning.app.source_code.local.LocalSourceCodeDir'),
+    ('py:class', 'lightning.app.storage.payload._BasePayload'),
+    ('py:class', 'lightning.app.structures.Dict'),
+    ('py:class', 'lightning.app.structures.List'),
+    ('py:class', 'lightning.app.testing.testing.LightningTestApp'),
+    ('py:class', 'lightning.app.utilities.app_status.WorkStatus'),
+    ('py:class', 'lightning.app.utilities.frontend.AppInfo'),
+    ('py:class', 'lightning.app.utilities.packaging.app_config.AppConfig'),
+    ('py:class', 'lightning.app.utilities.packaging.build_config.BuildConfig'),
+    ('py:class', 'lightning.app.utilities.packaging.cloud_compute.CloudCompute'),
+    ('py:class', 'lightning.app.utilities.proxies.WorkRunExecutor'),
+    ('py:class', 'lightning.app.utilities.tracer.Tracer'),
+    ('py:class', 'lightning_cloud.openapi.models.cloudspace_id_runs_body.CloudspaceIdRunsBody'),
+    ('py:class', 'lightning_cloud.openapi.models.externalv1_lightningapp_instance.Externalv1LightningappInstance'),
+    ('py:class', 'lightning_cloud.openapi.models.v1_cloud_space.V1CloudSpace'),
+    ('py:class', 'lightning_cloud.openapi.models.v1_env_var.V1EnvVar'),
+    ('py:class', 'lightning_cloud.openapi.models.v1_flowserver.V1Flowserver'),
+    ('py:class', 'lightning_cloud.openapi.models.v1_lightning_auth.V1LightningAuth'),
+    ('py:class', 'lightning_cloud.openapi.models.v1_lightning_run.V1LightningRun'),
+    ('py:class', 'lightning_cloud.openapi.models.v1_lightningwork_drives.V1LightningworkDrives'),
+    ('py:class', 'lightning_cloud.openapi.models.v1_membership.V1Membership'),
+    ('py:class', 'lightning_cloud.openapi.models.v1_network_config.V1NetworkConfig'),
+    ('py:class', 'lightning_cloud.openapi.models.v1_queue_server_type.V1QueueServerType'),
+    ('py:class', 'lightning_cloud.openapi.models.v1_work.V1Work'),
+    ('py:class', 'pydantic.main.BaseModel'),
+    ('py:meth', 'transfer'),
+]
 
 # -- Options for todo extension ----------------------------------------------
 
@@ -303,7 +355,7 @@ PACKAGE_MAPPING = {
     "PyYAML": "yaml",
 }
 MOCK_PACKAGES = []
-if SPHINX_MOCK_REQUIREMENTS:
+if _SPHINX_MOCK_REQUIREMENTS:
     # mock also base packages when we are on RTD since we don't install them there
     MOCK_PACKAGES += _package_list_from_file(os.path.join(_PATH_ROOT, "requirements.txt"))
 MOCK_PACKAGES = [PACKAGE_MAPPING.get(pkg, pkg) for pkg in MOCK_PACKAGES]
@@ -383,14 +435,17 @@ doctest_test_doctest_blocks = ""
 doctest_global_setup = """
 import importlib
 import os
-import lightning as L
 
+from lightning.app import LightningWork, LightningFlow, LightningApp, CloudCompute
 from lightning.fabric.loggers.tensorboard import _TENSORBOARD_AVAILABLE, _TENSORBOARDX_AVAILABLE
 """
 coverage_skip_undoc_in_source = True
 
 # skip false positive linkcheck errors from anchors
 linkcheck_anchors = False
+
+# A timeout value, in seconds, for the linkcheck builder.
+linkcheck_timeout = 60
 
 # ignore all links in any CHANGELOG file
 linkcheck_exclude_documents = [r"^(.*\/)*CHANGELOG.*$"]

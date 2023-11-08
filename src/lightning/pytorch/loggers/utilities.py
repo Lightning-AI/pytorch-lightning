@@ -35,6 +35,7 @@ def _scan_checkpoints(checkpoint_callback: Checkpoint, logged_model_time: dict) 
     Args:
         checkpoint_callback: Checkpoint callback reference.
         logged_model_time: dictionary containing the logged model times.
+
     """
     # get checkpoints to be saved with associated score
     checkpoints = {}
@@ -51,7 +52,7 @@ def _scan_checkpoints(checkpoint_callback: Checkpoint, logged_model_time: dict) 
     checkpoints = sorted(
         (Path(p).stat().st_mtime, p, s, tag) for p, (s, tag) in checkpoints.items() if Path(p).is_file()
     )
-    checkpoints = [c for c in checkpoints if c[1] not in logged_model_time.keys() or logged_model_time[c[1]] < c[0]]
+    checkpoints = [c for c in checkpoints if c[1] not in logged_model_time or logged_model_time[c[1]] < c[0]]
     return checkpoints
 
 

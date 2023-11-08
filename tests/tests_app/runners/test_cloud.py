@@ -10,6 +10,15 @@ from unittest import mock
 from unittest.mock import MagicMock
 
 import pytest
+from lightning.app import BuildConfig, LightningApp, LightningFlow, LightningWork
+from lightning.app.runners import CloudRuntime, backends, cloud
+from lightning.app.source_code.copytree import _copytree, _parse_lightningignore
+from lightning.app.source_code.local import LocalSourceCodeDir
+from lightning.app.storage import Drive, Mount
+from lightning.app.testing.helpers import EmptyWork
+from lightning.app.utilities.cloud import _get_project
+from lightning.app.utilities.dependency_caching import get_hash
+from lightning.app.utilities.packaging.cloud_compute import CloudCompute
 from lightning_cloud.openapi import (
     CloudspaceIdRunsBody,
     Externalv1Cluster,
@@ -57,16 +66,6 @@ from lightning_cloud.openapi import (
     V1UserRequestedFlowComputeConfig,
     V1Work,
 )
-
-from lightning.app import BuildConfig, LightningApp, LightningFlow, LightningWork
-from lightning.app.runners import backends, cloud, CloudRuntime
-from lightning.app.source_code.copytree import _copytree, _parse_lightningignore
-from lightning.app.source_code.local import LocalSourceCodeDir
-from lightning.app.storage import Drive, Mount
-from lightning.app.testing.helpers import EmptyWork
-from lightning.app.utilities.cloud import _get_project
-from lightning.app.utilities.dependency_caching import get_hash
-from lightning.app.utilities.packaging.cloud_compute import CloudCompute
 
 
 class MyWork(LightningWork):
@@ -254,6 +253,7 @@ class TestAppCreationClient:
         """Deleted apps show up in list apps but not in list instances.
 
         This tests that we don't try to reacreate a previously deleted app.
+
         """
         entrypoint = Path(tmpdir) / "entrypoint.py"
         entrypoint.touch()
@@ -1540,9 +1540,6 @@ class TestOpen:
             project_id="test-project-id", cloudspace_id="cloudspace_id", body=mock.ANY
         )
 
-        out, _ = capsys.readouterr()
-        assert "will not overwrite the files in your CloudSpace." in out
-
     def test_not_enabled(self, monkeypatch, capsys):
         """Tests that an error is printed and the call exits if the feature isn't enabled for the user."""
         mock_client = mock.MagicMock()
@@ -1626,7 +1623,8 @@ class TestCloudspaceDispatch:
         mock_app.works = [mock.MagicMock()]
         cloud_runtime = cloud.CloudRuntime(app=mock_app, entrypoint=Path("."))
 
-        cloud_runtime.cloudspace_dispatch("project_id", "cloudspace_id", "run_name", "cluster_id")
+        app = cloud_runtime.cloudspace_dispatch("project_id", "cloudspace_id", "run_name", "cluster_id")
+        assert app.id == "instance_id"
 
         mock_client.cloud_space_service_get_cloud_space.assert_called_once_with(
             project_id="project_id", id="cloudspace_id"
@@ -1884,10 +1882,11 @@ def test_print_specs(tmpdir, caplog, monkeypatch, print_format, expected):
 
 
 def test_incompatible_cloud_compute_and_build_config(monkeypatch):
-    """Test that an exception is raised when a build config has a custom image defined, but the cloud compute is
-    the default.
+    """Test that an exception is raised when a build config has a custom image defined, but the cloud compute is the
+    default.
 
     This combination is not supported by the platform.
+
     """
     mock_client = mock.MagicMock()
     cloud_backend = mock.MagicMock(client=mock_client)

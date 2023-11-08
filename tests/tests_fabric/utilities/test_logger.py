@@ -13,10 +13,10 @@
 # limitations under the License.
 
 from argparse import Namespace
+from dataclasses import dataclass
 
 import numpy as np
 import torch
-
 from lightning.fabric.utilities.logger import (
     _add_prefix,
     _convert_params,
@@ -67,17 +67,34 @@ def test_flatten_dict():
     wrapping_dict = {"params": params}
     params = _flatten_dict(wrapping_dict)
 
-    assert type(params) == dict
+    params_type = type(params)  # way around needed for Ruff's `isinstance` suggestion
+    assert params_type is dict
     assert params["params/a"] == 1
     assert params["params/b"] == 2
     assert "a" not in params
     assert "b" not in params
+
+    # Test flattening of dataclass objects
+    @dataclass
+    class A:
+        c: int
+        d: int
+
+    @dataclass
+    class B:
+        a: A
+        b: int
+
+    params = {"params": B(a=A(c=1, d=2), b=3), "param": 4}
+    params = _flatten_dict(params)
+    assert params == {"param": 4, "params/b": 3, "params/a/c": 1, "params/a/d": 2}
 
 
 def test_sanitize_callable_params():
     """Callback function are not serializiable.
 
     Therefore, we get them a chance to return something and if the returned type is not accepted, return None.
+
     """
 
     def return_something():

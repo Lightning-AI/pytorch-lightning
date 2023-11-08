@@ -32,7 +32,7 @@ from lightning.app.utilities.imports import _is_sqlmodel_available
 
 if _is_sqlmodel_available():
     from sqlalchemy.inspection import inspect as sqlalchemy_inspect
-    from sqlmodel import JSON, select, Session, SQLModel, TypeDecorator
+    from sqlmodel import JSON, Session, SQLModel, TypeDecorator, select
 
 logger = Logger(__name__)
 engine = None
@@ -52,6 +52,7 @@ def _pydantic_column_type(pydantic_type: Any) -> Any:
         class TrialConfig(SQLModel, table=False):
             ...
             params: Dict[str, Union[Dict[str, float]] = Field(sa_column=Column(pydantic_column_type[Dict[str, float]))
+
     """
 
     class PydanticJSONType(TypeDecorator, Generic[T]):

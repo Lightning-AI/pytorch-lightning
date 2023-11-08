@@ -13,11 +13,11 @@ You can turn caching on or off:
     # Run only when the input arguments change (default)
     work = MyWork(cache_calls=True)
 
-    # Run everytime regardless of whether input arguments change or not
+    # Run every time regardless of whether input arguments change or not
     work = MyWork(cache_calls=False)
 
 To better understand this, imagine that every day you want to sequentially download and process some data and then train a model on that data.
-As explained in the `Event Loop guide <../glossary/event_loop.html>`_, the Lightning App runs within an infinite while loop, so the pseudo-code of your application might looks like this:
+As explained in the :doc:`Event Loop guide <../../glossary/event_loop>`, the Lightning App runs within an infinite while loop, so the pseudo-code of your application might looks like this:
 
 .. code-block:: python
 

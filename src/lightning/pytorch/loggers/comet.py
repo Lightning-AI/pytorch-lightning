@@ -19,36 +19,23 @@ Comet Logger
 import logging
 import os
 from argparse import Namespace
-from typing import Any, Dict, Mapping, Optional, Union
+from typing import TYPE_CHECKING, Any, Dict, Mapping, Optional, Union
 
-from lightning_utilities.core.imports import module_available
+from lightning_utilities.core.imports import RequirementCache
 from torch import Tensor
 from torch.nn import Module
+from typing_extensions import override
 
 from lightning.fabric.utilities.logger import _add_prefix, _convert_params, _flatten_dict
 from lightning.pytorch.loggers.logger import Logger, rank_zero_experiment
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.rank_zero import rank_zero_only
 
+if TYPE_CHECKING:
+    from comet_ml import ExistingExperiment, Experiment, OfflineExperiment
+
 log = logging.getLogger(__name__)
-_COMET_AVAILABLE = module_available("comet_ml")
-
-if _COMET_AVAILABLE:
-    import comet_ml
-    from comet_ml import ExistingExperiment as CometExistingExperiment
-    from comet_ml import Experiment as CometExperiment
-    from comet_ml import OfflineExperiment as CometOfflineExperiment
-
-    try:
-        from comet_ml.api import API
-    except ModuleNotFoundError:
-        # For more information, see: https://www.comet.ml/docs/python-sdk/releases/#release-300
-        from comet_ml.papi import API
-else:
-    # needed for test mocks, these tests shall be updated
-    comet_ml = None
-    CometExperiment, CometExistingExperiment, CometOfflineExperiment = None, None, None
-    API = None
+_COMET_AVAILABLE = RequirementCache("comet-ml>=3.31.0", module="comet_ml")
 
 
 class CometLogger(Logger):
@@ -101,7 +88,7 @@ class CometLogger(Logger):
 
     **Log Hyperparameters:**
 
-    Log parameters used to initialize a :class:`~lightning.pytorch.core.module.LightningModule`:
+    Log parameters used to initialize a :class:`~lightning.pytorch.core.LightningModule`:
 
     .. code-block:: python
 
@@ -204,6 +191,7 @@ class CometLogger(Logger):
             If required Comet package is not installed on the device.
         MisconfigurationException:
             If neither ``api_key`` nor ``save_dir`` are passed as arguments.
+
     """
 
     LOGGER_JOIN_CHAR = "-"
@@ -220,14 +208,17 @@ class CometLogger(Logger):
         prefix: str = "",
         **kwargs: Any,
     ):
-        if comet_ml is None:
-            raise ModuleNotFoundError(
-                "You want to use `comet_ml` logger which is not installed yet, install it with `pip install comet-ml`."
-            )
+        if not _COMET_AVAILABLE:
+            raise ModuleNotFoundError(str(_COMET_AVAILABLE))
         super().__init__()
         self._experiment = None
         self._save_dir: Optional[str]
         self.rest_api_key: Optional[str]
+
+        # needs to be set before the first `comet_ml` import
+        os.environ["COMET_DISABLE_AUTO_LOGGING"] = "1"
+
+        import comet_ml
 
         # Determine online or offline mode based on which arguments were passed to CometLogger
         api_key = api_key or comet_ml.config.get_api_key(None, comet_ml.config.get_config())
@@ -257,6 +248,8 @@ class CometLogger(Logger):
         self._future_experiment_key: Optional[str] = None
 
         if rest_api_key is not None:
+            from comet_ml.api import API
+
             # Comet.ml rest API, used to determine version number
             self.rest_api_key = rest_api_key
             self.comet_api = API(self.rest_api_key)
@@ -266,10 +259,9 @@ class CometLogger(Logger):
 
     @property
     @rank_zero_experiment
-    def experiment(self) -> Union[CometExperiment, CometExistingExperiment, CometOfflineExperiment]:
-        r"""
-        Actual Comet object. To use Comet features in your
-        :class:`~lightning.pytorch.core.module.LightningModule` do the following.
+    def experiment(self) -> Union["Experiment", "ExistingExperiment", "OfflineExperiment"]:
+        r"""Actual Comet object. To use Comet features in your :class:`~lightning.pytorch.core.LightningModule` do the
+        following.
 
         Example::
 
@@ -282,22 +274,22 @@ class CometLogger(Logger):
         if self._future_experiment_key is not None:
             os.environ["COMET_EXPERIMENT_KEY"] = self._future_experiment_key
 
+        from comet_ml import ExistingExperiment, Experiment, OfflineExperiment
+
         try:
             if self.mode == "online":
                 if self._experiment_key is None:
-                    self._experiment = CometExperiment(
-                        api_key=self.api_key, project_name=self._project_name, **self._kwargs
-                    )
+                    self._experiment = Experiment(api_key=self.api_key, project_name=self._project_name, **self._kwargs)
                     self._experiment_key = self._experiment.get_key()
                 else:
-                    self._experiment = CometExistingExperiment(
+                    self._experiment = ExistingExperiment(
                         api_key=self.api_key,
                         project_name=self._project_name,
                         previous_experiment=self._experiment_key,
                         **self._kwargs,
                     )
             else:
-                self._experiment = CometOfflineExperiment(
+                self._experiment = OfflineExperiment(
                     offline_directory=self.save_dir, project_name=self._project_name, **self._kwargs
                 )
             self._experiment.log_other("Created from", "pytorch-lightning")
@@ -311,12 +303,14 @@ class CometLogger(Logger):
 
         return self._experiment
 
+    @override
     @rank_zero_only
     def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:  # type: ignore[override]
         params = _convert_params(params)
         params = _flatten_dict(params)
         self.experiment.log_parameters(params)
 
+    @override
     @rank_zero_only
     def log_metrics(self, metrics: Mapping[str, Union[Tensor, float]], step: Optional[int] = None) -> None:
         assert rank_zero_only.rank == 0, "experiment tried to log from global_rank != 0"
@@ -333,16 +327,16 @@ class CometLogger(Logger):
     def reset_experiment(self) -> None:
         self._experiment = None
 
+    @override
     @rank_zero_only
     def finalize(self, status: str) -> None:
-        r"""
-        When calling ``self.experiment.end()``, that experiment won't log any more data to Comet.
-        That's why, if you need to log any more data, you need to create an ExistingCometExperiment.
-        For example, to log data when testing your model after training, because when training is
-        finalized :meth:`CometLogger.finalize` is called.
+        r"""When calling ``self.experiment.end()``, that experiment won't log any more data to Comet. That's why, if you
+        need to log any more data, you need to create an ExistingCometExperiment. For example, to log data when testing
+        your model after training, because when training is finalized :meth:`CometLogger.finalize` is called.
 
         This happens automatically in the :meth:`~CometLogger.experiment` property, when
         ``self._experiment`` is set to ``None``, i.e. ``self.reset_experiment()``.
+
         """
         if self._experiment is None:
             # When using multiprocessing, finalize() should be a no-op on the main process, as no experiment has been
@@ -352,20 +346,24 @@ class CometLogger(Logger):
         self.reset_experiment()
 
     @property
+    @override
     def save_dir(self) -> Optional[str]:
         """Gets the save directory.
 
         Returns:
             The path to the save directory.
+
         """
         return self._save_dir
 
     @property
+    @override
     def name(self) -> str:
         """Gets the project name.
 
         Returns:
             The project name if it is specified, else "comet-default".
+
         """
         # Don't create an experiment if we don't have one
         if self._experiment is not None and self._experiment.project_name is not None:
@@ -377,6 +375,7 @@ class CometLogger(Logger):
         return "comet-default"
 
     @property
+    @override
     def version(self) -> str:
         """Gets the version.
 
@@ -389,6 +388,7 @@ class CometLogger(Logger):
             4. future experiment key.
 
             If none are present generates a new guid.
+
         """
         # Don't create an experiment if we don't have one
         if self._experiment is not None:
@@ -402,6 +402,8 @@ class CometLogger(Logger):
 
         if self._future_experiment_key is not None:
             return self._future_experiment_key
+
+        import comet_ml
 
         # Pre-generate an experiment key
         self._future_experiment_key = comet_ml.generate_guid()
@@ -422,6 +424,7 @@ class CometLogger(Logger):
         state["_experiment"] = None
         return state
 
+    @override
     def log_graph(self, model: Module, input_array: Optional[Tensor] = None) -> None:
         if self._experiment is not None:
             self._experiment.set_model_graph(model)

@@ -11,8 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from contextlib import contextmanager
-from typing import Any, Generator, Literal
+from typing import Any, ContextManager, Literal
 
 import torch
 from lightning_utilities.core.apply_func import apply_to_collection
@@ -20,7 +19,7 @@ from torch import Tensor
 from torch.nn import Module
 
 from lightning.fabric.plugins.precision.precision import Precision
-from lightning.fabric.plugins.precision.utils import _convert_fp_tensor
+from lightning.fabric.plugins.precision.utils import _convert_fp_tensor, _DtypeContextManager
 
 
 class HalfPrecision(Precision):
@@ -28,6 +27,7 @@ class HalfPrecision(Precision):
 
     Args:
         precision: Whether to use ``torch.float16`` (``'16-true'``) or ``torch.bfloat16`` (``'bf16-true'``).
+
     """
 
     precision: Literal["bf16-true", "16-true"] = "16-true"
@@ -39,28 +39,14 @@ class HalfPrecision(Precision):
     def convert_module(self, module: Module) -> Module:
         return module.to(dtype=self._desired_input_dtype)
 
-    @contextmanager
-    def init_context(self) -> Generator[None, None, None]:
-        """A context manager to change the default tensor type when initializing module parameters or tensors.
+    def tensor_init_context(self) -> ContextManager:
+        return _DtypeContextManager(self._desired_input_dtype)
 
-        See: :meth:`torch.set_default_dtype`
-        """
-        default_dtype = torch.get_default_dtype()
-        torch.set_default_dtype(self._desired_input_dtype)
-        yield
-        torch.set_default_dtype(default_dtype)
+    def module_init_context(self) -> ContextManager:
+        return self.tensor_init_context()
 
-    @contextmanager
-    def forward_context(self) -> Generator[None, None, None]:
-        """A context manager to change the default tensor type when tensors get created during the module's
-        forward.
-
-        See: :meth:`torch.set_default_dtype`
-        """
-        default_dtype = torch.get_default_dtype()
-        torch.set_default_dtype(self._desired_input_dtype)
-        yield
-        torch.set_default_dtype(default_dtype)
+    def forward_context(self) -> ContextManager:
+        return self.tensor_init_context()
 
     def convert_input(self, data: Any) -> Any:
         return apply_to_collection(data, function=_convert_fp_tensor, dtype=Tensor, dst_type=self._desired_input_dtype)

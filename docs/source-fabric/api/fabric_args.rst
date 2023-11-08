@@ -131,7 +131,7 @@ Automatic mixed precision settings are denoted by a ``"-mixed"`` suffix, while "
     # 16-bit bfloat mixed precision (model weights remain in torch.float32)
     fabric = Fabric(precision="bf16-mixed", devices=1)
 
-    # 8-bit mixed precision via TransformerEngine (model weights remain in torch.float32)
+    # 8-bit mixed precision via TransformerEngine (model weights get cast to torch.bfloat16)
     fabric = Fabric(precision="transformer-engine", devices=1)
 
     # 16-bit precision (model weights get cast to torch.float16)
@@ -144,12 +144,23 @@ Automatic mixed precision settings are denoted by a ``"-mixed"`` suffix, while "
     fabric = Fabric(precision="64-true", devices=1)
 
 
+Precision settings can also be enabled via the plugins argument (see section below on plugins).
+An example is the weights quantization plugin Bitsandbytes for 4-bit and 8-bit:
+
+.. code-block:: python
+
+    from lightning.fabric.plugins import BitsandbytesPrecision
+
+    precision = BitsandbytesPrecision(mode="nf4-dq", dtype=torch.bfloat16)
+    fabric = Fabric(plugins=precision)
+
+
 plugins
 =======
 
 Plugins allow you to connect arbitrary backends, precision libraries, clusters, etc. For example:
 To define your own behavior, subclass the relevant class and pass it in. Here's an example linking up your own
-:class:`~lightning.fabric.plugins.environments.ClusterEnvironment`.
+:class:`~lightning.fabric.plugins.environments.cluster_environment.ClusterEnvironment`.
 
 .. code-block:: python
 

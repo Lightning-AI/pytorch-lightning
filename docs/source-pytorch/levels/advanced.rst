@@ -31,7 +31,7 @@ Configure all aspects of Lightning for advanced usecases.
 
 .. displayitem::
    :header: Level 16: Own the training loop
-   :description: Learn all the ways of owning your raw PyTorch loops with Lighting.
+   :description: Learn all the ways of owning your raw PyTorch loops with Lightning.
    :col_css: col-md-6
    :button_link: advanced_level_17.html
    :height: 150
@@ -70,8 +70,8 @@ Configure all aspects of Lightning for advanced usecases.
    :tag: advanced
 
 .. displayitem::
-   :header: Level 21: Reach 1 trillion parameters on GPUs
-   :description: Scale to 1 trillion params on GPUs.
+   :header: Level 21: Train models with billions of parameters
+   :description: Scale GPU training to models with billions of parameters
    :col_css: col-md-6
    :button_link: advanced_level_22.html
    :height: 150

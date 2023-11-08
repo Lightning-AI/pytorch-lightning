@@ -17,8 +17,8 @@ from unittest.mock import Mock
 
 import pytest
 import torch.nn
-
 from lightning.fabric.utilities.init import _EmptyInit
+
 from tests_fabric.helpers.runif import RunIf
 
 
