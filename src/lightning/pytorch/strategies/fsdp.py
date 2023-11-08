@@ -293,8 +293,6 @@ class FSDPStrategy(ParallelStrategy):
                 **self.kwargs,
             )
 
-        # FSDP doesn't move modules without parameters (e.g. Metrics) to the device
-        # https://github.com/pytorch/pytorch/issues/113113
         _move_torchmetrics_to_device(model, self.root_device)
 
         # activation checkpointing needs to be set up after wrapping the model
