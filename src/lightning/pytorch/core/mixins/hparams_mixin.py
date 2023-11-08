@@ -117,7 +117,7 @@ class HyperparametersMixin:
         if isinstance(hp, dict) and isinstance(self.hparams, dict):
             self.hparams.update(hp)
         else:
-            self._hparams = hp
+            self._hparams: AttributeDict = hp
 
     @staticmethod
     def _to_hparams_dict(hp: Union[MutableMapping, Namespace]) -> AttributeDict:
