@@ -15,6 +15,7 @@ import logging
 from typing import Optional, Union
 
 import torch
+from typing_extensions import override
 
 import lightning.pytorch as pl
 from lightning.fabric.utilities.data import _set_sampler_epoch, sized_len
@@ -117,6 +118,7 @@ class _FitLoop(_Loop):
         return self.epoch_loop.max_steps
 
     @_Loop.restarting.setter
+    @override
     def restarting(self, restarting: bool) -> None:
         # if the last epoch completely finished, we are not actually restarting
         values = self.epoch_progress.current.ready, self.epoch_progress.current.started
