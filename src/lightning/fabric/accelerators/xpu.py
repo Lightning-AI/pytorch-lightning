@@ -22,8 +22,6 @@ from lightning_utilities.core.rank_zero import rank_zero_info
 
 from lightning.fabric.accelerators.accelerator import Accelerator
 from lightning.fabric.accelerators.registry import _AcceleratorRegistry
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12
-
 from lightning_utilities.core.imports import RequirementCache
 
 from typing import Any, Dict, List, Union
@@ -72,15 +70,14 @@ class XPUAccelerator(Accelerator):
         pass
 
     @classmethod
-    def register_accelerators(cls, accelerator_registry):
+    def register_accelerators(cls, accelerator_registry: _AcceleratorRegistry) -> None:
         accelerator_registry.register(
             "xpu",
             cls,
-            description=cls.__class__.__name__,
+            description=cls.__name__,
         )
 
-
-_IPEX_AVAILABLE = RequirementCache("intel_extension_for_pytorch>=1.13", "intel_extension_for_pytorch")
+_IPEX_AVAILABLE = RequirementCache("intel_extension_for_pytorch>=2.0", "intel_extension_for_pytorch")
 
 
 @lru_cache(1)

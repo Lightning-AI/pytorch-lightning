@@ -18,11 +18,8 @@ from lightning.fabric.accelerators.cuda import CUDAAccelerator, find_usable_cuda
 from lightning.fabric.accelerators.mps import MPSAccelerator  # noqa: F401
 from lightning.fabric.accelerators.registry import _AcceleratorRegistry
 from lightning.fabric.accelerators.xla import XLAAccelerator  # noqa: F401
-<<<<<<< HEAD
 from lightning.fabric.accelerators.xpu import XPUAccelerator
-=======
 from lightning.fabric.utilities.registry import _register_classes
->>>>>>> 964364b3bbfd27c448633025ae7919ef613b83ef
 
 ACCELERATOR_REGISTRY = _AcceleratorRegistry()
 _register_classes(ACCELERATOR_REGISTRY, "register_accelerators", sys.modules[__name__], Accelerator)

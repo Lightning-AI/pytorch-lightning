@@ -21,7 +21,6 @@ import torch
 from lightning_utilities.core.rank_zero import rank_zero_info
 
 from lightning.fabric.accelerators.registry import _AcceleratorRegistry
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12
 
 from lightning_utilities.core.imports import RequirementCache
 
