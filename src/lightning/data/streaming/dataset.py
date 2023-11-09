@@ -14,7 +14,7 @@
 import copy
 import hashlib
 import os
-from typing import Any, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 import numpy as np
 from torch.utils.data import IterableDataset
@@ -24,6 +24,7 @@ from lightning.data.streaming import Cache
 from lightning.data.streaming.constants import _INDEX_FILENAME, _LIGHTNING_CLOUD_LATEST
 from lightning.data.streaming.item_loader import BaseItemLoader
 from lightning.data.streaming.sampler import ChunkedIndex
+from lightning.data.streaming.serializers import Serializer
 from lightning.data.streaming.shuffle import FullShuffle, NoShuffle, Shuffle
 
 if _LIGHTNING_CLOUD_LATEST:
@@ -40,6 +41,7 @@ class StreamingDataset(IterableDataset):
         shuffle: bool = False,
         drop_last: bool = False,
         seed: int = 42,
+        serializers: Optional[Dict[str, Serializer]] = None,
     ) -> None:
         """The streaming dataset can be used once your data have been optimised using the DatasetOptimiser class.
 
@@ -50,6 +52,7 @@ class StreamingDataset(IterableDataset):
             drop_last: If `True`, drops the last items to ensure that
                 all processes/workers return the same amount of data.
             seed: Random seed for shuffling.
+            serializers: The serializers used to serialize and deserialize the chunks.
 
         """
         super().__init__()
@@ -77,6 +80,7 @@ class StreamingDataset(IterableDataset):
         self.current_epoch = 0
         self.random_state = None
         self.shuffler: Optional[Shuffle] = None
+        self.serializers = serializers
 
     def _create_cache(self, worker_env: _WorkerEnv) -> Cache:
         env = Environment(dist_env=self.distributed_env, worker_env=worker_env)
@@ -85,7 +89,7 @@ class StreamingDataset(IterableDataset):
         if cache_path:
             cache_dir.path = cache_path
 
-        cache = Cache(input_dir=cache_dir, item_loader=self.item_loader, chunk_bytes=1)
+        cache = Cache(input_dir=cache_dir, item_loader=self.item_loader, chunk_bytes=1, serializers=self.serializers)
         cache._reader._try_load_config()
 
         if not cache.filled:
