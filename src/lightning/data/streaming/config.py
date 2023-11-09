@@ -19,18 +19,26 @@ from lightning.data.streaming.constants import _INDEX_FILENAME, _TORCH_GREATER_E
 from lightning.data.streaming.downloader import get_downloader_cls
 from lightning.data.streaming.item_loader import BaseItemLoader, PyTreeLoader, TokensLoader
 from lightning.data.streaming.sampler import ChunkedIndex
+from lightning.data.streaming.serializers import Serializer
 
 if _TORCH_GREATER_EQUAL_2_1_0:
     from torch.utils._pytree import tree_unflatten, treespec_loads
 
 
 class ChunksConfig:
-    def __init__(self, cache_dir: str, remote_dir: Optional[str], item_loader: Optional[BaseItemLoader] = None) -> None:
+    def __init__(
+        self,
+        cache_dir: str,
+        serializers: Dict[str, Serializer],
+        remote_dir: Optional[str],
+        item_loader: Optional[BaseItemLoader] = None,
+    ) -> None:
         """The ChunksConfig reads the index files associated a chunked dataset and enables to map an index to its
         chunk.
 
         Arguments:
             cache_dir: The path to cache folder.
+            serializers: The serializers used to serialize and deserialize the chunks.
             remote_dir: The path to a remote folder where the data are located.
                 The scheme needs to be added to the path.
 
@@ -50,7 +58,7 @@ class ChunksConfig:
 
         self._config["data_spec"] = treespec_loads(self._config["data_spec"])
 
-        self._item_loader.setup(self._config, self._chunks)
+        self._item_loader.setup(self._config, self._chunks, serializers)
         self._intervals = self._item_loader.generate_intervals()
         self._length = self._intervals[-1][-1]
         self._downloader = None
@@ -122,7 +130,11 @@ class ChunksConfig:
 
     @classmethod
     def load(
-        cls, cache_dir: str, remote_dir: Optional[str] = None, item_loader: Optional[BaseItemLoader] = None
+        cls,
+        cache_dir: str,
+        serializers: Dict[str, Serializer],
+        remote_dir: Optional[str] = None,
+        item_loader: Optional[BaseItemLoader] = None,
     ) -> Optional["ChunksConfig"]:
         cache_index_filepath = os.path.join(cache_dir, _INDEX_FILENAME)
 
@@ -133,7 +145,7 @@ class ChunksConfig:
         if not os.path.exists(cache_index_filepath):
             return None
 
-        return ChunksConfig(cache_dir, remote_dir, item_loader)
+        return ChunksConfig(cache_dir, serializers, remote_dir, item_loader)
 
     def __len__(self) -> int:
         return self._length

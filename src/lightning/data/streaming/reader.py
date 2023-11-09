@@ -23,7 +23,7 @@ from lightning.data.streaming.config import ChunksConfig
 from lightning.data.streaming.constants import _TORCH_GREATER_EQUAL_2_1_0
 from lightning.data.streaming.item_loader import BaseItemLoader, PyTreeLoader
 from lightning.data.streaming.sampler import ChunkedIndex
-from lightning.data.streaming.serializers import _SERIALIZERS, Serializer
+from lightning.data.streaming.serializers import Serializer, _get_serializers
 
 warnings.filterwarnings("ignore", message=".*The given buffer is not writable.*")
 
@@ -110,6 +110,7 @@ class BinaryReader:
         remote_input_dir: Optional[str] = None,
         compression: Optional[str] = None,
         item_loader: Optional[BaseItemLoader] = None,
+        serializers: Optional[Dict[str, Serializer]] = None,
     ) -> None:
         """The BinaryReader enables to read chunked dataset in an efficient way.
 
@@ -120,6 +121,7 @@ class BinaryReader:
             compression: The algorithm to decompress the chunks.
             item_loader: The chunk sampler to create sub arrays from a chunk.
             max_cache_size: The maximum cache size used by the reader when fetching the chunks.
+            serializers: Provide your own serializers.
 
         """
         super().__init__()
@@ -134,7 +136,7 @@ class BinaryReader:
         self._compression = compression
         self._intervals: Optional[List[str]] = None
 
-        self._serializers: Dict[str, Serializer] = _SERIALIZERS
+        self._serializers: Dict[str, Serializer] = _get_serializers(serializers)
         self._distributed_env = _DistributedEnv.detect()
         self._rank: Optional[int] = None
         self._config: Optional[ChunksConfig] = None
@@ -153,7 +155,7 @@ class BinaryReader:
 
     def _try_load_config(self) -> Optional[ChunksConfig]:
         """Try to load the chunks config if the index files are available."""
-        self._config = ChunksConfig.load(self._cache_dir, self._remote_input_dir, self._item_loader)
+        self._config = ChunksConfig.load(self._cache_dir, self._serializers, self._remote_input_dir, self._item_loader)
         return self._config
 
     @property
