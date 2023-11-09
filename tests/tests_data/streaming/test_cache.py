@@ -275,5 +275,4 @@ def test_custom_serializer(tmpdir):
         cache[i] = (CustomData(),)
     cache.done()
     cache.merge()
-
-    cache[0]
+    assert isinstance(cache[0][0], bytes)

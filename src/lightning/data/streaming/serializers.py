@@ -227,7 +227,7 @@ class FileSerializer(Serializer):
 
 
 class VideoSerializer(Serializer):
-    _EXTENSIONS = ("mp4", "ogv", "mjpeg", "avi", "mov", "h264", "mpg", "webm", "wmv")
+    _EXTENSIONS = ("mp4", "ogv", "mjpeg", "avi", "mov", "h264", "mpg", "webm", "wmv", "wav")
 
     def serialize(self, filepath: str) -> Tuple[bytes, Optional[str]]:
         _, file_extension = os.path.splitext(filepath)

@@ -146,19 +146,19 @@ def test_assert_no_header_tensor_serializer():
 @pytest.mark.skipif(
     condition=not _TORCH_VISION_AVAILABLE or not _AV_AVAILABLE, reason="Requires: ['torchvision', 'av']"
 )
-def test_mp4_deserialization(tmpdir):
+def test_wav_deserialization(tmpdir):
     from torch.hub import download_url_to_file
 
-    video_file = os.path.join(tmpdir, "video.mp4")
-    key = "tutorial-assets/stream-api/NASAs_Most_Scientifically_Complex_Space_Observatory_Requires_Precision-MP4_small.mp4"  # noqa E501
+    video_file = os.path.join(tmpdir, "video.wav")
+    key = "tutorial-assets/Lab41-SRI-VOiCES-src-sp0307-ch127535-sg0042.wav"  # noqa E501
     download_url_to_file(f"https://download.pytorch.org/torchaudio/{key}", video_file)
 
     serializer = VideoSerializer()
     assert serializer.can_serialize(video_file)
     data, name = serializer.serialize(video_file)
-    assert len(data) / 1024 / 1024 == 31.792160034179688
-    assert name == "mp4"
+    assert len(data) / 1024 / 1024 == 0.10380172729492188
+    assert name == "wav"
     vframes, aframes, info = serializer.deserialize(data)
-    assert vframes.shape == torch.Size([6175, 540, 960, 3])
-    assert aframes.shape == torch.Size([2, 9889792])
-    assert info == {"video_fps": 29.97002997002997, "audio_fps": 48000}
+    assert vframes.shape == torch.Size([0, 1, 1, 3])
+    assert aframes.shape == torch.Size([1, 54400])
+    assert info == {"audio_fps": 16000}
