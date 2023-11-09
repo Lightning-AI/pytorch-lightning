@@ -34,7 +34,7 @@ from lightning.app.utilities.load_app import _load_plugin_from_file
 logger = Logger(__name__)
 
 _PLUGIN_MAX_CLIENT_TRIES: int = 3
-_PLUGIN_INTERNAL_DIR_PATH: str = "/internal"
+_PLUGIN_INTERNAL_DIR_PATH: str = f"{os.environ.get('HOME', '')}/internal"
 
 
 class LightningPlugin:
