@@ -12,6 +12,7 @@
 # limitations under the License.
 
 import os
+import shutil
 import warnings
 from threading import Lock, Thread
 from time import sleep
@@ -33,38 +34,79 @@ if _TORCH_GREATER_EQUAL_2_1_0:
 class PrepareChunksThread(Thread):
     """This thread is responsible to download the chunks associated to a given worker."""
 
-    def __init__(self, config: ChunksConfig) -> None:
+    def __init__(self, config: ChunksConfig, max_cache_size: Optional[int] = None, pre_download: int = 10) -> None:
         super().__init__(daemon=True)
         self._config = config
-        self._chunks_index_to_be_processed: List[int] = []
-        self._chunks_index_to_ready: List[int] = []
+        self._chunks_index_to_be_downloaded: List[int] = []
+        self._chunks_index_to_be_deleted: List[int] = []
         self._lock = Lock()
+        self._max_cache_size = max_cache_size
+        self._downloaded_chunks = 0
+        self._processed_chunks = 0
+        self._processed_chunks_counter = 0
+        self._delete_chunks = 0
+        self._pre_download = pre_download
 
-    def add(self, chunk_indices: List[int]) -> None:
+    def download(self, chunk_indices: List[int]) -> None:
         """Receive the list of the chunk indices to download for the current epoch."""
         with self._lock:
             for chunk_indice in chunk_indices:
-                if chunk_indice not in self._chunks_index_to_be_processed:
-                    self._chunks_index_to_be_processed.append(chunk_indice)
+                if chunk_indice not in self._chunks_index_to_be_downloaded:
+                    self._chunks_index_to_be_downloaded.append(chunk_indice)
+
+    def delete(self, chunk_indices: List[int]) -> None:
+        """Receive the list of the chunk indices to download for the current epoch."""
+        with self._lock:
+            for chunk_indice in chunk_indices:
+                if chunk_indice not in self._chunks_index_to_be_deleted:
+                    self._chunks_index_to_be_deleted.append(chunk_indice)
+                    self._processed_chunks += 1
+                    self._processed_chunks_counter += 1
+
+    def _delete(self, chunk_index: int) -> None:
+        chunk_filepath, begin, _ = self._config[ChunkedIndex(index=-1, chunk_index=chunk_index)]
+
+        if os.path.exists(chunk_filepath):
+            os.remove(chunk_filepath)
 
     def run(self) -> None:
         while True:
             with self._lock:
-                if len(self._chunks_index_to_be_processed) == 0:
-                    sleep(0.007)
+                # Wait for something to do
+                if len(self._chunks_index_to_be_downloaded) == 0 and len(self._chunks_index_to_be_deleted) == 0:
+                    sleep(0.01)
                     continue
 
-                chunk_index = self._chunks_index_to_be_processed.pop(0)
+                # Delete the chunks if we are missing disk space.
+                if self._max_cache_size and self._processed_chunks_counter >= self._pre_download:
+                    if shutil.disk_usage(self._config._cache_dir).total >= self._max_cache_size:
+                        for chunk_index in self._chunks_index_to_be_deleted:
+                            if chunk_index not in self._chunks_index_to_be_downloaded:
+                                self._delete(chunk_index)
+                                self._delete_chunks += 1
+                                self._processed_chunks_counter = 0
+                    self._chunks_index_to_be_deleted = []
 
-            # TODO: Implement eviction
+                # If there is no chunks to download, go back to waiting
+                if len(self._chunks_index_to_be_downloaded) == 0:
+                    continue
+
+                # If we have already downloaded too many chunks, let's wait for processed chunks to catch up
+                if self._max_cache_size and (self._downloaded_chunks - self._processed_chunks) > self._pre_download:
+                    sleep(0.01)
+                    continue
+
+                chunk_index = self._chunks_index_to_be_downloaded.pop(0)
+
             self._config.download_chunk_from_index(chunk_index)
-            self._chunks_index_to_ready.append(chunk_index)
+            self._downloaded_chunks += 1
 
 
 class BinaryReader:
     def __init__(
         self,
         cache_dir: str,
+        max_cache_size: int,
         remote_input_dir: Optional[str] = None,
         compression: Optional[str] = None,
         item_loader: Optional[BaseItemLoader] = None,
@@ -77,6 +119,7 @@ class BinaryReader:
                 The scheme needs to be added to the path.
             compression: The algorithm to decompress the chunks.
             item_loader: The chunk sampler to create sub arrays from a chunk.
+            max_cache_size: The maximum cache size used by the reader when fetching the chunks.
 
         """
         super().__init__()
@@ -96,8 +139,10 @@ class BinaryReader:
         self._rank: Optional[int] = None
         self._config: Optional[ChunksConfig] = None
         self._prepare_thread: Optional[PrepareChunksThread] = None
-        self._chunks_index_to_be_processed: List[int] = []
+        self._chunks_index_to_be_downloaded: List[int] = []
         self._item_loader = item_loader or PyTreeLoader()
+        self._last_chunk_index: Optional[int] = None
+        self._max_cache_size = int(os.getenv("MAX_CACHE_SIZE", max_cache_size))
 
     def _get_chunk_index_from_index(self, index: int) -> int:
         # Load the config containing the index
@@ -143,17 +188,21 @@ class BinaryReader:
         if self._config and self._config._remote_dir:
             # Create and start the prepare chunks thread
             if self._prepare_thread is None and self._config:
-                self._prepare_thread = PrepareChunksThread(self._config)
+                self._prepare_thread = PrepareChunksThread(self._config, self._max_cache_size)
                 self._prepare_thread.start()
                 if index.chunk_indexes:
-                    self._chunks_index_to_be_processed.extend(index.chunk_indexes)
-                    self._prepare_thread.add(index.chunk_indexes)
+                    self._chunks_index_to_be_downloaded.extend(index.chunk_indexes)
+                    self._prepare_thread.download(index.chunk_indexes)
 
-            # If the chunk_index isn't already in the download queue, add it.
-            if index.chunk_index not in self._chunks_index_to_be_processed:
+            # If the chunk_index isn't already in the download and delete queues, add it.
+            if index.chunk_index != self._last_chunk_index:
                 assert self._prepare_thread
-                self._prepare_thread.add([index.chunk_index])
-                self._chunks_index_to_be_processed.append(index.chunk_index)
+
+                if self._last_chunk_index:
+                    self._prepare_thread.delete([self._last_chunk_index])
+
+                self._last_chunk_index = index.chunk_index
+                self._prepare_thread.download([index.chunk_index])
 
         # Fetch the element
         chunk_filepath, begin, _ = self.config[index]
