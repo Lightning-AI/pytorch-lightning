@@ -12,6 +12,7 @@
 # limitations under the License.
 
 import os
+import sys
 from unittest import mock
 
 import pytest
@@ -53,6 +54,7 @@ def test_streaming_dataset(tmpdir, monkeypatch):
 
 @mock.patch.dict(os.environ, {"LIGHTNING_CLUSTER_ID": "123", "LIGHTNING_CLOUD_PROJECT_ID": "456"})
 @mock.patch("lightning.data.streaming.dataset.os.makedirs")
+@pytest.mark.skipif(condition=sys.platform == "win32", reason="Not supported on windows")
 def test_create_cache_dir_in_lightning_cloud(makedirs_mock):
     # Locally, we can't actually write to the root filesystem with user privileges, so we need to mock the call
     dataset = StreamingDataset("dummy")
