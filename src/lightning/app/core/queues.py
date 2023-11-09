@@ -373,7 +373,6 @@ class RateLimitedQueue(BaseQueue):
         t = time.time()
         diff = t - last_time
         if diff < self._seconds_per_request:
-            print(f"WAITING: {diff}")
             time.sleep(self._seconds_per_request - diff)
 
     def get(self, timeout: Optional[float] = None) -> Any:
