@@ -29,9 +29,9 @@ from requests.exceptions import ConnectionError, ConnectTimeout, ReadTimeout
 
 from lightning.app.core.constants import (
     HTTP_QUEUE_REFRESH_INTERVAL,
+    HTTP_QUEUE_REQUESTS_PER_SECOND,
     HTTP_QUEUE_TOKEN,
     HTTP_QUEUE_URL,
-    HTTP_QUEUE_REQUESTS_PER_SECOND,
     LIGHTNING_DIR,
     QUEUE_DEBUG_ENABLED,
     REDIS_HOST,
@@ -78,7 +78,9 @@ class QueuingSystem(Enum):
             return MultiProcessQueue(queue_name, default_timeout=STATE_UPDATE_TIMEOUT)
         if self == QueuingSystem.REDIS:
             return RedisQueue(queue_name, default_timeout=REDIS_QUEUES_READ_DEFAULT_TIMEOUT)
-        return RateLimitedQueue(HTTPQueue(queue_name, default_timeout=STATE_UPDATE_TIMEOUT), HTTP_QUEUE_REQUESTS_PER_SECOND)
+        return RateLimitedQueue(
+            HTTPQueue(queue_name, default_timeout=STATE_UPDATE_TIMEOUT), HTTP_QUEUE_REQUESTS_PER_SECOND
+        )
 
     def get_api_response_queue(self, queue_id: Optional[str] = None) -> "BaseQueue":
         queue_name = f"{queue_id}_{API_RESPONSE_QUEUE_CONSTANT}" if queue_id else API_RESPONSE_QUEUE_CONSTANT
@@ -355,10 +357,11 @@ class RateLimitedQueue(BaseQueue):
         Args:
             queue: The queue to wrap.
             requests_per_second: The target number of get or put requests per second.
+
         """
         self.name = queue.name
         self.default_timeout = queue.default_timeout
-        
+
         self._queue = queue
         self._seconds_per_request = 1 / requests_per_second
 

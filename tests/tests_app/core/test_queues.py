@@ -9,7 +9,14 @@ import requests_mock
 from lightning.app import LightningFlow
 from lightning.app.core import queues
 from lightning.app.core.constants import HTTP_QUEUE_URL, STATE_UPDATE_TIMEOUT
-from lightning.app.core.queues import READINESS_QUEUE_CONSTANT, BaseQueue, HTTPQueue, QueuingSystem, RedisQueue, RateLimitedQueue
+from lightning.app.core.queues import (
+    READINESS_QUEUE_CONSTANT,
+    BaseQueue,
+    HTTPQueue,
+    QueuingSystem,
+    RateLimitedQueue,
+    RedisQueue,
+)
 from lightning.app.utilities.imports import _is_redis_available
 from lightning.app.utilities.redis import check_if_redis_running
 
@@ -250,5 +257,7 @@ def test_rate_limited_queue():
     timeout = time.perf_counter() + 1
     while time.perf_counter() < timeout:
         rate_limited_queue.get()
-    
-    assert mock_queue.get.call_count == 2, f"the inner queue should have been called exactly twice but was called {mock_queue.get.call_count} times"
+
+    assert (
+        mock_queue.get.call_count == 2
+    ), f"the inner queue should have been called exactly twice but was called {mock_queue.get.call_count} times"
