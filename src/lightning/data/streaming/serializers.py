@@ -13,9 +13,10 @@
 
 import os
 import pickle
+import tempfile
 from abc import ABC, abstractmethod
 from collections import OrderedDict
-from typing import Any, Optional, Tuple, Union
+from typing import Any, Dict, Optional, Tuple, Union
 
 import numpy as np
 import torch
@@ -25,6 +26,7 @@ from lightning.data.streaming.constants import _TORCH_DTYPES_MAPPING
 
 _PIL_AVAILABLE = RequirementCache("PIL")
 _TORCH_VISION_AVAILABLE = RequirementCache("torchvision")
+_AV_AVAILABLE = RequirementCache("av")
 
 if _PIL_AVAILABLE:
     from PIL import Image
@@ -224,8 +226,38 @@ class FileSerializer(Serializer):
         return isinstance(data, str) and os.path.exists(data)
 
 
+class VideoSerializer(Serializer):
+    _EXTENSIONS = ("mp4", "ogv", "mjpeg", "avi", "mov", "h264", "mpg", "webm", "wmv", "wav")
+
+    def serialize(self, filepath: str) -> Tuple[bytes, Optional[str]]:
+        _, file_extension = os.path.splitext(filepath)
+        with open(filepath, "rb") as f:
+            return f.read(), file_extension.replace(".", "").lower()
+
+    def deserialize(self, data: bytes) -> Any:
+        if not _TORCH_VISION_AVAILABLE:
+            raise ModuleNotFoundError("torchvision is required. Run `pip install torchvision`")
+
+        if not _AV_AVAILABLE:
+            raise ModuleNotFoundError("av is required. Run `pip install av`")
+
+        # Add support for a better deserialization mechanism for videos
+        # TODO: Investigate https://pytorch.org/audio/main/generated/torchaudio.io.StreamReader.html
+        import torchvision.io
+
+        with tempfile.TemporaryDirectory() as dirname:
+            fname = os.path.join(dirname, "file.mp4")
+            with open(fname, "wb") as stream:
+                stream.write(data)
+            return torchvision.io.read_video(fname, pts_unit="sec")
+
+    def can_serialize(self, data: Any) -> bool:
+        return isinstance(data, str) and os.path.exists(data) and any(data.endswith(ext) for ext in self._EXTENSIONS)
+
+
 _SERIALIZERS = OrderedDict(
     **{
+        "video": VideoSerializer(),
         "file": FileSerializer(),
         "pil": PILSerializer(),
         "int": IntSerializer(),
@@ -236,3 +268,12 @@ _SERIALIZERS = OrderedDict(
         "pickle": PickleSerializer(),
     }
 )
+
+
+def _get_serializers(serializers: Optional[Dict[str, Serializer]]) -> Dict[str, Serializer]:
+    if serializers:
+        serializers = OrderedDict(**serializers)
+        serializers.update(_SERIALIZERS)
+    else:
+        serializers = _SERIALIZERS
+    return serializers
