@@ -372,7 +372,7 @@ class RateLimitedQueue(BaseQueue):
     def is_running(self) -> bool:
         return self._queue.is_running
 
-    def _wait_until_allowed(self, last_time: float):
+    def _wait_until_allowed(self, last_time: float) -> None:
         t = time.time()
         diff = t - last_time
         if diff < self._seconds_per_request:
