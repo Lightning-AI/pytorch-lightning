@@ -203,6 +203,28 @@ async def _healthz() -> Dict[str, str]:
 
 def _start_plugin_server(host: str, port: int) -> None:
     """Start the plugin server which can be used to dispatch apps or run plugins."""
+    import base64
+    import ssl
+
+    ca_cert = os.environ.get("CA_CERT")
+    tls_cert = os.environ.get("TLS_CERT")
+    tls_key = os.environ.get("TLS_KEY")
+
+    if not (ca_cert and tls_cert and tls_key):
+        raise RuntimeError("CA_CERT, TLS_CERT, and TLS_KEY environment variables are required")
+
+    ca_certfile = os.path.abspath("ca.pem")
+    with open(ca_certfile, "w") as f:
+        f.write(base64.b64decode(ca_cert).decode("UTF-8"))
+
+    tls_certfile = os.path.abspath("server-cert.pem")
+    with open(tls_certfile, "w") as f:
+        f.write(base64.b64decode(tls_cert).decode("UTF-8"))
+
+    tls_keyfile = os.path.abspath("server-key.pem")
+    with open(tls_keyfile, "w") as f:
+        f.write(base64.b64decode(tls_key).decode("UTF-8"))
+
     fastapi_service = FastAPI()
 
     fastapi_service.add_middleware(
@@ -216,4 +238,13 @@ def _start_plugin_server(host: str, port: int) -> None:
     fastapi_service.post("/v1/runs")(_run_plugin)
     fastapi_service.get("/healthz", status_code=200)(_healthz)
 
-    uvicorn.run(app=fastapi_service, host=host, port=port, log_level="error")
+    uvicorn.run(
+        app=fastapi_service,
+        host=host,
+        port=port,
+        ssl_keyfile=tls_keyfile,
+        ssl_certfile=tls_certfile,
+        ssl_cert_reqs=ssl.CERT_REQUIRED,
+        ssl_ca_certs=ca_certfile,
+        log_level="error",
+    )
