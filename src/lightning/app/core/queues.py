@@ -365,8 +365,8 @@ class RateLimitedQueue(BaseQueue):
         self._queue = queue
         self._seconds_per_request = 1 / requests_per_second
 
-        self._last_get = 0
-        self._last_put = 0
+        self._last_get = 0.0
+        self._last_put = 0.0
 
     @property
     def is_running(self) -> bool:
