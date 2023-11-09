@@ -11,6 +11,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
 import sys
 from time import time
 
@@ -19,13 +20,16 @@ import pytest
 import torch
 from lightning import seed_everything
 from lightning.data.streaming.serializers import (
+    _AV_AVAILABLE,
     _SERIALIZERS,
     _TORCH_DTYPES_MAPPING,
+    _TORCH_VISION_AVAILABLE,
     IntSerializer,
     NoHeaderTensorSerializer,
     PickleSerializer,
     PILSerializer,
     TensorSerializer,
+    VideoSerializer,
 )
 from lightning_utilities.core.imports import RequirementCache
 
@@ -33,7 +37,17 @@ _PIL_AVAILABLE = RequirementCache("PIL")
 
 
 def test_serializers():
-    assert list(_SERIALIZERS.keys()) == ["file", "pil", "int", "jpeg", "bytes", "no_header_tensor", "tensor", "pickle"]
+    assert list(_SERIALIZERS.keys()) == [
+        "video",
+        "file",
+        "pil",
+        "int",
+        "jpeg",
+        "bytes",
+        "no_header_tensor",
+        "tensor",
+        "pickle",
+    ]
 
 
 def test_int_serializer():
@@ -127,3 +141,24 @@ def test_assert_no_header_tensor_serializer():
     assert serializer._dtype == torch.float32
     new_t = serializer.deserialize(data)
     assert torch.equal(t, new_t)
+
+
+@pytest.mark.skipif(
+    condition=not _TORCH_VISION_AVAILABLE or not _AV_AVAILABLE, reason="Requires: ['torchvision', 'av']"
+)
+def test_mp4_deserialization(tmpdir):
+    from torch.hub import download_url_to_file
+
+    video_file = os.path.join(tmpdir, "video.mp4")
+    key = "tutorial-assets/stream-api/NASAs_Most_Scientifically_Complex_Space_Observatory_Requires_Precision-MP4_small.mp4"  # noqa E501
+    download_url_to_file(f"https://download.pytorch.org/torchaudio/{key}", video_file)
+
+    serializer = VideoSerializer()
+    assert serializer.can_serialize(video_file)
+    data, name = serializer.serialize(video_file)
+    assert len(data) / 1024 / 1024 == 31.792160034179688
+    assert name == "mp4"
+    vframes, aframes, info = serializer.deserialize(data)
+    assert vframes.shape == torch.Size([6175, 540, 960, 3])
+    assert aframes.shape == torch.Size([2, 9889792])
+    assert info == {"video_fps": 29.97002997002997, "audio_fps": 48000}
