@@ -201,8 +201,9 @@ async def _healthz() -> Dict[str, str]:
     return {"status": "ok"}
 
 
-def _start_plugin_server(host: str, port: int) -> None:
+def _start_plugin_server(port: int) -> None:
     """Start the plugin server which can be used to dispatch apps or run plugins."""
+
     fastapi_service = FastAPI()
 
     fastapi_service.add_middleware(
@@ -216,4 +217,9 @@ def _start_plugin_server(host: str, port: int) -> None:
     fastapi_service.post("/v1/runs")(_run_plugin)
     fastapi_service.get("/healthz", status_code=200)(_healthz)
 
-    uvicorn.run(app=fastapi_service, host=host, port=port, log_level="error")
+    uvicorn.run(
+        app=fastapi_service,
+        host="127.0.0.1",
+        port=port,
+        log_level="error",
+    )
