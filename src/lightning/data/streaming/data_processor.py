@@ -843,8 +843,6 @@ class DataProcessor:
                 self.workers_tracker[index] = counter
                 new_total = sum(self.workers_tracker.values())
 
-            breakpoint()
-
             tq.set_postfix({"time": datetime.now().strftime("%H:%M:%S.%f")})
             tq.update(new_total - current_total)
 
