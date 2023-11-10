@@ -279,6 +279,7 @@ class BaseWorker:
         error_queue: Queue,
         stop_queue: Queue,
         num_downloaders: int,
+        num_uploaders: int,
         remove: bool,
     ) -> None:
         """The BaseWorker is responsible to process the user data."""
@@ -291,7 +292,7 @@ class BaseWorker:
         self.items = items
         self.num_items = len(self.items)
         self.num_downloaders = num_downloaders
-        self.num_uploaders = 5
+        self.num_uploaders = num_uploaders
         self.remove = remove
         self.paths: List[List[str]] = []
         self.remover: Optional[Process] = None
@@ -522,7 +523,7 @@ class BaseWorker:
     def _handle_data_chunk_recipe_end(self) -> None:
         chunks_filepaths = self.cache.done()
 
-        if chunks_filepaths:
+        if chunks_filepaths and len(self.to_upload_queues):
             for i, chunk_filepath in enumerate(chunks_filepaths):
                 if isinstance(chunk_filepath, str) and os.path.exists(chunk_filepath):
                     self.to_upload_queues[i % self.num_uploaders].put(chunk_filepath)
@@ -734,6 +735,7 @@ class DataProcessor:
         output_dir: Optional[Union[str, Dir]] = None,
         num_workers: Optional[int] = None,
         num_downloaders: Optional[int] = None,
+        num_uploaders: Optional[int] = None,
         delete_cached_files: bool = True,
         fast_dev_run: Optional[Union[bool, int]] = None,
         random_seed: Optional[int] = 42,
@@ -747,6 +749,7 @@ class DataProcessor:
             output_dir: The path to where the output data are stored.
             num_workers: The number of worker threads to use.
             num_downloaders: The number of file downloaders to use.
+            num_uploaders: The number of file uploaders to use.
             delete_cached_files: Whether to delete the cached files.
             fast_dev_run: Whether to run a quick dev run.
             random_seed: The random seed to be set before shuffling the data.
@@ -757,7 +760,8 @@ class DataProcessor:
         self.input_dir = _resolve_dir(input_dir)
         self.output_dir = _resolve_dir(output_dir)
         self.num_workers = num_workers or (1 if fast_dev_run else (os.cpu_count() or 1) * 4)
-        self.num_downloaders = num_downloaders or 1
+        self.num_downloaders = num_downloaders or 2
+        self.num_uploaders = num_uploaders or 5
         self.delete_cached_files = delete_cached_files
         self.fast_dev_run = _get_fast_dev_run() if fast_dev_run is None else fast_dev_run
         self.workers: Any = []
@@ -920,6 +924,7 @@ class DataProcessor:
                 self.error_queue,
                 stop_queues[-1],
                 self.num_downloaders,
+                self.num_uploaders,
                 self.delete_cached_files,
             )
             worker.start()
