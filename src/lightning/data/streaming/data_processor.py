@@ -195,7 +195,6 @@ def _upload_fn(upload_queue: Queue, remove_queue: Queue, cache_dir: str, output_
                 s3.client.upload_file(
                     local_filepath, obj.netloc, os.path.join(obj.path.lstrip("/"), os.path.basename(local_filepath))
                 )
-                print(os.path.basename(local_filepath))
             except Exception as e:
                 print(e)
         elif os.path.isdir(output_dir.path):
