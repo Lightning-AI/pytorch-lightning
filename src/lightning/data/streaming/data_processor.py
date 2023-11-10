@@ -7,6 +7,7 @@ import traceback
 import types
 from abc import abstractmethod
 from dataclasses import dataclass
+from datetime import datetime
 from multiprocessing import Process, Queue
 from queue import Empty
 from shutil import copyfile, rmtree
@@ -15,7 +16,7 @@ from typing import Any, Dict, List, Optional, Tuple, TypeVar, Union
 from urllib import parse
 
 import torch
-from tqdm.auto import tqdm
+from tqdm.auto import tqdm as _tqdm
 
 from lightning import seed_everything
 from lightning.data.streaming import Cache
@@ -816,30 +817,41 @@ class DataProcessor:
 
         current_total = 0
         has_failed = False
-        with tqdm(total=num_items, smoothing=0, position=-1, mininterval=1) as pbar:
-            while True:
+        tq = _tqdm(
+            desc="Progress",
+            total=num_items,
+            smoothing=0,
+            position=-1,
+            mininterval=1,
+            leave=True,
+            dynamic_ncols=True,
+        )
+
+        while True:
+            try:
+                error = self.error_queue.get(timeout=0.001)
+                self._exit_on_error(error)
+            except Empty:
+                assert self.progress_queue
                 try:
-                    error = self.error_queue.get(timeout=0.001)
-                    self._exit_on_error(error)
+                    index, counter = self.progress_queue.get(timeout=0.001)
                 except Empty:
-                    assert self.progress_queue
-                    try:
-                        index, counter = self.progress_queue.get(timeout=0.001)
-                    except Empty:
-                        continue
-                    self.workers_tracker[index] = counter
-                    new_total = sum(self.workers_tracker.values())
+                    continue
+                self.workers_tracker[index] = counter
+                new_total = sum(self.workers_tracker.values())
 
-                pbar.update(new_total - current_total)
-                current_total = new_total
-                if current_total == num_items:
-                    break
+            tq.set_postfix({"time": datetime.now().strftime("%H:%M:%S.%f")})
+            tq.update(new_total - current_total)
 
-                # Exit early if all the workers are done.
-                # This means there were some kinda of errors.
-                if all(not w.is_alive() for w in self.workers):
-                    has_failed = True
-                    break
+            current_total = new_total
+            if current_total == num_items:
+                break
+
+            # Exit early if all the workers are done.
+            # This means there were some kinda of errors.
+            if all(not w.is_alive() for w in self.workers):
+                has_failed = True
+                break
 
         num_nodes = _get_num_nodes()
         node_rank = _get_node_rank()
