@@ -28,6 +28,7 @@ import requests
 from requests.exceptions import ConnectionError, ConnectTimeout, ReadTimeout
 
 from lightning.app.core.constants import (
+    HTTP_QUEUE_GET_METHOD_MAX_REQUEST_INTERVAL,
     HTTP_QUEUE_REFRESH_INTERVAL,
     HTTP_QUEUE_TOKEN,
     HTTP_QUEUE_URL,
@@ -365,6 +366,7 @@ class HTTPQueue(BaseQueue):
         self.name = name  # keeping the name for debugging
         self.default_timeout = default_timeout
         self.client = HTTPClient(base_url=HTTP_QUEUE_URL, auth_token=HTTP_QUEUE_TOKEN, log_callback=debug_log_callback)
+        self._last_request_time = 0
 
     @property
     def is_running(self) -> bool:
@@ -425,10 +427,17 @@ class HTTPQueue(BaseQueue):
         return None
 
     def _get(self) -> Any:
+        current_time = time.time()
+        time_since_last_request = current_time - self._last_request_time
+
+        if time_since_last_request < HTTP_QUEUE_GET_METHOD_MAX_REQUEST_INTERVAL:
+            raise queue.Empty
+
         try:
             resp = self.client.post(f"v1/{self.app_id}/{self._name_suffix}", query_params={"action": "pop"})
             if resp.status_code == 204:
                 raise queue.Empty
+            self._last_request_time = current_time
             return pickle.loads(resp.content)
         except ConnectionError:
             # Note: If the Http Queue service isn't available,
