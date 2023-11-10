@@ -410,7 +410,7 @@ class BaseWorker:
             return
 
         assert os.path.exists(filepath), filepath
-        self.upload_queue.put(filepath)
+        self.to_upload_queues[self._counter % self.num_uploaders].put(filepath)
 
     def _collect_paths(self) -> None:
         items = []
@@ -490,7 +490,7 @@ class BaseWorker:
         for _ in range(self.num_uploaders):
             to_upload_queue: Queue = Queue()
             p = Process(
-                target=_download_data_target,
+                target=_upload_fn,
                 args=(
                     to_upload_queue,
                     self.remove_queue,
@@ -523,9 +523,9 @@ class BaseWorker:
         chunks_filepaths = self.cache.done()
 
         if chunks_filepaths:
-            for chunk_filepath in chunks_filepaths:
+            for i, chunk_filepath in enumerate(chunks_filepaths):
                 if isinstance(chunk_filepath, str) and os.path.exists(chunk_filepath):
-                    self.upload_queue.put(chunk_filepath)
+                    self.to_upload_queues[i % self.num_uploaders].put(chunk_filepath)
 
     def _handle_data_transform_recipe(self, index: int) -> None:
         # Don't use a context manager to avoid deleting files that are being uploaded.
