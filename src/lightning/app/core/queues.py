@@ -366,7 +366,7 @@ class HTTPQueue(BaseQueue):
         self.name = name  # keeping the name for debugging
         self.default_timeout = default_timeout
         self.client = HTTPClient(base_url=HTTP_QUEUE_URL, auth_token=HTTP_QUEUE_TOKEN, log_callback=debug_log_callback)
-        self._last_request_time = 0
+        self._last_request_time: float = 0
 
     @property
     def is_running(self) -> bool:
