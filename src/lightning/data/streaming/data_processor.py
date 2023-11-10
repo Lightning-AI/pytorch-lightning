@@ -291,18 +291,19 @@ class BaseWorker:
         self.items = items
         self.num_items = len(self.items)
         self.num_downloaders = num_downloaders
+        self.num_uploaders = 5
         self.remove = remove
         self.paths: List[List[str]] = []
         self.remover: Optional[Process] = None
         self.downloaders: List[Process] = []
+        self.uploaders: List[Process] = []
         self.to_download_queues: List[Queue] = []
+        self.to_upload_queues: List[Queue] = []
         self.stop_queue = stop_queue
         self.ready_to_process_queue: Queue = Queue()
         self.remove_queue: Queue = Queue()
-        self.upload_queue: Queue = Queue()
         self.progress_queue: Queue = progress_queue
         self.error_queue: Queue = error_queue
-        self.uploader: Optional[Process] = None
         self._collected_items = 0
         self._counter = 0
         self._last_time = time()
@@ -324,7 +325,7 @@ class BaseWorker:
         self._create_cache()
         self._collect_paths()
         self._start_downloaders()
-        self._start_uploader()
+        self._start_uploaders()
         self._start_remover()
 
     def _loop(self) -> None:
@@ -342,9 +343,13 @@ class BaseWorker:
                         self._handle_data_chunk_recipe_end()
 
                     if self.output_dir.url if self.output_dir.url else self.output_dir.path:
-                        assert self.uploader
-                        self.upload_queue.put(None)
-                        self.uploader.join()
+                        # Inform the uploaders they are doing working
+                        for i in range(self.num_uploaders):
+                            self.to_upload_queues[i].put(None)
+
+                        # Wait for them all to be finished
+                        for _ in self.uploaders:
+                            self.uploader.join()
 
                     if self.remove:
                         assert self.remover
@@ -478,19 +483,24 @@ class BaseWorker:
         )
         self.remover.start()
 
-    def _start_uploader(self) -> None:
+    def _start_uploaders(self) -> None:
         if self.output_dir.path is None and self.output_dir.url is None:
             return
-        self.uploader = Process(
-            target=_upload_fn,
-            args=(
-                self.upload_queue,
-                self.remove_queue,
-                self.cache_chunks_dir,
-                self.output_dir,
-            ),
-        )
-        self.uploader.start()
+
+        for _ in range(self.num_uploaders):
+            to_upload_queue: Queue = Queue()
+            p = Process(
+                target=_download_data_target,
+                args=(
+                    to_upload_queue,
+                    self.remove_queue,
+                    self.cache_chunks_dir,
+                    self.output_dir,
+                ),
+            )
+            p.start()
+            self.uploaders.append(p)
+            self.to_upload_queues.append(to_upload_queue)
 
     def _handle_data_chunk_recipe(self, index: int) -> None:
         try:
