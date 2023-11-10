@@ -668,7 +668,6 @@ def test_data_processing_map(monkeypatch, tmpdir):
 
 
 def optimize_fn(filepath):
-    print(filepath)
     from PIL import Image
 
     return [Image.open(filepath), os.path.basename(filepath)]
