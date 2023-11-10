@@ -348,8 +348,8 @@ class BaseWorker:
                             self.to_upload_queues[i].put(None)
 
                         # Wait for them all to be finished
-                        for _ in self.uploaders:
-                            self.uploader.join()
+                        for uploader in self.uploaders:
+                            uploader.join()
 
                     if self.remove:
                         assert self.remover
