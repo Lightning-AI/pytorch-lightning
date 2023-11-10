@@ -243,7 +243,11 @@ def test_unreachable_queue(monkeypatch):
     assert test_queue.client.post.call_count == 3
 
 
-def test_rate_limited_queue():
+@mock.patch("lightning.app.core.queues.time.sleep")
+def test_rate_limited_queue(mock_sleep):
+    sleeps = []
+    mock_sleep.side_effect = lambda sleep_time: sleeps.append(sleep_time)
+
     mock_queue = mock.MagicMock()
 
     mock_queue.name = "inner_queue"
@@ -255,9 +259,7 @@ def test_rate_limited_queue():
     assert rate_limited_queue.default_timeout == 10.0
 
     timeout = time.perf_counter() + 1
-    while time.perf_counter() < timeout:
+    while time.perf_counter() + sum(sleeps) < timeout:
         rate_limited_queue.get()
 
-    assert (
-        mock_queue.get.call_count == 2
-    ), f"the inner queue should have been called exactly twice but was called {mock_queue.get.call_count} times"
+    assert mock_queue.get.call_count == 2
