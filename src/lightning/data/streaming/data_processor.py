@@ -318,7 +318,7 @@ class BaseWorker:
             traceback_format = traceback.format_exc()
             print(traceback_format)
             self.error_queue.put(traceback_format)
-        print(f"Worker {self.worker_index} is done.")
+        print(f"Worker {str(_get_node_rank() * self.num_workers + self.worker_index)} is done.")
 
     def _setup(self) -> None:
         self._set_environ_variables()
@@ -337,6 +337,8 @@ class BaseWorker:
             if index is None:
                 num_downloader_finished += 1
                 if num_downloader_finished == self.num_downloaders:
+                    print(f"Worker {str(_get_node_rank() * self.num_workers + self.worker_index)} is terminating.")
+
                     if isinstance(self.data_recipe, DataChunkRecipe):
                         self._handle_data_chunk_recipe_end()
 
