@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+import shutil
 import tarfile
 import tempfile
 from pathlib import Path
@@ -33,6 +34,7 @@ from lightning.app.utilities.load_app import _load_plugin_from_file
 logger = Logger(__name__)
 
 _PLUGIN_MAX_CLIENT_TRIES: int = 3
+_PLUGIN_INTERNAL_DIR_PATH: str = f"{os.environ.get('HOME', '')}/internal"
 
 
 class LightningPlugin:
@@ -168,6 +170,10 @@ def _run_plugin(run: _Run) -> Dict[str, Any]:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Error loading plugin: {str(ex)}."
             )
+
+        # Allow devs to add files to the app source
+        if os.path.isdir(_PLUGIN_INTERNAL_DIR_PATH):
+            shutil.copytree(_PLUGIN_INTERNAL_DIR_PATH, source_path, dirs_exist_ok=True)
 
         # Ensure that apps are dispatched from the temp directory
         cwd = os.getcwd()
