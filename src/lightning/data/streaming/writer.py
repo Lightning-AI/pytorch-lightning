@@ -24,7 +24,7 @@ import torch
 from lightning.data.datasets.env import _DistributedEnv, _WorkerEnv
 from lightning.data.streaming.compression import _COMPRESSORS, Compressor
 from lightning.data.streaming.constants import _INDEX_FILENAME, _TORCH_GREATER_EQUAL_2_1_0
-from lightning.data.streaming.serializers import _SERIALIZERS, Serializer
+from lightning.data.streaming.serializers import Serializer, _get_serializers
 from lightning.data.utilities.format import _convert_bytes_to_int, _human_readable_bytes
 
 if _TORCH_GREATER_EQUAL_2_1_0:
@@ -50,6 +50,7 @@ class BinaryWriter:
         chunk_bytes: Optional[Union[int, str]] = None,
         compression: Optional[str] = None,
         follow_tensor_dimension: bool = True,
+        serializers: Optional[Dict[str, Serializer]] = None,
     ):
         """The BinaryWriter enables to chunk dataset into an efficient streaming format for cloud training.
 
@@ -58,6 +59,7 @@ class BinaryWriter:
             chunk_bytes: The maximum number of bytes within a chunk.
             chunk_size: The maximum number of items within a chunk.
             compression: The compression algorithm to use.
+            serializers: Provide your own serializers.
 
         """
         self._cache_dir = cache_dir
@@ -68,7 +70,7 @@ class BinaryWriter:
         if (chunk_size is None and chunk_bytes is None) or (chunk_size and chunk_bytes):
             raise ValueError("Either one of the `chunk_size` or the `chunk_bytes` need to be provided.")
 
-        self._serializers: Dict[str, Serializer] = _SERIALIZERS
+        self._serializers: Dict[str, Serializer] = _get_serializers(serializers)
         self._chunk_size = chunk_size
         self._chunk_bytes = _convert_bytes_to_int(chunk_bytes) if isinstance(chunk_bytes, str) else chunk_bytes
         self._compression = compression

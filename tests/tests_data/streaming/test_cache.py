@@ -23,6 +23,7 @@ from lightning.data.datasets.env import _DistributedEnv
 from lightning.data.streaming import Cache
 from lightning.data.streaming.dataloader import StreamingDataLoader
 from lightning.data.streaming.dataset import StreamingDataset
+from lightning.data.streaming.serializers import Serializer
 from lightning.fabric import Fabric
 from lightning.pytorch.demos.boring_classes import RandomDataset
 from lightning_utilities.core.imports import RequirementCache
@@ -251,3 +252,27 @@ def test_create_undersized_and_oversized_chunk(tmp_path):
     assert chunks[1]["filename"] == "chunk-0-1.bin"
     assert chunks[2]["chunk_size"] == 2
     assert chunks[2]["filename"] == "chunk-0-2.bin"
+
+
+class CustomData:
+    pass
+
+
+class CustomSerializer(Serializer):
+    def serialize(self, data):
+        return np.array([1]).tobytes(), None
+
+    def deserialize(self, data: bytes):
+        return data
+
+    def can_serialize(self, data) -> bool:
+        return isinstance(data, CustomData)
+
+
+def test_custom_serializer(tmpdir):
+    cache = Cache(input_dir=str(tmpdir), serializers={"custom": CustomSerializer()}, chunk_size=1)
+    for i in range(10):
+        cache[i] = (CustomData(),)
+    cache.done()
+    cache.merge()
+    assert isinstance(cache[0][0], bytes)

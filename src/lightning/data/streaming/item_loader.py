@@ -23,7 +23,7 @@ from lightning.data.streaming.constants import (
     _TORCH_DTYPES_MAPPING,
     _TORCH_GREATER_EQUAL_2_1_0,
 )
-from lightning.data.streaming.serializers import _SERIALIZERS
+from lightning.data.streaming.serializers import Serializer
 
 if _TORCH_GREATER_EQUAL_2_1_0:
     from torch.utils._pytree import PyTree, tree_unflatten
@@ -32,10 +32,10 @@ if _TORCH_GREATER_EQUAL_2_1_0:
 class BaseItemLoader(ABC):
     """The base item loader is responsible to decide how the items within a chunk are loaded."""
 
-    def setup(self, config: Dict, chunks: List) -> None:
+    def setup(self, config: Dict, chunks: List, serializers: Dict[str, Serializer]) -> None:
         self._config = config
         self._chunks = chunks
-        self._serializers = _SERIALIZERS
+        self._serializers = serializers
 
     @abstractmethod
     def generate_intervals(self) -> List[Tuple[int, int]]:
@@ -116,8 +116,8 @@ class TokensLoader(BaseItemLoader):
         self._dtype: Optional[torch.dtype] = None
         self._chunk_filepaths: Dict[str, bool] = {}
 
-    def setup(self, config: Dict, chunks: List) -> None:
-        super().setup(config, chunks)
+    def setup(self, config: Dict, chunks: List, serializers: Dict[str, Serializer]) -> None:
+        super().setup(config, chunks, serializers)
         self._dtype = _TORCH_DTYPES_MAPPING[int(config["data_format"][0].split(":")[1])]
         if all(chunk["dim"] is None for chunk in self._chunks):
             raise ValueError("The provided chunks isn't properly setup.")
