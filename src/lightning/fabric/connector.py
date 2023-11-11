@@ -114,7 +114,7 @@ class _Connector:
         strategy = self._argument_from_env("strategy", strategy, default="auto")
         devices = self._argument_from_env("devices", devices, default="auto")
         num_nodes = int(self._argument_from_env("num_nodes", num_nodes, default=1))
-        precision = self._argument_from_env("precision", precision, default="32-true")
+        precision = self._argument_from_env("precision", precision, default=None)
 
         # 1. Parsing flags
         # Get registered strategies, built-in accelerators and precision plugins
