@@ -174,8 +174,7 @@ class TestFSDPModelAutoWrapped(TestBoringModel):
 def _run_multiple_stages(trainer, model, model_path: Optional[str] = None):
     trainer.fit(model)
     trainer.test(model)
-    
-    
+
     model_path = trainer.strategy.broadcast(model_path)
     model_path = Path(model_path if model_path else trainer.checkpoint_callback.last_model_path)
 
