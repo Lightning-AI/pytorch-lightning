@@ -59,23 +59,21 @@ def get_torchvision_model(model_name: str, **kwargs: Any) -> nn.Module:
     return getattr(models, model_name)(**kwargs)
 
 
-@contextmanager
-def _eval_mode(module: nn.Module):
-    """Switches all modules to `.eval()` mode.
+class _ModuleMode:
+    """Captures the ``nn.Module.training`` (bool) mode of every submodule, and allwos it to be restored later on."""
+    def __init__(self):
+        self.mode = {}
 
-    When exiting the context manager, the modules will restore their previous state.
+    def capture(self, module: nn.Module) -> None:
+        for name, mod in module.named_modules():
+            self.mode[name] = mod.training
 
-    """
-    mode = {}
-    for name, mod in module.named_modules():
-        mode[name] = mod.training
-        mod.training = False
-    yield
-    for name, mod in module.named_modules():
-        if name not in mode:
-            # TODO: warning cache?
-            continue
-        mod.training = mode[name]
+    def restore(self, module: nn.Module) -> None:
+        for name, mod in module.named_modules():
+            if name not in self.mode:
+                # TODO: warning cache?
+                continue
+            mod.training = self.mode[name]
 
 
 def _check_mixed_imports(instance: object) -> None:

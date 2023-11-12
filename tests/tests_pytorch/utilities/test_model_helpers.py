@@ -15,7 +15,7 @@ import pytest
 import torch.nn
 from lightning.pytorch import LightningDataModule
 from lightning.pytorch.demos.boring_classes import BoringDataModule, BoringModel
-from lightning.pytorch.utilities.model_helpers import _eval_mode, _restricted_classmethod, is_overridden
+from lightning.pytorch.utilities.model_helpers import _ModuleMode, _restricted_classmethod, is_overridden
 from lightning_utilities import module_available
 
 
@@ -70,7 +70,7 @@ def test_restricted_classmethod():
     RestrictedClass.restricted_cmethod()  # no exception
 
 
-def test_eval_mode():
+def test_module_mode():
     class ChildChildModule(torch.nn.Module):
         def __init__(self):
             super().__init__()
@@ -93,13 +93,20 @@ def test_eval_mode():
     # Model with all submodules in the same mode
     model = RootModule()
     model.train()
-    with _eval_mode(model):
-        assert all(not m.training for m in model.modules())
+    mode = _ModuleMode()
+    mode.capture(model)
+    model.eval()
+    assert all(not m.training for m in model.modules())
+    mode.restore(model)
     assert model.training
     assert all(m.training for m in model.modules())
     model.eval()
-    with _eval_mode(model):
-        assert all(not m.training for m in model.modules())
+
+    mode = _ModuleMode()
+    mode.capture(model)
+    model.eval()
+    assert all(not m.training for m in model.modules())
+    mode.restore(model)
     assert all(not m.training for m in model.modules())
     model.train()
 
@@ -110,8 +117,11 @@ def test_eval_mode():
     model.child2.child.eval()
     model.child2.child.layer.train()
 
-    with _eval_mode(model):
-        assert all(not m.training for m in model.modules())
+    mode = _ModuleMode()
+    mode.capture(model)
+    model.eval()
+    assert all(not m.training for m in model.modules())
+    mode.restore(model)
     assert model.training
     assert not model.norm.training
     assert all(not m.training for m in model.child1.modules())
