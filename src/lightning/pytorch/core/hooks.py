@@ -158,23 +158,48 @@ class ModelHooks:
         self.zero_grad(**zero_grad_kwargs)
 
     def on_validation_model_eval(self) -> None:
-        """Sets the model to eval during the val loop."""
+        """Called when the validation loop starts.
+
+        The validation loop by default calls ``.eval()`` on the LightningModule before it starts. Override this hook
+        to change the behavior. See also :meth:`on_validation_model_train`.
+        """
+        # The loop won't call this hook unless it is overridden. The line below is here in case the user calls super().
         self.trainer.model.eval()
 
     def on_validation_model_train(self) -> None:
-        """Sets the model to train during the val loop."""
-        self.trainer.model.train()
+        """Called when the validation loop ends.
 
-    def on_test_model_train(self) -> None:
-        """Sets the model to train during the test loop."""
+        The validation loop by default restores the `training` mode of the LightningModule to what it was before
+        starting validation. Override this hook to change the behavior. See also :meth:`on_validation_model_eval`.
+        """
+        # The loop won't call this hook unless it is overridden. The line below is here in case the user calls super().
         self.trainer.model.train()
 
     def on_test_model_eval(self) -> None:
-        """Sets the model to eval during the test loop."""
+        """Called when the test loop starts.
+
+        The test loop by default calls ``.eval()`` on the LightningModule before it starts. Override this hook
+        to change the behavior. See also :meth:`on_test_model_train`.
+        """
+        # The loop won't call this hook unless it is overridden. The line below is here in case the user calls super().
         self.trainer.model.eval()
 
+    def on_test_model_train(self) -> None:
+        """Called when the test loop ends.
+
+        The test loop by default restores the `training` mode of the LightningModule to what it was before
+        starting testing. Override this hook to change the behavior. See also :meth:`on_test_model_eval`.
+        """
+        # The loop won't call this hook unless it is overridden. The line below is here in case the user calls super().
+        self.trainer.model.train()
+
     def on_predict_model_eval(self) -> None:
-        """Sets the model to eval during the predict loop."""
+        """Called when the predict loop starts.
+
+        The predict loop by default calls ``.eval()`` on the LightningModule before it starts. Override this hook
+        to change the behavior.
+        """
+        # The loop won't call this hook unless it is overridden. The line below is here in case the user calls super().
         self.trainer.model.eval()
 
     def on_train_epoch_start(self) -> None:
