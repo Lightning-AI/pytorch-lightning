@@ -214,10 +214,10 @@ def test_tensorboard_finalize(monkeypatch, tmp_path):
 
 
 @mock.patch("lightning.fabric.loggers.tensorboard.log")
-def test_tensorboard_with_symlink(log, tmp_path):
+def test_tensorboard_with_symlink(log, tmp_path, monkeypatch):
     """Tests a specific failure case when tensorboard logger is used with empty name, symbolic link ``save_dir``, and
     relative paths."""
-    os.chdir(tmp_path)  # need to use relative paths
+    monkeypatch.chdir(tmp_path)  # need to use relative paths
     source = os.path.join(".", "lightning_logs")
     dest = os.path.join(".", "sym_lightning_logs")
 
