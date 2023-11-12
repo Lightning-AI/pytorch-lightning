@@ -40,6 +40,7 @@ from lightning.pytorch.utilities.data import has_len_all_ranks
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.signature_utils import is_param_in_hook_signature
 from lightning.pytorch.utilities.types import _PREDICT_OUTPUT
+from lightning.pytorch.utilities.model_helpers import _ModuleMode, is_overridden
 
 
 class _PredictionLoop(_Loop):
@@ -61,6 +62,7 @@ class _PredictionLoop(_Loop):
         self._results = None  # for `trainer._results` access
         self._predictions: List[List[Any]] = []  # dataloaders x batches
         self._return_predictions = False
+        self._module_mode = _ModuleMode()
 
     @property
     def return_predictions(self) -> bool:
@@ -191,7 +193,7 @@ class _PredictionLoop(_Loop):
     def on_run_start(self) -> None:
         """Calls ``_on_predict_model_eval``, ``_on_predict_start`` and ``_on_predict_epoch_start`` hooks."""
         self._verify_dataloader_idx_requirement()
-        call._call_lightning_module_hook(self.trainer, "on_predict_model_eval")
+        self._on_predict_model_eval()
         self._on_predict_start()
         self._on_predict_epoch_start()
 
@@ -199,6 +201,7 @@ class _PredictionLoop(_Loop):
         """Calls ``on_predict_epoch_end`` and ``on_predict_end`` hooks and returns results from all dataloaders."""
         results = self._on_predict_epoch_end()
         self._on_predict_end()
+        self._on_predict_model_train()
         return results
 
     def teardown(self) -> None:
@@ -339,6 +342,17 @@ class _PredictionLoop(_Loop):
         call._call_callback_hooks(trainer, "on_predict_start")
         call._call_lightning_module_hook(trainer, "on_predict_start")
         call._call_strategy_hook(trainer, "on_predict_start")
+
+    def _on_predict_model_eval(self) -> None:
+        trainer = self.trainer
+        if is_overridden("on_predict_model_eval", trainer.lightning_module):
+            call._call_lightning_module_hook(self.trainer, "on_predict_model_eval")
+        else:
+            self._module_mode.capture(trainer.lightning_module)
+            trainer.model.eval()
+
+    def _on_predict_model_train(self) -> None:
+        self._module_mode.restore(self.trainer.lightning_module)
 
     def _on_predict_epoch_start(self) -> None:
         """Calls ``on_predict_epoch_start`` hooks."""
