@@ -13,7 +13,6 @@
 # limitations under the License.
 import inspect
 import os
-from contextlib import contextmanager
 from types import MethodType
 from typing import TYPE_CHECKING, Any, Callable, Generic, Optional, Type, TypeVar
 
@@ -61,6 +60,7 @@ def get_torchvision_model(model_name: str, **kwargs: Any) -> nn.Module:
 
 class _ModuleMode:
     """Captures the ``nn.Module.training`` (bool) mode of every submodule, and allwos it to be restored later on."""
+
     def __init__(self):
         self.mode = {}
 

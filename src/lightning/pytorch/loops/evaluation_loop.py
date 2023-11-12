@@ -41,7 +41,7 @@ from lightning.pytorch.trainer.states import RunningStage, TrainerFn
 from lightning.pytorch.utilities.combined_loader import CombinedLoader
 from lightning.pytorch.utilities.data import has_len_all_ranks
 from lightning.pytorch.utilities.exceptions import SIGTERMException
-from lightning.pytorch.utilities.model_helpers import is_overridden, _ModuleMode
+from lightning.pytorch.utilities.model_helpers import _ModuleMode, is_overridden
 from lightning.pytorch.utilities.signature_utils import is_param_in_hook_signature
 
 

@@ -162,6 +162,7 @@ class ModelHooks:
 
         The validation loop by default calls ``.eval()`` on the LightningModule before it starts. Override this hook
         to change the behavior. See also :meth:`on_validation_model_train`.
+
         """
         # The loop won't call this hook unless it is overridden. The line below is here in case the user calls super().
         self.trainer.model.eval()
@@ -171,6 +172,7 @@ class ModelHooks:
 
         The validation loop by default restores the `training` mode of the LightningModule to what it was before
         starting validation. Override this hook to change the behavior. See also :meth:`on_validation_model_eval`.
+
         """
         # The loop won't call this hook unless it is overridden. The line below is here in case the user calls super().
         self.trainer.model.train()
@@ -180,6 +182,7 @@ class ModelHooks:
 
         The test loop by default calls ``.eval()`` on the LightningModule before it starts. Override this hook
         to change the behavior. See also :meth:`on_test_model_train`.
+
         """
         # The loop won't call this hook unless it is overridden. The line below is here in case the user calls super().
         self.trainer.model.eval()
@@ -189,6 +192,7 @@ class ModelHooks:
 
         The test loop by default restores the `training` mode of the LightningModule to what it was before
         starting testing. Override this hook to change the behavior. See also :meth:`on_test_model_eval`.
+
         """
         # The loop won't call this hook unless it is overridden. The line below is here in case the user calls super().
         self.trainer.model.train()
@@ -198,6 +202,7 @@ class ModelHooks:
 
         The predict loop by default calls ``.eval()`` on the LightningModule before it starts. Override this hook
         to change the behavior.
+
         """
         # The loop won't call this hook unless it is overridden. The line below is here in case the user calls super().
         self.trainer.model.eval()
