@@ -88,7 +88,9 @@ Accumulate a metric
 ===================
 When *self.log* is called inside the *training_step*, it generates a timeseries showing how the metric behaves over time.
 
-.. TODO:: show chart
+.. figure:: https://pl-flash-data.s3.amazonaws.com/assets_lightning/logging_basic/visualize_logging_basic_tensorboard_chart.png
+    :alt: TensorBoard chart of a metric logged with self.log
+    :width: 100 %
 
 However, For the validation and test sets we are not generally interested in plotting the metric values per batch of data. Instead, we want to compute a summary statistic (such as average, min or max) across the full split of data.
 
@@ -100,7 +102,9 @@ When you call self.log inside the *validation_step* and *test_step*, Lightning a
         value = batch_idx + 1
         self.log("average_value", value)
 
-.. TODO:: show single point plotted
+.. figure:: https://pl-flash-data.s3.amazonaws.com/assets_lightning/logging_basic/visualize_logging_basic_tensorboard_point.png
+    :alt: TensorBoard chart of a metric logged with self.log
+    :width: 100 %
 
 If you don't want to average you can also choose from ``{min,max,sum}`` by passing the *reduce_fx* argument.
 
