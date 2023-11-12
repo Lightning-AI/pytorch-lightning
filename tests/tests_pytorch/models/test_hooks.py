@@ -478,7 +478,6 @@ def test_trainer_model_hook_system_fit(tmpdir, kwargs, automatic_optimization):
         {"name": "Callback.on_sanity_check_end", "args": (trainer, model)},
         {"name": "train_dataloader"},
         # duplicate `train` because `_run_stage` calls it again in case validation wasn't run
-        {"name": "train", "args": (True,)},
         {"name": "Callback.on_train_start", "args": (trainer, model)},
         {"name": "on_train_start"},
         {"name": "Callback.on_train_epoch_start", "args": (trainer, model)},
@@ -564,7 +563,6 @@ def test_trainer_model_hook_system_fit_no_val_and_resume_max_epochs(tmpdir):
         {"name": "on_fit_start"},
         {"name": "zero_grad", **({} if _TORCH_GREATER_EQUAL_2_0 else {"kwargs": {"set_to_none": True}})},
         {"name": "train_dataloader"},
-        {"name": "train", "args": (True,)},
         {"name": "Callback.on_train_start", "args": (trainer, model)},
         {"name": "on_train_start"},
         {"name": "Callback.on_train_epoch_start", "args": (trainer, model)},
@@ -643,7 +641,6 @@ def test_trainer_model_hook_system_fit_no_val_and_resume_max_steps(tmpdir):
         {"name": "on_fit_start"},
         {"name": "zero_grad", **({} if _TORCH_GREATER_EQUAL_2_0 else {"kwargs": {"set_to_none": True}})},
         {"name": "train_dataloader"},
-        {"name": "train", "args": (True,)},
         {"name": "Callback.on_train_start", "args": (trainer, model)},
         {"name": "on_train_start"},
         {"name": "Callback.on_train_epoch_start", "args": (trainer, model)},
@@ -886,3 +883,50 @@ def test_load_from_checkpoint_hook_calls(tmpdir):
     _ = CustomHookedDataModule.load_from_checkpoint(ckpt_path, called=ldm_called)
     assert lm_called == [{"name": "on_load_checkpoint", "args": ({**saved_ckpt, "hyper_parameters": ANY},)}]
     assert ldm_called == [{"name": "load_state_dict", "args": (saved_ckpt[datamodule_state_dict_key],)}]
+
+
+def test_train_eval_mode_restored(tmp_path):
+    """Test that the trainer restores the `training` mode of all submodules to what it was before entering the loop."""
+
+    class MixedTrainModeModule(BoringModel):
+        def __init__(self):
+            super().__init__()
+            # A frozen layer should keep its mode, regardless of whether we're training or not
+            self.frozen = torch.nn.Linear(2, 2)
+            self.frozen.eval()
+            self.frozen.requires_grad_(False)
+
+        def training_step(self, *args, **kwargs):
+            assert not self.frozen.training
+            assert not self.frozen.weight.requires_grad
+            return super().training_step(*args, **kwargs)
+
+        def validation_step(self, *args, **kwargs):
+            assert not self.frozen.training
+            assert not self.frozen.weight.requires_grad
+            return super().validation_step(*args, **kwargs)
+
+        def test_step(self, *args, **kwargs):
+            assert not self.frozen.training
+            assert not self.frozen.weight.requires_grad
+            return super().test_step(*args, **kwargs)
+
+        def predict_step(self, *args, **kwargs):
+            assert not self.frozen.training
+            assert not self.frozen.weight.requires_grad
+            return super().predict_step(*args, **kwargs)
+
+    model = MixedTrainModeModule()
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        max_epochs=1,
+        val_check_interval=1,
+        limit_train_batches=3,
+        limit_val_batches=2,
+        limit_test_batches=2,
+        limit_predict_batches=2,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+    )
+    trainer.fit(model)
