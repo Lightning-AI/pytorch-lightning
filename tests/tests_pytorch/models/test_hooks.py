@@ -891,7 +891,7 @@ def test_train_eval_mode_restored(tmp_path):
     class MixedTrainModeModule(BoringModel):
         def __init__(self):
             super().__init__()
-            # A frozen layer should keep its mode, regardless of whether we're training or not
+            # A frozen submodule should keep its mode, regardless of whether we're training or not
             self.frozen = torch.nn.Linear(2, 2)
             self.frozen.eval()
             self.frozen.requires_grad_(False)
