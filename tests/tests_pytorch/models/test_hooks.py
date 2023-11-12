@@ -897,21 +897,29 @@ def test_train_eval_mode_restored(tmp_path):
             self.frozen.requires_grad_(False)
 
         def training_step(self, *args, **kwargs):
+            assert self.layer.weight.requires_grad
+            assert self.layer.training
             assert not self.frozen.training
             assert not self.frozen.weight.requires_grad
             return super().training_step(*args, **kwargs)
 
         def validation_step(self, *args, **kwargs):
+            assert self.layer.weight.requires_grad
+            assert not self.layer.training
             assert not self.frozen.training
             assert not self.frozen.weight.requires_grad
             return super().validation_step(*args, **kwargs)
 
         def test_step(self, *args, **kwargs):
+            assert self.layer.weight.requires_grad
+            assert not self.layer.training
             assert not self.frozen.training
             assert not self.frozen.weight.requires_grad
             return super().test_step(*args, **kwargs)
 
         def predict_step(self, *args, **kwargs):
+            assert self.layer.weight.requires_grad
+            assert not self.layer.training
             assert not self.frozen.training
             assert not self.frozen.weight.requires_grad
             return super().predict_step(*args, **kwargs)
