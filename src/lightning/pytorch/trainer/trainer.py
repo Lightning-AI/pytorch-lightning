@@ -47,7 +47,7 @@ from lightning.pytorch.loops import _PredictionLoop, _TrainingEpochLoop
 from lightning.pytorch.loops.evaluation_loop import _EvaluationLoop
 from lightning.pytorch.loops.fit_loop import _FitLoop
 from lightning.pytorch.loops.utilities import _parse_loop_limits, _reset_progress
-from lightning.pytorch.plugins import PLUGIN_INPUT, PrecisionPlugin
+from lightning.pytorch.plugins import PLUGIN_INPUT, Precision
 from lightning.pytorch.profilers import Profiler
 from lightning.pytorch.strategies import ParallelStrategy, Strategy
 from lightning.pytorch.trainer import call, setup
@@ -300,12 +300,10 @@ class Trainer:
 
             MisconfigurationException:
                 If ``gradient_clip_algorithm`` is invalid.
-                If ``track_grad_norm`` is not a positive number or inf.
 
         """
         super().__init__()
         log.debug(f"{self.__class__.__name__}: Initializing trainer with parameters: {locals()}")
-        self.state = TrainerState()
 
         if default_root_dir is not None:
             default_root_dir = os.fspath(default_root_dir)
@@ -1141,7 +1139,7 @@ class Trainer:
         return self._accelerator_connector.strategy
 
     @property
-    def precision_plugin(self) -> PrecisionPlugin:
+    def precision_plugin(self) -> Precision:
         return self.strategy.precision_plugin
 
     @property

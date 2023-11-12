@@ -21,13 +21,14 @@ from lightning.fabric.utilities.imports import (
 from lightning.pytorch import Trainer
 from lightning.pytorch.callbacks import ModelCheckpoint
 from lightning.pytorch.demos.boring_classes import BoringModel
-from lightning.pytorch.plugins import HalfPrecisionPlugin
-from lightning.pytorch.plugins.precision.fsdp import FSDPPrecisionPlugin
+from lightning.pytorch.plugins import HalfPrecision
+from lightning.pytorch.plugins.precision.fsdp import FSDPPrecision
 from lightning.pytorch.strategies import FSDPStrategy
 from lightning.pytorch.trainer.states import TrainerFn
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from torch.distributed.fsdp.fully_sharded_data_parallel import CPUOffload, FullyShardedDataParallel, MixedPrecision
 from torch.distributed.fsdp.wrap import always_wrap_policy, size_based_auto_wrap_policy, wrap
+from torchmetrics import Accuracy
 
 from tests_pytorch.helpers.runif import RunIf
 
@@ -81,7 +82,7 @@ class TestFSDPModel(BoringModel):
 
     def _assert_layer_fsdp_instance(self) -> None:
         assert isinstance(self.layer, FullyShardedDataParallel)
-        assert isinstance(self.trainer.strategy.precision_plugin, FSDPPrecisionPlugin)
+        assert isinstance(self.trainer.strategy.precision_plugin, FSDPPrecision)
 
         if self.trainer.precision == "16-mixed":
             param_dtype = None if not _TORCH_GREATER_EQUAL_2_0 else torch.float32
@@ -144,7 +145,7 @@ class TestFSDPModelAutoWrapped(TestBoringModel):
 
     def _assert_layer_fsdp_instance(self) -> None:
         assert isinstance(self.layer, torch.nn.Sequential)
-        assert isinstance(self.trainer.strategy.precision_plugin, FSDPPrecisionPlugin)
+        assert isinstance(self.trainer.strategy.precision_plugin, FSDPPrecision)
 
         if self.trainer.precision == "16-mixed":
             param_dtype = None if not _TORCH_GREATER_EQUAL_2_0 else torch.float32
@@ -237,6 +238,36 @@ def test_fsdp_strategy_sync_batchnorm(tmpdir):
         sync_batchnorm=True,
     )
     _run_multiple_stages(trainer, model, os.path.join(tmpdir, "last.ckpt"))
+
+
+@RunIf(min_cuda_gpus=1, skip_windows=True)
+def test_fsdp_modules_without_parameters(tmp_path):
+    """Test that TorchMetrics get moved to the device despite not having any parameters."""
+
+    class MetricsModel(BoringModel):
+        def __init__(self):
+            super().__init__()
+            self.metric = Accuracy("multiclass", num_classes=10)
+            assert self.metric.device == self.metric.tp.device == torch.device("cpu")
+
+        def setup(self, stage) -> None:
+            assert self.metric.device == self.metric.tp.device == torch.device("cpu")
+
+        def training_step(self, batch, batch_idx):
+            loss = super().training_step(batch, batch_idx)
+            assert self.metric.device == self.metric.tp.device == torch.device("cuda", 0)
+            self.metric(torch.rand(2, 10, device=self.device), torch.randint(0, 10, size=(2,), device=self.device))
+            return loss
+
+    model = MetricsModel()
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        accelerator="cuda",
+        devices=1,
+        strategy="fsdp",
+        max_steps=1,
+    )
+    trainer.fit(model)
 
 
 @RunIf(min_cuda_gpus=1, skip_windows=True, standalone=True)
@@ -412,11 +443,11 @@ def test_fsdp_activation_checkpointing_support():
 
 def test_fsdp_forbidden_precision_raises():
     with pytest.raises(TypeError, match="can only work with the `FSDPPrecision"):
-        FSDPStrategy(precision_plugin=HalfPrecisionPlugin())
+        FSDPStrategy(precision_plugin=HalfPrecision())
 
     strategy = FSDPStrategy()
     with pytest.raises(TypeError, match="can only work with the `FSDPPrecision"):
-        strategy.precision_plugin = HalfPrecisionPlugin()
+        strategy.precision_plugin = HalfPrecision()
 
 
 @RunIf(min_torch="1.13")

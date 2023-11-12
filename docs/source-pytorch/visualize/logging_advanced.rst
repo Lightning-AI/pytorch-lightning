@@ -334,7 +334,7 @@ To track the timeseries over steps (*on_step*) as well as the accumulated epoch 
 
 Setting both to True will generate two graphs with *_step* for the timeseries over steps and *_epoch* for the epoch metric.
 
-# TODO: show images of both
+.. TODO:: show images of both
 
 ----
 

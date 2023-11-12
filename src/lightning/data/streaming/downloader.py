@@ -16,6 +16,8 @@ from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Type
 from urllib import parse
 
+from lightning.data.streaming.client import S3Client
+
 
 class Downloader(ABC):
     def __init__(self, remote_dir: str, cache_dir: str, chunks: List[Dict[str, Any]]):
@@ -37,25 +39,20 @@ class Downloader(ABC):
 class S3Downloader(Downloader):
     @classmethod
     def download_file(cls, remote_filepath: str, local_filepath: str) -> None:
-        import boto3
-        from boto3.s3.transfer import TransferConfig
-        from botocore.config import Config
-
         obj = parse.urlparse(remote_filepath)
 
         if obj.scheme != "s3":
             raise ValueError(f"Expected obj.scheme to be `s3`, instead, got {obj.scheme} for remote={remote_filepath}")
 
+        # TODO: Add caching to avoid re-creating it
+        s3 = S3Client()
+
+        from boto3.s3.transfer import TransferConfig
+
         extra_args: Dict[str, Any] = {}
 
-        # Create a new session per thread
-        session = boto3.session.Session()
-        # Create a resource client using a thread's session object
-        s3 = session.client("s3", config=Config(read_timeout=None))
-        # Threads calling S3 operations return RuntimeError (cannot schedule new futures after
-        # interpreter shutdown). Temporary solution is to have `use_threads` as `False`.
         # Issue: https://github.com/boto/boto3/issues/3113
-        s3.download_file(
+        s3.client.download_file(
             obj.netloc,
             obj.path.lstrip("/"),
             local_filepath,
@@ -69,7 +66,8 @@ class LocalDownloader(Downloader):
     def download_file(cls, remote_filepath: str, local_filepath: str) -> None:
         if not os.path.exists(remote_filepath):
             raise FileNotFoundError("The provided remote_path doesn't exist: {remote_path}")
-        shutil.copy(remote_filepath, local_filepath)
+        if remote_filepath != local_filepath:
+            shutil.copy(remote_filepath, local_filepath)
 
 
 _DOWNLOADERS = {"s3://": S3Downloader, "": LocalDownloader}
@@ -77,6 +75,6 @@ _DOWNLOADERS = {"s3://": S3Downloader, "": LocalDownloader}
 
 def get_downloader_cls(remote_dir: str) -> Type[Downloader]:
     for k, cls in _DOWNLOADERS.items():
-        if remote_dir.startswith(k):
+        if str(remote_dir).startswith(k):
             return cls
     raise ValueError(f"The provided `remote_dir` {remote_dir} doesn't have a downloader associated.")
