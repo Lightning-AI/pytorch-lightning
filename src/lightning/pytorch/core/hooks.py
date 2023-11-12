@@ -161,7 +161,7 @@ class ModelHooks:
         """Called when the validation loop starts.
 
         The validation loop by default calls ``.eval()`` on the LightningModule before it starts. Override this hook
-        to change the behavior. See also :meth:`on_validation_model_train`.
+        to change the behavior. See also :meth:`~lightning.pytorch.core.hooks.ModelHooks.on_validation_model_train`.
 
         """
         # The loop won't call this hook unless it is overridden. The line below is here in case the user calls super().
@@ -171,7 +171,8 @@ class ModelHooks:
         """Called when the validation loop ends.
 
         The validation loop by default restores the `training` mode of the LightningModule to what it was before
-        starting validation. Override this hook to change the behavior. See also :meth:`on_validation_model_eval`.
+        starting validation. Override this hook to change the behavior. See also
+        :meth:`~lightning.pytorch.core.hooks.ModelHooks.on_validation_model_eval`.
 
         """
         # The loop won't call this hook unless it is overridden. The line below is here in case the user calls super().
@@ -181,7 +182,7 @@ class ModelHooks:
         """Called when the test loop starts.
 
         The test loop by default calls ``.eval()`` on the LightningModule before it starts. Override this hook
-        to change the behavior. See also :meth:`on_test_model_train`.
+        to change the behavior. See also :meth:`~lightning.pytorch.core.hooks.ModelHooks.on_test_model_train`.
 
         """
         # The loop won't call this hook unless it is overridden. The line below is here in case the user calls super().
@@ -191,7 +192,8 @@ class ModelHooks:
         """Called when the test loop ends.
 
         The test loop by default restores the `training` mode of the LightningModule to what it was before
-        starting testing. Override this hook to change the behavior. See also :meth:`on_test_model_eval`.
+        starting testing. Override this hook to change the behavior. See also
+        :meth:`~lightning.pytorch.core.hooks.ModelHooks.on_test_model_eval`.
 
         """
         # The loop won't call this hook unless it is overridden. The line below is here in case the user calls super().
