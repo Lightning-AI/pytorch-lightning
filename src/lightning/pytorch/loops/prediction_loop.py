@@ -349,6 +349,7 @@ class _PredictionLoop(_Loop):
             call._call_lightning_module_hook(self.trainer, "on_predict_model_eval")
         else:
             self._module_mode.capture(trainer.lightning_module)
+            assert trainer.model is not None
             trainer.model.eval()
 
     def _on_predict_model_train(self) -> None:

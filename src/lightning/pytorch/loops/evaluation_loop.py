@@ -298,6 +298,7 @@ class _EvaluationLoop(_Loop):
             call._call_lightning_module_hook(trainer, hook_name)
         else:
             self._module_mode.capture(trainer.lightning_module)
+            assert trainer.model is not None
             trainer.model.eval()
 
     def _on_evaluation_model_train(self) -> None:

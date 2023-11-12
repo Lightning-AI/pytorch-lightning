@@ -14,7 +14,7 @@
 import inspect
 import os
 from types import MethodType
-from typing import TYPE_CHECKING, Any, Callable, Generic, Optional, Type, TypeVar
+from typing import TYPE_CHECKING, Any, Callable, Dict, Generic, Optional, Type, TypeVar
 
 from lightning_utilities.core.imports import RequirementCache
 from torch import nn
@@ -59,10 +59,10 @@ def get_torchvision_model(model_name: str, **kwargs: Any) -> nn.Module:
 
 
 class _ModuleMode:
-    """Captures the ``nn.Module.training`` (bool) mode of every submodule, and allwos it to be restored later on."""
+    """Captures the ``nn.Module.training`` (bool) mode of every submodule, and allows it to be restored later on."""
 
-    def __init__(self):
-        self.mode = {}
+    def __init__(self) -> None:
+        self.mode: Dict[str, bool] = {}
 
     def capture(self, module: nn.Module) -> None:
         for name, mod in module.named_modules():
