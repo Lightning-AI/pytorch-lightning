@@ -23,12 +23,12 @@ from lightning.data.datasets.env import _DistributedEnv
 from lightning.data.streaming import Cache
 from lightning.data.streaming.dataloader import StreamingDataLoader
 from lightning.data.streaming.dataset import StreamingDataset
-from lightning.data.streaming.item_loader import TokensLoader
+from lightning.data.streaming.serializers import Serializer
 from lightning.fabric import Fabric
 from lightning.pytorch.demos.boring_classes import RandomDataset
 from lightning_utilities.core.imports import RequirementCache
 from lightning_utilities.test.warning import no_warning_call
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import Dataset
 
 _PIL_AVAILABLE = RequirementCache("PIL")
 _TORCH_VISION_AVAILABLE = RequirementCache("torchvision")
@@ -222,29 +222,6 @@ def test_cache_with_auto_wrapping(tmpdir):
             pass
 
 
-def test_streaming_dataset(tmpdir, monkeypatch):
-    seed_everything(42)
-
-    os.makedirs(os.path.join(tmpdir, "remote_dir"), exist_ok=True)
-
-    with pytest.raises(ValueError, match="The provided dataset"):
-        dataset = StreamingDataset(input_dir=tmpdir)
-
-    dataset = RandomDataset(128, 64)
-    dataloader = StreamingDataLoader(dataset, cache_dir=tmpdir, chunk_bytes=2 << 12)
-    for batch in dataloader:
-        assert isinstance(batch, torch.Tensor)
-
-    dataset = StreamingDataset(input_dir=tmpdir, item_loader=TokensLoader(block_size=10))
-
-    assert len(dataset) == 816
-    dataset_iter = iter(dataset)
-    assert len(dataset_iter) == 816
-
-    dataloader = DataLoader(dataset, num_workers=2, batch_size=2)
-    assert len(dataloader) == 408
-
-
 def test_create_oversized_chunk_single_item(tmp_path):
     cache = Cache(str(tmp_path), chunk_bytes=700)
     with pytest.warns(UserWarning, match="An item was larger than the target chunk size"):
@@ -275,3 +252,27 @@ def test_create_undersized_and_oversized_chunk(tmp_path):
     assert chunks[1]["filename"] == "chunk-0-1.bin"
     assert chunks[2]["chunk_size"] == 2
     assert chunks[2]["filename"] == "chunk-0-2.bin"
+
+
+class CustomData:
+    pass
+
+
+class CustomSerializer(Serializer):
+    def serialize(self, data):
+        return np.array([1]).tobytes(), None
+
+    def deserialize(self, data: bytes):
+        return data
+
+    def can_serialize(self, data) -> bool:
+        return isinstance(data, CustomData)
+
+
+def test_custom_serializer(tmpdir):
+    cache = Cache(input_dir=str(tmpdir), serializers={"custom": CustomSerializer()}, chunk_size=1)
+    for i in range(10):
+        cache[i] = (CustomData(),)
+    cache.done()
+    cache.merge()
+    assert isinstance(cache[0][0], bytes)

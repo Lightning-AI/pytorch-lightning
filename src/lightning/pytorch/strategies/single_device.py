@@ -17,6 +17,7 @@ from typing import Any
 
 import torch
 from torch import Tensor
+from typing_extensions import override
 
 import lightning.pytorch as pl
 from lightning.fabric.plugins import CheckpointIO
@@ -46,6 +47,7 @@ class SingleDeviceStrategy(Strategy):
         self.local_rank = 0
         self.world_size = 1
 
+    @override
     def reduce(self, tensor: Any | Tensor, *args: Any, **kwargs: Any) -> Any | Tensor:
         """Reduces a tensor from several distributed processes to one aggregated tensor. Since this strategy only
         operates with a single device, the reduction is simply the identity.
@@ -61,33 +63,41 @@ class SingleDeviceStrategy(Strategy):
         """
         return tensor
 
+    @override
     def all_gather(self, tensor: Tensor, group: Any | None = None, sync_grads: bool = False) -> Tensor:
         """Perform a all_gather on all processes."""
         return tensor
 
     @property
+    @override
     def root_device(self) -> torch.device:
         return self._root_device
 
+    @override
     def model_to_device(self) -> None:
         assert self.model is not None, "self.model must be set before self.model.to()"
         self.model.to(self.root_device)
 
+    @override
     def setup(self, trainer: pl.Trainer) -> None:
         self.model_to_device()
         super().setup(trainer)
 
     @property
+    @override
     def is_global_zero(self) -> bool:
         return True
 
+    @override
     def barrier(self, *args: Any, **kwargs: Any) -> None:
         pass
 
+    @override
     def broadcast(self, obj: TBroadcast, src: int = 0) -> TBroadcast:
         return obj
 
     @classmethod
+    @override
     def register_strategies(cls, strategy_registry: _StrategyRegistry) -> None:
         strategy_registry.register(
             cls.strategy_name,

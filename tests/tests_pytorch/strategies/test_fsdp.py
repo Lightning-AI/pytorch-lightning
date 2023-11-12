@@ -28,6 +28,7 @@ from lightning.pytorch.trainer.states import TrainerFn
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from torch.distributed.fsdp.fully_sharded_data_parallel import CPUOffload, FullyShardedDataParallel, MixedPrecision
 from torch.distributed.fsdp.wrap import always_wrap_policy, size_based_auto_wrap_policy, wrap
+from torchmetrics import Accuracy
 
 from tests_pytorch.helpers.runif import RunIf
 
@@ -237,6 +238,36 @@ def test_fsdp_strategy_sync_batchnorm(tmpdir):
         sync_batchnorm=True,
     )
     _run_multiple_stages(trainer, model, os.path.join(tmpdir, "last.ckpt"))
+
+
+@RunIf(min_cuda_gpus=1, skip_windows=True)
+def test_fsdp_modules_without_parameters(tmp_path):
+    """Test that TorchMetrics get moved to the device despite not having any parameters."""
+
+    class MetricsModel(BoringModel):
+        def __init__(self):
+            super().__init__()
+            self.metric = Accuracy("multiclass", num_classes=10)
+            assert self.metric.device == self.metric.tp.device == torch.device("cpu")
+
+        def setup(self, stage) -> None:
+            assert self.metric.device == self.metric.tp.device == torch.device("cpu")
+
+        def training_step(self, batch, batch_idx):
+            loss = super().training_step(batch, batch_idx)
+            assert self.metric.device == self.metric.tp.device == torch.device("cuda", 0)
+            self.metric(torch.rand(2, 10, device=self.device), torch.randint(0, 10, size=(2,), device=self.device))
+            return loss
+
+    model = MetricsModel()
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        accelerator="cuda",
+        devices=1,
+        strategy="fsdp",
+        max_steps=1,
+    )
+    trainer.fit(model)
 
 
 @RunIf(min_cuda_gpus=1, skip_windows=True, standalone=True)
