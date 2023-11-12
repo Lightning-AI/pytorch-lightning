@@ -26,8 +26,8 @@ from torch.utils.hooks import RemovableHandle
 
 import lightning.pytorch as pl
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
-from lightning.pytorch.utilities.rank_zero import WarningCache
 from lightning.pytorch.utilities.model_helpers import _ModuleMode
+from lightning.pytorch.utilities.rank_zero import WarningCache
 
 log = logging.getLogger(__name__)
 warning_cache = WarningCache()
