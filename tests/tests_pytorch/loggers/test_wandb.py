@@ -448,7 +448,7 @@ def test_wandb_log_media(wandb_mock, tmp_path):
     wandb_mock.init().log.assert_called_once_with({"samples": [wandb_mock.Image(), wandb_mock.Image()]})
 
     # test log_image without a list
-    with pytest.raises(TypeError, match="""Expected a list as "images", found <class 'str'>"""):
+    with pytest.raises(TypeError, match="Expected a list as "images", found <class 'str'>"):
         logger.log_image(key="samples", images="1.jpg")
 
     # test log_image with wrong number of captions
