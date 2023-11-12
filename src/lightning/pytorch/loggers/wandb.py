@@ -23,6 +23,7 @@ from typing import TYPE_CHECKING, Any, Dict, List, Literal, Mapping, Optional, U
 import torch.nn as nn
 from lightning_utilities.core.imports import RequirementCache
 from torch import Tensor
+from typing_extensions import override
 
 from lightning.fabric.utilities.logger import _add_prefix, _convert_params, _sanitize_callable_params
 from lightning.fabric.utilities.types import _PATH
@@ -412,12 +413,14 @@ class WandbLogger(Logger):
     def watch(self, model: nn.Module, log: str = "gradients", log_freq: int = 100, log_graph: bool = True) -> None:
         self.experiment.watch(model, log=log, log_freq=log_freq, log_graph=log_graph)
 
+    @override
     @rank_zero_only
     def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:  # type: ignore[override]
         params = _convert_params(params)
         params = _sanitize_callable_params(params)
         self.experiment.config.update(params, allow_val_change=True)
 
+    @override
     @rank_zero_only
     def log_metrics(self, metrics: Mapping[str, float], step: Optional[int] = None) -> None:
         assert rank_zero_only.rank == 0, "experiment tried to log from global_rank != 0"
@@ -537,6 +540,7 @@ class WandbLogger(Logger):
         self.log_metrics(metrics, step)  # type: ignore[arg-type]
 
     @property
+    @override
     def save_dir(self) -> Optional[str]:
         """Gets the save directory.
 
@@ -547,6 +551,7 @@ class WandbLogger(Logger):
         return self._save_dir
 
     @property
+    @override
     def name(self) -> Optional[str]:
         """The project name of this experiment.
 
@@ -558,6 +563,7 @@ class WandbLogger(Logger):
         return self._project
 
     @property
+    @override
     def version(self) -> Optional[str]:
         """Gets the id of the experiment.
 
@@ -568,6 +574,7 @@ class WandbLogger(Logger):
         # don't create an experiment if we don't have one
         return self._experiment.id if self._experiment else self._id
 
+    @override
     def after_save_checkpoint(self, checkpoint_callback: ModelCheckpoint) -> None:
         # log checkpoints as artifacts
         if self._log_model == "all" or self._log_model is True and checkpoint_callback.save_top_k == -1:
@@ -619,6 +626,7 @@ class WandbLogger(Logger):
         """
         return self.experiment.use_artifact(artifact, type=artifact_type)
 
+    @override
     @rank_zero_only
     def finalize(self, status: str) -> None:
         if status != "success":

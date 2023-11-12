@@ -127,7 +127,7 @@ In some cases, we may also pass entire PyTorch modules to the ``__init__`` metho
 
 .. code-block:: python
 
-    class LitAutoencoder(pl.LightningModule):
+    class LitAutoencoder(L.LightningModule):
         def __init__(self, encoder, decoder):
             ...
 
@@ -160,7 +160,7 @@ For example, let's pretend we created a LightningModule like so:
         ...
 
 
-    class Autoencoder(pl.LightningModule):
+    class Autoencoder(L.LightningModule):
         def __init__(self, encoder, decoder, *args, **kwargs):
             ...
 

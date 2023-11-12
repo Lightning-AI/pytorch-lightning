@@ -1,29 +1,29 @@
 import pytest
 import torch
 from lightning.pytorch.plugins import (
-    DeepSpeedPrecisionPlugin,
-    DoublePrecisionPlugin,
-    FSDPPrecisionPlugin,
-    HalfPrecisionPlugin,
+    DeepSpeedPrecision,
+    DoublePrecision,
+    FSDPPrecision,
+    HalfPrecision,
 )
 
 
 @pytest.mark.parametrize(
     "precision",
     [
-        DeepSpeedPrecisionPlugin("16-true"),
-        DoublePrecisionPlugin(),
-        HalfPrecisionPlugin(),
+        DeepSpeedPrecision("16-true"),
+        DoublePrecision(),
+        HalfPrecision(),
         "fsdp",
     ],
 )
 def test_default_dtype_is_restored(precision):
     if precision == "fsdp":
-        precision = FSDPPrecisionPlugin("16-true")
+        precision = FSDPPrecision("16-true")
 
     contexts = (
         (precision.module_init_context, precision.forward_context)
-        if not isinstance(precision, DeepSpeedPrecisionPlugin)
+        if not isinstance(precision, DeepSpeedPrecision)
         else (precision.module_init_context,)
     )
     for context in contexts:

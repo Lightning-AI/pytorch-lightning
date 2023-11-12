@@ -266,6 +266,7 @@ class ModelCheckpoint(Checkpoint):
         dirpath = self.__resolve_ckpt_dir(trainer)
         dirpath = trainer.strategy.broadcast(dirpath)
         self.dirpath = dirpath
+        self._fs = get_filesystem(self.dirpath or "")
         if trainer.is_global_zero and stage == "fit":
             self.__warn_if_dir_not_empty(self.dirpath)
 
@@ -388,7 +389,12 @@ class ModelCheckpoint(Checkpoint):
                 os.remove(linkpath)
             elif os.path.isdir(linkpath):
                 shutil.rmtree(linkpath)
-            os.symlink(filepath, linkpath)
+            try:
+                os.symlink(filepath, linkpath)
+            except OSError:
+                # on Windows, special permissions are required to create symbolic links as a regular user
+                # fall back to copying the file
+                shutil.copy(filepath, linkpath)
         trainer.strategy.barrier()
 
     def _should_skip_saving_checkpoint(self, trainer: "pl.Trainer") -> bool:

@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+import shutil
 import tarfile
 import tempfile
 from pathlib import Path
@@ -33,6 +34,7 @@ from lightning.app.utilities.load_app import _load_plugin_from_file
 logger = Logger(__name__)
 
 _PLUGIN_MAX_CLIENT_TRIES: int = 3
+_PLUGIN_INTERNAL_DIR_PATH: str = f"{os.environ.get('HOME', '')}/internal"
 
 
 class LightningPlugin:
@@ -169,6 +171,10 @@ def _run_plugin(run: _Run) -> Dict[str, Any]:
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Error loading plugin: {str(ex)}."
             )
 
+        # Allow devs to add files to the app source
+        if os.path.isdir(_PLUGIN_INTERNAL_DIR_PATH):
+            shutil.copytree(_PLUGIN_INTERNAL_DIR_PATH, source_path, dirs_exist_ok=True)
+
         # Ensure that apps are dispatched from the temp directory
         cwd = os.getcwd()
         os.chdir(source_path)
@@ -201,8 +207,9 @@ async def _healthz() -> Dict[str, str]:
     return {"status": "ok"}
 
 
-def _start_plugin_server(host: str, port: int) -> None:
+def _start_plugin_server(port: int) -> None:
     """Start the plugin server which can be used to dispatch apps or run plugins."""
+
     fastapi_service = FastAPI()
 
     fastapi_service.add_middleware(
@@ -216,4 +223,9 @@ def _start_plugin_server(host: str, port: int) -> None:
     fastapi_service.post("/v1/runs")(_run_plugin)
     fastapi_service.get("/healthz", status_code=200)(_healthz)
 
-    uvicorn.run(app=fastapi_service, host=host, port=port, log_level="error")
+    uvicorn.run(
+        app=fastapi_service,
+        host="127.0.0.1",
+        port=port,
+        log_level="error",
+    )

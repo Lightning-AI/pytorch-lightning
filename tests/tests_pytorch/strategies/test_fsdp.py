@@ -13,6 +13,7 @@ import pytest
 import torch
 import torch.nn as nn
 from lightning.fabric.plugins.environments import LightningEnvironment
+from lightning.fabric.strategies.fsdp import _is_sharded_checkpoint
 from lightning.fabric.utilities.imports import (
     _TORCH_GREATER_EQUAL_2_0,
     _TORCH_GREATER_EQUAL_2_1,
@@ -20,13 +21,14 @@ from lightning.fabric.utilities.imports import (
 from lightning.pytorch import Trainer
 from lightning.pytorch.callbacks import ModelCheckpoint
 from lightning.pytorch.demos.boring_classes import BoringModel
-from lightning.pytorch.plugins import HalfPrecisionPlugin
-from lightning.pytorch.plugins.precision.fsdp import FSDPPrecisionPlugin
+from lightning.pytorch.plugins import HalfPrecision
+from lightning.pytorch.plugins.precision.fsdp import FSDPPrecision
 from lightning.pytorch.strategies import FSDPStrategy
 from lightning.pytorch.trainer.states import TrainerFn
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from torch.distributed.fsdp.fully_sharded_data_parallel import CPUOffload, FullyShardedDataParallel, MixedPrecision
 from torch.distributed.fsdp.wrap import always_wrap_policy, size_based_auto_wrap_policy, wrap
+from torchmetrics import Accuracy
 
 from tests_pytorch.helpers.runif import RunIf
 
@@ -80,7 +82,7 @@ class TestFSDPModel(BoringModel):
 
     def _assert_layer_fsdp_instance(self) -> None:
         assert isinstance(self.layer, FullyShardedDataParallel)
-        assert isinstance(self.trainer.strategy.precision_plugin, FSDPPrecisionPlugin)
+        assert isinstance(self.trainer.strategy.precision_plugin, FSDPPrecision)
 
         if self.trainer.precision == "16-mixed":
             param_dtype = None if not _TORCH_GREATER_EQUAL_2_0 else torch.float32
@@ -143,7 +145,7 @@ class TestFSDPModelAutoWrapped(TestBoringModel):
 
     def _assert_layer_fsdp_instance(self) -> None:
         assert isinstance(self.layer, torch.nn.Sequential)
-        assert isinstance(self.trainer.strategy.precision_plugin, FSDPPrecisionPlugin)
+        assert isinstance(self.trainer.strategy.precision_plugin, FSDPPrecision)
 
         if self.trainer.precision == "16-mixed":
             param_dtype = None if not _TORCH_GREATER_EQUAL_2_0 else torch.float32
@@ -236,6 +238,36 @@ def test_fsdp_strategy_sync_batchnorm(tmpdir):
         sync_batchnorm=True,
     )
     _run_multiple_stages(trainer, model, os.path.join(tmpdir, "last.ckpt"))
+
+
+@RunIf(min_cuda_gpus=1, skip_windows=True)
+def test_fsdp_modules_without_parameters(tmp_path):
+    """Test that TorchMetrics get moved to the device despite not having any parameters."""
+
+    class MetricsModel(BoringModel):
+        def __init__(self):
+            super().__init__()
+            self.metric = Accuracy("multiclass", num_classes=10)
+            assert self.metric.device == self.metric.tp.device == torch.device("cpu")
+
+        def setup(self, stage) -> None:
+            assert self.metric.device == self.metric.tp.device == torch.device("cpu")
+
+        def training_step(self, batch, batch_idx):
+            loss = super().training_step(batch, batch_idx)
+            assert self.metric.device == self.metric.tp.device == torch.device("cuda", 0)
+            self.metric(torch.rand(2, 10, device=self.device), torch.randint(0, 10, size=(2,), device=self.device))
+            return loss
+
+    model = MetricsModel()
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        accelerator="cuda",
+        devices=1,
+        strategy="fsdp",
+        max_steps=1,
+    )
+    trainer.fit(model)
 
 
 @RunIf(min_cuda_gpus=1, skip_windows=True, standalone=True)
@@ -411,11 +443,11 @@ def test_fsdp_activation_checkpointing_support():
 
 def test_fsdp_forbidden_precision_raises():
     with pytest.raises(TypeError, match="can only work with the `FSDPPrecision"):
-        FSDPStrategy(precision_plugin=HalfPrecisionPlugin())
+        FSDPStrategy(precision_plugin=HalfPrecision())
 
     strategy = FSDPStrategy()
     with pytest.raises(TypeError, match="can only work with the `FSDPPrecision"):
-        strategy.precision_plugin = HalfPrecisionPlugin()
+        strategy.precision_plugin = HalfPrecision()
 
 
 @RunIf(min_torch="1.13")
@@ -760,14 +792,61 @@ def test_save_checkpoint_storage_options(tmp_path):
         strategy.save_checkpoint(filepath=tmp_path, checkpoint=Mock(), storage_options=Mock())
 
 
+@RunIf(min_torch="2.0.0")
+@mock.patch("torch.distributed.checkpoint.save_state_dict", return_value=MagicMock())
 @mock.patch("lightning.pytorch.strategies.fsdp.FSDPStrategy.broadcast", lambda _, x: x)
-def test_save_checkpoint_folder_exists(tmp_path):
-    path = tmp_path / "exists"
+@mock.patch("lightning.pytorch.strategies.fsdp._get_full_state_dict_context", return_value=MagicMock())
+@mock.patch("lightning.pytorch.strategies.fsdp._get_sharded_state_dict_context", return_value=MagicMock())
+@mock.patch("lightning.fabric.plugins.io.torch_io._atomic_save", return_value=Mock())
+@mock.patch("lightning.pytorch.strategies.fsdp.shutil", return_value=MagicMock())
+def test_fsdp_save_checkpoint_path_exists(shutil_mock, torch_save_mock, __, ___, ____, tmp_path):
+    strategy = FSDPStrategy(state_dict_type="full")
+
+    # state_dict_type='full', path exists, path is not a sharded checkpoint: error
+    path = tmp_path / "not-empty"
     path.mkdir()
     (path / "file").touch()
-    strategy = FSDPStrategy()
-    with pytest.raises(FileExistsError, match="exists and is not empty"):
-        strategy.save_checkpoint(filepath=tmp_path, checkpoint=Mock())
+    assert not _is_sharded_checkpoint(path)
+    with pytest.raises(IsADirectoryError, match="exists and is a directory"):
+        strategy.save_checkpoint(Mock(), filepath=path)
+
+    # state_dict_type='full', path exists, path is a sharded checkpoint: no error (overwrite)
+    path = tmp_path / "sharded-checkpoint"
+    path.mkdir()
+    (path / "meta.pt").touch()
+    assert _is_sharded_checkpoint(path)
+    model = Mock(spec=FullyShardedDataParallel)
+    model.modules.return_value = [model]
+    strategy.save_checkpoint(Mock(), filepath=path)
+    shutil_mock.rmtree.assert_called_once_with(path)
+
+    # state_dict_type='full', path exists, path is a file: no error (overwrite)
+    path = tmp_path / "file.pt"
+    path.touch()
+    model = Mock(spec=FullyShardedDataParallel)
+    model.modules.return_value = [model]
+    torch_save_mock.reset_mock()
+    strategy.save_checkpoint(Mock(), filepath=path)
+    torch_save_mock.assert_called_once()
+
+    strategy = FSDPStrategy(state_dict_type="sharded")
+
+    # state_dict_type='sharded', path exists, path is a folder: no error (overwrite)
+    path = tmp_path / "not-empty-2"
+    path.mkdir()
+    (path / "file").touch()
+    model = Mock(spec=FullyShardedDataParallel)
+    model.modules.return_value = [model]
+    strategy.save_checkpoint({"state_dict": {}, "optimizer_states": {"": {}}}, filepath=path)
+    assert (path / "file").exists()
+
+    # state_dict_type='sharded', path exists, path is a file: no error (overwrite)
+    path = tmp_path / "file-2.pt"
+    path.touch()
+    model = Mock(spec=FullyShardedDataParallel)
+    model.modules.return_value = [model]
+    strategy.save_checkpoint({"state_dict": {}, "optimizer_states": {"": {}}}, filepath=path)
+    assert path.is_dir()
 
 
 @mock.patch("lightning.pytorch.strategies.fsdp.FSDPStrategy.broadcast", lambda _, x: x)

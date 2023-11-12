@@ -485,12 +485,12 @@ def test_model_checkpoint_file_extension(tmpdir):
     assert set(expected) == set(os.listdir(tmpdir))
 
 
-def test_model_checkpoint_save_last(tmpdir):
+def test_model_checkpoint_save_last(tmpdir, monkeypatch):
     """Tests that save_last produces only one last checkpoint."""
     seed_everything()
     model = LogInTwoMethods()
     epochs = 3
-    ModelCheckpoint.CHECKPOINT_NAME_LAST = "last-{epoch}"
+    monkeypatch.setattr(ModelCheckpoint, "CHECKPOINT_NAME_LAST", "last-{epoch}")
     model_checkpoint = ModelCheckpoint(monitor="early_stop_on", dirpath=tmpdir, save_top_k=-1, save_last=True)
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -511,7 +511,6 @@ def test_model_checkpoint_save_last(tmpdir):
     )
     assert os.path.islink(tmpdir / last_filename)
     assert os.path.realpath(tmpdir / last_filename) == model_checkpoint._last_checkpoint_saved
-    ModelCheckpoint.CHECKPOINT_NAME_LAST = "last"
 
 
 def test_model_checkpoint_link_checkpoint(tmp_path):
@@ -555,6 +554,15 @@ def test_model_checkpoint_link_checkpoint(tmp_path):
     ModelCheckpoint._link_checkpoint(trainer, filepath=str(new_folder), linkpath=str(folder_link))
     assert os.path.islink(folder_link)
     assert os.path.realpath(folder_link) == str(new_folder)
+
+    # simulate permission error on Windows (creation of symbolic links requires privileges)
+    file = tmp_path / "win_file"
+    file.touch()
+    link = tmp_path / "win_link"
+    with mock.patch("lightning.pytorch.callbacks.model_checkpoint.os.symlink", Mock(side_effect=OSError)):
+        ModelCheckpoint._link_checkpoint(trainer, filepath=str(file), linkpath=str(link))
+    assert not os.path.islink(link)
+    assert os.path.isfile(link)  # fall back to copying instead of linking
 
 
 def test_invalid_top_k(tmpdir):

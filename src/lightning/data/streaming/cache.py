@@ -13,73 +13,84 @@
 
 import logging
 import os
-from typing import Any, Dict, List, Literal, Optional, Tuple, Union
+from dataclasses import dataclass
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 from lightning.data.datasets.env import _DistributedEnv
 from lightning.data.streaming.constants import (
     _INDEX_FILENAME,
-    _LIGHTNING_CLOUD_GREATER_EQUAL_0_5_42,
+    _LIGHTNING_CLOUD_LATEST,
     _TORCH_GREATER_EQUAL_2_1_0,
 )
 from lightning.data.streaming.item_loader import BaseItemLoader
 from lightning.data.streaming.reader import BinaryReader
 from lightning.data.streaming.sampler import ChunkedIndex
+from lightning.data.streaming.serializers import Serializer
 from lightning.data.streaming.writer import BinaryWriter
-
-if _LIGHTNING_CLOUD_GREATER_EQUAL_0_5_42:
-    from lightning_cloud.resolver import _find_remote_dir, _try_create_cache_dir
+from lightning.data.utilities.format import _convert_bytes_to_int
 
 logger = logging.Logger(__name__)
+
+if _LIGHTNING_CLOUD_LATEST:
+    from lightning_cloud.resolver import _resolve_dir
+
+
+@dataclass
+class Dir:
+    """Holds a directory path and possibly its associated remote URL."""
+
+    path: str
+    url: Optional[str] = None
 
 
 class Cache:
     def __init__(
         self,
-        cache_dir: Optional[str] = None,
-        remote_dir: Optional[str] = None,
-        name: Optional[str] = None,
-        version: Optional[Union[int, Literal["latest"]]] = "latest",
+        input_dir: Optional[Union[str, Dir]],
         compression: Optional[str] = None,
         chunk_size: Optional[int] = None,
-        chunk_bytes: Optional[int] = None,
+        chunk_bytes: Optional[Union[int, str]] = None,
         item_loader: Optional[BaseItemLoader] = None,
+        max_cache_size: Union[int, str] = "200GB",
+        serializers: Optional[Dict[str, Serializer]] = None,
     ):
         """The Cache enables to optimise dataset format for cloud training. This is done by grouping several elements
         together in order to accelerate fetching.
 
         Arguments:
-            cache_dir: The path to where the chunks will be stored.
-            remote_dir: The path to a remote folder where the data are located.
-                The scheme needs to be added to the path.
-            name: The name of dataset in the cloud.
-            version: The version of the dataset in the cloud to use. By default, we will use the latest.
+            input_dir: The path to where the chunks will be or are stored.
             compression: The name of the algorithm to reduce the size of the chunks.
             chunk_bytes: The maximum number of bytes within a chunk.
             chunk_size: The maximum number of items within a chunk.
             item_loader: The object responsible to generate the chunk intervals and load an item froma chunk.
+            max_cache_size: The maximum cache size used by the reader when fetching the chunks.
+            serializers: Provide your own serializers.
 
         """
         super().__init__()
         if not _TORCH_GREATER_EQUAL_2_1_0:
             raise ModuleNotFoundError("PyTorch version 2.1 or higher is required to use the cache.")
 
-        self._cache_dir = cache_dir = str(cache_dir) if cache_dir else _try_create_cache_dir(name)
-        if not remote_dir:
-            remote_dir, has_index_file = _find_remote_dir(name, version)
+        if not _LIGHTNING_CLOUD_LATEST:
+            raise ModuleNotFoundError("Lightning Cloud latest is required to use the cache.")
 
-            # When the index exists, we don't care about the chunk_size anymore.
-            if has_index_file and (chunk_size is None and chunk_bytes is None):
-                chunk_size = 2
-
-            # Add the version to the cache_dir to avoid collisions.
-            if remote_dir and os.path.basename(remote_dir).startswith("version_"):
-                cache_dir = os.path.join(cache_dir, os.path.basename(remote_dir))
-
-            if cache_dir:
-                os.makedirs(cache_dir, exist_ok=True)
-
-        self._writer = BinaryWriter(cache_dir, chunk_size=chunk_size, chunk_bytes=chunk_bytes, compression=compression)
-        self._reader = BinaryReader(cache_dir, remote_dir=remote_dir, compression=compression, item_loader=item_loader)
+        input_dir = _resolve_dir(input_dir)
+        self._cache_dir = input_dir.path
+        self._writer = BinaryWriter(
+            self._cache_dir,
+            chunk_size=chunk_size,
+            chunk_bytes=chunk_bytes,
+            compression=compression,
+            serializers=serializers,
+        )
+        self._reader = BinaryReader(
+            self._cache_dir,
+            max_cache_size=_convert_bytes_to_int(max_cache_size) if isinstance(max_cache_size, str) else max_cache_size,
+            remote_input_dir=input_dir.url,
+            compression=compression,
+            item_loader=item_loader,
+            serializers=serializers,
+        )
         self._is_done = False
         self._distributed_env = _DistributedEnv.detect()
 

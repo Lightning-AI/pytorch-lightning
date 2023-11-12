@@ -44,10 +44,10 @@ To use a full TPU pod skip to the TPU pod section.
 
 .. code-block:: python
 
-    import lightning.pytorch as pl
+    import lightning as L
 
     my_model = MyLightningModule()
-    trainer = pl.Trainer(accelerator="tpu", devices=8)
+    trainer = L.Trainer(accelerator="tpu", devices=8)
     trainer.fit(my_model)
 
 That's it! Your model will train on all 8 TPU cores.
@@ -113,10 +113,10 @@ By default, TPU training will use 32-bit precision. To enable it, do
 
 .. code-block:: python
 
-    import lightning.pytorch as pl
+    import lightning as L
 
     my_model = MyLightningModule()
-    trainer = pl.Trainer(accelerator="tpu", precision="16-true")
+    trainer = L.Trainer(accelerator="tpu", precision="16-true")
     trainer.fit(my_model)
 
 Under the hood the xla library will use the `bfloat16 type <https://en.wikipedia.org/wiki/Bfloat16_floating-point_format>`_.
