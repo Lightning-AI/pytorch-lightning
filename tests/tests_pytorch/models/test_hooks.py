@@ -930,3 +930,6 @@ def test_train_eval_mode_restored(tmp_path):
         enable_checkpointing=False,
     )
     trainer.fit(model)
+    trainer.validate(model)
+    trainer.test(model)
+    trainer.predict(model)
