@@ -401,7 +401,7 @@ def test_model_checkpoint_no_extraneous_invocations(tmpdir):
     assert trainer.state.finished, f"Training failed with {trainer.state}"
 
 
-def test_model_checkpoint_format_checkpoint_name(tmpdir):
+def test_model_checkpoint_format_checkpoint_name(tmpdir, monkeypatch):
     # empty filename:
     ckpt_name = ModelCheckpoint._format_checkpoint_name("", {"epoch": 3, "step": 2})
     assert ckpt_name == "epoch=3-step=2"
@@ -422,18 +422,16 @@ def test_model_checkpoint_format_checkpoint_name(tmpdir):
     assert ckpt_name == "epoch=003-epoch_test=003"
 
     # prefix
-    char_org = ModelCheckpoint.CHECKPOINT_JOIN_CHAR
-    ModelCheckpoint.CHECKPOINT_JOIN_CHAR = "@"
+    monkeypatch.setattr(ModelCheckpoint, "CHECKPOINT_JOIN_CHAR", "@")
     ckpt_name = ModelCheckpoint._format_checkpoint_name("{epoch},{acc:.5f}", {"epoch": 3, "acc": 0.03}, prefix="test")
     assert ckpt_name == "test@epoch=3,acc=0.03000"
-    ModelCheckpoint.CHECKPOINT_JOIN_CHAR = char_org
+    monkeypatch.undo()
 
     # non-default char for equals sign
-    default_char = ModelCheckpoint.CHECKPOINT_EQUALS_CHAR
-    ModelCheckpoint.CHECKPOINT_EQUALS_CHAR = ":"
+    monkeypatch.setattr(ModelCheckpoint, "CHECKPOINT_EQUALS_CHAR", ":")
     ckpt_name = ModelCheckpoint._format_checkpoint_name("{epoch:03d}-{acc}", {"epoch": 3, "acc": 0.03})
     assert ckpt_name == "epoch:003-acc:0.03"
-    ModelCheckpoint.CHECKPOINT_EQUALS_CHAR = default_char
+    monkeypatch.undo()
 
     # no dirpath set
     ckpt_name = ModelCheckpoint(monitor="early_stop_on", dirpath=None).format_checkpoint_name({"epoch": 3, "step": 2})
@@ -485,12 +483,12 @@ def test_model_checkpoint_file_extension(tmpdir):
     assert set(expected) == set(os.listdir(tmpdir))
 
 
-def test_model_checkpoint_save_last(tmpdir):
+def test_model_checkpoint_save_last(tmpdir, monkeypatch):
     """Tests that save_last produces only one last checkpoint."""
     seed_everything()
     model = LogInTwoMethods()
     epochs = 3
-    ModelCheckpoint.CHECKPOINT_NAME_LAST = "last-{epoch}"
+    monkeypatch.setattr(ModelCheckpoint, "CHECKPOINT_NAME_LAST", "last-{epoch}")
     model_checkpoint = ModelCheckpoint(monitor="early_stop_on", dirpath=tmpdir, save_top_k=-1, save_last=True)
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -511,7 +509,6 @@ def test_model_checkpoint_save_last(tmpdir):
     )
     assert os.path.islink(tmpdir / last_filename)
     assert os.path.realpath(tmpdir / last_filename) == model_checkpoint._last_checkpoint_saved
-    ModelCheckpoint.CHECKPOINT_NAME_LAST = "last"
 
 
 def test_model_checkpoint_link_checkpoint(tmp_path):
