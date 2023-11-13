@@ -341,6 +341,11 @@ class FSDPStrategy(ParallelStrategy):
 
     @override
     def setup_optimizers(self, trainer: "pl.Trainer") -> None:
+        # If we're setting up for evaluation after fitting, we need to discard the optimizers
+        # since we're rewrapping the model, otherwise optimizer param references are no longer valid
+        # and subsequent checkpoint saving can fail
+        self._reset_optimizers_and_schedulers()
+
         if self.kwargs.get("use_orig_params"):
             return super().setup_optimizers(trainer)
 
