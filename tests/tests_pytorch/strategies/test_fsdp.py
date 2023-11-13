@@ -274,7 +274,7 @@ def test_fsdp_modules_without_parameters(tmp_path):
     trainer.fit(model)
 
 
-@RunIf(min_cuda_gpus=1, skip_windows=True, standalone=True)
+@RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True)
 @pytest.mark.parametrize("precision", ["16-mixed", pytest.param("bf16-mixed", marks=RunIf(bf16_cuda=True))])
 def test_fsdp_strategy_checkpoint(tmpdir, precision):
     """Test to ensure that checkpoint is saved correctly when using a single GPU, and all stages can be run."""
