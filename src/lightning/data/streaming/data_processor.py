@@ -869,7 +869,7 @@ class DataProcessor:
                 has_failed = True
                 break
 
-        pbar.close(leave=True)
+        pbar.close()
 
         num_nodes = _get_num_nodes()
         node_rank = _get_node_rank()
