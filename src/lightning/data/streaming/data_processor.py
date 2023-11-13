@@ -856,8 +856,8 @@ class DataProcessor:
                 self.workers_tracker[index] = counter
                 new_total = sum(self.workers_tracker.values())
 
-            tq.set_postfix({"time": datetime.now().strftime("%H:%M:%S.%f")})
-            tq.update(new_total - current_total)
+            pbar.set_postfix({"time": datetime.now().strftime("%H:%M:%S.%f")})
+            pbar.update(new_total - current_total)
 
             current_total = new_total
             if current_total == num_items:
@@ -868,6 +868,8 @@ class DataProcessor:
             if all(not w.is_alive() for w in self.workers):
                 has_failed = True
                 break
+
+        pbar.close(leave=True)
 
         num_nodes = _get_num_nodes()
         node_rank = _get_node_rank()
