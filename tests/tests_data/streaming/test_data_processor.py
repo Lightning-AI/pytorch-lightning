@@ -484,6 +484,8 @@ def test_data_processsor_distributed(fast_dev_run, delete_cached_files, tmpdir, 
         delete_cached_files=delete_cached_files,
         fast_dev_run=fast_dev_run,
         output_dir=remote_output_dir,
+        num_uploaders=1,
+        num_downloaders=1,
     )
     data_processor.run(CustomDataChunkRecipe(chunk_size=2))
 
@@ -508,6 +510,7 @@ def test_data_processsor_distributed(fast_dev_run, delete_cached_files, tmpdir, 
     data_processor = TestDataProcessor(
         input_dir=input_dir,
         num_workers=2,
+        num_uploaders=1,
         num_downloaders=1,
         delete_cached_files=delete_cached_files,
         fast_dev_run=fast_dev_run,
@@ -668,7 +671,6 @@ def test_data_processing_map(monkeypatch, tmpdir):
 
 
 def optimize_fn(filepath):
-    print(filepath)
     from PIL import Image
 
     return [Image.open(filepath), os.path.basename(filepath)]
