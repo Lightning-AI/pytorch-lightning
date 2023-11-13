@@ -54,6 +54,7 @@ To view metrics in the commandline progress bar, set the *prog_bar* argument to 
 
 
 .. code-block:: bash
+
     Epoch 3:  33%|███▉        | 307/938 [00:01<00:02, 289.04it/s, loss=0.198, v_num=51, acc=0.211, metric_n=0.937]
 
 ----
