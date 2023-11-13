@@ -575,6 +575,11 @@ class Strategy(ABC):
         """Called when the trainer execution is interrupted by an exception."""
         pass
 
+    def _reset_optimizers_and_schedulers(self) -> None:
+        self._optimizers = []
+        self._lightning_optimizers = []
+        self.lr_scheduler_configs = []
+
     def __getstate__(self) -> Dict:
         # `LightningOptimizer` overrides `self.__class__` so they cannot be pickled
         state = dict(vars(self))  # copy
