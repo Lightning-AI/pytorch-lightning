@@ -833,7 +833,7 @@ class DataProcessor:
 
         current_total = 0
         has_failed = False
-        tq = _tqdm(
+        pbar = _tqdm(
             desc="Progress",
             total=num_items,
             smoothing=0,
