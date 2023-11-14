@@ -5,16 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
-## [UnReleased] - 2023-11-DD
+## [2.1.2] - 2023-11-15
 
-### Added
+### Changed
 
--
-
-
-### Fixed
-
--
+- Forced plugin server to use localhost ([#18976](https://github.com/Lightning-AI/lightning/pull/18976))
+- Enabled bundling additional files into app source ([#18980](https://github.com/Lightning-AI/lightning/pull/18980))
+- Limited rate of requests to http queue ([#18981](https://github.com/Lightning-AI/lightning/pull/18981))
 
 
 ## [2.1.1] - 2023-11-06
@@ -25,7 +22,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
-- Fix failing lightning cli entry point ([#18821](https://github.com/Lightning-AI/lightning/pull/18821))
+- Fixed failing lightning cli entry point ([#18821](https://github.com/Lightning-AI/lightning/pull/18821))
 
 
 ## [2.1.0] - 2023-10-11
