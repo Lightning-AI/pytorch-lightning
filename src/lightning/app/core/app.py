@@ -445,7 +445,7 @@ class LightningApp:
         if self.stage == AppStage.BLOCKING:
             return done
 
-        if self.stage in (AppStage.STOPPING, AppStage.FAILED):
+        if self.stage in (AppStage.STOPPING, AppStage.FAILED, AppStage.SUCCEEDED):
             return True
 
         if self.stage == AppStage.RESTARTING:
