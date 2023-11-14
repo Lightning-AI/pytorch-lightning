@@ -89,7 +89,7 @@ Accumulate a metric
 ===================
 When *self.log* is called inside the *training_step*, it generates a timeseries showing how the metric behaves over time.
 
-.. figure:: https://pl-flash-data.s3.amazonaws.com/assets_lightning/logging_basic/visualize_logging_basic_tensorboard_chart.png
+.. figure:: https://pl-public-data.s3.amazonaws.com/assets_lightning/logging_basic/visualize_logging_basic_tensorboard_chart.png
     :alt: TensorBoard chart of a metric logged with self.log
     :width: 100 %
 
@@ -103,7 +103,7 @@ When you call self.log inside the *validation_step* and *test_step*, Lightning a
         value = batch_idx + 1
         self.log("average_value", value)
 
-.. figure:: https://pl-flash-data.s3.amazonaws.com/assets_lightning/logging_basic/visualize_logging_basic_tensorboard_point.png
+.. figure:: https://pl-public-data.s3.amazonaws.com/assets_lightning/logging_basic/visualize_logging_basic_tensorboard_point.png
     :alt: TensorBoard chart of a metric logged with self.log
     :width: 100 %
 
