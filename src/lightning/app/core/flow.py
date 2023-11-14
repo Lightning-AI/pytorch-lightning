@@ -27,7 +27,7 @@ from lightning.app.storage.drive import Drive, _maybe_create_drive
 from lightning.app.storage.path import Path
 from lightning.app.utilities.app_helpers import _is_json_serializable, _LightningAppRef, _set_child_name, is_overridden
 from lightning.app.utilities.component import _sanitize_state
-from lightning.app.utilities.exceptions import ExitAppException, LightningFlowException, ExitAppAndCompleteException
+from lightning.app.utilities.exceptions import ExitAppAndCompleteException, ExitAppException, LightningFlowException
 from lightning.app.utilities.introspection import _is_init_context, _is_run_context
 from lightning.app.utilities.packaging.cloud_compute import CloudCompute, _maybe_create_cloud_compute
 
@@ -396,7 +396,7 @@ class LightningFlow:
         if end_msg:
             print(end_msg)
         raise LightningFlowException
-    
+
     def complete(self, end_msg: str = "") -> None:
         """Method used to exit and complete the application."""
         if end_msg:
