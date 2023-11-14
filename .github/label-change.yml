@@ -8,6 +8,16 @@ app:
   - "docs/source-app/**"
   - "requirements/app/**"
 
+data:
+  - "src/lightning/data/**"
+  - "tests/tests_data/**"
+  - "requirements/data/**"
+
+store:
+  - "src/lightning/store/**"
+  - "tests/tests_store/**"
+  - "requirements/store/**"
+
 pl:
   - "src/lightning/pytorch/**"
   - "src/pytorch_lightning/*"
