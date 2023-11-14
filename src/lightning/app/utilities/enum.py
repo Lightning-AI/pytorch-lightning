@@ -31,6 +31,7 @@ class AppStage(enum.Enum):
     RESTARTING = "restarting"
     STOPPING = "stopping"
     FAILED = "failed"
+    SUCCEEDED = "succeeded"
 
 
 class WorkFailureReasons:

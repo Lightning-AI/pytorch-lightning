@@ -680,23 +680,6 @@ class LightningWork:
         app = _LightningAppRef().get_current()
         self._backend.stop_work(app, self)  # type: ignore[arg-type]
 
-    def complete(self) -> None:
-        """Stops LightingWork component and sets the status as complete shuts down hardware provisioned via
-        CloudCompute.
-
-        This can only be called from a ``LightningFlow``.
-
-        """
-        if not self._backend:
-            raise RuntimeError(f"Only the `LightningFlow` can request this work ({self.name!r}) to stop.")
-        if self.status.stage == WorkStageStatus.SUCCEEDED:
-            return
-        latest_hash = self._calls[CacheCallsKeys.LATEST_CALL_HASH]
-        stop_status = make_status(WorkStageStatus.SUCCEEDED, reason=WorkStopReasons.PENDING)
-        self._calls[latest_hash]["statuses"].append(stop_status)
-        app = _LightningAppRef().get_current()
-        self._backend.stop_work(app, self)  # type: ignore[arg-type]
-
     def delete(self) -> None:
         """Delete LightingWork component and shuts down hardware provisioned via CloudCompute.
 

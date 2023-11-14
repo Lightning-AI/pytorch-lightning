@@ -61,6 +61,10 @@ class ExitAppException(Exception):
     """Exception used by components to signal that App should exit."""
 
 
+class ExitAppAndCompleteException(Exception):
+    """Exception used by components to signal that App should exit and be marked as completed."""
+
+
 class LightningComponentException(Exception):
     """Exception used to inform users of misuse with LightningComponent."""
 

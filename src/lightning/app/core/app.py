@@ -51,7 +51,7 @@ from lightning.app.utilities.app_status import AppStatus
 from lightning.app.utilities.commands.base import _process_requests
 from lightning.app.utilities.component import _convert_paths_after_init, _validate_root_flow
 from lightning.app.utilities.enum import AppStage, CacheCallsKeys
-from lightning.app.utilities.exceptions import CacheMissException, ExitAppException, LightningFlowException
+from lightning.app.utilities.exceptions import CacheMissException, ExitAppException, LightningFlowException, ExitAppAndCompleteException
 from lightning.app.utilities.layout import _collect_layout
 from lightning.app.utilities.proxies import ComponentDelta
 from lightning.app.utilities.scheduler import SchedulerThread
@@ -468,6 +468,9 @@ class LightningApp:
         except (ExitAppException, KeyboardInterrupt):
             done = True
             self.stage = AppStage.STOPPING
+        except (ExitAppAndCompleteException):
+            done = True
+            self.stage = AppStage.SUCCEEDED
 
         if not self.ready:
             self.ready = self.root.ready
