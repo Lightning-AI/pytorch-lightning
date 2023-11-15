@@ -134,7 +134,7 @@ def test_module_mode():
     assert not model.child2.child.dropout.training
 
 
-def test_module_restore_missing_module():
+def test_module_mode_restore_missing_module():
     """Test that restoring still works if the module drops a layer after it was captured."""
     class Model(torch.nn.Module):
         def __init__(self):
@@ -152,7 +152,7 @@ def test_module_restore_missing_module():
     assert model.child1.training
 
 
-def test_module_restore_new_module(caplog):
+def test_module_mode_restore_new_module(caplog):
     """Test that restoring ignores newly added submodules after the module was captured."""
     class Model(torch.nn.Module):
         def __init__(self):
@@ -167,3 +167,23 @@ def test_module_restore_new_module(caplog):
     with caplog.at_level(logging.DEBUG, logger="lightning.pytorch.utilities.model_helpers"):
         mode.restore(model)
     assert "Restoring training mode on module 'new_child' not possible" in caplog.text
+
+
+def test_module_mode_clear():
+    class Model1(torch.nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.child1 = torch.nn.Linear(2, 2)
+
+    class Model2(torch.nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.child2 = torch.nn.Linear(2, 2)
+
+    model1 = Model1()
+    model2 = Model2()
+    mode = _ModuleMode()
+    mode.capture(model1)
+    assert mode.mode == {"": True, "child1": True}
+    mode.capture(model2)
+    assert mode.mode == {"": True, "child2": True}  # child1 is not included anymore

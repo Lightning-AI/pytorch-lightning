@@ -68,6 +68,7 @@ class _ModuleMode:
         self.mode: Dict[str, bool] = {}
 
     def capture(self, module: nn.Module) -> None:
+        self.mode.clear()
         for name, mod in module.named_modules():
             self.mode[name] = mod.training
 
