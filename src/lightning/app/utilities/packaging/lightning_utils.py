@@ -141,6 +141,7 @@ def _prepare_lightning_wheels_and_requirements(root: Path, package_name: str = "
     if (PACKAGE_LIGHTNING or is_lightning) and not bool(int(os.getenv("SKIP_LIGHTING_UTILITY_WHEELS_BUILD", "0"))):
         # building and copying lightning-cloud wheel if installed in editable mode
         lightning_cloud_project_path = get_dist_path_if_editable_install("lightning_cloud")
+        lightning_launcher_path = get_dist_path_if_editable_install("lightning_launcher")
         if lightning_cloud_project_path:
             from lightning_cloud.__version__ import __version__ as cloud_version
 
@@ -148,6 +149,14 @@ def _prepare_lightning_wheels_and_requirements(root: Path, package_name: str = "
             print(f"Packaged Lightning Cloud with your application. Version: {cloud_version}")
             _prepare_wheel(lightning_cloud_project_path)
             tar_name = _copy_tar(lightning_cloud_project_path, root)
+            tar_files.append(os.path.join(root, tar_name))
+        if lightning_launcher_path:
+            from lightning_cloud.__version__ import __version__ as cloud_version
+
+            # todo: check why logging.info is missing in outputs
+            print(f"Packaged Lightning launcher with your application. Version: {cloud_version}")
+            _prepare_wheel(lightning_launcher_path)
+            tar_name = _copy_tar(lightning_launcher_path, root)
             tar_files.append(os.path.join(root, tar_name))
 
     return functools.partial(_cleanup, *tar_files)
