@@ -14,6 +14,8 @@
 
 from typing import Any, Iterator, List, Optional
 
+from typing_extensions import override
+
 from lightning.fabric.utilities.data import sized_len
 from lightning.pytorch.utilities.combined_loader import _ITERATOR_RETURN, CombinedLoader
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
@@ -44,11 +46,13 @@ class _DataFetcher(Iterator):
     def setup(self, combined_loader: CombinedLoader) -> None:
         self._combined_loader = combined_loader
 
+    @override
     def __iter__(self) -> "_DataFetcher":
         self.iterator = iter(self.combined_loader)
         self.reset()
         return self
 
+    @override
     def __next__(self) -> _ITERATOR_RETURN:
         assert self.iterator is not None
         self._start_profiler()
@@ -95,6 +99,7 @@ class _PrefetchDataFetcher(_DataFetcher):
         self.prefetch_batches = prefetch_batches
         self.batches: List[Any] = []
 
+    @override
     def __iter__(self) -> "_PrefetchDataFetcher":
         super().__iter__()
         if self.length is not None:
@@ -111,6 +116,7 @@ class _PrefetchDataFetcher(_DataFetcher):
                 break
         return self
 
+    @override
     def __next__(self) -> _ITERATOR_RETURN:
         if self.batches:
             # there are pre-fetched batches already from a previous `prefetching` call.
@@ -130,6 +136,7 @@ class _PrefetchDataFetcher(_DataFetcher):
             raise StopIteration
         return batch
 
+    @override
     def reset(self) -> None:
         super().reset()
         self.batches = []
@@ -156,16 +163,19 @@ class _DataLoaderIterDataFetcher(_DataFetcher):
         self._batch_idx: int = 0
         self._dataloader_idx: int = 0
 
+    @override
     def __iter__(self) -> "_DataLoaderIterDataFetcher":
         super().__iter__()
         self.iterator_wrapper = iter(_DataFetcherWrapper(self))
         return self
 
+    @override
     def __next__(self) -> Iterator["_DataFetcherWrapper"]:  # type: ignore[override]
         if self.done:
             raise StopIteration
         return self.iterator_wrapper
 
+    @override
     def reset(self) -> None:
         super().reset()
         self._batch = None
@@ -189,6 +199,7 @@ class _DataFetcherWrapper(Iterator):
     def length(self) -> Optional[int]:
         return self.data_fetcher.length
 
+    @override
     def __next__(self) -> _ITERATOR_RETURN:
         fetcher = self.data_fetcher
         if fetcher.done:

@@ -2,7 +2,7 @@ import math
 import os
 from io import TextIOWrapper
 
-from lightning.app.utilities.network import LightningClient
+from lightning_cloud.rest_client import LightningClient
 
 
 def get_index(s3_connection_path: str, index_file_path: str) -> bool:
