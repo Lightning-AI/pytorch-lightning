@@ -485,6 +485,58 @@ class WandbLogger(Logger):
         metrics = {key: [wandb.Image(img, **kwarg) for img, kwarg in zip(images, kwarg_list)]}
         self.log_metrics(metrics, step)  # type: ignore[arg-type]
 
+    @rank_zero_only
+    def log_audio(self, key: str, audios: List[Any], step: Optional[int] = None, **kwargs: Any) -> None:
+        r"""Log audios (numpy arrays, or file paths).
+
+        Args:
+            key: The key to be used for logging the audio files
+            audios: The list of audio file paths, or numpy arrays to be logged
+            step: The step number to be used for logging the audio files
+            \**kwargs: Optional kwargs are lists passed to each ``Wandb.Audio`` instance (ex: caption, sample_rate).
+
+        Optional kwargs are lists passed to each audio (ex: caption, sample_rate).
+
+        """
+        if not isinstance(audios, list):
+            raise TypeError(f'Expected a list as "audios", found {type(audios)}')
+        n = len(audios)
+        for k, v in kwargs.items():
+            if len(v) != n:
+                raise ValueError(f"Expected {n} items but only found {len(v)} for {k}")
+        kwarg_list = [{k: kwargs[k][i] for k in kwargs} for i in range(n)]
+
+        import wandb
+
+        metrics = {key: [wandb.Audio(audio, **kwarg) for audio, kwarg in zip(audios, kwarg_list)]}
+        self.log_metrics(metrics, step)  # type: ignore[arg-type]
+
+    @rank_zero_only
+    def log_video(self, key: str, videos: List[Any], step: Optional[int] = None, **kwargs: Any) -> None:
+        """Log videos (numpy arrays, or file paths).
+
+        Args:
+            key: The key to be used for logging the video files
+            videos: The list of video file paths, or numpy arrays to be logged
+            step: The step number to be used for logging the video files
+            **kwargs: Optional kwargs are lists passed to each Wandb.Video instance (ex: caption, fps, format).
+
+        Optional kwargs are lists passed to each video (ex: caption, fps, format).
+
+        """
+        if not isinstance(videos, list):
+            raise TypeError(f'Expected a list as "videos", found {type(videos)}')
+        n = len(videos)
+        for k, v in kwargs.items():
+            if len(v) != n:
+                raise ValueError(f"Expected {n} items but only found {len(v)} for {k}")
+        kwarg_list = [{k: kwargs[k][i] for k in kwargs} for i in range(n)]
+
+        import wandb
+
+        metrics = {key: [wandb.Video(video, **kwarg) for video, kwarg in zip(videos, kwarg_list)]}
+        self.log_metrics(metrics, step)  # type: ignore[arg-type]
+
     @property
     @override
     def save_dir(self) -> Optional[str]:
