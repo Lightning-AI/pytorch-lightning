@@ -653,7 +653,6 @@ class RichProgressBar(ProgressBar):
             ProcessingSpeedColumn(style=self.theme.processing_speed),
         ]
 
-    @override
     def __getstate__(self) -> Dict:
         state = self.__dict__.copy()
         # both the console and progress object can hold thread lock objects that are not pickleable
