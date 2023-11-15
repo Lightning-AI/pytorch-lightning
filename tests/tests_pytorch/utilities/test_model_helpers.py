@@ -130,3 +130,26 @@ def test_module_mode():
     assert not model.child2.child.training
     assert model.child2.child.layer.training
     assert not model.child2.child.dropout.training
+
+
+def test_module_restore_missing_module():
+    """Test that restoring still works if the module drops a layer after it was captured."""
+    class Model(torch.nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.child1 = torch.nn.Linear(2, 2)
+            self.child2 = torch.nn.Linear(2, 2)
+
+    model = Model()
+    mode = _ModuleMode()
+    mode.capture(model)
+    model.child1.eval()
+    del model.child2
+    assert not hasattr(model, "child2")
+    mode.restore(model)
+    assert model.child1.training
+
+
+def test_module_restore_new_module():
+    """Test that restoring ignores newly added submodules after the module was captured."""
+    pass

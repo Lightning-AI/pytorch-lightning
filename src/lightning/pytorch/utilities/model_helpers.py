@@ -16,6 +16,7 @@ import os
 from types import MethodType
 from typing import TYPE_CHECKING, Any, Callable, Dict, Generic, Optional, Type, TypeVar
 
+from lightning.fabric.utilities.rank_zero import rank_zero_debug
 from lightning_utilities.core.imports import RequirementCache
 from torch import nn
 from typing_extensions import Concatenate, ParamSpec
@@ -71,7 +72,10 @@ class _ModuleMode:
     def restore(self, module: nn.Module) -> None:
         for name, mod in module.named_modules():
             if name not in self.mode:
-                # TODO: warning cache?
+                _rank_zero_debug(
+                    f"Restoring training mode on module '{name}' not possible, it was never captured."
+                    f" Is your module structure changing?"
+                )
                 continue
             mod.training = self.mode[name]
 
