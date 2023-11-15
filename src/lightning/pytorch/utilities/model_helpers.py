@@ -12,16 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import inspect
+import logging
 import os
 from types import MethodType
 from typing import TYPE_CHECKING, Any, Callable, Dict, Generic, Optional, Type, TypeVar
 
-from lightning.fabric.utilities.rank_zero import rank_zero_debug
 from lightning_utilities.core.imports import RequirementCache
 from torch import nn
 from typing_extensions import Concatenate, ParamSpec
 
 import lightning.pytorch as pl
+
+_log = logging.getLogger(__name__)
 
 
 def is_overridden(method_name: str, instance: Optional[object] = None, parent: Optional[Type[object]] = None) -> bool:
@@ -72,7 +74,7 @@ class _ModuleMode:
     def restore(self, module: nn.Module) -> None:
         for name, mod in module.named_modules():
             if name not in self.mode:
-                _rank_zero_debug(
+                _log.debug(
                     f"Restoring training mode on module '{name}' not possible, it was never captured."
                     f" Is your module structure changing?"
                 )

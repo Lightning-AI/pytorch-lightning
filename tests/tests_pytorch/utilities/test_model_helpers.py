@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import logging
+
 import pytest
 import torch.nn
 from lightning.pytorch import LightningDataModule
@@ -150,6 +152,18 @@ def test_module_restore_missing_module():
     assert model.child1.training
 
 
-def test_module_restore_new_module():
+def test_module_restore_new_module(caplog):
     """Test that restoring ignores newly added submodules after the module was captured."""
-    pass
+    class Model(torch.nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.child = torch.nn.Linear(2, 2)
+
+    model = Model()
+    mode = _ModuleMode()
+    mode.capture(model)
+    model.child.eval()
+    model.new_child = torch.nn.Linear(2, 2)
+    with caplog.at_level(logging.DEBUG, logger="lightning.pytorch.utilities.model_helpers"):
+        mode.restore(model)
+    assert "Restoring training mode on module 'new_child' not possible" in caplog.text
