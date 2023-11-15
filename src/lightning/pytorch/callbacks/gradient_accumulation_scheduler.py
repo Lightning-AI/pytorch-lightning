@@ -21,7 +21,9 @@ Trainer also calls ``optimizer.step()`` for the last indivisible step number.
 """
 
 from typing import Any, Dict
+
 from typing_extensions import override
+
 import lightning.pytorch as pl
 from lightning.pytorch.callbacks.callback import Callback
 from lightning.pytorch.utilities.exceptions import MisconfigurationException

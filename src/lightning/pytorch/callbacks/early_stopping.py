@@ -24,6 +24,7 @@ from typing import Any, Callable, Dict, Optional, Tuple
 import torch
 from torch import Tensor
 from typing_extensions import override
+
 import lightning.pytorch as pl
 from lightning.fabric.utilities.rank_zero import _get_rank
 from lightning.pytorch.callbacks.callback import Callback

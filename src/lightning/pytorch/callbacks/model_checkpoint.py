@@ -28,10 +28,11 @@ from datetime import timedelta
 from pathlib import Path
 from typing import Any, Dict, Optional, Set
 from weakref import proxy
-from typing_extensions import override
+
 import torch
 import yaml
 from torch import Tensor
+from typing_extensions import override
 
 import lightning.pytorch as pl
 from lightning.fabric.utilities.cloud_io import _is_dir, get_filesystem

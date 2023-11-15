@@ -19,11 +19,12 @@ Freeze and unfreeze models for finetuning purposes.
 """
 import logging
 from typing import Any, Callable, Dict, Generator, Iterable, List, Optional, Union
-from typing_extensions import override
+
 import torch
 from torch.nn import Module, ModuleDict
 from torch.nn.modules.batchnorm import _BatchNorm
 from torch.optim.optimizer import Optimizer
+from typing_extensions import override
 
 import lightning.pytorch as pl
 from lightning.pytorch.callbacks.callback import Callback

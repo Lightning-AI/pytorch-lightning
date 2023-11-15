@@ -15,8 +15,9 @@ import math
 from dataclasses import dataclass
 from datetime import timedelta
 from typing import Any, Dict, Generator, Optional, Union, cast
-from typing_extensions import override
+
 from lightning_utilities.core.imports import RequirementCache
+from typing_extensions import override
 
 import lightning.pytorch as pl
 from lightning.pytorch.callbacks.progress.progress_bar import ProgressBar

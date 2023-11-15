@@ -16,7 +16,9 @@ import math
 import os
 import sys
 from typing import Any, Dict, Optional, Union
+
 from typing_extensions import override
+
 from lightning.pytorch.utilities.types import STEP_OUTPUT
 
 # check if ipywidgets is installed before importing tqdm.auto

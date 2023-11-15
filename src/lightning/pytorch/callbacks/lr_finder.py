@@ -19,12 +19,14 @@ Finds optimal learning rate
 """
 from typing import Optional
 
+from typing_extensions import override
+
 import lightning.pytorch as pl
 from lightning.pytorch.callbacks.callback import Callback
 from lightning.pytorch.tuner.lr_finder import _lr_find, _LRFinder
 from lightning.pytorch.utilities.exceptions import _TunerExitException
 from lightning.pytorch.utilities.seed import isolate_rng
-from typing_extensions import override
+
 
 class LearningRateFinder(Callback):
     """The ``LearningRateFinder`` callback enables the user to do a range test of good initial learning rates, to

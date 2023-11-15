@@ -19,7 +19,9 @@ Finds optimal batch size
 """
 
 from typing import Optional
+
 from typing_extensions import override
+
 import lightning.pytorch as pl
 from lightning.pytorch.callbacks.callback import Callback
 from lightning.pytorch.tuner.batch_size_scaling import _scale_batch_size
