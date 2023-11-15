@@ -136,6 +136,7 @@ def test_module_mode():
 
 def test_module_restore_missing_module():
     """Test that restoring still works if the module drops a layer after it was captured."""
+
     class Model(torch.nn.Module):
         def __init__(self):
             super().__init__()
@@ -154,6 +155,7 @@ def test_module_restore_missing_module():
 
 def test_module_restore_new_module(caplog):
     """Test that restoring ignores newly added submodules after the module was captured."""
+
     class Model(torch.nn.Module):
         def __init__(self):
             super().__init__()
