@@ -17,6 +17,7 @@ import os
 import uuid
 from copy import deepcopy
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Union, cast
+from typing_extensions import override
 
 import torch
 from lightning_utilities.core.imports import RequirementCache
@@ -379,6 +380,7 @@ class _LRCallback(Callback):
         self.progress_bar_refresh_rate = progress_bar_refresh_rate
         self.progress_bar = None
 
+    @override
     def on_train_batch_start(
         self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", batch: Any, batch_idx: int
     ) -> None:
@@ -391,6 +393,7 @@ class _LRCallback(Callback):
 
         self.lrs.append(trainer.lr_scheduler_configs[0].scheduler.lr[0])  # type: ignore[union-attr]
 
+    @override
     def on_train_batch_end(
         self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", outputs: STEP_OUTPUT, batch: Any, batch_idx: int
     ) -> None:
