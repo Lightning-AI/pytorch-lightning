@@ -294,11 +294,6 @@ class _EvaluationLoop(_Loop):
         """Sets model to eval mode."""
         trainer = self.trainer
         hook_name = "on_test_model_eval" if trainer.testing else "on_validation_model_eval"
-        if is_overridden(hook_name, trainer.lightning_module):
-            call._call_lightning_module_hook(trainer, hook_name)
-        else:
-            self._module_mode.capture(trainer.lightning_module)
-            assert trainer.model is not None
         self._module_mode.capture(trainer.lightning_module)
         call._call_lightning_module_hook(trainer, hook_name)
 
