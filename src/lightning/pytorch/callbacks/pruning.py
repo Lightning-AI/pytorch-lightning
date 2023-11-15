@@ -20,7 +20,7 @@ import logging
 from copy import deepcopy
 from functools import partial
 from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
-
+from typing_extensions import override
 import torch.nn.utils.prune as pytorch_prune
 from lightning_utilities.core.apply_func import apply_to_collection
 from torch import Tensor, nn
@@ -364,6 +364,7 @@ class ModelPruning(Callback):
                     f" {curr_mask_zeros} ({curr_mask_zeros / curr_mask_size:.2%})"
                 )
 
+    @override
     def setup(self, trainer: "pl.Trainer", pl_module: LightningModule, stage: str) -> None:
         parameters_to_prune = self.sanitize_parameters_to_prune(
             pl_module, self._parameters_to_prune, parameter_names=self._parameter_names
@@ -394,16 +395,19 @@ class ModelPruning(Callback):
         ):
             self.apply_lottery_ticket_hypothesis()
 
+    @override
     def on_train_epoch_end(self, trainer: "pl.Trainer", pl_module: LightningModule) -> None:
         if self._prune_on_train_epoch_end:
             rank_zero_debug("`ModelPruning.on_train_epoch_end`. Applying pruning")
             self._run_pruning(pl_module.current_epoch)
 
+    @override
     def on_validation_epoch_end(self, trainer: "pl.Trainer", pl_module: LightningModule) -> None:
         if not trainer.sanity_checking and not self._prune_on_train_epoch_end:
             rank_zero_debug("`ModelPruning.on_validation_epoch_end`. Applying pruning")
             self._run_pruning(pl_module.current_epoch)
 
+    @override
     def on_train_end(self, trainer: "pl.Trainer", pl_module: LightningModule) -> None:
         if self._make_pruning_permanent:
             rank_zero_debug("`ModelPruning.on_train_end`. Pruning is made permanent for this checkpoint")
@@ -426,6 +430,7 @@ class ModelPruning(Callback):
 
         return apply_to_collection(state_dict, Tensor, move_to_cpu)
 
+    @override
     def on_save_checkpoint(self, trainer: "pl.Trainer", pl_module: LightningModule, checkpoint: Dict[str, Any]) -> None:
         if self._make_pruning_permanent:
             rank_zero_debug("`ModelPruning.on_save_checkpoint`. Pruning is made permanent for this checkpoint")

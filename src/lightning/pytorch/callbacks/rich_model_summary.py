@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from typing import Any, List, Tuple
-
+from typing_extensions import override
 from lightning.pytorch.callbacks import ModelSummary
 from lightning.pytorch.callbacks.progress.rich_progress import _RICH_AVAILABLE
 from lightning.pytorch.utilities.model_summary import get_human_readable_count
@@ -63,6 +63,7 @@ class RichModelSummary(ModelSummary):
         super().__init__(max_depth, **summarize_kwargs)
 
     @staticmethod
+    @override
     def summarize(
         summary_data: List[Tuple[str, List[str]]],
         total_parameters: int,

@@ -24,7 +24,7 @@ from lightning.pytorch.callbacks.callback import Callback
 from lightning.pytorch.tuner.lr_finder import _lr_find, _LRFinder
 from lightning.pytorch.utilities.exceptions import _TunerExitException
 from lightning.pytorch.utilities.seed import isolate_rng
-
+from typing_extensions import override
 
 class LearningRateFinder(Callback):
     """The ``LearningRateFinder`` callback enables the user to do a range test of good initial learning rates, to
@@ -122,5 +122,6 @@ class LearningRateFinder(Callback):
         if self._early_exit:
             raise _TunerExitException()
 
+    @override
     def on_fit_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         self.lr_find(trainer, pl_module)

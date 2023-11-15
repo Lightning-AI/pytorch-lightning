@@ -19,7 +19,7 @@ Finds optimal batch size
 """
 
 from typing import Optional
-
+from typing_extensions import override
 import lightning.pytorch as pl
 from lightning.pytorch.callbacks.callback import Callback
 from lightning.pytorch.tuner.batch_size_scaling import _scale_batch_size
@@ -128,6 +128,7 @@ class BatchSizeFinder(Callback):
         self._batch_arg_name = batch_arg_name
         self._early_exit = False
 
+    @override
     def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: Optional[str] = None) -> None:
         if trainer._accelerator_connector.is_distributed:
             raise MisconfigurationException("The Batch size finder is not supported with distributed strategies.")
@@ -182,17 +183,21 @@ class BatchSizeFinder(Callback):
         if self._early_exit:
             raise _TunerExitException()
 
+    @override
     def on_fit_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         self.scale_batch_size(trainer, pl_module)
 
+    @override
     def on_validation_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         if trainer.sanity_checking or trainer.state.fn != "validate":
             return
 
         self.scale_batch_size(trainer, pl_module)
 
+    @override
     def on_test_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         self.scale_batch_size(trainer, pl_module)
 
+    @override
     def on_predict_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         self.scale_batch_size(trainer, pl_module)

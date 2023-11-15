@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from typing import Any, Dict, Optional, Union
-
+from typing_extensions import override
 import lightning.pytorch as pl
 from lightning.pytorch.callbacks import Callback
 from lightning.pytorch.utilities.rank_zero import rank_zero_warn
@@ -166,6 +166,7 @@ class ProgressBar(Callback):
         """You should provide a way to print without breaking the progress bar."""
         print(*args, **kwargs)
 
+    @override
     def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: str) -> None:
         self._trainer = trainer
         if not trainer.is_global_zero:
