@@ -17,10 +17,10 @@ import os
 import uuid
 from copy import deepcopy
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Union, cast
-from typing_extensions import override
 
 import torch
 from lightning_utilities.core.imports import RequirementCache
+from typing_extensions import override
 
 import lightning.pytorch as pl
 from lightning.fabric.utilities.types import _TORCH_LRSCHEDULER
