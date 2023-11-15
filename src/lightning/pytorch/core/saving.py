@@ -32,7 +32,7 @@ from lightning_utilities.core.apply_func import apply_to_collection
 import lightning.pytorch as pl
 from lightning.fabric.utilities.cloud_io import _is_dir, get_filesystem
 from lightning.fabric.utilities.cloud_io import _load as pl_load
-from lightning.fabric.utilities.data import _AttributeDict
+from lightning.fabric.utilities.data import AttributeDict
 from lightning.fabric.utilities.types import _MAP_LOCATION_TYPE, _PATH
 from lightning.pytorch.accelerators import CUDAAccelerator, MPSAccelerator, XLAAccelerator
 from lightning.pytorch.utilities.imports import _OMEGACONF_AVAILABLE
@@ -191,7 +191,7 @@ def _convert_loaded_hparams(
         return model_args
     # if past checkpoint loaded, convert str to callable
     if isinstance(hparams_type, str):
-        hparams_type = _AttributeDict
+        hparams_type = AttributeDict
     # convert hparams
     return hparams_type(model_args)
 
@@ -314,7 +314,7 @@ def save_hparams_to_yaml(config_yaml: _PATH, hparams: Union[dict, Namespace], us
     # convert Namespace or AD to dict
     if isinstance(hparams, Namespace):
         hparams = vars(hparams)
-    elif isinstance(hparams, _AttributeDict):
+    elif isinstance(hparams, AttributeDict):
         hparams = dict(hparams)
 
     # saving with OmegaConf objects
