@@ -26,6 +26,11 @@ on:
       - "!**/*.md"
   workflow_dispatch:
     inputs:
+      checkout:
+        description: "checkout specific git state"
+        type: string
+        required: false
+        default: ""
       version:
         description: "specify a version / tag to be uploaded"
         type: string
@@ -60,6 +65,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: ${{ inputs.checkout }}
           # only Pytorch has/uses notebooks
           submodules: ${{ matrix.pkg-name == 'pytorch' }}
       - uses: actions/setup-python@v4
