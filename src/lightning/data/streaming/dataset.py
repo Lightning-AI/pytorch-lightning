@@ -19,13 +19,13 @@ from typing import Any, Dict, List, Optional, Union
 import numpy as np
 from torch.utils.data import IterableDataset
 
-from lightning.data.datasets.env import Environment, _DistributedEnv, _WorkerEnv
 from lightning.data.streaming import Cache
 from lightning.data.streaming.constants import _INDEX_FILENAME, _LIGHTNING_CLOUD_LATEST
 from lightning.data.streaming.item_loader import BaseItemLoader
 from lightning.data.streaming.sampler import ChunkedIndex
 from lightning.data.streaming.serializers import Serializer
 from lightning.data.streaming.shuffle import FullShuffle, NoShuffle, Shuffle
+from lightning.data.utilities.env import Environment, _DistributedEnv, _WorkerEnv
 
 if _LIGHTNING_CLOUD_LATEST:
     from lightning_cloud.resolver import _resolve_dir
