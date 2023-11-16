@@ -21,6 +21,8 @@ import torch
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 from lightning.pytorch import Callback, LightningDataModule, LightningModule, Trainer, __version__
 from lightning.pytorch.demos.boring_classes import BoringDataModule, BoringModel, RandomDataset
+from lightning.pytorch.utilities.model_helpers import is_overridden
+
 from torch import Tensor
 from torch.utils.data import DataLoader
 
@@ -394,6 +396,18 @@ class HookedModel(BoringModel):
     def configure_model(self):
         ...
 
+    # override so that it gets called
+    def on_validation_model_train(self):
+        ...
+
+    # override so that it gets called
+    def on_test_model_train(self):
+        ...
+
+    # override so that it gets called
+    def on_predict_model_train(self):
+        ...
+
 
 @pytest.mark.parametrize(
     "kwargs",
@@ -408,7 +422,8 @@ class HookedModel(BoringModel):
     ],
 )
 @pytest.mark.parametrize("automatic_optimization", [True, False])
-def test_trainer_model_hook_system_fit(tmpdir, kwargs, automatic_optimization):
+@pytest.mark.parametrize("override_on_validation_model_train", [True, False])
+def test_trainer_model_hook_system_fit(override_on_validation_model_train, automatic_optimization, kwargs, tmpdir):
     called = []
 
     class TestModel(HookedModel):
@@ -427,6 +442,11 @@ def test_trainer_model_hook_system_fit(tmpdir, kwargs, automatic_optimization):
             return {"loss": loss}
 
     model = TestModel(called)
+
+    if not override_on_validation_model_train:
+        model.on_validation_model_train = None
+    assert is_overridden("on_validation_model_train", model) == override_on_validation_model_train
+
     callback = HookedCallback(called)
     train_batches = 2
     val_batches = 2
@@ -470,14 +490,15 @@ def test_trainer_model_hook_system_fit(tmpdir, kwargs, automatic_optimization):
         {"name": "Callback.on_sanity_check_start", "args": (trainer, model)},
         {"name": "val_dataloader"},
         {"name": "train", "args": (False,)},
+        {"name": "on_validation_model_eval"},
         {"name": "Callback.on_validation_start", "args": (trainer, model)},
         {"name": "on_validation_start"},
         *model._eval_epoch("validation", trainer, model, val_batches, "x", device=device),
         {"name": "Callback.on_validation_end", "args": (trainer, model)},
         {"name": "on_validation_end"},
+        *([{"name": "on_validation_model_train"}] if override_on_validation_model_train else []),
         {"name": "Callback.on_sanity_check_end", "args": (trainer, model)},
         {"name": "train_dataloader"},
-        # duplicate `train` because `_run_stage` calls it again in case validation wasn't run
         {"name": "Callback.on_train_start", "args": (trainer, model)},
         {"name": "on_train_start"},
         {"name": "Callback.on_train_epoch_start", "args": (trainer, model)},
@@ -486,11 +507,13 @@ def test_trainer_model_hook_system_fit(tmpdir, kwargs, automatic_optimization):
         {"name": "zero_grad", **({} if _TORCH_GREATER_EQUAL_2_0 else {"kwargs": {"set_to_none": True}})},
         {"name": "on_validation_model_zero_grad"},
         {"name": "train", "args": (False,)},
+        {"name": "on_validation_model_eval"},
         {"name": "Callback.on_validation_start", "args": (trainer, model)},
         {"name": "on_validation_start"},
         *model._eval_epoch("validation", trainer, model, val_batches, "x", device=device),
         {"name": "Callback.on_validation_end", "args": (trainer, model)},
         {"name": "on_validation_end"},
+        *([{"name": "on_validation_model_train"}] if override_on_validation_model_train else []),
         {"name": "Callback.on_train_epoch_end", "args": (trainer, model)},
         {"name": "on_train_epoch_end"},  # before ModelCheckpoint because it's a "monitoring callback"
         # `ModelCheckpoint.save_checkpoint` is called here
@@ -666,9 +689,13 @@ def test_trainer_model_hook_system_fit_no_val_and_resume_max_steps(tmpdir):
 @pytest.mark.parametrize(
     ("verb", "noun", "dataloader", "key"), [("validate", "validation", "val", "x"), ("test", "test", "test", "y")]
 )
-def test_trainer_model_hook_system_eval(tmpdir, batches, verb, noun, dataloader, key):
+@pytest.mark.parametrize("override_on_x_model_train", [True, False])
+def test_trainer_model_hook_system_eval(tmpdir, override_on_x_model_train, batches, verb, noun, dataloader, key):
     called = []
     model = HookedModel(called)
+    if not override_on_x_model_train:
+        setattr(model, f"on_{noun}_model_train", None)
+    assert is_overridden(f"on_{noun}_model_train", model) == override_on_x_model_train
     callback = HookedCallback(called)
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -684,11 +711,13 @@ def test_trainer_model_hook_system_eval(tmpdir, batches, verb, noun, dataloader,
     hooks = [
         {"name": f"{dataloader}_dataloader"},
         {"name": "train", "args": (False,)},
+        {"name": f"on_{noun}_model_eval"},
         {"name": f"Callback.on_{noun}_start", "args": (trainer, model)},
         {"name": f"on_{noun}_start"},
         *model._eval_epoch(noun, trainer, model, batches, key, trainer.strategy.root_device),
         {"name": f"Callback.on_{noun}_end", "args": (trainer, model)},
         {"name": f"on_{noun}_end"},
+        *([{"name": f"on_{noun}_model_train"}] if override_on_x_model_train else []),
     ]
     expected = [
         {"name": "configure_callbacks"},
@@ -722,6 +751,7 @@ def test_trainer_model_hook_system_predict(tmpdir):
         {"name": "zero_grad", **({} if _TORCH_GREATER_EQUAL_2_0 else {"kwargs": {"set_to_none": True}})},
         {"name": "predict_dataloader"},
         {"name": "train", "args": (False,)},
+        {"name": "on_predict_model_eval"},
         {"name": "Callback.on_predict_start", "args": (trainer, model)},
         {"name": "on_predict_start"},
         {"name": "Callback.on_predict_epoch_start", "args": (trainer, model)},
