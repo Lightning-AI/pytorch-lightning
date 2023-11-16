@@ -222,7 +222,6 @@ class AttributeDict(_AttributeDict):
 
     """
 
-    pass
 
 
 def _lightning_get_all_attr_holders(model: "pl.LightningModule", attribute: str) -> List[Any]:
