@@ -123,15 +123,8 @@ class TokensLoader(BaseItemLoader):
             raise ValueError("The provided chunks isn't properly setup.")
 
     def generate_intervals(self) -> List[Tuple[int, int]]:
-        begin = 0
-        end = 0
         for chunk in self._chunks:
-            dim = chunk["dim"]
-            num_blocks = dim // self._block_size
-            end += num_blocks
-            self._intervals.append((begin, end))
-            begin += num_blocks
-
+            self._intervals.append((0, chunk["dim"] // self._block_size))
         return self._intervals
 
     def load_item_from_chunk(self, index: int, chunk_index: int, chunk_filepath: str, begin: int) -> torch.Tensor:
@@ -149,6 +142,10 @@ class TokensLoader(BaseItemLoader):
         if chunk_index not in self._mmaps:
             # TODO: Add deletion and memmap close
             chunk = self._chunks[chunk_index]
+
+            # Skip the header
+            # The number of items, the number of offsets (number of items in the chunk + 1)
+            # multiplied by their encoding dtype (np.uint32)
             offset = (1 + chunk["chunk_size"] + 1) * 4
             mmap = np.memmap(chunk_filepath, mode="r", order="C", offset=offset)
             self._mmaps[chunk_index] = mmap
@@ -157,5 +154,5 @@ class TokensLoader(BaseItemLoader):
         assert self._dtype
 
         buffer: bytes = self._buffers[chunk_index]
-        offset = self._dtype.itemsize * ((index - begin) if index >= begin else index + 1)
+        offset = self._dtype.itemsize * index * self._block_size
         return torch.frombuffer(buffer, dtype=self._dtype, count=self._block_size, offset=offset)

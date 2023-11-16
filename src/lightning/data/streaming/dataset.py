@@ -11,7 +11,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import copy
 import hashlib
 import os
 from typing import Any, Dict, List, Optional, Union
@@ -84,12 +83,13 @@ class StreamingDataset(IterableDataset):
 
     def _create_cache(self, worker_env: _WorkerEnv) -> Cache:
         env = Environment(dist_env=self.distributed_env, worker_env=worker_env)
-        cache_path = _try_create_cache_dir(input_dir=self.input_dir.path, shard_rank=env.shard_rank)
-        cache_dir = copy.deepcopy(self.input_dir)
-        if cache_path:
-            cache_dir.path = cache_path
 
-        cache = Cache(input_dir=cache_dir, item_loader=self.item_loader, chunk_bytes=1, serializers=self.serializers)
+        if "this_" not in self.input_dir.path:
+            self.input_dir.path = _try_create_cache_dir(input_dir=self.input_dir.path, shard_rank=env.shard_rank)
+
+        cache = Cache(
+            input_dir=self.input_dir, item_loader=self.item_loader, chunk_bytes=1, serializers=self.serializers
+        )
         cache._reader._try_load_config()
 
         if not cache.filled:
