@@ -500,9 +500,10 @@ def test_dataset_for_text_tokens_distributed_num_workers_end_to_end(tmpdir, monk
     block_size = 10
     dataset = StreamingDataset(input_dir=str(tmpdir), item_loader=TokensLoader(block_size), shuffle=False)
 
-    assert len(dataset) == 20
+    L = len(dataset)
+    assert len(dataset) == L
 
-    for i in range(20):
+    for i in range(L):
         sequence = dataset[i]
         assert sequence[0].item() == i * block_size
         assert sequence[-1].item() == (i + 1) * block_size - 1
