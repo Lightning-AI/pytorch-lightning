@@ -15,11 +15,14 @@ import os
 import sys
 from unittest import mock
 
+import numpy as np
 import pytest
+import torch
 from lightning import seed_everything
 from lightning.data.datasets.env import _DistributedEnv
 from lightning.data.streaming import Cache
 from lightning.data.streaming.dataset import StreamingDataset, _try_create_cache_dir
+from lightning.data.streaming.item_loader import TokensLoader
 from lightning.data.streaming.shuffle import FullShuffle, NoShuffle
 from torch.utils.data import DataLoader
 
@@ -326,3 +329,75 @@ def test_try_create_cache_dir():
         assert _try_create_cache_dir("dir", shard_rank=2) == os.path.join(
             "/cache", "chunks", "736007832d2167baaae763fd3a3f3cf1", "2"
         )
+
+
+def test_dataset_for_text_tokens(tmpdir):
+    seed_everything(42)
+
+    block_size = 1024 + 1
+    cache = Cache(input_dir=str(tmpdir), chunk_size=block_size * 11, item_loader=TokensLoader(block_size))
+    text_idxs_list = []
+
+    counter = 0
+    while True:
+        text_ids = torch.randint(0, 1000, (np.random.randint(0, 1000),)).to(torch.int)
+        text_idxs_list.append(text_ids)
+        chunk_filepath = cache._add_item(counter, text_ids)
+        if chunk_filepath:
+            break
+        counter += 1
+
+    cache.done()
+    cache.merge()
+
+    dataset = StreamingDataset(input_dir=str(tmpdir), item_loader=TokensLoader(block_size))
+
+    assert len(dataset) == 10
+
+    cache_0 = dataset[0]
+    cache_1 = dataset[1]
+    cache_2 = dataset[2]
+    cache_3 = dataset[3]
+    assert len(cache_0) == block_size
+    assert len(cache_1) == block_size
+    assert not torch.equal(cache_0, cache[1])
+    indices = torch.cat(text_idxs_list, dim=0)
+    assert torch.equal(cache_0, indices[: len(cache_0)])
+    assert torch.equal(cache_1, indices[len(cache_0) : len(cache_0) + len(cache_1)])
+
+    dataloader = DataLoader(StreamingDataset(input_dir=str(tmpdir), item_loader=TokensLoader(block_size)), batch_size=2)
+
+    for batch_idx, batch in enumerate(dataloader):
+        if batch_idx == 0:
+            assert torch.equal(torch.stack([cache_0, cache_1]), batch)
+        elif batch_idx == 1:
+            assert torch.equal(torch.stack([cache_2, cache_3]), batch)
+        else:
+            break
+
+
+def test_dataset_for_text_tokens_distributed(tmpdir):
+    seed_everything(42)
+
+    block_size = 10
+    cache = Cache(input_dir=str(tmpdir), chunk_size=40, item_loader=TokensLoader(block_size))
+
+    for i in range(20):
+        text_ids = i * torch.ones((20,)).to(torch.int)
+        cache[i] = text_ids
+
+    cache.done()
+    cache.merge()
+
+    assert len(os.listdir(tmpdir)) == 11
+
+    dataset = StreamingDataset(input_dir=str(tmpdir), item_loader=TokensLoader(block_size), shuffle=False)
+
+    assert len(dataset) == 40
+
+    dataloader = DataLoader(dataset, batch_size=2, num_workers=2, shuffle=False)
+
+    values = [0, 2, 1, 3, 4, 6, 5, 7, 8, 10, 9]
+
+    for i, batch in zip(values, dataloader):
+        assert torch.equal(i * torch.ones((2, 10)).to(torch.int), batch), (i, batch)

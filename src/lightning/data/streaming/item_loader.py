@@ -110,7 +110,6 @@ class TokensLoader(BaseItemLoader):
 
         super().__init__()
         self._block_size = block_size
-        self._intervals: List[Tuple[int, int]] = []
         self._mmaps: Dict[int, np.memmap] = {}
         self._buffers: Dict[int, bytes] = {}
         self._dtype: Optional[torch.dtype] = None
@@ -123,9 +122,10 @@ class TokensLoader(BaseItemLoader):
             raise ValueError("The provided chunks isn't properly setup.")
 
     def generate_intervals(self) -> List[Tuple[int, int]]:
+        intervals = []
         for chunk in self._chunks:
-            self._intervals.append((0, chunk["dim"] // self._block_size))
-        return self._intervals
+            intervals.append((0, chunk["dim"] // self._block_size))
+        return intervals
 
     def load_item_from_chunk(self, index: int, chunk_index: int, chunk_filepath: str, begin: int) -> torch.Tensor:
         if chunk_filepath in self._chunk_filepaths and not os.path.isfile(chunk_filepath):
