@@ -2,22 +2,26 @@ name: Check formatting flow
 
 on:
   workflow_call:
+    secrets:
+      github-token:
+        description: "if provided an user GH's token, it will push update; requires `push` event"
+        required: false
     inputs:
       python-version:
         description: "Python version to use"
         default: "3.9"
         required: false
         type: string
-      github_token:
-        description: "if provided an user GH's token, it will push update; requires `push` event"
-        default: ""
-        required: false
-        type: string
-      use_cache:
+      use-cache:
         description: "enable using GH caching for performance boost"
-        default: true
-        required: false
         type: boolean
+        required: false
+        default: true
+      push-fixes:
+        description: "if provided an user GH's token, it will push update; requires `push` event"
+        type: boolean
+        required: false
+        default: false
 
 defaults:
   run:
@@ -39,7 +43,7 @@ jobs:
           python-version: ${{ inputs.python-version }}
 
       - name: Cache 💽 pre-commit
-        if: ${{ inputs.use_cache == true }}
+        if: ${{ inputs.use-cache == true }}
         uses: actions/cache@v3
         with:
           path: ~/.cache/pre-commit
@@ -52,9 +56,9 @@ jobs:
           pre-commit run --all-files
 
       - name: Fixing Pull Request ↩️
-        if: always() && inputs.github_token != '' && steps.precommit.outcome == 'failure'
+        if: always() && inputs.push-fixes == true && steps.precommit.outcome == 'failure'
         uses: actions-js/push@v1.4
         with:
-          github_token: ${{ inputs.github_token }}
+          github_token: ${{ secrets.github-token }}
           message: "pre-commit: running and fixing..."
           branch: ${{ github.ref_name }}
