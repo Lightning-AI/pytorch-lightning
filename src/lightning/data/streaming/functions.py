@@ -42,7 +42,7 @@ def _get_input_dir(inputs: Sequence[Any]) -> str:
     if len(indexed_paths) == 0:
         raise ValueError(f"The provided item {inputs[0]} didn't contain any filepaths.")
 
-    absolute_path = str(Path(indexed_paths[0]).resolve())
+    absolute_path = str(Path(list(indexed_paths.values())[0]).resolve())
 
     if indexed_paths[0] != absolute_path:
         raise ValueError("The provided path should be absolute.")
@@ -128,6 +128,7 @@ def map(
     num_nodes: Optional[int] = None,
     machine: Optional[str] = None,
     num_downloaders: Optional[int] = None,
+    reorder_files: bool = True,
 ) -> None:
     """This function map a callbable over a collection of files possibly in a distributed way.
 
@@ -141,6 +142,8 @@ def map(
         num_nodes: When doing remote execution, the number of nodes to use.
         machine: When doing remote execution, the machine to use.
         num_downloaders: The number of downloaders per worker.
+        reorder_files: By default, reorders the files by file size to distribute work equally among all workers.
+            Set this to ``False`` if the order in which samples are processed should be preserved.
 
     """
     if not isinstance(inputs, Sequence):
@@ -168,6 +171,7 @@ def map(
             num_workers=num_workers or os.cpu_count(),
             fast_dev_run=fast_dev_run,
             num_downloaders=num_downloaders,
+            reorder_files=reorder_files,
         )
         return data_processor.run(LambdaDataTransformRecipe(fn, inputs))
     return _execute(
@@ -189,6 +193,7 @@ def optimize(
     num_nodes: Optional[int] = None,
     machine: Optional[str] = None,
     num_downloaders: Optional[int] = None,
+    reorder_files: bool = True,
 ) -> None:
     """This function converts a dataset into chunks possibly in a distributed way.
 
@@ -205,6 +210,8 @@ def optimize(
         num_nodes: When doing remote execution, the number of nodes to use.
         machine: When doing remote execution, the machine to use.
         num_downloaders: The number of downloaders per worker.
+        reorder_files: By default, reorders the files by file size to distribute work equally among all workers.
+            Set this to ``False`` if the order in which samples are processed should be preserved.
 
     """
     if not isinstance(inputs, Sequence):
@@ -235,6 +242,7 @@ def optimize(
             num_workers=num_workers or os.cpu_count(),
             fast_dev_run=fast_dev_run,
             num_downloaders=num_downloaders,
+            reorder_files=reorder_files,
         )
         return data_processor.run(
             LambdaDataChunkRecipe(

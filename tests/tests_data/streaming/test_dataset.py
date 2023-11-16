@@ -15,10 +15,13 @@ import os
 import sys
 from unittest import mock
 
+import numpy as np
 import pytest
+import torch
 from lightning import seed_everything
-from lightning.data.streaming import Cache
+from lightning.data.streaming import Cache, functions
 from lightning.data.streaming.dataset import StreamingDataset, _try_create_cache_dir
+from lightning.data.streaming.item_loader import TokensLoader
 from lightning.data.streaming.shuffle import FullShuffle, NoShuffle
 from lightning.data.utilities.env import _DistributedEnv
 from torch.utils.data import DataLoader
@@ -326,3 +329,208 @@ def test_try_create_cache_dir():
         assert _try_create_cache_dir("dir", shard_rank=2) == os.path.join(
             "/cache", "chunks", "736007832d2167baaae763fd3a3f3cf1", "2"
         )
+
+
+def test_dataset_for_text_tokens(tmpdir):
+    seed_everything(42)
+
+    block_size = 1024 + 1
+    cache = Cache(input_dir=str(tmpdir), chunk_size=block_size * 11, item_loader=TokensLoader(block_size))
+    text_idxs_list = []
+
+    counter = 0
+    while True:
+        text_ids = torch.randint(0, 1000, (np.random.randint(0, 1000),)).to(torch.int)
+        text_idxs_list.append(text_ids)
+        chunk_filepath = cache._add_item(counter, text_ids)
+        if chunk_filepath:
+            break
+        counter += 1
+
+    cache.done()
+    cache.merge()
+
+    dataset = StreamingDataset(input_dir=str(tmpdir), item_loader=TokensLoader(block_size))
+
+    assert len(dataset) == 10
+
+    cache_0 = dataset[0]
+    cache_1 = dataset[1]
+    cache_2 = dataset[2]
+    cache_3 = dataset[3]
+    assert len(cache_0) == block_size
+    assert len(cache_1) == block_size
+    assert not torch.equal(cache_0, cache[1])
+    indices = torch.cat(text_idxs_list, dim=0)
+    assert torch.equal(cache_0, indices[: len(cache_0)])
+    assert torch.equal(cache_1, indices[len(cache_0) : len(cache_0) + len(cache_1)])
+
+    dataloader = DataLoader(StreamingDataset(input_dir=str(tmpdir), item_loader=TokensLoader(block_size)), batch_size=2)
+
+    for batch_idx, batch in enumerate(dataloader):
+        if batch_idx == 0:
+            assert torch.equal(torch.stack([cache_0, cache_1]), batch)
+        elif batch_idx == 1:
+            assert torch.equal(torch.stack([cache_2, cache_3]), batch)
+        else:
+            break
+
+
+def test_dataset_for_text_tokens_multiple_workers(tmpdir):
+    seed_everything(42)
+
+    block_size = 10
+    cache = Cache(input_dir=str(tmpdir), chunk_size=40, item_loader=TokensLoader(block_size))
+
+    counter = 0
+    for i in range(10):
+        text_ids = torch.arange(counter, counter + 20).to(torch.int)
+        cache[i] = text_ids
+        counter += 20
+
+    cache.done()
+    cache.merge()
+
+    for i in range(20):
+        sequence = cache[i]
+        assert sequence[0].item() == i * block_size
+        assert sequence[-1].item() == (i + 1) * block_size - 1
+
+    assert len(os.listdir(tmpdir)) == 6
+
+    dataset = StreamingDataset(input_dir=str(tmpdir), item_loader=TokensLoader(block_size), shuffle=False)
+
+    assert len(dataset) == 20
+
+    dataloader = DataLoader(dataset, batch_size=2, num_workers=2, shuffle=False)
+
+    assert len(dataloader) == 10
+
+    expected = [
+        [0, 10],
+        [40, 50],
+        [20, 30],
+        [60, 70],
+        [80, 90],
+        [120, 130],
+        [100, 110],
+        [140, 150],
+        [160, 170],
+        [180, 190],
+    ]
+
+    for result, batch in zip(expected, dataloader):
+        assert [batch[0][0].item(), batch[1][0].item()] == result
+
+
+def test_dataset_for_text_tokens_distributed_num_workers(tmpdir):
+    seed_everything(42)
+
+    block_size = 10
+    cache = Cache(input_dir=str(tmpdir), chunk_size=40, item_loader=TokensLoader(block_size))
+
+    counter = 0
+    for i in range(10):
+        text_ids = torch.arange(counter, counter + 20).to(torch.int)
+        cache[i] = text_ids
+        counter += 20
+
+    cache.done()
+    cache.merge()
+
+    for i in range(20):
+        sequence = cache[i]
+        assert sequence[0].item() == i * block_size
+        assert sequence[-1].item() == (i + 1) * block_size - 1
+
+    assert len([f for f in os.listdir(tmpdir) if f.endswith(".bin")]) == 5
+
+    dataset = StreamingDataset(input_dir=str(tmpdir), item_loader=TokensLoader(block_size), shuffle=False)
+
+    assert len(dataset) == 20
+
+    dataset.distributed_env = _DistributedEnv(2, 0)
+    dataloader = DataLoader(dataset, batch_size=2, shuffle=False, num_workers=2)
+
+    assert len(dataloader) == 6
+
+    expected = [[0, 10], [80, 90], [20, 30], [100, 110], [160, 170], [180, 190]]
+
+    for batch_idx, batch in enumerate(dataloader):
+        assert [batch[0][0].item(), batch[1][0].item()] == expected[batch_idx]
+
+    dataset.distributed_env = _DistributedEnv(2, 1)
+    dataloader = DataLoader(dataset, batch_size=2, shuffle=False)
+
+    assert len(dataloader) == 4
+
+    expected = [[40, 50], [60, 70], [120, 130], [140, 150]]
+
+    for batch_idx, batch in enumerate(dataloader):
+        assert [batch[0][0].item(), batch[1][0].item()] == expected[batch_idx]
+
+    for batch_idx, batch in enumerate(dataloader):
+        assert [batch[0][0].item(), batch[1][0].item()] == expected[batch_idx]
+
+
+def optimize_fn(item):
+    return torch.arange(item[0], item[0] + 20).to(torch.int)
+
+
+def test_dataset_for_text_tokens_distributed_num_workers_end_to_end(tmpdir, monkeypatch):
+    monkeypatch.setattr(functions, "_get_input_dir", lambda x: str(tmpdir))
+
+    seed_everything(42)
+
+    with open(tmpdir / "a.txt", "w") as f:
+        f.write("hello")
+
+    inputs = [(v, str(tmpdir / "a.txt")) for v in range(0, 200, 20)]
+
+    cache_dir = os.path.join(tmpdir, "cache")
+    output_dir = os.path.join(tmpdir, "target_dir")
+    os.makedirs(output_dir, exist_ok=True)
+    monkeypatch.setenv("DATA_OPTIMIZER_CACHE_FOLDER", cache_dir)
+    monkeypatch.setenv("DATA_OPTIMIZER_DATA_CACHE_FOLDER", cache_dir)
+
+    def fn(item):
+        return torch.arange(item[0], item[0] + 20).to(torch.int)
+
+    functions.optimize(
+        optimize_fn, inputs, output_dir=str(tmpdir), num_workers=2, chunk_size=2, reorder_files=False, num_downloaders=1
+    )
+
+    assert len([f for f in os.listdir(tmpdir) if f.endswith(".bin")]) == 10
+
+    block_size = 10
+    dataset = StreamingDataset(input_dir=str(tmpdir), item_loader=TokensLoader(block_size), shuffle=False)
+
+    L = len(dataset)
+    assert len(dataset) == L
+
+    for i in range(L):
+        sequence = dataset[i]
+        assert sequence[0].item() == i * block_size
+        assert sequence[-1].item() == (i + 1) * block_size - 1
+
+    dataset = StreamingDataset(input_dir=str(tmpdir), item_loader=TokensLoader(block_size), shuffle=False)
+
+    dataset.distributed_env = _DistributedEnv(2, 0)
+    dataloader = DataLoader(dataset, batch_size=2, shuffle=False, num_workers=2)
+
+    assert len(dataloader) == 5
+
+    expected = [[0, 10], [40, 50], [80, 90], [120, 130], [160, 170]]
+
+    for batch_idx, batch in enumerate(dataloader):
+        assert [batch[0][0].item(), batch[1][0].item()] == expected[batch_idx]
+
+    dataset.distributed_env = _DistributedEnv(2, 1)
+    dataloader = DataLoader(dataset, batch_size=2, shuffle=False)
+
+    assert len(dataloader) == 5
+
+    expected = [[20, 30], [60, 70], [100, 110], [140, 150], [180, 190]]
+
+    for batch_idx, batch in enumerate(dataloader):
+        assert [batch[0][0].item(), batch[1][0].item()] == expected[batch_idx]
