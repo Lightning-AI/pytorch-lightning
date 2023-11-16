@@ -34,6 +34,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CI: narrow scope for md links check ([#183](https://github.com/Lightning-AI/utilities/pull/183))
 
 
+- CI: split code checks & enable pre-commit updates ([#191](https://github.com/Lightning-AI/utilities/pull/191))
+
+
 ### Deprecated
 
 - Deprecated `ModuleAvailableCache` in favor of `RequirementCache` ([#147](https://github.com/Lightning-AI/utilities/pull/147))

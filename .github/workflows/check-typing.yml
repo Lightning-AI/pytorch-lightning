@@ -80,29 +80,3 @@ jobs:
             | sed 's/\.py//g;  s|src/||g;  s|\/__init__||g;  s|\/|\.|g' \
             | xargs -I {} echo '"{}",' \
           || true
-
-  pre-commit:
-    runs-on: ubuntu-20.04
-    steps:
-      - name: Checkout 🛎️
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          submodules: recursive
-
-      - name: Set up Python 🐍
-        uses: actions/setup-python@v4
-        with:
-          python-version: ${{ inputs.python-version }}
-
-      - name: Determine cache hash
-        run: echo "PY=$(python -VV | sha256sum | cut -d' ' -f1)" >> $GITHUB_ENV
-
-      - name: Cache 💽 pre-commit
-        uses: actions/cache@v3
-        with:
-          path: ~/.cache/pre-commit
-          key: pre-commit|${{ env.PY }}|${{ hashFiles('.pre-commit-config.yaml') }}
-
-      - name: Run pre-commit
-        uses: pre-commit/action@v3.0.0

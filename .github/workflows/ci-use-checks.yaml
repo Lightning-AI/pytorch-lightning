@@ -11,11 +11,14 @@ concurrency:
   cancel-in-progress: ${{ ! (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/')) }}
 
 jobs:
-  check-code:
-    uses: ./.github/workflows/check-code.yml
+  check-typing:
+    uses: ./.github/workflows/check-typing.yml
     with:
       actions-ref: ${{ github.sha }} # use local version
       extra-typing: "typing"
+
+  check-precommit:
+    uses: ./.github/workflows/check-precommit.yml
 
   check-schema-latest:
     uses: ./.github/workflows/check-schema.yml
