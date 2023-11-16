@@ -36,7 +36,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - CI: split code checks & enable pre-commit updates (
     [#191](https://github.com/Lightning-AI/utilities/pull/191),
-    [#193](https://github.com/Lightning-AI/utilities/pull/193)
+    [#193](https://github.com/Lightning-AI/utilities/pull/193),
+    [#194](https://github.com/Lightning-AI/utilities/pull/194)
 )
 
 
