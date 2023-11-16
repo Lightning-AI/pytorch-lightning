@@ -13,7 +13,9 @@
 # limitations under the License.
 import logging
 from typing import Dict
+
 from typing_extensions import override
+
 from lightning.fabric.accelerators.xla import _XLA_AVAILABLE
 from lightning.pytorch.profilers.profiler import Profiler
 

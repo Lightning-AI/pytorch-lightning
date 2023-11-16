@@ -13,8 +13,10 @@
 # limitations under the License.
 """Profiler to check if there are any bottlenecks in your code."""
 
-from lightning.pytorch.profilers.profiler import Profiler
 from typing_extensions import override
+
+from lightning.pytorch.profilers.profiler import Profiler
+
 
 class PassThroughProfiler(Profiler):
     """This class should be used when you don't want the (small) overhead of profiling.

@@ -18,7 +18,9 @@ import logging
 import pstats
 from pathlib import Path
 from typing import Dict, Optional, Tuple, Union
+
 from typing_extensions import override
+
 from lightning.pytorch.profilers.profiler import Profiler
 
 log = logging.getLogger(__name__)
