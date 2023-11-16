@@ -18,7 +18,7 @@ import logging
 import pstats
 from pathlib import Path
 from typing import Dict, Optional, Tuple, Union
-
+from typing_extensions import override
 from lightning.pytorch.profilers.profiler import Profiler
 
 log = logging.getLogger(__name__)
@@ -59,17 +59,20 @@ class AdvancedProfiler(Profiler):
         self.profiled_actions: Dict[str, cProfile.Profile] = {}
         self.line_count_restriction = line_count_restriction
 
+    @override
     def start(self, action_name: str) -> None:
         if action_name not in self.profiled_actions:
             self.profiled_actions[action_name] = cProfile.Profile()
         self.profiled_actions[action_name].enable()
 
+    @override
     def stop(self, action_name: str) -> None:
         pr = self.profiled_actions.get(action_name)
         if pr is None:
             raise ValueError(f"Attempting to stop recording an action ({action_name}) which was never started.")
         pr.disable()
 
+    @override
     def summary(self) -> str:
         recorded_stats = {}
         for action_name, pr in self.profiled_actions.items():
@@ -79,6 +82,7 @@ class AdvancedProfiler(Profiler):
             recorded_stats[action_name] = s.getvalue()
         return self._stats_to_str(recorded_stats)
 
+    @override
     def teardown(self, stage: Optional[str]) -> None:
         super().teardown(stage=stage)
         self.profiled_actions = {}
