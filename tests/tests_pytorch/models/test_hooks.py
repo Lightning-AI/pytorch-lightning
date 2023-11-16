@@ -22,7 +22,6 @@ from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 from lightning.pytorch import Callback, LightningDataModule, LightningModule, Trainer, __version__
 from lightning.pytorch.demos.boring_classes import BoringDataModule, BoringModel, RandomDataset
 from lightning.pytorch.utilities.model_helpers import is_overridden
-
 from torch import Tensor
 from torch.utils.data import DataLoader
 
