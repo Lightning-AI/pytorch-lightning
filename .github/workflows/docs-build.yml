@@ -24,6 +24,17 @@ on:
       - "pyproject.toml" # includes metadata used in the package creation
       - "!*.md"
       - "!**/*.md"
+  workflow_dispatch:
+    inputs:
+      checkout:
+        description: "checkout specific git state"
+        type: string
+        required: false
+        default: ""
+      version:
+        description: "specify a version / tag to be uploaded"
+        type: string
+        required: true
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
@@ -54,6 +65,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: ${{ inputs.checkout }}
           # only Pytorch has/uses notebooks
           submodules: ${{ matrix.pkg-name == 'pytorch' }}
       - uses: actions/setup-python@v4
@@ -153,6 +165,11 @@ jobs:
       - name: Upload docs/${{ matrix.pkg-name }}/latest to GCS 🪣
         if: github.ref == 'refs/heads/master'
         run: gsutil -m rsync -d -R docs/build/html/ ${GCP_TARGET}/latest
+
+      # Uploading docs to GCS, so they can be served on lightning.ai
+      - name: Upload docs/${{ matrix.pkg-name }}/release to GCS 🪣
+        if: github.event_name == 'workflow_dispatch'
+        run: gsutil -m rsync -d -R docs/build/html/ ${GCP_TARGET}/${{ inputs.version }}
 
       # Uploading docs to GCS, so they can be served on lightning.ai
       - name: Upload docs/${{ matrix.pkg-name }}/release to GCS 🪣
