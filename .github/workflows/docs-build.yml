@@ -132,7 +132,7 @@ jobs:
 
   deploy-docs:
     needs: docs-make
-    if: github.repository_owner == 'Lightning-AI' && github.event_name == 'push'
+    if: github.repository_owner == 'Lightning-AI' && github.event_name != 'pull_request'
     runs-on: ubuntu-20.04
     strategy:
       fail-fast: false
@@ -140,6 +140,8 @@ jobs:
         pkg-name: ["app", "fabric", "pytorch"]
     env:
       GCP_TARGET: "gs://lightning-docs-${{ matrix.pkg-name }}"
+      # use input if dispatch or git tag
+      VERSION: ${{ inputs.version || github.ref_name }}
     steps:
       - uses: actions/download-artifact@v3
         with:
@@ -158,28 +160,24 @@ jobs:
 
       # Uploading docs to GCS, so they can be served on lightning.ai
       - name: Upload docs/${{ matrix.pkg-name }}/stable to GCS 🪣
-        if: startsWith(github.ref, 'refs/heads/release/')
+        if: startsWith(github.ref, 'refs/heads/release/') && github.event_name == 'push'
         run: gsutil -m rsync -d -R docs/build/html/ ${GCP_TARGET}/stable
 
       # Uploading docs to GCS, so they can be served on lightning.ai
       - name: Upload docs/${{ matrix.pkg-name }}/latest to GCS 🪣
-        if: github.ref == 'refs/heads/master'
+        if: github.ref == 'refs/heads/master' && github.event_name == 'push'
         run: gsutil -m rsync -d -R docs/build/html/ ${GCP_TARGET}/latest
 
-      # Uploading docs to GCS, so they can be served on lightning.ai
-      - name: Upload docs/${{ matrix.pkg-name }}/release to GCS 🪣
-        if: github.event_name == 'workflow_dispatch'
-        run: gsutil -m rsync -d -R docs/build/html/ ${GCP_TARGET}/${{ inputs.version }}
 
       # Uploading docs to GCS, so they can be served on lightning.ai
       - name: Upload docs/${{ matrix.pkg-name }}/release to GCS 🪣
-        if: startsWith(github.ref, 'refs/tags/')
-        run: gsutil -m rsync -d -R docs/build/html/ ${GCP_TARGET}/${{ github.ref_name }}
+        if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
+        run: gsutil -m rsync -d -R docs/build/html/ ${GCP_TARGET}/${{ env.VERSION }}
 
       # Uploading docs as archive to GCS, so they can be as backup
       - name: Upload docs as archive to GCS 🪣
-        if: startsWith(github.ref, 'refs/tags/')
+        if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
         working-directory: docs/build
         run: |
-          zip ${{  github.ref_name }}.zip -r html/
-          gsutil cp ${{  github.ref_name }}.zip ${GCP_TARGET}
+          zip ${{ env.VERSION }}.zip -r html/
+          gsutil cp ${{ env.VERSION }}.zip ${GCP_TARGET}
