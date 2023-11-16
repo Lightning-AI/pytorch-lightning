@@ -79,7 +79,10 @@ class PrepareChunksThread(Thread):
         while True:
             with self._lock:
                 if self._should_stop:
-                    if shutil.disk_usage(self._config._cache_dir).total >= self._max_cache_size:
+                    if (
+                        self._max_cache_size
+                        and self._max_cache_size <= shutil.disk_usage(self._config._cache_dir).total
+                    ):
                         for chunk_index in self._chunks_index_to_be_deleted:
                             if chunk_index not in self._chunks_index_to_be_downloaded:
                                 self._delete(chunk_index)
