@@ -18,12 +18,12 @@ from threading import Lock, Thread
 from time import sleep
 from typing import Any, Dict, List, Optional, Tuple
 
-from lightning.data.datasets.env import _DistributedEnv, _WorkerEnv
 from lightning.data.streaming.config import ChunksConfig
 from lightning.data.streaming.constants import _TORCH_GREATER_EQUAL_2_1_0
 from lightning.data.streaming.item_loader import BaseItemLoader, PyTreeLoader
 from lightning.data.streaming.sampler import ChunkedIndex
 from lightning.data.streaming.serializers import Serializer, _get_serializers
+from lightning.data.utilities.env import _DistributedEnv, _WorkerEnv
 
 warnings.filterwarnings("ignore", message=".*The given buffer is not writable.*")
 
