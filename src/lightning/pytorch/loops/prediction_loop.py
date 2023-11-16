@@ -344,8 +344,7 @@ class _PredictionLoop(_Loop):
         call._call_strategy_hook(trainer, "on_predict_start")
 
     def _on_predict_model_eval(self) -> None:
-        trainer = self.trainer
-        self._module_mode.capture(trainer.lightning_module)
+        self._module_mode.capture(self.trainer.lightning_module)
         call._call_lightning_module_hook(self.trainer, "on_predict_model_eval")
 
     def _on_predict_model_train(self) -> None:

@@ -164,7 +164,6 @@ class ModelHooks:
         to change the behavior. See also :meth:`~lightning.pytorch.core.hooks.ModelHooks.on_validation_model_train`.
 
         """
-        # The loop won't call this hook unless it is overridden. The line below is here in case the user calls super().
         self.trainer.model.eval()
 
     def on_validation_model_train(self) -> None:
@@ -185,7 +184,6 @@ class ModelHooks:
         to change the behavior. See also :meth:`~lightning.pytorch.core.hooks.ModelHooks.on_test_model_train`.
 
         """
-        # The loop won't call this hook unless it is overridden. The line below is here in case the user calls super().
         self.trainer.model.eval()
 
     def on_test_model_train(self) -> None:
@@ -206,7 +204,6 @@ class ModelHooks:
         to change the behavior.
 
         """
-        # The loop won't call this hook unless it is overridden. The line below is here in case the user calls super().
         self.trainer.model.eval()
 
     def on_train_epoch_start(self) -> None:
