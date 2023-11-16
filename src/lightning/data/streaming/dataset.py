@@ -85,7 +85,9 @@ class StreamingDataset(IterableDataset):
         env = Environment(dist_env=self.distributed_env, worker_env=worker_env)
 
         if "this_" not in self.input_dir.path:
-            self.input_dir.path = _try_create_cache_dir(input_dir=self.input_dir.path, shard_rank=env.shard_rank)
+            cache_path = _try_create_cache_dir(input_dir=self.input_dir.path, shard_rank=env.shard_rank)
+            if cache_path is not None:
+                self.input_dir.path = cache_path
 
         cache = Cache(
             input_dir=self.input_dir, item_loader=self.item_loader, chunk_bytes=1, serializers=self.serializers

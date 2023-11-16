@@ -144,7 +144,7 @@ class TokensLoader(BaseItemLoader):
             chunk = self._chunks[chunk_index]
 
             # Skip the header
-            # The number of items, the number of offsets (number of items in the chunk + 1)
+            # The number of items + the number of offsets (number of items in the chunk + 1)
             # multiplied by their encoding dtype (np.uint32)
             offset = (1 + chunk["chunk_size"] + 1) * 4
             mmap = np.memmap(chunk_filepath, mode="r", order="C", offset=offset)
