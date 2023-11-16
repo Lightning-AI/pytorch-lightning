@@ -49,6 +49,7 @@ class PrepareChunksThread(Thread):
 
     def download(self, chunk_indices: List[int]) -> None:
         """Receive the list of the chunk indices to download for the current epoch."""
+        print("download", chunk_indices)
         with self._lock:
             for chunk_indice in chunk_indices:
                 if chunk_indice not in self._chunks_index_to_be_downloaded:
@@ -56,6 +57,7 @@ class PrepareChunksThread(Thread):
 
     def delete(self, chunk_indices: List[int]) -> None:
         """Receive the list of the chunk indices to download for the current epoch."""
+        print("delete", chunk_indices)
         with self._lock:
             for chunk_indice in chunk_indices:
                 if chunk_indice not in self._chunks_index_to_be_deleted:
@@ -72,6 +74,7 @@ class PrepareChunksThread(Thread):
     def run(self) -> None:
         while True:
             with self._lock:
+                print("AAA")
                 # Wait for something to do
                 if len(self._chunks_index_to_be_downloaded) == 0 and len(self._chunks_index_to_be_deleted) == 0:
                     sleep(0.01)
@@ -97,6 +100,7 @@ class PrepareChunksThread(Thread):
                     continue
 
                 chunk_index = self._chunks_index_to_be_downloaded.pop(0)
+                print("BBB")
 
             self._config.download_chunk_from_index(chunk_index)
             self._downloaded_chunks += 1
