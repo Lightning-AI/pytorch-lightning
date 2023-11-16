@@ -115,6 +115,7 @@ class PrepareChunksThread(Thread):
             self._config.download_chunk_from_index(chunk_index)
             self._downloaded_chunks += 1
 
+            # Sleep to release the lock
             sleep(0.1)
 
 
