@@ -128,6 +128,7 @@ def map(
     num_nodes: Optional[int] = None,
     machine: Optional[str] = None,
     num_downloaders: Optional[int] = None,
+    reorder_files: bool = True,
 ) -> None:
     """This function map a callbable over a collection of files possibly in a distributed way.
 
@@ -141,6 +142,8 @@ def map(
         num_nodes: When doing remote execution, the number of nodes to use.
         machine: When doing remote execution, the machine to use.
         num_downloaders: The number of downloaders per worker.
+        reorder_files: By default, reorders the files by file size to distribute work equally among all workers.
+            Set this to ``False`` if the order in which samples are processed should be preserved.
 
     """
     if not isinstance(inputs, Sequence):
@@ -168,6 +171,7 @@ def map(
             num_workers=num_workers or os.cpu_count(),
             fast_dev_run=fast_dev_run,
             num_downloaders=num_downloaders,
+            reorder_files=reorder_files,
         )
         return data_processor.run(LambdaDataTransformRecipe(fn, inputs))
     return _execute(
