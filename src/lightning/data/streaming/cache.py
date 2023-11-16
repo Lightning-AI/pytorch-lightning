@@ -16,7 +16,6 @@ import os
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Tuple, Union
 
-from lightning.data.datasets.env import _DistributedEnv
 from lightning.data.streaming.constants import (
     _INDEX_FILENAME,
     _LIGHTNING_CLOUD_LATEST,
@@ -27,6 +26,7 @@ from lightning.data.streaming.reader import BinaryReader
 from lightning.data.streaming.sampler import ChunkedIndex
 from lightning.data.streaming.serializers import Serializer
 from lightning.data.streaming.writer import BinaryWriter
+from lightning.data.utilities.env import _DistributedEnv
 from lightning.data.utilities.format import _convert_bytes_to_int
 
 logger = logging.Logger(__name__)
