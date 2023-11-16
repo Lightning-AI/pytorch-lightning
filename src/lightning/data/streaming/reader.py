@@ -74,6 +74,7 @@ class PrepareChunksThread(Thread):
 
     def stop(self) -> None:
         """Receive the list of the chunk indices to download for the current epoch."""
+        print("stop")
         with self._lock:
             self._should_stop = True
 
@@ -81,6 +82,7 @@ class PrepareChunksThread(Thread):
         while True:
             with self._lock:
                 if self._should_stop:
+                    print("HERE")
                     if shutil.disk_usage(self._config._cache_dir).total >= self._max_cache_size:
                         for chunk_index in self._chunks_index_to_be_deleted:
                             if chunk_index not in self._chunks_index_to_be_downloaded:
