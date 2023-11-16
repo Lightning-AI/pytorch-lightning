@@ -105,8 +105,7 @@ jobs:
           delete-branch: true
           # the PR"s body/content
           body: >
-            **This is automated update with the latest lighting
-              [release](https://github.com/Lightning-AI/lightning/releases/tag/${{ env.TAG }})!**
+            **This is automated update with the latest lighting [release](https://github.com/Lightning-AI/lightning/releases/tag/${{ env.TAG }})!**
 
             Please, act swiftly to land this PR as it is effectively blocking lightning release to be finished...
           assignees: |
