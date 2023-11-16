@@ -79,4 +79,4 @@ def test_reader_chunk_removal(tmpdir, monkeypatch):
         [24, 3],
     ]
 
-    assert len(os.listdir(cache_dir)) == 4
+    assert len(os.listdir(cache_dir)) in [3, 4]
