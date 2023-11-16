@@ -515,19 +515,17 @@ def test_dataset_for_text_tokens_distributed_num_workers_end_to_end(tmpdir, monk
 
     assert len(dataloader) == 5
 
-    outputs = [[0, 10], [40, 50], [80, 90], [120, 130], [160, 170]]
+    expected = [[0, 10], [40, 50], [80, 90], [120, 130], [160, 170]]
 
     for batch_idx, batch in enumerate(dataloader):
-        outputs.append([batch[0][0].item(), batch[1][0].item()])
-        assert [batch[0][0].item(), batch[1][0].item()] == outputs[batch_idx]
+        assert [batch[0][0].item(), batch[1][0].item()] == expected[batch_idx]
 
     dataset.distributed_env = _DistributedEnv(2, 1)
     dataloader = DataLoader(dataset, batch_size=2, shuffle=False)
 
     assert len(dataloader) == 5
 
-    outputs = [[20, 30], [60, 70], [100, 110], [140, 150], [180, 190]]
+    expected = [[20, 30], [60, 70], [100, 110], [140, 150], [180, 190]]
 
     for batch_idx, batch in enumerate(dataloader):
-        outputs.append([batch[0][0].item(), batch[1][0].item()])
-        assert [batch[0][0].item(), batch[1][0].item()] == outputs[batch_idx]
+        assert [batch[0][0].item(), batch[1][0].item()] == expected[batch_idx]
