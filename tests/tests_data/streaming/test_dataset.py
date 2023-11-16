@@ -20,7 +20,7 @@ import pytest
 import torch
 from lightning import seed_everything
 from lightning.data.datasets.env import _DistributedEnv
-from lightning.data.streaming import Cache
+from lightning.data.streaming import Cache, functions
 from lightning.data.streaming.dataset import StreamingDataset, _try_create_cache_dir
 from lightning.data.streaming.item_loader import TokensLoader
 from lightning.data.streaming.shuffle import FullShuffle, NoShuffle
@@ -382,67 +382,151 @@ def test_dataset_for_text_tokens_multiple_workers(tmpdir):
     block_size = 10
     cache = Cache(input_dir=str(tmpdir), chunk_size=40, item_loader=TokensLoader(block_size))
 
-    for i in range(20):
-        text_ids = i * torch.ones((20,)).to(torch.int)
+    counter = 0
+    for i in range(10):
+        text_ids = torch.arange(counter, counter + 20).to(torch.int)
         cache[i] = text_ids
+        counter += 20
 
     cache.done()
     cache.merge()
 
-    for i in range(40):
-        assert cache[i][0].item() == i // 2
+    for i in range(20):
+        sequence = cache[i]
+        assert sequence[0].item() == i * block_size
+        assert sequence[-1].item() == (i + 1) * block_size - 1
 
-    assert len(os.listdir(tmpdir)) == 11
+    assert len(os.listdir(tmpdir)) == 6
 
     dataset = StreamingDataset(input_dir=str(tmpdir), item_loader=TokensLoader(block_size), shuffle=False)
 
-    assert len(dataset) == 40
+    assert len(dataset) == 20
 
     dataloader = DataLoader(dataset, batch_size=2, num_workers=2, shuffle=False)
 
-    assert len(dataloader) == 20
+    assert len(dataloader) == 10
 
-    values = [0, 2, 1, 3, 4, 6, 5, 7, 8, 10, 9, 11, 12, 14, 13, 15, 16, 18, 17, 19]
+    expected = [
+        [0, 10],
+        [40, 50],
+        [20, 30],
+        [60, 70],
+        [80, 90],
+        [120, 130],
+        [100, 110],
+        [140, 150],
+        [160, 170],
+        [180, 190],
+    ]
 
-    for i, batch in zip(values, dataloader):
-        assert torch.equal(i * torch.ones((2, 10)).to(torch.int), batch), (i, batch)
+    for result, batch in zip(expected, dataloader):
+        assert [batch[0][0].item(), batch[1][0].item()] == result
 
 
-def test_dataset_for_text_tokens_multiple_workers_distributed(tmpdir):
+def test_dataset_for_text_tokens_distributed_num_workers(tmpdir):
     seed_everything(42)
 
     block_size = 10
     cache = Cache(input_dir=str(tmpdir), chunk_size=40, item_loader=TokensLoader(block_size))
 
-    for i in range(20):
-        text_ids = i * torch.ones((20,)).to(torch.int)
+    counter = 0
+    for i in range(10):
+        text_ids = torch.arange(counter, counter + 20).to(torch.int)
         cache[i] = text_ids
+        counter += 20
 
     cache.done()
     cache.merge()
 
-    assert len(os.listdir(tmpdir)) == 11
+    for i in range(20):
+        sequence = cache[i]
+        assert sequence[0].item() == i * block_size
+        assert sequence[-1].item() == (i + 1) * block_size - 1
+
+    assert len(os.listdir(tmpdir)) == 6
 
     dataset = StreamingDataset(input_dir=str(tmpdir), item_loader=TokensLoader(block_size), shuffle=False)
 
-    assert len(dataset) == 40
+    assert len(dataset) == 20
 
     dataset.distributed_env = _DistributedEnv(2, 0)
-    dataloader = DataLoader(dataset, batch_size=2, num_workers=2, shuffle=False)
+    dataloader = DataLoader(dataset, batch_size=2, shuffle=False, num_workers=2)
 
-    assert len(dataloader) == 10
+    assert len(dataloader) == 6
 
-    values = [0, 4, 1, 5, 8, 12, 9, 13, 16, 17]
+    outputs = [[0, 10], [80, 90], [20, 30], [100, 110], [160, 170], [180, 190]]
 
-    for i, batch in zip(values, dataloader):
-        assert torch.equal(i * torch.ones((2, 10)).to(torch.int), batch), (i, batch)
+    for batch_idx, batch in enumerate(dataloader):
+        assert [batch[0][0].item(), batch[1][0].item()] == outputs[batch_idx]
 
     dataset.distributed_env = _DistributedEnv(2, 1)
-    dataloader = DataLoader(dataset, batch_size=2, num_workers=2, shuffle=False)
+    dataloader = DataLoader(dataset, batch_size=2, shuffle=False)
 
-    assert len(dataloader) == 10
+    assert len(dataloader) == 4
 
-    values = [2, 6, 3, 7, 10, 14, 11, 15, 18, 19]
+    outputs = [[40, 50], [60, 70], [120, 130], [140, 150]]
 
-    for i, batch in zip(values, dataloader):
-        assert torch.equal(i * torch.ones((2, 10)).to(torch.int), batch), (i, batch)
+    for batch_idx, batch in enumerate(dataloader):
+        outputs.append([batch[0][0].item(), batch[1][0].item()])
+        assert [batch[0][0].item(), batch[1][0].item()] == outputs[batch_idx]
+
+
+def fn(item):
+    return torch.arange(item[0], item[0] + 20).to(torch.int)
+
+
+def test_dataset_for_text_tokens_distributed_num_workers_end_to_end(tmpdir, monkeypatch):
+    monkeypatch.setattr(functions, "_get_input_dir", lambda x: str(tmpdir))
+
+    seed_everything(42)
+
+    with open(tmpdir / "a.txt", "w") as f:
+        f.write("hello")
+
+    inputs = [(v, str(tmpdir / "a.txt")) for v in range(0, 200, 20)]
+
+    cache_dir = os.path.join(tmpdir, "cache")
+    output_dir = os.path.join(tmpdir, "target_dir")
+    os.makedirs(output_dir, exist_ok=True)
+    monkeypatch.setenv("DATA_OPTIMIZER_CACHE_FOLDER", cache_dir)
+    monkeypatch.setenv("DATA_OPTIMIZER_DATA_CACHE_FOLDER", cache_dir)
+
+    functions.optimize(
+        fn, inputs, output_dir=str(tmpdir), num_workers=2, chunk_size=2, reorder_files=False, num_downloaders=1
+    )
+
+    assert len([f for f in os.listdir(tmpdir) if f.endswith(".bin")]) == 10
+
+    block_size = 10
+    dataset = StreamingDataset(input_dir=str(tmpdir), item_loader=TokensLoader(block_size), shuffle=False)
+
+    assert len(dataset) == 20
+
+    for i in range(20):
+        sequence = dataset[i]
+        assert sequence[0].item() == i * block_size
+        assert sequence[-1].item() == (i + 1) * block_size - 1
+
+    dataset = StreamingDataset(input_dir=str(tmpdir), item_loader=TokensLoader(block_size), shuffle=False)
+
+    dataset.distributed_env = _DistributedEnv(2, 0)
+    dataloader = DataLoader(dataset, batch_size=2, shuffle=False, num_workers=2)
+
+    assert len(dataloader) == 5
+
+    outputs = [[0, 10], [40, 50], [80, 90], [120, 130], [160, 170]]
+
+    for batch_idx, batch in enumerate(dataloader):
+        outputs.append([batch[0][0].item(), batch[1][0].item()])
+        assert [batch[0][0].item(), batch[1][0].item()] == outputs[batch_idx]
+
+    dataset.distributed_env = _DistributedEnv(2, 1)
+    dataloader = DataLoader(dataset, batch_size=2, shuffle=False)
+
+    assert len(dataloader) == 5
+
+    outputs = [[20, 30], [60, 70], [100, 110], [140, 150], [180, 190]]
+
+    for batch_idx, batch in enumerate(dataloader):
+        outputs.append([batch[0][0].item(), batch[1][0].item()])
+        assert [batch[0][0].item(), batch[1][0].item()] == outputs[batch_idx]
