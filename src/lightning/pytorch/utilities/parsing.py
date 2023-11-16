@@ -223,7 +223,6 @@ class AttributeDict(_AttributeDict):
     """
 
 
-
 def _lightning_get_all_attr_holders(model: "pl.LightningModule", attribute: str) -> List[Any]:
     """Special attribute finding for Lightning.
 
