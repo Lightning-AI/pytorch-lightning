@@ -100,7 +100,7 @@ class PrepareChunksThread(Thread):
                     continue
 
                 chunk_index = self._chunks_index_to_be_downloaded.pop(0)
-                print("BBB")
+                print("BBB", chunk_index)
 
             self._config.download_chunk_from_index(chunk_index)
             self._downloaded_chunks += 1
@@ -183,6 +183,7 @@ class BinaryReader:
         Prefetching should reduce the wait time to be the batch available.
 
         """
+        print("read", index)
         if not isinstance(index, ChunkedIndex):
             raise ValueError("The Reader.read(...) method expects a chunked Index.")
 
