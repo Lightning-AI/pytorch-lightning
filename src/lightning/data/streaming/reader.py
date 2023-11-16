@@ -89,7 +89,6 @@ class PrepareChunksThread(Thread):
 
                 # Wait for something to do
                 if len(self._chunks_index_to_be_downloaded) == 0 and len(self._chunks_index_to_be_deleted) == 0:
-                    sleep(0.1)
                     continue
 
                 # Delete the chunks if we are missing disk space.
@@ -115,6 +114,8 @@ class PrepareChunksThread(Thread):
 
             self._config.download_chunk_from_index(chunk_index)
             self._downloaded_chunks += 1
+
+            sleep(0.1)
 
 
 class BinaryReader:
@@ -223,7 +224,7 @@ class BinaryReader:
         chunk_filepath, begin, _ = self.config[index]
         item = self._item_loader.load_item_from_chunk(index.index, index.chunk_index, chunk_filepath, begin)
 
-        if index.last_index:
+        if index.last_index and self._prepare_thread:
             self._prepare_thread.stop()
             self._prepare_thread = None
 

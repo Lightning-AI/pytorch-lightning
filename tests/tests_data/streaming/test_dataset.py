@@ -454,21 +454,23 @@ def test_dataset_for_text_tokens_distributed_num_workers(tmpdir):
 
     assert len(dataloader) == 6
 
-    outputs = [[0, 10], [80, 90], [20, 30], [100, 110], [160, 170], [180, 190]]
+    expected = [[0, 10], [80, 90], [20, 30], [100, 110], [160, 170], [180, 190]]
 
     for batch_idx, batch in enumerate(dataloader):
-        assert [batch[0][0].item(), batch[1][0].item()] == outputs[batch_idx]
+        assert [batch[0][0].item(), batch[1][0].item()] == expected[batch_idx]
 
     dataset.distributed_env = _DistributedEnv(2, 1)
     dataloader = DataLoader(dataset, batch_size=2, shuffle=False)
 
     assert len(dataloader) == 4
 
-    outputs = [[40, 50], [60, 70], [120, 130], [140, 150]]
+    expected = [[40, 50], [60, 70], [120, 130], [140, 150]]
 
     for batch_idx, batch in enumerate(dataloader):
-        outputs.append([batch[0][0].item(), batch[1][0].item()])
-        assert [batch[0][0].item(), batch[1][0].item()] == outputs[batch_idx]
+        assert [batch[0][0].item(), batch[1][0].item()] == expected[batch_idx]
+
+    for batch_idx, batch in enumerate(dataloader):
+        assert [batch[0][0].item(), batch[1][0].item()] == expected[batch_idx]
 
 
 def optimize_fn(item):
