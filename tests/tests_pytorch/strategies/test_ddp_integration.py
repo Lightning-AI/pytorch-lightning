@@ -11,9 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import operator
 import os
-import sys
 from unittest import mock
 from unittest.mock import Mock
 
@@ -30,7 +28,6 @@ from lightning.pytorch.strategies import DDPStrategy
 from lightning.pytorch.strategies.launchers import _SubprocessScriptLauncher
 from lightning.pytorch.strategies.launchers.multiprocessing import _MultiProcessingLauncher
 from lightning.pytorch.trainer import seed_everything
-from lightning_utilities import compare_version
 from torch.distributed.optim import ZeroRedundancyOptimizer
 from torch.multiprocessing import ProcessRaisedException
 from torch.nn.parallel.distributed import DistributedDataParallel
