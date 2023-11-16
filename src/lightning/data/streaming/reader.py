@@ -101,7 +101,7 @@ class PrepareChunksThread(Thread):
 
                 # Wait for something to do
                 if len(self._chunks_index_to_be_downloaded) == 0 and len(self._chunks_index_to_be_deleted) == 0:
-                    sleep(0.01)
+                    sleep(0.1)
                     continue
 
                 # Delete the chunks if we are missing disk space.
@@ -120,7 +120,7 @@ class PrepareChunksThread(Thread):
 
                 # If we have already downloaded too many chunks, let's wait for processed chunks to catch up
                 if self._max_cache_size and (self._downloaded_chunks - self._processed_chunks) > self._pre_download:
-                    sleep(0.01)
+                    sleep(0.1)
                     continue
 
                 chunk_index = self._chunks_index_to_be_downloaded.pop(0)
