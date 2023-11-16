@@ -151,6 +151,11 @@ class StreamingDataset(IterableDataset):
         return self.cache[index]
 
     def __next__(self) -> Any:
+        # Prevent to create more batch on a given process
+        if self.index >= len(self):
+            self.current_epoch += 1
+            raise StopIteration
+
         # Lazily re-populate the interval to reduce memory usage.
         if len(self.current_indexes) == 0:
             if self.chunk_index == len(self.worker_intervals):

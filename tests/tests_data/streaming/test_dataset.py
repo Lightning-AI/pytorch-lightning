@@ -376,7 +376,7 @@ def test_dataset_for_text_tokens(tmpdir):
             break
 
 
-def test_dataset_for_text_tokens_distributed(tmpdir):
+def test_dataset_for_text_tokens_multiple_workers(tmpdir):
     seed_everything(42)
 
     block_size = 10
@@ -396,6 +396,8 @@ def test_dataset_for_text_tokens_distributed(tmpdir):
     assert len(dataset) == 40
 
     dataloader = DataLoader(dataset, batch_size=2, num_workers=2, shuffle=False)
+
+    assert len(dataloader) == 20
 
     values = [0, 2, 1, 3, 4, 6, 5, 7, 8, 10, 9]
 
