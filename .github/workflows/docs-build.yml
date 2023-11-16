@@ -104,7 +104,7 @@ jobs:
         run: pip install -q -r _notebooks/.actions/requires.txt
 
       - name: Full build for deployment
-        if: github.event_name == 'push'
+        if: github.event_name != 'pull_request'
         run: echo "DOCS_FETCH_ASSETS=1" >> $GITHUB_ENV
       - name: Make ${{ matrix.target }}
         working-directory: ./docs/source-${{ matrix.pkg-name }}
