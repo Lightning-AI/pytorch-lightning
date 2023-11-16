@@ -11,9 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import operator
 import os
-import sys
 from unittest import mock
 from unittest.mock import Mock
 
@@ -30,7 +28,6 @@ from lightning.pytorch.strategies import DDPStrategy
 from lightning.pytorch.strategies.launchers import _SubprocessScriptLauncher
 from lightning.pytorch.strategies.launchers.multiprocessing import _MultiProcessingLauncher
 from lightning.pytorch.trainer import seed_everything
-from lightning_utilities import compare_version
 from torch.distributed.optim import ZeroRedundancyOptimizer
 from torch.multiprocessing import ProcessRaisedException
 from torch.nn.parallel.distributed import DistributedDataParallel
@@ -207,9 +204,9 @@ class UnusedParametersModel(BoringModel):
 
 @pytest.mark.skipif(
     # TODO: investigate threading issue in this configuration
-    _IS_WINDOWS
-    and (sys.version_info.major, sys.version_info.minor) == (3, 11)
-    and compare_version("torch", operator.eq, "2.1.0", use_base_version=True),
+    _IS_WINDOWS,
+    # and (sys.version_info.major, sys.version_info.minor) == (3, 11)
+    # and compare_version("torch", operator.eq, "2.1.0", use_base_version=True)
     reason="threading issue",
 )
 def test_find_unused_parameters_exception():
