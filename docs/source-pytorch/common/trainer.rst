@@ -54,8 +54,7 @@ Here's the pseudocode for what the trainer does under the hood (showing the trai
 
 .. code-block:: python
 
-    # put model in train mode
-    model.train()
+    # enable grads
     torch.set_grad_enabled(True)
 
     losses = []
