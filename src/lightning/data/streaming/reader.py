@@ -46,6 +46,7 @@ class PrepareChunksThread(Thread):
         self._processed_chunks_counter = 0
         self._delete_chunks = 0
         self._pre_download = pre_download
+        self._should_stop = False
 
     def download(self, chunk_indices: List[int]) -> None:
         """Receive the list of the chunk indices to download for the current epoch."""
@@ -71,10 +72,23 @@ class PrepareChunksThread(Thread):
         if os.path.exists(chunk_filepath):
             os.remove(chunk_filepath)
 
+    def stop(self) -> None:
+        """Receive the list of the chunk indices to download for the current epoch."""
+        with self._lock:
+            self._should_stop = True
+
     def run(self) -> None:
         while True:
             with self._lock:
-                print("AAA")
+                if self._should_stop:
+                    if shutil.disk_usage(self._config._cache_dir).total >= self._max_cache_size:
+                        for chunk_index in self._chunks_index_to_be_deleted:
+                            if chunk_index not in self._chunks_index_to_be_downloaded:
+                                self._delete(chunk_index)
+                                self._delete_chunks += 1
+                                self._processed_chunks_counter = 0
+                    return
+
                 # Wait for something to do
                 if len(self._chunks_index_to_be_downloaded) == 0 and len(self._chunks_index_to_be_deleted) == 0:
                     sleep(0.01)
@@ -183,7 +197,6 @@ class BinaryReader:
         Prefetching should reduce the wait time to be the batch available.
 
         """
-        print("read", index)
         if not isinstance(index, ChunkedIndex):
             raise ValueError("The Reader.read(...) method expects a chunked Index.")
 
@@ -211,7 +224,13 @@ class BinaryReader:
 
         # Fetch the element
         chunk_filepath, begin, _ = self.config[index]
-        return self._item_loader.load_item_from_chunk(index.index, index.chunk_index, chunk_filepath, begin)
+        item = self._item_loader.load_item_from_chunk(index.index, index.chunk_index, chunk_filepath, begin)
+
+        if index.last_index:
+            self._prepare_thread.stop()
+            self._prepare_thread = None
+
+        return item
 
     def get_length(self) -> int:
         """Get the number of samples across all chunks."""
