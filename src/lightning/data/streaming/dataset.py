@@ -138,6 +138,7 @@ class StreamingDataset(IterableDataset):
         self.current_indexes = []
         self.chunk_index = 0
         self.index = 0
+        self.has_triggered_download = False
 
         return self
 
@@ -177,6 +178,7 @@ class StreamingDataset(IterableDataset):
             ChunkedIndex(
                 index=index,
                 chunk_index=self.worker_chunks[self.chunk_index - 1],
+                # We provide the chunks indexes only one the first
                 chunk_indexes=None if self.has_triggered_download else self.worker_chunks,
             )
         )

@@ -141,7 +141,6 @@ class BinaryReader:
         self._rank: Optional[int] = None
         self._config: Optional[ChunksConfig] = None
         self._prepare_thread: Optional[PrepareChunksThread] = None
-        self._chunks_index_to_be_downloaded: List[int] = []
         self._item_loader = item_loader or PyTreeLoader()
         self._last_chunk_index: Optional[int] = None
         self._max_cache_size = int(os.getenv("MAX_CACHE_SIZE", max_cache_size))
@@ -193,7 +192,6 @@ class BinaryReader:
                 self._prepare_thread = PrepareChunksThread(self._config, self._max_cache_size)
                 self._prepare_thread.start()
                 if index.chunk_indexes:
-                    self._chunks_index_to_be_downloaded.extend(index.chunk_indexes)
                     self._prepare_thread.download(index.chunk_indexes)
 
             # If the chunk_index isn't already in the download and delete queues, add it.

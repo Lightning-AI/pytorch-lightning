@@ -13,7 +13,7 @@
 
 from abc import ABC, abstractmethod
 from functools import lru_cache
-from typing import Any, List
+from typing import Any, List, Tuple
 
 import numpy as np
 
@@ -60,7 +60,7 @@ class NoShuffle(Shuffle):
     def get_chunks_and_intervals_per_ranks(self, distributed_env: _DistributedEnv, current_epoch: int) -> Any:
         chunk_intervals = self.cache.get_chunk_intervals()
         chunks_per_ranks: List[List[int]] = [[] for _ in range(distributed_env.world_size)]
-        intervals_per_ranks: List[List[List[int]]] = [[] for _ in range(distributed_env.world_size)]
+        intervals_per_ranks: List[List[Tuple]] = [[] for _ in range(distributed_env.world_size)]
         for chunk_index, chunk_interval in enumerate(chunk_intervals):
             replica_index = chunk_index % distributed_env.world_size
             chunks_per_ranks[replica_index].append(chunk_index)

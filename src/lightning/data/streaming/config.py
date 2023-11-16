@@ -61,7 +61,6 @@ class ChunksConfig:
         self._item_loader.setup(self._config, self._chunks, serializers)
         self._intervals = self._item_loader.generate_intervals()
         self._length = self._intervals[-1][-1]
-        self._length = sum((interval[-1] - interval[0]) for interval in self._intervals)
         self._downloader = None
 
         if remote_dir:
