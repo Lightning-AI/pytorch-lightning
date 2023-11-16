@@ -17,8 +17,8 @@ from typing import Any, List
 
 import numpy as np
 
-from lightning.data.datasets.env import _DistributedEnv
 from lightning.data.streaming import Cache
+from lightning.data.utilities.env import _DistributedEnv
 
 
 class Shuffle(ABC):

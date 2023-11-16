@@ -23,7 +23,7 @@ from lightning.data.streaming.constants import (
     _TORCH_DTYPES_MAPPING,
     _TORCH_GREATER_EQUAL_2_1_0,
 )
-from lightning.data.streaming.serializers import _SERIALIZERS
+from lightning.data.streaming.serializers import Serializer
 
 if _TORCH_GREATER_EQUAL_2_1_0:
     from torch.utils._pytree import PyTree, tree_unflatten
@@ -32,10 +32,10 @@ if _TORCH_GREATER_EQUAL_2_1_0:
 class BaseItemLoader(ABC):
     """The base item loader is responsible to decide how the items within a chunk are loaded."""
 
-    def setup(self, config: Dict, chunks: List) -> None:
+    def setup(self, config: Dict, chunks: List, serializers: Dict[str, Serializer]) -> None:
         self._config = config
         self._chunks = chunks
-        self._serializers = _SERIALIZERS
+        self._serializers = serializers
 
     @abstractmethod
     def generate_intervals(self) -> List[Tuple[int, int]]:
@@ -67,12 +67,15 @@ class PyTreeLoader(BaseItemLoader):
     def load_item_from_chunk(self, index: int, chunk_index: int, chunk_filepath: str, begin: int) -> bytes:
         offset = (1 + (index - begin) if index >= begin else index + 1) * 4
 
+        if chunk_filepath in self._chunk_filepaths and not os.path.isfile(chunk_filepath):
+            del self._chunk_filepaths[chunk_filepath]
+
         if chunk_filepath not in self._chunk_filepaths:
             while not os.path.exists(chunk_filepath):
-                sleep(0.001)
+                sleep(0.01)
 
             # Wait to avoid any corruption when the file appears
-            sleep(0.001)
+            sleep(0.01)
             self._chunk_filepaths[chunk_filepath] = True
 
         with open(chunk_filepath, "rb", 0) as fp:
@@ -111,9 +114,10 @@ class TokensLoader(BaseItemLoader):
         self._mmaps: Dict[int, np.memmap] = {}
         self._buffers: Dict[int, bytes] = {}
         self._dtype: Optional[torch.dtype] = None
+        self._chunk_filepaths: Dict[str, bool] = {}
 
-    def setup(self, config: Dict, chunks: List) -> None:
-        super().setup(config, chunks)
+    def setup(self, config: Dict, chunks: List, serializers: Dict[str, Serializer]) -> None:
+        super().setup(config, chunks, serializers)
         self._dtype = _TORCH_DTYPES_MAPPING[int(config["data_format"][0].split(":")[1])]
         if all(chunk["dim"] is None for chunk in self._chunks):
             raise ValueError("The provided chunks isn't properly setup.")
@@ -131,8 +135,16 @@ class TokensLoader(BaseItemLoader):
         return self._intervals
 
     def load_item_from_chunk(self, index: int, chunk_index: int, chunk_filepath: str, begin: int) -> torch.Tensor:
-        while not os.path.exists(chunk_filepath):
-            sleep(0.0001)
+        if chunk_filepath in self._chunk_filepaths and not os.path.isfile(chunk_filepath):
+            del self._chunk_filepaths[chunk_filepath]
+
+        if chunk_filepath not in self._chunk_filepaths:
+            while not os.path.exists(chunk_filepath):
+                sleep(0.01)
+
+            # Wait to avoid any corruption when the file appears
+            sleep(0.01)
+            self._chunk_filepaths[chunk_filepath] = True
 
         if chunk_index not in self._mmaps:
             # TODO: Add deletion and memmap close

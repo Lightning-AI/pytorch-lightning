@@ -223,7 +223,7 @@ def test_wait_for_file_to_exist():
 
 
 def test_broadcast_object(tmpdir, monkeypatch):
-    data_processor = DataProcessor(input_dir=tmpdir)
+    data_processor = DataProcessor(input_dir=str(tmpdir))
     assert data_processor._broadcast_object("dummy") == "dummy"
     monkeypatch.setenv("DATA_OPTIMIZER_NUM_NODES", "2")
     monkeypatch.setattr(data_processor_module, "_distributed_is_initialized", lambda: True)
@@ -244,7 +244,7 @@ def test_cache_dir_cleanup(tmpdir, monkeypatch):
 
     assert os.listdir(cache_dir) == ["a.txt"]
 
-    data_processor = DataProcessor(input_dir=tmpdir)
+    data_processor = DataProcessor(input_dir=str(tmpdir))
     monkeypatch.setenv("DATA_OPTIMIZER_CACHE_FOLDER", str(cache_dir))
     monkeypatch.setenv("DATA_OPTIMIZER_DATA_CACHE_FOLDER", str(cache_data_dir))
     data_processor._cleanup_cache()
@@ -484,6 +484,8 @@ def test_data_processsor_distributed(fast_dev_run, delete_cached_files, tmpdir, 
         delete_cached_files=delete_cached_files,
         fast_dev_run=fast_dev_run,
         output_dir=remote_output_dir,
+        num_uploaders=1,
+        num_downloaders=1,
     )
     data_processor.run(CustomDataChunkRecipe(chunk_size=2))
 
@@ -508,6 +510,7 @@ def test_data_processsor_distributed(fast_dev_run, delete_cached_files, tmpdir, 
     data_processor = TestDataProcessor(
         input_dir=input_dir,
         num_workers=2,
+        num_uploaders=1,
         num_downloaders=1,
         delete_cached_files=delete_cached_files,
         fast_dev_run=fast_dev_run,
@@ -568,7 +571,7 @@ def test_data_processsor_nlp(tmpdir, monkeypatch):
     with open(os.path.join(tmpdir, "dummy.txt"), "w") as f:
         f.write("Hello World !")
 
-    data_processor = DataProcessor(input_dir=tmpdir, num_workers=1, num_downloaders=1)
+    data_processor = DataProcessor(input_dir=str(tmpdir), num_workers=1, num_downloaders=1)
     data_processor.run(TextTokenizeRecipe(chunk_size=1024 * 11))
 
 
@@ -668,7 +671,6 @@ def test_data_processing_map(monkeypatch, tmpdir):
 
 
 def optimize_fn(filepath):
-    print(filepath)
     from PIL import Image
 
     return [Image.open(filepath), os.path.basename(filepath)]
