@@ -123,8 +123,14 @@ class TokensLoader(BaseItemLoader):
 
     def generate_intervals(self) -> List[Tuple[int, int]]:
         intervals = []
+        begin = 0
+        end = 0
         for chunk in self._chunks:
-            intervals.append((0, chunk["dim"] // self._block_size))
+            dim = chunk["dim"]
+            num_blocks = dim // self._block_size
+            end += num_blocks
+            intervals.append((begin, end))
+            begin += num_blocks
         return intervals
 
     def load_item_from_chunk(self, index: int, chunk_index: int, chunk_filepath: str, begin: int) -> torch.Tensor:
@@ -154,5 +160,5 @@ class TokensLoader(BaseItemLoader):
         assert self._dtype
 
         buffer: bytes = self._buffers[chunk_index]
-        offset = self._dtype.itemsize * index * self._block_size
+        offset = self._dtype.itemsize * (index - begin) * self._block_size
         return torch.frombuffer(buffer, dtype=self._dtype, count=self._block_size, offset=offset)

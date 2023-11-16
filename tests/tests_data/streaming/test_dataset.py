@@ -389,10 +389,8 @@ def test_dataset_for_text_tokens_multiple_workers(tmpdir):
     cache.done()
     cache.merge()
 
-    for i in range(20):
-        cache[i]
-
-    breakpoint()
+    for i in range(40):
+        assert cache[i][0].item() == i // 2
 
     assert len(os.listdir(tmpdir)) == 11
 
@@ -404,7 +402,7 @@ def test_dataset_for_text_tokens_multiple_workers(tmpdir):
 
     assert len(dataloader) == 20
 
-    values = [0, 2, 1, 3, 4, 6, 5, 7, 8, 10, 9]
+    values = [0, 2, 1, 3, 4, 6, 5, 7, 8, 10, 9, 11, 12, 14, 13, 15, 16, 18, 17, 19]
 
     for i, batch in zip(values, dataloader):
         assert torch.equal(i * torch.ones((2, 10)).to(torch.int), batch), (i, batch)
@@ -434,20 +432,17 @@ def test_dataset_for_text_tokens_multiple_workers_distributed(tmpdir):
 
     assert len(dataloader) == 10
 
-    values = [0, 2, 1, 3, 4, 6, 5, 7, 8, 10, 9]
+    values = [0, 4, 1, 5, 8, 12, 9, 13, 16, 17]
 
     for i, batch in zip(values, dataloader):
-        print(0, batch)
-        # assert torch.equal(i * torch.ones((2, 10)).to(torch.int), batch), (i, batch)
-
+        assert torch.equal(i * torch.ones((2, 10)).to(torch.int), batch), (i, batch)
 
     dataset.distributed_env = _DistributedEnv(2, 1)
     dataloader = DataLoader(dataset, batch_size=2, num_workers=2, shuffle=False)
 
     assert len(dataloader) == 10
 
-    values = [0, 2, 1, 3, 4, 6, 5, 7, 8, 10, 9]
+    values = [2, 6, 3, 7, 10, 14, 11, 15, 18, 19]
 
     for i, batch in zip(values, dataloader):
-        print(1, batch)
-        # assert torch.equal(i * torch.ones((2, 10)).to(torch.int), batch), (i, batch)
+        assert torch.equal(i * torch.ones((2, 10)).to(torch.int), batch), (i, batch)
