@@ -443,7 +443,7 @@ def test_dataset_for_text_tokens_distributed_num_workers(tmpdir):
         assert sequence[0].item() == i * block_size
         assert sequence[-1].item() == (i + 1) * block_size - 1
 
-    assert len(os.listdir(tmpdir)) == 6
+    assert len([f for f in os.listdir(tmpdir) if f.endswith(".bin")]) == 5
 
     dataset = StreamingDataset(input_dir=str(tmpdir), item_loader=TokensLoader(block_size), shuffle=False)
 
@@ -471,7 +471,7 @@ def test_dataset_for_text_tokens_distributed_num_workers(tmpdir):
         assert [batch[0][0].item(), batch[1][0].item()] == outputs[batch_idx]
 
 
-def fn(item):
+def optimize_fn(item):
     return torch.arange(item[0], item[0] + 20).to(torch.int)
 
 
@@ -491,8 +491,11 @@ def test_dataset_for_text_tokens_distributed_num_workers_end_to_end(tmpdir, monk
     monkeypatch.setenv("DATA_OPTIMIZER_CACHE_FOLDER", cache_dir)
     monkeypatch.setenv("DATA_OPTIMIZER_DATA_CACHE_FOLDER", cache_dir)
 
+    def fn(item):
+        return torch.arange(item[0], item[0] + 20).to(torch.int)
+
     functions.optimize(
-        fn, inputs, output_dir=str(tmpdir), num_workers=2, chunk_size=2, reorder_files=False, num_downloaders=1
+        optimize_fn, inputs, output_dir=str(tmpdir), num_workers=2, chunk_size=2, reorder_files=False, num_downloaders=1
     )
 
     assert len([f for f in os.listdir(tmpdir) if f.endswith(".bin")]) == 10
