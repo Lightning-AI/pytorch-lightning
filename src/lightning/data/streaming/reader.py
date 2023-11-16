@@ -50,21 +50,25 @@ class PrepareChunksThread(Thread):
 
     def download(self, chunk_indices: List[int]) -> None:
         """Receive the list of the chunk indices to download for the current epoch."""
-        print("download", chunk_indices)
+        print("download before", chunk_indices)
         with self._lock:
+            print("download in")
             for chunk_indice in chunk_indices:
                 if chunk_indice not in self._chunks_index_to_be_downloaded:
                     self._chunks_index_to_be_downloaded.append(chunk_indice)
+        print("download after")
 
     def delete(self, chunk_indices: List[int]) -> None:
         """Receive the list of the chunk indices to download for the current epoch."""
-        print("delete", chunk_indices)
+        print("delete before", chunk_indices)
         with self._lock:
+            print("delete in")
             for chunk_indice in chunk_indices:
                 if chunk_indice not in self._chunks_index_to_be_deleted:
                     self._chunks_index_to_be_deleted.append(chunk_indice)
                     self._processed_chunks += 1
                     self._processed_chunks_counter += 1
+        print("delete after")
 
     def _delete(self, chunk_index: int) -> None:
         chunk_filepath, begin, _ = self._config[ChunkedIndex(index=-1, chunk_index=chunk_index)]
@@ -74,15 +78,19 @@ class PrepareChunksThread(Thread):
 
     def stop(self) -> None:
         """Receive the list of the chunk indices to download for the current epoch."""
-        print("stop")
+        print("stop before")
         with self._lock:
+            print("stop start")
             self._should_stop = True
+        print("stop after")
 
     def run(self) -> None:
         while True:
+            print("run before")
             with self._lock:
+                print("run in")
                 if self._should_stop:
-                    print("HERE")
+                    print("Stopping")
                     if shutil.disk_usage(self._config._cache_dir).total >= self._max_cache_size:
                         for chunk_index in self._chunks_index_to_be_deleted:
                             if chunk_index not in self._chunks_index_to_be_downloaded:
@@ -116,7 +124,7 @@ class PrepareChunksThread(Thread):
                     continue
 
                 chunk_index = self._chunks_index_to_be_downloaded.pop(0)
-                print("BBB", chunk_index)
+                print("run out", chunk_index)
 
             self._config.download_chunk_from_index(chunk_index)
             self._downloaded_chunks += 1
