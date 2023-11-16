@@ -84,6 +84,7 @@ class StreamingDataset(IterableDataset):
     def _create_cache(self, worker_env: _WorkerEnv) -> Cache:
         env = Environment(dist_env=self.distributed_env, worker_env=worker_env)
 
+        # TODO: Move this to lightning-cloud
         if "this_" not in self.input_dir.path:
             cache_path = _try_create_cache_dir(input_dir=self.input_dir.path, shard_rank=env.shard_rank)
             if cache_path is not None:
