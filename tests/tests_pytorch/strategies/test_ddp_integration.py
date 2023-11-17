@@ -211,7 +211,7 @@ def test_find_unused_parameters_exception_ddp_spawn():
         trainer.fit(UnusedParametersModel())
 
 
-@RunIf(min_cuda_gpus=1, standalone=True)
+@RunIf(standalone=True)
 def test_find_unused_parameters_exception_ddp():
     """Test that the DDP strategy can change PyTorch's error message so that it's more useful for Lightning users."""
     trainer = Trainer(accelerator="cpu", devices=1, strategy="ddp", max_steps=2)
