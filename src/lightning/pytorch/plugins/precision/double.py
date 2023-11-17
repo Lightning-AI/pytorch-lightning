@@ -13,7 +13,7 @@
 # limitations under the License.
 from contextlib import contextmanager
 from typing import Any, ContextManager, Generator, Literal
-
+from typing_extensions import override
 import torch
 import torch.nn as nn
 from lightning_utilities.core.apply_func import apply_to_collection
@@ -31,15 +31,19 @@ class DoublePrecision(Precision):
 
     precision: Literal["64-true"] = "64-true"
 
+    @override
     def convert_module(self, module: nn.Module) -> nn.Module:
         return module.double()
 
+    @override
     def tensor_init_context(self) -> ContextManager:
         return _DtypeContextManager(torch.float64)
 
+    @override
     def module_init_context(self) -> ContextManager:
         return self.tensor_init_context()
 
+    @override
     @contextmanager
     def forward_context(self) -> Generator[None, None, None]:
         """A context manager to change the default tensor type.
@@ -50,6 +54,7 @@ class DoublePrecision(Precision):
         with self.tensor_init_context():
             yield
 
+    @override
     def convert_input(self, data: Any) -> Any:
         return apply_to_collection(data, function=_convert_fp_tensor, dtype=Tensor, dst_type=torch.double)
 
@@ -105,6 +110,7 @@ class LightningDoublePrecisionModule(_DeviceDtypeModuleMixin, nn.Module):
             **LightningDoublePrecisionModule._move_float_tensors_to_double(kwargs),
         )
 
+    @override
     def forward(self, *args: Any, **kwargs: Any) -> Any:
         return self.module(
             *LightningDoublePrecisionModule._move_float_tensors_to_double(args),

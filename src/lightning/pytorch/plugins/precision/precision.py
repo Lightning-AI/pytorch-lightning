@@ -14,7 +14,7 @@
 import contextlib
 from functools import partial
 from typing import Any, Callable, Generator, List, Optional, Tuple, Union
-
+from typing_extensions import override
 import torch
 from torch import Tensor
 from torch.nn import Module
@@ -41,13 +41,15 @@ class Precision(FabricPrecision, CheckpointHooks):
         """Connects this plugin to the accelerator and the training process."""
         return model, optimizers, lr_schedulers
 
-    def pre_backward(self, tensor: Tensor, module: "pl.LightningModule") -> Tensor:  # type: ignore[override]
+    @override # type: ignore[override]
+    def pre_backward(self, tensor: Tensor, module: "pl.LightningModule") -> Tensor:
         trainer = module.trainer
         call._call_callback_hooks(trainer, "on_before_backward", tensor)
         call._call_lightning_module_hook(trainer, "on_before_backward", tensor)
         return tensor
 
-    def backward(  # type: ignore[override]
+    @override  # type: ignore[override]
+    def backward(
         self,
         tensor: Tensor,
         model: "pl.LightningModule",
@@ -68,7 +70,8 @@ class Precision(FabricPrecision, CheckpointHooks):
         """
         model.backward(tensor, *args, **kwargs)
 
-    def post_backward(self, tensor: Tensor, module: "pl.LightningModule") -> Tensor:  # type: ignore[override]
+    @override  # type: ignore[override]
+    def post_backward(self, tensor: Tensor, module: "pl.LightningModule") -> Tensor:
         # once backward has been applied, release graph
         closure_loss = tensor.detach()
         trainer = module.trainer
@@ -105,7 +108,8 @@ class Precision(FabricPrecision, CheckpointHooks):
         self._after_closure(model, optimizer)
         return closure_result
 
-    def optimizer_step(  # type: ignore[override]
+    @override  # type: ignore[override]
+    def optimizer_step(
         self,
         optimizer: Steppable,
         model: "pl.LightningModule",

@@ -14,6 +14,7 @@
 import os
 from functools import partial
 from typing import Any, Callable
+from typing_extensions import override
 
 import torch
 from typing_extensions import get_args
@@ -59,7 +60,8 @@ class XLAPrecision(Precision):
         else:
             self._desired_dtype = torch.float32
 
-    def optimizer_step(  # type: ignore[override]
+    @override  # type: ignore[override]
+    def optimizer_step(
         self,
         optimizer: Optimizable,
         model: "pl.LightningModule",
@@ -83,6 +85,7 @@ class XLAPrecision(Precision):
             )
         return closure_result
 
+    @override
     def teardown(self) -> None:
         os.environ.pop("XLA_USE_BF16", None)
         os.environ.pop("XLA_USE_F16", None)

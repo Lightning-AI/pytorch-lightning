@@ -16,7 +16,7 @@ from typing import TYPE_CHECKING, Any, Callable, ContextManager, Dict, Optional
 import torch
 from lightning_utilities import apply_to_collection
 from torch import Tensor
-from typing_extensions import get_args
+from typing_extensions import get_args, override
 
 import lightning.pytorch as pl
 from lightning.fabric.plugins.precision.amp import _optimizer_handles_unscaling
@@ -73,6 +73,7 @@ class FSDPPrecision(Precision):
         }
         self._desired_input_dtype = precision_to_type[self.precision]
 
+    @override
     def clip_grad_by_norm(self, *_: Any, **__: Any) -> None:
         # see https://pytorch.org/docs/stable/fsdp.html#torch.distributed.fsdp.FullyShardedDataParallel.clip_grad_norm_
         # section `Gradient Clipping`, using `torch.nn.utils.clip_grad_norm_` is incorrect with FSDP.
@@ -111,29 +112,36 @@ class FSDPPrecision(Precision):
             buffer_dtype=buffer_dtype,
         )
 
+    @override
     def tensor_init_context(self) -> ContextManager:
         return _DtypeContextManager(self._desired_input_dtype)
 
+    @override
     def module_init_context(self) -> ContextManager:
         return _DtypeContextManager(self.mixed_precision_config.param_dtype or torch.float32)
 
+    @override
     def forward_context(self) -> ContextManager:
         if "mixed" in self.precision:
             return torch.autocast("cuda", dtype=(torch.bfloat16 if self.precision == "bf16-mixed" else torch.float16))
         return _DtypeContextManager(self._desired_input_dtype)
 
+    @override
     def convert_input(self, data: Any) -> Any:
         return apply_to_collection(data, function=_convert_fp_tensor, dtype=Tensor, dst_type=self._desired_input_dtype)
 
+    @override
     def convert_output(self, data: Any) -> Any:
         return apply_to_collection(data, function=_convert_fp_tensor, dtype=Tensor, dst_type=torch.get_default_dtype())
 
-    def pre_backward(self, tensor: Tensor, module: "pl.LightningModule") -> Tensor:  # type: ignore[override]
+    @override # type: ignore[override]
+    def pre_backward(self, tensor: Tensor, module: "pl.LightningModule") -> Tensor:
         if self.scaler is not None:
             tensor = self.scaler.scale(tensor)  # type: ignore[assignment]
         return super().pre_backward(tensor, module)
 
-    def optimizer_step(  # type: ignore[override]
+    @override  # type: ignore[override]
+    def optimizer_step(
         self,
         optimizer: Optimizable,
         model: "pl.LightningModule",
@@ -161,11 +169,13 @@ class FSDPPrecision(Precision):
             return step_output
         return closure_result
 
+    @override
     def state_dict(self) -> Dict[str, Any]:
         if self.scaler is not None:
             return self.scaler.state_dict()
         return {}
 
+    @override
     def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
         if self.scaler is not None:
             self.scaler.load_state_dict(state_dict)
