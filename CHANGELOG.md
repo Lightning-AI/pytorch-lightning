@@ -6,60 +6,39 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
-## [UnReleased] - 2023-MM-DD
+## [0.10.0] - 2023-11-17
 
 ### Added
 
-- CI: added `install-extras` in install check allowing deduplication eventual cyrcular install dependency (
+- CI: added `install-extras` in install check allowing deduplication eventual circular install dependency (
     [#184](https://github.com/Lightning-AI/utilities/pull/184),
-    [#185](https://github.com/Lightning-AI/utilities/pull/185))
-
-- Added `rank_zero_only(..., default=)` argument to return a default value on rank > 1 ([#187](https://github.com/Lightning-AI/utilities/pull/187))
-
+    [#185](https://github.com/Lightning-AI/utilities/pull/185)
+)
+- Added `rank_zero_only(..., default=?)` argument to return a default value on rank > 1 ([#187](https://github.com/Lightning-AI/utilities/pull/187))
 
 ### Changed
 
 - Updated/Extended the `requires` wrapper ([#146](https://github.com/Lightning-AI/utilities/pull/146))
-
-
 - CI: updated/extended cleaning old and/or specific caches ([#159](https://github.com/Lightning-AI/utilities/pull/159))
-
-
 - CI: unified/extended docs makes flows ([#162](https://github.com/Lightning-AI/utilities/pull/162))
-
-
 - CI: allow Other targets for building docs ([#179](https://github.com/Lightning-AI/utilities/pull/179))
-
-
 - CI: narrow scope for md links check ([#183](https://github.com/Lightning-AI/utilities/pull/183))
-
-
 - CI: split code checks & enable pre-commit updates (
     [#191](https://github.com/Lightning-AI/utilities/pull/191),
     [#193](https://github.com/Lightning-AI/utilities/pull/193),
     [#194](https://github.com/Lightning-AI/utilities/pull/194)
 )
 
-
 ### Deprecated
 
 - Deprecated `ModuleAvailableCache` in favor of `RequirementCache` ([#147](https://github.com/Lightning-AI/utilities/pull/147))
 
-
 ### Fixed
 
-- Fixed issue with `is_overridden` falsely returning True when the parent method is wrapped ([#149](https://github.com/Lightning-AI/utilities/pull/149))
-
-
+- Fixed issue with `is_overridden` falsely returning True when the parent method is wrapped ([#149](https://github.com/Lightning-AI/utilities/pull/149)
 - CI: optional freeze version of schema check ([148](https://github.com/Lightning-AI/utilities/pull/148))
-
-
 - CI: fixed guard for `pkg-check` workflow on canceled  ([180](https://github.com/Lightning-AI/utilities/pull/180))
-
-
 - CI: resolve latex dependency for docs builds ([181](https://github.com/Lightning-AI/utilities/pull/181))
-
-
 - CI: fixed branch for md links check ([#183](https://github.com/Lightning-AI/utilities/pull/183))
 
 
