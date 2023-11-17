@@ -6,6 +6,28 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [UnReleased] - 2023-MM-DD
+
+### Added
+
+-
+
+
+### Changed
+
+-
+
+
+### Deprecated
+
+-
+
+
+### Fixed
+
+-
+
+
 ## [0.10.0] - 2023-11-17
 
 ### Added
@@ -35,10 +57,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- Fixed issue with `is_overridden` falsely returning True when the parent method is wrapped ([#149](https://github.com/Lightning-AI/utilities/pull/149)
-- CI: optional freeze version of schema check ([148](https://github.com/Lightning-AI/utilities/pull/148))
-- CI: fixed guard for `pkg-check` workflow on canceled  ([180](https://github.com/Lightning-AI/utilities/pull/180))
-- CI: resolve latex dependency for docs builds ([181](https://github.com/Lightning-AI/utilities/pull/181))
+- Fixed issue with `is_overridden` falsely returning True when the parent method is wrapped ([#149](https://github.com/Lightning-AI/utilities/pull/149))
+- CI: optional freeze version of schema check ([#148](https://github.com/Lightning-AI/utilities/pull/148))
+- CI: fixed guard for `pkg-check` workflow on canceled  ([#180](https://github.com/Lightning-AI/utilities/pull/180))
+- CI: resolve latex dependency for docs builds ([#181](https://github.com/Lightning-AI/utilities/pull/181))
 - CI: fixed branch for md links check ([#183](https://github.com/Lightning-AI/utilities/pull/183))
 
 
