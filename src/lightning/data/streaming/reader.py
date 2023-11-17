@@ -46,6 +46,7 @@ class PrepareChunksThread(Thread):
         self._processed_chunks_counter = 0
         self._delete_chunks = 0
         self._pre_download = pre_download
+        self._should_stop = False
 
     def download(self, chunk_indices: List[int]) -> None:
         """Receive the list of the chunk indices to download for the current epoch."""
@@ -69,12 +70,28 @@ class PrepareChunksThread(Thread):
         if os.path.exists(chunk_filepath):
             os.remove(chunk_filepath)
 
+    def stop(self) -> None:
+        """Receive the list of the chunk indices to download for the current epoch."""
+        with self._lock:
+            self._should_stop = True
+
     def run(self) -> None:
         while True:
             with self._lock:
+                if self._should_stop:
+                    if (
+                        self._max_cache_size
+                        and self._max_cache_size <= shutil.disk_usage(self._config._cache_dir).total
+                    ):
+                        for chunk_index in self._chunks_index_to_be_deleted:
+                            if chunk_index not in self._chunks_index_to_be_downloaded:
+                                self._delete(chunk_index)
+                                self._delete_chunks += 1
+                                self._processed_chunks_counter = 0
+                    return
+
                 # Wait for something to do
                 if len(self._chunks_index_to_be_downloaded) == 0 and len(self._chunks_index_to_be_deleted) == 0:
-                    sleep(0.01)
                     continue
 
                 # Delete the chunks if we are missing disk space.
@@ -93,13 +110,16 @@ class PrepareChunksThread(Thread):
 
                 # If we have already downloaded too many chunks, let's wait for processed chunks to catch up
                 if self._max_cache_size and (self._downloaded_chunks - self._processed_chunks) > self._pre_download:
-                    sleep(0.01)
+                    sleep(0.1)
                     continue
 
                 chunk_index = self._chunks_index_to_be_downloaded.pop(0)
 
             self._config.download_chunk_from_index(chunk_index)
             self._downloaded_chunks += 1
+
+            # Sleep to release the lock
+            sleep(0.1)
 
 
 class BinaryReader:
@@ -141,7 +161,6 @@ class BinaryReader:
         self._rank: Optional[int] = None
         self._config: Optional[ChunksConfig] = None
         self._prepare_thread: Optional[PrepareChunksThread] = None
-        self._chunks_index_to_be_downloaded: List[int] = []
         self._item_loader = item_loader or PyTreeLoader()
         self._last_chunk_index: Optional[int] = None
         self._max_cache_size = int(os.getenv("MAX_CACHE_SIZE", max_cache_size))
@@ -193,7 +212,6 @@ class BinaryReader:
                 self._prepare_thread = PrepareChunksThread(self._config, self._max_cache_size)
                 self._prepare_thread.start()
                 if index.chunk_indexes:
-                    self._chunks_index_to_be_downloaded.extend(index.chunk_indexes)
                     self._prepare_thread.download(index.chunk_indexes)
 
             # If the chunk_index isn't already in the download and delete queues, add it.
@@ -208,7 +226,13 @@ class BinaryReader:
 
         # Fetch the element
         chunk_filepath, begin, _ = self.config[index]
-        return self._item_loader.load_item_from_chunk(index.index, index.chunk_index, chunk_filepath, begin)
+        item = self._item_loader.load_item_from_chunk(index.index, index.chunk_index, chunk_filepath, begin)
+
+        if index.last_index and self._prepare_thread:
+            self._prepare_thread.stop()
+            self._prepare_thread = None
+
+        return item
 
     def get_length(self) -> int:
         """Get the number of samples across all chunks."""
