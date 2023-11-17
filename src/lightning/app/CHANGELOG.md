@@ -45,7 +45,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
-- add flow `fail()` ([#18883](https://github.com/Lightning-AI/lightning/pull/18883))
+- Added flow `fail()` ([#18883](https://github.com/Lightning-AI/lightning/pull/18883))
 
 ### Fixed
 
