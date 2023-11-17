@@ -89,7 +89,7 @@ class DeepSpeedPrecision(Precision):
     def module_init_context(self) -> ContextManager:
         return self.tensor_init_context()
 
-    @override   # type: ignore[override]
+    @override  # type: ignore[override]
     def backward(
         self,
         tensor: Tensor,
@@ -116,7 +116,7 @@ class DeepSpeedPrecision(Precision):
         deepspeed_engine: "deepspeed.DeepSpeedEngine" = model.trainer.model
         deepspeed_engine.backward(tensor, *args, **kwargs)
 
-    @override   # type: ignore[override]
+    @override  # type: ignore[override]
     def optimizer_step(
         self,
         optimizer: Steppable,

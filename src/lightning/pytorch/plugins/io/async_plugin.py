@@ -14,6 +14,7 @@
 
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any, Optional
+
 from typing_extensions import override
 
 from lightning.fabric.plugins import CheckpointIO

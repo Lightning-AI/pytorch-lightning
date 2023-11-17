@@ -13,11 +13,12 @@
 # limitations under the License.
 from contextlib import contextmanager
 from typing import Any, ContextManager, Generator, Literal
-from typing_extensions import override
+
 import torch
 import torch.nn as nn
 from lightning_utilities.core.apply_func import apply_to_collection
 from torch import Tensor
+from typing_extensions import override
 
 import lightning.pytorch as pl
 from lightning.fabric.plugins.precision.utils import _convert_fp_tensor, _DtypeContextManager

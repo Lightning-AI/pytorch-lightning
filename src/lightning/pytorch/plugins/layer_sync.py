@@ -13,10 +13,11 @@
 # limitations under the License.
 
 from abc import ABC, abstractmethod
-from typing_extensions import override
+
 import torch
 from torch import Tensor
 from torch.nn import Module
+from typing_extensions import override
 
 
 class LayerSync(ABC):
@@ -91,7 +92,6 @@ class TorchSyncBatchNorm(LayerSync):
 
 
 class _BatchNormXd(torch.nn.modules.batchnorm._BatchNorm):
-
     @override
     def _check_input_dim(self, input: Tensor) -> None:
         # The only difference between BatchNorm1d, BatchNorm2d, BatchNorm3d, etc

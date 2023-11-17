@@ -11,10 +11,11 @@
 # limitations under the License.
 from contextlib import contextmanager
 from typing import Any, Callable, Dict, Generator, Literal, Optional, Union
-from typing_extensions import override
+
 import torch
 from torch import Tensor
 from torch.optim import LBFGS, Optimizer
+from typing_extensions import override
 
 import lightning.pytorch as pl
 from lightning.fabric.accelerators.cuda import _patch_cuda_is_available
@@ -57,13 +58,13 @@ class MixedPrecision(Precision):
         self.device = device
         self.scaler = scaler
 
-    @override # type: ignore[override]
+    @override  # type: ignore[override]
     def pre_backward(self, tensor: Tensor, module: "pl.LightningModule") -> Tensor:
         if self.scaler is not None:
             tensor = self.scaler.scale(tensor)
         return super().pre_backward(tensor, module)
 
-    @override # type: ignore[override]
+    @override  # type: ignore[override]
     def optimizer_step(
         self,
         optimizer: Optimizable,

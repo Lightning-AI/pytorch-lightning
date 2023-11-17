@@ -12,7 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from typing import Any, Dict, Optional
+
 from typing_extensions import override
+
 from lightning.fabric.plugins import CheckpointIO
 
 

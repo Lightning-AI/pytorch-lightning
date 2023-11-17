@@ -14,10 +14,9 @@
 import os
 from functools import partial
 from typing import Any, Callable
-from typing_extensions import override
 
 import torch
-from typing_extensions import get_args
+from typing_extensions import get_args, override
 
 import lightning.pytorch as pl
 from lightning.fabric.accelerators.xla import _XLA_AVAILABLE

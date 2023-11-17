@@ -14,11 +14,12 @@
 import contextlib
 from functools import partial
 from typing import Any, Callable, Generator, List, Optional, Tuple, Union
-from typing_extensions import override
+
 import torch
 from torch import Tensor
 from torch.nn import Module
 from torch.optim import Optimizer
+from typing_extensions import override
 
 import lightning.pytorch as pl
 from lightning.fabric.plugins import Precision as FabricPrecision
@@ -41,7 +42,7 @@ class Precision(FabricPrecision, CheckpointHooks):
         """Connects this plugin to the accelerator and the training process."""
         return model, optimizers, lr_schedulers
 
-    @override # type: ignore[override]
+    @override  # type: ignore[override]
     def pre_backward(self, tensor: Tensor, module: "pl.LightningModule") -> Tensor:
         trainer = module.trainer
         call._call_callback_hooks(trainer, "on_before_backward", tensor)
