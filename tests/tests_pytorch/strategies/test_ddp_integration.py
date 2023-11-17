@@ -20,7 +20,7 @@ import pytest
 import torch
 from lightning.fabric.plugins.environments import ClusterEnvironment, LightningEnvironment
 from lightning.fabric.utilities.distributed import _distributed_is_initialized
-from lightning.fabric.utilities.imports import _IS_WINDOWS, _TORCH_GREATER_EQUAL_2_0
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 from lightning.pytorch import Trainer
 from lightning.pytorch.callbacks import Callback, EarlyStopping
 from lightning.pytorch.demos.boring_classes import BoringDataModule, BoringModel
