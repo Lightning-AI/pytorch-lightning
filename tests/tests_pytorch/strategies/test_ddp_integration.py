@@ -202,14 +202,7 @@ class UnusedParametersModel(BoringModel):
         return super().training_step(batch, batch_idx)
 
 
-@pytest.mark.skipif(
-    # TODO: investigate threading issue in this configuration
-    _IS_WINDOWS,
-    # and (sys.version_info.major, sys.version_info.minor) == (3, 11)
-    # and compare_version("torch", operator.eq, "2.1.0", use_base_version=True)
-    reason="threading issue",
-)
-def test_find_unused_parameters_exception():
+def test_find_unused_parameters_exception_ddp_spawn():
     """Test that the DDP strategy can change PyTorch's error message so that it's more useful for Lightning users."""
     trainer = Trainer(accelerator="cpu", devices=1, strategy="ddp_spawn", max_steps=2)
     with pytest.raises(
@@ -217,6 +210,10 @@ def test_find_unused_parameters_exception():
     ):
         trainer.fit(UnusedParametersModel())
 
+
+@RunIf(min_gpus=1, standalone=True)
+def test_find_unused_parameters_exception_ddp():
+    """Test that the DDP strategy can change PyTorch's error message so that it's more useful for Lightning users."""
     trainer = Trainer(accelerator="cpu", devices=1, strategy="ddp", max_steps=2)
     with pytest.raises(RuntimeError, match="It looks like your LightningModule has parameters that were not used in"):
         trainer.fit(UnusedParametersModel())
