@@ -13,6 +13,7 @@
 
 import json
 import os
+import sys
 
 import numpy as np
 import pytest
@@ -20,6 +21,7 @@ from lightning import seed_everything
 from lightning.data.streaming.reader import BinaryReader
 from lightning.data.streaming.sampler import ChunkedIndex
 from lightning.data.streaming.writer import BinaryWriter
+from lightning.data.utilities.format import _FORMAT_TO_RATIO
 from lightning_utilities.core.imports import RequirementCache
 
 _PIL_AVAILABLE = RequirementCache("PIL")
@@ -51,7 +53,7 @@ def test_binary_writer_with_ints_and_chunk_bytes(tmpdir):
 
     chunk_sizes = np.cumsum([chunk["chunk_size"] for chunk in data["chunks"]])
 
-    reader = BinaryReader(tmpdir)
+    reader = BinaryReader(tmpdir, max_cache_size=10 ^ 9)
     for i in range(100):
         for chunk_index, chunk_start in enumerate(chunk_sizes):
             if i >= chunk_start:
@@ -90,13 +92,13 @@ def test_binary_writer_with_ints_and_chunk_size(tmpdir):
     assert data["chunks"][1]["chunk_size"] == 25
     assert data["chunks"][-1]["chunk_size"] == 25
 
-    reader = BinaryReader(tmpdir)
+    reader = BinaryReader(tmpdir, max_cache_size=10 ^ 9)
     for i in range(100):
         data = reader.read(ChunkedIndex(i, chunk_index=i // 25))
         assert data == {"i": i, "i+1": i + 1, "i+2": i + 2}
 
 
-@pytest.mark.skipif(condition=not _PIL_AVAILABLE, reason="Requires: ['pil']")
+@pytest.mark.skipif(condition=not _PIL_AVAILABLE or sys.platform == "darwin", reason="Requires: ['pil']")
 def test_binary_writer_with_jpeg_and_int(tmpdir):
     """Validate the writer and reader can serialize / deserialize a pair of image and label."""
     from PIL import Image
@@ -128,14 +130,14 @@ def test_binary_writer_with_jpeg_and_int(tmpdir):
     assert data["chunks"][1]["chunk_size"] == 4
     assert data["chunks"][-1]["chunk_size"] == 4
 
-    reader = BinaryReader(cache_dir)
+    reader = BinaryReader(cache_dir, max_cache_size=10 ^ 9)
     for i in range(100):
         data = reader.read(ChunkedIndex(i, chunk_index=i // 4))
         np.testing.assert_array_equal(np.asarray(data["x"]).squeeze(0), imgs[i])
         assert data["y"] == i
 
 
-@pytest.mark.skipif(condition=not _PIL_AVAILABLE, reason="Requires: ['pil']")
+@pytest.mark.skipif(condition=not _PIL_AVAILABLE or sys.platform == "darwin", reason="Requires: ['pil']")
 def test_binary_writer_with_jpeg_filepath_and_int(tmpdir):
     """Validate the writer and reader can serialize / deserialize a pair of image and label."""
     from PIL import Image
@@ -168,7 +170,7 @@ def test_binary_writer_with_jpeg_filepath_and_int(tmpdir):
     assert data["chunks"][-1]["chunk_size"] == 4
     assert sum([chunk["chunk_size"] for chunk in data["chunks"]]) == 100
 
-    reader = BinaryReader(cache_dir)
+    reader = BinaryReader(cache_dir, max_cache_size=10 ^ 9)
     for i in range(100):
         data = reader.read(ChunkedIndex(i, chunk_index=i // 4))
         np.testing.assert_array_equal(np.asarray(data["x"]).squeeze(0), imgs[i])
@@ -194,3 +196,12 @@ def test_binary_writer_with_jpeg_and_png(tmpdir):
 
     with pytest.raises(ValueError, match="The data format changed between items"):
         binary_writer[2] = {"x": 2, "y": 1}
+
+
+def test_writer_human_format(tmpdir):
+    for k, v in _FORMAT_TO_RATIO.items():
+        binary_writer = BinaryWriter(tmpdir, chunk_bytes=f"{1}{k}")
+        assert binary_writer._chunk_bytes == v
+
+    binary_writer = BinaryWriter(tmpdir, chunk_bytes="64MB")
+    assert binary_writer._chunk_bytes == 64000000

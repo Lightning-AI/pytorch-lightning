@@ -16,7 +16,7 @@ from unittest.mock import Mock
 
 import pytest
 import torch
-from lightning.pytorch.plugins import TransformerEnginePrecisionPlugin
+from lightning.pytorch.plugins import TransformerEnginePrecision
 from lightning.pytorch.trainer.connectors.accelerator_connector import _AcceleratorConnector
 
 
@@ -31,11 +31,11 @@ def test_transformer_engine_precision_plugin(monkeypatch):
     monkeypatch.setitem(sys.modules, "transformer_engine.common.recipe", Mock())
 
     connector = _AcceleratorConnector(precision="transformer-engine")
-    assert isinstance(connector.precision_plugin, TransformerEnginePrecisionPlugin)
+    assert isinstance(connector.precision_plugin, TransformerEnginePrecision)
     assert connector.precision_plugin.dtype is torch.bfloat16
     connector = _AcceleratorConnector(precision="transformer-engine-float16")
     assert connector.precision_plugin.dtype is torch.float16
 
-    precision = TransformerEnginePrecisionPlugin()
+    precision = TransformerEnginePrecision()
     connector = _AcceleratorConnector(plugins=precision)
     assert connector.precision_plugin is precision

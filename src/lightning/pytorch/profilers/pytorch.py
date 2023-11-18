@@ -24,6 +24,7 @@ from torch import Tensor, nn
 from torch.autograd.profiler import EventList, record_function
 from torch.profiler import ProfilerAction, ProfilerActivity, tensorboard_trace_handler
 from torch.utils.hooks import RemovableHandle
+from typing_extensions import override
 
 from lightning.fabric.accelerators.cuda import is_cuda_available
 from lightning.pytorch.profilers.profiler import Profiler
@@ -408,6 +409,7 @@ class PyTorchProfiler(Profiler):
             activities.append(ProfilerActivity.CUDA)
         return activities
 
+    @override
     def start(self, action_name: str) -> None:
         if self.profiler is None:
             # close profiler if it is already opened. might happen if 2 profilers
@@ -437,6 +439,7 @@ class PyTorchProfiler(Profiler):
             recording.__enter__()
             self._recording_map[action_name] = recording
 
+    @override
     def stop(self, action_name: str) -> None:
         if action_name in self._recording_map:
             self._recording_map[action_name].__exit__(None, None, None)
@@ -485,6 +488,7 @@ class PyTorchProfiler(Profiler):
             self.profiler.step()
             self.profiler.add_metadata("Framework", "pytorch-lightning")
 
+    @override
     def summary(self) -> str:
         if not self._profiler_kwargs.get("enabled", True) or self._emit_nvtx:
             return ""
@@ -552,6 +556,7 @@ class PyTorchProfiler(Profiler):
             self._register.__exit__(None, None, None)
             self._register = None
 
+    @override
     def teardown(self, stage: Optional[str]) -> None:
         self._delete_profilers()
 

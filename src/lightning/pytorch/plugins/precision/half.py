@@ -20,10 +20,10 @@ from torch import Tensor
 from torch.nn import Module
 
 from lightning.fabric.plugins.precision.utils import _convert_fp_tensor, _DtypeContextManager
-from lightning.pytorch.plugins.precision.precision_plugin import PrecisionPlugin
+from lightning.pytorch.plugins.precision.precision import Precision
 
 
-class HalfPrecisionPlugin(PrecisionPlugin):
+class HalfPrecision(Precision):
     """Plugin for training with half precision.
 
     Args:

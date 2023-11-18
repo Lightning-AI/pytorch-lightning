@@ -6,7 +6,7 @@
 Productionize your Apps
 #######################
 
-TODO: Cleanup
+.. TODO: Cleanup
 
 At the core of our system is an integration testing framework that will allow for a first-class experience creating integration tests for Lightning Apps. This document will explain how we can create a lightning app test, how we can execute it, and where to find more information.
 
