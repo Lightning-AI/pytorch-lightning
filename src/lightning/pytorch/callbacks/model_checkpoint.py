@@ -771,7 +771,7 @@ class ModelCheckpoint(Checkpoint):
         """
         if previous == current:
             return False
-        if _is_local_file_protocol(previous):
+        if not _is_local_file_protocol(previous):
             return True
         previous = Path(previous).absolute()
         resume_path = Path(trainer.ckpt_path).absolute() if trainer.ckpt_path is not None else None
