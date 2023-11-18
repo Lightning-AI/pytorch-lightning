@@ -3,7 +3,11 @@ import sys
 from unittest import mock
 
 import lightning.app
-from lightning.app.components.serve.streamlit import _build_model, _PatchedWork, ServeStreamlit
+import pytest
+from lightning.app.components.serve.streamlit import ServeStreamlit, _build_model, _PatchedWork
+from lightning_utilities.core.imports import RequirementCache
+
+_STREAMLIT_AVAILABLE = RequirementCache("streamlit")
 
 
 class ServeStreamlitTest(ServeStreamlit):
@@ -30,6 +34,7 @@ class ServeStreamlitTest(ServeStreamlit):
         pass
 
 
+@pytest.mark.skipif(not _STREAMLIT_AVAILABLE, reason="requires streamlit")
 @mock.patch("lightning.app.components.serve.streamlit.subprocess")
 def test_streamlit_start_stop_server(subprocess_mock):
     """Test that `ServeStreamlit.run()` invokes subprocess.Popen with the right parameters."""
@@ -82,6 +87,7 @@ def test_patched_work():
     assert patched_work.test_staticmethod() == "test_staticmethod"
 
 
+@pytest.mark.skipif(not _STREAMLIT_AVAILABLE, reason="requires streamlit")
 def test_build_model():
     import streamlit as st
 

@@ -4,8 +4,7 @@ from unittest.mock import Mock
 import pytest
 from core.callbacks import PLAppArtifactsTracker, PLAppProgressTracker, PLAppSummary
 from core.components.script_runner import ScriptRunner
-
-from lightning.app.storage import Path
+from lightning.app.storage.path import Path
 from lightning.pytorch import LightningModule, Trainer
 from lightning.pytorch.loggers import TensorBoardLogger
 

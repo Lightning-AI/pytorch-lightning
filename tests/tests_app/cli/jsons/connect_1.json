@@ -1,1 +1,311 @@
-{"openapi":"3.0.2","info":{"title":"FastAPI","version":"0.1.0"},"paths":{"/api/v1/state":{"get":{"summary":"Get State","operationId":"get_state_api_v1_state_get","parameters":[{"required":false,"schema":{"title":"X-Lightning-Type","type":"string"},"name":"x-lightning-type","in":"header"},{"required":false,"schema":{"title":"X-Lightning-Session-Uuid","type":"string"},"name":"x-lightning-session-uuid","in":"header"},{"required":false,"schema":{"title":"X-Lightning-Session-Id","type":"string"},"name":"x-lightning-session-id","in":"header"}],"responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{}}}},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}},"post":{"summary":"Post State","operationId":"post_state_api_v1_state_post","parameters":[{"required":false,"schema":{"title":"X-Lightning-Type","type":"string"},"name":"x-lightning-type","in":"header"},{"required":false,"schema":{"title":"X-Lightning-Session-Uuid","type":"string"},"name":"x-lightning-session-uuid","in":"header"},{"required":false,"schema":{"title":"X-Lightning-Session-Id","type":"string"},"name":"x-lightning-session-id","in":"header"}],"responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{}}}},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}}},"/api/v1/spec":{"get":{"summary":"Get Spec","operationId":"get_spec_api_v1_spec_get","parameters":[{"required":false,"schema":{"title":"X-Lightning-Session-Uuid","type":"string"},"name":"x-lightning-session-uuid","in":"header"},{"required":false,"schema":{"title":"X-Lightning-Session-Id","type":"string"},"name":"x-lightning-session-id","in":"header"}],"responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{}}}},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}}},"/api/v1/delta":{"post":{"summary":"Post Delta","description":"This endpoint is used to make an update to the app state using delta diff, mainly used by streamlit to\nupdate the state.","operationId":"post_delta_api_v1_delta_post","parameters":[{"required":false,"schema":{"title":"X-Lightning-Type","type":"string"},"name":"x-lightning-type","in":"header"},{"required":false,"schema":{"title":"X-Lightning-Session-Uuid","type":"string"},"name":"x-lightning-session-uuid","in":"header"},{"required":false,"schema":{"title":"X-Lightning-Session-Id","type":"string"},"name":"x-lightning-session-id","in":"header"}],"responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{}}}},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}}},"/api/v1/upload_file/{filename}":{"put":{"summary":"Upload File","operationId":"upload_file_api_v1_upload_file__filename__put","parameters":[{"required":true,"schema":{"title":"Filename","type":"string"},"name":"filename","in":"path"}],"requestBody":{"content":{"multipart/form-data":{"schema":{"$ref":"#/components/schemas/Body_upload_file_api_v1_upload_file__filename__put"}}},"required":true},"responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{}}}},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}}},"/healthz":{"get":{"summary":"Healthz","description":"Health check endpoint used in the cloud FastAPI servers to check the status periodically.","operationId":"healthz_healthz_get","responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{}}}}}}},"/user/command_without_client":{"post":{"tags":["app_api"],"summary":"Command Without Client","operationId":"command_without_client_user_command_without_client_post","parameters":[{"required":true,"schema":{"title":"Name","type":"string"},"name":"name","in":"query"}],"responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{}}}},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}}},"/command/command_without_client":{"post":{"tags":["app_command"],"summary":"Command Without Client","description":"A command without a client.","operationId":"command_without_client_command_command_without_client_post","parameters":[{"required":true,"schema":{"title":"Name","type":"string"},"name":"name","in":"query"}],"responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{}}}},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}}},"/command/command_with_client":{"post":{"tags":["app_client_command"],"summary":"Command With Client","description":"A command with a client.","operationId":"command_with_client_command_command_with_client_post","requestBody":{"content":{"application/json":{"schema":{"$ref":"#/components/schemas/CustomConfig"}}},"required":true},"responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{}}}},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}},"cls_path":"examples/app/commands_and_api/command.py","cls_name":"CustomCommand"}},"/command/nested_command":{"post":{"tags":["app_command"],"summary":"Nested Command","description":"A nested command.","operationId":"nested_command_command_nested_command_post","parameters":[{"required":true,"schema":{"title":"Name","type":"string"},"name":"name","in":"query"}],"responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{}}}},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}}},"/api{full_path}":{"get":{"summary":"Api Catch All","operationId":"api_catch_all_api_full_path__get","parameters":[{"required":true,"schema":{"title":"Full Path","type":"string"},"name":"full_path","in":"path"}],"responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{}}}},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}}},"/{full_path}":{"get":{"summary":"Frontend Route","operationId":"frontend_route__full_path__get","parameters":[{"required":true,"schema":{"title":"Full Path","type":"string"},"name":"full_path","in":"path"}],"responses":{"200":{"description":"Successful Response","content":{"text/html":{"schema":{"type":"string"}}}},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}}}},"components":{"schemas":{"Body_upload_file_api_v1_upload_file__filename__put":{"title":"Body_upload_file_api_v1_upload_file__filename__put","required":["uploaded_file"],"type":"object","properties":{"uploaded_file":{"title":"Uploaded File","type":"string","format":"binary"}}},"CustomConfig":{"title":"CustomConfig","required":["name"],"type":"object","properties":{"name":{"title":"Name","type":"string"}}},"HTTPValidationError":{"title":"HTTPValidationError","type":"object","properties":{"detail":{"title":"Detail","type":"array","items":{"$ref":"#/components/schemas/ValidationError"}}}},"ValidationError":{"title":"ValidationError","required":["loc","msg","type"],"type":"object","properties":{"loc":{"title":"Location","type":"array","items":{"anyOf":[{"type":"string"},{"type":"integer"}]}},"msg":{"title":"Message","type":"string"},"type":{"title":"Error Type","type":"string"}}}}}}
+{
+  "openapi": "3.0.2",
+  "info": { "title": "FastAPI", "version": "0.1.0" },
+  "paths": {
+    "/api/v1/state": {
+      "get": {
+        "summary": "Get State",
+        "operationId": "get_state_api_v1_state_get",
+        "parameters": [
+          {
+            "required": false,
+            "schema": { "title": "X-Lightning-Type", "type": "string" },
+            "name": "x-lightning-type",
+            "in": "header"
+          },
+          {
+            "required": false,
+            "schema": { "title": "X-Lightning-Session-Uuid", "type": "string" },
+            "name": "x-lightning-session-uuid",
+            "in": "header"
+          },
+          {
+            "required": false,
+            "schema": { "title": "X-Lightning-Session-Id", "type": "string" },
+            "name": "x-lightning-session-id",
+            "in": "header"
+          }
+        ],
+        "responses": {
+          "200": { "description": "Successful Response", "content": { "application/json": { "schema": {} } } },
+          "422": {
+            "description": "Validation Error",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/HTTPValidationError" } } }
+          }
+        }
+      },
+      "post": {
+        "summary": "Post State",
+        "operationId": "post_state_api_v1_state_post",
+        "parameters": [
+          {
+            "required": false,
+            "schema": { "title": "X-Lightning-Type", "type": "string" },
+            "name": "x-lightning-type",
+            "in": "header"
+          },
+          {
+            "required": false,
+            "schema": { "title": "X-Lightning-Session-Uuid", "type": "string" },
+            "name": "x-lightning-session-uuid",
+            "in": "header"
+          },
+          {
+            "required": false,
+            "schema": { "title": "X-Lightning-Session-Id", "type": "string" },
+            "name": "x-lightning-session-id",
+            "in": "header"
+          }
+        ],
+        "responses": {
+          "200": { "description": "Successful Response", "content": { "application/json": { "schema": {} } } },
+          "422": {
+            "description": "Validation Error",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/HTTPValidationError" } } }
+          }
+        }
+      }
+    },
+    "/api/v1/spec": {
+      "get": {
+        "summary": "Get Spec",
+        "operationId": "get_spec_api_v1_spec_get",
+        "parameters": [
+          {
+            "required": false,
+            "schema": { "title": "X-Lightning-Session-Uuid", "type": "string" },
+            "name": "x-lightning-session-uuid",
+            "in": "header"
+          },
+          {
+            "required": false,
+            "schema": { "title": "X-Lightning-Session-Id", "type": "string" },
+            "name": "x-lightning-session-id",
+            "in": "header"
+          }
+        ],
+        "responses": {
+          "200": { "description": "Successful Response", "content": { "application/json": { "schema": {} } } },
+          "422": {
+            "description": "Validation Error",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/HTTPValidationError" } } }
+          }
+        }
+      }
+    },
+    "/api/v1/delta": {
+      "post": {
+        "summary": "Post Delta",
+        "description": "This endpoint is used to make an update to the app state using delta diff, mainly used by streamlit to\nupdate the state.",
+        "operationId": "post_delta_api_v1_delta_post",
+        "parameters": [
+          {
+            "required": false,
+            "schema": { "title": "X-Lightning-Type", "type": "string" },
+            "name": "x-lightning-type",
+            "in": "header"
+          },
+          {
+            "required": false,
+            "schema": { "title": "X-Lightning-Session-Uuid", "type": "string" },
+            "name": "x-lightning-session-uuid",
+            "in": "header"
+          },
+          {
+            "required": false,
+            "schema": { "title": "X-Lightning-Session-Id", "type": "string" },
+            "name": "x-lightning-session-id",
+            "in": "header"
+          }
+        ],
+        "responses": {
+          "200": { "description": "Successful Response", "content": { "application/json": { "schema": {} } } },
+          "422": {
+            "description": "Validation Error",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/HTTPValidationError" } } }
+          }
+        }
+      }
+    },
+    "/api/v1/upload_file/{filename}": {
+      "put": {
+        "summary": "Upload File",
+        "operationId": "upload_file_api_v1_upload_file__filename__put",
+        "parameters": [
+          { "required": true, "schema": { "title": "Filename", "type": "string" }, "name": "filename", "in": "path" }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": { "$ref": "#/components/schemas/Body_upload_file_api_v1_upload_file__filename__put" }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": { "description": "Successful Response", "content": { "application/json": { "schema": {} } } },
+          "422": {
+            "description": "Validation Error",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/HTTPValidationError" } } }
+          }
+        }
+      }
+    },
+    "/healthz": {
+      "get": {
+        "summary": "Healthz",
+        "description": "Health check endpoint used in the cloud FastAPI servers to check the status periodically.",
+        "operationId": "healthz_healthz_get",
+        "responses": {
+          "200": { "description": "Successful Response", "content": { "application/json": { "schema": {} } } }
+        }
+      }
+    },
+    "/user/command_without_client": {
+      "post": {
+        "tags": ["app_api"],
+        "summary": "Command Without Client",
+        "operationId": "command_without_client_user_command_without_client_post",
+        "parameters": [
+          { "required": true, "schema": { "title": "Name", "type": "string" }, "name": "name", "in": "query" }
+        ],
+        "responses": {
+          "200": { "description": "Successful Response", "content": { "application/json": { "schema": {} } } },
+          "422": {
+            "description": "Validation Error",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/HTTPValidationError" } } }
+          }
+        }
+      }
+    },
+    "/command/command_without_client": {
+      "post": {
+        "tags": ["app_command"],
+        "summary": "Command Without Client",
+        "description": "A command without a client.",
+        "operationId": "command_without_client_command_command_without_client_post",
+        "parameters": [
+          { "required": true, "schema": { "title": "Name", "type": "string" }, "name": "name", "in": "query" }
+        ],
+        "responses": {
+          "200": { "description": "Successful Response", "content": { "application/json": { "schema": {} } } },
+          "422": {
+            "description": "Validation Error",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/HTTPValidationError" } } }
+          }
+        }
+      }
+    },
+    "/command/command_with_client": {
+      "post": {
+        "tags": ["app_client_command"],
+        "summary": "Command With Client",
+        "description": "A command with a client.",
+        "operationId": "command_with_client_command_command_with_client_post",
+        "requestBody": {
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CustomConfig" } } },
+          "required": true
+        },
+        "responses": {
+          "200": { "description": "Successful Response", "content": { "application/json": { "schema": {} } } },
+          "422": {
+            "description": "Validation Error",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/HTTPValidationError" } } }
+          }
+        },
+        "cls_path": "examples/app/commands_and_api/command.py",
+        "cls_name": "CustomCommand"
+      }
+    },
+    "/command/nested_command": {
+      "post": {
+        "tags": ["app_command"],
+        "summary": "Nested Command",
+        "description": "A nested command.",
+        "operationId": "nested_command_command_nested_command_post",
+        "parameters": [
+          { "required": true, "schema": { "title": "Name", "type": "string" }, "name": "name", "in": "query" }
+        ],
+        "responses": {
+          "200": { "description": "Successful Response", "content": { "application/json": { "schema": {} } } },
+          "422": {
+            "description": "Validation Error",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/HTTPValidationError" } } }
+          }
+        }
+      }
+    },
+    "/api{full_path}": {
+      "get": {
+        "summary": "Api Catch All",
+        "operationId": "api_catch_all_api_full_path__get",
+        "parameters": [
+          { "required": true, "schema": { "title": "Full Path", "type": "string" }, "name": "full_path", "in": "path" }
+        ],
+        "responses": {
+          "200": { "description": "Successful Response", "content": { "application/json": { "schema": {} } } },
+          "422": {
+            "description": "Validation Error",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/HTTPValidationError" } } }
+          }
+        }
+      }
+    },
+    "/{full_path}": {
+      "get": {
+        "summary": "Frontend Route",
+        "operationId": "frontend_route__full_path__get",
+        "parameters": [
+          { "required": true, "schema": { "title": "Full Path", "type": "string" }, "name": "full_path", "in": "path" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": { "text/html": { "schema": { "type": "string" } } }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/HTTPValidationError" } } }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Body_upload_file_api_v1_upload_file__filename__put": {
+        "title": "Body_upload_file_api_v1_upload_file__filename__put",
+        "required": ["uploaded_file"],
+        "type": "object",
+        "properties": { "uploaded_file": { "title": "Uploaded File", "type": "string", "format": "binary" } }
+      },
+      "CustomConfig": {
+        "title": "CustomConfig",
+        "required": ["name"],
+        "type": "object",
+        "properties": { "name": { "title": "Name", "type": "string" } }
+      },
+      "HTTPValidationError": {
+        "title": "HTTPValidationError",
+        "type": "object",
+        "properties": {
+          "detail": { "title": "Detail", "type": "array", "items": { "$ref": "#/components/schemas/ValidationError" } }
+        }
+      },
+      "ValidationError": {
+        "title": "ValidationError",
+        "required": ["loc", "msg", "type"],
+        "type": "object",
+        "properties": {
+          "loc": {
+            "title": "Location",
+            "type": "array",
+            "items": { "anyOf": [{ "type": "string" }, { "type": "integer" }] }
+          },
+          "msg": { "title": "Message", "type": "string" },
+          "type": { "title": "Error Type", "type": "string" }
+        }
+      }
+    }
+  }
+}

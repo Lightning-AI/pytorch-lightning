@@ -11,75 +11,161 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from contextlib import contextmanager
-from typing import Any, Generator, Literal, Optional
+from typing import TYPE_CHECKING, Any, Callable, ContextManager, Dict, Optional
 
 import torch
+from lightning_utilities import apply_to_collection
+from torch import Tensor
+from typing_extensions import get_args
 
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12
-from lightning.pytorch.plugins.precision.amp import MixedPrecisionPlugin
+import lightning.pytorch as pl
+from lightning.fabric.plugins.precision.amp import _optimizer_handles_unscaling
+from lightning.fabric.plugins.precision.fsdp import _PRECISION_INPUT
+from lightning.fabric.plugins.precision.utils import _convert_fp_tensor, _DtypeContextManager
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
+from lightning.fabric.utilities.types import Optimizable
+from lightning.pytorch.plugins.precision.precision import Precision
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 
-if _TORCH_GREATER_EQUAL_1_12 and torch.distributed.is_available():
-    from torch.distributed.fsdp.fully_sharded_data_parallel import MixedPrecision
+if TYPE_CHECKING:
+    from torch.distributed.fsdp.fully_sharded_data_parallel import MixedPrecision as TorchMixedPrecision
     from torch.distributed.fsdp.sharded_grad_scaler import ShardedGradScaler
-else:
-    MixedPrecision = None  # type: ignore[misc,assignment]
-    ShardedGradScaler = None  # type: ignore[misc,assignment]
 
 
-class FSDPMixedPrecisionPlugin(MixedPrecisionPlugin):
-    """AMP for Fully Sharded Data Parallel (FSDP) Training.
+class FSDPPrecision(Precision):
+    """Precision plugin for training with Fully Sharded Data Parallel (FSDP).
 
     .. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
+
+    Args:
+        precision: Full precision (32-true), half precision (16-true, bf16-true) or
+            mixed precision (16-mixed, bf16-mixed).
+        scaler: An optional :class:`torch.distributed.fsdp.sharded_grad_scaler.ShardedGradScaler` to use.
+
+    Raises:
+        ValueError:
+            If unsupported ``precision`` is provided.
+
     """
 
-    def __init__(
-        self, precision: Literal["16-mixed", "bf16-mixed"], device: str, scaler: Optional[ShardedGradScaler] = None
-    ) -> None:
-        if not _TORCH_GREATER_EQUAL_1_12:
-            raise MisconfigurationException("`FSDPMixedPrecisionPlugin` is supported from PyTorch v1.12.0 onwards.")
-        super().__init__(
-            precision, device, scaler=(ShardedGradScaler() if scaler is None and str(precision) == "16-mixed" else None)
-        )
+    def __init__(self, precision: _PRECISION_INPUT, scaler: Optional["ShardedGradScaler"] = None) -> None:
+        supported_precision = get_args(_PRECISION_INPUT)
+        if precision not in supported_precision:
+            raise ValueError(
+                f"`precision={precision!r})` is not supported in FSDP."
+                f" `precision` must be one of: {supported_precision}."
+            )
+
+        from torch.distributed.fsdp.sharded_grad_scaler import ShardedGradScaler
+
+        if scaler is not None and self.precision != "16-mixed":
+            raise ValueError(f"`precision={precision!r}` does not use a scaler, found {scaler}.")
+
+        self.scaler = ShardedGradScaler() if scaler is None and precision == "16-mixed" else None
+        self.precision = precision
+
+        precision_to_type = {
+            "bf16-mixed": torch.float32,
+            "16-mixed": torch.float32,
+            "bf16-true": torch.bfloat16,
+            "16-true": torch.float16,
+            "32-true": torch.float32,
+        }
+        self._desired_input_dtype = precision_to_type[self.precision]
 
     def clip_grad_by_norm(self, *_: Any, **__: Any) -> None:
         # see https://pytorch.org/docs/stable/fsdp.html#torch.distributed.fsdp.FullyShardedDataParallel.clip_grad_norm_
-        # section `Gradient Clipping`, using `torch.nn.utils.clip_grad_norm_` is incorrect
-        # for FSDP module. To overcome this, needs to call sharded_module.clip_grad_norm(clip_val)
-        # however we rely on LightningModule's configure_sharded_model to wrap FSDP, it would be hard to
-        # trace back the root FSDP. Now we only support clip by value.
+        # section `Gradient Clipping`, using `torch.nn.utils.clip_grad_norm_` is incorrect with FSDP.
+        # To overcome this we need to call root_sharded_module.clip_grad_norm(clip_val), but we don't have a reference
+        # to the root module
         raise MisconfigurationException(
             f"`gradient_clip_algorithm='norm'` is currently not supported for `{self.__class__.__name__}`"
         )
 
     @property
-    def mixed_precision_config(self) -> Optional[MixedPrecision]:
-        assert MixedPrecision is not None
+    def mixed_precision_config(self) -> "TorchMixedPrecision":
+        from torch.distributed.fsdp.fully_sharded_data_parallel import MixedPrecision as TorchMixedPrecision
 
+        # With PyTorch < 2.0, FSDP uses the noneness of `param_dtype` as a proxy for the `_uses_param_mixed_precision`
+        # property. In order to avoid FSDP assertion failures, we therefore avoid setting `param_dtype` to
+        # `torch.float32` here with PyTorch < 2.0.
         if self.precision == "16-mixed":
-            param_dtype = torch.float32
+            param_dtype = None if not _TORCH_GREATER_EQUAL_2_0 else torch.float32
             reduce_dtype = buffer_dtype = torch.float16
         elif self.precision == "bf16-mixed":
-            param_dtype = torch.float32
+            param_dtype = None if not _TORCH_GREATER_EQUAL_2_0 else torch.float32
             reduce_dtype = buffer_dtype = torch.bfloat16
         elif self.precision == "16-true":
             param_dtype = reduce_dtype = buffer_dtype = torch.float16
         elif self.precision == "bf16-true":
             param_dtype = reduce_dtype = buffer_dtype = torch.bfloat16
+        elif self.precision == "32-true":
+            param_dtype = None if not _TORCH_GREATER_EQUAL_2_0 else torch.float32
+            reduce_dtype = buffer_dtype = torch.float32
         else:
             raise MisconfigurationException(f"Was unable to infer precision type, received {self.precision!r}.")
 
-        return MixedPrecision(
+        return TorchMixedPrecision(
             param_dtype=param_dtype,
             reduce_dtype=reduce_dtype,
             buffer_dtype=buffer_dtype,
         )
 
-    @contextmanager
-    def forward_context(self) -> Generator[None, None, None]:
-        """For FSDP, this context manager is a no-op since conversion is already handled internally.
+    def tensor_init_context(self) -> ContextManager:
+        return _DtypeContextManager(self._desired_input_dtype)
 
-        See: https://pytorch.org/docs/stable/fsdp.html for more details on mixed precision.
-        """
-        yield
+    def module_init_context(self) -> ContextManager:
+        return _DtypeContextManager(self.mixed_precision_config.param_dtype or torch.float32)
+
+    def forward_context(self) -> ContextManager:
+        if "mixed" in self.precision:
+            return torch.autocast("cuda", dtype=(torch.bfloat16 if self.precision == "bf16-mixed" else torch.float16))
+        return _DtypeContextManager(self._desired_input_dtype)
+
+    def convert_input(self, data: Any) -> Any:
+        return apply_to_collection(data, function=_convert_fp_tensor, dtype=Tensor, dst_type=self._desired_input_dtype)
+
+    def convert_output(self, data: Any) -> Any:
+        return apply_to_collection(data, function=_convert_fp_tensor, dtype=Tensor, dst_type=torch.get_default_dtype())
+
+    def pre_backward(self, tensor: Tensor, module: "pl.LightningModule") -> Tensor:  # type: ignore[override]
+        if self.scaler is not None:
+            tensor = self.scaler.scale(tensor)  # type: ignore[assignment]
+        return super().pre_backward(tensor, module)
+
+    def optimizer_step(  # type: ignore[override]
+        self,
+        optimizer: Optimizable,
+        model: "pl.LightningModule",
+        closure: Callable[[], Any],
+        **kwargs: Any,
+    ) -> Any:
+        if self.scaler is None:
+            # skip scaler logic, as bfloat16 does not require scaler
+            return super().optimizer_step(optimizer, model=model, closure=closure, **kwargs)
+        closure_result = closure()
+
+        if not _optimizer_handles_unscaling(optimizer):
+            # Unscaling needs to be performed here in case we are going to apply gradient clipping.
+            # Optimizers that perform unscaling in their `.step()` method are not supported (e.g., fused Adam).
+            # Note: `unscale` happens after the closure is executed, but before the `on_before_optimizer_step` hook.
+            self.scaler.unscale_(optimizer)  # type: ignore[arg-type]
+
+        self._after_closure(model, optimizer)
+        skipped_backward = closure_result is None
+        # in manual optimization, the closure does not return a value
+        if not model.automatic_optimization or not skipped_backward:
+            # note: the scaler will skip the `optimizer.step` if nonfinite gradients are found
+            step_output = self.scaler.step(optimizer, **kwargs)  # type: ignore[arg-type]
+            self.scaler.update()
+            return step_output
+        return closure_result
+
+    def state_dict(self) -> Dict[str, Any]:
+        if self.scaler is not None:
+            return self.scaler.state_dict()
+        return {}
+
+    def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
+        if self.scaler is not None:
+            self.scaler.load_state_dict(state_dict)

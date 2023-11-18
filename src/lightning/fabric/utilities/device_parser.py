@@ -13,8 +13,8 @@
 # limitations under the License.
 from typing import List, MutableSequence, Optional, Tuple, Union
 
-import lightning.fabric.accelerators as accelerators  # avoid circular dependency
-from lightning.fabric.plugins.environments.torchelastic import TorchElasticEnvironment
+import torch
+
 from lightning.fabric.utilities.exceptions import MisconfigurationException
 from lightning.fabric.utilities.types import _DEVICE
 
@@ -50,9 +50,7 @@ def _parse_gpu_ids(
     include_cuda: bool = False,
     include_mps: bool = False,
 ) -> Optional[List[int]]:
-    """
-    Parses the GPU IDs given in the format as accepted by the
-    :class:`~lightning.pytorch.trainer.Trainer`.
+    """Parses the GPU IDs given in the format as accepted by the :class:`~lightning.pytorch.trainer.trainer.Trainer`.
 
     Args:
         gpus: An int -1 or string '-1' indicate that all available GPUs should be used.
@@ -73,6 +71,7 @@ def _parse_gpu_ids(
     .. note::
         ``include_cuda`` and ``include_mps`` default to ``False`` so that you only
         have to specify which device type to use and all other devices are not disabled.
+
     """
     # Check that gpus param is None, Int, String or Sequence of Ints
     _check_data_type(gpus)
@@ -89,7 +88,8 @@ def _parse_gpu_ids(
         raise MisconfigurationException("GPUs requested but none are available.")
 
     if (
-        TorchElasticEnvironment.detect()
+        torch.distributed.is_available()
+        and torch.distributed.is_torchelastic_launched()
         and len(gpus) != 1
         and len(_get_all_available_gpus(include_cuda=include_cuda, include_mps=include_mps)) == 1
     ):
@@ -113,8 +113,8 @@ def _normalize_parse_gpu_string_input(s: Union[int, str, List[int]]) -> Union[in
 
 
 def _sanitize_gpu_ids(gpus: List[int], include_cuda: bool = False, include_mps: bool = False) -> List[int]:
-    """Checks that each of the GPUs in the list is actually available. Raises a MisconfigurationException if any of
-    the GPUs is not available.
+    """Checks that each of the GPUs in the list is actually available. Raises a MisconfigurationException if any of the
+    GPUs is not available.
 
     Args:
         gpus: List of ints corresponding to GPU indices
@@ -125,6 +125,7 @@ def _sanitize_gpu_ids(gpus: List[int], include_cuda: bool = False, include_mps: 
     Raises:
         MisconfigurationException:
             If machine has fewer available GPUs than requested.
+
     """
     if sum((include_cuda, include_mps)) == 0:
         raise ValueError("At least one gpu type should be specified!")
@@ -158,8 +159,11 @@ def _get_all_available_gpus(include_cuda: bool = False, include_mps: bool = Fals
     Returns:
         A list of all available GPUs
     """
-    cuda_gpus = accelerators.cuda._get_all_visible_cuda_devices() if include_cuda else []
-    mps_gpus = accelerators.mps._get_all_available_mps_gpus() if include_mps else []
+    from lightning.fabric.accelerators.cuda import _get_all_visible_cuda_devices
+    from lightning.fabric.accelerators.mps import _get_all_available_mps_gpus
+
+    cuda_gpus = _get_all_visible_cuda_devices() if include_cuda else []
+    mps_gpus = _get_all_available_mps_gpus() if include_mps else []
     return cuda_gpus + mps_gpus
 
 
@@ -172,6 +176,7 @@ def _check_unique(device_ids: List[int]) -> None:
     Raises:
         MisconfigurationException:
             If ``device_ids`` of GPUs aren't unique
+
     """
     if len(device_ids) != len(set(device_ids)):
         raise MisconfigurationException("Device ID's (GPU) must be unique.")
@@ -186,13 +191,15 @@ def _check_data_type(device_ids: object) -> None:
     Raises:
         TypeError:
             If ``device_ids`` of GPU/TPUs aren't ``int``, ``str`` or sequence of ``int```
+
     """
     msg = "Device IDs (GPU/TPU) must be an int, a string, a sequence of ints, but you passed"
     if device_ids is None:
         raise TypeError(f"{msg} None")
     if isinstance(device_ids, (MutableSequence, tuple)):
         for id_ in device_ids:
-            if type(id_) is not int:
+            id_type = type(id_)  # because `isinstance(False, int)` -> True
+            if id_type is not int:
                 raise TypeError(f"{msg} a sequence of {type(id_).__name__}.")
     elif type(device_ids) not in (int, str):
         raise TypeError(f"{msg} {device_ids!r}.")

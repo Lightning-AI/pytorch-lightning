@@ -3,9 +3,8 @@ import pathlib
 from unittest import mock
 from unittest.mock import Mock
 
-import pytest
-
 import lightning.app
+import pytest
 from lightning.app.storage.copier import _Copier, _copy_files
 from lightning.app.storage.path import Path
 from lightning.app.storage.requests import _ExistsRequest, _GetRequest
@@ -45,8 +44,8 @@ def test_copier_copies_all_files(fs_mock, stat_mock, dir_mock, tmpdir):
 @mock.patch("lightning.app.storage.path.pathlib.Path.is_dir")
 @mock.patch("lightning.app.storage.path.pathlib.Path.stat")
 def test_copier_handles_exception(stat_mock, dir_mock, monkeypatch):
-    """Test that the Copier captures exceptions from the file copy and forwards them through the queue without
-    raising it."""
+    """Test that the Copier captures exceptions from the file copy and forwards them through the queue without raising
+    it."""
     stat_mock().st_size = 0
     dir_mock.return_value = False
     copy_request_queue = _MockQueue()
@@ -64,7 +63,7 @@ def test_copier_handles_exception(stat_mock, dir_mock, monkeypatch):
     copy_request_queue.put(request)
     copier.run_once()
     response = copy_response_queue.get()
-    assert type(response.exception) == OSError
+    assert type(response.exception) is OSError
     assert response.exception.args[0] == "Something went wrong"
 
 

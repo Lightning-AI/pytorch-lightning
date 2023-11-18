@@ -11,17 +11,20 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import sys
+
 from lightning.fabric.strategies.ddp import DDPStrategy  # noqa: F401
 from lightning.fabric.strategies.deepspeed import DeepSpeedStrategy  # noqa: F401
 from lightning.fabric.strategies.dp import DataParallelStrategy  # noqa: F401
 from lightning.fabric.strategies.fsdp import FSDPStrategy  # noqa: F401
 from lightning.fabric.strategies.parallel import ParallelStrategy  # noqa: F401
-from lightning.fabric.strategies.registry import _call_register_strategies, _StrategyRegistry
+from lightning.fabric.strategies.registry import _StrategyRegistry
 from lightning.fabric.strategies.single_device import SingleDeviceStrategy  # noqa: F401
 from lightning.fabric.strategies.single_xla import SingleDeviceXLAStrategy  # noqa: F401
-from lightning.fabric.strategies.strategy import Strategy  # noqa: F401
+from lightning.fabric.strategies.strategy import Strategy
 from lightning.fabric.strategies.xla import XLAStrategy  # noqa: F401
+from lightning.fabric.strategies.xla_fsdp import XLAFSDPStrategy  # noqa: F401
+from lightning.fabric.utilities.registry import _register_classes
 
 STRATEGY_REGISTRY = _StrategyRegistry()
-_STRATEGIES_BASE_MODULE = "lightning.fabric.strategies"
-_call_register_strategies(STRATEGY_REGISTRY, _STRATEGIES_BASE_MODULE)
+_register_classes(STRATEGY_REGISTRY, "register_strategies", sys.modules[__name__], Strategy)

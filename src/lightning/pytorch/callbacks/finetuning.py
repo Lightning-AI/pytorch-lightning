@@ -11,7 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-r"""Finetuning Callback ^^^^^^^^^^^^^^^^^^^^ Freeze and unfreeze models for finetuning purposes."""
+r"""
+Finetuning Callback
+^^^^^^^^^^^^^^^^^^^^
+
+Freeze and unfreeze models for finetuning purposes.
+"""
 import logging
 from typing import Any, Callable, Dict, Generator, Iterable, List, Optional, Union
 
@@ -74,6 +79,7 @@ class BaseFinetuning(Callback):
         ...                 optimizer=optimizer,
         ...                 train_bn=True,
         ...             )
+
     """
 
     def __init__(self) -> None:
@@ -106,21 +112,22 @@ class BaseFinetuning(Callback):
 
     @staticmethod
     def flatten_modules(modules: Union[Module, Iterable[Union[Module, Iterable]]]) -> List[Module]:
-        """This function is used to flatten a module or an iterable of modules into a list of its leaf modules
-        (modules with no children) and parent modules that have parameters directly themselves.
+        """This function is used to flatten a module or an iterable of modules into a list of its leaf modules (modules
+        with no children) and parent modules that have parameters directly themselves.
 
         Args:
             modules: A given module or an iterable of modules
 
         Returns:
             List of modules
+
         """
         if isinstance(modules, ModuleDict):
             modules = modules.values()
 
         if isinstance(modules, Iterable):
             _flatten_modules = []
-            for m in modules:
+            for m in modules:  # type: ignore[union-attr]
                 _flatten_modules.extend(BaseFinetuning.flatten_modules(m))
 
             _modules = iter(_flatten_modules)
@@ -142,6 +149,7 @@ class BaseFinetuning(Callback):
             requires_grad: Whether to create a generator for trainable or non-trainable parameters.
         Returns:
             Generator
+
         """
         modules = BaseFinetuning.flatten_modules(modules)
         for mod in modules:
@@ -158,6 +166,7 @@ class BaseFinetuning(Callback):
 
         Args:
             modules: A given module or an iterable of modules
+
         """
         modules = BaseFinetuning.flatten_modules(modules)
         for module in modules:
@@ -173,6 +182,7 @@ class BaseFinetuning(Callback):
 
         Args:
             module: A given module
+
         """
         if isinstance(module, _BatchNorm):
             module.track_running_stats = False
@@ -190,6 +200,7 @@ class BaseFinetuning(Callback):
 
         Returns:
             None
+
         """
         modules = BaseFinetuning.flatten_modules(modules)
         for mod in modules:
@@ -208,6 +219,7 @@ class BaseFinetuning(Callback):
 
         Returns:
             List of parameters not contained in this optimizer param groups
+
         """
         out_params = []
         removed_params = []
@@ -245,6 +257,7 @@ class BaseFinetuning(Callback):
             initial_denom_lr: If no lr is provided, the learning from the first param group will be used
                 and divided by `initial_denom_lr`.
             train_bn: Whether to train the BatchNormalization layers.
+
         """
         BaseFinetuning.make_trainable(modules)
         params_lr = optimizer.param_groups[0]["lr"] if lr is None else float(lr)
@@ -256,6 +269,14 @@ class BaseFinetuning(Callback):
 
     def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: str) -> None:
         self.freeze_before_training(pl_module)
+
+        from lightning.pytorch.strategies import DeepSpeedStrategy
+
+        if isinstance(trainer.strategy, DeepSpeedStrategy):
+            raise NotImplementedError(
+                "The Finetuning callback does not support running with the DeepSpeed strategy."
+                " Choose a different strategy or disable the callback."
+            )
 
     @staticmethod
     def _apply_mapping_to_param_groups(param_groups: List[Dict[str, Any]], mapping: dict) -> List[Dict[str, Any]]:
@@ -330,6 +351,7 @@ class BackboneFinetuning(BaseFinetuning):
         >>> multiplicative = lambda epoch: 1.5
         >>> backbone_finetuning = BackboneFinetuning(200, multiplicative)
         >>> trainer = Trainer(callbacks=[backbone_finetuning])
+
     """
 
     def __init__(

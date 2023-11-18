@@ -12,18 +12,5 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Enumerated utilities."""
-from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
-from lightning_utilities.core.enums import StrEnum
-
-if TYPE_CHECKING:
-    from enum import Enum
-
-    # re-defined because `mypy` infers `StrEnum` as `Any`
-    class LightningEnum(StrEnum, Enum):
-        ...
-
-else:
-    LightningEnum = StrEnum
+from lightning_utilities.core.enums import StrEnum as LightningEnum  # noqa: F401

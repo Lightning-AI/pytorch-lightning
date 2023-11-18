@@ -26,31 +26,30 @@ from copy import deepcopy
 from dataclasses import dataclass, field
 from functools import partial
 from threading import Event, Thread
-from typing import Any, Callable, Dict, Generator, Optional, Set, Tuple, Type, TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, Any, Callable, Dict, Generator, Optional, Set, Tuple, Type, Union
 
 from deepdiff import DeepDiff, Delta
 from lightning_utilities.core.apply_func import apply_to_collection
 
 from lightning.app.core import constants
 from lightning.app.core.queues import MultiProcessQueue
-from lightning.app.storage import Path
 from lightning.app.storage.copier import _Copier, _copy_files
-from lightning.app.storage.drive import _maybe_create_drive, Drive
-from lightning.app.storage.path import _path_to_work_artifact
+from lightning.app.storage.drive import Drive, _maybe_create_drive
+from lightning.app.storage.path import Path, _path_to_work_artifact
 from lightning.app.storage.payload import Payload
 from lightning.app.utilities.app_helpers import affiliation
 from lightning.app.utilities.component import _set_work_context
 from lightning.app.utilities.enum import (
     CacheCallsKeys,
-    make_status,
     WorkFailureReasons,
     WorkStageStatus,
     WorkStopReasons,
+    make_status,
 )
 from lightning.app.utilities.exceptions import CacheMissException, LightningSigtermStateException
 
 if TYPE_CHECKING:
-    from lightning.app import LightningWork
+    from lightning.app.core import LightningWork
     from lightning.app.core.queues import BaseQueue
 
 from lightning.app.utilities.app_helpers import Logger
@@ -140,7 +139,7 @@ class ProxyWorkRun:
         else:
             if self.work.cache_calls and returned:
                 return
-            elif returned or stopped_on_sigterm:
+            if returned or stopped_on_sigterm:
                 # the previous task has completed and we can re-queue the next one.
                 # overriding the return value for next loop iteration.
                 _send_data_to_caller_queue(self, self.work, self.caller_queue, data, call_hash)
@@ -152,6 +151,7 @@ class ProxyWorkRun:
 
         Currently, this performs a check against strings that look like filesystem paths and may need to be wrapped with
         a Lightning Path by the user.
+
         """
 
         def warn_if_pathlike(obj: Union[os.PathLike, str]):
@@ -172,8 +172,8 @@ class ProxyWorkRun:
 
     @staticmethod
     def _process_call_args(args: Tuple[Any, ...], kwargs: Dict[str, Any]) -> Tuple[Tuple[Any, ...], Dict[str, Any]]:
-        """Processes all positional and keyword arguments before they get passed to the caller queue and sent to
-        the LightningWork.
+        """Processes all positional and keyword arguments before they get passed to the caller queue and sent to the
+        LightningWork.
 
         Currently, this method only applies sanitization to Lightning Path objects.
 
@@ -183,6 +183,7 @@ class ProxyWorkRun:
 
         Returns:
             The positional and keyword arguments in the same order they were passed in.
+
         """
 
         def sanitize(obj: Union[Path, Drive]) -> Union[Path, Dict]:
@@ -200,8 +201,8 @@ class ProxyWorkRun:
 
     @staticmethod
     def _convert_hashable(args: Tuple[Any, ...], kwargs: Dict[str, Any]) -> Tuple[Tuple[Any, ...], Dict[str, Any]]:
-        """Processes all positional and keyword arguments before they get passed to the caller queue and sent to
-        the LightningWork.
+        """Processes all positional and keyword arguments before they get passed to the caller queue and sent to the
+        LightningWork.
 
         Currently, this method only applies sanitization to Hashable Objects.
 
@@ -211,6 +212,7 @@ class ProxyWorkRun:
 
         Returns:
             The positional and keyword arguments in the same order they were passed in.
+
         """
         from lightning.app.utilities.types import Hashable
 
@@ -221,9 +223,9 @@ class ProxyWorkRun:
 
 
 class WorkStateObserver(Thread):
-    """This thread runs alongside LightningWork and periodically checks for state changes. If the state changed
-    from one interval to the next, it will compute the delta and add it to the queue which is connected to the
-    Flow. This enables state changes to be captured that are not triggered through a setattr call.
+    """This thread runs alongside LightningWork and periodically checks for state changes. If the state changed from
+    one interval to the next, it will compute the delta and add it to the queue which is connected to the Flow. This
+    enables state changes to be captured that are not triggered through a setattr call.
 
     Args:
         work: The LightningWork for which the state should be monitored
@@ -238,6 +240,7 @@ class WorkStateObserver(Thread):
             def run(self):
                 # This update gets sent to the Flow once the thread compares the new state with the previous one
                 self.list.append(1)
+
     """
 
     def __init__(
@@ -309,8 +312,8 @@ class WorkStateObserver(Thread):
 
 @dataclass
 class LightningWorkSetAttrProxy:
-    """This wrapper around the ``LightningWork.__setattr__`` ensures that state changes get sent to the delta queue
-    to be reflected in the Flow.
+    """This wrapper around the ``LightningWork.__setattr__`` ensures that state changes get sent to the delta queue to
+    be reflected in the Flow.
 
     Example:
 
@@ -319,6 +322,7 @@ class LightningWorkSetAttrProxy:
 
             def run(self):
                 self.var += 1  # This update gets sent to the Flow immediately
+
     """
 
     work_name: str
@@ -637,6 +641,7 @@ class WorkRunner:
 
         Returns:
             The positional and keyword arguments in the same order they were passed in.
+
         """
 
         def _attach_work_and_get(transporter: Union[Path, Payload, dict]) -> Union[Path, Drive, dict, Any]:
@@ -690,6 +695,7 @@ def persist_artifacts(work: "LightningWork") -> None:
     storage.
 
     Files that don't exist or do not originate from the given Work will be skipped.
+
     """
     artifact_paths = [getattr(work, name) for name in work._paths]
     # only copy files that belong to this Work, i.e., when the path's origin refers to the current Work

@@ -14,8 +14,8 @@
 import multiprocessing
 
 import torch
+from lightning.pytorch.plugins import MixedPrecision
 
-from lightning.pytorch.plugins import MixedPrecisionPlugin
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -24,7 +24,7 @@ from tests_pytorch.helpers.runif import RunIf
 def test_amp_gpus_ddp_fork():
     """Ensure the use of AMP with `ddp_fork` (or associated alias strategies) does not generate CUDA initialization
     errors."""
-    _ = MixedPrecisionPlugin(precision="16-mixed", device="cuda")
+    _ = MixedPrecision(precision="16-mixed", device="cuda")
     with multiprocessing.get_context("fork").Pool(1) as pool:
         in_bad_fork = pool.apply(torch.cuda._is_in_bad_fork)
     assert not in_bad_fork

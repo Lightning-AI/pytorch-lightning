@@ -158,6 +158,7 @@ class Database(LightningWork):
 
                 # RIGHT THERE ! You need to use Field and Column with the `pydantic_column_type` utility.
                 kv: List[KeyValuePair] = Field(..., sa_column=Column(pydantic_column_type(List[KeyValuePair])))
+
         """
         super().__init__(parallel=True, cloud_build_config=BuildConfig(["sqlmodel"]))
         self.db_filename = db_filename

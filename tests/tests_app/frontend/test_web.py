@@ -2,11 +2,10 @@ import os
 from unittest import mock
 from unittest.mock import ANY, MagicMock
 
-import pytest
-
 import lightning.app
+import pytest
 from lightning.app import LightningFlow
-from lightning.app.frontend.web import _healthz, StaticWebFrontend
+from lightning.app.frontend.web import StaticWebFrontend, _healthz
 from lightning.app.storage.path import _storage_root_dir
 
 

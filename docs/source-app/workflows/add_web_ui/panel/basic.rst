@@ -147,7 +147,7 @@ First, find the Panel app you want to integrate. In this example, that app looks
 
     pn.panel("Hello **Panel ⚡** World").servable()
 
-Refer to the `Panel documentation <https://docs.Panel.io/>`_ and `awesome-panel.org <https://awesome-panel.org>`_ for more complex examples.
+Refer to the `Panel documentation <https://panel.holoviz.org/>`_ and `awesome-panel.org <https://awesome-panel.org>`_ for more complex examples.
 
 ----
 

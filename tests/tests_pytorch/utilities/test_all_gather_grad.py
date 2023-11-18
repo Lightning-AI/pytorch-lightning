@@ -13,10 +13,11 @@
 # limitations under the License.
 
 import numpy as np
+import pytest
 import torch
-
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
+
 from tests_pytorch.core.test_results import spawn_launch
 from tests_pytorch.helpers.runif import RunIf
 
@@ -45,6 +46,7 @@ def all_gather_ddp_spawn_fn(strategy):
 
 
 @RunIf(skip_windows=True)
+@pytest.mark.flaky(reruns=3)
 def test_all_gather_ddp_spawn():
     spawn_launch(all_gather_ddp_spawn_fn, [torch.device("cpu")] * 3)
 

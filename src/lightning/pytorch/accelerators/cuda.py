@@ -18,6 +18,7 @@ import subprocess
 from typing import Any, Dict, List, Optional, Union
 
 import torch
+from typing_extensions import override
 
 import lightning.pytorch as pl
 from lightning.fabric.accelerators import _AcceleratorRegistry
@@ -33,6 +34,7 @@ _log = logging.getLogger(__name__)
 class CUDAAccelerator(Accelerator):
     """Accelerator for NVIDIA CUDA devices."""
 
+    @override
     def setup_device(self, device: torch.device) -> None:
         """
         Raises:
@@ -44,6 +46,7 @@ class CUDAAccelerator(Accelerator):
         _check_cuda_matmul_precision(device)
         torch.cuda.set_device(device)
 
+    @override
     def setup(self, trainer: "pl.Trainer") -> None:
         # TODO refactor input from trainer to local_rank @four4fish
         self.set_nvidia_flags(trainer.local_rank)
@@ -57,6 +60,7 @@ class CUDAAccelerator(Accelerator):
         devices = os.getenv("CUDA_VISIBLE_DEVICES", all_gpu_ids)
         _log.info(f"LOCAL_RANK: {local_rank} - CUDA_VISIBLE_DEVICES: [{devices}]")
 
+    @override
     def get_device_stats(self, device: _DEVICE) -> Dict[str, Any]:
         """Gets stats for the given GPU device.
 
@@ -69,37 +73,44 @@ class CUDAAccelerator(Accelerator):
         Raises:
             FileNotFoundError:
                 If nvidia-smi installation not found
+
         """
         return torch.cuda.memory_stats(device)
 
+    @override
     def teardown(self) -> None:
         _clear_cuda_memory()
 
     @staticmethod
+    @override
     def parse_devices(devices: Union[int, str, List[int]]) -> Optional[List[int]]:
         """Accelerator device parsing logic."""
         return _parse_gpu_ids(devices, include_cuda=True)
 
     @staticmethod
+    @override
     def get_parallel_devices(devices: List[int]) -> List[torch.device]:
         """Gets parallel devices for the Accelerator."""
         return [torch.device("cuda", i) for i in devices]
 
     @staticmethod
+    @override
     def auto_device_count() -> int:
         """Get the devices when set to auto."""
         return num_cuda_devices()
 
     @staticmethod
+    @override
     def is_available() -> bool:
         return num_cuda_devices() > 0
 
     @classmethod
+    @override
     def register_accelerators(cls, accelerator_registry: _AcceleratorRegistry) -> None:
         accelerator_registry.register(
             "cuda",
             cls,
-            description=f"{cls.__class__.__name__}",
+            description=cls.__name__,
         )
 
 
@@ -115,6 +126,7 @@ def get_nvidia_gpu_stats(device: _DEVICE) -> Dict[str, float]:  # pragma: no-cov
     Raises:
         FileNotFoundError:
             If nvidia-smi installation not found
+
     """
     nvidia_smi_path = shutil.which("nvidia-smi")
     if nvidia_smi_path is None:

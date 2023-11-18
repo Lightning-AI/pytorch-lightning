@@ -5,12 +5,15 @@ from unittest import mock
 from unittest.mock import ANY, Mock
 
 import pytest
-
 from lightning.app import LightningFlow
 from lightning.app.frontend.stream_lit import StreamlitFrontend
 from lightning.app.utilities.state import AppState
+from lightning_utilities.core.imports import RequirementCache
+
+_STREAMLIT_AVAILABLE = RequirementCache("streamlit")
 
 
+@pytest.mark.skipif(not _STREAMLIT_AVAILABLE, reason="requires streamlit")
 def test_stop_server_not_running():
     frontend = StreamlitFrontend(render_fn=Mock())
     with pytest.raises(RuntimeError, match="Server is not running."):
@@ -30,6 +33,7 @@ class MockFlow(LightningFlow):
         pass
 
 
+@pytest.mark.skipif(not _STREAMLIT_AVAILABLE, reason="requires streamlit")
 @mock.patch("lightning.app.frontend.stream_lit.subprocess")
 def test_streamlit_frontend_start_stop_server(subprocess_mock):
     """Test that `StreamlitFrontend.start_server()` invokes subprocess.Popen with the right parameters."""
@@ -87,6 +91,7 @@ def test_streamlit_wrapper_calls_render_fn(*_):
     # TODO: find a way to assert that _streamlit_call_me got called
 
 
+@pytest.mark.skipif(not _STREAMLIT_AVAILABLE, reason="requires streamlit")
 def test_method_exception():
     class A:
         def render_fn(self):

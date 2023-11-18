@@ -20,7 +20,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
 from lightning.app.core.work import LightningWork
-from lightning.app.utilities.app_helpers import _collect_child_process_pids, Logger
+from lightning.app.utilities.app_helpers import Logger, _collect_child_process_pids
 from lightning.app.utilities.tracer import Tracer
 
 logger = Logger(__name__)
@@ -70,6 +70,7 @@ class PopenPythonScript(LightningWork):
 
         .. literalinclude:: ../../../../examples/app/components/python/component_popen.py
             :language: python
+
         """
         super().__init__(**kwargs)
         if not os.path.exists(script_path):

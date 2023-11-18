@@ -1,17 +1,17 @@
 # app.py
-import lightning as L
+from lightning.app import LightningWork, LightningFlow, LightningApp
 from lightning.app.runners import MultiProcessRuntime
 
 
-class TrainComponent(L.LightningWork):
+class TrainComponent(LightningWork):
     def run(self, x):
         print(f'train a model on {x}')
 
-class AnalyzeComponent(L.LightningWork):
+class AnalyzeComponent(LightningWork):
     def run(self, x):
         print(f'analyze model on {x}')
 
-class WorkflowOrchestrator(L.LightningFlow):
+class WorkflowOrchestrator(LightningFlow):
     def __init__(self) -> None:
         super().__init__()
         self.train = TrainComponent()
@@ -21,5 +21,5 @@ class WorkflowOrchestrator(L.LightningFlow):
         self.train.run("GPU machine 1")
         self.analyze.run("CPU machine 2")
 
-app = L.LightningApp(WorkflowOrchestrator())
+app = LightningApp(WorkflowOrchestrator())
 MultiProcessRuntime(app).dispatch()

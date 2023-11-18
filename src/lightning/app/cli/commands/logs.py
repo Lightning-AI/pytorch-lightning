@@ -46,6 +46,7 @@ def logs(app_name: str, components: List[str], follow: bool) -> None:
     Print logs only from selected works:
 
     $ lightning show logs my-application root.work_a root.work_b
+
     """
     _show_logs(app_name, components, follow)
 

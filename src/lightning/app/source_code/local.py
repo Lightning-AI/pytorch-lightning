@@ -13,14 +13,14 @@
 # limitations under the License.
 
 import os
+import uuid
 from contextlib import contextmanager
 from pathlib import Path
 from shutil import copytree, rmtree
 from typing import List, Optional
 
 from lightning.app.core.constants import DOT_IGNORE_FILENAME, SYS_CUSTOMIZATIONS_SYNC_PATH
-from lightning.app.source_code.copytree import _copytree, _IGNORE_FUNCTION
-from lightning.app.source_code.hashing import _get_hash
+from lightning.app.source_code.copytree import _IGNORE_FUNCTION, _copytree
 from lightning.app.source_code.tar import _tar_path
 from lightning.app.source_code.uploader import FileUploader
 
@@ -28,7 +28,14 @@ from lightning.app.source_code.uploader import FileUploader
 class LocalSourceCodeDir:
     """Represents the source code directory and provide the utilities to manage it."""
 
-    def __init__(self, path: Path, ignore_functions: Optional[List[_IGNORE_FUNCTION]] = None) -> None:
+    def __init__(
+        self,
+        path: Path,
+        ignore_functions: Optional[List[_IGNORE_FUNCTION]] = None,
+        default_ignore: bool = True,
+        package_source: bool = True,
+        sys_customizations_root: Optional[Path] = None,
+    ) -> None:
         if "LIGHTNING_VSCODE_WORKSPACE" in os.environ:
             # Don't use home to store the tar ball. This won't play nice with symlinks
             self.cache_location: Path = Path("/tmp", ".lightning", "cache", "repositories")
@@ -37,8 +44,10 @@ class LocalSourceCodeDir:
 
         self.path = path
         self.ignore_functions = ignore_functions
+        self.package_source = package_source
+        self.sys_customizations_root = sys_customizations_root
 
-        # cache checksum version
+        # cache version
         self._version: Optional[str] = None
         self._non_ignored_files: Optional[List[str]] = None
 
@@ -46,8 +55,8 @@ class LocalSourceCodeDir:
         if not self.cache_location.exists():
             self.cache_location.mkdir(parents=True, exist_ok=True)
 
-        # Create a default dotignore if it doesn't exist
-        if not (path / DOT_IGNORE_FILENAME).is_file():
+        # Create a default dotignore if requested and it doesn't exist
+        if default_ignore and not (path / DOT_IGNORE_FILENAME).is_file():
             with open(path / DOT_IGNORE_FILENAME, "w") as f:
                 f.write("venv/\n")
                 if (path / "bin" / "activate").is_file() or (path / "pyvenv.cfg").is_file():
@@ -61,7 +70,10 @@ class LocalSourceCodeDir:
     def files(self) -> List[str]:
         """Returns a set of files that are not ignored by .lightningignore."""
         if self._non_ignored_files is None:
-            self._non_ignored_files = _copytree(self.path, "", ignore_functions=self.ignore_functions, dry_run=True)
+            if self.package_source:
+                self._non_ignored_files = _copytree(self.path, "", ignore_functions=self.ignore_functions, dry_run=True)
+            else:
+                self._non_ignored_files = []
         return self._non_ignored_files
 
     @property
@@ -71,8 +83,8 @@ class LocalSourceCodeDir:
         if self._version is not None:
             return self._version
 
-        # stores both version and a set with the files used to generate the checksum
-        self._version = _get_hash(files=self.files, algorithm="blake2")
+        # create a random version ID and store it
+        self._version = uuid.uuid4().hex
         return self._version
 
     @property
@@ -87,7 +99,11 @@ class LocalSourceCodeDir:
         session_path = self.cache_location / "packaging_sessions" / self.version
         try:
             rmtree(session_path, ignore_errors=True)
-            _copytree(self.path, session_path, ignore_functions=self.ignore_functions)
+            if self.package_source:
+                _copytree(self.path, session_path, ignore_functions=self.ignore_functions)
+            if self.sys_customizations_root is not None:
+                path_to_sync = Path(session_path, SYS_CUSTOMIZATIONS_SYNC_PATH)
+                copytree(self.sys_customizations_root, path_to_sync, dirs_exist_ok=True)
             yield session_path
         finally:
             rmtree(session_path, ignore_errors=True)
@@ -108,14 +124,8 @@ class LocalSourceCodeDir:
             _tar_path(source_path=session_path, target_file=str(self.package_path), compression=True)
         return self.package_path
 
-    def prepare_sys_customizations_sync(self, sys_customizations_root: Path) -> None:
-        """Prepares files for system environment customization setup by copying conda and system environment files
-        to an app files directory."""
-        path_to_sync = Path(self.path, SYS_CUSTOMIZATIONS_SYNC_PATH)
-        copytree(sys_customizations_root, path_to_sync, dirs_exist_ok=True)
-
     def upload(self, url: str) -> None:
-        """Uploads package to URL, usually pre-signed URL.
+        """Uploads package to URL, usually pre-signed UR.
 
         Notes
         -----
@@ -123,6 +133,7 @@ class LocalSourceCodeDir:
         packaged repository files which have a size > 2GB.
 
         This limitation should be removed during the datastore upload redesign
+
         """
         if self.package_path.stat().st_size > 2e9:
             raise OSError(

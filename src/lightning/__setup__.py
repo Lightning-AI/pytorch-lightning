@@ -39,20 +39,31 @@ def _prepare_extras() -> Dict[str, Any]:
         for p in req_files
         if p.name not in ("docs.txt", "base.txt") and not p.parent.name.startswith("_")
     }
+
     # project specific extras groups
     extras["fabric-all"] = extras["fabric-strategies"] + extras["fabric-examples"]
     extras["fabric-dev"] = extras["fabric-all"] + extras["fabric-test"]
     extras["pytorch-all"] = extras["pytorch-extra"] + extras["pytorch-strategies"] + extras["pytorch-examples"]
     extras["pytorch-dev"] = extras["pytorch-all"] + extras["pytorch-test"]
-    extras["app-extra"] = extras["app-cloud"] + extras["app-ui"] + extras["app-components"]
+    extras["app-extra"] = extras["app-app"] + extras["app-cloud"] + extras["app-ui"] + extras["app-components"]
     extras["app-all"] = extras["app-extra"]
     extras["app-dev"] = extras["app-all"] + extras["app-test"]
     extras["data-all"] = extras["data-data"] + extras["data-cloud"] + extras["data-examples"]
     extras["data-dev"] = extras["data-all"] + extras["data-test"]
+    extras["store-store"] = extras["app-app"]  # todo: consider cutting/leaning this dependency
+
     # merge per-project extras of the same category, e.g. `app-test` + `fabric-test`
     for extra in list(extras):
         name = "-".join(extra.split("-")[1:])
         extras[name] = extras.get(name, []) + extras[extra]
+
+    # drop quasi base the req. file has the same name sub-package
+    for k in list(extras.keys()):
+        kk = k.split("-")
+        if not (len(kk) == 2 and kk[0] == kk[1]):
+            continue
+        extras[kk[0]] = list(extras[k])
+        del extras[k]
     extras = {name: sorted(set(reqs)) for name, reqs in extras.items()}
     print("The extras are: ", extras)
     return extras
@@ -64,14 +75,25 @@ def _setup_args() -> Dict[str, Any]:
     long_description = _ASSISTANT.load_readme_description(
         _PROJECT_ROOT, homepage=about.__homepage__, version=version.version
     )
-    # TODO: consider invaliding some additional arguments from packages, for example if include data or safe to zip
 
     # TODO: remove this once lightning-ui package is ready as a dependency
-    _ASSISTANT._download_frontend(os.path.join(_SOURCE_ROOT, "lightning", "app"))
+    ui_ver_file = os.path.join(_SOURCE_ROOT, "app-ui-version.info")
+    if os.path.isfile(ui_ver_file):
+        with open(ui_ver_file, encoding="utf-8") as fo:
+            ui_version = fo.readlines()[0].strip()
+        download_fe_version = {"version": ui_version}
+    else:
+        print(f"Missing file with FE version: {ui_ver_file}")
+        download_fe_version = {}
+    _ASSISTANT._download_frontend(os.path.join(_PACKAGE_ROOT, "app"), **download_fe_version)
+
+    # TODO: consider invaliding some additional arguments from packages, for example if include data or safe to zip
 
     install_requires = _ASSISTANT.load_requirements(
         _PATH_REQUIREMENTS, unfreeze="none" if _FREEZE_REQUIREMENTS else "major"
-    ) + ["pytorch-lightning"]
+    )
+    # toto: remove when we realize that this is making confusion as cross pkg import is not fully compatible
+    install_requires += ["pytorch-lightning"]
 
     return {
         "name": "lightning",
@@ -92,7 +114,7 @@ def _setup_args() -> Dict[str, Any]:
         "python_requires": ">=3.8",  # todo: take the lowes based on all packages
         "entry_points": {
             "console_scripts": [
-                "lightning = lightning.app.cli.lightning_cli:main",
+                "lightning = lightning:_cli_entry_point",
             ],
         },
         "setup_requires": [],
@@ -121,5 +143,6 @@ def _setup_args() -> Dict[str, Any]:
             "Programming Language :: Python :: 3.8",
             "Programming Language :: Python :: 3.9",
             "Programming Language :: Python :: 3.10",
+            "Programming Language :: Python :: 3.11",
         ],  # todo: consider aggregation/union of tags from particular packages
     }

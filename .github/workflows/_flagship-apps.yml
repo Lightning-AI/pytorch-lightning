@@ -5,20 +5,20 @@ on:
   workflow_call:
     inputs:
       environment:
-        description: 'Lightning environment'
+        description: "Lightning environment"
         required: false
-        default: 'PROD'
+        default: "PROD"
         type: string
   workflow_dispatch:
     inputs:
       environment:
-        description: 'Lightning environment'
+        description: "Lightning environment"
         required: true
-        default: 'PROD'
+        default: "PROD"
         type: choice
         options:
-        - PROD
-        - STAGING
+          - PROD
+          - STAGING
 
 defaults:
   run:
@@ -29,14 +29,14 @@ jobs:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     container:
-      image: mcr.microsoft.com/playwright/python:v1.35.0-focal
+      image: mcr.microsoft.com/playwright/python:v1.38.0-focal
     strategy:
       fail-fast: false
       matrix:
         include:
-          - {app: "flashy", repo: "Lightning-Universe/Flashy-app"}
-          - {app: "muse", repo: "Lightning-Universe/stable-diffusion-deploy"}
-          - {app: "jupyter", repo: "Lightning-Universe/Jupyter-component"}
+          - { app: "flashy", repo: "Lightning-Universe/Flashy-app" }
+          - { app: "muse", repo: "Lightning-Universe/stable-diffusion-deploy" }
+          - { app: "jupyter", repo: "Lightning-Universe/Jupyter-component" }
 
           # TODO:
           # - Training Studio
@@ -45,28 +45,33 @@ jobs:
           # - All homepage & docs apps
 
     env:
-      HEADLESS: '1'
-      PACKAGE_LIGHTNING: '1'
-      CLOUD: '1'
-      VIDEO_LOCATION: './videos'
-      HAR_LOCATION: './artifacts/hars'
-      SLOW_MO: '50'
-      LIGHTNING_DEBUG: '1'
-      TORCH_URL: 'https://download.pytorch.org/whl/cpu/torch_stable.html'
+      HEADLESS: "1"
+      PACKAGE_LIGHTNING: "1"
+      CLOUD: "1"
+      VIDEO_LOCATION: "./videos"
+      HAR_LOCATION: "./artifacts/hars"
+      SLOW_MO: "50"
+      LIGHTNING_DEBUG: "1"
+      TORCH_URL: "https://download.pytorch.org/whl/cpu/torch_stable.html"
     # Timeout: https://stackoverflow.com/a/59076067/4521646
     timeout-minutes: 20
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: basic setup
+        timeout-minutes: 20
         run: |
           mkdir -p tests/_flagships
           mkdir -p $VIDEO_LOCATION
+          pip --version
+          pip list
+          # for some reason the python package playwright is missing
+          pip install -r requirements/app/test.txt
           python -m playwright install  # --with-deps
 
       - name: Clone the Repo/App
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           repository: ${{ matrix.repo }}
           path: tests/_flagship-app
@@ -77,6 +82,7 @@ jobs:
           name: ${{ matrix.app }}
 
       - name: Install Lightning package
+        timeout-minutes: 20
         run: pip install -e .[cloud,test] -f $TORCH_URL
       - name: List pip dependency
         run: pip --version && pip list

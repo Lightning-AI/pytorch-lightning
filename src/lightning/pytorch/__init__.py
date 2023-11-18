@@ -23,6 +23,7 @@ if not _root_logger.hasHandlers():
     _logger.propagate = False
 
 from lightning.fabric.utilities.seed import seed_everything  # noqa: E402
+from lightning.fabric.utilities.warnings import disable_possible_user_warnings  # noqa: E402
 from lightning.pytorch.callbacks import Callback  # noqa: E402
 from lightning.pytorch.core import LightningDataModule, LightningModule  # noqa: E402
 from lightning.pytorch.trainer import Trainer  # noqa: E402
@@ -65,3 +66,7 @@ def cli_lightning_logo() -> None:
     print()
     print("\033[0;35m" + LIGHTNING_LOGO + "\033[0m")
     print()
+
+
+if os.environ.get("POSSIBLE_USER_WARNINGS", "").lower() in ("0", "off"):
+    disable_possible_user_warnings()

@@ -18,17 +18,33 @@ Convention:
 """
 from contextlib import contextmanager
 from dataclasses import dataclass
-from typing import Any, Generator, List, Mapping, Optional, Protocol, runtime_checkable, Type, Union
+from typing import (
+    Any,
+    Generator,
+    Iterator,
+    List,
+    Mapping,
+    Optional,
+    Protocol,
+    Sequence,
+    Tuple,
+    Type,
+    TypedDict,
+    Union,
+    runtime_checkable,
+)
 
 import torch
 from torch import Tensor
+from torch.optim import Optimizer
 from torchmetrics import Metric
+from typing_extensions import NotRequired, Required
 
 from lightning.fabric.utilities.types import _TORCH_LRSCHEDULER, LRScheduler, ProcessGroup, ReduceLROnPlateau
 
 _NUMBER = Union[int, float]
 _METRIC = Union[Metric, Tensor, _NUMBER]
-STEP_OUTPUT = Union[Tensor, Mapping[str, Any]]
+STEP_OUTPUT = Optional[Union[Tensor, Mapping[str, Any]]]
 _EVALUATE_OUTPUT = List[Mapping[str, float]]  # 1 dict per DataLoader
 _PREDICT_OUTPUT = Union[List[Any], List[List[Any]]]
 TRAIN_DATALOADERS = Any  # any iterable or collection of iterables
@@ -82,3 +98,36 @@ class LRSchedulerConfig:
     monitor: Optional[str] = None
     # enforce that the monitor exists for ReduceLROnPlateau
     strict: bool = True
+
+
+class LRSchedulerConfigType(TypedDict, total=False):
+    scheduler: Required[LRSchedulerTypeUnion]
+    name: Optional[str]
+    interval: str
+    frequency: int
+    reduce_on_plateau: bool
+    monitor: Optional[str]
+    scrict: bool
+
+
+class OptimizerLRSchedulerConfig(TypedDict):
+    optimizer: Optimizer
+    lr_scheduler: NotRequired[Union[LRSchedulerTypeUnion, LRSchedulerConfigType]]
+
+
+OptimizerLRScheduler = Optional[
+    Union[
+        Optimizer,
+        Sequence[Optimizer],
+        Tuple[Sequence[Optimizer], Sequence[Union[LRSchedulerTypeUnion, LRSchedulerConfig]]],
+        OptimizerLRSchedulerConfig,
+    ]
+]
+
+
+class _SizedIterable(Protocol):
+    def __len__(self) -> int:
+        pass
+
+    def __iter__(self) -> Iterator:
+        pass

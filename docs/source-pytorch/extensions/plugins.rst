@@ -12,11 +12,11 @@ cluster environment implementation.
 Under the hood, the Lightning Trainer is using plugins in the training routine, added automatically
 depending on the provided Trainer arguments.
 
-There are three types of Plugins in Lightning with different responsibilities:
+There are three types of plugins in Lightning with different responsibilities:
 
-- Precision Plugins
-- CheckpointIO Plugins
-- Cluster Environments
+- Precision plugins
+- CheckpointIO plugins
+- Cluster environments
 
 You can make the Trainer use one or multiple plugins by adding it to the ``plugins`` argument like so:
 
@@ -52,13 +52,15 @@ The full list of built-in precision plugins is listed below.
     :nosignatures:
     :template: classtemplate.rst
 
-    DeepSpeedPrecisionPlugin
-    DoublePrecisionPlugin
-    FSDPMixedPrecisionPlugin
-    MixedPrecisionPlugin
-    PrecisionPlugin
-    XLABf16PrecisionPlugin
-    XLAPrecisionPlugin
+    DeepSpeedPrecision
+    DoublePrecision
+    HalfPrecision
+    FSDPPrecision
+    MixedPrecision
+    Precision
+    XLAPrecision
+    TransformerEnginePrecision
+    BitsandbytesPrecision
 
 More information regarding precision with Lightning can be found :ref:`here <precision>`
 

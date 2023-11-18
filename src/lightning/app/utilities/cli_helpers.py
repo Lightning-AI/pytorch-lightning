@@ -129,6 +129,7 @@ class _LightningAppOpenAPIRetriever:
         Arguments:
             app_id_or_name_or_url: An identified for the app.
             use_cache: Whether to load the openapi spec from the cache.
+
         """
         self.app_id_or_name_or_url = app_id_or_name_or_url
         self.url = None
@@ -182,7 +183,7 @@ class _LightningAppOpenAPIRetriever:
         project = _get_project(client)
         list_apps = client.lightningapp_instance_service_list_lightningapp_instances(project_id=project.project_id)
 
-        app_names = [_get_app_display_name(lightningapp) for lightningapp in list_apps.lightningapps]
+        app_names = [_get_app_display_name(lit_app) for lit_app in list_apps.lightningapps]
 
         if not self.app_id_or_name_or_url:
             print(f"ERROR: Provide an application name, id or url with --app_id=X. Found {app_names}")
@@ -248,8 +249,8 @@ def _arrow_time_callback(
 
 @functools.lru_cache(maxsize=1)
 def _get_newer_version() -> Optional[str]:
-    """Check PyPI for newer versions of ``lightning``, returning the newest version if different from the current
-    or ``None`` otherwise."""
+    """Check PyPI for newer versions of ``lightning``, returning the newest version if different from the current or
+    ``None`` otherwise."""
     if packaging.version.parse(__version__).is_prerelease:
         return None
     try:
@@ -282,6 +283,7 @@ def _check_version_and_upgrade():
     """Checks that the current version of ``lightning`` is the latest on PyPI.
 
     If not, prompt the user to upgrade ``lightning`` for them and re-run the current call in the new version.
+
     """
     new_version = _get_newer_version()
     if new_version:
@@ -304,11 +306,11 @@ def _check_version_and_upgrade():
 
 
 def _check_environment_and_redirect():
-    """Checks that the current ``sys.executable`` is the same as the executable resolved from the current
-    environment.
+    """Checks that the current ``sys.executable`` is the same as the executable resolved from the current environment.
 
     If not, this utility tries to redirect the ``lightning`` call to the environment executable (prompting the user to
     install lightning for them there if needed).
+
     """
     process = subprocess.run(
         ["python", "-c", "import sys; print(sys.executable)"],

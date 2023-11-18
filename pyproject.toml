@@ -13,7 +13,7 @@
 # limitations under the License.
 
 [metadata]
-name = "pytorch-lightning"
+name = "lightning"
 author = "Lightning-AI et al."
 url = "https://github.com/Lightning-AI/lightning"
 
@@ -24,31 +24,26 @@ requires = [
 ]
 
 
-[tool.isort]
-known_first_party = [
-    "examples",
-    "lightning",
-    "lightning_app",
-    "lightning_fabric",
-    "pytorch_lightning",
-    "parity_fabric",
-    "parity_pytorch",
-    "integrations_app",
-    "tests_app",
-    "tests_cloud",
-    "tests_fabric",
-    "tests_pytorch",
-]
-profile = "black"
-line_length = 120
-force_sort_within_sections = "False"
-order_by_type = "False"
-skip = ["_notebooks"]
-
-
 [tool.black]
 line-length = 120
 exclude = '(_notebooks/.*)'
+
+[tool.docformatter]
+recursive = true
+# this need to be shorter as some docstings are r"""...
+wrap-summaries = 119
+wrap-descriptions = 120
+blank = true
+
+[tool.codespell]
+# Todo: enable also python files in a next step
+skip = '*.py'
+quiet-level = 3
+# comma separated list of words; waiting for:
+#  https://github.com/codespell-project/codespell/issues/2839#issuecomment-1731601603
+# also adding links until they ignored by its: nature
+#  https://github.com/codespell-project/codespell/issues/2243#issuecomment-1732019960
+ignore-words-list = "te, compiletime"
 
 
 [tool.ruff]
@@ -58,8 +53,10 @@ select = [
     "E", "W",  # see: https://pypi.org/project/pycodestyle
     "F",  # see: https://pypi.org/project/pyflakes
     "S",  # see: https://pypi.org/project/flake8-bandit
+    "RUF018",  # see: https://docs.astral.sh/ruff/rules/assignment-in-assert
 ]
 extend-select = [
+    "I",  # see: isort
     "C4",  # see: https://pypi.org/project/flake8-comprehensions
     "SIM",  # see: https://pypi.org/project/flake8-simplify
     "RET",  # see: https://pypi.org/project/flake8-return
@@ -68,6 +65,7 @@ extend-select = [
 ignore = [
     "E731",  # Do not assign a lambda expression, use a def
     "S108",
+    "E203", # conflicts with black
 ]
 # Exclude a variety of commonly ignored directories.
 exclude = [
@@ -131,12 +129,6 @@ files = [
 ]
 # This section is for folders with "-" as they are not valid python modules
 exclude = [
-    "src/lightning_app/__about__.py",
-    "src/lightning_app/__setup__.py",
-    "src/lightning_app/__version__.py",
-    "src/lightning_fabric/__about__.py",
-    "src/lightning_fabric/__setup__.py",
-    "src/lightning_fabric/__version__.py",
     "src/lightning/app/cli/app-template",
     "src/lightning/app/cli/component-template",
     "src/lightning/app/cli/pl-app-template",
@@ -195,7 +187,10 @@ module = [
     "lightning.app.frontend.stream_lit",
     "lightning.app.frontend.utils",
     "lightning.app.frontend.web",
-    "lightning.app.perf.pdb",
+    "lightning.app.launcher.launcher",
+    "lightning.app.launcher.lightning_backend",
+    "lightning.app.launcher.lightning_hybrid_backend",
+    "lightning.app.pdb.pdb",
     "lightning.app.runners.backends.backend",
     "lightning.app.runners.backends.cloud",
     "lightning.app.runners.backends.docker",
@@ -222,7 +217,6 @@ module = [
     "lightning.app.utilities.app_logs",
     "lightning.app.utilities.cli_helpers",
     "lightning.app.utilities.cloud",
-    "lightning.app.utilities.cluster_logs",
     "lightning.app.utilities.commands.base",
     "lightning.app.utilities.component",
     "lightning.app.utilities.enum",
@@ -244,9 +238,6 @@ module = [
     "lightning.app.utilities.state",
     "lightning.app.utilities.tracer",
     "lightning.app.utilities.tree",
-    "lightning.store.authentication",
-    "lightning.store.cloud_api",
-    "lightning.store.save",
     "lightning.store.utils",
 ]
 ignore_errors = "True"

@@ -23,7 +23,7 @@ from typing_extensions import TypedDict
 from lightning.app.core.work import LightningWork
 from lightning.app.storage.drive import Drive
 from lightning.app.storage.payload import Payload
-from lightning.app.utilities.app_helpers import _collect_child_process_pids, Logger
+from lightning.app.utilities.app_helpers import Logger, _collect_child_process_pids
 from lightning.app.utilities.packaging.tarfile import clean_tarfile, extract_tarfile
 from lightning.app.utilities.tracer import Tracer
 
@@ -117,6 +117,7 @@ class TracerPythonScript(LightningWork):
 
         .. literalinclude:: ../../../../examples/app/components/python/app.py
             :language: python
+
         """
         super().__init__(**kwargs)
         self.script_path = str(script_path)

@@ -11,7 +11,7 @@ We are going to use a python performance testing tool called `Locust <https://gi
 .. literalinclude:: ./locust_component.py
 
 
-Finally, once the component is done, we need to crate a ``locustfile.py`` file which defines the format of the request to send to your model server.
+Finally, once the component is done, we need to create a ``locustfile.py`` file which defines the format of the request to send to your model server.
 
 The endpoint to hit has the following format: ``/v2/models/{MODEL_NAME}/versions/{VERSION}/infer``.
 

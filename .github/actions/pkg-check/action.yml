@@ -13,45 +13,44 @@ inputs:
 runs:
   using: "composite"
   steps:
+    - name: install dev. env
+      run: pip install "twine==4.0.1" setuptools wheel flake8
+      shell: bash
 
-  - name: install dev. env
-    run: pip install "twine==4.0.1" setuptools wheel flake8
-    shell: bash
+    - name: Set PACKAGE_NAME envvar
+      if: ${{ inputs.pkg-name != 'notset' }}
+      run: echo "PACKAGE_NAME=${{ inputs.pkg-name }}" >> $GITHUB_ENV
+      shell: bash
 
-  - name: Set PACKAGE_NAME envvar
-    if: ${{ inputs.pkg-name != 'notset' }}
-    run: echo "PACKAGE_NAME=${{ inputs.pkg-name }}" >> $GITHUB_ENV
-    shell: bash
+    - name: Source check
+      run: python setup.py check --metadata --strict
+      shell: bash
 
-  - name: Source check
-    run: python setup.py check --metadata --strict
-    shell: bash
+    - name: Create package
+      run: python setup.py sdist bdist_wheel
+      shell: bash
 
-  - name: Create package
-    run: python setup.py sdist bdist_wheel
-    shell: bash
+    - name: Check package
+      run: |
+        git diff --exit-code || exit $?  # make sure there are no local unstaged changes
+        ls -l dist/
+        twine check dist/*
+      shell: bash
 
-  - name: Check package
-    run: |
-      git diff --exit-code || exit $?  # make sure there are no local unstaged changes
-      ls -l dist/
-      twine check dist/*
-    shell: bash
+    - name: Unzip packages
+      working-directory: dist
+      run: for file in `ls *.gz`; do tar -xzf $file; done
+      shell: bash
 
-  - name: Unzip packages
-    working-directory: dist
-    run: for file in `ls *.gz`; do tar -xzf $file; done
-    shell: bash
-
-  - name: Check single pkg/folder
-    working-directory: dist
-    run: |
-      import os, glob, pathlib, shutil
-      # list folders without ending .egg-info
-      ls = glob.glob(os.path.join("*", "src", "*"))
-      dirs = [d for d in ls if os.path.isdir(d) and not d.endswith(".egg-info")]
-      print(dirs)
-      assert len(dirs) == ${{ inputs.nb-dirs }}
-      # cleaning
-      shutil.rmtree(pathlib.Path(dirs[0]).parent.parent)
-    shell: python
+    - name: Check single pkg/folder
+      working-directory: dist
+      run: |
+        import os, glob, pathlib, shutil
+        # list folders without ending .egg-info
+        ls = glob.glob(os.path.join("*", "src", "*"))
+        dirs = [d for d in ls if os.path.isdir(d) and not d.endswith(".egg-info")]
+        print(dirs)
+        assert len(dirs) == ${{ inputs.nb-dirs }}
+        # cleaning
+        shutil.rmtree(pathlib.Path(dirs[0]).parent.parent)
+      shell: python

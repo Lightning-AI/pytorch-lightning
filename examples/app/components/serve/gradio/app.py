@@ -3,10 +3,9 @@ from functools import partial
 import gradio as gr
 import requests
 import torch
-from PIL import Image
-
-import lightning as L
+from lightning.app import LightningApp, LightningFlow
 from lightning.app.components import ServeGradio
+from PIL import Image
 
 
 # Credit to @akhaliq for his inspiring work.
@@ -34,7 +33,7 @@ class AnimeGANv2UI(ServeGradio):
         return partial(face2paint, model=model)
 
 
-class RootFlow(L.LightningFlow):
+class RootFlow(LightningFlow):
     def __init__(self):
         super().__init__()
         self.demo = AnimeGANv2UI()
@@ -49,4 +48,4 @@ class RootFlow(L.LightningFlow):
         return tabs
 
 
-app = L.LightningApp(RootFlow())
+app = LightningApp(RootFlow())

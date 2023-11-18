@@ -18,13 +18,13 @@ import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 from threading import Thread
-from typing import Any, Dict, List, Optional, Type, TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Type, Union
 
-from lightning.app import LightningApp, LightningFlow
+from lightning.app.core import LightningApp, LightningFlow
 from lightning.app.core.constants import APP_SERVER_HOST, APP_SERVER_PORT
 from lightning.app.runners.backends import Backend, BackendType
 from lightning.app.utilities.app_helpers import Logger
-from lightning.app.utilities.enum import AppStage, CacheCallsKeys, make_status, WorkStageStatus
+from lightning.app.utilities.enum import AppStage, CacheCallsKeys, WorkStageStatus, make_status
 from lightning.app.utilities.load_app import load_app_from_file
 from lightning.app.utilities.proxies import WorkRunner
 
@@ -46,7 +46,6 @@ def dispatch(
     name: str = "",
     env_vars: Optional[Dict[str, str]] = None,
     secrets: Optional[Dict[str, str]] = None,
-    cluster_id: Optional[str] = None,
     run_app_comment_commands: bool = False,
     enable_basic_auth: str = "",
 ) -> Optional[Any]:
@@ -64,10 +63,10 @@ def dispatch(
         name: Name of app execution
         env_vars: Dict of env variables to be set on the app
         secrets: Dict of secrets to be passed as environment variables to the app
-        cluster_id: the Lightning AI cluster to run the app on. Defaults to managed Lightning AI cloud
         run_app_comment_commands: whether to parse commands from the entrypoint file and execute them before app startup
         enable_basic_auth: whether to enable basic authentication for the app
                            (use credentials in the format username:password as an argument)
+
     """
     from lightning.app.runners.runtime_type import RuntimeType
     from lightning.app.utilities.component import _set_flow_context
@@ -99,7 +98,7 @@ def dispatch(
     os.environ["LIGHTNING_DISPATCHED"] = "1"
     # a cloud dispatcher will return the result while local
     # dispatchers will be running the app in the main process
-    return runtime.dispatch(open_ui=open_ui, name=name, no_cache=no_cache, cluster_id=cluster_id)
+    return runtime.dispatch(open_ui=open_ui, name=name, no_cache=no_cache)
 
 
 @dataclass

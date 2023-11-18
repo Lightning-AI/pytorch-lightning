@@ -6,7 +6,7 @@
 Productionize your Apps
 #######################
 
-TODO: Cleanup
+.. TODO: Cleanup
 
 At the core of our system is an integration testing framework that will allow for a first-class experience creating integration tests for Lightning Apps. This document will explain how we can create a lightning app test, how we can execute it, and where to find more information.
 
@@ -112,7 +112,7 @@ These methods will skew your tests, so use them when needed.
 The Test
 ^^^^^^^^
 
-We provide ``application_testing`` as a helper funtion to get your application up and running for testing. It uses ``click``\ 's invocation tooling underneath.
+We provide ``application_testing`` as a helper function to get your application up and running for testing. It uses ``click``\ 's invocation tooling underneath.
 
 .. code-block::
 

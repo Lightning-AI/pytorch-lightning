@@ -1,9 +1,8 @@
+from lightning.app import LightningApp, LightningFlow
 from placeholdername import TemplateComponent
 
-import lightning as L
 
-
-class LitApp(L.LightningFlow):
+class LitApp(LightningFlow):
     def __init__(self) -> None:
         super().__init__()
         self.placeholdername = TemplateComponent()
@@ -13,4 +12,4 @@ class LitApp(L.LightningFlow):
         self.placeholdername.run()
 
 
-app = L.LightningApp(LitApp())
+app = LightningApp(LitApp())

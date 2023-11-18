@@ -10,7 +10,7 @@ The Strategy in PyTorch Lightning handles the following responsibilities:
 * Launch and teardown of training processes (if applicable).
 * Setup communication between processes (NCCL, GLOO, MPI, and so on).
 * Provide a unified communication interface for reduction, broadcast, and so on.
-* Owns the :class:`~lightning.pytorch.core.module.LightningModule`
+* Owns the :class:`~lightning.pytorch.core.LightningModule`
 * Handles/owns optimizers and schedulers.
 
 
@@ -34,7 +34,7 @@ Built-in strategies can be selected in two ways.
 1. Pass the shorthand name to the ``strategy`` Trainer argument
 2. Import a Strategy from :mod:`lightning.pytorch.strategies`, instantiate it and pass it to the ``strategy`` Trainer argument
 
-The latter allows you to configure further options on the specifc strategy.
+The latter allows you to configure further options on the specific strategy.
 Here are some examples:
 
 .. code-block:: python
@@ -71,7 +71,7 @@ The below table lists all relevant strategies available in Lightning with their 
      - Description
    * - fsdp
      - :class:`~lightning.pytorch.strategies.FSDPStrategy`
-     - Strategy for Fully Sharded Data Parallel training. :ref:`Learn more. <advanced/model_parallel:Fully Sharded Training>`
+     - Strategy for Fully Sharded Data Parallel training. :doc:`Learn more. <../advanced/model_parallel/fsdp>`
    * - ddp
      - :class:`~lightning.pytorch.strategies.DDPStrategy`
      - Strategy for multi-process single-device training on one or multiple nodes. :ref:`Learn more. <accelerators/gpu_intermediate:Distributed Data Parallel>`
@@ -80,16 +80,16 @@ The below table lists all relevant strategies available in Lightning with their 
      - Same as "ddp" but launches processes using :func:`torch.multiprocessing.spawn` method and joins processes after training finishes. :ref:`Learn more. <accelerators/gpu_intermediate:Distributed Data Parallel Spawn>`
    * - deepspeed
      - :class:`~lightning.pytorch.strategies.DeepSpeedStrategy`
-     - Provides capabilities to run training using the DeepSpeed library, with training optimizations for large billion parameter models. :ref:`Learn more. <advanced/model_parallel:deepspeed>`
+     - Provides capabilities to run training using the DeepSpeed library, with training optimizations for large billion parameter models. :doc:`Learn more. <../advanced/model_parallel/deepspeed>`
    * - hpu_parallel
      - ``HPUParallelStrategy``
-     - Strategy for distributed training on multiple HPU devices. :doc:`Learn more. <../accelerators/hpu>`
+     - Strategy for distributed training on multiple HPU devices. :doc:`Learn more. <../integrations/hpu/index>`
    * - hpu_single
      - ``SingleHPUStrategy``
-     - Strategy for training on a single HPU device. :doc:`Learn more. <../accelerators/hpu>`
+     - Strategy for training on a single HPU device. :doc:`Learn more. <../integrations/hpu/index>`
    * - ipu_strategy
      - ``IPUStrategy``
-     - Plugin for training on IPU devices. :doc:`Learn more. <../accelerators/ipu>`
+     - Plugin for training on IPU devices. :doc:`Learn more. <../integrations/ipu/index>`
    * - xla
      - :class:`~lightning.pytorch.strategies.XLAStrategy`
      - Strategy for training on multiple TPU devices using the :func:`torch_xla.distributed.xla_multiprocessing.spawn` method. :doc:`Learn more. <../accelerators/tpu>`

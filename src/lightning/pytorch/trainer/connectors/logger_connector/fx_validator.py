@@ -124,6 +124,7 @@ class _FxValidator:
         "setup": None,
         "teardown": None,
         "configure_sharded_model": None,
+        "configure_model": None,
         "training_step": _LogOptions(
             allowed_on_step=(False, True), allowed_on_epoch=(False, True), default_on_step=True, default_on_epoch=False
         ),
@@ -140,6 +141,7 @@ class _FxValidator:
         "test_dataloader": None,
         "prepare_data": None,
         "configure_callbacks": None,
+        "on_validation_model_zero_grad": None,
         "on_validation_model_eval": None,
         "on_test_model_eval": None,
         "on_validation_model_train": None,

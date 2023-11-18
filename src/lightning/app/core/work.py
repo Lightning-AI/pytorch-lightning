@@ -17,23 +17,23 @@ import time
 import warnings
 from copy import deepcopy
 from functools import partial, wraps
-from typing import Any, Callable, Dict, List, Optional, Tuple, Type, TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Tuple, Type, Union
 
 from deepdiff import DeepHash, Delta
 
 from lightning.app.core.queues import BaseQueue
-from lightning.app.storage import Path
-from lightning.app.storage.drive import _maybe_create_drive, Drive
+from lightning.app.storage.drive import Drive, _maybe_create_drive
+from lightning.app.storage.path import Path
 from lightning.app.storage.payload import Payload
 from lightning.app.utilities.app_helpers import _is_json_serializable, _LightningAppRef, is_overridden
 from lightning.app.utilities.app_status import WorkStatus
 from lightning.app.utilities.component import _is_flow_context, _sanitize_state
 from lightning.app.utilities.enum import (
     CacheCallsKeys,
-    make_status,
     WorkFailureReasons,
     WorkStageStatus,
     WorkStopReasons,
+    make_status,
 )
 from lightning.app.utilities.exceptions import LightningWorkException
 from lightning.app.utilities.introspection import _is_init_context
@@ -41,11 +41,11 @@ from lightning.app.utilities.network import find_free_network_port
 from lightning.app.utilities.packaging.build_config import BuildConfig
 from lightning.app.utilities.packaging.cloud_compute import (
     _CLOUD_COMPUTE_STORE,
+    CloudCompute,
     _CloudComputeStore,
     _maybe_create_cloud_compute,
-    CloudCompute,
 )
-from lightning.app.utilities.proxies import Action, LightningWorkSetAttrProxy, ProxyWorkRun, unwrap, WorkRunExecutor
+from lightning.app.utilities.proxies import Action, LightningWorkSetAttrProxy, ProxyWorkRun, WorkRunExecutor, unwrap
 
 if TYPE_CHECKING:
     from lightning.app.frontend import Frontend
@@ -124,6 +124,7 @@ class LightningWork:
                 </div>
             </div>
             <br />
+
         """
         from lightning.app.runners.backends.backend import Backend
 
@@ -212,6 +213,7 @@ class LightningWork:
 
         By default, this attribute returns the empty string and the ip address will only be returned once the work runs.
         Locally, the address is 127.0.0.1 and in the cloud it will be determined by the cluster.
+
         """
         return self._internal_ip
 
@@ -221,6 +223,7 @@ class LightningWork:
 
         By default, this attribute returns the empty string and the ip address will only be returned once the work runs.
         Locally, this address is undefined (empty string) and in the cloud it will be determined by the cluster.
+
         """
         return self._public_ip
 
@@ -234,6 +237,7 @@ class LightningWork:
         (prefixed by '__') attributes are not.
 
         Exceptions are listed in the `_INTERNAL_STATE_VARS` class variable.
+
         """
         return name in LightningWork._INTERNAL_STATE_VARS or not name.startswith("_")
 
@@ -247,6 +251,7 @@ class LightningWork:
         """Returns the display name of the LightningWork in the cloud.
 
         The display name needs to set before the run method of the work is called.
+
         """
         return self._display_name
 
@@ -260,8 +265,8 @@ class LightningWork:
 
     @property
     def cache_calls(self) -> bool:
-        """Returns whether the ``run`` method should cache its input arguments and not run again when provided with
-        the same arguments in subsequent calls."""
+        """Returns whether the ``run`` method should cache its input arguments and not run again when provided with the
+        same arguments in subsequent calls."""
         return self._cache_calls
 
     @property
@@ -269,6 +274,7 @@ class LightningWork:
         """Whether to run in parallel mode or not.
 
         When parallel is False, the flow waits for the work to finish.
+
         """
         return self._parallel
 
@@ -325,6 +331,7 @@ class LightningWork:
         """Return the current status of the work.
 
         All statuses are stored in the state.
+
         """
         call_hash = self._calls[CacheCallsKeys.LATEST_CALL_HASH]
         if call_hash in self._calls:
@@ -616,7 +623,7 @@ class LightningWork:
                 calls[call_hash]["statuses"] = final_statuses
 
     def start(self) -> None:
-        """Starts LightingWork component via L.CloudCompute."""
+        """Starts LightingWork component via CloudCompute."""
         if self.status.stage == WorkStageStatus.STOPPED:
             raise Exception("A work can be started only once for now.")
 
@@ -628,6 +635,7 @@ class LightningWork:
 
         Raises:
             LightningPlatformException: If resource exceeds platform quotas or other constraints.
+
         """
 
     def on_exception(self, exception: BaseException) -> None:
@@ -636,8 +644,7 @@ class LightningWork:
             raise exception
 
     def _aggregate_status_timeout(self, statuses: List[Dict]) -> WorkStatus:
-        """Method used to return the first request and the total count of timeout after the latest succeeded
-        status."""
+        """Method used to return the first request and the total count of timeout after the latest succeeded status."""
         succeeded_statuses = [
             status_idx for status_idx, status in enumerate(statuses) if status["stage"] == WorkStageStatus.SUCCEEDED
         ]
@@ -653,13 +660,15 @@ class LightningWork:
         """Override this hook to add your logic when the work is exiting.
 
         Note: This hook is not guaranteed to be called when running in the cloud.
+
         """
         pass
 
     def stop(self) -> None:
-        """Stops LightingWork component and shuts down hardware provisioned via L.CloudCompute.
+        """Stops LightingWork component and shuts down hardware provisioned via CloudCompute.
 
         This can only be called from a ``LightningFlow``.
+
         """
         if not self._backend:
             raise RuntimeError(f"Only the `LightningFlow` can request this work ({self.name!r}) to stop.")
@@ -672,9 +681,10 @@ class LightningWork:
         self._backend.stop_work(app, self)  # type: ignore[arg-type]
 
     def delete(self) -> None:
-        """Delete LightingWork component and shuts down hardware provisioned via L.CloudCompute.
+        """Delete LightingWork component and shuts down hardware provisioned via CloudCompute.
 
         Locally, the work.delete() behaves as work.stop().
+
         """
         if not self._backend:
             raise Exception(
@@ -755,4 +765,5 @@ class LightningWork:
             returned URL can depend on the state. This is not the case if the work returns a
             :class:`~lightning.app.frontend.frontend.Frontend`. These need to be provided at the time of app creation
             in order for the runtime to start the server.
+
         """
