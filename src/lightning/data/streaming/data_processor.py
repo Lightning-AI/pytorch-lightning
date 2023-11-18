@@ -731,7 +731,7 @@ class DataTransformRecipe(DataRecipe):
 class DataProcessor:
     def __init__(
         self,
-        input_dir: Optional[Union[str, Dir]] = None,
+        input_dir: Union[str, Dir],
         output_dir: Optional[Union[str, Dir]] = None,
         num_workers: Optional[int] = None,
         num_downloaders: Optional[int] = None,
@@ -771,9 +771,8 @@ class DataProcessor:
         self.stop_queues: List[Queue] = []
         self.reorder_files = reorder_files
 
-        if self.input_dir:
-            # Ensure the input dir is the same across all nodes
-            self.input_dir = self._broadcast_object(self.input_dir)
+        # Ensure the input dir is the same across all nodes
+        self.input_dir = self._broadcast_object(self.input_dir)
 
         if self.output_dir:
             # Ensure the output dir is the same across all nodes
