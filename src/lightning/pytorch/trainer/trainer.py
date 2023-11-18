@@ -33,7 +33,7 @@ from torch.optim import Optimizer
 
 import lightning.pytorch as pl
 from lightning.fabric.utilities.apply_func import convert_tensors_to_scalars
-from lightning.fabric.utilities.cloud_io import get_filesystem
+from lightning.fabric.utilities.cloud_io import _is_local_file_protocol
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 from lightning.fabric.utilities.types import _PATH
 from lightning.pytorch.accelerators import Accelerator
@@ -304,7 +304,6 @@ class Trainer:
         """
         super().__init__()
         log.debug(f"{self.__class__.__name__}: Initializing trainer with parameters: {locals()}")
-        self.state = TrainerState()
 
         if default_root_dir is not None:
             default_root_dir = os.fspath(default_root_dir)
@@ -1286,7 +1285,7 @@ class Trainer:
         It is used as a fallback if logger or checkpoint callback do not define specific save paths.
 
         """
-        if get_filesystem(self._default_root_dir).protocol == "file":
+        if _is_local_file_protocol(self._default_root_dir):
             return os.path.normpath(self._default_root_dir)
         return self._default_root_dir
 

@@ -42,7 +42,7 @@ from torch import ScriptModule, Tensor
 from torch.nn import Module
 from torch.optim.optimizer import Optimizer
 from torchmetrics import Metric, MetricCollection
-from typing_extensions import Self
+from typing_extensions import Self, override
 
 import lightning.fabric as lf
 import lightning.pytorch as pl
@@ -654,6 +654,7 @@ class LightningModule(
         data = convert_to_tensors(data, device=self.device)
         return apply_to_collection(data, Tensor, all_gather, group=group, sync_grads=sync_grads)
 
+    @override
     def forward(self, *args: Any, **kwargs: Any) -> Any:
         r"""Same as :meth:`torch.nn.Module.forward`.
 
@@ -1559,6 +1560,7 @@ class LightningModule(
         )
         return cast(Self, loaded)
 
+    @override
     def __getstate__(self) -> Dict[str, Any]:
         state = dict(self.__dict__)
         state["_trainer"] = None

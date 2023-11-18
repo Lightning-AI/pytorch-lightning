@@ -21,6 +21,7 @@ from collections import defaultdict
 from typing import Any, Callable, Dict, Mapping, Optional, Sequence
 
 import numpy as np
+from typing_extensions import override
 
 from lightning.fabric.loggers import Logger as FabricLogger
 from lightning.fabric.loggers.logger import _DummyExperiment as DummyExperiment  # for backward compatibility
@@ -63,18 +64,22 @@ class DummyLogger(Logger):
         """Return the experiment object associated with this logger."""
         return self._experiment
 
+    @override
     def log_metrics(self, *args: Any, **kwargs: Any) -> None:
         pass
 
+    @override
     def log_hyperparams(self, *args: Any, **kwargs: Any) -> None:
         pass
 
     @property
+    @override
     def name(self) -> str:
         """Return the experiment name."""
         return ""
 
     @property
+    @override
     def version(self) -> str:
         """Return the experiment version."""
         return ""

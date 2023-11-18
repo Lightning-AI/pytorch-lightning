@@ -7,6 +7,7 @@ import traceback
 import types
 from abc import abstractmethod
 from dataclasses import dataclass
+from datetime import datetime
 from multiprocessing import Process, Queue
 from queue import Empty
 from shutil import copyfile, rmtree
@@ -15,7 +16,7 @@ from typing import Any, Dict, List, Optional, Tuple, TypeVar, Union
 from urllib import parse
 
 import torch
-from tqdm.auto import tqdm
+from tqdm.auto import tqdm as _tqdm
 
 from lightning import seed_everything
 from lightning.data.streaming import Cache
@@ -25,9 +26,10 @@ from lightning.data.streaming.constants import (
     _BOTO3_AVAILABLE,
     _DEFAULT_FAST_DEV_RUN_ITEMS,
     _INDEX_FILENAME,
-    _LIGHTNING_CLOUD_GREATER_EQUAL_0_5_50,
+    _LIGHTNING_CLOUD_LATEST,
     _TORCH_GREATER_EQUAL_2_1_0,
 )
+from lightning.data.utilities.packing import _pack_greedily
 from lightning.fabric.accelerators.cuda import is_cuda_available
 from lightning.fabric.plugins.environments import LightningEnvironment
 from lightning.fabric.utilities.distributed import (
@@ -39,7 +41,7 @@ from lightning.fabric.utilities.distributed import group as _group
 if _TORCH_GREATER_EQUAL_2_1_0:
     from torch.utils._pytree import tree_flatten, tree_unflatten, treespec_loads
 
-if _LIGHTNING_CLOUD_GREATER_EQUAL_0_5_50:
+if _LIGHTNING_CLOUD_LATEST:
     from lightning_cloud.openapi import V1DatasetType
     from lightning_cloud.resolver import _resolve_dir
     from lightning_cloud.utils.dataset import _create_dataset
@@ -205,13 +207,11 @@ def _upload_fn(upload_queue: Queue, remove_queue: Queue, cache_dir: str, output_
             remove_queue.put([local_filepath])
 
 
-def _associated_items_to_workers(num_workers: int, user_items: List[Any]) -> Tuple[List[int], List[List[Any]]]:
-    # Associate the items to the workers based on number of nodes and node rank.
+def _map_items_to_workers_sequentially(num_workers: int, user_items: List[Any]) -> List[List[Any]]:
     num_nodes = _get_num_nodes()
     current_node_rank = _get_node_rank()
     node_size = len(user_items) // num_nodes
     workers_user_items = []
-    begins = []
     for node_rank in range(num_nodes):
         if node_rank != current_node_rank:
             continue
@@ -225,9 +225,44 @@ def _associated_items_to_workers(num_workers: int, user_items: List[Any]) -> Tup
             begin = worker_idx * worker_size
             end = len(node_user_items) if is_last else (worker_idx + 1) * worker_size
             workers_user_items.append(node_user_items[begin:end])
-            begins.append(begin)
-        return begins, workers_user_items
-    raise RuntimeError(f"The current_node_rank {current_node_rank} doesn't exist in {num_nodes}.")
+    return workers_user_items
+
+
+def _map_items_to_workers_weighted(
+    num_workers: int, user_items: List[Any], weights: Optional[List[int]] = None
+) -> List[List[Any]]:
+    # Associate the items to the workers based on number of nodes and node rank.
+    weights = [1] * len(user_items) if weights is None else weights
+    num_nodes = _get_num_nodes()
+    node_rank = _get_node_rank()
+    world_size = num_nodes * num_workers
+
+    worker_items, worker_weights = _pack_greedily(items=user_items, weights=weights, num_bins=world_size)
+    worker_ids_this_node = range(node_rank * num_workers, (node_rank + 1) * num_workers)
+
+    for worker_id, size in worker_weights.items():
+        if worker_id not in worker_ids_this_node:
+            continue
+        print(f"Worker {worker_id} gets {size / 1e6:.1f} MB ({len(worker_items[worker_id])} files)")
+
+    return [worker_items[worker_id] for worker_id in worker_ids_this_node]
+
+
+def _get_item_filesizes(items: List[Any], base_path: str = "") -> List[int]:
+    """Computes the total size in bytes of all file paths for every datastructure in the given list."""
+    item_sizes = []
+    for item in items:
+        flattened_item, spec = tree_flatten(item)
+
+        num_bytes = 0
+        for index, element in enumerate(flattened_item):
+            if isinstance(element, str) and element.startswith(base_path) and os.path.exists(element):
+                file_bytes = os.path.getsize(element)
+                if file_bytes == 0:
+                    raise RuntimeError(f"The file {element} has 0 bytes!")
+                num_bytes += file_bytes
+        item_sizes.append(num_bytes)
+    return item_sizes
 
 
 class BaseWorker:
@@ -235,7 +270,6 @@ class BaseWorker:
         self,
         worker_index: int,
         num_workers: int,
-        start_index: int,
         node_rank: int,
         data_recipe: "DataRecipe",
         input_dir: Dir,
@@ -245,12 +279,12 @@ class BaseWorker:
         error_queue: Queue,
         stop_queue: Queue,
         num_downloaders: int,
+        num_uploaders: int,
         remove: bool,
     ) -> None:
         """The BaseWorker is responsible to process the user data."""
         self.worker_index = worker_index
         self.num_workers = num_workers
-        self.start_index = start_index
         self.node_rank = node_rank
         self.data_recipe = data_recipe
         self.input_dir = input_dir
@@ -258,18 +292,19 @@ class BaseWorker:
         self.items = items
         self.num_items = len(self.items)
         self.num_downloaders = num_downloaders
+        self.num_uploaders = num_uploaders
         self.remove = remove
         self.paths: List[List[str]] = []
         self.remover: Optional[Process] = None
         self.downloaders: List[Process] = []
+        self.uploaders: List[Process] = []
         self.to_download_queues: List[Queue] = []
+        self.to_upload_queues: List[Queue] = []
         self.stop_queue = stop_queue
         self.ready_to_process_queue: Queue = Queue()
         self.remove_queue: Queue = Queue()
-        self.upload_queue: Queue = Queue()
         self.progress_queue: Queue = progress_queue
         self.error_queue: Queue = error_queue
-        self.uploader: Optional[Process] = None
         self._collected_items = 0
         self._counter = 0
         self._last_time = time()
@@ -284,14 +319,14 @@ class BaseWorker:
             traceback_format = traceback.format_exc()
             print(traceback_format)
             self.error_queue.put(traceback_format)
-        print(f"Worker {self.worker_index} is done.")
+        print(f"Worker {str(_get_node_rank() * self.num_workers + self.worker_index)} is done.")
 
     def _setup(self) -> None:
         self._set_environ_variables()
         self._create_cache()
         self._collect_paths()
         self._start_downloaders()
-        self._start_uploader()
+        self._start_uploaders()
         self._start_remover()
 
     def _loop(self) -> None:
@@ -303,13 +338,19 @@ class BaseWorker:
             if index is None:
                 num_downloader_finished += 1
                 if num_downloader_finished == self.num_downloaders:
+                    print(f"Worker {str(_get_node_rank() * self.num_workers + self.worker_index)} is terminating.")
+
                     if isinstance(self.data_recipe, DataChunkRecipe):
                         self._handle_data_chunk_recipe_end()
 
                     if self.output_dir.url if self.output_dir.url else self.output_dir.path:
-                        assert self.uploader
-                        self.upload_queue.put(None)
-                        self.uploader.join()
+                        # Inform the uploaders they are doing working
+                        for i in range(self.num_uploaders):
+                            self.to_upload_queues[i].put(None)
+
+                        # Wait for them all to be finished
+                        for uploader in self.uploaders:
+                            uploader.join()
 
                     if self.remove:
                         assert self.remover
@@ -370,7 +411,7 @@ class BaseWorker:
             return
 
         assert os.path.exists(filepath), filepath
-        self.upload_queue.put(filepath)
+        self.to_upload_queues[self._counter % self.num_uploaders].put(filepath)
 
     def _collect_paths(self) -> None:
         items = []
@@ -443,19 +484,24 @@ class BaseWorker:
         )
         self.remover.start()
 
-    def _start_uploader(self) -> None:
+    def _start_uploaders(self) -> None:
         if self.output_dir.path is None and self.output_dir.url is None:
             return
-        self.uploader = Process(
-            target=_upload_fn,
-            args=(
-                self.upload_queue,
-                self.remove_queue,
-                self.cache_chunks_dir,
-                self.output_dir,
-            ),
-        )
-        self.uploader.start()
+
+        for _ in range(self.num_uploaders):
+            to_upload_queue: Queue = Queue()
+            p = Process(
+                target=_upload_fn,
+                args=(
+                    to_upload_queue,
+                    self.remove_queue,
+                    self.cache_chunks_dir,
+                    self.output_dir,
+                ),
+            )
+            p.start()
+            self.uploaders.append(p)
+            self.to_upload_queues.append(to_upload_queue)
 
     def _handle_data_chunk_recipe(self, index: int) -> None:
         try:
@@ -477,10 +523,10 @@ class BaseWorker:
     def _handle_data_chunk_recipe_end(self) -> None:
         chunks_filepaths = self.cache.done()
 
-        if chunks_filepaths:
-            for chunk_filepath in chunks_filepaths:
+        if chunks_filepaths and len(self.to_upload_queues):
+            for i, chunk_filepath in enumerate(chunks_filepaths):
                 if isinstance(chunk_filepath, str) and os.path.exists(chunk_filepath):
-                    self.upload_queue.put(chunk_filepath)
+                    self.to_upload_queues[i % self.num_uploaders].put(chunk_filepath)
 
     def _handle_data_transform_recipe(self, index: int) -> None:
         # Don't use a context manager to avoid deleting files that are being uploaded.
@@ -689,9 +735,11 @@ class DataProcessor:
         output_dir: Optional[Union[str, Dir]] = None,
         num_workers: Optional[int] = None,
         num_downloaders: Optional[int] = None,
+        num_uploaders: Optional[int] = None,
         delete_cached_files: bool = True,
         fast_dev_run: Optional[Union[bool, int]] = None,
         random_seed: Optional[int] = 42,
+        reorder_files: bool = True,
     ):
         """The `DatasetOptimiser` provides an efficient way to process data across multiple machine into chunks to make
         training faster.
@@ -701,15 +749,19 @@ class DataProcessor:
             output_dir: The path to where the output data are stored.
             num_workers: The number of worker threads to use.
             num_downloaders: The number of file downloaders to use.
+            num_uploaders: The number of file uploaders to use.
             delete_cached_files: Whether to delete the cached files.
             fast_dev_run: Whether to run a quick dev run.
             random_seed: The random seed to be set before shuffling the data.
+            reorder_files: By default, reorders the files by file size to distribute work equally among all workers.
+                Set this to ``False`` if the order in which samples are processed should be preserved.
 
         """
         self.input_dir = _resolve_dir(input_dir)
         self.output_dir = _resolve_dir(output_dir)
         self.num_workers = num_workers or (1 if fast_dev_run else (os.cpu_count() or 1) * 4)
-        self.num_downloaders = num_downloaders or 1
+        self.num_downloaders = num_downloaders or 2
+        self.num_uploaders = num_uploaders or 5
         self.delete_cached_files = delete_cached_files
         self.fast_dev_run = _get_fast_dev_run() if fast_dev_run is None else fast_dev_run
         self.workers: Any = []
@@ -717,6 +769,7 @@ class DataProcessor:
         self.progress_queue: Optional[Queue] = None
         self.error_queue: Queue = Queue()
         self.stop_queues: List[Queue] = []
+        self.reorder_files = reorder_files
 
         if self.input_dir:
             # Ensure the input dir is the same across all nodes
@@ -746,8 +799,15 @@ class DataProcessor:
         if not isinstance(user_items, list):
             raise ValueError("The `prepare_structure` should return a list of item metadata.")
 
-        # Associate the items to the workers based on num_nodes and node_rank
-        begins, workers_user_items = _associated_items_to_workers(self.num_workers, user_items)
+        if self.reorder_files:
+            # TODO: Only do this on node 0, and broadcast the item sizes to the other nodes.
+            item_sizes = _get_item_filesizes(user_items, base_path=self.input_dir.path)
+            workers_user_items = _map_items_to_workers_weighted(
+                num_workers=self.num_workers, user_items=user_items, weights=item_sizes
+            )
+        else:
+            workers_user_items = _map_items_to_workers_sequentially(num_workers=self.num_workers, user_items=user_items)
+
         print(f"Setup finished in {round(time() - t0, 3)} seconds. Found {len(user_items)} items to process.")
 
         if self.fast_dev_run:
@@ -767,36 +827,49 @@ class DataProcessor:
 
         signal.signal(signal.SIGINT, self._signal_handler)
 
-        self._create_process_workers(data_recipe, begins, workers_user_items)
+        self._create_process_workers(data_recipe, workers_user_items)
 
         print("Workers are ready ! Starting data processing...")
 
         current_total = 0
         has_failed = False
-        with tqdm(total=num_items, smoothing=0, position=-1, mininterval=1) as pbar:
-            while True:
+        pbar = _tqdm(
+            desc="Progress",
+            total=num_items,
+            smoothing=0,
+            position=-1,
+            mininterval=1,
+            leave=True,
+            dynamic_ncols=True,
+        )
+
+        while True:
+            try:
+                error = self.error_queue.get(timeout=0.001)
+                self._exit_on_error(error)
+            except Empty:
+                assert self.progress_queue
                 try:
-                    error = self.error_queue.get(timeout=0.001)
-                    self._exit_on_error(error)
+                    index, counter = self.progress_queue.get(timeout=0.001)
                 except Empty:
-                    assert self.progress_queue
-                    try:
-                        index, counter = self.progress_queue.get(timeout=0.001)
-                    except Empty:
-                        continue
-                    self.workers_tracker[index] = counter
-                    new_total = sum(self.workers_tracker.values())
+                    continue
+                self.workers_tracker[index] = counter
+                new_total = sum(self.workers_tracker.values())
 
-                pbar.update(new_total - current_total)
-                current_total = new_total
-                if current_total == num_items:
-                    break
+            pbar.set_postfix({"time": datetime.now().strftime("%H:%M:%S.%f")})
+            pbar.update(new_total - current_total)
 
-                # Exit early if all the workers are done.
-                # This means there were some kinda of errors.
-                if all(not w.is_alive() for w in self.workers):
-                    has_failed = True
-                    break
+            current_total = new_total
+            if current_total == num_items:
+                break
+
+            # Exit early if all the workers are done.
+            # This means there were some kinda of errors.
+            if all(not w.is_alive() for w in self.workers):
+                has_failed = True
+                break
+
+        pbar.close()
 
         num_nodes = _get_num_nodes()
         node_rank = _get_node_rank()
@@ -835,9 +908,7 @@ class DataProcessor:
             w.join(0)
         raise RuntimeError(f"We found the following error {error}.")
 
-    def _create_process_workers(
-        self, data_recipe: DataRecipe, begins: List[int], workers_user_items: List[List[Any]]
-    ) -> None:
+    def _create_process_workers(self, data_recipe: DataRecipe, workers_user_items: List[List[Any]]) -> None:
         self.progress_queue = Queue()
         workers: List[DataWorkerProcess] = []
         stop_queues: List[Queue] = []
@@ -846,7 +917,6 @@ class DataProcessor:
             worker = DataWorkerProcess(
                 worker_idx,
                 self.num_workers,
-                begins[worker_idx],
                 _get_node_rank(),
                 data_recipe,
                 self.input_dir,
@@ -856,6 +926,7 @@ class DataProcessor:
                 self.error_queue,
                 stop_queues[-1],
                 self.num_downloaders,
+                self.num_uploaders,
                 self.delete_cached_files,
             )
             worker.start()

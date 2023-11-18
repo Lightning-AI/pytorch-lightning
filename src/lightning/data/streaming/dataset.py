@@ -11,37 +11,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import hashlib
 import os
-from typing import Any, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 import numpy as np
 from torch.utils.data import IterableDataset
 
-from lightning.data.datasets.env import _DistributedEnv, _WorkerEnv
 from lightning.data.streaming import Cache
-from lightning.data.streaming.constants import _INDEX_FILENAME, _LIGHTNING_CLOUD_GREATER_EQUAL_0_5_50
+from lightning.data.streaming.constants import _INDEX_FILENAME, _LIGHTNING_CLOUD_LATEST
 from lightning.data.streaming.item_loader import BaseItemLoader
 from lightning.data.streaming.sampler import ChunkedIndex
+from lightning.data.streaming.serializers import Serializer
 from lightning.data.streaming.shuffle import FullShuffle, NoShuffle, Shuffle
+from lightning.data.utilities.env import Environment, _DistributedEnv, _WorkerEnv
 
-if _LIGHTNING_CLOUD_GREATER_EQUAL_0_5_50:
+if _LIGHTNING_CLOUD_LATEST:
     from lightning_cloud.resolver import _resolve_dir
-
-
-def _try_create_cache_dir(create: bool = False) -> Optional[str]:
-    # Get the ids from env variables
-    cluster_id = os.getenv("LIGHTNING_CLUSTER_ID", None)
-    project_id = os.getenv("LIGHTNING_CLOUD_PROJECT_ID", None)
-
-    if cluster_id is None or project_id is None:
-        return None
-
-    cache_dir = os.path.join("/cache/chunks")
-
-    if create:
-        os.makedirs(cache_dir, exist_ok=True)
-
-    return cache_dir
 
 
 class StreamingDataset(IterableDataset):
@@ -54,18 +40,18 @@ class StreamingDataset(IterableDataset):
         shuffle: bool = False,
         drop_last: bool = False,
         seed: int = 42,
+        serializers: Optional[Dict[str, Serializer]] = None,
     ) -> None:
         """The streaming dataset can be used once your data have been optimised using the DatasetOptimiser class.
 
         Arguments:
-            name: The name of the optimised dataset.
-            version: The version of the dataset to use.
-            cache_dir: The cache dir where the data would be stored.
+            input_dir: Path to the folder where the input data is stored.
             item_loader: The logic to load an item from a chunk.
             shuffle: Whether to shuffle the data.
             drop_last: If `True`, drops the last items to ensure that
                 all processes/workers return the same amount of data.
             seed: Random seed for shuffling.
+            serializers: The serializers used to serialize and deserialize the chunks.
 
         """
         super().__init__()
@@ -74,27 +60,14 @@ class StreamingDataset(IterableDataset):
 
         input_dir = _resolve_dir(input_dir)
 
-        # Override the provided input_path
-        cache_dir = _try_create_cache_dir()
-        if cache_dir:
-            input_dir.path = cache_dir
-
-        self.cache = Cache(input_dir=input_dir, item_loader=item_loader, chunk_bytes=1)
-
-        self.cache._reader._try_load_config()
-
-        if not self.cache.filled:
-            raise ValueError(
-                f"The provided dataset `{input_dir}` doesn't contain any {_INDEX_FILENAME} file."
-                " HINT: Did you successfully optimize a dataset to the provided `input_dir` ?"
-            )
-
-        self.distributed_env = _DistributedEnv.detect()
-
-        self.shuffle: Shuffle = (
-            FullShuffle(self.cache, seed, drop_last) if shuffle else NoShuffle(self.cache, seed, drop_last)
-        )
+        self.input_dir = input_dir
+        self.item_loader = item_loader
+        self.shuffle: bool = shuffle
         self.drop_last = drop_last
+        self.seed = seed
+
+        self.cache: Optional[Cache] = None
+        self.distributed_env = _DistributedEnv.detect()
         self.worker_env: Optional[_WorkerEnv] = None
         self.worker_chunks: List[int] = []
         self.worker_intervals: List[List[int]] = []
@@ -103,22 +76,56 @@ class StreamingDataset(IterableDataset):
         self.index = 0
         self.has_triggered_download = False
         self.min_items_per_replica: Optional[int] = None
-        self.seed = seed
         self.current_epoch = 0
         self.random_state = None
+        self.shuffler: Optional[Shuffle] = None
+        self.serializers = serializers
+
+    def _create_cache(self, worker_env: _WorkerEnv) -> Cache:
+        env = Environment(dist_env=self.distributed_env, worker_env=worker_env)
+
+        # TODO: Move this to lightning-cloud
+        if "this_" not in self.input_dir.path:
+            cache_path = _try_create_cache_dir(input_dir=self.input_dir.path, shard_rank=env.shard_rank)
+            if cache_path is not None:
+                self.input_dir.path = cache_path
+
+        cache = Cache(
+            input_dir=self.input_dir, item_loader=self.item_loader, chunk_bytes=1, serializers=self.serializers
+        )
+        cache._reader._try_load_config()
+
+        if not cache.filled:
+            raise ValueError(
+                f"The provided dataset `{self.input_dir}` doesn't contain any {_INDEX_FILENAME} file."
+                " HINT: Did you successfully optimize a dataset to the provided `input_dir`?"
+            )
+
+        return cache
+
+    def _create_shuffler(self, cache: Cache) -> Shuffle:
+        return (
+            FullShuffle(cache, self.seed, self.drop_last)
+            if self.shuffle
+            else NoShuffle(cache, self.seed, self.drop_last)
+        )
 
     def __len__(self) -> int:
-        return self.shuffle.get_len(self.distributed_env, self.current_epoch)
+        if self.shuffler is None:
+            cache = self._create_cache(worker_env=_WorkerEnv.detect())
+            self.shuffler = self._create_shuffler(cache)
+        return self.shuffler.get_len(self.distributed_env, self.current_epoch)
 
     def __iter__(self) -> "StreamingDataset":
-        chunks_per_replica, intervals_per_replica = self.shuffle.get_chunks_and_intervals_per_ranks(
+        self.worker_env = _WorkerEnv.detect()
+        self.cache = self._create_cache(worker_env=self.worker_env)
+        self.shuffler = self._create_shuffler(self.cache)
+
+        chunks_per_replica, intervals_per_replica = self.shuffler.get_chunks_and_intervals_per_ranks(
             self.distributed_env, self.current_epoch
         )
         current_chunks = chunks_per_replica[self.distributed_env.global_rank % self.distributed_env.world_size]
         current_intervals = intervals_per_replica[self.distributed_env.global_rank % self.distributed_env.world_size]
-
-        if self.worker_env is None:
-            self.worker_env = _WorkerEnv.detect()
 
         self.worker_chunks = []
         self.worker_intervals = []
@@ -132,10 +139,15 @@ class StreamingDataset(IterableDataset):
         self.current_indexes = []
         self.chunk_index = 0
         self.index = 0
+        self.has_triggered_download = False
 
         return self
 
     def __getitem__(self, index: Union[ChunkedIndex, int]) -> Any:
+        if self.cache is None:
+            self.worker_env = _WorkerEnv.detect()
+            self.cache = self._create_cache(worker_env=self.worker_env)
+            self.shuffler = self._create_shuffler(self.cache)
         if isinstance(index, int):
             index = ChunkedIndex(index, self.cache._get_chunk_index_from_index(index))
         return self.cache[index]
@@ -154,8 +166,12 @@ class StreamingDataset(IterableDataset):
 
             interval = self.worker_intervals[self.chunk_index]
             current_indexes = np.arange(interval[0], interval[1])
-            self.current_indexes = self.shuffle(current_indexes)
+
+            assert self.shuffler is not None
+            self.current_indexes = self.shuffler(current_indexes)
             self.chunk_index += 1
+
+        last_index = self.chunk_index == len(self.worker_intervals) and len(self.current_indexes) == 1
 
         # Get the first index
         index = self.current_indexes.pop(0)
@@ -165,7 +181,9 @@ class StreamingDataset(IterableDataset):
             ChunkedIndex(
                 index=index,
                 chunk_index=self.worker_chunks[self.chunk_index - 1],
+                # We provide the chunks indexes only one the first
                 chunk_indexes=None if self.has_triggered_download else self.worker_chunks,
+                last_index=last_index,
             )
         )
 
@@ -173,3 +191,12 @@ class StreamingDataset(IterableDataset):
         self.index += 1
 
         return data
+
+
+def _try_create_cache_dir(input_dir: str, shard_rank: int = 0) -> Optional[str]:
+    if "LIGHTNING_CLUSTER_ID" not in os.environ or "LIGHTNING_CLOUD_PROJECT_ID" not in os.environ:
+        return None
+    hash_object = hashlib.md5(input_dir.encode())
+    cache_dir = os.path.join("/cache", "chunks", hash_object.hexdigest(), str(shard_rank))
+    os.makedirs(cache_dir, exist_ok=True)
+    return cache_dir

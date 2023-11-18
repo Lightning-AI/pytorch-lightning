@@ -1,4 +1,5 @@
 import os
+import random
 import sys
 from typing import Any, List
 from unittest import mock
@@ -14,13 +15,15 @@ from lightning.data.streaming.data_processor import (
     DataChunkRecipe,
     DataProcessor,
     DataTransformRecipe,
-    _associated_items_to_workers,
     _download_data_target,
+    _get_item_filesizes,
+    _map_items_to_workers_sequentially,
+    _map_items_to_workers_weighted,
     _remove_target,
     _upload_fn,
     _wait_for_file_to_exist,
 )
-from lightning.data.streaming.functions import map, optimize
+from lightning.data.streaming.functions import LambdaDataTransformRecipe, map, optimize
 from lightning_utilities.core.imports import RequirementCache
 
 _PIL_AVAILABLE = RequirementCache("PIL")
@@ -220,7 +223,7 @@ def test_wait_for_file_to_exist():
 
 
 def test_broadcast_object(tmpdir, monkeypatch):
-    data_processor = DataProcessor(input_dir=tmpdir)
+    data_processor = DataProcessor(input_dir=str(tmpdir))
     assert data_processor._broadcast_object("dummy") == "dummy"
     monkeypatch.setenv("DATA_OPTIMIZER_NUM_NODES", "2")
     monkeypatch.setattr(data_processor_module, "_distributed_is_initialized", lambda: True)
@@ -241,7 +244,7 @@ def test_cache_dir_cleanup(tmpdir, monkeypatch):
 
     assert os.listdir(cache_dir) == ["a.txt"]
 
-    data_processor = DataProcessor(input_dir=tmpdir)
+    data_processor = DataProcessor(input_dir=str(tmpdir))
     monkeypatch.setenv("DATA_OPTIMIZER_CACHE_FOLDER", str(cache_dir))
     monkeypatch.setenv("DATA_OPTIMIZER_DATA_CACHE_FOLDER", str(cache_data_dir))
     data_processor._cleanup_cache()
@@ -249,75 +252,98 @@ def test_cache_dir_cleanup(tmpdir, monkeypatch):
     assert os.listdir(cache_dir) == []
 
 
-def test_associated_items_to_workers(monkeypatch):
-    _, workers_user_items = _associated_items_to_workers(1, range(105))
-    assert workers_user_items == [range(0, 105)]
-
-    _, workers_user_items = _associated_items_to_workers(2, range(105))
-    assert workers_user_items == [range(0, 52), range(52, 105)]
-
-    _, workers_user_items = _associated_items_to_workers(3, range(105))
-    assert workers_user_items == [range(0, 35), range(35, 70), range(70, 105)]
-
-    _, workers_user_items = _associated_items_to_workers(4, range(105))
-    assert workers_user_items == [range(0, 26), range(26, 52), range(52, 78), range(78, 105)]
+def test_map_items_to_workers_weighted(monkeypatch):
+    workers_user_items = _map_items_to_workers_weighted(1, list(range(5)))
+    assert workers_user_items == [list(range(5))]
+    workers_user_items = _map_items_to_workers_weighted(2, list(range(5)))
+    assert workers_user_items == [[0, 2, 4], [1, 3]]
+    workers_user_items = _map_items_to_workers_weighted(3, list(range(5)))
+    assert workers_user_items == [[0, 3], [1, 4], [2]]
+    workers_user_items = _map_items_to_workers_weighted(4, list(range(5)))
+    assert workers_user_items == [[0, 4], [1], [2], [3]]
 
     monkeypatch.setenv("DATA_OPTIMIZER_NUM_NODES", "2")
+    monkeypatch.setenv("DATA_OPTIMIZER_NODE_RANK", "0")
+    workers_user_items = _map_items_to_workers_weighted(1, list(range(5)))
+    assert workers_user_items == [[0, 2, 4]]
+    workers_user_items = _map_items_to_workers_weighted(2, list(range(5)))
+    assert workers_user_items == [[0, 4], [1]]
 
-    _, workers_user_items = _associated_items_to_workers(1, range(105))
-    assert workers_user_items == [range(0, 52)]
-
-    _, workers_user_items = _associated_items_to_workers(2, range(105))
-    assert workers_user_items == [range(0, 26), range(26, 52)]
-
-    _, workers_user_items = _associated_items_to_workers(3, range(105))
-    assert workers_user_items == [range(0, 17), range(17, 34), range(34, 52)]
-
-    _, workers_user_items = _associated_items_to_workers(4, range(105))
-    assert workers_user_items == [range(0, 13), range(13, 26), range(26, 39), range(39, 52)]
-
+    monkeypatch.setenv("DATA_OPTIMIZER_NUM_NODES", "2")
     monkeypatch.setenv("DATA_OPTIMIZER_NODE_RANK", "1")
-
-    _, workers_user_items = _associated_items_to_workers(1, range(105))
-    assert workers_user_items == [range(52, 105)]
-
-    _, workers_user_items = _associated_items_to_workers(2, range(105))
-    assert workers_user_items == [range(52, 78), range(78, 105)]
-
-    _, workers_user_items = _associated_items_to_workers(3, range(105))
-    assert workers_user_items == [range(52, 69), range(69, 86), range(86, 105)]
-
-    _, workers_user_items = _associated_items_to_workers(4, range(105))
-    assert workers_user_items == [range(52, 65), range(65, 78), range(78, 91), range(91, 105)]
+    workers_user_items = _map_items_to_workers_weighted(1, list(range(5)))
+    assert workers_user_items == [[1, 3]]
+    workers_user_items = _map_items_to_workers_weighted(2, list(range(5)))
+    assert workers_user_items == [[2], [3]]
 
     monkeypatch.setenv("DATA_OPTIMIZER_NUM_NODES", "4")
     monkeypatch.setenv("DATA_OPTIMIZER_NODE_RANK", "0")
+    workers_user_items = _map_items_to_workers_weighted(1, list(range(32)))
+    assert workers_user_items == [[0, 4, 8, 12, 16, 20, 24, 28]]
+    workers_user_items = _map_items_to_workers_weighted(2, list(range(32)))
+    assert workers_user_items == [[0, 8, 16, 24], [1, 9, 17, 25]]
+    workers_user_items = _map_items_to_workers_weighted(3, list(range(32)))
+    assert workers_user_items == [[0, 12, 24], [1, 13, 25], [2, 14, 26]]
+    workers_user_items = _map_items_to_workers_weighted(4, list(range(32)))
+    assert workers_user_items == [[0, 16], [1, 17], [2, 18], [3, 19]]
 
-    _, workers_user_items = _associated_items_to_workers(1, range(105))
-    assert workers_user_items == [range(0, 26)]
-
-    _, workers_user_items = _associated_items_to_workers(2, range(105))
-    assert workers_user_items == [range(0, 13), range(13, 26)]
-
-    _, workers_user_items = _associated_items_to_workers(3, range(105))
-    assert workers_user_items == [range(0, 8), range(8, 16), range(16, 26)]
-
-    _, workers_user_items = _associated_items_to_workers(4, range(105))
-    assert workers_user_items == [range(0, 6), range(6, 12), range(12, 18), range(18, 26)]
-
+    monkeypatch.setenv("DATA_OPTIMIZER_NUM_NODES", "4")
     monkeypatch.setenv("DATA_OPTIMIZER_NODE_RANK", "3")
+    workers_user_items = _map_items_to_workers_weighted(1, list(range(32)))
+    assert workers_user_items == [[3, 7, 11, 15, 19, 23, 27, 31]]
+    workers_user_items = _map_items_to_workers_weighted(2, list(range(32)))
+    assert workers_user_items == [[6, 14, 22, 30], [7, 15, 23, 31]]
+    workers_user_items = _map_items_to_workers_weighted(3, list(range(32)))
+    assert workers_user_items == [[9, 21], [10, 22], [11, 23]]
+    workers_user_items = _map_items_to_workers_weighted(4, list(range(32)))
+    assert workers_user_items == [[12, 28], [13, 29], [14, 30], [15, 31]]
 
-    _, workers_user_items = _associated_items_to_workers(1, range(105))
-    assert workers_user_items == [range(78, 105)]
 
-    _, workers_user_items = _associated_items_to_workers(2, range(105))
-    assert workers_user_items == [range(78, 91), range(91, 105)]
+def test_map_items_to_workers_sequentially(monkeypatch):
+    workers_user_items = _map_items_to_workers_sequentially(1, list(range(5)))
+    assert workers_user_items == [list(range(5))]
+    workers_user_items = _map_items_to_workers_sequentially(2, list(range(5)))
+    assert workers_user_items == [[0, 1], [2, 3, 4]]
+    workers_user_items = _map_items_to_workers_sequentially(3, list(range(5)))
+    assert workers_user_items == [[0], [1], [2, 3, 4]]
+    workers_user_items = _map_items_to_workers_sequentially(4, list(range(5)))
+    assert workers_user_items == [[0], [1], [2], [3, 4]]
 
-    _, workers_user_items = _associated_items_to_workers(3, range(105))
-    assert workers_user_items == [range(78, 87), range(87, 96), range(96, 105)]
+    monkeypatch.setenv("DATA_OPTIMIZER_NUM_NODES", "2")
+    monkeypatch.setenv("DATA_OPTIMIZER_NODE_RANK", "0")
+    workers_user_items = _map_items_to_workers_sequentially(1, list(range(5)))
+    assert workers_user_items == [[0, 1]]
+    workers_user_items = _map_items_to_workers_sequentially(2, list(range(5)))
+    assert workers_user_items == [[0], [1]]
 
-    _, workers_user_items = _associated_items_to_workers(4, range(105))
-    assert workers_user_items == [range(78, 84), range(84, 90), range(90, 96), range(96, 105)]
+    monkeypatch.setenv("DATA_OPTIMIZER_NUM_NODES", "2")
+    monkeypatch.setenv("DATA_OPTIMIZER_NODE_RANK", "1")
+    workers_user_items = _map_items_to_workers_sequentially(1, list(range(5)))
+    assert workers_user_items == [[2, 3, 4]]
+    workers_user_items = _map_items_to_workers_sequentially(2, list(range(5)))
+    assert workers_user_items == [[2], [3, 4]]
+
+    monkeypatch.setenv("DATA_OPTIMIZER_NUM_NODES", "4")
+    monkeypatch.setenv("DATA_OPTIMIZER_NODE_RANK", "0")
+    workers_user_items = _map_items_to_workers_sequentially(1, list(range(32)))
+    assert workers_user_items == [[0, 1, 2, 3, 4, 5, 6, 7]]
+    workers_user_items = _map_items_to_workers_sequentially(2, list(range(32)))
+    assert workers_user_items == [[0, 1, 2, 3], [4, 5, 6, 7]]
+    workers_user_items = _map_items_to_workers_sequentially(3, list(range(32)))
+    assert workers_user_items == [[0, 1], [2, 3], [4, 5, 6, 7]]
+    workers_user_items = _map_items_to_workers_sequentially(4, list(range(32)))
+    assert workers_user_items == [[0, 1], [2, 3], [4, 5], [6, 7]]
+
+    monkeypatch.setenv("DATA_OPTIMIZER_NUM_NODES", "4")
+    monkeypatch.setenv("DATA_OPTIMIZER_NODE_RANK", "3")
+    workers_user_items = _map_items_to_workers_sequentially(1, list(range(32)))
+    assert workers_user_items == [[24, 25, 26, 27, 28, 29, 30, 31]]
+    workers_user_items = _map_items_to_workers_sequentially(2, list(range(32)))
+    assert workers_user_items == [[24, 25, 26, 27], [28, 29, 30, 31]]
+    workers_user_items = _map_items_to_workers_sequentially(3, list(range(32)))
+    assert workers_user_items == [[24, 25], [26, 27], [28, 29, 30, 31]]
+    workers_user_items = _map_items_to_workers_sequentially(4, list(range(32)))
+    assert workers_user_items == [[24, 25], [26, 27], [28, 29], [30, 31]]
 
 
 class CustomDataChunkRecipe(DataChunkRecipe):
@@ -458,6 +484,8 @@ def test_data_processsor_distributed(fast_dev_run, delete_cached_files, tmpdir, 
         delete_cached_files=delete_cached_files,
         fast_dev_run=fast_dev_run,
         output_dir=remote_output_dir,
+        num_uploaders=1,
+        num_downloaders=1,
     )
     data_processor.run(CustomDataChunkRecipe(chunk_size=2))
 
@@ -482,6 +510,7 @@ def test_data_processsor_distributed(fast_dev_run, delete_cached_files, tmpdir, 
     data_processor = TestDataProcessor(
         input_dir=input_dir,
         num_workers=2,
+        num_uploaders=1,
         num_downloaders=1,
         delete_cached_files=delete_cached_files,
         fast_dev_run=fast_dev_run,
@@ -519,7 +548,7 @@ def test_data_processsor_distributed(fast_dev_run, delete_cached_files, tmpdir, 
         "data_format": "jpeg",
         "compression": None,
         "num_chunks": 16,
-        "num_bytes_per_chunk": [2, 2, 2, 1, 2, 2, 2, 2, 2, 2, 2, 1, 2, 2, 2, 2],
+        "num_bytes_per_chunk": [2, 2, 2, 2, 2, 2, 2, 1, 2, 2, 2, 1, 2, 2, 2, 2],
     }
 
 
@@ -542,7 +571,7 @@ def test_data_processsor_nlp(tmpdir, monkeypatch):
     with open(os.path.join(tmpdir, "dummy.txt"), "w") as f:
         f.write("Hello World !")
 
-    data_processor = DataProcessor(input_dir=tmpdir, num_workers=1, num_downloaders=1)
+    data_processor = DataProcessor(input_dir=str(tmpdir), num_workers=1, num_downloaders=1)
     data_processor.run(TextTokenizeRecipe(chunk_size=1024 * 11))
 
 
@@ -642,7 +671,6 @@ def test_data_processing_map(monkeypatch, tmpdir):
 
 
 def optimize_fn(filepath):
-    print(filepath)
     from PIL import Image
 
     return [Image.open(filepath), os.path.basename(filepath)]
@@ -766,3 +794,81 @@ def test_data_processing_optimize_class_yield(monkeypatch, tmpdir):
 
     cache = Cache(output_dir, chunk_size=1)
     assert len(cache) == 5
+
+
+def test_lambda_transform_recipe(monkeypatch):
+    torch_mock = mock.MagicMock()
+    torch_mock.cuda.device_count.return_value = 3
+
+    monkeypatch.setattr(functions, "torch", torch_mock)
+    monkeypatch.setenv("DATA_OPTIMIZER_GLOBAL_RANK", 2)
+
+    called = False
+
+    def fn(output_dir, item, device):
+        nonlocal called
+        assert device == "cuda:2"
+        called = True
+
+    data_recipe = LambdaDataTransformRecipe(fn, range(1))
+
+    data_recipe.prepare_item("", 1)
+    assert called
+
+
+def test_lambda_transform_recipe_class(monkeypatch):
+    torch_mock = mock.MagicMock()
+    torch_mock.cuda.device_count.return_value = 3
+
+    monkeypatch.setattr(functions, "torch", torch_mock)
+    monkeypatch.setenv("DATA_OPTIMIZER_GLOBAL_RANK", 2)
+
+    called = False
+
+    class Transform:
+        def __call__(self, output_dir, item, device):
+            nonlocal called
+            assert device == "cuda:2"
+            called = True
+
+    data_recipe = LambdaDataTransformRecipe(Transform(), range(1))
+
+    data_recipe.prepare_item("", 1)
+    assert called
+
+
+def _generate_file_with_size(file_path, num_bytes):
+    assert num_bytes % 8 == 0
+    content = bytearray(random.getrandbits(8) for _ in range(num_bytes))
+    with open(file_path, "wb") as file:
+        file.write(content)
+
+
+def test_get_item_filesizes(tmp_path):
+    _generate_file_with_size(tmp_path / "file1", 32)
+    _generate_file_with_size(tmp_path / "file2", 64)
+    _generate_file_with_size(tmp_path / "file3", 128)
+    _generate_file_with_size(tmp_path / "file4", 256)
+
+    items = [
+        # not a path
+        "not a path",
+        # single file path
+        str(tmp_path / "file1"),
+        # tuple: one file path
+        (1, 2, str(tmp_path / "file2")),
+        # list: two file paths
+        [str(tmp_path / "file2"), None, str(tmp_path / "file3")],
+        # list: one file path exists, one does not
+        [str(tmp_path / "other" / "other"), None, str(tmp_path / "file4")],
+        # dict: with file path
+        {"file": str(tmp_path / "file4"), "data": "not file"},
+    ]
+    num_bytes = _get_item_filesizes(items, base_path=str(tmp_path))
+    assert num_bytes == [0, 32, 64, 64 + 128, 256, 256]
+
+    with open(tmp_path / "empty_file", "w"):
+        pass
+    assert os.path.getsize(tmp_path / "empty_file") == 0
+    with pytest.raises(RuntimeError, match="has 0 bytes!"):
+        _get_item_filesizes([str(tmp_path / "empty_file")])

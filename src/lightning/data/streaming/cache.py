@@ -16,20 +16,22 @@ import os
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Tuple, Union
 
-from lightning.data.datasets.env import _DistributedEnv
 from lightning.data.streaming.constants import (
     _INDEX_FILENAME,
-    _LIGHTNING_CLOUD_GREATER_EQUAL_0_5_50,
+    _LIGHTNING_CLOUD_LATEST,
     _TORCH_GREATER_EQUAL_2_1_0,
 )
 from lightning.data.streaming.item_loader import BaseItemLoader
 from lightning.data.streaming.reader import BinaryReader
 from lightning.data.streaming.sampler import ChunkedIndex
+from lightning.data.streaming.serializers import Serializer
 from lightning.data.streaming.writer import BinaryWriter
+from lightning.data.utilities.env import _DistributedEnv
+from lightning.data.utilities.format import _convert_bytes_to_int
 
 logger = logging.Logger(__name__)
 
-if _LIGHTNING_CLOUD_GREATER_EQUAL_0_5_50:
+if _LIGHTNING_CLOUD_LATEST:
     from lightning_cloud.resolver import _resolve_dir
 
 
@@ -49,37 +51,45 @@ class Cache:
         chunk_size: Optional[int] = None,
         chunk_bytes: Optional[Union[int, str]] = None,
         item_loader: Optional[BaseItemLoader] = None,
+        max_cache_size: Union[int, str] = "200GB",
+        serializers: Optional[Dict[str, Serializer]] = None,
     ):
         """The Cache enables to optimise dataset format for cloud training. This is done by grouping several elements
         together in order to accelerate fetching.
 
         Arguments:
             input_dir: The path to where the chunks will be or are stored.
-            name: The name of dataset in the cloud.
-            version: The version of the dataset in the cloud to use. By default, we will use the latest.
             compression: The name of the algorithm to reduce the size of the chunks.
             chunk_bytes: The maximum number of bytes within a chunk.
             chunk_size: The maximum number of items within a chunk.
             item_loader: The object responsible to generate the chunk intervals and load an item froma chunk.
+            max_cache_size: The maximum cache size used by the reader when fetching the chunks.
+            serializers: Provide your own serializers.
 
         """
         super().__init__()
         if not _TORCH_GREATER_EQUAL_2_1_0:
             raise ModuleNotFoundError("PyTorch version 2.1 or higher is required to use the cache.")
 
-        if not _LIGHTNING_CLOUD_GREATER_EQUAL_0_5_50:
-            raise ModuleNotFoundError("Lightning Cloud 0.5.50 or higher is required to use the cache.")
+        if not _LIGHTNING_CLOUD_LATEST:
+            raise ModuleNotFoundError("Lightning Cloud latest is required to use the cache.")
 
         input_dir = _resolve_dir(input_dir)
         self._cache_dir = input_dir.path
         self._writer = BinaryWriter(
-            self._cache_dir, chunk_size=chunk_size, chunk_bytes=chunk_bytes, compression=compression
+            self._cache_dir,
+            chunk_size=chunk_size,
+            chunk_bytes=chunk_bytes,
+            compression=compression,
+            serializers=serializers,
         )
         self._reader = BinaryReader(
             self._cache_dir,
+            max_cache_size=_convert_bytes_to_int(max_cache_size) if isinstance(max_cache_size, str) else max_cache_size,
             remote_input_dir=input_dir.url,
             compression=compression,
             item_loader=item_loader,
+            serializers=serializers,
         )
         self._is_done = False
         self._distributed_env = _DistributedEnv.detect()
