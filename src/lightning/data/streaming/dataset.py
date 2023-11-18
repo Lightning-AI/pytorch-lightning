@@ -11,7 +11,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import copy
 import hashlib
 import os
 from typing import Any, Dict, List, Optional, Union
@@ -19,13 +18,13 @@ from typing import Any, Dict, List, Optional, Union
 import numpy as np
 from torch.utils.data import IterableDataset
 
-from lightning.data.datasets.env import Environment, _DistributedEnv, _WorkerEnv
 from lightning.data.streaming import Cache
 from lightning.data.streaming.constants import _INDEX_FILENAME, _LIGHTNING_CLOUD_LATEST
 from lightning.data.streaming.item_loader import BaseItemLoader
 from lightning.data.streaming.sampler import ChunkedIndex
 from lightning.data.streaming.serializers import Serializer
 from lightning.data.streaming.shuffle import FullShuffle, NoShuffle, Shuffle
+from lightning.data.utilities.env import Environment, _DistributedEnv, _WorkerEnv
 
 if _LIGHTNING_CLOUD_LATEST:
     from lightning_cloud.resolver import _resolve_dir
@@ -84,12 +83,16 @@ class StreamingDataset(IterableDataset):
 
     def _create_cache(self, worker_env: _WorkerEnv) -> Cache:
         env = Environment(dist_env=self.distributed_env, worker_env=worker_env)
-        cache_path = _try_create_cache_dir(input_dir=self.input_dir.path, shard_rank=env.shard_rank)
-        cache_dir = copy.deepcopy(self.input_dir)
-        if cache_path:
-            cache_dir.path = cache_path
 
-        cache = Cache(input_dir=cache_dir, item_loader=self.item_loader, chunk_bytes=1, serializers=self.serializers)
+        # TODO: Move this to lightning-cloud
+        if "this_" not in self.input_dir.path:
+            cache_path = _try_create_cache_dir(input_dir=self.input_dir.path, shard_rank=env.shard_rank)
+            if cache_path is not None:
+                self.input_dir.path = cache_path
+
+        cache = Cache(
+            input_dir=self.input_dir, item_loader=self.item_loader, chunk_bytes=1, serializers=self.serializers
+        )
         cache._reader._try_load_config()
 
         if not cache.filled:
@@ -136,6 +139,7 @@ class StreamingDataset(IterableDataset):
         self.current_indexes = []
         self.chunk_index = 0
         self.index = 0
+        self.has_triggered_download = False
 
         return self
 
@@ -167,6 +171,8 @@ class StreamingDataset(IterableDataset):
             self.current_indexes = self.shuffler(current_indexes)
             self.chunk_index += 1
 
+        last_index = self.chunk_index == len(self.worker_intervals) and len(self.current_indexes) == 1
+
         # Get the first index
         index = self.current_indexes.pop(0)
 
@@ -175,7 +181,9 @@ class StreamingDataset(IterableDataset):
             ChunkedIndex(
                 index=index,
                 chunk_index=self.worker_chunks[self.chunk_index - 1],
+                # We provide the chunks indexes only one the first
                 chunk_indexes=None if self.has_triggered_download else self.worker_chunks,
+                last_index=last_index,
             )
         )
 
