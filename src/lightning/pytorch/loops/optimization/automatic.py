@@ -18,6 +18,7 @@ from typing import Any, Callable, Dict, Mapping, Optional, OrderedDict
 import torch
 from torch import Tensor
 from torch.optim import Optimizer
+from typing_extensions import override
 
 import lightning.pytorch as pl
 from lightning.pytorch.loops.loop import _Loop
@@ -81,6 +82,7 @@ class ClosureResult(OutputResult):
 
         return cls(closure_loss, extra=extra)
 
+    @override
     def asdict(self) -> Dict[str, Any]:
         return {"loss": self.loss, **self.extra}
 
@@ -121,6 +123,7 @@ class Closure(AbstractClosure[ClosureResult]):
         self._backward_fn = backward_fn
         self._zero_grad_fn = zero_grad_fn
 
+    @override
     @torch.enable_grad()
     def closure(self, *args: Any, **kwargs: Any) -> ClosureResult:
         step_output = self._step_fn()
@@ -136,6 +139,7 @@ class Closure(AbstractClosure[ClosureResult]):
 
         return step_output
 
+    @override
     def __call__(self, *args: Any, **kwargs: Any) -> Optional[Tensor]:
         self._result = self.closure(*args, **kwargs)
         return self._result.loss

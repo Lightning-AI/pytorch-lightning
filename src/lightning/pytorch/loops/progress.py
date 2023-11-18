@@ -14,6 +14,8 @@
 from dataclasses import asdict, dataclass, field
 from typing import Type
 
+from typing_extensions import override
+
 
 @dataclass
 class _BaseProgress:
@@ -51,6 +53,7 @@ class _ReadyCompletedTracker(_BaseProgress):
     ready: int = 0
     completed: int = 0
 
+    @override
     def reset(self) -> None:
         """Reset the state."""
         self.ready = 0
@@ -81,10 +84,12 @@ class _StartedTracker(_ReadyCompletedTracker):
 
     started: int = 0
 
+    @override
     def reset(self) -> None:
         super().reset()
         self.started = 0
 
+    @override
     def reset_on_restart(self) -> None:
         super().reset_on_restart()
         self.started = self.completed
@@ -106,10 +111,12 @@ class _ProcessedTracker(_StartedTracker):
 
     processed: int = 0
 
+    @override
     def reset(self) -> None:
         super().reset()
         self.processed = 0
 
+    @override
     def reset_on_restart(self) -> None:
         super().reset_on_restart()
         self.processed = self.completed
@@ -157,6 +164,7 @@ class _Progress(_BaseProgress):
         """Utility function to easily create an instance from keyword arguments to both ``Tracker``s."""
         return cls(total=tracker_cls(**kwargs), current=tracker_cls(**kwargs))
 
+    @override
     def reset(self) -> None:
         self.total.reset()
         self.current.reset()
@@ -167,6 +175,7 @@ class _Progress(_BaseProgress):
     def reset_on_restart(self) -> None:
         self.current.reset_on_restart()
 
+    @override
     def load_state_dict(self, state_dict: dict) -> None:
         self.total.load_state_dict(state_dict["total"])
         self.current.load_state_dict(state_dict["current"])
@@ -187,14 +196,17 @@ class _BatchProgress(_Progress):
 
     is_last_batch: bool = False
 
+    @override
     def reset(self) -> None:
         super().reset()
         self.is_last_batch = False
 
+    @override
     def reset_on_run(self) -> None:
         super().reset_on_run()
         self.is_last_batch = False
 
+    @override
     def load_state_dict(self, state_dict: dict) -> None:
         super().load_state_dict(state_dict)
         self.is_last_batch = state_dict["is_last_batch"]
@@ -229,6 +241,7 @@ class _OptimizerProgress(_BaseProgress):
     step: _Progress = field(default_factory=lambda: _Progress.from_defaults(_ReadyCompletedTracker))
     zero_grad: _Progress = field(default_factory=lambda: _Progress.from_defaults(_StartedTracker))
 
+    @override
     def reset(self) -> None:
         self.step.reset()
         self.zero_grad.reset()
@@ -241,6 +254,7 @@ class _OptimizerProgress(_BaseProgress):
         self.step.reset_on_restart()
         self.zero_grad.reset_on_restart()
 
+    @override
     def load_state_dict(self, state_dict: dict) -> None:
         self.step.load_state_dict(state_dict["step"])
         self.zero_grad.load_state_dict(state_dict["zero_grad"])
@@ -261,6 +275,7 @@ class _OptimizationProgress(_BaseProgress):
     def optimizer_steps(self) -> int:
         return self.optimizer.step.total.completed
 
+    @override
     def reset(self) -> None:
         self.optimizer.reset()
 
@@ -270,5 +285,6 @@ class _OptimizationProgress(_BaseProgress):
     def reset_on_restart(self) -> None:
         self.optimizer.reset_on_restart()
 
+    @override
     def load_state_dict(self, state_dict: dict) -> None:
         self.optimizer.load_state_dict(state_dict["optimizer"])
