@@ -405,3 +405,28 @@ def test_summary_data_with_no_non_layer_params():
     summary = summarize(PreCalculatedModel())
     summary_data = OrderedDict(summary._get_summary_data())
     assert summary_data["Name"][-1] != LEFTOVER_PARAMS_NAME
+
+
+def test_summary_restores_module_mode():
+    """Test that the model summary puts the model in `eval()` mode, but restores the original mode once finished."""
+
+    class Model(LightningModule):
+        def __init__(self):
+            super().__init__()
+            self.layer1 = torch.nn.Linear(2, 2)
+            self.layer2 = torch.nn.Linear(2, 2)
+            self.example_input_array = torch.rand(2, 2)
+
+        def forward(self, x):
+            assert not self.training
+            assert not self.layer1.training
+            assert not self.layer2.training
+            return self.layer2(self.layer1(x))
+
+    model = Model()
+    model.layer1.train()
+    model.layer2.eval()
+    summarize(model)
+    assert model.training
+    assert model.layer1.training
+    assert not model.layer2.training

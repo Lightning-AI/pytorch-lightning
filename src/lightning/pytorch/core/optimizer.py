@@ -13,12 +13,13 @@
 # limitations under the License.
 from contextlib import contextmanager
 from dataclasses import fields
-from typing import Any, Callable, Dict, Generator, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, Generator, List, Optional, Tuple, Union, overload
 from weakref import proxy
 
 import torch
 from torch import optim
 from torch.optim import Optimizer
+from typing_extensions import override
 
 import lightning.pytorch as pl
 from lightning.fabric.utilities.types import Optimizable, ReduceLROnPlateau, _Stateful
@@ -384,21 +385,35 @@ class _MockOptimizer(Optimizer):
     def __init__(self) -> None:
         super().__init__([torch.zeros(1)], {})
 
+    @override
     def add_param_group(self, param_group: Dict[Any, Any]) -> None:
         pass  # Do Nothing
 
+    @override
     def load_state_dict(self, state_dict: Dict[Any, Any]) -> None:
         pass  # Do Nothing
 
+    @override
     def state_dict(self) -> Dict[str, Any]:
         return {}  # Return Empty
 
-    def step(self, closure: Optional[Callable] = None) -> None:
-        if closure is not None:
-            closure()
+    @overload
+    def step(self, closure: None = ...) -> None:
+        ...
 
+    @overload
+    def step(self, closure: Callable[[], float]) -> float:
+        ...
+
+    @override
+    def step(self, closure: Optional[Callable[[], float]] = None) -> Optional[float]:
+        if closure is not None:
+            return closure()
+
+    @override
     def zero_grad(self, set_to_none: Optional[bool] = True) -> None:
         pass  # Do Nothing
 
+    @override
     def __repr__(self) -> str:
         return "No Optimizer"

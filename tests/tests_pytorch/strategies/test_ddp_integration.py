@@ -11,9 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import operator
 import os
-import sys
 from unittest import mock
 from unittest.mock import Mock
 
@@ -21,6 +19,7 @@ import lightning.pytorch as pl
 import pytest
 import torch
 from lightning.fabric.plugins.environments import ClusterEnvironment, LightningEnvironment
+from lightning.fabric.utilities.distributed import _distributed_is_initialized
 from lightning.fabric.utilities.imports import _IS_WINDOWS, _TORCH_GREATER_EQUAL_2_0
 from lightning.pytorch import Trainer
 from lightning.pytorch.callbacks import Callback, EarlyStopping
@@ -29,7 +28,6 @@ from lightning.pytorch.strategies import DDPStrategy
 from lightning.pytorch.strategies.launchers import _SubprocessScriptLauncher
 from lightning.pytorch.strategies.launchers.multiprocessing import _MultiProcessingLauncher
 from lightning.pytorch.trainer import seed_everything
-from lightning_utilities import compare_version
 from torch.distributed.optim import ZeroRedundancyOptimizer
 from torch.multiprocessing import ProcessRaisedException
 from torch.nn.parallel.distributed import DistributedDataParallel
@@ -78,7 +76,7 @@ def test_ddp_torch_dist_is_available_in_setup(_, __, ___, cuda_count_1, mps_coun
 
     class TestModel(BoringModel):
         def setup(self, stage: str) -> None:
-            assert torch.distributed.is_initialized()
+            assert _distributed_is_initialized()
             raise SystemExit()
 
     model = TestModel()
@@ -206,9 +204,9 @@ class UnusedParametersModel(BoringModel):
 
 @pytest.mark.skipif(
     # TODO: investigate threading issue in this configuration
-    _IS_WINDOWS
-    and (sys.version_info.major, sys.version_info.minor) == (3, 11)
-    and compare_version("torch", operator.eq, "2.1.0", use_base_version=True),
+    _IS_WINDOWS,
+    # and (sys.version_info.major, sys.version_info.minor) == (3, 11)
+    # and compare_version("torch", operator.eq, "2.1.0", use_base_version=True)
     reason="threading issue",
 )
 def test_find_unused_parameters_exception():

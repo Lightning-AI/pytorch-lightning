@@ -58,7 +58,7 @@ class BasePredictionWriter(Callback):
                 self.output_dir = output_dir
 
             def write_on_batch_end(
-                self, trainer, pl_module', prediction, batch_indices, batch, batch_idx, dataloader_idx
+                self, trainer, pl_module, prediction, batch_indices, batch, batch_idx, dataloader_idx
             ):
                 torch.save(prediction, os.path.join(self.output_dir, dataloader_idx, f"{batch_idx}.pt"))
 

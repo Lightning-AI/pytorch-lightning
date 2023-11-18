@@ -3,7 +3,6 @@
 ###################################
 Example: Train PyTorch on the cloud
 ###################################
-**Audience:** TODO:
 
 **Prereqs:** You have an app already running locally.
 

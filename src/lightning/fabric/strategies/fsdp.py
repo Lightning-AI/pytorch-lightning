@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import os
+import shutil
 from contextlib import ExitStack
 from datetime import timedelta
 from functools import partial
@@ -33,6 +33,7 @@ from typing import (
 )
 
 import torch
+from lightning_utilities.core.imports import RequirementCache
 from torch import Tensor
 from torch.nn import Module, Parameter
 from torch.optim import Optimizer
@@ -54,6 +55,7 @@ from lightning.fabric.strategies.strategy import (
 )
 from lightning.fabric.utilities.distributed import (
     ReduceOp,
+    _distributed_is_initialized,
     _get_default_process_group_backend_for_device,
     _init_dist_connection,
     _sync_ddp_if_available,
@@ -291,6 +293,8 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
                 **self._fsdp_kwargs,
             )
 
+        _move_torchmetrics_to_device(module, self.root_device)
+
         # activation checkpointing needs to be set up after wrapping the model
         if _TORCH_GREATER_EQUAL_1_13:
             _setup_activation_checkpointing(module, self._activation_checkpointing_kwargs)
@@ -355,7 +359,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         return tensor
 
     def barrier(self, *args: Any, **kwargs: Any) -> None:
-        if not torch.distributed.is_initialized():
+        if not _distributed_is_initialized():
             return
         if torch.distributed.get_backend() == "nccl":
             torch.distributed.barrier(device_ids=[self.root_device.index])
@@ -363,7 +367,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             torch.distributed.barrier()
 
     def broadcast(self, obj: TBroadcast, src: int = 0) -> TBroadcast:
-        if not torch.distributed.is_initialized():
+        if not _distributed_is_initialized():
             return obj
 
         obj = [obj]
@@ -431,8 +435,8 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
 
         # broadcast the path from rank 0 to ensure all the states are saved in a common path
         path = Path(self.broadcast(path))
-        if path.is_dir() and os.listdir(path):
-            raise FileExistsError(f"The checkpoint directory already exists and is not empty: {path}")
+        if path.is_dir() and self._state_dict_type == "full" and not _is_sharded_checkpoint(path):
+            raise IsADirectoryError(f"The checkpoint path exists and is a directory: {path}")
 
         from torch.distributed.checkpoint import FileSystemWriter, save_state_dict
         from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
@@ -453,7 +457,10 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         module = modules[0]
 
         if self._state_dict_type == "sharded":
+            if path.is_file():
+                path.unlink()
             path.mkdir(parents=True, exist_ok=True)
+
             state_dict_ctx = _get_sharded_state_dict_context(module)
 
             # replace the modules and optimizer objects in the state with their local state dict
@@ -482,6 +489,9 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
                 torch.save(metadata, path / _METADATA_FILENAME)
 
         elif self._state_dict_type == "full":
+            if _is_sharded_checkpoint(path):
+                shutil.rmtree(path)
+
             state_dict_ctx = _get_full_state_dict_context(module, world_size=self.world_size)
             full_state: Dict[str, Any] = {}
             with state_dict_ctx:
@@ -879,3 +889,15 @@ def _has_meta_device_parameters(obj: Union[Module, Optimizer]) -> bool:
     if isinstance(obj, Module):
         return any(t.is_meta for t in obj.parameters())
     raise TypeError(f"Expected `torch.nn.Module` or `torch.optim.Optimizer`, got: {type(obj).__name__}")
+
+
+def _move_torchmetrics_to_device(module: torch.nn.Module, device: torch.device) -> None:
+    # FSDP doesn't move modules without parameters (e.g. Metrics) to the device
+    # https://github.com/pytorch/pytorch/issues/113113
+    if not RequirementCache("torchmetrics"):
+        return
+
+    from torchmetrics import Metric
+
+    for metric in (m for m in module.modules() if isinstance(m, Metric)):
+        metric.to(device)  # `.to()` is in-place
