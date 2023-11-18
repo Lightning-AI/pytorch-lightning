@@ -6,13 +6,13 @@ from contextlib import nullcontext
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Iterable, Iterator, List, Optional, Sized, Union
 
-import fsspec.utils
 import torch
 import torch.nn.functional as F
 from lightning_utilities.core.imports import package_available
 from torch import Tensor
 from torch.utils.data import Dataset, DistributedSampler, Sampler
 
+from lightning.fabric.utilities.cloud_io import _is_local_file_protocol
 from lightning.fabric.utilities.data import _num_cpus_available
 from lightning.fabric.utilities.rank_zero import rank_zero_info
 from lightning.fabric.utilities.types import _PATH, ReduceOp
@@ -48,7 +48,7 @@ def is_shared_filesystem(strategy: "Strategy", path: Optional[_PATH] = None, tim
 
     """
     # Fast path: Any non-local filesystem is considered shared (e.g., S3)
-    if path is not None and fsspec.utils.get_protocol(str(path)) != "file":
+    if path is not None and not _is_local_file_protocol(path):
         return True
 
     path = Path(Path.cwd() if path is None else path).resolve()
