@@ -59,8 +59,8 @@ class XLAPrecision(Precision):
         else:
             self._desired_dtype = torch.float32
 
-    @override  # type: ignore[override]
-    def optimizer_step(
+    @override
+    def optimizer_step(  # type: ignore[override]
         self,
         optimizer: Optimizable,
         model: "pl.LightningModule",
