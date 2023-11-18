@@ -8,7 +8,6 @@ from typing import TYPE_CHECKING, Any, Iterable, Iterator, List, Optional, Sized
 
 import torch
 import torch.nn.functional as F
-
 from lightning_utilities.core.imports import package_available
 from torch import Tensor
 from torch.utils.data import Dataset, DistributedSampler, Sampler
