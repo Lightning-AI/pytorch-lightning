@@ -75,7 +75,7 @@ class PositionalEncoding(nn.Module):
         self.dropout = nn.Dropout(p=dropout)
         self.dim = dim
         self.max_len = max_len
-        self.pe = None
+        self.pe: Optional[Tensor] = None
 
     def forward(self, x: Tensor) -> Tensor:
         if self.pe is None:
@@ -88,7 +88,7 @@ class PositionalEncoding(nn.Module):
         x + self.pe[: x.size(0), :]
         return self.dropout(x)
 
-    def _init_pos_encoding(self, device) -> Tensor:
+    def _init_pos_encoding(self, device: torch.device) -> Tensor:
         pe = torch.zeros(self.max_len, self.dim, device=device)
         position = torch.arange(0, self.max_len, dtype=torch.float, device=device).unsqueeze(1)
         div_term = torch.exp(torch.arange(0, self.dim, 2, device=device).float() * (-math.log(10000.0) / self.dim))
