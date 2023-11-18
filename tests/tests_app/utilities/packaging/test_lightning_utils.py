@@ -3,8 +3,6 @@ import os
 from unittest import mock
 
 import pytest
-from lightning_utilities.core.imports import module_available
-
 from lightning.app.testing.helpers import _RunIf
 from lightning.app.utilities.git import check_github_repository, get_dir_name
 from lightning.app.utilities.packaging import lightning_utils
@@ -13,6 +11,7 @@ from lightning.app.utilities.packaging.lightning_utils import (
     _verify_lightning_version,
     get_dist_path_if_editable_install,
 )
+from lightning_utilities.core.imports import module_available
 
 
 @pytest.mark.skipif(not module_available("lightning"), reason="TODO: should work for lightning.app too")
@@ -49,7 +48,7 @@ def test_prepare_lightning_wheels_and_requirement_for_packages_installed_in_edit
     assert cleanup_handle is None
 
 
-@pytest.mark.skip(reason="TODO: Find a way to check for the latest version")
+@pytest.mark.xfail(strict=False, reason="TODO: Find a way to check for the latest version")
 @_RunIf(skip_windows=True)
 def test_verify_lightning_version(monkeypatch):
     monkeypatch.setattr(lightning_utils, "__version__", "0.0.1")

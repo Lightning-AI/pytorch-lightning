@@ -12,8 +12,28 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from lightning.fabric.plugins.precision.transformer_engine import TransformerEnginePrecision as FabricTEPrecision
-from lightning.pytorch.plugins.precision.precision_plugin import PrecisionPlugin
+from lightning.pytorch.plugins.precision.precision import Precision
 
 
-class TransformerEnginePrecisionPlugin(PrecisionPlugin, FabricTEPrecision):
-    pass
+class TransformerEnginePrecision(Precision, FabricTEPrecision):
+    """Plugin for training with fp8 precision via nvidia's
+    `Transformer Engine <https://docs.nvidia.com/deeplearning/transformer-engine>`__.
+
+    .. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
+
+    Args:
+        dtype: The weights dtype to use.
+        recipe: Recipe for the DelayedScaling
+            `configuration <https://docs.nvidia.com/deeplearning/transformer-engine/user-guide/api/common.html#transformer_engine.common.recipe.DelayedScaling>`__.
+            In dict format or the dataclass format.
+        replace_layers: Whether to replace ``Linear`` and ``LayerNorm`` layers automatically with their Transformer
+            Engine alternatives. Note that they don't subclass the torch equivalents so checks like
+            ``isinstance(l, torch.nn.Linear)`` will not pass.
+
+    .. note::
+
+        Support for FP8 in the linear layers with this plugin is currently limited to tensors
+        with shapes where the dimensions are divisible by 8 and 16 respectively. You might want to add padding to your
+        inputs to conform to this restriction.
+
+    """

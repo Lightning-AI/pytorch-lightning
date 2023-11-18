@@ -4,9 +4,9 @@ from unittest import mock
 from unittest.mock import Mock
 
 import pytest
+from lightning.pytorch.strategies.launchers.subprocess_script import _SubprocessScriptLauncher
 from lightning_utilities.core.imports import RequirementCache
 
-from lightning.pytorch.strategies.launchers.subprocess_script import _SubprocessScriptLauncher
 from tests_pytorch.helpers.runif import RunIf
 
 _HYDRA_WITH_RUN_PROCESS = RequirementCache("hydra-core>=1.0.7")
@@ -22,6 +22,7 @@ import hydra
 import os
 import torch
 
+from lightning.fabric.utilities.distributed import _distributed_is_initialized
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
 
@@ -37,7 +38,7 @@ def task_fn(cfg):
     trainer.fit(model)
     trainer.test(model)
 
-    if torch.distributed.is_initialized():
+    if _distributed_is_initialized():
         torch.distributed.destroy_process_group()
 
     os.environ.pop("LOCAL_RANK", None)

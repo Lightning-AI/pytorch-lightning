@@ -11,7 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-r"""Finetuning Callback ^^^^^^^^^^^^^^^^^^^^ Freeze and unfreeze models for finetuning purposes."""
+r"""
+Finetuning Callback
+^^^^^^^^^^^^^^^^^^^^
+
+Freeze and unfreeze models for finetuning purposes.
+"""
 import logging
 from typing import Any, Callable, Dict, Generator, Iterable, List, Optional, Union
 
@@ -122,7 +127,7 @@ class BaseFinetuning(Callback):
 
         if isinstance(modules, Iterable):
             _flatten_modules = []
-            for m in modules:
+            for m in modules:  # type: ignore[union-attr]
                 _flatten_modules.extend(BaseFinetuning.flatten_modules(m))
 
             _modules = iter(_flatten_modules)

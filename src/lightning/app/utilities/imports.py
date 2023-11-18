@@ -15,6 +15,8 @@
 
 import functools
 import os
+import platform
+import sys
 import warnings
 from typing import Any, List, Union
 
@@ -146,3 +148,5 @@ def _is_aiohttp_available() -> bool:
 
 
 _CLOUD_TEST_RUN = bool(os.getenv("CLOUD", False))
+_IS_WINDOWS = platform.system() == "Windows"
+_IS_MACOS = sys.platform == "darwin"

@@ -22,9 +22,10 @@ from argparse import Namespace
 from typing import Any, Dict, Optional, Union
 
 from torch import Tensor
+from typing_extensions import override
 
 import lightning.pytorch as pl
-from lightning.fabric.loggers.tensorboard import _TENSORBOARD_AVAILABLE, _TENSORBOARDX_AVAILABLE
+from lightning.fabric.loggers.tensorboard import _TENSORBOARD_AVAILABLE
 from lightning.fabric.loggers.tensorboard import TensorBoardLogger as FabricTensorBoardLogger
 from lightning.fabric.utilities.cloud_io import _is_dir
 from lightning.fabric.utilities.logger import _convert_params
@@ -36,13 +37,6 @@ from lightning.pytorch.utilities.imports import _OMEGACONF_AVAILABLE
 from lightning.pytorch.utilities.rank_zero import rank_zero_only, rank_zero_warn
 
 log = logging.getLogger(__name__)
-
-if _OMEGACONF_AVAILABLE:
-    from omegaconf import Container, OmegaConf
-
-# Skip doctests if requirements aren't available
-if not (_TENSORBOARD_AVAILABLE or _TENSORBOARDX_AVAILABLE):
-    __doctest_skip__ = ["TensorBoardLogger", "TensorBoardLogger.*"]
 
 
 class TensorBoardLogger(Logger, FabricTensorBoardLogger):
@@ -58,6 +52,7 @@ class TensorBoardLogger(Logger, FabricTensorBoardLogger):
     Example:
 
     .. testcode::
+        :skipif: not _TENSORBOARD_AVAILABLE or not _TENSORBOARDX_AVAILABLE
 
         from lightning.pytorch import Trainer
         from lightning.pytorch.loggers import TensorBoardLogger
@@ -86,17 +81,6 @@ class TensorBoardLogger(Logger, FabricTensorBoardLogger):
             arguments in this logger. To automatically flush to disk, `max_queue` sets the size
             of the queue for pending logs before flushing. `flush_secs` determines how many seconds
             elapses before flushing.
-
-    Example:
-        >>> import shutil, tempfile
-        >>> tmp = tempfile.mkdtemp()
-        >>> tbl = TensorBoardLogger(tmp)
-        >>> tbl.log_hyperparams({"epochs": 5, "optimizer": "Adam"})
-        >>> tbl.log_metrics({"acc": 0.75})
-        >>> tbl.log_metrics({"acc": 0.9})
-        >>> tbl.finalize("success")
-        >>> shutil.rmtree(tmp)
-
     """
     NAME_HPARAMS_FILE = "hparams.yaml"
 
@@ -129,6 +113,7 @@ class TensorBoardLogger(Logger, FabricTensorBoardLogger):
         self.hparams: Union[Dict[str, Any], Namespace] = {}
 
     @property
+    @override
     def root_dir(self) -> str:
         """Parent directory for all tensorboard checkpoint subdirectories.
 
@@ -139,6 +124,7 @@ class TensorBoardLogger(Logger, FabricTensorBoardLogger):
         return os.path.join(super().root_dir, self.name)
 
     @property
+    @override
     def log_dir(self) -> str:
         """The directory for this run's tensorboard checkpoint.
 
@@ -156,6 +142,7 @@ class TensorBoardLogger(Logger, FabricTensorBoardLogger):
         return log_dir
 
     @property
+    @override
     def save_dir(self) -> str:
         """Gets the save directory where the TensorBoard experiments are saved.
 
@@ -165,6 +152,7 @@ class TensorBoardLogger(Logger, FabricTensorBoardLogger):
         """
         return self._root_dir
 
+    @override
     @rank_zero_only
     def log_hyperparams(  # type: ignore[override]
         self, params: Union[Dict[str, Any], Namespace], metrics: Optional[Dict[str, Any]] = None
@@ -178,6 +166,9 @@ class TensorBoardLogger(Logger, FabricTensorBoardLogger):
             metrics: Dictionary with metric names as keys and measured quantities as values
 
         """
+        if _OMEGACONF_AVAILABLE:
+            from omegaconf import Container, OmegaConf
+
         params = _convert_params(params)
 
         # store params to output
@@ -188,6 +179,7 @@ class TensorBoardLogger(Logger, FabricTensorBoardLogger):
 
         return super().log_hyperparams(params=params, metrics=metrics)
 
+    @override
     @rank_zero_only
     def log_graph(  # type: ignore[override]
         self, model: "pl.LightningModule", input_array: Optional[Tensor] = None
@@ -214,6 +206,7 @@ class TensorBoardLogger(Logger, FabricTensorBoardLogger):
             with pl.core.module._jit_is_scripting():
                 self.experiment.add_graph(model, input_array)
 
+    @override
     @rank_zero_only
     def save(self) -> None:
         super().save()
@@ -226,6 +219,7 @@ class TensorBoardLogger(Logger, FabricTensorBoardLogger):
         if _is_dir(self._fs, dir_path) and not self._fs.isfile(hparams_file):
             save_hparams_to_yaml(hparams_file, self.hparams)
 
+    @override
     @rank_zero_only
     def finalize(self, status: str) -> None:
         super().finalize(status)
@@ -233,6 +227,7 @@ class TensorBoardLogger(Logger, FabricTensorBoardLogger):
             # saving hparams happens independent of experiment manager
             self.save()
 
+    @override
     def after_save_checkpoint(self, checkpoint_callback: ModelCheckpoint) -> None:
         """Called after model checkpoint callback saves a new checkpoint.
 
@@ -242,6 +237,7 @@ class TensorBoardLogger(Logger, FabricTensorBoardLogger):
         """
         pass
 
+    @override
     def _get_next_version(self) -> int:
         root_dir = self.root_dir
 
@@ -257,7 +253,8 @@ class TensorBoardLogger(Logger, FabricTensorBoardLogger):
             bn = os.path.basename(d)
             if _is_dir(self._fs, d) and bn.startswith("version_"):
                 dir_ver = bn.split("_")[1].replace("/", "")
-                existing_versions.append(int(dir_ver))
+                if dir_ver.isdigit():
+                    existing_versions.append(int(dir_ver))
         if len(existing_versions) == 0:
             return 0
 

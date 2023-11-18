@@ -15,6 +15,8 @@ import math
 from collections import OrderedDict
 from typing import Any, Dict, Optional, Union
 
+from typing_extensions import override
+
 import lightning.pytorch as pl
 from lightning.pytorch import loops  # import as loops to avoid circular imports
 from lightning.pytorch.loops.fetchers import _DataFetcher, _DataLoaderIterDataFetcher
@@ -27,16 +29,15 @@ from lightning.pytorch.trainer import call
 from lightning.pytorch.trainer.connectors.logger_connector.result import _ResultCollection
 from lightning.pytorch.trainer.states import RunningStage, TrainerFn
 from lightning.pytorch.utilities.exceptions import MisconfigurationException, SIGTERMException
-from lightning.pytorch.utilities.rank_zero import rank_zero_warn, WarningCache
+from lightning.pytorch.utilities.rank_zero import WarningCache, rank_zero_warn
 from lightning.pytorch.utilities.signature_utils import is_param_in_hook_signature
 
 _BATCH_OUTPUTS_TYPE = Optional[Union[_OPTIMIZER_LOOP_OUTPUTS_TYPE, _MANUAL_LOOP_OUTPUTS_TYPE]]
 
 
 class _TrainingEpochLoop(loops._Loop):
-    """
-    Iterates over all batches in the dataloader (one epoch) that the user returns in their
-    :meth:`~lightning.pytorch.core.module.LightningModule.train_dataloader` method.
+    """Iterates over all batches in the dataloader (one epoch) that the user returns in their
+    :meth:`~lightning.pytorch.core.LightningModule.train_dataloader` method.
 
     Its main responsibilities are calling the ``*_epoch_{start,end}`` hooks, accumulating outputs if the user request
     them in one of these hooks, and running validation at the requested interval.
@@ -53,6 +54,7 @@ class _TrainingEpochLoop(loops._Loop):
     Args:
         min_steps: The minimum number of steps (batches) to process
         max_steps: The maximum number of steps (batches) to process
+
     """
 
     def __init__(self, trainer: "pl.Trainer", min_steps: Optional[int] = None, max_steps: int = -1) -> None:
@@ -237,7 +239,7 @@ class _TrainingEpochLoop(loops._Loop):
             with trainer.profiler.profile("run_training_batch"):
                 if trainer.lightning_module.automatic_optimization:
                     # in automatic optimization, there can only be one optimizer
-                    batch_output = self.automatic_optimization.run(trainer.optimizers[0], kwargs)
+                    batch_output = self.automatic_optimization.run(trainer.optimizers[0], batch_idx, kwargs)
                 else:
                     batch_output = self.manual_optimization.run(kwargs)
 
@@ -277,6 +279,11 @@ class _TrainingEpochLoop(loops._Loop):
             self.trainer.validating = True
             # save and reset this state in case validation runs inside training loop (val_check_interval<1.0)
             first_loop_iter = self.trainer._logger_connector._first_loop_iter
+
+            if not self._should_accumulate():
+                # clear gradients to not leave any unused memory during validation
+                call._call_lightning_module_hook(self.trainer, "on_validation_model_zero_grad")
+
             self.val_loop.run()
             self.trainer.training = True
             self.trainer._logger_connector._first_loop_iter = first_loop_iter
@@ -299,11 +306,13 @@ class _TrainingEpochLoop(loops._Loop):
         self._results.cpu()
         self.val_loop.teardown()
 
+    @override
     def on_save_checkpoint(self) -> Dict:
         state_dict = super().on_save_checkpoint()
         state_dict["_batches_that_stepped"] = self._batches_that_stepped
         return state_dict
 
+    @override
     def on_load_checkpoint(self, state_dict: Dict) -> None:
         self._batches_that_stepped = state_dict.get("_batches_that_stepped", 0)
 

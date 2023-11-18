@@ -1,5 +1,5 @@
 import os
-from typing import Dict, List, Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Dict, List, Optional
 
 from lightning.app import LightningFlow
 

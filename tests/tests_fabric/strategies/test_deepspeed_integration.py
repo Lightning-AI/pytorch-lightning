@@ -20,11 +20,11 @@ import pytest
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.utils.data import DataLoader
-
 from lightning.fabric import Fabric
 from lightning.fabric.plugins import DeepSpeedPrecision
 from lightning.fabric.strategies import DeepSpeedStrategy
+from torch.utils.data import DataLoader
+
 from tests_fabric.helpers.models import RandomDataset, RandomIterableDataset
 from tests_fabric.helpers.runif import RunIf
 from tests_fabric.test_fabric import BoringModel
@@ -391,6 +391,7 @@ def test_deepspeed_init_module_with_stage_3(empty_init):
 
     with mock.patch("deepspeed.zero.Init") as zero_init_mock, fabric.init_module(empty_init=empty_init):
         BoringModel()
+    fabric.barrier()
     zero_init_mock.assert_called_once_with(enabled=True, remote_device=None, config_dict_or_path=ANY)
 
 

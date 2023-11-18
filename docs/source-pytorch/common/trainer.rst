@@ -11,11 +11,11 @@
 Trainer
 =======
 
-Once you've organized your PyTorch code into a :class:`~lightning.pytorch.core.module.LightningModule`, the ``Trainer`` automates everything else.
+Once you've organized your PyTorch code into a :class:`~lightning.pytorch.core.LightningModule`, the ``Trainer`` automates everything else.
 
 The ``Trainer`` achieves the following:
 
-1. You maintain control over all aspects via PyTorch code in your :class:`~lightning.pytorch.core.module.LightningModule`.
+1. You maintain control over all aspects via PyTorch code in your :class:`~lightning.pytorch.core.LightningModule`.
 
 2. The trainer uses best practices embedded by contributors and users
    from top AI labs such as Facebook AI Research, NYU, MIT, Stanford, etc...
@@ -54,8 +54,7 @@ Here's the pseudocode for what the trainer does under the hood (showing the trai
 
 .. code-block:: python
 
-    # put model in train mode
-    model.train()
+    # enable grads
     torch.set_grad_enabled(True)
 
     losses = []
@@ -257,7 +256,7 @@ benchmark
 
 The value (``True`` or ``False``) to set ``torch.backends.cudnn.benchmark`` to. The value for
 ``torch.backends.cudnn.benchmark`` set in the current session will be used (``False`` if not manually set).
-If :paramref:`~lightning.pytorch.trainer.Trainer.deterministic` is set to ``True``, this will default to ``False``.
+If :paramref:`~lightning.pytorch.trainer.trainer.Trainer.deterministic` is set to ``True``, this will default to ``False``.
 You can read more about the interaction of ``torch.backends.cudnn.benchmark`` and ``torch.backends.cudnn.deterministic``
 `here <https://pytorch.org/docs/stable/notes/randomness.html#cuda-convolution-benchmarking>`__
 
@@ -320,7 +319,7 @@ Example::
 
 
 Model-specific callbacks can also be added inside the ``LightningModule`` through
-:meth:`~lightning.pytorch.core.module.LightningModule.configure_callbacks`.
+:meth:`~lightning.pytorch.core.LightningModule.configure_callbacks`.
 Callbacks returned in this hook will extend the list initially given to the ``Trainer`` argument, and replace
 the trainer callbacks should there be two or more of the same type.
 :class:`~lightning.pytorch.callbacks.model_checkpoint.ModelCheckpoint` callbacks always run last.
@@ -821,25 +820,25 @@ Automatic mixed precision settings are denoted by a ``"-mixed"`` suffix, while "
     fabric = Fabric(precision="32-true", devices=1)
 
     # the same as:
-    fabric = Trainer(precision="32", devices=1)
+    trainer = Trainer(precision="32", devices=1)
 
     # 16-bit mixed precision (model weights remain in torch.float32)
-    fabric = Trainer(precision="16-mixed", devices=1)
+    trainer = Trainer(precision="16-mixed", devices=1)
 
     # 16-bit bfloat mixed precision (model weights remain in torch.float32)
-    fabric = Trainer(precision="bf16-mixed", devices=1)
+    trainer = Trainer(precision="bf16-mixed", devices=1)
 
-    # 8-bit mixed precision via TransformerEngine (model weights remain in torch.float32)
-    fabric = Trainer(precision="transformer-engine", devices=1)
+    # 8-bit mixed precision via TransformerEngine (model weights get cast to torch.bfloat16)
+    trainer = Trainer(precision="transformer-engine", devices=1)
 
     # 16-bit precision (model weights get cast to torch.float16)
-    fabric = Trainer(precision="16-true", devices=1)
+    trainer = Trainer(precision="16-true", devices=1)
 
     # 16-bit bfloat precision (model weights get cast to torch.bfloat16)
-    fabric = Trainer(precision="bf16-true", devices=1)
+    trainer = Trainer(precision="bf16-true", devices=1)
 
     # 64-bit (double) precision (model weights get cast to torch.float64)
-    fabric = Trainer(precision="64-true", devices=1)
+    trainer = Trainer(precision="64-true", devices=1)
 
 
 See the :doc:`N-bit precision guide <../common/precision>` for more details.
@@ -1129,7 +1128,7 @@ callback_metrics
 
 The metrics available to callbacks.
 
-This includes metrics logged via :meth:`~lightning.pytorch.core.module.LightningModule.log`.
+This includes metrics logged via :meth:`~lightning.pytorch.core.LightningModule.log`.
 
 .. code-block:: python
 
@@ -1145,16 +1144,16 @@ logged_metrics
 
 The metrics sent to the loggers.
 
-This includes metrics logged via :meth:`~lightning.pytorch.core.module.LightningModule.log` with the
-:paramref:`~lightning.pytorch.core.module.LightningModule.log.logger` argument set.
+This includes metrics logged via :meth:`~lightning.pytorch.core.LightningModule.log` with the
+:paramref:`~lightning.pytorch.core.LightningModule.log.logger` argument set.
 
 progress_bar_metrics
 ********************
 
 The metrics sent to the progress bar.
 
-This includes metrics logged via :meth:`~lightning.pytorch.core.module.LightningModule.log` with the
-:paramref:`~lightning.pytorch.core.module.LightningModule.log.prog_bar` argument set.
+This includes metrics logged via :meth:`~lightning.pytorch.core.LightningModule.log` with the
+:paramref:`~lightning.pytorch.core.LightningModule.log.prog_bar` argument set.
 
 current_epoch
 *************

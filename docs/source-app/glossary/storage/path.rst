@@ -285,7 +285,7 @@ Frequently Asked Questions
 
 - **Q: Is it possible to reference any file using the Lightning lit:// path notation?**
 
-  Yes, but only files for which the app has write permissions can be copied from Work to Work (apps don't run with root priviliges).
+  Yes, but only files for which the app has write permissions can be copied from Work to Work (apps don't run with root privileges).
 
 - **Q: Can I access the Lightning Storage in my UI (StreamLit, Web, ...)?**
 

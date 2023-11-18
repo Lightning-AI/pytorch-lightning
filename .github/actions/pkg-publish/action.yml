@@ -7,36 +7,35 @@ inputs:
     required: true
   pypi-test-token:
     description: login token for PyPI
-    default: ''
+    default: ""
     required: false
   pypi-token:
     description: login token for PyPI
-    default: ''
+    default: ""
     required: false
 
 runs:
   using: "composite"
   steps:
+    - run: ls -lh ${{ inputs.pkg-folder }}
+      shell: bash
 
-  - run: ls -lh ${{ inputs.pkg-folder }}
-    shell: bash
+    # We do this, since failures on test.pypi aren't that bad
+    - name: Publish to Test PyPI
+      uses: pypa/gh-action-pypi-publish@v1.5.1
+      if: inputs.pypi-test-token != ''
+      with:
+        user: __token__
+        password: ${{ inputs.pypi-test-token }}
+        repository_url: https://test.pypi.org/legacy/
+        packages_dir: ${{ inputs.pkg-folder }}
+        verbose: true
 
-  # We do this, since failures on test.pypi aren't that bad
-  - name: Publish to Test PyPI
-    uses: pypa/gh-action-pypi-publish@v1.5.1
-    if: inputs.pypi-test-token != ''
-    with:
-      user: __token__
-      password: ${{ inputs.pypi-test-token }}
-      repository_url: https://test.pypi.org/legacy/
-      packages_dir: ${{ inputs.pkg-folder }}
-      verbose: true
-
-  - name: Publish distribution 📦 to PyPI
-    uses: pypa/gh-action-pypi-publish@v1.5.1
-    if: inputs.pypi-token != ''
-    with:
-      user: __token__
-      password: ${{ inputs.pypi-token }}
-      packages_dir: ${{ inputs.pkg-folder }}
-      verbose: true
+    - name: Publish distribution 📦 to PyPI
+      uses: pypa/gh-action-pypi-publish@v1.5.1
+      if: inputs.pypi-token != ''
+      with:
+        user: __token__
+        password: ${{ inputs.pypi-token }}
+        packages_dir: ${{ inputs.pkg-folder }}
+        verbose: true

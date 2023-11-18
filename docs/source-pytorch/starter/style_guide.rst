@@ -2,7 +2,7 @@
 Style Guide
 ###########
 The main goal of PyTorch Lightning is to improve readability and reproducibility. Imagine looking into any GitHub repo or a research project,
-finding a :class:`~lightning.pytorch.core.module.LightningModule`, and knowing exactly where to look to find the things you care about.
+finding a :class:`~lightning.pytorch.core.LightningModule`, and knowing exactly where to look to find the things you care about.
 
 The goal of this style guide is to encourage Lightning code to be structured similarly.
 
@@ -12,7 +12,7 @@ The goal of this style guide is to encourage Lightning code to be structured sim
 LightningModule
 ***************
 
-These are best practices for structuring your :class:`~lightning.pytorch.core.module.LightningModule` class:
+These are best practices for structuring your :class:`~lightning.pytorch.core.LightningModule` class:
 
 Systems vs Models
 =================
@@ -139,7 +139,7 @@ In practice, the code looks like this:
 
 .. code-block::
 
-    class LitModel(pl.LightningModule):
+    class LitModel(L.LightningModule):
 
         def __init__(...):
 
@@ -165,8 +165,8 @@ In practice, the code looks like this:
 Forward vs training_step
 ========================
 
-We recommend using :meth:`~lightning.pytorch.core.module.LightningModule.forward` for inference/predictions and keeping
-:meth:`~lightning.pytorch.core.module.LightningModule.training_step` independent.
+We recommend using :meth:`~lightning.pytorch.core.LightningModule.forward` for inference/predictions and keeping
+:meth:`~lightning.pytorch.core.LightningModule.training_step` independent.
 
 .. code-block:: python
 
@@ -201,7 +201,7 @@ DataModules
 ===========
 
 The :class:`~lightning.pytorch.core.datamodule.LightningDataModule` is designed as a way of decoupling data-related
-hooks from the :class:`~lightning.pytorch.core.module.LightningModule` so you can develop dataset agnostic models. It makes it easy to hot swap different
+hooks from the :class:`~lightning.pytorch.core.LightningModule` so you can develop dataset agnostic models. It makes it easy to hot swap different
 datasets with your model, so you can test it and benchmark it across domains. It also makes sharing and reusing the exact data splits and transforms across projects possible.
 
 Check out :ref:`data` document to understand data management within Lightning and its best practices.
@@ -218,6 +218,6 @@ All they need to do is drop a datamodule into the Trainer and not worry about wh
 This is true for both academic and corporate settings where data cleaning and ad-hoc instructions slow down the progress
 of iterating through ideas.
 
-- Checkout the live examples to get your hands dirty:
-- `Introduction to PyTorch Lightning <https://lightning.ai/docs/pytorch/stable/notebooks/lightning_examples/mnist-hello-world.html>`_
+- Check out the live examples to get your hands dirty:
+- `Introduction to PyTorch Lightning <https://lightning.ai/docs/pytorch/2.1.0/notebooks/lightning_examples/mnist-hello-world.html>`_
 - `Introduction to DataModules <https://lightning.ai/docs/pytorch/stable/notebooks/lightning_examples/datamodules.html>`_

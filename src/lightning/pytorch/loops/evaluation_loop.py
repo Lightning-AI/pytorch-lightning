@@ -14,7 +14,7 @@
 import os
 import shutil
 import sys
-from collections import ChainMap, defaultdict, OrderedDict
+from collections import ChainMap, OrderedDict, defaultdict
 from typing import Any, DefaultDict, Iterable, Iterator, List, Optional, Tuple, Union
 
 from lightning_utilities.core.apply_func import apply_to_collection
@@ -41,11 +41,8 @@ from lightning.pytorch.trainer.states import RunningStage, TrainerFn
 from lightning.pytorch.utilities.combined_loader import CombinedLoader
 from lightning.pytorch.utilities.data import has_len_all_ranks
 from lightning.pytorch.utilities.exceptions import SIGTERMException
-from lightning.pytorch.utilities.model_helpers import is_overridden
-
-if _RICH_AVAILABLE:
-    from rich import get_console
-    from rich.table import Column, Table
+from lightning.pytorch.utilities.model_helpers import _ModuleMode, is_overridden
+from lightning.pytorch.utilities.signature_utils import is_param_in_hook_signature
 
 
 class _EvaluationLoop(_Loop):
@@ -75,6 +72,7 @@ class _EvaluationLoop(_Loop):
         self._data_fetcher: Optional[_DataFetcher] = None
         self._seen_batches_per_dataloader: DefaultDict[int, int] = defaultdict(int)
         self._last_val_dl_reload_epoch = float("-inf")
+        self._module_mode = _ModuleMode()
 
     @property
     def num_dataloaders(self) -> int:
@@ -217,7 +215,8 @@ class _EvaluationLoop(_Loop):
         if fn != TrainerFn.FITTING:
             self.batch_progress.reset_on_run()
 
-        data_fetcher = _select_data_fetcher(trainer)
+        assert trainer.state.stage is not None
+        data_fetcher = _select_data_fetcher(trainer, trainer.state.stage)
         combined_loader = self._combined_loader
         assert combined_loader is not None
 
@@ -241,9 +240,7 @@ class _EvaluationLoop(_Loop):
         """Runs the ``_on_evaluation_model_eval``, ``_on_evaluation_start`` and ``_on_evaluation_epoch_start``
         hooks."""
         self._verify_dataloader_idx_requirement()
-
         self._on_evaluation_model_eval()
-        self.trainer.lightning_module.zero_grad()
         self._on_evaluation_start()
         self._on_evaluation_epoch_start()
 
@@ -297,13 +294,17 @@ class _EvaluationLoop(_Loop):
         """Sets model to eval mode."""
         trainer = self.trainer
         hook_name = "on_test_model_eval" if trainer.testing else "on_validation_model_eval"
+        self._module_mode.capture(trainer.lightning_module)
         call._call_lightning_module_hook(trainer, hook_name)
 
     def _on_evaluation_model_train(self) -> None:
-        """Sets model to train mode."""
+        """Undoes the eval mode."""
         trainer = self.trainer
         hook_name = "on_test_model_train" if trainer.testing else "on_validation_model_train"
-        call._call_lightning_module_hook(trainer, hook_name)
+        if is_overridden(hook_name, trainer.lightning_module):
+            call._call_lightning_module_hook(trainer, hook_name)
+        else:
+            self._module_mode.restore(trainer.lightning_module)
 
     def _on_evaluation_end(self, *args: Any, **kwargs: Any) -> None:
         """Runs ``on_{validation/test}_end`` hook."""
@@ -373,7 +374,6 @@ class _EvaluationLoop(_Loop):
         hook_kwargs = self._build_kwargs(
             batch, batch_idx, dataloader_idx if self._is_sequential and self.num_dataloaders > 1 else None
         )
-        step_args = hook_kwargs.values() if not using_dataloader_iter else (dataloader_iter,)
 
         self.batch_progress.increment_ready()
 
@@ -388,6 +388,11 @@ class _EvaluationLoop(_Loop):
         self.batch_progress.increment_started()
 
         hook_name = "test_step" if trainer.testing else "validation_step"
+        step_args = (
+            self._build_step_args_from_hook_kwargs(hook_kwargs, hook_name)
+            if not using_dataloader_iter
+            else (dataloader_iter,)
+        )
         output = call._call_strategy_hook(trainer, hook_name, *step_args)
 
         self.batch_progress.increment_processed()
@@ -437,6 +442,14 @@ class _EvaluationLoop(_Loop):
         if dataloader_idx is not None:
             step_kwargs["dataloader_idx"] = dataloader_idx
         return step_kwargs
+
+    def _build_step_args_from_hook_kwargs(self, hook_kwargs: OrderedDict, step_hook_name: str) -> tuple:
+        """Helper method to build args for `test_step` or `validation_step`."""
+        kwargs = hook_kwargs.copy()
+        step_hook_fx = getattr(self.trainer.lightning_module, step_hook_name)
+        if not is_param_in_hook_signature(step_hook_fx, "batch_idx", min_args=2):
+            kwargs.pop("batch_idx", None)
+        return tuple(kwargs.values())
 
     def _verify_dataloader_idx_requirement(self) -> None:
         trainer = self.trainer
@@ -517,6 +530,9 @@ class _EvaluationLoop(_Loop):
             table_headers.insert(0, f"{stage} Metric".capitalize())
 
             if _RICH_AVAILABLE:
+                from rich import get_console
+                from rich.table import Column, Table
+
                 columns = [Column(h, justify="center", style="magenta", width=max_length) for h in table_headers]
                 columns[0].style = "cyan"
 

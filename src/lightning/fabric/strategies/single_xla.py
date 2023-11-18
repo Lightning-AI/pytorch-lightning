@@ -17,9 +17,8 @@ import torch
 
 from lightning.fabric.accelerators import Accelerator
 from lightning.fabric.accelerators.xla import _XLA_AVAILABLE
-from lightning.fabric.plugins.io.checkpoint_io import CheckpointIO
+from lightning.fabric.plugins import XLAPrecision
 from lightning.fabric.plugins.io.xla import XLACheckpointIO
-from lightning.fabric.plugins.precision import Precision
 from lightning.fabric.strategies import _StrategyRegistry
 from lightning.fabric.strategies.single_device import SingleDeviceStrategy
 from lightning.fabric.utilities.types import _DEVICE
@@ -32,8 +31,8 @@ class SingleDeviceXLAStrategy(SingleDeviceStrategy):
         self,
         device: _DEVICE,
         accelerator: Optional[Accelerator] = None,
-        checkpoint_io: Optional[CheckpointIO] = None,
-        precision: Optional[Precision] = None,
+        checkpoint_io: Optional[XLACheckpointIO] = None,
+        precision: Optional[XLAPrecision] = None,
     ):
         if not _XLA_AVAILABLE:
             raise ModuleNotFoundError(str(_XLA_AVAILABLE))
@@ -50,16 +49,34 @@ class SingleDeviceXLAStrategy(SingleDeviceStrategy):
             precision=precision,
         )
 
-    @property
-    def checkpoint_io(self) -> CheckpointIO:
-        if self._checkpoint_io is None:
-            self._checkpoint_io = XLACheckpointIO()
-        return self._checkpoint_io
+    @property  # type: ignore[override]
+    def checkpoint_io(self) -> XLACheckpointIO:
+        plugin = self._checkpoint_io
+        if plugin is not None:
+            assert isinstance(plugin, XLACheckpointIO)
+            return plugin
+        return XLACheckpointIO()
 
     @checkpoint_io.setter
-    def checkpoint_io(self, io: CheckpointIO) -> None:
+    def checkpoint_io(self, io: Optional[XLACheckpointIO]) -> None:
+        if io is not None and not isinstance(io, XLACheckpointIO):
+            raise TypeError(f"The XLA strategy can only work with the `XLACheckpointIO` plugin, found {io}")
         self._checkpoint_io = io
+
+    @property  # type: ignore[override]
+    def precision(self) -> XLAPrecision:
+        plugin = self._precision
+        if plugin is not None:
+            assert isinstance(plugin, XLAPrecision)
+            return plugin
+        return XLAPrecision("32-true")
+
+    @precision.setter
+    def precision(self, precision: Optional[XLAPrecision]) -> None:
+        if precision is not None and not isinstance(precision, XLAPrecision):
+            raise TypeError(f"The XLA strategy can only work with the `XLAPrecision` plugin, found {precision}")
+        self._precision = precision
 
     @classmethod
     def register_strategies(cls, strategy_registry: _StrategyRegistry) -> None:
-        strategy_registry.register("single_xla", cls, description=cls.__class__.__name__)
+        strategy_registry.register("single_xla", cls, description=cls.__name__)

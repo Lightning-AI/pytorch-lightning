@@ -18,10 +18,11 @@ from unittest import mock
 
 import pytest
 import torch
-from torch.utils.data import DataLoader
-
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomIterableDataset
+from lightning.pytorch.strategies import SingleDeviceXLAStrategy
+from torch.utils.data import DataLoader
+
 from tests_pytorch.conftest import mock_cuda_count
 from tests_pytorch.helpers.runif import RunIf
 
@@ -136,8 +137,10 @@ def test_num_stepping_batches_with_tpu_single():
     trainer = Trainer(accelerator="tpu", devices=1, max_epochs=1)
     model = BoringModel()
     trainer._data_connector.attach_data(model)
+    assert isinstance(trainer.strategy, SingleDeviceXLAStrategy)
     trainer.strategy.connect(model)
-    assert trainer.estimated_stepping_batches == len(model.train_dataloader())
+    expected = len(model.train_dataloader())
+    assert trainer.estimated_stepping_batches == expected
 
 
 class MultiprocessModel(BoringModel):

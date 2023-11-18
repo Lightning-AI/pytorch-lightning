@@ -5,7 +5,6 @@ from unittest.mock import patch
 
 import pytest
 from fastapi import HTTPException
-
 from lightning.app import CloudCompute, LightningWork
 from lightning.app.components import AutoScaler, ColdStartProxy, Text
 from lightning.app.components.serve.auto_scaler import _LoadBalancer

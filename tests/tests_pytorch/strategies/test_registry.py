@@ -14,10 +14,10 @@
 from unittest import mock
 
 import pytest
-
 from lightning.pytorch import Trainer
 from lightning.pytorch.plugins import CheckpointIO
 from lightning.pytorch.strategies import DDPStrategy, DeepSpeedStrategy, FSDPStrategy, StrategyRegistry, XLAStrategy
+
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -59,7 +59,6 @@ def test_xla_debug_strategy_registry(_, tpu_available):
     assert isinstance(trainer.strategy, XLAStrategy)
 
 
-@RunIf(min_torch="1.12")
 def test_fsdp_strategy_registry(cuda_count_1):
     strategy = "fsdp"
     assert strategy in StrategyRegistry

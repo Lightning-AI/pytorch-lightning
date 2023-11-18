@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from collections import OrderedDict
-from typing import Any, Dict, Iterator, List, Optional, Union
+from typing import Any, Iterator, List, Optional, Union
 
 import torch
 from lightning_utilities import WarningCache
@@ -38,6 +38,8 @@ from lightning.pytorch.trainer.states import RunningStage, TrainerFn
 from lightning.pytorch.utilities.combined_loader import CombinedLoader
 from lightning.pytorch.utilities.data import has_len_all_ranks
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
+from lightning.pytorch.utilities.model_helpers import _ModuleMode
+from lightning.pytorch.utilities.signature_utils import is_param_in_hook_signature
 from lightning.pytorch.utilities.types import _PREDICT_OUTPUT
 
 
@@ -60,6 +62,7 @@ class _PredictionLoop(_Loop):
         self._results = None  # for `trainer._results` access
         self._predictions: List[List[Any]] = []  # dataloaders x batches
         self._return_predictions = False
+        self._module_mode = _ModuleMode()
 
     @property
     def return_predictions(self) -> bool:
@@ -165,7 +168,8 @@ class _PredictionLoop(_Loop):
         """Resets the internal state of the loop for a new run."""
         self.batch_progress.reset_on_run()
 
-        data_fetcher = _select_data_fetcher(self.trainer)
+        assert self.trainer.state.stage is not None
+        data_fetcher = _select_data_fetcher(self.trainer, self.trainer.state.stage)
         combined_loader = self._combined_loader
         assert combined_loader is not None
         if combined_loader._mode != "sequential":
@@ -189,10 +193,7 @@ class _PredictionLoop(_Loop):
     def on_run_start(self) -> None:
         """Calls ``_on_predict_model_eval``, ``_on_predict_start`` and ``_on_predict_epoch_start`` hooks."""
         self._verify_dataloader_idx_requirement()
-
-        trainer = self.trainer
-        call._call_lightning_module_hook(trainer, "on_predict_model_eval")
-        trainer.lightning_module.zero_grad()
+        self._on_predict_model_eval()
         self._on_predict_start()
         self._on_predict_epoch_start()
 
@@ -200,6 +201,7 @@ class _PredictionLoop(_Loop):
         """Calls ``on_predict_epoch_end`` and ``on_predict_end`` hooks and returns results from all dataloaders."""
         results = self._on_predict_epoch_end()
         self._on_predict_end()
+        self._on_predict_model_train()
         return results
 
     def teardown(self) -> None:
@@ -236,7 +238,6 @@ class _PredictionLoop(_Loop):
         # the `_step` methods don't take a batch_idx when `dataloader_iter` is used, but all other hooks still do,
         # so we need different kwargs
         hook_kwargs = self._build_kwargs(batch, batch_idx, dataloader_idx if self.num_dataloaders > 1 else None)
-        step_args = hook_kwargs.values() if not using_dataloader_iter else (dataloader_iter,)
 
         call._call_callback_hooks(trainer, "on_predict_batch_start", *hook_kwargs.values())
         call._call_lightning_module_hook(trainer, "on_predict_batch_start", *hook_kwargs.values())
@@ -244,6 +245,11 @@ class _PredictionLoop(_Loop):
         self.batch_progress.increment_started()
 
         # configure step_kwargs
+        step_args = (
+            self._build_step_args_from_hook_kwargs(hook_kwargs, "predict_step")
+            if not using_dataloader_iter
+            else (dataloader_iter,)
+        )
         predictions = call._call_strategy_hook(trainer, "predict_step", *step_args)
         if predictions is None:
             self._warning_cache.warn("predict returned None if it was on purpose, ignore this warning...")
@@ -265,7 +271,7 @@ class _PredictionLoop(_Loop):
         if self._return_predictions or any_on_epoch:
             self._predictions[dataloader_idx].append(move_data_to_device(predictions, torch.device("cpu")))
 
-    def _build_kwargs(self, batch: Any, batch_idx: int, dataloader_idx: Optional[int]) -> Dict[str, Any]:
+    def _build_kwargs(self, batch: Any, batch_idx: int, dataloader_idx: Optional[int]) -> OrderedDict:
         """Assembles the keyword arguments for the ``predict_step``
 
         Args:
@@ -276,11 +282,20 @@ class _PredictionLoop(_Loop):
 
         Returns:
             the dictionary containing all the keyboard arguments for the predict step
+
         """
         step_kwargs = OrderedDict([("batch", batch), ("batch_idx", batch_idx)])
         if dataloader_idx is not None:
             step_kwargs["dataloader_idx"] = dataloader_idx
         return step_kwargs
+
+    def _build_step_args_from_hook_kwargs(self, hook_kwargs: OrderedDict, step_hook_name: str) -> tuple:
+        """Helper method to build args for `predict_step`."""
+        kwargs = hook_kwargs.copy()
+        step_hook_fx = getattr(self.trainer.lightning_module, step_hook_name)
+        if not is_param_in_hook_signature(step_hook_fx, "batch_idx", min_args=2):
+            kwargs.pop("batch_idx", None)
+        return tuple(kwargs.values())
 
     def _get_batch_indices(self, dataloader: object) -> List[List[int]]:  # batches x samples
         """Returns a reference to the seen batch indices if the dataloader has a batch sampler wrapped by our
@@ -328,6 +343,13 @@ class _PredictionLoop(_Loop):
         call._call_lightning_module_hook(trainer, "on_predict_start")
         call._call_strategy_hook(trainer, "on_predict_start")
 
+    def _on_predict_model_eval(self) -> None:
+        self._module_mode.capture(self.trainer.lightning_module)
+        call._call_lightning_module_hook(self.trainer, "on_predict_model_eval")
+
+    def _on_predict_model_train(self) -> None:
+        self._module_mode.restore(self.trainer.lightning_module)
+
     def _on_predict_epoch_start(self) -> None:
         """Calls ``on_predict_epoch_start`` hooks."""
         trainer = self.trainer
@@ -339,6 +361,7 @@ class _PredictionLoop(_Loop):
 
         Returns:
             the results for all dataloaders
+
         """
         trainer = self.trainer
         call._call_callback_hooks(trainer, "on_predict_epoch_end")

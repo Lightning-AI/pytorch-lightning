@@ -21,15 +21,14 @@ from unittest.mock import patch
 import numpy as np
 import pytest
 import torch
-
 from lightning.pytorch import Callback, Trainer
 from lightning.pytorch.callbacks import EarlyStopping, StochasticWeightAveraging
 from lightning.pytorch.demos.boring_classes import BoringModel, ManualOptimBoringModel
 from lightning.pytorch.loggers import CSVLogger, TensorBoardLogger
 from lightning.pytorch.profilers import AdvancedProfiler, PassThroughProfiler, PyTorchProfiler, SimpleProfiler
-from lightning.pytorch.profilers.pytorch import RegisterRecordFunction, warning_cache
+from lightning.pytorch.profilers.pytorch import _KINETO_AVAILABLE, RegisterRecordFunction, warning_cache
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning.pytorch.utilities.imports import _KINETO_AVAILABLE
+
 from tests_pytorch.helpers.runif import RunIf
 
 PROFILER_OVERHEAD_MAX_TOLERANCE = 0.0005
@@ -216,7 +215,7 @@ def test_simple_profiler_summary(tmpdir, extended):
             f"  {'Total time (s)':<15}\t|  {'Percentage %':<15}\t|"
         )
         output_string_len = len(header_string.expandtabs())
-        sep_lines = f"{sep}{'-'* output_string_len}"
+        sep_lines = f"{sep}{'-' * output_string_len}"
         expected_text = (
             f"Profiler Report{sep}"
             f"{sep_lines}"
@@ -237,7 +236,7 @@ def test_simple_profiler_summary(tmpdir, extended):
             f"{sep}|  {'Action':<{max_action_len}s}\t|  {'Mean duration (s)':<15}\t|  {'Total time (s)':<15}\t|"
         )
         output_string_len = len(header_string.expandtabs())
-        sep_lines = f"{sep}{'-'* output_string_len}"
+        sep_lines = f"{sep}{'-' * output_string_len}"
         expected_text = (
             f"Profiler Report{sep}"
             f"{sep_lines}"

@@ -21,20 +21,14 @@ from contextlib import nullcontext, suppress
 from copy import deepcopy
 from pathlib import Path
 from unittest import mock
-from unittest.mock import ANY, call, Mock, patch
+from unittest.mock import ANY, Mock, call, patch
 
 import cloudpickle
+import lightning.fabric
+import lightning.pytorch
 import pytest
 import torch
 import torch.nn as nn
-from torch.multiprocessing import ProcessRaisedException
-from torch.nn.parallel.distributed import DistributedDataParallel
-from torch.optim import SGD
-from torch.utils.data import DataLoader, IterableDataset
-
-import lightning.fabric
-import lightning.pytorch
-import tests_pytorch.helpers.utils as tutils
 from lightning.fabric.utilities.cloud_io import _load as pl_load
 from lightning.fabric.utilities.seed import seed_everything
 from lightning.pytorch import Callback, LightningDataModule, LightningModule, Trainer
@@ -50,13 +44,19 @@ from lightning.pytorch.demos.boring_classes import (
     RandomIterableDatasetWithLen,
 )
 from lightning.pytorch.loggers import TensorBoardLogger
-from lightning.pytorch.overrides.distributed import _IndexBatchSamplerWrapper, UnrepeatedDistributedSampler
+from lightning.pytorch.overrides.distributed import UnrepeatedDistributedSampler, _IndexBatchSamplerWrapper
 from lightning.pytorch.strategies import DDPStrategy, SingleDeviceStrategy
 from lightning.pytorch.strategies.launchers import _MultiProcessingLauncher
 from lightning.pytorch.trainer.states import RunningStage, TrainerFn
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.imports import _OMEGACONF_AVAILABLE
 from lightning.pytorch.utilities.warnings import PossibleUserWarning
+from torch.multiprocessing import ProcessRaisedException
+from torch.nn.parallel.distributed import DistributedDataParallel
+from torch.optim import SGD
+from torch.utils.data import DataLoader, IterableDataset
+
+import tests_pytorch.helpers.utils as tutils
 from tests_pytorch.conftest import mock_cuda_count, mock_mps_count
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.runif import RunIf
@@ -523,7 +523,6 @@ def test_trainer_max_steps_and_epochs_validation(max_epochs, max_steps, incorrec
         (None, 0, True, None),
         (0, -1, True, 0),
         (-1, 0, True, -1),
-        (0, -1, True, 0),
     ],
 )
 def test_trainer_max_steps_and_epochs_fit_loop_done(max_epochs, max_steps, is_done, correct_trainer_epochs):
@@ -1915,7 +1914,6 @@ def test_detect_anomaly_nan(tmpdir):
             2,
         ),
         pytest.param({"strategy": DDPStrategy()}, DDPStrategy, CPUAccelerator, 1, marks=RunIf(mps=False)),
-        ({"strategy": DDPStrategy(), "accelerator": "cuda", "devices": 2}, DDPStrategy, CUDAAccelerator, 2),
         (
             {"strategy": "ddp_spawn", "accelerator": "cuda", "devices": 2, "num_nodes": 2},
             DDPStrategy,
@@ -1927,6 +1925,9 @@ def test_detect_anomaly_nan(tmpdir):
 def test_trainer_config_strategy(monkeypatch, trainer_kwargs, strategy_cls, accelerator_cls, devices):
     if trainer_kwargs.get("accelerator") == "cuda":
         mock_cuda_count(monkeypatch, trainer_kwargs["devices"])
+    if trainer_kwargs.get("accelerator") == "auto":
+        # current parametrizations assume non-CUDA env
+        mock_cuda_count(monkeypatch, 0)
 
     trainer = Trainer(**trainer_kwargs)
 
@@ -1982,7 +1983,6 @@ def test_dataloaders_are_not_loaded_if_disabled_through_limit_batches(running_st
     [
         ({}, [0]),
         ({"devices": 1}, [0]),
-        ({"devices": 1}, [0]),
         ({"devices": "1"}, [0]),
         pytest.param({"devices": 2}, [0, 1], marks=RunIf(mps=False)),
         ({"accelerator": "gpu", "devices": 1}, [0]),
@@ -1993,7 +1993,7 @@ def test_dataloaders_are_not_loaded_if_disabled_through_limit_batches(running_st
         ({"accelerator": "cuda", "devices": "2,"}, [2]),
         ({"accelerator": "cuda", "devices": [0, 2]}, [0, 2]),
         ({"accelerator": "cuda", "devices": "0, 2"}, [0, 2]),
-        pytest.param({"accelerator": "mps", "devices": 1}, [0], marks=RunIf(min_torch="1.12")),
+        ({"accelerator": "mps", "devices": 1}, [0]),
     ],
 )
 def test_trainer_config_device_ids(monkeypatch, trainer_kwargs, expected_device_ids):

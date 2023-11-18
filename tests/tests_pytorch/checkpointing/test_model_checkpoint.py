@@ -18,26 +18,25 @@ import re
 import time
 from argparse import Namespace
 from datetime import timedelta
-from logging import INFO
 from pathlib import Path
 from typing import Union
 from unittest import mock
-from unittest.mock import call, Mock, patch
+from unittest.mock import Mock, call, patch
 
 import cloudpickle
+import lightning.pytorch as pl
 import pytest
 import torch
 import yaml
-from torch import optim
-
-import lightning.pytorch as pl
 from lightning.fabric.utilities.cloud_io import _load as pl_load
-from lightning.pytorch import seed_everything, Trainer
+from lightning.pytorch import Trainer, seed_everything
 from lightning.pytorch.callbacks import ModelCheckpoint
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.loggers import CSVLogger, TensorBoardLogger
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.imports import _OMEGACONF_AVAILABLE
+from torch import optim
+
 from tests_pytorch.helpers.runif import RunIf
 
 if _OMEGACONF_AVAILABLE:
@@ -158,7 +157,7 @@ def test_model_checkpoint_score_and_ckpt(
     for epoch in range(max_epochs):
         score = model.scores[epoch]
         expected_score = getattr(model, f"{monitor}s")[epoch].mean().item()
-        assert math.isclose(score, expected_score, rel_tol=1e-4)
+        assert math.isclose(score, expected_score, abs_tol=1e-5)
 
         expected_filename = f"{monitor}={score:.4f}-epoch={epoch}.ckpt"
         chk = pl_load(os.path.join(checkpoint.dirpath, expected_filename))
@@ -402,7 +401,7 @@ def test_model_checkpoint_no_extraneous_invocations(tmpdir):
     assert trainer.state.finished, f"Training failed with {trainer.state}"
 
 
-def test_model_checkpoint_format_checkpoint_name(tmpdir):
+def test_model_checkpoint_format_checkpoint_name(tmpdir, monkeypatch):
     # empty filename:
     ckpt_name = ModelCheckpoint._format_checkpoint_name("", {"epoch": 3, "step": 2})
     assert ckpt_name == "epoch=3-step=2"
@@ -423,18 +422,16 @@ def test_model_checkpoint_format_checkpoint_name(tmpdir):
     assert ckpt_name == "epoch=003-epoch_test=003"
 
     # prefix
-    char_org = ModelCheckpoint.CHECKPOINT_JOIN_CHAR
-    ModelCheckpoint.CHECKPOINT_JOIN_CHAR = "@"
+    monkeypatch.setattr(ModelCheckpoint, "CHECKPOINT_JOIN_CHAR", "@")
     ckpt_name = ModelCheckpoint._format_checkpoint_name("{epoch},{acc:.5f}", {"epoch": 3, "acc": 0.03}, prefix="test")
     assert ckpt_name == "test@epoch=3,acc=0.03000"
-    ModelCheckpoint.CHECKPOINT_JOIN_CHAR = char_org
+    monkeypatch.undo()
 
     # non-default char for equals sign
-    default_char = ModelCheckpoint.CHECKPOINT_EQUALS_CHAR
-    ModelCheckpoint.CHECKPOINT_EQUALS_CHAR = ":"
+    monkeypatch.setattr(ModelCheckpoint, "CHECKPOINT_EQUALS_CHAR", ":")
     ckpt_name = ModelCheckpoint._format_checkpoint_name("{epoch:03d}-{acc}", {"epoch": 3, "acc": 0.03})
     assert ckpt_name == "epoch:003-acc:0.03"
-    ModelCheckpoint.CHECKPOINT_EQUALS_CHAR = default_char
+    monkeypatch.undo()
 
     # no dirpath set
     ckpt_name = ModelCheckpoint(monitor="early_stop_on", dirpath=None).format_checkpoint_name({"epoch": 3, "step": 2})
@@ -486,12 +483,12 @@ def test_model_checkpoint_file_extension(tmpdir):
     assert set(expected) == set(os.listdir(tmpdir))
 
 
-def test_model_checkpoint_save_last(tmpdir):
+def test_model_checkpoint_save_last(tmpdir, monkeypatch):
     """Tests that save_last produces only one last checkpoint."""
     seed_everything()
     model = LogInTwoMethods()
     epochs = 3
-    ModelCheckpoint.CHECKPOINT_NAME_LAST = "last-{epoch}"
+    monkeypatch.setattr(ModelCheckpoint, "CHECKPOINT_NAME_LAST", "last-{epoch}")
     model_checkpoint = ModelCheckpoint(monitor="early_stop_on", dirpath=tmpdir, save_top_k=-1, save_last=True)
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -510,8 +507,60 @@ def test_model_checkpoint_save_last(tmpdir):
     assert set(os.listdir(tmpdir)) == set(
         [f"epoch={i}-step={j}.ckpt" for i, j in zip(range(epochs), [10, 20, 30])] + [last_filename]
     )
+    assert os.path.islink(tmpdir / last_filename)
+    assert os.path.realpath(tmpdir / last_filename) == model_checkpoint._last_checkpoint_saved
 
-    ModelCheckpoint.CHECKPOINT_NAME_LAST = "last"
+
+def test_model_checkpoint_link_checkpoint(tmp_path):
+    """Test that linking a checkpoint works and overwrites an existing link if present."""
+    trainer = Mock()
+
+    # link doesn't exist
+    file = tmp_path / "file"
+    file.touch()
+    link = tmp_path / "link"
+    ModelCheckpoint._link_checkpoint(trainer, filepath=str(file), linkpath=str(link))
+    assert os.path.islink(link)
+    assert os.path.realpath(link) == str(file)
+
+    # link exists (is a file)
+    new_file1 = tmp_path / "new_file1"
+    new_file1.touch()
+    ModelCheckpoint._link_checkpoint(trainer, filepath=str(new_file1), linkpath=str(link))
+    assert os.path.islink(link)
+    assert os.path.realpath(link) == str(new_file1)
+
+    # link exists (is a link)
+    new_file2 = tmp_path / "new_file2"
+    new_file2.touch()
+    ModelCheckpoint._link_checkpoint(trainer, filepath=str(new_file2), linkpath=str(link))
+    assert os.path.islink(link)
+    assert os.path.realpath(link) == str(new_file2)
+
+    # link exists (is a folder)
+    folder = tmp_path / "folder"
+    folder.mkdir()
+    folder_link = tmp_path / "folder_link"
+    folder_link.mkdir()
+    ModelCheckpoint._link_checkpoint(trainer, filepath=str(folder), linkpath=str(folder_link))
+    assert os.path.islink(folder_link)
+    assert os.path.realpath(folder_link) == str(folder)
+
+    # link exists (is a link to a folder)
+    new_folder = tmp_path / "new_folder"
+    new_folder.mkdir()
+    ModelCheckpoint._link_checkpoint(trainer, filepath=str(new_folder), linkpath=str(folder_link))
+    assert os.path.islink(folder_link)
+    assert os.path.realpath(folder_link) == str(new_folder)
+
+    # simulate permission error on Windows (creation of symbolic links requires privileges)
+    file = tmp_path / "win_file"
+    file.touch()
+    link = tmp_path / "win_link"
+    with mock.patch("lightning.pytorch.callbacks.model_checkpoint.os.symlink", Mock(side_effect=OSError)):
+        ModelCheckpoint._link_checkpoint(trainer, filepath=str(file), linkpath=str(link))
+    assert not os.path.islink(link)
+    assert os.path.isfile(link)  # fall back to copying instead of linking
 
 
 def test_invalid_top_k(tmpdir):
@@ -589,10 +638,7 @@ def test_model_checkpoint_save_last_none_monitor(tmpdir, caplog):
         max_epochs=epochs,
         logger=False,
     )
-
-    with caplog.at_level(INFO):
-        trainer.fit(model)
-        assert "will duplicate the last checkpoint saved" in caplog.text
+    trainer.fit(model)
 
     # these should not be set if monitor is None
     assert checkpoint_callback.monitor is None
@@ -606,6 +652,7 @@ def test_model_checkpoint_save_last_none_monitor(tmpdir, caplog):
     expected = [f"epoch={i}-step={j}.ckpt" for i, j in zip(range(epochs), [10, 20])]
     expected.append("last.ckpt")
     assert set(os.listdir(tmpdir)) == set(expected)
+    assert os.path.islink(tmpdir / "last.ckpt")
 
 
 @pytest.mark.parametrize("every_n_epochs", list(range(4)))
@@ -709,6 +756,8 @@ def test_model_checkpoint_topk_zero(tmpdir):
     # check that only the last ckpt was created
     assert os.listdir(tmpdir) == ["last.ckpt"]
     assert checkpoint_callback.last_model_path == tmpdir / "last.ckpt"
+    # 'last.ckpt' is not a symlink because there are no top-k checkpoints to link
+    assert not os.path.islink(checkpoint_callback.last_model_path)
 
 
 def test_model_checkpoint_topk_all(tmpdir):
@@ -814,6 +863,7 @@ def test_model_checkpoint_save_last_checkpoint_contents(tmpdir):
     path_last = str(tmpdir / "last.ckpt")
     assert path_last == model_checkpoint.last_model_path
     assert os.path.isfile(path_last_epoch)
+    assert os.path.islink(path_last)
 
     ckpt_last_epoch = torch.load(path_last_epoch)
     ckpt_last = torch.load(path_last)
@@ -1127,7 +1177,8 @@ def test_hparams_type(tmpdir, use_omegaconf):
         assert isinstance(ckpt[model.CHECKPOINT_HYPER_PARAMS_KEY], Container)
     else:
         # make sure it's not AttributeDict
-        assert type(ckpt[model.CHECKPOINT_HYPER_PARAMS_KEY]) is dict
+        ckpt_params_type = type(ckpt[model.CHECKPOINT_HYPER_PARAMS_KEY])
+        assert ckpt_params_type is dict
 
 
 def test_ckpt_version_after_rerun_new_trainer(tmpdir):
@@ -1342,7 +1393,7 @@ def test_save_last_saves_correct_last_model_path(tmpdir):
     trainer = Trainer(callbacks=mc)
     trainer.strategy.connect(BoringModel())
 
-    mc._save_last_checkpoint(trainer, {"foo": 1})
+    mc._save_last_checkpoint(trainer, {"foo": torch.tensor(1)})
     expected = "foo=1-last.ckpt"
     assert os.listdir(tmpdir) == [expected]
     full_path = str(tmpdir / expected)
@@ -1365,6 +1416,8 @@ def test_save_last_versioning(tmpdir):
         )
         trainer.fit(model)
     assert {"last.ckpt", "last-v1.ckpt"} == set(os.listdir(tmpdir))
+    # 'last.ckpt' is not a symlink since `save_top_k=0` didn't save any other checkpoints to link to
+    assert all(not os.path.islink(tmpdir / path) for path in set(os.listdir(tmpdir)))
 
 
 def test_none_monitor_saves_correct_best_model_path(tmpdir):
@@ -1384,7 +1437,7 @@ def test_last_global_step_saved():
     # this should not save anything
     model_checkpoint = ModelCheckpoint(save_top_k=0, save_last=False, monitor="foo")
     trainer = Mock()
-    monitor_candidates = {"foo": 123}
+    monitor_candidates = {"foo": torch.tensor(123)}
     model_checkpoint._save_topk_checkpoint(trainer, monitor_candidates)
     model_checkpoint._save_last_checkpoint(trainer, monitor_candidates)
     assert model_checkpoint._last_global_step_saved == 0
@@ -1419,3 +1472,40 @@ def test_train_epoch_end_ckpt_with_no_validation():
     assert not trainer.checkpoint_callback._should_save_on_train_epoch_end(trainer)
     trainer.val_check_interval = 0.8
     assert not trainer.checkpoint_callback._should_save_on_train_epoch_end(trainer)
+
+
+@pytest.mark.parametrize("same_resume_folder", [True, False])
+def test_resume_and_old_checkpoint_files_remain(same_resume_folder, tmp_path):
+    """Test that checkpoints saved in the resume-folder won't be deleted under the save-top-k mechanism."""
+    model = BoringModel()
+    trainer_kwargs = {
+        "default_root_dir": tmp_path,
+        "limit_train_batches": 10,
+        "limit_val_batches": 0,
+        "enable_progress_bar": False,
+        "enable_model_summary": False,
+        "logger": False,
+    }
+    first = tmp_path / "first"
+    second = tmp_path / "second"
+    new_dirpath = first if same_resume_folder else second
+
+    # Generate checkpoints in the first folder
+    callback = ModelCheckpoint(dirpath=first, monitor="step", mode="max", save_top_k=2, every_n_train_steps=2)
+    trainer = Trainer(callbacks=callback, max_steps=5, **trainer_kwargs)
+    trainer.fit(model)
+    assert set(os.listdir(first)) == {"epoch=0-step=2.ckpt", "epoch=0-step=4.ckpt"}
+
+    # Continue training from checkpoint
+    callback = ModelCheckpoint(dirpath=new_dirpath, monitor="step", mode="max", save_top_k=2, every_n_train_steps=2)
+    trainer = Trainer(callbacks=callback, max_steps=8, **trainer_kwargs)
+    trainer.fit(model, ckpt_path=str(first / "epoch=0-step=4.ckpt"))
+    if same_resume_folder:
+        assert set(os.listdir(first)) == {
+            "epoch=0-step=4.ckpt",  # do not delete checkpoint from which we resume from
+            "epoch=0-step=6.ckpt",
+            "epoch=0-step=8.ckpt",
+        }
+    else:
+        assert set(os.listdir(first)) == {"epoch=0-step=2.ckpt", "epoch=0-step=4.ckpt"}  # no files deleted
+        assert set(os.listdir(second)) == {"epoch=0-step=6.ckpt", "epoch=0-step=8.ckpt"}

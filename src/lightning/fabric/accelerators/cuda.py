@@ -15,14 +15,14 @@ import os
 import warnings
 from contextlib import contextmanager
 from functools import lru_cache
-from typing import cast, Generator, List, Optional, Union
+from typing import Generator, List, Optional, Union, cast
 
 import torch
-from lightning_utilities.core.rank_zero import rank_zero_info
 
 from lightning.fabric.accelerators.accelerator import Accelerator
 from lightning.fabric.accelerators.registry import _AcceleratorRegistry
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12, _TORCH_GREATER_EQUAL_2_0
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
+from lightning.fabric.utilities.rank_zero import rank_zero_info
 
 
 class CUDAAccelerator(Accelerator):
@@ -68,7 +68,7 @@ class CUDAAccelerator(Accelerator):
         accelerator_registry.register(
             "cuda",
             cls,
-            description=cls.__class__.__name__,
+            description=cls.__name__,
         )
 
 
@@ -90,6 +90,8 @@ def find_usable_cuda_devices(num_devices: int = -1) -> List[int]:
         both processes determine that the device is unoccupied, leading into one of them crashing later on.
 
     """
+    if num_devices == 0:
+        return []
     visible_devices = _get_all_visible_cuda_devices()
     if not visible_devices:
         raise ValueError(
@@ -231,7 +233,7 @@ def _parse_visible_devices() -> Union[List[int], List[str]]:
 # TODO: Remove once minimum supported PyTorch version is 2.0
 def _raw_device_count_nvml() -> int:
     """Return number of devices as reported by NVML or negative value if NVML discovery/initialization failed."""
-    from ctypes import byref, c_int, CDLL
+    from ctypes import CDLL, byref, c_int
 
     nvml_h = CDLL("libnvidia-ml.so.1")
     rc = nvml_h.nvmlInit()
@@ -250,7 +252,7 @@ def _raw_device_count_nvml() -> int:
 # TODO: Remove once minimum supported PyTorch version is 2.0
 def _raw_device_uuid_nvml() -> Optional[List[str]]:
     """Return list of device UUID as reported by NVML or None if NVM discovery/initialization failed."""
-    from ctypes import byref, c_int, c_void_p, CDLL, create_string_buffer
+    from ctypes import CDLL, byref, c_int, c_void_p, create_string_buffer
 
     nvml_h = CDLL("libnvidia-ml.so.1")
     rc = nvml_h.nvmlInit()
@@ -320,7 +322,7 @@ def _device_count_nvml() -> int:
     if not visible_devices:
         return 0
     try:
-        if type(visible_devices[0]) is str:
+        if isinstance(visible_devices[0], str):
             # Skip MIG parsing
             if visible_devices[0].startswith("MIG-"):
                 return -1
@@ -341,14 +343,14 @@ def _device_count_nvml() -> int:
     return len(visible_devices)
 
 
+def _is_ampere_or_later(device: Optional[torch.device] = None) -> bool:
+    major, _ = torch.cuda.get_device_capability(device)
+    return major >= 8  # Ampere and later leverage tensor cores, where this setting becomes useful
+
+
 @lru_cache(1)  # show the warning only ever once
 def _check_cuda_matmul_precision(device: torch.device) -> None:
-    if not _TORCH_GREATER_EQUAL_1_12:
-        # before 1.12, tf32 was used by default
-        return
-    major, _ = torch.cuda.get_device_capability(device)
-    ampere_or_later = major >= 8  # Ampere and later leverage tensor cores, where this setting becomes useful
-    if not ampere_or_later:
+    if not _is_ampere_or_later(device):
         return
     # check that the user hasn't changed the precision already, this works for both `allow_tf32 = True` and
     # `set_float32_matmul_precision`

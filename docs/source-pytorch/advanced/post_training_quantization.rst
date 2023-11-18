@@ -126,7 +126,7 @@ At last, the quantized model can be saved by:
 Hands-on Examples
 *****************
 
-Based on the `given example code <https://lightning.ai/docs/pytorch/stable/notebooks/lightning_examples/text-transformers.html>`_, we show how Intel Neural Compressor conduct model quantization on PyTorch Lightning. We first define the basic config of the quantization process.
+Based on the `given example code <https://lightning.ai/docs/pytorch/2.1.0/notebooks/lightning_examples/text-transformers.html>`_, we show how Intel Neural Compressor conduct model quantization on PyTorch Lightning. We first define the basic config of the quantization process.
 
 .. code-block:: python
 

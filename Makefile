@@ -46,10 +46,24 @@ test: clean
 	python -m coverage run --source src/lightning/fabric -m pytest src/lightning/fabric tests/tests_fabric -v
 	python -m coverage report
 
-docs: clean
+docs: docs-pytorch
+
+sphinx-theme:
 	pip install -q awscli
+	mkdir -p dist/
 	aws s3 sync --no-sign-request s3://sphinx-packages/ dist/
-	pip install -e . --quiet -r requirements/pytorch/docs.txt -f dist/
+	pip install lai-sphinx-theme -f dist/
+
+docs-app: clean sphinx-theme
+	pip install -e .[all] --quiet -r requirements/app/docs.txt
+	cd docs/source-app && $(MAKE) html --jobs $(nproc)
+
+docs-fabric: clean sphinx-theme
+	pip install -e .[all] --quiet -r requirements/fabric/docs.txt
+	cd docs/source-fabric && $(MAKE) html --jobs $(nproc)
+
+docs-pytorch: clean sphinx-theme
+	pip install -e .[all] --quiet -r requirements/pytorch/docs.txt -r _notebooks/.actions/requires.txt
 	cd docs/source-pytorch && $(MAKE) html --jobs $(nproc)
 
 update:

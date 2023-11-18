@@ -3,9 +3,8 @@ import pathlib
 from unittest import mock
 from unittest.mock import Mock
 
-import pytest
-
 import lightning.app
+import pytest
 from lightning.app.storage.copier import _Copier, _copy_files
 from lightning.app.storage.path import Path
 from lightning.app.storage.requests import _ExistsRequest, _GetRequest
@@ -64,7 +63,7 @@ def test_copier_handles_exception(stat_mock, dir_mock, monkeypatch):
     copy_request_queue.put(request)
     copier.run_once()
     response = copy_response_queue.get()
-    assert type(response.exception) == OSError
+    assert type(response.exception) is OSError
     assert response.exception.args[0] == "Something went wrong"
 
 

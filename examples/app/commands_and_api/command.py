@@ -1,8 +1,7 @@
 from argparse import ArgumentParser
 
-from pydantic import BaseModel
-
 from lightning.app.utilities.commands import ClientCommand
+from pydantic import BaseModel
 
 
 class CustomConfig(BaseModel):

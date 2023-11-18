@@ -328,9 +328,8 @@ def _wrap_init_method(init: Callable, store_explicit_arg: Optional[str] = None) 
 
 
 def _wrap_attr_method(method: Callable, tag: _WrapAttrTag) -> Callable:
-    """Wraps the ``__setattr__`` or ``__delattr__`` method of classes (currently
-    :class:`~torch.utils.data.DataLoader` and :class:`~torch.utils.data.BatchSampler`) in order to enable re-
-    instantiation of custom subclasses."""
+    """Wraps the ``__setattr__`` or ``__delattr__`` method of classes (currently :class:`~torch.utils.data.DataLoader`
+    and :class:`~torch.utils.data.BatchSampler`) in order to enable re- instantiation of custom subclasses."""
 
     @functools.wraps(method)
     def wrapper(obj: Any, *args: Any) -> None:
@@ -418,6 +417,7 @@ def _set_sampler_epoch(dataloader: object, epoch: int) -> None:
     Every PyTorch dataloader has either a sampler or a batch sampler. If the sampler is wrapped by a
     :class:`~torch.utils.data.distributed.DistributedSampler`, ``set_epoch`` must be called at the beginning
     of every epoch to ensure shuffling applies a new ordering. This has no effect if shuffling is off.
+
     """
     # cannot use a set because samplers might be unhashable: use a dict based on the id to drop duplicates
     objects: Dict[int, Any] = {}
@@ -433,3 +433,26 @@ def _set_sampler_epoch(dataloader: object, epoch: int) -> None:
         set_epoch = getattr(obj, "set_epoch", None)
         if callable(set_epoch):
             set_epoch(epoch)
+
+
+def suggested_max_num_workers(local_world_size: int) -> int:
+    """Suggests an upper bound of ``num_workers`` to use in a PyTorch :class:`~torch.utils.data.DataLoader` based on
+    the number of CPU cores available on the system and the number of distributed processes in the current machine.
+
+    Args:
+        local_world_size: The number of distributed processes running on the current machine. Set this to the number
+            of devices configured in Fabric/Trainer.
+
+    """
+    if local_world_size < 1:
+        raise ValueError(f"`local_world_size` should be >= 1, got {local_world_size}.")
+    cpu_count = _num_cpus_available()
+    return max(1, cpu_count // local_world_size - 1)  # -1 to leave some resources for main process
+
+
+def _num_cpus_available() -> int:
+    if hasattr(os, "sched_getaffinity"):
+        return len(os.sched_getaffinity(0))
+
+    cpu_count = os.cpu_count()
+    return 1 if cpu_count is None else cpu_count

@@ -15,14 +15,14 @@ from collections import OrderedDict
 
 import pytest
 import torch
-from torch import nn
-from torch.optim import Optimizer, SGD
-from torch.utils.data import DataLoader
-
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12, _TORCH_GREATER_EQUAL_1_13
-from lightning.pytorch import LightningModule, seed_everything, Trainer
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_13
+from lightning.pytorch import LightningModule, Trainer, seed_everything
 from lightning.pytorch.callbacks import BackboneFinetuning, BaseFinetuning, ModelCheckpoint
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
+from torch import nn
+from torch.optim import SGD, Optimizer
+from torch.utils.data import DataLoader
+
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -356,9 +356,8 @@ def test_callbacks_restore(tmpdir):
         "nesterov": False,
         "params": ["layer.3.weight", "layer.3.bias"],
         "maximize": False,
+        "foreach": None,
     }
-    if _TORCH_GREATER_EQUAL_1_12:
-        expected["foreach"] = None
     if _TORCH_GREATER_EQUAL_1_13:
         expected["differentiable"] = False
 
@@ -373,9 +372,8 @@ def test_callbacks_restore(tmpdir):
         "nesterov": False,
         "params": ["layer.0.weight", "layer.0.bias"],
         "maximize": False,
+        "foreach": None,
     }
-    if _TORCH_GREATER_EQUAL_1_12:
-        expected["foreach"] = None
     if _TORCH_GREATER_EQUAL_1_13:
         expected["differentiable"] = False
 

@@ -26,26 +26,25 @@ from copy import deepcopy
 from dataclasses import dataclass, field
 from functools import partial
 from threading import Event, Thread
-from typing import Any, Callable, Dict, Generator, Optional, Set, Tuple, Type, TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, Any, Callable, Dict, Generator, Optional, Set, Tuple, Type, Union
 
 from deepdiff import DeepDiff, Delta
 from lightning_utilities.core.apply_func import apply_to_collection
 
 from lightning.app.core import constants
 from lightning.app.core.queues import MultiProcessQueue
-from lightning.app.storage import Path
 from lightning.app.storage.copier import _Copier, _copy_files
-from lightning.app.storage.drive import _maybe_create_drive, Drive
-from lightning.app.storage.path import _path_to_work_artifact
+from lightning.app.storage.drive import Drive, _maybe_create_drive
+from lightning.app.storage.path import Path, _path_to_work_artifact
 from lightning.app.storage.payload import Payload
 from lightning.app.utilities.app_helpers import affiliation
 from lightning.app.utilities.component import _set_work_context
 from lightning.app.utilities.enum import (
     CacheCallsKeys,
-    make_status,
     WorkFailureReasons,
     WorkStageStatus,
     WorkStopReasons,
+    make_status,
 )
 from lightning.app.utilities.exceptions import CacheMissException, LightningSigtermStateException
 
@@ -140,7 +139,7 @@ class ProxyWorkRun:
         else:
             if self.work.cache_calls and returned:
                 return
-            elif returned or stopped_on_sigterm:
+            if returned or stopped_on_sigterm:
                 # the previous task has completed and we can re-queue the next one.
                 # overriding the return value for next loop iteration.
                 _send_data_to_caller_queue(self, self.work, self.caller_queue, data, call_hash)
@@ -313,8 +312,8 @@ class WorkStateObserver(Thread):
 
 @dataclass
 class LightningWorkSetAttrProxy:
-    """This wrapper around the ``LightningWork.__setattr__`` ensures that state changes get sent to the delta queue
-    to be reflected in the Flow.
+    """This wrapper around the ``LightningWork.__setattr__`` ensures that state changes get sent to the delta queue to
+    be reflected in the Flow.
 
     Example:
 
@@ -323,6 +322,7 @@ class LightningWorkSetAttrProxy:
 
             def run(self):
                 self.var += 1  # This update gets sent to the Flow immediately
+
     """
 
     work_name: str
@@ -641,6 +641,7 @@ class WorkRunner:
 
         Returns:
             The positional and keyword arguments in the same order they were passed in.
+
         """
 
         def _attach_work_and_get(transporter: Union[Path, Payload, dict]) -> Union[Path, Drive, dict, Any]:

@@ -15,6 +15,7 @@ import logging
 from typing import Optional, Union
 
 import torch
+from typing_extensions import override
 
 import lightning.pytorch as pl
 from lightning.fabric.utilities.data import _set_sampler_epoch, sized_len
@@ -117,6 +118,7 @@ class _FitLoop(_Loop):
         return self.epoch_loop.max_steps
 
     @_Loop.restarting.setter
+    @override
     def restarting(self, restarting: bool) -> None:
         # if the last epoch completely finished, we are not actually restarting
         values = self.epoch_progress.current.ready, self.epoch_progress.current.started
@@ -253,11 +255,7 @@ class _FitLoop(_Loop):
 
         combined_loader.limits = limits
 
-        training = trainer.training
-        trainer.training = True
-        self._data_fetcher = _select_data_fetcher(trainer)
-        trainer.training = training
-
+        self._data_fetcher = _select_data_fetcher(trainer, RunningStage.TRAINING)
         self._data_fetcher.setup(combined_loader)
         iter(self._data_fetcher)  # creates the iterator inside the fetcher
         max_batches = sized_len(combined_loader)
@@ -293,7 +291,7 @@ class _FitLoop(_Loop):
                 trainer.val_check_batch = int(self.max_batches * trainer.val_check_interval)
                 trainer.val_check_batch = max(1, trainer.val_check_batch)
 
-        if trainer.loggers and self.max_batches < trainer.log_every_n_steps:
+        if trainer.loggers and self.max_batches < trainer.log_every_n_steps and not trainer.fast_dev_run:
             rank_zero_warn(
                 f"The number of training batches ({self.max_batches}) is smaller than the logging interval"
                 f" Trainer(log_every_n_steps={trainer.log_every_n_steps}). Set a lower value for log_every_n_steps if"
@@ -304,7 +302,6 @@ class _FitLoop(_Loop):
     def reset(self) -> None:
         """Resets the internal state of this loop."""
         assert self.trainer.model is not None
-        self.trainer.model.train()
         torch.set_grad_enabled(True)
 
         if self.restarting:
