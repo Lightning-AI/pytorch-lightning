@@ -13,8 +13,8 @@
 # limitations under the License.
 import logging
 from abc import ABC, abstractmethod
-from contextlib import contextmanager, nullcontext
-from typing import Any, Dict, Generator, List, Optional, Tuple, TypeVar, Union
+from contextlib import ExitStack
+from typing import Any, Callable, ContextManager, Dict, Iterable, List, Optional, Tuple, TypeVar, Union
 
 import torch
 from torch import Tensor
@@ -29,8 +29,9 @@ from lightning.fabric.plugins.precision import Precision
 from lightning.fabric.strategies.launchers.launcher import _Launcher
 from lightning.fabric.strategies.registry import _StrategyRegistry
 from lightning.fabric.utilities.apply_func import move_data_to_device
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
-from lightning.fabric.utilities.types import _PATH, _Stateful, Optimizable, ReduceOp
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_13, _TORCH_GREATER_EQUAL_2_0
+from lightning.fabric.utilities.init import _EmptyInit
+from lightning.fabric.utilities.types import _PATH, Optimizable, ReduceOp, _Stateful
 
 TBroadcast = TypeVar("TBroadcast")
 TReduce = TypeVar("TReduce")
@@ -49,7 +50,9 @@ class Strategy(ABC):
     ) -> None:
         self._accelerator: Optional[Accelerator] = accelerator
         self._checkpoint_io: Optional[CheckpointIO] = checkpoint_io
-        self._precision: Optional[Precision] = precision
+        self._precision: Optional[Precision] = None
+        # Call the precision setter for input validation
+        self.precision = precision  # type: ignore[assignment]
         self._launcher: Optional[_Launcher] = None
         self._backward_sync_control: Optional[_BackwardSyncControl] = None
 
@@ -82,7 +85,7 @@ class Strategy(ABC):
         return self._checkpoint_io
 
     @checkpoint_io.setter
-    def checkpoint_io(self, io: Optional[CheckpointIO]) -> None:
+    def checkpoint_io(self, io: CheckpointIO) -> None:
         self._checkpoint_io = io
 
     @property
@@ -101,6 +104,7 @@ class Strategy(ABC):
 
         This must be called by the framework at the beginning of every process, before any distributed communication
         takes place.
+
         """
         assert self.accelerator is not None
         self.accelerator.setup_device(self.root_device)
@@ -110,25 +114,38 @@ class Strategy(ABC):
 
         Args:
             dataloader: iterable. Ideally of type: :class:`torch.utils.data.DataLoader`
+
         """
         return dataloader
 
-    @contextmanager
-    def tensor_init_context(self) -> Generator:
+    def tensor_init_context(self) -> ContextManager:
         """Controls how tensors get created (device, dtype)."""
-        device_context = self.root_device if _TORCH_GREATER_EQUAL_2_0 else nullcontext()
-        with device_context, self.precision.init_context():
-            yield
+        precision_init_ctx = self.precision.tensor_init_context()
+        stack = ExitStack()
+        if _TORCH_GREATER_EQUAL_2_0:
+            stack.enter_context(self.root_device)
+        stack.enter_context(precision_init_ctx)
+        return stack
 
-    @contextmanager
-    def module_init_context(self) -> Generator:
+    def module_init_context(self, empty_init: Optional[bool] = None) -> ContextManager:
         """A context manager wrapping the model instantiation.
 
         Here, the strategy can control how the parameters of the model get created (device, dtype) and or apply other
         patches to the model.
+
+        Args:
+            empty_init: Whether to initialize the model with empty weights (uninitialized memory).
+                If ``None``, the strategy will decide. Some strategies may not support all options.
+
         """
-        with self.tensor_init_context():
-            yield
+        precision_module_ctx = self.precision.module_init_context()
+        stack = ExitStack()
+        if _TORCH_GREATER_EQUAL_2_0:
+            stack.enter_context(self.root_device)
+        if _TORCH_GREATER_EQUAL_1_13:
+            stack.enter_context(_EmptyInit(enabled=bool(empty_init)))
+        stack.enter_context(precision_module_ctx)
+        return stack
 
     def setup_module_and_optimizers(
         self, module: Module, optimizers: List[Optimizer]
@@ -137,6 +154,7 @@ class Strategy(ABC):
 
         The returned objects are expected to be in the same order they were passed in. The default implementation will
         call :meth:`setup_module` and :meth:`setup_optimizer` on the inputs.
+
         """
         module = self.setup_module(module)
         optimizers = [self.setup_optimizer(optimizer) for optimizer in optimizers]
@@ -163,6 +181,7 @@ class Strategy(ABC):
         Args:
             batch: The batch of samples to move to the correct device
             device: The target device
+
         """
         device = device or self.root_device
         return move_data_to_device(batch, device)
@@ -183,6 +202,7 @@ class Strategy(ABC):
         Args:
             optimizer: the optimizer performing the step
             **kwargs: Any extra arguments to ``optimizer.step``
+
         """
         return self.precision.optimizer_step(optimizer, **kwargs)
 
@@ -194,6 +214,7 @@ class Strategy(ABC):
             tensor: the tensor to all_gather
             group: the process group to gather results from
             sync_grads: flag that allows users to synchronize gradients for all_gather op
+
         """
 
     @abstractmethod
@@ -210,6 +231,7 @@ class Strategy(ABC):
             group: the process group to reduce
             reduce_op: the reduction operation. Defaults to 'mean'.
                 Can also be a string 'sum' or ReduceOp.
+
         """
 
     @abstractmethod
@@ -218,6 +240,7 @@ class Strategy(ABC):
 
         Args:
             name: an optional name to pass into barrier.
+
         """
 
     @abstractmethod
@@ -227,6 +250,7 @@ class Strategy(ABC):
         Args:
             obj: the object to broadcast
             src: source rank
+
         """
 
     def reduce_boolean_decision(self, decision: bool, all: bool = True) -> bool:
@@ -234,7 +258,11 @@ class Strategy(ABC):
         return decision
 
     def save_checkpoint(
-        self, path: _PATH, state: Dict[str, Union[Module, Optimizer, Any]], storage_options: Optional[Any] = None
+        self,
+        path: _PATH,
+        state: Dict[str, Union[Module, Optimizer, Any]],
+        storage_options: Optional[Any] = None,
+        filter: Optional[Dict[str, Callable[[str, Any], bool]]] = None,
     ) -> None:
         """Save model, optimizer, and other state as a checkpoint file.
 
@@ -243,8 +271,12 @@ class Strategy(ABC):
             state: A dictionary with contents to be saved. If the dict contains modules or optimizers, their
                 state-dict will be retrieved and converted automatically.
             storage_options: Additional options for the ``CheckpointIO`` plugin
+            filter: An optional dictionary containing filter callables that return a boolean indicating whether the
+                given item should be saved (``True``) or filtered out (``False``). Each filter key should match a
+                state key, where its filter will be applied to the ``state_dict`` generated.
+
         """
-        state = self._convert_stateful_objects_in_state(state)
+        state = self._convert_stateful_objects_in_state(state, filter=(filter or {}))
         if self.is_global_zero:
             self.checkpoint_io.save_checkpoint(checkpoint=state, path=path, storage_options=storage_options)
 
@@ -252,10 +284,17 @@ class Strategy(ABC):
         """Returns model state."""
         return module.state_dict()
 
+    def load_module_state_dict(
+        self, module: Module, state_dict: Dict[str, Union[Any, Tensor]], strict: bool = True
+    ) -> None:
+        """Loads the given state into the model."""
+        module.load_state_dict(state_dict, strict=strict)
+
     def get_optimizer_state(self, optimizer: Optimizer) -> Dict[str, Tensor]:
         """Returns state of an optimizer.
 
         Allows for syncing/collating optimizer state from processes in custom plugins.
+
         """
         if hasattr(optimizer, "consolidate_state_dict"):
             # there are optimizers like PyTorch's ZeroRedundancyOptimizer that shard their
@@ -267,57 +306,60 @@ class Strategy(ABC):
         return optimizer.state_dict()
 
     def load_checkpoint(
-        self, path: _PATH, state: Optional[Dict[str, Union[Module, Optimizer, Any]]] = None
+        self,
+        path: _PATH,
+        state: Optional[Union[Module, Optimizer, Dict[str, Union[Module, Optimizer, Any]]]] = None,
+        strict: bool = True,
     ) -> Dict[str, Any]:
         """Load the contents from a checkpoint and restore the state of the given objects.
 
         Args:
             path: A path to where the file is located
-            state: A dictionary of objects whose state will be restored in-place from the checkpoint path.
-                If no state is given, then the checkpoint will be returned in full.
+            state: Can be one of:
+
+                - A dictionary of objects whose state will be restored in-place from the checkpoint path.
+                - ``None`` or the empty dict: The loaded checkpoint will be returned in full.
+                - A :class:`~torch.nn.Module` instance, if the checkpoint file contains a raw module state dict.
+                - A :class:`~torch.optim.Optimizer` instance, if the checkpoint file contains a raw optimizer state.
+
+            strict: Whether to enforce that the keys in `state` match the keys in the checkpoint.
 
         Returns:
             The remaining items that were not restored into the given state dictionary. If no state dictionary is
             given, the full checkpoint will be returned.
+
         """
         torch.cuda.empty_cache()
         checkpoint = self.checkpoint_io.load_checkpoint(path)
         if not state:
             return checkpoint
 
-        invalid_keys = [k for k in state if k not in checkpoint]
-        if invalid_keys:
-            # TODO(fabric): Make strict loading configurable to avoid this error if desired.
-            raise KeyError(
-                f"The requested state contains a key '{invalid_keys[0]}' that does not exist in the loaded checkpoint."
-            )
+        if isinstance(state, Module):
+            self.load_module_state_dict(module=state, state_dict=checkpoint, strict=strict)
+            return {}
 
+        if isinstance(state, Optimizer):
+            state.load_state_dict(checkpoint)
+            return {}
+
+        _validate_keys_for_strict_loading(state.keys(), checkpoint.keys(), strict=strict)
         for name, obj in state.copy().items():
             if name not in checkpoint:
                 continue
             if isinstance(obj, _Stateful):
                 if isinstance(obj, Module):
-                    # TODO(fabric): Make strict loading configurable
-                    obj.load_state_dict(checkpoint.pop(name), strict=True)
+                    self.load_module_state_dict(module=obj, state_dict=checkpoint.pop(name), strict=strict)
                 else:
                     obj.load_state_dict(checkpoint.pop(name))
             else:
                 state[name] = checkpoint.pop(name)
         return checkpoint
 
-    def remove_checkpoint(self, filepath: _PATH) -> None:
-        """Remove checkpoint filepath from the filesystem.
-
-        Args:
-            filepath: Path to checkpoint
-        """
-        if self.is_global_zero:
-            self.checkpoint_io.remove_checkpoint(filepath)
-
     def teardown(self) -> None:
         """This method is called to teardown the training process.
 
         It is the right place to release memory and free other resources.
+
         """
         self.precision.teardown()
         assert self.accelerator is not None
@@ -355,15 +397,21 @@ class Strategy(ABC):
             " Please call `setup_module_and_optimizers(model, [optimizer, ...])` to jointly set them up."
         )
 
-    def _convert_stateful_objects_in_state(self, state: Dict[str, Union[Module, Optimizer, Any]]) -> Dict[str, Any]:
-        converted_state = {}
+    def _convert_stateful_objects_in_state(
+        self, state: Dict[str, Union[Module, Optimizer, Any]], filter: Dict[str, Callable[[str, Any], bool]]
+    ) -> Dict[str, Any]:
+        converted_state: Dict[str, Any] = {}
         for key, obj in state.items():
+            # convert the state
             if isinstance(obj, Module):
-                converted_state[key] = self.get_module_state_dict(module=obj)
+                converted = self.get_module_state_dict(module=obj)
             elif isinstance(obj, Optimizer):
-                converted_state[key] = self.get_optimizer_state(optimizer=obj)
+                converted = self.get_optimizer_state(optimizer=obj)
+            elif isinstance(obj, _Stateful):
+                converted = obj.state_dict()
             else:
-                converted_state[key] = obj
+                converted = obj
+            _apply_filter(key, filter, converted, converted_state)
         return converted_state
 
 
@@ -373,27 +421,53 @@ class _BackwardSyncControl(ABC):
 
     The most common use-case is gradient accumulation. If a :class:`Strategy` implements this interface, the user can
     implement their gradient accumulation loop very efficiently by disabling redundant gradient synchronization.
+
     """
 
-    @contextmanager
     @abstractmethod
-    def no_backward_sync(self, module: Module) -> Generator:
+    def no_backward_sync(self, module: Module) -> ContextManager:
         """Blocks the synchronization of gradients during the backward pass.
 
         This is a context manager. It is only effective if it wraps a call to `.backward()`.
+
         """
 
 
 class _Sharded(ABC):
-    """Mixin-interface for any :class:`Strategy` that wants to expose functionality for sharding model
-    parameters."""
+    """Mixin-interface for any :class:`Strategy` that wants to expose functionality for sharding model parameters."""
 
     @abstractmethod
-    @contextmanager
-    def module_sharded_context(self) -> Generator:
-        """A context manager that goes over the instantiation of an :class:`torch.nn.Module` and handles sharding
-        of parameters on creation.
+    def module_sharded_context(self) -> ContextManager:
+        """A context manager that goes over the instantiation of an :class:`torch.nn.Module` and handles sharding of
+        parameters on creation.
 
         By sharding layers directly on instantiation, one can reduce peak memory usage and initialization time.
+
         """
-        yield
+
+
+def _validate_keys_for_strict_loading(
+    requested_keys: Iterable[str], checkpoint_keys: Iterable[str], strict: bool
+) -> None:
+    invalid_keys = [k for k in requested_keys if k not in checkpoint_keys]
+    if strict and invalid_keys:
+        raise KeyError(
+            f"The requested state contains a key '{invalid_keys[0]}' that does not exist in the loaded checkpoint."
+            f" To disable strict loading, set `strict=False`."
+        )
+
+
+def _apply_filter(
+    key: str, filter: Dict[str, Callable[[str, Any], bool]], source_dict: object, target_dict: Dict[str, Any]
+) -> None:
+    # filter out if necessary
+    if key in filter and isinstance(source_dict, dict):
+        filter_fn = filter[key]
+        for k, v in source_dict.items():
+            if filter_fn(k, v):
+                # save the state
+                target_dict.setdefault(key, {})
+                target_dict[key][k] = v
+    else:
+        # save the state
+        target_dict[key] = source_dict

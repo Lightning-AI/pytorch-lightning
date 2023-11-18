@@ -1,9 +1,8 @@
 from unittest import mock
 
 import pytest
-
 from lightning.app.core import constants
-from lightning.app.utilities.network import find_free_network_port, LightningClient
+from lightning.app.utilities.network import find_free_network_port
 
 
 def test_find_free_network_port():
@@ -43,14 +42,3 @@ def test_find_free_network_port_cloudspace(_, patch_constants):
 
     # Shouldn't use the APP_SERVER_PORT
     assert constants.APP_SERVER_PORT not in ports
-
-
-def test_lightning_client_retry_enabled():
-    client = LightningClient()  # default: retry=True
-    assert hasattr(client.auth_service_get_user_with_http_info, "__wrapped__")
-
-    client = LightningClient(retry=False)
-    assert not hasattr(client.auth_service_get_user_with_http_info, "__wrapped__")
-
-    client = LightningClient(retry=True)
-    assert hasattr(client.auth_service_get_user_with_http_info, "__wrapped__")

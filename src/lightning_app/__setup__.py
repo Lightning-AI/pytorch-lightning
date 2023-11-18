@@ -39,7 +39,7 @@ def _prepare_extras() -> Dict[str, Any]:
     extras = {
         p.stem: assistant.load_requirements(file_name=p.name, **common_args)
         for p in req_files
-        if p.name not in ("docs.txt", "base.txt")
+        if p.name not in ("docs.txt", "app.txt")
     }
     extras["extra"] = extras["cloud"] + extras["ui"] + extras["components"]
     extras["all"] = extras["extra"]
@@ -56,7 +56,15 @@ def _setup_args() -> Dict[str, Any]:
     )
 
     # TODO: remove this once lightning-ui package is ready as a dependency
-    assistant._download_frontend(_PACKAGE_ROOT)
+    ui_ver_file = os.path.join(_SOURCE_ROOT, "app-ui-version.info")
+    if os.path.isfile(ui_ver_file):
+        with open(ui_ver_file, encoding="utf-8") as fo:
+            ui_version = fo.readlines()[0].strip()
+        download_fe_version = {"version": ui_version}
+    else:
+        print(f"Missing file with FE version: {ui_ver_file}")
+        download_fe_version = {}
+    assistant._download_frontend(_PACKAGE_ROOT, **download_fe_version)
 
     return {
         "name": "lightning-app",
@@ -82,7 +90,7 @@ def _setup_args() -> Dict[str, Any]:
         },
         "setup_requires": [],
         "install_requires": assistant.load_requirements(
-            _PATH_REQUIREMENTS, unfreeze="none" if _FREEZE_REQUIREMENTS else "major"
+            _PATH_REQUIREMENTS, file_name="app.txt", unfreeze="none" if _FREEZE_REQUIREMENTS else "major"
         ),
         "extras_require": _prepare_extras(),
         "project_urls": {
@@ -109,5 +117,6 @@ def _setup_args() -> Dict[str, Any]:
             "Programming Language :: Python :: 3.8",
             "Programming Language :: Python :: 3.9",
             "Programming Language :: Python :: 3.10",
+            "Programming Language :: Python :: 3.11",
         ],
     }

@@ -14,7 +14,7 @@
 from dataclasses import dataclass
 from typing import Optional
 
-from lightning.pytorch.utilities import LightningEnum
+from lightning.pytorch.utilities.enums import LightningEnum
 
 
 class TrainerStatus(LightningEnum):
@@ -31,11 +31,9 @@ class TrainerStatus(LightningEnum):
 
 
 class TrainerFn(LightningEnum):
-    """
-    Enum for the user-facing functions of the :class:`~lightning.pytorch.trainer.trainer.Trainer`
-    such as :meth:`~lightning.pytorch.trainer.trainer.Trainer.fit` and
-    :meth:`~lightning.pytorch.trainer.trainer.Trainer.test`.
-    """
+    """Enum for the user-facing functions of the :class:`~lightning.pytorch.trainer.trainer.Trainer` such as
+    :meth:`~lightning.pytorch.trainer.trainer.Trainer.fit` and
+    :meth:`~lightning.pytorch.trainer.trainer.Trainer.test`."""
 
     FITTING = "fit"
     VALIDATING = "validate"
@@ -53,6 +51,7 @@ class RunningStage(LightningEnum):
         - ``TrainerFn.VALIDATING`` - ``RunningStage.VALIDATING``
         - ``TrainerFn.TESTING`` - ``RunningStage.TESTING``
         - ``TrainerFn.PREDICTING`` - ``RunningStage.PREDICTING``
+
     """
 
     TRAINING = "train"

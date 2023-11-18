@@ -26,6 +26,7 @@ def execute_git_command(args: List[str], cwd=None) -> str:
     -------
     output: str
         String combining stdout and stderr.
+
     """
     process = subprocess.run(["git"] + args, capture_output=True, text=True, cwd=cwd, check=False)
     return process.stdout.strip() + process.stderr.strip()
@@ -48,9 +49,9 @@ def check_github_repository(cwd=None) -> bool:
 
 
 def get_git_relative_path(file: Union[str, Path]) -> str:
+    """Finds the relative path of the file to the git root."""
     if not check_github_repository():
         raise ValueError("Not a GitHub repository.")
-    """  Finds the relative path of the file to the git root. """
     abs_path = Path(file).absolute()
     repository_path = execute_git_command(["rev-parse", "--show-toplevel"])
     return str(abs_path.relative_to(repository_path))
@@ -61,6 +62,7 @@ def check_if_remote_head_is_different() -> Union[bool, None]:
 
     This only compares the local SHA to the HEAD commit of a given branch. This check won't be used if user isn't in a
     HEAD locally.
+
     """
     # Check SHA values.
     local_sha = execute_git_command(["rev-parse", "@"])
@@ -71,17 +73,14 @@ def check_if_remote_head_is_different() -> Union[bool, None]:
     if any("fatal" in f for f in (local_sha, remote_sha, base_sha)):
         return None
 
-    is_different = True
-    if local_sha in (remote_sha, base_sha):
-        is_different = False
-
-    return is_different
+    return local_sha not in (remote_sha, base_sha)
 
 
 def has_uncommitted_files() -> bool:
     """Checks if user has uncommited files in local repository.
 
     If there are uncommited files, then show a prompt indicating that uncommited files exist locally.
+
     """
     files = execute_git_command(["update-index", "--refresh"])
     return bool(files)

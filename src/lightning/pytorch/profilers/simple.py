@@ -20,6 +20,7 @@ from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Union
 
 import torch
+from typing_extensions import override
 
 from lightning.pytorch.profilers.profiler import Profiler
 
@@ -32,8 +33,8 @@ _TABLE_DATA = List[_TABLE_ROW]
 
 
 class SimpleProfiler(Profiler):
-    """This profiler simply records the duration of actions (in seconds) and reports the mean duration of each
-    action and the total time spent over the entire training run."""
+    """This profiler simply records the duration of actions (in seconds) and reports the mean duration of each action
+    and the total time spent over the entire training run."""
 
     def __init__(
         self,
@@ -64,11 +65,13 @@ class SimpleProfiler(Profiler):
         self.extended = extended
         self.start_time = time.monotonic()
 
+    @override
     def start(self, action_name: str) -> None:
         if action_name in self.current_actions:
             raise ValueError(f"Attempted to start {action_name} which has already started.")
         self.current_actions[action_name] = time.monotonic()
 
+    @override
     def stop(self, action_name: str) -> None:
         end_time = time.monotonic()
         if action_name not in self.current_actions:
@@ -104,6 +107,7 @@ class SimpleProfiler(Profiler):
         report.sort(key=lambda x: x[1], reverse=True)
         return report
 
+    @override
     def summary(self) -> str:
         sep = os.linesep
         output_string = ""

@@ -18,7 +18,7 @@ from unittest.mock import Mock
 
 import pytest
 import torch
-
+from lightning.fabric.utilities.imports import _PYTHON_GREATER_EQUAL_3_8_0, _PYTHON_GREATER_EQUAL_3_10_0
 from lightning.pytorch import Callback, LightningModule, Trainer
 from lightning.pytorch.callbacks import (
     EarlyStopping,
@@ -32,7 +32,6 @@ from lightning.pytorch.callbacks import (
 from lightning.pytorch.callbacks.batch_size_finder import BatchSizeFinder
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.trainer.connectors.callback_connector import _CallbackConnector
-from lightning.pytorch.utilities.imports import _PYTHON_GREATER_EQUAL_3_8_0, _PYTHON_GREATER_EQUAL_3_10_0
 
 
 def test_checkpoint_callbacks_are_last(tmpdir):
@@ -224,6 +223,19 @@ def test_attach_model_callbacks():
         model_callbacks=[early_stopping1, lr_monitor, grad_accumulation, early_stopping2],
     )
     assert trainer.callbacks == [progress_bar, early_stopping1, lr_monitor, grad_accumulation, early_stopping2]
+
+    class CustomProgressBar(TQDMProgressBar):
+        ...
+
+    custom_progress_bar = CustomProgressBar()
+    # a custom callback that overrides ours
+    trainer = _attach_callbacks(trainer_callbacks=[progress_bar], model_callbacks=[custom_progress_bar])
+    assert trainer.callbacks == [custom_progress_bar]
+
+    # edge case
+    bare_callback = Callback()
+    trainer = _attach_callbacks(trainer_callbacks=[bare_callback], model_callbacks=[custom_progress_bar])
+    assert trainer.callbacks == [bare_callback, custom_progress_bar]
 
 
 def test_attach_model_callbacks_override_info(caplog):

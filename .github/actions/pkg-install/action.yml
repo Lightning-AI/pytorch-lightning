@@ -8,6 +8,10 @@ inputs:
   pkg-name:
     description: Package name to import
     required: true
+  pkg-extra:
+    description: argument for install extra
+    required: false
+    default: ""
   pip-flags:
     description: Additional pip install flags
     required: false
@@ -16,27 +20,35 @@ inputs:
 runs:
   using: "composite"
   steps:
-  - name: Choose package import
-    working-directory: ${{ inputs.pkg-folder }}
-    run: |
-      ls -l
-      python -c "print('PKG_IMPORT=' + {'app': 'lightning_app', 'fabric': 'lightning_fabric', 'pytorch': 'pytorch_lightning'}.get('${{matrix.pkg-name}}', 'lightning'))" >> $GITHUB_ENV
-      python -c "import glob ; ls = glob.glob('*.tar.gz') ; print('PKG_SOURCE=' + ls[0])" >> $GITHUB_ENV
-      python -c "import glob ; ls = glob.glob('*.whl') ; print('PKG_WHEEL=' + ls[0])" >> $GITHUB_ENV
-    shell: bash
+    - name: Choose package import
+      working-directory: ${{ inputs.pkg-folder }}
+      run: |
+        import os, glob
 
-  - name: Install package - wheel
-    working-directory: ${{ inputs.pkg-folder }}
-    run: |
-      pip install ${PKG_WHEEL} ${{ inputs.pip-flags }}
-      pip list | grep lightning
-      python -c "import ${{ env.PKG_IMPORT }}; print(${{ env.PKG_IMPORT }}.__version__)"
-    shell: bash
+        lut = {'app': 'lightning_app', 'fabric': 'lightning_fabric', 'pytorch': 'pytorch_lightning'}
+        act_pkg = lut.get('${{inputs.pkg-name}}', 'lightning')
+        pkg_sdist = glob.glob('*.tar.gz')[0]
+        pkg_wheel = glob.glob('*.whl')[0]
+        extra = '${{inputs.pkg-extra}}'
+        extra = f'[{extra}]' if extra else ''
 
-  - name: Install package - archive
-    working-directory: ${{ inputs.pkg-folder }}
-    run: |
-      pip install ${PKG_SOURCE} ${{ inputs.pip-flags }}
-      pip list | grep lightning
-      python -c "import ${{ env.PKG_IMPORT }}; print(${{ env.PKG_IMPORT }}.__version__)"
-    shell: bash
+        envs = [f'PKG_IMPORT={act_pkg}', f'PKG_SOURCE={pkg_sdist}', f'PKG_WHEEL={pkg_wheel}', f'PKG_EXTRA={extra}']
+        with open(os.getenv('GITHUB_ENV'), "a") as gh_env:
+            gh_env.write(os.linesep.join(envs))
+      shell: python
+
+    - name: Install package - wheel
+      working-directory: ${{ inputs.pkg-folder }}
+      run: |
+        pip install "${PKG_WHEEL}${PKG_EXTRA}" ${{ inputs.pip-flags }}
+        pip list | grep lightning
+        python -c "import ${{ env.PKG_IMPORT }}; print(${{ env.PKG_IMPORT }}.__version__)"
+      shell: bash
+
+    - name: Install package - archive
+      working-directory: ${{ inputs.pkg-folder }}
+      run: |
+        pip install "${PKG_SOURCE}${PKG_EXTRA}" ${{ inputs.pip-flags }}
+        pip list | grep lightning
+        python -c "import ${{ env.PKG_IMPORT }}; print(${{ env.PKG_IMPORT }}.__version__)"
+      shell: bash

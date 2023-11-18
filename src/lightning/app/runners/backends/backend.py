@@ -14,7 +14,7 @@
 
 from abc import ABC, abstractmethod
 from functools import partial
-from typing import Any, Callable, List, Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Callable, List, Optional
 
 from lightning.app.core.queues import QueuingSystem
 from lightning.app.utilities.proxies import ProxyWorkRun, unwrap

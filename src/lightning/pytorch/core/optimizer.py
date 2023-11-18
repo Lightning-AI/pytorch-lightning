@@ -13,18 +13,20 @@
 # limitations under the License.
 from contextlib import contextmanager
 from dataclasses import fields
-from typing import Any, Callable, Dict, Generator, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, Generator, List, Optional, Tuple, Union, overload
 from weakref import proxy
 
 import torch
 from torch import optim
 from torch.optim import Optimizer
+from typing_extensions import override
 
 import lightning.pytorch as pl
-from lightning.fabric.utilities.types import _Stateful, Optimizable, ReduceLROnPlateau
+from lightning.fabric.utilities.types import Optimizable, ReduceLROnPlateau, _Stateful
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.model_helpers import is_overridden
 from lightning.pytorch.utilities.rank_zero import rank_zero_warn
+from lightning.pytorch.utilities.signature_utils import is_param_in_hook_signature
 from lightning.pytorch.utilities.types import LRSchedulerConfig, LRSchedulerTypeTuple
 
 
@@ -33,34 +35,27 @@ def do_nothing_closure() -> None:
 
 
 class LightningOptimizer:
-    """This class is used to wrap the user optimizers and handle properly the backward and optimizer_step logic
-    across accelerators, AMP, accumulate_grad_batches."""
+    """This class is used to wrap the user optimizers and handle properly the backward and optimizer_step logic across
+    accelerators, AMP, accumulate_grad_batches.
+
+    Note: The purpose of this wrapper is only to define new methods and redirect the `.step()` call. The internal
+    state ``__dict__`` is not kept in sync with the internal state of the original optimizer, but the Trainer never
+    relies on the internal state of the wrapper.
+
+    """
 
     def __init__(self, optimizer: Optimizer):
-        # copy most of the `Optimizer` methods into this instance. `__del__` is skipped in case the optimizer has
-        # implemented custom logic which we would not want to call on destruction of the `LightningOptimizer`
-        self.__dict__ = {k: v for k, v in optimizer.__dict__.items() if k not in ("step", "__del__")}
-        self.__class__ = type("Lightning" + optimizer.__class__.__name__, (self.__class__, optimizer.__class__), {})
-
         self._optimizer = optimizer
         self._strategy: Optional[pl.strategies.Strategy] = None
         # to inject logic around the optimizer step, particularly useful with manual optimization
         self._on_before_step = do_nothing_closure
         self._on_after_step = do_nothing_closure
+        # imitate the class of the wrapped object to make isinstance checks work
+        self.__class__ = type("Lightning" + optimizer.__class__.__name__, (self.__class__, optimizer.__class__), {})
 
     @property
     def optimizer(self) -> Optimizer:
         return self._optimizer
-
-    @classmethod
-    def _to_lightning_optimizer(
-        cls, optimizer: Union[Optimizer, "LightningOptimizer"], strategy: "pl.strategies.Strategy"
-    ) -> "LightningOptimizer":
-        # the user could return a `LightningOptimizer` from `configure_optimizers`, see test:
-        # tests/core/test_lightning_optimizer.py::test_lightning_optimizer[False]
-        lightning_optimizer = optimizer if isinstance(optimizer, LightningOptimizer) else cls(optimizer)
-        lightning_optimizer._strategy = proxy(strategy)
-        return lightning_optimizer
 
     @contextmanager
     def toggle_model(self, sync_grad: bool = True) -> Generator[None, None, None]:
@@ -72,6 +67,7 @@ class LightningOptimizer:
         When performing gradient accumulation, there is no need to perform grad synchronization
         during the accumulation phase.
         Setting `sync_grad` to False will block this synchronization and improve performance.
+
         """
         # local import here to avoid circular import
         from lightning.pytorch.loops.utilities import _block_parallel_sync_behavior
@@ -143,6 +139,7 @@ class LightningOptimizer:
 
                 with opt_dis.toggle_model(sync_grad=accumulated_grad_batches):
                     opt_dis.step(closure=closure_dis)
+
         """
         self._on_before_step()
 
@@ -157,6 +154,19 @@ class LightningOptimizer:
         self._on_after_step()
 
         return step_output
+
+    @classmethod
+    def _to_lightning_optimizer(
+        cls, optimizer: Union[Optimizer, "LightningOptimizer"], strategy: "pl.strategies.Strategy"
+    ) -> "LightningOptimizer":
+        # the user could return a `LightningOptimizer` from `configure_optimizers`, see test:
+        # tests/core/test_lightning_optimizer.py::test_lightning_optimizer[False]
+        lightning_optimizer = optimizer if isinstance(optimizer, LightningOptimizer) else cls(optimizer)
+        lightning_optimizer._strategy = proxy(strategy)
+        return lightning_optimizer
+
+    def __getattr__(self, item: Any) -> Any:
+        return getattr(self._optimizer, item)
 
 
 def _init_optimizers_and_lr_schedulers(
@@ -236,8 +246,7 @@ def _configure_optimizers(
 
 
 def _configure_schedulers_automatic_opt(schedulers: list, monitor: Optional[str]) -> List[LRSchedulerConfig]:
-    """Convert each scheduler into `LRSchedulerConfig` with relevant information, when using automatic
-    optimization."""
+    """Convert each scheduler into `LRSchedulerConfig` with relevant information, when using automatic optimization."""
     lr_scheduler_configs = []
     for scheduler in schedulers:
         if isinstance(scheduler, dict):
@@ -325,7 +334,11 @@ def _validate_scheduler_api(lr_scheduler_configs: List[LRSchedulerConfig], model
                 " It should have `state_dict` and `load_state_dict` methods defined."
             )
 
-        if not isinstance(scheduler, LRSchedulerTypeTuple) and not is_overridden("lr_scheduler_step", model):
+        if (
+            not isinstance(scheduler, LRSchedulerTypeTuple)
+            and not is_overridden("lr_scheduler_step", model)
+            and model.automatic_optimization
+        ):
             raise MisconfigurationException(
                 f"The provided lr scheduler `{scheduler.__class__.__name__}` doesn't follow PyTorch's LRScheduler"
                 " API. You should override the `LightningModule.lr_scheduler_step` hook with your own logic if"
@@ -334,6 +347,12 @@ def _validate_scheduler_api(lr_scheduler_configs: List[LRSchedulerConfig], model
 
 
 def _validate_multiple_optimizers_support(optimizers: List[Optimizer], model: "pl.LightningModule") -> None:
+    if is_param_in_hook_signature(model.training_step, "optimizer_idx", explicit=True):
+        raise RuntimeError(
+            "Training with multiple optimizers is only supported with manual optimization. Remove the `optimizer_idx`"
+            " argument from `training_step`, set `self.automatic_optimization = False` and access your optimizers"
+            " in `training_step` with `opt1, opt2, ... = self.optimizers()`."
+        )
     if model.automatic_optimization and len(optimizers) > 1:
         raise RuntimeError(
             "Training with multiple optimizers is only supported with manual optimization. Set"
@@ -361,26 +380,40 @@ def _validate_optim_conf(optim_conf: Dict[str, Any]) -> None:
 
 class _MockOptimizer(Optimizer):
     """The `_MockOptimizer` will be used inplace of an optimizer in the event that `None` is returned from
-    `configure_optimizers`."""
+    :meth:`~lightning.pytorch.core.LightningModule.configure_optimizers`."""
 
     def __init__(self) -> None:
         super().__init__([torch.zeros(1)], {})
 
+    @override
     def add_param_group(self, param_group: Dict[Any, Any]) -> None:
         pass  # Do Nothing
 
+    @override
     def load_state_dict(self, state_dict: Dict[Any, Any]) -> None:
         pass  # Do Nothing
 
+    @override
     def state_dict(self) -> Dict[str, Any]:
         return {}  # Return Empty
 
-    def step(self, closure: Optional[Callable] = None) -> None:
-        if closure is not None:
-            closure()
+    @overload
+    def step(self, closure: None = ...) -> None:
+        ...
 
+    @overload
+    def step(self, closure: Callable[[], float]) -> float:
+        ...
+
+    @override
+    def step(self, closure: Optional[Callable[[], float]] = None) -> Optional[float]:
+        if closure is not None:
+            return closure()
+
+    @override
     def zero_grad(self, set_to_none: Optional[bool] = True) -> None:
         pass  # Do Nothing
 
+    @override
     def __repr__(self) -> str:
         return "No Optimizer"

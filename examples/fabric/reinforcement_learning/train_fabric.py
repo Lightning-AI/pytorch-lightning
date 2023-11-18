@@ -26,13 +26,12 @@ from typing import Dict
 import gymnasium as gym
 import torch
 import torchmetrics
+from lightning.fabric import Fabric
+from lightning.fabric.loggers import TensorBoardLogger
 from rl.agent import PPOLightningAgent
 from rl.utils import linear_annealing, make_env, parse_args, test
 from torch import Tensor
 from torch.utils.data import BatchSampler, DistributedSampler, RandomSampler
-
-from lightning.fabric import Fabric
-from lightning.fabric.loggers import TensorBoardLogger
 
 
 def train(

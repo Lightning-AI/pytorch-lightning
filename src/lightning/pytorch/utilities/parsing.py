@@ -23,6 +23,7 @@ from typing import Any, Dict, List, Literal, MutableMapping, Optional, Sequence,
 from torch import nn
 
 import lightning.pytorch as pl
+from lightning.fabric.utilities.data import AttributeDict as _AttributeDict
 from lightning.pytorch.utilities.rank_zero import rank_zero_warn
 
 
@@ -54,6 +55,7 @@ def parse_class_init_keys(cls: Type) -> Tuple[str, Optional[str], Optional[str]]
         ...         pass
         >>> parse_class_init_keys(Model)
         ('self', 'my_args', 'my_kwargs')
+
     """
     init_parameters = inspect.signature(cls.__init__).parameters
     # docs claims the params are always ordered
@@ -120,6 +122,7 @@ def collect_init_args(
           A list of dictionaries where each dictionary contains the arguments passed to the
           constructor at that level. The last entry corresponds to the constructor call of the
           most specific class in the hierarchy.
+
     """
     _, _, _, local_vars = inspect.getargvalues(frame)
     # frame.f_back must be of a type types.FrameType for get_init_args/collect_init_args due to mypy
@@ -202,7 +205,7 @@ def save_hyperparameters(
     obj._hparams_initial = copy.deepcopy(obj._hparams)
 
 
-class AttributeDict(Dict):
+class AttributeDict(_AttributeDict):
     """Extended dictionary accessible with dot notation.
 
     >>> ad = AttributeDict({'key1': 1, 'key2': 'abc'})
@@ -216,24 +219,8 @@ class AttributeDict(Dict):
     "key2":    abc
     "my-key":  3.14
     "new_key": 42
+
     """
-
-    def __getattr__(self, key: str) -> Optional[Any]:
-        try:
-            return self[key]
-        except KeyError as exp:
-            raise AttributeError(f'Missing attribute "{key}"') from exp
-
-    def __setattr__(self, key: str, val: Any) -> None:
-        self[key] = val
-
-    def __repr__(self) -> str:
-        if not len(self):
-            return ""
-        max_key_length = max(len(str(k)) for k in self)
-        tmp_name = "{:" + str(max_key_length + 3) + "s} {}"
-        rows = [tmp_name.format(f'"{n}":', self[n]) for n in sorted(self.keys())]
-        return "\n".join(rows)
 
 
 def _lightning_get_all_attr_holders(model: "pl.LightningModule", attribute: str) -> List[Any]:
@@ -241,6 +228,7 @@ def _lightning_get_all_attr_holders(model: "pl.LightningModule", attribute: str)
 
     Gets all of the objects or dicts that holds attribute. Checks for attribute in model namespace, the old hparams
     namespace/dict, and the datamodule.
+
     """
     holders: List[Any] = []
 
@@ -269,6 +257,7 @@ def _lightning_get_first_attr_holder(model: "pl.LightningModule", attribute: str
 
     Gets the object or dict that holds attribute, or None. Checks for attribute in model namespace, the old hparams
     namespace/dict, and the datamodule, returns the last one that has it.
+
     """
     holders = _lightning_get_all_attr_holders(model, attribute)
     if len(holders) == 0:
@@ -281,18 +270,20 @@ def lightning_hasattr(model: "pl.LightningModule", attribute: str) -> bool:
     """Special hasattr for Lightning.
 
     Checks for attribute in model namespace, the old hparams namespace/dict, and the datamodule.
+
     """
     return _lightning_get_first_attr_holder(model, attribute) is not None
 
 
 def lightning_getattr(model: "pl.LightningModule", attribute: str) -> Optional[Any]:
-    """Special getattr for Lightning. Checks for attribute in model namespace, the old hparams namespace/dict, and
-    the datamodule.
+    """Special getattr for Lightning. Checks for attribute in model namespace, the old hparams namespace/dict, and the
+    datamodule.
 
     Raises:
         AttributeError:
             If ``model`` doesn't have ``attribute`` in any of
             model namespace, the hparams namespace/dict, and the datamodule.
+
     """
     holder = _lightning_get_first_attr_holder(model, attribute)
     if holder is None:
@@ -307,13 +298,14 @@ def lightning_getattr(model: "pl.LightningModule", attribute: str) -> Optional[A
 
 
 def lightning_setattr(model: "pl.LightningModule", attribute: str, value: Any) -> None:
-    """Special setattr for Lightning. Checks for attribute in model namespace and the old hparams namespace/dict.
-    Will also set the attribute on datamodule, if it exists.
+    """Special setattr for Lightning. Checks for attribute in model namespace and the old hparams namespace/dict. Will
+    also set the attribute on datamodule, if it exists.
 
     Raises:
         AttributeError:
             If ``model`` doesn't have ``attribute`` in any of
             model namespace, the hparams namespace/dict, and the datamodule.
+
     """
     holders = _lightning_get_all_attr_holders(model, attribute)
     if len(holders) == 0:

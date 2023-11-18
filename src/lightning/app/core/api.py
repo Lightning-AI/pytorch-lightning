@@ -30,7 +30,7 @@ from typing import Dict, List, Mapping, Optional, Union
 
 import uvicorn
 from deepdiff import DeepDiff, Delta
-from fastapi import FastAPI, File, HTTPException, Request, Response, status, UploadFile, WebSocket
+from fastapi import FastAPI, File, HTTPException, Request, Response, UploadFile, WebSocket, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.params import Header
 from fastapi.responses import HTMLResponse, JSONResponse
@@ -196,9 +196,9 @@ if _is_starsessions_available():
 @fastapi_service.get("/api/v1/state", response_class=JSONResponse)
 async def get_state(
     response: Response,
-    x_lightning_type: Optional[str] = Header(None),  # type: ignore[assignment]
-    x_lightning_session_uuid: Optional[str] = Header(None),  # type: ignore[assignment]
-    x_lightning_session_id: Optional[str] = Header(None),  # type: ignore[assignment]
+    x_lightning_type: Optional[str] = Header(None),
+    x_lightning_session_uuid: Optional[str] = Header(None),
+    x_lightning_session_id: Optional[str] = Header(None),
 ) -> Mapping:
     if x_lightning_session_uuid is None:
         raise Exception("Missing X-Lightning-Session-UUID header")
@@ -231,7 +231,7 @@ def _get_component_by_name(component_name: str, state: dict) -> Union[LightningF
 
 
 @fastapi_service.get("/api/v1/layout", response_class=JSONResponse)
-async def get_layout() -> Mapping:
+async def get_layout() -> str:
     with lock:
         x_lightning_session_uuid = TEST_SESSION_UUID
         state = global_app_state_store.get_app_state(x_lightning_session_uuid)
@@ -240,14 +240,14 @@ async def get_layout() -> Mapping:
         for la in layout:
             if la["content"].startswith("root."):
                 la["content"] = _get_component_by_name(la["content"], state)
-        return layout
+        return json.dumps(layout)
 
 
 @fastapi_service.get("/api/v1/spec", response_class=JSONResponse)
 async def get_spec(
     response: Response,
-    x_lightning_session_uuid: Optional[str] = Header(None),  # type: ignore[assignment]
-    x_lightning_session_id: Optional[str] = Header(None),  # type: ignore[assignment]
+    x_lightning_session_uuid: Optional[str] = Header(None),
+    x_lightning_session_id: Optional[str] = Header(None),
 ) -> Union[List, Dict]:
     if x_lightning_session_uuid is None:
         raise Exception("Missing X-Lightning-Session-UUID header")
@@ -266,12 +266,12 @@ async def get_spec(
 async def post_delta(
     request: Request,
     response: Response,
-    x_lightning_type: Optional[str] = Header(None),  # type: ignore[assignment]
-    x_lightning_session_uuid: Optional[str] = Header(None),  # type: ignore[assignment]
-    x_lightning_session_id: Optional[str] = Header(None),  # type: ignore[assignment]
+    x_lightning_type: Optional[str] = Header(None),
+    x_lightning_session_uuid: Optional[str] = Header(None),
+    x_lightning_session_id: Optional[str] = Header(None),
 ) -> Optional[Dict]:
-    """This endpoint is used to make an update to the app state using delta diff, mainly used by streamlit to
-    update the state."""
+    """This endpoint is used to make an update to the app state using delta diff, mainly used by streamlit to update
+    the state."""
 
     if x_lightning_session_uuid is None:
         raise Exception("Missing X-Lightning-Session-UUID header")
@@ -292,9 +292,9 @@ async def post_delta(
 async def post_state(
     request: Request,
     response: Response,
-    x_lightning_type: Optional[str] = Header(None),  # type: ignore[assignment]
-    x_lightning_session_uuid: Optional[str] = Header(None),  # type: ignore[assignment]
-    x_lightning_session_id: Optional[str] = Header(None),  # type: ignore[assignment]
+    x_lightning_type: Optional[str] = Header(None),
+    x_lightning_session_uuid: Optional[str] = Header(None),
+    x_lightning_session_id: Optional[str] = Header(None),
 ) -> Optional[Dict]:
     if x_lightning_session_uuid is None:
         raise Exception("Missing X-Lightning-Session-UUID header")

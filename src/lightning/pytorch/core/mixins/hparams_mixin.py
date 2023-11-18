@@ -17,7 +17,8 @@ import types
 from argparse import Namespace
 from typing import Any, List, MutableMapping, Optional, Sequence, Union
 
-from lightning.pytorch.utilities.parsing import AttributeDict, save_hyperparameters
+from lightning.fabric.utilities.data import AttributeDict
+from lightning.pytorch.utilities.parsing import save_hyperparameters
 
 _PRIMITIVE_TYPES = (bool, int, float, str)
 _ALLOWED_CONFIG_TYPES = (AttributeDict, MutableMapping, Namespace)
@@ -101,6 +102,7 @@ class HyperparametersMixin:
             >>> model.hparams
             "arg1": 1
             "arg3": 3.14
+
         """
         self._log_hyperparams = logger
         # the frame needs to be created in this file.
@@ -132,11 +134,12 @@ class HyperparametersMixin:
 
     @property
     def hparams(self) -> Union[AttributeDict, MutableMapping]:
-        """The collection of hyperparameters saved with :meth:`save_hyperparameters`. It is mutable by the user.
-        For the frozen set of initial hyperparameters, use :attr:`hparams_initial`.
+        """The collection of hyperparameters saved with :meth:`save_hyperparameters`. It is mutable by the user. For
+        the frozen set of initial hyperparameters, use :attr:`hparams_initial`.
 
         Returns:
             Mutable hyperparameters dictionary
+
         """
         if not hasattr(self, "_hparams"):
             self._hparams = AttributeDict()
@@ -149,6 +152,7 @@ class HyperparametersMixin:
 
         Returns:
             AttributeDict: immutable initial hyperparameters
+
         """
         if not hasattr(self, "_hparams_initial"):
             return AttributeDict()

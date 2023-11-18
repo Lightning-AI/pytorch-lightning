@@ -19,13 +19,13 @@ from typing import Union
 import pytest
 import torch
 import torch.nn.utils.prune as pytorch_prune
-from torch import nn
-from torch.nn import Sequential
-
-from lightning.pytorch import Trainer
+from lightning.pytorch import Trainer, seed_everything
 from lightning.pytorch.callbacks import ModelCheckpoint, ModelPruning
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
+from torch import nn
+from torch.nn import Sequential
+
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -67,6 +67,7 @@ def train_with_pruning_callback(
     accelerator="cpu",
     devices=1,
 ):
+    seed_everything(1)
     model = TestModel()
 
     # Weights are random. None is 0
@@ -270,7 +271,7 @@ def test_multiple_pruning_callbacks(tmpdir, caplog, make_pruning_permanent: bool
     filepath = str(tmpdir / "foo.ckpt")
     trainer.save_checkpoint(filepath)
 
-    model.load_from_checkpoint(filepath, strict=False)
+    model.load_state_dict(torch.load(filepath), strict=False)
     has_pruning = hasattr(model.layer.mlp_1, "weight_orig")
     assert not has_pruning if make_pruning_permanent else has_pruning
 
@@ -280,8 +281,8 @@ def test_multiple_pruning_callbacks(tmpdir, caplog, make_pruning_permanent: bool
 def test_permanent_when_model_is_saved_multiple_times(
     tmpdir, caplog, prune_on_train_epoch_end, save_on_train_epoch_end
 ):
-    """When a model is saved multiple times and make_permanent=True, we need to make sure a copy is pruned and not
-    the trained model if we want to continue with the same pruning buffers."""
+    """When a model is saved multiple times and make_permanent=True, we need to make sure a copy is pruned and not the
+    trained model if we want to continue with the same pruning buffers."""
     if prune_on_train_epoch_end and save_on_train_epoch_end:
         pytest.xfail(
             "Pruning sets the `grad_fn` of the parameters so we can't save"
@@ -325,7 +326,7 @@ def test_permanent_when_model_is_saved_multiple_times(
     # removed on_train_end
     assert not hasattr(model.layer.mlp_3, "weight_orig")
 
-    model.load_from_checkpoint(trainer.checkpoint_callback.kth_best_model_path)
+    model = TestModel.load_from_checkpoint(trainer.checkpoint_callback.kth_best_model_path)
     assert not hasattr(model.layer.mlp_3, "weight_orig")
-    model.load_from_checkpoint(trainer.checkpoint_callback.last_model_path)
+    model = TestModel.load_from_checkpoint(trainer.checkpoint_callback.last_model_path)
     assert not hasattr(model.layer.mlp_3, "weight_orig")

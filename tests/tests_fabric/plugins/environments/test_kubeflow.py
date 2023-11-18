@@ -16,7 +16,6 @@ import os
 from unittest import mock
 
 import pytest
-
 from lightning.fabric.plugins.environments import KubeflowEnvironment
 
 
@@ -74,30 +73,7 @@ def test_attributes_from_environment_variables(caplog):
     assert "setting world size is not allowed" in caplog.text
 
 
-@mock.patch.dict(
-    os.environ,
-    {
-        "KUBERNETES_PORT": "tcp://127.0.0.1:443",
-        "MASTER_ADDR": "1.2.3.4",
-        "MASTER_PORT": "500",
-        "WORLD_SIZE": "20",
-        "RANK": "1",
-    },
-)
 def test_detect_kubeflow():
-    assert KubeflowEnvironment.detect()
-
-
-@mock.patch.dict(
-    os.environ,
-    {
-        "KUBERNETES_PORT": "tcp://127.0.0.1:443",
-        "MASTER_ADDR": "1.2.3.4",
-        "MASTER_PORT": "500",
-        "WORLD_SIZE": "20",
-        "RANK": "1",
-        "GROUP_RANK": "1",
-    },
-)
-def test_detect_torchelastic_over_kubeflow():
-    assert not KubeflowEnvironment.detect()
+    """Test that the KubeflowEnvironment does not support auto-detection."""
+    with pytest.raises(NotImplementedError, match="can't be detected automatically"):
+        KubeflowEnvironment.detect()

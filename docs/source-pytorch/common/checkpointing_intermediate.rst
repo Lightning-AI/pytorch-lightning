@@ -27,7 +27,7 @@ Any value that has been logged via *self.log* in the LightningModule can be moni
 
 .. code-block:: python
 
-        class LitModel(pl.LightningModule):
+        class LitModel(L.LightningModule):
             def training_step(self, batch, batch_idx):
                 self.log("my_metric", x)
 
@@ -120,7 +120,7 @@ What
 Where
 =====
 
-- By default, the ``ModelCheckpoint`` will save files into the ``Trainer.log_dir``. It gives you the ability to specify the ``dirpath`` and ``filename`` for your checkpoints. Filename can also be dynamic so you can inject the metrics that are being logged using :meth:`~lightning.pytorch.core.module.LightningModule.log`.
+- By default, the ``ModelCheckpoint`` will save files into the ``Trainer.log_dir``. It gives you the ability to specify the ``dirpath`` and ``filename`` for your checkpoints. Filename can also be dynamic so you can inject the metrics that are being logged using :meth:`~lightning.pytorch.core.LightningModule.log`.
 
 |
 
@@ -147,7 +147,7 @@ Save checkpoints manually
 *************************
 
 You can manually save checkpoints and restore your model from the checkpointed state using :meth:`~lightning.pytorch.trainer.trainer.Trainer.save_checkpoint`
-and :meth:`~lightning.pytorch.core.module.LightningModule.load_from_checkpoint`.
+and :meth:`~lightning.pytorch.core.LightningModule.load_from_checkpoint`.
 
 .. code-block:: python
 

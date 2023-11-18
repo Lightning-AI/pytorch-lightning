@@ -13,7 +13,7 @@
 # limitations under the License.
 r"""Base class used to build new callbacks."""
 
-from typing import Any, Dict, Optional, Type
+from typing import Any, Dict, Type
 
 from torch import Tensor
 from torch.optim import Optimizer
@@ -26,6 +26,7 @@ class Callback:
     r"""Abstract base class used to build new callbacks.
 
     Subclass this class and override any of the relevant hooks
+
     """
 
     @property
@@ -35,6 +36,7 @@ class Callback:
         Used to store and retrieve a callback's state from the checkpoint dictionary by
         ``checkpoint["callbacks"][state_key]``. Implementations of a callback need to provide a unique state key if 1)
         the callback has state and 2) it is desired to maintain the state of multiple instances of that callback.
+
         """
         return self.__class__.__qualname__
 
@@ -44,11 +46,12 @@ class Callback:
         return type(self)
 
     def _generate_state_key(self, **kwargs: Any) -> str:
-        """Formats a set of key-value pairs into a state key string with the callback class name prefixed. Useful
-        for defining a :attr:`state_key`.
+        """Formats a set of key-value pairs into a state key string with the callback class name prefixed. Useful for
+        defining a :attr:`state_key`.
 
         Args:
             **kwargs: A set of key-value pairs. Must be serializable to :class:`str`.
+
         """
         return f"{self.__class__.__qualname__}{repr(kwargs)}"
 
@@ -83,6 +86,7 @@ class Callback:
         Note:
             The value ``outputs["loss"]`` here will be the normalized value w.r.t ``accumulate_grad_batches`` of the
             loss returned from ``training_step``.
+
         """
 
     def on_train_epoch_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
@@ -92,7 +96,7 @@ class Callback:
         """Called when the train epoch ends.
 
         To access all batch outputs at the end of the epoch, you can cache step outputs as an attribute of the
-        :class:`pytorch_lightning.LightningModule` and access them in this hook:
+        :class:`lightning.pytorch.core.LightningModule` and access them in this hook:
 
         .. code-block:: python
 
@@ -114,6 +118,7 @@ class Callback:
                     pl_module.log("training_epoch_mean", epoch_mean)
                     # free up the memory
                     pl_module.training_step_outputs.clear()
+
         """
 
     def on_validation_epoch_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
@@ -148,7 +153,7 @@ class Callback:
         self,
         trainer: "pl.Trainer",
         pl_module: "pl.LightningModule",
-        outputs: Optional[STEP_OUTPUT],
+        outputs: STEP_OUTPUT,
         batch: Any,
         batch_idx: int,
         dataloader_idx: int = 0,
@@ -169,7 +174,7 @@ class Callback:
         self,
         trainer: "pl.Trainer",
         pl_module: "pl.LightningModule",
-        outputs: Optional[STEP_OUTPUT],
+        outputs: STEP_OUTPUT,
         batch: Any,
         batch_idx: int,
         dataloader_idx: int = 0,
@@ -229,6 +234,7 @@ class Callback:
 
         Returns:
             A dictionary containing callback state.
+
         """
         return {}
 
@@ -237,6 +243,7 @@ class Callback:
 
         Args:
             state_dict: the callback state returned by ``state_dict``.
+
         """
         pass
 
@@ -246,9 +253,10 @@ class Callback:
         r"""Called when saving a checkpoint to give you a chance to store anything else you might want to save.
 
         Args:
-            trainer: the current :class:`~lightning.pytorch.trainer.Trainer` instance.
-            pl_module: the current :class:`~lightning.pytorch.core.module.LightningModule` instance.
+            trainer: the current :class:`~lightning.pytorch.trainer.trainer.Trainer` instance.
+            pl_module: the current :class:`~lightning.pytorch.core.LightningModule` instance.
             checkpoint: the checkpoint dictionary that will be saved.
+
         """
 
     def on_load_checkpoint(
@@ -257,9 +265,10 @@ class Callback:
         r"""Called when loading a model checkpoint, use to reload state.
 
         Args:
-            trainer: the current :class:`~lightning.pytorch.trainer.Trainer` instance.
-            pl_module: the current :class:`~lightning.pytorch.core.module.LightningModule` instance.
+            trainer: the current :class:`~lightning.pytorch.trainer.trainer.Trainer` instance.
+            pl_module: the current :class:`~lightning.pytorch.core.LightningModule` instance.
             checkpoint: the full checkpoint dictionary that got loaded by the Trainer.
+
         """
 
     def on_before_backward(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", loss: Tensor) -> None:

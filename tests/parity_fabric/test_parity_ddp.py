@@ -18,11 +18,11 @@ from copy import deepcopy
 import torch
 import torch.distributed
 import torch.nn.functional
+from lightning.fabric.fabric import Fabric
 from torch.nn.parallel.distributed import DistributedDataParallel
 from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
 
-from lightning.fabric.fabric import Fabric
 from parity_fabric.models import ConvNet
 from parity_fabric.utils import (
     cuda_reset,
@@ -161,6 +161,6 @@ def run_parity_test(accelerator: str = "cpu", devices: int = 2, tolerance: float
 
 
 if __name__ == "__main__":
-    from jsonargparse.cli import CLI
+    from jsonargparse import CLI
 
     CLI(run_parity_test)

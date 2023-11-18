@@ -11,7 +11,7 @@ from lightning import BuildConfig, CloudCompute, LightningApp, LightningFlow
 from lightning.app import structures
 from lightning.app.components import TracerPythonScript
 from lightning.app.frontend import StreamlitFrontend
-from lightning.app.storage import Path
+from lightning.app.storage.path import Path
 from lightning.app.utilities.state import AppState
 
 
@@ -36,6 +36,7 @@ class GithubRepoRunner(TracerPythonScript):
             script_args: The arguments to be provided to the script.
             requirements: The python requirements tp run the script.
             cloud_compute: The object to select the cloud instance.
+
         """
         super().__init__(
             script_path=script_path,
@@ -79,8 +80,8 @@ class PyTorchLightningGithubRepoRunner(GithubRepoRunner):
         self.best_model_score = None
 
     def configure_tracer(self):
-        from pytorch_lightning import Trainer
-        from pytorch_lightning.callbacks import Callback
+        from lightning.pytorch import Trainer
+        from lightning.pytorch.callbacks import Callback
 
         tracer = super().configure_tracer()
 

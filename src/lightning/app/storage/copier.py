@@ -17,7 +17,7 @@ import pathlib
 import threading
 from threading import Thread
 from time import time
-from typing import Optional, TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, Optional, Union
 
 from fsspec import AbstractFileSystem
 from fsspec.implementations.local import LocalFileSystem
@@ -52,6 +52,7 @@ class _Copier(Thread):
             will send requests to this queue.
         copy_response_queue: A queue connecting the central StorageOrchestrator with the Copier. The Copier
             will send a response to this queue whenever a requested copy has finished.
+
     """
 
     def __init__(
@@ -78,7 +79,7 @@ class _Copier(Thread):
 
         t0 = time()
 
-        obj: Optional[lightning.app.storage.Path] = _find_matching_path(self._work, request)
+        obj: Optional[lightning.app.storage.path.Path] = _find_matching_path(self._work, request)
         if obj is None:
             # If it's not a path, it must be a payload
             obj: lightning.app.storage.Payload = getattr(self._work, request.name)
@@ -97,9 +98,9 @@ class _Copier(Thread):
         self.copy_response_queue.put(response)
 
 
-def _find_matching_path(work, request: _GetRequest) -> Optional["lightning.app.storage.Path"]:
+def _find_matching_path(work, request: _GetRequest) -> Optional["lightning.app.storage.path.Path"]:
     for name in work._paths:
-        candidate: lightning.app.storage.Path = getattr(work, name)
+        candidate: lightning.app.storage.path.Path = getattr(work, name)
         if candidate.hash == request.hash:
             return candidate
     return None
@@ -116,6 +117,7 @@ def _copy_files(
     interpreted as a folder as well. If the source is a file, the destination path is interpreted as a file too.
 
     Files in a folder are copied recursively and efficiently using multiple threads.
+
     """
     if fs is None:
         fs = _filesystem()

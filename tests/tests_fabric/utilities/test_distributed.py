@@ -1,13 +1,23 @@
+import functools
+import os
 from functools import partial
+from pathlib import Path
+from unittest import mock
 
 import pytest
 import torch
-
 from lightning.fabric.accelerators import CPUAccelerator, CUDAAccelerator, MPSAccelerator
 from lightning.fabric.plugins.environments import LightningEnvironment
-from lightning.fabric.strategies import DDPStrategy
+from lightning.fabric.strategies import DDPStrategy, SingleDeviceStrategy
 from lightning.fabric.strategies.launchers.multiprocessing import _MultiProcessingLauncher
-from lightning.fabric.utilities.distributed import _gather_all_tensors
+from lightning.fabric.utilities.distributed import (
+    _gather_all_tensors,
+    _set_num_threads_if_needed,
+    _suggested_max_num_threads,
+    _sync_ddp,
+    is_shared_filesystem,
+)
+
 from tests_fabric.helpers.runif import RunIf
 
 
@@ -62,20 +72,119 @@ def _test_all_gather_uneven_tensors_multidim(strategy):
         assert (val == torch.ones_like(val)).all()
 
 
+def _test_all_reduce(strategy):
+    rank = strategy.local_rank
+    device = strategy.root_device
+    world_size = strategy.num_processes
+
+    for dtype in (torch.long, torch.int, torch.float, torch.half):
+        # max
+        tensor = torch.tensor(rank + 1, device=device, dtype=dtype)
+        expected = torch.tensor(2, device=device, dtype=dtype)
+        result = _sync_ddp(tensor, reduce_op="max")
+        assert torch.equal(result, expected)
+        assert result is tensor  # inplace
+        # sum
+        tensor = torch.tensor(rank + 1, device=device, dtype=dtype)
+        expected = torch.tensor(sum(range(1, world_size + 1)), device=device, dtype=dtype)
+        result = _sync_ddp(tensor, reduce_op="sum")
+        assert torch.equal(result, expected)
+        assert result is tensor  # inplace
+        # average
+        tensor = torch.tensor(rank + 1, device=device, dtype=dtype)
+        expected = torch.tensor(sum(range(1, world_size + 1)) / 2, device=device, dtype=dtype)
+        result = _sync_ddp(tensor, reduce_op="avg")
+        assert torch.equal(result, expected)
+        assert result is tensor  # inplace
+
+
 @RunIf(skip_windows=True)
 @pytest.mark.parametrize(
     "process",
     [
         _test_all_gather_uneven_tensors_multidim,
         _test_all_gather_uneven_tensors,
+        _test_all_reduce,
     ],
 )
 @pytest.mark.parametrize(
     "devices",
     [
         pytest.param([torch.device("cuda:0"), torch.device("cuda:1")], marks=RunIf(min_cuda_gpus=2)),
-        [torch.device("cpu")] * 2,
+        [torch.device("cpu"), torch.device("cpu")],
     ],
 )
-def test_gather_all_tensors(devices, process):
+def test_collective_operations(devices, process):
     spawn_launch(process, devices)
+
+
+def test_is_shared_filesystem(tmp_path, monkeypatch):
+    # In the non-distributed case, every location is interpreted as 'shared'
+    assert is_shared_filesystem(SingleDeviceStrategy(torch.device("cpu")))
+
+    test_fn = functools.partial(_test_is_shared_filesystem, tmp_path=tmp_path, monkeypatch=monkeypatch)
+    spawn_launch(test_fn, [torch.device("cpu"), torch.device("cpu")])
+
+
+def _test_is_shared_filesystem(strategy, tmp_path, monkeypatch):
+    # Path doesn't exist
+    with pytest.raises(FileNotFoundError, match="Unable to determine if the path belongs to a shared filesystem"):
+        is_shared_filesystem(strategy, path="not/exist")
+
+    # Path exists but not the same on all ranks
+    file = tmp_path / f"file-rank-{strategy.global_rank}"
+    file.touch()
+    folder = tmp_path / f"folder-rank-{strategy.global_rank}"
+    folder.mkdir()
+    assert not is_shared_filesystem(strategy, path=file)
+    assert not is_shared_filesystem(strategy, path=folder)
+
+    # Path exists
+    folder = tmp_path / "folder"
+    file = folder / "file"
+    if strategy.global_rank == 0:
+        folder.mkdir()
+        file.touch()
+    strategy.barrier()
+    assert folder.exists()
+    assert is_shared_filesystem(strategy, path=folder)
+    assert is_shared_filesystem(strategy, path=file)
+    assert os.listdir(folder) == ["file"]  # rank test files got cleaned up
+
+    # Path defaults to CWD
+    monkeypatch.chdir(tmp_path)
+    assert Path.cwd() == tmp_path
+    assert is_shared_filesystem(strategy)
+    monkeypatch.undo()
+
+    # Path is a symlink
+    linked = Path(tmp_path / "linked")
+    if strategy.global_rank == 0:
+        linked.symlink_to(tmp_path / "folder", target_is_directory=True)
+    assert is_shared_filesystem(strategy, path=folder)
+
+    # Remote path is considered shared
+    assert is_shared_filesystem(strategy, path="s3://my-bucket/data")
+
+
+@pytest.mark.parametrize("invalid", [-1, 0])
+def test_suggested_max_num_threads(invalid):
+    with pytest.raises(ValueError, match="should be >= 1"):
+        _suggested_max_num_threads(invalid)
+
+
+@mock.patch.dict(os.environ, {}, clear=True)
+@mock.patch("lightning.fabric.utilities.distributed.torch.set_num_threads")
+@mock.patch("lightning.fabric.utilities.distributed._num_cpus_available", return_value=4)
+@pytest.mark.parametrize(("num_processes", "expected"), [(1, 4), (2, 2), (3, 1), (4, 1), (8, 1)])
+def test_set_num_threads_if_needed(_, set_num_threads_mock, num_processes, expected):
+    assert "OMP_NUM_THREADS" not in os.environ
+    _set_num_threads_if_needed(num_processes)
+    set_num_threads_mock.assert_called_with(expected)
+    assert os.environ["OMP_NUM_THREADS"] == str(expected)
+
+    # if env variable is already set, no change
+    set_num_threads_mock.reset_mock()
+    _set_num_threads_if_needed(1)
+    set_num_threads_mock.assert_not_called()
+    assert os.environ["OMP_NUM_THREADS"] == str(expected)

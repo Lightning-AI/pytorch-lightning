@@ -2,12 +2,11 @@ from typing import Any, Iterator
 
 import torch
 import torch.nn as nn
+from lightning.fabric import Fabric
 from torch import Tensor
 from torch.nn import Module
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, Dataset, IterableDataset
-
-from lightning.fabric import Fabric
 
 
 class RandomDataset(Dataset):
@@ -53,7 +52,8 @@ class BoringFabric(Fabric):
         pass
 
     def run(self) -> None:
-        model = self.get_model()
+        with self.init_module():
+            model = self.get_model()
         optimizer = self.get_optimizer(model)
         model, optimizer = self.setup(model, optimizer)
 

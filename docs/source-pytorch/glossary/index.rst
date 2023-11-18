@@ -10,14 +10,16 @@
    Cloud checkpoint <../common/checkpointing_advanced>
    Console Logging <../common/console_logs>
    Debugging <../debug/debugging>
+   DeepSpeed <../advanced/model_parallel/deepspeed>
    Early stopping <../common/early_stopping>
    Experiment manager (Logger) <../visualize/experiment_managers>
    Finetuning <../advanced/finetuning>
+   FSDP <../advanced/model_parallel/fsdp>
    GPU <../accelerators/gpu>
    Half precision <../common/precision>
-   HPU <../accelerators/hpu>
+   HPU <../integrations/hpu/index>
    Inference <../deploy/production_intermediate>
-   IPU <../accelerators/ipu>
+   IPU <../integrations/ipu/index>
    Lightning CLI <../cli/lightning_cli>
    LightningDataModule <../data/datamodule>
    LightningModule <../common/lightning_module>
@@ -42,6 +44,8 @@
    Transfer learning <../advanced/transfer_learning>
    Trainer <../common/trainer>
    Torch distributed <../clouds/cluster_intermediate_2>
+   Warnings <../advanced/warnings>
+
 
 ########
 Glossary
@@ -102,6 +106,13 @@ Glossary
    :height: 100
 
 .. displayitem::
+   :header: DeepSpeed
+   :description: Distribute models with billions of parameters across hundreds GPUs
+   :col_css: col-md-12
+   :button_link: ../advanced/model_parallel/deepspeed.html
+   :height: 100
+
+.. displayitem::
    :header: Early stopping
    :description: Stop the training when no improvement is observed
    :col_css: col-md-12
@@ -123,6 +134,13 @@ Glossary
    :height: 100
 
 .. displayitem::
+   :header: FSDP
+   :description: Distribute models with billions of parameters across hundreds GPUs
+   :col_css: col-md-12
+   :button_link: ../advanced/model_parallel/fsdp.html
+   :height: 100
+
+.. displayitem::
    :header: GPU
    :description: Graphics Processing Unit for faster training
    :col_css: col-md-12
@@ -131,7 +149,7 @@ Glossary
 
 .. displayitem::
    :header: Half precision
-   :description: Using different numerical formats to save memory and run fatser
+   :description: Using different numerical formats to save memory and run faster
    :col_css: col-md-12
    :button_link: ../common/precision.html
    :height: 100
@@ -140,7 +158,7 @@ Glossary
    :header: HPU
    :description: Habana Gaudi AI Processor Unit for faster training
    :col_css: col-md-12
-   :button_link: ../accelerators/hpu.html
+   :button_link: ../integrations/hpu/index.html
    :height: 100
 
 .. displayitem::
@@ -154,7 +172,7 @@ Glossary
    :header: IPU
    :description: Graphcore Intelligence Processing Unit for faster training
    :col_css: col-md-12
-   :button_link: ../accelerators/ipu.html
+   :button_link: ../integrations/ipu/index.html
    :height: 100
 
 .. displayitem::
@@ -180,7 +198,7 @@ Glossary
 
 .. displayitem::
    :header: Log
-   :description: Outpus or results used for visualization and tracking
+   :description: Outputs or results used for visualization and tracking
    :col_css: col-md-12
    :button_link: ../visualize/loggers.html
    :height: 100
@@ -285,7 +303,7 @@ Glossary
 
 .. displayitem::
    :header: Style guide
-   :description: Best practices to improve readability and reproducability
+   :description: Best practices to improve readability and reproducibility
    :col_css: col-md-12
    :button_link: ../starter/style_guide.html
    :height: 100
@@ -323,6 +341,13 @@ Glossary
    :description: Setup for running on distributed environments
    :col_css: col-md-12
    :button_link: ../clouds/cluster_intermediate_2.html
+   :height: 100
+
+.. displayitem::
+   :header: Warnings
+   :description: Disable false-positive warnings emitted by Lightning
+   :col_css: col-md-12
+   :button_link: ../advanced/warnings.html
    :height: 100
 
 .. raw:: html
