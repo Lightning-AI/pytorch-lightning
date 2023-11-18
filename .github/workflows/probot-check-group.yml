@@ -2,7 +2,7 @@ name: Probot
 
 on:
   pull_request:
-    types: [opened, reopened, ready_for_review, synchronize]  # added `ready_for_review` since draft is skipped
+    types: [opened, reopened, ready_for_review, synchronize] # added `ready_for_review` since draft is skipped
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
@@ -12,14 +12,14 @@ jobs:
   required-jobs:
     runs-on: ubuntu-latest
     if: github.event.pull_request.draft == false
-    timeout-minutes: 61  # in case something is wrong with the internal timeout
+    timeout-minutes: 61 # in case something is wrong with the internal timeout
     steps:
-      - uses: Lightning-AI/probot@v5.3
+      - uses: Lightning-AI/probot@v5.4
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           job: check-group
-          interval: 180  # seconds
-          timeout: 60  # minutes
-          maintainers: 'Lightning-AI/lai-frameworks'
-          owner: 'carmocca'
+          interval: 180 # seconds
+          timeout: 60 # minutes
+          maintainers: "Lightning-AI/lai-frameworks"
+          owner: "carmocca"

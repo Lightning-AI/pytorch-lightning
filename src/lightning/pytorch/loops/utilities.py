@@ -20,6 +20,7 @@ import torch.distributed as dist
 from torch import Tensor
 
 import lightning.pytorch as pl
+from lightning.fabric.utilities.distributed import _distributed_is_initialized
 from lightning.fabric.utilities.imports import _TORCH_EQUAL_2_0, _TORCH_GREATER_EQUAL_1_13
 from lightning.fabric.utilities.warnings import PossibleUserWarning
 from lightning.pytorch.accelerators.xla import XLAAccelerator
@@ -40,6 +41,7 @@ def check_finite_loss(loss: Optional[Tensor]) -> None:
 
     Args:
         loss: the loss value to check to be finite
+
     """
     if loss is not None and not torch.isfinite(loss).all():
         raise ValueError(f"The loss returned in `training_step` is {loss}.")
@@ -52,8 +54,8 @@ def _parse_loop_limits(
     max_epochs: Optional[int],
     trainer: "pl.Trainer",
 ) -> Tuple[int, int]:
-    """This utility computes the default values for the minimum and maximum number of steps and epochs given the
-    values the user has selected.
+    """This utility computes the default values for the minimum and maximum number of steps and epochs given the values
+    the user has selected.
 
     Args:
         min_steps: Minimum number of steps.
@@ -64,6 +66,7 @@ def _parse_loop_limits(
 
     Returns:
         The parsed limits, with default values being set for the ones that the user did not specify.
+
     """
     if max_epochs is None:
         if max_steps == -1 and not any(isinstance(cb, Timer) for cb in trainer.callbacks):
@@ -89,8 +92,8 @@ def _parse_loop_limits(
 
 @contextmanager
 def _block_parallel_sync_behavior(strategy: Strategy, block: bool = True) -> Generator[None, None, None]:
-    """Blocks synchronization in :class:`~lightning.pytorch.strategies.parallel.ParallelStrategy`. This is useful
-    for example when accumulating gradients to reduce communication when it is not needed.
+    """Blocks synchronization in :class:`~lightning.pytorch.strategies.parallel.ParallelStrategy`. This is useful for
+    example when accumulating gradients to reduce communication when it is not needed.
 
     Args:
         strategy: the strategy instance to use.
@@ -98,6 +101,7 @@ def _block_parallel_sync_behavior(strategy: Strategy, block: bool = True) -> Gen
 
     Returns:
         context manager with sync behaviour off
+
     """
     if isinstance(strategy, ParallelStrategy) and block:
         with strategy.block_backward_sync():
@@ -115,6 +119,7 @@ def _is_max_limit_reached(current: int, maximum: int = -1) -> bool:
 
     Returns:
         bool: whether the limit has been reached
+
     """
     return maximum != -1 and current >= maximum
 
@@ -127,15 +132,15 @@ def _reset_progress(loop: _Loop) -> None:
             _reset_progress(v)
 
 
-def _select_data_fetcher(trainer: "pl.Trainer") -> _DataFetcher:
+def _select_data_fetcher(trainer: "pl.Trainer", stage: RunningStage) -> _DataFetcher:
     lightning_module = trainer.lightning_module
-    if trainer.testing:
+    if stage == RunningStage.TESTING:
         step_fx_name = "test_step"
-    elif trainer.training:
+    elif stage == RunningStage.TRAINING:
         step_fx_name = "training_step"
-    elif trainer.validating or trainer.sanity_checking:
+    elif stage in (RunningStage.VALIDATING, RunningStage.SANITY_CHECKING):
         step_fx_name = "validation_step"
-    elif trainer.predicting:
+    elif stage == RunningStage.PREDICTING:
         step_fx_name = "predict_step"
     else:
         raise RuntimeError(f"DataFetcher is unsupported for {trainer.state.stage}")
@@ -156,7 +161,7 @@ def _no_grad_context(loop_run: Callable) -> Callable:
         if not hasattr(self, "inference_mode"):
             raise TypeError(f"`{type(self).__name__}.inference_mode` needs to be defined")
         context_manager: Type[ContextManager]
-        if dist.is_available() and dist.is_initialized() and dist.get_backend() == "gloo":  # noqa: SIM114
+        if _distributed_is_initialized() and dist.get_backend() == "gloo":  # noqa: SIM114
             # gloo backend does not work properly.
             # https://github.com/Lightning-AI/lightning/pull/12715/files#r854569110
             # TODO: explore why and possibly open an issue in PyTorch repository
@@ -195,10 +200,9 @@ def _verify_dataloader_idx_requirement(
                         f"`dataloader_idx` in `{type(pl_module).__name__}.{hook}()`. Either remove the"
                         " argument or give it a default value i.e. `dataloader_idx=0`."
                     )
-        else:
-            if not param_present:
-                raise RuntimeError(
-                    f"You provided multiple `{stage.dataloader_prefix}_dataloader`, but no `dataloader_idx`"
-                    f" argument in `{type(pl_module).__name__}.{hook}()`. Try adding `dataloader_idx=0` to its"
-                    " signature."
-                )
+        elif not param_present:
+            raise RuntimeError(
+                f"You provided multiple `{stage.dataloader_prefix}_dataloader`, but no `dataloader_idx`"
+                f" argument in `{type(pl_module).__name__}.{hook}()`. Try adding `dataloader_idx=0` to its"
+                " signature."
+            )

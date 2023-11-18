@@ -12,21 +12,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import sys
+from unittest import mock
 
 import pytest
 import torch
-from lightning_utilities.core import module_available
-
 from lightning.pytorch import LightningModule, Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.utilities.compile import from_compiled, to_uncompiled
+from lightning_utilities.core import module_available
+
 from tests_pytorch.conftest import mock_cuda_count
 from tests_pytorch.helpers.runif import RunIf
 
 
 @RunIf(dynamo=True)
 @pytest.mark.skipif(sys.platform == "darwin", reason="https://github.com/pytorch/pytorch/issues/95708")
-def test_trainer_compiled_model(tmp_path, monkeypatch):
+@mock.patch("lightning.pytorch.trainer.call._call_and_handle_interrupt")
+def test_trainer_compiled_model(_, tmp_path, monkeypatch):
     trainer_kwargs = {
         "default_root_dir": tmp_path,
         "fast_dev_run": True,

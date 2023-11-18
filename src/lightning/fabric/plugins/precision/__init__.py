@@ -12,21 +12,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from lightning.fabric.plugins.precision.amp import MixedPrecision
+from lightning.fabric.plugins.precision.bitsandbytes import BitsandbytesPrecision
 from lightning.fabric.plugins.precision.deepspeed import DeepSpeedPrecision
 from lightning.fabric.plugins.precision.double import DoublePrecision
 from lightning.fabric.plugins.precision.fsdp import FSDPPrecision
 from lightning.fabric.plugins.precision.half import HalfPrecision
 from lightning.fabric.plugins.precision.precision import Precision
+from lightning.fabric.plugins.precision.transformer_engine import TransformerEnginePrecision
 from lightning.fabric.plugins.precision.xla import XLAPrecision
-from lightning.fabric.plugins.precision.xlabf16 import XLABf16Precision
 
 __all__ = [
+    "BitsandbytesPrecision",
     "DeepSpeedPrecision",
     "DoublePrecision",
     "HalfPrecision",
     "MixedPrecision",
     "Precision",
     "XLAPrecision",
-    "XLABf16Precision",
     "FSDPPrecision",
+    "TransformerEnginePrecision",
 ]

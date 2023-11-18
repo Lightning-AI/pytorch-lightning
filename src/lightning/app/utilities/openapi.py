@@ -29,7 +29,7 @@ def _duplicate_checker(js):
 
 
 def string2dict(text):
-    """string2dict parses a JSON string into a dictionary, ensuring no keys are duplicated by accident."""
+    """String2dict parses a JSON string into a dictionary, ensuring no keys are duplicated by accident."""
     if not isinstance(text, str):
         text = text.decode("utf-8")
     try:
@@ -49,6 +49,7 @@ def create_openapi_object(json_obj: Dict, target: Any):
 
     Lightning AI uses the target object to make new objects from the given JSON spec so the target must be a valid
     object.
+
     """
     if not isinstance(json_obj, dict):
         raise TypeError("json_obj must be a dictionary")

@@ -55,8 +55,8 @@ class _DeviceDtypeModuleMixin(Module):
 
     def cuda(self, device: Optional[Union[torch.device, int]] = None) -> Self:
         """Moves all model parameters and buffers to the GPU. This also makes associated parameters and buffers
-        different objects. So it should be called before constructing optimizer if the module will live on GPU
-        while being optimized.
+        different objects. So it should be called before constructing optimizer if the module will live on GPU while
+        being optimized.
 
         Arguments:
             device: If specified, all parameters will be copied to that device. If `None`, the current CUDA device
@@ -64,6 +64,7 @@ class _DeviceDtypeModuleMixin(Module):
 
         Returns:
             Module: self
+
         """
         if device is None:
             device = torch.device("cuda", torch.cuda.current_device())

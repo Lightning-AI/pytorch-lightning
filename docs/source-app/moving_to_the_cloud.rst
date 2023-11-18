@@ -26,14 +26,14 @@ Distributed Storage
 
 When running your application in a fully-distributed setting, the data available on one machine won't necessarily be available on another.
 
-To solve this problem, Lightning introduces the :class:`~lightning.app.storage.Path` object.
+To solve this problem, Lightning introduces the :class:`~lightning.app.storage.path.Path` object.
 This ensures that your code can run both locally and in the cloud.
 
-The :class:`~lightning.app.storage.Path` object keeps track of the work which creates
+The :class:`~lightning.app.storage.path.Path` object keeps track of the work which creates
 the path. This enables Lightning to transfer the files correctly in a distributed setting.
 
 Instead of passing a string representing a file or directory, Lightning simply wraps
-them into a :class:`~lightning.app.storage.Path` object and makes them an attribute of your LightningWork.
+them into a :class:`~lightning.app.storage.path.Path` object and makes them an attribute of your LightningWork.
 
 Without doing this conscientiously for every single path, your application will fail in the cloud.
 

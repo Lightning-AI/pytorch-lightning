@@ -11,9 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from contextlib import contextmanager, nullcontext
+from contextlib import nullcontext
 from datetime import timedelta
-from typing import Any, Dict, Generator, List, Literal, Optional, Union
+from typing import Any, ContextManager, Dict, List, Literal, Optional, Union
 
 import torch
 import torch.distributed
@@ -30,14 +30,15 @@ from lightning.fabric.strategies.launchers.multiprocessing import _MultiProcessi
 from lightning.fabric.strategies.launchers.subprocess_script import _SubprocessScriptLauncher
 from lightning.fabric.strategies.parallel import ParallelStrategy
 from lightning.fabric.strategies.registry import _StrategyRegistry
-from lightning.fabric.strategies.strategy import _BackwardSyncControl, TBroadcast
+from lightning.fabric.strategies.strategy import TBroadcast, _BackwardSyncControl
 from lightning.fabric.utilities.distributed import (
+    ReduceOp,
+    _distributed_is_initialized,
     _get_default_process_group_backend_for_device,
     _init_dist_connection,
     _sync_ddp_if_available,
 )
 from lightning.fabric.utilities.distributed import group as _group
-from lightning.fabric.utilities.distributed import ReduceOp
 from lightning.fabric.utilities.rank_zero import rank_zero_only
 
 _DDP_FORK_ALIASES = (
@@ -136,13 +137,14 @@ class DDPStrategy(ParallelStrategy):
 
         Return:
             reduced value, except when the input was not a tensor the output remains is unchanged
+
         """
         if isinstance(tensor, Tensor):
             return _sync_ddp_if_available(tensor, group, reduce_op=reduce_op)
         return tensor
 
     def barrier(self, *args: Any, **kwargs: Any) -> None:
-        if not torch.distributed.is_initialized():
+        if not _distributed_is_initialized():
             return
         if torch.distributed.get_backend() == "nccl":
             torch.distributed.barrier(device_ids=self._determine_ddp_device_ids())
@@ -150,7 +152,7 @@ class DDPStrategy(ParallelStrategy):
             torch.distributed.barrier()
 
     def broadcast(self, obj: TBroadcast, src: int = 0) -> TBroadcast:
-        if not torch.distributed.is_initialized():
+        if not _distributed_is_initialized():
             return obj
 
         obj = [obj]
@@ -161,6 +163,13 @@ class DDPStrategy(ParallelStrategy):
         if isinstance(module, DistributedDataParallel):
             module = module.module
         return super().get_module_state_dict(module)
+
+    def load_module_state_dict(
+        self, module: Module, state_dict: Dict[str, Union[Any, Tensor]], strict: bool = True
+    ) -> None:
+        if isinstance(module, DistributedDataParallel):
+            module = module.module
+        super().load_module_state_dict(module=module, state_dict=state_dict, strict=strict)
 
     @classmethod
     def register_strategies(cls, strategy_registry: _StrategyRegistry) -> None:
@@ -200,15 +209,13 @@ class DDPStrategy(ParallelStrategy):
 
 
 class _DDPBackwardSyncControl(_BackwardSyncControl):
-    @contextmanager
-    def no_backward_sync(self, module: Module) -> Generator:
-        """Blocks gradient synchronization inside the
-        :class:`~torch.nn.parallel.distributed.DistributedDataParallel` wrapper."""
+    def no_backward_sync(self, module: Module) -> ContextManager:
+        """Blocks gradient synchronization inside the :class:`~torch.nn.parallel.distributed.DistributedDataParallel`
+        wrapper."""
         if not isinstance(module, DistributedDataParallel):
             raise TypeError(
                 "Blocking backward sync is only possible if the module passed to"
                 f" `{self.__class__.__name__}.no_backward_sync` is wrapped in `DistributedDataParallel`."
                 f" Got: {module.__class__.__name__}."
             )
-        with module.no_sync():
-            yield
+        return module.no_sync()

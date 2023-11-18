@@ -24,10 +24,10 @@ from lightning.fabric.accelerators import XLAAccelerator
 from lightning.fabric.accelerators.cuda import num_cuda_devices
 from lightning.fabric.accelerators.mps import MPSAccelerator
 from lightning.fabric.strategies.deepspeed import _DEEPSPEED_AVAILABLE
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_1
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0, _TORCH_GREATER_EQUAL_2_1
 
 
-def _RunIf(
+def _runif_reasons(
     *,
     min_cuda_gpus: int = 0,
     min_torch: Optional[str] = None,
@@ -41,7 +41,8 @@ def _RunIf(
     deepspeed: bool = False,
     dynamo: bool = False,
 ) -> Tuple[List[str], Dict[str, bool]]:
-    """
+    """Construct reasons for pytest skipif.
+
     Args:
         min_cuda_gpus: Require this number of gpus and that the ``PL_RUN_CUDA_TESTS=1`` environment variable is set.
         min_torch: Require that PyTorch is greater or equal than this version.
@@ -56,6 +57,7 @@ def _RunIf(
             This requires that the ``PL_RUN_STANDALONE_TESTS=1`` environment variable is set.
         deepspeed: Require that microsoft/DeepSpeed is installed.
         dynamo: Require that `torch.dynamo` is supported.
+
     """
     reasons = []
     kwargs = {}  # used in conftest.py::pytest_collection_modifyitems
@@ -120,8 +122,7 @@ def _RunIf(
             cond = not is_dynamo_supported()
         else:
             cond = sys.platform == "win32" or sys.version_info >= (3, 11)
-        # set use_base_version for nightly support
-        cond |= compare_version("torch", operator.lt, "2.0.0", use_base_version=True)
+        cond |= not _TORCH_GREATER_EQUAL_2_0
         if cond:
             reasons.append("torch.dynamo")
 

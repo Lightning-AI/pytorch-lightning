@@ -13,17 +13,16 @@
 # limitations under the License.
 
 import importlib
-import operator
 import subprocess
 import sys
 from textwrap import dedent
 from unittest import mock
 
 import pytest
-from lightning_utilities.core.imports import compare_version, RequirementCache
+from lightning.pytorch.utilities.imports import _OMEGACONF_AVAILABLE
+from lightning_utilities.core.imports import RequirementCache
 from torch.distributed import is_available
 
-from lightning.pytorch.utilities import _OMEGACONF_AVAILABLE
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -63,10 +62,11 @@ def _shortcut_patch(orig_fn, shortcut_case, attr_names=None):
 
 @pytest.fixture()
 def clean_import():
-    """This fixture allows test to import {pytorch_}lightning* modules completely cleanly, regardless of the
-    current state of the imported modules.
+    """This fixture allows test to import {pytorch_}lightning* modules completely cleanly, regardless of the current
+    state of the imported modules.
 
     Afterwards, it restores the original state of the modules.
+
     """
     import sys
 
@@ -82,24 +82,22 @@ def clean_import():
 @pytest.mark.parametrize(
     ("patch_name", "new_fn", "to_import"),
     [
-        ("torch.distributed.is_available", _shortcut_patch(is_available, ()), "lightning.pytorch"),
-        (
+        pytest.param(
+            "torch.distributed.is_available", _shortcut_patch(is_available, ()), "lightning.pytorch", id="ProcessGroup"
+        ),
+        pytest.param(
             "lightning_utilities.core.imports.RequirementCache.__bool__",
             _shortcut_patch(RequirementCache.__bool__, ("neptune",), ("requirement",)),
             "lightning.pytorch.loggers.neptune",
+            id="neptune",
         ),
-        (
+        pytest.param(
             "lightning_utilities.core.imports.RequirementCache.__bool__",
             _shortcut_patch(RequirementCache.__bool__, ("jsonargparse[signatures]>=4.12.0",), ("requirement",)),
             "lightning.pytorch.cli",
-        ),
-        (
-            "lightning_utilities.core.imports.compare_version",
-            _shortcut_patch(compare_version, ("torch", operator.ge, "1.12.0")),
-            "lightning.pytorch.strategies.fsdp",
+            id="cli",
         ),
     ],
-    ids=["ProcessGroup", "neptune", "cli", "fsdp"],
 )
 def test_import_with_unavailable_dependencies(patch_name, new_fn, to_import, clean_import):
     """This tests simulates unavailability of certain modules by patching the functions that check for their
@@ -108,6 +106,7 @@ def test_import_with_unavailable_dependencies(patch_name, new_fn, to_import, cle
     When the patch is applied and the module is imported, it should not raise any errors. The list of cases to check was
     compiled by finding else branches of top-level if statements checking for the availability of the module and
     performing imports.
+
     """
     with mock.patch(patch_name, new=new_fn):
         importlib.import_module(to_import)
@@ -143,11 +142,30 @@ def test_import_deepspeed_lazily():
 
         assert 'deepspeed' not in sys.modules
         from lightning.pytorch.strategies import DeepSpeedStrategy
-        from lightning.pytorch.plugins import DeepSpeedPrecisionPlugin
+        from lightning.pytorch.plugins import DeepSpeedPrecision
         assert 'deepspeed' not in sys.modules
 
         import deepspeed
         assert 'deepspeed' in sys.modules
+        """
+    )
+    # run in complete isolation
+    assert subprocess.call([sys.executable, "-c", code]) == 0
+
+
+@RunIf(min_python="3.9")
+def test_import_lightning_multiprocessing_start_method_not_set():
+    """Regression test for avoiding the lightning import to set the multiprocessing context."""
+    package_name = "pytorch_lightning" if "lightning.pytorch" == "pytorch_lightning" else "lightning"
+
+    # The following would fail with "context has already been set"
+    code = dedent(
+        f"""
+        import sys
+        import multiprocessing as mp
+
+        import {package_name}
+        mp.set_start_method("spawn")
         """
     )
     # run in complete isolation

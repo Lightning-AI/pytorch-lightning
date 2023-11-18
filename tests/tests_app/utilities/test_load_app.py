@@ -3,7 +3,6 @@ import sys
 from unittest.mock import ANY
 
 import pytest
-
 from lightning.app.utilities.exceptions import MisconfigurationException
 from lightning.app.utilities.load_app import extract_metadata_from_app, load_app_from_file
 
@@ -59,6 +58,7 @@ def test_extract_metadata_from_component():
                 "mounts": None,
                 "_internal_id": "default",
                 "interruptible": False,
+                "colocation_group_id": None,
             },
         },
         {
@@ -83,6 +83,7 @@ def test_extract_metadata_from_component():
                 "mounts": None,
                 "_internal_id": "default",
                 "interruptible": False,
+                "colocation_group_id": None,
             },
         },
         {"affiliation": ["root", "flow_b"], "cls_name": "FlowB", "module": "__main__", "docstring": "FlowB."},
@@ -102,6 +103,7 @@ def test_extract_metadata_from_component():
                 "mounts": None,
                 "_internal_id": ANY,
                 "interruptible": False,
+                "colocation_group_id": None,
             },
         },
     ]

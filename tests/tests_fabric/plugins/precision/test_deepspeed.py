@@ -16,9 +16,9 @@ from unittest.mock import Mock
 
 import pytest
 import torch
-
 from lightning.fabric.plugins.precision.deepspeed import DeepSpeedPrecision
 from lightning.fabric.utilities.types import Steppable
+
 from tests_fabric.helpers.runif import RunIf
 
 
@@ -41,6 +41,7 @@ def test_deepspeed_engine_is_steppable(engine):
     """Test that the ``DeepSpeedEngine`` conforms to the Steppable API.
 
     If this fails, then optimization will be broken for DeepSpeed.
+
     """
     assert isinstance(engine, Steppable)
 
@@ -80,7 +81,7 @@ def test_selected_dtype(precision, expected_dtype):
 )
 def test_module_init_context(precision, expected_dtype):
     plugin = DeepSpeedPrecision(precision=precision)
-    with plugin.init_context():
+    with plugin.module_init_context():
         model = torch.nn.Linear(2, 2)
         assert torch.get_default_dtype() == expected_dtype
     assert model.weight.dtype == expected_dtype

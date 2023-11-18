@@ -29,6 +29,7 @@ class ServeStreamlit(LightningWork, abc.ABC):
     """The ``ServeStreamlit`` work allows you to use streamlit from a work.
 
     You can optionally build a model in the ``build_model`` hook, which will only be called once per session.
+
     """
 
     def __init__(self, *args: Any, **kwargs: Any):
@@ -50,6 +51,7 @@ class ServeStreamlit(LightningWork, abc.ABC):
         """Optionally override to instantiate and return your model.
 
         The model will be accessible under ``self.model``.
+
         """
         return None
 
@@ -86,12 +88,13 @@ class ServeStreamlit(LightningWork, abc.ABC):
 
 
 class _PatchedWork:
-    """The ``_PatchedWork`` is used to emulate a work instance from a subprocess. This is acheived by patching the
-    self reference in methods an properties to point to the AppState.
+    """The ``_PatchedWork`` is used to emulate a work instance from a subprocess. This is acheived by patching the self
+    reference in methods an properties to point to the AppState.
 
     Args:
         state: The work state to patch
         work_class: The work class to emulate
+
     """
 
     def __init__(self, state: AppState, work_class: Type):

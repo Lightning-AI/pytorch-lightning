@@ -1,12 +1,12 @@
 # app.py
 # !pip install sklearn xgboost
 # !conda install py-xgboost-gpu
-import lightning as L
+from lightning.app import LightningWork, LightningApp, CloudCompute
 from sklearn import datasets
 from sklearn.model_selection import train_test_split
 from xgboost import XGBClassifier
 
-class XGBoostComponent(L.LightningWork):
+class XGBoostComponent(LightningWork):
     def run(self):
         iris = datasets.load_iris()
         X, y = iris.data, iris.target
@@ -18,5 +18,5 @@ class XGBoostComponent(L.LightningWork):
         preds = bst.predict(X_test)
         print(f'preds: {preds}')
 
-compute = L.CloudCompute('gpu')
-app = L.LightningApp(XGBoostComponent(cloud_compute=compute))
+compute = CloudCompute('gpu')
+app = LightningApp(XGBoostComponent(cloud_compute=compute))

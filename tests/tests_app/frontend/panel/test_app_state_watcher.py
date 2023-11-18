@@ -4,15 +4,18 @@
 - to access and change the App state.
 
 This is particularly useful for the PanelFrontend, but can be used by other Frontends too.
+
 """
 # pylint: disable=protected-access
 import os
 from unittest import mock
 
 import pytest
-
 from lightning.app.frontend.panel.app_state_watcher import AppStateWatcher
 from lightning.app.utilities.state import AppState
+from lightning_utilities.core.imports import RequirementCache
+
+_PARAM_AVAILABLE = RequirementCache("param")
 
 FLOW_SUB = "lit_flow"
 FLOW = f"root.{FLOW_SUB}"
@@ -33,11 +36,13 @@ def mock_settings_env_vars():
         yield
 
 
+@pytest.mark.skipif(not _PARAM_AVAILABLE, reason="requires param")
 def test_init(flow_state_state: dict):
     """We can instantiate the AppStateWatcher.
 
     - the .state is set
     - the .state is scoped to the flow state
+
     """
     # When
     app = AppStateWatcher()
@@ -50,10 +55,12 @@ def test_init(flow_state_state: dict):
     assert app.state._state == flow_state_state
 
 
+@pytest.mark.skipif(not _PARAM_AVAILABLE, reason="requires param")
 def test_update_flow_state(flow_state_state: dict):
     """We can update the state.
 
     - the .state is scoped to the flow state
+
     """
     app = AppStateWatcher()
     org_state = app.state
@@ -62,11 +69,13 @@ def test_update_flow_state(flow_state_state: dict):
     assert app.state._state == flow_state_state
 
 
+@pytest.mark.skipif(not _PARAM_AVAILABLE, reason="requires param")
 def test_is_singleton():
     """The AppStateWatcher is a singleton for efficiency reasons.
 
     Its key that __new__ and __init__ of AppStateWatcher is only called once. See
     https://github.com/holoviz/param/issues/643
+
     """
     # When
     app1 = AppStateWatcher()

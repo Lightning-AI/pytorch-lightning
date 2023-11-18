@@ -1,8 +1,8 @@
 import pytest
 import torch
+from lightning.fabric.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
 from torch import nn as nn
 
-from lightning.fabric.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
 from tests_fabric.helpers.runif import RunIf
 
 
@@ -36,8 +36,8 @@ class TopModule(_DeviceDtypeModuleMixin):
 )
 @RunIf(min_cuda_gpus=1)
 def test_submodules_device_and_dtype(dst_device_str, dst_type):
-    """Test that the device and dtype property updates propagate through mixed nesting of regular nn.Modules and
-    the special modules of type DeviceDtypeModuleMixin (e.g. Metric or LightningModule)."""
+    """Test that the device and dtype property updates propagate through mixed nesting of regular nn.Modules and the
+    special modules of type DeviceDtypeModuleMixin (e.g. Metric or LightningModule)."""
     dst_device = torch.device(dst_device_str)
     model = TopModule()
     assert model.device == torch.device("cpu")

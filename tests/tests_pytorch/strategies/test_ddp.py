@@ -11,115 +11,22 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import os
+from datetime import timedelta
 from unittest import mock
 
 import pytest
 import torch
-from torch.nn.parallel.distributed import DistributedDataParallel
-
-import lightning.pytorch as pl
+from lightning.fabric.plugins.environments import LightningEnvironment
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
-from lightning.pytorch import seed_everything, Trainer
-from lightning.pytorch.callbacks import Callback
+from lightning.pytorch import LightningModule, Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
+from lightning.pytorch.plugins import DoublePrecision, HalfPrecision, Precision
 from lightning.pytorch.strategies import DDPStrategy
-from tests_pytorch.helpers.datamodules import ClassifDataModule
+from lightning.pytorch.trainer.states import TrainerFn
+from torch.nn.parallel import DistributedDataParallel
+
 from tests_pytorch.helpers.runif import RunIf
-from tests_pytorch.helpers.simple_models import ClassificationModel
-
-
-@RunIf(min_cuda_gpus=2, standalone=True, sklearn=True)
-def test_multi_gpu_model_ddp_fit_only(tmpdir):
-    dm = ClassifDataModule()
-    model = ClassificationModel()
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, accelerator="gpu", devices=2, strategy="ddp")
-    trainer.fit(model, datamodule=dm)
-
-
-@RunIf(min_cuda_gpus=2, standalone=True, sklearn=True)
-def test_multi_gpu_model_ddp_test_only(tmpdir):
-    dm = ClassifDataModule()
-    model = ClassificationModel()
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, accelerator="gpu", devices=2, strategy="ddp")
-    trainer.test(model, datamodule=dm)
-
-
-@RunIf(min_cuda_gpus=2, standalone=True, sklearn=True)
-def test_multi_gpu_model_ddp_fit_test(tmpdir):
-    seed_everything(4321)
-    dm = ClassifDataModule()
-    model = ClassificationModel()
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, accelerator="gpu", devices=2, strategy="ddp")
-    trainer.fit(model, datamodule=dm)
-    result = trainer.test(model, datamodule=dm)
-
-    for out in result:
-        assert out["test_acc"] > 0.7
-
-
-@RunIf(skip_windows=True)
-@mock.patch("torch.cuda.set_device")
-@mock.patch("lightning.pytorch.accelerators.cuda._check_cuda_matmul_precision")
-@mock.patch("lightning.pytorch.accelerators.cuda._clear_cuda_memory")
-def test_ddp_torch_dist_is_available_in_setup(_, __, ___, cuda_count_1, mps_count_0, tmpdir):
-    """Test to ensure torch distributed is available within the setup hook using ddp."""
-
-    class TestModel(BoringModel):
-        def setup(self, stage: str) -> None:
-            assert torch.distributed.is_initialized()
-            raise SystemExit()
-
-    model = TestModel()
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        fast_dev_run=True,
-        strategy=DDPStrategy(process_group_backend="gloo"),
-        accelerator="gpu",
-        devices=1,
-    )
-    with pytest.raises(SystemExit):
-        trainer.fit(model)
-
-
-@RunIf(min_cuda_gpus=2, standalone=True)
-@pytest.mark.parametrize("precision", ["16-mixed", "32-true"])
-def test_ddp_wrapper(tmpdir, precision):
-    """Test parameters to ignore are carried over for DDP."""
-
-    class WeirdModule(torch.nn.Module):
-        def _save_to_state_dict(self, destination, prefix, keep_vars):
-            return {"something": "something"}
-
-    class CustomModel(BoringModel):
-        def __init__(self):
-            super().__init__()
-            self.weird_module = WeirdModule()
-
-            # should be skip.
-            self._ddp_params_and_buffers_to_ignore = ["something"]
-
-    class CustomCallback(Callback):
-        def on_train_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-            assert isinstance(trainer.strategy.model, DistributedDataParallel)
-            expected = ["module.something"]
-            assert (
-                trainer.strategy.model.parameters_to_ignore == set(expected) if _TORCH_GREATER_EQUAL_2_0 else expected
-            )
-            assert trainer.strategy.model.module._ddp_params_and_buffers_to_ignore == expected
-
-    model = CustomModel()
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        fast_dev_run=True,
-        precision=precision,
-        strategy="ddp",
-        accelerator="gpu",
-        devices=2,
-        callbacks=CustomCallback(),
-        enable_progress_bar=False,
-        enable_model_summary=False,
-    )
-    trainer.fit(model)
 
 
 @pytest.mark.parametrize(
@@ -150,6 +57,27 @@ def test_ddp_process_group_backend(process_group_backend, device_str, expected_p
 @pytest.mark.parametrize(
     ("strategy_name", "expected_ddp_kwargs"),
     [
+        ("ddp_spawn", {}),
+        pytest.param("ddp_fork", {}, marks=RunIf(skip_windows=True)),
+        pytest.param("ddp_notebook", {}, marks=RunIf(skip_windows=True)),
+        ("ddp_spawn_find_unused_parameters_false", {"find_unused_parameters": False}),
+        ("ddp_spawn_find_unused_parameters_true", {"find_unused_parameters": True}),
+        pytest.param(
+            "ddp_fork_find_unused_parameters_false", {"find_unused_parameters": False}, marks=RunIf(skip_windows=True)
+        ),
+        pytest.param(
+            "ddp_fork_find_unused_parameters_true", {"find_unused_parameters": True}, marks=RunIf(skip_windows=True)
+        ),
+        pytest.param(
+            "ddp_notebook_find_unused_parameters_false",
+            {"find_unused_parameters": False},
+            marks=RunIf(skip_windows=True),
+        ),
+        pytest.param(
+            "ddp_notebook_find_unused_parameters_true",
+            {"find_unused_parameters": True},
+            marks=RunIf(skip_windows=True),
+        ),
         ("ddp", {}),
         ("ddp_find_unused_parameters_false", {"find_unused_parameters": False}),
         ("ddp_find_unused_parameters_true", {"find_unused_parameters": True}),
@@ -158,3 +86,104 @@ def test_ddp_process_group_backend(process_group_backend, device_str, expected_p
 def test_ddp_kwargs_from_registry(strategy_name, expected_ddp_kwargs, mps_count_0):
     trainer = Trainer(strategy=strategy_name)
     assert trainer.strategy._ddp_kwargs == expected_ddp_kwargs
+
+
+@RunIf(min_cuda_gpus=2)
+@pytest.mark.parametrize(
+    ("precision_plugin", "expected_dtype"),
+    [
+        (Precision(), torch.float32),
+        (DoublePrecision(), torch.float64),
+        (HalfPrecision("16-true"), torch.float16),
+        pytest.param(HalfPrecision("bf16-true"), torch.bfloat16, marks=RunIf(bf16_cuda=True)),
+    ],
+)
+@mock.patch.dict(os.environ, {"LOCAL_RANK": "1"})
+def test_tensor_init_context(precision_plugin, expected_dtype):
+    """Test that the module under the init-context gets moved to the right device and dtype."""
+    parallel_devices = [torch.device("cuda", 0), torch.device("cuda", 1)]
+    expected_device = parallel_devices[1] if _TORCH_GREATER_EQUAL_2_0 else torch.device("cpu")
+
+    strategy = DDPStrategy(
+        parallel_devices=parallel_devices, precision_plugin=precision_plugin, cluster_environment=LightningEnvironment()
+    )
+    assert strategy.local_rank == 1
+    with strategy.tensor_init_context():
+        module = torch.nn.Linear(2, 2)
+    assert module.weight.device == module.bias.device == expected_device
+    assert module.weight.dtype == module.bias.dtype == expected_dtype
+
+
+@mock.patch("torch.distributed.init_process_group")
+def test_set_timeout(mock_init_process_group):
+    """Test that the timeout gets passed to the ``torch.distributed.init_process_group`` function."""
+    test_timedelta = timedelta(seconds=30)
+    model = BoringModel()
+    ddp_strategy = DDPStrategy(timeout=test_timedelta)
+    trainer = Trainer(
+        max_epochs=1,
+        accelerator="cpu",
+        strategy=ddp_strategy,
+    )
+    # test wrap the model if fitting
+    trainer.strategy.connect(model)
+    trainer.lightning_module.trainer = trainer
+    trainer.strategy.setup_environment()
+
+    process_group_backend = trainer.strategy._get_process_group_backend()
+    global_rank = trainer.strategy.cluster_environment.global_rank()
+    world_size = trainer.strategy.cluster_environment.world_size()
+    mock_init_process_group.assert_called_with(
+        process_group_backend, rank=global_rank, world_size=world_size, timeout=test_timedelta
+    )
+
+
+@RunIf(skip_windows=True)
+def test_ddp_configure_ddp(mps_count_0):
+    """Tests with ddp strategy."""
+    model = BoringModel()
+    ddp_strategy = DDPStrategy()
+    trainer = Trainer(
+        max_epochs=1,
+        strategy=ddp_strategy,
+    )
+    # test wrap the model if fitting
+    trainer.state.fn = TrainerFn.FITTING
+    trainer.strategy.connect(model)
+    trainer.lightning_module.trainer = trainer
+    trainer.strategy.setup_environment()
+    assert isinstance(trainer.model, LightningModule)
+    trainer.strategy.setup(trainer)
+    # in DDPStrategy configure_ddp(), model wrapped by DistributedDataParallel
+    assert isinstance(trainer.model, DistributedDataParallel)
+
+    ddp_strategy = DDPStrategy()
+    trainer = Trainer(
+        max_epochs=1,
+        strategy=ddp_strategy,
+    )
+    # test do not wrap the model if TrainerFn is not fitting
+    trainer.state.fn = TrainerFn.VALIDATING
+    trainer.strategy.connect(model)
+    trainer.lightning_module.trainer = trainer
+    trainer.strategy.setup_environment()
+    trainer.strategy.setup(trainer)
+    # in DDPStrategy configure_ddp(), model are still LightningModule
+    assert isinstance(trainer.model, LightningModule)
+
+
+@RunIf(min_cuda_gpus=1)
+@pytest.mark.parametrize("trainer_fn", [TrainerFn.VALIDATING, TrainerFn.TESTING, TrainerFn.PREDICTING])
+def test_ddp_dont_configure_sync_batchnorm(trainer_fn):
+    model = BoringModel()
+    model.layer = torch.nn.BatchNorm1d(10)
+    ddp_strategy = DDPStrategy()
+    trainer = Trainer(accelerator="gpu", devices=1, strategy=ddp_strategy, sync_batchnorm=True)
+    trainer.state.fn = trainer_fn
+    trainer.strategy.connect(model)
+    trainer.lightning_module.trainer = trainer
+    trainer.strategy.setup_environment()
+    assert isinstance(trainer.model, LightningModule)
+    trainer.strategy.setup(trainer)
+    # because TrainerFn is not FITTING, model is not configured with sync batchnorm
+    assert not isinstance(trainer.strategy.model.layer, torch.nn.modules.batchnorm.SyncBatchNorm)

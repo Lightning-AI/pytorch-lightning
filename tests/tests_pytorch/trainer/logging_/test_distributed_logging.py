@@ -19,6 +19,7 @@ import lightning.pytorch as pl
 from lightning.pytorch import Callback, Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.loggers.logger import Logger
+
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -26,6 +27,7 @@ class AllRankLogger(Logger):
     """Logger to test all-rank logging (i.e. not just rank 0).
 
     Logs are saved to local variable `logs`.
+
     """
 
     def __init__(self):
@@ -102,6 +104,7 @@ def test_first_logger_call_in_subprocess(tmpdir):
     """Test that the Trainer does not call the logger too early.
 
     Only when the worker processes are initialized do we have access to the rank and know which one is the main process.
+
     """
 
     class LoggerCallsObserver(Callback):

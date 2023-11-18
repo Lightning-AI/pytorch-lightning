@@ -4,7 +4,6 @@
 
    ios_and_android
    app_tree
-   aws_arn
    build_config/build_config
    command_lines/command_lines
    dag
@@ -41,13 +40,6 @@ Glossary
    :description: Learn how components can be nested to form component trees where the LightningFlows are its branches and LightningWorks are its leaves.
    :col_css: col-md-12
    :button_link: app_tree.html
-   :height: 100
-
-.. displayitem::
-   :header: AWS ARN
-   :description: Create an AWS ARN
-   :col_css: col-md-12
-   :button_link: aws_arn.html
    :height: 100
 
 .. displayitem::
@@ -116,9 +108,9 @@ Glossary
 .. displayitem::
    :header: Mounts
    :description: Mount Cloud Data
-   :col_css: col-md-6
+   :col_css: col-md-12
    :button_link: mount.html
-   :height: 180
+   :height: 100
 
 .. displayitem::
    :header: Sharing Components

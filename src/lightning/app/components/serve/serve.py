@@ -67,6 +67,7 @@ class ModelInferenceAPI(LightningWork, abc.ABC):
             host: Address to be used to serve the model.
             port: Port to be used to serve the model.
             workers: Number of workers for the uvicorn. Warning, this won't work if your subclass takes more arguments.
+
         """
         super().__init__(parallel=True, host=host, port=port)
         if input and input not in _DESERIALIZER:
@@ -151,8 +152,8 @@ class ModelInferenceAPI(LightningWork, abc.ABC):
 
 
 def _maybe_create_instance() -> Optional[ModelInferenceAPI]:
-    """This function tries to re-create the user `ModelInferenceAPI` if the environment associated with multi
-    workers are present."""
+    """This function tries to re-create the user `ModelInferenceAPI` if the environment associated with multi workers
+    are present."""
     render_fn_name = os.getenv("LIGHTNING_MODEL_INFERENCE_API_CLASS_NAME", None)
     render_fn_module_file = os.getenv("LIGHTNING_MODEL_INFERENCE_API_FILE", None)
     if render_fn_name is None or render_fn_module_file is None:

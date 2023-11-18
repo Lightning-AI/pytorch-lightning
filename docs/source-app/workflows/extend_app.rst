@@ -16,7 +16,7 @@ You can extend a Lightning App by using community components or building your ow
    :header: Add more Components
    :description: Extend an App by adding a prebuilt component.
    :col_css: col-md-4
-   :button_link: add_components/index.html
+   :button_link: add_components.html
    :height: 150
    :tag: basic
 

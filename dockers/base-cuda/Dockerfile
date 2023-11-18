@@ -16,11 +16,11 @@ ARG UBUNTU_VERSION=20.04
 ARG CUDA_VERSION=11.7.1
 
 
-FROM nvidia/cuda:${CUDA_VERSION}-devel-ubuntu${UBUNTU_VERSION}
+FROM nvidia/cuda:${CUDA_VERSION}-runtime-ubuntu${UBUNTU_VERSION}
 
 ARG PYTHON_VERSION=3.10
-ARG PYTORCH_VERSION=2.0
-ARG MAX_ALLOWED_NCCL=2.16.2
+ARG PYTORCH_VERSION=2.1
+ARG MAX_ALLOWED_NCCL=2.17.1
 
 SHELL ["/bin/bash", "-c"]
 # https://techoverflow.net/2019/05/18/how-to-fix-configuring-tzdata-interactive-input-when-building-docker-images/
@@ -88,11 +88,13 @@ RUN \
     # Disable cache \
     pip config set global.cache-dir false && \
     # set particular PyTorch version \
+    pip install -q wget packaging && \
+    python -m wget https://raw.githubusercontent.com/Lightning-AI/utilities/main/scripts/adjust-torch-versions.py  && \
     for fpath in `ls requirements/**/*.txt`; do \
-      python ./requirements/pytorch/adjust-versions.py $fpath ${PYTORCH_VERSION}; \
+      python ./adjust-torch-versions.py $fpath ${PYTORCH_VERSION}; \
     done && \
     CUDA_VERSION_MM=${CUDA_VERSION%.*} && \
-    pip install \
+    pip install --no-cache-dir \
       -r requirements/pytorch/base.txt \
       -r requirements/pytorch/extra.txt \
       -r requirements/pytorch/test.txt \

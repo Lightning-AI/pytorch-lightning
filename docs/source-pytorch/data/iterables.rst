@@ -83,7 +83,7 @@ and Lightning will use the correct one.
 Using LightningModule Hooks
 ---------------------------
 
-The exact same code as above works when overriding :class:`~lightning.pytorch.core.module.LightningModule`
+The exact same code as above works when overriding :class:`~lightning.pytorch.core.LightningModule`
 
 Passing the iterables to the Trainer
 ------------------------------------

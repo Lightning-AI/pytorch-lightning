@@ -10,7 +10,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from contextlib import contextmanager
-from typing import Any, Callable, cast, Dict, Generator, Literal, Optional, Union
+from typing import Any, Callable, Dict, Generator, Literal, Optional, Union
 
 import torch
 from torch import Tensor
@@ -20,18 +20,19 @@ import lightning.pytorch as pl
 from lightning.fabric.accelerators.cuda import _patch_cuda_is_available
 from lightning.fabric.plugins.precision.amp import _optimizer_handles_unscaling
 from lightning.fabric.utilities.types import Optimizable
-from lightning.pytorch.plugins.precision.precision_plugin import PrecisionPlugin
+from lightning.pytorch.plugins.precision.precision import Precision
 from lightning.pytorch.utilities import GradClipAlgorithmType
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 
 
-class MixedPrecisionPlugin(PrecisionPlugin):
+class MixedPrecision(Precision):
     """Plugin for Automatic Mixed Precision (AMP) training with ``torch.autocast``.
 
     Args:
-        precision: Whether to use ``torch.float16`` (``16``) or ``torch.bfloat16`` (``'bf16'``).
+        precision: Whether to use ``torch.float16`` (``'16-mixed'``) or ``torch.bfloat16`` (``'bf16-mixed'``).
         device: The device for ``torch.autocast``.
         scaler: An optional :class:`torch.cuda.amp.GradScaler` to use.
+
     """
 
     def __init__(
@@ -40,7 +41,13 @@ class MixedPrecisionPlugin(PrecisionPlugin):
         device: str,
         scaler: Optional[torch.cuda.amp.GradScaler] = None,
     ) -> None:
-        self.precision = cast(Literal["16-mixed", "bf16-mixed"], str(precision))
+        if precision not in ("16-mixed", "bf16-mixed"):
+            raise ValueError(
+                f"`Passed `{type(self).__name__}(precision={precision!r})`."
+                f" Precision must be '16-mixed' or 'bf16-mixed'."
+            )
+
+        self.precision = precision
         if scaler is None and self.precision == "16-mixed":
             with _patch_cuda_is_available():
                 # if possible, we defer CUDA initialization to support strategies that will attempt forks
@@ -69,16 +76,19 @@ class MixedPrecisionPlugin(PrecisionPlugin):
             raise MisconfigurationException("AMP and the LBFGS optimizer are not compatible.")
         closure_result = closure()
 
-        if not _optimizer_handles_unscaling(optimizer):
+        # If backward was skipped in automatic optimization (return None), unscaling is not needed
+        skip_unscaling = closure_result is None and model.automatic_optimization
+
+        if not _optimizer_handles_unscaling(optimizer) and not skip_unscaling:
             # Unscaling needs to be performed here in case we are going to apply gradient clipping.
             # Optimizers that perform unscaling in their `.step()` method are not supported (e.g., fused Adam).
             # Note: `unscale` happens after the closure is executed, but before the `on_before_optimizer_step` hook.
             self.scaler.unscale_(optimizer)
 
         self._after_closure(model, optimizer)
-        skipped_backward = closure_result is None
+
         # in manual optimization, the closure does not return a value
-        if not model.automatic_optimization or not skipped_backward:
+        if not skip_unscaling:
             # note: the scaler will skip the `optimizer.step` if nonfinite gradients are found
             previous_scale = self.scaler.get_scale()
             step_output = self.scaler.step(optimizer, **kwargs)
@@ -101,9 +111,7 @@ class MixedPrecisionPlugin(PrecisionPlugin):
         super().clip_gradients(optimizer=optimizer, clip_val=clip_val, gradient_clip_algorithm=gradient_clip_algorithm)
 
     def autocast_context_manager(self) -> torch.autocast:
-        # the dtype could be automatically inferred but we need to manually set it due to a bug upstream
-        # https://github.com/pytorch/pytorch/issues/67233
-        return torch.autocast(self.device, dtype=torch.bfloat16 if self.precision == "bf16-mixed" else torch.half)
+        return torch.autocast(self.device, dtype=(torch.bfloat16 if self.precision == "bf16-mixed" else torch.half))
 
     @contextmanager
     def forward_context(self) -> Generator[None, None, None]:

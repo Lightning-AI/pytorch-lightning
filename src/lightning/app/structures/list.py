@@ -29,9 +29,8 @@ def _prepare_name(component: "Component") -> str:
 # TODO: add support and tests for list operations (concatenation, deletion, insertion, etc.)
 class List(t.List[T]):
     def __init__(self, *items: T):
-        """The List Object is used to represents list collection of
-        :class:`~lightning.app.core.work.LightningWork`
-        or :class:`~lightning.app.core.flow.LightningFlow`.
+        """The List Object is used to represents list collection of :class:`~lightning.app.core.work.LightningWork` or
+        :class:`~lightning.app.core.flow.LightningFlow`.
 
         Example:
 
@@ -58,6 +57,7 @@ class List(t.List[T]):
 
         Arguments:
             items: A sequence of LightningWork or LightningFlow.
+
         """
         super().__init__()
         from lightning.app.runners.backends import Backend
@@ -69,7 +69,7 @@ class List(t.List[T]):
             self.append(item)
 
     def append(self, v):
-        from lightning.app import LightningFlow, LightningWork
+        from lightning.app.core import LightningFlow, LightningWork
 
         _set_child_name(self, v, str(self._last_index))
         if self._backend:
@@ -88,7 +88,7 @@ class List(t.List[T]):
 
     @property
     def works(self):
-        from lightning.app import LightningFlow, LightningWork
+        from lightning.app.core import LightningFlow, LightningWork
 
         works = [item for item in self if isinstance(item, LightningWork)]
         for flow in [item for item in self if isinstance(item, LightningFlow)]:
@@ -98,8 +98,9 @@ class List(t.List[T]):
 
     @property
     def flows(self):
-        from lightning.app import LightningFlow
-        from lightning.app.structures import Dict, List
+        from lightning.app.core import LightningFlow
+        from lightning.app.structures import Dict as _Dict
+        from lightning.app.structures import List as _List
 
         flows = {}
         for item in self:
@@ -107,7 +108,7 @@ class List(t.List[T]):
                 flows[item.name] = item
                 for child_flow in item.flows.values():
                     flows[child_flow.name] = child_flow
-            if isinstance(item, (Dict, List)):
+            if isinstance(item, (_Dict, _List)):
                 for child_flow in item.flows.values():
                     flows[child_flow.name] = child_flow
         return flows
@@ -115,7 +116,7 @@ class List(t.List[T]):
     @property
     def state(self):
         """Returns the state of its flows and works."""
-        from lightning.app import LightningFlow, LightningWork
+        from lightning.app.core import LightningFlow, LightningWork
 
         works = [item for item in self if isinstance(item, LightningWork)]
         children = [item for item in self if isinstance(item, LightningFlow)]
@@ -126,7 +127,7 @@ class List(t.List[T]):
 
     @property
     def state_vars(self):
-        from lightning.app import LightningFlow, LightningWork
+        from lightning.app.core import LightningFlow, LightningWork
 
         works = [item for item in self if isinstance(item, LightningWork)]
         children = [item for item in self if isinstance(item, LightningFlow)]
@@ -137,7 +138,7 @@ class List(t.List[T]):
 
     @property
     def state_with_changes(self):
-        from lightning.app import LightningFlow, LightningWork
+        from lightning.app.core import LightningFlow, LightningWork
 
         works = [item for item in self if isinstance(item, LightningWork)]
         children = [item for item in self if isinstance(item, LightningFlow)]
@@ -148,7 +149,7 @@ class List(t.List[T]):
 
     def set_state(self, state):
         """Method to set the state of the list and its children."""
-        from lightning.app import LightningFlow, LightningWork
+        from lightning.app.core import LightningFlow, LightningWork
 
         works = [item for item in self if isinstance(item, LightningWork)]
         children = [item for item in self if isinstance(item, LightningFlow)]

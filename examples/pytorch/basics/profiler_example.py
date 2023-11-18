@@ -20,6 +20,7 @@ visualized in 2 ways:
 * With PyTorch Tensorboard Profiler (Instructions are here: https://github.com/pytorch/kineto/tree/master/tb_plugin)
     1. pip install tensorboard torch-tb-profiler
     2. tensorboard --logdir={FOLDER}
+
 """
 
 from os import path
@@ -27,8 +28,7 @@ from os import path
 import torch
 import torchvision
 import torchvision.transforms as T
-
-from lightning.pytorch import cli_lightning_logo, LightningDataModule, LightningModule
+from lightning.pytorch import LightningDataModule, LightningModule, cli_lightning_logo
 from lightning.pytorch.cli import LightningCLI
 from lightning.pytorch.profilers.pytorch import PyTorchProfiler
 from lightning.pytorch.utilities.model_helpers import get_torchvision_model

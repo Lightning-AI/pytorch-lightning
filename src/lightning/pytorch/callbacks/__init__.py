@@ -28,7 +28,9 @@ from lightning.pytorch.callbacks.prediction_writer import BasePredictionWriter
 from lightning.pytorch.callbacks.progress import ProgressBar, RichProgressBar, TQDMProgressBar
 from lightning.pytorch.callbacks.pruning import ModelPruning
 from lightning.pytorch.callbacks.rich_model_summary import RichModelSummary
+from lightning.pytorch.callbacks.spike import SpikeDetection
 from lightning.pytorch.callbacks.stochastic_weight_avg import StochasticWeightAveraging
+from lightning.pytorch.callbacks.throughput_monitor import ThroughputMonitor
 from lightning.pytorch.callbacks.timer import Timer
 
 __all__ = [
@@ -52,6 +54,8 @@ __all__ = [
     "RichModelSummary",
     "RichProgressBar",
     "StochasticWeightAveraging",
+    "SpikeDetection",
+    "ThroughputMonitor",
     "Timer",
     "TQDMProgressBar",
 ]

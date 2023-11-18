@@ -4,7 +4,7 @@
 Add an API Route to your App
 ############################
 
-In order to add a new route, you need to override the :class:`~lightning.app.core.flow.LightningFlow.configure_api` hook and return a list of :class:`~lightning.app.api.:class:`~lightning.app.api.http_methods.HttpMethod` such as :class:`~lightning.app.api.:class:`~lightning.app.api.http_methods.Get`, :class:`~lightning.app.api.:class:`~lightning.app.api.http_methods.Post`, :class:`~lightning.app.api.:class:`~lightning.app.api.http_methods.Put`, :class:`~lightning.app.api.:class:`~lightning.app.api.http_methods.Delete`.
+In order to add a new route, you need to override the :class:`~lightning.app.core.flow.LightningFlow.configure_api` hook and return a list of :class:`~lightning.app.api.http_methods.HttpMethod` such as :class:`~lightning.app.api.http_methods.Get`, :class:`~lightning.app.api.http_methods.Post`, :class:`~lightning.app.api.http_methods.Put`, :class:`~lightning.app.api.http_methods.Delete`.
 
 ----
 
@@ -47,11 +47,13 @@ The Lightning App framework automatically generates API documentation from your 
 
 You can access it by accessing the following URL: ``http://127.0.0.1:7501/docs`` in your browser and validate your API with the route ``/name`` directly from the documentation page as shown below.
 
-.. raw:: html
-
-     <video id="background-video" autoplay loop muted controls poster="https://pl-public-data.s3.amazonaws.com/assets_lightning/rest_png.png" width="100%">
-     <source src="https://pl-public-data.s3.amazonaws.com/assets_lightning/rest_post.mp4" type="video/mp4" width="100%">
-     </video>
+.. video:: https://pl-public-data.s3.amazonaws.com/assets_lightning/rest_post.mp4
+    :poster: https://pl-public-data.s3.amazonaws.com/assets_lightning/rest_png.png
+    :width: 600
+    :class: background-video
+    :autoplay:
+    :loop:
+    :muted:
 
 Alternatively, you can invoke the route directly from a second terminal using `curl <https://curl.se/>`_.
 

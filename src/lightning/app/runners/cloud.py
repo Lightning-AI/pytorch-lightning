@@ -72,29 +72,29 @@ from lightning.app.core.constants import (
     DEFAULT_NUMBER_OF_EXPOSED_PORTS,
     DISABLE_DEPENDENCY_CACHE,
     ENABLE_APP_COMMENT_COMMAND_EXECUTION,
-    enable_interruptible_works,
-    enable_multiple_works_in_default_container,
     ENABLE_MULTIPLE_WORKS_IN_NON_DEFAULT_CONTAINER,
     ENABLE_PULLING_STATE_ENDPOINT,
     ENABLE_PUSHING_STATE_ENDPOINT,
-    get_cloud_queue_type,
-    get_lightning_cloud_url,
     LIGHTNING_CLOUD_PRINT_SPECS,
     SYS_CUSTOMIZATIONS_SYNC_ROOT,
+    enable_interruptible_works,
+    enable_multiple_works_in_default_container,
+    get_cloud_queue_type,
+    get_lightning_cloud_url,
 )
 from lightning.app.core.work import LightningWork
 from lightning.app.runners.backends.cloud import CloudBackend
 from lightning.app.runners.runtime import Runtime
 from lightning.app.source_code import LocalSourceCodeDir
-from lightning.app.source_code.copytree import _filter_ignored, _IGNORE_FUNCTION, _parse_lightningignore
+from lightning.app.source_code.copytree import _IGNORE_FUNCTION, _filter_ignored, _parse_lightningignore
 from lightning.app.storage import Drive, Mount
-from lightning.app.utilities.app_helpers import _is_headless, Logger
+from lightning.app.utilities.app_helpers import Logger, _is_headless
 from lightning.app.utilities.auth import _credential_string_to_basic_auth_params
 from lightning.app.utilities.cloud import _get_project
 from lightning.app.utilities.clusters import _ensure_cluster_project_binding, _get_default_cluster
 from lightning.app.utilities.dependency_caching import get_hash
 from lightning.app.utilities.load_app import load_app_from_file
-from lightning.app.utilities.packaging.app_config import _get_config_file, AppConfig
+from lightning.app.utilities.packaging.app_config import AppConfig, _get_config_file
 from lightning.app.utilities.packaging.lightning_utils import _prepare_lightning_wheels_and_requirements
 from lightning.app.utilities.secrets import _names_to_ids
 
@@ -196,9 +196,10 @@ class CloudRuntime(Runtime):
         cloudspace_id: str,
         name: str,
         cluster_id: str,
-    ) -> str:
-        """Slim dispatch for creating runs from a cloudspace. This dispatch avoids resolution of some properties
-        such as the project and cluster IDs that are instead passed directly.
+        source_app: Optional[str] = None,
+    ) -> Externalv1LightningappInstance:
+        """Slim dispatch for creating runs from a cloudspace. This dispatch avoids resolution of some properties such
+        as the project and cluster IDs that are instead passed directly.
 
         Args:
             project_id: The ID of the project.
@@ -212,20 +213,27 @@ class CloudRuntime(Runtime):
             ValueError: If there are validation errors.
 
         Returns:
-            The URL of the created job.
+            The spec the created app instance.
+
         """
         # Dispatch in four phases: resolution, validation, spec creation, API transactions
         # Resolution
         root = self._resolve_root()
-        repo = self._resolve_repo(root)
-        project = self._resolve_project(project_id=project_id)
+        # If the root will already be there, we don't need to upload and preserve the absolute entrypoint
+        top_folder = os.getenv("FILESYSTEM_TOP_FOLDER_NAME", "project")
+        absolute_entrypoint = str(root).startswith(f"/{top_folder}")
+        # If system customization files found, it will set their location path
+        sys_customizations_root = self._resolve_env_root()
+        repo = self._resolve_repo(
+            root,
+            default_ignore=False,
+            package_source=not absolute_entrypoint,
+            sys_customizations_root=sys_customizations_root,
+        )
         existing_instances = self._resolve_run_instances_by_name(project_id, name)
         name = self._resolve_run_name(name, existing_instances)
         cloudspace = self._resolve_cloudspace(project_id, cloudspace_id)
         queue_server_type = self._resolve_queue_server_type()
-
-        # If system customization files found, it will set their location path
-        sys_customizations_sync_root = self._resolve_env_root()
 
         self.app._update_index_file()
 
@@ -240,18 +248,27 @@ class CloudRuntime(Runtime):
         flow_servers = self._get_flow_servers()
         network_configs = self._get_network_configs(flow_servers)
         works = self._get_works(cloudspace=cloudspace)
-        run_body = self._get_run_body(cluster_id, flow_servers, network_configs, works, False, root, True)
+        run_body = self._get_run_body(
+            cluster_id,
+            flow_servers,
+            network_configs,
+            works,
+            False,
+            root,
+            True,
+            True,
+            absolute_entrypoint,
+        )
         env_vars = self._get_env_vars(self.env_vars, self.secrets, self.run_app_comment_commands)
 
-        # If the system customization root is set, prepare files for environment synchronization
-        if sys_customizations_sync_root is not None:
-            repo.prepare_sys_customizations_sync(sys_customizations_sync_root)
-
         # API transactions
+        logger.info(f"Creating cloudspace run. run_body: {run_body}")
         run = self._api_create_run(project_id, cloudspace_id, run_body)
+
         self._api_package_and_upload_repo(repo, run)
 
-        run_instance = self._api_create_run_instance(
+        logger.info(f"Creating cloudspace run instance. name: {name}")
+        return self._api_create_run_instance(
             cluster_id,
             project_id,
             name,
@@ -260,9 +277,8 @@ class CloudRuntime(Runtime):
             V1LightningappInstanceState.RUNNING,
             queue_server_type,
             env_vars,
+            source_app=source_app,
         )
-
-        return self._get_app_url(project, run_instance, "logs" if run.is_headless else "web-ui")
 
     def dispatch(
         self,
@@ -415,6 +431,7 @@ class CloudRuntime(Runtime):
         """Find and load the config file if it exists (otherwise create an empty config).
 
         Override the name if provided.
+
         """
         config_file = _get_config_file(self.entrypoint)
         cloudspace_config = AppConfig.load_from_file(config_file) if config_file.exists() and load else AppConfig()
@@ -442,6 +459,7 @@ class CloudRuntime(Runtime):
 
         If the entrypoint is a file, return an ignore function that will ignore everything except that file so only the
         file gets uploaded.
+
         """
         entrypoint = self.entrypoint.absolute()
         if entrypoint.is_file():
@@ -452,9 +470,11 @@ class CloudRuntime(Runtime):
         self,
         root: Path,
         ignore_functions: Optional[List[_IGNORE_FUNCTION]] = None,
+        default_ignore: bool = True,
+        package_source: bool = True,
+        sys_customizations_root: Optional[Path] = None,
     ) -> LocalSourceCodeDir:
-        """Gather and merge all lightningignores from the app children and create the ``LocalSourceCodeDir``
-        object."""
+        """Gather and merge all lightningignores from the app children and create the ``LocalSourceCodeDir`` object."""
         if ignore_functions is None:
             ignore_functions = []
 
@@ -468,7 +488,13 @@ class CloudRuntime(Runtime):
                 patterns = _parse_lightningignore(merged)
                 ignore_functions = [*ignore_functions, partial(_filter_ignored, root, patterns)]
 
-        return LocalSourceCodeDir(path=root, ignore_functions=ignore_functions)
+        return LocalSourceCodeDir(
+            path=root,
+            ignore_functions=ignore_functions,
+            default_ignore=default_ignore,
+            package_source=package_source,
+            sys_customizations_root=sys_customizations_root,
+        )
 
     def _resolve_project(self, project_id: Optional[str] = None) -> V1Membership:
         """Determine the project to run on, choosing a default if multiple projects are found."""
@@ -585,6 +611,7 @@ class CloudRuntime(Runtime):
         """Check if the user likely needs credits to run the app with its hardware.
 
         Returns False if user has 1 or more credits.
+
         """
         balance = project.balance
         if balance is None:
@@ -672,8 +699,8 @@ class CloudRuntime(Runtime):
                         raise RuntimeError(f"Unknown mount protocol `{mount.protocol}` for work `{work.name}`.")
 
     def _get_flow_servers(self) -> List[V1Flowserver]:
-        """Collect a spec for each flow that contains a frontend so that the backend knows for which flows it needs
-        to start servers."""
+        """Collect a spec for each flow that contains a frontend so that the backend knows for which flows it needs to
+        start servers."""
         flow_servers: List[V1Flowserver] = []
         for flow_name in self.app.frontends:
             flow_server = V1Flowserver(name=flow_name)
@@ -768,6 +795,7 @@ class CloudRuntime(Runtime):
                 disk_size=work.cloud_compute.disk_size,
                 preemptible=work.cloud_compute.interruptible,
                 shm_size=work.cloud_compute.shm_size,
+                affinity_identifier=work.cloud_compute.colocation_group_id,
             )
 
             drives = self._get_drives(work)
@@ -785,7 +813,7 @@ class CloudRuntime(Runtime):
                 network_config=[V1NetworkConfig(name=random_name, port=work.port)],
                 data_connection_mounts=data_connection_mounts,
             )
-            works.append(V1Work(name=work.name, spec=work_spec))
+            works.append(V1Work(name=work.name, display_name=work.display_name, spec=work_spec))
 
         return works
 
@@ -798,12 +826,18 @@ class CloudRuntime(Runtime):
         no_cache: bool,
         root: Path,
         start_server: bool,
+        should_mount_cloudspace_content: bool = False,
+        absolute_entrypoint: bool = False,
     ) -> CloudspaceIdRunsBody:
         """Get the specification of the run creation request."""
-        # The entry point file needs to be relative to the root of the uploaded source file directory,
-        # because the backend will invoke the lightning commands relative said source directory
-        # TODO: we shouldn't set this if the entrypoint isn't a file but the backend gives an error if we don't
-        app_entrypoint_file = Path(self.entrypoint).absolute().relative_to(root)
+        if absolute_entrypoint:
+            # If the entrypoint will already exist in the cloud then we can choose to keep it as an absolute path.
+            app_entrypoint_file = Path(self.entrypoint).absolute()
+        else:
+            # The entry point file needs to be relative to the root of the uploaded source file directory,
+            # because the backend will invoke the lightning commands relative said source directory
+            # TODO: we shouldn't set this if the entrypoint isn't a file but the backend gives an error if we don't
+            app_entrypoint_file = Path(self.entrypoint).absolute().relative_to(root)
 
         run_body = CloudspaceIdRunsBody(
             cluster_id=cluster_id,
@@ -813,6 +847,7 @@ class CloudRuntime(Runtime):
             network_config=network_configs,
             works=works,
             local_source=True,
+            should_mount_cloudspace_content=should_mount_cloudspace_content,
         )
 
         if self.app is not None:
@@ -827,9 +862,10 @@ class CloudRuntime(Runtime):
         # if requirements file at the root of the repository is present,
         # we pass just the file name to the backend, so backend can find it in the relative path
         requirements_file = root / "requirements.txt"
-        if requirements_file.is_file():
+        if requirements_file.is_file() and requirements_file.exists():
+            requirements_path = requirements_file if absolute_entrypoint else "requirements.txt"
             run_body.image_spec = Gridv1ImageSpec(
-                dependency_file_info=V1DependencyFileInfo(package_manager=V1PackageManager.PIP, path="requirements.txt")
+                dependency_file_info=V1DependencyFileInfo(package_manager=V1PackageManager.PIP, path=requirements_path)
             )
             if not DISABLE_DEPENDENCY_CACHE and not no_cache:
                 # hash used for caching the dependencies
@@ -854,8 +890,7 @@ class CloudRuntime(Runtime):
     def _get_env_vars(
         env_vars: Dict[str, str], secrets: Dict[str, str], run_app_comment_commands: bool
     ) -> List[V1EnvVar]:
-        """Generate the list of environment variable specs for the app, including variables set by the
-        framework."""
+        """Generate the list of environment variable specs for the app, including variables set by the framework."""
         v1_env_vars = [V1EnvVar(name=k, value=v) for k, v in env_vars.items()]
 
         if len(secrets.values()) > 0:
@@ -894,6 +929,7 @@ class CloudRuntime(Runtime):
         """Create the cloudspace if it doesn't exist.
 
         Return the cloudspace ID.
+
         """
         if existing_cloudspace is None:
             cloudspace_body = ProjectIdCloudspacesBody(name=name, can_download_source_code=True)
@@ -945,6 +981,7 @@ class CloudRuntime(Runtime):
         """Transfer an existing instance to the given run ID and update its specification.
 
         Return the instance.
+
         """
         run_instance = self.backend.client.lightningapp_instance_service_update_lightningapp_instance_release(
             project_id=project_id,
@@ -978,6 +1015,7 @@ class CloudRuntime(Runtime):
         queue_server_type: Optional[V1QueueServerType] = None,
         env_vars: Optional[List[V1EnvVar]] = None,
         auth: Optional[V1LightningAuth] = None,
+        source_app: Optional[str] = None,
     ) -> Externalv1LightningappInstance:
         """Create a new instance of the given run with the given specification."""
         return self.backend.client.cloud_space_service_create_lightning_run_instance(
@@ -991,11 +1029,15 @@ class CloudRuntime(Runtime):
                 queue_server_type=queue_server_type,
                 env=env_vars,
                 auth=auth,
+                source_app=source_app,
             ),
         )
 
     @staticmethod
-    def _api_package_and_upload_repo(repo: LocalSourceCodeDir, run: V1LightningRun) -> None:
+    def _api_package_and_upload_repo(
+        repo: LocalSourceCodeDir,
+        run: V1LightningRun,
+    ) -> None:
         """Package and upload the provided local source code directory to the provided run."""
         if run.source_upload_url == "":
             raise RuntimeError("The source upload url is empty.")
