@@ -41,7 +41,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
-- Fixed checks for local file protocol due to fsspec changes in 2023.10.0 ([#18840](https://github.com/Lightning-AI/lightning/pull/18840))
+- Fixed checks for local file protocol due to fsspec changes in 2023.10.0 ([#19023](https://github.com/Lightning-AI/lightning/pull/19023))
 
 
 
