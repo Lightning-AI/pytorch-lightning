@@ -18,11 +18,13 @@ from unittest.mock import ANY, PropertyMock
 
 import pytest
 import torch
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
+from lightning.pytorch import Callback, LightningDataModule, LightningModule, Trainer, __version__
+from lightning.pytorch.demos.boring_classes import BoringDataModule, BoringModel, RandomDataset
+from lightning.pytorch.utilities.model_helpers import is_overridden
 from torch import Tensor
 from torch.utils.data import DataLoader
 
-from lightning.pytorch import __version__, Callback, LightningDataModule, LightningModule, Trainer
-from lightning.pytorch.demos.boring_classes import BoringDataModule, BoringModel, RandomDataset
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -100,7 +102,7 @@ def test_on_train_epoch_end_metrics_collection(tmpdir):
 
 
 @pytest.mark.parametrize(
-    "accelerator,expected_device_str",
+    ("accelerator", "expected_device_str"),
     [
         pytest.param("gpu", "cuda:0", marks=RunIf(min_cuda_gpus=1)),
         pytest.param("mps", "mps:0", marks=RunIf(mps=True)),
@@ -257,9 +259,7 @@ class HookedModel(BoringModel):
         return self._manual_train_batch(*args, **kwargs)
 
     @staticmethod
-    def _auto_train_batch(
-        trainer, model, batches, device=torch.device("cpu"), current_epoch=0, current_batch=0, **kwargs
-    ):
+    def _auto_train_batch(trainer, model, batches, device, current_epoch=0, current_batch=0, **kwargs):
         using_deepspeed = kwargs.get("strategy") == "deepspeed"
         out = []
         for i in range(current_batch, batches):
@@ -295,7 +295,7 @@ class HookedModel(BoringModel):
                         "kwargs": {"gradient_clip_val": None, "gradient_clip_algorithm": None},
                     },
                     # this is after because it refers to the `LightningModule.optimizer_step` hook which encapsulates
-                    # the actual call to `PrecisionPlugin.optimizer_step`
+                    # the actual call to `Precision.optimizer_step`
                     {
                         "name": "optimizer_step",
                         "args": (current_epoch, i, ANY, ANY),
@@ -312,7 +312,7 @@ class HookedModel(BoringModel):
         return out
 
     @staticmethod
-    def _manual_train_batch(trainer, model, batches, device=torch.device("cpu"), **kwargs):
+    def _manual_train_batch(trainer, model, batches, device, **kwargs):
         using_deepspeed = kwargs.get("strategy") == "deepspeed"
         out = []
         for i in range(batches):
@@ -343,7 +343,7 @@ class HookedModel(BoringModel):
         return out
 
     @staticmethod
-    def _eval_epoch(fn, trainer, model, batches, key, device=torch.device("cpu")):
+    def _eval_epoch(fn, trainer, model, batches, key, device):
         return [
             {"name": f"Callback.on_{fn}_epoch_start", "args": (trainer, model)},
             {"name": f"on_{fn}_epoch_start"},
@@ -353,7 +353,7 @@ class HookedModel(BoringModel):
         ]
 
     @staticmethod
-    def _eval_batch(fn, trainer, model, batches, key, device=torch.device("cpu")):
+    def _eval_batch(fn, trainer, model, batches, key, device):
         out = []
         outputs = {key: ANY}
         for i in range(batches):
@@ -373,13 +373,13 @@ class HookedModel(BoringModel):
         return out
 
     @staticmethod
-    def _predict_batch(trainer, model, batches):
+    def _predict_batch(trainer, model, batches, device):
         out = []
         for i in range(batches):
             out.extend(
                 [
                     {"name": "on_before_batch_transfer", "args": (ANY, 0)},
-                    {"name": "transfer_batch_to_device", "args": (ANY, torch.device("cpu"), 0)},
+                    {"name": "transfer_batch_to_device", "args": (ANY, device, 0)},
                     {"name": "on_after_batch_transfer", "args": (ANY, 0)},
                     {"name": "Callback.on_predict_batch_start", "args": (trainer, model, ANY, i)},
                     {"name": "on_predict_batch_start", "args": (ANY, i)},
@@ -390,6 +390,22 @@ class HookedModel(BoringModel):
                 ]
             )
         return out
+
+    # override so that it gets called
+    def configure_model(self):
+        ...
+
+    # override so that it gets called
+    def on_validation_model_train(self):
+        ...
+
+    # override so that it gets called
+    def on_test_model_train(self):
+        ...
+
+    # override so that it gets called
+    def on_predict_model_train(self):
+        ...
 
 
 @pytest.mark.parametrize(
@@ -404,8 +420,9 @@ class HookedModel(BoringModel):
         ),
     ],
 )
-@pytest.mark.parametrize("automatic_optimization", (True, False))
-def test_trainer_model_hook_system_fit(tmpdir, kwargs, automatic_optimization):
+@pytest.mark.parametrize("automatic_optimization", [True, False])
+@pytest.mark.parametrize("override_on_validation_model_train", [True, False])
+def test_trainer_model_hook_system_fit(override_on_validation_model_train, automatic_optimization, kwargs, tmpdir):
     called = []
 
     class TestModel(HookedModel):
@@ -424,6 +441,11 @@ def test_trainer_model_hook_system_fit(tmpdir, kwargs, automatic_optimization):
             return {"loss": loss}
 
     model = TestModel(called)
+
+    if not override_on_validation_model_train:
+        model.on_validation_model_train = None
+    assert is_overridden("on_validation_model_train", model) == override_on_validation_model_train
+
     callback = HookedCallback(called)
     train_batches = 2
     val_batches = 2
@@ -451,7 +473,7 @@ def test_trainer_model_hook_system_fit(tmpdir, kwargs, automatic_optimization):
     using_deepspeed = kwargs.get("strategy") == "deepspeed"
     if kwargs.get("precision") == "16-mixed" and not using_deepspeed:
         saved_ckpt[trainer.precision_plugin.__class__.__qualname__] = ANY
-    device = torch.device("cuda:0" if "accelerator" in kwargs and kwargs["accelerator"] == "gpu" else "cpu")
+    device = trainer.strategy.root_device
     expected = [
         {"name": "configure_callbacks"},
         {"name": "prepare_data"},
@@ -459,41 +481,38 @@ def test_trainer_model_hook_system_fit(tmpdir, kwargs, automatic_optimization):
         *([{"name": "train_dataloader"}] if using_deepspeed else []),
         {"name": "Callback.setup", "args": (trainer, model), "kwargs": {"stage": "fit"}},
         {"name": "setup", "kwargs": {"stage": "fit"}},
-        {"name": "configure_sharded_model"},
+        {"name": "configure_model"},
         {"name": "configure_optimizers"},
         {"name": "Callback.on_fit_start", "args": (trainer, model)},
         {"name": "on_fit_start"},
+        {"name": "zero_grad", **({} if _TORCH_GREATER_EQUAL_2_0 else {"kwargs": {"set_to_none": True}})},
         {"name": "Callback.on_sanity_check_start", "args": (trainer, model)},
         {"name": "val_dataloader"},
         {"name": "train", "args": (False,)},
         {"name": "on_validation_model_eval"},
-        {"name": "zero_grad"},
         {"name": "Callback.on_validation_start", "args": (trainer, model)},
         {"name": "on_validation_start"},
         *model._eval_epoch("validation", trainer, model, val_batches, "x", device=device),
         {"name": "Callback.on_validation_end", "args": (trainer, model)},
         {"name": "on_validation_end"},
-        {"name": "train", "args": (True,)},
-        {"name": "on_validation_model_train"},
+        *([{"name": "on_validation_model_train"}] if override_on_validation_model_train else []),
         {"name": "Callback.on_sanity_check_end", "args": (trainer, model)},
         {"name": "train_dataloader"},
-        # duplicate `train` because `_run_stage` calls it again in case validation wasn't run
-        {"name": "train", "args": (True,)},
         {"name": "Callback.on_train_start", "args": (trainer, model)},
         {"name": "on_train_start"},
         {"name": "Callback.on_train_epoch_start", "args": (trainer, model)},
         {"name": "on_train_epoch_start"},
         *model._train_batch(trainer, model, train_batches, device=device, **kwargs),
+        {"name": "zero_grad", **({} if _TORCH_GREATER_EQUAL_2_0 else {"kwargs": {"set_to_none": True}})},
+        {"name": "on_validation_model_zero_grad"},
         {"name": "train", "args": (False,)},
         {"name": "on_validation_model_eval"},
-        {"name": "zero_grad"},
         {"name": "Callback.on_validation_start", "args": (trainer, model)},
         {"name": "on_validation_start"},
         *model._eval_epoch("validation", trainer, model, val_batches, "x", device=device),
         {"name": "Callback.on_validation_end", "args": (trainer, model)},
         {"name": "on_validation_end"},
-        {"name": "train", "args": (True,)},
-        {"name": "on_validation_model_train"},
+        *([{"name": "on_validation_model_train"}] if override_on_validation_model_train else []),
         {"name": "Callback.on_train_epoch_end", "args": (trainer, model)},
         {"name": "on_train_epoch_end"},  # before ModelCheckpoint because it's a "monitoring callback"
         # `ModelCheckpoint.save_checkpoint` is called here
@@ -560,17 +579,17 @@ def test_trainer_model_hook_system_fit_no_val_and_resume_max_epochs(tmpdir):
         {"name": "on_load_checkpoint", "args": (loaded_ckpt,)},
         {"name": "Callback.on_load_checkpoint", "args": (trainer, model, loaded_ckpt)},
         {"name": "Callback.load_state_dict", "args": ({"foo": True},)},
-        {"name": "configure_sharded_model"},
+        {"name": "configure_model"},
         {"name": "configure_optimizers"},
         {"name": "Callback.on_fit_start", "args": (trainer, model)},
         {"name": "on_fit_start"},
+        {"name": "zero_grad", **({} if _TORCH_GREATER_EQUAL_2_0 else {"kwargs": {"set_to_none": True}})},
         {"name": "train_dataloader"},
-        {"name": "train", "args": (True,)},
         {"name": "Callback.on_train_start", "args": (trainer, model)},
         {"name": "on_train_start"},
         {"name": "Callback.on_train_epoch_start", "args": (trainer, model)},
         {"name": "on_train_epoch_start"},
-        *model._train_batch(trainer, model, 2, current_epoch=1, current_batch=0),
+        *model._train_batch(trainer, model, 2, trainer.strategy.root_device, current_epoch=1, current_batch=0),
         {"name": "Callback.on_train_epoch_end", "args": (trainer, model)},
         {"name": "on_train_epoch_end"},  # before ModelCheckpoint because it's a "monitoring callback"
         # `ModelCheckpoint.save_checkpoint` is called here
@@ -638,17 +657,17 @@ def test_trainer_model_hook_system_fit_no_val_and_resume_max_steps(tmpdir):
         {"name": "on_load_checkpoint", "args": (loaded_ckpt,)},
         {"name": "Callback.on_load_checkpoint", "args": (trainer, model, loaded_ckpt)},
         {"name": "Callback.load_state_dict", "args": ({"foo": True},)},
-        {"name": "configure_sharded_model"},
+        {"name": "configure_model"},
         {"name": "configure_optimizers"},
         {"name": "Callback.on_fit_start", "args": (trainer, model)},
         {"name": "on_fit_start"},
+        {"name": "zero_grad", **({} if _TORCH_GREATER_EQUAL_2_0 else {"kwargs": {"set_to_none": True}})},
         {"name": "train_dataloader"},
-        {"name": "train", "args": (True,)},
         {"name": "Callback.on_train_start", "args": (trainer, model)},
         {"name": "on_train_start"},
         {"name": "Callback.on_train_epoch_start", "args": (trainer, model)},
         {"name": "on_train_epoch_start"},
-        *model._train_batch(trainer, model, steps_after_reload, current_batch=1),
+        *model._train_batch(trainer, model, steps_after_reload, trainer.strategy.root_device, current_batch=1),
         {"name": "Callback.on_train_epoch_end", "args": (trainer, model)},
         {"name": "on_train_epoch_end"},  # before ModelCheckpoint because it's a "monitoring callback"
         # `ModelCheckpoint.save_checkpoint` is called here
@@ -665,13 +684,17 @@ def test_trainer_model_hook_system_fit_no_val_and_resume_max_steps(tmpdir):
     assert called == expected
 
 
-@pytest.mark.parametrize("batches", (0, 2))
+@pytest.mark.parametrize("batches", [0, 2])
 @pytest.mark.parametrize(
-    ["verb", "noun", "dataloader", "key"], [("validate", "validation", "val", "x"), ("test", "test", "test", "y")]
+    ("verb", "noun", "dataloader", "key"), [("validate", "validation", "val", "x"), ("test", "test", "test", "y")]
 )
-def test_trainer_model_hook_system_eval(tmpdir, batches, verb, noun, dataloader, key):
+@pytest.mark.parametrize("override_on_x_model_train", [True, False])
+def test_trainer_model_hook_system_eval(tmpdir, override_on_x_model_train, batches, verb, noun, dataloader, key):
     called = []
     model = HookedModel(called)
+    if not override_on_x_model_train:
+        setattr(model, f"on_{noun}_model_train", None)
+    assert is_overridden(f"on_{noun}_model_train", model) == override_on_x_model_train
     callback = HookedCallback(called)
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -688,21 +711,20 @@ def test_trainer_model_hook_system_eval(tmpdir, batches, verb, noun, dataloader,
         {"name": f"{dataloader}_dataloader"},
         {"name": "train", "args": (False,)},
         {"name": f"on_{noun}_model_eval"},
-        {"name": "zero_grad"},
         {"name": f"Callback.on_{noun}_start", "args": (trainer, model)},
         {"name": f"on_{noun}_start"},
-        *model._eval_epoch(noun, trainer, model, batches, key),
+        *model._eval_epoch(noun, trainer, model, batches, key, trainer.strategy.root_device),
         {"name": f"Callback.on_{noun}_end", "args": (trainer, model)},
         {"name": f"on_{noun}_end"},
-        {"name": "train", "args": (True,)},
-        {"name": f"on_{noun}_model_train"},
+        *([{"name": f"on_{noun}_model_train"}] if override_on_x_model_train else []),
     ]
     expected = [
         {"name": "configure_callbacks"},
         {"name": "prepare_data"},
         {"name": "Callback.setup", "args": (trainer, model), "kwargs": {"stage": verb}},
         {"name": "setup", "kwargs": {"stage": verb}},
-        {"name": "configure_sharded_model"},
+        {"name": "configure_model"},
+        {"name": "zero_grad", **({} if _TORCH_GREATER_EQUAL_2_0 else {"kwargs": {"set_to_none": True}})},
         *(hooks if batches else []),
         {"name": "Callback.teardown", "args": (trainer, model), "kwargs": {"stage": verb}},
         {"name": "teardown", "kwargs": {"stage": verb}},
@@ -724,16 +746,16 @@ def test_trainer_model_hook_system_predict(tmpdir):
         {"name": "prepare_data"},
         {"name": "Callback.setup", "args": (trainer, model), "kwargs": {"stage": "predict"}},
         {"name": "setup", "kwargs": {"stage": "predict"}},
-        {"name": "configure_sharded_model"},
+        {"name": "configure_model"},
+        {"name": "zero_grad", **({} if _TORCH_GREATER_EQUAL_2_0 else {"kwargs": {"set_to_none": True}})},
         {"name": "predict_dataloader"},
         {"name": "train", "args": (False,)},
         {"name": "on_predict_model_eval"},
-        {"name": "zero_grad"},
         {"name": "Callback.on_predict_start", "args": (trainer, model)},
         {"name": "on_predict_start"},
         {"name": "Callback.on_predict_epoch_start", "args": (trainer, model)},
         {"name": "on_predict_epoch_start"},
-        *model._predict_batch(trainer, model, batches),
+        *model._predict_batch(trainer, model, batches, trainer.strategy.root_device),
         {"name": "Callback.on_predict_epoch_end", "args": (trainer, model)},
         {"name": "on_predict_epoch_end"},
         {"name": "Callback.on_predict_end", "args": (trainer, model)},
@@ -890,3 +912,61 @@ def test_load_from_checkpoint_hook_calls(tmpdir):
     _ = CustomHookedDataModule.load_from_checkpoint(ckpt_path, called=ldm_called)
     assert lm_called == [{"name": "on_load_checkpoint", "args": ({**saved_ckpt, "hyper_parameters": ANY},)}]
     assert ldm_called == [{"name": "load_state_dict", "args": (saved_ckpt[datamodule_state_dict_key],)}]
+
+
+def test_train_eval_mode_restored(tmp_path):
+    """Test that the trainer restores the `training` mode of all submodules to what it was before entering the loop."""
+
+    class MixedTrainModeModule(BoringModel):
+        def __init__(self):
+            super().__init__()
+            # A frozen submodule should keep its mode, regardless of whether we're training or not
+            self.frozen = torch.nn.Linear(2, 2)
+            self.frozen.eval()
+            self.frozen.requires_grad_(False)
+
+        def training_step(self, *args, **kwargs):
+            assert self.layer.weight.requires_grad
+            assert self.layer.training
+            assert not self.frozen.training
+            assert not self.frozen.weight.requires_grad
+            return super().training_step(*args, **kwargs)
+
+        def validation_step(self, *args, **kwargs):
+            assert self.layer.weight.requires_grad
+            assert not self.layer.training
+            assert not self.frozen.training
+            assert not self.frozen.weight.requires_grad
+            return super().validation_step(*args, **kwargs)
+
+        def test_step(self, *args, **kwargs):
+            assert self.layer.weight.requires_grad
+            assert not self.layer.training
+            assert not self.frozen.training
+            assert not self.frozen.weight.requires_grad
+            return super().test_step(*args, **kwargs)
+
+        def predict_step(self, *args, **kwargs):
+            assert self.layer.weight.requires_grad
+            assert not self.layer.training
+            assert not self.frozen.training
+            assert not self.frozen.weight.requires_grad
+            return super().predict_step(*args, **kwargs)
+
+    model = MixedTrainModeModule()
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        max_epochs=1,
+        val_check_interval=1,
+        limit_train_batches=3,
+        limit_val_batches=2,
+        limit_test_batches=2,
+        limit_predict_batches=2,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+    )
+    trainer.fit(model)
+    trainer.validate(model)
+    trainer.test(model)
+    trainer.predict(model)

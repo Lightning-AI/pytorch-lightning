@@ -16,7 +16,6 @@ from unittest.mock import Mock
 
 import pytest
 import torch
-
 from lightning.fabric.utilities.imports import _TORCH_EQUAL_2_0
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
@@ -24,7 +23,7 @@ from lightning.pytorch.loops import _Loop
 from lightning.pytorch.loops.utilities import _no_grad_context
 
 
-@pytest.mark.parametrize("trainer_fn", ("validate", "test", "predict"))
+@pytest.mark.parametrize("trainer_fn", ["validate", "test", "predict"])
 def test_eval_inference_mode(tmp_path, trainer_fn):
     class BoringModelNoGrad(BoringModel):
         def assert_not_enabled(self):

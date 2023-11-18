@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from enum import Enum
-from typing import Type, TYPE_CHECKING
+from typing import TYPE_CHECKING, Type
 
 from lightning.app.runners import CloudRuntime, MultiProcessRuntime
 
@@ -28,7 +28,6 @@ class RuntimeType(Enum):
     def get_runtime(self) -> Type["Runtime"]:
         if self == RuntimeType.MULTIPROCESS:
             return MultiProcessRuntime
-        elif self == RuntimeType.CLOUD:
+        if self == RuntimeType.CLOUD:
             return CloudRuntime
-        else:
-            raise ValueError("Unknown runtime type")
+        raise ValueError("Unknown runtime type")

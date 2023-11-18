@@ -8,8 +8,6 @@ lightning.fabric.plugins.precision
 Precision
 ^^^^^^^^^
 
-.. TODO(fabric): include DeepSpeedPrecision
-
 .. currentmodule:: lightning.fabric.plugins.precision
 
 .. autosummary::
@@ -20,6 +18,9 @@ Precision
     Precision
     DoublePrecision
     MixedPrecision
-    TPUPrecision
-    TPUBf16Precision
+    HalfPrecision
+    XLAPrecision
     FSDPPrecision
+    DeepSpeedPrecision
+    TransformerEnginePrecision
+    BitsandbytesPrecision

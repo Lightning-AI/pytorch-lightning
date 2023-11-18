@@ -14,7 +14,6 @@
 from unittest import mock
 
 import pytest
-
 from lightning.fabric.utilities import device_parser
 from lightning.fabric.utilities.exceptions import MisconfigurationException
 
@@ -22,7 +21,7 @@ _PRETEND_N_OF_GPUS = 16
 
 
 @pytest.mark.parametrize(
-    ["devices", "expected_root_gpu"],
+    ("devices", "expected_root_gpu"),
     [
         pytest.param(None, None, id="No gpus, expect gpu root device to be None"),
         pytest.param([0], 0, id="Oth gpu, expect gpu root device to be 0."),
@@ -36,7 +35,7 @@ def test_determine_root_gpu_device(devices, expected_root_gpu):
 
 
 @pytest.mark.parametrize(
-    ["devices", "expected_gpu_ids"],
+    ("devices", "expected_gpu_ids"),
     [
         (0, None),
         ([], None),

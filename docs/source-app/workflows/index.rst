@@ -2,7 +2,7 @@
    :maxdepth: 1
    :hidden:
 
-   access_app_state/access_app_state
+   access_app_state
    add_web_ui/index
    add_web_link
    secrets <../glossary/secrets>
@@ -15,8 +15,6 @@
    rest API <../glossary/restful_api/restful_api>
    extend_app
    build_lightning_component/publish_a_component
-   byoc/index
-   ssh/index
    add_server/index
    run_app_on_cloud/index
    run_work_in_parallel
@@ -37,7 +35,7 @@ How to:
    :header: Access the App State
    :description: Learn to work with the app state
    :col_css: col-md-4
-   :button_link: access_app_state/access_app_state.html
+   :button_link: access_app_state.html
    :height: 180
 
 .. displayitem::
@@ -132,13 +130,6 @@ How to:
    :height: 180
 
 .. displayitem::
-   :header: Run Apps on your cloud account (BYOC)
-   :description: Share your components with others
-   :col_css: col-md-4
-   :button_link: byoc/index.html
-   :height: 180
-
-.. displayitem::
    :header: Run a server within a Lightning App
    :description: Lightning Work can be infinite jobs
    :col_css: col-md-4
@@ -178,13 +169,6 @@ How to:
    :description: Learn how Lightning Storage emulates a single filesystem in a distributed setting
    :col_css: col-md-4
    :button_link: share_files_between_components.html
-   :height: 180
-
-.. displayitem::
-   :header: Debug cloud apps via SSH
-   :description: Learn how to get SSH access to your App
-   :col_css: col-md-4
-   :button_link: ssh/index.html
    :height: 180
 
 .. displayitem::

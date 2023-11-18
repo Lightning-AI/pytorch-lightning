@@ -15,7 +15,7 @@ In this example, you will learn how to create a simple DAG which:
 
 and learn how to schedule this entire process.
 
-Find the complete example `here <https://github.com/Lightning-AI/lightning/blob/master/examples/app_dag/app.py>`_.
+Find the complete example `here <https://github.com/Lightning-AI/lightning/blob/master/examples/app/dag/app.py>`_.
 
 ----
 
@@ -36,12 +36,12 @@ First, let's define the component we need:
 * A collection of model work to train all models in parallel.
 
 .. literalinclude:: ../../../../examples/app/dag/app.py
-    :lines: 53-75
+    :lines: 52-74
 
 And its run method executes the steps described above.
 
 .. literalinclude:: ../../../../examples/app/dag/app.py
-    :lines: 77-100
+    :lines: 76-99
 
 ----
 
@@ -50,4 +50,4 @@ Step 2: Define the scheduling
 *****************************
 
 .. literalinclude:: ../../../../examples/app/dag/app.py
-    :lines: 103-131
+    :lines: 102-130

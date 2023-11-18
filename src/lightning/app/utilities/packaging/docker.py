@@ -115,7 +115,7 @@ class DockerRunner:
             print(line)
             if "command not found" in line:
                 raise RuntimeError("The container wasn't properly executed.")
-            elif "Starting WorkRunner" in line:
+            if "Starting WorkRunner" in line:
                 break
 
     def get_container_logs(self) -> str:

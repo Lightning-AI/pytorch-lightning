@@ -1,7 +1,7 @@
 :orphan:
 
 #################################
-Level 13: Optimize training speed
+Level 12: Optimize training speed
 #################################
 
 In this level you'll use advanced profilers and mixed precision techniques to train bigger models faster.

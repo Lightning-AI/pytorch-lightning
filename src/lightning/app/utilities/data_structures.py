@@ -29,6 +29,7 @@ class AttributeDict(Dict):
     "key2":    abc
     "my-key":  3.14
     "new_key": 42
+
     """
 
     def __getattr__(self, key: str) -> Optional[Any]:
@@ -46,5 +47,4 @@ class AttributeDict(Dict):
         max_key_length = max(len(str(k)) for k in self)
         tmp_name = "{:" + str(max_key_length + 3) + "s} {}"
         rows = [tmp_name.format(f'"{n}":', self[n]) for n in sorted(self.keys())]
-        out = "\n".join(rows)
-        return out
+        return "\n".join(rows)

@@ -17,36 +17,32 @@ import logging
 import os
 from functools import lru_cache, partial
 from pathlib import Path
-from typing import Any, Callable, ContextManager, Dict, List, Optional, Type, TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, Any, Callable, ContextManager, Dict, List, Optional, Type, Union
 
 import torch
-from torch import nn, Tensor
-from torch.autograd.profiler import record_function
+from torch import Tensor, nn
+from torch.autograd.profiler import EventList, record_function
+from torch.profiler import ProfilerAction, ProfilerActivity, tensorboard_trace_handler
+from torch.utils.hooks import RemovableHandle
 
 from lightning.fabric.accelerators.cuda import is_cuda_available
 from lightning.pytorch.profilers.profiler import Profiler
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning.pytorch.utilities.imports import _KINETO_AVAILABLE
-from lightning.pytorch.utilities.rank_zero import rank_zero_warn, WarningCache
+from lightning.pytorch.utilities.rank_zero import WarningCache, rank_zero_warn
 
 if TYPE_CHECKING:
-    from torch.autograd.profiler import EventList
-    from torch.utils.hooks import RemovableHandle
-
     from lightning.pytorch.core.module import LightningModule
 
-if _KINETO_AVAILABLE:
-    from torch.profiler import ProfilerAction, ProfilerActivity, tensorboard_trace_handler
 
 log = logging.getLogger(__name__)
 warning_cache = WarningCache()
 
 _PROFILER = Union[torch.profiler.profile, torch.autograd.profiler.profile, torch.autograd.profiler.emit_nvtx]
+_KINETO_AVAILABLE = torch.profiler.kineto_available()
 
 
 class RegisterRecordFunction:
-    """While profiling autograd operations, this class will add labels for module names around the forward
-    function.
+    """While profiling autograd operations, this class will add labels for module names around the forward function.
 
     The Lightning PyTorch Profiler will activate this feature automatically. It can be deactivated as follows:
 
@@ -61,12 +57,13 @@ class RegisterRecordFunction:
         from lightning.pytorch import Trainer, seed_everything
         with RegisterRecordFunction(model):
             out = model(batch)
+
     """
 
     def __init__(self, model: nn.Module) -> None:
         self._model = model
         self._records: Dict[str, record_function] = {}
-        self._handles: Dict[str, List["RemovableHandle"]] = {}
+        self._handles: Dict[str, List[RemovableHandle]] = {}
 
     def _start_recording_forward(self, _: nn.Module, input: Tensor, record_name: str) -> Tensor:
         # Add [pl][module] in name for pytorch profiler to recognize
@@ -239,6 +236,7 @@ class PyTorchProfiler(Profiler):
         row_limit: int = 20,
         sort_by_key: Optional[str] = None,
         record_module_names: bool = True,
+        table_kwargs: Optional[Dict[str, Any]] = None,
         **profiler_kwargs: Any,
     ) -> None:
         r"""This profiler uses PyTorch's Autograd Profiler and lets you inspect the cost of.
@@ -279,6 +277,8 @@ class PyTorchProfiler(Profiler):
 
             record_module_names: Whether to add module names while recording autograd operation.
 
+            table_kwargs: Dictionary with keyword arguments for the summary table.
+
             \**profiler_kwargs: Keyword arguments for the PyTorch profiler. This depends on your PyTorch version
 
         Raises:
@@ -286,6 +286,7 @@ class PyTorchProfiler(Profiler):
                 If arg ``sort_by_key`` is not present in ``AVAILABLE_SORT_KEYS``.
                 If arg ``schedule`` is not a ``Callable``.
                 If arg ``schedule`` does not return a ``torch.profiler.ProfilerAction``.
+
         """
         super().__init__(dirpath=dirpath, filename=filename)
 
@@ -296,6 +297,7 @@ class PyTorchProfiler(Profiler):
         self._sort_by_key = sort_by_key or f"{'cuda' if profiler_kwargs.get('use_cuda', False) else 'cpu'}_time_total"
         self._record_module_names = record_module_names
         self._profiler_kwargs = profiler_kwargs
+        self._table_kwargs = table_kwargs if table_kwargs is not None else {}
 
         self.profiler: Optional[_PROFILER] = None
         self.function_events: Optional["EventList"] = None
@@ -313,6 +315,19 @@ class PyTorchProfiler(Profiler):
             raise MisconfigurationException(
                 f"Found sort_by_key: {self._sort_by_key}. Should be within {self.AVAILABLE_SORT_KEYS}. "
             )
+
+        for key in self._table_kwargs:
+            if key in {"sort_by", "row_limit"}:
+                raise KeyError(
+                    f"Found invalid table_kwargs key: {key}. This is already a positional argument of the Profiler."
+                )
+            valid_table_keys = set(inspect.signature(EventList.table).parameters.keys()) - {
+                "self",
+                "sort_by",
+                "row_limit",
+            }
+            if key not in valid_table_keys:
+                raise KeyError(f"Found invalid table_kwargs key: {key}. Should be within {valid_table_keys}.")
 
     def _init_kineto(self, profiler_kwargs: Any) -> None:
         has_schedule = "schedule" in profiler_kwargs
@@ -381,6 +396,7 @@ class PyTorchProfiler(Profiler):
         if _KINETO_AVAILABLE:
             # Those schedule defaults allow the profiling overhead to be negligible over training time.
             return torch.profiler.schedule(wait=1, warmup=1, active=3)
+        return None
 
     def _default_activities(self) -> List["ProfilerActivity"]:
         activities: List["ProfilerActivity"] = []
@@ -484,7 +500,7 @@ class PyTorchProfiler(Profiler):
             self.function_events.export_chrome_trace(path_to_trace)
 
         data = self.function_events.key_averages(group_by_input_shapes=self._group_by_input_shapes)
-        table = data.table(sort_by=self._sort_by_key, row_limit=self._row_limit)
+        table = data.table(sort_by=self._sort_by_key, row_limit=self._row_limit, **self._table_kwargs)
 
         recorded_stats = {"records": table}
         return self._stats_to_str(recorded_stats)

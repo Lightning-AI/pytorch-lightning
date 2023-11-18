@@ -60,6 +60,36 @@ with ``save_config_callback=None``.
 
         cli = LightningCLI(..., save_config_kwargs={"config_filename": "name.yaml"})
 
+It is also possible to extend the :class:`~lightning.pytorch.cli.SaveConfigCallback` class, for instance to additionally
+save the config in a logger. An example of this is:
+
+    .. code:: python
+
+        class LoggerSaveConfigCallback(SaveConfigCallback):
+            def save_config(self, trainer: Trainer, pl_module: LightningModule, stage: str) -> None:
+                if isinstance(trainer.logger, Logger):
+                    config = self.parser.dump(self.config, skip_none=False)  # Required for proper reproducibility
+                    trainer.logger.log_hyperparams({"config": config})
+
+
+        cli = LightningCLI(..., save_config_callback=LoggerSaveConfigCallback)
+
+.. tip::
+
+    If you want to disable the standard behavior of saving the config to the ``log_dir``, then you can either implement
+    ``__init__`` and call ``super().__init__(*args, save_to_log_dir=False, **kwargs)`` or instantiate the
+    ``LightningCLI`` as:
+
+    .. code:: python
+
+        cli = LightningCLI(..., save_config_kwargs={"save_to_log_dir": False})
+
+.. note::
+
+    The ``save_config``method is only called on rank zero. This allows to implement a custom save config without having
+    to worry about ranks or race conditions. Since it only runs on rank zero, any collective call will make the process
+    hang waiting for a broadcast. If you need to make collective calls, implement the ``setup`` method instead.
+
 
 ----
 
@@ -134,7 +164,7 @@ to the class constructor. For example, your model is defined as:
 .. code:: python
 
     # model.py
-    class MyModel(pl.LightningModule):
+    class MyModel(L.LightningModule):
         def __init__(self, criterion: torch.nn.Module):
             self.criterion = criterion
 
@@ -156,7 +186,7 @@ configuration files and automatic creation of objects, so you don't need to do i
 
 .. note::
 
-    Lighting automatically registers all subclasses of :class:`~lightning.pytorch.core.module.LightningModule`,
+    Lightning automatically registers all subclasses of :class:`~lightning.pytorch.core.LightningModule`,
     so the complete import path is not required for them and can be replaced by the class name.
 
 .. note::
@@ -166,7 +196,7 @@ configuration files and automatic creation of objects, so you don't need to do i
     To somewhat overcome these limitations, there is a special key ``dict_kwargs`` that can be used
     to provide arguments that will not be validated during parsing, but will be used for class instantiation.
 
-    For example, then using the ``pytorch_lightning.profilers.PyTorchProfiler`` profiler,
+    For example, then using the ``lightning.pytorch.profilers.PyTorchProfiler`` profiler,
     the ``profile_memory`` argument has a type that is determined dynamically. As a result, it's not possible
     to know the expected type during parsing. To account for this, your config file should be set up like this:
 
@@ -174,7 +204,7 @@ configuration files and automatic creation of objects, so you don't need to do i
 
         trainer:
           profiler:
-            class_path: pytorch_lightning.profilers.PyTorchProfiler
+            class_path: lightning.pytorch.profilers.PyTorchProfiler
             dict_kwargs:
               profile_memory: true
 

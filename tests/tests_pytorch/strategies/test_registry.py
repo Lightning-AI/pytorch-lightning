@@ -14,15 +14,15 @@
 from unittest import mock
 
 import pytest
-
 from lightning.pytorch import Trainer
 from lightning.pytorch.plugins import CheckpointIO
 from lightning.pytorch.strategies import DDPStrategy, DeepSpeedStrategy, FSDPStrategy, StrategyRegistry, XLAStrategy
+
 from tests_pytorch.helpers.runif import RunIf
 
 
 @pytest.mark.parametrize(
-    "strategy_name, init_params",
+    ("strategy_name", "init_params"),
     [
         ("deepspeed", {}),
         ("deepspeed_stage_1", {"stage": 1}),
@@ -59,7 +59,6 @@ def test_xla_debug_strategy_registry(_, tpu_available):
     assert isinstance(trainer.strategy, XLAStrategy)
 
 
-@RunIf(min_torch="1.12")
 def test_fsdp_strategy_registry(cuda_count_1):
     strategy = "fsdp"
     assert strategy in StrategyRegistry
@@ -70,7 +69,7 @@ def test_fsdp_strategy_registry(cuda_count_1):
 
 
 @pytest.mark.parametrize(
-    "strategy_name, strategy, expected_init_params",
+    ("strategy_name", "strategy", "expected_init_params"),
     [
         (
             "ddp_find_unused_parameters_false",

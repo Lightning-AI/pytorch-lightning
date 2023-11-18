@@ -1,15 +1,15 @@
 import inspect
-from typing import Any, Dict, TYPE_CHECKING, Union
-
-from core.state import ProgressBarState, TrainerState
+from typing import TYPE_CHECKING, Any, Dict, Union
 
 import lightning.pytorch as pl
-from lightning.app.storage import Path
+from lightning.app.storage.path import Path
 from lightning.app.utilities.app_helpers import Logger
 from lightning.pytorch import Callback
 from lightning.pytorch.callbacks.progress.progress_bar import get_standard_metrics
 from lightning.pytorch.loggers import TensorBoardLogger, WandbLogger
 from lightning.pytorch.utilities.parsing import collect_init_args
+
+from core.state import ProgressBarState, TrainerState
 
 if TYPE_CHECKING:
     from core.components.script_runner import ScriptRunner
@@ -160,8 +160,7 @@ class PLAppProgressTracker(Callback):
     def _val_batch_idx(self, trainer: "pl.Trainer") -> int:
         loop = trainer.fit_loop.epoch_loop.val_loop if trainer.state.fn == "fit" else trainer.validate_loop
 
-        current_batch_idx = loop.epoch_loop.batch_progress.current.processed
-        return current_batch_idx
+        return loop.epoch_loop.batch_progress.current.processed
 
     def _test_batch_idx(self, trainer: "pl.Trainer") -> int:
         return trainer.test_loop.epoch_loop.batch_progress.current.processed
@@ -266,8 +265,7 @@ class PLAppSummary(Callback):
     def _sanitize_trainer_init_args(self, init_args: Dict[str, Any]) -> Dict[str, str]:
         if init_args["callbacks"]:
             init_args["callbacks"] = [c.__class__.__name__ for c in init_args["callbacks"]]
-        init_args = {k: str(v) for k, v in init_args.items()}
-        return init_args
+        return {k: str(v) for k, v in init_args.items()}
 
     def _sanitize_model_init_args(self, init_args: Dict[str, Any]) -> Dict[str, str]:
         return {k: str(v) for k, v in init_args.items()}

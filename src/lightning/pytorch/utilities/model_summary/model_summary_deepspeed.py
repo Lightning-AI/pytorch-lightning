@@ -21,10 +21,11 @@ from lightning_utilities.core.imports import RequirementCache
 from torch.nn import Parameter
 
 from lightning.pytorch.utilities.model_summary.model_summary import (
-    _is_lazy_weight_tensor,
-    get_human_readable_count,
+    NOT_APPLICABLE,
     LayerSummary,
     ModelSummary,
+    _is_lazy_weight_tensor,
+    get_human_readable_count,
 )
 
 
@@ -84,6 +85,7 @@ class DeepSpeedSummary(ModelSummary):
         """Makes a summary listing with:
 
         Layer Name, Layer Type, Number of Parameters, Input Sizes, Output Sizes, Model Size
+
         """
         arrays = [
             (" ", list(map(str, range(len(self._layer_summary))))),
@@ -96,4 +98,14 @@ class DeepSpeedSummary(ModelSummary):
             arrays.append(("In sizes", [str(x) for x in self.in_sizes]))
             arrays.append(("Out sizes", [str(x) for x in self.out_sizes]))
 
+        total_leftover_params = self.total_parameters - self.total_layer_params
+        if total_leftover_params > 0:
+            self._add_leftover_params_to_summary(arrays, total_leftover_params)
+
         return arrays
+
+    def _add_leftover_params_to_summary(self, arrays: List[Tuple[str, List[str]]], total_leftover_params: int) -> None:
+        """Add summary of params not associated with module or layer to model summary."""
+        super()._add_leftover_params_to_summary(arrays, total_leftover_params)
+        layer_summaries = dict(arrays)
+        layer_summaries["Params per Device"].append(NOT_APPLICABLE)

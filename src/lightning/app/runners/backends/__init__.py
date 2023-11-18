@@ -17,9 +17,8 @@ class BackendType(Enum):
             if APP_SERVER_IN_CLOUD:
                 return CloudMultiProcessingBackend(entrypoint_file)
             return MultiProcessingBackend(entrypoint_file)
-        elif self == BackendType.DOCKER:
+        if self == BackendType.DOCKER:
             return DockerBackend(entrypoint_file)
-        elif self == BackendType.CLOUD:
+        if self == BackendType.CLOUD:
             return CloudBackend(entrypoint_file)
-        else:
-            raise ValueError("Unknown client type")
+        raise ValueError("Unknown client type")

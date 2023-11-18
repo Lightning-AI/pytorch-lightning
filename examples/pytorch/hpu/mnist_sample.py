@@ -13,12 +13,11 @@
 # limitations under the License.
 import torch
 from jsonargparse import lazy_instance
-from lightning_habana import HPUPrecisionPlugin
-from torch.nn import functional as F
-
 from lightning.pytorch import LightningModule
 from lightning.pytorch.cli import LightningCLI
 from lightning.pytorch.demos.mnist_datamodule import MNISTDataModule
+from lightning_habana import HPUPrecisionPlugin
+from torch.nn import functional as F
 
 
 class LitClassifier(LightningModule):
@@ -31,8 +30,7 @@ class LitClassifier(LightningModule):
 
     def training_step(self, batch, batch_idx):
         x, y = batch
-        loss = F.cross_entropy(self(x), y)
-        return loss
+        return F.cross_entropy(self(x), y)
 
     def validation_step(self, batch, batch_idx):
         x, y = batch
@@ -48,8 +46,7 @@ class LitClassifier(LightningModule):
 
     @staticmethod
     def accuracy(logits, y):
-        acc = torch.sum(torch.eq(torch.argmax(logits, -1), y).to(torch.float32)) / len(y)
-        return acc
+        return torch.sum(torch.eq(torch.argmax(logits, -1), y).to(torch.float32)) / len(y)
 
     def configure_optimizers(self):
         return torch.optim.Adam(self.parameters(), lr=0.02)

@@ -16,14 +16,14 @@ from multiprocessing import Event, Process
 from unittest import mock
 
 import pytest
-
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.profilers import XLAProfiler
+
 from tests_pytorch.helpers.runif import RunIf
 
 
-@RunIf(tpu=True)
+@RunIf(tpu=True, standalone=True)
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_xla_profiler_instance(tmpdir):
     model = BoringModel()
@@ -33,7 +33,7 @@ def test_xla_profiler_instance(tmpdir):
     trainer.fit(model)
 
 
-@pytest.mark.skip(reason="XLA Profiler doesn't support Prog. capture yet")
+@pytest.mark.xfail(strict=False, reason="XLA Profiler doesn't support Prog. capture yet")
 def test_xla_profiler_prog_capture(tmpdir):
     import torch_xla.debug.profiler as xp
     import torch_xla.utils.utils as xu

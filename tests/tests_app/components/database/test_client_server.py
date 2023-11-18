@@ -9,7 +9,6 @@ from typing import List, Optional
 from uuid import uuid4
 
 import pytest
-
 from lightning.app import LightningApp, LightningFlow, LightningWork
 from lightning.app.components.database import Database, DatabaseClient
 from lightning.app.components.database.utilities import _GeneralModel, _pydantic_column_type
@@ -136,7 +135,7 @@ def test_work_database_restart():
 
             if not self.db.alive():
                 return
-            elif not self._client:
+            if not self._client:
                 self._client = DatabaseClient(self.db.db_url, None, model=TestConfig)
 
             if not self.restart:
@@ -183,7 +182,7 @@ def test_work_database_periodic_store():
             if not self.db.alive():
                 return
 
-            elif not self._client:
+            if not self._client:
                 self._client = DatabaseClient(self.db.db_url, None, model=TestConfig)
 
             if self._start_time is None:

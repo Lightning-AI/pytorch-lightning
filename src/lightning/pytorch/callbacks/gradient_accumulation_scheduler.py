@@ -60,6 +60,7 @@ class GradientAccumulationScheduler(Callback):
         # because epoch (key) should be zero-indexed.
         >>> accumulator = GradientAccumulationScheduler(scheduling={4: 2})
         >>> trainer = Trainer(callbacks=[accumulator])
+
     """
 
     def __init__(self, scheduling: Dict[int, int]):
@@ -99,8 +100,7 @@ class GradientAccumulationScheduler(Callback):
         return accumulate_grad_batches
 
     def on_train_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-        """Performns a configuration validation before training starts and raises errors for incompatible
-        settings."""
+        """Performns a configuration validation before training starts and raises errors for incompatible settings."""
 
         if not pl_module.automatic_optimization:
             raise RuntimeError(
@@ -120,21 +120,14 @@ class GradientAccumulationScheduler(Callback):
             )
 
         # local import to avoid circular import
-        from lightning.pytorch.accelerators import IPUAccelerator
         from lightning.pytorch.strategies import DeepSpeedStrategy
 
-        unsupported_accelerators = (IPUAccelerator,)
         unsupported_strategies = [DeepSpeedStrategy]
         if _LIGHTNING_COLOSSALAI_AVAILABLE:
             from lightning_colossalai import ColossalAIStrategy
 
             unsupported_strategies.append(ColossalAIStrategy)
 
-        if isinstance(trainer.accelerator, unsupported_accelerators):
-            raise RuntimeError(
-                f"The `{type(trainer.accelerator).__name__}` does not support `accumulate_grad_batches` changing"
-                " between epochs."
-            )
         if isinstance(trainer.strategy, tuple(unsupported_strategies)):
             raise RuntimeError(
                 f"The `{type(trainer.strategy).__name__}` does not support `accumulate_grad_batches` changing"

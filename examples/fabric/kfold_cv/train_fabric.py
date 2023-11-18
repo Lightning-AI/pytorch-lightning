@@ -20,13 +20,11 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 import torchvision.transforms as T
+from lightning.fabric import Fabric, seed_everything
 from sklearn import model_selection
 from torch.utils.data import DataLoader, SubsetRandomSampler
 from torchmetrics.classification import Accuracy
 from torchvision.datasets import MNIST
-
-from lightning.fabric import Fabric  # import Fabric
-from lightning.fabric import seed_everything
 
 DATASETS_PATH = path.join(path.dirname(__file__), "..", "..", "..", "Datasets")
 
@@ -53,8 +51,7 @@ class Net(nn.Module):
         x = F.relu(x)
         x = self.dropout2(x)
         x = self.fc2(x)
-        output = F.log_softmax(x, dim=1)
-        return output
+        return F.log_softmax(x, dim=1)
 
 
 def train_dataloader(model, data_loader, optimizer, fabric, epoch, hparams, fold):
@@ -98,7 +95,7 @@ def validate_dataloader(model, data_loader, fabric, hparams, fold, acc_metric):
             if hparams.dry_run:
                 break
 
-    # all_gather is used to aggregated the value across processes
+    # all_gather is used to aggregate the value across processes
     loss = fabric.all_gather(loss).sum() / len(data_loader.dataset)
 
     # compute acc
@@ -116,13 +113,10 @@ def run(hparams):
     seed_everything(hparams.seed)  # instead of torch.manual_seed(...)
 
     transform = T.Compose([T.ToTensor(), T.Normalize((0.1307,), (0.3081,))])
-    # This is meant to ensure the data are download only by 1 process.
-    if fabric.is_global_zero:
-        MNIST(DATASETS_PATH, download=True)
-    fabric.barrier()
 
-    # initialize dataset
-    dataset = MNIST(DATASETS_PATH, train=True, transform=transform)
+    # Let rank 0 download the data first, then everyone will load MNIST
+    with fabric.rank_zero_first(local=False):  # set `local=True` if your filesystem is not shared between machines
+        dataset = MNIST(DATASETS_PATH, train=True, download=True, transform=transform)
 
     # Loop over different folds (shuffle = False by default so reproducible)
     folds = hparams.folds
@@ -150,6 +144,9 @@ def run(hparams):
             batch_size = hparams.batch_size
             train_loader = DataLoader(dataset, batch_size=batch_size, sampler=SubsetRandomSampler(train_ids))
             val_loader = DataLoader(dataset, batch_size=batch_size, sampler=SubsetRandomSampler(val_ids))
+
+            # set up dataloaders to move data to the correct device
+            train_loader, val_loader = fabric.setup_dataloaders(train_loader, val_loader)
 
             # get model and optimizer for the current fold
             model, optimizer = models[fold], optimizers[fold]

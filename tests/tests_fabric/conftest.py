@@ -16,13 +16,13 @@ import sys
 from typing import List
 from unittest.mock import Mock
 
+import lightning.fabric
 import pytest
 import torch.distributed
+from lightning.fabric.utilities.distributed import _distributed_is_initialized
 
-import lightning.fabric
 
-
-@pytest.fixture(scope="function", autouse=True)
+@pytest.fixture(autouse=True)
 def preserve_global_rank_variable():
     """Ensures that the rank_zero_only.rank global variable gets reset in each test."""
     from lightning.fabric.utilities.rank_zero import rank_zero_only
@@ -33,7 +33,7 @@ def preserve_global_rank_variable():
         setattr(rank_zero_only, "rank", rank)
 
 
-@pytest.fixture(scope="function", autouse=True)
+@pytest.fixture(autouse=True)
 def restore_env_variables():
     """Ensures that environment variables set during the test do not leak out."""
     env_backup = os.environ.copy()
@@ -57,20 +57,26 @@ def restore_env_variables():
         "POPLAR_ENGINE_OPTIONS",  # set by IPUStrategy
         "CUDA_MODULE_LOADING",  # leaked since PyTorch 1.13
         "CRC32C_SW_MODE",  # set by tensorboardX
+        "OMP_NUM_THREADS",  # set by our launchers
+        # set by XLA FSDP on XRT
+        "XRT_TORCH_DIST_ROOT",
+        "XRT_MESH_SERVICE_ADDRESS",
+        # set by torchdynamo
+        "TRITON_CACHE_DIR",
     }
     leaked_vars.difference_update(allowlist)
     assert not leaked_vars, f"test is leaking environment variable(s): {set(leaked_vars)}"
 
 
-@pytest.fixture(scope="function", autouse=True)
+@pytest.fixture(autouse=True)
 def teardown_process_group():
     """Ensures that the distributed process group gets closed before the next test runs."""
     yield
-    if torch.distributed.is_available() and torch.distributed.is_initialized():
+    if _distributed_is_initialized():
         torch.distributed.destroy_process_group()
 
 
-@pytest.fixture
+@pytest.fixture()
 def reset_deterministic_algorithm():
     """Ensures that torch determinism settings are reset before the next test runs."""
     yield
@@ -78,7 +84,7 @@ def reset_deterministic_algorithm():
     torch.use_deterministic_algorithms(False)
 
 
-@pytest.fixture
+@pytest.fixture()
 def reset_cudnn_benchmark():
     """Ensures that the `torch.backends.cudnn.benchmark` setting gets reset before the next test runs."""
     yield
@@ -86,37 +92,41 @@ def reset_cudnn_benchmark():
 
 
 def mock_xla_available(monkeypatch: pytest.MonkeyPatch, value: bool = True) -> None:
-    monkeypatch.setattr(lightning.fabric.accelerators.tpu, "_XLA_AVAILABLE", value)
+    monkeypatch.setattr(lightning.fabric.accelerators.xla, "_XLA_AVAILABLE", value)
     monkeypatch.setattr(lightning.fabric.plugins.environments.xla, "_XLA_AVAILABLE", value)
-    monkeypatch.setattr(lightning.fabric.strategies.single_tpu, "_XLA_AVAILABLE", value)
-    monkeypatch.setattr(lightning.fabric.strategies.xla, "_XLA_AVAILABLE", value)
+    monkeypatch.setattr(lightning.fabric.plugins.precision.xla, "_XLA_AVAILABLE", value)
+    monkeypatch.setattr(lightning.fabric.plugins.io.xla, "_XLA_AVAILABLE", value)
+    monkeypatch.setattr(lightning.fabric.strategies.single_xla, "_XLA_AVAILABLE", value)
+    monkeypatch.setattr(lightning.fabric.strategies.xla_fsdp, "_XLA_AVAILABLE", value)
     monkeypatch.setattr(lightning.fabric.strategies.launchers.xla, "_XLA_AVAILABLE", value)
+    monkeypatch.setitem(sys.modules, "torch_xla", Mock())
+    monkeypatch.setitem(sys.modules, "torch_xla.core.xla_model", Mock())
+    monkeypatch.setitem(sys.modules, "torch_xla.experimental", Mock())
+    monkeypatch.setitem(sys.modules, "torch_xla.distributed.fsdp.wrap", Mock())
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture()
 def xla_available(monkeypatch: pytest.MonkeyPatch) -> None:
     mock_xla_available(monkeypatch)
 
 
 def mock_tpu_available(monkeypatch: pytest.MonkeyPatch, value: bool = True) -> None:
     mock_xla_available(monkeypatch, value)
-    monkeypatch.setattr(lightning.fabric.accelerators.tpu.TPUAccelerator, "is_available", lambda: value)
-    monkeypatch.setattr(lightning.fabric.accelerators.tpu.TPUAccelerator, "auto_device_count", lambda *_: 8)
-    monkeypatch.setitem(sys.modules, "torch_xla", Mock())
-    monkeypatch.setitem(sys.modules, "torch_xla.core.xla_model", Mock())
-    monkeypatch.setitem(sys.modules, "torch_xla.experimental", Mock())
+    monkeypatch.setattr(lightning.fabric.accelerators.xla.XLAAccelerator, "is_available", lambda: value)
+    monkeypatch.setattr(lightning.fabric.accelerators.xla.XLAAccelerator, "auto_device_count", lambda *_: 8)
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture()
 def tpu_available(monkeypatch: pytest.MonkeyPatch) -> None:
     mock_tpu_available(monkeypatch)
 
 
-@pytest.fixture
+@pytest.fixture()
 def caplog(caplog):
     """Workaround for https://github.com/pytest-dev/pytest/issues/3697.
 
     Setting ``filterwarnings`` with pytest breaks ``caplog`` when ``not logger.propagate``.
+
     """
     import logging
 
@@ -136,7 +146,6 @@ def pytest_collection_modifyitems(items: List[pytest.Function], config: pytest.C
     options = {
         "standalone": "PL_RUN_STANDALONE_TESTS",
         "min_cuda_gpus": "PL_RUN_CUDA_TESTS",
-        "ipu": "PL_RUN_IPU_TESTS",
         "tpu": "PL_RUN_TPU_TESTS",
     }
     if os.getenv(options["standalone"], "0") == "1" and os.getenv(options["min_cuda_gpus"], "0") == "1":

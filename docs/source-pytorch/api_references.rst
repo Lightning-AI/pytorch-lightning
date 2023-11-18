@@ -13,8 +13,7 @@ accelerators
     Accelerator
     CPUAccelerator
     CUDAAccelerator
-    IPUAccelerator
-    TPUAccelerator
+    XLAAccelerator
 
 callbacks
 ---------
@@ -45,6 +44,8 @@ callbacks
     RichModelSummary
     RichProgressBar
     StochasticWeightAveraging
+    SpikeDetection
+    ThroughputMonitor
     Timer
     TQDMProgressBar
 
@@ -113,14 +114,15 @@ precision
     :nosignatures:
     :template: classtemplate.rst
 
-    DeepSpeedPrecisionPlugin
-    DoublePrecisionPlugin
-    FSDPMixedPrecisionPlugin
-    IPUPrecisionPlugin
-    MixedPrecisionPlugin
-    PrecisionPlugin
-    TPUBf16PrecisionPlugin
-    TPUPrecisionPlugin
+    DeepSpeedPrecision
+    DoublePrecision
+    HalfPrecision
+    FSDPPrecision
+    MixedPrecision
+    Precision
+    XLAPrecision
+    TransformerEnginePrecision
+    BitsandbytesPrecision
 
 environments
 """"""""""""
@@ -212,10 +214,9 @@ strategies
     DDPStrategy
     DeepSpeedStrategy
     FSDPStrategy
-    IPUStrategy
     ParallelStrategy
     SingleDeviceStrategy
-    SingleTPUStrategy
+    SingleDeviceXLAStrategy
     Strategy
     XLAStrategy
 
@@ -249,3 +250,5 @@ utilities
     rank_zero
     seed
     warnings
+
+.. autofunction:: lightning.pytorch.utilities.measure_flops

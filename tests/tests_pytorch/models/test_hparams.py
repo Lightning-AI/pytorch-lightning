@@ -24,10 +24,6 @@ import cloudpickle
 import pytest
 import torch
 from fsspec.implementations.local import LocalFileSystem
-from lightning_utilities.core.imports import RequirementCache
-from lightning_utilities.test.warning import no_warning_call
-from torch.utils.data import DataLoader
-
 from lightning.pytorch import LightningModule, Trainer
 from lightning.pytorch.callbacks import ModelCheckpoint
 from lightning.pytorch.core.datamodule import LightningDataModule
@@ -35,7 +31,12 @@ from lightning.pytorch.core.mixins import HyperparametersMixin
 from lightning.pytorch.core.saving import load_hparams_from_yaml, save_hparams_to_yaml
 from lightning.pytorch.demos.boring_classes import BoringDataModule, BoringModel, RandomDataset
 from lightning.pytorch.loggers import CSVLogger, TensorBoardLogger
-from lightning.pytorch.utilities import _OMEGACONF_AVAILABLE, AttributeDict, is_picklable
+from lightning.pytorch.utilities import AttributeDict, is_picklable
+from lightning.pytorch.utilities.imports import _OMEGACONF_AVAILABLE
+from lightning_utilities.core.imports import RequirementCache
+from lightning_utilities.test.warning import no_warning_call
+from torch.utils.data import DataLoader
+
 from tests_pytorch.helpers.runif import RunIf
 
 if _OMEGACONF_AVAILABLE:
@@ -420,7 +421,7 @@ def _raw_checkpoint_path(trainer) -> str:
     return raw_checkpoint_path
 
 
-@pytest.mark.parametrize("base_class", (HyperparametersMixin, LightningModule, LightningDataModule))
+@pytest.mark.parametrize("base_class", [HyperparametersMixin, LightningModule, LightningDataModule])
 def test_save_hyperparameters_under_composition(base_class):
     """Test that in a composition where the parent is not a Lightning-like module, the parent's arguments don't get
     collected."""
@@ -487,7 +488,7 @@ class OtherArgsModel(BoringModel):
 
 
 @pytest.mark.parametrize(
-    "cls,config", [(AnotherArgModel, {"arg1": 42}), (OtherArgsModel, {"arg1": 3.14, "arg2": "abc"})]
+    ("cls", "config"), [(AnotherArgModel, {"arg1": 42}), (OtherArgsModel, {"arg1": 3.14, "arg2": "abc"})]
 )
 def test_single_config_models_fail(tmpdir, cls, config):
     """Test fail on passing unsupported config type."""
@@ -723,7 +724,7 @@ def test_model_save_hyper_parameters_interpolation_with_hydra(tmpdir):
         _ = TestHydraModel.load_from_checkpoint(checkpoint_callback.best_model_path)
 
 
-@pytest.mark.parametrize("ignore", ("arg2", ("arg2", "arg3")))
+@pytest.mark.parametrize("ignore", ["arg2", ("arg2", "arg3")])
 def test_ignore_args_list_hparams(tmpdir, ignore):
     """Tests that args can be ignored in save_hyperparameters."""
 
@@ -768,13 +769,7 @@ class NoParametersModel(BoringModel):
         self.save_hyperparameters()
 
 
-@pytest.mark.parametrize(
-    "model",
-    (
-        IgnoreAllParametersModel(arg1=14, arg2=90, arg3=50),
-        NoParametersModel(),
-    ),
-)
+@pytest.mark.parametrize("model", [IgnoreAllParametersModel(arg1=14, arg2=90, arg3=50), NoParametersModel()])
 def test_save_no_parameters(model):
     """Test that calling save_hyperparameters works if no parameters need saving."""
     assert model.hparams == {}
@@ -853,8 +848,8 @@ def _get_mock_logger(tmpdir):
     return mock_logger
 
 
-@pytest.mark.parametrize("model", (SaveHparamsModel({"arg1": 5, "arg2": "abc"}), NoHparamsModel()))
-@pytest.mark.parametrize("data", (DataModuleWithHparams({"data_dir": "foo"}), DataModuleWithoutHparams()))
+@pytest.mark.parametrize("model", [SaveHparamsModel({"arg1": 5, "arg2": "abc"}), NoHparamsModel()])
+@pytest.mark.parametrize("data", [DataModuleWithHparams({"data_dir": "foo"}), DataModuleWithoutHparams()])
 def test_adding_datamodule_hparams(tmpdir, model, data):
     """Test that hparams from datamodule and model are logged."""
     org_model_hparams = copy.deepcopy(model.hparams_initial)

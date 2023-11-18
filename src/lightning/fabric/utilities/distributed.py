@@ -1,19 +1,21 @@
+import contextlib
 import logging
 import os
-import sys
+import time
 from contextlib import nullcontext
-from typing import Any, Iterable, Iterator, List, Optional, Sized, Tuple, Union
+from pathlib import Path
+from typing import TYPE_CHECKING, Any, Iterable, Iterator, List, Optional, Sized, Union
 
 import torch
 import torch.nn.functional as F
-from lightning_utilities.core.imports import module_available
+from lightning_utilities.core.imports import package_available
 from torch import Tensor
 from torch.utils.data import Dataset, DistributedSampler, Sampler
 
-from lightning.fabric.plugins.environments.cluster_environment import ClusterEnvironment
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12
+from lightning.fabric.utilities.cloud_io import _is_local_file_protocol
+from lightning.fabric.utilities.data import _num_cpus_available
 from lightning.fabric.utilities.rank_zero import rank_zero_info
-from lightning.fabric.utilities.types import ReduceOp
+from lightning.fabric.utilities.types import _PATH, ReduceOp
 
 if torch.distributed.is_available():
     from torch.distributed import group
@@ -23,7 +25,71 @@ else:
         WORLD = None
 
 
+if TYPE_CHECKING:
+    from lightning.fabric.plugins import ClusterEnvironment
+    from lightning.fabric.strategies import Strategy
+
+
 log = logging.getLogger(__name__)
+
+
+def is_shared_filesystem(strategy: "Strategy", path: Optional[_PATH] = None, timeout: int = 3) -> bool:
+    """Checks whether the filesystem under the given path is shared across all processes.
+
+    This function should only be used in a context where distributed is initialized.
+
+    Args:
+        strategy: The strategy being used, either from Fabric (``fabric.strategy``) or from Trainer
+            (``trainer.strategy``).
+        path: The path to check. Defaults to the current working directory. The user must have permissions to write
+            to this path or the parent folder, and the filesystem must be writable.
+        timeout: If any of the processes can't list the file created by rank 0 within this many seconds, the
+            filesystem is determined to be not shared.
+
+    """
+    # Fast path: Any non-local filesystem is considered shared (e.g., S3)
+    if path is not None and not _is_local_file_protocol(path):
+        return True
+
+    path = Path(Path.cwd() if path is None else path).resolve()
+
+    # Fast path: Only distributed strategies can detect shared filesystems
+    if not hasattr(strategy, "world_size") or strategy.world_size == 1:
+        return True
+
+    # Fast path: If the path is not the same on all ranks we know it's not a shared filesystem
+    rank_zero_path = strategy.broadcast(path)
+    if not strategy.reduce_boolean_decision(rank_zero_path == path, all=True):
+        return False
+
+    if not strategy.reduce_boolean_decision(path.exists(), all=True):
+        raise FileNotFoundError(
+            f"Unable to determine if the path belongs to a shared filesystem. The path does not exist: {path}"
+        )
+
+    path = path.parent if path.is_file() else path
+    check_file = path / ".lightning_shared_fs_check"
+    check_file.unlink(missing_ok=True)
+
+    strategy.barrier()
+    if strategy.is_global_zero:
+        # Rank 0 creates the file
+        check_file.touch()
+        found = True
+    else:
+        # All other ranks will wait until they find the file or timeout
+        start = time.perf_counter()
+        found = False
+        while not found and (time.perf_counter() - start) < timeout:
+            found = check_file.exists()
+    strategy.barrier()
+
+    all_found = strategy.reduce_boolean_decision(found, all=True)
+
+    with contextlib.suppress(OSError):  # handle race condition on deletion
+        check_file.unlink()
+
+    return all_found
 
 
 def _gather_all_tensors(result: Tensor, group: Optional[Any] = None) -> List[Tensor]:
@@ -39,6 +105,7 @@ def _gather_all_tensors(result: Tensor, group: Optional[Any] = None) -> List[Ten
     Return:
         gathered_result: List with size equal to the process group where
             gathered_result[i] corresponds to result tensor from process i
+
     """
     if group is None:
         group = torch.distributed.group.WORLD
@@ -98,14 +165,17 @@ def _sync_ddp_if_available(
 
     Return:
         reduced value
+
     """
-    if torch.distributed.is_initialized():
+    if _distributed_is_initialized():
         return _sync_ddp(result, group=group, reduce_op=reduce_op)
     return result
 
 
 def _sync_ddp(result: Tensor, group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = None) -> Tensor:
-    """Function to reduce the tensors from several DDP processes to one main process.
+    """Reduces a tensor across several distributed processes.
+
+    This operation is performed in-place, meaning the result will be placed back into the input tensor on all processes.
 
     Args:
         result: The value to sync and reduce (typically tensor or number)
@@ -114,16 +184,17 @@ def _sync_ddp(result: Tensor, group: Optional[Any] = None, reduce_op: Optional[U
             Can also be a string of 'avg', 'mean' to calculate the mean during reduction.
 
     Return:
-        reduced value
+        The reduced value.
+
     """
     divide_by_world_size = False
-
-    if group is None:
-        group = torch.distributed.group.WORLD
+    group = torch.distributed.group.WORLD if group is None else group
 
     op: Optional[ReduceOp]
     if isinstance(reduce_op, str):
-        if reduce_op.lower() in ("avg", "mean"):
+        reduce_op = "avg" if reduce_op == "mean" else reduce_op
+        if reduce_op.lower() == "avg" and torch.distributed.get_backend(group) == "gloo":
+            # The GLOO backend does not support the `ReduceOp.AVG` operation
             op = ReduceOp.SUM  # type: ignore[assignment]
             divide_by_world_size = True
         else:
@@ -131,57 +202,32 @@ def _sync_ddp(result: Tensor, group: Optional[Any] = None, reduce_op: Optional[U
     else:
         op = reduce_op
 
-    # WA for HPU. HPU doesn't support Long types, forcefully set it to float
-    if module_available("habana_frameworks.torch.utils.library_loader"):
-        from habana_frameworks.torch.utils.library_loader import is_habana_avaialble
-
-        if (
-            is_habana_avaialble()
-            and os.environ.get("HCCL_DISTRIBUTED_BACKEND") == "1"
-            and result.type() in ("torch.LongTensor", "torch.hpu.LongTensor")
-        ):
-            rank_zero_info("Long tensor unsupported on HPU, casting to float")
-            result = result.float()
+    # HPU doesn't support Long types, forcefully set it to float
+    # TODO: move this to the `lightning_habana` package
+    if (
+        package_available("habana_frameworks")
+        and os.environ.get("HCCL_DISTRIBUTED_BACKEND") == "1"
+        and result.type()
+        in (
+            "torch.LongTensor",
+            "torch.hpu.LongTensor",
+        )
+    ):
+        rank_zero_info("Long tensor unsupported on HPU, casting to float")
+        result = result.float()
 
     # Sync all processes before reduction
     torch.distributed.barrier(group=group)
     torch.distributed.all_reduce(result, op=op, group=group, async_op=False)
+    world_size = torch.distributed.get_world_size(group)
 
-    if divide_by_world_size:
-        result = result / torch.distributed.get_world_size(group)
-
-    return result
-
-
-class _AllGather(torch.autograd.Function):
-    @staticmethod
-    def forward(  # type: ignore[override]
-        ctx: Any,
-        tensor: Tensor,
-        group: Optional["torch.distributed.ProcessGroup"] = group.WORLD,
-    ) -> Tensor:
-        ctx.group = group
-        gathered_tensor = [torch.zeros_like(tensor) for _ in range(torch.distributed.get_world_size(group=group))]
-        torch.distributed.all_gather(gathered_tensor, tensor, group=group)
-        gathered_tensor = torch.stack(gathered_tensor, dim=0)
-        return gathered_tensor
-
-    @staticmethod
-    def backward(ctx: Any, *grad_output: Tensor) -> Tuple[Tensor, None]:
-        grad_output = torch.cat(grad_output)
-        torch.distributed.all_reduce(grad_output, op=torch.distributed.ReduceOp.SUM, async_op=False, group=ctx.group)
-        return grad_output[torch.distributed.get_rank()], None
-
-
-def _functional_all_gather(tensor: Any, group: Any) -> Any:
-    """Compatibility layer with Windows."""
-    if sys.platform == "win32" and not _TORCH_GREATER_EQUAL_1_12:
-        # TODO: also remove `_AllGather` when support for 1.12 is dropped
-        return _AllGather.apply(tensor, group)
-
-    import torch.distributed.nn
-
-    return torch.distributed.nn.functional.all_gather(tensor, group)
+    if not divide_by_world_size:
+        return result
+    # `torch.distributed.all_reduce` is in-place, so we should do the division in-place to leave the modified tensors
+    # with the expected value
+    if not torch.is_floating_point(result):
+        return result.copy_(result / world_size)
+    return result.div_(world_size)
 
 
 def _all_gather_ddp_if_available(
@@ -196,24 +242,28 @@ def _all_gather_ddp_if_available(
 
     Return:
         A tensor of shape (world_size, batch, ...)
+
     """
-    if not torch.distributed.is_initialized():
+    if not _distributed_is_initialized():
         return tensor
+
+    from torch.distributed.nn.functional import all_gather
+
     tensor = tensor.contiguous()  # https://github.com/pytorch/pytorch/issues/73515
     with nullcontext() if sync_grads else torch.no_grad():
-        gathered_tensors = _functional_all_gather(tensor, group)
+        gathered_tensors = all_gather(tensor, group)
     return torch.stack(gathered_tensors)
 
 
 def _init_dist_connection(
-    cluster_environment: ClusterEnvironment,
+    cluster_environment: "ClusterEnvironment",
     torch_distributed_backend: str,
     global_rank: Optional[int] = None,
     world_size: Optional[int] = None,
     **kwargs: Any,
 ) -> None:
-    """Utility function to initialize distributed connection by setting env variables and initializing the
-    distributed process group.
+    """Utility function to initialize distributed connection by setting env variables and initializing the distributed
+    process group.
 
     Args:
         cluster_environment: ``ClusterEnvironment`` instance
@@ -225,6 +275,7 @@ def _init_dist_connection(
     Raises:
         RuntimeError:
             If ``torch.distributed`` is not available
+
     """
     if not torch.distributed.is_available():
         raise RuntimeError("torch.distributed is not available. Cannot initialize distributed process group")
@@ -300,6 +351,7 @@ class DistributedSamplerWrapper(DistributedSampler):
         The purpose of this wrapper is to take care of sharding the sampler indices. It is up to the underlying
         sampler to handle randomness and shuffling. The ``shuffle`` and ``seed`` arguments on this wrapper won't
         have any effect.
+
     """
 
     def __init__(self, sampler: Union[Sampler, Iterable], *args: Any, **kwargs: Any) -> None:
@@ -308,3 +360,23 @@ class DistributedSamplerWrapper(DistributedSampler):
     def __iter__(self) -> Iterator:
         self.dataset.reset()
         return (self.dataset[index] for index in super().__iter__())
+
+
+def _suggested_max_num_threads(num_processes: int = 1) -> int:
+    if num_processes < 1:
+        raise ValueError(f"`num_processes` should be >= 1, got {num_processes}.")
+    return max(1, _num_cpus_available() // num_processes)
+
+
+def _set_num_threads_if_needed(num_processes: int = 1) -> None:
+    if "OMP_NUM_THREADS" not in os.environ:
+        num_threads = _suggested_max_num_threads(num_processes)
+        torch.set_num_threads(num_threads)
+        os.environ["OMP_NUM_THREADS"] = str(num_threads)
+
+
+def _distributed_is_initialized() -> bool:
+    # `is_initialized` is only defined conditionally
+    # https://github.com/pytorch/pytorch/blob/v2.1.0/torch/distributed/__init__.py#L25
+    # this might happen to MacOS builds from source (default) or any build from source that sets `USE_DISTRIBUTED=0`
+    return torch.distributed.is_available() and torch.distributed.is_initialized()

@@ -42,6 +42,7 @@ class _Loop:
 
         Returns:
             The current loop state.
+
         """
         return {}
 
@@ -55,6 +56,7 @@ class _Loop:
             destination: An existing dictionary to update with this loop's state. By default a new dictionary
                 is returned.
             prefix: A prefix for each key in the state dictionary
+
         """
         if destination is None:
             destination = {}

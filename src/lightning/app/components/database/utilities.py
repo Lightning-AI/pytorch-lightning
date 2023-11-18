@@ -19,15 +19,20 @@ from typing import Any, Dict, Generic, List, Type, TypeVar
 
 from fastapi import Response, status
 from fastapi.encoders import jsonable_encoder
+from lightning_utilities.core.imports import RequirementCache
 from pydantic import BaseModel, parse_obj_as
-from pydantic.main import ModelMetaclass
+
+if RequirementCache("pydantic>=2.0.0"):
+    from pydantic.v1.main import ModelMetaclass
+else:
+    from pydantic.main import ModelMetaclass
 
 from lightning.app.utilities.app_helpers import Logger
 from lightning.app.utilities.imports import _is_sqlmodel_available
 
 if _is_sqlmodel_available():
     from sqlalchemy.inspection import inspect as sqlalchemy_inspect
-    from sqlmodel import JSON, select, Session, SQLModel, TypeDecorator
+    from sqlmodel import JSON, Session, SQLModel, TypeDecorator, select
 
 logger = Logger(__name__)
 engine = None
@@ -47,6 +52,7 @@ def _pydantic_column_type(pydantic_type: Any) -> Any:
         class TrialConfig(SQLModel, table=False):
             ...
             params: Dict[str, Union[Dict[str, float]] = Field(sa_column=Column(pydantic_column_type[Dict[str, float]))
+
     """
 
     class PydanticJSONType(TypeDecorator, Generic[T]):
@@ -88,8 +94,7 @@ def _pydantic_column_type(pydantic_type: Any) -> Any:
                         value_to_dump = pydantic_type.from_orm(value)
                     else:
                         value_to_dump = value
-                    value = dumps(jsonable_encoder(value_to_dump))
-                    return value
+                    return dumps(jsonable_encoder(value_to_dump))
 
             return process
 
@@ -104,8 +109,7 @@ def _pydantic_column_type(pydantic_type: Any) -> Any:
 
                     data = value
                     # Explicitly use the generic directly, not type(T)
-                    full_obj = parse_obj_as(pydantic_type, data)
-                    return full_obj
+                    return parse_obj_as(pydantic_type, data)
 
             else:
 
@@ -114,8 +118,7 @@ def _pydantic_column_type(pydantic_type: Any) -> Any:
                         return None
 
                     # Explicitly use the generic directly, not type(T)
-                    full_obj = parse_obj_as(pydantic_type, value)
-                    return full_obj
+                    return parse_obj_as(pydantic_type, value)
 
             return process
 
@@ -225,6 +228,7 @@ class _Update:
             session.add(result)
             session.commit()
             session.refresh(result)
+            return None
 
 
 class _Delete:
@@ -246,6 +250,7 @@ class _Delete:
             result = results.one()
             session.delete(result)
             session.commit()
+            return None
 
 
 def _create_database(db_filename: str, models: List[Type["SQLModel"]], echo: bool = False):

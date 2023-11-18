@@ -88,7 +88,7 @@ following:
             ...
 
 Similar to the callbacks, any parameter in :class:`~lightning.pytorch.trainer.trainer.Trainer` and user extended
-:class:`~lightning.pytorch.core.module.LightningModule` and
+:class:`~lightning.pytorch.core.LightningModule` and
 :class:`~lightning.pytorch.core.datamodule.LightningDataModule` classes that have as type hint a class, can be
 configured the same way using ``class_path`` and ``init_args``. If the package that defines a subclass is imported
 before the :class:`~lightning.pytorch.cli.LightningCLI` class is run, the name can be used instead of the full import
@@ -158,7 +158,7 @@ A possible config file could be as follows:
         ...
 
 Only model classes that are a subclass of ``MyModelBaseClass`` would be allowed, and similarly, only subclasses of
-``MyDataModuleBaseClass``. If as base classes :class:`~lightning.pytorch.core.module.LightningModule` and
+``MyDataModuleBaseClass``. If as base classes :class:`~lightning.pytorch.core.LightningModule` and
 :class:`~lightning.pytorch.core.datamodule.LightningDataModule` is given, then the CLI would allow any lightning module
 and data module.
 
@@ -290,7 +290,7 @@ An example of a model that uses two optimizers is the following:
 
     cli = MyLightningCLI(MyModel, auto_configure_optimizers=False)
 
-Note the type ``Callable[[Iterable], Optimizer]``, which denotes a function that receives a singe argument, some
+Note the type ``Callable[[Iterable], Optimizer]``, which denotes a function that receives a single argument, some
 learnable parameters, and returns an optimizer instance. With this, from the command line it is possible to select the
 class and init arguments for each of the optimizers, as follows:
 

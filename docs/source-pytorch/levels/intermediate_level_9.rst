@@ -1,7 +1,7 @@
 :orphan:
 
 #################################
-Level 9: Modularize your projects
+Level 8: Modularize your projects
 #################################
 
 This module teaches you how to setup complex projects that can be controlled via the CLI.

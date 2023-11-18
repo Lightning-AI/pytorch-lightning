@@ -20,7 +20,7 @@ import tarfile
 def clean_tarfile(file_path: str, mode: str) -> None:
     """This utility removes all files extracted from a tarfile."""
     if not os.path.exists(file_path):
-        return None
+        return
 
     with tarfile.open(file_path, mode=mode) as tar_ref:
         for member in tar_ref.getmembers():
@@ -42,7 +42,7 @@ def clean_tarfile(file_path: str, mode: str) -> None:
 def extract_tarfile(file_path: str, extract_path: str, mode: str) -> None:
     """This utility extracts all files from a tarfile."""
     if not os.path.exists(file_path):
-        return None
+        return
 
     with tarfile.open(file_path, mode=mode) as tar_ref:
         for member in tar_ref.getmembers():

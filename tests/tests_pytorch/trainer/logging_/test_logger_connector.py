@@ -18,12 +18,6 @@ from unittest.mock import Mock
 
 import pytest
 import torch
-from lightning_utilities.core.imports import compare_version
-from torch.utils.data import DataLoader
-from torchmetrics import Accuracy
-from torchmetrics import AveragePrecision as AvgPre
-from torchmetrics import MeanAbsoluteError, MeanSquaredError, MetricCollection
-
 from lightning.pytorch import LightningModule
 from lightning.pytorch.callbacks.callback import Callback
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
@@ -34,6 +28,11 @@ from lightning.pytorch.trainer.connectors.logger_connector.result import _Result
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.imports import _TORCHMETRICS_GREATER_EQUAL_0_9_1
 from lightning.pytorch.utilities.imports import _TORCHMETRICS_GREATER_EQUAL_0_11 as _TM_GE_0_11
+from lightning_utilities.core.imports import compare_version
+from torch.utils.data import DataLoader
+from torchmetrics import Accuracy, MeanAbsoluteError, MeanSquaredError, MetricCollection
+from torchmetrics import AveragePrecision as AvgPre
+
 from tests_pytorch.models.test_hooks import get_members
 
 
@@ -171,6 +170,7 @@ class HookedModel(BoringModel):
         super().__init__()
         pl_module_hooks = get_members(LightningModule)
         pl_module_hooks.difference_update({"log", "log_dict"})
+        pl_module_hooks.discard("configure_sharded_model")
         # remove `nn.Module` hooks
         module_hooks = get_members(torch.nn.Module)
         pl_module_hooks.difference_update(module_hooks)
@@ -195,7 +195,7 @@ def test_fx_validator_integration(tmpdir):
     not_supported = {
         None: "`self.trainer` reference is not registered",
         "setup": "You can't",
-        "configure_sharded_model": "You can't",
+        "configure_model": "You can't",
         "configure_optimizers": "You can't",
         "on_fit_start": "You can't",
         "train_dataloader": "You can't",
@@ -211,6 +211,7 @@ def test_fx_validator_integration(tmpdir):
         "on_sanity_check_end": "You can't",
         "prepare_data": "You can't",
         "configure_callbacks": "You can't",
+        "on_validation_model_zero_grad": "You can't",
         "on_validation_model_eval": "You can't",
         "on_validation_model_train": "You can't",
         "lr_scheduler_step": "You can't",
@@ -265,7 +266,7 @@ def test_fx_validator_integration(tmpdir):
 
 @pytest.mark.parametrize("add_dataloader_idx", [False, True])
 def test_auto_add_dataloader_idx(tmpdir, add_dataloader_idx):
-    """test that auto_add_dataloader_idx argument works."""
+    """Test that auto_add_dataloader_idx argument works."""
 
     class TestModel(BoringModel):
         def val_dataloader(self):
@@ -310,7 +311,7 @@ def test_metrics_reset(tmpdir):
             return acc, ap
 
         def setup(self, stage):
-            fn = stage
+            fn = stage.value
             if fn == "fit":
                 for stage in ("train", "validate"):
                     acc, ap = self._create_metrics()
@@ -318,7 +319,7 @@ def test_metrics_reset(tmpdir):
                     self.add_module(f"ap_{fn}_{stage}", ap)
             else:
                 acc, ap = self._create_metrics()
-                stage = self.trainer.state.stage
+                stage = self.trainer.state.stage.value
                 self.add_module(f"acc_{fn}_{stage}", acc)
                 self.add_module(f"ap_{fn}_{stage}", ap)
 
@@ -326,7 +327,7 @@ def test_metrics_reset(tmpdir):
             return self.layer(x)
 
         def _step(self, batch):
-            fn, stage = self.trainer.state.fn, self.trainer.state.stage
+            fn, stage = self.trainer.state.fn.value, self.trainer.state.stage.value
 
             logits = self(batch)
             loss = logits.sum()
@@ -354,7 +355,7 @@ def test_metrics_reset(tmpdir):
 
         def validation_step(self, batch, batch_idx, *args, **kwargs):
             if self.trainer.sanity_checking:
-                return
+                return None
             return self._step(batch)
 
         def test_step(self, batch, batch_idx, *args, **kwargs):
@@ -455,8 +456,7 @@ def test_metriccollection_compute_groups(tmpdir, compute_groups):
             return DataLoader(RandomDataset(32, 64))
 
         def configure_optimizers(self):
-            optimizer = torch.optim.SGD(self.parameters(), lr=0.1)
-            return optimizer
+            return torch.optim.SGD(self.parameters(), lr=0.1)
 
         def on_train_epoch_end(self) -> None:
             self.metrics.wrapped_assertion_calls.call_count == 2
@@ -572,7 +572,7 @@ def test_result_collection_on_tensor_with_mean_reduction():
     }
 
 
-@pytest.mark.parametrize("logger", (False, True))
+@pytest.mark.parametrize("logger", [False, True])
 def test_logged_metrics_has_logged_epoch_value(tmpdir, logger):
     class TestModel(BoringModel):
         def training_step(self, batch, batch_idx):

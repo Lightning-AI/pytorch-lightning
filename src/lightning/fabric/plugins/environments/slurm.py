@@ -31,11 +31,15 @@ log = logging.getLogger(__name__)
 class SLURMEnvironment(ClusterEnvironment):
     """Cluster environment for training on a cluster managed by SLURM.
 
+    You can configure the `main_address` and `main_port` properties via the env variables `MASTER_ADDR` and
+    `MASTER_PORT`, respectively.
+
     Args:
         auto_requeue: Whether automatic job resubmission is enabled or not. How and under which conditions a job gets
             rescheduled gets determined by the owner of this plugin.
         requeue_signal: The signal that SLURM will send to indicate that the job should be requeued. Defaults to
             SIGUSR1 on Unix.
+
     """
 
     def __init__(self, auto_requeue: bool = True, requeue_signal: Optional[signal.Signals] = None) -> None:
@@ -53,9 +57,12 @@ class SLURMEnvironment(ClusterEnvironment):
 
     @property
     def main_address(self) -> str:
-        nodelist = os.environ.get("SLURM_NODELIST", "127.0.0.1")
-        root_node = self.resolve_root_node_address(nodelist)
-        os.environ["MASTER_ADDR"] = root_node
+        root_node = os.environ.get("MASTER_ADDR")
+        if root_node is None:
+            nodelist = os.environ.get("SLURM_NODELIST", "127.0.0.1")
+            root_node = self.resolve_root_node_address(nodelist)
+            os.environ["MASTER_ADDR"] = root_node
+
         log.debug(f"MASTER_ADDR: {os.environ['MASTER_ADDR']}")
         return root_node
 
@@ -94,6 +101,7 @@ class SLURMEnvironment(ClusterEnvironment):
         different environment. For this, the user can set the job name in SLURM to 'bash' or 'interactive' (srun --job-
         name=interactive). This will then avoid the detection of ``SLURMEnvironment`` and another environment can be
         detected automatically.
+
         """
         SLURMEnvironment._validate_srun_used()
         return _is_srun_used()
@@ -134,6 +142,22 @@ class SLURMEnvironment(ClusterEnvironment):
     def node_rank(self) -> int:
         return int(os.environ["SLURM_NODEID"])
 
+    def validate_settings(self, num_devices: int, num_nodes: int) -> None:
+        if _is_slurm_interactive_mode():
+            return
+        ntasks_per_node = os.environ.get("SLURM_NTASKS_PER_NODE")
+        if ntasks_per_node is not None and int(ntasks_per_node) != num_devices:
+            raise ValueError(
+                f"You set `devices={num_devices}` in Lightning, but the number of tasks per node configured in SLURM"
+                f" `--ntasks-per-node={ntasks_per_node}` does not match. HINT: Set `devices={ntasks_per_node}`."
+            )
+        nnodes = os.environ.get("SLURM_NNODES")
+        if nnodes is not None and int(nnodes) != num_nodes:
+            raise ValueError(
+                f"You set `num_nodes={num_nodes}` in Lightning, but the number of nodes configured in SLURM"
+                f" `--nodes={nnodes}` does not match. HINT: Set `num_nodes={nnodes}`."
+            )
+
     @staticmethod
     def resolve_root_node_address(nodes: str) -> str:
         """The node selection format in SLURM supports several formats.
@@ -143,6 +167,7 @@ class SLURMEnvironment(ClusterEnvironment):
         - a space-separated list of host names, e.g., 'host0 host1 host3' yields 'host0' as the root
         - a comma-separated list of host names, e.g., 'host0,host1,host3' yields 'host0' as the root
         - the range notation with brackets, e.g., 'host[5-9]' yields 'host5' as the root
+
         """
         nodes = re.sub(r"\[(.*?)[,-].*\]", "\\1", nodes)  # Take the first node of every node range
         nodes = re.sub(r"\[(.*?)\]", "\\1", nodes)  # handle special case where node range is single number
@@ -155,6 +180,7 @@ class SLURMEnvironment(ClusterEnvironment):
         Parallel jobs (multi-GPU, multi-node) in SLURM are launched by prepending `srun` in front of the Python command.
         Not doing so will result in processes hanging, which is a frequent user error. Lightning will emit a warning if
         `srun` is found but not used.
+
         """
         if _IS_WINDOWS:
             return
@@ -170,12 +196,12 @@ class SLURMEnvironment(ClusterEnvironment):
 
     @staticmethod
     def _validate_srun_variables() -> None:
-        """Checks for conflicting or incorrectly set variables set through `srun` and raises a useful error
-        message.
+        """Checks for conflicting or incorrectly set variables set through `srun` and raises a useful error message.
 
         Right now, we only check for the most common user errors. See
         `the srun docs <https://slurm.schedmd.com/srun.html>`_
         for a complete list of supported srun variables.
+
         """
         ntasks = int(os.environ.get("SLURM_NTASKS", "1"))
         if ntasks > 1 and "SLURM_NTASKS_PER_NODE" not in os.environ:

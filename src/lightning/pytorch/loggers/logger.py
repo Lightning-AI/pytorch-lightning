@@ -21,6 +21,7 @@ from collections import defaultdict
 from typing import Any, Callable, Dict, Mapping, Optional, Sequence
 
 import numpy as np
+from typing_extensions import override
 
 from lightning.fabric.loggers import Logger as FabricLogger
 from lightning.fabric.loggers.logger import _DummyExperiment as DummyExperiment  # for backward compatibility
@@ -36,6 +37,7 @@ class Logger(FabricLogger, ABC):
 
         Args:
             checkpoint_callback: the model checkpoint callback instance
+
         """
         pass
 
@@ -50,6 +52,7 @@ class DummyLogger(Logger):
     """Dummy logger for internal use.
 
     It is useful if we want to disable user's logger for a feature, but still ensure that user code can run
+
     """
 
     def __init__(self) -> None:
@@ -61,18 +64,22 @@ class DummyLogger(Logger):
         """Return the experiment object associated with this logger."""
         return self._experiment
 
+    @override
     def log_metrics(self, *args: Any, **kwargs: Any) -> None:
         pass
 
+    @override
     def log_hyperparams(self, *args: Any, **kwargs: Any) -> None:
         pass
 
     @property
+    @override
     def name(self) -> str:
         """Return the experiment name."""
         return ""
 
     @property
+    @override
     def version(self) -> str:
         """Return the experiment version."""
         return ""
@@ -96,8 +103,7 @@ def merge_dicts(  # pragma: no cover
     agg_key_funcs: Optional[Mapping] = None,
     default_func: Callable[[Sequence[float]], float] = np.mean,
 ) -> Dict:
-    """Merge a sequence with dictionaries into one dictionary by aggregating the same keys with some given
-    function.
+    """Merge a sequence with dictionaries into one dictionary by aggregating the same keys with some given function.
 
     Args:
         dicts:
@@ -128,6 +134,7 @@ def merge_dicts(  # pragma: no cover
          'c': 1,
          'd': {'d1': 3, 'd2': 3, 'd3': 3, 'd4': {'d5': 1}},
          'v': 2.3}
+
     """
     agg_key_funcs = agg_key_funcs or {}
     keys = list(functools.reduce(operator.or_, [set(d.keys()) for d in dicts]))

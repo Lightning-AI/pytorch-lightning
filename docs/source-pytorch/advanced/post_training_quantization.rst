@@ -20,7 +20,7 @@ Model Quantization
 
 Model quantization is an efficient model optimization tool that can accelerate the model inference speed and decrease the memory load while still maintaining the model accuracy.
 
-Different from the inherent model quantization callback "QuantizationAwareTraining" in PyTorch Lightning, Intel® Neural Compressor provides a convenient model quantization API to quantize the already-trained Lightning module with Post-training Quantization and Quantization Aware Training. This extension API exhibits the merits of an ease-of-use coding environment and multi-functional quantization options. The user can easily quantize their fine-tuned model by adding a few clauses to their original code.  We only introduce post-training quantization in this document.
+Intel® Neural Compressor provides a convenient model quantization API to quantize the already-trained Lightning module with Post-training Quantization and Quantization Aware Training. This extension API exhibits the merits of an ease-of-use coding environment and multi-functional quantization options. The user can easily quantize their fine-tuned model by adding a few clauses to their original code.  We only introduce post-training quantization in this document.
 
 There are two post-training quantization types in Intel® Neural Compressor, post-training static quantization and post-training dynamic quantization.  Post-training dynamic quantization is a recommended starting point because it provides reduced memory usage and faster computation without additional calibration datasets. This type of quantization statically quantizes only the weights from floating point to integer at conversion time. This optimization provides latencies close to post-training static quantization. But the outputs of ops are still stored with the floating point, so the increased speed of dynamic-quantized ops is less than a static-quantized computation.
 
@@ -126,7 +126,7 @@ At last, the quantized model can be saved by:
 Hands-on Examples
 *****************
 
-Based on the `given example code <https://lightning.ai/docs/pytorch/stable/notebooks/lightning_examples/text-transformers.html>`_, we show how Intel Neural Compressor conduct model quantization on PyTorch Lightning. We first define the basic config of the quantization process.
+Based on the `given example code <https://lightning.ai/docs/pytorch/2.1.0/notebooks/lightning_examples/text-transformers.html>`_, we show how Intel Neural Compressor conduct model quantization on PyTorch Lightning. We first define the basic config of the quantization process.
 
 .. code-block:: python
 

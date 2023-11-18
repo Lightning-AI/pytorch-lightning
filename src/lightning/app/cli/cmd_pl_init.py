@@ -86,8 +86,8 @@ def pl_app(source_dir: str, script_path: str, name: str, overwrite: bool) -> Non
                 err=True,
             )
             raise SystemExit(1)
-        else:
-            shutil.rmtree(destination)
+
+        shutil.rmtree(destination)
 
     template_dir = Path(lightning.app.cli.__file__).parent / "pl-app-template"
 

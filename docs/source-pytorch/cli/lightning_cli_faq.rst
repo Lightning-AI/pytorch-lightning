@@ -63,7 +63,6 @@ which prints:
         validate            Perform one evaluation epoch over the validation set.
         test                Perform one evaluation epoch over the test set.
         predict             Run inference on your data.
-        tune                Runs routines to tune hyperparameters before training.
 
 use a subcommand as follows:
 

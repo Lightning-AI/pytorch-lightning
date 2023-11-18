@@ -8,12 +8,11 @@ import numpy as np
 import torch
 import torchvision
 import torchvision.transforms as T
-from PIL import Image as PILImage
-
-from lightning.pytorch import cli_lightning_logo, LightningDataModule, LightningModule
+from lightning.pytorch import LightningDataModule, LightningModule, cli_lightning_logo
 from lightning.pytorch.cli import LightningCLI
 from lightning.pytorch.serve import ServableModule, ServableModuleValidator
 from lightning.pytorch.utilities.model_helpers import get_torchvision_model
+from PIL import Image as PILImage
 
 DATASETS_PATH = path.join(path.dirname(__file__), "..", "..", "Datasets")
 
@@ -89,8 +88,7 @@ class ProductionReadyModel(LitModule, ServableModule):
         pil_image.save(buffered, format="JPEG")
         img_str = base64.b64encode(buffered.getvalue()).decode("UTF-8")
 
-        payload = {"body": {"x": img_str}}
-        return payload
+        return {"body": {"x": img_str}}
 
     def configure_serialization(self):
         return {"x": Image(224, 224).deserialize}, {"output": Top1().serialize}

@@ -14,7 +14,6 @@
 from copy import deepcopy
 
 import pytest
-
 from lightning.pytorch.loops.progress import (
     _BaseProgress,
     _OptimizerProgress,
@@ -41,7 +40,7 @@ def test_tracker_reset_on_restart():
     assert t == _ProcessedTracker(ready=2, started=2, processed=2, completed=2)
 
 
-@pytest.mark.parametrize("attr", ("ready", "started", "processed", "completed"))
+@pytest.mark.parametrize("attr", ["ready", "started", "processed", "completed"])
 def test_progress_increment(attr):
     p = _Progress()
     fn = getattr(p, f"increment_{attr}")
@@ -93,6 +92,7 @@ def test_optimizer_progress_default_factory():
     """Ensure that the defaults are created appropriately.
 
     If `default_factory` was not used, the default would be shared between instances.
+
     """
     p1 = _OptimizerProgress()
     p2 = _OptimizerProgress()

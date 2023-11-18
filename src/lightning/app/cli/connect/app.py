@@ -57,6 +57,7 @@ def connect_app(app_name_or_id: str):
     \b
     # once done, disconnect and go back to the standard lightning CLI commands
     lightning disconnect
+
     """
     from lightning.app.utilities.commands.base import _download_command
 
@@ -111,7 +112,7 @@ def connect_app(app_name_or_id: str):
 
             for command_name, metadata in retriever.api_commands.items():
                 if "cls_path" in metadata:
-                    target_file = os.path.join(commands_folder, f"{command_name.replace(' ','_')}.py")
+                    target_file = os.path.join(commands_folder, f"{command_name.replace(' ', '_')}.py")
                     _download_command(
                         command_name,
                         metadata["cls_path"],
@@ -364,7 +365,7 @@ def _clean_lightning_connection():
 
 def _scan_lightning_connections(app_name_or_id):
     if not os.path.exists(_LIGHTNING_CONNECTION):
-        return
+        return None
 
     for ppid in os.listdir(_LIGHTNING_CONNECTION):
         try:

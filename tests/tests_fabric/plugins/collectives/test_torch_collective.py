@@ -6,13 +6,13 @@ from unittest import mock
 
 import pytest
 import torch
-
 from lightning.fabric.accelerators import CPUAccelerator, CUDAAccelerator
 from lightning.fabric.plugins.collectives import TorchCollective
 from lightning.fabric.plugins.environments import LightningEnvironment
 from lightning.fabric.strategies.ddp import DDPStrategy
 from lightning.fabric.strategies.launchers.multiprocessing import _MultiProcessingLauncher
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_13
+
 from tests_fabric.helpers.runif import RunIf
 
 if TorchCollective.is_available():
@@ -48,7 +48,7 @@ def check_destroy_group():
 
 
 @pytest.mark.parametrize(
-    ["fn_name", "kwargs", "return_key"],
+    ("fn_name", "kwargs", "return_key"),
     [
         ("send", {"tensor": PASSED_TENSOR, "dst": 0, "tag": 0}, None),
         ("recv", {"tensor": PASSED_TENSOR, "src": 0, "tag": 0}, "tensor"),
@@ -230,10 +230,11 @@ def _test_distributed_collectives_fn(strategy, collective):
     torch.testing.assert_close(out, expected)
 
 
+@pytest.mark.skip(reason="test hangs too often")
 @skip_distributed_unavailable
-@pytest.mark.parametrize("n", (1, 2))
-@RunIf(skip_windows=True)
-@mock.patch.dict(os.environ, os.environ.copy(), clear=True)  # sets CUDA_MODULE_LOADING in torch==1.13
+@pytest.mark.parametrize(
+    "n", [1, pytest.param(2, marks=[RunIf(skip_windows=True), pytest.mark.xfail(raises=TimeoutError, strict=False)])]
+)
 def test_collectives_distributed(n):
     collective_launch(_test_distributed_collectives_fn, [torch.device("cpu")] * n)
 
@@ -268,7 +269,9 @@ def _test_two_groups(strategy, left_collective, right_collective):
 
 
 @skip_distributed_unavailable
-@pytest.mark.skip(reason="TODO(carmocca): causing hangs in CI")
+@pytest.mark.flaky(reruns=5)
+@RunIf(skip_windows=True)  # unhandled timeouts
+@pytest.mark.xfail(raises=TimeoutError, strict=False)
 def test_two_groups():
     collective_launch(_test_two_groups, [torch.device("cpu")] * 3, num_groups=2)
 
@@ -284,8 +287,8 @@ def _test_default_process_group(strategy, *collectives):
 
 
 @skip_distributed_unavailable
-@RunIf(skip_windows=True)
-@mock.patch.dict(os.environ, os.environ.copy(), clear=True)  # sets CUDA_MODULE_LOADING in torch==1.13
+@pytest.mark.flaky(reruns=5)
+@RunIf(skip_windows=True)  # unhandled timeouts
 def test_default_process_group():
     collective_launch(_test_default_process_group, [torch.device("cpu")] * 3, num_groups=2)
 

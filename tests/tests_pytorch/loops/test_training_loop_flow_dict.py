@@ -14,9 +14,9 @@
 """Tests to ensure that the training loop works with a dict (1.0)"""
 
 import torch
-
 from lightning.pytorch import Trainer
 from lightning.pytorch.core.module import LightningModule
+
 from tests_pytorch.helpers.deterministic_model import DeterministicModel
 
 
@@ -93,8 +93,7 @@ def test__training_step__epoch_end__flow_dict(tmpdir):
             acc = acc + batch_idx
 
             self.training_step_called = True
-            out = {"loss": acc, "random_things": [1, "a", torch.tensor(2)], "batch_idx": batch_idx}
-            return out
+            return {"loss": acc, "random_things": [1, "a", torch.tensor(2)], "batch_idx": batch_idx}
 
         def backward(self, loss):
             return LightningModule.backward(self, loss)

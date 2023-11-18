@@ -3,7 +3,7 @@ import time
 from typing import Dict, List
 
 from lightning.app import BuildConfig, LightningFlow, LightningWork
-from lightning.app.storage import Path
+from lightning.app.storage.path import Path
 
 
 class TensorBoard(LightningFlow):
@@ -13,6 +13,7 @@ class TensorBoard(LightningFlow):
         Args:
             log_dir: The path to the directory where the TensorBoard log-files will appear.
             sync_every_n_seconds: How often to sync the log directory (given as an argument to the run method)
+
         """
         super().__init__()
         self.worker = TensorBoardWorker(log_dir=log_dir, sync_every_n_seconds=sync_every_n_seconds)

@@ -17,7 +17,7 @@ import threading
 import traceback
 from queue import Empty
 from threading import Thread
-from typing import Dict, Optional, TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, Dict, Optional, Union
 
 from lightning.app.core.queues import BaseQueue
 from lightning.app.storage.path import _filesystem, _path_to_work_artifact
@@ -26,7 +26,7 @@ from lightning.app.utilities.app_helpers import Logger
 from lightning.app.utilities.enum import WorkStageStatus
 
 if TYPE_CHECKING:
-    from lightning.app import LightningApp
+    from lightning.app.core.app import LightningApp
 
 
 _PathRequest = Union[_GetRequest, _ExistsRequest]
@@ -47,6 +47,7 @@ class StorageOrchestrator(Thread):
             put requests on this queue for the file-transfer thread to complete.
         copy_response_queues: A dictionary of Queues where each Queue connects to one Work. The queue is expected to
             contain the completion response from the file-transfer thread running in the Work process.
+
     """
 
     def __init__(
@@ -70,7 +71,13 @@ class StorageOrchestrator(Thread):
         # Note: Use different sleep time locally and in the cloud
         # to reduce queue calls.
         self._sleep_time = 0.1 if "LIGHTNING_APP_STATE_URL" not in os.environ else 2
-        self.fs = _filesystem()
+        self._fs = None
+
+    @property
+    def fs(self):
+        if self._fs is None:
+            self._fs = _filesystem()
+        return self._fs
 
     def _validate_queues(self):
         assert (
@@ -100,6 +107,11 @@ class StorageOrchestrator(Thread):
             request_queue = self.request_queues[work_name]
             try:
                 request: _PathRequest = request_queue.get(timeout=0)  # this should not block
+                # This should not happen under normal conditions, but it has occurred.
+                # For now we are tolerant with respect to requests being None in the queue
+                # and just move on.
+                if request is None:
+                    raise Empty
             except Empty:
                 pass
             else:

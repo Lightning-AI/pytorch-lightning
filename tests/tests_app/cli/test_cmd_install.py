@@ -5,7 +5,6 @@ from unittest import mock
 
 import pytest
 from click.testing import CliRunner
-
 from lightning.app.cli import cmd_install, lightning_cli
 from lightning.app.testing.helpers import _RunIf
 
@@ -33,18 +32,14 @@ def test_valid_org_app_name():
     assert "Press enter to continue:" in result.output
 
 
-@pytest.mark.skip(reason="need to figure out how to authorize git clone from the private repo")
+@pytest.mark.xfail(strict=False, reason="need to figure out how to authorize git clone from the private repo")
 def test_valid_unpublished_app_name():
     runner = CliRunner()
 
     # assert warning of non official app given
     real_app = "https://github.com/Lightning-AI/install-app"
-    try:
+    with pytest.raises(subprocess.CalledProcessError, match="WARNING"):
         subprocess.check_output(f"lightning install app {real_app}", shell=True, stderr=subprocess.STDOUT)
-        # this condition should never be hit
-        assert False
-    except subprocess.CalledProcessError as ex:
-        assert "WARNING" in str(ex.output)
 
     # assert aborted install
     result = runner.invoke(lightning_cli.cmd_install.install_app, [real_app], input="q")
@@ -60,7 +55,7 @@ def test_valid_unpublished_app_name():
     assert "Press enter to continue:" in result.output
 
 
-@pytest.mark.skip(reason="need to figure out how to authorize git clone from the private repo")
+@pytest.mark.xfail(strict=False, reason="need to figure out how to authorize git clone from the private repo")
 def test_app_install(tmpdir, monkeypatch):
     """Tests unpublished app install."""
     monkeypatch.chdir(tmpdir)
@@ -109,9 +104,9 @@ def test_unpublished_component_url_parsing():
     assert "Press enter to continue:" in result.output
 
 
-@pytest.mark.skip(reason="need to figure out how to authorize pip install from the private repo")
+@pytest.mark.xfail(strict=False, reason="need to figure out how to authorize pip install from the private repo")
 @pytest.mark.parametrize(
-    "real_component, test_component_pip_name",
+    ("real_component", "test_component_pip_name"),
     [
         ("lightning/lit-slack-messenger", "lit-slack"),
         (
@@ -353,7 +348,7 @@ def test_private_component_registry():
 @mock.patch("lightning.app.cli.cmd_install.subprocess")
 @mock.patch("lightning.app.cli.cmd_install.os.chdir", mock.MagicMock())
 @pytest.mark.parametrize(
-    "source_url, git_url, git_sha",
+    ("source_url", "git_url", "git_sha"),
     [
         (
             "https://github.com/PyTorchLightning/lightning-quick-start",

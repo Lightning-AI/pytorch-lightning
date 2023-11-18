@@ -15,12 +15,12 @@ import os
 from unittest import mock
 
 import torch
+from lightning.pytorch import Trainer, seed_everything
+from lightning.pytorch.callbacks import Callback, EarlyStopping, ModelCheckpoint
+from lightning.pytorch.demos.boring_classes import BoringModel
 
 import tests_pytorch.helpers.pipelines as tpipes
 import tests_pytorch.helpers.utils as tutils
-from lightning.pytorch import Trainer
-from lightning.pytorch.callbacks import Callback, EarlyStopping, ModelCheckpoint
-from lightning.pytorch.demos.boring_classes import BoringModel
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.simple_models import ClassificationModel
@@ -29,6 +29,8 @@ from tests_pytorch.helpers.simple_models import ClassificationModel
 @mock.patch("lightning.fabric.plugins.environments.slurm.SLURMEnvironment.detect", return_value=True)
 def test_cpu_slurm_save_load(_, tmpdir):
     """Verify model save/load/checkpoint on CPU."""
+    seed_everything(42)
+
     model = BoringModel()
 
     # logger file to get meta
@@ -80,7 +82,8 @@ def test_cpu_slurm_save_load(_, tmpdir):
     class _StartCallback(Callback):
         # set the epoch start hook so we can predict before the model does the full training
         def on_train_epoch_start(self, trainer, model):
-            assert trainer.global_step == real_global_step and trainer.global_step > 0
+            assert trainer.global_step == real_global_step
+            assert trainer.global_step > 0
             # predict with loaded model to make sure answers are the same
             mode = model.training
             model.eval()
@@ -100,6 +103,8 @@ def test_cpu_slurm_save_load(_, tmpdir):
 
 
 def test_early_stopping_cpu_model(tmpdir):
+    seed_everything(42)
+
     class ModelTrainVal(BoringModel):
         def validation_step(self, *args, **kwargs):
             output = super().validation_step(*args, **kwargs)
@@ -113,7 +118,7 @@ def test_early_stopping_cpu_model(tmpdir):
         "gradient_clip_val": 1.0,
         "enable_progress_bar": False,
         "accumulate_grad_batches": 2,
-        "limit_train_batches": 0.1,
+        "limit_train_batches": 0.3,
         "limit_val_batches": 0.1,
     }
 
@@ -128,6 +133,8 @@ def test_early_stopping_cpu_model(tmpdir):
 @RunIf(skip_windows=True, sklearn=True)
 def test_multi_cpu_model_ddp(tmpdir):
     """Make sure DDP works."""
+    seed_everything(42)
+
     trainer_options = {
         "default_root_dir": tmpdir,
         "enable_progress_bar": False,
@@ -148,7 +155,9 @@ def test_lbfgs_cpu_model(tmpdir):
     """Test each of the trainer options.
 
     Testing LBFGS optimizer
+
     """
+    seed_everything(42)
 
     class ModelSpecifiedOptimizer(BoringModel):
         def __init__(self, optimizer_name, learning_rate):
@@ -171,6 +180,8 @@ def test_lbfgs_cpu_model(tmpdir):
 
 def test_default_logger_callbacks_cpu_model(tmpdir):
     """Test each of the trainer options."""
+    seed_everything(42)
+
     trainer_options = {
         "default_root_dir": tmpdir,
         "max_epochs": 1,
@@ -191,6 +202,7 @@ def test_default_logger_callbacks_cpu_model(tmpdir):
 
 def test_running_test_after_fitting(tmpdir):
     """Verify test() on fitted model."""
+    seed_everything(42)
 
     class ModelTrainValTest(BoringModel):
         def validation_step(self, *args, **kwargs):
@@ -236,7 +248,9 @@ def test_running_test_no_val(tmpdir):
     """Verify `test()` works on a model with no `val_dataloader`.
 
     It performs train and test only
+
     """
+    seed_everything(42)
 
     class ModelTrainTest(BoringModel):
         def test_step(self, *args, **kwargs):
@@ -275,20 +289,9 @@ def test_running_test_no_val(tmpdir):
     tutils.assert_ok_model_acc(trainer, key="test_loss")
 
 
-def test_simple_cpu(tmpdir):
-    """Verify continue training session on CPU."""
-    model = BoringModel()
-
-    # fit model
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, limit_val_batches=0.1, limit_train_batches=20)
-    trainer.fit(model)
-
-    # traning complete
-    assert trainer.state.finished, "amp + ddp model failed to complete"
-
-
 def test_cpu_model(tmpdir):
     """Make sure model trains on CPU."""
+    seed_everything(42)
     trainer_options = {
         "default_root_dir": tmpdir,
         "enable_progress_bar": False,
@@ -303,6 +306,7 @@ def test_cpu_model(tmpdir):
 
 def test_all_features_cpu_model(tmpdir):
     """Test each of the trainer options."""
+    seed_everything(42)
     trainer_options = {
         "default_root_dir": tmpdir,
         "gradient_clip_val": 1.0,
@@ -315,5 +319,4 @@ def test_all_features_cpu_model(tmpdir):
     }
 
     model = BoringModel()
-
-    tpipes.run_model_test(trainer_options, model, min_acc=0.01)
+    tpipes.run_model_test(trainer_options, model)

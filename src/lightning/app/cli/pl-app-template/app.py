@@ -3,10 +3,9 @@ from typing import Dict, List, Optional, Union
 
 from core.components import TensorBoard, WeightsAndBiases
 from core.components.script_runner import ScriptRunner
-
 from lightning.app import LightningApp, LightningFlow
 from lightning.app.frontend import StaticWebFrontend
-from lightning.app.storage import Path
+from lightning.app.storage.path import Path
 from lightning.app.utilities.packaging.cloud_compute import CloudCompute
 
 
@@ -90,7 +89,7 @@ class Main(LightningFlow):
     def _choose_logger_component(self) -> Optional[Union[TensorBoard, WeightsAndBiases]]:
         logger_metadatas = self.script_orchestrator.script_runner.logger_metadatas
         if not logger_metadatas:
-            return
+            return None
         if logger_metadatas[0].get("class_name") == "TensorBoardLogger":
             return TensorBoard(log_dir=self.script_orchestrator.script_runner.log_dir)
         if logger_metadatas[0].get("class_name") == "WandbLogger":
@@ -100,6 +99,7 @@ class Main(LightningFlow):
                 run_id=logger_metadatas[0]["run_id"],
                 api_key=self.script_orchestrator.environment_variables.get("WANDB_API_KEY"),
             )
+        return None
 
 
 app = LightningApp(Main())

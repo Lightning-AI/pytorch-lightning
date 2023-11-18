@@ -15,7 +15,9 @@ from typing import Any, Dict, List, Union
 
 import torch
 from lightning_utilities.core.imports import RequirementCache
+from typing_extensions import override
 
+from lightning.fabric.accelerators import _AcceleratorRegistry
 from lightning.fabric.accelerators.cpu import _parse_cpu_cores
 from lightning.fabric.utilities.types import _DEVICE
 from lightning.pytorch.accelerators.accelerator import Accelerator
@@ -25,6 +27,7 @@ from lightning.pytorch.utilities.exceptions import MisconfigurationException
 class CPUAccelerator(Accelerator):
     """Accelerator for CPU devices."""
 
+    @override
     def setup_device(self, device: torch.device) -> None:
         """
         Raises:
@@ -34,41 +37,47 @@ class CPUAccelerator(Accelerator):
         if device.type != "cpu":
             raise MisconfigurationException(f"Device should be CPU, got {device} instead.")
 
+    @override
     def get_device_stats(self, device: _DEVICE) -> Dict[str, Any]:
         """Get CPU stats from ``psutil`` package."""
         return get_cpu_stats()
 
+    @override
     def teardown(self) -> None:
         pass
 
     @staticmethod
+    @override
     def parse_devices(devices: Union[int, str, List[int]]) -> int:
         """Accelerator device parsing logic."""
-        devices = _parse_cpu_cores(devices)
-        return devices
+        return _parse_cpu_cores(devices)
 
     @staticmethod
+    @override
     def get_parallel_devices(devices: Union[int, str, List[int]]) -> List[torch.device]:
         """Gets parallel devices for the Accelerator."""
         devices = _parse_cpu_cores(devices)
         return [torch.device("cpu")] * devices
 
     @staticmethod
+    @override
     def auto_device_count() -> int:
         """Get the devices when set to auto."""
         return 1
 
     @staticmethod
+    @override
     def is_available() -> bool:
         """CPU is always available for execution."""
         return True
 
     @classmethod
-    def register_accelerators(cls, accelerator_registry: Dict) -> None:
+    @override
+    def register_accelerators(cls, accelerator_registry: _AcceleratorRegistry) -> None:
         accelerator_registry.register(
             "cpu",
             cls,
-            description=f"{cls.__class__.__name__}",
+            description=cls.__name__,
         )
 
 

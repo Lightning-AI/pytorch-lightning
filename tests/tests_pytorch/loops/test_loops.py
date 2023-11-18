@@ -19,13 +19,14 @@ from unittest.mock import ANY, Mock
 
 import pytest
 import torch
-from torch.utils.data.dataloader import _MultiProcessingDataLoaderIter, DataLoader
-
 from lightning.pytorch import LightningModule, Trainer
 from lightning.pytorch.callbacks import Callback, ModelCheckpoint, OnExceptionCheckpoint
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
 from lightning.pytorch.loops import _Loop
 from lightning.pytorch.loops.progress import _BaseProgress
+from torch.utils.data.dataloader import DataLoader, _MultiProcessingDataLoaderIter
+
+from tests_pytorch.helpers.runif import RunIf
 
 
 def test_restarting_loops_recursive():
@@ -190,9 +191,9 @@ def test_loop_hierarchy():
     assert state_dict == {"state_dict": {"a": 1}, "progress": {"increment": 1}}
 
 
-@pytest.mark.parametrize("stop_epoch", (1, 2))
-@pytest.mark.parametrize("stop_batch", (1, 2))
-@pytest.mark.parametrize("n_dataloaders,stop_dataloader", [(2, 0), (2, 1), (3, 2)])
+@pytest.mark.parametrize("stop_epoch", [1, 2])
+@pytest.mark.parametrize("stop_batch", [1, 2])
+@pytest.mark.parametrize(("n_dataloaders", "stop_dataloader"), [(2, 0), (2, 1), (3, 2)])
 def test_loop_restart_progress_multiple_dataloaders(tmpdir, n_dataloaders, stop_dataloader, stop_epoch, stop_batch):
     n_batches = 5
     n_epochs = 3
@@ -251,9 +252,9 @@ def test_loop_restart_progress_multiple_dataloaders(tmpdir, n_dataloaders, stop_
     assert trainer.fit_loop.epoch_loop.val_loop.batch_progress.state_dict() == expected
 
 
-@pytest.mark.parametrize("accumulate_grad_batches", (1, 2, 3))
-@pytest.mark.parametrize("stop_epoch", (1, 2))
-@pytest.mark.parametrize("stop_batch", (1, 2))
+@pytest.mark.parametrize("accumulate_grad_batches", [1, 2, 3])
+@pytest.mark.parametrize("stop_epoch", [1, 2])
+@pytest.mark.parametrize("stop_batch", [1, 2])
 def test_loop_state_on_exception(accumulate_grad_batches, stop_epoch, stop_batch, tmpdir):
     n_epochs = 3
     n_batches = 3
@@ -344,7 +345,7 @@ def test_loop_state_on_exception(accumulate_grad_batches, stop_epoch, stop_batch
                 "processed": stop_batch,
                 "completed": stop_batch,
             },
-            "is_last_batch": False,
+            "is_last_batch": (stop_batch + 1) == n_batches,
         },
         "epoch_loop.scheduler_progress": {
             "total": {"ready": nbe_sch_steps + be_sch_steps, "completed": nbe_sch_steps + be_sch_steps},
@@ -605,7 +606,7 @@ def test_fit_loop_reset(tmpdir):
 
 
 @pytest.mark.parametrize(
-    ["train_datasets", "val_datasets"],
+    ("train_datasets", "val_datasets"),
     [([RandomDataset], [RandomDataset]), ([RandomDataset], [RandomDataset, RandomDataset])],
 )
 @pytest.mark.parametrize("val_check_interval", [0.5, 1.0])
@@ -756,6 +757,7 @@ def test_fit_can_fail_during_validation(train_datasets, val_datasets, val_check_
     assert state_dict_after_restart[val_batch_progress] == expected[val_batch_progress]
 
 
+@RunIf(skip_windows=True)  # flaky on Windows
 @pytest.mark.parametrize("should_fail", [False, True])
 @pytest.mark.parametrize("persistent_workers", [False, True])
 def test_workers_are_shutdown(tmpdir, should_fail, persistent_workers):
@@ -799,9 +801,9 @@ def test_workers_are_shutdown(tmpdir, should_fail, persistent_workers):
         def _get_iterator(self):
             if self.num_workers == 0:
                 return super()._get_iterator()
-            else:
-                self.check_worker_number_rationality()
-                return _TestMultiProcessingDataLoaderIter(self, dataloader=self)
+
+            self.check_worker_number_rationality()
+            return _TestMultiProcessingDataLoaderIter(self, dataloader=self)
 
     train_dataloader = TestDataLoader(RandomDataset(32, 64), num_workers=1, persistent_workers=persistent_workers)
     val_dataloader = TestDataLoader(RandomDataset(32, 64), num_workers=1, persistent_workers=persistent_workers)
@@ -813,51 +815,70 @@ def test_workers_are_shutdown(tmpdir, should_fail, persistent_workers):
         trainer.fit(model, train_dataloader, val_dataloader)
 
     if persistent_workers:
+        # workers get created and persist until the teardown in the final epoch
         expected = [trainer.current_epoch, trainer.current_epoch]  # once epoch end, once on teardown
     elif should_fail:
         expected = [
-            # iterable check
-            0,
-            # epoch ends
-            1,
-            # teardown
-            1,
+            # <-- iter() on epoch 0, workers get created
+            1,  # iter() on epoch 1, workers from epoch 0 get destroyed
+            1,  # teardown on failed epoch 1, workers from epoch 1 get destroyed
         ]
     else:
         expected = [
-            # iterable check
-            0,
-            # epoch ends
-            1,
-            2,
-            # teardown
-            3,
+            # <-- iter() on epoch 0, workers get created
+            1,  # iter() on epoch 1, workers from epoch 0 get destroyed
+            2,  # iter() on epoch 2, workers from epoch 1 get destroyed
+            3,  # teardown on epoch 2, workers from epoch 2 get destroyed
         ]
     assert train_dataloader.shutdown_workers_epochs == expected
 
     if persistent_workers:
+        # workers get created and persist until the teardown in the final epoch
         expected = [trainer.current_epoch, trainer.current_epoch]  # once epoch end, once on teardown
     elif should_fail:
         expected = [
-            # sanity check
-            0,
-            # iterable check
-            0,
-            # epoch ends
-            1,
-            # teardown
-            1,
+            # <-- iter() on sanity check, workers get created
+            0,  # iter() on epoch 0, workers from sanity check get destroyed
+            1,  # iter() on epoch 1, workers from epoch 0 get destroyed
+            1,  # teardown on failed epoch 1, workers from epoch 1 get destroyed
         ]
     else:
         expected = [
-            # sanity check
-            0,
-            # iterable check
-            0,
-            # epoch ends
-            1,
-            2,
-            # teardown
-            3,
+            # <-- iter() on sanity check, workers get created
+            0,  # iter() on epoch 0, workers from sanity check get destroyed
+            1,  # iter() on epoch 1, workers from epoch 0 get destroyed
+            2,  # iter() on epoch 2, workers from epoch 1 get destroyed
+            3,  # teardown on epoch 2, workers from epoch 2 get destroyed
         ]
     assert val_dataloader.shutdown_workers_epochs == expected
+
+
+def test_validation_during_gradient_accumulation_window(tmp_path):
+    """Test that gradients don't get erased when the validation interval falls within the gradient accumulation
+    phase."""
+
+    class ValidationModel(BoringModel):
+        def on_validation_start(self):
+            batch_idx = self.trainer.fit_loop.epoch_loop.batch_progress.current.completed
+            grad_expected = batch_idx % self.trainer.accumulate_grad_batches != 0
+            if grad_expected:
+                assert batch_idx in (2, 4)
+                assert all(p.grad is not None for p in self.parameters())
+            else:
+                assert batch_idx == 6
+                assert all(p.grad is None for p in self.parameters())
+            self.ran_assert = True
+
+    model = ValidationModel()
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        limit_train_batches=6,
+        limit_val_batches=1,
+        accumulate_grad_batches=3,
+        # validation happens in the middle of the first two accumulations, and at the end of the third
+        val_check_interval=2,
+        max_epochs=1,
+        num_sanity_val_steps=0,
+    )
+    trainer.fit(model)
+    assert model.ran_assert

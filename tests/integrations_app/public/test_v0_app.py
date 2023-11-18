@@ -5,14 +5,14 @@ from unittest import mock
 from unittest.mock import MagicMock
 
 import pytest
-
-from integrations_app.public import _PATH_EXAMPLES
 from lightning.app import LightningApp
 from lightning.app.runners import CloudRuntime
 from lightning.app.testing import EmptyFlow
-from lightning.app.testing.testing import application_testing, LightningTestApp, run_app_in_cloud, wait_for
+from lightning.app.testing.testing import LightningTestApp, application_testing, run_app_in_cloud, wait_for
 from lightning.app.utilities.enum import AppStage
 from lightning.app.utilities.load_app import load_app_from_file
+
+from integrations_app.public import _PATH_EXAMPLES
 
 
 class LightningAppTestInt(LightningTestApp):
@@ -59,7 +59,7 @@ def run_v0_app(fetch_logs, view_page):
         sleep(1)
 
 
-@pytest.mark.cloud
+@pytest.mark.cloud()
 @pytest.mark.skipif(
     os.environ.get("LIGHTNING_BYOC_CLUSTER_ID") is None,
     reason="missing LIGHTNING_BYOC_CLUSTER_ID environment variable",
@@ -72,7 +72,7 @@ def test_v0_app_example_byoc_cloud() -> None:
         run_v0_app(fetch_logs, view_page)
 
 
-@pytest.mark.cloud
+@pytest.mark.cloud()
 def test_v0_app_example_cloud() -> None:
     with run_app_in_cloud(os.path.join(_PATH_EXAMPLES, "v0")) as (
         _,

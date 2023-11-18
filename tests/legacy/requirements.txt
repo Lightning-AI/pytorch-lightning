@@ -1,2 +1,2 @@
-torchmetrics  # necessary because old PL verions don't have it as dependency
+torchmetrics  # necessary because old PL versions don't have it as dependency
 scikit-learn

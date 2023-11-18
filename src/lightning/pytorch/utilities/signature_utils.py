@@ -25,6 +25,9 @@ def is_param_in_hook_signature(
         explicit: whether the parameter has to be explicitly declared
         min_args: whether the `signature` has at least `min_args` parameters
     """
+    if hasattr(hook_fx, "__wrapped__"):
+        # in case the hook has a decorator
+        hook_fx = hook_fx.__wrapped__
     parameters = inspect.getfullargspec(hook_fx)
     args = parameters.args[1:]  # ignore `self`
     return (

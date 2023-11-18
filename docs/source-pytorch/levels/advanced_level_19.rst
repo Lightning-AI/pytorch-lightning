@@ -1,7 +1,7 @@
 :orphan:
 
 ######################
-Level 19: Explore IPUs
+Level 18: Explore IPUs
 ######################
 
 Explore Intelligence Processing Unit (IPU) for model scaling.
@@ -27,15 +27,15 @@ Explore Intelligence Processing Unit (IPU) for model scaling.
    :header: Train models on IPUs
    :description: Learn the basics of single and multi-IPU training.
    :col_css: col-md-4
-   :button_link: ../accelerators/ipu_basic.html
+   :button_link: ../integrations/ipu/basic.html
    :height: 150
    :tag: basic
 
 .. displayitem::
    :header: Optimize models training on IPUs
-   :description: Tune model performance with mix-precision and the performance analyser.
+   :description: Tune model performance with mixed precision and the performance analyser.
    :col_css: col-md-4
-   :button_link: ../accelerators/ipu_intermediate.html
+   :button_link: ../integrations/ipu/intermediate.html
    :height: 150
    :tag: intermediate
 

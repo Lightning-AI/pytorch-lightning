@@ -5,7 +5,6 @@ from unittest.mock import Mock
 
 import pytest
 from click.testing import CliRunner
-
 from lightning.app.cli import lightning_cli
 from lightning.app.cli.cmd_pl_init import _can_encode_icon, download_frontend, pl_app
 
@@ -100,7 +99,7 @@ def test_pl_app_encode_icon(monkeypatch):
 
 
 @pytest.mark.parametrize(
-    "cwd, source_dir, script_path",
+    ("cwd", "source_dir", "script_path"),
     [
         ("./", "./", "train.py"),
         ("./", "./code", "./code/train.py"),

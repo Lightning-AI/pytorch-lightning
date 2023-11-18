@@ -1,12 +1,12 @@
 # app.py
-import lightning as L
+from lightning.app import LightningWork, LightningFlow, LightningApp
 
-class Component(L.LightningWork):
+class Component(LightningWork):
     def run(self, x):
         print(f'MACHINE 1: this string came from machine 0: "{x}"')
         print('MACHINE 1: this string is on machine 1')
 
-class WorkflowOrchestrator(L.LightningFlow):
+class WorkflowOrchestrator(LightningFlow):
     def __init__(self) -> None:
         super().__init__()
         self.component = Component()
@@ -15,4 +15,4 @@ class WorkflowOrchestrator(L.LightningFlow):
         x = 'hello from machine 0'
         self.component.run(x)
 
-app = L.LightningApp(WorkflowOrchestrator())
+app = LightningApp(WorkflowOrchestrator())

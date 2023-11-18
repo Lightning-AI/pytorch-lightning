@@ -3,18 +3,17 @@
 # !echo "I am installing a dependency not declared in a requirements file"
 # !pip install lmdb
 import lmdb
+from lightning.app import CloudCompute, LightningApp, LightningFlow, LightningWork
 
-import lightning as L
 
-
-class YourComponent(L.LightningWork):
+class YourComponent(LightningWork):
     def run(self):
         print(lmdb.version())
         print("lmdb successfully installed")
         print("Accessing a module in a Work or Flow body works!")
 
 
-class RootFlow(L.LightningFlow):
+class RootFlow(LightningFlow):
     def __init__(self, work):
         super().__init__()
         self.work = work
@@ -27,6 +26,6 @@ print(f"Accessing an object in main code body works!: version = {lmdb.version()}
 
 
 # run on a cloud machine
-compute = L.CloudCompute("cpu")
+compute = CloudCompute("cpu")
 worker = YourComponent(cloud_compute=compute)
-app = L.LightningApp(RootFlow(worker))
+app = LightningApp(RootFlow(worker))

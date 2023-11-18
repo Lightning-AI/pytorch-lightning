@@ -13,6 +13,7 @@
 # limitations under the License.
 
 from argparse import Namespace
+from dataclasses import asdict, is_dataclass
 from typing import Any, Dict, Mapping, MutableMapping, Optional, Union
 
 import numpy as np
@@ -27,6 +28,7 @@ def _convert_params(params: Optional[Union[Dict[str, Any], Namespace]]) -> Dict[
 
     Returns:
         params as a dictionary
+
     """
     # in case converting from namespace
     if isinstance(params, Namespace):
@@ -46,6 +48,7 @@ def _sanitize_callable_params(params: Dict[str, Any]) -> Dict[str, Any]:
 
     Returns:
         dictionary with all callables sanitized
+
     """
 
     def _sanitize_callable(val: Any) -> Any:
@@ -81,12 +84,16 @@ def _flatten_dict(params: MutableMapping[Any, Any], delimiter: str = "/", parent
         {'a/b': 123}
         >>> _flatten_dict({5: {'a': 123}})
         {'5/a': 123}
+
     """
     result: Dict[str, Any] = {}
     for k, v in params.items():
         new_key = parent_key + delimiter + str(k) if parent_key else str(k)
-        if isinstance(v, Namespace):
+        if is_dataclass(v):
+            v = asdict(v)
+        elif isinstance(v, Namespace):
             v = vars(v)
+
         if isinstance(v, MutableMapping):
             result = {**result, **_flatten_dict(v, parent_key=new_key, delimiter=delimiter)}
         else:
@@ -114,6 +121,7 @@ def _sanitize_params(params: Dict[str, Any]) -> Dict[str, Any]:
         'list': '[1, 2, 3]',
         'namespace': 'Namespace(foo=3)',
         'string': 'abc'}
+
     """
     for k in params:
         # convert relevant np scalars to python types first (instead of str)
@@ -136,8 +144,8 @@ def _add_prefix(
 
     Returns:
         Dictionary with prefix and separator inserted before each key
-    """
-    if prefix:
-        metrics = {f"{prefix}{separator}{k}": v for k, v in metrics.items()}
 
-    return metrics
+    """
+    if not prefix:
+        return metrics
+    return {f"{prefix}{separator}{k}": v for k, v in metrics.items()}

@@ -106,10 +106,17 @@ Customize and extend Lightning for things like custom hardware or distributed st
    :height: 100
 
 .. displayitem::
-   :header: Train 1 trillion+ parameter models
-   :description: Scale GPU training to 1 trillion + parameter models
+   :header: Train models with billions of parameters
+   :description: Scale GPU training to models with billions of parameters
    :col_css: col-md-12
    :button_link: advanced/model_parallel.html
+   :height: 100
+
+.. displayitem::
+   :header: Train in a notebook
+   :description: Train models in interactive notebooks (Jupyter, Colab, Kaggle, etc.)
+   :col_css: col-md-12
+   :button_link: common/notebooks.html
    :height: 100
 
 .. displayitem::
@@ -123,14 +130,14 @@ Customize and extend Lightning for things like custom hardware or distributed st
    :header: Train on single or multiple HPUs
    :description: Train models faster with HPUs.
    :col_css: col-md-12
-   :button_link: accelerators/hpu.html
+   :button_link: integrations/hpu/index.html
    :height: 100
 
 .. displayitem::
    :header: Train on single or multiple IPUs
    :description: Train models faster with IPUs.
    :col_css: col-md-12
-   :button_link: accelerators/ipu.html
+   :button_link: integrations/ipu/index.html
    :height: 100
 
 .. displayitem::

@@ -14,6 +14,7 @@
 """Diagnose your system and show basic information.
 
 This server mainly to get detail info for better bug reporting.
+
 """
 
 import os
@@ -35,6 +36,7 @@ def info_system() -> dict:
         "OS": platform.system(),
         "architecture": platform.architecture(),
         "version": platform.version(),
+        "release": platform.release(),
         "processor": platform.processor(),
         "python": platform.python_version(),
     }

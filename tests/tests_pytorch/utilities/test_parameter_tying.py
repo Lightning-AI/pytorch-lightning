@@ -13,10 +13,9 @@
 # limitations under the License.
 import pytest
 import torch
-from torch import nn
-
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.utilities import find_shared_parameters, set_shared_parameters
+from torch import nn
 
 
 class ParameterSharingModule(BoringModel):
@@ -35,7 +34,7 @@ class ParameterSharingModule(BoringModel):
 
 
 @pytest.mark.parametrize(
-    ["model", "expected_shared_params"],
+    ("model", "expected_shared_params"),
     [(BoringModel, []), (ParameterSharingModule, [["layer_1.weight", "layer_3.weight"]])],
 )
 def test_find_shared_parameters(model, expected_shared_params):

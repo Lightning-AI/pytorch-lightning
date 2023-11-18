@@ -1,5 +1,4 @@
 import pytest
-
 from lightning.app import LightningFlow, LightningWork
 from lightning.app.testing.helpers import EmptyFlow, EmptyWork
 from lightning.app.utilities.tree import breadth_first
@@ -36,7 +35,7 @@ class MixedTree(EmptyFlow):
 
 
 @pytest.mark.parametrize(
-    "input_tree, types,expected_sequence",
+    ("input_tree", "types", "expected_sequence"),
     [
         (LeafFlow(), (LightningFlow,), ["root"]),
         (LeafWork(), (LightningFlow,), []),

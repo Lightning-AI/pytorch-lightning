@@ -398,7 +398,7 @@ The :class:`~lightning.pytorch.core.datamodule.LightningDataModule` class provid
 
 .. code-block:: python
 
-    class MNISTDataModule(pl.LightningDataModule):
+    class MNISTDataModule(L.LightningDataModule):
         def prepare_data(self):
             MNIST(self.data_dir, download=True)
 
@@ -421,7 +421,7 @@ For this, all data pre-loading should be done on the main process inside :meth:`
 
 .. code-block:: python
 
-    class MNISTDataModule(pl.LightningDataModule):
+    class MNISTDataModule(L.LightningDataModule):
         def __init__(self, data_dir: str):
             self.mnist = MNIST(data_dir, download=True, transform=T.ToTensor())
 

@@ -18,21 +18,21 @@ import os
 from contextlib import redirect_stdout
 from io import StringIO
 from unittest import mock
-from unittest.mock import call
+from unittest.mock import ANY, call
 
 import numpy as np
 import pytest
 import torch
-from torch import Tensor
-
-from lightning.pytorch import callbacks, Trainer
+from lightning.fabric.utilities.imports import _PYTHON_GREATER_EQUAL_3_8_0
+from lightning.pytorch import Trainer, callbacks
 from lightning.pytorch.callbacks.progress.rich_progress import _RICH_AVAILABLE
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
 from lightning.pytorch.loggers import TensorBoardLogger
 from lightning.pytorch.loops import _EvaluationLoop
 from lightning.pytorch.trainer.states import RunningStage
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning.pytorch.utilities.imports import _PYTHON_GREATER_EQUAL_3_8_0
+from torch import Tensor
+
 from tests_pytorch.helpers.runif import RunIf
 
 if _RICH_AVAILABLE:
@@ -118,7 +118,7 @@ def test__validation_step__epoch_end__log(tmpdir):
     assert all(isinstance(v, float) for v in trainer.progress_bar_metrics.values())
 
 
-@pytest.mark.parametrize(["batches", "log_interval", "max_epochs"], [(1, 1, 1), (64, 32, 2)])
+@pytest.mark.parametrize(("batches", "log_interval", "max_epochs"), [(1, 1, 1), (64, 32, 2)])
 def test_eval_epoch_logging(tmpdir, batches, log_interval, max_epochs):
     class TestModel(BoringModel):
         def on_validation_epoch_end(self):
@@ -210,7 +210,7 @@ def test_eval_logging_auto_reduce(tmpdir):
     assert trainer.logged_metrics["val_loss_step"] == model.val_losses[-1]
 
 
-@pytest.mark.parametrize(["batches", "log_interval", "max_epochs"], [(1, 1, 1), (64, 32, 2)])
+@pytest.mark.parametrize(("batches", "log_interval", "max_epochs"), [(1, 1, 1), (64, 32, 2)])
 def test_eval_epoch_only_logging(tmpdir, batches, log_interval, max_epochs):
     """Tests that on_test_epoch_end can be used to log, and we return them in the results."""
 
@@ -233,7 +233,7 @@ def test_eval_epoch_only_logging(tmpdir, batches, log_interval, max_epochs):
     assert results[0] == {"c": torch.tensor(2), "d/e/f": 2}
 
 
-@pytest.mark.parametrize("suffix", (False, True))
+@pytest.mark.parametrize("suffix", [False, True])
 def test_multi_dataloaders_add_suffix_properly(tmpdir, suffix):
     class TestModel(BoringModel):
         def test_step(self, batch, batch_idx, dataloader_idx=0):
@@ -467,7 +467,7 @@ def test_log_works_in_test_callback(tmpdir):
             if func_name in key:
                 break
         else:
-            assert False, (func_name, list(callback_metrics))
+            pytest.fail(f"{func_name}, {list(callback_metrics)}")
 
     def get_expected(on_epoch, values):
         reduction = np.mean if on_epoch else np.max
@@ -527,17 +527,15 @@ def test_validation_step_log_with_tensorboard(mock_log_metrics, tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir,
         logger=TensorBoardLogger(tmpdir),
-        limit_train_batches=2,
+        limit_train_batches=1,
         limit_val_batches=2,
         limit_test_batches=2,
+        log_every_n_steps=1,
         max_epochs=2,
     )
 
     # Train the model ⚡
     trainer.fit(model)
-
-    # hp_metric + 2 steps + epoch + 2 steps + epoch
-    expected_num_calls = 1 + 2 + 1 + 2 + 1
 
     assert set(trainer.callback_metrics) == {
         "train_loss",
@@ -545,39 +543,31 @@ def test_validation_step_log_with_tensorboard(mock_log_metrics, tmpdir):
         "valid_loss_0",
         "valid_loss_1",
     }
-    assert len(mock_log_metrics.mock_calls) == expected_num_calls
-    assert mock_log_metrics.mock_calls[0] == call({"hp_metric": -1}, 0)
+    assert mock_log_metrics.mock_calls == [
+        call({"hp_metric": -1}, 0),
+        call(metrics={"train_loss": ANY, "epoch": 0}, step=0),
+        call(metrics={"valid_loss_0_step": ANY, "valid_loss_2": ANY}, step=0),
+        call(metrics={"valid_loss_0_step": ANY, "valid_loss_2": ANY}, step=1),
+        call(metrics={"valid_loss_0_epoch": ANY, "valid_loss_1": ANY, "epoch": 0}, step=0),
+        call(metrics={"train_loss": ANY, "epoch": 1}, step=1),
+        call(metrics={"valid_loss_0_step": ANY, "valid_loss_2": ANY}, step=2),
+        call(metrics={"valid_loss_0_step": ANY, "valid_loss_2": ANY}, step=3),
+        call(metrics={"valid_loss_0_epoch": ANY, "valid_loss_1": ANY, "epoch": 1}, step=1),
+    ]
 
     def get_metrics_at_idx(idx):
         mock_call = mock_log_metrics.mock_calls[idx]
         return mock_call.kwargs["metrics"] if _PYTHON_GREATER_EQUAL_3_8_0 else mock_call[2]["metrics"]
 
-    expected = {"valid_loss_0_step", "valid_loss_2"}
-    assert set(get_metrics_at_idx(1)) == expected
-    assert set(get_metrics_at_idx(2)) == expected
-
-    assert get_metrics_at_idx(1)["valid_loss_0_step"] == model.val_losses[2]
-    assert get_metrics_at_idx(2)["valid_loss_0_step"] == model.val_losses[3]
-
-    assert set(get_metrics_at_idx(3)) == {"valid_loss_0_epoch", "valid_loss_1", "epoch"}
-
-    assert get_metrics_at_idx(3)["valid_loss_1"] == torch.stack(model.val_losses[2:4]).mean()
-
-    expected = {"valid_loss_0_step", "valid_loss_2"}
-    assert set(get_metrics_at_idx(4)) == expected
-    assert set(get_metrics_at_idx(5)) == expected
-
-    assert get_metrics_at_idx(4)["valid_loss_0_step"] == model.val_losses[4]
-    assert get_metrics_at_idx(5)["valid_loss_0_step"] == model.val_losses[5]
-
-    assert set(get_metrics_at_idx(6)) == {"valid_loss_0_epoch", "valid_loss_1", "epoch"}
-
-    assert get_metrics_at_idx(6)["valid_loss_1"] == torch.stack(model.val_losses[4:]).mean()
+    assert get_metrics_at_idx(2)["valid_loss_0_step"] == model.val_losses[2]
+    assert get_metrics_at_idx(3)["valid_loss_0_step"] == model.val_losses[3]
+    assert get_metrics_at_idx(4)["valid_loss_1"] == torch.stack(model.val_losses[2:4]).mean()
+    assert get_metrics_at_idx(6)["valid_loss_0_step"] == model.val_losses[4]
+    assert get_metrics_at_idx(7)["valid_loss_0_step"] == model.val_losses[5]
+    assert get_metrics_at_idx(8)["valid_loss_1"] == torch.stack(model.val_losses[4:]).mean()
 
     results = trainer.test(model)
-    assert set(trainer.callback_metrics) == {
-        "test_loss",
-    }
+    assert set(trainer.callback_metrics) == {"test_loss"}
     assert set(results[0]) == {"test_loss"}
 
 
@@ -751,7 +741,7 @@ def test_logging_multi_dataloader_on_epoch_end(mock_log_metrics, tmpdir):
     assert set(logged_metrics) == cb_metrics
 
 
-inputs0 = ([{"log": torch.tensor(5)}, {"no_log": torch.tensor(6)}], RunningStage.TESTING)
+inputs0 = ([{"log": torch.tensor(5)}, {"no_log": torch.tensor(6)}], RunningStage.TESTING.value)
 expected0 = """
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
        Test metric             DataLoader 0             DataLoader 1
@@ -770,7 +760,7 @@ inputs1 = (
         },
         {"different value": torch.tensor(1.5), "tes:t": {"no_log1": torch.tensor(6), "no_log2": torch.tensor(1)}},
     ],
-    RunningStage.TESTING,
+    RunningStage.TESTING.value,
 )
 expected1 = """
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -792,7 +782,7 @@ inputs2 = (
         {f"a {'really ' * 11}long metric name": torch.tensor(5)},
         {f"a {'really ' * 11}long metric name": torch.tensor([[6]])},
     ],
-    RunningStage.VALIDATING,
+    RunningStage.VALIDATING.value,
 )
 expected2 = """
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -828,7 +818,7 @@ expected4 = ""
 
 
 @pytest.mark.parametrize(
-    ["inputs", "expected"],
+    ("inputs", "expected"),
     [
         pytest.param(inputs0, expected0, id="case0"),
         pytest.param(inputs1, expected1, id="case1"),
@@ -922,7 +912,7 @@ expected3 = """
 
 
 @pytest.mark.parametrize(
-    ["inputs", "expected"],
+    ("inputs", "expected"),
     [
         pytest.param(inputs0, expected0, id="case0"),
         pytest.param(inputs1, expected1, id="case1"),
@@ -941,13 +931,13 @@ def test_rich_print_results(inputs, expected):
 
 
 @mock.patch("lightning.pytorch.loggers.TensorBoardLogger.log_metrics")
-@pytest.mark.parametrize("num_dataloaders", (1, 2))
+@pytest.mark.parametrize("num_dataloaders", [1, 2])
 def test_eval_step_logging(mock_log_metrics, tmpdir, num_dataloaders):
     """Test that eval step during fit/validate/test is updated correctly."""
 
     class CustomBoringModel(BoringModel):
         def validation_step(self, batch, batch_idx, dataloader_idx=None):
-            self.log(f"val_log_{self.trainer.state.fn}", batch_idx, on_step=True, on_epoch=False)
+            self.log(f"val_log_{self.trainer.state.fn.value}", batch_idx, on_step=True, on_epoch=False)
 
         def test_step(self, batch, batch_idx, dataloader_idx=None):
             self.log("test_log", batch_idx, on_step=True, on_epoch=False)

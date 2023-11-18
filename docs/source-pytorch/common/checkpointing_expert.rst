@@ -25,7 +25,7 @@ and :meth:`~lightning.pytorch.core.hooks.CheckpointHooks.on_load_checkpoint` met
 what's saved in the checkpoint.
 
 
-TODO: I don't understand this...
+.. TODO:: I don't understand this...
 
 ******************************
 Built-in Checkpoint IO Plugins
@@ -41,7 +41,7 @@ Built-in Checkpoint IO Plugins
      - CheckpointIO that utilizes :func:`torch.save` and :func:`torch.load` to save and load checkpoints
        respectively, common for most use cases.
    * - :class:`~lightning.pytorch.plugins.io.XLACheckpointIO`
-     - CheckpointIO that utilizes :func:`xm.save` to save checkpoints for TPU training strategies.
+     - CheckpointIO that utilizes ``xm.save`` to save checkpoints for TPU training strategies.
    * - :class:`~lightning.pytorch.plugins.io.AsyncCheckpointIO`
      - ``AsyncCheckpointIO`` enables saving the checkpoints asynchronously in a thread.
 

@@ -14,20 +14,20 @@
 """MNIST autoencoder example.
 
 To run: python autoencoder.py --trainer.max_epochs=50
+
 """
 from os import path
 from typing import Optional, Tuple
 
 import torch
 import torch.nn.functional as F
-from torch import nn
-from torch.utils.data import DataLoader, random_split
-
-from lightning.pytorch import callbacks, cli_lightning_logo, LightningDataModule, LightningModule, Trainer
+from lightning.pytorch import LightningDataModule, LightningModule, Trainer, callbacks, cli_lightning_logo
 from lightning.pytorch.cli import LightningCLI
 from lightning.pytorch.demos.mnist_datamodule import MNIST
 from lightning.pytorch.utilities import rank_zero_only
 from lightning.pytorch.utilities.imports import _TORCHVISION_AVAILABLE
+from torch import nn
+from torch.utils.data import DataLoader, random_split
 
 if _TORCHVISION_AVAILABLE:
     import torchvision
@@ -44,7 +44,7 @@ class ImageSampler(callbacks.Callback):
         nrow: int = 8,
         padding: int = 2,
         normalize: bool = True,
-        norm_range: Optional[Tuple[int, int]] = None,
+        value_range: Optional[Tuple[int, int]] = None,
         scale_each: bool = False,
         pad_value: int = 0,
     ) -> None:
@@ -56,7 +56,7 @@ class ImageSampler(callbacks.Callback):
             padding: Amount of padding. Default: ``2``.
             normalize: If ``True``, shift the image to the range (0, 1),
                 by the min and max values specified by :attr:`range`. Default: ``False``.
-            norm_range: Tuple (min, max) where min and max are numbers,
+            value_range: Tuple (min, max) where min and max are numbers,
                 then these numbers are used to normalize the image. By default, min and max
                 are computed from the tensor.
             scale_each: If ``True``, scale each image in the batch of
@@ -71,7 +71,7 @@ class ImageSampler(callbacks.Callback):
         self.nrow = nrow
         self.padding = padding
         self.normalize = normalize
-        self.norm_range = norm_range
+        self.value_range = value_range
         self.scale_each = scale_each
         self.pad_value = pad_value
 
@@ -81,7 +81,7 @@ class ImageSampler(callbacks.Callback):
             nrow=self.nrow,
             padding=self.padding,
             normalize=self.normalize,
-            range=self.norm_range,
+            value_range=self.value_range,
             scale_each=self.scale_each,
             pad_value=self.pad_value,
         )
@@ -114,15 +114,15 @@ class LitAutoEncoder(LightningModule):
     )
     """
 
-    def __init__(self, hidden_dim: int = 64):
+    def __init__(self, hidden_dim: int = 64, learning_rate=10e-3):
         super().__init__()
+        self.save_hyperparameters()
         self.encoder = nn.Sequential(nn.Linear(28 * 28, hidden_dim), nn.ReLU(), nn.Linear(hidden_dim, 3))
         self.decoder = nn.Sequential(nn.Linear(3, hidden_dim), nn.ReLU(), nn.Linear(hidden_dim, 28 * 28))
 
     def forward(self, x):
         z = self.encoder(x)
-        x_hat = self.decoder(z)
-        return x_hat
+        return self.decoder(z)
 
     def training_step(self, batch, batch_idx):
         return self._common_step(batch, batch_idx, "train")
@@ -138,8 +138,7 @@ class LitAutoEncoder(LightningModule):
         return self(x)
 
     def configure_optimizers(self):
-        optimizer = torch.optim.Adam(self.parameters(), lr=1e-3)
-        return optimizer
+        return torch.optim.Adam(self.parameters(), lr=self.hparams.learning_rate)
 
     def _prepare_batch(self, batch):
         x, _ = batch
@@ -157,7 +156,9 @@ class MyDataModule(LightningDataModule):
         super().__init__()
         dataset = MNIST(DATASETS_PATH, train=True, download=True, transform=transforms.ToTensor())
         self.mnist_test = MNIST(DATASETS_PATH, train=False, download=True, transform=transforms.ToTensor())
-        self.mnist_train, self.mnist_val = random_split(dataset, [55000, 5000])
+        self.mnist_train, self.mnist_val = random_split(
+            dataset, [55000, 5000], generator=torch.Generator().manual_seed(42)
+        )
         self.batch_size = batch_size
 
     def train_dataloader(self):

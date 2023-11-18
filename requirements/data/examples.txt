@@ -1,0 +1,3 @@
+Pillow >= 9.5.0
+# min version to match torch >= 2.0.1
+torchvision >=0.15.2, <0.17.0

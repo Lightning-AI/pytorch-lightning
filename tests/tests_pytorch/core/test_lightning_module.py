@@ -17,9 +17,6 @@ from unittest.mock import Mock
 
 import pytest
 import torch
-from torch import nn
-from torch.optim import Adam, SGD
-
 from lightning.fabric import Fabric
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_13, _TORCH_GREATER_EQUAL_2_0
 from lightning.pytorch import LightningModule, Trainer
@@ -27,6 +24,9 @@ from lightning.pytorch.core.module import _TrainerFabricShim
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.loggers import TensorBoardLogger
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
+from torch import nn
+from torch.optim import SGD, Adam
+
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -284,7 +284,7 @@ def test_toggle_untoggle_3_optimizers_shared_parameters(tmpdir):
 
 
 @pytest.mark.parametrize(
-    "accelerator,device",
+    ("accelerator", "device"),
     [
         pytest.param("gpu", "cuda:0", marks=RunIf(min_cuda_gpus=1)),
         pytest.param("mps", "mps:0", marks=RunIf(mps=True)),
@@ -424,6 +424,7 @@ def test_lightning_module_scriptable():
     """Test that the LightningModule is `torch.jit.script`-able.
 
     Regression test for #15917.
+
     """
     model = BoringModel()
     trainer = Trainer()

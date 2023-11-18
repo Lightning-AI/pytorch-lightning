@@ -1,11 +1,10 @@
-Guide how to upgrade to the 2.0 version
-#######################################
+2.0 Upgrade Guide
+#################
 
-The following section will guide you through updating to the 2.0 release.
+The following section will guide you through updating your code to the 2.x series of releases.
 
 Particular versions
 *******************
-
 
 
 .. raw:: html
@@ -14,6 +13,13 @@ Particular versions
         <div class="row">
 
 .. Add callout items below this line
+
+.. displayitem::
+   :header: 2.0.x
+   :description: Upgrade from 2.0.x series to the 2.1.
+   :col_css: col-md-12
+   :button_link: from_2_0.html
+   :height: 100
 
 .. displayitem::
    :header: 1.9.x

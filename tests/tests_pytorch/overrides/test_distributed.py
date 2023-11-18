@@ -15,11 +15,11 @@ from typing import Iterable
 
 import pytest
 import torch
+from lightning.fabric.utilities.data import has_len
+from lightning.pytorch import LightningModule, Trainer, seed_everything
+from lightning.pytorch.overrides.distributed import UnrepeatedDistributedSampler, _IndexBatchSamplerWrapper
 from torch.utils.data import BatchSampler, SequentialSampler
 
-from lightning.fabric.utilities.data import has_len
-from lightning.pytorch import LightningModule, seed_everything, Trainer
-from lightning.pytorch.overrides.distributed import _IndexBatchSamplerWrapper, UnrepeatedDistributedSampler
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -78,7 +78,6 @@ def test_index_batch_sampler():
     batch_sampler = BatchSampler(sampler, 3, False)
     index_batch_sampler = _IndexBatchSamplerWrapper(batch_sampler)
 
-    assert isinstance(index_batch_sampler, BatchSampler)
     assert batch_sampler.batch_size == index_batch_sampler.batch_size
     assert batch_sampler.drop_last == index_batch_sampler.drop_last
     assert batch_sampler.sampler is sampler

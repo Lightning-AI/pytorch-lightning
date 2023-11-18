@@ -11,7 +11,7 @@
      - `PR7339`_
 
    * - accessed ``Trainer.truncated_bptt_steps``
-     - swicth to manual optimization
+     - switch to manual optimization
      - `PR7323`_
 
    * - called  ``LightningModule.write_predictions``  and  ``LightningModule.write_predictions_dict``

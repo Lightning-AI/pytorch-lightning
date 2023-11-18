@@ -12,23 +12,22 @@ from unittest.mock import MagicMock, Mock
 
 import pytest
 from deepdiff import DeepDiff, Delta
-
 from lightning.app import LightningApp, LightningFlow, LightningWork
 from lightning.app.runners import MultiProcessRuntime
-from lightning.app.storage import Drive, Path
-from lightning.app.storage.path import _artifacts_path
+from lightning.app.storage import Drive
+from lightning.app.storage.path import Path, _artifacts_path
 from lightning.app.storage.requests import _GetRequest
-from lightning.app.testing.helpers import _MockQueue, EmptyFlow
+from lightning.app.testing.helpers import EmptyFlow, _MockQueue
 from lightning.app.utilities.component import _convert_paths_after_init
 from lightning.app.utilities.enum import AppStage, CacheCallsKeys, WorkFailureReasons, WorkStageStatus
 from lightning.app.utilities.exceptions import CacheMissException, ExitAppException
 from lightning.app.utilities.proxies import (
     ComponentDelta,
     LightningWorkSetAttrProxy,
-    persist_artifacts,
     ProxyWorkRun,
     WorkRunner,
     WorkStateObserver,
+    persist_artifacts,
 )
 
 logger = logging.getLogger(__name__)
@@ -67,7 +66,7 @@ def test_lightning_work_setattr():
 
 
 @pytest.mark.parametrize(
-    ["parallel", "cache_calls"],
+    ("parallel", "cache_calls"),
     [
         (True, True),
         (True, False),
@@ -76,6 +75,7 @@ def test_lightning_work_setattr():
     ],
 )
 @mock.patch("lightning.app.utilities.proxies._Copier", MagicMock())
+@pytest.mark.flaky(reruns=3)
 @pytest.mark.xfail(sys.platform == "win32", strict=False, reason="Fix this on Windows")  # TODO @ethanwharris
 def test_work_runner(parallel, cache_calls, *_):
     """This test validates the `WorkRunner` runs the work.run method and properly populates the `delta_queue`,
@@ -287,8 +287,7 @@ def test_proxy_timeout():
 
 @mock.patch("lightning.app.utilities.proxies._Copier")
 def test_path_argument_to_transfer(*_):
-    """Test that any Lightning Path objects passed to the run method get transferred automatically (if they
-    exist)."""
+    """Test that any Lightning Path objects passed to the run method get transferred automatically (if they exist)."""
 
     class TransferPathWork(LightningWork):
         def run(self, *args, **kwargs):
@@ -361,7 +360,7 @@ def test_path_argument_to_transfer(*_):
 
 
 @pytest.mark.parametrize(
-    "origin,exists_remote,expected_get",
+    ("origin", "exists_remote", "expected_get"),
     [
         (None, False, False),
         ("root.work", True, False),
@@ -371,8 +370,7 @@ def test_path_argument_to_transfer(*_):
 )
 @mock.patch("lightning.app.utilities.proxies._Copier")
 def test_path_attributes_to_transfer(_, origin, exists_remote, expected_get):
-    """Test that any Lightning Path objects passed to the run method get transferred automatically (if they
-    exist)."""
+    """Test that any Lightning Path objects passed to the run method get transferred automatically (if they exist)."""
     path_mock = Mock()
     path_mock.origin_name = origin
     path_mock.exists_remote = Mock(return_value=exists_remote)
@@ -517,8 +515,8 @@ def test_persist_artifacts(tmp_path):
 
 
 def test_work_state_observer():
-    """Tests that the WorkStateObserver sends deltas to the queue when state residuals remain that haven't been
-    handled by the setattr."""
+    """Tests that the WorkStateObserver sends deltas to the queue when state residuals remain that haven't been handled
+    by the setattr."""
 
     class WorkWithoutSetattr(LightningWork):
         def __init__(self):
@@ -641,16 +639,21 @@ def test_state_observer():
 
 
 @pytest.mark.parametrize(
-    "patch_constants, environment, expected_ip_addr",
+    ("patch_constants", "environment", "expected_public_ip", "expected_private_ip"),
     [
-        ({}, {}, "127.0.0.1"),
-        ({"LIGHTNING_CLOUDSPACE_HOST": "any"}, {}, "0.0.0.0"),  # noqa: S104
-        ({}, {"LIGHTNING_NODE_IP": "10.10.10.5"}, "10.10.10.5"),
+        ({}, {}, "", "127.0.0.1"),
+        ({"LIGHTNING_CLOUDSPACE_HOST": "any"}, {}, "", "0.0.0.0"),  # noqa: S104
+        (
+            {},
+            {"LIGHTNING_NODE_IP": "85.44.2.25", "LIGHTNING_NODE_PRIVATE_IP": "10.10.10.5"},
+            "85.44.2.25",
+            "10.10.10.5",
+        ),
     ],
     indirect=["patch_constants"],
 )
-def test_work_runner_sets_internal_ip(patch_constants, environment, expected_ip_addr):
-    """Test that the WorkRunner updates the internal ip address as soon as the Work starts running."""
+def test_work_runner_sets_public_and_private_ip(patch_constants, environment, expected_public_ip, expected_private_ip):
+    """Test that the WorkRunner updates the public and private address as soon as the Work starts running."""
 
     class Work(LightningWork):
         def run(self):
@@ -690,11 +693,13 @@ def test_work_runner_sets_internal_ip(patch_constants, environment, expected_ip_
 
     with mock.patch.dict(os.environ, environment, clear=True):
         work_runner.setup()
-        # The internal ip address only becomes available once the hardware is up / the work is running.
+        # The public ip address only becomes available once the hardware is up / the work is running.
+        assert work.public_ip == ""
         assert work.internal_ip == ""
         with contextlib.suppress(Empty):
             work_runner.run_once()
-        assert work.internal_ip == expected_ip_addr
+        assert work.public_ip == expected_public_ip
+        assert work.internal_ip == expected_private_ip
 
 
 class WorkBi(LightningWork):

@@ -63,14 +63,15 @@ trap show_batched_output EXIT  # show the output on exit
 
 for i in "${!parametrizations_arr[@]}"; do
   parametrization=${parametrizations_arr[$i]}
+  prefix="$((i+1))/${#parametrizations_arr[@]}"
 
   # check blocklist
   if [[ "${parametrization}" == *"test_pytorch_profiler_nested_emit_nvtx"* ]]; then
-    echo "Skipping $parametrization"
+    echo "$prefix: Skipping $parametrization"
     report+="Skipped\t$parametrization\n"
     # do not continue the loop because we might need to wait for batched jobs
   else
-    echo "Running $parametrization"
+    echo "$prefix: Running $parametrization"
     # execute the test in the background
     # redirect to a log file that buffers test output. since the tests will run in the background, we cannot let them
     # output to std{out,err} because the outputs would be garbled together

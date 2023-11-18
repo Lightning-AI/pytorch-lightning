@@ -21,16 +21,16 @@ from typing import Generic, Mapping, TypeVar
 import cloudpickle
 import pytest
 import torch
-from lightning_utilities.test.warning import no_warning_call
-from torch import Tensor
-
-import tests_pytorch.helpers.pipelines as tpipes
-import tests_pytorch.helpers.utils as tutils
 from lightning.fabric import seed_everything
 from lightning.pytorch import Callback, Trainer
 from lightning.pytorch.callbacks import ModelCheckpoint
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.trainer.states import TrainerFn
+from lightning_utilities.test.warning import no_warning_call
+from torch import Tensor
+
+import tests_pytorch.helpers.pipelines as tpipes
+import tests_pytorch.helpers.utils as tutils
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.simple_models import ClassificationModel
@@ -105,8 +105,7 @@ def test_model_properties_fit_ckpt_path(tmpdir):
 
 @RunIf(sklearn=True)
 def test_trainer_properties_restore_ckpt_path(tmpdir):
-    """Test that required trainer properties are set correctly when resuming from checkpoint in different
-    phases."""
+    """Test that required trainer properties are set correctly when resuming from checkpoint in different phases."""
 
     class CustomClassifModel(ClassificationModel):
         def configure_optimizers(self):
@@ -261,7 +260,7 @@ def test_try_resume_from_non_existing_checkpoint(tmpdir):
     model = BoringModel()
     trainer = Trainer()
 
-    with pytest.raises(FileNotFoundError, match="Aborting training"):
+    with pytest.raises(FileNotFoundError, match="Checkpoint file not found"):
         trainer.fit(model, ckpt_path=str(tmpdir / "non_existing.ckpt"))
 
 
@@ -281,7 +280,9 @@ def test_callbacks_state_fit_ckpt_path(tmpdir):
 
     def get_trainer_args():
         checkpoint = ModelCheckpoint(dirpath=tmpdir, monitor="val_loss", save_last=True)
-        trainer_args = {
+        assert checkpoint.best_model_path == ""
+        assert checkpoint.best_model_score is None
+        return {
             "default_root_dir": tmpdir,
             "limit_train_batches": 1,
             "limit_val_batches": 2,
@@ -289,9 +290,6 @@ def test_callbacks_state_fit_ckpt_path(tmpdir):
             "logger": False,
             "callbacks": [checkpoint, callback_capture],
         }
-        assert checkpoint.best_model_path == ""
-        assert checkpoint.best_model_score is None
-        return trainer_args
 
     # initial training
     trainer = Trainer(**get_trainer_args())
@@ -313,9 +311,11 @@ def test_callbacks_state_fit_ckpt_path(tmpdir):
                 "best_k_models",
                 "kth_best_model_path",
                 "kth_value",
-                "last_model_path",
             ):
-                assert getattr(before, attribute) == getattr(after, attribute)
+                assert getattr(before, attribute) == getattr(after, attribute), f"{attribute}"
+            # `before.last_model_path` is a symlink pointing to a checkpoint saved before that symlink was created,
+            # hence reloading that checkpoint will restore `after.last_model_path = ""`
+            assert after.last_model_path == ""
 
 
 @RunIf(sklearn=True)
@@ -636,8 +636,8 @@ class ShouldStopModel(ExceptionModel):
         return super().training_step(batch, batch_idx)
 
 
-@pytest.mark.parametrize("stop_in_the_middle", (True, False))
-@pytest.mark.parametrize("model_cls", (ExceptionModel, ShouldStopModel))
+@pytest.mark.parametrize("stop_in_the_middle", [True, False])
+@pytest.mark.parametrize("model_cls", [ExceptionModel, ShouldStopModel])
 def test_restarting_mid_epoch_raises_warning(tmpdir, stop_in_the_middle, model_cls):
     """Test that a warning is raised if training is restarted from mid-epoch."""
     limit_train_batches = 8

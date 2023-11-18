@@ -11,8 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from contextlib import contextmanager
-from typing import Any, cast, Dict, Generator, Literal, Optional
+from typing import Any, ContextManager, Dict, Literal, Optional
 
 import torch
 from lightning_utilities.core.apply_func import apply_to_collection
@@ -33,6 +32,7 @@ class MixedPrecision(Precision):
         precision: Whether to use ``torch.float16`` (``'16-mixed'``) or ``torch.bfloat16`` (``'bf16-mixed'``).
         device: The device for ``torch.autocast``.
         scaler: An optional :class:`torch.cuda.amp.GradScaler` to use.
+
     """
 
     def __init__(
@@ -41,7 +41,13 @@ class MixedPrecision(Precision):
         device: str,
         scaler: Optional[torch.cuda.amp.GradScaler] = None,
     ) -> None:
-        self.precision = cast(Literal["16-mixed", "bf16-mixed"], str(precision))
+        if precision not in ("16-mixed", "bf16-mixed"):
+            raise ValueError(
+                f"Passed `{type(self).__name__}(precision={precision!r})`."
+                " Precision must be '16-mixed' or 'bf16-mixed'."
+            )
+
+        self.precision = precision
         if scaler is None and self.precision == "16-mixed":
             with _patch_cuda_is_available():
                 # if possible, we defer CUDA initialization to support strategies that will attempt forks
@@ -53,10 +59,8 @@ class MixedPrecision(Precision):
 
         self._desired_input_dtype = torch.bfloat16 if self.precision == "bf16-mixed" else torch.float16
 
-    @contextmanager
-    def forward_context(self) -> Generator[None, None, None]:
-        with self._autocast_context_manager():
-            yield
+    def forward_context(self) -> ContextManager:
+        return torch.autocast(self.device, dtype=self._desired_input_dtype)
 
     def convert_input(self, data: Any) -> Any:
         return apply_to_collection(data, function=_convert_fp_tensor, dtype=Tensor, dst_type=self._desired_input_dtype)
@@ -93,11 +97,6 @@ class MixedPrecision(Precision):
         if self.scaler is not None:
             self.scaler.load_state_dict(state_dict)
 
-    def _autocast_context_manager(self) -> torch.autocast:
-        # the dtype could be automatically inferred but we need to manually set it due to a bug upstream
-        # https://github.com/pytorch/pytorch/issues/67233
-        return torch.autocast(self.device, dtype=self._desired_input_dtype)
-
     def unscale_gradients(self, optimizer: Optimizer) -> None:
         scaler = self.scaler
         if scaler is not None:
@@ -112,5 +111,6 @@ def _optimizer_handles_unscaling(optimizer: Any) -> bool:
 
     Since, the current implementation of this function checks a PyTorch internal variable on the optimizer, the return
     value will only be reliable for built-in PyTorch optimizers.
+
     """
     return getattr(optimizer, "_step_supports_amp_scaling", False)

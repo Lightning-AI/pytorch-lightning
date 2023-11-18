@@ -1,5 +1,4 @@
 import pytest
-
 from lightning.app.core.flow import LightningFlow
 from lightning.app.core.work import LightningWork
 from lightning.app.frontend.web import StaticWebFrontend
@@ -58,7 +57,7 @@ class FlowWithWorkWithUrl(LightningFlow):
 
 
 @pytest.mark.parametrize(
-    "flow,expected_layout,expected_frontends",
+    ("flow", "expected_layout", "expected_frontends"),
     [
         (FlowWithFrontend, {}, [("root", StaticWebFrontend)]),
         (FlowWithWorkWithFrontend, {}, [("root", StaticWebFrontend)]),
@@ -122,7 +121,7 @@ class FlowWithMultipleWorksWithFrontends(LightningFlow):
 
 
 @pytest.mark.parametrize(
-    "flow,error_type,match",
+    ("flow", "error_type", "match"),
     [
         (FlowWithBadLayout, TypeError, "is an unsupported layout format"),
         (FlowWithBadLayoutDict, ValueError, "missing a key 'content'."),

@@ -11,8 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from contextlib import contextmanager
-from typing import Any, Generator, Literal
+from typing import Any, ContextManager, Literal
 
 import torch
 from lightning_utilities.core.apply_func import apply_to_collection
@@ -20,7 +19,7 @@ from torch import Tensor
 from torch.nn import Module
 
 from lightning.fabric.plugins.precision.precision import Precision
-from lightning.fabric.plugins.precision.utils import _convert_fp_tensor
+from lightning.fabric.plugins.precision.utils import _convert_fp_tensor, _DtypeContextManager
 
 
 class DoublePrecision(Precision):
@@ -31,27 +30,14 @@ class DoublePrecision(Precision):
     def convert_module(self, module: Module) -> Module:
         return module.double()
 
-    @contextmanager
-    def module_init_context(self) -> Generator[None, None, None]:
-        """A context manager to change the default tensor type when initializing the parameters in a module.
+    def tensor_init_context(self) -> ContextManager:
+        return _DtypeContextManager(torch.double)
 
-        See: :meth:`torch.set_default_tensor_type`
-        """
-        default_dtype = torch.get_default_dtype()
-        torch.set_default_dtype(torch.float64)
-        yield
-        torch.set_default_dtype(default_dtype)
+    def module_init_context(self) -> ContextManager:
+        return self.tensor_init_context()
 
-    @contextmanager
-    def forward_context(self) -> Generator[None, None, None]:
-        """A context manager to change the default tensor type.
-
-        See: :meth:`torch.set_default_tensor_type`
-        """
-        default_dtype = torch.get_default_dtype()
-        torch.set_default_dtype(torch.float64)
-        yield
-        torch.set_default_dtype(default_dtype)
+    def forward_context(self) -> ContextManager:
+        return self.tensor_init_context()
 
     def convert_input(self, data: Any) -> Any:
         return apply_to_collection(data, function=_convert_fp_tensor, dtype=Tensor, dst_type=torch.double)

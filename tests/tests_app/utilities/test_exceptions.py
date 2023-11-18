@@ -1,16 +1,15 @@
 from json import dumps
 from unittest.mock import MagicMock
 
+import pytest
 from click import ClickException, group
 from click.testing import CliRunner
+from lightning.app.utilities.exceptions import _ApiExceptionHandler
 from lightning_cloud.openapi.rest import ApiException
-from pytest import fixture
 from urllib3 import HTTPResponse
 
-from lightning.app.utilities.exceptions import _ApiExceptionHandler
 
-
-@fixture
+@pytest.fixture()
 def mock_api_handled_group():
     @group(cls=_ApiExceptionHandler)
     def g():
@@ -19,7 +18,7 @@ def mock_api_handled_group():
     return g
 
 
-@fixture
+@pytest.fixture()
 def mock_subcommand(mock_api_handled_group):
     @mock_api_handled_group.command()
     def cmd():
@@ -28,7 +27,7 @@ def mock_subcommand(mock_api_handled_group):
     return cmd
 
 
-@fixture
+@pytest.fixture()
 def api_error_msg():
     return "This is an internal error message"
 
@@ -60,7 +59,7 @@ class Test_ApiExceptionHandler:
 
         mock_subcommand.invoke.assert_called
         assert result.exit_code == 1
-        assert type(result.exception) == ClickException
+        assert type(result.exception) is ClickException
         assert api_error_msg == str(result.exception)
 
     def test_original_thrown_if_cannot_decode_body(self, mock_api_handled_group, mock_subcommand):
@@ -82,4 +81,4 @@ class Test_ApiExceptionHandler:
 
         mock_subcommand.invoke.assert_called
         assert result.exit_code == 1
-        assert type(result.exception) == ApiException
+        assert type(result.exception) is ApiException

@@ -16,23 +16,27 @@ from lightning.fabric.plugins.io.checkpoint_io import CheckpointIO
 from lightning.fabric.plugins.io.torch_io import TorchCheckpointIO
 from lightning.fabric.plugins.io.xla import XLACheckpointIO
 from lightning.fabric.plugins.precision.amp import MixedPrecision
+from lightning.fabric.plugins.precision.bitsandbytes import BitsandbytesPrecision
 from lightning.fabric.plugins.precision.deepspeed import DeepSpeedPrecision
 from lightning.fabric.plugins.precision.double import DoublePrecision
 from lightning.fabric.plugins.precision.fsdp import FSDPPrecision
+from lightning.fabric.plugins.precision.half import HalfPrecision
 from lightning.fabric.plugins.precision.precision import Precision
-from lightning.fabric.plugins.precision.tpu import TPUPrecision
-from lightning.fabric.plugins.precision.tpu_bf16 import TPUBf16Precision
+from lightning.fabric.plugins.precision.transformer_engine import TransformerEnginePrecision
+from lightning.fabric.plugins.precision.xla import XLAPrecision
 
 __all__ = [
     "ClusterEnvironment",
     "CheckpointIO",
     "TorchCheckpointIO",
     "XLACheckpointIO",
+    "BitsandbytesPrecision",
     "Precision",
     "DeepSpeedPrecision",
     "DoublePrecision",
+    "HalfPrecision",
     "MixedPrecision",
-    "TPUPrecision",
-    "TPUBf16Precision",
+    "TransformerEnginePrecision",
+    "XLAPrecision",
     "FSDPPrecision",
 ]
