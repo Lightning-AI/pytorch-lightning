@@ -15,13 +15,13 @@
 import io
 import logging
 from pathlib import Path
-from typing import IO, Any, Dict, Union
+from typing import IO, Any, Dict, Union, Optional
 
 import fsspec
 import torch
 from fsspec.core import url_to_fs
 from fsspec.implementations.local import AbstractFileSystem
-from lightning_utilities.core.imports import module_available
+from lightning_utilities.core.imports import module_available, RequirementCache
 
 from lightning.fabric.utilities.types import _MAP_LOCATION_TYPE, _PATH
 
@@ -128,3 +128,7 @@ def _is_dir(fs: AbstractFileSystem, path: Union[str, Path], strict: bool = False
         return not fs.isfile(path)
 
     return fs.isdir(path)
+
+
+def _is_local_file_protocol(fs: AbstractFileSystem) -> bool:
+    return fs.protocol == (("file", "local") if RequirementCache("fsspec>=2023.10.0") else "file")
