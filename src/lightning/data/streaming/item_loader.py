@@ -110,7 +110,6 @@ class TokensLoader(BaseItemLoader):
 
         super().__init__()
         self._block_size = block_size
-        self._intervals: List[Tuple[int, int]] = []
         self._mmaps: Dict[int, np.memmap] = {}
         self._buffers: Dict[int, bytes] = {}
         self._dtype: Optional[torch.dtype] = None
@@ -123,16 +122,16 @@ class TokensLoader(BaseItemLoader):
             raise ValueError("The provided chunks isn't properly setup.")
 
     def generate_intervals(self) -> List[Tuple[int, int]]:
+        intervals = []
         begin = 0
         end = 0
         for chunk in self._chunks:
             dim = chunk["dim"]
             num_blocks = dim // self._block_size
             end += num_blocks
-            self._intervals.append((begin, end))
+            intervals.append((begin, end))
             begin += num_blocks
-
-        return self._intervals
+        return intervals
 
     def load_item_from_chunk(self, index: int, chunk_index: int, chunk_filepath: str, begin: int) -> torch.Tensor:
         if chunk_filepath in self._chunk_filepaths and not os.path.isfile(chunk_filepath):
@@ -149,6 +148,10 @@ class TokensLoader(BaseItemLoader):
         if chunk_index not in self._mmaps:
             # TODO: Add deletion and memmap close
             chunk = self._chunks[chunk_index]
+
+            # Skip the header
+            # The number of items + the number of offsets (number of items in the chunk + 1)
+            # multiplied by the header encoding dtype (np.uint32)
             offset = (1 + chunk["chunk_size"] + 1) * 4
             mmap = np.memmap(chunk_filepath, mode="r", order="C", offset=offset)
             self._mmaps[chunk_index] = mmap
@@ -157,5 +160,5 @@ class TokensLoader(BaseItemLoader):
         assert self._dtype
 
         buffer: bytes = self._buffers[chunk_index]
-        offset = self._dtype.itemsize * ((index - begin) if index >= begin else index + 1)
+        offset = self._dtype.itemsize * (index - begin) * self._block_size
         return torch.frombuffer(buffer, dtype=self._dtype, count=self._block_size, offset=offset)

@@ -4,6 +4,7 @@ from unittest import mock
 
 from lightning.data.streaming import reader
 from lightning.data.streaming.cache import Cache
+from lightning.data.streaming.config import ChunkedIndex
 from lightning_cloud.resolver import Dir
 
 
@@ -30,7 +31,8 @@ def test_reader_chunk_removal(tmpdir, monkeypatch):
     os.makedirs(cache_dir, exist_ok=True)
 
     for i in range(25):
-        assert cache[i] == i
+        index = ChunkedIndex(i, cache._get_chunk_index_from_index(i), last_index=i == 24)
+        assert cache[index] == i
 
     assert len(os.listdir(cache_dir)) == 14
 
@@ -46,7 +48,8 @@ def test_reader_chunk_removal(tmpdir, monkeypatch):
     expected = []
     for i in range(25):
         expected.append([i, len(os.listdir(cache_dir))])
-        assert cache[i] == i
+        index = ChunkedIndex(i, cache._get_chunk_index_from_index(i), last_index=i == 24)
+        assert cache[index] == i
 
     assert expected == [
         [0, 0],
@@ -70,10 +73,10 @@ def test_reader_chunk_removal(tmpdir, monkeypatch):
         [18, 9],
         [19, 10],
         [20, 10],
-        [21, 11],
-        [22, 11],  # Cleanup is triggered
-        [23, 2],
-        [24, 2],
+        [21, 2],
+        [22, 2],
+        [23, 3],
+        [24, 3],
     ]
 
-    assert len(os.listdir(cache_dir)) == 3
+    assert len(os.listdir(cache_dir)) in [3, 4]

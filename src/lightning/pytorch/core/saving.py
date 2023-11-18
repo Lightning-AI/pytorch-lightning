@@ -32,12 +32,13 @@ from lightning_utilities.core.apply_func import apply_to_collection
 import lightning.pytorch as pl
 from lightning.fabric.utilities.cloud_io import _is_dir, get_filesystem
 from lightning.fabric.utilities.cloud_io import _load as pl_load
+from lightning.fabric.utilities.data import AttributeDict
 from lightning.fabric.utilities.types import _MAP_LOCATION_TYPE, _PATH
 from lightning.pytorch.accelerators import CUDAAccelerator, MPSAccelerator, XLAAccelerator
 from lightning.pytorch.utilities.imports import _OMEGACONF_AVAILABLE
 from lightning.pytorch.utilities.migration import pl_legacy_patch
 from lightning.pytorch.utilities.migration.utils import _pl_migrate_checkpoint
-from lightning.pytorch.utilities.parsing import AttributeDict, parse_class_init_keys
+from lightning.pytorch.utilities.parsing import parse_class_init_keys
 from lightning.pytorch.utilities.rank_zero import rank_zero_warn
 
 if TYPE_CHECKING:
