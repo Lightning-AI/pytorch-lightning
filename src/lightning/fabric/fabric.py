@@ -410,11 +410,6 @@ class Fabric:
 
         """
         if isinstance(tensor, _BackwardTensor):
-            # rank_zero_deprecation(
-            #    "`fabric.backward(loss)` is no longer necessary, you can simply do `loss.backward()` as with pure"
-            #    " PyTorch",
-            #    stacklevel=6,
-            # )
             return tensor.backward(*args, **kwargs)
         if not _is_lightning_module:  # cannot use `isinstance` because fabric doesnt install pytorch lightning
             raise RuntimeError(
