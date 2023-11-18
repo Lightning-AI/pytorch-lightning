@@ -25,6 +25,7 @@ class ChunkedIndex:
     index: int
     chunk_index: int
     chunk_indexes: Optional[List[int]] = None
+    last_index: bool = False
 
 
 class CacheBatchSampler:

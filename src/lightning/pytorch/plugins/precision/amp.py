@@ -20,12 +20,12 @@ import lightning.pytorch as pl
 from lightning.fabric.accelerators.cuda import _patch_cuda_is_available
 from lightning.fabric.plugins.precision.amp import _optimizer_handles_unscaling
 from lightning.fabric.utilities.types import Optimizable
-from lightning.pytorch.plugins.precision.precision_plugin import PrecisionPlugin
+from lightning.pytorch.plugins.precision.precision import Precision
 from lightning.pytorch.utilities import GradClipAlgorithmType
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 
 
-class MixedPrecisionPlugin(PrecisionPlugin):
+class MixedPrecision(Precision):
     """Plugin for Automatic Mixed Precision (AMP) training with ``torch.autocast``.
 
     Args:

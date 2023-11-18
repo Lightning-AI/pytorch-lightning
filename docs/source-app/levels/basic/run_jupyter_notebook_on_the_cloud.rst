@@ -3,7 +3,6 @@
 #############################################
 Example: Develop a Jupyter Notebook component
 #############################################
-**Audience:** TODO:
 
 **Prereqs:** You have an app already running locally.
 
