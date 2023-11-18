@@ -1285,7 +1285,7 @@ class Trainer:
         It is used as a fallback if logger or checkpoint callback do not define specific save paths.
 
         """
-        if _is_local_file_protocol(get_filesystem(self._default_root_dir)):
+        if _is_local_file_protocol(self._default_root_dir):
             return os.path.normpath(self._default_root_dir)
         return self._default_root_dir
 

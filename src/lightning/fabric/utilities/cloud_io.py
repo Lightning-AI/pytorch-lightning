@@ -18,6 +18,7 @@ from pathlib import Path
 from typing import IO, Any, Dict, Union
 
 import fsspec
+import fsspec.utils
 import torch
 from fsspec.core import url_to_fs
 from fsspec.implementations.local import AbstractFileSystem
@@ -130,5 +131,5 @@ def _is_dir(fs: AbstractFileSystem, path: Union[str, Path], strict: bool = False
     return fs.isdir(path)
 
 
-def _is_local_file_protocol(fs: AbstractFileSystem) -> bool:
-    return fs.protocol == (("file", "local") if RequirementCache("fsspec>=2023.10.0") else "file")
+def _is_local_file_protocol(path: _PATH) -> bool:
+    return fsspec.utils.get_protocol(str(path)) == "file"

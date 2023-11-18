@@ -457,7 +457,7 @@ class ModelCheckpoint(Checkpoint):
     def __init_ckpt_dir(self, dirpath: Optional[_PATH], filename: Optional[str]) -> None:
         self._fs = get_filesystem(dirpath if dirpath else "")
 
-        if dirpath and _is_local_file_protocol(self._fs):
+        if dirpath and _is_local_file_protocol(dirpath if dirpath else ""):
             dirpath = os.path.realpath(dirpath)
 
         self.dirpath = dirpath
@@ -675,7 +675,7 @@ class ModelCheckpoint(Checkpoint):
 
         # set the last model path before saving because it will be part of the state.
         previous, self.last_model_path = self.last_model_path, filepath
-        if _is_local_file_protocol(self._fs) and self._last_checkpoint_saved and self.save_top_k != 0:
+        if _is_local_file_protocol(filepath) and self._last_checkpoint_saved and self.save_top_k != 0:
             self._link_checkpoint(trainer, self._last_checkpoint_saved, filepath)
         else:
             self._save_checkpoint(trainer, filepath)
@@ -771,7 +771,7 @@ class ModelCheckpoint(Checkpoint):
         """
         if previous == current:
             return False
-        if self._fs.protocol != "file":
+        if _is_local_file_protocol(previous):
             return True
         previous = Path(previous).absolute()
         resume_path = Path(trainer.ckpt_path).absolute() if trainer.ckpt_path is not None else None
