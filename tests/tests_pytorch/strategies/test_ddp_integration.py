@@ -425,6 +425,7 @@ def test_ddp_barrier_non_consecutive_device_ids(barrier_mock, tmpdir):
     barrier_mock.assert_any_call(device_ids=[gpus[trainer.local_rank]])
 
 
+@RunIf(standalone=True)
 @mock.patch.dict(os.environ, {"LOCAL_RANK": "1"})
 def test_incorrect_ddp_script_spawning(tmpdir):
     """Test an error message when user accidentally instructs Lightning to spawn children processes on rank > 0."""
@@ -442,6 +443,7 @@ def test_incorrect_ddp_script_spawning(tmpdir):
         accelerator="cpu",
         devices=2,
         plugins=[WronglyImplementedEnvironment()],
+        barebones=True,
     )
     with pytest.raises(
         RuntimeError, match="Lightning attempted to launch new distributed processes with `local_rank > 0`."
