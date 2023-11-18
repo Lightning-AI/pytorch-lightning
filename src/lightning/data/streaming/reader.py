@@ -12,17 +12,18 @@
 # limitations under the License.
 
 import os
+import shutil
 import warnings
 from threading import Lock, Thread
 from time import sleep
 from typing import Any, Dict, List, Optional, Tuple
 
-from lightning.data.datasets.env import _DistributedEnv, _WorkerEnv
 from lightning.data.streaming.config import ChunksConfig
 from lightning.data.streaming.constants import _TORCH_GREATER_EQUAL_2_1_0
 from lightning.data.streaming.item_loader import BaseItemLoader, PyTreeLoader
 from lightning.data.streaming.sampler import ChunkedIndex
-from lightning.data.streaming.serializers import _SERIALIZERS, Serializer
+from lightning.data.streaming.serializers import Serializer, _get_serializers
+from lightning.data.utilities.env import _DistributedEnv, _WorkerEnv
 
 warnings.filterwarnings("ignore", message=".*The given buffer is not writable.*")
 
@@ -33,57 +34,121 @@ if _TORCH_GREATER_EQUAL_2_1_0:
 class PrepareChunksThread(Thread):
     """This thread is responsible to download the chunks associated to a given worker."""
 
-    def __init__(self, config: ChunksConfig) -> None:
+    def __init__(self, config: ChunksConfig, max_cache_size: Optional[int] = None, pre_download: int = 10) -> None:
         super().__init__(daemon=True)
         self._config = config
-        self._chunks_index_to_be_processed: List[int] = []
-        self._chunks_index_to_ready: List[int] = []
+        self._chunks_index_to_be_downloaded: List[int] = []
+        self._chunks_index_to_be_deleted: List[int] = []
         self._lock = Lock()
+        self._max_cache_size = max_cache_size
+        self._downloaded_chunks = 0
+        self._processed_chunks = 0
+        self._processed_chunks_counter = 0
+        self._delete_chunks = 0
+        self._pre_download = pre_download
+        self._should_stop = False
 
-    def add(self, chunk_indices: List[int]) -> None:
+    def download(self, chunk_indices: List[int]) -> None:
         """Receive the list of the chunk indices to download for the current epoch."""
         with self._lock:
             for chunk_indice in chunk_indices:
-                if chunk_indice not in self._chunks_index_to_be_processed:
-                    self._chunks_index_to_be_processed.append(chunk_indice)
+                if chunk_indice not in self._chunks_index_to_be_downloaded:
+                    self._chunks_index_to_be_downloaded.append(chunk_indice)
+
+    def delete(self, chunk_indices: List[int]) -> None:
+        """Receive the list of the chunk indices to download for the current epoch."""
+        with self._lock:
+            for chunk_indice in chunk_indices:
+                if chunk_indice not in self._chunks_index_to_be_deleted:
+                    self._chunks_index_to_be_deleted.append(chunk_indice)
+                    self._processed_chunks += 1
+                    self._processed_chunks_counter += 1
+
+    def _delete(self, chunk_index: int) -> None:
+        chunk_filepath, begin, _ = self._config[ChunkedIndex(index=-1, chunk_index=chunk_index)]
+
+        if os.path.exists(chunk_filepath):
+            os.remove(chunk_filepath)
+
+    def stop(self) -> None:
+        """Receive the list of the chunk indices to download for the current epoch."""
+        with self._lock:
+            self._should_stop = True
 
     def run(self) -> None:
         while True:
             with self._lock:
-                if len(self._chunks_index_to_be_processed) == 0:
-                    sleep(0.007)
+                if self._should_stop:
+                    if (
+                        self._max_cache_size
+                        and self._max_cache_size <= shutil.disk_usage(self._config._cache_dir).total
+                    ):
+                        for chunk_index in self._chunks_index_to_be_deleted:
+                            if chunk_index not in self._chunks_index_to_be_downloaded:
+                                self._delete(chunk_index)
+                                self._delete_chunks += 1
+                                self._processed_chunks_counter = 0
+                    return
+
+                # Wait for something to do
+                if len(self._chunks_index_to_be_downloaded) == 0 and len(self._chunks_index_to_be_deleted) == 0:
                     continue
 
-                chunk_index = self._chunks_index_to_be_processed.pop(0)
+                # Delete the chunks if we are missing disk space.
+                if self._max_cache_size and self._processed_chunks_counter >= self._pre_download:
+                    if shutil.disk_usage(self._config._cache_dir).total >= self._max_cache_size:
+                        for chunk_index in self._chunks_index_to_be_deleted:
+                            if chunk_index not in self._chunks_index_to_be_downloaded:
+                                self._delete(chunk_index)
+                                self._delete_chunks += 1
+                                self._processed_chunks_counter = 0
+                    self._chunks_index_to_be_deleted = []
 
-            # TODO: Implement eviction
+                # If there is no chunks to download, go back to waiting
+                if len(self._chunks_index_to_be_downloaded) == 0:
+                    continue
+
+                # If we have already downloaded too many chunks, let's wait for processed chunks to catch up
+                if self._max_cache_size and (self._downloaded_chunks - self._processed_chunks) > self._pre_download:
+                    sleep(0.1)
+                    continue
+
+                chunk_index = self._chunks_index_to_be_downloaded.pop(0)
+
             self._config.download_chunk_from_index(chunk_index)
-            self._chunks_index_to_ready.append(chunk_index)
+            self._downloaded_chunks += 1
+
+            # Sleep to release the lock
+            sleep(0.1)
 
 
 class BinaryReader:
     def __init__(
         self,
         cache_dir: str,
-        remote_dir: Optional[str] = None,
+        max_cache_size: int,
+        remote_input_dir: Optional[str] = None,
         compression: Optional[str] = None,
         item_loader: Optional[BaseItemLoader] = None,
+        serializers: Optional[Dict[str, Serializer]] = None,
     ) -> None:
         """The BinaryReader enables to read chunked dataset in an efficient way.
 
         Arguments:
             cache_dir: The path to cache folder.
-            remote_dir: The path to a remote folder where the data are located.
+            remote_input_dir: The path to a remote folder where the data are located.
                 The scheme needs to be added to the path.
             compression: The algorithm to decompress the chunks.
             item_loader: The chunk sampler to create sub arrays from a chunk.
+            max_cache_size: The maximum cache size used by the reader when fetching the chunks.
+            serializers: Provide your own serializers.
 
         """
         super().__init__()
         warnings.filterwarnings("ignore", message=".*The given buffer is not writable.*")
 
         self._cache_dir = cache_dir
-        self._remote_dir = remote_dir
+        self._remote_input_dir = remote_input_dir
 
         if not os.path.exists(self._cache_dir):
             raise FileNotFoundError(f"The provided cache_dir `{self._cache_dir}` doesn't exist.")
@@ -91,13 +156,14 @@ class BinaryReader:
         self._compression = compression
         self._intervals: Optional[List[str]] = None
 
-        self._serializers: Dict[str, Serializer] = _SERIALIZERS
+        self._serializers: Dict[str, Serializer] = _get_serializers(serializers)
         self._distributed_env = _DistributedEnv.detect()
         self._rank: Optional[int] = None
         self._config: Optional[ChunksConfig] = None
         self._prepare_thread: Optional[PrepareChunksThread] = None
-        self._chunks_index_to_be_processed: List[int] = []
         self._item_loader = item_loader or PyTreeLoader()
+        self._last_chunk_index: Optional[int] = None
+        self._max_cache_size = int(os.getenv("MAX_CACHE_SIZE", max_cache_size))
 
     def _get_chunk_index_from_index(self, index: int) -> int:
         # Load the config containing the index
@@ -108,7 +174,7 @@ class BinaryReader:
 
     def _try_load_config(self) -> Optional[ChunksConfig]:
         """Try to load the chunks config if the index files are available."""
-        self._config = ChunksConfig.load(self._cache_dir, self._remote_dir, self._item_loader)
+        self._config = ChunksConfig.load(self._cache_dir, self._serializers, self._remote_input_dir, self._item_loader)
         return self._config
 
     @property
@@ -143,21 +209,30 @@ class BinaryReader:
         if self._config and self._config._remote_dir:
             # Create and start the prepare chunks thread
             if self._prepare_thread is None and self._config:
-                self._prepare_thread = PrepareChunksThread(self._config)
+                self._prepare_thread = PrepareChunksThread(self._config, self._max_cache_size)
                 self._prepare_thread.start()
                 if index.chunk_indexes:
-                    self._chunks_index_to_be_processed.extend(index.chunk_indexes)
-                    self._prepare_thread.add(index.chunk_indexes)
+                    self._prepare_thread.download(index.chunk_indexes)
 
-            # If the chunk_index isn't already in the download queue, add it.
-            if index.chunk_index not in self._chunks_index_to_be_processed:
+            # If the chunk_index isn't already in the download and delete queues, add it.
+            if index.chunk_index != self._last_chunk_index:
                 assert self._prepare_thread
-                self._prepare_thread.add([index.chunk_index])
-                self._chunks_index_to_be_processed.append(index.chunk_index)
+
+                if self._last_chunk_index:
+                    self._prepare_thread.delete([self._last_chunk_index])
+
+                self._last_chunk_index = index.chunk_index
+                self._prepare_thread.download([index.chunk_index])
 
         # Fetch the element
         chunk_filepath, begin, _ = self.config[index]
-        return self._item_loader.load_item_from_chunk(index.index, index.chunk_index, chunk_filepath, begin)
+        item = self._item_loader.load_item_from_chunk(index.index, index.chunk_index, chunk_filepath, begin)
+
+        if index.last_index and self._prepare_thread:
+            self._prepare_thread.stop()
+            self._prepare_thread = None
+
+        return item
 
     def get_length(self) -> int:
         """Get the number of samples across all chunks."""

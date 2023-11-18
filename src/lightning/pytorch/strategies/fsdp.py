@@ -22,6 +22,7 @@ import torch
 from torch import Tensor
 from torch.nn import Module
 from torch.optim import Optimizer
+from typing_extensions import override
 
 import lightning.pytorch as pl
 from lightning.fabric.plugins import CheckpointIO, ClusterEnvironment
@@ -39,6 +40,7 @@ from lightning.fabric.strategies.fsdp import (
     _is_full_checkpoint,
     _is_sharded_checkpoint,
     _load_raw_module_state,
+    _move_torchmetrics_to_device,
     _optimizer_has_flat_params,
     _setup_activation_checkpointing,
 )
@@ -60,8 +62,8 @@ from lightning.fabric.utilities.optimizer import _optimizers_to_device
 from lightning.fabric.utilities.seed import reset_seed
 from lightning.fabric.utilities.types import _PATH, ReduceOp
 from lightning.pytorch.core.optimizer import LightningOptimizer
-from lightning.pytorch.plugins.precision import PrecisionPlugin
-from lightning.pytorch.plugins.precision.fsdp import FSDPPrecisionPlugin
+from lightning.pytorch.plugins.precision import Precision
+from lightning.pytorch.plugins.precision.fsdp import FSDPPrecision
 from lightning.pytorch.strategies.launchers.subprocess_script import _SubprocessScriptLauncher
 from lightning.pytorch.strategies.parallel import ParallelStrategy
 from lightning.pytorch.strategies.strategy import TBroadcast
@@ -144,7 +146,7 @@ class FSDPStrategy(ParallelStrategy):
         parallel_devices: Optional[List[torch.device]] = None,
         cluster_environment: Optional[ClusterEnvironment] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
-        precision_plugin: Optional[PrecisionPlugin] = None,
+        precision_plugin: Optional[Precision] = None,
         process_group_backend: Optional[str] = None,
         timeout: Optional[timedelta] = default_pg_timeout,
         cpu_offload: Union[bool, "CPUOffload", None] = None,
@@ -188,6 +190,7 @@ class FSDPStrategy(ParallelStrategy):
         self._state_dict_type = state_dict_type
 
     @property
+    @override
     def root_device(self) -> torch.device:
         assert self.parallel_devices is not None
         return self.parallel_devices[self.local_rank]
@@ -205,38 +208,44 @@ class FSDPStrategy(ParallelStrategy):
         if self.mixed_precision:
             return self.mixed_precision
         plugin = self.precision_plugin
-        if isinstance(plugin, FSDPPrecisionPlugin):
+        if isinstance(plugin, FSDPPrecision):
             return plugin.mixed_precision_config
         return None
 
     @property  # type: ignore[override]
-    def precision_plugin(self) -> FSDPPrecisionPlugin:
+    @override
+    def precision_plugin(self) -> FSDPPrecision:
         plugin = self._precision_plugin
         if plugin is not None:
-            assert isinstance(plugin, FSDPPrecisionPlugin)
+            assert isinstance(plugin, FSDPPrecision)
             return plugin
-        return FSDPPrecisionPlugin("32-true")
+        return FSDPPrecision("32-true")
 
     @precision_plugin.setter
-    def precision_plugin(self, precision_plugin: Optional[FSDPPrecisionPlugin]) -> None:
-        if precision_plugin is not None and not isinstance(precision_plugin, FSDPPrecisionPlugin):
+    @override
+    def precision_plugin(self, precision_plugin: Optional[FSDPPrecision]) -> None:
+        if precision_plugin is not None and not isinstance(precision_plugin, FSDPPrecision):
             raise TypeError(
-                f"The FSDP strategy can only work with the `FSDPPrecisionPlugin` plugin, found {precision_plugin}"
+                f"The FSDP strategy can only work with the `FSDPPrecision` plugin, found {precision_plugin}"
             )
         self._precision_plugin = precision_plugin
 
     @property
+    @override
     def distributed_sampler_kwargs(self) -> Dict:
         return {"num_replicas": (self.num_nodes * self.num_processes), "rank": self.global_rank}
 
     @property
+    @override
     def restore_checkpoint_after_setup(self) -> bool:
         return True
 
     @property
+    @override
     def lightning_restore_optimizer(self) -> bool:
         return False
 
+    @override
     def setup_environment(self) -> None:
         log.debug(f"{self.__class__.__name__}: setting up distributed...")
         reset_seed()
@@ -260,11 +269,13 @@ class FSDPStrategy(ParallelStrategy):
         # additionally, for some implementations, the setter is a no-op, so it's safer to access the getter
         rank_zero_only.rank = self.global_rank
 
+    @override
     def _configure_launcher(self) -> None:
         assert self.cluster_environment is not None
         if not self.cluster_environment.creates_processes_externally:
             self._launcher = _SubprocessScriptLauncher(self.cluster_environment, self.num_processes, self.num_nodes)
 
+    @override
     def _setup_model(self, model: Module) -> Module:
         """Wraps the model into a :class:`~torch.distributed.fsdp.fully_sharded_data_parallel.FullyShardedDataParallel`
         module."""
@@ -292,12 +303,15 @@ class FSDPStrategy(ParallelStrategy):
                 **self.kwargs,
             )
 
+        _move_torchmetrics_to_device(model, self.root_device)
+
         # activation checkpointing needs to be set up after wrapping the model
         if _TORCH_GREATER_EQUAL_1_13:
             _setup_activation_checkpointing(model, self._activation_checkpointing_kwargs)
 
         return model
 
+    @override
     def setup(self, trainer: "pl.Trainer") -> None:
         assert self.accelerator is not None
         assert self.model is not None
@@ -325,7 +339,13 @@ class FSDPStrategy(ParallelStrategy):
 
         self.setup_precision_plugin()
 
+    @override
     def setup_optimizers(self, trainer: "pl.Trainer") -> None:
+        # If we're setting up for evaluation after fitting, we need to discard the optimizers
+        # since we're rewrapping the model, otherwise optimizer param references are no longer valid
+        # and subsequent checkpoint saving can fail
+        self._reset_optimizers_and_schedulers()
+
         if self.kwargs.get("use_orig_params"):
             return super().setup_optimizers(trainer)
 
@@ -348,10 +368,12 @@ class FSDPStrategy(ParallelStrategy):
             )
         return None
 
+    @override
     def model_to_device(self) -> None:
         pass
 
     @contextmanager
+    @override
     def tensor_init_context(self, empty_init: Optional[bool] = None) -> Generator[None, None, None]:
         empty_init_context: Union[torch.device, _EmptyInit, nullcontext]
         if _TORCH_GREATER_EQUAL_2_1 and empty_init:
@@ -367,6 +389,7 @@ class FSDPStrategy(ParallelStrategy):
             yield
 
     @contextmanager
+    @override
     def model_sharded_context(self) -> Generator[None, None, None]:
         log.debug(f"{self.__class__.__name__}: entered model_sharded_context.")
         from torch.distributed.fsdp.fully_sharded_data_parallel import FullyShardedDataParallel
@@ -382,6 +405,7 @@ class FSDPStrategy(ParallelStrategy):
         ):
             yield
 
+    @override
     def barrier(self, name: Optional[str] = None) -> None:
         if not _distributed_is_initialized():
             return
@@ -390,6 +414,7 @@ class FSDPStrategy(ParallelStrategy):
         else:
             torch.distributed.barrier()
 
+    @override
     def broadcast(self, obj: TBroadcast, src: int = 0) -> TBroadcast:
         if not _distributed_is_initialized():
             return obj
@@ -398,6 +423,7 @@ class FSDPStrategy(ParallelStrategy):
         torch.distributed.broadcast_object_list(obj, src, group=_group.WORLD)
         return obj[0]
 
+    @override
     def reduce(
         self,
         tensor: Union[Tensor, Any],
@@ -423,6 +449,7 @@ class FSDPStrategy(ParallelStrategy):
     def _determine_device_ids(self) -> List[int]:
         return [self.root_device.index]
 
+    @override
     def teardown(self) -> None:
         log.debug(f"{self.__class__.__name__}: tearing down strategy...")
 
@@ -449,6 +476,7 @@ class FSDPStrategy(ParallelStrategy):
         return cls._registered_strategies
 
     @classmethod
+    @override
     def register_strategies(cls, strategy_registry: _StrategyRegistry) -> None:
         if not torch.distributed.is_available():
             return
@@ -467,6 +495,7 @@ class FSDPStrategy(ParallelStrategy):
         )
         cls._registered_strategies.append("fsdp_cpu_offload")
 
+    @override
     def lightning_module_state_dict(self) -> Dict[str, Any]:
         assert self.model is not None
         if self._state_dict_type == "sharded":
@@ -478,10 +507,12 @@ class FSDPStrategy(ParallelStrategy):
         with state_dict_ctx:
             return self.model.state_dict()
 
+    @override
     def load_model_state_dict(self, checkpoint: Mapping[str, Any]) -> None:
         # Override to do nothing, FSDP already loaded the states in `load_checkpoint()`
         pass
 
+    @override
     def optimizer_state(self, optimizer: Optimizer) -> Dict[str, Tensor]:
         if not _TORCH_GREATER_EQUAL_2_0:
             rank_zero_warn("FSDP in Lightning with PyTorch < 2.0 does not support saving the optimizer state.")
@@ -508,10 +539,12 @@ class FSDPStrategy(ParallelStrategy):
 
         raise ValueError(f"Unknown state_dict_type: {self._state_dict_type}")
 
+    @override
     def load_optimizer_state_dict(self, checkpoint: Mapping[str, Any]) -> None:
         # Override to do nothing, the FSDP already loaded the states in `load_checkpoint()`
         pass
 
+    @override
     def save_checkpoint(
         self, checkpoint: Dict[str, Any], filepath: _PATH, storage_options: Optional[Any] = None
     ) -> None:
@@ -550,6 +583,7 @@ class FSDPStrategy(ParallelStrategy):
         else:
             raise ValueError(f"Unknown state_dict_type: {self._state_dict_type}")
 
+    @override
     def load_checkpoint(self, checkpoint_path: _PATH) -> Dict[str, Any]:
         # broadcast the path from rank 0 to ensure all the states are loaded from a common path
         path = Path(self.broadcast(checkpoint_path))

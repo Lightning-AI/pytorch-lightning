@@ -272,8 +272,8 @@ class LearningRateMonitor(Callback):
     def _add_suffix(self, name: str, param_groups: List[Dict], param_group_index: int, use_names: bool = True) -> str:
         if len(param_groups) > 1:
             if not use_names:
-                return f"{name}/pg{param_group_index+1}"
-            pg_name = param_groups[param_group_index].get("name", f"pg{param_group_index+1}")
+                return f"{name}/pg{param_group_index + 1}"
+            pg_name = param_groups[param_group_index].get("name", f"pg{param_group_index + 1}")
             return f"{name}/{pg_name}"
         if use_names:
             pg_name = param_groups[param_group_index].get("name")

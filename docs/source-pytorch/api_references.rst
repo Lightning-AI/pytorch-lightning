@@ -114,15 +114,15 @@ precision
     :nosignatures:
     :template: classtemplate.rst
 
-    DeepSpeedPrecisionPlugin
-    DoublePrecisionPlugin
-    HalfPrecisionPlugin
-    FSDPPrecisionPlugin
-    MixedPrecisionPlugin
-    PrecisionPlugin
-    XLAPrecisionPlugin
-    TransformerEnginePrecisionPlugin
-    BitsandbytesPrecisionPlugin
+    DeepSpeedPrecision
+    DoublePrecision
+    HalfPrecision
+    FSDPPrecision
+    MixedPrecision
+    Precision
+    XLAPrecision
+    TransformerEnginePrecision
+    BitsandbytesPrecision
 
 environments
 """"""""""""
