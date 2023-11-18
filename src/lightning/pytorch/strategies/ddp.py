@@ -18,6 +18,7 @@ from typing import TYPE_CHECKING, Any, Callable, Dict, List, Literal, Optional, 
 
 import torch
 import torch.distributed
+from lightning_utilities.core.rank_zero import rank_zero_only as utils_rank_zero_only
 from torch import Tensor
 from torch.nn import Module
 from torch.nn.parallel.distributed import DistributedDataParallel
@@ -48,7 +49,6 @@ from lightning.pytorch.strategies.strategy import TBroadcast, _ForwardRedirectio
 from lightning.pytorch.trainer.states import TrainerFn
 from lightning.pytorch.utilities.exceptions import _augment_message
 from lightning.pytorch.utilities.rank_zero import rank_zero_deprecation, rank_zero_info, rank_zero_only
-from lightning_utilities.core.rank_zero import rank_zero_only as utils_rank_zero_only
 
 if TYPE_CHECKING:
     from torch.distributed.algorithms.model_averaging.averagers import ModelAverager
