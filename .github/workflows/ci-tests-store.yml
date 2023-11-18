@@ -10,9 +10,7 @@ on:
     paths:
       - ".actions/*"
       - "requirements/store/**"
-      - "src/lightning/__about__.py"
       - "src/lightning/__init__.py"
-      - "src/lightning/__main__.py"
       - "src/lightning/__setup__.py"
       - "src/lightning/__version__.py"
       - "src/lightning/store/**"
