@@ -58,6 +58,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed an issue preventing the user to `Trainer.save_checkpoint()` an FSDP model when `Trainer.test/validate/predict()` ran after `Trainer.fit()` ([#18992](https://github.com/Lightning-AI/lightning/issues/18992))
 
 
+- Fixed checks for local file protocol due to fsspec changes in 2023.10.0 ([#18840](https://github.com/Lightning-AI/lightning/pull/18840))
+
+
 ## [2.1.0] - 2023-10-11
 
 ### Added
