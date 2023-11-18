@@ -19,6 +19,7 @@ import torch
 from torch import Tensor
 from torch.optim.optimizer import Optimizer
 
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 from lightning.pytorch.utilities import move_data_to_device
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.types import EVAL_DATALOADERS, STEP_OUTPUT, TRAIN_DATALOADERS
@@ -151,24 +152,58 @@ class ModelHooks:
 
         """
 
+    def on_validation_model_zero_grad(self) -> None:
+        """Called by the training loop to release gradients before entering the validation loop."""
+        zero_grad_kwargs = {} if _TORCH_GREATER_EQUAL_2_0 else {"set_to_none": True}
+        self.zero_grad(**zero_grad_kwargs)
+
     def on_validation_model_eval(self) -> None:
-        """Sets the model to eval during the val loop."""
+        """Called when the validation loop starts.
+
+        The validation loop by default calls ``.eval()`` on the LightningModule before it starts. Override this hook
+        to change the behavior. See also :meth:`~lightning.pytorch.core.hooks.ModelHooks.on_validation_model_train`.
+
+        """
         self.trainer.model.eval()
 
     def on_validation_model_train(self) -> None:
-        """Sets the model to train during the val loop."""
-        self.trainer.model.train()
+        """Called when the validation loop ends.
 
-    def on_test_model_train(self) -> None:
-        """Sets the model to train during the test loop."""
+        The validation loop by default restores the `training` mode of the LightningModule to what it was before
+        starting validation. Override this hook to change the behavior. See also
+        :meth:`~lightning.pytorch.core.hooks.ModelHooks.on_validation_model_eval`.
+
+        """
+        # The loop won't call this hook unless it is overridden. The line below is here in case the user calls super().
         self.trainer.model.train()
 
     def on_test_model_eval(self) -> None:
-        """Sets the model to eval during the test loop."""
+        """Called when the test loop starts.
+
+        The test loop by default calls ``.eval()`` on the LightningModule before it starts. Override this hook
+        to change the behavior. See also :meth:`~lightning.pytorch.core.hooks.ModelHooks.on_test_model_train`.
+
+        """
         self.trainer.model.eval()
 
+    def on_test_model_train(self) -> None:
+        """Called when the test loop ends.
+
+        The test loop by default restores the `training` mode of the LightningModule to what it was before
+        starting testing. Override this hook to change the behavior. See also
+        :meth:`~lightning.pytorch.core.hooks.ModelHooks.on_test_model_eval`.
+
+        """
+        # The loop won't call this hook unless it is overridden. The line below is here in case the user calls super().
+        self.trainer.model.train()
+
     def on_predict_model_eval(self) -> None:
-        """Sets the model to eval during the predict loop."""
+        """Called when the predict loop starts.
+
+        The predict loop by default calls ``.eval()`` on the LightningModule before it starts. Override this hook
+        to change the behavior.
+
+        """
         self.trainer.model.eval()
 
     def on_train_epoch_start(self) -> None:

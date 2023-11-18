@@ -17,6 +17,7 @@ from dataclasses import dataclass, field
 from typing import Any, Dict
 
 from torch import Tensor
+from typing_extensions import override
 
 import lightning.pytorch as pl
 from lightning.pytorch.core.optimizer import do_nothing_closure
@@ -59,6 +60,7 @@ class ManualResult(OutputResult):
 
         return cls(extra=extra)
 
+    @override
     def asdict(self) -> Dict[str, Any]:
         return self.extra
 

@@ -16,15 +16,26 @@
 Needs to be run outside of `pytest` as it captures all the warnings.
 
 """
+import importlib
 import inspect
+import os
 import sys
+import warnings
 from contextlib import redirect_stderr
 from io import StringIO
 from pathlib import Path
+from unittest import mock
 
+import lightning.fabric
+import pytest
 from lightning.fabric.utilities.rank_zero import rank_zero_deprecation, rank_zero_warn
-from lightning.fabric.utilities.warnings import _is_path_in_lightning
+from lightning.fabric.utilities.warnings import (
+    PossibleUserWarning,
+    _is_path_in_lightning,
+    disable_possible_user_warnings,
+)
 from lightning_utilities.core.rank_zero import WarningCache, _warn
+from lightning_utilities.test.warning import no_warning_call
 
 
 def line_number():
@@ -51,12 +62,12 @@ if __name__ == "__main__":
     output = stderr.getvalue()
     expected_lines = [
         f"test_warnings.py:{base_line}: test1",
-        f"test_warnings.py:{base_line+1}: test2",
-        f"test_warnings.py:{base_line+3}: test3",
-        f"test_warnings.py:{base_line+4}: test4",
-        f"test_warnings.py:{base_line+6}: test5",
-        f"test_warnings.py:{base_line+9}: test6",
-        f"test_warnings.py:{base_line+10}: test7",
+        f"test_warnings.py:{base_line + 1}: test2",
+        f"test_warnings.py:{base_line + 3}: test3",
+        f"test_warnings.py:{base_line + 4}: test4",
+        f"test_warnings.py:{base_line + 6}: test5",
+        f"test_warnings.py:{base_line + 9}: test6",
+        f"test_warnings.py:{base_line + 10}: test7",
     ]
 
     for ln in expected_lines:
@@ -113,3 +124,25 @@ def test_is_path_in_lightning(monkeypatch, tmp_path):
         # The following statements should assert the opposite for correctness, but a naive implementation of
         # `_is_path_in_lightning` was requested, thus it cannot handle these cases
         assert _is_path_in_lightning(Path(r"D:\a\b\c\lightning"))  # drive letter mismatch
+
+
+def test_disable_possible_user_warnings():
+    with pytest.warns(PossibleUserWarning):
+        warnings.warn("test", PossibleUserWarning)
+    disable_possible_user_warnings()
+    with no_warning_call(PossibleUserWarning):
+        warnings.warn("test", PossibleUserWarning)
+    warnings.resetwarnings()
+
+
+@pytest.mark.parametrize("setting", ["0", "off"])
+@mock.patch.dict(os.environ, {}, clear=True)
+def test_disable_possible_user_warnings_from_environment(setting):
+    with pytest.warns(PossibleUserWarning):
+        warnings.warn("test", PossibleUserWarning)
+    os.environ["POSSIBLE_USER_WARNINGS"] = setting
+    importlib.reload(lightning.fabric)
+
+    with no_warning_call(PossibleUserWarning):
+        warnings.warn("test", PossibleUserWarning)
+    warnings.resetwarnings()

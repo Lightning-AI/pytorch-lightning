@@ -11,9 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import os
-import threading
-from contextlib import ExitStack, contextmanager
+import shutil
+from contextlib import ExitStack
 from datetime import timedelta
 from functools import partial
 from pathlib import Path
@@ -24,7 +23,6 @@ from typing import (
     ContextManager,
     Dict,
     Generator,
-    Iterable,
     List,
     Literal,
     Optional,
@@ -35,6 +33,7 @@ from typing import (
 )
 
 import torch
+from lightning_utilities.core.imports import RequirementCache
 from torch import Tensor
 from torch.nn import Module, Parameter
 from torch.optim import Optimizer
@@ -56,6 +55,7 @@ from lightning.fabric.strategies.strategy import (
 )
 from lightning.fabric.utilities.distributed import (
     ReduceOp,
+    _distributed_is_initialized,
     _get_default_process_group_backend_for_device,
     _init_dist_connection,
     _sync_ddp_if_available,
@@ -75,8 +75,6 @@ from lightning.fabric.utilities.types import _PATH, _Stateful
 
 if TYPE_CHECKING:
     from torch.distributed.fsdp.fully_sharded_data_parallel import CPUOffload, MixedPrecision, ShardingStrategy
-
-    from lightning.fabric.wrappers import _FabricModule
 
     if _TORCH_GREATER_EQUAL_2_0:
         from torch.distributed.fsdp.wrap import ModuleWrapPolicy
@@ -295,6 +293,8 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
                 **self._fsdp_kwargs,
             )
 
+        _move_torchmetrics_to_device(module, self.root_device)
+
         # activation checkpointing needs to be set up after wrapping the model
         if _TORCH_GREATER_EQUAL_1_13:
             _setup_activation_checkpointing(module, self._activation_checkpointing_kwargs)
@@ -309,32 +309,23 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         flattened parameters.
 
         """
-        if _TORCH_GREATER_EQUAL_2_0:
-            return optimizer
-
-        from torch.distributed.fsdp import FlatParameter
-
-        num_groups = len(optimizer.param_groups)
-        if num_groups > 1:
+        if self._fsdp_kwargs.get("use_orig_params"):
+            return super().setup_optimizer(optimizer)
+        if not _optimizer_has_flat_params(optimizer):
+            # We avoid this limitation in PyTorch >= 2.0 by setting `use_orig_params=True`
             raise ValueError(
-                "An optimizer used with an FSDP model does not support multiple param groups."
-                f" Found {num_groups} parameter groups."
+                "The optimizer does not seem to reference any FSDP parameters. HINT: Make sure to create the optimizer"
+                " after setting up the model."
             )
-
-        if any(isinstance(param, FlatParameter) for param in optimizer.param_groups[0]["params"]):
-            return optimizer
-
-        raise ValueError(
-            "The optimizer does not seem to reference any FSDP parameters. HINT: Make sure to create the optimizer"
-            " after setting up the model."
-        )
+        return optimizer
 
     def module_to_device(self, module: Module) -> None:
         pass
 
     def module_init_context(self, empty_init: Optional[bool] = None) -> ContextManager:
-        precision_init_ctx = self.precision.init_context()
+        precision_init_ctx = self.precision.module_init_context()
         module_sharded_ctx = self.module_sharded_context()
+        empty_ctx = _EmptyInit(enabled=bool(empty_init))
         stack = ExitStack()
         if _TORCH_GREATER_EQUAL_2_1 and empty_init:
             # Materialization happens in `setup`. When modules get wrapped by FSDP, the sequence of operations is:
@@ -342,7 +333,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             # These operations are applied to each submodule 'bottom up' in the module hierarchy.
             stack.enter_context(torch.device("meta"))
         elif _TORCH_GREATER_EQUAL_1_13:
-            stack.enter_context(_EmptyInit(enabled=bool(empty_init)))
+            stack.enter_context(empty_ctx)
         stack.enter_context(precision_init_ctx)
         stack.enter_context(module_sharded_ctx)
         return stack
@@ -368,7 +359,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         return tensor
 
     def barrier(self, *args: Any, **kwargs: Any) -> None:
-        if not torch.distributed.is_initialized():
+        if not _distributed_is_initialized():
             return
         if torch.distributed.get_backend() == "nccl":
             torch.distributed.barrier(device_ids=[self.root_device.index])
@@ -376,7 +367,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             torch.distributed.barrier()
 
     def broadcast(self, obj: TBroadcast, src: int = 0) -> TBroadcast:
-        if not torch.distributed.is_initialized():
+        if not _distributed_is_initialized():
             return obj
 
         obj = [obj]
@@ -444,8 +435,8 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
 
         # broadcast the path from rank 0 to ensure all the states are saved in a common path
         path = Path(self.broadcast(path))
-        if path.is_dir() and os.listdir(path):
-            raise FileExistsError(f"The checkpoint directory already exists and is not empty: {path}")
+        if path.is_dir() and self._state_dict_type == "full" and not _is_sharded_checkpoint(path):
+            raise IsADirectoryError(f"The checkpoint path exists and is a directory: {path}")
 
         from torch.distributed.checkpoint import FileSystemWriter, save_state_dict
         from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
@@ -466,7 +457,10 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         module = modules[0]
 
         if self._state_dict_type == "sharded":
+            if path.is_file():
+                path.unlink()
             path.mkdir(parents=True, exist_ok=True)
+
             state_dict_ctx = _get_sharded_state_dict_context(module)
 
             # replace the modules and optimizer objects in the state with their local state dict
@@ -495,6 +489,9 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
                 torch.save(metadata, path / _METADATA_FILENAME)
 
         elif self._state_dict_type == "full":
+            if _is_sharded_checkpoint(path):
+                shutil.rmtree(path)
+
             state_dict_ctx = _get_full_state_dict_context(module, world_size=self.world_size)
             full_state: Dict[str, Any] = {}
             with state_dict_ctx:
@@ -894,121 +891,13 @@ def _has_meta_device_parameters(obj: Union[Module, Optimizer]) -> bool:
     raise TypeError(f"Expected `torch.nn.Module` or `torch.optim.Optimizer`, got: {type(obj).__name__}")
 
 
-def _no_op() -> None:
-    pass
+def _move_torchmetrics_to_device(module: torch.nn.Module, device: torch.device) -> None:
+    # FSDP doesn't move modules without parameters (e.g. Metrics) to the device
+    # https://github.com/pytorch/pytorch/issues/113113
+    if not RequirementCache("torchmetrics"):
+        return
 
+    from torchmetrics import Metric
 
-@contextmanager
-def _apply_optimizers_during_fsdp_backward(
-    optimizers: Union[Optimizer, Iterable[Optimizer]],
-    module: Module,
-) -> Generator[None, None, None]:
-    """Call `Optimizer.step` as gradients become available.
-
-    NOTE: This is an EXPERIMENTAL utility and exploits behavior which is not
-          part of the FSDP public API. Use at your own risk.
-
-    By moving optimizer step invocation into the backward call we can free
-    gradients earlier and reduce peak memory.
-
-    """
-    from torch.distributed.fsdp._common_utils import _get_module_fsdp_state
-    from torch.distributed.fsdp._traversal_utils import _get_fsdp_handles
-    from torch.distributed.fsdp.flat_param import FlatParameter, FlatParamHandle
-
-    apply_lock = threading.Lock()
-
-    param_handles = _get_fsdp_handles(module)
-    assert param_handles, f"Module {module} does not appear to contain any FSDP modules."
-    fsdp_state = _get_module_fsdp_state(module)
-    assert fsdp_state is not None
-    fsdp_stream = fsdp_state._post_backward_stream if _TORCH_GREATER_EQUAL_2_1 else fsdp_state._streams["post_backward"]
-
-    if isinstance(optimizers, Optimizer):
-        optimizers = [optimizers]
-
-    # We cannot trigger the optimizer step until all parameters are ready.
-    remaining = {}
-    for optimizer in optimizers:
-        unfinished: Dict[torch.nn.Parameter, None] = {}  # Use Dict as an ordered set.
-        for group in optimizer.param_groups:
-            for p in group["params"]:
-                if p not in unfinished:
-                    assert p not in remaining, f"{p=} is shared between two optimizers."
-                    unfinished[p] = None
-                    remaining[p] = (optimizer, unfinished)
-
-    def maybe_step(parameters: Iterable[torch.nn.Parameter], post_step: Callable[[], None] = _no_op) -> None:
-        for p in tuple(parameters):
-            optimizer, unfinished = remaining.pop(p)
-            unfinished.pop(p)
-            if not unfinished:
-                optimizer.step()
-                optimizer.zero_grad()
-
-                # Used to call `_reset_flat_param_grad_info_if_needed`. Otherwise FSDP might hold on to the memory.
-                post_step()
-
-    try:
-        hook_handles = []
-        for h in param_handles:
-            assert isinstance(h, FlatParamHandle)
-            flat_param = h.flat_param
-            fsdp_acc_grad, _ = flat_param._post_backward_hook_state  # type: ignore
-
-            # We must take `h` and `flat_param` as arguments because Python
-            # late binds closures.
-            def _opt_hook(h: FlatParamHandle, flat_param: FlatParameter, *_unused: Any) -> None:
-                assert flat_param._post_backward_called
-                assert h.flat_param is flat_param
-                with apply_lock, torch.cuda.stream(fsdp_stream):
-                    # We invoke `prepare_gradient_for_optim` earlier than usual.
-                    # We also need to prevent the later "normal" invocation,
-                    # otherwise the double call will trigger FSDP asserts.
-                    prepare_gradient = h.prepare_gradient_for_optim
-                    assert hasattr(prepare_gradient, "__func__"), prepare_gradient
-                    assert prepare_gradient.__func__ is FlatParamHandle.prepare_gradient_for_optim
-                    prepare_gradient()
-                    h.prepare_gradient_for_optim = _no_op  # type: ignore[method-assign]
-                    post_step = (
-                        h._reset_flat_param_grad_info_if_needed
-                        if _TORCH_GREATER_EQUAL_2_1
-                        else h._clear_grads_if_needed
-                    )
-                    maybe_step(flat_param._params or (), post_step=post_step)
-
-            hook = partial(_opt_hook, h, flat_param)
-            hook_handles.append(fsdp_acc_grad.register_hook(hook))
-
-        yield
-
-    finally:
-        # Non-FSDP parameters won't have a grad hook, so handle them here.
-        with apply_lock:
-            maybe_step(remaining)
-
-        # Unregister the grad hooks.
-        for hook_handle in hook_handles:
-            hook_handle.remove()
-
-        # And lastly back out the handle monkey patches.
-        for h in param_handles:
-            if h.prepare_gradient_for_optim is _no_op:
-                del h.prepare_gradient_for_optim
-
-
-def fsdp_overlap_step_with_backward(
-    optimizers: Union[Optimizer, Iterable[Optimizer]],
-    fabric_module: "_FabricModule",
-) -> Generator[None, None, None]:
-    if not _TORCH_GREATER_EQUAL_2_0:
-        raise NotImplementedError(
-            "`fsdp_overlap_step_with_backward` requires torch >= 2.0.0. HINT: `pip install -U torch`"
-        )
-
-    from lightning.fabric.wrappers import _FabricModule
-
-    assert isinstance(fabric_module, _FabricModule)
-    return _apply_optimizers_during_fsdp_backward(  # type: ignore[return-value]
-        optimizers, fabric_module._forward_module
-    )
+    for metric in (m for m in module.modules() if isinstance(m, Metric)):
+        metric.to(device)  # `.to()` is in-place

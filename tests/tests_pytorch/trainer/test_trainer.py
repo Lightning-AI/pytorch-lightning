@@ -1925,6 +1925,9 @@ def test_detect_anomaly_nan(tmpdir):
 def test_trainer_config_strategy(monkeypatch, trainer_kwargs, strategy_cls, accelerator_cls, devices):
     if trainer_kwargs.get("accelerator") == "cuda":
         mock_cuda_count(monkeypatch, trainer_kwargs["devices"])
+    if trainer_kwargs.get("accelerator") == "auto":
+        # current parametrizations assume non-CUDA env
+        mock_cuda_count(monkeypatch, 0)
 
     trainer = Trainer(**trainer_kwargs)
 

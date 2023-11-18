@@ -27,7 +27,7 @@ Any value that has been logged via *self.log* in the LightningModule can be moni
 
 .. code-block:: python
 
-        class LitModel(pl.LightningModule):
+        class LitModel(L.LightningModule):
             def training_step(self, batch, batch_idx):
                 self.log("my_metric", x)
 

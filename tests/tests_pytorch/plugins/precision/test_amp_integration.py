@@ -17,7 +17,7 @@ import torch
 from lightning.fabric import seed_everything
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
-from lightning.pytorch.plugins.precision import MixedPrecisionPlugin
+from lightning.pytorch.plugins.precision import MixedPrecision
 
 from tests_pytorch.helpers.runif import RunIf
 
@@ -77,7 +77,7 @@ def test_skip_training_step_with_grad_scaler():
         max_steps=5,
         gradient_clip_val=0.5,
     )
-    assert isinstance(trainer.precision_plugin, MixedPrecisionPlugin)
+    assert isinstance(trainer.precision_plugin, MixedPrecision)
     assert trainer.precision_plugin.scaler is not None
     trainer.precision_plugin.scaler = Mock(wraps=trainer.precision_plugin.scaler)
     model = TestModel()

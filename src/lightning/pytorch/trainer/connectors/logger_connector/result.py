@@ -19,13 +19,15 @@ import torch
 from lightning_utilities.core.apply_func import apply_to_collection
 from torch import Tensor
 from torchmetrics import Metric
-from typing_extensions import TypedDict
+from typing_extensions import TypedDict, override
 
 from lightning.fabric.utilities import move_data_to_device
 from lightning.fabric.utilities.apply_func import convert_tensors_to_scalars
+from lightning.fabric.utilities.distributed import _distributed_is_initialized
 from lightning.fabric.utilities.imports import _TORCH_EQUAL_2_0, _TORCH_GREATER_EQUAL_2_0
 from lightning.pytorch.utilities.data import extract_batch_size
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
+from lightning.pytorch.utilities.imports import _TORCHMETRICS_GREATER_EQUAL_1_0_0
 from lightning.pytorch.utilities.memory import recursive_detach
 from lightning.pytorch.utilities.rank_zero import WarningCache, rank_zero_warn
 from lightning.pytorch.utilities.warnings import PossibleUserWarning
@@ -202,6 +204,7 @@ class _ResultMetric(Metric):
         # this is defined here only because upstream is missing the type annotation
         self._forward_cache: Optional[Any] = None
 
+    @override
     def update(self, value: _VALUE, batch_size: int) -> None:
         if self.is_tensor:
             value = cast(Tensor, value)
@@ -210,7 +213,10 @@ class _ResultMetric(Metric):
                 warning_cache.warn(
                     # do not include the value to avoid cache misses
                     f"You called `self.log({self.meta.name!r}, ...)` in your `{self.meta.fx}` but the value needs to"
-                    f" be floating point. Converting it to {dtype}."
+                    f" be floating to be reduced. Converting it to {dtype}."
+                    " You can silence this warning by converting the value to floating point yourself."
+                    " If you don't intend to reduce the value (for instance when logging the global step or epoch) then"
+                    f" you can use `self.logger.log_metrics({{{self.meta.name!r}: ...}})` instead."
                 )
                 value = value.to(dtype)
             if value.dtype not in (torch.float32, torch.float64):
@@ -237,6 +243,7 @@ class _ResultMetric(Metric):
             self.value = value
             self._forward_cache = value._forward_cache
 
+    @override
     def compute(self) -> Tensor:
         if self.is_tensor:
             value = self.meta.sync(self.value.clone())  # `clone` because `sync` is in-place
@@ -246,6 +253,7 @@ class _ResultMetric(Metric):
             return value
         return self.value.compute()
 
+    @override
     def reset(self) -> None:
         if self.is_tensor:
             super().reset()
@@ -253,6 +261,7 @@ class _ResultMetric(Metric):
             self.value.reset()
         self.has_reset = True
 
+    @override
     def forward(self, value: _VALUE, batch_size: int) -> None:
         if self.meta.enable_graph:
             with torch.no_grad():
@@ -261,11 +270,13 @@ class _ResultMetric(Metric):
             # performance: skip the `torch.no_grad` context manager by calling `update` directly
             self.update(value, batch_size)
 
+    @override
     def _wrap_compute(self, compute: Any) -> Any:
         # Override to avoid syncing - we handle it ourselves.
         @wraps(compute)
         def wrapped_func(*args: Any, **kwargs: Any) -> Optional[Any]:
-            if not self._update_called:
+            update_called = self.update_called if _TORCHMETRICS_GREATER_EQUAL_1_0_0 else self._update_called
+            if not update_called:
                 rank_zero_warn(
                     f"The ``compute`` method of metric {self.__class__.__name__}"
                     " was called before the ``update`` method which may lead to errors,"
@@ -280,16 +291,19 @@ class _ResultMetric(Metric):
 
         return wrapped_func
 
+    @override
     def __setattr__(self, key: str, value: Any) -> None:
         # performance: skip the `torch.nn.Module.__setattr__` checks
         object.__setattr__(self, key, value)
 
+    @override
     def __repr__(self) -> str:
         state = f"{repr(self.meta.name)}, value={self.value}"
         if self.is_tensor and self.meta.is_mean_reduction:
             state += f", cumulated_batch_size={self.cumulated_batch_size}"
         return f"{self.__class__.__name__}({state})"
 
+    @override
     def to(self, *args: Any, **kwargs: Any) -> "_ResultMetric":
         d = self.__dict__
         if _TORCH_GREATER_EQUAL_2_0:  # https://github.com/pytorch/pytorch/issues/96198
@@ -423,7 +437,7 @@ class _ResultCollection(dict):
         elif not on_step and result_metric.meta.on_epoch:
             if result_metric._computed is None:
                 should = result_metric.meta.sync.should
-                if not should and result_metric.is_tensor and torch.distributed.is_initialized():
+                if not should and result_metric.is_tensor and _distributed_is_initialized():
                     warning_cache.warn(
                         f"It is recommended to use `self.log({result_metric.meta.name!r}, ..., sync_dist=True)`"
                         " when logging on epoch level in distributed setting to accumulate the metric across"

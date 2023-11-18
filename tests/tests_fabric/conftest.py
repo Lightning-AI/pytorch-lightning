@@ -19,6 +19,7 @@ from unittest.mock import Mock
 import lightning.fabric
 import pytest
 import torch.distributed
+from lightning.fabric.utilities.distributed import _distributed_is_initialized
 
 
 @pytest.fixture(autouse=True)
@@ -71,7 +72,7 @@ def restore_env_variables():
 def teardown_process_group():
     """Ensures that the distributed process group gets closed before the next test runs."""
     yield
-    if torch.distributed.is_available() and torch.distributed.is_initialized():
+    if _distributed_is_initialized():
         torch.distributed.destroy_process_group()
 
 
@@ -96,6 +97,7 @@ def mock_xla_available(monkeypatch: pytest.MonkeyPatch, value: bool = True) -> N
     monkeypatch.setattr(lightning.fabric.plugins.precision.xla, "_XLA_AVAILABLE", value)
     monkeypatch.setattr(lightning.fabric.plugins.io.xla, "_XLA_AVAILABLE", value)
     monkeypatch.setattr(lightning.fabric.strategies.single_xla, "_XLA_AVAILABLE", value)
+    monkeypatch.setattr(lightning.fabric.strategies.xla_fsdp, "_XLA_AVAILABLE", value)
     monkeypatch.setattr(lightning.fabric.strategies.launchers.xla, "_XLA_AVAILABLE", value)
     monkeypatch.setitem(sys.modules, "torch_xla", Mock())
     monkeypatch.setitem(sys.modules, "torch_xla.core.xla_model", Mock())

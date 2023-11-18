@@ -121,7 +121,7 @@ you can also pass in an :doc:`datamodules <../data/datamodule>` that have overri
 
 .. code-block:: python
 
-    class MyDataModule(pl.LightningDataModule):
+    class MyDataModule(L.LightningDataModule):
         ...
 
         def test_dataloader(self):

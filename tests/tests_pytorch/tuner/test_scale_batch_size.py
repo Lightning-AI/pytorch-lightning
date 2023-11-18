@@ -317,7 +317,7 @@ def test_dataloader_reset_with_scale_batch_size(tmp_path, caplog, scale_method, 
     assert caplog.text.count("greater or equal than the length") == int(new_batch_size == dataset_len)
 
     assert trainer.train_dataloader.batch_size == new_batch_size
-    assert trainer.val_dataloaders.batch_size == init_batch_size
+    assert trainer.val_dataloaders.batch_size == new_batch_size
 
 
 @pytest.mark.parametrize("trainer_fn", ["validate", "test", "predict"])
@@ -469,3 +469,20 @@ def test_dataloader_batch_size_updated_on_failure(_, tmpdir, scale_method, expec
     assert new_batch_size == model.batch_size
     assert new_batch_size == expected_batch_size
     assert trainer.train_dataloader.batch_size == expected_batch_size
+
+
+def test_batch_size_finder_callback_val_batches(tmpdir):
+    """Test that `BatchSizeFinder` does not limit the number of val batches during training."""
+    steps_per_trial = 2
+    model = BatchSizeModel(batch_size=16)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        num_sanity_val_steps=0,
+        max_epochs=1,
+        enable_model_summary=False,
+        callbacks=[BatchSizeFinder(steps_per_trial=steps_per_trial, max_trials=1)],
+    )
+    trainer.fit(model)
+
+    assert trainer.num_val_batches[0] == len(trainer.val_dataloaders)
+    assert trainer.num_val_batches[0] != steps_per_trial

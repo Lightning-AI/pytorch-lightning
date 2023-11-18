@@ -127,7 +127,7 @@ class BaseFinetuning(Callback):
 
         if isinstance(modules, Iterable):
             _flatten_modules = []
-            for m in modules:
+            for m in modules:  # type: ignore[union-attr]
                 _flatten_modules.extend(BaseFinetuning.flatten_modules(m))
 
             _modules = iter(_flatten_modules)
