@@ -21,10 +21,10 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 import numpy as np
 import torch
 
-from lightning.data.datasets.env import _DistributedEnv, _WorkerEnv
 from lightning.data.streaming.compression import _COMPRESSORS, Compressor
 from lightning.data.streaming.constants import _INDEX_FILENAME, _TORCH_GREATER_EQUAL_2_1_0
 from lightning.data.streaming.serializers import Serializer, _get_serializers
+from lightning.data.utilities.env import _DistributedEnv, _WorkerEnv
 from lightning.data.utilities.format import _convert_bytes_to_int, _human_readable_bytes
 
 if _TORCH_GREATER_EQUAL_2_1_0:
