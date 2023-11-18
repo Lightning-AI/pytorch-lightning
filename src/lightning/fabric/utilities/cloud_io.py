@@ -15,13 +15,13 @@
 import io
 import logging
 from pathlib import Path
-from typing import IO, Any, Dict, Union, Optional
+from typing import IO, Any, Dict, Union
 
 import fsspec
 import torch
 from fsspec.core import url_to_fs
 from fsspec.implementations.local import AbstractFileSystem
-from lightning_utilities.core.imports import module_available, RequirementCache
+from lightning_utilities.core.imports import RequirementCache, module_available
 
 from lightning.fabric.utilities.types import _MAP_LOCATION_TYPE, _PATH
 

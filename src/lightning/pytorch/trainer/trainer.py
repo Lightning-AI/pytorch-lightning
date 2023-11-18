@@ -33,7 +33,7 @@ from torch.optim import Optimizer
 
 import lightning.pytorch as pl
 from lightning.fabric.utilities.apply_func import convert_tensors_to_scalars
-from lightning.fabric.utilities.cloud_io import get_filesystem, _is_local_file_protocol
+from lightning.fabric.utilities.cloud_io import _is_local_file_protocol, get_filesystem
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 from lightning.fabric.utilities.types import _PATH
 from lightning.pytorch.accelerators import Accelerator
