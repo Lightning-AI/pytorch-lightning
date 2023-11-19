@@ -39,6 +39,8 @@ from torch.nn import Module, Parameter
 from torch.optim import Optimizer
 from typing_extensions import TypeGuard
 
+from lightning_utilities.core.rank_zero import rank_zero_only as utils_rank_zero_only
+
 from lightning.fabric.accelerators import Accelerator
 from lightning.fabric.plugins import CheckpointIO, ClusterEnvironment, Precision
 from lightning.fabric.plugins.collectives.torch_collective import default_pg_timeout
@@ -678,7 +680,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             self.cluster_environment.set_world_size(self.num_nodes * self.num_processes)
         # `LightningEnvironment.set_global_rank` will do this too, but we cannot rely on that implementation detail
         # additionally, for some implementations, the setter is a no-op, so it's safer to access the getter
-        rank_zero_only.rank = self.global_rank
+        rank_zero_only.rank = utils_rank_zero_only.rank = self.global_rank
 
 
 def _activation_checkpointing_kwargs(

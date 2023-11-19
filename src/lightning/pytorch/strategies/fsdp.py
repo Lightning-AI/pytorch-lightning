@@ -25,6 +25,7 @@ from torch.optim import Optimizer
 from typing_extensions import override
 
 import lightning.pytorch as pl
+from lightning_utilities.core.rank_zero import rank_zero_only as utils_rank_zero_only
 from lightning.fabric.plugins import CheckpointIO, ClusterEnvironment
 from lightning.fabric.plugins.collectives.torch_collective import default_pg_timeout
 from lightning.fabric.strategies import _StrategyRegistry
@@ -267,7 +268,7 @@ class FSDPStrategy(ParallelStrategy):
             self.cluster_environment.set_world_size(self.num_nodes * self.num_processes)
         # `LightningEnvironment.set_global_rank` will do this too, but we cannot rely on that implementation detail
         # additionally, for some implementations, the setter is a no-op, so it's safer to access the getter
-        rank_zero_only.rank = self.global_rank
+        rank_zero_only.rank = utils_rank_zero_only.rank = self.global_rank
 
     @override
     def _configure_launcher(self) -> None:
