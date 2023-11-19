@@ -17,11 +17,10 @@ from typing import Any, ContextManager, Dict, List, Literal, Optional, Union
 
 import torch
 import torch.distributed
+from lightning_utilities.core.rank_zero import rank_zero_only as utils_rank_zero_only
 from torch import Tensor
 from torch.nn import Module
 from torch.nn.parallel.distributed import DistributedDataParallel
-
-from lightning_utilities.core.rank_zero import rank_zero_only as utils_rank_zero_only
 
 from lightning.fabric.accelerators.accelerator import Accelerator
 from lightning.fabric.plugins.collectives.torch_collective import default_pg_timeout
