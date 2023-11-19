@@ -97,8 +97,9 @@ def find_free_network_port() -> int:
     `MASTER_PORT` environment variable.
 
     """
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.bind(("", 0))
-    port = s.getsockname()[1]
-    s.close()
-    return port
+    return 29500
+    # s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    # s.bind(("", 0))
+    # port = s.getsockname()[1]
+    # s.close()
+    # return port
