@@ -41,8 +41,8 @@ def datadir():
 @pytest.fixture(autouse=True)
 def preserve_global_rank_variable():
     """Ensures that the rank_zero_only.rank global variable gets reset in each test."""
-    from lightning.pytorch.utilities.rank_zero import rank_zero_only as rank_zero_only_pytorch
     from lightning.fabric.utilities.rank_zero import rank_zero_only as rank_zero_only_fabric
+    from lightning.pytorch.utilities.rank_zero import rank_zero_only as rank_zero_only_pytorch
     from lightning_utilities.core.rank_zero import rank_zero_only as rank_zero_only_utilities
 
     functions = (rank_zero_only_pytorch, rank_zero_only_fabric, rank_zero_only_utilities)
