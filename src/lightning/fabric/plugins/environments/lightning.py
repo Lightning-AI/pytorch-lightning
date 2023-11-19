@@ -13,7 +13,6 @@
 # limitations under the License.
 
 import os
-import socket
 
 from lightning.fabric.plugins.environments.cluster_environment import ClusterEnvironment
 from lightning.fabric.utilities.rank_zero import rank_zero_only
