@@ -1512,7 +1512,7 @@ def test_resume_and_old_checkpoint_files_remain(same_resume_folder, tmp_path):
 
 
 @pytest.mark.parametrize(
-    "folder_contents, expected",
+    "folder_contents,expected",
     [
         ([], []),
         (["last"], []),
