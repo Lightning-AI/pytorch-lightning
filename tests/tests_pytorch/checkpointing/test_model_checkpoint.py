@@ -1511,12 +1511,15 @@ def test_resume_and_old_checkpoint_files_remain(same_resume_folder, tmp_path):
         assert set(os.listdir(second)) == {"epoch=0-step=6.ckpt", "epoch=0-step=8.ckpt"}
 
 
-@pytest.mark.parametrize("folder_contents, expected", [
-    ([], []),
-    (["last"], []),
-    (["last", "last.ckpt"], ["last.ckpt"]),
-    (["log.txt", "last-v0.ckpt", "last-v1.ckpt"], ["last-v0.ckpt", "last-v1.ckpt"]),
-])
+@pytest.mark.parametrize(
+    "folder_contents, expected",
+    [
+        ([], []),
+        (["last"], []),
+        (["last", "last.ckpt"], ["last.ckpt"]),
+        (["log.txt", "last-v0.ckpt", "last-v1.ckpt"], ["last-v0.ckpt", "last-v1.ckpt"]),
+    ],
+)
 def test_find_last_checkpoints(folder_contents, expected, tmp_path):
     for file in folder_contents:
         (tmp_path / file).touch()
