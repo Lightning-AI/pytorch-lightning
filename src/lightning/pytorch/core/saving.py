@@ -40,6 +40,7 @@ from lightning.pytorch.utilities.migration import pl_legacy_patch
 from lightning.pytorch.utilities.migration.utils import _pl_migrate_checkpoint
 from lightning.pytorch.utilities.parsing import parse_class_init_keys
 from lightning.pytorch.utilities.rank_zero import rank_zero_warn
+from lightning.pytorch.utilities.model_helpers import is_overridden
 
 if TYPE_CHECKING:
     from torch.storage import UntypedStorage
@@ -159,6 +160,9 @@ def _load_state(
     if isinstance(obj, pl.LightningModule):
         # give model a chance to load something
         obj.on_load_checkpoint(checkpoint)
+
+        if is_overridden("configure_model", obj):
+            obj.configure_model()
 
     if isinstance(obj, pl.LightningDataModule):
         if obj.__class__.__qualname__ in checkpoint:
