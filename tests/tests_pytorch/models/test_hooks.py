@@ -920,9 +920,8 @@ def test_load_from_checkpoint_hook_calls(override_configure_model, tmpdir):
     _ = CustomHookedModel.load_from_checkpoint(ckpt_path, called=lm_called)
     _ = CustomHookedDataModule.load_from_checkpoint(ckpt_path, called=ldm_called)
 
-    expected_lm_called = [{"name": "on_load_checkpoint", "args": ({**saved_ckpt, "hyper_parameters": ANY},)}]
-    if override_configure_model:
-        expected_lm_called += [{"name": "configure_model"}]
+    expected_lm_called = [{"name": "configure_model"}] if override_configure_model else []
+    expected_lm_called += [{"name": "on_load_checkpoint", "args": ({**saved_ckpt, "hyper_parameters": ANY},)}]
     assert lm_called == expected_lm_called
     assert ldm_called == [{"name": "load_state_dict", "args": (saved_ckpt[datamodule_state_dict_key],)}]
 

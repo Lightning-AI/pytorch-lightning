@@ -158,11 +158,11 @@ def _load_state(
     obj = cls(**_cls_kwargs)
 
     if isinstance(obj, pl.LightningModule):
-        # give model a chance to load something
-        obj.on_load_checkpoint(checkpoint)
-
         if is_overridden("configure_model", obj):
             obj.configure_model()
+
+        # give model a chance to load something
+        obj.on_load_checkpoint(checkpoint)
 
     if isinstance(obj, pl.LightningDataModule):
         if obj.__class__.__qualname__ in checkpoint:
