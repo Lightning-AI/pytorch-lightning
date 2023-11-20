@@ -1521,7 +1521,7 @@ class LightningModule(
 
         Note:
             To ensure all layers can be loaded from the checkpoint, this function will call
-            :meth:`~lightning.pytorch.core.module.LightningModule.configure_model` directly after instantiating the
+            :meth:`~lightning.pytorch.core.hooks.ModelHooks.configure_model` directly after instantiating the
             model if this hook is overridden in your LightningModule. However, note that ``load_from_checkpoint`` does
             not support loading sharded checkpoints, and you may run out of memory if the model is too large. In this
             case, consider loading through the Trainer via ``.fit(ckpt_path=...)``.

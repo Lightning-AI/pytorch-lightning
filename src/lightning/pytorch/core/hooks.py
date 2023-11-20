@@ -336,7 +336,8 @@ class ModelHooks:
         :meth:`~lightning.pytorch.trainer.trainer.Trainer.init_module` context manager.
 
         This hook is called during each of fit/val/test/predict stages in the same process, so ensure that
-        implementation of this hook is idempotent.
+        implementation of this hook is **idempotent**, i.e., after the first the hook is called, subsequent calls
+        to it should be a no-op.
 
         """
 
