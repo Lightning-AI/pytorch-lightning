@@ -38,9 +38,9 @@ from lightning.pytorch.accelerators import CUDAAccelerator, MPSAccelerator, XLAA
 from lightning.pytorch.utilities.imports import _OMEGACONF_AVAILABLE
 from lightning.pytorch.utilities.migration import pl_legacy_patch
 from lightning.pytorch.utilities.migration.utils import _pl_migrate_checkpoint
+from lightning.pytorch.utilities.model_helpers import is_overridden
 from lightning.pytorch.utilities.parsing import parse_class_init_keys
 from lightning.pytorch.utilities.rank_zero import rank_zero_warn
-from lightning.pytorch.utilities.model_helpers import is_overridden
 
 if TYPE_CHECKING:
     from torch.storage import UntypedStorage
