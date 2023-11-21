@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import logging
 import os
 import signal
 import sys
@@ -25,6 +26,8 @@ import lightning.fabric
 import lightning.pytorch
 import pytest
 import torch.distributed
+
+from lightning.fabric.strategies.launchers.subprocess_script import _ChildProcessObserver
 from lightning.fabric.plugins.environments.lightning import find_free_network_port
 from lightning.fabric.utilities.distributed import _distributed_is_initialized
 from lightning.fabric.utilities.imports import _IS_WINDOWS
@@ -136,6 +139,10 @@ def thread_police_duuu_daaa_duuu_daaa():
 
     # Stop the threads we know about
     for thread in active_threads_after - active_threads_before:
+
+        if isinstance(thread, _ChildProcessObserver):
+            thread.join(timeout=10)
+
         stop = getattr(thread, "stop", None) or getattr(thread, "exit", None)
         if thread.daemon and callable(stop):
             # a daemon thread would anyway be stopped at the end of a program
