@@ -15,7 +15,6 @@ import os
 import signal
 import sys
 import threading
-from concurrent.futures.process import _ExecutorManagerThread
 from functools import partial
 from http.server import SimpleHTTPRequestHandler
 from pathlib import Path
@@ -141,7 +140,12 @@ def thread_police_duuu_daaa_duuu_daaa():
         "fsspecIO",
         "ThreadPoolExecutor-0_0",  # probably `torch.compile`, can't narrow it down further
     }
-    allow_list_type = (_ExecutorManagerThread,)  # probably `torch.compile`, can't narrow it down further
+
+    allow_list_type = []
+    if sys.version_info >= (3, 9):
+        from concurrent.futures.process import _ExecutorManagerThread
+
+        allow_list_type.append(_ExecutorManagerThread)  # probably `torch.compile`, can't narrow it down further
 
     # Stop the threads we know about
     for thread in active_threads_after - active_threads_before:
@@ -156,7 +160,7 @@ def thread_police_duuu_daaa_duuu_daaa():
     zombie_threads = {
         thread
         for thread in set(threading.enumerate()) - active_threads_before
-        if thread.name not in allowlist_name and not isinstance(thread, allow_list_type)
+        if thread.name not in allowlist_name and not isinstance(thread, tuple(allow_list_type))
     }
     assert not zombie_threads, f"Test left zombie threads: {zombie_threads}"
 
