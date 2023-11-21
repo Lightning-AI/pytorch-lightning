@@ -12,6 +12,7 @@
 # limitations under the License.
 
 import os
+import sys
 from unittest import mock
 
 import numpy as np
@@ -481,9 +482,6 @@ def test_dataset_for_text_tokens_distributed_num_workers_end_to_end(tmpdir, monk
     monkeypatch.setenv("DATA_OPTIMIZER_CACHE_FOLDER", cache_dir)
     monkeypatch.setenv("DATA_OPTIMIZER_DATA_CACHE_FOLDER", cache_dir)
 
-    def fn(item):
-        return torch.arange(item[0], item[0] + 20).to(torch.int)
-
     functions.optimize(
         optimize_fn, inputs, output_dir=str(tmpdir), num_workers=2, chunk_size=2, reorder_files=False, num_downloaders=1
     )
@@ -524,6 +522,7 @@ def test_dataset_for_text_tokens_distributed_num_workers_end_to_end(tmpdir, monk
         assert [batch[0][0].item(), batch[1][0].item()] == expected[batch_idx]
 
 
+@pytest.mark.skipif(sys.platform == "win32" or sys.platform == "darwin", reason="Not tested on windows and MacOs")
 def test_s3_streaming_dataset(tmpdir):
     dataset = StreamingDataset(input_dir="s3://pl-flash-data/optimized_tiny_imagenet")
     assert len(dataset) == 1000
