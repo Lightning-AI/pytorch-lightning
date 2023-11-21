@@ -210,7 +210,7 @@ def test_wait_for_disk_usage_higher_than_threshold(monkeypatch):
 
     monkeypatch.setattr(shutil, "disk_usage", fn)
 
-    _wait_for_disk_usage_higher_than_threshold(10, sleep_time=0.1)
+    _wait_for_disk_usage_higher_than_threshold(10, sleep_time=0)
 
     assert len(usages) == 0
 
