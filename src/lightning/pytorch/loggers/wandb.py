@@ -647,11 +647,11 @@ class WandbLogger(Logger):
         By default, adds `path` as a file called "model.ckpt" to the `artifact`.
 
         Args:
-            artifact (wandb.Artifact): The wandb artifact for this checkpoint
-            checkpoint_timestamp (float): The timestamp the checkpoint was last created or modified.
-            path (_PATH): The absolute path or URI to the checkpoint.
-            score (float): The score associated with the checkpoint.
-            tag (str): The tag associated with the checkpoint.
+            artifact: The wandb artifact for this checkpoint
+            checkpoint_timestamp: The timestamp the checkpoint was last created or modified.
+            path: The absolute path or URI to the checkpoint.
+            score: The score associated with the checkpoint.
+            tag: The tag associated with the checkpoint.
 
         """
         artifact.add_file(path, name="model.ckpt")
