@@ -161,7 +161,8 @@ def test_remove_target(tmpdir):
 
 
 @pytest.mark.skipif(condition=sys.platform == "win32", reason="Not supported on windows")
-def test_download_data_target(monkeypatch, tmpdir):
+@mock.patch("lightning.data.streaming.data_processor._wait_for_disk_usage_higher_than_threshold")
+def test_download_data_target(tmpdir):
     input_dir = os.path.join(tmpdir, "input_dir")
     os.makedirs(input_dir, exist_ok=True)
 
@@ -177,20 +178,6 @@ def test_download_data_target(monkeypatch, tmpdir):
     queue_in = mock.MagicMock()
 
     paths = [os.path.join(input_dir, "a.txt"), None]
-
-    class Usage:
-        def __init__(self, free):
-            self.free = free * 1000 * 1000 * 1000
-
-    usages = [Usage(100)]
-
-    def fn(*_, **__):
-        value = usages.pop(0)
-        if value is None:
-            return value
-        return value
-
-    monkeypatch.setattr(shutil, "disk_usage", fn)
 
     def fn(*_, **__):
         value = paths.pop(0)
