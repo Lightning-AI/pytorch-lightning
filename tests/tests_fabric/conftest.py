@@ -20,7 +20,6 @@ from unittest.mock import Mock
 import lightning.fabric
 import pytest
 import torch.distributed
-
 from lightning.fabric.strategies.launchers.subprocess_script import _ChildProcessObserver
 from lightning.fabric.utilities.distributed import _distributed_is_initialized
 
