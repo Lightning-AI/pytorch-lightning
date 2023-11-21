@@ -295,7 +295,7 @@ def test_dataset_cache_recreation(tmpdir):
 
 def test_try_create_cache_dir():
     with mock.patch.dict(os.environ, {}, clear=True):
-        assert _try_create_cache_dir("any") == "/Users/thomas/.lightning/chunks/100b8cad7cf2a56f6df78f171f97a1ec/0"
+        assert f"{os.sep}".join(["chunks", "100b8cad7cf2a56f6df78f171f97a1ec", "0"]) in _try_create_cache_dir("any")
 
     # the cache dir creating at /cache requires root privileges, so we need to mock `os.makedirs()`
     with (
