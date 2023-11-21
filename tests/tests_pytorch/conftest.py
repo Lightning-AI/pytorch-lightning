@@ -33,6 +33,9 @@ from lightning.pytorch.trainer.connectors.signal_connector import _SignalConnect
 
 from tests_pytorch import _PATH_DATASETS
 
+if sys.version_info >= (3, 9):
+    from concurrent.futures.process import _ExecutorManagerThread
+
 
 @pytest.fixture(scope="session")
 def datadir():
@@ -135,18 +138,6 @@ def thread_police_duuu_daaa_duuu_daaa():
     yield
     active_threads_after = set(threading.enumerate())
 
-    # These are known zombie threads, don't have a good way to stop them
-    allowlist_name = {
-        "fsspecIO",
-        "ThreadPoolExecutor-0_0",  # probably `torch.compile`, can't narrow it down further
-    }
-
-    allow_list_type = []
-    if sys.version_info >= (3, 9):
-        from concurrent.futures.process import _ExecutorManagerThread
-
-        allow_list_type.append(_ExecutorManagerThread)  # probably `torch.compile`, can't narrow it down further
-
     # Stop the threads we know about
     for thread in active_threads_after - active_threads_before:
         stop = getattr(thread, "stop", None) or getattr(thread, "exit", None)
@@ -154,15 +145,19 @@ def thread_police_duuu_daaa_duuu_daaa():
             # A daemon thread would anyway be stopped at the end of a program
             # We do it preemptively here to reduce the risk of interactions with other tests that run after
             stop()
+            assert not thread.is_alive()
         elif isinstance(thread, _ChildProcessObserver):
             thread.join(timeout=10)
-
-    zombie_threads = {
-        thread
-        for thread in set(threading.enumerate()) - active_threads_before
-        if thread.name not in allowlist_name and not isinstance(thread, tuple(allow_list_type))
-    }
-    assert not zombie_threads, f"Test left zombie threads: {zombie_threads}"
+        elif "ThreadPoolExecutor-" in thread.name:
+            # probably `torch.compile`, can't narrow it down further
+            continue
+        elif sys.version_info >= (3, 9) and isinstance(thread, _ExecutorManagerThread):
+            # probably `torch.compile`, can't narrow it down further
+            continue
+        elif thread.name == "fsspecIO":
+            continue
+        else:
+            raise AssertionError(f"Test left zombie thread: {thread}")
 
 
 def mock_cuda_count(monkeypatch, n: int) -> None:

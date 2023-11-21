@@ -1197,8 +1197,7 @@ def test_verify_launch_called():
     fabric._validate_launched()
 
 
-# @pytest.mark.skipif(sys.platform == "darwin", reason="https://github.com/pytorch/pytorch/issues/95708")
-@RunIf(dynamo=True)
+@RunIf(dynamo=True, min_torch="2.1.0")
 @pytest.mark.parametrize(
     "kwargs",
     [
