@@ -32,8 +32,8 @@ from lightning.data.utilities.env import Environment, _DistributedEnv, _WorkerEn
 class RemoteDir:
     """Holds a remote URL to a directory and a cache directory where the data will be downloaded."""
 
-    cache_dir: str = None
-    remote: str = None
+    cache_dir: str
+    remote: str
 
 
 if _LIGHTNING_CLOUD_LATEST:
