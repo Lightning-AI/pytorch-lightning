@@ -25,6 +25,9 @@ import lightning.fabric
 import lightning.pytorch
 import pytest
 import torch.distributed
+from tqdm import TMonitor
+
+from lightning.fabric.loggers.tensorboard import _TENSORBOARD_AVAILABLE, _TENSORBOARDX_AVAILABLE
 from lightning.fabric.plugins.environments.lightning import find_free_network_port
 from lightning.fabric.utilities.distributed import _distributed_is_initialized
 from lightning.fabric.utilities.imports import _IS_WINDOWS
@@ -133,11 +136,26 @@ def thread_police_duuu_daaa_duuu_daaa():
     active_threads_before = set(threading.enumerate())
     yield
     active_threads_after = set(threading.enumerate())
-    zombie_threads = active_threads_after - active_threads_before
 
-    if zombie_threads:
-        print(f"Zombie threads found: {zombie_threads}")
-        raise AssertionError("Test left zombie threads")
+    # Stop the threads we know about
+    for thread in active_threads_after - active_threads_before:
+        if isinstance(thread, TMonitor):
+            thread.exit()
+
+        if _TENSORBOARD_AVAILABLE:
+            from tensorboard.summary.writer.event_file_writer import _AsyncWriterThread
+
+            if isinstance(thread, _AsyncWriterThread):
+                thread.stop()
+
+        if _TENSORBOARDX_AVAILABLE:
+            from tensorboardX.event_file_writer import _EventLoggerThread
+
+            if isinstance(thread, _EventLoggerThread):
+                thread.stop()
+
+    zombie_threads = set(threading.enumerate()) - active_threads_before
+    assert not zombie_threads, f"Test left zombie threads: {zombie_threads}"
 
 
 def mock_cuda_count(monkeypatch, n: int) -> None:
