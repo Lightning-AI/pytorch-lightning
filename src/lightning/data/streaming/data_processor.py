@@ -101,7 +101,7 @@ def _wait_for_file_to_exist(s3: S3Client, obj: parse.ParseResult, sleep_time: in
                 raise e
 
 
-def _wait_for_disk_usage_higher_than_threshold(threshold_in_gb: int = 25, sleep_time: int = 3) -> None:
+def _wait_for_disk_usage_higher_than_threshold(threshold_in_gb: int = 5, sleep_time: int = 3) -> None:
     usage = shutil.disk_usage("/")
 
     while (usage.free / 1000 / 1000 / 1000) <= threshold_in_gb:
@@ -133,8 +133,9 @@ def _download_data_target(input_dir: Dir, cache_dir: str, queue_in: Queue, queue
             continue
 
         if input_dir.url is not None or input_dir.path is not None:
-            # 6. Wait for the removers to catch up.
-            _wait_for_disk_usage_higher_than_threshold(25)
+            if input_dir.url:
+                # 6. Wait for the removers to catch up when we are downloading data.
+                _wait_for_disk_usage_higher_than_threshold(5)
 
             # 7. Download all the required paths to unblock the current index
             for path in paths:
