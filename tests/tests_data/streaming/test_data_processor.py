@@ -21,6 +21,7 @@ from lightning.data.streaming.data_processor import (
     _map_items_to_workers_weighted,
     _remove_target,
     _upload_fn,
+    _wait_for_disk_usage_higher_than_threshold,
     _wait_for_file_to_exist,
 )
 from lightning.data.streaming.functions import LambdaDataTransformRecipe, map, optimize
@@ -159,6 +160,7 @@ def test_remove_target(tmpdir):
 
 
 @pytest.mark.skipif(condition=sys.platform == "win32", reason="Not supported on windows")
+@mock.patch("lightning.data.streaming.data_processor._wait_for_disk_usage_higher_than_threshold")
 def test_download_data_target(tmpdir):
     input_dir = os.path.join(tmpdir, "input_dir")
     os.makedirs(input_dir, exist_ok=True)
@@ -191,6 +193,13 @@ def test_download_data_target(tmpdir):
     assert queue_out.put._mock_call_args_list[1].args == (None,)
 
     assert os.listdir(cache_dir) == ["a.txt"]
+
+
+def test_wait_for_disk_usage_higher_than_threshold():
+    disk_usage_mock = mock.Mock(side_effect=[mock.Mock(free=10e9), mock.Mock(free=10e9), mock.Mock(free=10e11)])
+    with mock.patch("lightning.data.streaming.data_processor.shutil.disk_usage", disk_usage_mock):
+        _wait_for_disk_usage_higher_than_threshold("/", 10, sleep_time=0)
+    assert disk_usage_mock.call_count == 3
 
 
 @pytest.mark.skipif(condition=sys.platform == "win32", reason="Not supported on windows")
