@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import os
+import socket
 
 from lightning.fabric.plugins.environments.cluster_environment import ClusterEnvironment
 from lightning.fabric.utilities.rank_zero import rank_zero_only
@@ -96,9 +97,8 @@ def find_free_network_port() -> int:
     `MASTER_PORT` environment variable.
 
     """
-    return 29500
-    # s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    # s.bind(("", 0))
-    # port = s.getsockname()[1]
-    # s.close()
-    # return port
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.bind(("", 0))
+    port = s.getsockname()[1]
+    s.close()
+    return port
