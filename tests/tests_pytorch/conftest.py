@@ -135,9 +135,7 @@ def thread_police_duuu_daaa_duuu_daaa():
     active_threads_after = set(threading.enumerate())
     zombie_threads = active_threads_after - active_threads_before
 
-    # Check if there are any zombie threads
     if zombie_threads:
-        # You can print the details of the zombie threads or raise an exception
         print(f"Zombie threads found: {zombie_threads}")
         raise AssertionError("Test left zombie threads")
 
