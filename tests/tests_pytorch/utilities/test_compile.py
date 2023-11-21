@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import sys
 from unittest import mock
 
 import pytest
@@ -25,10 +24,9 @@ from tests_pytorch.conftest import mock_cuda_count
 from tests_pytorch.helpers.runif import RunIf
 
 
-@RunIf(dynamo=True)
-@pytest.mark.skipif(sys.platform == "darwin", reason="https://github.com/pytorch/pytorch/issues/95708")
+@RunIf(dynamo=True, min_torch="2.1.0")
 @mock.patch("lightning.pytorch.trainer.call._call_and_handle_interrupt")
-def test_trainer_compiled_model(_, tmp_path, monkeypatch):
+def test_trainer_compiled_model(_, tmp_path, monkeypatch, mps_count_0):
     trainer_kwargs = {
         "default_root_dir": tmp_path,
         "fast_dev_run": True,
@@ -111,8 +109,7 @@ def test_compile_uncompile():
     assert not has_dynamo(to_uncompiled_model.predict_step)
 
 
-@pytest.mark.skipif(sys.platform == "darwin", reason="https://github.com/pytorch/pytorch/issues/95708")
-@RunIf(dynamo=True)
+@RunIf(dynamo=True, min_torch="2.1.0")
 def test_trainer_compiled_model_that_logs(tmp_path):
     class MyModel(BoringModel):
         def training_step(self, batch, batch_idx):
@@ -129,14 +126,14 @@ def test_trainer_compiled_model_that_logs(tmp_path):
         enable_checkpointing=False,
         enable_model_summary=False,
         enable_progress_bar=False,
+        accelerator="cpu",
     )
     trainer.fit(compiled_model)
 
     assert set(trainer.callback_metrics) == {"loss"}
 
 
-@pytest.mark.skipif(sys.platform == "darwin", reason="https://github.com/pytorch/pytorch/issues/95708")
-@RunIf(dynamo=True)
+@RunIf(dynamo=True, min_torch="2.1.0")
 def test_trainer_compiled_model_test(tmp_path):
     model = BoringModel()
     compiled_model = torch.compile(model)
@@ -147,5 +144,6 @@ def test_trainer_compiled_model_test(tmp_path):
         enable_checkpointing=False,
         enable_model_summary=False,
         enable_progress_bar=False,
+        accelerator="cpu",
     )
     trainer.test(compiled_model)
