@@ -621,7 +621,8 @@ class LightningModule(
     def __check_allowed(v: Any, name: str, value: Any) -> None:
         raise ValueError(f"`self.log({name}, {value})` was called, but `{type(v).__name__}` values cannot be logged")
 
-    def _get_default_high_precision_dtype() -> torch.dtype:
+    @staticmethod
+    def __get_default_high_precision_dtype() -> torch.dtype:
         """The default dtype for new tensors, but no lower than float32."""
         dtype = torch.get_default_dtype()
         return dtype if dtype in (torch.float32, torch.float64) else torch.float32
@@ -630,7 +631,7 @@ class LightningModule(
         value = (
             value.clone().detach()
             if isinstance(value, Tensor)
-            else torch.tensor(value, device=self.device, dtype=self._get_default_high_precision_dtype())
+            else torch.tensor(value, device=self.device, dtype=self.__get_default_high_precision_dtype())
         )
         if not torch.numel(value) == 1:
             raise ValueError(
