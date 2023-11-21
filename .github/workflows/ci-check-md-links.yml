@@ -14,6 +14,6 @@ on:
 
 jobs:
   check-md-links:
-    uses: Lightning-AI/utilities/.github/workflows/check-md-links.yml@v0.9.0
+    uses: Lightning-AI/utilities/.github/workflows/check-md-links.yml@v0.10.0
     with:
       config-file: ".github/markdown-links-config.json"
