@@ -101,14 +101,14 @@ def _wait_for_file_to_exist(s3: S3Client, obj: parse.ParseResult, sleep_time: in
                 raise e
 
 
-def _wait_for_disk_usage_higher_than_threshold(threshold_in_gb: int = 10, sleep_time: int = 3) -> bool:
+def _wait_for_disk_usage_higher_than_threshold(threshold_in_gb: int = 10, sleep_time: int = 3) -> None:
     usage = shutil.disk_usage("/")
 
     while (usage.free / 1000 / 1000 / 1000) <= threshold_in_gb:
         sleep(sleep_time)
         usage = shutil.disk_usage("/")
 
-    return True
+    return
 
 
 def _download_data_target(input_dir: Dir, cache_dir: str, queue_in: Queue, queue_out: Queue) -> None:
