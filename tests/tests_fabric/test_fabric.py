@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+import sys
 from re import escape
 from unittest import mock
 from unittest.mock import ANY, MagicMock, Mock, PropertyMock, call
@@ -1197,7 +1198,8 @@ def test_verify_launch_called():
     fabric._validate_launched()
 
 
-@RunIf(dynamo=True, min_torch="2.1.0")
+@pytest.mark.skipif(sys.platform == "darwin", reason="https://github.com/pytorch/pytorch/issues/95708")
+@RunIf(dynamo=True)
 @pytest.mark.parametrize(
     "kwargs",
     [
@@ -1222,7 +1224,7 @@ def test_fabric_with_torchdynamo_fullgraph(kwargs):
         a = x * 10
         return model(a)
 
-    fabric = Fabric(devices=1, accelerator="cpu", **kwargs)
+    fabric = Fabric(devices=1, **kwargs)
     model = MyModel()
     fmodel = fabric.setup(model)
     # we are compiling a function that calls model.forward() inside
