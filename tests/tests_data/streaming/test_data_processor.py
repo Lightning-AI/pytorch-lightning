@@ -21,7 +21,9 @@ from lightning.data.streaming.data_processor import (
     _map_items_to_workers_weighted,
     _remove_target,
     _upload_fn,
+    _wait_for_disk_usage_higher_than_threshold,
     _wait_for_file_to_exist,
+    shutil,
 )
 from lightning.data.streaming.functions import LambdaDataTransformRecipe, map, optimize
 from lightning_utilities.core.imports import RequirementCache
@@ -191,6 +193,26 @@ def test_download_data_target(tmpdir):
     assert queue_out.put._mock_call_args_list[1].args == (None,)
 
     assert os.listdir(cache_dir) == ["a.txt"]
+
+
+def test_wait_for_disk_usage_higher_than_threshold(monkeypatch):
+    class Usage:
+        def __init__(self, free):
+            self.free = free * 1000 * 1000 * 1000
+
+    usages = [Usage(1), Usage(1), Usage(100)]
+
+    def fn(*_, **__):
+        value = usages.pop(0)
+        if value is None:
+            return value
+        return value
+
+    monkeypatch.setattr(shutil, "disk_usage", fn)
+
+    _wait_for_disk_usage_higher_than_threshold(10, sleep_time=0.1)
+
+    assert len(usages) == 0
 
 
 @pytest.mark.skipif(condition=sys.platform == "win32", reason="Not supported on windows")
