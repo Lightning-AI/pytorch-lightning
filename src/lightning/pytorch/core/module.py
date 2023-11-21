@@ -630,7 +630,7 @@ class LightningModule(
         value = (
             value.clone().detach()
             if isinstance(value, Tensor)
-            else torch.tensor(value, device=self.device, dtype=_get_default_high_precision_dtype())
+            else torch.tensor(value, device=self.device, dtype=self._get_default_high_precision_dtype())
         )
         if not torch.numel(value) == 1:
             raise ValueError(
