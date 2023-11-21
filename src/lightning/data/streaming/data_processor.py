@@ -134,7 +134,7 @@ def _download_data_target(input_dir: Dir, cache_dir: str, queue_in: Queue, queue
 
         if input_dir.url is not None or input_dir.path is not None:
             # 6. Wait for the removers to catch up.
-            _wait_for_disk_usage_higher_than_threshold(10)
+            _wait_for_disk_usage_higher_than_threshold(25)
 
             # 7. Download all the required paths to unblock the current index
             for path in paths:
