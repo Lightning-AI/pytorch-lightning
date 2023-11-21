@@ -11,10 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import sys
 from unittest import mock
 
 import pytest
 import torch
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_1
 from lightning.pytorch import LightningModule, Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.utilities.compile import from_compiled, to_uncompiled
@@ -24,7 +26,8 @@ from tests_pytorch.conftest import mock_cuda_count
 from tests_pytorch.helpers.runif import RunIf
 
 
-@RunIf(dynamo=True, min_torch="2.1.0")
+@pytest.mark.skipif(sys.platform == "darwin" and not _TORCH_GREATER_EQUAL_2_1, reason="Fix for MacOS in PyTorch 2.1")
+@RunIf(dynamo=True)
 @mock.patch("lightning.pytorch.trainer.call._call_and_handle_interrupt")
 def test_trainer_compiled_model(_, tmp_path, monkeypatch, mps_count_0):
     trainer_kwargs = {
@@ -109,7 +112,8 @@ def test_compile_uncompile():
     assert not has_dynamo(to_uncompiled_model.predict_step)
 
 
-@RunIf(dynamo=True, min_torch="2.1.0")
+@pytest.mark.skipif(sys.platform == "darwin" and not _TORCH_GREATER_EQUAL_2_1, reason="Fix for MacOS in PyTorch 2.1")
+@RunIf(dynamo=True)
 def test_trainer_compiled_model_that_logs(tmp_path):
     class MyModel(BoringModel):
         def training_step(self, batch, batch_idx):
@@ -133,7 +137,8 @@ def test_trainer_compiled_model_that_logs(tmp_path):
     assert set(trainer.callback_metrics) == {"loss"}
 
 
-@RunIf(dynamo=True, min_torch="2.1.0")
+@pytest.mark.skipif(sys.platform == "darwin" and not _TORCH_GREATER_EQUAL_2_1, reason="Fix for MacOS in PyTorch 2.1")
+@RunIf(dynamo=True)
 def test_trainer_compiled_model_test(tmp_path):
     model = BoringModel()
     compiled_model = torch.compile(model)
