@@ -1512,19 +1512,25 @@ def test_resume_and_old_checkpoint_files_remain(same_resume_folder, tmp_path):
 
 
 @pytest.mark.parametrize(
-    ("folder_contents", "expected"),
+    ("name", "extension", "folder_contents", "expected"),
     [
-        ([], []),
-        (["last"], []),
-        (["last", "last.ckpt"], ["last.ckpt"]),
-        (["log.txt", "last-v0.ckpt", "last-v1.ckpt"], ["last-v0.ckpt", "last-v1.ckpt"]),
+        ("last", ".ckpt", {}, {}),
+        ("any", ".any", {}, {}),
+        ("last", ".ckpt", {"last"}, {}),
+        ("any", ".any", {"last"}, {}),
+        ("last", ".ckpt", {"last", "last.ckpt"}, {"last.ckpt"}),
+        ("other", ".pt", {"last", "last.pt", "other.pt"}, {"other.pt"}),
+        ("last", ".ckpt", {"log.txt", "last-v0.ckpt", "last-v1.ckpt"}, {"last-v0.ckpt", "last-v1.ckpt"}),
+        ("other", ".pt", {"log.txt", "last-v0.ckpt", "other-v0.pt", "other-v1.pt"}, {"other-v0.pt", "other-v1.pt"}),
     ],
 )
-def test_find_last_checkpoints(folder_contents, expected, tmp_path):
+def test_find_last_checkpoints(name, extension, folder_contents, expected, tmp_path):
     for file in folder_contents:
         (tmp_path / file).touch()
 
     trainer = Trainer()
     callback = ModelCheckpoint(dirpath=tmp_path)
+    callback.CHECKPOINT_NAME_LAST = name
+    callback.FILE_EXTENSION = extension
     files = callback._find_last_checkpoints(trainer)
     assert files == {str(tmp_path / p) for p in expected}
