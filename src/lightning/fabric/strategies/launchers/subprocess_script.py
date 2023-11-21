@@ -16,8 +16,8 @@ import os
 import signal
 import subprocess
 import sys
-import time
 import threading
+import time
 from typing import Any, Callable, List, Optional, Sequence, Tuple
 
 from lightning_utilities.core.imports import RequirementCache
