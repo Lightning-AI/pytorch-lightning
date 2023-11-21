@@ -25,13 +25,12 @@ import lightning.fabric
 import lightning.pytorch
 import pytest
 import torch.distributed
-from tqdm import TMonitor
-
 from lightning.fabric.loggers.tensorboard import _TENSORBOARD_AVAILABLE, _TENSORBOARDX_AVAILABLE
 from lightning.fabric.plugins.environments.lightning import find_free_network_port
 from lightning.fabric.utilities.distributed import _distributed_is_initialized
 from lightning.fabric.utilities.imports import _IS_WINDOWS
 from lightning.pytorch.trainer.connectors.signal_connector import _SignalConnector
+from tqdm import TMonitor
 
 from tests_pytorch import _PATH_DATASETS
 
