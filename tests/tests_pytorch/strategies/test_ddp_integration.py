@@ -201,6 +201,7 @@ class UnusedParametersModel(BoringModel):
         return super().training_step(batch, batch_idx)
 
 
+@RunIf(standalone=True)
 def test_find_unused_parameters_exception_ddp_spawn():
     """Test that the DDP strategy can change PyTorch's error message so that it's more useful for Lightning users."""
     trainer = Trainer(accelerator="cpu", devices=2, strategy="ddp_spawn", max_steps=2, logger=False)
