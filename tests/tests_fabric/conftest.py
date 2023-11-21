@@ -107,7 +107,7 @@ def thread_police_duuu_daaa_duuu_daaa():
             # probably `torch.compile`, can't narrow it down further
             continue
         elif thread.name == "QueueFeederThread":  # tensorboardX
-            thread.join(timeout=10)
+            thread.join(timeout=20)
         else:
             raise AssertionError(f"Test left zombie thread: {thread}")
 
