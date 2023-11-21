@@ -134,11 +134,11 @@ def reset_deterministic_algorithm():
 
 @pytest.fixture(autouse=True)
 def thread_police_duuu_daaa_duuu_daaa():
+    """Attempts to stop left-over threads to avoid test interactions."""
     active_threads_before = set(threading.enumerate())
     yield
     active_threads_after = set(threading.enumerate())
 
-    # Stop the threads we know about
     for thread in active_threads_after - active_threads_before:
         stop = getattr(thread, "stop", None) or getattr(thread, "exit", None)
         if thread.daemon and callable(stop):

@@ -13,13 +13,19 @@
 # limitations under the License.
 import os
 import sys
+import threading
 from typing import List
 from unittest.mock import Mock
 
 import lightning.fabric
 import pytest
 import torch.distributed
+
+from lightning.fabric.strategies.launchers.subprocess_script import _ChildProcessObserver
 from lightning.fabric.utilities.distributed import _distributed_is_initialized
+
+if sys.version_info >= (3, 9):
+    from concurrent.futures.process import _ExecutorManagerThread
 
 
 @pytest.fixture(autouse=True)
@@ -77,6 +83,32 @@ def teardown_process_group():
     yield
     if _distributed_is_initialized():
         torch.distributed.destroy_process_group()
+
+
+@pytest.fixture(autouse=True)
+def thread_police_duuu_daaa_duuu_daaa():
+    """Attempts to stop left-over threads to avoid test interactions."""
+    active_threads_before = set(threading.enumerate())
+    yield
+    active_threads_after = set(threading.enumerate())
+
+    for thread in active_threads_after - active_threads_before:
+        stop = getattr(thread, "stop", None) or getattr(thread, "exit", None)
+        if thread.daemon and callable(stop):
+            # A daemon thread would anyway be stopped at the end of a program
+            # We do it preemptively here to reduce the risk of interactions with other tests that run after
+            stop()
+            assert not thread.is_alive()
+        elif isinstance(thread, _ChildProcessObserver):
+            thread.join(timeout=10)
+        elif "ThreadPoolExecutor-" in thread.name:
+            # probably `torch.compile`, can't narrow it down further
+            continue
+        elif sys.version_info >= (3, 9) and isinstance(thread, _ExecutorManagerThread):
+            # probably `torch.compile`, can't narrow it down further
+            continue
+        else:
+            raise AssertionError(f"Test left zombie thread: {thread}")
 
 
 @pytest.fixture()
