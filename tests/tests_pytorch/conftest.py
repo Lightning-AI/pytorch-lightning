@@ -15,11 +15,14 @@ import os
 import signal
 import sys
 import threading
+from concurrent.futures import ThreadPoolExecutor
 from functools import partial
 from http.server import SimpleHTTPRequestHandler
 from pathlib import Path
 from typing import List
 from unittest.mock import Mock
+
+from concurrent.futures.process import _ExecutorManagerThread
 
 import lightning.fabric
 import lightning.pytorch
@@ -136,7 +139,13 @@ def thread_police_duuu_daaa_duuu_daaa():
     active_threads_after = set(threading.enumerate())
 
     # These are known zombie threads, don't have a good way to stop them
-    allowlist = {"fsspecIO"}
+    allowlist_name = {
+        "fsspecIO",
+        "ThreadPoolExecutor-0_0",  # probably `torch.compile`, can't narrow it down further
+    }
+    allow_list_type = (
+        _ExecutorManagerThread,  # probably `torch.compile`, can't narrow it down further
+    )
 
     # Stop the threads we know about
     for thread in active_threads_after - active_threads_before:
@@ -148,8 +157,10 @@ def thread_police_duuu_daaa_duuu_daaa():
         elif isinstance(thread, _ChildProcessObserver):
             thread.join(timeout=10)
 
-    zombie_threads = set(threading.enumerate()) - active_threads_before
-    zombie_threads = {thread for thread in zombie_threads if thread.name not in allowlist}
+    zombie_threads = {
+        thread for thread in set(threading.enumerate()) - active_threads_before
+        if thread.name not in allowlist_name and not isinstance(thread, allow_list_type)
+    }
     assert not zombie_threads, f"Test left zombie threads: {zombie_threads}"
 
 

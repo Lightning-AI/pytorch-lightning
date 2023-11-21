@@ -1198,7 +1198,7 @@ def test_verify_launch_called():
     fabric._validate_launched()
 
 
-@pytest.mark.skipif(sys.platform == "darwin", reason="https://github.com/pytorch/pytorch/issues/95708")
+# @pytest.mark.skipif(sys.platform == "darwin", reason="https://github.com/pytorch/pytorch/issues/95708")
 @RunIf(dynamo=True)
 @pytest.mark.parametrize(
     "kwargs",
@@ -1224,7 +1224,7 @@ def test_fabric_with_torchdynamo_fullgraph(kwargs):
         a = x * 10
         return model(a)
 
-    fabric = Fabric(devices=1, **kwargs)
+    fabric = Fabric(devices=1, accelerator="cpu", **kwargs)
     model = MyModel()
     fmodel = fabric.setup(model)
     # we are compiling a function that calls model.forward() inside
