@@ -20,21 +20,12 @@ import numpy as np
 from torch.utils.data import IterableDataset
 
 from lightning.data.streaming import Cache
-from lightning.data.streaming.constants import _INDEX_FILENAME, _LIGHTNING_CLOUD_LATEST
+from lightning.data.streaming.constants import _DEFAULT_CACHE_DIR, _INDEX_FILENAME, _LIGHTNING_CLOUD_LATEST
 from lightning.data.streaming.item_loader import BaseItemLoader
 from lightning.data.streaming.sampler import ChunkedIndex
 from lightning.data.streaming.serializers import Serializer
 from lightning.data.streaming.shuffle import FullShuffle, NoShuffle, Shuffle
 from lightning.data.utilities.env import Environment, _DistributedEnv, _WorkerEnv
-
-
-@dataclass
-class RemoteDir:
-    """Holds a remote URL to a directory and a cache directory where the data will be downloaded."""
-
-    cache_dir: str
-    remote: str
-
 
 if _LIGHTNING_CLOUD_LATEST:
     from lightning_cloud.resolver import Dir, _resolve_dir
@@ -45,7 +36,7 @@ class StreamingDataset(IterableDataset):
 
     def __init__(
         self,
-        input_dir: Union[str, RemoteDir],
+        input_dir: Union[str, "RemoteDir"],
         item_loader: Optional[BaseItemLoader] = None,
         shuffle: bool = False,
         drop_last: bool = False,
@@ -210,11 +201,17 @@ class StreamingDataset(IterableDataset):
 def _try_create_cache_dir(input_dir: str, shard_rank: int = 0) -> Optional[str]:
     hash_object = hashlib.md5(input_dir.encode())
     if "LIGHTNING_CLUSTER_ID" not in os.environ or "LIGHTNING_CLOUD_PROJECT_ID" not in os.environ:
-        cache_dir = os.path.join(
-            os.path.expanduser("~"), ".lightning", "chunks", hash_object.hexdigest(), str(shard_rank)
-        )
+        cache_dir = os.path.join(_DEFAULT_CACHE_DIR, hash_object.hexdigest(), str(shard_rank))
         os.makedirs(cache_dir, exist_ok=True)
         return cache_dir
     cache_dir = os.path.join("/cache", "chunks", hash_object.hexdigest(), str(shard_rank))
     os.makedirs(cache_dir, exist_ok=True)
     return cache_dir
+
+
+@dataclass
+class RemoteDir:
+    """Holds a remote URL to a directory and a cache directory where the data will be downloaded."""
+
+    cache_dir: str
+    remote: str
