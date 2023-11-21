@@ -186,7 +186,7 @@ def _launch_process_observer(child_processes: List[subprocess.Popen]) -> None:
 
 class _ChildProcessObserver(threading.Thread):
     def __init__(self, main_pid: int, child_processes: List[subprocess.Popen], sleep_period: int = 5) -> None:
-        super().__init__(daemon=True)  # thread stops if the main process exits
+        super().__init__(daemon=True, name="child-process-observer")  # thread stops if the main process exits
         self._main_pid = main_pid
         self._child_processes = child_processes
         self._sleep_period = sleep_period

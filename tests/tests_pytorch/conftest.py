@@ -135,36 +135,21 @@ def thread_police_duuu_daaa_duuu_daaa():
     yield
     active_threads_after = set(threading.enumerate())
 
+    # These are known zombie threads, don't have a good way to stop them
+    allowlist = {"fsspecIO"}
+
     # Stop the threads we know about
     for thread in active_threads_after - active_threads_before:
-        if isinstance(thread, _ChildProcessObserver):
-            thread.join(timeout=10)
-
         stop = getattr(thread, "stop", None) or getattr(thread, "exit", None)
         if thread.daemon and callable(stop):
-            # a daemon thread would anyway be stopped at the end of a program
-            # we do it preemptively here because we run tests in sequence and need to isolate them
+            # A daemon thread would anyway be stopped at the end of a program
+            # We do it preemptively here to reduce the risk of interactions with other tests that run after
             stop()
-
-        # if isinstance(thread, TMonitor):
-        #     assert thread.daemon
-        #     thread.exit()
-        #
-        # if _TENSORBOARD_AVAILABLE:
-        #     from tensorboard.summary.writer.event_file_writer import _AsyncWriterThread
-        #
-        #     if isinstance(thread, _AsyncWriterThread):
-        #         assert thread.daemon
-        #         thread.stop()
-        #
-        # if _TENSORBOARDX_AVAILABLE:
-        #     from tensorboardX.event_file_writer import _EventLoggerThread
-        #
-        #     if isinstance(thread, _EventLoggerThread):
-        #         assert thread.daemon
-        #         thread.stop()
+        elif isinstance(thread, _ChildProcessObserver):
+            thread.join(timeout=10)
 
     zombie_threads = set(threading.enumerate()) - active_threads_before
+    zombie_threads = {thread for thread in zombie_threads if thread.name not in allowlist}
     assert not zombie_threads, f"Test left zombie threads: {zombie_threads}"
 
 
