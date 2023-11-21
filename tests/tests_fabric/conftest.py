@@ -106,6 +106,8 @@ def thread_police_duuu_daaa_duuu_daaa():
         elif sys.version_info >= (3, 9) and isinstance(thread, _ExecutorManagerThread):
             # probably `torch.compile`, can't narrow it down further
             continue
+        elif thread.name == "QueueFeederThread":  # tensorboardX
+            thread.join(timeout=10)
         else:
             raise AssertionError(f"Test left zombie thread: {thread}")
 
