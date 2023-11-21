@@ -102,7 +102,11 @@ def thread_police_duuu_daaa_duuu_daaa():
             thread.join(timeout=10)
         elif thread.name == "QueueFeederThread":  # tensorboardX
             thread.join(timeout=20)
-        elif sys.version_info >= (3, 9) and isinstance(thread, _ExecutorManagerThread) or "ThreadPoolExecutor-" in thread.name:
+        elif (
+            sys.version_info >= (3, 9)
+            and isinstance(thread, _ExecutorManagerThread)
+            or "ThreadPoolExecutor-" in thread.name
+        ):
             # probably `torch.compile`, can't narrow it down further
             continue
         else:
