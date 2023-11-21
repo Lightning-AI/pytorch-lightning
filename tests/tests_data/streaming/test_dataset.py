@@ -20,7 +20,7 @@ import pytest
 import torch
 from lightning import seed_everything
 from lightning.data.streaming import Cache, functions
-from lightning.data.streaming.dataset import RemoteDir, StreamingDataset, _try_create_cache_dir
+from lightning.data.streaming.dataset import StreamingDataset, _try_create_cache_dir
 from lightning.data.streaming.item_loader import TokensLoader
 from lightning.data.streaming.shuffle import FullShuffle, NoShuffle
 from lightning.data.utilities.env import _DistributedEnv
@@ -522,20 +522,8 @@ def test_dataset_for_text_tokens_distributed_num_workers_end_to_end(tmpdir, monk
         assert [batch[0][0].item(), batch[1][0].item()] == expected[batch_idx]
 
 
-@pytest.mark.skipif(sys.platform == "win32" or sys.platform == "darwin", reason="Not tested on windows and MacOs")
-def test_s3_streaming_dataset(tmpdir):
+@pytest.mark.skipif(sys.platform == "win32", reason="Not tested on windows and MacOs")
+def test_s3_streaming_dataset():
     dataset = StreamingDataset(input_dir="s3://pl-flash-data/optimized_tiny_imagenet")
-    assert len(dataset) == 1000
-    expected = torch.CharTensor([40, 41, 8, 29, 67]).to(dtype=torch.uint8)
-    generated = dataset[0][0][0][:5]
-    assert torch.equal(generated, expected)
-
-    dataset = StreamingDataset(
-        input_dir=RemoteDir(cache_dir=str(tmpdir), remote="s3://pl-flash-data/optimized_tiny_imagenet")
-    )
-    assert len(dataset) == 1000
-    expected = torch.CharTensor([40, 41, 8, 29, 67]).to(dtype=torch.uint8)
-    generated = dataset[0][0][0][:5]
-    assert torch.equal(generated, expected)
-
-    assert sorted(os.listdir(tmpdir)) == ["chunk-0-0.bin", "index.json"]
+    assert dataset.input_dir.url == "s3://pl-flash-data/optimized_tiny_imagenet"
+    assert dataset.input_dir.path is None

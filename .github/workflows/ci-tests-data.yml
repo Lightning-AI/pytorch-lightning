@@ -94,12 +94,7 @@ jobs:
 
       - name: Testing Data
         working-directory: tests/tests_data
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_PUB_ACCESS_KEY }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_PUB_SECRET_KEY }}
-          AWS_DEFAULT_REGION: ${{ secrets.AWS_REGION }}
         # NOTE: do not include coverage report here, see: https://github.com/nedbat/coveragepy/issues/1003
-        timeout-minutes: 10
         run: |
           python -m coverage run --source lightning \
             -m pytest -v --timeout=60 --durations=60
