@@ -12,10 +12,14 @@
 # limitations under the License.
 
 import hashlib
+import json
 import os
+import uuid
+from time import time
 from typing import Any, Dict, List, Optional, Union
 
 import numpy as np
+from lightning_cloud.resolver import Dir as InputDir
 from torch.utils.data import IterableDataset
 
 from lightning.data.streaming import Cache
@@ -25,6 +29,7 @@ from lightning.data.streaming.sampler import ChunkedIndex
 from lightning.data.streaming.serializers import Serializer
 from lightning.data.streaming.shuffle import FullShuffle, NoShuffle, Shuffle
 from lightning.data.utilities.env import Environment, _DistributedEnv, _WorkerEnv
+from lightning.fabric.utilities.types import _DictKey
 
 if _LIGHTNING_CLOUD_LATEST:
     from lightning_cloud.resolver import _resolve_dir
@@ -35,12 +40,13 @@ class StreamingDataset(IterableDataset):
 
     def __init__(
         self,
-        input_dir: str,
+        input_dir: Union[str, InputDir],
         item_loader: Optional[BaseItemLoader] = None,
         shuffle: bool = False,
         drop_last: bool = False,
         seed: int = 42,
         serializers: Optional[Dict[str, Serializer]] = None,
+        checkpoint_progress_interval=None,
     ) -> None:
         """The streaming dataset can be used once your data have been optimised using the DatasetOptimiser class.
 
@@ -52,6 +58,7 @@ class StreamingDataset(IterableDataset):
                 all processes/workers return the same amount of data.
             seed: Random seed for shuffling.
             serializers: The serializers used to serialize and deserialize the chunks.
+            checkpoint_progress_interval: Interval in seconds at which the workers are going to store their own progress.
 
         """
         super().__init__()
@@ -80,6 +87,8 @@ class StreamingDataset(IterableDataset):
         self.random_state = None
         self.shuffler: Optional[Shuffle] = None
         self.serializers = serializers
+        self.resume_id = uuid.uuid4()
+        self.checkpoint_progress_interval = checkpoint_progress_interval or 60 * 5
 
     def _create_cache(self, worker_env: _WorkerEnv) -> Cache:
         env = Environment(dist_env=self.distributed_env, worker_env=worker_env)
@@ -140,6 +149,7 @@ class StreamingDataset(IterableDataset):
         self.chunk_index = 0
         self.index = 0
         self.has_triggered_download = False
+        self.last_time = time()
 
         return self
 
@@ -190,7 +200,26 @@ class StreamingDataset(IterableDataset):
         self.has_triggered_download = True
         self.index += 1
 
+        if (self.last_time + self.checkpoint_progress_interval) > time():
+            self.store_progress()
+
         return data
+
+    def store_progress(self) -> None:
+        pass
+
+    def state_dict(self) -> Dict[_DictKey, Any]:
+        state_dict = {}
+        worker_env = _WorkerEnv.detect()
+        if worker_env.world_size == 1:
+            for worker_idx, worker_state_file in enumerate(os.listdir(self.cache.resume_folder)):
+                work_state_filepath = os.path.join(self.cache.resume_folder, worker_state_file)
+                with open(work_state_filepath) as f:
+                    state_dict[worker_idx] = json.load(f)
+        return state_dict
+
+    def load_state_dict(self, state_dict: Dict[_DictKey, Any]) -> None:
+        return self.cache.load_state_dict()
 
 
 def _try_create_cache_dir(input_dir: str, shard_rank: int = 0) -> Optional[str]:

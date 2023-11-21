@@ -13,6 +13,7 @@
 
 import logging
 import os
+import uuid
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Tuple, Union
 
@@ -93,6 +94,7 @@ class Cache:
         )
         self._is_done = False
         self._distributed_env = _DistributedEnv.detect()
+        self._resume_id = uuid.uuid4()
 
     @property
     def filled(self) -> bool:
@@ -101,6 +103,13 @@ class Cache:
             return True
         self._is_done = os.path.exists(os.path.join(self._cache_dir, _INDEX_FILENAME))
         return self._is_done
+
+    @property
+    def resume_folder(self) -> str:
+        resume_folder = os.path.join(self._cache_dir, self._resume_id)
+        if not os.path.exists(resume_folder):
+            os.makedirs(resume_folder, exist_ok=True)
+        return resume_folder
 
     def __setitem__(self, index: int, data: Any) -> None:
         """Store an item in the writer."""

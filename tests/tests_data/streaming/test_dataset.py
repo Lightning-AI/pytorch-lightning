@@ -534,3 +534,33 @@ def test_dataset_for_text_tokens_distributed_num_workers_end_to_end(tmpdir, monk
 
     for batch_idx, batch in enumerate(dataloader):
         assert [batch[0][0].item(), batch[1][0].item()] == expected[batch_idx]
+
+
+def test_resumable_dataset(tmpdir):
+    seed_everything(42)
+
+    block_size = 10
+    cache = Cache(input_dir=str(tmpdir), chunk_size=40, item_loader=TokensLoader(block_size))
+
+    counter = 0
+    for i in range(100):
+        text_ids = torch.arange(counter, counter + 20).to(torch.int)
+        cache[i] = text_ids
+        counter += 20
+
+    cache.done()
+    cache.merge()
+
+    assert len([f for f in os.listdir(tmpdir) if f.endswith(".bin")]) == 50
+
+    dataset = StreamingDataset(input_dir=str(tmpdir), item_loader=TokensLoader(block_size), shuffle=False)
+
+    dataloader = DataLoader(dataset, num_workers=2, batch_size=2)
+
+    dataloader_iter = iter(dataloader)
+
+    batch_0 = next(dataloader_iter)
+
+    batch_1 = next(dataloader_iter)
+
+    batch_2 = next(dataloader_iter)
