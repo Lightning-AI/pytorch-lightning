@@ -12,7 +12,6 @@
 # limitations under the License.
 
 import os
-import sys
 from unittest import mock
 
 import numpy as np
@@ -20,7 +19,7 @@ import pytest
 import torch
 from lightning import seed_everything
 from lightning.data.streaming import Cache, functions
-from lightning.data.streaming.dataset import StreamingDataset, _try_create_cache_dir
+from lightning.data.streaming.dataset import RemoteDir, StreamingDataset, _try_create_cache_dir
 from lightning.data.streaming.item_loader import TokensLoader
 from lightning.data.streaming.shuffle import FullShuffle, NoShuffle
 from lightning.data.utilities.env import _DistributedEnv
@@ -53,17 +52,6 @@ def test_streaming_dataset(tmpdir, monkeypatch):
     assert len(dataloader) == 12
     dataloader = DataLoader(dataset, num_workers=2, batch_size=2)
     assert len(dataloader) == 6
-
-
-@mock.patch.dict(os.environ, {"LIGHTNING_CLUSTER_ID": "123", "LIGHTNING_CLOUD_PROJECT_ID": "456"})
-@mock.patch("lightning.data.streaming.dataset.os.makedirs")
-@pytest.mark.skipif(condition=sys.platform == "win32", reason="Not supported on windows")
-def test_create_cache_dir_in_lightning_cloud(makedirs_mock):
-    # Locally, we can't actually write to the root filesystem with user privileges, so we need to mock the call
-    dataset = StreamingDataset("dummy")
-    with pytest.raises(FileNotFoundError, match="/0` doesn't exist"):
-        iter(dataset)
-    makedirs_mock.assert_called()
 
 
 @pytest.mark.parametrize("drop_last", [False, True])
@@ -307,7 +295,7 @@ def test_dataset_cache_recreation(tmpdir):
 
 def test_try_create_cache_dir():
     with mock.patch.dict(os.environ, {}, clear=True):
-        assert _try_create_cache_dir("any") is None
+        assert _try_create_cache_dir("any") == "/Users/thomas/.lightning/chunks/100b8cad7cf2a56f6df78f171f97a1ec/0"
 
     # the cache dir creating at /cache requires root privileges, so we need to mock `os.makedirs()`
     with (
@@ -534,3 +522,21 @@ def test_dataset_for_text_tokens_distributed_num_workers_end_to_end(tmpdir, monk
 
     for batch_idx, batch in enumerate(dataloader):
         assert [batch[0][0].item(), batch[1][0].item()] == expected[batch_idx]
+
+
+def test_s3_streaming_dataset(tmpdir):
+    dataset = StreamingDataset(input_dir="s3://pl-flash-data/optimized_tiny_imagenet")
+    assert len(dataset) == 1000
+    expected = torch.CharTensor([40, 41, 8, 29, 67]).to(dtype=torch.uint8)
+    generated = dataset[0][0][0][:5]
+    assert torch.equal(generated, expected)
+
+    dataset = StreamingDataset(
+        input_dir=RemoteDir(cache_dir=str(tmpdir), remote="s3://pl-flash-data/optimized_tiny_imagenet")
+    )
+    assert len(dataset) == 1000
+    expected = torch.CharTensor([40, 41, 8, 29, 67]).to(dtype=torch.uint8)
+    generated = dataset[0][0][0][:5]
+    assert torch.equal(generated, expected)
+
+    assert sorted(os.listdir(tmpdir)) == ["chunk-0-0.bin", "index.json"]
