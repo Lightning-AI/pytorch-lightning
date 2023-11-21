@@ -25,12 +25,10 @@ import lightning.fabric
 import lightning.pytorch
 import pytest
 import torch.distributed
-from lightning.fabric.loggers.tensorboard import _TENSORBOARD_AVAILABLE, _TENSORBOARDX_AVAILABLE
 from lightning.fabric.plugins.environments.lightning import find_free_network_port
 from lightning.fabric.utilities.distributed import _distributed_is_initialized
 from lightning.fabric.utilities.imports import _IS_WINDOWS
 from lightning.pytorch.trainer.connectors.signal_connector import _SignalConnector
-from tqdm import TMonitor
 
 from tests_pytorch import _PATH_DATASETS
 
@@ -138,20 +136,29 @@ def thread_police_duuu_daaa_duuu_daaa():
 
     # Stop the threads we know about
     for thread in active_threads_after - active_threads_before:
-        if isinstance(thread, TMonitor):
-            thread.exit()
+        stop = getattr(thread, "stop", None) or getattr(thread, "exit", None)
+        if thread.daemon and callable(stop):
+            # a daemon thread would anyway be stopped at the end of a program
+            # we do it preemptively here because we run tests in sequence and need to isolate them
+            stop()
 
-        if _TENSORBOARD_AVAILABLE:
-            from tensorboard.summary.writer.event_file_writer import _AsyncWriterThread
-
-            if isinstance(thread, _AsyncWriterThread):
-                thread.stop()
-
-        if _TENSORBOARDX_AVAILABLE:
-            from tensorboardX.event_file_writer import _EventLoggerThread
-
-            if isinstance(thread, _EventLoggerThread):
-                thread.stop()
+        # if isinstance(thread, TMonitor):
+        #     assert thread.daemon
+        #     thread.exit()
+        #
+        # if _TENSORBOARD_AVAILABLE:
+        #     from tensorboard.summary.writer.event_file_writer import _AsyncWriterThread
+        #
+        #     if isinstance(thread, _AsyncWriterThread):
+        #         assert thread.daemon
+        #         thread.stop()
+        #
+        # if _TENSORBOARDX_AVAILABLE:
+        #     from tensorboardX.event_file_writer import _EventLoggerThread
+        #
+        #     if isinstance(thread, _EventLoggerThread):
+        #         assert thread.daemon
+        #         thread.stop()
 
     zombie_threads = set(threading.enumerate()) - active_threads_before
     assert not zombie_threads, f"Test left zombie threads: {zombie_threads}"
