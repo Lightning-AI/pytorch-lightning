@@ -128,6 +128,20 @@ def reset_deterministic_algorithm():
     torch.use_deterministic_algorithms(False)
 
 
+@pytest.fixture(autouse=True)
+def thread_police_duuu_daaa_duuu_daaa():
+    active_threads_before = set(threading.enumerate())
+    yield
+    active_threads_after = set(threading.enumerate())
+    zombie_threads = active_threads_after - active_threads_before
+
+    # Check if there are any zombie threads
+    if zombie_threads:
+        # You can print the details of the zombie threads or raise an exception
+        print(f"Zombie threads found: {zombie_threads}")
+        raise AssertionError("Test left zombie threads")
+
+
 def mock_cuda_count(monkeypatch, n: int) -> None:
     monkeypatch.setattr(lightning.fabric.accelerators.cuda, "num_cuda_devices", lambda: n)
     monkeypatch.setattr(lightning.pytorch.accelerators.cuda, "num_cuda_devices", lambda: n)
