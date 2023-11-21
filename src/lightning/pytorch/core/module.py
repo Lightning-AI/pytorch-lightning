@@ -627,7 +627,11 @@ class LightningModule(
         return dtype if dtype in (torch.float32, torch.float64) else torch.float32
 
     def __to_tensor_high_precision(self, value: Union[Tensor, numbers.Number], name: str) -> Tensor:
-        value = value.clone().detach() if isinstance(value, Tensor) else torch.tensor(value, device=self.device, dtype=_get_default_high_precision_dtype())
+        value = (
+            value.clone().detach()
+            if isinstance(value, Tensor)
+            else torch.tensor(value, device=self.device, dtype=_get_default_high_precision_dtype())
+        )
         if not torch.numel(value) == 1:
             raise ValueError(
                 f"`self.log({name}, {value})` was called, but the tensor must have a single element."
