@@ -626,12 +626,13 @@ class ModelCheckpoint(Checkpoint):
     def _find_last_checkpoints(self, trainer: "pl.Trainer") -> Set[str]:
         # find all checkpoints in the folder
         ckpt_path = self.__resolve_ckpt_dir(trainer)
+        last_pattern = rf"^{self.CHECKPOINT_NAME_LAST}(-(\d+))?"
+
+        def _is_last(path: Path) -> bool:
+            return path.suffix == self.FILE_EXTENSION and bool(re.match(last_pattern, path.stem))
+
         if self._fs.exists(ckpt_path):
-            return {
-                os.path.normpath(p)
-                for p in self._fs.ls(ckpt_path, detail=False)
-                if self.CHECKPOINT_NAME_LAST in os.path.split(p)[1]
-            }
+            return {os.path.normpath(p) for p in self._fs.ls(ckpt_path, detail=False) if _is_last(Path(p))}
         return set()
 
     def __warn_if_dir_not_empty(self, dirpath: _PATH) -> None:
