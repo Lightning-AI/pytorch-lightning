@@ -195,12 +195,10 @@ def test_download_data_target(tmpdir):
     assert os.listdir(cache_dir) == ["a.txt"]
 
 
-disk_usage_mock = mock.Mock(side_effect=[mock.Mock(free=10e9), mock.Mock(free=10e9), mock.Mock(free=10e11)])
-
-
-@mock.patch("lightning.data.streaming.data_processor.shutil.disk_usage", disk_usage_mock)
 def test_wait_for_disk_usage_higher_than_threshold():
-    _wait_for_disk_usage_higher_than_threshold(10, sleep_time=0)
+    disk_usage_mock = mock.Mock(side_effect=[mock.Mock(free=10e9), mock.Mock(free=10e9), mock.Mock(free=10e11)])
+    with mock.patch("lightning.data.streaming.data_processor.shutil.disk_usage", disk_usage_mock):
+        _wait_for_disk_usage_higher_than_threshold(10, sleep_time=0)
     assert disk_usage_mock.call_count == 3
 
 
