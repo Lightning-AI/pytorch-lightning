@@ -163,25 +163,28 @@ class StreamingDataset(IterableDataset):
             self._validate_state_dict()
             state = self._state_dict[str(self.cache.rank)]
 
+            # reload indexes
             self.chunk_index = state["chunk_index"]
             self.global_index = state["global_index"]
             self.index = state["index"]
             self.current_epoch = state["current_epoch"]
 
+            # re-generate indexes
             interval = self.worker_intervals[self.chunk_index]
             current_indexes = np.arange(interval[0], interval[1])
             current_indexes = self.shuffler(current_indexes, self.current_epoch, self.chunk_index)
             self.current_indexes = current_indexes[state["index"] :]
-            self.has_triggered_download = False
-            self.last_time = time()
+
+            # Bump the chunk_index
             self.chunk_index += 1
         else:
             self.current_indexes = []
             self.chunk_index = 0
             self.global_index = 0
             self.index = 0
-            self.has_triggered_download = False
-            self.last_time = time()
+
+        self.has_triggered_download = False
+        self.last_time = time()
 
         return self
 
