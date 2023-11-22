@@ -397,8 +397,8 @@ def _string_to_datetime(item: str) -> datetime:
     return datetime.strptime(item.split("checkpoint-")[1].split(".json")[0], _TIME_FORMAT)
 
 
-def _load_state_dict_from_checkpoint_dir(checkpoint_dir: str) -> Dict:
-    state_dict = {}
+def _load_state_dict_from_checkpoint_dir(checkpoint_dir: str) -> Dict[str, Any]:
+    state_dict: Dict[str, Any] = {}
     if not os.path.exists(checkpoint_dir):
         return state_dict
     for worker_idx in os.listdir(checkpoint_dir):
