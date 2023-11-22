@@ -38,7 +38,6 @@ from lightning.data.streaming.serializers import Serializer
 from lightning.data.streaming.shuffle import FullShuffle, NoShuffle, Shuffle
 from lightning.data.utilities.env import Environment, _DistributedEnv, _WorkerEnv
 from lightning.fabric.utilities.distributed import group as _group
-from lightning.fabric.utilities.types import _DictKey
 
 if _LIGHTNING_CLOUD_LATEST:
     from lightning_cloud.resolver import Dir, _resolve_dir
@@ -55,7 +54,7 @@ class StreamingDataset(IterableDataset):
         drop_last: bool = False,
         seed: int = 42,
         serializers: Optional[Dict[str, Serializer]] = None,
-        checkpoint_interval=None,
+        checkpoint_interval: int = 60 * 5,
     ) -> None:
         """The streaming dataset can be used once your data have been optimised using the DatasetOptimiser class.
 
@@ -100,8 +99,8 @@ class StreamingDataset(IterableDataset):
         self.random_state = None
         self.shuffler: Optional[Shuffle] = None
         self.serializers = serializers
-        self.checkpoint_interval = checkpoint_interval or 60 * 5
-        self._state_dict: Optional[Dict] = None
+        self.checkpoint_interval = checkpoint_interval
+        self._state_dict: Optional[Dict[str, Dict[str, Any]]] = None
 
     def _create_cache(self, worker_env: _WorkerEnv) -> Cache:
         env = Environment(dist_env=self.distributed_env, worker_env=worker_env)
@@ -128,8 +127,8 @@ class StreamingDataset(IterableDataset):
 
     def _create_shuffler(self, cache: Cache) -> Shuffle:
         seed = self.seed
-        if self._state_dict:
-            seed = self._state_dict[str(self.cache.rank)]["seed"]
+        if self._state_dict is not None:
+            seed = self._state_dict[str(cache.rank)]["seed"]
         return FullShuffle(cache, seed, self.drop_last) if self.shuffle else NoShuffle(cache, seed, self.drop_last)
 
     def __len__(self) -> int:
@@ -244,6 +243,9 @@ class StreamingDataset(IterableDataset):
         return data
 
     def checkpoint(self, chunk_index: int) -> None:
+        assert self.cache
+        assert self.worker_env
+
         import tempfile
 
         with tempfile.NamedTemporaryFile(mode="w+") as tmp:
@@ -277,12 +279,12 @@ class StreamingDataset(IterableDataset):
 
         self.last_time = time()
 
-    def state_dict(self) -> Dict[_DictKey, Any]:
+    def state_dict(self) -> Dict[str, Any]:
         if self.cache is None:
             self.worker_env = _WorkerEnv.detect()
             self.cache = self._create_cache(worker_env=self.worker_env)
 
-        state_dict = {}
+        state_dict: Dict[str, Any] = {}
         worker_env = _WorkerEnv.detect()
         if worker_env.world_size == 1:
             # 1. Check whether the checkpoint_dir exists
@@ -319,11 +321,15 @@ class StreamingDataset(IterableDataset):
             raise NotImplementedError("The `state_dict` should be called on the main thread.")
         return state_dict
 
-    def load_state_dict(self, state_dict: Dict[_DictKey, Any]) -> None:
+    def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
         if state_dict:
             self._state_dict = state_dict
 
     def _validate_state_dict(self) -> None:
+        assert self._state_dict
+        assert self.worker_env
+        assert self.cache
+
         env = Environment(dist_env=self.distributed_env, worker_env=self.worker_env)
 
         if env.num_shards != len(self._state_dict):
@@ -332,7 +338,7 @@ class StreamingDataset(IterableDataset):
                 f"Found `{env.num_shards}` instead of `{len(self._state_dict)}`."
             )
 
-        state = self._state_dict[str(self.cache.rank)]
+        state: Dict[str, Any] = self._state_dict[str(self.cache.rank)]
 
         if state["num_workers"] != self.worker_env.world_size:
             raise ValueError(

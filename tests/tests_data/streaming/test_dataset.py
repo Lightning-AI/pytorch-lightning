@@ -532,6 +532,7 @@ def test_s3_streaming_dataset():
     assert dataset.input_dir.path is None
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason="Not tested on windows and MacOs")
 def test_resumable_dataset_single_worker(tmpdir):
     seed_everything(42)
 
@@ -599,6 +600,7 @@ def test_resumable_dataset_single_worker(tmpdir):
     assert torch.equal(batch_2, batch_0_restart)
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason="Not tested on windows and MacOs")
 def test_dataset_valid_state(tmpdir):
     seed_everything(42)
 

@@ -47,7 +47,7 @@ class Shuffle(ABC):
         pass
 
     @abstractmethod
-    def __call__(self, array: np.ndarray, current_epoch: int) -> List[int]:
+    def __call__(self, array: np.ndarray, current_epoch: int, chunk_index: int) -> List[int]:
         pass
 
 
