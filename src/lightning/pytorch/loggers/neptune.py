@@ -555,7 +555,7 @@ class NeptuneLogger(Logger):
             )
 
     @staticmethod
-    def _get_full_model_name(model_path: str, checkpoint_callback: Checkpoint) -> str:
+    def _get_full_model_name(model_path: Union[str, Path], checkpoint_callback: Checkpoint) -> str:
         """Returns model name which is string `model_path` appended to `checkpoint_callback.dirpath`."""
         if hasattr(checkpoint_callback, "dirpath"):
             model_path = Path(model_path)
