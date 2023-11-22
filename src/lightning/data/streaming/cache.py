@@ -107,11 +107,11 @@ class Cache:
         return self._is_done
 
     @property
-    def resume_folder(self) -> str:
-        resume_folder = os.path.join(self._cache_dir, "checkpoints", str(self._reader.rank))
-        if not os.path.exists(resume_folder):
-            os.makedirs(resume_folder, exist_ok=True)
-        return resume_folder
+    def checkpoint_dir(self) -> str:
+        checkpoint_dir = os.path.join(self._cache_dir, "checkpoints", str(self.rank))
+        if not os.path.exists(checkpoint_dir):
+            os.makedirs(checkpoint_dir, exist_ok=True)
+        return checkpoint_dir
 
     def __setitem__(self, index: int, data: Any) -> None:
         """Store an item in the writer."""

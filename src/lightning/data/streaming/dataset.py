@@ -15,7 +15,6 @@ import hashlib
 import json
 import os
 import shutil
-import uuid
 from dataclasses import dataclass
 from datetime import datetime
 from time import time
@@ -25,7 +24,12 @@ import numpy as np
 from torch.utils.data import IterableDataset
 
 from lightning.data.streaming import Cache
-from lightning.data.streaming.constants import _DEFAULT_CACHE_DIR, _INDEX_FILENAME, _LIGHTNING_CLOUD_LATEST
+from lightning.data.streaming.constants import (
+    _DEFAULT_CACHE_DIR,
+    _INDEX_FILENAME,
+    _LIGHTNING_CLOUD_LATEST,
+    _TIME_FORMAT,
+)
 from lightning.data.streaming.item_loader import BaseItemLoader
 from lightning.data.streaming.sampler import ChunkedIndex
 from lightning.data.streaming.serializers import Serializer
@@ -93,7 +97,6 @@ class StreamingDataset(IterableDataset):
         self.random_state = None
         self.shuffler: Optional[Shuffle] = None
         self.serializers = serializers
-        self.resume_id = uuid.uuid4()
         self.checkpoint_interval = checkpoint_interval or 60 * 5
         self._state_dict: Optional[Dict] = None
 
@@ -154,13 +157,17 @@ class StreamingDataset(IterableDataset):
 
         # Handle restart
         if self._state_dict:
+            self._validate_state_dict()
             state = self._state_dict[str(self.cache.rank)]
+
             self.chunk_index = state["chunk_index"]
             self.global_index = state["global_index"]
             self.index = state["index"]
+            self.current_epoch = state["current_epoch"]
+
             interval = self.worker_intervals[self.chunk_index]
             current_indexes = np.arange(interval[0], interval[1])
-            current_indexes = self.shuffler(current_indexes)
+            current_indexes = self.shuffler(current_indexes, self.current_epoch, self.chunk_index)
             self.current_indexes = current_indexes[state["index"] :]
             self.has_triggered_download = False
             self.last_time = time()
@@ -200,16 +207,14 @@ class StreamingDataset(IterableDataset):
             self.index = 0
 
             # Checkpoint when reaching a new chunk
-            self.checkpoint()
+            self.checkpoint(self.chunk_index)
 
             interval = self.worker_intervals[self.chunk_index]
             current_indexes = np.arange(interval[0], interval[1])
 
             assert self.shuffler is not None
-            self.current_indexes = self.shuffler(current_indexes)
+            self.current_indexes = self.shuffler(current_indexes, self.current_epoch, self.chunk_index)
             self.chunk_index += 1
-
-        last_index = self.chunk_index == len(self.worker_intervals) and len(self.current_indexes) == 1
 
         # Get the first index
         index = self.current_indexes.pop(0)
@@ -221,7 +226,7 @@ class StreamingDataset(IterableDataset):
                 chunk_index=self.worker_chunks[self.chunk_index - 1],
                 # We provide the chunks indexes only one the first
                 chunk_indexes=None if self.has_triggered_download else self.worker_chunks,
-                last_index=last_index,
+                last_index=(self.chunk_index - 1) == len(self.worker_intervals) and len(self.current_indexes) == 1,
             )
         )
 
@@ -231,37 +236,38 @@ class StreamingDataset(IterableDataset):
 
         # Checkpoint based on time
         if (self.last_time - time()) > self.checkpoint_interval:
-            self.checkpoint()
+            self.checkpoint(self.chunk_index - 1)
 
         return data
 
-    def checkpoint(self) -> None:
+    def checkpoint(self, chunk_index: int) -> None:
         import tempfile
 
         with tempfile.NamedTemporaryFile(mode="w+") as tmp:
+            # 1. Write the state to a tempfile
             json.dump(
                 {
                     "rank": self.cache._reader.rank,
                     "current_epoch": self.current_epoch,
                     "input_dir_path": self.input_dir.path,
                     "input_dir_url": self.input_dir.url,
-                    "item_loader": self.item_loader.state_dict(),
+                    "item_loader": self.item_loader.state_dict() if self.item_loader else None,
                     "drop_last": self.drop_last,
                     "seed": self.seed,
                     "checkpoint_interval": self.checkpoint_interval,
-                    "chunk_index": self.chunk_index,
+                    "chunk_index": chunk_index,
                     "global_index": self.global_index,
                     "index": self.index,
                 },
                 tmp,
             )
 
+            # 2. Flush to make sure it is written
             tmp.flush()
 
-            now = datetime.now().strftime("%Y-%m-%d_%H-%M-%S.%fZ")
-            checkpoint_path = os.path.join(self.cache.resume_folder, f"checkpoint-{now}.json")
-
-            # Should avoid corrupted read from the main thread.
+            # 3. Move the file to avoid corrupted read from the main thread.
+            now = datetime.now().strftime(_TIME_FORMAT)
+            checkpoint_path = os.path.join(self.cache.checkpoint_dir, f"checkpoint-{now}.json")
             shutil.copyfile(tmp.name, checkpoint_path)
 
         self.last_time = time()
@@ -274,18 +280,17 @@ class StreamingDataset(IterableDataset):
         state_dict = {}
         worker_env = _WorkerEnv.detect()
         if worker_env.world_size == 1:
-            checkpoint_dir = os.path.join(self.cache._cache_dir, "checkpoints")
-            if not os.path.exists(checkpoint_dir):
+            # 1. Check whether the checkpoint_dir exists
+            if not os.path.exists(self.cache.checkpoint_dir):
                 return state_dict
-            for worker_idx in os.listdir(checkpoint_dir):
-                checkpoints = os.listdir(os.path.join(checkpoint_dir, str(worker_idx)))
-                checkpoints = sorted(
-                    checkpoints,
-                    key=lambda item: datetime.strptime(
-                        item.split("checkpoint-")[1].split(".json")[0], "%Y-%m-%d_%H-%M-%S.%fZ"
-                    ),
-                )
-                checkpoint_path = os.path.join(checkpoint_dir, str(worker_idx), checkpoints[-1])
+
+            # 2. Iterate through the workers and read the latest checkpoint
+            for worker_idx in os.listdir(self.cache.checkpoint_dir):
+                checkpoints = os.listdir(os.path.join(self.cache.checkpoint_dir, str(worker_idx)))
+                checkpoints = sorted(checkpoints, key=_string_to_datetime)
+
+                # Load the latest checkpoint for this worker
+                checkpoint_path = os.path.join(self.cache.checkpoint_dir, str(worker_idx), checkpoints[-1])
                 with open(checkpoint_path) as f:
                     state_dict[worker_idx] = json.load(f)
         else:
@@ -295,6 +300,46 @@ class StreamingDataset(IterableDataset):
     def load_state_dict(self, state_dict: Dict[_DictKey, Any]) -> None:
         if state_dict:
             self._state_dict = state_dict
+
+    def _validate_state_dict(self) -> None:
+        env = Environment(dist_env=self.distributed_env, worker_env=self.worker_env)
+
+        if env.num_shards != len(self._state_dict):
+            raise ValueError(
+                "The provided `state` doesn't match the number workers world size. "
+                f"Found {env.num_shards} instead of {len(self._state_dict)}."
+            )
+
+        state = self._state_dict[str(self.cache.rank)]
+
+        if state["input_dir_path"] != self.input_dir.path:
+            raise ValueError(
+                "The provided `input_dir` path doesn't match the current one. "
+                f"Found {self.input_dir.path} instead of {state['input_dir_path']}."
+            )
+
+        if state["input_dir_url"] != self.input_dir.url:
+            raise ValueError(
+                "The provided `input_dir` URL doesn't match the current one. "
+                f"Found {self.input_dir.url} instead of {state['input_dir_url']}."
+            )
+
+        if state["seed"] != self.seed:
+            raise ValueError(
+                "The provided `seed` doesn't match the current one. " f"Found {self.seed} instead of {state['seed']}."
+            )
+
+        if self.item_loader and state["item_loader"] != self.item_loader.state_dict():
+            raise ValueError(
+                "The provided `item_loader` state doesn't match the current one. "
+                f"Found {self.item_loader.state_dict()} instead of {state['item_loader']}."
+            )
+
+        if state["drop_last"] != self.drop_last:
+            raise ValueError(
+                "The provided `drop_last` state doesn't match the current one. "
+                f"Found {self.drop_last} instead of {state['drop_last']}."
+            )
 
 
 def _try_create_cache_dir(input_dir: str, shard_rank: int = 0) -> Optional[str]:
@@ -306,6 +351,10 @@ def _try_create_cache_dir(input_dir: str, shard_rank: int = 0) -> Optional[str]:
     cache_dir = os.path.join("/cache", "chunks", hash_object.hexdigest(), str(shard_rank))
     os.makedirs(cache_dir, exist_ok=True)
     return cache_dir
+
+
+def _string_to_datetime(item: str) -> datetime:
+    return datetime.strptime(item.split("checkpoint-")[1].split(".json")[0], _TIME_FORMAT)
 
 
 @dataclass

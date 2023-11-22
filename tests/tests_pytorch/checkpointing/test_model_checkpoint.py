@@ -1474,8 +1474,8 @@ def test_train_epoch_end_ckpt_with_no_validation():
     assert not trainer.checkpoint_callback._should_save_on_train_epoch_end(trainer)
 
 
-@pytest.mark.parametrize("same_resume_folder", [True, False])
-def test_resume_and_old_checkpoint_files_remain(same_resume_folder, tmp_path):
+@pytest.mark.parametrize("same_checkpoint_dir", [True, False])
+def test_resume_and_old_checkpoint_files_remain(same_checkpoint_dir, tmp_path):
     """Test that checkpoints saved in the resume-folder won't be deleted under the save-top-k mechanism."""
     model = BoringModel()
     trainer_kwargs = {
@@ -1488,7 +1488,7 @@ def test_resume_and_old_checkpoint_files_remain(same_resume_folder, tmp_path):
     }
     first = tmp_path / "first"
     second = tmp_path / "second"
-    new_dirpath = first if same_resume_folder else second
+    new_dirpath = first if same_checkpoint_dir else second
 
     # Generate checkpoints in the first folder
     callback = ModelCheckpoint(dirpath=first, monitor="step", mode="max", save_top_k=2, every_n_train_steps=2)
@@ -1500,7 +1500,7 @@ def test_resume_and_old_checkpoint_files_remain(same_resume_folder, tmp_path):
     callback = ModelCheckpoint(dirpath=new_dirpath, monitor="step", mode="max", save_top_k=2, every_n_train_steps=2)
     trainer = Trainer(callbacks=callback, max_steps=8, **trainer_kwargs)
     trainer.fit(model, ckpt_path=str(first / "epoch=0-step=4.ckpt"))
-    if same_resume_folder:
+    if same_checkpoint_dir:
         assert set(os.listdir(first)) == {
             "epoch=0-step=4.ckpt",  # do not delete checkpoint from which we resume from
             "epoch=0-step=6.ckpt",

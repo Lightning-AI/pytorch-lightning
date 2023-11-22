@@ -161,7 +161,7 @@ def test_streaming_dataset_distributed_full_shuffle_odd(drop_last, tmpdir):
     dataset_iter = iter(dataset)
     assert len(dataset_iter) == 548
     process_1_1 = list(dataset_iter)
-    assert process_1_1[:10] == [785, 788, 782, 783, 789, 787, 786, 781, 784, 780]
+    assert process_1_1[:10] == [788, 781, 785, 780, 787, 782, 789, 784, 783, 786]
     assert len(process_1_1) == 548
 
     dataset_2 = StreamingDataset(input_dir=str(tmpdir), shuffle=True, drop_last=drop_last)
@@ -172,7 +172,7 @@ def test_streaming_dataset_distributed_full_shuffle_odd(drop_last, tmpdir):
     dataset_2_iter = iter(dataset_2)
     assert len(dataset_2_iter) == 548 + int(not drop_last)
     process_2_1 = list(dataset_2_iter)
-    assert process_2_1[:10] == [939, 938, 252, 259, 257, 255, 258, 253, 250, 251]
+    assert process_2_1[:10] == [939, 938, 253, 259, 256, 258, 252, 255, 251, 257]
     assert len(process_2_1) == 548 + int(not drop_last)
     assert len([i for i in process_1_1 if i in process_2_1]) == 0
 
@@ -201,7 +201,7 @@ def test_streaming_dataset_distributed_full_shuffle_even(drop_last, tmpdir):
     dataset_iter = iter(dataset)
     assert len(dataset_iter) == 611
     process_1_1 = list(dataset_iter)
-    assert process_1_1[:10] == [185, 184, 182, 189, 187, 181, 183, 180, 186, 188]
+    assert process_1_1[:10] == [188, 181, 185, 180, 187, 182, 189, 184, 183, 186]
     assert len(process_1_1) == 611
 
     dataset_2 = StreamingDataset(input_dir=str(tmpdir), shuffle=True, drop_last=drop_last)
@@ -212,9 +212,8 @@ def test_streaming_dataset_distributed_full_shuffle_even(drop_last, tmpdir):
     dataset_2_iter = iter(dataset_2)
     assert len(dataset_2_iter) == 611
     process_2_1 = list(dataset_2_iter)
-    assert process_2_1[:10] == [813, 815, 816, 812, 818, 811, 817, 814, 819, 277]
+    assert process_2_1[:10] == [818, 812, 816, 811, 819, 813, 815, 814, 817, 273]
     assert len(process_2_1) == 611
-
     assert len([i for i in process_1_1 if i in process_2_1]) == 0
 
 
@@ -530,7 +529,7 @@ def test_s3_streaming_dataset():
     assert dataset.input_dir.path is None
 
 
-def test_resumable_dataset(tmpdir):
+def test_resumable_dataset_single_worker(tmpdir):
     seed_everything(42)
 
     block_size = 20
