@@ -404,9 +404,10 @@ def _load_state_dict_from_checkpoint_dir(checkpoint_dir: str) -> Dict[str, Any]:
     for worker_idx in os.listdir(checkpoint_dir):
         checkpoint_filepath = os.path.join(checkpoint_dir, str(worker_idx), "checkpoint.json")
         if not os.path.exists(checkpoint_filepath):
-            continue
-        with open(checkpoint_filepath) as f:
-            state_dict[worker_idx] = json.load(f)
+            state_dict[worker_idx] = {}
+        else:
+            with open(checkpoint_filepath) as f:
+                state_dict[worker_idx] = json.load(f)
     return state_dict
 
 
