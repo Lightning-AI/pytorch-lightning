@@ -19,7 +19,7 @@ from lightning_utilities import apply_to_collection
 from torch import Tensor
 from torch.nn import Module
 from torch.optim import LBFGS, Optimizer
-from typing_extensions import get_args
+from typing_extensions import get_args, override
 
 import lightning.pytorch as pl
 from lightning.fabric.plugins.precision.deepspeed import _PRECISION_INPUT
@@ -69,22 +69,27 @@ class DeepSpeedPrecision(Precision):
         }
         self._desired_dtype = precision_to_type[self.precision]
 
+    @override
     def convert_module(self, module: Module) -> Module:
         if "true" in self.precision:
             return module.to(dtype=self._desired_dtype)
         return module
 
+    @override
     def convert_input(self, data: Any) -> Any:
         return apply_to_collection(data, function=_convert_fp_tensor, dtype=Tensor, dst_type=self._desired_dtype)
 
+    @override
     def tensor_init_context(self) -> ContextManager:
         if "true" not in self.precision:
             return nullcontext()
         return _DtypeContextManager(self._desired_dtype)
 
+    @override
     def module_init_context(self) -> ContextManager:
         return self.tensor_init_context()
 
+    @override
     def backward(  # type: ignore[override]
         self,
         tensor: Tensor,
@@ -111,6 +116,7 @@ class DeepSpeedPrecision(Precision):
         deepspeed_engine: "deepspeed.DeepSpeedEngine" = model.trainer.model
         deepspeed_engine.backward(tensor, *args, **kwargs)
 
+    @override
     def optimizer_step(  # type: ignore[override]
         self,
         optimizer: Steppable,
@@ -132,6 +138,7 @@ class DeepSpeedPrecision(Precision):
         deepspeed_engine: "deepspeed.DeepSpeedEngine" = model.trainer.model
         return deepspeed_engine.step(**kwargs)
 
+    @override
     def clip_gradients(
         self,
         optimizer: Optimizer,
