@@ -14,6 +14,7 @@
 import os
 from pathlib import Path
 
+import numpy as np
 import torch
 from lightning_utilities.core.imports import RequirementCache
 
@@ -51,5 +52,8 @@ _TORCH_DTYPES_MAPPING = {
     18: torch.long,
     19: torch.bool,
 }
+
+_NUMPY_SCTYPES = [v for values in np.sctypes.values() for v in values]
+_NUMPY_DTYPES_MAPPING = {i: np.dtype(v) for i, v in enumerate(_NUMPY_SCTYPES)}
 
 _TIME_FORMAT = "%Y-%m-%d_%H-%M-%S.%fZ"
