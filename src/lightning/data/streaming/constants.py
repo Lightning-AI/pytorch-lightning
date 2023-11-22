@@ -51,3 +51,5 @@ _TORCH_DTYPES_MAPPING = {
     18: torch.long,
     19: torch.bool,
 }
+
+_TIME_FORMAT = "%Y-%m-%d_%H-%M-%S.%fZ"
