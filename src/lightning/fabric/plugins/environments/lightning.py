@@ -58,7 +58,9 @@ class LightningEnvironment(ClusterEnvironment):
     @property
     def main_port(self) -> int:
         if self._main_port == -1:
-            self._main_port = int(os.environ.get("MASTER_PORT", find_free_network_port()))
+            self._main_port = (
+                int(os.environ["MASTER_PORT"]) if "MASTER_PORT" in os.environ else find_free_network_port()
+            )
         return self._main_port
 
     @staticmethod

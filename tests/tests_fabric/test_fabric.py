@@ -35,6 +35,7 @@ from lightning.fabric.strategies import (
 )
 from lightning.fabric.strategies.strategy import _Sharded
 from lightning.fabric.utilities.exceptions import MisconfigurationException
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_1
 from lightning.fabric.utilities.seed import pl_worker_init_function, seed_everything
 from lightning.fabric.utilities.warnings import PossibleUserWarning
 from lightning.fabric.wrappers import _BackwardTensor, _FabricDataLoader, _FabricModule, _FabricOptimizer
@@ -1213,7 +1214,7 @@ def test_verify_launch_called():
     fabric._validate_launched()
 
 
-@pytest.mark.skipif(sys.platform == "darwin", reason="https://github.com/pytorch/pytorch/issues/95708")
+@pytest.mark.skipif(sys.platform == "darwin" and not _TORCH_GREATER_EQUAL_2_1, reason="Fix for MacOS in PyTorch 2.1")
 @RunIf(dynamo=True)
 @pytest.mark.parametrize(
     "kwargs",
@@ -1239,7 +1240,7 @@ def test_fabric_with_torchdynamo_fullgraph(kwargs):
         a = x * 10
         return model(a)
 
-    fabric = Fabric(devices=1, **kwargs)
+    fabric = Fabric(devices=1, accelerator="cpu", **kwargs)
     model = MyModel()
     fmodel = fabric.setup(model)
     # we are compiling a function that calls model.forward() inside
