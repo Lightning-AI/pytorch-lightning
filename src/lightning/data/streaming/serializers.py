@@ -207,7 +207,7 @@ class NumpySerializer(Serializer):
         super().__init__()
         self._dtype_to_indice = {v: k for k, v in _NUMPY_DTYPES_MAPPING.items()}
 
-    def serialize(self, item: torch.Tensor) -> Tuple[bytes, Optional[str]]:
+    def serialize(self, item: np.ndarray) -> Tuple[bytes, Optional[str]]:
         dtype_indice = self._dtype_to_indice[item.dtype]
         data = [np.uint32(dtype_indice).tobytes()]
         data.append(np.uint32(len(item.shape)).tobytes())
@@ -216,7 +216,7 @@ class NumpySerializer(Serializer):
         data.append(item.tobytes(order="C"))
         return b"".join(data), None
 
-    def deserialize(self, data: bytes) -> torch.Tensor:
+    def deserialize(self, data: bytes) -> np.ndarray:
         dtype_indice = np.frombuffer(data[0:4], np.uint32).item()
         dtype = _NUMPY_DTYPES_MAPPING[dtype_indice]
         shape_size = np.frombuffer(data[4:8], np.uint32).item()
@@ -238,20 +238,20 @@ class NoHeaderNumpySerializer(Serializer):
     def __init__(self) -> None:
         super().__init__()
         self._dtype_to_indice = {v: k for k, v in _NUMPY_DTYPES_MAPPING.items()}
-        self._dtype: Optional[torch.dtype] = None
+        self._dtype: Optional[np.dtype] = None
 
     def setup(self, data_format: str) -> None:
         self._dtype = _NUMPY_DTYPES_MAPPING[int(data_format.split(":")[1])]
 
-    def serialize(self, item: torch.Tensor) -> Tuple[bytes, Optional[str]]:
-        dtype_indice = self._dtype_to_indice[item.dtype]
+    def serialize(self, item: np.ndarray) -> Tuple[bytes, Optional[str]]:
+        dtype_indice: int = self._dtype_to_indice[item.dtype]
         return item.tobytes(order="C"), f"no_header_numpy:{dtype_indice}"
 
-    def deserialize(self, data: bytes) -> torch.Tensor:
+    def deserialize(self, data: bytes) -> np.ndarray:
         assert self._dtype
         return np.frombuffer(data, dtype=self._dtype)
 
-    def can_serialize(self, item: torch.Tensor) -> bool:
+    def can_serialize(self, item: np.ndarray) -> bool:
         return isinstance(item, np.ndarray) and type(item) == np.ndarray and len(item.shape) == 1
 
 
