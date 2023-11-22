@@ -13,7 +13,6 @@
 
 import logging
 import os
-import uuid
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Tuple, Union
 
@@ -94,7 +93,10 @@ class Cache:
         )
         self._is_done = False
         self._distributed_env = _DistributedEnv.detect()
-        self._resume_id = uuid.uuid4()
+
+    @property
+    def rank(self) -> int:
+        return self._reader.rank
 
     @property
     def filled(self) -> bool:
@@ -106,7 +108,7 @@ class Cache:
 
     @property
     def resume_folder(self) -> str:
-        resume_folder = os.path.join(self._cache_dir, self._resume_id)
+        resume_folder = os.path.join(self._cache_dir, "checkpoints", str(self._reader.rank))
         if not os.path.exists(resume_folder):
             os.makedirs(resume_folder, exist_ok=True)
         return resume_folder

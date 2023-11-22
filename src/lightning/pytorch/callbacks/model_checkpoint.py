@@ -34,7 +34,7 @@ import yaml
 from torch import Tensor
 
 import lightning.pytorch as pl
-from lightning.fabric.utilities.cloud_io import _is_dir, get_filesystem
+from lightning.fabric.utilities.cloud_io import _is_dir, _is_local_file_protocol, get_filesystem
 from lightning.fabric.utilities.types import _PATH
 from lightning.pytorch.callbacks import Checkpoint
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
@@ -457,7 +457,7 @@ class ModelCheckpoint(Checkpoint):
     def __init_ckpt_dir(self, dirpath: Optional[_PATH], filename: Optional[str]) -> None:
         self._fs = get_filesystem(dirpath if dirpath else "")
 
-        if dirpath and self._fs.protocol == "file":
+        if dirpath and _is_local_file_protocol(dirpath if dirpath else ""):
             dirpath = os.path.realpath(dirpath)
 
         self.dirpath = dirpath
@@ -626,12 +626,13 @@ class ModelCheckpoint(Checkpoint):
     def _find_last_checkpoints(self, trainer: "pl.Trainer") -> Set[str]:
         # find all checkpoints in the folder
         ckpt_path = self.__resolve_ckpt_dir(trainer)
+        last_pattern = rf"^{self.CHECKPOINT_NAME_LAST}(-(\d+))?"
+
+        def _is_last(path: Path) -> bool:
+            return path.suffix == self.FILE_EXTENSION and bool(re.match(last_pattern, path.stem))
+
         if self._fs.exists(ckpt_path):
-            return {
-                os.path.normpath(p)
-                for p in self._fs.ls(ckpt_path, detail=False)
-                if self.CHECKPOINT_NAME_LAST in os.path.split(p)[1]
-            }
+            return {os.path.normpath(p) for p in self._fs.ls(ckpt_path, detail=False) if _is_last(Path(p))}
         return set()
 
     def __warn_if_dir_not_empty(self, dirpath: _PATH) -> None:
@@ -675,7 +676,7 @@ class ModelCheckpoint(Checkpoint):
 
         # set the last model path before saving because it will be part of the state.
         previous, self.last_model_path = self.last_model_path, filepath
-        if self._fs.protocol == "file" and self._last_checkpoint_saved and self.save_top_k != 0:
+        if _is_local_file_protocol(filepath) and self._last_checkpoint_saved and self.save_top_k != 0:
             self._link_checkpoint(trainer, self._last_checkpoint_saved, filepath)
         else:
             self._save_checkpoint(trainer, filepath)
@@ -771,7 +772,7 @@ class ModelCheckpoint(Checkpoint):
         """
         if previous == current:
             return False
-        if self._fs.protocol != "file":
+        if not _is_local_file_protocol(previous):
             return True
         previous = Path(previous).absolute()
         resume_path = Path(trainer.ckpt_path).absolute() if trainer.ckpt_path is not None else None

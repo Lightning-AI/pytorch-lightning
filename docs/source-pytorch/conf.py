@@ -380,6 +380,7 @@ nitpick_ignore = [
     ("py:class", "lightning.fabric.loggers.logger._DummyExperiment"),
     ("py:class", "lightning.fabric.plugins.precision.transformer_engine.TransformerEnginePrecision"),
     ("py:class", "lightning.fabric.plugins.precision.bitsandbytes.BitsandbytesPrecision"),
+    ("py:class", "lightning.fabric.utilities.data.AttributeDict"),
     ("py:class", "lightning.fabric.utilities.device_dtype_mixin._DeviceDtypeModuleMixin"),
     ("py:func", "lightning.fabric.utilities.seed.seed_everything"),
     ("py:class", "lightning.fabric.utilities.types.LRScheduler"),

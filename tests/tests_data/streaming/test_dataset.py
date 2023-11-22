@@ -13,6 +13,7 @@
 
 import os
 import sys
+from time import sleep
 from unittest import mock
 
 import numpy as np
@@ -53,17 +54,6 @@ def test_streaming_dataset(tmpdir, monkeypatch):
     assert len(dataloader) == 12
     dataloader = DataLoader(dataset, num_workers=2, batch_size=2)
     assert len(dataloader) == 6
-
-
-@mock.patch.dict(os.environ, {"LIGHTNING_CLUSTER_ID": "123", "LIGHTNING_CLOUD_PROJECT_ID": "456"})
-@mock.patch("lightning.data.streaming.dataset.os.makedirs")
-@pytest.mark.skipif(condition=sys.platform == "win32", reason="Not supported on windows")
-def test_create_cache_dir_in_lightning_cloud(makedirs_mock):
-    # Locally, we can't actually write to the root filesystem with user privileges, so we need to mock the call
-    dataset = StreamingDataset("dummy")
-    with pytest.raises(FileNotFoundError, match="/0` doesn't exist"):
-        iter(dataset)
-    makedirs_mock.assert_called()
 
 
 @pytest.mark.parametrize("drop_last", [False, True])
@@ -307,7 +297,7 @@ def test_dataset_cache_recreation(tmpdir):
 
 def test_try_create_cache_dir():
     with mock.patch.dict(os.environ, {}, clear=True):
-        assert _try_create_cache_dir("any") is None
+        assert os.path.join("chunks", "100b8cad7cf2a56f6df78f171f97a1ec", "0") in _try_create_cache_dir("any")
 
     # the cache dir creating at /cache requires root privileges, so we need to mock `os.makedirs()`
     with (
@@ -493,9 +483,6 @@ def test_dataset_for_text_tokens_distributed_num_workers_end_to_end(tmpdir, monk
     monkeypatch.setenv("DATA_OPTIMIZER_CACHE_FOLDER", cache_dir)
     monkeypatch.setenv("DATA_OPTIMIZER_DATA_CACHE_FOLDER", cache_dir)
 
-    def fn(item):
-        return torch.arange(item[0], item[0] + 20).to(torch.int)
-
     functions.optimize(
         optimize_fn, inputs, output_dir=str(tmpdir), num_workers=2, chunk_size=2, reorder_files=False, num_downloaders=1
     )
@@ -536,10 +523,17 @@ def test_dataset_for_text_tokens_distributed_num_workers_end_to_end(tmpdir, monk
         assert [batch[0][0].item(), batch[1][0].item()] == expected[batch_idx]
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason="Not tested on windows and MacOs")
+def test_s3_streaming_dataset():
+    dataset = StreamingDataset(input_dir="s3://pl-flash-data/optimized_tiny_imagenet")
+    assert dataset.input_dir.url == "s3://pl-flash-data/optimized_tiny_imagenet"
+    assert dataset.input_dir.path is None
+
+
 def test_resumable_dataset(tmpdir):
     seed_everything(42)
 
-    block_size = 10
+    block_size = 20
     cache = Cache(input_dir=str(tmpdir), chunk_size=40, item_loader=TokensLoader(block_size))
 
     counter = 0
@@ -555,12 +549,49 @@ def test_resumable_dataset(tmpdir):
 
     dataset = StreamingDataset(input_dir=str(tmpdir), item_loader=TokensLoader(block_size), shuffle=False)
 
-    dataloader = DataLoader(dataset, num_workers=2, batch_size=2)
+    assert dataset.state_dict() == {}
+
+    dataloader = DataLoader(dataset, num_workers=1, batch_size=2, prefetch_factor=1)
 
     dataloader_iter = iter(dataloader)
 
-    batch_0 = next(dataloader_iter)
+    _ = next(dataloader_iter)
+    state_dict_0 = dataset.state_dict()
 
-    batch_1 = next(dataloader_iter)
+    sleep(0.1)
+
+    assert state_dict_0["0"]["chunk_index"] == 0
+    assert state_dict_0["0"]["index"] == 0
+
+    checkpoint_dir = os.path.join(tmpdir, "checkpoints")
+    assert os.listdir(checkpoint_dir) == ["0"]
+    _ = next(dataloader_iter)
+
+    sleep(0.1)
+
+    state_dict_1 = dataset.state_dict()
+    assert state_dict_1["0"]["chunk_index"] == 2
+    assert state_dict_1["0"]["index"] == 0
 
     batch_2 = next(dataloader_iter)
+
+    sleep(0.1)
+
+    state_dict_2 = dataset.state_dict()
+    assert state_dict_2["0"]["chunk_index"] == 3
+    assert state_dict_2["0"]["index"] == 0
+
+    dataset = StreamingDataset(input_dir=str(tmpdir), item_loader=TokensLoader(block_size), shuffle=False)
+    dataset.load_state_dict(state_dict_1)
+    dataloader = DataLoader(dataset, num_workers=1, batch_size=2, prefetch_factor=1)
+
+    dataloader_iter = iter(dataloader)
+    batch_0_restart = next(dataloader_iter)
+
+    sleep(0.1)
+
+    state_dict_2 = dataset.state_dict()
+    assert state_dict_2["0"]["chunk_index"] == 3
+    assert state_dict_2["0"]["index"] == 0
+
+    assert torch.equal(batch_2, batch_0_restart)
