@@ -668,11 +668,11 @@ def test_dataset_valid_state(tmpdir):
     ):
         dataset._validate_state_dict()
 
-    state_dict["0"]["input_dir_path"] = "toto"
+    state_dict["0"]["num_workers"] = "8"
     dataset.load_state_dict(state_dict)
     with pytest.raises(
         ValueError,
-        match=f"The provided `input_dir` path state doesn't match the current one. Found `{tmpdir}` instead of `toto`.",  # noqa E501
+        match=f"The provided `num_workers` state doesn't match the current one. Found `1` instead of `8`.",  # noqa E501
     ):
         dataset._validate_state_dict()
 

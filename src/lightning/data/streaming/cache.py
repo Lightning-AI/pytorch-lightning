@@ -115,10 +115,10 @@ class Cache:
 
     @property
     def checkpoint_rank_dir(self) -> str:
-        checkpoint_dir = os.path.join(self._cache_dir, "checkpoints", str(self.rank))
-        if not os.path.exists(checkpoint_dir):
-            os.makedirs(checkpoint_dir, exist_ok=True)
-        return checkpoint_dir
+        checkpoint_rank_dir = os.path.join(self.checkpoint_dir, str(self.rank))
+        if not os.path.exists(checkpoint_rank_dir):
+            os.makedirs(checkpoint_rank_dir, exist_ok=True)
+        return checkpoint_rank_dir
 
     def __setitem__(self, index: int, data: Any) -> None:
         """Store an item in the writer."""
