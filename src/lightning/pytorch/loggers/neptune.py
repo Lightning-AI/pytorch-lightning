@@ -19,6 +19,7 @@ import contextlib
 import logging
 import os
 from argparse import Namespace
+from pathlib import Path
 from typing import TYPE_CHECKING, Any, Dict, Generator, List, Optional, Set, Union
 
 from lightning_utilities.core.imports import RequirementCache
@@ -557,12 +558,12 @@ class NeptuneLogger(Logger):
     def _get_full_model_name(model_path: str, checkpoint_callback: Checkpoint) -> str:
         """Returns model name which is string `model_path` appended to `checkpoint_callback.dirpath`."""
         if hasattr(checkpoint_callback, "dirpath"):
-            model_path = os.path.normpath(model_path)
-            expected_model_path = os.path.normpath(checkpoint_callback.dirpath)
-            if not model_path.startswith(expected_model_path):
+            model_path = Path(model_path)
+            expected_model_path = Path(checkpoint_callback.dirpath)
+            if not str(model_path).startswith(str(expected_model_path)):
                 raise ValueError(f"{model_path} was expected to start with {expected_model_path}.")
             # Remove extension from filepath
-            filepath, _ = os.path.splitext(model_path[len(expected_model_path) + 1 :])
+            filepath, _ = os.path.splitext(str(model_path)[len(str(expected_model_path)) + 1 :])
             return filepath
         return model_path
 
