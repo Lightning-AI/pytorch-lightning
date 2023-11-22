@@ -399,8 +399,12 @@ def _string_to_datetime(item: str) -> datetime:
 
 def _load_state_dict_from_checkpoint_dir(checkpoint_dir: str) -> Dict:
     state_dict = {}
+    if not os.path.exists(checkpoint_dir):
+        return state_dict
     for worker_idx in os.listdir(checkpoint_dir):
-        checkpoint_filepath = get_checkpoint_filepath(checkpoint_dir, worker_idx)
+        checkpoint_filepath = os.path.join(checkpoint_dir, str(worker_idx), "checkpoint.json")
+        if not os.path.exists(checkpoint_filepath):
+            continue
         with open(checkpoint_filepath) as f:
             state_dict[worker_idx] = json.load(f)
     return state_dict
@@ -422,10 +426,6 @@ def _collect_distributed_state_dict(state_dict: Dict[str, Any], world_size: int)
         state_dict_out.update(**state)
         node_ranks.append(node_rank)
     return state_dict_out
-
-
-def get_checkpoint_filepath(checkpoint_dir: str, worker_idx: int) -> str:
-    return os.path.join(checkpoint_dir, str(worker_idx), "checkpoint.json")
 
 
 def is_in_dataloader_worker() -> bool:
