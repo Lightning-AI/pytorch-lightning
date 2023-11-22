@@ -28,7 +28,6 @@ class Shuffle(ABC):
         self.cache = cache
         self.seed = seed
         self.drop_last = drop_last
-        self.random_state = None
 
     @lru_cache(maxsize=10)
     def get_len(self, distributed_env: _DistributedEnv, current_epoch: int) -> int:
@@ -48,7 +47,7 @@ class Shuffle(ABC):
         pass
 
     @abstractmethod
-    def __call__(self, array: np.ndarray) -> List[int]:
+    def __call__(self, array: np.ndarray, current_epoch: int, chunk_index: int) -> List[int]:
         pass
 
 
@@ -68,7 +67,7 @@ class NoShuffle(Shuffle):
 
         return chunks_per_ranks, intervals_per_ranks
 
-    def __call__(self, array: np.ndarray) -> List[int]:
+    def __call__(self, array: np.ndarray, current_epoch: int, chunk_index: int) -> List[int]:
         return array.tolist()
 
 
@@ -92,14 +91,12 @@ class FullShuffle(Shuffle):
 
     @lru_cache(maxsize=10)
     def get_chunks_and_intervals_per_ranks(self, distributed_env: _DistributedEnv, current_epoch: int) -> Any:
-        self.random_state = np.random.RandomState(seed=self.seed + current_epoch)  # type: ignore
-
         # 1. Get the intervals
         chunk_intervals = self.cache.get_chunk_intervals()
 
         # 2. Shuffle them
         indexes = range(len(chunk_intervals))
-        shuffled_indexes = self.random_state.permutation(indexes)
+        shuffled_indexes = np.random.RandomState(seed=self.seed + current_epoch).permutation(indexes)
         shuffled_chunk_intervals = np.asarray(chunk_intervals)[shuffled_indexes]
 
         # 3. Compute the items budget of each rank
@@ -147,6 +144,5 @@ class FullShuffle(Shuffle):
 
         return chunks_per_ranks, intervals_per_ranks
 
-    def __call__(self, array: np.ndarray) -> List[int]:
-        assert self.random_state
-        return self.random_state.permutation(array).tolist()
+    def __call__(self, array: np.ndarray, current_epoch: int, chunk_index: int) -> List[int]:
+        return np.random.RandomState(seed=self.seed + current_epoch + chunk_index).permutation(array).tolist()
