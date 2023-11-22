@@ -15,6 +15,7 @@ import hashlib
 import json
 import os
 import shutil
+import sys
 from copy import deepcopy
 from dataclasses import dataclass
 from datetime import datetime
@@ -243,6 +244,10 @@ class StreamingDataset(IterableDataset):
         return data
 
     def checkpoint(self, chunk_index: int) -> None:
+        # Checkpointing isn't supported for windows
+        if sys.platform == "win32":
+            return
+
         assert self.cache
         assert self.worker_env
 
