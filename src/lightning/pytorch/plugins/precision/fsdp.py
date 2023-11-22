@@ -134,14 +134,14 @@ class FSDPPrecision(Precision):
     def convert_output(self, data: Any) -> Any:
         return apply_to_collection(data, function=_convert_fp_tensor, dtype=Tensor, dst_type=torch.get_default_dtype())
 
-    @override  # type: ignore[override]
-    def pre_backward(self, tensor: Tensor, module: "pl.LightningModule") -> Tensor:
+    @override
+    def pre_backward(self, tensor: Tensor, module: "pl.LightningModule") -> Tensor:  # type: ignore[override]
         if self.scaler is not None:
             tensor = self.scaler.scale(tensor)  # type: ignore[assignment]
         return super().pre_backward(tensor, module)
 
-    @override  # type: ignore[override]
-    def optimizer_step(
+    @override
+    def optimizer_step(  # type: ignore[override]
         self,
         optimizer: Optimizable,
         model: "pl.LightningModule",

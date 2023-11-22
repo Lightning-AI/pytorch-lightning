@@ -58,14 +58,14 @@ class MixedPrecision(Precision):
         self.device = device
         self.scaler = scaler
 
-    @override  # type: ignore[override]
-    def pre_backward(self, tensor: Tensor, module: "pl.LightningModule") -> Tensor:
+    @override
+    def pre_backward(self, tensor: Tensor, module: "pl.LightningModule") -> Tensor:  # type: ignore[override]
         if self.scaler is not None:
             tensor = self.scaler.scale(tensor)
         return super().pre_backward(tensor, module)
 
-    @override  # type: ignore[override]
-    def optimizer_step(
+    @override
+    def optimizer_step(  # type: ignore[override]
         self,
         optimizer: Optimizable,
         model: "pl.LightningModule",

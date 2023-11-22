@@ -42,15 +42,15 @@ class Precision(FabricPrecision, CheckpointHooks):
         """Connects this plugin to the accelerator and the training process."""
         return model, optimizers, lr_schedulers
 
-    @override  # type: ignore[override]
-    def pre_backward(self, tensor: Tensor, module: "pl.LightningModule") -> Tensor:
+    @override
+    def pre_backward(self, tensor: Tensor, module: "pl.LightningModule") -> Tensor:  # type: ignore[override]
         trainer = module.trainer
         call._call_callback_hooks(trainer, "on_before_backward", tensor)
         call._call_lightning_module_hook(trainer, "on_before_backward", tensor)
         return tensor
 
-    @override  # type: ignore[override]
-    def backward(
+    @override
+    def backward(  # type: ignore[override]
         self,
         tensor: Tensor,
         model: "pl.LightningModule",
@@ -71,8 +71,8 @@ class Precision(FabricPrecision, CheckpointHooks):
         """
         model.backward(tensor, *args, **kwargs)
 
-    @override  # type: ignore[override]
-    def post_backward(self, tensor: Tensor, module: "pl.LightningModule") -> Tensor:
+    @override
+    def post_backward(self, tensor: Tensor, module: "pl.LightningModule") -> Tensor:  # type: ignore[override]
         # once backward has been applied, release graph
         closure_loss = tensor.detach()
         trainer = module.trainer
@@ -109,8 +109,8 @@ class Precision(FabricPrecision, CheckpointHooks):
         self._after_closure(model, optimizer)
         return closure_result
 
-    @override  # type: ignore[override]
-    def optimizer_step(
+    @override
+    def optimizer_step(  # type: ignore[override]
         self,
         optimizer: Steppable,
         model: "pl.LightningModule",
