@@ -13,17 +13,20 @@
 
 import os
 import pickle
+import tempfile
 from abc import ABC, abstractmethod
 from collections import OrderedDict
-from io import BytesIO
-from typing import Any, Optional, Tuple, Union
+from typing import Any, Dict, Optional, Tuple, Union
 
 import numpy as np
 import torch
 from lightning_utilities.core.imports import RequirementCache
 
+from lightning.data.streaming.constants import _TORCH_DTYPES_MAPPING
+
 _PIL_AVAILABLE = RequirementCache("PIL")
 _TORCH_VISION_AVAILABLE = RequirementCache("torchvision")
+_AV_AVAILABLE = RequirementCache("av")
 
 if _PIL_AVAILABLE:
     from PIL import Image
@@ -34,6 +37,7 @@ else:
 
 if _TORCH_VISION_AVAILABLE:
     from torchvision.io import decode_jpeg
+    from torchvision.transforms.functional import pil_to_tensor
 
 
 class Serializer(ABC):
@@ -55,6 +59,9 @@ class Serializer(ABC):
     def can_serialize(self, data: Any) -> bool:
         pass
 
+    def setup(self, metadata: Any) -> None:
+        pass
+
 
 class PILSerializer(Serializer):
     """The PILSerializer serialize and deserialize PIL Image to and from bytes."""
@@ -66,7 +73,8 @@ class PILSerializer(Serializer):
         ints = np.array([width, height, len(mode)], np.uint32)
         return ints.tobytes() + mode + raw, None
 
-    def deserialize(self, data: bytes) -> Any:
+    @classmethod
+    def deserialize(cls, data: bytes) -> Any:
         idx = 3 * 4
         width, height, mode_size = np.frombuffer(data[:idx], np.uint32)
         idx2 = idx + mode_size
@@ -108,10 +116,16 @@ class JPEGSerializer(Serializer):
     def deserialize(self, data: bytes) -> Union[JpegImageFile, torch.Tensor]:
         if _TORCH_VISION_AVAILABLE:
             array = torch.frombuffer(data, dtype=torch.uint8)
-            return decode_jpeg(array)
+            try:
+                return decode_jpeg(array)
+            except RuntimeError:
+                # Note: Some datasets like Imagenet contains some PNG images with JPEG extension, so we fallback to PIL
+                pass
 
-        inp = BytesIO(data)
-        return Image.open(inp)
+        img = PILSerializer.deserialize(data)
+        if _TORCH_VISION_AVAILABLE:
+            img = pil_to_tensor(img)
+        return img
 
     def can_serialize(self, item: Any) -> bool:
         return isinstance(item, JpegImageFile)
@@ -130,30 +144,6 @@ class BytesSerializer(Serializer):
         return isinstance(item, bytes)
 
 
-_TORCH_DTYPES_MAPPING = {
-    0: torch.float32,
-    1: torch.float,
-    2: torch.float64,
-    3: torch.double,
-    4: torch.complex64,
-    5: torch.cfloat,
-    6: torch.complex128,
-    7: torch.cdouble,
-    8: torch.float16,
-    9: torch.half,
-    10: torch.bfloat16,  # Not supported https://github.com/pytorch/pytorch/issues/110285
-    11: torch.uint8,
-    12: torch.int8,
-    13: torch.int16,
-    14: torch.short,
-    15: torch.int32,
-    16: torch.int,
-    17: torch.int64,
-    18: torch.long,
-    19: torch.bool,
-}
-
-
 class TensorSerializer(Serializer):
     """The TensorSerializer serialize and deserialize tensor to and from bytes."""
 
@@ -167,7 +157,7 @@ class TensorSerializer(Serializer):
         data.append(np.uint32(len(item.shape)).tobytes())
         for dim in item.shape:
             data.append(np.uint32(dim).tobytes())
-        data.append(item.numpy().tobytes())
+        data.append(item.numpy().tobytes(order="C"))
         return b"".join(data), None
 
     def deserialize(self, data: bytes) -> torch.Tensor:
@@ -178,10 +168,36 @@ class TensorSerializer(Serializer):
         for shape_idx in range(shape_size):
             shape.append(np.frombuffer(data[8 + 4 * shape_idx : 8 + 4 * (shape_idx + 1)], np.uint32).item())
         tensor = torch.frombuffer(data[8 + 4 * (shape_idx + 1) : len(data)], dtype=dtype)
-        return torch.reshape(tensor, torch.Size(shape))
+        shape = torch.Size(shape)
+        if tensor.shape == shape:
+            return tensor
+        return torch.reshape(tensor, shape)
 
     def can_serialize(self, item: torch.Tensor) -> bool:
-        return isinstance(item, torch.Tensor) and type(item) == torch.Tensor
+        return isinstance(item, torch.Tensor) and type(item) == torch.Tensor and len(item.shape) > 1
+
+
+class NoHeaderTensorSerializer(Serializer):
+    """The TensorSerializer serialize and deserialize tensor to and from bytes."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self._dtype_to_indice = {v: k for k, v in _TORCH_DTYPES_MAPPING.items()}
+        self._dtype: Optional[torch.dtype] = None
+
+    def setup(self, data_format: str) -> None:
+        self._dtype = _TORCH_DTYPES_MAPPING[int(data_format.split(":")[1])]
+
+    def serialize(self, item: torch.Tensor) -> Tuple[bytes, Optional[str]]:
+        dtype_indice = self._dtype_to_indice[item.dtype]
+        return item.numpy().tobytes(order="C"), f"no_header_tensor:{dtype_indice}"
+
+    def deserialize(self, data: bytes) -> torch.Tensor:
+        assert self._dtype
+        return torch.frombuffer(data, dtype=self._dtype)
+
+    def can_serialize(self, item: torch.Tensor) -> bool:
+        return isinstance(item, torch.Tensor) and type(item) == torch.Tensor and len(item.shape) == 1
 
 
 class PickleSerializer(Serializer):
@@ -210,14 +226,54 @@ class FileSerializer(Serializer):
         return isinstance(data, str) and os.path.exists(data)
 
 
+class VideoSerializer(Serializer):
+    _EXTENSIONS = ("mp4", "ogv", "mjpeg", "avi", "mov", "h264", "mpg", "webm", "wmv", "wav")
+
+    def serialize(self, filepath: str) -> Tuple[bytes, Optional[str]]:
+        _, file_extension = os.path.splitext(filepath)
+        with open(filepath, "rb") as f:
+            return f.read(), file_extension.replace(".", "").lower()
+
+    def deserialize(self, data: bytes) -> Any:
+        if not _TORCH_VISION_AVAILABLE:
+            raise ModuleNotFoundError("torchvision is required. Run `pip install torchvision`")
+
+        if not _AV_AVAILABLE:
+            raise ModuleNotFoundError("av is required. Run `pip install av`")
+
+        # Add support for a better deserialization mechanism for videos
+        # TODO: Investigate https://pytorch.org/audio/main/generated/torchaudio.io.StreamReader.html
+        import torchvision.io
+
+        with tempfile.TemporaryDirectory() as dirname:
+            fname = os.path.join(dirname, "file.mp4")
+            with open(fname, "wb") as stream:
+                stream.write(data)
+            return torchvision.io.read_video(fname, pts_unit="sec")
+
+    def can_serialize(self, data: Any) -> bool:
+        return isinstance(data, str) and os.path.exists(data) and any(data.endswith(ext) for ext in self._EXTENSIONS)
+
+
 _SERIALIZERS = OrderedDict(
     **{
+        "video": VideoSerializer(),
         "file": FileSerializer(),
         "pil": PILSerializer(),
         "int": IntSerializer(),
         "jpeg": JPEGSerializer(),
         "bytes": BytesSerializer(),
+        "no_header_tensor": NoHeaderTensorSerializer(),
         "tensor": TensorSerializer(),
         "pickle": PickleSerializer(),
     }
 )
+
+
+def _get_serializers(serializers: Optional[Dict[str, Serializer]]) -> Dict[str, Serializer]:
+    if serializers:
+        serializers = OrderedDict(**serializers)
+        serializers.update(_SERIALIZERS)
+    else:
+        serializers = _SERIALIZERS
+    return serializers

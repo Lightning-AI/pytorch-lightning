@@ -24,6 +24,7 @@ from typing import TYPE_CHECKING, Any, Dict, Generator, List, Mapping, Optional,
 import torch
 from torch.nn import Module
 from torch.optim import Optimizer
+from typing_extensions import override
 
 import lightning.pytorch as pl
 from lightning.fabric.plugins import ClusterEnvironment
@@ -39,7 +40,7 @@ from lightning.fabric.utilities.seed import reset_seed
 from lightning.fabric.utilities.types import _PATH, LRScheduler, ReduceLROnPlateau
 from lightning.pytorch.accelerators.cuda import CUDAAccelerator
 from lightning.pytorch.core.optimizer import _init_optimizers_and_lr_schedulers
-from lightning.pytorch.plugins.precision import PrecisionPlugin
+from lightning.pytorch.plugins.precision import Precision
 from lightning.pytorch.strategies.ddp import DDPStrategy
 from lightning.pytorch.trainer.states import TrainerFn
 from lightning.pytorch.utilities import GradClipAlgorithmType
@@ -114,7 +115,7 @@ class DeepSpeedStrategy(DDPStrategy):
         contiguous_memory_optimization: bool = False,
         synchronize_checkpoint_boundary: bool = False,
         load_full_weights: bool = False,
-        precision_plugin: Optional[PrecisionPlugin] = None,
+        precision_plugin: Optional[Precision] = None,
         process_group_backend: Optional[str] = None,
     ) -> None:
         """Provides capabilities to run training using the DeepSpeed library, with training optimizations for large
@@ -326,6 +327,7 @@ class DeepSpeedStrategy(DDPStrategy):
         assert isinstance(config, dict) or config is None
         return config
 
+    @override
     def setup_distributed(self) -> None:
         if not isinstance(self.accelerator, CUDAAccelerator):
             raise RuntimeError(
@@ -341,6 +343,7 @@ class DeepSpeedStrategy(DDPStrategy):
             self._format_config()
             self._config_initialized = True
 
+    @override
     def setup(self, trainer: "pl.Trainer") -> None:
         assert self.accelerator is not None
         self.accelerator.setup(trainer)
@@ -377,9 +380,11 @@ class DeepSpeedStrategy(DDPStrategy):
         os.environ["LOCAL_RANK"] = str(self.local_rank)
 
     @property
+    @override
     def restore_checkpoint_after_setup(self) -> bool:
         return True
 
+    @override
     def _setup_model_and_optimizers(
         self, model: Module, optimizers: List[Optimizer]
     ) -> Tuple["deepspeed.DeepSpeedEngine", List[Optimizer]]:
@@ -503,6 +508,7 @@ class DeepSpeedStrategy(DDPStrategy):
         self.model = model
 
     @contextmanager
+    @override
     def tensor_init_context(self, empty_init: Optional[bool] = None) -> Generator[None, None, None]:
         if self.zero_stage_3:
             if empty_init is False:
@@ -515,6 +521,7 @@ class DeepSpeedStrategy(DDPStrategy):
             yield
 
     @contextmanager
+    @override
     def model_sharded_context(self) -> Generator[None, None, None]:
         import deepspeed
 
@@ -572,9 +579,11 @@ class DeepSpeedStrategy(DDPStrategy):
         self.model = model
 
     @property
+    @override
     def distributed_sampler_kwargs(self) -> Dict[str, int]:
         return {"num_replicas": self.world_size, "rank": self.global_rank}
 
+    @override
     def setup_optimizers(self, trainer: "pl.Trainer") -> None:
         """Creates optimizers and schedulers.
 
@@ -592,6 +601,7 @@ class DeepSpeedStrategy(DDPStrategy):
         self.lr_scheduler_configs = []
 
     @property
+    @override
     def handles_gradient_accumulation(self) -> bool:
         """Whether the strategy handles gradient accumulation internally."""
         return True
@@ -732,6 +742,7 @@ class DeepSpeedStrategy(DDPStrategy):
     def _multi_device(self) -> bool:
         return self.num_processes > 1 or self.num_nodes > 1
 
+    @override
     def save_checkpoint(self, checkpoint: Dict, filepath: _PATH, storage_options: Optional[Any] = None) -> None:
         """Save model/training states as a checkpoint file through state-dump and file-write.
 
@@ -768,6 +779,7 @@ class DeepSpeedStrategy(DDPStrategy):
         checkpoint = {k: v for k, v in checkpoint.items() if k not in _exclude_keys}
         self.deepspeed_engine.save_checkpoint(filepath, client_state=checkpoint, tag="checkpoint")
 
+    @override
     def load_checkpoint(self, checkpoint_path: _PATH) -> Dict[str, Any]:
         if self.load_full_weights and self.zero_stage_3:
             # Broadcast to ensure we load from the rank 0 checkpoint
@@ -795,6 +807,7 @@ class DeepSpeedStrategy(DDPStrategy):
         return client_state
 
     @property
+    @override
     def lightning_restore_optimizer(self) -> bool:
         assert self.lightning_module is not None
         # managed by DeepSpeed
@@ -806,6 +819,7 @@ class DeepSpeedStrategy(DDPStrategy):
             )
         return False
 
+    @override
     def load_model_state_dict(self, checkpoint: Mapping[str, Any]) -> None:
         # override to do nothing, deepspeed engine already loaded the weights in `load_checkpoint()`
         if self.load_full_weights and self.zero_stage_3:
@@ -859,11 +873,13 @@ class DeepSpeedStrategy(DDPStrategy):
 
         load(self.lightning_module, prefix="")
 
+    @override
     def load_optimizer_state_dict(self, checkpoint: Mapping[str, Any]) -> None:
         # Override to do nothing, the deepspeed engine already loaded the states in `load_checkpoint()`
         pass
 
     @classmethod
+    @override
     def register_strategies(cls, strategy_registry: _StrategyRegistry) -> None:
         strategy_registry.register("deepspeed", cls, description="Default DeepSpeed Strategy")
         strategy_registry.register("deepspeed_stage_1", cls, description="DeepSpeed with ZeRO Stage 1 enabled", stage=1)

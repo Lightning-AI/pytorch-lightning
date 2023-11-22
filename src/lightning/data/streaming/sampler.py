@@ -25,6 +25,7 @@ class ChunkedIndex:
     index: int
     chunk_index: int
     chunk_indexes: Optional[List[int]] = None
+    last_index: bool = False
 
 
 class CacheBatchSampler:
@@ -146,13 +147,13 @@ class CacheBatchSampler:
         yield from self.__iter_indices_per_workers__(worker_indices_batches)
 
     def __iter_from_chunks_non_distributed__(self) -> Iterator[List[Union[int, ChunkedIndex]]]:
-        chunk_intervals = self._cache.get_chunk_interval()
+        chunk_intervals = self._cache.get_chunk_intervals()
         shuffled_indexes = np.random.permutation(range(len(chunk_intervals)))
         shuffled_chunk_intervals = np.asarray(chunk_intervals)[shuffled_indexes]
         yield from self.__iter_from_shuffled_chunks(shuffled_indexes.tolist(), shuffled_chunk_intervals)
 
     def __iter_from_chunks_distributed__(self) -> Iterator[List[Union[int, ChunkedIndex]]]:
-        chunk_intervals = self._cache.get_chunk_interval()
+        chunk_intervals = self._cache.get_chunk_intervals()
         shuffled_indexes = np.random.permutation(range(len(chunk_intervals)))
         shuffled_chunk_intervals = np.asarray(chunk_intervals)[shuffled_indexes]
 

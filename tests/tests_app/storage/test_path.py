@@ -2,6 +2,7 @@ import json
 import os
 import pathlib
 import pickle
+import sys
 from re import escape
 from time import sleep
 from unittest import TestCase, mock
@@ -376,6 +377,7 @@ class SourceToDestFlow(LightningFlow):
             self.stop()
 
 
+@pytest.mark.skipif(sys.platform == "win32" or sys.platform == "darwin", reason="too slow on Windows or macOs")
 def test_multiprocess_path_in_work_and_flow(tmpdir):
     root = SourceToDestFlow(tmpdir)
     app = LightningApp(root, log_level="debug")

@@ -13,26 +13,22 @@
 
 import json
 import os
+import warnings
 from dataclasses import dataclass
 from time import sleep
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
+import torch
 
-from lightning.data.datasets.env import _DistributedEnv, _WorkerEnv
 from lightning.data.streaming.compression import _COMPRESSORS, Compressor
 from lightning.data.streaming.constants import _INDEX_FILENAME, _TORCH_GREATER_EQUAL_2_1_0
-from lightning.data.streaming.serializers import _SERIALIZERS, Serializer
+from lightning.data.streaming.serializers import Serializer, _get_serializers
+from lightning.data.utilities.env import _DistributedEnv, _WorkerEnv
+from lightning.data.utilities.format import _convert_bytes_to_int, _human_readable_bytes
 
 if _TORCH_GREATER_EQUAL_2_1_0:
     from torch.utils._pytree import PyTree, tree_flatten, treespec_dumps
-
-
-def _get_data_optimizer_node_rank() -> Optional[int]:
-    node_rank = os.getenv("DATA_OPTIMIZER_NODE_RANK", None)
-    if node_rank is not None:
-        return int(node_rank)
-    return node_rank
 
 
 @dataclass
@@ -40,6 +36,7 @@ class Item:
     index: int
     data: bytes
     bytes: int
+    dim: Optional[int] = None
 
     def __len__(self) -> int:
         return self.bytes
@@ -50,8 +47,10 @@ class BinaryWriter:
         self,
         cache_dir: str,
         chunk_size: Optional[int] = None,
-        chunk_bytes: Optional[int] = None,
+        chunk_bytes: Optional[Union[int, str]] = None,
         compression: Optional[str] = None,
+        follow_tensor_dimension: bool = True,
+        serializers: Optional[Dict[str, Serializer]] = None,
     ):
         """The BinaryWriter enables to chunk dataset into an efficient streaming format for cloud training.
 
@@ -60,19 +59,20 @@ class BinaryWriter:
             chunk_bytes: The maximum number of bytes within a chunk.
             chunk_size: The maximum number of items within a chunk.
             compression: The compression algorithm to use.
+            serializers: Provide your own serializers.
 
         """
         self._cache_dir = cache_dir
 
-        if not os.path.exists(self._cache_dir):
+        if (isinstance(self._cache_dir, str) and not os.path.exists(self._cache_dir)) or self._cache_dir is None:
             raise FileNotFoundError(f"The provided cache directory `{self._cache_dir}` doesn't exist.")
 
         if (chunk_size is None and chunk_bytes is None) or (chunk_size and chunk_bytes):
             raise ValueError("Either one of the `chunk_size` or the `chunk_bytes` need to be provided.")
 
-        self._serializers: Dict[str, Serializer] = _SERIALIZERS
+        self._serializers: Dict[str, Serializer] = _get_serializers(serializers)
         self._chunk_size = chunk_size
-        self._chunk_bytes = chunk_bytes
+        self._chunk_bytes = _convert_bytes_to_int(chunk_bytes) if isinstance(chunk_bytes, str) else chunk_bytes
         self._compression = compression
 
         self._data_format: Optional[List[str]] = None
@@ -96,6 +96,7 @@ class BinaryWriter:
         self._rank: Optional[int] = None
         self._is_done = False
         self._distributed_env = _DistributedEnv.detect()
+        self._follow_tensor_dimension = follow_tensor_dimension
 
     @property
     def filled(self) -> bool:
@@ -135,11 +136,13 @@ class BinaryWriter:
         }
         return out
 
-    def serialize(self, items: Any) -> bytes:
+    def serialize(self, items: Any) -> Tuple[bytes, Optional[int]]:
         """Serialize a dictionary into its binary format."""
 
         # Flatten the items provided by the users
         flattened, data_spec = tree_flatten(items)
+
+        is_single_tensor = len(flattened) == 1 and isinstance(flattened[0], torch.Tensor)
 
         # Collect the sizes and associated bytes for each item
         sizes: List[int] = []
@@ -151,8 +154,8 @@ class BinaryWriter:
 
         if self._data_format is None:
             self._data_format = data_format
-        elif self._data_format != data_format:
-            raise Exception(
+        elif self._data_format != data_format and self._should_raise(data_format, self._data_format):
+            raise ValueError(
                 f"The data format changed between items. Found {data_format} instead of {self._data_format}."
             )
 
@@ -161,10 +164,14 @@ class BinaryWriter:
         elif self._data_spec != data_spec:
             raise Exception(f"The data format changed between items. Found {data_spec} instead of {self._data_spec}.")
 
+        # If there is a single element and it is a tensor, enable continous array.
+        if is_single_tensor:
+            return data[0], flattened[0].shape[0]
+
         # Concatenante into a single byte array
         head = np.array(sizes, np.uint32).tobytes()
         body = b"".join(data)
-        return head + body
+        return head + body, None
 
     def _serialize(self, item: Any, sizes: List[int], data: List[bytes]) -> str:
         """Serialize a given item and append its size and bytes to the sizes and data array."""
@@ -178,41 +185,55 @@ class BinaryWriter:
 
     def _create_chunk(self, filename: str, on_done: bool = False) -> bytes:
         """Create a binary chunk from all the binarized items."""
+        items = []
+
         if on_done:
             indices = sorted(self._serialized_items.keys())
             for i in range(len(indices) - 1):
                 assert indices[i] == indices[i + 1] - 1, indices
-            min_index = indices[0]
-            max_index = indices[-1] + 1
-            num_items = np.uint32(max_index - min_index)
             items = [self._serialized_items.pop(index) for index in indices]
         else:
             assert self._max_index is not None, (self._max_index, self._min_index)
             assert self._min_index is not None, (self._max_index, self._min_index)
-            num_items = np.uint32(self._max_index - self._min_index)
-            items = [self._serialized_items.pop(index) for index in range(self._min_index, self._max_index)]
-            min_index = self._min_index
-            max_index = self._max_index
+            if self._max_index == self._min_index:
+                # A single item is larger than the target chunk size; allow the chunk to be bigger than the target size
+                items.append(self._serialized_items.pop(self._max_index))
+            items.extend(self._serialized_items.pop(index) for index in range(self._min_index, self._max_index))
+
+        if len(items) == 0:
+            raise RuntimeError(
+                "The items shouldn't have an empty length. Something went wrong."
+                f" Found {self._pretty_serialized_items()} with boundaries: {self._min_index}, {self._max_index}."
+            )
+
+        num_items = np.uint32(len(items))
         sizes = list(map(len, items))
         offsets = np.array([0] + sizes).cumsum().astype(np.uint32)
         offsets += len(num_items.tobytes()) + len(offsets.tobytes())
         sample_data = b"".join([item.data for item in items])
         data = num_items.tobytes() + offsets.tobytes() + sample_data
-        offsets = offsets.tolist()
 
         current_chunk_bytes = sum([item.bytes for item in items])
 
-        if self._chunk_bytes:
-            assert current_chunk_bytes <= self._chunk_bytes
+        if self._chunk_bytes and current_chunk_bytes > self._chunk_bytes:
+            warnings.warn(
+                f"An item was larger than the target chunk size ({_human_readable_bytes(self._chunk_bytes)})."
+                f" The current chunk will be {_human_readable_bytes(current_chunk_bytes)} in size.",
+                UserWarning,
+            )
 
         if self._chunk_size:
             assert num_items.item() <= self._chunk_size
+
+        dim: Optional[int] = None
+        if items[0].dim:
+            dim = sum([item.dim if item.dim is not None else 0 for item in items])
 
         chunk_info = {
             "chunk_bytes": current_chunk_bytes,
             "chunk_size": num_items.item(),
             "filename": filename,
-            "interval": [min_index, max_index],
+            "dim": dim,
         }
 
         self._chunks_info.append(chunk_info)
@@ -244,11 +265,15 @@ class BinaryWriter:
     def add_item(self, index: int, items: Any) -> Optional[str]:
         # Track the minimum index provided to the writer
         # Serialize the items and store an Item object.
-        data = self.serialize(items)
+        if index in self._serialized_items:
+            raise ValueError(f"The provided index {index} already exists in the cache.")
+
+        data, dim = self.serialize(items)
         self._serialized_items[index] = Item(
             index=index,
             data=data,
             bytes=len(data),
+            dim=dim,
         )
 
         if self._should_write():
@@ -259,6 +284,7 @@ class BinaryWriter:
             return filepath
 
     def _should_write(self) -> bool:
+        # TODO: Misleading method name, it modifies `self._min_index` and `self._max_index`!
         if not self._serialized_items:
             return False
         indexes = list(self._serialized_items.keys())
@@ -269,7 +295,7 @@ class BinaryWriter:
             item = self._serialized_items.get(index, None)
             if item:
                 num_bytes += item.bytes
-                num_items += 1
+                num_items += item.dim if item.dim else 1
                 index += 1
                 if (self._chunk_bytes and self._chunk_bytes < num_bytes) or (
                     self._chunk_size and num_items > self._chunk_size
@@ -324,13 +350,12 @@ class BinaryWriter:
     def merge(self, num_workers: int = 1, node_rank: Optional[int] = None) -> None:
         """Once all the workers have written their own index, the merge function is responsible to read and merge them
         into a single index."""
-        node_rank: Optional[int] = node_rank if node_rank is not None else _get_data_optimizer_node_rank()
         num_workers = num_workers or 1
 
         # Only for non rank 0
         if self.rank != 0:
             while not os.path.exists(os.path.join(self._cache_dir, _INDEX_FILENAME)):
-                sleep(0.001)
+                sleep(0.01)
             return
 
         # Wait for all indexes to be available
@@ -345,12 +370,8 @@ class BinaryWriter:
             index_files = [f for f in files if f.endswith(_INDEX_FILENAME)]
 
             # When using the Data Optimizer, we don't use multi processes.
-            data_optimizer_num_workers = os.getenv("DATA_OPTIMIZER_NUM_WORKERS", None)
-            if data_optimizer_num_workers is not None:
-                is_done = len(index_files) == int(data_optimizer_num_workers)
-            else:
-                is_done = len(index_files) == self._distributed_env.world_size * num_workers
-            sleep(0.001)
+            is_done = len(index_files) == self._distributed_env.world_size * num_workers
+            sleep(0.01)
 
         self._merge_no_wait(node_rank=node_rank)
 
@@ -384,3 +405,26 @@ class BinaryWriter:
         else:
             with open(os.path.join(self._cache_dir, f"{node_rank}-{_INDEX_FILENAME}"), "w") as f:
                 json.dump({"chunks": chunks_info, "config": config}, f, sort_keys=True)
+
+    def _should_raise(self, data_format_1: List[str], data_format_2: List[str]) -> bool:
+        if len(data_format_1) != len(data_format_2):
+            return True
+
+        def is_non_valid(f1: str, f2: str) -> bool:
+            if f1 in ["pil", "jpeg"] and f2 in ["pil", "jpeg"]:
+                return False
+            return f1 != f2
+
+        return any(is_non_valid(f1, f2) for f1, f2 in zip(data_format_1, data_format_2))
+
+    def _pretty_serialized_items(self) -> Dict[int, Item]:
+        out = {}
+        for key, value in self._serialized_items.items():
+            # drop `data` as it would make logs unreadable.
+            out[key] = Item(
+                index=value.index,
+                bytes=value.bytes,
+                dim=value.dim,
+                data=b"",
+            )
+        return out

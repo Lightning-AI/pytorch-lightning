@@ -25,7 +25,7 @@ import lightning.pytorch as pl
 from lightning.fabric.plugins.precision.deepspeed import _PRECISION_INPUT
 from lightning.fabric.plugins.precision.utils import _convert_fp_tensor, _DtypeContextManager
 from lightning.fabric.utilities.types import Steppable
-from lightning.pytorch.plugins.precision.precision_plugin import PrecisionPlugin
+from lightning.pytorch.plugins.precision.precision import Precision
 from lightning.pytorch.utilities import GradClipAlgorithmType
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.model_helpers import is_overridden
@@ -37,7 +37,7 @@ if TYPE_CHECKING:
 warning_cache = WarningCache()
 
 
-class DeepSpeedPrecisionPlugin(PrecisionPlugin):
+class DeepSpeedPrecision(Precision):
     """Precision plugin for DeepSpeed integration.
 
     .. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.

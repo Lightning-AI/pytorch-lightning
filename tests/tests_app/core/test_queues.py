@@ -8,8 +8,15 @@ import pytest
 import requests_mock
 from lightning.app import LightningFlow
 from lightning.app.core import queues
-from lightning.app.core.constants import HTTP_QUEUE_URL
-from lightning.app.core.queues import READINESS_QUEUE_CONSTANT, BaseQueue, QueuingSystem, RedisQueue
+from lightning.app.core.constants import HTTP_QUEUE_URL, STATE_UPDATE_TIMEOUT
+from lightning.app.core.queues import (
+    READINESS_QUEUE_CONSTANT,
+    BaseQueue,
+    HTTPQueue,
+    QueuingSystem,
+    RateLimitedQueue,
+    RedisQueue,
+)
 from lightning.app.utilities.imports import _is_redis_available
 from lightning.app.utilities.redis import check_if_redis_running
 
@@ -162,7 +169,7 @@ def test_redis_raises_error_if_failing(redis_mock):
 
 class TestHTTPQueue:
     def test_http_queue_failure_on_queue_name(self):
-        test_queue = QueuingSystem.HTTP.get_queue(queue_name="test")
+        test_queue = HTTPQueue("test", STATE_UPDATE_TIMEOUT)
         with pytest.raises(ValueError, match="App ID couldn't be extracted"):
             test_queue.put("test")
 
@@ -174,7 +181,7 @@ class TestHTTPQueue:
 
     def test_http_queue_put(self, monkeypatch):
         monkeypatch.setattr(queues, "HTTP_QUEUE_TOKEN", "test-token")
-        test_queue = QueuingSystem.HTTP.get_queue(queue_name="test_http_queue")
+        test_queue = HTTPQueue("test_http_queue", STATE_UPDATE_TIMEOUT)
         test_obj = LightningFlow()
 
         # mocking requests and responses
@@ -200,8 +207,7 @@ class TestHTTPQueue:
 
     def test_http_queue_get(self, monkeypatch):
         monkeypatch.setattr(queues, "HTTP_QUEUE_TOKEN", "test-token")
-        test_queue = QueuingSystem.HTTP.get_queue(queue_name="test_http_queue")
-
+        test_queue = HTTPQueue("test_http_queue", STATE_UPDATE_TIMEOUT)
         adapter = requests_mock.Adapter()
         test_queue.client.session.mount("http://", adapter)
 
@@ -218,7 +224,7 @@ class TestHTTPQueue:
 def test_unreachable_queue(monkeypatch):
     monkeypatch.setattr(queues, "HTTP_QUEUE_TOKEN", "test-token")
 
-    test_queue = QueuingSystem.HTTP.get_queue(queue_name="test_http_queue")
+    test_queue = HTTPQueue("test_http_queue", STATE_UPDATE_TIMEOUT)
 
     resp1 = mock.MagicMock()
     resp1.status_code = 204
@@ -235,3 +241,25 @@ def test_unreachable_queue(monkeypatch):
     # Test backoff on queue.put
     test_queue.put("foo")
     assert test_queue.client.post.call_count == 3
+
+
+@mock.patch("lightning.app.core.queues.time.sleep")
+def test_rate_limited_queue(mock_sleep):
+    sleeps = []
+    mock_sleep.side_effect = lambda sleep_time: sleeps.append(sleep_time)
+
+    mock_queue = mock.MagicMock()
+
+    mock_queue.name = "inner_queue"
+    mock_queue.default_timeout = 10.0
+
+    rate_limited_queue = RateLimitedQueue(mock_queue, requests_per_second=1)
+
+    assert rate_limited_queue.name == "inner_queue"
+    assert rate_limited_queue.default_timeout == 10.0
+
+    timeout = time.perf_counter() + 1
+    while time.perf_counter() + sum(sleeps) < timeout:
+        rate_limited_queue.get()
+
+    assert mock_queue.get.call_count == 2

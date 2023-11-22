@@ -108,7 +108,7 @@ The LightningModule also has access to the Hyperparameters
 
 Initialize with other parameters
 ================================
-If you used the *self.save_hyperparameters()* method in the init of the LightningModule, you can initialize the model with different hyperparameters.
+If you used the *self.save_hyperparameters()* method in the *__init__* method of the LightningModule, you can override these and initialize the model with different hyperparameters.
 
 .. code-block:: python
 
@@ -121,6 +121,20 @@ If you used the *self.save_hyperparameters()* method in the init of the Lightnin
 
     # uses in_dim=128, out_dim=10
     model = LitModel.load_from_checkpoint(PATH, in_dim=128, out_dim=10)
+
+In some cases, we may also pass entire PyTorch modules to the ``__init__`` method, which you don't want to save as hyperparameters due to their large size. If you didn't call ``self.save_hyperparameters()`` or ignore parameters via ``save_hyperparameters(ignore=...)``, then you must pass the missing positional arguments or keyword arguments when calling ``load_from_checkpoint`` method:
+
+
+.. code-block:: python
+
+    class LitAutoencoder(L.LightningModule):
+        def __init__(self, encoder, decoder):
+            ...
+
+        ...
+
+
+    model = LitAutoEncoder.load_from_checkpoint(PATH, encoder=encoder, decoder=decoder)
 
 ----
 
@@ -146,7 +160,7 @@ For example, let's pretend we created a LightningModule like so:
         ...
 
 
-    class Autoencoder(pl.LightningModule):
+    class Autoencoder(L.LightningModule):
         def __init__(self, encoder, decoder, *args, **kwargs):
             ...
 

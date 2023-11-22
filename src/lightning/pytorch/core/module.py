@@ -42,7 +42,7 @@ from torch import ScriptModule, Tensor
 from torch.nn import Module
 from torch.optim.optimizer import Optimizer
 from torchmetrics import Metric, MetricCollection
-from typing_extensions import Self
+from typing_extensions import Self, override
 
 import lightning.fabric as lf
 import lightning.pytorch as pl
@@ -654,6 +654,7 @@ class LightningModule(
         data = convert_to_tensors(data, device=self.device)
         return apply_to_collection(data, Tensor, all_gather, group=group, sync_grads=sync_grads)
 
+    @override
     def forward(self, *args: Any, **kwargs: Any) -> Any:
         r"""Same as :meth:`torch.nn.Module.forward`.
 
@@ -1518,6 +1519,13 @@ class LightningModule(
             **class** to call it instead of the :class:`LightningModule` instance, or a
             ``TypeError`` will be raised.
 
+        Note:
+            To ensure all layers can be loaded from the checkpoint, this function will call
+            :meth:`~lightning.pytorch.core.hooks.ModelHooks.configure_model` directly after instantiating the
+            model if this hook is overridden in your LightningModule. However, note that ``load_from_checkpoint`` does
+            not support loading sharded checkpoints, and you may run out of memory if the model is too large. In this
+            case, consider loading through the Trainer via ``.fit(ckpt_path=...)``.
+
         Example::
 
             # load weights without mapping ...
@@ -1559,6 +1567,7 @@ class LightningModule(
         )
         return cast(Self, loaded)
 
+    @override
     def __getstate__(self) -> Dict[str, Any]:
         state = dict(self.__dict__)
         state["_trainer"] = None
