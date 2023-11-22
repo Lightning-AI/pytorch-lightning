@@ -37,6 +37,9 @@ class BaseItemLoader(ABC):
         self._chunks = chunks
         self._serializers = serializers
 
+    def state_dict(self) -> Dict:
+        return {}
+
     @abstractmethod
     def generate_intervals(self) -> List[Tuple[int, int]]:
         """Returns a list of tuple describing the indexes intervals of the chunks."""
@@ -114,6 +117,11 @@ class TokensLoader(BaseItemLoader):
         self._buffers: Dict[int, bytes] = {}
         self._dtype: Optional[torch.dtype] = None
         self._chunk_filepaths: Dict[str, bool] = {}
+
+    def state_dict(self) -> Dict:
+        return {
+            "block_size": self._block_size,
+        }
 
     def setup(self, config: Dict, chunks: List, serializers: Dict[str, Serializer]) -> None:
         super().setup(config, chunks, serializers)
