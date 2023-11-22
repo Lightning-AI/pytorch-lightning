@@ -550,7 +550,9 @@ def test_resumable_dataset_single_worker(tmpdir):
 
     assert len([f for f in os.listdir(tmpdir) if f.endswith(".bin")]) == 50
 
-    dataset = StreamingDataset(input_dir=str(tmpdir), item_loader=TokensLoader(block_size), shuffle=False)
+    dataset = StreamingDataset(input_dir=str(tmpdir), item_loader=TokensLoader(block_size), shuffle=True)
+
+    dataset.current_epoch = 1
 
     assert dataset.state_dict() == {}
 
@@ -584,7 +586,7 @@ def test_resumable_dataset_single_worker(tmpdir):
     assert state_dict_2["0"]["chunk_index"] == 3
     assert state_dict_2["0"]["index"] == 0
 
-    dataset = StreamingDataset(input_dir=str(tmpdir), item_loader=TokensLoader(block_size), shuffle=False)
+    dataset = StreamingDataset(input_dir=str(tmpdir), item_loader=TokensLoader(block_size), shuffle=True)
     dataset.load_state_dict(state_dict_1)
     dataloader = DataLoader(dataset, num_workers=1, batch_size=2, prefetch_factor=1)
 
@@ -673,6 +675,14 @@ def test_dataset_valid_state(tmpdir):
     with pytest.raises(
         ValueError,
         match=f"The provided `num_workers` state doesn't match the current one. Found `1` instead of `8`.",  # noqa E501
+    ):
+        dataset._validate_state_dict()
+
+    state_dict["0"]["shuffle"] = True
+    dataset.load_state_dict(state_dict)
+    with pytest.raises(
+        ValueError,
+        match=f"The provided `shuffle` state doesn't match the current one. Found `False` instead of `True`.",  # noqa E501
     ):
         dataset._validate_state_dict()
 

@@ -16,6 +16,7 @@ import json
 import os
 import shutil
 import sys
+import tempfile
 from copy import deepcopy
 from dataclasses import dataclass
 from datetime import datetime
@@ -143,6 +144,17 @@ class StreamingDataset(IterableDataset):
         self.cache = self._create_cache(worker_env=self.worker_env)
         self.shuffler = self._create_shuffler(self.cache)
 
+        # Handle restart
+        if self._state_dict:
+            self._validate_state_dict()
+            state = self._state_dict[str(self.cache.rank)]
+
+            # reload indexes
+            self.chunk_index = state["chunk_index"]
+            self.global_index = state["global_index"]
+            self.index = state["index"]
+            self.current_epoch = state["current_epoch"]
+
         chunks_per_replica, intervals_per_replica = self.shuffler.get_chunks_and_intervals_per_ranks(
             self.distributed_env, self.current_epoch
         )
@@ -160,14 +172,7 @@ class StreamingDataset(IterableDataset):
 
         # Handle restart
         if self._state_dict:
-            self._validate_state_dict()
             state = self._state_dict[str(self.cache.rank)]
-
-            # reload indexes
-            self.chunk_index = state["chunk_index"]
-            self.global_index = state["global_index"]
-            self.index = state["index"]
-            self.current_epoch = state["current_epoch"]
 
             # re-generate indexes
             interval = self.worker_intervals[self.chunk_index]
@@ -220,6 +225,7 @@ class StreamingDataset(IterableDataset):
 
             assert self.shuffler is not None
             self.current_indexes = self.shuffler(current_indexes, self.current_epoch, self.chunk_index)
+
             self.chunk_index += 1
 
         # Get the first index
@@ -254,36 +260,36 @@ class StreamingDataset(IterableDataset):
         assert self.cache
         assert self.worker_env
 
-        import tempfile
-
-        with tempfile.NamedTemporaryFile(mode="w+") as tmp:
-            # 1. Write the state to a tempfile
-            json.dump(
-                {
-                    "rank": self.cache._reader.rank,
-                    "current_epoch": self.current_epoch,
-                    "input_dir_path": self.input_dir.path,
-                    "input_dir_url": self.input_dir.url,
-                    "item_loader": self.item_loader.state_dict() if self.item_loader else None,
-                    "drop_last": self.drop_last,
-                    "seed": self.seed,
-                    "checkpoint_interval": self.checkpoint_interval,
-                    "chunk_index": chunk_index,
-                    "global_index": self.global_index,
-                    "index": self.index,
-                    "world_size": self.distributed_env.world_size,
-                    "num_workers": self.worker_env.world_size,
-                },
-                tmp,
-            )
-
-            # 2. Flush to make sure it is written
-            tmp.flush()
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp_checkpoint_path = os.path.join(tmpdir, "checkpoint.json")
+            with open(tmp_checkpoint_path, "w") as f:
+                # 1. Write the state to a tempfile
+                json.dump(
+                    {
+                        "rank": self.cache._reader.rank,
+                        "current_epoch": self.current_epoch,
+                        "input_dir_path": self.input_dir.path,
+                        "input_dir_url": self.input_dir.url,
+                        "item_loader": self.item_loader.state_dict() if self.item_loader else None,
+                        "drop_last": self.drop_last,
+                        "seed": self.seed,
+                        "checkpoint_interval": self.checkpoint_interval,
+                        "chunk_index": chunk_index,
+                        "global_index": self.global_index,
+                        "index": self.index,
+                        "world_size": self.distributed_env.world_size,
+                        "num_workers": self.worker_env.world_size,
+                        "shuffle": self.shuffle,
+                    },
+                    f,
+                )
 
             # 3. Move the file to avoid corrupted read from the main thread.
             now = datetime.now().strftime(_TIME_FORMAT)
             checkpoint_path = os.path.join(self.cache.checkpoint_rank_dir, f"checkpoint-{now}.json")
-            shutil.copyfile(tmp.name, checkpoint_path)
+
+            # 4. Move the file to its target position
+            shutil.move(tmp_checkpoint_path, checkpoint_path)
 
         self.last_time = time()
 
@@ -348,6 +354,12 @@ class StreamingDataset(IterableDataset):
             )
 
         state: Dict[str, Any] = self._state_dict[str(self.cache.rank)]
+
+        if state["shuffle"] != self.shuffle:
+            raise ValueError(
+                "The provided `shuffle` state doesn't match the current one. "
+                f"Found `{self.shuffle}` instead of `{state['shuffle']}`."
+            )
 
         if state["num_workers"] != self.worker_env.world_size:
             raise ValueError(
