@@ -331,6 +331,7 @@ class StreamingDataset(IterableDataset):
 
     def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
         if state_dict:
+            # the state is restored within the workers
             self._state_dict = state_dict
 
     def _validate_state_dict(self) -> None:
