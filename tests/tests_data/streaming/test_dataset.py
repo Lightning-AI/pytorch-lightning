@@ -11,8 +11,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import json
 import os
 import sys
+from datetime import datetime
 from time import sleep
 from unittest import mock
 
@@ -21,6 +23,7 @@ import pytest
 import torch
 from lightning import seed_everything
 from lightning.data.streaming import Cache, functions
+from lightning.data.streaming.constants import _TIME_FORMAT
 from lightning.data.streaming.dataset import StreamingDataset, _try_create_cache_dir
 from lightning.data.streaming.item_loader import TokensLoader
 from lightning.data.streaming.shuffle import FullShuffle, NoShuffle
@@ -594,3 +597,129 @@ def test_resumable_dataset_single_worker(tmpdir):
     assert state_dict_2["0"]["index"] == 0
 
     assert torch.equal(batch_2, batch_0_restart)
+
+
+def test_dataset_valid_state(tmpdir):
+    seed_everything(42)
+
+    block_size = 20
+    cache = Cache(input_dir=str(tmpdir), chunk_size=40, item_loader=TokensLoader(block_size))
+
+    counter = 0
+    for i in range(100):
+        text_ids = torch.arange(counter, counter + 20).to(torch.int)
+        cache[i] = text_ids
+        counter += 20
+
+    cache.done()
+    cache.merge()
+
+    dataset = StreamingDataset(input_dir=str(tmpdir), item_loader=TokensLoader(block_size), shuffle=False)
+    dataloader = DataLoader(dataset, num_workers=1, batch_size=2, prefetch_factor=1)
+    dataloader_iter = iter(dataloader)
+    next(dataloader_iter)
+
+    sleep(0.1)
+
+    state_dict = dataset.state_dict()
+
+    dataset.load_state_dict(state_dict)
+    dataset._validate_state_dict()
+
+    state_dict["0"]["drop_last"] = True
+    dataset.load_state_dict(state_dict)
+    with pytest.raises(
+        ValueError,
+        match="The provided `drop_last` state doesn't match the current one. Found `False` instead of `True`.",  # noqa E501
+    ):
+        dataset._validate_state_dict()
+
+    state_dict["0"]["item_loader"] = {}
+    dataset.load_state_dict(state_dict)
+    with pytest.raises(
+        ValueError,
+        match="The provided `item_loader` state doesn't match the current one. Found `{'block_size': 20}` instead of `{}`.",  # noqa E501
+    ):
+        dataset._validate_state_dict()
+
+    state_dict["0"]["seed"] = 12
+    dataset.load_state_dict(state_dict)
+    with pytest.raises(
+        ValueError,
+        match="The provided `seed` state doesn't match the current one. Found `42` instead of `12`.",  # noqa E501
+    ):
+        dataset._validate_state_dict()
+
+    state_dict["0"]["input_dir_url"] = "toto"
+    dataset.load_state_dict(state_dict)
+    with pytest.raises(
+        ValueError,
+        match="The provided `input_dir` URL state doesn't match the current one. Found `None` instead of `toto`.",  # noqa E501
+    ):
+        dataset._validate_state_dict()
+
+    state_dict["0"]["input_dir_path"] = "toto"
+    dataset.load_state_dict(state_dict)
+    with pytest.raises(
+        ValueError,
+        match=f"The provided `input_dir` path state doesn't match the current one. Found `{tmpdir}` instead of `toto`.",  # noqa E501
+    ):
+        dataset._validate_state_dict()
+
+    state_dict["0"]["input_dir_path"] = "toto"
+    dataset.load_state_dict(state_dict)
+    with pytest.raises(
+        ValueError,
+        match=f"The provided `input_dir` path state doesn't match the current one. Found `{tmpdir}` instead of `toto`.",  # noqa E501
+    ):
+        dataset._validate_state_dict()
+
+
+def test_resumable_dataset_distributed_state_dict(tmpdir):
+    seed_everything(42)
+
+    block_size = 20
+    cache = Cache(input_dir=str(tmpdir), chunk_size=40, item_loader=TokensLoader(block_size))
+
+    counter = 0
+    for i in range(100):
+        text_ids = torch.arange(counter, counter + 20).to(torch.int)
+        cache[i] = text_ids
+        counter += 20
+
+    cache.done()
+    cache.merge()
+
+    assert len([f for f in os.listdir(tmpdir) if f.endswith(".bin")]) == 50
+
+    dataset = StreamingDataset(input_dir=str(tmpdir), item_loader=TokensLoader(block_size), shuffle=False)
+    dataset.distributed_env = _DistributedEnv(world_size=16, global_rank=0)
+
+    # used to create the cache
+    iter(dataset)
+    os.makedirs(dataset.cache.checkpoint_dir, exist_ok=True)
+
+    for i in range(4):
+        now = datetime.now().strftime(_TIME_FORMAT)
+        checkpoint_rank_dir = os.path.join(dataset.cache.checkpoint_dir, str(i))
+        os.makedirs(checkpoint_rank_dir, exist_ok=True)
+        checkpoint_path = os.path.join(checkpoint_rank_dir, f"checkpoint-{now}.json")
+        with open(checkpoint_path, "w") as f:
+            json.dump({}, f)
+
+    torch_mock = mock.MagicMock()
+    torch_mock.cuda.device_count.return_value = 4
+
+    state_list = [{} for _ in range(4)]
+    for i in range(16):
+        state_list[i // 4].update({str(i): {}})
+
+    def broadcast_object_list(obj, *args, **kwargs):
+        obj[0] = state_list.pop(0)
+
+    torch_mock.distributed.broadcast_object_list = broadcast_object_list
+
+    with mock.patch("lightning.data.streaming.dataset.torch", torch_mock):
+        state_dict = dataset.state_dict()
+
+    assert len(state_dict) == 16

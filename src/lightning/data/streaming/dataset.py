@@ -15,12 +15,14 @@ import hashlib
 import json
 import os
 import shutil
+from copy import deepcopy
 from dataclasses import dataclass
 from datetime import datetime
 from time import time
 from typing import Any, Dict, List, Optional, Union
 
 import numpy as np
+import torch
 from torch.utils.data import IterableDataset
 
 from lightning.data.streaming import Cache
@@ -35,6 +37,7 @@ from lightning.data.streaming.sampler import ChunkedIndex
 from lightning.data.streaming.serializers import Serializer
 from lightning.data.streaming.shuffle import FullShuffle, NoShuffle, Shuffle
 from lightning.data.utilities.env import Environment, _DistributedEnv, _WorkerEnv
+from lightning.fabric.utilities.distributed import group as _group
 from lightning.fabric.utilities.types import _DictKey
 
 if _LIGHTNING_CLOUD_LATEST:
@@ -258,6 +261,8 @@ class StreamingDataset(IterableDataset):
                     "chunk_index": chunk_index,
                     "global_index": self.global_index,
                     "index": self.index,
+                    "world_size": self.distributed_env.world_size,
+                    "num_workers": self.worker_env.world_size,
                 },
                 tmp,
             )
@@ -267,7 +272,7 @@ class StreamingDataset(IterableDataset):
 
             # 3. Move the file to avoid corrupted read from the main thread.
             now = datetime.now().strftime(_TIME_FORMAT)
-            checkpoint_path = os.path.join(self.cache.checkpoint_dir, f"checkpoint-{now}.json")
+            checkpoint_path = os.path.join(self.cache.checkpoint_rank_dir, f"checkpoint-{now}.json")
             shutil.copyfile(tmp.name, checkpoint_path)
 
         self.last_time = time()
@@ -293,6 +298,23 @@ class StreamingDataset(IterableDataset):
                 checkpoint_path = os.path.join(self.cache.checkpoint_dir, str(worker_idx), checkpoints[-1])
                 with open(checkpoint_path) as f:
                     state_dict[worker_idx] = json.load(f)
+
+            _state_dict = deepcopy(state_dict)
+
+            if self.distributed_env.world_size > 1:
+                # TODO: Move this to fabric.
+                num_devices = torch.cuda.device_count() or 1
+                node_ranks = []
+                for index in range(self.distributed_env.world_size):
+                    node_rank = index // num_devices
+                    if node_rank in node_ranks:
+                        continue
+                    state = {}
+                    obj = [_state_dict]
+                    torch.distributed.broadcast_object_list(obj, node_rank, group=_group.WORLD)
+                    state = obj[0]
+                    state_dict.update(**state)
+                    node_ranks.append(node_rank)
         else:
             raise NotImplementedError("The `state_dict` should be called on the main thread.")
         return state_dict
@@ -306,39 +328,46 @@ class StreamingDataset(IterableDataset):
 
         if env.num_shards != len(self._state_dict):
             raise ValueError(
-                "The provided `state` doesn't match the number workers world size. "
-                f"Found {env.num_shards} instead of {len(self._state_dict)}."
+                "The provided `state` size doesn't match the number workers world size. "
+                f"Found `{env.num_shards}` instead of `{len(self._state_dict)}`."
             )
 
         state = self._state_dict[str(self.cache.rank)]
 
+        if state["num_workers"] != self.worker_env.world_size:
+            raise ValueError(
+                "The provided `num_workers` state doesn't match the current one. "
+                f"Found `{self.worker_env.world_size}` instead of `{state['num_workers']}`."
+            )
+
         if state["input_dir_path"] != self.input_dir.path:
             raise ValueError(
-                "The provided `input_dir` path doesn't match the current one. "
-                f"Found {self.input_dir.path} instead of {state['input_dir_path']}."
+                "The provided `input_dir` path state doesn't match the current one. "
+                f"Found `{self.input_dir.path}` instead of `{state['input_dir_path']}`."
             )
 
         if state["input_dir_url"] != self.input_dir.url:
             raise ValueError(
-                "The provided `input_dir` URL doesn't match the current one. "
-                f"Found {self.input_dir.url} instead of {state['input_dir_url']}."
+                "The provided `input_dir` URL state doesn't match the current one. "
+                f"Found `{self.input_dir.url}` instead of `{state['input_dir_url']}`."
             )
 
         if state["seed"] != self.seed:
             raise ValueError(
-                "The provided `seed` doesn't match the current one. " f"Found {self.seed} instead of {state['seed']}."
+                "The provided `seed` state doesn't match the current one. "
+                f"Found `{self.seed}` instead of `{state['seed']}`."
             )
 
         if self.item_loader and state["item_loader"] != self.item_loader.state_dict():
             raise ValueError(
                 "The provided `item_loader` state doesn't match the current one. "
-                f"Found {self.item_loader.state_dict()} instead of {state['item_loader']}."
+                f"Found `{self.item_loader.state_dict()}` instead of `{state['item_loader']}`."
             )
 
         if state["drop_last"] != self.drop_last:
             raise ValueError(
                 "The provided `drop_last` state doesn't match the current one. "
-                f"Found {self.drop_last} instead of {state['drop_last']}."
+                f"Found `{self.drop_last}` instead of `{state['drop_last']}`."
             )
 
 

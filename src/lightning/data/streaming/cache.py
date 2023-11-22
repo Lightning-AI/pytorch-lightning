@@ -108,6 +108,13 @@ class Cache:
 
     @property
     def checkpoint_dir(self) -> str:
+        checkpoint_dir = os.path.join(self._cache_dir, "checkpoints")
+        if not os.path.exists(checkpoint_dir):
+            os.makedirs(checkpoint_dir, exist_ok=True)
+        return checkpoint_dir
+
+    @property
+    def checkpoint_rank_dir(self) -> str:
         checkpoint_dir = os.path.join(self._cache_dir, "checkpoints", str(self.rank))
         if not os.path.exists(checkpoint_dir):
             os.makedirs(checkpoint_dir, exist_ok=True)
