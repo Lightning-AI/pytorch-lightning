@@ -565,7 +565,7 @@ class NeptuneLogger(Logger):
             # Remove extension from filepath
             filepath, _ = os.path.splitext(str(model_path)[len(str(expected_model_path)) + 1 :])
             return filepath
-        return model_path
+        return str(model_path)
 
     @classmethod
     def _get_full_model_names_from_exp_structure(cls, exp_structure: Dict[str, Any], namespace: str) -> Set[str]:
