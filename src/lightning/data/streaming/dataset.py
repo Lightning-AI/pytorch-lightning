@@ -264,8 +264,8 @@ class StreamingDataset(IterableDataset):
         if self.checkpoint_interval is None:
             return
 
-        if get_worker_info() is None:
-            raise RuntimeError("The method `_checkpoint` is meant to be called only within a DataLoader.")
+        if not is_in_dataloader_worker():
+            return
 
         assert self.cache
         assert self.worker_env
@@ -294,17 +294,13 @@ class StreamingDataset(IterableDataset):
                     f,
                 )
 
-            # 3. Move the file to avoid corrupted read from the main thread.
-            now = datetime.now().strftime(_TIME_FORMAT)
-            checkpoint_path = os.path.join(self.cache.checkpoint_rank_dir, f"checkpoint-{now}.json")
-
             # 4. Move the file to its target position
-            shutil.move(tmp_checkpoint_path, checkpoint_path)
+            shutil.move(tmp_checkpoint_path, os.path.join(self.cache.checkpoint_rank_dir, "checkpoint.json"))
 
         self.last_time = time()
 
     def state_dict(self) -> Dict[str, Any]:
-        if get_worker_info() is not None:
+        if is_in_dataloader_worker():
             raise RuntimeError("The method `state_dict` is meant to be called only outside a DataLoader workers.")
 
         if self.cache is None:
@@ -404,12 +400,8 @@ def _string_to_datetime(item: str) -> datetime:
 def _load_state_dict_from_checkpoint_dir(checkpoint_dir: str) -> Dict:
     state_dict = {}
     for worker_idx in os.listdir(checkpoint_dir):
-        checkpoints = os.listdir(os.path.join(checkpoint_dir, str(worker_idx)))
-        checkpoints = sorted(checkpoints, key=_string_to_datetime)
-
-        # Load the latest checkpoint for this worker
-        checkpoint_path = os.path.join(checkpoint_dir, str(worker_idx), checkpoints[-1])
-        with open(checkpoint_path) as f:
+        checkpoint_filepath = get_checkpoint_filepath(checkpoint_dir, worker_idx)
+        with open(checkpoint_filepath) as f:
             state_dict[worker_idx] = json.load(f)
     return state_dict
 
@@ -430,6 +422,14 @@ def _collect_distributed_state_dict(state_dict: Dict[str, Any], world_size: int)
         state_dict_out.update(**state)
         node_ranks.append(node_rank)
     return state_dict_out
+
+
+def get_checkpoint_filepath(checkpoint_dir: str, worker_idx: int) -> str:
+    return os.path.join(checkpoint_dir, str(worker_idx), "checkpoint.json")
+
+
+def is_in_dataloader_worker() -> bool:
+    return get_worker_info() is not None
 
 
 @dataclass

@@ -97,7 +97,7 @@ class Cache:
 
     @property
     def rank(self) -> int:
-        """Returns the rank of the writer."""
+        """Returns the rank of the Cache."""
         if self._rank is None:
             self._worker_env = _WorkerEnv.detect()
             self._rank = self._distributed_env.global_rank * self._worker_env.world_size + self._worker_env.rank
