@@ -563,8 +563,8 @@ class NeptuneLogger(Logger):
                 raise ValueError(f"{model_path} was expected to start with {expected_model_path}.")
             # Remove extension from filepath
             filepath, _ = os.path.splitext(model_path[len(expected_model_path) + 1 :])
-            return os.path.normpath(filepath)
-        return os.path.normpath(model_path)
+            return filepath.replace(os.sep, "/")
+        return model_path.replace(os.sep, "/")
 
     @classmethod
     def _get_full_model_names_from_exp_structure(cls, exp_structure: Dict[str, Any], namespace: str) -> Set[str]:
