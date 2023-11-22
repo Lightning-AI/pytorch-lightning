@@ -55,17 +55,6 @@ def test_streaming_dataset(tmpdir, monkeypatch):
     assert len(dataloader) == 6
 
 
-@mock.patch.dict(os.environ, {"LIGHTNING_CLUSTER_ID": "123", "LIGHTNING_CLOUD_PROJECT_ID": "456"})
-@mock.patch("lightning.data.streaming.dataset.os.makedirs")
-@pytest.mark.skipif(condition=sys.platform == "win32", reason="Not supported on windows")
-def test_create_cache_dir_in_lightning_cloud(makedirs_mock):
-    # Locally, we can't actually write to the root filesystem with user privileges, so we need to mock the call
-    dataset = StreamingDataset("dummy")
-    with pytest.raises(FileNotFoundError, match="/0` doesn't exist"):
-        iter(dataset)
-    makedirs_mock.assert_called()
-
-
 @pytest.mark.parametrize("drop_last", [False, True])
 def test_streaming_dataset_distributed_no_shuffle(drop_last, tmpdir):
     seed_everything(42)
@@ -307,7 +296,7 @@ def test_dataset_cache_recreation(tmpdir):
 
 def test_try_create_cache_dir():
     with mock.patch.dict(os.environ, {}, clear=True):
-        assert _try_create_cache_dir("any") is None
+        assert os.path.join("chunks", "100b8cad7cf2a56f6df78f171f97a1ec", "0") in _try_create_cache_dir("any")
 
     # the cache dir creating at /cache requires root privileges, so we need to mock `os.makedirs()`
     with (
@@ -493,9 +482,6 @@ def test_dataset_for_text_tokens_distributed_num_workers_end_to_end(tmpdir, monk
     monkeypatch.setenv("DATA_OPTIMIZER_CACHE_FOLDER", cache_dir)
     monkeypatch.setenv("DATA_OPTIMIZER_DATA_CACHE_FOLDER", cache_dir)
 
-    def fn(item):
-        return torch.arange(item[0], item[0] + 20).to(torch.int)
-
     functions.optimize(
         optimize_fn, inputs, output_dir=str(tmpdir), num_workers=2, chunk_size=2, reorder_files=False, num_downloaders=1
     )
@@ -534,3 +520,10 @@ def test_dataset_for_text_tokens_distributed_num_workers_end_to_end(tmpdir, monk
 
     for batch_idx, batch in enumerate(dataloader):
         assert [batch[0][0].item(), batch[1][0].item()] == expected[batch_idx]
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="Not tested on windows and MacOs")
+def test_s3_streaming_dataset():
+    dataset = StreamingDataset(input_dir="s3://pl-flash-data/optimized_tiny_imagenet")
+    assert dataset.input_dir.url == "s3://pl-flash-data/optimized_tiny_imagenet"
+    assert dataset.input_dir.path is None

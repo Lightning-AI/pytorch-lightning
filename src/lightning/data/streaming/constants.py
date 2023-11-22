@@ -11,12 +11,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
+from pathlib import Path
+
 import torch
 from lightning_utilities.core.imports import RequirementCache
 
 _INDEX_FILENAME = "index.json"
 _DEFAULT_CHUNK_BYTES = 1 << 26  # 64M B
 _DEFAULT_FAST_DEV_RUN_ITEMS = 10
+_DEFAULT_CACHE_DIR = os.path.join(Path.home(), ".lightning", "chunks")
 
 # This is required for full pytree serialization / deserialization support
 _TORCH_GREATER_EQUAL_2_1_0 = RequirementCache("torch>=2.1.0")
