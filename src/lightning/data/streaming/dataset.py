@@ -13,13 +13,14 @@
 
 import hashlib
 import os
+from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Union
 
 import numpy as np
 from torch.utils.data import IterableDataset
 
 from lightning.data.streaming import Cache
-from lightning.data.streaming.constants import _INDEX_FILENAME, _LIGHTNING_CLOUD_LATEST
+from lightning.data.streaming.constants import _DEFAULT_CACHE_DIR, _INDEX_FILENAME, _LIGHTNING_CLOUD_LATEST
 from lightning.data.streaming.item_loader import BaseItemLoader
 from lightning.data.streaming.sampler import ChunkedIndex
 from lightning.data.streaming.serializers import Serializer
@@ -27,7 +28,7 @@ from lightning.data.streaming.shuffle import FullShuffle, NoShuffle, Shuffle
 from lightning.data.utilities.env import Environment, _DistributedEnv, _WorkerEnv
 
 if _LIGHTNING_CLOUD_LATEST:
-    from lightning_cloud.resolver import _resolve_dir
+    from lightning_cloud.resolver import Dir, _resolve_dir
 
 
 class StreamingDataset(IterableDataset):
@@ -35,7 +36,7 @@ class StreamingDataset(IterableDataset):
 
     def __init__(
         self,
-        input_dir: str,
+        input_dir: Union[str, "RemoteDir"],
         item_loader: Optional[BaseItemLoader] = None,
         shuffle: bool = False,
         drop_last: bool = False,
@@ -57,6 +58,9 @@ class StreamingDataset(IterableDataset):
         super().__init__()
         if not isinstance(shuffle, bool):
             raise ValueError(f"Shuffle should be a boolean. Found {shuffle}")
+
+        if isinstance(input_dir, RemoteDir):
+            input_dir = Dir(path=input_dir.cache_dir, url=input_dir.remote)
 
         input_dir = _resolve_dir(input_dir)
 
@@ -84,9 +88,10 @@ class StreamingDataset(IterableDataset):
     def _create_cache(self, worker_env: _WorkerEnv) -> Cache:
         env = Environment(dist_env=self.distributed_env, worker_env=worker_env)
 
-        # TODO: Move this to lightning-cloud
-        if "this_" not in self.input_dir.path:
-            cache_path = _try_create_cache_dir(input_dir=self.input_dir.path, shard_rank=env.shard_rank)
+        if self.input_dir.path is None:
+            cache_path = _try_create_cache_dir(
+                input_dir=self.input_dir.path if self.input_dir.path else self.input_dir.url, shard_rank=env.shard_rank
+            )
             if cache_path is not None:
                 self.input_dir.path = cache_path
 
@@ -194,9 +199,19 @@ class StreamingDataset(IterableDataset):
 
 
 def _try_create_cache_dir(input_dir: str, shard_rank: int = 0) -> Optional[str]:
-    if "LIGHTNING_CLUSTER_ID" not in os.environ or "LIGHTNING_CLOUD_PROJECT_ID" not in os.environ:
-        return None
     hash_object = hashlib.md5(input_dir.encode())
+    if "LIGHTNING_CLUSTER_ID" not in os.environ or "LIGHTNING_CLOUD_PROJECT_ID" not in os.environ:
+        cache_dir = os.path.join(_DEFAULT_CACHE_DIR, hash_object.hexdigest(), str(shard_rank))
+        os.makedirs(cache_dir, exist_ok=True)
+        return cache_dir
     cache_dir = os.path.join("/cache", "chunks", hash_object.hexdigest(), str(shard_rank))
     os.makedirs(cache_dir, exist_ok=True)
     return cache_dir
+
+
+@dataclass
+class RemoteDir:
+    """Holds a remote URL to a directory and a cache directory where the data will be downloaded."""
+
+    cache_dir: str
+    remote: str
