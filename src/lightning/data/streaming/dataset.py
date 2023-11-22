@@ -260,6 +260,8 @@ class StreamingDataset(IterableDataset):
 
             now = datetime.now().strftime("%Y-%m-%d_%H-%M-%S.%fZ")
             checkpoint_path = os.path.join(self.cache.resume_folder, f"checkpoint-{now}.json")
+
+            # Should avoid corrupted read from the main thread.
             shutil.copyfile(tmp.name, checkpoint_path)
 
         self.last_time = time()
