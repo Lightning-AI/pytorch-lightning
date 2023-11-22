@@ -201,7 +201,7 @@ class NoHeaderTensorSerializer(Serializer):
 
 
 class NumpySerializer(Serializer):
-    """The TensorSerializer serialize and deserialize tensor to and from bytes."""
+    """The NumpySerializer serialize and deserialize numpy to and from bytes."""
 
     def __init__(self) -> None:
         super().__init__()

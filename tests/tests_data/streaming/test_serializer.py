@@ -47,6 +47,8 @@ def test_serializers():
         "int",
         "jpeg",
         "bytes",
+        "no_header_numpy",
+        "numpy",
         "no_header_tensor",
         "tensor",
         "pickle",
