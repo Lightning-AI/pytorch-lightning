@@ -21,6 +21,7 @@ from lightning.pytorch.utilities.types import EVAL_DATALOADERS, TRAIN_DATALOADER
 if TYPE_CHECKING:
     from lightning.pytorch.tuner.lr_finder import _LRFinder
 
+
 class Tuner:
     """Tuner class to tune your model."""
 
