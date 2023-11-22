@@ -15,8 +15,8 @@ import contextlib
 import logging
 import os
 import sys
-from io import StringIO
 import threading
+from io import StringIO
 from typing import List
 from unittest.mock import Mock
 
