@@ -22,7 +22,7 @@ import numpy as np
 import torch
 from lightning_utilities.core.imports import RequirementCache
 
-from lightning.data.streaming.constants import _TORCH_DTYPES_MAPPING
+from lightning.data.streaming.constants import _NUMPY_DTYPES_MAPPING, _TORCH_DTYPES_MAPPING
 
 _PIL_AVAILABLE = RequirementCache("PIL")
 _TORCH_VISION_AVAILABLE = RequirementCache("torchvision")
@@ -200,6 +200,61 @@ class NoHeaderTensorSerializer(Serializer):
         return isinstance(item, torch.Tensor) and type(item) == torch.Tensor and len(item.shape) == 1
 
 
+class NumpySerializer(Serializer):
+    """The NumpySerializer serialize and deserialize numpy to and from bytes."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self._dtype_to_indice = {v: k for k, v in _NUMPY_DTYPES_MAPPING.items()}
+
+    def serialize(self, item: np.ndarray) -> Tuple[bytes, Optional[str]]:
+        dtype_indice = self._dtype_to_indice[item.dtype]
+        data = [np.uint32(dtype_indice).tobytes()]
+        data.append(np.uint32(len(item.shape)).tobytes())
+        for dim in item.shape:
+            data.append(np.uint32(dim).tobytes())
+        data.append(item.tobytes(order="C"))
+        return b"".join(data), None
+
+    def deserialize(self, data: bytes) -> np.ndarray:
+        dtype_indice = np.frombuffer(data[0:4], np.uint32).item()
+        dtype = _NUMPY_DTYPES_MAPPING[dtype_indice]
+        shape_size = np.frombuffer(data[4:8], np.uint32).item()
+        shape = []
+        for shape_idx in range(shape_size):
+            shape.append(np.frombuffer(data[8 + 4 * shape_idx : 8 + 4 * (shape_idx + 1)], np.uint32).item())
+        tensor = np.frombuffer(data[8 + 4 * (shape_idx + 1) : len(data)], dtype=dtype)
+        if tensor.shape == shape:
+            return tensor
+        return np.reshape(tensor, shape)
+
+    def can_serialize(self, item: np.ndarray) -> bool:
+        return isinstance(item, np.ndarray) and type(item) == np.ndarray and len(item.shape) > 1
+
+
+class NoHeaderNumpySerializer(Serializer):
+    """The NoHeaderNumpySerializer serialize and deserialize numpy to and from bytes."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self._dtype_to_indice = {v: k for k, v in _NUMPY_DTYPES_MAPPING.items()}
+        self._dtype: Optional[np.dtype] = None
+
+    def setup(self, data_format: str) -> None:
+        self._dtype = _NUMPY_DTYPES_MAPPING[int(data_format.split(":")[1])]
+
+    def serialize(self, item: np.ndarray) -> Tuple[bytes, Optional[str]]:
+        dtype_indice: int = self._dtype_to_indice[item.dtype]
+        return item.tobytes(order="C"), f"no_header_numpy:{dtype_indice}"
+
+    def deserialize(self, data: bytes) -> np.ndarray:
+        assert self._dtype
+        return np.frombuffer(data, dtype=self._dtype)
+
+    def can_serialize(self, item: np.ndarray) -> bool:
+        return isinstance(item, np.ndarray) and type(item) == np.ndarray and len(item.shape) == 1
+
+
 class PickleSerializer(Serializer):
     """The PickleSerializer serialize and deserialize python objects to and from bytes."""
 
@@ -263,6 +318,8 @@ _SERIALIZERS = OrderedDict(
         "int": IntSerializer(),
         "jpeg": JPEGSerializer(),
         "bytes": BytesSerializer(),
+        "no_header_numpy": NoHeaderNumpySerializer(),
+        "numpy": NumpySerializer(),
         "no_header_tensor": NoHeaderTensorSerializer(),
         "tensor": TensorSerializer(),
         "pickle": PickleSerializer(),
