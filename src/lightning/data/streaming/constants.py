@@ -55,3 +55,5 @@ _TORCH_DTYPES_MAPPING = {
 
 _NUMPY_SCTYPES = [v for values in np.sctypes.values() for v in values]
 _NUMPY_DTYPES_MAPPING = {i: np.dtype(v) for i, v in enumerate(_NUMPY_SCTYPES)}
+
+_TIME_FORMAT = "%Y-%m-%d_%H-%M-%S.%fZ"
