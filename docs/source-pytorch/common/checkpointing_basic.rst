@@ -178,8 +178,8 @@ Once the autoencoder has trained, pull out the relevant weights for your torch n
 .. code-block:: python
 
     checkpoint = torch.load(CKPT_PATH)
-    encoder_weights = {k: v for k, v in checkpoint["state_dict"] if k.startswith("encoder.")}
-    decoder_weights = {k: v for k, v in checkpoint["state_dict"] if k.startswith("decoder.")}
+    encoder_weights = {k: v for k, v in checkpoint["state_dict"].items() if k.startswith("encoder.")}
+    decoder_weights = {k: v for k, v in checkpoint["state_dict"].items() if k.startswith("decoder.")}
 
 
 ----
