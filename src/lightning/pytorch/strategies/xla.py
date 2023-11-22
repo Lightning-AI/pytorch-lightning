@@ -70,9 +70,9 @@ class XLAStrategy(DDPStrategy):
         self._launched = False
         self._sync_module_states = sync_module_states
 
-    @property  # type: ignore[override]
+    @property
     @override
-    def checkpoint_io(self) -> Union[XLACheckpointIO, _WrappingCheckpointIO]:
+    def checkpoint_io(self) -> Union[XLACheckpointIO, _WrappingCheckpointIO]:  # type: ignore[override]
         plugin = self._checkpoint_io
         if plugin is not None:
             assert isinstance(plugin, (XLACheckpointIO, _WrappingCheckpointIO))
@@ -86,9 +86,9 @@ class XLAStrategy(DDPStrategy):
             raise TypeError(f"The XLA strategy can only work with the `XLACheckpointIO` plugin, found {io}")
         self._checkpoint_io = io
 
-    @property  # type: ignore[override]
+    @property
     @override
-    def precision_plugin(self) -> XLAPrecision:
+    def precision_plugin(self) -> XLAPrecision:  # type: ignore[override]
         plugin = self._precision_plugin
         if plugin is not None:
             assert isinstance(plugin, XLAPrecision)
