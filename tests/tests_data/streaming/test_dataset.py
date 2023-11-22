@@ -716,7 +716,8 @@ def test_resumable_dataset_distributed_state_dict(tmpdir):
     for i in range(16):
         state_list[i // 4].update({str(i): {}})
 
-    def broadcast_object_list(obj, *args, **kwargs):
+    def broadcast_object_list(obj, src, **kwargs):
+        assert src in [0, 4, 8, 12]
         obj[0] = state_list.pop(0)
 
     torch_mock.distributed.broadcast_object_list = broadcast_object_list

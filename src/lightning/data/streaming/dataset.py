@@ -321,7 +321,7 @@ class StreamingDataset(IterableDataset):
                         continue
                     state = {}
                     obj = [_state_dict]
-                    torch.distributed.broadcast_object_list(obj, node_rank, group=_group.WORLD)
+                    torch.distributed.broadcast_object_list(obj, index, group=_group.WORLD)
                     state = obj[0]
                     state_dict.update(**state)
                     node_ranks.append(node_rank)
