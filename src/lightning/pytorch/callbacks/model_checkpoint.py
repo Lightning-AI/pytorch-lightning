@@ -694,6 +694,11 @@ class ModelCheckpoint(Checkpoint):
     def _save_monitor_checkpoint(self, trainer: "pl.Trainer", monitor_candidates: Dict[str, Tensor]) -> None:
         assert self.monitor
         current = monitor_candidates.get(self.monitor)
+
+        # Ensure all ranks make decisions based on the same value
+        # Broadcasting is not needed normally, unless the user logged with `self.log(..., rank_zero_only=True)`
+        current = trainer.strategy.broadcast(current)
+
         if self.check_monitor_top_k(trainer, current):
             assert current is not None
             self._update_best_and_save(current, trainer, monitor_candidates)
