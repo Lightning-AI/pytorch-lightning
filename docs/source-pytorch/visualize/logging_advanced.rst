@@ -199,6 +199,7 @@ rank_zero_only
 **Default:** False
 
 Tells Lightning if you are calling ``self.log`` from every process (default) or only from rank 0.
+This is for advanced users who want to reduce their metric manually across processes, but still want to benefit from automatic logging via ``self.log``.
 
 - Set ``False`` (default) if you are calling ``self.log`` from every process.
 - Set ``True`` if you are calling ``self.log`` from rank 0 only. Caveat: you won't be able to access or specify this metric in callbacks (e.g. early stopping).
@@ -206,14 +207,14 @@ Tells Lightning if you are calling ``self.log`` from every process (default) or 
 .. code-block:: python
 
     # Default
-    self.log(rank_zero_only=False)
+    self.log(..., rank_zero_only=False)
 
     # If you call `self.log` on rank 0 only, you need to set ``rank_zero_only=True``
     if self.trainer.global_rank == 0:
-        self.log(rank_zero_only=True)
+        self.log(..., rank_zero_only=True)
 
     # DON'T do this, it will cause deadlocks!
-    self.log(rank_zero_only=True)
+    self.log(..., rank_zero_only=True)
 
 
 ----
