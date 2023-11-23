@@ -61,6 +61,7 @@ from lightning.pytorch.core.saving import _load_from_checkpoint
 from lightning.pytorch.loggers import Logger
 from lightning.pytorch.trainer import call
 from lightning.pytorch.trainer.connectors.logger_connector.fx_validator import _FxValidator
+from lightning.pytorch.trainer.connectors.logger_connector.result import _get_default_dtype
 from lightning.pytorch.utilities import GradClipAlgorithmType
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.imports import _TORCHMETRICS_GREATER_EQUAL_0_9_1
@@ -621,17 +622,11 @@ class LightningModule(
     def __check_allowed(v: Any, name: str, value: Any) -> None:
         raise ValueError(f"`self.log({name}, {value})` was called, but `{type(v).__name__}` values cannot be logged")
 
-    @staticmethod
-    def __get_default_high_precision_dtype() -> torch.dtype:
-        """The default dtype for new tensors, but no lower than float32."""
-        dtype = torch.get_default_dtype()
-        return dtype if dtype in (torch.float32, torch.float64) else torch.float32
-
     def __to_tensor(self, value: Union[Tensor, numbers.Number], name: str) -> Tensor:
         value = (
             value.clone().detach()
             if isinstance(value, Tensor)
-            else torch.tensor(value, device=self.device, dtype=self.__get_default_high_precision_dtype())
+            else torch.tensor(value, device=self.device, dtype=_get_default_dtype())
         )
         if not torch.numel(value) == 1:
             raise ValueError(
