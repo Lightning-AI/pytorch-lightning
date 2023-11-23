@@ -400,8 +400,7 @@ class LightningModule(
                 but for some data structures you might need to explicitly provide it.
             metric_attribute: To restore the metric state, Lightning requires the reference of the
                 :class:`torchmetrics.Metric` in your model. This is found automatically if it is a model attribute.
-            rank_zero_only: Whether the value will be logged only on rank 0. This will prevent synchronization which
-                would produce a deadlock as not all processes would perform this log call.
+            rank_zero_only: Set this to ``True`` only if you call `self.log` explicitly only from rank 0.
 
         """
         if self._fabric is not None:
@@ -563,8 +562,7 @@ class LightningModule(
                 each dataloader to not mix values.
             batch_size: Current batch size. This will be directly inferred from the loaded batch,
                 but some data structures might need to explicitly provide it.
-            rank_zero_only: Whether the value will be logged only on rank 0. This will prevent synchronization which
-                would produce a deadlock as not all processes would perform this log call.
+            rank_zero_only: Set this to ``True`` only if you call `self.log` explicitly only from rank 0.
 
         """
         if self._fabric is not None:
