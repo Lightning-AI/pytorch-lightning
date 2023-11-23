@@ -202,7 +202,7 @@ Tells Lightning if you are calling ``self.log`` from every process (default) or 
 This is for advanced users who want to reduce their metric manually across processes, but still want to benefit from automatic logging via ``self.log``.
 
 - Set ``False`` (default) if you are calling ``self.log`` from every process.
-- Set ``True`` if you are calling ``self.log`` from rank 0 only. Caveat: you won't be able to access or specify this metric in callbacks (e.g. early stopping).
+- Set ``True`` if you are calling ``self.log`` from rank 0 only. Caveat: you won't be able to use this metric as a monitor in callbacks (e.g., early stopping).
 
 .. code-block:: python
 

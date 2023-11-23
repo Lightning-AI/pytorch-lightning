@@ -401,8 +401,8 @@ class LightningModule(
             metric_attribute: To restore the metric state, Lightning requires the reference of the
                 :class:`torchmetrics.Metric` in your model. This is found automatically if it is a model attribute.
             rank_zero_only: Tells Lightning if you are calling ``self.log`` from every process (default) or only from
-                rank 0. If ``True`` you won't be able to access or specify this metric in callbacks
-                (e.g. early stopping).
+                rank 0. If ``True``, you won't be able to use this metric as a monitor in callbacks
+                (e.g., early stopping).
 
         """
         if self._fabric is not None:
@@ -565,8 +565,8 @@ class LightningModule(
             batch_size: Current batch size. This will be directly inferred from the loaded batch,
                 but some data structures might need to explicitly provide it.
             rank_zero_only: Tells Lightning if you are calling ``self.log`` from every process (default) or only from
-                rank 0. If ``True`` you won't be able to access or specify this metric in callbacks
-                (e.g. early stopping).
+                rank 0. If ``True``, you won't be able to use this metric as a monitor in callbacks
+                (e.g., early stopping).
 
         """
         if self._fabric is not None:
