@@ -402,7 +402,8 @@ class LightningModule(
                 :class:`torchmetrics.Metric` in your model. This is found automatically if it is a model attribute.
             rank_zero_only: Tells Lightning if you are calling ``self.log`` from every process (default) or only from
                 rank 0. If ``True``, you won't be able to use this metric as a monitor in callbacks
-                (e.g., early stopping).
+                (e.g., early stopping). Warning: Improper use can lead to deadlocks! See
+                :ref:`Advanced Logging <visualize/logging_advanced:rank_zero_only>` for more details.
 
         """
         if self._fabric is not None:
@@ -566,7 +567,8 @@ class LightningModule(
                 but some data structures might need to explicitly provide it.
             rank_zero_only: Tells Lightning if you are calling ``self.log`` from every process (default) or only from
                 rank 0. If ``True``, you won't be able to use this metric as a monitor in callbacks
-                (e.g., early stopping).
+                (e.g., early stopping). Warning: Improper use can lead to deadlocks! See
+                :ref:`Advanced Logging <visualize/logging_advanced:rank_zero_only>` for more details.
 
         """
         if self._fabric is not None:
