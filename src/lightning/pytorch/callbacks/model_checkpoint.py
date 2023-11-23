@@ -524,9 +524,8 @@ class ModelCheckpoint(Checkpoint):
 
         return should_update_best_and_save
 
-    @classmethod
     def _format_checkpoint_name(
-        cls,
+        self,
         filename: Optional[str],
         metrics: Dict[str, Tensor],
         prefix: str = "",
@@ -534,7 +533,7 @@ class ModelCheckpoint(Checkpoint):
     ) -> str:
         if not filename:
             # filename is not set, use default name
-            filename = "{epoch}" + cls.CHECKPOINT_JOIN_CHAR + "{step}"
+            filename = "{epoch}" + self.CHECKPOINT_JOIN_CHAR + "{step}"
 
         # check and parse user passed keys in the string
         groups = re.findall(r"(\{.*?)[:\}]", filename)
@@ -547,7 +546,7 @@ class ModelCheckpoint(Checkpoint):
             name = group[1:]
 
             if auto_insert_metric_name:
-                filename = filename.replace(group, name + cls.CHECKPOINT_EQUALS_CHAR + "{" + name)
+                filename = filename.replace(group, name + self.CHECKPOINT_EQUALS_CHAR + "{" + name)
 
             # support for dots: https://stackoverflow.com/a/7934969
             filename = filename.replace(group, f"{{0[{name}]")
@@ -557,7 +556,7 @@ class ModelCheckpoint(Checkpoint):
         filename = filename.format(metrics)
 
         if prefix:
-            filename = cls.CHECKPOINT_JOIN_CHAR.join([prefix, filename])
+            filename = self.CHECKPOINT_JOIN_CHAR.join([prefix, filename])
 
         return filename
 
