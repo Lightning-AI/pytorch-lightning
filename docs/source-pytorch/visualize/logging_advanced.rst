@@ -198,8 +198,10 @@ rank_zero_only
 ==============
 **Default:** False
 
-Set this to ``True`` only if you call `self.log` explicitly only from rank 0.
-If ``True`` you won't be able to access or specify this metric in callbacks (e.g. early stopping).
+Tells Lightning if you are calling ``self.log`` from every process (default) or only from rank 0.
+
+- Set ``False`` (default) if you are calling ``self.log`` from every process.
+- Set ``True`` if you are calling ``self.log`` from rank 0 only. Caveat: you won't be able to access or specify this metric in callbacks (e.g. early stopping).
 
 .. code-block:: python
 
