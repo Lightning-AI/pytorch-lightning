@@ -47,7 +47,7 @@ class Shuffle(ABC):
         pass
 
     @abstractmethod
-    def __call__(self, array: np.ndarray, current_epoch: int, chunk_index: int) -> List[int]:
+    def __call__(self, array: np.ndarray, num_chunks: int, current_epoch: int, chunk_index: int) -> List[int]:
         pass
 
 
@@ -67,7 +67,7 @@ class NoShuffle(Shuffle):
 
         return chunks_per_ranks, intervals_per_ranks
 
-    def __call__(self, array: np.ndarray, current_epoch: int, chunk_index: int) -> List[int]:
+    def __call__(self, array: np.ndarray, num_chunks: int, current_epoch: int, chunk_index: int) -> List[int]:
         return array.tolist()
 
 
@@ -144,5 +144,5 @@ class FullShuffle(Shuffle):
 
         return chunks_per_ranks, intervals_per_ranks
 
-    def __call__(self, array: np.ndarray, current_epoch: int, chunk_index: int) -> List[int]:
-        return np.random.RandomState(seed=self.seed + current_epoch + chunk_index).permutation(array).tolist()
+    def __call__(self, array: np.ndarray, num_chunks: int, current_epoch: int, chunk_index: int) -> List[int]:
+        return np.random.RandomState([self.seed, num_chunks * current_epoch, chunk_index]).permutation(array).tolist()

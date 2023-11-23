@@ -164,7 +164,7 @@ def test_streaming_dataset_distributed_full_shuffle_odd(drop_last, tmpdir):
     dataset_iter = iter(dataset)
     assert len(dataset_iter) == 548
     process_1_1 = list(dataset_iter)
-    assert process_1_1[:10] == [788, 781, 785, 780, 787, 782, 789, 784, 783, 786]
+    assert process_1_1[:10] == [224, 227, 229, 226, 225, 222, 228, 221, 220, 223]
     assert len(process_1_1) == 548
 
     dataset_2 = StreamingDataset(input_dir=str(tmpdir), shuffle=True, drop_last=drop_last)
@@ -175,7 +175,7 @@ def test_streaming_dataset_distributed_full_shuffle_odd(drop_last, tmpdir):
     dataset_2_iter = iter(dataset_2)
     assert len(dataset_2_iter) == 548 + int(not drop_last)
     process_2_1 = list(dataset_2_iter)
-    assert process_2_1[:10] == [939, 938, 253, 259, 256, 258, 252, 255, 251, 257]
+    assert process_2_1[:10] == [279, 278, 105, 104, 106, 107, 103, 101, 102, 109]
     assert len(process_2_1) == 548 + int(not drop_last)
     assert len([i for i in process_1_1 if i in process_2_1]) == 0
 
@@ -204,7 +204,7 @@ def test_streaming_dataset_distributed_full_shuffle_even(drop_last, tmpdir):
     dataset_iter = iter(dataset)
     assert len(dataset_iter) == 611
     process_1_1 = list(dataset_iter)
-    assert process_1_1[:10] == [188, 181, 185, 180, 187, 182, 189, 184, 183, 186]
+    assert process_1_1[:10] == [818, 810, 812, 815, 814, 817, 813, 819, 816, 811]
     assert len(process_1_1) == 611
 
     dataset_2 = StreamingDataset(input_dir=str(tmpdir), shuffle=True, drop_last=drop_last)
@@ -215,12 +215,12 @@ def test_streaming_dataset_distributed_full_shuffle_even(drop_last, tmpdir):
     dataset_2_iter = iter(dataset_2)
     assert len(dataset_2_iter) == 611
     process_2_1 = list(dataset_2_iter)
-    assert process_2_1[:10] == [818, 812, 816, 811, 819, 813, 815, 814, 817, 273]
+    assert process_2_1[:10] == [181, 183, 186, 188, 187, 185, 189, 184, 182, 1092]
     assert len(process_2_1) == 611
     assert len([i for i in process_1_1 if i in process_2_1]) == 0
 
 
-def test_streaming_dataset_deepcopy(tmpdir, monkeypatch):
+def test_streaming_dataset_deepcopy(tmpdir):
     seed_everything(42)
 
     remote_dir = os.path.join(tmpdir, "remote_dir")
