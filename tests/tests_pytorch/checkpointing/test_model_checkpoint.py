@@ -1536,3 +1536,17 @@ def test_find_last_checkpoints(name, extension, folder_contents, expected, tmp_p
     callback.FILE_EXTENSION = extension
     files = callback._find_last_checkpoints(trainer)
     assert files == {str(tmp_path / p) for p in expected}
+
+
+def test_expand_home():
+    """Test that the dirpath gets expanded if it contains `~`."""
+    home_root = Path.home()
+
+    checkpoint = ModelCheckpoint(dirpath="~/checkpoints")
+    assert checkpoint.dirpath == str(home_root / "checkpoints")
+    checkpoint = ModelCheckpoint(dirpath=Path("~/checkpoints"))
+    assert checkpoint.dirpath == str(home_root / "checkpoints")
+
+    # it is possible to have a folder with the name `~`
+    checkpoint = ModelCheckpoint(dirpath="./~/checkpoints")
+    assert checkpoint.dirpath == str(Path.cwd() / "~" / "checkpoints")
