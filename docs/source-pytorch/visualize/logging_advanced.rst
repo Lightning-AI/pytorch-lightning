@@ -209,7 +209,7 @@ This is for advanced users who want to reduce their metric manually across proce
     # Default
     self.log(..., rank_zero_only=False)
 
-    # If you call `self.log` on rank 0 only, you need to set ``rank_zero_only=True``
+    # If you call `self.log` on rank 0 only, you need to set `rank_zero_only=True`
     if self.trainer.global_rank == 0:
         self.log(..., rank_zero_only=True)
 
