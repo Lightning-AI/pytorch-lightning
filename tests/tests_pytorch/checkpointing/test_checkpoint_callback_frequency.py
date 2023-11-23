@@ -11,17 +11,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import os
 from unittest import mock
 
 import pytest
 import torch
 from lightning.pytorch import Trainer
+from lightning.pytorch.callbacks import ModelCheckpoint
 from lightning.pytorch.demos.boring_classes import BoringModel
 
 from tests_pytorch.helpers.runif import RunIf
-
-from lightning.pytorch.callbacks import ModelCheckpoint
 
 
 def test_disabled_checkpointing(tmpdir):
@@ -88,11 +86,14 @@ def test_top_k(save_mock, tmpdir, k: int, epochs: int, val_check_interval: float
 
 @mock.patch("torch.save")
 @RunIf(min_cuda_gpus=2, standalone=True)
-@pytest.mark.parametrize(("k", "epochs", "val_check_interval", "expected"), [
-    (1, 1, 1.0, 1),
-    (2, 2, 0.3, 4),
-    (4, 2, 0.1, 4),
-])
+@pytest.mark.parametrize(
+    ("k", "epochs", "val_check_interval", "expected"),
+    [
+        (1, 1, 1.0, 1),
+        (2, 2, 0.3, 4),
+        (4, 2, 0.1, 4),
+    ],
+)
 def test_top_k_ddp(save_mock, tmpdir, k, epochs, val_check_interval, expected):
     class TestModel(BoringModel):
         def training_step(self, batch, batch_idx):
@@ -112,7 +113,7 @@ def test_top_k_ddp(save_mock, tmpdir, k, epochs, val_check_interval, expected):
     trainer = Trainer(
         callbacks=[
             ModelCheckpoint(dirpath=tmpdir, monitor="my_loss_step", save_top_k=k, mode="max"),
-            ModelCheckpoint(dirpath=tmpdir, monitor="rank_zero_only_loss", save_top_k=k, mode="max")
+            ModelCheckpoint(dirpath=tmpdir, monitor="rank_zero_only_loss", save_top_k=k, mode="max"),
         ],
         default_root_dir=tmpdir,
         enable_progress_bar=False,
