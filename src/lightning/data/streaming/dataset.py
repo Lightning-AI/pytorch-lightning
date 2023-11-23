@@ -182,7 +182,7 @@ class StreamingDataset(IterableDataset):
             # re-generate indexes
             interval = self.worker_intervals[self.chunk_index]
             current_indexes = np.arange(interval[0], interval[1])
-            current_indexes = self.shuffler(current_indexes, self.current_epoch * self.num_chunks, self.chunk_index)
+            current_indexes = self.shuffler(current_indexes, self.num_chunks, self.current_epoch, self.chunk_index)
             self.current_indexes = current_indexes[state["index"] :]
 
             # Bump the chunk_index
@@ -230,9 +230,7 @@ class StreamingDataset(IterableDataset):
 
             assert self.shuffler is not None
             assert self.num_chunks is not None
-            self.current_indexes = self.shuffler(
-                current_indexes, self.current_epoch * self.num_chunks, self.chunk_index
-            )
+            self.current_indexes = self.shuffler(current_indexes, self.num_chunks, self.current_epoch, self.chunk_index)
 
             self.chunk_index += 1
 
