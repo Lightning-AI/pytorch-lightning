@@ -88,7 +88,13 @@ class TransformerEnginePrecision(Precision):
 
     def convert_module(self, module: torch.nn.Module) -> torch.nn.Module:
         # avoid converting if any is found. assume the user took care of it
-        if self.replace_layers and not any("transformer_engine.pytorch" in m.__module__ for m in module.modules()):
+        if any("transformer_engine.pytorch" in m.__module__ for m in module.modules()):
+            if self.replace_layers is True:
+                rank_zero_warn(
+                    "`TransformerEnginePrecision(replace_layers=True)` is set but the model already contains"
+                    " TransformerEngine layers. Skipping"
+                )
+        elif self.replace_layers in (None, True):
             _convert_layers(module)
         module = module.to(dtype=self.dtype)
         return module
