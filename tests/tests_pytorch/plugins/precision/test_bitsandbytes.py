@@ -18,8 +18,8 @@ import lightning.fabric
 import pytest
 import torch
 import torch.distributed
-from lightning import LightningModule, Trainer
 from lightning.fabric.plugins.precision.bitsandbytes import _BITSANDBYTES_AVAILABLE
+from lightning.pytorch import LightningModule, Trainer
 from lightning.pytorch.plugins.precision.bitsandbytes import BitsandbytesPrecision
 
 
@@ -38,7 +38,7 @@ def test_bitsandbytes_plugin(monkeypatch):
     bitsandbytes_mock.nn.Linear4bit = ModuleMock
 
     precision = BitsandbytesPrecision("nf4", dtype=torch.float16)
-    trainer = Trainer(limit_val_batches=1, barebones=True, plugins=precision)
+    trainer = Trainer(barebones=True, plugins=precision)
 
     _NF4Linear = vars(module)["_NF4Linear"]
     _NF4Linear._quantize_weight = Mock()

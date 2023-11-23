@@ -14,6 +14,7 @@
 
 import pytest
 import torch
+from lightning.pytorch import LightningModule, Trainer
 from lightning.pytorch.plugins import HalfPrecision
 
 
@@ -73,3 +74,17 @@ def test_convert_module(precision, expected_dtype):
     assert module.weight.dtype == module.bias.dtype == torch.float32
     module = precision.convert_module(module)
     assert module.weight.dtype == module.bias.dtype == expected_dtype
+
+
+def test_configure_model():
+    class MyModel(LightningModule):
+        def configure_model(self):
+            self.l = torch.nn.Linear(1, 3)
+
+        def test_step(self, *_):
+            ...
+
+    model = MyModel()
+    trainer = Trainer(barebones=True, precision="16-true")
+    trainer.test(model, [0])
+    assert model.l.weight.dtype == torch.float16
