@@ -26,7 +26,7 @@ from lightning.data.streaming.reader import BinaryReader
 from lightning.data.streaming.sampler import ChunkedIndex
 from lightning.data.streaming.serializers import Serializer
 from lightning.data.streaming.writer import BinaryWriter
-from lightning.data.utilities.env import _DistributedEnv
+from lightning.data.utilities.env import _DistributedEnv, _WorkerEnv
 from lightning.data.utilities.format import _convert_bytes_to_int
 
 logger = logging.Logger(__name__)
@@ -93,10 +93,15 @@ class Cache:
         )
         self._is_done = False
         self._distributed_env = _DistributedEnv.detect()
+        self._rank: Optional[int] = None
 
     @property
     def rank(self) -> int:
-        return self._reader.rank
+        """Returns the rank of the Cache."""
+        if self._rank is None:
+            self._worker_env = _WorkerEnv.detect()
+            self._rank = self._distributed_env.global_rank * self._worker_env.world_size + self._worker_env.rank
+        return self._rank
 
     @property
     def filled(self) -> bool:
@@ -109,16 +114,16 @@ class Cache:
     @property
     def checkpoint_dir(self) -> str:
         checkpoint_dir = os.path.join(self._cache_dir, "checkpoints")
-        if not os.path.exists(checkpoint_dir):
-            os.makedirs(checkpoint_dir, exist_ok=True)
-        return checkpoint_dir
+        return self._try_create(checkpoint_dir)
 
     @property
     def checkpoint_rank_dir(self) -> str:
-        checkpoint_rank_dir = os.path.join(self.checkpoint_dir, str(self.rank))
-        if not os.path.exists(checkpoint_rank_dir):
-            os.makedirs(checkpoint_rank_dir, exist_ok=True)
-        return checkpoint_rank_dir
+        checkpoint_rank_dir = os.path.join(self._cache_dir, "checkpoints", str(self.rank))
+        return self._try_create(checkpoint_rank_dir)
+
+    def _try_create(self, path: str) -> str:
+        os.makedirs(path, exist_ok=True)
+        return path
 
     def __setitem__(self, index: int, data: Any) -> None:
         """Store an item in the writer."""
