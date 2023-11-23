@@ -1065,22 +1065,19 @@ for more information.
 
 .. code-block:: python
 
+    # devices can be GPUs, TPUs, ...
+    @on_every_device
     def fit(self):
+        configure_callbacks()
+
         if global_rank == 0:
             # prepare data is called on GLOBAL_ZERO only
             prepare_data()
 
-        configure_callbacks()
-
-        with parallel(devices):
-            # devices can be GPUs, TPUs, ...
-            train_on_device(model)
-
-
-    def train_on_device(model):
-        # called PER DEVICE
         setup("fit")
+        configure_model()
         configure_optimizers()
+
         on_fit_start()
 
         # the sanity check runs here
