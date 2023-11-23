@@ -14,7 +14,7 @@
 import logging
 from abc import ABC, abstractmethod
 from contextlib import contextmanager, nullcontext
-from typing import Any, Callable, Dict, Generator, List, Mapping, Optional, Tuple, TypeVar, Union, cast
+from typing import Any, Callable, Dict, Generator, List, Mapping, Optional, Tuple, TypeVar, Union
 
 import torch
 from torch import Tensor
@@ -110,7 +110,8 @@ class Strategy(ABC):
 
     def connect(self, model: "pl.LightningModule") -> None:
         """Called by the Trainer to connect the strategy with the model."""
-        model = cast(pl.LightningModule, self.precision_plugin.convert_module(model))
+        # model conversions cannot be applied at this point because `LightningModule.{setup,configure_model}` haven't
+        # run yet
         self._lightning_module = model
         self.model = model
 
