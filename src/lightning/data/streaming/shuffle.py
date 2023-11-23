@@ -145,4 +145,4 @@ class FullShuffle(Shuffle):
         return chunks_per_ranks, intervals_per_ranks
 
     def __call__(self, array: np.ndarray, epoch_shift: int, chunk_index: int) -> List[int]:
-        return np.random.RandomState(seed=self.seed + epoch_shift + chunk_index).permutation(array).tolist()
+        return np.random.RandomState([self.seed, epoch_shift, chunk_index]).permutation(array).tolist()

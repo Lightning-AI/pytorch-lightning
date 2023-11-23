@@ -264,7 +264,7 @@ class StreamingDataset(IterableDataset):
         if self.checkpoint_interval is None:
             return
 
-        if not is_in_dataloader_worker():
+        if not _is_in_dataloader_worker():
             return
 
         assert self.cache
@@ -300,8 +300,8 @@ class StreamingDataset(IterableDataset):
         self.last_time = time()
 
     def state_dict(self) -> Dict[str, Any]:
-        if is_in_dataloader_worker():
-            raise RuntimeError("The method `state_dict` is meant to be called only outside a DataLoader workers.")
+        if _is_in_dataloader_worker():
+            raise RuntimeError("The method `state_dict` should only be called in the main process.")
 
         if self.cache is None:
             self.worker_env = _WorkerEnv.detect()
@@ -429,7 +429,7 @@ def _collect_distributed_state_dict(state_dict: Dict[str, Any], world_size: int)
     return state_dict_out
 
 
-def is_in_dataloader_worker() -> bool:
+def _is_in_dataloader_worker() -> bool:
     return get_worker_info() is not None
 
 

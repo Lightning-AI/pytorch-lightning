@@ -122,8 +122,7 @@ class Cache:
         return self._try_create(checkpoint_rank_dir)
 
     def _try_create(self, path: str) -> str:
-        if not os.path.exists(path):
-            os.makedirs(path, exist_ok=True)
+        os.makedirs(path, exist_ok=True)
         return path
 
     def __setitem__(self, index: int, data: Any) -> None:
