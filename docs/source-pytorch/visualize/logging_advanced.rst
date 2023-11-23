@@ -196,13 +196,23 @@ If set to True, logs will be sent to the progress bar.
 
 rank_zero_only
 ==============
-**Default:** True
+**Default:** False
 
-Whether the value will be logged only on rank 0. This will prevent synchronization which would produce a deadlock as not all processes would perform this log call.
+Set this to ``True`` only if you call `self.log` explicitly only from rank 0.
+If ``True`` you won't be able to access or specify this metric in callbacks (e.g. early stopping).
 
 .. code-block:: python
 
-  self.log(rank_zero_only=True)
+    # Default
+    self.log(rank_zero_only=False)
+
+    # If you call `self.log` on rank 0 only, you need to set ``rank_zero_only=True``
+    if self.trainer.global_rank == 0:
+        self.log(rank_zero_only=True)
+
+    # DON'T do this, it will cause deadlocks!
+    self.log(rank_zero_only=True)
+
 
 ----
 
