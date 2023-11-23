@@ -228,7 +228,7 @@ class BinaryReader:
         chunk_filepath, begin, _ = self.config[index]
         item = self._item_loader.load_item_from_chunk(index.index, index.chunk_index, chunk_filepath, begin)
 
-        if index.last_index and self._prepare_thread:
+        if index.is_last_index and self._prepare_thread:
             self._prepare_thread.stop()
             self._prepare_thread = None
 
