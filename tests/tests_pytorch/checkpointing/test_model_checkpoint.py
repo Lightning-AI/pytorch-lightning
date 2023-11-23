@@ -402,34 +402,36 @@ def test_model_checkpoint_no_extraneous_invocations(tmpdir):
 
 
 def test_model_checkpoint_format_checkpoint_name(tmpdir, monkeypatch):
+    model_checkpoint = ModelCheckpoint(dirpath=tmpdir)
+
     # empty filename:
-    ckpt_name = ModelCheckpoint._format_checkpoint_name("", {"epoch": 3, "step": 2})
+    ckpt_name = model_checkpoint._format_checkpoint_name("", {"epoch": 3, "step": 2})
     assert ckpt_name == "epoch=3-step=2"
 
-    ckpt_name = ModelCheckpoint._format_checkpoint_name(None, {"epoch": 3, "step": 2}, prefix="test")
+    ckpt_name = model_checkpoint._format_checkpoint_name(None, {"epoch": 3, "step": 2}, prefix="test")
     assert ckpt_name == "test-epoch=3-step=2"
 
     # no groups case:
-    ckpt_name = ModelCheckpoint._format_checkpoint_name("ckpt", {}, prefix="test")
+    ckpt_name = model_checkpoint._format_checkpoint_name("ckpt", {}, prefix="test")
     assert ckpt_name == "test-ckpt"
 
     # no prefix
-    ckpt_name = ModelCheckpoint._format_checkpoint_name("{epoch:03d}-{acc}", {"epoch": 3, "acc": 0.03})
+    ckpt_name = model_checkpoint._format_checkpoint_name("{epoch:03d}-{acc}", {"epoch": 3, "acc": 0.03})
     assert ckpt_name == "epoch=003-acc=0.03"
 
     # one metric name is substring of another
-    ckpt_name = ModelCheckpoint._format_checkpoint_name("{epoch:03d}-{epoch_test:03d}", {"epoch": 3, "epoch_test": 3})
+    ckpt_name = model_checkpoint._format_checkpoint_name("{epoch:03d}-{epoch_test:03d}", {"epoch": 3, "epoch_test": 3})
     assert ckpt_name == "epoch=003-epoch_test=003"
 
     # prefix
-    monkeypatch.setattr(ModelCheckpoint, "CHECKPOINT_JOIN_CHAR", "@")
-    ckpt_name = ModelCheckpoint._format_checkpoint_name("{epoch},{acc:.5f}", {"epoch": 3, "acc": 0.03}, prefix="test")
+    model_checkpoint.CHECKPOINT_JOIN_CHAR = "@"
+    ckpt_name = model_checkpoint._format_checkpoint_name("{epoch},{acc:.5f}", {"epoch": 3, "acc": 0.03}, prefix="test")
     assert ckpt_name == "test@epoch=3,acc=0.03000"
     monkeypatch.undo()
 
     # non-default char for equals sign
-    monkeypatch.setattr(ModelCheckpoint, "CHECKPOINT_EQUALS_CHAR", ":")
-    ckpt_name = ModelCheckpoint._format_checkpoint_name("{epoch:03d}-{acc}", {"epoch": 3, "acc": 0.03})
+    model_checkpoint.CHECKPOINT_EQUALS_CHAR = ":"
+    ckpt_name = model_checkpoint._format_checkpoint_name("{epoch:03d}-{acc}", {"epoch": 3, "acc": 0.03})
     assert ckpt_name == "epoch:003-acc:0.03"
     monkeypatch.undo()
 
@@ -454,13 +456,13 @@ def test_model_checkpoint_format_checkpoint_name(tmpdir, monkeypatch):
     assert ckpt_name == "epoch=4_val/loss=0.03000.ckpt"
 
     # auto_insert_metric_name=False
-    ckpt_name = ModelCheckpoint._format_checkpoint_name(
+    ckpt_name = model_checkpoint._format_checkpoint_name(
         "epoch={epoch:03d}-val_acc={val/acc}", {"epoch": 3, "val/acc": 0.03}, auto_insert_metric_name=False
     )
     assert ckpt_name == "epoch=003-val_acc=0.03"
 
     # dots in the metric name
-    ckpt_name = ModelCheckpoint._format_checkpoint_name(
+    ckpt_name = model_checkpoint._format_checkpoint_name(
         "mAP@0.50={val/mAP@0.50:.4f}", {"val/mAP@0.50": 0.2}, auto_insert_metric_name=False
     )
     assert ckpt_name == "mAP@0.50=0.2000"
