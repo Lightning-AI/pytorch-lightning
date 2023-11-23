@@ -467,7 +467,7 @@ class ModelCheckpoint(Checkpoint):
         self._fs = get_filesystem(dirpath if dirpath else "")
 
         if dirpath and _is_local_file_protocol(dirpath if dirpath else ""):
-            dirpath = os.path.realpath(dirpath)
+            dirpath = os.path.realpath(os.path.expanduser(dirpath))
 
         self.dirpath = dirpath
         self.filename = filename
