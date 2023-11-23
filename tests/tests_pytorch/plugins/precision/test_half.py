@@ -76,15 +76,24 @@ def test_convert_module(precision, expected_dtype):
     assert module.weight.dtype == module.bias.dtype == expected_dtype
 
 
-def test_configure_model():
+@pytest.mark.parametrize(
+    ("precision", "expected_dtype"),
+    [
+        ("bf16-true", torch.bfloat16),
+        ("16-true", torch.half),
+    ],
+)
+def test_configure_model(precision, expected_dtype):
     class MyModel(LightningModule):
         def configure_model(self):
             self.l = torch.nn.Linear(1, 3)
+            # this is under the `module_init_context`
+            assert self.l.weight.dtype == expected_dtype
 
         def test_step(self, *_):
             ...
 
     model = MyModel()
-    trainer = Trainer(barebones=True, precision="16-true")
+    trainer = Trainer(barebones=True, precision=precision)
     trainer.test(model, [0])
-    assert model.l.weight.dtype == torch.float16
+    assert model.l.weight.dtype == expected_dtype

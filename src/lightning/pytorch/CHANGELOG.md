@@ -56,7 +56,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed `ModelCheckpoint` not expanding the `dirpath` if it has the `~` (home) prefix ([#19058](https://github.com/Lightning-AI/lightning/pull/19058))
 
 
-- Fixed issue where layers created in `LightningModule.setup` or `LightningModule.configure_model` wouldn't get converted or moved to the appropriate dtype ([#19061](https://github.com/Lightning-AI/lightning/pull/19061))
+- Fixed issue where layers created in `LightningModule.setup` or `LightningModule.configure_model` wouldn't get converted when using the Bitsandbytes or TransformerEngine plugins ([#19061](https://github.com/Lightning-AI/lightning/pull/19061))
 
 
 ## [2.1.2] - 2023-11-15
