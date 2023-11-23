@@ -141,7 +141,7 @@ The :meth:`~lightning.pytorch.core.LightningModule.log` method has a few options
 * ``sync_dist_group``: The DDP group to sync across.
 * ``add_dataloader_idx``: If True, appends the index of the current dataloader to the name (when using multiple dataloaders). If False, user needs to give unique names for each dataloader to not mix the values.
 * ``batch_size``: Current batch size used for accumulating logs logged with ``on_epoch=True``. This will be directly inferred from the loaded batch, but for some data structures you might need to explicitly provide it.
-* ``rank_zero_only``: Set this to ``True`` only if you call `self.log` explicitly only from rank 0. If ``True`` you won't be able to access or specify this metric in callbacks (e.g. early stopping).
+* ``rank_zero_only``: Set this to ``True`` only if you call ``self.log`` explicitly only from rank 0. If ``True`` you won't be able to access or specify this metric in callbacks (e.g. early stopping).
 
 .. list-table:: Default behavior of logging in Callback or LightningModule
    :widths: 50 25 25
