@@ -77,6 +77,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed an issue parsing the version from folders that don't include a version number in `TensorBoardLogger` and `CSVLogger` ([#18897](https://github.com/Lightning-AI/lightning/issues/18897))
 
 
+- Fixed the tensor conversion in `self.log` to respect the default dtype ([#19046](https://github.com/Lightning-AI/lightning/issues/19046))
+
+
 ## [2.1.0] - 2023-10-11
 
 ### Added
