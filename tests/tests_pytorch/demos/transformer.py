@@ -11,24 +11,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Profiler to check if there are any bottlenecks in your code."""
-
-from typing_extensions import override
-
-from lightning.pytorch.profilers.profiler import Profiler
+import torch
+from lightning.pytorch.demos import Transformer
 
 
-class PassThroughProfiler(Profiler):
-    """This class should be used when you don't want the (small) overhead of profiling.
-
-    The Trainer uses this class by default.
-
-    """
-
-    @override
-    def start(self, action_name: str) -> None:
-        pass
-
-    @override
-    def stop(self, action_name: str) -> None:
-        pass
+def test_compile_transformer():
+    """Smoke test to ensure the transformer model compiles without errors."""
+    transformer = Transformer(vocab_size=8)
+    transformer = torch.compile(transformer)
+    inputs = torch.randint(0, transformer.vocab_size, size=(2, 8))
+    targets = torch.randint(0, transformer.vocab_size, size=(2, 8))
+    for i in range(3):
+        transformer(inputs, targets).sum().backward()
