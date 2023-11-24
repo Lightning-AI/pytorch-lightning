@@ -1065,13 +1065,11 @@ for more information.
 
 .. code-block:: python
 
-    # devices can be GPUs, TPUs, ...
-    @on_every_device
+    # runs on every device: devices can be GPUs, TPUs, ...
     def fit(self):
         configure_callbacks()
 
-        if global_rank == 0:
-            # prepare data is called on GLOBAL_ZERO only
+        if local_rank == 0:
             prepare_data()
 
         setup("fit")
