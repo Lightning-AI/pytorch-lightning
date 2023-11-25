@@ -583,7 +583,8 @@ def test_none_monitor_top_k(tmpdir):
     ModelCheckpoint(dirpath=tmpdir, save_top_k=1)
 
 
-def test_none_monitor_does_not_alternate(tmp_path):
+def test_none_monitor_not_alternating(tmp_path):
+    """Regression test for the case where the callback saved alternating `model.ckpt` and `model-v1.ckpt` files."""
     class ListDirModel(BoringModel):
         def on_train_epoch_start(self):
             if self.current_epoch > 0:
