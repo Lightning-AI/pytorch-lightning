@@ -41,10 +41,10 @@ To run the test set after training completes, use this method.
     # run full training
     trainer.fit(model)
 
-    # (1) load the best checkpoint automatically (lightning tracks this for you)
+    # (1) load the best checkpoint automatically (lightning tracks this for you during .fit())
     trainer.test(ckpt_path="best")
 
-    # (2) load the last available checkpoint
+    # (2) load the last available checkpoint (only works if `ModelCheckpoint(save_last=True)`)
     trainer.test(ckpt_path="last")
 
     # (3) test using a specific checkpoint
