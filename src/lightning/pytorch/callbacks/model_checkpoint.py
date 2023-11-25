@@ -703,9 +703,7 @@ class ModelCheckpoint(Checkpoint):
             rank_zero_info(f"Epoch {epoch:d}, global step {step:d}: {self.monitor!r} was not in top {self.save_top_k}")
 
     def _save_none_monitor_checkpoint(self, trainer: "pl.Trainer", monitor_candidates: Dict[str, Tensor]) -> None:
-        filepath = self._get_metric_interpolated_filepath_name(
-            monitor_candidates, trainer, del_filepath=self.best_model_path
-        )
+        filepath = self._get_metric_interpolated_filepath_name(monitor_candidates, trainer, self.best_model_path)
         # set the best model path before saving because it will be part of the state.
         previous, self.best_model_path = self.best_model_path, filepath
         self._save_checkpoint(trainer, filepath)
