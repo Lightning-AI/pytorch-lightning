@@ -703,7 +703,9 @@ class ModelCheckpoint(Checkpoint):
             rank_zero_info(f"Epoch {epoch:d}, global step {step:d}: {self.monitor!r} was not in top {self.save_top_k}")
 
     def _save_none_monitor_checkpoint(self, trainer: "pl.Trainer", monitor_candidates: Dict[str, Tensor]) -> None:
-        filepath = self._get_metric_interpolated_filepath_name(monitor_candidates, trainer)
+        filepath = self._get_metric_interpolated_filepath_name(
+            monitor_candidates, trainer, del_filepath=self.best_model_path
+        )
         # set the best model path before saving because it will be part of the state.
         previous, self.best_model_path = self.best_model_path, filepath
         self._save_checkpoint(trainer, filepath)
@@ -773,7 +775,7 @@ class ModelCheckpoint(Checkpoint):
         """Checks if the previous checkpoint should be deleted.
 
         A checkpoint won't be deleted if any of the cases apply:
-        - The previous checkpoint is the same as the current checkpoint
+        - The previous checkpoint is the same as the current checkpoint (means the old was already overwritten by new)
         - The previous checkpoint is not in the current checkpoint directory and the filesystem is local
         - The previous checkpoint is the checkpoint the Trainer resumed from and the filesystem is local
 
