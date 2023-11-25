@@ -583,6 +583,26 @@ def test_none_monitor_top_k(tmpdir):
     ModelCheckpoint(dirpath=tmpdir, save_top_k=1)
 
 
+def test_none_monitor_does_not_alternate(tmp_path):
+    class ListDirModel(BoringModel):
+        def on_train_epoch_start(self):
+            if self.current_epoch > 0:
+                assert os.listdir(tmp_path) == ["model.ckpt"]
+
+    model = ListDirModel()
+    model_checkpoint = ModelCheckpoint(dirpath=tmp_path, monitor=None, save_top_k=1, filename="model")
+    trainer = Trainer(
+        callbacks=model_checkpoint,
+        limit_train_batches=1,
+        limit_val_batches=0,
+        max_epochs=3,
+        enable_model_summary=False,
+        enable_progress_bar=False,
+        logger=False,
+    )
+    trainer.fit(model)
+
+
 def test_invalid_every_n_epochs(tmpdir):
     """Make sure that a MisconfigurationException is raised for a negative every_n_epochs argument."""
     with pytest.raises(MisconfigurationException, match=r".*Must be >= 0"):
