@@ -70,6 +70,6 @@ def test_configure_model(monkeypatch):
     model = MyModel()
     trainer = Trainer(barebones=True, precision="transformer-engine-float16")
     trainer.test(model, [0])
-    assert te_mock.pytorch.fp8_autocast.assert_called_once_with(enabled=True, fp8_recipe=ANY)
+    te_mock.pytorch.fp8_autocast.assert_called_once_with(enabled=True, fp8_recipe=ANY)
     assert isinstance(model.l, ModuleMock)
     assert model.l.weight.dtype == torch.float16
