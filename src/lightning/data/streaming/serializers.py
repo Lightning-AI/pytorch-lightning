@@ -149,10 +149,10 @@ class TensorSerializer(Serializer):
 
     def __init__(self) -> None:
         super().__init__()
-        self._dtype_to_indice = {v: k for k, v in _TORCH_DTYPES_MAPPING.items()}
+        self._dtype_to_indices = {v: k for k, v in _TORCH_DTYPES_MAPPING.items()}
 
     def serialize(self, item: torch.Tensor) -> Tuple[bytes, Optional[str]]:
-        dtype_indice = self._dtype_to_indice[item.dtype]
+        dtype_indice = self._dtype_to_indices[item.dtype]
         data = [np.uint32(dtype_indice).tobytes()]
         data.append(np.uint32(len(item.shape)).tobytes())
         for dim in item.shape:
@@ -182,14 +182,14 @@ class NoHeaderTensorSerializer(Serializer):
 
     def __init__(self) -> None:
         super().__init__()
-        self._dtype_to_indice = {v: k for k, v in _TORCH_DTYPES_MAPPING.items()}
+        self._dtype_to_indices = {v: k for k, v in _TORCH_DTYPES_MAPPING.items()}
         self._dtype: Optional[torch.dtype] = None
 
     def setup(self, data_format: str) -> None:
         self._dtype = _TORCH_DTYPES_MAPPING[int(data_format.split(":")[1])]
 
     def serialize(self, item: torch.Tensor) -> Tuple[bytes, Optional[str]]:
-        dtype_indice = self._dtype_to_indice[item.dtype]
+        dtype_indice = self._dtype_to_indices[item.dtype]
         return item.numpy().tobytes(order="C"), f"no_header_tensor:{dtype_indice}"
 
     def deserialize(self, data: bytes) -> torch.Tensor:
@@ -205,10 +205,10 @@ class NumpySerializer(Serializer):
 
     def __init__(self) -> None:
         super().__init__()
-        self._dtype_to_indice = {v: k for k, v in _NUMPY_DTYPES_MAPPING.items()}
+        self._dtype_to_indices = {v: k for k, v in _NUMPY_DTYPES_MAPPING.items()}
 
     def serialize(self, item: np.ndarray) -> Tuple[bytes, Optional[str]]:
-        dtype_indice = self._dtype_to_indice[item.dtype]
+        dtype_indice = self._dtype_to_indices[item.dtype]
         data = [np.uint32(dtype_indice).tobytes()]
         data.append(np.uint32(len(item.shape)).tobytes())
         for dim in item.shape:
@@ -221,8 +221,12 @@ class NumpySerializer(Serializer):
         dtype = _NUMPY_DTYPES_MAPPING[dtype_indice]
         shape_size = np.frombuffer(data[4:8], np.uint32).item()
         shape = []
+        # deserialize the shape header
+        # Note: The start position of the shape value: 8 (dtype + shape length) + 4 * shape_idx
         for shape_idx in range(shape_size):
             shape.append(np.frombuffer(data[8 + 4 * shape_idx : 8 + 4 * (shape_idx + 1)], np.uint32).item())
+
+        # deserialize the numpy array bytes
         tensor = np.frombuffer(data[8 + 4 * (shape_idx + 1) : len(data)], dtype=dtype)
         if tensor.shape == shape:
             return tensor
@@ -237,14 +241,14 @@ class NoHeaderNumpySerializer(Serializer):
 
     def __init__(self) -> None:
         super().__init__()
-        self._dtype_to_indice = {v: k for k, v in _NUMPY_DTYPES_MAPPING.items()}
+        self._dtype_to_indices = {v: k for k, v in _NUMPY_DTYPES_MAPPING.items()}
         self._dtype: Optional[np.dtype] = None
 
     def setup(self, data_format: str) -> None:
         self._dtype = _NUMPY_DTYPES_MAPPING[int(data_format.split(":")[1])]
 
     def serialize(self, item: np.ndarray) -> Tuple[bytes, Optional[str]]:
-        dtype_indice: int = self._dtype_to_indice[item.dtype]
+        dtype_indice: int = self._dtype_to_indices[item.dtype]
         return item.tobytes(order="C"), f"no_header_numpy:{dtype_indice}"
 
     def deserialize(self, data: bytes) -> np.ndarray:

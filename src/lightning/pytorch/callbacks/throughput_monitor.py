@@ -15,6 +15,7 @@ import time
 from typing import TYPE_CHECKING, Any, Callable, Dict, Optional, Union
 
 import torch
+from typing_extensions import override
 
 from lightning.fabric.plugins import Precision as FabricPrecision
 from lightning.fabric.utilities.throughput import Throughput, get_available_flops
@@ -87,6 +88,7 @@ class ThroughputMonitor(Callback):
         self._t0s: Dict[RunningStage, float] = {}
         self._lengths: Dict[RunningStage, int] = {}
 
+    @override
     def setup(self, trainer: "Trainer", pl_module: "LightningModule", stage: str) -> None:
         dtype = _plugin_to_compute_dtype(trainer.precision_plugin)
         self.available_flops = get_available_flops(trainer.strategy.root_device, dtype)
@@ -163,10 +165,12 @@ class ThroughputMonitor(Callback):
         metrics = {f"{stage.value}{throughput.separator}{k}": v for k, v in metrics.items()}
         trainer._logger_connector.log_metrics(metrics, step=iter_num)  # type: ignore[arg-type]
 
+    @override
     @rank_zero_only
     def on_train_start(self, trainer: "Trainer", *_: Any) -> None:
         self._start(trainer)
 
+    @override
     @rank_zero_only
     def on_train_batch_end(
         self, trainer: "Trainer", pl_module: "LightningModule", outputs: Any, batch: Any, *_: Any
@@ -177,12 +181,14 @@ class ThroughputMonitor(Callback):
         if not trainer.fit_loop._should_accumulate():
             self._compute(trainer)
 
+    @override
     @rank_zero_only
     def on_validation_start(self, trainer: "Trainer", *_: Any) -> None:
         if trainer.sanity_checking:
             return
         self._start(trainer)
 
+    @override
     @rank_zero_only
     def on_validation_batch_end(
         self, trainer: "Trainer", pl_module: "LightningModule", outputs: Any, batch: Any, *_: Any, **__: Any
@@ -193,6 +199,7 @@ class ThroughputMonitor(Callback):
         self._update(trainer, pl_module, batch, iter_num)
         self._compute(trainer, iter_num)
 
+    @override
     @rank_zero_only
     def on_validation_end(self, trainer: "Trainer", *_: Any) -> None:
         if trainer.sanity_checking or trainer.state.fn != TrainerFn.FITTING:
@@ -203,10 +210,12 @@ class ThroughputMonitor(Callback):
         val_time = sum(self._throughputs[RunningStage.VALIDATING]._time)
         self._t0s[RunningStage.TRAINING] += time_between_train_and_val + val_time
 
+    @override
     @rank_zero_only
     def on_test_start(self, trainer: "Trainer", *_: Any) -> None:
         self._start(trainer)
 
+    @override
     @rank_zero_only
     def on_test_batch_end(
         self, trainer: "Trainer", pl_module: "LightningModule", outputs: Any, batch: Any, *_: Any, **__: Any
@@ -215,10 +224,12 @@ class ThroughputMonitor(Callback):
         self._update(trainer, pl_module, batch, iter_num)
         self._compute(trainer, iter_num)
 
+    @override
     @rank_zero_only
     def on_predict_start(self, trainer: "Trainer", *_: Any) -> None:
         self._start(trainer)
 
+    @override
     @rank_zero_only
     def on_predict_batch_end(
         self, trainer: "Trainer", pl_module: "LightningModule", outputs: Any, batch: Any, *_: Any, **__: Any
