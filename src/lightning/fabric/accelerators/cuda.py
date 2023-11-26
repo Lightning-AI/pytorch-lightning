@@ -16,8 +16,9 @@ import warnings
 from contextlib import contextmanager
 from functools import lru_cache
 from typing import Generator, List, Optional, Union, cast
-from typing_extensions import override
+
 import torch
+from typing_extensions import override
 
 from lightning.fabric.accelerators.accelerator import Accelerator
 from lightning.fabric.accelerators.registry import _AcceleratorRegistry
@@ -28,7 +29,7 @@ from lightning.fabric.utilities.rank_zero import rank_zero_info
 class CUDAAccelerator(Accelerator):
     """Accelerator for NVIDIA CUDA devices."""
 
-    @override    
+    @override
     def setup_device(self, device: torch.device) -> None:
         """
         Raises:

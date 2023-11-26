@@ -12,8 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from typing import List, Union
-from typing_extensions import override
+
 import torch
+from typing_extensions import override
 
 from lightning.fabric.accelerators.accelerator import Accelerator
 from lightning.fabric.accelerators.registry import _AcceleratorRegistry
@@ -22,7 +23,7 @@ from lightning.fabric.accelerators.registry import _AcceleratorRegistry
 class CPUAccelerator(Accelerator):
     """Accelerator for CPU devices."""
 
-    @override    
+    @override
     def setup_device(self, device: torch.device) -> None:
         """
         Raises:

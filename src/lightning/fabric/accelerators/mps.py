@@ -14,8 +14,9 @@
 import platform
 from functools import lru_cache
 from typing import List, Optional, Union
-from typing_extensions import override
+
 import torch
+from typing_extensions import override
 
 from lightning.fabric.accelerators.accelerator import Accelerator
 from lightning.fabric.accelerators.registry import _AcceleratorRegistry
