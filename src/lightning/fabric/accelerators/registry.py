@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from typing import Any, Callable, Dict, List, Optional
+from typing_extensions import override
 
 from lightning.fabric.utilities.exceptions import MisconfigurationException
 from lightning.fabric.utilities.registry import _register_classes
@@ -82,6 +83,7 @@ class _AcceleratorRegistry(dict):
 
         return do_register
 
+    @override
     def get(self, name: str, default: Optional[Any] = None) -> Any:
         """Calls the registered accelerator with the required parameters and returns the accelerator object.
 

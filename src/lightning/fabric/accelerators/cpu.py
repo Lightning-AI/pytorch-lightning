@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from typing import List, Union
-
+from typing_extensions import override
 import torch
 
 from lightning.fabric.accelerators.accelerator import Accelerator
@@ -22,6 +22,7 @@ from lightning.fabric.accelerators.registry import _AcceleratorRegistry
 class CPUAccelerator(Accelerator):
     """Accelerator for CPU devices."""
 
+    @override    
     def setup_device(self, device: torch.device) -> None:
         """
         Raises:
@@ -31,31 +32,37 @@ class CPUAccelerator(Accelerator):
         if device.type != "cpu":
             raise ValueError(f"Device should be CPU, got {device} instead.")
 
+    @override
     def teardown(self) -> None:
         pass
 
     @staticmethod
+    @override
     def parse_devices(devices: Union[int, str, List[int]]) -> int:
         """Accelerator device parsing logic."""
         return _parse_cpu_cores(devices)
 
     @staticmethod
+    @override
     def get_parallel_devices(devices: Union[int, str, List[int]]) -> List[torch.device]:
         """Gets parallel devices for the Accelerator."""
         devices = _parse_cpu_cores(devices)
         return [torch.device("cpu")] * devices
 
     @staticmethod
+    @override
     def auto_device_count() -> int:
         """Get the devices when set to auto."""
         return 1
 
     @staticmethod
+    @override
     def is_available() -> bool:
         """CPU is always available for execution."""
         return True
 
     @classmethod
+    @override
     def register_accelerators(cls, accelerator_registry: _AcceleratorRegistry) -> None:
         accelerator_registry.register(
             "cpu",
