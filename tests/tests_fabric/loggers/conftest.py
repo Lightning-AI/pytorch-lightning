@@ -1,0 +1,64 @@
+# Copyright The Lightning AI team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+import sys
+from types import ModuleType
+from unittest.mock import Mock
+
+import pytest
+
+
+@pytest.fixture()
+def wandb_mock(monkeypatch):
+    class RunType:  # to make isinstance checks pass
+        pass
+
+    run_mock = Mock(
+        spec=RunType,
+        log=Mock(),
+        config=Mock(),
+        watch=Mock(),
+        log_artifact=Mock(),
+        use_artifact=Mock(),
+        id="run_id",
+    )
+
+    wandb = ModuleType("wandb")
+    wandb.init = Mock(return_value=run_mock)
+    wandb.run = Mock()
+    wandb.require = Mock()
+    wandb.Api = Mock()
+    wandb.Artifact = Mock()
+    wandb.Image = Mock()
+    wandb.Audio = Mock()
+    wandb.Video = Mock()
+    wandb.Table = Mock()
+    monkeypatch.setitem(sys.modules, "wandb", wandb)
+
+    wandb_sdk = ModuleType("sdk")
+    monkeypatch.setitem(sys.modules, "wandb.sdk", wandb_sdk)
+
+    wandb_sdk_lib = ModuleType("lib")
+    wandb_sdk_lib.RunDisabled = RunType
+    monkeypatch.setitem(sys.modules, "wandb.sdk.lib", wandb_sdk_lib)
+
+    wandb_wandb_run = ModuleType("wandb_run")
+    wandb_wandb_run.Run = RunType
+    monkeypatch.setitem(sys.modules, "wandb.wandb_run", wandb_wandb_run)
+
+    wandb.sdk = wandb_sdk
+    wandb.sdk.lib = wandb_sdk_lib
+    wandb.wandb_run = wandb_wandb_run
+
+    monkeypatch.setattr("lightning.fabric.loggers.wandb._WANDB_AVAILABLE", True)
+    return wandb
