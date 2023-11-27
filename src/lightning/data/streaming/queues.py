@@ -292,13 +292,8 @@ class Broadcaster:
         return self._broadcast(key, obj)
 
     def _broadcast(self, key: str, obj: Any) -> Any:
-        print(os.getenv("LIGHTNING_APP_STATE_URL"))
-        print("AAAA")
-        from time import sleep
-
-        sleep(60 * 1000)
         json = BroadcastInput(key=key, value=pickle.dumps(obj, 0).decode()).model_dump()
         resp = self.client.post("/broadcast", json=json)
         if resp.status_code != 201:
             raise RuntimeError("Failed to broadcast value.")
-        return pickle.loads(bytes(json["value"], "utf-8"))
+        return pickle.loads(bytes(resp.json()["value"], "utf-8"))
