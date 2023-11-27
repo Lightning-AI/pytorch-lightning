@@ -160,9 +160,9 @@ class HTTPClient:
         return self.session.get(url)
 
     @_http_method_logger_wrapper
-    def post(self, path: str, *, query_params: Optional[Dict] = None, data: Optional[bytes] = None):
+    def post(self, path: str, *, query_params: Optional[Dict] = None, data: Optional[bytes] = None, json: Any = None):
         url = urljoin(self.base_url, path)
-        return self.session.post(url, data=data, params=query_params)
+        return self.session.post(url, data=data, params=query_params, json=json)
 
     @_http_method_logger_wrapper
     def delete(self, path: str):
@@ -276,7 +276,7 @@ class HTTPQueue(BaseQueue):
 
 class BroadcastInput(BaseModel):
     key: str
-    value: bytes
+    value: str
 
 
 class Broadcaster:
@@ -297,7 +297,8 @@ class Broadcaster:
         from time import sleep
 
         sleep(60 * 1000)
-        resp = self.client.post("/broadcast", data=BroadcastInput(key=key, value=pickle.dumps(obj)))
+        json = BroadcastInput(key=key, value=pickle.dumps(obj, 0).decode()).model_dump()
+        resp = self.client.post("/broadcast", json=json)
         if resp.status_code != 201:
             raise RuntimeError("Failed to broadcast value.")
-        return pickle.loads(bytes(resp.content))
+        return pickle.loads(bytes(json["value"], "utf-8"))
