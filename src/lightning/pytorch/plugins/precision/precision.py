@@ -40,7 +40,7 @@ class Precision(FabricPrecision, CheckpointHooks):
         self, model: Module, optimizers: List[Optimizer], lr_schedulers: List[Any]
     ) -> Tuple[Module, List[Optimizer], List[Any]]:
         """Connects this plugin to the accelerator and the training process."""
-        return self.convert_module(model), optimizers, lr_schedulers
+        return model, optimizers, lr_schedulers
 
     @override
     def pre_backward(self, tensor: Tensor, module: "pl.LightningModule") -> Tensor:  # type: ignore[override]

@@ -149,6 +149,10 @@ class Strategy(ABC):
         """
         assert self.accelerator is not None
         self.accelerator.setup(trainer)
+        assert self.model is not None
+        # let the precision plugin convert the module here so that this strategy hook can decide the order
+        # of operations
+        self.precision_plugin.convert_module(self.model)
         self.setup_optimizers(trainer)
         self.setup_precision_plugin()
         _optimizers_to_device(self.optimizers, self.root_device)
