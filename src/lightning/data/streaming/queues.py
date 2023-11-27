@@ -24,6 +24,7 @@ from urllib.parse import urljoin
 
 import backoff
 import requests
+from pydantic import BaseModel
 from requests.adapters import HTTPAdapter
 from requests.exceptions import ConnectionError, ConnectTimeout, ReadTimeout
 from urllib3.util.retry import Retry
@@ -273,6 +274,11 @@ class HTTPQueue(BaseQueue):
             return 0
 
 
+class BroadcastInput(BaseModel):
+    key: str
+    value: bytes
+
+
 class Broadcaster:
     def __init__(self):
         self.client: Optional[HTTPClient] = None
@@ -291,7 +297,7 @@ class Broadcaster:
         from time import sleep
 
         sleep(60 * 1000)
-        resp = self.client.post("/broadcast", query_params={"data": pickle.dumps({"key": key, "obj": obj})})
+        resp = self.client.post("/broadcast", data=BroadcastInput(key=key, value=pickle.dumps(obj)))
         if resp.status_code != 201:
             raise RuntimeError("Failed to broadcast value.")
         return pickle.loads(bytes(resp.content))
