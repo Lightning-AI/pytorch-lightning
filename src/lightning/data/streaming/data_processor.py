@@ -976,9 +976,14 @@ class DataProcessor:
 
         queue = HTTPQueue()
 
+        counter = 0
         for worker_user_items in workers_user_items:
             for items in worker_user_items:
-                resp = queue.put(items)
+                items_dict = {}
+                for item in items:
+                    items_dict[counter] = item
+                    counter += 1
+                resp = queue.put(items_dict)
                 print(resp)
                 if resp.status_code != 200:
                     break
