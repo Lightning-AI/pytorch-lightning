@@ -294,6 +294,6 @@ class Broadcaster:
     def _broadcast(self, key: str, obj: Any) -> Any:
         json = BroadcastInput(key=key, value=pickle.dumps(obj, 0).decode()).model_dump()
         resp = self.client.post("/broadcast", json=json)
-        if resp.status_code != 201:
+        if resp.status_code != 200:
             raise RuntimeError("Failed to broadcast value.")
         return pickle.loads(bytes(resp.json()["value"], "utf-8"))
