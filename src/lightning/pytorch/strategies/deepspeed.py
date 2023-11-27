@@ -347,12 +347,20 @@ class DeepSpeedStrategy(DDPStrategy):
     def setup(self, trainer: "pl.Trainer") -> None:
         assert self.accelerator is not None
         self.accelerator.setup(trainer)
+
         # we set the device so that optimizers can be created with distributed comms.
         assert self.lightning_module is not None
         self.lightning_module._device = self.root_device
-        self.setup_optimizers(trainer)
+
+        self.model = self.precision_plugin.convert_module(self.model)
+        self.model = self._setup_model(self.model)
+
+        if trainer.state.fn == TrainerFn.FITTING:
+            self.setup_optimizers(trainer)
         self.setup_precision_plugin()
-        _optimizers_to_device(self.optimizers, self.root_device)
+        if trainer.state.fn == TrainerFn.FITTING:
+            _optimizers_to_device(self.optimizers, self.root_device)
+
         self.init_deepspeed()
         self.barrier()
 
@@ -591,14 +599,15 @@ class DeepSpeedStrategy(DDPStrategy):
             trainer: the Trainer, these optimizers should be connected to
 
         """
-        if trainer.state.fn != TrainerFn.FITTING:
-            return
         # Skip initializing optimizers here as DeepSpeed handles optimizers via config.
         # User may have specified config options instead in configure_optimizers, but this is handled
         # via `_initialize_deepspeed_train`
         # empty optimizers, schedulers
         self.optimizers = []
         self.lr_scheduler_configs = []
+
+    def _setup_model(self, model: Module) -> Module:
+        return model
 
     @property
     @override

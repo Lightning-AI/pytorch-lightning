@@ -315,15 +315,17 @@ class FSDPStrategy(ParallelStrategy):
     @override
     def setup(self, trainer: "pl.Trainer") -> None:
         assert self.accelerator is not None
-        assert self.model is not None
         self.accelerator.setup(trainer)
 
+        assert self.model is not None
         if trainer.state.fn == TrainerFn.FITTING and self._layer_sync:
             self.model = self._layer_sync.apply(self.model)
 
         # we set the device so that optimizers can be created with distributed comms.
         assert self.lightning_module is not None
         self.lightning_module._device = self.root_device
+
+        self.model = self.precision_plugin.convert_module(self.model)
 
         if is_overridden("configure_sharded_model", self.lightning_module):
             # legacy: we don't skip setup with the `configure_model` alternative
@@ -335,10 +337,11 @@ class FSDPStrategy(ParallelStrategy):
             self.model = self._setup_model(self.model)
         self.barrier()
 
-        self.setup_optimizers(trainer)
-        _optimizers_to_device(self.optimizers, self.root_device)
-
+        if trainer.state.fn == TrainerFn.FITTING:
+            self.setup_optimizers(trainer)
         self.setup_precision_plugin()
+        if trainer.state.fn == TrainerFn.FITTING:
+            _optimizers_to_device(self.optimizers, self.root_device)
 
     @override
     def setup_optimizers(self, trainer: "pl.Trainer") -> None:
@@ -371,6 +374,7 @@ class FSDPStrategy(ParallelStrategy):
 
     @override
     def model_to_device(self) -> None:
+        # FSDP takes care of moving the model to device
         pass
 
     @contextmanager

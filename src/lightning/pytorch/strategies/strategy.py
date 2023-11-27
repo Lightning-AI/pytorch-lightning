@@ -135,8 +135,6 @@ class Strategy(ABC):
             trainer: the Trainer, these optimizers should be connected to
 
         """
-        if trainer.state.fn != TrainerFn.FITTING:
-            return
         assert self.lightning_module is not None
         self.optimizers, self.lr_scheduler_configs = _init_optimizers_and_lr_schedulers(self.lightning_module)
 
@@ -149,13 +147,19 @@ class Strategy(ABC):
         """
         assert self.accelerator is not None
         self.accelerator.setup(trainer)
+
         assert self.model is not None
         # let the precision plugin convert the module here so that this strategy hook can decide the order
         # of operations
-        self.precision_plugin.convert_module(self.model)
-        self.setup_optimizers(trainer)
+        self.model = self.precision_plugin.convert_module(self.model)
+        self.model_to_device()
+        self.model = self._setup_model(self.model)
+
+        if trainer.state.fn == TrainerFn.FITTING:
+            self.setup_optimizers(trainer)
         self.setup_precision_plugin()
-        _optimizers_to_device(self.optimizers, self.root_device)
+        if trainer.state.fn == TrainerFn.FITTING:
+            _optimizers_to_device(self.optimizers, self.root_device)
 
     def setup_precision_plugin(self) -> None:
         """Attaches the precision plugin to the strategy."""
