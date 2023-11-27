@@ -281,7 +281,7 @@ class Broadcaster:
         if os.getenv("LIGHTNING_APP_STATE_URL") is None:
             return obj
         if self.client is None:
-            self.client = HTTPQueue(os.getenv("LIGHTNING_APP_STATE_URL"))
+            self.client = HTTPClient(os.getenv("LIGHTNING_APP_STATE_URL"), "")
         return self._broadcast(key, obj)
 
     def _broadcast(self, key: str, obj: Any) -> Any:
