@@ -188,7 +188,7 @@ class HTTPQueue(BaseQueue):
     def get(self, timeout: Optional[float] = None) -> Any:
         raise NotImplementedError
 
-    def put(self, items: Any) -> Any:
+    def put(self, items: Dict[int, Any]) -> Any:
         lightning_app_state_url = os.getenv("LIGHTNING_APP_STATE_URL")
         if lightning_app_state_url is None:
             raise RuntimeError("This shouldn't have happened.")
@@ -196,15 +196,11 @@ class HTTPQueue(BaseQueue):
             self.client = HTTPClient(lightning_app_state_url)
         return self._put(items)
 
-    def _put(self, items: Any) -> Any:
-        json = {"node_rank": _get_node_rank(), items: [pickle.dumps(item, 0).decode() for item in items]}
-
-        print(os.getenv("LIGHTNING_APP_STATE_URL"))
-
-        from time import sleep
-
-        sleep(60 * 10)
-
+    def _put(self, items: Dict[int, Any]) -> Any:
+        json = {
+            "node_rank": _get_node_rank(),
+            "data": {k: pickle.dumps(v, 0).decode() for k, v in items.items()},
+        }
         return self.client.post("/put", json=json)
 
 
