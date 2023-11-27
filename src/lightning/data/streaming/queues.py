@@ -278,7 +278,7 @@ class Broadcaster:
         self.client: Optional[HTTPClient] = None
 
     def broadcast(self, key: str, obj: Any) -> Any:
-        if os.getenv("CLOUDSPACE_ID") is None:
+        if os.getenv("LIGHTNING_APP_STATE_URL") is None:
             return obj
         if self.client is None:
             self.client = HTTPQueue(os.getenv("LIGHTNING_APP_STATE_URL"))
