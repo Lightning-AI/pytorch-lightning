@@ -197,9 +197,15 @@ class HTTPQueue(BaseQueue):
         return self._put(items)
 
     def _put(self, items: Any) -> Any:
-        return self.client.post(
-            "/put", json={"node_rank": _get_node_rank(), items: [pickle.dumps(item, 0).decode() for item in items]}
-        )
+        json = {"node_rank": _get_node_rank(), items: [pickle.dumps(item, 0).decode() for item in items]}
+
+        print(os.getenv("LIGHTNING_APP_STATE_URL"))
+
+        from time import sleep
+
+        sleep(60 * 10)
+
+        return self.client.post("/put", json=json)
 
 
 class BroadcastInput(BaseModel):
