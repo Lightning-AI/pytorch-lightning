@@ -185,6 +185,9 @@ class HTTPQueue(BaseQueue):
     def __init__(self):
         self.client: Optional[HTTPClient] = None
 
+    def get(self, timeout: Optional[float] = None) -> Any:
+        raise NotImplementedError
+
     def put(self, items: Any) -> Any:
         lightning_app_state_url = os.getenv("LIGHTNING_APP_STATE_URL")
         if lightning_app_state_url is None:
