@@ -824,6 +824,8 @@ class DataProcessor:
 
         num_items = sum([len(items) for items in workers_user_items])
 
+        self._register_data(workers_user_items)
+
         self._cleanup_cache()
 
         print(f"Starting {self.num_workers} workers")
@@ -968,7 +970,17 @@ class DataProcessor:
 
         os.makedirs(cache_data_dir, exist_ok=True)
 
-    def _create_queue(self):
-        if os.getenv("CLOUDSPACE_ID") is None:
-            return Queue()
-        return HTTPQueue()
+    def _register_data(self, workers_user_items: List[List[Any]]):
+        if os.getenv("LIGHTNING_APP_STATE_URL") is None:
+            return
+
+        queue = HTTPQueue()
+
+        for worker_user_items in workers_user_items:
+            for items in worker_user_items:
+                resp = queue.put(items)
+                print(resp)
+                if resp.status_code != 200:
+                    break
+            if resp.status_code != 200:
+                break

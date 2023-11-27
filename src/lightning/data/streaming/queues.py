@@ -15,18 +15,14 @@
 import multiprocessing
 import os
 import pickle
-import queue  # needed as import instead from/import for mocking in tests
-import time
 from abc import ABC, abstractmethod
 from functools import wraps
 from typing import Any, Callable, Dict, Optional
 from urllib.parse import urljoin
 
-import backoff
 import requests
 from pydantic import BaseModel
 from requests.adapters import HTTPAdapter
-from requests.exceptions import ConnectionError, ConnectTimeout, ReadTimeout
 from urllib3.util.retry import Retry
 
 
@@ -180,98 +176,27 @@ class HTTPClient:
         pass
 
 
+def _get_node_rank() -> int:
+    """Returns the current node rank of the instance."""
+    return int(os.getenv("DATA_OPTIMIZER_NODE_RANK", 0))
+
+
 class HTTPQueue(BaseQueue):
-    def __init__(self) -> None:
-        self.client = HTTPClient()
-        self.queue_url = ""
+    def __init__(self):
+        self.client: Optional[HTTPClient] = None
 
-    @property
-    def is_running(self) -> bool:
-        """Pinging the http redis server to see if it is alive."""
-        try:
-            url = urljoin(self.queue_url, "health")
-            resp = requests.get(
-                url,
-                timeout=1,
-            )
-            if resp.status_code == 200:
-                return True
-        except (ConnectionError, ConnectTimeout, ReadTimeout):
-            return False
-        return False
+    def put(self, items: Any) -> Any:
+        lightning_app_state_url = os.getenv("LIGHTNING_APP_STATE_URL")
+        if lightning_app_state_url is None:
+            raise RuntimeError("This shouldn't have happened.")
+        if self.client is None:
+            self.client = HTTPClient(lightning_app_state_url)
+        return self._put(items)
 
-    def get(self, timeout: Optional[float] = None) -> Any:
-        if not self.app_id:
-            raise ValueError(f"App ID couldn't be extracted from the queue name: {self.name}")
-
-        # it's a blocking call, we need to loop and call the backend to mimic this behavior
-        if timeout is None:
-            while True:
-                try:
-                    try:
-                        return self._get()
-                    except requests.exceptions.HTTPError:
-                        pass
-                except queue.Empty:
-                    time.sleep(1)
-
-        # make one request and return the result
-        if timeout == 0:
-            try:
-                return self._get()
-            except requests.exceptions.HTTPError:
-                return None
-
-        # timeout is some value - loop until the timeout is reached
-        start_time = time.time()
-        while (time.time() - start_time) < timeout:
-            try:
-                try:
-                    return self._get()
-                except requests.exceptions.HTTPError:
-                    if timeout > self.default_timeout:
-                        return None
-                    raise queue.Empty
-            except queue.Empty:
-                # Note: In theory, there isn't a need for a sleep as the queue shouldn't
-                # block the flow if the queue is empty.
-                # However, as the Http Server can saturate,
-                # let's add a sleep here if a higher timeout is provided
-                # than the default timeout
-                if timeout > self.default_timeout:
-                    time.sleep(0.05)
-        return None
-
-    def _get(self) -> Any:
-        try:
-            resp = self.client.post(f"v1/{self.app_id}/{self._name_suffix}", query_params={"action": "pop"})
-            if resp.status_code == 204:
-                raise queue.Empty
-            return pickle.loads(resp.content)
-        except ConnectionError:
-            # Note: If the Http Queue service isn't available,
-            # we consider the queue is empty to avoid failing the app.
-            raise queue.Empty
-
-    @backoff.on_exception(backoff.expo, (RuntimeError, requests.exceptions.HTTPError))
-    def put(self, item: Any) -> None:
-        if not self.app_id:
-            raise ValueError(f"The Lightning App ID couldn't be extracted from the queue name: {self.name}")
-
-        value = pickle.dumps(item)
-        resp = self.client.post(f"v1/{self.app_id}/{self._name_suffix}", data=value, query_params={"action": "push"})
-        if resp.status_code != 201:
-            raise RuntimeError(f"Failed to push to queue: {self._name_suffix}")
-
-    def length(self) -> int:
-        if not self.app_id:
-            raise ValueError(f"App ID couldn't be extracted from the queue name: {self.name}")
-
-        try:
-            val = self.client.get(f"/v1/{self.app_id}/{self._name_suffix}/length")
-            return int(val.text)
-        except requests.exceptions.HTTPError:
-            return 0
+    def _put(self, items: Any) -> Any:
+        return self.client.post(
+            "/put", json={"node_rank": _get_node_rank(), items: [pickle.dumps(item, 0).decode() for item in items]}
+        )
 
 
 class BroadcastInput(BaseModel):
