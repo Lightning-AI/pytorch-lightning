@@ -1,1 +1,1 @@
-check-jsonschema ==0.27.1
+check-jsonschema ==0.27.2
