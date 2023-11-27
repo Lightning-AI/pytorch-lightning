@@ -15,6 +15,7 @@ from time import sleep, time
 from typing import Any, Dict, List, Optional, Tuple, TypeVar, Union
 from urllib import parse
 
+import requests
 from tqdm.auto import tqdm as _tqdm
 
 from lightning import seed_everything
@@ -983,9 +984,9 @@ class DataProcessor:
                 for item in items:
                     items_dict[counter] = item
                     counter += 1
-                resp = queue.put(items_dict)
-                print(resp)
-                if resp.status_code != 200:
-                    break
-            if resp.status_code != 200:
-                break
+
+                # Find a better way to handle this
+                try:
+                    queue.put(items_dict)
+                except requests.exceptions.HTTPError:
+                    return
