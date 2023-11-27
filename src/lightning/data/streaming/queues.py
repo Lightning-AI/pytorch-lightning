@@ -287,7 +287,7 @@ class Broadcaster:
 
     def _broadcast(self, key: str, obj: Any) -> Any:
         data = pickle.dumps({"key": key, "obj": obj})
-        resp = self.client.post("/broadcast", data=data)
+        resp = self.client.post("/broadcast", data=str(data).encode("utf-8"))
         if resp.status_code != 201:
             raise RuntimeError("Failed to broadcast value.")
         return pickle.loads(resp.content)
