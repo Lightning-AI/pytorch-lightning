@@ -278,14 +278,16 @@ class Broadcaster:
         self.client: Optional[HTTPClient] = None
 
     def broadcast(self, key: str, obj: Any) -> Any:
-        if os.getenv("LIGHTNING_APP_STATE_URL") is None:
+        lightning_app_state_url = os.getenv("LIGHTNING_APP_STATE_URL")
+        if lightning_app_state_url is None:
             return obj
         if self.client is None:
-            self.client = HTTPClient(os.getenv("LIGHTNING_APP_STATE_URL"), "")
+            self.client = HTTPClient(lightning_app_state_url)
         return self._broadcast(key, obj)
 
     def _broadcast(self, key: str, obj: Any) -> Any:
-        resp = self.client.post("/broadcast", data={"key": key, "obj": pickle.dumps(obj)})
+        data = pickle.dumps({"key": key, "obj": obj})
+        resp = self.client.post("/broadcast", data=data)
         if resp.status_code != 201:
             raise RuntimeError("Failed to broadcast value.")
         return pickle.loads(resp.content)
