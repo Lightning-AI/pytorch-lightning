@@ -286,6 +286,10 @@ class Broadcaster:
         return self._broadcast(key, obj)
 
     def _broadcast(self, key: str, obj: Any) -> Any:
+        print("AAAA")
+        from time import sleep
+        sleep(60 * 1000)
+        data = pickle.dumps({"key": key, "obj": obj})
         resp = self.client.post("/broadcast", data="HERE")
         if resp.status_code != 201:
             raise RuntimeError("Failed to broadcast value.")
