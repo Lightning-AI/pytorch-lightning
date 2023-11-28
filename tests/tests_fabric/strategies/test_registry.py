@@ -44,6 +44,7 @@ def test_available_strategies_in_registry():
         "ddp",
         "deepspeed",
         "deepspeed_stage_1",
+        "deepspeed_stage_1_offload",
         "deepspeed_stage_2",
         "deepspeed_stage_2_offload",
         "deepspeed_stage_3",

@@ -539,6 +539,12 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
     def register_strategies(cls, strategy_registry: _StrategyRegistry) -> None:
         strategy_registry.register("deepspeed", cls, description="Default DeepSpeed Strategy")
         strategy_registry.register("deepspeed_stage_1", cls, description="DeepSpeed with ZeRO Stage 1 enabled", stage=1)
+        strategy_registry.register(
+            "deepspeed_stage_1_offload", 
+            cls, 
+            description="DeepSpeed with ZeRO Stage 1 enabled", 
+            stage=1,
+            )
         strategy_registry.register("deepspeed_stage_2", cls, description="DeepSpeed with ZeRO Stage 2 enabled", stage=2)
         strategy_registry.register(
             "deepspeed_stage_2_offload",
