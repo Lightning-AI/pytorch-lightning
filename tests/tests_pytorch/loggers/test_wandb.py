@@ -17,34 +17,41 @@ from unittest import mock
 
 import pytest
 import yaml
+from lightning.fabric.loggers import WandbLogger as FabricWandbLogger
 from lightning.pytorch import Trainer
 from lightning.pytorch.callbacks import ModelCheckpoint
 from lightning.pytorch.cli import LightningCLI
 from lightning.pytorch.demos.boring_classes import BoringModel
-from lightning.pytorch.loggers import WandbLogger
+from lightning.pytorch.loggers import WandbLogger as PytorchWandbLogger
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning_utilities.test.warning import no_warning_call
 
 
-def test_wandb_project_name(wandb_mock):
+@pytest.fixture(params=[PytorchWandbLogger, FabricWandbLogger], ids=["pytorch", "fabric"])
+def wandb_logger_class(request):
+    """Fixture to test both the Pytorch and Fabric WandbLogger classes."""
+    return request.param
+
+
+def test_wandb_project_name(wandb_mock, wandb_logger_class):
     with mock.patch.dict(os.environ, {}):
-        logger = WandbLogger()
+        logger = wandb_logger_class()
     assert logger.name == "lightning_logs"
 
     with mock.patch.dict(os.environ, {}):
-        logger = WandbLogger(project="project")
+        logger = wandb_logger_class(project="project")
     assert logger.name == "project"
 
     with mock.patch.dict(os.environ, {"WANDB_PROJECT": "env_project"}):
-        logger = WandbLogger()
+        logger = wandb_logger_class()
     assert logger.name == "env_project"
 
     with mock.patch.dict(os.environ, {"WANDB_PROJECT": "env_project"}):
-        logger = WandbLogger(project="project")
+        logger = wandb_logger_class(project="project")
     assert logger.name == "project"
 
 
-def test_wandb_logger_init(wandb_mock):
+def test_wandb_logger_init(wandb_mock, wandb_logger_class):
     """Verify that basic functionality of wandb logger works.
 
     Wandb doesn't work well with pytest so we have to mock it out here.
@@ -52,6 +59,8 @@ def test_wandb_logger_init(wandb_mock):
     """
     # test wandb.init called when there is no W&B run
     wandb_mock.run = None
+    with mock.patch.dict(os.environ, {}):
+        WandbLogger = wandb_logger_class
     logger = WandbLogger(
         name="test_name", save_dir="test_save_dir", version="test_id", project="test_project", resume="never"
     )
@@ -122,14 +131,16 @@ def test_wandb_logger_init(wandb_mock):
     assert logger.version == wandb_mock.init().id
 
 
-def test_wandb_logger_init_before_spawn(wandb_mock):
+def test_wandb_logger_init_before_spawn(wandb_mock, wandb_logger_class):
+    with mock.patch.dict(os.environ, {}):
+        WandbLogger = wandb_logger_class
     logger = WandbLogger()
     assert logger._experiment is None
     logger.__getstate__()
     assert logger._experiment is not None
 
 
-def test_wandb_pickle(wandb_mock, tmp_path):
+def test_wandb_pickle(wandb_mock, tmp_path, wandb_logger_class):
     """Verify that pickling trainer with wandb logger works.
 
     Wandb doesn't work well with pytest so we have to mock it out here.
@@ -149,6 +160,8 @@ def test_wandb_pickle(wandb_mock, tmp_path):
 
     wandb_mock.run = None
     wandb_mock.init.return_value = Experiment()
+    with mock.patch.dict(os.environ, {}):
+        WandbLogger = wandb_logger_class
     logger = WandbLogger(id="the_id", offline=True)
 
     trainer = Trainer(default_root_dir=tmp_path, max_epochs=1, logger=logger)
@@ -169,9 +182,11 @@ def test_wandb_pickle(wandb_mock, tmp_path):
     del os.environ["WANDB_MODE"]
 
 
-def test_wandb_logger_dirs_creation(wandb_mock, tmp_path):
+def test_wandb_logger_dirs_creation(wandb_mock, tmp_path, wandb_logger_class):
     """Test that the logger creates the folders and files in the right place."""
     wandb_mock.run = None
+    with mock.patch.dict(os.environ, {}):
+        WandbLogger = wandb_logger_class
     logger = WandbLogger(project="project", save_dir=tmp_path, offline=True)
 
     # mock return values of experiment
@@ -200,12 +215,14 @@ def test_wandb_logger_dirs_creation(wandb_mock, tmp_path):
     assert trainer.log_dir == logger.save_dir
 
 
-def test_wandb_log_model(wandb_mock, tmp_path):
+def test_wandb_log_model(wandb_mock, tmp_path, wandb_logger_class):
     """Test that the logger creates the folders and files in the right place."""
     wandb_mock.run = None
     model = BoringModel()
 
     # test log_model=True
+    with mock.patch.dict(os.environ, {}):
+        WandbLogger = wandb_logger_class
     logger = WandbLogger(save_dir=tmp_path, log_model=True)
     logger.experiment.id = "1"
     logger.experiment.name = "run_name"
@@ -368,7 +385,7 @@ def test_wandb_log_model(wandb_mock, tmp_path):
     wandb_mock.init().log_artifact.assert_called_with(wandb_mock.Artifact(), aliases=["latest", "best"])
 
 
-def test_wandb_log_model_with_score(wandb_mock, tmp_path):
+def test_wandb_log_model_with_score(wandb_mock, tmp_path, wandb_logger_class):
     """Test to prevent regression on #15543, ensuring the score is logged as a Python number, not a scalar tensor."""
     wandb_mock.run = None
     model = BoringModel()
@@ -376,6 +393,8 @@ def test_wandb_log_model_with_score(wandb_mock, tmp_path):
     wandb_mock.init().log_artifact.reset_mock()
     wandb_mock.init.reset_mock()
     wandb_mock.Artifact.reset_mock()
+    with mock.patch.dict(os.environ, {}):
+        WandbLogger = wandb_logger_class
     logger = WandbLogger(save_dir=tmp_path, log_model=True)
     logger.experiment.id = "1"
     logger.experiment.name = "run_name"
@@ -398,13 +417,15 @@ def test_wandb_log_model_with_score(wandb_mock, tmp_path):
     assert score == 3
 
 
-def test_wandb_log_media(wandb_mock, tmp_path):
+def test_wandb_log_media(wandb_mock, tmp_path, wandb_logger_class):
     """Test that the logger creates the folders and files in the right place."""
     wandb_mock.run = None
 
     # test log_text with columns and data
     columns = ["input", "label", "prediction"]
     data = [["cheese", "english", "english"], ["fromage", "french", "spanish"]]
+    with mock.patch.dict(os.environ, {}):
+        WandbLogger = wandb_logger_class
     logger = WandbLogger()
     logger.log_text(key="samples", columns=columns, data=data)
     wandb_mock.Table.assert_called_once_with(
@@ -525,15 +546,19 @@ def test_wandb_log_media(wandb_mock, tmp_path):
     wandb_mock.init().log.assert_called_once_with({"samples": wandb_mock.Table(), "trainer/global_step": 5})
 
 
-def test_wandb_logger_offline_log_model(wandb_mock, tmp_path):
+def test_wandb_logger_offline_log_model(wandb_mock, tmp_path, wandb_logger_class):
     """Test that log_model=True raises an error in offline mode."""
+    with mock.patch.dict(os.environ, {}):
+        WandbLogger = wandb_logger_class
     with pytest.raises(MisconfigurationException, match="checkpoints cannot be uploaded in offline mode"):
         _ = WandbLogger(save_dir=tmp_path, offline=True, log_model=True)
 
 
-def test_wandb_logger_download_artifact(wandb_mock, tmp_path):
+def test_wandb_logger_download_artifact(wandb_mock, tmp_path, wandb_logger_class):
     """Test that download_artifact works."""
     wandb_mock.run = wandb_mock.init()
+    with mock.patch.dict(os.environ, {}):
+        WandbLogger = wandb_logger_class
     logger = WandbLogger()
     logger.download_artifact("test_artifact", str(tmp_path), "model", True)
     wandb_mock.run.use_artifact.assert_called_once_with("test_artifact")
@@ -545,10 +570,13 @@ def test_wandb_logger_download_artifact(wandb_mock, tmp_path):
     wandb_mock.Api().artifact.assert_called_once_with("test_artifact", type="model")
 
 
+@pytest.mark.parametrize("wandb_logger_class", [PytorchWandbLogger], indirect=True)  # Skip FabricWandbLogger
 @pytest.mark.parametrize(("log_model", "expected"), [("True", True), ("False", False), ("all", "all")])
-def test_wandb_logger_cli_integration(log_model, expected, wandb_mock, monkeypatch, tmp_path):
+def test_wandb_logger_cli_integration(log_model, expected, wandb_mock, monkeypatch, tmp_path, wandb_logger_class):
     """Test that the WandbLogger can be used with the LightningCLI."""
     monkeypatch.chdir(tmp_path)
+
+    class_path = f"{wandb_logger_class.__module__}.{wandb_logger_class.__name__}"
 
     class InspectParsedCLI(LightningCLI):
         def before_instantiate_classes(self):
@@ -559,7 +587,7 @@ def test_wandb_logger_cli_integration(log_model, expected, wandb_mock, monkeypat
     input_config = {
         "trainer": {
             "logger": {
-                "class_path": "lightning.pytorch.loggers.wandb.WandbLogger",
+                "class_path": class_path,
                 "init_args": {"log_model": log_model},
             },
         }
