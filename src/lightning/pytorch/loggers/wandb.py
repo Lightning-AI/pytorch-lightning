@@ -38,7 +38,7 @@ if TYPE_CHECKING:
     from wandb.sdk.lib import RunDisabled
     from wandb.wandb_run import Run
 
-_WANDB_AVAILABLE = RequirementCache("wandb>=0.12.10")
+_WANDB_AVAILABLE = RequirementCache("wandb>=0.15.0")
 
 
 class WandbLogger(Logger):

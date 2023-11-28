@@ -40,7 +40,7 @@ if TYPE_CHECKING:
         ModelCheckpoint,  # TODO: Replace with new Fabric Checkpoints system
     )
 
-_WANDB_AVAILABLE = RequirementCache("wandb>=0.12.10")
+_WANDB_AVAILABLE = RequirementCache("wandb>=0.15.0")
 
 
 class WandbLogger(Logger):
@@ -647,16 +647,6 @@ class WandbLogger(Logger):
 
         """
         return self.experiment.use_artifact(artifact, type=artifact_type)
-
-    def log_graph(self, model: nn.Module, input_array: Optional[Tensor] = None) -> None:
-        """Record model graph.
-
-        Args:
-            model: the model with an implementation of ``forward``.
-            input_array: input passes to `model.forward`
-
-        """
-        pass
 
     @override
     @rank_zero_only
