@@ -14,6 +14,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - The Trainer now restores the training mode set through `.train()` or `.eval()` on a submodule-level when switching from validation to training ([#18951](https://github.com/Lightning-AI/lightning/pull/18951))
 
+- Added deepspeed_stage_1_offload strategy ([#19075](https://github.com/Lightning-AI/lightning/pull/19075))
 
 ### Changed
 
