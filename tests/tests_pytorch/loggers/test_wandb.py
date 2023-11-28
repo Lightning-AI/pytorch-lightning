@@ -14,6 +14,7 @@
 import os
 import pickle
 from unittest import mock
+from unittest.mock import Mock
 
 import pytest
 import yaml
@@ -151,6 +152,7 @@ def test_wandb_pickle(wandb_mock, tmp_path, wandb_logger_class):
         id = "the_id"
         step = 0
         dir = "wandb"
+        _label = Mock()
 
         @property
         def name(self):

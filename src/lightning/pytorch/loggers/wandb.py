@@ -405,7 +405,7 @@ class WandbLogger(Logger):
                 ):
                     self._experiment.define_metric("trainer/global_step")
                     self._experiment.define_metric("*", step_metric="trainer/global_step", step_sync=True)
-        assert isinstance(self._experiment, (Run, RunDisabled))
+
         self._experiment._label(repo="lightning_logger")  # pylint: disable=protected-access
         return self._experiment
 
