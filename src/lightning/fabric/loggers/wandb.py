@@ -20,7 +20,9 @@ from argparse import Namespace
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Dict, List, Literal, Mapping, Optional, Union
 
+import torch.nn as nn
 from lightning_utilities.core.imports import RequirementCache
+from torch import Tensor
 from typing_extensions import override
 
 from lightning.fabric.loggers.logger import Logger, rank_zero_experiment
@@ -30,7 +32,6 @@ from lightning.fabric.utilities.rank_zero import rank_zero_only, rank_zero_warn
 from lightning.fabric.utilities.types import _PATH
 
 if TYPE_CHECKING:
-    import torch.nn as nn
     from wandb import Artifact
     from wandb.sdk.lib import RunDisabled
     from wandb.wandb_run import Run
@@ -409,7 +410,7 @@ class WandbLogger(Logger):
 
         return self._experiment
 
-    def watch(self, model: "nn.Module", log: str = "gradients", log_freq: int = 100, log_graph: bool = True) -> None:
+    def watch(self, model: nn.Module, log: str = "gradients", log_freq: int = 100, log_graph: bool = True) -> None:
         self.experiment.watch(model, log=log, log_freq=log_freq, log_graph=log_graph)
 
     @override
@@ -573,6 +574,27 @@ class WandbLogger(Logger):
         # don't create an experiment if we don't have one
         return self._experiment.id if self._experiment else self._id
 
+    @property
+    def log_dir(self) -> Optional[str]:
+        """Gets the save directory.
+
+        Returns:
+            The path to the save directory.
+
+        """
+        return self.save_dir
+
+    @property
+    def group_separator(self) -> str:
+        """Return the default separator used by the logger to group the data into subfolders."""
+        return self.LOGGER_JOIN_CHAR
+
+    @property
+    def root_dir(self) -> Optional[str]:
+        """Return the root directory where all versions of an experiment get saved, or `None` if the logger does not
+        save data locally."""
+        return self.save_dir.parent if self.save_dir else None
+
     @override
     def after_save_checkpoint(self, checkpoint_callback: "ModelCheckpoint") -> None:
         # log checkpoints as artifacts
@@ -626,6 +648,22 @@ class WandbLogger(Logger):
         """
         return self.experiment.use_artifact(artifact, type=artifact_type)
 
+    def log_graph(self, model: nn.Module, input_array: Optional[Tensor] = None) -> None:
+        """Record model graph.
+
+        Args:
+            model: the model with an implementation of ``forward``.
+            input_array: input passes to `model.forward`
+
+        """
+        pass
+
+    @override
+    @rank_zero_only
+    def save(self) -> None:
+        """Save log data."""
+        self.experiment.log({}, commit=True)
+
     @override
     @rank_zero_only
     def finalize(self, status: str) -> None:
@@ -638,7 +676,6 @@ class WandbLogger(Logger):
 
     def _scan_and_log_pytorch_checkpoints(self, checkpoint_callback: "ModelCheckpoint") -> None:
         import wandb
-        from torch import Tensor
 
         from lightning.pytorch.loggers.utilities import _scan_checkpoints
 
