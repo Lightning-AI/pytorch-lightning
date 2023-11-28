@@ -22,8 +22,9 @@ import numpy as np
 import pytest
 import torch
 from lightning import seed_everything
-from lightning.data.streaming import Cache, functions
-from lightning.data.streaming.constants import _TIME_FORMAT
+from lightning.data.constants import _TIME_FORMAT
+from lightning.data.processing import functions
+from lightning.data.streaming import Cache
 from lightning.data.streaming.dataset import StreamingDataset, _try_create_cache_dir
 from lightning.data.streaming.item_loader import TokensLoader
 from lightning.data.streaming.shuffle import FullShuffle, NoShuffle

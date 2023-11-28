@@ -12,70 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import multiprocessing
 import os
 import pickle
-from abc import ABC, abstractmethod
 from functools import wraps
 from typing import Any, Callable, Dict, Optional
 from urllib.parse import urljoin
 
 import requests
-from pydantic import BaseModel
+from lightning.data.processing.strategy.queue import Queue
+from lightning.data.utilities.env import _get_node_rank
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
-
-
-class BaseQueue(ABC):
-    """Base Queue class that has a similar API to the Queue class in python."""
-
-    @abstractmethod
-    def __init__(self, name: str, default_timeout: float):
-        self.name = name
-        self.default_timeout = default_timeout
-
-    @abstractmethod
-    def put(self, item: Any) -> None:
-        pass
-
-    @abstractmethod
-    def get(self, timeout: Optional[float] = None) -> Any:
-        """Returns the left most element of the queue.
-
-        Parameters
-        ----------
-        timeout:
-            Read timeout in seconds, in case of input timeout is 0, the `self.default_timeout` is used.
-            A timeout of None can be used to block indefinitely.
-
-        """
-        pass
-
-    @property
-    def is_running(self) -> bool:
-        """Returns True if the queue is running, False otherwise.
-
-        Child classes should override this property and implement custom logic as required
-
-        """
-        return True
-
-
-class MultiProcessQueue(BaseQueue):
-    def __init__(self, name: str, default_timeout: float) -> None:
-        self.name = name
-        self.default_timeout = default_timeout
-        context = multiprocessing.get_context("spawn")
-        self.queue = context.Queue()
-
-    def put(self, item: Any) -> None:
-        self.queue.put(item)
-
-    def get(self, timeout: Optional[float] = None) -> Any:
-        if timeout == 0:
-            timeout = self.default_timeout
-        return self.queue.get(timeout=timeout, block=(timeout is None))
-
 
 _CONNECTION_RETRY_TOTAL = 2880
 _CONNECTION_RETRY_BACKOFF_FACTOR = 0.5
@@ -176,27 +123,17 @@ class HTTPClient:
         pass
 
 
-def _get_node_rank() -> int:
-    """Returns the current node rank of the instance."""
-    return int(os.getenv("DATA_OPTIMIZER_NODE_RANK", 0))
-
-
-class HTTPQueue(BaseQueue):
+class HTTPQueue(Queue):
     def __init__(self):
-        self.client: Optional[HTTPClient] = None
+        lightning_app_state_url = os.getenv("LIGHTNING_APP_STATE_URL")
+        if lightning_app_state_url is None:
+            raise RuntimeError("The `LIGHTNING_APP_STATE_URL` should be set.")
+        self.client: HTTPClient = HTTPClient(lightning_app_state_url)
 
-    def get(self, timeout: Optional[float] = None) -> Any:
+    def get(self) -> Any:
         raise NotImplementedError
 
     def put(self, items: Dict[int, Any]) -> Any:
-        lightning_app_state_url = os.getenv("LIGHTNING_APP_STATE_URL")
-        if lightning_app_state_url is None:
-            raise RuntimeError("This shouldn't have happened.")
-        if self.client is None:
-            self.client = HTTPClient(lightning_app_state_url)
-        return self._put(items)
-
-    def _put(self, items: Dict[int, Any]) -> Any:
         json = {
             "node_rank": _get_node_rank(),
             "data": {k: pickle.dumps(v, 0).decode() for k, v in items.items()},
@@ -204,26 +141,21 @@ class HTTPQueue(BaseQueue):
         return self.client.post("/put", json=json)
 
 
-class BroadcastInput(BaseModel):
-    key: str
-    value: str
+class DistributedMap:
+    """The DistributedMap enables to create a distributed key value pair.
 
+    The first process to set a given key value pair wins.
 
-class Broadcaster:
+    """
+
     def __init__(self):
-        self.client: Optional[HTTPClient] = None
-
-    def broadcast(self, key: str, obj: Any) -> Any:
         lightning_app_state_url = os.getenv("LIGHTNING_APP_STATE_URL")
         if lightning_app_state_url is None:
-            return obj
-        if self.client is None:
-            self.client = HTTPClient(lightning_app_state_url)
-        return self._broadcast(key, obj)
+            raise RuntimeError("The `LIGHTNING_APP_STATE_URL` should be set.")
+        self.client: HTTPClient = HTTPClient(lightning_app_state_url)
 
-    def _broadcast(self, key: str, obj: Any) -> Any:
-        json = BroadcastInput(key=key, value=pickle.dumps(obj, 0).decode()).model_dump()
-        resp = self.client.post("/broadcast", json=json)
+    def assign(self, key: str, value: Any) -> Any:
+        resp = self.client.post("/broadcast", json={"key": key, "value": pickle.dumps(value, 0).decode()})
         if resp.status_code != 200:
-            raise RuntimeError("Failed to broadcast value.")
+            raise RuntimeError(f"Failed to assign the following {key=} {value=}.")
         return pickle.loads(bytes(resp.json()["value"], "utf-8"))

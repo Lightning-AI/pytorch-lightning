@@ -1,3 +1,5 @@
+import os
+import shutil
 from typing import Callable, Optional
 
 import torch
@@ -154,3 +156,61 @@ class Environment:
 
     def __str__(self) -> str:
         return repr(self)
+
+
+def _has_server() -> bool:
+    return os.getenv("LIGHTNING_APP_STATE_URL") is not None
+
+
+def _get_num_nodes() -> int:
+    """Returns the number of nodes."""
+    return int(os.getenv("DATA_OPTIMIZER_NUM_NODES", 1))
+
+
+def _get_node_rank() -> int:
+    """Returns the current node rank of the instance."""
+    return int(os.getenv("DATA_OPTIMIZER_NODE_RANK", 0))
+
+
+def _get_fast_dev_run() -> int:
+    """Returns whether fast dev mode is enabled."""
+    return bool(int(os.getenv("DATA_OPTIMIZER_FAST_DEV_RUN", 1)))
+
+
+def _get_home_folder() -> str:
+    """Returns whether cache folder for the filepaths."""
+    return os.getenv("DATA_OPTIMIZER_HOME_FOLDER", os.path.expanduser("~"))
+
+
+def _get_cache_dir(name: Optional[str] = None) -> str:
+    """Returns the cache directory used by the Cache to store the chunks."""
+    cache_dir = os.getenv("DATA_OPTIMIZER_CACHE_FOLDER", "/cache/chunks")
+    if name is None:
+        return cache_dir
+    return os.path.join(cache_dir, name.lstrip("/"))
+
+
+def _get_cache_data_dir(name: Optional[str] = None) -> str:
+    """Returns the cache data directory used by the DataProcessor workers to download the files."""
+    cache_dir = os.getenv("DATA_OPTIMIZER_DATA_CACHE_FOLDER", "/cache/data")
+    if name is None:
+        return os.path.join(cache_dir)
+    return os.path.join(cache_dir, name.lstrip("/"))
+
+
+def _cleanup_cache():
+    cache_dir = _get_cache_dir()
+
+    # Cleanup the cache dir folder to avoid corrupted files from previous run to be there.
+    if os.path.exists(cache_dir):
+        shutil.rmtree(cache_dir, ignore_errors=True)
+
+    os.makedirs(cache_dir, exist_ok=True)
+
+    cache_data_dir = _get_cache_data_dir()
+
+    # Cleanup the cache data folder to avoid corrupted files from previous run to be there.
+    if os.path.exists(cache_data_dir):
+        shutil.rmtree(cache_data_dir, ignore_errors=True)
+
+    os.makedirs(cache_data_dir, exist_ok=True)

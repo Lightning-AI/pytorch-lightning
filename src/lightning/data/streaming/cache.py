@@ -16,7 +16,7 @@ import os
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Tuple, Union
 
-from lightning.data.streaming.constants import (
+from lightning.data.constants import (
     _INDEX_FILENAME,
     _LIGHTNING_CLOUD_LATEST,
     _TORCH_GREATER_EQUAL_2_1_0,

@@ -8,23 +8,24 @@ import numpy as np
 import pytest
 import torch
 from lightning import seed_everything
-from lightning.data.streaming import data_processor as data_processor_module
-from lightning.data.streaming import functions
-from lightning.data.streaming.cache import Cache, Dir
-from lightning.data.streaming.data_processor import (
-    DataChunkRecipe,
-    DataProcessor,
-    DataTransformRecipe,
+from lightning.data.processing import data_processor as data_processor_module
+from lightning.data.processing import functions, worker_functions
+from lightning.data.processing.data_processor import DataProcessor
+from lightning.data.processing.functions import LambdaDataTransformRecipe, map, optimize
+from lightning.data.processing.recipe import DataChunkRecipe, DataTransformRecipe, _wait_for_file_to_exist
+from lightning.data.processing.worker_functions import (
     _download_data_target,
-    _get_item_filesizes,
-    _map_items_to_workers_sequentially,
-    _map_items_to_workers_weighted,
     _remove_target,
     _upload_fn,
     _wait_for_disk_usage_higher_than_threshold,
-    _wait_for_file_to_exist,
 )
-from lightning.data.streaming.functions import LambdaDataTransformRecipe, map, optimize
+from lightning.data.streaming.cache import Cache, Dir
+from lightning.data.utilities.env import _cleanup_cache
+from lightning.data.utilities.packing import (
+    _get_item_filesizes,
+    _map_items_to_workers_sequentially,
+    _map_items_to_workers_weighted,
+)
 from lightning_utilities.core.imports import RequirementCache
 
 _PIL_AVAILABLE = RequirementCache("PIL")
@@ -110,7 +111,7 @@ def test_upload_s3_fn(tmpdir, monkeypatch):
 
     s3_client.client.upload_file = copy_file
 
-    monkeypatch.setattr(data_processor_module, "S3Client", mock.MagicMock(return_value=s3_client))
+    monkeypatch.setattr(worker_functions, "S3Client", mock.MagicMock(return_value=s3_client))
 
     assert os.listdir(remote_output_dir) == []
 
@@ -160,7 +161,7 @@ def test_remove_target(tmpdir):
 
 
 @pytest.mark.skipif(condition=sys.platform == "win32", reason="Not supported on windows")
-@mock.patch("lightning.data.streaming.data_processor._wait_for_disk_usage_higher_than_threshold")
+@mock.patch("lightning.data.processing.worker_functions._wait_for_disk_usage_higher_than_threshold")
 def test_download_data_target(wait_for_disk_usage_higher_than_threshold_mock, tmpdir):
     input_dir = os.path.join(tmpdir, "input_dir")
     os.makedirs(input_dir, exist_ok=True)
@@ -181,15 +182,15 @@ def test_download_data_target(wait_for_disk_usage_higher_than_threshold_mock, tm
     def fn(*_, **__):
         value = paths.pop(0)
         if value is None:
-            return value
-        return (0, [value])
+            return {}
+        return {0: value}
 
     queue_in.get = fn
 
     queue_out = mock.MagicMock()
     _download_data_target(Dir(input_dir, remote_input_dir), cache_dir, queue_in, queue_out)
 
-    assert queue_out.put._mock_call_args_list[0].args == (0,)
+    assert queue_out.put._mock_call_args_list[0].args == ({0: os.path.join(cache_dir, "a.txt")},)
     assert queue_out.put._mock_call_args_list[1].args == (None,)
 
     assert os.listdir(cache_dir) == ["a.txt"]
@@ -199,7 +200,7 @@ def test_download_data_target(wait_for_disk_usage_higher_than_threshold_mock, tm
 
 def test_wait_for_disk_usage_higher_than_threshold():
     disk_usage_mock = mock.Mock(side_effect=[mock.Mock(free=10e9), mock.Mock(free=10e9), mock.Mock(free=10e11)])
-    with mock.patch("lightning.data.streaming.data_processor.shutil.disk_usage", disk_usage_mock):
+    with mock.patch("lightning.data.processing.worker_functions.shutil.disk_usage", disk_usage_mock):
         _wait_for_disk_usage_higher_than_threshold("/", 10, sleep_time=0)
     assert disk_usage_mock.call_count == 3
 
@@ -233,17 +234,6 @@ def test_wait_for_file_to_exist():
         _wait_for_file_to_exist(s3, obj, sleep_time=0.01)
 
 
-def test_broadcast_object(tmpdir, monkeypatch):
-    data_processor = DataProcessor(input_dir=str(tmpdir))
-    assert data_processor._broadcast_object("dummy") == "dummy"
-    monkeypatch.setenv("DATA_OPTIMIZER_NUM_NODES", "2")
-    monkeypatch.setattr(data_processor_module, "_distributed_is_initialized", lambda: True)
-    torch_mock = mock.MagicMock()
-    monkeypatch.setattr(data_processor_module, "torch", torch_mock)
-    assert data_processor._broadcast_object("dummy") == "dummy"
-    assert torch_mock.distributed.broadcast_object_list._mock_call_args.args == (["dummy"], 0)
-
-
 def test_cache_dir_cleanup(tmpdir, monkeypatch):
     cache_dir = os.path.join(tmpdir, "chunks")
     cache_data_dir = os.path.join(tmpdir, "data")
@@ -255,10 +245,9 @@ def test_cache_dir_cleanup(tmpdir, monkeypatch):
 
     assert os.listdir(cache_dir) == ["a.txt"]
 
-    data_processor = DataProcessor(input_dir=str(tmpdir))
     monkeypatch.setenv("DATA_OPTIMIZER_CACHE_FOLDER", str(cache_dir))
     monkeypatch.setenv("DATA_OPTIMIZER_DATA_CACHE_FOLDER", str(cache_data_dir))
-    data_processor._cleanup_cache()
+    _cleanup_cache()
 
     assert os.listdir(cache_dir) == []
 
@@ -444,11 +433,6 @@ def test_data_processsor(fast_dev_run, delete_cached_files, tmpdir, monkeypatch)
     assert len(files) == expected
 
 
-class TestDataProcessor(DataProcessor):
-    def _broadcast_object(self, obj: Any) -> Any:
-        return obj
-
-
 @pytest.mark.parametrize("delete_cached_files", [False])
 @pytest.mark.parametrize("fast_dev_run", [False])
 @pytest.mark.skipif(
@@ -489,7 +473,7 @@ def test_data_processsor_distributed(fast_dev_run, delete_cached_files, tmpdir, 
     monkeypatch.setenv("DATA_OPTIMIZER_DATA_CACHE_FOLDER", data_cache_dir)
     monkeypatch.setenv("DATA_OPTIMIZER_NUM_NODES", "2")
     monkeypatch.setenv("DATA_OPTIMIZER_NODE_RANK", "0")
-    data_processor = TestDataProcessor(
+    data_processor = DataProcessor(
         input_dir=input_dir,
         num_workers=2,
         delete_cached_files=delete_cached_files,
@@ -518,7 +502,7 @@ def test_data_processsor_distributed(fast_dev_run, delete_cached_files, tmpdir, 
     monkeypatch.setenv("DATA_OPTIMIZER_CACHE_FOLDER", cache_dir)
     monkeypatch.setenv("DATA_OPTIMIZER_NUM_NODES", "2")
     monkeypatch.setenv("DATA_OPTIMIZER_NODE_RANK", "1")
-    data_processor = TestDataProcessor(
+    data_processor = DataProcessor(
         input_dir=input_dir,
         num_workers=2,
         num_uploaders=1,

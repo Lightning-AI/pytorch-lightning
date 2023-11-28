@@ -11,12 +11,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from lightning.data.streaming.cache import Cache
-from lightning.data.streaming.dataset import StreamingDataset
-from lightning.data.streaming.item_loader import TokensLoader
+from abc import ABC, abstractmethod
+from typing import Any, Dict
 
-__all__ = [
-    "Cache",
-    "StreamingDataset",
-    "TokensLoader",
-]
+
+class Queue(ABC):
+    def __init__(self):
+        pass
+
+    @abstractmethod
+    def put(self, input: Dict[int, Any]) -> None:
+        pass
+
+    @abstractmethod
+    def get(self) -> Dict[int, Any]:
+        pass
+
+    @abstractmethod
+    def ack(self, index: int) -> None:
+        pass

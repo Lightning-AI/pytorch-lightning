@@ -11,12 +11,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from lightning.data.streaming.cache import Cache
-from lightning.data.streaming.dataset import StreamingDataset
-from lightning.data.streaming.item_loader import TokensLoader
+from abc import ABC, abstractmethod
+from typing import List
 
-__all__ = [
-    "Cache",
-    "StreamingDataset",
-    "TokensLoader",
-]
+
+class DataProcessorStrategy(ABC):
+    def __init__(self):
+        pass
+
+    @abstractmethod
+    def register_inputs(self, input: List[int]):
+        pass
+
+    @abstractmethod
+    def get_global_queue(self):
+        pass

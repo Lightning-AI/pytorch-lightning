@@ -26,13 +26,13 @@ import numpy as np
 import torch
 from torch.utils.data import IterableDataset, get_worker_info
 
-from lightning.data.streaming import Cache
-from lightning.data.streaming.constants import (
+from lightning.data.constants import (
     _DEFAULT_CACHE_DIR,
     _INDEX_FILENAME,
     _LIGHTNING_CLOUD_LATEST,
     _TIME_FORMAT,
 )
+from lightning.data.streaming import Cache
 from lightning.data.streaming.item_loader import BaseItemLoader
 from lightning.data.streaming.sampler import ChunkedIndex
 from lightning.data.streaming.serializers import Serializer

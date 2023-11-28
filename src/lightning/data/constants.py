@@ -20,7 +20,7 @@ from lightning_utilities.core.imports import RequirementCache
 
 _INDEX_FILENAME = "index.json"
 _DEFAULT_CHUNK_BYTES = 1 << 26  # 64M B
-_DEFAULT_FAST_DEV_RUN_ITEMS = 10
+_DEFAULT_FAST_DEV_RUN = 10
 _DEFAULT_CACHE_DIR = os.path.join(Path.home(), ".lightning", "chunks")
 
 # This is required for full pytree serialization / deserialization support
