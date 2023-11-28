@@ -55,6 +55,7 @@ def wandb_mock(monkeypatch):
         log_artifact=Mock(),
         use_artifact=Mock(),
         id="run_id",
+        _label=Mock(),
     )
 
     wandb = ModuleType("wandb")
