@@ -191,8 +191,6 @@ class Throughput:
                     items_per_sec = dev_items_per_sec * self.world_size
                     metrics["items_per_sec"] = items_per_sec
 
-            print(metrics)
-
         if len(self._flops) == self._flops.maxlen:
             elapsed_flops = sum(self._flops) - self._flops[0]
             elapsed_time = self._time[-1] - self._time[0]
