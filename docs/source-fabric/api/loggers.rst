@@ -18,3 +18,4 @@ Loggers
     Logger
     CSVLogger
     TensorBoardLogger
+    WandbLogger
