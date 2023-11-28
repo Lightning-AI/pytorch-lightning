@@ -542,8 +542,9 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         strategy_registry.register(
             "deepspeed_stage_1_offload", 
             cls, 
-            description="DeepSpeed with ZeRO Stage 1 enabled", 
+            description="DeepSpeed with ZeRO Stage 1 and optimizer CPU Offload", 
             stage=1,
+            offload_optimizer=True,
             )
         strategy_registry.register("deepspeed_stage_2", cls, description="DeepSpeed with ZeRO Stage 2 enabled", stage=2)
         strategy_registry.register(
