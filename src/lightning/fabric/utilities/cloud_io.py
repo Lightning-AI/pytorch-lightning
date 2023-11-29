@@ -24,8 +24,8 @@ from fsspec.core import url_to_fs
 from fsspec.implementations.local import AbstractFileSystem
 from lightning_utilities.core.imports import module_available
 
-from lightning.fabric.utilities.types import _MAP_LOCATION_TYPE, _PATH
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_1
+from lightning.fabric.utilities.types import _MAP_LOCATION_TYPE, _PATH
 
 log = logging.getLogger(__name__)
 
