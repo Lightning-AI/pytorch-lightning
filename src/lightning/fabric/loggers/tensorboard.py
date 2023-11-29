@@ -16,7 +16,7 @@ import logging
 import os
 from argparse import Namespace
 from typing import TYPE_CHECKING, Any, Dict, Mapping, Optional, Union
-
+from typing_extensions import override
 from lightning_utilities.core.imports import RequirementCache
 from torch import Tensor
 from torch.nn import Module
@@ -109,6 +109,7 @@ class TensorBoardLogger(Logger):
         self._kwargs = kwargs
 
     @property
+    @override
     def name(self) -> str:
         """Get the name of the experiment.
 
@@ -119,6 +120,7 @@ class TensorBoardLogger(Logger):
         return self._name
 
     @property
+    @override
     def version(self) -> Union[int, str]:
         """Get the experiment version.
 
@@ -131,6 +133,7 @@ class TensorBoardLogger(Logger):
         return self._version
 
     @property
+    @override
     def root_dir(self) -> str:
         """Gets the save directory where the TensorBoard experiments are saved.
 
@@ -141,6 +144,7 @@ class TensorBoardLogger(Logger):
         return self._root_dir
 
     @property
+    @override
     def log_dir(self) -> str:
         """The directory for this run's tensorboard checkpoint.
 
@@ -191,6 +195,7 @@ class TensorBoardLogger(Logger):
         self._experiment = SummaryWriter(log_dir=self.log_dir, **self._kwargs)
         return self._experiment
 
+    @override
     @rank_zero_only
     def log_metrics(self, metrics: Mapping[str, float], step: Optional[int] = None) -> None:
         assert rank_zero_only.rank == 0, "experiment tried to log from global_rank != 0"
@@ -212,6 +217,7 @@ class TensorBoardLogger(Logger):
                         f"\n you tried to log {v} which is currently not supported. Try a dict or a scalar/tensor."
                     ) from ex
 
+    @override
     @rank_zero_only
     def log_hyperparams(  # type: ignore[override]
         self, params: Union[Dict[str, Any], Namespace], metrics: Optional[Dict[str, Any]] = None
@@ -251,6 +257,7 @@ class TensorBoardLogger(Logger):
             writer.add_summary(ssi)
             writer.add_summary(sei)
 
+    @override
     @rank_zero_only
     def log_graph(self, model: Module, input_array: Optional[Tensor] = None) -> None:
         model_example_input = getattr(model, "example_input_array", None)
@@ -278,10 +285,12 @@ class TensorBoardLogger(Logger):
         else:
             self.experiment.add_graph(model, input_array)
 
+    @override
     @rank_zero_only
     def save(self) -> None:
         self.experiment.flush()
 
+    @override
     @rank_zero_only
     def finalize(self, status: str) -> None:
         if self._experiment is not None:

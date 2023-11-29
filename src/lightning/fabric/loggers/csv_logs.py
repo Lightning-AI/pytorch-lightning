@@ -17,7 +17,7 @@ import logging
 import os
 from argparse import Namespace
 from typing import Any, Dict, List, Optional, Set, Union
-
+from typing_extensions import override
 from torch import Tensor
 
 from lightning.fabric.loggers.logger import Logger, rank_zero_experiment
@@ -73,6 +73,7 @@ class CSVLogger(Logger):
         self._flush_logs_every_n_steps = flush_logs_every_n_steps
 
     @property
+    @override
     def name(self) -> str:
         """Gets the name of the experiment.
 
@@ -83,6 +84,7 @@ class CSVLogger(Logger):
         return self._name
 
     @property
+    @override
     def version(self) -> Union[int, str]:
         """Gets the version of the experiment.
 
@@ -95,11 +97,13 @@ class CSVLogger(Logger):
         return self._version
 
     @property
+    @override
     def root_dir(self) -> str:
         """Gets the save directory where the versioned CSV experiments are saved."""
         return self._root_dir
 
     @property
+    @override
     def log_dir(self) -> str:
         """The log directory for this run.
 
@@ -128,10 +132,12 @@ class CSVLogger(Logger):
         self._experiment = _ExperimentWriter(log_dir=self.log_dir)
         return self._experiment
 
+    @override
     @rank_zero_only
     def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:  # type: ignore[override]
         raise NotImplementedError("The `CSVLogger` does not yet support logging hyperparameters.")
 
+    @override
     @rank_zero_only
     def log_metrics(  # type: ignore[override]
         self, metrics: Dict[str, Union[Tensor, float]], step: Optional[int] = None
@@ -143,11 +149,13 @@ class CSVLogger(Logger):
         if (step + 1) % self._flush_logs_every_n_steps == 0:
             self.save()
 
+    @override
     @rank_zero_only
     def save(self) -> None:
         super().save()
         self.experiment.save()
 
+    @override
     @rank_zero_only
     def finalize(self, status: str) -> None:
         if self._experiment is None:
