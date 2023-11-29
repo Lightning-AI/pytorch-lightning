@@ -49,7 +49,7 @@ class TransformerEnginePrecision(Precision):
         replace_layers: Whether to replace ``Linear`` and ``LayerNorm`` layers automatically with their Transformer
             Engine alternatives. Note that they don't subclass the torch equivalents so checks like
             ``isinstance(l, torch.nn.Linear)`` will not pass.
-        fallback_compute_dtype: The compute dtype to use for operations that don't support fp8 autocast.
+        fallback_compute_dtype: The compute dtype to use for operations that don't support fp8 autocast. Defaults to the same as ``weights_dtype``.
 
     .. note::
 
