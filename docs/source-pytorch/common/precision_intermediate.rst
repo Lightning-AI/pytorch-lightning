@@ -147,7 +147,7 @@ the model and inputs can be kept in true full or half precision.
     from lightning.trainer.plugins import TransformerEnginePrecision
 
     recipe = {"fp8_format": "HYBRID", "amax_history_len": 16, "amax_compute_algo": "max"}
-    precision = TransformerEnginePrecision(dtype=torch.bfloat16, recipe=recipe)
+    precision = TransformerEnginePrecision(weights_dtype=torch.bfloat16, recipe=recipe)
     trainer = Trainer(plugins=precision)
 
 

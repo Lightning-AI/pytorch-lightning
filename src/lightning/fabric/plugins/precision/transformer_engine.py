@@ -26,7 +26,7 @@ from lightning.fabric.plugins.precision.utils import (
     _convert_fp_tensor,
     _DtypeContextManager,
 )
-from lightning.fabric.utilities.rank_zero import rank_zero_warn
+from lightning.fabric.utilities.rank_zero import rank_zero_info, rank_zero_warn
 
 if TYPE_CHECKING:
     from transformer_engine.common.recipe import DelayedScaling
@@ -42,13 +42,14 @@ class TransformerEnginePrecision(Precision):
     .. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
 
     Args:
-        dtype: The weights dtype to use.
+        weights_dtype: The weights dtype to use.
         recipe: Recipe for the DelayedScaling
             `configuration <https://docs.nvidia.com/deeplearning/transformer-engine/user-guide/api/common.html#transformer_engine.common.recipe.DelayedScaling>`__.
             In dict format or the dataclass format.
         replace_layers: Whether to replace ``Linear`` and ``LayerNorm`` layers automatically with their Transformer
             Engine alternatives. Note that they don't subclass the torch equivalents so checks like
             ``isinstance(l, torch.nn.Linear)`` will not pass.
+        fallback_compute_dtype: The compute dtype to use for operations that don't support fp8 autocast.
 
     .. note::
 
@@ -62,9 +63,11 @@ class TransformerEnginePrecision(Precision):
 
     def __init__(
         self,
-        dtype: Optional[torch.dtype] = None,
+        *,
+        weights_dtype: torch.dtype,
         recipe: Optional[Union[Mapping[str, Any], "DelayedScaling"]] = None,
         replace_layers: Optional[bool] = None,
+        fallback_compute_dtype: Optional[torch.dtype] = None,
     ) -> None:
         if not _TRANSFORMER_ENGINE_AVAILABLE:
             raise ModuleNotFoundError(str(_TRANSFORMER_ENGINE_AVAILABLE))
@@ -80,21 +83,27 @@ class TransformerEnginePrecision(Precision):
                 recipe["fp8_format"] = getattr(Format, recipe["fp8_format"])
             recipe = DelayedScaling(**recipe)
 
-        if dtype is None:
-            dtype = torch.get_default_dtype()
-        self.dtype = dtype
+        self.weights_dtype = weights_dtype
         self.recipe = recipe
         self.replace_layers = replace_layers
+        self.fallback_compute_dtype = fallback_compute_dtype or weights_dtype
 
     def convert_module(self, module: torch.nn.Module) -> torch.nn.Module:
         # avoid converting if any is found. assume the user took care of it
-        if self.replace_layers and not any("transformer_engine.pytorch" in m.__module__ for m in module.modules()):
+        if any("transformer_engine.pytorch" in m.__module__ for m in module.modules()):
+            if self.replace_layers is True:
+                # info level because this is expected with `init_module`
+                rank_zero_info(
+                    "`TransformerEnginePrecision(replace_layers=True)` is set but the model already contains"
+                    " TransformerEngine layers. Skipping"
+                )
+        elif self.replace_layers in (None, True):
             _convert_layers(module)
-        module = module.to(dtype=self.dtype)
+        module = module.to(dtype=self.weights_dtype)
         return module
 
     def tensor_init_context(self) -> ContextManager:
-        return _DtypeContextManager(self.dtype)
+        return _DtypeContextManager(self.weights_dtype)
 
     def module_init_context(self) -> ContextManager:
         dtype_ctx = self.tensor_init_context()
@@ -113,17 +122,20 @@ class TransformerEnginePrecision(Precision):
         return stack
 
     def forward_context(self) -> ContextManager:
-        dtype_ctx = _DtypeContextManager(self.dtype)
+        dtype_ctx = _DtypeContextManager(self.weights_dtype)
+        fallback_autocast_ctx = torch.autocast(device_type="cuda", dtype=self.fallback_compute_dtype)
         import transformer_engine.pytorch as te
 
         autocast_ctx = te.fp8_autocast(enabled=True, fp8_recipe=self.recipe)
         stack = ExitStack()
         stack.enter_context(dtype_ctx)
+        # enable an outer fallback autocast for operations that do not support fp8
+        stack.enter_context(fallback_autocast_ctx)
         stack.enter_context(autocast_ctx)
         return stack
 
     def convert_input(self, data: Any) -> Any:
-        return apply_to_collection(data, function=_convert_fp_tensor, dtype=Tensor, dst_type=self.dtype)
+        return apply_to_collection(data, function=_convert_fp_tensor, dtype=Tensor, dst_type=self.weights_dtype)
 
     def convert_output(self, data: Any) -> Any:
         return apply_to_collection(data, function=_convert_fp_tensor, dtype=Tensor, dst_type=torch.get_default_dtype())
