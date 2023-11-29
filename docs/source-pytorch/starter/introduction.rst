@@ -231,7 +231,7 @@ Enable advanced training features using Trainer arguments. These are state-of-th
 .. code::
 
    # train on 4 GPUs
-   trainer = Trainer(
+   trainer = L.Trainer(
        devices=4,
        accelerator="gpu",
     )
