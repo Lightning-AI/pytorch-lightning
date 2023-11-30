@@ -24,7 +24,7 @@ import torch
 from lightning import seed_everything
 from lightning.data.streaming import Cache, functions
 from lightning.data.streaming.constants import _TIME_FORMAT
-from lightning.data.streaming.dataset import StreamingDataset, _try_create_cache_dir
+from lightning.data.streaming.dataset import StreamingDataset, _should_replace_path, _try_create_cache_dir
 from lightning.data.streaming.item_loader import TokensLoader
 from lightning.data.streaming.shuffle import FullShuffle, NoShuffle
 from lightning.data.utilities.env import _DistributedEnv
@@ -57,6 +57,14 @@ def test_streaming_dataset(tmpdir, monkeypatch):
     assert len(dataloader) == 12
     dataloader = DataLoader(dataset, num_workers=2, batch_size=2)
     assert len(dataloader) == 6
+
+
+def test_should_replace_path():
+    assert _should_replace_path(None)
+    assert _should_replace_path("")
+    assert _should_replace_path(".../datasets/...")
+    assert _should_replace_path(".../_connections/...")
+    assert not _should_replace_path("something_else")
 
 
 @pytest.mark.parametrize("drop_last", [False, True])
