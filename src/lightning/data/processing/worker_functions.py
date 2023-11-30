@@ -15,21 +15,22 @@ import logging
 import multiprocessing
 import os
 import shutil
+import tempfile
+import types
+from queue import Empty
 from time import sleep
 from typing import Any, Dict, List, Optional, Tuple
 from urllib import parse
-import types
+
 from lightning.data.constants import (
     _TORCH_GREATER_EQUAL_2_1_0,
 )
-from queue import Empty
 from lightning.data.processing.recipe import DataChunkRecipe, DataRecipe, DataTransformRecipe
 from lightning.data.processing.strategy.queue import Queue
 from lightning.data.streaming import Cache
 from lightning.data.streaming.cache import Dir
 from lightning.data.streaming.client import S3Client
 from lightning.data.utilities.env import _get_cache_data_dir, _get_cache_dir, _get_node_rank
-import tempfile
 
 if _TORCH_GREATER_EQUAL_2_1_0:
     from torch.utils._pytree import tree_flatten, tree_unflatten
@@ -47,7 +48,9 @@ def _wait_for_disk_usage_higher_than_threshold(input_dir: str, threshold_in_gb: 
     return
 
 
-def _download_data_target(event: multiprocessing.Event, input_dir: Dir, cache_dir: str, queue_in: Queue, queue_out: multiprocessing.Queue) -> None:
+def _download_data_target(
+    event: multiprocessing.Event, input_dir: Dir, cache_dir: str, queue_in: Queue, queue_out: multiprocessing.Queue
+) -> None:
     """This function is used to download data from a remote directory to a cache directory to optimise reading."""
     s3 = S3Client()
 
@@ -77,10 +80,10 @@ def _download_data_target(event: multiprocessing.Event, input_dir: Dir, cache_di
             queue_out.put({})
             continue
 
-        # Let's sort the data
-        data = sorted([(key, item) for key, item in data.items()], key= lambda x : x[0] )
+        # Let's sort the data
+        data = sorted([(key, item) for key, item in data.items()], key=lambda x: x[0])
 
-        # Let's process the batch of data we received.
+        # Let's process the batch of data we received.
         for key, item in data:
             item, paths = _sanetize_item(item, input_dir, cache_dir)
 
@@ -220,14 +223,14 @@ class ChunkProcessor:
         input_dir: Dir,
         cache_dir: str,
         ready_to_process_queue: multiprocessing.Queue,
-        remove_queue: multiprocessing.Queue
+        remove_queue: multiprocessing.Queue,
     ):
         self.worker_index = worker_index
         self.num_workers = num_workers
         self.input_dir = input_dir
         self.cache_dir = cache_dir
         self.remove_queue = remove_queue
-        
+
         self.counter = 0
         self.item_counter = 0
 
@@ -300,14 +303,12 @@ class ChunkProcessor:
         assert os.path.exists(filepath), filepath
         self.to_upload_queues[self._counter % self.num_uploaders].put(filepath)
 
-
     @classmethod
     def from_data_recipe(cls, data_recipe: DataChunkRecipe):
         return cls(data_recipe, data_recipe.chunk_bytes, data_recipe.chunk_size, data_recipe.compression)
 
 
 class TransformProcessor:
-
     def __init__(self, data_recipe: DataTransformRecipe):
         self.data_recipe = data_recipe
 
@@ -354,11 +355,11 @@ class TransformProcessor:
             except Empty:
                 if self.processors_event.is_set():
                     self._on_end()
-                    return    
+                    return
                 continue
 
             if data is None:
-                # Inform all the processors that all the  
+                # Inform all the processors that all the
                 self.processors_event.set()
                 self._on_end()
                 return
@@ -366,7 +367,6 @@ class TransformProcessor:
             for _, item in data.items():
                 self._process_item(item)
                 self.item_counter += 1
-
 
     def _process_item(self, item):
         # Don't use a context manager to avoid deleting files that are being uploaded.
@@ -395,7 +395,6 @@ class TransformProcessor:
         assert os.path.exists(filepath), filepath
         self.upload_queue.put(filepath)
 
-
     def _on_end(self):
         print(f"Worker {str(_get_node_rank() * self.num_workers + self.worker_index)} is terminating.")
 
@@ -418,244 +417,243 @@ def _get_processor(data_recipe: DataRecipe):
         return ChunkProcessor.from_data_recipe(data_recipe)
     return TransformProcessor.from_data_recipe(data_recipe)
 
+    # class BaseWorker:
+    #     def __init__(
+    #         self,
+    #         worker_index: int,
+    #         num_workers: int,
+    #         node_rank: int,
+    #         data_recipe: "DataRecipe",
+    #         input_dir: Dir,
+    #         output_dir: Dir,
+    #         items: List[Any],
+    #         progress_queue: Queue,
+    #         error_queue: Queue,
+    #         stop_queue: Queue,
+    #         num_downloaders: int,
+    #         num_uploaders: int,
+    #         remove: bool,
+    #     ) -> None:
+    #         """The BaseWorker is responsible to process the user data."""
+    #         self.worker_index = worker_index
+    #         self.num_workers = num_workers
+    #         self.node_rank = node_rank
+    #         self.data_recipe = data_recipe
+    #         self.input_dir = input_dir
+    #         self.output_dir = output_dir
+    #         self.items = items
+    #         self.num_items = len(self.items)
+    #         self.num_downloaders = num_downloaders
+    #         self.num_uploaders = num_uploaders
+    #         self.remove = remove
+    #         self.paths: List[List[str]] = []
+    #         self.remover: Optional[Process] = None
+    #         self.downloaders: List[Process] = []
+    #         self.uploaders: List[Process] = []
+    #         self.to_download_queues: List[Queue] = []
+    #         self.to_upload_queues: List[Queue] = []
+    #         self.stop_queue = stop_queue
+    #         self.ready_to_process_queue: Queue = Queue()
+    #         self.remove_queue: Queue = Queue()
+    #         self.progress_queue: Queue = progress_queue
+    #         self.error_queue: Queue = error_queue
+    #         self._collected_items = 0
+    #         self._counter = 0
+    #         self._last_time = time()
+    #         self._index_counter = 0
+    #         self._current_item: Any = None
 
-# class BaseWorker:
-#     def __init__(
-#         self,
-#         worker_index: int,
-#         num_workers: int,
-#         node_rank: int,
-#         data_recipe: "DataRecipe",
-#         input_dir: Dir,
-#         output_dir: Dir,
-#         items: List[Any],
-#         progress_queue: Queue,
-#         error_queue: Queue,
-#         stop_queue: Queue,
-#         num_downloaders: int,
-#         num_uploaders: int,
-#         remove: bool,
-#     ) -> None:
-#         """The BaseWorker is responsible to process the user data."""
-#         self.worker_index = worker_index
-#         self.num_workers = num_workers
-#         self.node_rank = node_rank
-#         self.data_recipe = data_recipe
-#         self.input_dir = input_dir
-#         self.output_dir = output_dir
-#         self.items = items
-#         self.num_items = len(self.items)
-#         self.num_downloaders = num_downloaders
-#         self.num_uploaders = num_uploaders
-#         self.remove = remove
-#         self.paths: List[List[str]] = []
-#         self.remover: Optional[Process] = None
-#         self.downloaders: List[Process] = []
-#         self.uploaders: List[Process] = []
-#         self.to_download_queues: List[Queue] = []
-#         self.to_upload_queues: List[Queue] = []
-#         self.stop_queue = stop_queue
-#         self.ready_to_process_queue: Queue = Queue()
-#         self.remove_queue: Queue = Queue()
-#         self.progress_queue: Queue = progress_queue
-#         self.error_queue: Queue = error_queue
-#         self._collected_items = 0
-#         self._counter = 0
-#         self._last_time = time()
-#         self._index_counter = 0
-#         self._current_item: Any = None
+    #     def run(self) -> None:
+    #         try:
+    #             self._setup()
+    #             self._loop()
+    #         except Exception:
+    #             traceback_format = traceback.format_exc()
+    #             print(traceback_format)
+    #             self.error_queue.put(traceback_format)
+    #         print(f"Worker {str(_get_node_rank() * self.num_workers + self.worker_index)} is done.")
 
-#     def run(self) -> None:
-#         try:
-#             self._setup()
-#             self._loop()
-#         except Exception:
-#             traceback_format = traceback.format_exc()
-#             print(traceback_format)
-#             self.error_queue.put(traceback_format)
-#         print(f"Worker {str(_get_node_rank() * self.num_workers + self.worker_index)} is done.")
+    #     def _setup(self) -> None:
+    #         self._set_environ_variables()
+    #         self._create_cache()
+    #         self._collect_paths()
+    #         self._start_downloaders()
+    #         self._start_uploaders()
+    #         self._start_remover()
 
-#     def _setup(self) -> None:
-#         self._set_environ_variables()
-#         self._create_cache()
-#         self._collect_paths()
-#         self._start_downloaders()
-#         self._start_uploaders()
-#         self._start_remover()
+    #     def _loop(self) -> None:
+    #         num_downloader_finished = 0
 
-#     def _loop(self) -> None:
-#         num_downloader_finished = 0
+    #         while True:
+    #             index = self.ready_to_process_queue.get()
 
-#         while True:
-#             index = self.ready_to_process_queue.get()
+    #             if index is None:
+    #                 num_downloader_finished += 1
+    #                 if num_downloader_finished == self.num_downloaders:
+    #                     print(f"Worker {str(_get_node_rank() * self.num_workers + self.worker_index)} is terminating.")
 
-#             if index is None:
-#                 num_downloader_finished += 1
-#                 if num_downloader_finished == self.num_downloaders:
-#                     print(f"Worker {str(_get_node_rank() * self.num_workers + self.worker_index)} is terminating.")
+    #                     if isinstance(self.data_recipe, DataChunkRecipe):
+    #                         self._handle_data_chunk_recipe_end()
 
-#                     if isinstance(self.data_recipe, DataChunkRecipe):
-#                         self._handle_data_chunk_recipe_end()
+    #                     if self.output_dir.url if self.output_dir.url else self.output_dir.path:
+    #                         # Inform the uploaders they are doing working
+    #                         for i in range(self.num_uploaders):
+    #                             self.to_upload_queues[i].put(None)
 
-#                     if self.output_dir.url if self.output_dir.url else self.output_dir.path:
-#                         # Inform the uploaders they are doing working
-#                         for i in range(self.num_uploaders):
-#                             self.to_upload_queues[i].put(None)
+    #                         # Wait for them all to be finished
+    #                         for uploader in self.uploaders:
+    #                             uploader.join()
 
-#                         # Wait for them all to be finished
-#                         for uploader in self.uploaders:
-#                             uploader.join()
+    #                     if self.remove:
+    #                         assert self.remover
+    #                         self.remove_queue.put(None)
+    #                         self.remover.join()
 
-#                     if self.remove:
-#                         assert self.remover
-#                         self.remove_queue.put(None)
-#                         self.remover.join()
+    #                     if self.progress_queue:
+    #                         self.progress_queue.put((self.worker_index, self._counter))
+    #                     return
+    #                 continue
 
-#                     if self.progress_queue:
-#                         self.progress_queue.put((self.worker_index, self._counter))
-#                     return
-#                 continue
+    #             if isinstance(self.data_recipe, DataChunkRecipe):
+    #                 self._handle_data_chunk_recipe(index)
+    #             else:
+    #                 self._handle_data_transform_recipe(index)
 
-#             if isinstance(self.data_recipe, DataChunkRecipe):
-#                 self._handle_data_chunk_recipe(index)
-#             else:
-#                 self._handle_data_transform_recipe(index)
+    #             self._counter += 1
 
-#             self._counter += 1
+    #             # Don't send the last progress update, so the main thread awaits for the uploader and remover
+    #             if self.progress_queue and (time() - self._last_time) > 1 and self._counter < (self.num_items - 2):
+    #                 self.progress_queue.put((self.worker_index, self._counter))
+    #                 self._last_time = time()
 
-#             # Don't send the last progress update, so the main thread awaits for the uploader and remover
-#             if self.progress_queue and (time() - self._last_time) > 1 and self._counter < (self.num_items - 2):
-#                 self.progress_queue.put((self.worker_index, self._counter))
-#                 self._last_time = time()
+    #             if self.remove:
+    #                 self.remove_queue.put(self.paths[index])
 
-#             if self.remove:
-#                 self.remove_queue.put(self.paths[index])
+    #             try:
+    #                 self.stop_queue.get(timeout=0.0001)
+    #                 return
+    #             except Empty:
+    #                 pass
 
-#             try:
-#                 self.stop_queue.get(timeout=0.0001)
-#                 return
-#             except Empty:
-#                 pass
+    #     def _set_environ_variables(self) -> None:
+    #         # set the optimizer global rank and world_size
+    #         os.environ["DATA_OPTIMIZER_GLOBAL_RANK"] = str(_get_node_rank() * self.num_workers + self.worker_index)
+    #         os.environ["DATA_OPTIMIZER_NUM_WORKERS"] = str(self.num_workers)
 
-#     def _set_environ_variables(self) -> None:
-#         # set the optimizer global rank and world_size
-#         os.environ["DATA_OPTIMIZER_GLOBAL_RANK"] = str(_get_node_rank() * self.num_workers + self.worker_index)
-#         os.environ["DATA_OPTIMIZER_NUM_WORKERS"] = str(self.num_workers)
+    #     def _create_cache(self) -> None:
+    #         self.cache_data_dir = _get_cache_data_dir()
+    #         os.makedirs(self.cache_data_dir, exist_ok=True)
 
-#     def _create_cache(self) -> None:
-#         self.cache_data_dir = _get_cache_data_dir()
-#         os.makedirs(self.cache_data_dir, exist_ok=True)
+    #         self.cache_chunks_dir = _get_cache_dir()
+    #         os.makedirs(self.cache_chunks_dir, exist_ok=True)
 
-#         self.cache_chunks_dir = _get_cache_dir()
-#         os.makedirs(self.cache_chunks_dir, exist_ok=True)
+    #         if isinstance(self.data_recipe, DataTransformRecipe):
+    #             return
 
-#         if isinstance(self.data_recipe, DataTransformRecipe):
-#             return
+    #         self.cache = Cache(
+    #             self.cache_chunks_dir,
+    #             chunk_bytes=self.data_recipe.chunk_bytes,
+    #             chunk_size=self.data_recipe.chunk_size,
+    #             compression=self.data_recipe.compression,
+    #         )
+    #         self.cache._reader._rank = _get_node_rank() * self.num_workers + self.worker_index
 
-#         self.cache = Cache(
-#             self.cache_chunks_dir,
-#             chunk_bytes=self.data_recipe.chunk_bytes,
-#             chunk_size=self.data_recipe.chunk_size,
-#             compression=self.data_recipe.compression,
-#         )
-#         self.cache._reader._rank = _get_node_rank() * self.num_workers + self.worker_index
+    #     def _try_upload(self, filepath: Optional[str]) -> None:
+    #         if not filepath or (self.output_dir.url if self.output_dir.url else self.output_dir.path) is None:
+    #             return
 
-#     def _try_upload(self, filepath: Optional[str]) -> None:
-#         if not filepath or (self.output_dir.url if self.output_dir.url else self.output_dir.path) is None:
-#             return
+    #         assert os.path.exists(filepath), filepath
+    #         self.to_upload_queues[self._counter % self.num_uploaders].put(filepath)
 
-#         assert os.path.exists(filepath), filepath
-#         self.to_upload_queues[self._counter % self.num_uploaders].put(filepath)
+    #     def _collect_paths(self) -> None:
+    #         items = []
+    #         for item in self.items:
+    #             flattened_item, spec = tree_flatten(item)
 
-#     def _collect_paths(self) -> None:
-#         items = []
-#         for item in self.items:
-#             flattened_item, spec = tree_flatten(item)
+    #             # For speed reasons, we assume starting with `self.input_dir` is enough to be a real file.
+    #             # Other alternative would be too slow.
+    #             # TODO: Try using dictionary for higher accurary.
+    #             indexed_paths = {
+    #                 index: element
+    #                 for index, element in enumerate(flattened_item)
+    #                 if isinstance(element, str)
+    #                 and (
+    #                     element.startswith(self.input_dir.path) if self.input_dir is not None else os.path.exists(element)
+    #                 )  # For speed reasons
+    #             }
 
-#             # For speed reasons, we assume starting with `self.input_dir` is enough to be a real file.
-#             # Other alternative would be too slow.
-#             # TODO: Try using dictionary for higher accurary.
-#             indexed_paths = {
-#                 index: element
-#                 for index, element in enumerate(flattened_item)
-#                 if isinstance(element, str)
-#                 and (
-#                     element.startswith(self.input_dir.path) if self.input_dir is not None else os.path.exists(element)
-#                 )  # For speed reasons
-#             }
+    #             if len(indexed_paths) == 0:
+    #                 raise ValueError(
+    #                     f"The provided item {item} didn't contain any filepaths. The input_dir is {self.input_dir.path}."
+    #                 )
 
-#             if len(indexed_paths) == 0:
-#                 raise ValueError(
-#                     f"The provided item {item} didn't contain any filepaths. The input_dir is {self.input_dir.path}."
-#                 )
+    #             paths = []
+    #             for index, path in indexed_paths.items():
+    #                 paths.append(path)
+    #                 if self.input_dir:
+    #                     path = path.replace(self.input_dir.path, self.cache_data_dir)
+    #                 flattened_item[index] = path
 
-#             paths = []
-#             for index, path in indexed_paths.items():
-#                 paths.append(path)
-#                 if self.input_dir:
-#                     path = path.replace(self.input_dir.path, self.cache_data_dir)
-#                 flattened_item[index] = path
+    #             self.paths.append(paths)
 
-#             self.paths.append(paths)
+    #             items.append(tree_unflatten(flattened_item, spec))
+    #             self._collected_items += 1
 
-#             items.append(tree_unflatten(flattened_item, spec))
-#             self._collected_items += 1
+    #         self.items = items
 
-#         self.items = items
+    #     def _start_downloaders(self) -> None:
+    #         for _ in range(self.num_downloaders):
+    #             to_download_queue: Queue = Queue()
+    #             p = Process(
+    #                 target=_download_data_target,
+    #                 args=(
+    #                     self.input_dir,
+    #                     self.cache_data_dir,
+    #                     to_download_queue,
+    #                     self.ready_to_process_queue,
+    #                 ),
+    #             )
+    #             p.start()
+    #             self.downloaders.append(p)
+    #             self.to_download_queues.append(to_download_queue)
 
-#     def _start_downloaders(self) -> None:
-#         for _ in range(self.num_downloaders):
-#             to_download_queue: Queue = Queue()
-#             p = Process(
-#                 target=_download_data_target,
-#                 args=(
-#                     self.input_dir,
-#                     self.cache_data_dir,
-#                     to_download_queue,
-#                     self.ready_to_process_queue,
-#                 ),
-#             )
-#             p.start()
-#             self.downloaders.append(p)
-#             self.to_download_queues.append(to_download_queue)
+    #         for index, paths in enumerate(self.paths):
+    #             self.to_download_queues[index % self.num_downloaders].put((index, paths))
 
-#         for index, paths in enumerate(self.paths):
-#             self.to_download_queues[index % self.num_downloaders].put((index, paths))
+    #         for downloader_index in range(self.num_downloaders):
+    #             self.to_download_queues[downloader_index].put(None)
 
-#         for downloader_index in range(self.num_downloaders):
-#             self.to_download_queues[downloader_index].put(None)
+    #     def _start_remover(self) -> None:
+    #         if not self.remove:
+    #             return
+    #         self.remover = Process(
+    #             target=_remove_target,
+    #             args=(
+    #                 self.input_dir,
+    #                 self.cache_data_dir,
+    #                 self.remove_queue,
+    #             ),
+    #         )
+    #         self.remover.start()
 
-#     def _start_remover(self) -> None:
-#         if not self.remove:
-#             return
-#         self.remover = Process(
-#             target=_remove_target,
-#             args=(
-#                 self.input_dir,
-#                 self.cache_data_dir,
-#                 self.remove_queue,
-#             ),
-#         )
-#         self.remover.start()
+    #     def _start_uploaders(self) -> None:
+    #         if self.output_dir.path is None and self.output_dir.url is None:
+    #             return
 
-#     def _start_uploaders(self) -> None:
-#         if self.output_dir.path is None and self.output_dir.url is None:
-#             return
-
-#         for _ in range(self.num_uploaders):
-#             to_upload_queue: Queue = Queue()
-#             p = Process(
-#                 target=_upload_fn,
-#                 args=(
-#                     to_upload_queue,
-#                     self.remove_queue,
-#                     self.cache_chunks_dir,
-#                     self.output_dir,
-#                 ),
-#             )
-#             p.start()
-#             self.uploaders.append(p)
-#             self.to_upload_queues.append(to_upload_queue)
+    #         for _ in range(self.num_uploaders):
+    #             to_upload_queue: Queue = Queue()
+    #             p = Process(
+    #                 target=_upload_fn,
+    #                 args=(
+    #                     to_upload_queue,
+    #                     self.remove_queue,
+    #                     self.cache_chunks_dir,
+    #                     self.output_dir,
+    #                 ),
+    #             )
+    #             p.start()
+    #             self.uploaders.append(p)
+    #             self.to_upload_queues.append(to_upload_queue)
 
     def _handle_data_chunk_recipe(self, index: int) -> None:
         try:
@@ -673,6 +671,7 @@ def _get_processor(data_recipe: DataRecipe):
                 self._index_counter += 1
         except Exception as e:
             raise RuntimeError(f"Failed processing {self._current_item}") from e
+
 
 #     def _handle_data_chunk_recipe_end(self) -> None:
 #         chunks_filepaths = self.cache.done()
