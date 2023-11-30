@@ -110,7 +110,7 @@ class StreamingDataset(IterableDataset):
     def _create_cache(self, worker_env: _WorkerEnv) -> Cache:
         env = Environment(dist_env=self.distributed_env, worker_env=worker_env)
 
-        if self.input_dir.path is None:
+        if _should_replace_path(self.input_dir.path):
             cache_path = _try_create_cache_dir(
                 input_dir=self.input_dir.path if self.input_dir.path else self.input_dir.url, shard_rank=env.shard_rank
             )
@@ -425,6 +425,13 @@ def _collect_distributed_state_dict(state_dict: Dict[str, Any], world_size: int)
         state_dict_out.update(**state)
         node_ranks.append(node_rank)
     return state_dict_out
+
+
+def _should_replace_path(path: str) -> bool:
+    if path is None or path == "":
+        return True
+
+    return "/datasets/" in path or "_connections/" in path
 
 
 def _is_in_dataloader_worker() -> bool:
