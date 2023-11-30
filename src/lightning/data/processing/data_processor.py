@@ -148,16 +148,22 @@ class DataProcessor:
         for downloader in self.dowloaders:
             downloader.join()
 
+        for processor in self.processors:
+            processor.join()
+
     def _dispatch_downloaders(self):
         self.ready_to_process_queue = multiprocessing.Queue()
         to_download_queue: Queue = self.strategy.get_global_queue()
 
         downloaders = []
 
+        self.downloaders_event = multiprocessing.Event()
+
         for _ in range(self.num_downloaders):
             p = multiprocessing.Process(
                 target=_download_data_target,
                 args=(
+                    self.event,
                     self.input_dir,
                     _get_cache_data_dir(),
                     to_download_queue,
@@ -173,13 +179,17 @@ class DataProcessor:
         processors = []
         self.remove_queue = multiprocessing.Queue()
 
+        self.processors_event = multiprocessing.Event()
+
         for worker_idx in range(self.num_workers):
             p = multiprocessing.Process(
                 target=_get_processor(data_recipe),
                 args=(
+                    self.processors_event,
                     worker_idx,
                     self.num_workers,
                     self.input_dir,
+                    self.output_dir,
                     _get_cache_data_dir(),
                     self.ready_to_process_queue,
                     self.remove_queue,

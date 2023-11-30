@@ -129,13 +129,14 @@ class HTTPQueue(Queue):
         if lightning_app_state_url is None:
             raise RuntimeError("The `LIGHTNING_APP_STATE_URL` should be set.")
         self.client: HTTPClient = HTTPClient(lightning_app_state_url)
+        self.node_rank = _get_node_rank()
 
-    def get(self) -> Any:
-        raise NotImplementedError
+    def get(self, timeout: Optional[float] = None) -> Any:
+        return self.client.post("/get", json={"node_rank": self.node_rank}, timeout=timeout)
 
     def put(self, items: Dict[int, Any]) -> Any:
         json = {
-            "node_rank": _get_node_rank(),
+            "node_rank": self.node_rank,
             "data": {k: pickle.dumps(v, 0).decode() for k, v in items.items()},
         }
         return self.client.post("/put", json=json)
@@ -152,6 +153,7 @@ class DistributedMap:
         lightning_app_state_url = os.getenv("LIGHTNING_APP_STATE_URL")
         if lightning_app_state_url is None:
             raise RuntimeError("The `LIGHTNING_APP_STATE_URL` should be set.")
+
         self.client: HTTPClient = HTTPClient(lightning_app_state_url)
 
     def assign(self, key: str, value: Any) -> Any:

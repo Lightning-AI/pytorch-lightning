@@ -18,16 +18,18 @@ import shutil
 from time import sleep
 from typing import Any, Dict, List, Optional, Tuple
 from urllib import parse
-
+import types
 from lightning.data.constants import (
     _TORCH_GREATER_EQUAL_2_1_0,
 )
+from queue import Empty
 from lightning.data.processing.recipe import DataChunkRecipe, DataRecipe, DataTransformRecipe
 from lightning.data.processing.strategy.queue import Queue
 from lightning.data.streaming import Cache
 from lightning.data.streaming.cache import Dir
 from lightning.data.streaming.client import S3Client
 from lightning.data.utilities.env import _get_cache_data_dir, _get_cache_dir, _get_node_rank
+import tempfile
 
 if _TORCH_GREATER_EQUAL_2_1_0:
     from torch.utils._pytree import tree_flatten, tree_unflatten
@@ -45,22 +47,41 @@ def _wait_for_disk_usage_higher_than_threshold(input_dir: str, threshold_in_gb: 
     return
 
 
-def _download_data_target(input_dir: Dir, cache_dir: str, queue_in: Queue, queue_out: multiprocessing.Queue) -> None:
+def _download_data_target(event: multiprocessing.Event, input_dir: Dir, cache_dir: str, queue_in: Queue, queue_out: multiprocessing.Queue) -> None:
     """This function is used to download data from a remote directory to a cache directory to optimise reading."""
     s3 = S3Client()
 
     while True:
+        # 1. Exit if we have consumed all elements
+        if event.is_set():
+            return
+
         # 2. Fetch from the queue
-        data: Dict[int, Any] = queue_in.get()
+        try:
+            data: Dict[int, Any] = queue_in.get(timeout=1)
+        except Empty:
+            if event.is_set():
+                return
+            continue
 
-        print(data)
-
-        # 3. Terminate if there is no data left to process
-        if len(data) == 0:
+        # We received signal that the last element has been consumed by one of the nodes.
+        # Terminating this process
+        if data is None:
+            # Inform the other downloaders it is time to exit
+            event.set()
             queue_out.put(None)
             return
 
-        for key, item in data.items():
+        # We received no data, let's retry.
+        if len(data) == 0:
+            queue_out.put({})
+            continue
+
+        # Let's sort the data
+        data = sorted([(key, item) for key, item in data.items()], key= lambda x : x[0] )
+
+        # Let's process the batch of data we received.
+        for key, item in data:
             item, paths = _sanetize_item(item, input_dir, cache_dir)
 
             # 5. Check whether all the files are already downloaded
@@ -186,22 +207,40 @@ def _upload_fn(upload_queue: Queue, remove_queue: Queue, cache_dir: str, output_
 
 
 class ChunkProcessor:
-    def __init__(self, chunk_bytes: int, chunk_size: int, compression: str):
+    def __init__(self, data_recipe: DataRecipe, chunk_bytes: int, chunk_size: int, compression: str):
+        self.data_recipe = data_recipe
         self.chunk_bytes = chunk_bytes
         self.chunk_size = chunk_size
         self.compression = compression
 
-    def __call__(self, worker_index, num_workers, input_dir, cache_dir, ready_to_process_queue, remove_queue):
-        self._set_environ_variables(worker_index, num_workers)
-        self._create_cache(worker_index, num_workers)
+    def __call__(
+        self,
+        worker_index: int,
+        num_workers: int,
+        input_dir: Dir,
+        cache_dir: str,
+        ready_to_process_queue: multiprocessing.Queue,
+        remove_queue: multiprocessing.Queue
+    ):
+        self.worker_index = worker_index
+        self.num_workers = num_workers
+        self.input_dir = input_dir
+        self.cache_dir = cache_dir
+        self.remove_queue = remove_queue
+        
+        self.counter = 0
+        self.item_counter = 0
+
+        self._set_environ_variables()
+        self._create_cache()
         self._loop(ready_to_process_queue)
 
-    def _set_environ_variables(self, worker_index: int, num_workers: int) -> None:
+    def _set_environ_variables(self) -> None:
         # set the optimizer global rank and world_size
-        os.environ["DATA_OPTIMIZER_GLOBAL_RANK"] = str(_get_node_rank() * num_workers + worker_index)
-        os.environ["DATA_OPTIMIZER_NUM_WORKERS"] = str(num_workers)
+        os.environ["DATA_OPTIMIZER_GLOBAL_RANK"] = str(_get_node_rank() * self.num_workers + self.worker_index)
+        os.environ["DATA_OPTIMIZER_NUM_WORKERS"] = str(self.num_workers)
 
-    def _create_cache(self, worker_index: int, num_workers: int) -> None:
+    def _create_cache(self) -> None:
         self.cache_data_dir = _get_cache_data_dir()
         os.makedirs(self.cache_data_dir, exist_ok=True)
 
@@ -214,25 +253,164 @@ class ChunkProcessor:
             chunk_size=self.chunk_size,
             compression=self.compression,
         )
-        self.cache._reader._rank = _get_node_rank() * num_workers + worker_index
+        self.cache._reader._rank = _get_node_rank() * self.num_workers + self.worker_index
 
     def _loop(self, ready_to_process_queue):
         while True:
             data = ready_to_process_queue.get()
-            print(data)
+
+            if len(data) == 0:
+                pass
+
+            for index, item in data.items():
+                self._process_item(item)
+
+                self.item_counter += 1
+
+                # if self.remove:
+                #     self.remove_queue.put(self.paths[index])
+
+                # try:
+                #     self.stop_queue.get(timeout=0.0001)
+                #     return
+                # except Empty:
+                #     pass
+
+    def _process_item(self, item):
+        try:
+            self._current_item = item
+            item_data_or_generator = self.data_recipe.prepare_item(self._current_item)
+            if isinstance(item_data_or_generator, types.GeneratorType):
+                for item_data in item_data_or_generator:
+                    if item_data is not None:
+                        chunk_filepath = self.cache._add_item(self.item_counter, item_data)
+                        self._try_upload(chunk_filepath)
+                        self.item_counter += 1
+            elif item_data_or_generator is not None:
+                chunk_filepath = self.cache._add_item(self.item_counter, item_data_or_generator)
+                self._try_upload(chunk_filepath)
+                self.item_counter += 1
+        except Exception as e:
+            raise RuntimeError(f"Failed processing {self._current_item}") from e
+
+    def _try_upload(self, filepath: Optional[str]) -> None:
+        if not filepath or (self.output_dir.url if self.output_dir.url else self.output_dir.path) is None:
+            return
+
+        assert os.path.exists(filepath), filepath
+        self.to_upload_queues[self._counter % self.num_uploaders].put(filepath)
+
 
     @classmethod
     def from_data_recipe(cls, data_recipe: DataChunkRecipe):
-        return ChunkProcessor(data_recipe.chunk_bytes, data_recipe.chunk_size, data_recipe.compression)
+        return cls(data_recipe, data_recipe.chunk_bytes, data_recipe.chunk_size, data_recipe.compression)
 
 
 class TransformProcessor:
-    def __init__(self):
-        pass
+
+    def __init__(self, data_recipe: DataTransformRecipe):
+        self.data_recipe = data_recipe
+
+    def __call__(
+        self,
+        processors_event: multiprocessing.Event,
+        worker_index: int,
+        num_workers: int,
+        input_dir: Dir,
+        output_dir: Dir,
+        cache_dir: str,
+        ready_to_process_queue: multiprocessing.Queue,
+        upload_queue: Optional[multiprocessing.Queue],
+        remove_queue: Optional[multiprocessing.Queue],
+    ):
+        self.processors_event: multiprocessing.Event = processors_event
+        self.worker_index = worker_index
+        self.num_workers = num_workers
+        self.input_dir = input_dir
+        self.output_dir = output_dir
+        self.cache_dir = cache_dir
+        self.ready_to_process_queue = ready_to_process_queue
+        self.upload_queue = upload_queue
+        self.remove_queue = remove_queue
+        self.counter = 0
+        self.item_counter = 0
+
+        self._set_environ_variables()
+        self._loop()
+
+    def _set_environ_variables(self) -> None:
+        # set the optimizer global rank and world_size
+        os.environ["DATA_OPTIMIZER_GLOBAL_RANK"] = str(_get_node_rank() * self.num_workers + self.worker_index)
+        os.environ["DATA_OPTIMIZER_NUM_WORKERS"] = str(self.num_workers)
+
+    def _loop(self) -> None:
+        while True:
+            if self.processors_event.is_set():
+                self._on_end()
+                return
+
+            try:
+                data: Optional[Dict[int, Any]] = self.ready_to_process_queue.get(timeout=1)
+            except Empty:
+                if self.processors_event.is_set():
+                    self._on_end()
+                    return    
+                continue
+
+            if data is None:
+                # Inform all the processors that all the  
+                self.processors_event.set()
+                self._on_end()
+                return
+
+            for _, item in data.items():
+                self._process_item(item)
+                self.item_counter += 1
+
+
+    def _process_item(self, item):
+        # Don't use a context manager to avoid deleting files that are being uploaded.
+        output_dir = tempfile.mkdtemp()
+        item_data = self.data_recipe.prepare_item(str(output_dir), item)
+        if item_data is not None:
+            raise ValueError(
+                "When using a `DataTransformRecipe`, the `prepare_item` shouldn't return anything."
+                " Simply store your files under the output_dir."
+            )
+        filepaths = []
+        for directory, _, filenames in os.walk(output_dir):
+            for filename in filenames:
+                filepaths.append(os.path.join(directory, filename))
+
+        if len(filepaths) == 0:
+            raise RuntimeError("You haven't saved any files under the `output_dir`.")
+
+        for filepath in filepaths:
+            self._try_upload(filepath)
+
+    def _try_upload(self, filepath: Optional[str]) -> None:
+        if not filepath or (self.output_dir.url if self.output_dir.url else self.output_dir.path) is None:
+            return
+
+        assert os.path.exists(filepath), filepath
+        self.upload_queue.put(filepath)
+
+
+    def _on_end(self):
+        print(f"Worker {str(_get_node_rank() * self.num_workers + self.worker_index)} is terminating.")
+
+        if self.output_dir.url if self.output_dir.url else self.output_dir.path:
+            self.upload_queue.put(None)
+
+        if self.remove_queue:
+            self.remove_queue.put(None)
+
+        if self.progress_queue:
+            self.progress_queue.put((self.worker_index, self._counter))
 
     @classmethod
     def from_data_recipe(cls, data_recipe: DataTransformRecipe):
-        return cls()
+        return cls(data_recipe)
 
 
 def _get_processor(data_recipe: DataRecipe):
@@ -479,22 +657,22 @@ def _get_processor(data_recipe: DataRecipe):
 #             self.uploaders.append(p)
 #             self.to_upload_queues.append(to_upload_queue)
 
-#     def _handle_data_chunk_recipe(self, index: int) -> None:
-#         try:
-#             self._current_item = self.items[index]
-#             item_data_or_generator = self.data_recipe.prepare_item(self._current_item)
-#             if isinstance(item_data_or_generator, types.GeneratorType):
-#                 for item_data in item_data_or_generator:
-#                     if item_data is not None:
-#                         chunk_filepath = self.cache._add_item(self._index_counter, item_data)
-#                         self._try_upload(chunk_filepath)
-#                         self._index_counter += 1
-#             elif item_data_or_generator is not None:
-#                 chunk_filepath = self.cache._add_item(self._index_counter, item_data_or_generator)
-#                 self._try_upload(chunk_filepath)
-#                 self._index_counter += 1
-#         except Exception as e:
-#             raise RuntimeError(f"Failed processing {self._current_item}") from e
+    def _handle_data_chunk_recipe(self, index: int) -> None:
+        try:
+            self._current_item = self.items[index]
+            item_data_or_generator = self.data_recipe.prepare_item(self._current_item)
+            if isinstance(item_data_or_generator, types.GeneratorType):
+                for item_data in item_data_or_generator:
+                    if item_data is not None:
+                        chunk_filepath = self.cache._add_item(self._index_counter, item_data)
+                        self._try_upload(chunk_filepath)
+                        self._index_counter += 1
+            elif item_data_or_generator is not None:
+                chunk_filepath = self.cache._add_item(self._index_counter, item_data_or_generator)
+                self._try_upload(chunk_filepath)
+                self._index_counter += 1
+        except Exception as e:
+            raise RuntimeError(f"Failed processing {self._current_item}") from e
 
 #     def _handle_data_chunk_recipe_end(self) -> None:
 #         chunks_filepaths = self.cache.done()

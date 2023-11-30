@@ -12,7 +12,7 @@
 # limitations under the License.
 
 from abc import ABC, abstractmethod
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 
 class Queue(ABC):
@@ -24,7 +24,7 @@ class Queue(ABC):
         pass
 
     @abstractmethod
-    def get(self) -> Dict[int, Any]:
+    def get(self, timeout: Optional[float] = None) -> Any:
         pass
 
     @abstractmethod

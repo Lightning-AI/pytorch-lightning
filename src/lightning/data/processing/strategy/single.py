@@ -29,13 +29,10 @@ class SingleNodeDataProcessorStrategy(DataProcessorStrategy):
 
     def register_inputs(self, inputs: List[Any]) -> None:
         for k, v in enumerate(inputs):
-            item = {k: v}
-            print(item)
-            self.queue.put(item)
+            self.queue.put({k: v})
 
-        # TODO: Find a better way to make all downloaders exit
-        for _ in range(10000):
-            self.queue.put({})
+        # Indicate end of processing
+        self.queue.put(None)
 
     def get_global_queue(self):
         return self.queue
