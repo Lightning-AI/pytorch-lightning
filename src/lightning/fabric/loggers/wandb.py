@@ -296,6 +296,7 @@ class WandbLogger(Logger):
         experiment: Union["Run", "RunDisabled", None] = None,
         prefix: str = "",
         checkpoint_name: Optional[str] = None,
+        log_checkpoint_on: Union[Literal["success"], Literal["all"]] = "success",
         **kwargs: Any,
     ) -> None:
         if not _WANDB_AVAILABLE:
@@ -340,6 +341,7 @@ class WandbLogger(Logger):
         self._name = self._wandb_init.get("name")
         self._id = self._wandb_init.get("id")
         self._checkpoint_name = checkpoint_name
+        self._log_checkpoint_on = log_checkpoint_on
 
     def __getstate__(self) -> Dict[str, Any]:
         import wandb
@@ -655,11 +657,11 @@ class WandbLogger(Logger):
     @override
     @rank_zero_only
     def finalize(self, status: str) -> None:
-        if status != "success":
+        if self._log_checkpoint_on == "success" and status != "success":
             # Currently, checkpoints only get logged on success
             return
         # log checkpoints as artifacts
-        if self._checkpoint_callback and self._experiment is not None:
+        if self._checkpoint_callback and self._experiment is not None and self._log_checkpoint_on in ["success", "all"]:
             self._scan_and_log_pytorch_checkpoints(self._checkpoint_callback)
 
     def _scan_and_log_pytorch_checkpoints(self, checkpoint_callback: "ModelCheckpoint") -> None:
