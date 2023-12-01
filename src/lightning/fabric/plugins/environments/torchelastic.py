@@ -14,7 +14,7 @@
 
 import logging
 import os
-
+from typing_extensions import override
 import torch.distributed
 
 from lightning.fabric.plugins.environments.cluster_environment import ClusterEnvironment
@@ -27,10 +27,12 @@ class TorchElasticEnvironment(ClusterEnvironment):
     """Environment for fault-tolerant and elastic training with `torchelastic <https://pytorch.org/elastic/>`_"""
 
     @property
+    @override
     def creates_processes_externally(self) -> bool:
         return True
 
     @property
+    @override
     def main_address(self) -> str:
         if "MASTER_ADDR" not in os.environ:
             rank_zero_warn("MASTER_ADDR environment variable is not defined. Set as localhost")
@@ -39,6 +41,7 @@ class TorchElasticEnvironment(ClusterEnvironment):
         return os.environ["MASTER_ADDR"]
 
     @property
+    @override
     def main_port(self) -> int:
         if "MASTER_PORT" not in os.environ:
             rank_zero_warn("MASTER_PORT environment variable is not defined. Set as 12910")
@@ -48,31 +51,39 @@ class TorchElasticEnvironment(ClusterEnvironment):
         return int(os.environ["MASTER_PORT"])
 
     @staticmethod
+    @override
     def detect() -> bool:
         """Returns ``True`` if the current process was launched using the torchelastic command."""
         # if not available (for example on MacOS), `is_torchelastic_launched` is not defined
         return torch.distributed.is_available() and torch.distributed.is_torchelastic_launched()
 
+    @override
     def world_size(self) -> int:
         return int(os.environ["WORLD_SIZE"])
 
+    @override
     def set_world_size(self, size: int) -> None:
         log.debug("TorchElasticEnvironment.set_world_size was called, but setting world size is not allowed. Ignored.")
 
+    @override    
     def global_rank(self) -> int:
         return int(os.environ["RANK"])
 
+    @override
     def set_global_rank(self, rank: int) -> None:
         log.debug(
             "TorchElasticEnvironment.set_global_rank was called, but setting global rank is not allowed. Ignored."
         )
 
+    @override
     def local_rank(self) -> int:
         return int(os.environ["LOCAL_RANK"])
 
+    @override
     def node_rank(self) -> int:
         return int(os.environ.get("GROUP_RANK", 0))
 
+    @override
     def validate_settings(self, num_devices: int, num_nodes: int) -> None:
         if num_devices * num_nodes != self.world_size():
             raise ValueError(

@@ -14,6 +14,7 @@
 
 import logging
 import os
+from typing_extensions import override
 
 from lightning.fabric.plugins.environments.cluster_environment import ClusterEnvironment
 
@@ -32,35 +33,45 @@ class KubeflowEnvironment(ClusterEnvironment):
     """
 
     @property
+    @override
     def creates_processes_externally(self) -> bool:
         return True
 
     @property
+    @override
     def main_address(self) -> str:
         return os.environ["MASTER_ADDR"]
 
     @property
+    @override
     def main_port(self) -> int:
         return int(os.environ["MASTER_PORT"])
 
     @staticmethod
+    @override
     def detect() -> bool:
         raise NotImplementedError("The Kubeflow environment can't be detected automatically.")
 
+    @override
     def world_size(self) -> int:
         return int(os.environ["WORLD_SIZE"])
 
+    @override
     def set_world_size(self, size: int) -> None:
         log.debug("KubeflowEnvironment.set_world_size was called, but setting world size is not allowed. Ignored.")
 
+    @override
     def global_rank(self) -> int:
         return int(os.environ["RANK"])
 
+    @override
     def set_global_rank(self, rank: int) -> None:
         log.debug("KubeflowEnvironment.set_global_rank was called, but setting global rank is not allowed. Ignored.")
 
+    @override
     def local_rank(self) -> int:
         return 0
 
+    @override
     def node_rank(self) -> int:
         return self.global_rank()

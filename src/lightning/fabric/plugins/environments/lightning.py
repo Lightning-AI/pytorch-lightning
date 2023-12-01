@@ -14,7 +14,7 @@
 
 import os
 import socket
-
+from typing_extensions import override
 from lightning.fabric.plugins.environments.cluster_environment import ClusterEnvironment
 from lightning.fabric.utilities.rank_zero import rank_zero_only
 
@@ -42,6 +42,7 @@ class LightningEnvironment(ClusterEnvironment):
         self._world_size: int = 1
 
     @property
+    @override
     def creates_processes_externally(self) -> bool:
         """Returns whether the cluster creates the processes or not.
 
@@ -52,10 +53,12 @@ class LightningEnvironment(ClusterEnvironment):
         return "LOCAL_RANK" in os.environ
 
     @property
+    @override
     def main_address(self) -> str:
         return os.environ.get("MASTER_ADDR", "127.0.0.1")
 
     @property
+    @override
     def main_port(self) -> int:
         if self._main_port == -1:
             self._main_port = (
@@ -64,29 +67,37 @@ class LightningEnvironment(ClusterEnvironment):
         return self._main_port
 
     @staticmethod
+    @override
     def detect() -> bool:
         return True
 
+    @override
     def world_size(self) -> int:
         return self._world_size
 
+    @override    
     def set_world_size(self, size: int) -> None:
         self._world_size = size
 
+    @override    
     def global_rank(self) -> int:
         return self._global_rank
 
+    @override    
     def set_global_rank(self, rank: int) -> None:
         self._global_rank = rank
         rank_zero_only.rank = rank
 
+    @override
     def local_rank(self) -> int:
         return int(os.environ.get("LOCAL_RANK", 0))
 
+    @override
     def node_rank(self) -> int:
         group_rank = os.environ.get("GROUP_RANK", 0)
         return int(os.environ.get("NODE_RANK", group_rank))
 
+    @override
     def teardown(self) -> None:
         if "WORLD_SIZE" in os.environ:
             del os.environ["WORLD_SIZE"]
