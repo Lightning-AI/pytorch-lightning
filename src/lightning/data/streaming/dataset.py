@@ -428,6 +428,7 @@ def _collect_distributed_state_dict(state_dict: Dict[str, Any], world_size: int)
 
 
 def _should_replace_path(path: str) -> bool:
+    """Whether the input path is a special path to be replaced."""
     if path is None or path == "":
         return True
 
