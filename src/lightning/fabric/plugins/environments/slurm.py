@@ -19,7 +19,9 @@ import shutil
 import signal
 import sys
 from typing import Optional
+
 from typing_extensions import override
+
 from lightning.fabric.plugins.environments.cluster_environment import ClusterEnvironment
 from lightning.fabric.utilities.imports import _IS_WINDOWS
 from lightning.fabric.utilities.rank_zero import rank_zero_warn
@@ -136,7 +138,7 @@ class SLURMEnvironment(ClusterEnvironment):
     def set_world_size(self, size: int) -> None:
         log.debug("SLURMEnvironment.set_world_size was called, but setting world size is not allowed. Ignored.")
 
-    @override    
+    @override
     def global_rank(self) -> int:
         return int(os.environ["SLURM_PROCID"])
 
@@ -148,7 +150,7 @@ class SLURMEnvironment(ClusterEnvironment):
     def local_rank(self) -> int:
         return int(os.environ["SLURM_LOCALID"])
 
-    @override    
+    @override
     def node_rank(self) -> int:
         return int(os.environ["SLURM_NODEID"])
 

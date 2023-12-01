@@ -14,8 +14,9 @@
 
 import logging
 import os
-from typing_extensions import override
+
 import torch.distributed
+from typing_extensions import override
 
 from lightning.fabric.plugins.environments.cluster_environment import ClusterEnvironment
 from lightning.fabric.utilities.rank_zero import rank_zero_warn
@@ -65,7 +66,7 @@ class TorchElasticEnvironment(ClusterEnvironment):
     def set_world_size(self, size: int) -> None:
         log.debug("TorchElasticEnvironment.set_world_size was called, but setting world size is not allowed. Ignored.")
 
-    @override    
+    @override
     def global_rank(self) -> int:
         return int(os.environ["RANK"])
 

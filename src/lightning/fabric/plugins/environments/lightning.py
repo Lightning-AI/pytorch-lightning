@@ -14,7 +14,9 @@
 
 import os
 import socket
+
 from typing_extensions import override
+
 from lightning.fabric.plugins.environments.cluster_environment import ClusterEnvironment
 from lightning.fabric.utilities.rank_zero import rank_zero_only
 
@@ -75,15 +77,15 @@ class LightningEnvironment(ClusterEnvironment):
     def world_size(self) -> int:
         return self._world_size
 
-    @override    
+    @override
     def set_world_size(self, size: int) -> None:
         self._world_size = size
 
-    @override    
+    @override
     def global_rank(self) -> int:
         return self._global_rank
 
-    @override    
+    @override
     def set_global_rank(self, rank: int) -> None:
         self._global_rank = rank
         rank_zero_only.rank = rank
