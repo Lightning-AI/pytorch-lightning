@@ -628,9 +628,9 @@ class WandbLogger(Logger):
     @override
     @rank_zero_only
     def finalize(self, status: str) -> None:
-        # if status != "success":
-        #     # Currently, checkpoints only get logged on success
-        #     return
+        if status != "success":
+            # Currently, checkpoints only get logged on success
+            return
         # log checkpoints as artifacts
         if self._checkpoint_callback and self._experiment is not None:
             self._scan_and_log_checkpoints(self._checkpoint_callback)
