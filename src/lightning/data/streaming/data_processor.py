@@ -8,7 +8,6 @@ import traceback
 import types
 from abc import abstractmethod
 from dataclasses import dataclass
-from datetime import datetime
 from multiprocessing import Process, Queue
 from queue import Empty
 from time import sleep, time
@@ -869,7 +868,6 @@ class DataProcessor:
                 self.workers_tracker[index] = counter
                 new_total = sum(self.workers_tracker.values())
 
-            pbar.set_postfix({"time": datetime.now().strftime("%H:%M:%S.%f")})
             pbar.update(new_total - current_total)
 
             current_total = new_total
