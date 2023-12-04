@@ -161,7 +161,7 @@ def test_remove_target(tmpdir):
 
 @pytest.mark.skipif(condition=sys.platform == "win32", reason="Not supported on windows")
 @mock.patch("lightning.data.streaming.data_processor._wait_for_disk_usage_higher_than_threshold")
-def test_download_data_target(tmpdir):
+def test_download_data_target(wait_for_disk_usage_higher_than_threshold_mock, tmpdir):
     input_dir = os.path.join(tmpdir, "input_dir")
     os.makedirs(input_dir, exist_ok=True)
 
@@ -193,6 +193,8 @@ def test_download_data_target(tmpdir):
     assert queue_out.put._mock_call_args_list[1].args == (None,)
 
     assert os.listdir(cache_dir) == ["a.txt"]
+
+    wait_for_disk_usage_higher_than_threshold_mock.assert_called()
 
 
 def test_wait_for_disk_usage_higher_than_threshold():

@@ -185,10 +185,11 @@ class Throughput:
 
             if len(self._lengths) == self._lengths.maxlen:
                 elapsed_lengths = self._lengths[-1] - self._lengths[0]
-                avg_length = elapsed_lengths / elapsed_batches
+                dev_items_per_sec = elapsed_lengths / elapsed_time
+                metrics[f"device{self.separator}items_per_sec"] = dev_items_per_sec
                 if add_global_metrics:
-                    metrics["items_per_sec"] = samples_per_sec * avg_length
-                metrics[f"device{self.separator}items_per_sec"] = dev_samples_per_sec * avg_length
+                    items_per_sec = dev_items_per_sec * self.world_size
+                    metrics["items_per_sec"] = items_per_sec
 
         if len(self._flops) == self._flops.maxlen:
             elapsed_flops = sum(self._flops) - self._flops[0]

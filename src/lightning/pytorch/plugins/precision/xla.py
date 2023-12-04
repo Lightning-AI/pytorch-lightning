@@ -16,7 +16,7 @@ from functools import partial
 from typing import Any, Callable
 
 import torch
-from typing_extensions import get_args
+from typing_extensions import get_args, override
 
 import lightning.pytorch as pl
 from lightning.fabric.accelerators.xla import _XLA_AVAILABLE
@@ -59,6 +59,7 @@ class XLAPrecision(Precision):
         else:
             self._desired_dtype = torch.float32
 
+    @override
     def optimizer_step(  # type: ignore[override]
         self,
         optimizer: Optimizable,
@@ -83,6 +84,7 @@ class XLAPrecision(Precision):
             )
         return closure_result
 
+    @override
     def teardown(self) -> None:
         os.environ.pop("XLA_USE_BF16", None)
         os.environ.pop("XLA_USE_F16", None)

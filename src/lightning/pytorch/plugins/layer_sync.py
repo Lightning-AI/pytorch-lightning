@@ -17,6 +17,7 @@ from abc import ABC, abstractmethod
 import torch
 from torch import Tensor
 from torch.nn import Module
+from typing_extensions import override
 
 
 class LayerSync(ABC):
@@ -39,6 +40,7 @@ class TorchSyncBatchNorm(LayerSync):
 
     """
 
+    @override
     def apply(self, model: Module) -> Module:
         """Add global batchnorm for a model spread across multiple GPUs and nodes.
 
@@ -54,6 +56,7 @@ class TorchSyncBatchNorm(LayerSync):
         """
         return torch.nn.SyncBatchNorm.convert_sync_batchnorm(model)
 
+    @override
     def revert(self, model: Module) -> Module:
         """Convert the wrapped batchnorm layers back to regular batchnorm layers.
 
@@ -89,6 +92,7 @@ class TorchSyncBatchNorm(LayerSync):
 
 
 class _BatchNormXd(torch.nn.modules.batchnorm._BatchNorm):
+    @override
     def _check_input_dim(self, input: Tensor) -> None:
         # The only difference between BatchNorm1d, BatchNorm2d, BatchNorm3d, etc
         # is this method that is overwritten by the subclass.
