@@ -32,7 +32,7 @@ def test_subprocess_script_launcher_interactive_compatible():
 
 
 @mock.patch("lightning.fabric.strategies.launchers.subprocess_script.subprocess.Popen")
-@mock.patch("lightning.fabric.strategies.launchers.subprocess_script.Thread")
+@mock.patch("lightning.fabric.strategies.launchers.subprocess_script._ChildProcessObserver")
 def test_subprocess_script_launcher_can_launch(*_):
     cluster_env = Mock()
     cluster_env.creates_processes_externally = False
@@ -48,7 +48,7 @@ def test_subprocess_script_launcher_can_launch(*_):
 
 
 @mock.patch("lightning.fabric.strategies.launchers.subprocess_script.subprocess.Popen")
-@mock.patch("lightning.fabric.strategies.launchers.subprocess_script.Thread")
+@mock.patch("lightning.fabric.strategies.launchers.subprocess_script._ChildProcessObserver")
 def test_subprocess_script_launcher_external_processes(_, popen_mock):
     cluster_env = Mock()
     cluster_env.creates_processes_externally = True
@@ -60,7 +60,7 @@ def test_subprocess_script_launcher_external_processes(_, popen_mock):
 
 
 @mock.patch("lightning.fabric.strategies.launchers.subprocess_script.subprocess.Popen")
-@mock.patch("lightning.fabric.strategies.launchers.subprocess_script.Thread")
+@mock.patch("lightning.fabric.strategies.launchers.subprocess_script._ChildProcessObserver")
 def test_subprocess_script_launcher_launch_processes(_, popen_mock):
     cluster_env = Mock()
     cluster_env.creates_processes_externally = False
@@ -93,7 +93,7 @@ def test_subprocess_script_launcher_launch_processes(_, popen_mock):
 
 @pytest.mark.skipif(not _HYDRA_AVAILABLE, reason="hydra-core is required")
 @mock.patch("lightning.fabric.strategies.launchers.subprocess_script.subprocess.Popen")
-@mock.patch("lightning.fabric.strategies.launchers.subprocess_script.Thread")
+@mock.patch("lightning.fabric.strategies.launchers.subprocess_script._ChildProcessObserver")
 def test_subprocess_script_launcher_hydra_in_use(_, popen_mock, monkeypatch):
     basic_command = Mock(return_value="basic_command")
     hydra_command = Mock(return_value=("hydra_command", "hydra_cwd"))
@@ -166,13 +166,13 @@ def test_child_process_observer(sleep_mock, os_kill_mock):
     observer = _ChildProcessObserver(main_pid=1234, child_processes=[Mock(), Mock()])
     observer._run = Mock()
     assert not observer._finished
-    observer()
+    observer.run()
     assert observer._finished
     sleep_mock.assert_called_once_with(5)
 
 
 @mock.patch("lightning.fabric.strategies.launchers.subprocess_script.subprocess.Popen")
-@mock.patch("lightning.fabric.strategies.launchers.subprocess_script.Thread")
+@mock.patch("lightning.fabric.strategies.launchers.subprocess_script._ChildProcessObserver")
 def test_validate_cluster_environment_user_settings(*_):
     """Test that the launcher calls into the cluster environment to validate the user settings."""
     cluster_env = Mock(validate_settings=Mock(side_effect=RuntimeError("test")))

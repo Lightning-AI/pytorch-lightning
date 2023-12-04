@@ -877,13 +877,22 @@ def test_trainer_datamodule_hook_system(tmpdir):
     assert called == expected
 
 
-def test_load_from_checkpoint_hook_calls(tmpdir):
+@pytest.mark.parametrize("override_configure_model", [True, False])
+def test_load_from_checkpoint_hook_calls(override_configure_model, tmpdir):
     class CustomHookedDataModule(HookedDataModule):
         def state_dict(self):
             return {"foo": "bar"}
 
+    class CustomHookedModel(HookedModel):
+        pass
+
+    if not override_configure_model:
+        CustomHookedModel.configure_model = None
+
     lm_called, ldm_called = [], []
-    model = HookedModel(lm_called)
+    model = CustomHookedModel(lm_called)
+    assert is_overridden("configure_model", model) == override_configure_model
+
     datamodule = CustomHookedDataModule(ldm_called)
     trainer = Trainer()
     trainer.strategy.connect(model)
@@ -908,9 +917,12 @@ def test_load_from_checkpoint_hook_calls(tmpdir):
     assert ldm_called == [{"name": "state_dict"}]
 
     lm_called, ldm_called = [], []
-    _ = HookedModel.load_from_checkpoint(ckpt_path, called=lm_called)
+    _ = CustomHookedModel.load_from_checkpoint(ckpt_path, called=lm_called)
     _ = CustomHookedDataModule.load_from_checkpoint(ckpt_path, called=ldm_called)
-    assert lm_called == [{"name": "on_load_checkpoint", "args": ({**saved_ckpt, "hyper_parameters": ANY},)}]
+
+    expected_lm_called = [{"name": "configure_model"}] if override_configure_model else []
+    expected_lm_called += [{"name": "on_load_checkpoint", "args": ({**saved_ckpt, "hyper_parameters": ANY},)}]
+    assert lm_called == expected_lm_called
     assert ldm_called == [{"name": "load_state_dict", "args": (saved_ckpt[datamodule_state_dict_key],)}]
 
 

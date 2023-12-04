@@ -26,11 +26,15 @@ import lightning.pytorch
 import pytest
 import torch.distributed
 from lightning.fabric.plugins.environments.lightning import find_free_network_port
+from lightning.fabric.strategies.launchers.subprocess_script import _ChildProcessObserver
 from lightning.fabric.utilities.distributed import _distributed_is_initialized
 from lightning.fabric.utilities.imports import _IS_WINDOWS
 from lightning.pytorch.trainer.connectors.signal_connector import _SignalConnector
 
 from tests_pytorch import _PATH_DATASETS
+
+if sys.version_info >= (3, 9):
+    from concurrent.futures.process import _ExecutorManagerThread
 
 
 @pytest.fixture(scope="session")
@@ -41,12 +45,16 @@ def datadir():
 @pytest.fixture(autouse=True)
 def preserve_global_rank_variable():
     """Ensures that the rank_zero_only.rank global variable gets reset in each test."""
-    from lightning.pytorch.utilities.rank_zero import rank_zero_only
+    from lightning.fabric.utilities.rank_zero import rank_zero_only as rank_zero_only_fabric
+    from lightning.pytorch.utilities.rank_zero import rank_zero_only as rank_zero_only_pytorch
+    from lightning_utilities.core.rank_zero import rank_zero_only as rank_zero_only_utilities
 
-    rank = getattr(rank_zero_only, "rank", None)
+    functions = (rank_zero_only_pytorch, rank_zero_only_fabric, rank_zero_only_utilities)
+    ranks = [getattr(fn, "rank", None) for fn in functions]
     yield
-    if rank is not None:
-        setattr(rank_zero_only, "rank", rank)
+    for fn, rank in zip(functions, ranks):
+        if rank is not None:
+            setattr(fn, "rank", rank)
 
 
 @pytest.fixture(autouse=True)
@@ -122,6 +130,37 @@ def reset_deterministic_algorithm():
     """Ensures that torch determinism settings are reset before the next test runs."""
     yield
     torch.use_deterministic_algorithms(False)
+
+
+@pytest.fixture(autouse=True)
+def thread_police_duuu_daaa_duuu_daaa():
+    """Attempts to stop left-over threads to avoid test interactions."""
+    active_threads_before = set(threading.enumerate())
+    yield
+    active_threads_after = set(threading.enumerate())
+
+    for thread in active_threads_after - active_threads_before:
+        stop = getattr(thread, "stop", None) or getattr(thread, "exit", None)
+        if thread.daemon and callable(stop):
+            # A daemon thread would anyway be stopped at the end of a program
+            # We do it preemptively here to reduce the risk of interactions with other tests that run after
+            stop()
+            assert not thread.is_alive()
+        elif isinstance(thread, _ChildProcessObserver):
+            thread.join(timeout=10)
+        elif thread.name == "QueueFeederThread":  # tensorboardX
+            thread.join(timeout=20)
+        elif (
+            sys.version_info >= (3, 9)
+            and isinstance(thread, _ExecutorManagerThread)
+            or "ThreadPoolExecutor-" in thread.name
+        ):
+            # probably `torch.compile`, can't narrow it down further
+            continue
+        elif thread.name == "fsspecIO":
+            continue
+        else:
+            raise AssertionError(f"Test left zombie thread: {thread}")
 
 
 def mock_cuda_count(monkeypatch, n: int) -> None:
