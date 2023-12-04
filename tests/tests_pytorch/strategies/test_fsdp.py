@@ -173,9 +173,13 @@ class TestFSDPModelAutoWrapped(TestBoringModel):
 
 def _run_multiple_stages(trainer, model, model_path: Optional[str] = None):
     trainer.fit(model)
-    model_path = trainer.strategy.broadcast(model_path)
-    model_path = model_path if model_path else trainer.checkpoint_callback.last_model_path
+    trainer.test(model)
 
+    model_path = trainer.strategy.broadcast(model_path)
+    model_path = Path(model_path if model_path else trainer.checkpoint_callback.last_model_path)
+
+    # Save another checkpoint after testing, without optimizer states
+    trainer.save_checkpoint(model_path.with_name("after-test"))
     trainer.save_checkpoint(model_path, weights_only=True)
 
     _assert_save_equality(trainer, model_path, cls=model.__class__)
@@ -270,13 +274,13 @@ def test_fsdp_modules_without_parameters(tmp_path):
     trainer.fit(model)
 
 
-@RunIf(min_cuda_gpus=1, skip_windows=True, standalone=True)
+@RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True)
 @pytest.mark.parametrize("precision", ["16-mixed", pytest.param("bf16-mixed", marks=RunIf(bf16_cuda=True))])
 def test_fsdp_strategy_checkpoint(tmpdir, precision):
     """Test to ensure that checkpoint is saved correctly when using a single GPU, and all stages can be run."""
     model = TestFSDPModel()
     trainer = Trainer(
-        default_root_dir=tmpdir, accelerator="gpu", devices=1, strategy="fsdp", precision=precision, max_epochs=1
+        default_root_dir=tmpdir, accelerator="gpu", devices=2, strategy="fsdp", precision=precision, max_epochs=1
     )
     _run_multiple_stages(trainer, model, os.path.join(tmpdir, "last.ckpt"))
 

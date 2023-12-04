@@ -21,6 +21,7 @@ from lightning.data.streaming.data_processor import (
     _map_items_to_workers_weighted,
     _remove_target,
     _upload_fn,
+    _wait_for_disk_usage_higher_than_threshold,
     _wait_for_file_to_exist,
 )
 from lightning.data.streaming.functions import LambdaDataTransformRecipe, map, optimize
@@ -159,7 +160,8 @@ def test_remove_target(tmpdir):
 
 
 @pytest.mark.skipif(condition=sys.platform == "win32", reason="Not supported on windows")
-def test_download_data_target(tmpdir):
+@mock.patch("lightning.data.streaming.data_processor._wait_for_disk_usage_higher_than_threshold")
+def test_download_data_target(wait_for_disk_usage_higher_than_threshold_mock, tmpdir):
     input_dir = os.path.join(tmpdir, "input_dir")
     os.makedirs(input_dir, exist_ok=True)
 
@@ -191,6 +193,15 @@ def test_download_data_target(tmpdir):
     assert queue_out.put._mock_call_args_list[1].args == (None,)
 
     assert os.listdir(cache_dir) == ["a.txt"]
+
+    wait_for_disk_usage_higher_than_threshold_mock.assert_called()
+
+
+def test_wait_for_disk_usage_higher_than_threshold():
+    disk_usage_mock = mock.Mock(side_effect=[mock.Mock(free=10e9), mock.Mock(free=10e9), mock.Mock(free=10e11)])
+    with mock.patch("lightning.data.streaming.data_processor.shutil.disk_usage", disk_usage_mock):
+        _wait_for_disk_usage_higher_than_threshold("/", 10, sleep_time=0)
+    assert disk_usage_mock.call_count == 3
 
 
 @pytest.mark.skipif(condition=sys.platform == "win32", reason="Not supported on windows")
@@ -484,6 +495,8 @@ def test_data_processsor_distributed(fast_dev_run, delete_cached_files, tmpdir, 
         delete_cached_files=delete_cached_files,
         fast_dev_run=fast_dev_run,
         output_dir=remote_output_dir,
+        num_uploaders=1,
+        num_downloaders=1,
     )
     data_processor.run(CustomDataChunkRecipe(chunk_size=2))
 
@@ -508,6 +521,7 @@ def test_data_processsor_distributed(fast_dev_run, delete_cached_files, tmpdir, 
     data_processor = TestDataProcessor(
         input_dir=input_dir,
         num_workers=2,
+        num_uploaders=1,
         num_downloaders=1,
         delete_cached_files=delete_cached_files,
         fast_dev_run=fast_dev_run,
@@ -668,7 +682,6 @@ def test_data_processing_map(monkeypatch, tmpdir):
 
 
 def optimize_fn(filepath):
-    print(filepath)
     from PIL import Image
 
     return [Image.open(filepath), os.path.basename(filepath)]

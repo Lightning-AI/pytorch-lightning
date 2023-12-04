@@ -17,6 +17,7 @@ from typing import Any, ContextManager, Dict, List, Literal, Optional, Union
 
 import torch
 import torch.distributed
+from lightning_utilities.core.rank_zero import rank_zero_only as utils_rank_zero_only
 from torch import Tensor
 from torch.nn import Module
 from torch.nn.parallel.distributed import DistributedDataParallel
@@ -202,7 +203,7 @@ class DDPStrategy(ParallelStrategy):
             self.cluster_environment.set_world_size(self.num_nodes * self.num_processes)
         # `LightningEnvironment.set_global_rank` will do this too, but we cannot rely on that implementation detail
         # additionally, for some implementations, the setter is a no-op, so it's safer to access the getter
-        rank_zero_only.rank = self.global_rank
+        rank_zero_only.rank = utils_rank_zero_only.rank = self.global_rank
 
     def _determine_ddp_device_ids(self) -> Optional[List[int]]:
         return None if self.root_device.type == "cpu" else [self.root_device.index]

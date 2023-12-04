@@ -1,21 +1,22 @@
 import json
 import logging
 import os
+import shutil
 import signal
 import tempfile
 import traceback
 import types
 from abc import abstractmethod
 from dataclasses import dataclass
+from datetime import datetime
 from multiprocessing import Process, Queue
 from queue import Empty
-from shutil import copyfile, rmtree
 from time import sleep, time
 from typing import Any, Dict, List, Optional, Tuple, TypeVar, Union
 from urllib import parse
 
 import torch
-from tqdm.auto import tqdm
+from tqdm.auto import tqdm as _tqdm
 
 from lightning import seed_everything
 from lightning.data.streaming import Cache
@@ -100,6 +101,16 @@ def _wait_for_file_to_exist(s3: S3Client, obj: parse.ParseResult, sleep_time: in
                 raise e
 
 
+def _wait_for_disk_usage_higher_than_threshold(input_dir: str, threshold_in_gb: int = 25, sleep_time: int = 3) -> None:
+    usage = shutil.disk_usage(input_dir)
+
+    while (usage.free / 1000 / 1000 / 1000) <= threshold_in_gb:
+        sleep(sleep_time)
+        usage = shutil.disk_usage(input_dir)
+
+    return
+
+
 def _download_data_target(input_dir: Dir, cache_dir: str, queue_in: Queue, queue_out: Queue) -> None:
     """This function is used to download data from a remote directory to a cache directory to optimise reading."""
     s3 = S3Client()
@@ -122,7 +133,11 @@ def _download_data_target(input_dir: Dir, cache_dir: str, queue_in: Queue, queue
             continue
 
         if input_dir.url is not None or input_dir.path is not None:
-            # 6. Download all the required paths to unblock the current index
+            if input_dir.url:
+                # 6. Wait for the removers to catch up when we are downloading data.
+                _wait_for_disk_usage_higher_than_threshold("/", 25)
+
+            # 7. Download all the required paths to unblock the current index
             for path in paths:
                 local_path = path.replace(input_dir.path, cache_dir)
 
@@ -140,7 +155,7 @@ def _download_data_target(input_dir: Dir, cache_dir: str, queue_in: Queue, queue
                         s3.client.download_fileobj(obj.netloc, obj.path.lstrip("/"), f)
 
                 elif os.path.isfile(path):
-                    copyfile(path, local_path)
+                    shutil.copyfile(path, local_path)
                 else:
                     raise ValueError(f"The provided {input_dir.url} isn't supported.")
 
@@ -197,7 +212,7 @@ def _upload_fn(upload_queue: Queue, remove_queue: Queue, cache_dir: str, output_
             except Exception as e:
                 print(e)
         elif os.path.isdir(output_dir.path):
-            copyfile(local_filepath, os.path.join(output_dir.path, os.path.basename(local_filepath)))
+            shutil.copyfile(local_filepath, os.path.join(output_dir.path, os.path.basename(local_filepath)))
         else:
             raise ValueError(f"The provided {output_dir.path} isn't supported.")
 
@@ -278,6 +293,7 @@ class BaseWorker:
         error_queue: Queue,
         stop_queue: Queue,
         num_downloaders: int,
+        num_uploaders: int,
         remove: bool,
     ) -> None:
         """The BaseWorker is responsible to process the user data."""
@@ -290,18 +306,19 @@ class BaseWorker:
         self.items = items
         self.num_items = len(self.items)
         self.num_downloaders = num_downloaders
+        self.num_uploaders = num_uploaders
         self.remove = remove
         self.paths: List[List[str]] = []
         self.remover: Optional[Process] = None
         self.downloaders: List[Process] = []
+        self.uploaders: List[Process] = []
         self.to_download_queues: List[Queue] = []
+        self.to_upload_queues: List[Queue] = []
         self.stop_queue = stop_queue
         self.ready_to_process_queue: Queue = Queue()
         self.remove_queue: Queue = Queue()
-        self.upload_queue: Queue = Queue()
         self.progress_queue: Queue = progress_queue
         self.error_queue: Queue = error_queue
-        self.uploader: Optional[Process] = None
         self._collected_items = 0
         self._counter = 0
         self._last_time = time()
@@ -316,14 +333,14 @@ class BaseWorker:
             traceback_format = traceback.format_exc()
             print(traceback_format)
             self.error_queue.put(traceback_format)
-        print(f"Worker {self.worker_index} is done.")
+        print(f"Worker {str(_get_node_rank() * self.num_workers + self.worker_index)} is done.")
 
     def _setup(self) -> None:
         self._set_environ_variables()
         self._create_cache()
         self._collect_paths()
         self._start_downloaders()
-        self._start_uploader()
+        self._start_uploaders()
         self._start_remover()
 
     def _loop(self) -> None:
@@ -335,13 +352,19 @@ class BaseWorker:
             if index is None:
                 num_downloader_finished += 1
                 if num_downloader_finished == self.num_downloaders:
+                    print(f"Worker {str(_get_node_rank() * self.num_workers + self.worker_index)} is terminating.")
+
                     if isinstance(self.data_recipe, DataChunkRecipe):
                         self._handle_data_chunk_recipe_end()
 
                     if self.output_dir.url if self.output_dir.url else self.output_dir.path:
-                        assert self.uploader
-                        self.upload_queue.put(None)
-                        self.uploader.join()
+                        # Inform the uploaders they are doing working
+                        for i in range(self.num_uploaders):
+                            self.to_upload_queues[i].put(None)
+
+                        # Wait for them all to be finished
+                        for uploader in self.uploaders:
+                            uploader.join()
 
                     if self.remove:
                         assert self.remover
@@ -402,7 +425,7 @@ class BaseWorker:
             return
 
         assert os.path.exists(filepath), filepath
-        self.upload_queue.put(filepath)
+        self.to_upload_queues[self._counter % self.num_uploaders].put(filepath)
 
     def _collect_paths(self) -> None:
         items = []
@@ -475,19 +498,24 @@ class BaseWorker:
         )
         self.remover.start()
 
-    def _start_uploader(self) -> None:
+    def _start_uploaders(self) -> None:
         if self.output_dir.path is None and self.output_dir.url is None:
             return
-        self.uploader = Process(
-            target=_upload_fn,
-            args=(
-                self.upload_queue,
-                self.remove_queue,
-                self.cache_chunks_dir,
-                self.output_dir,
-            ),
-        )
-        self.uploader.start()
+
+        for _ in range(self.num_uploaders):
+            to_upload_queue: Queue = Queue()
+            p = Process(
+                target=_upload_fn,
+                args=(
+                    to_upload_queue,
+                    self.remove_queue,
+                    self.cache_chunks_dir,
+                    self.output_dir,
+                ),
+            )
+            p.start()
+            self.uploaders.append(p)
+            self.to_upload_queues.append(to_upload_queue)
 
     def _handle_data_chunk_recipe(self, index: int) -> None:
         try:
@@ -509,10 +537,10 @@ class BaseWorker:
     def _handle_data_chunk_recipe_end(self) -> None:
         chunks_filepaths = self.cache.done()
 
-        if chunks_filepaths:
-            for chunk_filepath in chunks_filepaths:
+        if chunks_filepaths and len(self.to_upload_queues):
+            for i, chunk_filepath in enumerate(chunks_filepaths):
                 if isinstance(chunk_filepath, str) and os.path.exists(chunk_filepath):
-                    self.upload_queue.put(chunk_filepath)
+                    self.to_upload_queues[i % self.num_uploaders].put(chunk_filepath)
 
     def _handle_data_transform_recipe(self, index: int) -> None:
         # Don't use a context manager to avoid deleting files that are being uploaded.
@@ -672,7 +700,7 @@ class DataChunkRecipe(DataRecipe):
                 local_filepath, obj.netloc, os.path.join(obj.path.lstrip("/"), os.path.basename(local_filepath))
             )
         elif os.path.isdir(output_dir.path):
-            copyfile(local_filepath, os.path.join(output_dir.path, os.path.basename(local_filepath)))
+            shutil.copyfile(local_filepath, os.path.join(output_dir.path, os.path.basename(local_filepath)))
 
         if num_nodes == 1 or node_rank is None:
             return
@@ -693,7 +721,7 @@ class DataChunkRecipe(DataRecipe):
                     with open(node_index_filepath, "wb") as f:
                         s3.client.download_fileobj(obj.netloc, obj.path.lstrip("/"), f)
                 elif os.path.isdir(output_dir.path):
-                    copyfile(remote_filepath, node_index_filepath)
+                    shutil.copyfile(remote_filepath, node_index_filepath)
 
             merge_cache = Cache(cache_dir, chunk_bytes=1)
             merge_cache._merge_no_wait()
@@ -717,10 +745,11 @@ class DataTransformRecipe(DataRecipe):
 class DataProcessor:
     def __init__(
         self,
-        input_dir: Optional[Union[str, Dir]] = None,
+        input_dir: Union[str, Dir],
         output_dir: Optional[Union[str, Dir]] = None,
         num_workers: Optional[int] = None,
         num_downloaders: Optional[int] = None,
+        num_uploaders: Optional[int] = None,
         delete_cached_files: bool = True,
         fast_dev_run: Optional[Union[bool, int]] = None,
         random_seed: Optional[int] = 42,
@@ -734,6 +763,7 @@ class DataProcessor:
             output_dir: The path to where the output data are stored.
             num_workers: The number of worker threads to use.
             num_downloaders: The number of file downloaders to use.
+            num_uploaders: The number of file uploaders to use.
             delete_cached_files: Whether to delete the cached files.
             fast_dev_run: Whether to run a quick dev run.
             random_seed: The random seed to be set before shuffling the data.
@@ -744,7 +774,8 @@ class DataProcessor:
         self.input_dir = _resolve_dir(input_dir)
         self.output_dir = _resolve_dir(output_dir)
         self.num_workers = num_workers or (1 if fast_dev_run else (os.cpu_count() or 1) * 4)
-        self.num_downloaders = num_downloaders or 1
+        self.num_downloaders = num_downloaders or 2
+        self.num_uploaders = num_uploaders or 5
         self.delete_cached_files = delete_cached_files
         self.fast_dev_run = _get_fast_dev_run() if fast_dev_run is None else fast_dev_run
         self.workers: Any = []
@@ -754,9 +785,8 @@ class DataProcessor:
         self.stop_queues: List[Queue] = []
         self.reorder_files = reorder_files
 
-        if self.input_dir:
-            # Ensure the input dir is the same across all nodes
-            self.input_dir = self._broadcast_object(self.input_dir)
+        # Ensure the input dir is the same across all nodes
+        self.input_dir = self._broadcast_object(self.input_dir)
 
         if self.output_dir:
             # Ensure the output dir is the same across all nodes
@@ -816,30 +846,43 @@ class DataProcessor:
 
         current_total = 0
         has_failed = False
-        with tqdm(total=num_items, smoothing=0, position=-1, mininterval=1) as pbar:
-            while True:
+        pbar = _tqdm(
+            desc="Progress",
+            total=num_items,
+            smoothing=0,
+            position=-1,
+            mininterval=1,
+            leave=True,
+            dynamic_ncols=True,
+        )
+
+        while True:
+            try:
+                error = self.error_queue.get(timeout=0.001)
+                self._exit_on_error(error)
+            except Empty:
+                assert self.progress_queue
                 try:
-                    error = self.error_queue.get(timeout=0.001)
-                    self._exit_on_error(error)
+                    index, counter = self.progress_queue.get(timeout=0.001)
                 except Empty:
-                    assert self.progress_queue
-                    try:
-                        index, counter = self.progress_queue.get(timeout=0.001)
-                    except Empty:
-                        continue
-                    self.workers_tracker[index] = counter
-                    new_total = sum(self.workers_tracker.values())
+                    continue
+                self.workers_tracker[index] = counter
+                new_total = sum(self.workers_tracker.values())
 
-                pbar.update(new_total - current_total)
-                current_total = new_total
-                if current_total == num_items:
-                    break
+            pbar.set_postfix({"time": datetime.now().strftime("%H:%M:%S.%f")})
+            pbar.update(new_total - current_total)
 
-                # Exit early if all the workers are done.
-                # This means there were some kinda of errors.
-                if all(not w.is_alive() for w in self.workers):
-                    has_failed = True
-                    break
+            current_total = new_total
+            if current_total == num_items:
+                break
+
+            # Exit early if all the workers are done.
+            # This means there were some kinda of errors.
+            if all(not w.is_alive() for w in self.workers):
+                has_failed = True
+                break
+
+        pbar.close()
 
         num_nodes = _get_num_nodes()
         node_rank = _get_node_rank()
@@ -896,6 +939,7 @@ class DataProcessor:
                 self.error_queue,
                 stop_queues[-1],
                 self.num_downloaders,
+                self.num_uploaders,
                 self.delete_cached_files,
             )
             worker.start()
@@ -918,7 +962,7 @@ class DataProcessor:
 
         # Cleanup the cache dir folder to avoid corrupted files from previous run to be there.
         if os.path.exists(cache_dir):
-            rmtree(cache_dir, ignore_errors=True)
+            shutil.rmtree(cache_dir, ignore_errors=True)
 
         os.makedirs(cache_dir, exist_ok=True)
 
@@ -926,7 +970,7 @@ class DataProcessor:
 
         # Cleanup the cache data folder to avoid corrupted files from previous run to be there.
         if os.path.exists(cache_data_dir):
-            rmtree(cache_data_dir, ignore_errors=True)
+            shutil.rmtree(cache_data_dir, ignore_errors=True)
 
         os.makedirs(cache_data_dir, exist_ok=True)
 
