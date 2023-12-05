@@ -33,10 +33,10 @@ def test_measure_flops():
     assert fwd_flops < fwd_and_bwd_flops
 
 
-def test_available_flops(xla_available):
+def test_get_available_flops(xla_available):
     with mock.patch("torch.cuda.get_device_name", return_value="NVIDIA H100 PCIe"):
         flops = get_available_flops(torch.device("cuda"), torch.bfloat16)
-    assert flops == 1.513e15 / 2
+    assert flops == 756e12
 
     with pytest.warns(match="not found for 'CocoNut"), mock.patch("torch.cuda.get_device_name", return_value="CocoNut"):
         assert get_available_flops(torch.device("cuda"), torch.bfloat16) is None
@@ -61,6 +61,56 @@ def test_available_flops(xla_available):
     tpu.reset_mock()
 
 
+@pytest.mark.parametrize(
+    "device_name",
+    [
+        # Hopper
+        "h100-nvl",  # TODO: switch with `torch.cuda.get_device_name()` result
+        "h100-hbm3",  # TODO: switch with `torch.cuda.get_device_name()` result
+        "NVIDIA H100 PCIe",
+        "h100-hbm2e",  # TODO: switch with `torch.cuda.get_device_name()` result
+        # Ada
+        "NVIDIA GeForce RTX 4090",
+        "NVIDIA GeForce RTX 4080",
+        "Tesla L40",
+        "NVIDIA L4",
+        # Ampere
+        "NVIDIA A100 80GB PCIe",
+        "NVIDIA A100-SXM4-40GB",
+        "NVIDIA GeForce RTX 3090",
+        "NVIDIA GeForce RTX 3090 Ti",
+        "NVIDIA GeForce RTX 3080",
+        "NVIDIA GeForce RTX 3080 Ti",
+        "NVIDIA GeForce RTX 3070",
+        pytest.param("NVIDIA GeForce RTX 3070 Ti", marks=pytest.mark.xfail(raises=AssertionError)),
+        pytest.param("NVIDIA GeForce RTX 3060", marks=pytest.mark.xfail(raises=AssertionError)),
+        pytest.param("NVIDIA GeForce RTX 3060 Ti", marks=pytest.mark.xfail(raises=AssertionError)),
+        pytest.param("NVIDIA GeForce RTX 3050", marks=pytest.mark.xfail(raises=AssertionError)),
+        pytest.param("NVIDIA GeForce RTX 3050 Ti", marks=pytest.mark.xfail(raises=AssertionError)),
+        "NVIDIA A6000",
+        "NVIDIA A40",
+        "NVIDIA A10G",
+        # Turing
+        "NVIDIA GeForce RTX 2080 SUPER",
+        "NVIDIA GeForce RTX 2080 Ti",
+        "NVIDIA GeForce RTX 2080",
+        "NVIDIA GeForce RTX 2070 Super",
+        "Quadro RTX 5000 with Max-Q Design",
+        "Tesla T4",
+        "TITAN RTX",
+        # Volta
+        "Tesla V100-SXm2-32GB",
+        "Tesla V100-PCIE-32GB",
+        "Tesla V100S-PCIE-32GB",
+    ],
+)
+@mock.patch("lightning.fabric.accelerators.cuda._is_ampere_or_later", return_value=False)
+def test_get_available_flops_cuda_mapping_exists(_, device_name):
+    """Tests `get_available_flops` against known device names."""
+    with mock.patch("lightning.fabric.utilities.throughput.torch.cuda.get_device_name", return_value=device_name):
+        assert get_available_flops(device=torch.device("cuda"), dtype=torch.float32) is not None
+
+
 def test_throughput():
     # required args only
     throughput = Throughput()
@@ -82,7 +132,7 @@ def test_throughput():
         "lengths": 8,
         "device/batches_per_sec": 2.0,
         "device/samples_per_sec": 4.0,
-        "device/items_per_sec": 16.0,
+        "device/items_per_sec": 8.0,
     }
 
     with pytest.raises(ValueError, match="Expected the value to increase"):
@@ -99,7 +149,7 @@ def test_throughput():
         "lengths": 20,
         "device/batches_per_sec": 1.0,
         "device/flops_per_sec": 10.0,
-        "device/items_per_sec": 20.0,
+        "device/items_per_sec": 10.0,
         "device/mfu": 0.2,
         "device/samples_per_sec": 2.0,
     }
@@ -116,7 +166,7 @@ def test_throughput():
         "lengths": 20,
         "device/batches_per_sec": 1.0,
         "device/flops_per_sec": 10.0,
-        "device/items_per_sec": 20.0,
+        "device/items_per_sec": 10.0,
         "device/samples_per_sec": 2.0,
     }
 
@@ -165,7 +215,7 @@ def test_throughput_monitor():
                 "lengths": 24,
                 "device|batches_per_sec": 1.0,
                 "device|samples_per_sec": 3.0,
-                "device|items_per_sec": 18.0,
+                "device|items_per_sec": 6.0,
                 "device|flops_per_sec": 10.0,
                 "device|mfu": 0.1,
             },
@@ -179,7 +229,7 @@ def test_throughput_monitor():
                 "lengths": 30,
                 "device|batches_per_sec": 1.0,
                 "device|samples_per_sec": 3.0,
-                "device|items_per_sec": 18.0,
+                "device|items_per_sec": 6.0,
                 "device|flops_per_sec": 10.0,
                 "device|mfu": 0.1,
             },
@@ -235,7 +285,7 @@ def test_throughput_monitor_world_size():
                 "batches_per_sec": 2.0,
                 "samples_per_sec": 6.0,
                 "items_per_sec": 12.0,
-                "device/items_per_sec": 18.0,
+                "device/items_per_sec": 6.0,
                 "flops_per_sec": 20.0,
                 "device/flops_per_sec": 10.0,
                 "device/mfu": 0.1,
@@ -253,7 +303,7 @@ def test_throughput_monitor_world_size():
                 "batches_per_sec": 2.0,
                 "samples_per_sec": 6.0,
                 "items_per_sec": 12.0,
-                "device/items_per_sec": 18.0,
+                "device/items_per_sec": 6.0,
                 "flops_per_sec": 20.0,
                 "device/flops_per_sec": 10.0,
                 "device/mfu": 0.1,

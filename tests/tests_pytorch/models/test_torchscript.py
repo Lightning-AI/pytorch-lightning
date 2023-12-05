@@ -48,6 +48,7 @@ def test_torchscript_input_output(modelclass):
 @pytest.mark.parametrize("modelclass", [BoringModel, ParityModuleRNN, BasicGAN])
 def test_torchscript_example_input_output_trace(modelclass):
     """Test that traced LightningModule forward works with example_input_array."""
+    torch.manual_seed(1)
     model = modelclass()
 
     if isinstance(model, BoringModel):

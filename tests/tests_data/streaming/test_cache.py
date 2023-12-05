@@ -10,7 +10,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import json
 import os
 import sys
 from functools import partial
@@ -19,15 +19,17 @@ import numpy as np
 import pytest
 import torch
 from lightning import seed_everything
-from lightning.data.datasets.env import _DistributedEnv
 from lightning.data.streaming import Cache
 from lightning.data.streaming.dataloader import StreamingDataLoader
 from lightning.data.streaming.dataset import StreamingDataset
 from lightning.data.streaming.item_loader import TokensLoader
+from lightning.data.streaming.serializers import Serializer
+from lightning.data.utilities.env import _DistributedEnv
 from lightning.fabric import Fabric
 from lightning.pytorch.demos.boring_classes import RandomDataset
 from lightning_utilities.core.imports import RequirementCache
-from torch.utils.data import DataLoader, Dataset
+from lightning_utilities.test.warning import no_warning_call
+from torch.utils.data import Dataset
 
 _PIL_AVAILABLE = RequirementCache("PIL")
 _TORCH_VISION_AVAILABLE = RequirementCache("torchvision")
@@ -221,24 +223,91 @@ def test_cache_with_auto_wrapping(tmpdir):
             pass
 
 
-def test_streaming_dataset(tmpdir, monkeypatch):
+def test_create_oversized_chunk_single_item(tmp_path):
+    cache = Cache(str(tmp_path), chunk_bytes=700)
+    with pytest.warns(UserWarning, match="An item was larger than the target chunk size"):
+        cache[0] = np.random.randint(0, 10, size=(10000,), dtype=np.uint8)
+
+
+def test_create_undersized_and_oversized_chunk(tmp_path):
+    cache = Cache(str(tmp_path), chunk_bytes=9000)  # target: 9KB chunks
+    with no_warning_call(UserWarning):
+        cache[0] = np.random.randint(0, 10, size=(500,), dtype=np.uint8)  # will result in undersized chunk
+        cache[1] = np.random.randint(0, 10, size=(10000,), dtype=np.uint8)  # will result in oversized chunk
+    with pytest.warns(UserWarning, match="An item was larger than the target chunk size"):
+        cache[2] = np.random.randint(0, 10, size=(150,), dtype=np.uint8)
+    with no_warning_call(UserWarning):
+        cache[3] = np.random.randint(0, 10, size=(200,), dtype=np.uint8)
+
+    cache.done()
+    cache.merge()
+
+    assert len(os.listdir(tmp_path)) == 4  # 3 chunks + 1 index file
+    with open(tmp_path / "index.json") as file:
+        index = json.load(file)
+
+    chunks = index["chunks"]
+    assert chunks[0]["chunk_size"] == 1
+    assert chunks[0]["filename"] == "chunk-0-0.bin"
+    assert chunks[1]["chunk_size"] == 1
+    assert chunks[1]["filename"] == "chunk-0-1.bin"
+    assert chunks[2]["chunk_size"] == 2
+    assert chunks[2]["filename"] == "chunk-0-2.bin"
+
+
+class CustomData:
+    pass
+
+
+class CustomSerializer(Serializer):
+    def serialize(self, data):
+        return np.array([1]).tobytes(), None
+
+    def deserialize(self, data: bytes):
+        return data
+
+    def can_serialize(self, data) -> bool:
+        return isinstance(data, CustomData)
+
+
+def test_custom_serializer(tmpdir):
+    cache = Cache(input_dir=str(tmpdir), serializers={"custom": CustomSerializer()}, chunk_size=1)
+    for i in range(10):
+        cache[i] = (CustomData(),)
+    cache.done()
+    cache.merge()
+    assert isinstance(cache[0][0], bytes)
+
+
+def test_cache_for_text_tokens(tmpdir):
     seed_everything(42)
 
-    os.makedirs(os.path.join(tmpdir, "remote_dir"), exist_ok=True)
+    block_size = 1024 + 1
+    cache = Cache(input_dir=str(tmpdir), chunk_size=block_size * 11, item_loader=TokensLoader(block_size))
+    text_idxs_list = []
 
-    with pytest.raises(ValueError, match="The provided dataset"):
-        dataset = StreamingDataset(input_dir=tmpdir)
+    counter = 0
+    while True:
+        text_ids = torch.randint(0, 1000, (np.random.randint(0, 1000),)).to(torch.int)
+        text_idxs_list.append(text_ids)
+        chunk_filepath = cache._add_item(counter, text_ids)
+        if chunk_filepath:
+            break
+        counter += 1
 
-    dataset = RandomDataset(128, 64)
-    dataloader = StreamingDataLoader(dataset, cache_dir=tmpdir, chunk_bytes=2 << 12)
-    for batch in dataloader:
-        assert isinstance(batch, torch.Tensor)
+    cache.done()
+    cache.merge()
 
-    dataset = StreamingDataset(input_dir=tmpdir, item_loader=TokensLoader(block_size=10))
+    assert len(cache) == 10
 
-    assert len(dataset) == 816
-    dataset_iter = iter(dataset)
-    assert len(dataset_iter) == 816
+    cache_0 = cache[0]
+    cache_1 = cache[1]
+    assert len(cache_0) == block_size
+    assert len(cache_1) == block_size
+    assert not torch.equal(cache_0, cache[1])
+    indices = torch.cat(text_idxs_list, dim=0)
+    assert torch.equal(cache_0, indices[: len(cache_0)])
+    assert torch.equal(cache_1, indices[len(cache_0) : len(cache_0) + len(cache_1)])
 
-    dataloader = DataLoader(dataset, num_workers=2, batch_size=2)
-    assert len(dataloader) == 408
+    with pytest.raises(ValueError, match="TokensLoader"):
+        len(Cache(str(tmpdir), chunk_size=block_size * 11))

@@ -20,6 +20,8 @@ import time
 from datetime import timedelta
 from typing import Any, Dict, Optional, Union
 
+from typing_extensions import override
+
 import lightning.pytorch as pl
 from lightning.pytorch.callbacks.callback import Callback
 from lightning.pytorch.trainer.states import RunningStage
@@ -127,24 +129,31 @@ class Timer(Callback):
             return self._duration - self.time_elapsed(stage)
         return None
 
+    @override
     def on_train_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         self._start_time[RunningStage.TRAINING] = time.monotonic()
 
+    @override
     def on_train_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         self._end_time[RunningStage.TRAINING] = time.monotonic()
 
+    @override
     def on_validation_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         self._start_time[RunningStage.VALIDATING] = time.monotonic()
 
+    @override
     def on_validation_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         self._end_time[RunningStage.VALIDATING] = time.monotonic()
 
+    @override
     def on_test_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         self._start_time[RunningStage.TESTING] = time.monotonic()
 
+    @override
     def on_test_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         self._end_time[RunningStage.TESTING] = time.monotonic()
 
+    @override
     def on_fit_start(self, trainer: "pl.Trainer", *args: Any, **kwargs: Any) -> None:
         # this checks the time after the state is reloaded, regardless of the interval.
         # this is necessary in case we load a state whose timer is already depleted
@@ -152,19 +161,23 @@ class Timer(Callback):
             return
         self._check_time_remaining(trainer)
 
+    @override
     def on_train_batch_end(self, trainer: "pl.Trainer", *args: Any, **kwargs: Any) -> None:
         if self._interval != Interval.step or self._duration is None:
             return
         self._check_time_remaining(trainer)
 
+    @override
     def on_train_epoch_end(self, trainer: "pl.Trainer", *args: Any, **kwargs: Any) -> None:
         if self._interval != Interval.epoch or self._duration is None:
             return
         self._check_time_remaining(trainer)
 
+    @override
     def state_dict(self) -> Dict[str, Any]:
         return {"time_elapsed": {stage.value: self.time_elapsed(stage) for stage in RunningStage}}
 
+    @override
     def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
         time_elapsed = state_dict.get("time_elapsed", {})
         self._offset = time_elapsed.get(RunningStage.TRAINING.value, 0)

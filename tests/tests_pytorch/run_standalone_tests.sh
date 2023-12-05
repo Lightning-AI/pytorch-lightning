@@ -72,6 +72,10 @@ for i in "${!parametrizations_arr[@]}"; do
     # do not continue the loop because we might need to wait for batched jobs
   else
     echo "$prefix: Running $parametrization"
+
+    # fix the port to avoid race condition when batched distributed tests select the port randomly
+    export MASTER_PORT=$((29500 + $i % $test_batch_size))
+
     # execute the test in the background
     # redirect to a log file that buffers test output. since the tests will run in the background, we cannot let them
     # output to std{out,err} because the outputs would be garbled together

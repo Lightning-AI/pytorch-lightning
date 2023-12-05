@@ -11,6 +11,9 @@ on:
       - ".actions/*"
       - "requirements/data/**"
       - "src/lightning/data/**"
+      - "src/lightning/__init__.py"
+      - "src/lightning/__setup__.py"
+      - "src/lightning/__version__.py"
       - "tests/tests_data/**"
       - "pyproject.toml" # includes pytest config
       - ".github/workflows/ci-tests-data.yml"
@@ -92,6 +95,7 @@ jobs:
       - name: Testing Data
         working-directory: tests/tests_data
         # NOTE: do not include coverage report here, see: https://github.com/nedbat/coveragepy/issues/1003
+        timeout-minutes: 10
         run: |
           python -m coverage run --source lightning \
             -m pytest -v --timeout=60 --durations=60

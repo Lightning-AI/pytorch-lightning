@@ -11,17 +11,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
+from pathlib import Path
+
+import numpy as np
 import torch
 from lightning_utilities.core.imports import RequirementCache
 
 _INDEX_FILENAME = "index.json"
 _DEFAULT_CHUNK_BYTES = 1 << 26  # 64M B
 _DEFAULT_FAST_DEV_RUN_ITEMS = 10
+_DEFAULT_CACHE_DIR = os.path.join(Path.home(), ".lightning", "chunks")
 
 # This is required for full pytree serialization / deserialization support
 _TORCH_GREATER_EQUAL_2_1_0 = RequirementCache("torch>=2.1.0")
 _VIZ_TRACKER_AVAILABLE = RequirementCache("viztracer")
-_LIGHTNING_CLOUD_GREATER_EQUAL_0_5_50 = RequirementCache("lightning-cloud>=0.5.50")
+_LIGHTNING_CLOUD_LATEST = RequirementCache("lightning-cloud>=0.5.57")
 _BOTO3_AVAILABLE = RequirementCache("boto3")
 
 # DON'T CHANGE ORDER
@@ -47,3 +52,8 @@ _TORCH_DTYPES_MAPPING = {
     18: torch.long,
     19: torch.bool,
 }
+
+_NUMPY_SCTYPES = [v for values in np.sctypes.values() for v in values]
+_NUMPY_DTYPES_MAPPING = {i: np.dtype(v) for i, v in enumerate(_NUMPY_SCTYPES)}
+
+_TIME_FORMAT = "%Y-%m-%d_%H-%M-%S.%fZ"
