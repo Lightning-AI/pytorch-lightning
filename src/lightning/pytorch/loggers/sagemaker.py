@@ -146,7 +146,7 @@ class SagemakerExperimentsLogger(Logger):
         from sagemaker.experiments.run import Run
 
         self._sagemaker_session: sagemaker.Session = sagemaker_session
-        self._run: Union[Run, None] = None
+        self._run: Run
         try:
             if experiment_name and run_name:
                 self._experiment = ExperimentConfig(
@@ -172,23 +172,23 @@ class SagemakerExperimentsLogger(Logger):
 
             raise RuntimeError(error_str)
 
-    def _sagemaker_run(fn: Callable) -> Callable:
+    def _sagemaker_run(self: Callable) -> Callable:
         @rank_zero_only
-        def log_fun(self, *args, **kwargs):
+        def log_fun(_self: "SagemakerExperimentsLogger", *args, **kwargs) -> None:
             from sagemaker.experiments import load_run
 
             experiment_name = None
             run_name = None
-            if not self._experiment.run_within_context:
-                experiment_name = self._experiment.experiment_name
-                run_name = self._experiment.run_name
+            if not _self._experiment.run_within_context:
+                experiment_name = _self._experiment.experiment_name
+                run_name = _self._experiment.run_name
             with load_run(
                 experiment_name=experiment_name,
                 run_name=run_name,
-                sagemaker_session=self._sagemaker_session,
-            ) as self._run:
-                fn(self, *args, **kwargs)
-                self._run.close()
+                sagemaker_session=_self._sagemaker_session,
+            ) as _self._run:
+                self(_self, *args, **kwargs)
+                _self._run.close()
 
         return log_fun
 
