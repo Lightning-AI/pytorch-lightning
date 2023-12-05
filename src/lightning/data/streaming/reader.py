@@ -11,11 +11,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import multiprocessing
 import os
 import shutil
 import warnings
-from threading import Lock, Thread
-from time import sleep
+from queue import Empty
+from threading import Thread
 from typing import Any, Dict, List, Optional, Tuple
 
 from lightning.data.streaming.config import ChunksConfig
@@ -39,30 +40,20 @@ class PrepareChunksThread(Thread):
         self._config = config
         self._chunks_index_to_be_downloaded: List[int] = []
         self._chunks_index_to_be_deleted: List[int] = []
-        self._lock = Lock()
         self._max_cache_size = max_cache_size
-        self._downloaded_chunks = 0
-        self._processed_chunks = 0
-        self._processed_chunks_counter = 0
-        self._delete_chunks = 0
-        self._pre_download = pre_download
-        self._should_stop = False
+        self._to_download_queue = multiprocessing.Queue()
+        self._to_delete_queue = multiprocessing.Queue()
+        self._to_stop_queue = multiprocessing.Queue()
 
-    def download(self, chunk_indices: List[int]) -> None:
+    def download(self, chunk_indexes: List[int]) -> None:
         """Receive the list of the chunk indices to download for the current epoch."""
-        with self._lock:
-            for chunk_indice in chunk_indices:
-                if chunk_indice not in self._chunks_index_to_be_downloaded:
-                    self._chunks_index_to_be_downloaded.append(chunk_indice)
+        for chunk_index in chunk_indexes:
+            self._to_download_queue.put(chunk_index)
 
-    def delete(self, chunk_indices: List[int]) -> None:
-        """Receive the list of the chunk indices to download for the current epoch."""
-        with self._lock:
-            for chunk_indice in chunk_indices:
-                if chunk_indice not in self._chunks_index_to_be_deleted:
-                    self._chunks_index_to_be_deleted.append(chunk_indice)
-                    self._processed_chunks += 1
-                    self._processed_chunks_counter += 1
+    def delete(self, chunk_indexes: List[int]) -> None:
+        """Receive the list of the chunk indices to delete for the current epoch."""
+        for chunk_index in chunk_indexes:
+            self._to_delete_queue.put(chunk_index)
 
     def _delete(self, chunk_index: int) -> None:
         chunk_filepath, begin, _ = self._config[ChunkedIndex(index=-1, chunk_index=chunk_index)]
@@ -72,54 +63,30 @@ class PrepareChunksThread(Thread):
 
     def stop(self) -> None:
         """Receive the list of the chunk indices to download for the current epoch."""
-        with self._lock:
-            self._should_stop = True
+        self._to_stop_queue.put(None)
 
     def run(self) -> None:
         while True:
-            with self._lock:
-                if self._should_stop:
-                    if (
-                        self._max_cache_size
-                        and self._max_cache_size <= shutil.disk_usage(self._config._cache_dir).total
-                    ):
-                        for chunk_index in self._chunks_index_to_be_deleted:
-                            if chunk_index not in self._chunks_index_to_be_downloaded:
-                                self._delete(chunk_index)
-                                self._delete_chunks += 1
-                                self._processed_chunks_counter = 0
-                    return
+            try:
+                chunk_index = self._to_download_queue.get(timeout=0.001)
+                self._config.download_chunk_from_index(chunk_index)
+            except Empty:
+                pass
 
-                # Wait for something to do
-                if len(self._chunks_index_to_be_downloaded) == 0 and len(self._chunks_index_to_be_deleted) == 0:
-                    continue
+            try:
+                chunk_index = self._to_delete_queue.get(timeout=0.001)
+                if shutil.disk_usage(self._config._cache_dir).total >= self._max_cache_size:
+                    for chunk_index in self._chunks_index_to_be_deleted:
+                        if chunk_index not in self._chunks_index_to_be_downloaded:
+                            self._delete(chunk_index)
+            except Empty:
+                pass
 
-                # Delete the chunks if we are missing disk space.
-                if self._max_cache_size and self._processed_chunks_counter >= self._pre_download:
-                    if shutil.disk_usage(self._config._cache_dir).total >= self._max_cache_size:
-                        for chunk_index in self._chunks_index_to_be_deleted:
-                            if chunk_index not in self._chunks_index_to_be_downloaded:
-                                self._delete(chunk_index)
-                                self._delete_chunks += 1
-                                self._processed_chunks_counter = 0
-                    self._chunks_index_to_be_deleted = []
-
-                # If there is no chunks to download, go back to waiting
-                if len(self._chunks_index_to_be_downloaded) == 0:
-                    continue
-
-                # If we have already downloaded too many chunks, let's wait for processed chunks to catch up
-                if self._max_cache_size and (self._downloaded_chunks - self._processed_chunks) > self._pre_download:
-                    sleep(0.1)
-                    continue
-
-                chunk_index = self._chunks_index_to_be_downloaded.pop(0)
-
-            self._config.download_chunk_from_index(chunk_index)
-            self._downloaded_chunks += 1
-
-            # Sleep to release the lock
-            sleep(0.1)
+            try:
+                self._to_stop_queue.get(timeout=0.001)
+                return
+            except Empty:
+                pass
 
 
 class BinaryReader:
