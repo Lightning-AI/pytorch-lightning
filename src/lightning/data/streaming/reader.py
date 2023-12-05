@@ -70,6 +70,15 @@ class PrepareChunksThread(Thread):
         while True:
             try:
                 chunk_index = self._to_download_queue.get(timeout=0.01)
+
+                # Before downloading, check whether we have enough space
+                if (
+                    self._max_cache_size
+                    and self._chunks_index_to_be_deleted
+                    and shutil.disk_usage(self._config._cache_dir).total >= self._max_cache_size
+                ):
+                    self._delete(self._chunks_index_to_be_deleted.pop(0))
+
                 self._config.download_chunk_from_index(chunk_index)
             except Empty:
                 pass
