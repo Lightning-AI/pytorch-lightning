@@ -110,9 +110,8 @@ class PrepareChunksThread(Thread):
             except OSError as e:
                 # handle closed queue before the thread terminates
                 if "handle is closed" in str(e):
-                    pass
-                else:
-                    raise e
+                    return
+                raise e
 
             sleep(0.01)
 
