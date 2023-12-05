@@ -114,7 +114,6 @@ class PyTreeLoader(BaseItemLoader):
     def delete(self, chunk_index: int, chunk_filepath: str):
         if os.path.exists(chunk_filepath):
             os.remove(chunk_filepath)
-            print(chunk_filepath)
 
 
 class TokensLoader(BaseItemLoader):
