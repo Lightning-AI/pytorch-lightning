@@ -193,9 +193,10 @@ class TokensLoader(BaseItemLoader):
 
     def delete(self, chunk_index: int, chunk_filepath: str):
         self._mmaps[chunk_index]._mmap.close()
-        del self._mmaps[chunk_index]
         del self._buffers[chunk_index]
+        del self._mmaps[chunk_index]
+
+        sleep(0.01)
 
         if os.path.exists(chunk_filepath):
             os.remove(chunk_filepath)
-            print(chunk_filepath)
