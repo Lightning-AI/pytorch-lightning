@@ -18,7 +18,7 @@ import warnings
 from queue import Empty
 from threading import Thread
 from time import sleep
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 from lightning.data.streaming.config import ChunksConfig
 from lightning.data.streaming.constants import _TORCH_GREATER_EQUAL_2_1_0
@@ -40,7 +40,6 @@ class PrepareChunksThread(Thread):
         super().__init__(daemon=True)
         self._config = config
         self._item_loader = item_loader
-        self._chunks_index_to_be_downloaded: List[int] = os.listdir()
         self._chunks_index_to_be_deleted: List[int] = []
         self._max_cache_size = max_cache_size
         self._parent_cache_dir = os.path.dirname(self._config._cache_dir)
@@ -60,7 +59,7 @@ class PrepareChunksThread(Thread):
             self._to_delete_queue.put(chunk_index)
 
     def _delete(self, chunk_index: int) -> None:
-        chunk_filepath, begin, _ = self._config[ChunkedIndex(index=-1, chunk_index=chunk_index)]
+        chunk_filepath, _, _ = self._config[ChunkedIndex(index=-1, chunk_index=chunk_index)]
         self._item_loader.delete(chunk_index, chunk_filepath)
 
     def stop(self) -> None:
