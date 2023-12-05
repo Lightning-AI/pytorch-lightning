@@ -17,6 +17,7 @@ import shutil
 import warnings
 from queue import Empty
 from threading import Thread
+from time import sleep
 from typing import Any, Dict, List, Optional, Tuple
 
 from lightning.data.streaming.config import ChunksConfig
@@ -68,13 +69,13 @@ class PrepareChunksThread(Thread):
     def run(self) -> None:
         while True:
             try:
-                chunk_index = self._to_download_queue.get(timeout=0.001)
+                chunk_index = self._to_download_queue.get(timeout=0.01)
                 self._config.download_chunk_from_index(chunk_index)
             except Empty:
                 pass
 
             try:
-                chunk_index = self._to_delete_queue.get(timeout=0.001)
+                chunk_index = self._to_delete_queue.get(timeout=0.01)
                 if self._max_cache_size:
                     if shutil.disk_usage(self._config._cache_dir).total >= self._max_cache_size:
                         self._chunks_index_to_be_deleted.append(chunk_index)
@@ -90,10 +91,12 @@ class PrepareChunksThread(Thread):
                 pass
 
             try:
-                self._to_stop_queue.get(timeout=0.001)
+                self._to_stop_queue.get(timeout=0.01)
                 return
             except Empty:
                 pass
+
+            sleep(0.01)
 
 
 class BinaryReader:
