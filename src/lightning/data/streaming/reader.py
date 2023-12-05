@@ -40,7 +40,7 @@ class PrepareChunksThread(Thread):
         super().__init__(daemon=True)
         self._config = config
         self._item_loader = item_loader
-        self._chunks_index_to_be_deleted: List[int] = []
+        self._chunks_index_to_be_deleted: List[int] = [self._config._get_chunk_index_from_filename(f) for f in os.listdir(self._config._cache_dir) if f.endswith(".bin")]
         self._max_cache_size = max_cache_size
         self._parent_cache_dir = os.path.dirname(self._config._cache_dir)
         self._to_download_queue: multiprocessing.Queue = multiprocessing.Queue()
@@ -66,7 +66,12 @@ class PrepareChunksThread(Thread):
         """Receive the list of the chunk indices to download for the current epoch."""
         self._to_stop_queue.put(None)
 
-    def _delete_chunks(self):
+    def _delete_chunks(self, downloaded_chunk_index: Optional[int] = None):
+        if downloaded_chunk_index:
+            chunk_filepath, _, _ = self._config[ChunkedIndex(index=-1, chunk_index=downloaded_chunk_index)]
+            if os.path.exists(chunk_filepath):
+                return
+
         try:
             chunk_index = self._to_delete_queue.get(timeout=0.01)
             if self._max_cache_size:
@@ -96,7 +101,7 @@ class PrepareChunksThread(Thread):
 
                 # Before downloading, check whether we have enough space
                 while (self._max_cache_size and _get_folder_size(self._parent_cache_dir) >= self._max_cache_size):
-                    self._delete_chunks()
+                    self._delete_chunks(chunk_index)
 
                 self._config.download_chunk_from_index(chunk_index)
 
