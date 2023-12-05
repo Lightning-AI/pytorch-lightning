@@ -50,6 +50,11 @@ class BaseItemLoader(ABC):
         """Returns an item loaded from a chunk."""
         pass
 
+    @abstractmethod
+    def delete(self, chunk_index: int, chunk_filepath: str):
+        """Delete a chunk."""
+        pass
+
 
 class PyTreeLoader(BaseItemLoader):
     """The Pytree Loader is the default loader of the Cache object."""
@@ -105,6 +110,11 @@ class PyTreeLoader(BaseItemLoader):
             data.append(serializer.deserialize(data_bytes))
             idx += size
         return tree_unflatten(data, self._config["data_spec"])
+
+    def delete(self, chunk_index: int, chunk_filepath: str):
+        if os.path.exists(chunk_filepath):
+            os.remove(chunk_filepath)
+            print(chunk_filepath)
 
 
 class TokensLoader(BaseItemLoader):
@@ -180,3 +190,12 @@ class TokensLoader(BaseItemLoader):
         buffer: bytes = self._buffers[chunk_index]
         offset = self._dtype.itemsize * (index - begin) * self._block_size
         return torch.frombuffer(buffer, dtype=self._dtype, count=self._block_size, offset=offset)
+
+    def delete(self, chunk_index: int, chunk_filepath: str):
+        self._mmaps[chunk_index]._mmap.close()
+        del self._mmaps[chunk_index]
+        del self._buffers[chunk_index]
+
+        if os.path.exists(chunk_filepath):
+            os.remove(chunk_filepath)
+            print(chunk_filepath)
