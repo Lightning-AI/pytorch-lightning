@@ -71,8 +71,14 @@ class PrepareChunksThread(Thread):
             try:
                 chunk_index = self._to_download_queue.get(timeout=0.01)
                 self._config.download_chunk_from_index(chunk_index)
-            except (OSError, Empty):
+            except Empty:
                 pass
+            except OSError as e:
+                # handle closed queue before the thread terminates
+                if "handle is closed" in str(e):
+                    pass
+                else:
+                    raise e
 
             try:
                 chunk_index = self._to_delete_queue.get(timeout=0.01)
@@ -87,14 +93,26 @@ class PrepareChunksThread(Thread):
                         self._chunks_index_to_be_deleted = self._chunks_index_to_be_deleted[2:]
                     else:
                         self._chunks_index_to_be_deleted.append(chunk_index)
-            except (OSError, Empty):
+            except Empty:
                 pass
+            except OSError as e:
+                # handle closed queue before the thread terminates
+                if "handle is closed" in str(e):
+                    pass
+                else:
+                    raise e
 
             try:
                 self._to_stop_queue.get(timeout=0.01)
                 return
-            except (OSError, Empty):
+            except Empty:
                 pass
+            except OSError as e:
+                # handle closed queue before the thread terminates
+                if "handle is closed" in str(e):
+                    pass
+                else:
+                    raise e
 
             sleep(0.01)
 
