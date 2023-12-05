@@ -76,8 +76,8 @@ class PrepareChunksThread(Thread):
             try:
                 chunk_index = self._to_delete_queue.get(timeout=0.001)
                 if self._max_cache_size and shutil.disk_usage(self._config._cache_dir).total >= self._max_cache_size:
-                    for chunk_index in self._chunks_index_to_be_deleted:
-                        self._delete(chunk_index)
+                    if self._chunks_index_to_be_deleted:
+                        self._delete(self._chunks_index_to_be_deleted.pop(0))
                 else:
                     self._chunks_index_to_be_deleted.append(chunk_index)
             except Empty:
