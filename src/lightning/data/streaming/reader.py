@@ -46,7 +46,7 @@ class PrepareChunksThread(Thread):
         self._to_download_queue: multiprocessing.Queue = multiprocessing.Queue()
         self._to_delete_queue: multiprocessing.Queue = multiprocessing.Queue()
         self._to_stop_queue: multiprocessing.Queue = multiprocessing.Queue()
-        self._has_downloaded = False
+        self._pre_downloaded = 0
 
     def download(self, chunk_indexes: List[int]) -> None:
         """Receive the list of the chunk indices to download for the current epoch."""
@@ -77,6 +77,7 @@ class PrepareChunksThread(Thread):
                     while (self._max_cache_size and self._chunks_index_to_be_deleted and total >= self._max_cache_size):
                         self._delete(self._chunks_index_to_be_deleted.pop(0))
                         total = _get_folder_size(self._parent_cache_dir)
+                        self._pre_downloaded -= 1
                 else:
                     self._chunks_index_to_be_deleted.append(chunk_index)
         except Empty:
@@ -92,14 +93,9 @@ class PrepareChunksThread(Thread):
         while True:
             try:
                 chunk_index = self._to_download_queue.get(timeout=0.01)
-
-                # Before downloading, check whether we have enough space
-                while (self._has_downloaded and self._max_cache_size and _get_folder_size(self._parent_cache_dir) >= self._max_cache_size):
-                    self._delete_chunks()
-
                 self._config.download_chunk_from_index(chunk_index)
 
-                self._has_downloaded = True
+                self._pre_downloaded += 1
             except Empty:
                 pass
             except OSError as e:
