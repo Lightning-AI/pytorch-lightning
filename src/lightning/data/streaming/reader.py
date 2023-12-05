@@ -11,14 +11,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import contextlib
 import multiprocessing
 import os
-import shutil
 import warnings
 from queue import Empty
 from threading import Thread
 from time import sleep
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple
 
 from lightning.data.streaming.config import ChunksConfig
 from lightning.data.streaming.constants import _TORCH_GREATER_EQUAL_2_1_0
@@ -40,7 +40,11 @@ class PrepareChunksThread(Thread):
         super().__init__(daemon=True)
         self._config = config
         self._item_loader = item_loader
-        self._chunks_index_to_be_deleted: List[int] = [self._config._get_chunk_index_from_filename(f) for f in os.listdir(self._config._cache_dir) if f.endswith(".bin")]
+        self._chunks_index_to_be_deleted: List[int] = [
+            self._config._get_chunk_index_from_filename(f)
+            for f in os.listdir(self._config._cache_dir)
+            if f.endswith(".bin")
+        ]
         self._max_cache_size = max_cache_size
         self._parent_cache_dir = os.path.dirname(self._config._cache_dir)
         self._to_download_queue: multiprocessing.Queue = multiprocessing.Queue()
@@ -79,7 +83,7 @@ class PrepareChunksThread(Thread):
                 if total >= self._max_cache_size:
                     self._chunks_index_to_be_deleted.append(chunk_index)
 
-                    while (self._max_cache_size and self._chunks_index_to_be_deleted and total >= self._max_cache_size):
+                    while self._max_cache_size and self._chunks_index_to_be_deleted and total >= self._max_cache_size:
                         self._delete(self._chunks_index_to_be_deleted.pop(0))
                         total = _get_folder_size(self._parent_cache_dir)
                         self._pre_downloaded -= 1
@@ -100,7 +104,7 @@ class PrepareChunksThread(Thread):
                 chunk_index = self._to_download_queue.get(timeout=0.01)
 
                 # Before downloading, check whether we have enough space
-                while (self._max_cache_size and _get_folder_size(self._parent_cache_dir) >= self._max_cache_size):
+                while self._max_cache_size and _get_folder_size(self._parent_cache_dir) >= self._max_cache_size:
                     self._delete_chunks(chunk_index)
 
                 self._config.download_chunk_from_index(chunk_index)
@@ -268,8 +272,6 @@ def _get_folder_size(path: str) -> int:
     size = 0
     for dirpath, _, filenames in os.walk(str(path)):
         for filename in filenames:
-            try:
+            with contextlib.suppress(FileNotFoundError):
                 size += os.stat(os.path.join(dirpath, filename)).st_size
-            except FileNotFoundError:
-                pass
     return size
