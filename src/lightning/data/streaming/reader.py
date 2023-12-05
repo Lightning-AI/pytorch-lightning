@@ -40,13 +40,14 @@ class PrepareChunksThread(Thread):
         super().__init__(daemon=True)
         self._config = config
         self._item_loader = item_loader
-        self._chunks_index_to_be_downloaded: List[int] = []
+        self._chunks_index_to_be_downloaded: List[int] = os.listdir()
         self._chunks_index_to_be_deleted: List[int] = []
         self._max_cache_size = max_cache_size
         self._parent_cache_dir = os.path.dirname(self._config._cache_dir)
         self._to_download_queue: multiprocessing.Queue = multiprocessing.Queue()
         self._to_delete_queue: multiprocessing.Queue = multiprocessing.Queue()
         self._to_stop_queue: multiprocessing.Queue = multiprocessing.Queue()
+        self._has_downloaded = False
 
     def download(self, chunk_indexes: List[int]) -> None:
         """Receive the list of the chunk indices to download for the current epoch."""
@@ -94,10 +95,12 @@ class PrepareChunksThread(Thread):
                 chunk_index = self._to_download_queue.get(timeout=0.01)
 
                 # Before downloading, check whether we have enough space
-                while (self._max_cache_size and _get_folder_size(self._parent_cache_dir) >= self._max_cache_size):
+                while (self._has_downloaded and self._max_cache_size and _get_folder_size(self._parent_cache_dir) >= self._max_cache_size):
                     self._delete_chunks()
 
                 self._config.download_chunk_from_index(chunk_index)
+
+                self._has_downloaded = True
             except Empty:
                 pass
             except OSError as e:
@@ -215,19 +218,20 @@ class BinaryReader:
                 if index.chunk_indexes:
                     self._prepare_thread.download(index.chunk_indexes)
 
-            # If the chunk_index isn't already in the download and delete queues, add it.
+            # If the chunk_index is new, request for it to be downloaded.
             if index.chunk_index != self._last_chunk_index:
                 assert self._prepare_thread
-
-                if self._last_chunk_index:
-                    self._prepare_thread.delete([self._last_chunk_index])
-
-                self._last_chunk_index = index.chunk_index
                 self._prepare_thread.download([index.chunk_index])
 
         # Fetch the element
         chunk_filepath, begin, _ = self.config[index]
         item = self._item_loader.load_item_from_chunk(index.index, index.chunk_index, chunk_filepath, begin)
+
+        if self._config and self._config._remote_dir and index.chunk_index != self._last_chunk_index:
+            assert self._prepare_thread
+            if self._last_chunk_index:
+                self._prepare_thread.delete([self._last_chunk_index])
+            self._last_chunk_index = index.chunk_index
 
         if index.is_last_index and self._prepare_thread:
             self._prepare_thread.stop()

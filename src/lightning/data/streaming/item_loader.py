@@ -192,11 +192,10 @@ class TokensLoader(BaseItemLoader):
         return torch.frombuffer(buffer, dtype=self._dtype, count=self._block_size, offset=offset)
 
     def delete(self, chunk_index: int, chunk_filepath: str):
-        self._mmaps[chunk_index]._mmap.close()
-        del self._buffers[chunk_index]
-        del self._mmaps[chunk_index]
-
-        sleep(0.01)
-
         if os.path.exists(chunk_filepath):
-            os.remove(chunk_filepath)
+            del self._buffers[chunk_index]
+            del self._mmaps[chunk_index]
+
+            if os.path.exists(chunk_filepath):
+                os.remove(chunk_filepath)
+                print(chunk_filepath)
