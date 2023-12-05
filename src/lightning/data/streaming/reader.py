@@ -35,7 +35,7 @@ if _TORCH_GREATER_EQUAL_2_1_0:
 class PrepareChunksThread(Thread):
     """This thread is responsible to download the chunks associated to a given worker."""
 
-    def __init__(self, config: ChunksConfig, max_cache_size: Optional[int] = None, pre_download: int = 10) -> None:
+    def __init__(self, config: ChunksConfig, max_cache_size: Optional[int] = None) -> None:
         super().__init__(daemon=True)
         self._config = config
         self._chunks_index_to_be_downloaded: List[int] = []
@@ -75,11 +75,17 @@ class PrepareChunksThread(Thread):
 
             try:
                 chunk_index = self._to_delete_queue.get(timeout=0.001)
-                if self._max_cache_size and shutil.disk_usage(self._config._cache_dir).total >= self._max_cache_size:
-                    if self._chunks_index_to_be_deleted:
-                        self._delete(self._chunks_index_to_be_deleted.pop(0))
-                else:
-                    self._chunks_index_to_be_deleted.append(chunk_index)
+                if self._max_cache_size:
+                    if shutil.disk_usage(self._config._cache_dir).total >= self._max_cache_size:
+                        self._chunks_index_to_be_deleted.append(chunk_index)
+
+                        # Delete 2 chunk at the time to give enough space while not blocking downloads
+                        for chunk_index in self._chunks_index_to_be_deleted[:2]:
+                            self._delete(chunk_index)
+
+                        self._chunks_index_to_be_deleted = self._chunks_index_to_be_deleted[2:]
+                    else:
+                        self._chunks_index_to_be_deleted.append(chunk_index)
             except Empty:
                 pass
 
