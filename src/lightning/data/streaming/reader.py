@@ -71,7 +71,7 @@ class PrepareChunksThread(Thread):
             try:
                 chunk_index = self._to_download_queue.get(timeout=0.01)
                 self._config.download_chunk_from_index(chunk_index)
-            except Empty:
+            except (OSError, Empty):
                 pass
 
             try:
@@ -87,13 +87,13 @@ class PrepareChunksThread(Thread):
                         self._chunks_index_to_be_deleted = self._chunks_index_to_be_deleted[2:]
                     else:
                         self._chunks_index_to_be_deleted.append(chunk_index)
-            except Empty:
+            except (OSError, Empty):
                 pass
 
             try:
                 self._to_stop_queue.get(timeout=0.01)
                 return
-            except Empty:
+            except (OSError, Empty):
                 pass
 
             sleep(0.01)
