@@ -195,7 +195,4 @@ class TokensLoader(BaseItemLoader):
         if os.path.exists(chunk_filepath):
             del self._buffers[chunk_index]
             del self._mmaps[chunk_index]
-
-            if os.path.exists(chunk_filepath):
-                os.remove(chunk_filepath)
-                print(chunk_filepath)
+            os.remove(chunk_filepath)
