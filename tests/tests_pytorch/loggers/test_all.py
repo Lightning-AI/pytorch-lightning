@@ -50,7 +50,7 @@ ALL_LOGGER_CLASSES = (
 ALL_LOGGER_CLASSES_WO_NEPTUNE = tuple(filter(lambda cls: cls is not NeptuneLogger, ALL_LOGGER_CLASSES))
 
 
-def _get_logger_args(logger_class, save_dir):
+def _get_logger_args(logger_class, save_dir, sagemaker_session):
     logger_args = {}
     if "save_dir" in inspect.getfullargspec(logger_class).args:
         logger_args.update(save_dir=str(save_dir))
@@ -63,11 +63,12 @@ def _get_logger_args(logger_class, save_dir):
     if issubclass(logger_class, SagemakerExperimentsLogger):
         logger_args.update(experiment_name="TestExperiment")
         logger_args.update(run_name="TestRun")
+        logger_args.update(sagemaker_session=sagemaker_session)
     return logger_args
 
 
-def _instantiate_logger(logger_class, save_dir, **override_kwargs):
-    args = _get_logger_args(logger_class, save_dir)
+def _instantiate_logger(logger_class, save_dir, sagemaker_mock, **override_kwargs):
+    args = _get_logger_args(logger_class, save_dir, sagemaker_mock[0])
     args.update(**override_kwargs)
     return logger_class(**args)
 
@@ -101,7 +102,7 @@ def test_loggers_fit_test_all(
             super().log_metrics(metrics, step)
             self.history.append((step, metrics))
 
-    logger_args = _get_logger_args(logger_class, tmp_path)
+    logger_args = _get_logger_args(logger_class, tmp_path, sagemaker_mock[0])
     logger = StoreHistoryLogger(**logger_args)
 
     if logger_class == WandbLogger:
@@ -171,7 +172,7 @@ def _test_loggers_pickle(tmp_path, monkeypatch, sagemaker_mock, logger_class):
     """Verify that pickling trainer with logger works."""
     _patch_comet_atexit(monkeypatch)
 
-    logger_args = _get_logger_args(logger_class, tmp_path)
+    logger_args = _get_logger_args(logger_class, tmp_path, sagemaker_mock[0])
     logger = logger_class(**logger_args)
 
     # this can cause pickle error if the experiment object is not picklable
@@ -269,8 +270,8 @@ def test_logger_initialization(tmp_path, monkeypatch, logger_class):
         pytest.xfail(f"multi-process test requires {logger_class.__class__} dependencies to be installed.")
 
 
-def _test_logger_initialization(tmp_path, logger_class):
-    logger_args = _get_logger_args(logger_class, tmp_path)
+def _test_logger_initialization(tmp_path, logger_class, sagemaker_mock):
+    logger_args = _get_logger_args(logger_class, tmp_path, sagemaker_mock[0])
     logger = logger_class(**logger_args)
     callbacks = [LazyInitExperimentCheck()]
     if not isinstance(logger, CustomLoggerWithoutExperiment):
