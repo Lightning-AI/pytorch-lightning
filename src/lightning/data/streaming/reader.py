@@ -41,9 +41,9 @@ class PrepareChunksThread(Thread):
         self._chunks_index_to_be_downloaded: List[int] = []
         self._chunks_index_to_be_deleted: List[int] = []
         self._max_cache_size = max_cache_size
-        self._to_download_queue = multiprocessing.Queue()
-        self._to_delete_queue = multiprocessing.Queue()
-        self._to_stop_queue = multiprocessing.Queue()
+        self._to_download_queue: multiprocessing.Queue = multiprocessing.Queue()
+        self._to_delete_queue: multiprocessing.Queue = multiprocessing.Queue()
+        self._to_stop_queue: multiprocessing.Queue = multiprocessing.Queue()
 
     def download(self, chunk_indexes: List[int]) -> None:
         """Receive the list of the chunk indices to download for the current epoch."""
@@ -75,10 +75,11 @@ class PrepareChunksThread(Thread):
 
             try:
                 chunk_index = self._to_delete_queue.get(timeout=0.001)
-                if shutil.disk_usage(self._config._cache_dir).total >= self._max_cache_size:
+                if self._max_cache_size and shutil.disk_usage(self._config._cache_dir).total >= self._max_cache_size:
                     for chunk_index in self._chunks_index_to_be_deleted:
-                        if chunk_index not in self._chunks_index_to_be_downloaded:
-                            self._delete(chunk_index)
+                        self._delete(chunk_index)
+                else:
+                    self._chunks_index_to_be_deleted.append(chunk_index)
             except Empty:
                 pass
 
