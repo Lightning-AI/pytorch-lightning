@@ -1,8 +1,10 @@
 import os
 import shutil
 
+import numpy as np
 from lightning.data.streaming.cache import Cache
 from lightning.data.streaming.config import ChunkedIndex
+from lightning.data.streaming.reader import _get_folder_size, _try_to_delete_oldest_chunk
 from lightning_cloud.resolver import Dir
 
 
@@ -68,3 +70,30 @@ def test_reader_chunk_removal(tmpdir, monkeypatch):
     ]
 
     assert len(os.listdir(cache_dir)) == 2
+
+
+def test_get_folder_size(tmpdir):
+    array = np.zeros((10, 10))
+
+    np.save(os.path.join(tmpdir, "array_1.npy"), array)
+    np.save(os.path.join(tmpdir, "array_2.npy"), array)
+
+    assert _get_folder_size(tmpdir) == 928 * 2
+
+
+def test_try_to_delete_oldest_chunk(tmpdir):
+    with open(os.path.join(tmpdir, "chunk_0.bin"), "w") as f:
+        f.write("Hello World")
+
+    with open(os.path.join(tmpdir, "chunk_1.bin"), "w") as f:
+        f.write("Hello World")
+
+    assert len(os.listdir(tmpdir)) == 2
+
+    assert _try_to_delete_oldest_chunk(tmpdir)
+    assert os.listdir(tmpdir) == ["chunk_1.bin"]
+
+    assert _try_to_delete_oldest_chunk(tmpdir)
+    assert os.listdir(tmpdir) == []
+
+    assert not _try_to_delete_oldest_chunk(tmpdir)

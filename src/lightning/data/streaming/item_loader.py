@@ -163,10 +163,7 @@ class TokensLoader(BaseItemLoader):
             begin += num_blocks
         return intervals
 
-    def pre_load_chunk(self, chunk_index: int, chunk_filepath: str) -> None:
-        if chunk_filepath not in self._chunk_filepaths:
-            self._chunk_filepaths[chunk_filepath] = True
-
+    def _load_chunk(self, chunk_index: int, chunk_filepath: str) -> None:
         if chunk_index not in self._mmaps:
             # TODO: Add deletion and memmap close
             chunk = self._chunks[chunk_index]
@@ -178,6 +175,13 @@ class TokensLoader(BaseItemLoader):
             mmap = np.memmap(chunk_filepath, mode="r", order="C", offset=offset)
             self._mmaps[chunk_index] = mmap
             self._buffers[chunk_index] = memoryview(mmap)  # type: ignore
+
+    def pre_load_chunk(self, chunk_index: int, chunk_filepath: str) -> None:
+        # This is called within the prepare chunks thread, so we overlap data loading with data reading.
+        if chunk_filepath not in self._chunk_filepaths:
+            self._chunk_filepaths[chunk_filepath] = True
+
+        self._load_chunk(chunk_index, chunk_filepath)
 
     def load_item_from_chunk(self, index: int, chunk_index: int, chunk_filepath: str, begin: int) -> torch.Tensor:
         if chunk_filepath in self._chunk_filepaths and not os.path.isfile(chunk_filepath):
@@ -196,17 +200,7 @@ class TokensLoader(BaseItemLoader):
 
             self._chunk_filepaths[chunk_filepath] = True
 
-        if chunk_index not in self._mmaps:
-            # TODO: Add deletion and memmap close
-            chunk = self._chunks[chunk_index]
-
-            # Skip the header
-            # The number of items + the number of offsets (number of items in the chunk + 1)
-            # multiplied by the header encoding dtype (np.uint32)
-            offset = (1 + chunk["chunk_size"] + 1) * 4
-            mmap = np.memmap(chunk_filepath, mode="r", order="C", offset=offset)
-            self._mmaps[chunk_index] = mmap
-            self._buffers[chunk_index] = memoryview(mmap)  # type: ignore
+        self._load_chunk(chunk_index, chunk_filepath)
 
         assert self._dtype
 
