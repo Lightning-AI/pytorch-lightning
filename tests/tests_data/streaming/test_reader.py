@@ -1,10 +1,11 @@
 import os
 import shutil
+from unittest import mock
 
 import numpy as np
 from lightning.data.streaming.cache import Cache
 from lightning.data.streaming.config import ChunkedIndex
-from lightning.data.streaming.reader import _get_folder_size, _try_to_delete_oldest_chunk
+from lightning.data.streaming.reader import _get_folder_size, _maybe_flush_cache, _try_to_delete_oldest_chunk
 from lightning_cloud.resolver import Dir
 
 
@@ -97,3 +98,22 @@ def test_try_to_delete_oldest_chunk(tmpdir):
     assert os.listdir(tmpdir) == []
 
     assert not _try_to_delete_oldest_chunk(tmpdir)
+
+
+def test_maybe_flush_cache(tmpdir):
+    with open(os.path.join(tmpdir, "chunk_0.bin"), "w") as f:
+        f.write("Hello World")
+
+    with open(os.path.join(tmpdir, "chunk_1.bin"), "w") as f:
+        f.write("Hello World")
+
+    assert len(os.listdir(tmpdir)) == 2
+
+    config = mock.MagicMock()
+    config._cache_dir = tmpdir
+
+    config.__getitem__.return_value = (os.path.join(tmpdir, "a.txt"), 1, 1)
+
+    _maybe_flush_cache(tmpdir, 0, 0.1, config)
+
+    assert len(os.listdir(tmpdir)) == 0

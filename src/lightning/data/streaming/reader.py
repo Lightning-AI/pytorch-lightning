@@ -312,7 +312,6 @@ def _try_to_delete_oldest_chunk(dir_path: str) -> bool:
     """List the files in the given directory path and deletes the oldest one if possible."""
     filepaths: List[Tuple[str, float]] = []
     for dirpath, _, filenames in os.walk(dir_path):
-        print(filenames)
         for filename in filenames:
             if not filename.endswith(".bin"):
                 continue
