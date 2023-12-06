@@ -20,6 +20,7 @@ import logging
 from argparse import Namespace
 from typing import TYPE_CHECKING, Any, Callable, Dict, Iterable, Optional, Union
 
+import boto3
 from lightning_utilities.core.imports import RequirementCache
 from torch import Tensor
 
@@ -432,8 +433,27 @@ class SagemakerExperimentsLogger(Logger):
 
         Returns:
             Dictionary containing class attributes excluding ``_run`` attribute
+            and ``_sagemaker_session``
 
         """
         state = self.__dict__.copy()
-        del state["_run"]
+        if self._sagemaker_session is not None:
+            state["_region_name"] = self._sagemaker_session._region_name
+            del state["_sagemaker_session"]
+        if "_run" in state:
+            del state["_run"]
         return state
+
+    def __setstate__(self, state: Dict) -> None:
+        """Overwrite set state for serializing the object.
+
+        Args:
+            state (Dict): Dictionary containing class attributes excluding
+            ``_run`` attribute and ``_sagemaker_session``
+
+        """
+        self.__dict__ = state
+        if "_region_name" in state:
+            from sagemaker.session import Session
+
+            self._sagemaker_session = Session(boto3.Session(region_name="eu-central-1"))

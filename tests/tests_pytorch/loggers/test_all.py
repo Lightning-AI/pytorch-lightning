@@ -50,7 +50,7 @@ ALL_LOGGER_CLASSES = (
 ALL_LOGGER_CLASSES_WO_NEPTUNE = tuple(filter(lambda cls: cls is not NeptuneLogger, ALL_LOGGER_CLASSES))
 
 
-def _get_logger_args(logger_class, save_dir, sagemaker_session):
+def _get_logger_args(logger_class, save_dir, sagemaker_session=None):
     logger_args = {}
     if "save_dir" in inspect.getfullargspec(logger_class).args:
         logger_args.update(save_dir=str(save_dir))
@@ -67,8 +67,8 @@ def _get_logger_args(logger_class, save_dir, sagemaker_session):
     return logger_args
 
 
-def _instantiate_logger(logger_class, save_dir, sagemaker_mock, **override_kwargs):
-    args = _get_logger_args(logger_class, save_dir, sagemaker_mock[0])
+def _instantiate_logger(logger_class, save_dir, **override_kwargs):
+    args = _get_logger_args(logger_class, save_dir, None)
     args.update(**override_kwargs)
     return logger_class(**args)
 
@@ -260,18 +260,18 @@ class CustomLoggerWithoutExperiment(Logger):
 @mock.patch.dict(os.environ, {})
 @pytest.mark.parametrize("logger_class", [*ALL_LOGGER_CLASSES_WO_NEPTUNE, CustomLoggerWithoutExperiment])
 @RunIf(skip_windows=True)
-def test_logger_initialization(tmp_path, monkeypatch, logger_class):
+def test_logger_initialization(tmp_path, monkeypatch, logger_class, sagemaker_mock):
     """Test that loggers get replaced by dummy loggers on global rank > 0 and that the experiment object is available
     at the right time in Trainer."""
     _patch_comet_atexit(monkeypatch)
     try:
-        _test_logger_initialization(tmp_path, logger_class)
+        _test_logger_initialization(tmp_path, logger_class, sagemaker_mock[0])
     except (ImportError, ModuleNotFoundError):
         pytest.xfail(f"multi-process test requires {logger_class.__class__} dependencies to be installed.")
 
 
-def _test_logger_initialization(tmp_path, logger_class, sagemaker_mock):
-    logger_args = _get_logger_args(logger_class, tmp_path, sagemaker_mock[0])
+def _test_logger_initialization(tmp_path, logger_class, sagemaker_session):
+    logger_args = _get_logger_args(logger_class, tmp_path, sagemaker_session)
     logger = logger_class(**logger_args)
     callbacks = [LazyInitExperimentCheck()]
     if not isinstance(logger, CustomLoggerWithoutExperiment):
