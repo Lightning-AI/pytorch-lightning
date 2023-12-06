@@ -20,7 +20,6 @@ import logging
 from argparse import Namespace
 from typing import TYPE_CHECKING, Any, Callable, Dict, Iterable, Optional, Union
 
-import boto3
 from lightning_utilities.core.imports import RequirementCache
 from torch import Tensor
 
@@ -454,6 +453,7 @@ class SagemakerExperimentsLogger(Logger):
         """
         self.__dict__ = state
         if "_region_name" in state:
+            import boto3
             from sagemaker.session import Session
 
             self._sagemaker_session = Session(boto3.Session(region_name="eu-central-1"))
