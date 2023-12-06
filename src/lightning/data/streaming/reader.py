@@ -274,7 +274,7 @@ class BinaryReader:
         # Otherwise, this could trigger segmentation fault error depending on the item loader used.
         if self._config and self._config._remote_dir and index.chunk_index != self._last_chunk_index:
             assert self._prepare_thread
-            if self._last_chunk_index:
+            if self._last_chunk_index is not None:
                 # inform the chunk has been completely consumed
                 self._prepare_thread.delete([self._last_chunk_index])
 
