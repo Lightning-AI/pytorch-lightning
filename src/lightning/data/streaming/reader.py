@@ -71,14 +71,14 @@ class PrepareChunksThread(Thread):
 
     def _maybe_delete_chunks(self):
         try:
-            # Whether the reader has already finished processing a chunk
+            # Whether the reader has already finished processing a chunk
             chunk_index = self._to_delete_queue.get(timeout=0.01)
-            
+
             # Store the current chunk index
             self._chunks_index_to_be_deleted.append(chunk_index)
 
             # Get the current cache size and decide whether we need to start cleanup. Otherwise, keep track of it
-            while (self._chunks_index_to_be_deleted and _get_folder_size(self._parent_cache_dir) >= self._max_cache_size):
+            while self._chunks_index_to_be_deleted and _get_folder_size(self._parent_cache_dir) >= self._max_cache_size:
                 self._delete(self._chunks_index_to_be_deleted.pop(0))
         except Empty:
             pass
@@ -91,13 +91,13 @@ class PrepareChunksThread(Thread):
 
     def _maybe_flush_cache(self, chunk_index: int) -> None:
         # Before downloading, check whether we have enough space
-        while (self._max_cache_size and _get_folder_size(self._parent_cache_dir) >= self._max_cache_size):
+        while self._max_cache_size and _get_folder_size(self._parent_cache_dir) >= self._max_cache_size:
             # Get chunk_filepath associated to this chunk_index
             chunk_filepath, _, _ = self._config[ChunkedIndex(index=-1, chunk_index=chunk_index)]
             if os.path.exists(chunk_filepath):
                 break
             else:
-                # delete the oldest file as we need the space
+                # delete the oldest file as we need the space
                 _delete_oldest_file(self._config._cache_dir)
 
     def run(self) -> None:

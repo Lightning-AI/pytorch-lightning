@@ -126,7 +126,6 @@ class StreamingDataset(IterableDataset):
             chunk_bytes=1,
             serializers=self.serializers,
             max_cache_size=self.max_cache_size,
-
         )
         cache._reader._try_load_config()
 
