@@ -46,23 +46,24 @@ class PrepareChunksThread(Thread):
         super().__init__(daemon=True)
         self._config = config
         self._item_loader = item_loader
+        self._max_pre_download = max_pre_download
+        self._pre_download_counter = 0
+
         self._chunks_index_to_be_deleted: List[int] = []
         self._max_cache_size = max_cache_size
         self._parent_cache_dir = os.path.dirname(self._config._cache_dir)
         self._to_download_queue: multiprocessing.Queue = multiprocessing.Queue()
         self._to_delete_queue: multiprocessing.Queue = multiprocessing.Queue()
+        self._to_stop_queue: multiprocessing.Queue = multiprocessing.Queue()
 
         # populate back the queues with existing items. As they already exists, this is almost a no-op
         for chunk_index in self._collect_ordered_chunk_indexes_from_cache():
             self._to_download_queue.put(chunk_index)
             self._to_delete_queue.put(chunk_index)
 
-        self._to_stop_queue: multiprocessing.Queue = multiprocessing.Queue()
-
-        self._max_pre_download = max_pre_download
-        self._pre_download_counter = 0
-
     def _collect_ordered_chunk_indexes_from_cache(self) -> List[int]:
+        """List the chunks available in the cache, order them based on their creation time and retrieves their
+        indexes."""
         chunk_indexes = [
             [self._config._get_chunk_index_from_filename(f), os.path.getctime(os.path.join(self._config._cache_dir, f))]
             for f in os.listdir(self._config._cache_dir)
@@ -81,6 +82,7 @@ class PrepareChunksThread(Thread):
             self._to_delete_queue.put(chunk_index)
 
     def _delete(self, chunk_index: int) -> None:
+        """Inform the item loader of the chunk to delete."""
         chunk_filepath, _, _ = self._config[ChunkedIndex(index=-1, chunk_index=chunk_index)]
         self._item_loader.delete(chunk_index, chunk_filepath)
 
@@ -103,6 +105,7 @@ class PrepareChunksThread(Thread):
                 and self._chunks_index_to_be_deleted
                 and _get_folder_size(self._parent_cache_dir) >= self._max_cache_size
             ):
+                # Delete the oldest chunk
                 self._delete(self._chunks_index_to_be_deleted.pop(0))
         except Empty:
             pass
@@ -272,13 +275,19 @@ class BinaryReader:
         chunk_filepath, begin, _ = self.config[index]
         item = self._item_loader.load_item_from_chunk(index.index, index.chunk_index, chunk_filepath, begin)
 
+        # We need to request deletion after the latest element has been loaded.
+        # Otherwise, this could trigger segmentation fault error depending on the item loader used.
         if self._config and self._config._remote_dir and index.chunk_index != self._last_chunk_index:
             assert self._prepare_thread
             if self._last_chunk_index:
+                # inform the chunk has been completely consumed
                 self._prepare_thread.delete([self._last_chunk_index])
+
+            # track the new chunk index as the latest one
             self._last_chunk_index = index.chunk_index
 
         if index.is_last_index and self._prepare_thread:
+            # inform the thread it is time to stop
             self._prepare_thread.stop()
             self._prepare_thread = None
 
@@ -305,16 +314,16 @@ class BinaryReader:
 
 
 def _try_to_delete_oldest_chunk(dir_path: str) -> bool:
+    """List the files in the given directory path and deletes the oldest one if possible."""
     filepaths: List[Tuple[str, float]] = []
     for dirpath, _, filenames in os.walk(dir_path):
         for filename in filenames:
             if not filename.endswith(".bin"):
                 continue
-            try:
+
+            with contextlib.suppress(FileNotFoundError):
                 filepath = os.path.join(dirpath, filename)
                 filepaths.append((filepath, os.path.getctime(filepath)))
-            except FileNotFoundError:
-                pass
 
     if not filepaths:
         return False
@@ -326,6 +335,11 @@ def _try_to_delete_oldest_chunk(dir_path: str) -> bool:
 
 
 def _get_folder_size(path: str) -> int:
+    """Collect the size of each files within a folder.
+
+    This method is robust to file deletion races
+
+    """
     size = 0
     for dirpath, _, filenames in os.walk(str(path)):
         for filename in filenames:

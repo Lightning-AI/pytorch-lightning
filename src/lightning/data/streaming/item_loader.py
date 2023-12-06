@@ -47,7 +47,7 @@ class BaseItemLoader(ABC):
 
     @abstractmethod
     def pre_load_chunk(self, chunk_index: int, chunk_filepath: str) -> None:
-        """Returns an item loaded from a chunk."""
+        """Logic to load the chunk in background to gain some time."""
         pass
 
     @abstractmethod
