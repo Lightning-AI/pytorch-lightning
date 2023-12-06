@@ -36,7 +36,9 @@ if _TORCH_GREATER_EQUAL_2_1_0:
 class PrepareChunksThread(Thread):
     """This thread is responsible to download the chunks associated to a given worker."""
 
-    def __init__(self, config: ChunksConfig, item_loader, max_cache_size: Optional[int] = None, max_pre_download: int = 10) -> None:
+    def __init__(
+        self, config: ChunksConfig, item_loader, max_cache_size: Optional[int] = None, max_pre_download: int = 10
+    ) -> None:
         super().__init__(daemon=True)
         self._config = config
         self._item_loader = item_loader
@@ -121,12 +123,12 @@ class PrepareChunksThread(Thread):
     def run(self) -> None:
         while True:
             try:
-                if  self._pre_download_counter <= self._max_pre_download:
+                if self._pre_download_counter <= self._max_pre_download:
                     chunk_index = self._to_download_queue.get(timeout=0.01)
                     self._maybe_flush_cache(chunk_index)
                     self._config.download_chunk_from_index(chunk_index)
 
-                    # Avoid downloading too many chunks in advance at the risk of over using the disk space
+                    # Avoid downloading too many chunks in advance at the risk of over using the disk space
                     self._pre_download_counter += 1
             except Empty:
                 pass
@@ -195,7 +197,7 @@ class BinaryReader:
         self._prepare_thread: Optional[PrepareChunksThread] = None
         self._item_loader = item_loader or PyTreeLoader()
         self._last_chunk_index: Optional[int] = None
-        self._max_cache_size = int(os.getenv("MAX_CACHE_SIZE", max_cache_size))
+        self._max_cache_size = int(os.getenv("MAX_CACHE_SIZE", max_cache_size or 0))
 
     def _get_chunk_index_from_index(self, index: int) -> int:
         # Load the config containing the index
