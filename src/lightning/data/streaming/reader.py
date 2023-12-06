@@ -98,7 +98,7 @@ class PrepareChunksThread(Thread):
                 break
 
             # delete the oldest file as we need the space
-            has_deleted = _delete_oldest_file(self._config._cache_dir)
+            has_deleted = _try_to_delete_oldest_chunk(self._config._cache_dir)
 
             # there were nothing to delete
             if not has_deleted:
@@ -269,7 +269,7 @@ class BinaryReader:
         return state
 
 
-def _delete_oldest_file(dir_path: str) -> bool:
+def _try_to_delete_oldest_chunk(dir_path: str) -> bool:
     filepaths = []
     for dirpath, _, filenames in os.walk(dir_path):
         for filename in filenames:
