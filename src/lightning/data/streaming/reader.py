@@ -40,8 +40,6 @@ class PrepareChunksThread(Thread):
         super().__init__(daemon=True)
         self._config = config
         self._item_loader = item_loader
-        self._chunks_index_to_be_downloaded: List[int] = []
-        chunk_indexes = self._collect_ordered_chunk_indexes_from_cache()
         self._chunks_index_to_be_deleted: List[int] = []
         self._max_cache_size = max_cache_size
         self._parent_cache_dir = os.path.dirname(self._config._cache_dir)
@@ -49,7 +47,7 @@ class PrepareChunksThread(Thread):
         self._to_delete_queue: multiprocessing.Queue = multiprocessing.Queue()
 
         # populate back the queues with existing items. As they already exists, this is almost a no-op
-        for chunk_index in chunk_indexes:
+        for chunk_index in self._collect_ordered_chunk_indexes_from_cache():
             self._to_download_queue.put(chunk_index)
             self._to_delete_queue.put(chunk_index)
 
