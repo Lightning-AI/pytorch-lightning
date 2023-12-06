@@ -46,7 +46,7 @@ class PrepareChunksThread(Thread):
         config: ChunksConfig,
         item_loader: BaseItemLoader,
         max_cache_size: Optional[int] = None,
-        max_pre_download: int = 2,
+        max_pre_download: int = 1,
     ) -> None:
         super().__init__(daemon=True)
         self._config = config
