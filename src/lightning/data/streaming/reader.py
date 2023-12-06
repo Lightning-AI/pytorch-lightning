@@ -96,9 +96,13 @@ class PrepareChunksThread(Thread):
             chunk_filepath, _, _ = self._config[ChunkedIndex(index=-1, chunk_index=chunk_index)]
             if os.path.exists(chunk_filepath):
                 break
-            else:
-                # delete the oldest file as we need the space
-                _delete_oldest_file(self._config._cache_dir)
+
+            # delete the oldest file as we need the space
+            has_deleted = _delete_oldest_file(self._config._cache_dir)
+
+            # there were nothing to delete
+            if not has_deleted:
+                break
 
     def run(self) -> None:
         while True:
@@ -265,23 +269,24 @@ class BinaryReader:
         return state
 
 
-def _delete_oldest_file(path: str) -> None:
+def _delete_oldest_file(dir_path: str) -> bool:
     filepaths = []
-    for dirpath, _, filenames in os.walk(str(path)):
+    for dirpath, _, filenames in os.walk(dir_path):
         for filename in filenames:
             if not filename.endswith(".bin"):
                 continue
             try:
                 filepath = os.path.join(dirpath, filename)
-                filepaths.append([os.path.join(dirpath, filename), os.path.getctime(os.path.join(dirpath, filename))])
+                filepaths.append([filepath, os.path.getctime(filepath)])
             except FileNotFoundError:
                 pass
 
     if not filepaths:
-        return
+        return False
 
-    filepaths = sorted(filepaths, lambda x: x[1])
+    filepaths = sorted(filepaths, key=lambda x: x[1])
     os.remove(filepaths[0][0])
+    return True
 
 
 def _get_folder_size(path: str) -> int:

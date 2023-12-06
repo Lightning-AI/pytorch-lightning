@@ -18,7 +18,6 @@ import shutil
 import sys
 import tempfile
 from dataclasses import dataclass
-from datetime import datetime
 from time import time
 from typing import Any, Dict, List, Optional, Union
 
@@ -31,7 +30,6 @@ from lightning.data.streaming.constants import (
     _DEFAULT_CACHE_DIR,
     _INDEX_FILENAME,
     _LIGHTNING_CLOUD_LATEST,
-    _TIME_FORMAT,
 )
 from lightning.data.streaming.item_loader import BaseItemLoader
 from lightning.data.streaming.sampler import ChunkedIndex
@@ -396,10 +394,6 @@ def _try_create_cache_dir(input_dir: str, shard_rank: int = 0) -> Optional[str]:
     cache_dir = os.path.join("/cache", "chunks", hash_object.hexdigest(), str(shard_rank))
     os.makedirs(cache_dir, exist_ok=True)
     return cache_dir
-
-
-def _string_to_datetime(item: str) -> datetime:
-    return datetime.strptime(item.split("checkpoint-")[1].split(".json")[0], _TIME_FORMAT)
 
 
 def _load_state_dict_from_checkpoint_dir(checkpoint_dir: str) -> Dict[str, Any]:
