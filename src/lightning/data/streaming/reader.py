@@ -96,7 +96,6 @@ class PrepareChunksThread(Thread):
             # Get the current cache size and decide whether we need to start cleanup. Otherwise, keep track of it
             while self._chunks_index_to_be_deleted and _get_folder_size(self._parent_cache_dir) >= self._max_cache_size:
                 self._delete(self._chunks_index_to_be_deleted.pop(0))
-                print("DELETE AAA")
         except Empty:
             pass
         except OSError as e:
