@@ -131,7 +131,6 @@ class PrepareChunksThread(Thread):
             try:
                 if self._pre_download_counter <= self._max_pre_download:
                     chunk_index = self._to_download_queue.get(timeout=0.01)
-                    _maybe_flush_cache(self._parent_cache_dir, chunk_index, self._max_cache_size, self._config)
                     self._config.download_chunk_from_index(chunk_index)
 
                     # Preload item if possible to gain some time but only
@@ -308,28 +307,6 @@ class BinaryReader:
         return state
 
 
-def _try_to_delete_oldest_chunk(dir_path: str) -> bool:
-    """List the files in the given directory path and deletes the oldest one if possible."""
-    filepaths: List[Tuple[str, float]] = []
-    for dirpath, _, filenames in os.walk(dir_path):
-        for filename in filenames:
-            if not filename.endswith(".bin"):
-                continue
-
-            with contextlib.suppress(FileNotFoundError):
-                filepath = os.path.join(dirpath, filename)
-                filepaths.append((filepath, os.path.getctime(filepath)))
-
-    if not filepaths:
-        return False
-
-    filepaths = sorted(filepaths, key=lambda x: x[1])
-    to_be_removed_filepath: str = filepaths[0][0]
-
-    os.remove(to_be_removed_filepath)
-    return True
-
-
 def _get_folder_size(path: str) -> int:
     """Collect the size of each files within a folder.
 
@@ -342,19 +319,3 @@ def _get_folder_size(path: str) -> int:
             with contextlib.suppress(FileNotFoundError):
                 size += os.stat(os.path.join(dirpath, filename)).st_size
     return size
-
-
-def _maybe_flush_cache(dirpath: str, chunk_index: int, max_cache_size: int, config: ChunksConfig) -> None:
-    # Before downloading, check whether we have enough space
-    while max_cache_size and _get_folder_size(dirpath) >= max_cache_size:
-        # Get chunk_filepath associated to this chunk_index
-        chunk_filepath, _, _ = config[ChunkedIndex(index=-1, chunk_index=chunk_index)]
-        if os.path.exists(chunk_filepath):
-            break
-
-        # delete the oldest file as we need the space
-        has_deleted = _try_to_delete_oldest_chunk(config._cache_dir)
-
-        # there were nothing to delete
-        if not has_deleted:
-            break
