@@ -46,6 +46,11 @@ class BaseItemLoader(ABC):
         pass
 
     @abstractmethod
+    def pre_load_chunk(self, chunk_index: int, chunk_filepath: str) -> None:
+        """Returns an item loaded from a chunk."""
+        pass
+
+    @abstractmethod
     def load_item_from_chunk(self, index: int, chunk_index: int, chunk_filepath: str, begin: int) -> Any:
         """Returns an item loaded from a chunk."""
         pass
@@ -71,6 +76,9 @@ class PyTreeLoader(BaseItemLoader):
             intervals.append((begin, end))
             begin += chunk["chunk_size"]
         return intervals
+
+    def pre_load_chunk(self, chunk_index: int, chunk_filepath: str) -> None:
+        pass
 
     def load_item_from_chunk(self, index: int, chunk_index: int, chunk_filepath: str, begin: int) -> bytes:
         offset = (1 + (index - begin) if index >= begin else index + 1) * 4
@@ -154,6 +162,22 @@ class TokensLoader(BaseItemLoader):
             intervals.append((begin, end))
             begin += num_blocks
         return intervals
+
+    def pre_load_chunk(self, chunk_index: int, chunk_filepath: str) -> None:
+        if chunk_filepath not in self._chunk_filepaths:
+            self._chunk_filepaths[chunk_filepath] = True
+
+        if chunk_index not in self._mmaps:
+            # TODO: Add deletion and memmap close
+            chunk = self._chunks[chunk_index]
+
+            # Skip the header
+            # The number of items + the number of offsets (number of items in the chunk + 1)
+            # multiplied by the header encoding dtype (np.uint32)
+            offset = (1 + chunk["chunk_size"] + 1) * 4
+            mmap = np.memmap(chunk_filepath, mode="r", order="C", offset=offset)
+            self._mmaps[chunk_index] = mmap
+            self._buffers[chunk_index] = memoryview(mmap)  # type: ignore
 
     def load_item_from_chunk(self, index: int, chunk_index: int, chunk_filepath: str, begin: int) -> torch.Tensor:
         if chunk_filepath in self._chunk_filepaths and not os.path.isfile(chunk_filepath):

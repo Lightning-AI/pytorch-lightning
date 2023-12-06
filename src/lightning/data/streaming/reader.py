@@ -37,7 +37,11 @@ class PrepareChunksThread(Thread):
     """This thread is responsible to download the chunks associated to a given worker."""
 
     def __init__(
-        self, config: ChunksConfig, item_loader, max_cache_size: Optional[int] = None, max_pre_download: int = 10
+        self,
+        config: ChunksConfig,
+        item_loader,
+        max_cache_size: Optional[int] = None,
+        max_pre_download: int = 2,
     ) -> None:
         super().__init__(daemon=True)
         self._config = config
@@ -120,6 +124,10 @@ class PrepareChunksThread(Thread):
             if not has_deleted:
                 break
 
+    def _pre_load_chunk(self, chunk_index: int) -> None:
+        chunk_filepath, _, _ = self._config[ChunkedIndex(index=-1, chunk_index=chunk_index)]
+        self._item_loader.pre_load_chunk(chunk_index, chunk_filepath)
+
     def run(self) -> None:
         while True:
             try:
@@ -127,6 +135,9 @@ class PrepareChunksThread(Thread):
                     chunk_index = self._to_download_queue.get(timeout=0.01)
                     self._maybe_flush_cache(chunk_index)
                     self._config.download_chunk_from_index(chunk_index)
+
+                    # Preload item if possible to gain some time
+                    self._pre_load_chunk(chunk_index)
 
                     # Avoid downloading too many chunks in advance at the risk of over using the disk space
                     self._pre_download_counter += 1
