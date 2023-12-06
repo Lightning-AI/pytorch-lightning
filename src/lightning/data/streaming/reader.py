@@ -46,7 +46,6 @@ class PrepareChunksThread(Thread):
         self._to_download_queue: multiprocessing.Queue = multiprocessing.Queue()
         self._to_delete_queue: multiprocessing.Queue = multiprocessing.Queue()
         self._to_stop_queue: multiprocessing.Queue = multiprocessing.Queue()
-        self._pre_downloaded = 0
 
     def download(self, chunk_indexes: List[int]) -> None:
         """Receive the list of the chunk indices to download for the current epoch."""
@@ -66,25 +65,21 @@ class PrepareChunksThread(Thread):
         """Receive the list of the chunk indices to download for the current epoch."""
         self._to_stop_queue.put(None)
 
-    def _delete_chunks(self, downloaded_chunk_index: Optional[int] = None):
-        if downloaded_chunk_index:
-            chunk_filepath, _, _ = self._config[ChunkedIndex(index=-1, chunk_index=downloaded_chunk_index)]
-            if os.path.exists(chunk_filepath):
-                return
-
+    def _maybe_delete_chunks(self):
         try:
+            # Whether the reader has already finished processing a chunk
             chunk_index = self._to_delete_queue.get(timeout=0.01)
-            if self._max_cache_size:
-                total = _get_folder_size(self._parent_cache_dir)
-                if total >= self._max_cache_size:
-                    self._chunks_index_to_be_deleted.append(chunk_index)
 
-                    while (self._max_cache_size and self._chunks_index_to_be_deleted and total >= self._max_cache_size):
-                        self._delete(self._chunks_index_to_be_deleted.pop(0))
-                        total = _get_folder_size(self._parent_cache_dir)
-                        self._pre_downloaded -= 1
-                else:
-                    self._chunks_index_to_be_deleted.append(chunk_index)
+            # Get the current cache size and decide whether we need to start cleanup. Otherwise, keep track of it
+            total = _get_folder_size(self._parent_cache_dir)
+            if total >= self._max_cache_size:
+                self._chunks_index_to_be_deleted.append(chunk_index)
+
+                while (self._max_cache_size and self._chunks_index_to_be_deleted and total >= self._max_cache_size):
+                    self._delete(self._chunks_index_to_be_deleted.pop(0))
+                    total = _get_folder_size(self._parent_cache_dir)
+            else:
+                self._chunks_index_to_be_deleted.append(chunk_index)
         except Empty:
             pass
         except OSError as e:
@@ -94,18 +89,23 @@ class PrepareChunksThread(Thread):
             else:
                 raise e
 
+    def _maybe_flush_cache(self, chunk_index: int) -> None:
+        # Before downloading, check whether we have enough space
+        while (self._max_cache_size and _get_folder_size(self._parent_cache_dir) >= self._max_cache_size):
+            # Get chunk_filepath associated to this chunk_index
+            chunk_filepath, _, _ = self._config[ChunkedIndex(index=-1, chunk_index=chunk_index)]
+            if os.path.exists(chunk_filepath):
+                break
+            else:
+                # delete the oldest file as we need the space
+                _delete_oldest_file(self._config._cache_dir)
+
     def run(self) -> None:
         while True:
             try:
                 chunk_index = self._to_download_queue.get(timeout=0.01)
-
-                # Before downloading, check whether we have enough space
-                while (self._max_cache_size and _get_folder_size(self._parent_cache_dir) >= self._max_cache_size):
-                    self._delete_chunks(chunk_index)
-
+                self._maybe_flush_cache(chunk_index)
                 self._config.download_chunk_from_index(chunk_index)
-
-                self._pre_downloaded += 1
             except Empty:
                 pass
             except OSError as e:
@@ -115,7 +115,8 @@ class PrepareChunksThread(Thread):
                 else:
                     raise e
 
-            self._delete_chunks()
+            if self._max_cache_size:
+                self._maybe_delete_chunks()
 
             try:
                 self._to_stop_queue.get(timeout=0.01)
@@ -262,6 +263,25 @@ class BinaryReader:
         state = self.__dict__.copy()
         state["_prepare_thread"] = None
         return state
+
+
+def _delete_oldest_file(path: str) -> None:
+    filepaths = []
+    for dirpath, _, filenames in os.walk(str(path)):
+        for filename in filenames:
+            if not filename.endswith(".bin"):
+                continue
+            try:
+                filepath = os.path.join(dirpath, filename)
+                filepaths.append([os.path.join(dirpath, filename), os.path.getctime(os.path.join(dirpath, filename))])
+            except FileNotFoundError:
+                pass
+
+    if not filepaths:
+        return
+
+    filepaths = sorted(filepaths, lambda x: x[1])
+    os.remove(filepaths[0][0])
 
 
 def _get_folder_size(path: str) -> int:
