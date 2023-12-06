@@ -164,17 +164,18 @@ class TokensLoader(BaseItemLoader):
         return intervals
 
     def _load_chunk(self, chunk_index: int, chunk_filepath: str) -> None:
-        if chunk_index not in self._mmaps:
-            # TODO: Add deletion and memmap close
-            chunk = self._chunks[chunk_index]
+        if chunk_index in self._mmaps:
+            return
 
-            # Skip the header
-            # The number of items + the number of offsets (number of items in the chunk + 1)
-            # multiplied by the header encoding dtype (np.uint32)
-            offset = (1 + chunk["chunk_size"] + 1) * 4
-            mmap = np.memmap(chunk_filepath, mode="r", order="C", offset=offset)
-            self._mmaps[chunk_index] = mmap
-            self._buffers[chunk_index] = memoryview(mmap)  # type: ignore
+        chunk = self._chunks[chunk_index]
+
+        # Skip the header
+        # The number of items + the number of offsets (number of items in the chunk + 1)
+        # multiplied by the header encoding dtype (np.uint32)
+        offset = (1 + chunk["chunk_size"] + 1) * 4
+        mmap = np.memmap(chunk_filepath, mode="r", order="C", offset=offset)
+        self._mmaps[chunk_index] = mmap
+        self._buffers[chunk_index] = memoryview(mmap)  # type: ignore
 
     def pre_load_chunk(self, chunk_index: int, chunk_filepath: str) -> None:
         # This is called within the prepare chunks thread, so we overlap data loading with data reading.

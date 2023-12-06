@@ -46,7 +46,7 @@ class PrepareChunksThread(Thread):
         config: ChunksConfig,
         item_loader: BaseItemLoader,
         max_cache_size: Optional[int] = None,
-        max_pre_download: int = 1,
+        max_pre_download: int = 2,
     ) -> None:
         super().__init__(daemon=True)
         self._config = config
@@ -93,25 +93,16 @@ class PrepareChunksThread(Thread):
 
     def stop(self) -> None:
         """Receive the list of the chunk indices to download for the current epoch."""
-        self._to_stop_queue.put(None)
+        self._to_stop_queue.put(True)
 
     def _maybe_delete_chunks(self) -> None:
-        try:
-            # Whether the reader has already finished processing a chunk
-            chunk_index = self._to_delete_queue.get(timeout=0.01)
+        chunk_index = self._get_from_queue(self._to_delete_queue)
+
+        if chunk_index is not None:
             self._pre_download_counter -= 1
 
             # Store the current chunk index
             self._chunks_index_to_be_deleted.append(chunk_index)
-        except Empty:
-            pass
-        except OSError as e:
-            logger.debug(e)
-            # handle closed queue before the thread terminates
-            if "handle is closed" in str(e):
-                pass
-            else:
-                raise e
 
         # Get the current cache size and decide whether we need to start cleanup. Otherwise, keep track of it
         while (
@@ -126,11 +117,24 @@ class PrepareChunksThread(Thread):
         chunk_filepath, _, _ = self._config[ChunkedIndex(index=-1, chunk_index=chunk_index)]
         self._item_loader.pre_load_chunk(chunk_index, chunk_filepath)
 
+    def _get_from_queue(self, queue: multiprocessing.Queue) -> Optional[Any]:
+        try:
+            return queue.get(timeout=0.01)
+        except Empty:
+            pass
+        except OSError as e:
+            # handle closed queue before the thread terminates
+            if "handle is closed" in str(e):
+                logger.debug(e)
+            else:
+                raise e
+        return None
+
     def run(self) -> None:
         while True:
-            try:
-                if self._pre_download_counter <= self._max_pre_download:
-                    chunk_index = self._to_download_queue.get(timeout=0.01)
+            if self._pre_download_counter <= self._max_pre_download:
+                chunk_index = self._get_from_queue(self._to_download_queue)
+                if chunk_index is not None:
                     self._config.download_chunk_from_index(chunk_index)
 
                     # Preload item if possible to gain some time but only
@@ -140,30 +144,12 @@ class PrepareChunksThread(Thread):
 
                     # Avoid downloading too many chunks in advance at the risk of over using the disk space
                     self._pre_download_counter += 1
-            except Empty:
-                pass
-            except OSError as e:
-                logger.debug(e)
-                # handle closed queue before the thread terminates
-                if "handle is closed" in str(e):
-                    pass
-                else:
-                    raise e
 
             if self._max_cache_size:
                 self._maybe_delete_chunks()
 
-            try:
-                self._to_stop_queue.get(timeout=0.01)
+            if self._get_from_queue(self._to_stop_queue):
                 return
-            except Empty:
-                pass
-            except OSError as e:
-                logger.debug(e)
-                # handle closed queue before the thread terminates
-                if "handle is closed" in str(e):
-                    return
-                raise e
 
             sleep(0.01)
 
