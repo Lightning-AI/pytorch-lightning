@@ -56,8 +56,8 @@ class BaseItemLoader(ABC):
         pass
 
     @abstractmethod
-    def delete(self, chunk_index: int, chunk_filepath: str):
-        """Delete a chunk."""
+    def delete(self, chunk_index: int, chunk_filepath: str) -> None:
+        """Delete a chunk from the local filesystem."""
         pass
 
 
@@ -119,7 +119,7 @@ class PyTreeLoader(BaseItemLoader):
             idx += size
         return tree_unflatten(data, self._config["data_spec"])
 
-    def delete(self, chunk_index: int, chunk_filepath: str):
+    def delete(self, chunk_index: int, chunk_filepath: str) -> None:
         if os.path.exists(chunk_filepath):
             os.remove(chunk_filepath)
 
@@ -214,7 +214,7 @@ class TokensLoader(BaseItemLoader):
         offset = self._dtype.itemsize * (index - begin) * self._block_size
         return torch.frombuffer(buffer, dtype=self._dtype, count=self._block_size, offset=offset)
 
-    def delete(self, chunk_index: int, chunk_filepath: str):
+    def delete(self, chunk_index: int, chunk_filepath: str) -> None:
         if os.path.exists(chunk_filepath):
             if chunk_index in self._buffers:
                 del self._buffers[chunk_index]

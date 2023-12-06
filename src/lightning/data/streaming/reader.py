@@ -18,7 +18,7 @@ import warnings
 from queue import Empty
 from threading import Thread
 from time import sleep
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 from lightning.data.streaming.config import ChunksConfig
 from lightning.data.streaming.constants import _TORCH_GREATER_EQUAL_2_1_0
@@ -39,7 +39,7 @@ class PrepareChunksThread(Thread):
     def __init__(
         self,
         config: ChunksConfig,
-        item_loader,
+        item_loader: BaseItemLoader,
         max_cache_size: Optional[int] = None,
         max_pre_download: int = 2,
     ) -> None:
@@ -68,7 +68,7 @@ class PrepareChunksThread(Thread):
             for f in os.listdir(self._config._cache_dir)
             if f.endswith(".bin")
         ]
-        return [x[0] for x in sorted(chunk_indexes, key=lambda x: x[1])]
+        return [int(x[0]) for x in sorted(chunk_indexes, key=lambda x: x[1])]
 
     def download(self, chunk_indexes: List[int]) -> None:
         """Receive the list of the chunk indices to download for the current epoch."""
@@ -88,7 +88,7 @@ class PrepareChunksThread(Thread):
         """Receive the list of the chunk indices to download for the current epoch."""
         self._to_stop_queue.put(None)
 
-    def _maybe_delete_chunks(self):
+    def _maybe_delete_chunks(self) -> None:
         try:
             # Whether the reader has already finished processing a chunk
             chunk_index = self._to_delete_queue.get(timeout=0.01)
@@ -98,7 +98,11 @@ class PrepareChunksThread(Thread):
             self._chunks_index_to_be_deleted.append(chunk_index)
 
             # Get the current cache size and decide whether we need to start cleanup. Otherwise, keep track of it
-            while self._chunks_index_to_be_deleted and _get_folder_size(self._parent_cache_dir) >= self._max_cache_size:
+            while (
+                self._max_cache_size
+                and self._chunks_index_to_be_deleted
+                and _get_folder_size(self._parent_cache_dir) >= self._max_cache_size
+            ):
                 self._delete(self._chunks_index_to_be_deleted.pop(0))
         except Empty:
             pass
@@ -171,7 +175,7 @@ class BinaryReader:
     def __init__(
         self,
         cache_dir: str,
-        max_cache_size: int,
+        max_cache_size: Optional[Union[int, str]] = None,
         remote_input_dir: Optional[str] = None,
         compression: Optional[str] = None,
         item_loader: Optional[BaseItemLoader] = None,
@@ -301,14 +305,14 @@ class BinaryReader:
 
 
 def _try_to_delete_oldest_chunk(dir_path: str) -> bool:
-    filepaths = []
+    filepaths: List[Tuple[str, float]] = []
     for dirpath, _, filenames in os.walk(dir_path):
         for filename in filenames:
             if not filename.endswith(".bin"):
                 continue
             try:
                 filepath = os.path.join(dirpath, filename)
-                filepaths.append([filepath, os.path.getctime(filepath)])
+                filepaths.append((filepath, os.path.getctime(filepath)))
             except FileNotFoundError:
                 pass
 
@@ -316,7 +320,8 @@ def _try_to_delete_oldest_chunk(dir_path: str) -> bool:
         return False
 
     filepaths = sorted(filepaths, key=lambda x: x[1])
-    os.remove(filepaths[0][0])
+    to_be_removed_filepath: str = filepaths[0][0]
+    os.remove(to_be_removed_filepath)
     return True
 
 
