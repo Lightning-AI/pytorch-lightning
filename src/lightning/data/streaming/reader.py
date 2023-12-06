@@ -40,16 +40,28 @@ class PrepareChunksThread(Thread):
         super().__init__(daemon=True)
         self._config = config
         self._item_loader = item_loader
-        self._chunks_index_to_be_deleted: List[int] = [
-            self._config._get_chunk_index_from_filename(f)
-            for f in os.listdir(self._config._cache_dir)
-            if f.endswith(".bin")
-        ]
+        self._chunks_index_to_be_downloaded: List[int] = []
+        chunk_indexes = self._collect_ordered_chunk_indexes_from_cache()
+        self._chunks_index_to_be_deleted: List[int] = []
         self._max_cache_size = max_cache_size
         self._parent_cache_dir = os.path.dirname(self._config._cache_dir)
         self._to_download_queue: multiprocessing.Queue = multiprocessing.Queue()
         self._to_delete_queue: multiprocessing.Queue = multiprocessing.Queue()
+
+        # populate back the queues with existing items. As they already exists, this is almost a no-op
+        for chunk_index in chunk_indexes:
+            self._to_download_queue.put(chunk_index)
+            self._to_delete_queue.put(chunk_index)
+
         self._to_stop_queue: multiprocessing.Queue = multiprocessing.Queue()
+
+    def _collect_ordered_chunk_indexes_from_cache(self) -> List[int]:
+        chunk_indexes = [
+            [self._config._get_chunk_index_from_filename(f), os.path.getctime(os.path.join(self._config._cache_dir, f))]
+            for f in os.listdir(self._config._cache_dir)
+            if f.endswith(".bin")
+        ]
+        return [x[0] for x in sorted(chunk_indexes, key=lambda x: x[1])]
 
     def download(self, chunk_indexes: List[int]) -> None:
         """Receive the list of the chunk indices to download for the current epoch."""
