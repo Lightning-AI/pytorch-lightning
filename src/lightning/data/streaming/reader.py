@@ -199,7 +199,7 @@ class BinaryReader:
         self._prepare_thread: Optional[PrepareChunksThread] = None
         self._item_loader = item_loader or PyTreeLoader()
         self._last_chunk_index: Optional[int] = None
-        self._max_cache_size = int(os.getenv("MAX_CACHE_SIZE", max_cache_size))
+        self._max_cache_size = int(os.getenv("MAX_CACHE_SIZE", max_cache_size or 0))
 
     def _get_chunk_index_from_index(self, index: int) -> int:
         # Load the config containing the index
