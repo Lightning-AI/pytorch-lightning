@@ -124,7 +124,7 @@ class PrepareChunksThread(Thread):
     def run(self) -> None:
         while True:
             try:
-                if  self._pre_download <= 10:
+                if self._pre_download <= 10:
                     chunk_index = self._to_download_queue.get(timeout=0.01)
                     self._maybe_flush_cache(chunk_index)
                     self._config.download_chunk_from_index(chunk_index)
