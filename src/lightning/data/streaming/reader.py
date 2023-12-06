@@ -36,7 +36,7 @@ if _TORCH_GREATER_EQUAL_2_1_0:
 class PrepareChunksThread(Thread):
     """This thread is responsible to download the chunks associated to a given worker."""
 
-    def __init__(self, config: ChunksConfig, item_loader, max_cache_size: Optional[int] = None) -> None:
+    def __init__(self, config: ChunksConfig, item_loader, max_cache_size: Optional[int] = None, max_pre_download: int = 10) -> None:
         super().__init__(daemon=True)
         self._config = config
         self._item_loader = item_loader
@@ -55,7 +55,8 @@ class PrepareChunksThread(Thread):
 
         self._to_stop_queue: multiprocessing.Queue = multiprocessing.Queue()
 
-        self._pre_download = 0
+        self._max_pre_download = max_pre_download
+        self._pre_download_counter = 0
 
     def _collect_ordered_chunk_indexes_from_cache(self) -> List[int]:
         chunk_indexes = [
@@ -87,7 +88,7 @@ class PrepareChunksThread(Thread):
         try:
             # Whether the reader has already finished processing a chunk
             chunk_index = self._to_delete_queue.get(timeout=0.01)
-            self._pre_download -= 1
+            self._pre_download_counter -= 1
 
             # Store the current chunk index
             self._chunks_index_to_be_deleted.append(chunk_index)
@@ -108,7 +109,6 @@ class PrepareChunksThread(Thread):
     def _maybe_flush_cache(self, chunk_index: int) -> None:
         # Before downloading, check whether we have enough space
         while self._max_cache_size and _get_folder_size(self._parent_cache_dir) >= self._max_cache_size:
-            print("DELETE BBB")
             # Get chunk_filepath associated to this chunk_index
             chunk_filepath, _, _ = self._config[ChunkedIndex(index=-1, chunk_index=chunk_index)]
             if os.path.exists(chunk_filepath):
@@ -124,11 +124,13 @@ class PrepareChunksThread(Thread):
     def run(self) -> None:
         while True:
             try:
-                if  self._pre_download <= 10:
+                if  self._pre_download_counter <= self._max_pre_download:
                     chunk_index = self._to_download_queue.get(timeout=0.01)
                     self._maybe_flush_cache(chunk_index)
                     self._config.download_chunk_from_index(chunk_index)
-                    self._pre_download += 1
+
+                    # Avoid downloading too many chunks in advance at the risk of over using the disk space
+                    self._pre_download_counter += 1
             except Empty:
                 pass
             except OSError as e:
@@ -304,7 +306,6 @@ def _try_to_delete_oldest_chunk(dir_path: str) -> bool:
         return False
 
     filepaths = sorted(filepaths, key=lambda x: x[1])
-    print(filepaths[0][0])
     os.remove(filepaths[0][0])
     return True
 
