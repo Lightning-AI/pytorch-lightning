@@ -96,7 +96,7 @@ class PrepareChunksThread(Thread):
         self._to_stop_queue.put(True)
 
     def _maybe_delete_chunks(self) -> None:
-        chunk_index = self._get_from_queue(self._to_delete_queue)
+        chunk_index = _get_from_queue(self._to_delete_queue)
 
         if chunk_index is not None:
             self._pre_download_counter -= 1
@@ -117,23 +117,10 @@ class PrepareChunksThread(Thread):
         chunk_filepath, _, _ = self._config[ChunkedIndex(index=-1, chunk_index=chunk_index)]
         self._item_loader.pre_load_chunk(chunk_index, chunk_filepath)
 
-    def _get_from_queue(self, queue: multiprocessing.Queue) -> Optional[Any]:
-        try:
-            return queue.get(timeout=0.01)
-        except Empty:
-            pass
-        except OSError as e:
-            # handle closed queue before the thread terminates
-            if "handle is closed" in str(e):
-                logger.debug(e)
-            else:
-                raise e
-        return None
-
     def run(self) -> None:
         while True:
             if self._pre_download_counter <= self._max_pre_download:
-                chunk_index = self._get_from_queue(self._to_download_queue)
+                chunk_index = _get_from_queue(self._to_download_queue)
                 if chunk_index is not None:
                     self._config.download_chunk_from_index(chunk_index)
 
@@ -148,7 +135,7 @@ class PrepareChunksThread(Thread):
             if self._max_cache_size:
                 self._maybe_delete_chunks()
 
-            if self._get_from_queue(self._to_stop_queue):
+            if _get_from_queue(self._to_stop_queue):
                 return
 
             sleep(0.01)
@@ -305,3 +292,17 @@ def _get_folder_size(path: str) -> int:
             with contextlib.suppress(FileNotFoundError):
                 size += os.stat(os.path.join(dirpath, filename)).st_size
     return size
+
+
+def _get_from_queue(queue: multiprocessing.Queue) -> Optional[Any]:
+    try:
+        return queue.get(timeout=0.005)
+    except Empty:
+        pass
+    except OSError as e:
+        # handle closed queue before the thread terminates
+        if "handle is closed" in str(e):
+            logger.debug(e)
+        else:
+            raise e
+    return None
