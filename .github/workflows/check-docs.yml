@@ -49,7 +49,7 @@ defaults:
 
 env:
   # just use CPU version since running on CPU machine
-  TORCH_URL: "https://download.pytorch.org/whl/torch_stable.html"
+  TORCH_URL: "https://download.pytorch.org/whl/cpu/torch_stable.html"
   # default 0 means to keep for the maximum time
   KEEP_DAYS: 0
 
