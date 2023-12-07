@@ -138,7 +138,7 @@ class PrepareChunksThread(Thread):
             if _get_from_queue(self._to_stop_queue):
                 return
 
-            sleep(0.01)
+            sleep(0.05)
 
 
 class BinaryReader:
@@ -296,7 +296,9 @@ def _get_folder_size(path: str) -> int:
 
 def _get_from_queue(queue: multiprocessing.Queue) -> Optional[Any]:
     try:
-        return queue.get(timeout=0.005)
+        # Note: The timeout here should not be too short. We need to prevent the caller from aggressively
+        #   querying the queue and consuming too many CPU cycles.
+        return queue.get(timeout=0.1)
     except Empty:
         pass
     except OSError as e:
