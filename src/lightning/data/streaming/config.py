@@ -128,6 +128,13 @@ class ChunksConfig:
         chunk = self._chunks[index.chunk_index]
         return os.path.join(self._cache_dir, chunk["filename"]), *self._intervals[index.chunk_index]
 
+    def _get_chunk_index_from_filename(self, chunk_filename: str) -> int:
+        """Retrieves the associated chunk_index for a given chunk filename."""
+        for chunk_index, chunk in enumerate(self._chunks):
+            if chunk["filename"] == chunk_filename:
+                return chunk_index
+        raise ValueError(f"The provided filename doesn't exist {chunk_filename}.")
+
     @classmethod
     def load(
         cls,
