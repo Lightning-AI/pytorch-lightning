@@ -18,7 +18,6 @@ import shutil
 import sys
 import tempfile
 from dataclasses import dataclass
-from datetime import datetime
 from time import time
 from typing import Any, Dict, List, Optional, Union
 
@@ -31,7 +30,6 @@ from lightning.data.streaming.constants import (
     _DEFAULT_CACHE_DIR,
     _INDEX_FILENAME,
     _LIGHTNING_CLOUD_LATEST,
-    _TIME_FORMAT,
 )
 from lightning.data.streaming.item_loader import BaseItemLoader
 from lightning.data.streaming.sampler import ChunkedIndex
@@ -56,6 +54,7 @@ class StreamingDataset(IterableDataset):
         seed: int = 42,
         serializers: Optional[Dict[str, Serializer]] = None,
         checkpoint_interval: Optional[int] = None,
+        max_cache_size: Union[int, str] = "100GB",
     ) -> None:
         """The streaming dataset can be used once your data have been optimised using the DatasetOptimiser class.
 
@@ -68,6 +67,7 @@ class StreamingDataset(IterableDataset):
             seed: Random seed for shuffling.
             serializers: The serializers used to serialize and deserialize the chunks.
             checkpoint_interval: Interval in seconds at which the workers are going to store their own progress.
+            max_cache_size: The maximum cache size used by the StreamingDataset.
 
         """
         super().__init__()
@@ -84,6 +84,7 @@ class StreamingDataset(IterableDataset):
         self.shuffle: bool = shuffle
         self.drop_last = drop_last
         self.seed = seed
+        self.max_cache_size = max_cache_size
 
         self.cache: Optional[Cache] = None
         self.distributed_env = _DistributedEnv.detect()
@@ -118,7 +119,11 @@ class StreamingDataset(IterableDataset):
                 self.input_dir.path = cache_path
 
         cache = Cache(
-            input_dir=self.input_dir, item_loader=self.item_loader, chunk_bytes=1, serializers=self.serializers
+            input_dir=self.input_dir,
+            item_loader=self.item_loader,
+            chunk_bytes=1,
+            serializers=self.serializers,
+            max_cache_size=self.max_cache_size,
         )
         cache._reader._try_load_config()
 
@@ -389,10 +394,6 @@ def _try_create_cache_dir(input_dir: str, shard_rank: int = 0) -> Optional[str]:
     cache_dir = os.path.join("/cache", "chunks", hash_object.hexdigest(), str(shard_rank))
     os.makedirs(cache_dir, exist_ok=True)
     return cache_dir
-
-
-def _string_to_datetime(item: str) -> datetime:
-    return datetime.strptime(item.split("checkpoint-")[1].split(".json")[0], _TIME_FORMAT)
 
 
 def _load_state_dict_from_checkpoint_dir(checkpoint_dir: str) -> Dict[str, Any]:
