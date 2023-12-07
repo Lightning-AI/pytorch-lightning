@@ -947,14 +947,13 @@ class Trainer:
         self.__setup_profiler()
 
         call._call_setup_hook(self)  # allow user to setup lightning_module in accelerator environment
+        log.debug(f"{self.__class__.__name__}: configuring model")
+        call._call_configure_model(self)
 
         # check if we should delay restoring checkpoint till later
         if not self.strategy.restore_checkpoint_after_setup:
             log.debug(f"{self.__class__.__name__}: restoring module and callbacks from checkpoint path: {ckpt_path}")
             self._checkpoint_connector._restore_modules_and_callbacks(ckpt_path)
-
-        log.debug(f"{self.__class__.__name__}: configuring model")
-        call._call_configure_model(self)
 
         # reset logger connector
         self._logger_connector.reset_results()

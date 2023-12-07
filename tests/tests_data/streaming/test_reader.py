@@ -45,38 +45,38 @@ def test_reader_chunk_removal(tmpdir, monkeypatch):
     shutil_mock.disk_usage.return_value = disk_usage
     monkeypatch.setattr(reader, "shutil", shutil_mock)
 
-    expected = []
+    generated = []
     for i in range(25):
-        expected.append([i, len(os.listdir(cache_dir))])
+        generated.append([i, len(os.listdir(cache_dir))])
         index = ChunkedIndex(i, cache._get_chunk_index_from_index(i), is_last_index=i == 24)
         assert cache[index] == i
 
-    assert expected == [
+    assert generated == [
         [0, 0],
         [1, 1],
         [2, 1],
         [3, 2],
         [4, 2],
-        [5, 3],
-        [6, 3],
-        [7, 4],
-        [8, 4],
-        [9, 5],
-        [10, 5],
-        [11, 6],
-        [12, 6],
-        [13, 7],
-        [14, 7],
-        [15, 8],
-        [16, 8],
-        [17, 9],
-        [18, 9],
-        [19, 10],
-        [20, 10],
+        [5, 2],
+        [6, 2],
+        [7, 2],
+        [8, 2],
+        [9, 2],
+        [10, 2],
+        [11, 2],
+        [12, 2],
+        [13, 2],
+        [14, 2],
+        [15, 2],
+        [16, 2],
+        [17, 2],
+        [18, 2],
+        [19, 2],
+        [20, 2],
         [21, 2],
         [22, 2],
-        [23, 3],
-        [24, 3],
+        [23, 2],
+        [24, 2],
     ]
 
-    assert len(os.listdir(cache_dir)) in [3, 4]
+    assert len(os.listdir(cache_dir)) == 2
