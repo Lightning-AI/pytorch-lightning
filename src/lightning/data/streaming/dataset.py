@@ -253,7 +253,7 @@ class StreamingDataset(IterableDataset):
         self.index += 1
 
         # Checkpoint based on time
-        if self.checkpoint_interval and (self.last_time - time()) > self.checkpoint_interval:
+        if self.checkpoint_interval and (time() - self.last_time) > self.checkpoint_interval:
             self._checkpoint(self.chunk_index - 1)
 
         return data
@@ -293,7 +293,7 @@ class StreamingDataset(IterableDataset):
                 )
 
             # 4. Move the file to its target position
-            shutil.move(tmp_checkpoint_path, os.path.join(self.cache.checkpoint_rank_dir, "checkpoint.json"))
+            shutil.move(tmp_checkpoint_path, os.path.join(self.cache.checkpoint_dir, "checkpoint.json"))
 
         self.last_time = time()
 
@@ -311,7 +311,8 @@ class StreamingDataset(IterableDataset):
         if not os.path.exists(self.cache.checkpoint_dir):
             return state_dict
 
-        state_dict = _load_state_dict_from_checkpoint_dir(self.cache.checkpoint_dir)
+        # We are reading at the workers level, so we take the dirname
+        state_dict = _load_state_dict_from_checkpoint_dir(os.path.dirname(self.cache.cache_dir))
 
         if self.distributed_env.world_size > 1:
             return _collect_distributed_state_dict(state_dict, self.distributed_env.world_size)
@@ -400,7 +401,7 @@ def _load_state_dict_from_checkpoint_dir(checkpoint_dir: str) -> Dict[str, Any]:
     if not os.path.exists(checkpoint_dir):
         return state_dict
     for worker_idx in os.listdir(checkpoint_dir):
-        checkpoint_filepath = os.path.join(checkpoint_dir, str(worker_idx), "checkpoint.json")
+        checkpoint_filepath = os.path.join(checkpoint_dir, str(worker_idx), "checkpoints", "checkpoint.json")
         if not os.path.exists(checkpoint_filepath):
             state_dict[worker_idx] = {}
         else:
