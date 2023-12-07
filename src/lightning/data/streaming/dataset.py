@@ -18,7 +18,6 @@ import shutil
 import sys
 import tempfile
 from dataclasses import dataclass
-from datetime import datetime
 from time import time
 from typing import Any, Dict, List, Optional, Union
 
@@ -31,7 +30,6 @@ from lightning.data.streaming.constants import (
     _DEFAULT_CACHE_DIR,
     _INDEX_FILENAME,
     _LIGHTNING_CLOUD_LATEST,
-    _TIME_FORMAT,
 )
 from lightning.data.streaming.item_loader import BaseItemLoader
 from lightning.data.streaming.sampler import ChunkedIndex
@@ -392,15 +390,13 @@ def _try_create_cache_dir(input_dir: str, shard_rank: int = 0) -> Optional[str]:
     return cache_dir
 
 
-def _string_to_datetime(item: str) -> datetime:
-    return datetime.strptime(item.split("checkpoint-")[1].split(".json")[0], _TIME_FORMAT)
-
-
 def _load_state_dict_from_checkpoint_dir(checkpoint_dir: str) -> Dict[str, Any]:
     state_dict: Dict[str, Any] = {}
     if not os.path.exists(checkpoint_dir):
         return state_dict
     for worker_idx in os.listdir(checkpoint_dir):
+        if not is_integer(worker_idx):
+            continue
         checkpoint_filepath = os.path.join(checkpoint_dir, str(worker_idx), "checkpoints", "checkpoint.json")
         if not os.path.exists(checkpoint_filepath):
             state_dict[worker_idx] = {}
@@ -446,3 +442,11 @@ class RemoteDir:
 
     cache_dir: str
     remote: str
+
+
+def is_integer(value: str) -> bool:
+    try:
+        int(value)
+        return True
+    except Exception:
+        return False
