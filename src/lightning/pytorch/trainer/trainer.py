@@ -33,7 +33,7 @@ from torch.optim import Optimizer
 
 import lightning.pytorch as pl
 from lightning.fabric.utilities.apply_func import convert_tensors_to_scalars
-from lightning.fabric.utilities.cloud_io import get_filesystem
+from lightning.fabric.utilities.cloud_io import _is_local_file_protocol
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 from lightning.fabric.utilities.types import _PATH
 from lightning.pytorch.accelerators import Accelerator
@@ -947,14 +947,13 @@ class Trainer:
         self.__setup_profiler()
 
         call._call_setup_hook(self)  # allow user to setup lightning_module in accelerator environment
+        log.debug(f"{self.__class__.__name__}: configuring model")
+        call._call_configure_model(self)
 
         # check if we should delay restoring checkpoint till later
         if not self.strategy.restore_checkpoint_after_setup:
             log.debug(f"{self.__class__.__name__}: restoring module and callbacks from checkpoint path: {ckpt_path}")
             self._checkpoint_connector._restore_modules_and_callbacks(ckpt_path)
-
-        log.debug(f"{self.__class__.__name__}: configuring model")
-        call._call_configure_model(self)
 
         # reset logger connector
         self._logger_connector.reset_results()
@@ -1285,7 +1284,7 @@ class Trainer:
         It is used as a fallback if logger or checkpoint callback do not define specific save paths.
 
         """
-        if get_filesystem(self._default_root_dir).protocol == "file":
+        if _is_local_file_protocol(self._default_root_dir):
             return os.path.normpath(self._default_root_dir)
         return self._default_root_dir
 

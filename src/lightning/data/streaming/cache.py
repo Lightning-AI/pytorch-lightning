@@ -26,7 +26,7 @@ from lightning.data.streaming.reader import BinaryReader
 from lightning.data.streaming.sampler import ChunkedIndex
 from lightning.data.streaming.serializers import Serializer
 from lightning.data.streaming.writer import BinaryWriter
-from lightning.data.utilities.env import _DistributedEnv
+from lightning.data.utilities.env import _DistributedEnv, _WorkerEnv
 from lightning.data.utilities.format import _convert_bytes_to_int
 
 logger = logging.Logger(__name__)
@@ -51,7 +51,7 @@ class Cache:
         chunk_size: Optional[int] = None,
         chunk_bytes: Optional[Union[int, str]] = None,
         item_loader: Optional[BaseItemLoader] = None,
-        max_cache_size: Union[int, str] = "200GB",
+        max_cache_size: Union[int, str] = "100GB",
         serializers: Optional[Dict[str, Serializer]] = None,
     ):
         """The Cache enables to optimise dataset format for cloud training. This is done by grouping several elements
@@ -93,6 +93,15 @@ class Cache:
         )
         self._is_done = False
         self._distributed_env = _DistributedEnv.detect()
+        self._rank: Optional[int] = None
+
+    @property
+    def rank(self) -> int:
+        """Returns the rank of the Cache."""
+        if self._rank is None:
+            self._worker_env = _WorkerEnv.detect()
+            self._rank = self._distributed_env.global_rank * self._worker_env.world_size + self._worker_env.rank
+        return self._rank
 
     @property
     def filled(self) -> bool:
@@ -101,6 +110,20 @@ class Cache:
             return True
         self._is_done = os.path.exists(os.path.join(self._cache_dir, _INDEX_FILENAME))
         return self._is_done
+
+    @property
+    def checkpoint_dir(self) -> str:
+        checkpoint_dir = os.path.join(self._cache_dir, "checkpoints")
+        return self._try_create(checkpoint_dir)
+
+    @property
+    def checkpoint_rank_dir(self) -> str:
+        checkpoint_rank_dir = os.path.join(self._cache_dir, "checkpoints", str(self.rank))
+        return self._try_create(checkpoint_rank_dir)
+
+    def _try_create(self, path: str) -> str:
+        os.makedirs(path, exist_ok=True)
+        return path
 
     def __setitem__(self, index: int, data: Any) -> None:
         """Store an item in the writer."""

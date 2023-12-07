@@ -18,6 +18,7 @@ from functools import lru_cache
 from typing import Optional
 
 from lightning_utilities.core.imports import RequirementCache
+from typing_extensions import override
 
 from lightning.fabric.plugins.environments.cluster_environment import ClusterEnvironment
 from lightning.fabric.plugins.environments.lightning import find_free_network_port
@@ -47,22 +48,26 @@ class MPIEnvironment(ClusterEnvironment):
         self._main_port: Optional[int] = None
 
     @property
+    @override
     def creates_processes_externally(self) -> bool:
         return True
 
     @property
+    @override
     def main_address(self) -> str:
         if self._main_address is None:
             self._main_address = self._get_main_address()
         return self._main_address
 
     @property
+    @override
     def main_port(self) -> int:
         if self._main_port is None:
             self._main_port = self._get_main_port()
         return self._main_port
 
     @staticmethod
+    @override
     def detect() -> bool:
         """Returns ``True`` if the `mpi4py` package is installed and MPI returns a world size greater than 1."""
         if not _MPI4PY_AVAILABLE:
@@ -72,20 +77,25 @@ class MPIEnvironment(ClusterEnvironment):
 
         return MPI.COMM_WORLD.Get_size() > 1
 
+    @override
     @lru_cache(1)
     def world_size(self) -> int:
         return self._comm_world.Get_size()
 
+    @override
     def set_world_size(self, size: int) -> None:
         log.debug("MPIEnvironment.set_world_size was called, but setting world size is not allowed. Ignored.")
 
+    @override
     @lru_cache(1)
     def global_rank(self) -> int:
         return self._comm_world.Get_rank()
 
+    @override
     def set_global_rank(self, rank: int) -> None:
         log.debug("MPIEnvironment.set_global_rank was called, but setting global rank is not allowed. Ignored.")
 
+    @override
     @lru_cache(1)
     def local_rank(self) -> int:
         if self._comm_local is None:
@@ -93,6 +103,7 @@ class MPIEnvironment(ClusterEnvironment):
         assert self._comm_local is not None
         return self._comm_local.Get_rank()
 
+    @override
     def node_rank(self) -> int:
         if self._node_rank is None:
             self._init_comm_local()
@@ -107,9 +118,9 @@ class MPIEnvironment(ClusterEnvironment):
 
     def _init_comm_local(self) -> None:
         hostname = socket.gethostname()
-        all_hostnames = self._comm_world.gather(hostname, root=0)
+        all_hostnames = self._comm_world.gather(hostname, root=0)  # returns None on non-root ranks
         # sort all the hostnames, and find unique ones
-        unique_hosts = sorted(set(all_hostnames))
+        unique_hosts = sorted(set(all_hostnames)) if all_hostnames is not None else []
         unique_hosts = self._comm_world.bcast(unique_hosts, root=0)
         # find the index for this host in the list of hosts:
         self._node_rank = unique_hosts.index(hostname)
