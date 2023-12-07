@@ -1,10 +1,10 @@
 import os
 import shutil
-from unittest import mock
 
-from lightning.data.streaming import reader
+import numpy as np
 from lightning.data.streaming.cache import Cache
 from lightning.data.streaming.config import ChunkedIndex
+from lightning.data.streaming.reader import _get_folder_size
 from lightning_cloud.resolver import Dir
 
 
@@ -12,19 +12,13 @@ def test_reader_chunk_removal(tmpdir, monkeypatch):
     cache_dir = os.path.join(tmpdir, "cache_dir")
     remote_dir = os.path.join(tmpdir, "remote_dir")
     os.makedirs(cache_dir, exist_ok=True)
-    cache = Cache(input_dir=Dir(path=cache_dir, url=remote_dir), chunk_size=2, max_cache_size=53687091200)
+    cache = Cache(input_dir=Dir(path=cache_dir, url=remote_dir), chunk_size=2, max_cache_size=28020)
 
     for i in range(25):
         cache[i] = i
 
     cache.done()
     cache.merge()
-
-    shutil_mock = mock.MagicMock()
-    disk_usage = mock.MagicMock()
-    disk_usage.total = 1230
-    shutil_mock.disk_usage.return_value = disk_usage
-    monkeypatch.setattr(reader, "shutil", shutil_mock)
 
     shutil.copytree(cache_dir, remote_dir)
     shutil.rmtree(cache_dir)
@@ -36,14 +30,10 @@ def test_reader_chunk_removal(tmpdir, monkeypatch):
 
     assert len(os.listdir(cache_dir)) == 14
 
+    cache = Cache(input_dir=Dir(path=cache_dir, url=remote_dir), chunk_size=2, max_cache_size=2800)
+
     shutil.rmtree(cache_dir)
     os.makedirs(cache_dir, exist_ok=True)
-
-    shutil_mock = mock.MagicMock()
-    disk_usage = mock.MagicMock()
-    disk_usage.total = 536870912000
-    shutil_mock.disk_usage.return_value = disk_usage
-    monkeypatch.setattr(reader, "shutil", shutil_mock)
 
     generated = []
     for i in range(25):
@@ -53,30 +43,39 @@ def test_reader_chunk_removal(tmpdir, monkeypatch):
 
     assert generated == [
         [0, 0],
-        [1, 1],
-        [2, 1],
-        [3, 2],
-        [4, 2],
-        [5, 2],
-        [6, 2],
-        [7, 2],
-        [8, 2],
-        [9, 2],
-        [10, 2],
-        [11, 2],
-        [12, 2],
-        [13, 2],
-        [14, 2],
-        [15, 2],
-        [16, 2],
-        [17, 2],
-        [18, 2],
-        [19, 2],
-        [20, 2],
-        [21, 2],
-        [22, 2],
-        [23, 2],
-        [24, 2],
+        [1, 2],
+        [2, 2],
+        [3, 3],
+        [4, 3],
+        [5, 3],
+        [6, 3],
+        [7, 3],
+        [8, 3],
+        [9, 3],
+        [10, 3],
+        [11, 3],
+        [12, 3],
+        [13, 3],
+        [14, 3],
+        [15, 3],
+        [16, 3],
+        [17, 3],
+        [18, 3],
+        [19, 3],
+        [20, 3],
+        [21, 3],
+        [22, 3],
+        [23, 3],
+        [24, 3],
     ]
 
-    assert len(os.listdir(cache_dir)) == 2
+    assert len(os.listdir(cache_dir)) == 3
+
+
+def test_get_folder_size(tmpdir):
+    array = np.zeros((10, 10))
+
+    np.save(os.path.join(tmpdir, "array_1.npy"), array)
+    np.save(os.path.join(tmpdir, "array_2.npy"), array)
+
+    assert _get_folder_size(tmpdir) == 928 * 2
