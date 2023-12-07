@@ -51,7 +51,7 @@ class Cache:
         chunk_size: Optional[int] = None,
         chunk_bytes: Optional[Union[int, str]] = None,
         item_loader: Optional[BaseItemLoader] = None,
-        max_cache_size: Union[int, str] = "200GB",
+        max_cache_size: Union[int, str] = "100GB",
         serializers: Optional[Dict[str, Serializer]] = None,
     ):
         """The Cache enables to optimise dataset format for cloud training. This is done by grouping several elements
