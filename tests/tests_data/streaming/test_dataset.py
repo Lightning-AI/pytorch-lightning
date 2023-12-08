@@ -572,7 +572,7 @@ class EmulateS3StreamingDataset(StreamingDataset):
 
 
 @pytest.mark.skipif(sys.platform == "win32", reason="Not tested on windows and MacOs")
-def test_resumable_dataset_single_worker(tmpdir):
+def test_resumable_dataset_two_workers(tmpdir):
     seed_everything(42)
 
     data_dir = os.path.join(tmpdir, "data")
@@ -600,9 +600,6 @@ def test_resumable_dataset_single_worker(tmpdir):
     )
 
     dataset.current_epoch = 1
-
-    # assert dataset.state_dict() == {}
-
     dataloader = DataLoader(dataset, num_workers=2, batch_size=2, prefetch_factor=1)
 
     dataloader_iter = iter(dataloader)
@@ -652,7 +649,9 @@ def test_resumable_dataset_single_worker(tmpdir):
     assert state_dict_2["1"]["index"] == 0
 
     dataset = EmulateS3StreamingDataset(
-        input_dir=RemoteDir(cache_dir, data_dir), item_loader=TokensLoader(block_size), shuffle=True
+        input_dir=RemoteDir(cache_dir, data_dir),
+        item_loader=TokensLoader(block_size),
+        shuffle=True,
     )
 
     dataset.load_state_dict(state_dict_1)
