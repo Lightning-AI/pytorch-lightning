@@ -21,7 +21,7 @@ from lightning.fabric.plugins.precision.precision import Precision
 _ITREX_AVAILABLE = RequirementCache("intel-extension-for-transformers>=1.2.2")
 
 
-class WeightOnlyPrecision(Precision):
+class ITREXPrecision(Precision):
     """Plugin for quantizing weights with `intel-extension-for-transformers <https://github.com/intel/intel-extension-for-transformers>`__.
 
     .. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.

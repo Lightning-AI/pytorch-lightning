@@ -24,4 +24,4 @@ Precision
     DeepSpeedPrecision
     TransformerEnginePrecision
     BitsandbytesPrecision
-    WeightOnlyPrecision
+    ITREXPrecision

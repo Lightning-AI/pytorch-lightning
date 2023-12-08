@@ -282,9 +282,9 @@ You might want to do this for extra memory savings.
 Weight-only Quantization via Intel® Extension for Transformers
 *****************************
 
-`intel-extension-for-transformers <https://github.com/intel/intel-extension-for-transformers>`__ (ITREX) is a library that supports quantizing :class:`torch.nn.Linear` weights.
+`intel-extension-for-transformers <https://github.com/intel/intel-extension-for-transformers>`__ (ITREX) is a library that supports quantizing :class:`torch.nn.Linear` weights. 
 
-Both 4-bit (`paper reference <https://arxiv.org/abs/2305.14314v1>`__) and 8-bit (`paper reference <https://arxiv.org/abs/2110.02861>`__) quantization is supported.
+Both 4-bit (`paper reference <https://arxiv.org/abs/2305.14314v1>`__) and 8-bit (`paper reference <https://arxiv.org/abs/2110.02861>`__) quantization is supported. Please refer to the medium blog of `Intel-Optimized Llama.CPP <https://medium.com/@NeuralCompressor/llm-performance-of-intel-extension-for-transformers-f7d061556176>`__ for more details of ITREX 4-bit.
 Specifically, we support the following modes:
 
 * **int8**: Uses 8-bit data type.
@@ -296,13 +296,13 @@ Specifically, we support the following modes:
 
 While these techniques store weights in 4 or 8 bit, the computation still happens in 32-bit.
 
-The :class:`~lightning.fabric.plugins.precision.weight_only.WeightOnlyPrecision` automatically replaces the :class:`torch.nn.Linear` layers in your model with ``.
+The :class:`~lightning.fabric.plugins.precision.itrex.ITREXPrecision` automatically replaces the :class:`torch.nn.Linear` layers in your model with ``.
 
 .. code-block:: python
 
-    from lightning.fabric.plugins import WeightOnlyPrecision
+    from lightning.fabric.plugins import ITREXPrecision
 
-    precision = WeightOnlyPrecision(mode="int8")
+    precision = ITREXPrecision(mode="int8")
     fabric = Fabric(plugins=precision)
 
     model = MyModel()

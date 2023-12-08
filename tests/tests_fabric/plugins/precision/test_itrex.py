@@ -15,7 +15,7 @@ import pytest
 import torch
 import torch.distributed
 from lightning.fabric import Fabric
-from lightning.fabric.plugins.precision.weight_only import _ITREX_AVAILABLE, WeightOnlyPrecision
+from lightning.fabric.plugins.precision.itrex import _ITREX_AVAILABLE, ITREXPrecision
 
 
 @pytest.mark.skipif(not _ITREX_AVAILABLE, reason="intel-extension-for-transformers unavailable")
@@ -28,14 +28,14 @@ from lightning.fabric.plugins.precision.weight_only import _ITREX_AVAILABLE, Wei
         ("fp4_e2m1_bnb", "cpu", torch.int8),
     ],
 )
-def test_weight_only_layers(mode, expected_device, expected_dtype):
+def test_itrex_layers(mode, expected_device, expected_dtype):
     class MyModel(torch.nn.Module):
         def __init__(self):
             super().__init__()
             self.l = torch.nn.Linear(2, 2)
             self.ln = torch.nn.LayerNorm(2)
 
-    fabric = Fabric(devices=1, plugins=WeightOnlyPrecision(mode=mode))
+    fabric = Fabric(devices=1, plugins=ITREXPrecision(mode=mode))
     with fabric.init_module():
         model = MyModel()
     assert model.l.weight.device.type == "cpu"
