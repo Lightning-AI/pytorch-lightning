@@ -282,7 +282,7 @@ You might want to do this for extra memory savings.
 Weight-only Quantization via Intel® Extension for Transformers
 *****************************
 
-`intel-extension-for-transformers <https://github.com/intel/intel-extension-for-transformers>`__ (ITREX) is a library that supports quantizing :class:`torch.nn.Linear` weights. 
+`intel-extension-for-transformers <https://github.com/intel/intel-extension-for-transformers>`__ (ITREX) is a library that supports quantizing :class:`torch.nn.Linear` weights.
 
 Both 4-bit (`paper reference <https://arxiv.org/abs/2305.14314v1>`__) and 8-bit (`paper reference <https://arxiv.org/abs/2110.02861>`__) quantization is supported. Please refer to the medium blog of `Intel-Optimized Llama.CPP <https://medium.com/@NeuralCompressor/llm-performance-of-intel-extension-for-transformers-f7d061556176>`__ for more details of ITREX 4-bit.
 Specifically, we support the following modes:
