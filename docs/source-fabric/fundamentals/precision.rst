@@ -302,17 +302,11 @@ The :class:`~lightning.fabric.plugins.precision.weight_only.WeightOnlyPrecision`
 
     from lightning.fabric.plugins import WeightOnlyPrecision
 
-    # this will pick out the compute dtype automatically, by default `bfloat16`
     precision = WeightOnlyPrecision(mode="int8")
     fabric = Fabric(plugins=precision)
 
     model = MyModel()
     model = fabric.setup(model)
-
-
-You can also directly initialize the model with the quantized layers if you are not setting any ``ignore_modules=...`` by
-initializing your model under the :meth:`~lightning.fabric.fabric.Fabric.init_module` context manager.
-
 
 .. note::
 
