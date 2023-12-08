@@ -456,7 +456,13 @@ class NeptuneLogger(Logger):
             # initialized there
             return
         if status:
-            self.run[self._construct_path_with_prefix("status")] = status
+            if _NEPTUNE_AVAILABLE:
+                from neptune.exceptions import InactiveRunException
+            else:
+                from neptune.new.exceptions import InactiveRunException
+
+            with contextlib.suppress(InactiveRunException):
+                self.run[self._construct_path_with_prefix("status")] = status
 
         super().finalize(status)
 
