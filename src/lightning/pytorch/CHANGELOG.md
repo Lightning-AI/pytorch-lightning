@@ -65,6 +65,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed broadcast at initialization in `MPIEnvironment` ([#19074](https://github.com/Lightning-AI/lightning/pull/19074))
 
 
+- Fixed NeptuneLogger lack of usage of `step` parameter when logging metrics ([#19126](https://github.com/Lightning-AI/pytorch-lightning/pull/19126))
+
+
 ## [2.1.2] - 2023-11-15
 
 ### Fixed
