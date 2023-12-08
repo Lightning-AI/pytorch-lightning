@@ -26,7 +26,7 @@ _DEFAULT_CACHE_DIR = os.path.join(Path.home(), ".lightning", "chunks")
 # This is required for full pytree serialization / deserialization support
 _TORCH_GREATER_EQUAL_2_1_0 = RequirementCache("torch>=2.1.0")
 _VIZ_TRACKER_AVAILABLE = RequirementCache("viztracer")
-_LIGHTNING_CLOUD_LATEST = RequirementCache("lightning-cloud>=0.5.56")
+_LIGHTNING_CLOUD_LATEST = RequirementCache("lightning-cloud>=0.5.57")
 _BOTO3_AVAILABLE = RequirementCache("boto3")
 
 # DON'T CHANGE ORDER
