@@ -23,8 +23,8 @@ from lightning.fabric.plugins.precision.fsdp import FSDPPrecision
 from lightning.fabric.plugins.precision.half import HalfPrecision
 from lightning.fabric.plugins.precision.precision import Precision
 from lightning.fabric.plugins.precision.transformer_engine import TransformerEnginePrecision
-from lightning.fabric.plugins.precision.xla import XLAPrecision
 from lightning.fabric.plugins.precision.weight_only import WeightOnlyPrecision
+from lightning.fabric.plugins.precision.xla import XLAPrecision
 
 __all__ = [
     "ClusterEnvironment",

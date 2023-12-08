@@ -11,14 +11,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import torch
 from typing import Literal
 
+import torch
 from lightning_utilities.core.imports import RequirementCache
+
 from lightning.fabric.plugins.precision.precision import Precision
 
-
 _ITREX_AVAILABLE = RequirementCache("intel-extension-for-transformers>=1.2.2")
+
 
 class WeightOnlyPrecision(Precision):
     """Plugin for quantizing weights with `intel-extension-for-transformers <https://github.com/intel/intel-extension-for-transformers>`__.
@@ -30,18 +31,18 @@ class WeightOnlyPrecision(Precision):
     """
 
     def __init__(
-        self, 
+        self,
         mode: Literal["int8", "int4_fullrange", "int4_clip", "nf4", "fp4_e2m1"],
     ) -> None:
         super().__init__()
         self.mode = mode
-    
+
     def convert_module(self, module: torch.nn.Module) -> torch.nn.Module:
         if not _ITREX_AVAILABLE:
             raise ModuleNotFoundError(str(_ITREX_AVAILABLE))
-        
-        from intel_extension_for_transformers.transformers import WeightOnlyQuantConfig
+
         from intel_extension_for_transformers.llm.quantization.utils import convert_to_quantized_model
+        from intel_extension_for_transformers.transformers import WeightOnlyQuantConfig
 
         config = WeightOnlyQuantConfig(weight_dtype=self.mode)
         module.eval()
