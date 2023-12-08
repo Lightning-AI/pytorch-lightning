@@ -39,8 +39,9 @@ if TYPE_CHECKING:
 log = logging.getLogger(__name__)
 
 # neptune is available with two names on PyPI : `neptune` and `neptune-client`
-_NEPTUNE_AVAILABLE = RequirementCache("neptune>=1.0")
-_NEPTUNE_CLIENT_AVAILABLE = RequirementCache("neptune-client")
+_NEPTUNE_AVAILABLE = bool(RequirementCache("neptune>=1.0")) or bool(RequirementCache("neptune-client>=1.0"))
+_LEGACY_NEPTUNE_CLIENT = bool(RequirementCache("neptune-client<1.0"))
+_GET_ROOT_OBJECT_AVAILABLE = bool(RequirementCache("neptune>=1.1")) or bool(RequirementCache("neptune-client>=1.1"))
 _INTEGRATION_VERSION_KEY = "source_code/integrations/pytorch-lightning"
 
 
@@ -223,8 +224,8 @@ class NeptuneLogger(Logger):
         prefix: str = "training",
         **neptune_run_kwargs: Any,
     ):
-        if not _NEPTUNE_AVAILABLE and not _NEPTUNE_CLIENT_AVAILABLE:
-            raise ModuleNotFoundError(str(_NEPTUNE_AVAILABLE))
+        if not _NEPTUNE_AVAILABLE and not _LEGACY_NEPTUNE_CLIENT:
+            raise ModuleNotFoundError("`neptune` package is required. Run `pip install neptune`")
         # verify if user passed proper init arguments
         self._verify_input_arguments(api_key, project, name, run, neptune_run_kwargs)
         super().__init__()
@@ -319,6 +320,9 @@ class NeptuneLogger(Logger):
         if run is not None and not isinstance(run, (Run, Handler)):
             raise ValueError("Run parameter expected to be of type `neptune.Run`, or `neptune.handler.Handler`.")
 
+        if isinstance(run, Handler) and not _GET_ROOT_OBJECT_AVAILABLE:
+            raise ValueError("Providing namespace as `run` parameter requires neptune>=1.1.0.")
+
         # check if user passed redundant neptune.init_run arguments when passed run
         any_neptune_init_arg_passed = any(arg is not None for arg in [api_key, project, name]) or neptune_run_kwargs
         if run is not None and any_neptune_init_arg_passed:
@@ -335,12 +339,12 @@ class NeptuneLogger(Logger):
 
     def __setstate__(self, state: Dict[str, Any]) -> None:
         if _NEPTUNE_AVAILABLE:
-            import neptune
+            from neptune import init_run
         else:
-            import neptune.new as neptune
+            from neptune.new import init_run
 
         self.__dict__ = state
-        self._run_instance = neptune.init_run(**self._neptune_init_args)
+        self._run_instance = init_run(**self._neptune_init_args)
 
     @property
     @rank_zero_experiment
@@ -376,12 +380,12 @@ class NeptuneLogger(Logger):
     @rank_zero_experiment
     def run(self) -> "Run":
         if _NEPTUNE_AVAILABLE:
-            import neptune
+            from neptune import init_run
         else:
-            import neptune.new as neptune
+            from neptune.new import init_run
 
         if not self._run_instance:
-            self._run_instance = neptune.init_run(**self._neptune_init_args)
+            self._run_instance = init_run(**self._neptune_init_args)
             self._retrieve_run_data()
             # make sure that we've log integration version for newly created
             self._run_instance[_INTEGRATION_VERSION_KEY] = pl.__version__
@@ -425,18 +429,18 @@ class NeptuneLogger(Logger):
             neptune_logger.log_hyperparams(PARAMS)
 
         """
-        if _NEPTUNE_AVAILABLE:
-            from neptune.utils import stringify_unsupported
-        else:
-            from neptune.new.utils import stringify_unsupported
-
         params = _convert_params(params)
         params = _sanitize_callable_params(params)
 
         parameters_key = self.PARAMETERS_KEY
         parameters_key = self._construct_path_with_prefix(parameters_key)
 
-        self.run[parameters_key] = stringify_unsupported(params)
+        if _NEPTUNE_AVAILABLE:
+            from neptune.utils import stringify_unsupported
+
+            params = stringify_unsupported(params)
+
+        self.run[parameters_key] = params
 
     @override
     @rank_zero_only
@@ -458,7 +462,10 @@ class NeptuneLogger(Logger):
         for key, val in metrics.items():
             # `step` is ignored because Neptune expects strictly increasing step values which
             # Lightning does not always guarantee.
-            self.run[key].append(val)
+            if _NEPTUNE_AVAILABLE:
+                self.run[key].append(val)
+            else:
+                self.run[key].log(val)
 
     @override
     @rank_zero_only
@@ -540,8 +547,10 @@ class NeptuneLogger(Logger):
                 self.run[f"{checkpoints_namespace}/{model_name}"] = File.from_stream(fp)
 
         # remove old models logged to experiment if they are not part of best k models at this point
-        if self.run.exists(checkpoints_namespace):
-            exp_structure = self.run.get_structure()
+        root_obj = self.run.get_root_object() if _GET_ROOT_OBJECT_AVAILABLE else self.run
+
+        if root_obj.exists(checkpoints_namespace):
+            exp_structure = root_obj.get_structure()
             uploaded_model_names = self._get_full_model_names_from_exp_structure(exp_structure, checkpoints_namespace)
 
             for file_to_drop in list(uploaded_model_names - file_names):
