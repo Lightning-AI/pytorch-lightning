@@ -275,8 +275,48 @@ You might want to do this for extra memory savings.
         if isinstance(module, torch.nn.Embedding):
             bnb.optim.GlobalOptimManager.get_instance().register_module_override(module, "weight", {"optim_bits": 32})
 
-
 ----
+
+
+*****************************
+Weight-only Quantization via Intel® Extension for Transformers
+*****************************
+
+`intel-extension-for-transformers <https://github.com/intel/intel-extension-for-transformers>`__ (ITREX) is a library that supports quantizing :class:`torch.nn.Linear` weights.
+
+Both 4-bit (`paper reference <https://arxiv.org/abs/2305.14314v1>`__) and 8-bit (`paper reference <https://arxiv.org/abs/2110.02861>`__) quantization is supported.
+Specifically, we support the following modes:
+
+* **int8**: Uses 8-bit data type.
+* **int4_fullrange**: Uses the -8 value of int4 range compared with the normal int4 range [-7,7].
+* **int4_clip**: Clips and retains the values within the int4 range, setting others to zero.
+* **nf4**: Uses the normalized float 4-bit data type.
+* **fp4_e2m1**: Uses regular float 4-bit data type.
+
+
+While these techniques store weights in 4 or 8 bit, the computation still happens in 32-bit.
+
+The :class:`~lightning.fabric.plugins.precision.weight_only.WeightOnlyPrecision` automatically replaces the :class:`torch.nn.Linear` layers in your model with ``.
+
+.. code-block:: python
+
+    from lightning.fabric.plugins import WeightOnlyPrecision
+
+    # this will pick out the compute dtype automatically, by default `bfloat16`
+    precision = WeightOnlyPrecision(mode="int8")
+    fabric = Fabric(plugins=precision)
+
+    model = MyModel()
+    model = fabric.setup(model)
+
+
+You can also directly initialize the model with the quantized layers if you are not setting any ``ignore_modules=...`` by
+initializing your model under the :meth:`~lightning.fabric.fabric.Fabric.init_module` context manager.
+
+
+.. note::
+
+    Only supports CPU devices and the Linux operating system.
 
 
 *********************
