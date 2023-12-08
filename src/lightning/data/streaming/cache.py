@@ -112,14 +112,13 @@ class Cache:
         return self._is_done
 
     @property
+    def cache_dir(self) -> str:
+        return self._cache_dir
+
+    @property
     def checkpoint_dir(self) -> str:
         checkpoint_dir = os.path.join(self._cache_dir, "checkpoints")
         return self._try_create(checkpoint_dir)
-
-    @property
-    def checkpoint_rank_dir(self) -> str:
-        checkpoint_rank_dir = os.path.join(self._cache_dir, "checkpoints", str(self.rank))
-        return self._try_create(checkpoint_rank_dir)
 
     def _try_create(self, path: str) -> str:
         os.makedirs(path, exist_ok=True)
