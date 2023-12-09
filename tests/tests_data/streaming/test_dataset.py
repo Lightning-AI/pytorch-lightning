@@ -24,10 +24,17 @@ import torch
 from lightning import seed_everything
 from lightning.data.streaming import Cache, functions
 from lightning.data.streaming.constants import _TIME_FORMAT
-from lightning.data.streaming.dataset import StreamingDataset, _should_replace_path, _try_create_cache_dir
+from lightning.data.streaming.dataset import (
+    _INDEX_FILENAME,
+    Dir,
+    RemoteDir,
+    StreamingDataset,
+    _should_replace_path,
+    _try_create_cache_dir,
+)
 from lightning.data.streaming.item_loader import TokensLoader
 from lightning.data.streaming.shuffle import FullShuffle, NoShuffle
-from lightning.data.utilities.env import _DistributedEnv
+from lightning.data.utilities.env import Environment, _DistributedEnv, _WorkerEnv
 from torch.utils.data import DataLoader
 
 
@@ -540,12 +547,42 @@ def test_s3_streaming_dataset():
     assert dataset.input_dir.path is None
 
 
+class EmulateS3StreamingDataset(StreamingDataset):
+    def _create_cache(self, worker_env: _WorkerEnv) -> Cache:
+        env = Environment(dist_env=self.distributed_env, worker_env=worker_env)
+
+        cache_dir = os.path.join(self.input_dir.path, str(env.shard_rank))
+        os.makedirs(cache_dir, exist_ok=True)
+
+        cache = Cache(
+            input_dir=Dir(cache_dir, self.input_dir.url),
+            item_loader=self.item_loader,
+            chunk_bytes=1,
+            serializers=self.serializers,
+        )
+        cache._reader._try_load_config()
+
+        if not cache.filled:
+            raise ValueError(
+                f"The provided dataset `{self.input_dir}` doesn't contain any {_INDEX_FILENAME} file."
+                " HINT: Did you successfully optimize a dataset to the provided `input_dir`?"
+            )
+
+        return cache
+
+
 @pytest.mark.skipif(sys.platform == "win32", reason="Not tested on windows and MacOs")
-def test_resumable_dataset_single_worker(tmpdir):
+def test_resumable_dataset_two_workers(tmpdir):
     seed_everything(42)
 
+    data_dir = os.path.join(tmpdir, "data")
+    cache_dir = os.path.join(tmpdir, "cache_dir")
+
+    os.makedirs(data_dir)
+    os.makedirs(cache_dir)
+
     block_size = 20
-    cache = Cache(input_dir=str(tmpdir), chunk_size=40, item_loader=TokensLoader(block_size))
+    cache = Cache(input_dir=str(data_dir), chunk_size=40, item_loader=TokensLoader(block_size))
 
     counter = 0
     for i in range(100):
@@ -556,47 +593,69 @@ def test_resumable_dataset_single_worker(tmpdir):
     cache.done()
     cache.merge()
 
-    assert len([f for f in os.listdir(tmpdir) if f.endswith(".bin")]) == 50
+    assert len([f for f in os.listdir(data_dir) if f.endswith(".bin")]) == 50
 
-    dataset = StreamingDataset(input_dir=str(tmpdir), item_loader=TokensLoader(block_size), shuffle=True)
+    dataset = EmulateS3StreamingDataset(
+        input_dir=RemoteDir(cache_dir, data_dir), item_loader=TokensLoader(block_size), shuffle=True
+    )
 
     dataset.current_epoch = 1
-
-    assert dataset.state_dict() == {}
-
-    dataloader = DataLoader(dataset, num_workers=1, batch_size=2, prefetch_factor=1)
+    dataloader = DataLoader(dataset, num_workers=2, batch_size=2, prefetch_factor=1)
 
     dataloader_iter = iter(dataloader)
 
     _ = next(dataloader_iter)
-    state_dict_0 = dataset.state_dict()
 
     sleep(0.1)
 
-    assert state_dict_0["0"]["chunk_index"] == 0
+    state_dict_0 = dataset.state_dict()
+
+    assert sorted(state_dict_0.keys()) == ["0", "1"]
+
+    assert state_dict_0["0"]["chunk_index"] == 1
+    assert state_dict_0["0"]["global_index"] == 2
     assert state_dict_0["0"]["index"] == 0
 
-    checkpoint_dir = os.path.join(tmpdir, "checkpoints")
-    assert os.listdir(checkpoint_dir) == ["0"]
+    assert state_dict_0["1"]["chunk_index"] == 0
+    assert state_dict_0["1"]["global_index"] == 0
+    assert state_dict_0["1"]["index"] == 0
+
     _ = next(dataloader_iter)
 
     sleep(0.1)
 
     state_dict_1 = dataset.state_dict()
-    assert state_dict_1["0"]["chunk_index"] == 2
+
+    assert state_dict_1["0"]["chunk_index"] == 1
+    assert state_dict_1["0"]["global_index"] == 2
     assert state_dict_1["0"]["index"] == 0
+
+    assert state_dict_1["1"]["chunk_index"] == 1
+    assert state_dict_1["1"]["global_index"] == 2
+    assert state_dict_1["1"]["index"] == 0
 
     batch_2 = next(dataloader_iter)
 
     sleep(0.1)
 
     state_dict_2 = dataset.state_dict()
-    assert state_dict_2["0"]["chunk_index"] == 3
+
+    assert state_dict_2["0"]["chunk_index"] == 2
+    assert state_dict_2["0"]["global_index"] == 4
     assert state_dict_2["0"]["index"] == 0
 
-    dataset = StreamingDataset(input_dir=str(tmpdir), item_loader=TokensLoader(block_size), shuffle=True)
+    assert state_dict_2["1"]["chunk_index"] == 1
+    assert state_dict_2["1"]["global_index"] == 2
+    assert state_dict_2["1"]["index"] == 0
+
+    dataset = EmulateS3StreamingDataset(
+        input_dir=RemoteDir(cache_dir, data_dir),
+        item_loader=TokensLoader(block_size),
+        shuffle=True,
+    )
+
     dataset.load_state_dict(state_dict_1)
-    dataloader = DataLoader(dataset, num_workers=1, batch_size=2, prefetch_factor=1)
+    dataloader = DataLoader(dataset, num_workers=2, batch_size=2, prefetch_factor=1)
 
     dataloader_iter = iter(dataloader)
     batch_0_restart = next(dataloader_iter)
@@ -604,8 +663,14 @@ def test_resumable_dataset_single_worker(tmpdir):
     sleep(0.1)
 
     state_dict_2 = dataset.state_dict()
-    assert state_dict_2["0"]["chunk_index"] == 3
+
+    assert state_dict_2["0"]["chunk_index"] == 2
+    assert state_dict_2["0"]["global_index"] == 4
     assert state_dict_2["0"]["index"] == 0
+
+    assert state_dict_2["1"]["chunk_index"] == 1
+    assert state_dict_2["1"]["global_index"] == 2
+    assert state_dict_2["1"]["index"] == 0
 
     assert torch.equal(batch_2, batch_0_restart)
 
@@ -614,8 +679,14 @@ def test_resumable_dataset_single_worker(tmpdir):
 def test_dataset_valid_state(tmpdir):
     seed_everything(42)
 
+    data_dir = os.path.join(tmpdir, "data")
+    cache_dir = os.path.join(tmpdir, "cache_dir")
+
+    os.makedirs(data_dir)
+    os.makedirs(cache_dir)
+
     block_size = 20
-    cache = Cache(input_dir=str(tmpdir), chunk_size=40, item_loader=TokensLoader(block_size))
+    cache = Cache(input_dir=str(data_dir), chunk_size=40, item_loader=TokensLoader(block_size))
 
     counter = 0
     for i in range(100):
@@ -626,12 +697,14 @@ def test_dataset_valid_state(tmpdir):
     cache.done()
     cache.merge()
 
-    dataset = StreamingDataset(input_dir=str(tmpdir), item_loader=TokensLoader(block_size), shuffle=False)
-    dataloader = DataLoader(dataset, num_workers=1, batch_size=2, prefetch_factor=1)
+    dataset = EmulateS3StreamingDataset(
+        input_dir=RemoteDir(cache_dir, data_dir), item_loader=TokensLoader(block_size), shuffle=False
+    )
+    dataloader = DataLoader(dataset, num_workers=1, batch_size=2)
     dataloader_iter = iter(dataloader)
     next(dataloader_iter)
 
-    sleep(0.1)
+    sleep(1)
 
     state_dict = dataset.state_dict()
 
@@ -666,7 +739,7 @@ def test_dataset_valid_state(tmpdir):
     dataset.load_state_dict(state_dict)
     with pytest.raises(
         ValueError,
-        match="The provided `input_dir` URL state doesn't match the current one. Found `None` instead of `toto`.",  # noqa E501
+        match=f"The provided `input_dir` URL state doesn't match the current one. Found `{data_dir}` instead of `toto`.",  # noqa E501
     ):
         dataset._validate_state_dict()
 
@@ -674,7 +747,7 @@ def test_dataset_valid_state(tmpdir):
     dataset.load_state_dict(state_dict)
     with pytest.raises(
         ValueError,
-        match=f"The provided `input_dir` path state doesn't match the current one. Found `{tmpdir}` instead of `toto`.",  # noqa E501
+        match=f"The provided `input_dir` path state doesn't match the current one. Found `{cache_dir}` instead of `toto`.",  # noqa E501
     ):
         dataset._validate_state_dict()
 
