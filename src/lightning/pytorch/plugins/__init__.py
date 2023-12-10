@@ -13,8 +13,7 @@ from lightning.pytorch.plugins.precision.precision import Precision
 from lightning.pytorch.plugins.precision.transformer_engine import TransformerEnginePrecision
 from lightning.pytorch.plugins.precision.xla import XLAPrecision
 
-PLUGIN = Union[Precision, ClusterEnvironment, CheckpointIO, LayerSync]
-PLUGIN_INPUT = Union[PLUGIN, str]
+_PLUGIN_INPUT = Union[Precision, ClusterEnvironment, CheckpointIO, LayerSync]
 
 __all__ = [
     "AsyncCheckpointIO",

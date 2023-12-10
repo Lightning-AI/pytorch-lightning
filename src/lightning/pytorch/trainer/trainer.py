@@ -47,7 +47,7 @@ from lightning.pytorch.loops import _PredictionLoop, _TrainingEpochLoop
 from lightning.pytorch.loops.evaluation_loop import _EvaluationLoop
 from lightning.pytorch.loops.fit_loop import _FitLoop
 from lightning.pytorch.loops.utilities import _parse_loop_limits, _reset_progress
-from lightning.pytorch.plugins import PLUGIN_INPUT, Precision
+from lightning.pytorch.plugins import _PLUGIN_INPUT, Precision
 from lightning.pytorch.profilers import Profiler
 from lightning.pytorch.strategies import ParallelStrategy, Strategy
 from lightning.pytorch.trainer import call, setup
@@ -128,7 +128,7 @@ class Trainer:
         profiler: Optional[Union[Profiler, str]] = None,
         detect_anomaly: bool = False,
         barebones: bool = False,
-        plugins: Optional[Union[PLUGIN_INPUT, List[PLUGIN_INPUT]]] = None,
+        plugins: Optional[Union[_PLUGIN_INPUT, List[_PLUGIN_INPUT]]] = None,
         sync_batchnorm: bool = False,
         reload_dataloaders_every_n_epochs: int = 0,
         default_root_dir: Optional[_PATH] = None,

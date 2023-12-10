@@ -36,7 +36,7 @@ from lightning.pytorch.accelerators.cuda import CUDAAccelerator
 from lightning.pytorch.accelerators.mps import MPSAccelerator
 from lightning.pytorch.accelerators.xla import XLAAccelerator
 from lightning.pytorch.plugins import (
-    PLUGIN_INPUT,
+    _PLUGIN_INPUT,
     CheckpointIO,
     DeepSpeedPrecision,
     DoublePrecision,
@@ -81,7 +81,7 @@ class _AcceleratorConnector:
         num_nodes: int = 1,
         accelerator: Union[str, Accelerator] = "auto",
         strategy: Union[str, Strategy] = "auto",
-        plugins: Optional[Union[PLUGIN_INPUT, List[PLUGIN_INPUT]]] = None,
+        plugins: Optional[Union[_PLUGIN_INPUT, List[_PLUGIN_INPUT]]] = None,
         precision: Optional[_PRECISION_INPUT] = None,
         sync_batchnorm: bool = False,
         benchmark: Optional[bool] = None,
@@ -96,20 +96,14 @@ class _AcceleratorConnector:
                 2. accelerator str
                 3. accelerator auto
 
-            B. strategy flag could be :
+            B. strategy flag could be:
                 1. strategy class
                 2. strategy str registered with StrategyRegistry
 
             C. plugins flag could be:
-                1. List of str, which could contain:
-                    i. precision str (Not supported in the old accelerator_connector version)
-                    ii. checkpoint_io str (Not supported in the old accelerator_connector version)
-                    iii. cluster_environment str (Not supported in the old accelerator_connector version)
-                2. List of class, which could contains:
-                    i. precision class (should be removed, and precision flag should allow user pass classes)
-                    ii. checkpoint_io class
-                    iii. cluster_environment class
-
+                1. precision class (should be removed, and precision flag should allow user pass classes)
+                2. checkpoint_io class
+                3. cluster_environment class
 
         priorities which to take when:
             A. Class > str
@@ -175,7 +169,7 @@ class _AcceleratorConnector:
         strategy: Union[str, Strategy],
         accelerator: Union[str, Accelerator],
         precision: Optional[_PRECISION_INPUT],
-        plugins: Optional[Union[PLUGIN_INPUT, List[PLUGIN_INPUT]]],
+        plugins: Optional[Union[_PLUGIN_INPUT, List[_PLUGIN_INPUT]]],
         sync_batchnorm: bool,
     ) -> None:
         """This method checks:
