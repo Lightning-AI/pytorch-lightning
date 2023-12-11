@@ -41,7 +41,6 @@ log = logging.getLogger(__name__)
 # neptune is available with two names on PyPI : `neptune` and `neptune-client`
 _NEPTUNE_AVAILABLE = bool(RequirementCache("neptune>=1.0")) or bool(RequirementCache("neptune-client>=1.0"))
 _LEGACY_NEPTUNE_CLIENT = bool(RequirementCache("neptune-client<1.0"))
-_GET_ROOT_OBJECT_AVAILABLE = bool(RequirementCache("neptune>=1.1")) or bool(RequirementCache("neptune-client>=1.1"))
 _INTEGRATION_VERSION_KEY = "source_code/integrations/pytorch-lightning"
 
 
@@ -320,8 +319,8 @@ class NeptuneLogger(Logger):
         if run is not None and not isinstance(run, (Run, Handler)):
             raise ValueError("Run parameter expected to be of type `neptune.Run`, or `neptune.handler.Handler`.")
 
-        if isinstance(run, Handler) and not _GET_ROOT_OBJECT_AVAILABLE:
-            raise ValueError("Providing namespace as `run` parameter requires neptune>=1.1.0.")
+        if isinstance(run, Handler) and not _NEPTUNE_AVAILABLE:
+            raise ValueError("Providing namespace as `run` parameter requires neptune>=1.0.0 or neptune-client>=1.0.0.")
 
         # check if user passed redundant neptune.init_run arguments when passed run
         any_neptune_init_arg_passed = any(arg is not None for arg in [api_key, project, name]) or neptune_run_kwargs
@@ -547,7 +546,7 @@ class NeptuneLogger(Logger):
                 self.run[f"{checkpoints_namespace}/{model_name}"] = File.from_stream(fp)
 
         # remove old models logged to experiment if they are not part of best k models at this point
-        root_obj = self.run.get_root_object() if _GET_ROOT_OBJECT_AVAILABLE else self.run
+        root_obj = self.run.get_root_object() if _NEPTUNE_AVAILABLE else self.run
 
         if root_obj.exists(checkpoints_namespace):
             exp_structure = root_obj.get_structure()

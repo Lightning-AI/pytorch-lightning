@@ -146,5 +146,4 @@ def neptune_mock(monkeypatch):
     neptune.utils = neptune_utils
 
     monkeypatch.setattr("lightning.pytorch.loggers.neptune._NEPTUNE_AVAILABLE", True)
-    monkeypatch.setattr("lightning.pytorch.loggers.neptune._GET_ROOT_OBJECT_AVAILABLE", True)
     return neptune
