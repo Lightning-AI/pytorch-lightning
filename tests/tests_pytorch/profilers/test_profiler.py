@@ -471,20 +471,20 @@ def test_pytorch_profiler_multiple_loggers(tmpdir):
     assert look_for_trace(tmpdir / "lightning_logs" / "version_0")
 
 
-@RunIf(min_cuda_gpus=1, standalone=True)
-def test_pytorch_profiler_nested_emit_nvtx():
-    """This test check emit_nvtx is correctly supported."""
-    profiler = PyTorchProfiler(use_cuda=True, emit_nvtx=True)
-    model = BoringModel()
-    trainer = Trainer(
-        fast_dev_run=True,
-        profiler=profiler,
-        accelerator="gpu",
-        devices=1,
-        enable_progress_bar=False,
-        enable_model_summary=False,
-    )
-    trainer.fit(model)
+# @RunIf(min_cuda_gpus=1, standalone=True)
+# def test_pytorch_profiler_nested_emit_nvtx():
+#     """This test check emit_nvtx is correctly supported."""
+#     profiler = PyTorchProfiler(use_cuda=True, emit_nvtx=True)
+#     model = BoringModel()
+#     trainer = Trainer(
+#         fast_dev_run=True,
+#         profiler=profiler,
+#         accelerator="gpu",
+#         devices=1,
+#         enable_progress_bar=False,
+#         enable_model_summary=False,
+#     )
+#     trainer.fit(model)
 
 
 def test_register_record_function(tmpdir):

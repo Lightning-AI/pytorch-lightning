@@ -270,6 +270,7 @@ addopts = [
 ]
 markers = [
     "cloud:Run the cloud tests for example",
+    "standalone: mark a test as standalone",
 ]
 filterwarnings = [
     "error::FutureWarning",
