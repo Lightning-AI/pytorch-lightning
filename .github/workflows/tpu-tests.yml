@@ -3,9 +3,9 @@ name: Test PyTorch - TPU
 on:
   push:
     branches: [master, "release/*"]
-  pull_request:
+  pull_request_target:
     branches: [master, "release/*"]
-    types: [opened, reopened, edited, ready_for_review, synchronize]
+    types: [opened, reopened, edited, ready_for_review, labeled, synchronize]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
