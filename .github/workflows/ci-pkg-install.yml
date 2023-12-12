@@ -9,6 +9,7 @@ on:
     types: [opened, reopened, ready_for_review, synchronize] # added `ready_for_review` since draft is skipped
     paths:
       - ".actions/*"
+      - "requirements/ci.txt"
       - ".github/actions/pkg-check/*"
       - ".github/actions/pkg-install/*"
       - ".github/workflows/_build-packages.yml"

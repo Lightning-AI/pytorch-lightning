@@ -117,7 +117,7 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_PUB_SECRET_KEY }}
           AWS_DEFAULT_REGION: ${{ secrets.AWS_REGION }}
         run: |
-          pip install -q awscli
+          pip install -q -r requirements/ci.txt
           aws s3 sync $AWS_RUN checkpoints/ s3://pl-public-data/legacy/checkpoints/
           zip -r checkpoints.zip checkpoints
           aws s3 cp $AWS_RUN checkpoints.zip s3://pl-public-data/legacy/ --acl public-read
