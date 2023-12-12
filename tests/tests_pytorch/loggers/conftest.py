@@ -48,7 +48,13 @@ def wandb_mock(monkeypatch):
         pass
 
     run_mock = Mock(
-        spec=RunType, log=Mock(), config=Mock(), watch=Mock(), log_artifact=Mock(), use_artifact=Mock(), id="run_id"
+        spec=RunType,
+        log=Mock(),
+        config=Mock(),
+        watch=Mock(),
+        log_artifact=Mock(),
+        use_artifact=Mock(),
+        id="run_id",
     )
 
     wandb = ModuleType("wandb")
@@ -58,6 +64,8 @@ def wandb_mock(monkeypatch):
     wandb.Api = Mock()
     wandb.Artifact = Mock()
     wandb.Image = Mock()
+    wandb.Audio = Mock()
+    wandb.Video = Mock()
     wandb.Table = Mock()
     monkeypatch.setitem(sys.modules, "wandb", wandb)
 

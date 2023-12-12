@@ -18,16 +18,18 @@ from functools import lru_cache
 from typing import Generator, List, Optional, Union, cast
 
 import torch
-from lightning_utilities.core.rank_zero import rank_zero_info
+from typing_extensions import override
 
 from lightning.fabric.accelerators.accelerator import Accelerator
 from lightning.fabric.accelerators.registry import _AcceleratorRegistry
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
+from lightning.fabric.utilities.rank_zero import rank_zero_info
 
 
 class CUDAAccelerator(Accelerator):
     """Accelerator for NVIDIA CUDA devices."""
 
+    @override
     def setup_device(self, device: torch.device) -> None:
         """
         Raises:
@@ -39,10 +41,12 @@ class CUDAAccelerator(Accelerator):
         _check_cuda_matmul_precision(device)
         torch.cuda.set_device(device)
 
+    @override
     def teardown(self) -> None:
         _clear_cuda_memory()
 
     @staticmethod
+    @override
     def parse_devices(devices: Union[int, str, List[int]]) -> Optional[List[int]]:
         """Accelerator device parsing logic."""
         from lightning.fabric.utilities.device_parser import _parse_gpu_ids
@@ -50,20 +54,24 @@ class CUDAAccelerator(Accelerator):
         return _parse_gpu_ids(devices, include_cuda=True)
 
     @staticmethod
+    @override
     def get_parallel_devices(devices: List[int]) -> List[torch.device]:
         """Gets parallel devices for the Accelerator."""
         return [torch.device("cuda", i) for i in devices]
 
     @staticmethod
+    @override
     def auto_device_count() -> int:
         """Get the devices when set to auto."""
         return num_cuda_devices()
 
     @staticmethod
+    @override
     def is_available() -> bool:
         return num_cuda_devices() > 0
 
     @classmethod
+    @override
     def register_accelerators(cls, accelerator_registry: _AcceleratorRegistry) -> None:
         accelerator_registry.register(
             "cuda",
@@ -343,11 +351,14 @@ def _device_count_nvml() -> int:
     return len(visible_devices)
 
 
+def _is_ampere_or_later(device: Optional[torch.device] = None) -> bool:
+    major, _ = torch.cuda.get_device_capability(device)
+    return major >= 8  # Ampere and later leverage tensor cores, where this setting becomes useful
+
+
 @lru_cache(1)  # show the warning only ever once
 def _check_cuda_matmul_precision(device: torch.device) -> None:
-    major, _ = torch.cuda.get_device_capability(device)
-    ampere_or_later = major >= 8  # Ampere and later leverage tensor cores, where this setting becomes useful
-    if not ampere_or_later:
+    if not _is_ampere_or_later(device):
         return
     # check that the user hasn't changed the precision already, this works for both `allow_tf32 = True` and
     # `set_float32_matmul_precision`

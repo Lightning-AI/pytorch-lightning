@@ -440,14 +440,14 @@ class AssistantCLI:
     def pull_docs_files(
         gh_user_repo: str,
         target_dir: str = "docs/source-pytorch/XXX",
-        checkout: str = "tags/1.0.0",
+        checkout: str = "refs/tags/1.0.0",
         source_dir: str = "docs/source",
         as_orphan: bool = False,
     ) -> None:
         """Pull docs pages from external source and append to local docs."""
         import zipfile
 
-        zip_url = f"https://github.com/{gh_user_repo}/archive/refs/{checkout}.zip"
+        zip_url = f"https://github.com/{gh_user_repo}/archive/{checkout}.zip"
 
         with tempfile.TemporaryDirectory() as tmp:
             zip_file = os.path.join(tmp, "repo.zip")
@@ -483,7 +483,7 @@ class AssistantCLI:
             page = fopen.read()
         if as_orphan and ":orphan:" not in page:
             page = ":orphan:\n\n" + page
-        with open(rst_in, "w", encoding="utf-8") as fopen:
+        with open(rst_out, "w", encoding="utf-8") as fopen:
             fopen.write(page)
 
 

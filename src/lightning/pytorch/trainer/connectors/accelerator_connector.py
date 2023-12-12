@@ -38,14 +38,14 @@ from lightning.pytorch.accelerators.xla import XLAAccelerator
 from lightning.pytorch.plugins import (
     PLUGIN_INPUT,
     CheckpointIO,
-    DeepSpeedPrecisionPlugin,
-    DoublePrecisionPlugin,
-    FSDPPrecisionPlugin,
-    HalfPrecisionPlugin,
-    MixedPrecisionPlugin,
-    PrecisionPlugin,
-    TransformerEnginePrecisionPlugin,
-    XLAPrecisionPlugin,
+    DeepSpeedPrecision,
+    DoublePrecision,
+    FSDPPrecision,
+    HalfPrecision,
+    MixedPrecision,
+    Precision,
+    TransformerEnginePrecision,
+    XLAPrecision,
 )
 from lightning.pytorch.plugins.layer_sync import LayerSync, TorchSyncBatchNorm
 from lightning.pytorch.strategies import (
@@ -64,8 +64,8 @@ from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.imports import (
     _LIGHTNING_BAGUA_AVAILABLE,
     _LIGHTNING_COLOSSALAI_AVAILABLE,
-    _lightning_graphcore_available,
-    _lightning_habana_available,
+    _graphcore_available_and_importable,
+    _habana_available_and_importable,
 )
 from lightning.pytorch.utilities.rank_zero import rank_zero_info, rank_zero_warn
 
@@ -130,7 +130,7 @@ class _AcceleratorConnector:
         self._strategy_flag: Union[Strategy, str] = "auto"
         self._accelerator_flag: Union[Accelerator, str] = "auto"
         self._precision_flag: _PRECISION_INPUT_STR = "32-true"
-        self._precision_plugin_flag: Optional[PrecisionPlugin] = None
+        self._precision_plugin_flag: Optional[Precision] = None
         self._cluster_environment_flag: Optional[Union[ClusterEnvironment, str]] = None
         self._parallel_devices: List[Union[int, torch.device, str]] = []
         self._layer_sync: Optional[LayerSync] = TorchSyncBatchNorm() if sync_batchnorm else None
@@ -242,9 +242,9 @@ class _AcceleratorConnector:
         if plugins:
             plugins_flags_types: Dict[str, int] = Counter()
             for plugin in plugins:
-                if isinstance(plugin, PrecisionPlugin):
+                if isinstance(plugin, Precision):
                     self._precision_plugin_flag = plugin
-                    plugins_flags_types[PrecisionPlugin.__name__] += 1
+                    plugins_flags_types[Precision.__name__] += 1
                 elif isinstance(plugin, CheckpointIO):
                     self.checkpoint_io = plugin
                     plugins_flags_types[CheckpointIO.__name__] += 1
@@ -261,7 +261,7 @@ class _AcceleratorConnector:
                     plugins_flags_types[TorchSyncBatchNorm.__name__] += 1
                 else:
                     raise MisconfigurationException(
-                        f"Found invalid type for plugin {plugin}. Expected one of: PrecisionPlugin, "
+                        f"Found invalid type for plugin {plugin}. Expected one of: Precision, "
                         "CheckpointIO, ClusterEnviroment, or LayerSync."
                     )
 
@@ -272,7 +272,7 @@ class _AcceleratorConnector:
                     " Expected one value for each type at most."
                 )
 
-            if plugins_flags_types.get(PrecisionPlugin.__name__) and precision_flag is not None:
+            if plugins_flags_types.get(Precision.__name__) and precision_flag is not None:
                 raise ValueError(
                     f"Received both `precision={precision_flag}` and `plugins={self._precision_plugin_flag}`."
                     f" Choose one."
@@ -347,12 +347,12 @@ class _AcceleratorConnector:
         """Choose the accelerator type (str) based on availability."""
         if XLAAccelerator.is_available():
             return "tpu"
-        if _lightning_graphcore_available():
+        if _graphcore_available_and_importable():
             from lightning_graphcore import IPUAccelerator
 
             if IPUAccelerator.is_available():
                 return "ipu"
-        if _lightning_habana_available():
+        if _habana_available_and_importable():
             from lightning_habana import HPUAccelerator
 
             if HPUAccelerator.is_available():
@@ -435,7 +435,7 @@ class _AcceleratorConnector:
 
     def _choose_strategy(self) -> Union[Strategy, str]:
         if self._accelerator_flag == "ipu":
-            if not _lightning_graphcore_available():
+            if not _graphcore_available_and_importable():
                 raise ImportError(
                     "You have passed `accelerator='ipu'` but the IPU integration  is not installed."
                     " Please run `pip install lightning-graphcore` or check out"
@@ -445,7 +445,7 @@ class _AcceleratorConnector:
 
             return IPUStrategy.strategy_name
         if self._accelerator_flag == "hpu":
-            if not _lightning_habana_available():
+            if not _habana_available_and_importable():
                 raise ImportError(
                     "You have asked for HPU but you miss install related integration."
                     " Please run `pip install lightning-habana` or see for further instructions"
@@ -509,12 +509,12 @@ class _AcceleratorConnector:
         else:
             self.strategy = self._strategy_flag
 
-    def _check_and_init_precision(self) -> PrecisionPlugin:
+    def _check_and_init_precision(self) -> Precision:
         self._validate_precision_choice()
-        if isinstance(self._precision_plugin_flag, PrecisionPlugin):
+        if isinstance(self._precision_plugin_flag, Precision):
             return self._precision_plugin_flag
 
-        if _lightning_graphcore_available():
+        if _graphcore_available_and_importable():
             from lightning_graphcore import IPUAccelerator, IPUPrecision
 
             # TODO: For the strategies that have a fixed precision class, we don't really need this logic
@@ -524,7 +524,7 @@ class _AcceleratorConnector:
             if isinstance(self.accelerator, IPUAccelerator):
                 return IPUPrecision(self._precision_flag)
 
-        if _lightning_habana_available():
+        if _habana_available_and_importable():
             from lightning_habana import HPUAccelerator, HPUPrecisionPlugin
 
             if isinstance(self.accelerator, HPUAccelerator):
@@ -537,21 +537,21 @@ class _AcceleratorConnector:
                 return ColossalAIPrecisionPlugin(self._precision_flag)
 
         if isinstance(self.strategy, (SingleDeviceXLAStrategy, XLAStrategy)):
-            return XLAPrecisionPlugin(self._precision_flag)  # type: ignore
+            return XLAPrecision(self._precision_flag)  # type: ignore
         if isinstance(self.strategy, DeepSpeedStrategy):
-            return DeepSpeedPrecisionPlugin(self._precision_flag)  # type: ignore[arg-type]
+            return DeepSpeedPrecision(self._precision_flag)  # type: ignore[arg-type]
         if isinstance(self.strategy, FSDPStrategy):
-            return FSDPPrecisionPlugin(self._precision_flag)  # type: ignore[arg-type]
+            return FSDPPrecision(self._precision_flag)  # type: ignore[arg-type]
         if self._precision_flag in ("16-true", "bf16-true"):
-            return HalfPrecisionPlugin(self._precision_flag)  # type: ignore
+            return HalfPrecision(self._precision_flag)  # type: ignore
         if self._precision_flag == "32-true":
-            return PrecisionPlugin()
+            return Precision()
         if self._precision_flag == "64-true":
-            return DoublePrecisionPlugin()
+            return DoublePrecision()
         if self._precision_flag == "transformer-engine":
-            return TransformerEnginePrecisionPlugin(dtype=torch.bfloat16)
+            return TransformerEnginePrecision(dtype=torch.bfloat16)
         if self._precision_flag == "transformer-engine-float16":
-            return TransformerEnginePrecisionPlugin(dtype=torch.float16)
+            return TransformerEnginePrecision(dtype=torch.float16)
 
         if self._precision_flag == "16-mixed" and self._accelerator_flag == "cpu":
             rank_zero_warn(
@@ -565,13 +565,13 @@ class _AcceleratorConnector:
                 f"Using {'16bit' if self._precision_flag == '16-mixed' else 'bfloat16'} Automatic Mixed Precision (AMP)"
             )
             device = "cpu" if self._accelerator_flag == "cpu" else "cuda"
-            return MixedPrecisionPlugin(self._precision_flag, device)  # type: ignore[arg-type]
+            return MixedPrecision(self._precision_flag, device)  # type: ignore[arg-type]
 
         raise RuntimeError("No precision set")
 
     def _validate_precision_choice(self) -> None:
         """Validate the combination of choices for precision, AMP type, and accelerator."""
-        if _lightning_habana_available():
+        if _habana_available_and_importable():
             from lightning_habana import HPUAccelerator
 
             if isinstance(self.accelerator, HPUAccelerator) and self._precision_flag not in (
@@ -626,7 +626,7 @@ class _AcceleratorConnector:
                 f" found {self.strategy.__class__.__name__}."
             )
 
-        if _lightning_habana_available():
+        if _habana_available_and_importable():
             from lightning_habana import HPUAccelerator, HPUParallelStrategy, SingleHPUStrategy
 
             if isinstance(self.accelerator, HPUAccelerator) and not isinstance(
@@ -645,7 +645,7 @@ class _AcceleratorConnector:
             DeepSpeedStrategy,
             XLAStrategy,
         ]
-        if _lightning_habana_available():
+        if _habana_available_and_importable():
             from lightning_habana import HPUParallelStrategy
 
             distributed_strategies.append(HPUParallelStrategy)
@@ -698,7 +698,7 @@ def _register_external_accelerators_and_strategies() -> None:
         if "bagua" not in StrategyRegistry:
             BaguaStrategy.register_strategies(StrategyRegistry)
 
-    if _lightning_habana_available():
+    if _habana_available_and_importable():
         from lightning_habana import HPUAccelerator, HPUParallelStrategy, SingleHPUStrategy
 
         # TODO: Prevent registering multiple times
@@ -709,7 +709,7 @@ def _register_external_accelerators_and_strategies() -> None:
         if "hpu_single" not in StrategyRegistry:
             SingleHPUStrategy.register_strategies(StrategyRegistry)
 
-    if _lightning_graphcore_available():
+    if _graphcore_available_and_importable():
         from lightning_graphcore import IPUAccelerator, IPUStrategy
 
         # TODO: Prevent registering multiple times

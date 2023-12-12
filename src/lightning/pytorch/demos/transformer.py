@@ -26,7 +26,13 @@ if hasattr(MultiheadAttention, "_reset_parameters") and not hasattr(MultiheadAtt
 
 class Transformer(nn.Module):
     def __init__(
-        self, vocab_size: int, ninp: int = 200, nhead: int = 2, nhid: int = 200, nlayers: int = 2, dropout: float = 0.2
+        self,
+        vocab_size: int = 33278,  # default for WikiText2
+        ninp: int = 200,
+        nhead: int = 2,
+        nhid: int = 200,
+        nlayers: int = 2,
+        dropout: float = 0.2,
     ) -> None:
         super().__init__()
         self.pos_encoder = PositionalEncoding(ninp, dropout)
@@ -69,22 +75,23 @@ class PositionalEncoding(nn.Module):
         self.dropout = nn.Dropout(p=dropout)
         self.dim = dim
         self.max_len = max_len
-
-        pe = self._init_pos_encoding()
-        # workaround, can't use buffer, see https://github.com/pytorch/pytorch/issues/68407
-        self.register_parameter("pe", nn.Parameter(pe, requires_grad=False))
-
-    def reset_parameters(self) -> None:
-        self.pe.copy_(self._init_pos_encoding())  # type: ignore[operator]
+        self.pe: Optional[Tensor] = None
 
     def forward(self, x: Tensor) -> Tensor:
-        x + self.pe[: x.size(0), :]  # type: ignore[index]
+        if self.pe is None:
+            # 1) can't use buffer, see https://github.com/pytorch/pytorch/issues/68407
+            # 2) can't use parameter becauses pe gets sliced and DDP requires all params to participate in forward
+            # 3) can't make it a `requires_grad=False` parameter because FSDP in PyTorch < 2.1 needs all params to
+            # require grad
+            self.pe = self._init_pos_encoding(device=x.device)
+
+        x + self.pe[: x.size(0), :]
         return self.dropout(x)
 
-    def _init_pos_encoding(self) -> Tensor:
-        pe = torch.zeros(self.max_len, self.dim)
-        position = torch.arange(0, self.max_len, dtype=torch.float).unsqueeze(1)
-        div_term = torch.exp(torch.arange(0, self.dim, 2).float() * (-math.log(10000.0) / self.dim))
+    def _init_pos_encoding(self, device: torch.device) -> Tensor:
+        pe = torch.zeros(self.max_len, self.dim, device=device)
+        position = torch.arange(0, self.max_len, dtype=torch.float, device=device).unsqueeze(1)
+        div_term = torch.exp(torch.arange(0, self.dim, 2, device=device).float() * (-math.log(10000.0) / self.dim))
         pe[:, 0::2] = torch.sin(position * div_term)
         pe[:, 1::2] = torch.cos(position * div_term)
         pe = pe.unsqueeze(0).transpose(0, 1)

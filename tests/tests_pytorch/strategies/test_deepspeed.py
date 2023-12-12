@@ -28,7 +28,7 @@ from lightning.pytorch.accelerators import CUDAAccelerator
 from lightning.pytorch.callbacks import Callback, LearningRateMonitor, ModelCheckpoint
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset, RandomIterableDataset
 from lightning.pytorch.loggers import CSVLogger
-from lightning.pytorch.plugins import DeepSpeedPrecisionPlugin
+from lightning.pytorch.plugins import DeepSpeedPrecision
 from lightning.pytorch.strategies.deepspeed import _DEEPSPEED_AVAILABLE, DeepSpeedStrategy
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.imports import _TORCHMETRICS_GREATER_EQUAL_0_11 as _TM_GE_0_11
@@ -139,7 +139,7 @@ def test_deepspeed_strategy_env(tmpdir, monkeypatch, deepspeed_config):
 def test_deepspeed_precision_choice(cuda_count_1, tmpdir):
     """Test to ensure precision plugin is also correctly chosen.
 
-    DeepSpeed handles precision via Custom DeepSpeedPrecisionPlugin
+    DeepSpeed handles precision via Custom DeepSpeedPrecision
 
     """
     trainer = Trainer(
@@ -151,7 +151,7 @@ def test_deepspeed_precision_choice(cuda_count_1, tmpdir):
     )
 
     assert isinstance(trainer.strategy, DeepSpeedStrategy)
-    assert isinstance(trainer.strategy.precision_plugin, DeepSpeedPrecisionPlugin)
+    assert isinstance(trainer.strategy.precision_plugin, DeepSpeedPrecision)
     assert trainer.strategy.precision_plugin.precision == "16-mixed"
 
 
@@ -1212,7 +1212,7 @@ def test_deepspeed_with_bfloat16_precision(tmpdir):
     )
 
     trainer.fit(model)
-    assert isinstance(trainer.strategy.precision_plugin, DeepSpeedPrecisionPlugin)
+    assert isinstance(trainer.strategy.precision_plugin, DeepSpeedPrecision)
     assert trainer.strategy.precision_plugin.precision == "bf16-mixed"
     assert trainer.strategy.config["zero_optimization"]["stage"] == 3
     assert trainer.strategy.config["bf16"]["enabled"]
