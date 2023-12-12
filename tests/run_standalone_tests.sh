@@ -26,17 +26,17 @@ export PL_RUN_STANDALONE_TESTS=1
 defaults="-m coverage run --source ${source} --append -m pytest --no-header -v -s --timeout 120"
 echo "Using defaults: ${defaults}"
 
-# Get all the tests marked with standalone marker
-TEST_FILE="standalone_tests.txt"
 # get the testing location as the fist argument
 test_path=$1
 printf "source path: $test_path\n"
 
-python -m pytest $test_path -q --collect-only -m standalone --pythonwarnings ignore > $TEST_FILE
-echo "Collected tests:"
-cat $TEST_FILE
-sed -i '$d' $TEST_FILE
-parametrizations_arr=$(grep -oP '\S+::test_\S+' "$TEST_FILE")
+# collect all tests with parametrization based filtering with PL_RUN_STANDALONE_TESTS
+standalone_tests=$(python -m pytest $test_path -q --collect-only --pythonwarnings ignore)
+echo "Collected tests: \n $standalone_tests"
+# match only lines with tests
+parametrizations=$(grep -oP '\S+::test_\S+' <<< "$standalone_tests")
+# convert the list to be array
+parametrizations_arr=($parametrizations)
 
 report=''
 

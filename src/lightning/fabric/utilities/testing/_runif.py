@@ -107,8 +107,10 @@ def _runif_reasons(
         elif not mps and MPSAccelerator.is_available():
             reasons.append("not MPS")
 
-    if standalone and os.getenv("PL_RUN_STANDALONE_TESTS", "0") != "1":
-        reasons.append("Standalone execution")
+    if standalone:
+        if os.getenv("PL_RUN_STANDALONE_TESTS", "0") != "1":
+            reasons.append("Standalone execution")
+        kwargs["standalone"] = True
 
     if deepspeed and not _DEEPSPEED_AVAILABLE:
         reasons.append("Deepspeed")
