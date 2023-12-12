@@ -41,7 +41,7 @@ from lightning.pytorch.trainer.states import RunningStage, TrainerFn
 from lightning.pytorch.utilities.combined_loader import CombinedLoader
 from lightning.pytorch.utilities.data import has_len_all_ranks
 from lightning.pytorch.utilities.exceptions import SIGTERMException
-from lightning.pytorch.utilities.model_helpers import is_overridden
+from lightning.pytorch.utilities.model_helpers import _ModuleMode, is_overridden
 from lightning.pytorch.utilities.signature_utils import is_param_in_hook_signature
 
 
@@ -72,6 +72,7 @@ class _EvaluationLoop(_Loop):
         self._data_fetcher: Optional[_DataFetcher] = None
         self._seen_batches_per_dataloader: DefaultDict[int, int] = defaultdict(int)
         self._last_val_dl_reload_epoch = float("-inf")
+        self._module_mode = _ModuleMode()
 
     @property
     def num_dataloaders(self) -> int:
@@ -239,9 +240,7 @@ class _EvaluationLoop(_Loop):
         """Runs the ``_on_evaluation_model_eval``, ``_on_evaluation_start`` and ``_on_evaluation_epoch_start``
         hooks."""
         self._verify_dataloader_idx_requirement()
-
         self._on_evaluation_model_eval()
-        self.trainer.lightning_module.zero_grad()
         self._on_evaluation_start()
         self._on_evaluation_epoch_start()
 
@@ -295,13 +294,17 @@ class _EvaluationLoop(_Loop):
         """Sets model to eval mode."""
         trainer = self.trainer
         hook_name = "on_test_model_eval" if trainer.testing else "on_validation_model_eval"
+        self._module_mode.capture(trainer.lightning_module)
         call._call_lightning_module_hook(trainer, hook_name)
 
     def _on_evaluation_model_train(self) -> None:
-        """Sets model to train mode."""
+        """Undoes the eval mode."""
         trainer = self.trainer
         hook_name = "on_test_model_train" if trainer.testing else "on_validation_model_train"
-        call._call_lightning_module_hook(trainer, hook_name)
+        if is_overridden(hook_name, trainer.lightning_module):
+            call._call_lightning_module_hook(trainer, hook_name)
+        else:
+            self._module_mode.restore(trainer.lightning_module)
 
     def _on_evaluation_end(self, *args: Any, **kwargs: Any) -> None:
         """Runs ``on_{validation/test}_end`` hook."""

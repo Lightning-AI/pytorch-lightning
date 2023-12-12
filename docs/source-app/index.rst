@@ -28,12 +28,11 @@ Build models, ML components and full stack AI apps ⚡ *Lightning fast*.
 
 .. app_card::
    :title: Serve and deploy
-   :description: Production diffusion server (<2s latency)
+   :description: Develop a Model Server
    :width: 280
-   :app_id: HvUwbEG90E
    :image: https://lightning-ai-docs.s3.amazonaws.com/serve_n_deploy_v1.jpg
-   :deploy: https://lightning.ai
-   :target: https://01gbx4m78rbkpczdf5cpz2hpbh.litng-ai-03.litng.ai/root.api_component/
+   :target: examples/model_server_app/model_server_app.html
+   :preview: examples/model_server_app/model_server_app.html
    :tags: Serving
 
 .. app_card::
@@ -42,7 +41,7 @@ Build models, ML components and full stack AI apps ⚡ *Lightning fast*.
    :width: 280
    :app_id: HvUwbEG90E
    :image: https://lightning-ai-docs.s3.amazonaws.com/scale_n_build_v1.jpg
-   :target: https://lightning.ai/muse
+   :target: https://lightning.ai/app/HvUwbEG90E-Muse
    :tags: AI App
 
 .. raw:: html
@@ -149,8 +148,6 @@ Explore pre-built community components in `our gallery <https://lightning.ai/com
    :maxdepth: 1
    :caption: More
 
-   Start from component templates <https://lightning.ai/components>
-   Start from app templates <https://lightning.ai/apps>
    Examples <examples/index>
    Glossary <glossary/index>
    How-to <workflows/index>

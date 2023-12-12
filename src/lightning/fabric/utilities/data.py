@@ -447,7 +447,7 @@ def suggested_max_num_workers(local_world_size: int) -> int:
     if local_world_size < 1:
         raise ValueError(f"`local_world_size` should be >= 1, got {local_world_size}.")
     cpu_count = _num_cpus_available()
-    return max(1, cpu_count // local_world_size)
+    return max(1, cpu_count // local_world_size - 1)  # -1 to leave some resources for main process
 
 
 def _num_cpus_available() -> int:
@@ -456,3 +456,50 @@ def _num_cpus_available() -> int:
 
     cpu_count = os.cpu_count()
     return 1 if cpu_count is None else cpu_count
+
+
+class AttributeDict(Dict):
+    """A container to store state variables of your program.
+
+    This is a drop-in replacement for a Python dictionary, with the additional functionality to access and modify keys
+    through attribute lookup for convenience.
+
+    Use this to define the state of your program, then pass it to
+    :meth:`~lightning.fabric.fabric.Fabric.save` and :meth:`~lightning.fabric.fabric.Fabric.load`.
+
+    Example:
+        >>> import torch
+        >>> model = torch.nn.Linear(2, 2)
+        >>> state = AttributeDict(model=model, iter_num=0)
+        >>> state.model
+        Linear(in_features=2, out_features=2, bias=True)
+        >>> state.iter_num += 1
+        >>> state.iter_num
+        1
+        >>> state
+        "iter_num": 1
+        "model":    Linear(in_features=2, out_features=2, bias=True)
+
+    """
+
+    def __getattr__(self, key: str) -> Any:
+        try:
+            return self[key]
+        except KeyError as e:
+            raise AttributeError(f"'{type(self).__name__}' object has no attribute '{key}'") from e
+
+    def __setattr__(self, key: str, val: Any) -> None:
+        self[key] = val
+
+    def __delattr__(self, item: str) -> None:
+        if item not in self:
+            raise KeyError(item)
+        del self[item]
+
+    def __repr__(self) -> str:
+        if not len(self):
+            return ""
+        max_key_length = max(len(str(k)) for k in self)
+        tmp_name = "{:" + str(max_key_length + 3) + "s} {}"
+        rows = [tmp_name.format(f'"{n}":', self[n]) for n in sorted(self.keys())]
+        return "\n".join(rows)

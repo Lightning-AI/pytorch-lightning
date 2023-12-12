@@ -20,13 +20,13 @@ import pytest
 import torch
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
-from lightning.pytorch.plugins import MixedPrecisionPlugin
+from lightning.pytorch.plugins import MixedPrecision
 from torch import Tensor
 
 from tests_pytorch.helpers.runif import RunIf
 
 
-class MyAMP(MixedPrecisionPlugin):
+class MyAMP(MixedPrecision):
     pass
 
 
@@ -48,7 +48,7 @@ class MyAMP(MixedPrecisionPlugin):
 @pytest.mark.parametrize(
     ("custom_plugin", "plugin_cls"),
     [
-        (False, MixedPrecisionPlugin),
+        (False, MixedPrecision),
         (True, MyAMP),
     ],
 )
@@ -190,7 +190,7 @@ def test_amp_skip_optimizer(tmpdir):
 
 def test_cpu_amp_precision_context_manager():
     """Test to ensure that the context manager correctly is set to CPU + bfloat16."""
-    plugin = MixedPrecisionPlugin("bf16-mixed", "cpu")
+    plugin = MixedPrecision("bf16-mixed", "cpu")
     assert plugin.device == "cpu"
     assert plugin.scaler is None
     context_manager = plugin.autocast_context_manager()
@@ -199,25 +199,23 @@ def test_cpu_amp_precision_context_manager():
 
 
 def test_amp_precision_plugin_parameter_validation():
-    MixedPrecisionPlugin("16-mixed", "cpu")  # should not raise exception
-    MixedPrecisionPlugin("bf16-mixed", "cpu")
+    MixedPrecision("16-mixed", "cpu")  # should not raise exception
+    MixedPrecision("bf16-mixed", "cpu")
 
     with pytest.raises(
         ValueError,
-        match=re.escape("Passed `MixedPrecisionPlugin(precision='16')`. Precision must be '16-mixed' or 'bf16-mixed'"),
+        match=re.escape("Passed `MixedPrecision(precision='16')`. Precision must be '16-mixed' or 'bf16-mixed'"),
     ):
-        MixedPrecisionPlugin("16", "cpu")
+        MixedPrecision("16", "cpu")
 
     with pytest.raises(
         ValueError,
-        match=re.escape("Passed `MixedPrecisionPlugin(precision=16)`. Precision must be '16-mixed' or 'bf16-mixed'"),
+        match=re.escape("Passed `MixedPrecision(precision=16)`. Precision must be '16-mixed' or 'bf16-mixed'"),
     ):
-        MixedPrecisionPlugin(16, "cpu")
+        MixedPrecision(16, "cpu")
 
     with pytest.raises(
         ValueError,
-        match=re.escape(
-            "Passed `MixedPrecisionPlugin(precision='bf16')`. Precision must be '16-mixed' or 'bf16-mixed'"
-        ),
+        match=re.escape("Passed `MixedPrecision(precision='bf16')`. Precision must be '16-mixed' or 'bf16-mixed'"),
     ):
-        MixedPrecisionPlugin("bf16", "cpu")
+        MixedPrecision("bf16", "cpu")

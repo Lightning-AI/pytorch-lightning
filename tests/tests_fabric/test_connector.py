@@ -690,9 +690,8 @@ def test_unsupported_tpu_choice(_, tpu_available):
         _Connector(accelerator="tpu", precision="16-true", strategy="ddp")
 
     # wrong precision plugin type
-    strategy = XLAStrategy(accelerator=XLAAccelerator(), precision=Precision())
-    with pytest.raises(ValueError, match="XLAAccelerator` can only be used with a `XLAPrecision` plugin"):
-        _Connector(strategy=strategy)
+    with pytest.raises(TypeError, match="can only work with the `XLAPrecision` plugin"):
+        XLAStrategy(accelerator=XLAAccelerator(), precision=Precision())
 
     # wrong strategy type
     strategy = DDPStrategy(accelerator=XLAAccelerator(), precision=XLAPrecision(precision="16-true"))
@@ -871,16 +870,25 @@ def test_strategy_str_passed_being_case_insensitive(_, strategy, strategy_cls):
     assert isinstance(connector.strategy, strategy_cls)
 
 
-@pytest.mark.parametrize("precision", [None, "64-true", "32-true", "16-mixed", "bf16-mixed"])
+@pytest.mark.parametrize(
+    ("precision", "expected"),
+    [
+        (None, Precision),
+        ("64-true", DoublePrecision),
+        ("32-true", Precision),
+        ("16-true", HalfPrecision),
+        ("16-mixed", MixedPrecision),
+    ],
+)
 @mock.patch("lightning.fabric.accelerators.cuda.num_cuda_devices", return_value=1)
-def test_precision_from_environment(_, precision):
+def test_precision_from_environment(_, precision, expected):
     """Test that the precision input can be set through the environment variable."""
-    env_vars = {}
+    env_vars = {"LT_CLI_USED": "1"}
     if precision is not None:
         env_vars["LT_PRECISION"] = precision
     with mock.patch.dict(os.environ, env_vars):
         connector = _Connector(accelerator="cuda")  # need to use cuda, because AMP not available on CPU
-    assert isinstance(connector.precision, Precision)
+    assert isinstance(connector.precision, expected)
 
 
 @pytest.mark.parametrize(
@@ -898,7 +906,7 @@ def test_precision_from_environment(_, precision):
 )
 def test_accelerator_strategy_from_environment(accelerator, strategy, expected_accelerator, expected_strategy):
     """Test that the accelerator and strategy input can be set through the environment variables."""
-    env_vars = {}
+    env_vars = {"LT_CLI_USED": "1"}
     if accelerator is not None:
         env_vars["LT_ACCELERATOR"] = accelerator
     if strategy is not None:
@@ -913,7 +921,7 @@ def test_accelerator_strategy_from_environment(accelerator, strategy, expected_a
 @mock.patch("lightning.fabric.accelerators.cuda.num_cuda_devices", return_value=8)
 def test_devices_from_environment(*_):
     """Test that the devices and number of nodes can be set through the environment variables."""
-    with mock.patch.dict(os.environ, {"LT_DEVICES": "2", "LT_NUM_NODES": "3"}):
+    with mock.patch.dict(os.environ, {"LT_DEVICES": "2", "LT_NUM_NODES": "3", "LT_CLI_USED": "1"}):
         connector = _Connector(accelerator="cuda")
         assert isinstance(connector.accelerator, CUDAAccelerator)
         assert isinstance(connector.strategy, DDPStrategy)

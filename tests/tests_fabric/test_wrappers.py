@@ -26,9 +26,7 @@ from lightning.fabric.wrappers import (
     _FabricOptimizer,
     _unwrap_objects,
     is_wrapped,
-    warning_cache,
 )
-from lightning_utilities.test.warning import no_warning_call
 from torch.utils.data import BatchSampler, DistributedSampler
 from torch.utils.data.dataloader import DataLoader
 
@@ -79,11 +77,23 @@ def test_fabric_module_method_lookup():
     """Test that access to methods warns about improper use when a wrapper from a strategy is involved."""
 
     class OriginalModule(torch.nn.Module):
-        def method_no_args(self):
+        def __init__(self):
+            super().__init__()
+            self.submodule = torch.nn.Linear(2, 3)
+
+        def forward(self, x):
+            return x
+
+        def method_without_module_invocation(self):
             return 100
 
-        def method_with_args(self, arg, kwarg=1):
+        def method_with_submodule_invocation(self):
+            self.submodule(torch.rand(2, 2))
             return 101
+
+        def method_with_self_invocation(self):
+            self(None)
+            return 102
 
     class ModuleWrapper(torch.nn.Module):
         def __init__(self, module):
@@ -93,21 +103,21 @@ def test_fabric_module_method_lookup():
     # Regular case: forward_module == original_module -> no warnings
     original_module = OriginalModule()
     fabric_module = _FabricModule(forward_module=original_module, precision=Mock(), original_module=original_module)
-    warning_cache.clear()
-    with no_warning_call(UserWarning):
-        assert fabric_module.method_with_args(0) == 101
-    assert not warning_cache
+    assert fabric_module.method_without_module_invocation() == 100
 
     # Special case: original module wrapped by forward module: -> warn if method accepts args
     original_module = OriginalModule()
     wrapped_module = ModuleWrapper(original_module)
     fabric_module = _FabricModule(forward_module=wrapped_module, precision=Mock(), original_module=original_module)
-    warning_cache.clear()
-    with no_warning_call(UserWarning):
-        assert fabric_module.method_no_args() == 100
-    with pytest.warns(UserWarning, match=r"You are calling the method `OriginalModule.method_with_args\(\)` from"):
-        assert fabric_module.method_with_args(0) == 101
-    warning_cache.clear()
+    assert fabric_module.method_without_module_invocation() == 100
+    with pytest.raises(
+        RuntimeError, match=r"You are calling the method `OriginalModule.method_with_submodule_invocation\(\)` from"
+    ):
+        assert fabric_module.method_with_submodule_invocation() == 101
+    with pytest.raises(
+        RuntimeError, match=r"You are calling the method `OriginalModule.method_with_self_invocation\(\)` from"
+    ):
+        assert fabric_module.method_with_self_invocation() == 102
 
 
 def test_fabric_module_setattr():
@@ -555,7 +565,7 @@ def test_step_method_redirection():
     fabric_module = _FabricModule(forward_module=forward_module, precision=precision, original_module=original_module)
 
     # Regular methods on the original_module are visible and identical on the fabric_module ...
-    assert fabric_module.normal_method == original_module.normal_method
+    assert fabric_module.normal_method.__wrapped__ == original_module.normal_method
 
     # ... but special methods like training_step get redirected to the forward_module
     assert fabric_module.training_step.__name__ == "call_forward_module"

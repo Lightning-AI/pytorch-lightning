@@ -16,17 +16,17 @@ from functools import partial
 from typing import Any, Callable
 
 import torch
-from typing_extensions import get_args
+from typing_extensions import get_args, override
 
 import lightning.pytorch as pl
 from lightning.fabric.accelerators.xla import _XLA_AVAILABLE
 from lightning.fabric.plugins.precision.xla import _PRECISION_INPUT
 from lightning.fabric.utilities.types import Optimizable
-from lightning.pytorch.plugins.precision.precision_plugin import PrecisionPlugin
+from lightning.pytorch.plugins.precision.precision import Precision
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 
 
-class XLAPrecisionPlugin(PrecisionPlugin):
+class XLAPrecision(Precision):
     """Plugin for training with XLA.
 
     Args:
@@ -59,6 +59,7 @@ class XLAPrecisionPlugin(PrecisionPlugin):
         else:
             self._desired_dtype = torch.float32
 
+    @override
     def optimizer_step(  # type: ignore[override]
         self,
         optimizer: Optimizable,
@@ -83,6 +84,7 @@ class XLAPrecisionPlugin(PrecisionPlugin):
             )
         return closure_result
 
+    @override
     def teardown(self) -> None:
         os.environ.pop("XLA_USE_BF16", None)
         os.environ.pop("XLA_USE_F16", None)
