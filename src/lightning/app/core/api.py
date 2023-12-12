@@ -60,10 +60,6 @@ from lightning.app.utilities.component import _context
 from lightning.app.utilities.enum import ComponentContext, OpenAPITags
 
 
-class SessionMiddleware:  # type: ignore[no-redef]
-    pass
-
-
 # TODO: fixed uuid for now, it will come from the FastAPI session
 TEST_SESSION_UUID = "1234"
 
