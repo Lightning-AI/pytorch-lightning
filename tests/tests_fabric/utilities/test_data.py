@@ -9,6 +9,7 @@ import numpy as np
 import pytest
 import torch
 from lightning.fabric.utilities.data import (
+    AttributeDict,
     _get_dataloader_init_args_and_kwargs,
     _replace_dunder_methods,
     _replace_value_in_saved_args,
@@ -588,13 +589,13 @@ def test_set_sampler_epoch():
     [
         (0, 1, 1),
         (1, 1, 1),
-        (2, 1, 2),
+        (2, 1, 2 - 1),
         (1, 2, 1),
         (2, 2, 1),
         (3, 2, 1),
-        (4, 2, 2),
+        (4, 2, 2 - 1),
         (4, 3, 1),
-        (4, 1, 4),
+        (4, 1, 4 - 1),
     ],
 )
 @pytest.mark.parametrize(
@@ -640,3 +641,36 @@ def test_suggested_max_num_workers_not_triggering_torch_warning(local_world_size
         DataLoader(range(2), num_workers=(cpu_count + 1))
     with no_warning_call():
         DataLoader(range(2), num_workers=suggested_max_num_workers(local_world_size))
+
+
+def test_state():
+    # init via dict
+    inputs = {"key1": 1, "key2": "abc"}
+    state = AttributeDict(inputs)
+    for key, value in inputs.items():
+        assert getattr(state, key) == value
+
+    # init via kwargs
+    inputs = {"key1": 1, "key2": "abc"}
+    state = AttributeDict(**inputs)
+    for key, value in inputs.items():
+        assert getattr(state, key) == value
+
+    # update via dict
+    state = AttributeDict()
+    state.update({"key1": 1})
+    assert state.key1 == 1
+
+    # update via setter
+    state = AttributeDict({"key1": 1})
+    state.key1 = 123
+    assert state.key1 == 123
+
+    with pytest.raises(AttributeError, match="has no attribute 'key3'"):
+        _ = state.key3
+
+    # delete attribute
+    del state.key1
+    assert "key1" not in state
+    with pytest.raises(KeyError):
+        del state.key3

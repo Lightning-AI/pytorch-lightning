@@ -38,43 +38,46 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { os: "macOS-11", pkg-name: "lightning", python-version: "3.8", pytorch-version: "1.11" }
           - { os: "macOS-11", pkg-name: "lightning", python-version: "3.9", pytorch-version: "1.12" }
           - { os: "macOS-11", pkg-name: "lightning", python-version: "3.10", pytorch-version: "1.13" }
-          - { os: "ubuntu-20.04", pkg-name: "lightning", python-version: "3.8", pytorch-version: "1.11" }
           - { os: "ubuntu-20.04", pkg-name: "lightning", python-version: "3.9", pytorch-version: "1.12" }
           - { os: "ubuntu-20.04", pkg-name: "lightning", python-version: "3.10", pytorch-version: "1.13" }
-          - { os: "windows-2022", pkg-name: "lightning", python-version: "3.8", pytorch-version: "1.11" }
           - { os: "windows-2022", pkg-name: "lightning", python-version: "3.9", pytorch-version: "1.12" }
           - { os: "windows-2022", pkg-name: "lightning", python-version: "3.10", pytorch-version: "1.13" }
           # only run PyTorch latest with Python recent
           - { os: "macOS-11", pkg-name: "lightning", python-version: "3.10", pytorch-version: "2.0" }
           - { os: "ubuntu-20.04", pkg-name: "lightning", python-version: "3.10", pytorch-version: "2.0" }
           - { os: "windows-2022", pkg-name: "lightning", python-version: "3.10", pytorch-version: "2.0" }
+          - { os: "macOS-11", pkg-name: "lightning", python-version: "3.11", pytorch-version: "2.1" }
+          - { os: "ubuntu-20.04", pkg-name: "lightning", python-version: "3.11", pytorch-version: "2.1" }
+          - { os: "windows-2022", pkg-name: "lightning", python-version: "3.11", pytorch-version: "2.1" }
           # only run PyTorch latest with Python latest, use Fabric scope to limit dependency issues
           - { os: "macOS-12", pkg-name: "fabric", python-version: "3.11", pytorch-version: "2.0" }
           - { os: "ubuntu-22.04", pkg-name: "fabric", python-version: "3.11", pytorch-version: "2.0" }
           - { os: "windows-2022", pkg-name: "fabric", python-version: "3.11", pytorch-version: "2.0" }
+          - { os: "macOS-12", pkg-name: "fabric", python-version: "3.11", pytorch-version: "2.1" }
+          - { os: "ubuntu-22.04", pkg-name: "fabric", python-version: "3.11", pytorch-version: "2.1" }
+          - { os: "windows-2022", pkg-name: "fabric", python-version: "3.11", pytorch-version: "2.1" }
           # "oldest" versions tests, only on minimum Python
           - {
               os: "macOS-11",
               pkg-name: "lightning",
               python-version: "3.8",
-              pytorch-version: "1.11",
+              pytorch-version: "1.12",
               requires: "oldest",
             }
           - {
               os: "ubuntu-20.04",
               pkg-name: "lightning",
               python-version: "3.8",
-              pytorch-version: "1.11",
+              pytorch-version: "1.12",
               requires: "oldest",
             }
           - {
               os: "windows-2022",
               pkg-name: "lightning",
               python-version: "3.8",
-              pytorch-version: "1.11",
+              pytorch-version: "1.12",
               requires: "oldest",
             }
           # "fabric" installs the standalone package
@@ -111,7 +114,6 @@ jobs:
           for fpath in `ls requirements/**/*.txt`; do \
             python ./adjust-torch-versions.py $fpath ${{ matrix.pytorch-version }}; \
           done
-          cat requirements/fabric/base.txt
 
       - name: pip wheels cache
         uses: actions/cache/restore@v3
@@ -162,8 +164,9 @@ jobs:
         working-directory: tests/tests_fabric
         # NOTE: do not include coverage report here, see: https://github.com/nedbat/coveragepy/issues/1003
         run: |
+          echo $GITHUB_RUN_ID
           python -m coverage run --source ${{ env.COVERAGE_SCOPE }} \
-            -m pytest -v --timeout=30 --durations=50
+            -m pytest -v --timeout=30 --durations=50 --random-order-seed=$GITHUB_RUN_ID
 
       - name: Statistics
         if: success()

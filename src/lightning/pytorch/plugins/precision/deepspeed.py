@@ -11,21 +11,21 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from contextlib import contextmanager
-from typing import TYPE_CHECKING, Any, Callable, Generator, Optional, Union
+from contextlib import nullcontext
+from typing import TYPE_CHECKING, Any, Callable, ContextManager, Optional, Union
 
 import torch
 from lightning_utilities import apply_to_collection
 from torch import Tensor
 from torch.nn import Module
 from torch.optim import LBFGS, Optimizer
-from typing_extensions import get_args
+from typing_extensions import get_args, override
 
 import lightning.pytorch as pl
 from lightning.fabric.plugins.precision.deepspeed import _PRECISION_INPUT
-from lightning.fabric.plugins.precision.utils import _convert_fp_tensor
+from lightning.fabric.plugins.precision.utils import _convert_fp_tensor, _DtypeContextManager
 from lightning.fabric.utilities.types import Steppable
-from lightning.pytorch.plugins.precision.precision_plugin import PrecisionPlugin
+from lightning.pytorch.plugins.precision.precision import Precision
 from lightning.pytorch.utilities import GradClipAlgorithmType
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.model_helpers import is_overridden
@@ -37,7 +37,7 @@ if TYPE_CHECKING:
 warning_cache = WarningCache()
 
 
-class DeepSpeedPrecisionPlugin(PrecisionPlugin):
+class DeepSpeedPrecision(Precision):
     """Precision plugin for DeepSpeed integration.
 
     .. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
@@ -69,27 +69,27 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
         }
         self._desired_dtype = precision_to_type[self.precision]
 
+    @override
     def convert_module(self, module: Module) -> Module:
         if "true" in self.precision:
             return module.to(dtype=self._desired_dtype)
         return module
 
+    @override
     def convert_input(self, data: Any) -> Any:
         return apply_to_collection(data, function=_convert_fp_tensor, dtype=Tensor, dst_type=self._desired_dtype)
 
-    @contextmanager
-    def init_context(self) -> Generator[None, None, None]:
+    @override
+    def tensor_init_context(self) -> ContextManager:
         if "true" not in self.precision:
-            yield
-            return
+            return nullcontext()
+        return _DtypeContextManager(self._desired_dtype)
 
-        default_dtype = torch.get_default_dtype()
-        torch.set_default_dtype(self._desired_dtype)
-        try:
-            yield
-        finally:
-            torch.set_default_dtype(default_dtype)
+    @override
+    def module_init_context(self) -> ContextManager:
+        return self.tensor_init_context()
 
+    @override
     def backward(  # type: ignore[override]
         self,
         tensor: Tensor,
@@ -116,6 +116,7 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
         deepspeed_engine: "deepspeed.DeepSpeedEngine" = model.trainer.model
         deepspeed_engine.backward(tensor, *args, **kwargs)
 
+    @override
     def optimizer_step(  # type: ignore[override]
         self,
         optimizer: Steppable,
@@ -137,6 +138,7 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
         deepspeed_engine: "deepspeed.DeepSpeedEngine" = model.trainer.model
         return deepspeed_engine.step(**kwargs)
 
+    @override
     def clip_gradients(
         self,
         optimizer: Optimizer,

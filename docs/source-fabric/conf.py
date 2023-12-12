@@ -269,6 +269,7 @@ nitpick_ignore_regex = [
     ("py:class", "lightning.fabric.wrappers._FabricOptimizer"),
     ("py:class", "lightning.fabric.loggers.csv_logs._ExperimentWriter"),
     ("py:class", "lightning.fabric.strategies.strategy._Sharded"),
+    ("py:class", "lightning.fabric.utilities.throughput.Throughput"),
     # Nitpick does not see abstract API
     ("py:meth", "lightning.fabric.plugins.collectives.Collective.init_group"),
     # These seem to be missing in reference generated API
@@ -406,6 +407,9 @@ coverage_skip_undoc_in_source = True
 
 # skip false positive linkcheck errors from anchors
 linkcheck_anchors = False
+
+# A timeout value, in seconds, for the linkcheck builder.
+linkcheck_timeout = 60
 
 # ignore all links in any CHANGELOG file
 linkcheck_exclude_documents = [r"^(.*\/)*CHANGELOG.*$"]

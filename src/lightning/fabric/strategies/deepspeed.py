@@ -350,10 +350,11 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
             raise NotImplementedError(
                 f"`{empty_init=}` is not a valid choice with `DeepSpeedStrategy` when ZeRO stage 3 is enabled."
             )
+        module_sharded_ctx = self.module_sharded_context()
         stack = ExitStack()
         if not self.zero_stage_3:
             stack.enter_context(super().module_init_context(empty_init=empty_init))
-        stack.enter_context(self.module_sharded_context())
+        stack.enter_context(module_sharded_ctx)
         return stack
 
     def module_sharded_context(self) -> ContextManager:

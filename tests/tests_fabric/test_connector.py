@@ -58,7 +58,7 @@ from lightning.fabric.strategies import (
 )
 from lightning.fabric.strategies.ddp import _DDP_FORK_ALIASES
 from lightning.fabric.strategies.launchers.subprocess_script import _SubprocessScriptLauncher
-from lightning.fabric.utilities.imports import _IS_WINDOWS, _TORCH_GREATER_EQUAL_1_12
+from lightning.fabric.utilities.imports import _IS_WINDOWS
 from lightning_utilities.test.warning import no_warning_call
 
 from tests_fabric.conftest import mock_tpu_available
@@ -261,6 +261,11 @@ def test_interactive_incompatible_backend_error(_, monkeypatch):
     with pytest.raises(RuntimeError, match=r"strategy='ddp'\)`.*is not compatible"):
         # Edge case: _Connector maps dp to ddp if accelerator != gpu
         _Connector(strategy="dp", accelerator="cpu")
+
+
+def test_precision_and_precision_plugin_raises():
+    with pytest.raises(ValueError, match="both `precision=16-true` and `plugins"):
+        _Connector(precision="16-true", plugins=Precision())
 
 
 @mock.patch("lightning.fabric.accelerators.cuda.num_cuda_devices", return_value=2)
@@ -685,9 +690,8 @@ def test_unsupported_tpu_choice(_, tpu_available):
         _Connector(accelerator="tpu", precision="16-true", strategy="ddp")
 
     # wrong precision plugin type
-    strategy = XLAStrategy(accelerator=XLAAccelerator(), precision=Precision())
-    with pytest.raises(ValueError, match="XLAAccelerator` can only be used with a `XLAPrecision` plugin"):
-        _Connector(strategy=strategy)
+    with pytest.raises(TypeError, match="can only work with the `XLAPrecision` plugin"):
+        XLAStrategy(accelerator=XLAAccelerator(), precision=Precision())
 
     # wrong strategy type
     strategy = DDPStrategy(accelerator=XLAAccelerator(), precision=XLAPrecision(precision="16-true"))
@@ -771,7 +775,6 @@ def test_gpu_accelerator_backend_choice_cuda(*_):
     assert isinstance(connector.accelerator, CUDAAccelerator)
 
 
-@RunIf(min_torch="1.12")
 @mock.patch("lightning.fabric.accelerators.mps.MPSAccelerator.is_available", return_value=True)
 @mock.patch("lightning.fabric.accelerators.mps._get_all_available_mps_gpus", return_value=[0])
 @mock.patch("torch.device", DeviceMock)
@@ -808,11 +811,11 @@ def test_ddp_fork_on_unsupported_platform(_, __, strategy):
         ("bf16-true", "auto", HalfPrecision),
         ("16-mixed", "auto", MixedPrecision),
         ("bf16-mixed", "auto", MixedPrecision),
-        pytest.param("32-true", "fsdp", FSDPPrecision, marks=RunIf(min_torch="1.12", min_cuda_gpus=1)),
-        pytest.param("16-true", "fsdp", FSDPPrecision, marks=RunIf(min_torch="1.12", min_cuda_gpus=1)),
-        pytest.param("bf16-true", "fsdp", FSDPPrecision, marks=RunIf(min_torch="1.12", min_cuda_gpus=1)),
-        pytest.param("16-mixed", "fsdp", FSDPPrecision, marks=RunIf(min_torch="1.12", min_cuda_gpus=1)),
-        pytest.param("bf16-mixed", "fsdp", FSDPPrecision, marks=RunIf(min_torch="1.12", min_cuda_gpus=1)),
+        pytest.param("32-true", "fsdp", FSDPPrecision, marks=RunIf(min_cuda_gpus=1)),
+        pytest.param("16-true", "fsdp", FSDPPrecision, marks=RunIf(min_cuda_gpus=1)),
+        pytest.param("bf16-true", "fsdp", FSDPPrecision, marks=RunIf(min_cuda_gpus=1)),
+        pytest.param("16-mixed", "fsdp", FSDPPrecision, marks=RunIf(min_cuda_gpus=1)),
+        pytest.param("bf16-mixed", "fsdp", FSDPPrecision, marks=RunIf(min_cuda_gpus=1)),
         pytest.param("32-true", "deepspeed", DeepSpeedPrecision, marks=RunIf(deepspeed=True, mps=False)),
         pytest.param("16-true", "deepspeed", DeepSpeedPrecision, marks=RunIf(deepspeed=True, mps=False)),
         pytest.param("bf16-true", "deepspeed", DeepSpeedPrecision, marks=RunIf(deepspeed=True, mps=False)),
@@ -845,11 +848,14 @@ class MyAMP(MixedPrecision):
 )
 def test_precision_selection_amp_ddp(strategy, devices, is_custom_plugin, plugin_cls):
     plugin = None
+    precision = None
     if is_custom_plugin:
         plugin = plugin_cls("16-mixed", "cpu")
+    else:
+        precision = "16-mixed"
     connector = _Connector(
         accelerator="cpu",
-        precision="16-mixed",
+        precision=precision,
         devices=devices,
         strategy=strategy,
         plugins=plugin,
@@ -864,16 +870,25 @@ def test_strategy_str_passed_being_case_insensitive(_, strategy, strategy_cls):
     assert isinstance(connector.strategy, strategy_cls)
 
 
-@pytest.mark.parametrize("precision", [None, "64-true", "32-true", "16-mixed", "bf16-mixed"])
+@pytest.mark.parametrize(
+    ("precision", "expected"),
+    [
+        (None, Precision),
+        ("64-true", DoublePrecision),
+        ("32-true", Precision),
+        ("16-true", HalfPrecision),
+        ("16-mixed", MixedPrecision),
+    ],
+)
 @mock.patch("lightning.fabric.accelerators.cuda.num_cuda_devices", return_value=1)
-def test_precision_from_environment(_, precision):
+def test_precision_from_environment(_, precision, expected):
     """Test that the precision input can be set through the environment variable."""
-    env_vars = {}
+    env_vars = {"LT_CLI_USED": "1"}
     if precision is not None:
         env_vars["LT_PRECISION"] = precision
     with mock.patch.dict(os.environ, env_vars):
         connector = _Connector(accelerator="cuda")  # need to use cuda, because AMP not available on CPU
-    assert isinstance(connector.precision, Precision)
+    assert isinstance(connector.precision, expected)
 
 
 @pytest.mark.parametrize(
@@ -891,7 +906,7 @@ def test_precision_from_environment(_, precision):
 )
 def test_accelerator_strategy_from_environment(accelerator, strategy, expected_accelerator, expected_strategy):
     """Test that the accelerator and strategy input can be set through the environment variables."""
-    env_vars = {}
+    env_vars = {"LT_CLI_USED": "1"}
     if accelerator is not None:
         env_vars["LT_ACCELERATOR"] = accelerator
     if strategy is not None:
@@ -906,7 +921,7 @@ def test_accelerator_strategy_from_environment(accelerator, strategy, expected_a
 @mock.patch("lightning.fabric.accelerators.cuda.num_cuda_devices", return_value=8)
 def test_devices_from_environment(*_):
     """Test that the devices and number of nodes can be set through the environment variables."""
-    with mock.patch.dict(os.environ, {"LT_DEVICES": "2", "LT_NUM_NODES": "3"}):
+    with mock.patch.dict(os.environ, {"LT_DEVICES": "2", "LT_NUM_NODES": "3", "LT_CLI_USED": "1"}):
         connector = _Connector(accelerator="cuda")
         assert isinstance(connector.accelerator, CUDAAccelerator)
         assert isinstance(connector.strategy, DDPStrategy)
@@ -947,7 +962,6 @@ def test_arguments_from_environment_collision():
         _Connector(precision="64-true")
 
 
-@RunIf(min_torch="1.12")
 @mock.patch("lightning.fabric.accelerators.mps.MPSAccelerator.is_available", return_value=False)
 def test_fsdp_unsupported_on_cpu(_):
     """Test that we raise an error if attempting to run FSDP without GPU."""
@@ -1019,8 +1033,6 @@ def test_connector_auto_selection(monkeypatch, is_interactive):
     # MPS (there's no distributed)
     with no_cuda, single_mps, monkeypatch.context():
         mock_tpu_available(monkeypatch, False)
-        if not _TORCH_GREATER_EQUAL_1_12:
-            monkeypatch.setattr(torch, "device", Mock())
         connector = _Connector()
     assert isinstance(connector.accelerator, MPSAccelerator)
     assert isinstance(connector.strategy, SingleDeviceStrategy)

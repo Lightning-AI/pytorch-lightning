@@ -10,7 +10,7 @@ from lightning.fabric.plugins import TorchCheckpointIO
 from lightning.pytorch import Trainer
 from lightning.pytorch.accelerators import CPUAccelerator
 from lightning.pytorch.demos.boring_classes import BoringModel
-from lightning.pytorch.plugins.precision.precision_plugin import PrecisionPlugin
+from lightning.pytorch.plugins.precision.precision import Precision
 from lightning.pytorch.strategies import SingleDeviceStrategy
 
 from tests_pytorch.helpers.runif import RunIf
@@ -19,7 +19,7 @@ from tests_pytorch.helpers.runif import RunIf
 def test_restore_checkpoint_after_pre_setup_default():
     """Assert default for restore_checkpoint_after_setup is False."""
     plugin = SingleDeviceStrategy(
-        accelerator=CPUAccelerator(), device=torch.device("cpu"), precision_plugin=PrecisionPlugin()
+        accelerator=CPUAccelerator(), device=torch.device("cpu"), precision_plugin=Precision()
     )
     assert not plugin.restore_checkpoint_after_setup
 
@@ -66,7 +66,7 @@ def test_restore_checkpoint_after_pre_setup(tmpdir, restore_after_pre_setup):
 
     plugin = TestPlugin(
         accelerator=CPUAccelerator(),
-        precision_plugin=PrecisionPlugin(),
+        precision_plugin=Precision(),
         device=torch.device("cpu"),
         checkpoint_io=TorchCheckpointIO(),
     )

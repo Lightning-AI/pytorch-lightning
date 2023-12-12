@@ -16,14 +16,15 @@ import os
 import signal
 import subprocess
 import sys
+import threading
 import time
-from threading import Thread
 from typing import Any, Callable, List, Optional, Sequence, Tuple
 
 from lightning_utilities.core.imports import RequirementCache
 
 from lightning.fabric.plugins.environments.cluster_environment import ClusterEnvironment
 from lightning.fabric.strategies.launchers.launcher import _Launcher
+from lightning.fabric.utilities.distributed import _set_num_threads_if_needed
 from lightning.fabric.utilities.rank_zero import rank_prefixed_message
 
 _logger = logging.getLogger(__name__)
@@ -98,6 +99,8 @@ class _SubprocessScriptLauncher(_Launcher):
         if not self.cluster_environment.creates_processes_externally:
             self._call_children_scripts()
             _launch_process_observer(self.procs)
+
+        _set_num_threads_if_needed(num_processes=self.num_processes)
         return function(*args, **kwargs)
 
     def _call_children_scripts(self) -> None:
@@ -178,15 +181,12 @@ def _hydra_subprocess_cmd(local_rank: int) -> Tuple[Sequence[str], str]:
 
 def _launch_process_observer(child_processes: List[subprocess.Popen]) -> None:
     """Launches a thread that runs along the main process and monitors the health of all processes."""
-    monitor_thread = Thread(
-        target=_ChildProcessObserver(child_processes=child_processes, main_pid=os.getpid()),
-        daemon=True,  # thread stops if the main process exits
-    )
-    monitor_thread.start()
+    _ChildProcessObserver(child_processes=child_processes, main_pid=os.getpid()).start()
 
 
-class _ChildProcessObserver:
+class _ChildProcessObserver(threading.Thread):
     def __init__(self, main_pid: int, child_processes: List[subprocess.Popen], sleep_period: int = 5) -> None:
+        super().__init__(daemon=True, name="child-process-observer")  # thread stops if the main process exits
         self._main_pid = main_pid
         self._child_processes = child_processes
         self._sleep_period = sleep_period
@@ -194,7 +194,7 @@ class _ChildProcessObserver:
         self._termination_signal = signal.SIGTERM if sys.platform == "win32" else signal.SIGKILL
         self._finished = False
 
-    def __call__(self) -> None:
+    def run(self) -> None:
         while not self._finished:
             time.sleep(self._sleep_period)
             self._finished = self._run()

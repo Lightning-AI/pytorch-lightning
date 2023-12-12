@@ -15,6 +15,8 @@ import math
 from collections import OrderedDict
 from typing import Any, Dict, Optional, Union
 
+from typing_extensions import override
+
 import lightning.pytorch as pl
 from lightning.pytorch import loops  # import as loops to avoid circular imports
 from lightning.pytorch.loops.fetchers import _DataFetcher, _DataLoaderIterDataFetcher
@@ -277,6 +279,11 @@ class _TrainingEpochLoop(loops._Loop):
             self.trainer.validating = True
             # save and reset this state in case validation runs inside training loop (val_check_interval<1.0)
             first_loop_iter = self.trainer._logger_connector._first_loop_iter
+
+            if not self._should_accumulate():
+                # clear gradients to not leave any unused memory during validation
+                call._call_lightning_module_hook(self.trainer, "on_validation_model_zero_grad")
+
             self.val_loop.run()
             self.trainer.training = True
             self.trainer._logger_connector._first_loop_iter = first_loop_iter
@@ -299,11 +306,13 @@ class _TrainingEpochLoop(loops._Loop):
         self._results.cpu()
         self.val_loop.teardown()
 
+    @override
     def on_save_checkpoint(self) -> Dict:
         state_dict = super().on_save_checkpoint()
         state_dict["_batches_that_stepped"] = self._batches_that_stepped
         return state_dict
 
+    @override
     def on_load_checkpoint(self, state_dict: Dict) -> None:
         self._batches_that_stepped = state_dict.get("_batches_that_stepped", 0)
 

@@ -1,4 +1,4 @@
-coverage ==7.3.0
+coverage ==7.3.1
 pytest ==7.4.0
 pytest-timeout ==2.1.0
 pytest-cov ==4.1.0
@@ -6,7 +6,7 @@ pytest-doctestplus ==0.9.0
 pytest-asyncio ==0.21.1
 # pytest-random-order ==1.1.0
 pytest-rerunfailures ==12.0
-pytest-xdist ==3.2.1
+pytest-xdist ==3.3.1
 
 playwright ==1.38.0
 httpx ==0.25.0
@@ -15,3 +15,4 @@ pympler
 psutil <5.10.0
 setuptools <68.3.0
 requests-mock ==1.11.0
+pandas

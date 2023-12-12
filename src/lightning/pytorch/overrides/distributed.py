@@ -21,7 +21,6 @@ from torch.utils.data import DistributedSampler, Sampler
 from typing_extensions import Self
 
 from lightning.fabric.utilities.distributed import _DatasetSamplerWrapper
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12
 from lightning.pytorch.utilities.rank_zero import rank_zero_debug, rank_zero_info
 from lightning.pytorch.utilities.types import _SizedIterable
 
@@ -164,24 +163,9 @@ def _register_ddp_comm_hook(
 def _sync_module_states(module: torch.nn.Module) -> None:
     """Taken from https://github.com/pytorch/pytorch/blob/v2.0.0/torch/nn/parallel/distributed.py#L675-L682."""
     parameters_to_ignore = (
-        set(module._ddp_params_and_buffers_to_ignore)  # type: ignore[arg-type]
-        if hasattr(module, "_ddp_params_and_buffers_to_ignore")
-        else set()
+        set(module._ddp_params_and_buffers_to_ignore) if hasattr(module, "_ddp_params_and_buffers_to_ignore") else set()
     )
     from torch.distributed.distributed_c10d import _get_default_group
-
-    if not _TORCH_GREATER_EQUAL_1_12:
-        module_states = []
-        for name, param in module.named_parameters():
-            if name not in parameters_to_ignore:
-                module_states.append(param.detach())
-        for name, buffer in module.named_buffers():
-            if name not in parameters_to_ignore:
-                module_states.append(buffer.detach())
-        if len(module_states) > 0:
-            torch.distributed._broadcast_coalesced(_get_default_group(), module_states, 250 * 1024 * 1024, 0)
-        return
-
     from torch.distributed.utils import _sync_module_states as torch_sync_module_states
 
     torch_sync_module_states(

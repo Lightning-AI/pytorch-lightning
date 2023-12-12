@@ -1925,6 +1925,9 @@ def test_detect_anomaly_nan(tmpdir):
 def test_trainer_config_strategy(monkeypatch, trainer_kwargs, strategy_cls, accelerator_cls, devices):
     if trainer_kwargs.get("accelerator") == "cuda":
         mock_cuda_count(monkeypatch, trainer_kwargs["devices"])
+    if trainer_kwargs.get("accelerator") == "auto":
+        # current parametrizations assume non-CUDA env
+        mock_cuda_count(monkeypatch, 0)
 
     trainer = Trainer(**trainer_kwargs)
 
@@ -1990,7 +1993,7 @@ def test_dataloaders_are_not_loaded_if_disabled_through_limit_batches(running_st
         ({"accelerator": "cuda", "devices": "2,"}, [2]),
         ({"accelerator": "cuda", "devices": [0, 2]}, [0, 2]),
         ({"accelerator": "cuda", "devices": "0, 2"}, [0, 2]),
-        pytest.param({"accelerator": "mps", "devices": 1}, [0], marks=RunIf(min_torch="1.12")),
+        ({"accelerator": "mps", "devices": 1}, [0]),
     ],
 )
 def test_trainer_config_device_ids(monkeypatch, trainer_kwargs, expected_device_ids):

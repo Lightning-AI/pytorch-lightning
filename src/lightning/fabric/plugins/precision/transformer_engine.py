@@ -93,10 +93,12 @@ class TransformerEnginePrecision(Precision):
         module = module.to(dtype=self.dtype)
         return module
 
-    def init_context(self) -> ContextManager:
-        stack = ExitStack()
-        stack.enter_context(_DtypeContextManager(self.dtype))
+    def tensor_init_context(self) -> ContextManager:
+        return _DtypeContextManager(self.dtype)
 
+    def module_init_context(self) -> ContextManager:
+        dtype_ctx = self.tensor_init_context()
+        stack = ExitStack()
         if self.replace_layers:
             import transformer_engine.pytorch as te
 
@@ -107,15 +109,17 @@ class TransformerEnginePrecision(Precision):
                 }
             )
             stack.enter_context(context_manager)
+        stack.enter_context(dtype_ctx)
         return stack
 
     def forward_context(self) -> ContextManager:
-        stack = ExitStack()
-        stack.enter_context(_DtypeContextManager(self.dtype))
-
+        dtype_ctx = _DtypeContextManager(self.dtype)
         import transformer_engine.pytorch as te
 
-        stack.enter_context(te.fp8_autocast(enabled=True, fp8_recipe=self.recipe))
+        autocast_ctx = te.fp8_autocast(enabled=True, fp8_recipe=self.recipe)
+        stack = ExitStack()
+        stack.enter_context(dtype_ctx)
+        stack.enter_context(autocast_ctx)
         return stack
 
     def convert_input(self, data: Any) -> Any:

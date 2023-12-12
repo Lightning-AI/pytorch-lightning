@@ -18,7 +18,7 @@ from typing import Any
 import lightning.pytorch as pl
 from lightning.fabric.strategies import _StrategyRegistry
 from lightning.pytorch.accelerators.xla import XLAAccelerator
-from lightning.pytorch.plugins.precision import XLAPrecisionPlugin
+from lightning.pytorch.plugins.precision import XLAPrecision
 from lightning.pytorch.strategies.single_xla import SingleDeviceXLAStrategy
 from lightning.pytorch.utilities.rank_zero import rank_zero_deprecation
 
@@ -63,47 +63,47 @@ class TPUAccelerator(XLAAccelerator):
         super().__init__(*args, **kwargs)
 
 
-class TPUPrecisionPlugin(XLAPrecisionPlugin):
+class TPUPrecisionPlugin(XLAPrecision):
     """Legacy class.
 
-    Use :class:`~lightning.pytorch.plugins.precision.xla.XLAPrecisionPlugin` instead.
+    Use :class:`~lightning.pytorch.plugins.precision.xla.XLAPrecision` instead.
 
     """
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         rank_zero_deprecation(
-            "The `TPUPrecisionPlugin` class is deprecated. Use `lightning.pytorch.plugins.precision.XLAPrecisionPlugin`"
+            "The `TPUPrecisionPlugin` class is deprecated. Use `lightning.pytorch.plugins.precision.XLAPrecision`"
             " instead."
         )
         super().__init__(precision="32-true")
 
 
-class TPUBf16PrecisionPlugin(XLAPrecisionPlugin):
+class TPUBf16PrecisionPlugin(XLAPrecision):
     """Legacy class.
 
-    Use :class:`~lightning.pytorch.plugins.precision.xlabf16.XLAPrecisionPlugin` instead.
+    Use :class:`~lightning.pytorch.plugins.precision.xlabf16.XLAPrecision` instead.
 
     """
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         rank_zero_deprecation(
             "The `TPUBf16PrecisionPlugin` class is deprecated. Use"
-            " `lightning.pytorch.plugins.precision.XLAPrecisionPlugin` instead."
+            " `lightning.pytorch.plugins.precision.XLAPrecision` instead."
         )
         super().__init__(precision="bf16-true")
 
 
-class XLABf16PrecisionPlugin(XLAPrecisionPlugin):
+class XLABf16PrecisionPlugin(XLAPrecision):
     """Legacy class.
 
-    Use :class:`~lightning.pytorch.plugins.precision.xlabf16.XLAPrecisionPlugin` instead.
+    Use :class:`~lightning.pytorch.plugins.precision.xlabf16.XLAPrecision` instead.
 
     """
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         rank_zero_deprecation(
             "The `XLABf16PrecisionPlugin` class is deprecated. Use"
-            " `lightning.pytorch.plugins.precision.XLAPrecisionPlugin` instead."
+            " `lightning.pytorch.plugins.precision.XLAPrecision` instead."
         )
         super().__init__(precision="bf16-true")
 
