@@ -5,7 +5,7 @@
 <br/>
 <br/>
 
-**The deep learning framework to train, finetune and deploy AI models.**
+**The deep learning framework to pretrain, finetune and deploy AI models.**
 
 **NEW- Lightning 2.0 features a clean and stable API!!**
 
@@ -27,7 +27,7 @@ ______________________________________________________________________
 [![PyPI Status](https://badge.fury.io/py/pytorch-lightning.svg)](https://badge.fury.io/py/pytorch-lightning)
 [![PyPI - Downloads](https://img.shields.io/pypi/dm/pytorch-lightning)](https://pepy.tech/project/pytorch-lightning)
 [![Conda](https://img.shields.io/conda/v/conda-forge/lightning?label=conda&color=success)](https://anaconda.org/conda-forge/lightning)
-[![codecov](https://codecov.io/gh/Lightning-AI/lightning/branch/master/graph/badge.svg?token=SmzX8mnKlA)](https://codecov.io/gh/Lightning-AI/lightning)
+[![codecov](https://codecov.io/gh/Lightning-AI/pytorch-lightning/graph/badge.svg?token=SmzX8mnKlA)](https://codecov.io/gh/Lightning-AI/pytorch-lightning)
 
 [![Discord](https://img.shields.io/discord/1077906959069626439?style=plastic)](https://discord.gg/VptPCZkGNa)
 ![GitHub commit activity](https://img.shields.io/github/commit-activity/w/lightning-ai/lightning)
