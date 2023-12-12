@@ -58,14 +58,9 @@ from lightning.app.utilities.app_status import AppStatus
 from lightning.app.utilities.cloud import is_running_in_cloud
 from lightning.app.utilities.component import _context
 from lightning.app.utilities.enum import ComponentContext, OpenAPITags
-from lightning.app.utilities.imports import _is_starsessions_available
 
-if _is_starsessions_available():
-    from starsessions import SessionMiddleware
-else:
-
-    class SessionMiddleware:  # type: ignore[no-redef]
-        pass
+class SessionMiddleware:  # type: ignore[no-redef]
+    pass
 
 
 # TODO: fixed uuid for now, it will come from the FastAPI session
@@ -174,9 +169,6 @@ fastapi_service.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-if _is_starsessions_available():
-    fastapi_service.add_middleware(SessionMiddleware, secret_key="secret", autoload=True)  # noqa: S106
 
 
 # General sequence is:

@@ -103,10 +103,6 @@ def _is_streamlit_tensorboard_available() -> bool:
     return module_available("streamlit_tensorboard")
 
 
-def _is_starsessions_available() -> bool:
-    return module_available("starsessions")
-
-
 def _is_gradio_available() -> bool:
     return module_available("gradio")
 
