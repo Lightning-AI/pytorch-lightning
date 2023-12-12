@@ -59,7 +59,6 @@ from lightning.app.utilities.cloud import is_running_in_cloud
 from lightning.app.utilities.component import _context
 from lightning.app.utilities.enum import ComponentContext, OpenAPITags
 
-
 # TODO: fixed uuid for now, it will come from the FastAPI session
 TEST_SESSION_UUID = "1234"
 
