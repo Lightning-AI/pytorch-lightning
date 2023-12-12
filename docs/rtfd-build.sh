@@ -1,4 +1,5 @@
 # building for PRs and skip stable and latest states
+set -ex
 
 if ! [ $READTHEDOCS_VERSION == "latest" -o $READTHEDOCS_VERSION == "stable" ];
 then
