@@ -828,8 +828,8 @@ class Fabric:
                 )
         elif isinstance(self.strategy.launcher, (_MultiProcessingLauncher, _XLALauncher)):
             raise TypeError(
-                f"To use the `{type(self.strategy).__name__}` strategy, `.launch()` needs to be called with a function"
-                " that contains the code to launch in processes."
+                f"To spawn processes with the `{type(self.strategy).__name__}` strategy, `.launch()` needs to be called"
+                " with a function that contains the code to launch in processes."
             )
         return self._wrap_and_launch(function, self, *args, **kwargs)
 
