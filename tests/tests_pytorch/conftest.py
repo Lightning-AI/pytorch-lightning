@@ -159,8 +159,7 @@ def thread_police_duuu_daaa_duuu_daaa():
             continue
         elif thread.name == "fsspecIO":
             continue
-        else:
-            raise AssertionError(f"Test left zombie thread: {thread}")
+        raise AssertionError(f"Test left zombie thread: {thread}")
 
 
 def mock_cuda_count(monkeypatch, n: int) -> None:
@@ -318,22 +317,23 @@ def pytest_collection_modifyitems(items: List[pytest.Function], config: pytest.C
 
     for kwarg, env_var in options.items():
         # this will compute the intersection of all tests selected per environment variable
-        if os.getenv(env_var, "0") == "1":
-            conditions.append(env_var)
-            for i, test in reversed(list(enumerate(items))):  # loop in reverse, since we are going to pop items
-                already_skipped = any(marker.name == "skip" for marker in test.own_markers)
-                if already_skipped:
-                    # the test was going to be skipped anyway, filter it out
-                    items.pop(i)
-                    skipped += 1
-                    continue
-                has_runif_with_kwarg = any(
-                    marker.name == "skipif" and marker.kwargs.get(kwarg) for marker in test.own_markers
-                )
-                if not has_runif_with_kwarg:
-                    # the test has `@RunIf(kwarg=True)`, filter it out
-                    items.pop(i)
-                    filtered += 1
+        if os.getenv(env_var, "0") != "1":
+            continue
+        conditions.append(env_var)
+        for i, test in reversed(list(enumerate(items))):  # loop in reverse, since we are going to pop items
+            already_skipped = any(marker.name == "skip" for marker in test.own_markers)
+            if already_skipped:
+                # the test was going to be skipped anyway, filter it out
+                items.pop(i)
+                skipped += 1
+                continue
+            has_runif_with_kwarg = any(
+                marker.name == "skipif" and marker.kwargs.get(kwarg) for marker in test.own_markers
+            )
+            if not has_runif_with_kwarg:
+                # the test has `@RunIf(kwarg=True)`, filter it out
+                items.pop(i)
+                filtered += 1
 
     if config.option.verbose >= 0 and (filtered or skipped):
         writer = config.get_terminal_writer()
