@@ -14,10 +14,10 @@
 import os
 import pickle
 from collections import namedtuple
-from unittest import mock
-from unittest.mock import MagicMock, call
+from unittest.mock import MagicMock, Mock, call, mock_open, patch
 
 import lightning.pytorch as pl
+import numpy as np
 import pytest
 import torch
 from lightning.pytorch import Trainer
@@ -226,48 +226,97 @@ def test_log_model_summary(neptune_mock):
         run_instance_mock.__setitem__.assert_called_once_with(model_summary_key, file_from_content_mock)
 
 
-@mock.patch("builtins.open", mock.mock_open(read_data="test"))
-def test_after_save_checkpoint(neptune_mock):
-    test_variants = [
-        ({}, "training/model"),
-        ({"prefix": "custom_prefix"}, "custom_prefix/model"),
-        ({"prefix": "custom/nested/prefix"}, "custom/nested/prefix/model"),
-    ]
+@patch("builtins.open", mock_open(read_data="test"))
+@pytest.mark.parametrize("prefix", [(None,), ("custom_prefix",), ("custom/nested/prefix",)])
+def test_after_save_checkpoint(neptune_mock, prefix):
+    # given
+    models_root_dir = os.path.join("path", "to", "models")
+    metadata_prefix = (prefix or "training") + "/model"
+    params = {"prefix": prefix} if prefix else {}
 
-    for prefix, model_key_prefix in test_variants:
-        logger, run_instance_mock, run_attr_mock = _get_logger_with_mocks(api_key="test", project="project", **prefix)
-        models_root_dir = os.path.join("path", "to", "models")
-        cb_mock = MagicMock(
+    # and
+    logger, run_instance_mock, run_attr_mock = _get_logger_with_mocks(api_key="test", project="project", **params)
+
+    # and
+    last_checkpoint_mock = Mock()
+    best_checkpoint = Mock()
+    mock_file = neptune_mock.types.File
+    mock_file.from_stream.side_effect = (last_checkpoint_mock, best_checkpoint)
+
+    # when
+    logger.after_save_checkpoint(
+        MagicMock(
             dirpath=models_root_dir,
             last_model_path=os.path.join(models_root_dir, "last"),
             best_k_models={
                 f"{os.path.join(models_root_dir, 'model1')}": None,
+            },
+            best_model_path=os.path.join(models_root_dir, "best_model"),
+            best_model_score=torch.scalar_tensor(42),
+        )
+    )
+
+    # then
+    assert mock_file.from_stream.call_count == 2
+    assert run_instance_mock.__setitem__.call_count == 4
+    assert run_instance_mock.__getitem__.call_count == 0
+    run_instance_mock.__setitem__.assert_has_calls(
+        [
+            call(f"{metadata_prefix}/checkpoints/last", last_checkpoint_mock),
+            call(f"{metadata_prefix}/checkpoints/model1", best_checkpoint),
+            call(f"{metadata_prefix}/best_model_path", os.path.join(models_root_dir, "best_model")),
+            call(f"{metadata_prefix}/best_model_score", np.array(42.0, dtype=np.float32)),
+        ],
+        any_order=True,
+    )
+    assert run_instance_mock.exists.call_count == 0
+
+
+@patch("builtins.open", mock_open(read_data="test"))
+def test_checkpoints_deletion(neptune_mock):
+    # given
+    models_root_dir = os.path.join("path", "to", "models")
+
+    # and
+    logger, run_instance_mock, run_attr_mock = _get_logger_with_mocks(api_key="test", project="project")
+
+    # and
+    best_checkpoint = Mock()
+    mock_file = neptune_mock.types.File
+    mock_file.from_stream.side_effect = (best_checkpoint,)
+
+    # and
+    logger._uploaded_best_checkpoints = {"model1"}
+    run_instance_mock.exists.return_value = True
+
+    # when
+    logger.after_save_checkpoint(
+        MagicMock(
+            dirpath=models_root_dir,
+            last_model_path=None,
+            best_k_models={
                 f"{os.path.join(models_root_dir, 'model2/with/slashes')}": None,
             },
             best_model_path=os.path.join(models_root_dir, "best_model"),
-            best_model_score=None,
+            best_model_score=torch.scalar_tensor(42),
         )
+    )
 
-        mock_file = neptune_mock.types.File
-        mock_file.reset_mock()
-        mock_file.side_effect = mock.Mock()
-        logger.after_save_checkpoint(cb_mock)
-
-        assert run_instance_mock.__setitem__.call_count == 3
-        assert run_instance_mock.__getitem__.call_count == 2
-        assert run_attr_mock.upload.call_count == 2
-
-        assert mock_file.from_stream.call_count == 2
-
-        run_instance_mock.__getitem__.assert_any_call(f"{model_key_prefix}/checkpoints/model1")
-        run_instance_mock.__getitem__.assert_any_call(f"{model_key_prefix}/checkpoints/model2/with/slashes")
-
-        run_attr_mock.upload.assert_has_calls(
-            [
-                call(os.path.join(models_root_dir, "model1")),
-                call(os.path.join(models_root_dir, "model2/with/slashes")),
-            ]
-        )
+    # then
+    assert mock_file.from_stream.call_count == 1
+    assert run_instance_mock.__setitem__.call_count == 3
+    assert run_instance_mock.__getitem__.call_count == 0
+    run_instance_mock.__setitem__.assert_has_calls(
+        [
+            call("training/model/checkpoints/model2/with/slashes", best_checkpoint),
+            call("training/model/best_model_path", os.path.join(models_root_dir, "best_model")),
+            call("training/model/best_model_score", np.array(42.0, dtype=np.float32)),
+        ],
+        any_order=True,
+    )
+    assert run_instance_mock.exists.call_count == 1
+    assert run_instance_mock.__delitem__.call_count == 1
+    run_instance_mock.__delitem__.assert_called_once_with("training/model/checkpoints/model1")
 
 
 def test_save_dir(neptune_mock):
@@ -290,18 +339,3 @@ def test_get_full_model_name():
 
     for expected_model_name, model_path, checkpoint in test_input_data:
         assert NeptuneLogger._get_full_model_name(model_path, checkpoint) == expected_model_name
-
-
-def test_get_full_model_names_from_exp_structure():
-    input_dict = {
-        "foo": {
-            "bar": {
-                "lvl1_1": {"lvl2": {"lvl3_1": "some non important value", "lvl3_2": "some non important value"}},
-                "lvl1_2": "some non important value",
-            },
-            "other_non_important": {"val100": 100},
-        },
-        "other_non_important": {"val42": 42},
-    }
-    expected_keys = {"lvl1_1/lvl2/lvl3_1", "lvl1_1/lvl2/lvl3_2", "lvl1_2"}
-    assert NeptuneLogger._get_full_model_names_from_exp_structure(input_dict, "foo/bar") == expected_keys

@@ -19,7 +19,7 @@ import contextlib
 import logging
 import os
 from argparse import Namespace
-from typing import TYPE_CHECKING, Any, Dict, Generator, List, Optional, Set, Union
+from typing import TYPE_CHECKING, Any, Dict, Generator, Optional, Set, Union
 
 from lightning_utilities.core.imports import RequirementCache
 from torch import Tensor
@@ -236,6 +236,8 @@ class NeptuneLogger(Logger):
         self._run_instance = run
         self._neptune_run_kwargs = neptune_run_kwargs
         self._run_short_id: Optional[str] = None
+
+        self._uploaded_best_checkpoints: Set[str] = set()
 
         if self._run_instance is not None:
             self._retrieve_run_data()
@@ -508,50 +510,59 @@ class NeptuneLogger(Logger):
         if not self._log_model_checkpoints:
             return
 
-        if _NEPTUNE_AVAILABLE:
-            from neptune.types import File
-        else:
-            from neptune.new.types import File
-
-        file_names = set()
-        checkpoints_namespace = self._construct_path_with_prefix("model/checkpoints")
-
         # save last model
         if hasattr(checkpoint_callback, "last_model_path") and checkpoint_callback.last_model_path:
-            model_last_name = self._get_full_model_name(checkpoint_callback.last_model_path, checkpoint_callback)
-            file_names.add(model_last_name)
-            with open(checkpoint_callback.last_model_path, "rb") as fp:
-                self.run[f"{checkpoints_namespace}/{model_last_name}"] = File.from_stream(fp)
+            model_name = self._get_full_model_name(checkpoint_callback.last_model_path, checkpoint_callback)
+            self._upload_checkpoint(model_path=checkpoint_callback.last_model_path, model_name=model_name)
 
         # save best k models
         if hasattr(checkpoint_callback, "best_k_models"):
-            for key in checkpoint_callback.best_k_models:
-                model_name = self._get_full_model_name(key, checkpoint_callback)
-                file_names.add(model_name)
-                self.run[f"{checkpoints_namespace}/{model_name}"].upload(key)
+            best_k_models = set(checkpoint_callback.best_k_models)
+            self._delete_old_best_checkpoints(best_k_models, checkpoint_callback)
+            self._upload_best_checkpoints(best_k_models, checkpoint_callback)
 
-        # log best model path and checkpoint
+        # log best model path
         if hasattr(checkpoint_callback, "best_model_path") and checkpoint_callback.best_model_path:
             self.run[self._construct_path_with_prefix("model/best_model_path")] = checkpoint_callback.best_model_path
-
-            model_name = self._get_full_model_name(checkpoint_callback.best_model_path, checkpoint_callback)
-            file_names.add(model_name)
-            with open(checkpoint_callback.best_model_path, "rb") as fp:
-                self.run[f"{checkpoints_namespace}/{model_name}"] = File.from_stream(fp)
-
-        # remove old models logged to experiment if they are not part of best k models at this point
-        if self.run.exists(checkpoints_namespace):
-            exp_structure = self.run.get_structure()
-            uploaded_model_names = self._get_full_model_names_from_exp_structure(exp_structure, checkpoints_namespace)
-
-            for file_to_drop in list(uploaded_model_names - file_names):
-                del self.run[f"{checkpoints_namespace}/{file_to_drop}"]
 
         # log best model score
         if hasattr(checkpoint_callback, "best_model_score") and checkpoint_callback.best_model_score:
             self.run[self._construct_path_with_prefix("model/best_model_score")] = (
                 checkpoint_callback.best_model_score.cpu().detach().numpy()
             )
+
+    def _upload_checkpoint(self, model_path: str, model_name: str) -> None:
+        if _NEPTUNE_AVAILABLE:
+            from neptune.types import File
+        else:
+            from neptune.new.types import File
+
+        checkpoints_namespace = self._construct_path_with_prefix("model/checkpoints")
+
+        with open(model_path, "rb") as fp:
+            self.run[f"{checkpoints_namespace}/{model_name}"] = File.from_stream(fp)
+
+    def _upload_best_checkpoints(self, models_paths: Set[str], checkpoint_callback: Checkpoint) -> None:
+        for model_path in models_paths:
+            model_name = self._get_full_model_name(model_path, checkpoint_callback)
+
+            if model_name in self._uploaded_best_checkpoints:
+                continue
+
+            self._upload_checkpoint(model_path=model_path, model_name=model_name)
+            self._uploaded_best_checkpoints.add(model_name)
+
+    def _delete_old_best_checkpoints(self, new_best_models_names: Set[str], checkpoint_callback: Checkpoint) -> None:
+        checkpoints_namespace = self._construct_path_with_prefix("model/checkpoints")
+        new_best_models_names = {
+            self._get_full_model_name(model_path, checkpoint_callback) for model_path in new_best_models_names
+        }
+
+        for model_name in tuple(self._uploaded_best_checkpoints - new_best_models_names):
+            if model_name in self._uploaded_best_checkpoints:
+                if self.run.exists(f"{checkpoints_namespace}/{model_name}"):
+                    del self.run[f"{checkpoints_namespace}/{model_name}"]  # TODO: Cover in tests
+                self._uploaded_best_checkpoints.remove(model_name)  # TODO: Cover in tests
 
     @staticmethod
     def _get_full_model_name(model_path: str, checkpoint_callback: Checkpoint) -> str:
@@ -565,15 +576,6 @@ class NeptuneLogger(Logger):
             filepath, _ = os.path.splitext(model_path[len(expected_model_path) + 1 :])
             return filepath.replace(os.sep, "/")
         return model_path.replace(os.sep, "/")
-
-    @classmethod
-    def _get_full_model_names_from_exp_structure(cls, exp_structure: Dict[str, Any], namespace: str) -> Set[str]:
-        """Returns all paths to properties which were already logged in `namespace`"""
-        structure_keys: List[str] = namespace.split(cls.LOGGER_JOIN_CHAR)
-        for key in structure_keys:
-            exp_structure = exp_structure[key]
-        uploaded_models_dict = exp_structure
-        return set(cls._dict_paths(uploaded_models_dict))
 
     @classmethod
     def _dict_paths(cls, d: Dict[str, Any], path_in_build: Optional[str] = None) -> Generator:
