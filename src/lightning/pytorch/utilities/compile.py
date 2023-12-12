@@ -31,6 +31,7 @@ def from_compiled(model: "torch._dynamo.OptimizedModule") -> "pl.LightningModule
     like a LightningModule, but it doesn't inherit from it (i.e. `isinstance` will fail).
 
     Use this method to obtain a LightningModule that still runs with all the optimizations from ``torch.compile``.
+
     """
     if not _TORCH_GREATER_EQUAL_2_0:
         raise ModuleNotFoundError("`from_compiled` requires torch>=2.0")
@@ -45,7 +46,7 @@ def from_compiled(model: "torch._dynamo.OptimizedModule") -> "pl.LightningModule
     if not isinstance(orig_module, pl.LightningModule):
         _check_mixed_imports(model)
         raise ValueError(
-            f"`model` is expected to be a compiled LightingModule. Found a `{type(orig_module).__name__}` instead"
+            f"`model` is expected to be a compiled LightningModule. Found a `{type(orig_module).__name__}` instead"
         )
 
     orig_module._compiler_ctx = {
@@ -87,8 +88,8 @@ def to_uncompiled(model: Union["pl.LightningModule", "torch._dynamo.OptimizedMod
     from torch._dynamo import OptimizedModule
 
     if isinstance(model, OptimizedModule):
-        model = model._orig_mod
-        if not isinstance(model, pl.LightningModule):
+        original = model._orig_mod
+        if not isinstance(original, pl.LightningModule):
             raise TypeError(
                 f"Unexpected error, the wrapped model should be a LightningModule, found {type(model).__name__}"
             )
@@ -98,20 +99,21 @@ def to_uncompiled(model: Union["pl.LightningModule", "torch._dynamo.OptimizedMod
             raise ValueError(
                 "`model` is required to be a compiled LightningModule. Found a non-compiled LightningModule instead."
             )
+        original = model
 
     else:
         raise ValueError("`model` must either be an instance of OptimizedModule or LightningModule")
 
-    ctx = model._compiler_ctx
+    ctx = original._compiler_ctx
     if ctx is not None:
-        model.forward = ctx["original_forward"]  # type: ignore[method-assign]
-        model.training_step = ctx["original_training_step"]  # type: ignore[method-assign]
-        model.validation_step = ctx["original_validation_step"]  # type: ignore[method-assign]
-        model.test_step = ctx["original_test_step"]  # type: ignore[method-assign]
-        model.predict_step = ctx["original_predict_step"]  # type: ignore[method-assign]
-        model._compiler_ctx = None
+        original.forward = ctx["original_forward"]  # type: ignore[method-assign]
+        original.training_step = ctx["original_training_step"]  # type: ignore[method-assign]
+        original.validation_step = ctx["original_validation_step"]  # type: ignore[method-assign]
+        original.test_step = ctx["original_test_step"]  # type: ignore[method-assign]
+        original.predict_step = ctx["original_predict_step"]  # type: ignore[method-assign]
+        original._compiler_ctx = None
 
-    return model
+    return original
 
 
 def _maybe_unwrap_optimized(model: object) -> "pl.LightningModule":

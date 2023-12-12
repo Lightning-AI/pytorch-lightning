@@ -11,7 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-r"""Early Stopping ^^^^^^^^^^^^^^
+r"""
+Early Stopping
+^^^^^^^^^^^^^^
 
 Monitor a metric and stop training when it stops improving.
 
@@ -21,6 +23,7 @@ from typing import Any, Callable, Dict, Optional, Tuple
 
 import torch
 from torch import Tensor
+from typing_extensions import override
 
 import lightning.pytorch as pl
 from lightning.fabric.utilities.rank_zero import _get_rank
@@ -124,9 +127,11 @@ class EarlyStopping(Callback):
         self.best_score = torch_inf if self.monitor_op == torch.lt else -torch_inf
 
     @property
+    @override
     def state_key(self) -> str:
         return self._generate_state_key(monitor=self.monitor, mode=self.mode)
 
+    @override
     def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: str) -> None:
         if self._check_on_train_epoch_end is None:
             # if the user runs validation multiple times per training epoch or multiple training epochs without
@@ -156,6 +161,7 @@ class EarlyStopping(Callback):
     def monitor_op(self) -> Callable:
         return self.mode_dict[self.mode]
 
+    @override
     def state_dict(self) -> Dict[str, Any]:
         return {
             "wait_count": self.wait_count,
@@ -164,6 +170,7 @@ class EarlyStopping(Callback):
             "patience": self.patience,
         }
 
+    @override
     def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
         self.wait_count = state_dict["wait_count"]
         self.stopped_epoch = state_dict["stopped_epoch"]
@@ -175,11 +182,13 @@ class EarlyStopping(Callback):
 
         return trainer.state.fn != TrainerFn.FITTING or trainer.sanity_checking
 
+    @override
     def on_train_epoch_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         if not self._check_on_train_epoch_end or self._should_skip_check(trainer):
             return
         self._run_early_stopping_check(trainer)
 
+    @override
     def on_validation_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         if self._check_on_train_epoch_end or self._should_skip_check(trainer):
             return

@@ -84,10 +84,10 @@ class TorchCollective(Collective):
         return output_tensor_list
 
     def send(self, tensor: Tensor, dst: int, tag: int = 0) -> None:
-        dist.send(tensor, dst, tag=tag, group=self.group)  # type: ignore[arg-type]
+        dist.send(tensor, dst, tag=tag, group=self.group)
 
     def recv(self, tensor: Tensor, src: Optional[int] = None, tag: int = 0) -> Tensor:
-        dist.recv(tensor, src, tag=tag, group=self.group)  # type: ignore[arg-type]
+        dist.recv(tensor, src, tag=tag, group=self.group)
         return tensor
 
     def all_gather_object(self, object_list: List[Any], obj: Any) -> List[Any]:
@@ -167,7 +167,7 @@ class TorchCollective(Collective):
 
     @classmethod
     def is_initialized(cls) -> bool:
-        return dist.is_initialized()
+        return cls.is_available() and dist.is_initialized()
 
     @classmethod
     def init_group(cls, **kwargs: Any) -> None:

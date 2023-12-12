@@ -39,15 +39,15 @@ class CloudHybridBackend(Backend):
 
         client = LightningClient()
         list_apps_resp = client.lightningapp_instance_service_list_lightningapp_instances(project_id=project_id)
-        lightning_app: Optional[Externalv1LightningappInstance] = None
+        lit_app: Optional[Externalv1LightningappInstance] = None
 
-        for lightningapp in list_apps_resp.lightningapps:
-            if lightningapp.id == app_id:
-                lightning_app = lightningapp
+        for lapp in list_apps_resp.lightningapps:
+            if lapp.id == app_id:
+                lit_app = lapp
 
-        assert lightning_app
+        assert lit_app
 
-        network_configs = lightning_app.spec.network_config
+        network_configs = lit_app.spec.network_config
 
         index = len(self.work_to_network_configs)
 
@@ -55,12 +55,12 @@ class CloudHybridBackend(Backend):
             self.work_to_network_configs[work.name] = network_configs[index]
 
         # Enable Ingress and update the specs.
-        lightning_app.spec.network_config[index].enable = True
+        lit_app.spec.network_config[index].enable = True
 
         client.lightningapp_instance_service_update_lightningapp_instance(
             project_id=project_id,
-            id=lightning_app.id,
-            body=AppinstancesIdBody(name=lightning_app.name, spec=lightning_app.spec),
+            id=lit_app.id,
+            body=AppinstancesIdBody(name=lit_app.name, spec=lit_app.spec),
         )
 
         work_network_config = self.work_to_network_configs[work.name]
@@ -107,24 +107,24 @@ class CloudHybridBackend(Backend):
 
         client = LightningClient()
         list_apps_resp = client.lightningapp_instance_service_list_lightningapp_instances(project_id=project_id)
-        lightning_app: Optional[Externalv1LightningappInstance] = None
+        lit_app: Optional[Externalv1LightningappInstance] = None
 
-        for lightningapp in list_apps_resp.lightningapps:
-            if lightningapp.id == app_id:
-                lightning_app = lightningapp
+        for lapp in list_apps_resp.lightningapps:
+            if lapp.id == app_id:
+                lit_app = lapp
 
-        assert lightning_app
+        assert lit_app
 
         network_config = self.work_to_network_configs[work.name]
 
-        for nc in lightning_app.spec.network_config:
+        for nc in lit_app.spec.network_config:
             if nc.host == network_config.host:
                 nc.enable = False
 
         client.lightningapp_instance_service_update_lightningapp_instance(
             project_id=project_id,
-            id=lightning_app.id,
-            body=AppinstancesIdBody(name=lightning_app.name, spec=lightning_app.spec),
+            id=lit_app.id,
+            body=AppinstancesIdBody(name=lit_app.name, spec=lit_app.spec),
         )
 
         del self.work_to_network_configs[work.name]

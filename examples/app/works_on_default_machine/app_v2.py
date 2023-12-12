@@ -1,8 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from uvicorn import run
-
 from lightning import CloudCompute, LightningApp, LightningFlow, LightningWork
+from uvicorn import run
 
 
 class Work(LightningWork):

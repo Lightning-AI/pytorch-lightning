@@ -17,8 +17,7 @@ function App() {
   const handleClick = async () => {
     if (lightningState) {
       const newLightningState = cloneDeep(lightningState);
-      newLightningState.flows.react_ui.vars.should_print =
-        !newLightningState.flows.react_ui.vars.should_print;
+      newLightningState.flows.react_ui.vars.should_print = !newLightningState.flows.react_ui.vars.should_print;
 
       updateLightningState(newLightningState);
     }
@@ -27,8 +26,7 @@ function App() {
   const handleTextField = async (event: ChangeEvent<HTMLInputElement>) => {
     if (lightningState) {
       const newLightningState = cloneDeep(lightningState);
-      newLightningState.flows.react_ui.vars.message_to_print =
-        event.target.value;
+      newLightningState.flows.react_ui.vars.message_to_print = event.target.value;
 
       updateLightningState(newLightningState);
     }
@@ -40,11 +38,7 @@ function App() {
         <div>
           <Button variant="text" onClick={() => handleClick()}>
             <h2>
-              {lightningState?.["flows"]?.["react_ui"]?.["vars"]?.[
-                "should_print"
-              ]
-                ? "Stop printing"
-                : "Start Printing"}
+              {lightningState?.["flows"]?.["react_ui"]?.["vars"]?.["should_print"] ? "Stop printing" : "Start Printing"}
             </h2>
           </Button>
         </div>

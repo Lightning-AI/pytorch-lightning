@@ -13,12 +13,12 @@
 # limitations under the License.
 import os
 import queue
-from typing import Any, Callable, Optional, Union
+from typing import TYPE_CHECKING, Any, Callable, Optional, Union
 
 import torch.multiprocessing as mp
+from typing_extensions import override
 
-import lightning.pytorch as pl
-from lightning.fabric.accelerators.xla import _using_pjrt, _XLA_AVAILABLE
+from lightning.fabric.accelerators.xla import _XLA_AVAILABLE, _using_pjrt
 from lightning.fabric.strategies.launchers.xla import _rank_teardown
 from lightning.fabric.utilities import move_data_to_device
 from lightning.pytorch.strategies.launchers.multiprocessing import (
@@ -28,6 +28,9 @@ from lightning.pytorch.strategies.launchers.multiprocessing import (
 )
 from lightning.pytorch.trainer.states import TrainerFn
 from lightning.pytorch.utilities.rank_zero import rank_zero_debug
+
+if TYPE_CHECKING:
+    import lightning.pytorch as pl
 
 
 class _XLALauncher(_MultiProcessingLauncher):
@@ -53,9 +56,11 @@ class _XLALauncher(_MultiProcessingLauncher):
         super().__init__(strategy=strategy, start_method="fork")
 
     @property
+    @override
     def is_interactive_compatible(self) -> bool:
         return True
 
+    @override
     def launch(self, function: Callable, *args: Any, trainer: Optional["pl.Trainer"] = None, **kwargs: Any) -> Any:
         """Launches processes that run the given function in parallel.
 
@@ -70,6 +75,14 @@ class _XLALauncher(_MultiProcessingLauncher):
             **kwargs: Optional keyword arguments to be passed to the given function.
 
         """
+        if self._already_fit and trainer is not None and trainer.state.fn == TrainerFn.FITTING:
+            # resolving https://github.com/Lightning-AI/lightning/issues/18775 will lift this restriction
+            raise NotImplementedError(
+                "Calling `trainer.fit()` twice on the same Trainer instance using a spawn-based strategy is not"
+                " supported. You can work around this by creating a new Trainer instance and passing the"
+                " `fit(ckpt_path=...)` argument."
+            )
+
         using_pjrt = _using_pjrt()
         # pjrt requires that the queue is serializable
         return_queue: Union[queue.Queue, mp.SimpleQueue] = (
@@ -102,9 +115,11 @@ class _XLALauncher(_MultiProcessingLauncher):
         if trainer is None:
             return worker_output
 
+        self._already_fit |= trainer.state.fn == TrainerFn.FITTING
         self._recover_results_in_main_process(worker_output, trainer)
         return worker_output.trainer_results
 
+    @override
     def _wrapping_function(
         self,
         # XLA's multiprocessing returns the global index, not the local index as torch's multiprocessing
@@ -136,6 +151,7 @@ class _XLALauncher(_MultiProcessingLauncher):
 
         _rank_teardown(self._strategy.local_rank)
 
+    @override
     def _collect_rank_zero_results(self, trainer: "pl.Trainer", results: Any) -> Optional["_WorkerOutput"]:
         rank_zero_debug("Collecting results from rank 0 process.")
         checkpoint_callback = trainer.checkpoint_callback
@@ -145,12 +161,11 @@ class _XLALauncher(_MultiProcessingLauncher):
             else None
         )
 
-        # requires to compute the state_dict on all processes in case Metrics are present
-        state_dict = trainer.lightning_module.state_dict()
-
         # save the last weights
         weights_path = None
         if trainer.state.fn == TrainerFn.FITTING:
+            # requires to compute the state_dict on all processes in case Metrics are present
+            state_dict = self._strategy.lightning_module_state_dict()
             weights_path = os.path.join(trainer.default_root_dir, ".temp.ckpt")
             self._strategy.checkpoint_io.save_checkpoint(state_dict, weights_path)
 

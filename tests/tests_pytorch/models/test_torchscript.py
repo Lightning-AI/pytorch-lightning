@@ -18,10 +18,10 @@ import fsspec
 import pytest
 import torch
 from fsspec.implementations.local import LocalFileSystem
-
 from lightning.fabric.utilities.cloud_io import get_filesystem
 from lightning.pytorch.core.module import LightningModule
 from lightning.pytorch.demos.boring_classes import BoringModel
+
 from tests_pytorch.helpers.advanced_models import BasicGAN, ParityModuleRNN
 from tests_pytorch.helpers.runif import RunIf
 
@@ -48,6 +48,7 @@ def test_torchscript_input_output(modelclass):
 @pytest.mark.parametrize("modelclass", [BoringModel, ParityModuleRNN, BasicGAN])
 def test_torchscript_example_input_output_trace(modelclass):
     """Test that traced LightningModule forward works with example_input_array."""
+    torch.manual_seed(1)
     model = modelclass()
 
     if isinstance(model, BoringModel):

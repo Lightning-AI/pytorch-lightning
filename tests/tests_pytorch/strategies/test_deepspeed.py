@@ -23,19 +23,19 @@ from unittest.mock import ANY
 import pytest
 import torch
 import torch.nn.functional as F
-from torch import nn, Tensor
-from torch.utils.data import DataLoader
-from torchmetrics import Accuracy
-
 from lightning.pytorch import LightningDataModule, LightningModule, Trainer
 from lightning.pytorch.accelerators import CUDAAccelerator
 from lightning.pytorch.callbacks import Callback, LearningRateMonitor, ModelCheckpoint
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset, RandomIterableDataset
 from lightning.pytorch.loggers import CSVLogger
-from lightning.pytorch.plugins import DeepSpeedPrecisionPlugin
+from lightning.pytorch.plugins import DeepSpeedPrecision
 from lightning.pytorch.strategies.deepspeed import _DEEPSPEED_AVAILABLE, DeepSpeedStrategy
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.imports import _TORCHMETRICS_GREATER_EQUAL_0_11 as _TM_GE_0_11
+from torch import Tensor, nn
+from torch.utils.data import DataLoader
+from torchmetrics import Accuracy
+
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.runif import RunIf
 
@@ -139,7 +139,7 @@ def test_deepspeed_strategy_env(tmpdir, monkeypatch, deepspeed_config):
 def test_deepspeed_precision_choice(cuda_count_1, tmpdir):
     """Test to ensure precision plugin is also correctly chosen.
 
-    DeepSpeed handles precision via Custom DeepSpeedPrecisionPlugin
+    DeepSpeed handles precision via Custom DeepSpeedPrecision
 
     """
     trainer = Trainer(
@@ -151,7 +151,7 @@ def test_deepspeed_precision_choice(cuda_count_1, tmpdir):
     )
 
     assert isinstance(trainer.strategy, DeepSpeedStrategy)
-    assert isinstance(trainer.strategy.precision_plugin, DeepSpeedPrecisionPlugin)
+    assert isinstance(trainer.strategy.precision_plugin, DeepSpeedPrecision)
     assert trainer.strategy.precision_plugin.precision == "16-mixed"
 
 
@@ -692,7 +692,7 @@ def test_deepspeed_multigpu_stage_3_manual_optimization(tmpdir, deepspeed_config
     _assert_save_model_is_equal(model, tmpdir, trainer)
 
 
-@pytest.mark.skip(reason="skipped due to deepspeed/#2449, keep track @rohitgr7")
+@pytest.mark.xfail(strict=False, reason="skipped due to deepspeed/#2449, keep track @rohitgr7")
 @pytest.mark.parametrize(("accumulate_grad_batches", "automatic_optimization"), [(1, False), (2, True)])
 @RunIf(min_cuda_gpus=2, standalone=True, deepspeed=True, sklearn=True)
 def test_deepspeed_multigpu_stage_3_checkpointing(tmpdir, automatic_optimization, accumulate_grad_batches):
@@ -891,11 +891,11 @@ def test_deepspeed_multigpu_test(tmpdir):
 
 
 # TODO(Sean): Once partial parameter partitioning is supported this test should be re-enabled
-@pytest.mark.skip("Partial parameter partitioning for DeepSpeed is currently broken.")
+@pytest.mark.xfail(strict=False, reason="Partial parameter partitioning for DeepSpeed is currently broken.")
 @RunIf(min_cuda_gpus=1, standalone=True, deepspeed=True)
 def test_deepspeed_multigpu_partial_partition_parameters(tmpdir):
-    """Test to ensure that a module that defines a layer inside the ``__init__`` and ``configure_model``
-    correctly converts all parameters to float16 when ``precision=16`` and runs successfully."""
+    """Test to ensure that a module that defines a layer inside the ``__init__`` and ``configure_model`` correctly
+    converts all parameters to float16 when ``precision=16`` and runs successfully."""
 
     class TestModel(ModelParallelBoringModel):
         def __init__(self):
@@ -1212,7 +1212,7 @@ def test_deepspeed_with_bfloat16_precision(tmpdir):
     )
 
     trainer.fit(model)
-    assert isinstance(trainer.strategy.precision_plugin, DeepSpeedPrecisionPlugin)
+    assert isinstance(trainer.strategy.precision_plugin, DeepSpeedPrecision)
     assert trainer.strategy.precision_plugin.precision == "bf16-mixed"
     assert trainer.strategy.config["zero_optimization"]["stage"] == 3
     assert trainer.strategy.config["bf16"]["enabled"]

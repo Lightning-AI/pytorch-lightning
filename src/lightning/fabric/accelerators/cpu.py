@@ -14,6 +14,7 @@
 from typing import List, Union
 
 import torch
+from typing_extensions import override
 
 from lightning.fabric.accelerators.accelerator import Accelerator
 from lightning.fabric.accelerators.registry import _AcceleratorRegistry
@@ -22,6 +23,7 @@ from lightning.fabric.accelerators.registry import _AcceleratorRegistry
 class CPUAccelerator(Accelerator):
     """Accelerator for CPU devices."""
 
+    @override
     def setup_device(self, device: torch.device) -> None:
         """
         Raises:
@@ -31,42 +33,48 @@ class CPUAccelerator(Accelerator):
         if device.type != "cpu":
             raise ValueError(f"Device should be CPU, got {device} instead.")
 
+    @override
     def teardown(self) -> None:
         pass
 
     @staticmethod
+    @override
     def parse_devices(devices: Union[int, str, List[int]]) -> int:
         """Accelerator device parsing logic."""
         return _parse_cpu_cores(devices)
 
     @staticmethod
+    @override
     def get_parallel_devices(devices: Union[int, str, List[int]]) -> List[torch.device]:
         """Gets parallel devices for the Accelerator."""
         devices = _parse_cpu_cores(devices)
         return [torch.device("cpu")] * devices
 
     @staticmethod
+    @override
     def auto_device_count() -> int:
         """Get the devices when set to auto."""
         return 1
 
     @staticmethod
+    @override
     def is_available() -> bool:
         """CPU is always available for execution."""
         return True
 
     @classmethod
+    @override
     def register_accelerators(cls, accelerator_registry: _AcceleratorRegistry) -> None:
         accelerator_registry.register(
             "cpu",
             cls,
-            description=cls.__class__.__name__,
+            description=cls.__name__,
         )
 
 
 def _parse_cpu_cores(cpu_cores: Union[int, str, List[int]]) -> int:
     """Parses the cpu_cores given in the format as accepted by the ``devices`` argument in the
-    :class:`~lightning.pytorch.trainer.Trainer`.
+    :class:`~lightning.pytorch.trainer.trainer.Trainer`.
 
     Args:
         cpu_cores: An int > 0.
@@ -77,6 +85,7 @@ def _parse_cpu_cores(cpu_cores: Union[int, str, List[int]]) -> int:
     Raises:
         MisconfigurationException:
             If cpu_cores is not an int > 0
+
     """
     if isinstance(cpu_cores, str) and cpu_cores.strip().isdigit():
         cpu_cores = int(cpu_cores)

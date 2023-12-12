@@ -19,10 +19,13 @@ Aids in saving predictions
 """
 from typing import Any, Literal, Optional, Sequence
 
+from typing_extensions import override
+
 import lightning.pytorch as pl
 from lightning.pytorch.callbacks.callback import Callback
 from lightning.pytorch.utilities import LightningEnum
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
+from lightning.pytorch.utilities.signature_utils import is_param_in_hook_signature
 
 
 class WriteInterval(LightningEnum):
@@ -57,7 +60,7 @@ class BasePredictionWriter(Callback):
                 self.output_dir = output_dir
 
             def write_on_batch_end(
-                self, trainer, pl_module', prediction, batch_indices, batch, batch_idx, dataloader_idx
+                self, trainer, pl_module, prediction, batch_indices, batch, batch_idx, dataloader_idx
             ):
                 torch.save(prediction, os.path.join(self.output_dir, dataloader_idx, f"{batch_idx}.pt"))
 
@@ -107,6 +110,11 @@ class BasePredictionWriter(Callback):
             raise MisconfigurationException(f"`write_interval` should be one of {[i.value for i in WriteInterval]}.")
         self.interval = WriteInterval(write_interval)
 
+    @override
+    def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: str) -> None:
+        if is_param_in_hook_signature(pl_module.predict_step, "dataloader_iter", explicit=True):
+            raise NotImplementedError("The `PredictionWriterCallback` does not support using `dataloader_iter`.")
+
     def write_on_batch_end(
         self,
         trainer: "pl.Trainer",
@@ -130,6 +138,7 @@ class BasePredictionWriter(Callback):
         """Override with the logic to write all batches."""
         raise NotImplementedError()
 
+    @override
     def on_predict_batch_end(
         self,
         trainer: "pl.Trainer",
@@ -144,6 +153,7 @@ class BasePredictionWriter(Callback):
         batch_indices = trainer.predict_loop.current_batch_indices
         self.write_on_batch_end(trainer, pl_module, outputs, batch_indices, batch, batch_idx, dataloader_idx)
 
+    @override
     def on_predict_epoch_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         if not self.interval.on_epoch:
             return

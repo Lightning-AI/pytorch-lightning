@@ -15,6 +15,8 @@ import math
 from collections import OrderedDict
 from typing import Any, Dict, Optional, Union
 
+from typing_extensions import override
+
 import lightning.pytorch as pl
 from lightning.pytorch import loops  # import as loops to avoid circular imports
 from lightning.pytorch.loops.fetchers import _DataFetcher, _DataLoaderIterDataFetcher
@@ -27,16 +29,15 @@ from lightning.pytorch.trainer import call
 from lightning.pytorch.trainer.connectors.logger_connector.result import _ResultCollection
 from lightning.pytorch.trainer.states import RunningStage, TrainerFn
 from lightning.pytorch.utilities.exceptions import MisconfigurationException, SIGTERMException
-from lightning.pytorch.utilities.rank_zero import rank_zero_warn, WarningCache
+from lightning.pytorch.utilities.rank_zero import WarningCache, rank_zero_warn
 from lightning.pytorch.utilities.signature_utils import is_param_in_hook_signature
 
 _BATCH_OUTPUTS_TYPE = Optional[Union[_OPTIMIZER_LOOP_OUTPUTS_TYPE, _MANUAL_LOOP_OUTPUTS_TYPE]]
 
 
 class _TrainingEpochLoop(loops._Loop):
-    """
-    Iterates over all batches in the dataloader (one epoch) that the user returns in their
-    :meth:`~lightning.pytorch.core.module.LightningModule.train_dataloader` method.
+    """Iterates over all batches in the dataloader (one epoch) that the user returns in their
+    :meth:`~lightning.pytorch.core.LightningModule.train_dataloader` method.
 
     Its main responsibilities are calling the ``*_epoch_{start,end}`` hooks, accumulating outputs if the user request
     them in one of these hooks, and running validation at the requested interval.
@@ -53,6 +54,7 @@ class _TrainingEpochLoop(loops._Loop):
     Args:
         min_steps: The minimum number of steps (batches) to process
         max_steps: The maximum number of steps (batches) to process
+
     """
 
     def __init__(self, trainer: "pl.Trainer", min_steps: Optional[int] = None, max_steps: int = -1) -> None:
@@ -134,7 +136,7 @@ class _TrainingEpochLoop(loops._Loop):
         while not self.done:
             try:
                 self.advance(data_fetcher)
-                self.on_advance_end()
+                self.on_advance_end(data_fetcher)
                 self._restarting = False
             except StopIteration:
                 break
@@ -164,7 +166,10 @@ class _TrainingEpochLoop(loops._Loop):
             self.val_loop.batch_progress.total.reset()
 
     def on_run_start(self, data_fetcher: _DataFetcher) -> None:
-        iter(data_fetcher)  # creates the iterator inside the fetcher
+        # `iter()` was called once in `FitLoop.setup_data()` already
+        if self.trainer.current_epoch > 0 and not self.restarting:
+            iter(data_fetcher)  # creates the iterator inside the fetcher
+
         # add the previous `fetched` value to properly track `is_last_batch` with no prefetching
         data_fetcher.fetched += self.batch_progress.current.ready
         data_fetcher._start_profiler = self._on_before_fetch
@@ -183,28 +188,37 @@ class _TrainingEpochLoop(loops._Loop):
             StopIteration: When the epoch is canceled by the user returning -1
 
         """
-        if self.restarting and self._should_check_val_fx():
+        if self.restarting and self._should_check_val_fx(data_fetcher):
             # skip training and run validation in `on_advance_end`
             return
         # we are going to train first so the val loop does not need to restart
         self.val_loop.restarting = False
 
-        batch_idx = data_fetcher.fetched if isinstance(data_fetcher, _DataLoaderIterDataFetcher) else self.batch_idx + 1
-        batch = next(data_fetcher)
+        if using_dataloader_iter := isinstance(data_fetcher, _DataLoaderIterDataFetcher):
+            dataloader_iter = next(data_fetcher)
+            # hook's batch_idx and dataloader_idx arguments correctness cannot be guaranteed in this setting
+            batch = data_fetcher._batch
+            batch_idx = data_fetcher._batch_idx
+        else:
+            dataloader_iter = None
+            batch, _, __ = next(data_fetcher)
+            # TODO: we should instead use the batch_idx returned by the fetcher, however, that will require saving the
+            # fetcher state so that the batch_idx is correct after restarting
+            batch_idx = self.batch_idx + 1
+        # Note: `is_last_batch` is not yet determined if data fetcher is a `_DataLoaderIterDataFetcher`
         self.batch_progress.is_last_batch = data_fetcher.done
 
         trainer = self.trainer
-        batch = trainer.precision_plugin.convert_input(batch)
-        batch = trainer.lightning_module._on_before_batch_transfer(batch, dataloader_idx=0)
-        batch = call._call_strategy_hook(trainer, "batch_to_device", batch, dataloader_idx=0)
-
-        kwargs = self._build_kwargs(OrderedDict(), batch, batch_idx)
+        if not using_dataloader_iter:
+            batch = trainer.precision_plugin.convert_input(batch)
+            batch = trainer.lightning_module._on_before_batch_transfer(batch, dataloader_idx=0)
+            batch = call._call_strategy_hook(trainer, "batch_to_device", batch, dataloader_idx=0)
 
         self.batch_progress.increment_ready()
         trainer._logger_connector.on_batch_start(batch)
 
         batch_output: _BATCH_OUTPUTS_TYPE = None  # for mypy
-        if batch is None:
+        if batch is None and not using_dataloader_iter:
             self._warning_cache.warn("train_dataloader yielded None. If this was on purpose, ignore this warning...")
         else:
             # hook
@@ -217,10 +231,15 @@ class _TrainingEpochLoop(loops._Loop):
 
             self.batch_progress.increment_started()
 
+            kwargs = (
+                self._build_kwargs(OrderedDict(), batch, batch_idx)
+                if not using_dataloader_iter
+                else OrderedDict(any=dataloader_iter)
+            )
             with trainer.profiler.profile("run_training_batch"):
                 if trainer.lightning_module.automatic_optimization:
                     # in automatic optimization, there can only be one optimizer
-                    batch_output = self.automatic_optimization.run(trainer.optimizers[0], kwargs)
+                    batch_output = self.automatic_optimization.run(trainer.optimizers[0], batch_idx, kwargs)
                 else:
                     batch_output = self.manual_optimization.run(kwargs)
 
@@ -231,6 +250,13 @@ class _TrainingEpochLoop(loops._Loop):
         self.update_lr_schedulers("step", update_plateau_schedulers=False)
         if self._num_ready_batches_reached():
             self.update_lr_schedulers("epoch", update_plateau_schedulers=False)
+
+        if using_dataloader_iter:
+            # update the hook kwargs now that the step method might have consumed the iterator
+            batch = data_fetcher._batch
+            batch_idx = data_fetcher._batch_idx
+            # update `is_last_batch` again after dataloader_iter was fetched in `training_step()`
+            self.batch_progress.is_last_batch = data_fetcher.done
 
         call._call_callback_hooks(trainer, "on_train_batch_end", batch_output, batch, batch_idx)
         call._call_lightning_module_hook(trainer, "on_train_batch_end", batch_output, batch, batch_idx)
@@ -243,16 +269,21 @@ class _TrainingEpochLoop(loops._Loop):
         # -----------------------------------------
         trainer._logger_connector.update_train_step_metrics()
 
-    def on_advance_end(self) -> None:
+    def on_advance_end(self, data_fetcher: _DataFetcher) -> None:
         # -----------------------------------------
         # VALIDATE IF NEEDED
         # -----------------------------------------
-        should_check_val = self._should_check_val_fx()
+        should_check_val = self._should_check_val_fx(data_fetcher)
         if should_check_val:
             # this needs to be set so the correct `trainer._active_loop` is picked
             self.trainer.validating = True
             # save and reset this state in case validation runs inside training loop (val_check_interval<1.0)
             first_loop_iter = self.trainer._logger_connector._first_loop_iter
+
+            if not self._should_accumulate():
+                # clear gradients to not leave any unused memory during validation
+                call._call_lightning_module_hook(self.trainer, "on_validation_model_zero_grad")
+
             self.val_loop.run()
             self.trainer.training = True
             self.trainer._logger_connector._first_loop_iter = first_loop_iter
@@ -275,11 +306,13 @@ class _TrainingEpochLoop(loops._Loop):
         self._results.cpu()
         self.val_loop.teardown()
 
+    @override
     def on_save_checkpoint(self) -> Dict:
         state_dict = super().on_save_checkpoint()
         state_dict["_batches_that_stepped"] = self._batches_that_stepped
         return state_dict
 
+    @override
     def on_load_checkpoint(self, state_dict: Dict) -> None:
         self._batches_that_stepped = state_dict.get("_batches_that_stepped", 0)
 
@@ -374,7 +407,7 @@ class _TrainingEpochLoop(loops._Loop):
             or (self.trainer.current_epoch + 1) % self.trainer.check_val_every_n_epoch == 0
         )
 
-    def _should_check_val_fx(self) -> bool:
+    def _should_check_val_fx(self, data_fetcher: _DataFetcher) -> bool:
         """Decide if we should run validation."""
         if not self._should_check_val_epoch():
             return False
@@ -382,7 +415,7 @@ class _TrainingEpochLoop(loops._Loop):
         # val_check_batch is inf for iterable datasets with no length defined
         is_infinite_dataset = self.trainer.val_check_batch == float("inf")
         is_last_batch = self.batch_progress.is_last_batch
-        if is_last_batch and is_infinite_dataset:
+        if is_last_batch and (is_infinite_dataset or isinstance(data_fetcher, _DataLoaderIterDataFetcher)):
             return True
 
         if self.trainer.should_stop and self.trainer.fit_loop._can_stop_early:
@@ -414,7 +447,7 @@ class _TrainingEpochLoop(loops._Loop):
         Args:
             kwargs: The kwargs passed down to the hooks.
             batch: The current batch to run through the step.
-            batch_idx: The current batch idx.
+            batch_idx: the index of the current batch.
 
         Returns:
             The kwargs passed down to the hooks.
@@ -423,7 +456,7 @@ class _TrainingEpochLoop(loops._Loop):
         kwargs["batch"] = batch
         training_step_fx = getattr(self.trainer.lightning_module, "training_step")
         # the `batch_idx` is optional, but its name can be anything
-        # as long as there are two argumetns after 'self', we assume they are the `batch` and `batch_idx`
+        # as long as there are two arguments after 'self', we assume they are the `batch` and `batch_idx`
         if is_param_in_hook_signature(training_step_fx, "batch_idx", min_args=2):
             kwargs["batch_idx"] = batch_idx
         return kwargs

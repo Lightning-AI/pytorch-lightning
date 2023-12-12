@@ -3,7 +3,6 @@ import sys
 from unittest import mock
 
 import pytest
-
 from lightning.fabric.utilities.rank_zero import _get_rank
 
 
@@ -21,12 +20,12 @@ from lightning.fabric.utilities.rank_zero import _get_rank
         ({"JSM_NAMESPACE_RANK": "4"}, None),
     ],
 )
-def test_rank_zero_known_environment_variables(env_vars, expected):
+def test_rank_zero_known_environment_variables(env_vars, expected, monkeypatch):
     """Test that rank environment variables are properly checked for rank_zero_only."""
     with mock.patch.dict(os.environ, env_vars):
         # force module reload to re-trigger the rank_zero_only.rank global computation
-        sys.modules.pop("lightning_utilities.core.rank_zero", None)
-        sys.modules.pop("lightning.fabric.utilities.rank_zero", None)
+        monkeypatch.delitem(sys.modules, "lightning_utilities.core.rank_zero", raising=False)
+        monkeypatch.delitem(sys.modules, "lightning.fabric.utilities.rank_zero", raising=False)
         from lightning.fabric.utilities.rank_zero import rank_zero_only
 
         @rank_zero_only

@@ -13,15 +13,16 @@
 # limitations under the License.
 import contextlib
 import os
+import subprocess
 from io import StringIO
 from unittest import mock
 from unittest.mock import Mock
 
 import pytest
 import torch.distributed.run
-
 from lightning.fabric.cli import _get_supported_strategies, _run_model
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12
+from lightning_utilities.core.imports import ModuleAvailableCache
+
 from tests_fabric.helpers.runif import RunIf
 
 
@@ -71,12 +72,8 @@ def test_cli_env_vars_strategy(_, strategy, monkeypatch, fake_script):
 def test_cli_get_supported_strategies():
     """Test to ensure that when new strategies get added, we must consider updating the list of supported ones in the
     CLI."""
-    if _TORCH_GREATER_EQUAL_1_12 and torch.distributed.is_available():
-        assert len(_get_supported_strategies()) == 7
-        assert "fsdp" in _get_supported_strategies()
-    else:
-        assert len(_get_supported_strategies()) == 6
-        assert "fsdp" not in _get_supported_strategies()
+    assert len(_get_supported_strategies()) == 7
+    assert "fsdp" in _get_supported_strategies()
 
 
 @pytest.mark.parametrize("strategy", ["ddp_spawn", "ddp_fork", "ddp_notebook", "deepspeed_stage_3_offload"])
@@ -177,3 +174,15 @@ def test_cli_torchrun_num_processes_launched(_, devices, expected, monkeypatch, 
             fake_script,
         ]
     )
+
+
+@pytest.mark.skipif("lightning.fabric" == "lightning_fabric", reason="standalone package")
+def test_cli_through_lightning_entry_point():
+    result = subprocess.run("lightning run model --help", capture_output=True, text=True, shell=True)
+    if not ModuleAvailableCache("lightning.app"):
+        message = "The `lightning` command requires additional dependencies"
+        assert message in result.stdout or message in result.stderr
+        assert result.returncode != 0
+    else:
+        message = "Usage: lightning run model [OPTIONS] SCRIPT [SCRIPT_ARGS]"
+        assert message in result.stdout or message in result.stderr

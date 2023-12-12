@@ -18,11 +18,13 @@ from unittest.mock import ANY, PropertyMock
 
 import pytest
 import torch
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
+from lightning.pytorch import Callback, LightningDataModule, LightningModule, Trainer, __version__
+from lightning.pytorch.demos.boring_classes import BoringDataModule, BoringModel, RandomDataset
+from lightning.pytorch.utilities.model_helpers import is_overridden
 from torch import Tensor
 from torch.utils.data import DataLoader
 
-from lightning.pytorch import __version__, Callback, LightningDataModule, LightningModule, Trainer
-from lightning.pytorch.demos.boring_classes import BoringDataModule, BoringModel, RandomDataset
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -293,7 +295,7 @@ class HookedModel(BoringModel):
                         "kwargs": {"gradient_clip_val": None, "gradient_clip_algorithm": None},
                     },
                     # this is after because it refers to the `LightningModule.optimizer_step` hook which encapsulates
-                    # the actual call to `PrecisionPlugin.optimizer_step`
+                    # the actual call to `Precision.optimizer_step`
                     {
                         "name": "optimizer_step",
                         "args": (current_epoch, i, ANY, ANY),
@@ -393,6 +395,18 @@ class HookedModel(BoringModel):
     def configure_model(self):
         ...
 
+    # override so that it gets called
+    def on_validation_model_train(self):
+        ...
+
+    # override so that it gets called
+    def on_test_model_train(self):
+        ...
+
+    # override so that it gets called
+    def on_predict_model_train(self):
+        ...
+
 
 @pytest.mark.parametrize(
     "kwargs",
@@ -407,7 +421,8 @@ class HookedModel(BoringModel):
     ],
 )
 @pytest.mark.parametrize("automatic_optimization", [True, False])
-def test_trainer_model_hook_system_fit(tmpdir, kwargs, automatic_optimization):
+@pytest.mark.parametrize("override_on_validation_model_train", [True, False])
+def test_trainer_model_hook_system_fit(override_on_validation_model_train, automatic_optimization, kwargs, tmpdir):
     called = []
 
     class TestModel(HookedModel):
@@ -426,6 +441,11 @@ def test_trainer_model_hook_system_fit(tmpdir, kwargs, automatic_optimization):
             return {"loss": loss}
 
     model = TestModel(called)
+
+    if not override_on_validation_model_train:
+        model.on_validation_model_train = None
+    assert is_overridden("on_validation_model_train", model) == override_on_validation_model_train
+
     callback = HookedCallback(called)
     train_batches = 2
     val_batches = 2
@@ -465,37 +485,34 @@ def test_trainer_model_hook_system_fit(tmpdir, kwargs, automatic_optimization):
         {"name": "configure_optimizers"},
         {"name": "Callback.on_fit_start", "args": (trainer, model)},
         {"name": "on_fit_start"},
+        {"name": "zero_grad", **({} if _TORCH_GREATER_EQUAL_2_0 else {"kwargs": {"set_to_none": True}})},
         {"name": "Callback.on_sanity_check_start", "args": (trainer, model)},
         {"name": "val_dataloader"},
         {"name": "train", "args": (False,)},
         {"name": "on_validation_model_eval"},
-        {"name": "zero_grad"},
         {"name": "Callback.on_validation_start", "args": (trainer, model)},
         {"name": "on_validation_start"},
         *model._eval_epoch("validation", trainer, model, val_batches, "x", device=device),
         {"name": "Callback.on_validation_end", "args": (trainer, model)},
         {"name": "on_validation_end"},
-        {"name": "train", "args": (True,)},
-        {"name": "on_validation_model_train"},
+        *([{"name": "on_validation_model_train"}] if override_on_validation_model_train else []),
         {"name": "Callback.on_sanity_check_end", "args": (trainer, model)},
         {"name": "train_dataloader"},
-        # duplicate `train` because `_run_stage` calls it again in case validation wasn't run
-        {"name": "train", "args": (True,)},
         {"name": "Callback.on_train_start", "args": (trainer, model)},
         {"name": "on_train_start"},
         {"name": "Callback.on_train_epoch_start", "args": (trainer, model)},
         {"name": "on_train_epoch_start"},
         *model._train_batch(trainer, model, train_batches, device=device, **kwargs),
+        {"name": "zero_grad", **({} if _TORCH_GREATER_EQUAL_2_0 else {"kwargs": {"set_to_none": True}})},
+        {"name": "on_validation_model_zero_grad"},
         {"name": "train", "args": (False,)},
         {"name": "on_validation_model_eval"},
-        {"name": "zero_grad"},
         {"name": "Callback.on_validation_start", "args": (trainer, model)},
         {"name": "on_validation_start"},
         *model._eval_epoch("validation", trainer, model, val_batches, "x", device=device),
         {"name": "Callback.on_validation_end", "args": (trainer, model)},
         {"name": "on_validation_end"},
-        {"name": "train", "args": (True,)},
-        {"name": "on_validation_model_train"},
+        *([{"name": "on_validation_model_train"}] if override_on_validation_model_train else []),
         {"name": "Callback.on_train_epoch_end", "args": (trainer, model)},
         {"name": "on_train_epoch_end"},  # before ModelCheckpoint because it's a "monitoring callback"
         # `ModelCheckpoint.save_checkpoint` is called here
@@ -559,15 +576,15 @@ def test_trainer_model_hook_system_fit_no_val_and_resume_max_epochs(tmpdir):
         {"name": "prepare_data"},
         {"name": "Callback.setup", "args": (trainer, model), "kwargs": {"stage": "fit"}},
         {"name": "setup", "kwargs": {"stage": "fit"}},
+        {"name": "configure_model"},
         {"name": "on_load_checkpoint", "args": (loaded_ckpt,)},
         {"name": "Callback.on_load_checkpoint", "args": (trainer, model, loaded_ckpt)},
         {"name": "Callback.load_state_dict", "args": ({"foo": True},)},
-        {"name": "configure_model"},
         {"name": "configure_optimizers"},
         {"name": "Callback.on_fit_start", "args": (trainer, model)},
         {"name": "on_fit_start"},
+        {"name": "zero_grad", **({} if _TORCH_GREATER_EQUAL_2_0 else {"kwargs": {"set_to_none": True}})},
         {"name": "train_dataloader"},
-        {"name": "train", "args": (True,)},
         {"name": "Callback.on_train_start", "args": (trainer, model)},
         {"name": "on_train_start"},
         {"name": "Callback.on_train_epoch_start", "args": (trainer, model)},
@@ -637,15 +654,15 @@ def test_trainer_model_hook_system_fit_no_val_and_resume_max_steps(tmpdir):
         {"name": "prepare_data"},
         {"name": "Callback.setup", "args": (trainer, model), "kwargs": {"stage": "fit"}},
         {"name": "setup", "kwargs": {"stage": "fit"}},
+        {"name": "configure_model"},
         {"name": "on_load_checkpoint", "args": (loaded_ckpt,)},
         {"name": "Callback.on_load_checkpoint", "args": (trainer, model, loaded_ckpt)},
         {"name": "Callback.load_state_dict", "args": ({"foo": True},)},
-        {"name": "configure_model"},
         {"name": "configure_optimizers"},
         {"name": "Callback.on_fit_start", "args": (trainer, model)},
         {"name": "on_fit_start"},
+        {"name": "zero_grad", **({} if _TORCH_GREATER_EQUAL_2_0 else {"kwargs": {"set_to_none": True}})},
         {"name": "train_dataloader"},
-        {"name": "train", "args": (True,)},
         {"name": "Callback.on_train_start", "args": (trainer, model)},
         {"name": "on_train_start"},
         {"name": "Callback.on_train_epoch_start", "args": (trainer, model)},
@@ -671,9 +688,13 @@ def test_trainer_model_hook_system_fit_no_val_and_resume_max_steps(tmpdir):
 @pytest.mark.parametrize(
     ("verb", "noun", "dataloader", "key"), [("validate", "validation", "val", "x"), ("test", "test", "test", "y")]
 )
-def test_trainer_model_hook_system_eval(tmpdir, batches, verb, noun, dataloader, key):
+@pytest.mark.parametrize("override_on_x_model_train", [True, False])
+def test_trainer_model_hook_system_eval(tmpdir, override_on_x_model_train, batches, verb, noun, dataloader, key):
     called = []
     model = HookedModel(called)
+    if not override_on_x_model_train:
+        setattr(model, f"on_{noun}_model_train", None)
+    assert is_overridden(f"on_{noun}_model_train", model) == override_on_x_model_train
     callback = HookedCallback(called)
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -690,14 +711,12 @@ def test_trainer_model_hook_system_eval(tmpdir, batches, verb, noun, dataloader,
         {"name": f"{dataloader}_dataloader"},
         {"name": "train", "args": (False,)},
         {"name": f"on_{noun}_model_eval"},
-        {"name": "zero_grad"},
         {"name": f"Callback.on_{noun}_start", "args": (trainer, model)},
         {"name": f"on_{noun}_start"},
         *model._eval_epoch(noun, trainer, model, batches, key, trainer.strategy.root_device),
         {"name": f"Callback.on_{noun}_end", "args": (trainer, model)},
         {"name": f"on_{noun}_end"},
-        {"name": "train", "args": (True,)},
-        {"name": f"on_{noun}_model_train"},
+        *([{"name": f"on_{noun}_model_train"}] if override_on_x_model_train else []),
     ]
     expected = [
         {"name": "configure_callbacks"},
@@ -705,6 +724,7 @@ def test_trainer_model_hook_system_eval(tmpdir, batches, verb, noun, dataloader,
         {"name": "Callback.setup", "args": (trainer, model), "kwargs": {"stage": verb}},
         {"name": "setup", "kwargs": {"stage": verb}},
         {"name": "configure_model"},
+        {"name": "zero_grad", **({} if _TORCH_GREATER_EQUAL_2_0 else {"kwargs": {"set_to_none": True}})},
         *(hooks if batches else []),
         {"name": "Callback.teardown", "args": (trainer, model), "kwargs": {"stage": verb}},
         {"name": "teardown", "kwargs": {"stage": verb}},
@@ -727,10 +747,10 @@ def test_trainer_model_hook_system_predict(tmpdir):
         {"name": "Callback.setup", "args": (trainer, model), "kwargs": {"stage": "predict"}},
         {"name": "setup", "kwargs": {"stage": "predict"}},
         {"name": "configure_model"},
+        {"name": "zero_grad", **({} if _TORCH_GREATER_EQUAL_2_0 else {"kwargs": {"set_to_none": True}})},
         {"name": "predict_dataloader"},
         {"name": "train", "args": (False,)},
         {"name": "on_predict_model_eval"},
-        {"name": "zero_grad"},
         {"name": "Callback.on_predict_start", "args": (trainer, model)},
         {"name": "on_predict_start"},
         {"name": "Callback.on_predict_epoch_start", "args": (trainer, model)},
@@ -857,13 +877,22 @@ def test_trainer_datamodule_hook_system(tmpdir):
     assert called == expected
 
 
-def test_load_from_checkpoint_hook_calls(tmpdir):
+@pytest.mark.parametrize("override_configure_model", [True, False])
+def test_load_from_checkpoint_hook_calls(override_configure_model, tmpdir):
     class CustomHookedDataModule(HookedDataModule):
         def state_dict(self):
             return {"foo": "bar"}
 
+    class CustomHookedModel(HookedModel):
+        pass
+
+    if not override_configure_model:
+        CustomHookedModel.configure_model = None
+
     lm_called, ldm_called = [], []
-    model = HookedModel(lm_called)
+    model = CustomHookedModel(lm_called)
+    assert is_overridden("configure_model", model) == override_configure_model
+
     datamodule = CustomHookedDataModule(ldm_called)
     trainer = Trainer()
     trainer.strategy.connect(model)
@@ -888,7 +917,68 @@ def test_load_from_checkpoint_hook_calls(tmpdir):
     assert ldm_called == [{"name": "state_dict"}]
 
     lm_called, ldm_called = [], []
-    _ = HookedModel.load_from_checkpoint(ckpt_path, called=lm_called)
+    _ = CustomHookedModel.load_from_checkpoint(ckpt_path, called=lm_called)
     _ = CustomHookedDataModule.load_from_checkpoint(ckpt_path, called=ldm_called)
-    assert lm_called == [{"name": "on_load_checkpoint", "args": ({**saved_ckpt, "hyper_parameters": ANY},)}]
+
+    expected_lm_called = [{"name": "configure_model"}] if override_configure_model else []
+    expected_lm_called += [{"name": "on_load_checkpoint", "args": ({**saved_ckpt, "hyper_parameters": ANY},)}]
+    assert lm_called == expected_lm_called
     assert ldm_called == [{"name": "load_state_dict", "args": (saved_ckpt[datamodule_state_dict_key],)}]
+
+
+def test_train_eval_mode_restored(tmp_path):
+    """Test that the trainer restores the `training` mode of all submodules to what it was before entering the loop."""
+
+    class MixedTrainModeModule(BoringModel):
+        def __init__(self):
+            super().__init__()
+            # A frozen submodule should keep its mode, regardless of whether we're training or not
+            self.frozen = torch.nn.Linear(2, 2)
+            self.frozen.eval()
+            self.frozen.requires_grad_(False)
+
+        def training_step(self, *args, **kwargs):
+            assert self.layer.weight.requires_grad
+            assert self.layer.training
+            assert not self.frozen.training
+            assert not self.frozen.weight.requires_grad
+            return super().training_step(*args, **kwargs)
+
+        def validation_step(self, *args, **kwargs):
+            assert self.layer.weight.requires_grad
+            assert not self.layer.training
+            assert not self.frozen.training
+            assert not self.frozen.weight.requires_grad
+            return super().validation_step(*args, **kwargs)
+
+        def test_step(self, *args, **kwargs):
+            assert self.layer.weight.requires_grad
+            assert not self.layer.training
+            assert not self.frozen.training
+            assert not self.frozen.weight.requires_grad
+            return super().test_step(*args, **kwargs)
+
+        def predict_step(self, *args, **kwargs):
+            assert self.layer.weight.requires_grad
+            assert not self.layer.training
+            assert not self.frozen.training
+            assert not self.frozen.weight.requires_grad
+            return super().predict_step(*args, **kwargs)
+
+    model = MixedTrainModeModule()
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        max_epochs=1,
+        val_check_interval=1,
+        limit_train_batches=3,
+        limit_val_batches=2,
+        limit_test_batches=2,
+        limit_predict_batches=2,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+    )
+    trainer.fit(model)
+    trainer.validate(model)
+    trainer.test(model)
+    trainer.predict(model)

@@ -196,21 +196,34 @@ If set to True, logs will be sent to the progress bar.
 
 rank_zero_only
 ==============
-**Default:** True
+**Default:** False
 
-Whether the value will be logged only on rank 0. This will prevent synchronization which would produce a deadlock as not all processes would perform this log call.
+Tells Lightning if you are calling ``self.log`` from every process (default) or only from rank 0.
+This is for advanced users who want to reduce their metric manually across processes, but still want to benefit from automatic logging via ``self.log``.
+
+- Set ``False`` (default) if you are calling ``self.log`` from every process.
+- Set ``True`` if you are calling ``self.log`` from rank 0 only. Caveat: you won't be able to use this metric as a monitor in callbacks (e.g., early stopping).
 
 .. code-block:: python
 
-  self.log(rank_zero_only=True)
+    # Default
+    self.log(..., rank_zero_only=False)
+
+    # If you call `self.log` on rank 0 only, you need to set `rank_zero_only=True`
+    if self.trainer.global_rank == 0:
+        self.log(..., rank_zero_only=True)
+
+    # DON'T do this, it will cause deadlocks!
+    self.log(..., rank_zero_only=True)
+
 
 ----
 
 reduce_fx
 =========
-**Default:** :meth:`torch.mean`
+**Default:** :func:`torch.mean`
 
-Reduction function over step values for end of epoch. Uses :meth:`torch.mean` by default and is not applied when a :class:`torchmetrics.Metric` is logged.
+Reduction function over step values for end of epoch. Uses :func:`torch.mean` by default and is not applied when a :class:`torchmetrics.Metric` is logged.
 
 .. code-block:: python
 
@@ -334,7 +347,7 @@ To track the timeseries over steps (*on_step*) as well as the accumulated epoch 
 
 Setting both to True will generate two graphs with *_step* for the timeseries over steps and *_epoch* for the epoch metric.
 
-# TODO: show images of both
+.. TODO:: show images of both
 
 ----
 

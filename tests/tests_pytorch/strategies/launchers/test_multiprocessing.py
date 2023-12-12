@@ -14,17 +14,17 @@
 import os
 from multiprocessing import Process
 from unittest import mock
-from unittest.mock import ANY, call, Mock, patch
+from unittest.mock import ANY, Mock, call, patch
 
 import pytest
 import torch
-
 from lightning.fabric.plugins import ClusterEnvironment
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.strategies import DDPStrategy
 from lightning.pytorch.strategies.launchers.multiprocessing import _GlobalStateSnapshot, _MultiProcessingLauncher
 from lightning.pytorch.trainer.states import TrainerFn
+
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -212,3 +212,20 @@ def test_check_for_missing_main_guard():
         return_value=Mock(_inheriting=True),  # pretend that main is importing itself
     ), pytest.raises(RuntimeError, match="requires that your script guards the main"):
         launcher.launch(function=Mock())
+
+
+def test_fit_twice_raises():
+    model = BoringModel()
+    trainer = Trainer(
+        limit_train_batches=1,
+        limit_test_batches=1,
+        num_sanity_val_steps=0,
+        max_epochs=1,
+        strategy="ddp_spawn",
+        barebones=True,
+    )
+    trainer.fit(model)
+    trainer.test(model)  # make sure testing in between doesnt impact the result
+    trainer.fit_loop.max_epochs += 1
+    with pytest.raises(NotImplementedError, match=r"twice.*is not supported"):
+        trainer.fit(model)

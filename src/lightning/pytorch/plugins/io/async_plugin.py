@@ -15,6 +15,8 @@
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any, Optional
 
+from typing_extensions import override
+
 from lightning.fabric.plugins import CheckpointIO
 from lightning.pytorch.plugins.io.wrapper import _WrappingCheckpointIO
 
@@ -26,6 +28,7 @@ class AsyncCheckpointIO(_WrappingCheckpointIO):
 
     Args:
         checkpoint_io: A checkpoint IO plugin that is used as the basis for async checkpointing.
+
     """
 
     def __init__(self, checkpoint_io: Optional["CheckpointIO"] = None) -> None:
@@ -34,6 +37,7 @@ class AsyncCheckpointIO(_WrappingCheckpointIO):
         self._executor = ThreadPoolExecutor(max_workers=1)
         self._error: Optional[BaseException] = None
 
+    @override
     def save_checkpoint(self, *args: Any, **kwargs: Any) -> None:
         """Uses the ``ThreadPoolExecutor`` to save the checkpoints using the base ``checkpoint_io``."""
 
@@ -51,6 +55,7 @@ class AsyncCheckpointIO(_WrappingCheckpointIO):
         if self._error:
             raise self._error
 
+    @override
     def teardown(self) -> None:
         """This method is called to close the threads."""
         self._executor.shutdown(wait=True)

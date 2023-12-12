@@ -71,16 +71,14 @@ You can also pass a custom Logger to the :class:`~lightning.pytorch.trainer.trai
 
 Choose from any of the others such as MLflow, Comet, Neptune, WandB, etc.
 
-.. testcode::
-    :skipif: not _COMET_AVAILABLE
+.. code-block:: python
 
     comet_logger = pl_loggers.CometLogger(save_dir="logs/")
     trainer = Trainer(logger=comet_logger)
 
 To use multiple loggers, simply pass in a ``list`` or ``tuple`` of loggers.
 
-.. testcode::
-    :skipif: (not _TENSORBOARD_AVAILABLE and not _TENSORBOARDX_AVAILABLE) or not _COMET_AVAILABLE
+.. code-block:: python
 
     tb_logger = pl_loggers.TensorBoardLogger(save_dir="logs/")
     comet_logger = pl_loggers.CometLogger(save_dir="logs/")
@@ -106,7 +104,7 @@ Lightning offers automatic log functionalities for logging scalars, or manual lo
 Automatic Logging
 =================
 
-Use the :meth:`~lightning.pytorch.core.module.LightningModule.log` or :meth:`~lightning.pytorch.core.module.LightningModule.log_dict`
+Use the :meth:`~lightning.pytorch.core.LightningModule.log` or :meth:`~lightning.pytorch.core.LightningModule.log_dict`
 methods to log from anywhere in a :doc:`LightningModule <../common/lightning_module>` and :doc:`callbacks <../extensions/callbacks>`.
 
 .. code-block:: python
@@ -120,30 +118,30 @@ methods to log from anywhere in a :doc:`LightningModule <../common/lightning_mod
         self.log_dict({"acc": acc, "recall": recall})
 
 .. note::
-    Everything explained below applies to both :meth:`~lightning.pytorch.core.module.LightningModule.log` or :meth:`~lightning.pytorch.core.module.LightningModule.log_dict` methods.
+    Everything explained below applies to both :meth:`~lightning.pytorch.core.LightningModule.log` or :meth:`~lightning.pytorch.core.LightningModule.log_dict` methods.
 
-Depending on where the :meth:`~lightning.pytorch.core.module.LightningModule.log` method is called, Lightning auto-determines
+Depending on where the :meth:`~lightning.pytorch.core.LightningModule.log` method is called, Lightning auto-determines
 the correct logging mode for you. Of course you can override the default behavior by manually setting the
-:meth:`~lightning.pytorch.core.module.LightningModule.log` parameters.
+:meth:`~lightning.pytorch.core.LightningModule.log` parameters.
 
 .. code-block:: python
 
     def training_step(self, batch, batch_idx):
         self.log("my_loss", loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
 
-The :meth:`~lightning.pytorch.core.module.LightningModule.log` method has a few options:
+The :meth:`~lightning.pytorch.core.LightningModule.log` method has a few options:
 
 * ``on_step``: Logs the metric at the current step.
 * ``on_epoch``: Automatically accumulates and logs at the end of the epoch.
 * ``prog_bar``: Logs to the progress bar (Default: ``False``).
 * ``logger``: Logs to the logger like ``Tensorboard``, or any other custom logger passed to the :class:`~lightning.pytorch.trainer.trainer.Trainer` (Default: ``True``).
-* ``reduce_fx``: Reduction function over step values for end of epoch. Uses :meth:`torch.mean` by default and is not applied when a :class:`torchmetrics.Metric` is logged.
+* ``reduce_fx``: Reduction function over step values for end of epoch. Uses :func:`torch.mean` by default and is not applied when a :class:`torchmetrics.Metric` is logged.
 * ``enable_graph``: If True, will not auto detach the graph.
 * ``sync_dist``: If True, reduces the metric across devices. Use with care as this may lead to a significant communication overhead.
 * ``sync_dist_group``: The DDP group to sync across.
 * ``add_dataloader_idx``: If True, appends the index of the current dataloader to the name (when using multiple dataloaders). If False, user needs to give unique names for each dataloader to not mix the values.
 * ``batch_size``: Current batch size used for accumulating logs logged with ``on_epoch=True``. This will be directly inferred from the loaded batch, but for some data structures you might need to explicitly provide it.
-* ``rank_zero_only``: Whether the value will be logged only on rank 0. This will prevent synchronization which would produce a deadlock as not all processes would perform this log call.
+* ``rank_zero_only``: Set this to ``True`` only if you call ``self.log`` explicitly only from rank 0. If ``True`` you won't be able to access or specify this metric in callbacks (e.g. early stopping).
 
 .. list-table:: Default behavior of logging in Callback or LightningModule
    :widths: 50 25 25
@@ -301,7 +299,7 @@ Individual logger implementations determine their flushing frequency. For exampl
 Progress Bar
 ************
 
-You can add any metric to the progress bar using :meth:`~lightning.pytorch.core.module.LightningModule.log`
+You can add any metric to the progress bar using :meth:`~lightning.pytorch.core.LightningModule.log`
 method, setting ``prog_bar=True``.
 
 

@@ -20,6 +20,8 @@ Monitors and logs device stats during training.
 """
 from typing import Any, Dict, Optional
 
+from typing_extensions import override
+
 import lightning.pytorch as pl
 from lightning.pytorch.accelerators.cpu import _PSUTIL_AVAILABLE
 from lightning.pytorch.callbacks.callback import Callback
@@ -28,10 +30,8 @@ from lightning.pytorch.utilities.types import STEP_OUTPUT
 
 
 class DeviceStatsMonitor(Callback):
-    r"""
-    Automatically monitors and logs device stats during training, validation and testing stage.
-    ``DeviceStatsMonitor`` is a special callback as it requires a ``logger`` to passed as argument
-    to the ``Trainer``.
+    r"""Automatically monitors and logs device stats during training, validation and testing stage.
+    ``DeviceStatsMonitor`` is a special callback as it requires a ``logger`` to passed as argument to the ``Trainer``.
 
     Args:
         cpu_stats: if ``None``, it will log CPU stats only if the accelerator is CPU.
@@ -50,11 +50,13 @@ class DeviceStatsMonitor(Callback):
         from lightning.pytorch.callbacks import DeviceStatsMonitor
         device_stats = DeviceStatsMonitor()
         trainer = Trainer(callbacks=[device_stats])
+
     """
 
     def __init__(self, cpu_stats: Optional[bool] = None) -> None:
         self._cpu_stats = cpu_stats
 
+    @override
     def setup(
         self,
         trainer: "pl.Trainer",
@@ -96,16 +98,19 @@ class DeviceStatsMonitor(Callback):
             prefixed_device_stats = _prefix_metric_keys(device_stats, f"{self.__class__.__qualname__}.{key}", separator)
             logger.log_metrics(prefixed_device_stats, step=trainer.fit_loop.epoch_loop._batches_that_stepped)
 
+    @override
     def on_train_batch_start(
         self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", batch: Any, batch_idx: int
     ) -> None:
         self._get_and_log_device_stats(trainer, "on_train_batch_start")
 
+    @override
     def on_train_batch_end(
         self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", outputs: STEP_OUTPUT, batch: Any, batch_idx: int
     ) -> None:
         self._get_and_log_device_stats(trainer, "on_train_batch_end")
 
+    @override
     def on_validation_batch_start(
         self,
         trainer: "pl.Trainer",
@@ -116,6 +121,7 @@ class DeviceStatsMonitor(Callback):
     ) -> None:
         self._get_and_log_device_stats(trainer, "on_validation_batch_start")
 
+    @override
     def on_validation_batch_end(
         self,
         trainer: "pl.Trainer",
@@ -127,6 +133,7 @@ class DeviceStatsMonitor(Callback):
     ) -> None:
         self._get_and_log_device_stats(trainer, "on_validation_batch_end")
 
+    @override
     def on_test_batch_start(
         self,
         trainer: "pl.Trainer",
@@ -137,6 +144,7 @@ class DeviceStatsMonitor(Callback):
     ) -> None:
         self._get_and_log_device_stats(trainer, "on_test_batch_start")
 
+    @override
     def on_test_batch_end(
         self,
         trainer: "pl.Trainer",

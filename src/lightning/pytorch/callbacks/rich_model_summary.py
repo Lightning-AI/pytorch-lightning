@@ -13,17 +13,15 @@
 # limitations under the License.
 from typing import Any, List, Tuple
 
+from typing_extensions import override
+
 from lightning.pytorch.callbacks import ModelSummary
 from lightning.pytorch.callbacks.progress.rich_progress import _RICH_AVAILABLE
 from lightning.pytorch.utilities.model_summary import get_human_readable_count
 
-if _RICH_AVAILABLE:  # type: ignore[has-type]
-    from rich import get_console
-    from rich.table import Table
-
 
 class RichModelSummary(ModelSummary):
-    r"""Generates a summary of all layers in a :class:`~lightning.pytorch.core.module.LightningModule` with `rich text
+    r"""Generates a summary of all layers in a :class:`~lightning.pytorch.core.LightningModule` with `rich text
     formatting <https://github.com/Textualize/rich>`_.
 
     Install it with pip:
@@ -67,6 +65,7 @@ class RichModelSummary(ModelSummary):
         super().__init__(max_depth, **summarize_kwargs)
 
     @staticmethod
+    @override
     def summarize(
         summary_data: List[Tuple[str, List[str]]],
         total_parameters: int,
@@ -74,6 +73,9 @@ class RichModelSummary(ModelSummary):
         model_size: float,
         **summarize_kwargs: Any,
     ) -> None:
+        from rich import get_console
+        from rich.table import Table
+
         console = get_console()
 
         header_style: str = summarize_kwargs.get("header_style", "bold magenta")

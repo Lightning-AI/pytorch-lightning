@@ -58,7 +58,7 @@ Install this App by typing:
 
     lightning install app lightning/quick-start
 
-Verify the App was succesfully installed:
+Verify the App was successfully installed:
 
 .. code-block:: bash
 

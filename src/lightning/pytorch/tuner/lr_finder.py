@@ -16,10 +16,11 @@ import logging
 import os
 import uuid
 from copy import deepcopy
-from typing import Any, cast, Dict, List, Optional, TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Union, cast
 
 import torch
 from lightning_utilities.core.imports import RequirementCache
+from typing_extensions import override
 
 import lightning.pytorch as pl
 from lightning.fabric.utilities.types import _TORCH_LRSCHEDULER
@@ -27,7 +28,7 @@ from lightning.pytorch.callbacks import Callback
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.parsing import lightning_hasattr, lightning_setattr
 from lightning.pytorch.utilities.rank_zero import rank_zero_warn
-from lightning.pytorch.utilities.types import LRScheduler, LRSchedulerConfig, STEP_OUTPUT
+from lightning.pytorch.utilities.types import STEP_OUTPUT, LRScheduler, LRSchedulerConfig
 
 # check if ipywidgets is installed before importing tqdm.auto
 # to ensure it won't fail and a progress bar is displayed
@@ -36,10 +37,11 @@ if importlib.util.find_spec("ipywidgets") is not None:
 else:
     from tqdm import tqdm
 
-_MATPLOTLIB_AVAILABLE = RequirementCache("matplotlib")
-if TYPE_CHECKING and _MATPLOTLIB_AVAILABLE:
+if TYPE_CHECKING:
     import matplotlib.pyplot as plt
     from matplotlib.axes import Axes
+
+_MATPLOTLIB_AVAILABLE = RequirementCache("matplotlib")
 log = logging.getLogger(__name__)
 
 
@@ -153,7 +155,7 @@ class _LRFinder:
         if ax is None:
             fig, ax = plt.subplots()
         else:
-            fig = ax.figure
+            fig = ax.figure  # type: ignore[assignment]
 
         # Plot loss as a function of the learning rate
         ax.plot(lrs, losses)
@@ -378,6 +380,7 @@ class _LRCallback(Callback):
         self.progress_bar_refresh_rate = progress_bar_refresh_rate
         self.progress_bar = None
 
+    @override
     def on_train_batch_start(
         self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", batch: Any, batch_idx: int
     ) -> None:
@@ -390,6 +393,7 @@ class _LRCallback(Callback):
 
         self.lrs.append(trainer.lr_scheduler_configs[0].scheduler.lr[0])  # type: ignore[union-attr]
 
+    @override
     def on_train_batch_end(
         self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", outputs: STEP_OUTPUT, batch: Any, batch_idx: int
     ) -> None:
@@ -455,6 +459,8 @@ class _LinearLR(_TORCH_LRSCHEDULER):
         self.num_iter = num_iter
         super().__init__(optimizer, last_epoch)
 
+    # mypy can't follow the _TORCH_LRSCHEDULER TypeAlias, so ignore "no base method" error
+    @override  # type: ignore[misc]
     def get_lr(self) -> List[float]:
         curr_iter = self.last_epoch + 1
         r = curr_iter / self.num_iter
@@ -491,6 +497,8 @@ class _ExponentialLR(_TORCH_LRSCHEDULER):
         self.num_iter = num_iter
         super().__init__(optimizer, last_epoch)
 
+    # mypy can't follow the _TORCH_LRSCHEDULER TypeAlias, so ignore "no base method" error
+    @override  # type: ignore[misc]
     def get_lr(self) -> List[float]:
         curr_iter = self.last_epoch + 1
         r = curr_iter / self.num_iter

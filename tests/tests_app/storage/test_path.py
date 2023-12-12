@@ -2,28 +2,28 @@ import json
 import os
 import pathlib
 import pickle
+import sys
 from re import escape
 from time import sleep
-from unittest import mock, TestCase
+from unittest import TestCase, mock
 from unittest.mock import MagicMock, Mock
 
 import pytest
-
 from lightning.app import LightningApp, LightningFlow, LightningWork
 from lightning.app.runners import MultiProcessRuntime
 from lightning.app.storage.path import (
+    Path,
     _artifacts_path,
     _filesystem,
     _is_lit_path,
     _shared_storage_path,
     _storage_root_dir,
-    Path,
 )
 from lightning.app.storage.requests import _ExistsResponse, _GetResponse
-from lightning.app.testing.helpers import _MockQueue, _RunIf, EmptyWork
+from lightning.app.testing.helpers import EmptyWork, _MockQueue, _RunIf
 from lightning.app.utilities.app_helpers import LightningJSONEncoder
 from lightning.app.utilities.component import _context
-from lightning.app.utilities.imports import _is_s3fs_available
+from lightning.app.utilities.imports import _IS_WINDOWS, _is_s3fs_available
 
 
 def test_path_instantiation():
@@ -162,6 +162,7 @@ def test_path_with_stem_replacement():
     """Test that the ``Path.with_stem`` modifier keep the properties.
 
     This is only available in Python 3.9+.
+
     """
     file = Path("x", "y", "file.txt")
     file._origin = "origin"
@@ -173,8 +174,8 @@ def test_path_with_stem_replacement():
 
 
 def test_path_parents():
-    """Test that the ``Path.parent`` and ``Path.parent`` properties return Paths that inherit the origin and
-    consumer attributes."""
+    """Test that the ``Path.parent`` and ``Path.parent`` properties return Paths that inherit the origin and consumer
+    attributes."""
     path = Path("a", "b", "c", "d")
     path._origin = "origin"
     path._consumer = "consumer"
@@ -376,6 +377,7 @@ class SourceToDestFlow(LightningFlow):
             self.stop()
 
 
+@pytest.mark.skipif(sys.platform == "win32" or sys.platform == "darwin", reason="too slow on Windows or macOs")
 def test_multiprocess_path_in_work_and_flow(tmpdir):
     root = SourceToDestFlow(tmpdir)
     app = LightningApp(root, log_level="debug")
@@ -400,7 +402,8 @@ class DynamicSourceToDestFlow(LightningFlow):
 
 
 # FIXME(alecmerdler): This test is failing...
-@pytest.mark.skip(reason="hanging...")
+@pytest.mark.skipif(_IS_WINDOWS, reason="strange TimeOut exception")
+@pytest.mark.xfail(strict=False, reason="hanging...")
 def test_multiprocess_path_in_work_and_flow_dynamic(tmpdir):
     root = DynamicSourceToDestFlow(tmpdir)
     app = LightningApp(root)

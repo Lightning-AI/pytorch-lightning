@@ -17,30 +17,29 @@ import logging
 import os
 from functools import lru_cache, partial
 from pathlib import Path
-from typing import Any, Callable, ContextManager, Dict, List, Optional, Type, TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, Any, Callable, ContextManager, Dict, List, Optional, Type, Union
 
 import torch
-from torch import nn, Tensor
+from torch import Tensor, nn
 from torch.autograd.profiler import EventList, record_function
+from torch.profiler import ProfilerAction, ProfilerActivity, tensorboard_trace_handler
+from torch.utils.hooks import RemovableHandle
+from typing_extensions import override
 
 from lightning.fabric.accelerators.cuda import is_cuda_available
 from lightning.pytorch.profilers.profiler import Profiler
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning.pytorch.utilities.imports import _KINETO_AVAILABLE
-from lightning.pytorch.utilities.rank_zero import rank_zero_warn, WarningCache
+from lightning.pytorch.utilities.rank_zero import WarningCache, rank_zero_warn
 
 if TYPE_CHECKING:
-    from torch.utils.hooks import RemovableHandle
-
     from lightning.pytorch.core.module import LightningModule
 
-if _KINETO_AVAILABLE:
-    from torch.profiler import ProfilerAction, ProfilerActivity, tensorboard_trace_handler
 
 log = logging.getLogger(__name__)
 warning_cache = WarningCache()
 
 _PROFILER = Union[torch.profiler.profile, torch.autograd.profiler.profile, torch.autograd.profiler.emit_nvtx]
+_KINETO_AVAILABLE = torch.profiler.kineto_available()
 
 
 class RegisterRecordFunction:
@@ -65,7 +64,7 @@ class RegisterRecordFunction:
     def __init__(self, model: nn.Module) -> None:
         self._model = model
         self._records: Dict[str, record_function] = {}
-        self._handles: Dict[str, List["RemovableHandle"]] = {}
+        self._handles: Dict[str, List[RemovableHandle]] = {}
 
     def _start_recording_forward(self, _: nn.Module, input: Tensor, record_name: str) -> Tensor:
         # Add [pl][module] in name for pytorch profiler to recognize
@@ -410,6 +409,7 @@ class PyTorchProfiler(Profiler):
             activities.append(ProfilerActivity.CUDA)
         return activities
 
+    @override
     def start(self, action_name: str) -> None:
         if self.profiler is None:
             # close profiler if it is already opened. might happen if 2 profilers
@@ -439,6 +439,7 @@ class PyTorchProfiler(Profiler):
             recording.__enter__()
             self._recording_map[action_name] = recording
 
+    @override
     def stop(self, action_name: str) -> None:
         if action_name in self._recording_map:
             self._recording_map[action_name].__exit__(None, None, None)
@@ -487,6 +488,7 @@ class PyTorchProfiler(Profiler):
             self.profiler.step()
             self.profiler.add_metadata("Framework", "pytorch-lightning")
 
+    @override
     def summary(self) -> str:
         if not self._profiler_kwargs.get("enabled", True) or self._emit_nvtx:
             return ""
@@ -554,6 +556,7 @@ class PyTorchProfiler(Profiler):
             self._register.__exit__(None, None, None)
             self._register = None
 
+    @override
     def teardown(self, stage: Optional[str]) -> None:
         self._delete_profilers()
 

@@ -13,15 +13,16 @@
 # limitations under the License.
 from contextlib import contextmanager
 from dataclasses import fields
-from typing import Any, Callable, Dict, Generator, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, Generator, List, Optional, Tuple, Union, overload
 from weakref import proxy
 
 import torch
 from torch import optim
 from torch.optim import Optimizer
+from typing_extensions import override
 
 import lightning.pytorch as pl
-from lightning.fabric.utilities.types import _Stateful, Optimizable, ReduceLROnPlateau
+from lightning.fabric.utilities.types import Optimizable, ReduceLROnPlateau, _Stateful
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.model_helpers import is_overridden
 from lightning.pytorch.utilities.rank_zero import rank_zero_warn
@@ -44,15 +45,13 @@ class LightningOptimizer:
     """
 
     def __init__(self, optimizer: Optimizer):
-        self.__class__ = type("Lightning" + optimizer.__class__.__name__, (self.__class__, optimizer.__class__), {})
-
         self._optimizer = optimizer
         self._strategy: Optional[pl.strategies.Strategy] = None
         # to inject logic around the optimizer step, particularly useful with manual optimization
         self._on_before_step = do_nothing_closure
         self._on_after_step = do_nothing_closure
-
-        self.refresh()
+        # imitate the class of the wrapped object to make isinstance checks work
+        self.__class__ = type("Lightning" + optimizer.__class__.__name__, (self.__class__, optimizer.__class__), {})
 
     @property
     def optimizer(self) -> Optimizer:
@@ -80,15 +79,6 @@ class LightningOptimizer:
             lightning_module.toggle_optimizer(self)
             yield
             lightning_module.untoggle_optimizer(self)
-
-    def refresh(self) -> None:
-        """Refreshes the ``__dict__`` so that it matches the internal states in the wrapped optimizer.
-
-        This is only needed to present the user with an updated view in case they inspect the state of this wrapper.
-        """
-        # copy most of the `Optimizer` methods into this instance. `__del__` is skipped in case the optimizer has
-        # implemented custom logic which we would not want to call on destruction of the `LightningOptimizer`
-        self.__dict__.update({k: v for k, v in self.optimizer.__dict__.items() if k not in ("step", "__del__")})
 
     def step(self, closure: Optional[Callable[[], Any]] = None, **kwargs: Any) -> Any:
         """Performs a single optimization step (parameter update).
@@ -174,6 +164,9 @@ class LightningOptimizer:
         lightning_optimizer = optimizer if isinstance(optimizer, LightningOptimizer) else cls(optimizer)
         lightning_optimizer._strategy = proxy(strategy)
         return lightning_optimizer
+
+    def __getattr__(self, item: Any) -> Any:
+        return getattr(self._optimizer, item)
 
 
 def _init_optimizers_and_lr_schedulers(
@@ -387,26 +380,40 @@ def _validate_optim_conf(optim_conf: Dict[str, Any]) -> None:
 
 class _MockOptimizer(Optimizer):
     """The `_MockOptimizer` will be used inplace of an optimizer in the event that `None` is returned from
-    `configure_optimizers`."""
+    :meth:`~lightning.pytorch.core.LightningModule.configure_optimizers`."""
 
     def __init__(self) -> None:
         super().__init__([torch.zeros(1)], {})
 
+    @override
     def add_param_group(self, param_group: Dict[Any, Any]) -> None:
         pass  # Do Nothing
 
+    @override
     def load_state_dict(self, state_dict: Dict[Any, Any]) -> None:
         pass  # Do Nothing
 
+    @override
     def state_dict(self) -> Dict[str, Any]:
         return {}  # Return Empty
 
-    def step(self, closure: Optional[Callable] = None) -> None:
-        if closure is not None:
-            closure()
+    @overload
+    def step(self, closure: None = ...) -> None:
+        ...
 
+    @overload
+    def step(self, closure: Callable[[], float]) -> float:
+        ...
+
+    @override
+    def step(self, closure: Optional[Callable[[], float]] = None) -> Optional[float]:
+        if closure is not None:
+            return closure()
+
+    @override
     def zero_grad(self, set_to_none: Optional[bool] = True) -> None:
         pass  # Do Nothing
 
+    @override
     def __repr__(self) -> str:
         return "No Optimizer"

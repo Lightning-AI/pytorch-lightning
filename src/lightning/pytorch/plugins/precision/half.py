@@ -12,18 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from contextlib import contextmanager
-from typing import Any, Generator, Literal
+from typing import Any, ContextManager, Generator, Literal
 
 import torch
 from lightning_utilities import apply_to_collection
 from torch import Tensor
 from torch.nn import Module
+from typing_extensions import override
 
-from lightning.fabric.plugins.precision.utils import _convert_fp_tensor
-from lightning.pytorch.plugins.precision.precision_plugin import PrecisionPlugin
+from lightning.fabric.plugins.precision.utils import _convert_fp_tensor, _DtypeContextManager
+from lightning.pytorch.plugins.precision.precision import Precision
 
 
-class HalfPrecisionPlugin(PrecisionPlugin):
+class HalfPrecision(Precision):
     """Plugin for training with half precision.
 
     Args:
@@ -37,21 +38,19 @@ class HalfPrecisionPlugin(PrecisionPlugin):
         self.precision = precision
         self._desired_input_dtype = torch.bfloat16 if precision == "bf16-true" else torch.float16
 
+    @override
     def convert_module(self, module: Module) -> Module:
         return module.to(dtype=self._desired_input_dtype)
 
-    @contextmanager
-    def init_context(self) -> Generator[None, None, None]:
-        """A context manager to change the default tensor type when initializing module parameters or tensors.
+    @override
+    def tensor_init_context(self) -> ContextManager:
+        return _DtypeContextManager(self._desired_input_dtype)
 
-        See: :func:`torch.set_default_dtype`
+    @override
+    def module_init_context(self) -> ContextManager:
+        return self.tensor_init_context()
 
-        """
-        default_dtype = torch.get_default_dtype()
-        torch.set_default_dtype(self._desired_input_dtype)
-        yield
-        torch.set_default_dtype(default_dtype)
-
+    @override
     @contextmanager
     def forward_context(self) -> Generator[None, None, None]:
         """A context manager to change the default tensor type when tensors get created during the module's forward.
@@ -61,8 +60,11 @@ class HalfPrecisionPlugin(PrecisionPlugin):
         """
         default_dtype = torch.get_default_dtype()
         torch.set_default_dtype(self._desired_input_dtype)
-        yield
-        torch.set_default_dtype(default_dtype)
+        try:
+            yield
+        finally:
+            torch.set_default_dtype(default_dtype)
 
+    @override
     def convert_input(self, data: Any) -> Any:
         return apply_to_collection(data, function=_convert_fp_tensor, dtype=Tensor, dst_type=self._desired_input_dtype)

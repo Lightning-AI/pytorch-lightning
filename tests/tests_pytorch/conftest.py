@@ -21,15 +21,20 @@ from pathlib import Path
 from typing import List
 from unittest.mock import Mock
 
-import pytest
-import torch.distributed
-
 import lightning.fabric
 import lightning.pytorch
+import pytest
+import torch.distributed
 from lightning.fabric.plugins.environments.lightning import find_free_network_port
-from lightning.fabric.utilities.imports import _IS_WINDOWS, _TORCH_GREATER_EQUAL_1_12
+from lightning.fabric.strategies.launchers.subprocess_script import _ChildProcessObserver
+from lightning.fabric.utilities.distributed import _distributed_is_initialized
+from lightning.fabric.utilities.imports import _IS_WINDOWS
 from lightning.pytorch.trainer.connectors.signal_connector import _SignalConnector
+
 from tests_pytorch import _PATH_DATASETS
+
+if sys.version_info >= (3, 9):
+    from concurrent.futures.process import _ExecutorManagerThread
 
 
 @pytest.fixture(scope="session")
@@ -40,12 +45,16 @@ def datadir():
 @pytest.fixture(autouse=True)
 def preserve_global_rank_variable():
     """Ensures that the rank_zero_only.rank global variable gets reset in each test."""
-    from lightning.pytorch.utilities.rank_zero import rank_zero_only
+    from lightning.fabric.utilities.rank_zero import rank_zero_only as rank_zero_only_fabric
+    from lightning.pytorch.utilities.rank_zero import rank_zero_only as rank_zero_only_pytorch
+    from lightning_utilities.core.rank_zero import rank_zero_only as rank_zero_only_utilities
 
-    rank = getattr(rank_zero_only, "rank", None)
+    functions = (rank_zero_only_pytorch, rank_zero_only_fabric, rank_zero_only_utilities)
+    ranks = [getattr(fn, "rank", None) for fn in functions]
     yield
-    if rank is not None:
-        setattr(rank_zero_only, "rank", rank)
+    for fn, rank in zip(functions, ranks):
+        if rank is not None:
+            setattr(fn, "rank", rank)
 
 
 @pytest.fixture(autouse=True)
@@ -78,6 +87,7 @@ def restore_env_variables():
         "KMP_DUPLICATE_LIB_OK",  # leaked since PyTorch 1.13
         "CRC32C_SW_MODE",  # leaked by tensorboardX
         "TRITON_CACHE_DIR",  # leaked by torch.compile
+        "OMP_NUM_THREADS",  # set by our launchers
         # leaked by XLA
         "ALLOW_MULTIPLE_LIBTPU_LOAD",
         "GRPC_VERBOSITY",
@@ -111,7 +121,7 @@ def restore_signal_handlers():
 def teardown_process_group():
     """Ensures that the distributed process group gets closed before the next test runs."""
     yield
-    if torch.distributed.is_available() and torch.distributed.is_initialized():
+    if _distributed_is_initialized():
         torch.distributed.destroy_process_group()
 
 
@@ -120,6 +130,37 @@ def reset_deterministic_algorithm():
     """Ensures that torch determinism settings are reset before the next test runs."""
     yield
     torch.use_deterministic_algorithms(False)
+
+
+@pytest.fixture(autouse=True)
+def thread_police_duuu_daaa_duuu_daaa():
+    """Attempts to stop left-over threads to avoid test interactions."""
+    active_threads_before = set(threading.enumerate())
+    yield
+    active_threads_after = set(threading.enumerate())
+
+    for thread in active_threads_after - active_threads_before:
+        stop = getattr(thread, "stop", None) or getattr(thread, "exit", None)
+        if thread.daemon and callable(stop):
+            # A daemon thread would anyway be stopped at the end of a program
+            # We do it preemptively here to reduce the risk of interactions with other tests that run after
+            stop()
+            assert not thread.is_alive()
+        elif isinstance(thread, _ChildProcessObserver):
+            thread.join(timeout=10)
+        elif thread.name == "QueueFeederThread":  # tensorboardX
+            thread.join(timeout=20)
+        elif (
+            sys.version_info >= (3, 9)
+            and isinstance(thread, _ExecutorManagerThread)
+            or "ThreadPoolExecutor-" in thread.name
+        ):
+            # probably `torch.compile`, can't narrow it down further
+            continue
+        elif thread.name == "fsspecIO":
+            continue
+        else:
+            raise AssertionError(f"Test left zombie thread: {thread}")
 
 
 def mock_cuda_count(monkeypatch, n: int) -> None:
@@ -148,14 +189,6 @@ def cuda_count_4(monkeypatch):
 
 
 def mock_mps_count(monkeypatch, n: int) -> None:
-    if n > 0 and not _TORCH_GREATER_EQUAL_1_12:
-
-        class MpsDeviceMock:
-            def __new__(cls, self, *args, **kwargs):
-                return "mps"
-
-        # torch doesn't allow creation of mps devices on older versions
-        monkeypatch.setattr("torch.device", MpsDeviceMock)
     monkeypatch.setattr(lightning.fabric.accelerators.mps, "_get_all_available_mps_gpus", lambda: [0] if n > 0 else [])
     monkeypatch.setattr(lightning.fabric.accelerators.mps.MPSAccelerator, "is_available", lambda *_: n > 0)
 
@@ -178,7 +211,6 @@ def mock_xla_available(monkeypatch: pytest.MonkeyPatch, value: bool = True) -> N
     monkeypatch.setattr(lightning.fabric.accelerators.xla, "_XLA_AVAILABLE", value)
     monkeypatch.setattr(lightning.fabric.plugins.environments.xla, "_XLA_AVAILABLE", value)
     monkeypatch.setattr(lightning.fabric.plugins.io.xla, "_XLA_AVAILABLE", value)
-    monkeypatch.setattr(lightning.fabric.strategies.xla, "_XLA_AVAILABLE", value)
     monkeypatch.setattr(lightning.fabric.strategies.launchers.xla, "_XLA_AVAILABLE", value)
 
 
@@ -252,7 +284,7 @@ def single_process_pg():
     The process group is destroyed when the with block is exited.
 
     """
-    if torch.distributed.is_initialized():
+    if _distributed_is_initialized():
         raise RuntimeError("Can't use `single_process_pg` when the default process group is already initialized.")
 
     orig_environ = os.environ.copy()

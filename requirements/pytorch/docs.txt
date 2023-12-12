@@ -1,7 +1,7 @@
 -r ../docs.txt
 
+nbformat  # used for generate empty notebook
 ipython[notebook] <8.7.0
 setuptools<58.0  # workaround for `error in ipython setup command: use_2to3 is invalid.`
-pt-lightning-sphinx-theme @ https://github.com/Lightning-AI/lightning_sphinx_theme/archive/master.zip
 
 -r ../../_notebooks/.actions/requires.txt

@@ -31,7 +31,7 @@ Configure all aspects of Lightning for advanced usecases.
 
 .. displayitem::
    :header: Level 16: Own the training loop
-   :description: Learn all the ways of owning your raw PyTorch loops with Lighting.
+   :description: Learn all the ways of owning your raw PyTorch loops with Lightning.
    :col_css: col-md-6
    :button_link: advanced_level_17.html
    :height: 150

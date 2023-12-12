@@ -16,9 +16,10 @@ import csv
 import logging
 import os
 from argparse import Namespace
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Set, Union
 
 from torch import Tensor
+from typing_extensions import override
 
 from lightning.fabric.loggers.logger import Logger, rank_zero_experiment
 from lightning.fabric.utilities.cloud_io import _is_dir, get_filesystem
@@ -73,6 +74,7 @@ class CSVLogger(Logger):
         self._flush_logs_every_n_steps = flush_logs_every_n_steps
 
     @property
+    @override
     def name(self) -> str:
         """Gets the name of the experiment.
 
@@ -83,6 +85,7 @@ class CSVLogger(Logger):
         return self._name
 
     @property
+    @override
     def version(self) -> Union[int, str]:
         """Gets the version of the experiment.
 
@@ -95,11 +98,13 @@ class CSVLogger(Logger):
         return self._version
 
     @property
+    @override
     def root_dir(self) -> str:
         """Gets the save directory where the versioned CSV experiments are saved."""
         return self._root_dir
 
     @property
+    @override
     def log_dir(self) -> str:
         """The log directory for this run.
 
@@ -128,10 +133,12 @@ class CSVLogger(Logger):
         self._experiment = _ExperimentWriter(log_dir=self.log_dir)
         return self._experiment
 
+    @override
     @rank_zero_only
     def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:  # type: ignore[override]
         raise NotImplementedError("The `CSVLogger` does not yet support logging hyperparameters.")
 
+    @override
     @rank_zero_only
     def log_metrics(  # type: ignore[override]
         self, metrics: Dict[str, Union[Tensor, float]], step: Optional[int] = None
@@ -143,11 +150,13 @@ class CSVLogger(Logger):
         if (step + 1) % self._flush_logs_every_n_steps == 0:
             self.save()
 
+    @override
     @rank_zero_only
     def save(self) -> None:
         super().save()
         self.experiment.save()
 
+    @override
     @rank_zero_only
     def finalize(self, status: str) -> None:
         if self._experiment is None:
@@ -168,7 +177,9 @@ class CSVLogger(Logger):
             full_path = d["name"]
             name = os.path.basename(full_path)
             if _is_dir(self._fs, full_path) and name.startswith("version_"):
-                existing_versions.append(int(name.split("_")[1]))
+                dir_ver = name.split("_")[1]
+                if dir_ver.isdigit():
+                    existing_versions.append(int(dir_ver))
 
         if len(existing_versions) == 0:
             return 0
@@ -188,6 +199,7 @@ class _ExperimentWriter:
 
     def __init__(self, log_dir: str) -> None:
         self.metrics: List[Dict[str, float]] = []
+        self.metrics_keys: List[str] = []
 
         self._fs = get_filesystem(log_dir)
         self.log_dir = log_dir
@@ -220,12 +232,34 @@ class _ExperimentWriter:
         if not self.metrics:
             return
 
-        last_m = {}
-        for m in self.metrics:
-            last_m.update(m)
-        metrics_keys = list(last_m.keys())
+        new_keys = self._record_new_keys()
+        file_exists = self._fs.isfile(self.metrics_file_path)
 
-        with self._fs.open(self.metrics_file_path, "w", newline="") as f:
-            writer = csv.DictWriter(f, fieldnames=metrics_keys)
-            writer.writeheader()
+        if new_keys and file_exists:
+            # we need to re-write the file if the keys (header) change
+            self._rewrite_with_new_header(self.metrics_keys)
+
+        with self._fs.open(self.metrics_file_path, mode=("a" if file_exists else "w"), newline="") as file:
+            writer = csv.DictWriter(file, fieldnames=self.metrics_keys)
+            if not file_exists:
+                # only write the header if we're writing a fresh file
+                writer.writeheader()
             writer.writerows(self.metrics)
+
+        self.metrics = []  # reset
+
+    def _record_new_keys(self) -> Set[str]:
+        """Records new keys that have not been logged before."""
+        current_keys = set().union(*self.metrics)
+        new_keys = current_keys - set(self.metrics_keys)
+        self.metrics_keys.extend(new_keys)
+        return new_keys
+
+    def _rewrite_with_new_header(self, fieldnames: List[str]) -> None:
+        with self._fs.open(self.metrics_file_path, "r", newline="") as file:
+            metrics = list(csv.DictReader(file))
+
+        with self._fs.open(self.metrics_file_path, "w", newline="") as file:
+            writer = csv.DictWriter(file, fieldnames=fieldnames)
+            writer.writeheader()
+            writer.writerows(metrics)

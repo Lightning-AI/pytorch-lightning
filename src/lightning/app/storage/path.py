@@ -18,7 +18,7 @@ import pathlib
 import shutil
 import sys
 from time import sleep
-from typing import Any, List, Optional, Sequence, TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, Any, List, Optional, Sequence, Union
 
 from fsspec import AbstractFileSystem
 from fsspec.implementations.local import LocalFileSystem
@@ -62,6 +62,7 @@ class Path(PathlibPath):
 
         The Lightning Path overrides this to validate the instantiation in the case parts are passed in individually. In
         such a case we need to validate that all parts have the same `origin` and if not, an error is raised.
+
         """
         if args and isinstance(args[0], str) and args[0].startswith("lit://"):
             parts = list(args)

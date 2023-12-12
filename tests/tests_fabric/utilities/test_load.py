@@ -11,10 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import pytest
 import torch
 import torch.nn as nn
+from lightning.fabric.utilities.load import _lazy_load, _materialize_tensors, _move_state_into, _NotYetLoadedTensor
 
-from lightning.fabric.utilities.load import _lazy_load, _materialize_tensors, _NotYetLoadedTensor
 from tests_fabric.helpers.runif import RunIf
 
 
@@ -28,7 +29,7 @@ def test_lazy_load_module(tmp_path):
     model1.load_state_dict(checkpoint)
 
     assert isinstance(checkpoint["weight"], _NotYetLoadedTensor)
-    assert type(model0.weight.data) == torch.Tensor
+    assert type(model0.weight.data) is torch.Tensor
     assert torch.equal(model0.weight, model1.weight)
     assert torch.equal(model0.bias, model1.bias)
 
@@ -77,6 +78,12 @@ def test_lazy_load_mixed_state(tmp_path):
 
 
 @RunIf(min_torch="2.0.0")
+def test_lazy_load_raises():
+    with pytest.raises(FileNotFoundError, match="foo' does not exist"):
+        _lazy_load("foo")
+
+
+@RunIf(min_torch="2.0.0")
 def test_materialize_tensors(tmp_path):
     # Single tensor
     tensor = torch.tensor([1, 2])
@@ -98,3 +105,37 @@ def test_materialize_tensors(tmp_path):
     assert torch.equal(materialized["nested"]["list"][0], collection["nested"]["list"][0])
     assert torch.equal(materialized["nested"]["list"][1], collection["nested"]["list"][1])
     assert materialized["nested"]["int"] == 1
+
+
+def test_move_state_into():
+    # all keys from the source
+    source = {"apple": 1, "cocofruit": 2}
+    destination = {"banana": 100}
+    _move_state_into(source, destination)
+    assert source == {}
+    assert destination == {"apple": 1, "cocofruit": 2, "banana": 100}
+
+    # subset of keys from the source
+    source = {"apple": 1, "cocofruit": 2}
+    destination = {"banana": 100}
+    keys = {"apple"}
+    _move_state_into(source, destination, keys=keys)
+    assert source == {"cocofruit": 2}
+    assert destination == {"apple": 1, "banana": 100}
+
+    # with stateful objects in destination
+    class Fruit:
+        count = 1
+
+        def state_dict(self):
+            return {"count": self.count}
+
+        def load_state_dict(self, state_dict):
+            self.count = state_dict["count"]
+
+    source = {"cocofruit": 2, "banana": {"count": 100}}
+    destination = {"banana": Fruit()}
+    _move_state_into(source, destination)
+    assert source == {}
+    assert destination["cocofruit"] == 2
+    assert destination["banana"].count == 100

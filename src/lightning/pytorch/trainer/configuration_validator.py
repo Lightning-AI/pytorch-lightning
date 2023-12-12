@@ -16,7 +16,7 @@ import lightning.pytorch as pl
 from lightning.fabric.utilities.warnings import PossibleUserWarning
 from lightning.pytorch.trainer.states import TrainerFn
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning.pytorch.utilities.imports import _lightning_graphcore_available
+from lightning.pytorch.utilities.imports import _graphcore_available_and_importable
 from lightning.pytorch.utilities.model_helpers import is_overridden
 from lightning.pytorch.utilities.rank_zero import rank_zero_deprecation, rank_zero_warn
 from lightning.pytorch.utilities.signature_utils import is_param_in_hook_signature
@@ -36,7 +36,6 @@ def _verify_loop_configurations(trainer: "pl.Trainer") -> None:
     if trainer.state.fn == TrainerFn.FITTING:
         __verify_train_val_loop_configuration(trainer, model)
         __verify_manual_optimization_support(trainer, model)
-        __check_training_step_requires_dataloader_iter(model)
     elif trainer.state.fn == TrainerFn.VALIDATING:
         __verify_eval_loop_configuration(model, "val")
     elif trainer.state.fn == TrainerFn.TESTING:
@@ -47,6 +46,8 @@ def _verify_loop_configurations(trainer: "pl.Trainer") -> None:
     __verify_batch_transfer_support(trainer)
 
     __verify_configure_model_configuration(model)
+
+    __warn_dataloader_iter_limitations(model)
 
 
 def __verify_train_val_loop_configuration(trainer: "pl.Trainer", model: "pl.LightningModule") -> None:
@@ -124,7 +125,7 @@ def __verify_batch_transfer_support(trainer: "pl.Trainer") -> None:
     datahook_selector = trainer._data_connector._datahook_selector
     assert datahook_selector is not None
     for hook in batch_transfer_hooks:
-        if _lightning_graphcore_available():
+        if _graphcore_available_and_importable():
             from lightning_graphcore import IPUAccelerator
 
             # TODO: This code could be done in a hook in the IPUAccelerator as it's a simple error check
@@ -152,16 +153,21 @@ def __verify_manual_optimization_support(trainer: "pl.Trainer", model: "pl.Light
         )
 
 
-def __check_training_step_requires_dataloader_iter(model: "pl.LightningModule") -> None:
-    """Check if the current `training_step` is requesting `dataloader_iter`."""
-    if is_param_in_hook_signature(model.training_step, "dataloader_iter", explicit=True):
-        for hook in ("on_train_batch_start", "on_train_batch_end"):
-            if is_overridden(hook, model):
-                rank_zero_warn(
-                    f"The `batch_idx` argument in `{type(model).__name__}.{hook}` hook may"
-                    " not match with the actual batch index when using a `dataloader_iter`"
-                    " argument in your `training_step`."
-                )
+def __warn_dataloader_iter_limitations(model: "pl.LightningModule") -> None:
+    """Check if `dataloader_iter is enabled`."""
+    if any(
+        is_param_in_hook_signature(step_fn, "dataloader_iter", explicit=True)
+        for step_fn in (model.training_step, model.validation_step, model.predict_step, model.test_step)
+        if step_fn is not None
+    ):
+        rank_zero_warn(
+            "You are using the `dataloader_iter` step flavor. If you consume the iterator more than once per step, the"
+            " `batch_idx` argument in any hook that takes it will not match with the batch index of the last batch"
+            " consumed. This might have unforeseen effects on callbacks or code that expects to get the correct index."
+            " This will also not work well with gradient accumulation. This feature is very experimental and subject to"
+            " change. Here be dragons.",
+            category=PossibleUserWarning,
+        )
 
 
 def __verify_configure_model_configuration(model: "pl.LightningModule") -> None:

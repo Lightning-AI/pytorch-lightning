@@ -13,24 +13,32 @@
 # limitations under the License.
 import os
 import sys
+import threading
 from typing import List
 from unittest.mock import Mock
 
+import lightning.fabric
 import pytest
 import torch.distributed
+from lightning.fabric.strategies.launchers.subprocess_script import _ChildProcessObserver
+from lightning.fabric.utilities.distributed import _distributed_is_initialized
 
-import lightning.fabric
+if sys.version_info >= (3, 9):
+    from concurrent.futures.process import _ExecutorManagerThread
 
 
 @pytest.fixture(autouse=True)
 def preserve_global_rank_variable():
     """Ensures that the rank_zero_only.rank global variable gets reset in each test."""
-    from lightning.fabric.utilities.rank_zero import rank_zero_only
+    from lightning.fabric.utilities.rank_zero import rank_zero_only as rank_zero_only_fabric
+    from lightning_utilities.core.rank_zero import rank_zero_only as rank_zero_only_utilities
 
-    rank = getattr(rank_zero_only, "rank", None)
+    functions = (rank_zero_only_fabric, rank_zero_only_utilities)
+    ranks = [getattr(fn, "rank", None) for fn in functions]
     yield
-    if rank is not None:
-        setattr(rank_zero_only, "rank", rank)
+    for fn, rank in zip(functions, ranks):
+        if rank is not None:
+            setattr(fn, "rank", rank)
 
 
 @pytest.fixture(autouse=True)
@@ -57,9 +65,12 @@ def restore_env_variables():
         "POPLAR_ENGINE_OPTIONS",  # set by IPUStrategy
         "CUDA_MODULE_LOADING",  # leaked since PyTorch 1.13
         "CRC32C_SW_MODE",  # set by tensorboardX
+        "OMP_NUM_THREADS",  # set by our launchers
         # set by XLA FSDP on XRT
         "XRT_TORCH_DIST_ROOT",
         "XRT_MESH_SERVICE_ADDRESS",
+        # set by torchdynamo
+        "TRITON_CACHE_DIR",
     }
     leaked_vars.difference_update(allowlist)
     assert not leaked_vars, f"test is leaking environment variable(s): {set(leaked_vars)}"
@@ -69,8 +80,37 @@ def restore_env_variables():
 def teardown_process_group():
     """Ensures that the distributed process group gets closed before the next test runs."""
     yield
-    if torch.distributed.is_available() and torch.distributed.is_initialized():
+    if _distributed_is_initialized():
         torch.distributed.destroy_process_group()
+
+
+@pytest.fixture(autouse=True)
+def thread_police_duuu_daaa_duuu_daaa():
+    """Attempts to stop left-over threads to avoid test interactions."""
+    active_threads_before = set(threading.enumerate())
+    yield
+    active_threads_after = set(threading.enumerate())
+
+    for thread in active_threads_after - active_threads_before:
+        stop = getattr(thread, "stop", None) or getattr(thread, "exit", None)
+        if thread.daemon and callable(stop):
+            # A daemon thread would anyway be stopped at the end of a program
+            # We do it preemptively here to reduce the risk of interactions with other tests that run after
+            stop()
+            assert not thread.is_alive()
+        elif isinstance(thread, _ChildProcessObserver):
+            thread.join(timeout=10)
+        elif thread.name == "QueueFeederThread":  # tensorboardX
+            thread.join(timeout=20)
+        elif (
+            sys.version_info >= (3, 9)
+            and isinstance(thread, _ExecutorManagerThread)
+            or "ThreadPoolExecutor-" in thread.name
+        ):
+            # probably `torch.compile`, can't narrow it down further
+            continue
+        else:
+            raise AssertionError(f"Test left zombie thread: {thread}")
 
 
 @pytest.fixture()
@@ -92,8 +132,9 @@ def mock_xla_available(monkeypatch: pytest.MonkeyPatch, value: bool = True) -> N
     monkeypatch.setattr(lightning.fabric.accelerators.xla, "_XLA_AVAILABLE", value)
     monkeypatch.setattr(lightning.fabric.plugins.environments.xla, "_XLA_AVAILABLE", value)
     monkeypatch.setattr(lightning.fabric.plugins.precision.xla, "_XLA_AVAILABLE", value)
+    monkeypatch.setattr(lightning.fabric.plugins.io.xla, "_XLA_AVAILABLE", value)
     monkeypatch.setattr(lightning.fabric.strategies.single_xla, "_XLA_AVAILABLE", value)
-    monkeypatch.setattr(lightning.fabric.strategies.xla, "_XLA_AVAILABLE", value)
+    monkeypatch.setattr(lightning.fabric.strategies.xla_fsdp, "_XLA_AVAILABLE", value)
     monkeypatch.setattr(lightning.fabric.strategies.launchers.xla, "_XLA_AVAILABLE", value)
     monkeypatch.setitem(sys.modules, "torch_xla", Mock())
     monkeypatch.setitem(sys.modules, "torch_xla.core.xla_model", Mock())

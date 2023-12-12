@@ -17,6 +17,7 @@ from dataclasses import dataclass, field
 from typing import Any, Dict
 
 from torch import Tensor
+from typing_extensions import override
 
 import lightning.pytorch as pl
 from lightning.pytorch.core.optimizer import do_nothing_closure
@@ -32,10 +33,11 @@ from lightning.pytorch.utilities.types import STEP_OUTPUT
 class ManualResult(OutputResult):
     """A container to hold the result returned by ``_ManualOptimization``.
 
-    It is created from the output of :meth:`~lightning.pytorch.core.module.LightningModule.training_step`.
+    It is created from the output of :meth:`~lightning.pytorch.core.LightningModule.training_step`.
 
     Attributes:
         extra: Anything returned by the ``training_step``.
+
     """
 
     extra: Dict[str, Any] = field(default_factory=dict)
@@ -58,6 +60,7 @@ class ManualResult(OutputResult):
 
         return cls(extra=extra)
 
+    @override
     def asdict(self) -> Dict[str, Any]:
         return self.extra
 
@@ -67,11 +70,11 @@ _OUTPUTS_TYPE = Dict[str, Any]
 
 class _ManualOptimization(_Loop):
     """A special loop implementing what is known in Lightning as Manual Optimization where the optimization happens
-    entirely in the :meth:`~lightning.pytorch.core.module.LightningModule.training_step` and therefore the user is
-    responsible for back-propagating gradients and making calls to the optimizers.
+    entirely in the :meth:`~lightning.pytorch.core.LightningModule.training_step` and therefore the user is responsible
+    for back-propagating gradients and making calls to the optimizers.
 
     This loop is a trivial case because it performs only a single iteration (calling directly into the module's
-    :meth:`~lightning.pytorch.core.module.LightningModule.training_step`) and passing through the output(s).
+    :meth:`~lightning.pytorch.core.LightningModule.training_step`) and passing through the output(s).
 
     """
 

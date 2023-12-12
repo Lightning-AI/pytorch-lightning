@@ -1,7 +1,5 @@
 :orphan:
 
-.. _gpu_prepare:
-
 ########################################
 Hardware agnostic training (preparation)
 ########################################
@@ -50,7 +48,7 @@ This will make your code scale to any arbitrary number of GPUs or TPUs with Ligh
         z = torch.Tensor(2, 3)
         z = z.to(x)
 
-The :class:`~lightning.pytorch.core.module.LightningModule` knows what device it is on. You can access the reference via ``self.device``.
+The :class:`~lightning.pytorch.core.LightningModule` knows what device it is on. You can access the reference via ``self.device``.
 Sometimes it is necessary to store tensors as module attributes. However, if they are not parameters they will
 remain on the CPU even if the module gets moved to a new device. To prevent that and remain device agnostic,
 register the tensor as a buffer in your modules' ``__init__`` method with :meth:`~torch.nn.Module.register_buffer`.
@@ -123,13 +121,15 @@ It is possible to perform some computation manually and log the reduced result o
         mean = torch.mean(self.all_gather(self.outputs))
         self.outputs.clear()  # free memory
 
-        # When logging only on rank 0, don't forget to add
+        # When you call `self.log` only on rank 0, don't forget to add
         # `rank_zero_only=True` to avoid deadlocks on synchronization.
-        # caveat: monitoring this is unimplemented. see https://github.com/Lightning-AI/lightning/issues/15852
+        # Caveat: monitoring this is unimplemented, see https://github.com/Lightning-AI/lightning/issues/15852
         if self.trainer.is_global_zero:
             self.log("my_reduced_metric", mean, rank_zero_only=True)
 
+
 ----
+
 
 **********************
 Make models pickleable

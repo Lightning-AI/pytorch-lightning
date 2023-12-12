@@ -17,7 +17,8 @@ import types
 from argparse import Namespace
 from typing import Any, List, MutableMapping, Optional, Sequence, Union
 
-from lightning.pytorch.utilities.parsing import AttributeDict, save_hyperparameters
+from lightning.fabric.utilities.data import AttributeDict
+from lightning.pytorch.utilities.parsing import save_hyperparameters
 
 _PRIMITIVE_TYPES = (bool, int, float, str)
 _ALLOWED_CONFIG_TYPES = (AttributeDict, MutableMapping, Namespace)
@@ -101,6 +102,7 @@ class HyperparametersMixin:
             >>> model.hparams
             "arg1": 1
             "arg3": 3.14
+
         """
         self._log_hyperparams = logger
         # the frame needs to be created in this file.

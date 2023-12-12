@@ -1,5 +1,4 @@
 import pytest
-
 from lightning.app import LightningFlow, LightningWork
 from lightning.app.testing.helpers import EmptyFlow, EmptyWork
 from lightning.app.utilities.tree import breadth_first

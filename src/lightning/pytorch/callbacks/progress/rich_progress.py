@@ -14,9 +14,10 @@
 import math
 from dataclasses import dataclass
 from datetime import timedelta
-from typing import Any, cast, Dict, Generator, Optional, Union
+from typing import Any, Dict, Generator, Optional, Union, cast
 
 from lightning_utilities.core.imports import RequirementCache
+from typing_extensions import override
 
 import lightning.pytorch as pl
 from lightning.pytorch.callbacks.progress.progress_bar import ProgressBar
@@ -33,8 +34,8 @@ if _RICH_AVAILABLE:
     from rich.text import Text
 
     class CustomBarColumn(BarColumn):
-        """Overrides ``BarColumn`` to provide support for dataloaders that do not define a size (infinite size)
-        such as ``IterableDataset``."""
+        """Overrides ``BarColumn`` to provide support for dataloaders that do not define a size (infinite size) such as
+        ``IterableDataset``."""
 
         def render(self, task: "Task") -> _RichProgressBar:
             """Gets a progress bar widget for a task."""
@@ -57,6 +58,7 @@ if _RICH_AVAILABLE:
         """Overrides ``Task`` to define an infinite task.
 
         This is useful for datasets that do not define a size (infinite size) such as ``IterableDataset``.
+
         """
 
         @property
@@ -141,7 +143,7 @@ if _RICH_AVAILABLE:
             trainer: "pl.Trainer",
             style: Union[str, "Style"],
             text_delimiter: str,
-            metrics_format: Union[str, None],
+            metrics_format: str,
         ):
             self._trainer = trainer
             self._tasks: Dict[Union[int, TaskID], Any] = {}
@@ -182,7 +184,7 @@ if _RICH_AVAILABLE:
         def _generate_metrics_texts(self) -> Generator[str, None, None]:
             for name, value in self._metrics.items():
                 if not isinstance(value, str):
-                    value = round(value, 3) if self._metrics_format is None else f"{value:{self._metrics_format}}"
+                    value = f"{value:{self._metrics_format}}"
                 yield f"{name}: {value}"
 
 else:
@@ -216,7 +218,7 @@ class RichProgressBarTheme:
     processing_speed: Union[str, Style] = "grey70"
     metrics: Union[str, Style] = "white"
     metrics_text_delimiter: str = " "
-    metrics_format: Union[str, None] = None
+    metrics_format: str = ".3f"
 
 
 class RichProgressBar(ProgressBar):
@@ -326,9 +328,11 @@ class RichProgressBar(ProgressBar):
                 if getattr(self.theme, attr) == "white":
                     setattr(self.theme, attr, "black")
 
+    @override
     def disable(self) -> None:
         self._enabled = False
 
+    @override
     def enable(self) -> None:
         self._enabled = True
 
@@ -359,27 +363,34 @@ class RichProgressBar(ProgressBar):
         if self.progress:
             self.progress.refresh()
 
+    @override
     def on_train_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         self._init_progress(trainer)
 
+    @override
     def on_predict_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         self._init_progress(trainer)
 
+    @override
     def on_test_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         self._init_progress(trainer)
 
+    @override
     def on_validation_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         self._init_progress(trainer)
 
+    @override
     def on_sanity_check_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         self._init_progress(trainer)
 
+    @override
     def on_sanity_check_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         if self.progress is not None:
             assert self.val_sanity_progress_bar_id is not None
             self.progress.update(self.val_sanity_progress_bar_id, advance=0, visible=False)
         self.refresh()
 
+    @override
     def on_train_epoch_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         if self.is_disabled:
             return
@@ -402,6 +413,7 @@ class RichProgressBar(ProgressBar):
 
         self.refresh()
 
+    @override
     def on_validation_batch_start(
         self,
         trainer: "pl.Trainer",
@@ -461,23 +473,28 @@ class RichProgressBar(ProgressBar):
     def _should_update(self, current: int, total: Union[int, float]) -> bool:
         return current % self.refresh_rate == 0 or current == total
 
+    @override
     def on_validation_epoch_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         if self.is_enabled and self.val_progress_bar_id is not None and trainer.state.fn == "fit":
             assert self.progress is not None
             self.progress.update(self.val_progress_bar_id, advance=0, visible=False)
             self.refresh()
 
+    @override
     def on_validation_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         if trainer.state.fn == "fit":
             self._update_metrics(trainer, pl_module)
         self.reset_dataloader_idx_tracker()
 
+    @override
     def on_test_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         self.reset_dataloader_idx_tracker()
 
+    @override
     def on_predict_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         self.reset_dataloader_idx_tracker()
 
+    @override
     def on_test_batch_start(
         self,
         trainer: "pl.Trainer",
@@ -495,6 +512,7 @@ class RichProgressBar(ProgressBar):
         self.test_progress_bar_id = self._add_task(self.total_test_batches_current_dataloader, self.test_description)
         self.refresh()
 
+    @override
     def on_predict_batch_start(
         self,
         trainer: "pl.Trainer",
@@ -514,6 +532,7 @@ class RichProgressBar(ProgressBar):
         )
         self.refresh()
 
+    @override
     def on_train_batch_end(
         self,
         trainer: "pl.Trainer",
@@ -526,9 +545,11 @@ class RichProgressBar(ProgressBar):
         self._update_metrics(trainer, pl_module)
         self.refresh()
 
+    @override
     def on_train_epoch_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         self._update_metrics(trainer, pl_module)
 
+    @override
     def on_validation_batch_end(
         self,
         trainer: "pl.Trainer",
@@ -546,6 +567,7 @@ class RichProgressBar(ProgressBar):
             self._update(self.val_progress_bar_id, batch_idx + 1)
         self.refresh()
 
+    @override
     def on_test_batch_end(
         self,
         trainer: "pl.Trainer",
@@ -561,6 +583,7 @@ class RichProgressBar(ProgressBar):
         self._update(self.test_progress_bar_id, batch_idx + 1)
         self.refresh()
 
+    @override
     def on_predict_batch_end(
         self,
         trainer: "pl.Trainer",
@@ -604,9 +627,11 @@ class RichProgressBar(ProgressBar):
         if self._metric_component:
             self._metric_component.update(metrics)
 
+    @override
     def teardown(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: str) -> None:
         self._stop_progress()
 
+    @override
     def on_exception(
         self,
         trainer: "pl.Trainer",

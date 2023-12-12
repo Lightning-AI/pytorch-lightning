@@ -20,6 +20,7 @@ import torch.distributed as dist
 from torch import Tensor
 
 import lightning.pytorch as pl
+from lightning.fabric.utilities.distributed import _distributed_is_initialized
 from lightning.fabric.utilities.imports import _TORCH_EQUAL_2_0, _TORCH_GREATER_EQUAL_1_13
 from lightning.fabric.utilities.warnings import PossibleUserWarning
 from lightning.pytorch.accelerators.xla import XLAAccelerator
@@ -131,15 +132,15 @@ def _reset_progress(loop: _Loop) -> None:
             _reset_progress(v)
 
 
-def _select_data_fetcher(trainer: "pl.Trainer") -> _DataFetcher:
+def _select_data_fetcher(trainer: "pl.Trainer", stage: RunningStage) -> _DataFetcher:
     lightning_module = trainer.lightning_module
-    if trainer.testing:
+    if stage == RunningStage.TESTING:
         step_fx_name = "test_step"
-    elif trainer.training:
+    elif stage == RunningStage.TRAINING:
         step_fx_name = "training_step"
-    elif trainer.validating or trainer.sanity_checking:
+    elif stage in (RunningStage.VALIDATING, RunningStage.SANITY_CHECKING):
         step_fx_name = "validation_step"
-    elif trainer.predicting:
+    elif stage == RunningStage.PREDICTING:
         step_fx_name = "predict_step"
     else:
         raise RuntimeError(f"DataFetcher is unsupported for {trainer.state.stage}")
@@ -160,7 +161,7 @@ def _no_grad_context(loop_run: Callable) -> Callable:
         if not hasattr(self, "inference_mode"):
             raise TypeError(f"`{type(self).__name__}.inference_mode` needs to be defined")
         context_manager: Type[ContextManager]
-        if dist.is_available() and dist.is_initialized() and dist.get_backend() == "gloo":  # noqa: SIM114
+        if _distributed_is_initialized() and dist.get_backend() == "gloo":  # noqa: SIM114
             # gloo backend does not work properly.
             # https://github.com/Lightning-AI/lightning/pull/12715/files#r854569110
             # TODO: explore why and possibly open an issue in PyTorch repository
@@ -199,10 +200,9 @@ def _verify_dataloader_idx_requirement(
                         f"`dataloader_idx` in `{type(pl_module).__name__}.{hook}()`. Either remove the"
                         " argument or give it a default value i.e. `dataloader_idx=0`."
                     )
-        else:
-            if not param_present:
-                raise RuntimeError(
-                    f"You provided multiple `{stage.dataloader_prefix}_dataloader`, but no `dataloader_idx`"
-                    f" argument in `{type(pl_module).__name__}.{hook}()`. Try adding `dataloader_idx=0` to its"
-                    " signature."
-                )
+        elif not param_present:
+            raise RuntimeError(
+                f"You provided multiple `{stage.dataloader_prefix}_dataloader`, but no `dataloader_idx`"
+                f" argument in `{type(pl_module).__name__}.{hook}()`. Try adding `dataloader_idx=0` to its"
+                " signature."
+            )

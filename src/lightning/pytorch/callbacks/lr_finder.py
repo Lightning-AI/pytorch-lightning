@@ -19,6 +19,8 @@ Finds optimal learning rate
 """
 from typing import Optional
 
+from typing_extensions import override
+
 import lightning.pytorch as pl
 from lightning.pytorch.callbacks.callback import Callback
 from lightning.pytorch.tuner.lr_finder import _lr_find, _LRFinder
@@ -75,6 +77,7 @@ class LearningRateFinder(Callback):
         MisconfigurationException:
             If learning rate/lr in ``model`` or ``model.hparams`` isn't overridden, or if you are using more than
             one optimizer.
+
     """
 
     SUPPORTED_MODES = ("linear", "exponential")
@@ -121,5 +124,6 @@ class LearningRateFinder(Callback):
         if self._early_exit:
             raise _TunerExitException()
 
+    @override
     def on_fit_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         self.lr_find(trainer, pl_module)

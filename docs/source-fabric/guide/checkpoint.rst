@@ -20,6 +20,16 @@ Put everything into a dictionary, including models and optimizers and whatever m
     state = {"model1": model1, "model2": model2, "optimizer": optimizer, "iteration": iteration, "hparams": ...}
 
 
+Or optionally use the :class:`~lightning.fabric.utilities.data.AttributeDict` container for convenient attribute access
+
+.. code-block:: python
+
+    # Optional:
+    from lightning.fabric.utilities import AttributeDict
+
+    state = AttributeDict(model1=model1, model2=model2, optimizer=optimizer, iteration=iteration, hparams=...)
+
+
 ----
 
 
@@ -171,8 +181,8 @@ Here's an example of using a filter when saving a checkpoint:
 
     state = {"model": model, "optimizer": optimizer, "foo": 123}
 
-    # save only the model weights
-    filter = {"model": lambda k, v: "weight"}
+    # save only the weights that match a pattern
+    filter = {"model": lambda k, v: "weight" in k}
     fabric.save("path/to/checkpoint.ckpt", state, filter=filter)
     # This will save {"model": {"layer.weight": ...}, "optimizer": ..., "foo": 123}
     # note that the optimizer params corresponding to the excluded model params are not filtered

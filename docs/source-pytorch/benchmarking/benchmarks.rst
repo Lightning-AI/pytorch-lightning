@@ -9,7 +9,7 @@ Time comparison
 ---------------
 
 We have set regular benchmarking against PyTorch vanilla training loop on with RNN and simple MNIST classifier as per of out CI.
-In average for simple MNIST CNN classifier we are only about 0.06s slower per epoch, see detail chart bellow.
+In average for simple MNIST CNN classifier we are only about 0.06s slower per epoch, see detail chart below.
 
 .. figure:: ../_static/images/benchmarks/figure-parity-times.png
    :alt: Speed parity to vanilla PT, created on 2020-12-16

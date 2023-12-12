@@ -14,7 +14,7 @@
 
 import os
 from contextlib import contextmanager
-from typing import Any, Dict, Generator, Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Dict, Generator, Optional
 
 from deepdiff.helper import NotPresent
 from lightning_utilities.core.apply_func import apply_to_collection
@@ -39,7 +39,7 @@ def _convert_paths_after_init(root: "LightningFlow"):
 
     """
     from lightning.app.core import LightningFlow, LightningWork
-    from lightning.app.storage import Path
+    from lightning.app.storage.path import Path
 
     for component in breadth_first(root, types=(LightningFlow, LightningWork)):
         for attr in list(component.__dict__.keys()):
@@ -81,7 +81,7 @@ def _sanitize_state(state: Dict[str, Any]) -> Dict[str, Any]:
 
 def _state_to_json(state: Dict[str, Any]) -> Dict[str, Any]:
     """Utility function to make sure that state dict is json serializable."""
-    from lightning.app.storage import Path
+    from lightning.app.storage.path import Path
     from lightning.app.storage.payload import _BasePayload
 
     state_paths_cleaned = apply_to_collection(state, dtype=(Path, _BasePayload), function=lambda x: x.to_dict())

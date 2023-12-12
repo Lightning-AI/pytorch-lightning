@@ -21,24 +21,25 @@ import torch
 from lightning_utilities.core.imports import RequirementCache
 from lightning_utilities.core.rank_zero import _warn
 from torch.optim import Optimizer
+from typing_extensions import override
 
 import lightning.pytorch as pl
 from lightning.fabric.utilities.cloud_io import get_filesystem
 from lightning.fabric.utilities.types import _TORCH_LRSCHEDULER
-from lightning.pytorch import Callback, LightningDataModule, LightningModule, seed_everything, Trainer
+from lightning.pytorch import Callback, LightningDataModule, LightningModule, Trainer, seed_everything
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.model_helpers import is_overridden
 from lightning.pytorch.utilities.rank_zero import rank_zero_warn
 
-_JSONARGPARSE_SIGNATURES_AVAILABLE = RequirementCache("jsonargparse[signatures]>=4.17.0")
+_JSONARGPARSE_SIGNATURES_AVAILABLE = RequirementCache("jsonargparse[signatures]>=4.26.1")
 
 if _JSONARGPARSE_SIGNATURES_AVAILABLE:
     import docstring_parser
     from jsonargparse import (
         ActionConfigFile,
         ArgumentParser,
-        class_from_function,
         Namespace,
+        class_from_function,
         register_unresolvable_import_paths,
         set_config_read_mode,
     )
@@ -236,6 +237,7 @@ class SaveConfigCallback(Callback):
                 "`save_config` and it is desired to disable the standard behavior of saving to log_dir."
             )
 
+    @override
     def setup(self, trainer: Trainer, pl_module: LightningModule, stage: str) -> None:
         if self.already_saved:
             return
@@ -322,8 +324,8 @@ class LightningCLI:
         For more info, read :ref:`the CLI docs <lightning-cli>`.
 
         Args:
-            model_class: An optional :class:`~lightning.pytorch.core.module.LightningModule` class to train on or a
-                callable which returns a :class:`~lightning.pytorch.core.module.LightningModule` instance when
+            model_class: An optional :class:`~lightning.pytorch.core.LightningModule` class to train on or a
+                callable which returns a :class:`~lightning.pytorch.core.LightningModule` instance when
                 called. If ``None``, you can pass a registered model with ``--model=MyModel``.
             datamodule_class: An optional :class:`~lightning.pytorch.core.datamodule.LightningDataModule` class or a
                 callable which returns a :class:`~lightning.pytorch.core.datamodule.LightningDataModule` instance when
@@ -582,8 +584,7 @@ class LightningCLI:
     def configure_optimizers(
         lightning_module: LightningModule, optimizer: Optimizer, lr_scheduler: Optional[LRSchedulerTypeUnion] = None
     ) -> Any:
-        """Override to customize the :meth:`~lightning.pytorch.core.module.LightningModule.configure_optimizers`
-        method.
+        """Override to customize the :meth:`~lightning.pytorch.core.LightningModule.configure_optimizers` method.
 
         Args:
             lightning_module: A reference to the model.
@@ -601,8 +602,8 @@ class LightningCLI:
         return [optimizer], [lr_scheduler]
 
     def _add_configure_optimizers_method_to_model(self, subcommand: Optional[str]) -> None:
-        """Overrides the model's :meth:`~lightning.pytorch.core.module.LightningModule.configure_optimizers` method if
-        a single optimizer and optionally a scheduler argument groups are added to the parser as 'AUTOMATIC'."""
+        """Overrides the model's :meth:`~lightning.pytorch.core.LightningModule.configure_optimizers` method if a
+        single optimizer and optionally a scheduler argument groups are added to the parser as 'AUTOMATIC'."""
         if not self.auto_configure_optimizers:
             return
 
@@ -628,8 +629,8 @@ class LightningCLI:
         if len(optimizers) > 1 or len(lr_schedulers) > 1:
             raise MisconfigurationException(
                 f"`{self.__class__.__name__}.add_configure_optimizers_method_to_model` expects at most one optimizer "
-                f"and one lr_scheduler to be 'AUTOMATIC', but found {optimizers+lr_schedulers}. In this case the user "
-                "is expected to link the argument groups and implement `configure_optimizers`, see "
+                f"and one lr_scheduler to be 'AUTOMATIC', but found {optimizers + lr_schedulers}. In this case the "
+                "user is expected to link the argument groups and implement `configure_optimizers`, see "
                 "https://lightning.ai/docs/pytorch/stable/common/lightning_cli.html"
                 "#optimizers-and-learning-rate-schedulers"
             )

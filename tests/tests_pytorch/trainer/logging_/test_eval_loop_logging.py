@@ -18,21 +18,21 @@ import os
 from contextlib import redirect_stdout
 from io import StringIO
 from unittest import mock
-from unittest.mock import call
+from unittest.mock import ANY, call
 
 import numpy as np
 import pytest
 import torch
-from torch import Tensor
-
 from lightning.fabric.utilities.imports import _PYTHON_GREATER_EQUAL_3_8_0
-from lightning.pytorch import callbacks, Trainer
+from lightning.pytorch import Trainer, callbacks
 from lightning.pytorch.callbacks.progress.rich_progress import _RICH_AVAILABLE
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
 from lightning.pytorch.loggers import TensorBoardLogger
 from lightning.pytorch.loops import _EvaluationLoop
 from lightning.pytorch.trainer.states import RunningStage
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
+from torch import Tensor
+
 from tests_pytorch.helpers.runif import RunIf
 
 if _RICH_AVAILABLE:
@@ -527,17 +527,15 @@ def test_validation_step_log_with_tensorboard(mock_log_metrics, tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir,
         logger=TensorBoardLogger(tmpdir),
-        limit_train_batches=2,
+        limit_train_batches=1,
         limit_val_batches=2,
         limit_test_batches=2,
+        log_every_n_steps=1,
         max_epochs=2,
     )
 
     # Train the model ⚡
     trainer.fit(model)
-
-    # hp_metric + 2 steps + epoch + 2 steps + epoch
-    expected_num_calls = 1 + 2 + 1 + 2 + 1
 
     assert set(trainer.callback_metrics) == {
         "train_loss",
@@ -545,39 +543,31 @@ def test_validation_step_log_with_tensorboard(mock_log_metrics, tmpdir):
         "valid_loss_0",
         "valid_loss_1",
     }
-    assert len(mock_log_metrics.mock_calls) == expected_num_calls
-    assert mock_log_metrics.mock_calls[0] == call({"hp_metric": -1}, 0)
+    assert mock_log_metrics.mock_calls == [
+        call({"hp_metric": -1}, 0),
+        call(metrics={"train_loss": ANY, "epoch": 0}, step=0),
+        call(metrics={"valid_loss_0_step": ANY, "valid_loss_2": ANY}, step=0),
+        call(metrics={"valid_loss_0_step": ANY, "valid_loss_2": ANY}, step=1),
+        call(metrics={"valid_loss_0_epoch": ANY, "valid_loss_1": ANY, "epoch": 0}, step=0),
+        call(metrics={"train_loss": ANY, "epoch": 1}, step=1),
+        call(metrics={"valid_loss_0_step": ANY, "valid_loss_2": ANY}, step=2),
+        call(metrics={"valid_loss_0_step": ANY, "valid_loss_2": ANY}, step=3),
+        call(metrics={"valid_loss_0_epoch": ANY, "valid_loss_1": ANY, "epoch": 1}, step=1),
+    ]
 
     def get_metrics_at_idx(idx):
         mock_call = mock_log_metrics.mock_calls[idx]
         return mock_call.kwargs["metrics"] if _PYTHON_GREATER_EQUAL_3_8_0 else mock_call[2]["metrics"]
 
-    expected = {"valid_loss_0_step", "valid_loss_2"}
-    assert set(get_metrics_at_idx(1)) == expected
-    assert set(get_metrics_at_idx(2)) == expected
-
-    assert get_metrics_at_idx(1)["valid_loss_0_step"] == model.val_losses[2]
-    assert get_metrics_at_idx(2)["valid_loss_0_step"] == model.val_losses[3]
-
-    assert set(get_metrics_at_idx(3)) == {"valid_loss_0_epoch", "valid_loss_1", "epoch"}
-
-    assert get_metrics_at_idx(3)["valid_loss_1"] == torch.stack(model.val_losses[2:4]).mean()
-
-    expected = {"valid_loss_0_step", "valid_loss_2"}
-    assert set(get_metrics_at_idx(4)) == expected
-    assert set(get_metrics_at_idx(5)) == expected
-
-    assert get_metrics_at_idx(4)["valid_loss_0_step"] == model.val_losses[4]
-    assert get_metrics_at_idx(5)["valid_loss_0_step"] == model.val_losses[5]
-
-    assert set(get_metrics_at_idx(6)) == {"valid_loss_0_epoch", "valid_loss_1", "epoch"}
-
-    assert get_metrics_at_idx(6)["valid_loss_1"] == torch.stack(model.val_losses[4:]).mean()
+    assert get_metrics_at_idx(2)["valid_loss_0_step"] == model.val_losses[2]
+    assert get_metrics_at_idx(3)["valid_loss_0_step"] == model.val_losses[3]
+    assert get_metrics_at_idx(4)["valid_loss_1"] == torch.stack(model.val_losses[2:4]).mean()
+    assert get_metrics_at_idx(6)["valid_loss_0_step"] == model.val_losses[4]
+    assert get_metrics_at_idx(7)["valid_loss_0_step"] == model.val_losses[5]
+    assert get_metrics_at_idx(8)["valid_loss_1"] == torch.stack(model.val_losses[4:]).mean()
 
     results = trainer.test(model)
-    assert set(trainer.callback_metrics) == {
-        "test_loss",
-    }
+    assert set(trainer.callback_metrics) == {"test_loss"}
     assert set(results[0]) == {"test_loss"}
 
 
