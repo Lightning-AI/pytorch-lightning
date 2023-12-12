@@ -32,7 +32,7 @@ TEST_FILE="standalone_tests.txt"
 test_path=$1
 printf "source path: $test_path\n"
 
-python -um pytest $test_path -q --collect-only -m standalone --pythonwarnings ignore > $TEST_FILE
+python -m pytest $test_path -q --collect-only -m standalone --pythonwarnings ignore > $TEST_FILE
 echo "Collected tests:"
 cat $TEST_FILE
 sed -i '$d' $TEST_FILE
