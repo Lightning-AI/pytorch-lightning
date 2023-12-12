@@ -51,7 +51,7 @@ jobs:
         with:
           python-version: "3.10"
 
-      - uses: google-github-actions/auth@v1
+      - uses: google-github-actions/auth@v2
         with:
           credentials_json: ${{ secrets.GKE_SA_KEY_BASE64 }}
       - uses: "google-github-actions/setup-gcloud@v1"
