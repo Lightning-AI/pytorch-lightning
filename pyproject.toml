@@ -270,7 +270,6 @@ addopts = [
 ]
 markers = [
     "cloud: Run the cloud tests for example",
-    "standalone: Run the test in single pytest execution",
 ]
 filterwarnings = [
     "error::FutureWarning",
