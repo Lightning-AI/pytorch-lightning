@@ -43,6 +43,7 @@ build:
     - python -m awscli s3 sync --no-sign-request s3://sphinx-packages/ dist/ ; ls -lh dist/
     - >
       pip install -e . -q -r _notebooks/.actions/requires.txt \
+          -r requirements/app/docs.txt \
           -r requirements/fabric/docs.txt \
           -r requirements/pytorch/docs.txt \
           -f 'https://download.pytorch.org/whl/cpu/torch_stable.html' -f dist/ ;
