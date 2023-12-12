@@ -472,6 +472,7 @@ def test_pytorch_profiler_multiple_loggers(tmpdir):
 
 
 # @RunIf(min_cuda_gpus=1, standalone=True)
+# @pytest.mark.skipif(torch.cuda.get_device_capability()[0] >= 8)
 # def test_pytorch_profiler_nested_emit_nvtx():
 #     """This test check emit_nvtx is correctly supported."""
 #     profiler = PyTorchProfiler(use_cuda=True, emit_nvtx=True)
