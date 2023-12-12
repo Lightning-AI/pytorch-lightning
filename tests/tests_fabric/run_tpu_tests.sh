@@ -30,11 +30,11 @@ python3 -c "from lightning.fabric.accelerators.xla import _XLA_AVAILABLE; print(
 python3 -c "from lightning.fabric.accelerators import XLAAccelerator; assert XLAAccelerator.is_available()"
 echo "Sanity check passed!"
 
-echo "--- Running Fabric tests ---"
+echo "--- Running Regular tests ---"
 cd tests/tests_fabric
 PL_RUN_TPU_TESTS=1 python3 -m coverage run --source=lightning -m pytest -vv --durations=0 --timeout 60 ./
 
-echo "--- Running standalone Fabric tests ---"
+echo "--- Running Standalone tests ---"
 PL_RUN_TPU_TESTS=1 PL_STANDALONE_TESTS_BATCH_SIZE=1 bash run_standalone_tests.sh
 
 echo "--- Generating coverage ---"

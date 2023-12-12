@@ -23,7 +23,7 @@ source="${PL_STANDALONE_TESTS_SOURCE:-"lightning"}"
 # this environment variable allows special tests to run
 export PL_RUN_STANDALONE_TESTS=1
 # python arguments
-defaults="-m coverage run --source ${source} --append -m pytest --no-header -v -s --timeout 120"
+defaults=" -m coverage run --source ${source} --append -m pytest --no-header -v -s --timeout 120 "
 echo "Using defaults: ${defaults}"
 
 # get the testing location as the fist argument
@@ -55,8 +55,10 @@ function show_batched_output {
 }
 trap show_batched_output EXIT  # show the output on exit
 
+# remove the "tests/tests_pytorch/" path suffixes
+path_prefix=$(basename "$(dirname "$(pwd)")")/$(basename "$(pwd)")"/"  # https://stackoverflow.com/a/8223345
 for i in "${!parametrizations_arr[@]}"; do
-  parametrization=${parametrizations_arr[$i]}
+  parametrization=${parametrizations_arr[$i]//$path_prefix/}
   prefix="$((i+1))/${#parametrizations_arr[@]}"
 
   echo "$prefix: Running $parametrization"
@@ -67,7 +69,7 @@ for i in "${!parametrizations_arr[@]}"; do
   # execute the test in the background
   # redirect to a log file that buffers test output. since the tests will run in the background, we cannot let them
   # output to std{out,err} because the outputs would be garbled together
-  python3 ${defaults} "$parametrization" &>> standalone_test_output.txt &
+  python ${defaults} "$parametrization" &>> standalone_test_output.txt &
   # save the PID in an array
   pids[${i}]=$!
   # add row to the final report
