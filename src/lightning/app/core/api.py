@@ -59,6 +59,7 @@ from lightning.app.utilities.cloud import is_running_in_cloud
 from lightning.app.utilities.component import _context
 from lightning.app.utilities.enum import ComponentContext, OpenAPITags
 
+
 class SessionMiddleware:  # type: ignore[no-redef]
     pass
 
