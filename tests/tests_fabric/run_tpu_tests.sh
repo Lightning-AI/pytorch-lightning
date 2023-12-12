@@ -35,7 +35,7 @@ cd tests/tests_fabric
 PL_RUN_TPU_TESTS=1 python3 -m coverage run --source=lightning -m pytest -vv --durations=0 --timeout 60 ./
 
 echo "--- Running Standalone tests ---"
-PL_RUN_TPU_TESTS=1 PL_STANDALONE_TESTS_BATCH_SIZE=1 bash run_standalone_tests.sh
+PL_RUN_TPU_TESTS=1 PL_STANDALONE_TESTS_BATCH_SIZE=1 bash ../run_standalone_tests.sh "."
 
 echo "--- Generating coverage ---"
 python3 -m coverage xml
