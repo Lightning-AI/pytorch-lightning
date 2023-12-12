@@ -561,8 +561,8 @@ class NeptuneLogger(Logger):
         for model_name in tuple(self._uploaded_best_checkpoints - new_best_models_names):
             if model_name in self._uploaded_best_checkpoints:
                 if self.run.exists(f"{checkpoints_namespace}/{model_name}"):
-                    del self.run[f"{checkpoints_namespace}/{model_name}"]  # TODO: Cover in tests
-                self._uploaded_best_checkpoints.remove(model_name)  # TODO: Cover in tests
+                    del self.run[f"{checkpoints_namespace}/{model_name}"]
+                self._uploaded_best_checkpoints.remove(model_name)
 
     @staticmethod
     def _get_full_model_name(model_path: str, checkpoint_callback: Checkpoint) -> str:
