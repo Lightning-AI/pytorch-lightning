@@ -269,8 +269,8 @@ addopts = [
     "--ignore=legacy/checkpoints",
 ]
 markers = [
-    "cloud:Run the cloud tests for example",
-    "standalone: mark a test as standalone",
+    "cloud: Run the cloud tests for example",
+    "standalone: Run the test in single pytest execution",
 ]
 filterwarnings = [
     "error::FutureWarning",
