@@ -159,7 +159,8 @@ def thread_police_duuu_daaa_duuu_daaa():
             continue
         elif thread.name == "fsspecIO":
             continue
-        raise AssertionError(f"Test left zombie thread: {thread}")
+        else:
+            raise AssertionError(f"Test left zombie thread: {thread}")
 
 
 def mock_cuda_count(monkeypatch, n: int) -> None:
