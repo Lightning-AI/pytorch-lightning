@@ -17,6 +17,4 @@ from lightning.fabric.utilities.testing import _runif_reasons
 
 def RunIf(**kwargs):
     reasons, marker_kwargs = _runif_reasons(**kwargs)
-    if not reasons and kwargs.get("standalone"):
-        return pytest.mark.standalone()
     return pytest.mark.skipif(condition=len(reasons) > 0, reason=f"Requires: [{' + '.join(reasons)}]", **marker_kwargs)

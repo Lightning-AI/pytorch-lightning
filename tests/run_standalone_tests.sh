@@ -32,7 +32,7 @@ printf "source path: $test_path\n"
 
 # collect all tests with parametrization based filtering with PL_RUN_STANDALONE_TESTS
 standalone_tests=$(python -m pytest $test_path -q --collect-only --pythonwarnings ignore)
-echo "Collected tests: \n $standalone_tests"
+printf "Collected tests: \n $standalone_tests"
 # match only lines with tests
 parametrizations=$(grep -oP '\S+::test_\S+' <<< "$standalone_tests")
 # convert the list to be array
