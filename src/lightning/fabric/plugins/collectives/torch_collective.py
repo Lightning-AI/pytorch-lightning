@@ -5,7 +5,7 @@ from typing import Any, List, Optional, Union
 import torch
 import torch.distributed as dist
 from torch import Tensor
-from typing_extensions import Self
+from typing_extensions import Self, override
 
 from lightning.fabric.plugins.collectives.collective import Collective
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_13
@@ -32,46 +32,56 @@ class TorchCollective(Collective):
         super().__init__()
 
     @property
+    @override
     def group(self) -> CollectibleGroup:
         if self._group is None:
             self._group = dist.GroupMember.WORLD
         return super().group
 
     @property
+    @override
     def rank(self) -> int:
         # local rank
         return dist.get_rank(self.group)  # type: ignore[arg-type]
 
     @property
+    @override
     def world_size(self) -> int:
         return dist.get_world_size(self.group)  # type: ignore[arg-type]
 
+    @override
     def broadcast(self, tensor: Tensor, src: int) -> Tensor:
         dist.broadcast(tensor, src, group=self.group)
         return tensor
 
+    @override
     def all_reduce(self, tensor: Tensor, op: Union[str, ReduceOp, RedOpType] = "sum") -> Tensor:
         op = self._convert_to_native_op(op)
         dist.all_reduce(tensor, op=op, group=self.group)
         return tensor
 
+    @override
     def reduce(self, tensor: Tensor, dst: int, op: Union[str, ReduceOp, RedOpType] = "sum") -> Tensor:
         op = self._convert_to_native_op(op)
         dist.reduce(tensor, dst, op=op, group=self.group)
         return tensor
 
+    @override
     def all_gather(self, tensor_list: List[Tensor], tensor: Tensor) -> List[Tensor]:
         dist.all_gather(tensor_list, tensor, group=self.group)
         return tensor_list
 
+    @override
     def gather(self, tensor: Tensor, gather_list: List[Tensor], dst: int = 0) -> List[Tensor]:
         dist.gather(tensor, gather_list, dst, group=self.group)
         return gather_list
 
+    @override
     def scatter(self, tensor: Tensor, scatter_list: List[Tensor], src: int = 0) -> Tensor:
         dist.scatter(tensor, scatter_list, src, group=self.group)
         return tensor
 
+    @override
     def reduce_scatter(
         self, output: Tensor, input_list: List[Tensor], op: Union[str, ReduceOp, RedOpType] = "sum"
     ) -> Tensor:
@@ -79,13 +89,16 @@ class TorchCollective(Collective):
         dist.reduce_scatter(output, input_list, op=op, group=self.group)
         return output
 
+    @override    
     def all_to_all(self, output_tensor_list: List[Tensor], input_tensor_list: List[Tensor]) -> List[Tensor]:
         dist.all_to_all(output_tensor_list, input_tensor_list, group=self.group)
         return output_tensor_list
 
+    @override
     def send(self, tensor: Tensor, dst: int, tag: int = 0) -> None:
         dist.send(tensor, dst, tag=tag, group=self.group)
 
+    @override
     def recv(self, tensor: Tensor, src: Optional[int] = None, tag: int = 0) -> Tensor:
         dist.recv(tensor, src, tag=tag, group=self.group)
         return tensor
@@ -110,6 +123,7 @@ class TorchCollective(Collective):
         dist.scatter_object_list(scatter_object_output_list, scatter_object_input_list, src, group=self.group)
         return scatter_object_output_list
 
+    @override
     def barrier(self, device_ids: Optional[List[int]] = None) -> None:
         if self.group == dist.GroupMember.NON_GROUP_MEMBER:
             return
@@ -118,6 +132,7 @@ class TorchCollective(Collective):
     def monitored_barrier(self, timeout: Optional[datetime.timedelta] = None, wait_all_ranks: bool = False) -> None:
         dist.monitored_barrier(group=self.group, timeout=timeout, wait_all_ranks=wait_all_ranks)
 
+    @override    
     def setup(self, main_address: Optional[str] = None, main_port: Optional[str] = None, **kwargs: Any) -> Self:
         if self.is_initialized():
             return self
@@ -144,6 +159,7 @@ class TorchCollective(Collective):
             os.environ.pop("MASTER_PORT", None)
         return self
 
+    @override
     def teardown(self) -> Self:
         group_member = self.group != dist.GroupMember.NON_GROUP_MEMBER
         super().teardown()  # will destroy its own group
@@ -162,22 +178,27 @@ class TorchCollective(Collective):
         return self
 
     @classmethod
+    @override
     def is_available(cls) -> bool:
         return dist.is_available()
 
     @classmethod
+    @override
     def is_initialized(cls) -> bool:
         return cls.is_available() and dist.is_initialized()
 
     @classmethod
+    @override
     def init_group(cls, **kwargs: Any) -> None:
         dist.init_process_group(**kwargs)
 
     @classmethod
+    @override
     def new_group(cls, **kwargs: Any) -> CollectibleGroup:
         return dist.new_group(**kwargs)
 
     @classmethod
+    @override
     def destroy_group(cls, group: CollectibleGroup) -> None:
         # can be called by all processes in the default group, group will be `object()` if they are not part of the
         # current group
@@ -185,6 +206,7 @@ class TorchCollective(Collective):
             dist.destroy_process_group(group)  # type: ignore[arg-type]
 
     @classmethod
+    @override
     def _convert_to_native_op(cls, op: Union[str, ReduceOp, RedOpType]) -> Union[ReduceOp, RedOpType]:
         # in 1.13, `ReduceOp` has become an empty shell for `RedOpType`, the latter being the actually returned class.
         # for example, `ReduceOp.SUM` returns a `RedOpType.SUM`. the only exception is `RedOpType.PREMUL_SUM` where
