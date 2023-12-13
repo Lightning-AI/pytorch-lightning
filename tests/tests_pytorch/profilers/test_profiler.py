@@ -471,6 +471,7 @@ def test_pytorch_profiler_multiple_loggers(tmpdir):
     assert look_for_trace(tmpdir / "lightning_logs" / "version_0")
 
 
+# Todo: this test has not been running as all our CI GPU runners have higher capacity
 # @RunIf(min_cuda_gpus=1, standalone=True)
 # @pytest.mark.skipif(torch.cuda.get_device_capability()[0] >= 8)
 # def test_pytorch_profiler_nested_emit_nvtx():
