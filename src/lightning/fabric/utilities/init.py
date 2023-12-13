@@ -59,14 +59,19 @@ class _EmptyInit(TorchFunctionMode):
         return func(*args, **kwargs)
 
 
-def materialize(module: torch.nn.Module, device: torch.device) -> None:
+def _materialize(module: torch.nn.Module, device: torch.device) -> None:
     """Materialize a module."""
     module.to_empty(device=device, recurse=False)
+    if not hasattr(module, "reset_parameters"):
+        raise TypeError(
+            f"Materialization requires that the `{type(module).__name__}.reset_parameters` method is implemented."
+            " This method is used to initialize any children parameters or buffers in this module."
+        )
     module.reset_parameters()
 
 
-def materialize_meta_tensors(module: torch.nn.Module, device: torch.device) -> None:
+def _materialize_meta_tensors(module: torch.nn.Module, device: torch.device) -> None:
     """Materialize all tensors in a given module."""
     for module in module.modules():
         if any(t.is_meta for t in itertools.chain(module.parameters(recurse=False), module.buffers(recurse=False))):
-            materialize(module, device)
+            _materialize(module, device)

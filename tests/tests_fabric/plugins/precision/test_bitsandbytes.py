@@ -21,7 +21,7 @@ import torch.distributed
 from lightning.fabric import Fabric
 from lightning.fabric.connector import _Connector
 from lightning.fabric.plugins.precision.bitsandbytes import _BITSANDBYTES_AVAILABLE, BitsandbytesPrecision
-from lightning.fabric.utilities.init import materialize_meta_tensors
+from lightning.fabric.utilities.init import _materialize_meta_tensors
 
 from tests_fabric.helpers.runif import RunIf
 
@@ -166,7 +166,7 @@ def test_bitsandbytes_layers_meta_device(args, expected):
     assert model.l.weight.device.type == "meta"
     assert model.l.weight.dtype == args[1]
     # materializing performs quantization
-    materialize_meta_tensors(model, "cuda")
+    _materialize_meta_tensors(model, "cuda")
     assert model.l.weight.device.type == "cuda"
     assert model.l.weight.dtype == expected
     # state dict loading still works even thought the weights are quantized

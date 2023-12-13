@@ -17,7 +17,7 @@ from unittest.mock import Mock
 
 import pytest
 import torch.nn
-from lightning.fabric.utilities.init import _EmptyInit
+from lightning.fabric.utilities.init import _EmptyInit, _materialize_meta_tensors
 
 from tests_fabric.helpers.runif import RunIf
 
@@ -59,3 +59,35 @@ def test_empty_init_speed():
     empty_init_time = time.perf_counter() - t0
 
     assert normal_init_time > 2 * empty_init_time
+
+
+def test_materialize_meta_tensors():
+    class Submodule(torch.nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.l = torch.nn.Linear(1, 1)
+
+    class MyModel(torch.nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.register_buffer("buf", torch.tensor(0))
+            self.l = torch.nn.Linear(1, 1)
+            self.inner = Submodule()
+
+    with torch.device("meta"):
+        model = MyModel()
+
+    with pytest.raises(TypeError, match="MyModel.reset_parameters` method is implemented"):
+        _materialize_meta_tensors(model, torch.device("cpu"))
+
+    class MyModel2(MyModel):
+        def reset_parameters(self):
+            self.buf = torch.empty_like(self.buf)
+
+    with torch.device("meta"):
+        model = MyModel2()
+
+    _materialize_meta_tensors(model, torch.device("cpu"))
+    assert model.buf.device.type == "cpu"
+    assert len(list(model.parameters())) == 4
+    assert all(p.device.type == "cpu" for p in model.parameters())
