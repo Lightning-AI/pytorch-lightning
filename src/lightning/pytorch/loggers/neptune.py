@@ -40,7 +40,7 @@ log = logging.getLogger(__name__)
 
 # neptune is available with two names on PyPI : `neptune` and `neptune-client`
 _NEPTUNE_AVAILABLE = bool(RequirementCache("neptune>=1.0")) or bool(RequirementCache("neptune-client>=1.0"))
-_LEGACY_NEPTUNE_CLIENT = bool(RequirementCache("neptune-client<1.0"))
+_LEGACY_NEPTUNE_CLIENT_AVAILABLE = bool(RequirementCache("neptune-client<1.0"))
 _INTEGRATION_VERSION_KEY = "source_code/integrations/pytorch-lightning"
 
 
@@ -223,8 +223,8 @@ class NeptuneLogger(Logger):
         prefix: str = "training",
         **neptune_run_kwargs: Any,
     ):
-        if not _NEPTUNE_AVAILABLE and not _LEGACY_NEPTUNE_CLIENT:
-            raise ModuleNotFoundError("`neptune` package is required. Run `pip install neptune`")
+        if not _NEPTUNE_AVAILABLE and not _LEGACY_NEPTUNE_CLIENT_AVAILABLE:
+            raise ModuleNotFoundError(str(_NEPTUNE_AVAILABLE))
         # verify if user passed proper init arguments
         self._verify_input_arguments(api_key, project, name, run, neptune_run_kwargs)
         super().__init__()
