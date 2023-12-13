@@ -13,18 +13,21 @@
 # limitations under the License.
 import functools
 import logging
+import math
 import os
 import warnings
 from contextlib import ExitStack
 from functools import partial
 from types import ModuleType
-from typing import Any, Callable, ContextManager, Literal, Optional, OrderedDict, Set, Type
+from typing import Any, Callable, ContextManager, Literal, Optional, OrderedDict, Set, Tuple, Type
 
 import torch
 from lightning_utilities import apply_to_collection
 from lightning_utilities.core.imports import RequirementCache
 from torch import Tensor
+from torch.nn import init
 from torch.nn.modules.module import _IncompatibleKeys
+from typing_extensions import Self
 
 from lightning.fabric.plugins.precision.precision import Precision
 from lightning.fabric.plugins.precision.utils import (
@@ -36,7 +39,8 @@ from lightning.fabric.utilities.types import _DEVICE
 
 log = logging.getLogger(__name__)
 
-_BITSANDBYTES_AVAILABLE = RequirementCache("bitsandbytes>=0.41.0")
+# TODO: unpin after resolving the `quant_state` format breaking changes
+_BITSANDBYTES_AVAILABLE = RequirementCache("bitsandbytes==0.41.0")
 
 
 class BitsandbytesPrecision(Precision):
@@ -179,6 +183,26 @@ def _import_bitsandbytes() -> ModuleType:
     if not nowelcome_set:
         del os.environ["BITSANDBYTES_NOWELCOME"]
 
+    def _replace_param(
+        p: torch.nn.Parameter, data: torch.Tensor, quant_state: Optional[Tuple] = None
+    ) -> torch.nn.Parameter:
+        # doing `param.data = weight` raises a RuntimeError if param.data was on meta-device, so
+        # we need to re-create the parameters instead of overwriting the data
+        if p.device.type == "meta":
+            if isinstance(p, bnb.nn.Params4bit):
+                return bnb.nn.Params4bit(
+                    data,
+                    requires_grad=False,
+                    quant_state=quant_state,
+                    compress_statistics=p.compress_statistics,
+                    quant_type=p.quant_type,
+                )
+            return torch.nn.Parameter(data, requires_grad=p.requires_grad)
+        p.data = data
+        if isinstance(p, bnb.nn.Params4bit):
+            p.quant_state = quant_state
+        return p
+
     class _Linear8bitLt(bnb.nn.Linear8bitLt):
         """Wraps `bnb.nn.Linear8bitLt` and enables instantiation directly on the device and re-quantizaton when loading
         the state dict."""
@@ -206,30 +230,73 @@ def _import_bitsandbytes() -> ModuleType:
                 setattr(self.weight, "SCB", SCB)
 
     class _Linear4bit(bnb.nn.Linear4bit):
-        """Wraps `bnb.nn.Linear4bit` and enables instantiation directly on the device and re-quantizaton when loading
-        the state dict."""
+        """Wraps `bnb.nn.Linear4bit` to enable: instantiation directly on the device, re-quantizaton when loading the
+        state dict, meta-device initialization, and materialization."""
 
         def __init__(self, *args: Any, device: Optional[_DEVICE] = None, **kwargs: Any) -> None:
             super().__init__(*args, device=device, **kwargs)
             # if the device is CUDA or we are under a CUDA context manager, quantize the weight here, so we don't end up
             # filling the device memory with float32 weights which could lead to OOM
             if torch.tensor(0, device=device).device.type == "cuda":
-                self._quantize_weight(self.weight.data)
-            self._register_load_state_dict_pre_hook(partial(_quantize_on_load_hook, self._quantize_weight))
+                self.quantize()
+            self._register_load_state_dict_pre_hook(partial(_quantize_on_load_hook, self.quantize))
             self.register_load_state_dict_post_hook(_ignore_missing_weights_hook)
 
-        def _quantize_weight(self, weight: torch.Tensor) -> None:
+        def quantize(self, weight: Optional[torch.Tensor] = None) -> None:
+            if weight is None:
+                if weight.data.type == torch.uint8:
+                    # already quantized
+                    return
+                weight = self.weight.data
+            assert isinstance(self.weight, bnb.nn.Params4bit)
+            self.weight = self._quantize(self.weight, weight)
+
+        @staticmethod
+        def _quantize(params4bit: bnb.nn.Params4bit, weight: torch.Tensor) -> bnb.nn.Params4bit:
+            device = "cuda" if params4bit.data.device.type == "meta" else params4bit.data.device
             # https://github.com/TimDettmers/bitsandbytes/blob/0.41.0/bitsandbytes/nn/modules.py#L156-L159
-            params4bit = self.weight
-            w = weight.contiguous().to(device="cuda", dtype=torch.half)
+            w = weight.contiguous().to(device=device, dtype=torch.half)
             w_4bit, quant_state = bnb.functional.quantize_4bit(
                 w,
                 blocksize=params4bit.blocksize,
                 compress_statistics=params4bit.compress_statistics,
                 quant_type=params4bit.quant_type,
             )
-            params4bit.data = w_4bit
-            params4bit.quant_state = quant_state
+            return _replace_param(params4bit, w_4bit, quant_state)
+
+        def to_empty(self, *, device: _DEVICE, recurse: bool = True) -> Self:
+            if self.weight.dtype == torch.uint8:  # was quantized
+                # cannot init the quantized params directly
+                weight = torch.empty(self.weight.quant_state[1], device=device, dtype=torch.half)
+            else:
+                weight = torch.empty_like(self.weight.data, device=device)
+            if torch.device(device).type == "cuda":  # re-quantize
+                self.quantize(weight)
+            else:
+                self.weight = _replace_param(self.weight, weight)
+            if self.bias is not None:
+                self.bias = _replace_param(self.bias, torch.empty_like(self.bias, device=device))
+            return self
+
+        def reset_parameters(self):
+            # from `torch.nn.Linear.reset_parameters`
+            if self.bias is not None:
+                fan_in, _ = torch.nn.init._calculate_fan_in_and_fan_out(self.weight)
+                bound = 1 / math.sqrt(fan_in) if fan_in > 0 else 0
+                init.uniform_(self.bias, -bound, bound)
+
+            linear_init_finished = isinstance(self.weight, bnb.nn.Params4bit)
+            if linear_init_finished and self.weight.dtype == torch.uint8:  # was quantized
+                # cannot init the quantized params directly
+                weight = torch.empty(self.weight.quant_state[1], device=self.weight.device, dtype=torch.half)
+            else:
+                weight = self.weight.data
+            torch.nn.init.kaiming_uniform_(weight, a=math.sqrt(5))
+            if linear_init_finished:
+                if self.weight.device.type == "cuda":  # re-quantize
+                    self.quantize(weight)
+                else:
+                    self.weight = _replace_param(self.weight, weight)
 
     # Use a class instead `functools.partial` to respect `isinstance` checks and attribute accesses
     class _Int8LinearInference(_Linear8bitLt):
@@ -275,16 +342,14 @@ def _convert_layers(module: torch.nn.Module, linear_cls: Type, ignore_modules: S
             log.debug(f"Replacing layer {fullname!r} with bitsandbytes equivalent")
             has_bias = child.bias is not None
             replacement = linear_cls(
-                # since we are going to copy over the child's data, the device doesn't matter. I chose CPU
-                # to avoid spiking CUDA memory even though initialization is slower
                 child.in_features,
                 child.out_features,
                 bias=has_bias,
-                device=torch.device("cpu"),
+                device=torch.device("meta"),
             )
             if has_bias:
-                replacement.bias.data = child.bias.data.clone()
-            replacement._quantize_weight(child.weight.data.clone())
+                replacement.bias = torch.nn.Parameter(child.bias.data.clone(), requires_grad=child.bias.requires_grad)
+            replacement.quantize(child.weight.data.clone())
             module.__setattr__(name, replacement)
         else:
             _convert_layers(child, linear_cls, ignore_modules, prefix=fullname)

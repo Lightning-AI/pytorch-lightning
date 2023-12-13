@@ -21,6 +21,7 @@ import torch.distributed
 from lightning.fabric import Fabric
 from lightning.fabric.connector import _Connector
 from lightning.fabric.plugins.precision.bitsandbytes import _BITSANDBYTES_AVAILABLE, BitsandbytesPrecision
+from lightning.fabric.utilities.init import materialize_meta_tensors
 
 from tests_fabric.helpers.runif import RunIf
 
@@ -107,10 +108,10 @@ def test_bitsandbytes_layers(args, expected):
             self.ln = torch.nn.LayerNorm(2)
 
     state_dict = MyModel().state_dict()
-
     fabric = Fabric(devices=1, plugins=BitsandbytesPrecision(*args))
     with fabric.init_module():
         model = MyModel()
+
     # the model was instantiated on-device and quantized straight away
     assert model.l.weight.device.type == "cuda"
     assert model.l.weight.dtype == expected
@@ -130,10 +131,48 @@ def test_bitsandbytes_layers(args, expected):
     with pytest.raises(RuntimeError, match="not supported"), fabric.init_module():
         pass
     model = MyModel()
+
     # When ignore_modules is set, we only quantize on `setup`
     assert model.l.weight.device.type == "cpu"
     assert model.l.weight.dtype == torch.float32
     # this quantizes now
     model = fabric.setup(model)
+    assert model.l.weight.device.type == "cuda"
+    assert model.l.weight.dtype == expected
+
+
+@RunIf(min_cuda_gpus=1)
+@pytest.mark.skipif(not _BITSANDBYTES_AVAILABLE, reason="bitsandbytes unavailable")
+@pytest.mark.parametrize(
+    ("args", "expected"),
+    [
+        (("int8", torch.float16), torch.int8),
+        (("nf4", torch.bfloat16), torch.uint8),
+    ],
+)
+def test_bitsandbytes_layers_meta_device(args, expected):
+    class MyModel(torch.nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.l = torch.nn.Linear(2, 2)
+            self.ln = torch.nn.LayerNorm(2)
+
+    state_dict = MyModel().state_dict()
+    plugin = BitsandbytesPrecision(*args)
+    with plugin.module_init_context(), torch.device("meta"):
+        model = MyModel()
+
+    # the model was instantiated on meta and is not quantized
+    assert model.l.weight.device.type == "meta"
+    assert model.l.weight.dtype == torch.bfloat16
+    # materializing performs quantization
+    materialize_meta_tensors(model, "cuda")
+    assert model.l.weight.device.type == "cuda"
+    assert model.l.weight.dtype == expected
+    # state dict loading still works even thought the weights are quantized
+    weight_before = model.l.weight.data.clone()
+    keys = model.load_state_dict(state_dict, strict=True)
+    assert not keys.missing_keys
+    assert not torch.equal(weight_before, model.l.weight.data)
     assert model.l.weight.device.type == "cuda"
     assert model.l.weight.dtype == expected
