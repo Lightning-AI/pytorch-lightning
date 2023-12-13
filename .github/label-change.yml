@@ -1,91 +1,91 @@
 app:
   - changed-files:
-    - any-glob-to-any-file:
-      - "src/lightning/app/**"
-      - "src/lightning_app/*"
-      - "tests/tests_app/**"
-      - "tests/integrations_app/**"
-      - "tests/integrations_app_examples/**"
-      - "examples/app/**"
-      - "docs/source-app/**"
-      - "requirements/app/**"
+      - any-glob-to-any-file:
+          - "src/lightning/app/**"
+          - "src/lightning_app/*"
+          - "tests/tests_app/**"
+          - "tests/integrations_app/**"
+          - "tests/integrations_app_examples/**"
+          - "examples/app/**"
+          - "docs/source-app/**"
+          - "requirements/app/**"
 
 data:
   - changed-files:
-    - any-glob-to-any-file:
-      - "src/lightning/data/**"
-      - "tests/tests_data/**"
-      - "requirements/data/**"
+      - any-glob-to-any-file:
+          - "src/lightning/data/**"
+          - "tests/tests_data/**"
+          - "requirements/data/**"
 
 store:
   - changed-files:
-    - any-glob-to-any-file:
-      - "src/lightning/store/**"
-      - "tests/tests_store/**"
-      - "requirements/store/**"
+      - any-glob-to-any-file:
+          - "src/lightning/store/**"
+          - "tests/tests_store/**"
+          - "requirements/store/**"
 
 pl:
   - changed-files:
-    - any-glob-to-any-file:
-      - "src/lightning/pytorch/**"
-      - "src/pytorch_lightning/*"
-      - "tests/tests_pytorch/**"
-      - "tests/legacy/**"
-      - "examples/pytorch/**"
-      - "docs/source-pytorch/**"
-      - "requirements/pytorch/**"
+      - any-glob-to-any-file:
+          - "src/lightning/pytorch/**"
+          - "src/pytorch_lightning/*"
+          - "tests/tests_pytorch/**"
+          - "tests/legacy/**"
+          - "examples/pytorch/**"
+          - "docs/source-pytorch/**"
+          - "requirements/pytorch/**"
 
 fabric:
   - changed-files:
-    - any-glob-to-any-file:
-      - "src/lightning/fabric/**"
-      - "src/lightning_fabric/*"
-      - "tests/tests_fabric/**"
-      - "examples/fabric/**"
-      - "docs/source-fabric/**"
-      - "requirements/fabric/**"
+      - any-glob-to-any-file:
+          - "src/lightning/fabric/**"
+          - "src/lightning_fabric/*"
+          - "tests/tests_fabric/**"
+          - "examples/fabric/**"
+          - "docs/source-fabric/**"
+          - "requirements/fabric/**"
 
 ci:
   - changed-files:
-    - any-glob-to-any-file:
-      - ".actions/**"
-      - ".azure/**"
-      - ".github/**"
-      - "dockers/**"
-      - ".pre-commit-config.yml"
+      - any-glob-to-any-file:
+          - ".actions/**"
+          - ".azure/**"
+          - ".github/**"
+          - "dockers/**"
+          - ".pre-commit-config.yml"
 
 docs:
   - changed-files:
-    - any-glob-to-any-file:
-      - ".github/workflows/docs-build.yml"
-      - "docs/**"
-      - "requirements/docs.txt"
-      - "requirements/*/docs.txt"
+      - any-glob-to-any-file:
+          - ".github/workflows/docs-build.yml"
+          - "docs/**"
+          - "requirements/docs.txt"
+          - "requirements/*/docs.txt"
 
 package:
   - changed-files:
-    - any-glob-to-any-file:
-      - ".github/workflows/ci-pkg-install.yml"
-      - "setup.py"
-      - "pyproject.toml"
-      - "src/version.info"
-      - "src/lightning/*/__setup__.py"
-      - "src/lightning/*/__version__.py"
-      - "src/lightning_app/*"
-      - "src/lightning_fabric/*"
-      - "src/pytorch_lightning/*"
+      - any-glob-to-any-file:
+          - ".github/workflows/ci-pkg-install.yml"
+          - "setup.py"
+          - "pyproject.toml"
+          - "src/version.info"
+          - "src/lightning/*/__setup__.py"
+          - "src/lightning/*/__version__.py"
+          - "src/lightning_app/*"
+          - "src/lightning_fabric/*"
+          - "src/pytorch_lightning/*"
 
 dockers:
   - changed-files:
-    - any-glob-to-any-file:
-      - "dockers/**"
-      - ".github/workflows/docker-build.yml"
+      - any-glob-to-any-file:
+          - "dockers/**"
+          - ".github/workflows/docker-build.yml"
 
 dependencies:
   - changed-files:
-    - any-glob-to-any-file:
-      - "requirements.txt"
-      - "requirements/**"
+      - any-glob-to-any-file:
+          - "requirements.txt"
+          - "requirements/**"
 
 release:
- - base-branch: 'release/*'
+  - base-branch: "release/*"
