@@ -44,6 +44,8 @@ path_suffix=$(basename "$(dirname "$(pwd)")")/$(basename "$(pwd)")"/"  # https:/
 parametrizations=${parametrizations//$path_suffix/}
 parametrizations_arr=($parametrizations)
 
+echo $parametrizations
+
 report=''
 
 rm -f standalone_test_output.txt  # in case it exists, remove it
