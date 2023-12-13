@@ -66,7 +66,7 @@ def test_bitsandbytes_plugin(monkeypatch):
 
     _NF4Linear = vars(module)["_NF4Linear"]
     quantize_mock = lambda self, p, w, d: p
-    _NF4Linear._quantize = quantize_mock
+    _NF4Linear.quantize = quantize_mock
 
     with precision.module_init_context():
         assert torch.get_default_dtype() == torch.float16
@@ -121,13 +121,18 @@ def test_bitsandbytes_layers(args, expected):
     model = fabric.setup(model)
     assert model.l.weight.device.type == "cuda"
     assert model.l.weight.dtype == expected
-    # state dict loading still works even thought the weights are quantized
+    # unquantized state dict loading still works even thought the weights are quantized
     weight_before = model.l.weight.data.clone()
     keys = model.load_state_dict(state_dict, strict=True)
     assert not keys.missing_keys
     assert not torch.equal(weight_before, model.l.weight.data)
     assert model.l.weight.device.type == "cuda"
     assert model.l.weight.dtype == expected
+    # quantized state dict can be loaded into a quantized model
+    quantized_state_dict = model.state_dict()
+    keys = model.load_state_dict(quantized_state_dict, strict=True)
+    assert not keys.missing_keys
+    # TODO: support unquantizing the state_dict so that it can be loaded into the original model
 
     fabric = Fabric(devices=1, plugins=BitsandbytesPrecision(*args, ignore_modules={"foo"}))
     with pytest.raises(RuntimeError, match="not supported"), fabric.init_module():
@@ -161,9 +166,12 @@ def test_bitsandbytes_layers_meta_device(args, expected):
 
     state_dict = MyModel().state_dict()
     plugin = BitsandbytesPrecision(*args)
-    with plugin.module_init_context(), torch.device("meta"):
-        model = MyModel()
+    fabric = Fabric(plugins=plugin, devices=1)
 
+    # case 1
+    # empty_init=True with devices=1 doesn't use meta device at the moment so set it explicitly
+    with fabric.init_module(empty_init=False), torch.device("meta"):
+        model = MyModel()
     # the model was instantiated on meta and is not quantized
     assert model.l.weight.device.type == "meta"
     assert model.l.weight.dtype == args[1]
@@ -178,3 +186,17 @@ def test_bitsandbytes_layers_meta_device(args, expected):
     assert not torch.equal(weight_before, model.l.weight.data)
     assert model.l.weight.device.type == "cuda"
     assert model.l.weight.dtype == expected
+
+    # case 2
+    with plugin.tensor_init_context(), torch.device("meta"):
+        model = MyModel()
+    assert model.l.weight.device.type == "meta"
+    assert model.l.weight.dtype == args[1]
+    model = fabric.setup(model, move_to_device=False)  # do not quantize, just replace
+    assert model.l.weight.device.type == "meta"
+    assert model.l.weight.dtype == args[1]
+    keys = model.load_state_dict(state_dict, strict=True)  # quantizes
+    assert not keys.missing_keys
+    assert model.l.weight.device.type == "cuda"
+    assert model.l.weight.dtype == expected
+    # note: if the state_dict was incomplete, we would need to materialize here

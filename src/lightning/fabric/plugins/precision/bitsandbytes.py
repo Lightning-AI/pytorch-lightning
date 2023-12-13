@@ -111,6 +111,7 @@ class BitsandbytesPrecision(Precision):
         # convert modules if they haven't been converted already
         bnb = _import_bitsandbytes()
         if not any(isinstance(m, (bnb.nn.Linear8bitLt, bnb.nn.Linear4bit)) for m in module.modules()):
+            # this will not quantize the model but only replace the layer classes
             _convert_layers(module, self._linear_cls, self.ignore_modules)
 
         # set the compute dtype if necessary
@@ -161,9 +162,34 @@ def _quantize_on_load_hook(quantize_fn: Callable[[torch.Tensor], None], state_di
 
 
 def _ignore_missing_weights_hook(module: torch.nn.Module, incompatible_keys: _IncompatibleKeys) -> None:
+    # since we manually loaded the weight in the `_quantize_on_load_hook` hook, we need to avoid this missing key false
+    # positive
     for key in reversed(incompatible_keys.missing_keys):
         if key.endswith("weight"):
             incompatible_keys.missing_keys.remove(key)
+
+
+def _replace_param(
+    p: torch.nn.Parameter, data: torch.Tensor, quant_state: Optional[Tuple] = None
+) -> torch.nn.Parameter:
+    bnb = _import_bitsandbytes()
+
+    # doing `param.data = weight` raises a RuntimeError if param.data was on meta-device, so
+    # we need to re-create the parameters instead of overwriting the data
+    if p.device.type == "meta":
+        if isinstance(p, bnb.nn.Params4bit):
+            return bnb.nn.Params4bit(
+                data,
+                requires_grad=data.requires_grad,
+                quant_state=quant_state,
+                compress_statistics=p.compress_statistics,
+                quant_type=p.quant_type,
+            )
+        return torch.nn.Parameter(data, requires_grad=data.requires_grad)
+    p.data = data
+    if isinstance(p, bnb.nn.Params4bit):
+        p.quant_state = quant_state
+    return p
 
 
 @functools.lru_cache(maxsize=1)
@@ -183,26 +209,6 @@ def _import_bitsandbytes() -> ModuleType:
     if not nowelcome_set:
         del os.environ["BITSANDBYTES_NOWELCOME"]
 
-    def _replace_param(
-        p: torch.nn.Parameter, data: torch.Tensor, quant_state: Optional[Tuple] = None
-    ) -> torch.nn.Parameter:
-        # doing `param.data = weight` raises a RuntimeError if param.data was on meta-device, so
-        # we need to re-create the parameters instead of overwriting the data
-        if p.device.type == "meta":
-            if isinstance(p, bnb.nn.Params4bit):
-                return bnb.nn.Params4bit(
-                    data,
-                    requires_grad=False,
-                    quant_state=quant_state,
-                    compress_statistics=p.compress_statistics,
-                    quant_type=p.quant_type,
-                )
-            return torch.nn.Parameter(data, requires_grad=p.requires_grad)
-        p.data = data
-        if isinstance(p, bnb.nn.Params4bit):
-            p.quant_state = quant_state
-        return p
-
     class _Linear8bitLt(bnb.nn.Linear8bitLt):
         """Wraps `bnb.nn.Linear8bitLt` and enables instantiation directly on the device and re-quantizaton when loading
         the state dict."""
@@ -213,21 +219,22 @@ def _import_bitsandbytes() -> ModuleType:
             # if the device is CUDA or we are under a CUDA context manager, quantize the weight here, so we don't end up
             # filling the device memory with float32 weights which could lead to OOM
             if torch.tensor(0, device=device).device.type == "cuda":
-                self.quantize()
-            self._register_load_state_dict_pre_hook(partial(_quantize_on_load_hook, self.quantize))
+                self.quantize_()
+            self._register_load_state_dict_pre_hook(partial(_quantize_on_load_hook, self.quantize_))
             self.register_load_state_dict_post_hook(_ignore_missing_weights_hook)
 
-        def quantize(self, weight: Optional[torch.Tensor] = None, device: Optional[torch.device] = None) -> None:
+        def quantize_(self, weight: Optional[torch.Tensor] = None, device: Optional[torch.device] = None) -> None:
+            """Inplace quantize."""
             if weight is None:
                 weight = self.weight.data
                 if weight.data.type == torch.uint8:
                     # already quantized
                     return
             assert isinstance(self.weight, bnb.nn.Int8Params)
-            self.weight = self._quantize(self.weight, weight, device)
+            self.weight = self.quantize(self.weight, weight, device)
 
         @staticmethod
-        def _quantize(
+        def quantize(
             int8params: bnb.nn.Int8Params, weight: torch.Tensor, device: Optional[torch.device]
         ) -> bnb.nn.Int8Params:
             device = device or torch.device("cuda")
@@ -256,7 +263,7 @@ def _import_bitsandbytes() -> ModuleType:
             device = torch.device(device)
             weight = torch.empty_like(self.weight.data, device=device)
             if device.type == "cuda":  # re-quantize
-                self.quantize(weight, device)
+                self.quantize_(weight, device)
             else:
                 self.weight = _replace_param(self.weight, weight)
             if self.bias is not None:
@@ -281,7 +288,7 @@ def _import_bitsandbytes() -> ModuleType:
                     # need custom logic if int8params is on meta device
                     raise NotImplementedError
                 if self.weight.device.type == "cuda":  # re-quantize
-                    self.quantize(weight)
+                    self.quantize_(weight)
                 else:
                     self.weight = _replace_param(self.weight, weight)
 
@@ -295,21 +302,22 @@ def _import_bitsandbytes() -> ModuleType:
             # if the device is CUDA or we are under a CUDA context manager, quantize the weight here, so we don't end up
             # filling the device memory with float32 weights which could lead to OOM
             if torch.tensor(0, device=device).device.type == "cuda":
-                self.quantize()
-            self._register_load_state_dict_pre_hook(partial(_quantize_on_load_hook, self.quantize))
+                self.quantize_()
+            self._register_load_state_dict_pre_hook(partial(_quantize_on_load_hook, self.quantize_))
             self.register_load_state_dict_post_hook(_ignore_missing_weights_hook)
 
-        def quantize(self, weight: Optional[torch.Tensor] = None, device: Optional[torch.device] = None) -> None:
+        def quantize_(self, weight: Optional[torch.Tensor] = None, device: Optional[torch.device] = None) -> None:
+            """Inplace quantize."""
             if weight is None:
                 weight = self.weight.data
                 if weight.data.type == torch.uint8:
                     # already quantized
                     return
             assert isinstance(self.weight, bnb.nn.Params4bit)
-            self.weight = self._quantize(self.weight, weight, device)
+            self.weight = self.quantize(self.weight, weight, device)
 
         @staticmethod
-        def _quantize(
+        def quantize(
             params4bit: bnb.nn.Params4bit, weight: torch.Tensor, device: Optional[torch.device]
         ) -> bnb.nn.Params4bit:
             device = device or torch.device("cuda")
@@ -333,7 +341,7 @@ def _import_bitsandbytes() -> ModuleType:
                 weight = torch.empty_like(self.weight.data, device=device)
             device = torch.device(device)
             if device.type == "cuda":  # re-quantize
-                self.quantize(weight, device)
+                self.quantize_(weight, device)
             else:
                 self.weight = _replace_param(self.weight, weight)
             if self.bias is not None:
@@ -356,7 +364,7 @@ def _import_bitsandbytes() -> ModuleType:
             torch.nn.init.kaiming_uniform_(weight, a=math.sqrt(5))
             if linear_init_finished:
                 if self.weight.device.type == "cuda":  # re-quantize
-                    self.quantize(weight)
+                    self.quantize_(weight)
                 else:
                     self.weight = _replace_param(self.weight, weight)
 
@@ -406,7 +414,8 @@ def _convert_layers(module: torch.nn.Module, linear_cls: Type, ignore_modules: S
             # since we are going to copy over the child's data, the device doesn't matter. I chose CPU
             # to avoid spiking CUDA memory even though initialization is slower
             # 4bit layers support quantizing from meta-device params so this is only relevant for 8-bit
-            device = torch.device("meta" if issubclass(linear_cls, globals()["_Linear4bit"]) else "cpu")
+            _Linear4bit = globals()["_Linear4bit"]
+            device = torch.device("meta" if issubclass(linear_cls, _Linear4bit) else "cpu")
             replacement = linear_cls(
                 child.in_features,
                 child.out_features,
@@ -414,8 +423,9 @@ def _convert_layers(module: torch.nn.Module, linear_cls: Type, ignore_modules: S
                 device=device,
             )
             if has_bias:
-                replacement.bias = torch.nn.Parameter(child.bias.data.clone(), requires_grad=child.bias.requires_grad)
-            replacement.quantize(child.weight.data.clone())
+                replacement.bias = _replace_param(replacement.bias, child.bias.data.clone())
+            state = {"quant_state": replacement.weight.quant_state if issubclass(linear_cls, _Linear4bit) else None}
+            replacement.weight = _replace_param(replacement.weight, child.weight.data.clone(), **state)
             module.__setattr__(name, replacement)
         else:
             _convert_layers(child, linear_cls, ignore_modules, prefix=fullname)

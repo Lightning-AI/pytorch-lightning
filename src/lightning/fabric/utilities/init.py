@@ -17,6 +17,7 @@ from typing import Any, Callable, Dict, Optional, Sequence
 import torch
 
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_13
+from lightning.fabric.utilities.types import _DEVICE
 
 if _TORCH_GREATER_EQUAL_1_13:
     from torch.overrides import TorchFunctionMode
@@ -59,7 +60,7 @@ class _EmptyInit(TorchFunctionMode):
         return func(*args, **kwargs)
 
 
-def _materialize(module: torch.nn.Module, device: torch.device) -> None:
+def _materialize(module: torch.nn.Module, device: _DEVICE) -> None:
     """Materialize a module."""
     module.to_empty(device=device, recurse=False)
     if not hasattr(module, "reset_parameters"):
@@ -70,7 +71,7 @@ def _materialize(module: torch.nn.Module, device: torch.device) -> None:
     module.reset_parameters()
 
 
-def _materialize_meta_tensors(module: torch.nn.Module, device: torch.device) -> None:
+def _materialize_meta_tensors(module: torch.nn.Module, device: _DEVICE) -> None:
     """Materialize all tensors in a given module."""
     for module in module.modules():
         if any(t.is_meta for t in itertools.chain(module.parameters(recurse=False), module.buffers(recurse=False))):
