@@ -18,7 +18,6 @@ import shutil
 import sys
 import tempfile
 from dataclasses import dataclass
-from datetime import datetime
 from time import time
 from typing import Any, Dict, List, Optional, Union
 
@@ -31,7 +30,6 @@ from lightning.data.streaming.constants import (
     _DEFAULT_CACHE_DIR,
     _INDEX_FILENAME,
     _LIGHTNING_CLOUD_LATEST,
-    _TIME_FORMAT,
 )
 from lightning.data.streaming.item_loader import BaseItemLoader
 from lightning.data.streaming.sampler import ChunkedIndex
@@ -56,6 +54,7 @@ class StreamingDataset(IterableDataset):
         seed: int = 42,
         serializers: Optional[Dict[str, Serializer]] = None,
         checkpoint_interval: Optional[int] = None,
+        max_cache_size: Union[int, str] = "100GB",
     ) -> None:
         """The streaming dataset can be used once your data have been optimised using the DatasetOptimiser class.
 
@@ -68,6 +67,7 @@ class StreamingDataset(IterableDataset):
             seed: Random seed for shuffling.
             serializers: The serializers used to serialize and deserialize the chunks.
             checkpoint_interval: Interval in seconds at which the workers are going to store their own progress.
+            max_cache_size: The maximum cache size used by the StreamingDataset.
 
         """
         super().__init__()
@@ -84,6 +84,7 @@ class StreamingDataset(IterableDataset):
         self.shuffle: bool = shuffle
         self.drop_last = drop_last
         self.seed = seed
+        self.max_cache_size = max_cache_size
 
         self.cache: Optional[Cache] = None
         self.distributed_env = _DistributedEnv.detect()
@@ -118,7 +119,11 @@ class StreamingDataset(IterableDataset):
                 self.input_dir.path = cache_path
 
         cache = Cache(
-            input_dir=self.input_dir, item_loader=self.item_loader, chunk_bytes=1, serializers=self.serializers
+            input_dir=self.input_dir,
+            item_loader=self.item_loader,
+            chunk_bytes=1,
+            serializers=self.serializers,
+            max_cache_size=self.max_cache_size,
         )
         cache._reader._try_load_config()
 
@@ -253,7 +258,7 @@ class StreamingDataset(IterableDataset):
         self.index += 1
 
         # Checkpoint based on time
-        if self.checkpoint_interval and (self.last_time - time()) > self.checkpoint_interval:
+        if self.checkpoint_interval and (time() - self.last_time) > self.checkpoint_interval:
             self._checkpoint(self.chunk_index - 1)
 
         return data
@@ -293,7 +298,7 @@ class StreamingDataset(IterableDataset):
                 )
 
             # 4. Move the file to its target position
-            shutil.move(tmp_checkpoint_path, os.path.join(self.cache.checkpoint_rank_dir, "checkpoint.json"))
+            shutil.move(tmp_checkpoint_path, os.path.join(self.cache.checkpoint_dir, "checkpoint.json"))
 
         self.last_time = time()
 
@@ -311,7 +316,8 @@ class StreamingDataset(IterableDataset):
         if not os.path.exists(self.cache.checkpoint_dir):
             return state_dict
 
-        state_dict = _load_state_dict_from_checkpoint_dir(self.cache.checkpoint_dir)
+        # We are reading at the workers level, so we take the dirname
+        state_dict = _load_state_dict_from_checkpoint_dir(os.path.dirname(self.cache.cache_dir))
 
         if self.distributed_env.world_size > 1:
             return _collect_distributed_state_dict(state_dict, self.distributed_env.world_size)
@@ -391,16 +397,14 @@ def _try_create_cache_dir(input_dir: str, shard_rank: int = 0) -> Optional[str]:
     return cache_dir
 
 
-def _string_to_datetime(item: str) -> datetime:
-    return datetime.strptime(item.split("checkpoint-")[1].split(".json")[0], _TIME_FORMAT)
-
-
 def _load_state_dict_from_checkpoint_dir(checkpoint_dir: str) -> Dict[str, Any]:
     state_dict: Dict[str, Any] = {}
     if not os.path.exists(checkpoint_dir):
         return state_dict
     for worker_idx in os.listdir(checkpoint_dir):
-        checkpoint_filepath = os.path.join(checkpoint_dir, str(worker_idx), "checkpoint.json")
+        if not is_integer(worker_idx):
+            continue
+        checkpoint_filepath = os.path.join(checkpoint_dir, str(worker_idx), "checkpoints", "checkpoint.json")
         if not os.path.exists(checkpoint_filepath):
             state_dict[worker_idx] = {}
         else:
@@ -445,3 +449,11 @@ class RemoteDir:
 
     cache_dir: str
     remote: str
+
+
+def is_integer(value: str) -> bool:
+    try:
+        int(value)
+        return True
+    except Exception:
+        return False
