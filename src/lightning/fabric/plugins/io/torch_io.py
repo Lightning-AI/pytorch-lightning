@@ -14,7 +14,7 @@
 import logging
 import os
 from typing import Any, Callable, Dict, Optional
-
+from typing_extensions import override
 from lightning.fabric.plugins.io.checkpoint_io import CheckpointIO
 from lightning.fabric.utilities.cloud_io import _atomic_save, get_filesystem
 from lightning.fabric.utilities.cloud_io import _load as pl_load
@@ -31,6 +31,7 @@ class TorchCheckpointIO(CheckpointIO):
 
     """
 
+    @override
     def save_checkpoint(self, checkpoint: Dict[str, Any], path: _PATH, storage_options: Optional[Any] = None) -> None:
         """Save model/training states as a checkpoint file through state-dump and file-write.
 
@@ -54,6 +55,7 @@ class TorchCheckpointIO(CheckpointIO):
         fs.makedirs(os.path.dirname(path), exist_ok=True)
         _atomic_save(checkpoint, path)
 
+    @override
     def load_checkpoint(
         self, path: _PATH, map_location: Optional[Callable] = lambda storage, loc: storage
     ) -> Dict[str, Any]:
@@ -78,6 +80,7 @@ class TorchCheckpointIO(CheckpointIO):
 
         return pl_load(path, map_location=map_location)
 
+    @override
     def remove_checkpoint(self, path: _PATH) -> None:
         """Remove checkpoint file from the filesystem.
 

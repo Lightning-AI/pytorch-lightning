@@ -14,6 +14,7 @@
 import logging
 import os
 from typing import Any, Dict, Optional
+from typing_extensions import override
 
 import torch
 from lightning_utilities.core.apply_func import apply_to_collection
@@ -39,6 +40,7 @@ class XLACheckpointIO(TorchCheckpointIO):
             raise ModuleNotFoundError(str(_XLA_AVAILABLE))
         super().__init__(*args, **kwargs)
 
+    @override
     def save_checkpoint(self, checkpoint: Dict[str, Any], path: _PATH, storage_options: Optional[Any] = None) -> None:
         """Save model/training states as a checkpoint file through state-dump and file-write.
 
