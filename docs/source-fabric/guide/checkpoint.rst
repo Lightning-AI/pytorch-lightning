@@ -20,6 +20,16 @@ Put everything into a dictionary, including models and optimizers and whatever m
     state = {"model1": model1, "model2": model2, "optimizer": optimizer, "iteration": iteration, "hparams": ...}
 
 
+Or optionally use the :class:`~lightning.fabric.utilities.data.AttributeDict` container for convenient attribute access
+
+.. code-block:: python
+
+    # Optional:
+    from lightning.fabric.utilities import AttributeDict
+
+    state = AttributeDict(model1=model1, model2=model2, optimizer=optimizer, iteration=iteration, hparams=...)
+
+
 ----
 
 

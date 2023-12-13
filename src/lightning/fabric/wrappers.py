@@ -12,10 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import inspect
+from functools import wraps
 from typing import Any, Callable, Dict, Generator, Iterator, List, Mapping, Optional, TypeVar, Union, overload
 
 import torch
-from lightning_utilities import WarningCache
 from lightning_utilities.core.apply_func import apply_to_collection
 from torch import Tensor
 from torch import nn as nn
@@ -30,9 +30,7 @@ from lightning.fabric.utilities.data import _set_sampler_epoch
 from lightning.fabric.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 from lightning.fabric.utilities.types import Optimizable
-from lightning.fabric.utilities.warnings import PossibleUserWarning
 
-warning_cache = WarningCache()
 T_destination = TypeVar("T_destination", bound=Dict[str, Any])
 _LIGHTNING_MODULE_STEP_METHODS = ("training_step", "validation_step", "test_step", "predict_step")
 
@@ -161,25 +159,40 @@ class _FabricModule(_DeviceDtypeModuleMixin):
         # We expect that the `forward_module` will eventually call `original_module.forward`, which we
         # have patched to redirect back to `original_module.method_name()`.
         def call_forward_module(*args: Any, **kwargs: Any) -> Any:
-            # Patch the original_module's forward so we can redirect the arguments back to the real method
+            # Patch the original_module's forward, so we can redirect the arguments back to the real method
             self._original_module.forward = wrapped_forward
             return self.forward(*args, **kwargs)
 
         return call_forward_module
 
-    def _validate_method_access(self, name: str, attribute: Any) -> None:
-        if (
-            inspect.ismethod(attribute)
-            and inspect.signature(attribute).parameters
-            and self._forward_module != self._original_module
-        ):
-            warning_cache.warn(
-                f"You are calling the method `{type(self._original_module).__name__}.{name}()` from outside the"
-                " model. This will bypass the wrapper from the strategy and result in incorrect behavior in"
-                " `.backward()`. You should pass your inputs through"
-                f" `{type(self._original_module).__name__}.forward()`.",
-                category=PossibleUserWarning,
-            )
+    def _wrap_method_with_module_call_tracker(self, method: Callable, name: str) -> Callable:
+        """Tracks whether any submodule in ``self._original_module`` was called during the execution of ``method`` by
+        registering forward hooks on all submodules."""
+        module_called = False
+
+        def hook(*_: Any, **__: Any) -> None:
+            nonlocal module_called
+            module_called = True
+
+        @wraps(method)
+        def _wrapped_method(*args: Any, **kwargs: Any) -> Any:
+            handles = []
+            for module in self._original_module.modules():
+                handles.append(module.register_forward_hook(hook))
+
+            output = method(*args, **kwargs)
+
+            if module_called:
+                raise RuntimeError(
+                    f"You are calling the method `{type(self._original_module).__name__}.{name}()` from outside the"
+                    " model. This will bypass the wrapper from the strategy and result in incorrect behavior in"
+                    " `.backward()`. You should pass your inputs through `forward()`.",
+                )
+            for handle in handles:
+                handle.remove()
+            return output
+
+        return _wrapped_method
 
     def __getattr__(self, item: Any) -> Any:
         if item in _LIGHTNING_MODULE_STEP_METHODS and self._forward_module != self._original_module:
@@ -194,7 +207,9 @@ class _FabricModule(_DeviceDtypeModuleMixin):
             # If the attribute is not available on the _FabricModule wrapper, redirect to the wrapped nn.Module
             original_module = super().__getattr__("_original_module")
             attr = getattr(original_module, item)
-            self._validate_method_access(item, attr)
+
+            if inspect.ismethod(attr) and self._forward_module != self._original_module:
+                attr = self._wrap_method_with_module_call_tracker(attr, item)
             return attr
 
     def __setattr__(self, name: str, value: Any) -> None:

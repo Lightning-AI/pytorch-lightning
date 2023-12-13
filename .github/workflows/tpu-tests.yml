@@ -5,7 +5,7 @@ on:
     branches: [master, "release/*"]
   pull_request_target:
     branches: [master, "release/*"]
-    types: [opened, reopened, edited, ready_for_review, synchronize]
+    types: [opened, reopened, ready_for_review, labeled, synchronize]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
@@ -21,7 +21,7 @@ jobs:
     # run only when the PR title contains 'TPU' or is a merge to master
     if: |
       (github.event_name == 'push' && github.ref == 'refs/heads/master') ||
-      (startsWith(github.event_name, 'pull_request') && contains(github.event.pull_request.title, 'TPU'))
+      (startsWith(github.event_name, 'pull_request') && contains(github.event.pull_request.labels.*.name, 'run TPU'))
     strategy:
       fail-fast: false
       matrix:

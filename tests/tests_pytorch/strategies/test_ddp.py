@@ -21,7 +21,7 @@ from lightning.fabric.plugins.environments import LightningEnvironment
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 from lightning.pytorch import LightningModule, Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
-from lightning.pytorch.plugins import DoublePrecisionPlugin, HalfPrecisionPlugin, PrecisionPlugin
+from lightning.pytorch.plugins import DoublePrecision, HalfPrecision, Precision
 from lightning.pytorch.strategies import DDPStrategy
 from lightning.pytorch.trainer.states import TrainerFn
 from torch.nn.parallel import DistributedDataParallel
@@ -92,10 +92,10 @@ def test_ddp_kwargs_from_registry(strategy_name, expected_ddp_kwargs, mps_count_
 @pytest.mark.parametrize(
     ("precision_plugin", "expected_dtype"),
     [
-        (PrecisionPlugin(), torch.float32),
-        (DoublePrecisionPlugin(), torch.float64),
-        (HalfPrecisionPlugin("16-true"), torch.float16),
-        pytest.param(HalfPrecisionPlugin("bf16-true"), torch.bfloat16, marks=RunIf(bf16_cuda=True)),
+        (Precision(), torch.float32),
+        (DoublePrecision(), torch.float64),
+        (HalfPrecision("16-true"), torch.float16),
+        pytest.param(HalfPrecision("bf16-true"), torch.bfloat16, marks=RunIf(bf16_cuda=True)),
     ],
 )
 @mock.patch.dict(os.environ, {"LOCAL_RANK": "1"})

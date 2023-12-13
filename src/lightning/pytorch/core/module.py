@@ -42,7 +42,7 @@ from torch import ScriptModule, Tensor
 from torch.nn import Module
 from torch.optim.optimizer import Optimizer
 from torchmetrics import Metric, MetricCollection
-from typing_extensions import Self
+from typing_extensions import Self, override
 
 import lightning.fabric as lf
 import lightning.pytorch as pl
@@ -61,6 +61,7 @@ from lightning.pytorch.core.saving import _load_from_checkpoint
 from lightning.pytorch.loggers import Logger
 from lightning.pytorch.trainer import call
 from lightning.pytorch.trainer.connectors.logger_connector.fx_validator import _FxValidator
+from lightning.pytorch.trainer.connectors.logger_connector.result import _get_default_dtype
 from lightning.pytorch.utilities import GradClipAlgorithmType
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.imports import _TORCHMETRICS_GREATER_EQUAL_0_9_1
@@ -400,8 +401,10 @@ class LightningModule(
                 but for some data structures you might need to explicitly provide it.
             metric_attribute: To restore the metric state, Lightning requires the reference of the
                 :class:`torchmetrics.Metric` in your model. This is found automatically if it is a model attribute.
-            rank_zero_only: Whether the value will be logged only on rank 0. This will prevent synchronization which
-                would produce a deadlock as not all processes would perform this log call.
+            rank_zero_only: Tells Lightning if you are calling ``self.log`` from every process (default) or only from
+                rank 0. If ``True``, you won't be able to use this metric as a monitor in callbacks
+                (e.g., early stopping). Warning: Improper use can lead to deadlocks! See
+                :ref:`Advanced Logging <visualize/logging_advanced:rank_zero_only>` for more details.
 
         """
         if self._fabric is not None:
@@ -563,8 +566,10 @@ class LightningModule(
                 each dataloader to not mix values.
             batch_size: Current batch size. This will be directly inferred from the loaded batch,
                 but some data structures might need to explicitly provide it.
-            rank_zero_only: Whether the value will be logged only on rank 0. This will prevent synchronization which
-                would produce a deadlock as not all processes would perform this log call.
+            rank_zero_only: Tells Lightning if you are calling ``self.log`` from every process (default) or only from
+                rank 0. If ``True``, you won't be able to use this metric as a monitor in callbacks
+                (e.g., early stopping). Warning: Improper use can lead to deadlocks! See
+                :ref:`Advanced Logging <visualize/logging_advanced:rank_zero_only>` for more details.
 
         """
         if self._fabric is not None:
@@ -622,7 +627,11 @@ class LightningModule(
         raise ValueError(f"`self.log({name}, {value})` was called, but `{type(v).__name__}` values cannot be logged")
 
     def __to_tensor(self, value: Union[Tensor, numbers.Number], name: str) -> Tensor:
-        value = value.clone().detach() if isinstance(value, Tensor) else torch.tensor(value, device=self.device)
+        value = (
+            value.clone().detach()
+            if isinstance(value, Tensor)
+            else torch.tensor(value, device=self.device, dtype=_get_default_dtype())
+        )
         if not torch.numel(value) == 1:
             raise ValueError(
                 f"`self.log({name}, {value})` was called, but the tensor must have a single element."
@@ -654,6 +663,7 @@ class LightningModule(
         data = convert_to_tensors(data, device=self.device)
         return apply_to_collection(data, Tensor, all_gather, group=group, sync_grads=sync_grads)
 
+    @override
     def forward(self, *args: Any, **kwargs: Any) -> Any:
         r"""Same as :meth:`torch.nn.Module.forward`.
 
@@ -1518,6 +1528,13 @@ class LightningModule(
             **class** to call it instead of the :class:`LightningModule` instance, or a
             ``TypeError`` will be raised.
 
+        Note:
+            To ensure all layers can be loaded from the checkpoint, this function will call
+            :meth:`~lightning.pytorch.core.hooks.ModelHooks.configure_model` directly after instantiating the
+            model if this hook is overridden in your LightningModule. However, note that ``load_from_checkpoint`` does
+            not support loading sharded checkpoints, and you may run out of memory if the model is too large. In this
+            case, consider loading through the Trainer via ``.fit(ckpt_path=...)``.
+
         Example::
 
             # load weights without mapping ...
@@ -1559,6 +1576,7 @@ class LightningModule(
         )
         return cast(Self, loaded)
 
+    @override
     def __getstate__(self) -> Dict[str, Any]:
         state = dict(self.__dict__)
         state["_trainer"] = None

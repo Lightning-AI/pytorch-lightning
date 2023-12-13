@@ -17,8 +17,7 @@ ______________________________________________________________________
 
 [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/lightning_fabric)](https://pypi.org/project/lightning_fabric/)
 [![PyPI Status](https://badge.fury.io/py/lightning_fabric.svg)](https://badge.fury.io/py/lightning_fabric)
-[![PyPI - Downloads](https://img.shields.io/pypi/dm/lightning-fabric)
-](https://pepy.tech/project/lightning-fabric)
+[![PyPI - Downloads](https://img.shields.io/pypi/dm/lightning-fabric)](https://pepy.tech/project/lightning-fabric)
 [![Conda](https://img.shields.io/conda/v/conda-forge/lightning_fabric?label=conda&color=success)](https://anaconda.org/conda-forge/lightning_fabric)
 
 </div>
@@ -200,6 +199,29 @@ ______________________________________________________________________
 <div align="center">
     <a href="https://lightning.ai/docs/fabric/stable/">Read the Lightning Fabric docs</a>
 </div>
+
+______________________________________________________________________
+
+## Continuous Integration
+
+Lightning is rigorously tested across multiple CPUs and GPUs and against major Python and PyTorch versions.
+
+###### \*Codecov is > 90%+ but build delays may show less
+
+<details>
+  <summary>Current build statuses</summary>
+
+<center>
+
+|       System / PyTorch ver.        |                                                   1.12                                                    |                                                   1.13                                                    |                                                    2.0                                                    |                                                       2.1                                                        |
+| :--------------------------------: | :-------------------------------------------------------------------------------------------------------: | :-------------------------------------------------------------------------------------------------------: | :-------------------------------------------------------------------------------------------------------: | :--------------------------------------------------------------------------------------------------------------: |
+|        Linux py3.9 \[GPUs\]        |                                                                                                           |                                                                                                           |                                                                                                           | ![Build Status](https://dev.azure.com/Lightning-AI/lightning/_apis/build/status%2Flightning-fabric%20%28GPUs%29) |
+|  Linux (multiple Python versions)  | ![Test Fabric](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-fabric.yml/badge.svg) | ![Test Fabric](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-fabric.yml/badge.svg) | ![Test Fabric](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-fabric.yml/badge.svg) |    ![Test Fabric](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-fabric.yml/badge.svg)     |
+|   OSX (multiple Python versions)   | ![Test Fabric](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-fabric.yml/badge.svg) | ![Test Fabric](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-fabric.yml/badge.svg) | ![Test Fabric](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-fabric.yml/badge.svg) |    ![Test Fabric](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-fabric.yml/badge.svg)     |
+| Windows (multiple Python versions) | ![Test Fabric](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-fabric.yml/badge.svg) | ![Test Fabric](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-fabric.yml/badge.svg) | ![Test Fabric](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-fabric.yml/badge.svg) |    ![Test Fabric](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-fabric.yml/badge.svg)     |
+
+</center>
+</details>
 
 ______________________________________________________________________
 

@@ -4,10 +4,7 @@
       "pattern": "^https://github.com/Lightning-AI/lightning/pull/.*"
     },
     {
-      "pattern": "^https://pepy.tech/badge/.*"
-    },
-    {
-      "pattern": ".*https://dev.azure.com/Lightning-AI/lightning/_apis/build/status/.*"
+      "pattern": "^https://dev.azure.com/Lightning-AI/lightning/_apis/build/status.*"
     }
   ],
   "httpHeaders": [
