@@ -15,8 +15,8 @@ import os
 from typing import Any, Literal
 
 import torch
-from typing_extensions import get_args
-from typing_extensions import override
+from typing_extensions import get_args, override
+
 from lightning.fabric.accelerators.xla import _XLA_AVAILABLE
 from lightning.fabric.plugins.precision.precision import Precision
 from lightning.fabric.utilities.types import Optimizable
