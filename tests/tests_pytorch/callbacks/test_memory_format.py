@@ -17,7 +17,6 @@ from unittest.mock import MagicMock
 import torch
 from lightning.pytorch import LightningModule, Trainer
 from lightning.pytorch.callbacks import MemoryFormat
-from lightning.pytorch import Trainer
 
 
 def test_memory_format_callback_setup():
