@@ -39,6 +39,7 @@ def test_bitsandbytes_plugin(monkeypatch):
 
     bitsandbytes_mock.nn.Linear8bitLt = ModuleMock
     bitsandbytes_mock.nn.Linear4bit = ModuleMock
+    bitsandbytes_mock.nn.Params4bit = object
 
     precision = BitsandbytesPrecision("nf4", dtype=torch.float16)
     connector = _Connector(plugins=precision)
@@ -64,7 +65,8 @@ def test_bitsandbytes_plugin(monkeypatch):
             self.l2 = SubModule()
 
     _NF4Linear = vars(module)["_NF4Linear"]
-    _NF4Linear._quantize_weight = Mock()
+    quantize_mock = lambda self, p, w, d: p
+    _NF4Linear._quantize = quantize_mock
 
     with precision.module_init_context():
         assert torch.get_default_dtype() == torch.float16

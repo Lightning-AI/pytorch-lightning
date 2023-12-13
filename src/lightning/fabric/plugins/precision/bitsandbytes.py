@@ -230,11 +230,11 @@ def _import_bitsandbytes() -> ModuleType:
         def _quantize(
             int8params: bnb.nn.Int8Params, weight: torch.Tensor, device: Optional[torch.device]
         ) -> bnb.nn.Int8Params:
-            if device.type == "meta":
-                # need custom logic if int8params is on meta device
-                raise NotImplementedError
+            device = device or torch.device("cuda")
+            if device.type != "cuda":
+                raise RuntimeError(f"Unexpected device type: {device.type}")
             # https://github.com/TimDettmers/bitsandbytes/blob/0.41.0/bitsandbytes/nn/modules.py#L291-L302
-            B = weight.contiguous().to(device="cuda", dtype=torch.float16)
+            B = weight.contiguous().to(device=device, dtype=torch.float16)
             if int8params.has_fp16_weights:
                 int8params.data = B
             else:
@@ -311,6 +311,9 @@ def _import_bitsandbytes() -> ModuleType:
         def _quantize(
             params4bit: bnb.nn.Params4bit, weight: torch.Tensor, device: Optional[torch.device]
         ) -> bnb.nn.Params4bit:
+            device = device or torch.device("cuda")
+            if device.type != "cuda":
+                raise RuntimeError(f"Unexpected device type: {device.type}")
             # https://github.com/TimDettmers/bitsandbytes/blob/0.41.0/bitsandbytes/nn/modules.py#L156-L159
             w = weight.contiguous().to(device=device, dtype=torch.half)
             w_4bit, quant_state = bnb.functional.quantize_4bit(
@@ -398,11 +401,15 @@ def _convert_layers(module: torch.nn.Module, linear_cls: Type, ignore_modules: S
         if isinstance(child, torch.nn.Linear) and not any(fullname.startswith(s) for s in ignore_modules):
             log.debug(f"Replacing layer {fullname!r} with bitsandbytes equivalent")
             has_bias = child.bias is not None
+            # since we are going to copy over the child's data, the device doesn't matter. I chose CPU
+            # to avoid spiking CUDA memory even though initialization is slower
+            # 4bit layers support quantizing from meta-device params so this is only relevant for 8-bit
+            device = torch.device("meta" if issubclass(linear_cls, globals()["_Linear4bit"]) else "cpu")
             replacement = linear_cls(
                 child.in_features,
                 child.out_features,
                 bias=has_bias,
-                device=torch.device("meta"),
+                device=device,
             )
             if has_bias:
                 replacement.bias = torch.nn.Parameter(child.bias.data.clone(), requires_grad=child.bias.requires_grad)
