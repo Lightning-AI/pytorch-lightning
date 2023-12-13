@@ -65,26 +65,19 @@ for i in "${!parametrizations_arr[@]}"; do
   parametrization=${parametrizations_arr[$i]}
   prefix="$((i+1))/${#parametrizations_arr[@]}"
 
-  # check blocklist
-  if [[ "${parametrization}" == *"test_pytorch_profiler_nested_emit_nvtx"* ]]; then
-    echo "$prefix: Skipping $parametrization"
-    report+="Skipped\t$parametrization\n"
-    # do not continue the loop because we might need to wait for batched jobs
-  else
-    echo "$prefix: Running $parametrization"
+  echo "$prefix: Running $parametrization"
 
-    # fix the port to avoid race condition when batched distributed tests select the port randomly
-    export MASTER_PORT=$((29500 + $i % $test_batch_size))
+  # fix the port to avoid race condition when batched distributed tests select the port randomly
+  export MASTER_PORT=$((29500 + $i % $test_batch_size))
 
-    # execute the test in the background
-    # redirect to a log file that buffers test output. since the tests will run in the background, we cannot let them
-    # output to std{out,err} because the outputs would be garbled together
-    python3 ${defaults} "$parametrization" &>> standalone_test_output.txt &
-    # save the PID in an array
-    pids[${i}]=$!
-    # add row to the final report
-    report+="Ran\t$parametrization\n"
-  fi
+  # execute the test in the background
+  # redirect to a log file that buffers test output. since the tests will run in the background, we cannot let them
+  # output to std{out,err} because the outputs would be garbled together
+  python3 ${defaults} "$parametrization" &>> standalone_test_output.txt &
+  # save the PID in an array
+  pids[${i}]=$!
+  # add row to the final report
+  report+="Ran\t$parametrization\n"
 
   if ((($i + 1) % $test_batch_size == 0)); then
     # wait for running tests
