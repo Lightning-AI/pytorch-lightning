@@ -219,10 +219,10 @@ def _import_bitsandbytes() -> ModuleType:
 
         def quantize(self, weight: Optional[torch.Tensor] = None, device: Optional[torch.device] = None) -> None:
             if weight is None:
-                if weight.data.type == torch.int8:
+                weight = self.weight.data
+                if weight.data.type == torch.uint8:
                     # already quantized
                     return
-                weight = self.weight.data
             assert isinstance(self.weight, bnb.nn.Int8Params)
             self.weight = self._quantize(self.weight, weight, device)
 
@@ -253,8 +253,9 @@ def _import_bitsandbytes() -> ModuleType:
             if self.weight.dtype == torch.uint8:  # was quantized
                 # need the original shape here
                 raise NotImplementedError
+            device = torch.device(device)
             weight = torch.empty_like(self.weight.data, device=device)
-            if torch.device(device).type == "cuda":  # re-quantize
+            if device.type == "cuda":  # re-quantize
                 self.quantize(weight, device)
             else:
                 self.weight = _replace_param(self.weight, weight)
@@ -300,10 +301,10 @@ def _import_bitsandbytes() -> ModuleType:
 
         def quantize(self, weight: Optional[torch.Tensor] = None, device: Optional[torch.device] = None) -> None:
             if weight is None:
+                weight = self.weight.data
                 if weight.data.type == torch.uint8:
                     # already quantized
                     return
-                weight = self.weight.data
             assert isinstance(self.weight, bnb.nn.Params4bit)
             self.weight = self._quantize(self.weight, weight, device)
 
@@ -330,7 +331,8 @@ def _import_bitsandbytes() -> ModuleType:
                 weight = torch.empty(self.weight.quant_state[1], device=device, dtype=torch.half)
             else:
                 weight = torch.empty_like(self.weight.data, device=device)
-            if torch.device(device).type == "cuda":  # re-quantize
+            device = torch.device(device)
+            if device.type == "cuda":  # re-quantize
                 self.quantize(weight, device)
             else:
                 self.weight = _replace_param(self.weight, weight)
