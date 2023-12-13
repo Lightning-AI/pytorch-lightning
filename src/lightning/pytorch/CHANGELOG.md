@@ -9,9 +9,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
-- Added `MemoryFormat` callback to easily change the model memory format ([#15175](https://github.com/Lightning-AI/lightning/pull/17680))
-
 - Added `lightning.pytorch.callbacks.ThroughputMonitor` to track throughput and log it ([#18848](https://github.com/Lightning-AI/lightning/pull/18848))
+
+- Added `MemoryFormat` callback to easily change the model memory format ([#15175](https://github.com/Lightning-AI/lightning/pull/17680))
 
 - The Trainer now restores the training mode set through `.train()` or `.eval()` on a submodule-level when switching from validation to training ([#18951](https://github.com/Lightning-AI/lightning/pull/18951))
 

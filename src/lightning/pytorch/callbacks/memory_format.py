@@ -20,9 +20,9 @@ changes the model memory format
 
 from typing import Any, MutableSequence, Optional
 
-import pytorch_lightning as pl
 import torch
 
+import lightning.pytorch as pl
 from lightning.pytorch.callbacks import Callback
 from lightning.pytorch.utilities.rank_zero import rank_zero_warn
 
