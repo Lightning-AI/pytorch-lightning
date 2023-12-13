@@ -2,6 +2,7 @@ from typing import Any, List
 
 from torch import Tensor
 from typing_extensions import override
+
 from lightning.fabric.plugins.collectives.collective import Collective
 from lightning.fabric.utilities.types import CollectibleGroup
 
@@ -66,7 +67,7 @@ class SingleDeviceCollective(Collective):
     @override
     def send(self, *_: Any, **__: Any) -> None:
         pass
-    
+
     @override
     def recv(self, tensor: Tensor, *_: Any, **__: Any) -> Tensor:
         return tensor

@@ -89,7 +89,7 @@ class TorchCollective(Collective):
         dist.reduce_scatter(output, input_list, op=op, group=self.group)
         return output
 
-    @override    
+    @override
     def all_to_all(self, output_tensor_list: List[Tensor], input_tensor_list: List[Tensor]) -> List[Tensor]:
         dist.all_to_all(output_tensor_list, input_tensor_list, group=self.group)
         return output_tensor_list
@@ -132,7 +132,7 @@ class TorchCollective(Collective):
     def monitored_barrier(self, timeout: Optional[datetime.timedelta] = None, wait_all_ranks: bool = False) -> None:
         dist.monitored_barrier(group=self.group, timeout=timeout, wait_all_ranks=wait_all_ranks)
 
-    @override    
+    @override
     def setup(self, main_address: Optional[str] = None, main_port: Optional[str] = None, **kwargs: Any) -> Self:
         if self.is_initialized():
             return self
