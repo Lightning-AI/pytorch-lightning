@@ -227,7 +227,7 @@ def test_log_model_summary(neptune_mock):
 
 
 @patch("builtins.open", mock_open(read_data="test"))
-@pytest.mark.parametrize("prefix", [(None,), ("custom_prefix",), ("custom/nested/prefix",)])
+@pytest.mark.parametrize("prefix", [None, "custom_prefix", "custom/nested/prefix"])
 def test_after_save_checkpoint(neptune_mock, prefix):
     # given
     models_root_dir = os.path.join("path", "to", "models")
