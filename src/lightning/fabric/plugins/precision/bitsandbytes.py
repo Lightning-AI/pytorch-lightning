@@ -215,7 +215,8 @@ def _import_bitsandbytes() -> ModuleType:
 
         def __init__(self, *args: Any, device: Optional[_DEVICE] = None, threshold: float = 6.0, **kwargs: Any) -> None:
             super().__init__(*args, device=device, threshold=threshold, **kwargs)
-            self.weight = cast(bnb.nn.Int8Params, self.weight)
+            self.weight = cast(bnb.nn.Int8Params, self.weight)  # type: ignore[has-type]
+            self.bias = cast(Optional[torch.nn.Parameter], self.bias)  # type: ignore[has-type]
             # if the device is CUDA or we are under a CUDA context manager, quantize the weight here, so we don't end up
             # filling the device memory with float32 weights which could lead to OOM
             if torch.tensor(0, device=device).device.type == "cuda":
@@ -270,7 +271,7 @@ def _import_bitsandbytes() -> ModuleType:
                 self.bias = _replace_param(self.bias, torch.empty_like(self.bias, device=device))
             return self
 
-        def reset_parameters(self):
+        def reset_parameters(self) -> None:
             # from `torch.nn.Linear.reset_parameters`
             if self.bias is not None:
                 fan_in, _ = torch.nn.init._calculate_fan_in_and_fan_out(self.weight)
@@ -298,7 +299,8 @@ def _import_bitsandbytes() -> ModuleType:
 
         def __init__(self, *args: Any, device: Optional[_DEVICE] = None, **kwargs: Any) -> None:
             super().__init__(*args, device=device, **kwargs)
-            self.weight = cast(bnb.nn.Params4bit, self.weight)
+            self.weight = cast(bnb.nn.Params4bit, self.weight)  # type: ignore[has-type]
+            self.bias = cast(Optional[torch.nn.Parameter], self.bias)  # type: ignore[has-type]
             # if the device is CUDA or we are under a CUDA context manager, quantize the weight here, so we don't end up
             # filling the device memory with float32 weights which could lead to OOM
             if torch.tensor(0, device=device).device.type == "cuda":
@@ -336,9 +338,9 @@ def _import_bitsandbytes() -> ModuleType:
         def to_empty(self, *, device: _DEVICE, recurse: bool = True) -> Self:
             if self.weight.dtype == torch.uint8:  # was quantized
                 # cannot init the quantized params directly
-                weight = torch.empty(self.weight.quant_state[1], device=device, dtype=torch.half)
+                weight = torch.empty(self.weight.quant_state[1], device=device, dtype=torch.half)  # type: ignore[arg-type]
             else:
-                weight = torch.empty_like(self.weight.data, device=device)
+                weight = torch.empty_like(self.weight.data, device=device)  # type: ignore[arg-type]
             device = torch.device(device)
             if device.type == "cuda":  # re-quantize
                 self.quantize_(weight, device)
@@ -348,7 +350,7 @@ def _import_bitsandbytes() -> ModuleType:
                 self.bias = _replace_param(self.bias, torch.empty_like(self.bias, device=device))
             return self
 
-        def reset_parameters(self):
+        def reset_parameters(self) -> None:
             # from `torch.nn.Linear.reset_parameters`
             if self.bias is not None:
                 fan_in, _ = torch.nn.init._calculate_fan_in_and_fan_out(self.weight)
