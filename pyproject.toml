@@ -269,7 +269,7 @@ addopts = [
     "--ignore=legacy/checkpoints",
 ]
 markers = [
-    "cloud:Run the cloud tests for example",
+    "cloud: Run the cloud tests for example",
 ]
 filterwarnings = [
     "error::FutureWarning",
