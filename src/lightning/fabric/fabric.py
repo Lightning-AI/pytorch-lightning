@@ -64,6 +64,7 @@ from lightning.fabric.utilities.data import (
     _update_dataloader,
     has_iterable_dataset,
 )
+from lightning.fabric.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
 from lightning.fabric.utilities.distributed import DistributedSamplerWrapper
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 from lightning.fabric.utilities.rank_zero import rank_zero_deprecation, rank_zero_warn
@@ -243,9 +244,8 @@ class Fabric:
 
         module = _FabricModule(module, self._precision, original_module=original_module)
 
-        if not isinstance(self._strategy, (FSDPStrategy, XLAFSDPStrategy)):
-            # Update the _DeviceDtypeModuleMixin's device parameter
-            module.to(self.device if move_to_device else next(module.parameters(), torch.tensor(0)).device)
+        # Update the _DeviceDtypeModuleMixin's device parameter
+        _update_device_attribute(module)
 
         optimizers = [
             _FabricOptimizer(optimizer=optimizer, strategy=self._strategy, callbacks=self._callbacks)
@@ -295,9 +295,8 @@ class Fabric:
         module = self._strategy.setup_module(module)
         module = _FabricModule(module, self._precision, original_module=original_module)
 
-        if not isinstance(self._strategy, (FSDPStrategy, XLAFSDPStrategy)):
-            # Update the _DeviceDtypeModuleMixin's device parameter
-            module.to(self.device if move_to_device else next(module.parameters(), torch.tensor(0)).device)
+        # Update the _DeviceDtypeModuleMixin's device parameter.
+        _update_device_attribute(module)
 
         if hasattr(original_module, "_fabric"):  # this is probably a LightningModule
             original_module._fabric = self  # type: ignore[assignment]
@@ -1063,3 +1062,14 @@ class Fabric:
         callbacks = callbacks if isinstance(callbacks, list) else [callbacks]
         callbacks.extend(_load_external_callbacks("lightning.fabric.callbacks_factory"))
         return callbacks
+
+
+def _update_device_attribute(module: torch.nn.Module) -> None:
+    # this assumes that the module is already on the desired device
+    if not isinstance(module, _DeviceDtypeModuleMixin):
+        return
+    # for sharded strategies or manual device placement, there's no single root device
+    root = next(module.parameters(), torch.tensor(0)).device
+    # cannot use `module.to()` because we don't actually want to move the model in case there are multiple
+    # devices types (such as partial meta parameters)
+    module._device = root

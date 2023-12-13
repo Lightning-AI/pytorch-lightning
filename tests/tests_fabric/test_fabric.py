@@ -1234,3 +1234,22 @@ def test_fabric_with_torchdynamo_fullgraph(kwargs):
     # pass the fabric wrapped model to the compiled function, so that it gets compiled too
     out = cfn(fmodel, x)
     assert isinstance(out, torch.Tensor)
+
+
+def test_fabric_setup_device_update():
+    fabric = Fabric(devices=1, accelerator="cpu")
+
+    class MyModel(torch.nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.l1 = torch.nn.Linear(1, 1, device="cpu")
+            self.l2 = torch.nn.Linear(1, 1, device="meta")
+
+    model = MyModel()
+    assert model.l1.weight.device.type == "cpu"
+    assert model.l2.weight.device.type == "meta"
+    fmodel = fabric.setup(model, move_to_device=False)
+    assert fmodel.l1.weight.device.type == "cpu"
+    assert fmodel.l2.weight.device.type == "meta"
+    # The _DeviceDtypeModuleMixin currently can't represent the device in a meaningful way with multiple devices
+    assert fmodel._device.type == "cpu"
