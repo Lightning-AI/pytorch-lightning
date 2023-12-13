@@ -14,11 +14,11 @@
 import logging
 import os
 from typing import Any, Dict, Optional
-from typing_extensions import override
 
 import torch
 from lightning_utilities.core.apply_func import apply_to_collection
 from lightning_utilities.core.imports import RequirementCache
+from typing_extensions import override
 
 from lightning.fabric.accelerators.xla import _XLA_AVAILABLE
 from lightning.fabric.plugins.io.torch_io import TorchCheckpointIO
