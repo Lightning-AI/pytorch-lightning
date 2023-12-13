@@ -54,7 +54,7 @@ jobs:
       - uses: google-github-actions/auth@v2
         with:
           credentials_json: ${{ secrets.GKE_SA_KEY_BASE64 }}
-      - uses: "google-github-actions/setup-gcloud@v1"
+      - uses: "google-github-actions/setup-gcloud@v2"
 
       - name: Time-based job cleanup
         if: always()
