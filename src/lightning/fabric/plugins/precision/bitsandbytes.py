@@ -263,9 +263,6 @@ def _import_bitsandbytes() -> ModuleType:
             return self
 
         def reset_parameters(self):
-            if self.weight.device.type == "meta":
-                # need custom logic if int8params is on meta device
-                raise NotImplementedError
             # from `torch.nn.Linear.reset_parameters`
             if self.bias is not None:
                 fan_in, _ = torch.nn.init._calculate_fan_in_and_fan_out(self.weight)
@@ -279,6 +276,9 @@ def _import_bitsandbytes() -> ModuleType:
             weight = self.weight.data
             torch.nn.init.kaiming_uniform_(weight, a=math.sqrt(5))
             if linear_init_finished:
+                if self.weight.device.type == "meta":
+                    # need custom logic if int8params is on meta device
+                    raise NotImplementedError
                 if self.weight.device.type == "cuda":  # re-quantize
                     self.quantize(weight)
                 else:
