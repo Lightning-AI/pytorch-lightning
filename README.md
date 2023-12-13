@@ -5,7 +5,7 @@
 <br/>
 <br/>
 
-**The deep learning framework to train, finetune and deploy AI models.**
+**The deep learning framework to pretrain, finetune and deploy AI models.**
 
 **NEW- Lightning 2.0 features a clean and stable API!!**
 
