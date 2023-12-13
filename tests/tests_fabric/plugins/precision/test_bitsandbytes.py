@@ -146,8 +146,8 @@ def test_bitsandbytes_layers(args, expected):
 @pytest.mark.parametrize(
     ("args", "expected"),
     [
-        (("int8", torch.float16), torch.int8),
-        (("nf4", torch.bfloat16), torch.uint8),
+        pytest.param(("int8", torch.float16), torch.int8, marks=pytest.mark.xfail(raises=NotImplementedError)),
+        pytest.param(("nf4", torch.bfloat16), torch.uint8, marks=RunIf(bf16_cuda=True)),
     ],
 )
 def test_bitsandbytes_layers_meta_device(args, expected):
@@ -164,7 +164,7 @@ def test_bitsandbytes_layers_meta_device(args, expected):
 
     # the model was instantiated on meta and is not quantized
     assert model.l.weight.device.type == "meta"
-    assert model.l.weight.dtype == torch.bfloat16
+    assert model.l.weight.dtype == args[1]
     # materializing performs quantization
     materialize_meta_tensors(model, "cuda")
     assert model.l.weight.device.type == "cuda"

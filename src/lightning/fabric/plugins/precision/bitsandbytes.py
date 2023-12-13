@@ -19,7 +19,7 @@ import warnings
 from contextlib import ExitStack
 from functools import partial
 from types import ModuleType
-from typing import Any, Callable, ContextManager, Literal, Optional, OrderedDict, Set, Tuple, Type
+from typing import Any, Callable, ContextManager, Literal, Optional, OrderedDict, Set, Tuple, Type, cast
 
 import torch
 from lightning_utilities import apply_to_collection
@@ -209,32 +209,7 @@ def _import_bitsandbytes() -> ModuleType:
 
         def __init__(self, *args: Any, device: Optional[_DEVICE] = None, threshold: float = 6.0, **kwargs: Any) -> None:
             super().__init__(*args, device=device, threshold=threshold, **kwargs)
-            # if the device is CUDA or we are under a CUDA context manager, quantize the weight here, so we don't end up
-            # filling the device memory with float32 weights which could lead to OOM
-            if torch.tensor(0, device=device).device.type == "cuda":
-                self._quantize_weight(self.weight.data)
-            self._register_load_state_dict_pre_hook(partial(_quantize_on_load_hook, self._quantize_weight))
-            self.register_load_state_dict_post_hook(_ignore_missing_weights_hook)
-
-        def _quantize_weight(self, weight: torch.Tensor) -> None:
-            # https://github.com/TimDettmers/bitsandbytes/blob/0.41.0/bitsandbytes/nn/modules.py#L291-L302
-            B = weight.contiguous().to(device="cuda", dtype=torch.float16)
-            if self.state.has_fp16_weights:
-                self.weight.data = B
-            else:
-                CB, CBt, SCB, SCBt, coo_tensorB = bnb.functional.double_quant(B)
-                del CBt
-                del SCBt
-                self.weight.data = CB
-                setattr(self.weight, "CB", CB)
-                setattr(self.weight, "SCB", SCB)
-
-    class _Linear4bit(bnb.nn.Linear4bit):
-        """Wraps `bnb.nn.Linear4bit` to enable: instantiation directly on the device, re-quantizaton when loading the
-        state dict, meta-device initialization, and materialization."""
-
-        def __init__(self, *args: Any, device: Optional[_DEVICE] = None, **kwargs: Any) -> None:
-            super().__init__(*args, device=device, **kwargs)
+            self.weight = cast(bnb.nn.Int8Params, self.weight)
             # if the device is CUDA or we are under a CUDA context manager, quantize the weight here, so we don't end up
             # filling the device memory with float32 weights which could lead to OOM
             if torch.tensor(0, device=device).device.type == "cuda":
@@ -242,18 +217,100 @@ def _import_bitsandbytes() -> ModuleType:
             self._register_load_state_dict_pre_hook(partial(_quantize_on_load_hook, self.quantize))
             self.register_load_state_dict_post_hook(_ignore_missing_weights_hook)
 
-        def quantize(self, weight: Optional[torch.Tensor] = None) -> None:
+        def quantize(self, weight: Optional[torch.Tensor] = None, device: Optional[torch.device] = None) -> None:
+            if weight is None:
+                if weight.data.type == torch.int8:
+                    # already quantized
+                    return
+                weight = self.weight.data
+            assert isinstance(self.weight, bnb.nn.Int8Params)
+            self.weight = self._quantize(self.weight, weight, device)
+
+        @staticmethod
+        def _quantize(
+            int8params: bnb.nn.Int8Params, weight: torch.Tensor, device: Optional[torch.device]
+        ) -> bnb.nn.Int8Params:
+            if device.type == "meta":
+                # need custom logic if int8params is on meta device
+                raise NotImplementedError
+            # https://github.com/TimDettmers/bitsandbytes/blob/0.41.0/bitsandbytes/nn/modules.py#L291-L302
+            B = weight.contiguous().to(device="cuda", dtype=torch.float16)
+            if int8params.has_fp16_weights:
+                int8params.data = B
+            else:
+                CB, CBt, SCB, SCBt, coo_tensorB = bnb.functional.double_quant(B)
+                del CBt
+                del SCBt
+                int8params.data = CB
+                setattr(int8params, "CB", CB)
+                setattr(int8params, "SCB", SCB)
+            return int8params
+
+        def to_empty(self, *, device: _DEVICE, recurse: bool = True) -> Self:
+            if self.weight.device.type == "meta":
+                # need custom logic if int8params is on meta device
+                raise NotImplementedError
+            if self.weight.dtype == torch.uint8:  # was quantized
+                # need the original shape here
+                raise NotImplementedError
+            weight = torch.empty_like(self.weight.data, device=device)
+            if torch.device(device).type == "cuda":  # re-quantize
+                self.quantize(weight, device)
+            else:
+                self.weight = _replace_param(self.weight, weight)
+            if self.bias is not None:
+                self.bias = _replace_param(self.bias, torch.empty_like(self.bias, device=device))
+            return self
+
+        def reset_parameters(self):
+            if self.weight.device.type == "meta":
+                # need custom logic if int8params is on meta device
+                raise NotImplementedError
+            # from `torch.nn.Linear.reset_parameters`
+            if self.bias is not None:
+                fan_in, _ = torch.nn.init._calculate_fan_in_and_fan_out(self.weight)
+                bound = 1 / math.sqrt(fan_in) if fan_in > 0 else 0
+                init.uniform_(self.bias, -bound, bound)
+
+            linear_init_finished = isinstance(self.weight, bnb.nn.Params4bit)
+            if linear_init_finished and self.weight.dtype == torch.uint8:  # was quantized
+                # need the original shape here
+                raise NotImplementedError
+            weight = self.weight.data
+            torch.nn.init.kaiming_uniform_(weight, a=math.sqrt(5))
+            if linear_init_finished:
+                if self.weight.device.type == "cuda":  # re-quantize
+                    self.quantize(weight)
+                else:
+                    self.weight = _replace_param(self.weight, weight)
+
+    class _Linear4bit(bnb.nn.Linear4bit):
+        """Wraps `bnb.nn.Linear4bit` to enable: instantiation directly on the device, re-quantizaton when loading the
+        state dict, meta-device initialization, and materialization."""
+
+        def __init__(self, *args: Any, device: Optional[_DEVICE] = None, **kwargs: Any) -> None:
+            super().__init__(*args, device=device, **kwargs)
+            self.weight = cast(bnb.nn.Params4bit, self.weight)
+            # if the device is CUDA or we are under a CUDA context manager, quantize the weight here, so we don't end up
+            # filling the device memory with float32 weights which could lead to OOM
+            if torch.tensor(0, device=device).device.type == "cuda":
+                self.quantize()
+            self._register_load_state_dict_pre_hook(partial(_quantize_on_load_hook, self.quantize))
+            self.register_load_state_dict_post_hook(_ignore_missing_weights_hook)
+
+        def quantize(self, weight: Optional[torch.Tensor] = None, device: Optional[torch.device] = None) -> None:
             if weight is None:
                 if weight.data.type == torch.uint8:
                     # already quantized
                     return
                 weight = self.weight.data
             assert isinstance(self.weight, bnb.nn.Params4bit)
-            self.weight = self._quantize(self.weight, weight)
+            self.weight = self._quantize(self.weight, weight, device)
 
         @staticmethod
-        def _quantize(params4bit: bnb.nn.Params4bit, weight: torch.Tensor) -> bnb.nn.Params4bit:
-            device = "cuda" if params4bit.data.device.type == "meta" else params4bit.data.device
+        def _quantize(
+            params4bit: bnb.nn.Params4bit, weight: torch.Tensor, device: Optional[torch.device]
+        ) -> bnb.nn.Params4bit:
             # https://github.com/TimDettmers/bitsandbytes/blob/0.41.0/bitsandbytes/nn/modules.py#L156-L159
             w = weight.contiguous().to(device=device, dtype=torch.half)
             w_4bit, quant_state = bnb.functional.quantize_4bit(
@@ -271,7 +328,7 @@ def _import_bitsandbytes() -> ModuleType:
             else:
                 weight = torch.empty_like(self.weight.data, device=device)
             if torch.device(device).type == "cuda":  # re-quantize
-                self.quantize(weight)
+                self.quantize(weight, device)
             else:
                 self.weight = _replace_param(self.weight, weight)
             if self.bias is not None:
