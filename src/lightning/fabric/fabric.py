@@ -245,7 +245,9 @@ class Fabric:
         module = _FabricModule(module, self._precision, original_module=original_module)
 
         # Update the _DeviceDtypeModuleMixin's device parameter
-        _update_device_attribute(module)
+        _update_device_attribute(
+            module, self.device if move_to_device else next(module.parameters(), torch.tensor(0)).device
+        )
 
         optimizers = [
             _FabricOptimizer(optimizer=optimizer, strategy=self._strategy, callbacks=self._callbacks)
@@ -295,8 +297,10 @@ class Fabric:
         module = self._strategy.setup_module(module)
         module = _FabricModule(module, self._precision, original_module=original_module)
 
-        # Update the _DeviceDtypeModuleMixin's device parameter.
-        _update_device_attribute(module)
+        # Update the _DeviceDtypeModuleMixin's device parameter
+        _update_device_attribute(
+            module, self.device if move_to_device else next(module.parameters(), torch.tensor(0)).device
+        )
 
         if hasattr(original_module, "_fabric"):  # this is probably a LightningModule
             original_module._fabric = self  # type: ignore[assignment]
@@ -1064,12 +1068,10 @@ class Fabric:
         return callbacks
 
 
-def _update_device_attribute(module: torch.nn.Module) -> None:
-    # this assumes that the module is already on the desired device
+def _update_device_attribute(module: torch.nn.Module, device: torch.device) -> None:
+    # NOTE: for sharded strategies or manual device placement, there's no single root device
     if not isinstance(module, _DeviceDtypeModuleMixin):
         return
-    # for sharded strategies or manual device placement, there's no single root device
-    root = next(module.parameters(), torch.tensor(0)).device
     # cannot use `module.to()` because we don't actually want to move the model in case there are multiple
     # devices types (such as partial meta parameters)
-    module._device = root
+    module._device = device
