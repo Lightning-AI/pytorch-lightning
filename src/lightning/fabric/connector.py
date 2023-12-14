@@ -65,8 +65,7 @@ from lightning.fabric.utilities import rank_zero_info, rank_zero_warn
 from lightning.fabric.utilities.device_parser import _determine_root_gpu_device
 from lightning.fabric.utilities.imports import _IS_INTERACTIVE
 
-_PLUGIN = Union[Precision, ClusterEnvironment, CheckpointIO]
-_PLUGIN_INPUT = Union[_PLUGIN, str]
+_PLUGIN_INPUT = Union[Precision, ClusterEnvironment, CheckpointIO]
 
 
 class _Connector:
@@ -84,15 +83,9 @@ class _Connector:
                backend (registed these too, and _strategy_type could be deprecated)
 
         C. plugins flag could be:
-            1. List of str, which could contain:
-                i. precision str (Not supported in the old accelerator_connector version)
-                ii. checkpoint_io str (Not supported in the old accelerator_connector version)
-                iii. cluster_environment str (Not supported in the old accelerator_connector version)
-            2. List of class, which could contains:
-                i. precision class (should be removed, and precision flag should allow user pass classes)
-                ii. checkpoint_io class
-                iii. cluster_environment class
-
+            1. precision class (should be removed, and precision flag should allow user pass classes)
+            2. checkpoint_io class
+            3. cluster_environment class
 
     priorities which to take when:
         A. Class > str
