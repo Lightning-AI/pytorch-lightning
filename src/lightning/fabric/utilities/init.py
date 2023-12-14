@@ -16,7 +16,7 @@ from typing import Any, Callable, Dict, Optional, Sequence
 
 import torch
 
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_13
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_13, _TORCH_GREATER_EQUAL_2_1
 from lightning.fabric.utilities.types import _DEVICE
 
 if _TORCH_GREATER_EQUAL_1_13:
@@ -62,6 +62,8 @@ class _EmptyInit(TorchFunctionMode):
 
 def _materialize(module: torch.nn.Module, device: _DEVICE) -> None:
     """Materialize a module."""
+    if not _TORCH_GREATER_EQUAL_2_1:
+        raise RuntimeError("recurse=False requires torch 2.1")
     module.to_empty(device=device, recurse=False)  # type: ignore[arg-type]
     if not hasattr(module, "reset_parameters"):
         raise TypeError(
