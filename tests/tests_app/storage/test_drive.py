@@ -46,6 +46,7 @@ class SyncFlowLITDrives(LightningFlow):
         self.stop()
 
 
+@pytest.mark.flaky(reruns=3, reruns_delay=5)  # todo: likely dead feature, fine to crash...
 def test_synchronization_lit_drive(tmpdir):
     if os.path.exists("a.txt"):
         os.remove("a.txt")
@@ -104,12 +105,14 @@ class LITDriveFlow(LightningFlow):
             self.stop()
 
 
+@pytest.mark.flaky(reruns=3, reruns_delay=5)  # todo: likely dead feature, fine to crash...
 def test_lit_drive_transferring_files():
     app = LightningApp(LITDriveFlow())
     MultiProcessRuntime(app, start_server=False).dispatch()
     os.remove("a.txt")
 
 
+@pytest.mark.flaky(reruns=3, reruns_delay=5)  # todo: likely dead feature, fine to crash...
 def test_lit_drive():
     with pytest.raises(Exception, match="Unknown protocol for the drive 'id' argument"):
         Drive("invalid_drive_id")

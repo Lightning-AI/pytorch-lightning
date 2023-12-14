@@ -10,6 +10,7 @@ on:
     branches: [master, "release/*"]
     types: [opened, reopened, ready_for_review, synchronize]
     paths:
+      - "requirements/ci.txt"
       - ".github/actions/pkg-publish/*"
       - ".github/workflows/_legacy-checkpoints.yml.yml"
       - ".github/workflows/_build-packages.yml"
