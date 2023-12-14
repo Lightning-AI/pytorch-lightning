@@ -11,6 +11,7 @@ on:
     paths:
       - ".actions/*"
       - ".github/workflows/docs-build.yml"
+      - "requirements/ci.txt"
       - "docs/**"
       - "_notebooks"
       - "requirements/**"
@@ -74,7 +75,7 @@ jobs:
 
       - name: Pull sphinx template
         run: |
-          pip install awscli
+          pip install -q -r requirements/ci.txt
           aws s3 sync --no-sign-request s3://sphinx-packages/ ${PYPI_LOCAL_DIR}
           pip install lai-sphinx-theme -U -f ${PYPI_LOCAL_DIR}
 
@@ -149,12 +150,12 @@ jobs:
           path: docs/build/html/
 
       - name: Authenticate to Google Cloud
-        uses: google-github-actions/auth@v1
+        uses: google-github-actions/auth@v2
         with:
           credentials_json: ${{ secrets.GCS_SA_KEY }}
 
       - name: Setup gcloud
-        uses: google-github-actions/setup-gcloud@v1
+        uses: google-github-actions/setup-gcloud@v2
         with:
           project_id: ${{ secrets.GCS_PROJECT }}
 
