@@ -44,6 +44,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed broadcast at initialization in `MPIEnvironment` ([#19074](https://github.com/Lightning-AI/lightning/pull/19074))
 
 
+- Avoid moving the model to device if `move_to_device=False` is passed ([#19152](https://github.com/Lightning-AI/lightning/pull/19152))
+
+
 - Fixed issue where the `precision="transformer-engine"` argument would not replace layers by default ([#19082](https://github.com/Lightning-AI/lightning/pull/19082))
 
 
