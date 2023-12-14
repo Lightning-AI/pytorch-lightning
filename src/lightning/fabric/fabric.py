@@ -65,6 +65,7 @@ from lightning.fabric.utilities.data import (
     _update_dataloader,
     has_iterable_dataset,
 )
+from lightning.fabric.utilities.device_dtype_mixin import _update_properties
 from lightning.fabric.utilities.distributed import DistributedSamplerWrapper
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 from lightning.fabric.utilities.registry import _load_external_callbacks
@@ -243,9 +244,11 @@ class Fabric:
 
         module = _FabricModule(module, self._precision, original_module=original_module)
 
-        if not isinstance(self._strategy, (FSDPStrategy, XLAFSDPStrategy)):
-            # Update the _DeviceDtypeModuleMixin's device parameter
-            module.to(self.device if move_to_device else next(module.parameters(), torch.tensor(0)).device)
+        # Update the _DeviceDtypeModuleMixin's device parameter
+        # NOTE: for sharded strategies or manual device placement, there's no single root device
+        _update_properties(
+            module, device=self.device if move_to_device else next(module.parameters(), torch.tensor(0)).device
+        )
 
         optimizers = [
             _FabricOptimizer(optimizer=optimizer, strategy=self._strategy, callbacks=self._callbacks)
@@ -295,9 +298,11 @@ class Fabric:
         module = self._strategy.setup_module(module)
         module = _FabricModule(module, self._precision, original_module=original_module)
 
-        if not isinstance(self._strategy, (FSDPStrategy, XLAFSDPStrategy)):
-            # Update the _DeviceDtypeModuleMixin's device parameter
-            module.to(self.device if move_to_device else next(module.parameters(), torch.tensor(0)).device)
+        # Update the _DeviceDtypeModuleMixin's device parameter
+        # NOTE: for sharded strategies or manual device placement, there's no single root device
+        _update_properties(
+            module, device=self.device if move_to_device else next(module.parameters(), torch.tensor(0)).device
+        )
 
         if hasattr(original_module, "_fabric"):  # this is probably a LightningModule
             original_module._fabric = self  # type: ignore[assignment]
