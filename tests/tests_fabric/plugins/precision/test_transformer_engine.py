@@ -35,20 +35,20 @@ def test_transformer_engine_plugin(monkeypatch):
 
     connector = _Connector(precision="transformer-engine")
     assert isinstance(connector.precision, TransformerEnginePrecision)
-    assert connector.precision.dtype is torch.bfloat16
+    assert connector.precision.weights_dtype is torch.bfloat16
     connector = _Connector(precision="transformer-engine-float16")
-    assert connector.precision.dtype is torch.float16
+    assert connector.precision.weights_dtype is torch.float16
 
     recipe_mock.reset_mock()
-    precision = TransformerEnginePrecision()
+    precision = TransformerEnginePrecision(weights_dtype=torch.float32)
     connector = _Connector(plugins=precision)
     assert connector.precision is precision
-    assert precision.dtype == torch.float32
+    assert precision.weights_dtype == torch.float32
     recipe_mock.DelayedScaling.assert_called_once_with()
 
     recipe_mock.reset_mock()
     recipe = {"foo": 0, "fp8_format": "HYBRID"}
-    precision = TransformerEnginePrecision(dtype=torch.float16, recipe=recipe)
+    precision = TransformerEnginePrecision(weights_dtype=torch.float16, recipe=recipe)
     connector = _Connector(plugins=precision)
     assert connector.precision is precision
     recipe_mock.DelayedScaling.assert_called_once_with(foo=0, fp8_format=recipe_mock.Format.HYBRID)
