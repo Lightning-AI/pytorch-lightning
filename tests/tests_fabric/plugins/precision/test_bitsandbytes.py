@@ -157,12 +157,12 @@ def test_bitsandbytes_layers(args, expected):
         pytest.param(("nf4", torch.bfloat16), torch.uint8, marks=RunIf(bf16_cuda=True)),
     ],
 )
-def test_bitsandbytes_layers_meta_device(args, expected):
+def test_bitsandbytes_layers_meta_device(args, expected, tmp_path):
     class MyModel(torch.nn.Module):
         def __init__(self):
             super().__init__()
             self.l = torch.nn.Linear(2, 2)
-            self.ln = torch.nn.LayerNorm(2)
+            self.ln = torch.nn.LayerNorm(2, bias=False)
 
     state_dict = MyModel().state_dict()
     plugin = BitsandbytesPrecision(*args)
@@ -188,15 +188,45 @@ def test_bitsandbytes_layers_meta_device(args, expected):
     assert model.l.weight.dtype == expected
 
     # case 2
-    with plugin.tensor_init_context(), torch.device("meta"):
+    with fabric.init_module(empty_init=False), torch.device("meta"):
         model = MyModel()
     assert model.l.weight.device.type == "meta"
     assert model.l.weight.dtype == args[1]
-    model = fabric.setup(model, move_to_device=False)  # do not quantize, just replace
+    # the model layers are already replaced, this won't do anything relevant
+    model = fabric.setup(model, move_to_device=False)
     assert model.l.weight.device.type == "meta"
     assert model.l.weight.dtype == args[1]
     keys = model.load_state_dict(state_dict, strict=True)  # quantizes
     assert not keys.missing_keys
     assert model.l.weight.device.type == "cuda"
     assert model.l.weight.dtype == expected
-    # note: if the state_dict was incomplete, we would need to materialize here
+
+    # case 2 with an incomplete state_dict
+    with fabric.init_module(empty_init=False), torch.device("meta"):
+        model = MyModel()
+    assert model.l.weight.device.type == "meta"
+    assert model.l.weight.dtype == args[1]
+    partial_state_dict = {k: v for k, v in state_dict.items() if "ln" not in k}
+    keys = model.load_state_dict(partial_state_dict, strict=False)  # quantizes
+    assert keys.missing_keys == ["ln.weight"]
+    assert model.l.weight.device.type == "cuda"
+    assert model.l.weight.dtype == expected
+    assert model.ln.weight.device.type == "meta"
+    assert model.ln.weight.dtype == args[1]
+    # now we need to materialize just for LayerNorm
+    _materialize_meta_tensors(model, fabric.device)
+    assert model.l.weight.device.type == "cuda"
+    assert model.l.weight.dtype == expected
+    assert model.ln.weight.device.type == "cuda"
+    assert model.ln.weight.dtype == args[1]
+
+    # test mmap and assign on a meta bnb layer
+    with fabric.init_module(empty_init=False), torch.device("meta"):
+        model = MyModel()
+    ckpt_path = tmp_path / "foo.ckpt"
+    torch.save(state_dict, ckpt_path)
+    torch.load(str(ckpt_path), mmap=True)
+    keys = model.load_state_dict(state_dict, strict=True, assign=True)  # quantizes
+    assert not keys.missing_keys
+    assert model.l.weight.device.type == "cuda"
+    assert model.l.weight.dtype == expected
