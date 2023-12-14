@@ -31,7 +31,7 @@ test_path=$1
 printf "source path: $test_path\n"
 
 # collect all tests with parametrization based filtering with PL_RUN_STANDALONE_TESTS
-standalone_tests=$(python -m pytest $test_path -q --collect-only --pythonwarnings ignore)
+standalone_tests=$(python3 -m pytest $test_path -q --collect-only --pythonwarnings ignore)
 printf "Collected tests: \n $standalone_tests"
 # match only lines with tests
 parametrizations=$(grep -oP '\S+::test_\S+' <<< "$standalone_tests")
@@ -69,7 +69,7 @@ for i in "${!parametrizations_arr[@]}"; do
   # execute the test in the background
   # redirect to a log file that buffers test output. since the tests will run in the background, we cannot let them
   # output to std{out,err} because the outputs would be garbled together
-  python ${defaults} "$parametrization" &>> standalone_test_output.txt &
+  python3 ${defaults} "$parametrization" &>> standalone_test_output.txt &
   # save the PID in an array
   pids[${i}]=$!
   # add row to the final report
