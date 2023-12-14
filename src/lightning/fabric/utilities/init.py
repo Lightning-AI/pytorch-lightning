@@ -62,7 +62,7 @@ class _EmptyInit(TorchFunctionMode):
 
 def _materialize(module: torch.nn.Module, device: _DEVICE) -> None:
     """Materialize a module."""
-    module.to_empty(device=device, recurse=False)
+    module.to_empty(device=device, recurse=False)  # type: ignore[arg-type]
     if not hasattr(module, "reset_parameters"):
         raise TypeError(
             f"Materialization requires that the `{type(module).__name__}.reset_parameters` method is implemented."
