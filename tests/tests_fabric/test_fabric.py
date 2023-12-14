@@ -157,8 +157,8 @@ def test_setup_module_parameters_on_different_devices(setup_method, move_to_devi
 
     fabric = Fabric(accelerator="cuda", devices=1)
 
-    module0 = nn.Linear(1, 2).to(device0)
-    module1 = nn.Linear(1, 2).to(device1)
+    module0 = nn.Linear(1, 2, device=device0)
+    module1 = nn.Linear(1, 2, device=device1)
     model = nn.Sequential(module0, module1)
 
     setup_method = getattr(fabric, setup_method)
