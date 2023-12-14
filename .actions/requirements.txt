@@ -1,2 +1,2 @@
-jsonargparse>=4.16.0
+jsonargparse >=4.16.0, <4.28.0
 requests
