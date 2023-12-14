@@ -157,8 +157,8 @@ def test_setup_module_parameters_on_different_devices(setup_method, move_to_devi
 
     fabric = Fabric(accelerator="cuda", devices=1)
 
-    module0 = nn.Linear(1, 2).to(device0)
-    module1 = nn.Linear(1, 2).to(device1)
+    module0 = nn.Linear(1, 2, device=device0)
+    module1 = nn.Linear(1, 2, device=device1)
     model = nn.Sequential(module0, module1)
 
     setup_method = getattr(fabric, setup_method)
@@ -174,7 +174,14 @@ def test_setup_module_parameters_on_different_devices(setup_method, move_to_devi
         assert module1.weight.device == module1.bias.device == device1
     else:
         with no_warning_call(expected_warning=PossibleUserWarning, match=match):
-            setup_method(model, move_to_device=move_to_device)
+            fabric_model = setup_method(model, move_to_device=move_to_device)
+
+        # the first device is set at the root
+        assert fabric_model.device == device0
+        assert fabric_model._device == device0
+        # the weights were not moved
+        assert module0.weight.device == module0.bias.device == device0
+        assert module1.weight.device == module1.bias.device == device1
 
 
 def test_setup_module_and_optimizers():
