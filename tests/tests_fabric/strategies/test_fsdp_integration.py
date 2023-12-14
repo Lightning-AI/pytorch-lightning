@@ -304,8 +304,9 @@ def test_setup_module_move_to_device(fabric_module_mock, move_to_device):
     else:
         assert isinstance(next(fabric_model.parameters()), FlatParameter)
 
-    # The _DeviceDtypeModuleMixin currently can't represent the device in a meaningful way for sharded models
-    assert fabric_model.device.type == "cuda"
+    # The _DeviceDtypeModuleMixin currently can't represent the device in a meaningful way for models with pieces on
+    # different devices
+    assert fabric_model.device == torch.device("cuda", fabric.local_rank)
     assert fabric.device == torch.device("cuda", fabric.local_rank)
 
 

@@ -190,7 +190,8 @@ def _test_setup_module_move_to_device(fabric, move_to_device):
         fabric_model = fabric.setup_module(model, move_to_device=move_to_device)
     fabric_module_mock.assert_not_called()
 
-    # The _DeviceDtypeModuleMixin currently can't represent the device in a meaningful way for sharded models
+    # The _DeviceDtypeModuleMixin currently can't represent the device in a meaningful way for models with pieces on
+    # different devices
     assert fabric_model.device.type == "xla"
     assert fabric.device.type == "xla"
 
