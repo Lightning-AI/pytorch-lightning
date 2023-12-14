@@ -147,7 +147,7 @@ First, find the Panel app you want to integrate. In this example, that app looks
 
     pn.panel("Hello **Panel ⚡** World").servable()
 
-Refer to the `Panel documentation <https://panel.holoviz.org/>`_ and `awesome-panel.org <https://awesome-panel.org>`_ for more complex examples.
+Refer to the `Panel documentation <https://panel.holoviz.org/>`_ and `awesome-panel <https://github.com/awesome-panel/awesome-panel>`_ for more complex examples.
 
 ----
 
@@ -333,7 +333,7 @@ Finally run the App
 .. _HoloViews: https://holoviews.org/
 .. _Lightning: https://lightning.ai/
 .. _CuxFilter: https://github.com/rapidsai/cuxfilter
-.. _AwesomePanel: https://awesome-panel.org/home
+.. _AwesomePanel: https://github.com/awesome-panel/awesome-panel
 
 
 ----

@@ -231,7 +231,7 @@ Enable advanced training features using Trainer arguments. These are state-of-th
 .. code::
 
    # train on 4 GPUs
-   trainer = Trainer(
+   trainer = L.Trainer(
        devices=4,
        accelerator="gpu",
     )
@@ -252,7 +252,7 @@ Enable advanced training features using Trainer arguments. These are state-of-th
     )
 
    # access the latest state of the art techniques
-   trainer = Trainer(callbacks=[StochasticWeightAveraging(...)])
+   trainer = L.Trainer(callbacks=[StochasticWeightAveraging(...)])
 
 ----
 

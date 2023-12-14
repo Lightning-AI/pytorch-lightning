@@ -38,7 +38,7 @@ Fabric is part of the `Lightning <https://lightning.ai>`_ package. Here is how y
 
 If you don't already have it, this command will also install the latest `stable PyTorch version <https://pytorch.org/>`_.
 
-You can find our the list of supported PyTorch versions in our `compatibility matrix <https://lightning.ai/docs/pytorch/stable/versioning.html#compatibility-matrix>`__.
+You can find the list of supported PyTorch versions in our :ref:`compatibility matrix <versioning:Compatibility matrix>`.
 
 
 ----

@@ -68,6 +68,8 @@ Custom PyTorch Version
 ^^^^^^^^^^^^^^^^^^^^^^
 To use any PyTorch version visit the `PyTorch Installation Page <https://pytorch.org/get-started/locally/#start-locally>`_.
 
+You can find the list of supported PyTorch versions in our :ref:`compatibility matrix <versioning:Compatibility matrix>`.
+
 ----
 
 

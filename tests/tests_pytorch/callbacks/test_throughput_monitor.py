@@ -57,7 +57,7 @@ def test_throughput_monitor_fit(tmp_path):
     expected = {
         "train|device|batches_per_sec": 1.0,
         "train|device|samples_per_sec": 3.0,
-        "train|device|items_per_sec": 18.0,
+        "train|device|items_per_sec": 6.0,
         "train|device|flops_per_sec": 10.0,
         "train|device|mfu": 0.1,
         "epoch": 0,
@@ -207,7 +207,7 @@ def test_throughput_monitor_fit_gradient_accumulation(tmp_path):
     expected = {
         "train|device|batches_per_sec": 1.0,
         "train|device|samples_per_sec": 3.0,
-        "train|device|items_per_sec": 18.0,
+        "train|device|items_per_sec": 6.0,
         "train|device|flops_per_sec": 10.0,
         "train|device|mfu": 0.1,
     }
