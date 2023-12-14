@@ -11,6 +11,7 @@ on:
     paths:
       - ".actions/*"
       - ".github/workflows/docs-build.yml"
+      - "requirements/ci.txt"
       - "docs/**"
       - "_notebooks"
       - "requirements/**"
@@ -74,7 +75,7 @@ jobs:
 
       - name: Pull sphinx template
         run: |
-          pip install awscli
+          pip install -q -r requirements/ci.txt
           aws s3 sync --no-sign-request s3://sphinx-packages/ ${PYPI_LOCAL_DIR}
           pip install lai-sphinx-theme -U -f ${PYPI_LOCAL_DIR}
 
