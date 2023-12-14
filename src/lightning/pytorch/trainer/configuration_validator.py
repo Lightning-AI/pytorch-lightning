@@ -164,7 +164,7 @@ def __warn_dataloader_iter_limitations(model: "pl.LightningModule") -> None:
             "You are using the `dataloader_iter` step flavor. If you consume the iterator more than once per step, the"
             " `batch_idx` argument in any hook that takes it will not match with the batch index of the last batch"
             " consumed. This might have unforeseen effects on callbacks or code that expects to get the correct index."
-            " This will also no work well with gradient accumulation. This feature is very experimental and subject to"
+            " This will also not work well with gradient accumulation. This feature is very experimental and subject to"
             " change. Here be dragons.",
             category=PossibleUserWarning,
         )
