@@ -15,7 +15,7 @@ import os
 from typing import Any, Literal
 
 import torch
-from typing_extensions import get_args
+from typing_extensions import get_args, override
 
 from lightning.fabric.accelerators.xla import _XLA_AVAILABLE
 from lightning.fabric.plugins.precision.precision import Precision
@@ -56,6 +56,7 @@ class XLAPrecision(Precision):
         else:
             self._desired_dtype = torch.float32
 
+    @override
     def optimizer_step(
         self,
         optimizer: Optimizable,
@@ -66,6 +67,7 @@ class XLAPrecision(Precision):
         # you always want to `xm.mark_step()` after `optimizer.step` for better performance, so we set `barrier=True`
         return xm.optimizer_step(optimizer, optimizer_args=kwargs, barrier=True)
 
+    @override
     def teardown(self) -> None:
         os.environ.pop("XLA_USE_BF16", None)
         os.environ.pop("XLA_USE_F16", None)

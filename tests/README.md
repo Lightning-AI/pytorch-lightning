@@ -64,9 +64,9 @@ You can rely on our CI to make sure all these tests pass.
 There are certain standalone tests, which you can run using:
 
 ```bash
-./tests/tests_pytorch/run_standalone_tests.sh tests/tests_pytorch/trainer/
+./tests/run_standalone_tests.sh tests/tests_pytorch/trainer/
 # or run a specific test
-./tests/tests_pytorch/run_standalone_tests.sh -k test_multi_gpu_model_ddp
+./tests/run_standalone_tests.sh -k test_multi_gpu_model_ddp
 ```
 
 ## Running Coverage

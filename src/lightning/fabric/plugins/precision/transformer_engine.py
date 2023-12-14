@@ -19,6 +19,7 @@ import torch
 from lightning_utilities import apply_to_collection
 from lightning_utilities.core.imports import RequirementCache
 from torch import Tensor
+from typing_extensions import override
 
 from lightning.fabric.plugins.precision.precision import Precision
 from lightning.fabric.plugins.precision.utils import (
@@ -89,6 +90,7 @@ class TransformerEnginePrecision(Precision):
         self.replace_layers = replace_layers
         self.fallback_compute_dtype = fallback_compute_dtype or weights_dtype
 
+    @override
     def convert_module(self, module: torch.nn.Module) -> torch.nn.Module:
         # avoid converting if any is found. assume the user took care of it
         if any("transformer_engine.pytorch" in m.__module__ for m in module.modules()):
@@ -103,9 +105,11 @@ class TransformerEnginePrecision(Precision):
         module = module.to(dtype=self.weights_dtype)
         return module
 
+    @override
     def tensor_init_context(self) -> ContextManager:
         return _DtypeContextManager(self.weights_dtype)
 
+    @override
     def module_init_context(self) -> ContextManager:
         dtype_ctx = self.tensor_init_context()
         stack = ExitStack()
@@ -122,6 +126,7 @@ class TransformerEnginePrecision(Precision):
         stack.enter_context(dtype_ctx)
         return stack
 
+    @override
     def forward_context(self) -> ContextManager:
         dtype_ctx = _DtypeContextManager(self.weights_dtype)
         fallback_autocast_ctx = torch.autocast(device_type="cuda", dtype=self.fallback_compute_dtype)
@@ -135,9 +140,11 @@ class TransformerEnginePrecision(Precision):
         stack.enter_context(autocast_ctx)
         return stack
 
+    @override
     def convert_input(self, data: Any) -> Any:
         return apply_to_collection(data, function=_convert_fp_tensor, dtype=Tensor, dst_type=self.weights_dtype)
 
+    @override
     def convert_output(self, data: Any) -> Any:
         return apply_to_collection(data, function=_convert_fp_tensor, dtype=Tensor, dst_type=torch.get_default_dtype())
 

@@ -27,7 +27,7 @@ from lightning_utilities.core.imports import RequirementCache
 from torch import Tensor
 from torch.nn import init
 from torch.nn.modules.module import _IncompatibleKeys
-from typing_extensions import Self
+from typing_extensions import Self, override
 
 from lightning.fabric.plugins.precision.precision import Precision
 from lightning.fabric.plugins.precision.utils import (
@@ -100,6 +100,7 @@ class BitsandbytesPrecision(Precision):
         self.dtype = dtype
         self.ignore_modules = ignore_modules or set()
 
+    @override
     def convert_module(self, module: torch.nn.Module) -> torch.nn.Module:
         # avoid naive users thinking they quantized their model
         if not any(isinstance(m, torch.nn.Linear) for m in module.modules()):
@@ -121,9 +122,11 @@ class BitsandbytesPrecision(Precision):
                 m.compute_type_is_set = False
         return module
 
+    @override
     def tensor_init_context(self) -> ContextManager:
         return _DtypeContextManager(self.dtype)
 
+    @override
     def module_init_context(self) -> ContextManager:
         if self.ignore_modules:
             # cannot patch the Linear class if the user wants to skip some submodules
@@ -141,12 +144,15 @@ class BitsandbytesPrecision(Precision):
         stack.enter_context(context_manager)
         return stack
 
+    @override
     def forward_context(self) -> ContextManager:
         return _DtypeContextManager(self.dtype)
 
+    @override
     def convert_input(self, data: Any) -> Any:
         return apply_to_collection(data, function=_convert_fp_tensor, dtype=Tensor, dst_type=self.dtype)
 
+    @override
     def convert_output(self, data: Any) -> Any:
         return apply_to_collection(data, function=_convert_fp_tensor, dtype=Tensor, dst_type=torch.get_default_dtype())
 
