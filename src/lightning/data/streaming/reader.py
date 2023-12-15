@@ -107,7 +107,7 @@ class PrepareChunksThread(Thread):
 
     def _can_delete_chunk(self):
         if self._delete_chunks_when_processed:
-            return self._pre_download_counter == self._max_pre_download
+            return self._pre_download_counter == self._max_pre_download - 1
         return _get_folder_size(self._parent_cache_dir) >= self._max_cache_size
 
     def _pre_load_chunk(self, chunk_index: int) -> None:
