@@ -1,3 +1,4 @@
+import logging
 import os
 from time import time
 from typing import Any, Optional
@@ -9,6 +10,8 @@ if _BOTO3_AVAILABLE:
     import botocore
     from botocore.credentials import InstanceMetadataProvider
     from botocore.utils import InstanceMetadataFetcher
+
+    boto3.set_stream_logger("", logging.DEBUG)
 
 
 class S3Client:
