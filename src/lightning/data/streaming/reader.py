@@ -303,7 +303,7 @@ def _get_from_queue(queue: multiprocessing.Queue) -> Optional[Any]:
         pass
     except OSError as e:
         # handle closed queue before the thread terminates
-        if "handle is closed" in str(e):
+        if "handle is closed" in str(e) or "Bad file descriptor" in str(e):
             logger.debug(e)
         else:
             raise e
