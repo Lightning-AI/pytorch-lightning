@@ -99,6 +99,8 @@ class PrepareChunksThread(Thread):
     def _maybe_delete_chunks(self) -> None:
         chunk_index = _get_from_queue(self._to_delete_queue)
 
+        print(f"Processed chunk {chunk_index}")
+
         if chunk_index is not None:
             self._pre_download_counter -= 1
 
@@ -234,6 +236,7 @@ class BinaryReader:
                 self._prepare_thread = PrepareChunksThread(self._config, self._item_loader, self._max_cache_size)
                 self._prepare_thread.start()
                 if index.chunk_indexes:
+                    print(f"Chunk indexes {index.chunk_indexes}")
                     self._prepare_thread.download(index.chunk_indexes)
 
             # If the chunk_index is new, request for it to be downloaded.
