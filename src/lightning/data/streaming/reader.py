@@ -18,7 +18,6 @@ import warnings
 from logging import Logger
 from queue import Empty
 from threading import Thread
-from time import sleep
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 from lightning.data.streaming.config import ChunksConfig
@@ -39,6 +38,7 @@ logger = Logger(__name__)
 
 _END_TOKEN = "END"
 _DEFAULT_TIMEOUT = 0.1
+
 
 class PrepareChunksThread(Thread):
     """This thread is responsible to download the chunks associated to a given worker."""
@@ -61,7 +61,7 @@ class PrepareChunksThread(Thread):
         self._parent_cache_dir = os.path.dirname(self._config._cache_dir)
         self._to_download_queue: multiprocessing.Queue = multiprocessing.Queue()
         self._to_delete_queue: multiprocessing.Queue = multiprocessing.Queue()
-        self._delete_chunks_when_processed = self._config.num_bytes > max_cache_size if max_cache_size else False 
+        self._delete_chunks_when_processed = self._config.num_bytes > max_cache_size if max_cache_size else False
 
     def download(self, chunk_indexes: List[int]) -> None:
         """Receive the list of the chunk indices to download for the current epoch."""
@@ -97,11 +97,7 @@ class PrepareChunksThread(Thread):
             self._chunks_index_to_be_deleted.append(chunk_index)
 
         # Get the current cache size and decide whether we need to start cleanup. Otherwise, keep track of it
-        while (
-            self._max_cache_size
-            and self._chunks_index_to_be_deleted
-            and self._can_delete_chunk()
-        ):
+        while self._max_cache_size and self._chunks_index_to_be_deleted and self._can_delete_chunk():
             # Delete the oldest chunk
             self._delete(self._chunks_index_to_be_deleted.pop(0))
 
