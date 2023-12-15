@@ -194,9 +194,10 @@ class TokensLoader(BaseItemLoader):
 
             while not exists:
                 sleep(0.01)
-                print("waiting for file to exist", chunk_filepath)
+                print(f"waiting for file to exist {chunk_index}: {chunk_filepath}")
                 exists = os.path.exists(chunk_filepath)
-            print("file found:", chunk_filepath)
+
+            print(f"file found: {chunk_index}: {chunk_filepath}")
 
             # Wait to avoid any corruption when the file appears
             if not first_exists:

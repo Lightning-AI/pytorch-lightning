@@ -90,6 +90,7 @@ class PrepareChunksThread(Thread):
         """Inform the item loader of the chunk to delete."""
         chunk_filepath, _, _ = self._config[ChunkedIndex(index=-1, chunk_index=chunk_index)]
         self._item_loader.delete(chunk_index, chunk_filepath)
+        print(f"Deletedd chunks {chunk_index} at path {chunk_filepath}")
 
     def stop(self) -> None:
         """Receive the list of the chunk indices to download for the current epoch."""
@@ -122,7 +123,9 @@ class PrepareChunksThread(Thread):
             if self._pre_download_counter <= self._max_pre_download:
                 chunk_index = _get_from_queue(self._to_download_queue)
                 if chunk_index is not None:
+                    print(f"Start downloading chunk {chunk_index}")
                     self._config.download_chunk_from_index(chunk_index)
+                    print(f"Finished downloading chunk {chunk_index}")
 
                     # Preload item if possible to gain some time but only
                     # if this is one of the pre-downloaded chunk
