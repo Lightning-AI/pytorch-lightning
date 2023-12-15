@@ -90,7 +90,7 @@ class PrepareChunksThread(Thread):
         """Inform the item loader of the chunk to delete."""
         chunk_filepath, _, _ = self._config[ChunkedIndex(index=-1, chunk_index=chunk_index)]
         self._item_loader.delete(chunk_index, chunk_filepath)
-        print(f"Deleted chunks {chunk_index} at path {chunk_filepath}")
+        print(f"Deleted chunk {chunk_index} at path {chunk_filepath}")
 
     def stop(self) -> None:
         """Receive the list of the chunk indices to download for the current epoch."""
