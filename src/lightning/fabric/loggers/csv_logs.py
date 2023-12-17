@@ -235,7 +235,6 @@ class _ExperimentWriter:
         new_keys = self._record_new_keys()
         file_exists = self._fs.isfile(self.metrics_file_path)
 
-        self.metrics_keys = sorted(self.metrics_keys)
         if new_keys and file_exists:
             # we need to re-write the file if the keys (header) change
             self._rewrite_with_new_header(self.metrics_keys)
@@ -254,6 +253,7 @@ class _ExperimentWriter:
         current_keys = set().union(*self.metrics)
         new_keys = current_keys - set(self.metrics_keys)
         self.metrics_keys.extend(new_keys)
+        self.metrics_keys.sort()
         return new_keys
 
     def _rewrite_with_new_header(self, fieldnames: List[str]) -> None:
