@@ -21,7 +21,7 @@ import warnings
 from abc import ABC, abstractmethod
 from enum import Enum
 from pathlib import Path
-from typing import Any, Optional, Tuple
+from typing import Any, List, Optional, Tuple
 from urllib.parse import urljoin
 
 import backoff
@@ -192,7 +192,7 @@ class BaseQueue(ABC):
         pass
 
     @abstractmethod
-    def batch_get(self, timeout: Optional[float] = None, count: Optional[int] = None) -> Any:
+    def batch_get(self, timeout: Optional[float] = None, count: Optional[int] = None) -> List[Any]:
         """Returns the left most elements of the queue.
 
         Parameters
@@ -200,9 +200,10 @@ class BaseQueue(ABC):
         timeout:
             Read timeout in seconds, in case of input timeout is 0, the `self.default_timeout` is used.
             A timeout of None can be used to block indefinitely.
+        count:
+            The number of element to get from the queue
 
         """
-        pass
 
     @property
     def is_running(self) -> bool:
@@ -229,7 +230,7 @@ class MultiProcessQueue(BaseQueue):
             timeout = self.default_timeout
         return self.queue.get(timeout=timeout, block=(timeout is None))
 
-    def batch_get(self, timeout: Optional[float] = None, count: Optional[int] = None) -> Any:
+    def batch_get(self, timeout: Optional[float] = None, count: Optional[int] = None) -> List[Any]:
         if timeout == 0:
             timeout = self.default_timeout
         # For multiprocessing, we can simply collect the latest upmost element
@@ -503,7 +504,7 @@ class HTTPQueue(BaseQueue):
             # we consider the queue is empty to avoid failing the app.
             raise queue.Empty
 
-    def batch_get(self, timeout: Optional[float] = None, count: Optional[int] = None) -> list[Any]:
+    def batch_get(self, timeout: Optional[float] = None, count: Optional[int] = None) -> List[Any]:
         try:
             resp = self.client.post(
                 f"v1/{self.app_id}/{self._name_suffix}",
