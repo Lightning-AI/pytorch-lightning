@@ -29,6 +29,7 @@ import lightning.app
 from lightning.app import _console
 from lightning.app.api.request_types import _APIRequest, _CommandRequest, _DeltaRequest
 from lightning.app.core.constants import (
+    BATCH_DELTA_COUNT,
     DEBUG_ENABLED,
     FLOW_DURATION_SAMPLES,
     FLOW_DURATION_THRESHOLD,
@@ -312,7 +313,7 @@ class LightningApp:
     def batch_get_state_changed_from_queue(q: BaseQueue, timeout: Optional[float] = None) -> List[dict]:
         try:
             timeout = timeout or q.default_timeout
-            return q.get_all(timeout=timeout)
+            return q.batch_get(timeout=timeout, count=BATCH_DELTA_COUNT)
         except queue.Empty:
             return []
 
@@ -353,7 +354,6 @@ class LightningApp:
                 self.delta_queue  # type: ignore[assignment,arg-type]
             )
             for delta in received_deltas:
-                print(delta)
                 if isinstance(delta, _DeltaRequest):
                     deltas.append(delta.delta)
                 elif isinstance(delta, ComponentDelta):

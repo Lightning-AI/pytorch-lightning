@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import base64
 import multiprocessing
 import pickle
 import queue  # needed as import instead from/import for mocking in tests
@@ -22,11 +23,10 @@ from enum import Enum
 from pathlib import Path
 from typing import Any, Optional, Tuple
 from urllib.parse import urljoin
-import numpy as np
+
 import backoff
 import requests
 from requests.exceptions import ConnectionError, ConnectTimeout, ReadTimeout
-import base64
 
 from lightning.app.core.constants import (
     HTTP_QUEUE_REFRESH_INTERVAL,
@@ -191,7 +191,7 @@ class BaseQueue(ABC):
         pass
 
     @abstractmethod
-    def get_all(self, timeout: Optional[float] = None) -> Any:
+    def batch_get(self, timeout: Optional[float] = None, count: Optional[int] = None) -> Any:
         """Returns the left most elements of the queue.
 
         Parameters
@@ -228,9 +228,10 @@ class MultiProcessQueue(BaseQueue):
             timeout = self.default_timeout
         return self.queue.get(timeout=timeout, block=(timeout is None))
 
-    def get_all(self, timeout: Optional[float] = None) -> Any:
+    def batch_get(self, timeout: Optional[float] = None, count: Optional[int] = None) -> Any:
         if timeout == 0:
             timeout = self.default_timeout
+        # For multiprocessing, we can simply collect the latest upmost element
         return [self.queue.get(timeout=timeout, block=(timeout is None))]
 
 
@@ -331,8 +332,8 @@ class RedisQueue(BaseQueue):
             raise queue.Empty
         return pickle.loads(out[1])
 
-    def get_all(self, timeout: Optional[float] = None) -> Any:
-        raise NotImplementedError
+    def batch_get(self, timeout: Optional[float] = None, count: Optional[int] = None) -> Any:
+        raise NotImplementedError("The batch_get method isn't implemented.")
 
     def clear(self) -> None:
         """Clear all elements in the queue."""
@@ -404,10 +405,10 @@ class RateLimitedQueue(BaseQueue):
         self._last_get = time.time()
         return self._queue.get(timeout=timeout)
 
-    def get_all(self, timeout: Optional[float] = None) -> Any:
+    def batch_get(self, timeout: Optional[float] = None, count: Optional[int] = None) -> Any:
         self._wait_until_allowed(self._last_get)
         self._last_get = time.time()
-        return self._queue.get_all(timeout=timeout)
+        return self._queue.batch_get(timeout=timeout)
 
     def put(self, item: Any) -> None:
         return self._queue.put(item)
@@ -501,13 +502,53 @@ class HTTPQueue(BaseQueue):
             # we consider the queue is empty to avoid failing the app.
             raise queue.Empty
 
-    def get_all(self, timeout: Optional[float] = None) -> Any:
+    def batch_get(self, timeout: Optional[float] = None, count: Optional[int] = None) -> list[Any]:
         if not self.app_id:
             raise ValueError(f"App ID couldn't be extracted from the queue name: {self.name}")
 
+        # it's a blocking call, we need to loop and call the backend to mimic this behavior
+        if timeout is None:
+            while True:
+                try:
+                    try:
+                        return self._batch_get(count=count)
+                    except requests.exceptions.HTTPError:
+                        pass
+                except queue.Empty:
+                    time.sleep(HTTP_QUEUE_REFRESH_INTERVAL)
+
+        # make one request and return the result
+        if timeout == 0:
+            try:
+                return self._batch_get(count=count)
+            except requests.exceptions.HTTPError:
+                return []
+
+        # timeout is some value - loop until the timeout is reached
+        start_time = time.time()
+        while (time.time() - start_time) < timeout:
+            try:
+                try:
+                    return self._batch_get(count=count)
+                except requests.exceptions.HTTPError:
+                    if timeout > self.default_timeout:
+                        return []
+                    raise queue.Empty
+            except queue.Empty:
+                # Note: In theory, there isn't a need for a sleep as the queue shouldn't
+                # block the flow if the queue is empty.
+                # However, as the Http Server can saturate,
+                # let's add a sleep here if a higher timeout is provided
+                # than the default timeout
+                if timeout > self.default_timeout:
+                    time.sleep(0.05)
+        return []
+
+    def _batch_get(self, count: Optional[int] = 64) -> list[Any]:
         try:
-            print("HERE")
-            resp = self.client.post(f"v1/{self.app_id}/{self._name_suffix}", query_params={"action": "popCount", "count": "64"})
+            resp = self.client.post(
+                f"v1/{self.app_id}/{self._name_suffix}", query_params={"action": "popCount", "count": str(count)}
+            )
             if resp.status_code == 204:
                 raise queue.Empty
             return [pickle.loads(base64.b64decode(data)) for data in resp.json()]
