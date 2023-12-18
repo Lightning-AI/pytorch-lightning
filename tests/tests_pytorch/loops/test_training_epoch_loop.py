@@ -15,9 +15,10 @@ import logging
 from unittest.mock import Mock, patch
 
 import pytest
+from lightning.pytorch.callbacks import EarlyStopping
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.trainer.trainer import Trainer
-from lightning.pytorch.callbacks import EarlyStopping
+
 
 def test_no_val_on_train_epoch_loop_restart(tmpdir):
     """Test that training validation loop doesn't get triggered at the beginning of a restart."""
@@ -86,17 +87,16 @@ def test_should_stop_triggers_validation_once(min_epochs, min_steps, val_count, 
     (min_epochs/steps is satisfied).
 
     """
+
     class NewBoring(BoringModel):
         def training_step(self, batch, batch_idx):
-            self.log('loss', self.step(batch))
+            self.log("loss", self.step(batch))
             return {"loss": self.step(batch)}
 
     model = NewBoring()
     # create a stopping condition with a high threshold so it triggers immediately
     # check the condition before validation so the count is unaffected
-    stopping = EarlyStopping(monitor='loss',
-                             check_on_train_epoch_end=True,
-                             stopping_threshold=100)
+    stopping = EarlyStopping(monitor="loss", check_on_train_epoch_end=True, stopping_threshold=100)
     trainer = Trainer(
         default_root_dir=tmp_path,
         num_sanity_val_steps=0,
@@ -107,7 +107,7 @@ def test_should_stop_triggers_validation_once(min_epochs, min_steps, val_count, 
         min_steps=min_steps,
         enable_model_summary=False,
         enable_checkpointing=False,
-        callbacks=[stopping]
+        callbacks=[stopping],
     )
     trainer.fit_loop.epoch_loop.val_loop.run = Mock()
     trainer.fit(model)
