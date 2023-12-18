@@ -57,7 +57,7 @@ trap show_batched_output EXIT  # show the output on exit
 
 # remove the "tests/tests_pytorch/" path suffixes
 path_prefix=$(basename "$(dirname "$(pwd)")")/$(basename "$(pwd)")"/"  # https://stackoverflow.com/a/8223345
-testnames_arr=( ${parametrizations//$path_prefix/} )
+testnames_arr=(${parametrizations//$path_prefix/})
 
 for i in "${!parametrizations_arr[@]}"; do
   parametrization=${parametrizations_arr[$i]//$path_prefix/}
