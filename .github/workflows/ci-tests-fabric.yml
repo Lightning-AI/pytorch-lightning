@@ -166,7 +166,7 @@ jobs:
         run: |
           echo $GITHUB_RUN_ID
           python -m coverage run --source ${{ env.COVERAGE_SCOPE }} \
-            -m pytest -v --timeout=30 --durations=50 --random-order-seed=7202339916
+            -m pytest -v --timeout=30 --durations=50 --random-order-seed=7202339917
 
       - name: Statistics
         if: success()
