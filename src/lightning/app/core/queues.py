@@ -29,6 +29,7 @@ import requests
 from requests.exceptions import ConnectionError, ConnectTimeout, ReadTimeout
 
 from lightning.app.core.constants import (
+    BATCH_DELTA_COUNT,
     HTTP_QUEUE_REFRESH_INTERVAL,
     HTTP_QUEUE_REQUESTS_PER_SECOND,
     HTTP_QUEUE_TOKEN,
@@ -41,7 +42,6 @@ from lightning.app.core.constants import (
     REDIS_QUEUES_READ_DEFAULT_TIMEOUT,
     STATE_UPDATE_TIMEOUT,
     WARNING_QUEUE_SIZE,
-    BATCH_DELTA_COUNT,
 )
 from lightning.app.utilities.app_helpers import Logger
 from lightning.app.utilities.imports import _is_redis_available, requires
@@ -506,7 +506,8 @@ class HTTPQueue(BaseQueue):
     def batch_get(self, timeout: Optional[float] = None, count: Optional[int] = None) -> list[Any]:
         try:
             resp = self.client.post(
-                f"v1/{self.app_id}/{self._name_suffix}", query_params={"action": "popCount", "count": str(count or BATCH_DELTA_COUNT)}
+                f"v1/{self.app_id}/{self._name_suffix}",
+                query_params={"action": "popCount", "count": str(count or BATCH_DELTA_COUNT)},
             )
             if resp.status_code == 204:
                 raise queue.Empty
