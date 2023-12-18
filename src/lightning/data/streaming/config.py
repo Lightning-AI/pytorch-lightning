@@ -86,6 +86,12 @@ class ChunksConfig:
         return self._intervals
 
     @property
+    def num_bytes(self) -> int:
+        if self._config is None:
+            raise RuntimeError("The config should be defined.")
+        return sum(c["chunk_bytes"] for c in self._chunks)
+
+    @property
     def data_format(self) -> Any:
         if self._config is None:
             raise RuntimeError("The config should be defined.")

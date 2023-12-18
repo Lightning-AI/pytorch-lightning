@@ -90,7 +90,7 @@ class PyTreeLoader(BaseItemLoader):
             first_exists = exists = os.path.exists(chunk_filepath)
 
             while not exists:
-                sleep(0.01)
+                sleep(0.1)
                 exists = os.path.exists(chunk_filepath)
 
             # Wait to avoid any corruption when the file appears
@@ -193,7 +193,7 @@ class TokensLoader(BaseItemLoader):
             first_exists = exists = os.path.exists(chunk_filepath)
 
             while not exists:
-                sleep(0.01)
+                sleep(0.1)
                 print(f"waiting for file to exist {chunk_index}: {chunk_filepath}")
                 exists = os.path.exists(chunk_filepath)
 
