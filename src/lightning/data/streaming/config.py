@@ -64,7 +64,7 @@ class ChunksConfig:
         self._downloader = None
 
         if remote_dir:
-            self._downloader = get_downloader_cls(remote_dir)(remote_dir, cache_dir, self._chunks)
+            self._downloader = get_downloader_cls(remote_dir, cache_dir, self._chunks)
 
     def download_chunk_from_index(self, chunk_index: int) -> None:
         chunk_filename = self._chunks[chunk_index]["filename"]
@@ -152,7 +152,7 @@ class ChunksConfig:
         cache_index_filepath = os.path.join(cache_dir, _INDEX_FILENAME)
 
         if isinstance(remote_dir, str):
-            downloader = get_downloader_cls(remote_dir)(remote_dir, cache_dir, [])
+            downloader = get_downloader_cls(remote_dir, cache_dir, [])
             downloader.download_file(os.path.join(remote_dir, _INDEX_FILENAME), cache_index_filepath)
 
         if not os.path.exists(cache_index_filepath):

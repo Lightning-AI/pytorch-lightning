@@ -87,8 +87,9 @@ class PrepareChunksThread(Thread):
         reached_pre_download = self._pre_download_counter == self._max_pre_download
 
         # we have already pre-downloaded some chunks, we just need to wait for them to be processed.
-        timeout = _LONG_DEFAULT_TIMEOUT if reached_pre_download else _DEFAULT_TIMEOUT
-        chunk_index = _get_from_queue(self._to_delete_queue, timeout=timeout)
+        chunk_index = _get_from_queue(
+            self._to_delete_queue, timeout=_LONG_DEFAULT_TIMEOUT if reached_pre_download else _DEFAULT_TIMEOUT
+        )
 
         if chunk_index is not None:
             self._pre_download_counter -= 1
@@ -300,7 +301,7 @@ def _get_from_queue(queue: multiprocessing.Queue, timeout: float = _DEFAULT_TIME
         pass
     except OSError as e:
         # handle closed queue before the thread terminates
-        if "handle is closed" in str(e) or "Bad file descriptor" in str(e):
+        if "handle is closed" in str(e):
             logger.debug(e)
         else:
             raise e

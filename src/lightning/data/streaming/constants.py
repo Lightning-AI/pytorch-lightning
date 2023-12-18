@@ -28,7 +28,6 @@ _TORCH_GREATER_EQUAL_2_1_0 = RequirementCache("torch>=2.1.0")
 _VIZ_TRACKER_AVAILABLE = RequirementCache("viztracer")
 _LIGHTNING_CLOUD_LATEST = RequirementCache("lightning-cloud>=0.5.57")
 _BOTO3_AVAILABLE = RequirementCache("boto3")
-_LIGHTNING_DEBUG = int(os.getenv("LIGHTNING_DEBUG", "0"))
 
 # DON'T CHANGE ORDER
 _TORCH_DTYPES_MAPPING = {
