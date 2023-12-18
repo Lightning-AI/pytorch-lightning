@@ -37,6 +37,9 @@ logger = Logger(__name__)
 
 
 _END_TOKEN = "END"
+
+# Note: The timeout here should not be too short. We need to prevent the caller from aggressively
+# querying the queue and consuming too many CPU cycles.
 _DEFAULT_TIMEOUT = 0.1
 _LONG_DEFAULT_TIMEOUT = 5
 
@@ -87,8 +90,6 @@ class PrepareChunksThread(Thread):
         reached_pre_download = self._pre_download_counter == self._max_pre_download
 
         # we have already pre-downloaded some chunks, we just need to wait for them to be processed.
-        # Note: The timeout here should not be too short. We need to prevent the caller from aggressively
-        # querying the queue and consuming too many CPU cycles.
         chunk_index = _get_from_queue(
             self._to_delete_queue, timeout=_LONG_DEFAULT_TIMEOUT if reached_pre_download else _DEFAULT_TIMEOUT
         )
@@ -118,8 +119,6 @@ class PrepareChunksThread(Thread):
     def run(self) -> None:
         while True:
             if self._pre_download_counter <= self._max_pre_download:
-                # Note: The timeout here should not be too short. We need to prevent the caller from aggressively
-                # querying the queue and consuming too many CPU cycles.
                 chunk_index = _get_from_queue(self._to_download_queue)
                 if chunk_index == _END_TOKEN:
                     return
