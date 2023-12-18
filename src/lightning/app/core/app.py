@@ -355,6 +355,7 @@ class LightningApp:
             ] = self.batch_get_state_changed_from_queue(
                 self.delta_queue  # type: ignore[assignment,arg-type]
             )
+            print(received_deltas)
             for delta in received_deltas:
                 if isinstance(delta, _DeltaRequest):
                     deltas.append(delta.delta)

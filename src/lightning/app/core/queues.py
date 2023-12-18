@@ -41,6 +41,7 @@ from lightning.app.core.constants import (
     REDIS_QUEUES_READ_DEFAULT_TIMEOUT,
     STATE_UPDATE_TIMEOUT,
     WARNING_QUEUE_SIZE,
+    BATCH_DELTA_COUNT,
 )
 from lightning.app.utilities.app_helpers import Logger
 from lightning.app.utilities.imports import _is_redis_available, requires
@@ -503,51 +504,9 @@ class HTTPQueue(BaseQueue):
             raise queue.Empty
 
     def batch_get(self, timeout: Optional[float] = None, count: Optional[int] = None) -> list[Any]:
-        if not self.app_id:
-            raise ValueError(f"App ID couldn't be extracted from the queue name: {self.name}")
-
-        # it's a blocking call, we need to loop and call the backend to mimic this behavior
-        if timeout is None:
-            while True:
-                try:
-                    try:
-                        return self._batch_get(count=count)
-                    except requests.exceptions.HTTPError:
-                        pass
-                except queue.Empty:
-                    time.sleep(HTTP_QUEUE_REFRESH_INTERVAL)
-
-        # make one request and return the result
-        if timeout == 0:
-            try:
-                return self._batch_get(count=count)
-            except requests.exceptions.HTTPError:
-                return []
-
-        # timeout is some value - loop until the timeout is reached
-        start_time = time.time()
-        while (time.time() - start_time) < timeout:
-            try:
-                try:
-                    return self._batch_get(count=count)
-                except requests.exceptions.HTTPError:
-                    if timeout > self.default_timeout:
-                        return []
-                    raise queue.Empty
-            except queue.Empty:
-                # Note: In theory, there isn't a need for a sleep as the queue shouldn't
-                # block the flow if the queue is empty.
-                # However, as the Http Server can saturate,
-                # let's add a sleep here if a higher timeout is provided
-                # than the default timeout
-                if timeout > self.default_timeout:
-                    time.sleep(0.05)
-        return []
-
-    def _batch_get(self, count: Optional[int] = 64) -> list[Any]:
         try:
             resp = self.client.post(
-                f"v1/{self.app_id}/{self._name_suffix}", query_params={"action": "popCount", "count": str(count)}
+                f"v1/{self.app_id}/{self._name_suffix}", query_params={"action": "popCount", "count": str(count or BATCH_DELTA_COUNT)}
             )
             if resp.status_code == 204:
                 raise queue.Empty
