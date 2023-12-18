@@ -20,7 +20,6 @@ from http.server import SimpleHTTPRequestHandler
 from pathlib import Path
 from typing import List
 from unittest.mock import Mock
-
 import lightning.fabric
 import lightning.pytorch
 import pytest
@@ -154,8 +153,9 @@ def thread_police_duuu_daaa_duuu_daaa():
             # probably `torch.compile`, can't narrow it down further
             continue
         elif "ThreadPoolExecutor-" in thread.name:
-            # probably `torch.compile`, can't narrow it down further
-            thread.shutdown(cancel_futures=True)
+            from torch._inductor.codecache import AsyncCompile
+
+            AsyncCompile().pool().shutdown(cancel_futures=True)
         elif thread.name == "fsspecIO":
             continue
         else:
