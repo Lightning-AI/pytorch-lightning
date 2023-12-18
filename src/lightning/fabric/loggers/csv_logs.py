@@ -253,6 +253,7 @@ class _ExperimentWriter:
         current_keys = set().union(*self.metrics)
         new_keys = current_keys - set(self.metrics_keys)
         self.metrics_keys.extend(new_keys)
+        self.metrics_keys.sort()
         return new_keys
 
     def _rewrite_with_new_header(self, fieldnames: List[str]) -> None:
