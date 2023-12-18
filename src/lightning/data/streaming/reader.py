@@ -307,4 +307,6 @@ def _get_from_queue(queue: multiprocessing.Queue) -> Optional[Any]:
             logger.debug(e)
         else:
             raise e
+    except EOFError as e:
+        logger.debug(e)
     return None
