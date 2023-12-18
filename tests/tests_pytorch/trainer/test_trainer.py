@@ -2064,3 +2064,17 @@ def test_init_module_context(monkeypatch):
     with pytest.warns(PossibleUserWarning, match="can't place .* on the device"), trainer.init_module():
         pass
     strategy.tensor_init_context.assert_called_once()
+
+
+def test_expand_home():
+    """Test that the dirpath gets expanded if it contains `~`."""
+    home_root = Path.home()
+
+    checkpoint = Trainer(default_root_dir="~/trainer")
+    assert checkpoint.default_root_dir == str(home_root / "trainer")
+    checkpoint = Trainer(default_root_dir=Path("~/trainer"))
+    assert checkpoint.default_root_dir == str(home_root / "trainer")
+
+    # it is possible to have a folder with the name `~`
+    checkpoint = Trainer(default_root_dir="./~/trainer")
+    assert checkpoint.default_root_dir == str(Path.cwd() / "~" / "trainer")
