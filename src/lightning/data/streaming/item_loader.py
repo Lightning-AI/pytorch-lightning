@@ -166,7 +166,6 @@ class TokensLoader(BaseItemLoader):
     def _load_chunk(self, chunk_index: int, chunk_filepath: str) -> None:
         if chunk_index in self._mmaps:
             return
-        print("loading chunk", chunk_index, "at", chunk_filepath)
         chunk = self._chunks[chunk_index]
 
         # Skip the header
@@ -176,7 +175,6 @@ class TokensLoader(BaseItemLoader):
         mmap = np.memmap(chunk_filepath, mode="r", order="C", offset=offset)
         self._mmaps[chunk_index] = mmap
         self._buffers[chunk_index] = memoryview(mmap)  # type: ignore
-        print("done loading chunk", chunk_index, "at", chunk_filepath)
 
     def pre_load_chunk(self, chunk_index: int, chunk_filepath: str) -> None:
         # This is called within the prepare chunks thread, so we overlap data loading with data reading.
@@ -194,10 +192,7 @@ class TokensLoader(BaseItemLoader):
 
             while not exists:
                 sleep(0.1)
-                print(f"waiting for file to exist {chunk_index}: {chunk_filepath}")
                 exists = os.path.exists(chunk_filepath)
-
-            print(f"file found: {chunk_index}: {chunk_filepath}")
 
             # Wait to avoid any corruption when the file appears
             if not first_exists:

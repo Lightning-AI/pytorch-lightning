@@ -1,40 +1,14 @@
-import logging
 import os
 from time import time
 from typing import Any, Optional
 
 from lightning.data.streaming.constants import _BOTO3_AVAILABLE
 
-
-class RetryFilter(logging.Filter):
-    def filter(self, record):
-        if "Retry needed, action of" in record.msg:
-            return True
-        return False
-
-
-def set_stream_logger(name, level=logging.DEBUG, format_string=None, filters=[]):
-    if format_string is None:
-        format_string = "%(asctime)s %(name)s [%(levelname)s] %(message)s"
-
-    logger = logging.getLogger(name)
-    logger.setLevel(level)
-    for f in filters:
-        logger.addFilter(f)
-    handler = logging.StreamHandler()
-    handler.setLevel(level)
-    formatter = logging.Formatter(format_string)
-    handler.setFormatter(formatter)
-    logger.addHandler(handler)
-
-
 if _BOTO3_AVAILABLE:
     import boto3
     import botocore
     from botocore.credentials import InstanceMetadataProvider
     from botocore.utils import InstanceMetadataFetcher
-
-    set_stream_logger(name="botocore.hooks", filters=[RetryFilter()])
 
 
 class S3Client:

@@ -38,6 +38,7 @@ logger = Logger(__name__)
 
 _END_TOKEN = "END"
 _DEFAULT_TIMEOUT = 0.1
+_LONG_DEFAULT_TIMEOUT = 5
 
 
 class PrepareChunksThread(Thread):
@@ -77,7 +78,6 @@ class PrepareChunksThread(Thread):
         """Inform the item loader of the chunk to delete."""
         chunk_filepath, _, _ = self._config[ChunkedIndex(index=-1, chunk_index=chunk_index)]
         self._item_loader.delete(chunk_index, chunk_filepath)
-        print(f"Deleted chunk {chunk_index} at path {chunk_filepath}")
 
     def stop(self) -> None:
         """Receive the list of the chunk indices to download for the current epoch."""
@@ -86,11 +86,11 @@ class PrepareChunksThread(Thread):
     def _maybe_delete_chunks(self) -> None:
         reached_pre_download = self._pre_download_counter == self._max_pre_download
 
-        chunk_index = _get_from_queue(self._to_delete_queue, timeout=None if reached_pre_download else _DEFAULT_TIMEOUT)
+        # we have already pre-downloaded some chunks, we just need to wait for them to be processed.
+        timeout = _LONG_DEFAULT_TIMEOUT if reached_pre_download else _DEFAULT_TIMEOUT
+        chunk_index = _get_from_queue(self._to_delete_queue, timeout=timeout)
 
         if chunk_index is not None:
-            print(f"Processed chunk {chunk_index}")
-
             self._pre_download_counter -= 1
 
             # Store the current chunk index
@@ -101,10 +101,12 @@ class PrepareChunksThread(Thread):
             # Delete the oldest chunk
             self._delete(self._chunks_index_to_be_deleted.pop(0))
 
-    def _can_delete_chunk(self):
+        return
+
+    def _can_delete_chunk(self) -> bool:
         if self._delete_chunks_when_processed:
             return self._pre_download_counter == self._max_pre_download - 1
-        return _get_folder_size(self._parent_cache_dir) >= self._max_cache_size
+        return self._max_cache_size is not None and _get_folder_size(self._parent_cache_dir) >= self._max_cache_size
 
     def _pre_load_chunk(self, chunk_index: int) -> None:
         chunk_filepath, _, _ = self._config[ChunkedIndex(index=-1, chunk_index=chunk_index)]
@@ -118,9 +120,7 @@ class PrepareChunksThread(Thread):
                     return
 
                 if chunk_index is not None:
-                    print(f"Start downloading chunk {chunk_index}")
                     self._config.download_chunk_from_index(chunk_index)
-                    print(f"Finished downloading chunk {chunk_index}")
 
                     # Preload item if possible to gain some time but only
                     # if this is one of the pre-downloaded chunk
@@ -224,7 +224,6 @@ class BinaryReader:
                 self._prepare_thread = PrepareChunksThread(self._config, self._item_loader, self._max_cache_size)
                 self._prepare_thread.start()
                 if index.chunk_indexes:
-                    print(f"Chunk indexes {index.chunk_indexes}")
                     self._prepare_thread.download(index.chunk_indexes)
 
             # If the chunk_index is new, request for it to be downloaded.
@@ -243,6 +242,7 @@ class BinaryReader:
         # Otherwise, this could trigger segmentation fault error depending on the item loader used.
         if self._config and self._config._remote_dir and index.chunk_index != self._last_chunk_index:
             assert self._prepare_thread
+            assert self._last_chunk_index is not None
 
             # inform the chunk has been completely consumed
             self._prepare_thread.delete([self._last_chunk_index])
@@ -291,10 +291,10 @@ def _get_folder_size(path: str) -> int:
     return size
 
 
-def _get_from_queue(queue: multiprocessing.Queue, timeout: int = _DEFAULT_TIMEOUT) -> Optional[Any]:
+def _get_from_queue(queue: multiprocessing.Queue, timeout: float = _DEFAULT_TIMEOUT) -> Optional[Any]:
     try:
         # Note: The timeout here should not be too short. We need to prevent the caller from aggressively
-        #   querying the queue and consuming too many CPU cycles.
+        # querying the queue and consuming too many CPU cycles.
         return queue.get(timeout=timeout)
     except Empty:
         pass
