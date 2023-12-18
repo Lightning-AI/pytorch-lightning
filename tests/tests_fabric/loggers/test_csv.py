@@ -183,3 +183,19 @@ def test_rewrite_with_new_header(tmp_path):
         assert header == new_columns
         logs = file.readline().strip().split(",")
         assert logs == ["0", "1", "22", ""]
+
+
+@pytest.mark.parametrize("step_idx", [10, None])
+def test_log_metrics_column_order_sorted(tmp_path, step_idx):
+    logger = CSVLogger(tmp_path)
+    metrics = {"float": 0.3, "int": 1, "FloatTensor": torch.tensor(0.1), "IntTensor": torch.tensor(1)}
+    logger.log_metrics(metrics, step_idx)
+    logger.save()
+
+    path_csv = os.path.join(logger.log_dir, ExperimentWriter.NAME_METRICS_FILE)
+    with open(path_csv) as fp:
+        lines = fp.readlines()
+
+    columns = list(metrics.keys()) + ["step"]
+    header = ",".join(sorted(columns))
+    assert lines[0].strip() == header

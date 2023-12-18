@@ -88,22 +88,6 @@ def test_log_metrics(tmp_path, step_idx):
     assert all(n in lines[0] for n in metrics)
 
 
-@pytest.mark.parametrize("step_idx", [10, None])
-def test_log_metrics_column_order_sorted(tmp_path, step_idx):
-    logger = CSVLogger(tmp_path)
-    metrics = {"float": 0.3, "int": 1, "FloatTensor": torch.tensor(0.1), "IntTensor": torch.tensor(1)}
-    logger.log_metrics(metrics, step_idx)
-    logger.save()
-
-    path_csv = os.path.join(logger.log_dir, ExperimentWriter.NAME_METRICS_FILE)
-    with open(path_csv) as fp:
-        lines = fp.readlines()
-
-    columns = list(metrics.keys()) + ["step"]
-    header = ",".join(sorted(columns))
-    assert lines[0].strip() == header
-
-
 def test_log_hyperparams(tmp_path):
     logger = CSVLogger(tmp_path)
     hparams = {
