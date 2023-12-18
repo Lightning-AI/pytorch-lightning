@@ -108,7 +108,7 @@ def thread_police_duuu_daaa_duuu_daaa():
         elif "ThreadPoolExecutor-" in thread.name:
             from torch._inductor.codecache import AsyncCompile
 
-            AsyncCompile.pool().shutdown(cancel_futures=True)
+            AsyncCompile.pool().shutdown()
         else:
             raise AssertionError(f"Test left zombie thread: {thread}")
 
