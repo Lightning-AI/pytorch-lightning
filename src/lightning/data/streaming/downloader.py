@@ -37,6 +37,8 @@ class Downloader(ABC):
 
 
 class S3Downloader(Downloader):
+    _client = None
+
     @classmethod
     def download_file(cls, remote_filepath: str, local_filepath: str) -> None:
         obj = parse.urlparse(remote_filepath)
@@ -44,15 +46,16 @@ class S3Downloader(Downloader):
         if obj.scheme != "s3":
             raise ValueError(f"Expected obj.scheme to be `s3`, instead, got {obj.scheme} for remote={remote_filepath}")
 
-        # TODO: Add caching to avoid re-creating it
-        s3 = S3Client()
+        if cls._client is None:
+            # TODO: Add caching to avoid re-creating it
+            cls._client = S3Client()
 
         from boto3.s3.transfer import TransferConfig
 
         extra_args: Dict[str, Any] = {}
 
         # Issue: https://github.com/boto/boto3/issues/3113
-        s3.client.download_file(
+        cls._client.client.download_file(
             obj.netloc,
             obj.path.lstrip("/"),
             local_filepath,

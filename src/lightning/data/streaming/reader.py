@@ -99,9 +99,9 @@ class PrepareChunksThread(Thread):
     def _maybe_delete_chunks(self) -> None:
         chunk_index = _get_from_queue(self._to_delete_queue)
 
-        print(f"Processed chunk {chunk_index}")
-
         if chunk_index is not None:
+            print(f"Processed chunk {chunk_index}")
+
             self._pre_download_counter -= 1
 
             # Store the current chunk index
