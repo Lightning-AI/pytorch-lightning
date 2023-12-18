@@ -1,23 +1,36 @@
 documentation:
-  - docs/**/*
-  - README.md
-  - requirements/_docs.txt
+  - changed-files:
+      - any-glob-to-any-file:
+          - docs/**/*
+          - README.md
+          - requirements/_docs.txt
 
 ci/cd:
-  - .github/actions/**/*
-  - .github/scripts/*
-  - .github/workflows/*
-  - .pre-commit-config.yaml
+  - changed-files:
+      - any-glob-to-any-file:
+          - .github/actions/**/*
+          - .github/scripts/*
+          - .github/workflows/*
+          - .pre-commit-config.yaml
 
 package:
-  - src/**/*
-  - MANIFEST.in
-  - pyproject.toml
-  - setup.py
+  - changed-files:
+      - any-glob-to-any-file:
+          - src/**/*
+          - MANIFEST.in
+          - pyproject.toml
+          - setup.py
 
 tests:
-  - tests/**/*
-  - requirements/_tests.txt
+  - changed-files:
+      - any-glob-to-any-file:
+          - tests/**/*
+          - requirements/_tests.txt
 
 dependencies:
-  - requirements/*
+  - changed-files:
+      - any-glob-to-any-file:
+          - requirements/*
+
+release:
+  - base-branch: "release/*"
