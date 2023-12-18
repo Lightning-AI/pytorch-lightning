@@ -45,7 +45,7 @@ function show_batched_output {
   if [ -f standalone_test_output.txt ]; then  # if exists
     cat standalone_test_output.txt
     # heuristic: stop if there's mentions of errors. this can prevent false negatives when only some of the ranks fail
-    if grep -iE 'error|exception|traceback|failed' standalone_test_output.txt | grep -vE 'on_exception|xfailed' | grep -qvF ${parametrizations_arr[@]/#/-e }; then  # https://stackoverflow.com/a/2300653
+    if grep -iE 'error|exception|traceback|failed' standalone_test_output.txt | grep -vE 'on_exception|xfailed' | grep -qvF ${testnames_arr/#/-e }; then  # https://stackoverflow.com/a/2300653
       echo "Potential error! Stopping."
       rm standalone_test_output.txt
       exit 1
@@ -57,6 +57,8 @@ trap show_batched_output EXIT  # show the output on exit
 
 # remove the "tests/tests_pytorch/" path suffixes
 path_prefix=$(basename "$(dirname "$(pwd)")")/$(basename "$(pwd)")"/"  # https://stackoverflow.com/a/8223345
+testnames_arr=( ${parametrizations//$path_prefix/} )
+
 for i in "${!parametrizations_arr[@]}"; do
   parametrization=${parametrizations_arr[$i]//$path_prefix/}
   prefix="$((i+1))/${#parametrizations_arr[@]}"
