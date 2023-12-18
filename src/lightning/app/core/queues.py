@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import base64
 import multiprocessing
 import pickle
 import queue  # needed as import instead from/import for mocking in tests
@@ -22,11 +23,10 @@ from enum import Enum
 from pathlib import Path
 from typing import Any, Optional, Tuple
 from urllib.parse import urljoin
-import numpy as np
+
 import backoff
 import requests
 from requests.exceptions import ConnectionError, ConnectTimeout, ReadTimeout
-import base64
 
 from lightning.app.core.constants import (
     HTTP_QUEUE_REFRESH_INTERVAL,
@@ -507,7 +507,9 @@ class HTTPQueue(BaseQueue):
 
         try:
             print("HERE")
-            resp = self.client.post(f"v1/{self.app_id}/{self._name_suffix}", query_params={"action": "popCount", "count": "64"})
+            resp = self.client.post(
+                f"v1/{self.app_id}/{self._name_suffix}", query_params={"action": "popCount", "count": "64"}
+            )
             if resp.status_code == 204:
                 raise queue.Empty
             return [pickle.loads(base64.b64decode(data)) for data in resp.json()]
