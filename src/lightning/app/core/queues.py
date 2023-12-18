@@ -335,7 +335,7 @@ class RedisQueue(BaseQueue):
         return pickle.loads(out[1])
 
     def batch_get(self, timeout: Optional[float] = None, count: Optional[int] = None) -> Any:
-        raise NotImplementedError("The batch_get method isn't implemented.")
+        return [self.get(timeout=timeout)]
 
     def clear(self) -> None:
         """Clear all elements in the queue."""
