@@ -22,10 +22,11 @@ from enum import Enum
 from pathlib import Path
 from typing import Any, Optional, Tuple
 from urllib.parse import urljoin
-
+import numpy as np
 import backoff
 import requests
 from requests.exceptions import ConnectionError, ConnectTimeout, ReadTimeout
+import base64
 
 from lightning.app.core.constants import (
     HTTP_QUEUE_REFRESH_INTERVAL,
@@ -189,6 +190,19 @@ class BaseQueue(ABC):
         """
         pass
 
+    @abstractmethod
+    def get_all(self, timeout: Optional[float] = None) -> Any:
+        """Returns the left most elements of the queue.
+
+        Parameters
+        ----------
+        timeout:
+            Read timeout in seconds, in case of input timeout is 0, the `self.default_timeout` is used.
+            A timeout of None can be used to block indefinitely.
+
+        """
+        pass
+
     @property
     def is_running(self) -> bool:
         """Returns True if the queue is running, False otherwise.
@@ -213,6 +227,11 @@ class MultiProcessQueue(BaseQueue):
         if timeout == 0:
             timeout = self.default_timeout
         return self.queue.get(timeout=timeout, block=(timeout is None))
+
+    def get_all(self, timeout: Optional[float] = None) -> Any:
+        if timeout == 0:
+            timeout = self.default_timeout
+        return [self.queue.get(timeout=timeout, block=(timeout is None))]
 
 
 class RedisQueue(BaseQueue):
@@ -312,6 +331,9 @@ class RedisQueue(BaseQueue):
             raise queue.Empty
         return pickle.loads(out[1])
 
+    def get_all(self, timeout: Optional[float] = None) -> Any:
+        raise NotImplementedError
+
     def clear(self) -> None:
         """Clear all elements in the queue."""
         self.redis.delete(self.name)
@@ -366,7 +388,6 @@ class RateLimitedQueue(BaseQueue):
         self._seconds_per_request = 1 / requests_per_second
 
         self._last_get = 0.0
-        self._last_put = 0.0
 
     @property
     def is_running(self) -> bool:
@@ -383,9 +404,12 @@ class RateLimitedQueue(BaseQueue):
         self._last_get = time.time()
         return self._queue.get(timeout=timeout)
 
+    def get_all(self, timeout: Optional[float] = None) -> Any:
+        self._wait_until_allowed(self._last_get)
+        self._last_get = time.time()
+        return self._queue.get_all(timeout=timeout)
+
     def put(self, item: Any) -> None:
-        self._wait_until_allowed(self._last_put)
-        self._last_put = time.time()
         return self._queue.put(item)
 
 
@@ -472,6 +496,21 @@ class HTTPQueue(BaseQueue):
             if resp.status_code == 204:
                 raise queue.Empty
             return pickle.loads(resp.content)
+        except ConnectionError:
+            # Note: If the Http Queue service isn't available,
+            # we consider the queue is empty to avoid failing the app.
+            raise queue.Empty
+
+    def get_all(self, timeout: Optional[float] = None) -> Any:
+        if not self.app_id:
+            raise ValueError(f"App ID couldn't be extracted from the queue name: {self.name}")
+
+        try:
+            print("HERE")
+            resp = self.client.post(f"v1/{self.app_id}/{self._name_suffix}", query_params={"action": "popCount", "count": "64"})
+            if resp.status_code == 204:
+                raise queue.Empty
+            return [pickle.loads(base64.b64decode(data)) for data in resp.json()]
         except ConnectionError:
             # Note: If the Http Queue service isn't available,
             # we consider the queue is empty to avoid failing the app.
