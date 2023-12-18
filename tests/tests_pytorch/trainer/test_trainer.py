@@ -2066,7 +2066,7 @@ def test_init_module_context(monkeypatch):
     strategy.tensor_init_context.assert_called_once()
 
 
-def test_expand_home():
+def test_expand_home_trainer():
     """Test that the dirpath gets expanded if it contains `~`."""
     home_root = Path.home()
 
