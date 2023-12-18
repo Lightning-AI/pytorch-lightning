@@ -107,7 +107,7 @@ def thread_police_duuu_daaa_duuu_daaa():
             continue
         elif "ThreadPoolExecutor-" in thread.name:
             # probably `torch.compile`, can't narrow it down further
-            thread.join(timeout=10)
+            thread.shutdown(cancel_futures=True)
         else:
             raise AssertionError(f"Test left zombie thread: {thread}")
 
