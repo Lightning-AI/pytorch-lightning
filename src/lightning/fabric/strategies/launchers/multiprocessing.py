@@ -17,7 +17,7 @@ from dataclasses import dataclass
 from multiprocessing.queues import SimpleQueue
 from textwrap import dedent
 from typing import TYPE_CHECKING, Any, Callable, Dict, Literal, Optional
-
+from typing_extensions import override
 import torch
 import torch.backends.cudnn
 import torch.multiprocessing as mp
@@ -73,12 +73,14 @@ class _MultiProcessingLauncher(_Launcher):
             )
 
     @property
+    @override
     def is_interactive_compatible(self) -> bool:
         # The start method 'spawn' is not supported in interactive environments
         # The start method 'fork' is the only one supported in Jupyter environments, with constraints around CUDA
         # initialization. For more context, see https://github.com/Lightning-AI/lightning/issues/7550
         return self._start_method == "fork"
 
+    @override
     def launch(self, function: Callable, *args: Any, **kwargs: Any) -> Any:
         """Launches processes that run the given function in parallel.
 

@@ -14,7 +14,7 @@
 import queue
 import time
 from typing import TYPE_CHECKING, Any, Callable, Optional, Union
-
+from typing_extensions import override
 import torch.multiprocessing as mp
 
 from lightning.fabric.accelerators.xla import _XLA_AVAILABLE, _using_pjrt
@@ -50,9 +50,11 @@ class _XLALauncher(_Launcher):
         self._start_method = "fork"
 
     @property
+    @override
     def is_interactive_compatible(self) -> bool:
         return True
 
+    @override
     def launch(self, function: Callable, *args: Any, **kwargs: Any) -> Any:
         """Launches processes that run the given function in parallel.
 

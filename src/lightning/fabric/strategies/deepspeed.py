@@ -20,7 +20,7 @@ from contextlib import ExitStack
 from itertools import chain
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable, ContextManager, Dict, List, Mapping, Optional, Tuple, Union
-
+from typing_extensions import override
 import torch
 from lightning_utilities.core.imports import RequirementCache
 from torch.nn import Module
@@ -299,6 +299,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         return zero_optimization is not None and zero_optimization.get("stage") == 3
 
     @property
+    @override
     def distributed_sampler_kwargs(self) -> Dict[str, int]:
         return {"num_replicas": self.world_size, "rank": self.global_rank}
 
@@ -306,6 +307,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
     def model(self) -> "DeepSpeedEngine":
         return self._deepspeed_engine
 
+    @override
     def setup_module_and_optimizers(
         self, module: Module, optimizers: List[Optimizer]
     ) -> Tuple["DeepSpeedEngine", List[Optimizer]]:
@@ -328,6 +330,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         self._set_deepspeed_activation_checkpointing()
         return self._deepspeed_engine, [optimizer]
 
+    @override
     def setup_module(self, module: Module) -> "DeepSpeedEngine":
         """Set up a module for inference (no optimizers).
 
@@ -337,6 +340,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         self._deepspeed_engine, _ = self._initialize_engine(module)
         return self._deepspeed_engine
 
+    @override
     def setup_optimizer(self, optimizer: Optimizer) -> Optimizer:
         """Optimizers can only be set up jointly with the model in this strategy.
 
@@ -345,6 +349,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         """
         raise NotImplementedError(self._err_msg_joint_setup_required())
 
+    @override
     def module_init_context(self, empty_init: Optional[bool] = None) -> ContextManager:
         if self.zero_stage_3 and empty_init is False:
             raise NotImplementedError(
@@ -357,6 +362,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         stack.enter_context(module_sharded_ctx)
         return stack
 
+    @override
     def module_sharded_context(self) -> ContextManager:
         # Current limitation in Fabric: The config needs to be fully determined at the time of calling the context
         # manager. Later modifications through e.g. `Fabric.setup()` won't have an effect here.
@@ -370,6 +376,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
             config_dict_or_path=self.config,
         )
 
+    @override
     def save_checkpoint(
         self,
         path: _PATH,
@@ -434,6 +441,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         # use deepspeed's internal checkpointing function to handle partitioned weights across processes
         engine.save_checkpoint(path, client_state=state, tag="checkpoint")
 
+    @override
     def load_checkpoint(
         self,
         path: _PATH,
@@ -514,6 +522,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         _move_state_into(source=client_state, destination=state, keys=keys)
         return client_state
 
+    @override
     def clip_gradients_norm(
         self,
         module: "DeepSpeedEngine",
@@ -527,6 +536,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
             "Make sure to set the `gradient_clipping` value in your Config."
         )
 
+    @override
     def clip_gradients_value(
         self, module: "DeepSpeedEngine", optimizer: Optimizer, clip_val: Union[float, int]
     ) -> None:
@@ -536,6 +546,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         )
 
     @classmethod
+    @override
     def register_strategies(cls, strategy_registry: _StrategyRegistry) -> None:
         strategy_registry.register("deepspeed", cls, description="Default DeepSpeed Strategy")
         strategy_registry.register("deepspeed_stage_1", cls, description="DeepSpeed with ZeRO Stage 1 enabled", stage=1)
@@ -591,6 +602,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         )
         return deepspeed_engine, deepspeed_optimizer
 
+    @override
     def _setup_distributed(self) -> None:
         if not isinstance(self.accelerator, CUDAAccelerator):
             raise RuntimeError(

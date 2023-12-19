@@ -19,7 +19,7 @@ import sys
 import threading
 import time
 from typing import Any, Callable, List, Optional, Sequence, Tuple
-
+from typing_extensions import override
 from lightning_utilities.core.imports import RequirementCache
 
 from lightning.fabric.plugins.environments.cluster_environment import ClusterEnvironment
@@ -82,9 +82,11 @@ class _SubprocessScriptLauncher(_Launcher):
         self.procs: List[subprocess.Popen] = []  # launched child subprocesses, does not include the launcher
 
     @property
+    @override
     def is_interactive_compatible(self) -> bool:
         return False
 
+    @override
     def launch(self, function: Callable, *args: Any, **kwargs: Any) -> Any:
         """Creates new processes, then calls the given function.
 
@@ -194,6 +196,7 @@ class _ChildProcessObserver(threading.Thread):
         self._termination_signal = signal.SIGTERM if sys.platform == "win32" else signal.SIGKILL
         self._finished = False
 
+    @override
     def run(self) -> None:
         while not self._finished:
             time.sleep(self._sleep_period)

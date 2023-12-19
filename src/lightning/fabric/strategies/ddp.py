@@ -14,7 +14,7 @@
 from contextlib import nullcontext
 from datetime import timedelta
 from typing import Any, ContextManager, Dict, List, Literal, Optional, Union
-
+from typing_extensions import override
 import torch
 import torch.distributed
 from lightning_utilities.core.rank_zero import rank_zero_only as utils_rank_zero_only
@@ -78,6 +78,7 @@ class DDPStrategy(ParallelStrategy):
         self._ddp_kwargs = kwargs
 
     @property
+    @override
     def root_device(self) -> torch.device:
         assert self.parallel_devices is not None
         return self.parallel_devices[self.local_rank]
@@ -96,6 +97,7 @@ class DDPStrategy(ParallelStrategy):
         return len(self.parallel_devices) if self.parallel_devices is not None else 0
 
     @property
+    @override
     def distributed_sampler_kwargs(self) -> Dict[str, Any]:
         return {"num_replicas": (self.num_nodes * self.num_processes), "rank": self.global_rank}
 
@@ -103,6 +105,7 @@ class DDPStrategy(ParallelStrategy):
     def process_group_backend(self) -> Optional[str]:
         return self._process_group_backend
 
+    @override
     def _configure_launcher(self) -> None:
         assert self.cluster_environment is not None
         if self._start_method == "popen":
@@ -110,10 +113,12 @@ class DDPStrategy(ParallelStrategy):
         else:
             self._launcher = _MultiProcessingLauncher(self, start_method=self._start_method)
 
+    @override
     def setup_environment(self) -> None:
         self._setup_distributed()
         super().setup_environment()
 
+    @override
     def setup_module(self, module: Module) -> DistributedDataParallel:
         """Wraps the model into a :class:`~torch.nn.parallel.distributed.DistributedDataParallel` module."""
         device_ids = self._determine_ddp_device_ids()
@@ -122,9 +127,11 @@ class DDPStrategy(ParallelStrategy):
         with ctx:
             return DistributedDataParallel(module=module, device_ids=device_ids, **self._ddp_kwargs)
 
+    @override
     def module_to_device(self, module: Module) -> None:
         module.to(self.root_device)
 
+    @override
     def all_reduce(
         self, tensor: Tensor, group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = "mean"
     ) -> Tensor:
@@ -144,6 +151,7 @@ class DDPStrategy(ParallelStrategy):
             return _sync_ddp_if_available(tensor, group, reduce_op=reduce_op)
         return tensor
 
+    @override
     def barrier(self, *args: Any, **kwargs: Any) -> None:
         if not _distributed_is_initialized():
             return
@@ -152,6 +160,7 @@ class DDPStrategy(ParallelStrategy):
         else:
             torch.distributed.barrier()
 
+    @override
     def broadcast(self, obj: TBroadcast, src: int = 0) -> TBroadcast:
         if not _distributed_is_initialized():
             return obj
@@ -160,11 +169,13 @@ class DDPStrategy(ParallelStrategy):
         torch.distributed.broadcast_object_list(obj, src, group=_group.WORLD)
         return obj[0]
 
+    @override
     def get_module_state_dict(self, module: Module) -> Dict[str, Union[Any, Tensor]]:
         if isinstance(module, DistributedDataParallel):
             module = module.module
         return super().get_module_state_dict(module)
 
+    @override
     def load_module_state_dict(
         self, module: Module, state_dict: Dict[str, Union[Any, Tensor]], strict: bool = True
     ) -> None:
@@ -173,6 +184,7 @@ class DDPStrategy(ParallelStrategy):
         super().load_module_state_dict(module=module, state_dict=state_dict, strict=strict)
 
     @classmethod
+    @override
     def register_strategies(cls, strategy_registry: _StrategyRegistry) -> None:
         entries = (
             ("ddp", "popen"),
@@ -210,6 +222,7 @@ class DDPStrategy(ParallelStrategy):
 
 
 class _DDPBackwardSyncControl(_BackwardSyncControl):
+    @override
     def no_backward_sync(self, module: Module) -> ContextManager:
         """Blocks gradient synchronization inside the :class:`~torch.nn.parallel.distributed.DistributedDataParallel`
         wrapper."""
