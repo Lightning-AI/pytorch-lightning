@@ -2070,7 +2070,7 @@ def test_expand_home_trainer():
     """Test that the dirpath gets expanded if it contains `~`."""
     home_root = Path.home()
 
-    checkpoint = Trainer(default_root_dir="~/trainer")
-    assert checkpoint.default_root_dir == str(home_root / "trainer")
-    checkpoint = Trainer(default_root_dir=Path("~/trainer"))
-    assert checkpoint.default_root_dir == str(home_root / "trainer")
+    trainer = Trainer(default_root_dir="~/trainer")
+    assert trainer.default_root_dir == str(home_root / "trainer")
+    trainer = Trainer(default_root_dir=Path("~/trainer"))
+    assert trainer.default_root_dir == str(home_root / "trainer")
