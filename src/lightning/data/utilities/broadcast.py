@@ -41,6 +41,7 @@ class DistributedMap:
 
 def broadcast_object(key: str, obj: Any) -> Any:
     """This function enables to broadcast object across machines."""
+    print(os.getenv("LIGHTNING_APP_STATE_URL"))
     if os.getenv("LIGHTNING_APP_STATE_URL") is not None:
         return DistributedMap().broadcast_object(key, obj)
     return obj
