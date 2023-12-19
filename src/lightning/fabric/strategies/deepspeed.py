@@ -591,12 +591,15 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         )
         return deepspeed_engine, deepspeed_optimizer
 
-    def _setup_distributed(self) -> None:
+    def setup_environment(self) -> None:
         if not isinstance(self.accelerator, CUDAAccelerator):
             raise RuntimeError(
                 f"The DeepSpeed strategy is only supported on CUDA GPUs but `{self.accelerator.__class__.__name__}`"
                 " is used."
             )
+        super().setup_environment()
+
+    def _setup_distributed(self) -> None:
         assert self.parallel_devices is not None
         _validate_device_index_selection(self.parallel_devices)
         reset_seed()
