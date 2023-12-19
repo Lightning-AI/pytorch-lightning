@@ -243,8 +243,8 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             self._launcher = _SubprocessScriptLauncher(self.cluster_environment, self.num_processes, self.num_nodes)
 
     def setup_environment(self) -> None:
-        self._setup_distributed()
         super().setup_environment()
+        self._setup_distributed()
 
     def setup_module_and_optimizers(
         self, module: Module, optimizers: List[Optimizer]
