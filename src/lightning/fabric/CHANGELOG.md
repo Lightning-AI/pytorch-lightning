@@ -7,18 +7,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## [2.1.3] - 2023-12-21
 
-### Changed
-
--
-
-
 ### Fixed
 
 - Avoid moving the model to device if `move_to_device=False` is passed ([#19152](https://github.com/Lightning-AI/lightning/pull/19152))
-
-
 - Fixed broadcast at initialization in `MPIEnvironment` ([#19074](https://github.com/Lightning-AI/lightning/pull/19074))
-
 
 
 ## [2.1.2] - 2023-11-15
