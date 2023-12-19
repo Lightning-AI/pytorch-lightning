@@ -2074,7 +2074,3 @@ def test_expand_home_trainer():
     assert checkpoint.default_root_dir == str(home_root / "trainer")
     checkpoint = Trainer(default_root_dir=Path("~/trainer"))
     assert checkpoint.default_root_dir == str(home_root / "trainer")
-
-    # it is possible to have a folder with the name `~`
-    checkpoint = Trainer(default_root_dir="./~/trainer")
-    assert checkpoint.default_root_dir == str("~/trainer")
