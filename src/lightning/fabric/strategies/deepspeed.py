@@ -20,11 +20,12 @@ from contextlib import ExitStack
 from itertools import chain
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable, ContextManager, Dict, List, Mapping, Optional, Tuple, Union
-from typing_extensions import override
+
 import torch
 from lightning_utilities.core.imports import RequirementCache
 from torch.nn import Module
 from torch.optim import Optimizer
+from typing_extensions import override
 
 from lightning.fabric.accelerators import Accelerator, CUDAAccelerator
 from lightning.fabric.plugins.environments.cluster_environment import ClusterEnvironment

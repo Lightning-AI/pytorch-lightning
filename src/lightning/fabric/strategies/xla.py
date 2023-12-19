@@ -20,6 +20,7 @@ from torch.nn import Module
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 from typing_extensions import override
+
 from lightning.fabric.accelerators import Accelerator
 from lightning.fabric.accelerators.xla import _XLA_GREATER_EQUAL_2_1, _using_pjrt
 from lightning.fabric.plugins import XLAPrecision

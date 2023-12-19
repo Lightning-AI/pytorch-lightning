@@ -12,11 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from __future__ import annotations
-from typing_extensions import override
+
 from typing import Any
 
 import torch
 from torch.nn import Module
+from typing_extensions import override
 
 from lightning.fabric.accelerators import Accelerator
 from lightning.fabric.plugins.io.checkpoint_io import CheckpointIO

@@ -16,12 +16,13 @@ from contextlib import ExitStack, nullcontext
 from functools import partial
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable, ContextManager, Dict, List, Literal, Optional, Set, Tuple, Type, Union
-from typing_extensions import override
+
 import torch
 from torch import Tensor
 from torch.nn import Module
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
+from typing_extensions import override
 
 from lightning.fabric.accelerators import Accelerator
 from lightning.fabric.accelerators.xla import _XLA_AVAILABLE, _using_pjrt
@@ -678,7 +679,6 @@ def _activation_checkpointing_kwargs(policy: Optional[_POLICY_SET], kwargs: Dict
 
 
 class _XLAFSDPBackwardSyncControl(_BackwardSyncControl):
-
     @override
     def no_backward_sync(self, module: Module) -> ContextManager:
         """Blocks gradient synchronization inside the :class:`~torch_xla.distributed.fsdp.XlaFullyShardedDataParallel`

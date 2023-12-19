@@ -15,6 +15,7 @@ from typing import Optional
 
 import torch
 from typing_extensions import override
+
 from lightning.fabric.accelerators import Accelerator
 from lightning.fabric.accelerators.xla import _XLA_AVAILABLE
 from lightning.fabric.plugins import XLAPrecision

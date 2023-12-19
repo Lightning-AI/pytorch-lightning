@@ -17,12 +17,13 @@ from dataclasses import dataclass
 from multiprocessing.queues import SimpleQueue
 from textwrap import dedent
 from typing import TYPE_CHECKING, Any, Callable, Dict, Literal, Optional
-from typing_extensions import override
+
 import torch
 import torch.backends.cudnn
 import torch.multiprocessing as mp
 from lightning_utilities import apply_to_collection
 from torch.nn import Module
+from typing_extensions import override
 
 from lightning.fabric.accelerators.cpu import CPUAccelerator
 from lightning.fabric.strategies.launchers.launcher import _Launcher

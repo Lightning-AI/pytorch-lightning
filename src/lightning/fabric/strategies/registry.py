@@ -12,7 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from typing import Any, Callable, Dict, List, Optional
+
 from typing_extensions import override
+
 
 class _StrategyRegistry(dict):
     """This class is a Registry that stores information about the Training Strategies.

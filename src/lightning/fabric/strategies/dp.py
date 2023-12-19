@@ -17,6 +17,7 @@ import torch
 from torch import Tensor
 from torch.nn import DataParallel, Module
 from typing_extensions import override
+
 from lightning.fabric.accelerators import Accelerator
 from lightning.fabric.plugins.io.checkpoint_io import CheckpointIO
 from lightning.fabric.plugins.precision import Precision

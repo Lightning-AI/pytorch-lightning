@@ -31,14 +31,14 @@ from typing import (
     Type,
     Union,
 )
-from typing_extensions import override
+
 import torch
 from lightning_utilities.core.imports import RequirementCache
 from lightning_utilities.core.rank_zero import rank_zero_only as utils_rank_zero_only
 from torch import Tensor
 from torch.nn import Module, Parameter
 from torch.optim import Optimizer
-from typing_extensions import TypeGuard
+from typing_extensions import TypeGuard, override
 
 from lightning.fabric.accelerators import Accelerator
 from lightning.fabric.plugins import CheckpointIO, ClusterEnvironment, Precision

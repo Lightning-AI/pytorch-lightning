@@ -19,8 +19,9 @@ import sys
 import threading
 import time
 from typing import Any, Callable, List, Optional, Sequence, Tuple
-from typing_extensions import override
+
 from lightning_utilities.core.imports import RequirementCache
+from typing_extensions import override
 
 from lightning.fabric.plugins.environments.cluster_environment import ClusterEnvironment
 from lightning.fabric.strategies.launchers.launcher import _Launcher
