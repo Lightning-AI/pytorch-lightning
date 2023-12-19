@@ -18,10 +18,10 @@ from typing import Any
 from lightning.app.utilities.network import HTTPClient
 
 
-class DistributedMap:
-    """The DistributedMap enables to create a distributed key value pair.
+class ImmutableDistributedMap:
+    """The ImmutableDistributedMap enables to create a distributed key value pair in the cloud.
 
-    The first process to set a given key value pair wins.
+    The first process to perform the set operation defines its value.
 
     """
 
@@ -32,7 +32,7 @@ class DistributedMap:
 
         self.client: HTTPClient = HTTPClient(lightning_app_state_url)
 
-    def broadcast_object(self, key: str, value: Any) -> Any:
+    def set(self, key: str, value: Any) -> Any:
         resp = self.client.post("/broadcast", json={"key": key, "value": pickle.dumps(value, 0).decode()})
         if resp.status_code != 200:
             raise RuntimeError(f"Failed to broadcast the following {key=} {value=}.")
@@ -42,5 +42,5 @@ class DistributedMap:
 def broadcast_object(key: str, obj: Any) -> Any:
     """This function enables to broadcast object across machines."""
     if os.getenv("LIGHTNING_APP_STATE_URL") is not None:
-        return DistributedMap().broadcast_object(key, obj)
+        return ImmutableDistributedMap().set(key, obj)
     return obj
