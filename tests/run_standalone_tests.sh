@@ -42,6 +42,7 @@ report=''
 
 rm -f standalone_test_output.txt  # in case it exists, remove it
 rm -f testnames.txt
+
 function show_batched_output {
   if [ -f standalone_test_output.txt ]; then  # if exists
     cat standalone_test_output.txt
