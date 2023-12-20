@@ -70,7 +70,11 @@ class HTTPClient:
     automatically."""
 
     def __init__(
-        self, base_url: str, auth_token: Optional[str] = None, log_callback: Optional[Callable] = None
+        self,
+        base_url: str,
+        auth_token: Optional[str] = None,
+        log_callback: Optional[Callable] = None,
+        use_retry: bool = True,
     ) -> None:
         self.base_url = base_url
         retry_strategy = Retry(
@@ -93,8 +97,9 @@ class HTTPClient:
 
         self.session.hooks = {"response": _response}
 
-        self.session.mount("http://", adapter)
-        self.session.mount("https://", adapter)
+        if use_retry:
+            self.session.mount("http://", adapter)
+            self.session.mount("https://", adapter)
 
         if auth_token:
             self.session.headers.update({"Authorization": f"Bearer {auth_token}"})
@@ -136,10 +141,7 @@ class ImmutableDistributedMap:
     """
 
     def __init__(self) -> None:
-        lightning_app_external_url = os.getenv("LIGHTNING_APP_EXTERNAL_URL")
-        if lightning_app_external_url is None:
-            raise RuntimeError("The `LIGHTNING_APP_EXTERNAL_URL` should be set.")
-
+        # Get the token
         payload = {"apiKey": os.getenv("LIGHTNING_API_KEY"), "username": os.getenv("LIGHTNING_USERNAME")}
         url_login = os.getenv("LIGHTNING_CLOUD_URL", "https://lightning.ai") + "/v1/auth/login"
         res = requests.post(url_login, data=json.dumps(payload))
@@ -148,12 +150,28 @@ class ImmutableDistributedMap:
                 f"You haven't properly setup your environment variables with {url_login} and data: \n{payload}"
             )
 
-        self.client: HTTPClient = HTTPClient(lightning_app_external_url, auth_token=res.json()["token"])
+        lightning_app_external_url = os.getenv("LIGHTNING_APP_EXTERNAL_URL")
+        if lightning_app_external_url is None:
+            raise RuntimeError("The `LIGHTNING_APP_EXTERNAL_URL` should be set.")
+
+        self.external_client: HTTPClient = HTTPClient(
+            lightning_app_external_url, auth_token=res.json()["token"], use_retry=True
+        )
+
+        lightning_app_state_url = os.getenv("LIGHTNING_APP_STATE_URL")
+        if lightning_app_state_url is None:
+            raise RuntimeError("The `LIGHTNING_APP_STATE_URL` should be set.")
+
+        self.internal_client: HTTPClient = HTTPClient(
+            lightning_app_state_url, auth_token=res.json()["token"], use_retry=True
+        )
 
     def set_and_get(self, key: str, value: Any) -> Any:
-        resp = self.client.post("/broadcast", json={"key": key, "value": pickle.dumps(value, 0).decode()})
+        resp = self.external_client.post("/broadcast", json={"key": key, "value": pickle.dumps(value, 0).decode()})
         if resp.status_code != 200:
-            raise RuntimeError(f"Failed to broadcast the following {key=} {value=}.")
+            resp = self.internal_client.post("/broadcast", json={"key": key, "value": pickle.dumps(value, 0).decode()})
+            if resp.status_code != 200:
+                raise RuntimeError(f"Failed to broadcast the following {key=} {value=}.")
         return pickle.loads(bytes(resp.json()["value"], "utf-8"))
 
 
