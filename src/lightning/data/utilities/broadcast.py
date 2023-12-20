@@ -155,7 +155,7 @@ class ImmutableDistributedMap:
             raise RuntimeError("The `LIGHTNING_APP_EXTERNAL_URL` should be set.")
 
         self.external_client: HTTPClient = HTTPClient(
-            lightning_app_external_url, auth_token=res.json()["token"], use_retry=True
+            lightning_app_external_url, auth_token=res.json()["token"], use_retry=False
         )
 
         lightning_app_state_url = os.getenv("LIGHTNING_APP_STATE_URL")
@@ -163,7 +163,7 @@ class ImmutableDistributedMap:
             raise RuntimeError("The `LIGHTNING_APP_STATE_URL` should be set.")
 
         self.internal_client: HTTPClient = HTTPClient(
-            lightning_app_state_url, auth_token=res.json()["token"], use_retry=True
+            lightning_app_state_url, auth_token=res.json()["token"], use_retry=False
         )
 
     def set_and_get(self, key: str, value: Any) -> Any:
