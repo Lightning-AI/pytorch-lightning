@@ -19,6 +19,7 @@ from typing import Any, Callable, Dict, Optional
 from urllib.parse import urljoin
 
 import requests
+import urllib3
 
 # for backwards compatibility
 from requests.adapters import HTTPAdapter
@@ -169,7 +170,7 @@ class ImmutableDistributedMap:
     def set_and_get(self, key: str, value: Any) -> Any:
         try:
             resp = self.external_client.post("/broadcast", json={"key": key, "value": pickle.dumps(value, 0).decode()})
-        except requests.exceptions.ConnectionError:
+        except (requests.exceptions.ConnectionError, urllib3.exceptions.MaxRetryError):
             resp = self.internal_client.post("/broadcast", json={"key": key, "value": pickle.dumps(value, 0).decode()})
         if resp.status_code != 200:
             raise RuntimeError(f"Failed to broadcast the following {key=} {value=}.")
