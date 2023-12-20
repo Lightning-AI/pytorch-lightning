@@ -167,11 +167,12 @@ class ImmutableDistributedMap:
         )
 
     def set_and_get(self, key: str, value: Any) -> Any:
-        resp = self.external_client.post("/broadcast", json={"key": key, "value": pickle.dumps(value, 0).decode()})
-        if resp.status_code != 200:
+        try:
+            resp = self.external_client.post("/broadcast", json={"key": key, "value": pickle.dumps(value, 0).decode()})
+        except requests.exceptions.ConnectionError:
             resp = self.internal_client.post("/broadcast", json={"key": key, "value": pickle.dumps(value, 0).decode()})
-            if resp.status_code != 200:
-                raise RuntimeError(f"Failed to broadcast the following {key=} {value=}.")
+        if resp.status_code != 200:
+            raise RuntimeError(f"Failed to broadcast the following {key=} {value=}.")
         return pickle.loads(bytes(resp.json()["value"], "utf-8"))
 
 
