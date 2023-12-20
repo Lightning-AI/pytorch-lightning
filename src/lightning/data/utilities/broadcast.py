@@ -14,7 +14,6 @@
 import json
 import os
 import pickle
-from functools import wraps
 from logging import Logger
 from typing import Any, Callable, Dict, Optional
 from urllib.parse import urljoin
@@ -33,7 +32,7 @@ _CONNECTION_RETRY_BACKOFF_FACTOR = 0.5
 _DEFAULT_REQUEST_TIMEOUT = 30  # seconds
 
 
-class CustomRetryAdapter(HTTPAdapter):
+class _CustomRetryAdapter(HTTPAdapter):
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         self.timeout = kwargs.pop("timeout", _DEFAULT_REQUEST_TIMEOUT)
         super().__init__(*args, **kwargs)
@@ -43,29 +42,11 @@ class CustomRetryAdapter(HTTPAdapter):
         return super().send(request, **kwargs)
 
 
-def _http_method_logger_wrapper(func: Callable) -> Callable:
-    """Returns the function decorated by a wrapper that logs the message using the `log_function` hook."""
-
-    @wraps(func)
-    def wrapped(self: "HTTPClient", *args: Any, **kwargs: Any) -> Any:
-        message = f"HTTPClient: Method: {func.__name__.upper()}, Path: {args[0]}\n"
-        message += f"      Base URL: {self.base_url}\n"
-        params = kwargs.get("query_params", {})
-        if params:
-            message += f"      Params: {params}\n"
-        resp: requests.Response = func(self, *args, **kwargs)
-        message += f"      Response: {resp.status_code} {resp.reason}"
-        self.log_function(message)
-        return resp
-
-    return wrapped
-
-
 def _response(r: Any, *args: Any, **kwargs: Any) -> Any:
     return r.raise_for_status()
 
 
-class HTTPClient:
+class _HTTPClient:
     """A wrapper class around the requests library which handles chores like logging, retries, and timeouts
     automatically."""
 
@@ -92,7 +73,7 @@ class HTTPClient:
                 504,  # Gateway Timeout
             ],
         )
-        adapter = CustomRetryAdapter(max_retries=retry_strategy, timeout=_DEFAULT_REQUEST_TIMEOUT)
+        adapter = _CustomRetryAdapter(max_retries=retry_strategy, timeout=_DEFAULT_REQUEST_TIMEOUT)
         self.session = requests.Session()
 
         self.session.hooks = {"response": _response}
@@ -104,66 +85,42 @@ class HTTPClient:
         if auth_token:
             self.session.headers.update({"Authorization": f"Bearer {auth_token}"})
 
-        self.log_function = log_callback or self.log_function  # type: ignore
-
-    @_http_method_logger_wrapper
     def get(self, path: str) -> Any:
         url = urljoin(self.base_url, path)
         return self.session.get(url)
 
-    @_http_method_logger_wrapper
     def post(
         self, path: str, *, query_params: Optional[Dict] = None, data: Optional[bytes] = None, json: Any = None
     ) -> Any:
         url = urljoin(self.base_url, path)
         return self.session.post(url, data=data, params=query_params, json=json)
 
-    @_http_method_logger_wrapper
     def delete(self, path: str) -> Any:
         url = urljoin(self.base_url, path)
         return self.session.delete(url)
 
-    def log_function(self, message: str, *args: Any, **kwargs: Any) -> None:
-        """This function is used to log the messages in the client, it can be overridden by caller to customise the
-        logging logic.
 
-        We enabled customisation here instead of just using `logger.debug` because HTTP logging can be very noisy, but
-        it is crucial for finding bugs when we have them
-
-        """
-
-
-class ImmutableDistributedMap:
-    """The ImmutableDistributedMap enables to create a distributed key value pair in the cloud.
+class _ImmutableDistributedMap:
+    """The _ImmutableDistributedMap enables to create a distributed key value pair in the cloud.
 
     The first process to perform the set operation defines its value.
 
     """
 
     def __init__(self) -> None:
-        # Get the token
-        token = None
-        if os.getenv("LIGHTNING_CLOUD_URL") is not None:
-            payload = {"apiKey": os.getenv("LIGHTNING_API_KEY"), "username": os.getenv("LIGHTNING_USERNAME")}
-            url_login = os.getenv("LIGHTNING_CLOUD_URL", "") + "/v1/auth/login"
-            res = requests.post(url_login, data=json.dumps(payload))
-            if "token" not in res.json():
-                raise RuntimeError(
-                    f"You haven't properly setup your environment variables with {url_login} and data: \n{payload}"
-                )
-            token = res.json()["token"]
+        token = _get_token()
 
         lightning_app_external_url = os.getenv("LIGHTNING_APP_EXTERNAL_URL")
         if lightning_app_external_url is None:
             raise RuntimeError("The `LIGHTNING_APP_EXTERNAL_URL` should be set.")
 
-        self.public_client: HTTPClient = HTTPClient(lightning_app_external_url, auth_token=token, use_retry=False)
+        self.public_client: _HTTPClient = _HTTPClient(lightning_app_external_url, auth_token=token, use_retry=False)
 
         lightning_app_state_url = os.getenv("LIGHTNING_APP_STATE_URL")
         if lightning_app_state_url is None:
             raise RuntimeError("The `LIGHTNING_APP_STATE_URL` should be set.")
 
-        self.private_client: HTTPClient = HTTPClient(lightning_app_state_url, auth_token=token, use_retry=False)
+        self.private_client: _HTTPClient = _HTTPClient(lightning_app_state_url, auth_token=token, use_retry=False)
 
     def set_and_get(self, key: str, value: Any) -> Any:
         payload = {"key": key, "value": pickle.dumps(value, 0).decode()}
@@ -183,5 +140,20 @@ class ImmutableDistributedMap:
 def broadcast_object(key: str, obj: Any) -> Any:
     """This function enables to broadcast object across machines."""
     if os.getenv("LIGHTNING_APP_EXTERNAL_URL") is not None:
-        return ImmutableDistributedMap().set_and_get(key, obj)
+        return _ImmutableDistributedMap().set_and_get(key, obj)
     return obj
+
+
+def _get_token() -> Optional[str]:
+    """This function tries to retrieve a temporary token."""
+    if os.getenv("LIGHTNING_CLOUD_URL") is None:
+        return None
+
+    payload = {"apiKey": os.getenv("LIGHTNING_API_KEY"), "username": os.getenv("LIGHTNING_USERNAME")}
+    url_login = os.getenv("LIGHTNING_CLOUD_URL", "") + "/v1/auth/login"
+    res = requests.post(url_login, data=json.dumps(payload))
+    if "token" not in res.json():
+        raise RuntimeError(
+            f"You haven't properly setup your environment variables with {url_login} and data: \n{payload}"
+        )
+    return res.json()["token"]
