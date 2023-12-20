@@ -1,8 +1,7 @@
 import os
 from unittest import mock
 
-from lightning.app.utilities.network import requests
-from lightning.data.utilities.broadcast import broadcast_object
+from lightning.data.utilities.broadcast import broadcast_object, requests
 
 
 @mock.patch.dict(os.environ, {"LIGHTNING_APP_STATE_URL": "http://"}, clear=True)
