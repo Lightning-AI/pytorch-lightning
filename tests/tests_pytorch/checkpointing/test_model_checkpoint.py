@@ -517,6 +517,12 @@ def test_model_checkpoint_save_last(save_last, tmpdir, monkeypatch):
     assert os.path.realpath(tmpdir / last_filename) == model_checkpoint._last_checkpoint_saved
 
 
+def test_model_checkpoint_save_last_as_link_not_local(tmp_path):
+    callback = ModelCheckpoint(dirpath="memory://not-a-filesystem-path", save_last="link")
+    with pytest.raises(ValueError, match="save_last='link'.* is only supported for local file paths"):
+        callback.setup(trainer=Trainer(), pl_module=BoringModel(), stage="fit")
+
+
 def test_model_checkpoint_link_checkpoint(tmp_path):
     """Test that linking a checkpoint works and overwrites an existing link if present."""
     trainer = Mock()
