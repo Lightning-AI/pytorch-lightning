@@ -77,7 +77,7 @@ from lightning.fabric.wrappers import (
     _FabricModule,
     _FabricOptimizer,
     _unwrap_compiled,
-    _unwrap_objects,
+    _unwrap_objects, _get_dynamo_context, _to_compiled,
 )
 
 
@@ -228,6 +228,7 @@ class Fabric:
         """
         self._validate_setup(module, optimizers)
         original_module = module
+        dynamo_context = _get_dynamo_context(module)
 
         module = self._precision.convert_module(module)
 
@@ -242,6 +243,8 @@ class Fabric:
         else:
             module = self._strategy.setup_module(module)
 
+        if dynamo_context is not None:
+            module = _to_compiled(module, dynamo_context)
         module = _FabricModule(module, self._precision, original_module=original_module)
 
         # Update the _DeviceDtypeModuleMixin's device parameter
@@ -288,6 +291,7 @@ class Fabric:
         """
         self._validate_setup_module(module)
         original_module = module
+        dynamo_context = _get_dynamo_context(module)
 
         module = self._precision.convert_module(module)
 
@@ -296,6 +300,9 @@ class Fabric:
 
         # Let strategy wrap and connect the module alone
         module = self._strategy.setup_module(module)
+
+        if dynamo_context is not None:
+            module = _to_compiled(module, dynamo_context)
         module = _FabricModule(module, self._precision, original_module=original_module)
 
         # Update the _DeviceDtypeModuleMixin's device parameter

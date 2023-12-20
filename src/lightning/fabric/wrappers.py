@@ -13,7 +13,7 @@
 # limitations under the License.
 import inspect
 from functools import wraps
-from typing import Any, Callable, Dict, Generator, Iterator, List, Mapping, Optional, TypeVar, Union, overload
+from typing import Any, Callable, Dict, Generator, Iterator, List, Mapping, Optional, TypeVar, Union, overload, TYPE_CHECKING
 
 import torch
 from lightning_utilities.core.apply_func import apply_to_collection
@@ -30,6 +30,9 @@ from lightning.fabric.utilities.data import _set_sampler_epoch
 from lightning.fabric.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 from lightning.fabric.utilities.types import Optimizable
+
+if TYPE_CHECKING:
+    from torch._dynamo import OptimizedModule
 
 T_destination = TypeVar("T_destination", bound=Dict[str, Any])
 _LIGHTNING_MODULE_STEP_METHODS = ("training_step", "validation_step", "test_step", "predict_step")
@@ -309,6 +312,22 @@ def _unwrap_compiled(obj: Any) -> Any:
     if isinstance(obj, OptimizedModule):
         return obj._orig_mod
     return obj
+
+
+def _get_dynamo_context(module: nn.Module) -> Optional[Any]:
+    if not _TORCH_GREATER_EQUAL_2_0:
+        return None
+    from torch._dynamo import OptimizedModule
+
+    return module.dynamo_ctx if isinstance(module, OptimizedModule) else None
+
+
+def _to_compiled(module: nn.Module, dynamo_context: Any) -> "OptimizedModule":
+    if not _TORCH_GREATER_EQUAL_2_0:
+        raise RuntimeError()
+    from torch._dynamo import OptimizedModule
+
+    return OptimizedModule(module, dynamo_context)
 
 
 def is_wrapped(obj: object) -> bool:
