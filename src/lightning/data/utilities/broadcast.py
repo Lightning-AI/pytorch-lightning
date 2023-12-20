@@ -155,7 +155,7 @@ class ImmutableDistributedMap:
         if lightning_app_external_url is None:
             raise RuntimeError("The `LIGHTNING_APP_EXTERNAL_URL` should be set.")
 
-        self.external_client: HTTPClient = HTTPClient(
+        self.public_client: HTTPClient = HTTPClient(
             lightning_app_external_url, auth_token=res.json()["token"], use_retry=False
         )
 
@@ -163,15 +163,20 @@ class ImmutableDistributedMap:
         if lightning_app_state_url is None:
             raise RuntimeError("The `LIGHTNING_APP_STATE_URL` should be set.")
 
-        self.internal_client: HTTPClient = HTTPClient(
+        self.private_client: HTTPClient = HTTPClient(
             lightning_app_state_url, auth_token=res.json()["token"], use_retry=False
         )
 
     def set_and_get(self, key: str, value: Any) -> Any:
+        payload = {"key": key, "value": pickle.dumps(value, 0).decode()}
+
+        # Try the public address first
         try:
-            resp = self.external_client.post("/broadcast", json={"key": key, "value": pickle.dumps(value, 0).decode()})
+            resp = self.public_client.post("/broadcast", json=payload)
         except (requests.exceptions.ConnectionError, urllib3.exceptions.MaxRetryError):
-            resp = self.internal_client.post("/broadcast", json={"key": key, "value": pickle.dumps(value, 0).decode()})
+            # fallback to the private one
+            resp = self.private_client.post("/broadcast", json=payload)
+
         if resp.status_code != 200:
             raise RuntimeError(f"Failed to broadcast the following {key=} {value=}.")
         return pickle.loads(bytes(resp.json()["value"], "utf-8"))
