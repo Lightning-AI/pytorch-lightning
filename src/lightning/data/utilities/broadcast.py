@@ -143,29 +143,28 @@ class ImmutableDistributedMap:
 
     def __init__(self) -> None:
         # Get the token
-        payload = {"apiKey": os.getenv("LIGHTNING_API_KEY"), "username": os.getenv("LIGHTNING_USERNAME")}
-        url_login = os.getenv("LIGHTNING_CLOUD_URL", "https://lightning.ai") + "/v1/auth/login"
-        res = requests.post(url_login, data=json.dumps(payload))
-        if "token" not in res.json():
-            raise RuntimeError(
-                f"You haven't properly setup your environment variables with {url_login} and data: \n{payload}"
-            )
+        token = None
+        if os.getenv("LIGHTNING_CLOUD_URL"):
+            payload = {"apiKey": os.getenv("LIGHTNING_API_KEY"), "username": os.getenv("LIGHTNING_USERNAME")}
+            url_login = os.getenv("LIGHTNING_CLOUD_URL") + "/v1/auth/login"
+            res = requests.post(url_login, data=json.dumps(payload))
+            if "token" not in res.json():
+                raise RuntimeError(
+                    f"You haven't properly setup your environment variables with {url_login} and data: \n{payload}"
+                )
+            token = res.json()["token"]
 
         lightning_app_external_url = os.getenv("LIGHTNING_APP_EXTERNAL_URL")
         if lightning_app_external_url is None:
             raise RuntimeError("The `LIGHTNING_APP_EXTERNAL_URL` should be set.")
 
-        self.public_client: HTTPClient = HTTPClient(
-            lightning_app_external_url, auth_token=res.json()["token"], use_retry=False
-        )
+        self.public_client: HTTPClient = HTTPClient(lightning_app_external_url, auth_token=token, use_retry=False)
 
         lightning_app_state_url = os.getenv("LIGHTNING_APP_STATE_URL")
         if lightning_app_state_url is None:
             raise RuntimeError("The `LIGHTNING_APP_STATE_URL` should be set.")
 
-        self.private_client: HTTPClient = HTTPClient(
-            lightning_app_state_url, auth_token=res.json()["token"], use_retry=False
-        )
+        self.private_client: HTTPClient = HTTPClient(lightning_app_state_url, auth_token=token, use_retry=False)
 
     def set_and_get(self, key: str, value: Any) -> Any:
         payload = {"key": key, "value": pickle.dumps(value, 0).decode()}

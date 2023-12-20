@@ -4,7 +4,9 @@ from unittest import mock
 from lightning.data.utilities.broadcast import broadcast_object, requests
 
 
-@mock.patch.dict(os.environ, {"LIGHTNING_APP_STATE_URL": "http://"}, clear=True)
+@mock.patch.dict(
+    os.environ, {"LIGHTNING_APP_EXTERNAL_URL": "http://", "LIGHTNING_APP_STATE_URL": "http://"}, clear=True
+)
 def test_broadcast(monkeypatch):
     session = mock.MagicMock()
     resp = requests.Response()
