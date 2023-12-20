@@ -26,7 +26,7 @@ import warnings
 from copy import deepcopy
 from datetime import timedelta
 from pathlib import Path
-from typing import Any, Dict, Optional, Set
+from typing import Any, Dict, Optional, Set, Literal
 from weakref import proxy
 
 import torch
@@ -83,9 +83,9 @@ class ModelCheckpoint(Checkpoint):
             the number of finished epoch and optimizer steps respectively.
         monitor: quantity to monitor. By default it is ``None`` which saves a checkpoint only for the last epoch.
         verbose: verbosity mode. Default: ``False``.
-        save_last: When ``True``, saves a `last.ckpt` whenever a checkpoint file gets saved. On a local filesystem,
-            this will be a symbolic link, and otherwise a copy of the checkpoint file. This allows accessing the latest
-            checkpoint in a deterministic manner. Default: ``None``.
+        save_last: When ``True``, saves a `last.ckpt` copy whenever a checkpoint file gets saved. Can be set to
+            ``'link'`` on a local filesystem to create a symbolic link. This allows accessing the latest checkpoint
+            in a deterministic manner. Default: ``None``.
         save_top_k: if ``save_top_k == k``,
             the best k models according to the quantity monitored will be saved.
             if ``save_top_k == 0``, no models are saved.
@@ -216,7 +216,7 @@ class ModelCheckpoint(Checkpoint):
         filename: Optional[str] = None,
         monitor: Optional[str] = None,
         verbose: bool = False,
-        save_last: Optional[bool] = None,
+        save_last: Optional[Literal[True, False, "link"]] = None,
         save_top_k: int = 1,
         save_weights_only: bool = False,
         mode: str = "min",
@@ -272,6 +272,10 @@ class ModelCheckpoint(Checkpoint):
         self._fs = get_filesystem(self.dirpath or "")
         if trainer.is_global_zero and stage == "fit":
             self.__warn_if_dir_not_empty(self.dirpath)
+        if self.save_last == "link" and not _is_local_file_protocol(self.dirpath):
+            raise ValueError(
+                f"`ModelCheckpoint(save_last='link')` is only supported for local file paths, got `dirpath={dirpath}`."
+            )
 
     @override
     def on_train_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
@@ -684,7 +688,7 @@ class ModelCheckpoint(Checkpoint):
 
         # set the last model path before saving because it will be part of the state.
         previous, self.last_model_path = self.last_model_path, filepath
-        if _is_local_file_protocol(filepath) and self._last_checkpoint_saved and self.save_top_k != 0:
+        if self.save_last == "link" and self._last_checkpoint_saved and self.save_top_k != 0:
             self._link_checkpoint(trainer, self._last_checkpoint_saved, filepath)
         else:
             self._save_checkpoint(trainer, filepath)
