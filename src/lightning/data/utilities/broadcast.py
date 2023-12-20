@@ -143,7 +143,7 @@ class ImmutableDistributedMap:
     def __init__(self) -> None:
         # Get the token
         token = None
-        if os.getenv("LIGHTNING_CLOUD_URL"):
+        if os.getenv("LIGHTNING_CLOUD_URL") is not None:
             payload = {"apiKey": os.getenv("LIGHTNING_API_KEY"), "username": os.getenv("LIGHTNING_USERNAME")}
             url_login = os.getenv("LIGHTNING_CLOUD_URL", "") + "/v1/auth/login"
             res = requests.post(url_login, data=json.dumps(payload))
