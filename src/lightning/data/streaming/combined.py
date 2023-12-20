@@ -34,20 +34,34 @@ class CombinedStreamingDataset(IterableDataset):
         else:
             self._weights = [w / sum(weights) for w in weights]
 
-        self._iterator: Optional[CombinedDatasetIterator] = None
+        self._iterator: Optional[_CombinedDatasetIterator] = None
 
     def __iter__(self) -> Iterator[Any]:
         assert self._weights
-        self._iterartor = CombinedDatasetIterator(self._datasets, self._seed, self._weights)
-        return self._iterartor
+        self._iterator = _CombinedDatasetIterator(self._datasets, self._seed, self._weights)
+        return self._iterator
 
-    def state_dict(self) -> Optional[Dict[str, Any]]:
-        if self._iterartor is None:
+    def state_dict(self) -> Dict[str, Any]:
+        if self._iterator is None:
             return {}
+        return self._iterator.state_dict()
+
+    def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
+        if len(state_dict) != len(self._datasets):
+            raise RuntimeError(
+                f"The provided state {state_dict} doesn't match the current number of datasets: {self._datasets}."
+            )
+
+        for dataset_idx, dataset in enumerate(self._datasets):
+            if str(dataset_idx) not in state_dict:
+                raise RuntimeError(f"The provided state {state_dict} doesn't contain the index {dataset_idx}.")
+
+            dataset.load_state_dict(state_dict[dataset_idx])
 
 
-class CombinedDatasetIterator(Iterator):
+class _CombinedDatasetIterator(Iterator):
     def __init__(self, datasets: List[StreamingDataset], seed: int, weights: Sequence[float]) -> None:
+        self._datasets = datasets
         self._dataset_iters = [iter(dataset) for dataset in datasets]
         self._dataset_indexes = list(range(len(datasets)))
         self._num_samples_yielded = [0 for _ in range(len(datasets))]
@@ -63,3 +77,9 @@ class CombinedDatasetIterator(Iterator):
 
         # return a new sample
         return next(self._dataset_iters[dataset_index])
+
+    def state_dict(self) -> Dict[str, Any]:
+        return {
+            str(dataset_idx): dataset.state_dict(self._num_samples_yielded[dataset_idx])
+            for dataset_idx, dataset in enumerate(self._datasets)
+        }
