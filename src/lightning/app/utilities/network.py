@@ -191,9 +191,9 @@ class HTTPClient:
         return self.session.get(url)
 
     @_http_method_logger_wrapper
-    def post(self, path: str, *, query_params: Optional[Dict] = None, data: Optional[bytes] = None):
+    def post(self, path: str, *, query_params: Optional[Dict] = None, data: Optional[bytes] = None, json: Any = None):
         url = urljoin(self.base_url, path)
-        return self.session.post(url, data=data, params=query_params)
+        return self.session.post(url, data=data, params=query_params, json=json)
 
     @_http_method_logger_wrapper
     def delete(self, path: str):

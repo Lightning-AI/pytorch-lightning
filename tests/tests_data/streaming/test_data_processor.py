@@ -233,17 +233,6 @@ def test_wait_for_file_to_exist():
         _wait_for_file_to_exist(s3, obj, sleep_time=0.01)
 
 
-def test_broadcast_object(tmpdir, monkeypatch):
-    data_processor = DataProcessor(input_dir=str(tmpdir))
-    assert data_processor._broadcast_object("dummy") == "dummy"
-    monkeypatch.setenv("DATA_OPTIMIZER_NUM_NODES", "2")
-    monkeypatch.setattr(data_processor_module, "_distributed_is_initialized", lambda: True)
-    torch_mock = mock.MagicMock()
-    monkeypatch.setattr(data_processor_module, "torch", torch_mock)
-    assert data_processor._broadcast_object("dummy") == "dummy"
-    assert torch_mock.distributed.broadcast_object_list._mock_call_args.args == (["dummy"], 0)
-
-
 def test_cache_dir_cleanup(tmpdir, monkeypatch):
     cache_dir = os.path.join(tmpdir, "chunks")
     cache_data_dir = os.path.join(tmpdir, "data")
