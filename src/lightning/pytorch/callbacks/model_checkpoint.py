@@ -26,7 +26,7 @@ import warnings
 from copy import deepcopy
 from datetime import timedelta
 from pathlib import Path
-from typing import Any, Dict, Optional, Set, Literal
+from typing import Any, Dict, Literal, Optional, Set
 from weakref import proxy
 
 import torch
