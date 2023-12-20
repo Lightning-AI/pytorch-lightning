@@ -15,6 +15,7 @@ import json
 import os
 import pickle
 from functools import wraps
+from logging import Logger
 from typing import Any, Callable, Dict, Optional
 from urllib.parse import urljoin
 
@@ -24,8 +25,6 @@ import urllib3
 # for backwards compatibility
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
-
-from lightning.app.utilities.app_helpers import Logger
 
 logger = Logger(__name__)
 
