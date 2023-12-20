@@ -176,26 +176,26 @@ def _ignore_missing_weights_hook(module: torch.nn.Module, incompatible_keys: _In
 
 
 def _replace_param(
-    p: torch.nn.Parameter, data: torch.Tensor, quant_state: Optional[Tuple] = None
+    param: torch.nn.Parameter, data: torch.Tensor, quant_state: Optional[Tuple] = None
 ) -> torch.nn.Parameter:
     bnb = _import_bitsandbytes()
 
     # doing `param.data = weight` raises a RuntimeError if param.data was on meta-device, so
     # we need to re-create the parameters instead of overwriting the data
-    if p.device.type == "meta":
-        if isinstance(p, bnb.nn.Params4bit):
+    if param.device.type == "meta":
+        if isinstance(param, bnb.nn.Params4bit):
             return bnb.nn.Params4bit(
                 data,
                 requires_grad=data.requires_grad,
                 quant_state=quant_state,
-                compress_statistics=p.compress_statistics,
-                quant_type=p.quant_type,
+                compress_statistics=param.compress_statistics,
+                quant_type=param.quant_type,
             )
         return torch.nn.Parameter(data, requires_grad=data.requires_grad)
-    p.data = data
-    if isinstance(p, bnb.nn.Params4bit):
-        p.quant_state = quant_state
-    return p
+    param.data = data
+    if isinstance(param, bnb.nn.Params4bit):
+        param.quant_state = quant_state
+    return param
 
 
 @functools.lru_cache(maxsize=1)
@@ -234,7 +234,7 @@ def _import_bitsandbytes() -> ModuleType:
             """Inplace quantize."""
             if weight is None:
                 weight = self.weight.data
-                if weight.data.type == torch.uint8:
+                if weight.data.type == torch.int8:
                     # already quantized
                     return
             assert isinstance(self.weight, bnb.nn.Int8Params)
