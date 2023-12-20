@@ -62,11 +62,11 @@ def apply_to_collection(
     # fast path for the most common cases:
     if isinstance(data, dtype):  # single element
         return function(data, *args, **kwargs)
-    if isinstance(data, list) and all(isinstance(x, dtype) for x in data):  # 1d homogeneous list
+    if data.__class__ is list and all(isinstance(x, dtype) for x in data):  # 1d homogeneous list
         return [function(x, *args, **kwargs) for x in data]
-    if isinstance(data, tuple) and all(isinstance(x, dtype) for x in data):  # 1d homogeneous tuple
+    if data.__class__ is tuple and all(isinstance(x, dtype) for x in data):  # 1d homogeneous tuple
         return tuple(function(x, *args, **kwargs) for x in data)
-    if isinstance(data, dict) and all(isinstance(x, dtype) for x in data.values()):  # 1d homogeneous dict
+    if data.__class__ is dict and all(isinstance(x, dtype) for x in data.values()):  # 1d homogeneous dict
         return {k: function(v, *args, **kwargs) for k, v in data.items()}
     # slow path for everything else
     return _apply_to_collection_slow(
