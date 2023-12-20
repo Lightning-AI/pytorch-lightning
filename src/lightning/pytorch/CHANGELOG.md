@@ -20,6 +20,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed handling checkpoint dirpath suffix in NeptuneLogger ([#18863](https://github.com/Lightning-AI/lightning/pull/18863))
 - Fixed an edge case where `ModelCheckpoint` would alternate between versioned and unversioned filename ([#19064](https://github.com/Lightning-AI/lightning/pull/19064))
 - Fixed broadcast at initialization in `MPIEnvironment` ([#19074](https://github.com/Lightning-AI/lightning/pull/19074))
+- Fixed the tensor conversion in `self.log` to respect the default dtype ([#19046](https://github.com/Lightning-AI/lightning/issues/19046))
 
 
 ## [2.1.2] - 2023-11-15
@@ -40,9 +41,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed an issue saving the `last.ckpt` file when using `ModelCheckpoint` on a remote filesystem and no logger is used ([#18867](https://github.com/Lightning-AI/lightning/issues/18867))
 - Refined the FSDP saving logic and error messaging when path exists ([#18884](https://github.com/Lightning-AI/lightning/pull/18884))
 - Fixed an issue parsing the version from folders that don't include a version number in `TensorBoardLogger` and `CSVLogger` ([#18897](https://github.com/Lightning-AI/lightning/issues/18897))
-
-
-- Fixed the tensor conversion in `self.log` to respect the default dtype ([#19046](https://github.com/Lightning-AI/lightning/issues/19046))
 
 
 ## [2.1.0] - 2023-10-11
