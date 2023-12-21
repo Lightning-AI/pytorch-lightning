@@ -20,6 +20,14 @@ from lightning.data.streaming.dataset import StreamingDataset
 
 
 class CombinedStreamingDataset(IterableDataset):
+    """The `CombinedStreamingDataset` enables to stream data from multiple StreamingDataset with the sampling ratio of
+    your choices.
+
+    Addtionally, the `CombinedStreamingDataset` keeps track of the number of
+    samples fetched to enable resumability of the datasets.
+
+    """
+
     def __init__(
         self, datasets: List[StreamingDataset], seed: int = 42, weights: Optional[Sequence[float]] = None
     ) -> None:

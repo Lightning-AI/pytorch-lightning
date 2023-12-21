@@ -342,6 +342,9 @@ class CacheDataLoader(DataLoader):
 
 
 class StreamingDataLoader(DataLoader):
+    """The `StreamingDataLoader` keeps track of the number of samples fetched in order to enable resumability of the
+    dataset."""
+
     __doc__ = DataLoader.__doc__
 
     def __init__(
