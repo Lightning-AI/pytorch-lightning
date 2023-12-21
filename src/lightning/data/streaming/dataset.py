@@ -94,7 +94,7 @@ class StreamingDataset(IterableDataset):
         self.random_state = None
         self.shuffler: Optional[Shuffle] = None
         self.serializers = serializers
-        self._state_dict: Optional[Dict[str, Dict[str, Any]]] = None
+        self._state_dict: Optional[List[Dict[str, Any]]] = None
 
     def _create_cache(self, worker_env: _WorkerEnv) -> Cache:
         env = Environment(dist_env=self.distributed_env, worker_env=worker_env)
@@ -180,6 +180,10 @@ class StreamingDataset(IterableDataset):
         return self
 
     def _resume(self, chunks_replica: List[int], intervals_replica: List[Any]) -> None:
+        assert self._state_dict
+        assert self.worker_env
+        assert self.shuffler
+
         num_workers = self._state_dict[-1]["num_workers"]
         batch_size = self._state_dict[-1]["batch_size"]
         num_samples_yielded = sum([state["num_samples_yielded"] for state in self._state_dict])
@@ -287,7 +291,7 @@ class StreamingDataset(IterableDataset):
 
         return data
 
-    def state_dict(self, num_samples_yielded: int, num_workers: int, batch_size: int) -> Dict[str, Any]:
+    def state_dict(self, num_samples_yielded: int, num_workers: int, batch_size: int) -> List[Dict[str, Any]]:
         if _is_in_dataloader_worker():
             raise RuntimeError("The method `state_dict` should only be called in the main process.")
 
@@ -312,7 +316,7 @@ class StreamingDataset(IterableDataset):
 
         return state
 
-    def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
+    def load_state_dict(self, state_dict: List[Dict[str, Any]]) -> None:
         if state_dict:
             # the state is restored within the workers
             self._state_dict = state_dict

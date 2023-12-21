@@ -16,7 +16,7 @@ import inspect
 import logging
 import os
 from importlib import reload
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Callable, List, Optional, Union
 
 import torch
 from torch.utils.data import Dataset, IterableDataset
@@ -370,20 +370,20 @@ class StreamingDataLoader(DataLoader):
         else:
             yield from super().__iter__()
 
-    def state_dict(self) -> Optional[Dict[str, Any]]:
+    def state_dict(self) -> Optional[Any]:
         if isinstance(self.dataset, StreamingDataset):
             assert self.batch_size
             num_samples = self.num_samples_yielded
             return self.dataset.state_dict(num_samples, self.num_workers, self.batch_size)
         return self.dataset.state_dict(self.num_workers, self.batch_size)
 
-    def load_state_dict(self, obj: Dict[str, Any]) -> None:
+    def load_state_dict(self, obj: Any) -> None:
         """Load a dict containing training state (called from non-worker process).
 
         This is called on each copy of the dataset when resuming.
 
         Args:
-            obj (Dict[str, Any]): The state.
+            obj (Any): The state.
 
         """
         if isinstance(self.dataset, (StreamingDataset, CombinedStreamingDataset)):
