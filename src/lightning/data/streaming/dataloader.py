@@ -351,8 +351,8 @@ class StreamingDataLoader(DataLoader):
         self,
         dataset: Union[StreamingDataset, CombinedStreamingDataset],
         *args: Any,
-        batch_size: int,
-        num_workers: int,
+        batch_size: int = 1,
+        num_workers: int = 0,
         **kwargs: Any,
     ) -> None:  # pyright: ignore
         self.batch_size = batch_size

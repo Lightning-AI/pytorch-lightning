@@ -23,8 +23,8 @@ class TestStatefulDataset:
         self.counter += 1
         return value
 
-    def state_dict(self, counter):
-        return {"counter": counter}
+    def state_dict(self, *args, **kwargs):
+        return {"counter": self.counter}
 
     def load_state_dict(self, state_dict):
         self.counter = state_dict["counter"]
@@ -56,4 +56,4 @@ def test_streaming_dataloader():
     for exp, gen in zip(expected, batches):
         assert torch.equal(exp, gen)
 
-    assert dataloader.state_dict() == {"0": {"counter": 11}, "1": {"counter": 9}}
+    assert dataloader.state_dict() == {"0": {"counter": 10}, "1": {"counter": 9}}
