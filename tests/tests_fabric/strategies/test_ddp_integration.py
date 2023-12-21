@@ -73,7 +73,7 @@ def test_compile_ddp(tmp_path):
     fabric.launch()
 
     model = torch.nn.Linear(2, 2)
-    compiled_model = torch.compile(model, fullgraph=True)
+    compiled_model = torch.compile(model)
     fabric_model = fabric.setup(compiled_model)
 
     assert fabric_model._original_module == compiled_model
