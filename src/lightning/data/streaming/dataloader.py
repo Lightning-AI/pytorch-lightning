@@ -16,7 +16,7 @@ import inspect
 import logging
 import os
 from importlib import reload
-from typing import Any, Callable, Dict, Iterator, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Union
 
 import torch
 from torch.utils.data import Dataset, IterableDataset
@@ -349,10 +349,11 @@ class StreamingDataLoader(DataLoader):
     ) -> None:  # pyright: ignore
         self.batch_size = batch_size
         self.num_samples_yielded = 0
-        super().__init__(dataset, *args, batch_size=batch_size, **kwargs)
+        super().__init__(dataset, *args, batch_size=batch_size, **kwargs)  # type: ignore
 
-    def __iter__(self) -> Iterator[Any]:
+    def __iter__(self) -> Any:
         if isinstance(self.dataset, StreamingDataset):
+            assert self.batch_size
             self.num_samples_yielded = 0
             for batch in super().__iter__():
                 self.num_samples_yielded += self.batch_size
