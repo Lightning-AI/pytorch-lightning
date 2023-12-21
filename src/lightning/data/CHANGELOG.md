@@ -5,6 +5,33 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
+## [2.1.3] - 2023-12-21
+
+### Added
+
+- Add fault tolerance `StreamingDataset` ([#19052](https://github.com/Lightning-AI/lightning/pull/19052))
+- Add numpy support for the `StreamingDataset` ([#19050](https://github.com/Lightning-AI/lightning/pull/19050))
+- Add fault tolerance for the `StreamingDataset` ([#19049](https://github.com/Lightning-AI/lightning/pull/19049))
+- Add direct s3 support to the `StreamingDataset` ([#19044](https://github.com/Lightning-AI/lightning/pull/19044))
+- Add disk usage check before downloading files ([#19041](https://github.com/Lightning-AI/lightning/pull/19041))
+
+### Changed
+
+- Cleanup chunks right away if the dataset doesn't fit within the cache in `StreamingDataset` ([#19168](https://github.com/Lightning-AI/lightning/pull/19168))
+- `StreamingDataset` improve deletion strategy ([#19118](https://github.com/Lightning-AI/lightning/pull/19118))
+- Improve `StreamingDataset` Speed ([#19114](https://github.com/Lightning-AI/lightning/pull/19114))
+- Remove time in the Data Processor progress bar ([#19108](https://github.com/Lightning-AI/lightning/pull/19108))
+- Optimize loading time for chunks to be there ([#19109](https://github.com/Lightning-AI/lightning/pull/19109))
+- Resolve path for `StreamingDataset` ([#19094](https://github.com/Lightning-AI/lightning/pull/19094))
+- Make input dir in `DataProcessor` required ([#18910](https://github.com/Lightning-AI/lightning/pull/18910))
+- Remove the `LightningDataset` relying on un-maintained torchdata ([#19019](https://github.com/Lightning-AI/lightning/pull/19019))
+
+# Fixed
+
+- Resolve checkpointing for the Streaming Dataset ([#19123](https://github.com/Lightning-AI/lightning/pull/19123))
+- Resolve Item Loader bugs ([#19017](https://github.com/Lightning-AI/lightning/pull/19017))
+
+
 ## [2.1.2] - 2023-11-15
 
 ### Added
