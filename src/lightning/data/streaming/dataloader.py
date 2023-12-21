@@ -373,8 +373,7 @@ class StreamingDataLoader(DataLoader):
     def state_dict(self) -> Optional[Dict[str, Any]]:
         if isinstance(self.dataset, StreamingDataset):
             assert self.batch_size
-            env = _DistributedEnv.detect()
-            num_samples = self.num_samples_yielded * env.world_size
+            num_samples = self.num_samples_yielded
             return self.dataset.state_dict(num_samples, self.num_workers, self.batch_size)
         return self.dataset.state_dict(self.num_workers, self.batch_size)
 
