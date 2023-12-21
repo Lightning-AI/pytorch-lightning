@@ -1285,7 +1285,7 @@ class Trainer:
 
         """
         if _is_local_file_protocol(self._default_root_dir):
-            return os.path.normpath(self._default_root_dir)
+            return os.path.normpath(os.path.expanduser(self._default_root_dir))
         return self._default_root_dir
 
     @property
