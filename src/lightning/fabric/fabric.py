@@ -77,7 +77,7 @@ from lightning.fabric.wrappers import (
     _FabricModule,
     _FabricOptimizer,
     _unwrap_compiled,
-    _unwrap_objects, _get_dynamo_context, _to_compiled,
+    _unwrap_objects, _to_compiled,
 )
 
 
@@ -228,7 +228,7 @@ class Fabric:
         """
         self._validate_setup(module, optimizers)
         original_module = module
-        dynamo_context = _get_dynamo_context(module)
+        module, dynamo_context = _unwrap_compiled(module)
 
         module = self._precision.convert_module(module)
 
@@ -291,7 +291,7 @@ class Fabric:
         """
         self._validate_setup_module(module)
         original_module = module
-        dynamo_context = _get_dynamo_context(module)
+        module, dynamo_context = _unwrap_compiled(module)
 
         module = self._precision.convert_module(module)
 
@@ -648,7 +648,7 @@ class Fabric:
                 skip.
 
         """
-        module = _unwrap_compiled(module)
+        module, _ = _unwrap_compiled(module)
         if not isinstance(module, _FabricModule):
             raise TypeError(
                 "You need to set up the model first before you can call `fabric.no_backward_sync()`:"
@@ -779,7 +779,7 @@ class Fabric:
             # We need to unwrap objects (see above) but this creates a new dictionary. In-place updates
             # (for user metadata) wouldn't show up in the original dict, so we need to copy the data back.
             for k in list(unwrapped_state.keys()):
-                obj = _unwrap_compiled(state[k])
+                obj, _ = _unwrap_compiled(state[k])
                 if isinstance(obj, (_FabricModule, _FabricOptimizer, _FabricDataLoader)):
                     continue
                 state[k] = unwrapped_state[k]

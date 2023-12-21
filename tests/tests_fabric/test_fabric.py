@@ -101,7 +101,10 @@ def test_setup_compiled_module(setup_method):
     setup_method = getattr(fabric, setup_method)
     fabric_model = setup_method(compiled_model)
 
-    assert fabric_model.module == compiled_model
+    assert fabric_model._original_module == compiled_model
+    # The forward_module got rewrapped into a new OptimizedModule
+    assert isinstance(fabric_model._forward_module, OptimizedModule)
+    assert fabric_model._forward_module != fabric_model._original_module
     # Attributes get passed through
     assert fabric_model.weight is model.weight
 

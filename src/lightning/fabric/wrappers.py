@@ -13,7 +13,8 @@
 # limitations under the License.
 import inspect
 from functools import wraps
-from typing import Any, Callable, Dict, Generator, Iterator, List, Mapping, Optional, TypeVar, Union, overload, TYPE_CHECKING
+from typing import Any, Callable, Dict, Generator, Iterator, List, Mapping, Optional, TypeVar, Union, overload, \
+    TYPE_CHECKING, Tuple
 
 import torch
 from lightning_utilities.core.apply_func import apply_to_collection
@@ -282,7 +283,7 @@ def _unwrap_objects(collection: Any) -> Any:
     def _unwrap(
         obj: Union[_FabricModule, _FabricOptimizer, _FabricDataLoader]
     ) -> Union[nn.Module, Optimizer, DataLoader]:
-        if isinstance(unwrapped := _unwrap_compiled(obj), _FabricModule):
+        if isinstance(unwrapped := _unwrap_compiled(obj)[0], _FabricModule):
             return unwrapped._forward_module
         if isinstance(obj, _FabricOptimizer):
             return obj.optimizer
@@ -299,7 +300,7 @@ def _unwrap_objects(collection: Any) -> Any:
     return apply_to_collection(collection, dtype=tuple(types), function=_unwrap)
 
 
-def _unwrap_compiled(obj: Any) -> Any:
+def _unwrap_compiled(obj: Union[Any, "OptimizedModule"]) -> Tuple[Union[Any, nn.Module], Optional[Any]]:
     """Removes the :class:`torch._dynamo.OptimizedModule` around the object if it is wrapped.
 
     Use this function before instance checks against e.g. :class:`_FabricModule`.
@@ -310,16 +311,8 @@ def _unwrap_compiled(obj: Any) -> Any:
     from torch._dynamo import OptimizedModule
 
     if isinstance(obj, OptimizedModule):
-        return obj._orig_mod
-    return obj
-
-
-def _get_dynamo_context(module: nn.Module) -> Optional[Any]:
-    if not _TORCH_GREATER_EQUAL_2_0:
-        return None
-    from torch._dynamo import OptimizedModule
-
-    return module.dynamo_ctx if isinstance(module, OptimizedModule) else None
+        return obj._orig_mod, obj.dynamo_ctx
+    return obj, None
 
 
 def _to_compiled(module: nn.Module, dynamo_context: Any) -> "OptimizedModule":
@@ -341,5 +334,5 @@ def is_wrapped(obj: object) -> bool:
         obj: The object to test.
 
     """
-    obj = _unwrap_compiled(obj)
+    obj, _ = _unwrap_compiled(obj)
     return isinstance(obj, (_FabricModule, _FabricOptimizer, _FabricDataLoader))
