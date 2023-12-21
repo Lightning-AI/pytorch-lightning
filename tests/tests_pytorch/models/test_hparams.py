@@ -666,6 +666,8 @@ def test_init_arg_with_runtime_change(tmpdir, cls):
         limit_test_batches=2,
         max_epochs=1,
         logger=TensorBoardLogger(tmpdir),
+        enable_progress_bar=False,
+        enable_checkpointing=False,
     )
     trainer.fit(model)
 
