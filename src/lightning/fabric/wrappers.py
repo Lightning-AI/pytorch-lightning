@@ -13,8 +13,21 @@
 # limitations under the License.
 import inspect
 from functools import wraps
-from typing import Any, Callable, Dict, Generator, Iterator, List, Mapping, Optional, TypeVar, Union, overload, \
-    TYPE_CHECKING, Tuple
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    Dict,
+    Generator,
+    Iterator,
+    List,
+    Mapping,
+    Optional,
+    Tuple,
+    TypeVar,
+    Union,
+    overload,
+)
 
 import torch
 from lightning_utilities.core.apply_func import apply_to_collection
