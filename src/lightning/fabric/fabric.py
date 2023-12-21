@@ -76,8 +76,9 @@ from lightning.fabric.wrappers import (
     _FabricDataLoader,
     _FabricModule,
     _FabricOptimizer,
+    _to_compiled,
     _unwrap_compiled,
-    _unwrap_objects, _to_compiled,
+    _unwrap_objects,
 )
 
 
