@@ -92,7 +92,7 @@ jobs:
           fname_txt = "conda-user/user-env-requirements.txt"
           with open(fname_txt, encoding="utf-8") as fopen:
               reqs = fopen.read()
-          reqs = re.sub(r"lightning\w*==([\d\.]+)", f"lightning =={tag}", reqs)
+          reqs = re.sub(r"lightning\w*==([\d\.]+)", f"lightning=={tag}", reqs)
           with open(fname_txt, "w", encoding="utf-8") as fopen:
               fopen.write(reqs)
         shell: python
