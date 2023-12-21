@@ -79,15 +79,22 @@ jobs:
           token: ${{ secrets.PAT_GHOST }}
       - name: Update lightning version
         run: |
-          import json, os
-          fname = "versions.json"
-          with open(fname, encoding="utf-8") as fopen:
+          import json, os, re
+          tag = os.getenv('TAG')
+          fname_json = "versions.json"
+          with open(fname_json, encoding="utf-8") as fopen:
               vers = json.load(fopen)
-          vers["lightning_version"] = os.getenv('TAG')
-          with open(fname, "w", encoding="utf-8") as fopen:
+          vers["lightning_version"] = tag
+          with open(fname_json, "w", encoding="utf-8") as fopen:
               json.dump(vers, fopen, indent=2)
               # satisfy pre-commit with line fixer
               fopen.write(os.linesep)
+          fname_txt = "conda-user/user-env-requirements.txt"
+          with open(fname_txt, encoding="utf-8") as fopen:
+              reqs = fopen.read()
+          reqs = re.sub(r"lightning\w*==([\d\.]+)", f"lightning =={tag}", reqs)
+          with open(fname_txt, "w", encoding="utf-8") as fopen:
+              fopen.write(reqs)
         shell: python
       - run: cat versions.json
 
@@ -99,7 +106,9 @@ jobs:
           committer: GitHub <noreply@github.com>
           author: ${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>
           token: ${{ secrets.PAT_GHOST }}
-          add-paths: versions.json
+          add-paths: |
+            versions.json
+            conda-user/user-env-requirements.txt
           commit-message: "bumping lightning version -> (${{ env.TAG }})"
           branch: "bump/lightning-${{ env.TAG }}"
           # Delete the branch when closing pull requests, and when undeleted after merging.
