@@ -166,7 +166,7 @@ def test_neptune_log_metrics_on_trained_model(neptune_mock, tmp_path):
     logger, run_instance_mock, _ = _get_logger_with_mocks(api_key="test", project="project")
     _fit_and_test(logger=logger, model=LoggingModel(), tmp_path=tmp_path)
     run_instance_mock.__getitem__.assert_any_call("training/some/key")
-    run_instance_mock.__getitem__.return_value.append.assert_has_calls([call(42)])
+    run_instance_mock.__getitem__.return_value.append.assert_has_calls([call(42, step=2)])
 
 
 def test_log_hyperparams(neptune_mock):
@@ -204,7 +204,7 @@ def test_log_metrics(neptune_mock):
         assert run_instance_mock.__getitem__.call_count == 2
         run_instance_mock.__getitem__.assert_any_call(metrics_foo_key)
         run_instance_mock.__getitem__.assert_any_call(metrics_bar_key)
-        run_attr_mock.append.assert_has_calls([call(42), call(555)])
+        run_attr_mock.append.assert_has_calls([call(42, step=None), call(555, step=None)])
 
 
 def test_log_model_summary(neptune_mock):

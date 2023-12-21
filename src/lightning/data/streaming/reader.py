@@ -18,7 +18,6 @@ import warnings
 from logging import Logger
 from queue import Empty
 from threading import Thread
-from time import sleep
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 from lightning.data.streaming.config import ChunksConfig
@@ -30,12 +29,19 @@ from lightning.data.utilities.env import _DistributedEnv, _WorkerEnv
 
 warnings.filterwarnings("ignore", message=".*The given buffer is not writable.*")
 
-
 if _TORCH_GREATER_EQUAL_2_1_0:
     pass
 
 
 logger = Logger(__name__)
+
+
+_END_TOKEN = "END"
+
+# Note: The timeout here should not be too short. We need to prevent the caller from aggressively
+# querying the queue and consuming too many CPU cycles.
+_DEFAULT_TIMEOUT = 0.1
+_LONG_DEFAULT_TIMEOUT = 5
 
 
 class PrepareChunksThread(Thread):
@@ -59,22 +65,7 @@ class PrepareChunksThread(Thread):
         self._parent_cache_dir = os.path.dirname(self._config._cache_dir)
         self._to_download_queue: multiprocessing.Queue = multiprocessing.Queue()
         self._to_delete_queue: multiprocessing.Queue = multiprocessing.Queue()
-        self._to_stop_queue: multiprocessing.Queue = multiprocessing.Queue()
-
-        # populate back the queues with existing items. As they already exists, this is almost a no-op
-        for chunk_index in self._collect_ordered_chunk_indexes_from_cache():
-            self._to_download_queue.put(chunk_index)
-            self._to_delete_queue.put(chunk_index)
-
-    def _collect_ordered_chunk_indexes_from_cache(self) -> List[int]:
-        """List the chunks available in the cache, order them based on their creation time and retrieves their
-        indexes."""
-        chunk_indexes = [
-            [self._config._get_chunk_index_from_filename(f), os.path.getctime(os.path.join(self._config._cache_dir, f))]
-            for f in os.listdir(self._config._cache_dir)
-            if f.endswith(".bin")
-        ]
-        return [int(x[0]) for x in sorted(chunk_indexes, key=lambda x: x[1])]
+        self._delete_chunks_when_processed = self._config.num_bytes > max_cache_size if max_cache_size else False
 
     def download(self, chunk_indexes: List[int]) -> None:
         """Receive the list of the chunk indices to download for the current epoch."""
@@ -93,10 +84,15 @@ class PrepareChunksThread(Thread):
 
     def stop(self) -> None:
         """Receive the list of the chunk indices to download for the current epoch."""
-        self._to_stop_queue.put(True)
+        self._to_download_queue.put(_END_TOKEN)
 
     def _maybe_delete_chunks(self) -> None:
-        chunk_index = _get_from_queue(self._to_delete_queue)
+        reached_pre_download = self._pre_download_counter == self._max_pre_download
+
+        # we have already pre-downloaded some chunks, we just need to wait for them to be processed.
+        chunk_index = _get_from_queue(
+            self._to_delete_queue, timeout=_LONG_DEFAULT_TIMEOUT if reached_pre_download else _DEFAULT_TIMEOUT
+        )
 
         if chunk_index is not None:
             self._pre_download_counter -= 1
@@ -105,13 +101,16 @@ class PrepareChunksThread(Thread):
             self._chunks_index_to_be_deleted.append(chunk_index)
 
         # Get the current cache size and decide whether we need to start cleanup. Otherwise, keep track of it
-        while (
-            self._max_cache_size
-            and self._chunks_index_to_be_deleted
-            and _get_folder_size(self._parent_cache_dir) >= self._max_cache_size
-        ):
+        while self._max_cache_size and self._chunks_index_to_be_deleted and self._can_delete_chunk():
             # Delete the oldest chunk
             self._delete(self._chunks_index_to_be_deleted.pop(0))
+
+        return
+
+    def _can_delete_chunk(self) -> bool:
+        if self._delete_chunks_when_processed:
+            return self._pre_download_counter == self._max_pre_download - 1
+        return self._max_cache_size is not None and _get_folder_size(self._parent_cache_dir) >= self._max_cache_size
 
     def _pre_load_chunk(self, chunk_index: int) -> None:
         chunk_filepath, _, _ = self._config[ChunkedIndex(index=-1, chunk_index=chunk_index)]
@@ -121,6 +120,9 @@ class PrepareChunksThread(Thread):
         while True:
             if self._pre_download_counter <= self._max_pre_download:
                 chunk_index = _get_from_queue(self._to_download_queue)
+                if chunk_index == _END_TOKEN:
+                    return
+
                 if chunk_index is not None:
                     self._config.download_chunk_from_index(chunk_index)
 
@@ -134,11 +136,6 @@ class PrepareChunksThread(Thread):
 
             if self._max_cache_size:
                 self._maybe_delete_chunks()
-
-            if _get_from_queue(self._to_stop_queue):
-                return
-
-            sleep(0.05)
 
 
 class BinaryReader:
@@ -238,6 +235,9 @@ class BinaryReader:
                 assert self._prepare_thread
                 self._prepare_thread.download([index.chunk_index])
 
+            if self._last_chunk_index is None:
+                self._last_chunk_index = index.chunk_index
+
         # Fetch the element
         chunk_filepath, begin, _ = self.config[index]
         item = self._item_loader.load_item_from_chunk(index.index, index.chunk_index, chunk_filepath, begin)
@@ -246,9 +246,10 @@ class BinaryReader:
         # Otherwise, this could trigger segmentation fault error depending on the item loader used.
         if self._config and self._config._remote_dir and index.chunk_index != self._last_chunk_index:
             assert self._prepare_thread
-            if self._last_chunk_index is not None:
-                # inform the chunk has been completely consumed
-                self._prepare_thread.delete([self._last_chunk_index])
+            assert self._last_chunk_index is not None
+
+            # inform the chunk has been completely consumed
+            self._prepare_thread.delete([self._last_chunk_index])
 
             # track the new chunk index as the latest one
             self._last_chunk_index = index.chunk_index
@@ -294,11 +295,9 @@ def _get_folder_size(path: str) -> int:
     return size
 
 
-def _get_from_queue(queue: multiprocessing.Queue) -> Optional[Any]:
+def _get_from_queue(queue: multiprocessing.Queue, timeout: float = _DEFAULT_TIMEOUT) -> Optional[Any]:
     try:
-        # Note: The timeout here should not be too short. We need to prevent the caller from aggressively
-        #   querying the queue and consuming too many CPU cycles.
-        return queue.get(timeout=0.1)
+        return queue.get(timeout=timeout)
     except Empty:
         pass
     except OSError as e:

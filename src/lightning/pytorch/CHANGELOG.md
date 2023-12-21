@@ -15,7 +15,13 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - The Trainer now restores the training mode set through `.train()` or `.eval()` on a submodule-level when switching from validation to training ([#18951](https://github.com/Lightning-AI/lightning/pull/18951))
 
 
+- Added support for meta-device initialization and materialization of 4-bit Bitsandbytes layers ([#19150](https://github.com/Lightning-AI/lightning/pull/19150))
+
+
 - Added `TransformerEnginePrecision(fallback_compute_dtype=)` to control the dtype of operations that don't support fp8 ([#19082](https://github.com/Lightning-AI/lightning/pull/19082))
+
+
+- Added the option `ModelCheckpoint(save_last='link')` to create a symbolic link for the 'last.ckpt' file ([#19191](https://github.com/Lightning-AI/lightning/pull/19191))
 
 
 ### Changed
@@ -38,7 +44,16 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - The `NeptuneLogger` now uploads only the changed model checkpoints ([#19144](https://github.com/Lightning-AI/pytorch-lightning/pull/19144))
 
 
+- Restored usage of `step` parameter when logging metrics with `NeptuneLogger` ([#19126](https://github.com/Lightning-AI/pytorch-lightning/pull/19126))
+
+
 - Changed the `TransformerEnginePrecision(dtype=)` argument to `weights_dtype` and made it required ([#19082](https://github.com/Lightning-AI/lightning/pull/19082))
+
+
+- The columns in the `metrics.csv` file produced by `CSVLogger` are now sorted alphabetically ([#19159](https://github.com/Lightning-AI/lightning/pull/19159))
+
+
+- Reverted back to creating a checkpoint copy when `ModelCheckpoint(save_last=True)` instead of creating a symbolic link ([#19191](https://github.com/Lightning-AI/lightning/pull/19191))
 
 
 ### Deprecated
@@ -75,6 +90,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 - Fixed issue where the `precision="transformer-engine"` argument would not replace layers by default ([#19082](https://github.com/Lightning-AI/lightning/pull/19082))
+
+
+- Fixed `Trainer` not expanding the `default_root_dir` if it has the `~` (home) prefix ([#19179](https://github.com/Lightning-AI/lightning/pull/19179))
 
 
 ## [2.1.2] - 2023-11-15

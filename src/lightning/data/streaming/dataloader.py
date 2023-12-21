@@ -16,7 +16,7 @@ import inspect
 import logging
 import os
 from importlib import reload
-from typing import Any, Callable, List, Optional
+from typing import Any, Callable, Dict, List, Optional, Union
 
 import torch
 from torch.utils.data import Dataset, IterableDataset
@@ -32,7 +32,9 @@ from torch.utils.data.dataloader import (
 from torch.utils.data.sampler import BatchSampler, Sampler
 
 from lightning.data.streaming import Cache
+from lightning.data.streaming.combined import CombinedStreamingDataset
 from lightning.data.streaming.constants import _DEFAULT_CHUNK_BYTES, _TORCH_GREATER_EQUAL_2_1_0, _VIZ_TRACKER_AVAILABLE
+from lightning.data.streaming.dataset import StreamingDataset
 from lightning.data.streaming.sampler import CacheBatchSampler
 from lightning.data.utilities.env import _DistributedEnv
 
@@ -248,7 +250,7 @@ class _MultiProcessingDataLoaderIterPatch(_MultiProcessingDataLoaderIter):
             raise e
 
 
-class StreamingDataLoader(DataLoader):
+class CacheDataLoader(DataLoader):
     __doc__ = DataLoader.__doc__
 
     def __init__(
@@ -271,16 +273,16 @@ class StreamingDataLoader(DataLoader):
     ) -> None:
         if sampler:
             raise ValueError(
-                "The StreamingDataLoader relies on its own internal sampler. Passing a sampler isn't supported."
+                "The CacheDataLoader relies on its own internal sampler. Passing a sampler isn't supported."
             )
 
         if batch_sampler:
             raise ValueError(
-                "The StreamingDataLoader relies on its own internal sampler. Passing a batch_sampler isn't supported."
+                "The CacheDataLoader relies on its own internal sampler. Passing a batch_sampler isn't supported."
             )
 
         if isinstance(dataset, IterableDataset):
-            raise ValueError("Only map-based dataset are supported by the StreamingDataLoader for now.")
+            raise ValueError("Only map-based dataset are supported by the CacheDataLoader for now.")
 
         if profile and not _VIZ_TRACKER_AVAILABLE:
             raise ModuleNotFoundError("To enable DataLoader profiling, run `pip install viztracer`.")
@@ -294,7 +296,7 @@ class StreamingDataLoader(DataLoader):
 
         if len(cache_list) == 0:
             if cache_dir is None:
-                raise ValueError("You should provide a `cache_dir` filepath to the StreamingDataLoader.")
+                raise ValueError("You should provide a `cache_dir` filepath to the CacheDataLoader.")
 
             dataset = CacheDataset(dataset, cache_dir, chunk_bytes, batch_size, compression)
             cache = dataset._cache
@@ -337,3 +339,55 @@ class StreamingDataLoader(DataLoader):
             return _SingleProcessDataLoaderIterPatch(self)
         self.check_worker_number_rationality()
         return _MultiProcessingDataLoaderIterPatch(self)
+
+
+class StreamingDataLoader(DataLoader):
+    """The `StreamingDataLoader` keeps track of the number of samples fetched in order to enable resumability of the
+    dataset."""
+
+    __doc__ = DataLoader.__doc__
+
+    def __init__(
+        self,
+        dataset: Union[StreamingDataset, CombinedStreamingDataset],
+        *args: Any,
+        batch_size: int = 1,
+        num_workers: int = 0,
+        **kwargs: Any,
+    ) -> None:  # pyright: ignore
+        self.batch_size = batch_size
+        self.num_workers = num_workers
+        self.num_samples_yielded = 0
+        super().__init__(dataset, *args, batch_size=batch_size, num_workers=num_workers, **kwargs)  # type: ignore
+
+    def __iter__(self) -> Any:
+        if isinstance(self.dataset, StreamingDataset):
+            assert self.batch_size
+            self.num_samples_yielded = 0
+            for batch in super().__iter__():
+                self.num_samples_yielded += self.batch_size
+                yield batch
+        else:
+            yield from super().__iter__()
+
+    def state_dict(self) -> Optional[Dict[str, Any]]:
+        if isinstance(self.dataset, StreamingDataset):
+            assert self.batch_size
+            env = _DistributedEnv.detect()
+            num_samples = self.num_samples_yielded * env.world_size
+            return self.dataset.state_dict(num_samples, self.num_workers, self.batch_size)
+        return self.dataset.state_dict(self.num_workers, self.batch_size)
+
+    def load_state_dict(self, obj: Dict[str, Any]) -> None:
+        """Load a dict containing training state (called from non-worker process).
+
+        This is called on each copy of the dataset when resuming.
+
+        Args:
+            obj (Dict[str, Any]): The state.
+
+        """
+        if isinstance(self.dataset, (StreamingDataset, CombinedStreamingDataset)):
+            self.dataset.load_state_dict(obj)
+        else:
+            raise RuntimeError("The provided dataset should be a `StreamingDataset` or a `CombinedStreamingDataset`.")

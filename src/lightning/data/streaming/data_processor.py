@@ -14,7 +14,6 @@ from time import sleep, time
 from typing import Any, Dict, List, Optional, Tuple, TypeVar, Union
 from urllib import parse
 
-import torch
 from tqdm.auto import tqdm as _tqdm
 
 from lightning import seed_everything
@@ -28,14 +27,8 @@ from lightning.data.streaming.constants import (
     _LIGHTNING_CLOUD_LATEST,
     _TORCH_GREATER_EQUAL_2_1_0,
 )
+from lightning.data.utilities.broadcast import broadcast_object
 from lightning.data.utilities.packing import _pack_greedily
-from lightning.fabric.accelerators.cuda import is_cuda_available
-from lightning.fabric.plugins.environments import LightningEnvironment
-from lightning.fabric.utilities.distributed import (
-    _distributed_is_initialized,
-    _init_dist_connection,
-)
-from lightning.fabric.utilities.distributed import group as _group
 
 if _TORCH_GREATER_EQUAL_2_1_0:
     from torch.utils._pytree import tree_flatten, tree_unflatten, treespec_loads
@@ -785,11 +778,11 @@ class DataProcessor:
         self.reorder_files = reorder_files
 
         # Ensure the input dir is the same across all nodes
-        self.input_dir = self._broadcast_object(self.input_dir)
+        self.input_dir = broadcast_object("input_dir", self.input_dir)
 
         if self.output_dir:
             # Ensure the output dir is the same across all nodes
-            self.output_dir = self._broadcast_object(self.output_dir)
+            self.output_dir = broadcast_object("output_dir", self.output_dir)
             print(f"Storing the files under {self.output_dir.path}")
 
         self.random_seed = random_seed
@@ -971,17 +964,3 @@ class DataProcessor:
             shutil.rmtree(cache_data_dir, ignore_errors=True)
 
         os.makedirs(cache_data_dir, exist_ok=True)
-
-    def _broadcast_object(self, obj: Any) -> Any:
-        """Enable to synchronize an object across machines using torch.distributed.collectives."""
-        num_nodes = _get_num_nodes()
-        if num_nodes == 1:
-            return obj
-
-        if not _distributed_is_initialized():
-            process_group_backend = "nccl" if is_cuda_available() else "gloo"
-            _init_dist_connection(LightningEnvironment(), process_group_backend, _get_node_rank(), num_nodes)
-
-        obj = [obj]
-        torch.distributed.broadcast_object_list(obj, 0, group=_group.WORLD)
-        return obj[0]
