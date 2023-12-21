@@ -15,8 +15,8 @@ from copy import deepcopy
 
 import pytest
 import torch
-from torch.nn.parallel.distributed import DistributedDataParallel
 from lightning.fabric import Fabric
+from torch.nn.parallel.distributed import DistributedDataParallel
 
 from tests_fabric.helpers.runif import RunIf
 
