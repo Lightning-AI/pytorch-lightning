@@ -89,7 +89,8 @@ def test_force_nvml_based_cuda_check():
 
 @mock.patch("torch.cuda.get_device_capability", return_value=(10, 1))
 @mock.patch("torch.cuda.get_device_name", return_value="Z100")
-def test_tf32_message(_, __, caplog, monkeypatch):
+@mock.patch("torch.cuda.is_available", return_value=True)
+def test_tf32_message(_, __, ___, caplog, monkeypatch):
     # for some reason, caplog doesn't work with our rank_zero_info utilities
     monkeypatch.setattr(lightning.fabric.accelerators.cuda, "rank_zero_info", logging.info)
 

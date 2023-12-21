@@ -251,8 +251,8 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
 
     @override
     def setup_environment(self) -> None:
-        self._setup_distributed()
         super().setup_environment()
+        self._setup_distributed()
 
     @override
     def setup_module_and_optimizers(

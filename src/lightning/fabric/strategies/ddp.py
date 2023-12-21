@@ -116,8 +116,8 @@ class DDPStrategy(ParallelStrategy):
 
     @override
     def setup_environment(self) -> None:
-        self._setup_distributed()
         super().setup_environment()
+        self._setup_distributed()
 
     @override
     def setup_module(self, module: Module) -> DistributedDataParallel:
