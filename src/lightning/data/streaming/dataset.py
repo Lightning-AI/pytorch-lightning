@@ -302,7 +302,7 @@ class StreamingDataset(IterableDataset):
 
         self.last_time = time()
 
-    def state_dict(self, num_batches_yielded: int) -> Dict[str, Any]:
+    def state_dict(self, num_batches_yielded: int = 0) -> Dict[str, Any]:
         if _is_in_dataloader_worker():
             raise RuntimeError("The method `state_dict` should only be called in the main process.")
 
