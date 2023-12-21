@@ -485,13 +485,14 @@ def test_model_checkpoint_file_extension(tmpdir):
     assert set(expected) == set(os.listdir(tmpdir))
 
 
-def test_model_checkpoint_save_last(tmpdir, monkeypatch):
+@pytest.mark.parametrize("save_last", [True, "link"])
+def test_model_checkpoint_save_last(save_last, tmpdir, monkeypatch):
     """Tests that save_last produces only one last checkpoint."""
     seed_everything()
     model = LogInTwoMethods()
     epochs = 3
     monkeypatch.setattr(ModelCheckpoint, "CHECKPOINT_NAME_LAST", "last-{epoch}")
-    model_checkpoint = ModelCheckpoint(monitor="early_stop_on", dirpath=tmpdir, save_top_k=-1, save_last=True)
+    model_checkpoint = ModelCheckpoint(monitor="early_stop_on", dirpath=tmpdir, save_top_k=-1, save_last=save_last)
     trainer = Trainer(
         default_root_dir=tmpdir,
         callbacks=[model_checkpoint],
@@ -509,8 +510,17 @@ def test_model_checkpoint_save_last(tmpdir, monkeypatch):
     assert set(os.listdir(tmpdir)) == set(
         [f"epoch={i}-step={j}.ckpt" for i, j in zip(range(epochs), [10, 20, 30])] + [last_filename]
     )
-    assert os.path.islink(tmpdir / last_filename)
+    if save_last == "link":
+        assert os.path.islink(tmpdir / last_filename)
+    else:
+        assert os.path.isfile(tmpdir / last_filename)
     assert os.path.realpath(tmpdir / last_filename) == model_checkpoint._last_checkpoint_saved
+
+
+def test_model_checkpoint_save_last_as_link_not_local(tmp_path):
+    callback = ModelCheckpoint(dirpath="memory://not-a-filesystem-path", save_last="link")
+    with pytest.raises(ValueError, match="save_last='link'.* is only supported for local file paths"):
+        callback.setup(trainer=Trainer(), pl_module=BoringModel(), stage="fit")
 
 
 def test_model_checkpoint_link_checkpoint(tmp_path):
@@ -676,7 +686,7 @@ def test_model_checkpoint_save_last_none_monitor(tmpdir, caplog):
     expected = [f"epoch={i}-step={j}.ckpt" for i, j in zip(range(epochs), [10, 20])]
     expected.append("last.ckpt")
     assert set(os.listdir(tmpdir)) == set(expected)
-    assert os.path.islink(tmpdir / "last.ckpt")
+    assert os.path.isfile(tmpdir / "last.ckpt")
 
 
 @pytest.mark.parametrize("every_n_epochs", list(range(4)))
@@ -887,7 +897,7 @@ def test_model_checkpoint_save_last_checkpoint_contents(tmpdir):
     path_last = str(tmpdir / "last.ckpt")
     assert path_last == model_checkpoint.last_model_path
     assert os.path.isfile(path_last_epoch)
-    assert os.path.islink(path_last)
+    assert os.path.isfile(path_last)
 
     ckpt_last_epoch = torch.load(path_last_epoch)
     ckpt_last = torch.load(path_last)
