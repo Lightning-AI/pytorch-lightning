@@ -150,8 +150,8 @@ class DDPStrategy(ParallelStrategy):
 
     @override
     def setup_environment(self) -> None:
-        self.setup_distributed()
         super().setup_environment()
+        self.setup_distributed()
 
     @override
     def setup(self, trainer: "pl.Trainer") -> None:
