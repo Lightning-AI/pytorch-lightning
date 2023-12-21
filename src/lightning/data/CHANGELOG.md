@@ -26,7 +26,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Make input dir in `DataProcessor` required ([#18910](https://github.com/Lightning-AI/lightning/pull/18910))
 - Remove the `LightningDataset` relying on un-maintained torchdata ([#19019](https://github.com/Lightning-AI/lightning/pull/19019))
 
-# Fixed
+### Fixed
 
 - Resolve checkpointing for the Streaming Dataset ([#19123](https://github.com/Lightning-AI/lightning/pull/19123))
 - Resolve Item Loader bugs ([#19017](https://github.com/Lightning-AI/lightning/pull/19017))
