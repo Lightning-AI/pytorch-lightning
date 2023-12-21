@@ -84,7 +84,7 @@ class _CombinedDatasetIterator(Iterator):
         # return a new sample
         return next(self._dataset_iters[dataset_index])
 
-    def state_dict(self, num_workers, batch_size) -> Dict[str, Any]:
+    def state_dict(self, num_workers: int = 0, batch_size: int = 1) -> Dict[str, Any]:
         return {
             str(dataset_idx): dataset.state_dict(self._num_samples_yielded[dataset_idx], num_workers, batch_size)
             for dataset_idx, dataset in enumerate(self._datasets)
