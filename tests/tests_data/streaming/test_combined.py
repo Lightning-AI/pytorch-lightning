@@ -1,4 +1,6 @@
+import pytest
 from lightning.data.streaming.combined import CombinedStreamingDataset
+from torch.utils.data import IterableDataset
 
 
 def test_combined_dataset_num_samples_yield():
@@ -44,8 +46,8 @@ class TestStatefulDataset:
         self.counter += 1
         return value
 
-    def state_dict(self, counter):
-        return {"counter": counter}
+    def state_dict(self, *args, **kwargs):
+        return {"counter": self.counter}
 
     def load_state_dict(self, state_dict):
         self.counter = state_dict["counter"]
@@ -55,19 +57,19 @@ def test_combined_dataset_state_dict():
     dataset = CombinedStreamingDataset(
         [TestStatefulDataset(10, 1), TestStatefulDataset(10, -1)], 42, weights=(0.5, 0.5)
     )
-    assert dataset.state_dict() == {}
+    assert dataset.state_dict(0, 1) == {}
     dataset_iter = iter(dataset)
-    assert dataset.state_dict() == {"0": {"counter": 0}, "1": {"counter": 0}}
+    assert dataset.state_dict(0, 1) == {"0": {"counter": 0}, "1": {"counter": 0}}
 
     dataset2 = CombinedStreamingDataset(
         [TestStatefulDataset(10, 1), TestStatefulDataset(10, -1)], 42, weights=(0.5, 0.5)
     )
-    assert dataset2.state_dict() == {}
+    assert dataset2.state_dict(0, 1) == {}
 
     data = []
     states = []
-    for value in dataset_iter:
-        state = dataset.state_dict()
+    for i, value in enumerate(dataset_iter):
+        state = dataset.state_dict(i, 1)
         data.append(value)
         states.append(state)
 
@@ -97,7 +99,7 @@ def test_combined_dataset_state_dict():
     dataset2 = CombinedStreamingDataset(
         [TestStatefulDataset(10, 1), TestStatefulDataset(10, -1)], 42, weights=(0.5, 0.5)
     )
-    assert dataset2.state_dict() == {}
+    assert dataset2.state_dict(0, 1) == {}
     dataset2_iter = iter(dataset2)
 
     data_2 = []
@@ -106,3 +108,55 @@ def test_combined_dataset_state_dict():
         data_2.append(next(dataset2_iter))
 
     assert data == data_2
+
+
+@pytest.mark.parametrize(
+    ("weights", "expected"),
+    [
+        ([1], [1]),
+        ([2], [1]),
+        ([2, 0.5], [0.8, 0.2]),
+        ([1, 1, 1], [1 / 3, 1 / 3, 1 / 3]),
+        ([0.3, 0, 0], [1.0, 0, 0]),
+        (None, [0.5, 0.5]),
+    ],
+)
+def test_combined_dataset_normalizes_weights(weights, expected):
+    combined_dataset = CombinedStreamingDataset([[1], [2, 3]], weights=weights, seed=1)
+    assert combined_dataset._weights == expected
+
+
+class SimpleDataset(IterableDataset):
+    def __init__(self, start, end):
+        super().__init__()
+        self._start = start
+        self._end = end
+
+    def __iter__(self):
+        return iter(range(self._start, self._end))
+
+
+def test_combined_dataset():
+    dataset1 = SimpleDataset(0, 10)
+    dataset2 = SimpleDataset(10, 20)
+    dataset = CombinedStreamingDataset(datasets=[dataset1, dataset2], weights=[1.0, 0.0], seed=12345)
+
+    res = list(dataset)
+    assert res == list(range(0, 10))
+
+    dataset1 = SimpleDataset(0, 10)
+    dataset2 = SimpleDataset(10, 20)
+    dataset = CombinedStreamingDataset(datasets=[dataset1, dataset2], weights=[0.0, 1.0], seed=12345)
+
+    res = list(dataset)
+    assert res == list(range(10, 20))
+
+    dataset1 = SimpleDataset(0, 10)
+    dataset2 = SimpleDataset(10, 20)
+    dataset = CombinedStreamingDataset(datasets=[dataset1, dataset2], weights=[0.5, 0.5], seed=12345)
+
+    res = list(dataset)
+    assert 9 in res or 19 in res
+    if len(res) > 10:
+        assert 0 in res
+        assert 10 in res

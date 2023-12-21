@@ -348,11 +348,17 @@ class StreamingDataLoader(DataLoader):
     __doc__ = DataLoader.__doc__
 
     def __init__(
-        self, dataset: Union[StreamingDataset, CombinedStreamingDataset], *args: Any, batch_size: int, **kwargs: Any
+        self,
+        dataset: Union[StreamingDataset, CombinedStreamingDataset],
+        *args: Any,
+        batch_size: int,
+        num_workers: int,
+        **kwargs: Any,
     ) -> None:  # pyright: ignore
         self.batch_size = batch_size
+        self.num_workers = num_workers
         self.num_samples_yielded = 0
-        super().__init__(dataset, *args, batch_size=batch_size, **kwargs)  # type: ignore
+        super().__init__(dataset, *args, batch_size=batch_size, num_workers=num_workers, **kwargs)  # type: ignore
 
     def __iter__(self) -> Any:
         if isinstance(self.dataset, StreamingDataset):
@@ -368,8 +374,8 @@ class StreamingDataLoader(DataLoader):
         if isinstance(self.dataset, StreamingDataset):
             env = _DistributedEnv.detect()
             num_samples = self.num_samples_yielded * env.world_size
-            return self.dataset.state_dict(num_samples)
-        return self.dataset.state_dict()
+            return self.dataset.state_dict(num_samples, self.num_workers, self.batch_size)
+        return self.dataset.state_dict(self.num_workers, self.batch_size)
 
     def load_state_dict(self, obj: Dict[str, Any]) -> None:
         """Load a dict containing training state (called from non-worker process).
@@ -380,5 +386,7 @@ class StreamingDataLoader(DataLoader):
             obj (Dict[str, Any]): The state.
 
         """
-        if isinstance(self.dataset, StreamingDataset):
+        if isinstance(self.dataset, (StreamingDataset, CombinedStreamingDataset)):
             self.dataset.load_state_dict(obj)
+        else:
+            raise RuntimeError("The provided dataset should be a `StreamingDataset` or a `CombinedStreamingDataset`.")

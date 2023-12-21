@@ -21,7 +21,7 @@ from lightning.data.streaming.dataset import StreamingDataset
 
 class CombinedStreamingDataset(IterableDataset):
     """The `CombinedStreamingDataset` enables to stream data from multiple StreamingDataset with the sampling ratio of
-    your choices.
+    your choice.
 
     Addtionally, the `CombinedStreamingDataset` keeps track of the number of
     samples fetched to enable resumability of the datasets.
@@ -36,8 +36,8 @@ class CombinedStreamingDataset(IterableDataset):
         self._weights = weights
         num_datasets = len(datasets)
 
-        # Inversely weighted based on length
         if weights is None:
+            # Inversely weighted based on length
             self._weights = [1 / float(num_datasets)] * num_datasets
         else:
             self._weights = [w / sum(weights) for w in weights]
@@ -49,20 +49,18 @@ class CombinedStreamingDataset(IterableDataset):
         self._iterator = _CombinedDatasetIterator(self._datasets, self._seed, self._weights)
         return self._iterator
 
-    def state_dict(self) -> Dict[str, Any]:
+    def state_dict(self, num_workers: int, batch_size: int) -> Dict[str, Any]:
         if self._iterator is None:
             return {}
-        return self._iterator.state_dict()
+        return self._iterator.state_dict(num_workers, batch_size)
 
     def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
         if len(state_dict) != len(self._datasets):
-            raise RuntimeError(
-                f"The provided state {state_dict} doesn't match the current number of datasets: {self._datasets}."
-            )
+            raise RuntimeError(f"The provided state doesn't match the current number of datasets: {self._datasets}.")
 
         for dataset_idx, dataset in enumerate(self._datasets):
             if str(dataset_idx) not in state_dict:
-                raise RuntimeError(f"The provided state {state_dict} doesn't contain the index {dataset_idx}.")
+                raise RuntimeError(f"The provided state doesn't contain the index {dataset_idx}.")
 
             dataset.load_state_dict(state_dict[str(dataset_idx)])
 
@@ -86,8 +84,8 @@ class _CombinedDatasetIterator(Iterator):
         # return a new sample
         return next(self._dataset_iters[dataset_index])
 
-    def state_dict(self) -> Dict[str, Any]:
+    def state_dict(self, num_workers, batch_size) -> Dict[str, Any]:
         return {
-            str(dataset_idx): dataset.state_dict(self._num_samples_yielded[dataset_idx])
+            str(dataset_idx): dataset.state_dict(self._num_samples_yielded[dataset_idx], num_workers, batch_size)
             for dataset_idx, dataset in enumerate(self._datasets)
         }
