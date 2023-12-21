@@ -15,6 +15,7 @@ from copy import deepcopy
 
 import pytest
 import torch
+from torch.nn.parallel.distributed import DistributedDataParallel
 from lightning.fabric import Fabric
 
 from tests_fabric.helpers.runif import RunIf
@@ -61,3 +62,25 @@ def _run_ddp_save_load(fabric, tmp_path):
     assert_params_equal(params_before, wrapped_model.parameters())
     fabric.load(tmp_path / "saved_after_setup.ckpt", {"model": wrapped_model})
     assert_params_equal(params_before, wrapped_model.parameters())
+
+
+@RunIf(min_cuda_gpus=2, standalone=True, min_torch="2.1.0")
+def test_compile_ddp(tmp_path):
+    """Test that Fabric can rewrap a compiled module such that compilation happens over the DDP-wrapper."""
+    from torch._dynamo import OptimizedModule
+
+    fabric = Fabric(accelerator="cpu", devices=2, strategy="ddp")
+    fabric.launch()
+
+    model = torch.nn.Linear(2, 2)
+    compiled_model = torch.compile(model, fullgraph=True)
+    fabric_model = fabric.setup(compiled_model)
+
+    assert fabric_model._original_module == compiled_model
+    assert isinstance(fabric_model._forward_module, OptimizedModule)
+    assert isinstance(fabric_model._forward_module._orig_mod, DistributedDataParallel)
+    assert fabric_model._forward_module._orig_mod.module == model
+    assert fabric_model.device == fabric.device
+
+    for _ in range(3):
+        fabric_model(torch.randn(2, 2, device=fabric.device))
