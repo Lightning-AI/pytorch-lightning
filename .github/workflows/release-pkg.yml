@@ -85,6 +85,9 @@ jobs:
           with open(fname_json, encoding="utf-8") as fopen:
               vers = json.load(fopen)
           vers["lightning_version"] = tag
+          conda_ = vers["conda_snapshot"].split(".")
+          conda_[-1] = str(int(conda_[-1]) + 1)
+          vers["conda_snapshot"] = ".".join(conda_)
           with open(fname_json, "w", encoding="utf-8") as fopen:
               json.dump(vers, fopen, indent=2)
               # satisfy pre-commit with line fixer
