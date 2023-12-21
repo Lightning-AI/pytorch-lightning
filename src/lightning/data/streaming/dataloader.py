@@ -37,7 +37,6 @@ from lightning.data.streaming.constants import _DEFAULT_CHUNK_BYTES, _TORCH_GREA
 from lightning.data.streaming.dataset import StreamingDataset
 from lightning.data.streaming.sampler import CacheBatchSampler
 from lightning.data.utilities.env import _DistributedEnv
-from lightning.pytorch.utilities.data import extract_batch_size
 
 if _TORCH_GREATER_EQUAL_2_1_0:
     from torch.utils._pytree import tree_flatten
@@ -346,16 +345,17 @@ class StreamingDataLoader(DataLoader):
     __doc__ = DataLoader.__doc__
 
     def __init__(
-        self, dataset: Union[StreamingDataset, CombinedStreamingDataset], *args: Any, **kwargs: Any
+        self, dataset: Union[StreamingDataset, CombinedStreamingDataset], *args: Any, batch_size: int, **kwargs: Any
     ) -> None:  # pyright: ignore
-        super().__init__(dataset, *args, **kwargs)
+        self.batch_size = batch_size
         self.num_samples_yielded = 0
+        super().__init__(dataset, *args, batch_size=batch_size, **kwargs)
 
     def __iter__(self) -> Iterator[Any]:
         if isinstance(self.dataset, StreamingDataset):
             self.num_samples_yielded = 0
             for batch in super().__iter__():
-                self.num_samples_yielded += extract_batch_size(batch)
+                self.num_samples_yielded += self.batch_size
                 yield batch
         else:
             yield from super().__iter__()

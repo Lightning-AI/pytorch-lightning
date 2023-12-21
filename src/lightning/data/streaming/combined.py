@@ -56,7 +56,7 @@ class CombinedStreamingDataset(IterableDataset):
             if str(dataset_idx) not in state_dict:
                 raise RuntimeError(f"The provided state {state_dict} doesn't contain the index {dataset_idx}.")
 
-            dataset.load_state_dict(state_dict[dataset_idx])
+            dataset.load_state_dict(state_dict[str(dataset_idx)])
 
 
 class _CombinedDatasetIterator(Iterator):
