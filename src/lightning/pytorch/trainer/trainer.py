@@ -87,8 +87,6 @@ warnings.filterwarnings(
     "ignore", message="torch.distributed.reduce_op is deprecated, please use torch.distributed.ReduceOp instead"
 )
 
-# run ci
-
 
 class Trainer:
     @_defaults_from_env_vars
