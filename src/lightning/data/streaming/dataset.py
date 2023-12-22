@@ -94,7 +94,7 @@ class StreamingDataset(IterableDataset):
         self.random_state = None
         self.shuffler: Optional[Shuffle] = None
         self.serializers = serializers
-        self._state_dict: Optional[List[Dict[str, Any]]] = None
+        self._state_dict: Optional[Dict[str, Any]] = None
 
     def _create_cache(self, worker_env: _WorkerEnv) -> Cache:
         env = Environment(dist_env=self.distributed_env, worker_env=worker_env)
@@ -127,8 +127,10 @@ class StreamingDataset(IterableDataset):
         seed = self.seed
         drop_last = self.drop_last
         if self._state_dict is not None:
-            seed = self._state_dict[-1]["seed"]
-            drop_last = self._state_dict[-1]["drop_last"]
+            restart_keys = sorted(self._state_dict)
+            state: Dict[str, Any] = self._state_dict[restart_keys[-1]]
+            seed = state["seed"]
+            drop_last = state["drop_last"]
         return FullShuffle(cache, seed, drop_last) if self.shuffle else NoShuffle(cache, seed, drop_last)
 
     def __len__(self) -> int:
@@ -145,7 +147,8 @@ class StreamingDataset(IterableDataset):
         # Handle restart
         if self._state_dict:
             self._validate_state_dict()
-            state = self._state_dict[-1]
+            restart_keys = sorted(self._state_dict)
+            state: Dict[str, Any] = self._state_dict[restart_keys[-1]]
             self.current_epoch = state["current_epoch"]
 
         chunks_per_replica, intervals_per_replica = self.shuffler.get_chunks_and_intervals_per_ranks(
@@ -184,9 +187,12 @@ class StreamingDataset(IterableDataset):
         assert self.worker_env
         assert self.shuffler
 
-        num_workers = self._state_dict[-1]["num_workers"]
-        batch_size = self._state_dict[-1]["batch_size"]
-        num_samples_yielded = sum([state["num_samples_yielded"] for state in self._state_dict])
+        restart_keys = sorted(self._state_dict)
+        state: Dict[str, Any] = self._state_dict[restart_keys[-1]]
+
+        num_workers = state["num_workers"]
+        batch_size = state["batch_size"]
+        num_samples_yielded = sum([state["num_samples_yielded"] for state in self._state_dict.values()])
 
         workers_chunks = {}
         workers_intervals = {}
@@ -291,32 +297,30 @@ class StreamingDataset(IterableDataset):
 
         return data
 
-    def state_dict(self, num_samples_yielded: int, num_workers: int, batch_size: int) -> List[Dict[str, Any]]:
+    def state_dict(self, num_samples_yielded: int, num_workers: int, batch_size: int) -> Dict[str, Any]:
         if _is_in_dataloader_worker():
             raise RuntimeError("The method `state_dict` should only be called in the main process.")
 
-        state = [
-            {
-                "num_samples_yielded": num_samples_yielded,
-                "num_workers": num_workers,
-                "batch_size": batch_size,
-                "current_epoch": self.current_epoch,
-                "input_dir_path": self.input_dir.path,
-                "input_dir_url": self.input_dir.url,
-                "item_loader": self.item_loader.state_dict() if self.item_loader else None,
-                "drop_last": self.drop_last,
-                "seed": self.seed,
-                "world_size": self.distributed_env.world_size,
-                "shuffle": self.shuffle,
-            }
-        ]
+        state = {
+            "num_samples_yielded": num_samples_yielded,
+            "num_workers": num_workers,
+            "batch_size": batch_size,
+            "current_epoch": self.current_epoch,
+            "input_dir_path": self.input_dir.path,
+            "input_dir_url": self.input_dir.url,
+            "item_loader": self.item_loader.state_dict() if self.item_loader else None,
+            "drop_last": self.drop_last,
+            "seed": self.seed,
+            "world_size": self.distributed_env.world_size,
+            "shuffle": self.shuffle,
+        }
 
         if self._state_dict:
-            return self._state_dict + state
+            num_restarts = len(self._state_dict)
+            return {**self._state_dict, f"{num_restarts}": state}
+        return {"0": state}
 
-        return state
-
-    def load_state_dict(self, state_dict: List[Dict[str, Any]]) -> None:
+    def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
         if state_dict:
             # the state is restored within the workers
             self._state_dict = state_dict
@@ -326,7 +330,8 @@ class StreamingDataset(IterableDataset):
         assert self.worker_env
         assert self.cache
 
-        state: Dict[str, Any] = self._state_dict[-1]
+        restart_keys = sorted(self._state_dict)
+        state: Dict[str, Any] = self._state_dict[restart_keys[-1]]
 
         if state["shuffle"] != self.shuffle:
             raise ValueError(
