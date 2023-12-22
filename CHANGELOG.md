@@ -6,26 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
-## [UnReleased] - 2023-MM-DD
-
-### Added
-
--
-
-
-### Changed
-
--
-
-
-### Deprecated
-
--
-
+## [0.10.1] - 2023-12-22
 
 ### Fixed
 
--
+- Avoid accidental namedtuple conversion in `apply_to_collection` ([#210](https://github.com/Lightning-AI/utilities/pull/210))
 
 
 ## [0.10.0] - 2023-11-17

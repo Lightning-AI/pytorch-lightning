@@ -21,7 +21,7 @@ def _load_py_module(fname: str, pkg: str = "lightning_utilities"):
 about = _load_py_module("__about__.py")
 
 # load basic requirements
-with open(os.path.join(_PATH_REQUIRE, "base.txt")) as fp:
+with open(os.path.join(_PATH_REQUIRE, "core.txt")) as fp:
     requirements = list(map(str, parse_requirements(fp.readlines())))
 
 
@@ -32,7 +32,7 @@ def _requirement_extras(path_req: str = _PATH_REQUIRE) -> dict:
         fname = os.path.basename(fpath)
         if fname.startswith(("_", "gha-")):
             continue
-        if fname in ("base.txt",):
+        if fname in ("core.txt",):
             continue
         name, _ = os.path.splitext(fname)
         with open(fpath) as fp:
