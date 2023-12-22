@@ -49,7 +49,7 @@ from lightning.pytorch.loops.fit_loop import _FitLoop
 from lightning.pytorch.loops.utilities import _parse_loop_limits, _reset_progress
 from lightning.pytorch.plugins import _PLUGIN_INPUT, Precision
 from lightning.pytorch.profilers import Profiler
-from lightning.pytorch.strategies import ParallelStrategy, Strategy
+from lightning.pytorch.strategies import ParallelStrategy, Strategy, XLAStrategy
 from lightning.pytorch.trainer import call, setup
 from lightning.pytorch.trainer.configuration_validator import _verify_loop_configurations
 from lightning.pytorch.trainer.connectors.accelerator_connector import (
@@ -935,6 +935,11 @@ class Trainer:
 
         _verify_loop_configurations(self)
 
+        if not isinstance(self.strategy, XLAStrategy):
+            # hook
+            log.debug(f"{self.__class__.__name__}: preparing data")
+            self._data_connector.prepare_data()       
+
         # ----------------------------
         # SET UP THE TRAINER
         # ----------------------------
@@ -942,9 +947,10 @@ class Trainer:
         self.strategy.setup_environment()
         self.__setup_profiler()
 
-        # hook
-        log.debug(f"{self.__class__.__name__}: preparing data")
-        self._data_connector.prepare_data()
+        if isinstance(self.strategy, XLAStrategy):
+            # hook
+            log.debug(f"{self.__class__.__name__}: preparing data")
+            self._data_connector.prepare_data()
 
         call._call_setup_hook(self)  # allow user to setup lightning_module in accelerator environment
         log.debug(f"{self.__class__.__name__}: configuring model")
