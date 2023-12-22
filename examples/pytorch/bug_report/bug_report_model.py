@@ -61,6 +61,5 @@ def run():
     trainer.test(model, dataloaders=test_data)
 
 
-
 if __name__ == "__main__":
     run()
