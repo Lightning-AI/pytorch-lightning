@@ -938,7 +938,7 @@ class Trainer:
         if not isinstance(self.strategy, XLAStrategy):
             # hook
             log.debug(f"{self.__class__.__name__}: preparing data")
-            self._data_connector.prepare_data()       
+            self._data_connector.prepare_data()
 
         # ----------------------------
         # SET UP THE TRAINER
