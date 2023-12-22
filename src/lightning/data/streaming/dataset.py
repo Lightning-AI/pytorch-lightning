@@ -15,7 +15,7 @@ import hashlib
 import os
 from dataclasses import dataclass
 from time import time
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 from torch.utils.data import IterableDataset, get_worker_info
@@ -100,6 +100,8 @@ class StreamingDataset(IterableDataset):
         env = Environment(dist_env=self.distributed_env, worker_env=worker_env)
 
         if _should_replace_path(self.input_dir.path):
+            # FIXME: Remove the `shard_rank` from the cache_path to enable reloading chunks for the second epoch
+            # without paying the cost of re-download
             cache_path = _try_create_cache_dir(
                 input_dir=self.input_dir.path if self.input_dir.path else self.input_dir.url, shard_rank=env.shard_rank
             )
@@ -161,6 +163,14 @@ class StreamingDataset(IterableDataset):
         if self._state_dict:
             self._resume(chunks_replica, intervals_replica)
         else:
+            chunks_per_replica, intervals_per_replica = self.shuffler.get_chunks_and_intervals_per_ranks(
+                self.distributed_env, self.current_epoch
+            )
+            chunks_replica = chunks_per_replica[self.distributed_env.global_rank % self.distributed_env.world_size]
+            intervals_replica = intervals_per_replica[
+                self.distributed_env.global_rank % self.distributed_env.world_size
+            ]
+
             self.worker_chunks = []
             self.worker_intervals = []
 
@@ -188,60 +198,42 @@ class StreamingDataset(IterableDataset):
         assert self.shuffler
 
         restart_keys = sorted(self._state_dict)
+
+        # Get the state from the previous run
         state: Dict[str, Any] = self._state_dict[restart_keys[-1]]
 
         num_workers = state["num_workers"]
         batch_size = state["batch_size"]
+
+        # TODO: Implement elastic sampling where the number of workers, ranks can change.
         num_samples_yielded = sum([state["num_samples_yielded"] for state in self._state_dict.values()])
 
-        workers_chunks = {}
-        workers_intervals = {}
-        chunks_index = {}
-        indexes = {}
+        # replay sampling from each worker / chunks using the batch size
+        workers_chunks, workers_intervals = _associate_chunks_to_workers(
+            num_workers, self.worker_env, chunks_replica, intervals_replica
+        )
+        indexes = _replay_sampling(num_samples_yielded, batch_size, num_workers)
+        chunks_index, indexes = _replay_chunks_sampling(workers_intervals, indexes)
 
-        # associate each chunks to each workers
-        for worker_idx in range(num_workers):
-            chunks_index[worker_idx] = 0
-            indexes[worker_idx] = 0
-
-            worker_chunks = []
-            worker_intervals = []
-            for i, (chunk_index, chunk_interval) in enumerate(zip(chunks_replica, intervals_replica)):
-                if i % self.worker_env.world_size != worker_idx:
-                    continue
-
-                worker_chunks.append(chunk_index)
-                worker_intervals.append(chunk_interval)
-
-            workers_chunks[worker_idx] = worker_chunks
-            workers_intervals[worker_idx] = worker_intervals
-
-        # replay sampling for each workers
-        counter = 0
-        while counter < num_samples_yielded:
-            indexes[worker_idx] += 1
-            counter += 1
-            if counter % batch_size == 0:
-                worker_idx = (worker_idx + 1) % num_workers
-
-        for worker_idx, intervals in workers_intervals.items():
-            for interval in intervals:
-                size = interval[-1] - interval[0]
-                if indexes[worker_idx] >= size:
-                    indexes[worker_idx] -= size
-                    chunks_index[worker_idx] += 1
-
+        # select the chunks and intervals associated to this worker
         worker_rank = self.worker_env.rank
         self.num_chunks = len(workers_intervals[worker_rank])
         self.chunk_index = chunks_index[worker_rank]
-        interval = workers_intervals[worker_rank][self.chunk_index]
-        current_indexes = np.arange(interval[0], interval[1])
-        current_indexes = self.shuffler(current_indexes, self.num_chunks, self.current_epoch, self.chunk_index)
-        self.current_indexes = current_indexes[indexes[worker_rank] :]
-
         self.worker_chunks = workers_chunks[worker_rank]
         self.worker_intervals = workers_intervals[worker_rank]
 
+        # replay the indexes for the current chunks
+        interval = workers_intervals[worker_rank][self.chunk_index]
+        current_indexes = np.arange(interval[0], interval[1])
+
+        # re-shuffle the indexes
+        current_indexes = self.shuffler(current_indexes, self.num_chunks, self.current_epoch, self.chunk_index)
+
+        # skip any indexes already consumed
+        current_indexes = current_indexes[indexes[worker_rank] :]
+        self.current_indexes = current_indexes
+
+        # bump the chunk_index
         self.chunk_index += 1
 
     def __getitem__(self, index: Union[ChunkedIndex, int]) -> Any:
@@ -413,3 +405,59 @@ def is_integer(value: str) -> bool:
         return True
     except Exception:
         return False
+
+
+def _associate_chunks_to_workers(
+    num_workers: int, worker_env: _WorkerEnv, chunks_replica: List[int], intervals_replica: List[Any]
+) -> Any:
+    workers_chunks = {}
+    workers_intervals = {}
+
+    for worker_idx in range(num_workers):
+        worker_chunks = []
+        worker_intervals = []
+        for i, (chunk_index, chunk_interval) in enumerate(zip(chunks_replica, intervals_replica)):
+            if i % worker_env.world_size != worker_idx:
+                continue
+
+            worker_chunks.append(chunk_index)
+            worker_intervals.append(chunk_interval)
+
+        workers_chunks[worker_idx] = worker_chunks
+        workers_intervals[worker_idx] = worker_intervals
+
+    return workers_chunks, workers_intervals
+
+
+def _replay_sampling(num_samples_yielded: int, batch_size: int, num_workers: int) -> Dict[int, int]:
+    """This function replays the sampling from the dataloader."""
+    indexes = {}
+    for worker_idx in range(num_workers):
+        indexes[worker_idx] = 0
+
+    counter = 0
+    worker_idx = 0  # reset the worker_idx
+    while counter < num_samples_yielded:
+        indexes[worker_idx] += 1
+        counter += 1
+        if counter % batch_size == 0:
+            worker_idx = (worker_idx + 1) % num_workers
+    return indexes
+
+
+def _replay_chunks_sampling(
+    workers_intervals: Dict[int, List[Any]], indexes: Dict[int, int]
+) -> Tuple[Dict[int, int], Dict[int, int]]:
+    chunks_index = {}
+
+    for worker_idx in range(len(workers_intervals)):
+        chunks_index[worker_idx] = 0
+
+    for worker_idx, intervals in workers_intervals.items():
+        for interval in intervals:
+            size = interval[-1] - interval[0]
+            if indexes[worker_idx] >= size:
+                indexes[worker_idx] -= size
+                chunks_index[worker_idx] += 1
+
+    return chunks_index, indexes
