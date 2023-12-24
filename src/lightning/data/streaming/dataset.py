@@ -431,10 +431,15 @@ def _associate_chunks_to_workers(
 
 def _replay_sampling(num_samples_yielded: int, batch_size: int, num_workers: int) -> Dict[int, int]:
     """This function replays the sampling from the dataloader."""
+    divisible_num_batches_yielded = num_samples_yielded // (num_workers * batch_size)
+
     indexes = {}
     for worker_idx in range(num_workers):
-        indexes[worker_idx] = 0
+        indexes[worker_idx] = divisible_num_batches_yielded * batch_size
 
+    num_samples_yielded = num_samples_yielded - (num_workers * divisible_num_batches_yielded * batch_size)
+
+    # take care of the reminder
     counter = 0
     worker_idx = 0  # reset the worker_idx
     while counter < num_samples_yielded:
