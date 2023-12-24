@@ -440,13 +440,15 @@ def _replay_sampling(num_samples_yielded: int, batch_size: int, num_workers: int
     num_samples_yielded = num_samples_yielded - (num_workers * divisible_num_batches_yielded * batch_size)
 
     # take care of the reminder
-    counter = 0
     worker_idx = 0  # reset the worker_idx
-    while counter < num_samples_yielded:
-        indexes[worker_idx] += 1
-        counter += 1
-        if counter % batch_size == 0:
+    while True:
+        if num_samples_yielded >= batch_size:
+            indexes[worker_idx] += batch_size
             worker_idx = (worker_idx + 1) % num_workers
+            num_samples_yielded -= batch_size
+        else:
+            indexes[worker_idx] += num_samples_yielded
+            break
     return indexes
 
 
