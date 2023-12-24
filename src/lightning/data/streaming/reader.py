@@ -65,6 +65,8 @@ class PrepareChunksThread(Thread):
         self._parent_cache_dir = os.path.dirname(self._config._cache_dir)
         self._to_download_queue: multiprocessing.Queue = multiprocessing.Queue()
         self._to_delete_queue: multiprocessing.Queue = multiprocessing.Queue()
+
+        # FIXME: This should be divided by the number of nodes to provide a more granular support with scaling out
         self._delete_chunks_when_processed = self._config.num_bytes > max_cache_size if max_cache_size else False
 
     def download(self, chunk_indexes: List[int]) -> None:

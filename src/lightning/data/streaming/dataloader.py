@@ -370,11 +370,10 @@ class StreamingDataLoader(DataLoader):
         else:
             yield from super().__iter__()
 
-    def state_dict(self) -> Optional[Dict[str, Any]]:
+    def state_dict(self) -> Dict[str, Any]:
         if isinstance(self.dataset, StreamingDataset):
             assert self.batch_size
-            env = _DistributedEnv.detect()
-            num_samples = self.num_samples_yielded * env.world_size
+            num_samples = self.num_samples_yielded
             return self.dataset.state_dict(num_samples, self.num_workers, self.batch_size)
         return self.dataset.state_dict(self.num_workers, self.batch_size)
 
@@ -384,7 +383,7 @@ class StreamingDataLoader(DataLoader):
         This is called on each copy of the dataset when resuming.
 
         Args:
-            obj (Dict[str, Any]): The state.
+            obj (Any): The state.
 
         """
         if isinstance(self.dataset, (StreamingDataset, CombinedStreamingDataset)):
