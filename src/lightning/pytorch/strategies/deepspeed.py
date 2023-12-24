@@ -313,20 +313,6 @@ class DeepSpeedStrategy(DDPStrategy):
         self.hysteresis = hysteresis
         self.min_loss_scale = min_loss_scale
 
-    def _load_config(self, config: Optional[Union[_PATH, Dict[str, Any]]]) -> Optional[Dict[str, Any]]:
-        if config is None and self.DEEPSPEED_ENV_VAR in os.environ:
-            rank_zero_info(f"Loading DeepSpeed config from set {self.DEEPSPEED_ENV_VAR} environment variable")
-            config = os.environ[self.DEEPSPEED_ENV_VAR]
-        if isinstance(config, (str, Path)):
-            if not os.path.isfile(config):
-                raise MisconfigurationException(
-                    f"You passed in a path to a DeepSpeed config but the path does not exist: {config}"
-                )
-            with open(config) as f:
-                config = json.load(f)
-        assert isinstance(config, dict) or config is None
-        return config
-
     @override
     def setup_environment(self) -> None:
         if not isinstance(self.accelerator, CUDAAccelerator):
@@ -343,12 +329,10 @@ class DeepSpeedStrategy(DDPStrategy):
         reset_seed()
         self.set_world_ranks()
         self._init_deepspeed_distributed()
-        if not self._config_initialized:
-            self._format_config()
-            self._config_initialized = True
 
     @override
     def setup(self, trainer: "pl.Trainer") -> None:
+        self._init_config_if_needed()
         assert self.accelerator is not None
         self.accelerator.setup(trainer)
         # we set the device so that optimizers can be created with distributed comms.
@@ -529,7 +513,7 @@ class DeepSpeedStrategy(DDPStrategy):
     def model_sharded_context(self) -> Generator[None, None, None]:
         import deepspeed
 
-        assert self._config_initialized
+        self._init_config_if_needed()
         with deepspeed.zero.Init(
             enabled=self.zero_stage_3,
             remote_device=self.remote_device,
@@ -609,134 +593,6 @@ class DeepSpeedStrategy(DDPStrategy):
     def handles_gradient_accumulation(self) -> bool:
         """Whether the strategy handles gradient accumulation internally."""
         return True
-
-    def _format_config(self) -> None:
-        if self.config is None:
-            raise MisconfigurationException(
-                "To use DeepSpeed you must pass in a DeepSpeed config dict, or a path to a JSON config."
-                " See: https://lightning.ai/docs/pytorch/stable/advanced/model_parallel.html#deepspeed"
-            )
-        self._format_batch_size_and_grad_accum_config()
-        _format_precision_config(
-            config=self.config,
-            precision=self.precision_plugin.precision,
-            loss_scale=self.loss_scale,
-            loss_scale_window=self.loss_scale_window,
-            min_loss_scale=self.min_loss_scale,
-            initial_scale_power=self.initial_scale_power,
-            hysteresis=self.hysteresis,
-        )
-
-    def _format_batch_size_and_grad_accum_config(self) -> None:
-        # TODO: Using Fabric, we do not support these variables within the config
-        assert isinstance(self.config, dict)
-        if self.lightning_module is None:
-            return
-
-        if "gradient_accumulation_steps" in self.config:
-            raise MisconfigurationException(
-                "Do not set `gradient_accumulation_steps` in the DeepSpeed config"
-                " as this will be set with the `accumulate_grad_batches` argument passed via the Lightning Trainer."
-            )
-        self.config["gradient_accumulation_steps"] = self.lightning_module.trainer.accumulate_grad_batches
-        if "train_micro_batch_size_per_gpu" not in self.config:
-            batch_size = self._auto_select_batch_size()
-            self.config["train_micro_batch_size_per_gpu"] = batch_size
-        if "gradient_clipping" not in self.config:
-            self.config["gradient_clipping"] = self.lightning_module.trainer.gradient_clip_val or 0.0
-
-    def _auto_select_batch_size(self) -> int:
-        import deepspeed
-
-        # train_micro_batch_size_per_gpu is used for throughput logging purposes
-        # by default we try to use the batch size of the loader
-        assert self.lightning_module is not None
-        batch_size = 1
-        data_source = self.lightning_module.trainer.fit_loop._data_source
-        if data_source.is_defined():
-            try:
-                train_dataloader = data_source.dataloader()
-                if hasattr(train_dataloader, "batch_sampler"):
-                    batch_size = train_dataloader.batch_sampler.batch_size
-            # broad exception on purpose as `source.dataloader()` will fail if the dataloader requires `setup`
-            # to have been called before
-            except Exception:
-                if self.global_rank == 0:
-                    deepspeed.utils.logging.logger.warning(
-                        "Tried to infer the batch size for internal deepspeed logging from the `train_dataloader()`. "
-                        "To ensure DeepSpeed logging remains correct, please manually pass the strategy with the "
-                        "batch size, `Trainer(strategy=DeepSpeedStrategy(logging_batch_size_per_gpu=batch_size))`."
-                    )
-        return batch_size
-
-    def _create_default_config(
-        self,
-        zero_optimization: bool,
-        zero_allow_untested_optimizer: bool,
-        logging_batch_size_per_gpu: Union[str, int],
-        partition_activations: bool,
-        cpu_checkpointing: bool,
-        contiguous_memory_optimization: bool,
-        synchronize_checkpoint_boundary: bool,
-        offload_optimizer: bool,
-        offload_parameters: bool,
-        nvme_path: str,
-        offload_params_device: str,
-        params_buffer_count: int,
-        params_buffer_size: int,
-        max_in_cpu: int,
-        offload_optimizer_device: str,
-        optimizer_buffer_count: int,
-        pin_memory: bool,
-        block_size: int,
-        queue_depth: int,
-        single_submit: bool,
-        overlap_events: bool,
-        thread_count: int,
-        **zero_kwargs: Any,
-    ) -> Dict:
-        cfg = {
-            "activation_checkpointing": {
-                "partition_activations": partition_activations,
-                "cpu_checkpointing": cpu_checkpointing,
-                "contiguous_memory_optimization": contiguous_memory_optimization,
-                "synchronize_checkpoint_boundary": synchronize_checkpoint_boundary,
-            },
-            "aio": {
-                "block_size": block_size,
-                "queue_depth": queue_depth,
-                "single_submit": single_submit,
-                "overlap_events": overlap_events,
-                "thread_count": thread_count,
-            },
-        }
-        if zero_optimization:
-            zero_config = zero_kwargs
-
-            if offload_optimizer:
-                zero_config["offload_optimizer"] = {
-                    "device": offload_optimizer_device,
-                    "nvme_path": nvme_path,
-                    "buffer_count": optimizer_buffer_count,
-                    "pin_memory": pin_memory,
-                }
-            if offload_parameters:
-                zero_config["offload_param"] = {
-                    "device": offload_params_device,
-                    "nvme_path": nvme_path,
-                    "buffer_count": params_buffer_count,
-                    "buffer_size": params_buffer_size,
-                    "max_in_cpu": max_in_cpu,
-                    "pin_memory": pin_memory,
-                }
-            cfg = {
-                "zero_allow_untested_optimizer": zero_allow_untested_optimizer,
-                "zero_optimization": zero_config,
-                **cfg,
-            }
-        if logging_batch_size_per_gpu != "auto":
-            cfg = {"train_micro_batch_size_per_gpu": logging_batch_size_per_gpu, **cfg}
-        return cfg
 
     @property
     def deepspeed_engine(self) -> "deepspeed.DeepSpeedEngine":
@@ -915,3 +771,138 @@ class DeepSpeedStrategy(DDPStrategy):
             offload_params_device="nvme",
             offload_optimizer_device="nvme",
         )
+
+    def _load_config(self, config: Optional[Union[_PATH, Dict[str, Any]]]) -> Optional[Dict[str, Any]]:
+        if config is None and self.DEEPSPEED_ENV_VAR in os.environ:
+            rank_zero_info(f"Loading DeepSpeed config from set {self.DEEPSPEED_ENV_VAR} environment variable")
+            config = os.environ[self.DEEPSPEED_ENV_VAR]
+        if isinstance(config, (str, Path)):
+            if not os.path.isfile(config):
+                raise MisconfigurationException(
+                    f"You passed in a path to a DeepSpeed config but the path does not exist: {config}"
+                )
+            with open(config) as f:
+                config = json.load(f)
+        assert isinstance(config, dict) or config is None
+        return config
+
+    def _init_config_if_needed(self) -> None:
+        if not self._config_initialized:
+            self._format_config()
+            self._config_initialized = True
+
+    def _format_config(self) -> None:
+        if self.config is None:
+            raise MisconfigurationException(
+                "To use DeepSpeed you must pass in a DeepSpeed config dict, or a path to a JSON config."
+                " See: https://lightning.ai/docs/pytorch/stable/advanced/model_parallel.html#deepspeed"
+            )
+        self._format_batch_size_and_grad_accum_config()
+        _format_precision_config(
+            config=self.config,
+            precision=self.precision_plugin.precision,
+            loss_scale=self.loss_scale,
+            loss_scale_window=self.loss_scale_window,
+            min_loss_scale=self.min_loss_scale,
+            initial_scale_power=self.initial_scale_power,
+            hysteresis=self.hysteresis,
+        )
+
+    def _create_default_config(
+        self,
+        zero_optimization: bool,
+        zero_allow_untested_optimizer: bool,
+        logging_batch_size_per_gpu: Union[str, int],
+        partition_activations: bool,
+        cpu_checkpointing: bool,
+        contiguous_memory_optimization: bool,
+        synchronize_checkpoint_boundary: bool,
+        offload_optimizer: bool,
+        offload_parameters: bool,
+        nvme_path: str,
+        offload_params_device: str,
+        params_buffer_count: int,
+        params_buffer_size: int,
+        max_in_cpu: int,
+        offload_optimizer_device: str,
+        optimizer_buffer_count: int,
+        pin_memory: bool,
+        block_size: int,
+        queue_depth: int,
+        single_submit: bool,
+        overlap_events: bool,
+        thread_count: int,
+        **zero_kwargs: Any,
+    ) -> Dict:
+        cfg = {
+            "activation_checkpointing": {
+                "partition_activations": partition_activations,
+                "cpu_checkpointing": cpu_checkpointing,
+                "contiguous_memory_optimization": contiguous_memory_optimization,
+                "synchronize_checkpoint_boundary": synchronize_checkpoint_boundary,
+            },
+            "aio": {
+                "block_size": block_size,
+                "queue_depth": queue_depth,
+                "single_submit": single_submit,
+                "overlap_events": overlap_events,
+                "thread_count": thread_count,
+            },
+        }
+        if zero_optimization:
+            zero_config = zero_kwargs
+
+            if offload_optimizer:
+                zero_config["offload_optimizer"] = {
+                    "device": offload_optimizer_device,
+                    "nvme_path": nvme_path,
+                    "buffer_count": optimizer_buffer_count,
+                    "pin_memory": pin_memory,
+                }
+            if offload_parameters:
+                zero_config["offload_param"] = {
+                    "device": offload_params_device,
+                    "nvme_path": nvme_path,
+                    "buffer_count": params_buffer_count,
+                    "buffer_size": params_buffer_size,
+                    "max_in_cpu": max_in_cpu,
+                    "pin_memory": pin_memory,
+                }
+            cfg = {
+                "zero_allow_untested_optimizer": zero_allow_untested_optimizer,
+                "zero_optimization": zero_config,
+                **cfg,
+            }
+        if logging_batch_size_per_gpu != "auto":
+            cfg = {"train_micro_batch_size_per_gpu": logging_batch_size_per_gpu, **cfg}
+        return cfg
+
+    def _format_batch_size_and_grad_accum_config(self) -> None:
+        # TODO: Using Fabric, we do not support these variables within the config
+        assert isinstance(self.config, dict)
+        if self.lightning_module is None:
+            return
+
+        if "gradient_accumulation_steps" in self.config:
+            raise MisconfigurationException(
+                "Do not set `gradient_accumulation_steps` in the DeepSpeed config"
+                " as this will be set with the `accumulate_grad_batches` argument passed via the Lightning Trainer."
+            )
+        self.config["gradient_accumulation_steps"] = self.lightning_module.trainer.accumulate_grad_batches
+        if "train_micro_batch_size_per_gpu" not in self.config:
+            batch_size = self._auto_select_batch_size()
+            self.config["train_micro_batch_size_per_gpu"] = batch_size
+        if "gradient_clipping" not in self.config:
+            self.config["gradient_clipping"] = self.lightning_module.trainer.gradient_clip_val or 0.0
+
+    def _auto_select_batch_size(self) -> int:
+        # train_micro_batch_size_per_gpu is used for throughput logging purposes
+        # by default we try to use the batch size of the loader
+        assert self.lightning_module is not None
+        batch_size = 1
+        data_source = self.lightning_module.trainer.fit_loop._data_source
+        if data_source.is_defined():
+            train_dataloader = data_source.dataloader()
+            if hasattr(train_dataloader, "batch_sampler"):
+                batch_size = train_dataloader.batch_sampler.batch_size
+        return batch_size
