@@ -13,7 +13,6 @@
 # limitations under the License.
 import contextlib
 import json
-import logging
 import os
 from re import escape
 from typing import Any, Dict
@@ -23,7 +22,7 @@ from unittest.mock import ANY, Mock
 import pytest
 import torch
 import torch.nn.functional as F
-from lightning.pytorch import LightningDataModule, LightningModule, Trainer
+from lightning.pytorch import LightningModule, Trainer
 from lightning.pytorch.accelerators import CUDAAccelerator
 from lightning.pytorch.callbacks import Callback, LearningRateMonitor, ModelCheckpoint
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset, RandomIterableDataset
