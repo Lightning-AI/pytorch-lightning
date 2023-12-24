@@ -1460,6 +1460,10 @@ class LightningModule(
                         " or `model.example_input_array` to be defined."
                     )
                 example_inputs = self.example_input_array
+            
+            if 'check_inputs' in kwargs and kwargs['check_inputs'] is not None:
+                kwargs['check_inputs'] = self._on_before_batch_transfer(kwargs['check_inputs'])
+                kwargs['check_inputs'] = self._apply_batch_transfer_handler(kwargs['check_inputs'])
 
             # automatically send example inputs to the right device and use trace
             example_inputs = self._on_before_batch_transfer(example_inputs)
