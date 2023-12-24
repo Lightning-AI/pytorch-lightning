@@ -896,25 +896,13 @@ class DeepSpeedStrategy(DDPStrategy):
             self.config["gradient_clipping"] = self.lightning_module.trainer.gradient_clip_val or 0.0
 
     def _auto_select_batch_size(self) -> int:
-        import deepspeed
-
         # train_micro_batch_size_per_gpu is used for throughput logging purposes
         # by default we try to use the batch size of the loader
         assert self.lightning_module is not None
         batch_size = 1
         data_source = self.lightning_module.trainer.fit_loop._data_source
         if data_source.is_defined():
-            try:
-                train_dataloader = data_source.dataloader()
-                if hasattr(train_dataloader, "batch_sampler"):
-                    batch_size = train_dataloader.batch_sampler.batch_size
-            # broad exception on purpose as `source.dataloader()` will fail if the dataloader requires `setup`
-            # to have been called before
-            except Exception:
-                if self.global_rank == 0:
-                    deepspeed.utils.logging.logger.warning(
-                        "Tried to infer the batch size for internal deepspeed logging from the `train_dataloader()`. "
-                        "To ensure DeepSpeed logging remains correct, please manually pass the strategy with the "
-                        "batch size, `Trainer(strategy=DeepSpeedStrategy(logging_batch_size_per_gpu=batch_size))`."
-                    )
+            train_dataloader = data_source.dataloader()
+            if hasattr(train_dataloader, "batch_sampler"):
+                batch_size = train_dataloader.batch_sampler.batch_size
         return batch_size

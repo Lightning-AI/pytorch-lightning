@@ -1038,46 +1038,6 @@ def test_deepspeed_skip_backward_raises(tmpdir):
         trainer.fit(model)
 
 
-@RunIf(min_cuda_gpus=1, standalone=True, deepspeed=True)
-def test_deepspeed_setup_train_dataloader(tmpdir):
-    """Test DeepSpeed works when setup is required to call in the DataModule."""
-
-    class TestSetupIsCalledDataModule(LightningDataModule):
-        def __init__(self):
-            super().__init__()
-            self._setup = False
-
-        def setup(self, stage: str) -> None:
-            self._setup = True
-
-        def train_dataloader(self):
-            assert self._setup
-            return DataLoader(RandomDataset(32, 64), batch_size=2)
-
-        def val_dataloader(self):
-            assert self._setup
-            return DataLoader(RandomDataset(32, 64), batch_size=2)
-
-        def test_dataloader(self):
-            assert self._setup
-            return DataLoader(RandomDataset(32, 64), batch_size=2)
-
-    model = BoringModel()
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        strategy=DeepSpeedStrategy(logging_level=logging.INFO),
-        accelerator="gpu",
-        devices=1,
-        fast_dev_run=True,
-        enable_progress_bar=False,
-        enable_model_summary=False,
-    )
-    dm = TestSetupIsCalledDataModule()
-    with mock.patch("deepspeed.utils.logging.logger.warning", autospec=True) as mock_object:
-        trainer.fit(model, datamodule=dm)
-    assert any("Tried to infer the batch size" in str(arg) for arg in mock_object.call_args_list)
-
-
 @mock.patch("torch.optim.lr_scheduler.StepLR.step", autospec=True)
 @pytest.mark.parametrize("interval", ["step", "epoch"])
 @pytest.mark.parametrize("max_epoch", [2])
