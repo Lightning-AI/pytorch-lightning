@@ -12,17 +12,12 @@
 # limitations under the License.
 
 import hashlib
-import json
 import os
-import shutil
-import sys
-import tempfile
 from dataclasses import dataclass
 from time import time
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
-import torch
 from torch.utils.data import IterableDataset, get_worker_info
 
 from lightning.data.streaming import Cache
@@ -36,7 +31,6 @@ from lightning.data.streaming.sampler import ChunkedIndex
 from lightning.data.streaming.serializers import Serializer
 from lightning.data.streaming.shuffle import FullShuffle, NoShuffle, Shuffle
 from lightning.data.utilities.env import Environment, _DistributedEnv, _WorkerEnv
-from lightning.fabric.utilities.distributed import group as _group
 
 if _LIGHTNING_CLOUD_LATEST:
     from lightning_cloud.resolver import Dir, _resolve_dir
@@ -53,7 +47,6 @@ class StreamingDataset(IterableDataset):
         drop_last: bool = False,
         seed: int = 42,
         serializers: Optional[Dict[str, Serializer]] = None,
-        checkpoint_interval: Optional[int] = None,
         max_cache_size: Union[int, str] = "100GB",
     ) -> None:
         """The streaming dataset can be used once your data have been optimised using the DatasetOptimiser class.
@@ -66,7 +59,6 @@ class StreamingDataset(IterableDataset):
                 all processes/workers return the same amount of data.
             seed: Random seed for shuffling.
             serializers: The serializers used to serialize and deserialize the chunks.
-            checkpoint_interval: Interval in seconds at which the workers are going to store their own progress.
             max_cache_size: The maximum cache size used by the StreamingDataset.
 
         """
@@ -102,16 +94,14 @@ class StreamingDataset(IterableDataset):
         self.random_state = None
         self.shuffler: Optional[Shuffle] = None
         self.serializers = serializers
-        if sys.platform == "win32":
-            if checkpoint_interval is not None:
-                raise ValueError("The argument `checkpoint_interval` isn't suported on Windows.")
-        self.checkpoint_interval = checkpoint_interval or 60
-        self._state_dict: Optional[Dict[str, Dict[str, Any]]] = None
+        self._state_dict: Optional[Dict[str, Any]] = None
 
     def _create_cache(self, worker_env: _WorkerEnv) -> Cache:
         env = Environment(dist_env=self.distributed_env, worker_env=worker_env)
 
         if _should_replace_path(self.input_dir.path):
+            # FIXME: Remove the `shard_rank` from the cache_path to enable reloading chunks for the second epoch
+            # without paying the cost of re-download
             cache_path = _try_create_cache_dir(
                 input_dir=self.input_dir.path if self.input_dir.path else self.input_dir.url, shard_rank=env.shard_rank
             )
@@ -137,9 +127,13 @@ class StreamingDataset(IterableDataset):
 
     def _create_shuffler(self, cache: Cache) -> Shuffle:
         seed = self.seed
+        drop_last = self.drop_last
         if self._state_dict is not None:
-            seed = self._state_dict[str(cache.rank)]["seed"]
-        return FullShuffle(cache, seed, self.drop_last) if self.shuffle else NoShuffle(cache, seed, self.drop_last)
+            restart_keys = sorted(self._state_dict)
+            state: Dict[str, Any] = self._state_dict[restart_keys[-1]]
+            seed = state["seed"]
+            drop_last = state["drop_last"]
+        return FullShuffle(cache, seed, drop_last) if self.shuffle else NoShuffle(cache, seed, drop_last)
 
     def __len__(self) -> int:
         if self.shuffler is None:
@@ -155,44 +149,39 @@ class StreamingDataset(IterableDataset):
         # Handle restart
         if self._state_dict:
             self._validate_state_dict()
-            state = self._state_dict[str(self.cache.rank)]
-
-            # reload indexes
-            self.chunk_index = state["chunk_index"]
-            self.global_index = state["global_index"]
-            self.index = state["index"]
+            restart_keys = sorted(self._state_dict)
+            state: Dict[str, Any] = self._state_dict[restart_keys[-1]]
             self.current_epoch = state["current_epoch"]
 
         chunks_per_replica, intervals_per_replica = self.shuffler.get_chunks_and_intervals_per_ranks(
             self.distributed_env, self.current_epoch
         )
-        current_chunks = chunks_per_replica[self.distributed_env.global_rank % self.distributed_env.world_size]
-        current_intervals = intervals_per_replica[self.distributed_env.global_rank % self.distributed_env.world_size]
-
-        self.worker_chunks = []
-        self.worker_intervals = []
-
-        for i, (chunk_index, chunk_interval) in enumerate(zip(current_chunks, current_intervals)):
-            if i % self.worker_env.world_size != self.worker_env.rank:
-                continue
-            self.worker_chunks.append(chunk_index)
-            self.worker_intervals.append(chunk_interval)
-
-        self.num_chunks = len(self.worker_chunks)
+        chunks_replica = chunks_per_replica[self.distributed_env.global_rank % self.distributed_env.world_size]
+        intervals_replica = intervals_per_replica[self.distributed_env.global_rank % self.distributed_env.world_size]
 
         # Handle restart
         if self._state_dict:
-            state = self._state_dict[str(self.cache.rank)]
-
-            # re-generate indexes
-            interval = self.worker_intervals[self.chunk_index]
-            current_indexes = np.arange(interval[0], interval[1])
-            current_indexes = self.shuffler(current_indexes, self.num_chunks, self.current_epoch, self.chunk_index)
-            self.current_indexes = current_indexes[state["index"] :]
-
-            # Bump the chunk_index
-            self.chunk_index += 1
+            self._resume(chunks_replica, intervals_replica)
         else:
+            chunks_per_replica, intervals_per_replica = self.shuffler.get_chunks_and_intervals_per_ranks(
+                self.distributed_env, self.current_epoch
+            )
+            chunks_replica = chunks_per_replica[self.distributed_env.global_rank % self.distributed_env.world_size]
+            intervals_replica = intervals_per_replica[
+                self.distributed_env.global_rank % self.distributed_env.world_size
+            ]
+
+            self.worker_chunks = []
+            self.worker_intervals = []
+
+            for i, (chunk_index, chunk_interval) in enumerate(zip(chunks_replica, intervals_replica)):
+                if i % self.worker_env.world_size != self.worker_env.rank:
+                    continue
+                self.worker_chunks.append(chunk_index)
+                self.worker_intervals.append(chunk_interval)
+
+            self.num_chunks = len(self.worker_chunks)
+
             self.current_indexes = []
             self.chunk_index = 0
             self.global_index = 0
@@ -202,6 +191,50 @@ class StreamingDataset(IterableDataset):
         self.last_time = time()
 
         return self
+
+    def _resume(self, chunks_replica: List[int], intervals_replica: List[Any]) -> None:
+        assert self._state_dict
+        assert self.worker_env
+        assert self.shuffler
+
+        restart_keys = sorted(self._state_dict)
+
+        # Get the state from the previous run
+        state: Dict[str, Any] = self._state_dict[restart_keys[-1]]
+
+        num_workers = state["num_workers"]
+        batch_size = state["batch_size"]
+
+        # TODO: Implement elastic sampling where the number of workers, ranks can change.
+        num_samples_yielded = sum([state["num_samples_yielded"] for state in self._state_dict.values()])
+
+        # replay sampling from each worker / chunks using the batch size
+        workers_chunks, workers_intervals = _associate_chunks_to_workers(
+            num_workers, self.worker_env, chunks_replica, intervals_replica
+        )
+        indexes = _replay_sampling(num_samples_yielded, batch_size, num_workers)
+        chunks_index, indexes = _replay_chunks_sampling(workers_intervals, indexes)
+
+        # select the chunks and intervals associated to this worker
+        worker_rank = self.worker_env.rank
+        self.num_chunks = len(workers_intervals[worker_rank])
+        self.chunk_index = chunks_index[worker_rank]
+        self.worker_chunks = workers_chunks[worker_rank]
+        self.worker_intervals = workers_intervals[worker_rank]
+
+        # replay the indexes for the current chunks
+        interval = workers_intervals[worker_rank][self.chunk_index]
+        current_indexes = np.arange(interval[0], interval[1])
+
+        # re-shuffle the indexes
+        current_indexes = self.shuffler(current_indexes, self.num_chunks, self.current_epoch, self.chunk_index)
+
+        # skip any indexes already consumed
+        current_indexes = current_indexes[indexes[worker_rank] :]
+        self.current_indexes = current_indexes
+
+        # bump the chunk_index
+        self.chunk_index += 1
 
     def __getitem__(self, index: Union[ChunkedIndex, int]) -> Any:
         if self.cache is None:
@@ -226,9 +259,6 @@ class StreamingDataset(IterableDataset):
 
             # reset index
             self.index = 0
-
-            # Checkpoint when reaching a new chunk
-            self._checkpoint(self.chunk_index)
 
             interval = self.worker_intervals[self.chunk_index]
             current_indexes = np.arange(interval[0], interval[1])
@@ -257,71 +287,30 @@ class StreamingDataset(IterableDataset):
         self.global_index += 1
         self.index += 1
 
-        # Checkpoint based on time
-        if self.checkpoint_interval and (time() - self.last_time) > self.checkpoint_interval:
-            self._checkpoint(self.chunk_index - 1)
-
         return data
 
-    def _checkpoint(self, chunk_index: int) -> None:
-        if self.checkpoint_interval is None:
-            return
-
-        if not _is_in_dataloader_worker():
-            return
-
-        assert self.cache
-        assert self.worker_env
-
-        with tempfile.TemporaryDirectory() as tmpdir:
-            tmp_checkpoint_path = os.path.join(tmpdir, "checkpoint.json")
-            with open(tmp_checkpoint_path, "w") as f:
-                # 1. Write the state to a tempfile
-                json.dump(
-                    {
-                        "rank": self.cache._reader.rank,
-                        "current_epoch": self.current_epoch,
-                        "input_dir_path": self.input_dir.path,
-                        "input_dir_url": self.input_dir.url,
-                        "item_loader": self.item_loader.state_dict() if self.item_loader else None,
-                        "drop_last": self.drop_last,
-                        "seed": self.seed,
-                        "checkpoint_interval": self.checkpoint_interval,
-                        "chunk_index": chunk_index,
-                        "global_index": self.global_index,
-                        "index": self.index,
-                        "world_size": self.distributed_env.world_size,
-                        "num_workers": self.worker_env.world_size,
-                        "shuffle": self.shuffle,
-                    },
-                    f,
-                )
-
-            # 4. Move the file to its target position
-            shutil.move(tmp_checkpoint_path, os.path.join(self.cache.checkpoint_dir, "checkpoint.json"))
-
-        self.last_time = time()
-
-    def state_dict(self, num_samples_yielded: int = 0, num_workers: int = 0, batch_size: int = 1) -> Dict[str, Any]:
+    def state_dict(self, num_samples_yielded: int, num_workers: int, batch_size: int) -> Dict[str, Any]:
         if _is_in_dataloader_worker():
             raise RuntimeError("The method `state_dict` should only be called in the main process.")
 
-        if self.cache is None:
-            self.worker_env = _WorkerEnv.detect()
-            self.cache = self._create_cache(worker_env=self.worker_env)
+        state = {
+            "num_samples_yielded": num_samples_yielded,
+            "num_workers": num_workers,
+            "batch_size": batch_size,
+            "current_epoch": self.current_epoch,
+            "input_dir_path": self.input_dir.path,
+            "input_dir_url": self.input_dir.url,
+            "item_loader": self.item_loader.state_dict() if self.item_loader else None,
+            "drop_last": self.drop_last,
+            "seed": self.seed,
+            "world_size": self.distributed_env.world_size,
+            "shuffle": self.shuffle,
+        }
 
-        state_dict: Dict[str, Any] = {}
-
-        # 1. Check whether the checkpoint_dir exists
-        if not os.path.exists(self.cache.checkpoint_dir):
-            return state_dict
-
-        # We are reading at the workers level, so we take the dirname
-        state_dict = _load_state_dict_from_checkpoint_dir(os.path.dirname(self.cache.cache_dir))
-
-        if self.distributed_env.world_size > 1:
-            return _collect_distributed_state_dict(state_dict, self.distributed_env.world_size)
-        return state_dict
+        if self._state_dict:
+            num_restarts = len(self._state_dict)
+            return {**self._state_dict, f"{num_restarts}": state}
+        return {"0": state}
 
     def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
         if state_dict:
@@ -333,15 +322,8 @@ class StreamingDataset(IterableDataset):
         assert self.worker_env
         assert self.cache
 
-        env = Environment(dist_env=self.distributed_env, worker_env=self.worker_env)
-
-        if env.num_shards != len(self._state_dict):
-            raise ValueError(
-                "The provided `state` size doesn't match the number workers world size. "
-                f"Found `{env.num_shards}` instead of `{len(self._state_dict)}`."
-            )
-
-        state: Dict[str, Any] = self._state_dict[str(self.cache.rank)]
+        restart_keys = sorted(self._state_dict)
+        state: Dict[str, Any] = self._state_dict[restart_keys[-1]]
 
         if state["shuffle"] != self.shuffle:
             raise ValueError(
@@ -397,40 +379,6 @@ def _try_create_cache_dir(input_dir: str, shard_rank: int = 0) -> Optional[str]:
     return cache_dir
 
 
-def _load_state_dict_from_checkpoint_dir(checkpoint_dir: str) -> Dict[str, Any]:
-    state_dict: Dict[str, Any] = {}
-    if not os.path.exists(checkpoint_dir):
-        return state_dict
-    for worker_idx in os.listdir(checkpoint_dir):
-        if not is_integer(worker_idx):
-            continue
-        checkpoint_filepath = os.path.join(checkpoint_dir, str(worker_idx), "checkpoints", "checkpoint.json")
-        if not os.path.exists(checkpoint_filepath):
-            state_dict[worker_idx] = {}
-        else:
-            with open(checkpoint_filepath) as f:
-                state_dict[worker_idx] = json.load(f)
-    return state_dict
-
-
-def _collect_distributed_state_dict(state_dict: Dict[str, Any], world_size: int) -> Dict[str, Any]:
-    state_dict_out: Dict[str, Any] = {}
-    # TODO: Move this to fabric to support all accelerators
-    num_devices = torch.cuda.device_count() or 1
-    node_ranks = []
-    for index in range(world_size):
-        node_rank = index // num_devices
-        if node_rank in node_ranks:
-            continue
-        state = {}
-        obj = [state_dict]
-        torch.distributed.broadcast_object_list(obj, index, group=_group.WORLD)
-        state = obj[0]
-        state_dict_out.update(**state)
-        node_ranks.append(node_rank)
-    return state_dict_out
-
-
 def _should_replace_path(path: str) -> bool:
     """Whether the input path is a special path to be replaced."""
     if path is None or path == "":
@@ -457,3 +405,66 @@ def is_integer(value: str) -> bool:
         return True
     except Exception:
         return False
+
+
+def _associate_chunks_to_workers(
+    num_workers: int, worker_env: _WorkerEnv, chunks_replica: List[int], intervals_replica: List[Any]
+) -> Any:
+    workers_chunks = {}
+    workers_intervals = {}
+
+    for worker_idx in range(num_workers):
+        worker_chunks = []
+        worker_intervals = []
+        for i, (chunk_index, chunk_interval) in enumerate(zip(chunks_replica, intervals_replica)):
+            if i % worker_env.world_size != worker_idx:
+                continue
+
+            worker_chunks.append(chunk_index)
+            worker_intervals.append(chunk_interval)
+
+        workers_chunks[worker_idx] = worker_chunks
+        workers_intervals[worker_idx] = worker_intervals
+
+    return workers_chunks, workers_intervals
+
+
+def _replay_sampling(num_samples_yielded: int, batch_size: int, num_workers: int) -> Dict[int, int]:
+    """This function replays the sampling from the dataloader."""
+    divisible_num_batches_yielded = num_samples_yielded // (num_workers * batch_size)
+
+    indexes = {}
+    for worker_idx in range(num_workers):
+        indexes[worker_idx] = divisible_num_batches_yielded * batch_size
+
+    num_samples_yielded = num_samples_yielded - (num_workers * divisible_num_batches_yielded * batch_size)
+
+    # take care of the reminder
+    worker_idx = 0  # reset the worker_idx
+    while True:
+        if num_samples_yielded >= batch_size:
+            indexes[worker_idx] += batch_size
+            worker_idx = (worker_idx + 1) % num_workers
+            num_samples_yielded -= batch_size
+        else:
+            indexes[worker_idx] += num_samples_yielded
+            break
+    return indexes
+
+
+def _replay_chunks_sampling(
+    workers_intervals: Dict[int, List[Any]], indexes: Dict[int, int]
+) -> Tuple[Dict[int, int], Dict[int, int]]:
+    chunks_index = {}
+
+    for worker_idx in range(len(workers_intervals)):
+        chunks_index[worker_idx] = 0
+
+    for worker_idx, intervals in workers_intervals.items():
+        for interval in intervals:
+            size = interval[-1] - interval[0]
+            if indexes[worker_idx] >= size:
+                indexes[worker_idx] -= size
+                chunks_index[worker_idx] += 1
+
+    return chunks_index, indexes
