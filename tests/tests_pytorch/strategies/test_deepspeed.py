@@ -211,33 +211,30 @@ def test_warn_deepspeed_ignored(tmpdir):
 )
 @mock.patch("deepspeed.init_distributed", autospec=True)
 @mock.patch("lightning.pytorch.Trainer.log_dir", new_callable=mock.PropertyMock, return_value="abc")
-def test_deepspeed_auto_batch_size_config_select(mock_deepspeed_distributed, mock_log_dir, tmpdir, dataset_cls, value):
+def test_deepspeed_auto_batch_size_config_select(_, __, tmp_path, dataset_cls, value):
     """Test to ensure that the batch size is correctly set as expected for deepspeed logging purposes."""
 
     class TestModel(BoringModel):
         def train_dataloader(self):
             return DataLoader(dataset_cls(32, 64))
 
-    class AssertCallback(Callback):
-        def setup(self, trainer, pl_module, stage: str) -> None:
-            assert isinstance(trainer.strategy, DeepSpeedStrategy)
-            config = trainer.strategy.config
+        def configure_model(self) -> None:
+            assert isinstance(self.trainer.strategy, DeepSpeedStrategy)
+            config = self.trainer.strategy.config
 
             # int value overrides auto mode
             expected_value = value if isinstance(value, int) else 1
             if dataset_cls == RandomDataset:
-                expected_value = pl_module.train_dataloader().batch_size if value == "auto" else value
+                expected_value = self.train_dataloader().batch_size if value == "auto" else value
 
             assert config["train_micro_batch_size_per_gpu"] == expected_value
             raise SystemExit
 
-    ck = AssertCallback()
     model = TestModel()
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         fast_dev_run=True,
-        callbacks=ck,
-        accelerator="gpu",
+        accelerator="cuda",
         devices=1,
         strategy=DeepSpeedStrategy(logging_batch_size_per_gpu=value, zero_optimization=False),
     )
