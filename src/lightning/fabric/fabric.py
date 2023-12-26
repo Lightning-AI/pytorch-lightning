@@ -280,10 +280,7 @@ class Fabric:
         return module
 
     def setup_module(
-        self,
-        module: nn.Module,
-        move_to_device: bool = True,
-        _reapply_compile: Optional[bool] = None
+        self, module: nn.Module, move_to_device: bool = True, _reapply_compile: Optional[bool] = None
     ) -> _FabricModule:
         r"""Set up a model for accelerated training or inference.
 
