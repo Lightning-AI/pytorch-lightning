@@ -15,6 +15,8 @@ def unshard_checkpoint(checkpoint_folder: _PATH, output_file: Optional[_PATH] = 
     The current implementation assumes that the entire checkpoint fits in CPU memory.
 
     """
+    # TODO: PyTorch version check
+
     from torch.distributed.checkpoint import FileSystemReader, load_state_dict
     from torch.distributed.checkpoint.metadata import BytesStorageMetadata, Metadata
 
