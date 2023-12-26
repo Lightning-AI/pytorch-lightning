@@ -946,7 +946,7 @@ class Trainer:
         self.strategy.setup_environment()
         self.__setup_profiler()
 
-        call._call_setup_hook(self)  # allow user to setup lightning_module in accelerator environment
+        call._call_setup_hook(self)  # allow user to set up LightningModule in accelerator environment
         log.debug(f"{self.__class__.__name__}: configuring model")
         call._call_configure_model(self)
 
