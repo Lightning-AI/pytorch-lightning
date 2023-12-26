@@ -298,7 +298,7 @@ def _unwrap_objects(collection: Any) -> Any:
         obj: Union[_FabricModule, _FabricOptimizer, _FabricDataLoader]
     ) -> Union[nn.Module, Optimizer, DataLoader]:
         if isinstance(unwrapped := _unwrap_compiled(obj)[0], _FabricModule):
-            return unwrapped._forward_module
+            return _unwrap_compiled(unwrapped._forward_module)[0]
         if isinstance(obj, _FabricOptimizer):
             return obj.optimizer
         if isinstance(obj, _FabricDataLoader):
