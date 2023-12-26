@@ -14,6 +14,7 @@
 from typing import Optional
 
 import torch
+from typing_extensions import override
 
 from lightning.fabric.accelerators import Accelerator
 from lightning.fabric.accelerators.xla import _XLA_AVAILABLE
@@ -50,6 +51,7 @@ class SingleDeviceXLAStrategy(SingleDeviceStrategy):
         )
 
     @property  # type: ignore[override]
+    @override
     def checkpoint_io(self) -> XLACheckpointIO:
         plugin = self._checkpoint_io
         if plugin is not None:
@@ -58,12 +60,14 @@ class SingleDeviceXLAStrategy(SingleDeviceStrategy):
         return XLACheckpointIO()
 
     @checkpoint_io.setter
+    @override
     def checkpoint_io(self, io: Optional[XLACheckpointIO]) -> None:
         if io is not None and not isinstance(io, XLACheckpointIO):
             raise TypeError(f"The XLA strategy can only work with the `XLACheckpointIO` plugin, found {io}")
         self._checkpoint_io = io
 
     @property  # type: ignore[override]
+    @override
     def precision(self) -> XLAPrecision:
         plugin = self._precision
         if plugin is not None:
@@ -72,11 +76,13 @@ class SingleDeviceXLAStrategy(SingleDeviceStrategy):
         return XLAPrecision("32-true")
 
     @precision.setter
+    @override
     def precision(self, precision: Optional[XLAPrecision]) -> None:
         if precision is not None and not isinstance(precision, XLAPrecision):
             raise TypeError(f"The XLA strategy can only work with the `XLAPrecision` plugin, found {precision}")
         self._precision = precision
 
     @classmethod
+    @override
     def register_strategies(cls, strategy_registry: _StrategyRegistry) -> None:
         strategy_registry.register("single_xla", cls, description=cls.__name__)

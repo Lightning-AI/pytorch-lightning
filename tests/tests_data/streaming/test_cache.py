@@ -20,7 +20,7 @@ import pytest
 import torch
 from lightning import seed_everything
 from lightning.data.streaming import Cache
-from lightning.data.streaming.dataloader import StreamingDataLoader
+from lightning.data.streaming.dataloader import CacheDataLoader
 from lightning.data.streaming.dataset import StreamingDataset
 from lightning.data.streaming.item_loader import TokensLoader
 from lightning.data.streaming.serializers import Serializer
@@ -72,7 +72,7 @@ def _cache_for_image_dataset(num_workers, tmpdir, fabric=None):
 
     cache = Cache(cache_dir, chunk_size=10)
     dataset = ImageDataset(tmpdir, cache, dataset_size, 10)
-    dataloader = StreamingDataLoader(dataset, num_workers=num_workers, batch_size=4)
+    dataloader = CacheDataLoader(dataset, num_workers=num_workers, batch_size=4)
 
     for _ in dataloader:
         pass
@@ -92,7 +92,7 @@ def _cache_for_image_dataset(num_workers, tmpdir, fabric=None):
 
     if distributed_env.world_size == 1:
         indexes = []
-        dataloader = StreamingDataLoader(dataset, num_workers=num_workers, batch_size=4)
+        dataloader = CacheDataLoader(dataset, num_workers=num_workers, batch_size=4)
         for batch in dataloader:
             if batch:
                 indexes.extend(batch["index"].numpy().tolist())
@@ -100,7 +100,7 @@ def _cache_for_image_dataset(num_workers, tmpdir, fabric=None):
 
     seed_everything(42)
 
-    dataloader = StreamingDataLoader(dataset, num_workers=num_workers, batch_size=4, shuffle=True)
+    dataloader = CacheDataLoader(dataset, num_workers=num_workers, batch_size=4, shuffle=True)
     dataloader_iter = iter(dataloader)
 
     indexes = []
@@ -194,7 +194,7 @@ def test_cache_with_auto_wrapping(tmpdir):
     os.makedirs(os.path.join(tmpdir, "cache_1"), exist_ok=True)
 
     dataset = RandomDataset(64, 64)
-    dataloader = StreamingDataLoader(dataset, cache_dir=os.path.join(tmpdir, "cache_1"), chunk_bytes=2 << 12)
+    dataloader = CacheDataLoader(dataset, cache_dir=os.path.join(tmpdir, "cache_1"), chunk_bytes=2 << 12)
     for batch in dataloader:
         assert isinstance(batch, torch.Tensor)
     assert sorted(os.listdir(os.path.join(tmpdir, "cache_1"))) == [
@@ -217,7 +217,7 @@ def test_cache_with_auto_wrapping(tmpdir):
 
     os.makedirs(os.path.join(tmpdir, "cache_2"), exist_ok=True)
     dataset = RandomDatasetAtRuntime(64, 64)
-    dataloader = StreamingDataLoader(dataset, cache_dir=os.path.join(tmpdir, "cache_2"), chunk_bytes=2 << 12)
+    dataloader = CacheDataLoader(dataset, cache_dir=os.path.join(tmpdir, "cache_2"), chunk_bytes=2 << 12)
     with pytest.raises(ValueError, match="Your dataset items aren't deterministic"):
         for batch in dataloader:
             pass
