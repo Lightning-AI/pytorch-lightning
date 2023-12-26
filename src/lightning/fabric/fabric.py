@@ -226,7 +226,7 @@ class Fabric:
             _reapply_compile: (Experimental) If set to ``True``, and the model was ``torch.compile``d before, the
                 corresponding :class:`torch._dynamo.OptimizedModule` wrapper will be removed and reapplied with the
                 same settings after the model was set up by the strategy (e.g., after the model was wrapped by DDP,
-                FSDP etc.). Defaults to ``False``, but it may change in the future.
+                FSDP etc.). Only supported on PyTorch >= 2.1. Defaults to ``False``, but it may change in the future.
 
         Returns:
             The tuple containing wrapped module and the optimizers, in the same order they were passed in.
@@ -295,7 +295,7 @@ class Fabric:
             _reapply_compile: (Experimental) If set to ``True``, and the model was ``torch.compile``d before, the
                 corresponding :class:`torch._dynamo.OptimizedModule` wrapper will be removed and reapplied with the
                 same settings after the model was set up by the strategy (e.g., after the model was wrapped by DDP,
-                FSDP etc.). Defaults to ``False``, but it may change in the future.
+                FSDP etc.). Only supported on PyTorch >= 2.1. Defaults to ``False``, but it may change in the future.
 
         Returns:
             The wrapped model.
