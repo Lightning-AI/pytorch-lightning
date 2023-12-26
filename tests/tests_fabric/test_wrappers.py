@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import sys
 from unittest import mock
 from unittest.mock import Mock, call
 
@@ -596,7 +597,11 @@ def test_step_method_redirection():
     assert fabric_module.validation_step == original_module.validation_step
 
 
-@RunIf(min_torch="2.0.0")
+@RunIf(min_torch="2.0.0", skip_windows=True)
+@pytest.mark.xfail(
+    not _TORCH_GREATER_EQUAL_2_1 and (sys.version_info.major, sys.version_info.minor) >= (3, 11),
+    reason="torch.compile not yet supported on Python 3.11+",
+)
 def test_unwrap_compiled():
     model = torch.nn.Linear(1, 1)
 
