@@ -11,12 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from copy import deepcopy
 import os
+from copy import deepcopy
+from unittest import mock
 
 import pytest
 import torch
-from unittest import mock
 from lightning.fabric import Fabric
 from torch.nn.parallel.distributed import DistributedDataParallel
 
