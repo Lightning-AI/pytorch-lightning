@@ -214,6 +214,7 @@ class Fabric:
         module: nn.Module,
         *optimizers: Optimizer,
         move_to_device: bool = True,
+        _reapply_compile: Optional[bool] = None,
     ) -> Any:  # no specific return because the way we want our API to look does not play well with mypy
         r"""Set up a model and its optimizers for accelerated training.
 
@@ -222,6 +223,10 @@ class Fabric:
             *optimizers: The optimizer(s) to set up (no optimizers is also possible)
             move_to_device: If set ``True`` (default), moves the model to the correct device. Set this to ``False``
                 and alternatively use :meth:`to_device` manually.
+            _reapply_compile: (Experimental) If set to ``True``, and the model was `torch.compile`d before, the
+                corresponding :class:`torch._dynamo.OptimizedModule` wrapper will be removed and reapplied with the
+                same settings after the model was set up by the strategy (e.g., after the model was wrapped by DDP,
+                FSDP etc.). Defaults to ``False``, but it may change in the future.
 
         Returns:
             The tuple containing wrapped module and the optimizers, in the same order they were passed in.
@@ -229,7 +234,7 @@ class Fabric:
         """
         self._validate_setup(module, optimizers)
         original_module = module
-        module, dynamo_context = _unwrap_compiled(module)
+        module, dynamo_context = _unwrap_compiled(module) if _reapply_compile else (module, None)
 
         module = self._precision.convert_module(module)
 
@@ -274,7 +279,12 @@ class Fabric:
             return (module, *optimizers)
         return module
 
-    def setup_module(self, module: nn.Module, move_to_device: bool = True) -> _FabricModule:
+    def setup_module(
+        self,
+        module: nn.Module,
+        move_to_device: bool = True,
+        _reapply_compile: Optional[bool] = None
+    ) -> _FabricModule:
         r"""Set up a model for accelerated training or inference.
 
         This is the same as calling ``.setup(model)`` with no optimizers. It is useful for inference or for certain
@@ -285,6 +295,10 @@ class Fabric:
             module: A :class:`torch.nn.Module` to set up
             move_to_device: If set ``True`` (default), moves the model to the correct device. Set this to ``False``
                 and alternatively use :meth:`to_device` manually.
+            _reapply_compile: (Experimental) If set to ``True``, and the model was `torch.compile`d before, the
+                corresponding :class:`torch._dynamo.OptimizedModule` wrapper will be removed and reapplied with the
+                same settings after the model was set up by the strategy (e.g., after the model was wrapped by DDP,
+                FSDP etc.). Defaults to ``False``, but it may change in the future.
 
         Returns:
             The wrapped model.
@@ -292,7 +306,7 @@ class Fabric:
         """
         self._validate_setup_module(module)
         original_module = module
-        module, dynamo_context = _unwrap_compiled(module)
+        module, dynamo_context = _unwrap_compiled(module) if _reapply_compile else (module, None)
 
         module = self._precision.convert_module(module)
 
