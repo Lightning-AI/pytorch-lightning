@@ -24,8 +24,8 @@ from lightning.fabric.wrappers import (
     _FabricDataLoader,
     _FabricModule,
     _FabricOptimizer,
-    _unwrap_objects,
     _unwrap_compiled,
+    _unwrap_objects,
     is_wrapped,
 )
 from torch.utils.data import BatchSampler, DistributedSampler
