@@ -224,7 +224,7 @@ class Fabric:
             move_to_device: If set ``True`` (default), moves the model to the correct device. Set this to ``False``
                 and alternatively use :meth:`to_device` manually.
             _reapply_compile: (Experimental) If set to ``True``, and the model was ``torch.compile``d before, the
-                corresponding :class:`torch._dynamo.OptimizedModule` wrapper will be removed and reapplied with the
+                corresponding :class:`~torch._dynamo.OptimizedModule` wrapper will be removed and reapplied with the
                 same settings after the model was set up by the strategy (e.g., after the model was wrapped by DDP,
                 FSDP etc.). Only supported on PyTorch >= 2.1. Defaults to ``False``, but it may change in the future.
 
@@ -293,7 +293,7 @@ class Fabric:
             move_to_device: If set ``True`` (default), moves the model to the correct device. Set this to ``False``
                 and alternatively use :meth:`to_device` manually.
             _reapply_compile: (Experimental) If set to ``True``, and the model was ``torch.compile``d before, the
-                corresponding :class:`torch._dynamo.OptimizedModule` wrapper will be removed and reapplied with the
+                corresponding :class:`~torch._dynamo.OptimizedModule` wrapper will be removed and reapplied with the
                 same settings after the model was set up by the strategy (e.g., after the model was wrapped by DDP,
                 FSDP etc.). Only supported on PyTorch >= 2.1. Defaults to ``False``, but it may change in the future.
 
