@@ -429,6 +429,7 @@ class Fabric:
 
         """
         module = model._forward_module if model is not None else model
+        module = _unwrap_compiled(module)
         if isinstance(self._strategy, DeepSpeedStrategy):
             if model is None:
                 if self._models_setup == 0:
@@ -675,7 +676,9 @@ class Fabric:
                 category=PossibleUserWarning,
             )
             return nullcontext()
-        return self._strategy._backward_sync_control.no_backward_sync(module._forward_module)
+
+        forward_module, _ = _unwrap_compiled(module._forward_module)
+        return self._strategy._backward_sync_control.no_backward_sync(forward_module)
 
     def sharded_model(self) -> ContextManager:
         r"""Instantiate a model under this context manager to prepare it for model-parallel sharding.
