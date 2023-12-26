@@ -320,7 +320,9 @@ def _unwrap_compiled(obj: Union[Any, "OptimizedModule"]) -> Tuple[Union[Any, nn.
 
     """
     if not _TORCH_GREATER_EQUAL_2_0:
-        return obj
+        # obj can't be an `OptimizedModule` anyway
+        return obj  # type: ignore[return-value]
+
     from torch._dynamo import OptimizedModule
 
     if isinstance(obj, OptimizedModule):
@@ -330,7 +332,7 @@ def _unwrap_compiled(obj: Union[Any, "OptimizedModule"]) -> Tuple[Union[Any, nn.
 
 def _to_compiled(module: nn.Module, dynamo_context: Any) -> "OptimizedModule":
     if not _TORCH_GREATER_EQUAL_2_0:
-        raise RuntimeError()
+        raise RuntimeError("Converting to a compiled module is only supported in PyTorch >= 2.0.0")
     from torch._dynamo import OptimizedModule
 
     return OptimizedModule(module, dynamo_context)
