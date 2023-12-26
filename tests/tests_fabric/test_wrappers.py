@@ -25,6 +25,7 @@ from lightning.fabric.wrappers import (
     _FabricModule,
     _FabricOptimizer,
     _unwrap_objects,
+    _unwrap_compiled,
     is_wrapped,
 )
 from torch.utils.data import BatchSampler, DistributedSampler
@@ -593,3 +594,18 @@ def test_step_method_redirection():
     fabric_module = _FabricModule(forward_module=original_module, precision=Mock(), original_module=original_module)
     assert fabric_module.training_step == original_module.training_step
     assert fabric_module.validation_step == original_module.validation_step
+
+
+@RunIf(min_torch="2.0.0")
+def test_unwrap_compiled():
+    model = torch.nn.Linear(1, 1)
+
+    with mock.patch("lightning.fabric.wrappers", "_TORCH_GREATER_EQUAL_2_0", True):
+        unwrapped, ctx = _unwrap_compiled(model)
+    assert unwrapped is model
+    assert ctx is None
+
+    compiled = torch.compile(model)
+    unwrapped, ctx = _unwrap_compiled(compiled)
+    assert unwrapped is compiled._orig_mod
+    assert ctx is compiled.dynamo_ctx
