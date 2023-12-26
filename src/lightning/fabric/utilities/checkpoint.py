@@ -14,7 +14,8 @@ def unshard_checkpoint(checkpoint_folder: _PATH, output_file: Optional[_PATH] = 
     """
     from torch.distributed.checkpoint import FileSystemReader, load_state_dict
     from torch.distributed.checkpoint.metadata import Metadata, BytesStorageMetadata
-
+    
+    # TODO: Check if these paths exist
     checkpoint_folder = Path(checkpoint_folder)
     output_file = Path(
         output_file if output_file is not None else checkpoint_folder.with_suffix(checkpoint_folder.suffix + ".merged")
@@ -24,6 +25,7 @@ def unshard_checkpoint(checkpoint_folder: _PATH, output_file: Optional[_PATH] = 
     with open(metadata_file, "rb") as file:
         metadata: Metadata = pickle.load(file)
 
+    # TODO: Add sequential save to avoid storing the entire checkpoint in memory
     state_dict = {}
     for tensor_name, metadata in metadata.state_dict_metadata.items():
         if isinstance(metadata, BytesStorageMetadata):  # TODO: What does this represent?
@@ -53,7 +55,7 @@ def main() -> None:
         help=(
             "Path to the file where the merged checkpoint should be saved. The file should not already exist."
             " If no path is provided, the file will be saved next to the input checkpoint folder with the same name"
-            " and a '.consolidated' suffix."
+            " and a '.merged' suffix."
         ),
     )
     args = parser.parse_args()
