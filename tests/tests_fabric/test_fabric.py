@@ -110,6 +110,7 @@ def test_setup_compiled_module(reapply_compile, setup_method):
         # The original_module is still an OptimizedModule, but it is "unused"
         assert isinstance(fabric_model._original_module, OptimizedModule)
         assert fabric_model._forward_module._orig_mod == model
+        assert fabric_model._forward_module.dynamo_ctx == fabric_model._original_module.dynamo_ctx is not None
     else:
         assert fabric_model._forward_module == fabric_model._original_module
     # Attributes get passed through
