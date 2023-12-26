@@ -600,7 +600,7 @@ def test_step_method_redirection():
 def test_unwrap_compiled():
     model = torch.nn.Linear(1, 1)
 
-    with mock.patch("lightning.fabric.wrappers", "_TORCH_GREATER_EQUAL_2_0", True):
+    with mock.patch("lightning.fabric.wrappers", "_TORCH_GREATER_EQUAL_2_0", False):
         unwrapped, ctx = _unwrap_compiled(model)
     assert unwrapped is model
     assert ctx is None
