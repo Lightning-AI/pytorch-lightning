@@ -90,7 +90,8 @@ def test_setup_module(ddp_mock, setup_method):
 
 @RunIf(skip_windows=True, dynamo=True)
 @pytest.mark.parametrize("setup_method", ["setup", "setup_module"])
-def test_setup_compiled_module(setup_method):
+@pytest.mark.parametrize("reapply_compile", [True, False, None])
+def test_setup_compiled_module(reapply_compile, setup_method):
     """Test that an `OptimizedModule` can be passed to the setup method."""
     from torch._dynamo.eval_frame import OptimizedModule
 
@@ -99,12 +100,18 @@ def test_setup_compiled_module(setup_method):
     compiled_model = torch.compile(model)
     assert isinstance(compiled_model, OptimizedModule)
     setup_method = getattr(fabric, setup_method)
-    fabric_model = setup_method(compiled_model)
+    fabric_model = setup_method(compiled_model, _reapply_compile=reapply_compile)
 
     assert fabric_model._original_module == compiled_model
-    # The forward_module got rewrapped into a new OptimizedModule
     assert isinstance(fabric_model._forward_module, OptimizedModule)
-    assert fabric_model._forward_module != fabric_model._original_module
+    if reapply_compile:
+        # The forward_module got rewrapped into a new OptimizedModule
+        assert fabric_model._forward_module != fabric_model._original_module
+        # The original_module is still an OptimizedModule, but it is "unused"
+        assert isinstance(fabric_model._original_module, OptimizedModule)
+        assert fabric_model._forward_module._orig_mod == model
+    else:
+        assert fabric_model._forward_module == fabric_model._original_module
     # Attributes get passed through
     assert fabric_model.weight is model.weight
 
