@@ -47,6 +47,7 @@ from lightning.fabric.utilities.types import Optimizable
 
 if TYPE_CHECKING:
     from torch._dynamo import OptimizedModule
+    from torch._dynamo.eval_frame import OptimizeContext
 
 T_destination = TypeVar("T_destination", bound=Dict[str, Any])
 _LIGHTNING_MODULE_STEP_METHODS = ("training_step", "validation_step", "test_step", "predict_step")
@@ -313,7 +314,7 @@ def _unwrap_objects(collection: Any) -> Any:
     return apply_to_collection(collection, dtype=tuple(types), function=_unwrap)
 
 
-def _unwrap_compiled(obj: Union[Any, "OptimizedModule"]) -> Tuple[Union[Any, nn.Module], Optional[Any]]:
+def _unwrap_compiled(obj: Union[Any, "OptimizedModule"]) -> Tuple[Union[Any, nn.Module], Optional["OptimizeContext"]]:
     """Removes the :class:`torch._dynamo.OptimizedModule` around the object if it is wrapped.
 
     Use this function before instance checks against e.g. :class:`_FabricModule`.
