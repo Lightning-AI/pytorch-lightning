@@ -322,7 +322,7 @@ def _unwrap_compiled(obj: Union[Any, "OptimizedModule"]) -> Tuple[Union[Any, nn.
     """
     if not _TORCH_GREATER_EQUAL_2_0:
         # obj can't be an `OptimizedModule` anyway
-        return obj  # type: ignore[return-value]
+        return obj, None
 
     from torch._dynamo import OptimizedModule
 
