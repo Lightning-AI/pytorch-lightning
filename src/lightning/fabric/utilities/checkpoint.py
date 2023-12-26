@@ -13,7 +13,7 @@ def unshard_checkpoint(checkpoint_folder: _PATH, output_file: Optional[_PATH] = 
     The current implementation assumes that the entire checkpoint fits in CPU memory.
     """
     from torch.distributed.checkpoint import FileSystemReader, load_state_dict
-    from torch.distributed.checkpoint.metadata import Metadata
+    from torch.distributed.checkpoint.metadata import Metadata, BytesStorageMetadata
 
     checkpoint_folder = Path(checkpoint_folder)
     output_file = Path(
@@ -25,15 +25,16 @@ def unshard_checkpoint(checkpoint_folder: _PATH, output_file: Optional[_PATH] = 
         metadata: Metadata = pickle.load(file)
 
     state_dict = {}
-    for tensor_name, tensor_metadata in metadata.state_dict_metadata.items():
+    for tensor_name, metadata in metadata.state_dict_metadata.items():
+        if isinstance(metadata, BytesStorageMetadata):  # TODO: What does this represent?
+            continue
         state_dict[tensor_name] = torch.empty(
-            size=tensor_metadata.size, dtype=tensor_metadata.properties.dtype, device=torch.device("cpu")
+            size=metadata.size, dtype=metadata.properties.dtype, device=torch.device("cpu")
         )
 
-    reader = FileSystemReader("model.ckpt")
+    reader = FileSystemReader(checkpoint_folder)
     load_state_dict(state_dict=state_dict, storage_reader=reader, no_dist=True)
     torch.save(state_dict, output_file)
-
 
 
 def main() -> None:
