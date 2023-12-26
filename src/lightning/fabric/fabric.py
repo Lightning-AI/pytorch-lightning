@@ -429,7 +429,7 @@ class Fabric:
 
         """
         module = model._forward_module if model is not None else model
-        module = _unwrap_compiled(module)
+        module, _ = _unwrap_compiled(module)
         if isinstance(self._strategy, DeepSpeedStrategy):
             if model is None:
                 if self._models_setup == 0:
