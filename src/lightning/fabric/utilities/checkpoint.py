@@ -1,20 +1,23 @@
 import pickle
-import torch
+from argparse import ArgumentParser
 from pathlib import Path
 from typing import Optional
+
+import torch
+
 from lightning.fabric.utilities.types import _PATH
-from argparse import ArgumentParser
 
 
 def unshard_checkpoint(checkpoint_folder: _PATH, output_file: Optional[_PATH] = None) -> None:
-    """Converts a sharded checkpoint saved with the `torch.distributed.checkpoint` API into a regular checkpoint
-    that can be loaded with `torch.load()`.
-    
+    """Converts a sharded checkpoint saved with the `torch.distributed.checkpoint` API into a regular checkpoint that
+    can be loaded with `torch.load()`.
+
     The current implementation assumes that the entire checkpoint fits in CPU memory.
+
     """
     from torch.distributed.checkpoint import FileSystemReader, load_state_dict
-    from torch.distributed.checkpoint.metadata import Metadata, BytesStorageMetadata
-    
+    from torch.distributed.checkpoint.metadata import BytesStorageMetadata, Metadata
+
     # TODO: Check if these paths exist
     checkpoint_folder = Path(checkpoint_folder)
     output_file = Path(
