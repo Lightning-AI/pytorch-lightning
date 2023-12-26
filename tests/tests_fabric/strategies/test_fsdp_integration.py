@@ -374,7 +374,7 @@ def test_compile(compile_after_setup):
         model(torch.rand(2, 32, device=fabric.device)).sum().backward()
 
 
-@RunIf(min_cuda_gpus=2, standalone=True, min_torch="2.1.0")
+@RunIf(min_cuda_gpus=2, standalone=True, min_torch="2.1.0", dynamo=True, skip_windows=True)
 @mock.patch.dict(os.environ, {})
 def test_reapply_compile():
     """Test that Fabric can rewrap a compiled module such that compilation happens over the FSDP-wrapper."""

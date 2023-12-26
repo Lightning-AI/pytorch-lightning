@@ -67,7 +67,7 @@ def _run_ddp_save_load(fabric, tmp_path):
     assert_params_equal(params_before, wrapped_model.parameters())
 
 
-@RunIf(min_cuda_gpus=2, standalone=True, min_torch="2.1.0")
+@RunIf(min_cuda_gpus=2, standalone=True, min_torch="2.1.0", dynamo=True)
 @mock.patch.dict(os.environ, {})
 def test_reapply_compile():
     """Test that Fabric can rewrap a compiled module such that compilation happens over the DDP-wrapper."""

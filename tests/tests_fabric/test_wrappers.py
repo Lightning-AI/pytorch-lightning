@@ -597,11 +597,7 @@ def test_step_method_redirection():
     assert fabric_module.validation_step == original_module.validation_step
 
 
-@RunIf(min_torch="2.0.0", skip_windows=True)
-@pytest.mark.xfail(
-    not _TORCH_GREATER_EQUAL_2_1 and (sys.version_info.major, sys.version_info.minor) >= (3, 11),
-    reason="torch.compile not yet supported on Python 3.11+",
-)
+@RunIf(dynamo=True)
 def test_unwrap_compiled():
     model = torch.nn.Linear(1, 1)
 
