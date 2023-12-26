@@ -21,6 +21,7 @@ from lightning.fabric import Fabric
 from torch.nn.parallel.distributed import DistributedDataParallel
 
 from tests_fabric.helpers.runif import RunIf
+from tests_fabric.test_fabric import BoringModel
 
 
 @pytest.mark.parametrize(
@@ -68,14 +69,14 @@ def _run_ddp_save_load(fabric, tmp_path):
 
 @RunIf(min_cuda_gpus=2, standalone=True, min_torch="2.1.0")
 @mock.patch.dict(os.environ, {})
-def test_compile_ddp():
+def test_reapply_compile():
     """Test that Fabric can rewrap a compiled module such that compilation happens over the DDP-wrapper."""
     from torch._dynamo import OptimizedModule
 
     fabric = Fabric(accelerator="cuda", devices=2, strategy="ddp")
     fabric.launch()
 
-    model = torch.nn.Linear(2, 2)
+    model = BoringModel()
     compiled_model = torch.compile(model, mode="reduce-overhead")
     fabric_model = fabric.setup(compiled_model, _reapply_compile=True)
 
@@ -87,4 +88,4 @@ def test_compile_ddp():
 
     # Smoke-testing forward to ensure we don't get compilation errors
     for _ in range(3):
-        fabric_model(torch.randn(2, 2, device=fabric.device))
+        fabric_model(torch.randn(2, 32, device=fabric.device))

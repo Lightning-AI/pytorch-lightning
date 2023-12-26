@@ -344,6 +344,7 @@ def test_setup_with_orig_params_and_multiple_param_groups():
         assert not isinstance(layer.weight, FlatParameter)
 
 
+# TODO: Do we still need a separate test or should we combine it?
 @RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True, dynamo=True)
 @mock.patch.dict(os.environ, {})
 @pytest.mark.parametrize(
@@ -371,6 +372,31 @@ def test_compile(compile_after_setup):
 
     for _ in range(3):
         model(torch.rand(2, 32, device=fabric.device)).sum().backward()
+
+
+
+@RunIf(min_cuda_gpus=2, standalone=True, min_torch="2.1.0")
+@mock.patch.dict(os.environ, {})
+def test_reapply_compile():
+    """Test that Fabric can rewrap a compiled module such that compilation happens over the FSDP-wrapper."""
+    from torch._dynamo import OptimizedModule
+
+    fabric = Fabric(accelerator="cuda", devices=2, strategy="fsdp")
+    fabric.launch()
+
+    model = BoringModel()
+    compiled_model = torch.compile(model, mode="reduce-overhead")
+    fabric_model = fabric.setup(compiled_model, _reapply_compile=True)
+
+    assert fabric_model._original_module == compiled_model
+    assert isinstance(fabric_model._forward_module, OptimizedModule)
+    assert isinstance(fabric_model._forward_module._orig_mod, FullyShardedDataParallel)
+    assert fabric_model._forward_module._orig_mod.module == model
+    assert fabric_model.device == fabric.device
+
+    # Smoke-testing forward to ensure we don't get compilation errors
+    for _ in range(3):
+        fabric_model(torch.randn(2, 32, device=fabric.device))
 
 
 @RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True)
