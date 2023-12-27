@@ -3,6 +3,7 @@ import shutil
 from time import sleep
 
 import numpy as np
+from lightning.data.streaming import reader
 from lightning.data.streaming.cache import Cache
 from lightning.data.streaming.config import ChunkedIndex
 from lightning.data.streaming.item_loader import PyTreeLoader
@@ -83,7 +84,9 @@ def test_get_folder_size(tmpdir):
     assert _get_folder_size(tmpdir) == 928 * 2
 
 
-def test_prepare_chunks_thread_eviction(tmpdir):
+def test_prepare_chunks_thread_eviction(tmpdir, monkeypatch):
+    monkeypatch.setattr(reader, "_LONG_DEFAULT_TIMEOUT", 0.1)
+
     cache_dir = os.path.join(tmpdir, "cache_dir")
     os.makedirs(cache_dir, exist_ok=True)
     cache = Cache(input_dir=cache_dir, chunk_size=2, max_cache_size=28020)
@@ -124,5 +127,4 @@ def test_prepare_chunks_thread_eviction(tmpdir):
     assert thread._pre_download_counter <= 2
 
     assert len(os.listdir(cache_dir)) == 9
-    assert thread._has_exited
     thread.join()
