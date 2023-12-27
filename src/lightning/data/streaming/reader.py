@@ -89,7 +89,6 @@ class PrepareChunksThread(Thread):
         self._to_download_queue.put(_END_TOKEN)
 
     def _maybe_delete_chunks(self) -> None:
-        print(self._pre_download_counter, self._max_pre_download)
         reached_pre_download = self._pre_download_counter == self._max_pre_download
 
         # we have already pre-downloaded some chunks, we just need to wait for them to be processed.
@@ -106,14 +105,12 @@ class PrepareChunksThread(Thread):
         # Get the current cache size and decide whether we need to start cleanup. Otherwise, keep track of it
         while self._max_cache_size and self._chunks_index_to_be_deleted and self._can_delete_chunk():
             # Delete the oldest chunk
-            print("DELETE")
             self._delete(self._chunks_index_to_be_deleted.pop(0))
 
         return
 
     def _can_delete_chunk(self) -> bool:
         if self._delete_chunks_when_processed:
-            print(self._pre_download_counter, self._max_pre_download - 1)
             return self._pre_download_counter >= self._max_pre_download - 1
         return self._max_cache_size is not None and _get_folder_size(self._parent_cache_dir) >= self._max_cache_size
 
