@@ -1,11 +1,12 @@
 import os
 import shutil
+from time import sleep
 
 import numpy as np
 from lightning.data.streaming.cache import Cache
 from lightning.data.streaming.config import ChunkedIndex
 from lightning.data.streaming.item_loader import PyTreeLoader
-from lightning.data.streaming.reader import PrepareChunksThread, _get_folder_size
+from lightning.data.streaming.reader import _END_TOKEN, PrepareChunksThread, _get_folder_size
 from lightning_cloud.resolver import Dir
 
 
@@ -82,7 +83,7 @@ def test_get_folder_size(tmpdir):
     assert _get_folder_size(tmpdir) == 928 * 2
 
 
-def test_prepare_chunks_thread(tmpdir):
+def test_prepare_chunks_thread_eviction(tmpdir):
     cache_dir = os.path.join(tmpdir, "cache_dir")
     os.makedirs(cache_dir, exist_ok=True)
     cache = Cache(input_dir=cache_dir, chunk_size=2, max_cache_size=28020)
@@ -95,8 +96,33 @@ def test_prepare_chunks_thread(tmpdir):
 
     cache._reader._try_load_config()
 
-    thread = PrepareChunksThread(cache._reader.config, item_loader=PyTreeLoader(), max_cache_size=1)
-    assert thread._delete_chunks_when_processed
+    assert len(os.listdir(cache_dir)) == 14
 
     thread = PrepareChunksThread(cache._reader.config, item_loader=PyTreeLoader(), max_cache_size=10000)
     assert not thread._delete_chunks_when_processed
+
+    thread = PrepareChunksThread(cache._reader.config, item_loader=PyTreeLoader(), max_cache_size=1)
+    assert thread._delete_chunks_when_processed
+
+    thread.start()
+
+    assert thread._pre_download_counter == 0
+
+    thread.download([0, 1, 2, 3, 4, 5, _END_TOKEN])
+
+    sleep(0.25)
+
+    assert thread._pre_download_counter == 2
+
+    for i in range(5):
+        assert thread._pre_download_counter <= 2
+        thread.delete([i])
+        sleep(0.25)
+        assert len(os.listdir(cache_dir)) == 14 - (i + 1)
+        assert thread._pre_download_counter <= 2
+
+    assert thread._pre_download_counter <= 2
+
+    assert len(os.listdir(cache_dir)) == 9
+    assert thread._has_exited
+    thread.join()

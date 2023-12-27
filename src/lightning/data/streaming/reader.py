@@ -68,6 +68,7 @@ class PrepareChunksThread(Thread):
 
         # FIXME: This should be divided by the number of nodes to provide a more granular support with scaling out
         self._delete_chunks_when_processed = self._config.num_bytes > max_cache_size if max_cache_size else False
+        self._has_exited = False
 
     def download(self, chunk_indexes: List[int]) -> None:
         """Receive the list of the chunk indices to download for the current epoch."""
@@ -123,6 +124,7 @@ class PrepareChunksThread(Thread):
             if self._pre_download_counter < self._max_pre_download:
                 chunk_index = _get_from_queue(self._to_download_queue)
                 if chunk_index == _END_TOKEN:
+                    self._has_exited = True
                     return
 
                 if chunk_index is not None:
