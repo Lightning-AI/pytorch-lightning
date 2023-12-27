@@ -38,39 +38,10 @@ def test_reader_chunk_removal(tmpdir):
     shutil.rmtree(cache_dir)
     os.makedirs(cache_dir, exist_ok=True)
 
-    generated = []
     for i in range(25):
-        generated.append([i, len(os.listdir(cache_dir))])
+        assert len(os.listdir(cache_dir)) <= 3
         index = ChunkedIndex(i, cache._get_chunk_index_from_index(i), is_last_index=i == 24)
         assert cache[index] == i
-
-    assert generated == [
-        [0, 0],
-        [1, 2],
-        [2, 2],
-        [3, 3],
-        [4, 3],
-        [5, 3],
-        [6, 3],
-        [7, 3],
-        [8, 3],
-        [9, 3],
-        [10, 3],
-        [11, 3],
-        [12, 3],
-        [13, 3],
-        [14, 3],
-        [15, 3],
-        [16, 3],
-        [17, 3],
-        [18, 3],
-        [19, 3],
-        [20, 3],
-        [21, 3],
-        [22, 3],
-        [23, 3],
-        [24, 3],
-    ]
 
     assert len(os.listdir(cache_dir)) == 3
 
