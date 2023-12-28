@@ -57,12 +57,12 @@ def _convert_to_fabric_format(state_dict: Dict[str, Any]) -> Dict[str, Any]:
         parts = key.split(".")
         if parts:
             top_key = parts[0]
-            new_key = key[len(top_key):]
+            new_key = key.removeprefix(top_key + ".")
             if top_key not in converted_state_dict:
                 converted_state_dict[top_key] = {}
-            converted_state_dict[top_key][new_key] = state_dict.pop(key)
+            converted_state_dict[top_key][new_key] = state_dict[key]
         else:
-            converted_state_dict[key] = state_dict.pop(key)
+            converted_state_dict[key] = state_dict[key]
     return converted_state_dict
 
 
