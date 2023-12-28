@@ -54,6 +54,7 @@ from lightning.fabric.strategies.strategy import (
     _Sharded,
     _validate_keys_for_strict_loading,
 )
+from lightning.fabric.utilities.checkpoint import _METADATA_FILENAME
 from lightning.fabric.utilities.distributed import (
     ReduceOp,
     _distributed_is_initialized,
@@ -73,8 +74,6 @@ from lightning.fabric.utilities.load import _lazy_load, _materialize_tensors, _m
 from lightning.fabric.utilities.rank_zero import rank_zero_deprecation, rank_zero_only, rank_zero_warn
 from lightning.fabric.utilities.seed import reset_seed
 from lightning.fabric.utilities.types import _PATH, _Stateful
-from lightning.fabric.utilities.checkpoint import _METADATA_FILENAME
-
 
 if TYPE_CHECKING:
     from torch.distributed.fsdp.fully_sharded_data_parallel import CPUOffload, MixedPrecision, ShardingStrategy

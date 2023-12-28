@@ -1,7 +1,7 @@
 import pickle
 from argparse import ArgumentParser
 from pathlib import Path
-from typing import Dict, Any, Tuple
+from typing import Any, Dict, Tuple
 
 import torch
 
@@ -14,6 +14,7 @@ def load_distributed_checkpoint(checkpoint_folder: Path) -> Tuple[Dict[str, Any]
     """Loads a sharded checkpoint saved with the `torch.distributed.checkpoint` into a full state dict.
 
     The current implementation assumes that the entire checkpoint fits in CPU memory.
+
     """
     if not _TORCH_GREATER_EQUAL_2_1:
         raise ImportError("Processing distributed checkpoints requires PyTorch >= 2.1.")
@@ -57,7 +58,7 @@ def _convert_to_fabric_format(state_dict: Dict[str, Any]) -> Dict[str, Any]:
         parts = key.split(".")
         if parts:
             top_key = parts[0]
-            new_key = key[len(top_key):]
+            new_key = key[len(top_key) :]
             if top_key not in converted_state_dict:
                 converted_state_dict[top_key] = {}
             converted_state_dict[top_key][new_key] = state_dict.pop(key)
