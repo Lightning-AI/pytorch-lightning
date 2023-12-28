@@ -1,7 +1,7 @@
 import pickle
 from argparse import ArgumentParser
 from pathlib import Path
-from typing import Dict, Any, Tuple
+from typing import Any, Dict, Tuple
 
 import torch
 
@@ -14,6 +14,7 @@ def load_distributed_checkpoint(checkpoint_folder: Path) -> Tuple[Dict[str, Any]
     """Loads a sharded checkpoint saved with the `torch.distributed.checkpoint` into a full state dict.
 
     The current implementation assumes that the entire checkpoint fits in CPU memory.
+
     """
     if not _TORCH_GREATER_EQUAL_2_1:
         raise ImportError("Processing distributed checkpoints requires PyTorch >= 2.1.")
