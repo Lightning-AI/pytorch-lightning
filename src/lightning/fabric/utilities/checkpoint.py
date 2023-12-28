@@ -1,14 +1,16 @@
 import pickle
 from argparse import ArgumentParser
 from pathlib import Path
-from typing import Dict, Any
+from typing import Dict, Any, Tuple
 
 import torch
 
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_1
 
+_METADATA_FILENAME = "meta.pt"
 
-def load_distributed_checkpoint(checkpoint_folder: Path) -> Dict[str, Any]:
+
+def load_distributed_checkpoint(checkpoint_folder: Path) -> Tuple[Dict[str, Any], Dict[str, Any]]:
     """Loads a sharded checkpoint saved with the `torch.distributed.checkpoint` into a full state dict.
 
     The current implementation assumes that the entire checkpoint fits in CPU memory.
@@ -19,17 +21,18 @@ def load_distributed_checkpoint(checkpoint_folder: Path) -> Dict[str, Any]:
     from torch.distributed.checkpoint import FileSystemReader, load_state_dict
     from torch.distributed.checkpoint.metadata import BytesStorageMetadata, Metadata, TensorStorageMetadata
 
+    # This is the metadata file saved by `torch.distributed.checkpoint`
     metadata_file = checkpoint_folder / ".metadata"
     with open(metadata_file, "rb") as file:
         metadata: Metadata = pickle.load(file)
 
     # TODO: Add sequential save to avoid storing the entire checkpoint in memory
-    state_dict = {}
+    checkpoint = {}
     for tensor_name, metadata in metadata.state_dict_metadata.items():
         if isinstance(metadata, BytesStorageMetadata):  # TODO: What does this represent?
             continue
         elif isinstance(metadata, TensorStorageMetadata):
-            state_dict[tensor_name] = torch.empty(
+            checkpoint[tensor_name] = torch.empty(
                 size=metadata.size,
                 dtype=metadata.properties.dtype,
                 device=torch.device("cpu"),
@@ -39,8 +42,13 @@ def load_distributed_checkpoint(checkpoint_folder: Path) -> Dict[str, Any]:
                 pin_memory=metadata.properties.pin_memory,
             )
 
-    load_state_dict(state_dict=state_dict, storage_reader=FileSystemReader(checkpoint_folder), no_dist=True)
-    return state_dict
+    load_state_dict(state_dict=checkpoint, storage_reader=FileSystemReader(checkpoint_folder), no_dist=True)
+
+    # This is the extra file saved by Fabric, with user data separate from weights and optimizer states
+    extra_file = checkpoint_folder / _METADATA_FILENAME
+    extra = torch.load(extra_file, map_location="cpu") if extra_file.is_file() else {}
+
+    return checkpoint, extra
 
 
 def _convert_to_fabric_format(state_dict: Dict[str, Any]) -> Dict[str, Any]:
@@ -98,9 +106,10 @@ def main() -> None:
             f" `--output_file` or move/delete the file first: {output_file}"
         )
 
-    state_dict = load_distributed_checkpoint(checkpoint_folder)
-    state_dict = _convert_to_fabric_format(state_dict)
-    torch.save(state_dict, output_file)
+    checkpoint, extra = load_distributed_checkpoint(checkpoint_folder)
+    checkpoint = _convert_to_fabric_format(checkpoint)
+    checkpoint.update(extra)
+    torch.save(checkpoint, output_file)
 
 
 if __name__ == "__main__":
