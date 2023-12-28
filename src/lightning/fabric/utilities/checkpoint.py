@@ -1,3 +1,4 @@
+import logging
 import pickle
 from argparse import ArgumentParser
 from pathlib import Path
@@ -7,6 +8,7 @@ import torch
 
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_1
 
+_log = logging.getLogger(__name__)
 _METADATA_FILENAME = "meta.pt"
 
 
@@ -90,22 +92,30 @@ def main() -> None:
     )
     args = parser.parse_args()
 
+    if not _TORCH_GREATER_EQUAL_2_1:
+        _log.error("Processing distributed checkpoints requires PyTorch >= 2.1.")
+        exit(1)
+
     checkpoint_folder = Path(args.checkpoint_folder)
     if not checkpoint_folder.exists():
-        raise FileNotFoundError(f"The provided checkpoint folder does not exist: {checkpoint_folder}")
+        _log.error(f"The provided checkpoint folder does not exist: {checkpoint_folder}")
+        exit(1)
     if not checkpoint_folder.is_dir():
-        raise FileNotFoundError(
+        _log.error(
             f"The provided checkpoint path must be a folder, containing the checkpoint shards: {checkpoint_folder}"
         )
+        exit(1)
+
     if args.output_file is None:
         output_file = checkpoint_folder.with_suffix(checkpoint_folder.suffix + ".merged")
     else:
         output_file = Path(args.output_file)
     if output_file.exists():
-        raise FileExistsError(
+        _log.error(
             "The path for the merged checkpoint already exists. Choose a different path by providing"
             f" `--output_file` or move/delete the file first: {output_file}"
         )
+        exit(1)
 
     checkpoint, extra = load_distributed_checkpoint(checkpoint_folder)
     checkpoint = _convert_to_fabric_format(checkpoint)
