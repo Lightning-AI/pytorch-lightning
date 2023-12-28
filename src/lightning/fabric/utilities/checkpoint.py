@@ -1,18 +1,17 @@
 import pickle
 from argparse import ArgumentParser
 from pathlib import Path
+from typing import Dict, Any
 
 import torch
 
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_1
 
 
-def unshard_checkpoint(checkpoint_folder: Path, output_file: Path) -> None:
-    """Converts a sharded checkpoint saved with the `torch.distributed.checkpoint` API into a regular checkpoint that
-    can be loaded with `torch.load()`.
+def load_distributed_checkpoint(checkpoint_folder: Path) -> Dict[str, Any]:
+    """Loads a sharded checkpoint saved with the `torch.distributed.checkpoint` into a full state dict.
 
     The current implementation assumes that the entire checkpoint fits in CPU memory.
-
     """
     if not _TORCH_GREATER_EQUAL_2_1:
         raise ImportError("Processing distributed checkpoints requires PyTorch >= 2.1.")
@@ -41,7 +40,22 @@ def unshard_checkpoint(checkpoint_folder: Path, output_file: Path) -> None:
             )
 
     load_state_dict(state_dict=state_dict, storage_reader=FileSystemReader(checkpoint_folder), no_dist=True)
-    torch.save(state_dict, output_file)
+    return state_dict
+
+
+def _convert_to_fabric_format(state_dict: Dict[str, Any]) -> Dict[str, Any]:
+    converted_state_dict = {}
+    for key in state_dict:
+        parts = key.split(".")
+        if parts:
+            top_key = parts[0]
+            new_key = key[len(top_key):]
+            if top_key not in converted_state_dict:
+                converted_state_dict[top_key] = {}
+            converted_state_dict[top_key][new_key] = state_dict.pop(key)
+        else:
+            converted_state_dict[key] = state_dict.pop(key)
+    return converted_state_dict
 
 
 def main() -> None:
@@ -84,7 +98,9 @@ def main() -> None:
             f" `--output_file` or move/delete the file first: {output_file}"
         )
 
-    unshard_checkpoint(checkpoint_folder=checkpoint_folder, output_file=output_file)
+    state_dict = load_distributed_checkpoint(checkpoint_folder)
+    state_dict = _convert_to_fabric_format(state_dict)
+    torch.save(state_dict, output_file)
 
 
 if __name__ == "__main__":
