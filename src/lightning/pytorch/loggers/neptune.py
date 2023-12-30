@@ -447,7 +447,7 @@ class NeptuneLogger(Logger):
 
         Args:
             metrics: Dictionary with metric names as keys and measured quantities as values.
-            step: Step number at which the metrics should be recorded, currently ignored.
+            step: Step number at which the metrics should be recorded
 
         """
         if rank_zero_only.rank != 0:
@@ -456,9 +456,7 @@ class NeptuneLogger(Logger):
         metrics = _add_prefix(metrics, self._prefix, self.LOGGER_JOIN_CHAR)
 
         for key, val in metrics.items():
-            # `step` is ignored because Neptune expects strictly increasing step values which
-            # Lightning does not always guarantee.
-            self.run[key].append(val)
+            self.run[key].append(val, step=step)
 
     @override
     @rank_zero_only

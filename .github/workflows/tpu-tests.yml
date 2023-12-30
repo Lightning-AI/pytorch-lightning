@@ -9,7 +9,7 @@ on:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
-  cancel-in-progress: ${{ ! (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/')) }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 defaults:
   run:
@@ -51,10 +51,10 @@ jobs:
         with:
           python-version: "3.10"
 
-      - uses: google-github-actions/auth@v1
+      - uses: google-github-actions/auth@v2
         with:
           credentials_json: ${{ secrets.GKE_SA_KEY_BASE64 }}
-      - uses: "google-github-actions/setup-gcloud@v1"
+      - uses: "google-github-actions/setup-gcloud@v2"
 
       - name: Time-based job cleanup
         if: always()

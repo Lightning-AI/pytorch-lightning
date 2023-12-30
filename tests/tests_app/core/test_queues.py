@@ -1,3 +1,4 @@
+import base64
 import multiprocessing
 import pickle
 import queue
@@ -219,6 +220,24 @@ class TestHTTPQueue:
             content=pickle.dumps("test"),
         )
         assert test_queue.get() == "test"
+
+    def test_http_queue_batch_get(self, monkeypatch):
+        monkeypatch.setattr(queues, "HTTP_QUEUE_TOKEN", "test-token")
+        test_queue = HTTPQueue("test_http_queue", STATE_UPDATE_TIMEOUT)
+        adapter = requests_mock.Adapter()
+        test_queue.client.session.mount("http://", adapter)
+
+        adapter.register_uri(
+            "POST",
+            f"{HTTP_QUEUE_URL}/v1/test/http_queue?action=popCount",
+            request_headers={"Authorization": "Bearer test-token"},
+            status_code=200,
+            json=[
+                base64.b64encode(pickle.dumps("test")).decode("utf-8"),
+                base64.b64encode(pickle.dumps("test2")).decode("utf-8"),
+            ],
+        )
+        assert test_queue.batch_get() == ["test", "test2"]
 
 
 def test_unreachable_queue(monkeypatch):

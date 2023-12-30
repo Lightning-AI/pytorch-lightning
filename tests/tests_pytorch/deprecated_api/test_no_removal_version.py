@@ -125,7 +125,7 @@ def test_transformer_engine_precision_plugin(monkeypatch):
     from lightning.pytorch.plugins.precision.transformer_engine import TransformerEnginePrecisionPlugin
 
     with pytest.deprecated_call(match=r"The `TransformerEnginePrecisionPlugin` is deprecated"):
-        TransformerEnginePrecisionPlugin()
+        TransformerEnginePrecisionPlugin(weights_dtype=torch.float32)
 
 
 def test_xla_precision_plugin(xla_available):
