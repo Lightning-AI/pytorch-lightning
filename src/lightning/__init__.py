@@ -28,6 +28,7 @@ __all__ = [
     "Callback",
     "seed_everything",
     "Fabric",
+    "__version__",
 ]
 
 
