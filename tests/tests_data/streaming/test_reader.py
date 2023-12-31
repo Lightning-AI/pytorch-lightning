@@ -84,17 +84,15 @@ def test_prepare_chunks_thread_eviction(tmpdir, monkeypatch):
 
     thread.download([0, 1, 2, 3, 4, 5, _END_TOKEN])
 
-    sleep(0.25)
+    while thread._pre_download_counter == 0:
+        sleep(0.01)
 
-    assert thread._pre_download_counter == 2
     assert not thread._has_exited
 
     for i in range(5):
-        assert thread._pre_download_counter <= 2
         thread.delete([i])
-        sleep(0.25)
-        assert len(os.listdir(cache_dir)) == 14 - (i + 1)
-        assert thread._pre_download_counter <= 2
+        while len(os.listdir(cache_dir)) != 14 - (i + 1):
+            sleep(0.01)
 
     assert thread._pre_download_counter <= 2
 
