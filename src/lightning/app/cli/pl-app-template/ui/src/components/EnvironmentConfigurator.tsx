@@ -42,7 +42,7 @@ export default function EnvironmentConfigurator(props: any) {
         <Stack direction="row" spacing={1}>
           <TextField
             helperText=""
-            onChange={(e) => onItemChange("name", index, e)}
+            onChange={e => onItemChange("name", index, e)}
             placeholder="KEY"
             size="medium"
             statusText=""
@@ -51,7 +51,7 @@ export default function EnvironmentConfigurator(props: any) {
           />
           <TextField
             helperText=""
-            onChange={(e) => onItemChange("value", index, e)}
+            onChange={e => onItemChange("value", index, e)}
             placeholder="VALUE"
             size="medium"
             statusText=""

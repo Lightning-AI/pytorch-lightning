@@ -13,7 +13,7 @@ export default function Timer(props: any) {
     let interval: any = null;
     if (isActive) {
       interval = setInterval(() => {
-        setTotalSeconds((totalSeconds) => totalSeconds + 1);
+        setTotalSeconds(totalSeconds => totalSeconds + 1);
       }, 1000);
     } else if (!isActive && totalSeconds !== 0) {
       clearInterval(interval);
