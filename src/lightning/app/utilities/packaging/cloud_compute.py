@@ -156,7 +156,7 @@ class CloudCompute:
                 f"mounts argument must be one of [None, Mount, List[Mount]], "
                 f"received {mounts} of type {type(mounts)}"
             )
-        _verify_mount_root_dirs_are_unique(d.get("mounts", None))
+        _verify_mount_root_dirs_are_unique(d.get("mounts"))
         return cls(**d)
 
     @property
@@ -183,6 +183,6 @@ def _verify_mount_root_dirs_are_unique(mounts: Union[None, Mount, List[Mount], T
 
 
 def _maybe_create_cloud_compute(state: Dict) -> Union[CloudCompute, Dict]:
-    if state and state.get("type", None) == __CLOUD_COMPUTE_IDENTIFIER__:
+    if state and state.get("type") == __CLOUD_COMPUTE_IDENTIFIER__:
         return CloudCompute.from_dict(state)
     return state
