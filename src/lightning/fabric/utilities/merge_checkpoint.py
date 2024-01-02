@@ -10,7 +10,7 @@ from lightning.fabric.utilities.load import load_distributed_checkpoint
 _log = logging.getLogger(__name__)
 
 
-def main() -> None:
+def _cli() -> None:
     parser = ArgumentParser(
         description="Merges a distributed/sharded checkpoint into a single file that can be loaded with `torch.load()`."
     )
@@ -63,4 +63,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    _cli()
