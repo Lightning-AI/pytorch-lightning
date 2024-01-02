@@ -48,7 +48,7 @@ def download_data(url: str, path: str = "data/", verbose: bool = False) -> None:
     if ".zip" in local_filename:
         if os.path.exists(local_filename):
             with zipfile.ZipFile(local_filename, "r") as zip_ref:
-                zip_ref.extractall(path)
+                zip_ref.extractall(path)  # noqa: S202
     elif local_filename.endswith(".tar.gz") or local_filename.endswith(".tgz"):
         extract_tarfile(local_filename, path, "r:gz")
     elif local_filename.endswith(".tar.bz2") or local_filename.endswith(".tbz"):
