@@ -17,7 +17,6 @@ from unittest import mock
 
 import pytest
 import torch
-from lightning.fabric.accelerators.xla import _using_pjrt
 from lightning.pytorch import Trainer
 from lightning.pytorch.accelerators import XLAAccelerator
 from lightning.pytorch.callbacks import EarlyStopping
@@ -75,8 +74,7 @@ def test_model_tpu_index(tmpdir, tpu_core):
     tpipes.run_model_test(trainer_options, model, with_hpc=False)
     import torch_xla
 
-    expected = tpu_core if _using_pjrt() else tpu_core + 1
-    assert torch_xla._XLAC._xla_get_default_device() == f"xla:{expected}"
+    assert torch_xla._XLAC._xla_get_default_device() == f"xla:{tpu_core}"
 
 
 @RunIf(tpu=True, standalone=True)
@@ -134,8 +132,7 @@ def test_model_16bit_tpu_index(tmpdir, tpu_core):
     tpipes.run_model_test(trainer_options, model)
     import torch_xla
 
-    expected = tpu_core if _using_pjrt() else tpu_core + 1
-    assert torch_xla._XLAC._xla_get_default_device() == f"xla:{expected}"
+    assert torch_xla._XLAC._xla_get_default_device() == f"xla:{tpu_core}"
 
 
 @RunIf(tpu=True, standalone=True)
@@ -328,34 +325,6 @@ def test_tpu_debug_mode(tmpdir):
 
     model = AssertXLADebugModel()
     tpipes.run_model_test(trainer_options, model, with_hpc=False)
-
-
-class AssertXLAWorldSizeModel(BoringModel):
-    def on_train_start(self):
-        assert os.environ.get("XRT_HOST_WORLD_SIZE") == str(1)
-
-
-@RunIf(tpu=True, standalone=True)
-@mock.patch.dict(os.environ, os.environ.copy(), clear=True)
-def test_tpu_host_world_size(tmpdir):
-    """Test Host World size env setup on TPU."""
-    if _using_pjrt():
-        pytest.skip("PJRT doesn't set 'XRT_HOST_WORLD_SIZE'")
-
-    trainer_options = {
-        "default_root_dir": tmpdir,
-        "enable_progress_bar": False,
-        "max_epochs": 4,
-        "accelerator": "tpu",
-        "devices": "auto",
-        "limit_train_batches": 0.4,
-        "limit_val_batches": 0.4,
-    }
-
-    model = AssertXLAWorldSizeModel()
-    assert "XRT_HOST_WORLD_SIZE" not in os.environ
-    tpipes.run_model_test(trainer_options, model, with_hpc=False)
-    assert "XRT_HOST_WORLD_SIZE" not in os.environ
 
 
 @RunIf(tpu=True)
