@@ -21,8 +21,8 @@ import torch
 from lightning.fabric import Fabric
 from lightning.fabric.plugins import FSDPPrecision
 from lightning.fabric.strategies import FSDPStrategy
-from lightning.fabric.utilities.load import load_distributed_checkpoint
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0, _TORCH_GREATER_EQUAL_2_1
+from lightning.fabric.utilities.load import load_distributed_checkpoint
 from lightning.fabric.wrappers import _FabricOptimizer
 from torch.distributed.fsdp import FlatParameter, FullyShardedDataParallel, OptimStateKeyType
 from torch.distributed.fsdp.wrap import always_wrap_policy, wrap

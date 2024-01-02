@@ -14,7 +14,13 @@
 import pytest
 import torch
 import torch.nn as nn
-from lightning.fabric.utilities.load import _lazy_load, _materialize_tensors, _move_state_into, _NotYetLoadedTensor, _unflatten_dict
+from lightning.fabric.utilities.load import (
+    _lazy_load,
+    _materialize_tensors,
+    _move_state_into,
+    _NotYetLoadedTensor,
+    _unflatten_dict,
+)
 
 from tests_fabric.helpers.runif import RunIf
 
@@ -145,23 +151,18 @@ def test_unflatten_dict():
     assert _unflatten_dict({}, {}) == {}
 
     tensor0 = torch.rand(2, 2)
-    tensor1 = torch.tensor(3.)
+    tensor1 = torch.tensor(3.0)
     data = {
         "model.layer.weight": tensor0,
-        'optimizer.state.layer.weight.exp_avg': {"test": tensor1},
-        'optimizer.param_groups': "param_groups"
+        "optimizer.state.layer.weight.exp_avg": {"test": tensor1},
+        "optimizer.param_groups": "param_groups",
     }
     key_map = {
-        'model.layer.weight': ('model', 'layer.weight'),
-        'optimizer.state.layer.weight.exp_avg': ('optimizer', 'state', 'layer.weight', 'exp_avg'),
-        'optimizer.param_groups': ('optimizer', 'param_groups')
+        "model.layer.weight": ("model", "layer.weight"),
+        "optimizer.state.layer.weight.exp_avg": ("optimizer", "state", "layer.weight", "exp_avg"),
+        "optimizer.param_groups": ("optimizer", "param_groups"),
     }
     assert _unflatten_dict(data, key_map) == {
         "model": {"layer.weight": tensor0},
-        "optimizer": {
-            "state": {
-                "layer.weight": {"exp_avg": {"test": tensor1}}
-            },
-            "param_groups": "param_groups"
-        },
+        "optimizer": {"state": {"layer.weight": {"exp_avg": {"test": tensor1}}}, "param_groups": "param_groups"},
     }

@@ -54,7 +54,6 @@ from lightning.fabric.strategies.strategy import (
     _Sharded,
     _validate_keys_for_strict_loading,
 )
-from lightning.fabric.utilities.load import _METADATA_FILENAME
 from lightning.fabric.utilities.distributed import (
     ReduceOp,
     _distributed_is_initialized,
@@ -70,7 +69,7 @@ from lightning.fabric.utilities.imports import (
     _TORCH_GREATER_EQUAL_2_2,
 )
 from lightning.fabric.utilities.init import _EmptyInit
-from lightning.fabric.utilities.load import _lazy_load, _materialize_tensors, _move_state_into
+from lightning.fabric.utilities.load import _METADATA_FILENAME, _lazy_load, _materialize_tensors, _move_state_into
 from lightning.fabric.utilities.rank_zero import rank_zero_deprecation, rank_zero_only, rank_zero_warn
 from lightning.fabric.utilities.seed import reset_seed
 from lightning.fabric.utilities.types import _PATH, _Stateful
