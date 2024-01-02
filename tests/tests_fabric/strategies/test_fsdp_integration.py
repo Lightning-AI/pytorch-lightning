@@ -491,9 +491,9 @@ def test_rewrap_warnings():
     assert next(fabric_model.parameters()).is_meta
 
 
-# @RunIf(min_cuda_gpus=2, standalone=True, min_torch="2.1.0")
+@RunIf(min_cuda_gpus=2, standalone=True, min_torch="2.1.0")
 def test_save_sharded_and_consolidate_and_load(tmp_path):
-    """TODO."""
+    """Test the consolidation of a FSDP-sharded checkpoint into a single file."""
 
     fabric = Fabric(
         accelerator="cuda",
