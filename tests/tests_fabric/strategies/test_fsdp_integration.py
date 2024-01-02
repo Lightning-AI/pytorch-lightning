@@ -21,9 +21,8 @@ import torch
 from lightning.fabric import Fabric
 from lightning.fabric.plugins import FSDPPrecision
 from lightning.fabric.strategies import FSDPStrategy
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0, _TORCH_GREATER_EQUAL_2_1
 from lightning.fabric.utilities.checkpoint import load_distributed_checkpoint
-
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0, _TORCH_GREATER_EQUAL_2_1
 from lightning.fabric.wrappers import _FabricOptimizer
 from torch.distributed.fsdp import FlatParameter, FullyShardedDataParallel, OptimStateKeyType
 from torch.distributed.fsdp.wrap import always_wrap_policy, wrap
@@ -492,10 +491,9 @@ def test_rewrap_warnings():
     assert next(fabric_model.parameters()).is_meta
 
 
-
 # @RunIf(min_cuda_gpus=2, standalone=True, min_torch="2.1.0")
 def test_save_sharded_and_consolidate_and_load(tmp_path):
-    """TODO"""
+    """TODO."""
 
     fabric = Fabric(
         accelerator="cuda",

@@ -63,10 +63,10 @@ def _unflatten_dict(checkpoint: Dict[str, Any], key_map: Dict[str, Tuple[str, ..
 
     Example:
         {
-            'model.layer.weight': ('model', 'layer.weight'), 
-            'optimizer.state.layer.weight.step': ('optimizer', 'state', 'layer.weight', 'step'), 
-            'optimizer.state.layer.weight.exp_avg': ('optimizer', 'state', 'layer.weight', 'exp_avg'), 
-            'optimizer.state.layer.weight.exp_avg_sq': ('optimizer', 'state', 'layer.weight', 'exp_avg_sq'), 
+            'model.layer.weight': ('model', 'layer.weight'),
+            'optimizer.state.layer.weight.step': ('optimizer', 'state', 'layer.weight', 'step'),
+            'optimizer.state.layer.weight.exp_avg': ('optimizer', 'state', 'layer.weight', 'exp_avg'),
+            'optimizer.state.layer.weight.exp_avg_sq': ('optimizer', 'state', 'layer.weight', 'exp_avg_sq'),
             'optimizer.param_groups': ('optimizer', 'param_groups')
         }
 
