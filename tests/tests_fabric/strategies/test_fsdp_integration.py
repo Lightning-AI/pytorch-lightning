@@ -21,7 +21,7 @@ import torch
 from lightning.fabric import Fabric
 from lightning.fabric.plugins import FSDPPrecision
 from lightning.fabric.strategies import FSDPStrategy
-from lightning.fabric.utilities.checkpoint import load_distributed_checkpoint
+from lightning.fabric.utilities.load import load_distributed_checkpoint
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0, _TORCH_GREATER_EQUAL_2_1
 from lightning.fabric.wrappers import _FabricOptimizer
 from torch.distributed.fsdp import FlatParameter, FullyShardedDataParallel, OptimStateKeyType
@@ -514,9 +514,6 @@ def test_save_sharded_and_consolidate_and_load(tmp_path):
     checkpoint_path_sharded = fabric.broadcast(str(tmp_path / "checkpoint_sharded"))
     fabric.save(checkpoint_path_sharded, state)
     assert set(os.listdir(checkpoint_path_sharded)) == {"meta.pt", ".metadata", "__0_0.distcp", "__1_0.distcp"}
-
-    # checkpoint consolidation must work without a process group
-    # torch.distributed.destroy_process_group()
 
     # consolidate the checkpoint to a single file
     checkpoint_path_full = tmp_path / "checkpoint_full"

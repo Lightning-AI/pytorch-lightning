@@ -54,7 +54,7 @@ from lightning.fabric.strategies.strategy import (
     _Sharded,
     _validate_keys_for_strict_loading,
 )
-from lightning.fabric.utilities.checkpoint import _METADATA_FILENAME
+from lightning.fabric.utilities.load import _METADATA_FILENAME
 from lightning.fabric.utilities.distributed import (
     ReduceOp,
     _distributed_is_initialized,
