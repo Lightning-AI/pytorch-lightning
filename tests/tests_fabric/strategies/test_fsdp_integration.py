@@ -22,6 +22,8 @@ from lightning.fabric import Fabric
 from lightning.fabric.plugins import FSDPPrecision
 from lightning.fabric.strategies import FSDPStrategy
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0, _TORCH_GREATER_EQUAL_2_1
+from lightning.fabric.utilities.checkpoint import load_distributed_checkpoint
+
 from lightning.fabric.wrappers import _FabricOptimizer
 from torch.distributed.fsdp import FlatParameter, FullyShardedDataParallel, OptimStateKeyType
 from torch.distributed.fsdp.wrap import always_wrap_policy, wrap
@@ -488,3 +490,53 @@ def test_rewrap_warnings():
     with pytest.warns(match="there are still parameters on the meta device"):
         fabric_model = fabric.setup(model)
     assert next(fabric_model.parameters()).is_meta
+
+
+
+# @RunIf(min_cuda_gpus=2, standalone=True, min_torch="2.1.0")
+def test_save_sharded_and_consolidate_and_load(tmp_path):
+    """TODO"""
+
+    fabric = Fabric(
+        accelerator="cuda",
+        strategy=FSDPStrategy(auto_wrap_policy=always_wrap_policy, state_dict_type="sharded"),
+        devices=2,
+    )
+    fabric.launch()
+
+    model = BoringModel()
+    optimizer = torch.optim.Adam(model.parameters())
+    model, optimizer = fabric.setup(model, optimizer)
+    state = {"model": model, "optimizer": optimizer, "steps": 1}
+
+    # run one iteration to init the state of the optimizer
+    model(torch.rand(1, 32, device=fabric.device)).sum().backward()
+    optimizer.step()
+
+    checkpoint_path_sharded = fabric.broadcast(str(tmp_path / "checkpoint_sharded"))
+    fabric.save(checkpoint_path_sharded, state)
+    assert set(os.listdir(checkpoint_path_sharded)) == {"meta.pt", ".metadata", "__0_0.distcp", "__1_0.distcp"}
+
+    # checkpoint consolidation must work without a process group
+    # torch.distributed.destroy_process_group()
+
+    # consolidate the checkpoint to a single file
+    checkpoint_path_full = tmp_path / "checkpoint_full"
+    if fabric.global_rank == 0:
+        checkpoint = load_distributed_checkpoint(Path(checkpoint_path_sharded))
+        torch.save(checkpoint, checkpoint_path_full)
+    fabric.barrier()
+
+    # re-init and load from full checkpoint
+    fabric = Fabric(
+        accelerator="cuda",
+        strategy=FSDPStrategy(auto_wrap_policy=always_wrap_policy),
+        devices=2,
+    )
+    fabric.launch()
+
+    model = BoringModel()
+    optimizer = torch.optim.Adam(model.parameters())
+    model, optimizer = fabric.setup(model, optimizer)
+    state = {"model": model, "optimizer": optimizer, "steps": 1}
+    fabric.load(checkpoint_path_full, state)

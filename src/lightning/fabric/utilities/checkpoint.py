@@ -1,5 +1,4 @@
 import logging
-import pickle
 from argparse import ArgumentParser
 from pathlib import Path
 from typing import Any, Dict, Tuple
@@ -12,7 +11,7 @@ _log = logging.getLogger(__name__)
 _METADATA_FILENAME = "meta.pt"
 
 
-def load_distributed_checkpoint(checkpoint_folder: Path) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+def load_distributed_checkpoint(checkpoint_folder: Path) -> Dict[str, Any]:
     """Loads a sharded checkpoint saved with the `torch.distributed.checkpoint` into a full state dict.
 
     The current implementation assumes that the entire checkpoint fits in CPU memory.
@@ -22,51 +21,70 @@ def load_distributed_checkpoint(checkpoint_folder: Path) -> Tuple[Dict[str, Any]
         raise ImportError("Processing distributed checkpoints requires PyTorch >= 2.1.")
 
     from torch.distributed.checkpoint import FileSystemReader, load_state_dict
-    from torch.distributed.checkpoint.metadata import BytesStorageMetadata, Metadata, TensorStorageMetadata
+    from torch.distributed.checkpoint.metadata import BytesStorageMetadata, TensorStorageMetadata
 
-    # This is the metadata file saved by `torch.distributed.checkpoint`
-    metadata_file = checkpoint_folder / ".metadata"
-    with open(metadata_file, "rb") as file:
-        metadata: Metadata = pickle.load(file)
+    reader = FileSystemReader(checkpoint_folder)
+    metadata = reader.read_metadata()
 
     # TODO: Add sequential save to avoid storing the entire checkpoint in memory
     checkpoint = {}
-    for tensor_name, metadata in metadata.state_dict_metadata.items():
-        if isinstance(metadata, BytesStorageMetadata):  # TODO: What does this represent?
-            continue
-        elif isinstance(metadata, TensorStorageMetadata):
+    for tensor_name, sd_metadata in metadata.state_dict_metadata.items():
+        if isinstance(sd_metadata, BytesStorageMetadata):
+            checkpoint[tensor_name] = "<bytes_io>"
+        elif isinstance(sd_metadata, TensorStorageMetadata):
             checkpoint[tensor_name] = torch.empty(
-                size=metadata.size,
-                dtype=metadata.properties.dtype,
+                size=sd_metadata.size,
+                dtype=sd_metadata.properties.dtype,
                 device=torch.device("cpu"),
-                memory_format=metadata.properties.memory_format,
-                layout=metadata.properties.layout,
-                requires_grad=metadata.properties.requires_grad,
-                pin_memory=metadata.properties.pin_memory,
+                memory_format=sd_metadata.properties.memory_format,
+                layout=sd_metadata.properties.layout,
+                requires_grad=sd_metadata.properties.requires_grad,
+                pin_memory=sd_metadata.properties.pin_memory,
             )
 
-    load_state_dict(state_dict=checkpoint, storage_reader=FileSystemReader(checkpoint_folder), no_dist=True)
+    load_state_dict(state_dict=checkpoint, storage_reader=reader, no_dist=True)
+    checkpoint = _unflatten_dict(checkpoint, key_map=metadata.planner_data)
 
     # This is the extra file saved by Fabric, with user data separate from weights and optimizer states
     extra_file = checkpoint_folder / _METADATA_FILENAME
     extra = torch.load(extra_file, map_location="cpu") if extra_file.is_file() else {}
+    checkpoint.update(extra)
 
-    return checkpoint, extra
+    return checkpoint
 
 
-def _convert_to_fabric_format(state_dict: Dict[str, Any]) -> Dict[str, Any]:
-    converted_state_dict = {}
-    for key in state_dict:
-        parts = key.split(".")
-        if parts:
-            top_key = parts[0]
-            new_key = key.removeprefix(top_key + ".")
-            if top_key not in converted_state_dict:
-                converted_state_dict[top_key] = {}
-            converted_state_dict[top_key][new_key] = state_dict[key]
-        else:
-            converted_state_dict[key] = state_dict[key]
-    return converted_state_dict
+def _unflatten_dict(checkpoint: Dict[str, Any], key_map: Dict[str, Tuple[str, ...]]) -> Dict[str, Any]:
+    """Converts the flat dictionary with keys 'x.y.z...' to a nested dictionary using the provided key map.
+
+    Args:
+        checkpoint: The flat checkpoint dictionary.
+        key_map: A dictionary that maps the keys in flattened format 'x.y.z...' to a tuple representing
+            the index path into the nested dictonary that this function should construct.
+
+    Example:
+        {
+            'model.layer.weight': ('model', 'layer.weight'), 
+            'optimizer.state.layer.weight.step': ('optimizer', 'state', 'layer.weight', 'step'), 
+            'optimizer.state.layer.weight.exp_avg': ('optimizer', 'state', 'layer.weight', 'exp_avg'), 
+            'optimizer.state.layer.weight.exp_avg_sq': ('optimizer', 'state', 'layer.weight', 'exp_avg_sq'), 
+            'optimizer.param_groups': ('optimizer', 'param_groups')
+        }
+
+    """
+    converted = {}
+    for flat_key in checkpoint:
+        key_path = key_map[flat_key]
+        _set_nested_dict_value(converted, key_path, checkpoint[flat_key])
+    return converted
+
+
+def _set_nested_dict_value(nested_dict: Dict[str, Any], key_path: Tuple[str, ...], value: Any) -> None:
+    result = nested_dict
+    for key in key_path[:-1]:
+        if key not in result:
+            result[key] = {}
+        result = result[key]
+    result[key_path[-1]] = value
 
 
 def main() -> None:
@@ -117,9 +135,7 @@ def main() -> None:
         )
         exit(1)
 
-    checkpoint, extra = load_distributed_checkpoint(checkpoint_folder)
-    checkpoint = _convert_to_fabric_format(checkpoint)
-    checkpoint.update(extra)
+    checkpoint = load_distributed_checkpoint(checkpoint_folder)
     torch.save(checkpoint, output_file)
 
 
