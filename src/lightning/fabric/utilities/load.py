@@ -281,17 +281,8 @@ def _unflatten_dict(checkpoint: Dict[str, Any], key_map: Dict[str, Tuple[str, ..
         checkpoint: The flat checkpoint dictionary.
         key_map: A dictionary that maps the keys in flattened format 'x.y.z...' to a tuple representing
             the index path into the nested dictonary that this function should construct.
-
-    Example:
-        {
-            'model.layer.weight': ('model', 'layer.weight'),
-            'optimizer.state.layer.weight.step': ('optimizer', 'state', 'layer.weight', 'step'),
-            'optimizer.state.layer.weight.exp_avg': ('optimizer', 'state', 'layer.weight', 'exp_avg'),
-            'optimizer.state.layer.weight.exp_avg_sq': ('optimizer', 'state', 'layer.weight', 'exp_avg_sq'),
-            'optimizer.param_groups': ('optimizer', 'param_groups')
-        }
-
     """
+    assert checkpoint.keys() == key_map.keys()
     converted = {}
     for flat_key in checkpoint:
         key_path = key_map[flat_key]
