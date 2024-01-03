@@ -313,6 +313,9 @@ The :class:`~lightning.fabric.plugins.precision.itrex.ITREXPrecision` automatica
     Only supports CPU devices and the Linux operating system.
 
 
+----
+
+
 *********************
 True Double Precision
 *********************
