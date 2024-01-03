@@ -92,6 +92,6 @@ def test_backward_compatibility_rng_states_dict():
 @mock.patch("lightning.fabric.utilities.seed.torch.cuda.get_rng_state_all")
 def test_collect_rng_states_if_cuda_init_fails(get_rng_state_all_mock):
     """Test that the `torch.cuda` rng states are only requested if CUDA is available."""
-    get_rng_state_all_mock.side_effect = RuntimeError("Driver is too old")
+    get_rng_state_all_mock.side_effect = RuntimeError("The NVIDIA driver on your system is too old")
     states = _collect_rng_states()
     assert states["torch.cuda"] == []
