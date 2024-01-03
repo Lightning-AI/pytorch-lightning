@@ -246,7 +246,7 @@ def load_distributed_checkpoint(checkpoint_folder: Path) -> Dict[str, Any]:
     metadata = reader.read_metadata()
 
     # TODO: Add sequential save to avoid storing the entire checkpoint in memory
-    checkpoint = {}
+    checkpoint: Dict[str, Any] = {}
     for tensor_name, sd_metadata in metadata.state_dict_metadata.items():
         if isinstance(sd_metadata, BytesStorageMetadata):
             checkpoint[tensor_name] = "<bytes_io>"
@@ -282,7 +282,7 @@ def _unflatten_dict(checkpoint: Dict[str, Any], key_map: Dict[str, Tuple[str, ..
 
     """
     assert checkpoint.keys() == key_map.keys()
-    converted = {}
+    converted: Dict[str, Any] = {}
     for flat_key in checkpoint:
         key_path = key_map[flat_key]
         _set_nested_dict_value(converted, key_path, checkpoint[flat_key])
