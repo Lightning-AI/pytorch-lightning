@@ -278,9 +278,9 @@ You might want to do this for extra memory savings.
 ----
 
 
-*****************************
+**************************************************************
 Weight-only Quantization via Intel® Extension for Transformers
-*****************************
+**************************************************************
 
 `intel-extension-for-transformers <https://github.com/intel/intel-extension-for-transformers>`__ (ITREX) is a library that supports quantizing :class:`torch.nn.Linear` weights.
 
