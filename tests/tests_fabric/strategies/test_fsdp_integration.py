@@ -528,7 +528,6 @@ def test_save_sharded_and_consolidate_and_load(tmp_path):
         strategy=FSDPStrategy(auto_wrap_policy=always_wrap_policy),
         devices=2,
     )
-    fabric.launch()
 
     model = BoringModel()
     optimizer = torch.optim.Adam(model.parameters())
