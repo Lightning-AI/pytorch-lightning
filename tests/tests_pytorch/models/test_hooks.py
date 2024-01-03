@@ -477,10 +477,10 @@ def test_trainer_model_hook_system_fit(override_on_validation_model_train, autom
     expected = [
         {"name": "configure_callbacks"},
         {"name": "prepare_data"},
-        # DeepSpeed needs the batch size to figure out throughput logging
-        *([{"name": "train_dataloader"}] if using_deepspeed else []),
         {"name": "Callback.setup", "args": (trainer, model), "kwargs": {"stage": "fit"}},
         {"name": "setup", "kwargs": {"stage": "fit"}},
+        # DeepSpeed needs the batch size to figure out throughput logging
+        *([{"name": "train_dataloader"}] if using_deepspeed else []),
         {"name": "configure_model"},
         {"name": "configure_optimizers"},
         {"name": "Callback.on_fit_start", "args": (trainer, model)},

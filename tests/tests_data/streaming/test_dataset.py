@@ -11,10 +11,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import json
 import os
 import sys
-from datetime import datetime
 from time import sleep
 from unittest import mock
 
@@ -23,12 +21,15 @@ import pytest
 import torch
 from lightning import seed_everything
 from lightning.data.streaming import Cache, functions
-from lightning.data.streaming.constants import _TIME_FORMAT
+from lightning.data.streaming.dataloader import StreamingDataLoader
 from lightning.data.streaming.dataset import (
     _INDEX_FILENAME,
     Dir,
     RemoteDir,
     StreamingDataset,
+    _associate_chunks_to_workers,
+    _replay_chunks_sampling,
+    _replay_sampling,
     _should_replace_path,
     _try_create_cache_dir,
 )
@@ -600,53 +601,27 @@ def test_resumable_dataset_two_workers(tmpdir):
     )
 
     dataset.current_epoch = 1
-    dataloader = DataLoader(dataset, num_workers=2, batch_size=2, prefetch_factor=1)
+    dataloader = StreamingDataLoader(dataset, num_workers=2, batch_size=2, prefetch_factor=1)
 
     dataloader_iter = iter(dataloader)
 
     _ = next(dataloader_iter)
-
-    sleep(0.1)
-
-    state_dict_0 = dataset.state_dict()
-
-    assert sorted(state_dict_0.keys()) == ["0", "1"]
-
-    assert state_dict_0["0"]["chunk_index"] == 1
-    assert state_dict_0["0"]["global_index"] == 2
-    assert state_dict_0["0"]["index"] == 0
-
-    assert state_dict_0["1"]["chunk_index"] == 0
-    assert state_dict_0["1"]["global_index"] == 0
-    assert state_dict_0["1"]["index"] == 0
+    state_dict_0 = dataloader.state_dict()
+    assert state_dict_0["0"]["num_samples_yielded"] == 2
+    assert state_dict_0["0"]["num_workers"] == 2
+    assert state_dict_0["0"]["batch_size"] == 2
 
     _ = next(dataloader_iter)
-
-    sleep(0.1)
-
-    state_dict_1 = dataset.state_dict()
-
-    assert state_dict_1["0"]["chunk_index"] == 1
-    assert state_dict_1["0"]["global_index"] == 2
-    assert state_dict_1["0"]["index"] == 0
-
-    assert state_dict_1["1"]["chunk_index"] == 1
-    assert state_dict_1["1"]["global_index"] == 2
-    assert state_dict_1["1"]["index"] == 0
+    state_dict_1 = dataloader.state_dict()
+    assert state_dict_1["0"]["num_samples_yielded"] == 4
+    assert state_dict_1["0"]["num_workers"] == 2
+    assert state_dict_1["0"]["batch_size"] == 2
 
     batch_2 = next(dataloader_iter)
-
-    sleep(0.1)
-
-    state_dict_2 = dataset.state_dict()
-
-    assert state_dict_2["0"]["chunk_index"] == 2
-    assert state_dict_2["0"]["global_index"] == 4
-    assert state_dict_2["0"]["index"] == 0
-
-    assert state_dict_2["1"]["chunk_index"] == 1
-    assert state_dict_2["1"]["global_index"] == 2
-    assert state_dict_2["1"]["index"] == 0
+    state_dict_2 = dataloader.state_dict()
+    assert state_dict_2["0"]["num_samples_yielded"] == 6
+    assert state_dict_2["0"]["num_workers"] == 2
+    assert state_dict_2["0"]["batch_size"] == 2
 
     dataset = EmulateS3StreamingDataset(
         input_dir=RemoteDir(cache_dir, data_dir),
@@ -655,22 +630,20 @@ def test_resumable_dataset_two_workers(tmpdir):
     )
 
     dataset.load_state_dict(state_dict_1)
-    dataloader = DataLoader(dataset, num_workers=2, batch_size=2, prefetch_factor=1)
+    dataloader = StreamingDataLoader(dataset, num_workers=2, batch_size=2, prefetch_factor=1)
 
     dataloader_iter = iter(dataloader)
     batch_0_restart = next(dataloader_iter)
 
-    sleep(0.1)
+    state_dict_2 = dataloader.state_dict()
+    assert len(state_dict_2) == 2
+    assert state_dict_2["0"]["num_samples_yielded"] == 4
+    assert state_dict_2["0"]["num_workers"] == 2
+    assert state_dict_2["0"]["batch_size"] == 2
 
-    state_dict_2 = dataset.state_dict()
-
-    assert state_dict_2["0"]["chunk_index"] == 2
-    assert state_dict_2["0"]["global_index"] == 4
-    assert state_dict_2["0"]["index"] == 0
-
-    assert state_dict_2["1"]["chunk_index"] == 1
-    assert state_dict_2["1"]["global_index"] == 2
-    assert state_dict_2["1"]["index"] == 0
+    assert state_dict_2["1"]["num_samples_yielded"] == 2
+    assert state_dict_2["1"]["num_workers"] == 2
+    assert state_dict_2["1"]["batch_size"] == 2
 
     assert torch.equal(batch_2, batch_0_restart)
 
@@ -706,9 +679,12 @@ def test_dataset_valid_state(tmpdir):
 
     sleep(1)
 
-    state_dict = dataset.state_dict()
+    state_dict = dataset.state_dict(0, 1, 2)
 
     dataset.load_state_dict(state_dict)
+    dataset.worker_env = _WorkerEnv(world_size=1, rank=0)
+    dataset.cache = cache
+
     dataset._validate_state_dict()
 
     state_dict["0"]["drop_last"] = True
@@ -768,52 +744,27 @@ def test_dataset_valid_state(tmpdir):
         dataset._validate_state_dict()
 
 
-def test_resumable_dataset_distributed_state_dict(tmpdir):
-    seed_everything(42)
+def test_replay_sampling():
+    assert _replay_sampling(27, 8, 2) == {0: 16, 1: 11}  # {0: 8 + 8, 1: 8 + 3}
+    assert _replay_sampling(27, 7, 2) == {0: 14, 1: 13}  # {0: 7 + 7, 1: 7 + 6}
+    assert _replay_sampling(27, 6, 2) == {0: 15, 1: 12}  # {0: 6 + 6 + 3, 1: 6 + 6}
+    assert _replay_sampling(27, 5, 2) == {0: 15, 1: 12}  # {0: 5 + 5 + 5, 1: 5 + 5 + 2}
+    assert _replay_sampling(27, 4, 2) == {0: 15, 1: 12}  # {0: 4 + 4 + 4 + 3, 1: 4 + 4 + 4}
+    assert _replay_sampling(27, 8, 3) == {0: 11, 1: 8, 2: 8}  # {0: 8 + 3, 1: 8, 2: 8}
+    assert _replay_sampling(27, 4, 3) == {0: 11, 1: 8, 2: 8}  # {0: 4 + 4 + 3, 1: 4 + 4, 2: 4 + 4}
 
-    block_size = 20
-    cache = Cache(input_dir=str(tmpdir), chunk_size=40, item_loader=TokensLoader(block_size))
 
-    counter = 0
-    for i in range(100):
-        text_ids = torch.arange(counter, counter + 20).to(torch.int)
-        cache[i] = text_ids
-        counter += 20
-
-    cache.done()
-    cache.merge()
-
-    assert len([f for f in os.listdir(tmpdir) if f.endswith(".bin")]) == 50
-
-    dataset = StreamingDataset(input_dir=str(tmpdir), item_loader=TokensLoader(block_size), shuffle=False)
-    dataset.distributed_env = _DistributedEnv(world_size=16, global_rank=0)
-
-    # used to create the cache
-    iter(dataset)
-    os.makedirs(dataset.cache.checkpoint_dir, exist_ok=True)
-
-    for i in range(4):
-        now = datetime.now().strftime(_TIME_FORMAT)
-        checkpoint_rank_dir = os.path.join(dataset.cache.checkpoint_dir, str(i))
-        os.makedirs(checkpoint_rank_dir, exist_ok=True)
-        checkpoint_path = os.path.join(checkpoint_rank_dir, f"checkpoint-{now}.json")
-        with open(checkpoint_path, "w") as f:
-            json.dump({}, f)
-
-    torch_mock = mock.MagicMock()
-    torch_mock.cuda.device_count.return_value = 4
-
-    state_list = [{} for _ in range(4)]
-    for i in range(16):
-        state_list[i // 4].update({str(i): {}})
-
-    def broadcast_object_list(obj, src, **kwargs):
-        assert src in [0, 4, 8, 12]
-        obj[0] = state_list.pop(0)
-
-    torch_mock.distributed.broadcast_object_list = broadcast_object_list
-
-    with mock.patch("lightning.data.streaming.dataset.torch", torch_mock):
-        state_dict = dataset.state_dict()
-
-    assert len(state_dict) == 16
+def test_replay_chunks_sampling():
+    chunks_replica = range(10)
+    intervals_replica = [(i, i + 5) for i in range(0, 50, 5)]
+    workers_chunks, workers_intervals = _associate_chunks_to_workers(
+        2, _WorkerEnv(2, 0), chunks_replica, intervals_replica
+    )
+    assert workers_chunks == {0: [0, 2, 4, 6, 8], 1: [1, 3, 5, 7, 9]}
+    assert workers_intervals == {
+        0: [(0, 5), (10, 15), (20, 25), (30, 35), (40, 45)],
+        1: [(5, 10), (15, 20), (25, 30), (35, 40), (45, 50)],
+    }
+    assert _replay_chunks_sampling(workers_intervals, {0: 16, 1: 11}) == ({0: 3, 1: 2}, {0: 1, 1: 1})
+    assert _replay_chunks_sampling(workers_intervals, {0: 14, 1: 13}) == ({0: 2, 1: 2}, {0: 4, 1: 3})
+    assert _replay_chunks_sampling(workers_intervals, {0: 15, 1: 12}) == ({0: 3, 1: 2}, {0: 0, 1: 2})

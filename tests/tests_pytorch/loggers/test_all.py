@@ -307,7 +307,7 @@ def test_logger_with_prefix_all(mlflow_mock, wandb_mock, comet_mock, neptune_moc
     logger.log_metrics({"test": 1.0}, step=0)
     assert logger.experiment.__getitem__.call_count == 1
     logger.experiment.__getitem__.assert_called_with("tmp/test")
-    logger.experiment.__getitem__().append.assert_called_once_with(1.0)
+    logger.experiment.__getitem__().append.assert_called_once_with(1.0, step=0)
 
     # TensorBoard
     if _TENSORBOARD_AVAILABLE:
