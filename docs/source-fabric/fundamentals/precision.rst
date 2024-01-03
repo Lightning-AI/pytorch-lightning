@@ -296,7 +296,7 @@ Specifically, we support the following modes:
 
 While these techniques store weights in 4 or 8 bit, the computation still happens in 32-bit.
 
-The :class:`~lightning.fabric.plugins.precision.itrex.ITREXPrecision` automatically replaces the :class:`torch.nn.Linear` layers in your model with ``.
+The :class:`~lightning.fabric.plugins.precision.itrex.ITREXPrecision` automatically replaces the :class:`torch.nn.Linear` layers in your model with :class:`QuantizedLinearQBits` layer which is a custom module in ITREX.
 
 .. code-block:: python
 
