@@ -23,6 +23,9 @@ import lightning.pytorch as pl
 from lightning.pytorch.callbacks.progress.progress_bar import ProgressBar
 from lightning.pytorch.utilities.types import STEP_OUTPUT
 
+import colored
+from colored import stylize
+
 _RICH_AVAILABLE = RequirementCache("rich>=10.2.2")
 
 if _RICH_AVAILABLE:
@@ -220,6 +223,15 @@ class RichProgressBarTheme:
     metrics_text_delimiter: str = " "
     metrics_format: str = ".3f"
 
+def detect_color_theme():
+    """Detect the color theme of the terminal."""
+    if colored.supports_color():
+        if colored.detect_color() == 'truecolor':
+            return 'dark'
+        else:
+            return 'light'
+    else:
+        return 'unknown'
 
 class RichProgressBar(ProgressBar):
     """Create a progress bar with `rich text formatting <https://github.com/Textualize/rich>`_.
@@ -283,6 +295,8 @@ class RichProgressBar(ProgressBar):
         self._metric_component: Optional["MetricsTextColumn"] = None
         self._progress_stopped: bool = False
         self.theme = theme
+        self._update_for_light_colab_theme()
+        self._color_theme = detect_color_theme()
         self._update_for_light_colab_theme()
 
     @property
@@ -641,16 +655,30 @@ class RichProgressBar(ProgressBar):
         self._stop_progress()
 
     def configure_columns(self, trainer: "pl.Trainer") -> list:
+        # Modify the color of progress bar based on the detected color theme
+        if self._color_theme == 'dark':
+            theme = RichProgressBarTheme(
+                progress_bar="green",
+                progress_bar_finished="green",
+                progress_bar_pulse="green",
+            )
+        else:
+            theme = RichProgressBarTheme(
+                progress_bar="blue",
+                progress_bar_finished="blue",
+                progress_bar_pulse="blue",
+            )
+
         return [
             TextColumn("[progress.description]{task.description}"),
             CustomBarColumn(
-                complete_style=self.theme.progress_bar,
-                finished_style=self.theme.progress_bar_finished,
-                pulse_style=self.theme.progress_bar_pulse,
+                complete_style=theme.progress_bar,
+                finished_style=theme.progress_bar_finished,
+                pulse_style=theme.progress_bar_pulse,
             ),
-            BatchesProcessedColumn(style=self.theme.batch_progress),
-            CustomTimeColumn(style=self.theme.time),
-            ProcessingSpeedColumn(style=self.theme.processing_speed),
+            BatchesProcessedColumn(style=theme.batch_progress),
+            CustomTimeColumn(style=theme.time),
+            ProcessingSpeedColumn(style=theme.processing_speed),
         ]
 
     def __getstate__(self) -> Dict:
