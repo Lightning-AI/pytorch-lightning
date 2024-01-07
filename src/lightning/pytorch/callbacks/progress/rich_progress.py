@@ -16,15 +16,13 @@ from dataclasses import dataclass
 from datetime import timedelta
 from typing import Any, Dict, Generator, Optional, Union, cast
 
+import colored
 from lightning_utilities.core.imports import RequirementCache
 from typing_extensions import override
 
 import lightning.pytorch as pl
 from lightning.pytorch.callbacks.progress.progress_bar import ProgressBar
 from lightning.pytorch.utilities.types import STEP_OUTPUT
-
-import colored
-from colored import stylize
 
 _RICH_AVAILABLE = RequirementCache("rich>=10.2.2")
 
@@ -223,15 +221,17 @@ class RichProgressBarTheme:
     metrics_text_delimiter: str = " "
     metrics_format: str = ".3f"
 
+
 def detect_color_theme():
     """Detect the color theme of the terminal."""
     if colored.supports_color():
-        if colored.detect_color() == 'truecolor':
-            return 'dark'
+        if colored.detect_color() == "truecolor":
+            return "dark"
         else:
-            return 'light'
+            return "light"
     else:
-        return 'unknown'
+        return "unknown"
+
 
 class RichProgressBar(ProgressBar):
     """Create a progress bar with `rich text formatting <https://github.com/Textualize/rich>`_.
@@ -656,7 +656,7 @@ class RichProgressBar(ProgressBar):
 
     def configure_columns(self, trainer: "pl.Trainer") -> list:
         # Modify the color of progress bar based on the detected color theme
-        if self._color_theme == 'dark':
+        if self._color_theme == "dark":
             theme = RichProgressBarTheme(
                 progress_bar="green",
                 progress_bar_finished="green",
