@@ -454,6 +454,7 @@ class AssistantCLI:
             source_dir: relative location inside the remote / external repo
             single_page: copy only single page from the remote repo and name it as the repo name
             as_orphan: append orphan statement to the page
+
         """
         import zipfile
 
