@@ -88,7 +88,7 @@ _transform_changelog(
     os.path.join(_PATH_HERE, _FOLDER_GENERATED, "CHANGELOG.md"),
 )
 
-
+# Copy Accelerator docs
 assist_local.AssistantCLI.pull_docs_files(
     gh_user_repo="Lightning-AI/lightning-Habana",
     target_dir="docs/source-pytorch/integrations/hpu",
@@ -107,6 +107,13 @@ for img in ["_static/images/ipu/profiler.png"]:
     os.makedirs(os.path.dirname(img_), exist_ok=True)
     urllib.request.urlretrieve(f"{URL_RAW_DOCS_GRAPHCORE}/{img}", img_)
 
+# Copy strategies docs as single pages
+assist_local.AssistantCLI.pull_docs_files(
+    gh_user_repo="Lightning-Universe/lightning-Hivemind",
+    target_dir="docs/source-pytorch/integrations/strategies",
+    checkout="7b985855f08c4ff94299c06f912f16b64ee93888",  # Todo: replace with SHA on master after the related PR is merged
+    single_page="overview.rst",
+)
 
 if _FETCH_S3_ASSETS:
     fetch_external_assets(
