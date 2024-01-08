@@ -477,7 +477,7 @@ class AssistantCLI:
             if single_page:  # special case for copying single page
                 single_page = os.path.join(repo_dir, source_dir, single_page)
                 assert os.path.isfile(single_page), f"File '{single_page}' does not exist."
-                name = re.sub(r"lightnong[-_]?", "", gh_user_repo.split("/")[-1])
+                name = re.sub(r"lightning[-_]?", "", gh_user_repo.split("/")[-1])
                 new_rst = os.path.join(_PROJECT_ROOT, target_dir, f"{name}.rst")
                 AssistantCLI._copy_rst(single_page, new_rst, as_orphan=as_orphan)
                 return
