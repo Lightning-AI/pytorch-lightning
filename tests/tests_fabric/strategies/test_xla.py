@@ -161,7 +161,6 @@ def test_tpu_all_gather():
 
 
 def tpu_sync_module_states_fn(sync_module_states, strategy):
-    seed_everything()
     model = torch.nn.Linear(1, 1).to(strategy.root_device)
     model = strategy.setup_module(model)
     gathered = strategy.all_gather(model.weight)
