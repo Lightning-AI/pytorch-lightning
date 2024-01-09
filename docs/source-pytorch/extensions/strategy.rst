@@ -105,18 +105,7 @@ Third-party Strategies
 **********************
 
 There are powerful third-party strategies that integrate well with Lightning but aren't maintained as part of the ``lightning`` package.
-
-.. list-table:: List of third-party strategy implementations
-   :widths: 20 20 20
-   :header-rows: 1
-
-   * - Name
-     - Package
-     - Description
-   * - hivemind
-     - `Lightning-AI/lightning-hivemind <https://github.com/Lightning-AI/lightning-hivemind>`_
-     - Hivemind is a PyTorch library for decentralized deep learning across the Internet. Its intended usage is training one large model on hundreds of computers from different universities, companies, and volunteers. `Learn more. <https://github.com/learning-at-home/hivemind>`__
-
+Checkout the gallery over :doc:`here <../integrations/strategies/index>`.
 
 ----
 

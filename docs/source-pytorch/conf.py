@@ -111,7 +111,7 @@ for img in ["_static/images/ipu/profiler.png"]:
 assist_local.AssistantCLI.pull_docs_files(
     gh_user_repo="Lightning-Universe/lightning-Hivemind",
     target_dir="docs/source-pytorch/integrations/strategies",
-    checkout="7b985855f08c4ff94299c06f912f16b64ee93888",  # Todo: replace with SHA on master after the related PR is merged
+    checkout="3b14f766200aff8fe7153be19a7bd92440dea3cf",  # this is post release version including moved overview page
     single_page="overview.rst",
 )
 
