@@ -27,7 +27,6 @@ from lightning_utilities.core.imports import RequirementCache
 from torch import Tensor
 from torch.nn import init
 from torch.nn.modules.module import _IncompatibleKeys
-from typing_extensions import override
 from typing_extensions import Self, override
 
 from lightning.fabric.plugins.precision.precision import Precision
