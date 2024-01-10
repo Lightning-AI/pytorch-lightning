@@ -442,9 +442,20 @@ class AssistantCLI:
         target_dir: str = "docs/source-pytorch/XXX",
         checkout: str = "refs/tags/1.0.0",
         source_dir: str = "docs/source",
+        single_page: Optional[str] = None,
         as_orphan: bool = False,
     ) -> None:
-        """Pull docs pages from external source and append to local docs."""
+        """Pull docs pages from external source and append to local docs.
+
+        Args:
+            gh_user_repo: standard GitHub user/repo string
+            target_dir: relative location inside the docs folder
+            checkout: specific tag or branch to checkout
+            source_dir: relative location inside the remote / external repo
+            single_page: copy only single page from the remote repo and name it as the repo name
+            as_orphan: append orphan statement to the page
+
+        """
         import zipfile
 
         zip_url = f"https://github.com/{gh_user_repo}/archive/{checkout}.zip"
@@ -464,6 +475,14 @@ class AssistantCLI:
             assert len(zip_dirs) == 1
             repo_dir = zip_dirs[0]
 
+            if single_page:  # special case for copying single page
+                single_page = os.path.join(repo_dir, source_dir, single_page)
+                assert os.path.isfile(single_page), f"File '{single_page}' does not exist."
+                name = re.sub(r"lightning[-_]?", "", gh_user_repo.split("/")[-1])
+                new_rst = os.path.join(_PROJECT_ROOT, target_dir, f"{name}.rst")
+                AssistantCLI._copy_rst(single_page, new_rst, as_orphan=as_orphan)
+                return
+            # continue with copying all pages
             ls_pages = glob.glob(os.path.join(repo_dir, source_dir, "*.rst"))
             ls_pages += glob.glob(os.path.join(repo_dir, source_dir, "**", "*.rst"))
             for rst in ls_pages:
