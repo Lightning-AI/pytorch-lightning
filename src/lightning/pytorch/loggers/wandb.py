@@ -36,7 +36,7 @@ from lightning.pytorch.utilities.rank_zero import rank_zero_only, rank_zero_warn
 if TYPE_CHECKING:
     from wandb import Artifact
     from wandb.sdk.lib import RunDisabled
-    from wandb.wandb_run import Run
+    from wandb.sdk.wandb_run import Run
 
 _WANDB_AVAILABLE = RequirementCache("wandb>=0.15.0")
 

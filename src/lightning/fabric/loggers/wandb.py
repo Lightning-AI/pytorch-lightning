@@ -31,7 +31,7 @@ from lightning.fabric.utilities.types import _PATH
 if TYPE_CHECKING:
     from wandb import Artifact
     from wandb.sdk.lib import RunDisabled
-    from wandb.wandb_run import Run
+    from wandb.sdk.wandb_run import Run
 
     from lightning.pytorch.callbacks.model_checkpoint import (
         ModelCheckpoint,  # TODO: Replace with new Fabric Checkpoints system
@@ -69,7 +69,7 @@ class WandbLogger(Logger):
 
     **Log metrics**
 
-    Log from `~lightning.LightningModule`:
+    Log from :class:`~lightning.pytorch.core.LightningModule`:
 
     .. code-block:: python
 
@@ -85,7 +85,7 @@ class WandbLogger(Logger):
 
     **Log hyper-parameters**
 
-    Save `~lightning.LightningModule` parameters:
+    Save :class:`~lightning.pytorch.core.LightningModule` parameters:
 
     .. code-block:: python
 
@@ -253,7 +253,7 @@ class WandbLogger(Logger):
         anonymous: Enables or explicitly disables anonymous logging.
         project: The name of the project to which this run will belong. If not set, the environment variable
             `WANDB_PROJECT` will be used as a fallback. If both are not set, it defaults to ``'lightning_logs'``.
-        log_model: Log checkpoints created by `~lightning.pytorch.callbacks.ModelCheckpoint`
+        log_model: Log checkpoints created by :class:`~lightning.pytorch.callbacks.ModelCheckpoint`
             as W&B artifacts. `latest` and `best` aliases are automatically set.
 
             * if ``log_model == 'all'``, checkpoints are logged during training.
