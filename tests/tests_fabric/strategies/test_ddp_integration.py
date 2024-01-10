@@ -21,8 +21,8 @@ from lightning.fabric import Fabric
 from torch.nn.parallel.distributed import DistributedDataParallel
 
 from tests_fabric.helpers.runif import RunIf
-from tests_fabric.test_fabric import BoringModel
 from tests_fabric.strategies.test_single_device import _run_test_clip_gradients
+from tests_fabric.test_fabric import BoringModel
 
 
 @pytest.mark.parametrize(
