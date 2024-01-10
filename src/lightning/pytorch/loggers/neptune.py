@@ -38,9 +38,12 @@ if TYPE_CHECKING:
 
 log = logging.getLogger(__name__)
 
-# neptune is available with two names on PyPI : `neptune` and `neptune-client`
+# Neptune is available with two names on PyPI : `neptune` and `neptune-client`
+# `neptune` was introduced as a name transition of neptune-client and the long-term target is to get
+# rid of Neptune-client package completely someday. It was introduced as a part of breaking-changes with a release
+# of neptune-client==1.0. neptune-client>=1.0 is just an alias of neptune package and have some breaking-changes
+# in compare to neptune-client<1.0.0.
 _NEPTUNE_AVAILABLE = RequirementCache("neptune>=1.0")
-_NEPTUNE_CLIENT_AVAILABLE = RequirementCache("neptune-client")
 _INTEGRATION_VERSION_KEY = "source_code/integrations/pytorch-lightning"
 
 
@@ -223,8 +226,9 @@ class NeptuneLogger(Logger):
         prefix: str = "training",
         **neptune_run_kwargs: Any,
     ):
-        if not _NEPTUNE_AVAILABLE and not _NEPTUNE_CLIENT_AVAILABLE:
-            raise ModuleNotFoundError(str(_NEPTUNE_AVAILABLE))
+        if not _NEPTUNE_AVAILABLE:
+            raise ModuleNotFoundError('Missing Neptune logger, please install it with `pip install neptune`')
+
         # verify if user passed proper init arguments
         self._verify_input_arguments(api_key, project, name, run, neptune_run_kwargs)
         super().__init__()
