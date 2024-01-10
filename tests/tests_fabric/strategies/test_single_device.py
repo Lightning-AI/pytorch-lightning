@@ -88,7 +88,8 @@ def test_clip_gradients(clip_type, precision):
         new_norm = norm / 2.0
         fabric.clip_gradients(model, optimizer, max_norm=new_norm)
         assert torch.allclose(
-            torch.linalg.vector_norm(model.weight.grad.detach().cpu(), 2, dtype=torch.float32), torch.tensor(new_norm)
+            torch.linalg.vector_norm(model.weight.grad.detach().cpu(), 2, dtype=torch.float32),
+            torch.tensor(new_norm),
         )
     elif clip_type == "val":
         val = model.weight.grad.view(-1)[0].item()

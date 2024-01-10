@@ -533,7 +533,8 @@ def test_clip_gradients(clip_type, precision):
         fabric.clip_gradients(model, optimizer, max_norm=new_norm*10)
         with FSDP.summon_full_params(model._forward_module, with_grads=True):
             assert torch.allclose(
-                torch.linalg.vector_norm(model.weight.grad.detach().cpu(), 2, dtype=torch.float32), torch.tensor(new_norm)
+                torch.linalg.vector_norm(model.weight.grad.detach().cpu(), 2, dtype=torch.float32),
+                torch.tensor(new_norm),
             )
     elif clip_type == "val":
         val = model.weight.grad[0].item()
