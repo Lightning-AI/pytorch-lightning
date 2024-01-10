@@ -11,10 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import math
 from unittest.mock import Mock
 
 import pytest
 import torch
+from lightning.fabric import Fabric
 from lightning.fabric.strategies import SingleDeviceStrategy
 from lightning.fabric.wrappers import _FabricModule, _FabricOptimizer
 
@@ -57,41 +59,33 @@ def test_single_device_module_to_device():
     module.to.assert_called_with(strategy.root_device)
 
 
-class _MyFabricGradNorm(BoringFabric):
-    def after_backward(self, model: _FabricModule, optimizer: _FabricOptimizer):
-        self.clip_gradients(model, optimizer, max_norm=0.05, error_if_nonfinite=True)
+# def test_gradient_clipping():
 
-        parameters = model.parameters()
-        grad_norm = torch.linalg.vector_norm(
-            torch.stack([torch.linalg.vector_norm(p.grad.detach(), 2, dtype=torch.float32) for p in parameters]),
-            2,
-        )
-        torch.testing.assert_close(grad_norm, torch.tensor(0.05, device=self.device))
 
-    def run(self):
-        # 10 retries
-        i = 0
-        while True:
-            try:
-                super().run()
-                break
-            except RuntimeError as ex:
-                # nonfinite grads -> skip and continue
-                # this may repeat until the scaler finds a factor where overflow is avoided,
-                # so the while loop should eventually break
-                # stop after a max of 10 tries
-                if i > 10 or not str(ex).startswith("The total norm"):
-                    raise ex
-
-                # unscale was already called by last attempt,
-                # but no update afterwards since optimizer step was missing.
-                # Manually update here -> Need to update inf stats first.
-                scaler = getattr(self._precision, "scaler", None)
-                if scaler is not None:
-                    scaler._check_inf_per_device(self.optimizer)
-                    scaler.update()
-            finally:
-                i += 1
+    # def run(self):
+    #     # 10 retries
+    #     i = 0
+    #     while True:
+    #         try:
+    #             super().run()
+    #             break
+    #         except RuntimeError as ex:
+    #             # nonfinite grads -> skip and continue
+    #             # this may repeat until the scaler finds a factor where overflow is avoided,
+    #             # so the while loop should eventually break
+    #             # stop after a max of 10 tries
+    #             if i > 10 or not str(ex).startswith("The total norm"):
+    #                 raise ex
+    #
+    #             # unscale was already called by last attempt,
+    #             # but no update afterwards since optimizer step was missing.
+    #             # Manually update here -> Need to update inf stats first.
+    #             scaler = getattr(self._precision, "scaler", None)
+    #             if scaler is not None:
+    #                 scaler._check_inf_per_device(self.optimizer)
+    #                 scaler.update()
+    #         finally:
+    #             i += 1
 
 
 class _MyFabricGradVal(BoringFabric):
@@ -143,7 +137,37 @@ class _MyFabricGradVal(BoringFabric):
     ],
 )
 @pytest.mark.parametrize("clip_type", ["norm", "val"])
-def test_single_device_grad_clipping(clip_type, precision):
-    clipping_test_cls = _MyFabricGradNorm if clip_type == "norm" else _MyFabricGradVal
-    fabric = clipping_test_cls(accelerator="auto", devices=1, precision=precision)
-    fabric.run()
+def test_single_device_clip_gradients(clip_type, precision):
+    fabric = Fabric(accelerator="auto", devices=1, precision=precision)
+
+    in_features = 32
+    out_features = 2
+    model = torch.nn.Linear(in_features, out_features, bias=False)
+    model.weight.data.fill_(1.)
+
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.1)
+    model, optimizer = fabric.setup(model, optimizer)
+
+    batch = torch.ones(1, in_features)
+    output = model(batch)
+    loss = output.sum()
+    fabric.backward(loss)
+    # The example is constructed such that the gradients are all 1.
+    assert torch.equal(model.weight.grad, torch.ones_like(model.weight.grad))
+
+    if clip_type == "norm":
+        expected_norm = math.sqrt(in_features * out_features)
+        assert torch.linalg.vector_norm(model.weight.grad.detach(), 2, dtype=torch.float32) == expected_norm
+        fabric.clip_gradients(model, optimizer, max_norm=1.0)
+        assert torch.allclose(model.weight.grad, torch.full_like(model.weight.grad, 1.0 / expected_norm))
+        assert torch.allclose(
+            torch.linalg.vector_norm(model.weight.grad.detach(), 2, dtype=torch.float32), torch.tensor(1.0)
+        )
+    elif clip_type == "val":
+        fabric.clip_gradients(model, optimizer, clip_val=0.5)
+        assert torch.allclose(model.weight.grad, torch.full_like(model.weight.grad, 0.5))
+    else:
+        raise AssertionError(f"Unknown clip type {clip_type}")
+
+    optimizer.step()
+    optimizer.zero_grad()
