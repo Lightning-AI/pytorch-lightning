@@ -258,7 +258,7 @@ def _get_item_filesizes(items: List[Any], base_path: str = "") -> List[int]:
     """Computes the total size in bytes of all file paths for every datastructure in the given list."""
     item_sizes = []
     for item in items:
-        flattened_item, spec = tree_flatten(item)
+        flattened_item, _ = tree_flatten(item)
 
         num_bytes = 0
         for index, element in enumerate(flattened_item):
