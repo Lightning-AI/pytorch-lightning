@@ -41,6 +41,7 @@ def test_default_attributes(monkeypatch):
         monkeypatch.setattr(pjrt, "world_size", lambda: 2)
         monkeypatch.setattr(pjrt, "global_ordinal", lambda: 0)
         monkeypatch.setattr(pjrt, "local_ordinal", lambda: 0)
+        os.environ["XRT_HOST_ORDINAL"] = "1"
 
     env = XLAEnvironment()
     assert not env.creates_processes_externally
@@ -72,6 +73,7 @@ def test_attributes_from_environment_variables(monkeypatch):
         monkeypatch.setattr(pjrt, "world_size", lambda: 2)
         monkeypatch.setattr(pjrt, "global_ordinal", lambda: 0)
         monkeypatch.setattr(pjrt, "local_ordinal", lambda: 2)
+        os.environ["XRT_HOST_ORDINAL"] = "1"
 
     env = XLAEnvironment()
     with pytest.raises(NotImplementedError):
