@@ -64,7 +64,7 @@ def test_single_device_module_to_device():
     ],
 )
 @pytest.mark.parametrize("clip_type", ["norm", "val"])
-def test_single_device_clip_gradients(clip_type, precision):
+def test_clip_gradients(clip_type, precision):
     if clip_type == "norm" and precision == "16-mixed":
         pytest.skip(reason="Clipping by norm with 16-mixed is numerically unstable.")
 
@@ -91,7 +91,7 @@ def test_single_device_clip_gradients(clip_type, precision):
             torch.linalg.vector_norm(model.weight.grad.detach().cpu(), 2, dtype=torch.float32), torch.tensor(new_norm)
         )
     elif clip_type == "val":
-        val = model.weight.grad[0, 0].item()
+        val = model.weight.grad.view(-1)[0].item()
         new_val = val / 2.0
         fabric.clip_gradients(model, optimizer, clip_val=new_val)
         assert torch.allclose(model.weight.grad, torch.full_like(model.weight.grad, new_val))

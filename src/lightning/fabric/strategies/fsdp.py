@@ -414,13 +414,13 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         self.precision.unscale_gradients(optimizer)
         return module.clip_grad_norm_(max_norm=max_norm, norm_type=norm_type)
 
-    @override
-    def clip_gradients_value(self, module: Module, optimizer: Optimizer, clip_val: Union[float, int]) -> None:
-        """Clip gradients by value."""
-        raise NotImplementedError(
-            "FSDP currently does not support to clip gradients by value. "
-            "Consider clipping by norm instead or choose another strategy!"
-        )
+    # @override
+    # def clip_gradients_value(self, module: Module, optimizer: Optimizer, clip_val: Union[float, int]) -> None:
+    #     """Clip gradients by value."""
+    #     raise NotImplementedError(
+    #         "FSDP currently does not support to clip gradients by value. "
+    #         "Consider clipping by norm instead or choose another strategy!"
+    #     )
 
     @override
     def save_checkpoint(

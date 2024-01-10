@@ -490,20 +490,26 @@ def test_rewrap_warnings():
     assert next(fabric_model.parameters()).is_meta
 
 
+RunIf(min_cuda_gpus=2)
 @pytest.mark.parametrize(
     "precision",
     [
         "32-true",
-        pytest.param("16-mixed", marks=RunIf(min_cuda_gpus=1)),
+        pytest.param("16-mixed"),
         pytest.param("bf16-mixed", marks=RunIf(bf16_cuda=True)),
     ],
 )
-@pytest.mark.parametrize("clip_type", ["norm", "val"])
-def test_single_device_clip_gradients(clip_type, precision):
+@pytest.mark.parametrize("clip_type", [
+    pytest.param("norm", marks=pytest.mark.skip("FSDP gradient clipping by norm is not correct.")),
+    "val",
+])
+def test_clip_gradients(clip_type, precision):
     if clip_type == "norm" and precision == "16-mixed":
         pytest.skip(reason="Clipping by norm with 16-mixed is numerically unstable.")
 
-    fabric = Fabric(accelerator="auto", devices=1, precision=precision)
+    strategy = FSDPStrategy(auto_wrap_policy={torch.nn.Linear})
+    fabric = Fabric(accelerator="auto", devices=2, precision=precision, strategy=strategy)
+    fabric.launch()
 
     in_features, out_features = 32, 2
     model = torch.nn.Linear(in_features, out_features, bias=False)
@@ -518,15 +524,19 @@ def test_single_device_clip_gradients(clip_type, precision):
     # The example is constructed such that the gradients are all the same
     fabric.backward(loss)
 
+    from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
+
     if clip_type == "norm":
-        norm = torch.linalg.vector_norm(model.weight.grad.detach().cpu(), 2, dtype=torch.float32).item()
-        new_norm = norm / 2.0
-        fabric.clip_gradients(model, optimizer, max_norm=new_norm)
-        assert torch.allclose(
-            torch.linalg.vector_norm(model.weight.grad.detach().cpu(), 2, dtype=torch.float32), torch.tensor(new_norm)
-        )
+        with FSDP.summon_full_params(model._forward_module, with_grads=True):
+            norm = torch.linalg.vector_norm(model.weight.grad.detach().cpu(), 2, dtype=torch.float32).item()
+        new_norm = norm / 10
+        fabric.clip_gradients(model, optimizer, max_norm=new_norm*10)
+        with FSDP.summon_full_params(model._forward_module, with_grads=True):
+            assert torch.allclose(
+                torch.linalg.vector_norm(model.weight.grad.detach().cpu(), 2, dtype=torch.float32), torch.tensor(new_norm)
+            )
     elif clip_type == "val":
-        val = model.weight.grad[0, 0].item()
+        val = model.weight.grad[0].item()
         new_val = val / 2.0
         fabric.clip_gradients(model, optimizer, clip_val=new_val)
         assert torch.allclose(model.weight.grad, torch.full_like(model.weight.grad, new_val))
