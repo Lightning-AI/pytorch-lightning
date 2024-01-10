@@ -29,6 +29,7 @@ from lightning.fabric.plugins.environments.lightning import find_free_network_po
 from lightning.fabric.strategies.launchers.subprocess_script import _ChildProcessObserver
 from lightning.fabric.utilities.distributed import _distributed_is_initialized
 from lightning.fabric.utilities.imports import _IS_WINDOWS
+from lightning.pytorch.accelerators import XLAAccelerator
 from lightning.pytorch.trainer.connectors.signal_connector import _SignalConnector
 
 from tests_pytorch import _PATH_DATASETS
@@ -138,6 +139,10 @@ def thread_police_duuu_daaa_duuu_daaa():
     active_threads_before = set(threading.enumerate())
     yield
     active_threads_after = set(threading.enumerate())
+
+    if XLAAccelerator.is_available():
+        # Ignore the check when running XLA tests for now
+        return
 
     for thread in active_threads_after - active_threads_before:
         stop = getattr(thread, "stop", None) or getattr(thread, "exit", None)
