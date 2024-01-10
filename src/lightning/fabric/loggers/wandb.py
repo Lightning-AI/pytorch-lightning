@@ -258,7 +258,7 @@ class WandbLogger(Logger):
 
             * if ``log_model == 'all'``, checkpoints are logged during training.
             * if ``log_model == True``, checkpoints are logged at the end of training, except when
-              :paramref:`~lightning.pytorch.callbacks.ModelCheckpoint.save_top_k` ``== -1``
+              `~lightning.pytorch.callbacks.ModelCheckpoint.save_top_k` ``== -1``
               which also logs every checkpoint during training.
             * if ``log_model == False`` (default), no checkpoint is logged.
 
