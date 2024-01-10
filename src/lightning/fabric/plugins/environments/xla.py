@@ -17,7 +17,7 @@ from typing import Any
 
 from typing_extensions import override
 
-from lightning.fabric.accelerators.xla import _XLA_AVAILABLE, _XLA_GREATER_EQUAL_2_1, XLAAccelerator, _using_pjrt
+from lightning.fabric.accelerators.xla import _XLA_AVAILABLE, _XLA_GREATER_EQUAL_2_1, XLAAccelerator
 from lightning.fabric.plugins.environments.cluster_environment import ClusterEnvironment
 
 log = logging.getLogger(__name__)
@@ -110,7 +110,7 @@ class XLAEnvironment(ClusterEnvironment):
         The output is cached for performance.
 
         """
-        if _using_pjrt() and _XLA_GREATER_EQUAL_2_1:
+        if _XLA_GREATER_EQUAL_2_1:
             from torch_xla import runtime as xr
 
             return xr.host_index()

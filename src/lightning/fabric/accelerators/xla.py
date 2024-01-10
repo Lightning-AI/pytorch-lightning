@@ -33,6 +33,8 @@ class XLAAccelerator(Accelerator):
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         if not _XLA_AVAILABLE:
             raise ModuleNotFoundError(str(_XLA_AVAILABLE))
+        if not _using_pjrt():
+            raise RuntimeError("The XLA XRT runtime is not supported anymore.")
         super().__init__(*args, **kwargs)
 
     @override
@@ -54,14 +56,10 @@ class XLAAccelerator(Accelerator):
     def get_parallel_devices(devices: Union[int, List[int]]) -> List[torch.device]:
         """Gets parallel devices for the Accelerator."""
         devices = _parse_tpu_devices(devices)
-        # In XLA XRT index 0 maps to CPU, in fact, a `xla_device()` with no arguments has index 1
-        # since the user passes a 0-based index, we need to adjust the indices
-        device_offset = 0 if _using_pjrt() else 1
-
         if isinstance(devices, int):
-            return [torch.device("xla", i) for i in range(device_offset, devices + device_offset)]
+            return [torch.device("xla", i) for i in range(devices)]
         # list of devices is not supported, just a specific index, fine to access [0]
-        return [torch.device("xla", devices[0] + device_offset)]
+        return [torch.device("xla", devices[0])]
         # we cannot create `xla_device` here because processes have not been spawned yet (this is called in the
         # accelerator connector init). However, there doesn't seem to be a problem with instantiating `torch.device`.
         # it will be replaced with `xla_device` (also a torch.device`, but with extra logic) in the strategy
@@ -75,19 +73,14 @@ class XLAAccelerator(Accelerator):
         """Get the devices when set to auto."""
         if not _XLA_AVAILABLE:
             return 0
-        import torch_xla.core.xla_env_vars as xenv
-        from torch_xla.utils.utils import getenv_as
+        if _XLA_GREATER_EQUAL_2_1:
+            from torch_xla._internal import tpu
 
-        if _using_pjrt():
-            if _XLA_GREATER_EQUAL_2_1:
-                from torch_xla._internal import tpu
+            return tpu.num_available_devices()
+        from torch_xla.experimental import tpu
 
-                return tpu.num_available_devices()
-            from torch_xla.experimental import tpu
-
-            device_count_on_version = {2: 8, 3: 8, 4: 4}
-            return device_count_on_version.get(tpu.version(), 8)
-        return getenv_as(xenv.TPU_NUM_DEVICES, int, 8)
+        device_count_on_version = {2: 8, 3: 8, 4: 4}
+        return device_count_on_version.get(tpu.version(), 8)
 
     @staticmethod
     @override
