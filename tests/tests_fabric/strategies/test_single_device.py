@@ -70,7 +70,10 @@ def test_clip_gradients(clip_type, precision):
         pytest.skip(reason="Clipping by norm with 16-mixed is numerically unstable.")
 
     fabric = Fabric(accelerator="auto", devices=1, precision=precision)
+    _run_test_clip_gradients(fabric=fabric, clip_type=clip_type)
 
+
+def _run_test_clip_gradients(fabric, clip_type):
     in_features, out_features = 32, 2
     model = torch.nn.Linear(in_features, out_features, bias=False)
     model.weight.data.fill_(0.01)
