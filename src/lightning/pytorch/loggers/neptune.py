@@ -253,10 +253,7 @@ class NeptuneLogger(Logger):
             root_obj[_INTEGRATION_VERSION_KEY] = pl.__version__
 
     def _retrieve_run_data(self) -> None:
-        if _NEPTUNE_AVAILABLE:
-            from neptune.handler import Handler
-        else:
-            from neptune.new.handler import Handler
+        from neptune.handler import Handler
 
         assert self._run_instance is not None
         root_obj = self._run_instance
@@ -309,12 +306,8 @@ class NeptuneLogger(Logger):
         run: Optional[Union["Run", "Handler"]],
         neptune_run_kwargs: dict,
     ) -> None:
-        if _NEPTUNE_AVAILABLE:
-            from neptune import Run
-            from neptune.handler import Handler
-        else:
-            from neptune.new import Run
-            from neptune.new.handler import Handler
+        from neptune import Run
+        from neptune.handler import Handler
         # check if user passed the client `Run`/`Handler` object
         if run is not None and not isinstance(run, (Run, Handler)):
             raise ValueError("Run parameter expected to be of type `neptune.Run`, or `neptune.handler.Handler`.")
@@ -334,10 +327,7 @@ class NeptuneLogger(Logger):
         return state
 
     def __setstate__(self, state: Dict[str, Any]) -> None:
-        if _NEPTUNE_AVAILABLE:
-            import neptune
-        else:
-            import neptune.new as neptune
+        import neptune
 
         self.__dict__ = state
         self._run_instance = neptune.init_run(**self._neptune_init_args)
@@ -375,10 +365,7 @@ class NeptuneLogger(Logger):
     @property
     @rank_zero_experiment
     def run(self) -> "Run":
-        if _NEPTUNE_AVAILABLE:
-            import neptune
-        else:
-            import neptune.new as neptune
+        import neptune
 
         if not self._run_instance:
             self._run_instance = neptune.init_run(**self._neptune_init_args)
@@ -425,10 +412,7 @@ class NeptuneLogger(Logger):
             neptune_logger.log_hyperparams(PARAMS)
 
         """
-        if _NEPTUNE_AVAILABLE:
-            from neptune.utils import stringify_unsupported
-        else:
-            from neptune.new.utils import stringify_unsupported
+        from neptune.utils import stringify_unsupported
 
         params = _convert_params(params)
         params = _sanitize_callable_params(params)
@@ -484,10 +468,7 @@ class NeptuneLogger(Logger):
 
     @rank_zero_only
     def log_model_summary(self, model: "pl.LightningModule", max_depth: int = -1) -> None:
-        if _NEPTUNE_AVAILABLE:
-            from neptune.types import File
-        else:
-            from neptune.new.types import File
+        from neptune.types import File
 
         model_str = str(ModelSummary(model=model, max_depth=max_depth))
         self.run[self._construct_path_with_prefix("model/summary")] = File.from_content(
@@ -506,10 +487,7 @@ class NeptuneLogger(Logger):
         if not self._log_model_checkpoints:
             return
 
-        if _NEPTUNE_AVAILABLE:
-            from neptune.types import File
-        else:
-            from neptune.new.types import File
+        from neptune.types import File
 
         file_names = set()
         checkpoints_namespace = self._construct_path_with_prefix("model/checkpoints")
