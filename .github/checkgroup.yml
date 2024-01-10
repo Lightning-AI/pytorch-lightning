@@ -95,7 +95,6 @@ subprojects:
       - ".github/workflows/tpu-tests.yml"
       - "tests/tests_pytorch/run_tpu_tests.sh"
     checks:
-      - "test-on-tpus (pytorch, xrt, v4-8)"
       - "test-on-tpus (pytorch, pjrt, v4-8)"
 
   - id: "fabric: Docs"
@@ -248,7 +247,6 @@ subprojects:
       - ".github/workflows/tpu-tests.yml"
       - "tests/tests_fabric/run_tpu_tests.sh"
     checks:
-      - "test-on-tpus (fabric, xrt, v4-8)"
       - "test-on-tpus (pytorch, pjrt, v4-8)"
 
   # SECTION: lightning_app
