@@ -490,7 +490,7 @@ def test_rewrap_warnings():
     assert next(fabric_model.parameters()).is_meta
 
 
-RunIf(min_cuda_gpus=2)
+@RunIf(min_cuda_gpus=2)
 @pytest.mark.parametrize(
     "precision",
     [
