@@ -148,7 +148,7 @@ def test_single_device_clip_gradients(clip_type, precision):
     optimizer = torch.optim.Adam(model.parameters(), lr=0.1)
     model, optimizer = fabric.setup(model, optimizer)
 
-    batch = torch.ones(1, in_features)
+    batch = torch.ones(1, in_features, device=fabric.device)
     output = model(batch)
     loss = output.sum()
     fabric.backward(loss)
@@ -156,12 +156,14 @@ def test_single_device_clip_gradients(clip_type, precision):
     assert torch.equal(model.weight.grad, torch.ones_like(model.weight.grad))
 
     if clip_type == "norm":
-        expected_norm = math.sqrt(in_features * out_features)
-        assert torch.linalg.vector_norm(model.weight.grad.detach(), 2, dtype=torch.float32) == expected_norm
+        expected_norm = torch.tensor(in_features * out_features).sqrt()
+        assert torch.allclose(
+            torch.linalg.vector_norm(model.weight.grad.detach().cpu(), 2, dtype=torch.float32), expected_norm
+        )
         fabric.clip_gradients(model, optimizer, max_norm=1.0)
         assert torch.allclose(model.weight.grad, torch.full_like(model.weight.grad, 1.0 / expected_norm))
         assert torch.allclose(
-            torch.linalg.vector_norm(model.weight.grad.detach(), 2, dtype=torch.float32), torch.tensor(1.0)
+            torch.linalg.vector_norm(model.weight.grad.detach().cpu(), 2, dtype=torch.float32), torch.tensor(1.0)
         )
     elif clip_type == "val":
         fabric.clip_gradients(model, optimizer, clip_val=0.5)
