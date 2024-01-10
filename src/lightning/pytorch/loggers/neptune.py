@@ -308,6 +308,7 @@ class NeptuneLogger(Logger):
     ) -> None:
         from neptune import Run
         from neptune.handler import Handler
+
         # check if user passed the client `Run`/`Handler` object
         if run is not None and not isinstance(run, (Run, Handler)):
             raise ValueError("Run parameter expected to be of type `neptune.Run`, or `neptune.handler.Handler`.")
