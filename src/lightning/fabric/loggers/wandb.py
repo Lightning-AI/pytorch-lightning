@@ -253,7 +253,7 @@ class WandbLogger(Logger):
         anonymous: Enables or explicitly disables anonymous logging.
         project: The name of the project to which this run will belong. If not set, the environment variable
             `WANDB_PROJECT` will be used as a fallback. If both are not set, it defaults to ``'lightning_logs'``.
-        log_model: Log checkpoints created by :class:`~lightning.pytorch.callbacks.ModelCheckpoint`
+        log_model: Log checkpoints created by `~lightning.pytorch.callbacks.ModelCheckpoint`
             as W&B artifacts. `latest` and `best` aliases are automatically set.
 
             * if ``log_model == 'all'``, checkpoints are logged during training.
