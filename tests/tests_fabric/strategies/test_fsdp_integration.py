@@ -499,10 +499,13 @@ def test_rewrap_warnings():
         pytest.param("bf16-mixed", marks=RunIf(bf16_cuda=True)),
     ],
 )
-@pytest.mark.parametrize("clip_type", [
-    pytest.param("norm", marks=pytest.mark.skip("FSDP gradient clipping by norm is not correct.")),
-    # "val", # TODO: Support this
-])
+@pytest.mark.parametrize(
+    "clip_type",
+    [
+        pytest.param("norm", marks=pytest.mark.skip("FSDP gradient clipping by norm is not correct.")),
+        # "val", # TODO: Support this
+    ],
+)
 def test_clip_gradients(clip_type, precision):
     if clip_type == "norm" and precision == "16-mixed":
         pytest.skip(reason="Clipping by norm with 16-mixed is numerically unstable.")
@@ -530,7 +533,7 @@ def test_clip_gradients(clip_type, precision):
         with FSDP.summon_full_params(model._forward_module, with_grads=True):
             norm = torch.linalg.vector_norm(model.weight.grad.detach().cpu(), 2, dtype=torch.float32).item()
         new_norm = norm / 10
-        fabric.clip_gradients(model, optimizer, max_norm=new_norm*10)
+        fabric.clip_gradients(model, optimizer, max_norm=new_norm * 10)
         with FSDP.summon_full_params(model._forward_module, with_grads=True):
             assert torch.allclose(
                 torch.linalg.vector_norm(model.weight.grad.detach().cpu(), 2, dtype=torch.float32),

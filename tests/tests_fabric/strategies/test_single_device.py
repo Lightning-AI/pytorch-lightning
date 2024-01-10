@@ -17,6 +17,7 @@ import pytest
 import torch
 from lightning.fabric import Fabric
 from lightning.fabric.strategies import SingleDeviceStrategy
+
 from tests_fabric.helpers.runif import RunIf
 
 
