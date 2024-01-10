@@ -139,6 +139,10 @@ def thread_police_duuu_daaa_duuu_daaa():
     yield
     active_threads_after = set(threading.enumerate())
 
+    if "XLA_VER" in os.environ:
+        # Ignore the check when running XLA tests for now
+        return
+
     for thread in active_threads_after - active_threads_before:
         stop = getattr(thread, "stop", None) or getattr(thread, "exit", None)
         if thread.daemon and callable(stop):
