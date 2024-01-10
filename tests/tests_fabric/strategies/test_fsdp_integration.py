@@ -503,7 +503,7 @@ def test_rewrap_warnings():
     "clip_type",
     [
         pytest.param("norm", marks=pytest.mark.skip("FSDP gradient clipping by norm is not correct.")),
-        # "val", # TODO: Support this
+        "val",
     ],
 )
 def test_clip_gradients(clip_type, precision):
