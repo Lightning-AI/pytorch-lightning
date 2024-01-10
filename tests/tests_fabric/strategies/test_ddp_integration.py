@@ -80,7 +80,7 @@ def _run_ddp_save_load(fabric, tmp_path):
     ],
 )
 @RunIf(standalone=True)
-def test_ddp_grad_clipping(clip_type, accelerator, precision):
+def test_clip_gradients(clip_type, accelerator, precision):
     if clip_type == "norm" and precision == "16-mixed":
         pytest.skip(reason="Clipping by norm with 16-mixed is numerically unstable.")
 
