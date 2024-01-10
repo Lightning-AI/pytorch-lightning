@@ -20,6 +20,7 @@ from unittest.mock import Mock
 import lightning.fabric
 import pytest
 import torch.distributed
+from lightning.fabric.accelerators import XLAAccelerator
 from lightning.fabric.strategies.launchers.subprocess_script import _ChildProcessObserver
 from lightning.fabric.utilities.distributed import _distributed_is_initialized
 
@@ -88,7 +89,7 @@ def thread_police_duuu_daaa_duuu_daaa():
     yield
     active_threads_after = set(threading.enumerate())
 
-    if "XLA_VER" in os.environ:
+    if XLAAccelerator.is_available():
         # Ignore the check when running XLA tests for now
         return
 
