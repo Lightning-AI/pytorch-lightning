@@ -266,6 +266,11 @@ class XLAStrategy(DDPStrategy):
         return output
 
     @override
+    def setup_environment(self) -> None:
+        self._launched = True
+        super().setup_environment()
+
+    @override
     def setup_distributed(self) -> None:
         assert self.parallel_devices is not None
         if len(self.parallel_devices) == 1:
@@ -275,8 +280,6 @@ class XLAStrategy(DDPStrategy):
                 "The `XLAStrategy` does not support running on a single device with the PjRT runtime."
                 " Try using all devices or the `SingleDeviceXLAStrategy` strategy"
             )
-
-        self._launched = True
         rank_zero_only.rank = self.global_rank
 
     @override
