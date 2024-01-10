@@ -234,7 +234,7 @@ def _download_frontend(pkg_path: str, version: str = "v0.0.0"):
         response = urllib.request.urlopen(frontend_release_url)
 
         file = tarfile.open(fileobj=response, mode="r|gz")
-        file.extractall(path=download_dir)
+        file.extractall(path=download_dir)  # noqa: S202
 
         shutil.move(download_dir, frontend_dir)
         print("The Lightning UI has successfully been downloaded!")
@@ -440,14 +440,25 @@ class AssistantCLI:
     def pull_docs_files(
         gh_user_repo: str,
         target_dir: str = "docs/source-pytorch/XXX",
-        checkout: str = "tags/1.0.0",
+        checkout: str = "refs/tags/1.0.0",
         source_dir: str = "docs/source",
+        single_page: Optional[str] = None,
         as_orphan: bool = False,
     ) -> None:
-        """Pull docs pages from external source and append to local docs."""
+        """Pull docs pages from external source and append to local docs.
+
+        Args:
+            gh_user_repo: standard GitHub user/repo string
+            target_dir: relative location inside the docs folder
+            checkout: specific tag or branch to checkout
+            source_dir: relative location inside the remote / external repo
+            single_page: copy only single page from the remote repo and name it as the repo name
+            as_orphan: append orphan statement to the page
+
+        """
         import zipfile
 
-        zip_url = f"https://github.com/{gh_user_repo}/archive/refs/{checkout}.zip"
+        zip_url = f"https://github.com/{gh_user_repo}/archive/{checkout}.zip"
 
         with tempfile.TemporaryDirectory() as tmp:
             zip_file = os.path.join(tmp, "repo.zip")
@@ -457,13 +468,21 @@ class AssistantCLI:
                 raise RuntimeError(f"Requesting file '{zip_url}' does not exist or it is just unavailable.")
 
             with zipfile.ZipFile(zip_file, "r") as zip_ref:
-                zip_ref.extractall(tmp)
+                zip_ref.extractall(tmp)  # noqa: S202
 
             zip_dirs = [d for d in glob.glob(os.path.join(tmp, "*")) if os.path.isdir(d)]
             # check that the extracted archive has only repo folder
             assert len(zip_dirs) == 1
             repo_dir = zip_dirs[0]
 
+            if single_page:  # special case for copying single page
+                single_page = os.path.join(repo_dir, source_dir, single_page)
+                assert os.path.isfile(single_page), f"File '{single_page}' does not exist."
+                name = re.sub(r"lightning[-_]?", "", gh_user_repo.split("/")[-1])
+                new_rst = os.path.join(_PROJECT_ROOT, target_dir, f"{name}.rst")
+                AssistantCLI._copy_rst(single_page, new_rst, as_orphan=as_orphan)
+                return
+            # continue with copying all pages
             ls_pages = glob.glob(os.path.join(repo_dir, source_dir, "*.rst"))
             ls_pages += glob.glob(os.path.join(repo_dir, source_dir, "**", "*.rst"))
             for rst in ls_pages:
@@ -483,7 +502,7 @@ class AssistantCLI:
             page = fopen.read()
         if as_orphan and ":orphan:" not in page:
             page = ":orphan:\n\n" + page
-        with open(rst_in, "w", encoding="utf-8") as fopen:
+        with open(rst_out, "w", encoding="utf-8") as fopen:
             fopen.write(page)
 
 

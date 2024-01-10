@@ -25,6 +25,7 @@ import torch.backends.cudnn
 import torch.multiprocessing as mp
 from lightning_utilities.core.apply_func import apply_to_collection
 from torch import Tensor
+from typing_extensions import override
 
 import lightning.pytorch as pl
 from lightning.fabric.strategies.launchers.multiprocessing import (
@@ -83,12 +84,14 @@ class _MultiProcessingLauncher(_Launcher):
         self._already_fit = False
 
     @property
+    @override
     def is_interactive_compatible(self) -> bool:
         # The start method 'spawn' is not supported in interactive environments
         # The start method 'fork' is the only one supported in Jupyter environments, with constraints around CUDA
         # initialization. For more context, see https://github.com/Lightning-AI/lightning/issues/7550
         return self._start_method == "fork"
 
+    @override
     def launch(self, function: Callable, *args: Any, trainer: Optional["pl.Trainer"] = None, **kwargs: Any) -> Any:
         """Launches processes that run the given function in parallel.
 
@@ -252,6 +255,7 @@ class _MultiProcessingLauncher(_Launcher):
         callback_metrics = extra["callback_metrics"]
         trainer.callback_metrics.update(apply_to_collection(callback_metrics, np.ndarray, lambda x: torch.tensor(x)))
 
+    @override
     def kill(self, signum: _SIGNUM) -> None:
         for proc in self.procs:
             if proc.is_alive() and proc.pid is not None:

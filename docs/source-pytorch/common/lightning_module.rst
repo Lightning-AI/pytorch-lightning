@@ -172,8 +172,7 @@ Under the hood, Lightning does the following (pseudocode):
 
 .. code-block:: python
 
-    # put model in train mode and enable gradient calculation
-    model.train()
+    # enable gradient calculation
     torch.set_grad_enabled(True)
 
     for batch_idx, batch in enumerate(train_dataloader):
@@ -1066,22 +1065,17 @@ for more information.
 
 .. code-block:: python
 
+    # runs on every device: devices can be GPUs, TPUs, ...
     def fit(self):
-        if global_rank == 0:
-            # prepare data is called on GLOBAL_ZERO only
-            prepare_data()
-
         configure_callbacks()
 
-        with parallel(devices):
-            # devices can be GPUs, TPUs, ...
-            train_on_device(model)
+        if local_rank == 0:
+            prepare_data()
 
-
-    def train_on_device(model):
-        # called PER DEVICE
         setup("fit")
+        configure_model()
         configure_optimizers()
+
         on_fit_start()
 
         # the sanity check runs here
@@ -1096,7 +1090,6 @@ for more information.
 
 
     def fit_loop():
-        model.train()
         torch.set_grad_enabled(True)
 
         on_train_epoch_start()

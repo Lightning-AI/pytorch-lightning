@@ -26,6 +26,7 @@ from torch.utils.hooks import RemovableHandle
 
 import lightning.pytorch as pl
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
+from lightning.pytorch.utilities.model_helpers import _ModuleMode
 from lightning.pytorch.utilities.rank_zero import WarningCache
 
 log = logging.getLogger(__name__)
@@ -288,7 +289,8 @@ class ModelSummary:
         input_ = model._on_before_batch_transfer(input_)
         input_ = model._apply_batch_transfer_handler(input_)
 
-        mode = model.training
+        mode = _ModuleMode()
+        mode.capture(model)
         model.eval()
 
         forward_context = contextlib.nullcontext() if trainer is None else trainer.precision_plugin.forward_context()
@@ -300,7 +302,7 @@ class ModelSummary:
                 model(**input_)
             else:
                 model(input_)
-        model.train(mode)  # restore mode of module
+        mode.restore(model)
 
     def _get_summary_data(self) -> List[Tuple[str, List[str]]]:
         """Makes a summary listing with:

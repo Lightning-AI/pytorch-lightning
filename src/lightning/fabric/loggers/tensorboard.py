@@ -110,6 +110,7 @@ class TensorBoardLogger(Logger):
         self._kwargs = kwargs
 
     @property
+    @override
     def name(self) -> str:
         """Get the name of the experiment.
 
@@ -120,6 +121,7 @@ class TensorBoardLogger(Logger):
         return self._name
 
     @property
+    @override
     def version(self) -> Union[int, str]:
         """Get the experiment version.
 
@@ -132,6 +134,7 @@ class TensorBoardLogger(Logger):
         return self._version
 
     @property
+    @override
     def root_dir(self) -> str:
         """Gets the save directory where the TensorBoard experiments are saved.
 
@@ -142,6 +145,7 @@ class TensorBoardLogger(Logger):
         return self._root_dir
 
     @property
+    @override
     def log_dir(self) -> str:
         """The directory for this run's tensorboard checkpoint.
 
@@ -192,6 +196,7 @@ class TensorBoardLogger(Logger):
         self._experiment = SummaryWriter(log_dir=self.log_dir, **self._kwargs)
         return self._experiment
 
+    @override
     @rank_zero_only
     def log_metrics(self, metrics: Mapping[str, float], step: Optional[int] = None) -> None:
         assert rank_zero_only.rank == 0, "experiment tried to log from global_rank != 0"
@@ -213,6 +218,7 @@ class TensorBoardLogger(Logger):
                         f"\n you tried to log {v} which is currently not supported. Try a dict or a scalar/tensor."
                     ) from ex
 
+    @override
     @rank_zero_only
     def log_hyperparams(  # type: ignore[override]
         self, params: Union[Dict[str, Any], Namespace], metrics: Optional[Dict[str, Any]] = None
@@ -308,7 +314,8 @@ class TensorBoardLogger(Logger):
             bn = os.path.basename(d)
             if _is_dir(self._fs, d) and bn.startswith("version_"):
                 dir_ver = bn.split("_")[1].replace("/", "")
-                existing_versions.append(int(dir_ver))
+                if dir_ver.isdigit():
+                    existing_versions.append(int(dir_ver))
         if len(existing_versions) == 0:
             return 0
 

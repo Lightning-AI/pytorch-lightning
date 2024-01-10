@@ -105,6 +105,7 @@ class MixedPrecision(Precision):
         if self.scaler is not None:
             self.scaler.load_state_dict(state_dict)
 
+    @override
     def unscale_gradients(self, optimizer: Optimizer) -> None:
         scaler = self.scaler
         if scaler is not None:

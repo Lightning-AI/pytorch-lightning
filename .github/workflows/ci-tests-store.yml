@@ -9,10 +9,9 @@ on:
     types: [opened, reopened, ready_for_review, synchronize] # added `ready_for_review` since draft is skipped
     paths:
       - ".actions/*"
+      - "requirements/ci.txt"
       - "requirements/store/**"
-      - "src/lightning/__about__.py"
       - "src/lightning/__init__.py"
-      - "src/lightning/__main__.py"
       - "src/lightning/__setup__.py"
       - "src/lightning/__version__.py"
       - "src/lightning/store/**"
@@ -25,7 +24,7 @@ on:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
-  cancel-in-progress: ${{ ! (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/')) }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 defaults:
   run:
@@ -52,14 +51,14 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
 
       - name: Adjust PyTorch versions in requirements files
         if: ${{ matrix.requires != 'oldest' && matrix.release != 'pre' }}
         run: |
-          pip install -q wget packaging
+          pip install -q -r requirements/ci.txt
           python -m wget https://raw.githubusercontent.com/Lightning-AI/utilities/main/scripts/adjust-torch-versions.py
           for fpath in `ls requirements/store/*.txt`; do \
             python ./adjust-torch-versions.py $fpath ${{ matrix.pytorch-version }}; \
@@ -68,7 +67,6 @@ jobs:
       - name: Install package & dependencies
         timeout-minutes: 20
         run: |
-          python -m pip install -q pip -U
           pip install -e ".[store,store-test]" -U -f ${TORCH_URL} --prefer-binary
           pip list
 

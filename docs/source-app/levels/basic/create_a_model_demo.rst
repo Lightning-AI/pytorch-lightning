@@ -3,7 +3,6 @@
 ############################
 Example: Create a model demo
 ############################
-**Audience:** TODO:
 
 **Prereqs:** You have an app already running locally.
 

@@ -329,6 +329,7 @@ class StochasticWeightAveraging(Callback):
         """Adapted from https://github.com/pytorch/pytorch/blob/v1.7.1/torch/optim/swa_utils.py#L95-L97."""
         return averaged_model_parameter + (model_parameter - averaged_model_parameter) / (num_averaged + 1)
 
+    @override
     def state_dict(self) -> Dict[str, Any]:
         return {
             "n_averaged": 0 if self.n_averaged is None else self.n_averaged.item(),

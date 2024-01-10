@@ -88,24 +88,32 @@ _transform_changelog(
     os.path.join(_PATH_HERE, _FOLDER_GENERATED, "CHANGELOG.md"),
 )
 
-
+# Copy Accelerator docs
 assist_local.AssistantCLI.pull_docs_files(
     gh_user_repo="Lightning-AI/lightning-Habana",
     target_dir="docs/source-pytorch/integrations/hpu",
-    checkout="tags/1.2.0",
+    checkout="refs/tags/1.3.0",
 )
 assist_local.AssistantCLI.pull_docs_files(
     gh_user_repo="Lightning-AI/lightning-Graphcore",
     target_dir="docs/source-pytorch/integrations/ipu",
-    checkout="tags/v0.1.0",
+    checkout="refs/tags/v0.1.0",
     as_orphan=True,  # todo: this can be dropped after new IPU release
 )
 # the IPU also need one image
 URL_RAW_DOCS_GRAPHCORE = "https://raw.githubusercontent.com/Lightning-AI/lightning-Graphcore/v0.1.0/docs/source"
 for img in ["_static/images/ipu/profiler.png"]:
-    os.makedirs(os.path.dirname(os.path.join(_PATH_HERE, img)), exist_ok=True)
-    urllib.request.urlretrieve(f"{URL_RAW_DOCS_GRAPHCORE}/{img}", os.path.join(_PATH_HERE, img))
+    img_ = os.path.join(_PATH_HERE, "integrations", "ipu", img)
+    os.makedirs(os.path.dirname(img_), exist_ok=True)
+    urllib.request.urlretrieve(f"{URL_RAW_DOCS_GRAPHCORE}/{img}", img_)
 
+# Copy strategies docs as single pages
+assist_local.AssistantCLI.pull_docs_files(
+    gh_user_repo="Lightning-Universe/lightning-Hivemind",
+    target_dir="docs/source-pytorch/integrations/strategies",
+    checkout="3b14f766200aff8fe7153be19a7bd92440dea3cf",  # this is post release version including moved overview page
+    single_page="overview.rst",
+)
 
 if _FETCH_S3_ASSETS:
     fetch_external_assets(
@@ -379,6 +387,7 @@ nitpick_ignore = [
     ("py:class", "lightning.fabric.loggers.logger._DummyExperiment"),
     ("py:class", "lightning.fabric.plugins.precision.transformer_engine.TransformerEnginePrecision"),
     ("py:class", "lightning.fabric.plugins.precision.bitsandbytes.BitsandbytesPrecision"),
+    ("py:class", "lightning.fabric.utilities.data.AttributeDict"),
     ("py:class", "lightning.fabric.utilities.device_dtype_mixin._DeviceDtypeModuleMixin"),
     ("py:func", "lightning.fabric.utilities.seed.seed_everything"),
     ("py:class", "lightning.fabric.utilities.types.LRScheduler"),
@@ -600,6 +609,9 @@ coverage_skip_undoc_in_source = True
 # skip false positive linkcheck errors from anchors
 linkcheck_anchors = False
 
+# A timeout value, in seconds, for the linkcheck builder.
+linkcheck_timeout = 60
+
 # ignore all links in any CHANGELOG file
 linkcheck_exclude_documents = [r"^(.*\/)*CHANGELOG.*$"]
 
@@ -609,4 +621,5 @@ linkcheck_ignore = [
     r"starter/installation.html$",
     r"^../common/trainer.html#trainer-flags$",
     "https://deepgenerativemodels.github.io/assets/slides/cs236_lecture11.pdf",
+    "https://www.intel.com/content/www/us/en/products/docs/processors/what-is-a-gpu.html",
 ]

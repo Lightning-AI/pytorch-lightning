@@ -17,6 +17,7 @@ from typing import Any, Dict, Generator, List, Optional
 
 import torch
 from torch import Tensor
+from typing_extensions import override
 
 import lightning.pytorch as pl
 from lightning.fabric.plugins import CheckpointIO, ClusterEnvironment
@@ -44,6 +45,7 @@ class ParallelStrategy(Strategy, ABC):
 
     @property
     @abstractmethod
+    @override
     def root_device(self) -> torch.device:
         """Return the root device."""
 
@@ -64,6 +66,7 @@ class ParallelStrategy(Strategy, ABC):
         return self.cluster_environment.world_size() if self.cluster_environment is not None else 1
 
     @property
+    @override
     def is_global_zero(self) -> bool:
         return self.global_rank == 0
 
@@ -82,10 +85,12 @@ class ParallelStrategy(Strategy, ABC):
             "rank": self.global_rank,
         }
 
+    @override
     def all_gather(self, tensor: Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> Tensor:
         """Perform a all_gather on all processes."""
         return _all_gather_ddp_if_available(tensor, group=group, sync_grads=sync_grads)
 
+    @override
     def reduce_boolean_decision(self, decision: bool, all: bool = True) -> bool:
         """Reduces a boolean decision over distributed processes. By default is analagous to ``all`` from the standard
         library, returning ``True`` only if all input decisions evaluate to ``True``. If ``all`` is set to ``False``,
@@ -121,6 +126,7 @@ class ParallelStrategy(Strategy, ABC):
         else:
             yield None
 
+    @override
     def teardown(self) -> None:
         assert self.cluster_environment is not None
         self.cluster_environment.teardown()

@@ -52,7 +52,7 @@ def download_frontend(root: str = _PROJECT_ROOT):
     response = urllib.request.urlopen(LIGHTNING_FRONTEND_RELEASE_URL)  # noqa: S310
 
     file = tarfile.open(fileobj=response, mode="r|gz")
-    file.extractall(path=download_dir)
+    file.extractall(path=download_dir)  # noqa: S202
 
     shutil.move(os.path.join(download_dir, build_dir), frontend_dir)
     print("The Lightning UI has successfully been downloaded!")
@@ -148,6 +148,16 @@ def _prepare_lightning_wheels_and_requirements(root: Path, package_name: str = "
             print(f"Packaged Lightning Cloud with your application. Version: {cloud_version}")
             _prepare_wheel(lightning_cloud_project_path)
             tar_name = _copy_tar(lightning_cloud_project_path, root)
+            tar_files.append(os.path.join(root, tar_name))
+
+        lightning_launcher_project_path = get_dist_path_if_editable_install("lightning_launcher")
+        if lightning_launcher_project_path:
+            from lightning_launcher.__version__ import __version__ as cloud_version
+
+            # todo: check why logging.info is missing in outputs
+            print(f"Packaged Lightning Launcher with your application. Version: {cloud_version}")
+            _prepare_wheel(lightning_launcher_project_path)
+            tar_name = _copy_tar(lightning_launcher_project_path, root)
             tar_files.append(os.path.join(root, tar_name))
 
     return functools.partial(_cleanup, *tar_files)

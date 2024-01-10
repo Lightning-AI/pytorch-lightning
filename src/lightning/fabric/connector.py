@@ -65,8 +65,7 @@ from lightning.fabric.utilities import rank_zero_info, rank_zero_warn
 from lightning.fabric.utilities.device_parser import _determine_root_gpu_device
 from lightning.fabric.utilities.imports import _IS_INTERACTIVE
 
-_PLUGIN = Union[Precision, ClusterEnvironment, CheckpointIO]
-_PLUGIN_INPUT = Union[_PLUGIN, str]
+_PLUGIN_INPUT = Union[Precision, ClusterEnvironment, CheckpointIO]
 
 
 class _Connector:
@@ -84,15 +83,9 @@ class _Connector:
                backend (registed these too, and _strategy_type could be deprecated)
 
         C. plugins flag could be:
-            1. List of str, which could contain:
-                i. precision str (Not supported in the old accelerator_connector version)
-                ii. checkpoint_io str (Not supported in the old accelerator_connector version)
-                iii. cluster_environment str (Not supported in the old accelerator_connector version)
-            2. List of class, which could contains:
-                i. precision class (should be removed, and precision flag should allow user pass classes)
-                ii. checkpoint_io class
-                iii. cluster_environment class
-
+            1. precision class (should be removed, and precision flag should allow user pass classes)
+            2. checkpoint_io class
+            3. cluster_environment class
 
     priorities which to take when:
         A. Class > str
@@ -114,7 +107,7 @@ class _Connector:
         strategy = self._argument_from_env("strategy", strategy, default="auto")
         devices = self._argument_from_env("devices", devices, default="auto")
         num_nodes = int(self._argument_from_env("num_nodes", num_nodes, default=1))
-        precision = self._argument_from_env("precision", precision, default="32-true")
+        precision = self._argument_from_env("precision", precision, default=None)
 
         # 1. Parsing flags
         # Get registered strategies, built-in accelerators and precision plugins
@@ -469,9 +462,9 @@ class _Connector:
         if self._precision_input == "64-true":
             return DoublePrecision()
         if self._precision_input == "transformer-engine":
-            return TransformerEnginePrecision(dtype=torch.bfloat16)
+            return TransformerEnginePrecision(weights_dtype=torch.bfloat16)
         if self._precision_input == "transformer-engine-float16":
-            return TransformerEnginePrecision(dtype=torch.float16)
+            return TransformerEnginePrecision(weights_dtype=torch.float16)
 
         if self._precision_input == "16-mixed" and self._accelerator_flag == "cpu":
             rank_zero_warn(

@@ -74,6 +74,7 @@ class CSVLogger(Logger):
         self._flush_logs_every_n_steps = flush_logs_every_n_steps
 
     @property
+    @override
     def name(self) -> str:
         """Gets the name of the experiment.
 
@@ -84,6 +85,7 @@ class CSVLogger(Logger):
         return self._name
 
     @property
+    @override
     def version(self) -> Union[int, str]:
         """Gets the version of the experiment.
 
@@ -96,11 +98,13 @@ class CSVLogger(Logger):
         return self._version
 
     @property
+    @override
     def root_dir(self) -> str:
         """Gets the save directory where the versioned CSV experiments are saved."""
         return self._root_dir
 
     @property
+    @override
     def log_dir(self) -> str:
         """The log directory for this run.
 
@@ -129,10 +133,12 @@ class CSVLogger(Logger):
         self._experiment = _ExperimentWriter(log_dir=self.log_dir)
         return self._experiment
 
+    @override
     @rank_zero_only
     def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:  # type: ignore[override]
         raise NotImplementedError("The `CSVLogger` does not yet support logging hyperparameters.")
 
+    @override
     @rank_zero_only
     def log_metrics(  # type: ignore[override]
         self, metrics: Dict[str, Union[Tensor, float]], step: Optional[int] = None
@@ -171,7 +177,9 @@ class CSVLogger(Logger):
             full_path = d["name"]
             name = os.path.basename(full_path)
             if _is_dir(self._fs, full_path) and name.startswith("version_"):
-                existing_versions.append(int(name.split("_")[1]))
+                dir_ver = name.split("_")[1]
+                if dir_ver.isdigit():
+                    existing_versions.append(int(dir_ver))
 
         if len(existing_versions) == 0:
             return 0
@@ -245,6 +253,7 @@ class _ExperimentWriter:
         current_keys = set().union(*self.metrics)
         new_keys = current_keys - set(self.metrics_keys)
         self.metrics_keys.extend(new_keys)
+        self.metrics_keys.sort()
         return new_keys
 
     def _rewrite_with_new_header(self, fieldnames: List[str]) -> None:

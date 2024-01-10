@@ -388,6 +388,7 @@ class NeptuneLogger(Logger):
 
         return self._run_instance
 
+    @override
     @rank_zero_only
     def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:  # type: ignore[override]
         r"""Log hyperparameters to the run.
@@ -437,6 +438,7 @@ class NeptuneLogger(Logger):
 
         self.run[parameters_key] = stringify_unsupported(params)
 
+    @override
     @rank_zero_only
     def log_metrics(  # type: ignore[override]
         self, metrics: Dict[str, Union[Tensor, float]], step: Optional[int] = None
@@ -445,7 +447,7 @@ class NeptuneLogger(Logger):
 
         Args:
             metrics: Dictionary with metric names as keys and measured quantities as values.
-            step: Step number at which the metrics should be recorded, currently ignored.
+            step: Step number at which the metrics should be recorded
 
         """
         if rank_zero_only.rank != 0:
@@ -454,10 +456,9 @@ class NeptuneLogger(Logger):
         metrics = _add_prefix(metrics, self._prefix, self.LOGGER_JOIN_CHAR)
 
         for key, val in metrics.items():
-            # `step` is ignored because Neptune expects strictly increasing step values which
-            # Lightning does not always guarantee.
-            self.run[key].append(val)
+            self.run[key].append(val, step=step)
 
+    @override
     @rank_zero_only
     def finalize(self, status: str) -> None:
         if not self._run_instance:
@@ -471,6 +472,7 @@ class NeptuneLogger(Logger):
 
     @override
     @property
+    @override
     def save_dir(self) -> Optional[str]:
         """Gets the save directory of the experiment which in this case is ``None`` because Neptune does not save
         locally.
@@ -554,13 +556,14 @@ class NeptuneLogger(Logger):
     def _get_full_model_name(model_path: str, checkpoint_callback: Checkpoint) -> str:
         """Returns model name which is string `model_path` appended to `checkpoint_callback.dirpath`."""
         if hasattr(checkpoint_callback, "dirpath"):
-            expected_model_path = f"{checkpoint_callback.dirpath}{os.path.sep}"
+            model_path = os.path.normpath(model_path)
+            expected_model_path = os.path.normpath(checkpoint_callback.dirpath)
             if not model_path.startswith(expected_model_path):
                 raise ValueError(f"{model_path} was expected to start with {expected_model_path}.")
             # Remove extension from filepath
-            filepath, _ = os.path.splitext(model_path[len(expected_model_path) :])
-            return filepath
-        return model_path
+            filepath, _ = os.path.splitext(model_path[len(expected_model_path) + 1 :])
+            return filepath.replace(os.sep, "/")
+        return model_path.replace(os.sep, "/")
 
     @classmethod
     def _get_full_model_names_from_exp_structure(cls, exp_structure: Dict[str, Any], namespace: str) -> Set[str]:
@@ -581,11 +584,13 @@ class NeptuneLogger(Logger):
                 yield from cls._dict_paths(v, path)
 
     @property
+    @override
     def name(self) -> Optional[str]:
         """Return the experiment name or 'offline-name' when exp is run in offline mode."""
         return self._run_name
 
     @property
+    @override
     def version(self) -> Optional[str]:
         """Return the experiment version.
 

@@ -65,11 +65,13 @@ class SimpleProfiler(Profiler):
         self.extended = extended
         self.start_time = time.monotonic()
 
+    @override
     def start(self, action_name: str) -> None:
         if action_name in self.current_actions:
             raise ValueError(f"Attempted to start {action_name} which has already started.")
         self.current_actions[action_name] = time.monotonic()
 
+    @override
     def stop(self, action_name: str) -> None:
         end_time = time.monotonic()
         if action_name not in self.current_actions:

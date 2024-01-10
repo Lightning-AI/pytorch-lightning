@@ -61,11 +61,13 @@ class AdvancedProfiler(Profiler):
         self.profiled_actions: Dict[str, cProfile.Profile] = {}
         self.line_count_restriction = line_count_restriction
 
+    @override
     def start(self, action_name: str) -> None:
         if action_name not in self.profiled_actions:
             self.profiled_actions[action_name] = cProfile.Profile()
         self.profiled_actions[action_name].enable()
 
+    @override
     def stop(self, action_name: str) -> None:
         pr = self.profiled_actions.get(action_name)
         if pr is None:

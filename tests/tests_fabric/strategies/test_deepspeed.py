@@ -400,10 +400,12 @@ def test_validate_parallel_devices_indices(device_indices):
     DeepSpeed doesn't support it and needs the index to match to the local rank of the process.
 
     """
+    accelerator = Mock(spec=CUDAAccelerator)
     strategy = DeepSpeedStrategy(
-        accelerator=CUDAAccelerator(), parallel_devices=[torch.device("cuda", i) for i in device_indices]
+        accelerator=accelerator, parallel_devices=[torch.device("cuda", i) for i in device_indices]
     )
     with pytest.raises(
         RuntimeError, match=escape(f"device indices {device_indices!r} don't match the local rank values of processes")
     ):
         strategy.setup_environment()
+    accelerator.setup_device.assert_called_once_with(torch.device("cuda", device_indices[0]))

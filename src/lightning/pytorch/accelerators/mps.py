@@ -32,6 +32,7 @@ class MPSAccelerator(Accelerator):
 
     """
 
+    @override
     def setup_device(self, device: torch.device) -> None:
         """
         Raises:
@@ -46,15 +47,18 @@ class MPSAccelerator(Accelerator):
         """Get M1 (cpu + gpu) stats from ``psutil`` package."""
         return get_device_stats()
 
+    @override
     def teardown(self) -> None:
         pass
 
     @staticmethod
+    @override
     def parse_devices(devices: Union[int, str, List[int]]) -> Optional[List[int]]:
         """Accelerator device parsing logic."""
         return _parse_gpu_ids(devices, include_mps=True)
 
     @staticmethod
+    @override
     def get_parallel_devices(devices: Union[int, str, List[int]]) -> List[torch.device]:
         """Gets parallel devices for the Accelerator."""
         parsed_devices = MPSAccelerator.parse_devices(devices)
@@ -63,16 +67,19 @@ class MPSAccelerator(Accelerator):
         return [torch.device("mps", i) for i in range(len(parsed_devices))]
 
     @staticmethod
+    @override
     def auto_device_count() -> int:
         """Get the devices when set to auto."""
         return 1
 
     @staticmethod
+    @override
     def is_available() -> bool:
         """MPS is only available on a machine with the ARM-based Apple Silicon processors."""
         return _MPSAccelerator.is_available()
 
     @classmethod
+    @override
     def register_accelerators(cls, accelerator_registry: _AcceleratorRegistry) -> None:
         accelerator_registry.register(
             "mps",

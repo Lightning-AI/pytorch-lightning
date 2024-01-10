@@ -69,19 +69,23 @@ class DeepSpeedPrecision(Precision):
         }
         self._desired_dtype = precision_to_type[self.precision]
 
+    @override
     def convert_module(self, module: Module) -> Module:
         if "true" in self.precision:
             return module.to(dtype=self._desired_dtype)
         return module
 
+    @override
     def convert_input(self, data: Any) -> Any:
         return apply_to_collection(data, function=_convert_fp_tensor, dtype=Tensor, dst_type=self._desired_dtype)
 
+    @override
     def tensor_init_context(self) -> ContextManager:
         if "true" not in self.precision:
             return nullcontext()
         return _DtypeContextManager(self._desired_dtype)
 
+    @override
     def module_init_context(self) -> ContextManager:
         return self.tensor_init_context()
 

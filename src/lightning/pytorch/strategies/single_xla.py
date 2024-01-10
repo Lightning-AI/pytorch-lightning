@@ -15,6 +15,7 @@ import os
 from typing import Optional, Union
 
 import torch
+from typing_extensions import override
 
 import lightning.pytorch as pl
 from lightning.fabric.accelerators.xla import _XLA_AVAILABLE
@@ -54,6 +55,7 @@ class SingleDeviceXLAStrategy(SingleDeviceStrategy):
         self.debug = debug
 
     @property  # type: ignore[override]
+    @override
     def checkpoint_io(self) -> Union[XLACheckpointIO, _WrappingCheckpointIO]:
         plugin = self._checkpoint_io
         if plugin is not None:
@@ -62,12 +64,14 @@ class SingleDeviceXLAStrategy(SingleDeviceStrategy):
         return XLACheckpointIO()
 
     @checkpoint_io.setter
+    @override
     def checkpoint_io(self, io: Optional[Union[XLACheckpointIO, _WrappingCheckpointIO]]) -> None:
         if io is not None and not isinstance(io, (XLACheckpointIO, _WrappingCheckpointIO)):
             raise TypeError(f"The XLA strategy can only work with the `XLACheckpointIO` plugin, found {io}")
         self._checkpoint_io = io
 
     @property  # type: ignore[override]
+    @override
     def precision_plugin(self) -> XLAPrecision:
         plugin = self._precision_plugin
         if plugin is not None:
@@ -76,11 +80,13 @@ class SingleDeviceXLAStrategy(SingleDeviceStrategy):
         return XLAPrecision()
 
     @precision_plugin.setter
+    @override
     def precision_plugin(self, precision_plugin: Optional[XLAPrecision]) -> None:
         if precision_plugin is not None and not isinstance(precision_plugin, XLAPrecision):
             raise TypeError(f"The XLA strategy can only work with the `XLAPrecision` plugin, found {precision_plugin}")
         self._precision_plugin = precision_plugin
 
+    @override
     def setup(self, trainer: "pl.Trainer") -> None:
         assert self.model, "self.model must be set before find_shared_parameters(self.model)"
         shared_params = find_shared_parameters(self.model)
@@ -92,9 +98,11 @@ class SingleDeviceXLAStrategy(SingleDeviceStrategy):
             os.environ["PT_XLA_DEBUG"] = str(1)
 
     @classmethod
+    @override
     def register_strategies(cls, strategy_registry: _StrategyRegistry) -> None:
         strategy_registry.register("single_xla", cls, description=cls.__name__)
 
+    @override
     def teardown(self) -> None:
         super().teardown()
         os.environ.pop("PT_XLA_DEBUG", None)

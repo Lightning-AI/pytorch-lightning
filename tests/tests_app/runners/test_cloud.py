@@ -550,14 +550,14 @@ class TestAppCreationClient:
 
         # testing with no-cache False
         cloud_runtime.dispatch(no_cache=False)
-        (func_name, args, kwargs) = cloud_runtime.backend.client.cloud_space_service_create_lightning_run.mock_calls[0]
+        _, _, kwargs = cloud_runtime.backend.client.cloud_space_service_create_lightning_run.mock_calls[0]
         body = kwargs["body"]
         assert body.dependency_cache_key == "dummy-hash"
 
         # testing with no-cache True
         mock_client.reset_mock()
         cloud_runtime.dispatch(no_cache=True)
-        (func_name, args, kwargs) = cloud_runtime.backend.client.cloud_space_service_create_lightning_run.mock_calls[0]
+        _, _, kwargs = cloud_runtime.backend.client.cloud_space_service_create_lightning_run.mock_calls[0]
         body = kwargs["body"]
         assert body.dependency_cache_key is None
 

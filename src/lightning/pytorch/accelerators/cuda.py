@@ -34,6 +34,7 @@ _log = logging.getLogger(__name__)
 class CUDAAccelerator(Accelerator):
     """Accelerator for NVIDIA CUDA devices."""
 
+    @override
     def setup_device(self, device: torch.device) -> None:
         """
         Raises:
@@ -76,29 +77,35 @@ class CUDAAccelerator(Accelerator):
         """
         return torch.cuda.memory_stats(device)
 
+    @override
     def teardown(self) -> None:
         _clear_cuda_memory()
 
     @staticmethod
+    @override
     def parse_devices(devices: Union[int, str, List[int]]) -> Optional[List[int]]:
         """Accelerator device parsing logic."""
         return _parse_gpu_ids(devices, include_cuda=True)
 
     @staticmethod
+    @override
     def get_parallel_devices(devices: List[int]) -> List[torch.device]:
         """Gets parallel devices for the Accelerator."""
         return [torch.device("cuda", i) for i in devices]
 
     @staticmethod
+    @override
     def auto_device_count() -> int:
         """Get the devices when set to auto."""
         return num_cuda_devices()
 
     @staticmethod
+    @override
     def is_available() -> bool:
         return num_cuda_devices() > 0
 
     @classmethod
+    @override
     def register_accelerators(cls, accelerator_registry: _AcceleratorRegistry) -> None:
         accelerator_registry.register(
             "cuda",

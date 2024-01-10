@@ -30,17 +30,12 @@ from lightning_utilities.core.rank_zero import (  # noqa: F401
 )
 from typing_extensions import ParamSpec
 
-import lightning.fabric
 from lightning.fabric.utilities.imports import _UTILITIES_GREATER_EQUAL_0_10
 
 rank_zero_module.log = logging.getLogger(__name__)
 
 
-def _get_rank(
-    strategy: Optional["lightning.fabric.strategies.Strategy"] = None,
-) -> Optional[int]:
-    if strategy is not None:
-        return strategy.global_rank
+def _get_rank() -> Optional[int]:
     # SLURM_PROCID can be set even if SLURM is not managing the multiprocessing,
     # therefore LOCAL_RANK needs to be checked first
     rank_keys = ("RANK", "LOCAL_RANK", "SLURM_PROCID", "JSM_NAMESPACE_RANK")

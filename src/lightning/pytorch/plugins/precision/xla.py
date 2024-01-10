@@ -84,6 +84,7 @@ class XLAPrecision(Precision):
             )
         return closure_result
 
+    @override
     def teardown(self) -> None:
         os.environ.pop("XLA_USE_BF16", None)
         os.environ.pop("XLA_USE_F16", None)

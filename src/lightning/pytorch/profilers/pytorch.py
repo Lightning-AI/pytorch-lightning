@@ -409,6 +409,7 @@ class PyTorchProfiler(Profiler):
             activities.append(ProfilerActivity.CUDA)
         return activities
 
+    @override
     def start(self, action_name: str) -> None:
         if self.profiler is None:
             # close profiler if it is already opened. might happen if 2 profilers
@@ -438,6 +439,7 @@ class PyTorchProfiler(Profiler):
             recording.__enter__()
             self._recording_map[action_name] = recording
 
+    @override
     def stop(self, action_name: str) -> None:
         if action_name in self._recording_map:
             self._recording_map[action_name].__exit__(None, None, None)

@@ -145,6 +145,7 @@ class FSDPPrecision(Precision):
         self.scaler.update()
         return step_output
 
+    @override
     def unscale_gradients(self, optimizer: Optimizer) -> None:
         scaler = self.scaler
         if scaler is not None:

@@ -22,29 +22,28 @@ LABEL maintainer="Lightning-AI <https://github.com/Lightning-AI>"
 
 ARG LIGHTNING_VERSION=""
 
-COPY ./ /home/lightning/
-
-ENV PACKAGE_NAME=pytorch
+COPY ./ /home/pytorch-lightning/
 
 # install dependencies
 RUN \
     cd /home && \
-    mv lightning/_notebooks notebooks && \
-    mv lightning/examples . && \
+    mv pytorch-lightning/_notebooks notebooks && \
+    mv pytorch-lightning/examples . && \
     # replace by specific version if asked
     if [ ! -z "$LIGHTNING_VERSION" ] ; then \
-        rm -rf lightning ; \
-        wget https://github.com/Lightning-AI/lightning/archive/${LIGHTNING_VERSION}.zip --progress=bar:force:noscroll ; \
+        rm -rf pytorch-lightning ; \
+        wget https://github.com/Lightning-AI/pytorch-lightning/archive/${LIGHTNING_VERSION}.zip --progress=bar:force:noscroll ; \
         unzip ${LIGHTNING_VERSION}.zip ; \
-        mv lightning-*/ lightning ; \
+        mv pytorch-lightning-*/ pytorch-lightning ; \
         rm *.zip ; \
     fi && \
     # otherwise there is collision with folder name and pkg name on Pypi
-    cd lightning && \
+    cd pytorch-lightning && \
     pip install setuptools==59.5.0 && \
-    pip install '.[extra,loggers,strategies]' --no-cache-dir && \
+    PACKAGE_NAME=lightning pip install '.[extra,loggers,strategies]' --no-cache-dir && \
+    PACKAGE_NAME=pytorch pip install '.[extra,loggers,strategies]' --no-cache-dir && \
     cd .. && \
-    rm -rf lightning
+    rm -rf pytorch-lightning
 
 RUN python --version && \
     pip --version && \

@@ -59,6 +59,7 @@ class ParallelStrategy(Strategy, ABC):
         return self.cluster_environment.world_size() if self.cluster_environment is not None else 1
 
     @property
+    @override
     def is_global_zero(self) -> bool:
         return self.global_rank == 0
 
@@ -79,6 +80,7 @@ class ParallelStrategy(Strategy, ABC):
         """
         return {"num_replicas": self.world_size, "rank": self.global_rank}
 
+    @override
     def all_gather(self, tensor: Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> Tensor:
         """Perform a all_gather on all processes."""
         return _all_gather_ddp_if_available(tensor, group=group, sync_grads=sync_grads)

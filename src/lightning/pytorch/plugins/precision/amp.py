@@ -115,17 +115,20 @@ class MixedPrecision(Precision):
     def autocast_context_manager(self) -> torch.autocast:
         return torch.autocast(self.device, dtype=(torch.bfloat16 if self.precision == "bf16-mixed" else torch.half))
 
+    @override
     @contextmanager
     def forward_context(self) -> Generator[None, None, None]:
         """Enable autocast context."""
         with self.autocast_context_manager():
             yield
 
+    @override
     def state_dict(self) -> Dict[str, Any]:
         if self.scaler is not None:
             return self.scaler.state_dict()
         return {}
 
+    @override
     def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
         if self.scaler is not None:
             self.scaler.load_state_dict(state_dict)

@@ -75,6 +75,10 @@ When training sharded models with :doc:`FSDP <model_parallel/fsdp>` or DeepSpeed
 
     model = fabric.setup(model)  # parameters get sharded and initialized at once
 
+    # Make sure to create the optimizer only after the model has been set up
+    optimizer = torch.optim.Adam(model.parameters())
+    optimizer = fabric.setup_optimizers(optimizer)
+
 .. note::
     Empty-init is experimental and the behavior may change in the future.
     For FSDP on PyTorch 2.1+, it is required that all user-defined modules that manage parameters implement a ``reset_parameters()`` method (all PyTorch built-in modules have this too).

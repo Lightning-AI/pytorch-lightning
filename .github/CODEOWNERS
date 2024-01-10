@@ -43,8 +43,8 @@
 
 # Data Utilities
 /examples/data/           @tchaton @nohalon @justusschock @lantiga
-/src/lightning/data/      @tchaton @nohalon @justusschock @lantiga
-/tests/tests_data         @tchaton @nohalon @justusschock @lantiga
+/src/lightning/data/      @tchaton
+/tests/tests_data         @tchaton
 
 # Lightning Fabric
 /src/lightning/fabric                       @awaelchli @carmocca @justusschock

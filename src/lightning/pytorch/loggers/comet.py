@@ -303,12 +303,14 @@ class CometLogger(Logger):
 
         return self._experiment
 
+    @override
     @rank_zero_only
     def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:  # type: ignore[override]
         params = _convert_params(params)
         params = _flatten_dict(params)
         self.experiment.log_parameters(params)
 
+    @override
     @rank_zero_only
     def log_metrics(self, metrics: Mapping[str, Union[Tensor, float]], step: Optional[int] = None) -> None:
         assert rank_zero_only.rank == 0, "experiment tried to log from global_rank != 0"
@@ -325,6 +327,7 @@ class CometLogger(Logger):
     def reset_experiment(self) -> None:
         self._experiment = None
 
+    @override
     @rank_zero_only
     def finalize(self, status: str) -> None:
         r"""When calling ``self.experiment.end()``, that experiment won't log any more data to Comet. That's why, if you
@@ -344,6 +347,7 @@ class CometLogger(Logger):
 
     @override
     @property
+    @override
     def save_dir(self) -> Optional[str]:
         """Gets the save directory.
 
@@ -354,6 +358,7 @@ class CometLogger(Logger):
         return self._save_dir
 
     @property
+    @override
     def name(self) -> str:
         """Gets the project name.
 
@@ -371,6 +376,7 @@ class CometLogger(Logger):
         return "comet-default"
 
     @property
+    @override
     def version(self) -> str:
         """Gets the version.
 
@@ -419,6 +425,7 @@ class CometLogger(Logger):
         state["_experiment"] = None
         return state
 
+    @override
     def log_graph(self, model: Module, input_array: Optional[Tensor] = None) -> None:
         if self._experiment is not None:
             self._experiment.set_model_graph(model)

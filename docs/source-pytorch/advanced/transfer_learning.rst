@@ -66,13 +66,13 @@ Example: Imagenet (Computer Vision)
             num_filters = backbone.fc.in_features
             layers = list(backbone.children())[:-1]
             self.feature_extractor = nn.Sequential(*layers)
+            self.feature_extractor.eval()
 
             # use the pretrained model to classify cifar-10 (10 image classes)
             num_target_classes = 10
             self.classifier = nn.Linear(num_filters, num_target_classes)
 
         def forward(self, x):
-            self.feature_extractor.eval()
             with torch.no_grad():
                 representations = self.feature_extractor(x).flatten(1)
             x = self.classifier(representations)

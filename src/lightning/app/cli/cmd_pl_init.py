@@ -121,7 +121,7 @@ def download_frontend(destination: Path) -> None:
     with TemporaryDirectory() as download_dir:
         response = urllib.request.urlopen(url)  # noqa: S310
         file = tarfile.open(fileobj=response, mode="r|gz")
-        file.extractall(path=download_dir)
+        file.extractall(path=download_dir)  # noqa: S202
         shutil.move(str(Path(download_dir, build_dir_name)), destination)
 
 

@@ -13,24 +13,33 @@
 # limitations under the License.
 import os
 import sys
+import threading
 from typing import List
 from unittest.mock import Mock
 
 import lightning.fabric
 import pytest
 import torch.distributed
+from lightning.fabric.accelerators import XLAAccelerator
+from lightning.fabric.strategies.launchers.subprocess_script import _ChildProcessObserver
 from lightning.fabric.utilities.distributed import _distributed_is_initialized
+
+if sys.version_info >= (3, 9):
+    from concurrent.futures.process import _ExecutorManagerThread
 
 
 @pytest.fixture(autouse=True)
 def preserve_global_rank_variable():
     """Ensures that the rank_zero_only.rank global variable gets reset in each test."""
-    from lightning.fabric.utilities.rank_zero import rank_zero_only
+    from lightning.fabric.utilities.rank_zero import rank_zero_only as rank_zero_only_fabric
+    from lightning_utilities.core.rank_zero import rank_zero_only as rank_zero_only_utilities
 
-    rank = getattr(rank_zero_only, "rank", None)
+    functions = (rank_zero_only_fabric, rank_zero_only_utilities)
+    ranks = [getattr(fn, "rank", None) for fn in functions]
     yield
-    if rank is not None:
-        setattr(rank_zero_only, "rank", rank)
+    for fn, rank in zip(functions, ranks):
+        if rank is not None:
+            setattr(fn, "rank", rank)
 
 
 @pytest.fixture(autouse=True)
@@ -58,9 +67,6 @@ def restore_env_variables():
         "CUDA_MODULE_LOADING",  # leaked since PyTorch 1.13
         "CRC32C_SW_MODE",  # set by tensorboardX
         "OMP_NUM_THREADS",  # set by our launchers
-        # set by XLA FSDP on XRT
-        "XRT_TORCH_DIST_ROOT",
-        "XRT_MESH_SERVICE_ADDRESS",
         # set by torchdynamo
         "TRITON_CACHE_DIR",
     }
@@ -74,6 +80,39 @@ def teardown_process_group():
     yield
     if _distributed_is_initialized():
         torch.distributed.destroy_process_group()
+
+
+@pytest.fixture(autouse=True)
+def thread_police_duuu_daaa_duuu_daaa():
+    """Attempts to stop left-over threads to avoid test interactions."""
+    active_threads_before = set(threading.enumerate())
+    yield
+    active_threads_after = set(threading.enumerate())
+
+    if XLAAccelerator.is_available():
+        # Ignore the check when running XLA tests for now
+        return
+
+    for thread in active_threads_after - active_threads_before:
+        stop = getattr(thread, "stop", None) or getattr(thread, "exit", None)
+        if thread.daemon and callable(stop):
+            # A daemon thread would anyway be stopped at the end of a program
+            # We do it preemptively here to reduce the risk of interactions with other tests that run after
+            stop()
+            assert not thread.is_alive()
+        elif isinstance(thread, _ChildProcessObserver):
+            thread.join(timeout=10)
+        elif thread.name == "QueueFeederThread":  # tensorboardX
+            thread.join(timeout=20)
+        elif (
+            sys.version_info >= (3, 9)
+            and isinstance(thread, _ExecutorManagerThread)
+            or "ThreadPoolExecutor-" in thread.name
+        ):
+            # probably `torch.compile`, can't narrow it down further
+            continue
+        else:
+            raise AssertionError(f"Test left zombie thread: {thread}")
 
 
 @pytest.fixture()
@@ -155,22 +194,23 @@ def pytest_collection_modifyitems(items: List[pytest.Function], config: pytest.C
 
     for kwarg, env_var in options.items():
         # this will compute the intersection of all tests selected per environment variable
-        if os.getenv(env_var, "0") == "1":
-            conditions.append(env_var)
-            for i, test in reversed(list(enumerate(items))):  # loop in reverse, since we are going to pop items
-                already_skipped = any(marker.name == "skip" for marker in test.own_markers)
-                if already_skipped:
-                    # the test was going to be skipped anyway, filter it out
-                    items.pop(i)
-                    skipped += 1
-                    continue
-                has_runif_with_kwarg = any(
-                    marker.name == "skipif" and marker.kwargs.get(kwarg) for marker in test.own_markers
-                )
-                if not has_runif_with_kwarg:
-                    # the test has `@RunIf(kwarg=True)`, filter it out
-                    items.pop(i)
-                    filtered += 1
+        if os.getenv(env_var, "0") != "1":
+            continue
+        conditions.append(env_var)
+        for i, test in reversed(list(enumerate(items))):  # loop in reverse, since we are going to pop items
+            already_skipped = any(marker.name == "skip" for marker in test.own_markers)
+            if already_skipped:
+                # the test was going to be skipped anyway, filter it out
+                items.pop(i)
+                skipped += 1
+                continue
+            has_runif_with_kwarg = any(
+                marker.name == "skipif" and marker.kwargs.get(kwarg) for marker in test.own_markers
+            )
+            if not has_runif_with_kwarg:
+                # the test has `@RunIf(kwarg=True)`, filter it out
+                items.pop(i)
+                filtered += 1
 
     if config.option.verbose >= 0 and (filtered or skipped):
         writer = config.get_terminal_writer()

@@ -16,8 +16,9 @@ import queue
 from typing import TYPE_CHECKING, Any, Callable, Optional, Union
 
 import torch.multiprocessing as mp
+from typing_extensions import override
 
-from lightning.fabric.accelerators.xla import _XLA_AVAILABLE, _using_pjrt
+from lightning.fabric.accelerators.xla import _XLA_AVAILABLE
 from lightning.fabric.strategies.launchers.xla import _rank_teardown
 from lightning.fabric.utilities import move_data_to_device
 from lightning.pytorch.strategies.launchers.multiprocessing import (
@@ -55,9 +56,11 @@ class _XLALauncher(_MultiProcessingLauncher):
         super().__init__(strategy=strategy, start_method="fork")
 
     @property
+    @override
     def is_interactive_compatible(self) -> bool:
         return True
 
+    @override
     def launch(self, function: Callable, *args: Any, trainer: Optional["pl.Trainer"] = None, **kwargs: Any) -> Any:
         """Launches processes that run the given function in parallel.
 
@@ -80,17 +83,14 @@ class _XLALauncher(_MultiProcessingLauncher):
                 " `fit(ckpt_path=...)` argument."
             )
 
-        using_pjrt = _using_pjrt()
         # pjrt requires that the queue is serializable
-        return_queue: Union[queue.Queue, mp.SimpleQueue] = (
-            mp.Manager().Queue() if using_pjrt else mp.get_context(self._start_method).SimpleQueue()
-        )
+        return_queue = mp.Manager().Queue()
 
         import torch_xla.distributed.xla_multiprocessing as xmp
 
         spawn_kwargs = {}
         nprocs = self._strategy.num_processes
-        if not using_pjrt or nprocs == 1:
+        if nprocs == 1:
             # avoid warning: "Unsupported nprocs". If it's 1, it will call the launched function directly.
             # otherwise it will use all devices
             spawn_kwargs["nprocs"] = nprocs
@@ -116,6 +116,7 @@ class _XLALauncher(_MultiProcessingLauncher):
         self._recover_results_in_main_process(worker_output, trainer)
         return worker_output.trainer_results
 
+    @override
     def _wrapping_function(
         self,
         # XLA's multiprocessing returns the global index, not the local index as torch's multiprocessing
@@ -130,7 +131,7 @@ class _XLALauncher(_MultiProcessingLauncher):
     ) -> None:
         import torch_xla.core.xla_model as xm
 
-        if _using_pjrt() and len(xm.get_xla_supported_devices()) > 1:
+        if len(xm.get_xla_supported_devices()) > 1:
             # `get_xla_supported_devices` in the spawned process returns the logical devices (2 for v2/v3 and 1 for v4)
             # so when there's more than one (multithreading), objects need to be deep-copied
             import copy
@@ -147,6 +148,7 @@ class _XLALauncher(_MultiProcessingLauncher):
 
         _rank_teardown(self._strategy.local_rank)
 
+    @override
     def _collect_rank_zero_results(self, trainer: "pl.Trainer", results: Any) -> Optional["_WorkerOutput"]:
         rank_zero_debug("Collecting results from rank 0 process.")
         checkpoint_callback = trainer.checkpoint_callback

@@ -610,12 +610,12 @@ class TesManualOptimizationDDPModel(BoringModel):
                 assert torch.equal(self.layer.weight.grad, grad_clone)
 
         def gen_closure():
-            loss_ones_gen, loss_zeros = compute_loss()
+            loss_ones_gen, _ = compute_loss()
             make_manual_backward(loss_ones_gen, retain_graph=True, make_optimizer_step=make_gen_optimizer_step)
             make_manual_backward(loss_ones_gen, make_optimizer_step=make_gen_optimizer_step)
 
         def dis_closure():
-            loss_ones_gen, loss_zeros = compute_loss()
+            loss_ones_gen, _ = compute_loss()
             make_manual_backward(loss_ones_gen, retain_graph=True, make_optimizer_step=make_dis_optimizer_step)
             make_manual_backward(loss_ones_gen, make_optimizer_step=make_dis_optimizer_step)
 
@@ -719,12 +719,12 @@ class TestManualOptimizationDDPModelToggleModel(TesManualOptimizationDDPModel):
                 assert torch.equal(self.layer.weight.grad, grad_clone)
 
         def gen_closure():
-            loss_ones_gen, loss_zeros = compute_loss()
+            loss_ones_gen, _ = compute_loss()
             make_manual_backward(loss_ones_gen, retain_graph=True, make_optimizer_step=make_gen_optimizer_step)
             make_manual_backward(loss_ones_gen, make_optimizer_step=make_gen_optimizer_step)
 
         def dis_closure():
-            loss_ones_gen, loss_zeros = compute_loss()
+            loss_ones_gen, _ = compute_loss()
             make_manual_backward(loss_ones_gen, retain_graph=True, make_optimizer_step=make_dis_optimizer_step)
             make_manual_backward(loss_ones_gen, make_optimizer_step=make_dis_optimizer_step)
 
