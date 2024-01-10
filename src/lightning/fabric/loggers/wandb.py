@@ -69,7 +69,7 @@ class WandbLogger(Logger):
 
     **Log metrics**
 
-    Log from :class:`~lightning.LightningModule`:
+    Log from `~lightning.LightningModule`:
 
     .. code-block:: python
 
@@ -85,7 +85,7 @@ class WandbLogger(Logger):
 
     **Log hyper-parameters**
 
-    Save :class:`~lightning.LightningModule` parameters:
+    Save `~lightning.LightningModule` parameters:
 
     .. code-block:: python
 
@@ -222,9 +222,7 @@ class WandbLogger(Logger):
 
     .. code-block:: python
 
-        from lightning.pytorch.loggers import WandbLogger
-
-        artifact_dir = WandbLogger.download_artifact(artifact="path/to/artifact")
+        artifact_dir = wandb_logger.download_artifact(artifact="path/to/artifact")
 
     To download an artifact and link it to an ongoing run call the ``download_artifact``
     function on the logger instance:
@@ -239,9 +237,6 @@ class WandbLogger(Logger):
 
     .. code-block:: python
 
-        from lightning.pytorch.loggers import WandbLogger
-
-        wandb_logger = WandbLogger(project="my_project", name="my_run")
         wandb_logger.use_artifact(artifact="path/to/artifact")
 
     See Also:
@@ -270,6 +265,8 @@ class WandbLogger(Logger):
         prefix: A string to put at the beginning of metric keys.
         experiment: WandB experiment object. Automatically set when creating a run.
         checkpoint_name: Name of the model checkpoint artifact being logged.
+        log_checkpoint_on: When to log model checkpoints as W&B artifacts. Only used if ``log_model`` is ``True``.
+            Options: ``"success"``, ``"all"``. Default: ``"success"``.
         \**kwargs: Arguments passed to :func:`wandb.init` like `entity`, `group`, `tags`, etc.
 
     Raises:
