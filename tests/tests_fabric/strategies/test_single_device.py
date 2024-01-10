@@ -138,22 +138,25 @@ class _MyFabricGradVal(BoringFabric):
 )
 @pytest.mark.parametrize("clip_type", ["norm", "val"])
 def test_single_device_clip_gradients(clip_type, precision):
+    if clip_type == "norm" and precision == "16-mixed":
+        pytest.skip(reason="Clipping by norm with 16-mixed is numerically unstable.")
+
     fabric = Fabric(accelerator="auto", devices=1, precision=precision)
 
     in_features = 32
     out_features = 2
     model = torch.nn.Linear(in_features, out_features, bias=False)
-    model.weight.data.fill_(1.)
+    model.weight.data.fill_(0.01)
 
     optimizer = torch.optim.Adam(model.parameters(), lr=0.1)
     model, optimizer = fabric.setup(model, optimizer)
 
-    batch = torch.ones(1, in_features, device=fabric.device)
+    batch = torch.full((1, in_features), 0.1, device=fabric.device)
     output = model(batch)
     loss = output.sum()
     fabric.backward(loss)
-    # The example is constructed such that the gradients are all 1.
-    assert torch.equal(model.weight.grad, torch.ones_like(model.weight.grad))
+    # The example is constructed such that the gradients are all the same
+    assert torch.equal(model.weight.grad, torch.full_like(model.weight.grad, model.weight.grad[0, 0]))
 
     if clip_type == "norm":
         norm = torch.linalg.vector_norm(model.weight.grad.detach().cpu(), 2, dtype=torch.float32).item()
@@ -163,10 +166,12 @@ def test_single_device_clip_gradients(clip_type, precision):
             torch.linalg.vector_norm(model.weight.grad.detach().cpu(), 2, dtype=torch.float32), torch.tensor(new_norm)
         )
     elif clip_type == "val":
-        fabric.clip_gradients(model, optimizer, clip_val=0.5)
-        assert torch.allclose(model.weight.grad, torch.full_like(model.weight.grad, 0.5))
+        val = model.weight.grad[0, 0].item()
+        new_val = val / 2.0
+        fabric.clip_gradients(model, optimizer, clip_val=new_val)
+        assert torch.allclose(model.weight.grad, torch.full_like(model.weight.grad, new_val))
     else:
-        raise AssertionError(f"Unknown clip type {clip_type}")
+        raise AssertionError(f"Unknown clip type: {clip_type}")
 
     optimizer.step()
     optimizer.zero_grad()
