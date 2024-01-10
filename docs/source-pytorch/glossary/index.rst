@@ -38,6 +38,7 @@
    Remote filesystem and FSSPEC <../common/remote_fs>
    Strategy <../extensions/strategy>
    Strategy registry <../advanced/strategy_registry>
+   Strategy integrations <../integrations/strategies/index>
    Style guide <../starter/style_guide>
    SWA <../advanced/training_tricks>
    SLURM <../clouds/cluster_advanced>

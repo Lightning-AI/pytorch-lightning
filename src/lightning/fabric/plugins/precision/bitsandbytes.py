@@ -252,7 +252,7 @@ def _import_bitsandbytes() -> ModuleType:
             if int8params.has_fp16_weights:
                 int8params.data = B
             else:
-                CB, CBt, SCB, SCBt, coo_tensorB = bnb.functional.double_quant(B)
+                CB, CBt, SCB, SCBt, _ = bnb.functional.double_quant(B)
                 del CBt
                 del SCBt
                 int8params.data = CB

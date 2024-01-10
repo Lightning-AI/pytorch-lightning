@@ -20,7 +20,6 @@ import pytest
 import torch
 import torch.distributed
 import torch.nn.functional
-from lightning.fabric.accelerators.xla import _using_pjrt
 from lightning.fabric.fabric import Fabric
 from lightning.fabric.plugins import Precision
 from lightning.fabric.strategies import (
@@ -574,9 +573,6 @@ def test_setup_dataloaders_replace_standard_sampler(shuffle, strategy):
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_to_device(accelerator, expected):
     """Test that the to_device method can move various objects to the device determined by the accelerator."""
-    if accelerator == "tpu" and not _using_pjrt():
-        expected = "xla:1"
-
     fabric = Fabric(accelerator=accelerator, devices=1)
     fabric.launch()
 

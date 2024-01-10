@@ -22,6 +22,7 @@ from torch.nn.parallel.distributed import DistributedDataParallel
 
 from tests_fabric.helpers.runif import RunIf
 from tests_fabric.test_fabric import BoringModel
+from tests_fabric.strategies.test_single_device import _run_test_clip_gradients
 
 
 @pytest.mark.parametrize(
@@ -89,3 +90,28 @@ def test_reapply_compile():
     # Smoke-testing forward to ensure we don't get compilation errors
     for _ in range(3):
         fabric_model(torch.randn(2, 32, device=fabric.device))
+
+
+@pytest.mark.parametrize(
+    ("clip_type", "accelerator", "precision"),
+    [
+        ("norm", "cpu", "32-true"),
+        ("val", "cpu", "32-true"),
+        ("norm", "cpu", "bf16-mixed"),
+        ("val", "cpu", "bf16-mixed"),
+        pytest.param("norm", "cuda", "32-true", marks=RunIf(min_cuda_gpus=2)),
+        pytest.param("val", "cuda", "32-true", marks=RunIf(min_cuda_gpus=2)),
+        pytest.param("norm", "cuda", "16-mixed", marks=RunIf(min_cuda_gpus=2)),
+        pytest.param("val", "cuda", "16-mixed", marks=RunIf(min_cuda_gpus=2)),
+        pytest.param("norm", "cuda", "bf16-mixed", marks=RunIf(min_cuda_gpus=2, bf16_cuda=True)),
+        pytest.param("val", "cuda", "bf16-mixed", marks=RunIf(min_cuda_gpus=2, bf16_cuda=True)),
+    ],
+)
+@RunIf(standalone=True)
+def test_clip_gradients(clip_type, accelerator, precision):
+    if clip_type == "norm" and precision == "16-mixed":
+        pytest.skip(reason="Clipping by norm with 16-mixed is numerically unstable.")
+
+    fabric = Fabric(accelerator=accelerator, devices=2, precision=precision, strategy="ddp")
+    fabric.launch()
+    _run_test_clip_gradients(fabric=fabric, clip_type=clip_type)
