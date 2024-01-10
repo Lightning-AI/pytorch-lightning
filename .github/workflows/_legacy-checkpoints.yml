@@ -57,7 +57,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
           # Python version here needs to be supported by all PL versions listed in back-compatible-versions.txt.
           python-version: 3.8
@@ -110,6 +110,7 @@ jobs:
           path: ${{ env.legacy_dir }}/checkpoints/
           retention-days: ${{ env.KEEP_DAYS }}
 
+      - run: pip install -r requirements/ci.txt
       - name: Upload checkpoints to S3
         working-directory: ${{ env.legacy_dir }}
         env:
@@ -117,7 +118,6 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_PUB_SECRET_KEY }}
           AWS_DEFAULT_REGION: ${{ secrets.AWS_REGION }}
         run: |
-          pip install -q awscli
           aws s3 sync $AWS_RUN checkpoints/ s3://pl-public-data/legacy/checkpoints/
           zip -r checkpoints.zip checkpoints
           aws s3 cp $AWS_RUN checkpoints.zip s3://pl-public-data/legacy/ --acl public-read

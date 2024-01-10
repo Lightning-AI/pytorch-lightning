@@ -92,7 +92,7 @@ class LitClassifier(LightningModule):
         self.log("test_loss", loss)
 
     def predict_step(self, batch, batch_idx, dataloader_idx=None):
-        x, y = batch
+        x, _ = batch
         return self(x)
 
     def configure_optimizers(self):
