@@ -20,7 +20,6 @@ from unittest.mock import Mock
 
 import pytest
 import torch
-from lightning.fabric.accelerators.xla import _using_pjrt
 from lightning.pytorch import Trainer
 from lightning.pytorch.accelerators.cpu import _CPU_PERCENT, _CPU_SWAP_PERCENT, _CPU_VM_PERCENT, get_cpu_stats
 from lightning.pytorch.callbacks import DeviceStatsMonitor
@@ -109,6 +108,7 @@ class AssertTpuMetricsLogger(CSVLogger):
 
 
 @RunIf(tpu=True)
+@pytest.mark.xfail(raises=RuntimeError, reason="`xm.get_memory_info` is not implemented with PJRT")
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_device_stats_monitor_tpu(tmpdir):
     """Test TPU stats are logged using a logger."""
@@ -126,13 +126,7 @@ def test_device_stats_monitor_tpu(tmpdir):
         enable_checkpointing=False,
         enable_progress_bar=False,
     )
-
-    try:
-        trainer.fit(model)
-    except RuntimeError as e:
-        if _using_pjrt() and "GetMemoryInfo not implemented" in str(e):
-            pytest.xfail("`xm.get_memory_info` is not implemented with PJRT")
-        raise e
+    trainer.fit(model)
 
 
 def test_device_stats_monitor_no_logger(tmpdir):
