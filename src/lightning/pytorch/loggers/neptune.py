@@ -227,7 +227,7 @@ class NeptuneLogger(Logger):
         **neptune_run_kwargs: Any,
     ):
         if not _NEPTUNE_AVAILABLE:
-            raise ModuleNotFoundError('Missing Neptune logger, please install it with `pip install neptune`')
+            raise ModuleNotFoundError("Missing Neptune logger, please install it with `pip install neptune`")
 
         # verify if user passed proper init arguments
         self._verify_input_arguments(api_key, project, name, run, neptune_run_kwargs)
