@@ -11,11 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import json
 import os
 import sys
-import json
-from pathlib import Path
 from functools import partial, update_wrapper
+from pathlib import Path
 from types import MethodType
 from typing import Any, Callable, Dict, Iterable, List, Optional, Set, Tuple, Type, Union
 
@@ -29,10 +29,10 @@ import lightning.pytorch as pl
 from lightning.fabric.utilities.cloud_io import get_filesystem
 from lightning.fabric.utilities.types import _TORCH_LRSCHEDULER
 from lightning.pytorch import Callback, LightningDataModule, LightningModule, Trainer, seed_everything
+from lightning.pytorch.loggers.wandb import WandbLogger
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.model_helpers import is_overridden
 from lightning.pytorch.utilities.rank_zero import rank_zero_warn
-from lightning.pytorch.loggers.wandb import WandbLogger
 
 _JSONARGPARSE_SIGNATURES_AVAILABLE = RequirementCache("jsonargparse[signatures]>=4.26.1")
 
@@ -302,8 +302,8 @@ class SaveConfigCallback(Callback):
             trainer.logger.experiment.config.update(config_dict)
 
             config_path = os.path.join(
-                    trainer.logger.experiment.dir, "lightning_" + self.config_filename
-                )  # Save config locally under wandb_dir_name/wandb/exp_name/files/ 
+                trainer.logger.experiment.dir, "lightning_" + self.config_filename
+            )  # Save config locally under wandb_dir_name/wandb/exp_name/files/
 
             Path(config_path).parent.mkdir(parents=True, exist_ok=True)
             self.parser.save(
