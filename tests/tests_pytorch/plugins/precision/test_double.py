@@ -39,7 +39,7 @@ class RandomFloatIntDataset(Dataset):
 
 class DoublePrecisionBoringModel(BoringModel):
     def training_step(self, batch, batch_idx):
-        float_data, int_data = batch
+        float_data, _ = batch
         assert torch.tensor([0.0]).dtype == torch.float64
         assert torch.tensor([0.0], dtype=torch.float16).dtype == torch.float16
         assert float_data.dtype == torch.float64
