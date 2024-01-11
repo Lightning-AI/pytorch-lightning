@@ -14,6 +14,7 @@
 import os
 import sys
 import json
+from pathlib import Path
 from functools import partial, update_wrapper
 from types import MethodType
 from typing import Any, Callable, Dict, Iterable, List, Optional, Set, Tuple, Type, Union
@@ -299,6 +300,19 @@ class SaveConfigCallback(Callback):
             config = self.parser.dump(self.config, skip_none=True, format="json")
             config_dict = json.loads(config)
             trainer.logger.experiment.config.update(config_dict)
+
+            config_path = os.path.join(
+                    trainer.logger.experiment.dir, "lightning_" + self.config_filename
+                )  # Save config locally under wandb_dir_name/wandb/exp_name/files/ 
+
+            Path(config_path).parent.mkdir(parents=True, exist_ok=True)
+            self.parser.save(
+                self.config,
+                config_path,
+                skip_none=False,
+                overwrite=self.overwrite,
+                multifile=self.multifile,
+            )
 
 
 class LightningCLI:
