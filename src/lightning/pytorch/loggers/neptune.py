@@ -557,13 +557,14 @@ class NeptuneLogger(Logger):
     def _get_full_model_name(model_path: str, checkpoint_callback: Checkpoint) -> str:
         """Returns model name which is string `model_path` appended to `checkpoint_callback.dirpath`."""
         if hasattr(checkpoint_callback, "dirpath"):
-            expected_model_path = f"{checkpoint_callback.dirpath}{os.path.sep}"
+            model_path = os.path.normpath(model_path)
+            expected_model_path = os.path.normpath(checkpoint_callback.dirpath)
             if not model_path.startswith(expected_model_path):
                 raise ValueError(f"{model_path} was expected to start with {expected_model_path}.")
             # Remove extension from filepath
-            filepath, _ = os.path.splitext(model_path[len(expected_model_path) :])
-            return filepath
-        return model_path
+            filepath, _ = os.path.splitext(model_path[len(expected_model_path) + 1 :])
+            return filepath.replace(os.sep, "/")
+        return model_path.replace(os.sep, "/")
 
     @classmethod
     def _get_full_model_names_from_exp_structure(cls, exp_structure: Dict[str, Any], namespace: str) -> Set[str]:

@@ -20,6 +20,8 @@ import signal
 import sys
 from typing import Optional
 
+from typing_extensions import override
+
 from lightning.fabric.plugins.environments.cluster_environment import ClusterEnvironment
 from lightning.fabric.utilities.imports import _IS_WINDOWS
 from lightning.fabric.utilities.rank_zero import rank_zero_warn
@@ -52,10 +54,12 @@ class SLURMEnvironment(ClusterEnvironment):
         self._validate_srun_variables()
 
     @property
+    @override
     def creates_processes_externally(self) -> bool:
         return True
 
     @property
+    @override
     def main_address(self) -> str:
         root_node = os.environ.get("MASTER_ADDR")
         if root_node is None:
@@ -67,6 +71,7 @@ class SLURMEnvironment(ClusterEnvironment):
         return root_node
 
     @property
+    @override
     def main_port(self) -> int:
         # -----------------------
         # SLURM JOB = PORT number
@@ -94,6 +99,7 @@ class SLURMEnvironment(ClusterEnvironment):
         return default_port
 
     @staticmethod
+    @override
     def detect() -> bool:
         """Returns ``True`` if the current process was launched on a SLURM cluster.
 
@@ -124,24 +130,31 @@ class SLURMEnvironment(ClusterEnvironment):
         except ValueError:
             return None
 
+    @override
     def world_size(self) -> int:
         return int(os.environ["SLURM_NTASKS"])
 
+    @override
     def set_world_size(self, size: int) -> None:
         log.debug("SLURMEnvironment.set_world_size was called, but setting world size is not allowed. Ignored.")
 
+    @override
     def global_rank(self) -> int:
         return int(os.environ["SLURM_PROCID"])
 
+    @override
     def set_global_rank(self, rank: int) -> None:
         log.debug("SLURMEnvironment.set_global_rank was called, but setting global rank is not allowed. Ignored.")
 
+    @override
     def local_rank(self) -> int:
         return int(os.environ["SLURM_LOCALID"])
 
+    @override
     def node_rank(self) -> int:
         return int(os.environ["SLURM_NODEID"])
 
+    @override
     def validate_settings(self, num_devices: int, num_nodes: int) -> None:
         if _is_slurm_interactive_mode():
             return

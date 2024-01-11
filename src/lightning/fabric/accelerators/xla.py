@@ -16,6 +16,7 @@ from typing import Any, List, Union
 
 import torch
 from lightning_utilities.core.imports import RequirementCache
+from typing_extensions import override
 
 from lightning.fabric.accelerators.accelerator import Accelerator
 from lightning.fabric.accelerators.registry import _AcceleratorRegistry
@@ -34,18 +35,22 @@ class XLAAccelerator(Accelerator):
             raise ModuleNotFoundError(str(_XLA_AVAILABLE))
         super().__init__(*args, **kwargs)
 
+    @override
     def setup_device(self, device: torch.device) -> None:
         pass
 
+    @override
     def teardown(self) -> None:
         pass
 
     @staticmethod
+    @override
     def parse_devices(devices: Union[int, str, List[int]]) -> Union[int, List[int]]:
         """Accelerator device parsing logic."""
         return _parse_tpu_devices(devices)
 
     @staticmethod
+    @override
     def get_parallel_devices(devices: Union[int, List[int]]) -> List[torch.device]:
         """Gets parallel devices for the Accelerator."""
         devices = _parse_tpu_devices(devices)
@@ -62,6 +67,7 @@ class XLAAccelerator(Accelerator):
         # it will be replaced with `xla_device` (also a torch.device`, but with extra logic) in the strategy
 
     @staticmethod
+    @override
     # XLA's multiprocessing will pop the TPU_NUM_DEVICES key, so we need to cache it
     # https://github.com/pytorch/xla/blob/v2.0.0/torch_xla/distributed/xla_multiprocessing.py#L280
     @functools.lru_cache(maxsize=1)
@@ -84,6 +90,7 @@ class XLAAccelerator(Accelerator):
         return getenv_as(xenv.TPU_NUM_DEVICES, int, 8)
 
     @staticmethod
+    @override
     @functools.lru_cache(maxsize=1)
     def is_available() -> bool:
         try:
@@ -94,6 +101,7 @@ class XLAAccelerator(Accelerator):
             return False
 
     @classmethod
+    @override
     def register_accelerators(cls, accelerator_registry: _AcceleratorRegistry) -> None:
         accelerator_registry.register("tpu", cls, description=cls.__name__)
 

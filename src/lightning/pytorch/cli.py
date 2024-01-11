@@ -21,6 +21,7 @@ import torch
 from lightning_utilities.core.imports import RequirementCache
 from lightning_utilities.core.rank_zero import _warn
 from torch.optim import Optimizer
+from typing_extensions import override
 
 import lightning.pytorch as pl
 from lightning.fabric.utilities.cloud_io import get_filesystem
@@ -236,6 +237,7 @@ class SaveConfigCallback(Callback):
                 "`save_config` and it is desired to disable the standard behavior of saving to log_dir."
             )
 
+    @override
     def setup(self, trainer: Trainer, pl_module: LightningModule, stage: str) -> None:
         if self.already_saved:
             return

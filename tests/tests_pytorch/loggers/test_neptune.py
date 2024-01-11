@@ -284,10 +284,12 @@ def test_get_full_model_name():
             os.path.join("foo", "bar", "key/in/parts.ext"),
             SimpleCheckpoint(dirpath=os.path.join("foo", "bar")),
         ),
+        ("key", os.path.join("../foo", "bar", "key.ext"), SimpleCheckpoint(dirpath=os.path.join("../foo", "bar"))),
+        ("key", os.path.join("foo", "key.ext"), SimpleCheckpoint(dirpath=os.path.join("./foo", "bar/../"))),
     ]
 
-    for expected_model_name, *key_and_path in test_input_data:
-        assert NeptuneLogger._get_full_model_name(*key_and_path) == expected_model_name
+    for expected_model_name, model_path, checkpoint in test_input_data:
+        assert NeptuneLogger._get_full_model_name(model_path, checkpoint) == expected_model_name
 
 
 def test_get_full_model_names_from_exp_structure():
