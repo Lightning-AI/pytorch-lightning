@@ -27,7 +27,7 @@ def app(app_name: str) -> None:
         app_name = _capture_valid_app_component_name(resource_type="app")
 
     # generate resource template
-    new_resource_name, name_for_files = _make_resource(resource_dir="app-template", resource_name=app_name)
+    new_resource_name, _ = _make_resource(resource_dir="app-template", resource_name=app_name)
 
     m = f"""
     ⚡ Lightning app template created! ⚡

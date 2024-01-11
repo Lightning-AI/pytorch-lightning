@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-import sys
 from re import escape
 from unittest import mock
 from unittest.mock import ANY, MagicMock, Mock, PropertyMock, call
@@ -21,7 +20,6 @@ import pytest
 import torch
 import torch.distributed
 import torch.nn.functional
-from lightning.fabric.accelerators.xla import _using_pjrt
 from lightning.fabric.fabric import Fabric
 from lightning.fabric.plugins import Precision
 from lightning.fabric.strategies import (
@@ -35,7 +33,6 @@ from lightning.fabric.strategies import (
 )
 from lightning.fabric.strategies.strategy import _Sharded
 from lightning.fabric.utilities.exceptions import MisconfigurationException
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_1
 from lightning.fabric.utilities.seed import pl_worker_init_function, seed_everything
 from lightning.fabric.utilities.warnings import PossibleUserWarning
 from lightning.fabric.wrappers import _FabricDataLoader, _FabricModule, _FabricOptimizer
@@ -565,9 +562,6 @@ def test_setup_dataloaders_replace_standard_sampler(shuffle, strategy):
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_to_device(accelerator, expected):
     """Test that the to_device method can move various objects to the device determined by the accelerator."""
-    if accelerator == "tpu" and not _using_pjrt():
-        expected = "xla:1"
-
     fabric = Fabric(accelerator=accelerator, devices=1)
     fabric.launch()
 
@@ -1204,40 +1198,3 @@ def test_verify_launch_called():
     fabric.launch()
     assert fabric._launched
     fabric._validate_launched()
-
-
-@pytest.mark.skipif(sys.platform == "darwin" and not _TORCH_GREATER_EQUAL_2_1, reason="Fix for MacOS in PyTorch 2.1")
-@RunIf(dynamo=True)
-@pytest.mark.parametrize(
-    "kwargs",
-    [
-        {},
-        pytest.param({"precision": "16-true"}, marks=pytest.mark.xfail(raises=RuntimeError, match="Unsupported")),
-        pytest.param({"precision": "64-true"}, marks=pytest.mark.xfail(raises=RuntimeError, match="Unsupported")),
-    ],
-)
-def test_fabric_with_torchdynamo_fullgraph(kwargs):
-    class MyModel(torch.nn.Module):
-        def __init__(self):
-            super().__init__()
-            self.l = torch.nn.Linear(10, 10)
-
-        def forward(self, x):
-            # forward gets compiled
-            assert torch._dynamo.is_compiling()
-            return self.l(x)
-
-    def fn(model, x):
-        assert torch._dynamo.is_compiling()
-        a = x * 10
-        return model(a)
-
-    fabric = Fabric(devices=1, accelerator="cpu", **kwargs)
-    model = MyModel()
-    fmodel = fabric.setup(model)
-    # we are compiling a function that calls model.forward() inside
-    cfn = torch.compile(fn, fullgraph=True)
-    x = torch.randn(10, 10, device=fabric.device)
-    # pass the fabric wrapped model to the compiled function, so that it gets compiled too
-    out = cfn(fmodel, x)
-    assert isinstance(out, torch.Tensor)

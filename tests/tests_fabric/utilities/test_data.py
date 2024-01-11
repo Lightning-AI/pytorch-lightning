@@ -560,7 +560,7 @@ def test_dataloader_kwargs_replacement_with_array_default_comparison():
             self.indices = np.random.rand(2, 2)  # an attribute we can't compare with ==
 
     dataloader = ArrayAttributeDataloader(dataset)
-    dl_args, dl_kwargs = _get_dataloader_init_args_and_kwargs(dataloader, dataloader.sampler)
+    _, dl_kwargs = _get_dataloader_init_args_and_kwargs(dataloader, dataloader.sampler)
     assert dl_kwargs["indices"] is dataloader.indices
 
 

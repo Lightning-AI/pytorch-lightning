@@ -302,7 +302,7 @@ class ModelPruning(Callback):
                 copy = deepcopy(copy)  # keep the original parameters
                 copy.reset_parameters()
             for i, name in names:
-                new, new_name = self._parameters_to_prune[i]
+                new, _ = self._parameters_to_prune[i]
                 self._copy_param(new, copy, name)
 
     def _apply_local_pruning(self, amount: float) -> None:
