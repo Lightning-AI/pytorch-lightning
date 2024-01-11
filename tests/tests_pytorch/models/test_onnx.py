@@ -111,8 +111,8 @@ def test_verbose_param(tmpdir, capsys):
 
     with patch("torch.onnx.log", autospec=True) as test:
         model.to_onnx(file_path, verbose=True)
-    args, kwargs = test.call_args
-    prefix, graph = args
+    args, _ = test.call_args
+    prefix, _ = args
     assert prefix == "Exported graph: "
 
 
