@@ -21,7 +21,7 @@ import os
 from argparse import Namespace
 from typing import TYPE_CHECKING, Any, Dict, Generator, List, Optional, Set, Union
 
-from lightning_utilities.core.imports import RequirementCache
+from lightning_utilities.core.imports import RequirementCache, module_available
 from torch import Tensor
 from typing_extensions import override
 
@@ -43,7 +43,7 @@ log = logging.getLogger(__name__)
 # rid of Neptune-client package completely someday. It was introduced as a part of breaking-changes with a release
 # of neptune-client==1.0. neptune-client>=1.0 is just an alias of neptune package and have some breaking-changes
 # in compare to neptune-client<1.0.0.
-_NEPTUNE_AVAILABLE = RequirementCache("neptune>=1.0")
+_NEPTUNE_AVAILABLE = RequirementCache("neptune>=1.0") or module_available("neptune")
 _INTEGRATION_VERSION_KEY = "source_code/integrations/pytorch-lightning"
 
 
