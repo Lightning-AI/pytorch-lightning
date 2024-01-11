@@ -17,6 +17,7 @@ from typing import Any
 
 import torch
 from torch.nn import Module
+from typing_extensions import override
 
 from lightning.fabric.accelerators import Accelerator
 from lightning.fabric.plugins.io.checkpoint_io import CheckpointIO
@@ -44,16 +45,20 @@ class SingleDeviceStrategy(Strategy):
         self.world_size = 1
 
     @property
+    @override
     def root_device(self) -> torch.device:
         return self._root_device
 
     @property
+    @override
     def is_global_zero(self) -> bool:
         return True
 
+    @override
     def module_to_device(self, module: Module) -> None:
         module.to(self.root_device)
 
+    @override
     def all_reduce(self, tensor: Any | torch.Tensor, *args: Any, **kwargs: Any) -> Any | torch.Tensor:
         """Reduces a tensor from several distributed processes to one aggregated tensor. As this plugin only operates
         with a single device, the reduction is simply the identity.
@@ -69,12 +74,15 @@ class SingleDeviceStrategy(Strategy):
         """
         return tensor
 
+    @override
     def all_gather(self, tensor: torch.Tensor, group: Any | None = None, sync_grads: bool = False) -> torch.Tensor:
         """Perform a ``all_gather`` on all processes."""
         return tensor
 
+    @override
     def barrier(self, *args: Any, **kwargs: Any) -> None:
         pass
 
+    @override
     def broadcast(self, obj: TBroadcast, src: int = 0) -> TBroadcast:
         return obj

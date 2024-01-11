@@ -107,6 +107,7 @@ ignore-init-module-imports = true
     "S113",  # todo: Probable use of requests call without timeout
     "S311",  # todo: Standard pseudo-random generators are not suitable for cryptographic purposes
     "S108",  # todo: Probable insecure usage of temporary file or directory: "/tmp/sys-customizations-sync"
+    "S202",  # Uses of `tarfile.extractall()`
     "S602",  # todo: `subprocess` call with `shell=True` identified, security issue
     "S603",  # todo: `subprocess` call: check for execution of untrusted input
     "S605",  # todo: Starting a process with a shell: seems safe, but may be changed in the future; consider rewriting without `shell`
@@ -269,7 +270,7 @@ addopts = [
     "--ignore=legacy/checkpoints",
 ]
 markers = [
-    "cloud:Run the cloud tests for example",
+    "cloud: Run the cloud tests for example",
 ]
 filterwarnings = [
     "error::FutureWarning",

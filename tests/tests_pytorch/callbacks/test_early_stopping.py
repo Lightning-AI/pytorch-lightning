@@ -480,7 +480,6 @@ def test_early_stopping_squeezes():
     es_mock.assert_called_once_with(torch.tensor(0))
 
 
-@pytest.mark.parametrize("trainer", [Trainer(), None])
 @pytest.mark.parametrize(
     ("log_rank_zero_only", "world_size", "global_rank", "expected_log"),
     [
@@ -492,15 +491,11 @@ def test_early_stopping_squeezes():
         (True, 2, 1, None),
     ],
 )
-def test_early_stopping_log_info(trainer, log_rank_zero_only, world_size, global_rank, expected_log):
+def test_early_stopping_log_info(log_rank_zero_only, world_size, global_rank, expected_log):
     """Checks if log.info() gets called with expected message when used within EarlyStopping."""
     # set the global_rank and world_size if trainer is not None
     # or else always expect the simple logging message
-    if trainer:
-        trainer.strategy.global_rank = global_rank
-        trainer.strategy.world_size = world_size
-    else:
-        expected_log = "bar"
+    trainer = Mock(global_rank=global_rank, world_size=world_size)
 
     with mock.patch("lightning.pytorch.callbacks.early_stopping.log.info") as log_mock:
         EarlyStopping._log_info(trainer, "bar", log_rank_zero_only)

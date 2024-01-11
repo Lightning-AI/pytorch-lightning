@@ -12,6 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+import warnings
+
+import pytest
 
 _TEST_ROOT = os.path.dirname(__file__)
 _PROJECT_ROOT = os.path.dirname(_TEST_ROOT)
@@ -27,3 +30,7 @@ if _PROJECT_ROOT not in os.getenv("PYTHONPATH", ""):
 
 if not os.path.isdir(_TEMP_PATH):
     os.mkdir(_TEMP_PATH)
+
+
+# Ignore cleanup warnings from pytest (rarely happens due to a race condition when executing pytest in parallel)
+warnings.filterwarnings("ignore", category=pytest.PytestWarning, message=r".*\(rm_rf\) error removing.*")

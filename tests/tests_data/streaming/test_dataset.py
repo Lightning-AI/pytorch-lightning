@@ -11,10 +11,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import json
 import os
 import sys
-from datetime import datetime
 from time import sleep
 from unittest import mock
 
@@ -23,11 +21,21 @@ import pytest
 import torch
 from lightning import seed_everything
 from lightning.data.streaming import Cache, functions
-from lightning.data.streaming.constants import _TIME_FORMAT
-from lightning.data.streaming.dataset import StreamingDataset, _should_replace_path, _try_create_cache_dir
+from lightning.data.streaming.dataloader import StreamingDataLoader
+from lightning.data.streaming.dataset import (
+    _INDEX_FILENAME,
+    Dir,
+    RemoteDir,
+    StreamingDataset,
+    _associate_chunks_to_workers,
+    _replay_chunks_sampling,
+    _replay_sampling,
+    _should_replace_path,
+    _try_create_cache_dir,
+)
 from lightning.data.streaming.item_loader import TokensLoader
 from lightning.data.streaming.shuffle import FullShuffle, NoShuffle
-from lightning.data.utilities.env import _DistributedEnv
+from lightning.data.utilities.env import Environment, _DistributedEnv, _WorkerEnv
 from torch.utils.data import DataLoader
 
 
@@ -540,12 +548,42 @@ def test_s3_streaming_dataset():
     assert dataset.input_dir.path is None
 
 
+class EmulateS3StreamingDataset(StreamingDataset):
+    def _create_cache(self, worker_env: _WorkerEnv) -> Cache:
+        env = Environment(dist_env=self.distributed_env, worker_env=worker_env)
+
+        cache_dir = os.path.join(self.input_dir.path, str(env.shard_rank))
+        os.makedirs(cache_dir, exist_ok=True)
+
+        cache = Cache(
+            input_dir=Dir(cache_dir, self.input_dir.url),
+            item_loader=self.item_loader,
+            chunk_bytes=1,
+            serializers=self.serializers,
+        )
+        cache._reader._try_load_config()
+
+        if not cache.filled:
+            raise ValueError(
+                f"The provided dataset `{self.input_dir}` doesn't contain any {_INDEX_FILENAME} file."
+                " HINT: Did you successfully optimize a dataset to the provided `input_dir`?"
+            )
+
+        return cache
+
+
 @pytest.mark.skipif(sys.platform == "win32", reason="Not tested on windows and MacOs")
-def test_resumable_dataset_single_worker(tmpdir):
+def test_resumable_dataset_two_workers(tmpdir):
     seed_everything(42)
 
+    data_dir = os.path.join(tmpdir, "data")
+    cache_dir = os.path.join(tmpdir, "cache_dir")
+
+    os.makedirs(data_dir)
+    os.makedirs(cache_dir)
+
     block_size = 20
-    cache = Cache(input_dir=str(tmpdir), chunk_size=40, item_loader=TokensLoader(block_size))
+    cache = Cache(input_dir=str(data_dir), chunk_size=40, item_loader=TokensLoader(block_size))
 
     counter = 0
     for i in range(100):
@@ -556,56 +594,56 @@ def test_resumable_dataset_single_worker(tmpdir):
     cache.done()
     cache.merge()
 
-    assert len([f for f in os.listdir(tmpdir) if f.endswith(".bin")]) == 50
+    assert len([f for f in os.listdir(data_dir) if f.endswith(".bin")]) == 50
 
-    dataset = StreamingDataset(input_dir=str(tmpdir), item_loader=TokensLoader(block_size), shuffle=True)
+    dataset = EmulateS3StreamingDataset(
+        input_dir=RemoteDir(cache_dir, data_dir), item_loader=TokensLoader(block_size), shuffle=True
+    )
 
     dataset.current_epoch = 1
-
-    assert dataset.state_dict() == {}
-
-    dataloader = DataLoader(dataset, num_workers=1, batch_size=2, prefetch_factor=1)
+    dataloader = StreamingDataLoader(dataset, num_workers=2, batch_size=2, prefetch_factor=1)
 
     dataloader_iter = iter(dataloader)
 
     _ = next(dataloader_iter)
-    state_dict_0 = dataset.state_dict()
+    state_dict_0 = dataloader.state_dict()
+    assert state_dict_0["0"]["num_samples_yielded"] == 2
+    assert state_dict_0["0"]["num_workers"] == 2
+    assert state_dict_0["0"]["batch_size"] == 2
 
-    sleep(0.1)
-
-    assert state_dict_0["0"]["chunk_index"] == 0
-    assert state_dict_0["0"]["index"] == 0
-
-    checkpoint_dir = os.path.join(tmpdir, "checkpoints")
-    assert os.listdir(checkpoint_dir) == ["0"]
     _ = next(dataloader_iter)
-
-    sleep(0.1)
-
-    state_dict_1 = dataset.state_dict()
-    assert state_dict_1["0"]["chunk_index"] == 2
-    assert state_dict_1["0"]["index"] == 0
+    state_dict_1 = dataloader.state_dict()
+    assert state_dict_1["0"]["num_samples_yielded"] == 4
+    assert state_dict_1["0"]["num_workers"] == 2
+    assert state_dict_1["0"]["batch_size"] == 2
 
     batch_2 = next(dataloader_iter)
+    state_dict_2 = dataloader.state_dict()
+    assert state_dict_2["0"]["num_samples_yielded"] == 6
+    assert state_dict_2["0"]["num_workers"] == 2
+    assert state_dict_2["0"]["batch_size"] == 2
 
-    sleep(0.1)
+    dataset = EmulateS3StreamingDataset(
+        input_dir=RemoteDir(cache_dir, data_dir),
+        item_loader=TokensLoader(block_size),
+        shuffle=True,
+    )
 
-    state_dict_2 = dataset.state_dict()
-    assert state_dict_2["0"]["chunk_index"] == 3
-    assert state_dict_2["0"]["index"] == 0
-
-    dataset = StreamingDataset(input_dir=str(tmpdir), item_loader=TokensLoader(block_size), shuffle=True)
     dataset.load_state_dict(state_dict_1)
-    dataloader = DataLoader(dataset, num_workers=1, batch_size=2, prefetch_factor=1)
+    dataloader = StreamingDataLoader(dataset, num_workers=2, batch_size=2, prefetch_factor=1)
 
     dataloader_iter = iter(dataloader)
     batch_0_restart = next(dataloader_iter)
 
-    sleep(0.1)
+    state_dict_2 = dataloader.state_dict()
+    assert len(state_dict_2) == 2
+    assert state_dict_2["0"]["num_samples_yielded"] == 4
+    assert state_dict_2["0"]["num_workers"] == 2
+    assert state_dict_2["0"]["batch_size"] == 2
 
-    state_dict_2 = dataset.state_dict()
-    assert state_dict_2["0"]["chunk_index"] == 3
-    assert state_dict_2["0"]["index"] == 0
+    assert state_dict_2["1"]["num_samples_yielded"] == 2
+    assert state_dict_2["1"]["num_workers"] == 2
+    assert state_dict_2["1"]["batch_size"] == 2
 
     assert torch.equal(batch_2, batch_0_restart)
 
@@ -614,8 +652,14 @@ def test_resumable_dataset_single_worker(tmpdir):
 def test_dataset_valid_state(tmpdir):
     seed_everything(42)
 
+    data_dir = os.path.join(tmpdir, "data")
+    cache_dir = os.path.join(tmpdir, "cache_dir")
+
+    os.makedirs(data_dir)
+    os.makedirs(cache_dir)
+
     block_size = 20
-    cache = Cache(input_dir=str(tmpdir), chunk_size=40, item_loader=TokensLoader(block_size))
+    cache = Cache(input_dir=str(data_dir), chunk_size=40, item_loader=TokensLoader(block_size))
 
     counter = 0
     for i in range(100):
@@ -626,16 +670,21 @@ def test_dataset_valid_state(tmpdir):
     cache.done()
     cache.merge()
 
-    dataset = StreamingDataset(input_dir=str(tmpdir), item_loader=TokensLoader(block_size), shuffle=False)
-    dataloader = DataLoader(dataset, num_workers=1, batch_size=2, prefetch_factor=1)
+    dataset = EmulateS3StreamingDataset(
+        input_dir=RemoteDir(cache_dir, data_dir), item_loader=TokensLoader(block_size), shuffle=False
+    )
+    dataloader = DataLoader(dataset, num_workers=1, batch_size=2)
     dataloader_iter = iter(dataloader)
     next(dataloader_iter)
 
-    sleep(0.1)
+    sleep(1)
 
-    state_dict = dataset.state_dict()
+    state_dict = dataset.state_dict(0, 1, 2)
 
     dataset.load_state_dict(state_dict)
+    dataset.worker_env = _WorkerEnv(world_size=1, rank=0)
+    dataset.cache = cache
+
     dataset._validate_state_dict()
 
     state_dict["0"]["drop_last"] = True
@@ -666,7 +715,7 @@ def test_dataset_valid_state(tmpdir):
     dataset.load_state_dict(state_dict)
     with pytest.raises(
         ValueError,
-        match="The provided `input_dir` URL state doesn't match the current one. Found `None` instead of `toto`.",  # noqa E501
+        match=f"The provided `input_dir` URL state doesn't match the current one. Found `{data_dir}` instead of `toto`.",  # noqa E501
     ):
         dataset._validate_state_dict()
 
@@ -674,7 +723,7 @@ def test_dataset_valid_state(tmpdir):
     dataset.load_state_dict(state_dict)
     with pytest.raises(
         ValueError,
-        match=f"The provided `input_dir` path state doesn't match the current one. Found `{tmpdir}` instead of `toto`.",  # noqa E501
+        match=f"The provided `input_dir` path state doesn't match the current one. Found `{cache_dir}` instead of `toto`.",  # noqa E501
     ):
         dataset._validate_state_dict()
 
@@ -695,52 +744,27 @@ def test_dataset_valid_state(tmpdir):
         dataset._validate_state_dict()
 
 
-def test_resumable_dataset_distributed_state_dict(tmpdir):
-    seed_everything(42)
+def test_replay_sampling():
+    assert _replay_sampling(27, 8, 2) == {0: 16, 1: 11}  # {0: 8 + 8, 1: 8 + 3}
+    assert _replay_sampling(27, 7, 2) == {0: 14, 1: 13}  # {0: 7 + 7, 1: 7 + 6}
+    assert _replay_sampling(27, 6, 2) == {0: 15, 1: 12}  # {0: 6 + 6 + 3, 1: 6 + 6}
+    assert _replay_sampling(27, 5, 2) == {0: 15, 1: 12}  # {0: 5 + 5 + 5, 1: 5 + 5 + 2}
+    assert _replay_sampling(27, 4, 2) == {0: 15, 1: 12}  # {0: 4 + 4 + 4 + 3, 1: 4 + 4 + 4}
+    assert _replay_sampling(27, 8, 3) == {0: 11, 1: 8, 2: 8}  # {0: 8 + 3, 1: 8, 2: 8}
+    assert _replay_sampling(27, 4, 3) == {0: 11, 1: 8, 2: 8}  # {0: 4 + 4 + 3, 1: 4 + 4, 2: 4 + 4}
 
-    block_size = 20
-    cache = Cache(input_dir=str(tmpdir), chunk_size=40, item_loader=TokensLoader(block_size))
 
-    counter = 0
-    for i in range(100):
-        text_ids = torch.arange(counter, counter + 20).to(torch.int)
-        cache[i] = text_ids
-        counter += 20
-
-    cache.done()
-    cache.merge()
-
-    assert len([f for f in os.listdir(tmpdir) if f.endswith(".bin")]) == 50
-
-    dataset = StreamingDataset(input_dir=str(tmpdir), item_loader=TokensLoader(block_size), shuffle=False)
-    dataset.distributed_env = _DistributedEnv(world_size=16, global_rank=0)
-
-    # used to create the cache
-    iter(dataset)
-    os.makedirs(dataset.cache.checkpoint_dir, exist_ok=True)
-
-    for i in range(4):
-        now = datetime.now().strftime(_TIME_FORMAT)
-        checkpoint_rank_dir = os.path.join(dataset.cache.checkpoint_dir, str(i))
-        os.makedirs(checkpoint_rank_dir, exist_ok=True)
-        checkpoint_path = os.path.join(checkpoint_rank_dir, f"checkpoint-{now}.json")
-        with open(checkpoint_path, "w") as f:
-            json.dump({}, f)
-
-    torch_mock = mock.MagicMock()
-    torch_mock.cuda.device_count.return_value = 4
-
-    state_list = [{} for _ in range(4)]
-    for i in range(16):
-        state_list[i // 4].update({str(i): {}})
-
-    def broadcast_object_list(obj, src, **kwargs):
-        assert src in [0, 4, 8, 12]
-        obj[0] = state_list.pop(0)
-
-    torch_mock.distributed.broadcast_object_list = broadcast_object_list
-
-    with mock.patch("lightning.data.streaming.dataset.torch", torch_mock):
-        state_dict = dataset.state_dict()
-
-    assert len(state_dict) == 16
+def test_replay_chunks_sampling():
+    chunks_replica = range(10)
+    intervals_replica = [(i, i + 5) for i in range(0, 50, 5)]
+    workers_chunks, workers_intervals = _associate_chunks_to_workers(
+        2, _WorkerEnv(2, 0), chunks_replica, intervals_replica
+    )
+    assert workers_chunks == {0: [0, 2, 4, 6, 8], 1: [1, 3, 5, 7, 9]}
+    assert workers_intervals == {
+        0: [(0, 5), (10, 15), (20, 25), (30, 35), (40, 45)],
+        1: [(5, 10), (15, 20), (25, 30), (35, 40), (45, 50)],
+    }
+    assert _replay_chunks_sampling(workers_intervals, {0: 16, 1: 11}) == ({0: 3, 1: 2}, {0: 1, 1: 1})
+    assert _replay_chunks_sampling(workers_intervals, {0: 14, 1: 13}) == ({0: 2, 1: 2}, {0: 4, 1: 3})
+    assert _replay_chunks_sampling(workers_intervals, {0: 15, 1: 12}) == ({0: 3, 1: 2}, {0: 0, 1: 2})

@@ -118,6 +118,7 @@ def test_collective_operations(devices, process):
     spawn_launch(process, devices)
 
 
+@pytest.mark.flaky(reruns=3)  # flaky with "process 0 terminated with signal SIGABRT" (GLOO)
 def test_is_shared_filesystem(tmp_path, monkeypatch):
     # In the non-distributed case, every location is interpreted as 'shared'
     assert is_shared_filesystem(SingleDeviceStrategy(torch.device("cpu")))

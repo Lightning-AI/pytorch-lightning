@@ -96,6 +96,9 @@ class FullShuffle(Shuffle):
 
         # 2. Shuffle them
         indexes = range(len(chunk_intervals))
+
+        # FIXME: Shuffling should be done only within the nodes to benefit
+        # from cache if the dataset doesn't fit on the node.
         shuffled_indexes = np.random.RandomState(seed=self.seed + current_epoch).permutation(indexes)
         shuffled_chunk_intervals = np.asarray(chunk_intervals)[shuffled_indexes]
 
