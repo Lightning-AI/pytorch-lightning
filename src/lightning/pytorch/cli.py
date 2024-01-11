@@ -13,6 +13,7 @@
 # limitations under the License.
 import os
 import sys
+import json
 from functools import partial, update_wrapper
 from types import MethodType
 from typing import Any, Callable, Dict, Iterable, List, Optional, Set, Tuple, Type, Union
@@ -30,6 +31,7 @@ from lightning.pytorch import Callback, LightningDataModule, LightningModule, Tr
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.model_helpers import is_overridden
 from lightning.pytorch.utilities.rank_zero import rank_zero_warn
+from lightning.pytorch.loggers.wandb import WandbLogger
 
 _JSONARGPARSE_SIGNATURES_AVAILABLE = RequirementCache("jsonargparse[signatures]>=4.26.1")
 
@@ -293,6 +295,10 @@ class SaveConfigCallback(Callback):
             instead.
 
         """
+        if isinstance(trainer.logger, WandbLogger):
+            config = self.parser.dump(self.config, skip_none=True, format="json")
+            config_dict = json.loads(config)
+            trainer.logger.experiment.config.update(config_dict)
 
 
 class LightningCLI:
