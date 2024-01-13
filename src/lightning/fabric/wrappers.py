@@ -357,7 +357,7 @@ def _capture_compile_kwargs(compile_fn: Callable) -> Callable:
     """Only captures if it's a module."""
 
     @wraps(compile_fn)
-    def _capture(model, **kwargs) -> Any:
+    def _capture(model: Any, **kwargs: Any) -> Any:
         compiled_model = compile_fn(model, **kwargs)
         if isinstance(model, nn.Module):
             compiled_model._compile_kwargs = deepcopy(kwargs)
