@@ -331,12 +331,11 @@ def _unwrap_compiled(obj: Union[Any, "OptimizedModule"]) -> Tuple[Union[Any, nn.
     return obj, None
 
 
-def _to_compiled(module: nn.Module, dynamo_context: Any) -> "OptimizedModule":
+def _to_compiled(module: nn.Module, dynamo_context: "OptimizeContext") -> "OptimizedModule":
     if not _TORCH_GREATER_EQUAL_2_0:
         raise RuntimeError("Converting to a compiled module is only supported in PyTorch >= 2.0.0")
-    from torch._dynamo import OptimizedModule
 
-    return OptimizedModule(module, dynamo_context)
+    return torch.compile(module, **module._torch_compile_kwargs)  # type: ignore[return-value]
 
 
 def is_wrapped(obj: object) -> bool:
@@ -352,3 +351,18 @@ def is_wrapped(obj: object) -> bool:
     """
     obj, _ = _unwrap_compiled(obj)
     return isinstance(obj, (_FabricModule, _FabricOptimizer, _FabricDataLoader))
+
+
+def _capture_compile_kwargs(compile_fn: Callable) -> Callable:
+    """only captures if it's a module"""
+
+    @wraps(compile_fn)
+    def _capture(model, **kwargs) -> Any:
+        if isinstance(model, nn.Module):
+            model._torch_compile_kwargs = kwargs
+        return compile_fn(model, **kwargs)
+
+    return _capture
+
+
+torch.compile = _capture_compile_kwargs(torch.compile)
