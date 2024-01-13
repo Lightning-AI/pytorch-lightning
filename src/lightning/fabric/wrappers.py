@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import inspect
+from copy import deepcopy
 from functools import wraps
 from typing import (
     TYPE_CHECKING,
@@ -314,7 +315,7 @@ def _unwrap_objects(collection: Any) -> Any:
     return apply_to_collection(collection, dtype=tuple(types), function=_unwrap)
 
 
-def _unwrap_compiled(obj: Union[Any, "OptimizedModule"]) -> Tuple[Union[Any, nn.Module], Optional["OptimizeContext"]]:
+def _unwrap_compiled(obj: Union[Any, "OptimizedModule"]) -> Tuple[Union[Any, nn.Module], Optional[Dict[str, Any]]]:
     """Removes the :class:`torch._dynamo.OptimizedModule` around the object if it is wrapped.
 
     Use this function before instance checks against e.g. :class:`_FabricModule`.
@@ -327,15 +328,15 @@ def _unwrap_compiled(obj: Union[Any, "OptimizedModule"]) -> Tuple[Union[Any, nn.
     from torch._dynamo import OptimizedModule
 
     if isinstance(obj, OptimizedModule):
-        return obj._orig_mod, obj.dynamo_ctx
+        return obj._orig_mod, getattr(obj, "_compile_kwargs", None)
     return obj, None
 
 
-def _to_compiled(module: nn.Module, dynamo_context: "OptimizeContext") -> "OptimizedModule":
+def _to_compiled(module: nn.Module, compile_kwargs: Dict[str, Any]) -> "OptimizedModule":
     if not _TORCH_GREATER_EQUAL_2_0:
         raise RuntimeError("Converting to a compiled module is only supported in PyTorch >= 2.0.0")
 
-    return torch.compile(module, **module._torch_compile_kwargs)  # type: ignore[return-value]
+    return torch.compile(module, **compile_kwargs)  # type: ignore[return-value]
 
 
 def is_wrapped(obj: object) -> bool:
@@ -358,9 +359,10 @@ def _capture_compile_kwargs(compile_fn: Callable) -> Callable:
 
     @wraps(compile_fn)
     def _capture(model, **kwargs) -> Any:
+        compiled_model = compile_fn(model, **kwargs)
         if isinstance(model, nn.Module):
-            model._torch_compile_kwargs = kwargs
-        return compile_fn(model, **kwargs)
+            compiled_model._compile_kwargs = deepcopy(kwargs)
+        return compiled_model
 
     return _capture
 

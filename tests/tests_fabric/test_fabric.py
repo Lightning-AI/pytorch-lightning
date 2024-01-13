@@ -101,17 +101,15 @@ def test_setup_compiled_module(reapply_compile, setup_method):
     setup_method = getattr(fabric, setup_method)
     fabric_model = setup_method(compiled_model, _reapply_compile=reapply_compile)
 
-    assert fabric_model._original_module == compiled_model
     assert isinstance(fabric_model._forward_module, OptimizedModule)
     if reapply_compile:
         # The forward_module got rewrapped into a new OptimizedModule
         assert fabric_model._forward_module != fabric_model._original_module
-        # The original_module is still an OptimizedModule, but it is "unused"
-        assert isinstance(fabric_model._original_module, OptimizedModule)
-        assert fabric_model._forward_module._orig_mod == model
-        assert fabric_model._forward_module.dynamo_ctx == fabric_model._original_module.dynamo_ctx is not None
+        # The original_module points to the pure module
+        assert fabric_model._original_module is model
+        assert fabric_model._forward_module._orig_mod is model
     else:
-        assert fabric_model._forward_module == fabric_model._original_module
+        assert fabric_model._forward_module is fabric_model._original_module
     # Attributes get passed through
     assert fabric_model.weight is model.weight
 

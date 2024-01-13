@@ -233,8 +233,8 @@ class Fabric:
 
         """
         self._validate_setup(module, optimizers)
+        module, compile_kwargs = _unwrap_compiled(module) if _reapply_compile else (module, None)
         original_module = module
-        module, dynamo_context = _unwrap_compiled(module) if _reapply_compile else (module, None)
 
         module = self._precision.convert_module(module)
 
@@ -249,8 +249,8 @@ class Fabric:
         else:
             module = self._strategy.setup_module(module)
 
-        if dynamo_context is not None:
-            module = _to_compiled(module, dynamo_context)
+        if compile_kwargs is not None:
+            module = _to_compiled(module, compile_kwargs)
         module = _FabricModule(module, self._precision, original_module=original_module)
 
         # Update the _DeviceDtypeModuleMixin's device parameter
@@ -302,8 +302,8 @@ class Fabric:
 
         """
         self._validate_setup_module(module)
+        module, compile_kwargs = _unwrap_compiled(module) if _reapply_compile else (module, None)
         original_module = module
-        module, dynamo_context = _unwrap_compiled(module) if _reapply_compile else (module, None)
 
         module = self._precision.convert_module(module)
 
@@ -313,8 +313,8 @@ class Fabric:
         # Let strategy wrap and connect the module alone
         module = self._strategy.setup_module(module)
 
-        if dynamo_context is not None:
-            module = _to_compiled(module, dynamo_context)
+        if compile_kwargs is not None:
+            module = _to_compiled(module, compile_kwargs)
         module = _FabricModule(module, self._precision, original_module=original_module)
 
         # Update the _DeviceDtypeModuleMixin's device parameter

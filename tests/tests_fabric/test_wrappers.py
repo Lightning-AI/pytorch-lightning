@@ -601,11 +601,11 @@ def test_unwrap_compiled():
     model = torch.nn.Linear(1, 1)
 
     with mock.patch("lightning.fabric.wrappers", "_TORCH_GREATER_EQUAL_2_0", False):
-        unwrapped, ctx = _unwrap_compiled(model)
+        unwrapped, compile_kwargs = _unwrap_compiled(model)
     assert unwrapped is model
-    assert ctx is None
+    assert compile_kwargs is None
 
-    compiled = torch.compile(model)
-    unwrapped, ctx = _unwrap_compiled(compiled)
+    compiled = torch.compile(model, fullgraph=True, dynamic=True, disable=False)
+    unwrapped, compile_kwargs = _unwrap_compiled(compiled)
     assert unwrapped is compiled._orig_mod
-    assert ctx is compiled.dynamo_ctx
+    assert compile_kwargs == {"fullgraph": True, "dynamic": True, "disable": False}
