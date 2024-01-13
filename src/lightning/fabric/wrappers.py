@@ -366,4 +366,5 @@ def _capture_compile_kwargs(compile_fn: Callable) -> Callable:
     return _capture
 
 
-torch.compile = _capture_compile_kwargs(torch.compile)
+if _TORCH_GREATER_EQUAL_2_0:
+    torch.compile = _capture_compile_kwargs(torch.compile)
