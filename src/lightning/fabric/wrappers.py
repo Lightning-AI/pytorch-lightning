@@ -359,6 +359,7 @@ def _capture_compile_kwargs(compile_fn: Callable) -> Callable:
     We extract the compile arguments so that we can reapply ``torch.compile`` in ``Fabric.setup()`` with the
     same arguments as the user passed to the original call. The arguments get stored in a dictionary
     ``_compile_kwargs`` on the returned compiled module.
+
     """
 
     @wraps(compile_fn)
