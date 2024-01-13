@@ -15,6 +15,7 @@ import os
 from copy import deepcopy
 from pathlib import Path
 from unittest import mock
+from unittest.mock import Mock
 
 import pytest
 import torch
@@ -375,6 +376,7 @@ def test_compile(compile_after_setup):
 
 
 @RunIf(min_cuda_gpus=2, standalone=True, min_torch="2.1.0", dynamo=True, skip_windows=True)
+@mock.patch("lightning.fabric.wrappers.torch.compile", Mock(wraps=torch.compile))
 @mock.patch.dict(os.environ, {})
 def test_reapply_compile():
     """Test that Fabric can rewrap a compiled module such that compilation happens over the FSDP-wrapper."""
@@ -384,12 +386,19 @@ def test_reapply_compile():
     fabric.launch()
 
     model = BoringModel()
-    compiled_model = torch.compile(model, mode="reduce-overhead")
+    compile_kwargs = {"mode": "reduce-overhead"}
+    compiled_model = torch.compile(model, **compile_kwargs)
+    torch.compile.reset_mock()
+
     fabric_model = fabric.setup(compiled_model, _reapply_compile=True)
 
-    assert fabric_model._original_module == compiled_model
     assert isinstance(fabric_model._forward_module, OptimizedModule)
     assert isinstance(fabric_model._forward_module._orig_mod, FullyShardedDataParallel)
+
+    # Assert we called compile again with the same arguments, but on the FSDP-wrapped module
+    torch.compile.assert_called_with(fabric_model._forward_module._orig_mod, **compile_kwargs)
+    
+    assert fabric_model._original_module == model
     assert fabric_model._forward_module._orig_mod.module == model
     assert fabric_model.device == fabric.device
 

@@ -69,7 +69,7 @@ def _run_ddp_save_load(fabric, tmp_path):
     assert_params_equal(params_before, wrapped_model.parameters())
 
 
-@RunIf(min_cuda_gpus=2, standalone=False, min_torch="2.1.0", dynamo=True)
+@RunIf(min_cuda_gpus=2, standalone=True, min_torch="2.1.0", dynamo=True)
 @mock.patch("lightning.fabric.wrappers.torch.compile", Mock(wraps=torch.compile))
 @mock.patch.dict(os.environ, {})
 def test_reapply_compile():
@@ -83,6 +83,7 @@ def test_reapply_compile():
     compile_kwargs = {"mode": "reduce-overhead"}
     compiled_model = torch.compile(model, **compile_kwargs)
     torch.compile.reset_mock()
+
     fabric_model = fabric.setup(compiled_model, _reapply_compile=True)
 
     assert isinstance(fabric_model._forward_module, OptimizedModule)
