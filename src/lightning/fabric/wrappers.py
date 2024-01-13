@@ -48,7 +48,6 @@ from lightning.fabric.utilities.types import Optimizable
 
 if TYPE_CHECKING:
     from torch._dynamo import OptimizedModule
-    from torch._dynamo.eval_frame import OptimizeContext
 
 T_destination = TypeVar("T_destination", bound=Dict[str, Any])
 _LIGHTNING_MODULE_STEP_METHODS = ("training_step", "validation_step", "test_step", "predict_step")
@@ -355,7 +354,7 @@ def is_wrapped(obj: object) -> bool:
 
 
 def _capture_compile_kwargs(compile_fn: Callable) -> Callable:
-    """only captures if it's a module"""
+    """Only captures if it's a module."""
 
     @wraps(compile_fn)
     def _capture(model, **kwargs) -> Any:

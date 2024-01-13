@@ -397,7 +397,7 @@ def test_reapply_compile():
 
     # Assert we called compile again with the same arguments, but on the FSDP-wrapped module
     torch.compile.assert_called_with(fabric_model._forward_module._orig_mod, **compile_kwargs)
-    
+
     assert fabric_model._original_module == model
     assert fabric_model._forward_module._orig_mod.module == model
     assert fabric_model.device == fabric.device
