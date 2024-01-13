@@ -354,7 +354,12 @@ def is_wrapped(obj: object) -> bool:
 
 
 def _capture_compile_kwargs(compile_fn: Callable) -> Callable:
-    """Only captures if it's a module."""
+    """Wraps the `torch.compile` function and captures the compile arguments.
+
+    We extract the compile arguments so that we can reapply `torch.compile` in `Fabric.setup()` with the same arguments
+    as the user passed to the original call. The arguments get stored in a dictionary `_compile_kwargs` on the returned
+    compiled module.
+    """
 
     @wraps(compile_fn)
     def _capture(model: Any, **kwargs: Any) -> Any:
