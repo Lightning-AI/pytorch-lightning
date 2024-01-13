@@ -606,6 +606,7 @@ def test_unwrap_compiled():
     assert compile_kwargs is None
 
     compiled = torch.compile(model, fullgraph=True, dynamic=True, disable=False)
+    assert compiled._compile_kwargs == {"fullgraph": True, "dynamic": True, "disable": False}
     unwrapped, compile_kwargs = _unwrap_compiled(compiled)
     assert unwrapped is compiled._orig_mod
     assert compile_kwargs == {"fullgraph": True, "dynamic": True, "disable": False}
