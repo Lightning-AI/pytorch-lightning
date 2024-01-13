@@ -376,7 +376,10 @@ def test_compile(compile_after_setup):
 
 
 @RunIf(min_cuda_gpus=2, standalone=True, min_torch="2.1.0", dynamo=True, skip_windows=True)
-@mock.patch("lightning.fabric.wrappers.torch.compile", Mock(wraps=torch.compile))
+@mock.patch(
+    "lightning.fabric.wrappers.torch.compile",
+    Mock(wraps=(torch.compile if _TORCH_GREATER_EQUAL_2_0 else None)),
+)
 @mock.patch.dict(os.environ, {})
 def test_reapply_compile():
     """Test that Fabric can rewrap a compiled module such that compilation happens over the FSDP-wrapper."""
