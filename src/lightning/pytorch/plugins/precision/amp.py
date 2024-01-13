@@ -15,17 +15,18 @@ from typing import Any, Callable, Dict, Generator, Literal, Optional, Union
 import torch
 from torch import Tensor
 from torch.optim import LBFGS, Optimizer
+from typing_extensions import override
 
 import lightning.pytorch as pl
 from lightning.fabric.accelerators.cuda import _patch_cuda_is_available
 from lightning.fabric.plugins.precision.amp import _optimizer_handles_unscaling
 from lightning.fabric.utilities.types import Optimizable
-from lightning.pytorch.plugins.precision.precision_plugin import PrecisionPlugin
+from lightning.pytorch.plugins.precision.precision import Precision
 from lightning.pytorch.utilities import GradClipAlgorithmType
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 
 
-class MixedPrecisionPlugin(PrecisionPlugin):
+class MixedPrecision(Precision):
     """Plugin for Automatic Mixed Precision (AMP) training with ``torch.autocast``.
 
     Args:
@@ -57,11 +58,13 @@ class MixedPrecisionPlugin(PrecisionPlugin):
         self.device = device
         self.scaler = scaler
 
+    @override
     def pre_backward(self, tensor: Tensor, module: "pl.LightningModule") -> Tensor:  # type: ignore[override]
         if self.scaler is not None:
             tensor = self.scaler.scale(tensor)
         return super().pre_backward(tensor, module)
 
+    @override
     def optimizer_step(  # type: ignore[override]
         self,
         optimizer: Optimizable,
@@ -95,6 +98,7 @@ class MixedPrecisionPlugin(PrecisionPlugin):
             return step_output
         return closure_result
 
+    @override
     def clip_gradients(
         self,
         optimizer: Optimizer,
@@ -111,17 +115,20 @@ class MixedPrecisionPlugin(PrecisionPlugin):
     def autocast_context_manager(self) -> torch.autocast:
         return torch.autocast(self.device, dtype=(torch.bfloat16 if self.precision == "bf16-mixed" else torch.half))
 
+    @override
     @contextmanager
     def forward_context(self) -> Generator[None, None, None]:
         """Enable autocast context."""
         with self.autocast_context_manager():
             yield
 
+    @override
     def state_dict(self) -> Dict[str, Any]:
         if self.scaler is not None:
             return self.scaler.state_dict()
         return {}
 
+    @override
     def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
         if self.scaler is not None:
             self.scaler.load_state_dict(state_dict)

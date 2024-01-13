@@ -455,6 +455,64 @@ def test_wandb_log_media(wandb_mock, tmp_path):
     with pytest.raises(ValueError, match="Expected 2 items but only found 1 for caption"):
         logger.log_image(key="samples", images=["1.jpg", "2.jpg"], caption=["caption 1"])
 
+    # test log_audio
+    wandb_mock.init().log.reset_mock()
+    logger.log_audio(key="samples", audios=["1.mp3", "2.mp3"])
+    wandb_mock.Audio.assert_called_with("2.mp3")
+    wandb_mock.init().log.assert_called_once_with({"samples": [wandb_mock.Audio(), wandb_mock.Audio()]})
+
+    # test log_audio with step
+    wandb_mock.init().log.reset_mock()
+    logger.log_audio(key="samples", audios=["1.mp3", "2.mp3"], step=5)
+    wandb_mock.Audio.assert_called_with("2.mp3")
+    wandb_mock.init().log.assert_called_once_with(
+        {"samples": [wandb_mock.Audio(), wandb_mock.Audio()], "trainer/global_step": 5}
+    )
+
+    # test log_audio with captions
+    wandb_mock.init().log.reset_mock()
+    wandb_mock.Audio.reset_mock()
+    logger.log_audio(key="samples", audios=["1.mp3", "2.mp3"], caption=["caption 1", "caption 2"])
+    wandb_mock.Audio.assert_called_with("2.mp3", caption="caption 2")
+    wandb_mock.init().log.assert_called_once_with({"samples": [wandb_mock.Audio(), wandb_mock.Audio()]})
+
+    # test log_audio without a list
+    with pytest.raises(TypeError, match="""Expected a list as "audios", found <class 'str'>"""):
+        logger.log_audio(key="samples", audios="1.mp3")
+
+    # test log_audio with wrong number of captions
+    with pytest.raises(ValueError, match="Expected 2 items but only found 1 for caption"):
+        logger.log_audio(key="samples", audios=["1.mp3", "2.mp3"], caption=["caption 1"])
+
+    # test log_video
+    wandb_mock.init().log.reset_mock()
+    logger.log_video(key="samples", videos=["1.mp4", "2.mp4"])
+    wandb_mock.Video.assert_called_with("2.mp4")
+    wandb_mock.init().log.assert_called_once_with({"samples": [wandb_mock.Video(), wandb_mock.Video()]})
+
+    # test log_video with step
+    wandb_mock.init().log.reset_mock()
+    logger.log_video(key="samples", videos=["1.mp4", "2.mp4"], step=5)
+    wandb_mock.Video.assert_called_with("2.mp4")
+    wandb_mock.init().log.assert_called_once_with(
+        {"samples": [wandb_mock.Video(), wandb_mock.Video()], "trainer/global_step": 5}
+    )
+
+    # test log_video with captions
+    wandb_mock.init().log.reset_mock()
+    wandb_mock.Video.reset_mock()
+    logger.log_video(key="samples", videos=["1.mp4", "2.mp4"], caption=["caption 1", "caption 2"])
+    wandb_mock.Video.assert_called_with("2.mp4", caption="caption 2")
+    wandb_mock.init().log.assert_called_once_with({"samples": [wandb_mock.Video(), wandb_mock.Video()]})
+
+    # test log_video without a list
+    with pytest.raises(TypeError, match="""Expected a list as "videos", found <class 'str'>"""):
+        logger.log_video(key="samples", videos="1.mp4")
+
+    # test log_video with wrong number of captions
+    with pytest.raises(ValueError, match="Expected 2 items but only found 1 for caption"):
+        logger.log_video(key="samples", videos=["1.mp4", "2.mp4"], caption=["caption 1"])
+
     # test log_table
     wandb_mock.Table.reset_mock()
     wandb_mock.init().log.reset_mock()

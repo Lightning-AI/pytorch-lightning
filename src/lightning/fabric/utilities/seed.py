@@ -56,7 +56,6 @@ def seed_everything(seed: Optional[int] = None, workers: bool = False) -> int:
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
-    torch.cuda.manual_seed_all(seed)
 
     os.environ["PL_SEED_WORKERS"] = f"{int(workers)}"
 
@@ -111,7 +110,7 @@ def _collect_rng_states(include_cuda: bool = True) -> Dict[str, Any]:
         "python": python_get_rng_state(),
     }
     if include_cuda:
-        states["torch.cuda"] = torch.cuda.get_rng_state_all()
+        states["torch.cuda"] = torch.cuda.get_rng_state_all() if torch.cuda.is_available() else []
     return states
 
 

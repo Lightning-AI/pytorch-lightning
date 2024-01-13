@@ -36,16 +36,16 @@ from lightning.pytorch.accelerators.cuda import CUDAAccelerator
 from lightning.pytorch.accelerators.mps import MPSAccelerator
 from lightning.pytorch.accelerators.xla import XLAAccelerator
 from lightning.pytorch.plugins import (
-    PLUGIN_INPUT,
+    _PLUGIN_INPUT,
     CheckpointIO,
-    DeepSpeedPrecisionPlugin,
-    DoublePrecisionPlugin,
-    FSDPPrecisionPlugin,
-    HalfPrecisionPlugin,
-    MixedPrecisionPlugin,
-    PrecisionPlugin,
-    TransformerEnginePrecisionPlugin,
-    XLAPrecisionPlugin,
+    DeepSpeedPrecision,
+    DoublePrecision,
+    FSDPPrecision,
+    HalfPrecision,
+    MixedPrecision,
+    Precision,
+    TransformerEnginePrecision,
+    XLAPrecision,
 )
 from lightning.pytorch.plugins.layer_sync import LayerSync, TorchSyncBatchNorm
 from lightning.pytorch.strategies import (
@@ -81,7 +81,7 @@ class _AcceleratorConnector:
         num_nodes: int = 1,
         accelerator: Union[str, Accelerator] = "auto",
         strategy: Union[str, Strategy] = "auto",
-        plugins: Optional[Union[PLUGIN_INPUT, List[PLUGIN_INPUT]]] = None,
+        plugins: Optional[Union[_PLUGIN_INPUT, List[_PLUGIN_INPUT]]] = None,
         precision: Optional[_PRECISION_INPUT] = None,
         sync_batchnorm: bool = False,
         benchmark: Optional[bool] = None,
@@ -96,20 +96,14 @@ class _AcceleratorConnector:
                 2. accelerator str
                 3. accelerator auto
 
-            B. strategy flag could be :
+            B. strategy flag could be:
                 1. strategy class
                 2. strategy str registered with StrategyRegistry
 
             C. plugins flag could be:
-                1. List of str, which could contain:
-                    i. precision str (Not supported in the old accelerator_connector version)
-                    ii. checkpoint_io str (Not supported in the old accelerator_connector version)
-                    iii. cluster_environment str (Not supported in the old accelerator_connector version)
-                2. List of class, which could contains:
-                    i. precision class (should be removed, and precision flag should allow user pass classes)
-                    ii. checkpoint_io class
-                    iii. cluster_environment class
-
+                1. precision class (should be removed, and precision flag should allow user pass classes)
+                2. checkpoint_io class
+                3. cluster_environment class
 
         priorities which to take when:
             A. Class > str
@@ -130,7 +124,7 @@ class _AcceleratorConnector:
         self._strategy_flag: Union[Strategy, str] = "auto"
         self._accelerator_flag: Union[Accelerator, str] = "auto"
         self._precision_flag: _PRECISION_INPUT_STR = "32-true"
-        self._precision_plugin_flag: Optional[PrecisionPlugin] = None
+        self._precision_plugin_flag: Optional[Precision] = None
         self._cluster_environment_flag: Optional[Union[ClusterEnvironment, str]] = None
         self._parallel_devices: List[Union[int, torch.device, str]] = []
         self._layer_sync: Optional[LayerSync] = TorchSyncBatchNorm() if sync_batchnorm else None
@@ -175,7 +169,7 @@ class _AcceleratorConnector:
         strategy: Union[str, Strategy],
         accelerator: Union[str, Accelerator],
         precision: Optional[_PRECISION_INPUT],
-        plugins: Optional[Union[PLUGIN_INPUT, List[PLUGIN_INPUT]]],
+        plugins: Optional[Union[_PLUGIN_INPUT, List[_PLUGIN_INPUT]]],
         sync_batchnorm: bool,
     ) -> None:
         """This method checks:
@@ -242,9 +236,9 @@ class _AcceleratorConnector:
         if plugins:
             plugins_flags_types: Dict[str, int] = Counter()
             for plugin in plugins:
-                if isinstance(plugin, PrecisionPlugin):
+                if isinstance(plugin, Precision):
                     self._precision_plugin_flag = plugin
-                    plugins_flags_types[PrecisionPlugin.__name__] += 1
+                    plugins_flags_types[Precision.__name__] += 1
                 elif isinstance(plugin, CheckpointIO):
                     self.checkpoint_io = plugin
                     plugins_flags_types[CheckpointIO.__name__] += 1
@@ -261,7 +255,7 @@ class _AcceleratorConnector:
                     plugins_flags_types[TorchSyncBatchNorm.__name__] += 1
                 else:
                     raise MisconfigurationException(
-                        f"Found invalid type for plugin {plugin}. Expected one of: PrecisionPlugin, "
+                        f"Found invalid type for plugin {plugin}. Expected one of: Precision, "
                         "CheckpointIO, ClusterEnviroment, or LayerSync."
                     )
 
@@ -272,7 +266,7 @@ class _AcceleratorConnector:
                     " Expected one value for each type at most."
                 )
 
-            if plugins_flags_types.get(PrecisionPlugin.__name__) and precision_flag is not None:
+            if plugins_flags_types.get(Precision.__name__) and precision_flag is not None:
                 raise ValueError(
                     f"Received both `precision={precision_flag}` and `plugins={self._precision_plugin_flag}`."
                     f" Choose one."
@@ -509,9 +503,9 @@ class _AcceleratorConnector:
         else:
             self.strategy = self._strategy_flag
 
-    def _check_and_init_precision(self) -> PrecisionPlugin:
+    def _check_and_init_precision(self) -> Precision:
         self._validate_precision_choice()
-        if isinstance(self._precision_plugin_flag, PrecisionPlugin):
+        if isinstance(self._precision_plugin_flag, Precision):
             return self._precision_plugin_flag
 
         if _graphcore_available_and_importable():
@@ -537,21 +531,21 @@ class _AcceleratorConnector:
                 return ColossalAIPrecisionPlugin(self._precision_flag)
 
         if isinstance(self.strategy, (SingleDeviceXLAStrategy, XLAStrategy)):
-            return XLAPrecisionPlugin(self._precision_flag)  # type: ignore
+            return XLAPrecision(self._precision_flag)  # type: ignore
         if isinstance(self.strategy, DeepSpeedStrategy):
-            return DeepSpeedPrecisionPlugin(self._precision_flag)  # type: ignore[arg-type]
+            return DeepSpeedPrecision(self._precision_flag)  # type: ignore[arg-type]
         if isinstance(self.strategy, FSDPStrategy):
-            return FSDPPrecisionPlugin(self._precision_flag)  # type: ignore[arg-type]
+            return FSDPPrecision(self._precision_flag)  # type: ignore[arg-type]
         if self._precision_flag in ("16-true", "bf16-true"):
-            return HalfPrecisionPlugin(self._precision_flag)  # type: ignore
+            return HalfPrecision(self._precision_flag)  # type: ignore
         if self._precision_flag == "32-true":
-            return PrecisionPlugin()
+            return Precision()
         if self._precision_flag == "64-true":
-            return DoublePrecisionPlugin()
+            return DoublePrecision()
         if self._precision_flag == "transformer-engine":
-            return TransformerEnginePrecisionPlugin(dtype=torch.bfloat16)
+            return TransformerEnginePrecision(weights_dtype=torch.bfloat16)
         if self._precision_flag == "transformer-engine-float16":
-            return TransformerEnginePrecisionPlugin(dtype=torch.float16)
+            return TransformerEnginePrecision(weights_dtype=torch.float16)
 
         if self._precision_flag == "16-mixed" and self._accelerator_flag == "cpu":
             rank_zero_warn(
@@ -565,7 +559,7 @@ class _AcceleratorConnector:
                 f"Using {'16bit' if self._precision_flag == '16-mixed' else 'bfloat16'} Automatic Mixed Precision (AMP)"
             )
             device = "cpu" if self._accelerator_flag == "cpu" else "cuda"
-            return MixedPrecisionPlugin(self._precision_flag, device)  # type: ignore[arg-type]
+            return MixedPrecision(self._precision_flag, device)  # type: ignore[arg-type]
 
         raise RuntimeError("No precision set")
 

@@ -14,12 +14,12 @@
 
 import pytest
 import torch
-from lightning.pytorch.plugins.precision.deepspeed import DeepSpeedPrecisionPlugin
+from lightning.pytorch.plugins.precision.deepspeed import DeepSpeedPrecision
 
 
 def test_invalid_precision_with_deepspeed_precision():
     with pytest.raises(ValueError, match="is not supported. `precision` must be one of"):
-        DeepSpeedPrecisionPlugin(precision="64-true")
+        DeepSpeedPrecision(precision="64-true")
 
 
 @pytest.mark.parametrize(
@@ -33,7 +33,7 @@ def test_invalid_precision_with_deepspeed_precision():
     ],
 )
 def test_selected_dtype(precision, expected_dtype):
-    plugin = DeepSpeedPrecisionPlugin(precision=precision)
+    plugin = DeepSpeedPrecision(precision=precision)
     assert plugin.precision == precision
     assert plugin._desired_dtype == expected_dtype
 
@@ -49,7 +49,7 @@ def test_selected_dtype(precision, expected_dtype):
     ],
 )
 def test_module_init_context(precision, expected_dtype):
-    plugin = DeepSpeedPrecisionPlugin(precision=precision)
+    plugin = DeepSpeedPrecision(precision=precision)
     with plugin.module_init_context():
         model = torch.nn.Linear(2, 2)
         assert torch.get_default_dtype() == expected_dtype
@@ -67,7 +67,7 @@ def test_module_init_context(precision, expected_dtype):
     ],
 )
 def test_convert_module(precision, expected_dtype):
-    precision = DeepSpeedPrecisionPlugin(precision=precision)
+    precision = DeepSpeedPrecision(precision=precision)
     module = torch.nn.Linear(2, 2)
     assert module.weight.dtype == module.bias.dtype == torch.float32
     module = precision.convert_module(module)

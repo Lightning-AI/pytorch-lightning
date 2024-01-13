@@ -186,7 +186,7 @@ configuration files and automatic creation of objects, so you don't need to do i
 
 .. note::
 
-    Lighting automatically registers all subclasses of :class:`~lightning.pytorch.core.LightningModule`,
+    Lightning automatically registers all subclasses of :class:`~lightning.pytorch.core.LightningModule`,
     so the complete import path is not required for them and can be replaced by the class name.
 
 .. note::

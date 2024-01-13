@@ -36,7 +36,6 @@ import torch
 import torch.nn as nn
 from lightning_utilities.core.apply_func import apply_to_collection
 from lightning_utilities.core.overrides import is_overridden
-from lightning_utilities.core.rank_zero import rank_zero_deprecation, rank_zero_warn
 from torch import Tensor
 from torch.optim import Optimizer
 from torch.utils.data import BatchSampler, DataLoader, DistributedSampler, RandomSampler, SequentialSampler
@@ -65,8 +64,10 @@ from lightning.fabric.utilities.data import (
     _update_dataloader,
     has_iterable_dataset,
 )
+from lightning.fabric.utilities.device_dtype_mixin import _update_properties
 from lightning.fabric.utilities.distributed import DistributedSamplerWrapper
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
+from lightning.fabric.utilities.rank_zero import rank_zero_deprecation, rank_zero_warn
 from lightning.fabric.utilities.registry import _load_external_callbacks
 from lightning.fabric.utilities.seed import seed_everything
 from lightning.fabric.utilities.types import ReduceOp
@@ -243,9 +244,11 @@ class Fabric:
 
         module = _FabricModule(module, self._precision, original_module=original_module)
 
-        if not isinstance(self._strategy, (FSDPStrategy, XLAFSDPStrategy)):
-            # Update the _DeviceDtypeModuleMixin's device parameter
-            module.to(self.device if move_to_device else next(module.parameters(), torch.tensor(0)).device)
+        # Update the _DeviceDtypeModuleMixin's device parameter
+        # NOTE: for sharded strategies or manual device placement, there's no single root device
+        _update_properties(
+            module, device=self.device if move_to_device else next(module.parameters(), torch.tensor(0)).device
+        )
 
         optimizers = [
             _FabricOptimizer(optimizer=optimizer, strategy=self._strategy, callbacks=self._callbacks)
@@ -295,9 +298,11 @@ class Fabric:
         module = self._strategy.setup_module(module)
         module = _FabricModule(module, self._precision, original_module=original_module)
 
-        if not isinstance(self._strategy, (FSDPStrategy, XLAFSDPStrategy)):
-            # Update the _DeviceDtypeModuleMixin's device parameter
-            module.to(self.device if move_to_device else next(module.parameters(), torch.tensor(0)).device)
+        # Update the _DeviceDtypeModuleMixin's device parameter
+        # NOTE: for sharded strategies or manual device placement, there's no single root device
+        _update_properties(
+            module, device=self.device if move_to_device else next(module.parameters(), torch.tensor(0)).device
+        )
 
         if hasattr(original_module, "_fabric"):  # this is probably a LightningModule
             original_module._fabric = self  # type: ignore[assignment]
@@ -828,8 +833,8 @@ class Fabric:
                 )
         elif isinstance(self.strategy.launcher, (_MultiProcessingLauncher, _XLALauncher)):
             raise TypeError(
-                f"To use the `{type(self.strategy).__name__}` strategy, `.launch()` needs to be called with a function"
-                " that contains the code to launch in processes."
+                f"To spawn processes with the `{type(self.strategy).__name__}` strategy, `.launch()` needs to be called"
+                " with a function that contains the code to launch in processes."
             )
         return self._wrap_and_launch(function, self, *args, **kwargs)
 

@@ -24,7 +24,7 @@ from lightning.fabric.utilities.imports import _IS_WINDOWS
 from lightning.pytorch import Trainer
 from lightning.pytorch.accelerators import CPUAccelerator, XLAAccelerator
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
-from lightning.pytorch.plugins import PrecisionPlugin, XLACheckpointIO, XLAPrecisionPlugin
+from lightning.pytorch.plugins import Precision, XLACheckpointIO, XLAPrecision
 from lightning.pytorch.strategies import DDPStrategy, XLAStrategy
 from lightning.pytorch.utilities import find_shared_parameters
 from torch import nn
@@ -245,16 +245,16 @@ def test_auto_parameters_tying_tpus_nested_module(tmpdir):
 
 
 def test_tpu_invalid_raises(tpu_available, mps_count_0):
-    strategy = DDPStrategy(accelerator=XLAAccelerator(), precision_plugin=XLAPrecisionPlugin())
+    strategy = DDPStrategy(accelerator=XLAAccelerator(), precision_plugin=XLAPrecision())
     with pytest.raises(ValueError, match="XLAAccelerator` can only be used with a `SingleDeviceXLAStrategy`"):
         Trainer(strategy=strategy, devices=8)
 
     accelerator = XLAAccelerator()
-    with pytest.raises(TypeError, match="can only work with the `XLAPrecisionPlugin` plugin"):
-        XLAStrategy(accelerator=accelerator, precision_plugin=PrecisionPlugin())
+    with pytest.raises(TypeError, match="can only work with the `XLAPrecision` plugin"):
+        XLAStrategy(accelerator=accelerator, precision_plugin=Precision())
 
     accelerator = XLAAccelerator()
-    strategy = DDPStrategy(accelerator=accelerator, precision_plugin=XLAPrecisionPlugin())
+    strategy = DDPStrategy(accelerator=accelerator, precision_plugin=XLAPrecision())
     with pytest.raises(
         ValueError, match="The `XLAAccelerator` can only be used with a `SingleDeviceXLAStrategy` or `XLAStrategy"
     ):
@@ -312,10 +312,9 @@ def test_warning_if_tpus_not_used(tpu_available):
         ("2,", [2]),
     ],
 )
-@pytest.mark.parametrize("runtime", ["xrt", "pjrt"])
 @RunIf(min_python="3.9")  # mocking issue
-def test_trainer_config_device_ids(devices, expected_device_ids, runtime, tpu_available, monkeypatch):
-    monkeypatch.setattr(lightning.fabric.accelerators.xla, "_using_pjrt", lambda: runtime == "pjrt")
+def test_trainer_config_device_ids(devices, expected_device_ids, tpu_available, monkeypatch):
+    monkeypatch.setattr(lightning.fabric.accelerators.xla, "_using_pjrt", lambda: True)
 
     mock = DeviceMock()
     monkeypatch.setattr(torch, "device", mock)
@@ -324,7 +323,6 @@ def test_trainer_config_device_ids(devices, expected_device_ids, runtime, tpu_av
         monkeypatch.setattr(torch.multiprocessing, "get_all_start_methods", lambda: ["fork", "spawn"])
 
     trainer = Trainer(accelerator="tpu", devices=devices)
-    device_offset = int(runtime == "xrt")
-    assert mock.mock_calls == [call("xla", i + device_offset) for i in expected_device_ids]
+    assert mock.mock_calls == [call("xla", i) for i in expected_device_ids]
     assert len(trainer.device_ids) == len(expected_device_ids)
     assert trainer.num_devices == len(expected_device_ids)

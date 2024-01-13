@@ -19,6 +19,7 @@ import torch
 from torch import Tensor
 from torch.nn import Module
 from torch.optim import Optimizer
+from typing_extensions import override
 
 import lightning.pytorch as pl
 from lightning.fabric.plugins import Precision as FabricPrecision
@@ -28,7 +29,7 @@ from lightning.pytorch.trainer import call
 from lightning.pytorch.utilities import GradClipAlgorithmType
 
 
-class PrecisionPlugin(FabricPrecision, CheckpointHooks):
+class Precision(FabricPrecision, CheckpointHooks):
     """Base class for all plugins handling the precision-specific parts of the training.
 
     The class attribute precision must be overwritten in child classes. The default value reflects fp32 training.
@@ -41,12 +42,14 @@ class PrecisionPlugin(FabricPrecision, CheckpointHooks):
         """Connects this plugin to the accelerator and the training process."""
         return model, optimizers, lr_schedulers
 
+    @override
     def pre_backward(self, tensor: Tensor, module: "pl.LightningModule") -> Tensor:  # type: ignore[override]
         trainer = module.trainer
         call._call_callback_hooks(trainer, "on_before_backward", tensor)
         call._call_lightning_module_hook(trainer, "on_before_backward", tensor)
         return tensor
 
+    @override
     def backward(  # type: ignore[override]
         self,
         tensor: Tensor,
@@ -68,6 +71,7 @@ class PrecisionPlugin(FabricPrecision, CheckpointHooks):
         """
         model.backward(tensor, *args, **kwargs)
 
+    @override
     def post_backward(self, tensor: Tensor, module: "pl.LightningModule") -> Tensor:  # type: ignore[override]
         # once backward has been applied, release graph
         closure_loss = tensor.detach()
@@ -98,13 +102,14 @@ class PrecisionPlugin(FabricPrecision, CheckpointHooks):
         hook is called.
 
         The closure (generally) runs ``backward`` so this allows inspecting gradients in this hook. This structure is
-        consistent with the ``PrecisionPlugin`` subclasses that cannot pass ``optimizer.step(closure)`` directly.
+        consistent with the ``Precision`` subclasses that cannot pass ``optimizer.step(closure)`` directly.
 
         """
         closure_result = closure()
         self._after_closure(model, optimizer)
         return closure_result
 
+    @override
     def optimizer_step(  # type: ignore[override]
         self,
         optimizer: Steppable,

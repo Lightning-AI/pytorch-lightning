@@ -71,7 +71,7 @@ Modify the template
 
 The command above generates an App file like this:
 
-.. note:: TODO: list the file and show how to extend it
+.. TODO:: list the file and show how to extend it
 
 .. code:: python
 

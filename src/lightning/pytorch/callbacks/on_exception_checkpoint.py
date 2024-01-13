@@ -20,6 +20,8 @@ Automatically save a checkpoints on exception.
 import os
 from typing import Any
 
+from typing_extensions import override
+
 import lightning.pytorch as pl
 from lightning.fabric.utilities.types import _PATH
 from lightning.pytorch.callbacks import Checkpoint
@@ -58,9 +60,11 @@ class OnExceptionCheckpoint(Checkpoint):
     def ckpt_path(self) -> str:
         return os.path.join(self.dirpath, self.filename + self.FILE_EXTENSION)
 
+    @override
     def on_exception(self, trainer: "pl.Trainer", *_: Any, **__: Any) -> None:
         # overwrite if necessary
         trainer.save_checkpoint(self.ckpt_path)
 
+    @override
     def teardown(self, trainer: "pl.Trainer", *_: Any, **__: Any) -> None:
         trainer.strategy.remove_checkpoint(self.ckpt_path)

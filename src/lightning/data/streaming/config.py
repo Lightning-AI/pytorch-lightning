@@ -19,18 +19,26 @@ from lightning.data.streaming.constants import _INDEX_FILENAME, _TORCH_GREATER_E
 from lightning.data.streaming.downloader import get_downloader_cls
 from lightning.data.streaming.item_loader import BaseItemLoader, PyTreeLoader, TokensLoader
 from lightning.data.streaming.sampler import ChunkedIndex
+from lightning.data.streaming.serializers import Serializer
 
 if _TORCH_GREATER_EQUAL_2_1_0:
-    from torch.utils._pytree import treespec_loads
+    from torch.utils._pytree import tree_unflatten, treespec_loads
 
 
 class ChunksConfig:
-    def __init__(self, cache_dir: str, remote_dir: Optional[str], item_loader: Optional[BaseItemLoader] = None) -> None:
+    def __init__(
+        self,
+        cache_dir: str,
+        serializers: Dict[str, Serializer],
+        remote_dir: Optional[str],
+        item_loader: Optional[BaseItemLoader] = None,
+    ) -> None:
         """The ChunksConfig reads the index files associated a chunked dataset and enables to map an index to its
         chunk.
 
         Arguments:
             cache_dir: The path to cache folder.
+            serializers: The serializers used to serialize and deserialize the chunks.
             remote_dir: The path to a remote folder where the data are located.
                 The scheme needs to be added to the path.
 
@@ -50,13 +58,13 @@ class ChunksConfig:
 
         self._config["data_spec"] = treespec_loads(self._config["data_spec"])
 
-        self._item_loader.setup(self._config, self._chunks)
+        self._item_loader.setup(self._config, self._chunks, serializers)
         self._intervals = self._item_loader.generate_intervals()
         self._length = self._intervals[-1][-1]
         self._downloader = None
 
         if remote_dir:
-            self._downloader = get_downloader_cls(remote_dir)(remote_dir, cache_dir, self._chunks)
+            self._downloader = get_downloader_cls(remote_dir, cache_dir, self._chunks)
 
     def download_chunk_from_index(self, chunk_index: int) -> None:
         chunk_filename = self._chunks[chunk_index]["filename"]
@@ -78,10 +86,34 @@ class ChunksConfig:
         return self._intervals
 
     @property
+    def num_bytes(self) -> int:
+        if self._config is None:
+            raise RuntimeError("The config should be defined.")
+        return sum(c["chunk_bytes"] for c in self._chunks)
+
+    @property
     def data_format(self) -> Any:
         if self._config is None:
             raise RuntimeError("The config should be defined.")
         return self._config["data_format"]
+
+    @property
+    def data_format_unflattened(self) -> Any:
+        if self._config is None:
+            raise RuntimeError("The config should be defined.")
+        return tree_unflatten(self._config["data_format"], self._config["data_spec"])
+
+    @property
+    def compression(self) -> Any:
+        if self._config is None:
+            raise RuntimeError("The config should be defined.")
+        return self._config["compression"]
+
+    @property
+    def chunk_bytes(self) -> int:
+        if self._config is None:
+            raise RuntimeError("The config should be defined.")
+        return self._config["chunk_bytes"]
 
     @property
     def config(self) -> Dict[str, Any]:
@@ -102,20 +134,31 @@ class ChunksConfig:
         chunk = self._chunks[index.chunk_index]
         return os.path.join(self._cache_dir, chunk["filename"]), *self._intervals[index.chunk_index]
 
+    def _get_chunk_index_from_filename(self, chunk_filename: str) -> int:
+        """Retrieves the associated chunk_index for a given chunk filename."""
+        for chunk_index, chunk in enumerate(self._chunks):
+            if chunk["filename"] == chunk_filename:
+                return chunk_index
+        raise ValueError(f"The provided filename doesn't exist {chunk_filename}.")
+
     @classmethod
     def load(
-        cls, cache_dir: str, remote_dir: Optional[str] = None, item_loader: Optional[BaseItemLoader] = None
+        cls,
+        cache_dir: str,
+        serializers: Dict[str, Serializer],
+        remote_dir: Optional[str] = None,
+        item_loader: Optional[BaseItemLoader] = None,
     ) -> Optional["ChunksConfig"]:
         cache_index_filepath = os.path.join(cache_dir, _INDEX_FILENAME)
 
         if isinstance(remote_dir, str):
-            downloader = get_downloader_cls(remote_dir)(remote_dir, cache_dir, [])
+            downloader = get_downloader_cls(remote_dir, cache_dir, [])
             downloader.download_file(os.path.join(remote_dir, _INDEX_FILENAME), cache_index_filepath)
 
         if not os.path.exists(cache_index_filepath):
             return None
 
-        return ChunksConfig(cache_dir, remote_dir, item_loader)
+        return ChunksConfig(cache_dir, serializers, remote_dir, item_loader)
 
     def __len__(self) -> int:
         return self._length

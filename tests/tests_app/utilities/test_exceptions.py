@@ -59,7 +59,7 @@ class Test_ApiExceptionHandler:
 
         mock_subcommand.invoke.assert_called
         assert result.exit_code == 1
-        assert type(result.exception) == ClickException
+        assert type(result.exception) is ClickException
         assert api_error_msg == str(result.exception)
 
     def test_original_thrown_if_cannot_decode_body(self, mock_api_handled_group, mock_subcommand):
@@ -81,4 +81,4 @@ class Test_ApiExceptionHandler:
 
         mock_subcommand.invoke.assert_called
         assert result.exit_code == 1
-        assert type(result.exception) == ApiException
+        assert type(result.exception) is ApiException

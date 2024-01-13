@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import base64
 import multiprocessing
 import pickle
 import queue  # needed as import instead from/import for mocking in tests
@@ -20,7 +21,7 @@ import warnings
 from abc import ABC, abstractmethod
 from enum import Enum
 from pathlib import Path
-from typing import Any, Optional, Tuple
+from typing import Any, List, Optional, Tuple
 from urllib.parse import urljoin
 
 import backoff
@@ -28,7 +29,9 @@ import requests
 from requests.exceptions import ConnectionError, ConnectTimeout, ReadTimeout
 
 from lightning.app.core.constants import (
+    BATCH_DELTA_COUNT,
     HTTP_QUEUE_REFRESH_INTERVAL,
+    HTTP_QUEUE_REQUESTS_PER_SECOND,
     HTTP_QUEUE_TOKEN,
     HTTP_QUEUE_URL,
     LIGHTNING_DIR,
@@ -77,7 +80,9 @@ class QueuingSystem(Enum):
             return MultiProcessQueue(queue_name, default_timeout=STATE_UPDATE_TIMEOUT)
         if self == QueuingSystem.REDIS:
             return RedisQueue(queue_name, default_timeout=REDIS_QUEUES_READ_DEFAULT_TIMEOUT)
-        return HTTPQueue(queue_name, default_timeout=STATE_UPDATE_TIMEOUT)
+        return RateLimitedQueue(
+            HTTPQueue(queue_name, default_timeout=STATE_UPDATE_TIMEOUT), HTTP_QUEUE_REQUESTS_PER_SECOND
+        )
 
     def get_api_response_queue(self, queue_id: Optional[str] = None) -> "BaseQueue":
         queue_name = f"{queue_id}_{API_RESPONSE_QUEUE_CONSTANT}" if queue_id else API_RESPONSE_QUEUE_CONSTANT
@@ -186,6 +191,20 @@ class BaseQueue(ABC):
         """
         pass
 
+    @abstractmethod
+    def batch_get(self, timeout: Optional[float] = None, count: Optional[int] = None) -> List[Any]:
+        """Returns the left most elements of the queue.
+
+        Parameters
+        ----------
+        timeout:
+            Read timeout in seconds, in case of input timeout is 0, the `self.default_timeout` is used.
+            A timeout of None can be used to block indefinitely.
+        count:
+            The number of element to get from the queue
+
+        """
+
     @property
     def is_running(self) -> bool:
         """Returns True if the queue is running, False otherwise.
@@ -210,6 +229,12 @@ class MultiProcessQueue(BaseQueue):
         if timeout == 0:
             timeout = self.default_timeout
         return self.queue.get(timeout=timeout, block=(timeout is None))
+
+    def batch_get(self, timeout: Optional[float] = None, count: Optional[int] = None) -> List[Any]:
+        if timeout == 0:
+            timeout = self.default_timeout
+        # For multiprocessing, we can simply collect the latest upmost element
+        return [self.queue.get(timeout=timeout, block=(timeout is None))]
 
 
 class RedisQueue(BaseQueue):
@@ -309,6 +334,9 @@ class RedisQueue(BaseQueue):
             raise queue.Empty
         return pickle.loads(out[1])
 
+    def batch_get(self, timeout: Optional[float] = None, count: Optional[int] = None) -> Any:
+        return [self.get(timeout=timeout)]
+
     def clear(self) -> None:
         """Clear all elements in the queue."""
         self.redis.delete(self.name)
@@ -345,6 +373,47 @@ class RedisQueue(BaseQueue):
     @classmethod
     def from_dict(cls, state: dict) -> "RedisQueue":
         return cls(**state)
+
+
+class RateLimitedQueue(BaseQueue):
+    def __init__(self, queue: BaseQueue, requests_per_second: float):
+        """This is a queue wrapper that will block on get or put calls if they are made too quickly.
+
+        Args:
+            queue: The queue to wrap.
+            requests_per_second: The target number of get or put requests per second.
+
+        """
+        self.name = queue.name
+        self.default_timeout = queue.default_timeout
+
+        self._queue = queue
+        self._seconds_per_request = 1 / requests_per_second
+
+        self._last_get = 0.0
+
+    @property
+    def is_running(self) -> bool:
+        return self._queue.is_running
+
+    def _wait_until_allowed(self, last_time: float) -> None:
+        t = time.time()
+        diff = t - last_time
+        if diff < self._seconds_per_request:
+            time.sleep(self._seconds_per_request - diff)
+
+    def get(self, timeout: Optional[float] = None) -> Any:
+        self._wait_until_allowed(self._last_get)
+        self._last_get = time.time()
+        return self._queue.get(timeout=timeout)
+
+    def batch_get(self, timeout: Optional[float] = None, count: Optional[int] = None) -> Any:
+        self._wait_until_allowed(self._last_get)
+        self._last_get = time.time()
+        return self._queue.batch_get(timeout=timeout)
+
+    def put(self, item: Any) -> None:
+        return self._queue.put(item)
 
 
 class HTTPQueue(BaseQueue):
@@ -430,6 +499,20 @@ class HTTPQueue(BaseQueue):
             if resp.status_code == 204:
                 raise queue.Empty
             return pickle.loads(resp.content)
+        except ConnectionError:
+            # Note: If the Http Queue service isn't available,
+            # we consider the queue is empty to avoid failing the app.
+            raise queue.Empty
+
+    def batch_get(self, timeout: Optional[float] = None, count: Optional[int] = None) -> List[Any]:
+        try:
+            resp = self.client.post(
+                f"v1/{self.app_id}/{self._name_suffix}",
+                query_params={"action": "popCount", "count": str(count or BATCH_DELTA_COUNT)},
+            )
+            if resp.status_code == 204:
+                raise queue.Empty
+            return [pickle.loads(base64.b64decode(data)) for data in resp.json()]
         except ConnectionError:
             # Note: If the Http Queue service isn't available,
             # we consider the queue is empty to avoid failing the app.

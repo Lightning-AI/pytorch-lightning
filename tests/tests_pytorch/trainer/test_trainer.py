@@ -1925,6 +1925,9 @@ def test_detect_anomaly_nan(tmpdir):
 def test_trainer_config_strategy(monkeypatch, trainer_kwargs, strategy_cls, accelerator_cls, devices):
     if trainer_kwargs.get("accelerator") == "cuda":
         mock_cuda_count(monkeypatch, trainer_kwargs["devices"])
+    if trainer_kwargs.get("accelerator") == "auto":
+        # current parametrizations assume non-CUDA env
+        mock_cuda_count(monkeypatch, 0)
 
     trainer = Trainer(**trainer_kwargs)
 
@@ -2061,3 +2064,13 @@ def test_init_module_context(monkeypatch):
     with pytest.warns(PossibleUserWarning, match="can't place .* on the device"), trainer.init_module():
         pass
     strategy.tensor_init_context.assert_called_once()
+
+
+def test_expand_home_trainer():
+    """Test that the dirpath gets expanded if it contains `~`."""
+    home_root = Path.home()
+
+    trainer = Trainer(default_root_dir="~/trainer")
+    assert trainer.default_root_dir == str(home_root / "trainer")
+    trainer = Trainer(default_root_dir=Path("~/trainer"))
+    assert trainer.default_root_dir == str(home_root / "trainer")

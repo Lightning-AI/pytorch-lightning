@@ -44,6 +44,8 @@ callbacks
     RichModelSummary
     RichProgressBar
     StochasticWeightAveraging
+    SpikeDetection
+    ThroughputMonitor
     Timer
     TQDMProgressBar
 
@@ -112,15 +114,15 @@ precision
     :nosignatures:
     :template: classtemplate.rst
 
-    DeepSpeedPrecisionPlugin
-    DoublePrecisionPlugin
-    HalfPrecisionPlugin
-    FSDPPrecisionPlugin
-    MixedPrecisionPlugin
-    PrecisionPlugin
-    XLAPrecisionPlugin
-    TransformerEnginePrecisionPlugin
-    BitsandbytesPrecisionPlugin
+    DeepSpeedPrecision
+    DoublePrecision
+    HalfPrecision
+    FSDPPrecision
+    MixedPrecision
+    Precision
+    XLAPrecision
+    TransformerEnginePrecision
+    BitsandbytesPrecision
 
 environments
 """"""""""""
@@ -248,3 +250,5 @@ utilities
     rank_zero
     seed
     warnings
+
+.. autofunction:: lightning.pytorch.utilities.measure_flops

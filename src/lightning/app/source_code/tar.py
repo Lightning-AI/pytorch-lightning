@@ -97,7 +97,7 @@ def _get_split_size(
     max_size = max_split_count * (1 << 31)  # max size per part limited by Requests or urllib as shown in ref above
     if total_size > max_size:
         raise click.ClickException(
-            f"The size of the datastore to be uploaded is bigger than our {max_size/(1 << 40):.2f} TBytes limit"
+            f"The size of the datastore to be uploaded is bigger than our {max_size / (1 << 40):.2f} TBytes limit"
         )
 
     split_size = minimum_split_size

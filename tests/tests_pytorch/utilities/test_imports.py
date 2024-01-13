@@ -19,7 +19,7 @@ from textwrap import dedent
 from unittest import mock
 
 import pytest
-from lightning.pytorch.utilities import _OMEGACONF_AVAILABLE
+from lightning.pytorch.utilities.imports import _OMEGACONF_AVAILABLE
 from lightning_utilities.core.imports import RequirementCache
 from torch.distributed import is_available
 
@@ -142,7 +142,7 @@ def test_import_deepspeed_lazily():
 
         assert 'deepspeed' not in sys.modules
         from lightning.pytorch.strategies import DeepSpeedStrategy
-        from lightning.pytorch.plugins import DeepSpeedPrecisionPlugin
+        from lightning.pytorch.plugins import DeepSpeedPrecision
         assert 'deepspeed' not in sys.modules
 
         import deepspeed

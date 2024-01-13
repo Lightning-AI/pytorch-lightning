@@ -13,6 +13,8 @@
 # limitations under the License.
 """Profiler to check if there are any bottlenecks in your code."""
 
+from typing_extensions import override
+
 from lightning.pytorch.profilers.profiler import Profiler
 
 
@@ -23,8 +25,10 @@ class PassThroughProfiler(Profiler):
 
     """
 
+    @override
     def start(self, action_name: str) -> None:
         pass
 
+    @override
     def stop(self, action_name: str) -> None:
         pass

@@ -23,6 +23,8 @@ import os
 from argparse import Namespace
 from typing import Any, Dict, Optional, Union
 
+from typing_extensions import override
+
 from lightning.fabric.loggers.csv_logs import CSVLogger as FabricCSVLogger
 from lightning.fabric.loggers.csv_logs import _ExperimentWriter as _FabricExperimentWriter
 from lightning.fabric.loggers.logger import rank_zero_experiment
@@ -58,6 +60,7 @@ class ExperimentWriter(_FabricExperimentWriter):
         """Record hparams."""
         self.hparams.update(params)
 
+    @override
     def save(self) -> None:
         """Save recorded hparams and metrics into files."""
         hparams_file = os.path.join(self.log_dir, self.NAME_HPARAMS_FILE)
@@ -106,6 +109,7 @@ class CSVLogger(Logger, FabricCSVLogger):
         self._save_dir = os.fspath(save_dir)
 
     @property
+    @override
     def root_dir(self) -> str:
         """Parent directory for all checkpoint subdirectories.
 
@@ -116,6 +120,7 @@ class CSVLogger(Logger, FabricCSVLogger):
         return os.path.join(self.save_dir, self.name)
 
     @property
+    @override
     def log_dir(self) -> str:
         """The log directory for this run.
 
@@ -128,6 +133,7 @@ class CSVLogger(Logger, FabricCSVLogger):
         return os.path.join(self.root_dir, version)
 
     @property
+    @override
     def save_dir(self) -> str:
         """The current directory where logs are saved.
 
@@ -137,12 +143,14 @@ class CSVLogger(Logger, FabricCSVLogger):
         """
         return self._save_dir
 
+    @override
     @rank_zero_only
     def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:  # type: ignore[override]
         params = _convert_params(params)
         self.experiment.log_hparams(params)
 
     @property
+    @override
     @rank_zero_experiment
     def experiment(self) -> _FabricExperimentWriter:
         r"""Actual _ExperimentWriter object. To use _ExperimentWriter features in your

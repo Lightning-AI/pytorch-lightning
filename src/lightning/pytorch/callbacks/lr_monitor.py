@@ -25,6 +25,7 @@ from typing import Any, DefaultDict, Dict, List, Literal, Optional, Set, Tuple, 
 
 import torch
 from torch.optim.optimizer import Optimizer
+from typing_extensions import override
 
 import lightning.pytorch as pl
 from lightning.pytorch.callbacks.callback import Callback
@@ -104,6 +105,7 @@ class LearningRateMonitor(Callback):
         self.last_momentum_values: Dict[str, Optional[List[float]]] = {}
         self.last_weight_decay_values: Dict[str, Optional[List[float]]] = {}
 
+    @override
     def on_train_start(self, trainer: "pl.Trainer", *args: Any, **kwargs: Any) -> None:
         """Called before training, determines unique names for all lr schedulers in the case of multiple of the same
         type or in the case of multiple parameter groups.
@@ -158,6 +160,7 @@ class LearningRateMonitor(Callback):
         self.last_momentum_values = {name + "-momentum": None for name in names_flatten}
         self.last_weight_decay_values = {name + "-weight_decay": None for name in names_flatten}
 
+    @override
     def on_train_batch_start(self, trainer: "pl.Trainer", *args: Any, **kwargs: Any) -> None:
         if not trainer._logger_connector.should_update_logs:
             return
@@ -170,6 +173,7 @@ class LearningRateMonitor(Callback):
                 for logger in trainer.loggers:
                     logger.log_metrics(latest_stat, step=trainer.fit_loop.epoch_loop._batches_that_stepped)
 
+    @override
     def on_train_epoch_start(self, trainer: "pl.Trainer", *args: Any, **kwargs: Any) -> None:
         if self.logging_interval != "step":
             interval = "epoch" if self.logging_interval is None else "any"
@@ -272,8 +276,8 @@ class LearningRateMonitor(Callback):
     def _add_suffix(self, name: str, param_groups: List[Dict], param_group_index: int, use_names: bool = True) -> str:
         if len(param_groups) > 1:
             if not use_names:
-                return f"{name}/pg{param_group_index+1}"
-            pg_name = param_groups[param_group_index].get("name", f"pg{param_group_index+1}")
+                return f"{name}/pg{param_group_index + 1}"
+            pg_name = param_groups[param_group_index].get("name", f"pg{param_group_index + 1}")
             return f"{name}/{pg_name}"
         if use_names:
             pg_name = param_groups[param_group_index].get("name")

@@ -14,7 +14,7 @@ runs:
   using: "composite"
   steps:
     - name: install dev. env
-      run: pip install "twine==4.0.1" setuptools wheel flake8
+      run: pip install -r requirements/ci.txt
       shell: bash
 
     - name: Set PACKAGE_NAME envvar

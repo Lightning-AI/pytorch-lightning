@@ -54,9 +54,7 @@ subprojects:
       - "examples/pytorch/basics/backbone_image_classifier.py"
       - "examples/pytorch/basics/autoencoder.py"
       - "requirements/pytorch/**"
-      - "src/lightning/__about__.py"
       - "src/lightning/__init__.py"
-      - "src/lightning/__main__.py"
       - "src/lightning/__setup__.py"
       - "src/lightning/__version__.py"
       - "src/lightning/pytorch/**"
@@ -97,7 +95,6 @@ subprojects:
       - ".github/workflows/tpu-tests.yml"
       - "tests/tests_pytorch/run_tpu_tests.sh"
     checks:
-      - "test-on-tpus (pytorch, xrt, v4-8)"
       - "test-on-tpus (pytorch, pjrt, v4-8)"
 
   - id: "fabric: Docs"
@@ -166,6 +163,9 @@ subprojects:
       - "requirements/data/**"
       - "src/lightning/data/**"
       - "src/lightning_data/*"
+      - "src/lightning/__init__.py"
+      - "src/lightning/__setup__.py"
+      - "src/lightning/__version__.py"
       - "tests/tests_data/**"
       - "examples/data/**"
       - "pyproject.toml" # includes pytest config
@@ -224,12 +224,9 @@ subprojects:
       - ".azure/gpu-tests-fabric.yml"
       - "examples/fabric/**"
       - "examples/run_fabric_examples.sh"
-      - "tests/tests_fabric/run_standalone_*.sh"
-      - "tests/tests_pytorch/run_standalone_tests.sh" # used by Fabric through a symlink
+      - "tests/run_standalone_*.sh"
       - "requirements/fabric/**"
-      - "src/lightning/__about__.py"
       - "src/lightning/__init__.py"
-      - "src/lightning/__main__.py"
       - "src/lightning/__setup__.py"
       - "src/lightning/__version__.py"
       - "src/lightning/fabric/**"
@@ -250,7 +247,6 @@ subprojects:
       - ".github/workflows/tpu-tests.yml"
       - "tests/tests_fabric/run_tpu_tests.sh"
     checks:
-      - "test-on-tpus (fabric, xrt, v4-8)"
       - "test-on-tpus (pytorch, pjrt, v4-8)"
 
   # SECTION: lightning_app
@@ -318,9 +314,7 @@ subprojects:
   - id: "lightning: Store"
     paths:
       - ".github/workflows/ci-tests-store.yml"
-      - "src/lightning/__about__.py"
       - "src/lightning/__init__.py"
-      - "src/lightning/__main__.py"
       - "src/lightning/__setup__.py"
       - "src/lightning/__version__.py"
       - "src/lightning/store/**"

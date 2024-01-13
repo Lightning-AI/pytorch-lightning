@@ -1,7 +1,8 @@
 ###############################
 Arrange app tabs (intermediate)
 ###############################
-TODO:
+
+.. TODO:: fill-in
 
 ----
 

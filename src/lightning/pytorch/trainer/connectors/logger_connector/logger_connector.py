@@ -14,7 +14,6 @@
 from typing import Any, Iterable, Optional, Union
 
 from lightning_utilities.core.apply_func import apply_to_collection
-from lightning_utilities.core.rank_zero import WarningCache
 from torch import Tensor
 
 import lightning.pytorch as pl
@@ -24,6 +23,7 @@ from lightning.fabric.utilities import move_data_to_device
 from lightning.fabric.utilities.apply_func import convert_tensors_to_scalars
 from lightning.pytorch.loggers import CSVLogger, Logger, TensorBoardLogger
 from lightning.pytorch.trainer.connectors.logger_connector.result import _METRICS, _OUT_DICT, _PBAR_DICT
+from lightning.pytorch.utilities.rank_zero import WarningCache
 
 warning_cache = WarningCache()
 
@@ -51,8 +51,16 @@ class _LoggerConnector:
         trainer = self.trainer
         if trainer.log_every_n_steps == 0:
             return False
-        # `+ 1` because it can be checked before a step is executed, for example, in `on_train_batch_start`
-        should_log = (trainer.fit_loop.epoch_loop._batches_that_stepped + 1) % trainer.log_every_n_steps == 0
+        if (loop := trainer._active_loop) is None:
+            return True
+        if isinstance(loop, pl.loops._FitLoop):
+            # `+ 1` because it can be checked before a step is executed, for example, in `on_train_batch_start`
+            step = loop.epoch_loop._batches_that_stepped + 1
+        elif isinstance(loop, (pl.loops._EvaluationLoop, pl.loops._PredictionLoop)):
+            step = loop.batch_progress.current.ready
+        else:
+            raise NotImplementedError(loop)
+        should_log = step % trainer.log_every_n_steps == 0
         return should_log or trainer.should_stop
 
     def configure_logger(self, logger: Union[bool, Logger, Iterable[Logger]]) -> None:

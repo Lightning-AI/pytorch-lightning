@@ -112,7 +112,7 @@ def connect_app(app_name_or_id: str):
 
             for command_name, metadata in retriever.api_commands.items():
                 if "cls_path" in metadata:
-                    target_file = os.path.join(commands_folder, f"{command_name.replace(' ','_')}.py")
+                    target_file = os.path.join(commands_folder, f"{command_name.replace(' ', '_')}.py")
                     _download_command(
                         command_name,
                         metadata["cls_path"],

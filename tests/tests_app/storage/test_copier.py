@@ -63,7 +63,7 @@ def test_copier_handles_exception(stat_mock, dir_mock, monkeypatch):
     copy_request_queue.put(request)
     copier.run_once()
     response = copy_response_queue.get()
-    assert type(response.exception) == OSError
+    assert type(response.exception) is OSError
     assert response.exception.args[0] == "Something went wrong"
 
 

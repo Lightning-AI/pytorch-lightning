@@ -3,7 +3,6 @@
 ###########################
 Example: Deploy a model API
 ###########################
-**Audience:** TODO:
 
 **Prereqs:** You have an app already running locally.
 

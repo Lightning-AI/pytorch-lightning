@@ -11,9 +11,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Type
+import shutil
+from abc import ABC
+from typing import Any, Dict, List
 from urllib import parse
+
+from lightning.data.streaming.client import S3Client
 
 
 class Downloader(ABC):
@@ -28,33 +31,27 @@ class Downloader(ABC):
         remote_chunkpath = os.path.join(self._remote_dir, chunk_filename)
         self.download_file(remote_chunkpath, local_chunkpath)
 
-    @abstractmethod
     def download_file(self, remote_chunkpath: str, local_chunkpath: str) -> None:
         pass
 
 
 class S3Downloader(Downloader):
-    @classmethod
-    def download_file(cls, remote_filepath: str, local_filepath: str) -> None:
-        import boto3
-        from boto3.s3.transfer import TransferConfig
-        from botocore.config import Config
+    def __init__(self, remote_dir: str, cache_dir: str, chunks: List[Dict[str, Any]]):
+        super().__init__(remote_dir, cache_dir, chunks)
+        self._client = S3Client()
 
+    def download_file(self, remote_filepath: str, local_filepath: str) -> None:
         obj = parse.urlparse(remote_filepath)
 
         if obj.scheme != "s3":
             raise ValueError(f"Expected obj.scheme to be `s3`, instead, got {obj.scheme} for remote={remote_filepath}")
 
+        from boto3.s3.transfer import TransferConfig
+
         extra_args: Dict[str, Any] = {}
 
-        # Create a new session per thread
-        session = boto3.session.Session()
-        # Create a resource client using a thread's session object
-        s3 = session.client("s3", config=Config(read_timeout=None))
-        # Threads calling S3 operations return RuntimeError (cannot schedule new futures after
-        # interpreter shutdown). Temporary solution is to have `use_threads` as `False`.
         # Issue: https://github.com/boto/boto3/issues/3113
-        s3.download_file(
+        self._client.client.download_file(
             obj.netloc,
             obj.path.lstrip("/"),
             local_filepath,
@@ -63,12 +60,19 @@ class S3Downloader(Downloader):
         )
 
 
-# TODO: Add fsspec support
-_DOWNLOADERS = {"s3://": S3Downloader}
+class LocalDownloader(Downloader):
+    def download_file(self, remote_filepath: str, local_filepath: str) -> None:
+        if not os.path.exists(remote_filepath):
+            raise FileNotFoundError(f"The provided remote_path doesn't exist: {remote_filepath}")
+        if remote_filepath != local_filepath:
+            shutil.copy(remote_filepath, local_filepath)
 
 
-def get_downloader_cls(remote_dir: str) -> Type[Downloader]:
+_DOWNLOADERS = {"s3://": S3Downloader, "": LocalDownloader}
+
+
+def get_downloader_cls(remote_dir: str, cache_dir: str, chunks: List[Dict[str, Any]]) -> Downloader:
     for k, cls in _DOWNLOADERS.items():
-        if remote_dir.startswith(k):
-            return cls
+        if str(remote_dir).startswith(k):
+            return cls(remote_dir, cache_dir, chunks)
     raise ValueError(f"The provided `remote_dir` {remote_dir} doesn't have a downloader associated.")

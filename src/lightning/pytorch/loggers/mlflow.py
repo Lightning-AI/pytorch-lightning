@@ -27,6 +27,7 @@ from typing import TYPE_CHECKING, Any, Callable, Dict, List, Literal, Mapping, O
 import yaml
 from lightning_utilities.core.imports import RequirementCache
 from torch import Tensor
+from typing_extensions import override
 
 from lightning.fabric.utilities.logger import _add_prefix, _convert_params, _flatten_dict
 from lightning.pytorch.callbacks.model_checkpoint import ModelCheckpoint
@@ -217,6 +218,7 @@ class MLFlowLogger(Logger):
         _ = self.experiment
         return self._experiment_id
 
+    @override
     @rank_zero_only
     def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:  # type: ignore[override]
         params = _convert_params(params)
@@ -232,6 +234,7 @@ class MLFlowLogger(Logger):
         for idx in range(0, len(params_list), 100):
             self.experiment.log_batch(run_id=self.run_id, params=params_list[idx : idx + 100])
 
+    @override
     @rank_zero_only
     def log_metrics(self, metrics: Mapping[str, float], step: Optional[int] = None) -> None:
         assert rank_zero_only.rank == 0, "experiment tried to log from global_rank != 0"
@@ -259,6 +262,7 @@ class MLFlowLogger(Logger):
 
         self.experiment.log_batch(run_id=self.run_id, metrics=metrics_list)
 
+    @override
     @rank_zero_only
     def finalize(self, status: str = "success") -> None:
         if not self._initialized:
@@ -278,6 +282,7 @@ class MLFlowLogger(Logger):
             self.experiment.set_terminated(self.run_id, status)
 
     @property
+    @override
     def save_dir(self) -> Optional[str]:
         """The root file directory in which MLflow experiments are saved.
 
@@ -291,6 +296,7 @@ class MLFlowLogger(Logger):
         return None
 
     @property
+    @override
     def name(self) -> Optional[str]:
         """Get the experiment id.
 
@@ -301,6 +307,7 @@ class MLFlowLogger(Logger):
         return self.experiment_id
 
     @property
+    @override
     def version(self) -> Optional[str]:
         """Get the run id.
 
@@ -310,6 +317,7 @@ class MLFlowLogger(Logger):
         """
         return self.run_id
 
+    @override
     def after_save_checkpoint(self, checkpoint_callback: ModelCheckpoint) -> None:
         # log checkpoints as artifacts
         if self._log_model == "all" or self._log_model is True and checkpoint_callback.save_top_k == -1:

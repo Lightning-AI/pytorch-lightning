@@ -117,17 +117,17 @@ def test_rich_progress_bar_custom_theme():
         progress_bar.on_train_start(Trainer(), BoringModel())
 
         assert progress_bar.theme == theme
-        args, kwargs = mocks["CustomBarColumn"].call_args
+        _, kwargs = mocks["CustomBarColumn"].call_args
         assert kwargs["complete_style"] == theme.progress_bar
         assert kwargs["finished_style"] == theme.progress_bar_finished
 
-        args, kwargs = mocks["BatchesProcessedColumn"].call_args
+        _, kwargs = mocks["BatchesProcessedColumn"].call_args
         assert kwargs["style"] == theme.batch_progress
 
-        args, kwargs = mocks["CustomTimeColumn"].call_args
+        _, kwargs = mocks["CustomTimeColumn"].call_args
         assert kwargs["style"] == theme.time
 
-        args, kwargs = mocks["ProcessingSpeedColumn"].call_args
+        _, kwargs = mocks["ProcessingSpeedColumn"].call_args
         assert kwargs["style"] == theme.processing_speed
 
 

@@ -13,18 +13,20 @@
 
 import os
 import pickle
+import tempfile
 from abc import ABC, abstractmethod
 from collections import OrderedDict
-from typing import Any, Optional, Tuple, Union
+from typing import Any, Dict, Optional, Tuple, Union
 
 import numpy as np
 import torch
 from lightning_utilities.core.imports import RequirementCache
 
-from lightning.data.streaming.constants import _TORCH_DTYPES_MAPPING
+from lightning.data.streaming.constants import _NUMPY_DTYPES_MAPPING, _TORCH_DTYPES_MAPPING
 
 _PIL_AVAILABLE = RequirementCache("PIL")
 _TORCH_VISION_AVAILABLE = RequirementCache("torchvision")
+_AV_AVAILABLE = RequirementCache("av")
 
 if _PIL_AVAILABLE:
     from PIL import Image
@@ -147,10 +149,10 @@ class TensorSerializer(Serializer):
 
     def __init__(self) -> None:
         super().__init__()
-        self._dtype_to_indice = {v: k for k, v in _TORCH_DTYPES_MAPPING.items()}
+        self._dtype_to_indices = {v: k for k, v in _TORCH_DTYPES_MAPPING.items()}
 
     def serialize(self, item: torch.Tensor) -> Tuple[bytes, Optional[str]]:
-        dtype_indice = self._dtype_to_indice[item.dtype]
+        dtype_indice = self._dtype_to_indices[item.dtype]
         data = [np.uint32(dtype_indice).tobytes()]
         data.append(np.uint32(len(item.shape)).tobytes())
         for dim in item.shape:
@@ -180,14 +182,14 @@ class NoHeaderTensorSerializer(Serializer):
 
     def __init__(self) -> None:
         super().__init__()
-        self._dtype_to_indice = {v: k for k, v in _TORCH_DTYPES_MAPPING.items()}
+        self._dtype_to_indices = {v: k for k, v in _TORCH_DTYPES_MAPPING.items()}
         self._dtype: Optional[torch.dtype] = None
 
     def setup(self, data_format: str) -> None:
         self._dtype = _TORCH_DTYPES_MAPPING[int(data_format.split(":")[1])]
 
     def serialize(self, item: torch.Tensor) -> Tuple[bytes, Optional[str]]:
-        dtype_indice = self._dtype_to_indice[item.dtype]
+        dtype_indice = self._dtype_to_indices[item.dtype]
         return item.numpy().tobytes(order="C"), f"no_header_tensor:{dtype_indice}"
 
     def deserialize(self, data: bytes) -> torch.Tensor:
@@ -196,6 +198,65 @@ class NoHeaderTensorSerializer(Serializer):
 
     def can_serialize(self, item: torch.Tensor) -> bool:
         return isinstance(item, torch.Tensor) and type(item) == torch.Tensor and len(item.shape) == 1
+
+
+class NumpySerializer(Serializer):
+    """The NumpySerializer serialize and deserialize numpy to and from bytes."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self._dtype_to_indices = {v: k for k, v in _NUMPY_DTYPES_MAPPING.items()}
+
+    def serialize(self, item: np.ndarray) -> Tuple[bytes, Optional[str]]:
+        dtype_indice = self._dtype_to_indices[item.dtype]
+        data = [np.uint32(dtype_indice).tobytes()]
+        data.append(np.uint32(len(item.shape)).tobytes())
+        for dim in item.shape:
+            data.append(np.uint32(dim).tobytes())
+        data.append(item.tobytes(order="C"))
+        return b"".join(data), None
+
+    def deserialize(self, data: bytes) -> np.ndarray:
+        dtype_indice = np.frombuffer(data[0:4], np.uint32).item()
+        dtype = _NUMPY_DTYPES_MAPPING[dtype_indice]
+        shape_size = np.frombuffer(data[4:8], np.uint32).item()
+        shape = []
+        # deserialize the shape header
+        # Note: The start position of the shape value: 8 (dtype + shape length) + 4 * shape_idx
+        for shape_idx in range(shape_size):
+            shape.append(np.frombuffer(data[8 + 4 * shape_idx : 8 + 4 * (shape_idx + 1)], np.uint32).item())
+
+        # deserialize the numpy array bytes
+        tensor = np.frombuffer(data[8 + 4 * (shape_idx + 1) : len(data)], dtype=dtype)
+        if tensor.shape == shape:
+            return tensor
+        return np.reshape(tensor, shape)
+
+    def can_serialize(self, item: np.ndarray) -> bool:
+        return isinstance(item, np.ndarray) and type(item) == np.ndarray and len(item.shape) > 1
+
+
+class NoHeaderNumpySerializer(Serializer):
+    """The NoHeaderNumpySerializer serialize and deserialize numpy to and from bytes."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self._dtype_to_indices = {v: k for k, v in _NUMPY_DTYPES_MAPPING.items()}
+        self._dtype: Optional[np.dtype] = None
+
+    def setup(self, data_format: str) -> None:
+        self._dtype = _NUMPY_DTYPES_MAPPING[int(data_format.split(":")[1])]
+
+    def serialize(self, item: np.ndarray) -> Tuple[bytes, Optional[str]]:
+        dtype_indice: int = self._dtype_to_indices[item.dtype]
+        return item.tobytes(order="C"), f"no_header_numpy:{dtype_indice}"
+
+    def deserialize(self, data: bytes) -> np.ndarray:
+        assert self._dtype
+        return np.frombuffer(data, dtype=self._dtype)
+
+    def can_serialize(self, item: np.ndarray) -> bool:
+        return isinstance(item, np.ndarray) and type(item) == np.ndarray and len(item.shape) == 1
 
 
 class PickleSerializer(Serializer):
@@ -224,15 +285,56 @@ class FileSerializer(Serializer):
         return isinstance(data, str) and os.path.exists(data)
 
 
+class VideoSerializer(Serializer):
+    _EXTENSIONS = ("mp4", "ogv", "mjpeg", "avi", "mov", "h264", "mpg", "webm", "wmv", "wav")
+
+    def serialize(self, filepath: str) -> Tuple[bytes, Optional[str]]:
+        _, file_extension = os.path.splitext(filepath)
+        with open(filepath, "rb") as f:
+            return f.read(), file_extension.replace(".", "").lower()
+
+    def deserialize(self, data: bytes) -> Any:
+        if not _TORCH_VISION_AVAILABLE:
+            raise ModuleNotFoundError("torchvision is required. Run `pip install torchvision`")
+
+        if not _AV_AVAILABLE:
+            raise ModuleNotFoundError("av is required. Run `pip install av`")
+
+        # Add support for a better deserialization mechanism for videos
+        # TODO: Investigate https://pytorch.org/audio/main/generated/torchaudio.io.StreamReader.html
+        import torchvision.io
+
+        with tempfile.TemporaryDirectory() as dirname:
+            fname = os.path.join(dirname, "file.mp4")
+            with open(fname, "wb") as stream:
+                stream.write(data)
+            return torchvision.io.read_video(fname, pts_unit="sec")
+
+    def can_serialize(self, data: Any) -> bool:
+        return isinstance(data, str) and os.path.exists(data) and any(data.endswith(ext) for ext in self._EXTENSIONS)
+
+
 _SERIALIZERS = OrderedDict(
     **{
+        "video": VideoSerializer(),
         "file": FileSerializer(),
         "pil": PILSerializer(),
         "int": IntSerializer(),
         "jpeg": JPEGSerializer(),
         "bytes": BytesSerializer(),
+        "no_header_numpy": NoHeaderNumpySerializer(),
+        "numpy": NumpySerializer(),
         "no_header_tensor": NoHeaderTensorSerializer(),
         "tensor": TensorSerializer(),
         "pickle": PickleSerializer(),
     }
 )
+
+
+def _get_serializers(serializers: Optional[Dict[str, Serializer]]) -> Dict[str, Serializer]:
+    if serializers:
+        serializers = OrderedDict(**serializers)
+        serializers.update(_SERIALIZERS)
+    else:
+        serializers = _SERIALIZERS
+    return serializers

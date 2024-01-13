@@ -44,7 +44,7 @@ class ImageSampler(callbacks.Callback):
         nrow: int = 8,
         padding: int = 2,
         normalize: bool = True,
-        norm_range: Optional[Tuple[int, int]] = None,
+        value_range: Optional[Tuple[int, int]] = None,
         scale_each: bool = False,
         pad_value: int = 0,
     ) -> None:
@@ -56,7 +56,7 @@ class ImageSampler(callbacks.Callback):
             padding: Amount of padding. Default: ``2``.
             normalize: If ``True``, shift the image to the range (0, 1),
                 by the min and max values specified by :attr:`range`. Default: ``False``.
-            norm_range: Tuple (min, max) where min and max are numbers,
+            value_range: Tuple (min, max) where min and max are numbers,
                 then these numbers are used to normalize the image. By default, min and max
                 are computed from the tensor.
             scale_each: If ``True``, scale each image in the batch of
@@ -71,7 +71,7 @@ class ImageSampler(callbacks.Callback):
         self.nrow = nrow
         self.padding = padding
         self.normalize = normalize
-        self.norm_range = norm_range
+        self.value_range = value_range
         self.scale_each = scale_each
         self.pad_value = pad_value
 
@@ -81,7 +81,7 @@ class ImageSampler(callbacks.Callback):
             nrow=self.nrow,
             padding=self.padding,
             normalize=self.normalize,
-            value_range=self.norm_range,
+            value_range=self.value_range,
             scale_each=self.scale_each,
             pad_value=self.pad_value,
         )
