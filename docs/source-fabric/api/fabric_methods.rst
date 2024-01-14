@@ -108,7 +108,6 @@ This is useful if your model experiences *exploding gradients* during training.
     fabric.clip_gradients(model, optimizer, max_norm=2.0, norm_type="inf")
 
 The :meth:`~lightning.fabric.fabric.Fabric.clip_gradients` method is agnostic to the precision and strategy being used.
-Note: Gradient clipping with FSDP is not yet fully supported.
 
 
 to_device
