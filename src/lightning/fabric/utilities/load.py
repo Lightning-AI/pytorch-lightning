@@ -230,7 +230,7 @@ def _move_state_into(
             destination[key] = state
 
 
-def load_distributed_checkpoint(checkpoint_folder: Path) -> Dict[str, Any]:
+def _load_distributed_checkpoint(checkpoint_folder: Path) -> Dict[str, Any]:
     """Loads a sharded checkpoint saved with the `torch.distributed.checkpoint` into a full state dict.
 
     The current implementation assumes that the entire checkpoint fits in CPU memory.

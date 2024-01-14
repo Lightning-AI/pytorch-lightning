@@ -22,7 +22,7 @@ from lightning.fabric import Fabric
 from lightning.fabric.plugins import FSDPPrecision
 from lightning.fabric.strategies import FSDPStrategy
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0, _TORCH_GREATER_EQUAL_2_1
-from lightning.fabric.utilities.load import load_distributed_checkpoint
+from lightning.fabric.utilities.load import _load_distributed_checkpoint
 from lightning.fabric.wrappers import _FabricOptimizer
 from torch.distributed.fsdp import FlatParameter, FullyShardedDataParallel, OptimStateKeyType
 from torch.distributed.fsdp.wrap import always_wrap_policy, wrap
@@ -518,7 +518,7 @@ def test_save_sharded_and_consolidate_and_load(tmp_path):
     # consolidate the checkpoint to a single file
     checkpoint_path_full = tmp_path / "checkpoint_full"
     if fabric.global_rank == 0:
-        checkpoint = load_distributed_checkpoint(Path(checkpoint_path_sharded))
+        checkpoint = _load_distributed_checkpoint(Path(checkpoint_path_sharded))
         torch.save(checkpoint, checkpoint_path_full)
     fabric.barrier()
 

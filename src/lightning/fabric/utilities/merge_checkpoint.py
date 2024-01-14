@@ -5,7 +5,7 @@ from pathlib import Path
 import torch
 
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_1
-from lightning.fabric.utilities.load import load_distributed_checkpoint
+from lightning.fabric.utilities.load import _load_distributed_checkpoint
 
 _log = logging.getLogger(__name__)
 
@@ -58,7 +58,7 @@ def _cli() -> None:
         )
         exit(1)
 
-    checkpoint = load_distributed_checkpoint(checkpoint_folder)
+    checkpoint = _load_distributed_checkpoint(checkpoint_folder)
     torch.save(checkpoint, output_file)
 
 
