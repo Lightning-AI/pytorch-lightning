@@ -64,6 +64,11 @@ Glossary
     :col_css: col-md-4
 
 .. displayitem::
+    :header: Compile
+    :button_link: ../guide/compile.html
+    :col_css: col-md-4
+
+.. displayitem::
     :header: CUDA
     :button_link: ../fundamentals/accelerators.html
     :col_css: col-md-4
