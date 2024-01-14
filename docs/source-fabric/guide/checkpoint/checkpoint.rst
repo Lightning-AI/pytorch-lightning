@@ -45,7 +45,7 @@ To save the state to the filesystem, pass it to the :meth:`~lightning.fabric.fab
 
 This will unwrap your model and optimizer and automatically convert their ``state_dict`` for you.
 Fabric and the underlying strategy will decide in which format your checkpoint gets saved.
-For example, ``strategy="ddp"`` saves a single file on rank 0, while ``strategy="fsdp"`` saves multiple files from all ranks.
+For example, ``strategy="ddp"`` saves a single file on rank 0, while ``strategy="fsdp"`` :doc: saves multiple files from all ranks.
 
 
 ----
@@ -195,12 +195,18 @@ Here's an example of using a filter when saving a checkpoint:
 Next steps
 **********
 
-Learn from our template how Fabrics checkpoint mechanism can be integrated into a full Trainer:
-
 .. raw:: html
 
     <div class="display-card-container">
         <div class="row">
+
+.. displayitem::
+    :header: Working with very large models
+    :description: Save and load very large models efficiently with distributed checkpoints
+    :button_link: distributed_checkpoint.html
+    :col_css: col-md-4
+    :height: 150
+    :tag: advanced
 
 .. displayitem::
     :header: Trainer Template

@@ -49,6 +49,14 @@ Advanced skills
     :height: 170
     :tag: advanced
 
+.. displayitem::
+    :header: Save and load very large models
+    :description: Save and load very large models efficiently with distributed checkpoints
+    :button_link: ../guide/checkpoint/distributed_checkpoint.html
+    :col_css: col-md-4
+    :height: 150
+    :tag: advanced
+
 .. raw:: html
 
         </div>
