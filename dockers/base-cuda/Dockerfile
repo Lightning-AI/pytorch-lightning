@@ -98,7 +98,7 @@ RUN \
       -r requirements/pytorch/test.txt \
       -r requirements/pytorch/strategies.txt \
       --find-links="https://download.pytorch.org/whl/cu${CUDA_VERSION_MM//'.'/''}/torch_stable.html" \
-      --extra-index-url="https://download.pytorch.org/whl/test/cu${CUDA_VERSION_MM//'.'/''}"
+      --find-links="https://download.pytorch.org/whl/test/cu${CUDA_VERSION_MM//'.'/''}/torch_test.html"
 
 RUN \
     # Show what we have
