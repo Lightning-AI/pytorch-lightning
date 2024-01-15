@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-ARG UBUNTU_VERSION=20.04
+ARG UBUNTU_VERSION=22.04
 ARG CUDA_VERSION=11.7.1
 
 
@@ -38,7 +38,7 @@ RUN \
     # https://github.com/NVIDIA/nvidia-docker/issues/1631
     # https://github.com/NVIDIA/nvidia-docker/issues/1631#issuecomment-1264715214
     apt-get update && apt-get install -y wget && \
-    wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2004/x86_64/3bf863cc.pub && \
+    wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/3bf863cc.pub && \
     mkdir -p /etc/apt/keyrings/ && mv 3bf863cc.pub /etc/apt/keyrings/ && \
     echo "deb [signed-by=/etc/apt/keyrings/3bf863cc.pub] https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/ /" /etc/apt/sources.list.d/cuda.list && \
     apt-get update -qq --fix-missing && \
