@@ -9,6 +9,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
+- Added `log_checkpoint_on` parameter to `WandbLogger` class in `src/lightning/pytorch/loggers/wandb.py` to control when to log model checkpoints as W&B artifacts ([#19288](https://github.com/Lightning-AI/pytorch-lightning/pull/19288)).
+
 - Added `lightning.pytorch.callbacks.ThroughputMonitor` to track throughput and log it ([#18848](https://github.com/Lightning-AI/lightning/pull/18848))
 
 
@@ -25,6 +27,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 ### Changed
+
+- Updated the requirement for `wandb` to version `0.15.0` in `src/lightning/pytorch/loggers/wandb.py` ([#19288](https://github.com/Lightning-AI/pytorch-lightning/pull/19288)).
 
 - `seed_everything()` without passing in a seed no longer randomly selects a seed, and now defaults to `0` ([#18846](https://github.com/Lightning-AI/lightning/pull/18846))
 
