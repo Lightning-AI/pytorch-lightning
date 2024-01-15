@@ -36,9 +36,9 @@ from lightning.pytorch.utilities.rank_zero import rank_zero_only, rank_zero_warn
 if TYPE_CHECKING:
     from wandb import Artifact
     from wandb.sdk.lib import RunDisabled
-    from wandb.wandb_run import Run
+    from wandb.sdk.wandb_run import Run
 
-_WANDB_AVAILABLE = RequirementCache("wandb>=0.12.10")
+_WANDB_AVAILABLE = RequirementCache("wandb>=0.15.0")
 
 
 class WandbLogger(Logger):
@@ -271,6 +271,8 @@ class WandbLogger(Logger):
         prefix: A string to put at the beginning of metric keys.
         experiment: WandB experiment object. Automatically set when creating a run.
         checkpoint_name: Name of the model checkpoint artifact being logged.
+        log_checkpoint_on: When to log model checkpoints as W&B artifacts. Only used if ``log_model`` is ``True``.
+            Options: ``"success"``, ``"all"``. Default: ``"success"``.
         \**kwargs: Arguments passed to :func:`wandb.init` like `entity`, `group`, `tags`, etc.
 
     Raises:
@@ -297,6 +299,7 @@ class WandbLogger(Logger):
         experiment: Union["Run", "RunDisabled", None] = None,
         prefix: str = "",
         checkpoint_name: Optional[str] = None,
+        log_checkpoint_on: Union[Literal["success"], Literal["all"]] = "success",
         **kwargs: Any,
     ) -> None:
         if not _WANDB_AVAILABLE:
@@ -341,6 +344,7 @@ class WandbLogger(Logger):
         self._name = self._wandb_init.get("name")
         self._id = self._wandb_init.get("id")
         self._checkpoint_name = checkpoint_name
+        self._log_checkpoint_on = log_checkpoint_on
 
     def __getstate__(self) -> Dict[str, Any]:
         import wandb
@@ -406,6 +410,7 @@ class WandbLogger(Logger):
                     self._experiment.define_metric("trainer/global_step")
                     self._experiment.define_metric("*", step_metric="trainer/global_step", step_sync=True)
 
+        self._experiment._label(repo="lightning_logger")  # pylint: disable=protected-access
         return self._experiment
 
     def watch(
@@ -629,11 +634,17 @@ class WandbLogger(Logger):
     @override
     @rank_zero_only
     def finalize(self, status: str) -> None:
-        if status != "success":
-            # Currently, checkpoints only get logged on success
+        # Return early if logging is only on success and the current status is not success
+        if self._log_checkpoint_on == "success" and status != "success":
             return
-        # log checkpoints as artifacts
-        if self._checkpoint_callback and self._experiment is not None:
+
+        # 1. If logging is set to 'all' or both 'success' and status is 'success'.
+        # 2. If callback and experiment are properly set.
+        if (
+            (self._log_checkpoint_on == "all" or (self._log_checkpoint_on == "success" and status == "success"))
+            and self._checkpoint_callback
+            and self._experiment is not None
+        ):
             self._scan_and_log_checkpoints(self._checkpoint_callback)
 
     def _scan_and_log_checkpoints(self, checkpoint_callback: ModelCheckpoint) -> None:
