@@ -30,8 +30,8 @@ if _TORCH_GREATER_EQUAL_2_1_0:
     from torch.utils._pytree import tree_flatten
 
 
-def _get_input_dir(inputs: Sequence[Any]) -> str:
-    flattened_item, _ = tree_flatten(inputs[0])
+def _get_indexed_paths(data: Any):
+    flattened_item, _ = tree_flatten(data)
 
     indexed_paths = {
         index: element
@@ -39,7 +39,16 @@ def _get_input_dir(inputs: Sequence[Any]) -> str:
         if isinstance(element, str) and os.path.exists(element)
     }
 
+    return indexed_paths
+
+
+def _get_input_dir(inputs: Sequence[Any]) -> str:
+    indexed_paths = _get_indexed_paths(inputs[0])
+
     if len(indexed_paths) == 0:
+        indexed_paths = _get_indexed_paths(inputs[1])
+        if len(indexed_paths) == 0:
+            return None
         raise ValueError(f"The provided item {inputs[0]} didn't contain any filepaths.")
 
     absolute_path = str(Path(list(indexed_paths.values())[0]).resolve())
@@ -129,6 +138,8 @@ def map(
     machine: Optional[str] = None,
     num_downloaders: Optional[int] = None,
     reorder_files: bool = True,
+    resume: bool = False,
+    break_when_non_empty: bool = False,
 ) -> None:
     """This function map a callbable over a collection of files possibly in a distributed way.
 
@@ -144,6 +155,7 @@ def map(
         num_downloaders: The number of downloaders per worker.
         reorder_files: By default, reorders the files by file size to distribute work equally among all workers.
             Set this to ``False`` if the order in which samples are processed should be preserved.
+        break_when_non_empty: Whether we should break if the folder isn't empty
 
     """
     if not isinstance(inputs, Sequence):
@@ -161,7 +173,8 @@ def map(
                 " HINT: You can either use `/teamspace/s3_connections/...` or `/teamspace/datasets/...`."
             )
 
-        _assert_dir_is_empty(output_dir)
+        if break_when_non_empty:
+            _assert_dir_is_empty(output_dir)
 
         input_dir = _resolve_dir(_get_input_dir(inputs))
 

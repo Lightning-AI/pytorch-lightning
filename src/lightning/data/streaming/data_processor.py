@@ -380,7 +380,7 @@ class BaseWorker:
                 self.progress_queue.put((self.worker_index, self._counter))
                 self._last_time = time()
 
-            if self.remove:
+            if self.remove and self.input_dir.path is not None:
                 self.remove_queue.put(self.paths[index])
 
             try:
@@ -420,6 +420,11 @@ class BaseWorker:
         self.to_upload_queues[self._counter % self.num_uploaders].put(filepath)
 
     def _collect_paths(self) -> None:
+        if self.input_dir.path is None:
+            for index in range(len(self.items)):
+                self.ready_to_process_queue.put(index)
+            return
+
         items = []
         for item in self.items:
             flattened_item, spec = tree_flatten(item)
@@ -456,6 +461,8 @@ class BaseWorker:
         self.items = items
 
     def _start_downloaders(self) -> None:
+        if self.input_dir.path is None:
+            return
         for _ in range(self.num_downloaders):
             to_download_queue: Queue = Queue()
             p = Process(
@@ -478,8 +485,9 @@ class BaseWorker:
             self.to_download_queues[downloader_index].put(None)
 
     def _start_remover(self) -> None:
-        if not self.remove:
+        if not self.remove or self.input_dir.path is None:
             return
+
         self.remover = Process(
             target=_remove_target,
             args=(
@@ -547,9 +555,6 @@ class BaseWorker:
         for directory, _, filenames in os.walk(output_dir):
             for filename in filenames:
                 filepaths.append(os.path.join(directory, filename))
-
-        if len(filepaths) == 0:
-            raise RuntimeError("You haven't saved any files under the `output_dir`.")
 
         for filepath in filepaths:
             self._try_upload(filepath)
@@ -804,7 +809,7 @@ class DataProcessor:
         if not isinstance(user_items, list):
             raise ValueError("The `prepare_structure` should return a list of item metadata.")
 
-        if self.reorder_files:
+        if self.reorder_files and self.input_dir.path:
             # TODO: Only do this on node 0, and broadcast the item sizes to the other nodes.
             item_sizes = _get_item_filesizes(user_items, base_path=self.input_dir.path)
             workers_user_items = _map_items_to_workers_weighted(
