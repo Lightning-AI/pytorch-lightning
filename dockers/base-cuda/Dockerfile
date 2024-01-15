@@ -82,9 +82,7 @@ COPY requirements/_integrations/ requirements/_integrations/
 ENV PYTHONPATH="/usr/lib/python${PYTHON_VERSION}/site-packages"
 
 RUN \
-    wget https://bootstrap.pypa.io/get-pip.py --progress=bar:force:noscroll --no-check-certificate && \
-    python${PYTHON_VERSION} get-pip.py && \
-    rm get-pip.py && \
+    curl https://bootstrap.pypa.io/get-pip.py | python${PYTHON_VERSION} && \
     # Disable cache \
     pip config set global.cache-dir false && \
     # set particular PyTorch version \
@@ -99,7 +97,8 @@ RUN \
       -r requirements/pytorch/extra.txt \
       -r requirements/pytorch/test.txt \
       -r requirements/pytorch/strategies.txt \
-      --find-links "https://download.pytorch.org/whl/cu${CUDA_VERSION_MM//'.'/''}/torch_stable.html"
+      --find-links "https://download.pytorch.org/whl/cu${CUDA_VERSION_MM//'.'/''}/torch_stable.html" \
+      --find-links "https://download.pytorch.org/whl/test/cu${CUDA_VERSION_MM//'.'/''}"
 
 RUN \
     # Show what we have
