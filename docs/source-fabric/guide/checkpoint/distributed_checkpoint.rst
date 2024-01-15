@@ -182,11 +182,13 @@ Note that you can load the distributed checkpoint even if the world size has cha
 
 .. important::
 
-    If you want to load a distributed checkpoint into a script that doesn't use FSDP (or Fabric at all), then you will have to convert it to a full single-file checkpoint first.
+    If you want to load a distributed checkpoint into a script that doesn't use FSDP (or no Fabric at all), then you will have to :ref:`convert it to a single-file checkpoint first <Convert dist-checkpoint>`.
 
 
 ----
 
+
+.. _Convert dist-checkpoint:
 
 ********************************
 Convert a distributed checkpoint
