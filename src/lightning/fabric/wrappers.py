@@ -327,7 +327,12 @@ def _unwrap_compiled(obj: Union[Any, "OptimizedModule"]) -> Tuple[Union[Any, nn.
     from torch._dynamo import OptimizedModule
 
     if isinstance(obj, OptimizedModule):
-        return obj._orig_mod, getattr(obj, "_compile_kwargs", None)
+        if (compile_kwargs := getattr(obj, "_compile_kwargs", None)) is None:
+            raise RuntimeError(
+                "Failed to determine the arguments that were used to compile the module. Make sure to import"
+                " lightning before `torch.compile` is used."
+            )
+        return obj._orig_mod, compile_kwargs
     return obj, None
 
 
