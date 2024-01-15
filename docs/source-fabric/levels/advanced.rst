@@ -6,6 +6,7 @@
     <../advanced/distributed_communication>
     <../advanced/multiple_setup>
     <../advanced/model_parallel/fsdp>
+    <../guide/checkpoint/distributed_checkpoint>
 
 
 ###############
@@ -45,6 +46,14 @@ Advanced skills
     :header: Train models with billions of parameters
     :description: Train the largest models with FSDP across multiple GPUs and machines
     :button_link: ../advanced/model_parallel/fsdp.html
+    :col_css: col-md-4
+    :height: 170
+    :tag: advanced
+
+.. displayitem::
+    :header: Save and load very large models
+    :description: Save and load very large models efficiently with distributed checkpoints
+    :button_link: ../guide/checkpoint/distributed_checkpoint.html
     :col_css: col-md-4
     :height: 170
     :tag: advanced

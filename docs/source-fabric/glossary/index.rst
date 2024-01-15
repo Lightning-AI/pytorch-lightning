@@ -45,7 +45,7 @@ Glossary
 
 .. displayitem::
     :header: Checkpoint
-    :button_link: ../guide/checkpoint.html
+    :button_link: ../guide/checkpoint/index.html
     :col_css: col-md-4
 
 .. displayitem::
