@@ -49,16 +49,6 @@ With ``state_dict_type="sharded"``, each process/GPU will save its own file into
 This reduces memory peaks and speeds up the saving to disk.
 The resulting checkpoint folder will have this structure:
 
-.. code-block:: text
-
-    path/to/checkpoint/file
-    ├── .metadata
-    ├── __0_0.distcp
-    ├── __1_0.distcp
-    ...
-    └── meta.pt
-
-
 .. collapse:: Full example
 
     .. code-block:: python
@@ -155,7 +145,6 @@ Note that you can load the distributed checkpoint even if the world size has cha
     .. code-block:: python
 
         import torch
-        import torch.nn.functional as F
 
         import lightning as L
         from lightning.fabric.strategies import FSDPStrategy
