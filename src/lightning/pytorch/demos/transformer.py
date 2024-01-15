@@ -53,7 +53,7 @@ class Transformer(nn.Module):
         self.src_mask = None
 
     def forward(self, inputs: Tensor, target: Tensor, mask: Optional[Tensor] = None) -> Tensor:
-        b, t = inputs.shape
+        _, t = inputs.shape
 
         # we assume target is already shifted w.r.t. inputs
         if mask is None:

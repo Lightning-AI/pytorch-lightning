@@ -171,7 +171,7 @@ class ParityModuleRNN(LightningModule):
         self._loss = []  # needed for checking if the loss is the same as vanilla torch
 
     def forward(self, x):
-        seq, last = self.rnn(x)
+        seq, _ = self.rnn(x)
         return self.linear_out(seq)
 
     def training_step(self, batch, batch_nb):

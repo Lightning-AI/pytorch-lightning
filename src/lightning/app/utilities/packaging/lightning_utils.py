@@ -52,7 +52,7 @@ def download_frontend(root: str = _PROJECT_ROOT):
     response = urllib.request.urlopen(LIGHTNING_FRONTEND_RELEASE_URL)  # noqa: S310
 
     file = tarfile.open(fileobj=response, mode="r|gz")
-    file.extractall(path=download_dir)
+    file.extractall(path=download_dir)  # noqa: S202
 
     shutil.move(os.path.join(download_dir, build_dir), frontend_dir)
     print("The Lightning UI has successfully been downloaded!")

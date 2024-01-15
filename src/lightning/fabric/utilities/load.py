@@ -113,7 +113,7 @@ class _NotYetLoadedTensor:
     def _load_tensor(self) -> Tensor:
         from torch.storage import TypedStorage, UntypedStorage
 
-        name, storage_cls, fn, device, size = self.storageinfo
+        _, _, fn, _, size = self.storageinfo
         dtype = self.metatensor.dtype
 
         storage = self.archiveinfo.file_reader.get_storage_from_record(
@@ -186,7 +186,7 @@ class _LazyLoadingUnpickler(pickle.Unpickler):
     def persistent_load(self, pid: tuple) -> "TypedStorage":
         from torch.storage import TypedStorage
 
-        name, cls, fn, device, size = pid
+        _, cls, _, _, _ = pid
         with warnings.catch_warnings():
             # The TypedStorage APIs have heavy deprecations in torch, suppress all these warnings for now
             warnings.simplefilter("ignore")
