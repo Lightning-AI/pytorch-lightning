@@ -101,7 +101,7 @@ def test_reapply_compile():
 
     # Smoke-testing forward to ensure we don't get compilation errors
     for _ in range(3):
-        fabric_model(torch.randn(2, 32, device=fabric.device))
+        fabric_model(torch.randn(2, 32, device=fabric.device)).sum().backward()
 
 
 @pytest.mark.parametrize(
