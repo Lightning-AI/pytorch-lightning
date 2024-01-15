@@ -126,25 +126,67 @@ The resulting checkpoint folder will have this structure:
 Load a distributed checkpoint
 *****************************
 
-
+You can easily load a distributed checkpoint in Fabric if your script uses FSDP.
 
 .. code-block:: python
 
-    # 1. Define model, optimizer, and other training loop state
+    import lightning as L
+    from lightning.fabric.strategies import FSDPStrategy
+
+    # 1. Select the FSDP strategy
+    fabric = L.Fabric(devices=2, strategy=FSDPStrategy(), ...)
+    fabric.launch()
+    ...
+    model, optimizer = fabric.setup(model, optimizer)
+
+    # 2. Define model, optimizer, and other training loop state
     state = {"model": model, "optimizer": optimizer, "iter": iteration}
 
-    # 2. Load using Fabric's method
+    # 3. Load using Fabric's method
     fabric.load("path/to/checkpoint/file", state)
 
     # DON'T do this (inefficient):
     # model.load_state_dict(torch.load("path/to/checkpoint/file"))
 
-Fabric will automatically recognize whether the provided path contains a checkpoint saved with ``state_dict_type="full"`` or ``state_dict_type="sharded"``.
-Checkpoints saved with ``state_dict_type="full"`` can be loaded by all strategies, but sharded checkpoints can only be loaded by FSDP.
-Read :doc:`the checkpoints guide <../../guide/checkpoint>` to explore more features.
+Note that you can load the distributed checkpoint even if the world size has changed, i.e., you are running on a different number of GPUs than when you saved the checkpoint.
+
+.. collapse:: Full example
+
+    .. code-block:: python
+
+        import torch
+        import torch.nn.functional as F
+
+        import lightning as L
+        from lightning.fabric.strategies import FSDPStrategy
+        from lightning.pytorch.demos import Transformer, WikiText2
+
+        strategy = FSDPStrategy(state_dict_type="sharded")
+        fabric = L.Fabric(accelerator="cuda", devices=2, strategy=strategy)
+        fabric.launch()
+
+        with fabric.rank_zero_first():
+            dataset = WikiText2()
+
+        # 1B parameters
+        model = Transformer(vocab_size=dataset.vocab_size, nlayers=32, nhid=4096, ninp=1024, nhead=64)
+        optimizer = torch.optim.Adam(model.parameters(), lr=0.1)
+
+        model, optimizer = fabric.setup(model, optimizer)
+
+        state = {"model": model, "optimizer": optimizer, "iteration": 0}
+
+        fabric.print("Loading checkpoint ...")
+        fabric.load("my-checkpoint.ckpt", state)
+
+
+.. important::
+
+    If you want to load a distributed checkpoint into a script that doesn't use FSDP (or Fabric at all), then you will have to convert it to a full single-file checkpoint first.
 
 
 ----
+
 
 ********************************
 Convert a distributed checkpoint
