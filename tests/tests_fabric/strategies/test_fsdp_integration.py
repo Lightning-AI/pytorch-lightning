@@ -345,36 +345,6 @@ def test_setup_with_orig_params_and_multiple_param_groups():
         assert not isinstance(layer.weight, FlatParameter)
 
 
-# TODO: Do we still need a separate test or should we combine it?
-@RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True, dynamo=True)
-@mock.patch.dict(os.environ, {})
-@pytest.mark.parametrize(
-    "compile_after_setup",
-    [
-        False,
-        # https://github.com/pytorch/pytorch/issues/97811
-        pytest.param(True, marks=RunIf(min_python="3.9")),
-    ],
-)
-def test_compile(compile_after_setup):
-    """Test that the model can be compiled before and after the model is wrapped in FSDP."""
-    model = BoringModel()
-    strategy = FSDPStrategy(auto_wrap_policy=always_wrap_policy)
-    fabric = Fabric(accelerator="cuda", devices=2, strategy=strategy)
-    fabric.launch()
-
-    if not compile_after_setup:
-        model = torch.compile(model)
-
-    model = fabric.setup(model)
-
-    if compile_after_setup:
-        model = torch.compile(model)
-
-    for _ in range(3):
-        model(torch.rand(2, 32, device=fabric.device)).sum().backward()
-
-
 @RunIf(min_cuda_gpus=2, standalone=True, min_torch="2.1.0", dynamo=True, skip_windows=True)
 @mock.patch(
     "lightning.fabric.wrappers.torch.compile",
@@ -385,7 +355,8 @@ def test_reapply_compile():
     """Test that Fabric can rewrap a compiled module such that compilation happens over the FSDP-wrapper."""
     from torch._dynamo import OptimizedModule
 
-    fabric = Fabric(accelerator="cuda", devices=2, strategy="fsdp")
+    strategy = FSDPStrategy(auto_wrap_policy=always_wrap_policy)
+    fabric = Fabric(accelerator="cuda", devices=2, strategy=strategy)
     fabric.launch()
 
     model = BoringModel()
