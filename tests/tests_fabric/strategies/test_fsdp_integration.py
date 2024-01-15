@@ -498,7 +498,7 @@ def test_rewrap_warnings():
     assert next(fabric_model.parameters()).is_meta
 
 
-@RunIf(min_cuda_gpus=2)
+@RunIf(min_cuda_gpus=2, standalone=True)
 @pytest.mark.parametrize(
     "precision",
     [
@@ -511,7 +511,7 @@ def test_rewrap_warnings():
     "clip_type",
     [
         pytest.param("norm", marks=pytest.mark.skip("FSDP gradient clipping by norm is not correct.")),
-        # "val", # TODO: Support this
+        "val",
     ],
 )
 def test_clip_gradients(clip_type, precision):
