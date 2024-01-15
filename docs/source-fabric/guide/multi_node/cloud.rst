@@ -19,13 +19,8 @@ Initial Setup
 *************
 
 First, create a free `Lightning AI account <https://lightning.ai/>`_.
-Then, log in from the CLI:
-
-.. code-block:: bash
-
-    lightning login
-
-A page opens in your browser where you can follow the instructions to complete the setup.
+You get free credits every month you can spend on GPU compute.
+To use muliple machines, you need to be on the `Pro or Teams plan <https://lightning.ai/pricing>`_.
 
 
 ----
@@ -35,59 +30,43 @@ A page opens in your browser where you can follow the instructions to complete t
 Launch multi-node training in the cloud
 ***************************************
 
-**Step 1:** Put your code inside a ``lightning.app.core.work.LightningWork``:
+**Step 1:** Start a new studio.
+**Step 2:** Bring your code into the studio. You can clone a GitHub repo, drag and drop local files, or use the following demo example:
+
+.. collapse:: Example
+
+    .. code-block:: python
+        :caption: main.py
+
+        # TODO
+
+**Step 3:** Remove any hardcoded accelerator settings and let Lightning automatically set them for you. **No other changes are required in your script.**
 
 .. code-block:: python
-    :emphasize-lines: 5
-    :caption: app.py
+    :caption: main.py
 
-    import lightning as L
-    from lightning.app.components import FabricMultiNode
+    # These are the defaults
+    fabric = L.Fabric(accelerator="auto", devices="auto")
 
-
-    # 1. Put your code inside a LightningWork
-    class MyTrainingComponent(L.LightningWork):
-        def run(self):
-            # Set up Fabric
-            # The `devices` and `num_nodes` gets set by Lightning automatically
-            fabric = L.Fabric(strategy="ddp", precision="16-mixed")
-
-            # Your training code
-            model = ...
-            optimizer = ...
-            model, optimizer = fabric.setup(model, optimizer)
-            ...
-
-**Step 2:** Init a ``lightning.app.core.app.LightningApp`` with the ``FabricMultiNode`` component.
-Configure the number of nodes, the number of GPUs per node, and the type of GPU:
-
-.. code-block:: python
-    :emphasize-lines: 5,7
-    :caption: app.py
-
-    # 2. Create the app with the FabricMultiNode component inside
-    app = L.LightningApp(
-        FabricMultiNode(
-            MyTrainingComponent,
-            # Run with 2 nodes
-            num_nodes=2,
-            # Each with 4 x V100 GPUs, total 8 GPUs
-            cloud_compute=L.CloudCompute("gpu-fast-multi"),
-        )
-    )
+    # DON'T hardcode these, leave them default/auto
+    # fabric = L.Fabric(accelerator="cpu", devices=3)
 
 
-**Step 3:** Run your code from the CLI:
+**Step 4:** Install dependencies and download all necessary data. Test that your script runs in the studio first. **If it runs in the studio, it will run in multi-node!**
 
-.. code-block:: bash
 
-    lightning run app app.py --cloud
+**Step 5:** Open the Multi-Machine Training (MMT) app. Type the command to run your script, select the machine type and how many machines you want to launch on. Click "Run" to start the job.
 
-This command will upload your Python file and then opens the app admin view, where you can see the logs of what's happening.
 
-.. figure:: https://pl-public-data.s3.amazonaws.com/assets_lightning/fabric/fabric-multi-node-admin.png
-   :alt: The Lightning AI admin page of an app running a multi-node fabric training script
-   :width: 100%
+----
+
+
+****************************
+Bring your own cloud account
+****************************
+
+On the `Teams or Enterprise <https://lightning.ai/pricing>`_ tier, you can connect your own AWS account.
+
 
 
 ----
