@@ -149,4 +149,3 @@ Read :doc:`the checkpoints guide <../../guide/checkpoint>` to explore more featu
 ********************************
 Convert a distributed checkpoint
 ********************************
-
