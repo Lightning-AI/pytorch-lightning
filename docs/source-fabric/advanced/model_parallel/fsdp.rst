@@ -358,6 +358,7 @@ The resulting checkpoint folder will have this structure:
     ├── .metadata
     ├── __0_0.distcp
     ├── __1_0.distcp
+    ...
     └── meta.pt
 
 The “sharded” checkpoint format is the most efficient to save and load in Fabric.
