@@ -5,7 +5,7 @@
     <../guide/lightning_module>
     <../guide/callbacks>
     <../guide/logging>
-    <../guide/checkpoint>
+    <../guide/checkpoint/checkpoint>
     <../guide/trainer_template>
 
 

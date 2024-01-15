@@ -6,6 +6,7 @@
     <../advanced/distributed_communication>
     <../advanced/multiple_setup>
     <../advanced/model_parallel/fsdp>
+    <../guide/checkpoint/distributed_checkpoint>
 
 
 ###############
@@ -54,7 +55,7 @@ Advanced skills
     :description: Save and load very large models efficiently with distributed checkpoints
     :button_link: ../guide/checkpoint/distributed_checkpoint.html
     :col_css: col-md-4
-    :height: 150
+    :height: 170
     :tag: advanced
 
 .. raw:: html
