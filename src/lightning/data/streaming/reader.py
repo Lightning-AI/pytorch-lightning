@@ -304,10 +304,12 @@ def _get_from_queue(queue: multiprocessing.Queue, timeout: float = _DEFAULT_TIME
         return queue.get(timeout=timeout)
     except Empty:
         pass
-    except OSError as e:
+    except OSError as err:
         # handle closed queue before the thread terminates
-        if "handle is closed" in str(e):
-            logger.debug(e)
+        if "handle is closed" in str(err) or "Bad file descriptor" in str(err):
+            logger.debug(err)
         else:
-            raise e
+            raise err
+    except EOFError as err:
+        logger.debug(err)
     return None
