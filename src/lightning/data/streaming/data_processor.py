@@ -358,7 +358,7 @@ class BaseWorker:
                         for uploader in self.uploaders:
                             uploader.join()
 
-                    if self.remove:
+                    if self.remove and self.input_dir.path is not None:
                         assert self.remover
                         self.remove_queue.put(None)
                         self.remover.join()
@@ -423,6 +423,8 @@ class BaseWorker:
         if self.input_dir.path is None:
             for index in range(len(self.items)):
                 self.ready_to_process_queue.put(index)
+            for _ in range(self.num_downloaders):
+                self.ready_to_process_queue.put(None)
             return
 
         items = []
