@@ -46,9 +46,12 @@ def _get_input_dir(inputs: Sequence[Any]) -> str:
     indexed_paths = _get_indexed_paths(inputs[0])
 
     if len(indexed_paths) == 0:
+        # Check whether the second element as any input_path
         indexed_paths = _get_indexed_paths(inputs[1])
         if len(indexed_paths) == 0:
             return None
+
+        # Every element should have filepaths if any contains one.  
         raise ValueError(f"The provided item {inputs[0]} didn't contain any filepaths.")
 
     absolute_path = str(Path(list(indexed_paths.values())[0]).resolve())
@@ -138,7 +141,6 @@ def map(
     machine: Optional[str] = None,
     num_downloaders: Optional[int] = None,
     reorder_files: bool = True,
-    resume: bool = False,
     break_when_non_empty: bool = False,
 ) -> None:
     """This function map a callbable over a collection of files possibly in a distributed way.
