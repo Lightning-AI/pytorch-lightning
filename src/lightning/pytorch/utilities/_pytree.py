@@ -11,7 +11,7 @@ def _is_leaf_or_primitive_container(pytree: PyTree) -> bool:
 
     node_type = _get_node_type(pytree)
     flatten_fn = SUPPORTED_NODES[node_type].flatten_fn
-    child_pytrees, context = flatten_fn(pytree)
+    child_pytrees, _ = flatten_fn(pytree)
     return all(isinstance(child, (int, float, str)) for child in child_pytrees)
 
 

@@ -312,10 +312,9 @@ def test_warning_if_tpus_not_used(tpu_available):
         ("2,", [2]),
     ],
 )
-@pytest.mark.parametrize("runtime", ["xrt", "pjrt"])
 @RunIf(min_python="3.9")  # mocking issue
-def test_trainer_config_device_ids(devices, expected_device_ids, runtime, tpu_available, monkeypatch):
-    monkeypatch.setattr(lightning.fabric.accelerators.xla, "_using_pjrt", lambda: runtime == "pjrt")
+def test_trainer_config_device_ids(devices, expected_device_ids, tpu_available, monkeypatch):
+    monkeypatch.setattr(lightning.fabric.accelerators.xla, "_using_pjrt", lambda: True)
 
     mock = DeviceMock()
     monkeypatch.setattr(torch, "device", mock)
@@ -324,7 +323,6 @@ def test_trainer_config_device_ids(devices, expected_device_ids, runtime, tpu_av
         monkeypatch.setattr(torch.multiprocessing, "get_all_start_methods", lambda: ["fork", "spawn"])
 
     trainer = Trainer(accelerator="tpu", devices=devices)
-    device_offset = int(runtime == "xrt")
-    assert mock.mock_calls == [call("xla", i + device_offset) for i in expected_device_ids]
+    assert mock.mock_calls == [call("xla", i) for i in expected_device_ids]
     assert len(trainer.device_ids) == len(expected_device_ids)
     assert trainer.num_devices == len(expected_device_ids)

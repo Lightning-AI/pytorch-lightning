@@ -88,11 +88,11 @@ _transform_changelog(
     os.path.join(_PATH_HERE, _FOLDER_GENERATED, "CHANGELOG.md"),
 )
 
-
+# Copy Accelerator docs
 assist_local.AssistantCLI.pull_docs_files(
     gh_user_repo="Lightning-AI/lightning-Habana",
     target_dir="docs/source-pytorch/integrations/hpu",
-    checkout="4eca3d9a9744e24e67924ba1534f79b55b59e5cd",  # this is post `refs/tags/1.2.0`
+    checkout="refs/tags/1.3.0",
 )
 assist_local.AssistantCLI.pull_docs_files(
     gh_user_repo="Lightning-AI/lightning-Graphcore",
@@ -107,6 +107,13 @@ for img in ["_static/images/ipu/profiler.png"]:
     os.makedirs(os.path.dirname(img_), exist_ok=True)
     urllib.request.urlretrieve(f"{URL_RAW_DOCS_GRAPHCORE}/{img}", img_)
 
+# Copy strategies docs as single pages
+assist_local.AssistantCLI.pull_docs_files(
+    gh_user_repo="Lightning-Universe/lightning-Hivemind",
+    target_dir="docs/source-pytorch/integrations/strategies",
+    checkout="3b14f766200aff8fe7153be19a7bd92440dea3cf",  # this is post release version including moved overview page
+    single_page="overview.rst",
+)
 
 if _FETCH_S3_ASSETS:
     fetch_external_assets(

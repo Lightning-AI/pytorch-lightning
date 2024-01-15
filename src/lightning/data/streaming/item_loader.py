@@ -90,7 +90,7 @@ class PyTreeLoader(BaseItemLoader):
             first_exists = exists = os.path.exists(chunk_filepath)
 
             while not exists:
-                sleep(0.01)
+                sleep(0.1)
                 exists = os.path.exists(chunk_filepath)
 
             # Wait to avoid any corruption when the file appears
@@ -166,7 +166,6 @@ class TokensLoader(BaseItemLoader):
     def _load_chunk(self, chunk_index: int, chunk_filepath: str) -> None:
         if chunk_index in self._mmaps:
             return
-
         chunk = self._chunks[chunk_index]
 
         # Skip the header
@@ -192,7 +191,7 @@ class TokensLoader(BaseItemLoader):
             first_exists = exists = os.path.exists(chunk_filepath)
 
             while not exists:
-                sleep(0.01)
+                sleep(0.1)
                 exists = os.path.exists(chunk_filepath)
 
             # Wait to avoid any corruption when the file appears
@@ -202,7 +201,6 @@ class TokensLoader(BaseItemLoader):
             self._chunk_filepaths[chunk_filepath] = True
 
         self._load_chunk(chunk_index, chunk_filepath)
-
         assert self._dtype
 
         buffer: bytes = self._buffers[chunk_index]

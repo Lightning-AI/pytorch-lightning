@@ -142,6 +142,11 @@ class _MockQueue(BaseQueue):
             raise Empty()
         return self._queue.pop(0)
 
+    def batch_get(self, timeout: int = 0, count: int = None):
+        if not self._queue:
+            raise Empty()
+        return [self._queue.pop(0)]
+
     def __contains__(self, item):
         return item in self._queue
 

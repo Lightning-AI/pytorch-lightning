@@ -38,7 +38,7 @@ from lightning_utilities.core.rank_zero import rank_zero_only as utils_rank_zero
 from torch import Tensor
 from torch.nn import Module, Parameter
 from torch.optim import Optimizer
-from typing_extensions import TypeGuard
+from typing_extensions import TypeGuard, override
 
 from lightning.fabric.accelerators import Accelerator
 from lightning.fabric.plugins import CheckpointIO, ClusterEnvironment, Precision
@@ -182,14 +182,17 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         self.mixed_precision = mixed_precision
 
     @property
+    @override
     def checkpoint_io(self) -> CheckpointIO:
         raise NotImplementedError(f"The `{type(self).__name__}` does not use the `CheckpointIO` plugin interface.")
 
     @checkpoint_io.setter
+    @override
     def checkpoint_io(self, io: CheckpointIO) -> None:
         raise NotImplementedError(f"The `{type(self).__name__}` does not support setting a `CheckpointIO` plugin.")
 
     @property
+    @override
     def root_device(self) -> torch.device:
         assert self.parallel_devices is not None
         return self.parallel_devices[self.local_rank]
@@ -207,6 +210,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         return len(self.parallel_devices) if self.parallel_devices is not None else 0
 
     @property
+    @override
     def distributed_sampler_kwargs(self) -> Dict[str, Any]:
         return {"num_replicas": (self.num_nodes * self.num_processes), "rank": self.global_rank}
 
@@ -224,6 +228,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         return None
 
     @property  # type: ignore[override]
+    @override
     def precision(self) -> FSDPPrecision:
         plugin = self._precision
         if plugin is not None:
@@ -232,20 +237,24 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         return FSDPPrecision("32-true")
 
     @precision.setter
+    @override
     def precision(self, precision: Optional[FSDPPrecision]) -> None:
         if precision is not None and not isinstance(precision, FSDPPrecision):
             raise TypeError(f"The FSDP strategy can only work with the `FSDPPrecision` plugin, found {precision}")
         self._precision = precision
 
+    @override
     def _configure_launcher(self) -> None:
         assert self.cluster_environment is not None
         if not self.cluster_environment.creates_processes_externally:
             self._launcher = _SubprocessScriptLauncher(self.cluster_environment, self.num_processes, self.num_nodes)
 
+    @override
     def setup_environment(self) -> None:
-        self._setup_distributed()
         super().setup_environment()
+        self._setup_distributed()
 
+    @override
     def setup_module_and_optimizers(
         self, module: Module, optimizers: List[Optimizer]
     ) -> Tuple[Module, List[Optimizer]]:
@@ -268,6 +277,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         module = self.setup_module(module)
         return module, optimizers
 
+    @override
     def setup_module(self, module: Module) -> Module:
         """Wraps the model into a :class:`~torch.distributed.fsdp.fully_sharded_data_parallel.FullyShardedDataParallel`
         module."""
@@ -302,6 +312,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
 
         return module
 
+    @override
     def setup_optimizer(self, optimizer: Optimizer) -> Optimizer:
         """Set up an optimizer for a model wrapped with FSDP.
 
@@ -320,9 +331,11 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             )
         return optimizer
 
+    @override
     def module_to_device(self, module: Module) -> None:
         pass
 
+    @override
     def module_init_context(self, empty_init: Optional[bool] = None) -> ContextManager:
         precision_init_ctx = self.precision.module_init_context()
         module_sharded_ctx = self.module_sharded_context()
@@ -339,6 +352,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         stack.enter_context(module_sharded_ctx)
         return stack
 
+    @override
     def module_sharded_context(self) -> ContextManager:
         from torch.distributed.fsdp.fully_sharded_data_parallel import FullyShardedDataParallel
         from torch.distributed.fsdp.wrap import enable_wrap
@@ -352,6 +366,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             **self._fsdp_kwargs,
         )
 
+    @override
     def all_reduce(
         self, tensor: Tensor, group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = "mean"
     ) -> Tensor:
@@ -359,6 +374,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             return _sync_ddp_if_available(tensor, group, reduce_op=reduce_op)
         return tensor
 
+    @override
     def barrier(self, *args: Any, **kwargs: Any) -> None:
         if not _distributed_is_initialized():
             return
@@ -367,6 +383,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         else:
             torch.distributed.barrier()
 
+    @override
     def broadcast(self, obj: TBroadcast, src: int = 0) -> TBroadcast:
         if not _distributed_is_initialized():
             return obj
@@ -375,6 +392,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         torch.distributed.broadcast_object_list(obj, src, group=_group.WORLD)
         return obj[0]
 
+    @override
     def clip_gradients_norm(
         self,
         module: Module,
@@ -396,13 +414,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         self.precision.unscale_gradients(optimizer)
         return module.clip_grad_norm_(max_norm=max_norm, norm_type=norm_type)
 
-    def clip_gradients_value(self, module: Module, optimizer: Optimizer, clip_val: Union[float, int]) -> None:
-        """Clip gradients by value."""
-        raise NotImplementedError(
-            "FSDP currently does not support to clip gradients by value. "
-            "Consider clipping by norm instead or choose another strategy!"
-        )
-
+    @override
     def save_checkpoint(
         self,
         path: _PATH,
@@ -510,6 +522,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         else:
             raise ValueError(f"Unknown state_dict_type: {self._state_dict_type}")
 
+    @override
     def load_checkpoint(
         self,
         path: _PATH,
@@ -647,6 +660,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         )
 
     @classmethod
+    @override
     def register_strategies(cls, strategy_registry: _StrategyRegistry) -> None:
         if not torch.distributed.is_available():
             return
@@ -756,6 +770,7 @@ def _setup_activation_checkpointing(module: Module, activation_checkpointing_kwa
 
 
 class _FSDPBackwardSyncControl(_BackwardSyncControl):
+    @override
     def no_backward_sync(self, module: Module) -> ContextManager:
         """Blocks gradient synchronization inside the :class:`~torch.distributed.fsdp.FullyShardedDataParallel`
         wrapper."""
