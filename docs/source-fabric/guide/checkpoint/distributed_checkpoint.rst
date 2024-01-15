@@ -126,7 +126,7 @@ The resulting checkpoint folder will have this structure:
 Load a distributed checkpoint
 *****************************
 
-You can easily load a distributed checkpoint in Fabric if your script uses FSDP.
+You can easily load a distributed checkpoint in Fabric if your script uses :doc:`FSDP <../../advanced/model_parallel/fsdp>`.
 
 .. code-block:: python
 
@@ -182,7 +182,7 @@ Note that you can load the distributed checkpoint even if the world size has cha
 
 .. important::
 
-    If you want to load a distributed checkpoint into a script that doesn't use FSDP (or no Fabric at all), then you will have to :ref:`convert it to a single-file checkpoint first <Convert dist-checkpoint>`.
+    If you want to load a distributed checkpoint into a script that doesn't use FSDP (or Fabric at all), then you will have to :ref:`convert it to a single-file checkpoint first <Convert dist-checkpoint>`.
 
 
 ----
@@ -193,3 +193,11 @@ Note that you can load the distributed checkpoint even if the world size has cha
 ********************************
 Convert a distributed checkpoint
 ********************************
+
+It is possible to convert a distributed checkpoint to a regular, single-file checkpoint file with this utility:
+
+.. code-block:: bash
+
+    python -m lightning.fabric.utilities.merge_checkpoint --checkpoint_folder path/to/my/checkpoint
+
+You will need to do this for example if you want to load the checkpoint into a script that doesn't use FSDP, or need to export the checkpoint to a different format for deployment, evaluation, etc.
