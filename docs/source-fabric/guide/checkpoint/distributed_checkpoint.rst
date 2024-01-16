@@ -183,11 +183,35 @@ Note that you can load the distributed checkpoint even if the world size has cha
 Convert a distributed checkpoint
 ********************************
 
-It is possible to convert a distributed checkpoint to a regular, single-file checkpoint file with this utility:
+It is possible to convert a distributed checkpoint to a regular, single-file checkpoint with this utility:
 
 .. code-block:: bash
-
 
     python -m lightning.fabric.utilities.merge_checkpoint --checkpoint_folder path/to/my/checkpoint
 
 You will need to do this for example if you want to load the checkpoint into a script that doesn't use FSDP, or need to export the checkpoint to a different format for deployment, evaluation, etc.
+
+.. note::
+
+    All tensors in the checkpoint will be converted to CPU tensors, and no GPUs are required to run the conversion command.
+
+.. collapse:: Full example
+
+    Assuming you have saved a checkpoint ``my-checkpoint.ckpt`` using the examples above, run the following command to convert it:
+
+    .. code-block:: bash
+
+        python -m lightning.fabric.utilities.merge_checkpoint --checkpoint_folder my-checkpoint.ckpt
+
+    This saves a new file ``my-checkpoint.ckpt.merged`` next to the sharded checkpoint which you can load normally in PyTorch:
+
+    .. code-block:: python
+
+        import torch
+
+        checkpoint = torch.load("my-checkpoint.ckpt.merged")
+        print(list(checkpoint.keys()))
+        print(checkpoint["model"]["transformer.decoder.layers.31.norm1.weight"])
+
+
+|
