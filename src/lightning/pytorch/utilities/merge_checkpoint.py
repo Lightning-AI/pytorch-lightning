@@ -8,11 +8,7 @@ from lightning.fabric.utilities.merge_checkpoint import _parse_cli_args, _proces
 
 
 def _format_checkpoint(checkpoint: Dict[str, Any]) -> Dict[str, Any]:
-    """The FSDP strategy saves the checkpoint in a special format.
-
-    This function converts it to the standard format the Lightning Trainer expects.
-
-    """
+    """Converts the special FSDP checkpoint format to the standard format the Lightning Trainer can load."""
     # Rename the model key
     checkpoint["state_dict"] = checkpoint.pop("model")
 
