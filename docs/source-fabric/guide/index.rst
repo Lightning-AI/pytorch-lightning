@@ -174,7 +174,7 @@ Advanced Topics
     :tag: advanced
 
 .. displayitem::
-    :header: Working with very large models
+    :header: Save and load very large models
     :description: Save and load very large models efficiently with distributed checkpoints
     :button_link: checkpoint/distributed_checkpoint.html
     :col_css: col-md-4
