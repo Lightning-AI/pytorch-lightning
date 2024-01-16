@@ -201,7 +201,7 @@ You will need to do this for example if you want to load the checkpoint into a s
 
     .. code-block:: bash
 
-        python -m lightning.fabric.utilities.merge_checkpoint --checkpoint_folder my-checkpoint.ckpt
+        python -m lightning.fabric.utilities.merge_checkpoint my-checkpoint.ckpt
 
     This saves a new file ``my-checkpoint.ckpt.merged`` next to the sharded checkpoint which you can load normally in PyTorch:
 
