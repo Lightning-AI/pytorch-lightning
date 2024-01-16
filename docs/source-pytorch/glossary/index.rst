@@ -11,6 +11,7 @@
    Console Logging <../common/console_logs>
    Debugging <../debug/debugging>
    DeepSpeed <../advanced/model_parallel/deepspeed>
+   Distributed Checkpoints <../common/checkpointing_expert>
    Early stopping <../common/early_stopping>
    Experiment manager (Logger) <../visualize/experiment_managers>
    Finetuning <../advanced/finetuning>
@@ -111,6 +112,13 @@ Glossary
    :description: Distribute models with billions of parameters across hundreds GPUs
    :col_css: col-md-12
    :button_link: ../advanced/model_parallel/deepspeed.html
+   :height: 100
+
+.. displayitem::
+   :header: Distributed Checkpoints
+   :description: Save and load very large models efficiently with distributed checkpoints
+   :col_css: col-md-12
+   :button_link: ../common/checkpointing_expert.html
    :height: 100
 
 .. displayitem::
