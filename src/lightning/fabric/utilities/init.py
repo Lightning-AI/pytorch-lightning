@@ -13,8 +13,9 @@
 # limitations under the License.
 import itertools
 from typing import Any, Callable, Dict, Optional, Sequence
-from typing_extensions import override
+
 import torch
+from typing_extensions import override
 
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_13, _TORCH_GREATER_EQUAL_2_1
 from lightning.fabric.utilities.types import _DEVICE

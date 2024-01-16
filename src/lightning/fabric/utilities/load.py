@@ -16,12 +16,13 @@ import warnings
 from functools import partial
 from io import BytesIO
 from typing import IO, TYPE_CHECKING, Any, Callable, Dict, Optional, OrderedDict, Sequence, Set, Union
-from typing_extensions import override
+
 import torch
 from lightning_utilities.core.apply_func import apply_to_collection
 from torch import Tensor
 from torch._C import _TensorMeta
 from torch.nn import Parameter
+from typing_extensions import override
 
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 from lightning.fabric.utilities.types import _PATH, _Stateful
