@@ -187,7 +187,7 @@ It is possible to convert a distributed checkpoint to a regular, single-file che
 
 .. code-block:: bash
 
-    python -m lightning.fabric.utilities.merge_checkpoint --checkpoint_folder path/to/my/checkpoint
+    python -m lightning.fabric.utilities.merge_checkpoint path/to/my/checkpoint
 
 You will need to do this for example if you want to load the checkpoint into a script that doesn't use FSDP, or need to export the checkpoint to a different format for deployment, evaluation, etc.
 
