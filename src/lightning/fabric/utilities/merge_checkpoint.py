@@ -1,5 +1,5 @@
 import logging
-from argparse import ArgumentParser
+from argparse import ArgumentParser, Namespace
 from pathlib import Path
 
 import torch
@@ -10,7 +10,7 @@ from lightning.fabric.utilities.load import _load_distributed_checkpoint
 _log = logging.getLogger(__name__)
 
 
-def _cli() -> None:
+def _parse_cli_args() -> Namespace:
     parser = ArgumentParser(
         description="Merges a distributed/sharded checkpoint into a single file that can be loaded with `torch.load()`."
     )
@@ -31,8 +31,10 @@ def _cli() -> None:
             " and a '.merged' suffix."
         ),
     )
-    args = parser.parse_args()
+    return parser.parse_args()
 
+
+def _process_cli_args(args: Namespace) -> Namespace:
     if not _TORCH_GREATER_EQUAL_2_1:
         _log.error("Processing distributed checkpoints requires PyTorch >= 2.1.")
         exit(1)
@@ -58,9 +60,11 @@ def _cli() -> None:
         )
         exit(1)
 
-    checkpoint = _load_distributed_checkpoint(checkpoint_folder)
-    torch.save(checkpoint, output_file)
+    return Namespace(checkpoint_folder=checkpoint_folder, output_file=output_file)
 
 
 if __name__ == "__main__":
-    _cli()
+    args = _parse_cli_args()
+    config = _process_cli_args(args)
+    checkpoint = _load_distributed_checkpoint(config.checkpoint_folder)
+    torch.save(checkpoint, config.output_file)
