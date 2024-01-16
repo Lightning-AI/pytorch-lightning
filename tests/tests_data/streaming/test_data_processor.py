@@ -872,3 +872,21 @@ def test_get_item_filesizes(tmp_path):
     assert os.path.getsize(tmp_path / "empty_file") == 0
     with pytest.raises(RuntimeError, match="has 0 bytes!"):
         _get_item_filesizes([str(tmp_path / "empty_file")])
+
+
+def map_fn_index(output_dir, index):
+    with open(os.path.join(output_dir, f"{index}.JPEG"), "w") as f:
+        f.write("Hello")
+
+
+@pytest.mark.skipif(condition=not _PIL_AVAILABLE or sys.platform == "win32", reason="Requires: ['pil']")
+def test_data_processing_map_without_input_dir(monkeypatch, tmpdir):
+    cache_dir = os.path.join(tmpdir, "cache")
+    output_dir = os.path.join(tmpdir, "target_dir")
+    os.makedirs(output_dir, exist_ok=True)
+    monkeypatch.setenv("DATA_OPTIMIZER_CACHE_FOLDER", cache_dir)
+    monkeypatch.setenv("DATA_OPTIMIZER_DATA_CACHE_FOLDER", cache_dir)
+
+    map(map_fn_index, list(range(5)), output_dir=output_dir, num_workers=1, reorder_files=True)
+
+    assert sorted(os.listdir(output_dir)) == ["0.JPEG", "1.JPEG", "2.JPEG", "3.JPEG", "4.JPEG"]

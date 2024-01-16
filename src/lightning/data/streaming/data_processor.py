@@ -261,7 +261,7 @@ def _get_item_filesizes(items: List[Any], base_path: str = "") -> List[int]:
         flattened_item, _ = tree_flatten(item)
 
         num_bytes = 0
-        for index, element in enumerate(flattened_item):
+        for _, element in enumerate(flattened_item):
             if isinstance(element, str) and element.startswith(base_path) and os.path.exists(element):
                 file_bytes = os.path.getsize(element)
                 if file_bytes == 0:

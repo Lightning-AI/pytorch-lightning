@@ -16,7 +16,7 @@ import os
 from datetime import datetime
 from pathlib import Path
 from types import FunctionType
-from typing import Any, Callable, Optional, Sequence, Union
+from typing import Any, Callable, Optional, Sequence, Union, Dict
 
 import torch
 
@@ -30,7 +30,7 @@ if _TORCH_GREATER_EQUAL_2_1_0:
     from torch.utils._pytree import tree_flatten
 
 
-def _get_indexed_paths(data: Any):
+def _get_indexed_paths(data: Any) -> Dict[int, str]:
     flattened_item, _ = tree_flatten(data)
 
     indexed_paths = {
@@ -42,7 +42,7 @@ def _get_indexed_paths(data: Any):
     return indexed_paths
 
 
-def _get_input_dir(inputs: Sequence[Any]) -> str:
+def _get_input_dir(inputs: Sequence[Any]) -> Optional[str]:
     indexed_paths = _get_indexed_paths(inputs[0])
 
     if len(indexed_paths) == 0:
