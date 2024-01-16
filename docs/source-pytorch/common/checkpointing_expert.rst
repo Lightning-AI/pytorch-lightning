@@ -22,7 +22,7 @@ The distributed checkpoint format can be enabled when you train with the :doc:`F
 .. code-block:: python
 
     import lightning as L
-    from lightning.fabric.strategies import FSDPStrategy
+    from lightning.pytorch.strategies import FSDPStrategy
 
     # 1. Select the FSDP strategy and set the sharded/distributed checkpoint format
     strategy = FSDPStrategy(state_dict_type="sharded")
@@ -84,12 +84,12 @@ This reduces memory peaks and speeds up the saving to disk.
 Load a distributed checkpoint
 *****************************
 
-You can easily load a distributed checkpoint in Fabric if your script uses :doc:`FSDP <../advanced/model_parallel/fsdp>`.
+You can easily load a distributed checkpoint in Trainer if your script uses :doc:`FSDP <../advanced/model_parallel/fsdp>`.
 
 .. code-block:: python
 
     import lightning as L
-    from lightning.fabric.strategies import FSDPStrategy
+    from lightning.pytorch.strategies import FSDPStrategy
 
     # 1. Select the FSDP strategy and set the sharded/distributed checkpoint format
     strategy = FSDPStrategy(state_dict_type="sharded")
@@ -124,7 +124,7 @@ Note that you can load the distributed checkpoint even if the world size has cha
 
 .. important::
 
-    If you want to load a distributed checkpoint into a script that doesn't use FSDP (or Fabric at all), then you will have to :ref:`convert it to a single-file checkpoint first <Convert dist-checkpoint>`.
+    If you want to load a distributed checkpoint into a script that doesn't use FSDP (or Trainer at all), then you will have to :ref:`convert it to a single-file checkpoint first <Convert dist-checkpoint>`.
 
 
 ----
