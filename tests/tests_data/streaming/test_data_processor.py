@@ -894,6 +894,7 @@ def test_data_processing_map_without_input_dir(monkeypatch, tmpdir):
     assert sorted(os.listdir(output_dir)) == ["0.JPEG", "1.JPEG", "2.JPEG", "3.JPEG", "4.JPEG"]
 
 
+@pytest.mark.skipif(condition=sys.platform == "win32", reason="Not supported on windows")
 def test_map_error_when_not_empty(monkeypatch, tmpdir):
     boto3 = mock.MagicMock()
     client_s3_mock = mock.MagicMock()
@@ -911,7 +912,7 @@ def test_map_error_when_not_empty(monkeypatch, tmpdir):
 
     with pytest.raises(OSError, match="cache"):
         map(
-            lambda x: None,
+            map_fn,
             [0, 1],
             output_dir=lightning_cloud.resolver.Dir(path=None, url="s3://bucket"),
             error_when_not_empty=False,
