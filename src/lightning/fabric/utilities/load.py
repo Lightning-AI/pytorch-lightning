@@ -242,8 +242,13 @@ def _load_distributed_checkpoint(checkpoint_folder: Path) -> Dict[str, Any]:
     if not _TORCH_GREATER_EQUAL_2_1:
         raise ImportError("Processing distributed checkpoints requires PyTorch >= 2.1.")
 
-    from torch.distributed.checkpoint import FileSystemReader, load_state_dict
+    from torch.distributed.checkpoint import FileSystemReader
     from torch.distributed.checkpoint.metadata import BytesStorageMetadata, TensorStorageMetadata
+
+    if _TORCH_GREATER_EQUAL_2_2:
+        from torch.distributed.checkpoint import load
+    else:
+        from torch.distributed.checkpoint import load_state_dict as load  # deprecated
 
     reader = FileSystemReader(checkpoint_folder)
     metadata = reader.read_metadata()
@@ -264,7 +269,7 @@ def _load_distributed_checkpoint(checkpoint_folder: Path) -> Dict[str, Any]:
                 pin_memory=sd_metadata.properties.pin_memory,
             )
 
-    load_state_dict(state_dict=checkpoint, storage_reader=reader, no_dist=True)
+    load(state_dict=checkpoint, storage_reader=reader, no_dist=True)
     checkpoint = _unflatten_dict(checkpoint, key_map=metadata.planner_data)
 
     # This is the extra file saved by Fabric, with user data separate from weights and optimizer states
