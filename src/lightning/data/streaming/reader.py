@@ -67,9 +67,10 @@ class PrepareChunksThread(Thread):
         self._parent_cache_dir = os.path.dirname(self._config._cache_dir)
         self._to_download_queue: multiprocessing.Queue = multiprocessing.Queue()
         self._to_delete_queue: multiprocessing.Queue = multiprocessing.Queue()
-        self._delete_chunks_when_processed = (
-            (self._config.num_bytes // self._distributed_env.num_nodes) > max_cache_size if max_cache_size else False
-        )
+
+        # Check whether a dataset slice fits on the node
+        num_bytes_per_nodes = self._config.num_bytes // self._distributed_env.num_nodes
+        self._delete_chunks_when_processed = num_bytes_per_nodes > max_cache_size if max_cache_size else False
         self._has_exited = False
 
     def download(self, chunk_indexes: List[int]) -> None:
