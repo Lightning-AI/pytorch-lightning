@@ -16,7 +16,7 @@ import os
 from datetime import datetime
 from pathlib import Path
 from types import FunctionType
-from typing import Any, Callable, Optional, Sequence, Union, Dict
+from typing import Any, Callable, Dict, Optional, Sequence, Union
 
 import torch
 
