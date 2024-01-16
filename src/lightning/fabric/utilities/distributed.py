@@ -12,6 +12,7 @@ from lightning_utilities.core.imports import package_available
 from torch import Tensor
 from torch.utils.data import Dataset, DistributedSampler, Sampler
 from typing_extensions import override
+
 from lightning.fabric.utilities.cloud_io import _is_local_file_protocol
 from lightning.fabric.utilities.data import _num_cpus_available
 from lightning.fabric.utilities.rank_zero import rank_zero_info
