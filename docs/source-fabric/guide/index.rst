@@ -173,6 +173,14 @@ Advanced Topics
     :height: 160
     :tag: advanced
 
+.. displayitem::
+    :header: Save and load very large models
+    :description: Save and load very large models efficiently with distributed checkpoints
+    :button_link: checkpoint/distributed_checkpoint.html
+    :col_css: col-md-4
+    :height: 160
+    :tag: advanced
+
 .. raw:: html
 
         </div>
