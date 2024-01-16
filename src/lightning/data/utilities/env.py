@@ -117,7 +117,8 @@ class Environment:
                 the current training process
 
         """
-        dist_env = _DistributedEnv(dist_world_size, global_rank)
+        num_nodes = (dist_world_size // torch.cuda.device_count()) if torch.cuda.is_available() else 1
+        dist_env = _DistributedEnv(dist_world_size, global_rank, num_nodes)
         worker_env = _WorkerEnv(num_workers, current_worker_rank)
         return cls(dist_env=dist_env, worker_env=worker_env)
 

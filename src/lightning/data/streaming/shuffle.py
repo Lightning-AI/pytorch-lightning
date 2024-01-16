@@ -99,7 +99,7 @@ class FullShuffle(Shuffle):
 
         seed_shift = 0 if distributed_env.num_nodes > 1 else current_epoch
         shuffled_indexes = np.random.RandomState(seed=self.seed + seed_shift).permutation(indexes)
-        shuffled_chunk_intervals = np.asarray(chunk_intervals)[shuffled_indexes]
+        shuffled_chunk_intervals = np.asarray(chunk_intervals)[shuffled_indexes].tolist()
 
         # 3. Compute the items budget of each rank
         chunks_per_ranks, intervals_per_ranks = _associate_chunks_and_internals_to_ranks(
@@ -113,7 +113,7 @@ class FullShuffle(Shuffle):
         # Perform shuffle within the nodes to avoid cache miss.
         # Note: It is possible for the overlapping chunks to change due to the changing order.
         shuffled_indexes = _intra_node_chunk_shuffle(distributed_env, chunks_per_ranks, self.seed, current_epoch)
-        shuffled_chunk_intervals = np.asarray(chunk_intervals)[shuffled_indexes]
+        shuffled_chunk_intervals = np.asarray(chunk_intervals)[shuffled_indexes].tolist()
 
         chunks_per_ranks, intervals_per_ranks = _associate_chunks_and_internals_to_ranks(
             distributed_env, shuffled_indexes, shuffled_chunk_intervals, self.drop_last
@@ -131,7 +131,7 @@ def _intra_node_chunk_shuffle(
     seed: int,
     current_epoch: int,
 ) -> List[int]:
-    chunk_indexes_per_nodes = [[] for _ in range(distributed_env.num_nodes)]
+    chunk_indexes_per_nodes: Any = [[] for _ in range(distributed_env.num_nodes)]
     for rank, chunks_per_rank in enumerate(chunks_per_ranks):
         chunk_indexes_per_nodes[0 if distributed_env.num_nodes == 1 else rank // distributed_env.num_nodes].extend(
             chunks_per_rank
@@ -149,10 +149,10 @@ def _intra_node_chunk_shuffle(
 
 def _associate_chunks_and_internals_to_ranks(
     distributed_env: _DistributedEnv,
-    indexes: List[int],
-    chunk_intervals: List[Any],
+    indexes: Any,
+    chunk_intervals: Any,
     drop_last: bool,
-):
+) -> Tuple[List[List[int]], List[Any]]:
     num_items = sum([(interval[-1] - interval[0]) for interval in chunk_intervals])
     num_items_per_ranks: List[int] = [
         num_items // distributed_env.world_size + num_items % distributed_env.world_size
