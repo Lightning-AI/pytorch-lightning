@@ -15,7 +15,7 @@
 
 from collections import OrderedDict
 from typing import Dict, List, Tuple
-
+from typing_extensions import override
 import torch
 from lightning_utilities.core.imports import RequirementCache
 from torch.nn import Parameter
@@ -36,6 +36,7 @@ def deepspeed_param_size(p: torch.nn.Parameter) -> int:
 
 class DeepSpeedLayerSummary(LayerSummary):
     @property
+    @override
     def num_parameters(self) -> int:
         """Returns the number of parameters in this module."""
         return sum(deepspeed_param_size(p) if not _is_lazy_weight_tensor(p) else 0 for p in self._module.parameters())
@@ -51,6 +52,8 @@ class DeepSpeedLayerSummary(LayerSummary):
 
 
 class DeepSpeedSummary(ModelSummary):
+
+    @override
     def summarize(self) -> Dict[str, DeepSpeedLayerSummary]:  # type: ignore[override]
         summary = OrderedDict((name, DeepSpeedLayerSummary(module)) for name, module in self.named_modules)
         if self._model.example_input_array is not None:
@@ -66,10 +69,12 @@ class DeepSpeedSummary(ModelSummary):
         return summary
 
     @property
+    @override
     def total_parameters(self) -> int:
         return sum(deepspeed_param_size(p) if not _is_lazy_weight_tensor(p) else 0 for p in self._model.parameters())
 
     @property
+    @override
     def trainable_parameters(self) -> int:
         return sum(
             deepspeed_param_size(p) if not _is_lazy_weight_tensor(p) else 0
@@ -81,6 +86,7 @@ class DeepSpeedSummary(ModelSummary):
     def parameters_per_layer(self) -> List[int]:
         return [layer.average_shard_parameters for layer in self._layer_summary.values()]
 
+    @override
     def _get_summary_data(self) -> List[Tuple[str, List[str]]]:
         """Makes a summary listing with:
 
@@ -104,6 +110,7 @@ class DeepSpeedSummary(ModelSummary):
 
         return arrays
 
+    @override
     def _add_leftover_params_to_summary(self, arrays: List[Tuple[str, List[str]]], total_leftover_params: int) -> None:
         """Add summary of params not associated with module or layer to model summary."""
         super()._add_leftover_params_to_summary(arrays, total_leftover_params)

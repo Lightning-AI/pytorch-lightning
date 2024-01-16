@@ -19,7 +19,7 @@ import threading
 import warnings
 from types import ModuleType, TracebackType
 from typing import Any, Dict, List, Optional, Tuple, Type
-
+from typing_extensions import override
 from packaging.version import Version
 
 import lightning.pytorch as pl
@@ -188,6 +188,7 @@ class _RedirectingUnpickler(pickle._Unpickler):
 
     """
 
+    @override
     def find_class(self, module: str, name: str) -> Any:
         new_module = _patch_pl_to_mirror_if_necessary(module)
         # this warning won't trigger for standalone as these imports are identical
