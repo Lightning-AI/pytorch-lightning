@@ -46,7 +46,7 @@ def _get_input_dir(inputs: Sequence[Any]) -> Optional[str]:
     indexed_paths = _get_indexed_paths(inputs[0])
 
     if len(indexed_paths) == 0:
-        # Check whether the second element as any input_path
+        # Check whether the second element has any input_path
         indexed_paths = _get_indexed_paths(inputs[1])
         if len(indexed_paths) == 0:
             return None
