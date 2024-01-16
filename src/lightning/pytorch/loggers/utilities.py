@@ -37,7 +37,7 @@ def _scan_checkpoints(
     Args:
         checkpoint_callback: Checkpoint callback reference.
         logged_model_time: dictionary containing the logged model times.
-        include_distributed: flag to include distributed directories.
+        include_distributed_checkpoints: flag to include distributed directories.
 
     Returns:
         List of tuples containing the time, path, score, and tag of the checkpoints.
