@@ -4,6 +4,7 @@ import sys
 from typing import Any, List
 from unittest import mock
 
+import lightning_cloud
 import numpy as np
 import pytest
 import torch
@@ -25,6 +26,7 @@ from lightning.data.streaming.data_processor import (
     _wait_for_file_to_exist,
 )
 from lightning.data.streaming.functions import LambdaDataTransformRecipe, map, optimize
+from lightning_cloud import resolver
 from lightning_utilities.core.imports import RequirementCache
 
 _PIL_AVAILABLE = RequirementCache("PIL")
@@ -872,3 +874,46 @@ def test_get_item_filesizes(tmp_path):
     assert os.path.getsize(tmp_path / "empty_file") == 0
     with pytest.raises(RuntimeError, match="has 0 bytes!"):
         _get_item_filesizes([str(tmp_path / "empty_file")])
+
+
+def map_fn_index(output_dir, index):
+    with open(os.path.join(output_dir, f"{index}.JPEG"), "w") as f:
+        f.write("Hello")
+
+
+@pytest.mark.skipif(condition=not _PIL_AVAILABLE or sys.platform == "win32", reason="Requires: ['pil']")
+def test_data_processing_map_without_input_dir(monkeypatch, tmpdir):
+    cache_dir = os.path.join(tmpdir, "cache")
+    output_dir = os.path.join(tmpdir, "target_dir")
+    os.makedirs(output_dir, exist_ok=True)
+    monkeypatch.setenv("DATA_OPTIMIZER_CACHE_FOLDER", cache_dir)
+    monkeypatch.setenv("DATA_OPTIMIZER_DATA_CACHE_FOLDER", cache_dir)
+
+    map(map_fn_index, list(range(5)), output_dir=output_dir, num_workers=1, reorder_files=True)
+
+    assert sorted(os.listdir(output_dir)) == ["0.JPEG", "1.JPEG", "2.JPEG", "3.JPEG", "4.JPEG"]
+
+
+@pytest.mark.skipif(condition=sys.platform == "win32", reason="Not supported on windows")
+def test_map_error_when_not_empty(monkeypatch, tmpdir):
+    boto3 = mock.MagicMock()
+    client_s3_mock = mock.MagicMock()
+    client_s3_mock.list_objects_v2.return_value = {"KeyCount": 1, "Contents": []}
+    boto3.client.return_value = client_s3_mock
+    monkeypatch.setattr(resolver, "boto3", boto3)
+
+    with pytest.raises(RuntimeError, match="data and datasets are meant to be immutable"):
+        map(
+            map_fn,
+            [0, 1],
+            output_dir=lightning_cloud.resolver.Dir(path=None, url="s3://bucket"),
+            error_when_not_empty=True,
+        )
+
+    with pytest.raises(OSError, match="cache"):
+        map(
+            map_fn,
+            [0, 1],
+            output_dir=lightning_cloud.resolver.Dir(path=None, url="s3://bucket"),
+            error_when_not_empty=False,
+        )
