@@ -56,6 +56,7 @@ from lightning.fabric.utilities.imports import (
     _TORCH_GREATER_EQUAL_1_13,
     _TORCH_GREATER_EQUAL_2_0,
     _TORCH_GREATER_EQUAL_2_1,
+    _TORCH_GREATER_EQUAL_2_2,
 )
 from lightning.fabric.utilities.init import _EmptyInit
 from lightning.fabric.utilities.load import _lazy_load, _materialize_tensors
@@ -595,15 +596,19 @@ class FSDPStrategy(ParallelStrategy):
         assert self.lightning_module is not None
 
         if _is_sharded_checkpoint(path):
-            from torch.distributed.checkpoint import FileSystemReader, load_state_dict
+            from torch.distributed.checkpoint import FileSystemReader
             from torch.distributed.checkpoint.optimizer import load_sharded_optimizer_state_dict
+            if _TORCH_GREATER_EQUAL_2_2:
+                from torch.distributed.checkpoint import load
+            else:
+                from torch.distributed.checkpoint import load_state_dict as load  # deprecated
 
             state_dict_ctx = _get_sharded_state_dict_context(self.model)
             reader = FileSystemReader(path=path)
 
             with state_dict_ctx:
                 module_state = {"model": self.model.state_dict()}
-                load_state_dict(module_state, reader)
+                load(module_state, reader)
                 self.model.load_state_dict(module_state["model"])
 
                 if self.lightning_module.trainer.state.fn == TrainerFn.FITTING:
