@@ -44,7 +44,7 @@ Checkpointing
    :tag: advanced
 
 .. displayitem::
-   :header: Working with very large models
+   :header: Distributed checkpoints
    :description: Save and load very large models efficiently with distributed checkpoints
    :col_css: col-md-4
    :button_link: checkpointing_expert.html
