@@ -16,7 +16,7 @@ import warnings
 from functools import partial
 from io import BytesIO
 from typing import IO, TYPE_CHECKING, Any, Callable, Dict, Optional, OrderedDict, Sequence, Set, Union
-
+from typing_extensions import override
 import torch
 from lightning_utilities.core.apply_func import apply_to_collection
 from torch import Tensor
@@ -170,6 +170,7 @@ class _LazyLoadingUnpickler(pickle.Unpickler):
         super().__init__(file)
         self.file_reader = file_reader
 
+    @override
     def find_class(self, module: str, name: str) -> Any:
         if module == "torch._utils" and name == "_rebuild_tensor_v2":
             return partial(_NotYetLoadedTensor.rebuild_tensor_v2, archiveinfo=self)
@@ -179,6 +180,7 @@ class _LazyLoadingUnpickler(pickle.Unpickler):
             return partial(_NotYetLoadedTensor.rebuild_parameter, archiveinfo=self)
         return super().find_class(module, name)
 
+    @override
     def persistent_load(self, pid: tuple) -> "TypedStorage":
         from torch.storage import TypedStorage
 

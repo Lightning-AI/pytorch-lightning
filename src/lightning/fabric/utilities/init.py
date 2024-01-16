@@ -13,7 +13,7 @@
 # limitations under the License.
 import itertools
 from typing import Any, Callable, Dict, Optional, Sequence
-
+from typing_extensions import override
 import torch
 
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_13, _TORCH_GREATER_EQUAL_2_1
@@ -43,6 +43,7 @@ class _EmptyInit(TorchFunctionMode):
         super().__init__()
         self.enabled = enabled
 
+    @override
     def __torch_function__(
         self,
         func: Callable,
