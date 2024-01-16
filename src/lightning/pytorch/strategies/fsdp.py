@@ -598,6 +598,7 @@ class FSDPStrategy(ParallelStrategy):
         if _is_sharded_checkpoint(path):
             from torch.distributed.checkpoint import FileSystemReader
             from torch.distributed.checkpoint.optimizer import load_sharded_optimizer_state_dict
+
             if _TORCH_GREATER_EQUAL_2_2:
                 from torch.distributed.checkpoint import load
             else:
