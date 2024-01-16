@@ -25,7 +25,11 @@ from torch._C import _TensorMeta
 from torch.nn import Parameter
 from typing_extensions import override
 
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0, _TORCH_GREATER_EQUAL_2_1, _TORCH_GREATER_EQUAL_2_2
+from lightning.fabric.utilities.imports import (
+    _TORCH_GREATER_EQUAL_2_0,
+    _TORCH_GREATER_EQUAL_2_1,
+    _TORCH_GREATER_EQUAL_2_2,
+)
 from lightning.fabric.utilities.types import _PATH, _Stateful
 
 _METADATA_FILENAME = "meta.pt"
