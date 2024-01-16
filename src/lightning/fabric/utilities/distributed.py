@@ -11,6 +11,7 @@ import torch.nn.functional as F
 from lightning_utilities.core.imports import package_available
 from torch import Tensor
 from torch.utils.data import Dataset, DistributedSampler, Sampler
+from typing_extensions import override
 
 from lightning.fabric.utilities.cloud_io import _is_local_file_protocol
 from lightning.fabric.utilities.data import _num_cpus_available
@@ -328,6 +329,7 @@ class _DatasetSamplerWrapper(Dataset):
         # defer materializing an iterator until it is necessary
         self._sampler_list: Optional[List[Any]] = None
 
+    @override
     def __getitem__(self, index: int) -> Any:
         if self._sampler_list is None:
             self._sampler_list = list(self._sampler)
@@ -357,6 +359,7 @@ class DistributedSamplerWrapper(DistributedSampler):
     def __init__(self, sampler: Union[Sampler, Iterable], *args: Any, **kwargs: Any) -> None:
         super().__init__(_DatasetSamplerWrapper(sampler), *args, **kwargs)
 
+    @override
     def __iter__(self) -> Iterator:
         self.dataset.reset()
         return (self.dataset[index] for index in super().__iter__())

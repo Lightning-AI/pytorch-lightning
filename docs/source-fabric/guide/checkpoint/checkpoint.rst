@@ -45,7 +45,7 @@ To save the state to the filesystem, pass it to the :meth:`~lightning.fabric.fab
 
 This will unwrap your model and optimizer and automatically convert their ``state_dict`` for you.
 Fabric and the underlying strategy will decide in which format your checkpoint gets saved.
-For example, ``strategy="ddp"`` saves a single file on rank 0, while ``strategy="fsdp"`` :doc: saves multiple files from all ranks.
+For example, ``strategy="ddp"`` saves a single file on rank 0, while ``strategy="fsdp"`` :doc:`saves multiple files from all ranks <distributed_checkpoint>`.
 
 
 ----

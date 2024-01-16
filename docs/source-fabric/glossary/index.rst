@@ -2,6 +2,12 @@
 Glossary
 ########
 
+.. toctree::
+   :maxdepth: 1
+   :hidden:
+
+   Checkpoint <../guide/checkpoint/index>
+
 
 .. raw:: html
 

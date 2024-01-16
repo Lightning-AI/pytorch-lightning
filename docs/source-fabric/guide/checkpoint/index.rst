@@ -1,5 +1,3 @@
-:orphan:
-
 ###########
 Checkpoints
 ###########
@@ -14,7 +12,7 @@ Checkpoints
     :description: Efficient saving and loading of model weights, training state, hyperparameters and more.
     :button_link: checkpoint.html
     :col_css: col-md-4
-    :height: 180
+    :height: 150
     :tag: intermediate
 
 .. displayitem::
