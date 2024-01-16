@@ -54,10 +54,15 @@ class S3Downloader(Downloader):
         self._client.client.download_file(
             obj.netloc,
             obj.path.lstrip("/"),
-            local_filepath,
+            local_filepath + "_tmp",
             ExtraArgs=extra_args,
             Config=TransferConfig(use_threads=False),
         )
+
+        if not os.path.exists(local_filepath):
+            shutil.move(local_filepath + "_tmp", local_filepath)
+        else:
+            shutil.rmtree(local_filepath + "_tmp")
 
 
 class LocalDownloader(Downloader):
