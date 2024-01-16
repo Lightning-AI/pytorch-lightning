@@ -141,7 +141,7 @@ def map(
     machine: Optional[str] = None,
     num_downloaders: Optional[int] = None,
     reorder_files: bool = True,
-    break_when_non_empty: bool = False,
+    error_when_not_empty: bool = False,
 ) -> None:
     """This function map a callbable over a collection of files possibly in a distributed way.
 
@@ -157,7 +157,7 @@ def map(
         num_downloaders: The number of downloaders per worker.
         reorder_files: By default, reorders the files by file size to distribute work equally among all workers.
             Set this to ``False`` if the order in which samples are processed should be preserved.
-        break_when_non_empty: Whether we should break if the folder isn't empty
+        error_when_not_empty: Whether we should error if the output folder isn't empty.
 
     """
     if not isinstance(inputs, Sequence):
@@ -175,7 +175,7 @@ def map(
                 " HINT: You can either use `/teamspace/s3_connections/...` or `/teamspace/datasets/...`."
             )
 
-        if break_when_non_empty:
+        if error_when_not_empty:
             _assert_dir_is_empty(output_dir)
 
         input_dir = _resolve_dir(_get_input_dir(inputs))
