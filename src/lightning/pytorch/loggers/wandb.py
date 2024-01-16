@@ -644,7 +644,9 @@ class WandbLogger(Logger):
 
         # get checkpoints to be saved with associated score
         checkpoints = _scan_checkpoints(
-            checkpoint_callback, self._logged_model_time, include_distributed=self._include_distributed_checkpoints
+            checkpoint_callback,
+            self._logged_model_time,
+            include_distributed_checkpoints=self._include_distributed_checkpoints,
         )
 
         # log iteratively all new checkpoints
