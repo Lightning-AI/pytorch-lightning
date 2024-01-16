@@ -13,9 +13,10 @@ class _DistributedEnv:
 
     """
 
-    def __init__(self, world_size: int, global_rank: int):
+    def __init__(self, world_size: int, global_rank: int, num_nodes: int):
         self.world_size = world_size
         self.global_rank = global_rank
+        self.num_nodes = num_nodes
 
     @classmethod
     def detect(cls) -> "_DistributedEnv":
@@ -37,7 +38,10 @@ class _DistributedEnv:
         if world_size is None or world_size == -1:
             world_size = 1
 
-        return cls(world_size=world_size, global_rank=global_rank)
+        # TODO: Add support for other accelerators
+        num_nodes = (world_size // torch.cuda.device_count()) if torch.cuda.is_available() else 1
+
+        return cls(world_size=world_size, global_rank=global_rank, num_nodes=num_nodes)
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(world_size: {self.world_size}, global_rank: {self.global_rank}\n)"

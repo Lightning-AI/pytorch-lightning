@@ -94,10 +94,10 @@ def test_streaming_dataset_distributed_no_shuffle(drop_last, tmpdir):
     for i in range(101):
         assert dataset[i] == i
 
-    dataset.distributed_env = _DistributedEnv(1, 0)
+    dataset.distributed_env = _DistributedEnv(1, 0, 1)
     assert len(dataset) == 101
 
-    dataset.distributed_env = _DistributedEnv(2, 0)
+    dataset.distributed_env = _DistributedEnv(2, 0, 1)
     assert len(dataset) == 50 + int(not drop_last)
     dataset_iter = iter(dataset)
     assert len(dataset_iter) == 50 + int(not drop_last)
@@ -111,7 +111,7 @@ def test_streaming_dataset_distributed_no_shuffle(drop_last, tmpdir):
     assert len(process_1_2) == 50 + int(not drop_last)
 
     dataset = StreamingDataset(input_dir=str(tmpdir), shuffle=False, drop_last=drop_last)
-    dataset.distributed_env = _DistributedEnv(2, 1)
+    dataset.distributed_env = _DistributedEnv(2, 1, 1)
     assert len(dataset) == 50
     dataset_iter = iter(dataset)
     process_2_1 = list(dataset_iter)
@@ -175,7 +175,7 @@ def test_streaming_dataset_distributed_full_shuffle_odd(drop_last, tmpdir):
     for i in range(1097):
         assert dataset[i] == i
 
-    dataset.distributed_env = _DistributedEnv(2, 0)
+    dataset.distributed_env = _DistributedEnv(2, 0, 1)
     assert len(dataset) == 548
     dataset_iter = iter(dataset)
     assert len(dataset_iter) == 548
@@ -186,7 +186,7 @@ def test_streaming_dataset_distributed_full_shuffle_odd(drop_last, tmpdir):
     dataset_2 = StreamingDataset(input_dir=str(tmpdir), shuffle=True, drop_last=drop_last)
     iter(dataset_2)
     assert isinstance(dataset_2.shuffler, FullShuffle)
-    dataset_2.distributed_env = _DistributedEnv(2, 1)
+    dataset_2.distributed_env = _DistributedEnv(2, 1, 1)
     assert len(dataset_2) == 548 + int(not drop_last)
     dataset_2_iter = iter(dataset_2)
     assert len(dataset_2_iter) == 548 + int(not drop_last)
@@ -215,7 +215,7 @@ def test_streaming_dataset_distributed_full_shuffle_even(drop_last, tmpdir):
     for i in range(1222):
         assert dataset[i] == i
 
-    dataset.distributed_env = _DistributedEnv(2, 0)
+    dataset.distributed_env = _DistributedEnv(2, 0, 1)
     assert len(dataset) == 611
     dataset_iter = iter(dataset)
     assert len(dataset_iter) == 611
@@ -226,7 +226,7 @@ def test_streaming_dataset_distributed_full_shuffle_even(drop_last, tmpdir):
     dataset_2 = StreamingDataset(input_dir=str(tmpdir), shuffle=True, drop_last=drop_last)
     iter(dataset_2)
     assert isinstance(dataset_2.shuffler, FullShuffle)
-    dataset_2.distributed_env = _DistributedEnv(2, 1)
+    dataset_2.distributed_env = _DistributedEnv(2, 1, 1)
     assert len(dataset_2) == 611
     dataset_2_iter = iter(dataset_2)
     assert len(dataset_2_iter) == 611
@@ -234,6 +234,59 @@ def test_streaming_dataset_distributed_full_shuffle_even(drop_last, tmpdir):
     assert process_2_1[:10] == [181, 183, 186, 188, 187, 185, 189, 184, 182, 1092]
     assert len(process_2_1) == 611
     assert len([i for i in process_1_1 if i in process_2_1]) == 0
+
+
+@pytest.mark.parametrize("drop_last", [False, True])
+def test_streaming_dataset_distributed_full_shuffle_even_multi_nodes(drop_last, tmpdir):
+    seed_everything(42)
+
+    cache = Cache(str(tmpdir), chunk_size=10)
+    for i in range(1222):
+        cache[i] = i
+
+    cache.done()
+    cache.merge()
+
+    dataset = StreamingDataset(input_dir=str(tmpdir), shuffle=True, drop_last=drop_last)
+    assert dataset.shuffle
+    _ = dataset[0]
+    assert isinstance(dataset.shuffler, FullShuffle)
+
+    for i in range(1222):
+        assert dataset[i] == i
+
+    dataset.distributed_env = _DistributedEnv(4, 0, 2)
+    assert len(dataset) == 305
+    dataset_iter = iter(dataset)
+    assert len(dataset_iter) == 305
+    process_1_1 = list(dataset_iter)
+    assert process_1_1[:10] == [187, 186, 182, 180, 184, 185, 189, 183, 188, 181]
+    assert len(process_1_1) == 305
+
+    dataset_2 = StreamingDataset(input_dir=str(tmpdir), shuffle=True, drop_last=drop_last)
+    iter(dataset_2)
+    assert isinstance(dataset_2.shuffler, FullShuffle)
+    dataset_2.distributed_env = _DistributedEnv(4, 1, 2)
+    assert len(dataset_2) == 305
+    dataset_2_iter = iter(dataset_2)
+    assert len(dataset_2_iter) == 305
+    process_2_1 = list(dataset_2_iter)
+    assert process_2_1[:10] == [127, 128, 129, 125, 126, 154, 153, 150, 155, 151]
+    assert len(process_2_1) == 305
+    assert len([i for i in process_1_1 if i in process_2_1]) == 0
+
+    dataset_2 = StreamingDataset(input_dir=str(tmpdir), shuffle=True, drop_last=drop_last)
+    iter(dataset_2)
+    assert isinstance(dataset_2.shuffler, FullShuffle)
+    dataset_2.distributed_env = _DistributedEnv(4, 1, 2)
+    dataset_2.current_epoch = 2
+    assert len(dataset_2) == 310
+    dataset_2_iter = iter(dataset_2)
+    assert len(dataset_2_iter) == 310
+    process_2_1 = list(dataset_2_iter)
+    assert process_2_1[:10] == [318, 310, 312, 315, 314, 317, 313, 319, 316, 311]
+    assert len(process_2_1) == 310
+    assert len([i for i in process_1_1 if i in process_2_1]) != 0
 
 
 def test_streaming_dataset_deepcopy(tmpdir):
@@ -457,7 +510,7 @@ def test_dataset_for_text_tokens_distributed_num_workers(tmpdir):
 
     assert len(dataset) == 20
 
-    dataset.distributed_env = _DistributedEnv(2, 0)
+    dataset.distributed_env = _DistributedEnv(2, 0, 1)
     dataloader = DataLoader(dataset, batch_size=2, shuffle=False, num_workers=2)
 
     assert len(dataloader) == 6
@@ -467,7 +520,7 @@ def test_dataset_for_text_tokens_distributed_num_workers(tmpdir):
     for batch_idx, batch in enumerate(dataloader):
         assert [batch[0][0].item(), batch[1][0].item()] == expected[batch_idx]
 
-    dataset.distributed_env = _DistributedEnv(2, 1)
+    dataset.distributed_env = _DistributedEnv(2, 1, 1)
     dataloader = DataLoader(dataset, batch_size=2, shuffle=False)
 
     assert len(dataloader) == 4
@@ -520,7 +573,7 @@ def test_dataset_for_text_tokens_distributed_num_workers_end_to_end(tmpdir, monk
 
     dataset = StreamingDataset(input_dir=str(tmpdir), item_loader=TokensLoader(block_size), shuffle=False)
 
-    dataset.distributed_env = _DistributedEnv(2, 0)
+    dataset.distributed_env = _DistributedEnv(2, 0, 1)
     dataloader = DataLoader(dataset, batch_size=2, shuffle=False, num_workers=2)
 
     assert len(dataloader) == 5
@@ -530,7 +583,7 @@ def test_dataset_for_text_tokens_distributed_num_workers_end_to_end(tmpdir, monk
     for batch_idx, batch in enumerate(dataloader):
         assert [batch[0][0].item(), batch[1][0].item()] == expected[batch_idx]
 
-    dataset.distributed_env = _DistributedEnv(2, 1)
+    dataset.distributed_env = _DistributedEnv(2, 1, 1)
     dataloader = DataLoader(dataset, batch_size=2, shuffle=False)
 
     assert len(dataloader) == 5
