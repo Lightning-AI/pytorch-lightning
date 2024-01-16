@@ -343,6 +343,7 @@ class WandbLogger(Logger):
         self._name = self._wandb_init.get("name")
         self._id = self._wandb_init.get("id")
         self._checkpoint_name = checkpoint_name
+        self._include_distributed_checkpoints = include_distributed_checkpoints
 
     def __getstate__(self) -> Dict[str, Any]:
         import wandb
@@ -643,7 +644,7 @@ class WandbLogger(Logger):
 
         # get checkpoints to be saved with associated score
         checkpoints = _scan_checkpoints(
-            checkpoint_callback, self._logged_model_time, include_distributed=self.include_distributed_checkpoints
+            checkpoint_callback, self._logged_model_time, include_distributed=self._include_distributed_checkpoints
         )
 
         # log iteratively all new checkpoints
