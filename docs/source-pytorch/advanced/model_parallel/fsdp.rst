@@ -397,13 +397,14 @@ The resulting checkpoint folder will have this structure:
     ├── .metadata
     ├── __0_0.distcp
     ├── __1_0.distcp
+    ...
     └── meta.pt
 
 The “sharded” checkpoint format is the most efficient to save and load in Lightning.
 
 **Which checkpoint format should I use?**
 
-- ``state_dict_type="sharded"``: Use for pre-training very large models. It is fast and uses less memory, but it is less portable. An extra step is needed to convert the sharded checkpoint into a regular checkpoint file.
+- ``state_dict_type="sharded"``: Use for pre-training very large models. It is fast and uses less memory, but it is less portable. An extra step is needed to :doc:`convert the sharded checkpoint into a regular checkpoint file <../../common/checkpointing_expert>`.
 - ``state_dict_type="full"``: Use when pre-training small to moderately large models (less than 10B parameters), when fine-tuning, and when portability is required.
 
 
