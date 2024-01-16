@@ -14,7 +14,7 @@
 import inspect
 from functools import wraps
 from typing import Any, Callable, Dict, Generator, Iterator, List, Mapping, Optional, TypeVar, Union, overload
-
+from typing_extensions import override
 import torch
 from lightning_utilities.core.apply_func import apply_to_collection
 from torch import Tensor
@@ -22,7 +22,6 @@ from torch import nn as nn
 from torch.nn.modules.module import _IncompatibleKeys
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
-from typing_extensions import override
 
 from lightning.fabric.plugins import Precision
 from lightning.fabric.strategies import Strategy
