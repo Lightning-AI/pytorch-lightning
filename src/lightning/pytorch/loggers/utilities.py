@@ -29,12 +29,18 @@ def _version(loggers: List[Any], separator: str = "_") -> Union[int, str]:
     return separator.join(dict.fromkeys(str(logger.version) for logger in loggers))
 
 
-def _scan_checkpoints(checkpoint_callback: Checkpoint, logged_model_time: dict) -> List[Tuple[float, str, float, str]]:
+def _scan_checkpoints(
+    checkpoint_callback: Checkpoint, logged_model_time: dict, include_distributed_checkpoints: bool = False
+) -> List[Tuple[float, str, float, str]]:
     """Return the checkpoints to be logged.
 
     Args:
         checkpoint_callback: Checkpoint callback reference.
         logged_model_time: dictionary containing the logged model times.
+        include_distributed: flag to include distributed directories.
+
+    Returns:
+        List of tuples containing the time, path, score, and tag of the checkpoints.
 
     """
     # get checkpoints to be saved with associated score
@@ -50,7 +56,9 @@ def _scan_checkpoints(checkpoint_callback: Checkpoint, logged_model_time: dict) 
             checkpoints[key] = (value, "best_k")
 
     checkpoints = sorted(
-        (Path(p).stat().st_mtime, p, s, tag) for p, (s, tag) in checkpoints.items() if Path(p).is_file()
+        (Path(p).stat().st_mtime, p, s, tag)
+        for p, (s, tag) in checkpoints.items()
+        if Path(p).is_file() or (include_distributed_checkpoints and Path(p).is_dir())
     )
     checkpoints = [c for c in checkpoints if c[1] not in logged_model_time or logged_model_time[c[1]] < c[0]]
     return checkpoints

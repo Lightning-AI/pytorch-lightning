@@ -261,6 +261,7 @@ class WandbLogger(Logger):
             `WANDB_PROJECT` will be used as a fallback. If both are not set, it defaults to ``'lightning_logs'``.
         log_model: Log checkpoints created by :class:`~lightning.pytorch.callbacks.ModelCheckpoint`
             as W&B artifacts. `latest` and `best` aliases are automatically set.
+        include_distributed_checkpoints: Whether to include distributed checkpoints when logging such as from deepspeed.
 
             * if ``log_model == 'all'``, checkpoints are logged during training.
             * if ``log_model == True``, checkpoints are logged at the end of training, except when
@@ -297,6 +298,7 @@ class WandbLogger(Logger):
         experiment: Union["Run", "RunDisabled", None] = None,
         prefix: str = "",
         checkpoint_name: Optional[str] = None,
+        include_distributed_checkpoints: bool = False,
         **kwargs: Any,
     ) -> None:
         if not _WANDB_AVAILABLE:
@@ -640,32 +642,40 @@ class WandbLogger(Logger):
         import wandb
 
         # get checkpoints to be saved with associated score
-        checkpoints = _scan_checkpoints(checkpoint_callback, self._logged_model_time)
+        checkpoints = _scan_checkpoints(
+            checkpoint_callback, self._logged_model_time, include_distributed=self.include_distributed_checkpoints
+        )
 
         # log iteratively all new checkpoints
         for t, p, s, tag in checkpoints:
-            metadata = {
-                "score": s.item() if isinstance(s, Tensor) else s,
-                "original_filename": Path(p).name,
-                checkpoint_callback.__class__.__name__: {
-                    k: getattr(checkpoint_callback, k)
-                    for k in [
-                        "monitor",
-                        "mode",
-                        "save_last",
-                        "save_top_k",
-                        "save_weights_only",
-                        "_every_n_train_steps",
-                    ]
-                    # ensure it does not break if `ModelCheckpoint` args change
-                    if hasattr(checkpoint_callback, k)
-                },
-            }
-            if not self._checkpoint_name:
-                self._checkpoint_name = f"model-{self.experiment.id}"
-            artifact = wandb.Artifact(name=self._checkpoint_name, type="model", metadata=metadata)
-            artifact.add_file(p, name="model.ckpt")
-            aliases = ["latest", "best"] if p == checkpoint_callback.best_model_path else ["latest"]
-            self.experiment.log_artifact(artifact, aliases=aliases)
-            # remember logged models - timestamp needed in case filename didn't change (lastkckpt or custom name)
-            self._logged_model_time[p] = t
+            if p:
+                metadata = {
+                    "score": s.item() if isinstance(s, Tensor) else s,
+                    "original_filename": Path(p).name,
+                    checkpoint_callback.__class__.__name__: {
+                        k: getattr(checkpoint_callback, k)
+                        for k in [
+                            "monitor",
+                            "mode",
+                            "save_last",
+                            "save_top_k",
+                            "save_weights_only",
+                            "_every_n_train_steps",
+                        ]
+                        # ensure it does not break if `ModelCheckpoint` args change
+                        if hasattr(checkpoint_callback, k)
+                    },
+                }
+                if not self._checkpoint_name:
+                    self._checkpoint_name = f"model-{self.experiment.id}"
+                artifact = wandb.Artifact(name=self._checkpoint_name, type="model", metadata=metadata)
+                if Path(p).is_file():
+                    artifact.add_file(p, name="model.ckpt")
+                elif Path(p).is_dir():
+                    artifact.add_dir(p)
+                else:
+                    raise ValueError(f"Path {p} is neither a file nor a directory.")
+                aliases = ["latest", "best"] if p == checkpoint_callback.best_model_path else ["latest"]
+                self.experiment.log_artifact(artifact, aliases=aliases)
+                # remember logged models - timestamp needed in case filename didn't change (lastkckpt or custom name)
+                self._logged_model_time[p] = t
