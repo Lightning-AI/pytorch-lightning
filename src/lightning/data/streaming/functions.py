@@ -14,6 +14,7 @@
 import inspect
 import os
 from datetime import datetime
+from functools import partial
 from pathlib import Path
 from types import FunctionType
 from typing import Any, Callable, Dict, Optional, Sequence, Union
@@ -57,7 +58,7 @@ def _get_input_dir(inputs: Sequence[Any]) -> Optional[str]:
     absolute_path = str(Path(list(indexed_paths.values())[0]).resolve())
 
     if indexed_paths[0] != absolute_path:
-        raise ValueError("The provided path should be absolute.")
+        raise ValueError(f"The provided path should be absolute. Found {indexed_paths[0]} instead of {absolute_path}.")
 
     return "/" + os.path.join(*str(absolute_path).split("/")[:4])
 
@@ -79,7 +80,11 @@ class LambdaDataTransformRecipe(DataTransformRecipe):
     def prepare_item(self, output_dir: str, item_metadata: Any) -> None:  # type: ignore
         if self._contains_device and self._device is None:
             self._find_device()
-        if isinstance(self._fn, FunctionType):
+
+        if isinstance(self._fn, partial):
+            yield from self._fn(item_metadata)
+
+        elif isinstance(self._fn, FunctionType):
             if self._contains_device:
                 self._fn(output_dir, item_metadata, self._device)
             else:
@@ -117,7 +122,10 @@ class LambdaDataChunkRecipe(DataChunkRecipe):
         return self._inputs
 
     def prepare_item(self, item_metadata: Any) -> Any:  # type: ignore
-        if isinstance(self._fn, FunctionType):
+        if isinstance(self._fn, partial):
+            yield from self._fn(item_metadata)
+
+        elif isinstance(self._fn, FunctionType):
             if inspect.isgeneratorfunction(self._fn):
                 yield from self._fn(item_metadata)
             else:
