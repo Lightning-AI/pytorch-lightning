@@ -21,6 +21,8 @@ from pathlib import Path
 from typing import List
 from unittest.mock import Mock
 
+from tqdm import TMonitor
+
 import lightning.fabric
 import lightning.pytorch
 import pytest
@@ -155,6 +157,8 @@ def thread_police_duuu_daaa_duuu_daaa():
             thread.join(timeout=10)
         elif thread.name == "QueueFeederThread":  # tensorboardX
             thread.join(timeout=20)
+        elif isinstance(thread, TMonitor):
+            thread.exit()
         elif (
             sys.version_info >= (3, 9)
             and isinstance(thread, _ExecutorManagerThread)
