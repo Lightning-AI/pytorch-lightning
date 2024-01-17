@@ -9,8 +9,6 @@ from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.plugins.precision.double import LightningDoublePrecisionModule
 from lightning.pytorch.strategies import DDPStrategy, FSDPStrategy
 
-from tests_pytorch.helpers.runif import RunIf
-
 
 def test_configure_sharded_model():
     class MyModel(BoringModel):
