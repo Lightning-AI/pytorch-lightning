@@ -15,11 +15,11 @@ import itertools
 from typing import Any, Callable, Dict, Optional, Sequence
 
 import torch
+from torch.overrides import TorchFunctionMode
 from typing_extensions import override
 
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_1
 from lightning.fabric.utilities.types import _DEVICE
-from torch.overrides import TorchFunctionMode
 
 
 # From https://lernapparat.de/faster-model-init by Thomas Viehmann
