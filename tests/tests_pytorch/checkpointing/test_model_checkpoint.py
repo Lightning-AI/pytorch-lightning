@@ -585,12 +585,14 @@ def test_model_checkpoint_link_checkpoint_relative_path(tmp_path, monkeypatch):
     trainer = Mock()
     monkeypatch.chdir(tmp_path)
 
-    file = Path("./file")
+    folder = Path("x/z/z")
+    folder.mkdir(parents=True)
+    file = folder / "file"
     file.touch()
-    link = Path("./link")
-    ModelCheckpoint._link_checkpoint(trainer, filepath=str(file), linkpath=str(link))
+    link = folder / "link"
+    ModelCheckpoint._link_checkpoint(trainer, filepath=str(file.absolute()), linkpath=str(link.absolute()))
     assert os.path.islink(link)
-    assert link.readlink() == file
+    assert link.readlink() == file.relative_to(folder)
     assert not link.readlink().is_absolute()
 
 
