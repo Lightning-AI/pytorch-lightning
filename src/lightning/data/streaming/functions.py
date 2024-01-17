@@ -55,7 +55,7 @@ def _get_input_dir(inputs: Sequence[Any]) -> Optional[str]:
         # Every element should have filepaths if any contains one.
         raise ValueError(f"The provided item {inputs[0]} didn't contain any filepaths.")
 
-    return "/" + os.path.join(*str(indexed_paths.values()[0]).split("/")[:4])
+    return "/" + os.path.join(*str(list(indexed_paths.values())[0]).split("/")[:4])
     indexed_paths.values()[0]
 
     absolute_path = str(Path(list(indexed_paths.values())[0]).resolve())
