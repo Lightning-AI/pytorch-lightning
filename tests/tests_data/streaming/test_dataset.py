@@ -35,7 +35,7 @@ from lightning.data.streaming.dataset import (
 )
 from lightning.data.streaming.item_loader import TokensLoader
 from lightning.data.streaming.shuffle import FullShuffle, NoShuffle
-from lightning.data.utilities.env import Environment, _DistributedEnv, _WorkerEnv
+from lightning.data.utilities.env import _DistributedEnv, _WorkerEnv
 from torch.utils.data import DataLoader
 
 
@@ -603,9 +603,7 @@ def test_s3_streaming_dataset():
 
 class EmulateS3StreamingDataset(StreamingDataset):
     def _create_cache(self, worker_env: _WorkerEnv) -> Cache:
-        env = Environment(dist_env=self.distributed_env, worker_env=worker_env)
-
-        cache_dir = os.path.join(self.input_dir.path, str(env.shard_rank))
+        cache_dir = os.path.join(self.input_dir.path)
         os.makedirs(cache_dir, exist_ok=True)
 
         cache = Cache(
@@ -699,6 +697,55 @@ def test_resumable_dataset_two_workers(tmpdir):
     assert state_dict_2["1"]["batch_size"] == 2
 
     assert torch.equal(batch_2, batch_0_restart)
+
+    assert len(os.listdir(cache_dir)) >= 6
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="Not tested on windows and MacOs")
+def test_resumable_dataset_two_workers_2_epochs(tmpdir):
+    seed_everything(42)
+
+    data_dir = os.path.join(tmpdir, "data")
+    cache_dir = os.path.join(tmpdir, "cache_dir")
+
+    os.makedirs(data_dir)
+    os.makedirs(cache_dir)
+
+    block_size = 20
+    cache = Cache(input_dir=str(data_dir), chunk_size=40, item_loader=TokensLoader(block_size))
+
+    counter = 0
+    for i in range(100):
+        text_ids = torch.arange(counter, counter + 20).to(torch.int)
+        cache[i] = text_ids
+        counter += 20
+
+    cache.done()
+    cache.merge()
+
+    assert len([f for f in os.listdir(data_dir) if f.endswith(".bin")]) == 50
+
+    dataset = EmulateS3StreamingDataset(
+        input_dir=RemoteDir(cache_dir, data_dir), item_loader=TokensLoader(block_size), shuffle=True
+    )
+
+    dataset.current_epoch = 1
+    dataloader = StreamingDataLoader(dataset, num_workers=2, batch_size=2, prefetch_factor=1, persistent_workers=True)
+
+    batches_epoch_1 = []
+    for batch in dataloader:
+        batches_epoch_1.append(batch)
+
+    assert len(os.listdir(cache_dir)) == 51
+
+    batches_epoch_2 = []
+    for batch in dataloader:
+        batches_epoch_2.append(batch)
+
+    assert len(os.listdir(cache_dir)) == 51
+
+    for batch_1, batch_2 in zip(batches_epoch_1, batches_epoch_2):
+        assert not torch.equal(batch_1, batch_2)
 
 
 @pytest.mark.skipif(sys.platform == "win32", reason="Not tested on windows and MacOs")

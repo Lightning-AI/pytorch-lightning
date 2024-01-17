@@ -69,7 +69,8 @@ class LocalDownloader(Downloader):
     def download_file(self, remote_filepath: str, local_filepath: str) -> None:
         if not os.path.exists(remote_filepath):
             raise FileNotFoundError(f"The provided remote_path doesn't exist: {remote_filepath}")
-        if remote_filepath != local_filepath:
+
+        if remote_filepath != local_filepath and not os.path.exists(local_filepath):
             shutil.copy(remote_filepath, local_filepath)
 
 
