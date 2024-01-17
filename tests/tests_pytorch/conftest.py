@@ -31,6 +31,7 @@ from lightning.fabric.utilities.distributed import _distributed_is_initialized
 from lightning.fabric.utilities.imports import _IS_WINDOWS
 from lightning.pytorch.accelerators import XLAAccelerator
 from lightning.pytorch.trainer.connectors.signal_connector import _SignalConnector
+from tqdm import TMonitor
 
 from tests_pytorch import _PATH_DATASETS
 
