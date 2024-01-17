@@ -268,7 +268,6 @@ def _get_item_filesizes(items: List[Any], base_path: str = "") -> List[int]:
                     raise RuntimeError(f"The file {element} has 0 bytes!")
                 num_bytes += file_bytes
         item_sizes.append(num_bytes)
-    print(item_sizes)
     return item_sizes
 
 
@@ -814,6 +813,7 @@ class DataProcessor:
 
         if self.reorder_files and self.input_dir.path:
             # TODO: Only do this on node 0, and broadcast the item sizes to the other nodes.
+            print(user_items)
             item_sizes = _get_item_filesizes(user_items, base_path=self.input_dir.path)
             workers_user_items = _map_items_to_workers_weighted(
                 num_workers=self.num_workers, user_items=user_items, weights=item_sizes
