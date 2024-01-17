@@ -268,6 +268,7 @@ def _get_item_filesizes(items: List[Any], base_path: str = "") -> List[int]:
                     raise RuntimeError(f"The file {element} has 0 bytes!")
                 num_bytes += file_bytes
         item_sizes.append(num_bytes)
+    print(item_sizes)
     return item_sizes
 
 
