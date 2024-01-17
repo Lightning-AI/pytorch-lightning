@@ -42,7 +42,7 @@ jobs:
       matrix:
         include:
           # We only release one docker image per PyTorch version.
-          # The matrix here is the same as the one in release-docker.yml.
+          # Make sure the matrix here matches the one below.
           - { python_version: "3.9", pytorch_version: "1.13", cuda_version: "11.8.0" }
           - { python_version: "3.9", pytorch_version: "1.13", cuda_version: "12.0.1" }
           - { python_version: "3.10", pytorch_version: "2.0", cuda_version: "11.8.0" }
@@ -101,8 +101,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # These are the base images for PL release docker images,
-          # so include at least all of the combinations in release-dockers.yml.
+          # These are the base images for PL release docker images.
+          # Make sure the matrix here matches the one above.
           - { python_version: "3.9", pytorch_version: "1.13", cuda_version: "11.8.0" }
           - { python_version: "3.9", pytorch_version: "1.13", cuda_version: "12.0.1" }
           - { python_version: "3.10", pytorch_version: "2.0", cuda_version: "11.8.0" }
