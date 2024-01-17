@@ -447,7 +447,6 @@ def test_fsdp_forbidden_precision_raises():
         strategy.precision_plugin = HalfPrecision()
 
 
-@RunIf(min_torch="1.13")
 def test_fsdp_activation_checkpointing():
     """Test that the FSDP strategy can apply activation checkpointing to the given layers."""
 

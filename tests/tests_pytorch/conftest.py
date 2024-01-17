@@ -84,9 +84,9 @@ def restore_env_variables():
         "WANDB_SERVICE",
         "RANK",  # set by DeepSpeed
         "POPLAR_ENGINE_OPTIONS",  # set by IPUStrategy
-        "CUDA_MODULE_LOADING",  # leaked since PyTorch 1.13
-        "KMP_INIT_AT_FORK",  # leaked since PyTorch 1.13
-        "KMP_DUPLICATE_LIB_OK",  # leaked since PyTorch 1.13
+        "CUDA_MODULE_LOADING",  # leaked by PyTorch
+        "KMP_INIT_AT_FORK",  # leaked by PyTorch
+        "KMP_DUPLICATE_LIB_OK",  # leaked by PyTorch
         "CRC32C_SW_MODE",  # leaked by tensorboardX
         "TRITON_CACHE_DIR",  # leaked by torch.compile
         "OMP_NUM_THREADS",  # set by our launchers

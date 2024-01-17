@@ -22,7 +22,7 @@ from lightning.fabric.utilities.init import _EmptyInit, _materialize_meta_tensor
 from tests_fabric.helpers.runif import RunIf
 
 
-@RunIf(min_cuda_gpus=1, min_torch="1.13")
+@RunIf(min_cuda_gpus=1)
 def test_empty_init(monkeypatch):
     """Test that `_EmptyInit()` skips initialization and allocates uninitialized memory."""
     init_mock = Mock()
@@ -37,7 +37,7 @@ def test_empty_init(monkeypatch):
     init_mock.assert_called()
 
 
-@RunIf(min_cuda_gpus=1, min_torch="1.13")
+@RunIf(min_cuda_gpus=1)
 def test_empty_init_speed():
     """Test that `_EmptyInit()` is faster than regular initialization."""
     t0 = time.perf_counter()
