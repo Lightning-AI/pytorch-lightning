@@ -200,7 +200,8 @@ Before:
     class LanguageModel(L.LightningModule):
         def __init__(self, vocab_size):
             super().__init__()
-            self.model = Transformer(vocab_size=vocab_size, nlayers=32, nhid=4096, ninp=1024, nhead=64)  # 1B parameters
+            # 1B parameters
+            self.model = Transformer(vocab_size=vocab_size, nlayers=32, nhid=4096, ninp=1024, nhead=64)
 
 After:
 
