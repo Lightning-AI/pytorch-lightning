@@ -157,6 +157,7 @@ class FSDPStrategy(ParallelStrategy):
         activation_checkpointing_policy: Optional["_POLICY"] = None,
         sharding_strategy: "_SHARDING_STRATEGY" = "FULL_SHARD",
         state_dict_type: Literal["full", "sharded"] = "full",
+        fsdp_size: int = 0,
         **kwargs: Any,
     ) -> None:
         super().__init__(
@@ -172,7 +173,9 @@ class FSDPStrategy(ParallelStrategy):
         self.cpu_offload = _init_cpu_offload(cpu_offload)
         self.mixed_precision = mixed_precision
         self.kwargs = _auto_wrap_policy_kwargs(auto_wrap_policy, kwargs)
-        self.sharding_strategy = _init_sharding_strategy(sharding_strategy, self.kwargs)
+        # self.sharding_strategy = _init_sharding_strategy(sharding_strategy, self.kwargs)
+        self.fsdp_size = fsdp_size
+        self.sharding_strategy = sharding_strategy
 
         if _TORCH_GREATER_EQUAL_2_0:
             # Avoids the need for user to reference params in `configure_optimizers` via
@@ -258,6 +261,29 @@ class FSDPStrategy(ParallelStrategy):
         self._process_group_backend = self._get_process_group_backend()
         assert self.cluster_environment is not None
         _init_dist_connection(self.cluster_environment, self._process_group_backend, timeout=self._timeout)
+
+        # prepare process groups for hybrid sharding here, and put them in self.kwargs
+        fsdp_size = self.fsdp_size
+        global_rank = self.cluster_environment.global_rank()
+        world_size = self.cluster_environment.world_size()
+        if fsdp_size > 0 and fsdp_size < world_size:
+            assert world_size % fsdp_size == 0
+            self.sharding_strategy = ShardingStrategy.HYBRID_SHARD
+            fsdp_groups = [[j for j in range(i, i + fsdp_size)] for i in range(0, world_size, fsdp_size)]
+            for fsdp_group in fsdp_groups:
+                fsdp_group_handle = torch.distributed.new_group(fsdp_group)
+                if global_rank in fsdp_group:
+                    my_fsdp_group = fsdp_group_handle
+
+            ddp_groups = [[j for j in range(i, world_size, fsdp_size)] for i in range(fsdp_size)]
+            for ddp_group in ddp_groups:
+                ddp_group_handle = torch.distributed.new_group(ddp_group)
+                if global_rank in ddp_group:
+                    my_ddp_group = ddp_group_handle
+
+            self.kwargs["process_group"] = (my_fsdp_group, my_ddp_group)
+
+        self.sharding_strategy = _init_sharding_strategy(self.sharding_strategy, self.kwargs)
 
     def _get_process_group_backend(self) -> str:
         return self._process_group_backend or _get_default_process_group_backend_for_device(self.root_device)
