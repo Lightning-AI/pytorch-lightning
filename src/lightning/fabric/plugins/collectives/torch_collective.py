@@ -8,7 +8,6 @@ from torch import Tensor
 from typing_extensions import Self, override
 
 from lightning.fabric.plugins.collectives.collective import Collective
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_13
 from lightning.fabric.utilities.types import CollectibleGroup, RedOpType, ReduceOp
 
 if dist.is_available():
@@ -208,10 +207,10 @@ class TorchCollective(Collective):
     @classmethod
     @override
     def _convert_to_native_op(cls, op: Union[str, ReduceOp, RedOpType]) -> Union[ReduceOp, RedOpType]:
-        # in 1.13, `ReduceOp` has become an empty shell for `RedOpType`, the latter being the actually returned class.
-        # for example, `ReduceOp.SUM` returns a `RedOpType.SUM`. the only exception is `RedOpType.PREMUL_SUM` where
+        # `ReduceOp` is an empty shell for `RedOpType`, the latter being the actually returned class.
+        # For example, `ReduceOp.SUM` returns a `RedOpType.SUM`. the only exception is `RedOpType.PREMUL_SUM` where
         # `ReduceOp` is still the desired class, but it's created via a special `_make_nccl_premul_sum` function
-        if isinstance(op, ReduceOp) or _TORCH_GREATER_EQUAL_1_13 and isinstance(op, RedOpType):
+        if isinstance(op, ReduceOp) or isinstance(op, RedOpType):
             return op
         if not isinstance(op, str):
             raise ValueError(f"Unsupported op {op!r} of type {type(op).__name__}")

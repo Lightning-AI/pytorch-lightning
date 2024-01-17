@@ -26,7 +26,7 @@ from lightning.fabric.plugins import CheckpointIO
 from lightning.fabric.strategies import _StrategyRegistry
 from lightning.fabric.utilities import move_data_to_device
 from lightning.fabric.utilities.distributed import ReduceOp
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_13, _TORCH_GREATER_EQUAL_2_0
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 from lightning.fabric.utilities.init import _EmptyInit
 from lightning.fabric.utilities.optimizer import _optimizer_to_device, _optimizers_to_device
 from lightning.fabric.utilities.types import _PATH
@@ -501,7 +501,7 @@ class Strategy(ABC):
 
         """
         device_context = self.root_device if _TORCH_GREATER_EQUAL_2_0 else nullcontext()
-        empty_init_context = _EmptyInit(enabled=bool(empty_init)) if _TORCH_GREATER_EQUAL_1_13 else nullcontext()
+        empty_init_context = _EmptyInit(enabled=bool(empty_init))
         with empty_init_context, device_context, self.precision_plugin.tensor_init_context():
             yield
 

@@ -152,10 +152,6 @@ def test_fsdp_no_backward_sync():
 
 def test_fsdp_activation_checkpointing_support(monkeypatch):
     """Test that we error out if activation checkpointing requires a newer PyTorch version."""
-    monkeypatch.setattr(lightning.fabric.strategies.fsdp, "_TORCH_GREATER_EQUAL_1_13", False)
-    with pytest.raises(ValueError, match="activation_checkpointing` requires torch >= 1.13.0"):
-        FSDPStrategy(activation_checkpointing=Mock())
-
     monkeypatch.setattr(lightning.fabric.strategies.fsdp, "_TORCH_GREATER_EQUAL_2_1", False)
     with pytest.raises(ValueError, match="activation_checkpointing_policy` requires torch >= 2.1.0"):
         FSDPStrategy(activation_checkpointing_policy=Mock())

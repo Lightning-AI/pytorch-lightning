@@ -11,7 +11,6 @@ from lightning.fabric.plugins.collectives import TorchCollective
 from lightning.fabric.plugins.environments import LightningEnvironment
 from lightning.fabric.strategies.ddp import DDPStrategy
 from lightning.fabric.strategies.launchers.multiprocessing import _MultiProcessingLauncher
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_13
 
 from tests_fabric.helpers.runif import RunIf
 
@@ -134,11 +133,10 @@ def test_convert_ops():
         TorchCollective._convert_to_native_op("invalid")
 
     # Test RedOpType
-    if _TORCH_GREATER_EQUAL_1_13:
-        assert TorchCollective._convert_to_native_op(ReduceOp.RedOpType.AVG) == ReduceOp.RedOpType.AVG
-        op = torch.distributed._make_nccl_premul_sum(2.0)  # this returns a ReduceOp
-        assert TorchCollective._convert_to_native_op(op) == ReduceOp.PREMUL_SUM
-        assert TorchCollective._convert_to_native_op("premul_sum") == ReduceOp.PREMUL_SUM
+    assert TorchCollective._convert_to_native_op(ReduceOp.RedOpType.AVG) == ReduceOp.RedOpType.AVG
+    op = torch.distributed._make_nccl_premul_sum(2.0)  # this returns a ReduceOp
+    assert TorchCollective._convert_to_native_op(op) == ReduceOp.PREMUL_SUM
+    assert TorchCollective._convert_to_native_op("premul_sum") == ReduceOp.PREMUL_SUM
 
 
 @skip_distributed_unavailable

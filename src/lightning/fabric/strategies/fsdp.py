@@ -63,7 +63,6 @@ from lightning.fabric.utilities.distributed import (
 )
 from lightning.fabric.utilities.distributed import group as _group
 from lightning.fabric.utilities.imports import (
-    _TORCH_GREATER_EQUAL_1_13,
     _TORCH_GREATER_EQUAL_2_0,
     _TORCH_GREATER_EQUAL_2_1,
     _TORCH_GREATER_EQUAL_2_2,
@@ -307,8 +306,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         _move_torchmetrics_to_device(module, self.root_device)
 
         # activation checkpointing needs to be set up after wrapping the model
-        if _TORCH_GREATER_EQUAL_1_13:
-            _setup_activation_checkpointing(module, self._activation_checkpointing_kwargs)
+        _setup_activation_checkpointing(module, self._activation_checkpointing_kwargs)
 
         return module
 
@@ -346,7 +344,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             # 1) materialize module 2) call `reset_parameters()` 3) shard the module.
             # These operations are applied to each submodule 'bottom up' in the module hierarchy.
             stack.enter_context(torch.device("meta"))
-        elif _TORCH_GREATER_EQUAL_1_13:
+        else:
             stack.enter_context(empty_ctx)
         stack.enter_context(precision_init_ctx)
         stack.enter_context(module_sharded_ctx)
@@ -712,8 +710,6 @@ def _activation_checkpointing_kwargs(
             "You cannot set both `activation_checkpointing` and `activation_checkpointing_policy`. Use the latter."
         )
     if activation_checkpointing is not None:
-        if not _TORCH_GREATER_EQUAL_1_13:
-            raise ValueError("`activation_checkpointing` requires torch >= 1.13.0. HINT: `pip install -U torch`")
         if isinstance(activation_checkpointing, list):
             classes = tuple(activation_checkpointing)
         else:
@@ -810,15 +806,9 @@ def _init_sharding_strategy(sharding_strategy: "_SHARDING_STRATEGY", kwargs: Dic
 
 
 def _optimizer_has_flat_params(optimizer: Optimizer) -> bool:
-    _FSDP_FLATTENED = "_fsdp_flattened"
-    if _TORCH_GREATER_EQUAL_1_13:
-        return any(
-            getattr(param, _FSDP_FLATTENED, False) for group in optimizer.param_groups for param in group["params"]
-        )
-
-    from torch.distributed.fsdp import FlatParameter
-
-    return any(isinstance(param, FlatParameter) for group in optimizer.param_groups for param in group["params"])
+    return any(
+        getattr(param, "_fsdp_flattened", False) for group in optimizer.param_groups for param in group["params"]
+    )
 
 
 def _get_sharded_state_dict_context(module: Module) -> Generator[None, None, None]:

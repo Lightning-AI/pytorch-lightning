@@ -53,7 +53,6 @@ from lightning.fabric.utilities.distributed import (
 )
 from lightning.fabric.utilities.distributed import group as _group
 from lightning.fabric.utilities.imports import (
-    _TORCH_GREATER_EQUAL_1_13,
     _TORCH_GREATER_EQUAL_2_0,
     _TORCH_GREATER_EQUAL_2_1,
     _TORCH_GREATER_EQUAL_2_2,
@@ -308,8 +307,7 @@ class FSDPStrategy(ParallelStrategy):
         _move_torchmetrics_to_device(model, self.root_device)
 
         # activation checkpointing needs to be set up after wrapping the model
-        if _TORCH_GREATER_EQUAL_1_13:
-            _setup_activation_checkpointing(model, self._activation_checkpointing_kwargs)
+        _setup_activation_checkpointing(model, self._activation_checkpointing_kwargs)
 
         return model
 
@@ -383,10 +381,8 @@ class FSDPStrategy(ParallelStrategy):
             # 1) materialize module 2) call `reset_parameters()` 3) shard the module.
             # These operations are applied to each submodule 'bottom up' in the module hierarchy.
             empty_init_context = torch.device("meta")
-        elif _TORCH_GREATER_EQUAL_1_13:
-            empty_init_context = _EmptyInit(enabled=bool(empty_init))
         else:
-            empty_init_context = nullcontext()
+            empty_init_context = _EmptyInit(enabled=bool(empty_init))
         with empty_init_context, self.precision_plugin.tensor_init_context():
             yield
 

@@ -22,12 +22,6 @@ from lightning.fabric.utilities.init import _EmptyInit, _materialize_meta_tensor
 from tests_fabric.helpers.runif import RunIf
 
 
-@mock.patch("lightning.fabric.utilities.init._TORCH_GREATER_EQUAL_1_13", False)
-def test_module_init_context_empty_init_support():
-    with pytest.raises(NotImplementedError, match="Emtpy weight initialization requires PyTorch >= 1.13"), _EmptyInit():
-        pass
-
-
 @RunIf(min_cuda_gpus=1, min_torch="1.13")
 def test_empty_init(monkeypatch):
     """Test that `_EmptyInit()` skips initialization and allocates uninitialized memory."""
