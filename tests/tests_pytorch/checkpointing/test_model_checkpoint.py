@@ -534,6 +534,7 @@ def test_model_checkpoint_link_checkpoint(tmp_path):
     ModelCheckpoint._link_checkpoint(trainer, filepath=str(file), linkpath=str(link))
     assert os.path.islink(link)
     assert os.path.realpath(link) == str(file)
+    assert not link.readlink().is_absolute()
 
     # link exists (is a file)
     new_file1 = tmp_path / "new_file1"
@@ -541,6 +542,7 @@ def test_model_checkpoint_link_checkpoint(tmp_path):
     ModelCheckpoint._link_checkpoint(trainer, filepath=str(new_file1), linkpath=str(link))
     assert os.path.islink(link)
     assert os.path.realpath(link) == str(new_file1)
+    assert not link.readlink().is_absolute()
 
     # link exists (is a link)
     new_file2 = tmp_path / "new_file2"
@@ -548,6 +550,7 @@ def test_model_checkpoint_link_checkpoint(tmp_path):
     ModelCheckpoint._link_checkpoint(trainer, filepath=str(new_file2), linkpath=str(link))
     assert os.path.islink(link)
     assert os.path.realpath(link) == str(new_file2)
+    assert not link.readlink().is_absolute()
 
     # link exists (is a folder)
     folder = tmp_path / "folder"
@@ -557,6 +560,7 @@ def test_model_checkpoint_link_checkpoint(tmp_path):
     ModelCheckpoint._link_checkpoint(trainer, filepath=str(folder), linkpath=str(folder_link))
     assert os.path.islink(folder_link)
     assert os.path.realpath(folder_link) == str(folder)
+    assert not folder_link.readlink().is_absolute()
 
     # link exists (is a link to a folder)
     new_folder = tmp_path / "new_folder"
@@ -564,6 +568,7 @@ def test_model_checkpoint_link_checkpoint(tmp_path):
     ModelCheckpoint._link_checkpoint(trainer, filepath=str(new_folder), linkpath=str(folder_link))
     assert os.path.islink(folder_link)
     assert os.path.realpath(folder_link) == str(new_folder)
+    assert not folder_link.readlink().is_absolute()
 
     # simulate permission error on Windows (creation of symbolic links requires privileges)
     file = tmp_path / "win_file"
@@ -573,6 +578,20 @@ def test_model_checkpoint_link_checkpoint(tmp_path):
         ModelCheckpoint._link_checkpoint(trainer, filepath=str(file), linkpath=str(link))
     assert not os.path.islink(link)
     assert os.path.isfile(link)  # fall back to copying instead of linking
+
+
+def test_model_checkpoint_link_checkpoint_relative_path(tmp_path, monkeypatch):
+    """Test that linking a checkpoint works with relative paths."""
+    trainer = Mock()
+    monkeypatch.chdir(tmp_path)
+
+    file = Path("./file")
+    file.touch()
+    link = Path("./link")
+    ModelCheckpoint._link_checkpoint(trainer, filepath=str(file), linkpath=str(link))
+    assert os.path.islink(link)
+    assert link.readlink() == file
+    assert not link.readlink().is_absolute()
 
 
 def test_invalid_top_k(tmpdir):
