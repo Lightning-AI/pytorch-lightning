@@ -74,7 +74,7 @@ jobs:
           tags = [f"latest-py{py_ver}-torch{pt_ver}-cuda{cuda_ver}"]
           if ver:
             tags += [f"{ver}-py{py_ver}-torch{pt_ver}-cuda{cuda_ver}"]
-          if py_ver == '3.10' and pt_ver == '2.0' and cuda_ver == '12.0.1':
+          if py_ver == '3.10' and pt_ver == '2.1' and cuda_ver == '12.1.0':
             tags += ["latest"]
 
           tags = [f"{repo}:{tag}" for tag in tags]
