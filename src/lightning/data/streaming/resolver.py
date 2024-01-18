@@ -79,13 +79,13 @@ def _resolve_dir(dir_path: Optional[Union[str, Dir]]) -> Dir:
 
 
 def _match_studio(target_id: str, target_name: str, cloudspace: V1CloudSpace) -> bool:
-    if cloudspace.name is not None and cloudspace.name.lower() == target_name.lower():
+    if cloudspace.display_name is not None and target_name is not None and cloudspace.name.lower() == target_name.lower():
         return True
 
     if cloudspace.id == target_id:
         return True
 
-    if cloudspace.display_name is not None and cloudspace.display_name.lower() == target_name.lower():
+    if cloudspace.display_name is not None and target_name is not None and cloudspace.display_name.lower() == target_name.lower():
         return True
 
     return False
