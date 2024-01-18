@@ -811,8 +811,6 @@ class DataProcessor:
         if not isinstance(user_items, list):
             raise ValueError("The `prepare_structure` should return a list of item metadata.")
 
-        print(len(user_items))
-
         if self.reorder_files and self.input_dir.path:
             # TODO: Only do this on node 0, and broadcast the item sizes to the other nodes.
             item_sizes = _get_item_filesizes(user_items, base_path=self.input_dir.path)
