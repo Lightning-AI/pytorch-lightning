@@ -16,7 +16,7 @@ from typing import Any, Dict, List, Optional, Tuple, TypeVar, Union
 from urllib import parse
 
 from tqdm.auto import tqdm as _tqdm
-import os
+
 from lightning import seed_everything
 from lightning.data.streaming import Cache
 from lightning.data.streaming.cache import Dir
@@ -272,7 +272,7 @@ def _get_item_filesizes(items: List[Any], base_path: str = "") -> List[int]:
     """Computes the total size in bytes of all file paths for every datastructure in the given list."""
     item_sizes = []
 
-    # Parallelize to benefit from 
+    # Parallelize to benefit from
     with concurrent.futures.ThreadPoolExecutor(max_workers=os.cpu_count()) as executor:
         futures = {executor.submit(_get_num_bytes, item, base_path) for item in items}
         for future in futures:
