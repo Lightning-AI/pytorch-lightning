@@ -59,11 +59,13 @@ def _get_input_dir(inputs: Sequence[Any]) -> Optional[str]:
 
     print(absolute_path)
 
-    if absolute_path.startswith("/.project"):
+    if "/.project" in absolute_path:
         return "/" + os.path.join(*str(list(indexed_paths.values())[0]).split("/")[:4])
 
     if indexed_paths[0] != absolute_path:
         raise ValueError(f"The provided path should be absolute. Found {indexed_paths[0]} instead of {absolute_path}.")
+
+    print("HERE")
 
     return "/" + os.path.join(*str(absolute_path).split("/")[:4])
 
