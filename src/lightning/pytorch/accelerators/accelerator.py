@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from abc import ABC
+from contextlib import nullcontext
 from typing import Any, Dict
 
 import lightning.pytorch as pl
@@ -45,3 +46,9 @@ class Accelerator(_Accelerator, ABC):
 
         """
         raise NotImplementedError
+
+    def get_distribute_name(self) -> str:
+        return "gloo"
+
+    def get_stream_context(self, device_id: Any) -> Any:
+        return nullcontext()
