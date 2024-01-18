@@ -45,6 +45,7 @@ class CombinedStreamingDataset(IterableDataset):
         self._iterator: Optional[_CombinedDatasetIterator] = None
 
     def __len__(self) -> int:
+        assert self._weights
         return int(sum(w * len(d) for w, d in zip(self._weights, self._datasets)))
 
     def __iter__(self) -> Iterator[Any]:
