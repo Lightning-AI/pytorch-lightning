@@ -136,4 +136,4 @@ Note that you can load the distributed checkpoint even if the world size has cha
 Convert a distributed checkpoint
 ********************************
 
-Coming soon.
+TODO
