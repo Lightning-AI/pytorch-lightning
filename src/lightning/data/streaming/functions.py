@@ -44,8 +44,6 @@ def _get_indexed_paths(data: Any) -> Dict[int, str]:
 def _get_input_dir(inputs: Sequence[Any]) -> Optional[str]:
     indexed_paths = _get_indexed_paths(inputs[0])
 
-    print("A", indexed_paths)
-
     if len(indexed_paths) == 0:
         # Check whether the second element has any input_path
         indexed_paths = _get_indexed_paths(inputs[1])
@@ -57,18 +55,11 @@ def _get_input_dir(inputs: Sequence[Any]) -> Optional[str]:
 
     absolute_path = str(Path(list(indexed_paths.values())[0]).resolve())
 
-    print("B", absolute_path)
-
     if "/.project" in absolute_path:
-        print("CCCC")
-        input_dir = "/" + os.path.join(*str(list(indexed_paths.values())[0]).split("/")[:4])
-        print("input_dir", input_dir)
-        return input_dir
+        return "/" + os.path.join(*str(list(indexed_paths.values())[0]).split("/")[:4])
 
     if indexed_paths[0] != absolute_path:
         raise ValueError(f"The provided path should be absolute. Found {indexed_paths[0]} instead of {absolute_path}.")
-
-    print("HERE")
 
     return "/" + os.path.join(*str(absolute_path).split("/")[:4])
 
