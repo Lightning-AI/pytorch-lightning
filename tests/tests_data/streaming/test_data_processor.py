@@ -1,16 +1,16 @@
 import os
 import random
 import sys
+from functools import partial
 from typing import Any, List
 from unittest import mock
 
-import lightning_cloud
 import numpy as np
 import pytest
 import torch
 from lightning import seed_everything
 from lightning.data.streaming import data_processor as data_processor_module
-from lightning.data.streaming import functions
+from lightning.data.streaming import functions, resolver
 from lightning.data.streaming.cache import Cache, Dir
 from lightning.data.streaming.data_processor import (
     DataChunkRecipe,
@@ -26,7 +26,6 @@ from lightning.data.streaming.data_processor import (
     _wait_for_file_to_exist,
 )
 from lightning.data.streaming.functions import LambdaDataTransformRecipe, map, optimize
-from lightning_cloud import resolver
 from lightning_utilities.core.imports import RequirementCache
 
 _PIL_AVAILABLE = RequirementCache("PIL")
@@ -713,6 +712,26 @@ def test_data_processing_optimize(monkeypatch, tmpdir):
     assert len(cache) == 5
 
 
+def generate_data(index, shift=None):
+    yield from range(index + shift if shift else 0)
+
+
+@pytest.mark.skipif(condition=not _PIL_AVAILABLE or sys.platform == "win32", reason="Requires: ['pil']")
+def test_data_processing_optimize_yield(monkeypatch, tmpdir):
+    home_dir = os.path.join(tmpdir, "home")
+    cache_dir = os.path.join(tmpdir, "cache", "chunks")
+    data_cache_dir = os.path.join(tmpdir, "cache", "data")
+    output_dir = os.path.join(tmpdir, "output_dir")
+    os.makedirs(output_dir, exist_ok=True)
+    monkeypatch.setenv("DATA_OPTIMIZER_HOME_FOLDER", home_dir)
+    monkeypatch.setenv("DATA_OPTIMIZER_CACHE_FOLDER", cache_dir)
+    monkeypatch.setenv("DATA_OPTIMIZER_DATA_CACHE_FOLDER", data_cache_dir)
+
+    optimize(partial(generate_data, shift=2), [0, 1], output_dir=output_dir, chunk_size=2, num_workers=1)
+
+    assert sorted(os.listdir(output_dir)) == ["chunk-0-0.bin", "chunk-0-1.bin", "chunk-0-2.bin", "index.json"]
+
+
 class Optimize:
     def __call__(self, filepath):
         from PIL import Image
@@ -834,7 +853,6 @@ def test_lambda_transform_recipe_class(monkeypatch):
             called = True
 
     data_recipe = LambdaDataTransformRecipe(Transform(), range(1))
-
     data_recipe.prepare_item("", 1)
     assert called
 
@@ -906,7 +924,7 @@ def test_map_error_when_not_empty(monkeypatch, tmpdir):
         map(
             map_fn,
             [0, 1],
-            output_dir=lightning_cloud.resolver.Dir(path=None, url="s3://bucket"),
+            output_dir=Dir(path=None, url="s3://bucket"),
             error_when_not_empty=True,
         )
 
@@ -914,6 +932,6 @@ def test_map_error_when_not_empty(monkeypatch, tmpdir):
         map(
             map_fn,
             [0, 1],
-            output_dir=lightning_cloud.resolver.Dir(path=None, url="s3://bucket"),
+            output_dir=Dir(path=None, url="s3://bucket"),
             error_when_not_empty=False,
         )

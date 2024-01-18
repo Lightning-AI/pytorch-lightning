@@ -13,7 +13,6 @@
 
 import hashlib
 import os
-from dataclasses import dataclass
 from time import time
 from typing import Any, Dict, List, Optional, Tuple, Union
 
@@ -24,16 +23,13 @@ from lightning.data.streaming import Cache
 from lightning.data.streaming.constants import (
     _DEFAULT_CACHE_DIR,
     _INDEX_FILENAME,
-    _LIGHTNING_CLOUD_LATEST,
 )
 from lightning.data.streaming.item_loader import BaseItemLoader
+from lightning.data.streaming.resolver import Dir, _resolve_dir
 from lightning.data.streaming.sampler import ChunkedIndex
 from lightning.data.streaming.serializers import Serializer
 from lightning.data.streaming.shuffle import FullShuffle, NoShuffle, Shuffle
 from lightning.data.utilities.env import Environment, _DistributedEnv, _WorkerEnv
-
-if _LIGHTNING_CLOUD_LATEST:
-    from lightning_cloud.resolver import Dir, _resolve_dir
 
 
 class StreamingDataset(IterableDataset):
@@ -41,7 +37,7 @@ class StreamingDataset(IterableDataset):
 
     def __init__(
         self,
-        input_dir: Union[str, "RemoteDir"],
+        input_dir: Union[str, "Dir"],
         item_loader: Optional[BaseItemLoader] = None,
         shuffle: bool = False,
         drop_last: bool = False,
@@ -66,12 +62,10 @@ class StreamingDataset(IterableDataset):
         if not isinstance(shuffle, bool):
             raise ValueError(f"Shuffle should be a boolean. Found {shuffle}")
 
-        if isinstance(input_dir, RemoteDir):
-            input_dir = Dir(path=input_dir.cache_dir, url=input_dir.remote)
-
         input_dir = _resolve_dir(input_dir)
 
         self.input_dir = input_dir
+
         self.item_loader = item_loader
         self.shuffle: bool = shuffle
         self.drop_last = drop_last
@@ -368,8 +362,8 @@ class StreamingDataset(IterableDataset):
             )
 
 
-def _try_create_cache_dir(input_dir: str, shard_rank: int = 0) -> Optional[str]:
-    hash_object = hashlib.md5(input_dir.encode())
+def _try_create_cache_dir(input_dir: Optional[str], shard_rank: int = 0) -> Optional[str]:
+    hash_object = hashlib.md5((input_dir or "").encode())
     if "LIGHTNING_CLUSTER_ID" not in os.environ or "LIGHTNING_CLOUD_PROJECT_ID" not in os.environ:
         cache_dir = os.path.join(_DEFAULT_CACHE_DIR, hash_object.hexdigest(), str(shard_rank))
         os.makedirs(cache_dir, exist_ok=True)
@@ -379,7 +373,7 @@ def _try_create_cache_dir(input_dir: str, shard_rank: int = 0) -> Optional[str]:
     return cache_dir
 
 
-def _should_replace_path(path: str) -> bool:
+def _should_replace_path(path: Optional[str]) -> bool:
     """Whether the input path is a special path to be replaced."""
     if path is None or path == "":
         return True
@@ -389,14 +383,6 @@ def _should_replace_path(path: str) -> bool:
 
 def _is_in_dataloader_worker() -> bool:
     return get_worker_info() is not None
-
-
-@dataclass
-class RemoteDir:
-    """Holds a remote URL to a directory and a cache directory where the data will be downloaded."""
-
-    cache_dir: str
-    remote: str
 
 
 def is_integer(value: str) -> bool:
