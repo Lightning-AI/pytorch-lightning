@@ -96,7 +96,7 @@ def _match_studio(target_id: Optional[str], target_name: Optional[str], cloudspa
 
 
 def _resolve_studio(dir_path: str, target_name: Optional[str], target_id: Optional[str]) -> Dir:
-    client = LightningClient(retry=False)
+    client = LightningClient(max_tries=2)
 
     # Get the ids from env variables
     cluster_id = os.getenv("LIGHTNING_CLUSTER_ID", None)
@@ -135,7 +135,7 @@ def _resolve_studio(dir_path: str, target_name: Optional[str], target_id: Option
 
 
 def _resolve_s3_connections(dir_path: str) -> Dir:
-    client = LightningClient(retry=False)
+    client = LightningClient(max_tries=2)
 
     # Get the ids from env variables
     project_id = os.getenv("LIGHTNING_CLOUD_PROJECT_ID", None)
@@ -155,7 +155,7 @@ def _resolve_s3_connections(dir_path: str) -> Dir:
 
 
 def _resolve_datasets(dir_path: str) -> Dir:
-    client = LightningClient(retry=False)
+    client = LightningClient(max_tries=2)
 
     # Get the ids from env variables
     cluster_id = os.getenv("LIGHTNING_CLUSTER_ID", None)

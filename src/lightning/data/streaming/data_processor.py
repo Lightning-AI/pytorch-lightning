@@ -281,9 +281,7 @@ def _get_item_filesizes(items: List[Any], base_path: str = "") -> List[int]:
     cpu_count = os.cpu_count() or 1
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=cpu_count * 2 if cpu_count > 4 else cpu_count) as executor:
-        futures = [executor.submit(_get_num_bytes, item, base_path) for item in items]
-        for future in futures:
-            item_sizes.append(future.result())
+        item_sizes = [executor.map(_get_num_bytes, item, base_path) for item in items]
     return item_sizes
 
 
