@@ -813,7 +813,6 @@ class DataProcessor:
 
         if self.reorder_files and self.input_dir.path:
             # TODO: Only do this on node 0, and broadcast the item sizes to the other nodes.
-            print(user_items)
             item_sizes = _get_item_filesizes(user_items, base_path=self.input_dir.path)
             workers_user_items = _map_items_to_workers_weighted(
                 num_workers=self.num_workers, user_items=user_items, weights=item_sizes
