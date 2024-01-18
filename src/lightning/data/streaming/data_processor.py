@@ -772,6 +772,9 @@ class DataProcessor:
         """
         self.input_dir = _resolve_dir(input_dir)
         self.output_dir = _resolve_dir(output_dir)
+
+        print(f"The provided input_dir: {self.input_dir} and output_dir: {self.output_dir}")
+
         self.num_workers = num_workers or (1 if fast_dev_run else (os.cpu_count() or 1) * 4)
         self.num_downloaders = num_downloaders or 2
         self.num_uploaders = num_uploaders or 5

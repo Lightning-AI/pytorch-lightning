@@ -292,7 +292,7 @@ def _execute(
 
     lightning_branch = os.getenv("LIGHTNING_BRANCH", "")
     if lightning_branch:
-        lightning_branch = f"LIGHTNING_BRANCH=-{LIGHTNING_BRANCH}"
+        lightning_branch = f"LIGHTNING_BRANCH={lightning_branch}"
 
     studio = Studio()
     job = studio._studio_api.create_data_prep_machine_job(
