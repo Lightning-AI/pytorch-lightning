@@ -8,7 +8,7 @@ def _pack_greedily(items: List[Any], weights: List[int], num_bins: int) -> Tuple
 
     if len(items) != len(weights):
         raise ValueError(f"Items and weights must have the same length, got {len(items)} and {len(weights)}.")
-    if any(w < 0 for w in weights):
+    if any(w <= 0 for w in weights):
         raise ValueError("All weights must be positive.")
 
     sorted_items_and_weights = sorted(zip(items, weights), key=lambda x: x[1], reverse=True)
