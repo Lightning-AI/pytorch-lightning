@@ -86,14 +86,12 @@ class LambdaDataTransformRecipe(DataTransformRecipe):
         if self._contains_device and self._device is None:
             self._find_device()
 
-        if isinstance(self._fn, partial):
-            yield from self._fn(item_metadata)
-
-        elif isinstance(self._fn, FunctionType):
+        if isinstance(self._fn, (FunctionType, partial)):
             if self._contains_device:
                 self._fn(output_dir, item_metadata, self._device)
             else:
                 self._fn(output_dir, item_metadata)
+
         elif callable(self._fn):
             if self._contains_device:
                 self._fn.__call__(output_dir, item_metadata, self._device)  # type: ignore

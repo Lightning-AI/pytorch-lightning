@@ -25,7 +25,6 @@ from lightning.data.streaming.dataloader import StreamingDataLoader
 from lightning.data.streaming.dataset import (
     _INDEX_FILENAME,
     Dir,
-    RemoteDir,
     StreamingDataset,
     _associate_chunks_to_workers,
     _replay_chunks_sampling,
@@ -597,7 +596,7 @@ def test_resumable_dataset_two_workers(tmpdir):
     assert len([f for f in os.listdir(data_dir) if f.endswith(".bin")]) == 50
 
     dataset = EmulateS3StreamingDataset(
-        input_dir=RemoteDir(cache_dir, data_dir), item_loader=TokensLoader(block_size), shuffle=True
+        input_dir=Dir(cache_dir, data_dir), item_loader=TokensLoader(block_size), shuffle=True
     )
 
     dataset.current_epoch = 1
@@ -624,7 +623,7 @@ def test_resumable_dataset_two_workers(tmpdir):
     assert state_dict_2["0"]["batch_size"] == 2
 
     dataset = EmulateS3StreamingDataset(
-        input_dir=RemoteDir(cache_dir, data_dir),
+        input_dir=Dir(cache_dir, data_dir),
         item_loader=TokensLoader(block_size),
         shuffle=True,
     )
@@ -671,7 +670,7 @@ def test_dataset_valid_state(tmpdir):
     cache.merge()
 
     dataset = EmulateS3StreamingDataset(
-        input_dir=RemoteDir(cache_dir, data_dir), item_loader=TokensLoader(block_size), shuffle=False
+        input_dir=Dir(cache_dir, data_dir), item_loader=TokensLoader(block_size), shuffle=False
     )
     dataloader = DataLoader(dataset, num_workers=1, batch_size=2)
     dataloader_iter = iter(dataloader)

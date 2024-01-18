@@ -834,7 +834,6 @@ def test_lambda_transform_recipe_class(monkeypatch):
             called = True
 
     data_recipe = LambdaDataTransformRecipe(Transform(), range(1))
-
     data_recipe.prepare_item("", 1)
     assert called
 

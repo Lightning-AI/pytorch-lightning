@@ -13,7 +13,6 @@
 
 import logging
 import os
-from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 from lightning.data.streaming.constants import (
@@ -23,6 +22,7 @@ from lightning.data.streaming.constants import (
 )
 from lightning.data.streaming.item_loader import BaseItemLoader
 from lightning.data.streaming.reader import BinaryReader
+from lightning.data.streaming.resolver import Dir, _resolve_dir
 from lightning.data.streaming.sampler import ChunkedIndex
 from lightning.data.streaming.serializers import Serializer
 from lightning.data.streaming.writer import BinaryWriter
@@ -30,17 +30,6 @@ from lightning.data.utilities.env import _DistributedEnv, _WorkerEnv
 from lightning.data.utilities.format import _convert_bytes_to_int
 
 logger = logging.Logger(__name__)
-
-if _LIGHTNING_CLOUD_LATEST:
-    from lightning_cloud.resolver import _resolve_dir
-
-
-@dataclass
-class Dir:
-    """Holds a directory path and possibly its associated remote URL."""
-
-    path: str
-    url: Optional[str] = None
 
 
 class Cache:

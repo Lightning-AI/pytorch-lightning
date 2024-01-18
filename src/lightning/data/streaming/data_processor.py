@@ -147,8 +147,7 @@ def _download_data_target(input_dir: Dir, cache_dir: str, queue_in: Queue, queue
                         s3.client.download_fileobj(obj.netloc, obj.path.lstrip("/"), f)
 
                 elif os.path.isfile(path):
-                    print(path, local_path)
-                    shutil.copyfile(cache_dir, path, local_path)
+                    shutil.copyfile(path, local_path)
                 else:
                     raise ValueError(f"The provided {input_dir.url} isn't supported.")
 
