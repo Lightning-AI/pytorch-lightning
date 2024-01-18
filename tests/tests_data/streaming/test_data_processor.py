@@ -1,6 +1,7 @@
 import os
 import random
 import sys
+from functools import partial
 from typing import Any, List
 from unittest import mock
 
@@ -711,6 +712,26 @@ def test_data_processing_optimize(monkeypatch, tmpdir):
 
     cache = Cache(output_dir, chunk_size=1)
     assert len(cache) == 5
+
+
+def generate_data(index, shift=None):
+    yield from range(index + shift if shift else 0)
+
+
+@pytest.mark.skipif(condition=not _PIL_AVAILABLE or sys.platform == "win32", reason="Requires: ['pil']")
+def test_data_processing_optimize_yield(monkeypatch, tmpdir):
+    home_dir = os.path.join(tmpdir, "home")
+    cache_dir = os.path.join(tmpdir, "cache", "chunks")
+    data_cache_dir = os.path.join(tmpdir, "cache", "data")
+    output_dir = os.path.join(tmpdir, "output_dir")
+    os.makedirs(output_dir, exist_ok=True)
+    monkeypatch.setenv("DATA_OPTIMIZER_HOME_FOLDER", home_dir)
+    monkeypatch.setenv("DATA_OPTIMIZER_CACHE_FOLDER", cache_dir)
+    monkeypatch.setenv("DATA_OPTIMIZER_DATA_CACHE_FOLDER", data_cache_dir)
+
+    optimize(partial(generate_data, shift=2), [0, 1], output_dir=output_dir, chunk_size=2, num_workers=1)
+
+    assert sorted(os.listdir(output_dir)) == ["chunk-0-0.bin", "chunk-0-1.bin", "chunk-0-2.bin", "index.json"]
 
 
 class Optimize:

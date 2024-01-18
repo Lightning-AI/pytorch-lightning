@@ -168,7 +168,7 @@ def _remove_target(input_dir: Dir, cache_dir: str, queue_in: Queue) -> None:
         # 3. Iterate through the paths and delete them sequentially.
         for path in paths:
             if input_dir:
-                if not path.startswith(cache_dir):
+                if not path.startswith(cache_dir) and input_dir.path is not None:
                     path = path.replace(input_dir.path, cache_dir)
 
                 if os.path.exists(path):
@@ -358,7 +358,7 @@ class BaseWorker:
                         for uploader in self.uploaders:
                             uploader.join()
 
-                    if self.remove and self.input_dir.path is not None:
+                    if self.remove:
                         assert self.remover
                         self.remove_queue.put(None)
                         self.remover.join()
@@ -487,7 +487,7 @@ class BaseWorker:
             self.to_download_queues[downloader_index].put(None)
 
     def _start_remover(self) -> None:
-        if not self.remove or self.input_dir.path is None:
+        if not self.remove:
             return
 
         self.remover = Process(
