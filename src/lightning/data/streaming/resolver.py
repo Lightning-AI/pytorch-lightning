@@ -61,6 +61,8 @@ def _resolve_dir(dir_path: Optional[Union[str, Dir]]) -> Dir:
     if dir_path_absolute.startswith("/teamspace/studios/this_studio"):
         return Dir(path=dir_path_absolute, url=None)
 
+    print(dir_path_absolute)
+
     if dir_path_absolute.startswith("/.project/cloudspaces") and len(dir_path_absolute.split("/")) > 3:
         return _resolve_studio(dir_path_absolute, None, dir_path_absolute.split("/")[3])
 
@@ -77,7 +79,6 @@ def _resolve_dir(dir_path: Optional[Union[str, Dir]]) -> Dir:
 
 
 def _match_studio(target_id: str, target_name: str, cloudspace: V1CloudSpace) -> bool:
-    print(target_id, target_name, cloudspace)
     if cloudspace.name is not None and cloudspace.name.lower() == target_name.lower():
         return True
 
