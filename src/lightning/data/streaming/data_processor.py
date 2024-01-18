@@ -1,3 +1,4 @@
+import concurrent
 import json
 import logging
 import os
@@ -13,7 +14,7 @@ from queue import Empty
 from time import sleep, time
 from typing import Any, Dict, List, Optional, Tuple, TypeVar, Union
 from urllib import parse
-import concurrent
+
 from tqdm.auto import tqdm as _tqdm
 import os
 from lightning import seed_everything
@@ -265,6 +266,7 @@ def _get_num_bytes(item: Any, base_path: str) -> int:
                 raise RuntimeError(f"The file {element} has 0 bytes!")
             num_bytes += file_bytes
     return num_bytes
+
 
 def _get_item_filesizes(items: List[Any], base_path: str = "") -> List[int]:
     """Computes the total size in bytes of all file paths for every datastructure in the given list."""
