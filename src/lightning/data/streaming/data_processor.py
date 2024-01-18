@@ -277,11 +277,13 @@ def _get_item_filesizes(items: List[Any], base_path: str = "") -> List[int]:
     """Computes the total size in bytes of all file paths for every datastructure in the given list."""
     item_sizes = []
 
-    # Parallelize to accelerate retrieving the number of file bytes to read for each item
     cpu_count = os.cpu_count() or 1
 
+    # Parallelize to accelerate retrieving the number of file bytes to read for each item
     with concurrent.futures.ThreadPoolExecutor(max_workers=cpu_count * 2 if cpu_count > 4 else cpu_count) as executor:
-        item_sizes = [executor.map(_get_num_bytes, item, base_path) for item in items]
+        futures = [executor.submit(_get_num_bytes, item, base_path) for item in items]
+        for future in futures:
+            item_sizes.append(future.result())
     return item_sizes
 
 
