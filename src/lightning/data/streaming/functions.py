@@ -44,7 +44,7 @@ def _get_indexed_paths(data: Any) -> Dict[int, str]:
 def _get_input_dir(inputs: Sequence[Any]) -> Optional[str]:
     indexed_paths = _get_indexed_paths(inputs[0])
 
-    print(indexed_paths)
+    print("A", indexed_paths)
 
     if len(indexed_paths) == 0:
         # Check whether the second element has any input_path
@@ -57,9 +57,10 @@ def _get_input_dir(inputs: Sequence[Any]) -> Optional[str]:
 
     absolute_path = str(Path(list(indexed_paths.values())[0]).resolve())
 
-    print(absolute_path)
+    print("B", absolute_path)
 
     if "/.project" in absolute_path:
+        orint("CCCC")
         return "/" + os.path.join(*str(list(indexed_paths.values())[0]).split("/")[:4])
 
     if indexed_paths[0] != absolute_path:
