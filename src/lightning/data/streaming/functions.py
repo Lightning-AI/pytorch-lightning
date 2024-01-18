@@ -44,6 +44,8 @@ def _get_indexed_paths(data: Any) -> Dict[int, str]:
 def _get_input_dir(inputs: Sequence[Any]) -> Optional[str]:
     indexed_paths = _get_indexed_paths(inputs[0])
 
+    print(indexed_paths)
+
     if len(indexed_paths) == 0:
         # Check whether the second element has any input_path
         indexed_paths = _get_indexed_paths(inputs[1])
@@ -54,6 +56,8 @@ def _get_input_dir(inputs: Sequence[Any]) -> Optional[str]:
         raise ValueError(f"The provided item {inputs[0]} didn't contain any filepaths.")
 
     absolute_path = str(Path(list(indexed_paths.values())[0]).resolve())
+
+    print(absolute_path)
 
     if absolute_path.startswith("/.project"):
         return "/" + os.path.join(*str(list(indexed_paths.values())[0]).split("/")[:4])
