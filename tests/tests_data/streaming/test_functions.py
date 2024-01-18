@@ -1,9 +1,11 @@
+import sys
 from unittest import mock
 
 import pytest
 from lightning.data.streaming.functions import _get_input_dir, os
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason="currently not supported for windows.")
 def test_get_input_dir(tmpdir, monkeypatch):
     monkeypatch.setattr(os.path, "exists", mock.MagicMock(return_value=True))
     assert _get_input_dir(["/teamspace/studios/here/a", "/teamspace/studios/here/b"]) == "/teamspace/studios/here"
