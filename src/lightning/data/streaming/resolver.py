@@ -7,7 +7,7 @@ from pathlib import Path
 from time import sleep
 from typing import Optional, Union
 from urllib import parse
-
+from lightning_cloud.openapi import V1CloudSpace
 from lightning_cloud.rest_client import LightningClient
 
 # To avoid adding lightning_utilities as a dependency for now.
@@ -75,6 +75,19 @@ def _resolve_dir(dir_path: Optional[Union[str, Dir]]) -> Dir:
     return Dir(path=dir_path_absolute, url=None)
 
 
+def _match_studio(target_id: str, target_name: str, cloudspace: V1CloudSpace) -> bool:
+    if cloudspace.name and cloudspace.name.lower() == target_name.lower():
+        return True
+
+    if cloudspace.id == target_id:
+        return True
+
+    if cloudspace.display_name and cloudspace.display_name.lower() == target_name.lower():
+        return True
+
+    return False
+
+
 def _resolve_studio(dir_path: str, target_name: str, target_id: str) -> str:
     client = LightningClient(retry=False)
 
@@ -95,9 +108,7 @@ def _resolve_studio(dir_path: str, target_name: str, target_id: str) -> str:
         for cloudspace in client.cloud_space_service_list_cloud_spaces(
             project_id=project_id, cluster_id=cluster_id
         ).cloudspaces
-        if cloudspace.name.lower() == target_name.lower()
-        or cloudspace.id == target_id
-        or cloudspace.display_name.lower() == target_name.lower()
+        if _match_studio(target_id, target_name, cloudspace)
     ]
 
     if not target_cloud_space:
