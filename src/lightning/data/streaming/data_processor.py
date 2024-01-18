@@ -13,7 +13,7 @@ from queue import Empty
 from time import sleep, time
 from typing import Any, Dict, List, Optional, Tuple, TypeVar, Union
 from urllib import parse
-
+import concurrent
 from tqdm.auto import tqdm as _tqdm
 
 from lightning import seed_everything
@@ -254,20 +254,26 @@ def _map_items_to_workers_weighted(
     return [worker_items[worker_id] for worker_id in worker_ids_this_node]
 
 
+def _get_num_bytes(item: Any, base_path: str) -> int:
+    flattened_item, _ = tree_flatten(item)
+
+    num_bytes = 0
+    for element in flattened_item:
+        if isinstance(element, str) and element.startswith(base_path) and os.path.exists(element):
+            file_bytes = os.path.getsize(element)
+            if file_bytes == 0:
+                raise RuntimeError(f"The file {element} has 0 bytes!")
+            num_bytes += file_bytes
+    return num_bytes
+
 def _get_item_filesizes(items: List[Any], base_path: str = "") -> List[int]:
     """Computes the total size in bytes of all file paths for every datastructure in the given list."""
     item_sizes = []
-    for item in items:
-        flattened_item, _ = tree_flatten(item)
 
-        num_bytes = 0
-        for element in flattened_item:
-            if isinstance(element, str) and element.startswith(base_path) and os.path.exists(element):
-                file_bytes = os.path.getsize(element)
-                if file_bytes == 0:
-                    raise RuntimeError(f"The file {element} has 0 bytes!")
-                num_bytes += file_bytes
-        item_sizes.append(num_bytes)
+    with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
+        futures = {executor.submit(_get_num_bytes, item, base_path) for item in items}
+        for future in futures:
+            item_sizes.append(future.result())
     return item_sizes
 
 
