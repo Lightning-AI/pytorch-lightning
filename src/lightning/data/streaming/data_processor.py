@@ -121,7 +121,9 @@ def _download_data_target(input_dir: Dir, cache_dir: str, queue_in: Queue, queue
         index, paths = r
 
         # 5. Check whether all the files are already downloaded
-        if all(os.path.exists(p.replace(input_dir.path, cache_dir) if input_dir else p) for p in paths):
+        if input_dir.path and all(
+            os.path.exists(p.replace(input_dir.path, cache_dir) if input_dir else p) for p in paths
+        ):
             queue_out.put(index)
             continue
 
@@ -132,9 +134,10 @@ def _download_data_target(input_dir: Dir, cache_dir: str, queue_in: Queue, queue
 
             # 7. Download all the required paths to unblock the current index
             for path in paths:
-                local_path = path.replace(input_dir.path, cache_dir)
+                if input_dir.path:
+                    local_path = path.replace(input_dir.path, cache_dir)
 
-                if input_dir.url:
+                if input_dir.url and input_dir.path:
                     path = path.replace(input_dir.path, input_dir.url)
 
                 obj = parse.urlparse(path)
@@ -200,11 +203,13 @@ def _upload_fn(upload_queue: Queue, remove_queue: Queue, cache_dir: str, output_
         if obj.scheme == "s3":
             try:
                 s3.client.upload_file(
-                    local_filepath, obj.netloc, os.path.join(obj.path.lstrip("/"), os.path.basename(local_filepath))
+                    local_filepath,
+                    obj.netloc,
+                    os.path.join(str(obj.path).lstrip("/"), os.path.basename(local_filepath)),
                 )
             except Exception as e:
                 print(e)
-        elif os.path.isdir(output_dir.path):
+        elif output_dir.path and os.path.isdir(output_dir.path):
             shutil.copyfile(local_filepath, os.path.join(output_dir.path, os.path.basename(local_filepath)))
         else:
             raise ValueError(f"The provided {output_dir.path} isn't supported.")
@@ -272,9 +277,11 @@ def _get_item_filesizes(items: List[Any], base_path: str = "") -> List[int]:
     """Computes the total size in bytes of all file paths for every datastructure in the given list."""
     item_sizes = []
 
-    # Parallelize to benefit from
-    with concurrent.futures.ThreadPoolExecutor(max_workers=os.cpu_count()) as executor:
-        futures = {executor.submit(_get_num_bytes, item, base_path) for item in items}
+    # Parallelize to accelerate retrieving the number of file bytes to read for each item
+    cpu_count = os.cpu_count() or 1
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=cpu_count * 2 if cpu_count > 4 else cpu_count) as executor:
+        futures = [executor.submit(_get_num_bytes, item, base_path) for item in items]
         for future in futures:
             item_sizes.append(future.result())
     return item_sizes
@@ -705,9 +712,9 @@ class DataChunkRecipe(DataRecipe):
         if obj.scheme == "s3":
             s3 = S3Client()
             s3.client.upload_file(
-                local_filepath, obj.netloc, os.path.join(obj.path.lstrip("/"), os.path.basename(local_filepath))
+                local_filepath, obj.netloc, os.path.join(str(obj.path).lstrip("/"), os.path.basename(local_filepath))
             )
-        elif os.path.isdir(output_dir.path):
+        elif output_dir.path and os.path.isdir(output_dir.path):
             shutil.copyfile(local_filepath, os.path.join(output_dir.path, os.path.basename(local_filepath)))
 
         if num_nodes == 1 or node_rank is None:
@@ -719,16 +726,16 @@ class DataChunkRecipe(DataRecipe):
         if num_nodes == node_rank + 1:
             # Get the index file locally
             for node_rank in range(num_nodes - 1):
-                remote_filepath = os.path.join(
-                    output_dir.url if output_dir.url else output_dir.path, f"{node_rank}-{_INDEX_FILENAME}"
-                )
+                output_dir_path = output_dir.url if output_dir.url else output_dir.path
+                assert output_dir_path
+                remote_filepath = os.path.join(output_dir_path, f"{node_rank}-{_INDEX_FILENAME}")
                 node_index_filepath = os.path.join(cache_dir, os.path.basename(remote_filepath))
                 if obj.scheme == "s3":
                     obj = parse.urlparse(remote_filepath)
                     _wait_for_file_to_exist(s3, obj)
                     with open(node_index_filepath, "wb") as f:
                         s3.client.download_fileobj(obj.netloc, obj.path.lstrip("/"), f)
-                elif os.path.isdir(output_dir.path):
+                elif output_dir.path and os.path.isdir(output_dir.path):
                     shutil.copyfile(remote_filepath, node_index_filepath)
 
             merge_cache = Cache(cache_dir, chunk_bytes=1)

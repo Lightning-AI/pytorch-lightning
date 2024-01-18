@@ -27,7 +27,7 @@ try:
     _LIGHTNING_SDK_AVAILABLE = True
 except (ImportError, ModuleNotFoundError):
 
-    class Machine:
+    class Machine:  # type: ignore
         pass
 
     _LIGHTNING_SDK_AVAILABLE = False
@@ -51,6 +51,8 @@ def _resolve_dir(dir_path: Optional[Union[str, Dir]]) -> Dir:
     if not isinstance(dir_path, str):
         raise ValueError(f"`dir_path` must be a `Dir` or a string, got: {dir_path}")
 
+    assert isinstance(dir_path, str)
+
     if dir_path.startswith("s3://"):
         return Dir(path=None, url=dir_path)
 
@@ -64,9 +66,6 @@ def _resolve_dir(dir_path: Optional[Union[str, Dir]]) -> Dir:
     if dir_path_absolute.startswith("/.project"):
         dir_path_absolute = dir_path
 
-    if dir_path_absolute.startswith("/.project/cloudspaces") and len(dir_path_absolute.split("/")) > 3:
-        return _resolve_studio(dir_path_absolute, None, dir_path_absolute.split("/")[3])
-
     if dir_path_absolute.startswith("/teamspace/studios") and len(dir_path_absolute.split("/")) > 3:
         return _resolve_studio(dir_path_absolute, dir_path_absolute.split("/")[3], None)
 
@@ -79,15 +78,11 @@ def _resolve_dir(dir_path: Optional[Union[str, Dir]]) -> Dir:
     return Dir(path=dir_path_absolute, url=None)
 
 
-def _match_studio(target_id: str, target_name: str, cloudspace: V1CloudSpace) -> bool:
-    if (
-        cloudspace.display_name is not None
-        and target_name is not None
-        and cloudspace.name.lower() == target_name.lower()
-    ):
+def _match_studio(target_id: Optional[str], target_name: Optional[str], cloudspace: V1CloudSpace) -> bool:
+    if cloudspace.name is not None and target_name is not None and cloudspace.name.lower() == target_name.lower():
         return True
 
-    if cloudspace.id == target_id:
+    if target_id is not None and cloudspace.id == target_id:
         return True
 
     if (
@@ -100,7 +95,7 @@ def _match_studio(target_id: str, target_name: str, cloudspace: V1CloudSpace) ->
     return False
 
 
-def _resolve_studio(dir_path: str, target_name: str, target_id: str) -> str:
+def _resolve_studio(dir_path: str, target_name: Optional[str], target_id: Optional[str]) -> Dir:
     client = LightningClient(retry=False)
 
     # Get the ids from env variables
@@ -115,13 +110,8 @@ def _resolve_studio(dir_path: str, target_name: str, target_id: str) -> str:
 
     clusters = client.cluster_service_list_project_clusters(project_id).clusters
 
-    target_cloud_space = [
-        cloudspace
-        for cloudspace in client.cloud_space_service_list_cloud_spaces(
-            project_id=project_id, cluster_id=cluster_id
-        ).cloudspaces
-        if _match_studio(target_id, target_name, cloudspace)
-    ]
+    cloudspaces = client.cloud_space_service_list_cloud_spaces(project_id=project_id, cluster_id=cluster_id).cloudspaces
+    target_cloud_space = [cloudspace for cloudspace in cloudspaces if _match_studio(target_id, target_name, cloudspace)]
 
     if not target_cloud_space:
         raise ValueError(f"We didn't find any matching Studio for the provided name `{target_name}`.")
@@ -144,7 +134,7 @@ def _resolve_studio(dir_path: str, target_name: str, target_id: str) -> str:
     )
 
 
-def _resolve_s3_connections(dir_path: str) -> str:
+def _resolve_s3_connections(dir_path: str) -> Dir:
     client = LightningClient(retry=False)
 
     # Get the ids from env variables
@@ -164,7 +154,7 @@ def _resolve_s3_connections(dir_path: str) -> str:
     return Dir(path=dir_path, url=os.path.join(data_connection[0].aws.source, *dir_path.split("/")[4:]))
 
 
-def _resolve_datasets(dir_path: str) -> str:
+def _resolve_datasets(dir_path: str) -> Dir:
     client = LightningClient(retry=False)
 
     # Get the ids from env variables
@@ -307,7 +297,7 @@ def _execute(
     num_nodes: int,
     machine: Optional[Machine] = None,
     command: Optional[str] = None,
-):
+) -> None:
     """Remotely execute the current operator."""
 
     if not _LIGHTNING_SDK_AVAILABLE:
@@ -315,11 +305,11 @@ def _execute(
 
     lightning_branch = os.getenv("LIGHTNING_BRANCH", "")
     if lightning_branch:
-        lightning_branch = f"LIGHTNING_BRANCH={lightning_branch}"
+        lightning_branch = f" LIGHTNING_BRANCH={lightning_branch}"
 
     studio = Studio()
     job = studio._studio_api.create_data_prep_machine_job(
-        command or f"cd {os.getcwd()} && {lightning_branch} python {' '.join(sys.argv)}",
+        command or f"cd {os.getcwd()} &&{lightning_branch} python {' '.join(sys.argv)}",
         name=name,
         num_instances=num_nodes,
         studio_id=studio._studio.id,

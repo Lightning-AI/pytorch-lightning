@@ -23,7 +23,13 @@ import torch
 
 from lightning.data.streaming.constants import _TORCH_GREATER_EQUAL_2_1_0
 from lightning.data.streaming.data_processor import DataChunkRecipe, DataProcessor, DataTransformRecipe
-from lightning.data.streaming.resolver import _assert_dir_has_index_file, _assert_dir_is_empty, _execute, _resolve_dir
+from lightning.data.streaming.resolver import (
+    Dir,
+    _assert_dir_has_index_file,
+    _assert_dir_is_empty,
+    _execute,
+    _resolve_dir,
+)
 
 if _TORCH_GREATER_EQUAL_2_1_0:
     from torch.utils._pytree import tree_flatten
@@ -141,7 +147,7 @@ class LambdaDataChunkRecipe(DataChunkRecipe):
 def map(
     fn: Callable[[str, Any], None],
     inputs: Sequence[Any],
-    output_dir: str,
+    output_dir: Union[str, Dir],
     num_workers: Optional[int] = None,
     fast_dev_run: Union[bool, int] = False,
     num_nodes: Optional[int] = None,
@@ -174,22 +180,22 @@ def map(
         raise ValueError(f"The provided inputs should be non empty. Found {inputs}.")
 
     if num_nodes is None or int(os.getenv("DATA_OPTIMIZER_NUM_NODES", 0)) > 0:
-        output_dir = _resolve_dir(output_dir)
+        _output_dir: Dir = _resolve_dir(output_dir)
 
-        if output_dir.url and "cloudspaces" in output_dir.url:
+        if _output_dir.url and "cloudspaces" in _output_dir.url:
             raise ValueError(
-                f"The provided `output_dir` isn't valid. Found {output_dir.path if output_dir else None}."
+                f"The provided `output_dir` isn't valid. Found {_output_dir.path if _output_dir else None}."
                 " HINT: You can either use `/teamspace/s3_connections/...` or `/teamspace/datasets/...`."
             )
 
         if error_when_not_empty:
-            _assert_dir_is_empty(output_dir)
+            _assert_dir_is_empty(_output_dir)
 
         input_dir = _resolve_dir(_get_input_dir(inputs))
 
         data_processor = DataProcessor(
             input_dir=input_dir,
-            output_dir=output_dir,
+            output_dir=_output_dir,
             num_workers=num_workers or os.cpu_count(),
             fast_dev_run=fast_dev_run,
             num_downloaders=num_downloaders,
@@ -246,21 +252,21 @@ def optimize(
         raise ValueError("Either `chunk_size` or `chunk_bytes` needs to be defined.")
 
     if num_nodes is None or int(os.getenv("DATA_OPTIMIZER_NUM_NODES", 0)) > 0:
-        output_dir = _resolve_dir(output_dir)
+        _output_dir: Dir = _resolve_dir(output_dir)
 
-        if output_dir.url is not None and "cloudspaces" in output_dir.url:
+        if _output_dir.url is not None and "cloudspaces" in _output_dir.url:
             raise ValueError(
-                f"The provided `output_dir` isn't valid. Found {output_dir.path}."
+                f"The provided `output_dir` isn't valid. Found {_output_dir.path}."
                 " HINT: You can either use `/teamspace/s3_connections/...` or `/teamspace/datasets/...`."
             )
 
-        _assert_dir_has_index_file(output_dir)
+        _assert_dir_has_index_file(_output_dir)
 
         input_dir = _resolve_dir(_get_input_dir(inputs))
 
         data_processor = DataProcessor(
             input_dir=input_dir,
-            output_dir=output_dir,
+            output_dir=_output_dir,
             num_workers=num_workers or os.cpu_count(),
             fast_dev_run=fast_dev_run,
             num_downloaders=num_downloaders,

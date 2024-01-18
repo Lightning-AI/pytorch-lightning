@@ -65,6 +65,7 @@ class StreamingDataset(IterableDataset):
         input_dir = _resolve_dir(input_dir)
 
         self.input_dir = input_dir
+
         self.item_loader = item_loader
         self.shuffle: bool = shuffle
         self.drop_last = drop_last
@@ -361,8 +362,8 @@ class StreamingDataset(IterableDataset):
             )
 
 
-def _try_create_cache_dir(input_dir: str, shard_rank: int = 0) -> Optional[str]:
-    hash_object = hashlib.md5(input_dir.encode())
+def _try_create_cache_dir(input_dir: Optional[str], shard_rank: int = 0) -> Optional[str]:
+    hash_object = hashlib.md5((input_dir or "").encode())
     if "LIGHTNING_CLUSTER_ID" not in os.environ or "LIGHTNING_CLOUD_PROJECT_ID" not in os.environ:
         cache_dir = os.path.join(_DEFAULT_CACHE_DIR, hash_object.hexdigest(), str(shard_rank))
         os.makedirs(cache_dir, exist_ok=True)
@@ -372,7 +373,7 @@ def _try_create_cache_dir(input_dir: str, shard_rank: int = 0) -> Optional[str]:
     return cache_dir
 
 
-def _should_replace_path(path: str) -> bool:
+def _should_replace_path(path: Optional[str]) -> bool:
     """Whether the input path is a special path to be replaced."""
     if path is None or path == "":
         return True

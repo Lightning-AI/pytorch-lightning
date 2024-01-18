@@ -65,6 +65,7 @@ class Cache:
 
         input_dir = _resolve_dir(input_dir)
         self._cache_dir = input_dir.path
+        assert self._cache_dir
         self._writer = BinaryWriter(
             self._cache_dir,
             chunk_size=chunk_size,
@@ -97,15 +98,18 @@ class Cache:
         """Returns whether the caching phase is done."""
         if self._is_done:
             return True
+        assert self._cache_dir
         self._is_done = os.path.exists(os.path.join(self._cache_dir, _INDEX_FILENAME))
         return self._is_done
 
     @property
     def cache_dir(self) -> str:
+        assert self._cache_dir
         return self._cache_dir
 
     @property
     def checkpoint_dir(self) -> str:
+        assert self._cache_dir
         checkpoint_dir = os.path.join(self._cache_dir, "checkpoints")
         return self._try_create(checkpoint_dir)
 

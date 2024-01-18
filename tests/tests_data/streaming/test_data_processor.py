@@ -5,13 +5,12 @@ from functools import partial
 from typing import Any, List
 from unittest import mock
 
-import lightning_cloud
 import numpy as np
 import pytest
 import torch
 from lightning import seed_everything
 from lightning.data.streaming import data_processor as data_processor_module
-from lightning.data.streaming import functions
+from lightning.data.streaming import functions, resolver
 from lightning.data.streaming.cache import Cache, Dir
 from lightning.data.streaming.data_processor import (
     DataChunkRecipe,
@@ -27,7 +26,6 @@ from lightning.data.streaming.data_processor import (
     _wait_for_file_to_exist,
 )
 from lightning.data.streaming.functions import LambdaDataTransformRecipe, map, optimize
-from lightning_cloud import resolver
 from lightning_utilities.core.imports import RequirementCache
 
 _PIL_AVAILABLE = RequirementCache("PIL")
@@ -926,7 +924,7 @@ def test_map_error_when_not_empty(monkeypatch, tmpdir):
         map(
             map_fn,
             [0, 1],
-            output_dir=lightning_cloud.resolver.Dir(path=None, url="s3://bucket"),
+            output_dir=Dir(path=None, url="s3://bucket"),
             error_when_not_empty=True,
         )
 
@@ -934,6 +932,6 @@ def test_map_error_when_not_empty(monkeypatch, tmpdir):
         map(
             map_fn,
             [0, 1],
-            output_dir=lightning_cloud.resolver.Dir(path=None, url="s3://bucket"),
+            output_dir=Dir(path=None, url="s3://bucket"),
             error_when_not_empty=False,
         )
