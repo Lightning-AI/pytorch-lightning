@@ -15,10 +15,11 @@
 
 from collections import OrderedDict
 from typing import Dict, List, Tuple
-from typing_extensions import override
+
 import torch
 from lightning_utilities.core.imports import RequirementCache
 from torch.nn import Parameter
+from typing_extensions import override
 
 from lightning.pytorch.utilities.model_summary.model_summary import (
     NOT_APPLICABLE,
@@ -52,7 +53,6 @@ class DeepSpeedLayerSummary(LayerSummary):
 
 
 class DeepSpeedSummary(ModelSummary):
-
     @override
     def summarize(self) -> Dict[str, DeepSpeedLayerSummary]:  # type: ignore[override]
         summary = OrderedDict((name, DeepSpeedLayerSummary(module)) for name, module in self.named_modules)

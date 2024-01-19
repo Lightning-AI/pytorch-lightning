@@ -155,7 +155,7 @@ class _Sequential(_ModeIterator):
         self._load_current_iterator()
         return self
 
-    @override    
+    @override
     def __len__(self) -> int:
         lengths = _get_iterables_lengths(self.iterables)
         if self.limits is not None:

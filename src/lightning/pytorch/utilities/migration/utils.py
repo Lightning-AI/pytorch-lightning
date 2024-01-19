@@ -19,8 +19,9 @@ import threading
 import warnings
 from types import ModuleType, TracebackType
 from typing import Any, Dict, List, Optional, Tuple, Type
-from typing_extensions import override
+
 from packaging.version import Version
+from typing_extensions import override
 
 import lightning.pytorch as pl
 from lightning.fabric.utilities.enums import LightningEnum
