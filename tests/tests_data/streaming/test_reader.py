@@ -8,8 +8,8 @@ from lightning.data.streaming.cache import Cache
 from lightning.data.streaming.config import ChunkedIndex
 from lightning.data.streaming.item_loader import PyTreeLoader
 from lightning.data.streaming.reader import _END_TOKEN, PrepareChunksThread, _get_folder_size
+from lightning.data.streaming.resolver import Dir
 from lightning.data.utilities.env import _DistributedEnv
-from lightning_cloud.resolver import Dir
 
 
 def test_reader_chunk_removal(tmpdir):
