@@ -50,7 +50,6 @@ class _ModeIterator(Iterator[_ITERATOR_RETURN]):
         self.iterators = []
         self._idx = 0
 
-    @override
     def __getstate__(self) -> Dict[str, Any]:
         state = self.__dict__.copy()
 
