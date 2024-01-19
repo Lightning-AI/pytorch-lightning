@@ -120,6 +120,18 @@ def test_auto_requeue_array_job(call_mock):
     call_mock.assert_called_once_with(["scontrol", "requeue", "12345_2"])
 
 
+@RunIf(skip_windows=True)
+@mock.patch("lightning.pytorch.trainer.connectors.signal_connector.call")
+@mock.patch("lightning.pytorch.trainer.Trainer.save_checkpoint", mock.MagicMock())
+@mock.patch.dict(os.environ, {"SLURM_JOB_ID": "invalid"})
+def test_auto_requeue_invalid_job_id(call_mock):
+    call_mock.return_value = 0
+    trainer = Trainer(plugins=[SLURMEnvironment()])
+    connector = _SignalConnector(trainer)
+    with pytest.raises(AssertionError):
+        connector._slurm_sigusr_handler_fn(None, None)
+
+
 def _registering_signals():
     trainer = Trainer()
     trainer._signal_connector.register_signal_handlers()

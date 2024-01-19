@@ -558,10 +558,15 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
                 "Loading a single optimizer object from a checkpoint is not supported yet with the FSDP strategy."
             )
 
-        from torch.distributed.checkpoint import FileSystemReader, load_state_dict
+        from torch.distributed.checkpoint import FileSystemReader
         from torch.distributed.checkpoint.optimizer import load_sharded_optimizer_state_dict
         from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
         from torch.distributed.fsdp import OptimStateKeyType
+
+        if _TORCH_GREATER_EQUAL_2_2:
+            from torch.distributed.checkpoint import load
+        else:
+            from torch.distributed.checkpoint import load_state_dict as load  # deprecated
 
         modules = {key: module for key, module in state.items() if _has_fsdp_modules(module)}
         if len(modules) == 0:
@@ -585,7 +590,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
 
             with state_dict_ctx:
                 module_state = {module_key: module.state_dict()}
-                load_state_dict(module_state, reader)
+                load(module_state, reader)
                 module.load_state_dict(module_state[module_key], strict=strict)
 
                 # the optimizer states must be loaded separately
