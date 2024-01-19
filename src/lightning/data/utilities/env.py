@@ -41,6 +41,10 @@ class _DistributedEnv:
         # TODO: Add support for other accelerators
         num_nodes = (world_size // torch.cuda.device_count()) if torch.cuda.is_available() else 1
 
+        if num_nodes > 1:
+            # validate the world size is divisble by the number of GPUs
+            assert world_size % torch.cuda.device_count() == 0
+
         return cls(world_size=world_size, global_rank=global_rank, num_nodes=num_nodes)
 
     def __repr__(self) -> str:
