@@ -97,7 +97,13 @@ class FullShuffle(Shuffle):
         # 2. Shuffle them
         indexes = range(len(chunk_intervals))
 
-        seed_shift = 0 if distributed_env.num_nodes > 1 else current_epoch
+        # If we have multiple nodes, the seed_shift is constant here.
+        # Here is why. When you are running epoch 1, we need to shuffle the chunks
+        # and associate to each rank. This is done there.
+        # When you are running epoch 2 or more, we need to keep the same shuffling
+        # than in epoch 1 because shuffle a second time within the node.
+        # This is done slighyly down this function.
+        seed_shift = 1 if distributed_env.num_nodes > 1 else current_epoch
         shuffled_indexes = np.random.RandomState(seed=self.seed + seed_shift).permutation(indexes)
         shuffled_chunk_intervals = np.asarray(chunk_intervals)[shuffled_indexes].tolist()
 
