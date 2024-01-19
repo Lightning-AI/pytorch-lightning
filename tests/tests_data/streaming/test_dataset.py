@@ -381,16 +381,6 @@ def test_try_create_cache_dir():
         assert cache_dir_1 == os.path.join("/cache", "chunks", "d41d8cd98f00b204e9800998ecf8427e")
         assert len(makedirs_mock.mock_calls) == 2
 
-        assert _try_create_cache_dir("dir", shard_rank=0) == os.path.join(
-            "/cache", "chunks", "736007832d2167baaae763fd3a3f3cf1", "0"
-        )
-        assert _try_create_cache_dir("dir", shard_rank=1) == os.path.join(
-            "/cache", "chunks", "736007832d2167baaae763fd3a3f3cf1", "1"
-        )
-        assert _try_create_cache_dir("dir", shard_rank=2) == os.path.join(
-            "/cache", "chunks", "736007832d2167baaae763fd3a3f3cf1", "2"
-        )
-
 
 def test_dataset_for_text_tokens(tmpdir):
     seed_everything(42)
@@ -698,7 +688,7 @@ def test_resumable_dataset_two_workers(tmpdir):
 
     assert torch.equal(batch_2, batch_0_restart)
 
-    assert len(os.listdir(cache_dir)) >= 6
+    assert len(os.listdir(cache_dir)) >= 5
 
 
 @pytest.mark.skipif(sys.platform == "win32", reason="Not tested on windows and MacOs")

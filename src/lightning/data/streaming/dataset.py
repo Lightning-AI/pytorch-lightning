@@ -98,8 +98,6 @@ class StreamingDataset(IterableDataset):
 
     def _create_cache(self, worker_env: _WorkerEnv) -> Cache:
         if _should_replace_path(self.input_dir.path):
-            # FIXME: Remove the `shard_rank` from the cache_path to enable reloading chunks for the second epoch
-            # without paying the cost of re-download
             cache_path = _try_create_cache_dir(
                 input_dir=self.input_dir.path if self.input_dir.path else self.input_dir.url
             )
@@ -366,17 +364,13 @@ class StreamingDataset(IterableDataset):
             )
 
 
-def _try_create_cache_dir(input_dir: str, shard_rank: Optional[int] = None) -> Optional[str]:
+def _try_create_cache_dir(input_dir: str) -> Optional[str]:
     hash_object = hashlib.md5(input_dir.encode())
     if "LIGHTNING_CLUSTER_ID" not in os.environ or "LIGHTNING_CLOUD_PROJECT_ID" not in os.environ:
         cache_dir = os.path.join(_DEFAULT_CACHE_DIR, hash_object.hexdigest())
-        if shard_rank is not None:
-            cache_dir = os.path.join(cache_dir, str(shard_rank))
         os.makedirs(cache_dir, exist_ok=True)
         return cache_dir
     cache_dir = os.path.join("/cache", "chunks", hash_object.hexdigest())
-    if shard_rank is not None:
-        cache_dir = os.path.join(cache_dir, str(shard_rank))
     os.makedirs(cache_dir, exist_ok=True)
     return cache_dir
 
