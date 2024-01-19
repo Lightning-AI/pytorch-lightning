@@ -47,7 +47,6 @@ The distributed checkpoint format is the default when you train with the :doc:`F
 
 With ``state_dict_type="sharded"``, each process/GPU will save its own file into a folder at the given path.
 This reduces memory peaks and speeds up the saving to disk.
-The resulting checkpoint folder will have this structure:
 
 .. collapse:: Full example
 
@@ -103,6 +102,7 @@ The resulting checkpoint folder will have this structure:
         ├── __1_0.distcp
         ├── __2_0.distcp
         ├── __3_0.distcp
+        ├── .metadata
         └── meta.pt
 
     The ``.distcp`` files contain the tensor shards from each process/GPU. You can see that the size of these files
