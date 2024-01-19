@@ -372,6 +372,8 @@ def _capture_compile_kwargs(compile_fn: Callable) -> Callable:
     ``_compile_kwargs`` on the returned compiled module.
 
     """
+    # Limitation: Currently, the global compile config does not get captured on a per-model basis.
+    # PyTorch will resolve this in the future: https://github.com/pytorch/pytorch/issues/116575
 
     @wraps(compile_fn)
     def _capture(model: Any, **kwargs: Any) -> Any:
