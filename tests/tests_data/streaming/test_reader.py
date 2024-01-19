@@ -9,6 +9,7 @@ from lightning.data.streaming.config import ChunkedIndex
 from lightning.data.streaming.item_loader import PyTreeLoader
 from lightning.data.streaming.reader import _END_TOKEN, PrepareChunksThread, _get_folder_size
 from lightning.data.streaming.resolver import Dir
+from lightning.data.utilities.env import _DistributedEnv
 
 
 def test_reader_chunk_removal(tmpdir):
@@ -72,10 +73,14 @@ def test_prepare_chunks_thread_eviction(tmpdir, monkeypatch):
 
     assert len(os.listdir(cache_dir)) == 14
 
-    thread = PrepareChunksThread(cache._reader.config, item_loader=PyTreeLoader(), max_cache_size=10000)
+    thread = PrepareChunksThread(
+        cache._reader.config, item_loader=PyTreeLoader(), distributed_env=_DistributedEnv(1, 1, 1), max_cache_size=10000
+    )
     assert not thread._delete_chunks_when_processed
 
-    thread = PrepareChunksThread(cache._reader.config, item_loader=PyTreeLoader(), max_cache_size=1)
+    thread = PrepareChunksThread(
+        cache._reader.config, item_loader=PyTreeLoader(), distributed_env=_DistributedEnv(1, 1, 1), max_cache_size=1
+    )
     assert thread._delete_chunks_when_processed
 
     thread.start()

@@ -181,22 +181,23 @@ class TokensLoader(BaseItemLoader):
         if chunk_filepath not in self._chunk_filepaths:
             self._chunk_filepaths[chunk_filepath] = True
 
-        self._load_chunk(chunk_index, chunk_filepath)
+        if os.path.exists(chunk_filepath) and os.stat(chunk_filepath).st_size > 0:
+            self._load_chunk(chunk_index, chunk_filepath)
 
     def load_item_from_chunk(self, index: int, chunk_index: int, chunk_filepath: str, begin: int) -> torch.Tensor:
         if chunk_filepath in self._chunk_filepaths and not os.path.isfile(chunk_filepath):
             del self._chunk_filepaths[chunk_filepath]
 
         if chunk_filepath not in self._chunk_filepaths:
-            first_exists = exists = os.path.exists(chunk_filepath)
+            first_exists = exists = os.path.exists(chunk_filepath) and os.stat(chunk_filepath).st_size > 0
 
             while not exists:
                 sleep(0.1)
-                exists = os.path.exists(chunk_filepath)
+                exists = os.path.exists(chunk_filepath) and os.stat(chunk_filepath).st_size > 0
 
             # Wait to avoid any corruption when the file appears
             if not first_exists:
-                sleep(0.001)
+                sleep(0.1)
 
             self._chunk_filepaths[chunk_filepath] = True
 
