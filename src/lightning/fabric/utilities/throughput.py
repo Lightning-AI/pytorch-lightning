@@ -596,7 +596,9 @@ def get_available_flops(device: torch.device, dtype: Union[torch.dtype, str]) ->
         else:
             from torch_xla.experimental import tpu
 
-        device_name = tpu.get_tpu_env()["TYPE"]
+        tpu_env = tpu.get_tpu_env()
+        # not all TPU generations define the "TYPE" envar. example: TYPE="V4", ACCELERATOR_TYPE="v4-8"
+        device_name = tpu_env.get("TYPE") or tpu_env["ACCELERATOR_TYPE"].split("-")[0]
         chip = device_name.lower()
         assert isinstance(device_name, str)
         if chip not in _TPU_FLOPS:
