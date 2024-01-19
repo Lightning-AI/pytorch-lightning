@@ -46,7 +46,7 @@ class CombinedStreamingDataset(IterableDataset):
 
     def __len__(self) -> int:
         assert self._weights
-        return int(sum(w * len(d) for w, d in zip(self._weights, self._datasets)))
+        return int(min([1 / w * len(d) for w, d in zip(self._weights, self._datasets) if w > 0]))
 
     def __iter__(self) -> Iterator[Any]:
         assert self._weights
