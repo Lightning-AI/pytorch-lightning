@@ -19,7 +19,7 @@ from unittest import mock
 from unittest.mock import Mock
 
 import pytest
-import torch.distributed.run
+import torch.distributed
 from lightning.fabric.cli import _get_supported_strategies, _run_model
 from lightning_utilities.core.imports import ModuleAvailableCache
 
