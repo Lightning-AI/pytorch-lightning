@@ -28,6 +28,7 @@ class CombinedStreamingDataset(IterableDataset):
 
     Note that due to the random sampling, the number of samples returned from the iterator is variable and a function
     of the given seed. The combined dataset will raise a StopIteration as soon as any of the datasets is exhausted.
+
     """
 
     def __init__(
