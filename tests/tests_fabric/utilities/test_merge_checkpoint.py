@@ -45,7 +45,7 @@ def test_process_cli_args(tmp_path, caplog, monkeypatch):
         _process_cli_args(Namespace())
     assert "requires PyTorch >= 2.1." in caplog.text
     caplog.clear()
-    monkeypatch.undo()
+    monkeypatch.setattr(lightning.fabric.utilities.merge_checkpoint, "_TORCH_GREATER_EQUAL_2_1", True)
 
     # Checkpoint does not exist
     with caplog.at_level(logging.ERROR, logger="lightning.fabric.utilities.merge_checkpoint"), pytest.raises(
