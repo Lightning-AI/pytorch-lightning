@@ -1,0 +1,69 @@
+# Copyright The Lightning AI team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+import logging
+from argparse import Namespace
+from unittest import mock
+
+import pytest
+
+import lightning.fabric
+from lightning.fabric.utilities.merge_checkpoint import _parse_cli_args, _process_cli_args
+
+
+@pytest.mark.parametrize("args, expected", [
+    (["path/to/checkpoint"], {"checkpoint_folder": "path/to/checkpoint", "output_file": None}),
+    (["path/to/checkpoint", "--output_file", "path/to/output"], {"checkpoint_folder": "path/to/checkpoint", "output_file": "path/to/output"}),
+])
+def test_parse_cli_args(args, expected):
+    with mock.patch("sys.argv", ["any.py", *args]):
+        args = _parse_cli_args()
+    assert vars(args) == expected
+
+
+def test_process_cli_args(tmp_path, caplog, monkeypatch):
+    # PyTorch version < 2.1
+    monkeypatch.setattr(lightning.fabric.utilities.merge_checkpoint, "_TORCH_GREATER_EQUAL_2_1", False)
+    with caplog.at_level(logging.ERROR, logger="lightning.fabric.utilities.merge_checkpoint"), pytest.raises(SystemExit):
+        _process_cli_args(Namespace())
+    assert "requires PyTorch >= 2.1." in caplog.text
+    caplog.clear()
+    monkeypatch.undo()
+
+    # Checkpoint does not exist
+    with caplog.at_level(logging.ERROR, logger="lightning.fabric.utilities.merge_checkpoint"), pytest.raises(SystemExit):
+        _process_cli_args(Namespace(checkpoint_folder="does/not/exist"))
+    assert "checkpoint folder does not exist: does/not/exist" in caplog.text
+    caplog.clear()
+
+    # Checkpoint exists but is not a folder
+    file = tmp_path / "checkpoint_file"
+    file.touch()
+    with caplog.at_level(logging.ERROR, logger="lightning.fabric.utilities.merge_checkpoint"), pytest.raises(SystemExit):
+        _process_cli_args(Namespace(checkpoint_folder=file))
+    assert "checkpoint path must be a folder" in caplog.text
+    caplog.clear()
+
+    # Checkpoint is a folder, output file not specified
+    folder = tmp_path / "checkpoint_folder"
+    folder.mkdir()
+    config = _process_cli_args(Namespace(checkpoint_folder=folder, output_file=None))
+    assert vars(config) == {"checkpoint_folder": folder, "output_file": folder.with_suffix(folder.suffix + ".merged")}
+
+    # Checkpoint is a folder, output file already exists
+    file = tmp_path / "ouput_file"
+    file.touch()
+    with caplog.at_level(logging.ERROR, logger="lightning.fabric.utilities.merge_checkpoint"), pytest.raises(SystemExit):
+        _process_cli_args(Namespace(checkpoint_folder=folder, output_file=file))
+    assert "path for the merged checkpoint already exists" in caplog.text
+    caplog.clear()
