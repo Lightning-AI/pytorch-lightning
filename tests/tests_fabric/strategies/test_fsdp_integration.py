@@ -577,7 +577,7 @@ def test_save_sharded_and_consolidate_and_load(tmp_path):
     assert set(os.listdir(checkpoint_path_sharded)) == {"meta.pt", ".metadata", "__0_0.distcp", "__1_0.distcp"}
 
     # consolidate the checkpoint to a single file
-    checkpoint_path_full = tmp_path / "checkpoint_full"
+    checkpoint_path_full = fabric.broadcast(str(tmp_path / "checkpoint_full.pt"))
     if fabric.global_rank == 0:
         checkpoint = _load_distributed_checkpoint(Path(checkpoint_path_sharded))
         torch.save(checkpoint, checkpoint_path_full)
