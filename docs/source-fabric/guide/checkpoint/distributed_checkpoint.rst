@@ -194,6 +194,7 @@ You will need to do this for example if you want to load the checkpoint into a s
 .. note::
 
     All tensors in the checkpoint will be converted to CPU tensors, and no GPUs are required to run the conversion command.
+    This function assumes you have enough free CPU memory to hold the entire checkpoint in memory.
 
 .. collapse:: Full example
 
