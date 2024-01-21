@@ -21,7 +21,7 @@ from lightning.fabric.utilities.merge_checkpoint import _parse_cli_args, _proces
 
 
 @pytest.mark.parametrize(
-    "args, expected",
+    ("args", "expected"),
     [
         (["path/to/checkpoint"], {"checkpoint_folder": "path/to/checkpoint", "output_file": None}),
         (
