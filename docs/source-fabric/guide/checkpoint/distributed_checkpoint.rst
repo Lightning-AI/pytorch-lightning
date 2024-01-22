@@ -204,7 +204,7 @@ You will need to do this for example if you want to load the checkpoint into a s
 
         python -m lightning.fabric.utilities.consolidate_checkpoint my-checkpoint.ckpt
 
-    This saves a new file ``my-checkpoint.ckpt.full`` next to the sharded checkpoint which you can load normally in PyTorch:
+    This saves a new file ``my-checkpoint.ckpt.consolidated`` next to the sharded checkpoint which you can load normally in PyTorch:
 
     .. code-block:: python
 
