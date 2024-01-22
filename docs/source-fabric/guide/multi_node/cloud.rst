@@ -6,9 +6,8 @@ Run in the Lightning Cloud
 
 **Audience**: Users who don't want to waste time on cluster configuration and maintenance.
 
-
-The Lightning AI cloud is a platform where you can build, train, finetune and deploy models without worrying about infrastructure, cost management, scaling, and other technical headaches.
-In this guide, and within just 10 minutes, you will learn how to run a Fabric training script across multiple nodes in the cloud.
+`Lightning AI <https://lightning.ai>`_ is a platform where you can build, train, finetune and deploy models without worrying about infrastructure, cost management, scaling, and other technical headaches.
+This guide shows you how easy it is to run a Fabric training script across multiple machines in the cloud.
 
 
 ----
@@ -139,8 +138,8 @@ Learn more
         <div class="row">
 
 .. displayitem::
-    :header: Lightning Platform
-    :description: Develop, Train and Deploy models on the cloud
+    :header: Lightning AI
+    :description: Code together. Prototype. Train. Deploy. Host AI web apps. From your browser - with zero setup.
     :col_css: col-md-4
     :button_link: https://lightning.ai
     :height: 150
