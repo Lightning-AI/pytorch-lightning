@@ -13,9 +13,10 @@ class _DistributedEnv:
 
     """
 
-    def __init__(self, world_size: int, global_rank: int):
+    def __init__(self, world_size: int, global_rank: int, num_nodes: int):
         self.world_size = world_size
         self.global_rank = global_rank
+        self.num_nodes = num_nodes
 
     @classmethod
     def detect(cls) -> "_DistributedEnv":
@@ -37,7 +38,14 @@ class _DistributedEnv:
         if world_size is None or world_size == -1:
             world_size = 1
 
-        return cls(world_size=world_size, global_rank=global_rank)
+        # TODO: Add support for other accelerators
+        num_nodes = (world_size // torch.cuda.device_count()) if torch.cuda.is_available() else 1
+
+        if num_nodes > 1:
+            # validate the world size is divisble by the number of GPUs
+            assert world_size % torch.cuda.device_count() == 0
+
+        return cls(world_size=world_size, global_rank=global_rank, num_nodes=num_nodes)
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(world_size: {self.world_size}, global_rank: {self.global_rank}\n)"
@@ -113,7 +121,8 @@ class Environment:
                 the current training process
 
         """
-        dist_env = _DistributedEnv(dist_world_size, global_rank)
+        num_nodes = (dist_world_size // torch.cuda.device_count()) if torch.cuda.is_available() else 1
+        dist_env = _DistributedEnv(dist_world_size, global_rank, num_nodes)
         worker_env = _WorkerEnv(num_workers, current_worker_rank)
         return cls(dist_env=dist_env, worker_env=worker_env)
 
