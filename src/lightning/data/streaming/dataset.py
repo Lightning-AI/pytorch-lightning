@@ -335,7 +335,23 @@ class StreamingDataset(IterableDataset):
                 f"Found `{self.worker_env.world_size}` instead of `{state['num_workers']}`."
             )
 
-        if state["input_dir_path"] != self.input_dir.path:
+        if _should_replace_path(self.input_dir.path):
+            cache_path = _try_create_cache_dir(
+                input_dir=self.input_dir.path if self.input_dir.path else self.input_dir.url
+            )
+            if cache_path is not None:
+                self.input_dir.path = cache_path
+
+        if _should_replace_path(state["input_dir_path"]):
+            cache_path = _try_create_cache_dir(
+                input_dir=state["input_dir_path"]
+            )
+            if cache_path != self.input_dir.path:
+                raise ValueError(
+                    "The provided `input_dir` path state doesn't match the current one. "
+                    f"Found `{self.input_dir.path}` instead of `{state['input_dir_path']}`."
+                )
+        elif state["input_dir_path"] != self.input_dir.path:
             raise ValueError(
                 "The provided `input_dir` path state doesn't match the current one. "
                 f"Found `{self.input_dir.path}` instead of `{state['input_dir_path']}`."
@@ -382,7 +398,7 @@ def _should_replace_path(path: Optional[str]) -> bool:
     if path is None or path == "":
         return True
 
-    return "/datasets/" in path or "_connections/" in path
+    return path.startswith("/teamspace/datasets/") or path.startswith("/teamspace/s3_connections/")
 
 
 def is_integer(value: str) -> bool:
