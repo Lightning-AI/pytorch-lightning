@@ -335,12 +335,16 @@ class StreamingDataset(IterableDataset):
                 f"Found `{self.worker_env.world_size}` instead of `{state['num_workers']}`."
             )
 
+        # Note: We need to check whether the path has been resolved to its associated cache.
+        # In this case, validate the cache folder is the same.
         if _should_replace_path(state["input_dir_path"]):
-            cache_path = _try_create_cache_dir(input_dir=state["input_dir_path"])
+            cache_path = _try_create_cache_dir(
+                input_dir=state["input_dir_path"] if state["input_dir_path"] else state["input_dir_url"]
+            )
             if cache_path != self.input_dir.path:
                 raise ValueError(
                     "The provided `input_dir` path state doesn't match the current one. "
-                    f"Found `{self.input_dir.path}` instead of `{state['input_dir_path']}`."
+                    f"Found `{self.input_dir.path}` instead of `{cache_path}`."
                 )
         elif state["input_dir_path"] != self.input_dir.path:
             raise ValueError(

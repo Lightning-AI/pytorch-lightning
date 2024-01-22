@@ -69,8 +69,10 @@ def test_streaming_dataset(tmpdir, monkeypatch):
 def test_should_replace_path():
     assert _should_replace_path(None)
     assert _should_replace_path("")
-    assert _should_replace_path(".../datasets/...")
-    assert _should_replace_path(".../_connections/...")
+    assert not _should_replace_path(".../datasets/...")
+    assert not _should_replace_path(".../s3__connections/...")
+    assert _should_replace_path("/teamspace/datasets/...")
+    assert _should_replace_path("/teamspace/s3_connections/...")
     assert not _should_replace_path("something_else")
 
 
@@ -739,7 +741,7 @@ def test_resumable_dataset_two_workers_2_epochs(tmpdir):
 
 
 @pytest.mark.skipif(sys.platform == "win32", reason="Not tested on windows and MacOs")
-def test_dataset_valid_state(tmpdir):
+def test_dataset_valid_state(tmpdir, monkeypatch):
     seed_everything(42)
 
     data_dir = os.path.join(tmpdir, "data")
@@ -814,6 +816,14 @@ def test_dataset_valid_state(tmpdir):
     with pytest.raises(
         ValueError,
         match=f"The provided `input_dir` path state doesn't match the current one. Found `{cache_dir}` instead of `toto`.",  # noqa E501
+    ):
+        dataset._validate_state_dict()
+
+    state_dict["0"]["input_dir_path"] = "/teamspace/datasets/coco"
+    dataset.load_state_dict(state_dict)
+    with pytest.raises(
+        ValueError,
+        match=f"The provided `input_dir` path state doesn't match the current one. Found `{cache_dir}` instead of ",  # noqa E501
     ):
         dataset._validate_state_dict()
 
