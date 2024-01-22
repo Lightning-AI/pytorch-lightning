@@ -280,518 +280,574 @@ def test_combined_dataset_with_dataloader_2_epochs(tmpdir):
 
     assert states_1 == [
         {
-            "0": {
+            "dataset": {
                 "0": {
-                    "num_samples_yielded": 2,
-                    "num_workers": 1,
-                    "batch_size": 2,
-                    "current_epoch": 1,
-                    "input_dir_path": ANY,
-                    "input_dir_url": ANY,
-                    "item_loader": None,
-                    "drop_last": False,
-                    "seed": 42,
-                    "world_size": 1,
-                    "shuffle": True,
-                }
+                    "0": {
+                        "num_samples_yielded": 2,
+                        "num_workers": 1,
+                        "batch_size": 2,
+                        "current_epoch": 1,
+                        "input_dir_path": ANY,
+                        "input_dir_url": ANY,
+                        "item_loader": None,
+                        "drop_last": False,
+                        "seed": 42,
+                        "world_size": 1,
+                        "shuffle": True,
+                    }
+                },
+                "1": {
+                    "0": {
+                        "num_samples_yielded": 0,
+                        "num_workers": 1,
+                        "batch_size": 2,
+                        "current_epoch": 1,
+                        "input_dir_path": ANY,
+                        "input_dir_url": ANY,
+                        "item_loader": None,
+                        "drop_last": False,
+                        "seed": 42,
+                        "world_size": 1,
+                        "shuffle": True,
+                    }
+                },
             },
-            "1": {
-                "0": {
-                    "num_samples_yielded": 0,
-                    "num_workers": 1,
-                    "batch_size": 2,
-                    "current_epoch": 1,
-                    "input_dir_path": ANY,
-                    "input_dir_url": ANY,
-                    "item_loader": None,
-                    "drop_last": False,
-                    "seed": 42,
-                    "world_size": 1,
-                    "shuffle": True,
-                }
-            },
+            "current_epoch": 0,
         },
         {
-            "0": {
+            "dataset": {
                 "0": {
-                    "num_samples_yielded": 3,
-                    "num_workers": 1,
-                    "batch_size": 2,
-                    "current_epoch": 1,
-                    "input_dir_path": ANY,
-                    "input_dir_url": ANY,
-                    "item_loader": None,
-                    "drop_last": False,
-                    "seed": 42,
-                    "world_size": 1,
-                    "shuffle": True,
-                }
+                    "0": {
+                        "num_samples_yielded": 3,
+                        "num_workers": 1,
+                        "batch_size": 2,
+                        "current_epoch": 1,
+                        "input_dir_path": ANY,
+                        "input_dir_url": ANY,
+                        "item_loader": None,
+                        "drop_last": False,
+                        "seed": 42,
+                        "world_size": 1,
+                        "shuffle": True,
+                    }
+                },
+                "1": {
+                    "0": {
+                        "num_samples_yielded": 1,
+                        "num_workers": 1,
+                        "batch_size": 2,
+                        "current_epoch": 1,
+                        "input_dir_path": ANY,
+                        "input_dir_url": ANY,
+                        "item_loader": None,
+                        "drop_last": False,
+                        "seed": 42,
+                        "world_size": 1,
+                        "shuffle": True,
+                    }
+                },
             },
-            "1": {
-                "0": {
-                    "num_samples_yielded": 1,
-                    "num_workers": 1,
-                    "batch_size": 2,
-                    "current_epoch": 1,
-                    "input_dir_path": ANY,
-                    "input_dir_url": ANY,
-                    "item_loader": None,
-                    "drop_last": False,
-                    "seed": 42,
-                    "world_size": 1,
-                    "shuffle": True,
-                }
-            },
+            "current_epoch": 0,
         },
         {
-            "0": {
+            "dataset": {
                 "0": {
-                    "num_samples_yielded": 5,
-                    "num_workers": 1,
-                    "batch_size": 2,
-                    "current_epoch": 1,
-                    "input_dir_path": ANY,
-                    "input_dir_url": ANY,
-                    "item_loader": None,
-                    "drop_last": False,
-                    "seed": 42,
-                    "world_size": 1,
-                    "shuffle": True,
-                }
+                    "0": {
+                        "num_samples_yielded": 5,
+                        "num_workers": 1,
+                        "batch_size": 2,
+                        "current_epoch": 1,
+                        "input_dir_path": ANY,
+                        "input_dir_url": ANY,
+                        "item_loader": None,
+                        "drop_last": False,
+                        "seed": 42,
+                        "world_size": 1,
+                        "shuffle": True,
+                    }
+                },
+                "1": {
+                    "0": {
+                        "num_samples_yielded": 1,
+                        "num_workers": 1,
+                        "batch_size": 2,
+                        "current_epoch": 1,
+                        "input_dir_path": ANY,
+                        "input_dir_url": ANY,
+                        "item_loader": None,
+                        "drop_last": False,
+                        "seed": 42,
+                        "world_size": 1,
+                        "shuffle": True,
+                    }
+                },
             },
-            "1": {
-                "0": {
-                    "num_samples_yielded": 1,
-                    "num_workers": 1,
-                    "batch_size": 2,
-                    "current_epoch": 1,
-                    "input_dir_path": ANY,
-                    "input_dir_url": ANY,
-                    "item_loader": None,
-                    "drop_last": False,
-                    "seed": 42,
-                    "world_size": 1,
-                    "shuffle": True,
-                }
-            },
+            "current_epoch": 0,
         },
         {
-            "0": {
+            "dataset": {
                 "0": {
-                    "num_samples_yielded": 6,
-                    "num_workers": 1,
-                    "batch_size": 2,
-                    "current_epoch": 1,
-                    "input_dir_path": ANY,
-                    "input_dir_url": ANY,
-                    "item_loader": None,
-                    "drop_last": False,
-                    "seed": 42,
-                    "world_size": 1,
-                    "shuffle": True,
-                }
+                    "0": {
+                        "num_samples_yielded": 6,
+                        "num_workers": 1,
+                        "batch_size": 2,
+                        "current_epoch": 1,
+                        "input_dir_path": ANY,
+                        "input_dir_url": ANY,
+                        "item_loader": None,
+                        "drop_last": False,
+                        "seed": 42,
+                        "world_size": 1,
+                        "shuffle": True,
+                    }
+                },
+                "1": {
+                    "0": {
+                        "num_samples_yielded": 2,
+                        "num_workers": 1,
+                        "batch_size": 2,
+                        "current_epoch": 1,
+                        "input_dir_path": ANY,
+                        "input_dir_url": ANY,
+                        "item_loader": None,
+                        "drop_last": False,
+                        "seed": 42,
+                        "world_size": 1,
+                        "shuffle": True,
+                    }
+                },
             },
-            "1": {
-                "0": {
-                    "num_samples_yielded": 2,
-                    "num_workers": 1,
-                    "batch_size": 2,
-                    "current_epoch": 1,
-                    "input_dir_path": ANY,
-                    "input_dir_url": ANY,
-                    "item_loader": None,
-                    "drop_last": False,
-                    "seed": 42,
-                    "world_size": 1,
-                    "shuffle": True,
-                }
-            },
+            "current_epoch": 0,
         },
         {
-            "0": {
+            "dataset": {
                 "0": {
-                    "num_samples_yielded": 8,
-                    "num_workers": 1,
-                    "batch_size": 2,
-                    "current_epoch": 1,
-                    "input_dir_path": ANY,
-                    "input_dir_url": ANY,
-                    "item_loader": None,
-                    "drop_last": False,
-                    "seed": 42,
-                    "world_size": 1,
-                    "shuffle": True,
-                }
+                    "0": {
+                        "num_samples_yielded": 8,
+                        "num_workers": 1,
+                        "batch_size": 2,
+                        "current_epoch": 1,
+                        "input_dir_path": ANY,
+                        "input_dir_url": ANY,
+                        "item_loader": None,
+                        "drop_last": False,
+                        "seed": 42,
+                        "world_size": 1,
+                        "shuffle": True,
+                    }
+                },
+                "1": {
+                    "0": {
+                        "num_samples_yielded": 2,
+                        "num_workers": 1,
+                        "batch_size": 2,
+                        "current_epoch": 1,
+                        "input_dir_path": ANY,
+                        "input_dir_url": ANY,
+                        "item_loader": None,
+                        "drop_last": False,
+                        "seed": 42,
+                        "world_size": 1,
+                        "shuffle": True,
+                    }
+                },
             },
-            "1": {
-                "0": {
-                    "num_samples_yielded": 2,
-                    "num_workers": 1,
-                    "batch_size": 2,
-                    "current_epoch": 1,
-                    "input_dir_path": ANY,
-                    "input_dir_url": ANY,
-                    "item_loader": None,
-                    "drop_last": False,
-                    "seed": 42,
-                    "world_size": 1,
-                    "shuffle": True,
-                }
-            },
+            "current_epoch": 0,
         },
         {
-            "0": {
+            "dataset": {
                 "0": {
-                    "num_samples_yielded": 9,
-                    "num_workers": 1,
-                    "batch_size": 2,
-                    "current_epoch": 1,
-                    "input_dir_path": ANY,
-                    "input_dir_url": ANY,
-                    "item_loader": None,
-                    "drop_last": False,
-                    "seed": 42,
-                    "world_size": 1,
-                    "shuffle": True,
-                }
+                    "0": {
+                        "num_samples_yielded": 9,
+                        "num_workers": 1,
+                        "batch_size": 2,
+                        "current_epoch": 1,
+                        "input_dir_path": ANY,
+                        "input_dir_url": ANY,
+                        "item_loader": None,
+                        "drop_last": False,
+                        "seed": 42,
+                        "world_size": 1,
+                        "shuffle": True,
+                    }
+                },
+                "1": {
+                    "0": {
+                        "num_samples_yielded": 3,
+                        "num_workers": 1,
+                        "batch_size": 2,
+                        "current_epoch": 1,
+                        "input_dir_path": ANY,
+                        "input_dir_url": ANY,
+                        "item_loader": None,
+                        "drop_last": False,
+                        "seed": 42,
+                        "world_size": 1,
+                        "shuffle": True,
+                    }
+                },
             },
-            "1": {
-                "0": {
-                    "num_samples_yielded": 3,
-                    "num_workers": 1,
-                    "batch_size": 2,
-                    "current_epoch": 1,
-                    "input_dir_path": ANY,
-                    "input_dir_url": ANY,
-                    "item_loader": None,
-                    "drop_last": False,
-                    "seed": 42,
-                    "world_size": 1,
-                    "shuffle": True,
-                }
-            },
+            "current_epoch": 0,
         },
         {
-            "0": {
+            "dataset": {
                 "0": {
-                    "num_samples_yielded": 10,
-                    "num_workers": 1,
-                    "batch_size": 2,
-                    "current_epoch": 1,
-                    "input_dir_path": ANY,
-                    "input_dir_url": ANY,
-                    "item_loader": None,
-                    "drop_last": False,
-                    "seed": 42,
-                    "world_size": 1,
-                    "shuffle": True,
-                }
+                    "0": {
+                        "num_samples_yielded": 10,
+                        "num_workers": 1,
+                        "batch_size": 2,
+                        "current_epoch": 1,
+                        "input_dir_path": ANY,
+                        "input_dir_url": ANY,
+                        "item_loader": None,
+                        "drop_last": False,
+                        "seed": 42,
+                        "world_size": 1,
+                        "shuffle": True,
+                    }
+                },
+                "1": {
+                    "0": {
+                        "num_samples_yielded": 4,
+                        "num_workers": 1,
+                        "batch_size": 2,
+                        "current_epoch": 1,
+                        "input_dir_path": ANY,
+                        "input_dir_url": ANY,
+                        "item_loader": None,
+                        "drop_last": False,
+                        "seed": 42,
+                        "world_size": 1,
+                        "shuffle": True,
+                    }
+                },
             },
-            "1": {
-                "0": {
-                    "num_samples_yielded": 4,
-                    "num_workers": 1,
-                    "batch_size": 2,
-                    "current_epoch": 1,
-                    "input_dir_path": ANY,
-                    "input_dir_url": ANY,
-                    "item_loader": None,
-                    "drop_last": False,
-                    "seed": 42,
-                    "world_size": 1,
-                    "shuffle": True,
-                }
-            },
+            "current_epoch": 0,
         },
         {
-            "0": {
+            "dataset": {
                 "0": {
-                    "num_samples_yielded": 11,
-                    "num_workers": 1,
-                    "batch_size": 2,
-                    "current_epoch": 1,
-                    "input_dir_path": ANY,
-                    "input_dir_url": ANY,
-                    "item_loader": None,
-                    "drop_last": False,
-                    "seed": 42,
-                    "world_size": 1,
-                    "shuffle": True,
-                }
+                    "0": {
+                        "num_samples_yielded": 11,
+                        "num_workers": 1,
+                        "batch_size": 2,
+                        "current_epoch": 1,
+                        "input_dir_path": ANY,
+                        "input_dir_url": ANY,
+                        "item_loader": None,
+                        "drop_last": False,
+                        "seed": 42,
+                        "world_size": 1,
+                        "shuffle": True,
+                    }
+                },
+                "1": {
+                    "0": {
+                        "num_samples_yielded": 5,
+                        "num_workers": 1,
+                        "batch_size": 2,
+                        "current_epoch": 1,
+                        "input_dir_path": ANY,
+                        "input_dir_url": ANY,
+                        "item_loader": None,
+                        "drop_last": False,
+                        "seed": 42,
+                        "world_size": 1,
+                        "shuffle": True,
+                    }
+                },
             },
-            "1": {
-                "0": {
-                    "num_samples_yielded": 5,
-                    "num_workers": 1,
-                    "batch_size": 2,
-                    "current_epoch": 1,
-                    "input_dir_path": ANY,
-                    "input_dir_url": ANY,
-                    "item_loader": None,
-                    "drop_last": False,
-                    "seed": 42,
-                    "world_size": 1,
-                    "shuffle": True,
-                }
-            },
+            "current_epoch": 0,
         },
     ]
 
     assert states_2 == [
         {
-            "0": {
+            "dataset": {
                 "0": {
-                    "num_samples_yielded": 2,
-                    "num_workers": 1,
-                    "batch_size": 2,
-                    "current_epoch": 2,
-                    "input_dir_path": ANY,
-                    "input_dir_url": ANY,
-                    "item_loader": None,
-                    "drop_last": False,
-                    "seed": 42,
-                    "world_size": 1,
-                    "shuffle": True,
-                }
+                    "0": {
+                        "num_samples_yielded": 2,
+                        "num_workers": 1,
+                        "batch_size": 2,
+                        "current_epoch": 2,
+                        "input_dir_path": ANY,
+                        "input_dir_url": ANY,
+                        "item_loader": None,
+                        "drop_last": False,
+                        "seed": 42,
+                        "world_size": 1,
+                        "shuffle": True,
+                    }
+                },
+                "1": {
+                    "0": {
+                        "num_samples_yielded": 0,
+                        "num_workers": 1,
+                        "batch_size": 2,
+                        "current_epoch": 2,
+                        "input_dir_path": ANY,
+                        "input_dir_url": ANY,
+                        "item_loader": None,
+                        "drop_last": False,
+                        "seed": 42,
+                        "world_size": 1,
+                        "shuffle": True,
+                    }
+                },
             },
-            "1": {
-                "0": {
-                    "num_samples_yielded": 0,
-                    "num_workers": 1,
-                    "batch_size": 2,
-                    "current_epoch": 2,
-                    "input_dir_path": ANY,
-                    "input_dir_url": ANY,
-                    "item_loader": None,
-                    "drop_last": False,
-                    "seed": 42,
-                    "world_size": 1,
-                    "shuffle": True,
-                }
-            },
+            "current_epoch": 1,
         },
         {
-            "0": {
+            "dataset": {
                 "0": {
-                    "num_samples_yielded": 3,
-                    "num_workers": 1,
-                    "batch_size": 2,
-                    "current_epoch": 2,
-                    "input_dir_path": ANY,
-                    "input_dir_url": ANY,
-                    "item_loader": None,
-                    "drop_last": False,
-                    "seed": 42,
-                    "world_size": 1,
-                    "shuffle": True,
-                }
+                    "0": {
+                        "num_samples_yielded": 3,
+                        "num_workers": 1,
+                        "batch_size": 2,
+                        "current_epoch": 2,
+                        "input_dir_path": ANY,
+                        "input_dir_url": ANY,
+                        "item_loader": None,
+                        "drop_last": False,
+                        "seed": 42,
+                        "world_size": 1,
+                        "shuffle": True,
+                    }
+                },
+                "1": {
+                    "0": {
+                        "num_samples_yielded": 1,
+                        "num_workers": 1,
+                        "batch_size": 2,
+                        "current_epoch": 2,
+                        "input_dir_path": ANY,
+                        "input_dir_url": ANY,
+                        "item_loader": None,
+                        "drop_last": False,
+                        "seed": 42,
+                        "world_size": 1,
+                        "shuffle": True,
+                    }
+                },
             },
-            "1": {
-                "0": {
-                    "num_samples_yielded": 1,
-                    "num_workers": 1,
-                    "batch_size": 2,
-                    "current_epoch": 2,
-                    "input_dir_path": ANY,
-                    "input_dir_url": ANY,
-                    "item_loader": None,
-                    "drop_last": False,
-                    "seed": 42,
-                    "world_size": 1,
-                    "shuffle": True,
-                }
-            },
+            "current_epoch": 1,
         },
         {
-            "0": {
+            "dataset": {
                 "0": {
-                    "num_samples_yielded": 5,
-                    "num_workers": 1,
-                    "batch_size": 2,
-                    "current_epoch": 2,
-                    "input_dir_path": ANY,
-                    "input_dir_url": ANY,
-                    "item_loader": None,
-                    "drop_last": False,
-                    "seed": 42,
-                    "world_size": 1,
-                    "shuffle": True,
-                }
+                    "0": {
+                        "num_samples_yielded": 5,
+                        "num_workers": 1,
+                        "batch_size": 2,
+                        "current_epoch": 2,
+                        "input_dir_path": ANY,
+                        "input_dir_url": ANY,
+                        "item_loader": None,
+                        "drop_last": False,
+                        "seed": 42,
+                        "world_size": 1,
+                        "shuffle": True,
+                    }
+                },
+                "1": {
+                    "0": {
+                        "num_samples_yielded": 1,
+                        "num_workers": 1,
+                        "batch_size": 2,
+                        "current_epoch": 2,
+                        "input_dir_path": ANY,
+                        "input_dir_url": ANY,
+                        "item_loader": None,
+                        "drop_last": False,
+                        "seed": 42,
+                        "world_size": 1,
+                        "shuffle": True,
+                    }
+                },
             },
-            "1": {
-                "0": {
-                    "num_samples_yielded": 1,
-                    "num_workers": 1,
-                    "batch_size": 2,
-                    "current_epoch": 2,
-                    "input_dir_path": ANY,
-                    "input_dir_url": ANY,
-                    "item_loader": None,
-                    "drop_last": False,
-                    "seed": 42,
-                    "world_size": 1,
-                    "shuffle": True,
-                }
-            },
+            "current_epoch": 1,
         },
         {
-            "0": {
+            "dataset": {
                 "0": {
-                    "num_samples_yielded": 6,
-                    "num_workers": 1,
-                    "batch_size": 2,
-                    "current_epoch": 2,
-                    "input_dir_path": ANY,
-                    "input_dir_url": ANY,
-                    "item_loader": None,
-                    "drop_last": False,
-                    "seed": 42,
-                    "world_size": 1,
-                    "shuffle": True,
-                }
+                    "0": {
+                        "num_samples_yielded": 6,
+                        "num_workers": 1,
+                        "batch_size": 2,
+                        "current_epoch": 2,
+                        "input_dir_path": ANY,
+                        "input_dir_url": ANY,
+                        "item_loader": None,
+                        "drop_last": False,
+                        "seed": 42,
+                        "world_size": 1,
+                        "shuffle": True,
+                    }
+                },
+                "1": {
+                    "0": {
+                        "num_samples_yielded": 2,
+                        "num_workers": 1,
+                        "batch_size": 2,
+                        "current_epoch": 2,
+                        "input_dir_path": ANY,
+                        "input_dir_url": ANY,
+                        "item_loader": None,
+                        "drop_last": False,
+                        "seed": 42,
+                        "world_size": 1,
+                        "shuffle": True,
+                    }
+                },
             },
-            "1": {
-                "0": {
-                    "num_samples_yielded": 2,
-                    "num_workers": 1,
-                    "batch_size": 2,
-                    "current_epoch": 2,
-                    "input_dir_path": ANY,
-                    "input_dir_url": ANY,
-                    "item_loader": None,
-                    "drop_last": False,
-                    "seed": 42,
-                    "world_size": 1,
-                    "shuffle": True,
-                }
-            },
+            "current_epoch": 1,
         },
         {
-            "0": {
+            "dataset": {
                 "0": {
-                    "num_samples_yielded": 8,
-                    "num_workers": 1,
-                    "batch_size": 2,
-                    "current_epoch": 2,
-                    "input_dir_path": ANY,
-                    "input_dir_url": ANY,
-                    "item_loader": None,
-                    "drop_last": False,
-                    "seed": 42,
-                    "world_size": 1,
-                    "shuffle": True,
-                }
+                    "0": {
+                        "num_samples_yielded": 8,
+                        "num_workers": 1,
+                        "batch_size": 2,
+                        "current_epoch": 2,
+                        "input_dir_path": ANY,
+                        "input_dir_url": ANY,
+                        "item_loader": None,
+                        "drop_last": False,
+                        "seed": 42,
+                        "world_size": 1,
+                        "shuffle": True,
+                    }
+                },
+                "1": {
+                    "0": {
+                        "num_samples_yielded": 2,
+                        "num_workers": 1,
+                        "batch_size": 2,
+                        "current_epoch": 2,
+                        "input_dir_path": ANY,
+                        "input_dir_url": ANY,
+                        "item_loader": None,
+                        "drop_last": False,
+                        "seed": 42,
+                        "world_size": 1,
+                        "shuffle": True,
+                    }
+                },
             },
-            "1": {
-                "0": {
-                    "num_samples_yielded": 2,
-                    "num_workers": 1,
-                    "batch_size": 2,
-                    "current_epoch": 2,
-                    "input_dir_path": ANY,
-                    "input_dir_url": ANY,
-                    "item_loader": None,
-                    "drop_last": False,
-                    "seed": 42,
-                    "world_size": 1,
-                    "shuffle": True,
-                }
-            },
+            "current_epoch": 1,
         },
         {
-            "0": {
+            "dataset": {
                 "0": {
-                    "num_samples_yielded": 9,
-                    "num_workers": 1,
-                    "batch_size": 2,
-                    "current_epoch": 2,
-                    "input_dir_path": ANY,
-                    "input_dir_url": ANY,
-                    "item_loader": None,
-                    "drop_last": False,
-                    "seed": 42,
-                    "world_size": 1,
-                    "shuffle": True,
-                }
+                    "0": {
+                        "num_samples_yielded": 9,
+                        "num_workers": 1,
+                        "batch_size": 2,
+                        "current_epoch": 2,
+                        "input_dir_path": ANY,
+                        "input_dir_url": ANY,
+                        "item_loader": None,
+                        "drop_last": False,
+                        "seed": 42,
+                        "world_size": 1,
+                        "shuffle": True,
+                    }
+                },
+                "1": {
+                    "0": {
+                        "num_samples_yielded": 3,
+                        "num_workers": 1,
+                        "batch_size": 2,
+                        "current_epoch": 2,
+                        "input_dir_path": ANY,
+                        "input_dir_url": ANY,
+                        "item_loader": None,
+                        "drop_last": False,
+                        "seed": 42,
+                        "world_size": 1,
+                        "shuffle": True,
+                    }
+                },
             },
-            "1": {
-                "0": {
-                    "num_samples_yielded": 3,
-                    "num_workers": 1,
-                    "batch_size": 2,
-                    "current_epoch": 2,
-                    "input_dir_path": ANY,
-                    "input_dir_url": ANY,
-                    "item_loader": None,
-                    "drop_last": False,
-                    "seed": 42,
-                    "world_size": 1,
-                    "shuffle": True,
-                }
-            },
+            "current_epoch": 1,
         },
         {
-            "0": {
+            "dataset": {
                 "0": {
-                    "num_samples_yielded": 10,
-                    "num_workers": 1,
-                    "batch_size": 2,
-                    "current_epoch": 2,
-                    "input_dir_path": ANY,
-                    "input_dir_url": ANY,
-                    "item_loader": None,
-                    "drop_last": False,
-                    "seed": 42,
-                    "world_size": 1,
-                    "shuffle": True,
-                }
+                    "0": {
+                        "num_samples_yielded": 10,
+                        "num_workers": 1,
+                        "batch_size": 2,
+                        "current_epoch": 2,
+                        "input_dir_path": ANY,
+                        "input_dir_url": ANY,
+                        "item_loader": None,
+                        "drop_last": False,
+                        "seed": 42,
+                        "world_size": 1,
+                        "shuffle": True,
+                    }
+                },
+                "1": {
+                    "0": {
+                        "num_samples_yielded": 4,
+                        "num_workers": 1,
+                        "batch_size": 2,
+                        "current_epoch": 2,
+                        "input_dir_path": ANY,
+                        "input_dir_url": ANY,
+                        "item_loader": None,
+                        "drop_last": False,
+                        "seed": 42,
+                        "world_size": 1,
+                        "shuffle": True,
+                    }
+                },
             },
-            "1": {
-                "0": {
-                    "num_samples_yielded": 4,
-                    "num_workers": 1,
-                    "batch_size": 2,
-                    "current_epoch": 2,
-                    "input_dir_path": ANY,
-                    "input_dir_url": ANY,
-                    "item_loader": None,
-                    "drop_last": False,
-                    "seed": 42,
-                    "world_size": 1,
-                    "shuffle": True,
-                }
-            },
+            "current_epoch": 1,
         },
         {
-            "0": {
+            "dataset": {
                 "0": {
-                    "num_samples_yielded": 11,
-                    "num_workers": 1,
-                    "batch_size": 2,
-                    "current_epoch": 2,
-                    "input_dir_path": ANY,
-                    "input_dir_url": ANY,
-                    "item_loader": None,
-                    "drop_last": False,
-                    "seed": 42,
-                    "world_size": 1,
-                    "shuffle": True,
-                }
+                    "0": {
+                        "num_samples_yielded": 11,
+                        "num_workers": 1,
+                        "batch_size": 2,
+                        "current_epoch": 2,
+                        "input_dir_path": ANY,
+                        "input_dir_url": ANY,
+                        "item_loader": None,
+                        "drop_last": False,
+                        "seed": 42,
+                        "world_size": 1,
+                        "shuffle": True,
+                    }
+                },
+                "1": {
+                    "0": {
+                        "num_samples_yielded": 5,
+                        "num_workers": 1,
+                        "batch_size": 2,
+                        "current_epoch": 2,
+                        "input_dir_path": ANY,
+                        "input_dir_url": ANY,
+                        "item_loader": None,
+                        "drop_last": False,
+                        "seed": 42,
+                        "world_size": 1,
+                        "shuffle": True,
+                    }
+                },
             },
-            "1": {
-                "0": {
-                    "num_samples_yielded": 5,
-                    "num_workers": 1,
-                    "batch_size": 2,
-                    "current_epoch": 2,
-                    "input_dir_path": ANY,
-                    "input_dir_url": ANY,
-                    "item_loader": None,
-                    "drop_last": False,
-                    "seed": 42,
-                    "world_size": 1,
-                    "shuffle": True,
-                }
-            },
+            "current_epoch": 1,
         },
     ]
+
+    dataloader.load_state_dict(states_2[3])
+
+    batches_23 = []
+    for batch in dataloader:
+        batches_23.append(batch)
+
+    assert sum(not torch.equal(b1, b2) for b1, b2 in zip(batches_2[4:], batches_23)) == 0

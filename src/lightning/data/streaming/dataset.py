@@ -91,7 +91,10 @@ class StreamingDataset(IterableDataset):
         self._state_dict: Optional[Dict[str, Any]] = None
 
     def set_epoch(self, current_epoch: int) -> None:
-        self.current_epoch = current_epoch
+        # If the state dict has been reloaded, don't override the current epoch
+        # The StreamingDataloader would clean this out
+        if self._state_dict is None:
+            self.current_epoch = current_epoch
 
     def _create_cache(self, worker_env: _WorkerEnv) -> Cache:
         if _should_replace_path(self.input_dir.path):
@@ -225,6 +228,8 @@ class StreamingDataset(IterableDataset):
         # skip any indexes already consumed
         current_indexes = current_indexes[indexes[worker_rank] :]
         self.current_indexes = current_indexes
+
+        self.global_index = num_samples_yielded
 
         # bump the chunk_index
         self.chunk_index += 1

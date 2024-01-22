@@ -50,6 +50,7 @@ class CombinedStreamingDataset(IterableDataset):
 
         self._iterator: Optional[_CombinedDatasetIterator] = None
         self._use_streaming_dataloader = False
+        self._skip_samples = 0
 
     def set_epoch(self, current_epoch: int) -> None:
         for dataset in self._datasets:
@@ -70,7 +71,11 @@ class CombinedStreamingDataset(IterableDataset):
     def __iter__(self) -> Iterator[Any]:
         assert self._weights
         self._iterator = _CombinedDatasetIterator(
-            self._datasets, self._seed, self._weights, self._use_streaming_dataloader
+            self._datasets,
+            self._seed,
+            self._weights,
+            self._use_streaming_dataloader,
+            self._skip_samples,
         )
         return self._iterator
 
@@ -93,10 +98,24 @@ class CombinedStreamingDataset(IterableDataset):
 
             dataset.load_state_dict(state_dict[str(dataset_idx)])
 
+        # Used to iterate over the sampler to avoid sampling the same samples
+        num_samples_yielded = 0
+        for dataset_idx in range(len(self._datasets)):
+            num_samples_yielded += sum(
+                [state["num_samples_yielded"] for state in state_dict[str(dataset_idx)].values()]
+            )
+
+        self._skip_samples = num_samples_yielded
+
 
 class _CombinedDatasetIterator(Iterator):
     def __init__(
-        self, datasets: List[StreamingDataset], seed: int, weights: Sequence[float], use_streaming_dataloader: bool
+        self,
+        datasets: List[StreamingDataset],
+        seed: int,
+        weights: Sequence[float],
+        use_streaming_dataloader: bool,
+        skip_samples: int = 0,
     ) -> None:
         self._datasets = datasets
         self._dataset_iters = [iter(dataset) for dataset in datasets]
@@ -104,6 +123,10 @@ class _CombinedDatasetIterator(Iterator):
         self._num_samples_yielded = [0 for _ in range(len(datasets))]
         self._weights = weights
         self._rng = random.Random(seed)
+
+        for _ in range(skip_samples):
+            self._rng.choices(self._dataset_indexes, weights=self._weights, k=1)
+
         self._is_in_dataloader_worker = _is_in_dataloader_worker()
         self._use_streaming_dataloader = use_streaming_dataloader
 
@@ -114,13 +137,15 @@ class _CombinedDatasetIterator(Iterator):
         # keep track the sample was fetched
         self._num_samples_yielded[dataset_index] += 1
 
+        sample = next(self._dataset_iters[dataset_index])
+
         # return a new sample
         if self._is_in_dataloader_worker and self._use_streaming_dataloader:
             return {
-                __SAMPLES__: next(self._dataset_iters[dataset_index]),
+                __SAMPLES__: sample,
                 __NUM_SAMPLES_YIELDED__: self._num_samples_yielded,
             }
-        return next(self._dataset_iters[dataset_index])
+        return sample
 
     def state_dict(self, num_workers: int = 0, batch_size: int = 1) -> Dict[str, Any]:
         return _state_dict(self._datasets, self._num_samples_yielded, num_workers, batch_size)

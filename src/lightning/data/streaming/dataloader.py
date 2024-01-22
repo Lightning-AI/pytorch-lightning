@@ -366,6 +366,7 @@ class StreamingDataLoader(DataLoader):
         self.num_workers = num_workers
         self.num_samples_yielded = 0
         self._num_samples_yielded: Optional[List[Any]] = None
+        self.rng_state: Optional[Any] = None
         super().__init__(dataset, *args, batch_size=batch_size, num_workers=num_workers, **kwargs)  # type: ignore
 
     def __iter__(self) -> Any:
@@ -396,8 +397,14 @@ class StreamingDataLoader(DataLoader):
         if isinstance(self.dataset, StreamingDataset):
             assert self.batch_size
             num_samples = self.num_samples_yielded
-            return self.dataset.state_dict(num_samples, self.num_workers, self.batch_size)
-        return self.dataset.state_dict(self.num_workers, self.batch_size, self._num_samples_yielded)
+            return {
+                "dataset": self.dataset.state_dict(num_samples, self.num_workers, self.batch_size),
+                "current_epoch": self.current_epoch - 1,
+            }
+        return {
+            "dataset": self.dataset.state_dict(self.num_workers, self.batch_size, self._num_samples_yielded),
+            "current_epoch": self.current_epoch - 1,
+        }
 
     def load_state_dict(self, obj: Dict[str, Any]) -> None:
         """Load a dict containing training state (called from non-worker process).
@@ -408,7 +415,8 @@ class StreamingDataLoader(DataLoader):
             obj (Any): The state.
 
         """
+        self.current_epoch = obj["current_epoch"]
         if isinstance(self.dataset, (StreamingDataset, CombinedStreamingDataset)):
-            self.dataset.load_state_dict(obj)
+            self.dataset.load_state_dict(obj["dataset"])
         else:
             raise RuntimeError("The provided dataset should be a `StreamingDataset` or a `CombinedStreamingDataset`.")
