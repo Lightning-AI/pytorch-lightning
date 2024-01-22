@@ -646,19 +646,20 @@ def test_resumable_dataset_two_workers(tmpdir):
     dataloader_iter = iter(dataloader)
 
     _ = next(dataloader_iter)
-    state_dict_0 = dataloader.state_dict()
+    state_dict_0 = dataloader.state_dict()["dataset"]
+
     assert state_dict_0["0"]["num_samples_yielded"] == 2
     assert state_dict_0["0"]["num_workers"] == 2
     assert state_dict_0["0"]["batch_size"] == 2
 
     _ = next(dataloader_iter)
-    state_dict_1 = dataloader.state_dict()
+    state_dict_1 = dataloader.state_dict()["dataset"]
     assert state_dict_1["0"]["num_samples_yielded"] == 4
     assert state_dict_1["0"]["num_workers"] == 2
     assert state_dict_1["0"]["batch_size"] == 2
 
     batch_2 = next(dataloader_iter)
-    state_dict_2 = dataloader.state_dict()
+    state_dict_2 = dataloader.state_dict()["dataset"]
     assert state_dict_2["0"]["num_samples_yielded"] == 6
     assert state_dict_2["0"]["num_workers"] == 2
     assert state_dict_2["0"]["batch_size"] == 2
@@ -675,7 +676,7 @@ def test_resumable_dataset_two_workers(tmpdir):
     dataloader_iter = iter(dataloader)
     batch_0_restart = next(dataloader_iter)
 
-    state_dict_2 = dataloader.state_dict()
+    state_dict_2 = dataloader.state_dict()["dataset"]
     assert len(state_dict_2) == 2
     assert state_dict_2["0"]["num_samples_yielded"] == 4
     assert state_dict_2["0"]["num_workers"] == 2

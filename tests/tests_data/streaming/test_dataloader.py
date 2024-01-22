@@ -64,4 +64,4 @@ def test_streaming_dataloader():
     for exp, gen in zip(expected, batches):
         assert torch.equal(exp, gen)
 
-    assert dataloader.state_dict() == {"0": {"counter": 10}, "1": {"counter": 9}}
+    assert dataloader.state_dict() == {"dataset": {"0": {"counter": 10}, "1": {"counter": 9}}, "current_epoch": 0}

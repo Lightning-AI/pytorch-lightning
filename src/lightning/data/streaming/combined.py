@@ -99,13 +99,14 @@ class CombinedStreamingDataset(IterableDataset):
             dataset.load_state_dict(state_dict[str(dataset_idx)])
 
         # Used to iterate over the sampler to avoid sampling the same samples
-        num_samples_yielded = 0
-        for dataset_idx in range(len(self._datasets)):
-            num_samples_yielded += sum(
-                [state["num_samples_yielded"] for state in state_dict[str(dataset_idx)].values()]
-            )
+        if self._use_streaming_dataloader:
+            num_samples_yielded = 0
+            for dataset_idx in range(len(self._datasets)):
+                num_samples_yielded += sum(
+                    [state["num_samples_yielded"] for state in state_dict[str(dataset_idx)].values()]
+                )
 
-        self._skip_samples = num_samples_yielded
+            self._skip_samples = num_samples_yielded
 
 
 class _CombinedDatasetIterator(Iterator):

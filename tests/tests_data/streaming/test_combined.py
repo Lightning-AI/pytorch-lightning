@@ -219,8 +219,11 @@ def test_combined_dataset_with_dataloader_and_one_worker(batch_size):
         assert torch.equal(next(dataloader_iter), torch.Tensor([8]))
 
     assert dataloader.state_dict() == {
-        "0": {"num_samples_yielded": 9, "num_workers": 1, "batch_size": batch_size},
-        "1": {"num_samples_yielded": 3, "num_workers": 1, "batch_size": batch_size},
+        "dataset": {
+            "0": {"num_samples_yielded": 9, "num_workers": 1, "batch_size": batch_size},
+            "1": {"num_samples_yielded": 3, "num_workers": 1, "batch_size": batch_size},
+        },
+        "current_epoch": 0,
     }
 
 
