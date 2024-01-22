@@ -355,6 +355,12 @@ class StreamingDataLoader(DataLoader):
         num_workers: int = 0,
         **kwargs: Any,
     ) -> None:  # pyright: ignore
+        if not isinstance(dataset, (StreamingDataset, CombinedStreamingDataset)):
+            raise RuntimeError(
+                "The provided dataset should be either an instance of StreamingDataset or CombinedStreamingDataset."
+                f" Found {dataset}."
+            )
+
         self.batch_size = batch_size
         self.num_workers = num_workers
         self.num_samples_yielded = 0
@@ -370,14 +376,12 @@ class StreamingDataLoader(DataLoader):
                 yield batch
         else:
             # TODO: Inject a custom collate function to avoid collating the
-            yield from self._iter_from_combined_dataset()
-
-    def _iter_from_combined_dataset(self) -> Any:
-        for batch in super().__iter__():
-            self._num_samples_yielded = [
-                sample[-1].item() if self.batch_size > 1 else sample.item() for sample in batch[__NUM_SAMPLES_YIELDED__]
-            ]
-            yield batch["sample"]
+            for batch in super().__iter__():
+                self._num_samples_yielded = [
+                    sample[-1].item() if self.batch_size > 1 else sample.item()
+                    for sample in batch[__NUM_SAMPLES_YIELDED__]
+                ]
+                yield batch["sample"]
 
     def state_dict(self) -> Dict[str, Any]:
         if isinstance(self.dataset, StreamingDataset):
