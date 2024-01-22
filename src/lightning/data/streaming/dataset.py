@@ -13,6 +13,7 @@
 
 import hashlib
 import os
+from copy import deepcopy
 from time import time
 from typing import Any, Dict, List, Optional, Tuple, Union
 
@@ -24,7 +25,6 @@ from lightning.data.streaming.constants import (
     _DEFAULT_CACHE_DIR,
     _INDEX_FILENAME,
 )
-from copy import deepcopy
 from lightning.data.streaming.item_loader import BaseItemLoader
 from lightning.data.streaming.resolver import Dir, _resolve_dir
 from lightning.data.streaming.sampler import ChunkedIndex
