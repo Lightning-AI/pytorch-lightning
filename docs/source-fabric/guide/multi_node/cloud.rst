@@ -124,14 +124,13 @@ Bring your own cloud account
 ****************************
 
 As a `Teams or Enterprise <https://lightning.ai/pricing>`_ customer, you have the option to connect your existing AWS account to Lightning AI.
-
+This gives your enterprise greater control and insight into the cluster management, and all data that your team creates in studios and jobs gets stored safely in your AWS account.
 
 
 ----
 
-
 **********
-Next steps
+Learn more
 **********
 
 .. raw:: html
