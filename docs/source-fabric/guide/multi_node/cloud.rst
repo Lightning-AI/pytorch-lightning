@@ -44,7 +44,6 @@ Launch multi-node training in the cloud
 .. collapse:: Code Example
 
     .. code-block:: python
-        :caption: main.py
 
         import lightning as L
         import torch
