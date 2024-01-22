@@ -73,7 +73,7 @@ jobs:
         run: python .actions/assistant.py replace_oldest_ver
 
       - name: pip wheels cache
-        uses: actions/cache/restore@v3
+        uses: actions/cache/restore@v4
         with:
           path: ${{ env.PYPI_CACHE_DIR }}
           key: pypi_wheels
