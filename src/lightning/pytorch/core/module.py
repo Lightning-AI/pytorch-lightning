@@ -688,10 +688,10 @@ class LightningModule(
                 (only if multiple dataloaders used)
 
         Return:
-            - :class:`~torch.Tensor`: The loss tensor
-            - ``dict``: A dictionary. Can include any keys, but must include the key ``'loss'``.
-            - ``None``: In automatic optimization, this will skip to the next batch. For manual optimization, this
-              has no special meaning, as returning the loss is not required.
+            - :class:`~torch.Tensor` - The loss tensor
+            - ``dict`` - A dictionary. Can include any keys, but must include the key ``'loss'``.
+            - ``None`` - In automatic optimization, this will skip to the next batch.
+              For manual optimization, this has no special meaning, as returning the loss is not required.
 
         In this step you'd normally do the forward pass and calculate the loss for a batch.
         You can also do fancier things like multiple forward passes or something model specific.
