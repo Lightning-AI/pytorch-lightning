@@ -30,8 +30,13 @@ class TestStatefulDataset:
         self.counter = state_dict["counter"]
 
 
+class TestCombinedStreamingDataset(CombinedStreamingDataset):
+    def _check_datasets(self, datasets) -> None:
+        pass
+
+
 def test_streaming_dataloader():
-    dataset = CombinedStreamingDataset(
+    dataset = TestCombinedStreamingDataset(
         [TestStatefulDataset(10, 1), TestStatefulDataset(10, -1)], 42, weights=(0.5, 0.5)
     )
     dataloader = StreamingDataLoader(dataset, batch_size=2)

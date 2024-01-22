@@ -379,11 +379,14 @@ class StreamingDataLoader(DataLoader):
             assert self.batch_size
             # TODO: Inject a custom collate function to avoid collating the __NUM_SAMPLES_YIELDED__ key
             for batch in super().__iter__():
-                self._num_samples_yielded = [
-                    sample[-1].item() if self.batch_size > 1 else sample.item()
-                    for sample in batch[__NUM_SAMPLES_YIELDED__]
-                ]
-                yield batch[__SAMPLES__]
+                if isinstance(batch, dict) and __NUM_SAMPLES_YIELDED__ in batch:
+                    self._num_samples_yielded = [
+                        sample[-1].item() if self.batch_size > 1 else sample.item()
+                        for sample in batch[__NUM_SAMPLES_YIELDED__]
+                    ]
+                    yield batch[__SAMPLES__]
+                else:
+                    yield batch
 
     def state_dict(self) -> Dict[str, Any]:
         if isinstance(self.dataset, StreamingDataset):

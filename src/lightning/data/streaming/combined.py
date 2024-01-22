@@ -35,6 +35,8 @@ class CombinedStreamingDataset(IterableDataset):
     def __init__(
         self, datasets: List[StreamingDataset], seed: int = 42, weights: Optional[Sequence[float]] = None
     ) -> None:
+        self._check_datasets(datasets)
+
         self._seed = seed
         self._datasets = datasets
         self._weights = weights
@@ -48,6 +50,10 @@ class CombinedStreamingDataset(IterableDataset):
 
         self._iterator: Optional[_CombinedDatasetIterator] = None
         self._use_streaming_dataloader = False
+
+    def _check_datasets(self, datasets: List[StreamingDataset]) -> None:
+        if any(isinstance(d, StreamingDataset) for d in datasets):
+            raise RuntimeError("The provided datasets should be instances of the StreamingDataset.")
 
     def _set_use_streaming_dataloader(self, use_streaming_dataloader: bool) -> None:
         # Used to prevent returning num_samples_yielded when using PyTorch DataLoader

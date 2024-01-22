@@ -139,7 +139,7 @@ class SimpleDataset(IterableDataset):
         return iter(range(self._start, self._end))
 
     def state_dict(self, **kwargs):
-        return {**kwargs}
+        return kwargs
 
 
 def test_combined_dataset():
