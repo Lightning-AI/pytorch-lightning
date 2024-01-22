@@ -20,7 +20,7 @@ Initial Setup
 
 First, create a free `Lightning AI account <https://lightning.ai/>`_.
 You get free credits every month you can spend on GPU compute.
-To use muliple machines, you need to be on the `Pro or Teams plan <https://lightning.ai/pricing>`_.
+To use multiple machines, you need to be on the `Pro or Teams plan <https://lightning.ai/pricing>`_.
 
 
 ----
