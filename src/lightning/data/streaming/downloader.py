@@ -16,6 +16,8 @@ from abc import ABC
 from typing import Any, Dict, List
 from urllib import parse
 
+from filelock import FileLock, Timeout
+
 from lightning.data.streaming.client import S3Client
 
 
@@ -50,21 +52,28 @@ class S3Downloader(Downloader):
 
         extra_args: Dict[str, Any] = {}
 
-        # Issue: https://github.com/boto/boto3/issues/3113
-        self._client.client.download_file(
-            obj.netloc,
-            obj.path.lstrip("/"),
-            local_filepath,
-            ExtraArgs=extra_args,
-            Config=TransferConfig(use_threads=False),
-        )
+        try:
+            with FileLock(local_filepath + ".lock", timeout=1):
+                if not os.path.exists(local_filepath):
+                    # Issue: https://github.com/boto/boto3/issues/3113
+                    self._client.client.download_file(
+                        obj.netloc,
+                        obj.path.lstrip("/"),
+                        local_filepath,
+                        ExtraArgs=extra_args,
+                        Config=TransferConfig(use_threads=False),
+                    )
+        except Timeout:
+            # another process is responsible to download that file, continue
+            pass
 
 
 class LocalDownloader(Downloader):
     def download_file(self, remote_filepath: str, local_filepath: str) -> None:
         if not os.path.exists(remote_filepath):
             raise FileNotFoundError(f"The provided remote_path doesn't exist: {remote_filepath}")
-        if remote_filepath != local_filepath:
+
+        if remote_filepath != local_filepath and not os.path.exists(local_filepath):
             shutil.copy(remote_filepath, local_filepath)
 
 

@@ -45,7 +45,7 @@ Checkpointing
 
 .. displayitem::
    :header: Distributed checkpoints
-   :description: Customize checkpointing for custom distributed strategies and accelerators.
+   :description: Save and load very large models efficiently with distributed checkpoints
    :col_css: col-md-4
    :button_link: checkpointing_expert.html
    :height: 150
