@@ -32,7 +32,7 @@ from torch.utils.data.dataloader import (
 from torch.utils.data.sampler import BatchSampler, Sampler
 
 from lightning.data.streaming import Cache
-from lightning.data.streaming.combined import CombinedStreamingDataset
+from lightning.data.streaming.combined import __NUM_SAMPLES_YIELDED__, CombinedStreamingDataset
 from lightning.data.streaming.constants import _DEFAULT_CHUNK_BYTES, _TORCH_GREATER_EQUAL_2_1_0, _VIZ_TRACKER_AVAILABLE
 from lightning.data.streaming.dataset import StreamingDataset
 from lightning.data.streaming.sampler import CacheBatchSampler
@@ -358,6 +358,7 @@ class StreamingDataLoader(DataLoader):
         self.batch_size = batch_size
         self.num_workers = num_workers
         self.num_samples_yielded = 0
+        self._num_samples_yielded = None
         super().__init__(dataset, *args, batch_size=batch_size, num_workers=num_workers, **kwargs)  # type: ignore
 
     def __iter__(self) -> Any:
@@ -368,14 +369,22 @@ class StreamingDataLoader(DataLoader):
                 self.num_samples_yielded += self.batch_size
                 yield batch
         else:
-            yield from super().__iter__()
+            # TODO: Inject a custom collate function to avoid collating the
+            yield from self._iter_from_combined_dataset()
+
+    def _iter_from_combined_dataset(self) -> Any:
+        for batch in super().__iter__():
+            self._num_samples_yielded = [
+                sample[-1].item() if self.batch_size > 1 else sample.item() for sample in batch[__NUM_SAMPLES_YIELDED__]
+            ]
+            yield batch["sample"]
 
     def state_dict(self) -> Dict[str, Any]:
         if isinstance(self.dataset, StreamingDataset):
             assert self.batch_size
             num_samples = self.num_samples_yielded
             return self.dataset.state_dict(num_samples, self.num_workers, self.batch_size)
-        return self.dataset.state_dict(self.num_workers, self.batch_size)
+        return self.dataset.state_dict(self.num_workers, self.batch_size, self._num_samples_yielded)
 
     def load_state_dict(self, obj: Dict[str, Any]) -> None:
         """Load a dict containing training state (called from non-worker process).

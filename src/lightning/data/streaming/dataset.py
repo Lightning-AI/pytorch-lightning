@@ -17,7 +17,7 @@ from time import time
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
-from torch.utils.data import IterableDataset, get_worker_info
+from torch.utils.data import IterableDataset
 
 from lightning.data.streaming import Cache
 from lightning.data.streaming.constants import (
@@ -29,7 +29,7 @@ from lightning.data.streaming.resolver import Dir, _resolve_dir
 from lightning.data.streaming.sampler import ChunkedIndex
 from lightning.data.streaming.serializers import Serializer
 from lightning.data.streaming.shuffle import FullShuffle, NoShuffle, Shuffle
-from lightning.data.utilities.env import _DistributedEnv, _WorkerEnv
+from lightning.data.utilities.env import _DistributedEnv, _is_in_dataloader_worker, _WorkerEnv
 
 
 class StreamingDataset(IterableDataset):
@@ -375,10 +375,6 @@ def _should_replace_path(path: Optional[str]) -> bool:
         return True
 
     return "/datasets/" in path or "_connections/" in path
-
-
-def _is_in_dataloader_worker() -> bool:
-    return get_worker_info() is not None
 
 
 def is_integer(value: str) -> bool:

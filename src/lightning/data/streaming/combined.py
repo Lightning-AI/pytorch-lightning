@@ -17,6 +17,9 @@ from typing import Any, Dict, Iterator, List, Optional, Sequence
 from torch.utils.data import IterableDataset
 
 from lightning.data.streaming.dataset import StreamingDataset
+from lightning.data.utilities.env import _is_in_dataloader_worker
+
+__NUM_SAMPLES_YIELDED__ = "__NUM_SAMPLES_YIELDED__"
 
 
 class CombinedStreamingDataset(IterableDataset):
@@ -53,9 +56,13 @@ class CombinedStreamingDataset(IterableDataset):
         self._iterator = _CombinedDatasetIterator(self._datasets, self._seed, self._weights)
         return self._iterator
 
-    def state_dict(self, num_workers: int, batch_size: int) -> Dict[str, Any]:
+    def state_dict(
+        self, num_workers: int, batch_size: int, num_samples_yielded: Optional[List[int]] = None
+    ) -> Dict[str, Any]:
         if self._iterator is None:
-            return {}
+            if num_samples_yielded is None:
+                return {}
+            return _state_dict(self._datasets, num_samples_yielded, num_workers, batch_size)
         return self._iterator.state_dict(num_workers, batch_size)
 
     def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
@@ -77,6 +84,7 @@ class _CombinedDatasetIterator(Iterator):
         self._num_samples_yielded = [0 for _ in range(len(datasets))]
         self._weights = weights
         self._rng = random.Random(seed)
+        self._is_in_dataloader_worker = _is_in_dataloader_worker()
 
     def __next__(self) -> Any:
         # randomly select a dataset index
@@ -86,10 +94,23 @@ class _CombinedDatasetIterator(Iterator):
         self._num_samples_yielded[dataset_index] += 1
 
         # return a new sample
+        if self._is_in_dataloader_worker:
+            return {
+                "sample": next(self._dataset_iters[dataset_index]),
+                __NUM_SAMPLES_YIELDED__: self._num_samples_yielded,
+            }
         return next(self._dataset_iters[dataset_index])
 
     def state_dict(self, num_workers: int = 0, batch_size: int = 1) -> Dict[str, Any]:
-        return {
-            str(dataset_idx): dataset.state_dict(self._num_samples_yielded[dataset_idx], num_workers, batch_size)
-            for dataset_idx, dataset in enumerate(self._datasets)
-        }
+        return _state_dict(self._datasets, self._num_samples_yielded, num_workers, batch_size)
+
+
+def _state_dict(
+    datasets: List[StreamingDataset], num_samples_yielded: List[int], num_workers: int = 0, batch_size: int = 1
+) -> Dict[str, Any]:
+    return {
+        str(dataset_idx): dataset.state_dict(
+            num_samples_yielded=num_samples_yielded[dataset_idx], num_workers=num_workers, batch_size=batch_size
+        )
+        for dataset_idx, dataset in enumerate(datasets)
+    }

@@ -1,5 +1,7 @@
 import pytest
+import torch
 from lightning.data.streaming.combined import CombinedStreamingDataset
+from lightning.data.streaming.dataloader import StreamingDataLoader
 from torch.utils.data import IterableDataset
 
 
@@ -135,6 +137,9 @@ class SimpleDataset(IterableDataset):
     def __iter__(self):
         return iter(range(self._start, self._end))
 
+    def state_dict(self, **kwargs):
+        return {**kwargs}
+
 
 def test_combined_dataset():
     dataset1 = SimpleDataset(0, 10)
@@ -160,3 +165,39 @@ def test_combined_dataset():
     if len(res) > 10:
         assert 0 in res
         assert 10 in res
+
+
+@pytest.mark.parametrize("batch_size", [1, 2])
+def test_combined_dataset_with_dataloader_and_one_worker(batch_size):
+    dataset1 = SimpleDataset(0, 10)
+    dataset2 = SimpleDataset(10, 20)
+    dataset = CombinedStreamingDataset(datasets=[dataset1, dataset2], weights=[0.5, 0.5], seed=12345)
+    dataloader = StreamingDataLoader(dataset, num_workers=1, batch_size=batch_size, prefetch_factor=1)
+    dataloader_iter = iter(dataloader)
+
+    if batch_size == 2:
+        assert torch.equal(next(dataloader_iter), torch.Tensor([0, 1]))
+        assert torch.equal(next(dataloader_iter), torch.Tensor([10, 2]))
+        assert torch.equal(next(dataloader_iter), torch.Tensor([3, 4]))
+        assert torch.equal(next(dataloader_iter), torch.Tensor([11, 5]))
+        assert torch.equal(next(dataloader_iter), torch.Tensor([6, 7]))
+        assert torch.equal(next(dataloader_iter), torch.Tensor([12, 8]))
+
+    else:
+        assert torch.equal(next(dataloader_iter), torch.Tensor([0]))
+        assert torch.equal(next(dataloader_iter), torch.Tensor([1]))
+        assert torch.equal(next(dataloader_iter), torch.Tensor([10]))
+        assert torch.equal(next(dataloader_iter), torch.Tensor([2]))
+        assert torch.equal(next(dataloader_iter), torch.Tensor([3]))
+        assert torch.equal(next(dataloader_iter), torch.Tensor([4]))
+        assert torch.equal(next(dataloader_iter), torch.Tensor([11]))
+        assert torch.equal(next(dataloader_iter), torch.Tensor([5]))
+        assert torch.equal(next(dataloader_iter), torch.Tensor([6]))
+        assert torch.equal(next(dataloader_iter), torch.Tensor([7]))
+        assert torch.equal(next(dataloader_iter), torch.Tensor([12]))
+        assert torch.equal(next(dataloader_iter), torch.Tensor([8]))
+
+    assert dataloader.state_dict() == {
+        "0": {"num_samples_yielded": 9, "num_workers": 1, "batch_size": batch_size},
+        "1": {"num_samples_yielded": 3, "num_workers": 1, "batch_size": batch_size},
+    }
