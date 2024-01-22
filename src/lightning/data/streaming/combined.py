@@ -51,8 +51,12 @@ class CombinedStreamingDataset(IterableDataset):
         self._iterator: Optional[_CombinedDatasetIterator] = None
         self._use_streaming_dataloader = False
 
+    def set_epoch(self, current_epoch: int) -> None:
+        for dataset in self._datasets:
+            dataset.set_epoch(current_epoch)
+
     def _check_datasets(self, datasets: List[StreamingDataset]) -> None:
-        if any(isinstance(d, StreamingDataset) for d in datasets):
+        if any(not isinstance(d, StreamingDataset) for d in datasets):
             raise RuntimeError("The provided datasets should be instances of the StreamingDataset.")
 
     def _set_use_streaming_dataloader(self, use_streaming_dataloader: bool) -> None:

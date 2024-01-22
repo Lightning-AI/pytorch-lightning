@@ -361,6 +361,7 @@ class StreamingDataLoader(DataLoader):
                 f" Found {dataset}."
             )
 
+        self.current_epoch = 0
         self.batch_size = batch_size
         self.num_workers = num_workers
         self.num_samples_yielded = 0
@@ -368,6 +369,9 @@ class StreamingDataLoader(DataLoader):
         super().__init__(dataset, *args, batch_size=batch_size, num_workers=num_workers, **kwargs)  # type: ignore
 
     def __iter__(self) -> Any:
+        self.current_epoch += 1
+        self.dataset.set_epoch(self.current_epoch)
+
         if isinstance(self.dataset, StreamingDataset):
             assert self.batch_size
             self.num_samples_yielded = 0

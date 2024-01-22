@@ -1,7 +1,12 @@
+import os
+from unittest.mock import ANY
+
 import pytest
 import torch
+from lightning.data.streaming.cache import Cache
 from lightning.data.streaming.combined import CombinedStreamingDataset
 from lightning.data.streaming.dataloader import StreamingDataLoader
+from lightning.data.streaming.dataset import Dir, StreamingDataset
 from torch.utils.data import IterableDataset
 from torch.utils.data.dataloader import DataLoader
 
@@ -209,3 +214,576 @@ def test_combined_dataset_with_dataloader_and_one_worker(batch_size):
         "0": {"num_samples_yielded": 9, "num_workers": 1, "batch_size": batch_size},
         "1": {"num_samples_yielded": 3, "num_workers": 1, "batch_size": batch_size},
     }
+
+
+def test_combined_dataset_with_dataloader_2_epochs(tmpdir):
+    data_dir_1 = os.path.join(tmpdir, "data_1")
+    data_dir_2 = os.path.join(tmpdir, "data_2")
+    cache_dir_1 = os.path.join(tmpdir, "cache_dir_1")
+    cache_dir_2 = os.path.join(tmpdir, "cache_dir_2")
+
+    os.makedirs(data_dir_1)
+    os.makedirs(data_dir_2)
+    os.makedirs(cache_dir_1)
+    os.makedirs(cache_dir_2)
+
+    cache = Cache(input_dir=str(data_dir_1), chunk_size=2)
+
+    for i in range(10):
+        cache[i] = i
+
+    cache.done()
+    cache.merge()
+
+    cache = Cache(input_dir=str(data_dir_2), chunk_size=2)
+
+    for i in range(10):
+        cache[i] = i + 5
+
+    cache.done()
+    cache.merge()
+
+    dataset1 = StreamingDataset(input_dir=Dir(cache_dir_1, data_dir_1), shuffle=True)
+    dataset2 = StreamingDataset(input_dir=Dir(cache_dir_2, data_dir_2), shuffle=True)
+    dataset = CombinedStreamingDataset(datasets=[dataset1, dataset2], weights=[0.5, 0.5], seed=12345)
+    dataloader = StreamingDataLoader(dataset, num_workers=1, batch_size=2)
+
+    assert dataset1.current_epoch == 1
+    assert dataset2.current_epoch == 1
+
+    batches_1 = []
+    states_1 = []
+    for batch in dataloader:
+        batches_1.append(batch)
+        states_1.append(dataloader.state_dict())
+
+    assert dataset1.current_epoch == 1
+    assert dataset2.current_epoch == 1
+
+    batches_2 = []
+    states_2 = []
+    for batch in dataloader:
+        batches_2.append(batch)
+        states_2.append(dataloader.state_dict())
+    assert dataset1.current_epoch == 2
+    assert dataset2.current_epoch == 2
+
+    assert sum(torch.equal(b1, b2) for b1, b2 in zip(batches_1, batches_2)) == 0
+
+    assert states_1 == [
+        {
+            "0": {
+                "0": {
+                    "num_samples_yielded": 2,
+                    "num_workers": 1,
+                    "batch_size": 2,
+                    "current_epoch": 1,
+                    "input_dir_path": ANY,
+                    "input_dir_url": ANY,
+                    "item_loader": None,
+                    "drop_last": False,
+                    "seed": 42,
+                    "world_size": 1,
+                    "shuffle": True,
+                }
+            },
+            "1": {
+                "0": {
+                    "num_samples_yielded": 0,
+                    "num_workers": 1,
+                    "batch_size": 2,
+                    "current_epoch": 1,
+                    "input_dir_path": ANY,
+                    "input_dir_url": ANY,
+                    "item_loader": None,
+                    "drop_last": False,
+                    "seed": 42,
+                    "world_size": 1,
+                    "shuffle": True,
+                }
+            },
+        },
+        {
+            "0": {
+                "0": {
+                    "num_samples_yielded": 3,
+                    "num_workers": 1,
+                    "batch_size": 2,
+                    "current_epoch": 1,
+                    "input_dir_path": ANY,
+                    "input_dir_url": ANY,
+                    "item_loader": None,
+                    "drop_last": False,
+                    "seed": 42,
+                    "world_size": 1,
+                    "shuffle": True,
+                }
+            },
+            "1": {
+                "0": {
+                    "num_samples_yielded": 1,
+                    "num_workers": 1,
+                    "batch_size": 2,
+                    "current_epoch": 1,
+                    "input_dir_path": ANY,
+                    "input_dir_url": ANY,
+                    "item_loader": None,
+                    "drop_last": False,
+                    "seed": 42,
+                    "world_size": 1,
+                    "shuffle": True,
+                }
+            },
+        },
+        {
+            "0": {
+                "0": {
+                    "num_samples_yielded": 5,
+                    "num_workers": 1,
+                    "batch_size": 2,
+                    "current_epoch": 1,
+                    "input_dir_path": ANY,
+                    "input_dir_url": ANY,
+                    "item_loader": None,
+                    "drop_last": False,
+                    "seed": 42,
+                    "world_size": 1,
+                    "shuffle": True,
+                }
+            },
+            "1": {
+                "0": {
+                    "num_samples_yielded": 1,
+                    "num_workers": 1,
+                    "batch_size": 2,
+                    "current_epoch": 1,
+                    "input_dir_path": ANY,
+                    "input_dir_url": ANY,
+                    "item_loader": None,
+                    "drop_last": False,
+                    "seed": 42,
+                    "world_size": 1,
+                    "shuffle": True,
+                }
+            },
+        },
+        {
+            "0": {
+                "0": {
+                    "num_samples_yielded": 6,
+                    "num_workers": 1,
+                    "batch_size": 2,
+                    "current_epoch": 1,
+                    "input_dir_path": ANY,
+                    "input_dir_url": ANY,
+                    "item_loader": None,
+                    "drop_last": False,
+                    "seed": 42,
+                    "world_size": 1,
+                    "shuffle": True,
+                }
+            },
+            "1": {
+                "0": {
+                    "num_samples_yielded": 2,
+                    "num_workers": 1,
+                    "batch_size": 2,
+                    "current_epoch": 1,
+                    "input_dir_path": ANY,
+                    "input_dir_url": ANY,
+                    "item_loader": None,
+                    "drop_last": False,
+                    "seed": 42,
+                    "world_size": 1,
+                    "shuffle": True,
+                }
+            },
+        },
+        {
+            "0": {
+                "0": {
+                    "num_samples_yielded": 8,
+                    "num_workers": 1,
+                    "batch_size": 2,
+                    "current_epoch": 1,
+                    "input_dir_path": ANY,
+                    "input_dir_url": ANY,
+                    "item_loader": None,
+                    "drop_last": False,
+                    "seed": 42,
+                    "world_size": 1,
+                    "shuffle": True,
+                }
+            },
+            "1": {
+                "0": {
+                    "num_samples_yielded": 2,
+                    "num_workers": 1,
+                    "batch_size": 2,
+                    "current_epoch": 1,
+                    "input_dir_path": ANY,
+                    "input_dir_url": ANY,
+                    "item_loader": None,
+                    "drop_last": False,
+                    "seed": 42,
+                    "world_size": 1,
+                    "shuffle": True,
+                }
+            },
+        },
+        {
+            "0": {
+                "0": {
+                    "num_samples_yielded": 9,
+                    "num_workers": 1,
+                    "batch_size": 2,
+                    "current_epoch": 1,
+                    "input_dir_path": ANY,
+                    "input_dir_url": ANY,
+                    "item_loader": None,
+                    "drop_last": False,
+                    "seed": 42,
+                    "world_size": 1,
+                    "shuffle": True,
+                }
+            },
+            "1": {
+                "0": {
+                    "num_samples_yielded": 3,
+                    "num_workers": 1,
+                    "batch_size": 2,
+                    "current_epoch": 1,
+                    "input_dir_path": ANY,
+                    "input_dir_url": ANY,
+                    "item_loader": None,
+                    "drop_last": False,
+                    "seed": 42,
+                    "world_size": 1,
+                    "shuffle": True,
+                }
+            },
+        },
+        {
+            "0": {
+                "0": {
+                    "num_samples_yielded": 10,
+                    "num_workers": 1,
+                    "batch_size": 2,
+                    "current_epoch": 1,
+                    "input_dir_path": ANY,
+                    "input_dir_url": ANY,
+                    "item_loader": None,
+                    "drop_last": False,
+                    "seed": 42,
+                    "world_size": 1,
+                    "shuffle": True,
+                }
+            },
+            "1": {
+                "0": {
+                    "num_samples_yielded": 4,
+                    "num_workers": 1,
+                    "batch_size": 2,
+                    "current_epoch": 1,
+                    "input_dir_path": ANY,
+                    "input_dir_url": ANY,
+                    "item_loader": None,
+                    "drop_last": False,
+                    "seed": 42,
+                    "world_size": 1,
+                    "shuffle": True,
+                }
+            },
+        },
+        {
+            "0": {
+                "0": {
+                    "num_samples_yielded": 11,
+                    "num_workers": 1,
+                    "batch_size": 2,
+                    "current_epoch": 1,
+                    "input_dir_path": ANY,
+                    "input_dir_url": ANY,
+                    "item_loader": None,
+                    "drop_last": False,
+                    "seed": 42,
+                    "world_size": 1,
+                    "shuffle": True,
+                }
+            },
+            "1": {
+                "0": {
+                    "num_samples_yielded": 5,
+                    "num_workers": 1,
+                    "batch_size": 2,
+                    "current_epoch": 1,
+                    "input_dir_path": ANY,
+                    "input_dir_url": ANY,
+                    "item_loader": None,
+                    "drop_last": False,
+                    "seed": 42,
+                    "world_size": 1,
+                    "shuffle": True,
+                }
+            },
+        },
+    ]
+
+    assert states_2 == [
+        {
+            "0": {
+                "0": {
+                    "num_samples_yielded": 2,
+                    "num_workers": 1,
+                    "batch_size": 2,
+                    "current_epoch": 2,
+                    "input_dir_path": ANY,
+                    "input_dir_url": ANY,
+                    "item_loader": None,
+                    "drop_last": False,
+                    "seed": 42,
+                    "world_size": 1,
+                    "shuffle": True,
+                }
+            },
+            "1": {
+                "0": {
+                    "num_samples_yielded": 0,
+                    "num_workers": 1,
+                    "batch_size": 2,
+                    "current_epoch": 2,
+                    "input_dir_path": ANY,
+                    "input_dir_url": ANY,
+                    "item_loader": None,
+                    "drop_last": False,
+                    "seed": 42,
+                    "world_size": 1,
+                    "shuffle": True,
+                }
+            },
+        },
+        {
+            "0": {
+                "0": {
+                    "num_samples_yielded": 3,
+                    "num_workers": 1,
+                    "batch_size": 2,
+                    "current_epoch": 2,
+                    "input_dir_path": ANY,
+                    "input_dir_url": ANY,
+                    "item_loader": None,
+                    "drop_last": False,
+                    "seed": 42,
+                    "world_size": 1,
+                    "shuffle": True,
+                }
+            },
+            "1": {
+                "0": {
+                    "num_samples_yielded": 1,
+                    "num_workers": 1,
+                    "batch_size": 2,
+                    "current_epoch": 2,
+                    "input_dir_path": ANY,
+                    "input_dir_url": ANY,
+                    "item_loader": None,
+                    "drop_last": False,
+                    "seed": 42,
+                    "world_size": 1,
+                    "shuffle": True,
+                }
+            },
+        },
+        {
+            "0": {
+                "0": {
+                    "num_samples_yielded": 5,
+                    "num_workers": 1,
+                    "batch_size": 2,
+                    "current_epoch": 2,
+                    "input_dir_path": ANY,
+                    "input_dir_url": ANY,
+                    "item_loader": None,
+                    "drop_last": False,
+                    "seed": 42,
+                    "world_size": 1,
+                    "shuffle": True,
+                }
+            },
+            "1": {
+                "0": {
+                    "num_samples_yielded": 1,
+                    "num_workers": 1,
+                    "batch_size": 2,
+                    "current_epoch": 2,
+                    "input_dir_path": ANY,
+                    "input_dir_url": ANY,
+                    "item_loader": None,
+                    "drop_last": False,
+                    "seed": 42,
+                    "world_size": 1,
+                    "shuffle": True,
+                }
+            },
+        },
+        {
+            "0": {
+                "0": {
+                    "num_samples_yielded": 6,
+                    "num_workers": 1,
+                    "batch_size": 2,
+                    "current_epoch": 2,
+                    "input_dir_path": ANY,
+                    "input_dir_url": ANY,
+                    "item_loader": None,
+                    "drop_last": False,
+                    "seed": 42,
+                    "world_size": 1,
+                    "shuffle": True,
+                }
+            },
+            "1": {
+                "0": {
+                    "num_samples_yielded": 2,
+                    "num_workers": 1,
+                    "batch_size": 2,
+                    "current_epoch": 2,
+                    "input_dir_path": ANY,
+                    "input_dir_url": ANY,
+                    "item_loader": None,
+                    "drop_last": False,
+                    "seed": 42,
+                    "world_size": 1,
+                    "shuffle": True,
+                }
+            },
+        },
+        {
+            "0": {
+                "0": {
+                    "num_samples_yielded": 8,
+                    "num_workers": 1,
+                    "batch_size": 2,
+                    "current_epoch": 2,
+                    "input_dir_path": ANY,
+                    "input_dir_url": ANY,
+                    "item_loader": None,
+                    "drop_last": False,
+                    "seed": 42,
+                    "world_size": 1,
+                    "shuffle": True,
+                }
+            },
+            "1": {
+                "0": {
+                    "num_samples_yielded": 2,
+                    "num_workers": 1,
+                    "batch_size": 2,
+                    "current_epoch": 2,
+                    "input_dir_path": ANY,
+                    "input_dir_url": ANY,
+                    "item_loader": None,
+                    "drop_last": False,
+                    "seed": 42,
+                    "world_size": 1,
+                    "shuffle": True,
+                }
+            },
+        },
+        {
+            "0": {
+                "0": {
+                    "num_samples_yielded": 9,
+                    "num_workers": 1,
+                    "batch_size": 2,
+                    "current_epoch": 2,
+                    "input_dir_path": ANY,
+                    "input_dir_url": ANY,
+                    "item_loader": None,
+                    "drop_last": False,
+                    "seed": 42,
+                    "world_size": 1,
+                    "shuffle": True,
+                }
+            },
+            "1": {
+                "0": {
+                    "num_samples_yielded": 3,
+                    "num_workers": 1,
+                    "batch_size": 2,
+                    "current_epoch": 2,
+                    "input_dir_path": ANY,
+                    "input_dir_url": ANY,
+                    "item_loader": None,
+                    "drop_last": False,
+                    "seed": 42,
+                    "world_size": 1,
+                    "shuffle": True,
+                }
+            },
+        },
+        {
+            "0": {
+                "0": {
+                    "num_samples_yielded": 10,
+                    "num_workers": 1,
+                    "batch_size": 2,
+                    "current_epoch": 2,
+                    "input_dir_path": ANY,
+                    "input_dir_url": ANY,
+                    "item_loader": None,
+                    "drop_last": False,
+                    "seed": 42,
+                    "world_size": 1,
+                    "shuffle": True,
+                }
+            },
+            "1": {
+                "0": {
+                    "num_samples_yielded": 4,
+                    "num_workers": 1,
+                    "batch_size": 2,
+                    "current_epoch": 2,
+                    "input_dir_path": ANY,
+                    "input_dir_url": ANY,
+                    "item_loader": None,
+                    "drop_last": False,
+                    "seed": 42,
+                    "world_size": 1,
+                    "shuffle": True,
+                }
+            },
+        },
+        {
+            "0": {
+                "0": {
+                    "num_samples_yielded": 11,
+                    "num_workers": 1,
+                    "batch_size": 2,
+                    "current_epoch": 2,
+                    "input_dir_path": ANY,
+                    "input_dir_url": ANY,
+                    "item_loader": None,
+                    "drop_last": False,
+                    "seed": 42,
+                    "world_size": 1,
+                    "shuffle": True,
+                }
+            },
+            "1": {
+                "0": {
+                    "num_samples_yielded": 5,
+                    "num_workers": 1,
+                    "batch_size": 2,
+                    "current_epoch": 2,
+                    "input_dir_path": ANY,
+                    "input_dir_url": ANY,
+                    "item_loader": None,
+                    "drop_last": False,
+                    "seed": 42,
+                    "world_size": 1,
+                    "shuffle": True,
+                }
+            },
+        },
+    ]

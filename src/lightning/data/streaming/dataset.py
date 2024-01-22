@@ -90,6 +90,9 @@ class StreamingDataset(IterableDataset):
         self.serializers = serializers
         self._state_dict: Optional[Dict[str, Any]] = None
 
+    def set_epoch(self, current_epoch: int) -> None:
+        self.current_epoch = current_epoch
+
     def _create_cache(self, worker_env: _WorkerEnv) -> Cache:
         if _should_replace_path(self.input_dir.path):
             cache_path = _try_create_cache_dir(
