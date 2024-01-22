@@ -11,9 +11,7 @@ def main():
     fabric = L.Fabric()
 
     # Data
-    with fabric.rank_zero_first():
-        dataset = WikiText2()
-
+    dataset = WikiText2()
     train_dataloader, val_dataloader, _ = get_dataloaders(dataset)
 
     # Model
