@@ -3,6 +3,7 @@ import torch
 from lightning.data.streaming.combined import CombinedStreamingDataset
 from lightning.data.streaming.dataloader import StreamingDataLoader
 from torch.utils.data import IterableDataset
+from torch.utils.data.dataloader import DataLoader
 
 
 def test_combined_dataset_num_samples_yield():
@@ -165,6 +166,13 @@ def test_combined_dataset():
     if len(res) > 10:
         assert 0 in res
         assert 10 in res
+
+    dataset1 = SimpleDataset(0, 10)
+    dataset2 = SimpleDataset(10, 20)
+    dataset = CombinedStreamingDataset(datasets=[dataset1, dataset2], weights=[0.5, 0.5], seed=12345)
+    dataloader = DataLoader(dataset, batch_size=2, num_workers=1)
+    dataloader_iter = iter(dataloader)
+    assert torch.equal(next(dataloader_iter), torch.Tensor([0, 1]))
 
 
 @pytest.mark.parametrize("batch_size", [1, 2])

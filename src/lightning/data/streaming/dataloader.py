@@ -32,7 +32,7 @@ from torch.utils.data.dataloader import (
 from torch.utils.data.sampler import BatchSampler, Sampler
 
 from lightning.data.streaming import Cache
-from lightning.data.streaming.combined import __NUM_SAMPLES_YIELDED__, CombinedStreamingDataset
+from lightning.data.streaming.combined import __NUM_SAMPLES_YIELDED__, __SAMPLES__, CombinedStreamingDataset
 from lightning.data.streaming.constants import _DEFAULT_CHUNK_BYTES, _TORCH_GREATER_EQUAL_2_1_0, _VIZ_TRACKER_AVAILABLE
 from lightning.data.streaming.dataset import StreamingDataset
 from lightning.data.streaming.sampler import CacheBatchSampler
@@ -364,7 +364,7 @@ class StreamingDataLoader(DataLoader):
         self.batch_size = batch_size
         self.num_workers = num_workers
         self.num_samples_yielded = 0
-        self._num_samples_yielded = None
+        self._num_samples_yielded: Optional[List[Any]] = None
         super().__init__(dataset, *args, batch_size=batch_size, num_workers=num_workers, **kwargs)  # type: ignore
 
     def __iter__(self) -> Any:
@@ -375,13 +375,15 @@ class StreamingDataLoader(DataLoader):
                 self.num_samples_yielded += self.batch_size
                 yield batch
         else:
-            # TODO: Inject a custom collate function to avoid collating the
+            self.dataset._set_use_streaming_dataloader(True)
+            assert self.batch_size
+            # TODO: Inject a custom collate function to avoid collating the __NUM_SAMPLES_YIELDED__ key
             for batch in super().__iter__():
                 self._num_samples_yielded = [
                     sample[-1].item() if self.batch_size > 1 else sample.item()
                     for sample in batch[__NUM_SAMPLES_YIELDED__]
                 ]
-                yield batch["sample"]
+                yield batch[__SAMPLES__]
 
     def state_dict(self) -> Dict[str, Any]:
         if isinstance(self.dataset, StreamingDataset):

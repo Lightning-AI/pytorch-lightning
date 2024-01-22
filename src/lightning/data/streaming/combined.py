@@ -20,6 +20,7 @@ from lightning.data.streaming.dataset import StreamingDataset
 from lightning.data.utilities.env import _is_in_dataloader_worker
 
 __NUM_SAMPLES_YIELDED__ = "__NUM_SAMPLES_YIELDED__"
+__SAMPLES__ = "__SAMPLES__"
 
 
 class CombinedStreamingDataset(IterableDataset):
@@ -46,6 +47,11 @@ class CombinedStreamingDataset(IterableDataset):
             self._weights = [w / sum(weights) for w in weights]
 
         self._iterator: Optional[_CombinedDatasetIterator] = None
+        self._use_streaming_dataloader = False
+
+    def _set_use_streaming_dataloader(self, use_streaming_dataloader: bool) -> None:
+        # Used to prevent returning num_samples_yielded when using PyTorch DataLoader
+        self._use_streaming_dataloader = use_streaming_dataloader
 
     def __len__(self) -> int:
         assert self._weights
@@ -53,7 +59,9 @@ class CombinedStreamingDataset(IterableDataset):
 
     def __iter__(self) -> Iterator[Any]:
         assert self._weights
-        self._iterator = _CombinedDatasetIterator(self._datasets, self._seed, self._weights)
+        self._iterator = _CombinedDatasetIterator(
+            self._datasets, self._seed, self._weights, self._use_streaming_dataloader
+        )
         return self._iterator
 
     def state_dict(
@@ -77,7 +85,9 @@ class CombinedStreamingDataset(IterableDataset):
 
 
 class _CombinedDatasetIterator(Iterator):
-    def __init__(self, datasets: List[StreamingDataset], seed: int, weights: Sequence[float]) -> None:
+    def __init__(
+        self, datasets: List[StreamingDataset], seed: int, weights: Sequence[float], use_streaming_dataloader: bool
+    ) -> None:
         self._datasets = datasets
         self._dataset_iters = [iter(dataset) for dataset in datasets]
         self._dataset_indexes = list(range(len(datasets)))
@@ -85,6 +95,7 @@ class _CombinedDatasetIterator(Iterator):
         self._weights = weights
         self._rng = random.Random(seed)
         self._is_in_dataloader_worker = _is_in_dataloader_worker()
+        self._use_streaming_dataloader = use_streaming_dataloader
 
     def __next__(self) -> Any:
         # randomly select a dataset index
@@ -94,9 +105,9 @@ class _CombinedDatasetIterator(Iterator):
         self._num_samples_yielded[dataset_index] += 1
 
         # return a new sample
-        if self._is_in_dataloader_worker:
+        if self._is_in_dataloader_worker and self._use_streaming_dataloader:
             return {
-                "sample": next(self._dataset_iters[dataset_index]),
+                __SAMPLES__: next(self._dataset_iters[dataset_index]),
                 __NUM_SAMPLES_YIELDED__: self._num_samples_yielded,
             }
         return next(self._dataset_iters[dataset_index])
