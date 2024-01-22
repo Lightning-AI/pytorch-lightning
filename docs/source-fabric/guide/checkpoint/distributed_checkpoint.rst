@@ -210,7 +210,7 @@ You will need to do this for example if you want to load the checkpoint into a s
 
         import torch
 
-        checkpoint = torch.load("my-checkpoint.ckpt.full")
+        checkpoint = torch.load("my-checkpoint.ckpt.consolidated")
         print(list(checkpoint.keys()))
         print(checkpoint["model"]["transformer.decoder.layers.31.norm1.weight"])
 

@@ -71,7 +71,9 @@ def test_process_cli_args(tmp_path, caplog, monkeypatch):
     folder = tmp_path / "checkpoint_folder"
     folder.mkdir()
     config = _process_cli_args(Namespace(checkpoint_folder=folder, output_file=None))
-    assert vars(config) == {"checkpoint_folder": folder, "output_file": folder.with_suffix(folder.suffix + ".full")}
+    assert vars(config) == {
+        "checkpoint_folder": folder, "output_file": folder.with_suffix(folder.suffix + ".consolidated")
+    }
 
     # Checkpoint is a folder, output file already exists
     file = tmp_path / "ouput_file"

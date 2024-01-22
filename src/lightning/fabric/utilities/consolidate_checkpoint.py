@@ -30,7 +30,7 @@ def _parse_cli_args() -> Namespace:
         help=(
             "Path to the file where the converted checkpoint should be saved. The file should not already exist."
             " If no path is provided, the file will be saved next to the input checkpoint folder with the same name"
-            " and a '.full' suffix."
+            " and a '.consolidated' suffix."
         ),
     )
     return parser.parse_args()
@@ -52,7 +52,7 @@ def _process_cli_args(args: Namespace) -> Namespace:
         exit(1)
 
     if args.output_file is None:
-        output_file = checkpoint_folder.with_suffix(checkpoint_folder.suffix + ".full")
+        output_file = checkpoint_folder.with_suffix(checkpoint_folder.suffix + ".consolidated")
     else:
         output_file = Path(args.output_file)
     if output_file.exists():
