@@ -187,7 +187,7 @@ It is possible to convert a distributed checkpoint to a regular, single-file che
 
 .. code-block:: bash
 
-    python -m lightning.fabric.utilities.merge_checkpoint path/to/my/checkpoint
+    python -m lightning.fabric.utilities.consolidate_checkpoint path/to/my/checkpoint
 
 You will need to do this for example if you want to load the checkpoint into a script that doesn't use FSDP, or need to export the checkpoint to a different format for deployment, evaluation, etc.
 
@@ -202,15 +202,15 @@ You will need to do this for example if you want to load the checkpoint into a s
 
     .. code-block:: bash
 
-        python -m lightning.fabric.utilities.merge_checkpoint my-checkpoint.ckpt
+        python -m lightning.fabric.utilities.consolidate_checkpoint my-checkpoint.ckpt
 
-    This saves a new file ``my-checkpoint.ckpt.merged`` next to the sharded checkpoint which you can load normally in PyTorch:
+    This saves a new file ``my-checkpoint.ckpt.full`` next to the sharded checkpoint which you can load normally in PyTorch:
 
     .. code-block:: python
 
         import torch
 
-        checkpoint = torch.load("my-checkpoint.ckpt.merged")
+        checkpoint = torch.load("my-checkpoint.ckpt.full")
         print(list(checkpoint.keys()))
         print(checkpoint["model"]["transformer.decoder.layers.31.norm1.weight"])
 

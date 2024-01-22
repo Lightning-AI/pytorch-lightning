@@ -12,7 +12,9 @@ _log = logging.getLogger(__name__)
 
 def _parse_cli_args() -> Namespace:
     parser = ArgumentParser(
-        description="Merges a distributed/sharded checkpoint into a single file that can be loaded with `torch.load()`."
+        description=(
+            "Converts a distributed/sharded checkpoint into a single file that can be loaded with `torch.load()`."
+        ),
     )
     parser.add_argument(
         "checkpoint_folder",
@@ -26,9 +28,9 @@ def _parse_cli_args() -> Namespace:
         "--output_file",
         type=str,
         help=(
-            "Path to the file where the merged checkpoint should be saved. The file should not already exist."
+            "Path to the file where the converted checkpoint should be saved. The file should not already exist."
             " If no path is provided, the file will be saved next to the input checkpoint folder with the same name"
-            " and a '.merged' suffix."
+            " and a '.full' suffix."
         ),
     )
     return parser.parse_args()
@@ -50,12 +52,12 @@ def _process_cli_args(args: Namespace) -> Namespace:
         exit(1)
 
     if args.output_file is None:
-        output_file = checkpoint_folder.with_suffix(checkpoint_folder.suffix + ".merged")
+        output_file = checkpoint_folder.with_suffix(checkpoint_folder.suffix + ".full")
     else:
         output_file = Path(args.output_file)
     if output_file.exists():
         _log.error(
-            "The path for the merged checkpoint already exists. Choose a different path by providing"
+            "The path for the converted checkpoint already exists. Choose a different path by providing"
             f" `--output_file` or move/delete the file first: {output_file}"
         )
         exit(1)

@@ -4,7 +4,7 @@ from typing import Any, Dict
 import torch
 
 from lightning.fabric.utilities.load import _load_distributed_checkpoint
-from lightning.fabric.utilities.merge_checkpoint import _parse_cli_args, _process_cli_args
+from lightning.fabric.utilities.consolidate_checkpoint import _parse_cli_args, _process_cli_args
 
 
 def _format_checkpoint(checkpoint: Dict[str, Any]) -> Dict[str, Any]:

@@ -27,7 +27,7 @@ from lightning.pytorch.plugins.precision.fsdp import FSDPPrecision
 from lightning.pytorch.strategies import FSDPStrategy
 from lightning.pytorch.trainer.states import TrainerFn
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning.pytorch.utilities.merge_checkpoint import _format_checkpoint
+from lightning.pytorch.utilities.consolidate_checkpoint import _format_checkpoint
 from torch.distributed.fsdp.fully_sharded_data_parallel import CPUOffload, FullyShardedDataParallel, MixedPrecision
 from torch.distributed.fsdp.wrap import always_wrap_policy, size_based_auto_wrap_policy, wrap
 from torchmetrics import Accuracy

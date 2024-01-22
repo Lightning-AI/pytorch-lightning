@@ -13,7 +13,7 @@
 # limitations under the License.
 from unittest.mock import Mock
 
-from lightning.pytorch.utilities.merge_checkpoint import _format_checkpoint
+from lightning.pytorch.utilities.consolidate_checkpoint import _format_checkpoint
 
 
 def test_format_checkpoint():
