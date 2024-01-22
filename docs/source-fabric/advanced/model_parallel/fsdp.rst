@@ -12,9 +12,9 @@ Even a single H100 GPU with 80 GB of VRAM (the biggest today) is not enough to t
 The memory consumption for training is generally made up of
 
 1. the model parameters,
-2. the layer activations (forward) and
-3. the gradients (backward).
-4. the optimizer states (e.g., Adam has two additional exponential averages per parameter),
+2. the layer activations (forward),
+3. the gradients (backward) and
+4. the optimizer states (e.g., Adam has two additional exponential averages per parameter).
 
 |
 

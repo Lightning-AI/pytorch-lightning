@@ -51,6 +51,7 @@ class PrepareChunksThread(Thread):
         self,
         config: ChunksConfig,
         item_loader: BaseItemLoader,
+        distributed_env: _DistributedEnv,
         max_cache_size: Optional[int] = None,
         max_pre_download: int = 2,
     ) -> None:
@@ -59,6 +60,7 @@ class PrepareChunksThread(Thread):
         self._item_loader = item_loader
         self._max_pre_download = max_pre_download
         self._pre_download_counter = 0
+        self._distributed_env = distributed_env
 
         self._chunks_index_to_be_deleted: List[int] = []
         self._max_cache_size = max_cache_size
@@ -66,8 +68,9 @@ class PrepareChunksThread(Thread):
         self._to_download_queue: multiprocessing.Queue = multiprocessing.Queue()
         self._to_delete_queue: multiprocessing.Queue = multiprocessing.Queue()
 
-        # FIXME: This should be divided by the number of nodes to provide a more granular support with scaling out
-        self._delete_chunks_when_processed = self._config.num_bytes > max_cache_size if max_cache_size else False
+        # Check whether a dataset slice fits on the node
+        num_bytes_per_nodes = self._config.num_bytes // self._distributed_env.num_nodes
+        self._delete_chunks_when_processed = num_bytes_per_nodes > max_cache_size if max_cache_size else False
         self._has_exited = False
 
     def download(self, chunk_indexes: List[int]) -> None:
@@ -229,7 +232,9 @@ class BinaryReader:
         if self._config and self._config._remote_dir:
             # Create and start the prepare chunks thread
             if self._prepare_thread is None and self._config:
-                self._prepare_thread = PrepareChunksThread(self._config, self._item_loader, self._max_cache_size)
+                self._prepare_thread = PrepareChunksThread(
+                    self._config, self._item_loader, self._distributed_env, self._max_cache_size
+                )
                 self._prepare_thread.start()
                 if index.chunk_indexes:
                     self._prepare_thread.download(index.chunk_indexes)
