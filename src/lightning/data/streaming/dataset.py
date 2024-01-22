@@ -24,6 +24,7 @@ from lightning.data.streaming.constants import (
     _DEFAULT_CACHE_DIR,
     _INDEX_FILENAME,
 )
+from copy import deepcopy
 from lightning.data.streaming.item_loader import BaseItemLoader
 from lightning.data.streaming.resolver import Dir, _resolve_dir
 from lightning.data.streaming.sampler import ChunkedIndex
@@ -306,8 +307,9 @@ class StreamingDataset(IterableDataset):
         }
 
         if self._state_dict:
-            num_restarts = len(self._state_dict)
-            return {**self._state_dict, f"{num_restarts}": state}
+            state_dict = deepcopy(self._state_dict)
+            state_dict[f"{len(state_dict)}"] = state
+            return state_dict
         return {"0": state}
 
     def load_state_dict(self, state_dict: Dict[str, Any]) -> None:

@@ -17,7 +17,7 @@ import logging
 import os
 from importlib import reload
 from typing import Any, Callable, Dict, List, Optional, Union
-
+from itertools import cycle
 import torch
 from torch.utils.data import Dataset, IterableDataset
 from torch.utils.data._utils.collate import default_collate
@@ -365,11 +365,15 @@ class StreamingDataLoader(DataLoader):
         self.batch_size = batch_size
         self.num_workers = num_workers
         self.num_samples_yielded = 0
-        self._num_samples_yielded: Optional[List[Any]] = None
+        self._num_samples_yielded: Dict[List[Any]] = {}
         self.rng_state: Optional[Any] = None
+        self.worker_idx = cycle(range(self.num_workers))
+        self.worker_idx_iter = None
+        self.latest_worker_idx = 0
         super().__init__(dataset, *args, batch_size=batch_size, num_workers=num_workers, **kwargs)  # type: ignore
 
     def __iter__(self) -> Any:
+        self.worker_idx_iter = iter(self.worker_idx)
         self.current_epoch += 1
         self.dataset.set_epoch(self.current_epoch)
 
@@ -384,11 +388,12 @@ class StreamingDataLoader(DataLoader):
             assert self.batch_size
             # TODO: Inject a custom collate function to avoid collating the __NUM_SAMPLES_YIELDED__ key
             for batch in super().__iter__():
+                self.latest_worker_idx = next(self.worker_idx_iter)
                 if isinstance(batch, dict) and __NUM_SAMPLES_YIELDED__ in batch:
-                    self._num_samples_yielded = [
-                        sample[-1].item() if self.batch_size > 1 else sample.item()
-                        for sample in batch[__NUM_SAMPLES_YIELDED__]
-                    ]
+                    self._num_samples_yielded[self.latest_worker_idx] = [
+                            sample[-1].item() if self.batch_size > 1 else sample.item()
+                            for sample in batch[__NUM_SAMPLES_YIELDED__]
+                        ]
                     yield batch[__SAMPLES__]
                 else:
                     yield batch
@@ -401,9 +406,16 @@ class StreamingDataLoader(DataLoader):
                 "dataset": self.dataset.state_dict(num_samples, self.num_workers, self.batch_size),
                 "current_epoch": self.current_epoch - 1,
             }
+
+        num_samples_yieled = [0 for _ in range(len(self._num_samples_yielded[0]))]
+        for worker_idx in self._num_samples_yielded:
+            for dataset_idx, samples_yieled in enumerate(self._num_samples_yielded[worker_idx]):
+                num_samples_yieled[dataset_idx] += samples_yieled
+
         return {
-            "dataset": self.dataset.state_dict(self.num_workers, self.batch_size, self._num_samples_yielded),
+            "dataset": self.dataset.state_dict(self.num_workers, self.batch_size, num_samples_yieled),
             "current_epoch": self.current_epoch - 1,
+            "latest_worker_idx": self.latest_worker_idx + 1,
         }
 
     def load_state_dict(self, obj: Dict[str, Any]) -> None:
