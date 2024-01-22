@@ -1,6 +1,7 @@
 import os
 import random
 import sys
+from functools import partial
 from typing import Any, List
 from unittest import mock
 
@@ -9,7 +10,7 @@ import pytest
 import torch
 from lightning import seed_everything
 from lightning.data.streaming import data_processor as data_processor_module
-from lightning.data.streaming import functions
+from lightning.data.streaming import functions, resolver
 from lightning.data.streaming.cache import Cache, Dir
 from lightning.data.streaming.data_processor import (
     DataChunkRecipe,
@@ -711,6 +712,26 @@ def test_data_processing_optimize(monkeypatch, tmpdir):
     assert len(cache) == 5
 
 
+def generate_data(index, shift=None):
+    yield from range(index + shift if shift else 0)
+
+
+@pytest.mark.skipif(condition=not _PIL_AVAILABLE or sys.platform == "win32", reason="Requires: ['pil']")
+def test_data_processing_optimize_yield(monkeypatch, tmpdir):
+    home_dir = os.path.join(tmpdir, "home")
+    cache_dir = os.path.join(tmpdir, "cache", "chunks")
+    data_cache_dir = os.path.join(tmpdir, "cache", "data")
+    output_dir = os.path.join(tmpdir, "output_dir")
+    os.makedirs(output_dir, exist_ok=True)
+    monkeypatch.setenv("DATA_OPTIMIZER_HOME_FOLDER", home_dir)
+    monkeypatch.setenv("DATA_OPTIMIZER_CACHE_FOLDER", cache_dir)
+    monkeypatch.setenv("DATA_OPTIMIZER_DATA_CACHE_FOLDER", data_cache_dir)
+
+    optimize(partial(generate_data, shift=2), [0, 1], output_dir=output_dir, chunk_size=2, num_workers=1)
+
+    assert sorted(os.listdir(output_dir)) == ["chunk-0-0.bin", "chunk-0-1.bin", "chunk-0-2.bin", "index.json"]
+
+
 class Optimize:
     def __call__(self, filepath):
         from PIL import Image
@@ -832,7 +853,6 @@ def test_lambda_transform_recipe_class(monkeypatch):
             called = True
 
     data_recipe = LambdaDataTransformRecipe(Transform(), range(1))
-
     data_recipe.prepare_item("", 1)
     assert called
 
@@ -872,3 +892,46 @@ def test_get_item_filesizes(tmp_path):
     assert os.path.getsize(tmp_path / "empty_file") == 0
     with pytest.raises(RuntimeError, match="has 0 bytes!"):
         _get_item_filesizes([str(tmp_path / "empty_file")])
+
+
+def map_fn_index(output_dir, index):
+    with open(os.path.join(output_dir, f"{index}.JPEG"), "w") as f:
+        f.write("Hello")
+
+
+@pytest.mark.skipif(condition=not _PIL_AVAILABLE or sys.platform == "win32", reason="Requires: ['pil']")
+def test_data_processing_map_without_input_dir(monkeypatch, tmpdir):
+    cache_dir = os.path.join(tmpdir, "cache")
+    output_dir = os.path.join(tmpdir, "target_dir")
+    os.makedirs(output_dir, exist_ok=True)
+    monkeypatch.setenv("DATA_OPTIMIZER_CACHE_FOLDER", cache_dir)
+    monkeypatch.setenv("DATA_OPTIMIZER_DATA_CACHE_FOLDER", cache_dir)
+
+    map(map_fn_index, list(range(5)), output_dir=output_dir, num_workers=1, reorder_files=True)
+
+    assert sorted(os.listdir(output_dir)) == ["0.JPEG", "1.JPEG", "2.JPEG", "3.JPEG", "4.JPEG"]
+
+
+@pytest.mark.skipif(condition=sys.platform == "win32", reason="Not supported on windows")
+def test_map_error_when_not_empty(monkeypatch, tmpdir):
+    boto3 = mock.MagicMock()
+    client_s3_mock = mock.MagicMock()
+    client_s3_mock.list_objects_v2.return_value = {"KeyCount": 1, "Contents": []}
+    boto3.client.return_value = client_s3_mock
+    monkeypatch.setattr(resolver, "boto3", boto3)
+
+    with pytest.raises(RuntimeError, match="data and datasets are meant to be immutable"):
+        map(
+            map_fn,
+            [0, 1],
+            output_dir=Dir(path=None, url="s3://bucket"),
+            error_when_not_empty=True,
+        )
+
+    with pytest.raises(OSError, match="cache"):
+        map(
+            map_fn,
+            [0, 1],
+            output_dir=Dir(path=None, url="s3://bucket"),
+            error_when_not_empty=False,
+        )

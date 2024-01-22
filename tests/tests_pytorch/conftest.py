@@ -31,6 +31,7 @@ from lightning.fabric.utilities.distributed import _distributed_is_initialized
 from lightning.fabric.utilities.imports import _IS_WINDOWS
 from lightning.pytorch.accelerators import XLAAccelerator
 from lightning.pytorch.trainer.connectors.signal_connector import _SignalConnector
+from tqdm import TMonitor
 
 from tests_pytorch import _PATH_DATASETS
 
@@ -155,6 +156,8 @@ def thread_police_duuu_daaa_duuu_daaa():
             thread.join(timeout=10)
         elif thread.name == "QueueFeederThread":  # tensorboardX
             thread.join(timeout=20)
+        elif isinstance(thread, TMonitor):
+            thread.exit()
         elif (
             sys.version_info >= (3, 9)
             and isinstance(thread, _ExecutorManagerThread)

@@ -218,7 +218,7 @@ Fabric will handle the saving part correctly, whether running a single device, m
 
 You should pass the model and optimizer objects directly into the dictionary so Fabric can unwrap them and automatically retrieve their *state-dict*.
 
-See also: :doc:`../guide/checkpoint`
+See also: :doc:`../guide/checkpoint/index`
 
 
 load
@@ -248,7 +248,7 @@ Fabric will handle the loading part correctly, whether running a single device, 
 
 
 To load the state of your model or optimizer from a raw PyTorch checkpoint (not saved with Fabric), use :meth:`~lightning.fabric.fabric.Fabric.load_raw` instead.
-See also: :doc:`../guide/checkpoint`
+See also: :doc:`../guide/checkpoint/index`
 
 
 load_raw
@@ -267,7 +267,7 @@ Load the state-dict of a model or optimizer from a raw PyTorch checkpoint not sa
     # model.load_state_dict(torch.load("path/to/model.pt"))
 
 
-See also: :doc:`../guide/checkpoint`
+See also: :doc:`../guide/checkpoint/index`
 
 
 barrier
