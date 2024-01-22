@@ -113,6 +113,8 @@ Launch multi-node training in the cloud
     :loop:
     :muted:
 
+After submitting the job, you will be redirected to a page where you can monitor the machine metrics and logs in real-time.
+
 
 ----
 
@@ -121,7 +123,7 @@ Launch multi-node training in the cloud
 Bring your own cloud account
 ****************************
 
-On the `Teams or Enterprise <https://lightning.ai/pricing>`_ tier, you can connect your own AWS account.
+As a `Teams or Enterprise <https://lightning.ai/pricing>`_ customer, you have the option to connect your existing AWS account to Lightning AI.
 
 
 
