@@ -13,6 +13,7 @@
 # limitations under the License.
 import logging
 from argparse import Namespace
+from pathlib import Path
 from unittest import mock
 
 import lightning.fabric
@@ -48,11 +49,12 @@ def test_process_cli_args(tmp_path, caplog, monkeypatch):
     monkeypatch.setattr(lightning.fabric.utilities.merge_checkpoint, "_TORCH_GREATER_EQUAL_2_1", True)
 
     # Checkpoint does not exist
+    checkpoint_folder = Path("does/not/exist")
     with caplog.at_level(logging.ERROR, logger="lightning.fabric.utilities.merge_checkpoint"), pytest.raises(
         SystemExit
     ):
-        _process_cli_args(Namespace(checkpoint_folder="does/not/exist"))
-    assert "checkpoint folder does not exist: does/not/exist" in caplog.text
+        _process_cli_args(Namespace(checkpoint_folder=checkpoint_folder))
+    assert f"checkpoint folder does not exist: {checkpoint_folder}" in caplog.text
     caplog.clear()
 
     # Checkpoint exists but is not a folder
