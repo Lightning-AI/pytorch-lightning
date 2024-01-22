@@ -29,6 +29,9 @@ class TestStatefulDataset:
     def load_state_dict(self, state_dict):
         self.counter = state_dict["counter"]
 
+    def set_epoch(self, current_epoch):
+        pass
+
 
 class TestCombinedStreamingDataset(CombinedStreamingDataset):
     def _check_datasets(self, datasets) -> None:

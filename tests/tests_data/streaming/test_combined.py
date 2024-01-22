@@ -11,20 +11,25 @@ from torch.utils.data import IterableDataset
 from torch.utils.data.dataloader import DataLoader
 
 
+class TestCombinedStreamingDataset(CombinedStreamingDataset):
+    def _check_datasets(self, datasets) -> None:
+        pass
+
+
 def test_combined_dataset_num_samples_yield():
-    dataset = CombinedStreamingDataset([range(10), range(0, -10, -1)], 42, weights=(0.5, 0.5))
+    dataset = TestCombinedStreamingDataset([range(10), range(0, -10, -1)], 42, weights=(0.5, 0.5))
     dataset_iter = iter(dataset)
 
     data = list(dataset_iter)
     assert data == [0, 0, 1, 2, -1, -2, -3, 3, 4, 5, 6, -4, 7, 8, -5, -6, 9, -7, -8]
 
-    dataset = CombinedStreamingDataset([range(10), range(0, -10, -1)], 37, weights=(0.5, 0.5))
+    dataset = TestCombinedStreamingDataset([range(10), range(0, -10, -1)], 37, weights=(0.5, 0.5))
     dataset_iter = iter(dataset)
 
     data = list(dataset_iter)
     assert data == [0, 0, -1, -2, -3, -4, -5, 1, -6, 2, -7, -8, 3, 4, -9, 5]
 
-    dataset = CombinedStreamingDataset([range(10), range(0, -10, -1)], 23, weights=(0.5, 0.5))
+    dataset = TestCombinedStreamingDataset([range(10), range(0, -10, -1)], 23, weights=(0.5, 0.5))
     dataset_iter = iter(dataset)
 
     data = [next(dataset_iter) for _ in range(5)]
@@ -62,14 +67,14 @@ class TestStatefulDataset:
 
 
 def test_combined_dataset_state_dict():
-    dataset = CombinedStreamingDataset(
+    dataset = TestCombinedStreamingDataset(
         [TestStatefulDataset(10, 1), TestStatefulDataset(10, -1)], 42, weights=(0.5, 0.5)
     )
     assert dataset.state_dict(0, 1) == {}
     dataset_iter = iter(dataset)
     assert dataset.state_dict(0, 1) == {"0": {"counter": 0}, "1": {"counter": 0}}
 
-    dataset2 = CombinedStreamingDataset(
+    dataset2 = TestCombinedStreamingDataset(
         [TestStatefulDataset(10, 1), TestStatefulDataset(10, -1)], 42, weights=(0.5, 0.5)
     )
     assert dataset2.state_dict(0, 1) == {}
@@ -104,7 +109,7 @@ def test_combined_dataset_state_dict():
         {"0": {"counter": 10}, "1": {"counter": 9}},
     ]
 
-    dataset2 = CombinedStreamingDataset(
+    dataset2 = TestCombinedStreamingDataset(
         [TestStatefulDataset(10, 1), TestStatefulDataset(10, -1)], 42, weights=(0.5, 0.5)
     )
     assert dataset2.state_dict(0, 1) == {}
@@ -130,7 +135,7 @@ def test_combined_dataset_state_dict():
     ],
 )
 def test_combined_dataset_normalizes_weights(weights, expected):
-    combined_dataset = CombinedStreamingDataset([[1], [2, 3]], weights=weights, seed=1)
+    combined_dataset = TestCombinedStreamingDataset([[1], [2, 3]], weights=weights, seed=1)
     assert combined_dataset._weights == expected
 
 
@@ -146,25 +151,28 @@ class SimpleDataset(IterableDataset):
     def state_dict(self, **kwargs):
         return kwargs
 
+    def set_epoch(self, current_epoch):
+        pass
+
 
 def test_combined_dataset():
     dataset1 = SimpleDataset(0, 10)
     dataset2 = SimpleDataset(10, 20)
-    dataset = CombinedStreamingDataset(datasets=[dataset1, dataset2], weights=[1.0, 0.0], seed=12345)
+    dataset = TestCombinedStreamingDataset(datasets=[dataset1, dataset2], weights=[1.0, 0.0], seed=12345)
 
     res = list(dataset)
     assert res == list(range(0, 10))
 
     dataset1 = SimpleDataset(0, 10)
     dataset2 = SimpleDataset(10, 20)
-    dataset = CombinedStreamingDataset(datasets=[dataset1, dataset2], weights=[0.0, 1.0], seed=12345)
+    dataset = TestCombinedStreamingDataset(datasets=[dataset1, dataset2], weights=[0.0, 1.0], seed=12345)
 
     res = list(dataset)
     assert res == list(range(10, 20))
 
     dataset1 = SimpleDataset(0, 10)
     dataset2 = SimpleDataset(10, 20)
-    dataset = CombinedStreamingDataset(datasets=[dataset1, dataset2], weights=[0.5, 0.5], seed=12345)
+    dataset = TestCombinedStreamingDataset(datasets=[dataset1, dataset2], weights=[0.5, 0.5], seed=12345)
 
     res = list(dataset)
     assert 9 in res or 19 in res
@@ -174,7 +182,7 @@ def test_combined_dataset():
 
     dataset1 = SimpleDataset(0, 10)
     dataset2 = SimpleDataset(10, 20)
-    dataset = CombinedStreamingDataset(datasets=[dataset1, dataset2], weights=[0.5, 0.5], seed=12345)
+    dataset = TestCombinedStreamingDataset(datasets=[dataset1, dataset2], weights=[0.5, 0.5], seed=12345)
     dataloader = DataLoader(dataset, batch_size=2, num_workers=1)
     dataloader_iter = iter(dataloader)
     assert torch.equal(next(dataloader_iter), torch.Tensor([0, 1]))
@@ -184,7 +192,7 @@ def test_combined_dataset():
 def test_combined_dataset_with_dataloader_and_one_worker(batch_size):
     dataset1 = SimpleDataset(0, 10)
     dataset2 = SimpleDataset(10, 20)
-    dataset = CombinedStreamingDataset(datasets=[dataset1, dataset2], weights=[0.5, 0.5], seed=12345)
+    dataset = TestCombinedStreamingDataset(datasets=[dataset1, dataset2], weights=[0.5, 0.5], seed=12345)
     dataloader = StreamingDataLoader(dataset, num_workers=1, batch_size=batch_size, prefetch_factor=1)
     dataloader_iter = iter(dataloader)
 
