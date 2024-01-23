@@ -18,7 +18,7 @@ from datetime import datetime
 from functools import partial
 from pathlib import Path
 from types import FunctionType
-from typing import Any, Callable, Dict, Optional, Sequence, Union
+from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
 
 import torch
 
@@ -289,7 +289,7 @@ def optimize(
     )
 
 
-def _listdir(folder):
+def _listdir(folder: str) -> Tuple[str, List[str]]:
     return folder, os.listdir(folder)
 
 
@@ -300,12 +300,12 @@ class walk:
 
     """
 
-    def __init__(self, folder: str, max_workers: int = os.cpu_count()):
+    def __init__(self, folder: str, max_workers: Optional[int] = os.cpu_count()) -> None:
         self.folders = [folder]
-        self.max_workers = max_workers
-        self.futures = []
+        self.max_workers = max_workers or 1
+        self.futures: List[concurrent.futures.Future] = []
 
-    def __iter__(self):
+    def __iter__(self) -> Any:
         """This function queues the folders to perform listdir across multiple workers."""
         with concurrent.futures.ThreadPoolExecutor(max_workers=self.max_workers) as executor:
             while len(self.folders):
