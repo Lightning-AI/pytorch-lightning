@@ -87,15 +87,11 @@ class PyTreeLoader(BaseItemLoader):
             del self._chunk_filepaths[chunk_filepath]
 
         if chunk_filepath not in self._chunk_filepaths:
-            first_exists = exists = os.path.exists(chunk_filepath)
+            exists = os.path.exists(chunk_filepath) and os.stat(chunk_filepath).st_size > 0
 
             while not exists:
                 sleep(0.1)
-                exists = os.path.exists(chunk_filepath)
-
-            # Wait to avoid any corruption when the file appears
-            if not first_exists:
-                sleep(0.001)
+                exists = os.path.exists(chunk_filepath) and os.stat(chunk_filepath).st_size > 0
 
             self._chunk_filepaths[chunk_filepath] = True
 
@@ -189,15 +185,11 @@ class TokensLoader(BaseItemLoader):
             del self._chunk_filepaths[chunk_filepath]
 
         if chunk_filepath not in self._chunk_filepaths:
-            first_exists = exists = os.path.exists(chunk_filepath) and os.stat(chunk_filepath).st_size > 0
+            exists = os.path.exists(chunk_filepath) and os.stat(chunk_filepath).st_size > 0
 
             while not exists:
                 sleep(0.1)
                 exists = os.path.exists(chunk_filepath) and os.stat(chunk_filepath).st_size > 0
-
-            # Wait to avoid any corruption when the file appears
-            if not first_exists:
-                sleep(0.1)
 
             self._chunk_filepaths[chunk_filepath] = True
 
