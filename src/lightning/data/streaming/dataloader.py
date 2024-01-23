@@ -460,7 +460,7 @@ class StreamingDataLoader(DataLoader):
 
         return {
             "dataset": self.dataset.state_dict(self.num_workers, self.batch_size, num_samples_yieled),
-            "current_epoch": self.current_epoch - 1,
+            "current_epoch": self.current_epoch if self.restore else self.current_epoch - 1,
             "latest_worker_idx": self._latest_worker_idx,
             "num_samples_yielded": deepcopy(self._num_samples_yielded_combined),
         }
