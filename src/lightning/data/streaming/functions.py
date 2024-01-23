@@ -294,7 +294,11 @@ def _listdir(folder):
 
 
 class walk:
-    """This class is an optimized version of os.walk for listing files and folders from cloud filesystem."""
+    """This class is an optimized version of os.walk for listing files and folders from cloud filesystem.
+
+    Note: The order of files and folders yielded aren't depth-first anymore due to the asynchronous listing call.
+
+    """
 
     def __init__(self, folder: str, max_workers: int = os.cpu_count()):
         self.folders = [folder]
