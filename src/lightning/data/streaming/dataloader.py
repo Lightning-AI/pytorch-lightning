@@ -343,10 +343,13 @@ class CacheDataLoader(DataLoader):
 
 
 class _StreamingMultiProcessingDataLoaderIter(_MultiProcessingDataLoaderIter):
-
     def __init__(self, loader):
         self._loader = loader
-        self._indexes = list(range(self._loader.latest_worker_idx, self._loader.num_workers)) if self._loader.latest_worker_idx > 0 else []
+        self._indexes = (
+            list(range(self._loader.latest_worker_idx, self._loader.num_workers))
+            if self._loader.latest_worker_idx > 0
+            else []
+        )
         super().__init__(loader)
 
     def _try_put_index(self):
@@ -397,7 +400,7 @@ class StreamingDataLoader(DataLoader):
         self.worker_idx = cycle(range(self.num_workers))
         self.worker_idx_iter = None
         self.latest_worker_idx = 0
-        self.should_cycle = False 
+        self.should_cycle = False
         super().__init__(dataset, *args, batch_size=batch_size, num_workers=num_workers, **kwargs)  # type: ignore
 
     def __iter__(self) -> Any:

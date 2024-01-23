@@ -104,12 +104,11 @@ class CombinedStreamingDataset(IterableDataset):
             if str(dataset_idx) not in state_dict["dataset"]:
                 raise RuntimeError(f"The provided state doesn't contain the index {dataset_idx}.")
 
-            dataset.load_state_dict(state_dict['dataset'][str(dataset_idx)])
+            dataset.load_state_dict(state_dict["dataset"][str(dataset_idx)])
 
         # Used to iterate over the sampler to avoid sampling the same samples
         if self._use_streaming_dataloader:
             self._num_samples_yielded = state_dict["num_samples_yielded"]
-
 
 
 class _CombinedDatasetIterator(Iterator):
