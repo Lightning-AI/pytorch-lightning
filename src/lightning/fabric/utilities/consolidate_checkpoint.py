@@ -5,7 +5,7 @@ from pathlib import Path
 import torch
 
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_1
-from lightning.fabric.utilities.load import _load_distributed_checkpoint, _METADATA_FILENAME
+from lightning.fabric.utilities.load import _METADATA_FILENAME, _load_distributed_checkpoint
 
 _log = logging.getLogger(__name__)
 
