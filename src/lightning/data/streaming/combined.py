@@ -21,6 +21,7 @@ from lightning.data.utilities.env import _is_in_dataloader_worker, _WorkerEnv
 
 __NUM_SAMPLES_YIELDED__ = "__NUM_SAMPLES_YIELDED__"
 __SAMPLES__ = "__SAMPLES__"
+__WORKER_ID__ = "__WORKER_ID__"
 
 
 class CombinedStreamingDataset(IterableDataset):
@@ -51,8 +52,10 @@ class CombinedStreamingDataset(IterableDataset):
         self._iterator: Optional[_CombinedDatasetIterator] = None
         self._use_streaming_dataloader = False
         self._num_samples_yielded = None
+        self._current_epoch = 0
 
     def set_epoch(self, current_epoch: int) -> None:
+        self._current_epoch = current_epoch
         for dataset in self._datasets:
             dataset.set_epoch(current_epoch)
 
@@ -104,12 +107,11 @@ class CombinedStreamingDataset(IterableDataset):
             if str(dataset_idx) not in state_dict["dataset"]:
                 raise RuntimeError(f"The provided state doesn't contain the index {dataset_idx}.")
 
-            dataset.load_state_dict(state_dict['dataset'][str(dataset_idx)])
+            dataset.load_state_dict(state_dict["dataset"][str(dataset_idx)])
 
         # Used to iterate over the sampler to avoid sampling the same samples
         if self._use_streaming_dataloader:
             self._num_samples_yielded = state_dict["num_samples_yielded"]
-
 
 
 class _CombinedDatasetIterator(Iterator):
@@ -150,6 +152,7 @@ class _CombinedDatasetIterator(Iterator):
             return {
                 __SAMPLES__: sample,
                 __NUM_SAMPLES_YIELDED__: self._num_samples_yielded,
+                __WORKER_ID__: _WorkerEnv.detect().rank,
             }
         return sample
 

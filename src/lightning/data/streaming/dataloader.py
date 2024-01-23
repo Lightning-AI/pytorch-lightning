@@ -15,6 +15,7 @@ import asyncio
 import inspect
 import logging
 import os
+from copy import deepcopy
 from importlib import reload
 from itertools import cycle
 from typing import Any, Callable, Dict, List, Optional, Union
@@ -33,7 +34,11 @@ from torch.utils.data.dataloader import (
 from torch.utils.data.sampler import BatchSampler, Sampler
 
 from lightning.data.streaming import Cache
-from lightning.data.streaming.combined import __NUM_SAMPLES_YIELDED__, __SAMPLES__, CombinedStreamingDataset
+from lightning.data.streaming.combined import (
+    __NUM_SAMPLES_YIELDED__,
+    __SAMPLES__,
+    CombinedStreamingDataset,
+)
 from lightning.data.streaming.constants import _DEFAULT_CHUNK_BYTES, _TORCH_GREATER_EQUAL_2_1_0, _VIZ_TRACKER_AVAILABLE
 from lightning.data.streaming.dataset import StreamingDataset
 from lightning.data.streaming.sampler import CacheBatchSampler
@@ -343,14 +348,17 @@ class CacheDataLoader(DataLoader):
 
 
 class _StreamingMultiProcessingDataLoaderIter(_MultiProcessingDataLoaderIter):
-
     def __init__(self, loader):
         self._loader = loader
-        self._indexes = list(range(self._loader.latest_worker_idx, self._loader.num_workers)) if self._loader.latest_worker_idx > 0 else []
+        self._indexes = (
+            list(range(self._loader.latest_worker_idx, self._loader.num_workers))
+            if self._loader.latest_worker_idx > 0
+            else []
+        )
         super().__init__(loader)
 
     def _try_put_index(self):
-        if self._loader.should_cycle and self._indexes:
+        if self._loader.restore and self._indexes:
             assert self._tasks_outstanding < self._prefetch_factor * self._num_workers
 
             try:
@@ -364,7 +372,6 @@ class _StreamingMultiProcessingDataLoaderIter(_MultiProcessingDataLoaderIter):
             self._tasks_outstanding += 1
             self._send_idx += 1
         else:
-            self._loader.should_cycle = False
             super()._try_put_index()
 
 
@@ -397,13 +404,17 @@ class StreamingDataLoader(DataLoader):
         self.worker_idx = cycle(range(self.num_workers))
         self.worker_idx_iter = None
         self.latest_worker_idx = 0
-        self.should_cycle = False 
+        self.restore = False
         super().__init__(dataset, *args, batch_size=batch_size, num_workers=num_workers, **kwargs)  # type: ignore
 
     def __iter__(self) -> Any:
-        if self.worker_idx_iter is None:
+        if not self.restore:
+            self.latest_worker_idx = 0
+            self.worker_idx = cycle(range(self.num_workers))
             self.worker_idx_iter = iter(self.worker_idx)
-        self.current_epoch += 1
+            self.current_epoch += 1
+            self._num_samples_yielded = {}
+
         self.dataset.set_epoch(self.current_epoch)
 
         if isinstance(self.dataset, StreamingDataset):
@@ -423,6 +434,7 @@ class StreamingDataLoader(DataLoader):
                         sample[-1].item() if self.batch_size > 1 else sample.item()
                         for sample in batch[__NUM_SAMPLES_YIELDED__]
                     ]
+
                     yield batch[__SAMPLES__]
                 else:
                     yield batch
@@ -433,7 +445,7 @@ class StreamingDataLoader(DataLoader):
             num_samples = self.num_samples_yielded
             return {
                 "dataset": self.dataset.state_dict(num_samples, self.num_workers, self.batch_size),
-                "current_epoch": self.current_epoch - 1,
+                "current_epoch": self.current_epoch,
             }
 
         num_samples_yieled = [0 for _ in range(len(list(self._num_samples_yielded.values())[0]))]
@@ -444,8 +456,8 @@ class StreamingDataLoader(DataLoader):
         return {
             "dataset": self.dataset.state_dict(self.num_workers, self.batch_size, num_samples_yieled),
             "current_epoch": self.current_epoch - 1,
-            "latest_worker_idx": self.latest_worker_idx + 1,
-            "num_samples_yielded": self._num_samples_yielded,
+            "latest_worker_idx": self.latest_worker_idx,
+            "num_samples_yielded": deepcopy(self._num_samples_yielded),
         }
 
     def load_state_dict(self, obj: Dict[str, Any]) -> None:
@@ -458,13 +470,15 @@ class StreamingDataLoader(DataLoader):
 
         """
         self.current_epoch = obj["current_epoch"]
-        self.latest_worker_idx = obj["latest_worker_idx"]
+        self.latest_worker_idx = obj["latest_worker_idx"] + 1
         self._num_samples_yielded = obj["num_samples_yielded"]
+
         self.worker_idx_iter = iter(self.worker_idx)
         for _ in range(self.latest_worker_idx):
             next(self.worker_idx_iter)
 
-        self.should_cycle = True
+        self.restore = True
+
         if isinstance(self.dataset, CombinedStreamingDataset):
             self.dataset._set_use_streaming_dataloader(True)
             self.dataset.load_state_dict(obj)

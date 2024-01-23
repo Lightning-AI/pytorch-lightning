@@ -13,7 +13,6 @@
 
 import hashlib
 import os
-from copy import deepcopy
 from time import time
 from typing import Any, Dict, List, Optional, Tuple, Union
 
@@ -215,7 +214,7 @@ class StreamingDataset(IterableDataset):
         self.worker_intervals = workers_intervals[worker_rank]
 
         # replay the indexes for the current chunks
-        interval = workers_intervals[worker_rank][self.chunk_index]
+        interval = self.worker_intervals[self.chunk_index]
         current_indexes = np.arange(interval[0], interval[1])
 
         # re-shuffle the indexes
