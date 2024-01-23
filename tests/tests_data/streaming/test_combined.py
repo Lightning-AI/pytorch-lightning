@@ -821,6 +821,8 @@ def test_combined_dataset_with_dataloader_2_epochs(tmpdir):
 
     dataloader.load_state_dict(states_2[1])
 
+    assert dataloader.restore
+
     batches_23 = []
     states_23 = []
     for batch in dataloader:
@@ -829,3 +831,5 @@ def test_combined_dataset_with_dataloader_2_epochs(tmpdir):
 
     assert sum(not torch.equal(b1, b2) for b1, b2 in zip(batches_2[2:], batches_23)) == 0
     assert states_23[0]["current_epoch"] == 1
+
+    assert not dataloader.restore
