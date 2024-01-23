@@ -306,7 +306,7 @@ class walk:
         self.futures = []
 
     def __iter__(self):
-        """This function queues the folder to perform listdir across multiple workers."""
+        """This function queues the folders to perform listdir across multiple workers."""
         with concurrent.futures.ThreadPoolExecutor(max_workers=self.max_workers) as executor:
             while len(self.folders):
                 folder = self.folders.pop(0)
