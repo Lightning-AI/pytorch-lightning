@@ -38,7 +38,7 @@ Launch multi-node training in the cloud
 
 |
 
-**Step 2:** Bring your code into the studio. You can clone a GitHub repo, drag and drop local files, or use the following demo example:
+**Step 2:** Bring your code into the Studio. You can clone a GitHub repo, drag and drop local files, or use the following demo example:
 
 .. collapse:: Code Example
 
