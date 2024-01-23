@@ -71,6 +71,11 @@ def test_restricted_classmethod():
 
     RestrictedClass.restricted_cmethod()  # no exception
 
+    restricted_method = RestrictedClass().restricted_cmethod  # no exception
+
+    with pytest.raises(TypeError, match="cannot be called on an instance"):
+        restricted_method()
+
 
 def test_module_mode():
     class ChildChildModule(torch.nn.Module):
