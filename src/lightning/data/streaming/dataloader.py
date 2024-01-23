@@ -441,6 +441,8 @@ class StreamingDataLoader(DataLoader):
                 else:
                     yield batch
 
+        self.restore = False
+
     def state_dict(self) -> Dict[str, Any]:
         if isinstance(self.dataset, StreamingDataset):
             assert self.batch_size
