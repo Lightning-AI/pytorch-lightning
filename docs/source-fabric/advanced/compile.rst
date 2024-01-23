@@ -96,7 +96,7 @@ You should always *exclude* the first call to ``forward()`` from your measuremen
         model = fabric.setup(model)
         compiled_model = fabric.setup(compiled_model)
 
-        # warmup the compiled model before we benchmark
+        # warm up the compiled model before we benchmark
         compiled_model(input)
 
         # Run multiple forward passes and time them
