@@ -137,7 +137,7 @@ You can check whether your model produces graph breaks by calling ``torch.compil
     # Force an error if there is a graph break in the model
     model = torch.compile(model, fullgraph=True)
 
-The error messages produced here are often quite cryptic.
+Be aware that the error messages produced here are often quite cryptic, so you will likely have to do some digging to fully optimize your model.
 
 
 ----
@@ -147,6 +147,70 @@ The error messages produced here are often quite cryptic.
 Avoid recompilation
 *******************
 
+As mentioned before, the compilation of the model happens the first time you call ``forward()``.
+At this point, PyTorch will inspect the input tensor(s) and optimize the compiled code for the particular shape, data type and other properties the input has.
+If the shape of the input remains the same across all calls to ``forward()``, PyTorch will reuse the compiled code it generated and you will get the best speedup.
+However, if these properties change across subsequent calls to ``forward()``, PyTorch will be forced to recompile the model for the new shapes, and this will significantly slow down your training if it happens on every iteration.
+
+**When your training suddenly becomes slow, it's probably because PyTorch is recompiling the model!**
+Here are some common scenarios when this can happen:
+
+- Your Trainer code switches from training to validation/testing and the input shape changes, triggering a recompilation.
+- Your dataset size is not divisible by the batch size, and the dataloader has ``drop_last=False`` (the default).
+  The last batch in your training loop will be smaller and trigger a recompilation.
+
+Ideally, you should try to make the input shape(s) to ``forward()`` static.
+However, when this is not possible, you can request PyTorch to compile the code by taking into account possible changes to the input shapes.
+
+.. code-block:: python
+
+    model = torch.compile(model, dynamic=True)
+
+A model compiled with ``dynamic=True`` will typically be slower than a model compiled with static shapes, but it will avoid the extreme cost of recompilation every iteration.
+
+.. collapse:: Example with dynamic shapes
+
+    The code below shows an example where the model recompiles for several seconds because the input shape changed.
+    You can compare the timing results by toggling ``dynamic=True/False`` in the call to ``torch.compile``:
+
+    .. code-block:: python
+
+        import time
+        import torch
+        import torchvision.models as models
+        import lightning as L
+
+        fabric = L.Fabric(accelerator="cuda", devices=1)
+
+        model = models.densenet121()
+
+        # dynamic=False is the default
+        compiled_model = torch.compile(model, dynamic=False)
+        compiled_model = fabric.setup(compiled_model)
+
+        input = torch.randn(16, 3, 128, 128, device=fabric.device)
+        t0 = time.time()
+        compiled_model(input)
+        print(f"1st forward: {time.time() - t0:.2f} seconds.")
+
+        input = torch.randn(8, 3, 128, 128, device=fabric.device)  # note the change in shape
+        t0 = time.time()
+        compiled_model(input)
+        print(f"2nd forward: {time.time() - t0:.2f} seconds.")
+
+    With ``dynamic=False``:
+
+    .. code-block:: text
+
+        1st forward: 42.89 seconds.
+        2nd forward: 40.37 seconds.
+
+    With ``dynamic=True``:
+
+    .. code-block:: text
+
+        1st forward: ??.?? seconds.
+        2nd forward: ??.?? seconds.
 
 
 ----
