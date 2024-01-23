@@ -1,8 +1,8 @@
 :orphan:
 
-##########################
-Run in the Lightning Cloud
-##########################
+#############################################
+Run single or multi-node on Lightning Studios
+#############################################
 
 **Audience**: Users who don't want to waste time on cluster configuration and maintenance.
 
