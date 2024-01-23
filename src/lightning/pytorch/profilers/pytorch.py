@@ -240,7 +240,7 @@ class PyTorchProfiler(Profiler):
         table_kwargs: Optional[Dict[str, Any]] = None,
         **profiler_kwargs: Any,
     ) -> None:
-        r"""This profiler uses PyTorch's Autograd Profiler and lets you inspect the cost of 
+        r"""This profiler uses PyTorch's Autograd Profiler and lets you inspect the cost of
         different operators inside your model - both on the CPU and GPU.
 
         Args:
