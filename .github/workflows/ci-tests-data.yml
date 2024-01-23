@@ -87,7 +87,7 @@ jobs:
       #     ls -lh $PYPI_CACHE_DIR
 
       - name: Install package & dependencies
-        timeout-minutes: 20
+        timeout-minutes: 30
         run: |
           pip install -e ".[data-dev]" -U --prefer-binary -f ${TORCH_URL}
           pip list

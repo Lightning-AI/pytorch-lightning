@@ -163,3 +163,7 @@ class Environment:
 
     def __str__(self) -> str:
         return repr(self)
+
+
+def _is_in_dataloader_worker() -> bool:
+    return torch_get_worker_info() is not None
