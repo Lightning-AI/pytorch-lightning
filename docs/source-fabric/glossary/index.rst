@@ -71,7 +71,7 @@ Glossary
 
 .. displayitem::
     :header: Compile
-    :button_link: ../guide/compile.html
+    :button_link: ../advanced/compile.html
     :col_css: col-md-4
 
 .. displayitem::

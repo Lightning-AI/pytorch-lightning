@@ -43,6 +43,14 @@ Advanced skills
     :tag: advanced
 
 .. displayitem::
+    :header: Speed up models by compiling them
+    :description: Use ``torch.compile`` to speed up models on modern hardware
+    :button_link: ../advanced/compile.html
+    :col_css: col-md-4
+    :height: 170
+    :tag: advanced
+
+.. displayitem::
     :header: Train models with billions of parameters
     :description: Train the largest models with FSDP across multiple GPUs and machines
     :button_link: ../advanced/model_parallel/fsdp.html

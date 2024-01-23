@@ -160,7 +160,7 @@ Advanced Topics
 .. displayitem::
     :header: Speed up models by compiling them
     :description: Use ``torch.compile`` to speed up models on modern hardware
-    :button_link: compile.html
+    :button_link: ../advanced/compile.html
     :col_css: col-md-4
     :height: 150
     :tag: advanced
