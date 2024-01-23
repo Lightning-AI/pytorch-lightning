@@ -1,4 +1,5 @@
 import os
+import sys
 from unittest.mock import ANY
 
 import pytest
@@ -229,6 +230,7 @@ def test_combined_dataset_with_dataloader_and_one_worker(batch_size):
     }
 
 
+@pytest.mark.skipif(sys.platform == "win32" or sys.platform == "darwin", reason="too slow in CI")
 def test_combined_dataset_with_dataloader_2_epochs(tmpdir):
     data_dir_1 = os.path.join(tmpdir, "data_1")
     data_dir_2 = os.path.join(tmpdir, "data_2")
