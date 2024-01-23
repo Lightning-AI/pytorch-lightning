@@ -5,6 +5,7 @@
     <../advanced/gradient_accumulation>
     <../advanced/distributed_communication>
     <../advanced/multiple_setup>
+    <../advanced/compile>
     <../advanced/model_parallel/fsdp>
     <../guide/checkpoint/distributed_checkpoint>
 

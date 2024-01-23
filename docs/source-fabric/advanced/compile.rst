@@ -13,9 +13,9 @@ This guide shows you how to apply ``torch.compile`` correctly in your code.
 ----
 
 
-***********************************
-Apply `torch.compile` to your model
-***********************************
+*********************************
+Apply torch.compile to your model
+*********************************
 
 Compiling a model in a script together with Fabric is as simple as adding one line of code, calling :func:`torch.compile`:
 
