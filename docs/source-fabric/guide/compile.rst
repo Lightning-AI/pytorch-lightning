@@ -59,7 +59,7 @@ You should always *exclude* the first call to ``forward()`` from your measuremen
 
 .. collapse:: Full example with benchmark
 
-    Below is an example that measures the speedup you get by compiling a DenseNet vision model.
+    Below is an example that measures the speedup you get when compiling a DenseNet from TorchVision.
 
     .. code-block:: python
 
@@ -86,10 +86,13 @@ You should always *exclude* the first call to ``forward()`` from your measuremen
 
         fabric = L.Fabric(accelerator="cuda", devices=1)
 
-        model = models.densenet121()  #.to(torch.float32)
+        model = models.densenet121()
         input = torch.randn(16, 3, 128, 128, device=fabric.device)
 
+        # Compile!
         compiled_model = torch.compile(model, mode="reduce-overhead")
+
+        # Set up the model with Fabric
         model = fabric.setup(model)
         compiled_model = fabric.setup(compiled_model)
 
