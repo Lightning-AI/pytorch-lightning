@@ -3,9 +3,10 @@ Compile
 #######
 
 Compiling your PyTorch model can result in significant speedups, especially on the latest hardware such as NVIDIA GPUs.
-This guide shows you how to apply `torch.compile` correctly in your code.
+This guide shows you how to apply ``torch.compile`` correctly in your code.
 
 .. note::
+
     This requires PyTorch >= 2.0.
 
 
@@ -22,10 +23,12 @@ Compiling a model in a script together with Fabric is as simple as adding one li
 
     import torch
     import lightning as L
-    from lightning.pytorch.demos import Transformer
 
+    # Set up Fabric
     fabric = L.Fabric(devices=1)
-    model = Transformer(128)
+
+    # Define the model
+    model = ...
 
     # Compile the model
     model = torch.compile(model)
@@ -38,15 +41,78 @@ Compiling a model in a script together with Fabric is as simple as adding one li
 
     You should compile the model **before** calling ``fabric.setup()`` as shown above for an optimal integration with features in Fabric.
 
-The newly added call to ``torch.compile()`` by itself doesn't do much yet. It just wraps the model in a "compiled model".
+The newly added call to ``torch.compile()`` by itself doesn't do much. It just wraps the model in a "compiled model".
 The actual optimization will start when calling ``forward()`` on the model for the first time:
 
 .. code-block:: python
 
-    input = torch.randint(0, 128, (4, 256), device=fabric.device)
-    target = torch.randint(0, 128, (4, 256), device=fabric.device)
+    # 1st execution compiles the model (slow)
+    output = model(input)
 
-    output = model(input, target)  # compiles when `forward()` runs for the first time
+    # All future executions will be fast
+    output = model(input)
+    output = model(input)
+    ...
+
+This is important to know when you measure the speed of a compiled model and compare it to a regular model.
+You should always *exclude* the first call to ``forward()`` from your measurements, since it includes the compilation time.
+
+.. collapse:: Full example with benchmark
+
+    Below is an example that measures the speedup you get by compiling a DenseNet vision model.
+
+    .. code-block:: python
+
+        import statistics
+        import torch
+        import torchvision.models as models
+        import lightning as L
+
+
+        @torch.no_grad()
+        def benchmark(model, input, num_iters=10):
+            """Runs the model on the input several times and returns the median execution time."""
+            start = torch.cuda.Event(enable_timing=True)
+            end = torch.cuda.Event(enable_timing=True)
+            times = []
+            for _ in range(num_iters):
+                start.record()
+                model(input)
+                end.record()
+                torch.cuda.synchronize()
+                times.append(start.elapsed_time(end) / 1000)
+            return statistics.median(times)
+
+
+        fabric = L.Fabric(accelerator="cuda", devices=1)
+
+        model = models.densenet121()  #.to(torch.float32)
+        input = torch.randn(16, 3, 128, 128, device=fabric.device)
+
+        compiled_model = torch.compile(model, mode="reduce-overhead")
+        model = fabric.setup(model)
+        compiled_model = fabric.setup(compiled_model)
+
+        # warmup the compiled model before we benchmark
+        compiled_model(input)
+
+        # Run multiple forward passes and time them
+        eager_time = benchmark(model, input)
+        compile_time = benchmark(compiled_model, input)
+
+        # Compare the speedup for the compiled execution
+        speedup = eager_time / compile_time
+        print(f"Eager median time: {eager_time:.4f} seconds")
+        print(f"Compile median time: {compile_time:.4f} seconds")
+        print(f"Speedup: {speedup:.1f}x")
+
+    On an NVIDIA A100 with PyTorch 2.1.2, CUDA 12.1, we get the following speedup:
+
+    .. code-block:: text
+
+        Eager median time: 0.0151 seconds
+        Compile median time: 0.0056 seconds
+        Speedup: 2.7x
 
 
 ----
@@ -58,7 +124,7 @@ Avoid graph breaks
 
 When ``torch.compile`` looks at the code in your model's ``forward()`` method, it will try to compile as much of the code as possible.
 If there are regions in the code that it doesn't understand, it will introduce a so-called "graph break" that essentially splits the code in optimized and unoptimized parts.
-Graph breaks aren't a deal breaker, since the optimized parts will still run faster.
+Graph breaks aren't a deal breaker, since the optimized parts should still run faster.
 But if you want to get the most out of ``torch.compile``, you might want to invest rewriting the problematic section of the code that produce the breaks.
 
 You can check whether your model produces graph breaks by calling ``torch.compile`` with ``fullraph=True``:
@@ -69,6 +135,7 @@ You can check whether your model produces graph breaks by calling ``torch.compil
     model = torch.compile(model, fullgraph=True)
 
 The error messages produced here are often quite cryptic.
+
 
 ----
 
