@@ -16,8 +16,9 @@ import inspect
 import logging
 import os
 from importlib import reload
-from typing import Any, Callable, Dict, List, Optional, Union
 from itertools import cycle
+from typing import Any, Callable, Dict, List, Optional, Union
+
 import torch
 from torch.utils.data import Dataset, IterableDataset
 from torch.utils.data._utils.collate import default_collate
@@ -419,9 +420,9 @@ class StreamingDataLoader(DataLoader):
                 self.latest_worker_idx = next(self.worker_idx_iter)
                 if isinstance(batch, dict) and __NUM_SAMPLES_YIELDED__ in batch:
                     self._num_samples_yielded[self.latest_worker_idx] = [
-                            sample[-1].item() if self.batch_size > 1 else sample.item()
-                            for sample in batch[__NUM_SAMPLES_YIELDED__]
-                        ]
+                        sample[-1].item() if self.batch_size > 1 else sample.item()
+                        for sample in batch[__NUM_SAMPLES_YIELDED__]
+                    ]
                     yield batch[__SAMPLES__]
                 else:
                     yield batch
