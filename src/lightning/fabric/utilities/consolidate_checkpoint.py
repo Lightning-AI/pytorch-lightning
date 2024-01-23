@@ -5,7 +5,7 @@ from pathlib import Path
 import torch
 
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_1
-from lightning.fabric.utilities.load import _load_distributed_checkpoint
+from lightning.fabric.utilities.load import _load_distributed_checkpoint, _METADATA_FILENAME
 
 _log = logging.getLogger(__name__)
 
@@ -14,6 +14,7 @@ def _parse_cli_args() -> Namespace:
     parser = ArgumentParser(
         description=(
             "Converts a distributed/sharded checkpoint into a single file that can be loaded with `torch.load()`."
+            " Only supports FSDP sharded checkpoints at the moment."
         ),
     )
     parser.add_argument(
@@ -48,6 +49,12 @@ def _process_cli_args(args: Namespace) -> Namespace:
     if not checkpoint_folder.is_dir():
         _log.error(
             f"The provided checkpoint path must be a folder, containing the checkpoint shards: {checkpoint_folder}"
+        )
+        exit(1)
+    if not (checkpoint_folder / _METADATA_FILENAME).is_file():
+        _log.error(
+            "Only FSDP-sharded checkpoints saved with Lightning are supported for consolidation. The provided folder"
+            f" is not in that format: {checkpoint_folder}"
         )
         exit(1)
 

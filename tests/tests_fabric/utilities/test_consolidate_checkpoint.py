@@ -19,6 +19,7 @@ from unittest import mock
 import lightning.fabric
 import pytest
 from lightning.fabric.utilities.consolidate_checkpoint import _parse_cli_args, _process_cli_args
+from lightning.fabric.utilities.load import _METADATA_FILENAME
 
 
 @pytest.mark.parametrize(
@@ -67,16 +68,25 @@ def test_process_cli_args(tmp_path, caplog, monkeypatch):
     assert "checkpoint path must be a folder" in caplog.text
     caplog.clear()
 
-    # Checkpoint is a folder, output file not specified
+    # Checkpoint exists but is not an FSDP checkpoint
     folder = tmp_path / "checkpoint_folder"
     folder.mkdir()
+    with caplog.at_level(logging.ERROR, logger="lightning.fabric.utilities.consolidate_checkpoint"), pytest.raises(
+        SystemExit
+    ):
+        _process_cli_args(Namespace(checkpoint_folder=folder))
+    assert "Only FSDP-sharded checkpoints saved with Lightning are supported" in caplog.text
+    caplog.clear()
+
+    # Checkpoint is a FSDP folder, output file not specified
+    (folder / _METADATA_FILENAME).touch()
     config = _process_cli_args(Namespace(checkpoint_folder=folder, output_file=None))
     assert vars(config) == {
         "checkpoint_folder": folder,
         "output_file": folder.with_suffix(folder.suffix + ".consolidated"),
     }
 
-    # Checkpoint is a folder, output file already exists
+    # Checkpoint is a FSDP folder, output file already exists
     file = tmp_path / "ouput_file"
     file.touch()
     with caplog.at_level(logging.ERROR, logger="lightning.fabric.utilities.consolidate_checkpoint"), pytest.raises(
