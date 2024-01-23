@@ -348,16 +348,17 @@ class CacheDataLoader(DataLoader):
 
 
 class _StreamingMultiProcessingDataLoaderIter(_MultiProcessingDataLoaderIter):
-    def __init__(self, loader):
+    def __init__(self, loader: DataLoader) -> None:
         self._loader = loader
         self._indexes = (
-            list(range(self._loader.latest_worker_idx, self._loader.num_workers))
-            if self._loader.latest_worker_idx > 0
+            list(range(self._loader._latest_worker_idx, self._loader.num_workers))
+            if self._loader._latest_worker_idx > 0
             else []
         )
         super().__init__(loader)
 
-    def _try_put_index(self):
+    def _try_put_index(self) -> None:
+        # Used to restart on the right DataLoader worker
         if self._loader.restore and self._indexes:
             assert self._tasks_outstanding < self._prefetch_factor * self._num_workers
 
@@ -398,39 +399,39 @@ class StreamingDataLoader(DataLoader):
         self.current_epoch = 0
         self.batch_size = batch_size
         self.num_workers = num_workers
-        self.num_samples_yielded = 0
-        self._num_samples_yielded: Dict[List[Any]] = {}
+        self._num_samples_yielded_streaming = 0
+        self._num_samples_yielded_combined: Dict[int, List[Any]] = {}
         self.rng_state: Optional[Any] = None
-        self.worker_idx = cycle(range(self.num_workers))
-        self.worker_idx_iter = None
-        self.latest_worker_idx = 0
+        self._worker_idx = cycle(list(range(self.num_workers if self.num_workers > 0 else 1)))
+        self._worker_idx_iter: Optional[Any] = None
+        self._latest_worker_idx = 0
         self.restore = False
         super().__init__(dataset, *args, batch_size=batch_size, num_workers=num_workers, **kwargs)  # type: ignore
 
     def __iter__(self) -> Any:
         if not self.restore:
-            self.latest_worker_idx = 0
-            self.worker_idx = cycle(range(self.num_workers))
-            self.worker_idx_iter = iter(self.worker_idx)
+            self._latest_worker_idx = 0
+            self._worker_idx = cycle(list(range(self.num_workers if self.num_workers > 0 else 1)))
+            self._worker_idx_iter = iter(self._worker_idx)
             self.current_epoch += 1
-            self._num_samples_yielded = {}
+            self._num_samples_yielded_combined = {}
+            self._num_samples_yielded_streaming = 0
 
         self.dataset.set_epoch(self.current_epoch)
 
         if isinstance(self.dataset, StreamingDataset):
             assert self.batch_size
-            self.num_samples_yielded = 0
             for batch in super().__iter__():
-                self.num_samples_yielded += self.batch_size
+                self._num_samples_yielded_streaming += self.batch_size
                 yield batch
         else:
             self.dataset._set_use_streaming_dataloader(True)
             assert self.batch_size
             # TODO: Inject a custom collate function to avoid collating the __NUM_SAMPLES_YIELDED__ key
             for batch in super().__iter__():
-                self.latest_worker_idx = next(self.worker_idx_iter)
+                self._latest_worker_idx = next(self._worker_idx_iter)  # type: ignore
                 if isinstance(batch, dict) and __NUM_SAMPLES_YIELDED__ in batch:
-                    self._num_samples_yielded[self.latest_worker_idx] = [
+                    self._num_samples_yielded_combined[self._latest_worker_idx] = [
                         sample[-1].item() if self.batch_size > 1 else sample.item()
                         for sample in batch[__NUM_SAMPLES_YIELDED__]
                     ]
@@ -442,22 +443,24 @@ class StreamingDataLoader(DataLoader):
     def state_dict(self) -> Dict[str, Any]:
         if isinstance(self.dataset, StreamingDataset):
             assert self.batch_size
-            num_samples = self.num_samples_yielded
             return {
-                "dataset": self.dataset.state_dict(num_samples, self.num_workers, self.batch_size),
+                "dataset": self.dataset.state_dict(
+                    self._num_samples_yielded_streaming, self.num_workers, self.batch_size
+                ),
                 "current_epoch": self.current_epoch,
+                "num_samples_yielded": self._num_samples_yielded_streaming,
             }
 
-        num_samples_yieled = [0 for _ in range(len(list(self._num_samples_yielded.values())[0]))]
-        for worker_idx in self._num_samples_yielded:
-            for dataset_idx, samples_yieled in enumerate(self._num_samples_yielded[worker_idx]):
+        num_samples_yieled = [0 for _ in range(len(list(self._num_samples_yielded_combined.values())[0]))]
+        for worker_idx in self._num_samples_yielded_combined:
+            for dataset_idx, samples_yieled in enumerate(self._num_samples_yielded_combined[worker_idx]):
                 num_samples_yieled[dataset_idx] += samples_yieled
 
         return {
             "dataset": self.dataset.state_dict(self.num_workers, self.batch_size, num_samples_yieled),
             "current_epoch": self.current_epoch - 1,
-            "latest_worker_idx": self.latest_worker_idx,
-            "num_samples_yielded": deepcopy(self._num_samples_yielded),
+            "latest_worker_idx": self._latest_worker_idx,
+            "num_samples_yielded": deepcopy(self._num_samples_yielded_combined),
         }
 
     def load_state_dict(self, obj: Dict[str, Any]) -> None:
@@ -470,12 +473,17 @@ class StreamingDataLoader(DataLoader):
 
         """
         self.current_epoch = obj["current_epoch"]
-        self.latest_worker_idx = obj["latest_worker_idx"] + 1
-        self._num_samples_yielded = obj["num_samples_yielded"]
 
-        self.worker_idx_iter = iter(self.worker_idx)
-        for _ in range(self.latest_worker_idx):
-            next(self.worker_idx_iter)
+        if isinstance(self.dataset, StreamingDataset):
+            self._num_samples_yielded_streaming = obj["num_samples_yielded"]
+
+        else:
+            self._latest_worker_idx = obj["latest_worker_idx"] + 1
+            self._num_samples_yielded_combined = obj["num_samples_yielded"]
+
+            self._worker_idx_iter = iter(self._worker_idx)
+            for _ in range(self._latest_worker_idx):
+                next(self._worker_idx_iter)
 
         self.restore = True
 

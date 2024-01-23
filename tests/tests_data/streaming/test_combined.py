@@ -117,7 +117,7 @@ def test_combined_dataset_state_dict():
 
     data_2 = []
     for state in states:
-        dataset.load_state_dict(state)
+        dataset.load_state_dict({"dataset": state})
         data_2.append(next(dataset2_iter))
 
     assert data == data_2
@@ -224,6 +224,8 @@ def test_combined_dataset_with_dataloader_and_one_worker(batch_size):
             "1": {"num_samples_yielded": 3, "num_workers": 1, "batch_size": batch_size},
         },
         "current_epoch": 0,
+        "latest_worker_idx": 0,
+        "num_samples_yielded": {0: [9, 3]},
     }
 
 

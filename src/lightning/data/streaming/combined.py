@@ -17,11 +17,10 @@ from typing import Any, Dict, Iterator, List, Optional, Sequence
 from torch.utils.data import IterableDataset
 
 from lightning.data.streaming.dataset import StreamingDataset
-from lightning.data.utilities.env import _is_in_dataloader_worker, _WorkerEnv
+from lightning.data.utilities.env import _WorkerEnv
 
 __NUM_SAMPLES_YIELDED__ = "__NUM_SAMPLES_YIELDED__"
 __SAMPLES__ = "__SAMPLES__"
-__WORKER_ID__ = "__WORKER_ID__"
 
 
 class CombinedStreamingDataset(IterableDataset):
@@ -135,7 +134,6 @@ class _CombinedDatasetIterator(Iterator):
             for _ in range(sum(num_samples_yielded)):
                 self._rng.choices(self._dataset_indexes, weights=self._weights, k=1)
 
-        self._is_in_dataloader_worker = _is_in_dataloader_worker()
         self._use_streaming_dataloader = use_streaming_dataloader
 
     def __next__(self) -> Any:
@@ -148,11 +146,10 @@ class _CombinedDatasetIterator(Iterator):
         sample = next(self._dataset_iters[dataset_index])
 
         # return a new sample
-        if self._is_in_dataloader_worker and self._use_streaming_dataloader:
+        if self._use_streaming_dataloader:
             return {
                 __SAMPLES__: sample,
                 __NUM_SAMPLES_YIELDED__: self._num_samples_yielded,
-                __WORKER_ID__: _WorkerEnv.detect().rank,
             }
         return sample
 

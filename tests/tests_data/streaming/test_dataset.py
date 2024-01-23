@@ -648,23 +648,23 @@ def test_resumable_dataset_two_workers(tmpdir):
     dataloader_iter = iter(dataloader)
 
     _ = next(dataloader_iter)
-    state_dict_0 = dataloader.state_dict()["dataset"]
+    state_dict_0 = dataloader.state_dict()
 
-    assert state_dict_0["0"]["num_samples_yielded"] == 2
-    assert state_dict_0["0"]["num_workers"] == 2
-    assert state_dict_0["0"]["batch_size"] == 2
+    assert state_dict_0["dataset"]["num_samples_yielded"] == 2
+    assert state_dict_0["dataset"]["num_workers"] == 2
+    assert state_dict_0["dataset"]["batch_size"] == 2
 
     _ = next(dataloader_iter)
-    state_dict_1 = dataloader.state_dict()["dataset"]
-    assert state_dict_1["0"]["num_samples_yielded"] == 4
-    assert state_dict_1["0"]["num_workers"] == 2
-    assert state_dict_1["0"]["batch_size"] == 2
+    state_dict_1 = dataloader.state_dict()
+    assert state_dict_1["dataset"]["num_samples_yielded"] == 4
+    assert state_dict_1["dataset"]["num_workers"] == 2
+    assert state_dict_1["dataset"]["batch_size"] == 2
 
     batch_2 = next(dataloader_iter)
-    state_dict_2 = dataloader.state_dict()["dataset"]
-    assert state_dict_2["0"]["num_samples_yielded"] == 6
-    assert state_dict_2["0"]["num_workers"] == 2
-    assert state_dict_2["0"]["batch_size"] == 2
+    state_dict_2 = dataloader.state_dict()
+    assert state_dict_2["dataset"]["num_samples_yielded"] == 6
+    assert state_dict_2["dataset"]["num_workers"] == 2
+    assert state_dict_2["dataset"]["batch_size"] == 2
 
     dataset = EmulateS3StreamingDataset(
         input_dir=Dir(cache_dir, data_dir),
@@ -672,21 +672,17 @@ def test_resumable_dataset_two_workers(tmpdir):
         shuffle=True,
     )
 
-    dataset.load_state_dict(state_dict_1)
     dataloader = StreamingDataLoader(dataset, num_workers=2, batch_size=2, prefetch_factor=1)
+    dataloader.load_state_dict(state_dict_1)
 
     dataloader_iter = iter(dataloader)
     batch_0_restart = next(dataloader_iter)
 
     state_dict_2 = dataloader.state_dict()["dataset"]
-    assert len(state_dict_2) == 2
-    assert state_dict_2["0"]["num_samples_yielded"] == 4
-    assert state_dict_2["0"]["num_workers"] == 2
-    assert state_dict_2["0"]["batch_size"] == 2
 
-    assert state_dict_2["1"]["num_samples_yielded"] == 2
-    assert state_dict_2["1"]["num_workers"] == 2
-    assert state_dict_2["1"]["batch_size"] == 2
+    assert state_dict_2["num_samples_yielded"] == 6
+    assert state_dict_2["num_workers"] == 2
+    assert state_dict_2["batch_size"] == 2
 
     assert torch.equal(batch_2, batch_0_restart)
 
@@ -779,7 +775,7 @@ def test_dataset_valid_state(tmpdir, monkeypatch):
 
     dataset._validate_state_dict()
 
-    state_dict["0"]["drop_last"] = True
+    state_dict["drop_last"] = True
     dataset.load_state_dict(state_dict)
     with pytest.raises(
         ValueError,
@@ -787,7 +783,7 @@ def test_dataset_valid_state(tmpdir, monkeypatch):
     ):
         dataset._validate_state_dict()
 
-    state_dict["0"]["item_loader"] = {}
+    state_dict["item_loader"] = {}
     dataset.load_state_dict(state_dict)
     with pytest.raises(
         ValueError,
@@ -795,7 +791,7 @@ def test_dataset_valid_state(tmpdir, monkeypatch):
     ):
         dataset._validate_state_dict()
 
-    state_dict["0"]["seed"] = 12
+    state_dict["seed"] = 12
     dataset.load_state_dict(state_dict)
     with pytest.raises(
         ValueError,
@@ -803,7 +799,7 @@ def test_dataset_valid_state(tmpdir, monkeypatch):
     ):
         dataset._validate_state_dict()
 
-    state_dict["0"]["input_dir_url"] = "toto"
+    state_dict["input_dir_url"] = "toto"
     dataset.load_state_dict(state_dict)
     with pytest.raises(
         ValueError,
@@ -811,7 +807,7 @@ def test_dataset_valid_state(tmpdir, monkeypatch):
     ):
         dataset._validate_state_dict()
 
-    state_dict["0"]["input_dir_path"] = "toto"
+    state_dict["input_dir_path"] = "toto"
     dataset.load_state_dict(state_dict)
     with pytest.raises(
         ValueError,
@@ -819,7 +815,7 @@ def test_dataset_valid_state(tmpdir, monkeypatch):
     ):
         dataset._validate_state_dict()
 
-    state_dict["0"]["input_dir_path"] = "/teamspace/datasets/coco"
+    state_dict["input_dir_path"] = "/teamspace/datasets/coco"
     dataset.load_state_dict(state_dict)
     with pytest.raises(
         ValueError,
@@ -827,7 +823,7 @@ def test_dataset_valid_state(tmpdir, monkeypatch):
     ):
         dataset._validate_state_dict()
 
-    state_dict["0"]["num_workers"] = "8"
+    state_dict["num_workers"] = "8"
     dataset.load_state_dict(state_dict)
     with pytest.raises(
         ValueError,
@@ -835,7 +831,7 @@ def test_dataset_valid_state(tmpdir, monkeypatch):
     ):
         dataset._validate_state_dict()
 
-    state_dict["0"]["shuffle"] = True
+    state_dict["shuffle"] = True
     dataset.load_state_dict(state_dict)
     with pytest.raises(
         ValueError,
