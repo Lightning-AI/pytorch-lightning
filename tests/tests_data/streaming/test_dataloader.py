@@ -29,9 +29,17 @@ class TestStatefulDataset:
     def load_state_dict(self, state_dict):
         self.counter = state_dict["counter"]
 
+    def set_epoch(self, current_epoch):
+        pass
+
+
+class TestCombinedStreamingDataset(CombinedStreamingDataset):
+    def _check_datasets(self, datasets) -> None:
+        pass
+
 
 def test_streaming_dataloader():
-    dataset = CombinedStreamingDataset(
+    dataset = TestCombinedStreamingDataset(
         [TestStatefulDataset(10, 1), TestStatefulDataset(10, -1)], 42, weights=(0.5, 0.5)
     )
     dataloader = StreamingDataLoader(dataset, batch_size=2)
@@ -56,4 +64,9 @@ def test_streaming_dataloader():
     for exp, gen in zip(expected, batches):
         assert torch.equal(exp, gen)
 
-    assert dataloader.state_dict() == {"0": {"counter": 10}, "1": {"counter": 9}}
+    assert dataloader.state_dict() == {
+        "dataset": {"0": {"counter": 10}, "1": {"counter": 9}},
+        "current_epoch": 0,
+        "latest_worker_idx": 0,
+        "num_samples_yielded": {0: [11, 9]},
+    }

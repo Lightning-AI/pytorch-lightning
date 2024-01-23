@@ -166,7 +166,7 @@ class SpikeDetection:
         self.warmup = state_dict.pop("warmup")
         self.atol = state_dict.pop("atol")
         self.rtol = state_dict.pop("rtol")
-        self.bad_batches = state_dict.pop("bad_bachtes")
+        self.bad_batches = state_dict.pop("bad_batches")
         self.exclude_batches_path = state_dict.pop("bad_batches_path")
         self.running.load_state_dict(state_dict.pop("running"))
         self.running_mean.base_metric.load_state_dict(state_dict.pop("mean"))

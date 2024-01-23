@@ -210,19 +210,6 @@ def test_fsdp_activation_checkpointing():
 
 
 @RunIf(min_torch="1.13")
-def test_fsdp_grad_clipping_value_error():
-    strategy = FSDPStrategy()
-    with pytest.raises(
-        NotImplementedError,
-        match=(
-            "FSDP currently does not support to clip gradients by value. "
-            "Consider clipping by norm instead or choose another strategy!"
-        ),
-    ):
-        strategy.clip_gradients_value(Mock(), Mock(), Mock())
-
-
-@RunIf(min_torch="1.13")
 def test_fsdp_forbidden_precision_raises():
     with pytest.raises(TypeError, match="can only work with the `FSDPPrecision"):
         FSDPStrategy(precision=HalfPrecision())
