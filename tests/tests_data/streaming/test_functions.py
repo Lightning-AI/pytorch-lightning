@@ -1,8 +1,10 @@
+import os
 import sys
 from unittest import mock
 
 import pytest
-from lightning.data.streaming.functions import _get_input_dir, os
+from lightning.data import walk
+from lightning.data.streaming.functions import _get_input_dir
 
 
 @pytest.mark.skipif(sys.platform == "win32", reason="currently not supported for windows.")
@@ -19,3 +21,17 @@ def test_get_input_dir(tmpdir, monkeypatch):
 
     with pytest.raises(ValueError, match="The provided item  didn't contain any filepaths."):
         assert _get_input_dir(["", "/teamspace/studios/asd/b"])
+
+
+def test_walk(tmpdir):
+    for i in range(5):
+        folder_path = os.path.join(tmpdir, str(i))
+        os.makedirs(folder_path, exist_ok=True)
+        for j in range(5):
+            filepath = os.path.join(folder_path, f"{j}.txt")
+            with open(filepath, "w") as f:
+                f.write("hello world !")
+
+    walks_os = sorted(os.walk(tmpdir))
+    walks_function = sorted(walk(tmpdir))
+    assert walks_os == walks_function
