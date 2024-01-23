@@ -11,6 +11,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import concurrent.futures
 import inspect
 import os
 from datetime import datetime
@@ -286,3 +287,47 @@ def optimize(
         num_nodes,
         machine,
     )
+
+
+def _listdir(folder):
+    return folder, os.listdir(folder)
+
+
+class walk:
+    """This class is an optimized version of os.walk for listing files and folders from cloud filesystem."""
+
+    def __init__(self, folder: str, max_workers: int = os.cpu_count()):
+        self.folders = [folder]
+        self.max_workers = max_workers
+        self.futures = []
+
+    def __iter__(self):
+        """This function queues the folder to perform listdir across multiple workers."""
+        with concurrent.futures.ThreadPoolExecutor(max_workers=self.max_workers) as executor:
+            while len(self.folders):
+                folder = self.folders.pop(0)
+                future = executor.submit(_listdir, folder)
+                self.futures.append(future)
+
+            while self.futures:
+                for future in concurrent.futures.as_completed(self.futures):
+                    filenames = []
+                    folders = []
+
+                    folder, files_or_folders = future.result()
+                    self.futures = [f for f in self.futures if f != future]
+
+                    for file_or_folder in files_or_folders:
+                        if os.path.isfile(os.path.join(folder, file_or_folder)):
+                            filenames.append(file_or_folder)
+                        else:
+                            folders.append(file_or_folder)
+                            self.folders.append(os.path.join(folder, file_or_folder))
+
+                    yield folder, folders, filenames
+
+                    while len(self.folders) and len(self.futures) <= self.max_workers * 2:
+                        folder = self.folders.pop(0)
+                        future = executor.submit(_listdir, folder)
+                        self.futures.append(future)
+        return
