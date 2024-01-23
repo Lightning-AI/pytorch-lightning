@@ -422,6 +422,7 @@ class StreamingDataLoader(DataLoader):
         if isinstance(self.dataset, StreamingDataset):
             assert self.batch_size
             for batch in super().__iter__():
+                self._latest_worker_idx = next(self._worker_idx_iter)  # type: ignore
                 self._num_samples_yielded_streaming += self.batch_size
                 yield batch
         else:
@@ -449,6 +450,7 @@ class StreamingDataLoader(DataLoader):
                 ),
                 "current_epoch": self.current_epoch,
                 "num_samples_yielded": self._num_samples_yielded_streaming,
+                "latest_worker_idx": self._latest_worker_idx,
             }
 
         num_samples_yieled = [0 for _ in range(len(list(self._num_samples_yielded_combined.values())[0]))]
@@ -476,15 +478,16 @@ class StreamingDataLoader(DataLoader):
 
         if isinstance(self.dataset, StreamingDataset):
             self._num_samples_yielded_streaming = obj["num_samples_yielded"]
-
         else:
-            self._latest_worker_idx = obj["latest_worker_idx"] + 1
             self._num_samples_yielded_combined = obj["num_samples_yielded"]
 
-            self._worker_idx_iter = iter(self._worker_idx)
-            for _ in range(self._latest_worker_idx):
-                next(self._worker_idx_iter)
+        # Used to restart on the next DataLoader worker from the previous run.
+        self._latest_worker_idx = obj["latest_worker_idx"] + 1
+        self._worker_idx_iter = iter(self._worker_idx)
+        for _ in range(self._latest_worker_idx):
+            next(self._worker_idx_iter)
 
+        # Inform we are resuming
         self.restore = True
 
         if isinstance(self.dataset, CombinedStreamingDataset):
