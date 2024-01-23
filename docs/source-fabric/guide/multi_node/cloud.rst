@@ -6,8 +6,8 @@ Run in the Lightning Cloud
 
 **Audience**: Users who don't want to waste time on cluster configuration and maintenance.
 
-`Lightning AI <https://lightning.ai>`_ is a platform where you can build, train, finetune and deploy models without worrying about infrastructure, cost management, scaling, and other technical headaches.
-This guide shows you how easy it is to run a Fabric training script across multiple machines in the cloud.
+`Lightning Studios <https://lightning.ai>`_ is a cloud platform where you can build, train, finetune and deploy models without worrying about infrastructure, cost management, scaling, and other technical headaches.
+This guide shows you how easy it is to run a Fabric training script across multiple machines on Lightning Studios.
 
 
 ----
@@ -19,7 +19,7 @@ Initial Setup
 
 First, create a free `Lightning AI account <https://lightning.ai/>`_.
 You get free credits every month you can spend on GPU compute.
-To use multiple machines, you need to be on the `Pro or Teams plan <https://lightning.ai/pricing>`_.
+To use machines with multiple GPUs or run jobs across machines, you need to be on the `Pro or Teams plan <https://lightning.ai/pricing>`_.
 
 
 ----
@@ -29,7 +29,7 @@ To use multiple machines, you need to be on the `Pro or Teams plan <https://ligh
 Launch multi-node training in the cloud
 ***************************************
 
-**Step 1:** Start a new studio.
+**Step 1:** Start a new Studio.
 
 .. video:: https://pl-public-data.s3.amazonaws.com/assets_lightning/fabric/videos/start-studio-for-mmt.mp4
     :width: 800
@@ -101,11 +101,11 @@ Launch multi-node training in the cloud
 
 |
 
-**Step 4:** Install dependencies and download all necessary data. Test that your script runs in the studio first. If it runs in the studio, it will run in multi-node!
+**Step 4:** Install dependencies and download all necessary data. Test that your script runs in the Studio first. If it runs in the Studio, it will run in multi-node!
 
 |
 
-**Step 5:** Open the Multi-Machine Training (MMT) app. Type the command to run your script, select the machine type and how many machines you want to launch on. Click "Run" to start the job.
+**Step 5:** Open the Multi-Machine Training (MMT) app. Type the command to run your script, select the machine type and how many machines you want to launch it on. Click "Run" to start the job.
 
 .. video:: https://pl-public-data.s3.amazonaws.com/assets_lightning/fabric/videos/lightning-ai-mmt-demo-fabric.mp4
     :width: 800
@@ -122,8 +122,8 @@ After submitting the job, you will be redirected to a page where you can monitor
 Bring your own cloud account
 ****************************
 
-As a `Teams or Enterprise <https://lightning.ai/pricing>`_ customer, you have the option to connect your existing AWS account to Lightning AI.
-This gives your enterprise greater control and insight into the cluster management, and all data that your team creates in studios and jobs gets stored safely in your AWS account.
+As a `Teams or Enterprise <https://lightning.ai/pricing>`_ customer, you have the option to connect your existing cloud account to Lightning AI.
+This gives your organization the ability to keep all compute and data on your own cloud account and your Virtual Private Cloud (VPC).
 
 
 ----
@@ -138,7 +138,7 @@ Learn more
         <div class="row">
 
 .. displayitem::
-    :header: Lightning AI
+    :header: Lightning Studios
     :description: Code together. Prototype. Train. Deploy. Host AI web apps. From your browser - with zero setup.
     :col_css: col-md-4
     :button_link: https://lightning.ai
