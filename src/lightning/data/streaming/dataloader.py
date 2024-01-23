@@ -341,6 +341,32 @@ class CacheDataLoader(DataLoader):
         return _MultiProcessingDataLoaderIterPatch(self)
 
 
+class _StreamingMultiProcessingDataLoaderIter(_MultiProcessingDataLoaderIter):
+
+    def __init__(self, loader):
+        self._loader = loader
+        self._indexes = list(range(self._loader.latest_worker_idx, self._loader.num_workers)) if self._loader.latest_worker_idx > 0 else []
+        super().__init__(loader)
+
+    def _try_put_index(self):
+        if self._loader.should_cycle and self._indexes:
+            assert self._tasks_outstanding < self._prefetch_factor * self._num_workers
+
+            try:
+                index = self._next_index()
+            except StopIteration:
+                return
+            worker_queue_idx = self._indexes.pop(0)
+
+            self._index_queues[worker_queue_idx].put((self._send_idx, index))
+            self._task_info[self._send_idx] = (worker_queue_idx,)
+            self._tasks_outstanding += 1
+            self._send_idx += 1
+        else:
+            self._loader.should_cycle = False
+            super()._try_put_index()
+
+
 class StreamingDataLoader(DataLoader):
     """The `StreamingDataLoader` keeps track of the number of samples fetched in order to enable resumability of the
     dataset."""
@@ -370,10 +396,12 @@ class StreamingDataLoader(DataLoader):
         self.worker_idx = cycle(range(self.num_workers))
         self.worker_idx_iter = None
         self.latest_worker_idx = 0
+        self.should_cycle = False 
         super().__init__(dataset, *args, batch_size=batch_size, num_workers=num_workers, **kwargs)  # type: ignore
 
     def __iter__(self) -> Any:
-        self.worker_idx_iter = iter(self.worker_idx)
+        if self.worker_idx_iter is None:
+            self.worker_idx_iter = iter(self.worker_idx)
         self.current_epoch += 1
         self.dataset.set_epoch(self.current_epoch)
 
@@ -407,7 +435,7 @@ class StreamingDataLoader(DataLoader):
                 "current_epoch": self.current_epoch - 1,
             }
 
-        num_samples_yieled = [0 for _ in range(len(self._num_samples_yielded[0]))]
+        num_samples_yieled = [0 for _ in range(len(list(self._num_samples_yielded.values())[0]))]
         for worker_idx in self._num_samples_yielded:
             for dataset_idx, samples_yieled in enumerate(self._num_samples_yielded[worker_idx]):
                 num_samples_yieled[dataset_idx] += samples_yieled
@@ -416,6 +444,7 @@ class StreamingDataLoader(DataLoader):
             "dataset": self.dataset.state_dict(self.num_workers, self.batch_size, num_samples_yieled),
             "current_epoch": self.current_epoch - 1,
             "latest_worker_idx": self.latest_worker_idx + 1,
+            "num_samples_yielded": self._num_samples_yielded,
         }
 
     def load_state_dict(self, obj: Dict[str, Any]) -> None:
@@ -428,7 +457,24 @@ class StreamingDataLoader(DataLoader):
 
         """
         self.current_epoch = obj["current_epoch"]
-        if isinstance(self.dataset, (StreamingDataset, CombinedStreamingDataset)):
+        self.latest_worker_idx = obj["latest_worker_idx"]
+        self._num_samples_yielded = obj["num_samples_yielded"]
+        self.worker_idx_iter = iter(self.worker_idx)
+        for _ in range(self.latest_worker_idx):
+            next(self.worker_idx_iter)
+
+        self.should_cycle = True
+        if isinstance(self.dataset, CombinedStreamingDataset):
+            self.dataset._set_use_streaming_dataloader(True)
+            self.dataset.load_state_dict(obj)
+        elif isinstance(self.dataset, StreamingDataset):
             self.dataset.load_state_dict(obj["dataset"])
         else:
             raise RuntimeError("The provided dataset should be a `StreamingDataset` or a `CombinedStreamingDataset`.")
+
+    def _get_iterator(self) -> "_BaseDataLoaderIter":
+        """Overriden to ensure the `Cache.done()` method is triggered on iteration done."""
+        if self.num_workers == 0:
+            return _SingleProcessDataLoaderIter(self)
+        self.check_worker_number_rationality()
+        return _StreamingMultiProcessingDataLoaderIter(self)

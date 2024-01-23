@@ -17,7 +17,7 @@ from typing import Any, Dict, Iterator, List, Optional, Sequence
 from torch.utils.data import IterableDataset
 
 from lightning.data.streaming.dataset import StreamingDataset
-from lightning.data.utilities.env import _is_in_dataloader_worker
+from lightning.data.utilities.env import _is_in_dataloader_worker, _WorkerEnv
 
 __NUM_SAMPLES_YIELDED__ = "__NUM_SAMPLES_YIELDED__"
 __SAMPLES__ = "__SAMPLES__"
@@ -50,7 +50,7 @@ class CombinedStreamingDataset(IterableDataset):
 
         self._iterator: Optional[_CombinedDatasetIterator] = None
         self._use_streaming_dataloader = False
-        self._skip_samples = 0
+        self._num_samples_yielded = None
 
     def set_epoch(self, current_epoch: int) -> None:
         for dataset in self._datasets:
@@ -70,12 +70,20 @@ class CombinedStreamingDataset(IterableDataset):
 
     def __iter__(self) -> Iterator[Any]:
         assert self._weights
+
+        worker_end = _WorkerEnv.detect()
+
+        num_samples_yielded = None
+
+        if self._num_samples_yielded and worker_end.rank in self._num_samples_yielded:
+            num_samples_yielded = self._num_samples_yielded[worker_end.rank]
+
         self._iterator = _CombinedDatasetIterator(
             self._datasets,
             self._seed,
             self._weights,
             self._use_streaming_dataloader,
-            self._skip_samples,
+            num_samples_yielded,
         )
         return self._iterator
 
@@ -89,24 +97,19 @@ class CombinedStreamingDataset(IterableDataset):
         return self._iterator.state_dict(num_workers, batch_size)
 
     def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
-        if len(state_dict) != len(self._datasets):
+        if len(state_dict["dataset"]) != len(self._datasets):
             raise RuntimeError(f"The provided state doesn't match the current number of datasets: {self._datasets}.")
 
         for dataset_idx, dataset in enumerate(self._datasets):
-            if str(dataset_idx) not in state_dict:
+            if str(dataset_idx) not in state_dict["dataset"]:
                 raise RuntimeError(f"The provided state doesn't contain the index {dataset_idx}.")
 
-            dataset.load_state_dict(state_dict[str(dataset_idx)])
+            dataset.load_state_dict(state_dict['dataset'][str(dataset_idx)])
 
         # Used to iterate over the sampler to avoid sampling the same samples
         if self._use_streaming_dataloader:
-            num_samples_yielded = 0
-            for dataset_idx in range(len(self._datasets)):
-                num_samples_yielded += sum(
-                    [state["num_samples_yielded"] for state in state_dict[str(dataset_idx)].values()]
-                )
+            self._num_samples_yielded = state_dict["num_samples_yielded"]
 
-            self._skip_samples = num_samples_yielded
 
 
 class _CombinedDatasetIterator(Iterator):
@@ -116,7 +119,7 @@ class _CombinedDatasetIterator(Iterator):
         seed: int,
         weights: Sequence[float],
         use_streaming_dataloader: bool,
-        skip_samples: int = 0,
+        num_samples_yielded: Optional[List[int]] = None,
     ) -> None:
         self._datasets = datasets
         self._dataset_iters = [iter(dataset) for dataset in datasets]
@@ -125,8 +128,10 @@ class _CombinedDatasetIterator(Iterator):
         self._weights = weights
         self._rng = random.Random(seed)
 
-        for _ in range(skip_samples):
-            self._rng.choices(self._dataset_indexes, weights=self._weights, k=1)
+        if num_samples_yielded is not None:
+            self._num_samples_yielded = num_samples_yielded
+            for _ in range(sum(num_samples_yielded)):
+                self._rng.choices(self._dataset_indexes, weights=self._weights, k=1)
 
         self._is_in_dataloader_worker = _is_in_dataloader_worker()
         self._use_streaming_dataloader = use_streaming_dataloader
