@@ -172,7 +172,7 @@ Choose from the following options based on your expertise level and available in
         <div class="row">
 
 .. displayitem::
-    :header: Lightning Cloud
+    :header: Run single or multi-node on Lightning Studios
     :description: The easiest way to scale models in the cloud. No infrastructure setup required.
     :col_css: col-md-4
     :button_link: ../guide/multi_node/cloud.html
