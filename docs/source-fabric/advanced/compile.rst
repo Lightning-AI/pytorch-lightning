@@ -143,6 +143,15 @@ The error messages produced here are often quite cryptic.
 ----
 
 
+*******************
+Avoid recompilation
+*******************
+
+
+
+----
+
+
 ***********************************
 Experiment with compilation options
 ***********************************
