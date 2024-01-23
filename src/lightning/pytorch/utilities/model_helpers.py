@@ -14,7 +14,6 @@
 import inspect
 import logging
 import os
-from types import MethodType
 from typing import TYPE_CHECKING, Any, Callable, Dict, Generic, Optional, Type, TypeVar
 
 from lightning_utilities.core.imports import RequirementCache
@@ -121,7 +120,7 @@ class _restricted_classmethod_impl(Generic[_T, _P, _R_co]):
                     f"The classmethod `{cls.__name__}.{self.method.__name__}` cannot be called on an instance."
                     " Please call it on the class type and make sure the return value is used."
                 )
-            return MethodType(self.method, cls)
+            return self.method(cls, *args, **kwargs)
 
         return wrapper
 
