@@ -91,6 +91,11 @@ class StreamingDataset(IterableDataset):
         self._state_dict: Optional[Dict[str, Any]] = None
 
     def set_epoch(self, current_epoch: int) -> None:
+        """Set the current epoch to the dataset on epoch starts.
+
+        When using the StreamingDataLoader, this is done automatically
+
+        """
         # If the state dict has been reloaded, don't override the current epoch
         # The StreamingDataloader would clean this out
         if self._state_dict is None:

@@ -35,8 +35,8 @@ from torch.utils.data.sampler import BatchSampler, Sampler
 
 from lightning.data.streaming import Cache
 from lightning.data.streaming.combined import (
-    __NUM_SAMPLES_YIELDED__,
-    __SAMPLES__,
+    __NUM_SAMPLES_YIELDED_KEY__,
+    __SAMPLES_KEY__,
     CombinedStreamingDataset,
 )
 from lightning.data.streaming.constants import _DEFAULT_CHUNK_BYTES, _TORCH_GREATER_EQUAL_2_1_0, _VIZ_TRACKER_AVAILABLE
@@ -431,13 +431,13 @@ class StreamingDataLoader(DataLoader):
             # TODO: Inject a custom collate function to avoid collating the __NUM_SAMPLES_YIELDED__ key
             for batch in super().__iter__():
                 self._latest_worker_idx = next(self._worker_idx_iter)  # type: ignore
-                if isinstance(batch, dict) and __NUM_SAMPLES_YIELDED__ in batch:
+                if isinstance(batch, dict) and __NUM_SAMPLES_YIELDED_KEY__ in batch:
                     self._num_samples_yielded_combined[self._latest_worker_idx] = [
                         sample[-1].item() if self.batch_size > 1 else sample.item()
-                        for sample in batch[__NUM_SAMPLES_YIELDED__]
+                        for sample in batch[__NUM_SAMPLES_YIELDED_KEY__]
                     ]
 
-                    yield batch[__SAMPLES__]
+                    yield batch[__SAMPLES_KEY__]
                 else:
                     yield batch
 
@@ -487,7 +487,8 @@ class StreamingDataLoader(DataLoader):
         for _ in range(self._latest_worker_idx):
             next(self._worker_idx_iter)
 
-        # Inform we are resuming
+        # Inform we are resuming and disable resetting the StreamingDataLoader state.
+        # This is toggle back to False when the `__iter__` method of the StreamingDataLoader completes.
         self.restore = True
 
         if isinstance(self.dataset, CombinedStreamingDataset):

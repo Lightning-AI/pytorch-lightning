@@ -19,8 +19,8 @@ from torch.utils.data import IterableDataset
 from lightning.data.streaming.dataset import StreamingDataset
 from lightning.data.utilities.env import _WorkerEnv
 
-__NUM_SAMPLES_YIELDED__ = "__NUM_SAMPLES_YIELDED__"
-__SAMPLES__ = "__SAMPLES__"
+__NUM_SAMPLES_YIELDED_KEY__ = "__NUM_SAMPLES_YIELDED__"
+__SAMPLES_KEY__ = "__SAMPLES__"
 
 
 class CombinedStreamingDataset(IterableDataset):
@@ -50,10 +50,15 @@ class CombinedStreamingDataset(IterableDataset):
 
         self._iterator: Optional[_CombinedDatasetIterator] = None
         self._use_streaming_dataloader = False
-        self._num_samples_yielded = None
+        self._num_samples_yielded: Optional[List[int]] = None
         self._current_epoch = 0
 
     def set_epoch(self, current_epoch: int) -> None:
+        """Set the current epoch to the datasets on epoch starts.
+
+        When using the StreamingDataLoader, this is done automatically
+
+        """
         self._current_epoch = current_epoch
         for dataset in self._datasets:
             dataset.set_epoch(current_epoch)
@@ -73,12 +78,12 @@ class CombinedStreamingDataset(IterableDataset):
     def __iter__(self) -> Iterator[Any]:
         assert self._weights
 
-        worker_end = _WorkerEnv.detect()
+        worker_env = _WorkerEnv.detect()
 
         num_samples_yielded = None
 
-        if self._num_samples_yielded and worker_end.rank in self._num_samples_yielded:
-            num_samples_yielded = self._num_samples_yielded[worker_end.rank]
+        if self._num_samples_yielded is not None and worker_env.rank in self._num_samples_yielded:
+            num_samples_yielded = self._num_samples_yielded[worker_env.rank]
 
         self._iterator = _CombinedDatasetIterator(
             self._datasets,
@@ -99,6 +104,9 @@ class CombinedStreamingDataset(IterableDataset):
         return self._iterator.state_dict(num_workers, batch_size)
 
     def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
+        if not state_dict:
+            return
+
         if len(state_dict["dataset"]) != len(self._datasets):
             raise RuntimeError(f"The provided state doesn't match the current number of datasets: {self._datasets}.")
 
@@ -148,8 +156,8 @@ class _CombinedDatasetIterator(Iterator):
         # return a new sample
         if self._use_streaming_dataloader:
             return {
-                __SAMPLES__: sample,
-                __NUM_SAMPLES_YIELDED__: self._num_samples_yielded,
+                __SAMPLES_KEY__: sample,
+                __NUM_SAMPLES_YIELDED_KEY__: self._num_samples_yielded,
             }
         return sample
 
