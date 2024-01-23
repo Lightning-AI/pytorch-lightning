@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import functools
 import inspect
 import logging
 import os
@@ -112,6 +113,7 @@ class _restricted_classmethod_impl(Generic[_T, _P, _R_co]):
 
     def __get__(self, instance: Optional[_T], cls: Type[_T]) -> Callable[_P, _R_co]:
         # The wrapper ensures that the method can be inspected, but not called on an instance
+        @functools.wraps(self.method)
         def wrapper(*args: Any, **kwargs: Any) -> _R_co:
             # Workaround for https://github.com/pytorch/pytorch/issues/67146
             is_scripting = any(os.path.join("torch", "jit") in frameinfo.filename for frameinfo in inspect.stack())
