@@ -15,6 +15,7 @@ import itertools
 from typing import Any, Callable, Dict, Optional, Sequence
 
 import torch
+from typing_extensions import override
 
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_13, _TORCH_GREATER_EQUAL_2_1
 from lightning.fabric.utilities.types import _DEVICE
@@ -43,6 +44,7 @@ class _EmptyInit(TorchFunctionMode):
         super().__init__()
         self.enabled = enabled
 
+    @override
     def __torch_function__(
         self,
         func: Callable,
