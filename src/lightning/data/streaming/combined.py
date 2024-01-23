@@ -128,7 +128,7 @@ class _CombinedDatasetIterator(Iterator):
         seed: int,
         weights: Sequence[float],
         use_streaming_dataloader: bool,
-        num_samples_yielded: Optional[List[int]] = None,
+        num_samples_yielded: Optional[Any] = None,
     ) -> None:
         self._datasets = datasets
         self._dataset_iters = [iter(dataset) for dataset in datasets]
