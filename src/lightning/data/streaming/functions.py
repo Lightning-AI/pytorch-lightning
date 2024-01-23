@@ -11,13 +11,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import concurrent.futures
 import inspect
 import os
 from datetime import datetime
 from functools import partial
 from pathlib import Path
 from types import FunctionType
-from typing import Any, Callable, Dict, Optional, Sequence, Union
+from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
 
 import torch
 
@@ -286,3 +287,51 @@ def optimize(
         num_nodes,
         machine,
     )
+
+
+def _listdir(folder: str) -> Tuple[str, List[str]]:
+    return folder, os.listdir(folder)
+
+
+class walk:
+    """This class is an optimized version of os.walk for listing files and folders from cloud filesystem.
+
+    Note: The order of files and folders yielded aren't depth-first anymore due to the asynchronous listing call.
+
+    """
+
+    def __init__(self, folder: str, max_workers: Optional[int] = os.cpu_count()) -> None:
+        self.folders = [folder]
+        self.max_workers = max_workers or 1
+        self.futures: List[concurrent.futures.Future] = []
+
+    def __iter__(self) -> Any:
+        """This function queues the folders to perform listdir across multiple workers."""
+        with concurrent.futures.ThreadPoolExecutor(max_workers=self.max_workers) as executor:
+            while len(self.folders):
+                folder = self.folders.pop(0)
+                future = executor.submit(_listdir, folder)
+                self.futures.append(future)
+
+            while self.futures:
+                for future in concurrent.futures.as_completed(self.futures):
+                    filenames = []
+                    folders = []
+
+                    folder, files_or_folders = future.result()
+                    self.futures = [f for f in self.futures if f != future]
+
+                    for file_or_folder in files_or_folders:
+                        if os.path.isfile(os.path.join(folder, file_or_folder)):
+                            filenames.append(file_or_folder)
+                        else:
+                            folders.append(file_or_folder)
+                            self.folders.append(os.path.join(folder, file_or_folder))
+
+                    yield folder, folders, filenames
+
+                    while len(self.folders) and len(self.futures) <= self.max_workers * 2:
+                        folder = self.folders.pop(0)
+                        future = executor.submit(_listdir, folder)
+                        self.futures.append(future)
+        return

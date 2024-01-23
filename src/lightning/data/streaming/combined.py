@@ -17,6 +17,10 @@ from typing import Any, Dict, Iterator, List, Optional, Sequence
 from torch.utils.data import IterableDataset
 
 from lightning.data.streaming.dataset import StreamingDataset
+from lightning.data.utilities.env import _WorkerEnv
+
+__NUM_SAMPLES_YIELDED_KEY__ = "__NUM_SAMPLES_YIELDED__"
+__SAMPLES_KEY__ = "__SAMPLES__"
 
 
 class CombinedStreamingDataset(IterableDataset):
@@ -31,6 +35,8 @@ class CombinedStreamingDataset(IterableDataset):
     def __init__(
         self, datasets: List[StreamingDataset], seed: int = 42, weights: Optional[Sequence[float]] = None
     ) -> None:
+        self._check_datasets(datasets)
+
         self._seed = seed
         self._datasets = datasets
         self._weights = weights
@@ -43,6 +49,27 @@ class CombinedStreamingDataset(IterableDataset):
             self._weights = [w / sum(weights) for w in weights]
 
         self._iterator: Optional[_CombinedDatasetIterator] = None
+        self._use_streaming_dataloader = False
+        self._num_samples_yielded: Optional[List[int]] = None
+        self._current_epoch = 0
+
+    def set_epoch(self, current_epoch: int) -> None:
+        """Set the current epoch to the datasets on epoch starts.
+
+        When using the StreamingDataLoader, this is done automatically
+
+        """
+        self._current_epoch = current_epoch
+        for dataset in self._datasets:
+            dataset.set_epoch(current_epoch)
+
+    def _check_datasets(self, datasets: List[StreamingDataset]) -> None:
+        if any(not isinstance(d, StreamingDataset) for d in datasets):
+            raise RuntimeError("The provided datasets should be instances of the StreamingDataset.")
+
+    def _set_use_streaming_dataloader(self, use_streaming_dataloader: bool) -> None:
+        # Used to prevent returning num_samples_yielded when using PyTorch DataLoader
+        self._use_streaming_dataloader = use_streaming_dataloader
 
     def __len__(self) -> int:
         assert self._weights
@@ -50,33 +77,72 @@ class CombinedStreamingDataset(IterableDataset):
 
     def __iter__(self) -> Iterator[Any]:
         assert self._weights
-        self._iterator = _CombinedDatasetIterator(self._datasets, self._seed, self._weights)
+
+        worker_env = _WorkerEnv.detect()
+
+        num_samples_yielded = None
+
+        if self._num_samples_yielded is not None and worker_env.rank in self._num_samples_yielded:
+            num_samples_yielded = self._num_samples_yielded[worker_env.rank]
+
+        self._iterator = _CombinedDatasetIterator(
+            self._datasets,
+            self._seed,
+            self._weights,
+            self._use_streaming_dataloader,
+            num_samples_yielded,
+        )
         return self._iterator
 
-    def state_dict(self, num_workers: int, batch_size: int) -> Dict[str, Any]:
+    def state_dict(
+        self, num_workers: int, batch_size: int, num_samples_yielded: Optional[List[int]] = None
+    ) -> Dict[str, Any]:
         if self._iterator is None:
-            return {}
+            if num_samples_yielded is None:
+                return {}
+            return _state_dict(self._datasets, num_samples_yielded, num_workers, batch_size)
         return self._iterator.state_dict(num_workers, batch_size)
 
     def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
-        if len(state_dict) != len(self._datasets):
+        if not state_dict:
+            return
+
+        if len(state_dict["dataset"]) != len(self._datasets):
             raise RuntimeError(f"The provided state doesn't match the current number of datasets: {self._datasets}.")
 
         for dataset_idx, dataset in enumerate(self._datasets):
-            if str(dataset_idx) not in state_dict:
+            if str(dataset_idx) not in state_dict["dataset"]:
                 raise RuntimeError(f"The provided state doesn't contain the index {dataset_idx}.")
 
-            dataset.load_state_dict(state_dict[str(dataset_idx)])
+            dataset.load_state_dict(state_dict["dataset"][str(dataset_idx)])
+
+        # Used to iterate over the sampler to avoid sampling the same samples
+        if self._use_streaming_dataloader:
+            self._num_samples_yielded = state_dict["num_samples_yielded"]
 
 
 class _CombinedDatasetIterator(Iterator):
-    def __init__(self, datasets: List[StreamingDataset], seed: int, weights: Sequence[float]) -> None:
+    def __init__(
+        self,
+        datasets: List[StreamingDataset],
+        seed: int,
+        weights: Sequence[float],
+        use_streaming_dataloader: bool,
+        num_samples_yielded: Optional[Any] = None,
+    ) -> None:
         self._datasets = datasets
         self._dataset_iters = [iter(dataset) for dataset in datasets]
         self._dataset_indexes = list(range(len(datasets)))
         self._num_samples_yielded = [0 for _ in range(len(datasets))]
         self._weights = weights
         self._rng = random.Random(seed)
+
+        if num_samples_yielded is not None:
+            self._num_samples_yielded = num_samples_yielded
+            for _ in range(sum(num_samples_yielded)):
+                self._rng.choices(self._dataset_indexes, weights=self._weights, k=1)
+
+        self._use_streaming_dataloader = use_streaming_dataloader
 
     def __next__(self) -> Any:
         # randomly select a dataset index
@@ -85,11 +151,26 @@ class _CombinedDatasetIterator(Iterator):
         # keep track the sample was fetched
         self._num_samples_yielded[dataset_index] += 1
 
+        sample = next(self._dataset_iters[dataset_index])
+
         # return a new sample
-        return next(self._dataset_iters[dataset_index])
+        if self._use_streaming_dataloader:
+            return {
+                __SAMPLES_KEY__: sample,
+                __NUM_SAMPLES_YIELDED_KEY__: self._num_samples_yielded,
+            }
+        return sample
 
     def state_dict(self, num_workers: int = 0, batch_size: int = 1) -> Dict[str, Any]:
-        return {
-            str(dataset_idx): dataset.state_dict(self._num_samples_yielded[dataset_idx], num_workers, batch_size)
-            for dataset_idx, dataset in enumerate(self._datasets)
-        }
+        return _state_dict(self._datasets, self._num_samples_yielded, num_workers, batch_size)
+
+
+def _state_dict(
+    datasets: List[StreamingDataset], num_samples_yielded: List[int], num_workers: int = 0, batch_size: int = 1
+) -> Dict[str, Any]:
+    return {
+        str(dataset_idx): dataset.state_dict(
+            num_samples_yielded=num_samples_yielded[dataset_idx], num_workers=num_workers, batch_size=batch_size
+        )
+        for dataset_idx, dataset in enumerate(datasets)
+    }
