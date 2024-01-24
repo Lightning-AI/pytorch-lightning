@@ -357,7 +357,10 @@ def _wrapper(fetcher, func, tracer, profile):
         if tracer.enable and counter == profile:
             tracer.stop()
             tracer.save()
-            print(f"Saved {os.path.join(os.getcwd(), 'result.json')} file after {profile} batches.")
+            print(
+                f"Saved {os.path.join(os.getcwd(), 'result.json')} file after {profile} batches."
+                "Use chrome://tracing/ to view it."
+            )
             fetcher.fetch = func
 
         counter += 1
