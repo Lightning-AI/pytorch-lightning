@@ -57,7 +57,6 @@ class PrepareChunksThread(Thread):
         super().__init__(daemon=True)
         self._config = config
         self._item_loader = item_loader
-        self._max_pre_download = max_pre_download
         self._pre_download_counter = 0
         self._distributed_env = distributed_env
 
