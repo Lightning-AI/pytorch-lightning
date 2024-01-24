@@ -53,7 +53,6 @@ class PrepareChunksThread(Thread):
         item_loader: BaseItemLoader,
         distributed_env: _DistributedEnv,
         max_cache_size: Optional[int] = None,
-        max_pre_download: int = 2,
     ) -> None:
         super().__init__(daemon=True)
         self._config = config
@@ -71,6 +70,10 @@ class PrepareChunksThread(Thread):
         # Check whether a dataset slice fits on the node
         num_bytes_per_nodes = self._config.num_bytes // self._distributed_env.num_nodes
         self._delete_chunks_when_processed = num_bytes_per_nodes > max_cache_size if max_cache_size else False
+
+        # If the dataset fits on the machine, let's enable downloading more chunks. 
+        self._max_pre_download = 7 if not self._delete_chunks_when_processed else 3
+
         self._has_exited = False
 
     def download(self, chunk_indexes: List[int]) -> None:
