@@ -51,28 +51,33 @@ class S3Downloader(Downloader):
         if obj.scheme != "s3":
             raise ValueError(f"Expected obj.scheme to be `s3`, instead, got {obj.scheme} for remote={remote_filepath}")
 
-        if self._s5cmd_available:
-            proc = subprocess.Popen(f"s5cmd cp {remote_filepath} {local_filepath}", shell=True, stdout=subprocess.PIPE)
-            proc.wait()
-        else:
-            from boto3.s3.transfer import TransferConfig
+        if os.path.exists(local_filepath):
+            return
 
-            extra_args: Dict[str, Any] = {}
+        try:
+            with FileLock(local_filepath + ".lock", timeout=1):
+                if self._s5cmd_available:
+                    proc = subprocess.Popen(f"s5cmd cp {remote_filepath} {local_filepath}", shell=True, stdout=subprocess.PIPE)
+                    proc.wait()
+                else:
+                    from boto3.s3.transfer import TransferConfig
 
-            # try:
-            #     with FileLock(local_filepath + ".lock", timeout=1):
-            if not os.path.exists(local_filepath):
-                # Issue: https://github.com/boto/boto3/issues/3113
-                self._client.client.download_file(
-                    obj.netloc,
-                    obj.path.lstrip("/"),
-                    local_filepath,
-                    ExtraArgs=extra_args,
-                    Config=TransferConfig(use_threads=False),
-                )
-            # except Timeout:
-            #     # another process is responsible to download that file, continue
-            #     pass
+                    extra_args: Dict[str, Any] = {}
+
+                    # try:
+                    #     with FileLock(local_filepath + ".lock", timeout=1):
+                    if not os.path.exists(local_filepath):
+                        # Issue: https://github.com/boto/boto3/issues/3113
+                        self._client.client.download_file(
+                            obj.netloc,
+                            obj.path.lstrip("/"),
+                            local_filepath,
+                            ExtraArgs=extra_args,
+                            Config=TransferConfig(use_threads=False),
+                        )
+        except Timeout:
+            # another process is responsible to download that file, continue
+            pass
 
 
 class LocalDownloader(Downloader):
