@@ -347,10 +347,6 @@ class CacheDataLoader(DataLoader):
         return _MultiProcessingDataLoaderIterPatch(self)
 
 
-class StopRecordingException(Exception):
-    pass
-
-
 def _wrapper(fetcher, func, tracer, profile):
     counter = 0
 
@@ -361,7 +357,7 @@ def _wrapper(fetcher, func, tracer, profile):
         if tracer.enable and counter == profile:
             tracer.stop()
             tracer.save()
-            print(f"Saved result.json file after {profile} batches.")
+            print(f"Saved {os.path.join(os.getcwd(), 'result.json')} file after {profile} batches.")
             fetcher.fetch = func
 
         counter += 1
