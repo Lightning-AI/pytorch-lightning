@@ -56,7 +56,9 @@ class S3Downloader(Downloader):
         try:
             with FileLock(local_filepath + ".lock", timeout=0):
                 if self._s5cmd_available:
-                    proc = subprocess.Popen(f"s5cmd cp {remote_filepath} {local_filepath}", shell=True, stdout=subprocess.PIPE)
+                    proc = subprocess.Popen(
+                        f"s5cmd cp {remote_filepath} {local_filepath}", shell=True, stdout=subprocess.PIPE
+                    )
                     proc.wait()
                 else:
                     from boto3.s3.transfer import TransferConfig
