@@ -491,6 +491,7 @@ class StreamingDataLoader(DataLoader):
         batch_size: int = 1,
         num_workers: int = 0,
         profile_bactches: Union[bool, int] = False,
+        prefetch_factor: Optional[int] = None,
         **kwargs: Any,
     ) -> None:  # pyright: ignore
         if not isinstance(dataset, (StreamingDataset, CombinedStreamingDataset)):
@@ -513,7 +514,14 @@ class StreamingDataLoader(DataLoader):
         self._worker_idx_iter: Optional[Any] = None
         self._latest_worker_idx = 0
         self.restore = False
-        super().__init__(dataset, *args, batch_size=batch_size, num_workers=num_workers, **kwargs)  # type: ignore
+        super().__init__(
+            dataset,
+            *args,
+            batch_size=batch_size,
+            num_workers=num_workers,
+            prefetch_factor=10 if num_workers > 0 else 0, 
+            **kwargs
+        )  # type: ignore
 
     def __iter__(self) -> Any:
         if not self.restore:
