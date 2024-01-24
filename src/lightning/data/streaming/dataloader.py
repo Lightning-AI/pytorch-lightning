@@ -42,7 +42,7 @@ from lightning.data.streaming.combined import (
 from lightning.data.streaming.constants import _DEFAULT_CHUNK_BYTES, _TORCH_GREATER_EQUAL_2_1_0, _VIZ_TRACKER_AVAILABLE
 from lightning.data.streaming.dataset import StreamingDataset
 from lightning.data.streaming.sampler import CacheBatchSampler
-from lightning.data.utilities.env import _DistributedEnv, _WorkerEnv
+from lightning.data.utilities.env import _DistributedEnv
 
 if _TORCH_GREATER_EQUAL_2_1_0:
     from torch.utils._pytree import tree_flatten
@@ -347,10 +347,6 @@ class CacheDataLoader(DataLoader):
         return _MultiProcessingDataLoaderIterPatch(self)
 
 
-class StopRecordingException(Exception):
-    pass
-
-
 def _wrapper(fetcher, func, tracer, profile):
     counter = 0
 
@@ -361,7 +357,10 @@ def _wrapper(fetcher, func, tracer, profile):
         if tracer.enable and counter == profile:
             tracer.stop()
             tracer.save()
-            print(f"Saved result.json file after {profile} batches.")
+            print(
+                f"Saved {os.path.join(os.getcwd(), 'result.json')} file after {profile} batches."
+                "Use chrome://tracing/ to view it."
+            )
             fetcher.fetch = func
 
         counter += 1
