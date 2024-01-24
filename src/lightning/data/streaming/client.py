@@ -7,8 +7,6 @@ from lightning.data.streaming.constants import _BOTO3_AVAILABLE
 if _BOTO3_AVAILABLE:
     import boto3
     import botocore
-    from botocore.credentials import InstanceMetadataProvider
-    from botocore.utils import InstanceMetadataFetcher
 
 
 class S3Client:
@@ -31,14 +29,8 @@ class S3Client:
 
         # Re-generate credentials for EC2
         if self._last_time is None or (time() - self._last_time) > self._refetch_interval:
-            provider = InstanceMetadataProvider(iam_role_fetcher=InstanceMetadataFetcher(timeout=3600, num_attempts=5))
-            credentials = provider.load()
             self._client = boto3.client(
-                "s3",
-                aws_access_key_id=credentials.access_key,
-                aws_secret_access_key=credentials.secret_key,
-                aws_session_token=credentials.token,
-                config=botocore.config.Config(retries={"max_attempts": 1000, "mode": "adaptive"}),
+                "s3", config=botocore.config.Config(retries={"max_attempts": 1000, "mode": "adaptive"})
             )
             self._last_time = time()
 
