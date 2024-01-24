@@ -518,8 +518,8 @@ class StreamingDataLoader(DataLoader):
             *args,
             batch_size=batch_size,
             num_workers=num_workers,
-            prefetch_factor=10 if num_workers > 0 else 0, 
-            **kwargs
+            prefetch_factor=10 if num_workers > 0 else 0,
+            **kwargs,
         )  # type: ignore
 
     def __iter__(self) -> Any:
