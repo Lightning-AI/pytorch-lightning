@@ -42,7 +42,7 @@ from lightning.data.streaming.combined import (
 from lightning.data.streaming.constants import _DEFAULT_CHUNK_BYTES, _TORCH_GREATER_EQUAL_2_1_0, _VIZ_TRACKER_AVAILABLE
 from lightning.data.streaming.dataset import StreamingDataset
 from lightning.data.streaming.sampler import CacheBatchSampler
-from lightning.data.utilities.env import _DistributedEnv
+from lightning.data.utilities.env import _DistributedEnv, _WorkerEnv
 
 if _TORCH_GREATER_EQUAL_2_1_0:
     from torch.utils._pytree import tree_flatten
@@ -351,20 +351,18 @@ class StopRecordingException(Exception):
     pass
 
 
-def _wrapper(func, tracer, profile):
+def _wrapper(fetcher, func, tracer, profile):
     counter = 0
-    has_stopped = False
 
     def wrap(*args, **kwargs):
         nonlocal counter
-        nonlocal has_stopped
         result = func(*args, **kwargs)
 
-        if not has_stopped and counter >= profile:
+        if tracer.enable and counter == profile:
             tracer.stop()
             tracer.save()
-            raise StopRecordingException("The collection has terminated.")
-            has_stopped = True
+            print(f"Saved result.json file after {profile} batches.")
+            fetcher.fetch = func
 
         counter += 1
         return result
@@ -397,8 +395,14 @@ class _ProfileWorkerLoop:
         from torch.utils.data._utils import worker
         from viztracer import VizTracer
 
-        tracer = VizTracer(output_file=os.path.join(os.getcwd(), "result.json"))
-        tracer.start()
+        if worker_id == 0:
+            output_file = os.path.join(os.getcwd(), "result.json")
+
+            if os.path.exists(output_file):
+                os.remove(output_file)
+
+            tracer = VizTracer(output_file=output_file, verbose=0)
+            tracer.start()
 
         # Reload to remove the patching
         reloaded_worker = reload(worker)
@@ -409,8 +413,8 @@ class _ProfileWorkerLoop:
             nonlocal fetcher
             fetcher = create_fetcher(*args, **kwargs)
 
-            if isinstance(self._profile, int):
-                fetcher.fetch = _wrapper(fetcher.fetch, tracer, self._profile)
+            if worker_id == 0 and isinstance(self._profile, int):
+                fetcher.fetch = _wrapper(fetcher, fetcher.fetch, tracer, self._profile)
             return fetcher
 
         _DatasetKind.create_fetcher = create_fetcher_fn  # type: ignore
@@ -431,7 +435,7 @@ class _ProfileWorkerLoop:
             **kwargs,
         )
 
-        if isinstance(self._profile, bool):
+        if worker_id == 0 and isinstance(self._profile, bool):
             tracer.stop()
             tracer.save()
 

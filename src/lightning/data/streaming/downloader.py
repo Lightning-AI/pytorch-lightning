@@ -16,7 +16,7 @@ import subprocess
 from abc import ABC
 from typing import Any, Dict, List
 from urllib import parse
-
+from filelock import FileLock, Timeout
 from lightning.data.streaming.client import S3Client
 
 
@@ -54,7 +54,7 @@ class S3Downloader(Downloader):
             return
 
         try:
-            with FileLock(local_filepath + ".lock", timeout=1):
+            with FileLock(local_filepath + ".lock", timeout=0):
                 if self._s5cmd_available:
                     proc = subprocess.Popen(f"s5cmd cp {remote_filepath} {local_filepath}", shell=True, stdout=subprocess.PIPE)
                     proc.wait()
