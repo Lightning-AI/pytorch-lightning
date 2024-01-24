@@ -504,6 +504,9 @@ class StreamingDataLoader(DataLoader):
         if profile_bactches and not _VIZ_TRACKER_AVAILABLE:
             raise ModuleNotFoundError("To use profile_bactches, viztracer is required. Run `pip install viztracer`")
 
+        if profile_bactches and num_workers == 0:
+            raise ValueError("Profiling is supported only with num_workers >= 1.")
+
         self.current_epoch = 0
         self.batch_size = batch_size
         self.num_workers = num_workers
