@@ -347,10 +347,10 @@ class CacheDataLoader(DataLoader):
         return _MultiProcessingDataLoaderIterPatch(self)
 
 
-def _wrapper(fetcher, func, tracer, profile):
+def _wrapper(fetcher: Any, func: Callable, tracer: Any, profile: int) -> Callable:
     counter = 0
 
-    def wrap(*args, **kwargs):
+    def wrap(*args: Any, **kwargs: Any) -> Any:
         nonlocal counter
         result = func(*args, **kwargs)
 
@@ -518,7 +518,7 @@ class StreamingDataLoader(DataLoader):
             *args,
             batch_size=batch_size,
             num_workers=num_workers,
-            prefetch_factor=10 if num_workers > 0 else 0,
+            prefetch_factor=10 if num_workers > 0 else None,
             **kwargs,
         )  # type: ignore
 
