@@ -59,7 +59,7 @@ class S3Downloader(Downloader):
             with FileLock(local_filepath + ".lock", timeout=0):
                 if self._s5cmd_available:
                     proc = subprocess.Popen(
-                        f"s5cmd --numworkers 64 cp {remote_filepath} {local_filepath}",
+                        f"s5cmd cp {remote_filepath} {local_filepath}",
                         shell=True,
                         stdout=subprocess.PIPE,
                     )
