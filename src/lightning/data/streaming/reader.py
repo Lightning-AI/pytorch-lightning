@@ -71,6 +71,11 @@ class PrepareChunksThread(Thread):
         # Check whether a dataset slice fits on the node
         num_bytes_per_nodes = self._config.num_bytes // self._distributed_env.num_nodes
         self._delete_chunks_when_processed = num_bytes_per_nodes > max_cache_size if max_cache_size else False
+
+        # When the dataset slice fits on the node, we don't need to wait for downloading the chunks.
+        if not self._delete_chunks_when_processed:
+            self._max_pre_download = 10e7
+
         self._has_exited = False
 
     def download(self, chunk_indexes: List[int]) -> None:

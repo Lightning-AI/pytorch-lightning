@@ -346,6 +346,93 @@ class CacheDataLoader(DataLoader):
         self.check_worker_number_rationality()
         return _MultiProcessingDataLoaderIterPatch(self)
 
+class StopRecordingException(Exception):
+    pass
+
+
+def _wrapper(func, tracer, profile): 
+    counter = 0
+    has_stopped = False
+    def wrap(*args, **kwargs): 
+        nonlocal counter
+        nonlocal has_stopped
+        result = func(*args, **kwargs) 
+
+        if not has_stopped and counter >= profile:
+            tracer.stop()
+            tracer.save()
+            raise StopRecordingException("The collection has terminated.")
+            has_stopped = True
+ 
+        counter += 1
+        return result 
+    return wrap 
+
+
+class _ProfileWorkerLoop:
+    """Wrap the PyTorch DataLoader WorkerLoop to add profiling."""
+
+    def __init__(self, profile: Union[int, bool]):
+        self._profile = profile
+
+    def __call__(
+        self,
+        dataset_kind: Any,
+        dataset: Any,
+        index_queue: Any,
+        data_queue: Any,
+        done_event: Any,
+        auto_collation: Any,
+        collate_fn: Any,
+        drop_last: Any,
+        base_seed: Any,
+        init_fn: Any,
+        worker_id: Any,
+        *args: Any,
+        **kwargs: Any,
+    ) -> None:
+        from torch.utils.data._utils import worker
+
+        from viztracer import VizTracer
+
+        tracer = VizTracer(output_file=os.path.join(os.getcwd(), "result.json"))
+        tracer.start()
+
+        # Reload to remove the patching
+        reloaded_worker = reload(worker)
+        create_fetcher = _DatasetKind.create_fetcher
+        fetcher = None
+
+        def create_fetcher_fn(*args: Any, **kwargs: Any) -> "_BaseDatasetFetcher":
+            nonlocal fetcher
+            fetcher = create_fetcher(*args, **kwargs)
+
+            if isinstance(self._profile, int):
+                fetcher.fetch = _wrapper(fetcher.fetch, tracer, self._profile)
+            return fetcher
+
+        _DatasetKind.create_fetcher = create_fetcher_fn  # type: ignore
+
+        reloaded_worker._worker_loop(
+            dataset_kind,
+            dataset,
+            index_queue,
+            data_queue,
+            done_event,
+            auto_collation,
+            collate_fn,
+            drop_last,
+            base_seed,
+            init_fn,
+            worker_id,
+            *args,
+            **kwargs,
+        )
+
+        if isinstance(self._profile, bool):
+            tracer.stop()
+            tracer.save()
+
 
 class _StreamingMultiProcessingDataLoaderIter(_MultiProcessingDataLoaderIter):
     def __init__(self, loader: DataLoader) -> None:
@@ -355,6 +442,14 @@ class _StreamingMultiProcessingDataLoaderIter(_MultiProcessingDataLoaderIter):
             if self._loader._latest_worker_idx > 0
             else []
         )
+        self._num_workers = loader.num_workers
+        
+        distributed_env = _DistributedEnv.detect()
+
+        if self._loader._profile_bactches and distributed_env.global_rank == 0:
+            from torch.utils.data._utils import worker
+            worker._worker_loop = _ProfileWorkerLoop(self._loader._profile_bactches)
+
         super().__init__(loader)
 
     def _try_put_index(self) -> None:
@@ -388,6 +483,7 @@ class StreamingDataLoader(DataLoader):
         *args: Any,
         batch_size: int = 1,
         num_workers: int = 0,
+        profile_bactches: Union[bool, int] = False,
         **kwargs: Any,
     ) -> None:  # pyright: ignore
         if not isinstance(dataset, (StreamingDataset, CombinedStreamingDataset)):
@@ -396,9 +492,13 @@ class StreamingDataLoader(DataLoader):
                 f" Found {dataset}."
             )
 
+        if profile_bactches and not _VIZ_TRACKER_AVAILABLE:
+            raise ModuleNotFoundError("To use profile_bactches, viztracer is required. Run `pip install viztracer`")
+
         self.current_epoch = 0
         self.batch_size = batch_size
         self.num_workers = num_workers
+        self._profile_bactches = profile_bactches
         self._num_samples_yielded_streaming = 0
         self._num_samples_yielded_combined: Dict[int, List[Any]] = {}
         self.rng_state: Optional[Any] = None

@@ -90,7 +90,7 @@ class PyTreeLoader(BaseItemLoader):
             exists = os.path.exists(chunk_filepath) and os.stat(chunk_filepath).st_size > 0
 
             while not exists:
-                sleep(0.1)
+                sleep(0.01)
                 exists = os.path.exists(chunk_filepath) and os.stat(chunk_filepath).st_size > 0
 
             self._chunk_filepaths[chunk_filepath] = True
@@ -188,7 +188,7 @@ class TokensLoader(BaseItemLoader):
             exists = os.path.exists(chunk_filepath) and os.stat(chunk_filepath).st_size > 0
 
             while not exists:
-                sleep(0.1)
+                sleep(0.01)
                 exists = os.path.exists(chunk_filepath) and os.stat(chunk_filepath).st_size > 0
 
             self._chunk_filepaths[chunk_filepath] = True
