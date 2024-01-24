@@ -42,7 +42,7 @@ from lightning.data.streaming.combined import (
 from lightning.data.streaming.constants import _DEFAULT_CHUNK_BYTES, _TORCH_GREATER_EQUAL_2_1_0, _VIZ_TRACKER_AVAILABLE
 from lightning.data.streaming.dataset import StreamingDataset
 from lightning.data.streaming.sampler import CacheBatchSampler
-from lightning.data.utilities.env import _DistributedEnv, _WorkerEnv
+from lightning.data.utilities.env import _DistributedEnv
 
 if _TORCH_GREATER_EQUAL_2_1_0:
     from torch.utils._pytree import tree_flatten
