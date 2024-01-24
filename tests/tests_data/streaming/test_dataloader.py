@@ -1,5 +1,8 @@
+import os
+
 import torch
 from lightning.data.streaming import CombinedStreamingDataset, StreamingDataLoader
+from lightning.data.streaming import dataloader as streaming_dataloader_module
 from torch import tensor
 
 
@@ -70,3 +73,20 @@ def test_streaming_dataloader():
         "latest_worker_idx": 0,
         "num_samples_yielded": {0: [11, 9]},
     }
+
+
+def test_dataloader_profiling(tmpdir, monkeypatch):
+    monkeypatch.setattr(streaming_dataloader_module, "_VIZ_TRACKER_AVAILABLE", True)
+
+    dataset = TestCombinedStreamingDataset(
+        [TestStatefulDataset(10, 1), TestStatefulDataset(10, -1)], 42, weights=(0.5, 0.5)
+    )
+    dataloader = StreamingDataLoader(
+        dataset, batch_size=2, profile_bactches=True, profile_dir=str(tmpdir), num_workers=1
+    )
+    dataloader_iter = iter(dataloader)
+    batches = []
+    for batch in dataloader_iter:
+        batches.append(batch)
+
+    assert os.path.exists(os.path.join(tmpdir, "result.json"))

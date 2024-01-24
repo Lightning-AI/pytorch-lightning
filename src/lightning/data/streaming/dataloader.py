@@ -347,7 +347,7 @@ class CacheDataLoader(DataLoader):
         return _MultiProcessingDataLoaderIterPatch(self)
 
 
-def _wrapper(fetcher: Any, func: Callable, tracer: Any, profile: int) -> Callable:
+def _wrapper(fetcher: Any, func: Callable, tracer: Any, profile: int, profile_dir: str) -> Callable:
     counter = 0
 
     def wrap(*args: Any, **kwargs: Any) -> Any:
@@ -358,7 +358,7 @@ def _wrapper(fetcher: Any, func: Callable, tracer: Any, profile: int) -> Callabl
             tracer.stop()
             tracer.save()
             print(
-                f"Saved {os.path.join(os.getcwd(), 'result.json')} file after {profile} batches."
+                f"Saved {os.path.join(profile_dir, 'result.json')} file after {profile} batches."
                 "Use chrome://tracing/ to view it."
             )
             fetcher.fetch = func
@@ -372,8 +372,9 @@ def _wrapper(fetcher: Any, func: Callable, tracer: Any, profile: int) -> Callabl
 class _ProfileWorkerLoop:
     """Wrap the PyTorch DataLoader WorkerLoop to add profiling."""
 
-    def __init__(self, profile: Union[int, bool]):
+    def __init__(self, profile: Union[int, bool], profile_dir: Optional[str] = None):
         self._profile = profile
+        self._profile_dir = profile_dir if profile_dir else os.getcwd()
 
     def __call__(
         self,
@@ -395,7 +396,7 @@ class _ProfileWorkerLoop:
         from viztracer import VizTracer
 
         if worker_id == 0:
-            output_file = os.path.join(os.getcwd(), "result.json")
+            output_file = os.path.join(self._profile_dir, "result.json")
 
             if os.path.exists(output_file):
                 os.remove(output_file)
@@ -413,7 +414,7 @@ class _ProfileWorkerLoop:
             fetcher = create_fetcher(*args, **kwargs)
 
             if worker_id == 0 and isinstance(self._profile, int):
-                fetcher.fetch = _wrapper(fetcher, fetcher.fetch, tracer, self._profile)
+                fetcher.fetch = _wrapper(fetcher, fetcher.fetch, tracer, self._profile, self._profile_dir)
             return fetcher
 
         _DatasetKind.create_fetcher = create_fetcher_fn  # type: ignore
@@ -451,10 +452,10 @@ class _StreamingMultiProcessingDataLoaderIter(_MultiProcessingDataLoaderIter):
 
         distributed_env = _DistributedEnv.detect()
 
-        if self._loader._profile_bactches and distributed_env.global_rank == 0:
+        if self._loader._profile_bactches and distributed_env.global_rank == 0 and _VIZ_TRACKER_AVAILABLE:
             from torch.utils.data._utils import worker
 
-            worker._worker_loop = _ProfileWorkerLoop(self._loader._profile_bactches)
+            worker._worker_loop = _ProfileWorkerLoop(self._loader._profile_bactches, self._loader._profile_dir)
 
         super().__init__(loader)
 
@@ -490,6 +491,7 @@ class StreamingDataLoader(DataLoader):
         batch_size: int = 1,
         num_workers: int = 0,
         profile_bactches: Union[bool, int] = False,
+        profile_dir: Optional[str] = None,
         prefetch_factor: Optional[int] = None,
         **kwargs: Any,
     ) -> None:  # pyright: ignore
@@ -506,6 +508,7 @@ class StreamingDataLoader(DataLoader):
         self.batch_size = batch_size
         self.num_workers = num_workers
         self._profile_bactches = profile_bactches
+        self._profile_dir = profile_dir
         self._num_samples_yielded_streaming = 0
         self._num_samples_yielded_combined: Dict[int, List[Any]] = {}
         self.rng_state: Optional[Any] = None
@@ -518,7 +521,7 @@ class StreamingDataLoader(DataLoader):
             *args,
             batch_size=batch_size,
             num_workers=num_workers,
-            prefetch_factor=10 if num_workers > 0 else None,
+            prefetch_factor=(10 if num_workers > 0 else None) if prefetch_factor is None else prefetch_factor,
             **kwargs,
         )  # type: ignore
 
