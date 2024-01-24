@@ -347,6 +347,99 @@ class CacheDataLoader(DataLoader):
         return _MultiProcessingDataLoaderIterPatch(self)
 
 
+def _wrapper(fetcher: Any, func: Callable, tracer: Any, profile: int, profile_dir: str) -> Callable:
+    counter = 0
+
+    def wrap(*args: Any, **kwargs: Any) -> Any:
+        nonlocal counter
+        result = func(*args, **kwargs)
+
+        if tracer.enable and counter == profile:
+            tracer.stop()
+            tracer.save()
+            print(
+                f"Saved {os.path.join(profile_dir, 'result.json')} file after {profile} batches."
+                "Use chrome://tracing/ to view it."
+            )
+            fetcher.fetch = func
+
+        counter += 1
+        return result
+
+    return wrap
+
+
+class _ProfileWorkerLoop:
+    """Wrap the PyTorch DataLoader WorkerLoop to add profiling."""
+
+    def __init__(self, profile: Union[int, bool], profile_dir: Optional[str] = None):
+        self._profile = profile
+        self._profile_dir = profile_dir if profile_dir else os.getcwd()
+
+    def __call__(
+        self,
+        dataset_kind: Any,
+        dataset: Any,
+        index_queue: Any,
+        data_queue: Any,
+        done_event: Any,
+        auto_collation: Any,
+        collate_fn: Any,
+        drop_last: Any,
+        base_seed: Any,
+        init_fn: Any,
+        worker_id: Any,
+        *args: Any,
+        **kwargs: Any,
+    ) -> None:
+        from torch.utils.data._utils import worker
+        from viztracer import VizTracer
+
+        if worker_id == 0:
+            output_file = os.path.join(self._profile_dir, "result.json")
+
+            if os.path.exists(output_file):
+                os.remove(output_file)
+
+            tracer = VizTracer(output_file=output_file, verbose=0)
+            tracer.start()
+
+        # Reload to remove the patching
+        reloaded_worker = reload(worker)
+        create_fetcher = _DatasetKind.create_fetcher
+        fetcher = None
+
+        def create_fetcher_fn(*args: Any, **kwargs: Any) -> "_BaseDatasetFetcher":
+            nonlocal fetcher
+            fetcher = create_fetcher(*args, **kwargs)
+
+            if worker_id == 0 and isinstance(self._profile, int):
+                fetcher.fetch = _wrapper(fetcher, fetcher.fetch, tracer, self._profile, self._profile_dir)
+            return fetcher
+
+        _DatasetKind.create_fetcher = create_fetcher_fn  # type: ignore
+
+        reloaded_worker._worker_loop(
+            dataset_kind,
+            dataset,
+            index_queue,
+            data_queue,
+            done_event,
+            auto_collation,
+            collate_fn,
+            drop_last,
+            base_seed,
+            init_fn,
+            worker_id,
+            *args,
+            **kwargs,
+        )
+
+        if worker_id == 0 and isinstance(self._profile, bool):
+            tracer.stop()
+            tracer.save()
+
+
 class _StreamingMultiProcessingDataLoaderIter(_MultiProcessingDataLoaderIter):
     def __init__(self, loader: DataLoader) -> None:
         self._loader = loader
@@ -355,6 +448,15 @@ class _StreamingMultiProcessingDataLoaderIter(_MultiProcessingDataLoaderIter):
             if self._loader._latest_worker_idx > 0
             else []
         )
+        self._num_workers = loader.num_workers
+
+        distributed_env = _DistributedEnv.detect()
+
+        if self._loader._profile_bactches and distributed_env.global_rank == 0 and _VIZ_TRACKER_AVAILABLE:
+            from torch.utils.data._utils import worker
+
+            worker._worker_loop = _ProfileWorkerLoop(self._loader._profile_bactches, self._loader._profile_dir)
+
         super().__init__(loader)
 
     def _try_put_index(self) -> None:
@@ -388,6 +490,9 @@ class StreamingDataLoader(DataLoader):
         *args: Any,
         batch_size: int = 1,
         num_workers: int = 0,
+        profile_bactches: Union[bool, int] = False,
+        profile_dir: Optional[str] = None,
+        prefetch_factor: Optional[int] = None,
         **kwargs: Any,
     ) -> None:  # pyright: ignore
         if not isinstance(dataset, (StreamingDataset, CombinedStreamingDataset)):
@@ -396,9 +501,17 @@ class StreamingDataLoader(DataLoader):
                 f" Found {dataset}."
             )
 
+        if profile_bactches and not _VIZ_TRACKER_AVAILABLE:
+            raise ModuleNotFoundError("To use profile_bactches, viztracer is required. Run `pip install viztracer`")
+
+        if profile_bactches and num_workers == 0:
+            raise ValueError("Profiling is supported only with num_workers >= 1.")
+
         self.current_epoch = 0
         self.batch_size = batch_size
         self.num_workers = num_workers
+        self._profile_bactches = profile_bactches
+        self._profile_dir = profile_dir
         self._num_samples_yielded_streaming = 0
         self._num_samples_yielded_combined: Dict[int, List[Any]] = {}
         self.rng_state: Optional[Any] = None
@@ -406,7 +519,14 @@ class StreamingDataLoader(DataLoader):
         self._worker_idx_iter: Optional[Any] = None
         self._latest_worker_idx = 0
         self.restore = False
-        super().__init__(dataset, *args, batch_size=batch_size, num_workers=num_workers, **kwargs)  # type: ignore
+        super().__init__(
+            dataset,
+            *args,
+            batch_size=batch_size,
+            num_workers=num_workers,
+            prefetch_factor=(10 if num_workers > 0 else None) if prefetch_factor is None else prefetch_factor,
+            **kwargs,
+        )  # type: ignore
 
     def __iter__(self) -> Any:
         if not self.restore:
