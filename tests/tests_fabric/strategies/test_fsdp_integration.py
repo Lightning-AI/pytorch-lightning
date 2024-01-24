@@ -15,6 +15,7 @@ import os
 from copy import deepcopy
 from pathlib import Path
 from unittest import mock
+from unittest.mock import Mock
 
 import pytest
 import torch
@@ -345,33 +346,40 @@ def test_setup_with_orig_params_and_multiple_param_groups():
         assert not isinstance(layer.weight, FlatParameter)
 
 
-@RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True, dynamo=True)
-@mock.patch.dict(os.environ, {})
-@pytest.mark.parametrize(
-    "compile_after_setup",
-    [
-        False,
-        # https://github.com/pytorch/pytorch/issues/97811
-        pytest.param(True, marks=RunIf(min_python="3.9")),
-    ],
+@RunIf(min_cuda_gpus=2, standalone=True, min_torch="2.1.0", dynamo=True, skip_windows=True)
+@mock.patch(
+    "lightning.fabric.wrappers.torch.compile",
+    Mock(wraps=(torch.compile if _TORCH_GREATER_EQUAL_2_0 else None)),
 )
-def test_compile(compile_after_setup):
-    """Test that the model can be compiled before and after the model is wrapped in FSDP."""
-    model = BoringModel()
+@mock.patch.dict(os.environ, {})
+def test_reapply_compile():
+    """Test that Fabric can rewrap a compiled module such that compilation happens over the FSDP-wrapper."""
+    from torch._dynamo import OptimizedModule
+
     strategy = FSDPStrategy(auto_wrap_policy=always_wrap_policy)
     fabric = Fabric(accelerator="cuda", devices=2, strategy=strategy)
     fabric.launch()
 
-    if not compile_after_setup:
-        model = torch.compile(model)
+    model = BoringModel()
+    compile_kwargs = {"mode": "reduce-overhead"}
+    compiled_model = torch.compile(model, **compile_kwargs)
+    torch.compile.reset_mock()
 
-    model = fabric.setup(model)
+    fabric_model = fabric.setup(compiled_model, _reapply_compile=True)
 
-    if compile_after_setup:
-        model = torch.compile(model)
+    assert isinstance(fabric_model._forward_module, OptimizedModule)
+    assert isinstance(fabric_model._forward_module._orig_mod, FullyShardedDataParallel)
 
+    # Assert we called compile again with the same arguments, but on the FSDP-wrapped module
+    torch.compile.assert_called_with(fabric_model._forward_module._orig_mod, **compile_kwargs)
+
+    assert fabric_model._original_module == model
+    assert fabric_model._forward_module._orig_mod.module == model
+    assert fabric_model.device == fabric.device
+
+    # Smoke-testing forward to ensure we don't get compilation errors
     for _ in range(3):
-        model(torch.rand(2, 32, device=fabric.device)).sum().backward()
+        fabric_model(torch.randn(2, 32, device=fabric.device)).sum().backward()
 
 
 @RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True)

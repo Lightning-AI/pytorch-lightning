@@ -24,6 +24,7 @@ from lightning.fabric.wrappers import (
     _FabricDataLoader,
     _FabricModule,
     _FabricOptimizer,
+    _unwrap_compiled,
     _unwrap_objects,
     is_wrapped,
 )
@@ -593,3 +594,23 @@ def test_step_method_redirection():
     fabric_module = _FabricModule(forward_module=original_module, precision=Mock(), original_module=original_module)
     assert fabric_module.training_step == original_module.training_step
     assert fabric_module.validation_step == original_module.validation_step
+
+
+@RunIf(dynamo=True)
+def test_unwrap_compiled():
+    model = torch.nn.Linear(1, 1)
+
+    with mock.patch("lightning.fabric.wrappers", "_TORCH_GREATER_EQUAL_2_0", False):
+        unwrapped, compile_kwargs = _unwrap_compiled(model)
+    assert unwrapped is model
+    assert compile_kwargs is None
+
+    compiled = torch.compile(model, fullgraph=True, dynamic=True, disable=False)
+    assert compiled._compile_kwargs == {"fullgraph": True, "dynamic": True, "disable": False}
+    unwrapped, compile_kwargs = _unwrap_compiled(compiled)
+    assert unwrapped is compiled._orig_mod
+    assert compile_kwargs == {"fullgraph": True, "dynamic": True, "disable": False}
+
+    del compiled._compile_kwargs
+    with pytest.raises(RuntimeError, match="Failed to determine the arguments that were used to compile the module"):
+        _unwrap_compiled(compiled)
