@@ -70,7 +70,7 @@ class PrepareChunksThread(Thread):
         num_bytes_per_nodes = self._config.num_bytes // self._distributed_env.num_nodes
         self._delete_chunks_when_processed = num_bytes_per_nodes > max_cache_size if max_cache_size else False
 
-        # If the dataset fits on the machine, let's enable downloading more chunks. 
+        # If the dataset fits on the machine, let's enable downloading more chunks.
         self._max_pre_download = 7 if not self._delete_chunks_when_processed else 3
 
         self._has_exited = False
