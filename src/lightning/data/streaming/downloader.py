@@ -12,12 +12,11 @@
 # limitations under the License.
 import os
 import shutil
+import subprocess
 from abc import ABC
 from typing import Any, Dict, List
 from urllib import parse
-import subprocess
-from filelock import FileLock, Timeout
-from lightning.data.streaming.constants import _BOTO3_AVAILABLE
+
 from lightning.data.streaming.client import S3Client
 
 
@@ -42,7 +41,7 @@ class S3Downloader(Downloader):
         super().__init__(remote_dir, cache_dir, chunks)
         self._s5cmd_available = os.system("s5cmd > /dev/null 2>&1") == 0
 
-        if not self._s5cmd_available: 
+        if not self._s5cmd_available:
             self._client = S3Client()
 
     def download_file(self, remote_filepath: str, local_filepath: str) -> None:
