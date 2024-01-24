@@ -12,12 +12,13 @@
 # limitations under the License.
 import os
 import shutil
+import subprocess
 from abc import ABC
 from typing import Any, Dict, List
 from urllib import parse
-import subprocess
+
 from filelock import FileLock, Timeout
-from lightning.data.streaming.constants import _BOTO3_AVAILABLE
+
 from lightning.data.streaming.client import S3Client
 
 
@@ -42,7 +43,7 @@ class S3Downloader(Downloader):
         super().__init__(remote_dir, cache_dir, chunks)
         self._s5cmd_available = os.system("s5cmd > /dev/null 2>&1") == 0
 
-        if not self._s5cmd_available: 
+        if not self._s5cmd_available:
             self._client = S3Client()
 
     def download_file(self, remote_filepath: str, local_filepath: str) -> None:
@@ -51,28 +52,35 @@ class S3Downloader(Downloader):
         if obj.scheme != "s3":
             raise ValueError(f"Expected obj.scheme to be `s3`, instead, got {obj.scheme} for remote={remote_filepath}")
 
-        if self._s5cmd_available:
-            proc = subprocess.Popen(f"s5cmd cp {remote_filepath} {local_filepath}", shell=True, stdout=subprocess.PIPE)
-            proc.wait()
-        else:
-            from boto3.s3.transfer import TransferConfig
+        if os.path.exists(local_filepath):
+            return
 
-            extra_args: Dict[str, Any] = {}
+        try:
+            with FileLock(local_filepath + ".lock", timeout=0):
+                if self._s5cmd_available:
+                    proc = subprocess.Popen(
+                        f"s5cmd cp {remote_filepath} {local_filepath}", shell=True, stdout=subprocess.PIPE
+                    )
+                    proc.wait()
+                else:
+                    from boto3.s3.transfer import TransferConfig
 
-            # try:
-            #     with FileLock(local_filepath + ".lock", timeout=1):
-            if not os.path.exists(local_filepath):
-                # Issue: https://github.com/boto/boto3/issues/3113
-                self._client.client.download_file(
-                    obj.netloc,
-                    obj.path.lstrip("/"),
-                    local_filepath,
-                    ExtraArgs=extra_args,
-                    Config=TransferConfig(use_threads=False),
-                )
-            # except Timeout:
-            #     # another process is responsible to download that file, continue
-            #     pass
+                    extra_args: Dict[str, Any] = {}
+
+                    # try:
+                    #     with FileLock(local_filepath + ".lock", timeout=1):
+                    if not os.path.exists(local_filepath):
+                        # Issue: https://github.com/boto/boto3/issues/3113
+                        self._client.client.download_file(
+                            obj.netloc,
+                            obj.path.lstrip("/"),
+                            local_filepath,
+                            ExtraArgs=extra_args,
+                            Config=TransferConfig(use_threads=False),
+                        )
+        except Timeout:
+            # another process is responsible to download that file, continue
+            pass
 
 
 class LocalDownloader(Downloader):
