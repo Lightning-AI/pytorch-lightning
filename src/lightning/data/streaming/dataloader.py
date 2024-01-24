@@ -346,27 +346,30 @@ class CacheDataLoader(DataLoader):
         self.check_worker_number_rationality()
         return _MultiProcessingDataLoaderIterPatch(self)
 
+
 class StopRecordingException(Exception):
     pass
 
 
-def _wrapper(func, tracer, profile): 
+def _wrapper(func, tracer, profile):
     counter = 0
     has_stopped = False
-    def wrap(*args, **kwargs): 
+
+    def wrap(*args, **kwargs):
         nonlocal counter
         nonlocal has_stopped
-        result = func(*args, **kwargs) 
+        result = func(*args, **kwargs)
 
         if not has_stopped and counter >= profile:
             tracer.stop()
             tracer.save()
             raise StopRecordingException("The collection has terminated.")
             has_stopped = True
- 
+
         counter += 1
-        return result 
-    return wrap 
+        return result
+
+    return wrap
 
 
 class _ProfileWorkerLoop:
@@ -392,7 +395,6 @@ class _ProfileWorkerLoop:
         **kwargs: Any,
     ) -> None:
         from torch.utils.data._utils import worker
-
         from viztracer import VizTracer
 
         tracer = VizTracer(output_file=os.path.join(os.getcwd(), "result.json"))
@@ -443,11 +445,12 @@ class _StreamingMultiProcessingDataLoaderIter(_MultiProcessingDataLoaderIter):
             else []
         )
         self._num_workers = loader.num_workers
-        
+
         distributed_env = _DistributedEnv.detect()
 
         if self._loader._profile_bactches and distributed_env.global_rank == 0:
             from torch.utils.data._utils import worker
+
             worker._worker_loop = _ProfileWorkerLoop(self._loader._profile_bactches)
 
         super().__init__(loader)
