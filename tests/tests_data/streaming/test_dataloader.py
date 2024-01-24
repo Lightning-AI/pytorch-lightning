@@ -1,5 +1,6 @@
 import os
 
+import pytest
 import torch
 from lightning.data.streaming import CombinedStreamingDataset, StreamingDataLoader
 from lightning.data.streaming import dataloader as streaming_dataloader_module
@@ -75,14 +76,15 @@ def test_streaming_dataloader():
     }
 
 
-def test_dataloader_profiling(tmpdir, monkeypatch):
+@pytest.mark.parametrize("profile", [2, True])
+def test_dataloader_profiling(profile, tmpdir, monkeypatch):
     monkeypatch.setattr(streaming_dataloader_module, "_VIZ_TRACKER_AVAILABLE", True)
 
     dataset = TestCombinedStreamingDataset(
         [TestStatefulDataset(10, 1), TestStatefulDataset(10, -1)], 42, weights=(0.5, 0.5)
     )
     dataloader = StreamingDataLoader(
-        dataset, batch_size=2, profile_bactches=True, profile_dir=str(tmpdir), num_workers=1
+        dataset, batch_size=2, profile_bactches=profile, profile_dir=str(tmpdir), num_workers=1
     )
     dataloader_iter = iter(dataloader)
     batches = []
