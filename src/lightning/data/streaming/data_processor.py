@@ -563,7 +563,7 @@ class BaseWorker:
     def _handle_data_transform_recipe(self, index: int) -> None:
         # Don't use a context manager to avoid deleting files that are being uploaded.
         output_dir = tempfile.mkdtemp()
-        item_data = self.data_recipe.prepare_item(str(output_dir), self.items[index])
+        item_data = self.data_recipe.prepare_item(self.items[index], str(output_dir))
         if item_data is not None:
             raise ValueError(
                 "When using a `DataTransformRecipe`, the `prepare_item` shouldn't return anything."
@@ -753,7 +753,7 @@ class DataTransformRecipe(DataRecipe):
         """
 
     @abstractmethod
-    def prepare_item(self, output_dir: str, item_metadata: T) -> None:  # type: ignore
+    def prepare_item(self, item_metadata: T, output_dir: str) -> None:  # type: ignore
         """Use your item metadata to process your files and save the file outputs into `output_dir`."""
 
 
