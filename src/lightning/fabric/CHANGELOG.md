@@ -41,6 +41,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - The columns in the `metrics.csv` file produced by `CSVLogger` are now sorted alphabetically ([#19159](https://github.com/Lightning-AI/lightning/pull/19159))
 
 
+- `TorchCheckpointIO.remove_checkpoint()` no longer silently passes if the given file does not exist ([#19344](https://github.com/Lightning-AI/lightning/pull/19344))
+
+
 ### Deprecated
 
 -

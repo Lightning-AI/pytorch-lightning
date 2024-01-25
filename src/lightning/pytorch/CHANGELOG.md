@@ -53,6 +53,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Reverted back to creating a checkpoint copy when `ModelCheckpoint(save_last=True)` instead of creating a symbolic link ([#19191](https://github.com/Lightning-AI/lightning/pull/19191))
 
 
+- `TorchCheckpointIO.remove_checkpoint()` no longer silently passes if the given file does not exist ([#19344](https://github.com/Lightning-AI/lightning/pull/19344))
+
+
 ### Deprecated
 
 - Deprecated all precision plugin classes under `lightning.pytorch.plugins` with the suffix `Plugin` in the name ([#18840](https://github.com/Lightning-AI/lightning/pull/18840))
