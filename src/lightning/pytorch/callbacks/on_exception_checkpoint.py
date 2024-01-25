@@ -67,4 +67,6 @@ class OnExceptionCheckpoint(Checkpoint):
 
     @override
     def teardown(self, trainer: "pl.Trainer", *_: Any, **__: Any) -> None:
-        trainer.strategy.remove_checkpoint(self.ckpt_path)
+        if os.path.exists(self.ckpt_path):
+            # only exists if there was an exception
+            trainer.strategy.remove_checkpoint(self.ckpt_path)

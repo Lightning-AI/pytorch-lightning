@@ -960,6 +960,7 @@ def test_checkpointing_with_nan_as_first(tmpdir, mode):
         max_epochs=len(monitor),
     )
     trainer.save_checkpoint = Mock()
+    trainer.strategy.remove_checkpoint = Mock()
 
     trainer.fit(model)
 
