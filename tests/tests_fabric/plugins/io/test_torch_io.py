@@ -21,7 +21,7 @@ def test_remove_checkpoint(tmp_path):
 
     # Path does not exist
     with pytest.raises(FileNotFoundError):
-        io.remove_checkpoint("not_exist.txt")
+        io.remove_checkpoint("does_not_exist.txt")
 
     # Single file
     file = tmp_path / "file.txt"
