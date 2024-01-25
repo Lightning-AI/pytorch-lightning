@@ -82,24 +82,24 @@ class LambdaDataTransformRecipe(DataTransformRecipe):
         params = inspect.signature(_fn).parameters
         self._contains_device = "device" in params
 
-    def prepare_structure(self, input_dir: Optional[str]) -> Any:
+    def prepare_structure(self, _: Optional[str]) -> Any:
         return self._inputs
 
-    def prepare_item(self, output_dir: str, item_metadata: Any) -> None:  # type: ignore
+    def prepare_item(self, item_metadata: Any, output_dir: str) -> None:  # type: ignore
         if self._contains_device and self._device is None:
             self._find_device()
 
         if isinstance(self._fn, (FunctionType, partial)):
             if self._contains_device:
-                self._fn(output_dir, item_metadata, self._device)
+                self._fn(item_metadata, output_dir, self._device)
             else:
-                self._fn(output_dir, item_metadata)
+                self._fn(item_metadata, output_dir)
 
         elif callable(self._fn):
             if self._contains_device:
-                self._fn.__call__(output_dir, item_metadata, self._device)  # type: ignore
+                self._fn.__call__(item_metadata, output_dir, self._device)  # type: ignore
             else:
-                self._fn.__call__(output_dir, item_metadata)  # type: ignore
+                self._fn.__call__(item_metadata, output_dir)  # type: ignore
         else:
             raise ValueError(f"The provided {self._fn} isn't supported.")
 
