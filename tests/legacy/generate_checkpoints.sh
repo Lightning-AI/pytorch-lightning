@@ -35,6 +35,7 @@ do
   python -m venv $ENV_PATH
   source $ENV_PATH/bin/activate
 
+  cat $(pwd)/../../requirements/pytorch/test.txt
   python -m pip install "pytorch_lightning==$pl_ver" \
     -r $LEGACY_PATH/requirements.txt \
     -r $(pwd)/../../requirements/pytorch/test.txt \
