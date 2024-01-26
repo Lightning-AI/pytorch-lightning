@@ -15,6 +15,7 @@
 
 import collections
 import itertools
+import sys
 from re import escape
 from unittest import mock
 from unittest.mock import call
@@ -30,6 +31,7 @@ from lightning.pytorch.loggers.tensorboard import TensorBoardLogger
 from lightning.pytorch.trainer.states import RunningStage
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.imports import _TORCHMETRICS_GREATER_EQUAL_0_11 as _TM_GE_0_11
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_2
 from lightning_utilities.test.warning import no_warning_call
 from torch import Tensor
 from torch.utils.data import DataLoader
@@ -346,7 +348,11 @@ class LoggingSyncDistModel(BoringModel):
     ("devices", "accelerator"),
     [
         (1, "cpu"),
-        (2, "cpu"),
+        pytest.param(2, "cpu", marks=pytest.mark.xfail(
+            # https://github.com/pytorch/pytorch/issues/116056
+            sys.platform == "win32" and _TORCH_GREATER_EQUAL_2_2,
+            reason="Windows + DDP issue in PyTorch 2.2",
+    )),
         pytest.param(2, "gpu", marks=RunIf(min_cuda_gpus=2)),
     ],
 )
