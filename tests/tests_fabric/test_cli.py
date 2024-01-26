@@ -14,6 +14,7 @@
 import contextlib
 import os
 import subprocess
+import sys
 from io import StringIO
 from unittest import mock
 from unittest.mock import Mock
@@ -21,9 +22,16 @@ from unittest.mock import Mock
 import pytest
 import torch.distributed
 from lightning.fabric.cli import _get_supported_strategies, _run_model
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 from lightning_utilities.core.imports import ModuleAvailableCache
 
 from tests_fabric.helpers.runif import RunIf
+
+
+skip_torchrun_windows_import_error = pytest.mark.skipif(
+    # https://github.com/pytorch/pytorch/issues/85427
+    sys.platform == "win23" and not _TORCH_GREATER_EQUAL_2_0, reason="Import error on Windows and PyTorch < 2.0"
+)
 
 
 @pytest.fixture()
@@ -33,6 +41,7 @@ def fake_script(tmp_path):
     return str(script)
 
 
+@skip_torchrun_windows_import_error
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_cli_env_vars_defaults(monkeypatch, fake_script):
     monkeypatch.setattr(torch.distributed, "run", Mock(), raising=False)
@@ -47,6 +56,7 @@ def test_cli_env_vars_defaults(monkeypatch, fake_script):
     assert "LT_PRECISION" not in os.environ
 
 
+@skip_torchrun_windows_import_error
 @pytest.mark.parametrize("accelerator", ["cpu", "gpu", "cuda", pytest.param("mps", marks=RunIf(mps=True))])
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 @mock.patch("lightning.fabric.accelerators.cuda.num_cuda_devices", return_value=2)
@@ -58,6 +68,7 @@ def test_cli_env_vars_accelerator(_, accelerator, monkeypatch, fake_script):
     assert os.environ["LT_ACCELERATOR"] == accelerator
 
 
+@skip_torchrun_windows_import_error
 @pytest.mark.parametrize("strategy", _get_supported_strategies())
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 @mock.patch("lightning.fabric.accelerators.cuda.num_cuda_devices", return_value=2)
@@ -76,6 +87,7 @@ def test_cli_get_supported_strategies():
     assert "fsdp" in _get_supported_strategies()
 
 
+@skip_torchrun_windows_import_error
 @pytest.mark.parametrize("strategy", ["ddp_spawn", "ddp_fork", "ddp_notebook", "deepspeed_stage_3_offload"])
 def test_cli_env_vars_unsupported_strategy(strategy, fake_script):
     ioerr = StringIO()
@@ -85,6 +97,7 @@ def test_cli_env_vars_unsupported_strategy(strategy, fake_script):
     assert f"Invalid value for '--strategy': '{strategy}'" in ioerr.getvalue()
 
 
+@skip_torchrun_windows_import_error
 @pytest.mark.parametrize("devices", ["1", "2", "0,", "1,0", "-1"])
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 @mock.patch("lightning.fabric.accelerators.cuda.num_cuda_devices", return_value=2)
@@ -97,6 +110,7 @@ def test_cli_env_vars_devices_cuda(_, devices, monkeypatch, fake_script):
 
 
 @RunIf(mps=True)
+@skip_torchrun_windows_import_error
 @pytest.mark.parametrize("accelerator", ["mps", "gpu"])
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_cli_env_vars_devices_mps(accelerator, monkeypatch, fake_script):
@@ -107,6 +121,7 @@ def test_cli_env_vars_devices_mps(accelerator, monkeypatch, fake_script):
     assert os.environ["LT_DEVICES"] == "1"
 
 
+@skip_torchrun_windows_import_error
 @pytest.mark.parametrize("num_nodes", ["1", "2", "3"])
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_cli_env_vars_num_nodes(num_nodes, monkeypatch, fake_script):
@@ -117,6 +132,7 @@ def test_cli_env_vars_num_nodes(num_nodes, monkeypatch, fake_script):
     assert os.environ["LT_NUM_NODES"] == num_nodes
 
 
+@skip_torchrun_windows_import_error
 @pytest.mark.parametrize("precision", ["64-true", "64", "32-true", "32", "16-mixed", "bf16-mixed"])
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_cli_env_vars_precision(precision, monkeypatch, fake_script):
@@ -127,6 +143,7 @@ def test_cli_env_vars_precision(precision, monkeypatch, fake_script):
     assert os.environ["LT_PRECISION"] == precision
 
 
+@skip_torchrun_windows_import_error
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_cli_torchrun_defaults(monkeypatch, fake_script):
     torchrun_mock = Mock()
@@ -146,6 +163,7 @@ def test_cli_torchrun_defaults(monkeypatch, fake_script):
     )
 
 
+@skip_torchrun_windows_import_error
 @pytest.mark.parametrize(
     ("devices", "expected"),
     [
