@@ -31,7 +31,7 @@ class SimpleModel(nn.Module):
         self.register_buffer("buffer", torch.ones(3))
 
 
-@pytest.mark.skipif(
+@pytest.mark.xfail(
     # https://github.com/pytorch/pytorch/issues/116056
     sys.platform == "win32" and _TORCH_GREATER_EQUAL_2_2,
     reason="Windows + DDP issue in PyTorch 2.2",

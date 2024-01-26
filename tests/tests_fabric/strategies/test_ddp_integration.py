@@ -28,7 +28,7 @@ from tests_fabric.strategies.test_single_device import _run_test_clip_gradients
 from tests_fabric.test_fabric import BoringModel
 
 
-@pytest.mark.skipif(
+@pytest.mark.xfail(
     # https://github.com/pytorch/pytorch/issues/116056
     sys.platform == "win32" and _TORCH_GREATER_EQUAL_2_2,
     reason="Windows + DDP issue in PyTorch 2.2",

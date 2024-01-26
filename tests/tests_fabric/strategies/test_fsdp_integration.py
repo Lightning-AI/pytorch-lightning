@@ -22,7 +22,9 @@ import torch
 from lightning.fabric import Fabric
 from lightning.fabric.plugins import FSDPPrecision
 from lightning.fabric.strategies import FSDPStrategy
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0, _TORCH_GREATER_EQUAL_2_1
+from lightning.fabric.utilities.imports import (
+    _TORCH_GREATER_EQUAL_2_0, _TORCH_GREATER_EQUAL_2_1, _TORCH_GREATER_EQUAL_2_2
+)
 from lightning.fabric.utilities.load import _load_distributed_checkpoint
 from lightning.fabric.wrappers import _FabricOptimizer
 from torch.distributed.fsdp import FlatParameter, FullyShardedDataParallel, OptimStateKeyType
@@ -560,7 +562,8 @@ def test_clip_gradients(clip_type, precision):
     optimizer.zero_grad()
 
 
-@RunIf(min_cuda_gpus=2, standalone=True, min_torch="2.1.0")
+@pytest.mark.xfail(_TORCH_GREATER_EQUAL_2_2, reason="Checkpoint consolidation not supported with PyTorch >= 2.2")
+@RunIf(min_cuda_gpus=2, standalone=True, min_torch="2.1.0", max_torch="2.2.0")
 def test_save_sharded_and_consolidate_and_load(tmp_path):
     """Test the consolidation of a FSDP-sharded checkpoint into a single file."""
 
