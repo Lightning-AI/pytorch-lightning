@@ -150,7 +150,6 @@ jobs:
           pip install ".[${EXTRA_PREFIX}extra,${EXTRA_PREFIX}test,${EXTRA_PREFIX}strategies]" -U --prefer-binary \
             -r requirements/_integrations/accelerators.txt \
             --find-links="${TORCH_URL}" --find-links="${PYPI_CACHE_DIR}"
-          pip install --force-reinstall "jsonargparse[signatures] @ https://github.com/omni-us/jsonargparse/archive/main.zip"
           pip list
       - name: Drop LAI from extensions
         if: ${{ matrix.pkg-name != 'lightning' }}
