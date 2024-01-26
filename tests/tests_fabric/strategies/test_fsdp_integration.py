@@ -23,7 +23,9 @@ from lightning.fabric import Fabric
 from lightning.fabric.plugins import FSDPPrecision
 from lightning.fabric.strategies import FSDPStrategy
 from lightning.fabric.utilities.imports import (
-    _TORCH_GREATER_EQUAL_2_0, _TORCH_GREATER_EQUAL_2_1, _TORCH_GREATER_EQUAL_2_2
+    _TORCH_GREATER_EQUAL_2_0,
+    _TORCH_GREATER_EQUAL_2_1,
+    _TORCH_GREATER_EQUAL_2_2,
 )
 from lightning.fabric.utilities.load import _load_distributed_checkpoint
 from lightning.fabric.wrappers import _FabricOptimizer

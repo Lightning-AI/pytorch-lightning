@@ -15,10 +15,10 @@ import itertools
 import sys
 
 import pytest
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_2
 from lightning.pytorch import LightningModule, Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
 from lightning.pytorch.overrides.distributed import _IndexBatchSamplerWrapper
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_2
 from torch.utils.data import DataLoader, DistributedSampler, SequentialSampler
 
 
