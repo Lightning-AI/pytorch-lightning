@@ -18,6 +18,7 @@ from lightning.fabric.utilities.imports import (
     _TORCH_GREATER_EQUAL_2_0,
     _TORCH_GREATER_EQUAL_2_1,
 )
+from lightning.fabric.utilities.load import _load_distributed_checkpoint
 from lightning.pytorch import Trainer
 from lightning.pytorch.callbacks import ModelCheckpoint
 from lightning.pytorch.demos.boring_classes import BoringModel
@@ -25,6 +26,7 @@ from lightning.pytorch.plugins import HalfPrecision
 from lightning.pytorch.plugins.precision.fsdp import FSDPPrecision
 from lightning.pytorch.strategies import FSDPStrategy
 from lightning.pytorch.trainer.states import TrainerFn
+from lightning.pytorch.utilities.consolidate_checkpoint import _format_checkpoint
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from torch.distributed.fsdp.fully_sharded_data_parallel import CPUOffload, FullyShardedDataParallel, MixedPrecision
 from torch.distributed.fsdp.wrap import always_wrap_policy, size_based_auto_wrap_policy, wrap
@@ -991,3 +993,40 @@ def test_module_init_context(precision, expected_dtype):
     else:
         # Case 2: Empty-init with PyTorch < 2.1 only supports `torch.empty()`-init
         _run_setup_assertions(empty_init=True, expected_device=torch.device("cpu"))
+
+
+# TODO: Support checkpoint consolidation with PyTorch >= 2.2
+@RunIf(min_cuda_gpus=2, standalone=True, min_torch="2.1.0", max_torch="2.2.0")
+def test_save_sharded_and_consolidate_and_load(tmp_path):
+    """Test the consolidation of a FSDP-sharded checkpoint into a single file."""
+
+    model = BoringModel()
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        accelerator="cuda",
+        devices=2,
+        strategy=FSDPStrategy(auto_wrap_policy=always_wrap_policy, state_dict_type="sharded"),
+        max_steps=3,
+    )
+    trainer.fit(model)
+
+    checkpoint_path_sharded = trainer.strategy.broadcast(str(trainer.checkpoint_callback.best_model_path))
+    assert set(os.listdir(checkpoint_path_sharded)) == {"meta.pt", ".metadata", "__0_0.distcp", "__1_0.distcp"}
+
+    # consolidate the checkpoint to a single file
+    checkpoint_path_full = trainer.strategy.broadcast(str(tmp_path / "checkpoint_full.ckpt"))
+    if trainer.global_rank == 0:
+        checkpoint = _load_distributed_checkpoint(Path(checkpoint_path_sharded))
+        checkpoint = _format_checkpoint(checkpoint)
+        torch.save(checkpoint, checkpoint_path_full)
+    trainer.strategy.barrier()
+
+    model = BoringModel()
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        accelerator="cuda",
+        devices=2,
+        strategy="ddp",
+        max_steps=4,
+    )
+    trainer.fit(model, ckpt_path=checkpoint_path_full)

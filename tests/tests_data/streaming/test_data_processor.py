@@ -581,7 +581,7 @@ class ImageResizeRecipe(DataTransformRecipe):
         filepaths = [os.path.join(input_dir, filename) for filename in os.listdir(input_dir)]
         return [filepath for filepath in filepaths if os.path.isfile(filepath)]
 
-    def prepare_item(self, output_dir: str, filepath: Any) -> None:
+    def prepare_item(self, filepath: Any, output_dir: str) -> None:
         from PIL import Image
 
         img = Image.open(filepath)
@@ -628,7 +628,7 @@ def test_data_process_transform(monkeypatch, tmpdir):
     assert img.size == (12, 12)
 
 
-def map_fn(output_dir, filepath):
+def map_fn(filepath, output_dir):
     from PIL import Image
 
     img = Image.open(filepath)
@@ -833,7 +833,7 @@ def test_lambda_transform_recipe(monkeypatch):
 
     data_recipe = LambdaDataTransformRecipe(fn, range(1))
 
-    data_recipe.prepare_item("", 1)
+    data_recipe.prepare_item(1, "")
     assert called
 
 
@@ -847,13 +847,13 @@ def test_lambda_transform_recipe_class(monkeypatch):
     called = False
 
     class Transform:
-        def __call__(self, output_dir, item, device):
+        def __call__(self, item, output_dir, device):
             nonlocal called
             assert device == "cuda:2"
             called = True
 
     data_recipe = LambdaDataTransformRecipe(Transform(), range(1))
-    data_recipe.prepare_item("", 1)
+    data_recipe.prepare_item(1, "")
     assert called
 
 
@@ -894,7 +894,7 @@ def test_get_item_filesizes(tmp_path):
         _get_item_filesizes([str(tmp_path / "empty_file")])
 
 
-def map_fn_index(output_dir, index):
+def map_fn_index(index, output_dir):
     with open(os.path.join(output_dir, f"{index}.JPEG"), "w") as f:
         f.write("Hello")
 
