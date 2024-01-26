@@ -42,7 +42,7 @@ on:
         type: boolean
 
 env:
-  legacy_dir: "tests/legacy"
+  LEGACY_FOLDER: "tests/legacy"
   TORCH_URL: "https://download.pytorch.org/whl/cpu/torch_stable.html"
 
 defaults:
@@ -91,11 +91,11 @@ jobs:
         run: python -c "import pytorch_lightning as pl; print(f'pl-version={pl.__version__}')" >> $GITHUB_OUTPUT || echo pl-version='' >> $GITHUB_OUTPUT
 
       - name: Generate checkpoints
-        working-directory: ${{ env.legacy_dir }}
+        working-directory: ${{ env.LEGACY_FOLDER }}
         run: bash generate_checkpoints.sh ${{ inputs.pl_version }}
       - name: Rename local to actual version
         if: inputs.upload_local
-        working-directory: ${{ env.legacy_dir }}
+        working-directory: ${{ env.LEGACY_FOLDER }}
         run: mv checkpoints/local checkpoints/${{ steps.decide-version.outputs.pl-version }}
 
       - name: "Determine: Keep artifact & DryRun"
@@ -107,12 +107,12 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: checkpoints-${{ github.sha }}
-          path: ${{ env.legacy_dir }}/checkpoints/
+          path: ${{ env.LEGACY_FOLDER }}/checkpoints/
           retention-days: ${{ env.KEEP_DAYS }}
 
       - run: pip install -r requirements/ci.txt
       - name: Upload checkpoints to S3
-        working-directory: ${{ env.legacy_dir }}
+        working-directory: ${{ env.LEGACY_FOLDER }}
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_PUB_ACCESS_KEY }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_PUB_SECRET_KEY }}
@@ -134,7 +134,7 @@ jobs:
           ref: master
 
       - name: Append a new version to legacy checkpoint list
-        working-directory: ${{ env.legacy_dir }}
+        working-directory: ${{ env.LEGACY_FOLDER }}
         run: echo ${PL_VERSION} >> back-compatible-versions.txt
 
       - name: Create Pull Request
