@@ -33,7 +33,8 @@ class SimpleModel(nn.Module):
 
 @pytest.mark.skipif(
     # https://github.com/pytorch/pytorch/issues/116056
-    sys.platform == "win32" and _TORCH_GREATER_EQUAL_2_2, reason="Windows + DDP issue in PyTorch 2.2"
+    sys.platform == "win32" and _TORCH_GREATER_EQUAL_2_2,
+    reason="Windows + DDP issue in PyTorch 2.2",
 )
 @pytest.mark.parametrize("strategy", ["ddp_spawn", pytest.param("ddp_fork", marks=RunIf(skip_windows=True))])
 def test_memory_sharing_disabled(strategy):
