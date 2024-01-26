@@ -52,6 +52,10 @@ done
 if [[ -z "$@" ]]; then
   printf "\n\n processing local version\n"
 
+  python -m pip install \
+    -r $LEGACY_FOLDER/requirements.txt \
+    -r "$(dirname $TESTS_FOLDER)/requirements/pytorch/test.txt" \
+    -f https://download.pytorch.org/whl/cpu/torch_stable.html
   pl_ver="local"
   create_and_save_checkpoint
 fi
