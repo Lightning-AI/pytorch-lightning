@@ -20,7 +20,6 @@ from unittest import mock
 from unittest.mock import Mock
 
 import pytest
-import torch.distributed
 from lightning.fabric.cli import _get_supported_strategies, _run_model
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 from lightning_utilities.core.imports import ModuleAvailableCache
@@ -41,10 +40,9 @@ def fake_script(tmp_path):
     return str(script)
 
 
-@skip_torchrun_windows_import_error
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_cli_env_vars_defaults(monkeypatch, fake_script):
-    monkeypatch.setattr(torch.distributed, "run", Mock(), raising=False)
+    monkeypatch.setitem(sys.modules, "torch.distributed.run", Mock())
     with pytest.raises(SystemExit) as e:
         _run_model.main([fake_script])
     assert e.value.code == 0
@@ -61,7 +59,7 @@ def test_cli_env_vars_defaults(monkeypatch, fake_script):
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 @mock.patch("lightning.fabric.accelerators.cuda.num_cuda_devices", return_value=2)
 def test_cli_env_vars_accelerator(_, accelerator, monkeypatch, fake_script):
-    monkeypatch.setattr(torch.distributed, "run", Mock(), raising=False)
+    monkeypatch.setitem(sys.modules, "torch.distributed.run", Mock())
     with pytest.raises(SystemExit) as e:
         _run_model.main([fake_script, "--accelerator", accelerator])
     assert e.value.code == 0
@@ -73,7 +71,7 @@ def test_cli_env_vars_accelerator(_, accelerator, monkeypatch, fake_script):
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 @mock.patch("lightning.fabric.accelerators.cuda.num_cuda_devices", return_value=2)
 def test_cli_env_vars_strategy(_, strategy, monkeypatch, fake_script):
-    monkeypatch.setattr(torch.distributed, "run", Mock(), raising=False)
+    monkeypatch.setitem(sys.modules, "torch.distributed.run", Mock())
     with pytest.raises(SystemExit) as e:
         _run_model.main([fake_script, "--strategy", strategy])
     assert e.value.code == 0
@@ -102,7 +100,7 @@ def test_cli_env_vars_unsupported_strategy(strategy, fake_script):
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 @mock.patch("lightning.fabric.accelerators.cuda.num_cuda_devices", return_value=2)
 def test_cli_env_vars_devices_cuda(_, devices, monkeypatch, fake_script):
-    monkeypatch.setattr(torch.distributed, "run", Mock(), raising=False)
+    monkeypatch.setitem(sys.modules, "torch.distributed.run", Mock())
     with pytest.raises(SystemExit) as e:
         _run_model.main([fake_script, "--accelerator", "cuda", "--devices", devices])
     assert e.value.code == 0
@@ -114,7 +112,7 @@ def test_cli_env_vars_devices_cuda(_, devices, monkeypatch, fake_script):
 @pytest.mark.parametrize("accelerator", ["mps", "gpu"])
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_cli_env_vars_devices_mps(accelerator, monkeypatch, fake_script):
-    monkeypatch.setattr(torch.distributed, "run", Mock(), raising=False)
+    monkeypatch.setitem(sys.modules, "torch.distributed.run", Mock())
     with pytest.raises(SystemExit) as e:
         _run_model.main([fake_script, "--accelerator", accelerator])
     assert e.value.code == 0
@@ -125,7 +123,7 @@ def test_cli_env_vars_devices_mps(accelerator, monkeypatch, fake_script):
 @pytest.mark.parametrize("num_nodes", ["1", "2", "3"])
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_cli_env_vars_num_nodes(num_nodes, monkeypatch, fake_script):
-    monkeypatch.setattr(torch.distributed, "run", Mock(), raising=False)
+    monkeypatch.setitem(sys.modules, "torch.distributed.run", Mock())
     with pytest.raises(SystemExit) as e:
         _run_model.main([fake_script, "--num-nodes", num_nodes])
     assert e.value.code == 0
@@ -136,7 +134,7 @@ def test_cli_env_vars_num_nodes(num_nodes, monkeypatch, fake_script):
 @pytest.mark.parametrize("precision", ["64-true", "64", "32-true", "32", "16-mixed", "bf16-mixed"])
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_cli_env_vars_precision(precision, monkeypatch, fake_script):
-    monkeypatch.setattr(torch.distributed, "run", Mock(), raising=False)
+    monkeypatch.setitem(sys.modules, "torch.distributed.run", Mock())
     with pytest.raises(SystemExit) as e:
         _run_model.main([fake_script, "--precision", precision])
     assert e.value.code == 0
@@ -147,7 +145,7 @@ def test_cli_env_vars_precision(precision, monkeypatch, fake_script):
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_cli_torchrun_defaults(monkeypatch, fake_script):
     torchrun_mock = Mock()
-    monkeypatch.setattr(torch.distributed, "run", torchrun_mock, raising=False)
+    monkeypatch.setitem(sys.modules, "torch.distributed.run", torchrun_mock)
     with pytest.raises(SystemExit) as e:
         _run_model.main([fake_script])
     assert e.value.code == 0
@@ -178,7 +176,7 @@ def test_cli_torchrun_defaults(monkeypatch, fake_script):
 @mock.patch("lightning.fabric.accelerators.cuda.num_cuda_devices", return_value=5)
 def test_cli_torchrun_num_processes_launched(_, devices, expected, monkeypatch, fake_script):
     torchrun_mock = Mock()
-    monkeypatch.setattr(torch.distributed, "run", torchrun_mock, raising=False)
+    monkeypatch.setitem(sys.modules, "torch.distributed.run", torchrun_mock)
     with pytest.raises(SystemExit) as e:
         _run_model.main([fake_script, "--accelerator", "cuda", "--devices", devices])
     assert e.value.code == 0
