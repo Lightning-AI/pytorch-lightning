@@ -21,7 +21,7 @@ from torch import Tensor
 
 import lightning.pytorch as pl
 from lightning.fabric.utilities.distributed import _distributed_is_initialized
-from lightning.fabric.utilities.imports import _TORCH_EQUAL_2_0, _TORCH_GREATER_EQUAL_1_13
+from lightning.fabric.utilities.imports import _TORCH_EQUAL_2_0
 from lightning.fabric.utilities.warnings import PossibleUserWarning
 from lightning.pytorch.accelerators.xla import XLAAccelerator
 from lightning.pytorch.callbacks.timer import Timer
@@ -168,7 +168,7 @@ def _no_grad_context(loop_run: Callable) -> Callable:
             context_manager = torch.no_grad
         elif isinstance(self.trainer.accelerator, XLAAccelerator):  # noqa: SIM114
             context_manager = torch.no_grad
-        elif _TORCH_GREATER_EQUAL_1_13 and isinstance(self.trainer.strategy, FSDPStrategy):  # noqa: SIM114
+        elif isinstance(self.trainer.strategy, FSDPStrategy):  # noqa: SIM114
             # https://github.com/pytorch/pytorch/issues/95957
             context_manager = torch.no_grad
         elif _TORCH_EQUAL_2_0 and self.trainer.lightning_module._compiler_ctx is not None:

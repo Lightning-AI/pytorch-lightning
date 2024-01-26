@@ -39,7 +39,7 @@ from lightning.fabric.strategies.strategy import (
     _validate_keys_for_strict_loading,
 )
 from lightning.fabric.utilities.cloud_io import get_filesystem
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_13, _TORCH_GREATER_EQUAL_2_0
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 from lightning.fabric.utilities.init import _EmptyInit
 from lightning.fabric.utilities.rank_zero import rank_zero_only, rank_zero_warn
 from lightning.fabric.utilities.types import _PATH, Optimizable, ReduceOp
@@ -230,8 +230,7 @@ class XLAFSDPStrategy(ParallelStrategy, _Sharded):
         precision_init_ctx = self.precision.module_init_context()
         module_sharded_ctx = self.module_sharded_context()
         stack = ExitStack()
-        if _TORCH_GREATER_EQUAL_1_13:
-            stack.enter_context(_EmptyInit(enabled=bool(empty_init)))
+        stack.enter_context(_EmptyInit(enabled=bool(empty_init)))
         stack.enter_context(precision_init_ctx)
         stack.enter_context(module_sharded_ctx)
         return stack

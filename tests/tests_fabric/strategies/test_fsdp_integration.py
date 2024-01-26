@@ -450,7 +450,7 @@ def test_fsdp_save_filter(tmp_path):
         fabric.save(checkpoint_path, state, filter=filter)
 
 
-@RunIf(min_torch="1.13", min_cuda_gpus=1)
+@RunIf(min_cuda_gpus=1)
 def test_fsdp_manual_activation_checkpointing():
     model = torch.nn.Sequential(torch.nn.Linear(1, 1), torch.nn.Linear(1, 1))
     strategy = FSDPStrategy(activation_checkpointing_policy={torch.nn.Linear})

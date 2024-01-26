@@ -440,13 +440,6 @@ def test_invalid_parameters_in_optimizer(use_orig_params):
         trainer.fit(model)
 
 
-@mock.patch("lightning.fabric.strategies.fsdp._TORCH_GREATER_EQUAL_1_13", False)
-def test_fsdp_activation_checkpointing_support():
-    """Test that we error out if activation checkpointing requires a newer PyTorch version."""
-    with pytest.raises(ValueError, match="activation_checkpointing` requires torch >= 1.13.0"):
-        FSDPStrategy(activation_checkpointing=Mock())
-
-
 def test_fsdp_forbidden_precision_raises():
     with pytest.raises(TypeError, match="can only work with the `FSDPPrecision"):
         FSDPStrategy(precision_plugin=HalfPrecision())
@@ -456,7 +449,6 @@ def test_fsdp_forbidden_precision_raises():
         strategy.precision_plugin = HalfPrecision()
 
 
-@RunIf(min_torch="1.13")
 def test_fsdp_activation_checkpointing():
     """Test that the FSDP strategy can apply activation checkpointing to the given layers."""
 

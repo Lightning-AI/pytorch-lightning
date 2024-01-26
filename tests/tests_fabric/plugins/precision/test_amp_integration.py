@@ -79,7 +79,7 @@ def _test_amp(fabric, expected_dtype):
     optimizer.zero_grad()
 
 
-@RunIf(min_torch="1.13", min_cuda_gpus=1)
+@RunIf(min_cuda_gpus=1)
 def test_amp_fused_optimizer_parity():
     def run(fused=False):
         seed_everything(1234)
