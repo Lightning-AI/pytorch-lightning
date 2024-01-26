@@ -105,12 +105,12 @@ class BinaryWriter:
             return True
         files = os.listdir(self._cache_dir)
         index_files = [f for f in files if f.endswith(_INDEX_FILENAME)]
-        worker_end = _WorkerEnv.detect()
+        worker_env = _WorkerEnv.detect()
         data_optimiser_num_workers = os.getenv("DATA_OPTIMIZER_NUM_WORKERS", None)
         if data_optimiser_num_workers is not None:
             self._is_done = len(index_files) == int(data_optimiser_num_workers)
         else:
-            self._is_done = len(index_files) == self._distributed_env.world_size * worker_end.world_size
+            self._is_done = len(index_files) == self._distributed_env.world_size * worker_env.world_size
         return self._is_done
 
     @property
