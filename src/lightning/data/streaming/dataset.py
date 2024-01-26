@@ -17,7 +17,7 @@ from time import time
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
-from torch.utils.data import IterableDataset, get_worker_info
+from torch.utils.data import IterableDataset
 
 from lightning.data.streaming import Cache
 from lightning.data.streaming.constants import (
@@ -29,7 +29,7 @@ from lightning.data.streaming.resolver import Dir, _resolve_dir
 from lightning.data.streaming.sampler import ChunkedIndex
 from lightning.data.streaming.serializers import Serializer
 from lightning.data.streaming.shuffle import FullShuffle, NoShuffle, Shuffle
-from lightning.data.utilities.env import _DistributedEnv, _WorkerEnv
+from lightning.data.utilities.env import _DistributedEnv, _is_in_dataloader_worker, _WorkerEnv
 
 
 class StreamingDataset(IterableDataset):
@@ -90,6 +90,17 @@ class StreamingDataset(IterableDataset):
         self.serializers = serializers
         self._state_dict: Optional[Dict[str, Any]] = None
 
+    def set_epoch(self, current_epoch: int) -> None:
+        """Set the current epoch to the dataset on epoch starts.
+
+        When using the StreamingDataLoader, this is done automatically
+
+        """
+        # If the state dict has been reloaded, don't override the current epoch
+        # The StreamingDataloader would clean this out
+        if self._state_dict is None:
+            self.current_epoch = current_epoch
+
     def _create_cache(self, worker_env: _WorkerEnv) -> Cache:
         if _should_replace_path(self.input_dir.path):
             cache_path = _try_create_cache_dir(
@@ -119,8 +130,7 @@ class StreamingDataset(IterableDataset):
         seed = self.seed
         drop_last = self.drop_last
         if self._state_dict is not None:
-            restart_keys = sorted(self._state_dict)
-            state: Dict[str, Any] = self._state_dict[restart_keys[-1]]
+            state: Dict[str, Any] = self._state_dict
             seed = state["seed"]
             drop_last = state["drop_last"]
         return FullShuffle(cache, seed, drop_last) if self.shuffle else NoShuffle(cache, seed, drop_last)
@@ -139,8 +149,7 @@ class StreamingDataset(IterableDataset):
         # Handle restart
         if self._state_dict:
             self._validate_state_dict()
-            restart_keys = sorted(self._state_dict)
-            state: Dict[str, Any] = self._state_dict[restart_keys[-1]]
+            state: Dict[str, Any] = self._state_dict
             self.current_epoch = state["current_epoch"]
 
         chunks_per_replica, intervals_per_replica = self.shuffler.get_chunks_and_intervals_per_ranks(
@@ -187,16 +196,13 @@ class StreamingDataset(IterableDataset):
         assert self.worker_env
         assert self.shuffler
 
-        restart_keys = sorted(self._state_dict)
-
-        # Get the state from the previous run
-        state: Dict[str, Any] = self._state_dict[restart_keys[-1]]
+        state: Dict[str, Any] = self._state_dict
 
         num_workers = state["num_workers"]
         batch_size = state["batch_size"]
 
         # TODO: Implement elastic sampling where the number of workers, ranks can change.
-        num_samples_yielded = sum([state["num_samples_yielded"] for state in self._state_dict.values()])
+        num_samples_yielded = self._state_dict["num_samples_yielded"]
 
         # replay sampling from each worker / chunks using the batch size
         workers_chunks, workers_intervals = _associate_chunks_to_workers(
@@ -213,7 +219,7 @@ class StreamingDataset(IterableDataset):
         self.worker_intervals = workers_intervals[worker_rank]
 
         # replay the indexes for the current chunks
-        interval = workers_intervals[worker_rank][self.chunk_index]
+        interval = self.worker_intervals[self.chunk_index]
         current_indexes = np.arange(interval[0], interval[1])
 
         # re-shuffle the indexes
@@ -222,6 +228,8 @@ class StreamingDataset(IterableDataset):
         # skip any indexes already consumed
         current_indexes = current_indexes[indexes[worker_rank] :]
         self.current_indexes = current_indexes
+
+        self.global_index = num_samples_yielded
 
         # bump the chunk_index
         self.chunk_index += 1
@@ -283,6 +291,10 @@ class StreamingDataset(IterableDataset):
         if _is_in_dataloader_worker():
             raise RuntimeError("The method `state_dict` should only be called in the main process.")
 
+        if self._state_dict is not None:
+            self._state_dict["num_samples_yielded"] = num_samples_yielded
+            return self._state_dict
+
         state = {
             "num_samples_yielded": num_samples_yielded,
             "num_workers": num_workers,
@@ -297,10 +309,7 @@ class StreamingDataset(IterableDataset):
             "shuffle": self.shuffle,
         }
 
-        if self._state_dict:
-            num_restarts = len(self._state_dict)
-            return {**self._state_dict, f"{num_restarts}": state}
-        return {"0": state}
+        return state
 
     def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
         if state_dict:
@@ -312,8 +321,7 @@ class StreamingDataset(IterableDataset):
         assert self.worker_env
         assert self.cache
 
-        restart_keys = sorted(self._state_dict)
-        state: Dict[str, Any] = self._state_dict[restart_keys[-1]]
+        state: Dict[str, Any] = self._state_dict
 
         if state["shuffle"] != self.shuffle:
             raise ValueError(
@@ -327,7 +335,18 @@ class StreamingDataset(IterableDataset):
                 f"Found `{self.worker_env.world_size}` instead of `{state['num_workers']}`."
             )
 
-        if state["input_dir_path"] != self.input_dir.path:
+        # Note: We need to check whether the path has been resolved to its associated cache.
+        # In this case, validate the cache folder is the same.
+        if _should_replace_path(state["input_dir_path"]):
+            cache_path = _try_create_cache_dir(
+                input_dir=state["input_dir_path"] if state["input_dir_path"] else state["input_dir_url"]
+            )
+            if cache_path != self.input_dir.path:
+                raise ValueError(
+                    "The provided `input_dir` path state doesn't match the current one. "
+                    f"Found `{self.input_dir.path}` instead of `{cache_path}`."
+                )
+        elif state["input_dir_path"] != self.input_dir.path:
             raise ValueError(
                 "The provided `input_dir` path state doesn't match the current one. "
                 f"Found `{self.input_dir.path}` instead of `{state['input_dir_path']}`."
@@ -374,11 +393,7 @@ def _should_replace_path(path: Optional[str]) -> bool:
     if path is None or path == "":
         return True
 
-    return "/datasets/" in path or "_connections/" in path
-
-
-def _is_in_dataloader_worker() -> bool:
-    return get_worker_info() is not None
+    return path.startswith("/teamspace/datasets/") or path.startswith("/teamspace/s3_connections/")
 
 
 def is_integer(value: str) -> bool:
