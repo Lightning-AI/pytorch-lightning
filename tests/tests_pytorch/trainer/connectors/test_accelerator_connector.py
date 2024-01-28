@@ -35,6 +35,7 @@ from lightning.pytorch.accelerators import Accelerator, CPUAccelerator, CUDAAcce
 from lightning.pytorch.plugins.io import TorchCheckpointIO
 from lightning.pytorch.plugins.layer_sync import LayerSync, TorchSyncBatchNorm
 from lightning.pytorch.plugins.precision import (
+    BitsandbytesPrecision,
     DeepSpeedPrecision,
     DoublePrecision,
     FSDPPrecision,
@@ -1115,3 +1116,10 @@ def test_connector_num_nodes_input_validation():
 def test_precision_selection(precision_str, strategy_str, expected_precision_cls):
     connector = _AcceleratorConnector(precision=precision_str, strategy=strategy_str)
     assert isinstance(connector.precision_plugin, expected_precision_cls)
+
+
+def test_bitsandbytes_precision_cuda_required(monkeypatch):
+    monkeypatch.setattr(lightning.fabric.plugins.precision.bitsandbytes, "_BITSANDBYTES_AVAILABLE", True)
+    monkeypatch.setitem(sys.modules, "bitsandbytes", Mock())
+    with pytest.raises(RuntimeError, match="Bitsandbytes is only supported on CUDA GPUs"):
+        _AcceleratorConnector(accelerator="cpu", plugins=BitsandbytesPrecision(mode="int8"))
