@@ -566,7 +566,9 @@ class _AcceleratorConnector:
 
     def _validate_precision_choice(self) -> None:
         """Validate the combination of choices for precision, AMP type, and accelerator."""
-        if isinstance(self._precision_plugin_flag, BitsandbytesPrecision) and not isinstance(self.accelerator, CUDAAccelerator):
+        if isinstance(self._precision_plugin_flag, BitsandbytesPrecision) and not isinstance(
+            self.accelerator, CUDAAccelerator
+        ):
             raise RuntimeError("Bitsandbytes is only supported on CUDA GPUs.")
         if _habana_available_and_importable():
             from lightning_habana import HPUAccelerator

@@ -449,7 +449,9 @@ class _Connector:
 
     def _check_and_init_precision(self) -> Precision:
         if isinstance(self._precision_instance, Precision):
-            if isinstance(self._precision_instance, BitsandbytesPrecision) and not isinstance(self.accelerator, CUDAAccelerator):
+            if isinstance(self._precision_instance, BitsandbytesPrecision) and not isinstance(
+                self.accelerator, CUDAAccelerator
+            ):
                 raise RuntimeError("Bitsandbytes is only supported on CUDA GPUs.")
             return self._precision_instance
         if isinstance(self.strategy, (SingleDeviceXLAStrategy, XLAStrategy, XLAFSDPStrategy)):
