@@ -109,13 +109,13 @@ You should always *exclude* the first call to ``forward()`` from your measuremen
         print(f"Compile median time: {compile_time:.4f} seconds")
         print(f"Speedup: {speedup:.1f}x")
 
-    On an NVIDIA A100 with PyTorch 2.1.2, CUDA 12.1, we get the following speedup:
+    On an NVIDIA A100 SXM4 40GB with PyTorch 2.1.2, CUDA 12.1, we get the following speedup:
 
     .. code-block:: text
 
-        Eager median time: 0.0151 seconds
-        Compile median time: 0.0056 seconds
-        Speedup: 2.7x
+        Eager median time: 0.0150 seconds
+        Compile median time: 0.0057 seconds
+        Speedup: 2.6x
 
 
 ----
@@ -220,7 +220,33 @@ A model compiled with ``dynamic=True`` will typically be slower than a model com
 Experiment with compilation options
 ***********************************
 
-TODO
+There are optional settings that, depending on your model, can give additional speedups.
+
+**CUDA Graphs:** By enabling CUDA Graphs, CUDA will record all computations in a graph and replay it every time forward and backward is called.
+The requirement is that your model must be static, i.e., the input shape must not change and your model must execute the same operations every time.
+Enabling CUDA Graphs often results in a significant speedup, but sometimes also increases the memory usage of your model.
+
+.. code-block:: python
+
+    # Enable CUDA Graphs
+    compiled_model = torch.compile(model, mode="reduce-overhead")
+
+    # This does the same
+    compiled_model = torch.compile(model, options={"triton.cudagraphs": True})
+
+|
+
+**Shape padding:** The specific shape/size of the tensors involved in the computation of your model (input, activations, weights, gradients, etc.) can have an impact on the performance.
+With shape padding enabled, ``torch.compile`` can extend the tensors by padding to a size that gives a better memory alignment.
+Naturally, the tradoff here is that it will consume a bit more memory.
+
+.. code-block:: python
+
+    # Default is False
+    compiled_model = torch.compile(model, options={"shape_padding": True})
+
+
+You can find a full list of compile options in the `PyTorch documentation <https://pytorch.org/docs/stable/generated/torch.compile.html>`_.
 
 ----
 
