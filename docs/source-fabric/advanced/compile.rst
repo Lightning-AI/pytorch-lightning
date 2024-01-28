@@ -268,3 +268,18 @@ You can find a full list of compile options in the `PyTorch documentation <https
 
     # Recompile the model over DDP/FSDP (experimental)
     model = fabric.setup(model, _reapply_compile=True)
+
+
+----
+
+
+**************************************
+A note about torch.compile in practice
+**************************************
+
+In practice, you will find that ``torch.compile`` often doesn't work well and can even be counter-productive.
+Compilation may fail with cryptic error messages that are impossible to debug without help from the PyTorch team.
+It is also not uncommon that ``torch.compile`` will produce a significantly *slower* model or one with much higher memory usage.
+On top of that, the compilation phase itself can be incredibly slow, taking several minutes to finish.
+For these reasons, we recommend that you don't waste too much time trying to apply ``torch.compile`` during development, and rather evaluate its effectiveness toward the end when you are about to launch long-running, expensive experiments.
+Always compare the speed and memory usage of the compiled model against the original model!
