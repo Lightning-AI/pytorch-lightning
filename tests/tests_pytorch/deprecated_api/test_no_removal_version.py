@@ -9,8 +9,6 @@ from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.plugins.precision.double import LightningDoublePrecisionModule
 from lightning.pytorch.strategies import DDPStrategy, FSDPStrategy
 
-from tests_pytorch.helpers.runif import RunIf
-
 
 def test_configure_sharded_model():
     class MyModel(BoringModel):
@@ -39,7 +37,6 @@ def test_ddp_is_distributed():
         _ = strategy.is_distributed
 
 
-@RunIf(min_torch="1.13")
 def test_fsdp_activation_checkpointing(monkeypatch):
     with pytest.raises(ValueError, match="cannot set both `activation_checkpointing"):
         FSDPStrategy(activation_checkpointing=torch.nn.Linear, activation_checkpointing_policy=lambda *_: True)

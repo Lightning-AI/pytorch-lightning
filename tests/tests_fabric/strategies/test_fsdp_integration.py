@@ -15,13 +15,18 @@ import os
 from copy import deepcopy
 from pathlib import Path
 from unittest import mock
+from unittest.mock import Mock
 
 import pytest
 import torch
 from lightning.fabric import Fabric
 from lightning.fabric.plugins import FSDPPrecision
 from lightning.fabric.strategies import FSDPStrategy
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0, _TORCH_GREATER_EQUAL_2_1
+from lightning.fabric.utilities.imports import (
+    _TORCH_GREATER_EQUAL_2_0,
+    _TORCH_GREATER_EQUAL_2_1,
+)
+from lightning.fabric.utilities.load import _load_distributed_checkpoint
 from lightning.fabric.wrappers import _FabricOptimizer
 from torch.distributed.fsdp import FlatParameter, FullyShardedDataParallel, OptimStateKeyType
 from torch.distributed.fsdp.wrap import always_wrap_policy, wrap
@@ -344,33 +349,40 @@ def test_setup_with_orig_params_and_multiple_param_groups():
         assert not isinstance(layer.weight, FlatParameter)
 
 
-@RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True, dynamo=True)
-@mock.patch.dict(os.environ, {})
-@pytest.mark.parametrize(
-    "compile_after_setup",
-    [
-        False,
-        # https://github.com/pytorch/pytorch/issues/97811
-        pytest.param(True, marks=RunIf(min_python="3.9")),
-    ],
+@RunIf(min_cuda_gpus=2, standalone=True, min_torch="2.1.0", dynamo=True, skip_windows=True)
+@mock.patch(
+    "lightning.fabric.wrappers.torch.compile",
+    Mock(wraps=(torch.compile if _TORCH_GREATER_EQUAL_2_0 else None)),
 )
-def test_compile(compile_after_setup):
-    """Test that the model can be compiled before and after the model is wrapped in FSDP."""
-    model = BoringModel()
+@mock.patch.dict(os.environ, {})
+def test_reapply_compile():
+    """Test that Fabric can rewrap a compiled module such that compilation happens over the FSDP-wrapper."""
+    from torch._dynamo import OptimizedModule
+
     strategy = FSDPStrategy(auto_wrap_policy=always_wrap_policy)
     fabric = Fabric(accelerator="cuda", devices=2, strategy=strategy)
     fabric.launch()
 
-    if not compile_after_setup:
-        model = torch.compile(model)
+    model = BoringModel()
+    compile_kwargs = {"mode": "reduce-overhead"}
+    compiled_model = torch.compile(model, **compile_kwargs)
+    torch.compile.reset_mock()
 
-    model = fabric.setup(model)
+    fabric_model = fabric.setup(compiled_model, _reapply_compile=True)
 
-    if compile_after_setup:
-        model = torch.compile(model)
+    assert isinstance(fabric_model._forward_module, OptimizedModule)
+    assert isinstance(fabric_model._forward_module._orig_mod, FullyShardedDataParallel)
 
+    # Assert we called compile again with the same arguments, but on the FSDP-wrapped module
+    torch.compile.assert_called_with(fabric_model._forward_module._orig_mod, **compile_kwargs)
+
+    assert fabric_model._original_module == model
+    assert fabric_model._forward_module._orig_mod.module == model
+    assert fabric_model.device == fabric.device
+
+    # Smoke-testing forward to ensure we don't get compilation errors
     for _ in range(3):
-        model(torch.rand(2, 32, device=fabric.device)).sum().backward()
+        fabric_model(torch.randn(2, 32, device=fabric.device)).sum().backward()
 
 
 @RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True)
@@ -438,7 +450,7 @@ def test_fsdp_save_filter(tmp_path):
         fabric.save(checkpoint_path, state, filter=filter)
 
 
-@RunIf(min_torch="1.13", min_cuda_gpus=1)
+@RunIf(min_cuda_gpus=1)
 def test_fsdp_manual_activation_checkpointing():
     model = torch.nn.Sequential(torch.nn.Linear(1, 1), torch.nn.Linear(1, 1))
     strategy = FSDPStrategy(activation_checkpointing_policy={torch.nn.Linear})
@@ -549,3 +561,52 @@ def test_clip_gradients(clip_type, precision):
 
     optimizer.step()
     optimizer.zero_grad()
+
+
+# TODO: Support checkpoint consolidation with PyTorch >= 2.2
+@RunIf(min_cuda_gpus=2, standalone=True, min_torch="2.1.0", max_torch="2.2.0")
+def test_save_sharded_and_consolidate_and_load(tmp_path):
+    """Test the consolidation of a FSDP-sharded checkpoint into a single file."""
+
+    fabric = Fabric(
+        accelerator="cuda",
+        strategy=FSDPStrategy(auto_wrap_policy=always_wrap_policy, state_dict_type="sharded"),
+        devices=2,
+    )
+    fabric.launch()
+
+    model = BoringModel()
+    optimizer = torch.optim.Adam(model.parameters())
+    model, optimizer = fabric.setup(model, optimizer)
+    state = {"model": model, "optimizer": optimizer, "steps": 1}
+
+    # run one iteration to init the state of the optimizer
+    model(torch.rand(1, 32, device=fabric.device)).sum().backward()
+    optimizer.step()
+
+    checkpoint_path_sharded = fabric.broadcast(str(tmp_path / "checkpoint_sharded"))
+    fabric.save(checkpoint_path_sharded, state)
+    assert set(os.listdir(checkpoint_path_sharded)) == {"meta.pt", ".metadata", "__0_0.distcp", "__1_0.distcp"}
+
+    # consolidate the checkpoint to a single file
+    checkpoint_path_full = fabric.broadcast(str(tmp_path / "checkpoint_full.pt"))
+    if fabric.global_rank == 0:
+        checkpoint = _load_distributed_checkpoint(Path(checkpoint_path_sharded))
+        torch.save(checkpoint, checkpoint_path_full)
+    fabric.barrier()
+
+    # re-init and load from full checkpoint
+    fabric = Fabric(
+        accelerator="cuda",
+        strategy=FSDPStrategy(auto_wrap_policy=always_wrap_policy),
+        devices=2,
+    )
+
+    # Hack: we already called launch() on another Fabric instance above
+    fabric._launched = True
+
+    model = BoringModel()
+    optimizer = torch.optim.Adam(model.parameters())
+    model, optimizer = fabric.setup(model, optimizer)
+    state = {"model": model, "optimizer": optimizer, "steps": 1}
+    fabric.load(checkpoint_path_full, state)

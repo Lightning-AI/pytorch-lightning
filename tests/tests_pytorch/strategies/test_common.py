@@ -54,7 +54,6 @@ def test_evaluate(tmpdir, trainer_kwargs):
     torch.testing.assert_close(old_weights, new_weights)
 
 
-@RunIf(min_torch="1.13")
 @pytest.mark.parametrize(
     "device",
     [
