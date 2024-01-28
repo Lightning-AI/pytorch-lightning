@@ -34,7 +34,7 @@ class BatchSizeFinder(Callback):
     """Finds the largest batch size supported by a given model before encountering an out of memory (OOM) error.
 
     All you need to do is add it as a callback inside Trainer and call ``trainer.{fit,validate,test,predict}``.
-    Internally, it calls the respective step function ``steps_per_trial`` times for each batch size until one 
+    Internally, it calls the respective step function ``steps_per_trial`` times for each batch size until one
     of the batch sizes generates an OOM error.
 
     .. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
