@@ -31,10 +31,10 @@ from lightning.pytorch.utilities.rank_zero import rank_zero_warn
 
 
 class BatchSizeFinder(Callback):
-    """Maximizes the choice of batch size supported by a model before encountering an out of memory (OOM) error.
-    All you need to do is add it as a callback inside Trainer and call ``trainer.{fit,validate,test,predict}``.
-    Internally it calls the respective step function ``steps_per_trial`` times for each batch size until one of the
-    batch sizes generates an OOM error.
+    """Maximizes the choice of batch size supported by a model before encountering an out of memory (OOM) error. All
+    you need to do is add it as a callback inside Trainer and call ``trainer.{fit,validate,test,predict}``. Internally
+    it calls the respective step function ``steps_per_trial`` times for each batch size until one of the batch sizes
+    generates an OOM error.
 
     .. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
 
