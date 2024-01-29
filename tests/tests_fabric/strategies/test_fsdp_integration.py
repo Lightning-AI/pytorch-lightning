@@ -40,6 +40,8 @@ from tests_fabric.test_fabric import BoringModel
 
 
 class BasicTrainer:
+    """Implements a basic training loop for the end-to-end tests."""
+
     def __init__(self, fabric):
         self.fabric = fabric
         self.model = self.optimizer = self.dataloader = None
