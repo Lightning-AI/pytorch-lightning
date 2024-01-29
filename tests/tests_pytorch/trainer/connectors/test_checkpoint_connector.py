@@ -256,7 +256,7 @@ class NotStatefulDataLoader(DataLoader):
     ],
 )
 def test_train_dataloaders_save(train_dataloaders, expected_states, tmp_path):
-    """Test that the CheckpointConnector saves the state of stateful dataloaders"""
+    """Test that the CheckpointConnector saves the state of stateful dataloaders."""
 
     class DataLoaderModel(BoringModel):
         def training_step(self, batch, batch_idx):
