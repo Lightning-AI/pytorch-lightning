@@ -149,7 +149,7 @@ def map(
     fn: Callable[[str, Any], None],
     inputs: Sequence[Any],
     output_dir: Union[str, Dir],
-    weights: Optional[Sequence[int]] = None,
+    weights: Optional[List[int]] = None,
     num_workers: Optional[int] = None,
     fast_dev_run: Union[bool, int] = False,
     num_nodes: Optional[int] = None,

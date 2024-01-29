@@ -12,7 +12,7 @@ from dataclasses import dataclass
 from multiprocessing import Process, Queue
 from queue import Empty
 from time import sleep, time
-from typing import Any, Dict, List, Optional, Sequence, Tuple, TypeVar, Union
+from typing import Any, Dict, List, Optional, Tuple, TypeVar, Union
 from urllib import parse
 
 from tqdm.auto import tqdm as _tqdm
@@ -776,7 +776,7 @@ class DataProcessor:
         fast_dev_run: Optional[Union[bool, int]] = None,
         random_seed: Optional[int] = 42,
         reorder_files: bool = True,
-        weights: Optional[Sequence[int]] = None,
+        weights: Optional[List[int]] = None,
     ):
         """The `DatasetOptimiser` provides an efficient way to process data across multiple machine into chunks to make
         training faster.
