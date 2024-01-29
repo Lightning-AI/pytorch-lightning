@@ -12,7 +12,7 @@ from dataclasses import dataclass
 from multiprocessing import Process, Queue
 from queue import Empty
 from time import sleep, time
-from typing import Any, Dict, List, Optional, Tuple, TypeVar, Union, Sequence
+from typing import Any, Dict, List, Optional, Sequence, Tuple, TypeVar, Union
 from urllib import parse
 
 from tqdm.auto import tqdm as _tqdm
@@ -244,6 +244,7 @@ def _map_items_to_workers_weighted(
     num_workers: int,
     user_items: List[Any],
     weights: Optional[List[int]] = None,
+    file_size: bool = True,
 ) -> List[List[Any]]:
     # Associate the items to the workers based on number of nodes and node rank.
     weights = [1] * len(user_items) if weights is None else weights
@@ -257,7 +258,11 @@ def _map_items_to_workers_weighted(
     for worker_id, size in worker_weights.items():
         if worker_id not in worker_ids_this_node:
             continue
-        print(f"Worker {worker_id} gets {size / 1e6:.1f} MB ({len(worker_items[worker_id])} files)")
+
+        if file_size:
+            print(f"Worker {worker_id} gets {size / 1e6:.1f} MB ({len(worker_items[worker_id])} files)")
+        else:
+            print(f"Worker {worker_id} gets ({len(worker_items[worker_id])}) items for a total weight of {size}.")
 
     return [worker_items[worker_id] for worker_id in worker_ids_this_node]
 
@@ -787,6 +792,8 @@ class DataProcessor:
             random_seed: The random seed to be set before shuffling the data.
             reorder_files: By default, reorders the files by file size to distribute work equally among all workers.
                 Set this to ``False`` if the order in which samples are processed should be preserved.
+            weights: Provide a list of weights associated to the inputs.
+                This is used to evenly split the work among the workers.
 
         """
         self.input_dir = _resolve_dir(input_dir)
@@ -833,12 +840,10 @@ class DataProcessor:
 
         if self.weights is not None:
             if len(self.weights) != len(user_items):
-                raise ValueError("The provided weights should be the length of the provided items.")
-            
+                raise ValueError("The provided weights length should match the inputs' length.")
             workers_user_items = _map_items_to_workers_weighted(
-                num_workers=self.num_workers, user_items=user_items, weights=self.weights
+                num_workers=self.num_workers, user_items=user_items, weights=self.weights, file_size=False
             )
-            breakpoint()
 
         elif self.reorder_files and self.input_dir.path:
             # TODO: Only do this on node 0, and broadcast the item sizes to the other nodes.
