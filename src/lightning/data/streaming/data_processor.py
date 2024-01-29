@@ -241,7 +241,10 @@ def _map_items_to_workers_sequentially(num_workers: int, user_items: List[Any]) 
 
 
 def _map_items_to_workers_weighted(
-    num_workers: int, user_items: List[Any], weights: Optional[List[int]] = None
+    num_workers: int,
+    user_items: List[Any],
+    weights: Optional[List[int]] = None,
+    file_size: bool = True,
 ) -> List[List[Any]]:
     # Associate the items to the workers based on number of nodes and node rank.
     weights = [1] * len(user_items) if weights is None else weights
@@ -255,7 +258,11 @@ def _map_items_to_workers_weighted(
     for worker_id, size in worker_weights.items():
         if worker_id not in worker_ids_this_node:
             continue
-        print(f"Worker {worker_id} gets {size / 1e6:.1f} MB ({len(worker_items[worker_id])} files)")
+
+        if file_size:
+            print(f"Worker {worker_id} gets {size / 1e6:.1f} MB ({len(worker_items[worker_id])} files)")
+        else:
+            print(f"Worker {worker_id} gets ({len(worker_items[worker_id])}) items for a total weight of {size}.")
 
     return [worker_items[worker_id] for worker_id in worker_ids_this_node]
 
@@ -769,6 +776,7 @@ class DataProcessor:
         fast_dev_run: Optional[Union[bool, int]] = None,
         random_seed: Optional[int] = 42,
         reorder_files: bool = True,
+        weights: Optional[List[int]] = None,
     ):
         """The `DatasetOptimiser` provides an efficient way to process data across multiple machine into chunks to make
         training faster.
@@ -784,6 +792,8 @@ class DataProcessor:
             random_seed: The random seed to be set before shuffling the data.
             reorder_files: By default, reorders the files by file size to distribute work equally among all workers.
                 Set this to ``False`` if the order in which samples are processed should be preserved.
+            weights: Provide a list of weights associated to the inputs.
+                This is used to evenly split the work among the workers.
 
         """
         self.input_dir = _resolve_dir(input_dir)
@@ -799,6 +809,7 @@ class DataProcessor:
         self.error_queue: Queue = Queue()
         self.stop_queues: List[Queue] = []
         self.reorder_files = reorder_files
+        self.weights = weights
 
         # Ensure the input dir is the same across all nodes
         self.input_dir = broadcast_object("input_dir", self.input_dir)
@@ -827,7 +838,14 @@ class DataProcessor:
         if not isinstance(user_items, list):
             raise ValueError("The `prepare_structure` should return a list of item metadata.")
 
-        if self.reorder_files and self.input_dir.path:
+        if self.weights is not None:
+            if len(self.weights) != len(user_items):
+                raise ValueError("The provided weights length should match the inputs' length.")
+            workers_user_items = _map_items_to_workers_weighted(
+                num_workers=self.num_workers, user_items=user_items, weights=self.weights, file_size=False
+            )
+
+        elif self.reorder_files and self.input_dir.path:
             # TODO: Only do this on node 0, and broadcast the item sizes to the other nodes.
             item_sizes = _get_item_filesizes(user_items, base_path=self.input_dir.path)
             workers_user_items = _map_items_to_workers_weighted(

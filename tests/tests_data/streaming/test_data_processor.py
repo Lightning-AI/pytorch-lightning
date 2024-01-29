@@ -907,9 +907,28 @@ def test_data_processing_map_without_input_dir(monkeypatch, tmpdir):
     monkeypatch.setenv("DATA_OPTIMIZER_CACHE_FOLDER", cache_dir)
     monkeypatch.setenv("DATA_OPTIMIZER_DATA_CACHE_FOLDER", cache_dir)
 
-    map(map_fn_index, list(range(5)), output_dir=output_dir, num_workers=1, reorder_files=True)
+    map(
+        map_fn_index,
+        list(range(5)),
+        output_dir=output_dir,
+        num_workers=1,
+        reorder_files=True,
+        weights=[1 for _ in range(5)],
+    )
 
     assert sorted(os.listdir(output_dir)) == ["0.JPEG", "1.JPEG", "2.JPEG", "3.JPEG", "4.JPEG"]
+
+
+@pytest.mark.skipif(condition=not _PIL_AVAILABLE or sys.platform == "win32", reason="Requires: ['pil']")
+def test_data_processing_map_weights_mismatch(monkeypatch, tmpdir):
+    cache_dir = os.path.join(tmpdir, "cache")
+    output_dir = os.path.join(tmpdir, "target_dir")
+    os.makedirs(output_dir, exist_ok=True)
+    monkeypatch.setenv("DATA_OPTIMIZER_CACHE_FOLDER", cache_dir)
+    monkeypatch.setenv("DATA_OPTIMIZER_DATA_CACHE_FOLDER", cache_dir)
+
+    with pytest.raises(ValueError, match="The provided weights length"):
+        map(map_fn_index, list(range(5)), output_dir=output_dir, num_workers=1, reorder_files=True, weights=[1])
 
 
 @pytest.mark.skipif(condition=sys.platform == "win32", reason="Not supported on windows")
