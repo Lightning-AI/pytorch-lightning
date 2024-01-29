@@ -12,7 +12,7 @@ from dataclasses import dataclass
 from multiprocessing import Process, Queue
 from queue import Empty
 from time import sleep, time
-from typing import Any, Dict, List, Optional, Tuple, TypeVar, Union
+from typing import Any, Dict, List, Optional, Tuple, TypeVar, Union, Sequence
 from urllib import parse
 
 from tqdm.auto import tqdm as _tqdm
@@ -241,7 +241,9 @@ def _map_items_to_workers_sequentially(num_workers: int, user_items: List[Any]) 
 
 
 def _map_items_to_workers_weighted(
-    num_workers: int, user_items: List[Any], weights: Optional[List[int]] = None
+    num_workers: int,
+    user_items: List[Any],
+    weights: Optional[List[int]] = None,
 ) -> List[List[Any]]:
     # Associate the items to the workers based on number of nodes and node rank.
     weights = [1] * len(user_items) if weights is None else weights
@@ -769,6 +771,7 @@ class DataProcessor:
         fast_dev_run: Optional[Union[bool, int]] = None,
         random_seed: Optional[int] = 42,
         reorder_files: bool = True,
+        weights: Optional[Sequence[int]] = None,
     ):
         """The `DatasetOptimiser` provides an efficient way to process data across multiple machine into chunks to make
         training faster.
@@ -799,6 +802,7 @@ class DataProcessor:
         self.error_queue: Queue = Queue()
         self.stop_queues: List[Queue] = []
         self.reorder_files = reorder_files
+        self.weights = weights
 
         # Ensure the input dir is the same across all nodes
         self.input_dir = broadcast_object("input_dir", self.input_dir)
@@ -827,7 +831,16 @@ class DataProcessor:
         if not isinstance(user_items, list):
             raise ValueError("The `prepare_structure` should return a list of item metadata.")
 
-        if self.reorder_files and self.input_dir.path:
+        if self.weights is not None:
+            if len(self.weights) != len(user_items):
+                raise ValueError("The provided weights should be the length of the provided items.")
+            
+            workers_user_items = _map_items_to_workers_weighted(
+                num_workers=self.num_workers, user_items=user_items, weights=self.weights
+            )
+            breakpoint()
+
+        elif self.reorder_files and self.input_dir.path:
             # TODO: Only do this on node 0, and broadcast the item sizes to the other nodes.
             item_sizes = _get_item_filesizes(user_items, base_path=self.input_dir.path)
             workers_user_items = _map_items_to_workers_weighted(
