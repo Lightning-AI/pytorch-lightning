@@ -190,7 +190,14 @@ def _upload_fn(upload_queue: Queue, remove_queue: Queue, cache_dir: str, output_
         s3 = S3Client()
 
     while True:
-        local_filepath: Optional[str] = upload_queue.get()
+        data: Optional[Union[str, Tuple[str, str]]] = upload_queue.get()
+
+        tmpdir = None
+
+        if isinstance(data, str) or data is None:
+            local_filepath = data
+        else:
+            tmpdir, local_filepath = data
 
         # Terminate the process if we received a termination signal
         if local_filepath is None:
@@ -202,15 +209,25 @@ def _upload_fn(upload_queue: Queue, remove_queue: Queue, cache_dir: str, output_
 
         if obj.scheme == "s3":
             try:
+                if tmpdir is None:
+                    output_filepath = os.path.join(str(obj.path).lstrip("/"), os.path.basename(local_filepath))
+                else:
+                    output_filepath = os.path.join(str(obj.path).lstrip("/"), local_filepath.replace(tmpdir, "")[1:])
+
                 s3.client.upload_file(
                     local_filepath,
                     obj.netloc,
-                    os.path.join(str(obj.path).lstrip("/"), os.path.basename(local_filepath)),
+                    output_filepath,
                 )
             except Exception as e:
                 print(e)
         elif output_dir.path and os.path.isdir(output_dir.path):
-            shutil.copyfile(local_filepath, os.path.join(output_dir.path, os.path.basename(local_filepath)))
+            if tmpdir is None:
+                shutil.copyfile(local_filepath, os.path.join(output_dir.path, os.path.basename(local_filepath)))
+            else:
+                output_filepath = os.path.join(output_dir.path, local_filepath.replace(tmpdir, "")[1:])
+                os.makedirs(os.path.dirname(output_filepath), exist_ok=True)
+                shutil.copyfile(local_filepath, output_filepath)
         else:
             raise ValueError(f"The provided {output_dir.path} isn't supported.")
 
@@ -435,12 +452,15 @@ class BaseWorker:
         )
         self.cache._reader._rank = _get_node_rank() * self.num_workers + self.worker_index
 
-    def _try_upload(self, filepath: Optional[str]) -> None:
-        if not filepath or (self.output_dir.url if self.output_dir.url else self.output_dir.path) is None:
+    def _try_upload(self, data: Optional[Union[str, Tuple[str, str]]]) -> None:
+        if not data or (self.output_dir.url if self.output_dir.url else self.output_dir.path) is None:
             return
 
-        assert os.path.exists(filepath), filepath
-        self.to_upload_queues[self._counter % self.num_uploaders].put(filepath)
+        if isinstance(data, str):
+            assert os.path.exists(data), data
+        else:
+            assert os.path.exists(data[-1]), data
+        self.to_upload_queues[self._counter % self.num_uploaders].put(data)
 
     def _collect_paths(self) -> None:
         if self.input_dir.path is None:
@@ -582,7 +602,7 @@ class BaseWorker:
                 filepaths.append(os.path.join(directory, filename))
 
         for filepath in filepaths:
-            self._try_upload(filepath)
+            self._try_upload((output_dir, filepath))
 
 
 class DataWorkerProcess(BaseWorker, Process):
