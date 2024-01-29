@@ -20,8 +20,6 @@ from unittest.mock import Mock
 import pytest
 import torch
 import torch.nn as nn
-from torch.utils.data import DataLoader
-
 from lightning.fabric import Fabric
 from lightning.fabric.plugins import FSDPPrecision
 from lightning.fabric.strategies import FSDPStrategy
@@ -34,6 +32,7 @@ from lightning.fabric.wrappers import _FabricOptimizer
 from torch.distributed.fsdp import FlatParameter, FullyShardedDataParallel, OptimStateKeyType
 from torch.distributed.fsdp.wrap import always_wrap_policy, wrap
 from torch.nn import Parameter
+from torch.utils.data import DataLoader
 
 from tests_fabric.helpers.datasets import RandomDataset
 from tests_fabric.helpers.runif import RunIf
