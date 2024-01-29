@@ -133,6 +133,7 @@ def test_fsdp_train_save_load(tmp_path, manual_wrapping, precision):
         devices=2,
         precision=precision,
     )
+    fabric.launch()
     trainer = trainer_cls(fabric)
     trainer.run()
 
@@ -150,6 +151,7 @@ def test_fsdp_train_save_load(tmp_path, manual_wrapping, precision):
         devices=2,
         precision=precision,
     )
+    fabric.launch()
     trainer = trainer_cls(fabric)
     trainer.run()
 
@@ -182,6 +184,7 @@ def test_fsdp_save_full_state_dict(tmp_path):
         strategy=FSDPStrategy(auto_wrap_policy=always_wrap_policy, state_dict_type="full"),
         devices=2,
     )
+    fabric.launch()
     trainer = BasicTrainer(fabric)
     trainer.run()
 
@@ -214,6 +217,7 @@ def test_fsdp_save_full_state_dict(tmp_path):
         strategy=FSDPStrategy(auto_wrap_policy=always_wrap_policy),
         devices=2,
     )
+    fabric.launch()
     trainer = BasicTrainer(fabric)
     trainer.run()
     metadata = fabric.load(checkpoint_path, {"model": trainer.model, "optimizer": trainer.optimizer})
@@ -264,6 +268,7 @@ def test_fsdp_save_full_state_dict(tmp_path):
         strategy=FSDPStrategy(auto_wrap_policy=always_wrap_policy),
         devices=2,
     )
+    fabric.launch()
     trainer = BasicTrainer(fabric)
     trainer.run()
     metadata = fabric.load(normal_checkpoint_path, {"model": trainer.model, "optimizer": trainer.optimizer})
@@ -310,6 +315,7 @@ def test_fsdp_load_full_state_dict_into_sharded_model(tmp_path):
         strategy=FSDPStrategy(auto_wrap_policy=always_wrap_policy),
         devices=2,
     )
+    fabric.launch()
     trainer = BasicTrainer(fabric)
     trainer.run()
 
