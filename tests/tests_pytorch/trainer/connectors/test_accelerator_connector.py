@@ -18,6 +18,7 @@ from typing import Any, Dict
 from unittest import mock
 from unittest.mock import Mock
 
+import lightning.fabric
 import lightning.pytorch
 import pytest
 import torch
