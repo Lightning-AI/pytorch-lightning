@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-from copy import deepcopy
-from typing import Any
 from unittest import mock
 from unittest.mock import Mock
 
@@ -26,9 +24,7 @@ from lightning.pytorch.callbacks import ModelCheckpoint
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
 from lightning.pytorch.trainer.states import TrainerFn
 from lightning.pytorch.utilities.migration.utils import _set_version
-from lightning.pytorch.trainer.connectors.checkpoint_connector import _CheckpointConnector
 from lightning.pytorch.utilities import CombinedLoader
-from pytorch.utilities.types import STEP_OUTPUT
 
 
 def test_preloaded_checkpoint_lifecycle(tmpdir):
