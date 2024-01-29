@@ -931,6 +931,26 @@ def test_data_processing_map_weights_mismatch(monkeypatch, tmpdir):
         map(map_fn_index, list(range(5)), output_dir=output_dir, num_workers=1, reorder_files=True, weights=[1])
 
 
+def map_fn_index_folder(index, output_dir):
+    os.makedirs(os.path.join(output_dir, str(index)))
+    with open(os.path.join(output_dir, str(index), f"{index}.JPEG"), "w") as f:
+        f.write("Hello")
+
+
+@pytest.mark.skipif(condition=not _PIL_AVAILABLE or sys.platform == "win32", reason="Requires: ['pil']")
+def test_data_processing_map_without_input_dir_and_folder(monkeypatch, tmpdir):
+    cache_dir = os.path.join(tmpdir, "cache")
+    output_dir = os.path.join(tmpdir, "target_dir")
+    os.makedirs(output_dir, exist_ok=True)
+    monkeypatch.setenv("DATA_OPTIMIZER_CACHE_FOLDER", cache_dir)
+    monkeypatch.setenv("DATA_OPTIMIZER_DATA_CACHE_FOLDER", cache_dir)
+
+    map(map_fn_index_folder, list(range(5)), output_dir=output_dir, num_workers=1, reorder_files=True)
+
+    assert sorted(os.listdir(output_dir)) == ["0", "1", "2", "3", "4"]
+    assert os.path.exists(os.path.join(output_dir, "0", "0.JPEG"))
+
+
 @pytest.mark.skipif(condition=sys.platform == "win32", reason="Not supported on windows")
 def test_map_error_when_not_empty(monkeypatch, tmpdir):
     boto3 = mock.MagicMock()
