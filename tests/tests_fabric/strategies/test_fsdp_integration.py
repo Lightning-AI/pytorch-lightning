@@ -42,6 +42,7 @@ from tests_fabric.test_fabric import BoringModel
 class BasicTrainer:
     def __init__(self, fabric):
         self.fabric = fabric
+        self.model = self.optimizer = self.dataloader = None
 
     def get_model(self):
         return nn.Linear(32, 2)
