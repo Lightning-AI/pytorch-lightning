@@ -19,6 +19,9 @@ from unittest.mock import Mock
 
 import pytest
 import torch
+import torch.nn as nn
+from torch.utils.data import DataLoader
+
 from lightning.fabric import Fabric
 from lightning.fabric.plugins import FSDPPrecision
 from lightning.fabric.strategies import FSDPStrategy
@@ -32,12 +35,43 @@ from torch.distributed.fsdp import FlatParameter, FullyShardedDataParallel, Opti
 from torch.distributed.fsdp.wrap import always_wrap_policy, wrap
 from torch.nn import Parameter
 
-from tests_fabric.helpers.models import BoringFabric
+from tests_fabric.helpers.models import RandomDataset
 from tests_fabric.helpers.runif import RunIf
 from tests_fabric.test_fabric import BoringModel
 
 
-class _MyFabric(BoringFabric):
+class BasicFabricTemplate(Fabric):
+    def get_model(self):
+        return nn.Linear(32, 2)
+
+    def step(self, model, batch):
+        output = model(batch)
+        return torch.nn.functional.mse_loss(output, torch.ones_like(output))
+
+    def run(self) -> None:
+        with self.init_module():
+            model = self.get_model()
+        optimizer = torch.optim.Adam(model.parameters(), lr=0.1)
+        model, optimizer = self.setup(model, optimizer)
+
+        dataloader = DataLoader(RandomDataset(32, 64))
+        dataloader = self.setup_dataloaders(dataloader)
+
+        self.model = model
+        self.optimizer = optimizer
+        self.dataloader = dataloader
+
+        model.train()
+
+        data_iter = iter(dataloader)
+        batch = next(data_iter)
+        loss = self.step(model, batch)
+        self.backward(loss)
+        optimizer.step()
+        optimizer.zero_grad()
+
+
+class _MyFabric(BasicFabricTemplate):
     def get_model(self):
         model = torch.nn.Sequential(torch.nn.Linear(32, 32), torch.nn.ReLU(), torch.nn.Linear(32, 2))
         self.num_wrapped = 4
@@ -130,7 +164,7 @@ def test_fsdp_train_save_load(tmp_path, manual_wrapping, precision):
 @RunIf(min_cuda_gpus=2, standalone=True, min_torch="2.0.0")
 def test_fsdp_save_full_state_dict(tmp_path):
     """Test that FSDP saves the full state into a single file with `state_dict_type="full"`."""
-    fabric = BoringFabric(
+    fabric = BasicFabricTemplate(
         accelerator="cuda",
         strategy=FSDPStrategy(auto_wrap_policy=always_wrap_policy, state_dict_type="full"),
         devices=2,
@@ -161,7 +195,7 @@ def test_fsdp_save_full_state_dict(tmp_path):
     assert set(checkpoint["optimizer"].keys()) == set(optimizer_state_before.keys()) == {"state", "param_groups"}
 
     # 1. verify the FSDP state can be loaded back into a FSDP model/strategy directly
-    fabric = BoringFabric(
+    fabric = BasicFabricTemplate(
         accelerator="cuda",
         strategy=FSDPStrategy(auto_wrap_policy=always_wrap_policy),
         devices=2,
@@ -186,7 +220,7 @@ def test_fsdp_save_full_state_dict(tmp_path):
     fabric.run()
 
     # 2. verify the FSDP state can be loaded back into a single-device model/strategy
-    fabric = BoringFabric(accelerator="cpu", devices=1)
+    fabric = BasicFabricTemplate(accelerator="cpu", devices=1)
     fabric.run()
     metadata = fabric.load(checkpoint_path, {"model": fabric.model, "optimizer": fabric.optimizer})
     assert metadata == {"steps": 1}
@@ -209,7 +243,7 @@ def test_fsdp_save_full_state_dict(tmp_path):
     fabric.run()
 
     # 3. verify that a single-device model/strategy states can be loaded into a FSDP model/strategy
-    fabric = BoringFabric(
+    fabric = BasicFabricTemplate(
         accelerator="cuda",
         strategy=FSDPStrategy(auto_wrap_policy=always_wrap_policy),
         devices=2,
@@ -239,7 +273,7 @@ def test_fsdp_load_full_state_dict_into_sharded_model(tmp_path):
     """Test that the strategy can load a full-state checkpoint into a FSDP sharded model."""
     from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
 
-    fabric = BoringFabric(accelerator="cuda", devices=1)
+    fabric = BasicFabricTemplate(accelerator="cuda", devices=1)
     fabric.seed_everything(0)
     fabric.run()
 
@@ -253,7 +287,7 @@ def test_fsdp_load_full_state_dict_into_sharded_model(tmp_path):
         params_before = torch.cat([p.cpu().view(-1) for p in fabric.model.parameters()])
 
     # Create a FSDP sharded model
-    fabric = BoringFabric(
+    fabric = BasicFabricTemplate(
         accelerator="cuda",
         strategy=FSDPStrategy(auto_wrap_policy=always_wrap_policy),
         devices=2,
@@ -429,7 +463,7 @@ def test_module_init_context(precision, expected_dtype):
 
 @RunIf(min_cuda_gpus=2, standalone=True, min_torch="2.0.0")
 def test_fsdp_save_filter(tmp_path):
-    fabric = BoringFabric(accelerator="cuda", strategy=FSDPStrategy(state_dict_type="full"), devices=2)
+    fabric = BasicFabricTemplate(accelerator="cuda", strategy=FSDPStrategy(state_dict_type="full"), devices=2)
     fabric.launch()
     model = fabric.get_model()
     model = fabric.setup_module(model)
