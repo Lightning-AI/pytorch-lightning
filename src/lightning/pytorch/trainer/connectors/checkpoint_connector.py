@@ -14,7 +14,7 @@
 import logging
 import os
 import re
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, List
 
 import torch
 from fsspec.core import url_to_fs
@@ -24,7 +24,7 @@ from torch import Tensor
 import lightning.pytorch as pl
 from lightning.fabric.plugins.environments.slurm import SLURMEnvironment
 from lightning.fabric.utilities.cloud_io import _is_dir, get_filesystem
-from lightning.fabric.utilities.types import _PATH
+from lightning.fabric.utilities.types import _PATH, _Stateful
 from lightning.pytorch.callbacks import ModelCheckpoint
 from lightning.pytorch.plugins.precision import MixedPrecision
 from lightning.pytorch.trainer import call
@@ -292,8 +292,8 @@ class _CheckpointConnector:
 
         assert self.trainer.state.fn is not None
         if self.trainer.state.fn == TrainerFn.FITTING:
-            # restore optimizers and schedulers state
             self.restore_optimizers_and_schedulers()
+            self._restore_train_dataloaders()
 
     def restore_precision_plugin_state(self) -> None:
         """Restore the precision plugin state from the pre-loaded checkpoint."""
@@ -390,6 +390,18 @@ class _CheckpointConnector:
         for config, lrs_state in zip(self.trainer.lr_scheduler_configs, lr_schedulers):
             config.scheduler.load_state_dict(lrs_state)
 
+    def _restore_train_dataloaders(self) -> None:
+        if not self._loaded_checkpoint:
+            return
+
+        state_dicts = self._loaded_checkpoint.get("train_dataloaders")
+        if not state_dicts:
+            return
+
+        for train_dataloader, state_dict in zip(self.trainer.train_dataloader, state_dicts):
+            if isinstance(train_dataloader, _Stateful):
+                train_dataloader.load_state_dict(state_dict)
+
     def _restore_modules_and_callbacks(self, checkpoint_path: Optional[_PATH] = None) -> None:
         # restore modules after setup
         self.resume_start(checkpoint_path)
@@ -413,6 +425,7 @@ class _CheckpointConnector:
                 'optimizer_states':          "PT optim's state_dict"[]   # if not weights_only
                 'lr_schedulers':             "PT sched's state_dict"[]   # if not weights_only
                 'state_dict':                Model's state_dict (e.g. network weights)
+                'train_dataloaders':         List of states of the training dataloader(s), if any of them are stateful
                 precision_plugin.__class__.__qualname__:  precision plugin state_dict # if not weights_only
                 CHECKPOINT_HYPER_PARAMS_NAME:
                 CHECKPOINT_HYPER_PARAMS_KEY:
@@ -460,6 +473,10 @@ class _CheckpointConnector:
                 checkpoint[prec_plugin.__class__.__qualname__] = prec_plugin_state_dict
             prec_plugin.on_save_checkpoint(checkpoint)
 
+            # training dataloader(s)
+            if train_dataloaders := self._get_dataloader_state_dicts():
+                checkpoint["train_dataloaders"] = train_dataloaders
+
         if _OMEGACONF_AVAILABLE:
             from omegaconf import Container
 
@@ -501,6 +518,12 @@ class _CheckpointConnector:
             "test_loop": self.trainer.test_loop.state_dict(),
             "predict_loop": self.trainer.predict_loop.state_dict(),
         }
+
+    def _get_dataloader_state_dicts(self) -> List[Dict[str, Any]]:
+        return [
+            train_dataloader.state_dict() for train_dataloader in (self.trainer.train_dataloader or [])
+            if isinstance(train_dataloader, _Stateful)
+        ]
 
     @staticmethod
     def __max_ckpt_version_in_folder(dir_path: _PATH, name_key: str = "ckpt_") -> Optional[int]:
