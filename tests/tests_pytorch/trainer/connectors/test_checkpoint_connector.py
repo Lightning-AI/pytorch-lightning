@@ -12,16 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+from copy import deepcopy
 from unittest import mock
 from unittest.mock import Mock
 
 import pytest
 import torch
+from torch.utils.data import DataLoader
+
 from lightning.pytorch import Trainer
 from lightning.pytorch.callbacks import ModelCheckpoint
-from lightning.pytorch.demos.boring_classes import BoringModel
+from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
 from lightning.pytorch.trainer.states import TrainerFn
 from lightning.pytorch.utilities.migration.utils import _set_version
+from lightning.pytorch.trainer.connectors.checkpoint_connector import _CheckpointConnector
 
 
 def test_preloaded_checkpoint_lifecycle(tmpdir):
@@ -217,3 +221,44 @@ def test_stateful_trainer_ckpt_path_support(tmp_path):
     assert not trainer._checkpoint_connector._user_managed
     trainer.test()
     assert trainer.ckpt_path == best_path
+
+
+class StatefulDataLoader(DataLoader):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._counter = 0
+
+    def state_dict(self):
+        return {"counter": self._counter}
+
+    def load_state_dict(self, state_dict):
+        self._counter = state_dict["counter"]
+
+
+@pytest.mark.parametrize(("train_dataloaders", "expected_states"), [
+    ([], None),
+    (StatefulDataLoader(RandomDataset(32, 64)), [{"counter": 0}]),
+])
+def test_train_dataloaders_restore(train_dataloaders, expected_states, tmp_path):
+
+    class TestModel(BoringModel):
+        def train_dataloader(self):
+            return train_dataloaders
+
+    model = TestModel()
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        accelerator="cpu",
+        max_steps=1,
+        enable_checkpointing=False,
+        enable_model_summary=False,
+        enable_progress_bar=False,
+        logger=False,
+        num_sanity_val_steps=0,
+    )
+    trainer.fit(model)
+    checkpoint = trainer._checkpoint_connector.dump_checkpoint()
+    if expected_states is None:
+        assert "train_dataloaders" not in checkpoint
+    else:
+        assert checkpoint["train_dataloaders"] == expected_states
