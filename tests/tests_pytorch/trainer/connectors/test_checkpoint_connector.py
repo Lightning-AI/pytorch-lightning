@@ -255,8 +255,8 @@ class NotStatefulDataLoader(DataLoader):
         (CombinedLoader([NotStatefulDataLoader(3), StatefulDataLoader(1), NotStatefulDataLoader(2)]), [{"label": 1}]),
     ],
 )
-def test_train_dataloaders_restore(train_dataloaders, expected_states, tmp_path):
-    """Test that the CheckpointConnector saves the state of stateful dataloaders and can reload them."""
+def test_train_dataloaders_save(train_dataloaders, expected_states, tmp_path):
+    """Test that the CheckpointConnector saves the state of stateful dataloaders"""
 
     class DataLoaderModel(BoringModel):
         def training_step(self, batch, batch_idx):
@@ -290,9 +290,58 @@ def test_train_dataloaders_restore(train_dataloaders, expected_states, tmp_path)
     else:
         assert checkpoint["train_dataloaders"] == expected_states
 
-    torch.save(checkpoint, tmp_path / "checkpoint.ckpt")
 
-    model = DataLoaderModel()
-    trainer = Trainer(**trainer_kwargs)
-    trainer.fit(model, ckpt_path=(tmp_path / "checkpoint.ckpt"))
-    # TODO: Test here
+def test_train_dataloaders_restore(tmp_path):
+    """Test that the Trainer loads the state of the stateful data iterable and resumes correctly."""
+
+    class StatefulIterable:
+        def __init__(self):
+            self.index = 0
+
+        def __iter__(self):
+            for self.index in range(self.index, len(self)):
+                print(self.index)
+                yield self.index
+
+        def __len__(self):
+            return 10
+
+        def state_dict(self):
+            return {"index": self.index}
+
+        def load_state_dict(self, state_dict):
+            self.index = state_dict["index"] + 1
+
+    class DummyModel(BoringModel):
+        def __init__(self):
+            super().__init__()
+            self.seen_data = []
+
+        def training_step(self, batch, batch_idx):
+            self.seen_data.append(batch)
+            print(batch)
+
+    trainer_kwargs = dict(
+        default_root_dir=tmp_path,
+        accelerator="cpu",
+        enable_checkpointing=False,
+        enable_model_summary=False,
+        enable_progress_bar=False,
+        logger=False,
+        num_sanity_val_steps=0,
+    )
+
+    # Train for 3 steps and save a checkpoint
+    model = DummyModel()
+    data = StatefulIterable()
+    trainer = Trainer(**trainer_kwargs, max_steps=3)
+    trainer.fit(model, data)
+    assert model.seen_data == [0, 1, 2]
+    trainer.save_checkpoint(tmp_path / "checkpoint.ckpt")
+
+    # Restore training from step 3 and continue
+    model = DummyModel()
+    data = StatefulIterable()
+    trainer = Trainer(**trainer_kwargs, max_steps=6)
+    trainer.fit(model, data, ckpt_path=(tmp_path / "checkpoint.ckpt"))
+    assert model.seen_data == [3, 4, 5]
