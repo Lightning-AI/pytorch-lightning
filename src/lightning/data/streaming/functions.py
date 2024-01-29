@@ -149,6 +149,7 @@ def map(
     fn: Callable[[str, Any], None],
     inputs: Sequence[Any],
     output_dir: Union[str, Dir],
+    weights: Optional[List[int]] = None,
     num_workers: Optional[int] = None,
     fast_dev_run: Union[bool, int] = False,
     num_nodes: Optional[int] = None,
@@ -201,6 +202,7 @@ def map(
             fast_dev_run=fast_dev_run,
             num_downloaders=num_downloaders,
             reorder_files=reorder_files,
+            weights=weights,
         )
         return data_processor.run(LambdaDataTransformRecipe(fn, inputs))
     return _execute(
