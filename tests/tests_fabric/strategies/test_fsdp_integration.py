@@ -35,7 +35,7 @@ from torch.distributed.fsdp import FlatParameter, FullyShardedDataParallel, Opti
 from torch.distributed.fsdp.wrap import always_wrap_policy, wrap
 from torch.nn import Parameter
 
-from tests_fabric.helpers.models import RandomDataset
+from tests_fabric.helpers.datasets import RandomDataset
 from tests_fabric.helpers.runif import RunIf
 from tests_fabric.test_fabric import BoringModel
 

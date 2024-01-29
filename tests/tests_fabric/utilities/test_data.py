@@ -25,7 +25,7 @@ from lightning_utilities.test.warning import no_warning_call
 from torch import Tensor
 from torch.utils.data import BatchSampler, DataLoader, RandomSampler
 
-from tests_fabric.helpers.models import RandomDataset, RandomIterableDataset
+from tests_fabric.helpers.datasets import RandomDataset, RandomIterableDataset
 
 
 def test_has_iterable_dataset():
