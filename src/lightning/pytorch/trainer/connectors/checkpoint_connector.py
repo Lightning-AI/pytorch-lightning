@@ -398,7 +398,9 @@ class _CheckpointConnector:
         if not state_dicts:
             return
 
-        for train_dataloader, state_dict in zip(self.trainer.train_dataloader, state_dicts):
+        combined_loader = self.trainer.fit_loop._combined_loader
+        iterables = combined_loader.flattened if combined_loader is not None else []
+        for train_dataloader, state_dict in zip(iterables, state_dicts):
             if isinstance(train_dataloader, _Stateful):
                 train_dataloader.load_state_dict(state_dict)
 

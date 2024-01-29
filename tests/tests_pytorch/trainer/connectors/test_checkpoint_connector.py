@@ -254,7 +254,7 @@ class NotStatefulDataLoader(DataLoader):
     (CombinedLoader([NotStatefulDataLoader(3), StatefulDataLoader(1), NotStatefulDataLoader(2)]), [{"label": 1}]),
 ])
 def test_train_dataloaders_restore(train_dataloaders, expected_states, tmp_path):
-    """Test that the CheckpointConnector saves the state of stateful dataloaders and can reloead them."""
+    """Test that the CheckpointConnector saves the state of stateful dataloaders and can reload them."""
     class DataLoaderModel(BoringModel):
         def training_step(self, batch, batch_idx):
             if isinstance(batch, list):
@@ -264,8 +264,7 @@ def test_train_dataloaders_restore(train_dataloaders, expected_states, tmp_path)
         def train_dataloader(self):
             return train_dataloaders
 
-    model = DataLoaderModel()
-    trainer = Trainer(
+    trainer_kwargs = dict(
         default_root_dir=tmp_path,
         accelerator="cpu",
         max_steps=1,
@@ -275,6 +274,10 @@ def test_train_dataloaders_restore(train_dataloaders, expected_states, tmp_path)
         logger=False,
         num_sanity_val_steps=0,
     )
+
+    model = DataLoaderModel()
+    trainer = Trainer(**trainer_kwargs)
+
     # Fit to init the state of CheckpointConnector
     trainer.fit(model)
     checkpoint = trainer._checkpoint_connector.dump_checkpoint()
@@ -283,3 +286,10 @@ def test_train_dataloaders_restore(train_dataloaders, expected_states, tmp_path)
         assert "train_dataloaders" not in checkpoint
     else:
         assert checkpoint["train_dataloaders"] == expected_states
+
+    torch.save(checkpoint, tmp_path / "checkpoint.ckpt")
+
+    model = DataLoaderModel()
+    trainer = Trainer(**trainer_kwargs)
+    trainer.fit(model, ckpt_path=(tmp_path / "checkpoint.ckpt"))
+    # TODO: Test here
