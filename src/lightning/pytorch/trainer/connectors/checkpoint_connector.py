@@ -520,8 +520,10 @@ class _CheckpointConnector:
         }
 
     def _get_dataloader_state_dicts(self) -> List[Dict[str, Any]]:
+        combined_loader = self.trainer.fit_loop._combined_loader
+        iterables = combined_loader.flattened if combined_loader is not None else []
         return [
-            train_dataloader.state_dict() for train_dataloader in (self.trainer.train_dataloader or [])
+            train_dataloader.state_dict() for train_dataloader in iterables
             if isinstance(train_dataloader, _Stateful)
         ]
 
