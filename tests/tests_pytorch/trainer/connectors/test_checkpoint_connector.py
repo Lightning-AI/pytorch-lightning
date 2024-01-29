@@ -17,14 +17,13 @@ from unittest.mock import Mock
 
 import pytest
 import torch
-from torch.utils.data import DataLoader
-
 from lightning.pytorch import Trainer
 from lightning.pytorch.callbacks import ModelCheckpoint
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
 from lightning.pytorch.trainer.states import TrainerFn
-from lightning.pytorch.utilities.migration.utils import _set_version
 from lightning.pytorch.utilities import CombinedLoader
+from lightning.pytorch.utilities.migration.utils import _set_version
+from torch.utils.data import DataLoader
 
 
 def test_preloaded_checkpoint_lifecycle(tmpdir):
@@ -239,22 +238,26 @@ class NotStatefulDataLoader(DataLoader):
         super().__init__(RandomDataset(32, 64), *args, **kwargs)
 
 
-@pytest.mark.parametrize(("train_dataloaders", "expected_states"), [
-    # No dataloader
-    ([], None),
-    # Single stateful DataLoader
-    (StatefulDataLoader(), [{"label": 0}]),
-    # Single, not stateful DataLoader
-    (CombinedLoader(NotStatefulDataLoader()), None),
-    # Single stateful DataLoader
-    (CombinedLoader(StatefulDataLoader()), [{"label": 0}]),
-    # Multiple stateful DataLoaders
-    (CombinedLoader([StatefulDataLoader(3), StatefulDataLoader(1)]), [{"label": 3}, {"label": 1}]),
-    # Mix of stateful and not stateful DataLoaders
-    (CombinedLoader([NotStatefulDataLoader(3), StatefulDataLoader(1), NotStatefulDataLoader(2)]), [{"label": 1}]),
-])
+@pytest.mark.parametrize(
+    ("train_dataloaders", "expected_states"),
+    [
+        # No dataloader
+        ([], None),
+        # Single stateful DataLoader
+        (StatefulDataLoader(), [{"label": 0}]),
+        # Single, not stateful DataLoader
+        (CombinedLoader(NotStatefulDataLoader()), None),
+        # Single stateful DataLoader
+        (CombinedLoader(StatefulDataLoader()), [{"label": 0}]),
+        # Multiple stateful DataLoaders
+        (CombinedLoader([StatefulDataLoader(3), StatefulDataLoader(1)]), [{"label": 3}, {"label": 1}]),
+        # Mix of stateful and not stateful DataLoaders
+        (CombinedLoader([NotStatefulDataLoader(3), StatefulDataLoader(1), NotStatefulDataLoader(2)]), [{"label": 1}]),
+    ],
+)
 def test_train_dataloaders_restore(train_dataloaders, expected_states, tmp_path):
     """Test that the CheckpointConnector saves the state of stateful dataloaders and can reload them."""
+
     class DataLoaderModel(BoringModel):
         def training_step(self, batch, batch_idx):
             if isinstance(batch, list):

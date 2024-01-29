@@ -14,7 +14,7 @@
 import logging
 import os
 import re
-from typing import Any, Dict, Optional, List
+from typing import Any, Dict, List, Optional
 
 import torch
 from fsspec.core import url_to_fs
@@ -525,8 +525,7 @@ class _CheckpointConnector:
         combined_loader = self.trainer.fit_loop._combined_loader
         iterables = combined_loader.flattened if combined_loader is not None else []
         return [
-            train_dataloader.state_dict() for train_dataloader in iterables
-            if isinstance(train_dataloader, _Stateful)
+            train_dataloader.state_dict() for train_dataloader in iterables if isinstance(train_dataloader, _Stateful)
         ]
 
     @staticmethod
