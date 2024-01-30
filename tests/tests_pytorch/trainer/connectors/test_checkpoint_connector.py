@@ -19,11 +19,10 @@ import pytest
 import torch
 from lightning.pytorch import Trainer
 from lightning.pytorch.callbacks import ModelCheckpoint
-from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
+from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.trainer.states import TrainerFn
 from lightning.pytorch.utilities import CombinedLoader
 from lightning.pytorch.utilities.migration.utils import _set_version
-from torch.utils.data import DataLoader
 
 
 def test_preloaded_checkpoint_lifecycle(tmpdir):
@@ -226,8 +225,7 @@ class NotStatefulIterable:
         self.index = start
 
     def __iter__(self):
-        for self.index in range(self.index, len(self)):
-            yield self.index
+        yield from range(self.index, len(self))
 
     def __len__(self):
         return 10
@@ -255,10 +253,17 @@ class StatefulIterable(NotStatefulIterable):
         # Multiple stateful DataLoaders
         (lambda: CombinedLoader([StatefulIterable(3), StatefulIterable(1)]), True, [[3, 1], [4, 2]], [[5, 3], [6, 4]]),
         # Mix of stateful and not stateful DataLoaders
-        (lambda: CombinedLoader([NotStatefulIterable(3), StatefulIterable(1), NotStatefulIterable(2)]), True, [[3, 1, 2], [4, 2, 3]], [[3, 3, 2], [4, 4, 3]]),
+        (
+            lambda: CombinedLoader([NotStatefulIterable(3), StatefulIterable(1), NotStatefulIterable(2)]),
+            True,
+            [[3, 1, 2], [4, 2, 3]],
+            [[3, 3, 2], [4, 4, 3]],
+        ),
     ],
 )
-def test_train_dataloaders_save_and_restore(train_dataloader_factory, has_state, batches_before, batches_after, tmp_path):
+def test_train_dataloaders_save_and_restore(
+    train_dataloader_factory, has_state, batches_before, batches_after, tmp_path
+):
     """Test that the CheckpointConnector saves the state of stateful dataloaders."""
 
     class DummyModel(BoringModel):
