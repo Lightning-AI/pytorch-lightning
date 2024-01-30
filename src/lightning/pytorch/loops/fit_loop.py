@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import logging
-from typing import Optional, Union, Dict, List, Any
+from typing import Any, Dict, List, Optional, Union
 
 import torch
 from typing_extensions import override
@@ -425,7 +425,7 @@ class _FitLoop(_Loop):
 
     @override
     def on_load_checkpoint(self, state_dict: Dict) -> None:
-        self._combined_loader_states = state_dict.get("combined_loader", None)
+        self._combined_loader_states = state_dict.get("combined_loader")
         super().on_load_checkpoint(state_dict)
 
     def _should_accumulate(self) -> bool:
