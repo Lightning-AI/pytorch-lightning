@@ -440,8 +440,8 @@ class _FitLoop(_Loop):
             return
 
         loaders = self._combined_loader.flattened if self._combined_loader is not None else []
-        for loader, state_dict in zip(loaders, self._combined_loader_states):
-            if isinstance(loader, _Stateful):
-                loader.load_state_dict(state_dict)
+        stateful_loaders = [loader for loader in loaders if isinstance(loader, _Stateful)]
+        for loader, state_dict in zip(stateful_loaders, self._combined_loader_states):
+            loader.load_state_dict(state_dict)
 
         self._combined_loader_states = None  # release memory
