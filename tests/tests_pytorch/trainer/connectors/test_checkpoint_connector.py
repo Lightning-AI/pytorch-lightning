@@ -286,9 +286,9 @@ def test_train_dataloaders_save(train_dataloaders, expected_states, tmp_path):
     checkpoint = trainer._checkpoint_connector.dump_checkpoint()
 
     if expected_states is None:
-        assert "train_dataloaders" not in checkpoint
+        assert "combined_loader" not in checkpoint["loops"]["fit_loop"]["state_dict"]
     else:
-        assert checkpoint["train_dataloaders"] == expected_states
+        assert checkpoint["loops"]["fit_loop"]["state_dict"]["combined_loader"] == expected_states
 
 
 def test_train_dataloaders_restore(tmp_path):

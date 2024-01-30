@@ -12,13 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import logging
-from typing import Optional, Union
+from typing import Optional, Union, Dict, List, Any
 
 import torch
 from typing_extensions import override
 
 import lightning.pytorch as pl
 from lightning.fabric.utilities.data import _set_sampler_epoch, sized_len
+from lightning.fabric.utilities.types import _Stateful
 from lightning.fabric.utilities.warnings import PossibleUserWarning
 from lightning.pytorch.loops import _Loop
 from lightning.pytorch.loops.fetchers import _DataFetcher
@@ -94,6 +95,7 @@ class _FitLoop(_Loop):
 
         self._data_source = _DataLoaderSource(None, "train_dataloader")
         self._combined_loader: Optional[CombinedLoader] = None
+        self._combined_loader_states: Optional[List[Dict[str, Any]]] = None
         self._data_fetcher: Optional[_DataFetcher] = None
         self._last_train_dl_reload_epoch = float("-inf")
 
@@ -255,6 +257,9 @@ class _FitLoop(_Loop):
 
         combined_loader.limits = limits
 
+        if self.restarting:
+            self._restore_combined_loader_state()
+
         self._data_fetcher = _select_data_fetcher(trainer, RunningStage.TRAINING)
         self._data_fetcher.setup(combined_loader)
         iter(self._data_fetcher)  # creates the iterator inside the fetcher
@@ -409,9 +414,34 @@ class _FitLoop(_Loop):
             self._data_fetcher = None
         self.epoch_loop.teardown()
 
+    @override
+    def on_save_checkpoint(self) -> Dict:
+        state_dict = super().on_save_checkpoint()
+        loaders = self._combined_loader.flattened if self._combined_loader is not None else []
+        loader_states = [loader.state_dict() for loader in loaders if isinstance(loader, _Stateful)]
+        if loader_states:
+            state_dict["combined_loader"] = loader_states
+        return state_dict
+
+    @override
+    def on_load_checkpoint(self, state_dict: Dict) -> None:
+        self._combined_loader_states = state_dict.get("combined_loader", None)
+        super().on_load_checkpoint(state_dict)
+
     def _should_accumulate(self) -> bool:
         """Whether the gradients should be accumulated."""
         return self.epoch_loop._should_accumulate()
 
     def _iteration_based_training(self) -> bool:
         return self.trainer.max_steps != -1
+
+    def _restore_combined_loader_state(self) -> None:
+        if not self._combined_loader_states:
+            return
+
+        loaders = self._combined_loader.flattened if self._combined_loader is not None else []
+        for loader, state_dict in zip(loaders, self._combined_loader_states):
+            if isinstance(loader, _Stateful):
+                loader.load_state_dict(state_dict)
+
+        self._combined_loader_states = None  # release memory
