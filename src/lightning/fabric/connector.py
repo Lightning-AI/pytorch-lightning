@@ -24,6 +24,7 @@ from lightning.fabric.accelerators.cuda import CUDAAccelerator
 from lightning.fabric.accelerators.mps import MPSAccelerator
 from lightning.fabric.accelerators.xla import XLAAccelerator
 from lightning.fabric.plugins import (
+    BitsandbytesPrecision,
     CheckpointIO,
     DeepSpeedPrecision,
     HalfPrecision,
@@ -448,6 +449,10 @@ class _Connector:
 
     def _check_and_init_precision(self) -> Precision:
         if isinstance(self._precision_instance, Precision):
+            if isinstance(self._precision_instance, BitsandbytesPrecision) and not isinstance(
+                self.accelerator, CUDAAccelerator
+            ):
+                raise RuntimeError("Bitsandbytes is only supported on CUDA GPUs.")
             return self._precision_instance
         if isinstance(self.strategy, (SingleDeviceXLAStrategy, XLAStrategy, XLAFSDPStrategy)):
             return XLAPrecision(self._precision_input)  # type: ignore
