@@ -190,7 +190,14 @@ def _upload_fn(upload_queue: Queue, remove_queue: Queue, cache_dir: str, output_
         s3 = S3Client()
 
     while True:
-        local_filepath: Optional[str] = upload_queue.get()
+        data: Optional[Union[str, Tuple[str, str]]] = upload_queue.get()
+
+        tmpdir = None
+
+        if isinstance(data, str) or data is None:
+            local_filepath = data
+        else:
+            tmpdir, local_filepath = data
 
         # Terminate the process if we received a termination signal
         if local_filepath is None:
@@ -202,15 +209,25 @@ def _upload_fn(upload_queue: Queue, remove_queue: Queue, cache_dir: str, output_
 
         if obj.scheme == "s3":
             try:
+                if tmpdir is None:
+                    output_filepath = os.path.join(str(obj.path).lstrip("/"), os.path.basename(local_filepath))
+                else:
+                    output_filepath = os.path.join(str(obj.path).lstrip("/"), local_filepath.replace(tmpdir, "")[1:])
+
                 s3.client.upload_file(
                     local_filepath,
                     obj.netloc,
-                    os.path.join(str(obj.path).lstrip("/"), os.path.basename(local_filepath)),
+                    output_filepath,
                 )
             except Exception as e:
                 print(e)
         elif output_dir.path and os.path.isdir(output_dir.path):
-            shutil.copyfile(local_filepath, os.path.join(output_dir.path, os.path.basename(local_filepath)))
+            if tmpdir is None:
+                shutil.copyfile(local_filepath, os.path.join(output_dir.path, os.path.basename(local_filepath)))
+            else:
+                output_filepath = os.path.join(output_dir.path, local_filepath.replace(tmpdir, "")[1:])
+                os.makedirs(os.path.dirname(output_filepath), exist_ok=True)
+                shutil.copyfile(local_filepath, output_filepath)
         else:
             raise ValueError(f"The provided {output_dir.path} isn't supported.")
 
@@ -241,7 +258,10 @@ def _map_items_to_workers_sequentially(num_workers: int, user_items: List[Any]) 
 
 
 def _map_items_to_workers_weighted(
-    num_workers: int, user_items: List[Any], weights: Optional[List[int]] = None
+    num_workers: int,
+    user_items: List[Any],
+    weights: Optional[List[int]] = None,
+    file_size: bool = True,
 ) -> List[List[Any]]:
     # Associate the items to the workers based on number of nodes and node rank.
     weights = [1] * len(user_items) if weights is None else weights
@@ -255,7 +275,11 @@ def _map_items_to_workers_weighted(
     for worker_id, size in worker_weights.items():
         if worker_id not in worker_ids_this_node:
             continue
-        print(f"Worker {worker_id} gets {size / 1e6:.1f} MB ({len(worker_items[worker_id])} files)")
+
+        if file_size:
+            print(f"Worker {worker_id} gets {size / 1e6:.1f} MB ({len(worker_items[worker_id])} files)")
+        else:
+            print(f"Worker {worker_id} gets ({len(worker_items[worker_id])}) items for a total weight of {size}.")
 
     return [worker_items[worker_id] for worker_id in worker_ids_this_node]
 
@@ -428,12 +452,15 @@ class BaseWorker:
         )
         self.cache._reader._rank = _get_node_rank() * self.num_workers + self.worker_index
 
-    def _try_upload(self, filepath: Optional[str]) -> None:
-        if not filepath or (self.output_dir.url if self.output_dir.url else self.output_dir.path) is None:
+    def _try_upload(self, data: Optional[Union[str, Tuple[str, str]]]) -> None:
+        if not data or (self.output_dir.url if self.output_dir.url else self.output_dir.path) is None:
             return
 
-        assert os.path.exists(filepath), filepath
-        self.to_upload_queues[self._counter % self.num_uploaders].put(filepath)
+        if isinstance(data, str):
+            assert os.path.exists(data), data
+        else:
+            assert os.path.exists(data[-1]), data
+        self.to_upload_queues[self._counter % self.num_uploaders].put(data)
 
     def _collect_paths(self) -> None:
         if self.input_dir.path is None:
@@ -575,7 +602,7 @@ class BaseWorker:
                 filepaths.append(os.path.join(directory, filename))
 
         for filepath in filepaths:
-            self._try_upload(filepath)
+            self._try_upload((output_dir, filepath))
 
 
 class DataWorkerProcess(BaseWorker, Process):
@@ -769,6 +796,7 @@ class DataProcessor:
         fast_dev_run: Optional[Union[bool, int]] = None,
         random_seed: Optional[int] = 42,
         reorder_files: bool = True,
+        weights: Optional[List[int]] = None,
     ):
         """The `DatasetOptimiser` provides an efficient way to process data across multiple machine into chunks to make
         training faster.
@@ -784,6 +812,8 @@ class DataProcessor:
             random_seed: The random seed to be set before shuffling the data.
             reorder_files: By default, reorders the files by file size to distribute work equally among all workers.
                 Set this to ``False`` if the order in which samples are processed should be preserved.
+            weights: Provide a list of weights associated to the inputs.
+                This is used to evenly split the work among the workers.
 
         """
         self.input_dir = _resolve_dir(input_dir)
@@ -799,6 +829,7 @@ class DataProcessor:
         self.error_queue: Queue = Queue()
         self.stop_queues: List[Queue] = []
         self.reorder_files = reorder_files
+        self.weights = weights
 
         # Ensure the input dir is the same across all nodes
         self.input_dir = broadcast_object("input_dir", self.input_dir)
@@ -827,7 +858,14 @@ class DataProcessor:
         if not isinstance(user_items, list):
             raise ValueError("The `prepare_structure` should return a list of item metadata.")
 
-        if self.reorder_files and self.input_dir.path:
+        if self.weights is not None:
+            if len(self.weights) != len(user_items):
+                raise ValueError("The provided weights length should match the inputs' length.")
+            workers_user_items = _map_items_to_workers_weighted(
+                num_workers=self.num_workers, user_items=user_items, weights=self.weights, file_size=False
+            )
+
+        elif self.reorder_files and self.input_dir.path:
             # TODO: Only do this on node 0, and broadcast the item sizes to the other nodes.
             item_sizes = _get_item_filesizes(user_items, base_path=self.input_dir.path)
             workers_user_items = _map_items_to_workers_weighted(
