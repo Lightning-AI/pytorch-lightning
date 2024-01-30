@@ -452,10 +452,10 @@ class _StreamingMultiProcessingDataLoaderIter(_MultiProcessingDataLoaderIter):
 
         distributed_env = _DistributedEnv.detect()
 
-        if self._loader._profile_bactches and distributed_env.global_rank == 0 and _VIZ_TRACKER_AVAILABLE:
+        if self._loader._profile_batches and distributed_env.global_rank == 0 and _VIZ_TRACKER_AVAILABLE:
             from torch.utils.data._utils import worker
 
-            worker._worker_loop = _ProfileWorkerLoop(self._loader._profile_bactches, self._loader._profile_dir)
+            worker._worker_loop = _ProfileWorkerLoop(self._loader._profile_batches, self._loader._profile_dir)
 
         super().__init__(loader)
 
@@ -490,7 +490,7 @@ class StreamingDataLoader(DataLoader):
         *args: Any,
         batch_size: int = 1,
         num_workers: int = 0,
-        profile_bactches: Union[bool, int] = False,
+        profile_batches: Union[bool, int] = False,
         profile_dir: Optional[str] = None,
         prefetch_factor: Optional[int] = None,
         **kwargs: Any,
@@ -501,16 +501,16 @@ class StreamingDataLoader(DataLoader):
                 f" Found {dataset}."
             )
 
-        if profile_bactches and not _VIZ_TRACKER_AVAILABLE:
-            raise ModuleNotFoundError("To use profile_bactches, viztracer is required. Run `pip install viztracer`")
+        if profile_batches and not _VIZ_TRACKER_AVAILABLE:
+            raise ModuleNotFoundError("To use profile_batches, viztracer is required. Run `pip install viztracer`")
 
-        if profile_bactches and num_workers == 0:
+        if profile_batches and num_workers == 0:
             raise ValueError("Profiling is supported only with num_workers >= 1.")
 
         self.current_epoch = 0
         self.batch_size = batch_size
         self.num_workers = num_workers
-        self._profile_bactches = profile_bactches
+        self._profile_batches = profile_batches
         self._profile_dir = profile_dir
         self._num_samples_yielded_streaming = 0
         self._num_samples_yielded_combined: Dict[int, List[Any]] = {}
