@@ -221,96 +221,45 @@ def test_stateful_trainer_ckpt_path_support(tmp_path):
     assert trainer.ckpt_path == best_path
 
 
-class StatefulDataLoader(DataLoader):
-    def __init__(self, label=0, *args, **kwargs):
-        super().__init__(RandomDataset(32, 64), *args, **kwargs)
-        self.label = label
+class NotStatefulIterable:
+    def __init__(self, start=0):
+        self.index = start
 
+    def __iter__(self):
+        for self.index in range(self.index, len(self)):
+            yield self.index
+
+    def __len__(self):
+        return 10
+
+
+class StatefulIterable(NotStatefulIterable):
     def state_dict(self):
-        return {"label": self.label}
+        return {"index": self.index}
 
     def load_state_dict(self, state_dict):
-        self.label = state_dict["label"]
-
-
-class NotStatefulDataLoader(DataLoader):
-    def __init__(self, *args, **kwargs):
-        super().__init__(RandomDataset(32, 64), *args, **kwargs)
+        self.index = state_dict["index"] + 1
 
 
 @pytest.mark.parametrize(
-    ("train_dataloaders", "expected_states"),
+    ("train_dataloader_factory", "batches_before", "batches_after"),
     [
         # No dataloader
-        ([], None),
+        (lambda: [], [], []),
         # Single stateful DataLoader
-        (StatefulDataLoader(), [{"label": 0}]),
+        (lambda: StatefulIterable(), [0, 1], [2, 3]),
         # Single, not stateful DataLoader
-        (CombinedLoader(NotStatefulDataLoader()), None),
+        (lambda: CombinedLoader(NotStatefulIterable()), [0, 1], [0, 1]),
         # Single stateful DataLoader
-        (CombinedLoader(StatefulDataLoader()), [{"label": 0}]),
+        (lambda: CombinedLoader(StatefulIterable()), [0, 1], [2, 3]),
         # Multiple stateful DataLoaders
-        (CombinedLoader([StatefulDataLoader(3), StatefulDataLoader(1)]), [{"label": 3}, {"label": 1}]),
+        (lambda: CombinedLoader([StatefulIterable(3), StatefulIterable(1)]), [[3, 1], [4, 2]], [[5, 3], [6, 4]]),
         # Mix of stateful and not stateful DataLoaders
-        (CombinedLoader([NotStatefulDataLoader(3), StatefulDataLoader(1), NotStatefulDataLoader(2)]), [{"label": 1}]),
+        (lambda: CombinedLoader([NotStatefulIterable(3), StatefulIterable(1), NotStatefulIterable(2)]), [[3, 1, 2], [4, 2, 3]], [[3, 3, 2], [4, 4, 3]]),
     ],
 )
-def test_train_dataloaders_save(train_dataloaders, expected_states, tmp_path):
+def test_train_dataloaders_save(train_dataloader_factory, batches_before, batches_after, tmp_path):
     """Test that the CheckpointConnector saves the state of stateful dataloaders."""
-
-    class DataLoaderModel(BoringModel):
-        def training_step(self, batch, batch_idx):
-            if isinstance(batch, list):
-                batch = batch[0]
-            return super().training_step(batch, batch_idx)
-
-        def train_dataloader(self):
-            return train_dataloaders
-
-    trainer_kwargs = {
-        "default_root_dir": tmp_path,
-        "accelerator": "cpu",
-        "max_steps": 1,
-        "enable_checkpointing": False,
-        "enable_model_summary": False,
-        "enable_progress_bar": False,
-        "logger": False,
-        "num_sanity_val_steps": 0,
-    }
-
-    model = DataLoaderModel()
-    trainer = Trainer(**trainer_kwargs)
-
-    # Fit to init the state of CheckpointConnector
-    trainer.fit(model)
-    checkpoint = trainer._checkpoint_connector.dump_checkpoint()
-
-    if expected_states is None:
-        assert "combined_loader" not in checkpoint["loops"]["fit_loop"]["state_dict"]
-    else:
-        assert checkpoint["loops"]["fit_loop"]["state_dict"]["combined_loader"] == expected_states
-
-
-def test_train_dataloaders_restore(tmp_path):
-    """Test that the Trainer loads the state of the stateful data iterable and resumes correctly."""
-
-    class StatefulIterable:
-        def __init__(self):
-            self.index = 0
-
-        def __iter__(self):
-            for self.index in range(self.index, len(self)):
-                print(self.index)
-                yield self.index
-
-        def __len__(self):
-            return 10
-
-        def state_dict(self):
-            return {"index": self.index}
-
-        def load_state_dict(self, state_dict):
-            self.index = state_dict["index"] + 1
 
     class DummyModel(BoringModel):
         def __init__(self):
@@ -321,6 +270,9 @@ def test_train_dataloaders_restore(tmp_path):
             self.seen_data.append(batch)
             print(batch)
 
+        def train_dataloader(self):
+            return train_dataloader_factory()
+
     trainer_kwargs = {
         "default_root_dir": tmp_path,
         "accelerator": "cpu",
@@ -331,17 +283,19 @@ def test_train_dataloaders_restore(tmp_path):
         "num_sanity_val_steps": 0,
     }
 
-    # Train for 3 steps and save a checkpoint
+    # Train for 2 steps
     model = DummyModel()
-    data = StatefulIterable()
-    trainer = Trainer(**trainer_kwargs, max_steps=3)
-    trainer.fit(model, data)
-    assert model.seen_data == [0, 1, 2]
-    trainer.save_checkpoint(tmp_path / "checkpoint.ckpt")
+    trainer = Trainer(**trainer_kwargs, max_steps=2)
+    trainer.fit(model)
+    assert model.seen_data == batches_before
 
-    # Restore training from step 3 and continue
+    # Save a checkpoint
+    trainer.save_checkpoint(tmp_path / "checkpoint.ckpt")
+    checkpoint = torch.load(tmp_path / "checkpoint.ckpt")
+    assert checkpoint["loops"]["fit_loop"]["state_dict"]["combined_loader"]
+
+    # Restore training from step 2 and continue 2 more steps
     model = DummyModel()
-    data = StatefulIterable()
-    trainer = Trainer(**trainer_kwargs, max_steps=6)
-    trainer.fit(model, data, ckpt_path=(tmp_path / "checkpoint.ckpt"))
-    assert model.seen_data == [3, 4, 5]
+    trainer = Trainer(**trainer_kwargs, max_steps=4)
+    trainer.fit(model, ckpt_path=(tmp_path / "checkpoint.ckpt"))
+    assert model.seen_data == batches_after
