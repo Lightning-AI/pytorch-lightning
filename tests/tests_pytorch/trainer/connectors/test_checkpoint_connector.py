@@ -267,16 +267,16 @@ def test_train_dataloaders_save(train_dataloaders, expected_states, tmp_path):
         def train_dataloader(self):
             return train_dataloaders
 
-    trainer_kwargs = dict(
-        default_root_dir=tmp_path,
-        accelerator="cpu",
-        max_steps=1,
-        enable_checkpointing=False,
-        enable_model_summary=False,
-        enable_progress_bar=False,
-        logger=False,
-        num_sanity_val_steps=0,
-    )
+    trainer_kwargs = {
+        "default_root_dir": tmp_path,
+        "accelerator": "cpu",
+        "max_steps": 1,
+        "enable_checkpointing": False,
+        "enable_model_summary": False,
+        "enable_progress_bar": False,
+        "logger": False,
+        "num_sanity_val_steps": 0,
+    }
 
     model = DataLoaderModel()
     trainer = Trainer(**trainer_kwargs)
@@ -321,15 +321,15 @@ def test_train_dataloaders_restore(tmp_path):
             self.seen_data.append(batch)
             print(batch)
 
-    trainer_kwargs = dict(
-        default_root_dir=tmp_path,
-        accelerator="cpu",
-        enable_checkpointing=False,
-        enable_model_summary=False,
-        enable_progress_bar=False,
-        logger=False,
-        num_sanity_val_steps=0,
-    )
+    trainer_kwargs = {
+        "default_root_dir": tmp_path,
+        "accelerator": "cpu",
+        "enable_checkpointing": False,
+        "enable_model_summary": False,
+        "enable_progress_bar": False,
+        "logger": False,
+        "num_sanity_val_steps": 0,
+    }
 
     # Train for 3 steps and save a checkpoint
     model = DummyModel()
