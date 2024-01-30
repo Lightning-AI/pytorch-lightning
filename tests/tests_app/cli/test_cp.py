@@ -12,7 +12,6 @@ from lightning_cloud.openapi import (
     V1CloudSpace,
     V1ClusterDriver,
     V1ClusterSpec,
-    V1GetClusterResponse,
     V1KubernetesClusterDriver,
     V1LightningappInstanceArtifact,
     V1LightningappInstanceSpec,
@@ -213,7 +212,7 @@ def test_cp_zip_remote_to_local_app_artifact(monkeypatch):
     monkeypatch.setattr(cp, "_AuthTokenGetter", MagicMock(return_value=token_getter))
 
     client = MagicMock()
-    client.cluster_service_get_cluster.return_value = V1GetClusterResponse(
+    client.cluster_service_get_cluster.return_value = Externalv1Cluster(
         spec=V1ClusterSpec(driver=V1ClusterDriver(kubernetes=V1KubernetesClusterDriver(root_domain_name="my-domain")))
     )
     client.projects_service_list_memberships.return_value = V1ListMembershipsResponse(
