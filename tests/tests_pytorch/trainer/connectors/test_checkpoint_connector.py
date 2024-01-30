@@ -225,7 +225,9 @@ class NotStatefulIterable:
         self.index = start
 
     def __iter__(self):
-        yield from range(self.index, len(self))
+        for i in range(self.index, len(self)):
+            self.index = i
+            yield self.index
 
     def __len__(self):
         return 10
