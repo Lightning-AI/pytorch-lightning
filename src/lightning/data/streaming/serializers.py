@@ -111,6 +111,7 @@ class JPEGSerializer(Serializer):
                     "The JPEG Image's filename isn't defined. HINT: Open the image in your Dataset __getitem__ method."
                 )
             if item.filename and os.path.exists(item.filename):
+                # read the content of the file directly
                 with open(item.filename, "rb") as f:
                     return f.read(), None
             else:
