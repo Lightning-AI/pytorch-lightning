@@ -115,7 +115,7 @@ def _collect_rng_states(include_cuda: bool = True) -> Dict[str, Any]:
         "python": python_get_rng_state(),
     }
     if include_cuda:
-        states["torch.cuda"] = torch.cuda.get_rng_state_all()
+        states["torch.cuda"] = torch.cuda.get_rng_state_all() if torch.cuda.is_available() else []
     return states
 
 
