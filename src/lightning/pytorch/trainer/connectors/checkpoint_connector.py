@@ -292,6 +292,7 @@ class _CheckpointConnector:
 
         assert self.trainer.state.fn is not None
         if self.trainer.state.fn == TrainerFn.FITTING:
+            # restore optimizers and schedulers state
             self.restore_optimizers_and_schedulers()
 
     def restore_precision_plugin_state(self) -> None:
