@@ -11,8 +11,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
 import io
+import os
 import pickle
 import tempfile
 from abc import ABC, abstractmethod
@@ -110,12 +110,12 @@ class JPEGSerializer(Serializer):
                 raise ValueError(
                     "The JPEG Image's filename isn't defined. HINT: Open the image in your Dataset __getitem__ method."
                 )
-            if item.filename:
+            if item.filename and os.path.exists(item.filename):
                 with open(item.filename, "rb") as f:
                     return f.read(), None
             else:
                 item_bytes = io.BytesIO()
-                item.save(item_bytes, format='JPEG')
+                item.save(item_bytes, format="JPEG")
                 item_bytes = item_bytes.getvalue()
                 return item_bytes, None
 
