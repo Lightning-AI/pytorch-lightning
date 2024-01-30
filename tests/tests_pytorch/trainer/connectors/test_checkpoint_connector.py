@@ -242,23 +242,23 @@ class StatefulIterable(NotStatefulIterable):
 
 
 @pytest.mark.parametrize(
-    ("train_dataloader_factory", "batches_before", "batches_after"),
+    ("train_dataloader_factory", "has_state", "batches_before", "batches_after"),
     [
         # No dataloader
-        (lambda: [], [], []),
+        (lambda: [], False, [], []),
         # Single stateful DataLoader
-        (lambda: StatefulIterable(), [0, 1], [2, 3]),
+        (lambda: StatefulIterable(), True, [0, 1], [2, 3]),
         # Single, not stateful DataLoader
-        (lambda: CombinedLoader(NotStatefulIterable()), [0, 1], [0, 1]),
+        (lambda: CombinedLoader(NotStatefulIterable()), False, [0, 1], [0, 1]),
         # Single stateful DataLoader
-        (lambda: CombinedLoader(StatefulIterable()), [0, 1], [2, 3]),
+        (lambda: CombinedLoader(StatefulIterable()), True, [0, 1], [2, 3]),
         # Multiple stateful DataLoaders
-        (lambda: CombinedLoader([StatefulIterable(3), StatefulIterable(1)]), [[3, 1], [4, 2]], [[5, 3], [6, 4]]),
+        (lambda: CombinedLoader([StatefulIterable(3), StatefulIterable(1)]), True, [[3, 1], [4, 2]], [[5, 3], [6, 4]]),
         # Mix of stateful and not stateful DataLoaders
-        (lambda: CombinedLoader([NotStatefulIterable(3), StatefulIterable(1), NotStatefulIterable(2)]), [[3, 1, 2], [4, 2, 3]], [[3, 3, 2], [4, 4, 3]]),
+        (lambda: CombinedLoader([NotStatefulIterable(3), StatefulIterable(1), NotStatefulIterable(2)]), True, [[3, 1, 2], [4, 2, 3]], [[3, 3, 2], [4, 4, 3]]),
     ],
 )
-def test_train_dataloaders_save(train_dataloader_factory, batches_before, batches_after, tmp_path):
+def test_train_dataloaders_save_and_restore(train_dataloader_factory, has_state, batches_before, batches_after, tmp_path):
     """Test that the CheckpointConnector saves the state of stateful dataloaders."""
 
     class DummyModel(BoringModel):
@@ -292,7 +292,10 @@ def test_train_dataloaders_save(train_dataloader_factory, batches_before, batche
     # Save a checkpoint
     trainer.save_checkpoint(tmp_path / "checkpoint.ckpt")
     checkpoint = torch.load(tmp_path / "checkpoint.ckpt")
-    assert checkpoint["loops"]["fit_loop"]["state_dict"]["combined_loader"]
+    if has_state:
+        assert checkpoint["loops"]["fit_loop"]["state_dict"]["combined_loader"]
+    else:
+        assert "combined_loader" not in checkpoint["loops"]["fit_loop"]["state_dict"]
 
     # Restore training from step 2 and continue 2 more steps
     model = DummyModel()
