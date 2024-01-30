@@ -47,5 +47,5 @@ def test_isolate_rng_cuda(get_cuda_rng, set_cuda_rng):
     set_cuda_rng.assert_not_called()
 
     with isolate_rng(include_cuda=True):
-        get_cuda_rng.assert_called_once()
+        assert get_cuda_rng.call_count == int(torch.cuda.is_available())
     set_cuda_rng.assert_called_once()
