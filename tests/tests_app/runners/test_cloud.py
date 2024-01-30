@@ -38,7 +38,6 @@ from lightning_cloud.openapi import (
     V1DriveStatus,
     V1DriveType,
     V1EnvVar,
-    V1GetClusterResponse,
     V1GetUserResponse,
     V1LightningappInstanceSpec,
     V1LightningappInstanceState,
@@ -208,7 +207,7 @@ class TestAppCreationClient:
         )
 
         # Mock all clusters as global clusters
-        mock_client.cluster_service_get_cluster.side_effect = lambda cluster_id: V1GetClusterResponse(
+        mock_client.cluster_service_get_cluster.side_effect = lambda cluster_id: Externalv1Cluster(
             id=cluster_id, spec=V1ClusterSpec(cluster_type=V1ClusterType.GLOBAL)
         )
 
@@ -277,7 +276,7 @@ class TestAppCreationClient:
         )
 
         # Mock all clusters as global clusters
-        mock_client.cluster_service_get_cluster.side_effect = lambda cluster_id: V1GetClusterResponse(
+        mock_client.cluster_service_get_cluster.side_effect = lambda cluster_id: Externalv1Cluster(
             id=cluster_id, spec=V1ClusterSpec(cluster_type=V1ClusterType.GLOBAL)
         )
 
@@ -588,7 +587,7 @@ class TestAppCreationClient:
         mock_client.projects_service_list_project_cluster_bindings.return_value = V1ListProjectClusterBindingsResponse(
             clusters=[V1ProjectClusterBinding(cluster_id="test")]
         )
-        mock_client.cluster_service_get_cluster.side_effect = lambda cluster_id: V1GetClusterResponse(
+        mock_client.cluster_service_get_cluster.side_effect = lambda cluster_id: Externalv1Cluster(
             id=cluster_id, spec=V1ClusterSpec(cluster_type=V1ClusterType.GLOBAL)
         )
         mock_client.cloud_space_service_create_lightning_run_instance.return_value = V1LightningRun()
@@ -765,7 +764,7 @@ class TestAppCreationClient:
         mock_client.projects_service_list_project_cluster_bindings.return_value = V1ListProjectClusterBindingsResponse(
             clusters=[V1ProjectClusterBinding(cluster_id="test")]
         )
-        mock_client.cluster_service_get_cluster.side_effect = lambda cluster_id: V1GetClusterResponse(
+        mock_client.cluster_service_get_cluster.side_effect = lambda cluster_id: Externalv1Cluster(
             id=cluster_id, spec=V1ClusterSpec(cluster_type=V1ClusterType.GLOBAL)
         )
         mock_client.cloud_space_service_create_lightning_run_instance.return_value = V1LightningRun()
@@ -901,7 +900,7 @@ class TestAppCreationClient:
             mock_client.projects_service_list_project_cluster_bindings.return_value = (
                 V1ListProjectClusterBindingsResponse(clusters=[V1ProjectClusterBinding(cluster_id="test")])
             )
-            mock_client.cluster_service_get_cluster.side_effect = lambda cluster_id: V1GetClusterResponse(
+            mock_client.cluster_service_get_cluster.side_effect = lambda cluster_id: Externalv1Cluster(
                 id=cluster_id, spec=V1ClusterSpec(cluster_type=V1ClusterType.GLOBAL)
             )
         mock_client.cloud_space_service_list_cloud_spaces.return_value = V1ListCloudSpacesResponse(
@@ -1031,7 +1030,7 @@ class TestAppCreationClient:
                     ]
                 )
             )
-            mock_client.cluster_service_get_cluster.side_effect = lambda cluster_id: V1GetClusterResponse(
+            mock_client.cluster_service_get_cluster.side_effect = lambda cluster_id: Externalv1Cluster(
                 id=cluster_id, spec=V1ClusterSpec(cluster_type=V1ClusterType.GLOBAL)
             )
         mock_client.cloud_space_service_list_cloud_spaces.return_value = V1ListCloudSpacesResponse(
@@ -1247,7 +1246,7 @@ class TestAppCreationClient:
             mock_client.projects_service_list_project_cluster_bindings.return_value = (
                 V1ListProjectClusterBindingsResponse(clusters=[V1ProjectClusterBinding(cluster_id="test")])
             )
-            mock_client.cluster_service_get_cluster.side_effect = lambda cluster_id: V1GetClusterResponse(
+            mock_client.cluster_service_get_cluster.side_effect = lambda cluster_id: Externalv1Cluster(
                 id=cluster_id, spec=V1ClusterSpec(cluster_type=V1ClusterType.GLOBAL)
             )
         mock_client.cloud_space_service_list_cloud_spaces.return_value = V1ListCloudSpacesResponse(
