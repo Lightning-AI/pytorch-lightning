@@ -6,12 +6,10 @@ The only things that change in the ``LitAutoEncoder`` model are the init, forwar
 
 .. code-block:: python
 
-    class Encoder(torch.nn.Module):
-        ...
+    class Encoder(torch.nn.Module): ...
 
 
-    class Decoder(torch.nn.Module):
-        ...
+    class Decoder(torch.nn.Module): ...
 
 
     class AutoEncoder(torch.nn.Module):

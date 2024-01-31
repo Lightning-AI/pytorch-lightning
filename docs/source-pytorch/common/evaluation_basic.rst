@@ -40,8 +40,7 @@ To add a test loop, implement the **test_step** method of the LightningModule
 .. code:: python
 
     class LitAutoEncoder(L.LightningModule):
-        def training_step(self, batch, batch_idx):
-            ...
+        def training_step(self, batch, batch_idx): ...
 
         def test_step(self, batch, batch_idx):
             # this is the test loop
@@ -100,8 +99,7 @@ To add a validation loop, implement the **validation_step** method of the Lightn
 .. code:: python
 
     class LitAutoEncoder(L.LightningModule):
-        def training_step(self, batch, batch_idx):
-            ...
+        def training_step(self, batch, batch_idx): ...
 
         def validation_step(self, batch, batch_idx):
             # this is the validation loop
