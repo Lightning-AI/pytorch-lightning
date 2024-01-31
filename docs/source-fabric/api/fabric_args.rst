@@ -192,7 +192,8 @@ Add callbacks to Fabric to inject logic into your training loop from an external
 .. code-block:: python
 
     class MyCallback:
-        def on_train_epoch_end(self, results): ...
+        def on_train_epoch_end(self, results):
+            ...
 
 You can then register this callback or multiple ones directly in Fabric:
 
