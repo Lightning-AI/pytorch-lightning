@@ -14,7 +14,7 @@
 import functools
 import inspect
 import os
-from typing import TYPE_CHECKING, Any, Callable, Dict, Generic, Optional, Type, TypeVar
+from typing import TYPE_CHECKING, Any, Callable, Generic, Optional, Type, TypeVar
 
 from lightning_utilities.core.imports import RequirementCache
 from torch import nn

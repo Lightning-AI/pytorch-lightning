@@ -234,7 +234,7 @@ def _download_frontend(pkg_path: str, version: str = "v0.0.0"):
         response = urllib.request.urlopen(frontend_release_url)
 
         file = tarfile.open(fileobj=response, mode="r|gz")
-        file.extractall(path=download_dir)
+        file.extractall(path=download_dir)  # noqa: S202
 
         shutil.move(download_dir, frontend_dir)
         print("The Lightning UI has successfully been downloaded!")
@@ -457,7 +457,7 @@ class AssistantCLI:
                 raise RuntimeError(f"Requesting file '{zip_url}' does not exist or it is just unavailable.")
 
             with zipfile.ZipFile(zip_file, "r") as zip_ref:
-                zip_ref.extractall(tmp)
+                zip_ref.extractall(tmp)  # noqa: S202
 
             zip_dirs = [d for d in glob.glob(os.path.join(tmp, "*")) if os.path.isdir(d)]
             # check that the extracted archive has only repo folder
