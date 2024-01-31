@@ -14,7 +14,7 @@ from queue import Empty
 from time import sleep, time
 from typing import Any, Dict, List, Optional, Tuple, TypeVar, Union
 from urllib import parse
-
+from pathlib import Path
 from tqdm.auto import tqdm as _tqdm
 
 from lightning import seed_everything
@@ -222,7 +222,9 @@ def _upload_fn(upload_queue: Queue, remove_queue: Queue, cache_dir: str, output_
                 )
             except Exception as e:
                 print(e)
-        elif output_dir.path and os.path.isdir(output_dir.path):
+
+        elif output_dir.path:
+            os.makedirs(output_dir.path, exist_ok=True)
             if tmpdir is None:
                 shutil.copyfile(local_filepath, os.path.join(output_dir.path, os.path.basename(local_filepath)))
             else:
@@ -290,7 +292,10 @@ def _get_num_bytes(item: Any, base_path: str) -> int:
 
     num_bytes = 0
     for element in flattened_item:
-        if isinstance(element, str) and element.startswith(base_path) and os.path.exists(element):
+        if isinstance(element, str):
+            element = Path(element).resolve()
+            if not element.exists():
+                continue
             file_bytes = os.path.getsize(element)
             if file_bytes == 0:
                 raise RuntimeError(f"The file {element} has 0 bytes!")
@@ -475,16 +480,21 @@ class BaseWorker:
         for item in self.items:
             flattened_item, spec = tree_flatten(item)
 
+            def is_path(element):
+                if not isinstance(element, str):
+                    return False
+
+                element = str(Path(element).resolve())
+                return element.startswith(self.input_dir.path) if self.input_dir is not None else os.path.exists(element)
+
+
             # For speed reasons, we assume starting with `self.input_dir` is enough to be a real file.
             # Other alternative would be too slow.
             # TODO: Try using dictionary for higher accurary.
             indexed_paths = {
-                index: element
+                index: str(Path(element).resolve())
                 for index, element in enumerate(flattened_item)
-                if isinstance(element, str)
-                and (
-                    element.startswith(self.input_dir.path) if self.input_dir is not None else os.path.exists(element)
-                )  # For speed reasons
+                if is_path(element)
             }
 
             if len(indexed_paths) == 0:
@@ -947,7 +957,7 @@ class DataProcessor:
         print("Workers are finished.")
         result = data_recipe._done(len(user_items), self.delete_cached_files, self.output_dir)
 
-        if num_nodes == node_rank + 1:
+        if num_nodes == node_rank + 1 and self.output_dir.url:
             _create_dataset(
                 input_dir=self.input_dir.path,
                 storage_dir=self.output_dir.path,
