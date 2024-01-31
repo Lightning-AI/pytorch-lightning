@@ -15,7 +15,8 @@ If you prefer to use PyTorch directly, feel free to use any Lightning checkpoint
     import torch
 
 
-    class MyModel(nn.Module): ...
+    class MyModel(nn.Module):
+        ...
 
 
     model = MyModel()
@@ -34,10 +35,12 @@ from your LightningModule ``init`` and ``forward`` method.
 
 .. code-block:: python
 
-    class Encoder(nn.Module): ...
+    class Encoder(nn.Module):
+        ...
 
 
-    class Decoder(nn.Module): ...
+    class Decoder(nn.Module):
+        ...
 
 
     class AutoEncoderProd(nn.Module):

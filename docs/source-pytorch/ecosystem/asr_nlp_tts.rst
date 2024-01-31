@@ -795,7 +795,8 @@ for a production-grade application.
             "length_scale": NeuralType(optional=True),
         }
     )
-    def forward(self, *, x, x_lengths, y=None, y_lengths=None, gen=False, noise_scale=0.3, length_scale=1.0): ...
+    def forward(self, *, x, x_lengths, y=None, y_lengths=None, gen=False, noise_scale=0.3, length_scale=1.0):
+        ...
 
 --------
 
