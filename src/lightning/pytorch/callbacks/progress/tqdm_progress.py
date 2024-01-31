@@ -433,7 +433,7 @@ class TQDMProgressBar(ProgressBar):
             return 20
         # Support TQDM_MINITERS environment variable, which sets the minimum refresh rate
         if "TQDM_MINITERS" in os.environ:
-            refresh_rate = max(int(os.environ["TQDM_MINITERS"]), refresh_rate)
+            return max(int(os.environ["TQDM_MINITERS"]), refresh_rate)
         return refresh_rate
 
 
