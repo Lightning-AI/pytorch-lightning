@@ -84,13 +84,13 @@ repos:
           - flake8-return
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: "v0.1.9"
+    rev: "v0.1.15"
     hooks:
       - id: ruff
         args: ["--fix", "--preview"]
 
-  - repo: https://github.com/psf/black
-    rev: 23.12.1
+  - repo: https://github.com/psf/black-pre-commit-mirror
+    rev: 24.1.1
     hooks:
       - id: black
         name: Format code
