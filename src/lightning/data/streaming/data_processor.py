@@ -230,13 +230,13 @@ def _upload_fn(upload_queue: Queue, remove_queue: Queue, cache_dir: str, output_
                 print(e)
 
         elif output_dir.path:
-            os.makedirs(output_dir.path, exist_ok=True)
             if tmpdir is None:
-                shutil.move(local_filepath, os.path.join(output_dir.path, os.path.basename(local_filepath)))
+                output_filepath = os.path.join(output_dir.path, os.path.basename(local_filepath))
             else:
                 output_filepath = os.path.join(output_dir.path, local_filepath.replace(tmpdir, "")[1:])
-                os.makedirs(os.path.dirname(output_filepath), exist_ok=True)
-                shutil.move(local_filepath, output_filepath)
+
+            os.makedirs(os.path.dirname(output_filepath), exist_ok=True)
+            shutil.move(local_filepath, output_filepath)
         else:
             raise ValueError(f"The provided {output_dir.path} isn't supported.")
 
