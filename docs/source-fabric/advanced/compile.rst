@@ -59,7 +59,7 @@ You should always *exclude* the first call to ``forward()`` from your measuremen
 
 .. collapse:: Full example with benchmark
 
-    Below is an example that measures the speedup you get when compiling a DenseNet from TorchVision.
+    Below is an example that measures the speedup you get when compiling the InceptionV3 from TorchVision.
 
     .. code-block:: python
 
@@ -86,11 +86,11 @@ You should always *exclude* the first call to ``forward()`` from your measuremen
 
         fabric = L.Fabric(accelerator="cuda", devices=1)
 
-        model = models.densenet121()
-        input = torch.randn(16, 3, 128, 128, device=fabric.device)
+        model = models.inception_v3()
+        input = torch.randn(16, 3, 510, 512, device=fabric.device)
 
         # Compile!
-        compiled_model = torch.compile(model, mode="reduce-overhead")
+        compiled_model = torch.compile(model)
 
         # Set up the model with Fabric
         model = fabric.setup(model)
@@ -109,13 +109,13 @@ You should always *exclude* the first call to ``forward()`` from your measuremen
         print(f"Compile median time: {compile_time:.4f} seconds")
         print(f"Speedup: {speedup:.1f}x")
 
-    On an NVIDIA A100 SXM4 40GB with PyTorch 2.1.2, CUDA 12.1, we get the following speedup:
+    On an NVIDIA A100 SXM4 40GB with PyTorch 2.2.0, CUDA 12.1, we get the following speedup:
 
     .. code-block:: text
 
-        Eager median time: 0.0150 seconds
-        Compile median time: 0.0057 seconds
-        Speedup: 2.6x
+        Eager median time: 0.0254 seconds
+        Compile median time: 0.0185 seconds
+        Speedup: 1.4x
 
 
 ----
@@ -164,9 +164,11 @@ However, when this is not possible, you can request PyTorch to compile the code 
 
 .. code-block:: python
 
+    # On PyTorch < 2.2
     model = torch.compile(model, dynamic=True)
 
 A model compiled with ``dynamic=True`` will typically be slower than a model compiled with static shapes, but it will avoid the extreme cost of recompilation every iteration.
+On PyTorch 2.2 and later, ``torch.compile`` will detect dynamism automatically and you should no longer need to set this.
 
 .. collapse:: Example with dynamic shapes
 
@@ -182,36 +184,41 @@ A model compiled with ``dynamic=True`` will typically be slower than a model com
 
         fabric = L.Fabric(accelerator="cuda", devices=1)
 
-        model = models.densenet121()
+        model = models.inception_v3()
 
         # dynamic=False is the default
-        compiled_model = torch.compile(model, dynamic=False)
+        torch._dynamo.config.automatic_dynamic_shapes = False
+
+        compiled_model = torch.compile(model)
         compiled_model = fabric.setup(compiled_model)
 
-        input = torch.randn(16, 3, 128, 128, device=fabric.device)
+        input = torch.randn(16, 3, 512, 512, device=fabric.device)
         t0 = time.time()
         compiled_model(input)
+        torch.cuda.synchronize()
         print(f"1st forward: {time.time() - t0:.2f} seconds.")
 
-        input = torch.randn(8, 3, 128, 128, device=fabric.device)  # note the change in shape
+        input = torch.randn(8, 3, 512, 512, device=fabric.device)  # note the change in shape
         t0 = time.time()
         compiled_model(input)
+        torch.cuda.synchronize()
         print(f"2nd forward: {time.time() - t0:.2f} seconds.")
 
-    With ``dynamic=False``:
+    With ``automatic_dynamic_shapes=True``:
 
     .. code-block:: text
 
-        1st forward: 42.89 seconds.
-        2nd forward: 40.37 seconds.
+        1st forward: 41.90 seconds.
+        2nd forward: 89.27 seconds.
 
-    With ``dynamic=True``:
+    With ``automatic_dynamic_shapes=False``:
 
     .. code-block:: text
 
-        1st forward: ??.?? seconds.
-        2nd forward: ??.?? seconds.
+        1st forward: 42.12 seconds.
+        2nd forward: 47.77 seconds.
 
+    Numbers produced with NVIDIA A100 SXM4 40GB, PyTorch 2.2.0, CUDA 12.1.
 
 ----
 
@@ -254,6 +261,11 @@ You can find a full list of compile options in the `PyTorch documentation <https
 *********************************************************
 (Experimental) Apply `torch.compile` over FSDP, DDP, etc.
 *********************************************************
+
+As stated earlier, we recommend that you compile the model before calling ``fabric.setup()``.
+However, if you are using DDP or FSDP with Fabric, the compilation won't incorporate the distributed calls inside these wrappers by default.
+In an experimental feature, you can let ``Fabric.setup()`` reapply the ``torch.compile`` call after the model gets wrapped in DDP/FSDP internally.
+In the future, this option will become the default.
 
 .. code-block:: python
 
