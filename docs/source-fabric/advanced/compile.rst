@@ -49,7 +49,7 @@ The actual optimization will start when calling ``forward()`` on the model for t
     # 1st execution compiles the model (slow)
     output = model(input)
 
-    # All future executions will be fast
+    # All future executions will be fast (for inputs of the same size)
     output = model(input)
     output = model(input)
     ...
