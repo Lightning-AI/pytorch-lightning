@@ -251,8 +251,7 @@ def test_explain_what_is_being_tested(tmpdir):
     Test description about text reason to be
     """
 
-    class ExtendedModel(BoringModel):
-        ...
+    class ExtendedModel(BoringModel): ...
 
     model = ExtendedModel()
 

@@ -10,11 +10,12 @@ import types
 from abc import abstractmethod
 from dataclasses import dataclass
 from multiprocessing import Process, Queue
+from pathlib import Path
 from queue import Empty
 from time import sleep, time
 from typing import Any, Dict, List, Optional, Tuple, TypeVar, Union
 from urllib import parse
-from pathlib import Path
+
 from tqdm.auto import tqdm as _tqdm
 
 from lightning import seed_everything
@@ -485,16 +486,15 @@ class BaseWorker:
                     return False
 
                 element = str(Path(element).resolve())
-                return element.startswith(self.input_dir.path) if self.input_dir is not None else os.path.exists(element)
-
+                return (
+                    element.startswith(self.input_dir.path) if self.input_dir is not None else os.path.exists(element)
+                )
 
             # For speed reasons, we assume starting with `self.input_dir` is enough to be a real file.
             # Other alternative would be too slow.
             # TODO: Try using dictionary for higher accurary.
             indexed_paths = {
-                index: str(Path(element).resolve())
-                for index, element in enumerate(flattened_item)
-                if is_path(element)
+                index: str(Path(element).resolve()) for index, element in enumerate(flattened_item) if is_path(element)
             }
 
             if len(indexed_paths) == 0:
