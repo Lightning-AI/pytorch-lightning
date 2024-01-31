@@ -945,6 +945,7 @@ def map_fn_map_non_absolute(path, output_dir):
         f.write("Hello World")
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason="not supported on windows")
 def test_data_processing_map_non_absolute_path(monkeypatch, tmpdir):
     monkeypatch.chdir(str(tmpdir))
 
