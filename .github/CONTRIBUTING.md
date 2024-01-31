@@ -252,7 +252,7 @@ def test_explain_what_is_being_tested(tmpdir):
     """
 
     class ExtendedModel(BoringModel):
-        ...
+        """Extended boring Model."""
 
     model = ExtendedModel()
 
