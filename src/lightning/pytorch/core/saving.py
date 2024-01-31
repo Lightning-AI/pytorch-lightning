@@ -157,20 +157,25 @@ def _load_state(
 
     obj = cls(**_cls_kwargs)
 
+    if isinstance(obj, pl.LightningDataModule):
+        if obj.__class__.__qualname__ in checkpoint:
+            obj.load_state_dict(checkpoint[obj.__class__.__qualname__])
+        return obj
+
     if isinstance(obj, pl.LightningModule):
+        if obj.strict_loading is not None and strict != obj.strict_loading:
+            raise ValueError(
+                f"You set `.load_from_checkpoint(..., strict={strict!r})` but"
+                f" `{cls.__name__}.strict_loading={obj.strict_loading!r}. Please set the same value for both of them."
+            )
+
         if is_overridden("configure_model", obj):
             obj.configure_model()
 
         # give model a chance to load something
         obj.on_load_checkpoint(checkpoint)
 
-    if isinstance(obj, pl.LightningDataModule):
-        if obj.__class__.__qualname__ in checkpoint:
-            obj.load_state_dict(checkpoint[obj.__class__.__qualname__])
-        return obj
-
     # load the state_dict on the model automatically
-    assert strict is not None
     keys = obj.load_state_dict(checkpoint["state_dict"], strict=strict)
 
     if not strict:

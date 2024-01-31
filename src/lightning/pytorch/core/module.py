@@ -124,10 +124,13 @@ class LightningModule(
         # pointer to the trainer object
         self._trainer: Optional["pl.Trainer"] = None
 
-        # optionally can be set by user
+        # attributes that can be set by user
         self._example_input_array: Optional[Union[Tensor, Tuple, Dict]] = None
-        self._current_fx_name: Optional[str] = None
         self._automatic_optimization: bool = True
+        self._strict_loading: Optional[bool] = None
+
+        # attributes used internally
+        self._current_fx_name: Optional[str] = None
         self._param_requires_grad_state: Dict[str, bool] = {}
         self._metric_attributes: Optional[Dict[int, str]] = None
         self._register_sharded_tensor_state_dict_hooks_if_available()
@@ -291,6 +294,16 @@ class LightningModule(
     @automatic_optimization.setter
     def automatic_optimization(self, automatic_optimization: bool) -> None:
         self._automatic_optimization = automatic_optimization
+
+    @property
+    def strict_loading(self) -> bool:
+        """Determines how Lightning loads this model using `.load_state_dict(..., strict=model.strict_loading)`."""
+        # We use None as the default internally to determine whether the user has set a value
+        return self._strict_loading in (None, True)
+
+    @strict_loading.setter
+    def strict_loading(self, strict_loading: bool) -> None:
+        self._strict_loading = strict_loading
 
     @property
     def logger(self) -> Optional[Union[Logger, FabricLogger]]:
@@ -1478,6 +1491,17 @@ class LightningModule(
                 torch.jit.save(torchscript_module, f)
 
         return torchscript_module
+
+    # def load_state_dict(self, state_dict: Mapping[str, Any], strict: bool = True, assign: bool = False) ->  _IncompatibleKeys:
+    #     if self._strict_loading is not None and strict != self._strict_loading:
+    #         raise ValueError(
+    #             f"You called `.load_state_dict(..., strict={strict!r})` but `{self.__class__.__name__}` was configured"
+    #             f" with `strict_loading={self.strict_loading!r}`. Please set the same value for both to resolve the"
+    #             " conflict."
+    #         )
+    #     strict_loading = True if self.strict_loading is None else self.strict_loading
+    #     strict = strict if strict is not None else strict_loading
+    #     return super().load_state_dict(state_dict=state_dict, strict=strict)
 
     @_restricted_classmethod
     def load_from_checkpoint(
