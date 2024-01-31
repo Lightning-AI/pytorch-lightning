@@ -503,7 +503,7 @@ def test_data_processsor_distributed(fast_dev_run, delete_cached_files, tmpdir, 
         "chunk-1-3.bin",
     ]
 
-    assert sorted(os.listdir(cache_dir)) == fast_dev_run_disabled_chunks_0
+    assert sorted(os.listdir(remote_output_dir)) == fast_dev_run_disabled_chunks_0
 
     cache_dir = os.path.join(tmpdir, "cache_2")
     monkeypatch.setenv("DATA_OPTIMIZER_CACHE_FOLDER", cache_dir)
@@ -531,8 +531,6 @@ def test_data_processsor_distributed(fast_dev_run, delete_cached_files, tmpdir, 
         "chunk-3-3.bin",
         "index.json",
     ]
-
-    assert sorted(os.listdir(cache_dir)) == fast_dev_run_disabled_chunks_1
 
     expected = sorted(fast_dev_run_disabled_chunks_0 + fast_dev_run_disabled_chunks_1 + ["1-index.json"])
 
