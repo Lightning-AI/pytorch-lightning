@@ -10,11 +10,12 @@ import types
 from abc import abstractmethod
 from dataclasses import dataclass
 from multiprocessing import Process, Queue
+from pathlib import Path
 from queue import Empty
 from time import sleep, time
 from typing import Any, Dict, List, Optional, Tuple, TypeVar, Union
 from urllib import parse
-from pathlib import Path
+
 from tqdm.auto import tqdm as _tqdm
 
 from lightning import seed_everything
@@ -25,6 +26,7 @@ from lightning.data.streaming.constants import (
     _BOTO3_AVAILABLE,
     _DEFAULT_FAST_DEV_RUN_ITEMS,
     _INDEX_FILENAME,
+    _IS_IN_STUDIO,
     _LIGHTNING_CLOUD_LATEST,
     _TORCH_GREATER_EQUAL_2_1_0,
 )
@@ -66,9 +68,13 @@ def _get_home_folder() -> str:
     return os.getenv("DATA_OPTIMIZER_HOME_FOLDER", os.path.expanduser("~"))
 
 
+def _get_default_cache() -> str:
+    return "/cache" if _IS_IN_STUDIO else "/tmp"
+
+
 def _get_cache_dir(name: Optional[str] = None) -> str:
     """Returns the cache directory used by the Cache to store the chunks."""
-    cache_dir = os.getenv("DATA_OPTIMIZER_CACHE_FOLDER", "/cache/chunks")
+    cache_dir = os.getenv("DATA_OPTIMIZER_CACHE_FOLDER", f"{_get_default_cache()}/chunks")
     if name is None:
         return cache_dir
     return os.path.join(cache_dir, name.lstrip("/"))
@@ -76,7 +82,7 @@ def _get_cache_dir(name: Optional[str] = None) -> str:
 
 def _get_cache_data_dir(name: Optional[str] = None) -> str:
     """Returns the cache data directory used by the DataProcessor workers to download the files."""
-    cache_dir = os.getenv("DATA_OPTIMIZER_DATA_CACHE_FOLDER", "/cache/data")
+    cache_dir = os.getenv("DATA_OPTIMIZER_DATA_CACHE_FOLDER", f"{_get_default_cache()}/data")
     if name is None:
         return os.path.join(cache_dir)
     return os.path.join(cache_dir, name.lstrip("/"))
@@ -485,16 +491,15 @@ class BaseWorker:
                     return False
 
                 element = str(Path(element).resolve())
-                return element.startswith(self.input_dir.path) if self.input_dir is not None else os.path.exists(element)
-
+                if self.input_dir is None:
+                    return os.path.exists(element)
+                return element.startswith(self.input_dir.path)
 
             # For speed reasons, we assume starting with `self.input_dir` is enough to be a real file.
             # Other alternative would be too slow.
             # TODO: Try using dictionary for higher accurary.
             indexed_paths = {
-                index: str(Path(element).resolve())
-                for index, element in enumerate(flattened_item)
-                if is_path(element)
+                index: str(Path(element).resolve()) for index, element in enumerate(flattened_item) if is_path(element)
             }
 
             if len(indexed_paths) == 0:

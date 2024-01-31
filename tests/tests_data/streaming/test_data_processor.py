@@ -2,6 +2,7 @@ import os
 import random
 import sys
 from functools import partial
+from pathlib import Path
 from typing import Any, List
 from unittest import mock
 
@@ -537,20 +538,7 @@ def test_data_processsor_distributed(fast_dev_run, delete_cached_files, tmpdir, 
 
     assert sorted(os.listdir(remote_output_dir)) == expected
 
-    _create_dataset_mock.assert_called()
-
-    assert _create_dataset_mock._mock_mock_calls[0].kwargs == {
-        "input_dir": str(input_dir),
-        "storage_dir": str(remote_output_dir),
-        "dataset_type": "CHUNKED",
-        "empty": False,
-        "size": 30,
-        "num_bytes": 26657,
-        "data_format": "jpeg",
-        "compression": None,
-        "num_chunks": 16,
-        "num_bytes_per_chunk": [2, 2, 2, 2, 2, 2, 2, 1, 2, 2, 2, 1, 2, 2, 2, 2],
-    }
+    _create_dataset_mock.assert_not_called()
 
 
 class TextTokenizeRecipe(DataChunkRecipe):
@@ -949,6 +937,35 @@ def test_data_processing_map_without_input_dir_and_folder(monkeypatch, tmpdir):
 
     assert sorted(os.listdir(output_dir)) == ["0", "1", "2", "3", "4"]
     assert os.path.exists(os.path.join(output_dir, "0", "0.JPEG"))
+
+
+def map_fn_map_non_absolute(path, output_dir):
+    absolute_path = str(Path(path).absolute())
+    assert absolute_path == path, (absolute_path, path)
+
+    with open(os.path.join(output_dir, os.path.basename(path)), "w") as f:
+        f.write("Hello World")
+
+
+def test_data_processing_map_non_absolute_path(monkeypatch, tmpdir):
+    monkeypatch.chdir(str(tmpdir))
+
+    for i in range(5):
+        with open(f"./{i}.txt", "w") as f:
+            f.write("Hello World")
+
+    assert sorted(os.listdir(tmpdir)) == ["0.txt", "1.txt", "2.txt", "3.txt", "4.txt"]
+
+    map(
+        map_fn_map_non_absolute,
+        [f"{i}.txt" for i in range(5)],
+        output_dir="./output_dir",
+        num_workers=1,
+        reorder_files=True,
+    )
+
+    assert sorted(os.listdir(tmpdir)) == ["0.txt", "1.txt", "2.txt", "3.txt", "4.txt", "output_dir"]
+    assert sorted(os.listdir(os.path.join(tmpdir, "output_dir"))) == ["0.txt", "1.txt", "2.txt", "3.txt", "4.txt"]
 
 
 @pytest.mark.skipif(condition=sys.platform == "win32", reason="Not supported on windows")
