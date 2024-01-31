@@ -486,14 +486,14 @@ class BaseWorker:
         for item in self.items:
             flattened_item, spec = tree_flatten(item)
 
-            def is_path(element):
+            def is_path(element: str) -> bool:
                 if not isinstance(element, str):
                     return False
 
                 element = str(Path(element).resolve())
-                if self.input_dir is None:
-                    return os.path.exists(element)
-                return element.startswith(self.input_dir.path)
+                return (
+                    element.startswith(self.input_dir.path) if self.input_dir is not None else os.path.exists(element)
+                )
 
             # For speed reasons, we assume starting with `self.input_dir` is enough to be a real file.
             # Other alternative would be too slow.
