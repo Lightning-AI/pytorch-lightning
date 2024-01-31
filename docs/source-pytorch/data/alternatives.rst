@@ -41,8 +41,7 @@ via a regular class:`~torch.utils.data.DataLoader`. This means that support in t
     from streaming import MDSWriter, StreamingDataset
 
 
-    class YourDataset(StreamingDataset):
-        ...
+    class YourDataset(StreamingDataset): ...
 
 
     # you could do this in the `prepare_data` hook too
