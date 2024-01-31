@@ -113,8 +113,6 @@ Get Started
     <div class="display-card-container">
         <div class="row">
 
-.. Add callout items below this line
-
 .. displayitem::
     :header: Convert to Fabric in 5 minutes
     :description: Learn how to add Fabric to your PyTorch code
@@ -167,8 +165,6 @@ Get Started
 
         </div>
     </div>
-
-.. End of callout item section
 
 |
 |
