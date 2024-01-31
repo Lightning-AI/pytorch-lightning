@@ -241,7 +241,7 @@ def _upload_fn(upload_queue: Queue, remove_queue: Queue, cache_dir: str, output_
             raise ValueError(f"The provided {output_dir.path} isn't supported.")
 
         # Inform the remover to delete the file
-        if os.path.exists(local_filepath) and remove_queue:
+        if remove_queue and os.path.exists(local_filepath):
             remove_queue.put([local_filepath])
 
 
