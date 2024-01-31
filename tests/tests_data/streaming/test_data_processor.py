@@ -984,6 +984,8 @@ def test_map_error_when_not_empty(monkeypatch, tmpdir):
             error_when_not_empty=True,
         )
 
+    monkeypatch.setattr(data_processor_module, "_IS_IN_STUDIO", True)
+
     with pytest.raises(OSError, match="cache"):
         map(
             map_fn,
