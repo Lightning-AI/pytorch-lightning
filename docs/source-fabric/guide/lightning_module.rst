@@ -56,8 +56,7 @@ Take these main ingredients and put them in a LightningModule:
             # Do something at the beginning of training
             ...
 
-        def any_hook_you_like(self, *args, **kwargs):
-            ...
+        def any_hook_you_like(self, *args, **kwargs): ...
 
 
 This is a minimal LightningModule, but there are `many other useful hooks <https://lightning.ai/docs/pytorch/stable/common/lightning_module.html#hooks>`_ you can use.
