@@ -19,8 +19,7 @@ Let's use the `AutoEncoder` as a feature extractor in a separate model.
 
 .. testcode::
 
-    class Encoder(torch.nn.Module):
-        ...
+    class Encoder(torch.nn.Module): ...
 
 
     class AutoEncoder(LightningModule):

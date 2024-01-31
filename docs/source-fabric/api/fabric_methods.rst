@@ -367,11 +367,9 @@ It is useful when building a Trainer that allows the user to run arbitrary code 
 .. code-block:: python
 
     class MyCallback:
-        def on_train_start(self):
-            ...
+        def on_train_start(self): ...
 
-        def on_train_epoch_end(self, model, results):
-            ...
+        def on_train_epoch_end(self, model, results): ...
 
 
     fabric = Fabric(callbacks=[MyCallback()])
