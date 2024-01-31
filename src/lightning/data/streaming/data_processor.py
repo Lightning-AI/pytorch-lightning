@@ -69,7 +69,7 @@ def _get_home_folder() -> str:
 
 
 def _get_default_cache() -> str:
-    return "/cache" if _IS_IN_STUDIO else "/tmp"
+    return "/cache" if _IS_IN_STUDIO else tempfile.gettempdir()
 
 
 def _get_cache_dir(name: Optional[str] = None) -> str:
