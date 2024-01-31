@@ -232,16 +232,16 @@ def _upload_fn(upload_queue: Queue, remove_queue: Queue, cache_dir: str, output_
         elif output_dir.path:
             os.makedirs(output_dir.path, exist_ok=True)
             if tmpdir is None:
-                shutil.copyfile(local_filepath, os.path.join(output_dir.path, os.path.basename(local_filepath)))
+                shutil.move(local_filepath, os.path.join(output_dir.path, os.path.basename(local_filepath)))
             else:
                 output_filepath = os.path.join(output_dir.path, local_filepath.replace(tmpdir, "")[1:])
                 os.makedirs(os.path.dirname(output_filepath), exist_ok=True)
-                shutil.copyfile(local_filepath, output_filepath)
+                shutil.move(local_filepath, output_filepath)
         else:
             raise ValueError(f"The provided {output_dir.path} isn't supported.")
 
         # Inform the remover to delete the file
-        if remove_queue:
+        if os.path.exists(local_filepath) and remove_queue:
             remove_queue.put([local_filepath])
 
 
