@@ -27,9 +27,11 @@ Additionally, you can pass your custom registered training strategies to the ``s
 
 
     class CustomCheckpointIO(CheckpointIO):
-        def save_checkpoint(self, checkpoint: Dict[str, Any], path: Union[str, Path]) -> None: ...
+        def save_checkpoint(self, checkpoint: Dict[str, Any], path: Union[str, Path]) -> None:
+            ...
 
-        def load_checkpoint(self, path: Union[str, Path]) -> Dict[str, Any]: ...
+        def load_checkpoint(self, path: Union[str, Path]) -> Dict[str, Any]:
+            ...
 
 
     custom_checkpoint_io = CustomCheckpointIO()
