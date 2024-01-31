@@ -31,7 +31,14 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Fixed parsing of v100s GPUs in `get_available_flops` ([#18952](https://github.com/Lightning-AI/lightning/pull/18952))
 - Fixed issue where the `precision="transformer-engine"` argument would not replace layers by default ([#19082](https://github.com/Lightning-AI/lightning/pull/19082))
+
+
+## [2.1.4] - 2024-01-31
+
+### Fixed
+
 - Fixed an issue preventing Fabric to run on CPU when the system's CUDA driver is outdated or broken ([#19234](https://github.com/Lightning-AI/lightning/pull/19234))
+- Fixed typo in kwarg in SpikeDetection ([#19282](https://github.com/Lightning-AI/lightning/pull/19282))
 
 
 ## [2.1.3] - 2023-12-21
