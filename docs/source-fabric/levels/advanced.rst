@@ -5,6 +5,7 @@
     <../advanced/gradient_accumulation>
     <../advanced/distributed_communication>
     <../advanced/multiple_setup>
+    <../advanced/compile>
     <../advanced/model_parallel/fsdp>
     <../guide/checkpoint/distributed_checkpoint>
 
@@ -38,6 +39,14 @@ Advanced skills
     :header: Use multiple models and optimizers
     :description: See how flexible Fabric is to work with multiple models and optimizers!
     :button_link: ../advanced/multiple_setup.html
+    :col_css: col-md-4
+    :height: 170
+    :tag: advanced
+
+.. displayitem::
+    :header: Speed up models by compiling them
+    :description: Use torch.compile to speed up models on modern hardware
+    :button_link: ../advanced/compile.html
     :col_css: col-md-4
     :height: 170
     :tag: advanced
