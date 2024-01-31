@@ -84,7 +84,7 @@ def test_dataloader_profiling(profile, tmpdir, monkeypatch):
         [TestStatefulDataset(10, 1), TestStatefulDataset(10, -1)], 42, weights=(0.5, 0.5)
     )
     dataloader = StreamingDataLoader(
-        dataset, batch_size=2, profile_bactches=profile, profile_dir=str(tmpdir), num_workers=1
+        dataset, batch_size=2, profile_batches=profile, profile_dir=str(tmpdir), num_workers=1
     )
     dataloader_iter = iter(dataloader)
     batches = []

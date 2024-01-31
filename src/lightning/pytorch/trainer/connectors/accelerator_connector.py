@@ -37,6 +37,7 @@ from lightning.pytorch.accelerators.mps import MPSAccelerator
 from lightning.pytorch.accelerators.xla import XLAAccelerator
 from lightning.pytorch.plugins import (
     _PLUGIN_INPUT,
+    BitsandbytesPrecision,
     CheckpointIO,
     DeepSpeedPrecision,
     DoublePrecision,
@@ -565,6 +566,10 @@ class _AcceleratorConnector:
 
     def _validate_precision_choice(self) -> None:
         """Validate the combination of choices for precision, AMP type, and accelerator."""
+        if isinstance(self._precision_plugin_flag, BitsandbytesPrecision) and not isinstance(
+            self.accelerator, CUDAAccelerator
+        ):
+            raise RuntimeError("Bitsandbytes is only supported on CUDA GPUs.")
         if _habana_available_and_importable():
             from lightning_habana import HPUAccelerator
 

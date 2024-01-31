@@ -13,6 +13,7 @@
 # limitations under the License
 import inspect
 import os
+import sys
 from typing import Any, Dict
 from unittest import mock
 from unittest.mock import Mock
@@ -29,6 +30,7 @@ from lightning.fabric.accelerators.cuda import CUDAAccelerator
 from lightning.fabric.accelerators.mps import MPSAccelerator
 from lightning.fabric.connector import _Connector
 from lightning.fabric.plugins import (
+    BitsandbytesPrecision,
     DeepSpeedPrecision,
     DoublePrecision,
     FSDPPrecision,
@@ -862,6 +864,13 @@ def test_precision_selection_amp_ddp(strategy, devices, is_custom_plugin, plugin
         plugins=plugin,
     )
     assert isinstance(connector.precision, plugin_cls)
+
+
+def test_bitsandbytes_precision_cuda_required(monkeypatch):
+    monkeypatch.setattr(lightning.fabric.plugins.precision.bitsandbytes, "_BITSANDBYTES_AVAILABLE", True)
+    monkeypatch.setitem(sys.modules, "bitsandbytes", Mock())
+    with pytest.raises(RuntimeError, match="Bitsandbytes is only supported on CUDA GPUs"):
+        _Connector(accelerator="cpu", plugins=BitsandbytesPrecision(mode="int8"))
 
 
 @pytest.mark.parametrize(("strategy", "strategy_cls"), [("DDP", DDPStrategy), ("Ddp", DDPStrategy)])
