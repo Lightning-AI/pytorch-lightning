@@ -94,7 +94,7 @@ def test_reapply_compile():
     compiled_model = torch.compile(model, **compile_kwargs)
     torch.compile.reset_mock()
 
-    fabric_model = fabric.setup(compiled_model, _reapply_compile=True)
+    fabric_model = fabric.setup(compiled_model, reapply_compile=True)
 
     assert isinstance(fabric_model._forward_module, OptimizedModule)
     assert isinstance(fabric_model._forward_module._orig_mod, DistributedDataParallel)

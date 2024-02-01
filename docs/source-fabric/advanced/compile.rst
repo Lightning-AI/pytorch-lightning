@@ -258,14 +258,14 @@ You can find a full list of compile options in the `PyTorch documentation <https
 ----
 
 
-*******************************************************
-(Experimental) Apply torch.compile over FSDP, DDP, etc.
-*******************************************************
+*************************************
+Using torch.compile with FSDP and DDP
+*************************************
 
 As stated earlier, we recommend that you compile the model before calling ``fabric.setup()``.
-However, if you are using DDP or FSDP with Fabric, the compilation won't incorporate the distributed calls inside these wrappers by default.
-In an experimental feature, you can let ``fabric.setup()`` reapply the ``torch.compile`` call after the model gets wrapped in DDP/FSDP internally.
-In the future, this option will become the default.
+In the case of DDP and FSDP, ``fabric.setup()`` will automatically reapply the ``torch.compile`` call after the model gets wrapped in DDP/FSDP internally.
+This will ensure that the compilation can incorporate the distributed calls and optimize them.
+However, should you have issues compiling DDP and FSDP models, you can opt out of this feature:
 
 .. code-block:: python
 
@@ -275,11 +275,11 @@ In the future, this option will become the default.
     # Compile the model
     model = torch.compile(model)
 
-    # Default: `fabric.setup()` will not reapply the compilation over DDP/FSDP
-    model = fabric.setup(model, _reapply_compile=False)
+    # Default: `fabric.setup()` will configure compilation over DDP/FSDP for you
+    model = fabric.setup(model, reapply_compile=True)
 
-    # Recompile the model over DDP/FSDP (experimental)
-    model = fabric.setup(model, _reapply_compile=True)
+    # Turn it off if you see issues with DDP/FSDP
+    model = fabric.setup(model, reapply_compile=False)
 
 
 ----
