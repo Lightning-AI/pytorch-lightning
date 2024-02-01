@@ -19,7 +19,6 @@ from typing_extensions import override
 
 import lightning.pytorch as pl
 from lightning.fabric.utilities.data import _set_sampler_epoch, sized_len
-from lightning.fabric.utilities.types import _Stateful
 from lightning.fabric.utilities.warnings import PossibleUserWarning
 from lightning.pytorch.loops import _Loop
 from lightning.pytorch.loops.fetchers import _DataFetcher
