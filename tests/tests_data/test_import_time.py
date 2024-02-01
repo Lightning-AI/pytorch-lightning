@@ -1,7 +1,11 @@
 import os
+import sys
 from time import time
 
+import pytest
 
+
+@pytest.mark.skipif(sys.platform == "win32", reason="windows isn't supported")
 def test_lightning_data_import():
     t0 = time()
     code = "import lightning; assert 'LightningModule' in dir(lightning)"
