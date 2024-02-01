@@ -2,6 +2,7 @@ import os
 import random
 import sys
 from functools import partial
+from pathlib import Path
 from typing import Any, List
 from unittest import mock
 
@@ -349,7 +350,7 @@ def test_map_items_to_workers_sequentially(monkeypatch):
 
 class CustomDataChunkRecipe(DataChunkRecipe):
     def prepare_structure(self, input_dir: str) -> List[Any]:
-        filepaths = self.listdir(input_dir)
+        filepaths = [os.path.join(input_dir, f) for f in os.listdir(input_dir)]
         assert len(filepaths) == 30
         return filepaths
 
@@ -502,7 +503,7 @@ def test_data_processsor_distributed(fast_dev_run, delete_cached_files, tmpdir, 
         "chunk-1-3.bin",
     ]
 
-    assert sorted(os.listdir(cache_dir)) == fast_dev_run_disabled_chunks_0
+    assert sorted(os.listdir(remote_output_dir)) == fast_dev_run_disabled_chunks_0
 
     cache_dir = os.path.join(tmpdir, "cache_2")
     monkeypatch.setenv("DATA_OPTIMIZER_CACHE_FOLDER", cache_dir)
@@ -531,26 +532,11 @@ def test_data_processsor_distributed(fast_dev_run, delete_cached_files, tmpdir, 
         "index.json",
     ]
 
-    assert sorted(os.listdir(cache_dir)) == fast_dev_run_disabled_chunks_1
-
     expected = sorted(fast_dev_run_disabled_chunks_0 + fast_dev_run_disabled_chunks_1 + ["1-index.json"])
 
     assert sorted(os.listdir(remote_output_dir)) == expected
 
-    _create_dataset_mock.assert_called()
-
-    assert _create_dataset_mock._mock_mock_calls[0].kwargs == {
-        "input_dir": str(input_dir),
-        "storage_dir": str(remote_output_dir),
-        "dataset_type": "CHUNKED",
-        "empty": False,
-        "size": 30,
-        "num_bytes": 26657,
-        "data_format": "jpeg",
-        "compression": None,
-        "num_chunks": 16,
-        "num_bytes_per_chunk": [2, 2, 2, 2, 2, 2, 2, 1, 2, 2, 2, 1, 2, 2, 2, 2],
-    }
+    _create_dataset_mock.assert_not_called()
 
 
 class TextTokenizeRecipe(DataChunkRecipe):
@@ -581,7 +567,7 @@ class ImageResizeRecipe(DataTransformRecipe):
         filepaths = [os.path.join(input_dir, filename) for filename in os.listdir(input_dir)]
         return [filepath for filepath in filepaths if os.path.isfile(filepath)]
 
-    def prepare_item(self, filepath: Any, output_dir: str) -> None:
+    def prepare_item(self, filepath: Any, output_dir: str, is_last) -> None:
         from PIL import Image
 
         img = Image.open(filepath)
@@ -833,7 +819,7 @@ def test_lambda_transform_recipe(monkeypatch):
 
     data_recipe = LambdaDataTransformRecipe(fn, range(1))
 
-    data_recipe.prepare_item(1, "")
+    data_recipe.prepare_item(1, "", False)
     assert called
 
 
@@ -853,7 +839,7 @@ def test_lambda_transform_recipe_class(monkeypatch):
             called = True
 
     data_recipe = LambdaDataTransformRecipe(Transform(), range(1))
-    data_recipe.prepare_item(1, "")
+    data_recipe.prepare_item(1, "", False)
     assert called
 
 
@@ -951,8 +937,38 @@ def test_data_processing_map_without_input_dir_and_folder(monkeypatch, tmpdir):
     assert os.path.exists(os.path.join(output_dir, "0", "0.JPEG"))
 
 
+def map_fn_map_non_absolute(path, output_dir):
+    absolute_path = str(Path(path).absolute())
+    assert absolute_path == path, (absolute_path, path)
+
+    with open(os.path.join(output_dir, os.path.basename(path)), "w") as f:
+        f.write("Hello World")
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="not supported on windows")
+def test_data_processing_map_non_absolute_path(monkeypatch, tmpdir):
+    monkeypatch.chdir(str(tmpdir))
+
+    for i in range(5):
+        with open(f"./{i}.txt", "w") as f:
+            f.write("Hello World")
+
+    assert sorted(os.listdir(tmpdir)) == ["0.txt", "1.txt", "2.txt", "3.txt", "4.txt"]
+
+    map(
+        map_fn_map_non_absolute,
+        [f"{i}.txt" for i in range(5)],
+        output_dir="./output_dir",
+        num_workers=1,
+        reorder_files=True,
+    )
+
+    assert sorted(os.listdir(tmpdir)) == ["0.txt", "1.txt", "2.txt", "3.txt", "4.txt", "output_dir"]
+    assert sorted(os.listdir(os.path.join(tmpdir, "output_dir"))) == ["0.txt", "1.txt", "2.txt", "3.txt", "4.txt"]
+
+
 @pytest.mark.skipif(condition=sys.platform == "win32", reason="Not supported on windows")
-def test_map_error_when_not_empty(monkeypatch, tmpdir):
+def test_map_error_when_not_empty(monkeypatch):
     boto3 = mock.MagicMock()
     client_s3_mock = mock.MagicMock()
     client_s3_mock.list_objects_v2.return_value = {"KeyCount": 1, "Contents": []}
@@ -967,6 +983,8 @@ def test_map_error_when_not_empty(monkeypatch, tmpdir):
             error_when_not_empty=True,
         )
 
+    monkeypatch.setattr(data_processor_module, "_IS_IN_STUDIO", True)
+
     with pytest.raises(OSError, match="cache"):
         map(
             map_fn,
@@ -974,3 +992,27 @@ def test_map_error_when_not_empty(monkeypatch, tmpdir):
             output_dir=Dir(path=None, url="s3://bucket"),
             error_when_not_empty=False,
         )
+
+def map_fn_is_last(index, output_dir, is_last):
+    with open(os.path.join(output_dir, f"{index}_{is_last}.txt"), "w") as f:
+        f.write("here")
+
+
+@pytest.mark.skipif(condition=sys.platform == "win32", reason="Not supported on windows")
+@pytest.mark.parametrize(
+    ("num_workers", "expected"),
+    [
+        (1, ['0_False.txt', '1_False.txt', '2_False.txt', '3_False.txt', '4_True.txt']),
+        (2, ['0_False.txt', '1_True.txt', '2_False.txt', '3_False.txt', '4_True.txt']),
+    ],
+)
+def test_map_is_last(num_workers, expected, tmpdir):
+    map(
+        map_fn_is_last,
+        list(range(5)),
+        output_dir=str(tmpdir),
+        error_when_not_empty=False,
+        num_workers=num_workers,
+    )
+
+    assert sorted(os.listdir(tmpdir)) == expected
