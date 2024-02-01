@@ -293,6 +293,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
                 )
                 del self._fsdp_kwargs["auto_wrap_policy"]
         else:
+            print(self._fsdp_kwargs)
             module = FullyShardedDataParallel(
                 module=module,
                 cpu_offload=self.cpu_offload,
@@ -795,11 +796,16 @@ def _init_cpu_offload(cpu_offload: Optional[Union[bool, "CPUOffload"]]) -> "CPUO
 def _init_sharding_strategy(sharding_strategy: "_SHARDING_STRATEGY", kwargs: Dict) -> "ShardingStrategy":
     from torch.distributed.fsdp import ShardingStrategy
 
+    if kwargs.get("process_group") is not None and kwargs.get("device_mesh") is not None:
+        raise ValueError(
+            "The arguments `FSDPStrategy(process_group=..., device_mesh=...)` are mutually exclusive. Pass only one of them."
+        )
+
     strategy = ShardingStrategy[sharding_strategy.upper()] if isinstance(sharding_strategy, str) else sharding_strategy
-    if "HYBRID" in strategy.name and kwargs.get("auto_wrap_policy") is None and kwargs.get("process_group") is None:
+    if "HYBRID" in strategy.name and kwargs.get("auto_wrap_policy") is None and kwargs.get("process_group") is None and kwargs.get("device_mesh") is None:
         raise RuntimeError(
             "The hybrid sharding strategy requires you to either set the `auto_wrap_policy` or pass a process"
-            " group tuple to the `process_group` parameter."
+            " group tuple to the `process_group` parameter or pass a `device_mesh`."
         )
     return strategy
 
