@@ -14,9 +14,11 @@
 import math
 import pickle
 from typing import Any, NamedTuple, Sequence, get_args
+from unittest.mock import Mock
 
 import pytest
 import torch
+from lightning.fabric.utilities.types import _Stateful
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
 from lightning.pytorch.utilities.combined_loader import (
@@ -602,3 +604,57 @@ def test_combined_loader_can_be_pickled():
 
     # no error
     pickle.dumps(cl)
+
+
+def test_state_dicts():
+    state1, state2, state3 = Mock(), Mock(), Mock()
+    stateful1 = Mock(spec=_Stateful, state_dict=Mock(return_value=state1))
+    stateful2 = Mock(spec=_Stateful, state_dict=Mock(return_value=state2))
+    stateful3 = Mock(spec=_Stateful, state_dict=Mock(return_value=state3))
+
+    cl = CombinedLoader([])
+    assert cl._state_dicts() == []
+    cl = CombinedLoader([range(2)])
+    assert cl._state_dicts() == []
+    cl = CombinedLoader([stateful1])
+    assert cl._state_dicts() == [state1]
+    cl = CombinedLoader([range(2), stateful1])
+    assert cl._state_dicts() == [state1]
+    cl = CombinedLoader([range(2), stateful1, range(3), stateful2])
+    assert cl._state_dicts() == [state1, state2]
+    cl = CombinedLoader({"a": [range(2), stateful1], "b": [stateful2], "c": stateful3})
+    assert cl._state_dicts() == [state1, state2, state3]
+
+
+def test_load_state_dicts():
+    stateful1 = Mock(spec=_Stateful)
+    stateful2 = Mock(spec=_Stateful)
+    state1 = Mock()
+    state2 = Mock()
+
+    # 0 stateful loaders, 1 state to load
+    cl = CombinedLoader([range(2), range(3)])
+    with pytest.raises(RuntimeError, match="has 0 stateful loaders, but found 1 states"):
+        cl._load_state_dicts([{"state": 0}])
+
+    # 1 stateful loader, 0 states to load
+    cl = CombinedLoader([stateful1, range(3)])
+    cl._load_state_dicts([])
+    stateful1.load_state_dict.assert_not_called()
+
+    # 1 stateful loader, 1 state to load
+    cl = CombinedLoader([range(2), stateful1, range(3)])
+    cl._load_state_dicts([state1])
+    stateful1.load_state_dict.assert_called_with(state1)
+    stateful1.reset_mock()
+
+    # 1 stateful loader, 2 states to load
+    cl = CombinedLoader([range(2), stateful1, range(3)])
+    with pytest.raises(RuntimeError, match="has 1 stateful loaders, but found 2 states"):
+        cl._load_state_dicts([state1, state2])
+
+    # 2 stateful loaders, 2 states to load
+    cl = CombinedLoader([range(2), stateful1, range(3), stateful2])
+    cl._load_state_dicts([state1, state2])
+    stateful1.load_state_dict.assert_called_with(state1)
+    stateful2.load_state_dict.assert_called_with(state2)
