@@ -2,6 +2,7 @@ import concurrent
 import json
 import logging
 import os
+import random
 import shutil
 import signal
 import tempfile
@@ -16,9 +17,10 @@ from time import sleep, time
 from typing import Any, Dict, List, Optional, Tuple, TypeVar, Union
 from urllib import parse
 
+import numpy as np
+import torch
 from tqdm.auto import tqdm as _tqdm
 
-from lightning import seed_everything
 from lightning.data.streaming import Cache
 from lightning.data.streaming.cache import Dir
 from lightning.data.streaming.client import S3Client
@@ -844,7 +846,9 @@ class DataProcessor:
         print(f"Setup started with fast_dev_run={self.fast_dev_run}.")
 
         # Force random seed to be fixed
-        seed_everything(self.random_seed)
+        random.seed(self.random_seed)
+        np.random.seed(self.random_seed)
+        torch.manual_seed(self.random_seed)
 
         # Call the setup method of the user
         user_items: List[Any] = data_recipe.prepare_structure(self.input_dir.path if self.input_dir else None)

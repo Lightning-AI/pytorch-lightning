@@ -14,13 +14,13 @@ formatter = logging.Formatter("%(levelname)s: %(message)s")
 _console.setFormatter(formatter)
 _logger.addHandler(_console)
 
+from lightning.__about__ import *  # noqa: E402, F403
+from lightning.__version__ import version as __version__  # noqa: E402
+
 # This enables us to control imports in a more granular way for performance reasons
 lazy_import = bool(int(os.getenv("LIGHTNING_LAZY_IMPORTS", "0")))
 
 if not lazy_import:
-
-    from lightning.__about__ import *  # noqa: F403
-    from lightning.__version__ import version as __version__
     from lightning.fabric.fabric import Fabric
     from lightning.fabric.utilities.seed import seed_everything
     from lightning.pytorch.callbacks import Callback
@@ -36,6 +36,8 @@ if not lazy_import:
         "Fabric",
         "__version__",
     ]
+
+
 
 
 def _cli_entry_point() -> None:
