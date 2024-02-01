@@ -303,13 +303,17 @@ def _execute(
     if not _LIGHTNING_SDK_AVAILABLE:
         raise ModuleNotFoundError("The `lightning_sdk` is required.")
 
+    lightning_skip_install = os.getenv("LIGHTNING_SKIP_INSTALL", "")
+    if lightning_skip_install:
+        lightning_skip_install = f" LIGHTNING_SKIP_INSTALL={lightning_skip_install} "
+
     lightning_branch = os.getenv("LIGHTNING_BRANCH", "")
     if lightning_branch:
-        lightning_branch = f" LIGHTNING_BRANCH={lightning_branch}"
+        lightning_branch = f" LIGHTNING_BRANCH={lightning_branch} "
 
     studio = Studio()
     job = studio._studio_api.create_data_prep_machine_job(
-        command or f"cd {os.getcwd()} &&{lightning_branch} python {' '.join(sys.argv)}",
+        command or f"cd {os.getcwd()} &&{lightning_skip_install}{lightning_branch} python {' '.join(sys.argv)}",
         name=name,
         num_instances=num_nodes,
         studio_id=studio._studio.id,
