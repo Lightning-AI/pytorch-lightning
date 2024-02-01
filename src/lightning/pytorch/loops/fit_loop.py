@@ -435,4 +435,4 @@ class _FitLoop(_Loop):
         if not self.restarting or not self._combined_loader_states_to_load or self._combined_loader is None:
             return
         self._combined_loader._load_state_dicts(self._combined_loader_states_to_load)
-        self._combined_loader_states_to_load = None  # release memory
+        self._combined_loader_states_to_load = []  # release memory
