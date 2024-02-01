@@ -340,6 +340,7 @@ class DeepSpeedStrategy(DDPStrategy):
         assert self.lightning_module is not None
         self.lightning_module._device = self.root_device
 
+        assert self.model is not None
         self.model = self.precision_plugin.convert_module(self.model)
         self.model = self._setup_model(self.model)
 
@@ -594,7 +595,7 @@ class DeepSpeedStrategy(DDPStrategy):
         self.optimizers = []
         self.lr_scheduler_configs = []
 
-    def _setup_model(self, model: Module) -> Module:
+    def _setup_model(self, model: Module) -> Module:  # type: ignore[override]
         return model
 
     @property
