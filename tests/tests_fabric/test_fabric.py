@@ -100,7 +100,7 @@ def test_setup_compiled_module(reapply_compile, setup_method):
     assert compiled_model._compile_kwargs is not None
     assert isinstance(compiled_model, OptimizedModule)
     setup_method = getattr(fabric, setup_method)
-    fabric_model = setup_method(compiled_model, _reapply_compile=reapply_compile)
+    fabric_model = setup_method(compiled_model, reapply_compile=reapply_compile)
 
     assert isinstance(fabric_model._forward_module, OptimizedModule)
     if reapply_compile:
