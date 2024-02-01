@@ -616,6 +616,8 @@ def test_state_dicts():
     assert cl._state_dicts() == []
     cl = CombinedLoader([range(2)])
     assert cl._state_dicts() == []
+    cl = CombinedLoader([stateful1])
+    assert cl._state_dicts() == [state1]
     cl = CombinedLoader([range(2), stateful1])
     assert cl._state_dicts() == [state1]
     cl = CombinedLoader([range(2), stateful1, range(3), stateful2])
