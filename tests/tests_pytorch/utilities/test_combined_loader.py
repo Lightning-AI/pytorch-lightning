@@ -607,7 +607,25 @@ def test_combined_loader_can_be_pickled():
     pickle.dumps(cl)
 
 
-def test_load_states():
+def test_state_dicts():
+    state1, state2, state3 = Mock(), Mock(), Mock()
+    stateful1 = Mock(spec=_Stateful, state_dict=Mock(return_value=state1))
+    stateful2 = Mock(spec=_Stateful, state_dict=Mock(return_value=state2))
+    stateful3 = Mock(spec=_Stateful, state_dict=Mock(return_value=state3))
+
+    cl = CombinedLoader([])
+    assert cl._state_dicts() == []
+    cl = CombinedLoader([range(2)])
+    assert cl._state_dicts() == []
+    cl = CombinedLoader([range(2), stateful1])
+    assert cl._state_dicts() == [state1]
+    cl = CombinedLoader([range(2), stateful1, range(3), stateful2])
+    assert cl._state_dicts() == [state1, state2]
+    cl = CombinedLoader({"a": [range(2), stateful1], "b": [stateful2], "c": stateful3})
+    assert cl._state_dicts() == [state1, state2, state3]
+
+
+def test_load_state_dicts():
     stateful1 = Mock(spec=_Stateful)
     stateful2 = Mock(spec=_Stateful)
     state1 = Mock()
