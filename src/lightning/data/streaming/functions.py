@@ -83,11 +83,11 @@ class LambdaDataTransformRecipe(DataTransformRecipe):
     def prepare_structure(self, _: Optional[str]) -> Any:
         return self._inputs
 
-    def prepare_item(self, item_metadata: Any, output_dir: str, is_last: bool) -> None:  # type: ignore
+    def prepare_item(self, item_metadata: Any, output_dir: str, is_last: bool) -> None:
         if self._contains_device and self._device is None:
             self._find_device()
 
-        kwargs = {}
+        kwargs: Dict[str, Any] = {}
 
         if self._contains_device:
             kwargs["device"] = self._device
@@ -127,7 +127,7 @@ class LambdaDataChunkRecipe(DataChunkRecipe):
     def prepare_structure(self, input_dir: Optional[str]) -> Any:
         return self._inputs
 
-    def prepare_item(self, item_metadata: Any) -> Any:  # type: ignore
+    def prepare_item(self, item_metadata: Any) -> Any:
         if isinstance(self._fn, partial):
             yield from self._fn(item_metadata)
 

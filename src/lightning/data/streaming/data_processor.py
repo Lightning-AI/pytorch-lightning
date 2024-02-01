@@ -649,7 +649,7 @@ class DataRecipe:
         pass
 
     @abstractmethod
-    def prepare_item(self, *args: Any, **kwargs) -> Any:
+    def prepare_item(self, *args: Any, **kwargs: Any) -> Any:
         pass
 
     def __init__(self) -> None:
@@ -683,7 +683,7 @@ class DataChunkRecipe(DataRecipe):
         """
 
     @abstractmethod
-    def prepare_item(self, item_metadata: T) -> Any:  # type: ignore
+    def prepare_item(self, item_metadata: T) -> Any:
         """The return of this `prepare_item` method is persisted in chunked binary files."""
 
     def _done(self, size: int, delete_cached_files: bool, output_dir: Dir) -> _Result:
@@ -774,7 +774,7 @@ class DataTransformRecipe(DataRecipe):
         """
 
     @abstractmethod
-    def prepare_item(self, item_metadata: T, output_dir: str, is_last: bool) -> None:  # type: ignore
+    def prepare_item(self, item_metadata: T, output_dir: str, is_last: bool) -> None:
         """Use your item metadata to process your files and save the file outputs into `output_dir`."""
 
 
