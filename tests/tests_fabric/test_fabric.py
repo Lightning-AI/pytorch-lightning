@@ -89,7 +89,7 @@ def test_setup_module(ddp_mock, setup_method):
 
 @RunIf(skip_windows=True, dynamo=True)
 @pytest.mark.parametrize("setup_method", ["setup", "setup_module"])
-@pytest.mark.parametrize("_reapply_compile", [True, False, None])
+@pytest.mark.parametrize("reapply_compile", [True, False, None])
 def test_setup_compiled_module(reapply_compile, setup_method):
     """Test that an `OptimizedModule` can be passed to the setup method."""
     from torch._dynamo.eval_frame import OptimizedModule
