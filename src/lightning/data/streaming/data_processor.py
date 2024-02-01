@@ -292,7 +292,7 @@ def _map_items_to_workers_weighted(
         else:
             print(f"Worker {worker_id} gets ({len(worker_items[worker_id])}) items for a total weight of {size}.")
 
-    return [worker_items[worker_id] for worker_id in worker_ids_this_node]
+    return [np.random.permutation(worker_items[worker_id]).tolist() for worker_id in worker_ids_this_node]
 
 
 def _get_num_bytes(item: Any, base_path: str) -> int:
