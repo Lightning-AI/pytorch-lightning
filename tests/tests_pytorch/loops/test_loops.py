@@ -24,6 +24,7 @@ from lightning.pytorch.callbacks import Callback, ModelCheckpoint, OnExceptionCh
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
 from lightning.pytorch.loops import _Loop
 from lightning.pytorch.loops.progress import _BaseProgress
+from lightning.pytorch.utilities import CombinedLoader
 from torch.utils.data.dataloader import DataLoader, _MultiProcessingDataLoaderIter
 
 from tests_pytorch.helpers.runif import RunIf
@@ -882,3 +883,94 @@ def test_validation_during_gradient_accumulation_window(tmp_path):
     )
     trainer.fit(model)
     assert model.ran_assert
+
+
+class NotStatefulIterable:
+    def __init__(self, start=0):
+        self.index = start
+
+    def __iter__(self):
+        for i in range(self.index, len(self)):
+            self.index = i
+            yield self.index
+
+    def __len__(self):
+        return 10
+
+
+class StatefulIterable(NotStatefulIterable):
+    def state_dict(self):
+        return {"index": self.index}
+
+    def load_state_dict(self, state_dict):
+        self.index = state_dict["index"] + 1
+
+
+@pytest.mark.parametrize(
+    ("train_dataloader_factory", "has_state", "batches_before", "batches_after"),
+    [
+        # No dataloader
+        (lambda: [], False, [], []),
+        # Single stateful DataLoader
+        (lambda: StatefulIterable(), True, [0, 1], [2, 3]),
+        # Single, not stateful DataLoader
+        (lambda: CombinedLoader(NotStatefulIterable()), False, [0, 1], [0, 1]),
+        # Single stateful DataLoader
+        (lambda: CombinedLoader(StatefulIterable()), True, [0, 1], [2, 3]),
+        # Multiple stateful DataLoaders
+        (lambda: CombinedLoader([StatefulIterable(3), StatefulIterable(1)]), True, [[3, 1], [4, 2]], [[5, 3], [6, 4]]),
+        # Mix of stateful and not stateful DataLoaders
+        (
+            lambda: CombinedLoader([NotStatefulIterable(3), StatefulIterable(1), NotStatefulIterable(2)]),
+            True,
+            [[3, 1, 2], [4, 2, 3]],
+            [[3, 3, 2], [4, 4, 3]],
+        ),
+    ],
+)
+def test_fit_loop_save_and_restore_dataloaders(
+    train_dataloader_factory, has_state, batches_before, batches_after, tmp_path
+):
+    """Test that the CheckpointConnector saves the state of stateful dataloaders."""
+
+    class DummyModel(BoringModel):
+        def __init__(self):
+            super().__init__()
+            self.seen_data = []
+
+        def training_step(self, batch, batch_idx):
+            self.seen_data.append(batch)
+            print(batch)
+
+        def train_dataloader(self):
+            return train_dataloader_factory()
+
+    trainer_kwargs = {
+        "default_root_dir": tmp_path,
+        "accelerator": "cpu",
+        "enable_checkpointing": False,
+        "enable_model_summary": False,
+        "enable_progress_bar": False,
+        "logger": False,
+        "num_sanity_val_steps": 0,
+    }
+
+    # Train for 2 steps
+    model = DummyModel()
+    trainer = Trainer(**trainer_kwargs, max_steps=2)
+    trainer.fit(model)
+    assert model.seen_data == batches_before
+
+    # Save a checkpoint
+    trainer.save_checkpoint(tmp_path / "checkpoint.ckpt")
+    checkpoint = torch.load(tmp_path / "checkpoint.ckpt")
+    if has_state:
+        assert checkpoint["loops"]["fit_loop"]["state_dict"]["combined_loader"]
+    else:
+        assert "combined_loader" not in checkpoint["loops"]["fit_loop"]["state_dict"]
+
+    # Restore training from step 2 and continue 2 more steps
+    model = DummyModel()
+    trainer = Trainer(**trainer_kwargs, max_steps=4)
+    trainer.fit(model, ckpt_path=(tmp_path / "checkpoint.ckpt"))
+    assert model.seen_data == batches_after
