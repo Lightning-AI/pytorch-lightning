@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import logging
-from typing import Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 import torch
 from typing_extensions import override
@@ -94,6 +94,7 @@ class _FitLoop(_Loop):
 
         self._data_source = _DataLoaderSource(None, "train_dataloader")
         self._combined_loader: Optional[CombinedLoader] = None
+        self._combined_loader_states_to_load: List[Dict[str, Any]] = []
         self._data_fetcher: Optional[_DataFetcher] = None
         self._last_train_dl_reload_epoch = float("-inf")
 
@@ -255,6 +256,8 @@ class _FitLoop(_Loop):
 
         combined_loader.limits = limits
 
+        self._load_combined_loader_states()
+
         self._data_fetcher = _select_data_fetcher(trainer, RunningStage.TRAINING)
         self._data_fetcher.setup(combined_loader)
         iter(self._data_fetcher)  # creates the iterator inside the fetcher
@@ -409,9 +412,27 @@ class _FitLoop(_Loop):
             self._data_fetcher = None
         self.epoch_loop.teardown()
 
+    @override
+    def on_save_checkpoint(self) -> Dict:
+        state_dict = super().on_save_checkpoint()
+        if self._combined_loader is not None and (loader_states := self._combined_loader._state_dicts()):
+            state_dict["combined_loader"] = loader_states
+        return state_dict
+
+    @override
+    def on_load_checkpoint(self, state_dict: Dict) -> None:
+        self._combined_loader_states_to_load = state_dict.get("combined_loader", [])
+        super().on_load_checkpoint(state_dict)
+
     def _should_accumulate(self) -> bool:
         """Whether the gradients should be accumulated."""
         return self.epoch_loop._should_accumulate()
 
     def _iteration_based_training(self) -> bool:
         return self.trainer.max_steps != -1
+
+    def _load_combined_loader_states(self) -> None:
+        if not self.restarting or not self._combined_loader_states_to_load or self._combined_loader is None:
+            return
+        self._combined_loader._load_state_dicts(self._combined_loader_states_to_load)
+        self._combined_loader_states_to_load = []  # release memory
