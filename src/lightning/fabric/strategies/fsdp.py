@@ -808,8 +808,8 @@ def _init_sharding_strategy(sharding_strategy: "_SHARDING_STRATEGY", kwargs: Dic
         and kwargs.get("process_group") is None and kwargs.get("device_mesh") is None
     ):
         raise RuntimeError(
-            "The hybrid sharding strategy requires you to either set the `auto_wrap_policy` or pass a process"
-            " group tuple to the `process_group` parameter or pass a `device_mesh`."
+            "The hybrid sharding strategy requires you to pass at least one of the parameters: `auto_wrap_policy`,"
+            " `process_group` tuple, or `device_mesh`."
         )
     return strategy
 
