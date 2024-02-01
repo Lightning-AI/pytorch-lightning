@@ -276,10 +276,10 @@ However, should you have issues compiling DDP and FSDP models, you can opt out o
     model = torch.compile(model)
 
     # Default: `fabric.setup()` will configure compilation over DDP/FSDP for you
-    model = fabric.setup(model, reapply_compile=True)
+    model = fabric.setup(model, _reapply_compile=True)
 
     # Turn it off if you see issues with DDP/FSDP
-    model = fabric.setup(model, reapply_compile=False)
+    model = fabric.setup(model, _reapply_compile=False)
 
 
 ----
