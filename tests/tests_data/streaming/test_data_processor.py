@@ -350,7 +350,7 @@ def test_map_items_to_workers_sequentially(monkeypatch):
 
 class CustomDataChunkRecipe(DataChunkRecipe):
     def prepare_structure(self, input_dir: str) -> List[Any]:
-        filepaths = self.listdir(input_dir)
+        filepaths = [os.path.join(input_dir, f) for f in os.listdir(input_dir)]
         assert len(filepaths) == 30
         return filepaths
 
@@ -567,7 +567,7 @@ class ImageResizeRecipe(DataTransformRecipe):
         filepaths = [os.path.join(input_dir, filename) for filename in os.listdir(input_dir)]
         return [filepath for filepath in filepaths if os.path.isfile(filepath)]
 
-    def prepare_item(self, filepath: Any, output_dir: str) -> None:
+    def prepare_item(self, filepath: Any, output_dir: str, is_last) -> None:
         from PIL import Image
 
         img = Image.open(filepath)
@@ -819,7 +819,7 @@ def test_lambda_transform_recipe(monkeypatch):
 
     data_recipe = LambdaDataTransformRecipe(fn, range(1))
 
-    data_recipe.prepare_item(1, "")
+    data_recipe.prepare_item(1, "", False)
     assert called
 
 
@@ -839,7 +839,7 @@ def test_lambda_transform_recipe_class(monkeypatch):
             called = True
 
     data_recipe = LambdaDataTransformRecipe(Transform(), range(1))
-    data_recipe.prepare_item(1, "")
+    data_recipe.prepare_item(1, "", False)
     assert called
 
 
@@ -968,7 +968,7 @@ def test_data_processing_map_non_absolute_path(monkeypatch, tmpdir):
 
 
 @pytest.mark.skipif(condition=sys.platform == "win32", reason="Not supported on windows")
-def test_map_error_when_not_empty(monkeypatch, tmpdir):
+def test_map_error_when_not_empty(monkeypatch):
     boto3 = mock.MagicMock()
     client_s3_mock = mock.MagicMock()
     client_s3_mock.list_objects_v2.return_value = {"KeyCount": 1, "Contents": []}
@@ -992,3 +992,27 @@ def test_map_error_when_not_empty(monkeypatch, tmpdir):
             output_dir=Dir(path=None, url="s3://bucket"),
             error_when_not_empty=False,
         )
+
+def map_fn_is_last(index, output_dir, is_last):
+    with open(os.path.join(output_dir, f"{index}_{is_last}.txt"), "w") as f:
+        f.write("here")
+
+
+@pytest.mark.skipif(condition=sys.platform == "win32", reason="Not supported on windows")
+@pytest.mark.parametrize(
+    ("num_workers", "expected"),
+    [
+        (1, ['0_False.txt', '1_False.txt', '2_False.txt', '3_False.txt', '4_True.txt']),
+        (2, ['0_False.txt', '1_True.txt', '2_False.txt', '3_False.txt', '4_True.txt']),
+    ],
+)
+def test_map_is_last(num_workers, expected, tmpdir):
+    map(
+        map_fn_is_last,
+        list(range(5)),
+        output_dir=str(tmpdir),
+        error_when_not_empty=False,
+        num_workers=num_workers,
+    )
+
+    assert sorted(os.listdir(tmpdir)) == expected

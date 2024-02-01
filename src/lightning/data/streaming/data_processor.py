@@ -608,7 +608,7 @@ class BaseWorker:
     def _handle_data_transform_recipe(self, index: int) -> None:
         # Don't use a context manager to avoid deleting files that are being uploaded.
         output_dir = tempfile.mkdtemp()
-        item_data = self.data_recipe.prepare_item(self.items[index], str(output_dir))
+        item_data = self.data_recipe.prepare_item(self.items[index], str(output_dir), len(self.items) - 1 == index)
         if item_data is not None:
             raise ValueError(
                 "When using a `DataTransformRecipe`, the `prepare_item` shouldn't return anything."
@@ -649,32 +649,8 @@ class DataRecipe:
         pass
 
     @abstractmethod
-    def prepare_item(self, *args: Any) -> Any:
+    def prepare_item(self, *args: Any, **kwargs: Any) -> Any:
         pass
-
-    def listdir(self, path: str) -> List[str]:
-        home = _get_home_folder()
-        filepath = os.path.join(home, ".cache", f"{self._name}/filepaths.txt")
-
-        if os.path.exists(filepath):
-            lines = []
-            with open(filepath) as f:
-                for line in f.readlines():
-                    lines.append(line.replace("\n", ""))
-            return lines
-
-        filepaths = []
-        for dirpath, _, filenames in os.walk(path):
-            for filename in filenames:
-                filepaths.append(os.path.join(dirpath, filename))
-
-        os.makedirs(os.path.dirname(filepath), exist_ok=True)
-
-        with open(filepath, "w") as f:
-            for filepath in filepaths:
-                f.write(f"{filepath}\n")
-
-        return filepaths
 
     def __init__(self) -> None:
         self._name: Optional[str] = None
@@ -707,7 +683,7 @@ class DataChunkRecipe(DataRecipe):
         """
 
     @abstractmethod
-    def prepare_item(self, item_metadata: T) -> Any:  # type: ignore
+    def prepare_item(self, item_metadata: T) -> Any:
         """The return of this `prepare_item` method is persisted in chunked binary files."""
 
     def _done(self, size: int, delete_cached_files: bool, output_dir: Dir) -> _Result:
@@ -798,7 +774,7 @@ class DataTransformRecipe(DataRecipe):
         """
 
     @abstractmethod
-    def prepare_item(self, item_metadata: T, output_dir: str) -> None:  # type: ignore
+    def prepare_item(self, item_metadata: T, output_dir: str, is_last: bool) -> None:
         """Use your item metadata to process your files and save the file outputs into `output_dir`."""
 
 

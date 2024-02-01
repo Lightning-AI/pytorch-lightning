@@ -78,25 +78,28 @@ class LambdaDataTransformRecipe(DataTransformRecipe):
         _fn = self._fn if isinstance(self._fn, FunctionType) else self._fn.__call__  # type: ignore
         params = inspect.signature(_fn).parameters
         self._contains_device = "device" in params
+        self._contains_is_last = "is_last" in params
 
     def prepare_structure(self, _: Optional[str]) -> Any:
         return self._inputs
 
-    def prepare_item(self, item_metadata: Any, output_dir: str) -> None:  # type: ignore
+    def prepare_item(self, item_metadata: Any, output_dir: str, is_last: bool) -> None:
         if self._contains_device and self._device is None:
             self._find_device()
 
+        kwargs: Dict[str, Any] = {}
+
+        if self._contains_device:
+            kwargs["device"] = self._device
+
+        if self._contains_is_last:
+            kwargs["is_last"] = is_last
+
         if isinstance(self._fn, (FunctionType, partial)):
-            if self._contains_device:
-                self._fn(item_metadata, output_dir, self._device)
-            else:
-                self._fn(item_metadata, output_dir)
+            self._fn(item_metadata, output_dir, **kwargs)
 
         elif callable(self._fn):
-            if self._contains_device:
-                self._fn.__call__(item_metadata, output_dir, self._device)  # type: ignore
-            else:
-                self._fn.__call__(item_metadata, output_dir)  # type: ignore
+            self._fn.__call__(item_metadata, output_dir, **kwargs)  # type: ignore
         else:
             raise ValueError(f"The provided {self._fn} isn't supported.")
 
@@ -124,7 +127,7 @@ class LambdaDataChunkRecipe(DataChunkRecipe):
     def prepare_structure(self, input_dir: Optional[str]) -> Any:
         return self._inputs
 
-    def prepare_item(self, item_metadata: Any) -> Any:  # type: ignore
+    def prepare_item(self, item_metadata: Any) -> Any:
         if isinstance(self._fn, partial):
             yield from self._fn(item_metadata)
 
