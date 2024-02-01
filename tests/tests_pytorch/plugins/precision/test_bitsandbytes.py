@@ -36,12 +36,14 @@ def test_bitsandbytes_plugin(monkeypatch):
 
     bitsandbytes_mock.nn.Linear8bitLt = ModuleMock
     bitsandbytes_mock.nn.Linear4bit = ModuleMock
+    bitsandbytes_mock.nn.Params4bit = object
 
     precision = BitsandbytesPrecision("nf4", dtype=torch.float16)
     trainer = Trainer(barebones=True, plugins=precision)
 
     _NF4Linear = vars(module)["_NF4Linear"]
-    _NF4Linear._quantize_weight = Mock()
+    quantize_mock = lambda self, p, w, d: p
+    _NF4Linear.quantize = quantize_mock
 
     class MyModel(LightningModule):
         def configure_model(self):
