@@ -10,6 +10,7 @@ import types
 from abc import abstractmethod
 from dataclasses import dataclass
 from multiprocessing import Process, Queue
+from pathlib import Path
 from queue import Empty
 from time import sleep, time
 from typing import Any, Dict, List, Optional, Tuple, TypeVar, Union
@@ -25,6 +26,7 @@ from lightning.data.streaming.constants import (
     _BOTO3_AVAILABLE,
     _DEFAULT_FAST_DEV_RUN_ITEMS,
     _INDEX_FILENAME,
+    _IS_IN_STUDIO,
     _LIGHTNING_CLOUD_LATEST,
     _TORCH_GREATER_EQUAL_2_1_0,
 )
@@ -66,9 +68,13 @@ def _get_home_folder() -> str:
     return os.getenv("DATA_OPTIMIZER_HOME_FOLDER", os.path.expanduser("~"))
 
 
+def _get_default_cache() -> str:
+    return "/cache" if _IS_IN_STUDIO else tempfile.gettempdir()
+
+
 def _get_cache_dir(name: Optional[str] = None) -> str:
     """Returns the cache directory used by the Cache to store the chunks."""
-    cache_dir = os.getenv("DATA_OPTIMIZER_CACHE_FOLDER", "/cache/chunks")
+    cache_dir = os.getenv("DATA_OPTIMIZER_CACHE_FOLDER", f"{_get_default_cache()}/chunks")
     if name is None:
         return cache_dir
     return os.path.join(cache_dir, name.lstrip("/"))
@@ -76,7 +82,7 @@ def _get_cache_dir(name: Optional[str] = None) -> str:
 
 def _get_cache_data_dir(name: Optional[str] = None) -> str:
     """Returns the cache data directory used by the DataProcessor workers to download the files."""
-    cache_dir = os.getenv("DATA_OPTIMIZER_DATA_CACHE_FOLDER", "/cache/data")
+    cache_dir = os.getenv("DATA_OPTIMIZER_DATA_CACHE_FOLDER", f"{_get_default_cache()}/data")
     if name is None:
         return os.path.join(cache_dir)
     return os.path.join(cache_dir, name.lstrip("/"))
@@ -222,18 +228,20 @@ def _upload_fn(upload_queue: Queue, remove_queue: Queue, cache_dir: str, output_
                 )
             except Exception as e:
                 print(e)
-        elif output_dir.path and os.path.isdir(output_dir.path):
+
+        elif output_dir.path:
             if tmpdir is None:
-                shutil.copyfile(local_filepath, os.path.join(output_dir.path, os.path.basename(local_filepath)))
+                output_filepath = os.path.join(output_dir.path, os.path.basename(local_filepath))
             else:
                 output_filepath = os.path.join(output_dir.path, local_filepath.replace(tmpdir, "")[1:])
-                os.makedirs(os.path.dirname(output_filepath), exist_ok=True)
-                shutil.copyfile(local_filepath, output_filepath)
+
+            os.makedirs(os.path.dirname(output_filepath), exist_ok=True)
+            shutil.move(local_filepath, output_filepath)
         else:
             raise ValueError(f"The provided {output_dir.path} isn't supported.")
 
         # Inform the remover to delete the file
-        if remove_queue:
+        if remove_queue and os.path.exists(local_filepath):
             remove_queue.put([local_filepath])
 
 
@@ -290,7 +298,10 @@ def _get_num_bytes(item: Any, base_path: str) -> int:
 
     num_bytes = 0
     for element in flattened_item:
-        if isinstance(element, str) and element.startswith(base_path) and os.path.exists(element):
+        if isinstance(element, str):
+            element = Path(element).resolve()
+            if not element.exists():
+                continue
             file_bytes = os.path.getsize(element)
             if file_bytes == 0:
                 raise RuntimeError(f"The file {element} has 0 bytes!")
@@ -475,16 +486,22 @@ class BaseWorker:
         for item in self.items:
             flattened_item, spec = tree_flatten(item)
 
+            def is_path(element: Any) -> bool:
+                if not isinstance(element, str):
+                    return False
+
+                element: str = str(Path(element).resolve())
+                return (
+                    element.startswith(self.input_dir.path)
+                    if self.input_dir.path is not None
+                    else os.path.exists(element)
+                )
+
             # For speed reasons, we assume starting with `self.input_dir` is enough to be a real file.
             # Other alternative would be too slow.
             # TODO: Try using dictionary for higher accurary.
             indexed_paths = {
-                index: element
-                for index, element in enumerate(flattened_item)
-                if isinstance(element, str)
-                and (
-                    element.startswith(self.input_dir.path) if self.input_dir is not None else os.path.exists(element)
-                )  # For speed reasons
+                index: str(Path(element).resolve()) for index, element in enumerate(flattened_item) if is_path(element)
             }
 
             if len(indexed_paths) == 0:
@@ -947,7 +964,7 @@ class DataProcessor:
         print("Workers are finished.")
         result = data_recipe._done(len(user_items), self.delete_cached_files, self.output_dir)
 
-        if num_nodes == node_rank + 1:
+        if num_nodes == node_rank + 1 and self.output_dir.url:
             _create_dataset(
                 input_dir=self.input_dir.path,
                 storage_dir=self.output_dir.path,

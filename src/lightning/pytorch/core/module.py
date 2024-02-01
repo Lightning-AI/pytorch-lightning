@@ -750,13 +750,11 @@ class LightningModule(
         .. code-block:: python
 
             # if you have one val dataloader:
-            def validation_step(self, batch, batch_idx):
-                ...
+            def validation_step(self, batch, batch_idx): ...
 
 
             # if you have multiple val dataloaders:
-            def validation_step(self, batch, batch_idx, dataloader_idx=0):
-                ...
+            def validation_step(self, batch, batch_idx, dataloader_idx=0): ...
 
         Examples::
 
@@ -819,13 +817,11 @@ class LightningModule(
         .. code-block:: python
 
             # if you have one test dataloader:
-            def test_step(self, batch, batch_idx):
-                ...
+            def test_step(self, batch, batch_idx): ...
 
 
             # if you have multiple test dataloaders:
-            def test_step(self, batch, batch_idx, dataloader_idx=0):
-                ...
+            def test_step(self, batch, batch_idx, dataloader_idx=0): ...
 
         Examples::
 
@@ -989,7 +985,7 @@ class LightningModule(
                     "lr_scheduler": {
                         "scheduler": ReduceLROnPlateau(optimizer, ...),
                         "monitor": "metric_to_track",
-                        "frequency": "indicates how often the metric is updated"
+                        "frequency": "indicates how often the metric is updated",
                         # If "monitor" references validation metrics, then "frequency" should be set to a
                         # multiple of "trainer.check_val_every_n_epoch".
                     },
