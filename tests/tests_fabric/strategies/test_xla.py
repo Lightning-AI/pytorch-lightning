@@ -25,7 +25,7 @@ from lightning.fabric.utilities.distributed import ReduceOp
 from lightning.fabric.utilities.seed import seed_everything
 from torch.utils.data import DataLoader
 
-from tests_fabric.helpers.models import RandomDataset
+from tests_fabric.helpers.datasets import RandomDataset
 from tests_fabric.helpers.runif import RunIf
 
 

@@ -11,6 +11,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import io
 import os
 import sys
 from time import time
@@ -26,6 +27,7 @@ from lightning.data.streaming.serializers import (
     _TORCH_DTYPES_MAPPING,
     _TORCH_VISION_AVAILABLE,
     IntSerializer,
+    JPEGSerializer,
     NoHeaderNumpySerializer,
     NoHeaderTensorSerializer,
     NumpySerializer,
@@ -84,6 +86,27 @@ def test_pil_serializer(mode):
 
     # Validate data content
     assert np.array_equal(np_data, np_dec_data)
+
+
+@pytest.mark.skipif(condition=not _PIL_AVAILABLE, reason="Requires: ['pil']")
+def test_jpeg_serializer():
+    serializer = JPEGSerializer()
+
+    from PIL import Image
+
+    array = np.random.randint(255, size=(28, 28, 3), dtype=np.uint8)
+    img = Image.fromarray(array)
+    img_bytes = io.BytesIO()
+    img.save(img_bytes, format="JPEG")
+    img_bytes = img_bytes.getvalue()
+
+    img = Image.open(io.BytesIO(img_bytes))
+
+    data, _ = serializer.serialize(img)
+    assert isinstance(data, bytes)
+
+    deserialized_img = serializer.deserialize(data)
+    assert deserialized_img.shape == torch.Size([3, 28, 28])
 
 
 @pytest.mark.flaky(reruns=3)
