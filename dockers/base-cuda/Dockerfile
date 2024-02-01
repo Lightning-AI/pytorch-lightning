@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-ARG UBUNTU_VERSION=20.04
+ARG UBUNTU_VERSION=22.04
 ARG CUDA_VERSION=11.7.1
 
 
@@ -38,7 +38,7 @@ RUN \
     # https://github.com/NVIDIA/nvidia-docker/issues/1631
     # https://github.com/NVIDIA/nvidia-docker/issues/1631#issuecomment-1264715214
     apt-get update && apt-get install -y wget && \
-    wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2004/x86_64/3bf863cc.pub && \
+    wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/3bf863cc.pub && \
     mkdir -p /etc/apt/keyrings/ && mv 3bf863cc.pub /etc/apt/keyrings/ && \
     echo "deb [signed-by=/etc/apt/keyrings/3bf863cc.pub] https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/ /" /etc/apt/sources.list.d/cuda.list && \
     apt-get update -qq --fix-missing && \
@@ -82,9 +82,7 @@ COPY requirements/_integrations/ requirements/_integrations/
 ENV PYTHONPATH="/usr/lib/python${PYTHON_VERSION}/site-packages"
 
 RUN \
-    wget https://bootstrap.pypa.io/get-pip.py --progress=bar:force:noscroll --no-check-certificate && \
-    python${PYTHON_VERSION} get-pip.py && \
-    rm get-pip.py && \
+    curl https://bootstrap.pypa.io/get-pip.py | python${PYTHON_VERSION} && \
     # Disable cache \
     pip config set global.cache-dir false && \
     # set particular PyTorch version \
@@ -99,7 +97,8 @@ RUN \
       -r requirements/pytorch/extra.txt \
       -r requirements/pytorch/test.txt \
       -r requirements/pytorch/strategies.txt \
-      --find-links "https://download.pytorch.org/whl/cu${CUDA_VERSION_MM//'.'/''}/torch_stable.html"
+      --find-links="https://download.pytorch.org/whl/cu${CUDA_VERSION_MM//'.'/''}/torch_stable.html" \
+      --find-links="https://download.pytorch.org/whl/test/cu${CUDA_VERSION_MM//'.'/''}/torch_test.html"
 
 RUN \
     # Show what we have

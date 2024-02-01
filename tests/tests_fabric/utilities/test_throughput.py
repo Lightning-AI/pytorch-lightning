@@ -49,14 +49,18 @@ def test_get_available_flops(xla_available):
     from torch_xla.experimental import tpu
 
     assert isinstance(tpu, Mock)
-    tpu.get_tpu_env.return_value = {"TYPE": "V4"}
 
+    tpu.get_tpu_env.return_value = {"TYPE": "V4"}
     flops = get_available_flops(torch.device("xla"), torch.bfloat16)
     assert flops == 275e12
 
     tpu.get_tpu_env.return_value = {"TYPE": "V1"}
     with pytest.warns(match="not found for TPU 'V1'"):
         assert get_available_flops(torch.device("xla"), torch.bfloat16) is None
+
+    tpu.get_tpu_env.return_value = {"ACCELERATOR_TYPE": "v3-8"}
+    flops = get_available_flops(torch.device("xla"), torch.bfloat16)
+    assert flops == 123e12
 
     tpu.reset_mock()
 
@@ -132,7 +136,7 @@ def test_throughput():
         "lengths": 8,
         "device/batches_per_sec": 2.0,
         "device/samples_per_sec": 4.0,
-        "device/items_per_sec": 16.0,
+        "device/items_per_sec": 8.0,
     }
 
     with pytest.raises(ValueError, match="Expected the value to increase"):
@@ -149,7 +153,7 @@ def test_throughput():
         "lengths": 20,
         "device/batches_per_sec": 1.0,
         "device/flops_per_sec": 10.0,
-        "device/items_per_sec": 20.0,
+        "device/items_per_sec": 10.0,
         "device/mfu": 0.2,
         "device/samples_per_sec": 2.0,
     }
@@ -166,7 +170,7 @@ def test_throughput():
         "lengths": 20,
         "device/batches_per_sec": 1.0,
         "device/flops_per_sec": 10.0,
-        "device/items_per_sec": 20.0,
+        "device/items_per_sec": 10.0,
         "device/samples_per_sec": 2.0,
     }
 
@@ -215,7 +219,7 @@ def test_throughput_monitor():
                 "lengths": 24,
                 "device|batches_per_sec": 1.0,
                 "device|samples_per_sec": 3.0,
-                "device|items_per_sec": 18.0,
+                "device|items_per_sec": 6.0,
                 "device|flops_per_sec": 10.0,
                 "device|mfu": 0.1,
             },
@@ -229,7 +233,7 @@ def test_throughput_monitor():
                 "lengths": 30,
                 "device|batches_per_sec": 1.0,
                 "device|samples_per_sec": 3.0,
-                "device|items_per_sec": 18.0,
+                "device|items_per_sec": 6.0,
                 "device|flops_per_sec": 10.0,
                 "device|mfu": 0.1,
             },
@@ -285,7 +289,7 @@ def test_throughput_monitor_world_size():
                 "batches_per_sec": 2.0,
                 "samples_per_sec": 6.0,
                 "items_per_sec": 12.0,
-                "device/items_per_sec": 18.0,
+                "device/items_per_sec": 6.0,
                 "flops_per_sec": 20.0,
                 "device/flops_per_sec": 10.0,
                 "device/mfu": 0.1,
@@ -303,7 +307,7 @@ def test_throughput_monitor_world_size():
                 "batches_per_sec": 2.0,
                 "samples_per_sec": 6.0,
                 "items_per_sec": 12.0,
-                "device/items_per_sec": 18.0,
+                "device/items_per_sec": 6.0,
                 "flops_per_sec": 20.0,
                 "device/flops_per_sec": 10.0,
                 "device/mfu": 0.1,

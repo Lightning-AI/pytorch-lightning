@@ -185,7 +185,7 @@ class _CheckpointConnector:
                 # not an error so it can be set and forget before the first `fit` run
                 rank_zero_warn(
                     f'.{fn}(ckpt_path="last") is set, but there is no last checkpoint available.'
-                    " No checkpoint will be loaded."
+                    " No checkpoint will be loaded. HINT: Set `ModelCheckpoint(..., save_last=True)`."
                 )
                 return None
             ckpt_path = max(candidates_ts, key=candidates_ts.get)  # type: ignore[arg-type]

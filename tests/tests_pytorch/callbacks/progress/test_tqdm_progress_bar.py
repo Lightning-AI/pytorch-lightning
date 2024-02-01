@@ -334,6 +334,19 @@ def test_tqdm_progress_bar_value_on_colab(tmp_path):
     assert trainer.progress_bar_callback.refresh_rate == 19
 
 
+@pytest.mark.parametrize(("refresh_rate", "env_value", "expected"), [
+    (0, 1, 1),
+    (1, 0, 1),
+    (1, 1, 1),
+    (2, 1, 2),
+    (1, 2, 2),
+])
+def test_tqdm_progress_bar_refresh_rate_via_env_variable(refresh_rate, env_value, expected):
+    with mock.patch.dict(os.environ, {"TQDM_MINITERS": str(env_value)}):
+        bar = TQDMProgressBar(refresh_rate=refresh_rate)
+    assert bar.refresh_rate == expected
+
+
 @pytest.mark.parametrize(
     ("train_batches", "val_batches", "refresh_rate", "train_updates", "val_updates"),
     [

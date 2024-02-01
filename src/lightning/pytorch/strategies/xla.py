@@ -21,7 +21,7 @@ from torch.nn import Module
 from typing_extensions import override
 
 import lightning.pytorch as pl
-from lightning.fabric.accelerators.xla import _XLA_AVAILABLE, _XLA_GREATER_EQUAL_2_1, _using_pjrt
+from lightning.fabric.accelerators.xla import _XLA_AVAILABLE, _XLA_GREATER_EQUAL_2_1
 from lightning.fabric.plugins import XLACheckpointIO
 from lightning.fabric.plugins.environments import XLAEnvironment
 from lightning.fabric.strategies import _StrategyRegistry
@@ -270,17 +270,20 @@ class XLAStrategy(DDPStrategy):
         return output
 
     @override
+    def setup_environment(self) -> None:
+        self._launched = True
+        super().setup_environment()
+
+    @override
     def setup_distributed(self) -> None:
         assert self.parallel_devices is not None
-        if _using_pjrt() and len(self.parallel_devices) == 1:
+        if len(self.parallel_devices) == 1:
             # spawning only 1 device with PjRT is not supported:
             # https://github.com/Lightning-AI/lightning/pull/17408#discussion_r1170671732
             raise NotImplementedError(
                 "The `XLAStrategy` does not support running on a single device with the PjRT runtime."
                 " Try using all devices or the `SingleDeviceXLAStrategy` strategy"
             )
-
-        self._launched = True
         rank_zero_only.rank = self.global_rank
 
     @override
@@ -289,10 +292,6 @@ class XLAStrategy(DDPStrategy):
         # processes (by the accelerator connector), we cannot run the code that would normally be here.
         # instead it's done in `setup_distributed`
         pass
-
-    @override
-    def on_train_batch_start(self, batch: Any, batch_idx: int) -> None:
-        _pod_progress_bar_force_stdout(self.global_rank)
 
     @override
     def save_checkpoint(
@@ -361,19 +360,3 @@ class XLAStrategy(DDPStrategy):
             cls,
             description=cls.__name__,
         )
-
-
-def _pod_progress_bar_force_stdout(global_rank: int) -> None:
-    if _using_pjrt():
-        # this was removed in https://github.com/pytorch/xla/pull/5240
-        return
-
-    # Why is it required? The way `pytorch_xla.distributed` streams logs
-    # from different vms to the main worker doesn't work well with tqdm
-    # Ref: https://github.com/pytorch/xla/blob/v2.0.0/torch_xla/distributed/xla_dist.py#L227
-    # The print statement seems to force tqdm to flush stdout.
-    import torch_xla.core.xla_env_vars as xenv
-    from torch_xla.utils.utils import getenv_as
-
-    if global_rank == 0 and getenv_as(xenv.TPUVM_MODE, int, 0) == 1:
-        print()

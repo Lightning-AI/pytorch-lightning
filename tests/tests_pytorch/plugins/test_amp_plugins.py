@@ -169,7 +169,7 @@ def test_amp_skip_optimizer(tmpdir):
             return x
 
         def training_step(self, batch, batch_idx):
-            opt1, opt2 = self.optimizers()
+            _, opt2 = self.optimizers()
             output = self(batch)
             loss = self.loss(output)
             opt2.zero_grad()

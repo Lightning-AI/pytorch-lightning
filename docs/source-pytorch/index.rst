@@ -60,7 +60,7 @@ Conda users
 
 Or read the `advanced install guide <starter/installation.html>`_
 
-You can find our the list of supported PyTorch versions in our :ref:`compatibility matrix <versioning:Compatibility matrix>`.
+You can find the list of supported PyTorch versions in our :ref:`compatibility matrix <versioning:Compatibility matrix>`.
 
 .. raw:: html
 

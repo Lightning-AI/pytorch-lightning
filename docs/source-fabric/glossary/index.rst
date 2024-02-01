@@ -2,6 +2,12 @@
 Glossary
 ########
 
+.. toctree::
+   :maxdepth: 1
+   :hidden:
+
+   Checkpoint <../guide/checkpoint/index>
+
 
 .. raw:: html
 
@@ -45,7 +51,7 @@ Glossary
 
 .. displayitem::
     :header: Checkpoint
-    :button_link: ../guide/checkpoint.html
+    :button_link: ../guide/checkpoint/index.html
     :col_css: col-md-4
 
 .. displayitem::
@@ -61,6 +67,11 @@ Glossary
 .. displayitem::
     :header: Collective
     :button_link: ../advanced/distributed_communication.html
+    :col_css: col-md-4
+
+.. displayitem::
+    :header: Compile
+    :button_link: ../advanced/compile.html
     :col_css: col-md-4
 
 .. displayitem::

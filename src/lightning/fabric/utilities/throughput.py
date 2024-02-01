@@ -16,6 +16,7 @@ from collections import deque
 from typing import TYPE_CHECKING, Any, Callable, Deque, Dict, List, Optional, TypeVar, Union
 
 import torch
+from typing_extensions import override
 
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_1
 from lightning.fabric.utilities.rank_zero import rank_zero_only, rank_zero_warn
@@ -185,10 +186,11 @@ class Throughput:
 
             if len(self._lengths) == self._lengths.maxlen:
                 elapsed_lengths = self._lengths[-1] - self._lengths[0]
-                avg_length = elapsed_lengths / elapsed_batches
+                dev_items_per_sec = elapsed_lengths / elapsed_time
+                metrics[f"device{self.separator}items_per_sec"] = dev_items_per_sec
                 if add_global_metrics:
-                    metrics["items_per_sec"] = samples_per_sec * avg_length
-                metrics[f"device{self.separator}items_per_sec"] = dev_samples_per_sec * avg_length
+                    items_per_sec = dev_items_per_sec * self.world_size
+                    metrics["items_per_sec"] = items_per_sec
 
         if len(self._flops) == self._flops.maxlen:
             elapsed_flops = sum(self._flops) - self._flops[0]
@@ -595,7 +597,9 @@ def get_available_flops(device: torch.device, dtype: Union[torch.dtype, str]) ->
         else:
             from torch_xla.experimental import tpu
 
-        device_name = tpu.get_tpu_env()["TYPE"]
+        tpu_env = tpu.get_tpu_env()
+        # not all TPU generations define the "TYPE" envar. example: TYPE="V4", ACCELERATOR_TYPE="v4-8"
+        device_name = tpu_env.get("TYPE") or tpu_env["ACCELERATOR_TYPE"].split("-")[0]
         chip = device_name.lower()
         assert isinstance(device_name, str)
         if chip not in _TPU_FLOPS:
@@ -653,6 +657,7 @@ class _MonotonicWindow(List[T]):
             return self[-1]
         return None
 
+    @override
     def append(self, x: T) -> None:
         last = self.last
         if last is not None and last >= x:
@@ -662,6 +667,7 @@ class _MonotonicWindow(List[T]):
         if len(self) > self.maxlen:
             del self[0]
 
+    @override
     def __setitem__(self, key: Any, value: Any) -> None:
         # assigning is not implemented since we don't use it. it could be by checking all previous values
         raise NotImplementedError("__setitem__ is not supported")

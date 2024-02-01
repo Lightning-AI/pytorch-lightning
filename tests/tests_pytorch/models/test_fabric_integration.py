@@ -51,7 +51,7 @@ def test_fabric_boring_lightning_module_manual():
     optimizers, _ = module.configure_optimizers()
     dataloader = module.train_dataloader()
 
-    model, optimizer = fabric.setup(module, optimizers[0])
+    model, _ = fabric.setup(module, optimizers[0])
     dataloader = fabric.setup_dataloaders(dataloader)
 
     batch = next(iter(dataloader))

@@ -8,7 +8,7 @@ from lightning.app.testing.helpers import _run_script, _RunIf
 from integrations_app.public import _PATH_EXAMPLES
 
 
-@_RunIf(pl=True)
+@_RunIf(pl=True, skip_windows=True)
 @pytest.mark.parametrize(
     "file",
     [
@@ -21,7 +21,7 @@ def test_scripts(file):
 
 
 @pytest.mark.xfail(strict=False, reason="causing some issues with CI, not sure if the test is actually needed")
-@_RunIf(pl=True)
+@_RunIf(pl=True, skip_windows=True)
 def test_components_app_example():
     runner = CliRunner()
     result = runner.invoke(

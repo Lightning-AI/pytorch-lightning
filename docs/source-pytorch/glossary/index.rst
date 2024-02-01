@@ -11,6 +11,7 @@
    Console Logging <../common/console_logs>
    Debugging <../debug/debugging>
    DeepSpeed <../advanced/model_parallel/deepspeed>
+   Distributed Checkpoints <../common/checkpointing_expert>
    Early stopping <../common/early_stopping>
    Experiment manager (Logger) <../visualize/experiment_managers>
    Finetuning <../advanced/finetuning>
@@ -38,6 +39,7 @@
    Remote filesystem and FSSPEC <../common/remote_fs>
    Strategy <../extensions/strategy>
    Strategy registry <../advanced/strategy_registry>
+   Strategy integrations <../integrations/strategies/index>
    Style guide <../starter/style_guide>
    SWA <../advanced/training_tricks>
    SLURM <../clouds/cluster_advanced>
@@ -110,6 +112,13 @@ Glossary
    :description: Distribute models with billions of parameters across hundreds GPUs
    :col_css: col-md-12
    :button_link: ../advanced/model_parallel/deepspeed.html
+   :height: 100
+
+.. displayitem::
+   :header: Distributed Checkpoints
+   :description: Save and load very large models efficiently with distributed checkpoints
+   :col_css: col-md-12
+   :button_link: ../common/checkpointing_expert.html
    :height: 100
 
 .. displayitem::

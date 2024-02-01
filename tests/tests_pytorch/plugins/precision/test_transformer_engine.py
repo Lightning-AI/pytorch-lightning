@@ -33,11 +33,11 @@ def test_transformer_engine_precision_plugin(monkeypatch):
 
     connector = _AcceleratorConnector(precision="transformer-engine")
     assert isinstance(connector.precision_plugin, TransformerEnginePrecision)
-    assert connector.precision_plugin.dtype is torch.bfloat16
+    assert connector.precision_plugin.weights_dtype is torch.bfloat16
     connector = _AcceleratorConnector(precision="transformer-engine-float16")
-    assert connector.precision_plugin.dtype is torch.float16
+    assert connector.precision_plugin.weights_dtype is torch.float16
 
-    precision = TransformerEnginePrecision()
+    precision = TransformerEnginePrecision(weights_dtype=torch.float32)
     connector = _AcceleratorConnector(plugins=precision)
     assert connector.precision_plugin is precision
 
