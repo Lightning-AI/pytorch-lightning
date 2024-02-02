@@ -293,7 +293,6 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
                 )
                 del self._fsdp_kwargs["auto_wrap_policy"]
         else:
-            print(self._fsdp_kwargs)
             module = FullyShardedDataParallel(
                 module=module,
                 cpu_offload=self.cpu_offload,
