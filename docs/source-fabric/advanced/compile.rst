@@ -137,7 +137,7 @@ You can check whether your model produces graph breaks by calling ``torch.compil
     # Force an error if there is a graph break in the model
     model = torch.compile(model, fullgraph=True)
 
-Be aware that the error messages produced here are often quite cryptic, so you will likely have to do some `troubleshooting <pytorch.org/docs/stable/torch.compiler_troubleshooting.html>`_ to fully optimize your model.
+Be aware that the error messages produced here are often quite cryptic, so you will likely have to do some `troubleshooting <https://pytorch.org/docs/stable/torch.compiler_troubleshooting.html>`_ to fully optimize your model.
 
 
 ----
