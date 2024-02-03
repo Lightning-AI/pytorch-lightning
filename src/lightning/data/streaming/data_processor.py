@@ -588,7 +588,7 @@ class BaseWorker:
 
     def _handle_data_chunk_recipe(self, index: int) -> None:
         try:
-            self._current_item = self.items[index]
+            self._current_item = self.items[index] if self.reader is None else self.reader.read(self.items[index])
             item_data_or_generator = self.data_recipe.prepare_item(self._current_item)
             if isinstance(item_data_or_generator, types.GeneratorType):
                 for item_data in item_data_or_generator:
@@ -601,7 +601,7 @@ class BaseWorker:
                 self._try_upload(chunk_filepath)
                 self._index_counter += 1
         except Exception as e:
-            raise RuntimeError(f"Failed processing {self._current_item}") from e
+            raise RuntimeError(f"Failed processing {self.items[index]}") from e
 
     def _handle_data_chunk_recipe_end(self) -> None:
         chunks_filepaths = self.cache.done()
