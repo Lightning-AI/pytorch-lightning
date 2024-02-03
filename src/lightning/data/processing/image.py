@@ -1,8 +1,12 @@
-import urllib
 import io
+import traceback
+import urllib
+
+# Credit to the https://github.com/rom1504/pytorch Github repo
+# The code was taken from there.
 
 def is_disallowed(headers, user_agent_token, disallowed_header_directives):
-    """Check if HTTP headers contain an X-Robots-Tag directive disallowing usage"""
+    """Check if HTTP headers contain an X-Robots-Tag directive disallowing usage."""
     for values in headers.get_all("X-Robots-Tag", []):
         try:
             uatoken_directives = values.split(":", 1)
@@ -18,22 +22,27 @@ def is_disallowed(headers, user_agent_token, disallowed_header_directives):
     return False
 
 
-def download_image(url, timeout = 10, user_agent_token="img2dataset", disallowed_header_directives = ["noai", "noimageai", "noindex", "noimageindex"]):
-    """Download an image with urllib"""
+def _download_image(
+    url,
+    timeout=10,
+    user_agent_token="pytorch-lightning",
+    disallowed_header_directives=["noai", "noimageai", "noindex", "noimageindex"]
+):
+    """Download an image with urllib."""
     url
     img_stream = None
     user_agent_string = "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:72.0) Gecko/20100101 Firefox/72.0"
     if user_agent_token:
-        user_agent_string += f" (compatible; {user_agent_token}; +https://github.com/rom1504/img2dataset)"
+        user_agent_string += f" (compatible; {user_agent_token}; +https://github.com/Lightning-AI/pytorch-lightning)"
     try:
-        request = urllib.request.Request(url, data=None, headers={"User-Agent": user_agent_string})
-        with urllib.request.urlopen(request, timeout=timeout) as r:
+        request = urllib.request.Request(url, data=None, headers={"User-Agent": user_agent_string}) # noqa S310
+        with urllib.request.urlopen(request, timeout=timeout) as r: # noqa S310
             if disallowed_header_directives and is_disallowed(
                 r.headers,
                 user_agent_token,
                 disallowed_header_directives,
             ):
-                return key, None, "Use of image disallowed by X-Robots-Tag directive"
+                return None, "Use of image disallowed by X-Robots-Tag directive"
             img_stream = io.BytesIO(r.read())
         return img_stream, None
     except Exception as err:  # pylint: disable=broad-except
@@ -42,9 +51,15 @@ def download_image(url, timeout = 10, user_agent_token="img2dataset", disallowed
         return None, str(err)
 
 
-def download_image_with_retry(retries, url, timeout = 10, user_agent_token="img2dataset", disallowed_header_directives = []):
+def download_image(
+    url,
+    retries=0,
+    timeout=10,
+    user_agent_token="pytorch-lightning",
+    disallowed_header_directives=[]
+):
     for _ in range(retries + 1):
-        img_stream, err = download_image(url, timeout, user_agent_token, disallowed_header_directives)
+        img_stream, err = _download_image(url, timeout, user_agent_token, disallowed_header_directives)
         if img_stream is not None:
             return img_stream, err
     return None, err
