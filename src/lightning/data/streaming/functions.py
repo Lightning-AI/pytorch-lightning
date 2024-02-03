@@ -22,6 +22,7 @@ from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
 
 import torch
 
+from lightning.data.processing.readers import BaseReader
 from lightning.data.streaming.constants import _TORCH_GREATER_EQUAL_2_1_0
 from lightning.data.streaming.data_processor import DataChunkRecipe, DataProcessor, DataTransformRecipe
 from lightning.data.streaming.resolver import (
@@ -31,7 +32,6 @@ from lightning.data.streaming.resolver import (
     _execute,
     _resolve_dir,
 )
-from lightning.data.processing.readers import BaseReader
 
 if _TORCH_GREATER_EQUAL_2_1_0:
     from torch.utils._pytree import tree_flatten
