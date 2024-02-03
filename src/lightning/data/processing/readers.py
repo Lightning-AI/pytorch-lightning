@@ -1,11 +1,12 @@
 import os
 from abc import ABC, abstractmethod
-from lightning_utilities.core.imports import RequirementCache
-from typing import Any, List, Optional
 from dataclasses import dataclass
+from typing import Any, List, Optional
+
+from lightning_utilities.core.imports import RequirementCache
+
 from lightning.data.streaming.shuffle import _associate_chunks_and_internals_to_ranks
 from lightning.data.utilities.env import _DistributedEnv
-
 
 _POLARS_AVAILABLE = RequirementCache("polars")
 _PYARROW_AVAILABLE = RequirementCache("pyarrow")
@@ -76,11 +77,11 @@ class ParquetReader(BaseReader):
             return df
 
         raise RuntimeError("Please, install either pyarrow or polars.")
-        
+
 
     def to_workers_user_items(self, items: Any, num_workers: int) -> List[List[ParquetSlice]]:
         intervals = [(0, self._get_num_rows(item)) for item in items]
-        
+
         world_size = self.get_num_nodes() * num_workers
 
         fake_distributed_env = _DistributedEnv(world_size, 0, self.get_num_nodes())
@@ -92,8 +93,8 @@ class ParquetReader(BaseReader):
             if self.num_rows:
                 workers_user_items[worker_idx].extend([
                     ParquetSlice(
-                        items[parquet_index], parquet_slice_start, parquet_slice_start + self.num_rows 
-                        if parquet_slice[1] > (parquet_slice_start + self.num_rows) else  
+                        items[parquet_index], parquet_slice_start, parquet_slice_start + self.num_rows
+                        if parquet_slice[1] > (parquet_slice_start + self.num_rows) else
                         parquet_slice[1]
                     )
                     for parquet_index, parquet_slice in zip(parquet_indexes, parquet_slices)

@@ -1,8 +1,9 @@
-import urllib
 import io
+import urllib
+
 
 def is_disallowed(headers, user_agent_token, disallowed_header_directives):
-    """Check if HTTP headers contain an X-Robots-Tag directive disallowing usage"""
+    """Check if HTTP headers contain an X-Robots-Tag directive disallowing usage."""
     for values in headers.get_all("X-Robots-Tag", []):
         try:
             uatoken_directives = values.split(":", 1)
@@ -18,8 +19,8 @@ def is_disallowed(headers, user_agent_token, disallowed_header_directives):
     return False
 
 
-def download_image(url, timeout = 10, user_agent_token="img2dataset", disallowed_header_directives = ["noai", "noimageai", "noindex", "noimageindex"]):
-    """Download an image with urllib"""
+def download_image(url, timeout=10, user_agent_token="img2dataset", disallowed_header_directives=["noai", "noimageai", "noindex", "noimageindex"]):
+    """Download an image with urllib."""
     url
     img_stream = None
     user_agent_string = "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:72.0) Gecko/20100101 Firefox/72.0"
@@ -42,7 +43,7 @@ def download_image(url, timeout = 10, user_agent_token="img2dataset", disallowed
         return None, str(err)
 
 
-def download_image_with_retry(retries, url, timeout = 10, user_agent_token="img2dataset", disallowed_header_directives = []):
+def download_image_with_retry(retries, url, timeout=10, user_agent_token="img2dataset", disallowed_header_directives=[]):
     for _ in range(retries + 1):
         img_stream, err = download_image(url, timeout, user_agent_token, disallowed_header_directives)
         if img_stream is not None:
