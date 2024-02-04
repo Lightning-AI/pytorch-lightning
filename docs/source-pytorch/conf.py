@@ -94,18 +94,6 @@ assist_local.AssistantCLI.pull_docs_files(
     target_dir="docs/source-pytorch/integrations/hpu",
     checkout="refs/tags/1.3.0",
 )
-assist_local.AssistantCLI.pull_docs_files(
-    gh_user_repo="Lightning-AI/lightning-Graphcore",
-    target_dir="docs/source-pytorch/integrations/ipu",
-    checkout="refs/tags/v0.1.0",
-    as_orphan=True,  # todo: this can be dropped after new IPU release
-)
-# the IPU also need one image
-URL_RAW_DOCS_GRAPHCORE = "https://raw.githubusercontent.com/Lightning-AI/lightning-Graphcore/v0.1.0/docs/source"
-for img in ["_static/images/ipu/profiler.png"]:
-    img_ = os.path.join(_PATH_HERE, "integrations", "ipu", img)
-    os.makedirs(os.path.dirname(img_), exist_ok=True)
-    urllib.request.urlretrieve(f"{URL_RAW_DOCS_GRAPHCORE}/{img}", img_)
 
 # Copy strategies docs as single pages
 assist_local.AssistantCLI.pull_docs_files(
@@ -340,7 +328,6 @@ intersphinx_mapping = {
     "numpy": ("https://numpy.org/doc/stable/", None),
     "PIL": ("https://pillow.readthedocs.io/en/stable/", None),
     "torchmetrics": ("https://torchmetrics.readthedocs.io/en/stable/", None),
-    "graphcore": ("https://docs.graphcore.ai/en/latest/", None),
     "lightning_habana": ("https://lightning-ai.github.io/lightning-Habana/", None),
     "tensorboardX": ("https://tensorboardx.readthedocs.io/en/stable/", None),
     # needed for referencing App from lightning scope

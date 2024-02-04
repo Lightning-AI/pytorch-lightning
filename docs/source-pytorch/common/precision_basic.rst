@@ -110,7 +110,6 @@ Precision support by accelerator
      - CPU
      - GPU
      - TPU
-     - IPU
    * - 16 Mixed
      - No
      - Yes

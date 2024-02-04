@@ -34,7 +34,6 @@ from lightning.pytorch.trainer.states import RunningStage, TrainerFn
 from lightning.pytorch.utilities.combined_loader import CombinedLoader
 from lightning.pytorch.utilities.data import _is_dataloader_shuffled, _update_dataloader
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning.pytorch.utilities.imports import _graphcore_available_and_importable
 from lightning.pytorch.utilities.model_helpers import is_overridden
 from lightning.pytorch.utilities.rank_zero import WarningCache, rank_zero_warn
 from lightning.pytorch.utilities.types import EVAL_DATALOADERS, TRAIN_DATALOADERS
@@ -165,19 +164,11 @@ class _DataConnector:
         datamodule.trainer = trainer
 
     def _requires_distributed_sampler(self, dataloader: DataLoader) -> bool:
-        if _graphcore_available_and_importable():
-            from lightning_graphcore import IPUAccelerator
-
-            # `DistributedSampler` is never used with `poptorch.DataLoader`
-            is_ipu = isinstance(self.trainer.accelerator, IPUAccelerator)
-        else:
-            is_ipu = False
         return (
             self.trainer._accelerator_connector.use_distributed_sampler
             and self.trainer._accelerator_connector.is_distributed
             and not isinstance(dataloader.sampler, DistributedSampler)
             and not has_iterable_dataset(dataloader)
-            and not is_ipu
         )
 
     def _prepare_dataloader(self, dataloader: object, shuffle: bool, mode: RunningStage) -> object:
@@ -190,18 +181,9 @@ class _DataConnector:
         # don't do anything if it's not a dataloader
         if not isinstance(dataloader, DataLoader):
             return dataloader
-
-        if _graphcore_available_and_importable():
-            from lightning_graphcore import IPUAccelerator
-
-            # IPUs use a custom `poptorch.DataLoader` which we might need to convert to
-            is_ipu = isinstance(self.trainer.accelerator, IPUAccelerator)
-        else:
-            is_ipu = False
         if (
             self._requires_distributed_sampler(dataloader)  # sets the distributed sampler
             or mode == RunningStage.PREDICTING  # to track indices for the predictions
-            or is_ipu
         ):
             sampler = self._resolve_sampler(dataloader, shuffle=shuffle, mode=mode)
             return _update_dataloader(dataloader, sampler, mode=mode)
