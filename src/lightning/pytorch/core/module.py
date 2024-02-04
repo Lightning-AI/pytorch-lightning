@@ -1492,17 +1492,6 @@ class LightningModule(
 
         return torchscript_module
 
-    # def load_state_dict(self, state_dict: Mapping[str, Any], strict: bool = True, assign: bool = False) ->  _IncompatibleKeys:
-    #     if self._strict_loading is not None and strict != self._strict_loading:
-    #         raise ValueError(
-    #             f"You called `.load_state_dict(..., strict={strict!r})` but `{self.__class__.__name__}` was configured"
-    #             f" with `strict_loading={self.strict_loading!r}`. Please set the same value for both to resolve the"
-    #             " conflict."
-    #         )
-    #     strict_loading = True if self.strict_loading is None else self.strict_loading
-    #     strict = strict if strict is not None else strict_loading
-    #     return super().load_state_dict(state_dict=state_dict, strict=strict)
-
     @_restricted_classmethod
     def load_from_checkpoint(
         cls,
