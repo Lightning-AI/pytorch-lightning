@@ -221,6 +221,7 @@ def test_stateful_trainer_ckpt_path_support(tmp_path):
 
 @pytest.mark.parametrize(("strict_loading", "expected"), [(None, True), (True, True), (False, False)])
 def test_strict_loading(strict_loading, expected, tmp_path):
+    """Test that the connector respects the `LightningModule.strict_loading` setting."""
     model = BoringModel()
     trainer = Trainer(default_root_dir=tmp_path, barebones=True, max_steps=1)
     trainer.fit(model)
