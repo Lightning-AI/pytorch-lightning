@@ -214,7 +214,7 @@ class Fabric:
         module: nn.Module,
         *optimizers: Optimizer,
         move_to_device: bool = True,
-        _reapply_compile: Optional[bool] = None,
+        _reapply_compile: bool = True,
     ) -> Any:  # no specific return because the way we want our API to look does not play well with mypy
         r"""Set up a model and its optimizers for accelerated training.
 
@@ -223,10 +223,11 @@ class Fabric:
             *optimizers: The optimizer(s) to set up (no optimizers is also possible)
             move_to_device: If set ``True`` (default), moves the model to the correct device. Set this to ``False``
                 and alternatively use :meth:`to_device` manually.
-            _reapply_compile: (Experimental) If set to ``True``, and the model was ``torch.compile``d before, the
+            _reapply_compile: If ``True`` (default), and the model was ``torch.compile``d before, the
                 corresponding :class:`~torch._dynamo.OptimizedModule` wrapper will be removed and reapplied with the
                 same settings after the model was set up by the strategy (e.g., after the model was wrapped by DDP,
-                FSDP etc.). Only supported on PyTorch >= 2.1. Defaults to ``False``, but it may change in the future.
+                FSDP etc.). Only applies on PyTorch >= 2.1. Set it to ``False`` if compiling DDP/FSDP is causing
+                issues.
 
         Returns:
             The tuple containing wrapped module and the optimizers, in the same order they were passed in.
@@ -280,7 +281,7 @@ class Fabric:
         return module
 
     def setup_module(
-        self, module: nn.Module, move_to_device: bool = True, _reapply_compile: Optional[bool] = None
+        self, module: nn.Module, move_to_device: bool = True, _reapply_compile: bool = True
     ) -> _FabricModule:
         r"""Set up a model for accelerated training or inference.
 
@@ -292,11 +293,11 @@ class Fabric:
             module: A :class:`torch.nn.Module` to set up
             move_to_device: If set ``True`` (default), moves the model to the correct device. Set this to ``False``
                 and alternatively use :meth:`to_device` manually.
-            _reapply_compile: (Experimental) If set to ``True``, and the model was ``torch.compile``d before, the
+            _reapply_compile: If ``True`` (default), and the model was ``torch.compile``d before, the
                 corresponding :class:`~torch._dynamo.OptimizedModule` wrapper will be removed and reapplied with the
                 same settings after the model was set up by the strategy (e.g., after the model was wrapped by DDP,
-                FSDP etc.). Only supported on PyTorch >= 2.1. Defaults to ``False``, but it may change in the future.
-
+                FSDP etc.). Only applies on PyTorch >= 2.1. Set it to ``False`` if compiling DDP/FSDP is causing
+                issues.
         Returns:
             The wrapped model.
 

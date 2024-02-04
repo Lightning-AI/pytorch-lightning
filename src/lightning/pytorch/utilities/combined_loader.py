@@ -19,6 +19,7 @@ from torch.utils.data.dataloader import _BaseDataLoaderIter, _MultiProcessingDat
 from typing_extensions import Self, TypedDict, override
 
 from lightning.fabric.utilities.data import sized_len
+from lightning.fabric.utilities.types import _Stateful
 from lightning.pytorch.utilities._pytree import _map_and_unflatten, _tree_flatten, tree_unflatten
 
 _ITERATOR_RETURN = Tuple[Any, int, int]  # batch, batch_idx, dataloader_idx
@@ -373,6 +374,24 @@ class CombinedLoader(Iterable):
             raise NotImplementedError("All datasets are iterable-style datasets.")
         fn = _SUPPORTED_MODES[self._mode]["fn"]
         return fn(lengths)
+
+    def _state_dicts(self) -> List[Dict[str, Any]]:
+        """Returns the list of state dicts for iterables in `self.flattened` that are stateful."""
+        return [loader.state_dict() for loader in self.flattened if isinstance(loader, _Stateful)]
+
+    def _load_state_dicts(self, states: List[Dict[str, Any]]) -> None:
+        """Loads the state dicts for iterables in `self.flattened` that are stateful."""
+        if not states:
+            return
+        stateful_loaders = [loader for loader in self.flattened if isinstance(loader, _Stateful)]
+        if len(stateful_loaders) != len(states):
+            raise RuntimeError(
+                f"The CombinedLoader has {len(stateful_loaders)} stateful loaders, but found {len(states)} states"
+                " in the checkpoint. Please make sure you define the same dataloaders that were used when saving"
+                " the checkpoint."
+            )
+        for loader, state_dict in zip(stateful_loaders, states):
+            loader.load_state_dict(state_dict)
 
 
 def _shutdown_workers_and_reset_iterator(dataloader: object) -> None:
