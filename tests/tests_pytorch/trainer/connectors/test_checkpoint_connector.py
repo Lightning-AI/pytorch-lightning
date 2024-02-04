@@ -13,7 +13,7 @@
 # limitations under the License.
 import os
 from unittest import mock
-from unittest.mock import Mock, ANY
+from unittest.mock import ANY, Mock
 
 import pytest
 import torch
