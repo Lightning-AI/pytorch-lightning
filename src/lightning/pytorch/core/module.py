@@ -108,6 +108,7 @@ class LightningModule(
             "automatic_optimization",
             "trainer",
             "fabric",
+            "strict_loading",
         ]
         + _DeviceDtypeModuleMixin.__jit_unused_properties__
         + HyperparametersMixin.__jit_unused_properties__
