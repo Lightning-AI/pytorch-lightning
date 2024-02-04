@@ -163,11 +163,12 @@ def _load_state(
         return obj
 
     if isinstance(obj, pl.LightningModule):
-        if obj.strict_loading is not None and strict != obj.strict_loading:
+        if obj._strict_loading is not None and strict is not None and strict != obj.strict_loading:
             raise ValueError(
-                f"You set `.load_from_checkpoint(..., strict={strict!r})` but"
+                f"You set `.load_from_checkpoint(..., strict={strict!r})` which is in conflict with"
                 f" `{cls.__name__}.strict_loading={obj.strict_loading!r}. Please set the same value for both of them."
             )
+        strict = obj.strict_loading if strict is None else strict
 
         if is_overridden("configure_model", obj):
             obj.configure_model()
