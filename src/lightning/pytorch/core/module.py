@@ -14,7 +14,6 @@
 """The LightningModule - an nn.Module with many additional features."""
 import logging
 import numbers
-import operator
 import weakref
 from contextlib import contextmanager
 from pathlib import Path
@@ -37,7 +36,7 @@ from typing import (
 
 import torch
 from lightning_utilities.core.apply_func import apply_to_collection
-from lightning_utilities.core.imports import RequirementCache, compare_version
+from lightning_utilities.core.imports import RequirementCache
 from torch import ScriptModule, Tensor
 from torch.nn import Module
 from torch.optim.optimizer import Optimizer
@@ -689,9 +688,11 @@ class LightningModule(
 
         Return:
             - :class:`~torch.Tensor` - The loss tensor
-            - ``dict`` - A dictionary. Can include any keys, but must include the key ``'loss'``.
-            - ``None`` - Skip to the next batch. This is only supported for automatic optimization.
-                This is not supported for multi-GPU, TPU, IPU, or DeepSpeed.
+            - ``dict`` - A dictionary which can include any keys, but must include the key ``'loss'`` in the case of
+              automatic optimization.
+            - ``None`` - In automatic optimization, this will skip to the next batch (but is not supported for
+              multi-GPU, TPU, or DeepSpeed). For manual optimization, this has no special meaning, as returning
+              the loss is not required.
 
         In this step you'd normally do the forward pass and calculate the loss for a batch.
         You can also do fancier things like multiple forward passes or something model specific.
@@ -749,13 +750,11 @@ class LightningModule(
         .. code-block:: python
 
             # if you have one val dataloader:
-            def validation_step(self, batch, batch_idx):
-                ...
+            def validation_step(self, batch, batch_idx): ...
 
 
             # if you have multiple val dataloaders:
-            def validation_step(self, batch, batch_idx, dataloader_idx=0):
-                ...
+            def validation_step(self, batch, batch_idx, dataloader_idx=0): ...
 
         Examples::
 
@@ -818,13 +817,11 @@ class LightningModule(
         .. code-block:: python
 
             # if you have one test dataloader:
-            def test_step(self, batch, batch_idx):
-                ...
+            def test_step(self, batch, batch_idx): ...
 
 
             # if you have multiple test dataloaders:
-            def test_step(self, batch, batch_idx, dataloader_idx=0):
-                ...
+            def test_step(self, batch, batch_idx, dataloader_idx=0): ...
 
         Examples::
 
@@ -988,7 +985,7 @@ class LightningModule(
                     "lr_scheduler": {
                         "scheduler": ReduceLROnPlateau(optimizer, ...),
                         "monitor": "metric_to_track",
-                        "frequency": "indicates how often the metric is updated"
+                        "frequency": "indicates how often the metric is updated",
                         # If "monitor" references validation metrics, then "frequency" should be set to a
                         # multiple of "trainer.check_val_every_n_epoch".
                     },
@@ -1598,15 +1595,7 @@ class LightningModule(
         from torch.distributed._shard.sharded_tensor import pre_load_state_dict_hook, state_dict_hook
 
         self._register_state_dict_hook(state_dict_hook)
-
-        if compare_version("torch", operator.ge, "1.13.0", use_base_version=True):
-            # See https://github.com/Lightning-AI/lightning/issues/16644 for why a base-version check is used here
-            self._register_load_state_dict_pre_hook(pre_load_state_dict_hook, True)
-        else:
-            # We need to make sure the self inside the method is a weakref proxy
-            self.__class__._register_load_state_dict_pre_hook(
-                weakref.proxy(self), pre_load_state_dict_hook, True  # type: ignore[arg-type]
-            )
+        self._register_load_state_dict_pre_hook(pre_load_state_dict_hook, True)
 
 
 @contextmanager

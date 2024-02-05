@@ -179,9 +179,9 @@ def test_fetching_dataloader_iter_opt(automatic_optimization, tmpdir):
         def training_step(self, dataloader_iter):
             assert isinstance(self.trainer.fit_loop._data_fetcher, _DataLoaderIterDataFetcher)
             # fetch 2 batches
-            batch, batch_idx, dataloader_idx = next(dataloader_iter)
+            batch, batch_idx, _ = next(dataloader_iter)
             self.batches.append(batch)
-            batch, batch_idx, dataloader_idx = next(dataloader_iter)
+            batch, batch_idx, _ = next(dataloader_iter)
             self.batches.append(batch)
 
             batch = self.batches.pop(0)
@@ -216,7 +216,7 @@ def test_fetching_dataloader_iter_running_stages(fn, tmp_path):
     class TestModel(BoringModel):
         def fetch(self, data_fetcher, dataloader_iter):
             assert isinstance(data_fetcher, _DataLoaderIterDataFetcher)
-            batch, batch_idx, dataloader_idx = next(dataloader_iter)
+            batch, batch_idx, _ = next(dataloader_iter)
             assert data_fetcher.fetched == batch_idx + 1
             return batch
 

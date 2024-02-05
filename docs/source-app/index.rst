@@ -148,8 +148,6 @@ Explore pre-built community components in `our gallery <https://lightning.ai/com
    :maxdepth: 1
    :caption: More
 
-   Start from component templates <https://lightning.ai/components>
-   Start from app templates <https://lightning.ai/apps>
    Examples <examples/index>
    Glossary <glossary/index>
    How-to <workflows/index>

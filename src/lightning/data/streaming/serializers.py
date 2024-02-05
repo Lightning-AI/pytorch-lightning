@@ -11,6 +11,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import io
 import os
 import pickle
 import tempfile
@@ -109,8 +110,16 @@ class JPEGSerializer(Serializer):
                 raise ValueError(
                     "The JPEG Image's filename isn't defined. HINT: Open the image in your Dataset __getitem__ method."
                 )
-            with open(item.filename, "rb") as f:
-                return f.read(), None
+            if item.filename and os.path.exists(item.filename):
+                # read the content of the file directly
+                with open(item.filename, "rb") as f:
+                    return f.read(), None
+            else:
+                item_bytes = io.BytesIO()
+                item.save(item_bytes, format="JPEG")
+                item_bytes = item_bytes.getvalue()
+                return item_bytes, None
+
         raise TypeError(f"The provided itemect should be of type {JpegImageFile}. Found {item}.")
 
     def deserialize(self, data: bytes) -> Union[JpegImageFile, torch.Tensor]:

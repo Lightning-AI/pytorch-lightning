@@ -5,31 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
-## [Unreleased] - 202X-XX-XX
-
-### Added
-
--
-
+## [2.1.3] - 2023-12-21
 
 ### Changed
 
--
-
-
-### Deprecated
-
--
-
-
-### Removed
-
--
-
-
-### Fixed
-
--
+- Lightning App: Use the batch get endpoint ([#19180](https://github.com/Lightning-AI/lightning/pull/19180))
+- Drop starsessions from App's requirements ([#18470](https://github.com/Lightning-AI/lightning/pull/18470))
+- Optimize loading time for chunks to be there ([#19109](https://github.com/Lightning-AI/lightning/pull/19109))
 
 
 ## [2.1.2] - 2023-11-15

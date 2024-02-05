@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-import sys
 from re import escape
 from unittest import mock
 from unittest.mock import ANY, MagicMock, Mock, PropertyMock, call
@@ -21,7 +20,6 @@ import pytest
 import torch
 import torch.distributed
 import torch.nn.functional
-from lightning.fabric.accelerators.xla import _using_pjrt
 from lightning.fabric.fabric import Fabric
 from lightning.fabric.plugins import Precision
 from lightning.fabric.strategies import (
@@ -35,7 +33,6 @@ from lightning.fabric.strategies import (
 )
 from lightning.fabric.strategies.strategy import _Sharded
 from lightning.fabric.utilities.exceptions import MisconfigurationException
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_1
 from lightning.fabric.utilities.seed import pl_worker_init_function, seed_everything
 from lightning.fabric.utilities.warnings import PossibleUserWarning
 from lightning.fabric.wrappers import _FabricDataLoader, _FabricModule, _FabricOptimizer
@@ -92,18 +89,28 @@ def test_setup_module(ddp_mock, setup_method):
 
 @RunIf(skip_windows=True, dynamo=True)
 @pytest.mark.parametrize("setup_method", ["setup", "setup_module"])
-def test_setup_compiled_module(setup_method):
+@pytest.mark.parametrize("reapply_compile", [True, False, None])
+def test_setup_compiled_module(reapply_compile, setup_method):
     """Test that an `OptimizedModule` can be passed to the setup method."""
     from torch._dynamo.eval_frame import OptimizedModule
 
     fabric = Fabric(devices=1)
     model = nn.Linear(1, 2)
     compiled_model = torch.compile(model)
+    assert compiled_model._compile_kwargs is not None
     assert isinstance(compiled_model, OptimizedModule)
     setup_method = getattr(fabric, setup_method)
-    fabric_model = setup_method(compiled_model)
+    fabric_model = setup_method(compiled_model, _reapply_compile=reapply_compile)
 
-    assert fabric_model.module == compiled_model
+    assert isinstance(fabric_model._forward_module, OptimizedModule)
+    if reapply_compile:
+        # The forward_module got rewrapped into a new OptimizedModule
+        assert fabric_model._forward_module != fabric_model._original_module
+        # The original_module points to the pure module
+        assert fabric_model._original_module is model
+        assert fabric_model._forward_module._orig_mod is model
+    else:
+        assert fabric_model._forward_module is fabric_model._original_module
     # Attributes get passed through
     assert fabric_model.weight is model.weight
 
@@ -157,8 +164,8 @@ def test_setup_module_parameters_on_different_devices(setup_method, move_to_devi
 
     fabric = Fabric(accelerator="cuda", devices=1)
 
-    module0 = nn.Linear(1, 2).to(device0)
-    module1 = nn.Linear(1, 2).to(device1)
+    module0 = nn.Linear(1, 2, device=device0)
+    module1 = nn.Linear(1, 2, device=device1)
     model = nn.Sequential(module0, module1)
 
     setup_method = getattr(fabric, setup_method)
@@ -174,7 +181,14 @@ def test_setup_module_parameters_on_different_devices(setup_method, move_to_devi
         assert module1.weight.device == module1.bias.device == device1
     else:
         with no_warning_call(expected_warning=PossibleUserWarning, match=match):
-            setup_method(model, move_to_device=move_to_device)
+            fabric_model = setup_method(model, move_to_device=move_to_device)
+
+        # the first device is set at the root
+        assert fabric_model.device == device0
+        assert fabric_model._device == device0
+        # the weights were not moved
+        assert module0.weight.device == module0.bias.device == device0
+        assert module1.weight.device == module1.bias.device == device1
 
 
 def test_setup_module_and_optimizers():
@@ -558,9 +572,6 @@ def test_setup_dataloaders_replace_standard_sampler(shuffle, strategy):
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_to_device(accelerator, expected):
     """Test that the to_device method can move various objects to the device determined by the accelerator."""
-    if accelerator == "tpu" and not _using_pjrt():
-        expected = "xla:1"
-
     fabric = Fabric(accelerator=accelerator, devices=1)
     fabric.launch()
 
@@ -1197,40 +1208,3 @@ def test_verify_launch_called():
     fabric.launch()
     assert fabric._launched
     fabric._validate_launched()
-
-
-@pytest.mark.skipif(sys.platform == "darwin" and not _TORCH_GREATER_EQUAL_2_1, reason="Fix for MacOS in PyTorch 2.1")
-@RunIf(dynamo=True)
-@pytest.mark.parametrize(
-    "kwargs",
-    [
-        {},
-        pytest.param({"precision": "16-true"}, marks=pytest.mark.xfail(raises=RuntimeError, match="Unsupported")),
-        pytest.param({"precision": "64-true"}, marks=pytest.mark.xfail(raises=RuntimeError, match="Unsupported")),
-    ],
-)
-def test_fabric_with_torchdynamo_fullgraph(kwargs):
-    class MyModel(torch.nn.Module):
-        def __init__(self):
-            super().__init__()
-            self.l = torch.nn.Linear(10, 10)
-
-        def forward(self, x):
-            # forward gets compiled
-            assert torch._dynamo.is_compiling()
-            return self.l(x)
-
-    def fn(model, x):
-        assert torch._dynamo.is_compiling()
-        a = x * 10
-        return model(a)
-
-    fabric = Fabric(devices=1, accelerator="cpu", **kwargs)
-    model = MyModel()
-    fmodel = fabric.setup(model)
-    # we are compiling a function that calls model.forward() inside
-    cfn = torch.compile(fn, fullgraph=True)
-    x = torch.randn(10, 10, device=fabric.device)
-    # pass the fabric wrapped model to the compiled function, so that it gets compiled too
-    out = cfn(fmodel, x)
-    assert isinstance(out, torch.Tensor)

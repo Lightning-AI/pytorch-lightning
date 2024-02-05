@@ -16,9 +16,10 @@ from collections.abc import Iterable
 from typing import Any, Callable, Dict, Iterator, List, Literal, Optional, Tuple, Type, Union
 
 from torch.utils.data.dataloader import _BaseDataLoaderIter, _MultiProcessingDataLoaderIter
-from typing_extensions import Self, TypedDict
+from typing_extensions import Self, TypedDict, override
 
 from lightning.fabric.utilities.data import sized_len
+from lightning.fabric.utilities.types import _Stateful
 from lightning.pytorch.utilities._pytree import _map_and_unflatten, _tree_flatten, tree_unflatten
 
 _ITERATOR_RETURN = Tuple[Any, int, int]  # batch, batch_idx, dataloader_idx
@@ -33,9 +34,11 @@ class _ModeIterator(Iterator[_ITERATOR_RETURN]):
         self._idx = 0  # what would be batch_idx
         self.limits = limits
 
+    @override
     def __next__(self) -> _ITERATOR_RETURN:
         raise NotImplementedError
 
+    @override
     def __iter__(self) -> Self:
         self.iterators = [iter(iterable) for iterable in self.iterables]
         self._idx = 0
@@ -66,6 +69,7 @@ class _MaxSizeCycle(_ModeIterator):
         super().__init__(iterables, limits)
         self._consumed: List[bool] = []
 
+    @override
     def __next__(self) -> _ITERATOR_RETURN:
         n = len(self.iterators)
         out = [None] * n  # values per iterator
@@ -83,29 +87,34 @@ class _MaxSizeCycle(_ModeIterator):
         self._idx += 1
         return out, index, 0
 
+    @override
     def __iter__(self) -> Self:
         super().__iter__()
         self._consumed = [False] * len(self.iterables)
         return self
 
+    @override
     def __len__(self) -> int:
         lengths = _get_iterables_lengths(self.iterables)
         if self.limits is not None:
             return max(min(length, limit) for length, limit in zip(lengths, self.limits))  # type: ignore[return-value]
         return max(lengths)  # type: ignore[return-value]
 
+    @override
     def reset(self) -> None:
         super().reset()
         self._consumed = []
 
 
 class _MinSize(_ModeIterator):
+    @override
     def __next__(self) -> _ITERATOR_RETURN:
         out = [next(it) for it in self.iterators]
         index = self._idx
         self._idx += 1
         return out, index, 0
 
+    @override
     def __len__(self) -> int:
         lengths = _get_iterables_lengths(self.iterables)
         return min(lengths + self.limits) if self.limits is not None else min(lengths)  # type: ignore[return-value]
@@ -116,6 +125,7 @@ class _Sequential(_ModeIterator):
         super().__init__(iterables, limits)
         self._iterator_idx = 0  # what would be dataloader_idx
 
+    @override
     def __next__(self) -> _ITERATOR_RETURN:
         n = len(self.iterables)
         if n == 0 or self._iterator_idx >= n:
@@ -138,18 +148,21 @@ class _Sequential(_ModeIterator):
         self._idx += 1
         return out, index, self._iterator_idx
 
+    @override
     def __iter__(self) -> Self:
         self._iterator_idx = 0
         self._idx = 0
         self._load_current_iterator()
         return self
 
+    @override
     def __len__(self) -> int:
         lengths = _get_iterables_lengths(self.iterables)
         if self.limits is not None:
             return sum(min(length, limit) for length, limit in zip(lengths, self.limits))  # type: ignore[misc]
         return sum(lengths)  # type: ignore[arg-type]
 
+    @override
     def reset(self) -> None:
         super().reset()
         self._iterator_idx = 0
@@ -169,6 +182,7 @@ class _Sequential(_ModeIterator):
 
 
 class _MaxSize(_ModeIterator):
+    @override
     def __next__(self) -> _ITERATOR_RETURN:
         n = len(self.iterators)
         out = [None] * n
@@ -183,6 +197,7 @@ class _MaxSize(_ModeIterator):
         self._idx += 1
         return out, index, 0
 
+    @override
     def __len__(self) -> int:
         lengths = _get_iterables_lengths(self.iterables)
         if self.limits is not None:
@@ -329,6 +344,7 @@ class CombinedLoader(Iterable):
         out, batch_idx, dataloader_idx = out
         return tree_unflatten(out, self._spec), batch_idx, dataloader_idx
 
+    @override
     def __iter__(self) -> Self:
         cls = _SUPPORTED_MODES[self._mode]["iterator"]
         iterator = cls(self.flattened, self._limits)
@@ -358,6 +374,24 @@ class CombinedLoader(Iterable):
             raise NotImplementedError("All datasets are iterable-style datasets.")
         fn = _SUPPORTED_MODES[self._mode]["fn"]
         return fn(lengths)
+
+    def _state_dicts(self) -> List[Dict[str, Any]]:
+        """Returns the list of state dicts for iterables in `self.flattened` that are stateful."""
+        return [loader.state_dict() for loader in self.flattened if isinstance(loader, _Stateful)]
+
+    def _load_state_dicts(self, states: List[Dict[str, Any]]) -> None:
+        """Loads the state dicts for iterables in `self.flattened` that are stateful."""
+        if not states:
+            return
+        stateful_loaders = [loader for loader in self.flattened if isinstance(loader, _Stateful)]
+        if len(stateful_loaders) != len(states):
+            raise RuntimeError(
+                f"The CombinedLoader has {len(stateful_loaders)} stateful loaders, but found {len(states)} states"
+                " in the checkpoint. Please make sure you define the same dataloaders that were used when saving"
+                " the checkpoint."
+            )
+        for loader, state_dict in zip(stateful_loaders, states):
+            loader.load_state_dict(state_dict)
 
 
 def _shutdown_workers_and_reset_iterator(dataloader: object) -> None:
