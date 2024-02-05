@@ -1,4 +1,5 @@
 import os
+import sys
 
 import pytest
 from lightning.data import map
@@ -32,7 +33,10 @@ def map_parquet(df, output_dir):
     with open(os.path.join(output_dir, filename), "w") as f:
         f.write("hello world")
 
-@pytest.mark.skipif(not _POLARS_AVAILABLE and not _PYARROW_AVAILABLE, reason="polars and pyarrow are required")
+@pytest.mark.skipif(
+    not _POLARS_AVAILABLE and not _PYARROW_AVAILABLE and sys.platform == "linux",
+    reason="polars and pyarrow are required"
+)
 def test_parquet_reader(tmpdir):
     import polars as pol
 
