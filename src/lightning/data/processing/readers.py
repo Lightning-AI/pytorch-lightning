@@ -100,7 +100,7 @@ class ParquetReader(BaseReader):
         parquet_indexes_per_worker, parquet_slices_per_worker = _associate_chunks_and_internals_to_ranks(
             fake_distributed_env, list(range(len(items))), intervals, False)
 
-        workers_user_items = [[] for _ in range(world_size)]
+        workers_user_items: List[List[ParquetSlice]] = [[] for _ in range(world_size)]
 
         iterator = enumerate(zip(parquet_indexes_per_worker, parquet_slices_per_worker))
 
