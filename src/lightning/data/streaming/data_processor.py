@@ -396,7 +396,7 @@ class BaseWorker:
         num_downloader_finished = 0
 
         while True:
-            index = self.ready_to_process_queue.get(timeout=1)
+            index = self.ready_to_process_queue.get()
 
             if index is None:
                 num_downloader_finished += 1
