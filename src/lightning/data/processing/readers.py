@@ -96,33 +96,33 @@ class ParquetReader(BaseReader):
         node_rank = self.get_node_rank()
 
         fake_distributed_env = _DistributedEnv(world_size, 0, self.get_num_nodes())
-        parquet_indexes_per_worker, parquet_slices_per_worker = _associate_chunks_and_internals_to_ranks(
+        parquet_indexes_per_worker, p_slices_per_worker = _associate_chunks_and_internals_to_ranks(
             fake_distributed_env, list(range(len(items))), intervals, False)
 
         workers_user_items: List[List[ParquetSlice]] = [[] for _ in range(num_workers)]
 
-        iterator = enumerate(zip(parquet_indexes_per_worker, parquet_slices_per_worker))
+        iterator = enumerate(zip(parquet_indexes_per_worker, p_slices_per_worker))
 
         node_start = node_rank * num_workers
         node_end = (node_rank + 1) * num_workers
 
-        for worker_idx, (parquet_indexes, parquet_slices) in iterator:
+        for worker_idx, (parquet_indexes, p_slices) in iterator:
             if node_start <= worker_idx < node_end:
                 if self.num_rows:
                     workers_user_items[worker_idx % num_workers].extend([
                         ParquetSlice(
-                            items[parquet_index], parquet_slice_start, parquet_slice_start + self.num_rows
-                            if parquet_slice[1] > (parquet_slice_start + self.num_rows) else
-                            parquet_slice[1]
+                            items[parquet_index], p_slice_start, p_slice_start + self.num_rows
+                            if p_slice[1] > (p_slice_start + self.num_rows) else
+                            p_slice[1]
                         )
-                        for parquet_index, parquet_slice in zip(parquet_indexes, parquet_slices)
-                        for parquet_slice_start in range(parquet_slice[0], parquet_slice[1] + self.num_rows, self.num_rows)
-                        if parquet_slice_start < parquet_slice[1]
+                        for parquet_index, p_slice in zip(parquet_indexes, p_slices)
+                        for p_slice_start in range(p_slice[0], p_slice[1] + self.num_rows, self.num_rows)
+                        if p_slice_start < p_slice[1]
                     ])
                 else:
                     workers_user_items[worker_idx % num_workers].extend([
-                        ParquetSlice(items[parquet_index], *parquet_slice)
-                        for parquet_index, parquet_slice in zip(parquet_indexes, parquet_slices)
+                        ParquetSlice(items[parquet_index], *p_slice)
+                        for parquet_index, p_slice in zip(parquet_indexes, p_slices)
                     ])
 
         assert len(workers_user_items) == num_workers
