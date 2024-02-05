@@ -125,7 +125,7 @@ class ParquetReader(BaseReader):
                         for parquet_index, parquet_slice in zip(parquet_indexes, parquet_slices)
                     ])
 
-        assert len(workers_user_items) == num_workers 
+        assert len(workers_user_items) == num_workers
         assert all(len(w) for w in workers_user_items)
 
         return workers_user_items
