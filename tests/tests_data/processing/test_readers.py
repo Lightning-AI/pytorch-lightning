@@ -8,7 +8,7 @@ from lightning.data.processing.readers import _POLARS_AVAILABLE, _PYARROW_AVAILA
 
 class DummyReader(BaseReader):
 
-    def to_workers_user_items(self, items, num_workers: int):
+    def items_to_workers(self, items, num_workers: int):
         return [[(worker_idx, idx, item) for idx, item in enumerate(items)] for worker_idx in range(num_workers)]
 
     def read(self, item):

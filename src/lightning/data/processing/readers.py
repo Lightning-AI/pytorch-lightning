@@ -18,7 +18,7 @@ class BaseReader(ABC):
         return int(os.getenv("DATA_OPTIMIZER_NUM_NODES", 1))
 
     @abstractmethod
-    def to_workers_user_items(self, items: List[Any], num_workers: int) -> List[List[Any]]:
+    def items_to_workers(self, items: List[Any], num_workers: int) -> List[List[Any]]:
         """This method is meant to convert the items provided by the users into items to be processed by the
         workers."""
         pass
@@ -86,7 +86,7 @@ class ParquetReader(BaseReader):
         raise RuntimeError("Please, install either pyarrow or polars.")
 
 
-    def to_workers_user_items(self, items: Any, num_workers: int) -> List[List[ParquetSlice]]:
+    def items_to_workers(self, items: Any, num_workers: int) -> List[List[ParquetSlice]]:
         intervals = [(0, self._get_num_rows(item)) for item in items]
 
         world_size = self.get_num_nodes() * num_workers

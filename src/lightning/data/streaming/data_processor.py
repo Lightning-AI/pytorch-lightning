@@ -866,7 +866,7 @@ class DataProcessor:
             raise ValueError("The `prepare_structure` should return a list of item metadata.")
 
         if self.reader:
-            workers_user_items = self.reader.to_workers_user_items(user_items, self.num_workers)
+            workers_user_items = self.reader.items_to_workers(user_items, self.num_workers)
 
         elif self.weights is not None:
             if len(self.weights) != len(user_items):

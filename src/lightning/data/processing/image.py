@@ -5,8 +5,8 @@ from lightning_utilities.core.imports import RequirementCache
 
 _HTTPX_AVAILABLE = RequirementCache("httpx")
 
-# Credit to the https://github.com/rom1504/pytorch Github repo
-# The code was taken from there.
+# Credit to the https://github.com/rom1504/img2dataset Github repo
+# The code was taken from there. It has a MIT License.
 
 def _download_image(
     url: str,
