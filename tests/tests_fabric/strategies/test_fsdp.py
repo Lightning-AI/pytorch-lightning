@@ -76,16 +76,26 @@ def test_fsdp_sharding_strategy():
 
 @RunIf(min_torch="2.0")
 @pytest.mark.parametrize("sharding_strategy", ["HYBRID_SHARD", "_HYBRID_SHARD_ZERO2"])
-def test_fsdp_hybrid_sharding_strategy(sharding_strategy):
+def test_fsdp_hybrid_shard_configuration(sharding_strategy):
     """Test that the hybrid sharding strategies can only be used with automatic wrapping or a manually specified pg."""
-    with pytest.raises(RuntimeError, match="The hybrid sharding strategy requires you to either set"):
+    with pytest.raises(RuntimeError, match="The hybrid sharding strategy requires you to pass at least one of"):
         FSDPStrategy(sharding_strategy=sharding_strategy)
 
     strategy = FSDPStrategy(auto_wrap_policy={nn.Linear}, sharding_strategy=sharding_strategy)
     assert strategy.sharding_strategy.name == sharding_strategy
 
-    strategy = FSDPStrategy(sharding_strategy=sharding_strategy, process_group=(Mock(), Mock()))
+    process_group = (Mock(), Mock())
+    strategy = FSDPStrategy(sharding_strategy=sharding_strategy, process_group=process_group)
     assert strategy.sharding_strategy.name == sharding_strategy
+    assert strategy._fsdp_kwargs["process_group"] is process_group
+
+    device_mesh = Mock()
+    strategy = FSDPStrategy(sharding_strategy=sharding_strategy, device_mesh=device_mesh)
+    assert strategy.sharding_strategy.name == sharding_strategy
+    assert strategy._fsdp_kwargs["device_mesh"] is device_mesh
+
+    with pytest.raises(ValueError, match="process_group.* device_mesh=.* are mutually exclusive"):
+        FSDPStrategy(sharding_strategy=sharding_strategy, process_group=process_group, device_mesh=device_mesh)
 
 
 def test_fsdp_checkpoint_io_unsupported():

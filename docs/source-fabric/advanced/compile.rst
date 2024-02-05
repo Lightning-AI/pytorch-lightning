@@ -220,6 +220,7 @@ On PyTorch 2.2 and later, ``torch.compile`` will detect dynamism automatically a
 
     Numbers produced with NVIDIA A100 SXM4 40GB, PyTorch 2.2.0, CUDA 12.1.
 
+
 ----
 
 
@@ -255,32 +256,6 @@ Naturally, the tradoff here is that it will consume a bit more memory.
 
 You can find a full list of compile options in the `PyTorch documentation <https://pytorch.org/docs/stable/generated/torch.compile.html>`_.
 
-----
-
-
-*******************************************************
-(Experimental) Apply torch.compile over FSDP, DDP, etc.
-*******************************************************
-
-As stated earlier, we recommend that you compile the model before calling ``fabric.setup()``.
-However, if you are using DDP or FSDP with Fabric, the compilation won't incorporate the distributed calls inside these wrappers by default.
-In an experimental feature, you can let ``fabric.setup()`` reapply the ``torch.compile`` call after the model gets wrapped in DDP/FSDP internally.
-In the future, this option will become the default.
-
-.. code-block:: python
-
-    # Choose a distributed strategy like DDP or FSDP
-    fabric = L.Fabric(devices=2, strategy="ddp")
-
-    # Compile the model
-    model = torch.compile(model)
-
-    # Default: `fabric.setup()` will not reapply the compilation over DDP/FSDP
-    model = fabric.setup(model, _reapply_compile=False)
-
-    # Recompile the model over DDP/FSDP (experimental)
-    model = fabric.setup(model, _reapply_compile=True)
-
 
 ----
 
@@ -295,5 +270,33 @@ It is also not uncommon that ``torch.compile`` will produce a significantly *slo
 On top of that, the compilation phase itself can be incredibly slow, taking several minutes to finish.
 For these reasons, we recommend that you don't waste too much time trying to apply ``torch.compile`` during development, and rather evaluate its effectiveness toward the end when you are about to launch long-running, expensive experiments.
 Always compare the speed and memory usage of the compiled model against the original model!
+
+
+----
+
+
+*************************************
+Using torch.compile with FSDP and DDP
+*************************************
+
+As stated earlier, we recommend that you compile the model before calling ``fabric.setup()``.
+In the case of DDP and FSDP, ``fabric.setup()`` will automatically reapply the ``torch.compile`` call after the model gets wrapped in DDP/FSDP internally.
+This will ensure that the compilation can incorporate the distributed calls and optimize them.
+However, should you have issues compiling DDP and FSDP models, you can opt out of this feature:
+
+.. code-block:: python
+
+    # Choose a distributed strategy like DDP or FSDP
+    fabric = L.Fabric(devices=2, strategy="ddp")
+
+    # Compile the model
+    model = torch.compile(model)
+
+    # Default: `fabric.setup()` will configure compilation over DDP/FSDP for you
+    model = fabric.setup(model, _reapply_compile=True)
+
+    # Turn it off if you see issues with DDP/FSDP
+    model = fabric.setup(model, _reapply_compile=False)
+
 
 |

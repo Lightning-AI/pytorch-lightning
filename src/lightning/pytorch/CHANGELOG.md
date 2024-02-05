@@ -41,6 +41,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Fixed issue where the `precision="transformer-engine"` argument would not replace layers by default ([#19082](https://github.com/Lightning-AI/lightning/pull/19082))
 - Fixed issue where layers created in `LightningModule.setup` or `LightningModule.configure_model` wouldn't get converted when using the Bitsandbytes or TransformerEngine plugins ([#19061](https://github.com/Lightning-AI/lightning/pull/19061))
+- Fixed the input validation logic in `FSDPStrategy` to accept a `device_mesh` ([#19392](https://github.com/Lightning-AI/lightning/pull/19392))
 
 
 ## [2.1.4] - 2024-01-31

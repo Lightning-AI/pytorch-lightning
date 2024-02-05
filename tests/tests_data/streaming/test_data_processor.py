@@ -255,50 +255,52 @@ def test_cache_dir_cleanup(tmpdir, monkeypatch):
 
 
 def test_map_items_to_workers_weighted(monkeypatch):
+    seed_everything(42)
+
     workers_user_items = _map_items_to_workers_weighted(1, list(range(5)))
-    assert workers_user_items == [list(range(5))]
+    assert workers_user_items == [[1, 4, 2, 0, 3]]
     workers_user_items = _map_items_to_workers_weighted(2, list(range(5)))
-    assert workers_user_items == [[0, 2, 4], [1, 3]]
+    assert workers_user_items == [[2, 4, 0], [3, 1]]
     workers_user_items = _map_items_to_workers_weighted(3, list(range(5)))
-    assert workers_user_items == [[0, 3], [1, 4], [2]]
+    assert workers_user_items == [[0, 3], [4, 1], [2]]
     workers_user_items = _map_items_to_workers_weighted(4, list(range(5)))
-    assert workers_user_items == [[0, 4], [1], [2], [3]]
+    assert workers_user_items == [[4, 0], [1], [2], [3]]
 
     monkeypatch.setenv("DATA_OPTIMIZER_NUM_NODES", "2")
     monkeypatch.setenv("DATA_OPTIMIZER_NODE_RANK", "0")
     workers_user_items = _map_items_to_workers_weighted(1, list(range(5)))
-    assert workers_user_items == [[0, 2, 4]]
+    assert workers_user_items == [[2, 0, 4]]
     workers_user_items = _map_items_to_workers_weighted(2, list(range(5)))
     assert workers_user_items == [[0, 4], [1]]
 
     monkeypatch.setenv("DATA_OPTIMIZER_NUM_NODES", "2")
     monkeypatch.setenv("DATA_OPTIMIZER_NODE_RANK", "1")
     workers_user_items = _map_items_to_workers_weighted(1, list(range(5)))
-    assert workers_user_items == [[1, 3]]
+    assert workers_user_items == [[3, 1]]
     workers_user_items = _map_items_to_workers_weighted(2, list(range(5)))
     assert workers_user_items == [[2], [3]]
 
     monkeypatch.setenv("DATA_OPTIMIZER_NUM_NODES", "4")
     monkeypatch.setenv("DATA_OPTIMIZER_NODE_RANK", "0")
     workers_user_items = _map_items_to_workers_weighted(1, list(range(32)))
-    assert workers_user_items == [[0, 4, 8, 12, 16, 20, 24, 28]]
+    assert workers_user_items == [[0, 24, 28, 4, 16, 20, 8, 12]]
     workers_user_items = _map_items_to_workers_weighted(2, list(range(32)))
-    assert workers_user_items == [[0, 8, 16, 24], [1, 9, 17, 25]]
+    assert workers_user_items == [[24, 16, 0, 8], [1, 17, 9, 25]]
     workers_user_items = _map_items_to_workers_weighted(3, list(range(32)))
-    assert workers_user_items == [[0, 12, 24], [1, 13, 25], [2, 14, 26]]
+    assert workers_user_items == [[24, 12, 0], [13, 25, 1], [14, 2, 26]]
     workers_user_items = _map_items_to_workers_weighted(4, list(range(32)))
-    assert workers_user_items == [[0, 16], [1, 17], [2, 18], [3, 19]]
+    assert workers_user_items == [[16, 0], [1, 17], [2, 18], [3, 19]]
 
     monkeypatch.setenv("DATA_OPTIMIZER_NUM_NODES", "4")
     monkeypatch.setenv("DATA_OPTIMIZER_NODE_RANK", "3")
     workers_user_items = _map_items_to_workers_weighted(1, list(range(32)))
-    assert workers_user_items == [[3, 7, 11, 15, 19, 23, 27, 31]]
+    assert workers_user_items == [[3, 7, 19, 31, 11, 23, 27, 15]]
     workers_user_items = _map_items_to_workers_weighted(2, list(range(32)))
-    assert workers_user_items == [[6, 14, 22, 30], [7, 15, 23, 31]]
+    assert workers_user_items == [[14, 22, 6, 30], [15, 31, 23, 7]]
     workers_user_items = _map_items_to_workers_weighted(3, list(range(32)))
-    assert workers_user_items == [[9, 21], [10, 22], [11, 23]]
+    assert workers_user_items == [[21, 9], [22, 10], [23, 11]]
     workers_user_items = _map_items_to_workers_weighted(4, list(range(32)))
-    assert workers_user_items == [[12, 28], [13, 29], [14, 30], [15, 31]]
+    assert workers_user_items == [[12, 28], [13, 29], [30, 14], [15, 31]]
 
 
 def test_map_items_to_workers_sequentially(monkeypatch):
