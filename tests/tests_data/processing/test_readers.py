@@ -34,7 +34,7 @@ def map_parquet(df, output_dir):
         f.write("hello world")
 
 @pytest.mark.skipif(
-    not _POLARS_AVAILABLE and not _PYARROW_AVAILABLE and sys.platform == "linux",
+    (not _POLARS_AVAILABLE and not _PYARROW_AVAILABLE) or sys.platform == "linux",
     reason="polars and pyarrow are required"
 )
 def test_parquet_reader(tmpdir):
