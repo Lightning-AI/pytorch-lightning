@@ -816,6 +816,7 @@ class DataProcessor:
                 Set this to ``False`` if the order in which samples are processed should be preserved.
             weights: Provide a list of weights associated to the inputs.
                 This is used to evenly split the work among the workers.
+            reader: Map the inputs to worker inputs and provides a read method to read a slice of the data.
 
         """
         self.input_dir = _resolve_dir(input_dir)
@@ -833,6 +834,9 @@ class DataProcessor:
         self.reorder_files = reorder_files
         self.weights = weights
         self.reader = reader
+
+        if self.reader is not None and self.weights is not None:
+            raise ValueError("Either the reader or the weights needs to be defined.")
 
         # Ensure the input dir is the same across all nodes
         self.input_dir = broadcast_object("input_dir", self.input_dir)

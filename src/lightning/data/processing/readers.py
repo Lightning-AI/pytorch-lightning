@@ -64,12 +64,7 @@ class ParquetReader(BaseReader):
     def read(self, item: ParquetSlice) -> Any:
         if _POLARS_AVAILABLE:
             import polars as pol
-            df = pol.read_parquet(
-                item.filepath,
-                row_index_offset=item.start,
-                n_rows=item.end - item.start,
-                parallel="row_groups"
-            )
+            df = pol.scan_parquet(item.filepath).slice(item.start, item.end).collect()
 
             if self.to_pandas:
                 df = df.to_pandas()
