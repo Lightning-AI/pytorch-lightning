@@ -98,7 +98,7 @@ A common use case is when you have a pretrained feature extractor or encoder tha
             super().__init__()
 
             # This model only trains the decoder, we don't save the encoder
-            self.encoder = from_pretrained(...)
+            self.encoder = from_pretrained(...).requires_grad_(False)
             self.decoder = Decoder()
 
             # Set to False because we only care about the decoder
