@@ -498,7 +498,7 @@ class BaseWorker:
                 element: str = str(Path(element).resolve())
                 return (
                     element.startswith(self.input_dir.path)
-                    if self.input_dir.path is not None
+                    if self.input_dir.path is not None and _IS_IN_STUDIO
                     else os.path.exists(element)
                 )
 
@@ -508,6 +508,8 @@ class BaseWorker:
             indexed_paths = {
                 index: str(Path(element).resolve()) for index, element in enumerate(flattened_item) if is_path(element)
             }
+
+            print(indexed_paths)
 
             if len(indexed_paths) == 0:
                 raise ValueError(

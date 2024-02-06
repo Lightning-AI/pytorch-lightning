@@ -28,6 +28,7 @@ from lightning.data.streaming.constants import _NUMPY_DTYPES_MAPPING, _TORCH_DTY
 _PIL_AVAILABLE = RequirementCache("PIL")
 _TORCH_VISION_AVAILABLE = RequirementCache("torchvision")
 _AV_AVAILABLE = RequirementCache("av")
+_RASTERIO_AVAILABLE = RequirementCache("rasterio")
 
 if _PIL_AVAILABLE:
     from PIL import Image
@@ -39,7 +40,6 @@ else:
 if _TORCH_VISION_AVAILABLE:
     from torchvision.io import decode_jpeg
     from torchvision.transforms.functional import pil_to_tensor
-
 
 class Serializer(ABC):
     """The base interface for any serializers.
@@ -323,10 +323,29 @@ class VideoSerializer(Serializer):
         return isinstance(data, str) and os.path.exists(data) and any(data.endswith(ext) for ext in self._EXTENSIONS)
 
 
+class TifSerializer(Serializer):
+    def serialize(self, filepath: str) -> Tuple[bytes, Optional[str]]:
+        _, file_extension = os.path.splitext(filepath)
+        with open(filepath, "rb") as f:
+            return f.read(), file_extension.replace(".", "").lower()
+
+    def deserialize(self, data: bytes) -> Any:
+        if not _RASTERIO_AVAILABLE:
+            raise ModuleNotFoundError("rasterio is required. Run: `pip install rasterio`")
+
+        from rasterio.io import MemoryFile
+
+        return MemoryFile(data)
+
+    def can_serialize(self, data: Any) -> bool:
+        return isinstance(data, str) and os.path.exists(data)
+
+
 _SERIALIZERS = OrderedDict(
     **{
         "video": VideoSerializer(),
         "file": FileSerializer(),
+        "tif": TifSerializer(),
         "pil": PILSerializer(),
         "int": IntSerializer(),
         "jpeg": JPEGSerializer(),
