@@ -676,20 +676,6 @@ class LightningModule(
         data = convert_to_tensors(data, device=self.device)
         return apply_to_collection(data, Tensor, all_gather, group=group, sync_grads=sync_grads)
 
-    @override
-    def forward(self, *args: Any, **kwargs: Any) -> Any:
-        r"""Same as :meth:`torch.nn.Module.forward`.
-
-        Args:
-            *args: Whatever you decide to pass into the forward method.
-            **kwargs: Keyword arguments are also possible.
-
-        Return:
-            Your model's output
-
-        """
-        return super().forward(*args, **kwargs)
-
     def training_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
         r"""Here you compute and return the training loss and some additional metrics for e.g. the progress bar or
         logger.
