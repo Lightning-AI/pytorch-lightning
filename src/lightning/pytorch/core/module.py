@@ -108,6 +108,7 @@ class LightningModule(
             "automatic_optimization",
             "trainer",
             "fabric",
+            "strict_loading",
         ]
         + _DeviceDtypeModuleMixin.__jit_unused_properties__
         + HyperparametersMixin.__jit_unused_properties__
@@ -124,10 +125,13 @@ class LightningModule(
         # pointer to the trainer object
         self._trainer: Optional["pl.Trainer"] = None
 
-        # optionally can be set by user
+        # attributes that can be set by user
         self._example_input_array: Optional[Union[Tensor, Tuple, Dict]] = None
-        self._current_fx_name: Optional[str] = None
         self._automatic_optimization: bool = True
+        self._strict_loading: Optional[bool] = None
+
+        # attributes used internally
+        self._current_fx_name: Optional[str] = None
         self._param_requires_grad_state: Dict[str, bool] = {}
         self._metric_attributes: Optional[Dict[int, str]] = None
         self._register_sharded_tensor_state_dict_hooks_if_available()
@@ -291,6 +295,16 @@ class LightningModule(
     @automatic_optimization.setter
     def automatic_optimization(self, automatic_optimization: bool) -> None:
         self._automatic_optimization = automatic_optimization
+
+    @property
+    def strict_loading(self) -> bool:
+        """Determines how Lightning loads this model using `.load_state_dict(..., strict=model.strict_loading)`."""
+        # We use None as the default internally to determine whether the user has set a value
+        return self._strict_loading in (None, True)
+
+    @strict_loading.setter
+    def strict_loading(self, strict_loading: bool) -> None:
+        self._strict_loading = strict_loading
 
     @property
     def logger(self) -> Optional[Union[Logger, FabricLogger]]:
@@ -1481,7 +1495,7 @@ class LightningModule(
         checkpoint_path: Union[_PATH, IO],
         map_location: _MAP_LOCATION_TYPE = None,
         hparams_file: Optional[_PATH] = None,
-        strict: bool = True,
+        strict: Optional[bool] = None,
         **kwargs: Any,
     ) -> Self:
         r"""Primary way of loading a model from a checkpoint. When Lightning saves a checkpoint it stores the arguments
@@ -1513,7 +1527,8 @@ class LightningModule(
                 and ``.yaml`` file has hierarchical structure, you need to refactor your model to treat
                 ``hparams`` as :class:`~dict`.
             strict: Whether to strictly enforce that the keys in :attr:`checkpoint_path` match the keys
-                returned by this module's state dict.
+                returned by this module's state dict. Defaults to ``True`` unless ``LightningModule.strict_loading`` is
+                set, in which case it defaults to the value of ``LightningModule.strict_loading``.
             \**kwargs: Any extra keyword args needed to init the model. Can also be used to override saved
                 hyperparameter values.
 
