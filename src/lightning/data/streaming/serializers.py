@@ -323,12 +323,7 @@ class VideoSerializer(Serializer):
         return isinstance(data, str) and os.path.exists(data) and any(data.endswith(ext) for ext in self._EXTENSIONS)
 
 
-class TifSerializer(Serializer):
-    def serialize(self, filepath: str) -> Tuple[bytes, Optional[str]]:
-        _, file_extension = os.path.splitext(filepath)
-        with open(filepath, "rb") as f:
-            return f.read(), file_extension.replace(".", "").lower()
-
+class TifSerializer(FileSerializer):
     def deserialize(self, data: bytes) -> Any:
         if not _RASTERIO_AVAILABLE:
             raise ModuleNotFoundError("rasterio is required. Run: `pip install rasterio`")
@@ -337,15 +332,11 @@ class TifSerializer(Serializer):
 
         return MemoryFile(data)
 
-    def can_serialize(self, data: Any) -> bool:
-        return isinstance(data, str) and os.path.exists(data)
-
-
 _SERIALIZERS = OrderedDict(
     **{
         "video": VideoSerializer(),
-        "file": FileSerializer(),
         "tif": TifSerializer(),
+        "file": FileSerializer(),
         "pil": PILSerializer(),
         "int": IntSerializer(),
         "jpeg": JPEGSerializer(),
