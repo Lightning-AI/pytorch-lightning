@@ -5,34 +5,6 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
-## [2.1.4] - 2024-01-31
-
-### Added
-
-- Added support for nested folders in map operator ([#19366](https://github.com/Lightning-AI/lightning/pull/19366))
-- Added support for weights to evenly distributed works among workers for map operator ([#19365](https://github.com/Lightning-AI/lightning/pull/19365))
-- Added profiling support to StreamingDataloader ([#19338](https://github.com/Lightning-AI/lightning/pull/19338))
-- Allow any AWS authentication method in studios ([#19336](https://github.com/Lightning-AI/lightning/pull/19336))
-- Added walk operator #19333
-- Added intra node shuffling to accelerate second epoch in StreamingDataset ([#19296](https://github.com/Lightning-AI/lightning/pull/19296))
-- Enabled map over inputs without files input ([#19285](https://github.com/Lightning-AI/lightning/pull/19285))
-- Added Fault Tolerance v2 ([#19196](https://github.com/Lightning-AI/lightning/pull/19196), [#19201](https://github.com/Lightning-AI/lightning/pull/19201))
-
-### Changed
-
-- Switched map operator arguments order ([#19345](https://github.com/Lightning-AI/lightning/pull/19345))
-- Removed torch distributed for the Dataset Optimizer ([#19182](https://github.com/Lightning-AI/lightning/pull/19182))
-- Remove `__len__` from CombinedStreamingDataset ([#19321](https://github.com/Lightning-AI/lightning/pull/19321))
-
-### Fixed
-
-- Fixed race condition in downloader ([#19348](https://github.com/Lightning-AI/lightning/pull/19348))
-- Fixed serializer `io.bytes` image in JPEGSerializer ([#19369](https://github.com/Lightning-AI/lightning/pull/19369))
-- Fixed several bugs found in Studio Data Processor ([#19309](https://github.com/Lightning-AI/lightning/pull/19309))
-- Fixed handling queue errors in streaming dataset reader ([#19167](https://github.com/Lightning-AI/lightning/pull/19167))
-- Fixed chunks eviction in StreamingDataset ([#19214](https://github.com/Lightning-AI/lightning/pull/19214))
-
-
 ## [2.1.3] - 2023-12-21
 
 ### Added
@@ -54,7 +26,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Make input dir in `DataProcessor` required ([#18910](https://github.com/Lightning-AI/lightning/pull/18910))
 - Remove the `LightningDataset` relying on un-maintained torchdata ([#19019](https://github.com/Lightning-AI/lightning/pull/19019))
 
-### Fixed
+# Fixed
 
 - Resolve checkpointing for the Streaming Dataset ([#19123](https://github.com/Lightning-AI/lightning/pull/19123))
 - Resolve Item Loader bugs ([#19017](https://github.com/Lightning-AI/lightning/pull/19017))
