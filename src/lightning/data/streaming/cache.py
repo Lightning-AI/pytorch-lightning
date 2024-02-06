@@ -61,7 +61,7 @@ class Cache:
             raise ModuleNotFoundError("PyTorch version 2.1 or higher is required to use the cache.")
 
         if not _LIGHTNING_CLOUD_LATEST:
-            raise ModuleNotFoundError("Lightning Cloud latest is required to use the cache.")
+            raise ModuleNotFoundError("Your lightning-cloud is out-dated, run: `pip install -U lightning-cloud`.")
 
         input_dir = _resolve_dir(input_dir)
         self._cache_dir = input_dir.path
