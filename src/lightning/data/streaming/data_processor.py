@@ -20,6 +20,7 @@ import numpy as np
 from tqdm.auto import tqdm as _tqdm
 
 from lightning import seed_everything
+from lightning.data.processing.readers import BaseReader
 from lightning.data.streaming import Cache
 from lightning.data.streaming.cache import Dir
 from lightning.data.streaming.client import S3Client
@@ -158,8 +159,9 @@ def _download_data_target(input_dir: Dir, cache_dir: str, queue_in: Queue, queue
                         s3.client.download_fileobj(obj.netloc, obj.path.lstrip("/"), f)
 
                 elif os.path.isfile(path):
-                    os.makedirs(os.path.dirname(local_path), exist_ok=True)
-                    shutil.copyfile(path, local_path)
+                    if not path.startswith("/teamspace/studios/this_studio"):
+                        os.makedirs(os.path.dirname(local_path), exist_ok=True)
+                        shutil.copyfile(path, local_path)
                 else:
                     raise ValueError(f"The provided {input_dir.url} isn't supported.")
 
@@ -340,6 +342,7 @@ class BaseWorker:
         num_downloaders: int,
         num_uploaders: int,
         remove: bool,
+        reader: Optional[BaseReader] = None,
     ) -> None:
         """The BaseWorker is responsible to process the user data."""
         self.worker_index = worker_index
@@ -353,6 +356,7 @@ class BaseWorker:
         self.num_downloaders = num_downloaders
         self.num_uploaders = num_uploaders
         self.remove = remove
+        self.reader = reader
         self.paths: List[List[str]] = []
         self.remover: Optional[Process] = None
         self.downloaders: List[Process] = []
@@ -433,7 +437,7 @@ class BaseWorker:
                 self.progress_queue.put((self.worker_index, self._counter))
                 self._last_time = time()
 
-            if self.remove and self.input_dir.path is not None:
+            if self.remove and self.input_dir.path is not None and self.reader is None:
                 self.remove_queue.put(self.paths[index])
 
             try:
@@ -476,7 +480,7 @@ class BaseWorker:
         self.to_upload_queues[self._counter % self.num_uploaders].put(data)
 
     def _collect_paths(self) -> None:
-        if self.input_dir.path is None:
+        if self.input_dir.path is None or self.reader is not None:
             for index in range(len(self.items)):
                 self.ready_to_process_queue.put(index)
             for _ in range(self.num_downloaders):
@@ -513,7 +517,7 @@ class BaseWorker:
             paths = []
             for index, path in indexed_paths.items():
                 paths.append(path)
-                if self.input_dir:
+                if self.input_dir and not self.input_dir.path.startswith("/teamspace/studios/this_studio"):
                     path = path.replace(self.input_dir.path, self.cache_data_dir)
                 flattened_item[index] = path
 
@@ -525,8 +529,9 @@ class BaseWorker:
         self.items = items
 
     def _start_downloaders(self) -> None:
-        if self.input_dir.path is None:
+        if self.input_dir.path is None or self.reader is not None:
             return
+
         for _ in range(self.num_downloaders):
             to_download_queue: Queue = Queue()
             p = Process(
@@ -583,7 +588,7 @@ class BaseWorker:
 
     def _handle_data_chunk_recipe(self, index: int) -> None:
         try:
-            self._current_item = self.items[index]
+            self._current_item = self.items[index] if self.reader is None else self.reader.read(self.items[index])
             item_data_or_generator = self.data_recipe.prepare_item(self._current_item)
             if isinstance(item_data_or_generator, types.GeneratorType):
                 for item_data in item_data_or_generator:
@@ -596,7 +601,7 @@ class BaseWorker:
                 self._try_upload(chunk_filepath)
                 self._index_counter += 1
         except Exception as e:
-            raise RuntimeError(f"Failed processing {self._current_item}") from e
+            raise RuntimeError(f"Failed processing {self.items[index]}") from e
 
     def _handle_data_chunk_recipe_end(self) -> None:
         chunks_filepaths = self.cache.done()
@@ -609,7 +614,8 @@ class BaseWorker:
     def _handle_data_transform_recipe(self, index: int) -> None:
         # Don't use a context manager to avoid deleting files that are being uploaded.
         output_dir = tempfile.mkdtemp()
-        item_data = self.data_recipe.prepare_item(self.items[index], str(output_dir), len(self.items) - 1 == index)
+        item = self.items[index] if self.reader is None else self.reader.read(self.items[index])
+        item_data = self.data_recipe.prepare_item(item, str(output_dir), len(self.items) - 1 == index)
         if item_data is not None:
             raise ValueError(
                 "When using a `DataTransformRecipe`, the `prepare_item` shouldn't return anything."
@@ -792,6 +798,7 @@ class DataProcessor:
         random_seed: Optional[int] = 42,
         reorder_files: bool = True,
         weights: Optional[List[int]] = None,
+        reader: Optional[BaseReader] = None,
     ):
         """The `DatasetOptimiser` provides an efficient way to process data across multiple machine into chunks to make
         training faster.
@@ -809,6 +816,7 @@ class DataProcessor:
                 Set this to ``False`` if the order in which samples are processed should be preserved.
             weights: Provide a list of weights associated to the inputs.
                 This is used to evenly split the work among the workers.
+            reader: Map the inputs to worker inputs and provides a read method to read a slice of the data.
 
         """
         self.input_dir = _resolve_dir(input_dir)
@@ -825,6 +833,10 @@ class DataProcessor:
         self.stop_queues: List[Queue] = []
         self.reorder_files = reorder_files
         self.weights = weights
+        self.reader = reader
+
+        if self.reader is not None and self.weights is not None:
+            raise ValueError("Either the reader or the weights needs to be defined.")
 
         # Ensure the input dir is the same across all nodes
         self.input_dir = broadcast_object("input_dir", self.input_dir)
@@ -853,7 +865,10 @@ class DataProcessor:
         if not isinstance(user_items, list):
             raise ValueError("The `prepare_structure` should return a list of item metadata.")
 
-        if self.weights is not None:
+        if self.reader:
+            workers_user_items = self.reader.items_to_workers(user_items, self.num_workers)
+
+        elif self.weights is not None:
             if len(self.weights) != len(user_items):
                 raise ValueError("The provided weights length should match the inputs' length.")
             workers_user_items = _map_items_to_workers_weighted(
@@ -880,7 +895,7 @@ class DataProcessor:
 
         self._cleanup_cache()
 
-        print(f"Starting {self.num_workers} workers")
+        print(f"Starting {self.num_workers} workers with {num_items} items.")
 
         if self.input_dir is None and self.src_resolver is not None and self.input_dir:
             self.input_dir = self.src_resolver(self.input_dir)
@@ -988,6 +1003,7 @@ class DataProcessor:
                 self.num_downloaders,
                 self.num_uploaders,
                 self.delete_cached_files,
+                self.reader,
             )
             worker.start()
             workers.append(worker)
