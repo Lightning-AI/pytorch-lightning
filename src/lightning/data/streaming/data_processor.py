@@ -496,11 +496,11 @@ class BaseWorker:
                     return False
 
                 element: str = str(Path(element).resolve())
-                return (
-                    element.startswith(self.input_dir.path)
-                    if self.input_dir.path is not None
-                    else os.path.exists(element)
-                )
+                if _IS_IN_STUDIO and self.input_dir.path is not None:
+                    if self.input_dir.path.startswith("/teamspace/studios/this_studio"):
+                        return os.path.exists(element)
+                    return element.startswith(self.input_dir.path)
+                return os.path.exists(element)
 
             # For speed reasons, we assume starting with `self.input_dir` is enough to be a real file.
             # Other alternative would be too slow.
