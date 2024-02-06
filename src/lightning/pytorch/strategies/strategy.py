@@ -358,9 +358,9 @@ class Strategy(ABC):
         torch.cuda.empty_cache()
         return self.checkpoint_io.load_checkpoint(checkpoint_path)
 
-    def load_model_state_dict(self, checkpoint: Mapping[str, Any]) -> None:
+    def load_model_state_dict(self, checkpoint: Mapping[str, Any], strict: bool = True) -> None:
         assert self.lightning_module is not None
-        self.lightning_module.load_state_dict(checkpoint["state_dict"])
+        self.lightning_module.load_state_dict(checkpoint["state_dict"], strict=strict)
 
     def load_optimizer_state_dict(self, checkpoint: Mapping[str, Any]) -> None:
         optimizer_states = checkpoint["optimizer_states"]

@@ -1,3 +1,5 @@
+from unittest.mock import ANY, Mock
+
 import lightning.pytorch as pl
 import pytest
 import torch
@@ -116,3 +118,33 @@ def test_load_from_checkpoint_warn_on_empty_state_dict(tmp_path):
     with pytest.warns(UserWarning, match="contains no parameters"):
         model = BoringModel.load_from_checkpoint(tmp_path / "checkpoint.ckpt", strict=False)
     assert model.device.type == "cpu"
+
+
+@pytest.mark.parametrize(("strict", "strict_loading", "expected"), [
+    (None, None, True),
+    (None, True, True),
+    (None, False, False),
+    (True, None, True),
+    (True, True, True),
+    (True, False, "error"),
+    (False, None, False),
+    (False, True, "error"),
+    (False, False, False),
+])
+def test_load_from_checkpoint_strict(strict, strict_loading, expected, tmp_path):
+    """Test that strict loading works both with the `strict` argument and the model's `strict_loading` attribute."""
+    class LoadingModel(BoringModel):
+        def __init__(self):
+            super().__init__()
+            self.strict_loading = strict_loading
+
+    LoadingModel.load_state_dict = Mock()
+
+    create_boring_checkpoint(tmp_path, LoadingModel(), accelerator="cpu")
+
+    if expected == "error":
+        with pytest.raises(ValueError, match="in conflict with .*strict_loading"):
+            LoadingModel.load_from_checkpoint(tmp_path / "checkpoint.ckpt", strict=strict)
+    else:
+        model = LoadingModel.load_from_checkpoint(tmp_path / "checkpoint.ckpt", strict=strict)
+        model.load_state_dict.assert_called_once_with(ANY, strict=expected)

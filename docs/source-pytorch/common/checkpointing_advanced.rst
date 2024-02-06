@@ -76,3 +76,45 @@ Use the above approach when you need to couple this behavior to your LightningMo
 
         def on_load_checkpoint(self, checkpoint):
             my_cool_pickable_object = checkpoint["something_cool_i_want_to_save"]
+
+
+----
+
+
+********************************
+Resume from a partial checkpoint
+********************************
+
+Loading a checkpoint is normally "strict", meaning parameter names in the checkpoint must match the parameter names in the model or otherwise PyTorch will raise an error.
+In use cases where you want to load only a partial checkpoint, you can disable strict loading by setting ``self.strict_loading = False`` in the LightningModule to avoid errors.
+A common use case is when you have a pretrained feature extractor or encoder that you don't update during training, and you don't want it included in the checkpoint:
+
+.. code-block:: python
+
+    import lightning as L
+
+    class LitModel(L.LightningModule):
+        def __init__(self):
+            super().__init__()
+
+            # This model only trains the decoder, we don't save the encoder
+            self.encoder = from_pretrained(...).requires_grad_(False)
+            self.decoder = Decoder()
+
+            # Set to False because we only care about the decoder
+            self.strict_loading = False
+
+        def state_dict(self):
+            # Don't save the encoder, it is not being trained
+            return {k: v for k, v in super().state_dict().items() if "encoder" not in k}
+
+
+Since ``strict_loading`` is set to ``False``, you won't get any key errors when resuming the checkpoint with the Trainer:
+
+.. code-block:: python
+
+    trainer = Trainer()
+    model = LitModel()
+
+    # Will load weights with `.load_state_dict(strict=model.strict_loading)`
+    trainer.fit(model, ckpt_path="path/to/checkpoint")
