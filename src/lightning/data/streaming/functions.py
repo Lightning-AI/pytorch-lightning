@@ -22,6 +22,7 @@ from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
 
 import torch
 
+from lightning.data.processing.readers import BaseReader
 from lightning.data.streaming.constants import _TORCH_GREATER_EQUAL_2_1_0
 from lightning.data.streaming.data_processor import DataChunkRecipe, DataProcessor, DataTransformRecipe
 from lightning.data.streaming.resolver import (
@@ -157,6 +158,7 @@ def map(
     num_downloaders: Optional[int] = None,
     reorder_files: bool = True,
     error_when_not_empty: bool = False,
+    reader: Optional[BaseReader] = None,
 ) -> None:
     """This function map a callbable over a collection of files possibly in a distributed way.
 
@@ -203,6 +205,7 @@ def map(
             num_downloaders=num_downloaders,
             reorder_files=reorder_files,
             weights=weights,
+            reader=reader,
         )
         return data_processor.run(LambdaDataTransformRecipe(fn, inputs))
     return _execute(
@@ -225,6 +228,7 @@ def optimize(
     machine: Optional[str] = None,
     num_downloaders: Optional[int] = None,
     reorder_files: bool = True,
+    reader: Optional[BaseReader] = None,
 ) -> None:
     """This function converts a dataset into chunks possibly in a distributed way.
 
@@ -274,6 +278,7 @@ def optimize(
             fast_dev_run=fast_dev_run,
             num_downloaders=num_downloaders,
             reorder_files=reorder_files,
+            reader=reader,
         )
         return data_processor.run(
             LambdaDataChunkRecipe(
