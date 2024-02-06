@@ -44,6 +44,7 @@ _PIL_AVAILABLE = RequirementCache("PIL")
 def test_serializers():
     assert list(_SERIALIZERS.keys()) == [
         "video",
+        "tif",
         "file",
         "pil",
         "int",
