@@ -499,7 +499,7 @@ class BaseWorker:
                 if _IS_IN_STUDIO:
                     if self.input_dir.path is not None:
                         if self.input_dir.path.startswith("/teamspace/studios/this_studio"):
-                            return  os.path.exists(element)
+                            return os.path.exists(element)
                         return element.startswith(self.input_dir.path)
                 return os.path.exists(element)
 
