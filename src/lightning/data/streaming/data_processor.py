@@ -496,11 +496,10 @@ class BaseWorker:
                     return False
 
                 element: str = str(Path(element).resolve())
-                if _IS_IN_STUDIO:
-                    if self.input_dir.path is not None:
-                        if self.input_dir.path.startswith("/teamspace/studios/this_studio"):
-                            return  os.path.exists(element)
-                        return element.startswith(self.input_dir.path)
+                if _IS_IN_STUDIO and self.input_dir.path is not None:
+                    if self.input_dir.path.startswith("/teamspace/studios/this_studio"):
+                        return os.path.exists(element)
+                    return element.startswith(self.input_dir.path)
                 return os.path.exists(element)
 
             # For speed reasons, we assume starting with `self.input_dir` is enough to be a real file.
@@ -509,8 +508,6 @@ class BaseWorker:
             indexed_paths = {
                 index: str(Path(element).resolve()) for index, element in enumerate(flattened_item) if is_path(element)
             }
-
-            print(indexed_paths)
 
             if len(indexed_paths) == 0:
                 raise ValueError(
