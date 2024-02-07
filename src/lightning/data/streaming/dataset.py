@@ -19,11 +19,11 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 import numpy as np
 from torch.utils.data import IterableDataset
 
-from lightning.data.streaming import Cache
-from lightning.data.streaming.constants import (
+from lightning.data.constants import (
     _DEFAULT_CACHE_DIR,
     _INDEX_FILENAME,
 )
+from lightning.data.streaming import Cache
 from lightning.data.streaming.item_loader import BaseItemLoader
 from lightning.data.streaming.resolver import Dir, _resolve_dir
 from lightning.data.streaming.sampler import ChunkedIndex
