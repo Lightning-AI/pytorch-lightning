@@ -1,4 +1,4 @@
-name: Validate legacy ckpts
+name: Generate legacy ckpts
 
 on:
   push:
@@ -8,8 +8,10 @@ on:
     types: [opened, reopened, ready_for_review, synchronize] # added `ready_for_review` since draft is skipped
     paths:
       - ".github/workflows/ci-checkpoints.yml"
-      - ".github/workflows/_legacy-checkpoints.yml.yml"
+      - ".github/workflows/_legacy-checkpoints.yml"
       - "requirements/ci.txt"
+      - "requirements/pytorch/*.txt"
+      - "tests/legacy/*"
 
 jobs:
   try-legacy-checkpoints:

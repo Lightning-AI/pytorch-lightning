@@ -431,6 +431,9 @@ class TQDMProgressBar(ProgressBar):
             # smaller refresh rate on colab causes crashes, choose a higher value
             rank_zero_debug("Using a higher refresh rate on Colab. Setting it to `20`")
             return 20
+        # Support TQDM_MINITERS environment variable, which sets the minimum refresh rate
+        if "TQDM_MINITERS" in os.environ:
+            return max(int(os.environ["TQDM_MINITERS"]), refresh_rate)
         return refresh_rate
 
 

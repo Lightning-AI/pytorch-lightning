@@ -30,7 +30,6 @@ from lightning_cloud.openapi import (
     Externalv1LightningappInstance,
     ProjectIdStorageBody,
     V1CloudSpace,
-    V1GetClusterResponse,
 )
 from rich.live import Live
 from rich.progress import BarColumn, DownloadColumn, Progress, TaskID, TextColumn
@@ -332,16 +331,14 @@ def _get_progress_bar(**kwargs: Any) -> Progress:
     )
 
 
-def _storage_host(cluster: Union[V1GetClusterResponse, Externalv1Cluster]) -> str:
+def _storage_host(cluster: Externalv1Cluster) -> str:
     dev_host = os.environ.get("LIGHTNING_STORAGE_HOST")
     if dev_host:
         return dev_host
     return f"https://storage.{cluster.spec.driver.kubernetes.root_domain_name}"
 
 
-def _cluster_from_lit_resource(
-    lit_resource: Union[Externalv1LightningappInstance, V1CloudSpace]
-) -> Union[V1GetClusterResponse, Externalv1Cluster]:
+def _cluster_from_lit_resource(lit_resource: Union[Externalv1LightningappInstance, V1CloudSpace]) -> Externalv1Cluster:
     client = LightningClient()
     if isinstance(lit_resource, Externalv1LightningappInstance):
         return client.cluster_service_get_cluster(lit_resource.spec.cluster_id)

@@ -231,6 +231,16 @@ def test_optimizer_return_options(tmpdir):
     assert opt[0] == opt_a
     assert lr_sched[0] == ref_lr_sched
 
+    # opt list of dictionaries
+    model.automatic_optimization = False
+    model.configure_optimizers = lambda: [
+        {"optimizer": opt_a, "lr_scheduler": scheduler_a}, {"optimizer": opt_b, "lr_scheduler": scheduler_a}
+    ]
+    opt, lr_sched = _init_optimizers_and_lr_schedulers(model)
+    assert len(opt) == len(lr_sched) == 2
+    assert opt == [opt_a, opt_b]
+    assert lr_sched == [ref_lr_sched, ref_lr_sched]
+
 
 def test_none_optimizer(tmpdir):
     model = BoringModel()

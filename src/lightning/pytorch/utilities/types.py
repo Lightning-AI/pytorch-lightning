@@ -121,6 +121,7 @@ OptimizerLRScheduler = Optional[
         Sequence[Optimizer],
         Tuple[Sequence[Optimizer], Sequence[Union[LRSchedulerTypeUnion, LRSchedulerConfig]]],
         OptimizerLRSchedulerConfig,
+        Sequence[OptimizerLRSchedulerConfig]
     ]
 ]
 

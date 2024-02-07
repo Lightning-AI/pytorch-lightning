@@ -16,7 +16,6 @@ from unittest import mock
 
 import pytest
 import torch
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_1
 from lightning.pytorch import LightningModule, Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.utilities.compile import from_compiled, to_uncompiled
@@ -26,7 +25,8 @@ from tests_pytorch.conftest import mock_cuda_count
 from tests_pytorch.helpers.runif import RunIf
 
 
-@pytest.mark.skipif(sys.platform == "darwin" and not _TORCH_GREATER_EQUAL_2_1, reason="Fix for MacOS in PyTorch 2.1")
+# https://github.com/pytorch/pytorch/issues/95708
+@pytest.mark.skipif(sys.platform == "darwin", reason="fatal error: 'omp.h' file not found")
 @RunIf(dynamo=True)
 @mock.patch("lightning.pytorch.trainer.call._call_and_handle_interrupt")
 def test_trainer_compiled_model(_, tmp_path, monkeypatch, mps_count_0):
@@ -112,7 +112,8 @@ def test_compile_uncompile():
     assert not has_dynamo(to_uncompiled_model.predict_step)
 
 
-@pytest.mark.skipif(sys.platform == "darwin" and not _TORCH_GREATER_EQUAL_2_1, reason="Fix for MacOS in PyTorch 2.1")
+# https://github.com/pytorch/pytorch/issues/95708
+@pytest.mark.skipif(sys.platform == "darwin", reason="fatal error: 'omp.h' file not found")
 @RunIf(dynamo=True)
 def test_trainer_compiled_model_that_logs(tmp_path):
     class MyModel(BoringModel):
@@ -137,7 +138,8 @@ def test_trainer_compiled_model_that_logs(tmp_path):
     assert set(trainer.callback_metrics) == {"loss"}
 
 
-@pytest.mark.skipif(sys.platform == "darwin" and not _TORCH_GREATER_EQUAL_2_1, reason="Fix for MacOS in PyTorch 2.1")
+# https://github.com/pytorch/pytorch/issues/95708
+@pytest.mark.skipif(sys.platform == "darwin", reason="fatal error: 'omp.h' file not found")
 @RunIf(dynamo=True)
 def test_trainer_compiled_model_test(tmp_path):
     model = BoringModel()

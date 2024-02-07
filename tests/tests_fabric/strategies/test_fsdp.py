@@ -76,16 +76,26 @@ def test_fsdp_sharding_strategy():
 
 @RunIf(min_torch="2.0")
 @pytest.mark.parametrize("sharding_strategy", ["HYBRID_SHARD", "_HYBRID_SHARD_ZERO2"])
-def test_fsdp_hybrid_sharding_strategy(sharding_strategy):
+def test_fsdp_hybrid_shard_configuration(sharding_strategy):
     """Test that the hybrid sharding strategies can only be used with automatic wrapping or a manually specified pg."""
-    with pytest.raises(RuntimeError, match="The hybrid sharding strategy requires you to either set"):
+    with pytest.raises(RuntimeError, match="The hybrid sharding strategy requires you to pass at least one of"):
         FSDPStrategy(sharding_strategy=sharding_strategy)
 
     strategy = FSDPStrategy(auto_wrap_policy={nn.Linear}, sharding_strategy=sharding_strategy)
     assert strategy.sharding_strategy.name == sharding_strategy
 
-    strategy = FSDPStrategy(sharding_strategy=sharding_strategy, process_group=(Mock(), Mock()))
+    process_group = (Mock(), Mock())
+    strategy = FSDPStrategy(sharding_strategy=sharding_strategy, process_group=process_group)
     assert strategy.sharding_strategy.name == sharding_strategy
+    assert strategy._fsdp_kwargs["process_group"] is process_group
+
+    device_mesh = Mock()
+    strategy = FSDPStrategy(sharding_strategy=sharding_strategy, device_mesh=device_mesh)
+    assert strategy.sharding_strategy.name == sharding_strategy
+    assert strategy._fsdp_kwargs["device_mesh"] is device_mesh
+
+    with pytest.raises(ValueError, match="process_group.* device_mesh=.* are mutually exclusive"):
+        FSDPStrategy(sharding_strategy=sharding_strategy, process_group=process_group, device_mesh=device_mesh)
 
 
 def test_fsdp_checkpoint_io_unsupported():
@@ -152,16 +162,11 @@ def test_fsdp_no_backward_sync():
 
 def test_fsdp_activation_checkpointing_support(monkeypatch):
     """Test that we error out if activation checkpointing requires a newer PyTorch version."""
-    monkeypatch.setattr(lightning.fabric.strategies.fsdp, "_TORCH_GREATER_EQUAL_1_13", False)
-    with pytest.raises(ValueError, match="activation_checkpointing` requires torch >= 1.13.0"):
-        FSDPStrategy(activation_checkpointing=Mock())
-
     monkeypatch.setattr(lightning.fabric.strategies.fsdp, "_TORCH_GREATER_EQUAL_2_1", False)
     with pytest.raises(ValueError, match="activation_checkpointing_policy` requires torch >= 2.1.0"):
         FSDPStrategy(activation_checkpointing_policy=Mock())
 
 
-@RunIf(min_torch="1.13")
 def test_fsdp_activation_checkpointing():
     """Test that the FSDP strategy can apply activation checkpointing to the given layers."""
 
@@ -209,7 +214,6 @@ def test_fsdp_activation_checkpointing():
     apply_mock.assert_called_with(wrapped, checkpoint_wrapper_fn=ANY, **strategy._activation_checkpointing_kwargs)
 
 
-@RunIf(min_torch="1.13")
 def test_fsdp_forbidden_precision_raises():
     with pytest.raises(TypeError, match="can only work with the `FSDPPrecision"):
         FSDPStrategy(precision=HalfPrecision())
@@ -219,7 +223,6 @@ def test_fsdp_forbidden_precision_raises():
         strategy.precision = HalfPrecision()
 
 
-@RunIf(min_torch="1.13")
 def test_fsdp_grad_clipping_norm_error():
     strategy = FSDPStrategy()
     with pytest.raises(
