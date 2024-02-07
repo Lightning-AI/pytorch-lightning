@@ -1,5 +1,5 @@
-from lightning.data.streaming.shuffle import _associate_chunks_and_internals_to_ranks, _intra_node_chunk_shuffle
 from lightning.data.utilities.env import _DistributedEnv
+from lightning.data.utilities.shuffle import _associate_chunks_and_internals_to_ranks, _intra_node_chunk_shuffle
 
 
 def test_intra_node_chunk_shuffle():

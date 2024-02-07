@@ -11,7 +11,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from lightning.data.processing.data_processor import DataChunkRecipe, DataProcessor, DataTransformRecipe
 from lightning.data.streaming.cache import Cache
 from lightning.data.streaming.combined import CombinedStreamingDataset
 from lightning.data.streaming.dataloader import StreamingDataLoader
@@ -20,11 +19,8 @@ from lightning.data.streaming.item_loader import TokensLoader
 
 __all__ = [
     "Cache",
-    "DataProcessor",
     "StreamingDataset",
     "CombinedStreamingDataset",
     "StreamingDataLoader",
-    "DataTransformRecipe",
-    "DataChunkRecipe",
     "TokensLoader",
 ]
