@@ -211,7 +211,6 @@ def test_load_checkpoint_non_strict_loading(tmp_path):
     assert "new" not in remainder
 
 
-@RunIf(min_torch="1.13")
 @pytest.mark.parametrize(
     "device",
     [

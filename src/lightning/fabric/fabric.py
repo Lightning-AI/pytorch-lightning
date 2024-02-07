@@ -76,6 +76,7 @@ from lightning.fabric.wrappers import (
     _FabricDataLoader,
     _FabricModule,
     _FabricOptimizer,
+    _to_compiled,
     _unwrap_compiled,
     _unwrap_objects,
 )
@@ -213,6 +214,7 @@ class Fabric:
         module: nn.Module,
         *optimizers: Optimizer,
         move_to_device: bool = True,
+        _reapply_compile: bool = True,
     ) -> Any:  # no specific return because the way we want our API to look does not play well with mypy
         r"""Set up a model and its optimizers for accelerated training.
 
@@ -221,12 +223,18 @@ class Fabric:
             *optimizers: The optimizer(s) to set up (no optimizers is also possible)
             move_to_device: If set ``True`` (default), moves the model to the correct device. Set this to ``False``
                 and alternatively use :meth:`to_device` manually.
+            _reapply_compile: If ``True`` (default), and the model was ``torch.compile``d before, the
+                corresponding :class:`~torch._dynamo.OptimizedModule` wrapper will be removed and reapplied with the
+                same settings after the model was set up by the strategy (e.g., after the model was wrapped by DDP,
+                FSDP etc.). Only applies on PyTorch >= 2.1. Set it to ``False`` if compiling DDP/FSDP is causing
+                issues.
 
         Returns:
             The tuple containing wrapped module and the optimizers, in the same order they were passed in.
 
         """
         self._validate_setup(module, optimizers)
+        module, compile_kwargs = _unwrap_compiled(module) if _reapply_compile else (module, None)
         original_module = module
 
         module = self._precision.convert_module(module)
@@ -242,6 +250,8 @@ class Fabric:
         else:
             module = self._strategy.setup_module(module)
 
+        if compile_kwargs is not None:
+            module = _to_compiled(module, compile_kwargs)
         module = _FabricModule(module, self._precision, original_module=original_module)
 
         # Update the _DeviceDtypeModuleMixin's device parameter
@@ -258,8 +268,8 @@ class Fabric:
         self._models_setup += 1
 
         if hasattr(original_module, "_fabric"):  # this is probably a LightningModule
-            original_module._fabric = self  # type: ignore[assignment]
-            original_module._fabric_optimizers = optimizers  # type: ignore[assignment]
+            original_module._fabric = self
+            original_module._fabric_optimizers = optimizers
             if original_module not in self._callbacks:
                 self._callbacks.append(original_module)
 
@@ -270,7 +280,9 @@ class Fabric:
             return (module, *optimizers)
         return module
 
-    def setup_module(self, module: nn.Module, move_to_device: bool = True) -> _FabricModule:
+    def setup_module(
+        self, module: nn.Module, move_to_device: bool = True, _reapply_compile: bool = True
+    ) -> _FabricModule:
         r"""Set up a model for accelerated training or inference.
 
         This is the same as calling ``.setup(model)`` with no optimizers. It is useful for inference or for certain
@@ -281,12 +293,17 @@ class Fabric:
             module: A :class:`torch.nn.Module` to set up
             move_to_device: If set ``True`` (default), moves the model to the correct device. Set this to ``False``
                 and alternatively use :meth:`to_device` manually.
-
+            _reapply_compile: If ``True`` (default), and the model was ``torch.compile``d before, the
+                corresponding :class:`~torch._dynamo.OptimizedModule` wrapper will be removed and reapplied with the
+                same settings after the model was set up by the strategy (e.g., after the model was wrapped by DDP,
+                FSDP etc.). Only applies on PyTorch >= 2.1. Set it to ``False`` if compiling DDP/FSDP is causing
+                issues.
         Returns:
             The wrapped model.
 
         """
         self._validate_setup_module(module)
+        module, compile_kwargs = _unwrap_compiled(module) if _reapply_compile else (module, None)
         original_module = module
 
         module = self._precision.convert_module(module)
@@ -296,6 +313,9 @@ class Fabric:
 
         # Let strategy wrap and connect the module alone
         module = self._strategy.setup_module(module)
+
+        if compile_kwargs is not None:
+            module = _to_compiled(module, compile_kwargs)
         module = _FabricModule(module, self._precision, original_module=original_module)
 
         # Update the _DeviceDtypeModuleMixin's device parameter
@@ -305,7 +325,7 @@ class Fabric:
         )
 
         if hasattr(original_module, "_fabric"):  # this is probably a LightningModule
-            original_module._fabric = self  # type: ignore[assignment]
+            original_module._fabric = self
             if original_module not in self._callbacks:
                 self._callbacks.append(original_module)
 
@@ -410,6 +430,7 @@ class Fabric:
 
         """
         module = model._forward_module if model is not None else model
+        module, _ = _unwrap_compiled(module)
         if isinstance(self._strategy, DeepSpeedStrategy):
             if model is None:
                 if self._models_setup == 0:
@@ -641,7 +662,7 @@ class Fabric:
                 skip.
 
         """
-        module = _unwrap_compiled(module)
+        module, _ = _unwrap_compiled(module)
         if not isinstance(module, _FabricModule):
             raise TypeError(
                 "You need to set up the model first before you can call `fabric.no_backward_sync()`:"
@@ -656,7 +677,9 @@ class Fabric:
                 category=PossibleUserWarning,
             )
             return nullcontext()
-        return self._strategy._backward_sync_control.no_backward_sync(module._forward_module)
+
+        forward_module, _ = _unwrap_compiled(module._forward_module)
+        return self._strategy._backward_sync_control.no_backward_sync(forward_module)
 
     def sharded_model(self) -> ContextManager:
         r"""Instantiate a model under this context manager to prepare it for model-parallel sharding.
@@ -696,7 +719,7 @@ class Fabric:
         Args:
             empty_init: Whether to initialize the model with empty weights (uninitialized memory).
                 If ``None``, the strategy will decide. Some strategies may not support all options.
-                Set this to ``True`` if you are loading a checkpoint into a large model. Requires ``torch >= 1.13``.
+                Set this to ``True`` if you are loading a checkpoint into a large model.
 
         """
         self._validate_launched()
@@ -772,7 +795,7 @@ class Fabric:
             # We need to unwrap objects (see above) but this creates a new dictionary. In-place updates
             # (for user metadata) wouldn't show up in the original dict, so we need to copy the data back.
             for k in list(unwrapped_state.keys()):
-                obj = _unwrap_compiled(state[k])
+                obj, _ = _unwrap_compiled(state[k])
                 if isinstance(obj, (_FabricModule, _FabricOptimizer, _FabricDataLoader)):
                     continue
                 state[k] = unwrapped_state[k]

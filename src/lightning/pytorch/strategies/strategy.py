@@ -26,7 +26,7 @@ from lightning.fabric.plugins import CheckpointIO
 from lightning.fabric.strategies import _StrategyRegistry
 from lightning.fabric.utilities import move_data_to_device
 from lightning.fabric.utilities.distributed import ReduceOp
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_13, _TORCH_GREATER_EQUAL_2_0
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 from lightning.fabric.utilities.init import _EmptyInit
 from lightning.fabric.utilities.optimizer import _optimizer_to_device, _optimizers_to_device
 from lightning.fabric.utilities.types import _PATH
@@ -358,9 +358,9 @@ class Strategy(ABC):
         torch.cuda.empty_cache()
         return self.checkpoint_io.load_checkpoint(checkpoint_path)
 
-    def load_model_state_dict(self, checkpoint: Mapping[str, Any]) -> None:
+    def load_model_state_dict(self, checkpoint: Mapping[str, Any], strict: bool = True) -> None:
         assert self.lightning_module is not None
-        self.lightning_module.load_state_dict(checkpoint["state_dict"])
+        self.lightning_module.load_state_dict(checkpoint["state_dict"], strict=strict)
 
     def load_optimizer_state_dict(self, checkpoint: Mapping[str, Any]) -> None:
         optimizer_states = checkpoint["optimizer_states"]
@@ -501,7 +501,7 @@ class Strategy(ABC):
 
         """
         device_context = self.root_device if _TORCH_GREATER_EQUAL_2_0 else nullcontext()
-        empty_init_context = _EmptyInit(enabled=bool(empty_init)) if _TORCH_GREATER_EQUAL_1_13 else nullcontext()
+        empty_init_context = _EmptyInit(enabled=bool(empty_init))
         with empty_init_context, device_context, self.precision_plugin.tensor_init_context():
             yield
 

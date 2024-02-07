@@ -1,6 +1,8 @@
 import os
 import random
 import sys
+from functools import partial
+from pathlib import Path
 from typing import Any, List
 from unittest import mock
 
@@ -9,7 +11,7 @@ import pytest
 import torch
 from lightning import seed_everything
 from lightning.data.streaming import data_processor as data_processor_module
-from lightning.data.streaming import functions
+from lightning.data.streaming import functions, resolver
 from lightning.data.streaming.cache import Cache, Dir
 from lightning.data.streaming.data_processor import (
     DataChunkRecipe,
@@ -253,50 +255,52 @@ def test_cache_dir_cleanup(tmpdir, monkeypatch):
 
 
 def test_map_items_to_workers_weighted(monkeypatch):
+    seed_everything(42)
+
     workers_user_items = _map_items_to_workers_weighted(1, list(range(5)))
-    assert workers_user_items == [list(range(5))]
+    assert workers_user_items == [[1, 4, 2, 0, 3]]
     workers_user_items = _map_items_to_workers_weighted(2, list(range(5)))
-    assert workers_user_items == [[0, 2, 4], [1, 3]]
+    assert workers_user_items == [[2, 4, 0], [3, 1]]
     workers_user_items = _map_items_to_workers_weighted(3, list(range(5)))
-    assert workers_user_items == [[0, 3], [1, 4], [2]]
+    assert workers_user_items == [[0, 3], [4, 1], [2]]
     workers_user_items = _map_items_to_workers_weighted(4, list(range(5)))
-    assert workers_user_items == [[0, 4], [1], [2], [3]]
+    assert workers_user_items == [[4, 0], [1], [2], [3]]
 
     monkeypatch.setenv("DATA_OPTIMIZER_NUM_NODES", "2")
     monkeypatch.setenv("DATA_OPTIMIZER_NODE_RANK", "0")
     workers_user_items = _map_items_to_workers_weighted(1, list(range(5)))
-    assert workers_user_items == [[0, 2, 4]]
+    assert workers_user_items == [[2, 0, 4]]
     workers_user_items = _map_items_to_workers_weighted(2, list(range(5)))
     assert workers_user_items == [[0, 4], [1]]
 
     monkeypatch.setenv("DATA_OPTIMIZER_NUM_NODES", "2")
     monkeypatch.setenv("DATA_OPTIMIZER_NODE_RANK", "1")
     workers_user_items = _map_items_to_workers_weighted(1, list(range(5)))
-    assert workers_user_items == [[1, 3]]
+    assert workers_user_items == [[3, 1]]
     workers_user_items = _map_items_to_workers_weighted(2, list(range(5)))
     assert workers_user_items == [[2], [3]]
 
     monkeypatch.setenv("DATA_OPTIMIZER_NUM_NODES", "4")
     monkeypatch.setenv("DATA_OPTIMIZER_NODE_RANK", "0")
     workers_user_items = _map_items_to_workers_weighted(1, list(range(32)))
-    assert workers_user_items == [[0, 4, 8, 12, 16, 20, 24, 28]]
+    assert workers_user_items == [[0, 24, 28, 4, 16, 20, 8, 12]]
     workers_user_items = _map_items_to_workers_weighted(2, list(range(32)))
-    assert workers_user_items == [[0, 8, 16, 24], [1, 9, 17, 25]]
+    assert workers_user_items == [[24, 16, 0, 8], [1, 17, 9, 25]]
     workers_user_items = _map_items_to_workers_weighted(3, list(range(32)))
-    assert workers_user_items == [[0, 12, 24], [1, 13, 25], [2, 14, 26]]
+    assert workers_user_items == [[24, 12, 0], [13, 25, 1], [14, 2, 26]]
     workers_user_items = _map_items_to_workers_weighted(4, list(range(32)))
-    assert workers_user_items == [[0, 16], [1, 17], [2, 18], [3, 19]]
+    assert workers_user_items == [[16, 0], [1, 17], [2, 18], [3, 19]]
 
     monkeypatch.setenv("DATA_OPTIMIZER_NUM_NODES", "4")
     monkeypatch.setenv("DATA_OPTIMIZER_NODE_RANK", "3")
     workers_user_items = _map_items_to_workers_weighted(1, list(range(32)))
-    assert workers_user_items == [[3, 7, 11, 15, 19, 23, 27, 31]]
+    assert workers_user_items == [[3, 7, 19, 31, 11, 23, 27, 15]]
     workers_user_items = _map_items_to_workers_weighted(2, list(range(32)))
-    assert workers_user_items == [[6, 14, 22, 30], [7, 15, 23, 31]]
+    assert workers_user_items == [[14, 22, 6, 30], [15, 31, 23, 7]]
     workers_user_items = _map_items_to_workers_weighted(3, list(range(32)))
-    assert workers_user_items == [[9, 21], [10, 22], [11, 23]]
+    assert workers_user_items == [[21, 9], [22, 10], [23, 11]]
     workers_user_items = _map_items_to_workers_weighted(4, list(range(32)))
-    assert workers_user_items == [[12, 28], [13, 29], [14, 30], [15, 31]]
+    assert workers_user_items == [[12, 28], [13, 29], [30, 14], [15, 31]]
 
 
 def test_map_items_to_workers_sequentially(monkeypatch):
@@ -348,7 +352,7 @@ def test_map_items_to_workers_sequentially(monkeypatch):
 
 class CustomDataChunkRecipe(DataChunkRecipe):
     def prepare_structure(self, input_dir: str) -> List[Any]:
-        filepaths = self.listdir(input_dir)
+        filepaths = [os.path.join(input_dir, f) for f in os.listdir(input_dir)]
         assert len(filepaths) == 30
         return filepaths
 
@@ -501,7 +505,7 @@ def test_data_processsor_distributed(fast_dev_run, delete_cached_files, tmpdir, 
         "chunk-1-3.bin",
     ]
 
-    assert sorted(os.listdir(cache_dir)) == fast_dev_run_disabled_chunks_0
+    assert sorted(os.listdir(remote_output_dir)) == fast_dev_run_disabled_chunks_0
 
     cache_dir = os.path.join(tmpdir, "cache_2")
     monkeypatch.setenv("DATA_OPTIMIZER_CACHE_FOLDER", cache_dir)
@@ -530,26 +534,11 @@ def test_data_processsor_distributed(fast_dev_run, delete_cached_files, tmpdir, 
         "index.json",
     ]
 
-    assert sorted(os.listdir(cache_dir)) == fast_dev_run_disabled_chunks_1
-
     expected = sorted(fast_dev_run_disabled_chunks_0 + fast_dev_run_disabled_chunks_1 + ["1-index.json"])
 
     assert sorted(os.listdir(remote_output_dir)) == expected
 
-    _create_dataset_mock.assert_called()
-
-    assert _create_dataset_mock._mock_mock_calls[0].kwargs == {
-        "input_dir": str(input_dir),
-        "storage_dir": str(remote_output_dir),
-        "dataset_type": "CHUNKED",
-        "empty": False,
-        "size": 30,
-        "num_bytes": 26657,
-        "data_format": "jpeg",
-        "compression": None,
-        "num_chunks": 16,
-        "num_bytes_per_chunk": [2, 2, 2, 2, 2, 2, 2, 1, 2, 2, 2, 1, 2, 2, 2, 2],
-    }
+    _create_dataset_mock.assert_not_called()
 
 
 class TextTokenizeRecipe(DataChunkRecipe):
@@ -580,7 +569,7 @@ class ImageResizeRecipe(DataTransformRecipe):
         filepaths = [os.path.join(input_dir, filename) for filename in os.listdir(input_dir)]
         return [filepath for filepath in filepaths if os.path.isfile(filepath)]
 
-    def prepare_item(self, output_dir: str, filepath: Any) -> None:
+    def prepare_item(self, filepath: Any, output_dir: str, is_last) -> None:
         from PIL import Image
 
         img = Image.open(filepath)
@@ -627,7 +616,7 @@ def test_data_process_transform(monkeypatch, tmpdir):
     assert img.size == (12, 12)
 
 
-def map_fn(output_dir, filepath):
+def map_fn(filepath, output_dir):
     from PIL import Image
 
     img = Image.open(filepath)
@@ -709,6 +698,26 @@ def test_data_processing_optimize(monkeypatch, tmpdir):
 
     cache = Cache(output_dir, chunk_size=1)
     assert len(cache) == 5
+
+
+def generate_data(index, shift=None):
+    yield from range(index + shift if shift else 0)
+
+
+@pytest.mark.skipif(condition=not _PIL_AVAILABLE or sys.platform == "win32", reason="Requires: ['pil']")
+def test_data_processing_optimize_yield(monkeypatch, tmpdir):
+    home_dir = os.path.join(tmpdir, "home")
+    cache_dir = os.path.join(tmpdir, "cache", "chunks")
+    data_cache_dir = os.path.join(tmpdir, "cache", "data")
+    output_dir = os.path.join(tmpdir, "output_dir")
+    os.makedirs(output_dir, exist_ok=True)
+    monkeypatch.setenv("DATA_OPTIMIZER_HOME_FOLDER", home_dir)
+    monkeypatch.setenv("DATA_OPTIMIZER_CACHE_FOLDER", cache_dir)
+    monkeypatch.setenv("DATA_OPTIMIZER_DATA_CACHE_FOLDER", data_cache_dir)
+
+    optimize(partial(generate_data, shift=2), [0, 1], output_dir=output_dir, chunk_size=2, num_workers=1)
+
+    assert sorted(os.listdir(output_dir)) == ["chunk-0-0.bin", "chunk-0-1.bin", "chunk-0-2.bin", "index.json"]
 
 
 class Optimize:
@@ -812,7 +821,7 @@ def test_lambda_transform_recipe(monkeypatch):
 
     data_recipe = LambdaDataTransformRecipe(fn, range(1))
 
-    data_recipe.prepare_item("", 1)
+    data_recipe.prepare_item(1, "", False)
     assert called
 
 
@@ -826,14 +835,13 @@ def test_lambda_transform_recipe_class(monkeypatch):
     called = False
 
     class Transform:
-        def __call__(self, output_dir, item, device):
+        def __call__(self, item, output_dir, device):
             nonlocal called
             assert device == "cuda:2"
             called = True
 
     data_recipe = LambdaDataTransformRecipe(Transform(), range(1))
-
-    data_recipe.prepare_item("", 1)
+    data_recipe.prepare_item(1, "", False)
     assert called
 
 
@@ -872,3 +880,141 @@ def test_get_item_filesizes(tmp_path):
     assert os.path.getsize(tmp_path / "empty_file") == 0
     with pytest.raises(RuntimeError, match="has 0 bytes!"):
         _get_item_filesizes([str(tmp_path / "empty_file")])
+
+
+def map_fn_index(index, output_dir):
+    with open(os.path.join(output_dir, f"{index}.JPEG"), "w") as f:
+        f.write("Hello")
+
+
+@pytest.mark.skipif(condition=not _PIL_AVAILABLE or sys.platform == "win32", reason="Requires: ['pil']")
+def test_data_processing_map_without_input_dir(monkeypatch, tmpdir):
+    cache_dir = os.path.join(tmpdir, "cache")
+    output_dir = os.path.join(tmpdir, "target_dir")
+    os.makedirs(output_dir, exist_ok=True)
+    monkeypatch.setenv("DATA_OPTIMIZER_CACHE_FOLDER", cache_dir)
+    monkeypatch.setenv("DATA_OPTIMIZER_DATA_CACHE_FOLDER", cache_dir)
+
+    map(
+        map_fn_index,
+        list(range(5)),
+        output_dir=output_dir,
+        num_workers=1,
+        reorder_files=True,
+        weights=[1 for _ in range(5)],
+    )
+
+    assert sorted(os.listdir(output_dir)) == ["0.JPEG", "1.JPEG", "2.JPEG", "3.JPEG", "4.JPEG"]
+
+
+@pytest.mark.skipif(condition=not _PIL_AVAILABLE or sys.platform == "win32", reason="Requires: ['pil']")
+def test_data_processing_map_weights_mismatch(monkeypatch, tmpdir):
+    cache_dir = os.path.join(tmpdir, "cache")
+    output_dir = os.path.join(tmpdir, "target_dir")
+    os.makedirs(output_dir, exist_ok=True)
+    monkeypatch.setenv("DATA_OPTIMIZER_CACHE_FOLDER", cache_dir)
+    monkeypatch.setenv("DATA_OPTIMIZER_DATA_CACHE_FOLDER", cache_dir)
+
+    with pytest.raises(ValueError, match="The provided weights length"):
+        map(map_fn_index, list(range(5)), output_dir=output_dir, num_workers=1, reorder_files=True, weights=[1])
+
+
+def map_fn_index_folder(index, output_dir):
+    os.makedirs(os.path.join(output_dir, str(index)))
+    with open(os.path.join(output_dir, str(index), f"{index}.JPEG"), "w") as f:
+        f.write("Hello")
+
+
+@pytest.mark.skipif(condition=not _PIL_AVAILABLE or sys.platform == "win32", reason="Requires: ['pil']")
+def test_data_processing_map_without_input_dir_and_folder(monkeypatch, tmpdir):
+    cache_dir = os.path.join(tmpdir, "cache")
+    output_dir = os.path.join(tmpdir, "target_dir")
+    os.makedirs(output_dir, exist_ok=True)
+    monkeypatch.setenv("DATA_OPTIMIZER_CACHE_FOLDER", cache_dir)
+    monkeypatch.setenv("DATA_OPTIMIZER_DATA_CACHE_FOLDER", cache_dir)
+
+    map(map_fn_index_folder, list(range(5)), output_dir=output_dir, num_workers=1, reorder_files=True)
+
+    assert sorted(os.listdir(output_dir)) == ["0", "1", "2", "3", "4"]
+    assert os.path.exists(os.path.join(output_dir, "0", "0.JPEG"))
+
+
+def map_fn_map_non_absolute(path, output_dir):
+    absolute_path = str(Path(path).absolute())
+    assert absolute_path == path, (absolute_path, path)
+
+    with open(os.path.join(output_dir, os.path.basename(path)), "w") as f:
+        f.write("Hello World")
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="not supported on windows")
+def test_data_processing_map_non_absolute_path(monkeypatch, tmpdir):
+    monkeypatch.chdir(str(tmpdir))
+
+    for i in range(5):
+        with open(f"./{i}.txt", "w") as f:
+            f.write("Hello World")
+
+    assert sorted(os.listdir(tmpdir)) == ["0.txt", "1.txt", "2.txt", "3.txt", "4.txt"]
+
+    map(
+        map_fn_map_non_absolute,
+        [f"{i}.txt" for i in range(5)],
+        output_dir="./output_dir",
+        num_workers=1,
+        reorder_files=True,
+    )
+
+    assert sorted(os.listdir(tmpdir)) == ["0.txt", "1.txt", "2.txt", "3.txt", "4.txt", "output_dir"]
+    assert sorted(os.listdir(os.path.join(tmpdir, "output_dir"))) == ["0.txt", "1.txt", "2.txt", "3.txt", "4.txt"]
+
+
+@pytest.mark.skipif(condition=sys.platform == "win32", reason="Not supported on windows")
+def test_map_error_when_not_empty(monkeypatch):
+    boto3 = mock.MagicMock()
+    client_s3_mock = mock.MagicMock()
+    client_s3_mock.list_objects_v2.return_value = {"KeyCount": 1, "Contents": []}
+    boto3.client.return_value = client_s3_mock
+    monkeypatch.setattr(resolver, "boto3", boto3)
+
+    with pytest.raises(RuntimeError, match="data and datasets are meant to be immutable"):
+        map(
+            map_fn,
+            [0, 1],
+            output_dir=Dir(path=None, url="s3://bucket"),
+            error_when_not_empty=True,
+        )
+
+    monkeypatch.setattr(data_processor_module, "_IS_IN_STUDIO", True)
+
+    with pytest.raises(OSError, match="cache"):
+        map(
+            map_fn,
+            [0, 1],
+            output_dir=Dir(path=None, url="s3://bucket"),
+            error_when_not_empty=False,
+        )
+
+def map_fn_is_last(index, output_dir, is_last):
+    with open(os.path.join(output_dir, f"{index}_{is_last}.txt"), "w") as f:
+        f.write("here")
+
+
+@pytest.mark.skipif(condition=sys.platform == "win32", reason="Not supported on windows")
+@pytest.mark.parametrize(
+    ("num_workers", "expected"),
+    [
+        (1, ['0_False.txt', '1_False.txt', '2_False.txt', '3_False.txt', '4_True.txt']),
+        (2, ['0_False.txt', '1_True.txt', '2_False.txt', '3_False.txt', '4_True.txt']),
+    ],
+)
+def test_map_is_last(num_workers, expected, tmpdir):
+    map(
+        map_fn_is_last,
+        list(range(5)),
+        output_dir=str(tmpdir),
+        error_when_not_empty=False,
+        num_workers=num_workers,
+    )
+
+    assert sorted(os.listdir(tmpdir)) == expected

@@ -13,7 +13,6 @@
 
 import logging
 import os
-from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 from lightning.data.streaming.constants import (
@@ -23,6 +22,7 @@ from lightning.data.streaming.constants import (
 )
 from lightning.data.streaming.item_loader import BaseItemLoader
 from lightning.data.streaming.reader import BinaryReader
+from lightning.data.streaming.resolver import Dir, _resolve_dir
 from lightning.data.streaming.sampler import ChunkedIndex
 from lightning.data.streaming.serializers import Serializer
 from lightning.data.streaming.writer import BinaryWriter
@@ -30,17 +30,6 @@ from lightning.data.utilities.env import _DistributedEnv, _WorkerEnv
 from lightning.data.utilities.format import _convert_bytes_to_int
 
 logger = logging.Logger(__name__)
-
-if _LIGHTNING_CLOUD_LATEST:
-    from lightning_cloud.resolver import _resolve_dir
-
-
-@dataclass
-class Dir:
-    """Holds a directory path and possibly its associated remote URL."""
-
-    path: str
-    url: Optional[str] = None
 
 
 class Cache:
@@ -72,10 +61,13 @@ class Cache:
             raise ModuleNotFoundError("PyTorch version 2.1 or higher is required to use the cache.")
 
         if not _LIGHTNING_CLOUD_LATEST:
-            raise ModuleNotFoundError("Lightning Cloud latest is required to use the cache.")
+            raise ModuleNotFoundError(
+                "The `lightning-cloud` package in your environement is out-dated."
+                " Run: `pip install -U lightning-cloud` to resolve this.")
 
         input_dir = _resolve_dir(input_dir)
         self._cache_dir = input_dir.path
+        assert self._cache_dir
         self._writer = BinaryWriter(
             self._cache_dir,
             chunk_size=chunk_size,
@@ -108,15 +100,18 @@ class Cache:
         """Returns whether the caching phase is done."""
         if self._is_done:
             return True
+        assert self._cache_dir
         self._is_done = os.path.exists(os.path.join(self._cache_dir, _INDEX_FILENAME))
         return self._is_done
 
     @property
     def cache_dir(self) -> str:
+        assert self._cache_dir
         return self._cache_dir
 
     @property
     def checkpoint_dir(self) -> str:
+        assert self._cache_dir
         checkpoint_dir = os.path.join(self._cache_dir, "checkpoints")
         return self._try_create(checkpoint_dir)
 
