@@ -40,7 +40,6 @@ if _TORCH_VISION_AVAILABLE:
     from torchvision.io import decode_jpeg
     from torchvision.transforms.functional import pil_to_tensor
 
-
 class Serializer(ABC):
     """The base interface for any serializers.
 
@@ -288,7 +287,7 @@ class FileSerializer(Serializer):
             return f.read(), file_extension.replace(".", "").lower()
 
     def deserialize(self, data: bytes) -> Any:
-        pass
+        return data
 
     def can_serialize(self, data: Any) -> bool:
         return isinstance(data, str) and os.path.exists(data)
@@ -326,6 +325,7 @@ class VideoSerializer(Serializer):
 _SERIALIZERS = OrderedDict(
     **{
         "video": VideoSerializer(),
+        "tif": FileSerializer(),
         "file": FileSerializer(),
         "pil": PILSerializer(),
         "int": IntSerializer(),
