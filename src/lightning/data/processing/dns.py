@@ -22,7 +22,10 @@ def optimize_dns(enable: bool) -> None:
     with open("/etc/resolv.conf") as f:
         lines = f.readlines()
 
-    if (enable and any("127.0.0.53" in line for line in lines)) or (not enable and any("127.0.0.1" in line for line in lines)): # noqa E501
+    if (
+        (enable and any("127.0.0.53" in line for line in lines))
+        or (not enable and any("127.0.0.1" in line for line in lines))
+    ): # noqa E501
         Popen(f"sudo /home/zeus/miniconda3/envs/cloudspace/bin/python -c 'from lightning.data.processing import _optimize_dns; _optimize_dns({enable})'", shell=True).wait() # noqa E501
 
 def _optimize_dns(enable: bool) -> None:
