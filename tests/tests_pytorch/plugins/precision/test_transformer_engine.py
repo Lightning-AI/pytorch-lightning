@@ -71,6 +71,5 @@ def test_configure_model(monkeypatch):
     trainer = Trainer(barebones=True, precision="transformer-engine-float16")
     trainer.test(model, [0])
     te_mock.pytorch.fp8_autocast.assert_called_once_with(enabled=True, fp8_recipe=ANY)
-    # TODO: invert condition once this gets fixed
-    assert not isinstance(model.l, ModuleMock)
+    assert isinstance(model.l, ModuleMock)
     assert model.l.weight.dtype == torch.float16

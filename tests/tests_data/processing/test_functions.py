@@ -4,7 +4,7 @@ from unittest import mock
 
 import pytest
 from lightning.data import walk
-from lightning.data.streaming.functions import _get_input_dir
+from lightning.data.processing.functions import _get_input_dir
 
 
 @pytest.mark.skipif(sys.platform == "win32", reason="currently not supported for windows.")

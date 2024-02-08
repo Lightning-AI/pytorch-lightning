@@ -9,8 +9,9 @@ def optimize_dns_context(enable):
     optimize_dns(enable)
     try:
         yield
+        optimize_dns(False)  # always disable the optimize DNS
     except Exception as e:
-        optimize_dns(not enable)
+        optimize_dns(False)  # always disable the optimize DNS
         raise e
 
 def optimize_dns(enable):
