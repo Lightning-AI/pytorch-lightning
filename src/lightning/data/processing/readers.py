@@ -5,8 +5,8 @@ from typing import Any, List, Optional
 
 from lightning_utilities.core.imports import RequirementCache
 
-from lightning.data.streaming.shuffle import _associate_chunks_and_internals_to_ranks
 from lightning.data.utilities.env import _DistributedEnv
+from lightning.data.utilities.shuffle import _associate_chunks_and_internals_to_ranks
 
 _POLARS_AVAILABLE = RequirementCache("polars")
 _PYARROW_AVAILABLE = RequirementCache("pyarrow")
