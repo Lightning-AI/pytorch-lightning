@@ -33,13 +33,13 @@ from torch.utils.data.dataloader import (
 )
 from torch.utils.data.sampler import BatchSampler, Sampler
 
+from lightning.data.constants import _DEFAULT_CHUNK_BYTES, _TORCH_GREATER_EQUAL_2_1_0, _VIZ_TRACKER_AVAILABLE
 from lightning.data.streaming import Cache
 from lightning.data.streaming.combined import (
     __NUM_SAMPLES_YIELDED_KEY__,
     __SAMPLES_KEY__,
     CombinedStreamingDataset,
 )
-from lightning.data.streaming.constants import _DEFAULT_CHUNK_BYTES, _TORCH_GREATER_EQUAL_2_1_0, _VIZ_TRACKER_AVAILABLE
 from lightning.data.streaming.dataset import StreamingDataset
 from lightning.data.streaming.sampler import CacheBatchSampler
 from lightning.data.utilities.env import _DistributedEnv

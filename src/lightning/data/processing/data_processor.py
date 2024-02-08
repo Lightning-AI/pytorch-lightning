@@ -20,11 +20,7 @@ import numpy as np
 from tqdm.auto import tqdm as _tqdm
 
 from lightning import seed_everything
-from lightning.data.processing.readers import BaseReader
-from lightning.data.streaming import Cache
-from lightning.data.streaming.cache import Dir
-from lightning.data.streaming.client import S3Client
-from lightning.data.streaming.constants import (
+from lightning.data.constants import (
     _BOTO3_AVAILABLE,
     _DEFAULT_FAST_DEV_RUN_ITEMS,
     _INDEX_FILENAME,
@@ -32,6 +28,10 @@ from lightning.data.streaming.constants import (
     _LIGHTNING_CLOUD_LATEST,
     _TORCH_GREATER_EQUAL_2_1_0,
 )
+from lightning.data.processing.readers import BaseReader
+from lightning.data.streaming import Cache
+from lightning.data.streaming.cache import Dir
+from lightning.data.streaming.client import S3Client
 from lightning.data.streaming.resolver import _resolve_dir
 from lightning.data.utilities.broadcast import broadcast_object
 from lightning.data.utilities.packing import _pack_greedily

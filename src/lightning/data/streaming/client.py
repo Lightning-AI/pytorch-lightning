@@ -2,7 +2,7 @@ import os
 from time import time
 from typing import Any, Optional
 
-from lightning.data.streaming.constants import _BOTO3_AVAILABLE
+from lightning.data.constants import _BOTO3_AVAILABLE
 
 if _BOTO3_AVAILABLE:
     import boto3

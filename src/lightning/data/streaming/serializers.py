@@ -23,7 +23,7 @@ import numpy as np
 import torch
 from lightning_utilities.core.imports import RequirementCache
 
-from lightning.data.streaming.constants import _NUMPY_DTYPES_MAPPING, _TORCH_DTYPES_MAPPING
+from lightning.data.constants import _NUMPY_DTYPES_MAPPING, _TORCH_DTYPES_MAPPING
 
 _PIL_AVAILABLE = RequirementCache("PIL")
 _TORCH_VISION_AVAILABLE = RequirementCache("torchvision")
