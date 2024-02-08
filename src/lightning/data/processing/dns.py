@@ -1,11 +1,12 @@
 from contextlib import contextmanager
 from subprocess import Popen
+from typing import Any
 
 from lightning.data.constants import _IS_IN_STUDIO
 
 
 @contextmanager
-def optimize_dns_context(enable):
+def optimize_dns_context(enable: bool) -> Any:
     optimize_dns(enable)
     try:
         yield
@@ -14,7 +15,7 @@ def optimize_dns_context(enable):
         optimize_dns(False)  # always disable the optimize DNS
         raise e
 
-def optimize_dns(enable):
+def optimize_dns(enable: bool) -> None:
     if not _IS_IN_STUDIO:
         return
 
@@ -24,7 +25,7 @@ def optimize_dns(enable):
     if (enable and any("127.0.0.53" in line for line in lines)) or (not enable and any("127.0.0.1" in line for line in lines)): # noqa E501
         Popen(f"sudo /home/zeus/miniconda3/envs/cloudspace/bin/python -c 'from lightning.data.processing import _optimize_dns; _optimize_dns({enable})'", shell=True).wait() # noqa E501
 
-def _optimize_dns(enable=False):
+def _optimize_dns(enable: bool) -> None:
     with open("/etc/resolv.conf") as f:
         lines = f.readlines()
 
