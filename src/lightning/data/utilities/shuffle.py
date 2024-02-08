@@ -1,7 +1,7 @@
 from typing import Any, List, Tuple
 
-import torch
 import numpy as np
+import torch
 
 from lightning.data.utilities.env import _DistributedEnv
 
