@@ -22,9 +22,10 @@ from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
 
 import torch
 
+from lightning.data.constants import _IS_IN_STUDIO, _TORCH_GREATER_EQUAL_2_1_0
 from lightning.data.processing.data_processor import DataChunkRecipe, DataProcessor, DataTransformRecipe
+from lightning.data.processing.dns import optimize_dns_context
 from lightning.data.processing.readers import BaseReader
-from lightning.data.streaming.constants import _IS_IN_STUDIO, _TORCH_GREATER_EQUAL_2_1_0
 from lightning.data.streaming.resolver import (
     Dir,
     _assert_dir_has_index_file,
@@ -218,7 +219,8 @@ def map(
             weights=weights,
             reader=reader,
         )
-        return data_processor.run(LambdaDataTransformRecipe(fn, inputs))
+        with optimize_dns_context(True):
+            return data_processor.run(LambdaDataTransformRecipe(fn, inputs))
     return _execute(
         f"data-prep-map-{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}",
         num_nodes,
@@ -303,15 +305,18 @@ def optimize(
             reorder_files=reorder_files,
             reader=reader,
         )
-        return data_processor.run(
-            LambdaDataChunkRecipe(
-                fn,
-                inputs,
-                chunk_size=chunk_size,
-                chunk_bytes=chunk_bytes,
-                compression=compression,
+
+        with optimize_dns_context(True):
+            data_processor.run(
+                LambdaDataChunkRecipe(
+                    fn,
+                    inputs,
+                    chunk_size=chunk_size,
+                    chunk_bytes=chunk_bytes,
+                    compression=compression,
+                )
             )
-        )
+        return None
     return _execute(
         f"data-prep-optimize-{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}",
         num_nodes,
