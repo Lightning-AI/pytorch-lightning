@@ -1,5 +1,6 @@
 from typing import Any, List, Tuple
 
+import torch
 import numpy as np
 
 from lightning.data.utilities.env import _DistributedEnv
@@ -13,7 +14,7 @@ def _intra_node_chunk_shuffle(
 ) -> List[int]:
     chunk_indexes_per_nodes: Any = [[] for _ in range(distributed_env.num_nodes)]
     for rank, chunks_per_rank in enumerate(chunks_per_ranks):
-        chunk_indexes_per_nodes[0 if distributed_env.num_nodes == 1 else rank // distributed_env.num_nodes].extend(
+        chunk_indexes_per_nodes[0 if distributed_env.num_nodes == 1 else rank // torch.cuda.device_count()].extend(
             chunks_per_rank
         )
 
