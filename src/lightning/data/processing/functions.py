@@ -22,9 +22,9 @@ from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
 
 import torch
 
+from lightning.data.processing.data_processor import DataChunkRecipe, DataProcessor, DataTransformRecipe
 from lightning.data.processing.readers import BaseReader
 from lightning.data.streaming.constants import _IS_IN_STUDIO, _TORCH_GREATER_EQUAL_2_1_0
-from lightning.data.streaming.data_processor import DataChunkRecipe, DataProcessor, DataTransformRecipe
 from lightning.data.streaming.resolver import (
     Dir,
     _assert_dir_has_index_file,
