@@ -622,4 +622,5 @@ linkcheck_ignore = [
     r"^../common/trainer.html#trainer-flags$",
     "https://deepgenerativemodels.github.io/assets/slides/cs236_lecture11.pdf",
     "https://www.intel.com/content/www/us/en/products/docs/processors/what-is-a-gpu.html",
+    "https://www.microsoft.com/en-us/research/blog/zero-infinity-and-deepspeed-unlocking-unprecedented-model-scale-for-deep-learning-training/",  # noqa: E501
 ]
