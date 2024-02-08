@@ -19,7 +19,7 @@ from typing import Any, Dict, List, Optional, Tuple
 import numpy as np
 import torch
 
-from lightning.data.streaming.constants import (
+from lightning.data.constants import (
     _TORCH_DTYPES_MAPPING,
     _TORCH_GREATER_EQUAL_2_1_0,
 )
