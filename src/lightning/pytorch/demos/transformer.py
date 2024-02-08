@@ -12,12 +12,12 @@ from typing import Dict, List, Optional, Tuple
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from lightning_utilities.core.imports import RequirementCache
 from torch import Tensor
 from torch.nn.modules import MultiheadAttention
 from torch.utils.data import DataLoader, Dataset
 
 from lightning.pytorch import LightningModule
-from lightning_utilities.core.imports import RequirementCache
 
 _REQUESTS_AVAILABLE = RequirementCache("requests")
 
