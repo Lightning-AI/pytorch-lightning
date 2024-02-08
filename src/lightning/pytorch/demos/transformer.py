@@ -9,15 +9,18 @@ import os
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
-import requests
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from lightning_utilities.core.imports import RequirementCache
 from torch import Tensor
 from torch.nn.modules import MultiheadAttention
 from torch.utils.data import DataLoader, Dataset
 
 from lightning.pytorch import LightningModule
+
+_REQUESTS_AVAILABLE = RequirementCache("requests")
+
 
 if hasattr(MultiheadAttention, "_reset_parameters") and not hasattr(MultiheadAttention, "reset_parameters"):
     # See https://github.com/pytorch/pytorch/issues/107909
@@ -125,6 +128,11 @@ class WikiText2(Dataset):
 
     @staticmethod
     def download(destination: Path) -> None:
+        if not _REQUESTS_AVAILABLE:
+            raise ModuleNotFoundError(str(_REQUESTS_AVAILABLE))
+
+        import requests
+
         os.makedirs(destination.parent, exist_ok=True)
         url = "https://raw.githubusercontent.com/pytorch/examples/main/word_language_model/data/wikitext-2/train.txt"
         if os.path.exists(destination):
