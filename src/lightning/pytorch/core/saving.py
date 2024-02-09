@@ -110,7 +110,7 @@ def _default_map_location(storage: "UntypedStorage", location: str) -> Optional[
         or location.startswith("xla")
         and not XLAAccelerator.is_available()
         or location.startswith("xpu")
-        and nott XPUAccelerator.is_available()
+        and not XPUAccelerator.is_available()
     ):
         return storage.cpu()
     return None  # default behavior by `torch.load()`
