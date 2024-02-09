@@ -553,6 +553,11 @@ class TextTokenizeRecipe(DataChunkRecipe):
 
 @pytest.mark.skipif(condition=sys.platform == "win32", reason="Not supported on windows")
 def test_data_processsor_nlp(tmpdir, monkeypatch):
+    import builtins
+    def fail_breakpoint(*args, **kwargs):
+            pytest.fail("breakpoint() encountered in tests")
+    builtins.breakpoint = fail_breakpoint
+
     seed_everything(42)
 
     monkeypatch.setenv("DATA_OPTIMIZER_CACHE_FOLDER", os.path.join(tmpdir, "chunks"))
@@ -563,6 +568,9 @@ def test_data_processsor_nlp(tmpdir, monkeypatch):
 
     data_processor = DataProcessor(input_dir=str(tmpdir), num_workers=1, num_downloaders=1)
     data_processor.run(TextTokenizeRecipe(chunk_size=1024 * 11))
+
+    data_processor_more_wokers = DataProcessor(input_dir=str(tmpdir), num_workers=2, num_downloaders=1)
+    data_processor_more_wokers.run(TextTokenizeRecipe(chunk_size=1024 * 11))
 
 
 class ImageResizeRecipe(DataTransformRecipe):
