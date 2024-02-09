@@ -564,6 +564,9 @@ def test_data_processsor_nlp(tmpdir, monkeypatch):
     data_processor = DataProcessor(input_dir=str(tmpdir), num_workers=1, num_downloaders=1)
     data_processor.run(TextTokenizeRecipe(chunk_size=1024 * 11))
 
+    data_processor_more_wokers = DataProcessor(input_dir=str(tmpdir), num_workers=2, num_downloaders=1)
+    data_processor_more_wokers.run(TextTokenizeRecipe(chunk_size=1024 * 11))
+
 
 class ImageResizeRecipe(DataTransformRecipe):
     def prepare_structure(self, input_dir: str):
