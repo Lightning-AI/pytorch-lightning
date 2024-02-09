@@ -319,6 +319,13 @@ class _AcceleratorConnector:
                             f" but accelerator set to {self._accelerator_flag}, please choose one device type"
                         )
                     self._accelerator_flag = "cuda"
+                if self._strategy_flag.parallel_devices[0].type == "xpu":
+                    if self._accelerator_flag and self._accelerator_flag not in ("auto", "xpu", "gpu"):
+                        raise MisconfigurationException(
+                            f"GPU parallel_devices set through {self._strategy_flag.__class__.__name__} class,"
+                            f" but accelerator set to {self._accelerator_flag}, please choose one device type"
+                        )
+                    self._accelerator_flag = "xpu"
                 self._parallel_devices = self._strategy_flag.parallel_devices
 
     def _check_device_config_and_set_final_flags(self, devices: Union[List[int], str, int], num_nodes: int) -> None:
