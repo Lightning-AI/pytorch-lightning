@@ -11,21 +11,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import os
-import warnings
-from contextlib import contextmanager
 from functools import lru_cache
-from typing import cast, Generator, List, Optional, Union
+from typing import Any, Dict, List, Union
 
 import torch
-from lightning_utilities.core.rank_zero import rank_zero_info
-
-from lightning.fabric.accelerators.registry import _AcceleratorRegistry
-
 from lightning_utilities.core.imports import RequirementCache
 
 from lightning.pytorch.accelerators.accelerator import Accelerator
-from typing import Any, Dict, List, Union
+
 
 class XPUAccelerator(Accelerator):
     """Support for a Intel Discrete Graphics Cards 'XPU'."""
@@ -46,8 +39,7 @@ class XPUAccelerator(Accelerator):
     @staticmethod
     def get_parallel_devices(devices: Any) -> Any:
         # Here, convert the device indices to actual device objects
-        import intel_extension_for_pytorch as ipex
-        
+
         return [torch.device("xpu", idx) for idx in devices]
 
     @staticmethod
@@ -66,7 +58,7 @@ class XPUAccelerator(Accelerator):
 
     def setup_device(self, device: torch.device) -> None:
         pass
-    
+
     def teardown(self) -> None:
         pass
 
@@ -88,12 +80,12 @@ def num_xpu_devices() -> int:
 
     Unlike :func:`torch.cuda.device_count`, this function does its best not to create a CUDA context for fork support,
     if the platform allows it.
+
     """
     if _IPEX_AVAILABLE:
         import intel_extension_for_pytorch as ipex
         return ipex.xpu.device_count()
-    else:
-        return 0
+    return 0
 
 def _get_all_visible_xpu_devices() -> List[int]:
     """Returns a list of all visible Intel XPU devices.
@@ -101,5 +93,6 @@ def _get_all_visible_xpu_devices() -> List[int]:
     Devices masked by the environment variabale ``ZE_AFFINITY_MASK`` won't be returned here. For example, assume you
     have 8 physical GPUs. If ``ZE_AFFINITY_MASK="1,3,6"``, then this function will return the list ``[0, 1, 2]``
     because these are the three visible GPUs after applying the mask ``ZE_AFFINITY_MASK``.
+
     """
     return list(range(num_xpu_devices()))

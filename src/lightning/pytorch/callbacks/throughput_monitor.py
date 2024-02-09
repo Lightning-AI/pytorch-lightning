@@ -132,7 +132,7 @@ class ThroughputMonitor(Callback):
             torch.cuda.synchronize()
         elif trainer.strategy.root_device.type == "xpu":
             torch.xpu.synchronize()
-            
+
         elapsed = time.perf_counter() - self._t0s[stage]
         if self.length_fn is not None:
             self._lengths[stage] += self.length_fn(batch)

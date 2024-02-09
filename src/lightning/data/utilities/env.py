@@ -43,7 +43,7 @@ class _DistributedEnv:
 
         # Add XPU accelerators if there are not CUDA and XPU is available:
         if hasattr(torch, "xpu") and torch.xpu.is_available():
-            num_nodes = world_size // torch.xpu.device_count() 
+            num_nodes = world_size // torch.xpu.device_count()
 
         if num_nodes > 1:
             # validate the world size is divisble by the number of GPUs

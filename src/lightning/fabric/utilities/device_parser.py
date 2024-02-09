@@ -115,8 +115,8 @@ def _normalize_parse_gpu_string_input(s: Union[int, str, List[int]]) -> Union[in
 
 
 def _sanitize_gpu_ids(gpus: List[int], include_cuda: bool = False, include_mps: bool = False, include_xpu: bool = False) -> List[int]:
-    """Checks that each of the GPUs in the list is actually available. Raises a MisconfigurationException if any of
-    the GPUs is not available.
+    """Checks that each of the GPUs in the list is actually available. Raises a MisconfigurationException if any of the
+    GPUs is not available.
 
     Args:
         gpus: List of ints corresponding to GPU indices
@@ -156,15 +156,15 @@ def _normalize_parse_gpu_input_to_list(
     return list(range(gpus))
 
 
-def _get_all_available_gpus(include_cuda: bool = False, include_mps: bool = False,  include_xpu: bool = False) -> List[int]:
+def _get_all_available_gpus(include_cuda: bool = False, include_mps: bool = False, include_xpu: bool = False) -> List[int]:
     """
     Returns:
         A list of all available GPUs
     """
 
     from lightning.fabric.accelerators.cuda import _get_all_visible_cuda_devices
-    from lightning.fabric.accelerators.mps  import _get_all_available_mps_gpus
-    from lightning.fabric.accelerators.xpu  import _get_all_visible_xpu_devices
+    from lightning.fabric.accelerators.mps import _get_all_available_mps_gpus
+    from lightning.fabric.accelerators.xpu import _get_all_visible_xpu_devices
 
     cuda_gpus = _get_all_visible_cuda_devices() if include_cuda else []
     mps_gpus = _get_all_available_mps_gpus() if include_mps else []

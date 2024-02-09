@@ -127,7 +127,7 @@ class DDPStrategy(ParallelStrategy):
         print(self.root_device.type)
         # https://pytorch.org/docs/stable/notes/cuda.html#id5
         if self.root_device.type == "cuda":
-            ctx = torch.cuda.stream(torch.cuda.Stream()) if device_ids is not None  else nullcontext()
+            ctx = torch.cuda.stream(torch.cuda.Stream()) if device_ids is not None else nullcontext()
         elif self.root_device.type == "xpu":
             ctx = torch.xpu.stream(torch.xpu.Stream()) if device_ids is not None else nullcontext()
         else:

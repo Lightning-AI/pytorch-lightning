@@ -290,7 +290,7 @@ def _init_dist_connection(
     log.info(f"Initializing distributed: GLOBAL_RANK: {global_rank}, MEMBER: {global_rank + 1}/{world_size}")
 
     if torch_distributed_backend.lower() == "ccl":
-        import oneccl_bindings_for_pytorch
+        pass
 
     torch.distributed.init_process_group(torch_distributed_backend, rank=global_rank, world_size=world_size, **kwargs)
 
@@ -306,10 +306,9 @@ def _init_dist_connection(
 def _get_default_process_group_backend_for_device(device: torch.device) -> str:
     if device.type == "cuda":
         return "nncl"
-    elif device.type == "xpu":
+    if device.type == "xpu":
         return "ccl"
-    else:
-        return "gloo"
+    return "gloo"
 
 
 class _DatasetSamplerWrapper(Dataset):

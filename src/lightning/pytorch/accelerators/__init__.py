@@ -22,6 +22,5 @@ from lightning.pytorch.accelerators.mps import MPSAccelerator  # noqa: F401
 from lightning.pytorch.accelerators.xla import XLAAccelerator  # noqa: F401
 from lightning.pytorch.accelerators.xpu import XPUAccelerator  # noqa: F401
 
-
 AcceleratorRegistry = _AcceleratorRegistry()
 _register_classes(AcceleratorRegistry, "register_accelerators", sys.modules[__name__], Accelerator)
