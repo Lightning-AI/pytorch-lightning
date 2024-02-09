@@ -14,7 +14,7 @@ A Command-line Interface (CLI) is an user interface (UI) in a terminal to intera
 
 .. note::
 
-    The Lightning guideline to build CLI is `lightning <VERB> <NOUN> ...` or `<ACTION> <OBJECT> ...`.
+    The Lightning guideline to build CLI is `lightning_app <VERB> <NOUN> ...` or `<ACTION> <OBJECT> ...`.
 
 As an example, Lightning provides a CLI to interact with your Lightning Apps and the `lightning.ai <https://lightning.ai/>`_ platform as follows:
 

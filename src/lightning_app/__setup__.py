@@ -85,7 +85,7 @@ def _setup_args() -> Dict[str, Any]:
         "python_requires": ">=3.8",
         "entry_points": {
             "console_scripts": [
-                "lightning = lightning_app.cli.lightning_cli:main",
+                "lightning_app = lightning_app.cli.lightning_cli:main",
             ],
         },
         "setup_requires": [],

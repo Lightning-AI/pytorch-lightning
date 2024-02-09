@@ -59,7 +59,7 @@ def _copy_and_setup_react_ui(dest_dir: Optional[str] = None) -> None:
             return la.frontend.StaticWebFrontend(Path(__file__).parent / "react-ui/src/dist")
 
     ⚡ run the example_app.py to see it live!
-    lightning run app {dest_dir}/example_app.py
+    lightning_app run app {dest_dir}/example_app.py
 
     """
     logger.info(m)
@@ -80,7 +80,7 @@ def _check_react_prerequisites() -> None:
 
     if not has_npm:
         m = """
-        This machine is missing 'npm'. Please install npm and rerun 'lightning init react-ui' again.
+        This machine is missing 'npm'. Please install npm and rerun 'lightning_app init react-ui' again.
 
         Install instructions: https://docs.npmjs.com/downloading-and-installing-node-js-and-npm
         """
@@ -94,7 +94,7 @@ def _check_react_prerequisites() -> None:
 
     if not has_node:
         m = """
-        This machine is missing 'node'. Please install node and rerun 'lightning init react-ui' again.
+        This machine is missing 'node'. Please install node and rerun 'lightning_app init react-ui' again.
 
         Install instructions: https://docs.npmjs.com/downloading-and-installing-node-js-and-npm
         """

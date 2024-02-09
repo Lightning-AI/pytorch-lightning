@@ -54,7 +54,7 @@ User Workflow
 
     .. code-block:: bash
 
-        lightning install app lightning/hackernews-app
+        lightning_app install app lightning/hackernews-app
 
 #. Go through the installation steps.
 
@@ -71,7 +71,7 @@ User Workflow
     .. code-block:: bash
 
         cd LAI-Hackernews-App
-        lightning run app app.py
+        lightning_app run app app.py
 
     .. video:: https://pl-public-data.s3.amazonaws.com/assets_lightning/hackernews.mp4
         :poster: https://pl-public-data.s3.amazonaws.com/assets_lightning/hackernews.png
