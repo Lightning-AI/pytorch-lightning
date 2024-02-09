@@ -13,7 +13,7 @@ To run any app on the public lightning cloud use the ``--cloud`` argument:
 
 .. code:: bash
 
-    lightning run app app.py --cloud
+    lightning_app run app app.py --cloud
 
 
 .. note::
@@ -44,7 +44,7 @@ Simply use the ``--name`` flag when running your app, for example:
 
 .. code:: bash
 
-    lightning run app app.py --cloud --name my-awesome-app
+    lightning_app run app app.py --cloud --name my-awesome-app
 
 Alternatively, you can change the name of the app in the ``.lightning`` file:
 

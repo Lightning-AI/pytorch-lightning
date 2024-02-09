@@ -56,7 +56,7 @@ Install this App by typing:
 
 .. code-block:: bash
 
-    lightning install app lightning/quick-start
+    lightning_app install app lightning/quick-start
 
 Verify the App was successfully installed:
 
@@ -74,7 +74,7 @@ Run the app locally with the ``run`` command 🤯
 
 .. code:: bash
 
-    lightning run app app.py
+    lightning_app run app app.py
 
 ----
 
@@ -86,7 +86,7 @@ Add the ``--cloud`` argument to run on the `Lightning.AI cloud <http://lightning
 
 .. code:: bash
 
-    lightning run app app.py --cloud
+    lightning_app run app app.py --cloud
 
 ..
     Your app should look like this one (|qs_live_app|)

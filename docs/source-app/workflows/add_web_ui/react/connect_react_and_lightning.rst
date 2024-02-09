@@ -13,11 +13,11 @@ Connect React to a Lightning app
 Example code
 ************
 To illustrate how to connect a React app and a lightning App, we'll be using the `example_app.py` file
-which :doc:`lightning init react-ui <create_react_template>` created:
+which :doc:`lightning_app init react-ui <create_react_template>` created:
 
 .. literalinclude:: ../../../../../src/lightning/app/cli/react-ui-template/example_app.py
 
-and the App.tsx file also created by :doc:`lightning init react-ui <create_react_template>`:
+and the App.tsx file also created by :doc:`lightning_app init react-ui <create_react_template>`:
 
 .. literalinclude:: ../../../../../src/lightning/app/cli/react-ui-template/ui/src/App.tsx
 
@@ -54,7 +54,7 @@ At this point, the React app will render in the Lightning app. Test it out!
 
 .. code:: bash
 
-    lightning run app example_app.py
+    lightning_app run app example_app.py
 
 However, to make powerful React+Lightning apps, you must also connect the Lightning App state to the react app.
 These lines enable two-way communication between the react app and the Lightning app.
