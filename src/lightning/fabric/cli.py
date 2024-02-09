@@ -30,7 +30,7 @@ _log = logging.getLogger(__name__)
 
 _CLICK_AVAILABLE = RequirementCache("click")
 
-_SUPPORTED_ACCELERATORS = ("cpu", "gpu", "cuda", "mps", "tpu")
+_SUPPORTED_ACCELERATORS = ("cpu", "gpu", "cuda", "mps", "tpu", "xpu")
 
 
 def _get_supported_strategies() -> List[str]:

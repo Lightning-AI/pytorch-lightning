@@ -82,9 +82,9 @@ _IPEX_AVAILABLE = RequirementCache("intel_extension_for_pytorch>=2.0", "intel_ex
 
 @lru_cache(1)
 def num_xpu_devices() -> int:
-    """Returns the number of available CUDA devices.
+    """Returns the number of available XPU devices.
 
-    Unlike :func:`torch.cuda.device_count`, this function does its best not to create a CUDA context for fork support,
+    Unlike :func:`torch.xpu.device_count`, this function does its best not to create a XPU context for fork support,
     if the platform allows it.
     """
     if _IPEX_AVAILABLE:

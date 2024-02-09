@@ -43,6 +43,10 @@ class _DeviceDtypeModuleMixin(Module):
         # make this more explicit to always include the index
         if device.type == "cuda" and device.index is None:
             return torch.device(f"cuda:{torch.cuda.current_device()}")
+        
+        if hasattr(torch, "xpu") and device.type == "xpu" and device.index is None:
+            return torch.device(f"xpu:{torch.xpu.current_device()}")
+
 
         return device
 
@@ -74,6 +78,27 @@ class _DeviceDtypeModuleMixin(Module):
             device = torch.device("cuda", index=device)
         _update_properties(self, device=device)
         return super().cuda(device=device)
+
+    @override
+    def xpu(self, device: Optional[Union[torch.device, int]] = None) -> Self:
+        """Moves all model parameters and buffers to the XPU GPU. This also makes associated parameters and buffers
+        different objects. So it should be called before constructing optimizer if the module will live on GPU while
+        being optimized.
+
+        Arguments:
+            device: If specified, all parameters will be copied to that device. If `None`, the current XPU device
+                index will be used.
+
+        Returns:
+            Module: self
+
+        """
+        if device is None:
+            device = torch.device("xpu", torch.xpu.current_device())
+        elif isinstance(device, int):
+            device = torch.device("xpu", index=device)
+        _update_properties(self, device=device)
+        return super().xpu(device=device)
 
     @override
     def cpu(self) -> Self:

@@ -111,6 +111,10 @@ class LambdaDataTransformRecipe(DataTransformRecipe):
             num_gpus = torch.cuda.device_count()
             device = int(global_rank) % num_gpus
             self._device = f"cuda:{device}"
+        elif hasattr(torch, "xpu"):
+            num_gpus = torch.xpu.device_count()
+            device = int(global_rank) % num_gpus
+            self._device = f"xpu:{device}"
 
 
 class LambdaDataChunkRecipe(DataChunkRecipe):
