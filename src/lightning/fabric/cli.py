@@ -44,7 +44,15 @@ def _get_supported_strategies() -> List[str]:
 if _CLICK_AVAILABLE:
     import click
 
-    @click.command(
+    @click.group()
+    def _main() -> None:
+        pass
+
+    @_main.group()
+    def run() -> None:
+        pass
+
+    @run.command(
         "model",
         context_settings={
             "ignore_unknown_options": True,
@@ -127,7 +135,7 @@ if _CLICK_AVAILABLE:
         """
         script_args = list(kwargs.pop("script_args", []))
         main(args=Namespace(**kwargs), script_args=script_args)
-
+    
 
 def _set_env_variables(args: Namespace) -> None:
     """Set the environment variables for the new processes.
