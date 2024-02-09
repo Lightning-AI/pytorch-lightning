@@ -118,8 +118,8 @@ class ParquetReader(BaseReader):
 
         for filepath in filepaths:
             num_rows = self._get_num_rows(filepath)
-            
-            if num_rows < (self.limit_num_rows * 5):
+
+            if num_rows < (self.limit_num_rows * 8):
                 new_items.append(filepath)
                 continue
 

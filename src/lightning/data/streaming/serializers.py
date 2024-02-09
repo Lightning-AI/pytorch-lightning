@@ -109,7 +109,7 @@ class JPEGSerializer(Serializer):
                 raise ValueError(
                     "The JPEG Image's filename isn't defined. HINT: Open the image in your Dataset __getitem__ method."
                 )
-            if item.filename and os.path.exists(item.filename):
+            if item.filename and os.path.isfile(item.filename):
                 # read the content of the file directly
                 with open(item.filename, "rb") as f:
                     return f.read(), None
@@ -290,7 +290,7 @@ class FileSerializer(Serializer):
         return data
 
     def can_serialize(self, data: Any) -> bool:
-        return isinstance(data, str) and os.path.exists(data)
+        return isinstance(data, str) and os.path.isfile(data)
 
 
 class VideoSerializer(Serializer):
@@ -319,7 +319,7 @@ class VideoSerializer(Serializer):
             return torchvision.io.read_video(fname, pts_unit="sec")
 
     def can_serialize(self, data: Any) -> bool:
-        return isinstance(data, str) and os.path.exists(data) and any(data.endswith(ext) for ext in self._EXTENSIONS)
+        return isinstance(data, str) and os.path.isfile(data) and any(data.endswith(ext) for ext in self._EXTENSIONS)
 
 
 _SERIALIZERS = OrderedDict(
