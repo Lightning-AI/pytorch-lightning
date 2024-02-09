@@ -555,7 +555,7 @@ class TextTokenizeRecipe(DataChunkRecipe):
 def test_data_processsor_nlp(tmpdir, monkeypatch):
     import builtins
     def fail_breakpoint(*args, **kwargs):
-            pytest.fail("breakpoint() encountered in tests")
+        pytest.fail("breakpoint() encountered in tests")
     builtins.breakpoint = fail_breakpoint
 
     seed_everything(42)
