@@ -79,7 +79,7 @@ jobs:
         if: |
           ((matrix.pkg-name == 'lightning' || matrix.pkg-name == 'notset') && matrix.pkg-extra == 'app') ||
           matrix.pkg-name == 'app'
-        run: lightning --version
+        run: lightning_app --version
 
       - name: DocTests actions
         working-directory: .actions/
