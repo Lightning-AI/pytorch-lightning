@@ -18,6 +18,7 @@ import sys
 import numpy as np
 import pytest
 from lightning import seed_everything
+from lightning.data.streaming.compression import _ZSTD_AVAILABLE
 from lightning.data.streaming.reader import BinaryReader
 from lightning.data.streaming.sampler import ChunkedIndex
 from lightning.data.streaming.writer import BinaryWriter
@@ -31,7 +32,13 @@ def test_binary_writer_with_ints_and_chunk_bytes(tmpdir):
     with pytest.raises(FileNotFoundError, match="The provided cache directory `dontexists` doesn't exist."):
         BinaryWriter("dontexists", {})
 
-    with pytest.raises(ValueError, match="No compresion algorithms are installed."):
+    match = (
+        "The provided compression something_else isn't available"
+        if _ZSTD_AVAILABLE
+        else "No compresion algorithms are installed."
+    )
+
+    with pytest.raises(ValueError, match=match):
         BinaryWriter(tmpdir, {"i": "int"}, compression="something_else")
 
     binary_writer = BinaryWriter(tmpdir, chunk_bytes=90)
@@ -69,7 +76,13 @@ def test_binary_writer_with_ints_and_chunk_size(tmpdir):
     with pytest.raises(FileNotFoundError, match="The provided cache directory `dontexists` doesn't exist."):
         BinaryWriter("dontexists", {})
 
-    with pytest.raises(ValueError, match="No compresion algorithms are installed."):
+    match = (
+        "The provided compression something_else isn't available"
+        if _ZSTD_AVAILABLE
+        else "No compresion algorithms are installed."
+    )
+
+    with pytest.raises(ValueError, match=match):
         BinaryWriter(tmpdir, {"i": "int"}, compression="something_else")
 
     binary_writer = BinaryWriter(tmpdir, chunk_size=25)

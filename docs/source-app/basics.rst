@@ -85,7 +85,7 @@ And here's the output you get when running the above application using **Lightni
 
 .. code-block:: console
 
-    $ lightning run app docs/source/code_samples/quickstart/app_01.py
+    $ lightning_app run app docs/source/code_samples/quickstart/app_01.py
       INFO: Your app has started. View it in your browser: http://127.0.0.1:7501/view
       State: {'works': {'w_1': {'vars': {'counter': 1}}, 'w_2': {'vars': {'counter': 0}}}}
 
@@ -175,7 +175,7 @@ Here's the output you get when running the above application using **Lightning C
 
 .. code-block:: console
 
-    $ lightning run app docs/source/code_samples/quickstart/app_02.py
+    $ lightning_app run app docs/source/code_samples/quickstart/app_02.py
       INFO: Your app has started. View it in your browser: http://127.0.0.1:7501/view
       # After you have clicked `run` on the UI.
       0.0 0.0
@@ -230,7 +230,7 @@ When running the above app, we see the following logs:
 
 .. code-block:: console
 
-    $ lightning run app docs/source/code_samples/quickstart/app/app_0.py
+    $ lightning_app run app docs/source/code_samples/quickstart/app/app_0.py
       INFO: Your app has started. View it in your browser: http://127.0.0.1:7501/view
       # After you have clicked `run` on the UI.
       0.0, 0.0

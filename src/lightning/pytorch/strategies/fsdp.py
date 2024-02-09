@@ -53,9 +53,9 @@ from lightning.fabric.utilities.distributed import (
 )
 from lightning.fabric.utilities.distributed import group as _group
 from lightning.fabric.utilities.imports import (
-    _TORCH_GREATER_EQUAL_1_13,
     _TORCH_GREATER_EQUAL_2_0,
     _TORCH_GREATER_EQUAL_2_1,
+    _TORCH_GREATER_EQUAL_2_2,
 )
 from lightning.fabric.utilities.init import _EmptyInit
 from lightning.fabric.utilities.load import _lazy_load, _materialize_tensors
@@ -248,6 +248,7 @@ class FSDPStrategy(ParallelStrategy):
 
     @override
     def setup_environment(self) -> None:
+        super().setup_environment()
         log.debug(f"{self.__class__.__name__}: setting up distributed...")
         reset_seed()
 
@@ -257,7 +258,6 @@ class FSDPStrategy(ParallelStrategy):
         self._process_group_backend = self._get_process_group_backend()
         assert self.cluster_environment is not None
         _init_dist_connection(self.cluster_environment, self._process_group_backend, timeout=self._timeout)
-        super().setup_environment()
 
     def _get_process_group_backend(self) -> str:
         return self._process_group_backend or _get_default_process_group_backend_for_device(self.root_device)
@@ -307,23 +307,24 @@ class FSDPStrategy(ParallelStrategy):
         _move_torchmetrics_to_device(model, self.root_device)
 
         # activation checkpointing needs to be set up after wrapping the model
-        if _TORCH_GREATER_EQUAL_1_13:
-            _setup_activation_checkpointing(model, self._activation_checkpointing_kwargs)
+        _setup_activation_checkpointing(model, self._activation_checkpointing_kwargs)
 
         return model
 
     @override
     def setup(self, trainer: "pl.Trainer") -> None:
         assert self.accelerator is not None
-        assert self.model is not None
         self.accelerator.setup(trainer)
 
+        assert self.model is not None
         if trainer.state.fn == TrainerFn.FITTING and self._layer_sync:
             self.model = self._layer_sync.apply(self.model)
 
         # we set the device so that optimizers can be created with distributed comms.
         assert self.lightning_module is not None
         self.lightning_module._device = self.root_device
+
+        self.model = self.precision_plugin.convert_module(self.model)
 
         if is_overridden("configure_sharded_model", self.lightning_module):
             # legacy: we don't skip setup with the `configure_model` alternative
@@ -335,10 +336,11 @@ class FSDPStrategy(ParallelStrategy):
             self.model = self._setup_model(self.model)
         self.barrier()
 
-        self.setup_optimizers(trainer)
-        _optimizers_to_device(self.optimizers, self.root_device)
-
+        if trainer.state.fn == TrainerFn.FITTING:
+            self.setup_optimizers(trainer)
         self.setup_precision_plugin()
+        if trainer.state.fn == TrainerFn.FITTING:
+            _optimizers_to_device(self.optimizers, self.root_device)
 
     @override
     def setup_optimizers(self, trainer: "pl.Trainer") -> None:
@@ -371,6 +373,7 @@ class FSDPStrategy(ParallelStrategy):
 
     @override
     def model_to_device(self) -> None:
+        # FSDP takes care of moving the model to device
         pass
 
     @contextmanager
@@ -382,10 +385,8 @@ class FSDPStrategy(ParallelStrategy):
             # 1) materialize module 2) call `reset_parameters()` 3) shard the module.
             # These operations are applied to each submodule 'bottom up' in the module hierarchy.
             empty_init_context = torch.device("meta")
-        elif _TORCH_GREATER_EQUAL_1_13:
-            empty_init_context = _EmptyInit(enabled=bool(empty_init))
         else:
-            empty_init_context = nullcontext()
+            empty_init_context = _EmptyInit(enabled=bool(empty_init))
         with empty_init_context, self.precision_plugin.tensor_init_context():
             yield
 
@@ -509,7 +510,7 @@ class FSDPStrategy(ParallelStrategy):
             return self.model.state_dict()
 
     @override
-    def load_model_state_dict(self, checkpoint: Mapping[str, Any]) -> None:
+    def load_model_state_dict(self, checkpoint: Mapping[str, Any], strict: bool = True) -> None:
         # Override to do nothing, FSDP already loaded the states in `load_checkpoint()`
         pass
 
@@ -595,16 +596,21 @@ class FSDPStrategy(ParallelStrategy):
         assert self.lightning_module is not None
 
         if _is_sharded_checkpoint(path):
-            from torch.distributed.checkpoint import FileSystemReader, load_state_dict
+            from torch.distributed.checkpoint import FileSystemReader
             from torch.distributed.checkpoint.optimizer import load_sharded_optimizer_state_dict
+
+            if _TORCH_GREATER_EQUAL_2_2:
+                from torch.distributed.checkpoint import load
+            else:
+                from torch.distributed.checkpoint import load_state_dict as load  # deprecated
 
             state_dict_ctx = _get_sharded_state_dict_context(self.model)
             reader = FileSystemReader(path=path)
 
             with state_dict_ctx:
                 module_state = {"model": self.model.state_dict()}
-                load_state_dict(module_state, reader)
-                self.model.load_state_dict(module_state["model"])
+                load(module_state, reader)
+                self.model.load_state_dict(module_state["model"], strict=self.lightning_module.strict_loading)
 
                 if self.lightning_module.trainer.state.fn == TrainerFn.FITTING:
                     # the optimizer states must be loaded separately
@@ -628,7 +634,12 @@ class FSDPStrategy(ParallelStrategy):
 
         if _is_full_checkpoint(path):
             checkpoint = _lazy_load(path) if _TORCH_GREATER_EQUAL_2_0 else torch.load(path, map_location="cpu")
-            _load_raw_module_state(checkpoint.pop("state_dict"), module=self.model, world_size=self.world_size)
+            _load_raw_module_state(
+                checkpoint.pop("state_dict"),
+                module=self.model,
+                world_size=self.world_size,
+                strict=self.lightning_module.strict_loading,
+            )
 
             if _TORCH_GREATER_EQUAL_2_0:
                 # Materialize lazy tensors if there are any left in the checkpoint

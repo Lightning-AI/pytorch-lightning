@@ -23,6 +23,7 @@ import torch.backends.cudnn
 import torch.multiprocessing as mp
 from lightning_utilities import apply_to_collection
 from torch.nn import Module
+from typing_extensions import override
 
 from lightning.fabric.accelerators.cpu import CPUAccelerator
 from lightning.fabric.strategies.launchers.launcher import _Launcher
@@ -73,12 +74,14 @@ class _MultiProcessingLauncher(_Launcher):
             )
 
     @property
+    @override
     def is_interactive_compatible(self) -> bool:
         # The start method 'spawn' is not supported in interactive environments
         # The start method 'fork' is the only one supported in Jupyter environments, with constraints around CUDA
         # initialization. For more context, see https://github.com/Lightning-AI/lightning/issues/7550
         return self._start_method == "fork"
 
+    @override
     def launch(self, function: Callable, *args: Any, **kwargs: Any) -> Any:
         """Launches processes that run the given function in parallel.
 

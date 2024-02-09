@@ -212,7 +212,7 @@ def test_find_unused_parameters_ddp_spawn_raises():
 
 
 @RunIf(standalone=True)
-def test_find_unused_parameters_ddp_raises():
+def test_find_unused_parameters_ddp_exception():
     """Test that the DDP strategy can change PyTorch's error message so that it's more useful for Lightning users."""
     trainer = Trainer(accelerator="cpu", devices=1, strategy="ddp", max_steps=2, logger=False)
     with pytest.raises(RuntimeError, match="It looks like your LightningModule has parameters that were not used in"):

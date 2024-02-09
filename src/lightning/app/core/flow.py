@@ -716,11 +716,11 @@ class LightningFlow:
 
         .. code-block:: bash
 
-            lightning run app app.py
+            lightning_app run app app.py
 
         .. code-block:: bash
 
-            lightning my_command_name --args name=my_own_name
+            lightning_app my_command_name --args name=my_own_name
 
         """
         raise NotImplementedError

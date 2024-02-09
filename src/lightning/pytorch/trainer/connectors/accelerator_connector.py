@@ -37,7 +37,8 @@ from lightning.pytorch.accelerators.mps import MPSAccelerator
 from lightning.pytorch.accelerators.xla import XLAAccelerator
 from lightning.pytorch.accelerators.xpu import XPUAccelerator
 from lightning.pytorch.plugins import (
-    PLUGIN_INPUT,
+    _PLUGIN_INPUT,
+    BitsandbytesPrecision,
     CheckpointIO,
     DeepSpeedPrecision,
     DoublePrecision,
@@ -82,7 +83,7 @@ class _AcceleratorConnector:
         num_nodes: int = 1,
         accelerator: Union[str, Accelerator] = "auto",
         strategy: Union[str, Strategy] = "auto",
-        plugins: Optional[Union[PLUGIN_INPUT, List[PLUGIN_INPUT]]] = None,
+        plugins: Optional[Union[_PLUGIN_INPUT, List[_PLUGIN_INPUT]]] = None,
         precision: Optional[_PRECISION_INPUT] = None,
         sync_batchnorm: bool = False,
         benchmark: Optional[bool] = None,
@@ -97,20 +98,14 @@ class _AcceleratorConnector:
                 2. accelerator str
                 3. accelerator auto
 
-            B. strategy flag could be :
+            B. strategy flag could be:
                 1. strategy class
                 2. strategy str registered with StrategyRegistry
 
             C. plugins flag could be:
-                1. List of str, which could contain:
-                    i. precision str (Not supported in the old accelerator_connector version)
-                    ii. checkpoint_io str (Not supported in the old accelerator_connector version)
-                    iii. cluster_environment str (Not supported in the old accelerator_connector version)
-                2. List of class, which could contains:
-                    i. precision class (should be removed, and precision flag should allow user pass classes)
-                    ii. checkpoint_io class
-                    iii. cluster_environment class
-
+                1. precision class (should be removed, and precision flag should allow user pass classes)
+                2. checkpoint_io class
+                3. cluster_environment class
 
         priorities which to take when:
             A. Class > str
@@ -176,7 +171,7 @@ class _AcceleratorConnector:
         strategy: Union[str, Strategy],
         accelerator: Union[str, Accelerator],
         precision: Optional[_PRECISION_INPUT],
-        plugins: Optional[Union[PLUGIN_INPUT, List[PLUGIN_INPUT]]],
+        plugins: Optional[Union[_PLUGIN_INPUT, List[_PLUGIN_INPUT]]],
         sync_batchnorm: bool,
     ) -> None:
         """This method checks:
@@ -554,9 +549,9 @@ class _AcceleratorConnector:
         if self._precision_flag == "64-true":
             return DoublePrecision()
         if self._precision_flag == "transformer-engine":
-            return TransformerEnginePrecision(dtype=torch.bfloat16)
+            return TransformerEnginePrecision(weights_dtype=torch.bfloat16)
         if self._precision_flag == "transformer-engine-float16":
-            return TransformerEnginePrecision(dtype=torch.float16)
+            return TransformerEnginePrecision(weights_dtype=torch.float16)
 
         if self._precision_flag == "16-mixed" and self._accelerator_flag == "cpu":
             rank_zero_warn(
@@ -576,6 +571,10 @@ class _AcceleratorConnector:
 
     def _validate_precision_choice(self) -> None:
         """Validate the combination of choices for precision, AMP type, and accelerator."""
+        if isinstance(self._precision_plugin_flag, BitsandbytesPrecision) and not isinstance(
+            self.accelerator, CUDAAccelerator
+        ):
+            raise RuntimeError("Bitsandbytes is only supported on CUDA GPUs.")
         if _habana_available_and_importable():
             from lightning_habana import HPUAccelerator
 

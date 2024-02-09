@@ -21,10 +21,12 @@ import lightning.pytorch as pl
 from lightning.fabric.accelerators.xla import _XLA_AVAILABLE
 from lightning.fabric.plugins import XLACheckpointIO
 from lightning.fabric.strategies import _StrategyRegistry
+from lightning.fabric.utilities.optimizer import _optimizers_to_device
 from lightning.fabric.utilities.types import _DEVICE
 from lightning.pytorch.plugins.io.wrapper import _WrappingCheckpointIO
 from lightning.pytorch.plugins.precision.xla import XLAPrecision
 from lightning.pytorch.strategies.single_device import SingleDeviceStrategy
+from lightning.pytorch.trainer.states import TrainerFn
 from lightning.pytorch.utilities import find_shared_parameters, set_shared_parameters
 
 
@@ -88,14 +90,26 @@ class SingleDeviceXLAStrategy(SingleDeviceStrategy):
 
     @override
     def setup(self, trainer: "pl.Trainer") -> None:
-        assert self.model, "self.model must be set before find_shared_parameters(self.model)"
+        if self.debug:
+            os.environ["PT_XLA_DEBUG"] = str(1)
+
+        assert self.accelerator is not None
+        self.accelerator.setup(trainer)
+
+        assert self.model is not None
+        self.precision_plugin.convert_module(self.model)
+
         shared_params = find_shared_parameters(self.model)
         self.model_to_device()
         set_shared_parameters(self.model, shared_params)
-        super().setup(trainer)
 
-        if self.debug:
-            os.environ["PT_XLA_DEBUG"] = str(1)
+        self.model = self._setup_model(self.model)
+
+        if trainer.state.fn == TrainerFn.FITTING:
+            self.setup_optimizers(trainer)
+        self.setup_precision_plugin()
+        if trainer.state.fn == TrainerFn.FITTING:
+            _optimizers_to_device(self.optimizers, self.root_device)
 
     @classmethod
     @override

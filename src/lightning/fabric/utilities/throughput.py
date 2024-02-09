@@ -16,6 +16,7 @@ from collections import deque
 from typing import TYPE_CHECKING, Any, Callable, Deque, Dict, List, Optional, TypeVar, Union
 
 import torch
+from typing_extensions import override
 
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_1
 from lightning.fabric.utilities.rank_zero import rank_zero_only, rank_zero_warn
@@ -596,7 +597,9 @@ def get_available_flops(device: torch.device, dtype: Union[torch.dtype, str]) ->
         else:
             from torch_xla.experimental import tpu
 
-        device_name = tpu.get_tpu_env()["TYPE"]
+        tpu_env = tpu.get_tpu_env()
+        # not all TPU generations define the "TYPE" envar. example: TYPE="V4", ACCELERATOR_TYPE="v4-8"
+        device_name = tpu_env.get("TYPE") or tpu_env["ACCELERATOR_TYPE"].split("-")[0]
         chip = device_name.lower()
         assert isinstance(device_name, str)
         if chip not in _TPU_FLOPS:
@@ -654,6 +657,7 @@ class _MonotonicWindow(List[T]):
             return self[-1]
         return None
 
+    @override
     def append(self, x: T) -> None:
         last = self.last
         if last is not None and last >= x:
@@ -663,6 +667,7 @@ class _MonotonicWindow(List[T]):
         if len(self) > self.maxlen:
             del self[0]
 
+    @override
     def __setitem__(self, key: Any, value: Any) -> None:
         # assigning is not implemented since we don't use it. it could be by checking all previous values
         raise NotImplementedError("__setitem__ is not supported")

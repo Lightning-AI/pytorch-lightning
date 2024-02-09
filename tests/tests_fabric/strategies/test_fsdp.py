@@ -34,7 +34,6 @@ from torch.distributed.fsdp.fully_sharded_data_parallel import CPUOffload, Fully
 from torch.optim import Adam
 
 from tests_fabric.helpers.runif import RunIf
-from tests_fabric.strategies.test_single_device import _MyFabricGradNorm
 
 
 def test_fsdp_custom_mixed_precision():
@@ -77,16 +76,26 @@ def test_fsdp_sharding_strategy():
 
 @RunIf(min_torch="2.0")
 @pytest.mark.parametrize("sharding_strategy", ["HYBRID_SHARD", "_HYBRID_SHARD_ZERO2"])
-def test_fsdp_hybrid_sharding_strategy(sharding_strategy):
+def test_fsdp_hybrid_shard_configuration(sharding_strategy):
     """Test that the hybrid sharding strategies can only be used with automatic wrapping or a manually specified pg."""
-    with pytest.raises(RuntimeError, match="The hybrid sharding strategy requires you to either set"):
+    with pytest.raises(RuntimeError, match="The hybrid sharding strategy requires you to pass at least one of"):
         FSDPStrategy(sharding_strategy=sharding_strategy)
 
     strategy = FSDPStrategy(auto_wrap_policy={nn.Linear}, sharding_strategy=sharding_strategy)
     assert strategy.sharding_strategy.name == sharding_strategy
 
-    strategy = FSDPStrategy(sharding_strategy=sharding_strategy, process_group=(Mock(), Mock()))
+    process_group = (Mock(), Mock())
+    strategy = FSDPStrategy(sharding_strategy=sharding_strategy, process_group=process_group)
     assert strategy.sharding_strategy.name == sharding_strategy
+    assert strategy._fsdp_kwargs["process_group"] is process_group
+
+    device_mesh = Mock()
+    strategy = FSDPStrategy(sharding_strategy=sharding_strategy, device_mesh=device_mesh)
+    assert strategy.sharding_strategy.name == sharding_strategy
+    assert strategy._fsdp_kwargs["device_mesh"] is device_mesh
+
+    with pytest.raises(ValueError, match="process_group.* device_mesh=.* are mutually exclusive"):
+        FSDPStrategy(sharding_strategy=sharding_strategy, process_group=process_group, device_mesh=device_mesh)
 
 
 def test_fsdp_checkpoint_io_unsupported():
@@ -153,16 +162,11 @@ def test_fsdp_no_backward_sync():
 
 def test_fsdp_activation_checkpointing_support(monkeypatch):
     """Test that we error out if activation checkpointing requires a newer PyTorch version."""
-    monkeypatch.setattr(lightning.fabric.strategies.fsdp, "_TORCH_GREATER_EQUAL_1_13", False)
-    with pytest.raises(ValueError, match="activation_checkpointing` requires torch >= 1.13.0"):
-        FSDPStrategy(activation_checkpointing=Mock())
-
     monkeypatch.setattr(lightning.fabric.strategies.fsdp, "_TORCH_GREATER_EQUAL_2_1", False)
     with pytest.raises(ValueError, match="activation_checkpointing_policy` requires torch >= 2.1.0"):
         FSDPStrategy(activation_checkpointing_policy=Mock())
 
 
-@RunIf(min_torch="1.13")
 def test_fsdp_activation_checkpointing():
     """Test that the FSDP strategy can apply activation checkpointing to the given layers."""
 
@@ -210,20 +214,6 @@ def test_fsdp_activation_checkpointing():
     apply_mock.assert_called_with(wrapped, checkpoint_wrapper_fn=ANY, **strategy._activation_checkpointing_kwargs)
 
 
-@RunIf(min_torch="1.13")
-def test_fsdp_grad_clipping_value_error():
-    strategy = FSDPStrategy()
-    with pytest.raises(
-        NotImplementedError,
-        match=(
-            "FSDP currently does not support to clip gradients by value. "
-            "Consider clipping by norm instead or choose another strategy!"
-        ),
-    ):
-        strategy.clip_gradients_value(Mock(), Mock(), Mock())
-
-
-@RunIf(min_torch="1.13")
 def test_fsdp_forbidden_precision_raises():
     with pytest.raises(TypeError, match="can only work with the `FSDPPrecision"):
         FSDPStrategy(precision=HalfPrecision())
@@ -233,7 +223,6 @@ def test_fsdp_forbidden_precision_raises():
         strategy.precision = HalfPrecision()
 
 
-@RunIf(min_torch="1.13")
 def test_fsdp_grad_clipping_norm_error():
     strategy = FSDPStrategy()
     with pytest.raises(
@@ -241,30 +230,6 @@ def test_fsdp_grad_clipping_norm_error():
         match="only possible if the module.*is wrapped in `FullyShardedDataParallel`",
     ):
         strategy.clip_gradients_norm(Mock(), Mock(), Mock())
-
-
-class _MyFSDPFabricGradientNorm(_MyFabricGradNorm):
-    def after_backward(self, model, optimizer):
-        self.clip_gradients(model, optimizer, max_norm=0.05, error_if_nonfinite=True)
-
-        with model._forward_module.summon_full_params(model._forward_module):
-            parameters = model.parameters()
-            grad_norm = torch.linalg.vector_norm(
-                torch.stack([torch.linalg.vector_norm(p.grad.detach(), 2, dtype=torch.float32) for p in parameters]),
-                2,
-            )
-            torch.testing.assert_close(grad_norm, torch.tensor(0.05, device=self.device))
-
-
-@pytest.mark.parametrize(
-    "precision",
-    ["32-true", "16-mixed", pytest.param("bf16-mixed", marks=RunIf(bf16_cuda=True))],
-)
-@RunIf(min_cuda_gpus=2, standalone=True)
-@pytest.mark.xfail(reason="Testing with FSDP is not yet correct")  # TODO: Investigate testing with fsdp
-def test_fsdp_grad_clipping_norm(precision):
-    fabric = _MyFSDPFabricGradientNorm(accelerator="cuda", devices=2, precision=precision, strategy="fsdp")
-    fabric.run()
 
 
 @RunIf(min_torch="2.0.0")

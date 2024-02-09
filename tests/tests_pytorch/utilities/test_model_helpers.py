@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import inspect
 import logging
 
 import pytest
@@ -66,10 +67,12 @@ class RestrictedClass:
 
 
 def test_restricted_classmethod():
-    with pytest.raises(TypeError, match="cannot be called on an instance"):
-        RestrictedClass().restricted_cmethod()
+    restricted_method = RestrictedClass().restricted_cmethod  # no exception when getting restricted method
 
-    RestrictedClass.restricted_cmethod()  # no exception
+    with pytest.raises(TypeError, match="cannot be called on an instance"):
+        restricted_method()
+
+    _ = inspect.getmembers(RestrictedClass())  # no exception on inspecting instance
 
 
 def test_module_mode():
