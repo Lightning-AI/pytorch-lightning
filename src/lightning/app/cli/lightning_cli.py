@@ -104,7 +104,7 @@ def main() -> None:
                     _run_app_command(app_name, app_id)
 
                 click.echo()
-                click.echo(message + " Return to the primary CLI with `lightning disconnect`.")
+                click.echo(message + " Return to the primary CLI with `lightning_app disconnect`.")
         else:
             _main()
 

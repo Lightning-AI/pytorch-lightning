@@ -65,13 +65,13 @@ To run your app, copy the following command to your local terminal:
 
 .. code-block:: bash
 
-    lightning run app app.py
+    lightning_app run app app.py
 
 Simply add ``--cloud`` to run this application in the cloud with a GPU machine 🤯
 
 .. code-block:: bash
 
-    lightning run app app.py --cloud
+    lightning_app run app app.py --cloud
 
 
 Congratulations! Now, you know how to run a `PyTorch Lightning <https://github.com/Lightning-AI/lightning/tree/master/src/lightning/pytorch>`_ script with Lightning Apps.
