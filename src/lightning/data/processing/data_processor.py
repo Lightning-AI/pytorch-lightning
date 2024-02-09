@@ -65,6 +65,10 @@ def _get_fast_dev_run() -> int:
     return bool(int(os.getenv("DATA_OPTIMIZER_FAST_DEV_RUN", 1)))
 
 
+def _get_global_rank():
+    return os.getenv("DATA_OPTIMIZER_GLOBAL_RANK")
+
+
 def _get_home_folder() -> str:
     """Returns whether cache folder for the filepaths."""
     return os.getenv("DATA_OPTIMIZER_HOME_FOLDER", os.path.expanduser("~"))
@@ -372,7 +376,6 @@ class BaseWorker:
         self._counter = 0
         self._last_time = time()
         self._index_counter = 0
-        self._current_item: Any = None
 
     def run(self) -> None:
         try:
@@ -477,6 +480,7 @@ class BaseWorker:
             assert os.path.exists(data), data
         else:
             assert os.path.exists(data[-1]), data
+
         self.to_upload_queues[self._counter % self.num_uploaders].put(data)
 
     def _collect_paths(self) -> None:
@@ -588,8 +592,8 @@ class BaseWorker:
 
     def _handle_data_chunk_recipe(self, index: int) -> None:
         try:
-            self._current_item = self.items[index] if self.reader is None else self.reader.read(self.items[index])
-            item_data_or_generator = self.data_recipe.prepare_item(self._current_item)
+            current_item = self.items[index] if self.reader is None else self.reader.read(self.items[index])
+            item_data_or_generator = self.data_recipe.prepare_item(current_item)
             if isinstance(item_data_or_generator, types.GeneratorType):
                 for item_data in item_data_or_generator:
                     if item_data is not None:
@@ -866,9 +870,9 @@ class DataProcessor:
             raise ValueError("The `prepare_structure` should return a list of item metadata.")
 
         if self.reader:
-            workers_user_items = self.reader.items_to_workers(user_items, self.num_workers)
+            user_items = self.reader.items_to_workers(user_items, self.num_workers)
 
-        elif self.weights is not None:
+        if self.weights is not None:
             if len(self.weights) != len(user_items):
                 raise ValueError("The provided weights length should match the inputs' length.")
             workers_user_items = _map_items_to_workers_weighted(
