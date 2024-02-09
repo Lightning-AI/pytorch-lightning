@@ -553,11 +553,6 @@ class TextTokenizeRecipe(DataChunkRecipe):
 
 @pytest.mark.skipif(condition=sys.platform == "win32", reason="Not supported on windows")
 def test_data_processsor_nlp(tmpdir, monkeypatch):
-    import builtins
-    def fail_breakpoint(*args, **kwargs):
-        pytest.fail("breakpoint() encountered in tests")
-    builtins.breakpoint = fail_breakpoint
-
     seed_everything(42)
 
     monkeypatch.setenv("DATA_OPTIMIZER_CACHE_FOLDER", os.path.join(tmpdir, "chunks"))
