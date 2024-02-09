@@ -1565,7 +1565,7 @@ class TestOpen:
         out, _ = capsys.readouterr()
 
         assert exited
-        assert "`lightning open` command has not been enabled" in out
+        assert "`lightning_app open` command has not been enabled" in out
 
 
 class TestCloudspaceDispatch:

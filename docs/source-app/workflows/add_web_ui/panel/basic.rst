@@ -111,7 +111,7 @@ Run the App locally:
 
 .. code:: bash
 
-    lightning run app app.py
+    lightning_app run app app.py
 
 The App should look like this:
 
@@ -124,7 +124,7 @@ Now, run it on the cloud:
 
 .. code:: bash
 
-    lightning run app app.py --cloud
+    lightning_app run app app.py --cloud
 
 ----
 
@@ -319,7 +319,7 @@ Finally run the App
 
 .. code:: bash
 
-    lightning run app app.py
+    lightning_app run app app.py
 
 .. figure:: https://pl-public-data.s3.amazonaws.com/assets_lightning/panel-lightning-theme.gif
    :alt: Basic Panel Plotly Lightning App with theming

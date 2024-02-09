@@ -144,7 +144,7 @@ class Auth:
 
         raise ValueError(
             "We couldn't find any credentials linked to your account. "
-            "Please try logging in using the CLI command `lightning login`"
+            "Please try logging in using the CLI command `lightning_app login`"
         )
 
 
