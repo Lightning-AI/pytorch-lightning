@@ -288,6 +288,10 @@ def _init_dist_connection(
     os.environ["MASTER_ADDR"] = cluster_environment.main_address
     os.environ["MASTER_PORT"] = str(cluster_environment.main_port)
     log.info(f"Initializing distributed: GLOBAL_RANK: {global_rank}, MEMBER: {global_rank + 1}/{world_size}")
+
+    if torch_distributed_backend.lower() == "ccl":
+        import oneccl_bindings_for_pytorch
+
     torch.distributed.init_process_group(torch_distributed_backend, rank=global_rank, world_size=world_size, **kwargs)
 
     # On rank=0 let everyone know training is starting
@@ -300,7 +304,12 @@ def _init_dist_connection(
 
 
 def _get_default_process_group_backend_for_device(device: torch.device) -> str:
-    return "nccl" if device.type == "cuda" else "gloo"
+    if device.type == "cuda":
+        return "nncl"
+    elif device.type == "xpu":
+        return "ccl"
+    else:
+        return "gloo"
 
 
 class _DatasetSamplerWrapper(Dataset):

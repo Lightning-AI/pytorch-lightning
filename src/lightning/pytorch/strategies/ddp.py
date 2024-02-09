@@ -190,7 +190,12 @@ class DDPStrategy(ParallelStrategy):
         device_ids = self.determine_ddp_device_ids()
         log.debug(f"setting up DDP model with device ids: {device_ids}, kwargs: {self._ddp_kwargs}")
         # https://pytorch.org/docs/stable/notes/cuda.html#id5
-        ctx = torch.cuda.stream(torch.cuda.Stream()) if device_ids is not None else nullcontext()
+        if self.root_device.type == "cuda":
+            ctx = torch.cuda.stream(torch.cuda.Stream()) if device_ids is not None else nullcontext()
+        elif self.root_device.type == "xpu":
+            ctx = torch.xpu.stream(torch.xpu.Stream()) if device_ids is not None else nullcontext()
+        else:
+            ctx = nullcontext()
         with ctx:
             return DistributedDataParallel(module=model, device_ids=device_ids, **self._ddp_kwargs)
 
@@ -304,7 +309,10 @@ class DDPStrategy(ParallelStrategy):
             return obj
 
         obj = [obj]
-        torch.distributed.broadcast_object_list(obj, src, group=_group.WORLD)
+        if self.root_device.type != "xpu" and type(obj[0]) == str:
+            # I don't know why this is true.  I will have to investigate.  In the meantime,
+            # This is getting called by the profiler which can be worked around:
+            torch.distributed.broadcast_object_list(obj, src, group=_group.WORLD)
         return obj[0]
 
     @override
