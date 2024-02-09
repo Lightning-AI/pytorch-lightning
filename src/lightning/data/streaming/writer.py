@@ -322,6 +322,8 @@ class BinaryWriter:
 
     def write_chunks_index(self) -> str:
         """Write the chunks index to a JSON file."""
+        if len(self._chunks_info) == 0:
+            return ""
         filepath = os.path.join(self._cache_dir, f"{self.rank}.{_INDEX_FILENAME}")
         config = self.get_config()
         with open(filepath, "w") as out:
@@ -393,7 +395,6 @@ class BinaryWriter:
                     config = data["config"]
 
                 elif config != data["config"]:
-                    breakpoint()
                     raise Exception("The config isn't consistent between chunks. This shouldn't have happened.")
 
                 chunks_info.extend(data["chunks"])
