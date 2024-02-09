@@ -135,7 +135,7 @@ if _CLICK_AVAILABLE:
         """
         script_args = list(kwargs.pop("script_args", []))
         main(args=Namespace(**kwargs), script_args=script_args)
-    
+
 
 def _set_env_variables(args: Namespace) -> None:
     """Set the environment variables for the new processes.
