@@ -80,7 +80,7 @@ def _setup_args() -> Dict[str, Any]:
         ),
         "entry_points": {
             "console_scripts": [
-                "fabric = lightning_fabric.cli:main",
+                "fabric = lightning_fabric.cli:_main",
             ],
         },
         "extras_require": _prepare_extras(),
