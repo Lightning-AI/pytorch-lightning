@@ -205,16 +205,10 @@ class _ExperimentWriter:
 
         self._fs = get_filesystem(log_dir)
         self.log_dir = log_dir
-        if self._fs.exists(self.log_dir) and self._fs.listdir(self.log_dir):
-            rank_zero_warn(
-                f"Experiment logs directory {self.log_dir} exists and is not empty."
-                " Previous log files in this directory will be deleted when the new ones are saved!"
-            )
-        self._fs.makedirs(self.log_dir, exist_ok=True)
-
         self.metrics_file_path = os.path.join(self.log_dir, self.NAME_METRICS_FILE)
-        if self._fs.isfile(self.metrics_file_path):
-            self._fs.rm_file(self.metrics_file_path)
+
+        self._check_log_dir_exists()
+        self._fs.makedirs(self.log_dir, exist_ok=True)
 
     def log_metrics(self, metrics_dict: Dict[str, float], step: Optional[int] = None) -> None:
         """Record metrics."""
@@ -268,3 +262,12 @@ class _ExperimentWriter:
             writer = csv.DictWriter(file, fieldnames=fieldnames)
             writer.writeheader()
             writer.writerows(metrics)
+
+    def _check_log_dir_exists(self) -> None:
+        if self._fs.exists(self.log_dir) and self._fs.listdir(self.log_dir):
+            rank_zero_warn(
+                f"Experiment logs directory {self.log_dir} exists and is not empty."
+                " Previous log files in this directory will be deleted when the new ones are saved!"
+            )
+            if self._fs.isfile(self.metrics_file_path):
+                self._fs.rm_file(self.metrics_file_path)

@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+from unittest import mock
 from unittest.mock import MagicMock
 
 import pytest
@@ -145,7 +146,11 @@ def test_automatic_step_tracking(tmp_path):
     assert logger.experiment.metrics[2]["step"] == 2
 
 
-def test_append_metrics_file(tmp_path):
+@mock.patch(
+    # Mock the existance check, so we can simulate appending to the metrics file
+    "lightning.fabric.loggers.csv_logs._ExperimentWriter._check_log_dir_exists"
+)
+def test_append_metrics_file(_, tmp_path):
     """Test that the logger appends to the file instead of rewriting it on every save."""
     logger = CSVLogger(tmp_path, name="test", version=0, flush_logs_every_n_steps=1)
 
@@ -182,7 +187,11 @@ def test_append_columns(tmp_path):
         assert set(header.split(",")) == {"step", "a", "b", "c"}
 
 
-def test_rewrite_with_new_header(tmp_path):
+@mock.patch(
+    # Mock the existance check, so we can simulate appending to the metrics file
+    "lightning.fabric.loggers.csv_logs._ExperimentWriter._check_log_dir_exists"
+)
+def test_rewrite_with_new_header(_, tmp_path):
     # write a csv file manually
     with open(tmp_path / "metrics.csv", "w") as file:
         file.write("step,metric1,metric2\n")
