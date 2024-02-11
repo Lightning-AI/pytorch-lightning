@@ -21,7 +21,6 @@ import torch
 import torch.distributed
 import torch.nn.functional
 from lightning.fabric.fabric import Fabric
-from lightning.fabric.plugins import Precision
 from lightning.fabric.strategies import (
     DataParallelStrategy,
     DDPStrategy,
