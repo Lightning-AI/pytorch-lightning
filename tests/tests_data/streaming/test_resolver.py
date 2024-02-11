@@ -16,7 +16,6 @@ from lightning_cloud.openapi import (
     V1ListClustersResponse,
     V1ListDataConnectionsResponse,
 )
-from lightning_cloud.resolver import _resolve_dir
 
 
 @pytest.mark.skipif(sys.platform == "win32", reason="windows isn't supported")
@@ -356,7 +355,7 @@ def test_resolve_dir_absolute(tmp_path, monkeypatch):
     # relative path
     monkeypatch.chdir(tmp_path)
     relative = "relative"
-    resolved_dir = _resolve_dir(str(relative))
+    resolved_dir = resolver._resolve_dir(str(relative))
     assert resolved_dir.path == str(tmp_path / relative)
     assert Path(resolved_dir.path).is_absolute()
     monkeypatch.undo()
@@ -367,4 +366,4 @@ def test_resolve_dir_absolute(tmp_path, monkeypatch):
     link = tmp_path / "link"
     link.symlink_to(src)
     assert link.resolve() == src
-    assert _resolve_dir(str(link)).path == str(src)
+    assert resolver._resolve_dir(str(link)).path == str(src)

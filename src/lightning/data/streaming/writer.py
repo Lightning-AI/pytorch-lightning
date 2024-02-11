@@ -21,8 +21,8 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 import numpy as np
 import torch
 
+from lightning.data.constants import _INDEX_FILENAME, _TORCH_GREATER_EQUAL_2_1_0
 from lightning.data.streaming.compression import _COMPRESSORS, Compressor
-from lightning.data.streaming.constants import _INDEX_FILENAME, _TORCH_GREATER_EQUAL_2_1_0
 from lightning.data.streaming.serializers import Serializer, _get_serializers
 from lightning.data.utilities.env import _DistributedEnv, _WorkerEnv
 from lightning.data.utilities.format import _convert_bytes_to_int, _human_readable_bytes
@@ -81,6 +81,7 @@ class BinaryWriter:
         if self._compression:
             if len(_COMPRESSORS) == 0:
                 raise ValueError("No compresion algorithms are installed.")
+
             if self._compression not in _COMPRESSORS:
                 raise ValueError(
                     f"The provided compression {self._compression} isn't available in {sorted(_COMPRESSORS)}"
@@ -105,12 +106,12 @@ class BinaryWriter:
             return True
         files = os.listdir(self._cache_dir)
         index_files = [f for f in files if f.endswith(_INDEX_FILENAME)]
-        worker_end = _WorkerEnv.detect()
+        worker_env = _WorkerEnv.detect()
         data_optimiser_num_workers = os.getenv("DATA_OPTIMIZER_NUM_WORKERS", None)
         if data_optimiser_num_workers is not None:
             self._is_done = len(index_files) == int(data_optimiser_num_workers)
         else:
-            self._is_done = len(index_files) == self._distributed_env.world_size * worker_end.world_size
+            self._is_done = len(index_files) == self._distributed_env.world_size * worker_env.world_size
         return self._is_done
 
     @property
@@ -321,6 +322,8 @@ class BinaryWriter:
 
     def write_chunks_index(self) -> str:
         """Write the chunks index to a JSON file."""
+        if len(self._chunks_info) == 0:
+            return ""
         filepath = os.path.join(self._cache_dir, f"{self.rank}.{_INDEX_FILENAME}")
         config = self.get_config()
         with open(filepath, "w") as out:
@@ -392,7 +395,6 @@ class BinaryWriter:
                     config = data["config"]
 
                 elif config != data["config"]:
-                    breakpoint()
                     raise Exception("The config isn't consistent between chunks. This shouldn't have happened.")
 
                 chunks_info.extend(data["chunks"])

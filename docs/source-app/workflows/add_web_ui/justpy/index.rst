@@ -89,4 +89,4 @@ Now, you can run the Lightning App with:
 
 .. code-block::
 
-    lightning run app app.py
+    lightning_app run app app.py

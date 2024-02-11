@@ -335,12 +335,21 @@ class DeepSpeedStrategy(DDPStrategy):
         self._init_config_if_needed()
         assert self.accelerator is not None
         self.accelerator.setup(trainer)
+
         # we set the device so that optimizers can be created with distributed comms.
         assert self.lightning_module is not None
         self.lightning_module._device = self.root_device
-        self.setup_optimizers(trainer)
+
+        assert self.model is not None
+        self.model = self.precision_plugin.convert_module(self.model)
+        self.model = self._setup_model(self.model)
+
+        if trainer.state.fn == TrainerFn.FITTING:
+            self.setup_optimizers(trainer)
         self.setup_precision_plugin()
-        _optimizers_to_device(self.optimizers, self.root_device)
+        if trainer.state.fn == TrainerFn.FITTING:
+            _optimizers_to_device(self.optimizers, self.root_device)
+
         self.init_deepspeed()
         self.barrier()
 
@@ -579,14 +588,15 @@ class DeepSpeedStrategy(DDPStrategy):
             trainer: the Trainer, these optimizers should be connected to
 
         """
-        if trainer.state.fn != TrainerFn.FITTING:
-            return
         # Skip initializing optimizers here as DeepSpeed handles optimizers via config.
         # User may have specified config options instead in configure_optimizers, but this is handled
         # via `_initialize_deepspeed_train`
         # empty optimizers, schedulers
         self.optimizers = []
         self.lr_scheduler_configs = []
+
+    def _setup_model(self, model: Module) -> Module:  # type: ignore[override]
+        return model
 
     @property
     @override
@@ -657,7 +667,10 @@ class DeepSpeedStrategy(DDPStrategy):
         is_fitting = self.lightning_module.trainer.state.fn == TrainerFn.FITTING
 
         _, client_state = self.deepspeed_engine.load_checkpoint(
-            checkpoint_path, load_optimizer_states=is_fitting, load_lr_scheduler_states=False
+            checkpoint_path,
+            load_optimizer_states=is_fitting,
+            load_lr_scheduler_states=False,
+            load_module_strict=self.lightning_module.strict_loading,
         )
         if client_state is None:
             raise MisconfigurationException(
@@ -680,13 +693,13 @@ class DeepSpeedStrategy(DDPStrategy):
         return False
 
     @override
-    def load_model_state_dict(self, checkpoint: Mapping[str, Any]) -> None:
+    def load_model_state_dict(self, checkpoint: Mapping[str, Any], strict: bool = True) -> None:
         # override to do nothing, deepspeed engine already loaded the weights in `load_checkpoint()`
         if self.load_full_weights and self.zero_stage_3:
             self.model_to_device()
-            self._restore_zero_state(checkpoint)
+            self._restore_zero_state(checkpoint, strict=strict)
 
-    def _restore_zero_state(self, ckpt: Mapping[str, Any]) -> None:
+    def _restore_zero_state(self, ckpt: Mapping[str, Any], strict: bool) -> None:
         """Overrides the normal load_state_dict behaviour in PyTorch to ensure we gather parameters that may be sharded
         across processes before loading the state dictionary when using ZeRO stage 3. This is then automatically synced
         across processes.
@@ -721,7 +734,7 @@ class DeepSpeedStrategy(DDPStrategy):
                         state_dict=state_dict,
                         prefix=prefix,
                         local_metadata=local_metadata,
-                        strict=True,
+                        strict=strict,
                         missing_keys=missing_keys,
                         unexpected_keys=unexpected_keys,
                         error_msgs=error_msgs,

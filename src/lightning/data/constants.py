@@ -26,7 +26,7 @@ _DEFAULT_CACHE_DIR = os.path.join(Path.home(), ".lightning", "chunks")
 # This is required for full pytree serialization / deserialization support
 _TORCH_GREATER_EQUAL_2_1_0 = RequirementCache("torch>=2.1.0")
 _VIZ_TRACKER_AVAILABLE = RequirementCache("viztracer")
-_LIGHTNING_CLOUD_LATEST = RequirementCache("lightning-cloud>=0.5.61")
+_LIGHTNING_CLOUD_LATEST = RequirementCache("lightning-cloud>=0.5.64")
 _BOTO3_AVAILABLE = RequirementCache("boto3")
 
 # DON'T CHANGE ORDER
@@ -57,3 +57,4 @@ _NUMPY_SCTYPES = [v for values in np.sctypes.values() for v in values]
 _NUMPY_DTYPES_MAPPING = {i: np.dtype(v) for i, v in enumerate(_NUMPY_SCTYPES)}
 
 _TIME_FORMAT = "%Y-%m-%d_%H-%M-%S.%fZ"
+_IS_IN_STUDIO = bool(os.getenv("LIGHTNING_CLOUD_PROJECT_ID", None)) and bool(os.getenv("LIGHTNING_CLUSTER_ID", None))

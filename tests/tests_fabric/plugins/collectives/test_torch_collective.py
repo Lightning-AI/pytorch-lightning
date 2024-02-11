@@ -11,7 +11,6 @@ from lightning.fabric.plugins.collectives import TorchCollective
 from lightning.fabric.plugins.environments import LightningEnvironment
 from lightning.fabric.strategies.ddp import DDPStrategy
 from lightning.fabric.strategies.launchers.multiprocessing import _MultiProcessingLauncher
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_13
 
 from tests_fabric.helpers.runif import RunIf
 
@@ -134,11 +133,10 @@ def test_convert_ops():
         TorchCollective._convert_to_native_op("invalid")
 
     # Test RedOpType
-    if _TORCH_GREATER_EQUAL_1_13:
-        assert TorchCollective._convert_to_native_op(ReduceOp.RedOpType.AVG) == ReduceOp.RedOpType.AVG
-        op = torch.distributed._make_nccl_premul_sum(2.0)  # this returns a ReduceOp
-        assert TorchCollective._convert_to_native_op(op) == ReduceOp.PREMUL_SUM
-        assert TorchCollective._convert_to_native_op("premul_sum") == ReduceOp.PREMUL_SUM
+    assert TorchCollective._convert_to_native_op(ReduceOp.RedOpType.AVG) == ReduceOp.RedOpType.AVG
+    op = torch.distributed._make_nccl_premul_sum(2.0)  # this returns a ReduceOp
+    assert TorchCollective._convert_to_native_op(op) == ReduceOp.PREMUL_SUM
+    assert TorchCollective._convert_to_native_op("premul_sum") == ReduceOp.PREMUL_SUM
 
 
 @skip_distributed_unavailable
@@ -249,7 +247,7 @@ def _test_distributed_collectives_cuda_fn(strategy, collective):
 
 
 @skip_distributed_unavailable
-@RunIf(min_cuda_gpus=1, min_torch="1.13")
+@RunIf(min_cuda_gpus=1)
 def test_collectives_distributed_cuda():
     collective_launch(_test_distributed_collectives_cuda_fn, [torch.device("cuda")])
 

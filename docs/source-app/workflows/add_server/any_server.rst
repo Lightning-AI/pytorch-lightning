@@ -121,13 +121,13 @@ Start the app to see your new UI!
 
 .. code:: bash
 
-    lightning run app app.py
+    lightning_app run app app.py
 
 To run the app on the cloud, use the ``--cloud`` argument.
 
 .. code:: bash
 
-    lightning run app app.py --cloud
+    lightning_app run app app.py --cloud
 
 ----
 

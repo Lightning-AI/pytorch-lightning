@@ -31,11 +31,9 @@ from torch import Tensor
 from torch.optim import Optimizer
 from typing_extensions import TypeAlias, overload
 
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_13, _TORCH_GREATER_EQUAL_2_0
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 
-UntypedStorage: TypeAlias = (
-    torch.UntypedStorage if _TORCH_GREATER_EQUAL_1_13 else torch._UntypedStorage  # type: ignore[valid-type]
-)
+UntypedStorage: TypeAlias = torch.UntypedStorage
 
 _PATH = Union[str, Path]
 _DEVICE = Union[torch.device, str, int]
@@ -48,12 +46,10 @@ _PARAMETERS = Iterator[torch.nn.Parameter]
 if torch.distributed.is_available():
     from torch.distributed import ProcessGroup, ReduceOp
 
-    RedOpType: TypeAlias = ReduceOp.RedOpType if _TORCH_GREATER_EQUAL_1_13 else object  # type: ignore[valid-type]
+    RedOpType: TypeAlias = ReduceOp.RedOpType
 else:
     ProcessGroup = Any  # type: ignore[assignment,misc]
-    ReduceOp = object  # type: ignore[assignment,misc] # we are using isinstance check once
-    RedOpType = object
-
+    ReduceOp = RedOpType = object  # type: ignore[assignment,misc] # we are using isinstance check once
 
 _DictKey = TypeVar("_DictKey")
 
