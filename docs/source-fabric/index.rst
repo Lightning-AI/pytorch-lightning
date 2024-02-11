@@ -211,6 +211,7 @@ Get Started
     Loggers <api/loggers>
     Precision <api/precision>
     Strategies <api/strategies>
+    Utilities <api/utilities>
 
 
 .. toctree::

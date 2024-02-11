@@ -23,7 +23,7 @@ import numpy as np
 import torch
 from lightning_utilities.core.imports import RequirementCache
 
-from lightning.data.streaming.constants import _NUMPY_DTYPES_MAPPING, _TORCH_DTYPES_MAPPING
+from lightning.data.constants import _NUMPY_DTYPES_MAPPING, _TORCH_DTYPES_MAPPING
 
 _PIL_AVAILABLE = RequirementCache("PIL")
 _TORCH_VISION_AVAILABLE = RequirementCache("torchvision")
@@ -39,7 +39,6 @@ else:
 if _TORCH_VISION_AVAILABLE:
     from torchvision.io import decode_jpeg
     from torchvision.transforms.functional import pil_to_tensor
-
 
 class Serializer(ABC):
     """The base interface for any serializers.
@@ -288,7 +287,7 @@ class FileSerializer(Serializer):
             return f.read(), file_extension.replace(".", "").lower()
 
     def deserialize(self, data: bytes) -> Any:
-        pass
+        return data
 
     def can_serialize(self, data: Any) -> bool:
         return isinstance(data, str) and os.path.exists(data)
@@ -326,6 +325,7 @@ class VideoSerializer(Serializer):
 _SERIALIZERS = OrderedDict(
     **{
         "video": VideoSerializer(),
+        "tif": FileSerializer(),
         "file": FileSerializer(),
         "pil": PILSerializer(),
         "int": IntSerializer(),

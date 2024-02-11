@@ -20,7 +20,8 @@ import numpy as np
 import pytest
 import torch
 from lightning import seed_everything
-from lightning.data.streaming import Cache, functions
+from lightning.data.processing import functions
+from lightning.data.streaming import Cache
 from lightning.data.streaming.dataloader import StreamingDataLoader
 from lightning.data.streaming.dataset import (
     _INDEX_FILENAME,

@@ -314,15 +314,17 @@ class FSDPStrategy(ParallelStrategy):
     @override
     def setup(self, trainer: "pl.Trainer") -> None:
         assert self.accelerator is not None
-        assert self.model is not None
         self.accelerator.setup(trainer)
 
+        assert self.model is not None
         if trainer.state.fn == TrainerFn.FITTING and self._layer_sync:
             self.model = self._layer_sync.apply(self.model)
 
         # we set the device so that optimizers can be created with distributed comms.
         assert self.lightning_module is not None
         self.lightning_module._device = self.root_device
+
+        self.model = self.precision_plugin.convert_module(self.model)
 
         if is_overridden("configure_sharded_model", self.lightning_module):
             # legacy: we don't skip setup with the `configure_model` alternative
@@ -334,10 +336,11 @@ class FSDPStrategy(ParallelStrategy):
             self.model = self._setup_model(self.model)
         self.barrier()
 
-        self.setup_optimizers(trainer)
-        _optimizers_to_device(self.optimizers, self.root_device)
-
+        if trainer.state.fn == TrainerFn.FITTING:
+            self.setup_optimizers(trainer)
         self.setup_precision_plugin()
+        if trainer.state.fn == TrainerFn.FITTING:
+            _optimizers_to_device(self.optimizers, self.root_device)
 
     @override
     def setup_optimizers(self, trainer: "pl.Trainer") -> None:
@@ -370,6 +373,7 @@ class FSDPStrategy(ParallelStrategy):
 
     @override
     def model_to_device(self) -> None:
+        # FSDP takes care of moving the model to device
         pass
 
     @contextmanager
@@ -506,7 +510,7 @@ class FSDPStrategy(ParallelStrategy):
             return self.model.state_dict()
 
     @override
-    def load_model_state_dict(self, checkpoint: Mapping[str, Any]) -> None:
+    def load_model_state_dict(self, checkpoint: Mapping[str, Any], strict: bool = True) -> None:
         # Override to do nothing, FSDP already loaded the states in `load_checkpoint()`
         pass
 
@@ -606,7 +610,7 @@ class FSDPStrategy(ParallelStrategy):
             with state_dict_ctx:
                 module_state = {"model": self.model.state_dict()}
                 load(module_state, reader)
-                self.model.load_state_dict(module_state["model"])
+                self.model.load_state_dict(module_state["model"], strict=self.lightning_module.strict_loading)
 
                 if self.lightning_module.trainer.state.fn == TrainerFn.FITTING:
                     # the optimizer states must be loaded separately
@@ -630,7 +634,12 @@ class FSDPStrategy(ParallelStrategy):
 
         if _is_full_checkpoint(path):
             checkpoint = _lazy_load(path) if _TORCH_GREATER_EQUAL_2_0 else torch.load(path, map_location="cpu")
-            _load_raw_module_state(checkpoint.pop("state_dict"), module=self.model, world_size=self.world_size)
+            _load_raw_module_state(
+                checkpoint.pop("state_dict"),
+                module=self.model,
+                world_size=self.world_size,
+                strict=self.lightning_module.strict_loading,
+            )
 
             if _TORCH_GREATER_EQUAL_2_0:
                 # Materialize lazy tensors if there are any left in the checkpoint

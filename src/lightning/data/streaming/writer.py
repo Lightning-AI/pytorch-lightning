@@ -21,8 +21,8 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 import numpy as np
 import torch
 
+from lightning.data.constants import _INDEX_FILENAME, _TORCH_GREATER_EQUAL_2_1_0
 from lightning.data.streaming.compression import _COMPRESSORS, Compressor
-from lightning.data.streaming.constants import _INDEX_FILENAME, _TORCH_GREATER_EQUAL_2_1_0
 from lightning.data.streaming.serializers import Serializer, _get_serializers
 from lightning.data.utilities.env import _DistributedEnv, _WorkerEnv
 from lightning.data.utilities.format import _convert_bytes_to_int, _human_readable_bytes
@@ -322,6 +322,8 @@ class BinaryWriter:
 
     def write_chunks_index(self) -> str:
         """Write the chunks index to a JSON file."""
+        if len(self._chunks_info) == 0:
+            return ""
         filepath = os.path.join(self._cache_dir, f"{self.rank}.{_INDEX_FILENAME}")
         config = self.get_config()
         with open(filepath, "w") as out:
@@ -393,7 +395,6 @@ class BinaryWriter:
                     config = data["config"]
 
                 elif config != data["config"]:
-                    breakpoint()
                     raise Exception("The config isn't consistent between chunks. This shouldn't have happened.")
 
                 chunks_info.extend(data["chunks"])

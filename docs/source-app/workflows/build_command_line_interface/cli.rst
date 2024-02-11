@@ -30,7 +30,7 @@ Execute the following command in a terminal:
 
 .. code-block::
 
-    lightning run app app.py
+    lightning_app run app app.py
 
 The following appears the terminal:
 
@@ -47,19 +47,19 @@ The following appears the terminal:
 ***************************
 
 In another terminal, connect to the running App.
-When you connect to an App, the Lightning CLI is replaced by the App CLI. To exit the App CLI, you need to run ``lightning disconnect``.
+When you connect to an App, the Lightning CLI is replaced by the App CLI. To exit the App CLI, you need to run ``lightning_app disconnect``.
 
 .. code-block::
 
-    lightning connect localhost
+    lightning_app connect localhost
 
 To see a list of available commands:
 
 .. code-block::
 
-    lightning --help
+    lightning_app --help
     You are connected to the cloud Lightning App: localhost.
-    Usage: lightning [OPTIONS] COMMAND [ARGS]...
+    Usage: lightning_app [OPTIONS] COMMAND [ARGS]...
 
     --help     Show this message and exit.
 
@@ -70,9 +70,9 @@ To find the arguments of the commands:
 
 .. code-block::
 
-    lightning add --help
+    lightning_app add --help
     You are connected to the cloud Lightning App: localhost.
-    Usage: lightning add [ARGS]...
+    Usage: lightning_app add [ARGS]...
 
     Options
         name: Add description
@@ -87,7 +87,7 @@ Trigger the command line exposed by your App:
 
 .. code-block::
 
-    lightning add --name=my_name
+    lightning_app add --name=my_name
     WARNING: Lightning Command Line Interface is an experimental feature and unannounced changes are likely.
 
 In your first terminal, **Received name: my_name** and **["my_name"]** are printed.
@@ -106,11 +106,11 @@ In your first terminal, **Received name: my_name** and **["my_name"]** are print
 5. Disconnect from the App
 **************************
 
-To exit the App CLI, you need to run ``lightning disconnect``.
+To exit the App CLI, you need to run ``lightning_app disconnect``.
 
 .. code-block::
 
-    lightning disconnect
+    lightning_app disconnect
     You are disconnected from the local Lightning App.
 
 ----
