@@ -623,9 +623,10 @@ def test_backward():
     pytest.param("fsdp", "32-true", True, marks=RunIf(min_cuda_gpus=1, min_torch="2.0.0")),
 ])
 @pytest.mark.parametrize("setup_method", ["setup", "setup_module"])
-def test_backward_required(strategy, precision, error_expected, setup_method):
+@mock.patch("lightning.fabric.accelerators.mps.MPSAccelerator.is_available", return_value=False)
+def test_backward_required(_, strategy, precision, error_expected, setup_method):
     """Test under which strategy and precision configurations the `fabric.backward()` call is required."""
-    fabric = Fabric(accelerator="cpu", devices=1, strategy=strategy, precision=precision)
+    fabric = Fabric(strategy=strategy, precision=precision, devices=1)
     fabric._launched = True
     fabric.strategy.setup_module = lambda module: module
 
