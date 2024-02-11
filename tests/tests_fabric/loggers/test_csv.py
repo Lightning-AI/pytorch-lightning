@@ -50,6 +50,21 @@ def test_manual_versioning(tmp_path):
     assert logger.version == 1
 
 
+def test_manual_versioning_file_exists(tmp_path):
+    """Test that a warning is emitted and existing files get overwritten."""
+
+    # Simulate an existing 'version_0' vrom a previous run
+    (tmp_path / "exp" / "version_0").mkdir(parents=True)
+    previous_metrics_file = tmp_path / "exp" / "version_0" / "metrics.csv"
+    previous_metrics_file.touch()
+
+    logger = CSVLogger(root_dir=tmp_path, name="exp", version=0)
+    assert previous_metrics_file.exists()
+    with pytest.warns(UserWarning, match="Experiment logs directory .* exists and is not empty"):
+        _ = logger.experiment
+    assert not previous_metrics_file.exists()
+
+
 def test_named_version(tmp_path):
     """Verify that manual versioning works for string versions, e.g. '2020-02-05-162402'."""
     exp_name = "exp"
