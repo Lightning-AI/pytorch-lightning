@@ -142,7 +142,7 @@ class Fabric:
         self._loggers = loggers if isinstance(loggers, list) else [loggers]
         self._models_setup: int = 0
         self._launched: bool = False
-        self._backward_signal: Optional[nn.Module, bool] = None
+        self._backward_signal: bool = False
 
         self._prepare_run_method()
         if _is_using_cli():
@@ -448,7 +448,7 @@ class Fabric:
                 # requires to attach the current `DeepSpeedEngine` for the `_FabricOptimizer.step` call.
                 self._strategy._deepspeed_engine = module
 
-        self._backward_signal = model if model is not None else True
+        self._backward_signal = True
         self._strategy.backward(tensor, module, *args, **kwargs)
 
     def clip_gradients(
@@ -1090,20 +1090,17 @@ class Fabric:
             raise TypeError("Only PyTorch DataLoader are currently supported in `setup_dataloaders`.")
 
     def _require_fabric_backward(self, module: nn.Module, grad_input: Tensor, grad_output: Tensor) -> None:
-        required = is_overridden("backward", self._strategy, parent=Strategy) or any(
+        strategy_requires = is_overridden("backward", self._strategy, parent=Strategy)
+        precision_requires = any(
             is_overridden(method, self._precision, parent=Precision)
             for method in ("pre_backward", "backward", "post_backward")
         )
-        fabric_backward_called = self._backward_signal is not None or (
-            isinstance(self._backward_signal, nn.Module) and self._backward_signal == module
-        )
-        if required and not fabric_backward_called:
+        if (strategy_requires or precision_requires) and not self._backward_signal:
             raise RuntimeError(
                 "The current strategy and precision selection requires you to call `fabric.backward(loss)` instead of"
-                " just `loss.backward()`. In case you are using multiple models, also pass in the model via "
-                " `fabric.backward(loss, model)`."
+                " `loss.backward()`."
             )
-        self._backward_signal = None
+        self._backward_signal = False
 
     @staticmethod
     def _configure_callbacks(callbacks: Optional[Union[List[Any], Any]]) -> List[Any]:

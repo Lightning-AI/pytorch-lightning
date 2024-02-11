@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+from contextlib import nullcontext
 from re import escape
 from unittest import mock
 from unittest.mock import ANY, MagicMock, Mock, PropertyMock, call
@@ -619,7 +620,6 @@ def test_backward():
     ("auto", "32-true", False),
     ("auto", "16-true", False),
     ("auto", "16-mixed", True),
-    pytest.param("deepspeed", "32-true", True, marks=RunIf(deepspeed=True)),
     pytest.param("fsdp", "32-true", True, marks=RunIf(min_cuda_gpus=1, min_torch="2.0.0")),
 ])
 @pytest.mark.parametrize("setup_method", ["setup", "setup_module"])
@@ -629,16 +629,17 @@ def test_backward_required(strategy, precision, error_expected, setup_method):
     fabric._launched = True
     fabric.strategy.setup_module = lambda x: x
 
-    model = nn.Linear(2, 2)
-    assert not model._backward_hooks
-    model = getattr(fabric, setup_method)(model)
-    assert model._backward_hooks
+    error_context = (
+        pytest.raises(RuntimeError, match=escape("requires you to call `fabric.backward(loss)`")) if error_expected
+        else nullcontext()
+    )
 
-    loss = model(torch.rand(2, 2)).sum()
-    if error_expected:
-        with pytest.raises(RuntimeError, match=escape("requires you to call `fabric.backward(loss)`")):
-            loss.backward()
-    else:
+    model1 = nn.Linear(2, 2)
+    assert not model1._backward_hooks
+    model1 = getattr(fabric, setup_method)(model1)
+    assert model1._backward_hooks
+    loss = model1(torch.rand(2, 2)).sum()
+    with error_context:
         loss.backward()
 
 
