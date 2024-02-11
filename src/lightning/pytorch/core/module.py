@@ -675,15 +675,17 @@ class LightningModule(
         all_gather = self.trainer.strategy.all_gather
         data = convert_to_tensors(data, device=self.device)
         return apply_to_collection(data, Tensor, all_gather, group=group, sync_grads=sync_grads)
-        
+
     @override
     def forward(self, *inputs) -> Any:
         r"""Same as :meth:`torch.nn.Module.forward`.
+
         Args:
             *args: Whatever you decide to pass into the forward method.
             **kwargs: Keyword arguments are also possible.
         Return:
             Your model's output
+
         """
         return super().forward(*inputs)
 
