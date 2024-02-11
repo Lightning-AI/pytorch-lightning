@@ -627,7 +627,7 @@ def test_backward_required(strategy, precision, error_expected, setup_method):
     """Test under which strategy and precision configurations the `fabric.backward()` call is required."""
     fabric = Fabric(accelerator="cpu", devices=1, strategy=strategy, precision=precision)
     fabric._launched = True
-    fabric.strategy.setup_module = lambda x: x
+    fabric.strategy.setup_module = lambda module: module
 
     error_context = (
         pytest.raises(RuntimeError, match=escape("requires you to call `fabric.backward(loss)`")) if error_expected
