@@ -610,10 +610,37 @@ def test_rank_properties():
 def test_backward():
     """Test that backward() calls into the precision plugin."""
     fabric = Fabric()
-    fabric._strategy = Mock(spec=Precision)
+    fabric._strategy = Mock(spec=Strategy)
     loss = Mock()
     fabric.backward(loss, "arg", keyword="kwarg")
     fabric._strategy.backward.assert_called_with(loss, None, "arg", keyword="kwarg")
+
+
+@pytest.mark.parametrize(("strategy", "precision", "error_expected"), [
+    ("auto", "32-true", False),
+    ("auto", "16-true", False),
+    ("auto", "16-mixed", True),
+    pytest.param("deepspeed", "32-true", True, marks=RunIf(deepspeed=True)),
+    pytest.param("fsdp", "32-true", True, marks=RunIf(min_cuda_gpus=1, min_torch="2.0.0")),
+])
+@pytest.mark.parametrize("setup_method", ["setup", "setup_module"])
+def test_backward_required(strategy, precision, error_expected, setup_method):
+    """Test under which strategy and precision configurations the `fabric.backward()` call is required."""
+    fabric = Fabric(accelerator="cpu", devices=1, strategy=strategy, precision=precision)
+    fabric._launched = True
+    fabric.strategy.setup_module = lambda x: x
+
+    model = nn.Linear(2, 2)
+    assert not model._backward_hooks
+    model = getattr(fabric, setup_method)(model)
+    assert model._backward_hooks
+
+    loss = model(torch.rand(2, 2)).sum()
+    if error_expected:
+        with pytest.raises(RuntimeError, match=escape("requires you to call `fabric.backward(loss)`")):
+            loss.backward()
+    else:
+        loss.backward()
 
 
 @RunIf(deepspeed=True, mps=False)
