@@ -16,7 +16,6 @@ import os
 import re
 import subprocess
 import sys
-import warnings
 from argparse import Namespace
 from typing import Any, List, Optional
 
@@ -54,11 +53,10 @@ if _CLICK_AVAILABLE:
         Raises deprecation warning and runs through fabric cli if necessary, else runs the entrypoint directly
 
         """
-        warnings.warn("lightning run model is deprecated and will be removed in future versions."
-            " Please call `fabric run model` instead.", DeprecationWarning)
+        print("`lightning run model` is deprecated and will be removed in future versions."
+            " Please call `fabric run model` instead.")
         args = sys.argv[1:]
         if args and args[0] == "run" and args[1] == "model":
-            # raise Deprecation Warning
             subprocess.run(["fabric"] + args)
             return
 
