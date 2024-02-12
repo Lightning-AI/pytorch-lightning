@@ -87,7 +87,6 @@ class _DataConnector:
         datamodule = trainer.datamodule
         lightning_module = trainer.lightning_module
         # handle datamodule prepare data:
-        # check for prepare_data_per_node & datamodule lifecycle properties before calling datamodule.prepare_data
         if datamodule is not None and is_overridden("prepare_data", datamodule):
             prepare_data_per_node = datamodule.prepare_data_per_node
             with _InfiniteBarrier():
@@ -95,7 +94,6 @@ class _DataConnector:
                     call._call_lightning_datamodule_hook(trainer, "prepare_data")
 
         # handle lightning module prepare data:
-        # check for prepare_data_per_node before calling lightning_module.prepare_data
         if lightning_module is not None and is_overridden("prepare_data", lightning_module):
             prepare_data_per_node = lightning_module.prepare_data_per_node
             with _InfiniteBarrier():
