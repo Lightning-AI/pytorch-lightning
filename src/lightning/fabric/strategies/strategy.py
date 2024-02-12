@@ -329,7 +329,7 @@ class Strategy(ABC):
 
         """
         torch.cuda.empty_cache()
-        if hasattr(torch, "xpu"): 
+        if hasattr(torch, "xpu"):
             torch.xpu.empty_cache()
         checkpoint = self.checkpoint_io.load_checkpoint(path)
         if not state:
