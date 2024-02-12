@@ -49,14 +49,18 @@ def test_get_available_flops(xla_available):
     from torch_xla.experimental import tpu
 
     assert isinstance(tpu, Mock)
-    tpu.get_tpu_env.return_value = {"TYPE": "V4"}
 
+    tpu.get_tpu_env.return_value = {"TYPE": "V4"}
     flops = get_available_flops(torch.device("xla"), torch.bfloat16)
     assert flops == 275e12
 
     tpu.get_tpu_env.return_value = {"TYPE": "V1"}
     with pytest.warns(match="not found for TPU 'V1'"):
         assert get_available_flops(torch.device("xla"), torch.bfloat16) is None
+
+    tpu.get_tpu_env.return_value = {"ACCELERATOR_TYPE": "v3-8"}
+    flops = get_available_flops(torch.device("xla"), torch.bfloat16)
+    assert flops == 123e12
 
     tpu.reset_mock()
 

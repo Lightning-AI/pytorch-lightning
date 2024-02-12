@@ -91,7 +91,7 @@ run the app
 
 .. code:: bash
 
-    lightning run app app.py
+    lightning_app run app app.py
 
 ----
 
@@ -150,4 +150,4 @@ run the app
 
 .. code:: bash
 
-    lightning run app app.py
+    lightning_app run app app.py

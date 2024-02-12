@@ -32,7 +32,7 @@ class FusedOptimizerParityModel(BoringModel):
         return torch.optim.Adam(self.parameters(), lr=1.0, fused=self.fused)
 
 
-@RunIf(min_torch="1.13", min_cuda_gpus=1)
+@RunIf(min_cuda_gpus=1)
 def test_amp_fused_optimizer_parity(tmpdir):
     def run(fused=False):
         seed_everything(1234)
