@@ -61,7 +61,7 @@ class ZSTDCompressor(Compressor):
         return zstd.decompress(data)
 
     @classmethod
-    def register(cls, compressors: Dict[str, "Compressor"]) -> None:  # type: ignore
+    def register(cls, compressors: Dict[str, "Compressor"]) -> None:
         if not _ZSTD_AVAILABLE:
             return
 
