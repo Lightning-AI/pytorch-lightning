@@ -114,19 +114,15 @@ Precision support by accelerator
      - No
      - Yes
      - No
-     - Yes
    * - BFloat16 Mixed
      - Yes
      - Yes
      - Yes
-     - No
    * - 32 True
-     - Yes
      - Yes
      - Yes
      - Yes
    * - 64 True
      - Yes
      - Yes
-     - No
      - No
