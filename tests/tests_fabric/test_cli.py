@@ -21,7 +21,6 @@ from unittest.mock import Mock
 
 import pytest
 from lightning.fabric.cli import _get_supported_strategies, _run_model
-from lightning_utilities.core.imports import ModuleAvailableCache
 
 from tests_fabric.helpers.runif import RunIf
 
@@ -176,13 +175,20 @@ def test_cli_torchrun_num_processes_launched(_, devices, expected, monkeypatch, 
     )
 
 
+def test_cli_through_fabric_entry_point():
+    result = subprocess.run("fabric run model --help", capture_output=True, text=True, shell=True)
+
+    message = "Usage: fabric run model [OPTIONS] SCRIPT [SCRIPT_ARGS]"
+    assert message in result.stdout or message in result.stderr
+
 @pytest.mark.skipif("lightning.fabric" == "lightning_fabric", reason="standalone package")
 def test_cli_through_lightning_entry_point():
     result = subprocess.run("lightning run model --help", capture_output=True, text=True, shell=True)
-    if not ModuleAvailableCache("lightning.app"):
-        message = "The `lightning` command requires additional dependencies"
-        assert message in result.stdout or message in result.stderr
-        assert result.returncode != 0
-    else:
-        message = "Usage: lightning run model [OPTIONS] SCRIPT [SCRIPT_ARGS]"
-        assert message in result.stdout or message in result.stderr
+
+    deprecation_message = (
+        "`lightning run model` is deprecated and will be removed in future versions. "
+        "Please call `fabric run model` instead"
+    )
+    message = "Usage: lightning run model [OPTIONS] SCRIPT [SCRIPT_ARGS]"
+    assert deprecation_message in result.stdout
+    assert message in result.stdout or message in result.stderr
