@@ -16,11 +16,11 @@ from re import escape
 from unittest import mock
 from unittest.mock import ANY, MagicMock, Mock, PropertyMock, call
 
+import lightning.fabric
 import pytest
 import torch
 import torch.distributed
 import torch.nn.functional
-import lightning.fabric
 from lightning.fabric.fabric import Fabric
 from lightning.fabric.plugins import Precision
 from lightning.fabric.strategies import (
