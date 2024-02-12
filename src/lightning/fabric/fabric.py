@@ -142,7 +142,7 @@ class Fabric:
         self._loggers = loggers if isinstance(loggers, list) else [loggers]
         self._models_setup: int = 0
         self._launched: bool = False
-        self._backward_signal: bool = False
+        self._backward_called: bool = False
 
         self._prepare_run_method()
         if _is_using_cli():
@@ -448,7 +448,7 @@ class Fabric:
                 # requires to attach the current `DeepSpeedEngine` for the `_FabricOptimizer.step` call.
                 self._strategy._deepspeed_engine = module
 
-        self._backward_signal = True
+        self._backward_called = True
         self._strategy.backward(tensor, module, *args, **kwargs)
 
     def clip_gradients(
@@ -1100,12 +1100,12 @@ class Fabric:
             is_overridden(method, self._precision, parent=Precision)
             for method in ("pre_backward", "backward", "post_backward")
         )
-        if (strategy_requires or precision_requires) and not self._backward_signal:
+        if (strategy_requires or precision_requires) and not self._backward_called:
             raise RuntimeError(
                 "The current strategy and precision selection requires you to call `fabric.backward(loss)` instead of"
                 " `loss.backward()`."
             )
-        self._backward_signal = False
+        self._backward_called = False
         return
 
     @staticmethod
