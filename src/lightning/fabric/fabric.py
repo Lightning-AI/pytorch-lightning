@@ -1089,12 +1089,7 @@ class Fabric:
         if any(not isinstance(dl, DataLoader) for dl in dataloaders):
             raise TypeError("Only PyTorch DataLoader are currently supported in `setup_dataloaders`.")
 
-    def _require_fabric_backward(
-        self,
-        module: nn.Module,
-        grad_input: Union[Tuple[Tensor, ...], Tensor],
-        grad_output: Union[tuple[Tensor, ...], Tensor],
-    ) -> Optional[Union[Tuple[Tensor, ...], Tensor]]:
+    def _require_fabric_backward(self, *_: Any, **__: Any) -> Optional[Union[Tuple[Tensor, ...], Tensor]]:
         strategy_requires = is_overridden("backward", self._strategy, parent=Strategy)
         precision_requires = any(
             is_overridden(method, self._precision, parent=Precision)
@@ -1106,7 +1101,6 @@ class Fabric:
                 " `loss.backward()`."
             )
         self._backward_called = False
-        return
 
     @staticmethod
     def _configure_callbacks(callbacks: Optional[Union[List[Any], Any]]) -> List[Any]:
