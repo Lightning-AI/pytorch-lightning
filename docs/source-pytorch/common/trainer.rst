@@ -175,7 +175,7 @@ Trainer flags
 accelerator
 ^^^^^^^^^^^
 
-Supports passing different accelerator types (``"cpu", "gpu", "tpu", "ipu", "auto"``)
+Supports passing different accelerator types (``"cpu", "gpu", "tpu", "hpu", "auto"``)
 as well as custom accelerator instances.
 
 .. code-block:: python
@@ -392,9 +392,6 @@ Number of devices to train on (``int``), which devices to train on (``list`` or 
 
     # Training with TPU Accelerator using 8 tpu cores
     trainer = Trainer(devices="auto", accelerator="tpu")
-
-    # Training with IPU Accelerator using 4 ipus
-    trainer = Trainer(devices="auto", accelerator="ipu")
 
 .. note::
 
