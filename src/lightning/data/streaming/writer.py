@@ -22,6 +22,7 @@ import numpy as np
 import torch
 
 from lightning.data.constants import _INDEX_FILENAME, _TORCH_GREATER_EQUAL_2_1_0
+from lightning.data.processing.utilities import get_worker_rank
 from lightning.data.streaming.compression import _COMPRESSORS, Compressor
 from lightning.data.streaming.serializers import Serializer, _get_serializers
 from lightning.data.utilities.env import _DistributedEnv, _WorkerEnv
@@ -154,6 +155,10 @@ class BinaryWriter:
             data_format: List[str] = []
             for item in flattened:
                 data_format.append(self._serialize(item, sizes, data))
+
+            worker_rank = get_worker_rank()
+            if worker_rank is not None:
+                print(f"Rank {worker_rank} inferred the following `{data_format}` data format.")
             self._data_format = data_format
             self._data_spec = data_spec
         else:
@@ -403,7 +408,9 @@ class BinaryWriter:
                     config = data["config"]
 
                 elif config != data["config"]:
-                    raise Exception("The config isn't consistent between chunks. This shouldn't have happened.")
+                    raise Exception(
+                        "The config isn't consistent between chunks. This shouldn't have happened."
+                        f"Found {config} {data['config']}.")
 
                 chunks_info.extend(data["chunks"])
 
