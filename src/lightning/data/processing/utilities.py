@@ -33,8 +33,7 @@ def make_request(
     if user_agent_token:
         user_agent_string += f" (compatible; {user_agent_token}; +https://github.com/Lightning-AI/pytorch-lightning)"
 
-    request = urllib.request.Request(url, data=None, headers={"User-Agent": user_agent_string})
-    with urllib.request.urlopen(request, timeout=timeout) as r:  # noqa: S310
+    with urllib.request.urlopen(urllib.request.Request(url, data=None, headers={"User-Agent": user_agent_string}), timeout=timeout) as r:  # noqa: E501, S310
         img_stream = io.BytesIO(r.read())
     return img_stream
 
