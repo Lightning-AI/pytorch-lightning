@@ -30,6 +30,7 @@ class XPUAccelerator(Accelerator):
         super().__init__(*args, **kwargs)
 
     @staticmethod
+    @override
     def parse_devices(devices: Any) -> Any:
         # Put parsing logic here how devices can be passed into the Trainer
         # via the `devices` argument
@@ -38,17 +39,20 @@ class XPUAccelerator(Accelerator):
         return _parse_gpu_ids(devices, include_xpu=True)
 
     @staticmethod
+    @override
     def get_parallel_devices(devices: Any) -> Any:
         # Here, convert the device indices to actual device objects
 
         return [torch.device("xpu", idx) for idx in devices]
 
     @staticmethod
+    @override
     def auto_device_count() -> int:
         # Return a value for auto-device selection when `Trainer(devices="auto")`
         return num_xpu_devices()
 
     @staticmethod
+    @override
     def is_available() -> bool:
         # Carefully check before trying to import:
         if _IPEX_AVAILABLE:
@@ -56,18 +60,22 @@ class XPUAccelerator(Accelerator):
             return ipex.xpu.is_available()
         return False
 
+    @override
     def get_device_stats(self, device: _DEVICE) -> Dict[str, Any]:
         # Return optional device statistics for loggers
         return torch.xpu.memory_stats(device)
 
+    @override
     def setup_device(self, device: torch.device) -> None:
         pass
 
+    @override
     def teardown(self) -> None:
         pass
 
     @classmethod
-    def register_accelerators(cls, accelerator_registry):
+    @override
+    def register_accelerators(cls, accelerator_registry: _AcceleratorRegistry) -> None:
         accelerator_registry.register(
             "xpu",
             cls,
