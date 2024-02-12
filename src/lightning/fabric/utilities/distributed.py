@@ -3,6 +3,7 @@ import logging
 import os
 import time
 from contextlib import nullcontext
+from datetime import timedelta
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Iterable, Iterator, List, Optional, Sized, Union
 
@@ -383,3 +384,25 @@ def _distributed_is_initialized() -> bool:
     # https://github.com/pytorch/pytorch/blob/v2.1.0/torch/distributed/__init__.py#L25
     # this might happen to MacOS builds from source (default) or any build from source that sets `USE_DISTRIBUTED=0`
     return torch.distributed.is_available() and torch.distributed.is_initialized()
+
+
+class _InfiniteBarrier:
+    """A barrier with an infinite timeout."""
+
+    def __init__(self) -> None:
+        # Create a barrier with an 'infinite' timeout (only reliably possible over the GLOO backend)
+        self.group = None
+        self.barrier = lambda: None
+
+    def __enter__(self) -> None:
+        if _distributed_is_initialized():
+            self.group = torch.distributed.new_group(backend="gloo", timeout=timedelta(days=10000))
+            self.barrier = self.group.monitored_barrier
+
+    def __call__(self) -> None:
+        self.barrier()
+
+    def __exit__(self, exc_type: Any, exc_value: Any, traceback: Any) -> None:
+        self.barrier()
+        if self.group is not None:
+            torch.distributed.destroy_process_group(self.group)

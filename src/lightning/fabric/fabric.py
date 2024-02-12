@@ -14,7 +14,6 @@
 import inspect
 import os
 from contextlib import contextmanager, nullcontext
-from datetime import timedelta
 from functools import partial
 from pathlib import Path
 from typing import (
@@ -66,7 +65,7 @@ from lightning.fabric.utilities.data import (
     has_iterable_dataset,
 )
 from lightning.fabric.utilities.device_dtype_mixin import _update_properties
-from lightning.fabric.utilities.distributed import DistributedSamplerWrapper
+from lightning.fabric.utilities.distributed import DistributedSamplerWrapper, _InfiniteBarrier
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 from lightning.fabric.utilities.rank_zero import rank_zero_deprecation, rank_zero_warn
 from lightning.fabric.utilities.registry import _load_external_callbacks
@@ -632,20 +631,13 @@ class Fabric:
                 dataset = MNIST("datasets/", download=True)
 
         """
-        if torch.distributed.is_available() and torch.distributed.is_initialized():
-            # Create a barrier with an 'infinite' timeout (only reliably possible over the GLOO backend)
-            group = torch.distributed.new_group(backend="gloo", timeout=timedelta(days=1000))
-            barrier = group.monitored_barrier
-        else:
-            barrier = self.barrier
-
         rank = self.local_rank if local else self.global_rank
-        if rank > 0:
-            barrier()
-        yield
-        if rank == 0:
-            barrier()
-        barrier()
+        with _InfiniteBarrier() as barrier:
+            if rank > 0:
+                barrier()
+            yield
+            if rank == 0:
+                barrier()
 
     def no_backward_sync(self, module: _FabricModule, enabled: bool = True) -> ContextManager:
         r"""Skip gradient synchronization during backward to avoid redundant communication overhead.

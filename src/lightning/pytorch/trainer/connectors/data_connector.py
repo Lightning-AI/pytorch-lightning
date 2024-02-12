@@ -27,7 +27,7 @@ from lightning.fabric.utilities.data import (
     has_iterable_dataset,
     suggested_max_num_workers,
 )
-from lightning.fabric.utilities.distributed import DistributedSamplerWrapper
+from lightning.fabric.utilities.distributed import DistributedSamplerWrapper, _InfiniteBarrier
 from lightning.pytorch.overrides.distributed import UnrepeatedDistributedSamplerWrapper
 from lightning.pytorch.trainer import call
 from lightning.pytorch.trainer.states import RunningStage, TrainerFn
@@ -79,25 +79,26 @@ class _DataConnector:
     def prepare_data(self) -> None:
         trainer = self.trainer
 
-        # on multi-gpu jobs we only want to manipulate (download, etc) on node_rank=0, local_rank=0
-        # or in the case where each node needs to do its own manipulation in which case just local_rank=0
-        local_rank_zero = trainer.local_rank == 0
-        global_rank_zero = trainer.local_rank == 0 and trainer.node_rank == 0
+        with _InfiniteBarrier():
+            # on multi-gpu jobs we only want to manipulate (download, etc) on node_rank=0, local_rank=0
+            # or in the case where each node needs to do its own manipulation in which case just local_rank=0
+            local_rank_zero = trainer.local_rank == 0
+            global_rank_zero = trainer.local_rank == 0 and trainer.node_rank == 0
 
-        datamodule = trainer.datamodule
-        lightning_module = trainer.lightning_module
-        # handle datamodule prepare data:
-        # check for prepare_data_per_node & datamodule lifecycle properties before calling datamodule.prepare_data
-        if datamodule is not None:
-            dm_prepare_data_per_node = datamodule.prepare_data_per_node
-            if (dm_prepare_data_per_node and local_rank_zero) or (not dm_prepare_data_per_node and global_rank_zero):
-                call._call_lightning_datamodule_hook(trainer, "prepare_data")
-        # handle lightning module prepare data:
-        # check for prepare_data_per_node before calling lightning_module.prepare_data
-        if lightning_module is not None:
-            lm_prepare_data_per_node = lightning_module.prepare_data_per_node
-            if (lm_prepare_data_per_node and local_rank_zero) or (not lm_prepare_data_per_node and global_rank_zero):
-                call._call_lightning_module_hook(trainer, "prepare_data")
+            datamodule = trainer.datamodule
+            lightning_module = trainer.lightning_module
+            # handle datamodule prepare data:
+            # check for prepare_data_per_node & datamodule lifecycle properties before calling datamodule.prepare_data
+            if datamodule is not None:
+                dm_prepare_data_per_node = datamodule.prepare_data_per_node
+                if (dm_prepare_data_per_node and local_rank_zero) or (not dm_prepare_data_per_node and global_rank_zero):
+                    call._call_lightning_datamodule_hook(trainer, "prepare_data")
+            # handle lightning module prepare data:
+            # check for prepare_data_per_node before calling lightning_module.prepare_data
+            if lightning_module is not None:
+                lm_prepare_data_per_node = lightning_module.prepare_data_per_node
+                if (lm_prepare_data_per_node and local_rank_zero) or (not lm_prepare_data_per_node and global_rank_zero):
+                    call._call_lightning_module_hook(trainer, "prepare_data")
 
     def attach_data(
         self,
