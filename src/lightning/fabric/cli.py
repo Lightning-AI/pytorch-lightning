@@ -58,6 +58,7 @@ if _CLICK_AVAILABLE:
         args = sys.argv[1:]
         if args and args[0] == "run" and args[1] == "model":
             _main()
+            return
 
         if _LIGHTNING_SDK_AVAILABLE:
             subprocess.run([sys.executable, "-m", "lightning_sdk.cli.entrypoint"] + args)
