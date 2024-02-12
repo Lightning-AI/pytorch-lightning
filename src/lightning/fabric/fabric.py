@@ -1089,7 +1089,7 @@ class Fabric:
         if any(not isinstance(dl, DataLoader) for dl in dataloaders):
             raise TypeError("Only PyTorch DataLoader are currently supported in `setup_dataloaders`.")
 
-    def _require_fabric_backward(self, *_: Any, **__: Any) -> Optional[Union[Tuple[Tensor, ...], Tensor]]:
+    def _require_fabric_backward(self, *_: Any, **__: Any) -> None:
         strategy_requires = is_overridden("backward", self._strategy, parent=Strategy)
         precision_requires = any(
             is_overridden(method, self._precision, parent=Precision)
