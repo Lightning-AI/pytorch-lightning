@@ -31,10 +31,10 @@ _AV_AVAILABLE = RequirementCache("av")
 
 if _PIL_AVAILABLE:
     from PIL import Image
+    from PIL.GifImagePlugin import GifImageFile
     from PIL.JpegImagePlugin import JpegImageFile
     from PIL.PngImagePlugin import PngImageFile
     from PIL.WebPImagePlugin import WebPImageFile
-    from PIL.GifImagePlugin import GifImageFile
 else:
     Image = None
     JpegImageFile = None
@@ -110,7 +110,7 @@ class JPEGSerializer(Serializer):
                 item_bytes = item_bytes.getvalue()
                 return item_bytes, None
 
-        if isinstance(item, (PngImageFile, WebPImageFile, GifImageFile)):
+        if isinstance(item, (PngImageFile, WebPImageFile, GifImageFile, Image.Image)):
             buff = io.BytesIO()
             item.convert('RGB').save(buff, quality=100, format='JPEG')
             buff.seek(0)

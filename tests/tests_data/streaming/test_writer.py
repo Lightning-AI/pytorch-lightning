@@ -207,7 +207,7 @@ def test_binary_writer_with_jpeg_and_png(tmpdir):
     binary_writer[0] = {"x": img_jpeg, "y": 0}
     binary_writer[1] = {"x": img, "y": 1}
 
-    with pytest.raises(ValueError, match="The data format changed between items"):
+    with pytest.raises(TypeError, match="The provided item should be of type"):
         binary_writer[2] = {"x": 2, "y": 1}
 
 

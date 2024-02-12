@@ -26,7 +26,7 @@ from lightning.data.streaming.serializers import (
     _SERIALIZERS,
     _TORCH_DTYPES_MAPPING,
     _TORCH_VISION_AVAILABLE,
-    IntSerializer,
+    IntegerSerializer,
     JPEGSerializer,
     NoHeaderNumpySerializer,
     NoHeaderTensorSerializer,
@@ -59,7 +59,7 @@ def test_serializers():
 
 
 def test_int_serializer():
-    serializer = IntSerializer()
+    serializer = IntegerSerializer()
 
     for i in range(100):
         data, _ = serializer.serialize(i)
