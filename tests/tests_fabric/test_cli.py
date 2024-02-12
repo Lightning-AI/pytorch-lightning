@@ -183,6 +183,6 @@ def test_cli_through_fabric_entry_point():
 
 def test_cli_through_lightning_entry_point():
     result = subprocess.run("lightning run model --help", capture_output=True, text=True, shell=True)
-    
+
     message = "Usage: fabric run model [OPTIONS] SCRIPT [SCRIPT_ARGS]"
     assert message in result.stdout or message in result.stderr

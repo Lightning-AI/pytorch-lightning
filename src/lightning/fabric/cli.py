@@ -14,11 +14,11 @@
 import logging
 import os
 import re
+import subprocess
+import sys
+import warnings
 from argparse import Namespace
 from typing import Any, List, Optional
-import warnings
-import sys
-import subprocess
 
 from lightning_utilities.core.imports import RequirementCache
 from typing_extensions import get_args
@@ -49,13 +49,17 @@ if _CLICK_AVAILABLE:
     import click
 
     def _legacy_main():
-        """legacy CLI handler for fabric. Raises deprecation warning and runs through fabric cli if necessary, else runs the entrypoint directly"""
+        """Legacy CLI handler for fabric.
+
+        Raises deprecation warning and runs through fabric cli if necessary, else runs the entrypoint directly
+
+        """
         warnings.warn("lightning run model is deprecated and will be removed in future versions."
             " Please call `fabric run model` instead.", DeprecationWarning)
         args = sys.argv[1:]
         if args and args[0] == "run" and args[1] == "model":
             # raise Deprecation Warning
-            subprocess.run(["fabric"]+args)
+            subprocess.run(["fabric"] + args)
             return
 
         if _LIGHTNING_SDK_AVAILABLE:
