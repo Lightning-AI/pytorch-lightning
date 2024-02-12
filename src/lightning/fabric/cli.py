@@ -48,7 +48,7 @@ def _get_supported_strategies() -> List[str]:
 if _CLICK_AVAILABLE:
     import click
 
-    def _legacy_main():
+    def _legacy_main() -> None:
         """Legacy CLI handler for fabric.
 
         Raises deprecation warning and runs through fabric cli if necessary, else runs the entrypoint directly
