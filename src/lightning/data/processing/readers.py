@@ -2,17 +2,15 @@ import os
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Any, List, Optional
-from tqdm import tqdm
-from lightning_utilities.core.imports import RequirementCache
-from lightning.data.utilities.env import _DistributedEnv
-from lightning.data.utilities.shuffle import _associate_chunks_and_internals_to_ranks
 
-_POLARS_AVAILABLE = RequirementCache("polars")
+from lightning_utilities.core.imports import RequirementCache
+from tqdm import tqdm
+
 _PYARROW_AVAILABLE = RequirementCache("pyarrow")
 
 
 class BaseReader(ABC):
-    
+
     def get_num_nodes(self) -> int:
         return int(os.getenv("DATA_OPTIMIZER_NUM_NODES", 1))
 
@@ -20,9 +18,8 @@ class BaseReader(ABC):
         return int(os.getenv("DATA_OPTIMIZER_NODE_RANK", 0))
 
     @abstractmethod
-    def items_to_workers(self, items: List[Any], num_workers: int) -> List[List[Any]]:
-        """This method is meant to convert the items provided by the users into items to be processed by the
-        workers."""
+    def remap_items(self, items: List[Any], num_workers: int) -> List[List[Any]]:
+        """This method is meant to remap the items provided by the users into items more adapted to be distributed."""
         pass
 
     @abstractmethod
@@ -47,8 +44,8 @@ class ParquetReader(BaseReader):
         self.limit_num_rows = num_rows
         self.to_pandas = to_pandas
 
-        if not _PYARROW_AVAILABLE or not _POLARS_AVAILABLE:
-            raise ModuleNotFoundError("Please, run: `pip install pyarrow polars`")
+        if not _PYARROW_AVAILABLE:
+            raise ModuleNotFoundError("Please, run: `pip install pyarrow`")
 
         self.parquet_file = None
 
@@ -57,13 +54,6 @@ class ParquetReader(BaseReader):
             import pyarrow.dataset as ds
             df = ds.dataset(path).scanner()
             return df.count_rows()
-
-        # FIXED: There is a bug in polars. This leads to read_parquet to hang.
-        if _POLARS_AVAILABLE:
-            import polars as pol
-            df = pol.scan_parquet(path)
-            num_rows = df.select(pol.len()).collect().item()
-            return num_rows
 
         raise RuntimeError("Please, install either pyarrow or polars.")
 
@@ -81,32 +71,7 @@ class ParquetReader(BaseReader):
         self.parquet_file = pq.ParquetFile(filepath, memory_map=True)
         return self.parquet_file
 
-        if _POLARS_AVAILABLE:
-            import polars as pol
-            t0 = time()
-            df = pol.read_parquet(item.filepath)
-
-            if self.to_pandas:
-                df = df.to_pandas()
-
-            return df
-
-        if _PYARROW_AVAILABLE:
-            import pyarrow.dataset as ds
-
-            df = ds.dataset(item.filepath).scanner()
-
-            df = df.take([item.start, item.end])
-
-            if self.to_pandas:
-                df.to_pandas()
-
-            return df
-
-        raise RuntimeError("Please, install either pyarrow or polars.")
-
-
-    def items_to_workers(self, filepaths: Any, num_workers: int) -> List[List[ParquetSlice]]:
+    def remap_items(self, filepaths: Any, _: int) -> List[List[ParquetSlice]]:
         import pyarrow.parquet as pq
 
         print("Starting resharding the parquet files for optimized processing.")
