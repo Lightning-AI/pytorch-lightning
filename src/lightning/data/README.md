@@ -7,19 +7,15 @@
 
 ## Blazing fast, distributed streaming of training data from cloud storage
 
-______________________________________________________________________
-
 </div>
 
-## Lightning Data
+# Lightning Data
 
 We developed `Streaming Dataset` to optimize training of large datasets from cloud storage, prioritizing speed, affordability, and scalability.
 
 Specifically crafted for multi-node, distributed training with large models, it enhances accuracy, performance, and user-friendliness. Now, training efficiently is possible regardless of the data's location. Simply stream in the required data when needed.
 
 The `Streaming Dataset` is compatible with any data type, including **images, text, video, and multimodal data** and it is a drop-in replacement for your PyTorch [IterableDataset](https://pytorch.org/docs/stable/data.html#torch.utils.data.IterableDataset) class.
-
-______________________________________________________________________
 
 # Lightning Data:
 
