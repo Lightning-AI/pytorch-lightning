@@ -18,6 +18,7 @@ import torch
 from lightning_utilities.core.imports import RequirementCache
 
 from lightning.pytorch.accelerators.accelerator import Accelerator
+from lightning.fabric.utilities.types import _DEVICE
 
 
 class XPUAccelerator(Accelerator):
@@ -52,9 +53,9 @@ class XPUAccelerator(Accelerator):
         import intel_extension_for_pytorch as ipex
         return ipex.xpu.is_available()
 
-    def get_device_stats(self, device: Union[str, torch.device]) -> Dict[str, Any]:
+    def get_device_stats(self, device: _DEVICE) -> Dict[str, Any]:
         # Return optional device statistics for loggers
-        return {}
+        return torch.xpu.memory_stats(device)
 
     def setup_device(self, device: torch.device) -> None:
         pass
