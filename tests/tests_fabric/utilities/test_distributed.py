@@ -17,6 +17,7 @@ from lightning.fabric.utilities.distributed import (
     _suggested_max_num_threads,
     _sync_ddp,
     is_shared_filesystem,
+    _InfiniteBarrier,
 )
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_2
 
@@ -196,3 +197,29 @@ def test_set_num_threads_if_needed(_, set_num_threads_mock, num_processes, expec
     _set_num_threads_if_needed(1)
     set_num_threads_mock.assert_not_called()
     assert os.environ["OMP_NUM_THREADS"] == str(expected)
+
+
+def test_infinite_barrier():
+    # distributed not available
+    barrier = _InfiniteBarrier()
+    assert barrier.group is None
+    with mock.patch("lightning.fabric.utilities.distributed._distributed_is_initialized", return_value=False):
+        barrier.__enter__()
+        assert barrier.group is None
+        barrier()
+        barrier.__exit__(None, None, None)
+        assert barrier.group is None
+
+    # distributed available
+    barrier = _InfiniteBarrier()
+    with mock.patch("lightning.fabric.utilities.distributed._distributed_is_initialized", return_value=True):
+        with mock.patch("lightning.fabric.utilities.distributed.torch.distributed") as dist_mock:
+            barrier.__enter__()
+            dist_mock.new_group.assert_called_once()
+            assert barrier.barrier == barrier.group.monitored_barrier
+            assert barrier.barrier.call_count == 0
+            barrier()
+            assert barrier.barrier.call_count == 1
+            barrier.__exit__(None, None, None)
+            assert barrier.barrier.call_count == 2
+            dist_mock.destroy_process_group.assert_called_once()
