@@ -140,6 +140,7 @@ def test_wandb_pickle(wandb_mock, tmp_path):
         id = "the_id"
         step = 0
         dir = "wandb"
+        _label = mock.Mock()
 
         @property
         def name(self):
