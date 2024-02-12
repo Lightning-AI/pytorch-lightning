@@ -103,7 +103,7 @@ Precision support by accelerator
 ********************************
 
 .. list-table:: Precision with Accelerators
-   :widths: 20 20 20 20 20
+   :widths: 20 20 20 20
    :header-rows: 1
 
    * - Precision
