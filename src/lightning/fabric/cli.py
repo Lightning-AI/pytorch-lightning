@@ -57,8 +57,7 @@ if _CLICK_AVAILABLE:
             " Please call `fabric run model` instead.")
         args = sys.argv[1:]
         if args and args[0] == "run" and args[1] == "model":
-            subprocess.run(["fabric"] + args)
-            return
+            _main()
 
         if _LIGHTNING_SDK_AVAILABLE:
             subprocess.run([sys.executable, "-m", "lightning_sdk.cli.entrypoint"] + args)
