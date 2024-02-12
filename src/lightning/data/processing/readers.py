@@ -2,17 +2,16 @@ import os
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Any, List, Optional
-from tqdm import tqdm
+
 from lightning_utilities.core.imports import RequirementCache
-from lightning.data.utilities.env import _DistributedEnv
-from lightning.data.utilities.shuffle import _associate_chunks_and_internals_to_ranks
+from tqdm import tqdm
 
 _POLARS_AVAILABLE = RequirementCache("polars")
 _PYARROW_AVAILABLE = RequirementCache("pyarrow")
 
 
 class BaseReader(ABC):
-    
+
     def get_num_nodes(self) -> int:
         return int(os.getenv("DATA_OPTIMIZER_NUM_NODES", 1))
 

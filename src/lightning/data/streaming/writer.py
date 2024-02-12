@@ -170,13 +170,13 @@ class BinaryWriter:
 
     def _serialize(self, item: Any, sizes: List[int], data: List[bytes], data_format: Optional[Any]) -> Optional[str]:
         """Serialize a given item and append its size and bytes to the sizes and data array."""
-        # Enable the first pass
+        # Enable the first pass
         if data_format is None:
             for serializer_name, serializer in self._serializers.items():
                 if serializer.can_serialize(item):
                     serialized_item, name = serializer.serialize(item)
                     data.append(serialized_item)
-                    sizes.append(serializer.size if hasattr(serializer, "size") else len(serialized_item) )
+                    sizes.append(serializer.size if hasattr(serializer, "size") else len(serialized_item))
                     return name or serializer_name
 
         for element, item_format in zip(item, data_format):

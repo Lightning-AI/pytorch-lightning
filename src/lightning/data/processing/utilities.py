@@ -1,11 +1,10 @@
 import io
 import os
-from typing import Optional, Tuple, Any, Dict
 import urllib
-import urllib3
 from contextlib import contextmanager
 from subprocess import Popen
-from typing import Callable, Any
+from typing import Any, Callable, Optional, Tuple
+
 from lightning.data.constants import _IS_IN_STUDIO
 
 

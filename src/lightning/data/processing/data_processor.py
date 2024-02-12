@@ -7,13 +7,14 @@ import signal
 import tempfile
 import traceback
 import types
+import warnings
 from abc import abstractmethod
 from dataclasses import dataclass
 from multiprocessing import Process, Queue
 from pathlib import Path
 from queue import Empty
 from time import sleep, time
-from typing import Any, Dict, List, Optional, Tuple, TypeVar, Union, Callable
+from typing import Any, Dict, List, Optional, Tuple, TypeVar, Union
 from urllib import parse
 
 import numpy as np
@@ -35,7 +36,6 @@ from lightning.data.streaming.client import S3Client
 from lightning.data.streaming.resolver import _resolve_dir
 from lightning.data.utilities.broadcast import broadcast_object
 from lightning.data.utilities.packing import _pack_greedily
-import warnings
 
 warnings.filterwarnings("ignore")
 
