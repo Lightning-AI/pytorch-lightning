@@ -389,9 +389,10 @@ def _distributed_is_initialized() -> bool:
 class _InfiniteBarrier:
     """A barrier with an infinite timeout.
 
-    Creates a new process group with the GLOO backend with a very high timeout that makes the barrier effectively
-    wait forever. This is useful in cases where you want to execute a long-running operation on a subset of ranks
-    that should not be subject to the regular collective timeout.
+    Creates a new process group with the GLOO backend with a very high timeout that makes the barrier effectively wait
+    forever. This is useful in cases where you want to execute a long-running operation on a subset of ranks that should
+    not be subject to the regular collective timeout.
+
     """
 
     def __init__(self) -> None:
