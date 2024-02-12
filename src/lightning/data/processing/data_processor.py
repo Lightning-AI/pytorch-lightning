@@ -68,10 +68,6 @@ def _get_fast_dev_run() -> int:
     return bool(int(os.getenv("DATA_OPTIMIZER_FAST_DEV_RUN", 1)))
 
 
-def get_worker_rank():
-    return os.getenv("DATA_OPTIMIZER_GLOBAL_RANK")
-
-
 def _get_home_folder() -> str:
     """Returns whether cache folder for the filepaths."""
     return os.getenv("DATA_OPTIMIZER_HOME_FOLDER", os.path.expanduser("~"))
@@ -720,6 +716,8 @@ class DataChunkRecipe(DataRecipe):
             size = sum([c["dim"] if c["dim"] is not None else c["chunk_size"] for c in config["chunks"]])
             num_bytes = sum([c["chunk_bytes"] for c in config["chunks"]])
             data_format = tree_unflatten(config["config"]["data_format"], treespec_loads(config["config"]["data_spec"]))
+            num_chunks = len(config["chunks"])
+            num_bytes_per_chunk = [c["chunk_size"] for c in config["chunks"]] if num_chunks < 1024 else []
 
             return _Result(
                 size=size,
@@ -727,7 +725,7 @@ class DataChunkRecipe(DataRecipe):
                 data_format=data_format,
                 compression=config["config"]["compression"],
                 num_chunks=len(config["chunks"]),
-                num_bytes_per_chunk=[c["chunk_size"] for c in config["chunks"]],
+                num_bytes_per_chunk=num_bytes_per_chunk,
             )
         return _Result(
             size=size,
@@ -976,7 +974,7 @@ class DataProcessor:
                 data_format=result.data_format,
                 compression=result.compression,
                 num_chunks=result.num_chunks,
-                num_bytes_per_chunk=result.num_bytes_per_chunk if result.num_chunks < 1024 else None,
+                num_bytes_per_chunk=result.num_bytes_per_chunk,
             )
 
         print("Finished data processing!")

@@ -321,14 +321,14 @@ class VideoSerializer(Serializer):
 
 class StringSerializer(Serializer):
 
-    def serialize(self, obj: str) -> bytes:
+    def serialize(self, obj: str) -> Tuple[bytes, Optional[str]]:
         return obj.encode('utf-8'), None
 
     def deserialize(self, data: bytes) -> str:
         return data.decode('utf-8')
 
     def can_serialize(self, data: str) -> bool:
-        return isinstance(data, str)
+        return isinstance(data, str) and not os.path.isfile(data)
 
 
 class NumericSerializer:
@@ -338,7 +338,7 @@ class NumericSerializer:
         self.dtype = dtype
         self.size = self.dtype().nbytes
 
-    def serialize(self, obj: Any) -> bytes:
+    def serialize(self, obj: Any) -> Tuple[bytes, Optional[str]]:
         return self.dtype(obj).tobytes(), None
 
     def deserialize(self, data: bytes) -> Any:
@@ -347,7 +347,7 @@ class NumericSerializer:
 
 class IntegerSerializer(NumericSerializer, Serializer):
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(np.int64)
 
     def can_serialize(self, data: int) -> bool:
@@ -356,7 +356,7 @@ class IntegerSerializer(NumericSerializer, Serializer):
 
 class FloatSerializer(NumericSerializer, Serializer):
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(np.float64)
 
     def can_serialize(self, data: float) -> bool:

@@ -1,12 +1,15 @@
 import os
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
-from typing import Any, List, Optional
+from typing import Any, List
 
 from lightning_utilities.core.imports import RequirementCache
 from tqdm import tqdm
 
 _PYARROW_AVAILABLE = RequirementCache("pyarrow")
+
+if _PYARROW_AVAILABLE:
+    import pyarrow.dataset as ds
+    import pyarrow.parquet as pq
 
 
 class BaseReader(ABC):
@@ -18,7 +21,7 @@ class BaseReader(ABC):
         return int(os.getenv("DATA_OPTIMIZER_NODE_RANK", 0))
 
     @abstractmethod
-    def remap_items(self, items: List[Any], num_workers: int) -> List[List[Any]]:
+    def remap_items(self, items: List[Any], num_workers: int) -> List[Any]:
         """This method is meant to remap the items provided by the users into items more adapted to be distributed."""
         pass
 
@@ -28,20 +31,12 @@ class BaseReader(ABC):
         pass
 
 
-@dataclass
-class ParquetSlice:
-    """Keep track of a parquet file slice with its filepath, start and end."""
-    filepath: str
-    start: int
-    end: int
-
-
 class ParquetReader(BaseReader):
 
-    def __init__(self, cache_folder: str, num_rows: Optional[int] = 65536, to_pandas: bool = True) -> None:
+    def __init__(self, cache_folder: str, num_rows: int = 65536, to_pandas: bool = True) -> None:
         super().__init__()
         self.cache_folder = cache_folder
-        self.limit_num_rows = num_rows
+        self.num_rows = num_rows
         self.to_pandas = to_pandas
 
         if not _PYARROW_AVAILABLE:
@@ -50,18 +45,16 @@ class ParquetReader(BaseReader):
         self.parquet_file = None
 
     def _get_num_rows(self, path: str) -> int:
-        if _PYARROW_AVAILABLE:
-            import pyarrow.dataset as ds
-            df = ds.dataset(path).scanner()
-            return df.count_rows()
-
-        raise RuntimeError("Please, install either pyarrow or polars.")
+        df = ds.dataset(path).scanner()
+        return df.count_rows()
 
     def read(self, filepath: str) -> Any:
-        import pyarrow as pa
-        pa.jemalloc_set_decay_ms(0)
-
-        import pyarrow.parquet as pq
+        # Try to force dellocation to avoid memory leak
+        try:
+            import pyarrow as pa
+            pa.jemalloc_set_decay_ms(0)
+        except Exception:   # noqa: S110
+            pass
 
         # close the previous parquet file to release the memory
         if self.parquet_file is not None:
@@ -71,28 +64,22 @@ class ParquetReader(BaseReader):
         self.parquet_file = pq.ParquetFile(filepath, memory_map=True)
         return self.parquet_file
 
-    def remap_items(self, filepaths: Any, _: int) -> List[List[ParquetSlice]]:
-        import pyarrow.parquet as pq
-
+    def remap_items(self, filepaths: List[str], _: int) -> List[str]:
         print("Starting resharding the parquet files for optimized processing.")
 
         new_items = []
 
-        cache_folder = os.path.join(self.cache_folder, f"{self.limit_num_rows}")
+        cache_folder = os.path.join(self.cache_folder, f"{self.num_rows}")
         os.makedirs(cache_folder, exist_ok=True)
 
         for filepath in filepaths:
             num_rows = self._get_num_rows(filepath)
 
-            if num_rows < (self.limit_num_rows * 8):
-                new_items.append(filepath)
-                continue
-
             table = None
             parquet_filename = os.path.basename(filepath)
 
-            for start in tqdm(range(0, num_rows, self.limit_num_rows)):
-                end = min(start + self.limit_num_rows, num_rows)
+            for start in tqdm(range(0, num_rows, self.num_rows)):
+                end = min(start + self.num_rows, num_rows)
                 chunk_filepath = os.path.join(cache_folder, f"{start}_{end}_{parquet_filename}")
                 new_items.append(chunk_filepath)
 
