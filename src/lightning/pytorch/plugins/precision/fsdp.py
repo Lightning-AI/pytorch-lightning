@@ -137,7 +137,7 @@ class FSDPPrecision(Precision):
     @override
     def pre_backward(self, tensor: Tensor, module: "pl.LightningModule") -> Tensor:  # type: ignore[override]
         if self.scaler is not None:
-            tensor = self.scaler.scale(tensor)  # type: ignore[assignment]
+            tensor = self.scaler.scale(tensor)
         return super().pre_backward(tensor, module)
 
     @override

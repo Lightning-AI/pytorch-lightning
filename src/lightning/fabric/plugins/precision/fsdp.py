@@ -128,7 +128,7 @@ class FSDPPrecision(Precision):
     @override
     def backward(self, tensor: Tensor, model: Optional[Module], *args: Any, **kwargs: Any) -> None:
         if self.scaler is not None:
-            tensor = cast(Tensor, self.scaler.scale(tensor))
+            tensor = self.scaler.scale(tensor)
         super().backward(tensor, model, *args, **kwargs)
 
     @override

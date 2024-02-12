@@ -35,7 +35,8 @@ class Compressor(ABC):
     def decompress(self, data: bytes) -> bytes:
         pass
 
-    @abstractclassmethod
+    @classmethod
+    @abstractmethod
     def register(cls, compressors: Dict[str, "Compressor"]) -> None:
         pass
 
