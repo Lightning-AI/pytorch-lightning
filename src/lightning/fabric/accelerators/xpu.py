@@ -13,10 +13,10 @@
 # limitations under the License.
 from functools import lru_cache
 from typing import Any, Dict, List, Union
-from typing_extensions import override
 
 import torch
 from lightning_utilities.core.imports import RequirementCache
+from typing_extensions import override
 
 from lightning.fabric.accelerators.accelerator import Accelerator
 from lightning.fabric.accelerators.registry import _AcceleratorRegistry
