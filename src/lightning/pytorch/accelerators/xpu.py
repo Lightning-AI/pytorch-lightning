@@ -50,8 +50,12 @@ class XPUAccelerator(Accelerator):
 
     @staticmethod
     def is_available() -> bool:
-        import intel_extension_for_pytorch as ipex
-        return ipex.xpu.is_available()
+        # Carefully check before trying to import:
+        if _IPEX_AVAILABLE:
+            import intel_extension_for_pytorch as ipex
+            return ipex.xpu.is_available()
+        else:
+            return False
 
     def get_device_stats(self, device: _DEVICE) -> Dict[str, Any]:
         # Return optional device statistics for loggers
