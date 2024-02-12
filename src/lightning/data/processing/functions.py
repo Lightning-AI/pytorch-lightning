@@ -24,7 +24,7 @@ import torch
 
 from lightning.data.constants import _IS_IN_STUDIO, _TORCH_GREATER_EQUAL_2_1_0
 from lightning.data.processing.data_processor import DataChunkRecipe, DataProcessor, DataTransformRecipe
-from lightning.data.processing.dns import optimize_dns_context
+from lightning.data.processing.utilities import optimize_dns_context
 from lightning.data.processing.readers import BaseReader
 from lightning.data.streaming.resolver import (
     Dir,

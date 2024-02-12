@@ -149,21 +149,15 @@ class BinaryWriter:
         sizes: List[int] = []
         data: List[bytes] = []
 
-        data_format: List[str] = []
-        for item in flattened:
-            data_format.append(self._serialize(item, sizes, data))
-
         if self._data_format is None:
+            data_format: List[str] = []
+            for item in flattened:
+                data_format.append(self._serialize(item, sizes, data, self._data_format))
             self._data_format = data_format
-        elif self._data_format != data_format and self._should_raise(data_format, self._data_format):
-            raise ValueError(
-                f"The data format changed between items. Found {data_format} instead of {self._data_format}."
-            )
-
-        if self._data_spec is None:
             self._data_spec = data_spec
-        elif self._data_spec != data_spec:
-            raise Exception(f"The data format changed between items. Found {data_spec} instead of {self._data_spec}.")
+
+        else:
+            self._serialize(flattened, sizes, data, self._data_format)
 
         # If there is a single element and it is a tensor, enable continous array.
         if is_single_tensor:
@@ -174,15 +168,22 @@ class BinaryWriter:
         body = b"".join(data)
         return head + body, None
 
-    def _serialize(self, item: Any, sizes: List[int], data: List[bytes]) -> str:
+    def _serialize(self, item: Any, sizes: List[int], data: List[bytes], data_format: Optional[Any]) -> Optional[str]:
         """Serialize a given item and append its size and bytes to the sizes and data array."""
-        for serializer_name, serializer in self._serializers.items():
-            if serializer.can_serialize(item):
-                serialized_item, name = serializer.serialize(item)
-                data.append(serialized_item)
-                sizes.append(len(serialized_item))
-                return name or serializer_name
-        raise ValueError(f"The provided item isn't serializable. Found {item}")
+        # Enable the first pass
+        if data_format is None:
+            for serializer_name, serializer in self._serializers.items():
+                if serializer.can_serialize(item):
+                    serialized_item, name = serializer.serialize(item)
+                    data.append(serialized_item)
+                    sizes.append(serializer.size if hasattr(serializer, "size") else len(serialized_item) )
+                    return name or serializer_name
+
+        for element, item_format in zip(item, data_format):
+            serializer = self._serializers[item_format]
+            serialized_item, _ = serializer.serialize(element)
+            data.append(serialized_item)
+            sizes.append(serializer.size if hasattr(serializer, "size") else len(serialized_item))
 
     def _create_chunk(self, filename: str, on_done: bool = False) -> bytes:
         """Create a binary chunk from all the binarized items."""

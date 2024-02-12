@@ -1,8 +1,43 @@
+import io
+import os
+from typing import Optional, Tuple
+import urllib
+import urllib3
 from contextlib import contextmanager
 from subprocess import Popen
-from typing import Any
-
+from typing import Callable, Any
 from lightning.data.constants import _IS_IN_STUDIO
+
+
+def get_worker_rank():
+    return os.getenv("DATA_OPTIMIZER_GLOBAL_RANK")
+
+def catch(func: Callable) -> Callable:
+    def _wrapper(*args: Any, **kwargs: Any):
+        try:
+            return func(*args, **kwargs), None
+        except Exception as e:
+            return None, e
+    return _wrapper
+
+# Credit to the https://github.com/rom1504/img2dataset Github repo
+# The code was taken from there. It has a MIT License.
+
+def make_request(
+    url: str,
+    timeout: int = 10,
+    user_agent_token: str = "pytorch-lightning",
+) -> Tuple[Optional[io.BytesIO], Optional[Exception]]:
+    """Download an image with urllib."""
+    img_stream = None
+    user_agent_string = "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:72.0) Gecko/20100101 Firefox/72.0"
+    if user_agent_token:
+        user_agent_string += f" (compatible; {user_agent_token}; +https://github.com/Lightning-AI/pytorch-lightning)"
+
+    request = urllib.request.Request(url, data=None, headers={"User-Agent": user_agent_string})
+    with urllib.request.urlopen(request, timeout=timeout) as r:
+        img_stream = io.BytesIO(r.read())
+    return img_stream
 
 
 @contextmanager

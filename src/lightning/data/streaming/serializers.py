@@ -32,9 +32,13 @@ _AV_AVAILABLE = RequirementCache("av")
 if _PIL_AVAILABLE:
     from PIL import Image
     from PIL.JpegImagePlugin import JpegImageFile
+    from PIL.PngImagePlugin import PngImageFile
+    from PIL.WebPImagePlugin import WebPImageFile
+    from PIL.GifImagePlugin import GifImageFile
 else:
     Image = None
     JpegImageFile = None
+    PngImageFile = None
 
 if _TORCH_VISION_AVAILABLE:
     from torchvision.io import decode_jpeg
@@ -87,19 +91,6 @@ class PILSerializer(Serializer):
         return isinstance(item, Image.Image) and not isinstance(item, JpegImageFile)
 
 
-class IntSerializer(Serializer):
-    """The IntSerializer serialize and deserialize integer to and from bytes."""
-
-    def serialize(self, item: int) -> Tuple[bytes, Optional[str]]:
-        return str(item).encode("utf-8"), None
-
-    def deserialize(self, data: bytes) -> int:
-        return int(data.decode("utf-8"))
-
-    def can_serialize(self, item: Any) -> bool:
-        return isinstance(item, int)
-
-
 class JPEGSerializer(Serializer):
     """The JPEGSerializer serialize and deserialize JPEG image to and from bytes."""
 
@@ -119,7 +110,13 @@ class JPEGSerializer(Serializer):
                 item_bytes = item_bytes.getvalue()
                 return item_bytes, None
 
-        raise TypeError(f"The provided itemect should be of type {JpegImageFile}. Found {item}.")
+        if isinstance(item, (PngImageFile, WebPImageFile, GifImageFile)):
+            buff = io.BytesIO()
+            item.convert('RGB').save(buff, quality=100, format='JPEG')
+            buff.seek(0)
+            return buff.read(), None
+
+        raise TypeError(f"The provided item should be of type {JpegImageFile}. Found {item}.")
 
     def deserialize(self, data: bytes) -> Union[JpegImageFile, torch.Tensor]:
         if _TORCH_VISION_AVAILABLE:
@@ -322,13 +319,59 @@ class VideoSerializer(Serializer):
         return isinstance(data, str) and os.path.isfile(data) and any(data.endswith(ext) for ext in self._EXTENSIONS)
 
 
+class StringSerializer(Serializer):
+
+    def serialize(self, obj: str) -> bytes:
+        return obj.encode('utf-8'), None
+
+    def deserialize(self, data: bytes) -> str:
+        return data.decode('utf-8')
+
+    def can_serialize(self, data: str) -> bool:
+        return isinstance(data, str)
+
+
+class NumericSerializer:
+    """Store scalar."""
+
+    def __init__(self, dtype: type) -> None:
+        self.dtype = dtype
+        self.size = self.dtype().nbytes
+
+    def serialize(self, obj: Any) -> bytes:
+        return self.dtype(obj).tobytes(), None
+
+    def deserialize(self, data: bytes) -> Any:
+        return np.frombuffer(data, self.dtype)[0]
+
+
+class IntegerSerializer(NumericSerializer, Serializer):
+
+    def __init__(self):
+        super().__init__(np.int64)
+
+    def can_serialize(self, data: int) -> bool:
+        return isinstance(data, int)
+
+
+class FloatSerializer(NumericSerializer, Serializer):
+
+    def __init__(self):
+        super().__init__(np.float64)
+
+    def can_serialize(self, data: float) -> bool:
+        return isinstance(data, float)
+
+
 _SERIALIZERS = OrderedDict(
     **{
+        'str': StringSerializer(),
+        'int': IntegerSerializer(),
+        "float": FloatSerializer(),
         "video": VideoSerializer(),
         "tif": FileSerializer(),
         "file": FileSerializer(),
         "pil": PILSerializer(),
-        "int": IntSerializer(),
         "jpeg": JPEGSerializer(),
         "bytes": BytesSerializer(),
         "no_header_numpy": NoHeaderNumpySerializer(),

@@ -13,7 +13,7 @@ from multiprocessing import Process, Queue
 from pathlib import Path
 from queue import Empty
 from time import sleep, time
-from typing import Any, Dict, List, Optional, Tuple, TypeVar, Union
+from typing import Any, Dict, List, Optional, Tuple, TypeVar, Union, Callable
 from urllib import parse
 
 import numpy as np
@@ -65,7 +65,7 @@ def _get_fast_dev_run() -> int:
     return bool(int(os.getenv("DATA_OPTIMIZER_FAST_DEV_RUN", 1)))
 
 
-def _get_global_rank():
+def get_worker_rank():
     return os.getenv("DATA_OPTIMIZER_GLOBAL_RANK")
 
 
@@ -973,7 +973,7 @@ class DataProcessor:
                 data_format=result.data_format,
                 compression=result.compression,
                 num_chunks=result.num_chunks,
-                num_bytes_per_chunk=result.num_bytes_per_chunk,
+                num_bytes_per_chunk=result.num_bytes_per_chunk if result.num_chunks < 1024 else None,
             )
 
         print("Finished data processing!")
