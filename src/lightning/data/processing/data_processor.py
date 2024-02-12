@@ -7,7 +7,6 @@ import signal
 import tempfile
 import traceback
 import types
-import warnings
 from abc import abstractmethod
 from dataclasses import dataclass
 from multiprocessing import Process, Queue
@@ -36,8 +35,6 @@ from lightning.data.streaming.client import S3Client
 from lightning.data.streaming.resolver import _resolve_dir
 from lightning.data.utilities.broadcast import broadcast_object
 from lightning.data.utilities.packing import _pack_greedily
-
-warnings.filterwarnings("ignore")
 
 if _TORCH_GREATER_EQUAL_2_1_0:
     from torch.utils._pytree import tree_flatten, tree_unflatten, treespec_loads
