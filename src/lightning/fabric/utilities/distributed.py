@@ -12,7 +12,7 @@ import torch.nn.functional as F
 from lightning_utilities.core.imports import package_available
 from torch import Tensor
 from torch.utils.data import Dataset, DistributedSampler, Sampler
-from typing_extensions import override
+from typing_extensions import override, Self
 
 from lightning.fabric.utilities.cloud_io import _is_local_file_protocol
 from lightning.fabric.utilities.data import _num_cpus_available
@@ -392,7 +392,6 @@ class _InfiniteBarrier:
     Creates a new process group with the GLOO backend with a very high timeout that makes the barrier effectively wait
     forever. This is useful in cases where you want to execute a long-running operation on a subset of ranks that should
     not be subject to the regular collective timeout.
-
     """
 
     def __init__(self) -> None:
@@ -400,13 +399,14 @@ class _InfiniteBarrier:
         self.group = None
         self.barrier = lambda: None
 
-    def __enter__(self) -> None:
+    def __call__(self) -> None:
+        self.barrier()
+
+    def __enter__(self) -> Self:
         if _distributed_is_initialized():
             self.group = torch.distributed.new_group(backend="gloo", timeout=timedelta(days=10000))
             self.barrier = self.group.monitored_barrier
-
-    def __call__(self) -> None:
-        self.barrier()
+        return self
 
     def __exit__(self, exc_type: Any, exc_value: Any, traceback: Any) -> None:
         self.barrier()
