@@ -465,6 +465,10 @@ def test_datamodule_hooks_are_profiled():
         def state_dict(self):
             return {"temp": 1}
 
+        # override so that it gets called
+        def prepare_data(self):
+            pass
+
     model = BoringModel()
     dm = CustomBoringDataModule()
     trainer = get_trainer()
