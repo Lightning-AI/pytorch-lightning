@@ -16,6 +16,9 @@ import os
 import re
 from argparse import Namespace
 from typing import Any, List, Optional
+import warnings
+import sys
+import subprocess
 
 from lightning_utilities.core.imports import RequirementCache
 from typing_extensions import get_args
@@ -29,6 +32,7 @@ from lightning.fabric.utilities.distributed import _suggested_max_num_threads
 _log = logging.getLogger(__name__)
 
 _CLICK_AVAILABLE = RequirementCache("click")
+_LIGHTNING_SDK_AVAILABLE = RequirementCache("lightning_sdk")
 
 _SUPPORTED_ACCELERATORS = ("cpu", "gpu", "cuda", "mps", "tpu")
 
@@ -43,6 +47,20 @@ def _get_supported_strategies() -> List[str]:
 
 if _CLICK_AVAILABLE:
     import click
+
+    def _legacy_main():
+        """legacy CLI handler for fabric. Raises deprecation warning and runs through fabric cli if necessary, else runs the entrypoint directly"""
+        warnings.warn("lightning run model is deprecated and will be removed in future versions."
+            " Please call `fabric run model` instead.", DeprecationWarning)
+        args = sys.argv[1:]
+        if args and args[0] == "run" and args[1] == "model":
+            # raise Deprecation Warning
+            subprocess.run(["fabric"]+args)
+            return
+
+        if _LIGHTNING_SDK_AVAILABLE:
+            subprocess.run([sys.executable, "-m", "lightning_sdk.cli.entrypoint"] + args)
+            return
 
     @click.group()
     def _main() -> None:
