@@ -450,6 +450,7 @@ class Fabric:
 
         self._backward_called = True
         self._strategy.backward(tensor, module, *args, **kwargs)
+        self._backward_called = False
 
     def clip_gradients(
         self,
@@ -1100,7 +1101,6 @@ class Fabric:
                 "The current strategy and precision selection requires you to call `fabric.backward(loss)` instead of"
                 " `loss.backward()`."
             )
-        self._backward_called = False
 
     @staticmethod
     def _configure_callbacks(callbacks: Optional[Union[List[Any], Any]]) -> List[Any]:

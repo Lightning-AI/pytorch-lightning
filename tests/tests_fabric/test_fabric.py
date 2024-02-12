@@ -618,8 +618,8 @@ def test_backward():
 
 @pytest.mark.parametrize(("strategy", "precision", "error_expected"), [
     ("auto", "32-true", False),
-    ("auto", "16-true", False),
-    ("auto", "16-mixed", True),
+    ("auto", "bf16-true", False),
+    ("auto", "bf16-mixed", True),
     pytest.param("fsdp", "32-true", True, marks=RunIf(min_cuda_gpus=1, min_torch="2.0.0")),
 ])
 @pytest.mark.parametrize("setup_method", ["setup", "setup_module"])
@@ -635,6 +635,7 @@ def test_backward_required(_, strategy, precision, error_expected, setup_method)
         else nullcontext()
     )
 
+    # One model
     model1 = nn.Linear(2, 2)
     assert not model1._backward_hooks
     model1 = getattr(fabric, setup_method)(model1)
@@ -642,6 +643,19 @@ def test_backward_required(_, strategy, precision, error_expected, setup_method)
     loss = model1(torch.rand(2, 2)).sum()
     with error_context:
         loss.backward()
+    loss = model1(torch.rand(2, 2)).sum()
+    fabric.backward(loss)  # no error
+    assert not fabric._backward_called
+
+    # Two models chained
+    model2 = torch.nn.Linear(2, 2)
+    model2 = getattr(fabric, setup_method)(model2)
+    loss = model2(model1(torch.rand(2, 2))).sum()
+    with error_context:
+        loss.backward()
+    loss = model2(model1(torch.rand(2, 2))).sum()
+    fabric.backward(loss)  # no error
+    assert not fabric._backward_called
 
 
 @RunIf(deepspeed=True, mps=False)
