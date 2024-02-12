@@ -657,6 +657,20 @@ def test_backward_required(_, strategy, precision, error_expected, setup_method)
     fabric.backward(loss)  # no error
     assert not fabric._backward_called
 
+    # Two independent models
+    loss1 = model1(torch.rand(2, 2)).sum()
+    loss2 = model2(torch.rand(2, 2)).sum()
+    with error_context:
+        loss1.backward()
+    with error_context:
+        loss2.backward()
+    loss1 = model1(torch.rand(2, 2)).sum()
+    loss2 = model2(torch.rand(2, 2)).sum()
+    fabric.backward(loss1)  # no error
+    assert not fabric._backward_called
+    fabric.backward(loss2)  # no error
+    assert not fabric._backward_called
+
 
 @RunIf(deepspeed=True, mps=False)
 def test_backward_model_input_required():
