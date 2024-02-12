@@ -32,26 +32,24 @@ def map_parquet(df, output_dir):
         for row in row.to_pandas().values.tolist():
             filename = f"{row[0]}_{df.metadata.num_rows}"
 
-            print(filename)
-
             with open(os.path.join(output_dir, filename), "w") as f:
                 f.write("hello world")
 
             return
 
 @pytest.mark.skipif(
-    (not _PYARROW_AVAILABLE) or sys.platform == "linux",
+    not _PYARROW_AVAILABLE or sys.platform == "linux",
     reason="polars and pyarrow are required"
 )
 def test_parquet_reader(tmpdir):
-    import polars as pol
+    import pandas as pd
 
     inputs = []
 
     for i in range(3):
         parquet_path = os.path.join(tmpdir, f"{i}.parquet")
-        df = pol.DataFrame(list(range(i * 10, (i + 1) * 10)))
-        df.write_parquet(parquet_path)
+        df = pd.DataFrame(list(range(i * 10, (i + 1) * 10)), columns=["value"])
+        df.to_parquet(parquet_path)
         inputs.append(parquet_path)
 
     cache_folder = os.path.join(tmpdir, "cache")
