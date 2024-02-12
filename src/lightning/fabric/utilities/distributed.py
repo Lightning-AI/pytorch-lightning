@@ -395,7 +395,6 @@ class _InfiniteBarrier:
     """
 
     def __init__(self) -> None:
-        # Create a barrier with an 'infinite' timeout (only reliably possible over the GLOO backend)
         self.group = None
         self.barrier = lambda: None
 
@@ -404,6 +403,7 @@ class _InfiniteBarrier:
 
     def __enter__(self) -> Self:
         if _distributed_is_initialized():
+            # Create a barrier with an 'infinite' timeout (only reliably possible over the GLOO backend)
             self.group = torch.distributed.new_group(backend="gloo", timeout=timedelta(days=10000))
             self.barrier = self.group.monitored_barrier
         return self
