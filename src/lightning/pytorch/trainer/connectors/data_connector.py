@@ -89,17 +89,17 @@ class _DataConnector:
         # handle datamodule prepare data:
         # check for prepare_data_per_node & datamodule lifecycle properties before calling datamodule.prepare_data
         if datamodule is not None and is_overridden("prepare_data", datamodule):
-            dm_prepare_data_per_node = datamodule.prepare_data_per_node
+            prepare_data_per_node = datamodule.prepare_data_per_node
             with _InfiniteBarrier():
-                if (dm_prepare_data_per_node and local_rank_zero) or (not dm_prepare_data_per_node and global_rank_zero):
+                if (prepare_data_per_node and local_rank_zero) or (not prepare_data_per_node and global_rank_zero):
                     call._call_lightning_datamodule_hook(trainer, "prepare_data")
 
         # handle lightning module prepare data:
         # check for prepare_data_per_node before calling lightning_module.prepare_data
         if lightning_module is not None and is_overridden("prepare_data", lightning_module):
-            lm_prepare_data_per_node = lightning_module.prepare_data_per_node
+            prepare_data_per_node = lightning_module.prepare_data_per_node
             with _InfiniteBarrier():
-                if (lm_prepare_data_per_node and local_rank_zero) or (not lm_prepare_data_per_node and global_rank_zero):
+                if (prepare_data_per_node and local_rank_zero) or (not prepare_data_per_node and global_rank_zero):
                     call._call_lightning_module_hook(trainer, "prepare_data")
 
     def attach_data(
