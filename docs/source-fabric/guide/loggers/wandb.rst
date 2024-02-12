@@ -2,7 +2,9 @@
 Weights and Biases
 ##################
 
-TODO: Brief Description here
+Weights & Biases (W&B) is the AI developer platform, with tools for training models, fine-tuning models, and leveraging foundation models.
+
+W&B allows machine learning practitioners to track experiments, visualize data, and share insights with a few lines of. It integrates seamlessly with your Lightning ML workflows to log metrics, output visualizations, and manage artifacts. This integration provides a simple way to log metrics and artifacts from your Fabric training loop to W&B via the `WandbLogger`. The `WandbLogger` also supports all features of the Weights and Biases library, such as logging rich media (image, audio, video), artifacts, hyperparameters, tables, custom visualizations, and more. Check the official documentation at https://docs.wandb.ai.
 
 
 ----
@@ -42,7 +44,7 @@ To start tracking metrics in your training loop, import the WandbLogger and conf
     from lightning.fabric import Fabric
 
     # 1. Import the WandbLogger
-    from wandb.x.y.z import WandbLogger
+    from wandb.integration.lightning.fabric import WandbLogger
 
     # 2. Configure the logger
     logger = WandbLogger(project="my-project")
@@ -84,16 +86,23 @@ For a description of all features, check out the official Weights and Biases doc
         <div class="row">
 
 .. displayitem::
-    :header: Official WandbLogger Documentation
+    :header: Official WandbLogger Lightning and Fabric Documentation
     :description: Learn about all features from Weights and Biases
     :button_link: https://docs.wandb.ai/guides/integrations/lightning
     :col_css: col-md-4
     :height: 150
 
 .. displayitem::
-    :header: WandbLogger Examples
+    :header: Fabric WandbLogger Example
+    :description: Official example of how to use the WandbLogger with Fabric
+    :button_link: https://colab.research.google.com/github/wandb/examples/blob/master/colabs/pytorch-lightning/Track_PyTorch_Lightning_with_Fabric_and_Wandb.ipynb
+    :col_css: col-md-4
+    :height: 150
+
+.. displayitem::
+    :header: Lightning WandbLogger Examples
     :description: See examples of how to use the WandbLogger
-    :button_link: https://github.com/wandb/examples
+    :button_link: https://github.com/wandb/examples/tree/master/colabs/pytorch-lightning
     :col_css: col-md-4
     :height: 150
 
