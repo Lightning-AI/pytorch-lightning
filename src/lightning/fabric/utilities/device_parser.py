@@ -142,8 +142,8 @@ def _sanitize_gpu_ids(
     if sum((include_cuda, include_mps, include_xpu)) == 0:
         raise ValueError("At least one gpu type should be specified!")
     all_available_gpus = _get_all_available_gpus(
-        include_cuda=include_cuda, 
-        include_mps=include_mps, 
+        include_cuda=include_cuda,
+        include_mps=include_mps,
         include_xpu=include_xpu)
     for gpu in gpus:
         if gpu not in all_available_gpus:
