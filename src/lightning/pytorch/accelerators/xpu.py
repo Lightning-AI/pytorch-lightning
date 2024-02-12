@@ -54,8 +54,7 @@ class XPUAccelerator(Accelerator):
         if _IPEX_AVAILABLE:
             import intel_extension_for_pytorch as ipex
             return ipex.xpu.is_available()
-        else:
-            return False
+        return False
 
     def get_device_stats(self, device: _DEVICE) -> Dict[str, Any]:
         # Return optional device statistics for loggers
