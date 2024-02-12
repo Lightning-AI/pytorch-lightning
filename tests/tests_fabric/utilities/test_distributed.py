@@ -13,11 +13,11 @@ from lightning.fabric.strategies import DDPStrategy, SingleDeviceStrategy
 from lightning.fabric.strategies.launchers.multiprocessing import _MultiProcessingLauncher
 from lightning.fabric.utilities.distributed import (
     _gather_all_tensors,
+    _InfiniteBarrier,
     _set_num_threads_if_needed,
     _suggested_max_num_threads,
     _sync_ddp,
     is_shared_filesystem,
-    _InfiniteBarrier,
 )
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_2
 
