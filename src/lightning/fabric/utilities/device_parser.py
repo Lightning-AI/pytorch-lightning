@@ -85,7 +85,10 @@ def _parse_gpu_ids(
     # We know the user requested GPUs therefore if some of the
     # requested GPUs are not available an exception is thrown.
     gpus = _normalize_parse_gpu_string_input(gpus)
-    gpus = _normalize_parse_gpu_input_to_list(gpus, include_cuda=include_cuda, include_mps=include_mps, include_xpu=include_xpu)
+    gpus = _normalize_parse_gpu_input_to_list(gpus, 
+                                              include_cuda=include_cuda, 
+                                              include_mps=include_mps, 
+                                              include_xpu=include_xpu)
     if not gpus:
         raise MisconfigurationException("GPUs requested but none are available.")
 
@@ -93,7 +96,9 @@ def _parse_gpu_ids(
         torch.distributed.is_available()
         and torch.distributed.is_torchelastic_launched()
         and len(gpus) != 1
-        and len(_get_all_available_gpus(include_cuda=include_cuda, include_mps=include_mps, include_xpu=include_xpu)) == 1
+        and len(_get_all_available_gpus(include_cuda=include_cuda, 
+                                        include_mps=include_mps, 
+                                        include_xpu=include_xpu)) == 1
     ):
         # Omit sanity check on torchelastic because by default it shows one visible GPU per process
         return gpus
@@ -114,7 +119,12 @@ def _normalize_parse_gpu_string_input(s: Union[int, str, List[int]]) -> Union[in
     return int(s.strip())
 
 
-def _sanitize_gpu_ids(gpus: List[int], include_cuda: bool = False, include_mps: bool = False, include_xpu: bool = False) -> List[int]:
+def _sanitize_gpu_ids(
+    gpus: List[int], 
+    include_cuda: bool = False, 
+    include_mps: bool = False, 
+    include_xpu: bool = False
+) -> List[int]:
     """Checks that each of the GPUs in the list is actually available. Raises a MisconfigurationException if any of the
     GPUs is not available.
 
@@ -141,7 +151,10 @@ def _sanitize_gpu_ids(gpus: List[int], include_cuda: bool = False, include_mps: 
 
 
 def _normalize_parse_gpu_input_to_list(
-    gpus: Union[int, List[int], Tuple[int, ...]], include_cuda: bool, include_mps: bool, include_xpu: bool
+    gpus: Union[int, List[int], Tuple[int, ...]], 
+    include_cuda: bool, 
+    include_mps: bool, 
+    include_xpu: bool
 ) -> Optional[List[int]]:
     assert gpus is not None
     if isinstance(gpus, (MutableSequence, tuple)):
@@ -156,7 +169,11 @@ def _normalize_parse_gpu_input_to_list(
     return list(range(gpus))
 
 
-def _get_all_available_gpus(include_cuda: bool = False, include_mps: bool = False, include_xpu: bool = False) -> List[int]:
+def _get_all_available_gpus(
+    include_cuda: bool = False, 
+    include_mps: bool = False, 
+    include_xpu: bool = False
+) -> List[int]:
     """
     Returns:
         A list of all available GPUs

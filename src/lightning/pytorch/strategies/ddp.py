@@ -309,7 +309,7 @@ class DDPStrategy(ParallelStrategy):
             return obj
 
         obj = [obj]
-        if self.root_device.type != "xpu" and type(obj[0]) == str:
+        if self.root_device.type != "xpu" and isinstance(type(obj[0]), str):
             # I don't know why this is true.  I will have to investigate.  In the meantime,
             # This is getting called by the profiler which can be worked around:
             torch.distributed.broadcast_object_list(obj, src, group=_group.WORLD)
