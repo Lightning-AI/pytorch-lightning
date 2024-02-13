@@ -628,9 +628,9 @@ def test_backward():
 def test_backward_required(_, strategy, precision, error_expected, setup_method):
     """Test under which strategy and precision configurations the `fabric.backward()` call is required."""
     fabric = Fabric(
-        accelerator=("cuda" if strategy=="fsdp" else "cpu"), 
-        strategy=strategy, 
-        precision=precision, 
+        accelerator=("cuda" if strategy == "fsdp" else "cpu"),
+        strategy=strategy,
+        precision=precision,
         devices=1
     )
     fabric._launched = True
