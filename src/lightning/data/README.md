@@ -168,7 +168,7 @@ We have end-to-end free [Studios](https://lightning.ai) showing all the steps to
 
 # 📈 Easy Data Processing Scaling
 
-The easiest way to scale is to create a free account on [lightning.ai](https://lightning.ai/) platform. Usings the platform, the `optimize` and `map` can start multiple machines to make data processing drastically faster as follows:
+The easiest way to scale is to create a free account on [lightning.ai](https://lightning.ai/) platform. Using the platform, the `optimize` and `map` can start multiple machines to make data processing drastically faster.
 
 ```python
 from lightning.data import optimize, Machine
@@ -198,7 +198,7 @@ map(
 
 <br/>
 
-Here is the Data Prep Job UI from this [Studio](https://lightning.ai/lightning-ai/studios/use-or-explore-laion-400million-dataset) where we used 32 machines to download a 400 million images.
+The Data Prep Job UI from the [LAION 400M Studio](https://lightning.ai/lightning-ai/studios/use-or-explore-laion-400million-dataset) where we used 32 machines to download 400 million images in only 2 hours.
 
 </div>
 
