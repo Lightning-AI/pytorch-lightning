@@ -54,8 +54,10 @@ The actual optimization will start when calling ``forward()`` on the model for t
     output = model(input)
     ...
 
-This is important to know when you measure the speed of a compiled model and compare it to a regular model.
-You should always *exclude* the first call to ``forward()`` from your measurements, since it includes the compilation time.
+
+When measuring the speed of a compiled model and comparing it to a regular model, it is important to
+always exclude the first call to ``forward()`` from your measurements, since it includes the compilation time.
+
 
 .. collapse:: Full example with benchmark
 
@@ -155,7 +157,7 @@ However, if these properties change across subsequent calls to ``forward()``, Py
 **When your training suddenly becomes slow, it's probably because PyTorch is recompiling the model!**
 Here are some common scenarios when this can happen:
 
-- Your Trainer code switches from training to validation/testing and the input shape changes, triggering a recompilation.
+- Your training code includes an evaluation step on a different dataset, or you are using a ``Trainer`` that switches from training to validation/testing and the input shape changes, triggering a recompilation.
 - Your dataset size is not divisible by the batch size, and the dataloader has ``drop_last=False`` (the default).
   The last batch in your training loop will be smaller and trigger a recompilation.
 

@@ -20,7 +20,7 @@ Training on Accelerators
 
 **Use when:** Whenever possible!
 
-With Lightning, running on GPUs, TPUs, IPUs on multiple nodes is a simple switch of a flag.
+With Lightning, running on GPUs, TPUs, HPUs on multiple nodes is a simple switch of a flag.
 
 GPU Training
 ============

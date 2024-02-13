@@ -1,16 +1,12 @@
+import contextlib
 import os
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
-from typing import Any, List, Optional
+from typing import Any, List
 
 from lightning_utilities.core.imports import RequirementCache
+from tqdm import tqdm
 
-from lightning.data.utilities.env import _DistributedEnv
-from lightning.data.utilities.shuffle import _associate_chunks_and_internals_to_ranks
-
-_POLARS_AVAILABLE = RequirementCache("polars")
 _PYARROW_AVAILABLE = RequirementCache("pyarrow")
-
 
 class BaseReader(ABC):
 
@@ -21,9 +17,8 @@ class BaseReader(ABC):
         return int(os.getenv("DATA_OPTIMIZER_NODE_RANK", 0))
 
     @abstractmethod
-    def items_to_workers(self, items: List[Any], num_workers: int) -> List[List[Any]]:
-        """This method is meant to convert the items provided by the users into items to be processed by the
-        workers."""
+    def remap_items(self, items: List[Any], num_workers: int) -> List[Any]:
+        """This method is meant to remap the items provided by the users into items more adapted to be distributed."""
         pass
 
     @abstractmethod
@@ -32,100 +27,73 @@ class BaseReader(ABC):
         pass
 
 
-@dataclass
-class ParquetSlice:
-    """Keep track of a parquet file slice with its filepath, start and end."""
-    filepath: str
-    start: int
-    end: int
-
-
 class ParquetReader(BaseReader):
 
-    def __init__(self, num_rows: Optional[int] = 2048, to_pandas: bool = True) -> None:
+    def __init__(self, cache_folder: str, num_rows: int = 65536, to_pandas: bool = True) -> None:
+        super().__init__()
+        self.cache_folder = cache_folder
         self.num_rows = num_rows
         self.to_pandas = to_pandas
 
-        if not _PYARROW_AVAILABLE or not _POLARS_AVAILABLE:
-            raise ModuleNotFoundError("Please, run: `pip install pyarrow polars`")
+
+
+        if not _PYARROW_AVAILABLE:
+            raise ModuleNotFoundError("Please, run: `pip install pyarrow`")
+
+
+        self.parquet_file = None
 
     def _get_num_rows(self, path: str) -> int:
-        if _PYARROW_AVAILABLE:
-            import pyarrow.dataset as ds
-            df = ds.dataset(path).scanner()
-            return df.count_rows()
+        import pyarrow.dataset as ds
 
-        # FIXED: There is a bug in polars. This leads to read_parquet to hang.
-        if _POLARS_AVAILABLE:
-            import polars as pol
-            df = pol.scan_parquet(path)
-            num_rows = df.select(pol.len()).collect().item()
-            return num_rows
+        df = ds.dataset(path).scanner()
+        return df.count_rows()
 
-        raise RuntimeError("Please, install either pyarrow or polars.")
+    def read(self, filepath: str) -> Any:
+        import pyarrow as pa
+        import pyarrow.parquet as pq
 
-    def read(self, item: ParquetSlice) -> Any:
-        if _POLARS_AVAILABLE:
-            import polars as pol
-            df = pol.scan_parquet(item.filepath).slice(item.start, item.end).collect()
+        # Try to force dellocation to avoid memory leak
+        with contextlib.suppress(Exception):
+            pa.jemalloc_set_decay_ms(0)
 
-            if self.to_pandas:
-                df = df.to_pandas()
+        # close the previous parquet file to release the memory
+        if self.parquet_file is not None:
+            self.parquet_file.close()
+            self.parquet_file = None
 
-            return df
+        self.parquet_file = pq.ParquetFile(filepath, memory_map=True)
+        return self.parquet_file
 
-        if _PYARROW_AVAILABLE:
-            import pyarrow.dataset as ds
+    def remap_items(self, filepaths: List[str], _: int) -> List[str]:
+        import pyarrow.parquet as pq
 
-            df = ds.dataset(item.filepath).scanner()
+        print("Starting resharding the parquet files for optimized processing.")
 
-            df = df.take([item.start, item.end])
+        new_items = []
 
-            if self.to_pandas:
-                df.to_pandas()
+        cache_folder = os.path.join(self.cache_folder, f"{self.num_rows}")
+        os.makedirs(cache_folder, exist_ok=True)
 
-            return df
+        for filepath in filepaths:
+            num_rows = self._get_num_rows(filepath)
 
-        raise RuntimeError("Please, install either pyarrow or polars.")
+            table = None
+            parquet_filename = os.path.basename(filepath)
 
+            for start in tqdm(range(0, num_rows, self.num_rows)):
+                end = min(start + self.num_rows, num_rows)
+                chunk_filepath = os.path.join(cache_folder, f"{start}_{end}_{parquet_filename}")
+                new_items.append(chunk_filepath)
 
-    def items_to_workers(self, items: Any, num_workers: int) -> List[List[ParquetSlice]]:
-        intervals = [(0, self._get_num_rows(item)) for item in items]
+                if os.path.exists(chunk_filepath):
+                    continue
 
-        world_size = self.get_num_nodes() * num_workers
-        node_rank = self.get_node_rank()
+                if table is None:
+                    table = pq.read_table(filepath, memory_map=True)
 
-        fake_distributed_env = _DistributedEnv(world_size, 0, self.get_num_nodes())
-        parquet_indexes_per_worker, p_slices_per_worker = _associate_chunks_and_internals_to_ranks(
-            fake_distributed_env, list(range(len(items))), intervals, False)
+                pq.write_table(table[start: end], chunk_filepath)
 
-        workers_user_items: List[List[ParquetSlice]] = [[] for _ in range(num_workers)]
+        print("Finished resharding the parquet files for optimized processing.")
 
-        iterator = enumerate(zip(parquet_indexes_per_worker, p_slices_per_worker))
-
-        node_start = node_rank * num_workers
-        node_end = (node_rank + 1) * num_workers
-
-        for worker_idx, (parquet_indexes, p_slices) in iterator:
-            if node_start <= worker_idx < node_end:
-                if self.num_rows:
-                    workers_user_items[worker_idx % num_workers].extend([
-                        ParquetSlice(
-                            items[parquet_index], p_slice_start, p_slice_start + self.num_rows
-                            if p_slice[1] > (p_slice_start + self.num_rows) else
-                            p_slice[1]
-                        )
-                        for parquet_index, p_slice in zip(parquet_indexes, p_slices)
-                        for p_slice_start in range(p_slice[0], p_slice[1] + self.num_rows, self.num_rows)
-                        if p_slice_start < p_slice[1]
-                    ])
-                else:
-                    workers_user_items[worker_idx % num_workers].extend([
-                        ParquetSlice(items[parquet_index], *p_slice)
-                        for parquet_index, p_slice in zip(parquet_indexes, p_slices)
-                    ])
-
-        assert len(workers_user_items) == num_workers
-        assert all(len(w) for w in workers_user_items)
-
-        return workers_user_items
+        return new_items
