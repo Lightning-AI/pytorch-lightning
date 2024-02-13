@@ -8,7 +8,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
--
+- The `ModelSummary` and `RichModelSummary` callbacks now display the training mode of each layer in the colum "Mode" ([#19468](https://github.com/Lightning-AI/lightning/pull/19468))
 
 -
 
