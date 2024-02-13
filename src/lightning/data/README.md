@@ -56,7 +56,7 @@ def random_images(index):
     "image": Image.fromarray(np.random.randint(0, 256, (32, 32, 3), np.uint8)),
     "class": np.random.randint(10),
   }
-  return data # The data is converted into its binary version and stored into chunks by the optimize operator.
+  return data # The data is serialized into bytes and stored into chunks by the optimize operator.
 
 if __name__ == "__main__":
     optimize(
