@@ -253,7 +253,7 @@ for batch in tqdm(train_dataloader):
 
 Lightning Data provides a stateful `StreamingDataLoader`. This simplifies resuming training over large datasets.
 
-Note: This is used by [Lit-GPT](https://github.com/Lightning-AI/lit-gpt/blob/main/pretrain/tinyllama.py) to pretrain LLMs.
+Note: The `StreamingDataLoader` is used by [Lit-GPT](https://github.com/Lightning-AI/lit-gpt/blob/main/pretrain/tinyllama.py) to pretrain LLMs.
 
 ```python
 import os
@@ -369,4 +369,4 @@ outputs = optimize(
 
 # ⚡ Contributors
 
-We welcome any contributions, pull requests, or issues. If you use the Streaming Dataset for your own project, please reach out to us on Slack.
+We welcome any contributions, pull requests, or issues. If you use the Streaming Dataset for your own project, please reach out to us on Slack or Discord.
