@@ -33,6 +33,8 @@ from lightning.fabric.strategies.fsdp import (
     _METADATA_FILENAME,
     _activation_checkpointing_kwargs,
     _auto_wrap_policy_kwargs,
+    _distributed_checkpoint_load,
+    _distributed_checkpoint_save,
     _get_full_state_dict_context,
     _get_sharded_state_dict_context,
     _has_meta_device_parameters,
@@ -55,8 +57,6 @@ from lightning.fabric.utilities.distributed import group as _group
 from lightning.fabric.utilities.imports import (
     _TORCH_GREATER_EQUAL_2_0,
     _TORCH_GREATER_EQUAL_2_1,
-    _TORCH_GREATER_EQUAL_2_2,
-    _TORCH_GREATER_EQUAL_2_3,
 )
 from lightning.fabric.utilities.init import _EmptyInit
 from lightning.fabric.utilities.load import _lazy_load, _materialize_tensors
@@ -571,18 +571,7 @@ class FSDPStrategy(ParallelStrategy):
                 {f"optimizer_{idx}": optim_state for idx, optim_state in enumerate(checkpoint.pop("optimizer_states"))}
             )
 
-            if _TORCH_GREATER_EQUAL_2_3:
-                from torch.distributed.checkpoint import save
-                save(converted_state, checkpoint_id=path)  # type: ignore[call-arg]
-            else:
-                from torch.distributed.checkpoint import FileSystemWriter, save
-                if _TORCH_GREATER_EQUAL_2_2:
-                    from torch.distributed.checkpoint import save
-                else:
-                    from torch.distributed.checkpoint import save_state_dict as save
-                # FSDP's FileSystemWriter streams the tensors to disk to minimize memory peaks
-                writer = FileSystemWriter(path=path, single_file_per_rank=True)
-                save(converted_state, writer)
+            _distributed_checkpoint_save(converted_state, path)
 
             if self.global_rank == 0:
                 torch.save(checkpoint, path / _METADATA_FILENAME)
@@ -610,22 +599,14 @@ class FSDPStrategy(ParallelStrategy):
 
             with state_dict_ctx:
                 module_state = {"model": self.model.state_dict()}
-
-                if _TORCH_GREATER_EQUAL_2_3:
-                    from torch.distributed.checkpoint import load
-                    load(module_state, checkpoint_id=path)  # type: ignore[call-arg]
-                else:  # deprecated
-                    from torch.distributed.checkpoint import FileSystemReader
-                    if _TORCH_GREATER_EQUAL_2_2:
-                        from torch.distributed.checkpoint import load
-                    else:
-                        from torch.distributed.checkpoint import load_state_dict as load
-                    reader = FileSystemReader(path=path)
-                    load(module_state, reader)
-
+                _distributed_checkpoint_load(module_state, path)
                 self.model.load_state_dict(module_state["model"], strict=self.lightning_module.strict_loading)
 
-                if self.lightning_module.trainer.state.fn == TrainerFn.FITTING:
+                if self.lightning_module.trainer.state.fn == TrainerFn.FITTING and self.optimizers:
+                    from torch.distributed.checkpoint import FileSystemReader
+                    # the reader might become optional in the future:
+                    # https://github.com/pytorch/pytorch/issues/119800
+                    reader = FileSystemReader(path=path)
                     # the optimizer states must be loaded separately
                     for idx, optim in enumerate(self.optimizers):
                         optim_key = f"optimizer_{idx}"

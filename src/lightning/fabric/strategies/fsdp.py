@@ -491,18 +491,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
                         target_dict = metadata
                     _apply_filter(key, filter or {}, converted, target_dict)
 
-            if _TORCH_GREATER_EQUAL_2_3:
-                from torch.distributed.checkpoint import save
-                save(converted_state, checkpoint_id=path)  # type: ignore[call-arg]
-            else:
-                from torch.distributed.checkpoint import FileSystemWriter, save
-                if _TORCH_GREATER_EQUAL_2_2:
-                    from torch.distributed.checkpoint import save
-                else:
-                    from torch.distributed.checkpoint import save_state_dict as save
-                # FSDP's FileSystemWriter streams the tensors to disk to minimize memory peaks
-                writer = FileSystemWriter(path=path, single_file_per_rank=True)
-                save(converted_state, writer)
+            _distributed_checkpoint_save(converted_state, path)
 
             if self.global_rank == 0:
                 torch.save(metadata, path / _METADATA_FILENAME)
@@ -589,34 +578,27 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
 
             with state_dict_ctx:
                 module_state = {module_key: module.state_dict()}
-
-                if _TORCH_GREATER_EQUAL_2_3:
-                    from torch.distributed.checkpoint import load
-                    load(module_state, checkpoint_id=path)  # type: ignore[call-arg]
-                else:  # deprecated
-                    from torch.distributed.checkpoint import FileSystemReader
-                    if _TORCH_GREATER_EQUAL_2_2:
-                        from torch.distributed.checkpoint import load
-                    else:
-                        from torch.distributed.checkpoint import load_state_dict as load
-                    reader = FileSystemReader(path=path)
-                    load(module_state, reader)
-
+                _distributed_checkpoint_load(module_state, path)
                 module.load_state_dict(module_state[module_key], strict=strict)
 
-                # the optimizer states must be loaded separately
-                for optim_key, optim in optimizers.items():
-                    optim_state = load_sharded_optimizer_state_dict(
-                        model_state_dict=module_state[module_key],
-                        optimizer_key=optim_key,
-                        storage_reader=reader,
-                    )
-                    flattened_osd = FSDP.optim_state_dict_to_load(
-                        optim_state_dict=optim_state[optim_key],
-                        model=module,
-                        optim=optim,
-                    )
-                    optim.load_state_dict(flattened_osd)
+                if optimizers:
+                    from torch.distributed.checkpoint import FileSystemReader
+                    # the reader might become optional in the future:
+                    # https://github.com/pytorch/pytorch/issues/119800
+                    reader = FileSystemReader(path=path)
+                    # the optimizer states must be loaded separately
+                    for optim_key, optim in optimizers.items():
+                        optim_state = load_sharded_optimizer_state_dict(
+                            model_state_dict=module_state[module_key],
+                            optimizer_key=optim_key,
+                            storage_reader=reader,
+                        )
+                        flattened_osd = FSDP.optim_state_dict_to_load(
+                            optim_state_dict=optim_state[optim_key],
+                            model=module,
+                            optim=optim,
+                        )
+                        optim.load_state_dict(flattened_osd)
 
             # Load metadata (anything not a module or optimizer)
             metadata = torch.load(path / _METADATA_FILENAME)
@@ -934,3 +916,35 @@ def _move_torchmetrics_to_device(module: torch.nn.Module, device: torch.device) 
 
     for metric in (m for m in module.modules() if isinstance(m, Metric)):
         metric.to(device)  # `.to()` is in-place
+
+
+def _distributed_checkpoint_save(converted_state: Dict[str, Any], path: Path) -> None:
+    if _TORCH_GREATER_EQUAL_2_3:
+        from torch.distributed.checkpoint import save
+        # let torch automatically infer the writer to use. This might also support fsspec paths in the future
+        # https://github.com/pytorch/pytorch/issues/118036
+        save(converted_state, checkpoint_id=path)  # type: ignore[call-arg]
+    else:  # deprecated
+        from torch.distributed.checkpoint import FileSystemWriter
+        if _TORCH_GREATER_EQUAL_2_2:
+            from torch.distributed.checkpoint import save
+        else:
+            from torch.distributed.checkpoint import save_state_dict as save
+        # FSDP's FileSystemWriter streams the tensors to disk to minimize memory peaks
+        writer = FileSystemWriter(path=path, single_file_per_rank=True)
+        save(converted_state, writer)
+
+def _distributed_checkpoint_load(module_state: Dict[str, Any], path: Path) -> None:
+    if _TORCH_GREATER_EQUAL_2_3:
+        from torch.distributed.checkpoint import load
+        # let torch automatically infer the reader to use. This might also support fsspec paths in the future
+        # https://github.com/pytorch/pytorch/issues/118036
+        load(module_state, checkpoint_id=path)  # type: ignore[call-arg]
+    else:  # deprecated
+        from torch.distributed.checkpoint import FileSystemReader
+        if _TORCH_GREATER_EQUAL_2_2:
+            from torch.distributed.checkpoint import load
+        else:
+            from torch.distributed.checkpoint import load_state_dict as load
+        reader = FileSystemReader(path=path)
+        load(module_state, reader)
