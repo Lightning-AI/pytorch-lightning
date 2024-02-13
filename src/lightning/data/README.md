@@ -25,7 +25,7 @@ Here is an illustration showing how the Streaming Dataset works.
 
 # 🎬 Getting Started
 
-## Installation
+## 💾 Installation
 
 Lightning Data can be installed with `pip`:
 
@@ -35,7 +35,7 @@ Lightning Data can be installed with `pip`:
 pip install --no-cache-dir git+https://github.com/Lightning-AI/pytorch-lightning.git@master
 ```
 
-## Quick Start
+## 🏁 Quick Start
 
 ### 1. Prepare Your Data
 
@@ -367,6 +367,6 @@ from lightning.data import StreamingDataset
 dataset = StreamingDataset(..., max_cache_size="10GB")
 ```
 
-# ⚡ Contributors
+# ⚡ Contributors
 
 We welcome any contributions, pull requests, or issues. If you use the Streaming Dataset for your own project, please reach out to us on Slack.
