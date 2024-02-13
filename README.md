@@ -148,7 +148,7 @@ class LitAutoEncoder(L.LightningModule):
         x = x.view(x.size(0), -1)
         z = self.encoder(x)
         x_hat = self.decoder(z)
-        loss = F.mse_loss(x_hat, x)
+        loss = F.mse_loss(x_hat, y)
         self.log("train_loss", loss)
         return loss
 
