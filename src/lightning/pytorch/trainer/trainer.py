@@ -136,7 +136,7 @@ class Trainer:
         r"""Customize every aspect of training via flags.
 
         Args:
-            accelerator: Supports passing different accelerator types ("cpu", "gpu", "tpu", "ipu", "hpu", "mps", "auto")
+            accelerator: Supports passing different accelerator types ("cpu", "gpu", "tpu", "hpu", "mps", "auto")
                 as well as custom accelerator instances.
 
             strategy: Supports different training strategies with aliases as well custom strategies.
@@ -151,7 +151,7 @@ class Trainer:
 
             precision: Double precision (64, '64' or '64-true'), full precision (32, '32' or '32-true'),
                 16bit mixed precision (16, '16', '16-mixed') or bfloat16 mixed precision ('bf16', 'bf16-mixed').
-                Can be used on CPU, GPU, TPUs, HPUs or IPUs.
+                Can be used on CPU, GPU, TPUs, or HPUs.
                 Default: ``'32-true'``.
 
             logger: Logger (or iterable collection of loggers) for experiment tracking. A ``True`` value uses

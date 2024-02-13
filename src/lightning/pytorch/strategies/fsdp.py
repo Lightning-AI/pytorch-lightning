@@ -213,7 +213,7 @@ class FSDPStrategy(ParallelStrategy):
             return plugin.mixed_precision_config
         return None
 
-    @property  # type: ignore[override]
+    @property
     @override
     def precision_plugin(self) -> FSDPPrecision:
         plugin = self._precision_plugin

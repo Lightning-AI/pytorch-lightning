@@ -63,7 +63,6 @@ def restore_env_variables():
         "PL_GLOBAL_SEED",
         "PL_SEED_WORKERS",
         "RANK",  # set by DeepSpeed
-        "POPLAR_ENGINE_OPTIONS",  # set by IPUStrategy
         "CUDA_MODULE_LOADING",  # leaked by PyTorch
         "CRC32C_SW_MODE",  # set by tensorboardX
         "OMP_NUM_THREADS",  # set by our launchers
