@@ -363,7 +363,7 @@ def init_pl_app(source: Union[Tuple[str], Tuple[str, str]], name: str, overwrite
         source_dir = str(Path(script_path).resolve().parent)
     elif len(source) == 2:
         # enable type checking once https://github.com/python/mypy/issues/1178 is available
-        source_dir, script_path = source  # type: ignore
+        source_dir, script_path = source
     else:
         click.echo(
             f"Incorrect number of arguments. You passed ({', '.join(source)}) but only either one argument"
