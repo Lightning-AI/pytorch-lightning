@@ -342,7 +342,7 @@ from lightning.data import optimize
 from tokenizer import Tokenizer
 from functools import partial
 
-# 2. Define a function to convert the text within the parquet files into tokens
+# 1. Define a function to convert the text within the parquet files into tokens
 def tokenize_fn(filepath, tokenizer=None):
     parquet_file = pq.ParquetFile(filepath)
     # Process per batch to reduce RAM usage
@@ -350,11 +350,11 @@ def tokenize_fn(filepath, tokenizer=None):
         for text in batch.to_pandas()["content"]:
             yield tokenizer.encode(text, bos=False, eos=True)
 
-# 3. Generate the inputs (we are going to optimize all the parquet files from StarCoder dataset )
+# 2. Generate the inputs
 input_dir = "/teamspace/s3_connections/tinyllama-template"
 inputs = [str(file) for file in Path(f"{input_dir}/starcoderdata").rglob("*.parquet")]
 
-# 4. Store the optimized data wherever you want under "/teamspace/datasets" or "/teamspace/s3_connections"
+# 3. Store the optimized data wherever you want under "/teamspace/datasets" or "/teamspace/s3_connections"
 outputs = optimize(
     fn=partial(tokenize_fn, tokenizer=Tokenizer(f"{input_dir}/checkpoints/Llama-2-7b-hf")), # Note: You can use HF tokenizer or any others
     inputs=inputs,
