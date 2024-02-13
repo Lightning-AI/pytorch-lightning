@@ -183,21 +183,21 @@ class ModelSummary:
         ...
         >>> model = LitModel()
         >>> ModelSummary(model, max_depth=1)  # doctest: +NORMALIZE_WHITESPACE
-          | Name | Type       | Params | In sizes  | Out sizes
-        ------------------------------------------------------------
-        0 | net  | Sequential | 132 K  | [10, 256] | [10, 512]
-        ------------------------------------------------------------
+          | Name | Type       | Params | Mode  | In sizes  | Out sizes
+        --------------------------------------------------------------------
+        0 | net  | Sequential | 132 K  | train | [10, 256] | [10, 512]
+        --------------------------------------------------------------------
         132 K     Trainable params
         0         Non-trainable params
         132 K     Total params
         0.530     Total estimated model params size (MB)
         >>> ModelSummary(model, max_depth=-1)  # doctest: +NORMALIZE_WHITESPACE
-          | Name  | Type        | Params | In sizes  | Out sizes
-        --------------------------------------------------------------
-        0 | net   | Sequential  | 132 K  | [10, 256] | [10, 512]
-        1 | net.0 | Linear      | 131 K  | [10, 256] | [10, 512]
-        2 | net.1 | BatchNorm1d | 1.0 K    | [10, 512] | [10, 512]
-        --------------------------------------------------------------
+          | Name  | Type        | Params | Mode  | In sizes  | Out sizes
+        ----------------------------------------------------------------------
+        0 | net   | Sequential  | 132 K  | train | [10, 256] | [10, 512]
+        1 | net.0 | Linear      | 131 K  | train | [10, 256] | [10, 512]
+        2 | net.1 | BatchNorm1d | 1.0 K  | train | [10, 512] | [10, 512]
+        ----------------------------------------------------------------------
         132 K     Trainable params
         0         Non-trainable params
         132 K     Total params
