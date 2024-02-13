@@ -72,7 +72,7 @@ The LightningModule is the full **recipe** that defines how your nn.Modules inte
             x = x.view(x.size(0), -1)
             z = self.encoder(x)
             x_hat = self.decoder(z)
-            loss = F.mse_loss(x_hat, x)
+            loss = F.mse_loss(x_hat, y)
             return loss
 
         def configure_optimizers(self):
