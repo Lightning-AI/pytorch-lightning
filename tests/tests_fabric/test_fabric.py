@@ -626,7 +626,12 @@ def test_backward():
 @mock.patch("lightning.fabric.accelerators.mps.MPSAccelerator.is_available", return_value=False)
 def test_backward_required(_, strategy, precision, error_expected, setup_method):
     """Test under which strategy and precision configurations the `fabric.backward()` call is required."""
-    fabric = Fabric(strategy=strategy, precision=precision, devices=1)
+    fabric = Fabric(
+        accelerator=("cuda" if strategy=="fsdp" else "cpu"), 
+        strategy=strategy, 
+        precision=precision, 
+        devices=1
+    )
     fabric._launched = True
     fabric.strategy.setup_module = lambda module: module
 
@@ -634,38 +639,39 @@ def test_backward_required(_, strategy, precision, error_expected, setup_method)
         pytest.raises(RuntimeError, match=escape("requires you to call `fabric.backward(loss)`")) if error_expected
         else nullcontext()
     )
+    batch = torch.rand(2, 2)
 
     # One model
     model1 = nn.Linear(2, 2)
     assert not model1._backward_hooks
     model1 = getattr(fabric, setup_method)(model1)
     assert model1._backward_hooks
-    loss = model1(torch.rand(2, 2)).sum()
+    loss = model1(batch).sum()
     with error_context:
         loss.backward()
-    loss = model1(torch.rand(2, 2)).sum()
+    loss = model1(batch).sum()
     fabric.backward(loss)  # no error
     assert not fabric._backward_called
 
     # Two models chained
     model2 = torch.nn.Linear(2, 2)
     model2 = getattr(fabric, setup_method)(model2)
-    loss = model2(model1(torch.rand(2, 2))).sum()
+    loss = model2(model1(batch)).sum()
     with error_context:
         loss.backward()
-    loss = model2(model1(torch.rand(2, 2))).sum()
+    loss = model2(model1(batch)).sum()
     fabric.backward(loss)  # no error
     assert not fabric._backward_called
 
     # Two independent models
-    loss1 = model1(torch.rand(2, 2)).sum()
-    loss2 = model2(torch.rand(2, 2)).sum()
+    loss1 = model1(batch).sum()
+    loss2 = model2(batch).sum()
     with error_context:
         loss1.backward()
     with error_context:
         loss2.backward()
-    loss1 = model1(torch.rand(2, 2)).sum()
-    loss2 = model2(torch.rand(2, 2)).sum()
+    loss1 = model1(batch).sum()
+    loss2 = model2(batch).sum()
     fabric.backward(loss1)  # no error
     assert not fabric._backward_called
     fabric.backward(loss2)  # no error
