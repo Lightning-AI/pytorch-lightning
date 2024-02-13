@@ -39,7 +39,7 @@ pip install --no-cache-dir git+https://github.com/Lightning-AI/pytorch-lightning
 
 ### 1. Prepare Your Data
 
-You can convert your raw dataset into Lightning Streaming format using the `optimize` operator. More formats are coming...
+Convert your raw dataset into Lightning Streaming format using the `optimize` operator. More formats are coming...
 
 <!--pytest.mark.skip-->
 
