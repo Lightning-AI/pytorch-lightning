@@ -110,7 +110,7 @@ If the profiler report becomes too long, you can stream the report to a file:
 *************************
 Measure accelerator usage
 *************************
-Another helpful technique to detect bottlenecks is to ensure that you're using the full capacity of your accelerator (GPU/TPU/IPU/HPU).
+Another helpful technique to detect bottlenecks is to ensure that you're using the full capacity of your accelerator (GPU/TPU/HPU).
 This can be measured with the :class:`~lightning.pytorch.callbacks.device_stats_monitor.DeviceStatsMonitor`:
 
 .. testcode::

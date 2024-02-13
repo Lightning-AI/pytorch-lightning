@@ -60,7 +60,7 @@ def _materialize(module: torch.nn.Module, device: _DEVICE) -> None:
     """Materialize a module."""
     if not _TORCH_GREATER_EQUAL_2_1:
         raise RuntimeError("recurse=False requires torch 2.1")
-    module.to_empty(device=device, recurse=False)  # type: ignore[arg-type]
+    module.to_empty(device=device, recurse=False)
     if not hasattr(module, "reset_parameters"):
         raise TypeError(
             f"Materialization requires that the `{type(module).__name__}.reset_parameters` method is implemented."

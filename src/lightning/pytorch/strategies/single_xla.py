@@ -56,7 +56,7 @@ class SingleDeviceXLAStrategy(SingleDeviceStrategy):
         )
         self.debug = debug
 
-    @property  # type: ignore[override]
+    @property
     @override
     def checkpoint_io(self) -> Union[XLACheckpointIO, _WrappingCheckpointIO]:
         plugin = self._checkpoint_io
@@ -72,7 +72,7 @@ class SingleDeviceXLAStrategy(SingleDeviceStrategy):
             raise TypeError(f"The XLA strategy can only work with the `XLACheckpointIO` plugin, found {io}")
         self._checkpoint_io = io
 
-    @property  # type: ignore[override]
+    @property
     @override
     def precision_plugin(self) -> XLAPrecision:
         plugin = self._precision_plugin

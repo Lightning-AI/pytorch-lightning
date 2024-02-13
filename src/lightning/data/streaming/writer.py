@@ -22,6 +22,7 @@ import numpy as np
 import torch
 
 from lightning.data.constants import _INDEX_FILENAME, _TORCH_GREATER_EQUAL_2_1_0
+from lightning.data.processing.utilities import get_worker_rank
 from lightning.data.streaming.compression import _COMPRESSORS, Compressor
 from lightning.data.streaming.serializers import Serializer, _get_serializers
 from lightning.data.utilities.env import _DistributedEnv, _WorkerEnv
@@ -71,6 +72,7 @@ class BinaryWriter:
             raise ValueError("Either one of the `chunk_size` or the `chunk_bytes` need to be provided.")
 
         self._serializers: Dict[str, Serializer] = _get_serializers(serializers)
+        self._serializers_extra: Dict[str, Serializer] = {}
         self._chunk_size = chunk_size
         self._chunk_bytes = _convert_bytes_to_int(chunk_bytes) if isinstance(chunk_bytes, str) else chunk_bytes
         self._compression = compression
@@ -149,21 +151,19 @@ class BinaryWriter:
         sizes: List[int] = []
         data: List[bytes] = []
 
-        data_format: List[str] = []
-        for item in flattened:
-            data_format.append(self._serialize(item, sizes, data))
-
         if self._data_format is None:
-            self._data_format = data_format
-        elif self._data_format != data_format and self._should_raise(data_format, self._data_format):
-            raise ValueError(
-                f"The data format changed between items. Found {data_format} instead of {self._data_format}."
-            )
+            data_format: List[str] = []
+            for item in flattened:
+                data_format.append(self._serialize(item, sizes, data))
 
-        if self._data_spec is None:
+            worker_rank = get_worker_rank()
+            if worker_rank is not None:
+                print(f"Rank {worker_rank} inferred the following `{data_format}` data format.")
+            self._data_format = data_format
             self._data_spec = data_spec
-        elif self._data_spec != data_spec:
-            raise Exception(f"The data format changed between items. Found {data_spec} instead of {self._data_spec}.")
+        else:
+            # tiny optimization to avoid looping over all the data format
+            self._serialize_with_data_format(flattened, sizes, data, self._data_format)
 
         # If there is a single element and it is a tensor, enable continous array.
         if is_single_tensor:
@@ -180,9 +180,22 @@ class BinaryWriter:
             if serializer.can_serialize(item):
                 serialized_item, name = serializer.serialize(item)
                 data.append(serialized_item)
-                sizes.append(len(serialized_item))
-                return name or serializer_name
+                sizes.append(serializer.size if hasattr(serializer, "size") else len(serialized_item))
+                name = name or serializer_name
+                if name and name not in self._serializers_extra:
+                    self._serializers_extra[name] = serializer
+                return name
         raise ValueError(f"The provided item isn't serializable. Found {item}")
+
+    def _serialize_with_data_format(
+        self, item: Any, sizes: List[int], data: List[bytes], data_format: List[str]) -> None:
+        """Serialize a given item and append its size and bytes to the sizes and data array."""
+        assert data_format
+        for element, item_format in zip(item, data_format):
+            serializer = self._serializers_extra[item_format]
+            serialized_item, _ = serializer.serialize(element)
+            data.append(serialized_item)
+            sizes.append(serializer.size if hasattr(serializer, "size") else len(serialized_item))
 
     def _create_chunk(self, filename: str, on_done: bool = False) -> bytes:
         """Create a binary chunk from all the binarized items."""
@@ -395,7 +408,9 @@ class BinaryWriter:
                     config = data["config"]
 
                 elif config != data["config"]:
-                    raise Exception("The config isn't consistent between chunks. This shouldn't have happened.")
+                    raise Exception(
+                        "The config isn't consistent between chunks. This shouldn't have happened."
+                        f"Found {config} {data['config']}.")
 
                 chunks_info.extend(data["chunks"])
 
