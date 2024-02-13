@@ -169,7 +169,7 @@ We have end-to-end free [Studios](https://lightning.ai) showing all the steps to
 
 # 📈 Easily scale data processing
 
-The easiest way to scale is to create a free account on [lightning.ai](https://lightning.ai/) platform. With the platform, the `optimize` and `map` can start multiple machines to make data processing drastically faster.
+To scale data processing, create a free account on [lightning.ai](https://lightning.ai/) platform. With the platform, the `optimize` and `map` can start multiple machines to make data processing drastically faster as follows:
 
 ```python
 from lightning.data import optimize, Machine
