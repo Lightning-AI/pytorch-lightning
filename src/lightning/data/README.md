@@ -209,38 +209,6 @@ The Data Prep Job UI from the [LAION 400M Studio](https://lightning.ai/lightning
 
 You have nothing to do, the StreamingDataset takes care of everything for you. It automatically make sure each rank receives different batch of data.
 
-## 💾 Support yield
-
-When processing large files like compressed [parquet files](https://en.wikipedia.org/wiki/Apache_Parquet), you can use python yield to process and store one item at the time.
-
-```python
-from pathlib import Path
-import pyarrow.parquet as pq
-from lightning.data import optimize
-from tokenizer import Tokenizer
-from functools import partial
-
-# 2. Define a function to convert the text within the parquet files into tokens
-def tokenize_fn(filepath, tokenizer=None):
-    parquet_file = pq.ParquetFile(filepath)
-    # Process per batch to reduce RAM usage
-    for batch in parquet_file.iter_batches(batch_size=8192, columns=["content"]):
-        for text in batch.to_pandas()["content"]:
-            yield tokenizer.encode(text, bos=False, eos=True)
-
-# 3. Generate the inputs (we are going to optimize all the parquet files from StarCoder dataset )
-input_dir = "/teamspace/s3_connections/tinyllama-template"
-inputs = [str(file) for file in Path(f"{input_dir}/starcoderdata").rglob("*.parquet")]
-
-# 4. Store the optimized data wherever you want under "/teamspace/datasets" or "/teamspace/s3_connections"
-outputs = optimize(
-    fn=partial(tokenize_fn, tokenizer=Tokenizer(f"{input_dir}/checkpoints/Llama-2-7b-hf")), # Note: You can use HF tokenizer or any others
-    inputs=inputs,
-    output_dir="/teamspace/datasets/starcoderdata",
-    chunk_size=(2049 * 8012),
-)
-```
-
 ## 🎨 Easy data mixing
 
 You can easily experiment with dataset mixtures using the CombinedStreamingDataset.
@@ -365,6 +333,38 @@ Limit the size of the cache holding the chunks.
 from lightning.data import StreamingDataset
 
 dataset = StreamingDataset(..., max_cache_size="10GB")
+```
+
+## 💾 Support yield
+
+When processing large files like compressed [parquet files](https://en.wikipedia.org/wiki/Apache_Parquet), you can use python yield to process and store one item at the time.
+
+```python
+from pathlib import Path
+import pyarrow.parquet as pq
+from lightning.data import optimize
+from tokenizer import Tokenizer
+from functools import partial
+
+# 2. Define a function to convert the text within the parquet files into tokens
+def tokenize_fn(filepath, tokenizer=None):
+    parquet_file = pq.ParquetFile(filepath)
+    # Process per batch to reduce RAM usage
+    for batch in parquet_file.iter_batches(batch_size=8192, columns=["content"]):
+        for text in batch.to_pandas()["content"]:
+            yield tokenizer.encode(text, bos=False, eos=True)
+
+# 3. Generate the inputs (we are going to optimize all the parquet files from StarCoder dataset )
+input_dir = "/teamspace/s3_connections/tinyllama-template"
+inputs = [str(file) for file in Path(f"{input_dir}/starcoderdata").rglob("*.parquet")]
+
+# 4. Store the optimized data wherever you want under "/teamspace/datasets" or "/teamspace/s3_connections"
+outputs = optimize(
+    fn=partial(tokenize_fn, tokenizer=Tokenizer(f"{input_dir}/checkpoints/Llama-2-7b-hf")), # Note: You can use HF tokenizer or any others
+    inputs=inputs,
+    output_dir="/teamspace/datasets/starcoderdata",
+    chunk_size=(2049 * 8012),
+)
 ```
 
 # ⚡ Contributors
