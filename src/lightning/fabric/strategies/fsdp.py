@@ -66,6 +66,7 @@ from lightning.fabric.utilities.imports import (
     _TORCH_GREATER_EQUAL_2_0,
     _TORCH_GREATER_EQUAL_2_1,
     _TORCH_GREATER_EQUAL_2_2,
+    _TORCH_GREATER_EQUAL_2_3,
 )
 from lightning.fabric.utilities.init import _EmptyInit
 from lightning.fabric.utilities.load import _METADATA_FILENAME, _lazy_load, _materialize_tensors, _move_state_into
@@ -448,7 +449,6 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         if path.is_dir() and self._state_dict_type == "full" and not _is_sharded_checkpoint(path):
             raise IsADirectoryError(f"The checkpoint path exists and is a directory: {path}")
 
-        from torch.distributed.checkpoint import FileSystemWriter, save_state_dict
         from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
 
         modules = [module for module in state.values() if _has_fsdp_modules(module)]
@@ -491,9 +491,18 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
                         target_dict = metadata
                     _apply_filter(key, filter or {}, converted, target_dict)
 
-            # FSDP's FileSystemWriter streams the tensors to disk to minimize memory peaks
-            writer = FileSystemWriter(path=path, single_file_per_rank=True)
-            save_state_dict(converted_state, writer)
+            if _TORCH_GREATER_EQUAL_2_3:
+                from torch.distributed.checkpoint import save
+                save(converted_state, checkpoint_id=path)  # type: ignore[call-arg]
+            else:
+                from torch.distributed.checkpoint import FileSystemWriter, save
+                if _TORCH_GREATER_EQUAL_2_2:
+                    from torch.distributed.checkpoint import save
+                else:
+                    from torch.distributed.checkpoint import save_state_dict as save
+                # FSDP's FileSystemWriter streams the tensors to disk to minimize memory peaks
+                writer = FileSystemWriter(path=path, single_file_per_rank=True)
+                save(converted_state, writer)
 
             if self.global_rank == 0:
                 torch.save(metadata, path / _METADATA_FILENAME)
@@ -555,15 +564,9 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
                 "Loading a single optimizer object from a checkpoint is not supported yet with the FSDP strategy."
             )
 
-        from torch.distributed.checkpoint import FileSystemReader
         from torch.distributed.checkpoint.optimizer import load_sharded_optimizer_state_dict
         from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
         from torch.distributed.fsdp import OptimStateKeyType
-
-        if _TORCH_GREATER_EQUAL_2_2:
-            from torch.distributed.checkpoint import load
-        else:
-            from torch.distributed.checkpoint import load_state_dict as load  # deprecated
 
         modules = {key: module for key, module in state.items() if _has_fsdp_modules(module)}
         if len(modules) == 0:
@@ -583,11 +586,22 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
 
         if _is_sharded_checkpoint(path):
             state_dict_ctx = _get_sharded_state_dict_context(module)
-            reader = FileSystemReader(path=path)
 
             with state_dict_ctx:
                 module_state = {module_key: module.state_dict()}
-                load(module_state, reader)
+
+                if _TORCH_GREATER_EQUAL_2_3:
+                    from torch.distributed.checkpoint import load
+                    load(module_state, checkpoint_id=path)  # type: ignore[call-arg]
+                else:  # deprecated
+                    from torch.distributed.checkpoint import FileSystemReader
+                    if _TORCH_GREATER_EQUAL_2_2:
+                        from torch.distributed.checkpoint import load
+                    else:
+                        from torch.distributed.checkpoint import load_state_dict as load
+                    reader = FileSystemReader(path=path)
+                    load(module_state, reader)
+
                 module.load_state_dict(module_state[module_key], strict=strict)
 
                 # the optimizer states must be loaded separately
