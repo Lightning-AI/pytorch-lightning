@@ -19,7 +19,7 @@ The `StreamingDataset` is compatible with any data type, including **images, tex
 
 Finally, the `StreamingDataset` is fast! Check out our [benchmark](https://lightning.ai/lightning-ai/studios/benchmark-cloud-data-loading-libraries).
 
-Here is an illustration showing how the Streaming Dataset works.
+Here is an illustration showing how the `StreamingDataset` works.
 
 ![An illustration showing how the Streaming Dataset works.](https://pl-flash-data.s3.amazonaws.com/streaming_dataset.gif)
 
