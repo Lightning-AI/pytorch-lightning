@@ -133,7 +133,7 @@ A LightningModule enables your PyTorch nn.Module to play together in complex way
             x = x.view(x.size(0), -1)
             z = self.encoder(x)
             x_hat = self.decoder(z)
-            loss = nn.functional.mse_loss(x_hat, x)
+            loss = nn.functional.mse_loss(x_hat, y)
             # Logging to TensorBoard (if installed) by default
             self.log("train_loss", loss)
             return loss
