@@ -152,7 +152,7 @@ if __name__ == "__main__":
     )
 ```
 
-# 📚 End-to-end Lightning Studio Tutorials
+# 📚 End-to-end Lightning Studio Templates
 
 We have end-to-end free [Studios](https://lightning.ai) showing all the steps to prepare the following datasets:
 
