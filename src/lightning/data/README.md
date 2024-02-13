@@ -9,7 +9,7 @@
 
 </div>
 
-# Lightning Data
+# ⚡ Welcome to Lightning Data
 
 We developed `Streaming Dataset` to optimize training of large datasets from cloud storage, prioritizing speed, affordability, and scalability.
 
@@ -19,13 +19,15 @@ The `Streaming Dataset` is compatible with any data type, including **images, te
 
 Finally, the `Streaming Dataset` is fast, check out our [benchmark](https://lightning.ai/lightning-ai/studios/benchmark-cloud-data-loading-libraries).
 
+Here is an illustration showing how the Streaming Dataset works.
+
 ![An illustration showing how the Streaming Dataset works.](https://pl-flash-data.s3.amazonaws.com/streaming_dataset.gif)
 
 # Getting Started
 
 ## Installation
 
-Streaming can be installed with `pip`:
+Lightning Data can be installed with `pip`:
 
 <!--pytest.mark.skip-->
 
@@ -35,11 +37,9 @@ pip install --no-cache-dir git+https://github.com/Lightning-AI/pytorch-lightning
 
 ## Quick Start
 
-<br/>
-
 ### 1. Prepare Your Data
 
-Convert your raw dataset into Lightning Streaming format:
+You can convert your raw dataset into Lightning Streaming format using the `optimize` operator. More formats are coming...
 
 <!--pytest.mark.skip-->
 
@@ -51,18 +51,19 @@ from PIL import Image
 
 # Write random images into the chunks
 def random_images(index):
-  return {
+  data = {
     "index": index,
     "image": Image.fromarray(np.random.randint(0, 256, (32, 32, 3), np.uint8)),
     "class": np.random.randint(10),
   }
+  return data # The data is converted into its binary version and stored into chunks by the optimize operator.
 
 if __name__ == "__main__":
     optimize(
         fn=random_images,  # The function applied over each input.
-        inputs=list(range(1000)),  # any inputs. This is provided to your function.
-        output_dir="my_dataset",  # where to store the optimized data.
-        num_workers=4,  # Distribute the inputs across multiple workers.
+        inputs=list(range(1000)),  # Provide any inputs. The fn is applied on each item.
+        output_dir="my_dataset",  # The directory where the optimized data are stored.
+        num_workers=4,  # The number of workers. The inputs are distributed among them.
         chunk_bytes="64MB"  # The maximum number of bytes to write into a chunk.
     )
 
@@ -70,7 +71,9 @@ if __name__ == "__main__":
 
 ### 2. Upload Your Data to Cloud Storage
 
-Cloud providers provide SDK CLI to upload data to their storage.
+Cloud providers such as [AWS](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html), [Google Cloud](https://cloud.google.com/storage/docs/uploading-objects?hl=en#upload-object-cli), [Azure](https://learn.microsoft.com/en-us/azure/import-export/storage-import-export-data-to-files?tabs=azure-portal-preview), etc.. provide command line client to upload your data to their storage.
+
+Here is an example with [AWS S3](https://aws.amazon.com/s3).
 
 ```python
 ⚡ aws s3 cp --recursive my_dataset s3://my-bucket/my_dataset
@@ -351,6 +354,6 @@ from lightning.data import StreamingDataset
 dataset = StreamingDataset(..., max_cache_size="10GB")
 ```
 
-⚡ Contributors
+# ⚡ Contributors
 
 We welcome any contributions, pull requests, or issues. If you use the Streaming Dataset for your own project, please reach out to us on Slack.
