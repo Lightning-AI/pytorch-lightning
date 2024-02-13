@@ -3,13 +3,13 @@ import sys
 
 import pytest
 from lightning.data import map
-from lightning.data.processing.readers import _POLARS_AVAILABLE, _PYARROW_AVAILABLE, BaseReader, ParquetReader
+from lightning.data.processing.readers import _PYARROW_AVAILABLE, BaseReader, ParquetReader
 
 
 class DummyReader(BaseReader):
 
-    def items_to_workers(self, items, num_workers: int):
-        return [[(worker_idx, idx, item) for idx, item in enumerate(items)] for worker_idx in range(num_workers)]
+    def remap_items(self, items, num_workers: int):
+        return [(worker_idx, idx, item) for idx, item in enumerate(items) for worker_idx in range(num_workers)]
 
     def read(self, item):
         return item
@@ -28,32 +28,38 @@ def test_reader(tmpdir):
 
 
 def map_parquet(df, output_dir):
-    filename = f"{df.row(0)[0]}_{len(df)}"
+    for row in df.iter_batches(batch_size=1):
+        for row in row.to_pandas().values.tolist():
+            filename = f"{row[0]}_{df.metadata.num_rows}"
 
-    with open(os.path.join(output_dir, filename), "w") as f:
-        f.write("hello world")
+            with open(os.path.join(output_dir, filename), "w") as f:
+                f.write("hello world")
+
+            return
 
 @pytest.mark.skipif(
-    (not _POLARS_AVAILABLE and not _PYARROW_AVAILABLE) or sys.platform == "linux",
+    not _PYARROW_AVAILABLE or sys.platform == "linux",
     reason="polars and pyarrow are required"
 )
 def test_parquet_reader(tmpdir):
-    import polars as pol
+    import pandas as pd
 
     inputs = []
 
     for i in range(3):
         parquet_path = os.path.join(tmpdir, f"{i}.parquet")
-        df = pol.DataFrame(list(range(i * 10, (i + 1) * 10)))
-        df.write_parquet(parquet_path)
+        df = pd.DataFrame(list(range(i * 10, (i + 1) * 10)), columns=["value"])
+        df.to_parquet(parquet_path)
         inputs.append(parquet_path)
+
+    cache_folder = os.path.join(tmpdir, "cache")
 
     map(
         map_parquet,
         inputs=inputs,
         output_dir=os.path.join(tmpdir, "output_dir"),
-        reader=ParquetReader(num_rows=10, to_pandas=False),
+        reader=ParquetReader(cache_folder, num_rows=5, to_pandas=False),
         num_workers=2
     )
 
-    assert sorted(os.listdir(os.path.join(tmpdir, "output_dir"))) == ['0_10', '10_5', '15_5', '20_10']
+    assert sorted(os.listdir(os.path.join(tmpdir, "output_dir"))) == ['0_5', '10_5', '15_5', '20_5', '25_5', '5_5']

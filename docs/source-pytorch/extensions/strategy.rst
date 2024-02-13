@@ -57,9 +57,6 @@ Here are some examples:
     # Training with the DDP Spawn strategy on 8 TPU cores
     trainer = Trainer(strategy="ddp_spawn", accelerator="tpu", devices=8)
 
-    # Training with the default IPU strategy on 8 IPUs
-    trainer = Trainer(accelerator="ipu", devices=8)
-
 The below table lists all relevant strategies available in Lightning with their corresponding short-hand name:
 
 .. list-table:: Strategy Classes and Nicknames
@@ -87,9 +84,6 @@ The below table lists all relevant strategies available in Lightning with their 
    * - hpu_single
      - ``SingleHPUStrategy``
      - Strategy for training on a single HPU device. :doc:`Learn more. <../integrations/hpu/index>`
-   * - ipu_strategy
-     - ``IPUStrategy``
-     - Plugin for training on IPU devices. :doc:`Learn more. <../integrations/ipu/index>`
    * - xla
      - :class:`~lightning.pytorch.strategies.XLAStrategy`
      - Strategy for training on multiple TPU devices using the :func:`torch_xla.distributed.xla_multiprocessing.spawn` method. :doc:`Learn more. <../accelerators/tpu>`

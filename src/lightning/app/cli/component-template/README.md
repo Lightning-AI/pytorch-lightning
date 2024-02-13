@@ -3,7 +3,7 @@
 This ⚡ [Lightning component](https://lightning.ai/) ⚡ was generated automatically with:
 
 ```bash
-lightning init component placeholdername
+lightning_app init component placeholdername
 ```
 
 ## To run placeholdername
@@ -11,7 +11,7 @@ lightning init component placeholdername
 First, install placeholdername (warning: this component has not been officially approved on the lightning gallery):
 
 ```bash
-lightning install component https://github.com/theUser/placeholdername
+lightning_app install component https://github.com/theUser/placeholdername
 ```
 
 Once the app is installed, use it in an app:

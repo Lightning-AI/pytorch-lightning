@@ -28,7 +28,7 @@ Execute the following command in a terminal:
 
 .. code-block::
 
-     lightning run app app.py
+     lightning_app run app app.py
 
 The following appears:
 

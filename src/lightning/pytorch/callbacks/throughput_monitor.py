@@ -50,7 +50,7 @@ class ThroughputMonitor(Callback):
                     model = MyModel()
 
                     def sample_forward():
-                        batch = torch.randn(...)
+                        batch = torch.randn(..., device="meta")
                         return model(batch)
 
                     self.flops_per_batch = measure_flops(model, sample_forward, loss_fn=torch.Tensor.sum)

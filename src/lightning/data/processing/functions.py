@@ -22,9 +22,10 @@ from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
 
 import torch
 
+from lightning.data.constants import _IS_IN_STUDIO, _TORCH_GREATER_EQUAL_2_1_0
+from lightning.data.processing.data_processor import DataChunkRecipe, DataProcessor, DataTransformRecipe
 from lightning.data.processing.readers import BaseReader
-from lightning.data.streaming.constants import _TORCH_GREATER_EQUAL_2_1_0
-from lightning.data.streaming.data_processor import DataChunkRecipe, DataProcessor, DataTransformRecipe
+from lightning.data.processing.utilities import optimize_dns_context
 from lightning.data.streaming.resolver import (
     Dir,
     _assert_dir_has_index_file,
@@ -169,8 +170,8 @@ def map(
         output_dir: The folder where the processed data should be stored.
         num_workers: The number of workers to use during processing
         fast_dev_run: Whether to use process only a sub part of the inputs
-        num_nodes: When doing remote execution, the number of nodes to use.
-        machine: When doing remote execution, the machine to use.
+        num_nodes: When doing remote execution, the number of nodes to use. Only supported on https://lightning.ai/.
+        machine: When doing remote execution, the machine to use. Only supported on https://lightning.ai/.
         num_downloaders: The number of downloaders per worker.
         reorder_files: By default, reorders the files by file size to distribute work equally among all workers.
             Set this to ``False`` if the order in which samples are processed should be preserved.
@@ -182,6 +183,17 @@ def map(
 
     if len(inputs) == 0:
         raise ValueError(f"The provided inputs should be non empty. Found {inputs}.")
+
+    if not _IS_IN_STUDIO and (machine is not None or num_nodes is not None):
+        raise ValueError(
+            "Only https://lightning.ai/ supports multiple nodes or selecting a machine."
+            " Create an account to try it out.")
+
+    if not _IS_IN_STUDIO:
+        print(
+            "Create an account on https://lightning.ai/ to transform your data faster using "
+            "multiple nodes and large machines."
+        )
 
     if num_nodes is None or int(os.getenv("DATA_OPTIMIZER_NUM_NODES", 0)) > 0:
         _output_dir: Dir = _resolve_dir(output_dir)
@@ -207,7 +219,8 @@ def map(
             weights=weights,
             reader=reader,
         )
-        return data_processor.run(LambdaDataTransformRecipe(fn, inputs))
+        with optimize_dns_context(True):
+            return data_processor.run(LambdaDataTransformRecipe(fn, inputs))
     return _execute(
         f"data-prep-map-{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}",
         num_nodes,
@@ -242,8 +255,8 @@ def optimize(
         compression: The compression algorithm to use over the chunks.
         num_workers: The number of workers to use during processing
         fast_dev_run: Whether to use process only a sub part of the inputs
-        num_nodes: When doing remote execution, the number of nodes to use.
-        machine: When doing remote execution, the machine to use.
+        num_nodes: When doing remote execution, the number of nodes to use. Only supported on https://lightning.ai/.
+        machine: When doing remote execution, the machine to use. Only supported on https://lightning.ai/.
         num_downloaders: The number of downloaders per worker.
         reorder_files: By default, reorders the files by file size to distribute work equally among all workers.
             Set this to ``False`` if the order in which samples are processed should be preserved.
@@ -257,6 +270,18 @@ def optimize(
 
     if chunk_size is None and chunk_bytes is None:
         raise ValueError("Either `chunk_size` or `chunk_bytes` needs to be defined.")
+
+    if not _IS_IN_STUDIO and (machine is not None or num_nodes is not None):
+        raise ValueError(
+            "Only https://lightning.ai/ supports multiple nodes or selecting a machine."
+            "Create an account to try it out."
+        )
+
+    if not _IS_IN_STUDIO:
+        print(
+            "Create an account on https://lightning.ai/ to optimize your data faster "
+            "using multiple nodes and large machines."
+        )
 
     if num_nodes is None or int(os.getenv("DATA_OPTIMIZER_NUM_NODES", 0)) > 0:
         _output_dir: Dir = _resolve_dir(output_dir)
@@ -280,15 +305,18 @@ def optimize(
             reorder_files=reorder_files,
             reader=reader,
         )
-        return data_processor.run(
-            LambdaDataChunkRecipe(
-                fn,
-                inputs,
-                chunk_size=chunk_size,
-                chunk_bytes=chunk_bytes,
-                compression=compression,
+
+        with optimize_dns_context(True):
+            data_processor.run(
+                LambdaDataChunkRecipe(
+                    fn,
+                    inputs,
+                    chunk_size=chunk_size,
+                    chunk_bytes=chunk_bytes,
+                    compression=compression,
+                )
             )
-        )
+        return None
     return _execute(
         f"data-prep-optimize-{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}",
         num_nodes,
@@ -311,6 +339,9 @@ class walk:
         self.folders = [folder]
         self.max_workers = max_workers or 1
         self.futures: List[concurrent.futures.Future] = []
+
+        if not _IS_IN_STUDIO:
+            print("This method is optimized to run on https://lightning.ai/. Don't use it otherwise.")
 
     def __iter__(self) -> Any:
         """This function queues the folders to perform listdir across multiple workers."""
