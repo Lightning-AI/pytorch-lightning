@@ -1,14 +1,14 @@
 from unittest.mock import MagicMock
 
-from lightning.data.processing import dns as dns_module
-from lightning.data.processing.dns import optimize_dns_context
+from lightning.data.processing import utilities as utilities_module
+from lightning.data.processing.utilities import optimize_dns_context
 
 
 def test_optimize_dns_context(monkeypatch):
     popen_mock = MagicMock()
 
-    monkeypatch.setattr(dns_module, "_IS_IN_STUDIO", True)
-    monkeypatch.setattr(dns_module, "Popen", popen_mock)
+    monkeypatch.setattr(utilities_module, "_IS_IN_STUDIO", True)
+    monkeypatch.setattr(utilities_module, "Popen", popen_mock)
 
     class FakeFile:
 
@@ -30,4 +30,4 @@ def test_optimize_dns_context(monkeypatch):
         pass
 
     cmd = popen_mock._mock_call_args_list[0].args[0]
-    assert cmd == "sudo /home/zeus/miniconda3/envs/cloudspace/bin/python -c 'from lightning.data.processing.dns import _optimize_dns; _optimize_dns(True)'"  # noqa: E501
+    assert cmd == "sudo /home/zeus/miniconda3/envs/cloudspace/bin/python -c 'from lightning.data.processing.utilities import _optimize_dns; _optimize_dns(True)'"  # noqa: E501

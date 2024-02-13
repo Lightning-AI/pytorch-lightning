@@ -372,7 +372,6 @@ class BaseWorker:
         self._counter = 0
         self._last_time = time()
         self._index_counter = 0
-        self._current_item: Any = None
 
     def run(self) -> None:
         try:
@@ -477,6 +476,7 @@ class BaseWorker:
             assert os.path.exists(data), data
         else:
             assert os.path.exists(data[-1]), data
+
         self.to_upload_queues[self._counter % self.num_uploaders].put(data)
 
     def _collect_paths(self) -> None:
@@ -588,8 +588,8 @@ class BaseWorker:
 
     def _handle_data_chunk_recipe(self, index: int) -> None:
         try:
-            self._current_item = self.items[index] if self.reader is None else self.reader.read(self.items[index])
-            item_data_or_generator = self.data_recipe.prepare_item(self._current_item)
+            current_item = self.items[index] if self.reader is None else self.reader.read(self.items[index])
+            item_data_or_generator = self.data_recipe.prepare_item(current_item)
             if isinstance(item_data_or_generator, types.GeneratorType):
                 for item_data in item_data_or_generator:
                     if item_data is not None:
@@ -713,6 +713,11 @@ class DataChunkRecipe(DataRecipe):
             size = sum([c["dim"] if c["dim"] is not None else c["chunk_size"] for c in config["chunks"]])
             num_bytes = sum([c["chunk_bytes"] for c in config["chunks"]])
             data_format = tree_unflatten(config["config"]["data_format"], treespec_loads(config["config"]["data_spec"]))
+            num_chunks = len(config["chunks"])
+
+            # The platform can't store more than 1024 entries.
+            # Note: This isn't really used right now, so it is fine to skip if too big.
+            num_bytes_per_chunk = [c["chunk_size"] for c in config["chunks"]] if num_chunks < 1024 else []
 
             return _Result(
                 size=size,
@@ -720,7 +725,7 @@ class DataChunkRecipe(DataRecipe):
                 data_format=data_format,
                 compression=config["config"]["compression"],
                 num_chunks=len(config["chunks"]),
-                num_bytes_per_chunk=[c["chunk_size"] for c in config["chunks"]],
+                num_bytes_per_chunk=num_bytes_per_chunk,
             )
         return _Result(
             size=size,
@@ -866,9 +871,9 @@ class DataProcessor:
             raise ValueError("The `prepare_structure` should return a list of item metadata.")
 
         if self.reader:
-            workers_user_items = self.reader.items_to_workers(user_items, self.num_workers)
+            user_items = self.reader.remap_items(user_items, self.num_workers)
 
-        elif self.weights is not None:
+        if self.weights is not None:
             if len(self.weights) != len(user_items):
                 raise ValueError("The provided weights length should match the inputs' length.")
             workers_user_items = _map_items_to_workers_weighted(

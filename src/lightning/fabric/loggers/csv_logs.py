@@ -137,7 +137,7 @@ class CSVLogger(Logger):
 
     @override
     @rank_zero_only
-    def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:  # type: ignore[override]
+    def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:
         raise NotImplementedError("The `CSVLogger` does not yet support logging hyperparameters.")
 
     @override

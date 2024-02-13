@@ -46,17 +46,17 @@ def test_binary_writer_with_ints_and_chunk_bytes(tmpdir):
     for i in range(100):
         binary_writer[i] = {"i": i, "i+1": i + 1, "i+2": i + 2}
 
-    assert len(os.listdir(tmpdir)) == 19
+    assert len(os.listdir(tmpdir)) == 49
     binary_writer.done()
     binary_writer.merge()
-    assert len(os.listdir(tmpdir)) == 21
+    assert len(os.listdir(tmpdir)) == 51
 
     with open(os.path.join(tmpdir, "index.json")) as f:
         data = json.load(f)
 
-    assert data["chunks"][0]["chunk_size"] == 6
-    assert data["chunks"][1]["chunk_size"] == 5
-    assert data["chunks"][-1]["chunk_size"] == 4
+    assert data["chunks"][0]["chunk_size"] == 2
+    assert data["chunks"][1]["chunk_size"] == 2
+    assert data["chunks"][-1]["chunk_size"] == 2
 
     chunk_sizes = np.cumsum([chunk["chunk_size"] for chunk in data["chunks"]])
 
@@ -207,7 +207,7 @@ def test_binary_writer_with_jpeg_and_png(tmpdir):
     binary_writer[0] = {"x": img_jpeg, "y": 0}
     binary_writer[1] = {"x": img, "y": 1}
 
-    with pytest.raises(ValueError, match="The data format changed between items"):
+    with pytest.raises(TypeError, match="The provided item should be of type"):
         binary_writer[2] = {"x": 2, "y": 1}
 
 
