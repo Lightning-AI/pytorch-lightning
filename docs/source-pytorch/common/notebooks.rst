@@ -61,7 +61,7 @@ Paste the following code block into a notebook cell:
             x = x.view(x.size(0), -1)
             z = self.encoder(x)
             x_hat = self.decoder(z)
-            loss = nn.functional.mse_loss(x_hat, y)
+            loss = nn.functional.mse_loss(x_hat, x)
             self.log("train_loss", loss)
             return loss
 
