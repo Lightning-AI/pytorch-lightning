@@ -125,7 +125,7 @@ for i in range(1000):
     ).save(image_path, format="JPEG", quality=90)
 ```
 
-```python
+```bash
 ⚡ aws s3 cp --recursive my_images s3://my-bucket/my_images
 ```
 
