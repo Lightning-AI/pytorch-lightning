@@ -259,13 +259,10 @@ import os
 import torch
 from lightning.data import StreamingDataset, StreamingDataLoader
 
-# Remote path where full dataset is persistently stored
-input_dir = 's3://my-bucket/my-data'
-
-dataset = StreamingDataset(input_dir, shuffle=True)
+dataset = StreamingDataset("s3://my-bucket/my-data", shuffle=True)
 dataloader = StreamingDataLoader(dataset, num_workers=os.cpu_count(), batch_size=64)
 
-# Restore the DataLoader state if it exists
+# Restore the dataLoader state if it exists
 if os.path.isfile("dataloader_state.pt"):
     state_dict = torch.load("dataloader_state.pt")
     dataloader.load_state_dict(state_dict)
