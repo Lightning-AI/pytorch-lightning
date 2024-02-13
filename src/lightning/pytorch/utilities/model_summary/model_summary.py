@@ -141,6 +141,11 @@ class LayerSummary:
         """Returns the number of parameters in this module."""
         return sum(math.prod(p.shape) if not _is_lazy_weight_tensor(p) else 0 for p in self._module.parameters())
 
+    @property
+    def training(self) -> bool:
+        """Returns whether the module is in training mode."""
+        return self._module.training
+
 
 class ModelSummary:
     """Generates a summary of all layers in a :class:`~lightning.pytorch.core.LightningModule`.
@@ -248,6 +253,10 @@ class ModelSummary:
         return [layer.num_parameters for layer in self._layer_summary.values()]
 
     @property
+    def training_modes(self) -> List[bool]:
+        return [layer.training for layer in self._layer_summary.values()]
+
+    @property
     def total_parameters(self) -> int:
         return sum(p.numel() if not _is_lazy_weight_tensor(p) else 0 for p in self._model.parameters())
 
@@ -315,6 +324,7 @@ class ModelSummary:
             ("Name", self.layer_names),
             ("Type", self.layer_types),
             ("Params", list(map(get_human_readable_count, self.param_nums))),
+            ("Mode", ["train" if mode else "eval" for mode in self.training_modes]),
         ]
         if self._model.example_input_array is not None:
             arrays.append(("In sizes", [str(x) for x in self.in_sizes]))
