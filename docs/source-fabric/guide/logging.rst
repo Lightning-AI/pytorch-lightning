@@ -36,7 +36,7 @@ Loggers you can choose from:
 
 - :class:`~lightning.fabric.loggers.TensorBoardLogger`
 - :class:`~lightning.fabric.loggers.CSVLogger`
-- :doc:`Weights and Biases <loggers/wandb>`
+- :doc:`WandbLogger <loggers/wandb>`
 
 |
 
