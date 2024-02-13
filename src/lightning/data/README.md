@@ -281,7 +281,7 @@ for batch_idx, batch in enumerate(dataloader):
 
 ## 🎥 Profiling
 
-The `StreamingDataLoader` supports profiling your dataloading. Simply pass the following `profile_batches` argument as follows:
+The `StreamingDataLoader` supports profiling your data loading. Simply use the `profile_batches` argument as follows:
 
 ```python
 from lightning.data import StreamingDataset, StreamingDataLoader
