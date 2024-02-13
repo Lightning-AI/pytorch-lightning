@@ -11,7 +11,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from abc import ABC, abstractclassmethod, abstractmethod
+from abc import ABC, abstractmethod
 from typing import Dict, TypeVar
 
 from lightning_utilities.core.imports import RequirementCache, requires
@@ -35,7 +35,8 @@ class Compressor(ABC):
     def decompress(self, data: bytes) -> bytes:
         pass
 
-    @abstractclassmethod
+    @classmethod
+    @abstractmethod
     def register(cls, compressors: Dict[str, "Compressor"]) -> None:
         pass
 
@@ -60,7 +61,7 @@ class ZSTDCompressor(Compressor):
         return zstd.decompress(data)
 
     @classmethod
-    def register(cls, compressors: Dict[str, "Compressor"]) -> None:  # type: ignore
+    def register(cls, compressors: Dict[str, "Compressor"]) -> None:
         if not _ZSTD_AVAILABLE:
             return
 
