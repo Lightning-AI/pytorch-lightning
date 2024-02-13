@@ -1,4 +1,5 @@
-from lightning.data.constants import RequirementCache
+from lightning_utilities.core.imports import RequirementCache
+
 from lightning.data.processing.functions import map, optimize, walk
 from lightning.data.streaming.combined import CombinedStreamingDataset
 from lightning.data.streaming.dataloader import StreamingDataLoader

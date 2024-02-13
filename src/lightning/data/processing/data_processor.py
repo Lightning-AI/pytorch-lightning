@@ -714,6 +714,9 @@ class DataChunkRecipe(DataRecipe):
             num_bytes = sum([c["chunk_bytes"] for c in config["chunks"]])
             data_format = tree_unflatten(config["config"]["data_format"], treespec_loads(config["config"]["data_spec"]))
             num_chunks = len(config["chunks"])
+
+            # The platform can't store more than 1024 entries.
+            # Note: This isn't really used right now, so it is fine to skip if too big.
             num_bytes_per_chunk = [c["chunk_size"] for c in config["chunks"]] if num_chunks < 1024 else []
 
             return _Result(

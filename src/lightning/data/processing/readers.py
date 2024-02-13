@@ -1,3 +1,4 @@
+import contextlib
 import os
 from abc import ABC, abstractmethod
 from typing import Any, List
@@ -6,11 +7,6 @@ from lightning_utilities.core.imports import RequirementCache
 from tqdm import tqdm
 
 _PYARROW_AVAILABLE = RequirementCache("pyarrow")
-
-if _PYARROW_AVAILABLE:
-    import pyarrow.dataset as ds
-    import pyarrow.parquet as pq
-
 
 class BaseReader(ABC):
 
@@ -39,22 +35,27 @@ class ParquetReader(BaseReader):
         self.num_rows = num_rows
         self.to_pandas = to_pandas
 
+
+
         if not _PYARROW_AVAILABLE:
             raise ModuleNotFoundError("Please, run: `pip install pyarrow`")
+
 
         self.parquet_file = None
 
     def _get_num_rows(self, path: str) -> int:
+        import pyarrow.dataset as ds
+
         df = ds.dataset(path).scanner()
         return df.count_rows()
 
     def read(self, filepath: str) -> Any:
+        import pyarrow as pa
+        import pyarrow.parquet as pq
+
         # Try to force dellocation to avoid memory leak
-        try:
-            import pyarrow as pa
+        with contextlib.suppress(Exception):
             pa.jemalloc_set_decay_ms(0)
-        except Exception:   # noqa: S110
-            pass
 
         # close the previous parquet file to release the memory
         if self.parquet_file is not None:
@@ -65,6 +66,8 @@ class ParquetReader(BaseReader):
         return self.parquet_file
 
     def remap_items(self, filepaths: List[str], _: int) -> List[str]:
+        import pyarrow.parquet as pq
+
         print("Starting resharding the parquet files for optimized processing.")
 
         new_items = []
