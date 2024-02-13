@@ -218,24 +218,20 @@ You can easily experiment with dataset mixtures using the CombinedStreamingDatas
 ```python
 from lightning.data import StreamingDataset, CombinedStreamingDataset
 from lightning.data.streaming.item_loader import TokensLoader
-import os
 from tqdm import tqdm
+import os
 from torch.utils.data import DataLoader
 
-# Increase by one because we need the next word as well
-effective_block_size = 2048 + 1
-
-input_dir = "tinyllama-data"
 train_datasets = [
     StreamingDataset(
-        input_dir="tinyllama-data/slimpajama/train",
-        item_loader=TokensLoader(block_size=effective_block_size),
+        input_dir="s3://tinyllama-template/slimpajama/train/",
+        item_loader=TokensLoader(block_size=2048 + 1), # Optimized loader for tokens used by LLMs 
         shuffle=True,
         drop_last=True,
     ),
     StreamingDataset(
-        input_dir="tinyllama-data/starcoder",
-        item_loader=TokensLoader(block_size=effective_block_size),
+        input_dir="s3://tinyllama-template/starcoder/",
+        item_loader=TokensLoader(block_size=2048 + 1), # Optimized loader for tokens used by LLMs 
         shuffle=True,
         drop_last=True,
     ),
@@ -244,6 +240,7 @@ train_datasets = [
 # Mix SlimPajama data and Starcoder data with these proportions:
 weights = (0.693584, 0.306416)
 combined_dataset = CombinedStreamingDataset(datasets=train_datasets, seed=42, weights=weights)
+
 train_dataloader = DataLoader(combined_dataset, batch_size=8, pin_memory=True, num_workers=os.cpu_count())
 
 # Iterate over the combined datasets
