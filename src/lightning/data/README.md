@@ -9,8 +9,6 @@
 
 </div>
 
-<br/>
-
 # ⚡ Welcome to Lightning Data
 
 We developed `Streaming Dataset` to optimize training of large datasets from cloud storage, prioritizing speed, affordability, and scalability.
