@@ -9,6 +9,8 @@
 
 </div>
 
+<br/>
+
 # ⚡ Welcome to Lightning Data
 
 We developed `Streaming Dataset` to optimize training of large datasets from cloud storage, prioritizing speed, affordability, and scalability.
@@ -166,39 +168,7 @@ We have end-to-end free [Studios](https://lightning.ai) showing all the steps to
 
 [Lightning Studios](https://lightning.ai) are fully reproducible cloud IDE with data, code, dependencies, etc... Finally reproducible science.
 
-# 📈 Data Processing Scaling
-
-The easiest way to scale is to create a free account on [lightning.ai](https://lightning.ai/) platform. Usings the platform, the `optimize` and `map` can start multiple machines to make data processing drastically faster as follows:
-
-```python
-from lightning.data import optimize, Machine
-
-optimize(
-  ...
-  num_nodes=32,
-  machine=Machine.DATA_PREP,
-)
-```
-
-OR
-
-```python
-from lightning.data import map, Machine
-
-map(
-  ...
-  num_nodes=32,
-  machine=Machine.DATA_PREP,
-)
-```
-
-# 🔑 Key Features
-
-## Multi-GPU / Multi-Node
-
-You have nothing to do, the StreamingDataset takes care of everything for you. It automatically make sure each rank receives different batch of data.
-
-# Infinite Data Processing Scaling
+# 📈 Easy Data Processing Scaling
 
 The easiest way to scale is to create a free account on [lightning.ai](https://lightning.ai/) platform. Usings the platform, the `optimize` and `map` can start multiple machines to make data processing drastically faster as follows:
 
@@ -227,6 +197,12 @@ map(
 Here is the Data Prep Job UI from this [Studio](https://lightning.ai/lightning-ai/studios/use-or-explore-laion-400million-dataset) where we used 32 machines to download a 400 million images.
 
 <img alt="Lightning" src="https://pl-flash-data.s3.amazonaws.com/data-prep.jpg" width="800px" style="max-width: 100%;">
+
+# 🔑 Key Features
+
+## Multi-GPU / Multi-Node
+
+You have nothing to do, the StreamingDataset takes care of everything for you. It automatically make sure each rank receives different batch of data.
 
 ## Support yield
 
