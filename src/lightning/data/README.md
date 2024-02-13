@@ -152,9 +152,9 @@ if __name__ == "__main__":
     )
 ```
 
-# 📚 Keep learning
+# 📚 End-to-end Lightning Studio Tutorials
 
-We have end-to-end [Studios](https://lightning.ai) showing all the steps to prepare the following datasets:
+We have end-to-end free [Studios](https://lightning.ai) showing all the steps to prepare the following datasets:
 
 | Dataset                                                                                                                                      |      Data type      |                                                                                                                                  Studio |
 | -------------------------------------------------------------------------------------------------------------------------------------------- | :-----------------: | --------------------------------------------------------------------------------------------------------------------------------------: |
@@ -163,6 +163,8 @@ We have end-to-end [Studios](https://lightning.ai) showing all the steps to prep
 | [Imagenet 1M](https://paperswithcode.com/sota/image-classification-on-imagenet?tag_filter=171)                                               |    Image & Label    |              [Benchmark cloud data-loading libraries](https://lightning.ai/lightning-ai/studios/benchmark-cloud-data-loading-libraries) |
 | [SlimPajama](https://huggingface.co/datasets/cerebras/SlimPajama-627B) & [StartCoder](https://huggingface.co/datasets/bigcode/starcoderdata) |        Text         |              [Prepare the TinyLlama 1T token dataset](https://lightning.ai/lightning-ai/studios/prepare-the-tinyllama-1t-token-dataset) |
 | Generated                                                                                                                                    |    Parquet Files    |            [Convert parquets to Lightning Streaming](https://lightning.ai/lightning-ai/studios/convert-parquets-to-lightning-streaming) |
+
+[Lightning Studios](https://lightning.ai) are fully reproducible cloud IDE with data, code, dependencies, etc... Finally reproducible science.
 
 # 📈 Data Processing Scaling
 
@@ -195,6 +197,36 @@ map(
 ## Multi-GPU / Multi-Node
 
 You have nothing to do, the StreamingDataset takes care of everything for you. It automatically make sure each rank receives different batch of data.
+
+# Infinite Data Processing Scaling
+
+The easiest way to scale is to create a free account on [lightning.ai](https://lightning.ai/) platform. Usings the platform, the `optimize` and `map` can start multiple machines to make data processing drastically faster as follows:
+
+```python
+from lightning.data import optimize, Machine
+
+optimize(
+  ...
+  num_nodes=32,
+  machine=Machine.DATA_PREP,
+)
+```
+
+OR
+
+```python
+from lightning.data import map, Machine
+
+map(
+  ...
+  num_nodes=32,
+  machine=Machine.DATA_PREP,
+)
+```
+
+Here is the Data Prep Job UI from this [Studio](https://lightning.ai/lightning-ai/studios/use-or-explore-laion-400million-dataset) where we used 32 machines to download a 400 million images.
+
+<img alt="Lightning" src="https://pl-flash-data.s3.amazonaws.com/data-prep.jpg" width="800px" style="max-width: 100%;">
 
 ## Support yield
 
