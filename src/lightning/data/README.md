@@ -11,15 +11,15 @@
 
 # ⚡ Welcome to Lightning Data
 
-We developed `Streaming Dataset` to optimize training of large datasets from cloud storage, prioritizing speed, affordability, and scalability.
+We developed `StreamingDataset` to optimize training of large datasets stored on the cloud while prioritizing speed, affordability, and scalability.
 
 Specifically crafted for multi-node, distributed training with large models, it enhances accuracy, performance, and user-friendliness. Now, training efficiently is possible regardless of the data's location. Simply stream in the required data when needed.
 
-The `Streaming Dataset` is compatible with any data type, including **images, text, video, and multimodal data** and it is a drop-in replacement for your PyTorch [IterableDataset](https://pytorch.org/docs/stable/data.html#torch.utils.data.IterableDataset) class. For example, it is used by [Lit-GPT](https://github.com/Lightning-AI/lit-gpt/blob/main/pretrain/tinyllama.py) to pretrain LLMs.
+The `StreamingDataset` is compatible with any data type, including **images, text, video, and multimodal data** and it is a drop-in replacement for your PyTorch [IterableDataset](https://pytorch.org/docs/stable/data.html#torch.utils.data.IterableDataset) class. For example, it is used by [Lit-GPT](https://github.com/Lightning-AI/lit-gpt/blob/main/pretrain/tinyllama.py) to pretrain LLMs.
 
-Finally, the `Streaming Dataset` is fast, check out our [benchmark](https://lightning.ai/lightning-ai/studios/benchmark-cloud-data-loading-libraries).
+Finally, the `StreamingDataset` is fast! Check out our [benchmark](https://lightning.ai/lightning-ai/studios/benchmark-cloud-data-loading-libraries).
 
-Here is an illustration showing how the Streaming Dataset works.
+Here is an illustration showing how the `StreamingDataset` works.
 
 ![An illustration showing how the Streaming Dataset works.](https://pl-flash-data.s3.amazonaws.com/streaming_dataset.gif)
 
@@ -39,7 +39,7 @@ pip install --no-cache-dir git+https://github.com/Lightning-AI/pytorch-lightning
 
 ### 1. Prepare Your Data
 
-You can convert your raw dataset into Lightning Streaming format using the `optimize` operator. More formats are coming...
+Convert your raw dataset into Lightning Streaming format using the `optimize` operator. More formats are coming...
 
 <!--pytest.mark.skip-->
 
@@ -207,7 +207,7 @@ The Data Prep Job UI from the [LAION 400M Studio](https://lightning.ai/lightning
 
 ## 🚀 Multi-GPU / Multi-Node
 
-You have nothing to do, the StreamingDataset takes care of everything for you. It automatically make sure each rank receives different batch of data.
+The StreamingDataset takes care of everything for you. It automatically make sure each rank receives different batch of data.
 
 ## 🎨 Easy data mixing
 
@@ -232,7 +232,7 @@ train_datasets = [
         drop_last=True,
     ),
     StreamingDataset(
-        input_dir="tinyllama-data/starcoder/",
+        input_dir="tinyllama-data/starcoder",
         item_loader=TokensLoader(block_size=effective_block_size),
         shuffle=True,
         drop_last=True,
@@ -281,7 +281,7 @@ for batch_idx, batch in enumerate(dataloader):
 
 ## 🎥 Profiling
 
-The `StreamingDataLoader` supports profiling your dataloading. Simply pass the following `profile_batches` argument as follows:
+The `StreamingDataLoader` supports profiling your data loading. Simply use the `profile_batches` argument as follows:
 
 ```python
 from lightning.data import StreamingDataset, StreamingDataLoader
