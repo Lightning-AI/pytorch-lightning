@@ -207,7 +207,7 @@ The Data Prep Job UI from the [LAION 400M Studio](https://lightning.ai/lightning
 
 ## 🚀 Multi-GPU / Multi-Node
 
-You have nothing to do, the StreamingDataset takes care of everything for you. It automatically make sure each rank receives different batch of data.
+The StreamingDataset takes care of everything for you. It automatically make sure each rank receives different batch of data.
 
 ## 🎨 Easy data mixing
 
