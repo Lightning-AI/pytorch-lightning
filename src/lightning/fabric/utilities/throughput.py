@@ -223,7 +223,7 @@ class ThroughputMonitor(Throughput):
 
         logger = ...
         fabric = Fabric(logger=logger)
-        throughput = ThroughputMonitor()
+        throughput = ThroughputMonitor(fabric)
         t0 = time()
         for i in range(1, 100):
             do_work()
