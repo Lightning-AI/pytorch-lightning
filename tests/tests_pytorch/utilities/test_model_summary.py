@@ -430,3 +430,23 @@ def test_summary_restores_module_mode():
     assert model.training
     assert model.layer1.training
     assert not model.layer2.training
+
+
+def test_summary_training_mode():
+    """Test that the model summary captures the training mode on all submodules."""
+    model = DeepNestedModel()
+    model.branch1[1][0].eval()
+    model.branch2.eval()
+
+    summary = summarize(model, max_depth=1)
+    summary_data = OrderedDict(summary._get_summary_data())
+    assert summary_data["Mode"] == [
+        "train",  # branch1
+        "eval",   # branch2
+        "train"   # head
+    ]
+
+    summary = summarize(model, max_depth=-1)
+    expected_eval = {"branch1.1.0", "branch2"}
+    for name, layer_summary in summary._layer_summary.items():
+        assert (name in expected_eval) == (not layer_summary.training)
