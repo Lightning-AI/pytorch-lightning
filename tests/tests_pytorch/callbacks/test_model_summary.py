@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import List, Union, Tuple, Any
+from typing import Any, List, Tuple
 
 from lightning.pytorch import Trainer
 from lightning.pytorch.callbacks import ModelSummary
