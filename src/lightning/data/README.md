@@ -194,9 +194,15 @@ map(
 )
 ```
 
-Here is the Data Prep Job UI from this [Studio](https://lightning.ai/lightning-ai/studios/use-or-explore-laion-400million-dataset) where we used 32 machines to download a 400 million images.
+<div align="center">
 
 <img alt="Lightning" src="https://pl-flash-data.s3.amazonaws.com/data-prep.jpg" width="800px" style="max-width: 100%;">
+
+<br/>
+
+Here is the Data Prep Job UI from this [Studio](https://lightning.ai/lightning-ai/studios/use-or-explore-laion-400million-dataset) where we used 32 machines to download a 400 million images.
+
+</div>
 
 # 🔑 Key Features
 
