@@ -23,7 +23,7 @@ Here is an illustration showing how the Streaming Dataset works.
 
 ![An illustration showing how the Streaming Dataset works.](https://pl-flash-data.s3.amazonaws.com/streaming_dataset.gif)
 
-# Getting Started
+# 🎬 Getting Started
 
 ## Installation
 
@@ -167,9 +167,9 @@ We have end-to-end free [Studios](https://lightning.ai) showing all the steps to
 
 [Lightning Studios](https://lightning.ai) are fully reproducible cloud IDE with data, code, dependencies, etc... Finally reproducible science.
 
-# 📈 Easy Data Processing Scaling
+# 📈 Easily scale data processing
 
-The easiest way to scale is to create a free account on [lightning.ai](https://lightning.ai/) platform. Using the platform, the `optimize` and `map` can start multiple machines to make data processing drastically faster.
+The easiest way to scale is to create a free account on [lightning.ai](https://lightning.ai/) platform. With the platform, the `optimize` and `map` can start multiple machines to make data processing drastically faster.
 
 ```python
 from lightning.data import optimize, Machine
@@ -177,7 +177,7 @@ from lightning.data import optimize, Machine
 optimize(
   ...
   num_nodes=32,
-  machine=Machine.DATA_PREP,
+  machine=Machine.DATA_PREP, # You can select between dozens of optimized machines
 )
 ```
 
@@ -189,7 +189,7 @@ from lightning.data import map, Machine
 map(
   ...
   num_nodes=32,
-  machine=Machine.DATA_PREP,
+  machine=Machine.DATA_PREP, # You can select between dozens of optimized machines
 )
 ```
 
@@ -199,17 +199,17 @@ map(
 
 <br/>
 
-The Data Prep Job UI from the [LAION 400M Studio](https://lightning.ai/lightning-ai/studios/use-or-explore-laion-400million-dataset) where we used 32 machines to download 400 million images in only 2 hours.
+The Data Prep Job UI from the [LAION 400M Studio](https://lightning.ai/lightning-ai/studios/use-or-explore-laion-400million-dataset) where we used 32 machines with 32 CPU each to download 400 million images in only 2 hours.
 
 </div>
 
 # 🔑 Key Features
 
-## Multi-GPU / Multi-Node
+## 🚀 Multi-GPU / Multi-Node
 
 You have nothing to do, the StreamingDataset takes care of everything for you. It automatically make sure each rank receives different batch of data.
 
-## Support yield
+## 💾 Support yield
 
 When processing large files like compressed [parquet files](https://en.wikipedia.org/wiki/Apache_Parquet), you can use python yield to process and store one item at the time.
 
@@ -241,7 +241,7 @@ outputs = optimize(
 )
 ```
 
-## Easy data mixing
+## 🎨 Easy data mixing
 
 You can easily experiment with dataset mixtures using the CombinedStreamingDataset.
 
@@ -281,7 +281,7 @@ for batch in tqdm(train_dataloader):
     pass
 ```
 
-## Stateful StreamingDataLoader
+## 🔘 Stateful StreamingDataLoader
 
 Lightning Data provides a stateful `StreamingDataLoader`. This simplifies resuming training over large datasets.
 
@@ -311,7 +311,7 @@ for batch_idx, batch in enumerate(dataloader):
         torch.save(dataloader.state_dict(), "dataloader_state.pt")
 ```
 
-## Profiling
+## 🎥 Profiling
 
 The `StreamingDataLoader` supports profiling your dataloading. Simply pass the following `profile_batches` argument as follows:
 
@@ -323,7 +323,7 @@ StreamingDataLoader(..., profile_batches=5)
 
 This generates a Chrome trace called `result.json`. You can visualize this trace by opening Chrome browser at the `chrome://tracing` URL and load the trace inside.
 
-## Random access
+## 🪇 Random access
 
 Access the data you need when you need it.
 
@@ -337,7 +337,7 @@ print(len(dataset)) # display the length of your data
 print(dataset[42]) # show the 42th element of the dataset
 ```
 
-## Use data transforms
+## ✢ Use data transforms
 
 ```python
 from lightning.data import StreamingDataset, StreamingDataLoader
@@ -357,7 +357,7 @@ for batch in dataloader:
     # Out: (4, 3, 224, 224)
 ```
 
-## Disk usage limits
+## ⚙️ Disk usage limits
 
 Limit the size of the cache holding the chunks.
 
