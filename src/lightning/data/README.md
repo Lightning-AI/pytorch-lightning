@@ -49,16 +49,14 @@ from lightning.data import optimize
 from PIL import Image
 
 
-# Write random images into the chunks
+# Store random images into the chunks
 def random_images(index):
   data = {
     "index": index,
     "image": Image.fromarray(np.random.randint(0, 256, (32, 32, 3), np.uint8)),
     "class": np.random.randint(10),
   }
-  # The data is serialized into bytes and stored into chunks by the optimize operator.
-  # Lightning Data supports any data structures or types. Serialize whatever you need.
-  return data
+  return data # The data is serialized into bytes and stored into chunks by the optimize operator.
 
 if __name__ == "__main__":
     optimize(
@@ -70,6 +68,8 @@ if __name__ == "__main__":
     )
 
 ```
+
+Lightning Data supports any data structures or types. Serialize whatever you want.
 
 ### 2. Upload Your Data to Cloud Storage
 
