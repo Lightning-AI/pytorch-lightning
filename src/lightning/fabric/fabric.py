@@ -468,6 +468,10 @@ class Fabric:
                 Default is the 2-norm.
             error_if_nonfinite: An error is raised if the total norm of the gradients is NaN or infinite.
 
+        Return:
+            The total norm of the gradients (before clipping was applied) as a scalar tensor if ``max_norm`` was
+            passed, otherwise ``None``.
+
         """
         if clip_val is not None and max_norm is not None:
             raise ValueError(
