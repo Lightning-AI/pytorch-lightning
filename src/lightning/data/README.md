@@ -51,12 +51,12 @@ from PIL import Image
 
 # Store random images into the chunks
 def random_images(index):
-  data = {
-    "index": index,
-    "image": Image.fromarray(np.random.randint(0, 256, (32, 32, 3), np.uint8)),
-    "class": np.random.randint(10),
-  }
-  return data # The data is serialized into bytes and stored into chunks by the optimize operator.
+    data = {
+        "index": index,
+        "image": Image.fromarray(np.random.randint(0, 256, (32, 32, 3), np.uint8)),
+        "class": np.random.randint(10),
+    }
+    return data # The data is serialized into bytes and stored into chunks by the optimize operator.
 
 if __name__ == "__main__":
     optimize(
