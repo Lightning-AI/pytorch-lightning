@@ -77,7 +77,7 @@ Cloud providers such as [AWS](https://docs.aws.amazon.com/cli/latest/userguide/g
 
 Here is an example with [AWS S3](https://aws.amazon.com/s3).
 
-```python
+```bash
 ⚡ aws s3 cp --recursive my_dataset s3://my-bucket/my_dataset
 ```
 
@@ -127,7 +127,7 @@ for i in range(1000):
     ).save(image_path, format="JPEG", quality=90)
 ```
 
-```python
+```bash
 ⚡ aws s3 cp --recursive my_images s3://my-bucket/my_images
 ```
 
