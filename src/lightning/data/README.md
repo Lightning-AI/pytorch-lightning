@@ -232,7 +232,7 @@ train_datasets = [
         drop_last=True,
     ),
     StreamingDataset(
-        input_dir="tinyllama-data/starcoder/",
+        input_dir="tinyllama-data/starcoder",
         item_loader=TokensLoader(block_size=effective_block_size),
         shuffle=True,
         drop_last=True,
