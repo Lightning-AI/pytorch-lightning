@@ -441,7 +441,8 @@ def test_reapply_compile():
 
     # Smoke-testing forward to ensure we don't get compilation errors
     for _ in range(3):
-        fabric_model(torch.randn(2, 32, device=fabric.device)).sum().backward()
+        loss = fabric_model(torch.randn(2, 32, device=fabric.device)).sum()
+        fabric.backward(loss)
 
 
 @RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True)
