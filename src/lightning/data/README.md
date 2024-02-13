@@ -69,7 +69,7 @@ if __name__ == "__main__":
 
 ```
 
-Lightning Data supports any data structures or types. Serialize whatever you want.
+The `optimize` operator supports any data structures and types. Serialize whatever you want.
 
 ### 2. Upload Your Data to Cloud Storage
 
