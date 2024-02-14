@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+from contextlib import nullcontext
 from re import escape
 from unittest import mock
 from unittest.mock import ANY, MagicMock, Mock, PropertyMock, call
@@ -22,7 +23,6 @@ import torch
 import torch.distributed
 import torch.nn.functional
 from lightning.fabric.fabric import Fabric
-from lightning.fabric.plugins import Precision
 from lightning.fabric.strategies import (
     DataParallelStrategy,
     DDPStrategy,
@@ -34,6 +34,7 @@ from lightning.fabric.strategies import (
 )
 from lightning.fabric.strategies.strategy import _Sharded
 from lightning.fabric.utilities.exceptions import MisconfigurationException
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 from lightning.fabric.utilities.seed import pl_worker_init_function, seed_everything
 from lightning.fabric.utilities.warnings import PossibleUserWarning
 from lightning.fabric.wrappers import _FabricDataLoader, _FabricModule, _FabricOptimizer
@@ -611,10 +612,72 @@ def test_rank_properties():
 def test_backward():
     """Test that backward() calls into the precision plugin."""
     fabric = Fabric()
-    fabric._strategy = Mock(spec=Precision)
+    fabric._strategy = Mock(spec=Strategy)
     loss = Mock()
     fabric.backward(loss, "arg", keyword="kwarg")
     fabric._strategy.backward.assert_called_with(loss, None, "arg", keyword="kwarg")
+
+
+@pytest.mark.parametrize(("strategy", "precision", "error_expected"), [
+    ("auto", "32-true", False),
+    ("auto", "bf16-true", False),
+    ("auto", "bf16-mixed", True),
+    pytest.param("fsdp", "32-true", True, marks=RunIf(min_cuda_gpus=1, min_torch="2.0.0")),
+])
+@pytest.mark.parametrize("setup_method", ["setup", "setup_module"])
+@mock.patch("lightning.fabric.accelerators.mps.MPSAccelerator.is_available", return_value=False)
+def test_backward_required(_, strategy, precision, error_expected, setup_method):
+    """Test under which strategy and precision configurations the `fabric.backward()` call is required."""
+    fabric = Fabric(
+        accelerator=("cuda" if strategy == "fsdp" else "cpu"),
+        strategy=strategy,
+        precision=precision,
+        devices=1
+    )
+    fabric._launched = True
+    fabric.strategy.setup_module = lambda module: module
+
+    error_context = (
+        pytest.raises(RuntimeError, match=escape("requires you to call `fabric.backward(loss)`")) if error_expected
+        else nullcontext()
+    )
+    batch = torch.rand(2, 2)
+
+    # One model
+    model1 = nn.Linear(2, 2)
+    assert not (model1._backward_pre_hooks if _TORCH_GREATER_EQUAL_2_0 else model1._backward_hooks)
+    model1 = getattr(fabric, setup_method)(model1)
+    assert model1._backward_pre_hooks if _TORCH_GREATER_EQUAL_2_0 else model1._backward_hooks
+    loss = model1(batch).sum()
+    with error_context:
+        loss.backward()
+    loss = model1(batch).sum()
+    fabric.backward(loss)  # no error
+    assert not fabric._backward_called
+
+    # Two models chained
+    model2 = torch.nn.Linear(2, 2)
+    model2 = getattr(fabric, setup_method)(model2)
+    loss = model2(model1(batch)).sum()
+    with error_context:
+        loss.backward()
+    loss = model2(model1(batch)).sum()
+    fabric.backward(loss)  # no error
+    assert not fabric._backward_called
+
+    # Two independent models
+    loss1 = model1(batch).sum()
+    loss2 = model2(batch).sum()
+    with error_context:
+        loss1.backward()
+    with error_context:
+        loss2.backward()
+    loss1 = model1(batch).sum()
+    loss2 = model2(batch).sum()
+    fabric.backward(loss1)  # no error
+    assert not fabric._backward_called
+    fabric.backward(loss2)  # no error
+    assert not fabric._backward_called
 
 
 @RunIf(deepspeed=True, mps=False)

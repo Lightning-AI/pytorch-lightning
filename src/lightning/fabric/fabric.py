@@ -142,6 +142,7 @@ class Fabric:
         self._loggers = loggers if isinstance(loggers, list) else [loggers]
         self._models_setup: int = 0
         self._launched: bool = False
+        self._backward_called: bool = False
 
         self._prepare_run_method()
         if _is_using_cli():
@@ -253,6 +254,7 @@ class Fabric:
         if compile_kwargs is not None:
             module = _to_compiled(module, compile_kwargs)
         module = _FabricModule(module, self._precision, original_module=original_module)
+        self._require_fabric_backward(module)
 
         # Update the _DeviceDtypeModuleMixin's device parameter
         # NOTE: for sharded strategies or manual device placement, there's no single root device
@@ -317,6 +319,7 @@ class Fabric:
         if compile_kwargs is not None:
             module = _to_compiled(module, compile_kwargs)
         module = _FabricModule(module, self._precision, original_module=original_module)
+        self._require_fabric_backward(module)
 
         # Update the _DeviceDtypeModuleMixin's device parameter
         # NOTE: for sharded strategies or manual device placement, there's no single root device
@@ -445,7 +448,9 @@ class Fabric:
                 # requires to attach the current `DeepSpeedEngine` for the `_FabricOptimizer.step` call.
                 self._strategy._deepspeed_engine = module
 
+        self._backward_called = True
         self._strategy.backward(tensor, module, *args, **kwargs)
+        self._backward_called = False
 
     def clip_gradients(
         self,
@@ -1089,6 +1094,25 @@ class Fabric:
 
         if any(not isinstance(dl, DataLoader) for dl in dataloaders):
             raise TypeError("Only PyTorch DataLoader are currently supported in `setup_dataloaders`.")
+
+    def _require_fabric_backward(self, module: _FabricModule) -> None:
+        strategy_requires = is_overridden("backward", self._strategy, parent=Strategy)
+        precision_requires = any(
+            is_overridden(method, self._precision, parent=Precision)
+            for method in ("pre_backward", "backward", "post_backward")
+        )
+
+        def _backward_hook(*_: Any, **__: Any) -> None:
+            if (strategy_requires or precision_requires) and not self._backward_called:
+                raise RuntimeError(
+                    "The current strategy and precision selection requires you to call `fabric.backward(loss)`"
+                    " instead of `loss.backward()`."
+                )
+
+        if _TORCH_GREATER_EQUAL_2_0:
+            module.register_full_backward_pre_hook(_backward_hook, prepend=True)
+        else:
+            module.register_full_backward_hook(_backward_hook)
 
     @staticmethod
     def _configure_callbacks(callbacks: Optional[Union[List[Any], Any]]) -> List[Any]:
