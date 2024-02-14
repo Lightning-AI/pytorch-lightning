@@ -48,6 +48,10 @@ class HookedDataModule(BoringDataModule):
             update_wrapper(partial_h, attr)
             setattr(self, h, partial_h)
 
+    # override so that it gets called
+    def prepare_data(self):
+        ...
+
 
 @pytest.mark.parametrize("max_steps", [1, 2, 3])
 def test_on_before_zero_grad_called(tmpdir, max_steps):
@@ -405,6 +409,10 @@ class HookedModel(BoringModel):
 
     # override so that it gets called
     def on_predict_model_train(self):
+        ...
+
+    # override so that it gets called
+    def prepare_data(self):
         ...
 
 

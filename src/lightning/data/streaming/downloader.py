@@ -57,7 +57,7 @@ class S3Downloader(Downloader):
             return
 
         try:
-            with FileLock(local_filepath + ".lock", timeout=1 if obj.path.endswith(_INDEX_FILENAME) else 0):
+            with FileLock(local_filepath + ".lock", timeout=3 if obj.path.endswith(_INDEX_FILENAME) else 0):
                 if self._s5cmd_available:
                     proc = subprocess.Popen(
                         f"s5cmd cp {remote_filepath} {local_filepath}",

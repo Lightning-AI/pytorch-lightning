@@ -320,7 +320,7 @@ class LightningModule(
             return self._fabric.loggers
         if self._trainer is not None:
             return self._trainer.loggers
-        return []  # type: ignore[return-value]
+        return []
 
     def _call_batch_hook(self, hook_name: str, *args: Any) -> Any:
         trainer = self._trainer
