@@ -94,7 +94,7 @@ class ThroughputMonitor(Callback):
         self.available_flops = get_available_flops(trainer.strategy.root_device, dtype)
 
         if stage == TrainerFn.FITTING:
-            if trainer.accumulate_grad_batches % trainer.log_every_n_steps != 0:
+            if trainer.log_every_n_steps % trainer.accumulate_grad_batches != 0:
                 raise ValueError(
                     "The `ThroughputMonitor` only logs when gradient accumulation is finished. You set"
                     f" `Trainer(accumulate_grad_batches={trainer.accumulate_grad_batches},"

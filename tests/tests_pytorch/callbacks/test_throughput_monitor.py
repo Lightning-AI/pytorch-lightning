@@ -1,3 +1,4 @@
+from contextlib import nullcontext
 from unittest import mock
 from unittest.mock import ANY, Mock, call
 
@@ -160,6 +161,41 @@ def test_throughput_monitor_fit_no_length_fn(tmp_path):
     ]
 
 
+@pytest.mark.parametrize(("accumulate_grad_batches", "log_every_n_steps", "expected_error"), [
+    (1, 1, False),
+    (1, 2, False),
+    (2, 2, False),
+    (2, 3, True),
+    (3, 2, True),
+])
+def test_throughput_monitor_fit_gradient_accumulation_divisible(
+    accumulate_grad_batches, log_every_n_steps, expected_error, tmp_path
+):
+    logger_mock = Mock()
+    logger_mock.save_dir = tmp_path
+    monitor = ThroughputMonitor(batch_size_fn=lambda x: 1)
+    model = BoringModel()
+    model.flops_per_batch = 10
+
+    trainer = Trainer(
+        devices=1,
+        logger=logger_mock,
+        callbacks=monitor,
+        limit_train_batches=5,
+        limit_val_batches=0,
+        max_epochs=1,
+        log_every_n_steps=log_every_n_steps,
+        accumulate_grad_batches=accumulate_grad_batches,
+        enable_checkpointing=False,
+        enable_model_summary=False,
+        enable_progress_bar=False,
+    )
+
+    error_context = pytest.raises(ValueError, match="not divisible") if expected_error else nullcontext()
+    with error_context:
+        trainer.fit(model)
+
+
 def test_throughput_monitor_fit_gradient_accumulation(tmp_path):
     logger_mock = Mock()
     logger_mock.save_dir = tmp_path
@@ -174,26 +210,8 @@ def test_throughput_monitor_fit_gradient_accumulation(tmp_path):
         limit_train_batches=5,
         limit_val_batches=0,
         max_epochs=2,
-        log_every_n_steps=3,
-        accumulate_grad_batches=2,
-        num_sanity_val_steps=2,
-        enable_checkpointing=False,
-        enable_model_summary=False,
-        enable_progress_bar=False,
-    )
-    with pytest.raises(ValueError, match="not divisible"):
-        trainer.fit(model)
-
-    trainer = Trainer(
-        devices=1,
-        logger=logger_mock,
-        callbacks=monitor,
-        limit_train_batches=5,
-        limit_val_batches=0,
-        max_epochs=2,
         log_every_n_steps=1,
         accumulate_grad_batches=2,
-        num_sanity_val_steps=2,
         enable_checkpointing=False,
         enable_model_summary=False,
         enable_progress_bar=False,
