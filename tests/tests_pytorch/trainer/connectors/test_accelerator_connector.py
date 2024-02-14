@@ -59,7 +59,6 @@ from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.imports import (
     _LIGHTNING_HABANA_AVAILABLE,
 )
-from lightning_utilities.core.imports import package_available
 
 from tests_pytorch.conftest import mock_cuda_count, mock_mps_count, mock_tpu_available, mock_xla_available
 from tests_pytorch.helpers.runif import RunIf
