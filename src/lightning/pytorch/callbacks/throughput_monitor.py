@@ -93,13 +93,12 @@ class ThroughputMonitor(Callback):
         dtype = _plugin_to_compute_dtype(trainer.precision_plugin)
         self.available_flops = get_available_flops(trainer.strategy.root_device, dtype)
 
-        if stage == TrainerFn.FITTING:
-            if trainer.enable_validation:
-                # `fit` includes validation inside
-                throughput = Throughput(
-                    available_flops=self.available_flops, world_size=trainer.world_size, **self.kwargs
-                )
-                self._throughputs[RunningStage.VALIDATING] = throughput
+        if stage == TrainerFn.FITTING and trainer.enable_validation:
+            # `fit` includes validation inside
+            throughput = Throughput(
+                available_flops=self.available_flops, world_size=trainer.world_size, **self.kwargs
+            )
+            self._throughputs[RunningStage.VALIDATING] = throughput
 
         throughput = Throughput(available_flops=self.available_flops, world_size=trainer.world_size, **self.kwargs)
         stage = trainer.state.stage
