@@ -311,7 +311,7 @@ class ImagenetStreamingDataset(StreamingDataset):
 
     def __getitem__(self, index):
         image = super().__getitem__(index)
-        return T.resize(image, (224, 224))
+        return F.resize(image, (224, 224))
 
 dataset = ImagenetStreamingDataset(...)
 dataloader = StreamingDataLoader(dataset, batch_size=4)
