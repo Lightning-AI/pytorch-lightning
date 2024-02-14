@@ -443,10 +443,16 @@ def test_summary_training_mode():
     assert summary_data["Mode"] == [
         "train",  # branch1
         "eval",   # branch2
-        "train"   # head
+        "train",  # head
     ]
 
     summary = summarize(model, max_depth=-1)
     expected_eval = {"branch1.1.0", "branch2"}
     for name, layer_summary in summary._layer_summary.items():
         assert (name in expected_eval) == (not layer_summary.training)
+
+    # A model with params not belonging to a layer
+    model = NonLayerParamsModel()
+    model.layer.eval()
+    summary_data = OrderedDict(summarize(model)._get_summary_data())
+    assert summary_data["Mode"] == ["eval", "n/a"]
