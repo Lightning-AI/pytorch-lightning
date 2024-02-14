@@ -28,4 +28,4 @@ Third-party Loggers
    :header-rows: 0
 
    * - :doc:`WandbLogger <../guide/loggers/wandb>`
-     - Log to the W&B cloud.
+     - Log to `Weights & Biases <https://www.wandb.ai/>`_.

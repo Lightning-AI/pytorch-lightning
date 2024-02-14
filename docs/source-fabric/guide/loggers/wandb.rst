@@ -8,7 +8,7 @@ W&B allows machine learning practitioners to track experiments, visualize data, 
 It integrates seamlessly with your Lightning ML workflows to log metrics, output visualizations, and manage artifacts.
 This integration provides a simple way to log metrics and artifacts from your Fabric training loop to W&B via the ``WandbLogger``.
 The ``WandbLogger`` also supports all features of the Weights and Biases library, such as logging rich media (image, audio, video), artifacts, hyperparameters, tables, custom visualizations, and more.
-Check the official documentation at `docs.wandb.ai <https://docs.wandb.ai>`_.
+`Check the official documentation here <https://docs.wandb.ai>`_.
 
 
 ----
@@ -104,9 +104,9 @@ For a description of all features, check out the official Weights and Biases doc
     :height: 150
 
 .. displayitem::
-    :header: Lightning WandbLogger Examples
-    :description: See examples of how to use the WandbLogger
-    :button_link: https://github.com/wandb/examples/tree/master/colabs/pytorch-lightning
+    :header: Lightning WandbLogger Example
+    :description: Official example of how to use the WandbLogger with Lightning
+    :button_link: wandb.me/lightning
     :col_css: col-md-4
     :height: 150
 
