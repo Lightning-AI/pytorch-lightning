@@ -254,7 +254,7 @@ class Fabric:
         if compile_kwargs is not None:
             module = _to_compiled(module, compile_kwargs)
         module = _FabricModule(module, self._precision, original_module=original_module)
-        module.register_full_backward_hook(self._require_fabric_backward)
+        module.register_full_backward_pre_hook(self._require_fabric_backward, prepend=True)
 
         # Update the _DeviceDtypeModuleMixin's device parameter
         # NOTE: for sharded strategies or manual device placement, there's no single root device
@@ -319,7 +319,7 @@ class Fabric:
         if compile_kwargs is not None:
             module = _to_compiled(module, compile_kwargs)
         module = _FabricModule(module, self._precision, original_module=original_module)
-        module.register_full_backward_hook(self._require_fabric_backward)
+        module.register_full_backward_pre_hook(self._require_fabric_backward, prepend=True)
 
         # Update the _DeviceDtypeModuleMixin's device parameter
         # NOTE: for sharded strategies or manual device placement, there's no single root device

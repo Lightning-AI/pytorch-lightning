@@ -644,9 +644,9 @@ def test_backward_required(_, strategy, precision, error_expected, setup_method)
 
     # One model
     model1 = nn.Linear(2, 2)
-    assert not model1._backward_hooks
+    assert not model1._backward_pre_hooks
     model1 = getattr(fabric, setup_method)(model1)
-    assert model1._backward_hooks
+    assert model1._backward_pre_hooks
     loss = model1(batch).sum()
     with error_context:
         loss.backward()
