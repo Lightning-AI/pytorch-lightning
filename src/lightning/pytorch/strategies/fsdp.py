@@ -604,8 +604,8 @@ class FSDPStrategy(ParallelStrategy):
 
                 if self.lightning_module.trainer.state.fn == TrainerFn.FITTING and self.optimizers:
                     from torch.distributed.checkpoint import FileSystemReader
-                    # the reader might become optional in the future:
-                    # https://github.com/pytorch/pytorch/issues/119800
+                    # TODO: replace with newer APIs
+                    # https://github.com/pytorch/pytorch/issues/119800#issuecomment-1942156271
                     reader = FileSystemReader(path=path)
                     # the optimizer states must be loaded separately
                     for idx, optim in enumerate(self.optimizers):

@@ -583,8 +583,8 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
 
                 if optimizers:
                     from torch.distributed.checkpoint import FileSystemReader
-                    # the reader might become optional in the future:
-                    # https://github.com/pytorch/pytorch/issues/119800
+                    # TODO: replace with newer APIs
+                    # https://github.com/pytorch/pytorch/issues/119800#issuecomment-1942156271
                     reader = FileSystemReader(path=path)
                     # the optimizer states must be loaded separately
                     for optim_key, optim in optimizers.items():
