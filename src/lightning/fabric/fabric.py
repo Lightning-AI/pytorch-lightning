@@ -65,7 +65,7 @@ from lightning.fabric.utilities.data import (
     has_iterable_dataset,
 )
 from lightning.fabric.utilities.device_dtype_mixin import _update_properties
-from lightning.fabric.utilities.distributed import DistributedSamplerWrapper
+from lightning.fabric.utilities.distributed import DistributedSamplerWrapper, _InfiniteBarrier
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 from lightning.fabric.utilities.rank_zero import rank_zero_deprecation, rank_zero_warn
 from lightning.fabric.utilities.registry import _load_external_callbacks
@@ -468,6 +468,10 @@ class Fabric:
                 Default is the 2-norm.
             error_if_nonfinite: An error is raised if the total norm of the gradients is NaN or infinite.
 
+        Return:
+            The total norm of the gradients (before clipping was applied) as a scalar tensor if ``max_norm`` was
+            passed, otherwise ``None``.
+
         """
         if clip_val is not None and max_norm is not None:
             raise ValueError(
@@ -632,12 +636,12 @@ class Fabric:
 
         """
         rank = self.local_rank if local else self.global_rank
-        if rank > 0:
-            self.barrier()
-        yield
-        if rank == 0:
-            self.barrier()
-        self.barrier()
+        with _InfiniteBarrier() as barrier:
+            if rank > 0:
+                barrier()
+            yield
+            if rank == 0:
+                barrier()
 
     def no_backward_sync(self, module: _FabricModule, enabled: bool = True) -> ContextManager:
         r"""Skip gradient synchronization during backward to avoid redundant communication overhead.

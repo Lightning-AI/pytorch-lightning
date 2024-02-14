@@ -40,7 +40,13 @@ if _OMEGACONF_AVAILABLE:
 @mock.patch("lightning.pytorch.trainer.trainer.Trainer.node_rank", new_callable=PropertyMock)
 @mock.patch("lightning.pytorch.trainer.trainer.Trainer.local_rank", new_callable=PropertyMock)
 def test_can_prepare_data(local_rank, node_rank):
-    dm = Mock(spec=LightningDataModule)
+    class MyDataModule(LightningDataModule):
+        def prepare_data(self):
+            pass
+
+    dm = MyDataModule()
+    dm.prepare_data = Mock(wraps=dm.prepare_data)
+
     dm.prepare_data_per_node = True
     trainer = Trainer()
     trainer.datamodule = dm
@@ -56,7 +62,7 @@ def test_can_prepare_data(local_rank, node_rank):
     dm.prepare_data.assert_called_once()
 
     # local rank = 1   (False)
-    dm.reset_mock()
+    dm.prepare_data.reset_mock()
     local_rank.return_value = 1
     assert trainer.local_rank == 1
 
@@ -65,7 +71,7 @@ def test_can_prepare_data(local_rank, node_rank):
 
     # prepare_data_per_node = False (prepare across all nodes)
     # global rank = 0   (True)
-    dm.reset_mock()
+    dm.prepare_data.reset_mock()
     dm.prepare_data_per_node = False
     node_rank.return_value = 0
     local_rank.return_value = 0
@@ -74,7 +80,7 @@ def test_can_prepare_data(local_rank, node_rank):
     dm.prepare_data.assert_called_once()
 
     # global rank = 1   (False)
-    dm.reset_mock()
+    dm.prepare_data.reset_mock()
     node_rank.return_value = 1
     local_rank.return_value = 0
 
@@ -464,6 +470,10 @@ def test_datamodule_hooks_are_profiled():
     class CustomBoringDataModule(BoringDataModule):
         def state_dict(self):
             return {"temp": 1}
+
+        # override so that it gets called
+        def prepare_data(self):
+            pass
 
     model = BoringModel()
     dm = CustomBoringDataModule()

@@ -16,6 +16,7 @@ from re import escape
 from unittest import mock
 from unittest.mock import ANY, MagicMock, Mock, PropertyMock, call
 
+import lightning.fabric
 import pytest
 import torch
 import torch.distributed
@@ -1129,7 +1130,7 @@ def test_all_reduce():
     fabric._strategy.all_reduce.assert_has_calls([call(torch.tensor(4), **defaults), call(torch.tensor(5), **defaults)])
 
 
-def test_rank_zero_first():
+def test_rank_zero_first(monkeypatch):
     """Test that rank 0 completes first before all other processes can execute under `.rank_zero_first()`."""
 
     def record_calls_for_rank(rank):
@@ -1137,7 +1138,8 @@ def test_rank_zero_first():
 
         fabric = Fabric()
         fabric._strategy = Mock(global_rank=rank)
-        fabric.barrier = Mock(side_effect=lambda *_: call_order.append("barrier"))
+        barrier_mock = MagicMock(side_effect=lambda *_: call_order.append("barrier"))
+        monkeypatch.setattr(lightning.fabric.utilities.distributed._InfiniteBarrier, "__call__", barrier_mock)
         target = Mock(run=Mock(side_effect=lambda *_: call_order.append("run")))
 
         with fabric.rank_zero_first():
@@ -1145,8 +1147,8 @@ def test_rank_zero_first():
 
         return call_order
 
-    assert record_calls_for_rank(0) == ["run", "barrier", "barrier"]
-    assert record_calls_for_rank(1) == ["barrier", "run", "barrier"]
+    assert record_calls_for_rank(0) == ["run", "barrier"]
+    assert record_calls_for_rank(1) == ["barrier", "run"]
 
 
 @pytest.mark.parametrize(("clip_val", "max_norm"), [(1e-3, None), (None, 1)])
