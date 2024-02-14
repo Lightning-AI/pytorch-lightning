@@ -34,6 +34,7 @@ from lightning.fabric.strategies import (
 )
 from lightning.fabric.strategies.strategy import _Sharded
 from lightning.fabric.utilities.exceptions import MisconfigurationException
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 from lightning.fabric.utilities.seed import pl_worker_init_function, seed_everything
 from lightning.fabric.utilities.warnings import PossibleUserWarning
 from lightning.fabric.wrappers import _FabricDataLoader, _FabricModule, _FabricOptimizer
@@ -644,9 +645,9 @@ def test_backward_required(_, strategy, precision, error_expected, setup_method)
 
     # One model
     model1 = nn.Linear(2, 2)
-    assert not model1._backward_pre_hooks
+    assert not (model1._backward_pre_hooks if _TORCH_GREATER_EQUAL_2_0 else model1._backward_hooks)
     model1 = getattr(fabric, setup_method)(model1)
-    assert model1._backward_pre_hooks
+    assert model1._backward_pre_hooks if _TORCH_GREATER_EQUAL_2_0 else model1._backward_hooks
     loss = model1(batch).sum()
     with error_context:
         loss.backward()
