@@ -20,7 +20,7 @@ class S3Client:
         self._has_cloud_space_id: bool = "LIGHTNING_CLOUD_SPACE_ID" in os.environ
         self._client: Optional[Any] = None
 
-    def _create_client(self):
+    def _create_client(self) -> None:
         has_shared_credentials_file = os.getenv("AWS_SHARED_CREDENTIALS_FILE") == os.getenv("AWS_CONFIG_FILE") == "/.credentials/.aws_credentials"  # noqa: E501
 
         if has_shared_credentials_file:

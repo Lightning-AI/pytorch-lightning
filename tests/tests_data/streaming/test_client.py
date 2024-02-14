@@ -13,6 +13,12 @@ def test_s3_client_without_cloud_space_id(monkeypatch):
     botocore = mock.MagicMock()
     monkeypatch.setattr(client, "botocore", botocore)
 
+    instance_metadata_provider = mock.MagicMock()
+    monkeypatch.setattr(client, "InstanceMetadataProvider", instance_metadata_provider)
+
+    instance_metadata_fetcher = mock.MagicMock()
+    monkeypatch.setattr(client, "InstanceMetadataFetcher", instance_metadata_fetcher)
+
     s3 = client.S3Client(1)
     assert s3.client
     assert s3.client
