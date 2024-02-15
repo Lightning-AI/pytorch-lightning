@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Utilities used for collections."""
+
 from abc import ABC
 from functools import partial
 from typing import Any, Callable, List, Tuple, Union

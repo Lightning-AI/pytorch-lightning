@@ -743,16 +743,14 @@ def test_log_metrics_epoch_step_values(mock_log_metrics, tmpdir):
     )
     trainer.fit(model)
 
-    mock_log_metrics.assert_has_calls(
-        [
-            call(metrics={"foo_step": 0.0, "epoch": 0}, step=0),
-            call(metrics={"foo_step": 0.0, "epoch": 0}, step=1),
-            call(metrics={"foo_epoch": 0.0, "epoch": 0}, step=1),
-            call(metrics={"foo_step": 0.0, "epoch": 1}, step=2),
-            call(metrics={"foo_step": 0.0, "epoch": 1}, step=3),
-            call(metrics={"foo_epoch": 0.0, "epoch": 1}, step=3),
-        ]
-    )
+    mock_log_metrics.assert_has_calls([
+        call(metrics={"foo_step": 0.0, "epoch": 0}, step=0),
+        call(metrics={"foo_step": 0.0, "epoch": 0}, step=1),
+        call(metrics={"foo_epoch": 0.0, "epoch": 0}, step=1),
+        call(metrics={"foo_step": 0.0, "epoch": 1}, step=2),
+        call(metrics={"foo_step": 0.0, "epoch": 1}, step=3),
+        call(metrics={"foo_epoch": 0.0, "epoch": 1}, step=3),
+    ])
 
 
 @mock.patch("lightning.pytorch.loggers.TensorBoardLogger.log_metrics")

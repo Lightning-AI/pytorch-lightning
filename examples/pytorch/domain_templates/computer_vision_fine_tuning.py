@@ -119,14 +119,12 @@ class CatDogImageDataModule(LightningDataModule):
 
     @property
     def train_transform(self):
-        return transforms.Compose(
-            [
-                transforms.Resize((224, 224)),
-                transforms.RandomHorizontalFlip(),
-                transforms.ToTensor(),
-                self.normalize_transform,
-            ]
-        )
+        return transforms.Compose([
+            transforms.Resize((224, 224)),
+            transforms.RandomHorizontalFlip(),
+            transforms.ToTensor(),
+            self.normalize_transform,
+        ])
 
     @property
     def valid_transform(self):
@@ -269,13 +267,11 @@ class MyLightningCLI(LightningCLI):
         parser.link_arguments("data.batch_size", "model.batch_size")
         parser.link_arguments("finetuning.milestones", "model.milestones")
         parser.link_arguments("finetuning.train_bn", "model.train_bn")
-        parser.set_defaults(
-            {
-                "trainer.max_epochs": 15,
-                "trainer.enable_model_summary": False,
-                "trainer.num_sanity_val_steps": 0,
-            }
-        )
+        parser.set_defaults({
+            "trainer.max_epochs": 15,
+            "trainer.enable_model_summary": False,
+            "trainer.num_sanity_val_steps": 0,
+        })
 
 
 def cli_main():

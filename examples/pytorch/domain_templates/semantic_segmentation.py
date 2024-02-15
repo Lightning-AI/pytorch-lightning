@@ -333,14 +333,10 @@ class SegModel(LightningModule):
         self.net = UNet(
             num_classes=19, num_layers=self.num_layers, features_start=self.features_start, bilinear=self.bilinear
         )
-        self.transform = transforms.Compose(
-            [
-                transforms.ToTensor(),
-                transforms.Normalize(
-                    mean=[0.35675976, 0.37380189, 0.3764753], std=[0.32064945, 0.32098866, 0.32325324]
-                ),
-            ]
-        )
+        self.transform = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[0.35675976, 0.37380189, 0.3764753], std=[0.32064945, 0.32098866, 0.32325324]),
+        ])
         self.trainset = KITTI(self.data_path, split="train", transform=self.transform)
         self.validset = KITTI(self.data_path, split="valid", transform=self.transform)
 

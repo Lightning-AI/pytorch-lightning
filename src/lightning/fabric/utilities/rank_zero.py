@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Utilities that can be used for calling functions on a particular rank."""
+
 import logging
 import os
 from functools import wraps
@@ -53,11 +54,11 @@ if not _UTILITIES_GREATER_EQUAL_0_10:
 
     @overload
     def rank_zero_only(fn: Callable[P, T]) -> Callable[P, Optional[T]]:
-        ...
+        """Rank zero only."""
 
     @overload
     def rank_zero_only(fn: Callable[P, T], default: T) -> Callable[P, T]:
-        ...
+        """Rank zero only."""
 
     def rank_zero_only(fn: Callable[P, T], default: Optional[T] = None) -> Callable[P, Optional[T]]:
         @wraps(fn)

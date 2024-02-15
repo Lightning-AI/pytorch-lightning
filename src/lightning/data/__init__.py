@@ -16,7 +16,7 @@ __all__ = [
     "walk",
 ]
 
-if RequirementCache('lightning_sdk'):
+if RequirementCache("lightning_sdk"):
     from lightning_sdk import Machine  # noqa: F401
 
     __all__.append("Machine")

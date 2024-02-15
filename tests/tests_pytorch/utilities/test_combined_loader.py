@@ -442,14 +442,12 @@ def test_combined_data_loader_validation_test(use_distributed_sampler):
             self.name = name
 
     dataset = CustomDataset(range(10))
-    combined_loader = CombinedLoader(
-        {
-            "a": DataLoader(CustomDataset(range(10))),
-            "b": DataLoader(dataset, sampler=CustomSampler(dataset, "custom_sampler")),
-            "c": {"c": DataLoader(CustomDataset(range(10))), "d": DataLoader(CustomDataset(range(10)))},
-            "d": [DataLoader(CustomDataset(range(10))), DataLoader(CustomDataset(range(10)))],
-        }
-    )
+    combined_loader = CombinedLoader({
+        "a": DataLoader(CustomDataset(range(10))),
+        "b": DataLoader(dataset, sampler=CustomSampler(dataset, "custom_sampler")),
+        "c": {"c": DataLoader(CustomDataset(range(10))), "d": DataLoader(CustomDataset(range(10)))},
+        "d": [DataLoader(CustomDataset(range(10))), DataLoader(CustomDataset(range(10)))],
+    })
     model = BoringModel()
     trainer = Trainer(use_distributed_sampler=use_distributed_sampler, strategy="ddp", accelerator="cpu", devices=2)
     trainer.strategy.connect(model)

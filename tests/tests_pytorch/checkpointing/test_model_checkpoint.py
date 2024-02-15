@@ -885,13 +885,11 @@ def test_default_checkpoint_behavior(tmpdir):
     assert len(results) == 1
     save_dir = tmpdir / "checkpoints"
     save_weights_only = trainer.checkpoint_callback.save_weights_only
-    save_mock.assert_has_calls(
-        [
-            call(save_dir / "epoch=0-step=5.ckpt", save_weights_only),
-            call(save_dir / "epoch=1-step=10.ckpt", save_weights_only),
-            call(save_dir / "epoch=2-step=15.ckpt", save_weights_only),
-        ]
-    )
+    save_mock.assert_has_calls([
+        call(save_dir / "epoch=0-step=5.ckpt", save_weights_only),
+        call(save_dir / "epoch=1-step=10.ckpt", save_weights_only),
+        call(save_dir / "epoch=2-step=15.ckpt", save_weights_only),
+    ])
     ckpts = os.listdir(save_dir)
     assert len(ckpts) == 1
     assert ckpts[0] == "epoch=2-step=15.ckpt"

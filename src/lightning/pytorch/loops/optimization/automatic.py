@@ -171,8 +171,7 @@ class _AutomaticOptimization(_Loop):
 
         if (
             # when the strategy handles accumulation, we want to always call the optimizer step
-            not self.trainer.strategy.handles_gradient_accumulation
-            and self.trainer.fit_loop._should_accumulate()
+            not self.trainer.strategy.handles_gradient_accumulation and self.trainer.fit_loop._should_accumulate()
         ):
             # For gradient accumulation
 
