@@ -43,7 +43,7 @@ repos:
         args: ["--in-place"]
 
   - repo: https://github.com/psf/black
-    rev: 23.11.0
+    rev: 24.1.1
     hooks:
       - id: black
         name: Black code
@@ -77,7 +77,7 @@ repos:
           - flake8-bugbear
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.1.6
+    rev: v0.2.0
     hooks:
       - id: ruff
         args: ["--fix"]

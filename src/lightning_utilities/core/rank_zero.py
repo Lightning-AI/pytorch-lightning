@@ -18,13 +18,11 @@ P = ParamSpec("P")
 
 
 @overload
-def rank_zero_only(fn: Callable[P, T]) -> Callable[P, Optional[T]]:
-    ...
+def rank_zero_only(fn: Callable[P, T]) -> Callable[P, Optional[T]]: ...
 
 
 @overload
-def rank_zero_only(fn: Callable[P, T], default: T) -> Callable[P, T]:
-    ...
+def rank_zero_only(fn: Callable[P, T], default: T) -> Callable[P, T]: ...
 
 
 def rank_zero_only(fn: Callable[P, T], default: Optional[T] = None) -> Callable[P, Optional[T]]:

@@ -8,23 +8,19 @@ from lightning_utilities.core.overrides import is_overridden
 
 
 class LightningModule:
-    def training_step(self):
-        ...
+    def training_step(self): ...
 
 
 class BoringModel(LightningModule):
-    def training_step(self):
-        ...
+    def training_step(self): ...
 
 
 class Strategy:
     @contextmanager
-    def model_sharded_context():
-        ...
+    def model_sharded_context(): ...
 
 
-class SingleDeviceStrategy(Strategy):
-    ...
+class SingleDeviceStrategy(Strategy): ...
 
 
 def test_is_overridden():
