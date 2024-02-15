@@ -27,7 +27,6 @@ Brief description of all our automation tools used for boosting development perf
 
   - GPU: 2 x NVIDIA RTX 3090
   - TPU: [Google TPU v4-8](https://cloud.google.com/tpu/docs)
-  - IPU: [Colossus MK1 IPU](https://www.graphcore.ai/products/ipu)
 
 - To check which versions of Python or PyTorch are used for testing in our CI, see the corresponding workflow files or checkgroup config file at [`.github/checkgroup.yml`](../checkgroup.yml).
 

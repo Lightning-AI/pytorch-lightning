@@ -72,7 +72,7 @@ class XLAStrategy(ParallelStrategy):
     def num_processes(self) -> int:
         return len(self.parallel_devices) if self.parallel_devices is not None else 0
 
-    @property  # type: ignore[override]
+    @property
     @override
     def checkpoint_io(self) -> XLACheckpointIO:
         plugin = self._checkpoint_io
@@ -88,7 +88,7 @@ class XLAStrategy(ParallelStrategy):
             raise TypeError(f"The XLA strategy can only work with the `XLACheckpointIO` plugin, found {io}")
         self._checkpoint_io = io
 
-    @property  # type: ignore[override]
+    @property
     @override
     def precision(self) -> XLAPrecision:
         plugin = self._precision

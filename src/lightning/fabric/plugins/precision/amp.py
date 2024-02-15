@@ -90,7 +90,7 @@ class MixedPrecision(Precision):
         if isinstance(optimizer, LBFGS):
             raise TypeError("AMP and the LBFGS optimizer are not compatible.")
         # note: the scaler will skip the `optimizer.step` if nonfinite gradients are found
-        step_output = self.scaler.step(optimizer, **kwargs)
+        step_output = self.scaler.step(optimizer, **kwargs)  # type: ignore[arg-type]
         self.scaler.update()
         return step_output
 

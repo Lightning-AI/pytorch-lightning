@@ -92,11 +92,13 @@ pip install -iU https://test.pypi.org/simple/ pytorch-lightning
 
 ______________________________________________________________________
 
-## Lightning has 3 core packages
+## Lightning has 4 core packages
 
 [PyTorch Lightning: Train and deploy PyTorch at scale](#pytorch-lightning-train-and-deploy-pytorch-at-scale).
 <br/>
 [Lightning Fabric: Expert control](#lightning-fabric-expert-control).
+<br/>
+[Lightning Data: Blazing fast, distributed streaming of training data from cloud storage](https://github.com/Lightning-AI/pytorch-lightning/tree/master/src/lightning/data).
 <br/>
 [Lightning Apps: Build AI products and ML workflows](#lightning-apps-build-ai-products-and-ml-workflows).
 
