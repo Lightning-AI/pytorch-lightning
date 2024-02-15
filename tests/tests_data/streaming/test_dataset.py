@@ -100,31 +100,46 @@ def test_streaming_dataset_distributed_no_shuffle(drop_last, tmpdir):
     assert len(dataset) == 101
 
     dataset.distributed_env = _DistributedEnv(2, 0, 1)
+    assert len(dataset) == 50
+
+    dataset.distributed_env = _DistributedEnv(2, 1, 1)
     assert len(dataset) == 50 + int(not drop_last)
+
     dataset_iter = iter(dataset)
     assert len(dataset_iter) == 50 + int(not drop_last)
+
+    dataset.distributed_env = _DistributedEnv(2, 0, 1)
+
     process_1_1 = list(dataset_iter)
-    assert len(process_1_1) == 50 + int(not drop_last)
+
+    assert len(process_1_1) == 50
     assert process_1_1[:10] == [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
     dataset_iter = iter(dataset)
-    assert len(dataset_iter) == 50 + int(not drop_last)
+
+    assert len(dataset_iter) == 50
     process_1_2 = list(dataset_iter)
     assert process_1_2[:10] == [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
-    assert len(process_1_2) == 50 + int(not drop_last)
+
+    assert len(process_1_2) == 50
 
     dataset = StreamingDataset(input_dir=str(tmpdir), shuffle=False, drop_last=drop_last)
     dataset.distributed_env = _DistributedEnv(2, 1, 1)
-    assert len(dataset) == 50
-    dataset_iter = iter(dataset)
-    process_2_1 = list(dataset_iter)
-    assert process_2_1[:10] == [10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
-    assert len(process_2_1) == 50
-    dataset_iter = iter(dataset)
-    assert len(dataset_iter) == 50
-    process_2_2 = list(dataset_iter)
-    assert process_2_2[:10] == [10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
 
-    assert len(process_2_2) == 50
+    assert len(dataset) == 50 + int(not drop_last)
+    dataset_iter = iter(dataset)
+
+    process_2_1 = list(dataset_iter)
+    assert process_2_1[:10] == [50, 51, 52, 53, 54, 55, 56, 57, 58, 59]
+
+    assert len(process_2_1) == 50 + int(not drop_last)
+    dataset_iter = iter(dataset)
+
+    assert len(dataset_iter) == 50 + int(not drop_last)
+    process_2_2 = list(dataset_iter)
+
+    assert process_2_2[:10] == [50, 51, 52, 53, 54, 55, 56, 57, 58, 59]
+
+    assert len(process_2_2) == 50 + int(not drop_last)
 
     _, intervals_per_ranks = dataset.shuffler.get_chunks_and_intervals_per_ranks(
         dataset.distributed_env, dataset.current_epoch
@@ -760,7 +775,7 @@ def test_dataset_valid_state(tmpdir, monkeypatch):
     cache.merge()
 
     dataset = EmulateS3StreamingDataset(
-        input_dir=Dir(cache_dir, data_dir), item_loader=TokensLoader(block_size), shuffle=False
+        input_dir=Dir(cache_dir, data_dir), item_loader=TokensLoader(block_size), shuffle=False, drop_last=False,
     )
     dataloader = DataLoader(dataset, num_workers=1, batch_size=2)
     dataloader_iter = iter(dataloader)
