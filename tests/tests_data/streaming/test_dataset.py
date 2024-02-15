@@ -22,6 +22,7 @@ import torch
 from lightning import seed_everything
 from lightning.data.processing import functions
 from lightning.data.streaming import Cache
+from lightning.data.streaming import dataset as dataset_module
 from lightning.data.streaming.dataloader import StreamingDataLoader
 from lightning.data.streaming.dataset import (
     _INDEX_FILENAME,
@@ -880,3 +881,26 @@ def test_replay_chunks_sampling():
     assert _replay_chunks_sampling(workers_intervals, {0: 16, 1: 11}) == ({0: 3, 1: 2}, {0: 1, 1: 1})
     assert _replay_chunks_sampling(workers_intervals, {0: 14, 1: 13}) == ({0: 2, 1: 2}, {0: 4, 1: 3})
     assert _replay_chunks_sampling(workers_intervals, {0: 15, 1: 12}) == ({0: 3, 1: 2}, {0: 0, 1: 2})
+
+
+def test_dataset_distributed_drop_last(tmpdir, monkeypatch):
+
+    class _DistributedEnvMock():
+
+        def detect(cls):
+            return _DistributedEnv(2, 0, 1)
+
+    logger_mock = mock.MagicMock()
+
+    monkeypatch.setattr(dataset_module, "_DistributedEnv", _DistributedEnvMock())
+    monkeypatch.setattr(dataset_module, "logger", logger_mock)
+
+    dataset = StreamingDataset(str(tmpdir), drop_last=None)
+    assert dataset.drop_last
+
+    dataset = StreamingDataset(str(tmpdir), drop_last=False)
+    assert not dataset.drop_last
+
+    warn_value = logger_mock.warn._mock_mock_calls[0].args[0]
+    assert warn_value == "You are running in a distributed environment and drop_last needs to be False. " + \
+        "This can cause your training to hang if you are relying on distributed collectives."
