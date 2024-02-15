@@ -16,6 +16,8 @@ from unittest.mock import Mock, patch
 
 import pytest
 import torch
+
+from lightning.fabric.utilities.warnings import PossibleUserWarning
 from lightning.pytorch.callbacks import ModelCheckpoint
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.trainer.trainer import Trainer
@@ -205,7 +207,7 @@ def test_resume_mid_epoch_warning(tmp_path):
         trainer = Trainer(**trainer_kwargs, enable_checkpointing=False)
         resume_from = checkpoint_dir / f"epoch=0-step={resume_step}.ckpt"
         warn_assert = pytest.warns if expected_warning else no_warning_call
-        with warn_assert(UserWarning, match="resuming from a checkpoint that ended before"):
+        with warn_assert(PossibleUserWarning, match="resuming from a checkpoint that ended before"):
             trainer.fit(BoringModel(), dataloader, ckpt_path=resume_from)
 
     # Resume mid-epoch, no stateful dataloader -> warning
