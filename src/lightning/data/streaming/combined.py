@@ -66,6 +66,11 @@ class CombinedStreamingDataset(IterableDataset):
         for dataset in self._datasets:
             dataset.set_epoch(current_epoch)
 
+    def set_shuffle(self, shuffle: bool) -> None:
+        """Set the current shuffle to the datasets."""
+        for dataset in self._datasets:
+            dataset.set_shuffle(shuffle)
+
     def _check_datasets(self, datasets: List[StreamingDataset]) -> None:
         if any(not isinstance(d, StreamingDataset) for d in datasets):
             raise RuntimeError("The provided datasets should be instances of the StreamingDataset.")

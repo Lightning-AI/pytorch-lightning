@@ -614,12 +614,10 @@ class AutoScaler(LightningFlow):
     def create_work(self) -> LightningWork:
         """Replicates a LightningWork instance with args and kwargs provided via ``__init__``."""
         cloud_compute = self._work_kwargs.get("cloud_compute", None)
-        self._work_kwargs.update(
-            {
-                "start_with_flow": False,
-                "cloud_compute": cloud_compute.clone() if cloud_compute else None,
-            }
-        )
+        self._work_kwargs.update({
+            "start_with_flow": False,
+            "cloud_compute": cloud_compute.clone() if cloud_compute else None,
+        })
         return self._work_cls(*self._work_args, **self._work_kwargs)
 
     def add_work(self, work) -> str:

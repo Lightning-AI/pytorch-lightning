@@ -89,20 +89,16 @@ def test_prediction_writer_batch_indices(num_workers):
     trainer = Trainer(limit_predict_batches=4, callbacks=writer)
     trainer.predict(model, dataloaders=dataloader)
 
-    writer.write_on_batch_end.assert_has_calls(
-        [
-            call(trainer, model, ANY, [0, 1, 2, 3], ANY, 0, 0),
-            call(trainer, model, ANY, [4, 5, 6, 7], ANY, 1, 0),
-            call(trainer, model, ANY, [8, 9, 10, 11], ANY, 2, 0),
-            call(trainer, model, ANY, [12, 13, 14, 15], ANY, 3, 0),
-        ]
-    )
+    writer.write_on_batch_end.assert_has_calls([
+        call(trainer, model, ANY, [0, 1, 2, 3], ANY, 0, 0),
+        call(trainer, model, ANY, [4, 5, 6, 7], ANY, 1, 0),
+        call(trainer, model, ANY, [8, 9, 10, 11], ANY, 2, 0),
+        call(trainer, model, ANY, [12, 13, 14, 15], ANY, 3, 0),
+    ])
 
-    writer.write_on_epoch_end.assert_has_calls(
-        [
-            call(trainer, model, ANY, [[[0, 1, 2, 3], [4, 5, 6, 7], [8, 9, 10, 11], [12, 13, 14, 15]]]),
-        ]
-    )
+    writer.write_on_epoch_end.assert_has_calls([
+        call(trainer, model, ANY, [[[0, 1, 2, 3], [4, 5, 6, 7], [8, 9, 10, 11], [12, 13, 14, 15]]]),
+    ])
 
 
 def test_batch_level_batch_indices():
@@ -119,11 +115,9 @@ def test_batch_level_batch_indices():
     trainer = Trainer(limit_predict_batches=4, callbacks=writer)
     trainer.predict(model, dataloaders=dataloader, return_predictions=False)
 
-    writer.write_on_batch_end.assert_has_calls(
-        [
-            call(trainer, model, ANY, [0, 1, 2, 3], ANY, 0, 0),
-            call(trainer, model, ANY, [4, 5, 6, 7], ANY, 1, 0),
-            call(trainer, model, ANY, [8, 9, 10, 11], ANY, 2, 0),
-            call(trainer, model, ANY, [12, 13, 14, 15], ANY, 3, 0),
-        ]
-    )
+    writer.write_on_batch_end.assert_has_calls([
+        call(trainer, model, ANY, [0, 1, 2, 3], ANY, 0, 0),
+        call(trainer, model, ANY, [4, 5, 6, 7], ANY, 1, 0),
+        call(trainer, model, ANY, [8, 9, 10, 11], ANY, 2, 0),
+        call(trainer, model, ANY, [12, 13, 14, 15], ANY, 3, 0),
+    ])

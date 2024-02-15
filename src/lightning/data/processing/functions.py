@@ -189,7 +189,8 @@ def map(
     if not _IS_IN_STUDIO and (machine is not None or num_nodes is not None):
         raise ValueError(
             "Only https://lightning.ai/ supports multiple nodes or selecting a machine."
-            " Create an account to try it out.")
+            " Create an account to try it out."
+        )
 
     if not _IS_IN_STUDIO:
         print(

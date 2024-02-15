@@ -618,27 +618,28 @@ def test_backward():
     fabric._strategy.backward.assert_called_with(loss, None, "arg", keyword="kwarg")
 
 
-@pytest.mark.parametrize(("strategy", "precision", "error_expected"), [
-    ("auto", "32-true", False),
-    ("auto", "bf16-true", False),
-    ("auto", "bf16-mixed", True),
-    pytest.param("fsdp", "32-true", True, marks=RunIf(min_cuda_gpus=1, min_torch="2.0.0")),
-])
+@pytest.mark.parametrize(
+    ("strategy", "precision", "error_expected"),
+    [
+        ("auto", "32-true", False),
+        ("auto", "bf16-true", False),
+        ("auto", "bf16-mixed", True),
+        pytest.param("fsdp", "32-true", True, marks=RunIf(min_cuda_gpus=1, min_torch="2.0.0")),
+    ],
+)
 @pytest.mark.parametrize("setup_method", ["setup", "setup_module"])
 @mock.patch("lightning.fabric.accelerators.mps.MPSAccelerator.is_available", return_value=False)
 def test_backward_required(_, strategy, precision, error_expected, setup_method):
     """Test under which strategy and precision configurations the `fabric.backward()` call is required."""
     fabric = Fabric(
-        accelerator=("cuda" if strategy == "fsdp" else "cpu"),
-        strategy=strategy,
-        precision=precision,
-        devices=1
+        accelerator=("cuda" if strategy == "fsdp" else "cpu"), strategy=strategy, precision=precision, devices=1
     )
     fabric._launched = True
     fabric.strategy.setup_module = lambda module: module
 
     error_context = (
-        pytest.raises(RuntimeError, match=escape("requires you to call `fabric.backward(loss)`")) if error_expected
+        pytest.raises(RuntimeError, match=escape("requires you to call `fabric.backward(loss)`"))
+        if error_expected
         else nullcontext()
     )
     batch = torch.rand(2, 2)
