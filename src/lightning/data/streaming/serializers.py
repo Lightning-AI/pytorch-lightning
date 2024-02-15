@@ -44,6 +44,7 @@ if _TORCH_VISION_AVAILABLE:
     from torchvision.io import decode_jpeg
     from torchvision.transforms.functional import pil_to_tensor
 
+
 class Serializer(ABC):
     """The base interface for any serializers.
 
@@ -112,7 +113,7 @@ class JPEGSerializer(Serializer):
 
         if isinstance(item, (PngImageFile, WebPImageFile, GifImageFile, Image.Image)):
             buff = io.BytesIO()
-            item.convert('RGB').save(buff, quality=100, format='JPEG')
+            item.convert("RGB").save(buff, quality=100, format="JPEG")
             buff.seek(0)
             return buff.read(), None
 
@@ -320,12 +321,11 @@ class VideoSerializer(Serializer):
 
 
 class StringSerializer(Serializer):
-
     def serialize(self, obj: str) -> Tuple[bytes, Optional[str]]:
-        return obj.encode('utf-8'), None
+        return obj.encode("utf-8"), None
 
     def deserialize(self, data: bytes) -> str:
-        return data.decode('utf-8')
+        return data.decode("utf-8")
 
     def can_serialize(self, data: str) -> bool:
         return isinstance(data, str) and not os.path.isfile(data)
@@ -346,7 +346,6 @@ class NumericSerializer:
 
 
 class IntegerSerializer(NumericSerializer, Serializer):
-
     def __init__(self) -> None:
         super().__init__(np.int64)
 
@@ -355,7 +354,6 @@ class IntegerSerializer(NumericSerializer, Serializer):
 
 
 class FloatSerializer(NumericSerializer, Serializer):
-
     def __init__(self) -> None:
         super().__init__(np.float64)
 
@@ -363,24 +361,22 @@ class FloatSerializer(NumericSerializer, Serializer):
         return isinstance(data, float)
 
 
-_SERIALIZERS = OrderedDict(
-    **{
-        'str': StringSerializer(),
-        'int': IntegerSerializer(),
-        "float": FloatSerializer(),
-        "video": VideoSerializer(),
-        "tif": FileSerializer(),
-        "file": FileSerializer(),
-        "pil": PILSerializer(),
-        "jpeg": JPEGSerializer(),
-        "bytes": BytesSerializer(),
-        "no_header_numpy": NoHeaderNumpySerializer(),
-        "numpy": NumpySerializer(),
-        "no_header_tensor": NoHeaderTensorSerializer(),
-        "tensor": TensorSerializer(),
-        "pickle": PickleSerializer(),
-    }
-)
+_SERIALIZERS = OrderedDict(**{
+    "str": StringSerializer(),
+    "int": IntegerSerializer(),
+    "float": FloatSerializer(),
+    "video": VideoSerializer(),
+    "tif": FileSerializer(),
+    "file": FileSerializer(),
+    "pil": PILSerializer(),
+    "jpeg": JPEGSerializer(),
+    "bytes": BytesSerializer(),
+    "no_header_numpy": NoHeaderNumpySerializer(),
+    "numpy": NumpySerializer(),
+    "no_header_tensor": NoHeaderTensorSerializer(),
+    "tensor": TensorSerializer(),
+    "pickle": PickleSerializer(),
+})
 
 
 def _get_serializers(serializers: Optional[Dict[str, Serializer]]) -> Dict[str, Serializer]:

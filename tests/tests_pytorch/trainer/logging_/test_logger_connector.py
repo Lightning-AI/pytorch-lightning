@@ -236,31 +236,27 @@ def test_fx_validator_integration(tmpdir):
     )
     trainer.fit(model)
 
-    not_supported.update(
-        {
-            # `lightning_module` ref is now present from the `fit` call
-            "test_dataloader": "You can't",
-            "on_test_model_eval": "You can't",
-            "on_test_model_train": "You can't",
-            "on_test_end": "You can't",
-        }
-    )
+    not_supported.update({
+        # `lightning_module` ref is now present from the `fit` call
+        "test_dataloader": "You can't",
+        "on_test_model_eval": "You can't",
+        "on_test_model_train": "You can't",
+        "on_test_end": "You can't",
+    })
     trainer.test(model, verbose=False)
 
     not_supported.update({k: "result collection is not registered yet" for k in not_supported})
-    not_supported.update(
-        {
-            "predict_dataloader": "result collection is not registered yet",
-            "on_predict_model_eval": "result collection is not registered yet",
-            "on_predict_start": "result collection is not registered yet",
-            "on_predict_epoch_start": "result collection is not registered yet",
-            "on_predict_batch_start": "result collection is not registered yet",
-            "predict_step": "result collection is not registered yet",
-            "on_predict_batch_end": "result collection is not registered yet",
-            "on_predict_epoch_end": "result collection is not registered yet",
-            "on_predict_end": "result collection is not registered yet",
-        }
-    )
+    not_supported.update({
+        "predict_dataloader": "result collection is not registered yet",
+        "on_predict_model_eval": "result collection is not registered yet",
+        "on_predict_start": "result collection is not registered yet",
+        "on_predict_epoch_start": "result collection is not registered yet",
+        "on_predict_batch_start": "result collection is not registered yet",
+        "predict_step": "result collection is not registered yet",
+        "on_predict_batch_end": "result collection is not registered yet",
+        "on_predict_epoch_end": "result collection is not registered yet",
+        "on_predict_end": "result collection is not registered yet",
+    })
     trainer.predict(model)
 
 

@@ -64,8 +64,7 @@ def test_configure_model(monkeypatch):
             self.l = torch.nn.Linear(8, 16)
             assert self.l.weight.dtype == torch.float16
 
-        def test_step(self, *_):
-            ...
+        def test_step(self, *_): ...
 
     model = MyModel()
     trainer = Trainer(barebones=True, precision="transformer-engine-float16")
