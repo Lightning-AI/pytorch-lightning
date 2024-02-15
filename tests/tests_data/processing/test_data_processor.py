@@ -999,6 +999,7 @@ def test_map_error_when_not_empty(monkeypatch):
             error_when_not_empty=False,
         )
 
+
 def map_fn_is_last(index, output_dir, is_last):
     with open(os.path.join(output_dir, f"{index}_{is_last}.txt"), "w") as f:
         f.write("here")
@@ -1008,8 +1009,8 @@ def map_fn_is_last(index, output_dir, is_last):
 @pytest.mark.parametrize(
     ("num_workers", "expected"),
     [
-        (1, ['0_False.txt', '1_False.txt', '2_False.txt', '3_False.txt', '4_True.txt']),
-        (2, ['0_False.txt', '1_True.txt', '2_False.txt', '3_False.txt', '4_True.txt']),
+        (1, ["0_False.txt", "1_False.txt", "2_False.txt", "3_False.txt", "4_True.txt"]),
+        (2, ["0_False.txt", "1_True.txt", "2_False.txt", "3_False.txt", "4_True.txt"]),
     ],
 )
 def test_map_is_last(num_workers, expected, tmpdir):

@@ -133,16 +133,14 @@ def test_cli_torchrun_defaults(monkeypatch, fake_script):
     with pytest.raises(SystemExit) as e:
         _run_model.main([fake_script])
     assert e.value.code == 0
-    torchrun_mock.main.assert_called_with(
-        [
-            "--nproc_per_node=1",
-            "--nnodes=1",
-            "--node_rank=0",
-            "--master_addr=127.0.0.1",
-            "--master_port=29400",
-            fake_script,
-        ]
-    )
+    torchrun_mock.main.assert_called_with([
+        "--nproc_per_node=1",
+        "--nnodes=1",
+        "--node_rank=0",
+        "--master_addr=127.0.0.1",
+        "--master_port=29400",
+        fake_script,
+    ])
 
 
 @pytest.mark.parametrize(
@@ -163,16 +161,14 @@ def test_cli_torchrun_num_processes_launched(_, devices, expected, monkeypatch, 
     with pytest.raises(SystemExit) as e:
         _run_model.main([fake_script, "--accelerator", "cuda", "--devices", devices])
     assert e.value.code == 0
-    torchrun_mock.main.assert_called_with(
-        [
-            f"--nproc_per_node={expected}",
-            "--nnodes=1",
-            "--node_rank=0",
-            "--master_addr=127.0.0.1",
-            "--master_port=29400",
-            fake_script,
-        ]
-    )
+    torchrun_mock.main.assert_called_with([
+        f"--nproc_per_node={expected}",
+        "--nnodes=1",
+        "--node_rank=0",
+        "--master_addr=127.0.0.1",
+        "--master_port=29400",
+        fake_script,
+    ])
 
 
 def test_cli_through_fabric_entry_point():

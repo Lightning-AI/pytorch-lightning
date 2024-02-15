@@ -8,8 +8,8 @@ from tqdm import tqdm
 
 _PYARROW_AVAILABLE = RequirementCache("pyarrow")
 
-class BaseReader(ABC):
 
+class BaseReader(ABC):
     def get_num_nodes(self) -> int:
         return int(os.getenv("DATA_OPTIMIZER_NUM_NODES", 1))
 
@@ -28,18 +28,14 @@ class BaseReader(ABC):
 
 
 class ParquetReader(BaseReader):
-
     def __init__(self, cache_folder: str, num_rows: int = 65536, to_pandas: bool = True) -> None:
         super().__init__()
         self.cache_folder = cache_folder
         self.num_rows = num_rows
         self.to_pandas = to_pandas
 
-
-
         if not _PYARROW_AVAILABLE:
             raise ModuleNotFoundError("Please, run: `pip install pyarrow`")
-
 
         self.parquet_file = None
 
@@ -92,7 +88,7 @@ class ParquetReader(BaseReader):
                 if table is None:
                     table = pq.read_table(filepath, memory_map=True)
 
-                pq.write_table(table[start: end], chunk_filepath)
+                pq.write_table(table[start:end], chunk_filepath)
 
         print("Finished resharding the parquet files for optimized processing.")
 

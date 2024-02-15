@@ -14,6 +14,7 @@ Requirements:
 Run it with:
     lightning run model train_fabric.py --accelerator=cuda --devices=2 --strategy=ddp
 """
+
 import cherry
 import learn2learn as l2l
 import torch

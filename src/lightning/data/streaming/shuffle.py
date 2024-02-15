@@ -71,7 +71,6 @@ class NoShuffle(Shuffle):
 
         return chunks_per_ranks, intervals_per_ranks
 
-
     def __call__(self, array: np.ndarray, num_chunks: int, current_epoch: int, chunk_index: int) -> List[int]:
         return array.tolist()
 

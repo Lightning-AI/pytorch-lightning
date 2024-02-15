@@ -415,9 +415,9 @@ def test_metric_collections(tmpdir):
             self.metrics_list = ModuleList([DummyMetric() for _ in range(2)])
             self.metrics_dict = ModuleDict({"a": DummyMetric(), "b": DummyMetric()})
             self.metrics_collection_dict = MetricCollection({"a": DummyMetric(), "b": DummyMetric()})
-            self.metrics_collection_dict_nested = ModuleDict(
-                {"a": ModuleList([ModuleDict({"b": DummyMetric()}), DummyMetric()])}
-            )
+            self.metrics_collection_dict_nested = ModuleDict({
+                "a": ModuleList([ModuleDict({"b": DummyMetric()}), DummyMetric()])
+            })
 
         def training_step(self, batch, batch_idx):
             loss = super().training_step(batch, batch_idx)

@@ -556,12 +556,10 @@ class DeepSpeedStrategy(DDPStrategy):
         if "bf16" in self.config:
             inference_config.update({"bf16": self.config["bf16"]})
         if self.zero_stage_3:
-            inference_config.update(
-                {
-                    "zero_allow_untested_optimizer": self.config["zero_allow_untested_optimizer"],
-                    "zero_optimization": self.config["zero_optimization"],
-                }
-            )
+            inference_config.update({
+                "zero_allow_untested_optimizer": self.config["zero_allow_untested_optimizer"],
+                "zero_optimization": self.config["zero_optimization"],
+            })
         # Remove all module hooks before initializing new model
         remove_module_hooks(model)
         model, _, _, _ = deepspeed.initialize(
