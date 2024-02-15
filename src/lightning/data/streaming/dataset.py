@@ -74,6 +74,7 @@ class StreamingDataset(IterableDataset):
         self.item_loader = item_loader
         self.shuffle: bool = shuffle
         self.distributed_env = _DistributedEnv.detect()
+
         if self.distributed_env.world_size > 1:
             if drop_last is None or drop_last is True:
                 self.drop_last = True
@@ -84,7 +85,7 @@ class StreamingDataset(IterableDataset):
                 )
                 self.drop_last = drop_last
         else:
-            self.drop_last = drop_last
+            self.drop_last = drop_last or False
 
         self.seed = seed
         self.max_cache_size = max_cache_size

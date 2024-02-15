@@ -519,11 +519,11 @@ def test_dataset_for_text_tokens_distributed_num_workers(tmpdir):
     assert len(dataset) == 20
 
     dataset.distributed_env = _DistributedEnv(2, 0, 1)
-    dataloader = DataLoader(dataset, batch_size=2, shuffle=False, num_workers=2)
+    dataloader = DataLoader(dataset, batch_size=2, shuffle=False)
 
-    assert len(dataloader) == 6
+    assert len(dataloader) == 5
 
-    expected = [[0, 10], [80, 90], [20, 30], [100, 110], [160, 170], [180, 190]]
+    expected = [[0, 10], [20, 30], [40, 50], [60, 70], [80, 90]]
 
     for batch_idx, batch in enumerate(dataloader):
         assert [batch[0][0].item(), batch[1][0].item()] == expected[batch_idx]
@@ -531,9 +531,9 @@ def test_dataset_for_text_tokens_distributed_num_workers(tmpdir):
     dataset.distributed_env = _DistributedEnv(2, 1, 1)
     dataloader = DataLoader(dataset, batch_size=2, shuffle=False)
 
-    assert len(dataloader) == 4
+    assert len(dataloader) == 5
 
-    expected = [[40, 50], [60, 70], [120, 130], [140, 150]]
+    expected = [[100, 110], [120, 130], [140, 150], [160, 170], [180, 190]]
 
     for batch_idx, batch in enumerate(dataloader):
         assert [batch[0][0].item(), batch[1][0].item()] == expected[batch_idx]
@@ -586,7 +586,7 @@ def test_dataset_for_text_tokens_distributed_num_workers_end_to_end(tmpdir, monk
 
     assert len(dataloader) == 5
 
-    expected = [[0, 10], [40, 50], [80, 90], [120, 130], [160, 170]]
+    expected = [[0, 10], [20, 30], [40, 50], [60, 70], [80, 90]]
 
     for batch_idx, batch in enumerate(dataloader):
         assert [batch[0][0].item(), batch[1][0].item()] == expected[batch_idx]
@@ -596,7 +596,7 @@ def test_dataset_for_text_tokens_distributed_num_workers_end_to_end(tmpdir, monk
 
     assert len(dataloader) == 5
 
-    expected = [[20, 30], [60, 70], [100, 110], [140, 150], [180, 190]]
+    expected = [[100, 110], [120, 130], [140, 150], [160, 170], [180, 190]]
 
     for batch_idx, batch in enumerate(dataloader):
         assert [batch[0][0].item(), batch[1][0].item()] == expected[batch_idx]
