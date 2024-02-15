@@ -902,5 +902,5 @@ def test_dataset_distributed_drop_last(tmpdir, monkeypatch):
     assert not dataset.drop_last
 
     warn_value = logger_mock.warn._mock_mock_calls[0].args[0]
-    assert warn_value == "You're operating within a distributed environment and have enabled the `drop_last`" \
+    assert warn_value == "You're operating within a distributed environment and have disabled the `drop_last`" \
         " option. Please note that this configuration may lead to training interruptions if your system depends on distributed collectives."   # noqa: E501

@@ -78,7 +78,7 @@ class StreamingDataset(IterableDataset):
         if self.distributed_env.world_size > 1:
             if drop_last is False:
                 logger.warn(
-                    "You're operating within a distributed environment and have enabled the `drop_last` option. "
+                    "You're operating within a distributed environment and have disabled the `drop_last` option. "
                     "Please note that this configuration may lead to training interruptions if your system depends "
                     "on distributed collectives."
                 )
