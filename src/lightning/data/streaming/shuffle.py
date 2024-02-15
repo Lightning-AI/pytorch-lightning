@@ -62,11 +62,9 @@ class NoShuffle(Shuffle):
     def get_chunks_and_intervals_per_ranks(self, distributed_env: _DistributedEnv, current_epoch: int) -> Any:
         # 1. Get the intervals
         chunk_intervals = self.cache.get_chunk_intervals()
-
-        # 2. Shuffle them
         indexes = range(len(chunk_intervals))
 
-        # 3. Compute the items budget of each rank
+        # 2. Compute the items budget of each rank
         chunks_per_ranks, intervals_per_ranks = _associate_chunks_and_internals_to_ranks(
             distributed_env, indexes, chunk_intervals, self.drop_last
         )
