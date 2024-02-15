@@ -250,7 +250,7 @@ def _upload_fn(upload_queue: Queue, remove_queue: Queue, cache_dir: str, output_
 
 def _map_items_to_workers_sequentially(num_workers: int, user_items: List[Any]) -> List[List[Any]]:
     num_nodes = _get_num_nodes()
-    world_size = (num_nodes * num_workers)
+    world_size = num_nodes * num_workers
     num_items_per_worker = len(user_items) // world_size
 
     num_items_per_worker: List[int] = [num_items_per_worker for _ in range(world_size)]
@@ -273,7 +273,7 @@ def _map_items_to_workers_sequentially(num_workers: int, user_items: List[Any]) 
         if worker_idx_start <= worker_idx and worker_idx < worker_idx_end:
             start = num_items_cumsum_per_worker[worker_idx]
             end = num_items_cumsum_per_worker[worker_idx + 1]
-            out.append(user_items[start : end])
+            out.append(user_items[start:end])
 
     if len(out) != num_workers:
         raise RuntimeError("The items didn't haven't been assigned properly. Please, open an issue on Github.")
