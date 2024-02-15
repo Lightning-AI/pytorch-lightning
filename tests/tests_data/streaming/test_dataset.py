@@ -902,8 +902,10 @@ def test_dataset_distributed_drop_last(tmpdir, monkeypatch):
     dataset = StreamingDataset(str(tmpdir), drop_last=False)
     assert not dataset.drop_last
 
-    warn_value = logger_mock.warn._mock_mock_calls[0].args[0]
-    assert (
-        warn_value == "You're operating within a distributed environment and have disabled the `drop_last`"
-        " option. Please note that this configuration may lead to training interruptions if your system depends on distributed collectives."
-    )  # noqa: E501
+    warn_msg = logger_mock.warn._mock_mock_calls[0].args[0]
+    expected_warn_msg = (
+        "You're operating within a distributed environment and have disabled the `drop_last` option."
+        " Please note that this configuration may lead to training interruptions"
+        " if your system depends on distributed collectives."
+    )
+    assert expected_warn_msg == warn_msg
