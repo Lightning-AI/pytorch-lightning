@@ -184,14 +184,14 @@ def test_resume_mid_epoch_warning(tmp_path):
         def load_state_dict(self, state_dict):
             self.index = state_dict["index"]
 
-    trainer_kwargs = dict(
-        default_root_dir=tmp_path,
-        accelerator="cpu",
-        max_epochs=1,
-        enable_model_summary=False,
-        enable_progress_bar=False,
-        logger=False,
-    )
+    trainer_kwargs = {
+        "default_root_dir": tmp_path,
+        "accelerator": "cpu",
+        "max_epochs": 1,
+        "enable_model_summary": False,
+        "enable_progress_bar": False,
+        "logger": False,
+    }
 
     def train_and_resume(dataloader, resume_step, expected_warning):
         # Initial training
