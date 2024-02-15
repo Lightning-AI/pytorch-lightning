@@ -373,7 +373,7 @@ class LightningApp:
                         delta = _delta_to_app_state_delta(
                             self.root,
                             work,
-                            deepcopy(delta.delta),  # type: ignore[arg-type]
+                            deepcopy(delta.delta),
                         )
                         deltas.append(delta)
                 else:
