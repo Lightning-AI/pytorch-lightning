@@ -160,14 +160,14 @@ def test_throughput_monitor_fit_no_length_fn(tmp_path):
     ]
 
 
-def test_throughput_monitor_fit_gradient_accumulation(tmp_path):
+@pytest.mark.parametrize("log_every_n_steps", [1, 3])
+def test_throughput_monitor_fit_gradient_accumulation(log_every_n_steps, tmp_path):
     logger_mock = Mock()
     logger_mock.save_dir = tmp_path
     monitor = ThroughputMonitor(length_fn=lambda x: 3 * 2, batch_size_fn=lambda x: 3, window_size=4, separator="|")
     model = BoringModel()
     model.flops_per_batch = 10
 
-    # accumulate_grad_batches=2, log_every_n_steps=3
     trainer = Trainer(
         devices=1,
         logger=logger_mock,
@@ -175,7 +175,7 @@ def test_throughput_monitor_fit_gradient_accumulation(tmp_path):
         limit_train_batches=5,
         limit_val_batches=0,
         max_epochs=2,
-        log_every_n_steps=3,
+        log_every_n_steps=log_every_n_steps,
         accumulate_grad_batches=2,
         enable_checkpointing=False,
         enable_model_summary=False,
@@ -194,61 +194,19 @@ def test_throughput_monitor_fit_gradient_accumulation(tmp_path):
         "train|device|flops_per_sec": 10.0,
         "train|device|mfu": 0.1,
     }
-    assert logger_mock.log_metrics.mock_calls == [
+
+    all_log_calls = [
         call(
             metrics={
-                **expected,
-                "train|time": 5.5,
-                "train|batches": 5,
-                "train|samples": 15,
-                "train|lengths": 30,
+                # The very first batch doesn't have the *_per_sec metrics yet
+                **(expected if log_every_n_steps > 1 else {}),
+                "train|time": 2.5,
+                "train|batches": 2,
+                "train|samples": 6,
+                "train|lengths": 12,
                 "epoch": 0,
             },
-            step=2,
-        ),
-        call(
-            metrics={
-                **expected,
-                "train|time": 10.5,
-                "train|batches": 10,
-                "train|samples": 30,
-                "train|lengths": 60,
-                "epoch": 1,
-            },
-            step=5,
-        ),
-    ]
-
-    # accumulate_grad_batches=2, log_every_n_steps=1
-    trainer = Trainer(
-        devices=1,
-        logger=logger_mock,
-        callbacks=monitor,
-        limit_train_batches=5,
-        limit_val_batches=0,
-        max_epochs=2,
-        log_every_n_steps=1,
-        accumulate_grad_batches=2,
-        enable_checkpointing=False,
-        enable_model_summary=False,
-        enable_progress_bar=False,
-    )
-    timings = [0.0] + [0.5 + i for i in range(1, 11)]
-    with mock.patch("lightning.pytorch.callbacks.throughput_monitor.get_available_flops", return_value=100), mock.patch(
-        "time.perf_counter", side_effect=timings
-    ):
-        trainer.fit(model)
-
-    expected = {
-        "train|device|batches_per_sec": 1.0,
-        "train|device|samples_per_sec": 3.0,
-        "train|device|items_per_sec": 6.0,
-        "train|device|flops_per_sec": 10.0,
-        "train|device|mfu": 0.1,
-    }
-    assert logger_mock.log_metrics.mock_calls == [
-        call(
-            metrics={"train|time": 2.5, "train|batches": 2, "train|samples": 6, "train|lengths": 12, "epoch": 0}, step=0
+            step=0,
         ),
         call(
             metrics={
@@ -306,6 +264,8 @@ def test_throughput_monitor_fit_gradient_accumulation(tmp_path):
             step=5,
         ),
     ]
+    expected_log_calls = all_log_calls[(log_every_n_steps - 1) :: log_every_n_steps]
+    assert logger_mock.log_metrics.mock_calls == expected_log_calls
 
 
 @pytest.mark.parametrize("fn", ["validate", "test", "predict"])
