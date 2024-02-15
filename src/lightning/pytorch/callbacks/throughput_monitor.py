@@ -95,9 +95,7 @@ class ThroughputMonitor(Callback):
 
         if stage == TrainerFn.FITTING and trainer.enable_validation:
             # `fit` includes validation inside
-            throughput = Throughput(
-                available_flops=self.available_flops, world_size=trainer.world_size, **self.kwargs
-            )
+            throughput = Throughput(available_flops=self.available_flops, world_size=trainer.world_size, **self.kwargs)
             self._throughputs[RunningStage.VALIDATING] = throughput
 
         throughput = Throughput(available_flops=self.available_flops, world_size=trainer.world_size, **self.kwargs)
