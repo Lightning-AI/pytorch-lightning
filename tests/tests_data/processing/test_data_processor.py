@@ -310,7 +310,7 @@ def test_map_items_to_workers_sequentially(monkeypatch):
     workers_user_items = _map_items_to_workers_sequentially(2, list(range(5)))
     assert workers_user_items == [[0, 1], [2, 3, 4]]
     workers_user_items = _map_items_to_workers_sequentially(3, list(range(5)))
-    assert workers_user_items == [[0], [1], [2, 3, 4]]
+    assert workers_user_items == [[0], [1, 2], [3, 4]]
     workers_user_items = _map_items_to_workers_sequentially(4, list(range(5)))
     assert workers_user_items == [[0], [1], [2], [3, 4]]
 
@@ -335,7 +335,7 @@ def test_map_items_to_workers_sequentially(monkeypatch):
     workers_user_items = _map_items_to_workers_sequentially(2, list(range(32)))
     assert workers_user_items == [[0, 1, 2, 3], [4, 5, 6, 7]]
     workers_user_items = _map_items_to_workers_sequentially(3, list(range(32)))
-    assert workers_user_items == [[0, 1], [2, 3], [4, 5, 6, 7]]
+    assert workers_user_items == [[0, 1], [2, 3], [4, 5]]
     workers_user_items = _map_items_to_workers_sequentially(4, list(range(32)))
     assert workers_user_items == [[0, 1], [2, 3], [4, 5], [6, 7]]
 
@@ -346,7 +346,7 @@ def test_map_items_to_workers_sequentially(monkeypatch):
     workers_user_items = _map_items_to_workers_sequentially(2, list(range(32)))
     assert workers_user_items == [[24, 25, 26, 27], [28, 29, 30, 31]]
     workers_user_items = _map_items_to_workers_sequentially(3, list(range(32)))
-    assert workers_user_items == [[24, 25], [26, 27], [28, 29, 30, 31]]
+    assert workers_user_items == [[23, 24, 25], [26, 27, 28], [29, 30, 31]]
     workers_user_items = _map_items_to_workers_sequentially(4, list(range(32)))
     assert workers_user_items == [[24, 25], [26, 27], [28, 29], [30, 31]]
 
