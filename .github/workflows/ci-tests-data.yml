@@ -38,11 +38,11 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { os: "macOS-11", pkg-name: "lightning", python-version: "3.10", pytorch-version: "2.1" }
+          - { os: "macOS-12", pkg-name: "lightning", python-version: "3.10", pytorch-version: "2.1" }
           - { os: "ubuntu-20.04", pkg-name: "lightning", python-version: "3.10", pytorch-version: "2.1" }
           - { os: "windows-2022", pkg-name: "lightning", python-version: "3.10", pytorch-version: "2.1" }
           # "oldest" versions tests, only on minimum Python
-          # - {os: "macOS-11", pkg-name: "lightning", python-version: "3.8", pytorch-version: "2.0", requires: "oldest"}
+          # - {os: "macOS-12", pkg-name: "lightning", python-version: "3.8", pytorch-version: "2.0", requires: "oldest"}
           # - {os: "ubuntu-20.04", pkg-name: "lightning", python-version: "3.8", pytorch-version: "2.0", requires: "oldest"}
           # - {os: "windows-2022", pkg-name: "lightning", python-version: "3.8", pytorch-version: "2.0", requires: "oldest"}
     timeout-minutes: 35 # because of building grpcio on Mac
