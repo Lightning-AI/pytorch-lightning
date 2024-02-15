@@ -442,7 +442,7 @@ def test_summary_training_mode():
     summary_data = OrderedDict(summary._get_summary_data())
     assert summary_data["Mode"] == [
         "train",  # branch1
-        "eval",   # branch2
+        "eval",  # branch2
         "train",  # head
     ]
 
