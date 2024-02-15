@@ -167,6 +167,59 @@ def test_throughput_monitor_fit_gradient_accumulation(tmp_path):
     model = BoringModel()
     model.flops_per_batch = 10
 
+    # accumulate_grad_batches=2, log_every_n_steps=3
+    trainer = Trainer(
+        devices=1,
+        logger=logger_mock,
+        callbacks=monitor,
+        limit_train_batches=5,
+        limit_val_batches=0,
+        max_epochs=2,
+        log_every_n_steps=3,
+        accumulate_grad_batches=2,
+        enable_checkpointing=False,
+        enable_model_summary=False,
+        enable_progress_bar=False,
+    )
+    timings = [0.0] + [0.5 + i for i in range(1, 11)]
+    with mock.patch("lightning.pytorch.callbacks.throughput_monitor.get_available_flops", return_value=100), mock.patch(
+        "time.perf_counter", side_effect=timings
+    ):
+        trainer.fit(model)
+
+    expected = {
+        "train|device|batches_per_sec": 1.0,
+        "train|device|samples_per_sec": 3.0,
+        "train|device|items_per_sec": 6.0,
+        "train|device|flops_per_sec": 10.0,
+        "train|device|mfu": 0.1,
+    }
+    assert logger_mock.log_metrics.mock_calls == [
+        call(
+            metrics={
+                **expected,
+                "train|time": 5.5,
+                "train|batches": 5,
+                "train|samples": 15,
+                "train|lengths": 30,
+                "epoch": 0,
+            },
+            step=2,
+        ),
+        call(
+            metrics={
+                **expected,
+                "train|time": 10.5,
+                "train|batches": 10,
+                "train|samples": 30,
+                "train|lengths": 60,
+                "epoch": 1,
+            },
+            step=5,
+        ),
+    ]
+
+    # accumulate_grad_batches=2, log_every_n_steps=1
     trainer = Trainer(
         devices=1,
         logger=logger_mock,
