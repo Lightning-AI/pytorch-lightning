@@ -107,6 +107,9 @@ class StreamingDataset(IterableDataset):
         self.serializers = serializers
         self._state_dict: Optional[Dict[str, Any]] = None
 
+    def set_shuffle(self, shuffle: bool) -> None:
+        self.shuffle = shuffle
+
     def set_epoch(self, current_epoch: int) -> None:
         """Set the current epoch to the dataset on epoch starts.
 
