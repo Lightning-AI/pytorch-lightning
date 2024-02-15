@@ -16,7 +16,6 @@ from unittest.mock import Mock, patch
 
 import pytest
 import torch
-
 from lightning.fabric.utilities.warnings import PossibleUserWarning
 from lightning.pytorch.callbacks import ModelCheckpoint
 from lightning.pytorch.demos.boring_classes import BoringModel
