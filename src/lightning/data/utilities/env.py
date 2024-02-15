@@ -32,6 +32,8 @@ class _DistributedEnv:
             world_size = torch.distributed.get_world_size()
             global_rank = torch.distributed.get_rank()
             num_nodes = world_size // torch.cuda.device_count()
+            if world_size % torch.cuda.device_count() != 0:
+                raise RuntimeError("The world size should be divisible by the number of GPUs.")
         else:
             world_size = None
             global_rank = 0
@@ -39,10 +41,6 @@ class _DistributedEnv:
 
         if world_size is None or world_size == -1:
             world_size = 1
-
-        if num_nodes > 1:
-            # validate the world size is divisble by the number of GPUs
-            assert world_size % torch.cuda.device_count() == 0
 
         return cls(world_size=world_size, global_rank=global_rank, num_nodes=num_nodes)
 
