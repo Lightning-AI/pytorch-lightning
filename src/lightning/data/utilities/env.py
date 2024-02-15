@@ -31,15 +31,14 @@ class _DistributedEnv:
         if torch.distributed.is_available() and torch.distributed.is_initialized():
             world_size = torch.distributed.get_world_size()
             global_rank = torch.distributed.get_rank()
+            num_nodes = world_size // torch.cuda.device_count()
         else:
             world_size = None
             global_rank = 0
+            num_nodes = 1
 
         if world_size is None or world_size == -1:
             world_size = 1
-
-        # TODO: Add support for other accelerators
-        num_nodes = (world_size // torch.cuda.device_count()) if torch.cuda.is_available() else 1
 
         if num_nodes > 1:
             # validate the world size is divisble by the number of GPUs
