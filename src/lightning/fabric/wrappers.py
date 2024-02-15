@@ -142,12 +142,10 @@ class _FabricModule(_DeviceDtypeModuleMixin):
         return output
 
     @overload
-    def state_dict(self, *, destination: T_destination, prefix: str = ..., keep_vars: bool = ...) -> T_destination:
-        ...
+    def state_dict(self, *, destination: T_destination, prefix: str = ..., keep_vars: bool = ...) -> T_destination: ...
 
     @overload
-    def state_dict(self, *, prefix: str = ..., keep_vars: bool = ...) -> Dict[str, Any]:
-        ...
+    def state_dict(self, *, prefix: str = ..., keep_vars: bool = ...) -> Dict[str, Any]: ...
 
     @override
     def state_dict(
@@ -301,7 +299,7 @@ class _FabricDataLoader:
 
 def _unwrap_objects(collection: Any) -> Any:
     def _unwrap(
-        obj: Union[_FabricModule, _FabricOptimizer, _FabricDataLoader]
+        obj: Union[_FabricModule, _FabricOptimizer, _FabricDataLoader],
     ) -> Union[nn.Module, Optimizer, DataLoader]:
         if isinstance(unwrapped := _unwrap_compiled(obj)[0], _FabricModule):
             return _unwrap_compiled(unwrapped._forward_module)[0]

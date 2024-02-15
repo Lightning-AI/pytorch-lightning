@@ -49,8 +49,7 @@ class HookedDataModule(BoringDataModule):
             setattr(self, h, partial_h)
 
     # override so that it gets called
-    def prepare_data(self):
-        ...
+    def prepare_data(self): ...
 
 
 @pytest.mark.parametrize("max_steps", [1, 2, 3])
@@ -267,52 +266,50 @@ class HookedModel(BoringModel):
         using_deepspeed = kwargs.get("strategy") == "deepspeed"
         out = []
         for i in range(current_batch, batches):
-            out.extend(
-                [
-                    {"name": "on_before_batch_transfer", "args": (ANY, 0)},
-                    {"name": "transfer_batch_to_device", "args": (ANY, device, 0)},
-                    {"name": "on_after_batch_transfer", "args": (ANY, 0)},
-                    {"name": "Callback.on_train_batch_start", "args": (trainer, model, ANY, i)},
-                    {"name": "on_train_batch_start", "args": (ANY, i)},
-                    {"name": "forward", "args": (ANY,)},
-                    {"name": "training_step", "args": (ANY, i)},
-                    {"name": "Callback.on_before_zero_grad", "args": (trainer, model, ANY)},
-                    {"name": "on_before_zero_grad", "args": (ANY,)},
-                    {"name": "optimizer_zero_grad", "args": (current_epoch, i, ANY)},
-                    {"name": "Callback.on_before_backward", "args": (trainer, model, ANY)},
-                    {"name": "on_before_backward", "args": (ANY,)},
-                    # DeepSpeed handles backward internally
-                    *([{"name": "backward", "args": (ANY,)}] if not using_deepspeed else []),
-                    {"name": "Callback.on_after_backward", "args": (trainer, model)},
-                    {"name": "on_after_backward"},
-                    # note: unscaling happens here in the case of AMP
-                    {"name": "Callback.on_before_optimizer_step", "args": (trainer, model, ANY)},
-                    {"name": "on_before_optimizer_step", "args": (ANY,)},
-                    {
-                        "name": "clip_gradients",
-                        "args": (ANY,),
-                        "kwargs": {"gradient_clip_val": None, "gradient_clip_algorithm": None},
-                    },
-                    {
-                        "name": "configure_gradient_clipping",
-                        "args": (ANY,),
-                        "kwargs": {"gradient_clip_val": None, "gradient_clip_algorithm": None},
-                    },
-                    # this is after because it refers to the `LightningModule.optimizer_step` hook which encapsulates
-                    # the actual call to `Precision.optimizer_step`
-                    {
-                        "name": "optimizer_step",
-                        "args": (current_epoch, i, ANY, ANY),
-                    },
-                    *(
-                        [{"name": "lr_scheduler_step", "args": (ANY, None)}]
-                        if i == (trainer.num_training_batches - 1)
-                        else []
-                    ),
-                    {"name": "Callback.on_train_batch_end", "args": (trainer, model, {"loss": ANY}, ANY, i)},
-                    {"name": "on_train_batch_end", "args": ({"loss": ANY}, ANY, i)},
-                ]
-            )
+            out.extend([
+                {"name": "on_before_batch_transfer", "args": (ANY, 0)},
+                {"name": "transfer_batch_to_device", "args": (ANY, device, 0)},
+                {"name": "on_after_batch_transfer", "args": (ANY, 0)},
+                {"name": "Callback.on_train_batch_start", "args": (trainer, model, ANY, i)},
+                {"name": "on_train_batch_start", "args": (ANY, i)},
+                {"name": "forward", "args": (ANY,)},
+                {"name": "training_step", "args": (ANY, i)},
+                {"name": "Callback.on_before_zero_grad", "args": (trainer, model, ANY)},
+                {"name": "on_before_zero_grad", "args": (ANY,)},
+                {"name": "optimizer_zero_grad", "args": (current_epoch, i, ANY)},
+                {"name": "Callback.on_before_backward", "args": (trainer, model, ANY)},
+                {"name": "on_before_backward", "args": (ANY,)},
+                # DeepSpeed handles backward internally
+                *([{"name": "backward", "args": (ANY,)}] if not using_deepspeed else []),
+                {"name": "Callback.on_after_backward", "args": (trainer, model)},
+                {"name": "on_after_backward"},
+                # note: unscaling happens here in the case of AMP
+                {"name": "Callback.on_before_optimizer_step", "args": (trainer, model, ANY)},
+                {"name": "on_before_optimizer_step", "args": (ANY,)},
+                {
+                    "name": "clip_gradients",
+                    "args": (ANY,),
+                    "kwargs": {"gradient_clip_val": None, "gradient_clip_algorithm": None},
+                },
+                {
+                    "name": "configure_gradient_clipping",
+                    "args": (ANY,),
+                    "kwargs": {"gradient_clip_val": None, "gradient_clip_algorithm": None},
+                },
+                # this is after because it refers to the `LightningModule.optimizer_step` hook which encapsulates
+                # the actual call to `Precision.optimizer_step`
+                {
+                    "name": "optimizer_step",
+                    "args": (current_epoch, i, ANY, ANY),
+                },
+                *(
+                    [{"name": "lr_scheduler_step", "args": (ANY, None)}]
+                    if i == (trainer.num_training_batches - 1)
+                    else []
+                ),
+                {"name": "Callback.on_train_batch_end", "args": (trainer, model, {"loss": ANY}, ANY, i)},
+                {"name": "on_train_batch_end", "args": ({"loss": ANY}, ANY, i)},
+            ])
         return out
 
     @staticmethod
@@ -320,30 +317,28 @@ class HookedModel(BoringModel):
         using_deepspeed = kwargs.get("strategy") == "deepspeed"
         out = []
         for i in range(batches):
-            out.extend(
-                [
-                    {"name": "on_before_batch_transfer", "args": (ANY, 0)},
-                    {"name": "transfer_batch_to_device", "args": (ANY, device, 0)},
-                    {"name": "on_after_batch_transfer", "args": (ANY, 0)},
-                    {"name": "Callback.on_train_batch_start", "args": (trainer, model, ANY, i)},
-                    {"name": "on_train_batch_start", "args": (ANY, i)},
-                    {"name": "forward", "args": (ANY,)},
-                    {"name": "Callback.on_before_backward", "args": (trainer, model, ANY)},
-                    {"name": "on_before_backward", "args": (ANY,)},
-                    # DeepSpeed handles backward internally
-                    *([{"name": "backward", "args": (ANY,)}] if not using_deepspeed else []),
-                    {"name": "Callback.on_after_backward", "args": (trainer, model)},
-                    {"name": "on_after_backward"},
-                    # `manual_backward` calls the previous 3
-                    {"name": "manual_backward", "args": (ANY,)},
-                    {"name": "closure"},
-                    {"name": "Callback.on_before_optimizer_step", "args": (trainer, model, ANY)},
-                    {"name": "on_before_optimizer_step", "args": (ANY,)},
-                    {"name": "training_step", "args": (ANY, i)},
-                    {"name": "Callback.on_train_batch_end", "args": (trainer, model, {"loss": ANY}, ANY, i)},
-                    {"name": "on_train_batch_end", "args": ({"loss": ANY}, ANY, i)},
-                ]
-            )
+            out.extend([
+                {"name": "on_before_batch_transfer", "args": (ANY, 0)},
+                {"name": "transfer_batch_to_device", "args": (ANY, device, 0)},
+                {"name": "on_after_batch_transfer", "args": (ANY, 0)},
+                {"name": "Callback.on_train_batch_start", "args": (trainer, model, ANY, i)},
+                {"name": "on_train_batch_start", "args": (ANY, i)},
+                {"name": "forward", "args": (ANY,)},
+                {"name": "Callback.on_before_backward", "args": (trainer, model, ANY)},
+                {"name": "on_before_backward", "args": (ANY,)},
+                # DeepSpeed handles backward internally
+                *([{"name": "backward", "args": (ANY,)}] if not using_deepspeed else []),
+                {"name": "Callback.on_after_backward", "args": (trainer, model)},
+                {"name": "on_after_backward"},
+                # `manual_backward` calls the previous 3
+                {"name": "manual_backward", "args": (ANY,)},
+                {"name": "closure"},
+                {"name": "Callback.on_before_optimizer_step", "args": (trainer, model, ANY)},
+                {"name": "on_before_optimizer_step", "args": (ANY,)},
+                {"name": "training_step", "args": (ANY, i)},
+                {"name": "Callback.on_train_batch_end", "args": (trainer, model, {"loss": ANY}, ANY, i)},
+                {"name": "on_train_batch_end", "args": ({"loss": ANY}, ANY, i)},
+            ])
         return out
 
     @staticmethod
@@ -361,59 +356,50 @@ class HookedModel(BoringModel):
         out = []
         outputs = {key: ANY}
         for i in range(batches):
-            out.extend(
-                [
-                    {"name": "on_before_batch_transfer", "args": (ANY, 0)},
-                    {"name": "transfer_batch_to_device", "args": (ANY, device, 0)},
-                    {"name": "on_after_batch_transfer", "args": (ANY, 0)},
-                    {"name": f"Callback.on_{fn}_batch_start", "args": (trainer, model, ANY, i)},
-                    {"name": f"on_{fn}_batch_start", "args": (ANY, i)},
-                    {"name": "forward", "args": (ANY,)},
-                    {"name": f"{fn}_step", "args": (ANY, i)},
-                    {"name": f"Callback.on_{fn}_batch_end", "args": (trainer, model, outputs, ANY, i)},
-                    {"name": f"on_{fn}_batch_end", "args": (outputs, ANY, i)},
-                ]
-            )
+            out.extend([
+                {"name": "on_before_batch_transfer", "args": (ANY, 0)},
+                {"name": "transfer_batch_to_device", "args": (ANY, device, 0)},
+                {"name": "on_after_batch_transfer", "args": (ANY, 0)},
+                {"name": f"Callback.on_{fn}_batch_start", "args": (trainer, model, ANY, i)},
+                {"name": f"on_{fn}_batch_start", "args": (ANY, i)},
+                {"name": "forward", "args": (ANY,)},
+                {"name": f"{fn}_step", "args": (ANY, i)},
+                {"name": f"Callback.on_{fn}_batch_end", "args": (trainer, model, outputs, ANY, i)},
+                {"name": f"on_{fn}_batch_end", "args": (outputs, ANY, i)},
+            ])
         return out
 
     @staticmethod
     def _predict_batch(trainer, model, batches, device):
         out = []
         for i in range(batches):
-            out.extend(
-                [
-                    {"name": "on_before_batch_transfer", "args": (ANY, 0)},
-                    {"name": "transfer_batch_to_device", "args": (ANY, device, 0)},
-                    {"name": "on_after_batch_transfer", "args": (ANY, 0)},
-                    {"name": "Callback.on_predict_batch_start", "args": (trainer, model, ANY, i)},
-                    {"name": "on_predict_batch_start", "args": (ANY, i)},
-                    {"name": "forward", "args": (ANY,)},
-                    {"name": "predict_step", "args": (ANY, i)},
-                    {"name": "Callback.on_predict_batch_end", "args": (trainer, model, ANY, ANY, i)},
-                    {"name": "on_predict_batch_end", "args": (ANY, ANY, i)},
-                ]
-            )
+            out.extend([
+                {"name": "on_before_batch_transfer", "args": (ANY, 0)},
+                {"name": "transfer_batch_to_device", "args": (ANY, device, 0)},
+                {"name": "on_after_batch_transfer", "args": (ANY, 0)},
+                {"name": "Callback.on_predict_batch_start", "args": (trainer, model, ANY, i)},
+                {"name": "on_predict_batch_start", "args": (ANY, i)},
+                {"name": "forward", "args": (ANY,)},
+                {"name": "predict_step", "args": (ANY, i)},
+                {"name": "Callback.on_predict_batch_end", "args": (trainer, model, ANY, ANY, i)},
+                {"name": "on_predict_batch_end", "args": (ANY, ANY, i)},
+            ])
         return out
 
     # override so that it gets called
-    def configure_model(self):
-        ...
+    def configure_model(self): ...
 
     # override so that it gets called
-    def on_validation_model_train(self):
-        ...
+    def on_validation_model_train(self): ...
 
     # override so that it gets called
-    def on_test_model_train(self):
-        ...
+    def on_test_model_train(self): ...
 
     # override so that it gets called
-    def on_predict_model_train(self):
-        ...
+    def on_predict_model_train(self): ...
 
     # override so that it gets called
-    def prepare_data(self):
-        ...
+    def prepare_data(self): ...
 
 
 @pytest.mark.parametrize(

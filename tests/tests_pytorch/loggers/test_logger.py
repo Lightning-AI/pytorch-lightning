@@ -261,8 +261,7 @@ def test_log_hyperparams_key_collision(_, tmpdir):
             super().__init__()
             self.save_hyperparameters(hparams)
 
-    class _Test:
-        ...
+    class _Test: ...
 
     same_params = {1: 1, "2": 2, "three": 3.0, "test": _Test(), "4": torch.tensor(4)}
     model = TestModel(same_params)
