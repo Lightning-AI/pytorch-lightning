@@ -76,16 +76,16 @@ class StreamingDataset(IterableDataset):
         self.distributed_env = _DistributedEnv.detect()
 
         if self.distributed_env.world_size > 1:
-            if drop_last is None or drop_last is True:
-                self.drop_last = True
-            else:
+            if drop_last is False:
                 logger.warn(
-                    "You are running in a distributed environment and drop_last needs to be False. "
-                    "This can cause your training to hang if you are relying on distributed collectives."
+                    "You're operating within a distributed environment and have enabled the `drop_last` option. "
+                    "Please note that this configuration may lead to training interruptions if your system depends "
+                    "on distributed collectives."
                 )
-                self.drop_last = drop_last
-        else:
-            self.drop_last = drop_last or False
+            else:
+                drop_last = True
+
+        self.drop_last = drop_last or False
 
         self.seed = seed
         self.max_cache_size = max_cache_size
