@@ -13,6 +13,7 @@
 
 import hashlib
 import os
+from logging import Logger
 from time import time
 from typing import Any, Dict, List, Optional, Tuple, Union
 
@@ -31,6 +32,8 @@ from lightning.data.streaming.serializers import Serializer
 from lightning.data.streaming.shuffle import FullShuffle, NoShuffle, Shuffle
 from lightning.data.utilities.env import _DistributedEnv, _is_in_dataloader_worker, _WorkerEnv
 
+logger = Logger(__name__)
+
 
 class StreamingDataset(IterableDataset):
     """The streaming dataset can be used once your data have been optimised using the DatasetOptimiser class."""
@@ -40,7 +43,7 @@ class StreamingDataset(IterableDataset):
         input_dir: Union[str, "Dir"],
         item_loader: Optional[BaseItemLoader] = None,
         shuffle: bool = False,
-        drop_last: bool = False,
+        drop_last: Optional[bool] = None,
         seed: int = 42,
         serializers: Optional[Dict[str, Serializer]] = None,
         max_cache_size: Union[int, str] = "100GB",
@@ -53,6 +56,8 @@ class StreamingDataset(IterableDataset):
             shuffle: Whether to shuffle the data.
             drop_last: If `True`, drops the last items to ensure that
                 all processes/workers return the same amount of data.
+                The argument `drop_last` is set to `True` in a distributed setting
+                and `False` otherwise.
             seed: Random seed for shuffling.
             serializers: The serializers used to serialize and deserialize the chunks.
             max_cache_size: The maximum cache size used by the StreamingDataset.
@@ -68,12 +73,24 @@ class StreamingDataset(IterableDataset):
 
         self.item_loader = item_loader
         self.shuffle: bool = shuffle
-        self.drop_last = drop_last
+        self.distributed_env = _DistributedEnv.detect()
+
+        if self.distributed_env.world_size > 1:
+            if drop_last is False:
+                logger.warn(
+                    "You're operating within a distributed environment and have disabled the `drop_last` option. "
+                    "Please note that this configuration may lead to training interruptions if your system depends "
+                    "on distributed collectives."
+                )
+            else:
+                drop_last = True
+
+        self.drop_last = drop_last or False
+
         self.seed = seed
         self.max_cache_size = max_cache_size
 
         self.cache: Optional[Cache] = None
-        self.distributed_env = _DistributedEnv.detect()
         self.worker_env: Optional[_WorkerEnv] = None
         self.worker_chunks: List[int] = []
         self.worker_intervals: List[List[int]] = []

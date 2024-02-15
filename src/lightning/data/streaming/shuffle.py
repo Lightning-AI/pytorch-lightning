@@ -13,7 +13,7 @@
 
 from abc import ABC, abstractmethod
 from functools import lru_cache
-from typing import Any, List, Tuple
+from typing import Any, List
 
 import numpy as np
 
@@ -38,8 +38,10 @@ class Shuffle(ABC):
             items_per_process = [
                 sum((interval[-1] - interval[0]) for interval in intervals) for intervals in intervals_per_ranks
             ]
-            min_items_per_process = min(items_per_process)
-            return min_items_per_process
+            # Validate each processes gets the exact number of elements
+            if len(items_per_process) > 1:
+                assert all(items_per_process[0] == items_to_process for items_to_process in items_per_process[:1])
+            return items_per_process[0]
 
         return sum((interval[-1] - interval[0]) for interval in intervals_per_ranks[distributed_env.global_rank])
 
@@ -58,15 +60,17 @@ class NoShuffle(Shuffle):
 
     @lru_cache(maxsize=10)
     def get_chunks_and_intervals_per_ranks(self, distributed_env: _DistributedEnv, current_epoch: int) -> Any:
+        # 1. Get the intervals
         chunk_intervals = self.cache.get_chunk_intervals()
-        chunks_per_ranks: List[List[int]] = [[] for _ in range(distributed_env.world_size)]
-        intervals_per_ranks: List[List[Tuple]] = [[] for _ in range(distributed_env.world_size)]
-        for chunk_index, chunk_interval in enumerate(chunk_intervals):
-            replica_index = chunk_index % distributed_env.world_size
-            chunks_per_ranks[replica_index].append(chunk_index)
-            intervals_per_ranks[replica_index].append(chunk_interval)
+        indexes = range(len(chunk_intervals))
+
+        # 2. Compute the items budget of each rank
+        chunks_per_ranks, intervals_per_ranks = _associate_chunks_and_internals_to_ranks(
+            distributed_env, indexes, chunk_intervals, self.drop_last
+        )
 
         return chunks_per_ranks, intervals_per_ranks
+
 
     def __call__(self, array: np.ndarray, num_chunks: int, current_epoch: int, chunk_index: int) -> List[int]:
         return array.tolist()

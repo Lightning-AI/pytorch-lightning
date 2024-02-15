@@ -250,23 +250,35 @@ def _upload_fn(upload_queue: Queue, remove_queue: Queue, cache_dir: str, output_
 
 def _map_items_to_workers_sequentially(num_workers: int, user_items: List[Any]) -> List[List[Any]]:
     num_nodes = _get_num_nodes()
-    current_node_rank = _get_node_rank()
-    node_size = len(user_items) // num_nodes
-    workers_user_items = []
-    for node_rank in range(num_nodes):
-        if node_rank != current_node_rank:
-            continue
-        is_last_node = node_rank == num_nodes - 1
-        start_node = node_rank * node_size
-        end_node = len(user_items) if is_last_node else (node_rank + 1) * node_size
-        node_user_items = user_items[start_node:end_node]
-        worker_size = len(node_user_items) // num_workers
-        for worker_idx in range(num_workers):
-            is_last = worker_idx == num_workers - 1
-            begin = worker_idx * worker_size
-            end = len(node_user_items) if is_last else (worker_idx + 1) * worker_size
-            workers_user_items.append(node_user_items[begin:end])
-    return workers_user_items
+    world_size = (num_nodes * num_workers)
+    num_items_per_worker = len(user_items) // world_size
+
+    num_items_per_worker: List[int] = [num_items_per_worker for _ in range(world_size)]
+    reminder = len(user_items) % world_size
+
+    for worker_idx in range(len(num_items_per_worker) - 1, -1, -1):
+        if reminder == 0:
+            break
+        num_items_per_worker[worker_idx] += 1
+        reminder -= 1
+
+    num_items_cumsum_per_worker = np.cumsum([0] + num_items_per_worker)
+
+    out = []
+    node_rank = _get_node_rank()
+    worker_idx_start = node_rank * num_workers
+    worker_idx_end = (node_rank + 1) * num_workers
+
+    for worker_idx in range(world_size):
+        if worker_idx_start <= worker_idx and worker_idx < worker_idx_end:
+            start = num_items_cumsum_per_worker[worker_idx]
+            end = num_items_cumsum_per_worker[worker_idx + 1]
+            out.append(user_items[start : end])
+
+    if len(out) != num_workers:
+        raise RuntimeError("The items didn't haven't been assigned properly. Please, open an issue on Github.")
+
+    return out
 
 
 def _map_items_to_workers_weighted(
