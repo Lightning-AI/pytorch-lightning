@@ -430,18 +430,17 @@ def test_error_raised_with_float_limited_eval_batches():
         (DataLoader(dataset=RandomDataset(32, 64), sampler=list(range(64))), False),
         (CombinedLoader(DataLoader(dataset=RandomDataset(32, 64), shuffle=True)), True),
         (
-            CombinedLoader(
-                [DataLoader(dataset=RandomDataset(32, 64)), DataLoader(dataset=RandomDataset(32, 64), shuffle=True)]
-            ),
+            CombinedLoader([
+                DataLoader(dataset=RandomDataset(32, 64)),
+                DataLoader(dataset=RandomDataset(32, 64), shuffle=True),
+            ]),
             True,
         ),
         (
-            CombinedLoader(
-                {
-                    "dl1": DataLoader(dataset=RandomDataset(32, 64)),
-                    "dl2": DataLoader(dataset=RandomDataset(32, 64), shuffle=True),
-                }
-            ),
+            CombinedLoader({
+                "dl1": DataLoader(dataset=RandomDataset(32, 64)),
+                "dl2": DataLoader(dataset=RandomDataset(32, 64), shuffle=True),
+            }),
             True,
         ),
     ],

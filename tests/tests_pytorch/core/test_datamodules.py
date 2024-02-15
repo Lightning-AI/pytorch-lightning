@@ -297,12 +297,10 @@ def test_dm_init_from_datasets_dataloaders(iterable):
     dm = LightningDataModule.from_datasets(train_ds_sequence, batch_size=4, num_workers=0)
     with mock.patch("lightning.pytorch.core.datamodule.DataLoader") as dl_mock:
         dm.train_dataloader()
-        dl_mock.assert_has_calls(
-            [
-                call(train_ds_sequence[0], batch_size=4, shuffle=not iterable, num_workers=0, pin_memory=True),
-                call(train_ds_sequence[1], batch_size=4, shuffle=not iterable, num_workers=0, pin_memory=True),
-            ]
-        )
+        dl_mock.assert_has_calls([
+            call(train_ds_sequence[0], batch_size=4, shuffle=not iterable, num_workers=0, pin_memory=True),
+            call(train_ds_sequence[1], batch_size=4, shuffle=not iterable, num_workers=0, pin_memory=True),
+        ])
     with pytest.raises(MisconfigurationException, match="`val_dataloader` must be implemented"):
         _ = dm.val_dataloader()
     with pytest.raises(MisconfigurationException, match="`test_dataloader` must be implemented"):
@@ -327,16 +325,14 @@ def test_dm_init_from_datasets_dataloaders(iterable):
         dm.val_dataloader()
         dm.test_dataloader()
         dm.predict_dataloader()
-        dl_mock.assert_has_calls(
-            [
-                call(valid_dss[0], batch_size=4, shuffle=False, num_workers=0, pin_memory=True),
-                call(valid_dss[1], batch_size=4, shuffle=False, num_workers=0, pin_memory=True),
-                call(test_dss[0], batch_size=4, shuffle=False, num_workers=0, pin_memory=True),
-                call(test_dss[1], batch_size=4, shuffle=False, num_workers=0, pin_memory=True),
-                call(predict_dss[0], batch_size=4, shuffle=False, num_workers=0, pin_memory=True),
-                call(predict_dss[1], batch_size=4, shuffle=False, num_workers=0, pin_memory=True),
-            ]
-        )
+        dl_mock.assert_has_calls([
+            call(valid_dss[0], batch_size=4, shuffle=False, num_workers=0, pin_memory=True),
+            call(valid_dss[1], batch_size=4, shuffle=False, num_workers=0, pin_memory=True),
+            call(test_dss[0], batch_size=4, shuffle=False, num_workers=0, pin_memory=True),
+            call(test_dss[1], batch_size=4, shuffle=False, num_workers=0, pin_memory=True),
+            call(predict_dss[0], batch_size=4, shuffle=False, num_workers=0, pin_memory=True),
+            call(predict_dss[1], batch_size=4, shuffle=False, num_workers=0, pin_memory=True),
+        ])
 
 
 def test_dm_init_from_datasets_with_init_params():

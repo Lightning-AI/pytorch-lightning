@@ -11,7 +11,6 @@ def test_optimize_dns_context(monkeypatch):
     monkeypatch.setattr(utilities_module, "Popen", popen_mock)
 
     class FakeFile:
-
         def __init__(self, *args, **kwargs):
             pass
 
@@ -30,4 +29,8 @@ def test_optimize_dns_context(monkeypatch):
         pass
 
     cmd = popen_mock._mock_call_args_list[0].args[0]
-    assert cmd == "sudo /home/zeus/miniconda3/envs/cloudspace/bin/python -c 'from lightning.data.processing.utilities import _optimize_dns; _optimize_dns(True)'"  # noqa: E501
+    expected_cmd = (
+        "sudo /home/zeus/miniconda3/envs/cloudspace/bin/python"
+        " -c 'from lightning.data.processing.utilities import _optimize_dns; _optimize_dns(True)'"
+    )
+    assert cmd == expected_cmd

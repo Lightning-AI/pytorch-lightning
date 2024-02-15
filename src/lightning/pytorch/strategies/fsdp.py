@@ -567,9 +567,9 @@ class FSDPStrategy(ParallelStrategy):
             path.mkdir(parents=True, exist_ok=True)
 
             converted_state = {"model": checkpoint.pop("state_dict")}
-            converted_state.update(
-                {f"optimizer_{idx}": optim_state for idx, optim_state in enumerate(checkpoint.pop("optimizer_states"))}
-            )
+            converted_state.update({
+                f"optimizer_{idx}": optim_state for idx, optim_state in enumerate(checkpoint.pop("optimizer_states"))
+            })
 
             _distributed_checkpoint_save(converted_state, path)
 
@@ -604,6 +604,7 @@ class FSDPStrategy(ParallelStrategy):
 
                 if self.lightning_module.trainer.state.fn == TrainerFn.FITTING and self.optimizers:
                     from torch.distributed.checkpoint import FileSystemReader
+
                     # TODO: replace with newer APIs
                     # https://github.com/pytorch/pytorch/issues/119800#issuecomment-1942156271
                     reader = FileSystemReader(path=path)

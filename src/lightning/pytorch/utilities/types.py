@@ -16,6 +16,7 @@ Convention:
  - Do not include any `_TYPE` suffix
  - Types used in public hooks (as those in the `LightningModule` and `Callback`) should be public (no leading `_`)
 """
+
 from contextlib import contextmanager
 from dataclasses import dataclass
 from typing import (
@@ -68,12 +69,10 @@ class DistributedDataParallel(Protocol):
         check_reduction: bool = False,
         gradient_as_bucket_view: bool = False,
         static_graph: bool = False,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @contextmanager
-    def no_sync(self) -> Generator:
-        ...
+    def no_sync(self) -> Generator: ...
 
 
 # todo: improve LRSchedulerType naming/typing
@@ -121,7 +120,7 @@ OptimizerLRScheduler = Optional[
         Sequence[Optimizer],
         Tuple[Sequence[Optimizer], Sequence[Union[LRSchedulerTypeUnion, LRSchedulerConfig]]],
         OptimizerLRSchedulerConfig,
-        Sequence[OptimizerLRSchedulerConfig]
+        Sequence[OptimizerLRSchedulerConfig],
     ]
 ]
 

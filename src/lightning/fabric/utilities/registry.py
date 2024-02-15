@@ -39,9 +39,7 @@ def _load_external_callbacks(group: str) -> List[Any]:
         from importlib.metadata import entry_points
 
         factories = (
-            entry_points(group=group)
-            if _PYTHON_GREATER_EQUAL_3_10_0
-            else entry_points().get(group, {})  # type: ignore[arg-type]
+            entry_points(group=group) if _PYTHON_GREATER_EQUAL_3_10_0 else entry_points().get(group, {})  # type: ignore[arg-type]
         )
     else:
         from pkg_resources import iter_entry_points

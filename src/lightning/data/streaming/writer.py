@@ -188,7 +188,8 @@ class BinaryWriter:
         raise ValueError(f"The provided item isn't serializable. Found {item}")
 
     def _serialize_with_data_format(
-        self, item: Any, sizes: List[int], data: List[bytes], data_format: List[str]) -> None:
+        self, item: Any, sizes: List[int], data: List[bytes], data_format: List[str]
+    ) -> None:
         """Serialize a given item and append its size and bytes to the sizes and data array."""
         assert data_format
         for element, item_format in zip(item, data_format):
@@ -410,7 +411,8 @@ class BinaryWriter:
                 elif config != data["config"]:
                     raise Exception(
                         "The config isn't consistent between chunks. This shouldn't have happened."
-                        f"Found {config} {data['config']}.")
+                        f"Found {config} {data['config']}."
+                    )
 
                 chunks_info.extend(data["chunks"])
 

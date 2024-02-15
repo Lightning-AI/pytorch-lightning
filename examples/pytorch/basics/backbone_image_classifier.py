@@ -16,6 +16,7 @@
 To run: python backbone_image_classifier.py --trainer.max_epochs=50
 
 """
+
 from os import path
 from typing import Optional
 
