@@ -21,7 +21,7 @@ import os
 from argparse import Namespace
 from typing import TYPE_CHECKING, Any, Dict, Generator, List, Optional, Set, Union
 
-from lightning_utilities.core.imports import RequirementCache, module_available
+from lightning_utilities.core.imports import RequirementCache
 from torch import Tensor
 from typing_extensions import override
 
