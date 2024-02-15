@@ -22,8 +22,7 @@ from lightning.fabric.utilities.cloud_io import _is_dir, get_filesystem
 def test_get_filesystem_custom_filesystem():
     _DUMMY_PRFEIX = "dummy"
 
-    class DummyFileSystem(LocalFileSystem):
-        ...
+    class DummyFileSystem(LocalFileSystem): ...
 
     fsspec.register_implementation(_DUMMY_PRFEIX, DummyFileSystem, clobber=True)
     output_file = os.path.join(f"{_DUMMY_PRFEIX}://", "tmpdir/tmp_file")

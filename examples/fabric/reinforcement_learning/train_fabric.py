@@ -84,14 +84,10 @@ def main(args: argparse.Namespace):
     )
 
     # Environment setup
-    envs = gym.vector.SyncVectorEnv(
-        [
-            make_env(
-                args.env_id, args.seed + rank * args.num_envs + i, rank, args.capture_video, logger.log_dir, "train"
-            )
-            for i in range(args.num_envs)
-        ]
-    )
+    envs = gym.vector.SyncVectorEnv([
+        make_env(args.env_id, args.seed + rank * args.num_envs + i, rank, args.capture_video, logger.log_dir, "train")
+        for i in range(args.num_envs)
+    ])
     assert isinstance(envs.single_action_space, gym.spaces.Discrete), "only discrete action space is supported"
 
     # Define the agent and the optimizer and setup them with Fabric

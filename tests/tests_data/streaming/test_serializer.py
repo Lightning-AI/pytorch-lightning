@@ -44,8 +44,21 @@ _PIL_AVAILABLE = RequirementCache("PIL")
 def test_serializers():
     keys = list(_SERIALIZERS.keys())
     assert keys == [
-        'str', 'int', 'float', 'video', 'tif', 'file', 'pil', 'jpeg',
-        'bytes', 'no_header_numpy', 'numpy', 'no_header_tensor', 'tensor', 'pickle']
+        "str",
+        "int",
+        "float",
+        "video",
+        "tif",
+        "file",
+        "pil",
+        "jpeg",
+        "bytes",
+        "no_header_numpy",
+        "numpy",
+        "no_header_tensor",
+        "tensor",
+        "pickle",
+    ]
 
 
 def test_int_serializer():

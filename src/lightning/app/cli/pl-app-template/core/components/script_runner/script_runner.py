@@ -37,14 +37,12 @@ class ScriptRunner(TracerPythonScript):
 
         def pre_trainer_init(_, *args: Any, **kwargs: Any) -> Tuple[Dict, Tuple[Any, ...], Dict[str, Any]]:
             kwargs.setdefault("callbacks", [])
-            kwargs["callbacks"].extend(
-                [
-                    trainer_artifacts_tracker,
-                    trainer_state_tracker,
-                    progress_tracker,
-                    summary,
-                ]
-            )
+            kwargs["callbacks"].extend([
+                trainer_artifacts_tracker,
+                trainer_state_tracker,
+                progress_tracker,
+                summary,
+            ])
             return {}, args, kwargs
 
         tracer.add_traced(Trainer, "__init__", pre_fn=pre_trainer_init)
