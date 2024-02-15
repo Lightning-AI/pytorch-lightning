@@ -275,7 +275,8 @@ def _map_items_to_workers_sequentially(num_workers: int, user_items: List[Any]) 
             end = num_items_cumsum_per_worker[worker_idx + 1]
             out.append(user_items[start : end])
 
-    assert len(out) == num_workers
+    if len(out) != num_workers:
+        raise RuntimeError("The items didn't haven't been assigned properly. Please, open an issue on Github.")
 
     return out
 
