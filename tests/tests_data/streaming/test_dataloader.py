@@ -12,6 +12,10 @@ class TestStatefulDataset:
         self.size = size
         self.step = step
         self.counter = 0
+        self.shuffle = None
+
+    def set_shuffle(self, shuffle):
+        self.shuffle = shuffle
 
     def __len__(self):
         return self.size
@@ -92,3 +96,14 @@ def test_dataloader_profiling(profile, tmpdir, monkeypatch):
         batches.append(batch)
 
     assert os.path.exists(os.path.join(tmpdir, "result.json"))
+
+
+def test_dataloader_shuffle():
+    dataset = TestCombinedStreamingDataset(
+        [TestStatefulDataset(10, 1), TestStatefulDataset(10, -1)], 42, weights=(0.5, 0.5)
+    )
+    assert dataset._datasets[0].shuffle is None
+    assert dataset._datasets[1].shuffle is None
+    StreamingDataLoader(dataset, batch_size=2, num_workers=1, shuffle=True)
+    assert dataset._datasets[0].shuffle
+    assert dataset._datasets[1].shuffle
