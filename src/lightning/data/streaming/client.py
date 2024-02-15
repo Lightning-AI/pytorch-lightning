@@ -23,7 +23,7 @@ class S3Client:
     def _create_client(self) -> None:
         has_shared_credentials_file = (
             os.getenv("AWS_SHARED_CREDENTIALS_FILE") == os.getenv("AWS_CONFIG_FILE") == "/.credentials/.aws_credentials"
-        )  # noqa: E501
+        )
 
         if has_shared_credentials_file:
             self._client = boto3.client(

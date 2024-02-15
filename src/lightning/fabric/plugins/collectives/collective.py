@@ -21,11 +21,13 @@ class Collective(ABC):
 
     @property
     @abstractmethod
-    def rank(self) -> int: ...
+    def rank(self) -> int:
+        """Rank."""
 
     @property
     @abstractmethod
-    def world_size(self) -> int: ...
+    def world_size(self) -> int:
+        """World size."""
 
     @property
     def group(self) -> CollectibleGroup:

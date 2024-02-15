@@ -28,7 +28,8 @@ from lightning.app.utilities.tracer import Tracer
 @runtime_checkable
 class _FabricWorkProtocol(Protocol):
     @staticmethod
-    def run() -> None: ...
+    def run() -> None:
+        """Run."""
 
 
 @dataclass

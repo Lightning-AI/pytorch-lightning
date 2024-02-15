@@ -36,9 +36,9 @@ def make_request(
     if user_agent_token:
         user_agent_string += f" (compatible; {user_agent_token}; +https://github.com/Lightning-AI/pytorch-lightning)"
 
-    with urllib.request.urlopen(
+    with urllib.request.urlopen(  # noqa: S310
         urllib.request.Request(url, data=None, headers={"User-Agent": user_agent_string}), timeout=timeout
-    ) as r:  # noqa: E501, S310
+    ) as r:
         img_stream = io.BytesIO(r.read())
     return img_stream
 
@@ -63,11 +63,12 @@ def optimize_dns(enable: bool) -> None:
 
     if (enable and any("127.0.0.53" in line for line in lines)) or (
         not enable and any("127.0.0.1" in line for line in lines)
-    ):  # noqa E501
-        Popen(
-            f"sudo /home/zeus/miniconda3/envs/cloudspace/bin/python -c 'from lightning.data.processing.utilities import _optimize_dns; _optimize_dns({enable})'",
-            shell=True,
-        ).wait()  # noqa E501
+    ):
+        cmd = (
+            f"sudo /home/zeus/miniconda3/envs/cloudspace/bin/python"
+            f" -c 'from lightning.data.processing.utilities import _optimize_dns; _optimize_dns({enable})'"
+        )
+        Popen(cmd, shell=True).wait()  # E501
 
 
 def _optimize_dns(enable: bool) -> None:
