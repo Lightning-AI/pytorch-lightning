@@ -153,7 +153,9 @@ class _TrainingEpochLoop(loops._Loop):
             trainer = self.trainer
             if trainer.num_training_batches != float("inf"):
                 expected_steps = math.ceil(trainer.num_training_batches / trainer.accumulate_grad_batches)
-                is_resumable_loader = all(isinstance(loader, _Stateful) for loader in trainer.train_dataloader)
+                loader = trainer.fit_loop._combined_loader
+                assert loader is not None
+                is_resumable_loader = all(isinstance(loader, _Stateful) for loader in loader.flattened)
                 if self.global_step % expected_steps != 0 and not is_resumable_loader:
                     rank_zero_warn(
                         "You're resuming from a checkpoint that ended before the epoch ended and your dataloader is"
