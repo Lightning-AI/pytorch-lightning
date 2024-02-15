@@ -43,7 +43,7 @@ log = logging.getLogger(__name__)
 # rid of Neptune-client package completely someday. It was introduced as a part of breaking-changes with a release
 # of neptune-client==1.0. neptune-client>=1.0 is just an alias of neptune package and have some breaking-changes
 # in compare to neptune-client<1.0.0.
-_NEPTUNE_AVAILABLE = RequirementCache("neptune>=1.0") or module_available("neptune")
+_NEPTUNE_AVAILABLE = RequirementCache("neptune>=1.0", module="neptune")
 _INTEGRATION_VERSION_KEY = "source_code/integrations/pytorch-lightning"
 
 
@@ -227,7 +227,7 @@ class NeptuneLogger(Logger):
         **neptune_run_kwargs: Any,
     ):
         if not _NEPTUNE_AVAILABLE:
-            raise ModuleNotFoundError("Missing Neptune logger, please install it with `pip install neptune`")
+            raise ModuleNotFoundError(str(_NEPTUNE_AVAILABLE))
 
         # verify if user passed proper init arguments
         self._verify_input_arguments(api_key, project, name, run, neptune_run_kwargs)
