@@ -22,6 +22,7 @@ import torch
 from lightning import seed_everything
 from lightning.data.processing import functions
 from lightning.data.streaming import Cache
+from lightning.data.streaming import dataset as dataset_module
 from lightning.data.streaming.dataloader import StreamingDataLoader
 from lightning.data.streaming.dataset import (
     _INDEX_FILENAME,
@@ -100,31 +101,46 @@ def test_streaming_dataset_distributed_no_shuffle(drop_last, tmpdir):
     assert len(dataset) == 101
 
     dataset.distributed_env = _DistributedEnv(2, 0, 1)
+    assert len(dataset) == 50
+
+    dataset.distributed_env = _DistributedEnv(2, 1, 1)
     assert len(dataset) == 50 + int(not drop_last)
+
     dataset_iter = iter(dataset)
     assert len(dataset_iter) == 50 + int(not drop_last)
+
+    dataset.distributed_env = _DistributedEnv(2, 0, 1)
+
     process_1_1 = list(dataset_iter)
-    assert len(process_1_1) == 50 + int(not drop_last)
+
+    assert len(process_1_1) == 50
     assert process_1_1[:10] == [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
     dataset_iter = iter(dataset)
-    assert len(dataset_iter) == 50 + int(not drop_last)
+
+    assert len(dataset_iter) == 50
     process_1_2 = list(dataset_iter)
     assert process_1_2[:10] == [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
-    assert len(process_1_2) == 50 + int(not drop_last)
+
+    assert len(process_1_2) == 50
 
     dataset = StreamingDataset(input_dir=str(tmpdir), shuffle=False, drop_last=drop_last)
     dataset.distributed_env = _DistributedEnv(2, 1, 1)
-    assert len(dataset) == 50
-    dataset_iter = iter(dataset)
-    process_2_1 = list(dataset_iter)
-    assert process_2_1[:10] == [10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
-    assert len(process_2_1) == 50
-    dataset_iter = iter(dataset)
-    assert len(dataset_iter) == 50
-    process_2_2 = list(dataset_iter)
-    assert process_2_2[:10] == [10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
 
-    assert len(process_2_2) == 50
+    assert len(dataset) == 50 + int(not drop_last)
+    dataset_iter = iter(dataset)
+
+    process_2_1 = list(dataset_iter)
+    assert process_2_1[:10] == [50, 51, 52, 53, 54, 55, 56, 57, 58, 59]
+
+    assert len(process_2_1) == 50 + int(not drop_last)
+    dataset_iter = iter(dataset)
+
+    assert len(dataset_iter) == 50 + int(not drop_last)
+    process_2_2 = list(dataset_iter)
+
+    assert process_2_2[:10] == [50, 51, 52, 53, 54, 55, 56, 57, 58, 59]
+
+    assert len(process_2_2) == 50 + int(not drop_last)
 
     _, intervals_per_ranks = dataset.shuffler.get_chunks_and_intervals_per_ranks(
         dataset.distributed_env, dataset.current_epoch
@@ -503,11 +519,11 @@ def test_dataset_for_text_tokens_distributed_num_workers(tmpdir):
     assert len(dataset) == 20
 
     dataset.distributed_env = _DistributedEnv(2, 0, 1)
-    dataloader = DataLoader(dataset, batch_size=2, shuffle=False, num_workers=2)
+    dataloader = DataLoader(dataset, batch_size=2, shuffle=False)
 
-    assert len(dataloader) == 6
+    assert len(dataloader) == 5
 
-    expected = [[0, 10], [80, 90], [20, 30], [100, 110], [160, 170], [180, 190]]
+    expected = [[0, 10], [20, 30], [40, 50], [60, 70], [80, 90]]
 
     for batch_idx, batch in enumerate(dataloader):
         assert [batch[0][0].item(), batch[1][0].item()] == expected[batch_idx]
@@ -515,9 +531,9 @@ def test_dataset_for_text_tokens_distributed_num_workers(tmpdir):
     dataset.distributed_env = _DistributedEnv(2, 1, 1)
     dataloader = DataLoader(dataset, batch_size=2, shuffle=False)
 
-    assert len(dataloader) == 4
+    assert len(dataloader) == 5
 
-    expected = [[40, 50], [60, 70], [120, 130], [140, 150]]
+    expected = [[100, 110], [120, 130], [140, 150], [160, 170], [180, 190]]
 
     for batch_idx, batch in enumerate(dataloader):
         assert [batch[0][0].item(), batch[1][0].item()] == expected[batch_idx]
@@ -570,7 +586,7 @@ def test_dataset_for_text_tokens_distributed_num_workers_end_to_end(tmpdir, monk
 
     assert len(dataloader) == 5
 
-    expected = [[0, 10], [40, 50], [80, 90], [120, 130], [160, 170]]
+    expected = [[0, 10], [20, 30], [40, 50], [60, 70], [80, 90]]
 
     for batch_idx, batch in enumerate(dataloader):
         assert [batch[0][0].item(), batch[1][0].item()] == expected[batch_idx]
@@ -580,7 +596,7 @@ def test_dataset_for_text_tokens_distributed_num_workers_end_to_end(tmpdir, monk
 
     assert len(dataloader) == 5
 
-    expected = [[20, 30], [60, 70], [100, 110], [140, 150], [180, 190]]
+    expected = [[100, 110], [120, 130], [140, 150], [160, 170], [180, 190]]
 
     for batch_idx, batch in enumerate(dataloader):
         assert [batch[0][0].item(), batch[1][0].item()] == expected[batch_idx]
@@ -760,7 +776,7 @@ def test_dataset_valid_state(tmpdir, monkeypatch):
     cache.merge()
 
     dataset = EmulateS3StreamingDataset(
-        input_dir=Dir(cache_dir, data_dir), item_loader=TokensLoader(block_size), shuffle=False
+        input_dir=Dir(cache_dir, data_dir), item_loader=TokensLoader(block_size), shuffle=False, drop_last=False,
     )
     dataloader = DataLoader(dataset, num_workers=1, batch_size=2)
     dataloader_iter = iter(dataloader)
@@ -865,3 +881,26 @@ def test_replay_chunks_sampling():
     assert _replay_chunks_sampling(workers_intervals, {0: 16, 1: 11}) == ({0: 3, 1: 2}, {0: 1, 1: 1})
     assert _replay_chunks_sampling(workers_intervals, {0: 14, 1: 13}) == ({0: 2, 1: 2}, {0: 4, 1: 3})
     assert _replay_chunks_sampling(workers_intervals, {0: 15, 1: 12}) == ({0: 3, 1: 2}, {0: 0, 1: 2})
+
+
+def test_dataset_distributed_drop_last(tmpdir, monkeypatch):
+
+    class _DistributedEnvMock():
+
+        def detect(cls):
+            return _DistributedEnv(2, 0, 1)
+
+    logger_mock = mock.MagicMock()
+
+    monkeypatch.setattr(dataset_module, "_DistributedEnv", _DistributedEnvMock())
+    monkeypatch.setattr(dataset_module, "logger", logger_mock)
+
+    dataset = StreamingDataset(str(tmpdir), drop_last=None)
+    assert dataset.drop_last
+
+    dataset = StreamingDataset(str(tmpdir), drop_last=False)
+    assert not dataset.drop_last
+
+    warn_value = logger_mock.warn._mock_mock_calls[0].args[0]
+    assert warn_value == "You're operating within a distributed environment and have disabled the `drop_last`" \
+        " option. Please note that this configuration may lead to training interruptions if your system depends on distributed collectives."   # noqa: E501
