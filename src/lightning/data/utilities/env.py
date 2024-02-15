@@ -45,7 +45,7 @@ class _DistributedEnv:
             # validate the world size is divisble by the number of GPUs
             assert world_size % torch.cuda.device_count() == 0
 
-        return cls(world_size=world_size, global_rank=global_rank, num_nodes=num_nodes)
+        return cls(world_size=world_size, global_rank=global_rank, num_nodes=max(1, num_nodes))
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(world_size: {self.world_size}, global_rank: {self.global_rank}\n)"
