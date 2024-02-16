@@ -17,19 +17,19 @@ if _LIGHTNING_CLOUD_LATEST:
 
 
 def _create_dataset(
-    input_dir: str,
+    input_dir: Optional[str],
     storage_dir: str,
     dataset_type: V1DatasetType,
     empty: Optional[bool] = None,
     size: Optional[int] = None,
-    num_bytes: Optional[int] = None,
+    num_bytes: Optional[str] = None,
     data_format: Optional[Union[str, Tuple[str]]] = None,
     compression: Optional[str] = None,
-    num_chunks: Optional[str] = None,
+    num_chunks: Optional[int] = None,
     num_bytes_per_chunk: Optional[List[int]] = None,
     name: Optional[str] = None,
     version: Optional[int] = None,
-):
+) -> None:
     """Create a dataset with metadata information about its source and destination."""
     project_id = os.getenv("LIGHTNING_CLOUD_PROJECT_ID", None)
     cluster_id = os.getenv("LIGHTNING_CLUSTER_ID", None)
