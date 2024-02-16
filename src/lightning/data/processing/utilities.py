@@ -73,10 +73,6 @@ def _create_dataset(
             project_id=project_id
         )
     except ApiException as ex:
-        # Note: This function can be called in a distributed way. 
-        # There is a race condition where one machine might create the entry before another machine
-        # and this request would fail with duplicated key
-        # In this case, it is fine not to raise 
         if 'already exists' in str(ex.body):
             pass
         else:
