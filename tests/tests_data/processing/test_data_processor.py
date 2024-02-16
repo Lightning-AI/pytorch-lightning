@@ -1023,3 +1023,19 @@ def test_map_is_last(num_workers, expected, tmpdir):
     )
 
     assert sorted(os.listdir(tmpdir)) == expected
+
+
+def no_op(index):
+    pass
+
+
+def test_empty_optimize(tmpdir):
+    optimize(
+        no_op,
+        list(range(10)),
+        output_dir=str(tmpdir),
+        chunk_bytes="64MB",
+        num_workers=1,
+    )
+
+    assert os.listdir(tmpdir) == ['index.json']
