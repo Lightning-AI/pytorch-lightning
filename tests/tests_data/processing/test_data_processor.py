@@ -1042,7 +1042,7 @@ def test_map_batch_size(tmpdir):
     )
 
     assert sorted(os.listdir(tmpdir)) == ["[0, 1]", "[2, 3]", "[4]"]
-    
+
 
 def no_op(index):
     pass
