@@ -17,6 +17,7 @@ Model Checkpointing
 
 Automatically save model checkpoints during training.
 """
+
 import logging
 import os
 import re
@@ -403,7 +404,7 @@ class ModelCheckpoint(Checkpoint):
             elif os.path.isdir(linkpath):
                 shutil.rmtree(linkpath)
             try:
-                os.symlink(filepath, linkpath)
+                os.symlink(os.path.relpath(filepath, os.path.dirname(linkpath)), linkpath)
             except OSError:
                 # on Windows, special permissions are required to create symbolic links as a regular user
                 # fall back to copying the file

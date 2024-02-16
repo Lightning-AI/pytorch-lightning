@@ -252,7 +252,7 @@ def _import_bitsandbytes() -> ModuleType:
             if int8params.has_fp16_weights:
                 int8params.data = B
             else:
-                CB, CBt, SCB, SCBt, coo_tensorB = bnb.functional.double_quant(B)
+                CB, CBt, SCB, SCBt, _ = bnb.functional.double_quant(B)
                 del CBt
                 del SCBt
                 int8params.data = CB
@@ -344,9 +344,9 @@ def _import_bitsandbytes() -> ModuleType:
         def to_empty(self, *, device: _DEVICE, recurse: bool = True) -> Self:
             if self.weight.dtype == torch.uint8:  # was quantized
                 # cannot init the quantized params directly
-                weight = torch.empty(self.weight.quant_state[1], device=device, dtype=torch.half)  # type: ignore[arg-type]
+                weight = torch.empty(self.weight.quant_state[1], device=device, dtype=torch.half)
             else:
-                weight = torch.empty_like(self.weight.data, device=device)  # type: ignore[arg-type]
+                weight = torch.empty_like(self.weight.data, device=device)
             device = torch.device(device)
             if device.type == "cuda":  # re-quantize
                 self.quantize_(weight, device)

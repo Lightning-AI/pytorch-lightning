@@ -40,14 +40,12 @@ def test_docker_runner():
     docker_runner.run()
 
     caller_queue = queues.get_caller_queue(work_name=work.name, queue_id=queue_id)
-    caller_queue.put(
-        {
-            "args": (),
-            "kwargs": {},
-            "call_hash": call_hash,
-            "state": work.state,
-        }
-    )
+    caller_queue.put({
+        "args": (),
+        "kwargs": {},
+        "call_hash": call_hash,
+        "state": work.state,
+    })
     delta_queue = queues.get_delta_queue(queue_id=queue_id)
     delta_1 = delta_queue.get()
     delta_2 = delta_queue.get()

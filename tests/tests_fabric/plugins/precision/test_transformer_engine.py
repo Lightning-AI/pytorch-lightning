@@ -101,11 +101,9 @@ def test_transformer_engine_plugin(monkeypatch):
     assert isinstance(model.l2, torch.nn.LayerNorm)
     assert isinstance(model.l3.l, torch.nn.Linear)
 
-    class TELinearMock(Mock):
-        ...
+    class TELinearMock(Mock): ...
 
-    class TELayerNormMock(Mock):
-        ...
+    class TELayerNormMock(Mock): ...
 
     transformer_engine_mock.pytorch.Linear = TELinearMock
     transformer_engine_mock.pytorch.LayerNorm = TELayerNormMock

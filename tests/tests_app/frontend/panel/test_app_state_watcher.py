@@ -6,6 +6,7 @@
 This is particularly useful for the PanelFrontend, but can be used by other Frontends too.
 
 """
+
 # pylint: disable=protected-access
 import os
 from unittest import mock

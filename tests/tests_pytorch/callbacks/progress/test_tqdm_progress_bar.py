@@ -335,6 +335,22 @@ def test_tqdm_progress_bar_value_on_colab(tmp_path):
 
 
 @pytest.mark.parametrize(
+    ("refresh_rate", "env_value", "expected"),
+    [
+        (0, 1, 1),
+        (1, 0, 1),
+        (1, 1, 1),
+        (2, 1, 2),
+        (1, 2, 2),
+    ],
+)
+def test_tqdm_progress_bar_refresh_rate_via_env_variable(refresh_rate, env_value, expected):
+    with mock.patch.dict(os.environ, {"TQDM_MINITERS": str(env_value)}):
+        bar = TQDMProgressBar(refresh_rate=refresh_rate)
+    assert bar.refresh_rate == expected
+
+
+@pytest.mark.parametrize(
     ("train_batches", "val_batches", "refresh_rate", "train_updates", "val_updates"),
     [
         (2, 3, 1, [0, 1, 2], [0, 1, 2, 3]),
@@ -525,9 +541,12 @@ def test_tqdm_progress_bar_print_disabled(tqdm_write, mock_print, tmp_path):
     trainer.test(model, verbose=False)
     trainer.predict(model)
 
-    mock_print.assert_has_calls(
-        [call("training_step", end=""), call("validation_step", file=ANY), call("test_step"), call("predict_step")]
-    )
+    mock_print.assert_has_calls([
+        call("training_step", end=""),
+        call("validation_step", file=ANY),
+        call("test_step"),
+        call("predict_step"),
+    ])
     tqdm_write.assert_not_called()
 
 
@@ -681,9 +700,12 @@ def test_tqdm_progress_bar_correct_value_epoch_end(tmp_path):
             items = super().get_metrics(trainer, model)
             del items["v_num"]
             # this is equivalent to mocking `set_postfix` as this method gets called every time
-            self.calls[trainer.state.fn].append(
-                (trainer.state.stage, trainer.current_epoch, trainer.global_step, items)
-            )
+            self.calls[trainer.state.fn].append((
+                trainer.state.stage,
+                trainer.current_epoch,
+                trainer.global_step,
+                items,
+            ))
             return items
 
     class MyModel(BoringModel):

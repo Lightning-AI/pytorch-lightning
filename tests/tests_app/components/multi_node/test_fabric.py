@@ -57,7 +57,7 @@ def test_fabric_run_executor_mps_forced_cpu(accelerator_given, accelerator_expec
         warning_context = no_warning_call(match=warning_str + "*")
 
     with warning_context:
-        ret_val, env_vars = _get_args_after_tracer_injection(accelerator=accelerator_given)
+        ret_val, _ = _get_args_after_tracer_injection(accelerator=accelerator_given)
     assert ret_val["accelerator"] == accelerator_expected
 
 

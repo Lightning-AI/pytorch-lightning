@@ -551,6 +551,13 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
     def register_strategies(cls, strategy_registry: _StrategyRegistry) -> None:
         strategy_registry.register("deepspeed", cls, description="Default DeepSpeed Strategy")
         strategy_registry.register("deepspeed_stage_1", cls, description="DeepSpeed with ZeRO Stage 1 enabled", stage=1)
+        strategy_registry.register(
+            "deepspeed_stage_1_offload",
+            cls,
+            description="DeepSpeed with ZeRO Stage 1 and optimizer CPU Offload",
+            stage=1,
+            offload_optimizer=True,
+        )
         strategy_registry.register("deepspeed_stage_2", cls, description="DeepSpeed with ZeRO Stage 2 enabled", stage=2)
         strategy_registry.register(
             "deepspeed_stage_2_offload",
@@ -738,12 +745,10 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
                     "max_in_cpu": max_in_cpu,
                     "pin_memory": pin_memory,
                 }
-            cfg.update(
-                {
-                    "zero_allow_untested_optimizer": zero_allow_untested_optimizer,
-                    "zero_optimization": zero_config,
-                }
-            )
+            cfg.update({
+                "zero_allow_untested_optimizer": zero_allow_untested_optimizer,
+                "zero_optimization": zero_config,
+            })
         if logging_batch_size_per_gpu:
             cfg["train_micro_batch_size_per_gpu"] = logging_batch_size_per_gpu
         return cfg

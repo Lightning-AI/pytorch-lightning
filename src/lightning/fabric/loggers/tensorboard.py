@@ -78,6 +78,7 @@ class TensorBoardLogger(Logger):
         logger.finalize("success")
 
     """
+
     LOGGER_JOIN_CHAR = "-"
 
     def __init__(
@@ -220,7 +221,7 @@ class TensorBoardLogger(Logger):
 
     @override
     @rank_zero_only
-    def log_hyperparams(  # type: ignore[override]
+    def log_hyperparams(
         self, params: Union[Dict[str, Any], Namespace], metrics: Optional[Dict[str, Any]] = None
     ) -> None:
         """Record hyperparameters. TensorBoard logs with and without saved hyperparameters are incompatible, the

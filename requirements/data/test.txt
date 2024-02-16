@@ -4,3 +4,6 @@ pytest-cov ==4.1.0
 pytest-timeout ==2.1.0
 pytest-rerunfailures ==12.0
 pytest-random-order ==1.1.0
+viztracer
+pandas
+pyarrow

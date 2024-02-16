@@ -360,7 +360,7 @@ class LightningCLI:
         self.trainer_class = trainer_class
         self.trainer_defaults = trainer_defaults or {}
         self.seed_everything_default = seed_everything_default
-        self.parser_kwargs = parser_kwargs or {}  # type: ignore[var-annotated]  # github.com/python/mypy/issues/6463
+        self.parser_kwargs = parser_kwargs or {}
         self.auto_configure_optimizers = auto_configure_optimizers
 
         self.model_class = model_class

@@ -31,6 +31,7 @@ from lightning.fabric.utilities.distributed import _distributed_is_initialized
 from lightning.fabric.utilities.imports import _IS_WINDOWS
 from lightning.pytorch.accelerators import XLAAccelerator
 from lightning.pytorch.trainer.connectors.signal_connector import _SignalConnector
+from tqdm import TMonitor
 
 from tests_pytorch import _PATH_DATASETS
 
@@ -82,10 +83,9 @@ def restore_env_variables():
         "WANDB_REQUIRE_SERVICE",
         "WANDB_SERVICE",
         "RANK",  # set by DeepSpeed
-        "POPLAR_ENGINE_OPTIONS",  # set by IPUStrategy
-        "CUDA_MODULE_LOADING",  # leaked since PyTorch 1.13
-        "KMP_INIT_AT_FORK",  # leaked since PyTorch 1.13
-        "KMP_DUPLICATE_LIB_OK",  # leaked since PyTorch 1.13
+        "CUDA_MODULE_LOADING",  # leaked by PyTorch
+        "KMP_INIT_AT_FORK",  # leaked by PyTorch
+        "KMP_DUPLICATE_LIB_OK",  # leaked by PyTorch
         "CRC32C_SW_MODE",  # leaked by tensorboardX
         "TRITON_CACHE_DIR",  # leaked by torch.compile
         "OMP_NUM_THREADS",  # set by our launchers
@@ -155,6 +155,8 @@ def thread_police_duuu_daaa_duuu_daaa():
             thread.join(timeout=10)
         elif thread.name == "QueueFeederThread":  # tensorboardX
             thread.join(timeout=20)
+        elif isinstance(thread, TMonitor):
+            thread.exit()
         elif (
             sys.version_info >= (3, 9)
             and isinstance(thread, _ExecutorManagerThread)

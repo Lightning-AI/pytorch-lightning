@@ -33,9 +33,11 @@ class TestModel(BoringModel):
     def __init__(self):
         super().__init__()
         self.layer = Sequential(
-            OrderedDict(
-                [("mlp_1", nn.Linear(32, 32)), ("mlp_2", nn.Linear(32, 32, bias=False)), ("mlp_3", nn.Linear(32, 2))]
-            )
+            OrderedDict([
+                ("mlp_1", nn.Linear(32, 32)),
+                ("mlp_2", nn.Linear(32, 32, bias=False)),
+                ("mlp_3", nn.Linear(32, 2)),
+            ])
         )
 
     def training_step(self, batch, batch_idx):

@@ -22,9 +22,10 @@ from lightning.fabric.accelerators.xla import _XLA_GREATER_EQUAL_2_1, XLAAcceler
 from lightning.fabric.strategies import XLAStrategy
 from lightning.fabric.strategies.launchers.xla import _XLALauncher
 from lightning.fabric.utilities.distributed import ReduceOp
+from lightning.fabric.utilities.seed import seed_everything
 from torch.utils.data import DataLoader
 
-from tests_fabric.helpers.models import RandomDataset
+from tests_fabric.helpers.datasets import RandomDataset
 from tests_fabric.helpers.runif import RunIf
 
 
@@ -160,6 +161,7 @@ def test_tpu_all_gather():
 
 
 def tpu_sync_module_states_fn(sync_module_states, strategy):
+    seed_everything(strategy.local_rank)  # force the model to have different weights across ranks
     model = torch.nn.Linear(1, 1).to(strategy.root_device)
     model = strategy.setup_module(model)
     gathered = strategy.all_gather(model.weight)

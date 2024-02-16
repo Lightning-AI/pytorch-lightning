@@ -12,8 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import itertools
+import sys
 
 import pytest
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_2
 from lightning.pytorch import LightningModule, Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
 from lightning.pytorch.overrides.distributed import _IndexBatchSamplerWrapper
@@ -50,6 +52,11 @@ def test_prediction_loop_stores_predictions(tmp_path):
     assert trainer.predict_loop.predictions == []
 
 
+@pytest.mark.xfail(
+    # https://github.com/pytorch/pytorch/issues/116056
+    sys.platform == "win32" and _TORCH_GREATER_EQUAL_2_2,
+    reason="Windows + DDP issue in PyTorch 2.2",
+)
 @pytest.mark.parametrize("use_distributed_sampler", [False, True])
 def test_prediction_loop_batch_sampler_set_epoch_called(tmp_path, use_distributed_sampler):
     """Tests that set_epoch is called on the dataloader's batch sampler (if any) during prediction."""
@@ -137,23 +144,20 @@ def test_invalid_dataloader_idx_raises_step(tmp_path):
     trainer = Trainer(default_root_dir=tmp_path, fast_dev_run=True)
 
     class ExtraDataloaderIdx(BoringModel):
-        def predict_step(self, batch, batch_idx, dataloader_idx):
-            ...
+        def predict_step(self, batch, batch_idx, dataloader_idx): ...
 
     model = ExtraDataloaderIdx()
     with pytest.raises(RuntimeError, match="have included `dataloader_idx` in `ExtraDataloaderIdx.predict_step"):
         trainer.predict(model)
 
     class GoodDefault(BoringModel):
-        def predict_step(self, batch, batch_idx, dataloader_idx=0):
-            ...
+        def predict_step(self, batch, batch_idx, dataloader_idx=0): ...
 
     model = GoodDefault()
     trainer.predict(model)
 
     class ExtraDlIdxOtherName(BoringModel):
-        def predict_step(self, batch, batch_idx, dl_idx):
-            ...
+        def predict_step(self, batch, batch_idx, dl_idx): ...
 
     model = ExtraDlIdxOtherName()
     # different names are not supported
@@ -161,8 +165,7 @@ def test_invalid_dataloader_idx_raises_step(tmp_path):
         trainer.predict(model)
 
     class MultipleDataloader(BoringModel):
-        def predict_step(self, batch, batch_idx):
-            ...
+        def predict_step(self, batch, batch_idx): ...
 
         def predict_dataloader(self):
             return [super().predict_dataloader(), super().predict_dataloader()]
@@ -172,15 +175,13 @@ def test_invalid_dataloader_idx_raises_step(tmp_path):
         trainer.predict(model)
 
     class IgnoringModel(MultipleDataloader):
-        def predict_step(self, batch, batch_idx, *_):
-            ...
+        def predict_step(self, batch, batch_idx, *_): ...
 
     model = IgnoringModel()
     trainer.predict(model)
 
     class IgnoringModel2(MultipleDataloader):
-        def predict_step(self, batch, batch_idx, **_):
-            ...
+        def predict_step(self, batch, batch_idx, **_): ...
 
     model = IgnoringModel2()
     with pytest.raises(RuntimeError, match="no `dataloader_idx` argument in `IgnoringModel2.predict_step"):
@@ -191,8 +192,7 @@ def test_invalid_dataloader_idx_raises_batch_start(tmp_path):
     trainer = Trainer(default_root_dir=tmp_path, fast_dev_run=True)
 
     class ExtraDataloaderIdx(BoringModel):
-        def on_predict_batch_start(self, batch, batch_idx, dataloader_idx):
-            ...
+        def on_predict_batch_start(self, batch, batch_idx, dataloader_idx): ...
 
     model = ExtraDataloaderIdx()
     with pytest.raises(
@@ -201,15 +201,13 @@ def test_invalid_dataloader_idx_raises_batch_start(tmp_path):
         trainer.predict(model)
 
     class GoodDefault(BoringModel):
-        def on_predict_batch_start(self, batch, batch_idx, dataloader_idx=0):
-            ...
+        def on_predict_batch_start(self, batch, batch_idx, dataloader_idx=0): ...
 
     model = GoodDefault()
     trainer.predict(model)
 
     class ExtraDlIdxOtherName(BoringModel):
-        def on_predict_batch_start(self, batch, batch_idx, dl_idx):
-            ...
+        def on_predict_batch_start(self, batch, batch_idx, dl_idx): ...
 
     model = ExtraDlIdxOtherName()
     # different names are not supported
@@ -217,8 +215,7 @@ def test_invalid_dataloader_idx_raises_batch_start(tmp_path):
         trainer.predict(model)
 
     class MultipleDataloader(BoringModel):
-        def on_predict_batch_start(self, batch, batch_idx):
-            ...
+        def on_predict_batch_start(self, batch, batch_idx): ...
 
         def predict_dataloader(self):
             return [super().predict_dataloader(), super().predict_dataloader()]
@@ -230,15 +227,13 @@ def test_invalid_dataloader_idx_raises_batch_start(tmp_path):
         trainer.predict(model)
 
     class IgnoringModel(MultipleDataloader):
-        def on_predict_batch_start(self, batch, batch_idx, *_):
-            ...
+        def on_predict_batch_start(self, batch, batch_idx, *_): ...
 
     model = IgnoringModel()
     trainer.predict(model)
 
     class IgnoringModel2(MultipleDataloader):
-        def on_predict_batch_start(self, batch, batch_idx, **_):
-            ...
+        def on_predict_batch_start(self, batch, batch_idx, **_): ...
 
     model = IgnoringModel2()
     with pytest.raises(RuntimeError, match="no `dataloader_idx` argument in `IgnoringModel2.on_predict_batch_start"):
@@ -249,8 +244,7 @@ def test_invalid_dataloader_idx_raises_batch_end(tmp_path):
     trainer = Trainer(default_root_dir=tmp_path, fast_dev_run=True)
 
     class ExtraDataloaderIdx(BoringModel):
-        def on_predict_batch_end(self, outputs, batch, batch_idx, dataloader_idx):
-            ...
+        def on_predict_batch_end(self, outputs, batch, batch_idx, dataloader_idx): ...
 
     model = ExtraDataloaderIdx()
     with pytest.raises(
@@ -259,15 +253,13 @@ def test_invalid_dataloader_idx_raises_batch_end(tmp_path):
         trainer.predict(model)
 
     class GoodDefault(BoringModel):
-        def on_predict_batch_end(self, outputs, batch, batch_idx, dataloader_idx=0):
-            ...
+        def on_predict_batch_end(self, outputs, batch, batch_idx, dataloader_idx=0): ...
 
     model = GoodDefault()
     trainer.predict(model)
 
     class ExtraDlIdxOtherName(BoringModel):
-        def on_predict_batch_end(self, outputs, batch, batch_idx, dl_idx):
-            ...
+        def on_predict_batch_end(self, outputs, batch, batch_idx, dl_idx): ...
 
     model = ExtraDlIdxOtherName()
     # different names are not supported
@@ -275,8 +267,7 @@ def test_invalid_dataloader_idx_raises_batch_end(tmp_path):
         trainer.predict(model)
 
     class MultipleDataloader(BoringModel):
-        def on_predict_batch_end(self, outputs, batch, batch_idx):
-            ...
+        def on_predict_batch_end(self, outputs, batch, batch_idx): ...
 
         def predict_dataloader(self):
             return [super().predict_dataloader(), super().predict_dataloader()]
@@ -286,15 +277,13 @@ def test_invalid_dataloader_idx_raises_batch_end(tmp_path):
         trainer.predict(model)
 
     class IgnoringModel(MultipleDataloader):
-        def on_predict_batch_end(self, outputs, batch, batch_idx, *_):
-            ...
+        def on_predict_batch_end(self, outputs, batch, batch_idx, *_): ...
 
     model = IgnoringModel()
     trainer.predict(model)
 
     class IgnoringModel2(MultipleDataloader):
-        def on_predict_batch_end(self, outputs, batch, batch_idx, **_):
-            ...
+        def on_predict_batch_end(self, outputs, batch, batch_idx, **_): ...
 
     model = IgnoringModel2()
     with pytest.raises(RuntimeError, match="no `dataloader_idx` argument in `IgnoringModel2.on_predict_batch_end"):
