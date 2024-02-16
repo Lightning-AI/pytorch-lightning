@@ -19,7 +19,9 @@ from functools import partial
 from pathlib import Path
 from types import FunctionType
 from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
+
 import torch
+
 from lightning.data.constants import _IS_IN_STUDIO, _TORCH_GREATER_EQUAL_2_1_0
 from lightning.data.processing.data_processor import DataChunkRecipe, DataProcessor, DataTransformRecipe
 from lightning.data.processing.readers import BaseReader
@@ -31,7 +33,6 @@ from lightning.data.streaming.resolver import (
     _execute,
     _resolve_dir,
 )
-import torch
 
 if _TORCH_GREATER_EQUAL_2_1_0:
     from torch.utils._pytree import tree_flatten
@@ -67,6 +68,7 @@ def _get_input_dir(inputs: Sequence[Any]) -> Optional[str]:
         return "/" + os.path.join(*str(list(indexed_paths.values())[0]).split("/")[:4])
 
     return "/" + os.path.join(*str(absolute_path).split("/")[:4])
+
 
 def _get_default_num_workers() -> int:
     if torch.cuda.is_available():
@@ -165,7 +167,7 @@ def map(
     reorder_files: bool = True,
     error_when_not_empty: bool = False,
     reader: Optional[BaseReader] = None,
-    batch_size: Optional[int] = None, 
+    batch_size: Optional[int] = None,
 ) -> None:
     """This function map a callbable over a collection of files possibly in a distributed way.
 
@@ -183,7 +185,7 @@ def map(
         reorder_files: By default, reorders the files by file size to distribute work equally among all workers.
             Set this to ``False`` if the order in which samples are processed should be preserved.
         error_when_not_empty: Whether we should error if the output folder isn't empty.
-        batch_size: Group the inputs into batches of batch_size length. 
+        batch_size: Group the inputs into batches of batch_size length.
 
     """
     if not isinstance(inputs, Sequence):
@@ -219,7 +221,7 @@ def map(
         input_dir = _resolve_dir(_get_input_dir(inputs))
 
         if isinstance(batch_size, int) and batch_size > 1:
-            inputs = [inputs[pos:pos + batch_size] for pos in range(0, len(inputs), batch_size)]
+            inputs = [inputs[pos : pos + batch_size] for pos in range(0, len(inputs), batch_size)]
 
         data_processor = DataProcessor(
             input_dir=input_dir,
@@ -276,7 +278,7 @@ def optimize(
         num_uploaders: The numbers of uploaders per worker.
         reorder_files: By default, reorders the files by file size to distribute work equally among all workers.
             Set this to ``False`` if the order in which samples are processed should be preserved.
-        batch_size: Group the inputs into batches of batch_size length. 
+        batch_size: Group the inputs into batches of batch_size length.
 
     """
     if not isinstance(inputs, Sequence):
@@ -314,7 +316,7 @@ def optimize(
         input_dir = _resolve_dir(_get_input_dir(inputs))
 
         if isinstance(batch_size, int) and batch_size > 1:
-            inputs = [inputs[pos:pos + batch_size] for pos in range(0, len(inputs), batch_size)]
+            inputs = [inputs[pos : pos + batch_size] for pos in range(0, len(inputs), batch_size)]
 
         data_processor = DataProcessor(
             input_dir=input_dir,
