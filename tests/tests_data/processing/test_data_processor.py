@@ -1024,13 +1024,11 @@ def test_map_is_last(num_workers, expected, tmpdir):
 
     assert sorted(os.listdir(tmpdir)) == expected
 
+
 def map_batch_size_fn(indexes, output_dir):
     path = os.path.join(output_dir, str(indexes))
     with open(path, "w") as f:
         f.write("hello world")
-
-
-
 
 
 def test_map_batch_size(tmpdir):
@@ -1043,4 +1041,4 @@ def test_map_batch_size(tmpdir):
         batch_size=2,
     )
 
-    assert sorted(os.listdir(tmpdir)) == ['[0, 1]', '[2, 3]', '[4]']
+    assert sorted(os.listdir(tmpdir)) == ["[0, 1]", "[2, 3]", "[4]"]
