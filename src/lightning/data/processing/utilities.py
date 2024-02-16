@@ -9,7 +9,6 @@ from lightning.data.constants import _IS_IN_STUDIO, _LIGHTNING_CLOUD_LATEST
 
 from typing import Optional, List, Tuple, Union
 import os
-import urllib3
 
 if _LIGHTNING_CLOUD_LATEST:
     from lightning_cloud.rest_client import LightningClient
@@ -73,7 +72,7 @@ def _create_dataset(
             ),
             project_id=project_id
         )
-    except (ApiException, urllib3.exceptions.HTTPError) as ex:
+    except ApiException as ex:
         # Note: This function can be called in a distributed way. 
         # There is a race condition where one machine might create the entry before another machine
         # and this request would fail with duplicated key
