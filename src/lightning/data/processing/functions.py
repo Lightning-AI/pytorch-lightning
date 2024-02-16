@@ -73,7 +73,7 @@ def _get_input_dir(inputs: Sequence[Any]) -> Optional[str]:
 def _get_default_num_workers() -> int:
     if torch.cuda.is_available():
         return torch.cuda.device_count()
-    return os.cpu_count()
+    return os.cpu_count() or 1
 
 
 class LambdaDataTransformRecipe(DataTransformRecipe):
