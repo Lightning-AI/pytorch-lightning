@@ -10,10 +10,9 @@ import numpy as np
 import pytest
 import torch
 from lightning import seed_everything
-from lightning.data.streaming import data_processor as data_processor_module
-from lightning.data.streaming import functions, resolver
-from lightning.data.streaming.cache import Cache, Dir
-from lightning.data.streaming.data_processor import (
+from lightning.data.processing import data_processor as data_processor_module
+from lightning.data.processing import functions
+from lightning.data.processing.data_processor import (
     DataChunkRecipe,
     DataProcessor,
     DataTransformRecipe,
@@ -26,7 +25,9 @@ from lightning.data.streaming.data_processor import (
     _wait_for_disk_usage_higher_than_threshold,
     _wait_for_file_to_exist,
 )
-from lightning.data.streaming.functions import LambdaDataTransformRecipe, map, optimize
+from lightning.data.processing.functions import LambdaDataTransformRecipe, map, optimize
+from lightning.data.streaming import resolver
+from lightning.data.streaming.cache import Cache, Dir
 from lightning_utilities.core.imports import RequirementCache
 
 _PIL_AVAILABLE = RequirementCache("PIL")
@@ -162,7 +163,7 @@ def test_remove_target(tmpdir):
 
 
 @pytest.mark.skipif(condition=sys.platform == "win32", reason="Not supported on windows")
-@mock.patch("lightning.data.streaming.data_processor._wait_for_disk_usage_higher_than_threshold")
+@mock.patch("lightning.data.processing.data_processor._wait_for_disk_usage_higher_than_threshold")
 def test_download_data_target(wait_for_disk_usage_higher_than_threshold_mock, tmpdir):
     input_dir = os.path.join(tmpdir, "input_dir")
     os.makedirs(input_dir, exist_ok=True)
@@ -201,7 +202,7 @@ def test_download_data_target(wait_for_disk_usage_higher_than_threshold_mock, tm
 
 def test_wait_for_disk_usage_higher_than_threshold():
     disk_usage_mock = mock.Mock(side_effect=[mock.Mock(free=10e9), mock.Mock(free=10e9), mock.Mock(free=10e11)])
-    with mock.patch("lightning.data.streaming.data_processor.shutil.disk_usage", disk_usage_mock):
+    with mock.patch("lightning.data.processing.data_processor.shutil.disk_usage", disk_usage_mock):
         _wait_for_disk_usage_higher_than_threshold("/", 10, sleep_time=0)
     assert disk_usage_mock.call_count == 3
 
@@ -309,7 +310,7 @@ def test_map_items_to_workers_sequentially(monkeypatch):
     workers_user_items = _map_items_to_workers_sequentially(2, list(range(5)))
     assert workers_user_items == [[0, 1], [2, 3, 4]]
     workers_user_items = _map_items_to_workers_sequentially(3, list(range(5)))
-    assert workers_user_items == [[0], [1], [2, 3, 4]]
+    assert workers_user_items == [[0], [1, 2], [3, 4]]
     workers_user_items = _map_items_to_workers_sequentially(4, list(range(5)))
     assert workers_user_items == [[0], [1], [2], [3, 4]]
 
@@ -334,7 +335,7 @@ def test_map_items_to_workers_sequentially(monkeypatch):
     workers_user_items = _map_items_to_workers_sequentially(2, list(range(32)))
     assert workers_user_items == [[0, 1, 2, 3], [4, 5, 6, 7]]
     workers_user_items = _map_items_to_workers_sequentially(3, list(range(32)))
-    assert workers_user_items == [[0, 1], [2, 3], [4, 5, 6, 7]]
+    assert workers_user_items == [[0, 1], [2, 3], [4, 5]]
     workers_user_items = _map_items_to_workers_sequentially(4, list(range(32)))
     assert workers_user_items == [[0, 1], [2, 3], [4, 5], [6, 7]]
 
@@ -345,7 +346,7 @@ def test_map_items_to_workers_sequentially(monkeypatch):
     workers_user_items = _map_items_to_workers_sequentially(2, list(range(32)))
     assert workers_user_items == [[24, 25, 26, 27], [28, 29, 30, 31]]
     workers_user_items = _map_items_to_workers_sequentially(3, list(range(32)))
-    assert workers_user_items == [[24, 25], [26, 27], [28, 29, 30, 31]]
+    assert workers_user_items == [[23, 24, 25], [26, 27, 28], [29, 30, 31]]
     workers_user_items = _map_items_to_workers_sequentially(4, list(range(32)))
     assert workers_user_items == [[24, 25], [26, 27], [28, 29], [30, 31]]
 
@@ -562,6 +563,9 @@ def test_data_processsor_nlp(tmpdir, monkeypatch):
 
     data_processor = DataProcessor(input_dir=str(tmpdir), num_workers=1, num_downloaders=1)
     data_processor.run(TextTokenizeRecipe(chunk_size=1024 * 11))
+
+    data_processor_more_wokers = DataProcessor(input_dir=str(tmpdir), num_workers=2, num_downloaders=1)
+    data_processor_more_wokers.run(TextTokenizeRecipe(chunk_size=1024 * 11))
 
 
 class ImageResizeRecipe(DataTransformRecipe):
@@ -995,6 +999,7 @@ def test_map_error_when_not_empty(monkeypatch):
             error_when_not_empty=False,
         )
 
+
 def map_fn_is_last(index, output_dir, is_last):
     with open(os.path.join(output_dir, f"{index}_{is_last}.txt"), "w") as f:
         f.write("here")
@@ -1004,8 +1009,8 @@ def map_fn_is_last(index, output_dir, is_last):
 @pytest.mark.parametrize(
     ("num_workers", "expected"),
     [
-        (1, ['0_False.txt', '1_False.txt', '2_False.txt', '3_False.txt', '4_True.txt']),
-        (2, ['0_False.txt', '1_True.txt', '2_False.txt', '3_False.txt', '4_True.txt']),
+        (1, ["0_False.txt", "1_False.txt", "2_False.txt", "3_False.txt", "4_True.txt"]),
+        (2, ["0_False.txt", "1_True.txt", "2_False.txt", "3_False.txt", "4_True.txt"]),
     ],
 )
 def test_map_is_last(num_workers, expected, tmpdir):

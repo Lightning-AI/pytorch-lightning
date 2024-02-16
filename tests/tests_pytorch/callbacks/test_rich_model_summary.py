@@ -62,4 +62,4 @@ def test_rich_summary_tuples(mock_table_add_row, mock_console):
     assert mock_console.call_count == 2
     # assert that the input summary data was converted correctly
     args, _ = mock_table_add_row.call_args_list[0]
-    assert args[1:] == ("0", "layer", "Linear", "66  ", "[4, 32]", "[4, 2]")
+    assert args[1:] == ("0", "layer", "Linear", "66  ", "train", "[4, 32]", "[4, 2]")

@@ -1,7 +1,7 @@
 :orphan:
 
 ###########################################
-Level 25: Add a new accelerator or Strategy
+Level 24: Add a new accelerator or Strategy
 ###########################################
 
 Integrate a new accelerator or distributed strategy.

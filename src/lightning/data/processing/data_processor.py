@@ -20,11 +20,7 @@ import numpy as np
 from tqdm.auto import tqdm as _tqdm
 
 from lightning import seed_everything
-from lightning.data.processing.readers import BaseReader
-from lightning.data.streaming import Cache
-from lightning.data.streaming.cache import Dir
-from lightning.data.streaming.client import S3Client
-from lightning.data.streaming.constants import (
+from lightning.data.constants import (
     _BOTO3_AVAILABLE,
     _DEFAULT_FAST_DEV_RUN_ITEMS,
     _INDEX_FILENAME,
@@ -32,6 +28,10 @@ from lightning.data.streaming.constants import (
     _LIGHTNING_CLOUD_LATEST,
     _TORCH_GREATER_EQUAL_2_1_0,
 )
+from lightning.data.processing.readers import BaseReader
+from lightning.data.streaming import Cache
+from lightning.data.streaming.cache import Dir
+from lightning.data.streaming.client import S3Client
 from lightning.data.streaming.resolver import _resolve_dir
 from lightning.data.utilities.broadcast import broadcast_object
 from lightning.data.utilities.packing import _pack_greedily
@@ -250,23 +250,35 @@ def _upload_fn(upload_queue: Queue, remove_queue: Queue, cache_dir: str, output_
 
 def _map_items_to_workers_sequentially(num_workers: int, user_items: List[Any]) -> List[List[Any]]:
     num_nodes = _get_num_nodes()
-    current_node_rank = _get_node_rank()
-    node_size = len(user_items) // num_nodes
-    workers_user_items = []
-    for node_rank in range(num_nodes):
-        if node_rank != current_node_rank:
-            continue
-        is_last_node = node_rank == num_nodes - 1
-        start_node = node_rank * node_size
-        end_node = len(user_items) if is_last_node else (node_rank + 1) * node_size
-        node_user_items = user_items[start_node:end_node]
-        worker_size = len(node_user_items) // num_workers
-        for worker_idx in range(num_workers):
-            is_last = worker_idx == num_workers - 1
-            begin = worker_idx * worker_size
-            end = len(node_user_items) if is_last else (worker_idx + 1) * worker_size
-            workers_user_items.append(node_user_items[begin:end])
-    return workers_user_items
+    world_size = num_nodes * num_workers
+    num_items_per_worker = len(user_items) // world_size
+
+    num_items_per_worker: List[int] = [num_items_per_worker for _ in range(world_size)]
+    reminder = len(user_items) % world_size
+
+    for worker_idx in range(len(num_items_per_worker) - 1, -1, -1):
+        if reminder == 0:
+            break
+        num_items_per_worker[worker_idx] += 1
+        reminder -= 1
+
+    num_items_cumsum_per_worker = np.cumsum([0] + num_items_per_worker)
+
+    out = []
+    node_rank = _get_node_rank()
+    worker_idx_start = node_rank * num_workers
+    worker_idx_end = (node_rank + 1) * num_workers
+
+    for worker_idx in range(world_size):
+        if worker_idx_start <= worker_idx and worker_idx < worker_idx_end:
+            start = num_items_cumsum_per_worker[worker_idx]
+            end = num_items_cumsum_per_worker[worker_idx + 1]
+            out.append(user_items[start:end])
+
+    if len(out) != num_workers:
+        raise RuntimeError("The items didn't haven't been assigned properly. Please, open an issue on Github.")
+
+    return out
 
 
 def _map_items_to_workers_weighted(
@@ -372,7 +384,6 @@ class BaseWorker:
         self._counter = 0
         self._last_time = time()
         self._index_counter = 0
-        self._current_item: Any = None
 
     def run(self) -> None:
         try:
@@ -477,6 +488,7 @@ class BaseWorker:
             assert os.path.exists(data), data
         else:
             assert os.path.exists(data[-1]), data
+
         self.to_upload_queues[self._counter % self.num_uploaders].put(data)
 
     def _collect_paths(self) -> None:
@@ -588,8 +600,8 @@ class BaseWorker:
 
     def _handle_data_chunk_recipe(self, index: int) -> None:
         try:
-            self._current_item = self.items[index] if self.reader is None else self.reader.read(self.items[index])
-            item_data_or_generator = self.data_recipe.prepare_item(self._current_item)
+            current_item = self.items[index] if self.reader is None else self.reader.read(self.items[index])
+            item_data_or_generator = self.data_recipe.prepare_item(current_item)
             if isinstance(item_data_or_generator, types.GeneratorType):
                 for item_data in item_data_or_generator:
                     if item_data is not None:
@@ -713,6 +725,11 @@ class DataChunkRecipe(DataRecipe):
             size = sum([c["dim"] if c["dim"] is not None else c["chunk_size"] for c in config["chunks"]])
             num_bytes = sum([c["chunk_bytes"] for c in config["chunks"]])
             data_format = tree_unflatten(config["config"]["data_format"], treespec_loads(config["config"]["data_spec"]))
+            num_chunks = len(config["chunks"])
+
+            # The platform can't store more than 1024 entries.
+            # Note: This isn't really used right now, so it is fine to skip if too big.
+            num_bytes_per_chunk = [c["chunk_size"] for c in config["chunks"]] if num_chunks < 1024 else []
 
             return _Result(
                 size=size,
@@ -720,7 +737,7 @@ class DataChunkRecipe(DataRecipe):
                 data_format=data_format,
                 compression=config["config"]["compression"],
                 num_chunks=len(config["chunks"]),
-                num_bytes_per_chunk=[c["chunk_size"] for c in config["chunks"]],
+                num_bytes_per_chunk=num_bytes_per_chunk,
             )
         return _Result(
             size=size,
@@ -866,9 +883,9 @@ class DataProcessor:
             raise ValueError("The `prepare_structure` should return a list of item metadata.")
 
         if self.reader:
-            workers_user_items = self.reader.items_to_workers(user_items, self.num_workers)
+            user_items = self.reader.remap_items(user_items, self.num_workers)
 
-        elif self.weights is not None:
+        if self.weights is not None:
             if len(self.weights) != len(user_items):
                 raise ValueError("The provided weights length should match the inputs' length.")
             workers_user_items = _map_items_to_workers_weighted(

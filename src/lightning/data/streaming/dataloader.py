@@ -33,13 +33,13 @@ from torch.utils.data.dataloader import (
 )
 from torch.utils.data.sampler import BatchSampler, Sampler
 
+from lightning.data.constants import _DEFAULT_CHUNK_BYTES, _TORCH_GREATER_EQUAL_2_1_0, _VIZ_TRACKER_AVAILABLE
 from lightning.data.streaming import Cache
 from lightning.data.streaming.combined import (
     __NUM_SAMPLES_YIELDED_KEY__,
     __SAMPLES_KEY__,
     CombinedStreamingDataset,
 )
-from lightning.data.streaming.constants import _DEFAULT_CHUNK_BYTES, _TORCH_GREATER_EQUAL_2_1_0, _VIZ_TRACKER_AVAILABLE
 from lightning.data.streaming.dataset import StreamingDataset
 from lightning.data.streaming.sampler import CacheBatchSampler
 from lightning.data.utilities.env import _DistributedEnv
@@ -541,6 +541,7 @@ class StreamingDataLoader(DataLoader):
         profile_batches: Union[bool, int] = False,
         profile_dir: Optional[str] = None,
         prefetch_factor: Optional[int] = None,
+        shuffle: Optional[bool] = None,
         **kwargs: Any,
     ) -> None:  # pyright: ignore
         if not isinstance(dataset, (StreamingDataset, CombinedStreamingDataset)):
@@ -548,6 +549,11 @@ class StreamingDataLoader(DataLoader):
                 "The provided dataset should be either an instance of StreamingDataset or CombinedStreamingDataset."
                 f" Found {dataset}."
             )
+
+        if shuffle is not None:
+            dataset.set_shuffle(shuffle)
+
+        shuffle = None
 
         if profile_batches and not _VIZ_TRACKER_AVAILABLE:
             raise ModuleNotFoundError("To use profile_batches, viztracer is required. Run `pip install viztracer`")

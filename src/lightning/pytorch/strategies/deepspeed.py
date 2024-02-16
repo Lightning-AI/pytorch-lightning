@@ -335,12 +335,21 @@ class DeepSpeedStrategy(DDPStrategy):
         self._init_config_if_needed()
         assert self.accelerator is not None
         self.accelerator.setup(trainer)
+
         # we set the device so that optimizers can be created with distributed comms.
         assert self.lightning_module is not None
         self.lightning_module._device = self.root_device
-        self.setup_optimizers(trainer)
+
+        assert self.model is not None
+        self.model = self.precision_plugin.convert_module(self.model)
+        self.model = self._setup_model(self.model)
+
+        if trainer.state.fn == TrainerFn.FITTING:
+            self.setup_optimizers(trainer)
         self.setup_precision_plugin()
-        _optimizers_to_device(self.optimizers, self.root_device)
+        if trainer.state.fn == TrainerFn.FITTING:
+            _optimizers_to_device(self.optimizers, self.root_device)
+
         self.init_deepspeed()
         self.barrier()
 
@@ -547,12 +556,10 @@ class DeepSpeedStrategy(DDPStrategy):
         if "bf16" in self.config:
             inference_config.update({"bf16": self.config["bf16"]})
         if self.zero_stage_3:
-            inference_config.update(
-                {
-                    "zero_allow_untested_optimizer": self.config["zero_allow_untested_optimizer"],
-                    "zero_optimization": self.config["zero_optimization"],
-                }
-            )
+            inference_config.update({
+                "zero_allow_untested_optimizer": self.config["zero_allow_untested_optimizer"],
+                "zero_optimization": self.config["zero_optimization"],
+            })
         # Remove all module hooks before initializing new model
         remove_module_hooks(model)
         model, _, _, _ = deepspeed.initialize(
@@ -579,14 +586,15 @@ class DeepSpeedStrategy(DDPStrategy):
             trainer: the Trainer, these optimizers should be connected to
 
         """
-        if trainer.state.fn != TrainerFn.FITTING:
-            return
         # Skip initializing optimizers here as DeepSpeed handles optimizers via config.
         # User may have specified config options instead in configure_optimizers, but this is handled
         # via `_initialize_deepspeed_train`
         # empty optimizers, schedulers
         self.optimizers = []
         self.lr_scheduler_configs = []
+
+    def _setup_model(self, model: Module) -> Module:  # type: ignore[override]
+        return model
 
     @property
     @override

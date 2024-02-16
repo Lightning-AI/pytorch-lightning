@@ -33,6 +33,8 @@ from lightning.fabric.strategies.fsdp import (
     _METADATA_FILENAME,
     _activation_checkpointing_kwargs,
     _auto_wrap_policy_kwargs,
+    _distributed_checkpoint_load,
+    _distributed_checkpoint_save,
     _get_full_state_dict_context,
     _get_sharded_state_dict_context,
     _has_meta_device_parameters,
@@ -55,7 +57,6 @@ from lightning.fabric.utilities.distributed import group as _group
 from lightning.fabric.utilities.imports import (
     _TORCH_GREATER_EQUAL_2_0,
     _TORCH_GREATER_EQUAL_2_1,
-    _TORCH_GREATER_EQUAL_2_2,
 )
 from lightning.fabric.utilities.init import _EmptyInit
 from lightning.fabric.utilities.load import _lazy_load, _materialize_tensors
@@ -213,7 +214,7 @@ class FSDPStrategy(ParallelStrategy):
             return plugin.mixed_precision_config
         return None
 
-    @property  # type: ignore[override]
+    @property
     @override
     def precision_plugin(self) -> FSDPPrecision:
         plugin = self._precision_plugin
@@ -314,15 +315,17 @@ class FSDPStrategy(ParallelStrategy):
     @override
     def setup(self, trainer: "pl.Trainer") -> None:
         assert self.accelerator is not None
-        assert self.model is not None
         self.accelerator.setup(trainer)
 
+        assert self.model is not None
         if trainer.state.fn == TrainerFn.FITTING and self._layer_sync:
             self.model = self._layer_sync.apply(self.model)
 
         # we set the device so that optimizers can be created with distributed comms.
         assert self.lightning_module is not None
         self.lightning_module._device = self.root_device
+
+        self.model = self.precision_plugin.convert_module(self.model)
 
         if is_overridden("configure_sharded_model", self.lightning_module):
             # legacy: we don't skip setup with the `configure_model` alternative
@@ -334,10 +337,11 @@ class FSDPStrategy(ParallelStrategy):
             self.model = self._setup_model(self.model)
         self.barrier()
 
-        self.setup_optimizers(trainer)
-        _optimizers_to_device(self.optimizers, self.root_device)
-
+        if trainer.state.fn == TrainerFn.FITTING:
+            self.setup_optimizers(trainer)
         self.setup_precision_plugin()
+        if trainer.state.fn == TrainerFn.FITTING:
+            _optimizers_to_device(self.optimizers, self.root_device)
 
     @override
     def setup_optimizers(self, trainer: "pl.Trainer") -> None:
@@ -370,6 +374,7 @@ class FSDPStrategy(ParallelStrategy):
 
     @override
     def model_to_device(self) -> None:
+        # FSDP takes care of moving the model to device
         pass
 
     @contextmanager
@@ -557,20 +562,16 @@ class FSDPStrategy(ParallelStrategy):
             raise IsADirectoryError(f"The checkpoint path exists and is a directory: {path}")
 
         if self._state_dict_type == "sharded":
-            from torch.distributed.checkpoint import FileSystemWriter, save_state_dict
-
             if path.is_file():
                 path.unlink()
             path.mkdir(parents=True, exist_ok=True)
 
             converted_state = {"model": checkpoint.pop("state_dict")}
-            converted_state.update(
-                {f"optimizer_{idx}": optim_state for idx, optim_state in enumerate(checkpoint.pop("optimizer_states"))}
-            )
+            converted_state.update({
+                f"optimizer_{idx}": optim_state for idx, optim_state in enumerate(checkpoint.pop("optimizer_states"))
+            })
 
-            # FSDP's FileSystemWriter streams the tensors to disk to minimize memory peaks
-            writer = FileSystemWriter(path=path, single_file_per_rank=True)
-            save_state_dict(converted_state, writer)
+            _distributed_checkpoint_save(converted_state, path)
 
             if self.global_rank == 0:
                 torch.save(checkpoint, path / _METADATA_FILENAME)
@@ -592,23 +593,21 @@ class FSDPStrategy(ParallelStrategy):
         assert self.lightning_module is not None
 
         if _is_sharded_checkpoint(path):
-            from torch.distributed.checkpoint import FileSystemReader
             from torch.distributed.checkpoint.optimizer import load_sharded_optimizer_state_dict
 
-            if _TORCH_GREATER_EQUAL_2_2:
-                from torch.distributed.checkpoint import load
-            else:
-                from torch.distributed.checkpoint import load_state_dict as load  # deprecated
-
             state_dict_ctx = _get_sharded_state_dict_context(self.model)
-            reader = FileSystemReader(path=path)
 
             with state_dict_ctx:
                 module_state = {"model": self.model.state_dict()}
-                load(module_state, reader)
+                _distributed_checkpoint_load(module_state, path)
                 self.model.load_state_dict(module_state["model"], strict=self.lightning_module.strict_loading)
 
-                if self.lightning_module.trainer.state.fn == TrainerFn.FITTING:
+                if self.lightning_module.trainer.state.fn == TrainerFn.FITTING and self.optimizers:
+                    from torch.distributed.checkpoint import FileSystemReader
+
+                    # TODO: replace with newer APIs
+                    # https://github.com/pytorch/pytorch/issues/119800#issuecomment-1942156271
+                    reader = FileSystemReader(path=path)
                     # the optimizer states must be loaded separately
                     for idx, optim in enumerate(self.optimizers):
                         optim_key = f"optimizer_{idx}"

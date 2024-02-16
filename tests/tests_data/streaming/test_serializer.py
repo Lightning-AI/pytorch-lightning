@@ -26,7 +26,7 @@ from lightning.data.streaming.serializers import (
     _SERIALIZERS,
     _TORCH_DTYPES_MAPPING,
     _TORCH_VISION_AVAILABLE,
-    IntSerializer,
+    IntegerSerializer,
     JPEGSerializer,
     NoHeaderNumpySerializer,
     NoHeaderTensorSerializer,
@@ -42,12 +42,15 @@ _PIL_AVAILABLE = RequirementCache("PIL")
 
 
 def test_serializers():
-    assert list(_SERIALIZERS.keys()) == [
+    keys = list(_SERIALIZERS.keys())
+    assert keys == [
+        "str",
+        "int",
+        "float",
         "video",
         "tif",
         "file",
         "pil",
-        "int",
         "jpeg",
         "bytes",
         "no_header_numpy",
@@ -59,7 +62,7 @@ def test_serializers():
 
 
 def test_int_serializer():
-    serializer = IntSerializer()
+    serializer = IntegerSerializer()
 
     for i in range(100):
         data, _ = serializer.serialize(i)

@@ -84,6 +84,7 @@ class RichModelSummary(ModelSummary):
         table.add_column("Name", justify="left", no_wrap=True)
         table.add_column("Type")
         table.add_column("Params", justify="right")
+        table.add_column("Mode")
 
         column_names = list(zip(*summary_data))[0]
 

@@ -3,7 +3,7 @@
 This ⚡ [Lightning app](https://lightning.ai/) ⚡ was generated automatically with:
 
 ```bash
-lightning init app placeholdername
+lightning_app init app placeholdername
 ```
 
 ## To run placeholdername
@@ -11,19 +11,19 @@ lightning init app placeholdername
 First, install placeholdername (warning: this app has not been officially approved on the lightning gallery):
 
 ```bash
-lightning install app https://github.com/theUser/placeholdername
+lightning_app install app https://github.com/theUser/placeholdername
 ```
 
 Once the app is installed, run it locally with:
 
 ```bash
-lightning run app placeholdername/app.py
+lightning_app run app placeholdername/app.py
 ```
 
 Run it on the [lightning cloud](https://lightning.ai/) with:
 
 ```bash
-lightning run app placeholdername/app.py --cloud
+lightning_app run app placeholdername/app.py --cloud
 ```
 
 ## to test and link

@@ -49,20 +49,20 @@ ignore-words-list = "te, compiletime"
 [tool.ruff]
 line-length = 120
 # Enable Pyflakes `E` and `F` codes by default.
-select = [
+lint.select = [
     "E", "W",  # see: https://pypi.org/project/pycodestyle
     "F",  # see: https://pypi.org/project/pyflakes
     "S",  # see: https://pypi.org/project/flake8-bandit
     "RUF018",  # see: https://docs.astral.sh/ruff/rules/assignment-in-assert
 ]
-extend-select = [
+lint.extend-select = [
     "I",  # see: isort
     "C4",  # see: https://pypi.org/project/flake8-comprehensions
     "SIM",  # see: https://pypi.org/project/flake8-simplify
     "RET",  # see: https://pypi.org/project/flake8-return
     "PT",  # see: https://pypi.org/project/flake8-pytest-style
 ]
-ignore = [
+lint.ignore = [
     "E731",  # Do not assign a lambda expression, use a def
     "S108",
     "E203", # conflicts with black
@@ -73,9 +73,9 @@ exclude = [
     "docs",
     "_notebooks"
 ]
-ignore-init-module-imports = true
+lint.ignore-init-module-imports = true
 
-[tool.ruff.per-file-ignores]
+[tool.ruff.lint.per-file-ignores]
 ".actions/*" = ["S101", "S310"]
 "setup.py" = ["S101"]
 "examples/**" = [
@@ -102,6 +102,9 @@ ignore-init-module-imports = true
     "RET504",  # todo:Unnecessary variable assignment before `return` statement
     "RET503",
 ]
+"src/lightning/data/**" = [
+    "S310",  # todo: Audit URL open for permitted schemes. Allowing use of `file:` or custom schemes is often unexpected.
+]
 "tests/**" = [
     "S101",  # Use of `assert` detected
     "S105", "S106",  # todo: Possible hardcoded password: ...
@@ -123,7 +126,7 @@ ignore-init-module-imports = true
     "PT019",  # todo: Fixture `_` without value is injected as parameter, use `@pytest.mark.usefixtures` instead
 ]
 
-[tool.ruff.mccabe]
+[tool.ruff.lint.mccabe]
 # Unlike Flake8, default to a complexity level of 10.
 max-complexity = 10
 

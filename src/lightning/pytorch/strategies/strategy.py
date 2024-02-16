@@ -14,7 +14,7 @@
 import logging
 from abc import ABC, abstractmethod
 from contextlib import contextmanager, nullcontext
-from typing import Any, Callable, Dict, Generator, List, Mapping, Optional, Tuple, TypeVar, Union, cast
+from typing import Any, Callable, Dict, Generator, List, Mapping, Optional, Tuple, TypeVar, Union
 
 import torch
 from torch import Tensor
@@ -110,7 +110,8 @@ class Strategy(ABC):
 
     def connect(self, model: "pl.LightningModule") -> None:
         """Called by the Trainer to connect the strategy with the model."""
-        model = cast(pl.LightningModule, self.precision_plugin.convert_module(model))
+        # model conversions cannot be applied at this point because `LightningModule.{setup,configure_model}` haven't
+        # run yet
         self._lightning_module = model
         self.model = model
 
@@ -134,8 +135,6 @@ class Strategy(ABC):
             trainer: the Trainer, these optimizers should be connected to
 
         """
-        if trainer.state.fn != TrainerFn.FITTING:
-            return
         assert self.lightning_module is not None
         self.optimizers, self.lr_scheduler_configs = _init_optimizers_and_lr_schedulers(self.lightning_module)
 
@@ -148,9 +147,19 @@ class Strategy(ABC):
         """
         assert self.accelerator is not None
         self.accelerator.setup(trainer)
-        self.setup_optimizers(trainer)
+
+        assert self.model is not None
+        # let the precision plugin convert the module here so that this strategy hook can decide the order
+        # of operations
+        self.model = self.precision_plugin.convert_module(self.model)
+        self.model_to_device()
+        self.model = self._setup_model(self.model)
+
+        if trainer.state.fn == TrainerFn.FITTING:
+            self.setup_optimizers(trainer)
         self.setup_precision_plugin()
-        _optimizers_to_device(self.optimizers, self.root_device)
+        if trainer.state.fn == TrainerFn.FITTING:
+            _optimizers_to_device(self.optimizers, self.root_device)
 
     def setup_precision_plugin(self) -> None:
         """Attaches the precision plugin to the strategy."""
