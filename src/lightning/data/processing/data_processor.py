@@ -724,7 +724,12 @@ class DataChunkRecipe(DataRecipe):
 
             size = sum([c["dim"] if c["dim"] is not None else c["chunk_size"] for c in config["chunks"]])
             num_bytes = sum([c["chunk_bytes"] for c in config["chunks"]])
-            data_format = tree_unflatten(config["config"]["data_format"], treespec_loads(config["config"]["data_spec"]))
+            if config["config"] is not None:
+                data_format = tree_unflatten(
+                    config["config"]["data_format"], treespec_loads(config["config"]["data_spec"])
+                )
+            else:
+                data_format = None
             num_chunks = len(config["chunks"])
 
             # The platform can't store more than 1024 entries.
@@ -735,7 +740,7 @@ class DataChunkRecipe(DataRecipe):
                 size=size,
                 num_bytes=num_bytes,
                 data_format=data_format,
-                compression=config["config"]["compression"],
+                compression=config["config"]["compression"] if config["config"] else None,
                 num_chunks=len(config["chunks"]),
                 num_bytes_per_chunk=num_bytes_per_chunk,
             )
