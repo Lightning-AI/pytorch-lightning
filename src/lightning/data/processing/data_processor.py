@@ -724,8 +724,10 @@ class DataChunkRecipe(DataRecipe):
 
             size = sum([c["dim"] if c["dim"] is not None else c["chunk_size"] for c in config["chunks"]])
             num_bytes = sum([c["chunk_bytes"] for c in config["chunks"]])
-            if config["config"]:
-                data_format = tree_unflatten(config["config"]["data_format"], treespec_loads(config["config"]["data_spec"]))
+            if config["config"] is not None:
+                data_format = tree_unflatten(
+                    config["config"]["data_format"], treespec_loads(config["config"]["data_spec"])
+                )
             else:
                 data_format = None
             num_chunks = len(config["chunks"])

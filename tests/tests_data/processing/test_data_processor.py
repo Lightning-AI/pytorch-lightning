@@ -1038,4 +1038,4 @@ def test_empty_optimize(tmpdir):
         num_workers=1,
     )
 
-    assert os.listdir(tmpdir) == ['index.json']
+    assert os.listdir(tmpdir) == ["index.json"]

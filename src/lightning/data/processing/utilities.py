@@ -2,7 +2,7 @@ import io
 import os
 import urllib
 from contextlib import contextmanager
-from subprocess import Popen, DEVNULL
+from subprocess import DEVNULL, Popen
 from typing import Any, Callable, Optional, Tuple
 
 from lightning.data.constants import _IS_IN_STUDIO
