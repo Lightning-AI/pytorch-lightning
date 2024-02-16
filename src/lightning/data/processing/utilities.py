@@ -3,21 +3,19 @@ import os
 import urllib
 from contextlib import contextmanager
 from subprocess import Popen
-from typing import Any, Callable, Optional, Tuple
+from typing import Any, Callable, List, Optional, Tuple, Union
+
+import urllib3
 
 from lightning.data.constants import _IS_IN_STUDIO, _LIGHTNING_CLOUD_LATEST
 
-from typing import Optional, List, Tuple, Union
-import os
-import urllib3
-
 if _LIGHTNING_CLOUD_LATEST:
-    from lightning_cloud.rest_client import LightningClient
     from lightning_cloud.openapi import (
         ProjectIdDatasetsBody,
         V1DatasetType,
     )
     from lightning_cloud.openapi.rest import ApiException
+    from lightning_cloud.rest_client import LightningClient
 
 
 def _create_dataset(
@@ -34,9 +32,7 @@ def _create_dataset(
     name: Optional[str] = None,
     version: Optional[int] = None,
 ):
-    """
-    Create a dataset with metadata information about its source and destination
-    """
+    """Create a dataset with metadata information about its source and destination."""
     project_id = os.getenv("LIGHTNING_CLOUD_PROJECT_ID", None)
     cluster_id = os.getenv("LIGHTNING_CLUSTER_ID", None)
     user_id = os.getenv("LIGHTNING_USER_ID", None)
@@ -71,14 +67,14 @@ def _create_dataset(
                 type=dataset_type,
                 version=version,
             ),
-            project_id=project_id
+            project_id=project_id,
         )
     except (ApiException, urllib3.exceptions.HTTPError) as ex:
-        # Note: This function can be called in a distributed way. 
+        # Note: This function can be called in a distributed way.
         # There is a race condition where one machine might create the entry before another machine
         # and this request would fail with duplicated key
-        # In this case, it is fine not to raise 
-        if 'already exists' in str(ex.body):
+        # In this case, it is fine not to raise
+        if "already exists" in str(ex.body):
             pass
         else:
             raise ex
