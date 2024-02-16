@@ -120,19 +120,23 @@ def test_load_from_checkpoint_warn_on_empty_state_dict(tmp_path):
     assert model.device.type == "cpu"
 
 
-@pytest.mark.parametrize(("strict", "strict_loading", "expected"), [
-    (None, None, True),
-    (None, True, True),
-    (None, False, False),
-    (True, None, True),
-    (True, True, True),
-    (True, False, "error"),
-    (False, None, False),
-    (False, True, "error"),
-    (False, False, False),
-])
+@pytest.mark.parametrize(
+    ("strict", "strict_loading", "expected"),
+    [
+        (None, None, True),
+        (None, True, True),
+        (None, False, False),
+        (True, None, True),
+        (True, True, True),
+        (True, False, "error"),
+        (False, None, False),
+        (False, True, "error"),
+        (False, False, False),
+    ],
+)
 def test_load_from_checkpoint_strict(strict, strict_loading, expected, tmp_path):
     """Test that strict loading works both with the `strict` argument and the model's `strict_loading` attribute."""
+
     class LoadingModel(BoringModel):
         def __init__(self):
             super().__init__()

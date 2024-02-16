@@ -49,8 +49,7 @@ def test_bitsandbytes_plugin(monkeypatch):
         def configure_model(self):
             self.l = torch.nn.Linear(1, 3)
 
-        def test_step(self, *_):
-            ...
+        def test_step(self, *_): ...
 
     model = MyModel()
     trainer.test(model, [0])

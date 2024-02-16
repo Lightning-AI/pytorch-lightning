@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import List, Union
+from typing import Any, List, Tuple
 
 from lightning.pytorch import Trainer
 from lightning.pytorch.callbacks import ModelSummary
@@ -41,14 +41,15 @@ def test_model_summary_callback_with_enable_model_summary_true():
     assert model_summary_callback._max_depth == 1
 
 
-def test_custom_model_summary_callback_summarize(tmpdir):
+def test_custom_model_summary_callback_summarize(tmp_path):
     class CustomModelSummary(ModelSummary):
         @staticmethod
         def summarize(
-            summary_data: List[List[Union[str, List[str]]]],
+            summary_data: List[Tuple[str, List[str]]],
             total_parameters: int,
             trainable_parameters: int,
             model_size: float,
+            **summarize_kwargs: Any,
         ) -> None:
             assert summary_data[1][0] == "Name"
             assert summary_data[1][1][0] == "layer"
@@ -60,7 +61,10 @@ def test_custom_model_summary_callback_summarize(tmpdir):
             assert total_parameters == 66
             assert trainable_parameters == 66
 
+            assert summary_data[4][0] == "Mode"
+            assert summary_data[4][1][0] == "train"
+
     model = BoringModel()
-    trainer = Trainer(default_root_dir=tmpdir, callbacks=CustomModelSummary(), max_steps=1)
+    trainer = Trainer(default_root_dir=tmp_path, callbacks=CustomModelSummary(), max_steps=1)
 
     trainer.fit(model)

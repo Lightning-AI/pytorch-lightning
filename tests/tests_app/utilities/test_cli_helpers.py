@@ -24,12 +24,10 @@ def test_format_input_env_variables():
         _format_input_env_variables(("=invalid=",))
 
     with pytest.raises(Exception, match="is duplicated. Please only include it once."):
-        _format_input_env_variables(
-            (
-                "FOO=bar",
-                "FOO=bar",
-            )
-        )
+        _format_input_env_variables((
+            "FOO=bar",
+            "FOO=bar",
+        ))
 
     with pytest.raises(
         Exception,
@@ -189,12 +187,10 @@ def test_check_environment_and_redirect(mock_redirect_command, tmpdir, monkeypat
     )
 
     with open(descriptor, "w") as f:
-        f.writelines(
-            [
-                "#!/bin/bash\n",
-                f'{sys.executable} "$@"',
-            ]
-        )
+        f.writelines([
+            "#!/bin/bash\n",
+            f'{sys.executable} "$@"',
+        ])
 
     monkeypatch.setenv("PATH", f"{tmpdir}")
     assert _check_environment_and_redirect() is None

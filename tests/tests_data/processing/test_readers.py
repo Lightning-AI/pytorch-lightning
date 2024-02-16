@@ -7,7 +7,6 @@ from lightning.data.processing.readers import _PYARROW_AVAILABLE, BaseReader, Pa
 
 
 class DummyReader(BaseReader):
-
     def remap_items(self, items, num_workers: int):
         return [(worker_idx, idx, item) for idx, item in enumerate(items) for worker_idx in range(num_workers)]
 
@@ -24,7 +23,7 @@ def fn(data: str, output_dir):
 
 def test_reader(tmpdir):
     map(fn, list(range(3)), output_dir=str(tmpdir), reader=DummyReader(), num_workers=2)
-    assert sorted(os.listdir(tmpdir)) == ['0_0', '0_1', '0_2', '1_0', '1_1', '1_2']
+    assert sorted(os.listdir(tmpdir)) == ["0_0", "0_1", "0_2", "1_0", "1_1", "1_2"]
 
 
 def map_parquet(df, output_dir):
@@ -37,10 +36,8 @@ def map_parquet(df, output_dir):
 
             return
 
-@pytest.mark.skipif(
-    not _PYARROW_AVAILABLE or sys.platform == "linux",
-    reason="polars and pyarrow are required"
-)
+
+@pytest.mark.skipif(not _PYARROW_AVAILABLE or sys.platform == "linux", reason="polars and pyarrow are required")
 def test_parquet_reader(tmpdir):
     import pandas as pd
 
@@ -59,7 +56,7 @@ def test_parquet_reader(tmpdir):
         inputs=inputs,
         output_dir=os.path.join(tmpdir, "output_dir"),
         reader=ParquetReader(cache_folder, num_rows=5, to_pandas=False),
-        num_workers=2
+        num_workers=2,
     )
 
-    assert sorted(os.listdir(os.path.join(tmpdir, "output_dir"))) == ['0_5', '10_5', '15_5', '20_5', '25_5', '5_5']
+    assert sorted(os.listdir(os.path.join(tmpdir, "output_dir"))) == ["0_5", "10_5", "15_5", "20_5", "25_5", "5_5"]

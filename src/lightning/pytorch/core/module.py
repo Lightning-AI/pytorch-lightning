@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """The LightningModule - an nn.Module with many additional features."""
+
 import logging
 import numbers
 import weakref
@@ -142,16 +143,15 @@ class LightningModule(
         self._fabric_optimizers: List[_FabricOptimizer] = []
 
     @overload
-    def optimizers(self, use_pl_optimizer: Literal[True] = True) -> Union[LightningOptimizer, List[LightningOptimizer]]:
-        ...
+    def optimizers(
+        self, use_pl_optimizer: Literal[True] = True
+    ) -> Union[LightningOptimizer, List[LightningOptimizer]]: ...
 
     @overload
-    def optimizers(self, use_pl_optimizer: Literal[False]) -> Union[Optimizer, List[Optimizer]]:
-        ...
+    def optimizers(self, use_pl_optimizer: Literal[False]) -> Union[Optimizer, List[Optimizer]]: ...
 
     @overload
-    def optimizers(self, use_pl_optimizer: bool) -> MODULE_OPTIMIZERS:
-        ...
+    def optimizers(self, use_pl_optimizer: bool) -> MODULE_OPTIMIZERS: ...
 
     def optimizers(self, use_pl_optimizer: bool = True) -> MODULE_OPTIMIZERS:
         """Returns the optimizer(s) that are being used during training. Useful for manual optimization.
@@ -668,7 +668,8 @@ class LightningModule(
 
         Return:
             A tensor of shape (world_size, batch, ...), or if the input was a collection
-            the output will also be a collection with tensors of this shape.
+            the output will also be a collection with tensors of this shape. For the special case where
+            world_size is 1, no additional dimension is added to the tensor(s).
 
         """
         group = group if group is not None else torch.distributed.group.WORLD
