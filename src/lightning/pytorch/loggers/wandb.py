@@ -15,6 +15,7 @@
 Weights and Biases Logger
 -------------------------
 """
+
 import os
 from argparse import Namespace
 from pathlib import Path
@@ -408,12 +409,14 @@ class WandbLogger(Logger):
 
         return self._experiment
 
-    def watch(self, model: nn.Module, log: str = "gradients", log_freq: int = 100, log_graph: bool = True) -> None:
+    def watch(
+        self, model: nn.Module, log: Optional[str] = "gradients", log_freq: int = 100, log_graph: bool = True
+    ) -> None:
         self.experiment.watch(model, log=log, log_freq=log_freq, log_graph=log_graph)
 
     @override
     @rank_zero_only
-    def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:  # type: ignore[override]
+    def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:
         params = _convert_params(params)
         params = _sanitize_callable_params(params)
         self.experiment.config.update(params, allow_val_change=True)

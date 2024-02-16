@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Test logging in the evaluation loop."""
+
 import collections
 import itertools
 import os
@@ -851,7 +852,7 @@ def test_native_print_results_encodings(monkeypatch, encoding):
 
     # Attempt to encode everything the file is told to write with the given encoding
     for call_ in out.method_calls:
-        name, args, kwargs = call_
+        name, args, _ = call_
         if name == "write":
             args[0].encode(encoding)
 

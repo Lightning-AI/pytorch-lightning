@@ -148,23 +148,19 @@ class _GeneralModel(BaseModel):
 
     @classmethod
     def from_obj(cls, obj, token):
-        return cls(
-            **{
-                "cls_name": obj.__class__.__name__,
-                "data": obj.json(),
-                "token": token,
-            }
-        )
+        return cls(**{
+            "cls_name": obj.__class__.__name__,
+            "data": obj.json(),
+            "token": token,
+        })
 
     @classmethod
     def from_cls(cls, obj_cls, token):
-        return cls(
-            **{
-                "cls_name": obj_cls.__name__,
-                "data": "",
-                "token": token,
-            }
-        )
+        return cls(**{
+            "cls_name": obj_cls.__name__,
+            "data": "",
+            "token": token,
+        })
 
 
 class _SelectAll:

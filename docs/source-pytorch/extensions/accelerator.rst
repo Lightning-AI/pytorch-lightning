@@ -4,13 +4,12 @@
 Accelerator
 ###########
 
-The Accelerator connects a Lightning Trainer to arbitrary hardware (CPUs, GPUs, TPUs, IPUs, MPS, ...).
+The Accelerator connects a Lightning Trainer to arbitrary hardware (CPUs, GPUs, TPUs, HPUs, MPS, ...).
 Currently there are accelerators for:
 
 - CPU
 - :doc:`GPU <../accelerators/gpu>`
 - :doc:`TPU <../accelerators/tpu>`
-- :doc:`IPU <../integrations/ipu/index>`
 - :doc:`HPU <../integrations/hpu/index>`
 - :doc:`MPS <../accelerators/mps>`
 

@@ -12,10 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Integration tests for Automatic Mixed Precision (AMP) training."""
+
+import sys
+
 import pytest
 import torch
 import torch.nn as nn
 from lightning.fabric import Fabric, seed_everything
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_2
 
 from tests_fabric.helpers.runif import RunIf
 
@@ -37,6 +41,11 @@ class MixedPrecisionModule(nn.Module):
         return output
 
 
+@pytest.mark.xfail(
+    # https://github.com/pytorch/pytorch/issues/116056
+    sys.platform == "win32" and _TORCH_GREATER_EQUAL_2_2,
+    reason="Windows + DDP issue in PyTorch 2.2",
+)
 @pytest.mark.parametrize(
     ("accelerator", "precision", "expected_dtype"),
     [
@@ -71,7 +80,7 @@ def _test_amp(fabric, expected_dtype):
     optimizer.zero_grad()
 
 
-@RunIf(min_torch="1.13", min_cuda_gpus=1)
+@RunIf(min_cuda_gpus=1)
 def test_amp_fused_optimizer_parity():
     def run(fused=False):
         seed_everything(1234)

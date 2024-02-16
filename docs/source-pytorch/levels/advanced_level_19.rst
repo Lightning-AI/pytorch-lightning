@@ -1,10 +1,10 @@
 :orphan:
 
 ######################
-Level 18: Explore IPUs
+Level 18: Explore HPUs
 ######################
 
-Explore Intelligence Processing Unit (IPU) for model scaling.
+Explore Intel Habana Processing Unit (HPU) for model scaling.
 
 ----
 
@@ -16,26 +16,18 @@ Explore Intelligence Processing Unit (IPU) for model scaling.
 .. Add callout items below this line
 
 .. displayitem::
-   :header: Prepare your code (Optional)
-   :description: Prepare your code to run on any hardware.
-   :col_css: col-md-4
-   :button_link: ../accelerators/accelerator_prepare.html
+   :header: Train models on HPUs
+   :description: Learn the basics of single and multi-HPU core training.
+   :col_css: col-md-6
+   :button_link: ../integrations/hpu/basic.html
    :height: 150
    :tag: basic
 
 .. displayitem::
-   :header: Train models on IPUs
-   :description: Learn the basics of single and multi-IPU training.
-   :col_css: col-md-4
-   :button_link: ../integrations/ipu/basic.html
-   :height: 150
-   :tag: basic
-
-.. displayitem::
-   :header: Optimize models training on IPUs
-   :description: Tune model performance with mixed precision and the performance analyser.
-   :col_css: col-md-4
-   :button_link: ../integrations/ipu/intermediate.html
+   :header: Optimize models training on HPUs
+   :description: Enable state-of-the-art scaling with advanced mixed-precision settings.
+   :col_css: col-md-6
+   :button_link: ../integrations/hpu/intermediate.html
    :height: 150
    :tag: intermediate
 

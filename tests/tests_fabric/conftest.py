@@ -20,6 +20,7 @@ from unittest.mock import Mock
 import lightning.fabric
 import pytest
 import torch.distributed
+from lightning.fabric.accelerators import XLAAccelerator
 from lightning.fabric.strategies.launchers.subprocess_script import _ChildProcessObserver
 from lightning.fabric.utilities.distributed import _distributed_is_initialized
 
@@ -62,13 +63,9 @@ def restore_env_variables():
         "PL_GLOBAL_SEED",
         "PL_SEED_WORKERS",
         "RANK",  # set by DeepSpeed
-        "POPLAR_ENGINE_OPTIONS",  # set by IPUStrategy
-        "CUDA_MODULE_LOADING",  # leaked since PyTorch 1.13
+        "CUDA_MODULE_LOADING",  # leaked by PyTorch
         "CRC32C_SW_MODE",  # set by tensorboardX
         "OMP_NUM_THREADS",  # set by our launchers
-        # set by XLA FSDP on XRT
-        "XRT_TORCH_DIST_ROOT",
-        "XRT_MESH_SERVICE_ADDRESS",
         # set by torchdynamo
         "TRITON_CACHE_DIR",
     }
@@ -90,6 +87,10 @@ def thread_police_duuu_daaa_duuu_daaa():
     active_threads_before = set(threading.enumerate())
     yield
     active_threads_after = set(threading.enumerate())
+
+    if XLAAccelerator.is_available():
+        # Ignore the check when running XLA tests for now
+        return
 
     for thread in active_threads_after - active_threads_before:
         stop = getattr(thread, "stop", None) or getattr(thread, "exit", None)

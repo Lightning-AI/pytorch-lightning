@@ -9,7 +9,7 @@ git clone https://github.com/Lightning-AI/lightning.git
 cd lightning
 pip install -e .
 export PACKAGE_LIGHTNING=1  # <- this is the magic to use your version (not mainstream PyPI)!
-lightning run app app.py --cloud
+lightning_app run app app.py --cloud
 ```
 
 By setting `PACKAGE_LIGHTNING=1`, lightning packages the lightning source code in your local directory in addition to your app source code and uploads them to the cloud.

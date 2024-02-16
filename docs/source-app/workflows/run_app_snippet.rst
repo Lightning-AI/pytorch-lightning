@@ -13,7 +13,7 @@ Run the app with the ``run`` command
 
 .. code:: bash
 
-    lightning run app app.py
+    lightning_app run app app.py
 
 .. raw:: html
 
@@ -25,7 +25,7 @@ Add the ``--cloud`` argument to run on the `lightning cloud <http://lightning.ai
 
 .. code:: bash
 
-    lightning run app app.py --cloud
+    lightning_app run app app.py --cloud
 
 .. raw:: html
 

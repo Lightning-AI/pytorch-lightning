@@ -47,7 +47,7 @@ In a terminal, run the following command and open ``http://127.0.0.1:7501/docs``
 
 .. code-block:: python
 
-    lightning run app app.py
+    lightning_app run app app.py
     Your Lightning App is starting. This won't take long.
     INFO: Your app has started. View it in your browser: http://127.0.0.1:7501/view
 
@@ -58,11 +58,11 @@ In a terminal, run the following command and open ``http://127.0.0.1:7501/docs``
 ***************************
 
 In another terminal, connect to the running App.
-When you connect to an App, the Lightning CLI is replaced by the App CLI. To exit the App CLI, you need to run ``lightning disconnect``.
+When you connect to an App, the Lightning CLI is replaced by the App CLI. To exit the App CLI, you need to run ``lightning_app disconnect``.
 
 .. code-block::
 
-    lightning connect localhost
+    lightning_app connect localhost
 
     Storing `run_notebook` under /Users/thomas/.lightning/lightning_connection/commands/run_notebook.py
     You can review all the downloaded commands under /Users/thomas/.lightning/lightning_connection/commands folder.
@@ -72,10 +72,10 @@ To see a list of available commands:
 
 .. code-block::
 
-    lightning --help
+    lightning_app --help
 
     You are connected to the cloud Lightning App: localhost.
-    Usage: lightning [OPTIONS] COMMAND [ARGS]...
+    Usage: lightning_app [OPTIONS] COMMAND [ARGS]...
 
     --help     Show this message and exit.
 
@@ -87,7 +87,7 @@ To find the arguments of the commands:
 
 .. code-block::
 
-    lightning run notebook --help
+    lightning_app run notebook --help
 
     You are connected to the cloud Lightning App: localhost.
     usage: notebook [-h] [--name NAME] [--cloud_compute CLOUD_COMPUTE]
@@ -111,7 +111,7 @@ Run the first Notebook with the following command:
 
 .. code-block:: python
 
-    lightning run notebook --name="my_notebook"
+    lightning_app run notebook --name="my_notebook"
     WARNING: Lightning Command Line Interface is an experimental feature and unannounced changes are likely.
     The notebook my_notebook was created.
 
@@ -119,7 +119,7 @@ And run a second notebook.
 
 .. code-block:: python
 
-    lightning run notebook --name="my_notebook_2"
+    lightning_app run notebook --name="my_notebook_2"
     WARNING: Lightning Command Line Interface is an experimental feature and unannounced changes are likely.
     The notebook my_notebook_2 was created.
 
@@ -141,7 +141,7 @@ To exit the App CLI, you need to run **lightning disconnect**.
 
 .. code-block::
 
-    lightning disconnect
+    lightning_app disconnect
     You are disconnected from the local Lightning App.
 
 ----

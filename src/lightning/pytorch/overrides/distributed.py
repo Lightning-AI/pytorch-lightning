@@ -18,7 +18,7 @@ import torch
 from torch import Tensor
 from torch.nn.parallel.distributed import DistributedDataParallel
 from torch.utils.data import DistributedSampler, Sampler
-from typing_extensions import Self
+from typing_extensions import Self, override
 
 from lightning.fabric.utilities.distributed import _DatasetSamplerWrapper
 from lightning.pytorch.utilities.rank_zero import rank_zero_debug, rank_zero_info
@@ -26,7 +26,7 @@ from lightning.pytorch.utilities.types import _SizedIterable
 
 
 def _find_tensors(
-    obj: Union[Tensor, list, tuple, dict, Any]
+    obj: Union[Tensor, list, tuple, dict, Any],
 ) -> Union[List[Tensor], itertools.chain]:  # pragma: no-cover
     """Recursively find all tensors contained in the specified object."""
     if isinstance(obj, Tensor):
@@ -200,6 +200,7 @@ class UnrepeatedDistributedSampler(DistributedSampler):
         # have at least one batch, or the DistributedDataParallel could lock up.
         assert self.num_samples >= 1 or self.total_size == 0
 
+    @override
     def __iter__(self) -> Iterator[List[int]]:
         if not isinstance(self.dataset, Sized):
             raise TypeError("The given dataset must implement the `__len__` method.")
@@ -226,6 +227,7 @@ class UnrepeatedDistributedSamplerWrapper(UnrepeatedDistributedSampler):
     def __init__(self, sampler: Union[Sampler, Iterable], *args: Any, **kwargs: Any) -> None:
         super().__init__(_DatasetSamplerWrapper(sampler), *args, **kwargs)
 
+    @override
     def __iter__(self) -> Iterator:
         self.dataset.reset()
         return (self.dataset[index] for index in super().__iter__())

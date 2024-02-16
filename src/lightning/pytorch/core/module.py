@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """The LightningModule - an nn.Module with many additional features."""
+
 import logging
 import numbers
-import operator
 import weakref
 from contextlib import contextmanager
 from pathlib import Path
@@ -37,7 +37,7 @@ from typing import (
 
 import torch
 from lightning_utilities.core.apply_func import apply_to_collection
-from lightning_utilities.core.imports import RequirementCache, compare_version
+from lightning_utilities.core.imports import RequirementCache
 from torch import ScriptModule, Tensor
 from torch.nn import Module
 from torch.optim.optimizer import Optimizer
@@ -109,6 +109,7 @@ class LightningModule(
             "automatic_optimization",
             "trainer",
             "fabric",
+            "strict_loading",
         ]
         + _DeviceDtypeModuleMixin.__jit_unused_properties__
         + HyperparametersMixin.__jit_unused_properties__
@@ -125,10 +126,13 @@ class LightningModule(
         # pointer to the trainer object
         self._trainer: Optional["pl.Trainer"] = None
 
-        # optionally can be set by user
+        # attributes that can be set by user
         self._example_input_array: Optional[Union[Tensor, Tuple, Dict]] = None
-        self._current_fx_name: Optional[str] = None
         self._automatic_optimization: bool = True
+        self._strict_loading: Optional[bool] = None
+
+        # attributes used internally
+        self._current_fx_name: Optional[str] = None
         self._param_requires_grad_state: Dict[str, bool] = {}
         self._metric_attributes: Optional[Dict[int, str]] = None
         self._register_sharded_tensor_state_dict_hooks_if_available()
@@ -139,16 +143,15 @@ class LightningModule(
         self._fabric_optimizers: List[_FabricOptimizer] = []
 
     @overload
-    def optimizers(self, use_pl_optimizer: Literal[True] = True) -> Union[LightningOptimizer, List[LightningOptimizer]]:
-        ...
+    def optimizers(
+        self, use_pl_optimizer: Literal[True] = True
+    ) -> Union[LightningOptimizer, List[LightningOptimizer]]: ...
 
     @overload
-    def optimizers(self, use_pl_optimizer: Literal[False]) -> Union[Optimizer, List[Optimizer]]:
-        ...
+    def optimizers(self, use_pl_optimizer: Literal[False]) -> Union[Optimizer, List[Optimizer]]: ...
 
     @overload
-    def optimizers(self, use_pl_optimizer: bool) -> MODULE_OPTIMIZERS:
-        ...
+    def optimizers(self, use_pl_optimizer: bool) -> MODULE_OPTIMIZERS: ...
 
     def optimizers(self, use_pl_optimizer: bool = True) -> MODULE_OPTIMIZERS:
         """Returns the optimizer(s) that are being used during training. Useful for manual optimization.
@@ -294,6 +297,16 @@ class LightningModule(
         self._automatic_optimization = automatic_optimization
 
     @property
+    def strict_loading(self) -> bool:
+        """Determines how Lightning loads this model using `.load_state_dict(..., strict=model.strict_loading)`."""
+        # We use None as the default internally to determine whether the user has set a value
+        return self._strict_loading in (None, True)
+
+    @strict_loading.setter
+    def strict_loading(self, strict_loading: bool) -> None:
+        self._strict_loading = strict_loading
+
+    @property
     def logger(self) -> Optional[Union[Logger, FabricLogger]]:
         """Reference to the logger object in the Trainer."""
         if self._fabric is not None:
@@ -307,7 +320,7 @@ class LightningModule(
             return self._fabric.loggers
         if self._trainer is not None:
             return self._trainer.loggers
-        return []  # type: ignore[return-value]
+        return []
 
     def _call_batch_hook(self, hook_name: str, *args: Any) -> Any:
         trainer = self._trainer
@@ -655,7 +668,8 @@ class LightningModule(
 
         Return:
             A tensor of shape (world_size, batch, ...), or if the input was a collection
-            the output will also be a collection with tensors of this shape.
+            the output will also be a collection with tensors of this shape. For the special case where
+            world_size is 1, no additional dimension is added to the tensor(s).
 
         """
         group = group if group is not None else torch.distributed.group.WORLD
@@ -689,9 +703,11 @@ class LightningModule(
 
         Return:
             - :class:`~torch.Tensor` - The loss tensor
-            - ``dict`` - A dictionary. Can include any keys, but must include the key ``'loss'``.
-            - ``None`` - Skip to the next batch. This is only supported for automatic optimization.
-                This is not supported for multi-GPU, TPU, IPU, or DeepSpeed.
+            - ``dict`` - A dictionary which can include any keys, but must include the key ``'loss'`` in the case of
+              automatic optimization.
+            - ``None`` - In automatic optimization, this will skip to the next batch (but is not supported for
+              multi-GPU, TPU, or DeepSpeed). For manual optimization, this has no special meaning, as returning
+              the loss is not required.
 
         In this step you'd normally do the forward pass and calculate the loss for a batch.
         You can also do fancier things like multiple forward passes or something model specific.
@@ -749,13 +765,11 @@ class LightningModule(
         .. code-block:: python
 
             # if you have one val dataloader:
-            def validation_step(self, batch, batch_idx):
-                ...
+            def validation_step(self, batch, batch_idx): ...
 
 
             # if you have multiple val dataloaders:
-            def validation_step(self, batch, batch_idx, dataloader_idx=0):
-                ...
+            def validation_step(self, batch, batch_idx, dataloader_idx=0): ...
 
         Examples::
 
@@ -818,13 +832,11 @@ class LightningModule(
         .. code-block:: python
 
             # if you have one test dataloader:
-            def test_step(self, batch, batch_idx):
-                ...
+            def test_step(self, batch, batch_idx): ...
 
 
             # if you have multiple test dataloaders:
-            def test_step(self, batch, batch_idx, dataloader_idx=0):
-                ...
+            def test_step(self, batch, batch_idx, dataloader_idx=0): ...
 
         Examples::
 
@@ -988,7 +1000,7 @@ class LightningModule(
                     "lr_scheduler": {
                         "scheduler": ReduceLROnPlateau(optimizer, ...),
                         "monitor": "metric_to_track",
-                        "frequency": "indicates how often the metric is updated"
+                        "frequency": "indicates how often the metric is updated",
                         # If "monitor" references validation metrics, then "frequency" should be set to a
                         # multiple of "trainer.check_val_every_n_epoch".
                     },
@@ -1484,7 +1496,7 @@ class LightningModule(
         checkpoint_path: Union[_PATH, IO],
         map_location: _MAP_LOCATION_TYPE = None,
         hparams_file: Optional[_PATH] = None,
-        strict: bool = True,
+        strict: Optional[bool] = None,
         **kwargs: Any,
     ) -> Self:
         r"""Primary way of loading a model from a checkpoint. When Lightning saves a checkpoint it stores the arguments
@@ -1516,7 +1528,8 @@ class LightningModule(
                 and ``.yaml`` file has hierarchical structure, you need to refactor your model to treat
                 ``hparams`` as :class:`~dict`.
             strict: Whether to strictly enforce that the keys in :attr:`checkpoint_path` match the keys
-                returned by this module's state dict.
+                returned by this module's state dict. Defaults to ``True`` unless ``LightningModule.strict_loading`` is
+                set, in which case it defaults to the value of ``LightningModule.strict_loading``.
             \**kwargs: Any extra keyword args needed to init the model. Can also be used to override saved
                 hyperparameter values.
 
@@ -1598,15 +1611,7 @@ class LightningModule(
         from torch.distributed._shard.sharded_tensor import pre_load_state_dict_hook, state_dict_hook
 
         self._register_state_dict_hook(state_dict_hook)
-
-        if compare_version("torch", operator.ge, "1.13.0", use_base_version=True):
-            # See https://github.com/Lightning-AI/lightning/issues/16644 for why a base-version check is used here
-            self._register_load_state_dict_pre_hook(pre_load_state_dict_hook, True)
-        else:
-            # We need to make sure the self inside the method is a weakref proxy
-            self.__class__._register_load_state_dict_pre_hook(
-                weakref.proxy(self), pre_load_state_dict_hook, True  # type: ignore[arg-type]
-            )
+        self._register_load_state_dict_pre_hook(pre_load_state_dict_hook, True)
 
 
 @contextmanager

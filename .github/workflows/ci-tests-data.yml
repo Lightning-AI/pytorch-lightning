@@ -24,7 +24,7 @@ on:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
-  cancel-in-progress: ${{ ! (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/')) }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 defaults:
   run:
@@ -55,7 +55,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
 
@@ -87,7 +87,7 @@ jobs:
       #     ls -lh $PYPI_CACHE_DIR
 
       - name: Install package & dependencies
-        timeout-minutes: 20
+        timeout-minutes: 5
         run: |
           pip install -e ".[data-dev]" -U --prefer-binary -f ${TORCH_URL}
           pip list
@@ -95,7 +95,7 @@ jobs:
       - name: Testing Data
         working-directory: tests/tests_data
         # NOTE: do not include coverage report here, see: https://github.com/nedbat/coveragepy/issues/1003
-        timeout-minutes: 10
+        timeout-minutes: 25
         run: |
           python -m coverage run --source lightning \
             -m pytest -v --timeout=60 --durations=60

@@ -25,7 +25,7 @@ on:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
-  cancel-in-progress: ${{ ! (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/')) }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 defaults:
   run:
@@ -39,19 +39,16 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { os: "macOS-11", pkg-name: "lightning", python-version: "3.9", pytorch-version: "1.12" }
           - { os: "macOS-11", pkg-name: "lightning", python-version: "3.10", pytorch-version: "1.13" }
-          - { os: "ubuntu-20.04", pkg-name: "lightning", python-version: "3.9", pytorch-version: "1.12" }
           - { os: "ubuntu-20.04", pkg-name: "lightning", python-version: "3.10", pytorch-version: "1.13" }
-          - { os: "windows-2022", pkg-name: "lightning", python-version: "3.9", pytorch-version: "1.12" }
           - { os: "windows-2022", pkg-name: "lightning", python-version: "3.10", pytorch-version: "1.13" }
-          # only run PyTorch latest with Python recent
-          - { os: "macOS-11", pkg-name: "lightning", python-version: "3.10", pytorch-version: "2.0" }
-          - { os: "ubuntu-20.04", pkg-name: "lightning", python-version: "3.10", pytorch-version: "2.0" }
-          - { os: "windows-2022", pkg-name: "lightning", python-version: "3.10", pytorch-version: "2.0" }
+          # only run PyTorch latest
           - { os: "macOS-11", pkg-name: "lightning", python-version: "3.11", pytorch-version: "2.1" }
           - { os: "ubuntu-20.04", pkg-name: "lightning", python-version: "3.11", pytorch-version: "2.1" }
           - { os: "windows-2022", pkg-name: "lightning", python-version: "3.11", pytorch-version: "2.1" }
+          - { os: "macOS-11", pkg-name: "lightning", python-version: "3.11", pytorch-version: "2.2" }
+          - { os: "ubuntu-20.04", pkg-name: "lightning", python-version: "3.11", pytorch-version: "2.2" }
+          - { os: "windows-2022", pkg-name: "lightning", python-version: "3.11", pytorch-version: "2.2" }
           # only run PyTorch latest with Python latest, use Fabric scope to limit dependency issues
           - { os: "macOS-12", pkg-name: "fabric", python-version: "3.11", pytorch-version: "2.0" }
           - { os: "ubuntu-22.04", pkg-name: "fabric", python-version: "3.11", pytorch-version: "2.0" }
@@ -64,21 +61,21 @@ jobs:
               os: "macOS-11",
               pkg-name: "lightning",
               python-version: "3.8",
-              pytorch-version: "1.12",
+              pytorch-version: "1.13",
               requires: "oldest",
             }
           - {
               os: "ubuntu-20.04",
               pkg-name: "lightning",
               python-version: "3.8",
-              pytorch-version: "1.12",
+              pytorch-version: "1.13",
               requires: "oldest",
             }
           - {
               os: "windows-2022",
               pkg-name: "lightning",
               python-version: "3.8",
-              pytorch-version: "1.12",
+              pytorch-version: "1.13",
               requires: "oldest",
             }
           # "fabric" installs the standalone package
@@ -96,7 +93,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
 
@@ -128,7 +125,7 @@ jobs:
       - name: Env. variables
         run: |
           # Switch PyTorch URL
-          #python -c "print('TORCH_URL=' + str('${{env.TORCH_URL_TEST}}' if '${{ matrix.release }}' == 'pre' else '${{env.TORCH_URL_STABLE}}'))" >> $GITHUB_ENV
+          python -c "print('TORCH_URL=' + str('${{env.TORCH_URL_TEST}}' if '${{ matrix.pytorch-version }}' == '2.2' else '${{env.TORCH_URL_STABLE}}'))" >> $GITHUB_ENV
           # Switch coverage scope
           python -c "print('COVERAGE_SCOPE=' + str('lightning' if '${{matrix.pkg-name}}' == 'lightning' else 'lightning_fabric'))" >> $GITHUB_ENV
           # if you install mono-package set dependency only for this subpackage
@@ -157,7 +154,7 @@ jobs:
 
       - name: Testing Warnings
         working-directory: tests/tests_fabric
-        # needs to run outside of `pytest`
+        # needs to run outside `pytest`
         run: python utilities/test_warnings.py
 
       - name: Testing Fabric

@@ -19,6 +19,7 @@
 # DO NOT REMOVE THIS NOTICE
 # - WILLIAM FALCON
 """Trainer to automate the training."""
+
 import logging
 import math
 import os
@@ -136,7 +137,7 @@ class Trainer:
         r"""Customize every aspect of training via flags.
 
         Args:
-            accelerator: Supports passing different accelerator types ("cpu", "gpu", "tpu", "ipu", "hpu", "mps", "auto")
+            accelerator: Supports passing different accelerator types ("cpu", "gpu", "tpu", "hpu", "mps", "auto")
                 as well as custom accelerator instances.
 
             strategy: Supports different training strategies with aliases as well custom strategies.
@@ -151,7 +152,7 @@ class Trainer:
 
             precision: Double precision (64, '64' or '64-true'), full precision (32, '32' or '32-true'),
                 16bit mixed precision (16, '16', '16-mixed') or bfloat16 mixed precision ('bf16', 'bf16-mixed').
-                Can be used on CPU, GPU, TPUs, HPUs or IPUs.
+                Can be used on CPU, GPU, TPUs, or HPUs.
                 Default: ``'32-true'``.
 
             logger: Logger (or iterable collection of loggers) for experiment tracking. A ``True`` value uses
@@ -506,7 +507,7 @@ class Trainer:
         train_dataloaders: Optional[Union[TRAIN_DATALOADERS, LightningDataModule]] = None,
         val_dataloaders: Optional[EVAL_DATALOADERS] = None,
         datamodule: Optional[LightningDataModule] = None,
-        ckpt_path: Optional[str] = None,
+        ckpt_path: Optional[_PATH] = None,
     ) -> None:
         r"""Runs the full optimization routine.
 
@@ -551,7 +552,7 @@ class Trainer:
         train_dataloaders: Optional[Union[TRAIN_DATALOADERS, LightningDataModule]] = None,
         val_dataloaders: Optional[EVAL_DATALOADERS] = None,
         datamodule: Optional[LightningDataModule] = None,
-        ckpt_path: Optional[str] = None,
+        ckpt_path: Optional[_PATH] = None,
     ) -> None:
         log.debug(f"{self.__class__.__name__}: trainer fit stage")
 
@@ -587,7 +588,7 @@ class Trainer:
         self,
         model: Optional["pl.LightningModule"] = None,
         dataloaders: Optional[Union[EVAL_DATALOADERS, LightningDataModule]] = None,
-        ckpt_path: Optional[str] = None,
+        ckpt_path: Optional[_PATH] = None,
         verbose: bool = True,
         datamodule: Optional[LightningDataModule] = None,
     ) -> _EVALUATE_OUTPUT:
@@ -650,7 +651,7 @@ class Trainer:
         self,
         model: Optional["pl.LightningModule"] = None,
         dataloaders: Optional[Union[EVAL_DATALOADERS, LightningDataModule]] = None,
-        ckpt_path: Optional[str] = None,
+        ckpt_path: Optional[_PATH] = None,
         verbose: bool = True,
         datamodule: Optional[LightningDataModule] = None,
     ) -> Optional[Union[_PREDICT_OUTPUT, _EVALUATE_OUTPUT]]:
@@ -695,7 +696,7 @@ class Trainer:
         self,
         model: Optional["pl.LightningModule"] = None,
         dataloaders: Optional[Union[EVAL_DATALOADERS, LightningDataModule]] = None,
-        ckpt_path: Optional[str] = None,
+        ckpt_path: Optional[_PATH] = None,
         verbose: bool = True,
         datamodule: Optional[LightningDataModule] = None,
     ) -> _EVALUATE_OUTPUT:
@@ -759,7 +760,7 @@ class Trainer:
         self,
         model: Optional["pl.LightningModule"] = None,
         dataloaders: Optional[Union[EVAL_DATALOADERS, LightningDataModule]] = None,
-        ckpt_path: Optional[str] = None,
+        ckpt_path: Optional[_PATH] = None,
         verbose: bool = True,
         datamodule: Optional[LightningDataModule] = None,
     ) -> Optional[Union[_PREDICT_OUTPUT, _EVALUATE_OUTPUT]]:
@@ -806,7 +807,7 @@ class Trainer:
         dataloaders: Optional[Union[EVAL_DATALOADERS, LightningDataModule]] = None,
         datamodule: Optional[LightningDataModule] = None,
         return_predictions: Optional[bool] = None,
-        ckpt_path: Optional[str] = None,
+        ckpt_path: Optional[_PATH] = None,
     ) -> Optional[_PREDICT_OUTPUT]:
         r"""Run inference on your data. This will call the model forward function to compute predictions. Useful to
         perform distributed and batched predictions. Logging is disabled in the predict hooks.
@@ -871,7 +872,7 @@ class Trainer:
         dataloaders: Optional[Union[EVAL_DATALOADERS, LightningDataModule]] = None,
         datamodule: Optional[LightningDataModule] = None,
         return_predictions: Optional[bool] = None,
-        ckpt_path: Optional[str] = None,
+        ckpt_path: Optional[_PATH] = None,
     ) -> Optional[_PREDICT_OUTPUT]:
         # --------------------
         # SETUP HOOK
@@ -936,10 +937,6 @@ class Trainer:
 
         _verify_loop_configurations(self)
 
-        # hook
-        log.debug(f"{self.__class__.__name__}: preparing data")
-        self._data_connector.prepare_data()
-
         # ----------------------------
         # SET UP THE TRAINER
         # ----------------------------
@@ -947,7 +944,10 @@ class Trainer:
         self.strategy.setup_environment()
         self.__setup_profiler()
 
-        call._call_setup_hook(self)  # allow user to setup lightning_module in accelerator environment
+        log.debug(f"{self.__class__.__name__}: preparing data")
+        self._data_connector.prepare_data()
+
+        call._call_setup_hook(self)  # allow user to set up LightningModule in accelerator environment
         log.debug(f"{self.__class__.__name__}: configuring model")
         call._call_configure_model(self)
 
@@ -1091,7 +1091,7 @@ class Trainer:
         Args:
             empty_init: Whether to initialize the model with empty weights (uninitialized memory).
                 If ``None``, the strategy will decide. Some strategies may not support all options.
-                Set this to ``True`` if you are loading a checkpoint into a large model. Requires `torch >= 1.13`.
+                Set this to ``True`` if you are loading a checkpoint into a large model.
 
         """
         if not _TORCH_GREATER_EQUAL_2_0 and self.strategy.root_device.type != "cpu":
@@ -1286,7 +1286,7 @@ class Trainer:
 
         """
         if _is_local_file_protocol(self._default_root_dir):
-            return os.path.normpath(self._default_root_dir)
+            return os.path.normpath(os.path.expanduser(self._default_root_dir))
         return self._default_root_dir
 
     @property

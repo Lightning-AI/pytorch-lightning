@@ -692,11 +692,9 @@ def test_cli_no_need_configure_optimizers(cleandir):
             super().__init__()
             self.layer = torch.nn.Linear(32, 2)
 
-        def training_step(self, *_):
-            ...
+        def training_step(self, *_): ...
 
-        def train_dataloader(self):
-            ...
+        def train_dataloader(self): ...
 
         # did not define `configure_optimizers`
 
@@ -1312,16 +1310,15 @@ def test_lightning_cli_reinstantiate_trainer():
 
     assert cli.trainer.max_epochs is None
 
-    class TestCallback(Callback):
-        ...
+    class TestCallback(Callback): ...
 
     # make sure a new trainer can be easily created
     trainer = cli.instantiate_trainer(max_epochs=123, callbacks=[TestCallback()])
     # the new config is used
     assert trainer.max_epochs == 123
-    assert {c.__class__ for c in trainer.callbacks} == {c.__class__ for c in cli.trainer.callbacks}.union(
-        {TestCallback}
-    )
+    assert {c.__class__ for c in trainer.callbacks} == {c.__class__ for c in cli.trainer.callbacks}.union({
+        TestCallback
+    })
     # the existing config is not updated
     assert cli.config_init["trainer"]["max_epochs"] is None
 
@@ -1539,8 +1536,7 @@ def test_cli_trainer_no_callbacks():
         def __init__(self):
             super().__init__()
 
-    class MyCallback(Callback):
-        ...
+    class MyCallback(Callback): ...
 
     match = "MyTrainer` class does not expose the `callbacks"
     with mock.patch("sys.argv", ["any.py"]), pytest.warns(UserWarning, match=match):

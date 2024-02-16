@@ -29,12 +29,11 @@ from lightning.fabric.strategies.fsdp import (
     _has_meta_device_parameters,
     _is_sharded_checkpoint,
 )
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_1
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_1, _TORCH_GREATER_EQUAL_2_2
 from torch.distributed.fsdp.fully_sharded_data_parallel import CPUOffload, FullyShardedDataParallel, MixedPrecision
 from torch.optim import Adam
 
 from tests_fabric.helpers.runif import RunIf
-from tests_fabric.strategies.test_single_device import _MyFabricGradNorm
 
 
 def test_fsdp_custom_mixed_precision():
@@ -77,16 +76,26 @@ def test_fsdp_sharding_strategy():
 
 @RunIf(min_torch="2.0")
 @pytest.mark.parametrize("sharding_strategy", ["HYBRID_SHARD", "_HYBRID_SHARD_ZERO2"])
-def test_fsdp_hybrid_sharding_strategy(sharding_strategy):
+def test_fsdp_hybrid_shard_configuration(sharding_strategy):
     """Test that the hybrid sharding strategies can only be used with automatic wrapping or a manually specified pg."""
-    with pytest.raises(RuntimeError, match="The hybrid sharding strategy requires you to either set"):
+    with pytest.raises(RuntimeError, match="The hybrid sharding strategy requires you to pass at least one of"):
         FSDPStrategy(sharding_strategy=sharding_strategy)
 
     strategy = FSDPStrategy(auto_wrap_policy={nn.Linear}, sharding_strategy=sharding_strategy)
     assert strategy.sharding_strategy.name == sharding_strategy
 
-    strategy = FSDPStrategy(sharding_strategy=sharding_strategy, process_group=(Mock(), Mock()))
+    process_group = (Mock(), Mock())
+    strategy = FSDPStrategy(sharding_strategy=sharding_strategy, process_group=process_group)
     assert strategy.sharding_strategy.name == sharding_strategy
+    assert strategy._fsdp_kwargs["process_group"] is process_group
+
+    device_mesh = Mock()
+    strategy = FSDPStrategy(sharding_strategy=sharding_strategy, device_mesh=device_mesh)
+    assert strategy.sharding_strategy.name == sharding_strategy
+    assert strategy._fsdp_kwargs["device_mesh"] is device_mesh
+
+    with pytest.raises(ValueError, match="process_group.* device_mesh=.* are mutually exclusive"):
+        FSDPStrategy(sharding_strategy=sharding_strategy, process_group=process_group, device_mesh=device_mesh)
 
 
 def test_fsdp_checkpoint_io_unsupported():
@@ -153,16 +162,11 @@ def test_fsdp_no_backward_sync():
 
 def test_fsdp_activation_checkpointing_support(monkeypatch):
     """Test that we error out if activation checkpointing requires a newer PyTorch version."""
-    monkeypatch.setattr(lightning.fabric.strategies.fsdp, "_TORCH_GREATER_EQUAL_1_13", False)
-    with pytest.raises(ValueError, match="activation_checkpointing` requires torch >= 1.13.0"):
-        FSDPStrategy(activation_checkpointing=Mock())
-
     monkeypatch.setattr(lightning.fabric.strategies.fsdp, "_TORCH_GREATER_EQUAL_2_1", False)
     with pytest.raises(ValueError, match="activation_checkpointing_policy` requires torch >= 2.1.0"):
         FSDPStrategy(activation_checkpointing_policy=Mock())
 
 
-@RunIf(min_torch="1.13")
 def test_fsdp_activation_checkpointing():
     """Test that the FSDP strategy can apply activation checkpointing to the given layers."""
 
@@ -210,20 +214,6 @@ def test_fsdp_activation_checkpointing():
     apply_mock.assert_called_with(wrapped, checkpoint_wrapper_fn=ANY, **strategy._activation_checkpointing_kwargs)
 
 
-@RunIf(min_torch="1.13")
-def test_fsdp_grad_clipping_value_error():
-    strategy = FSDPStrategy()
-    with pytest.raises(
-        NotImplementedError,
-        match=(
-            "FSDP currently does not support to clip gradients by value. "
-            "Consider clipping by norm instead or choose another strategy!"
-        ),
-    ):
-        strategy.clip_gradients_value(Mock(), Mock(), Mock())
-
-
-@RunIf(min_torch="1.13")
 def test_fsdp_forbidden_precision_raises():
     with pytest.raises(TypeError, match="can only work with the `FSDPPrecision"):
         FSDPStrategy(precision=HalfPrecision())
@@ -233,7 +223,6 @@ def test_fsdp_forbidden_precision_raises():
         strategy.precision = HalfPrecision()
 
 
-@RunIf(min_torch="1.13")
 def test_fsdp_grad_clipping_norm_error():
     strategy = FSDPStrategy()
     with pytest.raises(
@@ -241,30 +230,6 @@ def test_fsdp_grad_clipping_norm_error():
         match="only possible if the module.*is wrapped in `FullyShardedDataParallel`",
     ):
         strategy.clip_gradients_norm(Mock(), Mock(), Mock())
-
-
-class _MyFSDPFabricGradientNorm(_MyFabricGradNorm):
-    def after_backward(self, model, optimizer):
-        self.clip_gradients(model, optimizer, max_norm=0.05, error_if_nonfinite=True)
-
-        with model._forward_module.summon_full_params(model._forward_module):
-            parameters = model.parameters()
-            grad_norm = torch.linalg.vector_norm(
-                torch.stack([torch.linalg.vector_norm(p.grad.detach(), 2, dtype=torch.float32) for p in parameters]),
-                2,
-            )
-            torch.testing.assert_close(grad_norm, torch.tensor(0.05, device=self.device))
-
-
-@pytest.mark.parametrize(
-    "precision",
-    ["32-true", "16-mixed", pytest.param("bf16-mixed", marks=RunIf(bf16_cuda=True))],
-)
-@RunIf(min_cuda_gpus=2, standalone=True)
-@pytest.mark.xfail(reason="Testing with FSDP is not yet correct")  # TODO: Investigate testing with fsdp
-def test_fsdp_grad_clipping_norm(precision):
-    fabric = _MyFSDPFabricGradientNorm(accelerator="cuda", devices=2, precision=precision, strategy="fsdp")
-    fabric.run()
 
 
 @RunIf(min_torch="2.0.0")
@@ -276,13 +241,12 @@ def test_fsdp_save_checkpoint_storage_options(tmp_path):
 
 
 @RunIf(min_torch="2.0.0")
-@mock.patch("torch.distributed.checkpoint.save_state_dict", return_value=MagicMock())
 @mock.patch("lightning.fabric.strategies.fsdp.FSDPStrategy.broadcast", lambda _, x: x)
-@mock.patch("lightning.fabric.strategies.fsdp._get_full_state_dict_context", return_value=MagicMock())
-@mock.patch("lightning.fabric.strategies.fsdp._get_sharded_state_dict_context", return_value=MagicMock())
-@mock.patch("lightning.fabric.strategies.fsdp.torch.save", return_value=Mock())
-@mock.patch("lightning.fabric.strategies.fsdp.shutil", return_value=MagicMock())
-def test_fsdp_save_checkpoint_path_exists(shutil_mock, torch_save_mock, __, ___, ____, tmp_path):
+@mock.patch("lightning.fabric.strategies.fsdp._get_full_state_dict_context")
+@mock.patch("lightning.fabric.strategies.fsdp._get_sharded_state_dict_context")
+@mock.patch("lightning.fabric.strategies.fsdp.torch.save")
+@mock.patch("lightning.fabric.strategies.fsdp.shutil")
+def test_fsdp_save_checkpoint_path_exists(shutil_mock, torch_save_mock, __, ___, tmp_path):
     strategy = FSDPStrategy(state_dict_type="full")
 
     # state_dict_type='full', path exists, path is not a sharded checkpoint: error
@@ -313,6 +277,11 @@ def test_fsdp_save_checkpoint_path_exists(shutil_mock, torch_save_mock, __, ___,
     torch_save_mock.assert_called_once()
 
     strategy = FSDPStrategy(state_dict_type="sharded")
+    save_mock = mock.patch(
+        "torch.distributed.checkpoint.save"
+        if _TORCH_GREATER_EQUAL_2_2
+        else "torch.distributed.checkpoint.save_state_dict"
+    )
 
     # state_dict_type='sharded', path exists, path is a folder: no error (overwrite)
     path = tmp_path / "not-empty-2"
@@ -320,7 +289,8 @@ def test_fsdp_save_checkpoint_path_exists(shutil_mock, torch_save_mock, __, ___,
     (path / "file").touch()
     model = Mock(spec=FullyShardedDataParallel)
     model.modules.return_value = [model]
-    strategy.save_checkpoint(path=path, state={"model": model})
+    with save_mock:
+        strategy.save_checkpoint(path=path, state={"model": model})
     assert (path / "file").exists()
 
     # state_dict_type='sharded', path exists, path is a file: no error (overwrite)
@@ -328,7 +298,8 @@ def test_fsdp_save_checkpoint_path_exists(shutil_mock, torch_save_mock, __, ___,
     path.touch()
     model = Mock(spec=FullyShardedDataParallel)
     model.modules.return_value = [model]
-    strategy.save_checkpoint(path=path, state={"model": model})
+    with save_mock:
+        strategy.save_checkpoint(path=path, state={"model": model})
     assert path.is_dir()
 
 

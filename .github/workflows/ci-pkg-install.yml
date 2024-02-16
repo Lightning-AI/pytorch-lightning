@@ -24,7 +24,7 @@ on:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
-  cancel-in-progress: ${{ ! (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/')) }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 defaults:
   run:
@@ -53,7 +53,7 @@ jobs:
           - { os: "ubuntu-22.04", pkg-name: "notset", python-version: "3.9", pkg-extra: "app" }
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
       - uses: actions/download-artifact@v3
@@ -79,7 +79,7 @@ jobs:
         if: |
           ((matrix.pkg-name == 'lightning' || matrix.pkg-name == 'notset') && matrix.pkg-extra == 'app') ||
           matrix.pkg-name == 'app'
-        run: lightning --version
+        run: lightning_app --version
 
       - name: DocTests actions
         working-directory: .actions/

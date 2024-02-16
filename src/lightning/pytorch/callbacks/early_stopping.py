@@ -18,6 +18,7 @@ Early Stopping
 Monitor a metric and stop training when it stops improving.
 
 """
+
 import logging
 from typing import Any, Callable, Dict, Optional, Tuple
 
@@ -26,7 +27,6 @@ from torch import Tensor
 from typing_extensions import override
 
 import lightning.pytorch as pl
-from lightning.fabric.utilities.rank_zero import _get_rank
 from lightning.pytorch.callbacks.callback import Callback
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.rank_zero import rank_prefixed_message, rank_zero_warn
@@ -86,6 +86,7 @@ class EarlyStopping(Callback):
         Read more: :ref:`Persisting Callback State <extensions/callbacks_state:save callback state>`
 
     """
+
     mode_dict = {"min": torch.lt, "max": torch.gt}
 
     order_dict = {"min": "<", "max": ">"}
@@ -265,12 +266,8 @@ class EarlyStopping(Callback):
         return msg
 
     @staticmethod
-    def _log_info(trainer: Optional["pl.Trainer"], message: str, log_rank_zero_only: bool) -> None:
-        rank = _get_rank(
-            strategy=(trainer.strategy if trainer is not None else None),  # type: ignore[arg-type]
-        )
-        if trainer is not None and trainer.world_size <= 1:
-            rank = None
+    def _log_info(trainer: "pl.Trainer", message: str, log_rank_zero_only: bool) -> None:
+        rank = trainer.global_rank if trainer.world_size > 1 else None
         message = rank_prefixed_message(message, rank)
         if rank is None or not log_rank_zero_only or rank == 0:
             log.info(message)

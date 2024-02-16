@@ -32,17 +32,15 @@ class TensorBoardWorker(LightningWork):
         self._sync_every_n_seconds = sync_every_n_seconds
 
     def run(self) -> None:
-        subprocess.Popen(
-            [
-                "tensorboard",
-                "--logdir",
-                str(self.log_dir),
-                "--host",
-                self.host,
-                "--port",
-                str(self.port),
-            ]
-        )
+        subprocess.Popen([
+            "tensorboard",
+            "--logdir",
+            str(self.log_dir),
+            "--host",
+            self.host,
+            "--port",
+            str(self.port),
+        ])
 
         # Download the log directory periodically
         while True:
