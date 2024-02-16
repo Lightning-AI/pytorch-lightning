@@ -9,8 +9,12 @@ on:
     types: [opened, reopened, ready_for_review, synchronize] # added `ready_for_review` since draft is skipped
     paths:
       - ".actions/*"
+      - "requirements/ci.txt"
       - "requirements/data/**"
       - "src/lightning/data/**"
+      - "src/lightning/__init__.py"
+      - "src/lightning/__setup__.py"
+      - "src/lightning/__version__.py"
       - "tests/tests_data/**"
       - "pyproject.toml" # includes pytest config
       - ".github/workflows/ci-tests-data.yml"
@@ -20,7 +24,7 @@ on:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
-  cancel-in-progress: ${{ ! (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/')) }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 defaults:
   run:
@@ -41,7 +45,7 @@ jobs:
           # - {os: "macOS-11", pkg-name: "lightning", python-version: "3.8", pytorch-version: "2.0", requires: "oldest"}
           # - {os: "ubuntu-20.04", pkg-name: "lightning", python-version: "3.8", pytorch-version: "2.0", requires: "oldest"}
           # - {os: "windows-2022", pkg-name: "lightning", python-version: "3.8", pytorch-version: "2.0", requires: "oldest"}
-    timeout-minutes: 25 # because of building grpcio on Mac
+    timeout-minutes: 35 # because of building grpcio on Mac
     env:
       PACKAGE_NAME: ${{ matrix.pkg-name }}
       FREEZE_REQUIREMENTS: ${{ ! (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/')) }}
@@ -51,7 +55,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
 
@@ -66,7 +70,7 @@ jobs:
       - name: Adjust PyTorch versions in requirements files
         if: ${{ matrix.requires != 'oldest' && matrix.release != 'pre' }}
         run: |
-          pip install -q wget packaging
+          pip install -q -r requirements/ci.txt
           python -m wget https://raw.githubusercontent.com/Lightning-AI/utilities/main/scripts/adjust-torch-versions.py
           for fpath in `ls requirements/data/*.txt`; do \
             python ./adjust-torch-versions.py $fpath ${{ matrix.pytorch-version }}; \
@@ -83,15 +87,15 @@ jobs:
       #     ls -lh $PYPI_CACHE_DIR
 
       - name: Install package & dependencies
-        timeout-minutes: 20
+        timeout-minutes: 5
         run: |
-          python -m pip install -q pip -U
           pip install -e ".[data-dev]" -U --prefer-binary -f ${TORCH_URL}
           pip list
 
       - name: Testing Data
         working-directory: tests/tests_data
         # NOTE: do not include coverage report here, see: https://github.com/nedbat/coveragepy/issues/1003
+        timeout-minutes: 25
         run: |
           python -m coverage run --source lightning \
             -m pytest -v --timeout=60 --durations=60

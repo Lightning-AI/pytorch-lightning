@@ -30,7 +30,6 @@ from lightning_cloud.openapi import (
     Externalv1LightningappInstance,
     ProjectIdStorageBody,
     V1CloudSpace,
-    V1GetClusterResponse,
 )
 from rich.live import Live
 from rich.progress import BarColumn, DownloadColumn, Progress, TaskID, TextColumn
@@ -113,7 +112,7 @@ def _upload_files(live, client: LightningClient, local_src: str, remote_dst: str
     else:
         upload_paths = [local_src]
 
-    upload_urls = []
+    _upload_urls = []
 
     clusters = client.projects_service_list_project_cluster_bindings(project_id)
 
@@ -129,9 +128,11 @@ def _upload_files(live, client: LightningClient, local_src: str, remote_dst: str
                 body=ProjectIdStorageBody(cluster_id=cluster.cluster_id, filename=filename),
                 async_req=True,
             )
-            upload_urls.append(response)
+            _upload_urls.append(response)
 
-    upload_urls = [upload_url.get().upload_url for upload_url in upload_urls]
+    upload_urls = []
+    for upload_url in _upload_urls:
+        upload_urls.extend(upload_url.get().urls)
 
     live.stop()
 
@@ -330,16 +331,14 @@ def _get_progress_bar(**kwargs: Any) -> Progress:
     )
 
 
-def _storage_host(cluster: Union[V1GetClusterResponse, Externalv1Cluster]) -> str:
+def _storage_host(cluster: Externalv1Cluster) -> str:
     dev_host = os.environ.get("LIGHTNING_STORAGE_HOST")
     if dev_host:
         return dev_host
     return f"https://storage.{cluster.spec.driver.kubernetes.root_domain_name}"
 
 
-def _cluster_from_lit_resource(
-    lit_resource: Union[Externalv1LightningappInstance, V1CloudSpace]
-) -> Union[V1GetClusterResponse, Externalv1Cluster]:
+def _cluster_from_lit_resource(lit_resource: Union[Externalv1LightningappInstance, V1CloudSpace]) -> Externalv1Cluster:
     client = LightningClient()
     if isinstance(lit_resource, Externalv1LightningappInstance):
         return client.cluster_service_get_cluster(lit_resource.spec.cluster_id)

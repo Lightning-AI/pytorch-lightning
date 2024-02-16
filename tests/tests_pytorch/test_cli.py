@@ -42,9 +42,6 @@ from lightning.pytorch.cli import (
 )
 from lightning.pytorch.demos.boring_classes import BoringDataModule, BoringModel
 from lightning.pytorch.loggers import CSVLogger, TensorBoardLogger
-from lightning.pytorch.loggers.comet import _COMET_AVAILABLE
-from lightning.pytorch.loggers.neptune import _NEPTUNE_AVAILABLE
-from lightning.pytorch.loggers.wandb import _WANDB_AVAILABLE
 from lightning.pytorch.strategies import DDPStrategy
 from lightning.pytorch.trainer.states import TrainerFn
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
@@ -62,6 +59,9 @@ if _JSONARGPARSE_SIGNATURES_AVAILABLE:
     from jsonargparse import Namespace, lazy_instance
 else:
     from argparse import Namespace
+
+    def lazy_instance(*args, **kwargs):
+        return None
 
 
 @contextmanager
@@ -176,7 +176,9 @@ def test_lightning_cli_args_callbacks(cleandir):
             self.trainer.ran_asserts = True
 
     with mock.patch("sys.argv", ["any.py", "fit", f"--trainer.callbacks={json.dumps(callbacks)}"]):
-        cli = LightningCLI(TestModel, trainer_defaults={"fast_dev_run": True, "logger": CSVLogger(".")})
+        cli = LightningCLI(
+            TestModel, trainer_defaults={"fast_dev_run": True, "logger": lazy_instance(CSVLogger, save_dir=".")}
+        )
 
     assert cli.trainer.ran_asserts
 
@@ -592,7 +594,7 @@ class EarlyExitTestModel(BoringModel):
 
 # mps not yet supported by distributed
 @RunIf(skip_windows=True, mps=False)
-@pytest.mark.parametrize("logger", [False, TensorBoardLogger(".")])
+@pytest.mark.parametrize("logger", [False, lazy_instance(TensorBoardLogger, save_dir=".")])
 @pytest.mark.parametrize("strategy", ["ddp_spawn", "ddp"])
 def test_cli_distributed_save_config_callback(cleandir, logger, strategy):
     from torch.multiprocessing import ProcessRaisedException
@@ -690,11 +692,9 @@ def test_cli_no_need_configure_optimizers(cleandir):
             super().__init__()
             self.layer = torch.nn.Linear(32, 2)
 
-        def training_step(self, *_):
-            ...
+        def training_step(self, *_): ...
 
-        def train_dataloader(self):
-            ...
+        def train_dataloader(self): ...
 
         # did not define `configure_optimizers`
 
@@ -1310,16 +1310,15 @@ def test_lightning_cli_reinstantiate_trainer():
 
     assert cli.trainer.max_epochs is None
 
-    class TestCallback(Callback):
-        ...
+    class TestCallback(Callback): ...
 
     # make sure a new trainer can be easily created
     trainer = cli.instantiate_trainer(max_epochs=123, callbacks=[TestCallback()])
     # the new config is used
     assert trainer.max_epochs == 123
-    assert {c.__class__ for c in trainer.callbacks} == {c.__class__ for c in cli.trainer.callbacks}.union(
-        {TestCallback}
-    )
+    assert {c.__class__ for c in trainer.callbacks} == {c.__class__ for c in cli.trainer.callbacks}.union({
+        TestCallback
+    })
     # the existing config is not updated
     assert cli.config_init["trainer"]["max_epochs"] is None
 
@@ -1433,7 +1432,7 @@ def test_cli_logger_shorthand():
     assert cli.trainer.logger is None
 
 
-def _test_logger_init_args(logger_name, init, unresolved={}):
+def _test_logger_init_args(logger_name, init, unresolved=None):
     cli_args = [f"--trainer.logger={logger_name}"]
     cli_args += [f"--trainer.logger.{k}={v}" for k, v in init.items()]
     cli_args += [f"--trainer.logger.dict_kwargs.{k}={v}" for k, v in unresolved.items()]
@@ -1449,50 +1448,38 @@ def _test_logger_init_args(logger_name, init, unresolved={}):
         assert data["dict_kwargs"] == unresolved
 
 
-@pytest.mark.skipif(not _COMET_AVAILABLE, reason="comet-ml is required")
 def test_comet_logger_init_args():
     _test_logger_init_args(
         "CometLogger",
-        {
-            "save_dir": "comet",  # Resolve from CometLogger.__init__
-            "workspace": "comet",  # Resolve from Comet{,Existing,Offline}Experiment.__init__
-        },
+        init={"save_dir": "comet"},  # Resolve from CometLogger.__init__
+        unresolved={"workspace": "comet"},  # Resolve from Comet{,Existing,Offline}Experiment.__init__
     )
 
 
-@pytest.mark.skipif(not _NEPTUNE_AVAILABLE, reason="neptune is required")
 def test_neptune_logger_init_args():
     _test_logger_init_args(
         "NeptuneLogger",
-        {
-            "name": "neptune",  # Resolve from NeptuneLogger.__init__
-        },
-        {
-            "description": "neptune",  # Unsupported resolving from neptune.internal.init.run.init_run
-        },
+        init={"name": "neptune"},  # Resolve from NeptuneLogger.__init__
+        unresolved={"description": "neptune"},  # Unsupported resolving from neptune.internal.init.run.init_run
     )
 
 
 def test_tensorboard_logger_init_args():
     _test_logger_init_args(
         "TensorBoardLogger",
-        {
+        init={
             "save_dir": "tb",  # Resolve from TensorBoardLogger.__init__
+            "comment": "tb",  # Resolve from FabricTensorBoardLogger.experiment SummaryWriter local import
         },
-        {
-            "comment": "tb",  # Unsupported resolving from local imports
-        },
+        unresolved={},
     )
 
 
-@pytest.mark.skipif(not _WANDB_AVAILABLE, reason="wandb is required")
 def test_wandb_logger_init_args():
     _test_logger_init_args(
         "WandbLogger",
-        {
-            "save_dir": "wandb",  # Resolve from WandbLogger.__init__
-            "notes": "wandb",  # Resolve from wandb.sdk.wandb_init.init
-        },
+        init={"save_dir": "wandb"},  # Resolve from WandbLogger.__init__
+        unresolved={"notes": "wandb"},  # Resolve from wandb.sdk.wandb_init.init
     )
 
 
@@ -1549,8 +1536,7 @@ def test_cli_trainer_no_callbacks():
         def __init__(self):
             super().__init__()
 
-    class MyCallback(Callback):
-        ...
+    class MyCallback(Callback): ...
 
     match = "MyTrainer` class does not expose the `callbacks"
     with mock.patch("sys.argv", ["any.py"]), pytest.warns(UserWarning, match=match):

@@ -50,7 +50,7 @@ When you need to add complicated pre-processing or post-processing logic to your
 
 .. code-block:: python
 
-    class LitMCdropoutModel(pl.LightningModule):
+    class LitMCdropoutModel(L.LightningModule):
         def __init__(self, model, mc_iteration):
             super().__init__()
             self.model = model

@@ -51,13 +51,13 @@ The :paramref:`~lightning.pytorch.trainer.trainer.Trainer.fast_dev_run` argument
 
 .. code:: python
 
-    Trainer(fast_dev_run=True)
+    trainer = Trainer(fast_dev_run=True)
 
 To change how many batches to use, change the argument to an integer. Here we run 7 batches of each:
 
 .. code:: python
 
-    Trainer(fast_dev_run=7)
+    trainer = Trainer(fast_dev_run=7)
 
 
 .. note::
@@ -114,11 +114,11 @@ this generate a table like:
 
 .. code-block:: text
 
-      | Name  | Type        | Params
-    ----------------------------------
-    0 | net   | Sequential  | 132 K
-    1 | net.0 | Linear      | 131 K
-    2 | net.1 | BatchNorm1d | 1.0 K
+      | Name  | Type        | Params | Mode
+    -------------------------------------------
+    0 | net   | Sequential  | 132 K  | train
+    1 | net.0 | Linear      | 131 K  | train
+    2 | net.1 | BatchNorm1d | 1.0 K  | train
 
 To add the child modules to the summary add a :class:`~lightning.pytorch.callbacks.model_summary.ModelSummary`:
 
@@ -142,7 +142,7 @@ To turn off the autosummary use:
 
 .. code:: python
 
-    Trainer(enable_model_summary=False)
+    trainer = Trainer(enable_model_summary=False)
 
 ----
 
@@ -162,10 +162,10 @@ With the input array, the summary table will include the input and output layer 
 
 .. code-block:: text
 
-      | Name  | Type        | Params | In sizes  | Out sizes
-    --------------------------------------------------------------
-    0 | net   | Sequential  | 132 K  | [10, 256] | [10, 512]
-    1 | net.0 | Linear      | 131 K  | [10, 256] | [10, 512]
-    2 | net.1 | BatchNorm1d | 1.0 K  | [10, 512] | [10, 512]
+      | Name  | Type        | Params | Mode  | In sizes  | Out sizes
+    ----------------------------------------------------------------------
+    0 | net   | Sequential  | 132 K  | train | [10, 256] | [10, 512]
+    1 | net.0 | Linear      | 131 K  | train | [10, 256] | [10, 512]
+    2 | net.1 | BatchNorm1d | 1.0 K  | train | [10, 512] | [10, 512]
 
 when you call ``.fit()`` on the Trainer. This can help you find bugs in the composition of your layers.

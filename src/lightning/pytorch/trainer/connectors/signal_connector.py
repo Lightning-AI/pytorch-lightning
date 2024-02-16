@@ -1,5 +1,6 @@
 import logging
 import os
+import re
 import signal
 import sys
 import threading
@@ -7,12 +8,10 @@ from subprocess import call
 from types import FrameType
 from typing import Any, Callable, Dict, List, Set, Union
 
-from lightning_utilities.core.rank_zero import rank_prefixed_message
-
 import lightning.pytorch as pl
 from lightning.fabric.plugins.environments import SLURMEnvironment
 from lightning.fabric.utilities.imports import _IS_WINDOWS, _PYTHON_GREATER_EQUAL_3_8_0
-from lightning.pytorch.utilities.rank_zero import rank_zero_info
+from lightning.pytorch.utilities.rank_zero import rank_prefixed_message, rank_zero_info
 
 # copied from signal.pyi
 _SIGNUM = Union[int, signal.Signals]
@@ -85,6 +84,7 @@ class _SignalConnector:
             else:
                 job_id = os.environ["SLURM_JOB_ID"]
 
+            assert re.match("[0-9_-]+", job_id)
             cmd = ["scontrol", "requeue", job_id]
 
             # requeue job
@@ -95,14 +95,13 @@ class _SignalConnector:
                 # This can occur if a subprocess call to `scontrol` is run outside a shell context
                 # Re-attempt call (now with shell context). If any error is raised, propagate to user.
                 # When running a shell command, it should be passed as a single string.
-                joint_cmd = [str(x) for x in cmd]
-                result = call(" ".join(joint_cmd), shell=True)
+                result = call(" ".join(cmd), shell=True)
 
             # print result text
             if result == 0:
-                log.info(f"requeued exp {job_id}")
+                log.info(f"Requeued SLURM job: {job_id}")
             else:
-                log.warning("requeue failed...")
+                log.warning(f"Requeuing SLURM job {job_id} failed with error code {result}")
 
     def _sigterm_notifier_fn(self, signum: _SIGNUM, _: FrameType) -> None:
         log.info(rank_prefixed_message(f"Received SIGTERM: {signum}", self.trainer.local_rank))

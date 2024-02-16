@@ -48,7 +48,6 @@ def _prepare_extras() -> Dict[str, Any]:
     extras["app-extra"] = extras["app-app"] + extras["app-cloud"] + extras["app-ui"] + extras["app-components"]
     extras["app-all"] = extras["app-extra"]
     extras["app-dev"] = extras["app-all"] + extras["app-test"]
-    extras["data-data"] += extras["app-app"]  # todo: consider cutting/leaning this dependency
     extras["data-all"] = extras["data-data"] + extras["data-cloud"] + extras["data-examples"]
     extras["data-dev"] = extras["data-all"] + extras["data-test"]
     extras["store-store"] = extras["app-app"]  # todo: consider cutting/leaning this dependency
@@ -115,7 +114,9 @@ def _setup_args() -> Dict[str, Any]:
         "python_requires": ">=3.8",  # todo: take the lowes based on all packages
         "entry_points": {
             "console_scripts": [
-                "lightning = lightning.app.cli.lightning_cli:main",
+                "fabric = lightning.fabric.cli:_main",
+                "lightning = lightning.fabric.cli:_legacy_main",
+                "lightning_app = lightning:_cli_entry_point",
             ],
         },
         "setup_requires": [],

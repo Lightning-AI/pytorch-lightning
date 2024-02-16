@@ -18,7 +18,7 @@ from unittest.mock import Mock
 
 import pytest
 import torch
-from lightning.pytorch.plugins import XLAPrecisionPlugin
+from lightning.pytorch.plugins import XLAPrecision
 
 from tests_pytorch.helpers.runif import RunIf
 
@@ -26,7 +26,7 @@ from tests_pytorch.helpers.runif import RunIf
 @RunIf(tpu=True)
 @mock.patch.dict(os.environ, {}, clear=True)
 def test_optimizer_step_calls_mark_step():
-    plugin = XLAPrecisionPlugin(precision="32-true")
+    plugin = XLAPrecision(precision="32-true")
     optimizer = Mock()
     with mock.patch("torch_xla.core.xla_model") as xm_mock:
         plugin.optimizer_step(optimizer=optimizer, model=Mock(), closure=Mock())
@@ -36,18 +36,18 @@ def test_optimizer_step_calls_mark_step():
 
 @mock.patch.dict(os.environ, {}, clear=True)
 def test_precision_input_validation(xla_available):
-    XLAPrecisionPlugin(precision="32-true")
-    XLAPrecisionPlugin(precision="16-true")
-    XLAPrecisionPlugin(precision="bf16-true")
+    XLAPrecision(precision="32-true")
+    XLAPrecision(precision="16-true")
+    XLAPrecision(precision="bf16-true")
 
     with pytest.raises(ValueError, match=re.escape("`precision='16')` is not supported in XLA")):
-        XLAPrecisionPlugin("16")
+        XLAPrecision("16")
     with pytest.raises(ValueError, match=re.escape("`precision='16-mixed')` is not supported in XLA")):
-        XLAPrecisionPlugin("16-mixed")
+        XLAPrecision("16-mixed")
     with pytest.raises(ValueError, match=re.escape("`precision='bf16-mixed')` is not supported in XLA")):
-        XLAPrecisionPlugin("bf16-mixed")
+        XLAPrecision("bf16-mixed")
     with pytest.raises(ValueError, match=re.escape("`precision='64-true')` is not supported in XLA")):
-        XLAPrecisionPlugin("64-true")
+        XLAPrecision("64-true")
 
 
 @pytest.mark.parametrize(
@@ -59,18 +59,18 @@ def test_precision_input_validation(xla_available):
 )
 @mock.patch.dict(os.environ, {}, clear=True)
 def test_selected_dtype(precision, expected_dtype, xla_available):
-    plugin = XLAPrecisionPlugin(precision=precision)
+    plugin = XLAPrecision(precision=precision)
     assert plugin.precision == precision
     assert plugin._desired_dtype == expected_dtype
 
 
 def test_teardown(xla_available):
-    plugin = XLAPrecisionPlugin(precision="16-true")
+    plugin = XLAPrecision(precision="16-true")
     assert os.environ["XLA_USE_F16"] == "1"
     plugin.teardown()
     assert "XLA_USE_B16" not in os.environ
 
-    plugin = XLAPrecisionPlugin(precision="bf16-true")
+    plugin = XLAPrecision(precision="bf16-true")
     assert os.environ["XLA_USE_BF16"] == "1"
     plugin.teardown()
     assert "XLA_USE_BF16" not in os.environ

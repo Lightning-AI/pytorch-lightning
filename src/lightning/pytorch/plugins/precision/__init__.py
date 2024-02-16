@@ -11,25 +11,24 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from lightning.pytorch.plugins.precision.amp import MixedPrecisionPlugin
-from lightning.pytorch.plugins.precision.bitsandbytes import BitsandbytesPrecisionPlugin
-from lightning.pytorch.plugins.precision.deepspeed import DeepSpeedPrecisionPlugin
-from lightning.pytorch.plugins.precision.double import DoublePrecisionPlugin
-from lightning.pytorch.plugins.precision.fsdp import FSDPMixedPrecisionPlugin, FSDPPrecisionPlugin
-from lightning.pytorch.plugins.precision.half import HalfPrecisionPlugin
-from lightning.pytorch.plugins.precision.precision_plugin import PrecisionPlugin
-from lightning.pytorch.plugins.precision.transformer_engine import TransformerEnginePrecisionPlugin
-from lightning.pytorch.plugins.precision.xla import XLAPrecisionPlugin
+from lightning.pytorch.plugins.precision.amp import MixedPrecision
+from lightning.pytorch.plugins.precision.bitsandbytes import BitsandbytesPrecision
+from lightning.pytorch.plugins.precision.deepspeed import DeepSpeedPrecision
+from lightning.pytorch.plugins.precision.double import DoublePrecision
+from lightning.pytorch.plugins.precision.fsdp import FSDPPrecision
+from lightning.pytorch.plugins.precision.half import HalfPrecision
+from lightning.pytorch.plugins.precision.precision import Precision
+from lightning.pytorch.plugins.precision.transformer_engine import TransformerEnginePrecision
+from lightning.pytorch.plugins.precision.xla import XLAPrecision
 
 __all__ = [
-    "BitsandbytesPrecisionPlugin",
-    "DeepSpeedPrecisionPlugin",
-    "DoublePrecisionPlugin",
-    "FSDPMixedPrecisionPlugin",
-    "FSDPPrecisionPlugin",
-    "HalfPrecisionPlugin",
-    "MixedPrecisionPlugin",
-    "PrecisionPlugin",
-    "TransformerEnginePrecisionPlugin",
-    "XLAPrecisionPlugin",
+    "BitsandbytesPrecision",
+    "DeepSpeedPrecision",
+    "DoublePrecision",
+    "FSDPPrecision",
+    "HalfPrecision",
+    "MixedPrecision",
+    "Precision",
+    "TransformerEnginePrecision",
+    "XLAPrecision",
 ]

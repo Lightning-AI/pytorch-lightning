@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+from unittest import mock
 from unittest.mock import MagicMock
 
 import pytest
@@ -24,6 +25,9 @@ def test_automatic_versioning(tmp_path):
     """Verify that automatic versioning works."""
     (tmp_path / "exp" / "version_0").mkdir(parents=True)
     (tmp_path / "exp" / "version_1").mkdir()
+    (tmp_path / "exp" / "version_nonumber").mkdir()
+    (tmp_path / "exp" / "other").mkdir()
+
     logger = CSVLogger(root_dir=tmp_path, name="exp")
     assert logger.version == 2
 
@@ -37,43 +41,58 @@ def test_automatic_versioning_relative_root_dir(tmp_path, monkeypatch):
     assert logger.version == 2
 
 
-def test_manual_versioning(tmpdir):
+def test_manual_versioning(tmp_path):
     """Verify that manual versioning works."""
-    root_dir = tmpdir.mkdir("exp")
-    root_dir.mkdir("version_0")
-    root_dir.mkdir("version_1")
-    root_dir.mkdir("version_2")
+    root_dir = tmp_path / "exp"
+    (root_dir / "version_0").mkdir(parents=True)
+    (root_dir / "version_1").mkdir()
+    (root_dir / "version_2").mkdir()
     logger = CSVLogger(root_dir=root_dir, name="exp", version=1)
     assert logger.version == 1
 
 
-def test_named_version(tmpdir):
+def test_manual_versioning_file_exists(tmp_path):
+    """Test that a warning is emitted and existing files get overwritten."""
+
+    # Simulate an existing 'version_0' vrom a previous run
+    (tmp_path / "exp" / "version_0").mkdir(parents=True)
+    previous_metrics_file = tmp_path / "exp" / "version_0" / "metrics.csv"
+    previous_metrics_file.touch()
+
+    logger = CSVLogger(root_dir=tmp_path, name="exp", version=0)
+    assert previous_metrics_file.exists()
+    with pytest.warns(UserWarning, match="Experiment logs directory .* exists and is not empty"):
+        _ = logger.experiment
+    assert not previous_metrics_file.exists()
+
+
+def test_named_version(tmp_path):
     """Verify that manual versioning works for string versions, e.g. '2020-02-05-162402'."""
     exp_name = "exp"
-    tmpdir.mkdir(exp_name)
+    (tmp_path / exp_name).mkdir()
     expected_version = "2020-02-05-162402"
 
-    logger = CSVLogger(root_dir=tmpdir, name=exp_name, version=expected_version)
+    logger = CSVLogger(root_dir=tmp_path, name=exp_name, version=expected_version)
     logger.log_metrics({"a": 1, "b": 2})
     logger.save()
     assert logger.version == expected_version
-    assert os.listdir(tmpdir / exp_name) == [expected_version]
-    assert os.listdir(tmpdir / exp_name / expected_version)
+    assert os.listdir(tmp_path / exp_name) == [expected_version]
+    assert os.listdir(tmp_path / exp_name / expected_version)
 
 
 @pytest.mark.parametrize("name", ["", None])
-def test_no_name(tmpdir, name):
+def test_no_name(tmp_path, name):
     """Verify that None or empty name works."""
-    logger = CSVLogger(root_dir=tmpdir, name=name)
+    logger = CSVLogger(root_dir=tmp_path, name=name)
     logger.log_metrics({"a": 1})
     logger.save()
-    assert os.path.normpath(logger._root_dir) == tmpdir  # use os.path.normpath to handle trailing /
-    assert os.listdir(tmpdir / "version_0")
+    assert os.path.normpath(logger._root_dir) == str(tmp_path)  # use os.path.normpath to handle trailing /
+    assert os.listdir(tmp_path / "version_0")
 
 
 @pytest.mark.parametrize("step_idx", [10, None])
-def test_log_metrics(tmpdir, step_idx):
-    logger = CSVLogger(tmpdir)
+def test_log_metrics(tmp_path, step_idx):
+    logger = CSVLogger(tmp_path)
     metrics = {"float": 0.3, "int": 1, "FloatTensor": torch.tensor(0.1), "IntTensor": torch.tensor(1)}
     logger.log_metrics(metrics, step_idx)
     logger.save()
@@ -85,14 +104,14 @@ def test_log_metrics(tmpdir, step_idx):
     assert all(n in lines[0] for n in metrics)
 
 
-def test_log_hyperparams(tmpdir):
-    logger = CSVLogger(tmpdir)
+def test_log_hyperparams(tmp_path):
+    logger = CSVLogger(tmp_path)
     with pytest.raises(NotImplementedError):
         logger.log_hyperparams({})
 
 
-def test_flush_n_steps(tmpdir):
-    logger = CSVLogger(tmpdir, flush_logs_every_n_steps=2)
+def test_flush_n_steps(tmp_path):
+    logger = CSVLogger(tmp_path, flush_logs_every_n_steps=2)
     metrics = {"float": 0.3, "int": 1, "FloatTensor": torch.tensor(0.1), "IntTensor": torch.tensor(1)}
     logger.save = MagicMock()
     logger.log_metrics(metrics, step=0)
@@ -127,7 +146,11 @@ def test_automatic_step_tracking(tmp_path):
     assert logger.experiment.metrics[2]["step"] == 2
 
 
-def test_append_metrics_file(tmp_path):
+@mock.patch(
+    # Mock the existance check, so we can simulate appending to the metrics file
+    "lightning.fabric.loggers.csv_logs._ExperimentWriter._check_log_dir_exists"
+)
+def test_append_metrics_file(_, tmp_path):
     """Test that the logger appends to the file instead of rewriting it on every save."""
     logger = CSVLogger(tmp_path, name="test", version=0, flush_logs_every_n_steps=1)
 
@@ -164,7 +187,11 @@ def test_append_columns(tmp_path):
         assert set(header.split(",")) == {"step", "a", "b", "c"}
 
 
-def test_rewrite_with_new_header(tmp_path):
+@mock.patch(
+    # Mock the existance check, so we can simulate appending to the metrics file
+    "lightning.fabric.loggers.csv_logs._ExperimentWriter._check_log_dir_exists"
+)
+def test_rewrite_with_new_header(_, tmp_path):
     # write a csv file manually
     with open(tmp_path / "metrics.csv", "w") as file:
         file.write("step,metric1,metric2\n")
@@ -180,3 +207,21 @@ def test_rewrite_with_new_header(tmp_path):
         assert header == new_columns
         logs = file.readline().strip().split(",")
         assert logs == ["0", "1", "22", ""]
+
+
+def test_log_metrics_column_order_sorted(tmp_path):
+    """Test that the columns in the output metrics file are sorted by name."""
+    logger = CSVLogger(tmp_path)
+    logger.log_metrics({"c": 0.1})
+    logger.log_metrics({"c": 0.2})
+    logger.log_metrics({"b": 0.3})
+    logger.log_metrics({"a": 0.4})
+    logger.save()
+    logger.log_metrics({"d": 0.5})
+    logger.save()
+
+    path_csv = os.path.join(logger.log_dir, _ExperimentWriter.NAME_METRICS_FILE)
+    with open(path_csv) as fp:
+        lines = fp.readlines()
+
+    assert lines[0].strip() == "a,b,c,d,step"

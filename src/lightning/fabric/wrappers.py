@@ -12,16 +12,32 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import inspect
-from typing import Any, Callable, Dict, Generator, Iterator, List, Mapping, Optional, TypeVar, Union, overload
+from copy import deepcopy
+from functools import wraps
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    Dict,
+    Generator,
+    Iterator,
+    List,
+    Mapping,
+    Optional,
+    Tuple,
+    TypeVar,
+    Union,
+    overload,
+)
 
 import torch
-from lightning_utilities import WarningCache
 from lightning_utilities.core.apply_func import apply_to_collection
 from torch import Tensor
 from torch import nn as nn
 from torch.nn.modules.module import _IncompatibleKeys
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
+from typing_extensions import override
 
 from lightning.fabric.plugins import Precision
 from lightning.fabric.strategies import Strategy
@@ -30,9 +46,10 @@ from lightning.fabric.utilities.data import _set_sampler_epoch
 from lightning.fabric.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 from lightning.fabric.utilities.types import Optimizable
-from lightning.fabric.utilities.warnings import PossibleUserWarning
 
-warning_cache = WarningCache()
+if TYPE_CHECKING:
+    from torch._dynamo import OptimizedModule
+
 T_destination = TypeVar("T_destination", bound=Dict[str, Any])
 _LIGHTNING_MODULE_STEP_METHODS = ("training_step", "validation_step", "test_step", "predict_step")
 
@@ -113,6 +130,7 @@ class _FabricModule(_DeviceDtypeModuleMixin):
     def module(self) -> nn.Module:
         return self._original_module or self._forward_module
 
+    @override
     def forward(self, *args: Any, **kwargs: Any) -> Any:
         """Casts all inputs to the right precision and handles autocast for operations in the module forward method."""
         args, kwargs = self._precision.convert_input((args, kwargs))
@@ -124,13 +142,12 @@ class _FabricModule(_DeviceDtypeModuleMixin):
         return output
 
     @overload
-    def state_dict(self, *, destination: T_destination, prefix: str = ..., keep_vars: bool = ...) -> T_destination:
-        ...
+    def state_dict(self, *, destination: T_destination, prefix: str = ..., keep_vars: bool = ...) -> T_destination: ...
 
     @overload
-    def state_dict(self, *, prefix: str = ..., keep_vars: bool = ...) -> Dict[str, Any]:
-        ...
+    def state_dict(self, *, prefix: str = ..., keep_vars: bool = ...) -> Dict[str, Any]: ...
 
+    @override
     def state_dict(
         self, destination: Optional[T_destination] = None, prefix: str = "", keep_vars: bool = False
     ) -> Optional[Dict[str, Any]]:
@@ -140,6 +157,7 @@ class _FabricModule(_DeviceDtypeModuleMixin):
             keep_vars=keep_vars,
         )
 
+    @override
     def load_state_dict(  # type: ignore[override]
         self, state_dict: Mapping[str, Any], strict: bool = True, **kwargs: Any
     ) -> _IncompatibleKeys:
@@ -161,26 +179,42 @@ class _FabricModule(_DeviceDtypeModuleMixin):
         # We expect that the `forward_module` will eventually call `original_module.forward`, which we
         # have patched to redirect back to `original_module.method_name()`.
         def call_forward_module(*args: Any, **kwargs: Any) -> Any:
-            # Patch the original_module's forward so we can redirect the arguments back to the real method
+            # Patch the original_module's forward, so we can redirect the arguments back to the real method
             self._original_module.forward = wrapped_forward
             return self.forward(*args, **kwargs)
 
         return call_forward_module
 
-    def _validate_method_access(self, name: str, attribute: Any) -> None:
-        if (
-            inspect.ismethod(attribute)
-            and inspect.signature(attribute).parameters
-            and self._forward_module != self._original_module
-        ):
-            warning_cache.warn(
-                f"You are calling the method `{type(self._original_module).__name__}.{name}()` from outside the"
-                " model. This will bypass the wrapper from the strategy and result in incorrect behavior in"
-                " `.backward()`. You should pass your inputs through"
-                f" `{type(self._original_module).__name__}.forward()`.",
-                category=PossibleUserWarning,
-            )
+    def _wrap_method_with_module_call_tracker(self, method: Callable, name: str) -> Callable:
+        """Tracks whether any submodule in ``self._original_module`` was called during the execution of ``method`` by
+        registering forward hooks on all submodules."""
+        module_called = False
 
+        def hook(*_: Any, **__: Any) -> None:
+            nonlocal module_called
+            module_called = True
+
+        @wraps(method)
+        def _wrapped_method(*args: Any, **kwargs: Any) -> Any:
+            handles = []
+            for module in self._original_module.modules():
+                handles.append(module.register_forward_hook(hook))
+
+            output = method(*args, **kwargs)
+
+            if module_called:
+                raise RuntimeError(
+                    f"You are calling the method `{type(self._original_module).__name__}.{name}()` from outside the"
+                    " model. This will bypass the wrapper from the strategy and result in incorrect behavior in"
+                    " `.backward()`. You should pass your inputs through `forward()`.",
+                )
+            for handle in handles:
+                handle.remove()
+            return output
+
+        return _wrapped_method
+
+    @override
     def __getattr__(self, item: Any) -> Any:
         if item in _LIGHTNING_MODULE_STEP_METHODS and self._forward_module != self._original_module:
             # Special support for `LightningModule`, to prevent bypassing DDP's forward
@@ -194,9 +228,12 @@ class _FabricModule(_DeviceDtypeModuleMixin):
             # If the attribute is not available on the _FabricModule wrapper, redirect to the wrapped nn.Module
             original_module = super().__getattr__("_original_module")
             attr = getattr(original_module, item)
-            self._validate_method_access(item, attr)
+
+            if inspect.ismethod(attr) and self._forward_module != self._original_module:
+                attr = self._wrap_method_with_module_call_tracker(attr, item)
             return attr
 
+    @override
     def __setattr__(self, name: str, value: Any) -> None:
         if not getattr(self, "_fabric_module_initialized", False):
             super().__setattr__(name, value)
@@ -262,10 +299,10 @@ class _FabricDataLoader:
 
 def _unwrap_objects(collection: Any) -> Any:
     def _unwrap(
-        obj: Union[_FabricModule, _FabricOptimizer, _FabricDataLoader]
+        obj: Union[_FabricModule, _FabricOptimizer, _FabricDataLoader],
     ) -> Union[nn.Module, Optimizer, DataLoader]:
-        if isinstance(unwrapped := _unwrap_compiled(obj), _FabricModule):
-            return unwrapped._forward_module
+        if isinstance(unwrapped := _unwrap_compiled(obj)[0], _FabricModule):
+            return _unwrap_compiled(unwrapped._forward_module)[0]
         if isinstance(obj, _FabricOptimizer):
             return obj.optimizer
         if isinstance(obj, _FabricDataLoader):
@@ -281,19 +318,33 @@ def _unwrap_objects(collection: Any) -> Any:
     return apply_to_collection(collection, dtype=tuple(types), function=_unwrap)
 
 
-def _unwrap_compiled(obj: Any) -> Any:
+def _unwrap_compiled(obj: Union[Any, "OptimizedModule"]) -> Tuple[Union[Any, nn.Module], Optional[Dict[str, Any]]]:
     """Removes the :class:`torch._dynamo.OptimizedModule` around the object if it is wrapped.
 
     Use this function before instance checks against e.g. :class:`_FabricModule`.
 
     """
     if not _TORCH_GREATER_EQUAL_2_0:
-        return obj
+        # obj can't be an `OptimizedModule` anyway
+        return obj, None
+
     from torch._dynamo import OptimizedModule
 
     if isinstance(obj, OptimizedModule):
-        return obj._orig_mod
-    return obj
+        if (compile_kwargs := getattr(obj, "_compile_kwargs", None)) is None:
+            raise RuntimeError(
+                "Failed to determine the arguments that were used to compile the module. Make sure to import"
+                " lightning before `torch.compile` is used."
+            )
+        return obj._orig_mod, compile_kwargs
+    return obj, None
+
+
+def _to_compiled(module: nn.Module, compile_kwargs: Dict[str, Any]) -> "OptimizedModule":
+    if not _TORCH_GREATER_EQUAL_2_0:
+        raise RuntimeError("Converting to a compiled module is only supported in PyTorch >= 2.0.0")
+
+    return torch.compile(module, **compile_kwargs)  # type: ignore[return-value]
 
 
 def is_wrapped(obj: object) -> bool:
@@ -307,5 +358,30 @@ def is_wrapped(obj: object) -> bool:
         obj: The object to test.
 
     """
-    obj = _unwrap_compiled(obj)
+    obj, _ = _unwrap_compiled(obj)
     return isinstance(obj, (_FabricModule, _FabricOptimizer, _FabricDataLoader))
+
+
+def _capture_compile_kwargs(compile_fn: Callable) -> Callable:
+    """Wraps the ``torch.compile`` function and captures the compile arguments.
+
+    We extract the compile arguments so that we can reapply ``torch.compile`` in ``Fabric.setup()`` with the
+    same arguments as the user passed to the original call. The arguments get stored in a dictionary
+    ``_compile_kwargs`` on the returned compiled module.
+
+    """
+    # Limitation: Currently, the global compile config does not get captured on a per-model basis.
+    # PyTorch will resolve this in the future: https://github.com/pytorch/pytorch/issues/116575
+
+    @wraps(compile_fn)
+    def _capture(model: Any, **kwargs: Any) -> Any:
+        compiled_model = compile_fn(model, **kwargs)
+        if isinstance(model, nn.Module):
+            compiled_model._compile_kwargs = deepcopy(kwargs)
+        return compiled_model
+
+    return _capture
+
+
+if _TORCH_GREATER_EQUAL_2_0:
+    torch.compile = _capture_compile_kwargs(torch.compile)

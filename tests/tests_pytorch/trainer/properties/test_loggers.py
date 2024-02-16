@@ -48,7 +48,7 @@ def test_trainer_loggers_setters():
     logger2 = CustomLogger()
 
     trainer = Trainer()
-    assert type(trainer.logger) == TensorBoardLogger
+    assert type(trainer.logger) is TensorBoardLogger
     assert trainer.loggers == [trainer.logger]
 
     # Test setters for trainer.logger

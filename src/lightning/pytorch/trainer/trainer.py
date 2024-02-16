@@ -19,6 +19,7 @@
 # DO NOT REMOVE THIS NOTICE
 # - WILLIAM FALCON
 """Trainer to automate the training."""
+
 import logging
 import math
 import os
@@ -33,7 +34,7 @@ from torch.optim import Optimizer
 
 import lightning.pytorch as pl
 from lightning.fabric.utilities.apply_func import convert_tensors_to_scalars
-from lightning.fabric.utilities.cloud_io import get_filesystem
+from lightning.fabric.utilities.cloud_io import _is_local_file_protocol
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 from lightning.fabric.utilities.types import _PATH
 from lightning.pytorch.accelerators import Accelerator
@@ -47,7 +48,7 @@ from lightning.pytorch.loops import _PredictionLoop, _TrainingEpochLoop
 from lightning.pytorch.loops.evaluation_loop import _EvaluationLoop
 from lightning.pytorch.loops.fit_loop import _FitLoop
 from lightning.pytorch.loops.utilities import _parse_loop_limits, _reset_progress
-from lightning.pytorch.plugins import PLUGIN_INPUT, PrecisionPlugin
+from lightning.pytorch.plugins import _PLUGIN_INPUT, Precision
 from lightning.pytorch.profilers import Profiler
 from lightning.pytorch.strategies import ParallelStrategy, Strategy
 from lightning.pytorch.trainer import call, setup
@@ -128,7 +129,7 @@ class Trainer:
         profiler: Optional[Union[Profiler, str]] = None,
         detect_anomaly: bool = False,
         barebones: bool = False,
-        plugins: Optional[Union[PLUGIN_INPUT, List[PLUGIN_INPUT]]] = None,
+        plugins: Optional[Union[_PLUGIN_INPUT, List[_PLUGIN_INPUT]]] = None,
         sync_batchnorm: bool = False,
         reload_dataloaders_every_n_epochs: int = 0,
         default_root_dir: Optional[_PATH] = None,
@@ -136,7 +137,7 @@ class Trainer:
         r"""Customize every aspect of training via flags.
 
         Args:
-            accelerator: Supports passing different accelerator types ("cpu", "gpu", "tpu", "ipu", "hpu", "mps", "auto")
+            accelerator: Supports passing different accelerator types ("cpu", "gpu", "tpu", "hpu", "mps", "auto")
                 as well as custom accelerator instances.
 
             strategy: Supports different training strategies with aliases as well custom strategies.
@@ -151,7 +152,7 @@ class Trainer:
 
             precision: Double precision (64, '64' or '64-true'), full precision (32, '32' or '32-true'),
                 16bit mixed precision (16, '16', '16-mixed') or bfloat16 mixed precision ('bf16', 'bf16-mixed').
-                Can be used on CPU, GPU, TPUs, HPUs or IPUs.
+                Can be used on CPU, GPU, TPUs, or HPUs.
                 Default: ``'32-true'``.
 
             logger: Logger (or iterable collection of loggers) for experiment tracking. A ``True`` value uses
@@ -300,12 +301,10 @@ class Trainer:
 
             MisconfigurationException:
                 If ``gradient_clip_algorithm`` is invalid.
-                If ``track_grad_norm`` is not a positive number or inf.
 
         """
         super().__init__()
         log.debug(f"{self.__class__.__name__}: Initializing trainer with parameters: {locals()}")
-        self.state = TrainerState()
 
         if default_root_dir is not None:
             default_root_dir = os.fspath(default_root_dir)
@@ -508,7 +507,7 @@ class Trainer:
         train_dataloaders: Optional[Union[TRAIN_DATALOADERS, LightningDataModule]] = None,
         val_dataloaders: Optional[EVAL_DATALOADERS] = None,
         datamodule: Optional[LightningDataModule] = None,
-        ckpt_path: Optional[str] = None,
+        ckpt_path: Optional[_PATH] = None,
     ) -> None:
         r"""Runs the full optimization routine.
 
@@ -552,7 +551,7 @@ class Trainer:
         train_dataloaders: Optional[Union[TRAIN_DATALOADERS, LightningDataModule]] = None,
         val_dataloaders: Optional[EVAL_DATALOADERS] = None,
         datamodule: Optional[LightningDataModule] = None,
-        ckpt_path: Optional[str] = None,
+        ckpt_path: Optional[_PATH] = None,
     ) -> None:
         log.debug(f"{self.__class__.__name__}: trainer fit stage")
 
@@ -588,7 +587,7 @@ class Trainer:
         self,
         model: Optional["pl.LightningModule"] = None,
         dataloaders: Optional[Union[EVAL_DATALOADERS, LightningDataModule]] = None,
-        ckpt_path: Optional[str] = None,
+        ckpt_path: Optional[_PATH] = None,
         verbose: bool = True,
         datamodule: Optional[LightningDataModule] = None,
     ) -> _EVALUATE_OUTPUT:
@@ -651,7 +650,7 @@ class Trainer:
         self,
         model: Optional["pl.LightningModule"] = None,
         dataloaders: Optional[Union[EVAL_DATALOADERS, LightningDataModule]] = None,
-        ckpt_path: Optional[str] = None,
+        ckpt_path: Optional[_PATH] = None,
         verbose: bool = True,
         datamodule: Optional[LightningDataModule] = None,
     ) -> Optional[Union[_PREDICT_OUTPUT, _EVALUATE_OUTPUT]]:
@@ -696,7 +695,7 @@ class Trainer:
         self,
         model: Optional["pl.LightningModule"] = None,
         dataloaders: Optional[Union[EVAL_DATALOADERS, LightningDataModule]] = None,
-        ckpt_path: Optional[str] = None,
+        ckpt_path: Optional[_PATH] = None,
         verbose: bool = True,
         datamodule: Optional[LightningDataModule] = None,
     ) -> _EVALUATE_OUTPUT:
@@ -760,7 +759,7 @@ class Trainer:
         self,
         model: Optional["pl.LightningModule"] = None,
         dataloaders: Optional[Union[EVAL_DATALOADERS, LightningDataModule]] = None,
-        ckpt_path: Optional[str] = None,
+        ckpt_path: Optional[_PATH] = None,
         verbose: bool = True,
         datamodule: Optional[LightningDataModule] = None,
     ) -> Optional[Union[_PREDICT_OUTPUT, _EVALUATE_OUTPUT]]:
@@ -807,7 +806,7 @@ class Trainer:
         dataloaders: Optional[Union[EVAL_DATALOADERS, LightningDataModule]] = None,
         datamodule: Optional[LightningDataModule] = None,
         return_predictions: Optional[bool] = None,
-        ckpt_path: Optional[str] = None,
+        ckpt_path: Optional[_PATH] = None,
     ) -> Optional[_PREDICT_OUTPUT]:
         r"""Run inference on your data. This will call the model forward function to compute predictions. Useful to
         perform distributed and batched predictions. Logging is disabled in the predict hooks.
@@ -872,7 +871,7 @@ class Trainer:
         dataloaders: Optional[Union[EVAL_DATALOADERS, LightningDataModule]] = None,
         datamodule: Optional[LightningDataModule] = None,
         return_predictions: Optional[bool] = None,
-        ckpt_path: Optional[str] = None,
+        ckpt_path: Optional[_PATH] = None,
     ) -> Optional[_PREDICT_OUTPUT]:
         # --------------------
         # SETUP HOOK
@@ -937,10 +936,6 @@ class Trainer:
 
         _verify_loop_configurations(self)
 
-        # hook
-        log.debug(f"{self.__class__.__name__}: preparing data")
-        self._data_connector.prepare_data()
-
         # ----------------------------
         # SET UP THE TRAINER
         # ----------------------------
@@ -948,15 +943,17 @@ class Trainer:
         self.strategy.setup_environment()
         self.__setup_profiler()
 
-        call._call_setup_hook(self)  # allow user to setup lightning_module in accelerator environment
+        log.debug(f"{self.__class__.__name__}: preparing data")
+        self._data_connector.prepare_data()
+
+        call._call_setup_hook(self)  # allow user to set up LightningModule in accelerator environment
+        log.debug(f"{self.__class__.__name__}: configuring model")
+        call._call_configure_model(self)
 
         # check if we should delay restoring checkpoint till later
         if not self.strategy.restore_checkpoint_after_setup:
             log.debug(f"{self.__class__.__name__}: restoring module and callbacks from checkpoint path: {ckpt_path}")
             self._checkpoint_connector._restore_modules_and_callbacks(ckpt_path)
-
-        log.debug(f"{self.__class__.__name__}: configuring model")
-        call._call_configure_model(self)
 
         # reset logger connector
         self._logger_connector.reset_results()
@@ -1093,7 +1090,7 @@ class Trainer:
         Args:
             empty_init: Whether to initialize the model with empty weights (uninitialized memory).
                 If ``None``, the strategy will decide. Some strategies may not support all options.
-                Set this to ``True`` if you are loading a checkpoint into a large model. Requires `torch >= 1.13`.
+                Set this to ``True`` if you are loading a checkpoint into a large model.
 
         """
         if not _TORCH_GREATER_EQUAL_2_0 and self.strategy.root_device.type != "cpu":
@@ -1141,7 +1138,7 @@ class Trainer:
         return self._accelerator_connector.strategy
 
     @property
-    def precision_plugin(self) -> PrecisionPlugin:
+    def precision_plugin(self) -> Precision:
         return self.strategy.precision_plugin
 
     @property
@@ -1287,8 +1284,8 @@ class Trainer:
         It is used as a fallback if logger or checkpoint callback do not define specific save paths.
 
         """
-        if get_filesystem(self._default_root_dir).protocol == "file":
-            return os.path.normpath(self._default_root_dir)
+        if _is_local_file_protocol(self._default_root_dir):
+            return os.path.normpath(os.path.expanduser(self._default_root_dir))
         return self._default_root_dir
 
     @property

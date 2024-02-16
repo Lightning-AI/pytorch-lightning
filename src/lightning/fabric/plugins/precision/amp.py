@@ -18,6 +18,7 @@ from lightning_utilities.core.apply_func import apply_to_collection
 from torch import Tensor
 from torch.nn import Module
 from torch.optim import LBFGS, Optimizer
+from typing_extensions import override
 
 from lightning.fabric.accelerators.cuda import _patch_cuda_is_available
 from lightning.fabric.plugins.precision.precision import Precision
@@ -59,20 +60,25 @@ class MixedPrecision(Precision):
 
         self._desired_input_dtype = torch.bfloat16 if self.precision == "bf16-mixed" else torch.float16
 
+    @override
     def forward_context(self) -> ContextManager:
         return torch.autocast(self.device, dtype=self._desired_input_dtype)
 
+    @override
     def convert_input(self, data: Any) -> Any:
         return apply_to_collection(data, function=_convert_fp_tensor, dtype=Tensor, dst_type=self._desired_input_dtype)
 
+    @override
     def convert_output(self, data: Any) -> Any:
         return apply_to_collection(data, function=_convert_fp_tensor, dtype=Tensor, dst_type=torch.get_default_dtype())
 
+    @override
     def backward(self, tensor: Tensor, model: Optional[Module], *args: Any, **kwargs: Any) -> None:
         if self.scaler is not None:
             tensor = self.scaler.scale(tensor)
         super().backward(tensor, model, *args, **kwargs)
 
+    @override
     def optimizer_step(
         self,
         optimizer: Optimizable,
@@ -84,19 +90,22 @@ class MixedPrecision(Precision):
         if isinstance(optimizer, LBFGS):
             raise TypeError("AMP and the LBFGS optimizer are not compatible.")
         # note: the scaler will skip the `optimizer.step` if nonfinite gradients are found
-        step_output = self.scaler.step(optimizer, **kwargs)
+        step_output = self.scaler.step(optimizer, **kwargs)  # type: ignore[arg-type]
         self.scaler.update()
         return step_output
 
+    @override
     def state_dict(self) -> Dict[str, Any]:
         if self.scaler is not None:
             return self.scaler.state_dict()
         return {}
 
+    @override
     def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
         if self.scaler is not None:
             self.scaler.load_state_dict(state_dict)
 
+    @override
     def unscale_gradients(self, optimizer: Optimizer) -> None:
         scaler = self.scaler
         if scaler is not None:

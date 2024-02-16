@@ -166,7 +166,7 @@ def test_neptune_log_metrics_on_trained_model(neptune_mock, tmp_path):
     logger, run_instance_mock, _ = _get_logger_with_mocks(api_key="test", project="project")
     _fit_and_test(logger=logger, model=LoggingModel(), tmp_path=tmp_path)
     run_instance_mock.__getitem__.assert_any_call("training/some/key")
-    run_instance_mock.__getitem__.return_value.append.assert_has_calls([call(42)])
+    run_instance_mock.__getitem__.return_value.append.assert_has_calls([call(42, step=2)])
 
 
 def test_log_hyperparams(neptune_mock):
@@ -204,7 +204,7 @@ def test_log_metrics(neptune_mock):
         assert run_instance_mock.__getitem__.call_count == 2
         run_instance_mock.__getitem__.assert_any_call(metrics_foo_key)
         run_instance_mock.__getitem__.assert_any_call(metrics_bar_key)
-        run_attr_mock.append.assert_has_calls([call(42), call(555)])
+        run_attr_mock.append.assert_has_calls([call(42, step=None), call(555, step=None)])
 
 
 def test_log_model_summary(neptune_mock):
@@ -262,12 +262,10 @@ def test_after_save_checkpoint(neptune_mock):
         run_instance_mock.__getitem__.assert_any_call(f"{model_key_prefix}/checkpoints/model1")
         run_instance_mock.__getitem__.assert_any_call(f"{model_key_prefix}/checkpoints/model2/with/slashes")
 
-        run_attr_mock.upload.assert_has_calls(
-            [
-                call(os.path.join(models_root_dir, "model1")),
-                call(os.path.join(models_root_dir, "model2/with/slashes")),
-            ]
-        )
+        run_attr_mock.upload.assert_has_calls([
+            call(os.path.join(models_root_dir, "model1")),
+            call(os.path.join(models_root_dir, "model2/with/slashes")),
+        ])
 
 
 def test_save_dir(neptune_mock):
@@ -284,10 +282,12 @@ def test_get_full_model_name():
             os.path.join("foo", "bar", "key/in/parts.ext"),
             SimpleCheckpoint(dirpath=os.path.join("foo", "bar")),
         ),
+        ("key", os.path.join("../foo", "bar", "key.ext"), SimpleCheckpoint(dirpath=os.path.join("../foo", "bar"))),
+        ("key", os.path.join("foo", "key.ext"), SimpleCheckpoint(dirpath=os.path.join("./foo", "bar/../"))),
     ]
 
-    for expected_model_name, *key_and_path in test_input_data:
-        assert NeptuneLogger._get_full_model_name(*key_and_path) == expected_model_name
+    for expected_model_name, model_path, checkpoint in test_input_data:
+        assert NeptuneLogger._get_full_model_name(model_path, checkpoint) == expected_model_name
 
 
 def test_get_full_model_names_from_exp_structure():

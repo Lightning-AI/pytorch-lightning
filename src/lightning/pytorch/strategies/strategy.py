@@ -14,7 +14,7 @@
 import logging
 from abc import ABC, abstractmethod
 from contextlib import contextmanager, nullcontext
-from typing import Any, Callable, Dict, Generator, List, Mapping, Optional, Tuple, TypeVar, Union, cast
+from typing import Any, Callable, Dict, Generator, List, Mapping, Optional, Tuple, TypeVar, Union
 
 import torch
 from torch import Tensor
@@ -26,14 +26,14 @@ from lightning.fabric.plugins import CheckpointIO
 from lightning.fabric.strategies import _StrategyRegistry
 from lightning.fabric.utilities import move_data_to_device
 from lightning.fabric.utilities.distributed import ReduceOp
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_13, _TORCH_GREATER_EQUAL_2_0
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 from lightning.fabric.utilities.init import _EmptyInit
 from lightning.fabric.utilities.optimizer import _optimizer_to_device, _optimizers_to_device
 from lightning.fabric.utilities.types import _PATH
 from lightning.pytorch.core.optimizer import LightningOptimizer, _init_optimizers_and_lr_schedulers
 from lightning.pytorch.plugins import TorchCheckpointIO
 from lightning.pytorch.plugins.io.wrapper import _WrappingCheckpointIO
-from lightning.pytorch.plugins.precision import PrecisionPlugin
+from lightning.pytorch.plugins.precision import Precision
 from lightning.pytorch.strategies.launchers.launcher import _Launcher
 from lightning.pytorch.trainer.states import TrainerFn
 from lightning.pytorch.utilities.types import STEP_OUTPUT, LRSchedulerConfig
@@ -51,11 +51,11 @@ class Strategy(ABC):
         self,
         accelerator: Optional["pl.accelerators.Accelerator"] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
-        precision_plugin: Optional[PrecisionPlugin] = None,
+        precision_plugin: Optional[Precision] = None,
     ) -> None:
         self._accelerator: Optional["pl.accelerators.Accelerator"] = accelerator
         self._checkpoint_io: Optional[CheckpointIO] = checkpoint_io
-        self._precision_plugin: Optional[PrecisionPlugin] = None
+        self._precision_plugin: Optional[Precision] = None
         # Call the precision setter for input validation
         self.precision_plugin = precision_plugin  # type: ignore[assignment]
         self._lightning_module: Optional[pl.LightningModule] = None
@@ -92,11 +92,11 @@ class Strategy(ABC):
         self._checkpoint_io = io
 
     @property
-    def precision_plugin(self) -> PrecisionPlugin:
-        return self._precision_plugin if self._precision_plugin is not None else PrecisionPlugin()
+    def precision_plugin(self) -> Precision:
+        return self._precision_plugin if self._precision_plugin is not None else Precision()
 
     @precision_plugin.setter
-    def precision_plugin(self, precision_plugin: Optional[PrecisionPlugin]) -> None:
+    def precision_plugin(self, precision_plugin: Optional[Precision]) -> None:
         self._precision_plugin = precision_plugin
 
     @property
@@ -110,7 +110,8 @@ class Strategy(ABC):
 
     def connect(self, model: "pl.LightningModule") -> None:
         """Called by the Trainer to connect the strategy with the model."""
-        model = cast(pl.LightningModule, self.precision_plugin.convert_module(model))
+        # model conversions cannot be applied at this point because `LightningModule.{setup,configure_model}` haven't
+        # run yet
         self._lightning_module = model
         self.model = model
 
@@ -134,8 +135,6 @@ class Strategy(ABC):
             trainer: the Trainer, these optimizers should be connected to
 
         """
-        if trainer.state.fn != TrainerFn.FITTING:
-            return
         assert self.lightning_module is not None
         self.optimizers, self.lr_scheduler_configs = _init_optimizers_and_lr_schedulers(self.lightning_module)
 
@@ -148,9 +147,19 @@ class Strategy(ABC):
         """
         assert self.accelerator is not None
         self.accelerator.setup(trainer)
-        self.setup_optimizers(trainer)
+
+        assert self.model is not None
+        # let the precision plugin convert the module here so that this strategy hook can decide the order
+        # of operations
+        self.model = self.precision_plugin.convert_module(self.model)
+        self.model_to_device()
+        self.model = self._setup_model(self.model)
+
+        if trainer.state.fn == TrainerFn.FITTING:
+            self.setup_optimizers(trainer)
         self.setup_precision_plugin()
-        _optimizers_to_device(self.optimizers, self.root_device)
+        if trainer.state.fn == TrainerFn.FITTING:
+            _optimizers_to_device(self.optimizers, self.root_device)
 
     def setup_precision_plugin(self) -> None:
         """Attaches the precision plugin to the strategy."""
@@ -358,9 +367,9 @@ class Strategy(ABC):
         torch.cuda.empty_cache()
         return self.checkpoint_io.load_checkpoint(checkpoint_path)
 
-    def load_model_state_dict(self, checkpoint: Mapping[str, Any]) -> None:
+    def load_model_state_dict(self, checkpoint: Mapping[str, Any], strict: bool = True) -> None:
         assert self.lightning_module is not None
-        self.lightning_module.load_state_dict(checkpoint["state_dict"])
+        self.lightning_module.load_state_dict(checkpoint["state_dict"], strict=strict)
 
     def load_optimizer_state_dict(self, checkpoint: Mapping[str, Any]) -> None:
         optimizer_states = checkpoint["optimizer_states"]
@@ -501,7 +510,7 @@ class Strategy(ABC):
 
         """
         device_context = self.root_device if _TORCH_GREATER_EQUAL_2_0 else nullcontext()
-        empty_init_context = _EmptyInit(enabled=bool(empty_init)) if _TORCH_GREATER_EQUAL_1_13 else nullcontext()
+        empty_init_context = _EmptyInit(enabled=bool(empty_init))
         with empty_init_context, device_context, self.precision_plugin.tensor_init_context():
             yield
 
@@ -574,6 +583,11 @@ class Strategy(ABC):
     def on_exception(self, exception: BaseException) -> None:
         """Called when the trainer execution is interrupted by an exception."""
         pass
+
+    def _reset_optimizers_and_schedulers(self) -> None:
+        self._optimizers = []
+        self._lightning_optimizers = []
+        self.lr_scheduler_configs = []
 
     def __getstate__(self) -> Dict:
         # `LightningOptimizer` overrides `self.__class__` so they cannot be pickled

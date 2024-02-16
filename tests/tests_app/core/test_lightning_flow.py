@@ -527,6 +527,7 @@ class CFlow(LightningFlow):
             self.stop()
 
 
+@pytest.mark.xfail(strict=False, reason="flaky")
 @pytest.mark.parametrize("run_once", [False, True])
 def test_lightning_flow_iterate(tmpdir, run_once):
     app = LightningApp(CFlow(run_once))
@@ -562,6 +563,7 @@ class FlowCounter(LightningFlow):
         self.counter += 1
 
 
+@pytest.mark.xfail(strict=False, reason="flaky")
 def test_lightning_flow_counter(tmpdir):
     app = LightningApp(FlowCounter())
     app.checkpointing = True

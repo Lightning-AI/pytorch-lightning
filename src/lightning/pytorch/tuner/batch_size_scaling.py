@@ -323,6 +323,9 @@ def _reset_dataloaders(trainer: "pl.Trainer") -> None:
     assert loop is not None
     loop._combined_loader = None  # force a reload
     loop.setup_data()
+    if isinstance(loop, pl.loops._FitLoop):
+        loop.epoch_loop.val_loop._combined_loader = None
+        loop.epoch_loop.val_loop.setup_data()
 
 
 def _try_loop_run(trainer: "pl.Trainer", params: Dict[str, Any]) -> None:

@@ -22,9 +22,10 @@ from torch import Tensor
 from torch.nn import Module
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
+from typing_extensions import override
 
 from lightning.fabric.accelerators import Accelerator
-from lightning.fabric.accelerators.xla import _XLA_AVAILABLE, _using_pjrt
+from lightning.fabric.accelerators.xla import _XLA_AVAILABLE
 from lightning.fabric.plugins import XLAPrecision
 from lightning.fabric.plugins.environments import XLAEnvironment
 from lightning.fabric.plugins.io.xla import XLACheckpointIO
@@ -38,7 +39,7 @@ from lightning.fabric.strategies.strategy import (
     _validate_keys_for_strict_loading,
 )
 from lightning.fabric.utilities.cloud_io import get_filesystem
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_13, _TORCH_GREATER_EQUAL_2_0
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 from lightning.fabric.utilities.init import _EmptyInit
 from lightning.fabric.utilities.rank_zero import rank_zero_only, rank_zero_warn
 from lightning.fabric.utilities.types import _PATH, Optimizable, ReduceOp
@@ -111,6 +112,7 @@ class XLAFSDPStrategy(ParallelStrategy, _Sharded):
         self._launched = False
 
     @property
+    @override
     def root_device(self) -> torch.device:
         if not self._launched:
             raise RuntimeError("Accessing the XLA device before processes have spawned is not allowed.")
@@ -122,7 +124,8 @@ class XLAFSDPStrategy(ParallelStrategy, _Sharded):
     def num_processes(self) -> int:
         return len(self.parallel_devices) if self.parallel_devices is not None else 0
 
-    @property  # type: ignore[override]
+    @property
+    @override
     def checkpoint_io(self) -> XLACheckpointIO:
         plugin = self._checkpoint_io
         if plugin is not None:
@@ -131,12 +134,14 @@ class XLAFSDPStrategy(ParallelStrategy, _Sharded):
         return XLACheckpointIO()
 
     @checkpoint_io.setter
+    @override
     def checkpoint_io(self, io: Optional[XLACheckpointIO]) -> None:
         if io is not None and not isinstance(io, XLACheckpointIO):
             raise TypeError(f"The XLA strategy can only work with the `XLACheckpointIO` plugin, found {io}")
         self._checkpoint_io = io
 
-    @property  # type: ignore[override]
+    @property
+    @override
     def precision(self) -> XLAPrecision:
         plugin = self._precision
         if plugin is not None:
@@ -145,33 +150,40 @@ class XLAFSDPStrategy(ParallelStrategy, _Sharded):
         return XLAPrecision("32-true")
 
     @precision.setter
+    @override
     def precision(self, precision: Optional[XLAPrecision]) -> None:
         if precision is not None and not isinstance(precision, XLAPrecision):
             raise TypeError(f"The XLA FSDP strategy can only work with the `XLAPrecision` plugin, found {precision}")
         self._precision = precision
 
     @property
+    @override
     def global_rank(self) -> int:
         return super().global_rank if self._launched else 0
 
     @property
+    @override
     def local_rank(self) -> int:
         return super().local_rank if self._launched else 0
 
     @property
+    @override
     def node_rank(self) -> int:
         return super().node_rank if self._launched else 0
 
     @property
+    @override
     def world_size(self) -> int:
         return super().world_size if self._launched else 1
 
+    @override
     def _configure_launcher(self) -> None:
         self._launcher = _XLALauncher(self)
 
+    @override
     def setup_environment(self) -> None:
         assert self.parallel_devices is not None
-        if _using_pjrt() and len(self.parallel_devices) == 1:
+        if len(self.parallel_devices) == 1:
             # spawning only 1 device with PjRT is not supported:
             # https://github.com/Lightning-AI/lightning/pull/17408#discussion_r1170671732
             raise NotImplementedError(
@@ -183,6 +195,7 @@ class XLAFSDPStrategy(ParallelStrategy, _Sharded):
         rank_zero_only.rank = self.global_rank
         super().setup_environment()
 
+    @override
     def setup_module_and_optimizers(
         self, module: Module, optimizers: List[Optimizer]
     ) -> Tuple[Module, List[Optimizer]]:
@@ -193,6 +206,7 @@ class XLAFSDPStrategy(ParallelStrategy, _Sharded):
             " call `setup_optimizer`."
         )
 
+    @override
     def setup_module(self, module: Module) -> Module:
         from torch_xla.distributed.fsdp import XlaFullyShardedDataParallel as XLAFSDP
 
@@ -208,6 +222,7 @@ class XLAFSDPStrategy(ParallelStrategy, _Sharded):
             module = XLAFSDP(module=module, **kwargs)
         return module
 
+    @override
     def module_to_device(self, module: Module) -> None:
         pass
 
@@ -215,15 +230,16 @@ class XLAFSDPStrategy(ParallelStrategy, _Sharded):
         precision_init_ctx = self.precision.module_init_context()
         module_sharded_ctx = self.module_sharded_context()
         stack = ExitStack()
-        if _TORCH_GREATER_EQUAL_1_13:
-            stack.enter_context(_EmptyInit(enabled=bool(empty_init)))
+        stack.enter_context(_EmptyInit(enabled=bool(empty_init)))
         stack.enter_context(precision_init_ctx)
         stack.enter_context(module_sharded_ctx)
         return stack
 
+    @override
     def module_sharded_context(self) -> ContextManager:
         return nullcontext()
 
+    @override
     def process_dataloader(self, dataloader: DataLoader) -> "MpDeviceLoader":
         from torch_xla.distributed.parallel_loader import MpDeviceLoader
 
@@ -237,6 +253,7 @@ class XLAFSDPStrategy(ParallelStrategy, _Sharded):
         dataloader.batch_sampler = getattr(dataloader._loader, "batch_sampler", None)
         return dataloader
 
+    @override
     def setup_optimizer(self, optimizer: Optimizer) -> Optimizer:
         """Set up an optimizer for a model wrapped with XLAFSDP.
 
@@ -252,6 +269,7 @@ class XLAFSDPStrategy(ParallelStrategy, _Sharded):
             " after setting up the model."
         )
 
+    @override
     def optimizer_step(self, optimizer: Optimizable, **kwargs: Any) -> Any:
         """Overrides default tpu optimizer_step since FSDP should not call `torch_xla.core.xla_model.optimizer_step`.
         Performs the actual optimizer step.
@@ -267,6 +285,7 @@ class XLAFSDPStrategy(ParallelStrategy, _Sharded):
         xm.mark_step()
         return loss
 
+    @override
     def clip_gradients_norm(
         self,
         module: Module,
@@ -277,8 +296,9 @@ class XLAFSDPStrategy(ParallelStrategy, _Sharded):
     ) -> Tensor:
         """Clip gradients by norm."""
         self.precision.unscale_gradients(optimizer)
-        return module.clip_grad_norm_(max_norm=max_norm, norm_type=norm_type)  # type: ignore[operator]
+        return module.clip_grad_norm_(max_norm=max_norm, norm_type=norm_type)
 
+    @override
     def clip_gradients_value(self, module: Module, optimizer: Optimizer, clip_val: Union[float, int]) -> None:
         """Clip gradients by value."""
         raise NotImplementedError(
@@ -286,6 +306,7 @@ class XLAFSDPStrategy(ParallelStrategy, _Sharded):
             " Consider clipping by norm instead or choose another strategy!"
         )
 
+    @override
     def all_gather(self, tensor: Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> Tensor:
         """Function to gather a tensor from several distributed processes.
 
@@ -315,6 +336,7 @@ class XLAFSDPStrategy(ParallelStrategy, _Sharded):
         tensor = tensor.to(original_device)
         return tensor
 
+    @override
     def all_reduce(
         self, output: Union[Tensor, Any], group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = None
     ) -> Tensor:
@@ -337,6 +359,7 @@ class XLAFSDPStrategy(ParallelStrategy, _Sharded):
 
         return output
 
+    @override
     def barrier(self, name: Optional[str] = None, *args: Any, **kwargs: Any) -> None:
         if not self._launched:
             return
@@ -347,6 +370,7 @@ class XLAFSDPStrategy(ParallelStrategy, _Sharded):
             name = ""
         xm.rendezvous(name)
 
+    @override
     def broadcast(self, obj: TBroadcast, src: int = 0) -> TBroadcast:
         if not self._launched:
             return obj
@@ -381,6 +405,7 @@ class XLAFSDPStrategy(ParallelStrategy, _Sharded):
 
         return obj
 
+    @override
     def save_checkpoint(
         self,
         path: _PATH,
@@ -489,6 +514,7 @@ class XLAFSDPStrategy(ParallelStrategy, _Sharded):
             storage_options=storage_options,
         )
 
+    @override
     def load_checkpoint(
         self,
         path: _PATH,
@@ -598,6 +624,7 @@ class XLAFSDPStrategy(ParallelStrategy, _Sharded):
         raise ValueError(f"Unknown state_dict_type: {self._state_dict_type}")
 
     @classmethod
+    @override
     def register_strategies(cls, strategy_registry: _StrategyRegistry) -> None:
         strategy_registry.register("xla_fsdp", cls, description=cls.__name__)
 
@@ -651,6 +678,7 @@ def _activation_checkpointing_kwargs(policy: Optional[_POLICY_SET], kwargs: Dict
 
 
 class _XLAFSDPBackwardSyncControl(_BackwardSyncControl):
+    @override
     def no_backward_sync(self, module: Module) -> ContextManager:
         """Blocks gradient synchronization inside the :class:`~torch_xla.distributed.fsdp.XlaFullyShardedDataParallel`
         wrapper."""

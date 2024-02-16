@@ -27,7 +27,7 @@ To track a metric, simply use the *self.log* method available inside the *Lightn
 
 .. code-block:: python
 
-    class LitModel(pl.LightningModule):
+    class LitModel(L.LightningModule):
         def training_step(self, batch, batch_idx):
             value = ...
             self.log("some_value", value)
@@ -39,7 +39,7 @@ To log multiple metrics at once, use *self.log_dict*
     values = {"loss": loss, "acc": acc, "metric_n": metric_n}  # add more items if needed
     self.log_dict(values)
 
-TODO: show plot of metric changing over time
+.. TODO:: show plot of metric changing over time
 
 ----
 
@@ -52,7 +52,10 @@ To view metrics in the commandline progress bar, set the *prog_bar* argument to 
 
     self.log(..., prog_bar=True)
 
-TODO: need progress bar here
+
+.. code-block:: bash
+
+    Epoch 3:  33%|███▉        | 307/938 [00:01<00:02, 289.04it/s, loss=0.198, v_num=51, acc=0.211, metric_n=0.937]
 
 ----
 
@@ -86,7 +89,9 @@ Accumulate a metric
 ===================
 When *self.log* is called inside the *training_step*, it generates a timeseries showing how the metric behaves over time.
 
-TODO: show chart
+.. figure:: https://pl-public-data.s3.amazonaws.com/assets_lightning/logging_basic/visualize_logging_basic_tensorboard_chart.png
+    :alt: TensorBoard chart of a metric logged with self.log
+    :width: 100 %
 
 However, For the validation and test sets we are not generally interested in plotting the metric values per batch of data. Instead, we want to compute a summary statistic (such as average, min or max) across the full split of data.
 
@@ -98,7 +103,9 @@ When you call self.log inside the *validation_step* and *test_step*, Lightning a
         value = batch_idx + 1
         self.log("average_value", value)
 
-TODO: show single point plotted
+.. figure:: https://pl-public-data.s3.amazonaws.com/assets_lightning/logging_basic/visualize_logging_basic_tensorboard_point.png
+    :alt: TensorBoard chart of a metric logged with self.log
+    :width: 100 %
 
 If you don't want to average you can also choose from ``{min,max,sum}`` by passing the *reduce_fx* argument.
 

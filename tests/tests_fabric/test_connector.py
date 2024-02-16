@@ -13,6 +13,7 @@
 # limitations under the License
 import inspect
 import os
+import sys
 from typing import Any, Dict
 from unittest import mock
 from unittest.mock import Mock
@@ -29,6 +30,7 @@ from lightning.fabric.accelerators.cuda import CUDAAccelerator
 from lightning.fabric.accelerators.mps import MPSAccelerator
 from lightning.fabric.connector import _Connector
 from lightning.fabric.plugins import (
+    BitsandbytesPrecision,
     DeepSpeedPrecision,
     DoublePrecision,
     FSDPPrecision,
@@ -338,7 +340,8 @@ def test_cuda_accelerator_can_not_run_on_system(_):
 
 @pytest.mark.skipif(XLAAccelerator.is_available(), reason="test requires missing TPU")
 @mock.patch("lightning.fabric.accelerators.xla._XLA_AVAILABLE", True)
-def test_tpu_accelerator_can_not_run_on_system():
+@mock.patch("lightning.fabric.accelerators.xla._using_pjrt", return_value=True)
+def test_tpu_accelerator_can_not_run_on_system(_):
     with pytest.raises(RuntimeError, match="XLAAccelerator` can not run on your system"):
         _Connector(accelerator="tpu", devices=8)
 
@@ -863,6 +866,13 @@ def test_precision_selection_amp_ddp(strategy, devices, is_custom_plugin, plugin
     assert isinstance(connector.precision, plugin_cls)
 
 
+def test_bitsandbytes_precision_cuda_required(monkeypatch):
+    monkeypatch.setattr(lightning.fabric.plugins.precision.bitsandbytes, "_BITSANDBYTES_AVAILABLE", True)
+    monkeypatch.setitem(sys.modules, "bitsandbytes", Mock())
+    with pytest.raises(RuntimeError, match="Bitsandbytes is only supported on CUDA GPUs"):
+        _Connector(accelerator="cpu", plugins=BitsandbytesPrecision(mode="int8"))
+
+
 @pytest.mark.parametrize(("strategy", "strategy_cls"), [("DDP", DDPStrategy), ("Ddp", DDPStrategy)])
 @mock.patch("lightning.fabric.accelerators.mps.MPSAccelerator.is_available", return_value=False)
 def test_strategy_str_passed_being_case_insensitive(_, strategy, strategy_cls):
@@ -870,16 +880,25 @@ def test_strategy_str_passed_being_case_insensitive(_, strategy, strategy_cls):
     assert isinstance(connector.strategy, strategy_cls)
 
 
-@pytest.mark.parametrize("precision", [None, "64-true", "32-true", "16-mixed", "bf16-mixed"])
+@pytest.mark.parametrize(
+    ("precision", "expected"),
+    [
+        (None, Precision),
+        ("64-true", DoublePrecision),
+        ("32-true", Precision),
+        ("16-true", HalfPrecision),
+        ("16-mixed", MixedPrecision),
+    ],
+)
 @mock.patch("lightning.fabric.accelerators.cuda.num_cuda_devices", return_value=1)
-def test_precision_from_environment(_, precision):
+def test_precision_from_environment(_, precision, expected):
     """Test that the precision input can be set through the environment variable."""
-    env_vars = {}
+    env_vars = {"LT_CLI_USED": "1"}
     if precision is not None:
         env_vars["LT_PRECISION"] = precision
     with mock.patch.dict(os.environ, env_vars):
         connector = _Connector(accelerator="cuda")  # need to use cuda, because AMP not available on CPU
-    assert isinstance(connector.precision, Precision)
+    assert isinstance(connector.precision, expected)
 
 
 @pytest.mark.parametrize(
@@ -897,7 +916,7 @@ def test_precision_from_environment(_, precision):
 )
 def test_accelerator_strategy_from_environment(accelerator, strategy, expected_accelerator, expected_strategy):
     """Test that the accelerator and strategy input can be set through the environment variables."""
-    env_vars = {}
+    env_vars = {"LT_CLI_USED": "1"}
     if accelerator is not None:
         env_vars["LT_ACCELERATOR"] = accelerator
     if strategy is not None:
@@ -912,7 +931,7 @@ def test_accelerator_strategy_from_environment(accelerator, strategy, expected_a
 @mock.patch("lightning.fabric.accelerators.cuda.num_cuda_devices", return_value=8)
 def test_devices_from_environment(*_):
     """Test that the devices and number of nodes can be set through the environment variables."""
-    with mock.patch.dict(os.environ, {"LT_DEVICES": "2", "LT_NUM_NODES": "3"}):
+    with mock.patch.dict(os.environ, {"LT_DEVICES": "2", "LT_NUM_NODES": "3", "LT_CLI_USED": "1"}):
         connector = _Connector(accelerator="cuda")
         assert isinstance(connector.accelerator, CUDAAccelerator)
         assert isinstance(connector.strategy, DDPStrategy)

@@ -132,12 +132,11 @@ For even more speed benefit, DeepSpeed offers an optimized CPU version of ADAM c
 
 .. code-block:: python
 
-    import lightning.pytorch
-    from lightning.pytorch import Trainer
+    from lightning.pytorch import LightningModule, Trainer
     from deepspeed.ops.adam import DeepSpeedCPUAdam
 
 
-    class MyModel(pl.LightningModule):
+    class MyModel(LightningModule):
         ...
 
         def configure_optimizers(self):
@@ -180,7 +179,7 @@ Also please have a look at our :ref:`deepspeed-zero-stage-3-tips` which contains
     from deepspeed.ops.adam import FusedAdam
 
 
-    class MyModel(pl.LightningModule):
+    class MyModel(LightningModule):
         ...
 
         def configure_optimizers(self):
@@ -202,7 +201,7 @@ You can also use the Lightning Trainer to run predict or evaluate with DeepSpeed
     from lightning.pytorch import Trainer
 
 
-    class MyModel(pl.LightningModule):
+    class MyModel(LightningModule):
         ...
 
 
@@ -228,7 +227,7 @@ This reduces the time taken to initialize very large models, as well as ensure w
     from deepspeed.ops.adam import FusedAdam
 
 
-    class MyModel(pl.LightningModule):
+    class MyModel(LightningModule):
         ...
 
         def configure_model(self):
@@ -367,7 +366,7 @@ This saves memory when training larger models, however requires using a checkpoi
     import deepspeed
 
 
-    class MyModel(pl.LightningModule):
+    class MyModel(LightningModule):
         ...
 
         def configure_model(self):

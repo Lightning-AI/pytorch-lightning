@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+from unittest import mock
 from unittest.mock import MagicMock
 
 import fsspec
@@ -27,55 +28,71 @@ from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.simple_models import ClassificationModel
 
 
-def test_automatic_versioning(tmpdir):
+def test_automatic_versioning(tmp_path):
     """Verify that automatic versioning works."""
-    root_dir = tmpdir.mkdir("exp")
-    root_dir.mkdir("version_0")
-    root_dir.mkdir("version_1")
+    (tmp_path / "exp" / "version_0").mkdir(parents=True)
+    (tmp_path / "exp" / "version_1").mkdir()
+    (tmp_path / "exp" / "version_nonumber").mkdir()
+    (tmp_path / "exp" / "other").mkdir()
 
-    logger = CSVLogger(save_dir=tmpdir, name="exp")
+    logger = CSVLogger(save_dir=tmp_path, name="exp")
 
     assert logger.version == 2
 
 
-def test_manual_versioning(tmpdir):
+def test_manual_versioning(tmp_path):
     """Verify that manual versioning works."""
-    root_dir = tmpdir.mkdir("exp")
-    root_dir.mkdir("version_0")
-    root_dir.mkdir("version_1")
-    root_dir.mkdir("version_2")
+    root_dir = tmp_path / "exp"
+    (root_dir / "version_0").mkdir(parents=True)
+    (root_dir / "version_1").mkdir()
+    (root_dir / "version_2").mkdir()
 
-    logger = CSVLogger(save_dir=tmpdir, name="exp", version=1)
+    logger = CSVLogger(save_dir=tmp_path, name="exp", version=1)
 
     assert logger.version == 1
 
 
-def test_named_version(tmpdir):
+def test_manual_versioning_file_exists(tmp_path):
+    """Test that a warning is emitted and existing files get overwritten."""
+
+    # Simulate an existing 'version_0' vrom a previous run
+    (tmp_path / "exp" / "version_0").mkdir(parents=True)
+    previous_metrics_file = tmp_path / "exp" / "version_0" / "metrics.csv"
+    previous_metrics_file.touch()
+
+    logger = CSVLogger(save_dir=tmp_path, name="exp", version=0)
+    assert previous_metrics_file.exists()
+    with pytest.warns(UserWarning, match="Experiment logs directory .* exists and is not empty"):
+        _ = logger.experiment
+    assert not previous_metrics_file.exists()
+
+
+def test_named_version(tmp_path):
     """Verify that manual versioning works for string versions, e.g. '2020-02-05-162402'."""
     exp_name = "exp"
-    tmpdir.mkdir(exp_name)
+    (tmp_path / exp_name).mkdir()
     expected_version = "2020-02-05-162402"
 
-    logger = CSVLogger(save_dir=tmpdir, name=exp_name, version=expected_version)
+    logger = CSVLogger(save_dir=tmp_path, name=exp_name, version=expected_version)
     logger.log_hyperparams({"a": 1, "b": 2})
     logger.save()
     assert logger.version == expected_version
-    assert os.listdir(tmpdir / exp_name) == [expected_version]
-    assert os.listdir(tmpdir / exp_name / expected_version)
+    assert os.listdir(tmp_path / exp_name) == [expected_version]
+    assert os.listdir(tmp_path / exp_name / expected_version)
 
 
 @pytest.mark.parametrize("name", ["", None])
-def test_no_name(tmpdir, name):
+def test_no_name(tmp_path, name):
     """Verify that None or empty name works."""
-    logger = CSVLogger(save_dir=tmpdir, name=name)
+    logger = CSVLogger(save_dir=tmp_path, name=name)
     logger.save()
-    assert os.path.normpath(logger.root_dir) == tmpdir  # use os.path.normpath to handle trailing /
-    assert os.listdir(tmpdir / "version_0")
+    assert os.path.normpath(logger.root_dir) == str(tmp_path)  # use os.path.normpath to handle trailing /
+    assert os.listdir(tmp_path / "version_0")
 
 
 @pytest.mark.parametrize("step_idx", [10, None])
-def test_log_metrics(tmpdir, step_idx):
-    logger = CSVLogger(tmpdir)
+def test_log_metrics(tmp_path, step_idx):
+    logger = CSVLogger(tmp_path)
     metrics = {"float": 0.3, "int": 1, "FloatTensor": torch.tensor(0.1), "IntTensor": torch.tensor(1)}
     logger.log_metrics(metrics, step_idx)
     logger.save()
@@ -87,8 +104,8 @@ def test_log_metrics(tmpdir, step_idx):
     assert all(n in lines[0] for n in metrics)
 
 
-def test_log_hyperparams(tmpdir):
-    logger = CSVLogger(tmpdir)
+def test_log_hyperparams(tmp_path):
+    logger = CSVLogger(tmp_path)
     hparams = {
         "float": 0.3,
         "int": 1,
@@ -107,11 +124,11 @@ def test_log_hyperparams(tmpdir):
 
 
 @RunIf(sklearn=True)
-def test_fit_csv_logger(tmpdir):
+def test_fit_csv_logger(tmp_path):
     dm = ClassifDataModule()
     model = ClassificationModel()
-    logger = CSVLogger(save_dir=tmpdir)
-    trainer = Trainer(default_root_dir=tmpdir, max_steps=10, logger=logger, log_every_n_steps=1)
+    logger = CSVLogger(save_dir=tmp_path)
+    trainer = Trainer(default_root_dir=tmp_path, max_steps=10, logger=logger, log_every_n_steps=1)
     trainer.fit(model, datamodule=dm)
     metrics_file = os.path.join(logger.log_dir, ExperimentWriter.NAME_METRICS_FILE)
     assert os.path.isfile(metrics_file)
@@ -127,8 +144,8 @@ def test_csv_logger_remotefs():
     assert fs.isfile(metrics_file)
 
 
-def test_flush_n_steps(tmpdir):
-    logger = CSVLogger(tmpdir, flush_logs_every_n_steps=2)
+def test_flush_n_steps(tmp_path):
+    logger = CSVLogger(tmp_path, flush_logs_every_n_steps=2)
     metrics = {"float": 0.3, "int": 1, "FloatTensor": torch.tensor(0.1), "IntTensor": torch.tensor(1)}
     logger.save = MagicMock()
     logger.log_metrics(metrics, step=0)
@@ -147,6 +164,10 @@ def test_metrics_reset_after_save(tmp_path):
     assert not logger.experiment.metrics
 
 
+@mock.patch(
+    # Mock the existance check, so we can simulate appending to the metrics file
+    "lightning.fabric.loggers.csv_logs._ExperimentWriter._check_log_dir_exists"
+)
 def test_append_metrics_file(tmp_path):
     """Test that the logger appends to the file instead of rewriting it on every save."""
     logger = CSVLogger(tmp_path, name="test", version=0, flush_logs_every_n_steps=1)

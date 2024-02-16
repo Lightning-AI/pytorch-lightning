@@ -15,7 +15,11 @@ import math
 from collections import OrderedDict
 from typing import Any, Dict, Optional, Union
 
+from typing_extensions import override
+
 import lightning.pytorch as pl
+from lightning.fabric.utilities.types import _Stateful
+from lightning.fabric.utilities.warnings import PossibleUserWarning
 from lightning.pytorch import loops  # import as loops to avoid circular imports
 from lightning.pytorch.loops.fetchers import _DataFetcher, _DataLoaderIterDataFetcher
 from lightning.pytorch.loops.optimization import _AutomaticOptimization, _ManualOptimization
@@ -150,10 +154,16 @@ class _TrainingEpochLoop(loops._Loop):
             trainer = self.trainer
             if trainer.num_training_batches != float("inf"):
                 expected_steps = math.ceil(trainer.num_training_batches / trainer.accumulate_grad_batches)
-                if self.global_step % expected_steps != 0:
+                loader = trainer.fit_loop._combined_loader
+                assert loader is not None
+                is_resumable_loader = all(isinstance(loader, _Stateful) for loader in loader.flattened)
+                if self.global_step % expected_steps != 0 and not is_resumable_loader:
                     rank_zero_warn(
-                        "You're resuming from a checkpoint that ended before the epoch ended. This can cause unreliable"
-                        " results if further training is done. Consider using an end-of-epoch checkpoint"
+                        "You're resuming from a checkpoint that ended before the epoch ended and your dataloader is"
+                        " not resumable. This can cause unreliable results if further training is done."
+                        " Consider using an end-of-epoch checkpoint or make your dataloader resumable by implementing"
+                        " the `state_dict` / `load_state_dict` interface.",
+                        category=PossibleUserWarning,
                     )
         else:
             self.batch_progress.reset_on_run()
@@ -304,11 +314,13 @@ class _TrainingEpochLoop(loops._Loop):
         self._results.cpu()
         self.val_loop.teardown()
 
+    @override
     def on_save_checkpoint(self) -> Dict:
         state_dict = super().on_save_checkpoint()
         state_dict["_batches_that_stepped"] = self._batches_that_stepped
         return state_dict
 
+    @override
     def on_load_checkpoint(self, state_dict: Dict) -> None:
         self._batches_that_stepped = state_dict.get("_batches_that_stepped", 0)
 

@@ -12,18 +12,28 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from pathlib import Path
-from typing import Any, Callable, Dict, Iterator, List, Optional, Protocol, TypeVar, Union, runtime_checkable
+from typing import (
+    Any,
+    Callable,
+    DefaultDict,
+    Dict,
+    Iterator,
+    List,
+    Optional,
+    Protocol,
+    TypeVar,
+    Union,
+    runtime_checkable,
+)
 
 import torch
 from torch import Tensor
 from torch.optim import Optimizer
-from typing_extensions import TypeAlias
+from typing_extensions import TypeAlias, overload
 
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_13, _TORCH_GREATER_EQUAL_2_0
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 
-UntypedStorage: TypeAlias = (
-    torch.UntypedStorage if _TORCH_GREATER_EQUAL_1_13 else torch._UntypedStorage  # type: ignore[valid-type]
-)
+UntypedStorage: TypeAlias = torch.UntypedStorage
 
 _PATH = Union[str, Path]
 _DEVICE = Union[torch.device, str, int]
@@ -36,12 +46,10 @@ _PARAMETERS = Iterator[torch.nn.Parameter]
 if torch.distributed.is_available():
     from torch.distributed import ProcessGroup, ReduceOp
 
-    RedOpType: TypeAlias = ReduceOp.RedOpType if _TORCH_GREATER_EQUAL_1_13 else object  # type: ignore[valid-type]
+    RedOpType: TypeAlias = ReduceOp.RedOpType
 else:
     ProcessGroup = Any  # type: ignore[assignment,misc]
-    ReduceOp = object  # type: ignore[assignment,misc] # we are using isinstance check once
-    RedOpType = object
-
+    ReduceOp = RedOpType = object  # type: ignore[assignment,misc] # we are using isinstance check once
 
 _DictKey = TypeVar("_DictKey")
 
@@ -50,20 +58,16 @@ _DictKey = TypeVar("_DictKey")
 class _Stateful(Protocol[_DictKey]):
     """This class is used to detect if an object is stateful using `isinstance(obj, _Stateful)`."""
 
-    def state_dict(self) -> Dict[_DictKey, Any]:
-        ...
+    def state_dict(self) -> Dict[_DictKey, Any]: ...
 
-    def load_state_dict(self, state_dict: Dict[_DictKey, Any]) -> None:
-        ...
+    def load_state_dict(self, state_dict: Dict[_DictKey, Any]) -> None: ...
 
 
 @runtime_checkable
 class CollectibleGroup(Protocol):
-    def size(self) -> int:
-        ...
+    def size(self) -> int: ...
 
-    def rank(self) -> int:
-        ...
+    def rank(self) -> int: ...
 
 
 # Inferred from `torch.optim.lr_scheduler.pyi`
@@ -73,11 +77,9 @@ class LRScheduler(_Stateful[str], Protocol):
     optimizer: Optimizer
     base_lrs: List[float]
 
-    def __init__(self, optimizer: Optimizer, *args: Any, **kwargs: Any) -> None:
-        ...
+    def __init__(self, optimizer: Optimizer, *args: Any, **kwargs: Any) -> None: ...
 
-    def step(self, epoch: Optional[int] = None) -> None:
-        ...
+    def step(self, epoch: Optional[int] = None) -> None: ...
 
 
 _TORCH_LRSCHEDULER: TypeAlias = (
@@ -106,20 +108,22 @@ class ReduceLROnPlateau(_Stateful[str], Protocol):
         cooldown: int = ...,
         min_lr: float = ...,
         eps: float = ...,
-    ) -> None:
-        ...
+    ) -> None: ...
 
-    def step(self, metrics: Union[float, int, Tensor], epoch: Optional[int] = None) -> None:
-        ...
+    def step(self, metrics: Union[float, int, Tensor], epoch: Optional[int] = None) -> None: ...
 
 
 @runtime_checkable
 class Steppable(Protocol):
     """To structurally type ``optimizer.step()``"""
 
-    # Inferred from `torch.optim.optimizer.pyi`
-    def step(self, closure: Optional[Callable[[], float]] = ...) -> Optional[float]:
-        ...
+    @overload
+    def step(self, closure: None = ...) -> None: ...
+
+    @overload
+    def step(self, closure: Callable[[], float]) -> float: ...
+
+    def step(self, closure: Optional[Callable[[], float]] = ...) -> Optional[float]: ...
 
 
 @runtime_checkable
@@ -128,10 +132,8 @@ class Optimizable(Steppable, Protocol):
 
     param_groups: List[Dict[Any, Any]]
     defaults: Dict[Any, Any]
-    state: Dict[Any, Any]
+    state: DefaultDict[Tensor, Any]
 
-    def state_dict(self) -> Dict[str, Dict[Any, Any]]:
-        ...
+    def state_dict(self) -> Dict[str, Dict[Any, Any]]: ...
 
-    def load_state_dict(self, state_dict: Dict[str, Dict[Any, Any]]) -> None:
-        ...
+    def load_state_dict(self, state_dict: Dict[str, Dict[Any, Any]]) -> None: ...

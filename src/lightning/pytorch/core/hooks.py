@@ -158,23 +158,52 @@ class ModelHooks:
         self.zero_grad(**zero_grad_kwargs)
 
     def on_validation_model_eval(self) -> None:
-        """Sets the model to eval during the val loop."""
+        """Called when the validation loop starts.
+
+        The validation loop by default calls ``.eval()`` on the LightningModule before it starts. Override this hook
+        to change the behavior. See also :meth:`~lightning.pytorch.core.hooks.ModelHooks.on_validation_model_train`.
+
+        """
         self.trainer.model.eval()
 
     def on_validation_model_train(self) -> None:
-        """Sets the model to train during the val loop."""
-        self.trainer.model.train()
+        """Called when the validation loop ends.
 
-    def on_test_model_train(self) -> None:
-        """Sets the model to train during the test loop."""
+        The validation loop by default restores the `training` mode of the LightningModule to what it was before
+        starting validation. Override this hook to change the behavior. See also
+        :meth:`~lightning.pytorch.core.hooks.ModelHooks.on_validation_model_eval`.
+
+        """
+        # The loop won't call this hook unless it is overridden. The line below is here in case the user calls super().
         self.trainer.model.train()
 
     def on_test_model_eval(self) -> None:
-        """Sets the model to eval during the test loop."""
+        """Called when the test loop starts.
+
+        The test loop by default calls ``.eval()`` on the LightningModule before it starts. Override this hook
+        to change the behavior. See also :meth:`~lightning.pytorch.core.hooks.ModelHooks.on_test_model_train`.
+
+        """
         self.trainer.model.eval()
 
+    def on_test_model_train(self) -> None:
+        """Called when the test loop ends.
+
+        The test loop by default restores the `training` mode of the LightningModule to what it was before
+        starting testing. Override this hook to change the behavior. See also
+        :meth:`~lightning.pytorch.core.hooks.ModelHooks.on_test_model_eval`.
+
+        """
+        # The loop won't call this hook unless it is overridden. The line below is here in case the user calls super().
+        self.trainer.model.train()
+
     def on_predict_model_eval(self) -> None:
-        """Sets the model to eval during the predict loop."""
+        """Called when the predict loop starts.
+
+        The predict loop by default calls ``.eval()`` on the LightningModule before it starts. Override this hook
+        to change the behavior.
+
+        """
         self.trainer.model.eval()
 
     def on_train_epoch_start(self) -> None:
@@ -307,7 +336,8 @@ class ModelHooks:
         :meth:`~lightning.pytorch.trainer.trainer.Trainer.init_module` context manager.
 
         This hook is called during each of fit/val/test/predict stages in the same process, so ensure that
-        implementation of this hook is idempotent.
+        implementation of this hook is **idempotent**, i.e., after the first time the hook is called, subsequent calls
+        to it should be a no-op.
 
         """
 
@@ -571,10 +601,6 @@ class DataHooks:
                     batch = super().transfer_batch_to_device(batch, device, dataloader_idx)
                 return batch
 
-        Raises:
-            MisconfigurationException:
-                If using IPUs, ``Trainer(accelerator='ipu')``.
-
         See Also:
             - :meth:`move_data_to_device`
             - :meth:`apply_to_collection`
@@ -630,10 +656,6 @@ class DataHooks:
             def on_after_batch_transfer(self, batch, dataloader_idx):
                 batch['x'] = gpu_transforms(batch['x'])
                 return batch
-
-        Raises:
-            MisconfigurationException:
-                If using IPUs, ``Trainer(accelerator='ipu')``.
 
         See Also:
             - :meth:`on_before_batch_transfer`

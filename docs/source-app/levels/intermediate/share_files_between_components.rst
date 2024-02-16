@@ -7,13 +7,6 @@ Level 8: Share files between components
 
 ----
 
-****
-TODO
-****
-TODO
-
-----
-
 *************************************************
 Next steps: Render a web UI with other components
 *************************************************

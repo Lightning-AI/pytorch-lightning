@@ -4,7 +4,10 @@ When a checkpoint is created, it asks every DataModule for their state. If your 
 
 .. code:: python
 
-    class LitDataModule(pl.DataModuler):
+    import lightning as L
+
+
+    class LitDataModule(L.LightningDataModule):
         def state_dict(self):
             # track whatever you want here
             state = {"current_train_batch_index": self.current_train_batch_index}

@@ -61,21 +61,14 @@ Install future patch releases from the source. Note that the patch release conta
 
     pip install https://github.com/Lightning-AI/lightning/archive/refs/heads/release/stable.zip -U
 
-----
 
-*******************************
-Optimized for model development
-*******************************
-If you are deploying models built with Lightning in production and require few dependencies, try using the optimized `lightning[pytorch]` package:
-
-.. code-block:: bash
-
-    pip install lightning
 
 ^^^^^^^^^^^^^^^^^^^^^^
 Custom PyTorch Version
 ^^^^^^^^^^^^^^^^^^^^^^
 To use any PyTorch version visit the `PyTorch Installation Page <https://pytorch.org/get-started/locally/#start-locally>`_.
+
+You can find the list of supported PyTorch versions in our :ref:`compatibility matrix <versioning:Compatibility matrix>`.
 
 ----
 

@@ -36,7 +36,6 @@ import torch
 import torch.nn as nn
 from lightning_utilities.core.apply_func import apply_to_collection
 from lightning_utilities.core.overrides import is_overridden
-from lightning_utilities.core.rank_zero import rank_zero_deprecation, rank_zero_warn
 from torch import Tensor
 from torch.optim import Optimizer
 from torch.utils.data import BatchSampler, DataLoader, DistributedSampler, RandomSampler, SequentialSampler
@@ -65,8 +64,10 @@ from lightning.fabric.utilities.data import (
     _update_dataloader,
     has_iterable_dataset,
 )
-from lightning.fabric.utilities.distributed import DistributedSamplerWrapper
+from lightning.fabric.utilities.device_dtype_mixin import _update_properties
+from lightning.fabric.utilities.distributed import DistributedSamplerWrapper, _InfiniteBarrier
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
+from lightning.fabric.utilities.rank_zero import rank_zero_deprecation, rank_zero_warn
 from lightning.fabric.utilities.registry import _load_external_callbacks
 from lightning.fabric.utilities.seed import seed_everything
 from lightning.fabric.utilities.types import ReduceOp
@@ -75,6 +76,7 @@ from lightning.fabric.wrappers import (
     _FabricDataLoader,
     _FabricModule,
     _FabricOptimizer,
+    _to_compiled,
     _unwrap_compiled,
     _unwrap_objects,
 )
@@ -140,6 +142,7 @@ class Fabric:
         self._loggers = loggers if isinstance(loggers, list) else [loggers]
         self._models_setup: int = 0
         self._launched: bool = False
+        self._backward_called: bool = False
 
         self._prepare_run_method()
         if _is_using_cli():
@@ -212,6 +215,7 @@ class Fabric:
         module: nn.Module,
         *optimizers: Optimizer,
         move_to_device: bool = True,
+        _reapply_compile: bool = True,
     ) -> Any:  # no specific return because the way we want our API to look does not play well with mypy
         r"""Set up a model and its optimizers for accelerated training.
 
@@ -220,12 +224,18 @@ class Fabric:
             *optimizers: The optimizer(s) to set up (no optimizers is also possible)
             move_to_device: If set ``True`` (default), moves the model to the correct device. Set this to ``False``
                 and alternatively use :meth:`to_device` manually.
+            _reapply_compile: If ``True`` (default), and the model was ``torch.compile``d before, the
+                corresponding :class:`~torch._dynamo.OptimizedModule` wrapper will be removed and reapplied with the
+                same settings after the model was set up by the strategy (e.g., after the model was wrapped by DDP,
+                FSDP etc.). Only applies on PyTorch >= 2.1. Set it to ``False`` if compiling DDP/FSDP is causing
+                issues.
 
         Returns:
             The tuple containing wrapped module and the optimizers, in the same order they were passed in.
 
         """
         self._validate_setup(module, optimizers)
+        module, compile_kwargs = _unwrap_compiled(module) if _reapply_compile else (module, None)
         original_module = module
 
         module = self._precision.convert_module(module)
@@ -241,11 +251,16 @@ class Fabric:
         else:
             module = self._strategy.setup_module(module)
 
+        if compile_kwargs is not None:
+            module = _to_compiled(module, compile_kwargs)
         module = _FabricModule(module, self._precision, original_module=original_module)
+        self._require_fabric_backward(module)
 
-        if not isinstance(self._strategy, (FSDPStrategy, XLAFSDPStrategy)):
-            # Update the _DeviceDtypeModuleMixin's device parameter
-            module.to(self.device if move_to_device else next(module.parameters(), torch.tensor(0)).device)
+        # Update the _DeviceDtypeModuleMixin's device parameter
+        # NOTE: for sharded strategies or manual device placement, there's no single root device
+        _update_properties(
+            module, device=self.device if move_to_device else next(module.parameters(), torch.tensor(0)).device
+        )
 
         optimizers = [
             _FabricOptimizer(optimizer=optimizer, strategy=self._strategy, callbacks=self._callbacks)
@@ -255,8 +270,8 @@ class Fabric:
         self._models_setup += 1
 
         if hasattr(original_module, "_fabric"):  # this is probably a LightningModule
-            original_module._fabric = self  # type: ignore[assignment]
-            original_module._fabric_optimizers = optimizers  # type: ignore[assignment]
+            original_module._fabric = self
+            original_module._fabric_optimizers = optimizers
             if original_module not in self._callbacks:
                 self._callbacks.append(original_module)
 
@@ -267,7 +282,9 @@ class Fabric:
             return (module, *optimizers)
         return module
 
-    def setup_module(self, module: nn.Module, move_to_device: bool = True) -> _FabricModule:
+    def setup_module(
+        self, module: nn.Module, move_to_device: bool = True, _reapply_compile: bool = True
+    ) -> _FabricModule:
         r"""Set up a model for accelerated training or inference.
 
         This is the same as calling ``.setup(model)`` with no optimizers. It is useful for inference or for certain
@@ -278,12 +295,17 @@ class Fabric:
             module: A :class:`torch.nn.Module` to set up
             move_to_device: If set ``True`` (default), moves the model to the correct device. Set this to ``False``
                 and alternatively use :meth:`to_device` manually.
-
+            _reapply_compile: If ``True`` (default), and the model was ``torch.compile``d before, the
+                corresponding :class:`~torch._dynamo.OptimizedModule` wrapper will be removed and reapplied with the
+                same settings after the model was set up by the strategy (e.g., after the model was wrapped by DDP,
+                FSDP etc.). Only applies on PyTorch >= 2.1. Set it to ``False`` if compiling DDP/FSDP is causing
+                issues.
         Returns:
             The wrapped model.
 
         """
         self._validate_setup_module(module)
+        module, compile_kwargs = _unwrap_compiled(module) if _reapply_compile else (module, None)
         original_module = module
 
         module = self._precision.convert_module(module)
@@ -293,14 +315,20 @@ class Fabric:
 
         # Let strategy wrap and connect the module alone
         module = self._strategy.setup_module(module)
-        module = _FabricModule(module, self._precision, original_module=original_module)
 
-        if not isinstance(self._strategy, (FSDPStrategy, XLAFSDPStrategy)):
-            # Update the _DeviceDtypeModuleMixin's device parameter
-            module.to(self.device if move_to_device else next(module.parameters(), torch.tensor(0)).device)
+        if compile_kwargs is not None:
+            module = _to_compiled(module, compile_kwargs)
+        module = _FabricModule(module, self._precision, original_module=original_module)
+        self._require_fabric_backward(module)
+
+        # Update the _DeviceDtypeModuleMixin's device parameter
+        # NOTE: for sharded strategies or manual device placement, there's no single root device
+        _update_properties(
+            module, device=self.device if move_to_device else next(module.parameters(), torch.tensor(0)).device
+        )
 
         if hasattr(original_module, "_fabric"):  # this is probably a LightningModule
-            original_module._fabric = self  # type: ignore[assignment]
+            original_module._fabric = self
             if original_module not in self._callbacks:
                 self._callbacks.append(original_module)
 
@@ -405,6 +433,7 @@ class Fabric:
 
         """
         module = model._forward_module if model is not None else model
+        module, _ = _unwrap_compiled(module)
         if isinstance(self._strategy, DeepSpeedStrategy):
             if model is None:
                 if self._models_setup == 0:
@@ -419,7 +448,9 @@ class Fabric:
                 # requires to attach the current `DeepSpeedEngine` for the `_FabricOptimizer.step` call.
                 self._strategy._deepspeed_engine = module
 
+        self._backward_called = True
         self._strategy.backward(tensor, module, *args, **kwargs)
+        self._backward_called = False
 
     def clip_gradients(
         self,
@@ -441,6 +472,10 @@ class Fabric:
             norm_type: The type of norm if `max_norm` was passed. Can be ``'inf'`` for infinity norm.
                 Default is the 2-norm.
             error_if_nonfinite: An error is raised if the total norm of the gradients is NaN or infinite.
+
+        Return:
+            The total norm of the gradients (before clipping was applied) as a scalar tensor if ``max_norm`` was
+            passed, otherwise ``None``.
 
         """
         if clip_val is not None and max_norm is not None:
@@ -471,16 +506,13 @@ class Fabric:
         return self._precision.forward_context()
 
     @overload
-    def to_device(self, obj: nn.Module) -> nn.Module:
-        ...
+    def to_device(self, obj: nn.Module) -> nn.Module: ...
 
     @overload
-    def to_device(self, obj: Tensor) -> Tensor:
-        ...
+    def to_device(self, obj: Tensor) -> Tensor: ...
 
     @overload
-    def to_device(self, obj: Any) -> Any:
-        ...
+    def to_device(self, obj: Any) -> Any: ...
 
     def to_device(self, obj: Union[nn.Module, Tensor, Any]) -> Union[nn.Module, Tensor, Any]:
         r"""Move a :class:`torch.nn.Module` or a collection of tensors to the current device, if it is not already on
@@ -553,7 +585,8 @@ class Fabric:
 
         Return:
             A tensor of shape (world_size, batch, ...), or if the input was a collection
-            the output will also be a collection with tensors of this shape.
+            the output will also be a collection with tensors of this shape. For the special case where
+            world_size is 1, no additional dimension is added to the tensor(s).
 
         """
         self._validate_launched()
@@ -606,12 +639,12 @@ class Fabric:
 
         """
         rank = self.local_rank if local else self.global_rank
-        if rank > 0:
-            self.barrier()
-        yield
-        if rank == 0:
-            self.barrier()
-        self.barrier()
+        with _InfiniteBarrier() as barrier:
+            if rank > 0:
+                barrier()
+            yield
+            if rank == 0:
+                barrier()
 
     def no_backward_sync(self, module: _FabricModule, enabled: bool = True) -> ContextManager:
         r"""Skip gradient synchronization during backward to avoid redundant communication overhead.
@@ -636,7 +669,7 @@ class Fabric:
                 skip.
 
         """
-        module = _unwrap_compiled(module)
+        module, _ = _unwrap_compiled(module)
         if not isinstance(module, _FabricModule):
             raise TypeError(
                 "You need to set up the model first before you can call `fabric.no_backward_sync()`:"
@@ -651,7 +684,9 @@ class Fabric:
                 category=PossibleUserWarning,
             )
             return nullcontext()
-        return self._strategy._backward_sync_control.no_backward_sync(module._forward_module)
+
+        forward_module, _ = _unwrap_compiled(module._forward_module)
+        return self._strategy._backward_sync_control.no_backward_sync(forward_module)
 
     def sharded_model(self) -> ContextManager:
         r"""Instantiate a model under this context manager to prepare it for model-parallel sharding.
@@ -691,7 +726,7 @@ class Fabric:
         Args:
             empty_init: Whether to initialize the model with empty weights (uninitialized memory).
                 If ``None``, the strategy will decide. Some strategies may not support all options.
-                Set this to ``True`` if you are loading a checkpoint into a large model. Requires ``torch >= 1.13``.
+                Set this to ``True`` if you are loading a checkpoint into a large model.
 
         """
         self._validate_launched()
@@ -767,7 +802,7 @@ class Fabric:
             # We need to unwrap objects (see above) but this creates a new dictionary. In-place updates
             # (for user metadata) wouldn't show up in the original dict, so we need to copy the data back.
             for k in list(unwrapped_state.keys()):
-                obj = _unwrap_compiled(state[k])
+                obj, _ = _unwrap_compiled(state[k])
                 if isinstance(obj, (_FabricModule, _FabricOptimizer, _FabricDataLoader)):
                     continue
                 state[k] = unwrapped_state[k]
@@ -828,8 +863,8 @@ class Fabric:
                 )
         elif isinstance(self.strategy.launcher, (_MultiProcessingLauncher, _XLALauncher)):
             raise TypeError(
-                f"To use the `{type(self.strategy).__name__}` strategy, `.launch()` needs to be called with a function"
-                " that contains the code to launch in processes."
+                f"To spawn processes with the `{type(self.strategy).__name__}` strategy, `.launch()` needs to be called"
+                " with a function that contains the code to launch in processes."
             )
         return self._wrap_and_launch(function, self, *args, **kwargs)
 
@@ -1056,6 +1091,25 @@ class Fabric:
 
         if any(not isinstance(dl, DataLoader) for dl in dataloaders):
             raise TypeError("Only PyTorch DataLoader are currently supported in `setup_dataloaders`.")
+
+    def _require_fabric_backward(self, module: _FabricModule) -> None:
+        strategy_requires = is_overridden("backward", self._strategy, parent=Strategy)
+        precision_requires = any(
+            is_overridden(method, self._precision, parent=Precision)
+            for method in ("pre_backward", "backward", "post_backward")
+        )
+
+        def _backward_hook(*_: Any, **__: Any) -> None:
+            if (strategy_requires or precision_requires) and not self._backward_called:
+                raise RuntimeError(
+                    "The current strategy and precision selection requires you to call `fabric.backward(loss)`"
+                    " instead of `loss.backward()`."
+                )
+
+        if _TORCH_GREATER_EQUAL_2_0:
+            module.register_full_backward_pre_hook(_backward_hook, prepend=True)
+        else:
+            module.register_full_backward_hook(_backward_hook)
 
     @staticmethod
     def _configure_callbacks(callbacks: Optional[Union[List[Any], Any]]) -> List[Any]:

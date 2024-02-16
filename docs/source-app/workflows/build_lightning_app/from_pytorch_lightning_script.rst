@@ -26,14 +26,14 @@ To develop a template from a PyTorch Lightning script, use this command:
 
 .. code:: bash
 
-    lightning init pl-app path/to/the/pl_script.py
+    lightning_app init pl-app path/to/the/pl_script.py
 
 
 If your script is not at the root of the project folder, and you'd like to include all source files within that folder, you can specify the root path as the first argument:
 
 .. code:: bash
 
-    lightning init pl-app path/to/project/root path/to/the/pl_script.py
+    lightning_app init pl-app path/to/project/root path/to/the/pl_script.py
 
 
 The default trainer App lets you train a model with a beautiful UI locally and on the cloud with zero effort!
@@ -50,13 +50,13 @@ Run the App locally:
 
 .. code:: bash
 
-    lightning run app pl-app/app.py
+    lightning_app run app pl-app/app.py
 
 Or run the App on the cloud so you can share with collaborators and even use all the cloud GPUs you want.
 
 .. code:: bash
 
-    lightning run app pl-app/app.py --cloud
+    lightning_app run app pl-app/app.py --cloud
 
 
 .. figure:: https://storage.googleapis.com/grid-packages/pytorch-lightning-app/docs-thumbnail.png
@@ -71,7 +71,7 @@ Modify the template
 
 The command above generates an App file like this:
 
-.. note:: TODO: list the file and show how to extend it
+.. TODO:: list the file and show how to extend it
 
 .. code:: python
 

@@ -5,38 +5,6 @@
 TPU training (FAQ)
 ==================
 
-*****************************
-XLA configuration is missing?
-*****************************
-
-.. code-block::
-
-    File "/usr/local/lib/python3.8/dist-packages/torch_xla/core/xla_model.py", line 18, in <lambda>
-        _DEVICES = xu.LazyProperty(lambda: torch_xla._XLAC._xla_get_devices())
-    RuntimeError: tensorflow/compiler/xla/xla_client/computation_client.cc:273 : Missing XLA configuration
-    Traceback (most recent call last):
-    ...
-    File "/home/kaushikbokka/pytorch-lightning/pytorch_lightning/utilities/device_parser.py", line 125, in parse_tpu_cores
-        raise MisconfigurationException('No TPU devices were found.')
-    lightning.pytorch.utilities.exceptions.MisconfigurationException: No TPU devices were found.
-
-This means the system is missing XLA configuration. You would need to set up XRT TPU device configuration.
-
-For TPUVM architecture, you could set it in your terminal by:
-
-.. code-block:: bash
-
-    export XRT_TPU_CONFIG="localservice;0;localhost:51011"
-
-And for the old TPU + 2VM architecture, you could set it by:
-
-.. code-block:: bash
-
-    export TPU_IP_ADDRESS=10.39.209.42  # You could get the IP Address in the GCP TPUs section
-    export XRT_TPU_CONFIG="tpu_worker;0;$TPU_IP_ADDRESS:8470"
-
-----
-
 **********************************************************
 How to clear up the programs using TPUs in the background?
 **********************************************************
@@ -88,10 +56,10 @@ How to setup the debug mode for Training on TPUs?
 
 .. code-block:: python
 
-    import lightning.pytorch as pl
+    import lightning as L
 
     my_model = MyLightningModule()
-    trainer = pl.Trainer(accelerator="tpu", devices=8, strategy="xla_debug")
+    trainer = L.Trainer(accelerator="tpu", devices=8, strategy="xla_debug")
     trainer.fit(my_model)
 
 Example Metrics report:

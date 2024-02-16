@@ -395,7 +395,7 @@ Developing NER Model From Scratch
     # hydra_runner calls hydra.main and is useful for multi-node experiments
     @hydra_runner(config_path="conf", config_name="token_classification_config")
     def main(cfg: DictConfig) -> None:
-        trainer = pl.Trainer(**cfg.trainer)
+        trainer = L.Trainer(**cfg.trainer)
         model = TokenClassificationModel(cfg.model, trainer=trainer)
         trainer.fit(model)
 
@@ -406,7 +406,7 @@ Inference from file:
 .. code-block:: python
 
     gpu = 1 if cfg.trainer.gpus != 0 else 0
-    trainer = pl.Trainer(accelerator="gpu", devices=gpu)
+    trainer = L.Trainer(accelerator="gpu", devices=gpu)
     model.set_trainer(trainer)
     model.evaluate_from_file(
         text_file=os.path.join(cfg.model.dataset.data_dir, cfg.model.validation_ds.text_file),
@@ -638,7 +638,7 @@ Developing TTS Model From Scratch
     # hydra_runner calls hydra.main and is useful for multi-node experiments
     @hydra_runner(config_path="conf", config_name="glow_tts")
     def main(cfg):
-        trainer = pl.Trainer(**cfg.trainer)
+        trainer = L.Trainer(**cfg.trainer)
         model = GlowTTSModel(cfg=cfg.model, trainer=trainer)
         trainer.fit(model)
 

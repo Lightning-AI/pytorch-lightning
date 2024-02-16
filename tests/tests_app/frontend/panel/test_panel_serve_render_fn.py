@@ -3,6 +3,7 @@
 These tests are for serving a render_fn function.
 
 """
+
 import inspect
 import os
 from unittest import mock
@@ -10,6 +11,9 @@ from unittest import mock
 import pytest
 from lightning.app.frontend.panel.app_state_watcher import AppStateWatcher
 from lightning.app.frontend.panel.panel_serve_render_fn import _get_render_fn, _get_render_fn_from_environment
+from lightning_utilities.core.imports import RequirementCache
+
+_PARAM_AVAILABLE = RequirementCache("param")
 
 
 @pytest.fixture(autouse=True)
@@ -31,6 +35,7 @@ def render_fn(app):
     return app
 
 
+@pytest.mark.skipif(not _PARAM_AVAILABLE, reason="requires param")
 @mock.patch.dict(
     os.environ,
     {

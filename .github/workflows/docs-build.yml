@@ -11,17 +11,35 @@ on:
     paths:
       - ".actions/*"
       - ".github/workflows/docs-build.yml"
-      - "requirements/**"
+      - "requirements/ci.txt"
       - "docs/**"
-      - "src/**"
+      - "_notebooks"
+      - "requirements/**"
+      - "src/lightning/app/**"
+      - "src/lightning_app/*"
+      - "src/lightning/fabric/**"
+      - "src/lightning_fabric/*"
+      - "src/lightning/pytorch/**"
+      - "src/pytorch_lightning/*"
       - "setup.py"
       - "pyproject.toml" # includes metadata used in the package creation
       - "!*.md"
       - "!**/*.md"
+  workflow_dispatch:
+    inputs:
+      checkout:
+        description: "checkout specific git state"
+        type: string
+        required: false
+        default: ""
+      version:
+        description: "specify a version / tag to be uploaded"
+        type: string
+        required: true
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
-  cancel-in-progress: ${{ ! (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/')) }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 defaults:
   run:
@@ -41,21 +59,23 @@ jobs:
       fail-fast: false
       matrix:
         pkg-name: ["app", "fabric", "pytorch"]
-        check: ["html", "doctest", "linkcheck"]
+        target: ["html", "doctest", "linkcheck"]
     env:
       DOCS_COPY_NOTEBOOKS: 1
+      ARTIFACT_DAYS: 0
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: ${{ inputs.checkout }}
           # only Pytorch has/uses notebooks
           submodules: ${{ matrix.pkg-name == 'pytorch' }}
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.9"
 
       - name: Pull sphinx template
         run: |
-          pip install awscli
+          pip install -q -r requirements/ci.txt
           aws s3 sync --no-sign-request s3://sphinx-packages/ ${PYPI_LOCAL_DIR}
           pip install lai-sphinx-theme -U -f ${PYPI_LOCAL_DIR}
 
@@ -69,7 +89,7 @@ jobs:
         if: ${{ matrix.pkg-name == 'pytorch' }}
         timeout-minutes: 5
         run: |
-          sudo apt-get update
+          sudo apt-get update --fix-missing
           sudo apt-get install -y pandoc texlive-latex-extra dvipng texlive-pictures
       - name: Install package & dependencies
         timeout-minutes: 20
@@ -84,37 +104,23 @@ jobs:
         timeout-minutes: 10
         run: pip install -q -r _notebooks/.actions/requires.txt
 
-      - name: Test Examples in Docs
-        if: ${{ matrix.check == 'doctest' }}
-        working-directory: ./docs/source-${{ matrix.pkg-name }}
-        run: |
-          make doctest
-          make coverage
-
-      - name: Check External Links
-        if: ${{ matrix.check == 'linkcheck' }}
-        working-directory: ./docs/source-${{ matrix.pkg-name }}
-        run: make linkcheck SPHINXOPTS="--keep-going"
-
       - name: Full build for deployment
-        if: github.event_name == 'push'
+        if: github.event_name != 'pull_request'
         run: echo "DOCS_FETCH_ASSETS=1" >> $GITHUB_ENV
-      - name: Make Documentation
-        if: ${{ matrix.check == 'html' }}
+      - name: Make ${{ matrix.target }}
         working-directory: ./docs/source-${{ matrix.pkg-name }}
-        run: make html --debug --jobs $(nproc) SPHINXOPTS="-W --keep-going"
+        run: make ${{ matrix.target }} --debug --jobs $(nproc) SPHINXOPTS="-W --keep-going"
 
       - name: Keep artifact
-        id: keep-artifact
-        run: python -c "print('DAYS=' + str(7 if '${{ github.event_name }}'.startswith('pull_request') else 0))" >> $GITHUB_OUTPUT
-
+        if: github.event_name == 'pull_request'
+        run: echo "ARTIFACT_DAYS=7" >> $GITHUB_ENV
       - name: Upload built docs
-        if: ${{ matrix.check == 'html' }}
+        if: ${{ matrix.target == 'html' }}
         uses: actions/upload-artifact@v3
         with:
           name: docs-${{ matrix.pkg-name }}-${{ github.sha }}
           path: docs/build/html/
-          retention-days: ${{ steps.keep-artifact.outputs.DAYS }}
+          retention-days: ${{ env.ARTIFACT_DAYS }}
 
       - name: Dump handy wheels
         if: github.event_name == 'push' && github.ref == 'refs/heads/master'
@@ -127,7 +133,7 @@ jobs:
 
   deploy-docs:
     needs: docs-make
-    if: github.repository_owner == 'Lightning-AI' && github.event_name == 'push'
+    if: github.repository_owner == 'Lightning-AI' && github.event_name != 'pull_request'
     runs-on: ubuntu-20.04
     strategy:
       fail-fast: false
@@ -135,6 +141,8 @@ jobs:
         pkg-name: ["app", "fabric", "pytorch"]
     env:
       GCP_TARGET: "gs://lightning-docs-${{ matrix.pkg-name }}"
+      # use input if dispatch or git tag
+      VERSION: ${{ inputs.version || github.ref_name }}
     steps:
       - uses: actions/download-artifact@v3
         with:
@@ -142,34 +150,34 @@ jobs:
           path: docs/build/html/
 
       - name: Authenticate to Google Cloud
-        uses: google-github-actions/auth@v1
+        uses: google-github-actions/auth@v2
         with:
           credentials_json: ${{ secrets.GCS_SA_KEY }}
 
       - name: Setup gcloud
-        uses: google-github-actions/setup-gcloud@v1
+        uses: google-github-actions/setup-gcloud@v2
         with:
           project_id: ${{ secrets.GCS_PROJECT }}
 
       # Uploading docs to GCS, so they can be served on lightning.ai
       - name: Upload docs/${{ matrix.pkg-name }}/stable to GCS 🪣
-        if: startsWith(github.ref, 'refs/heads/release/')
+        if: startsWith(github.ref, 'refs/heads/release/') && github.event_name == 'push'
         run: gsutil -m rsync -d -R docs/build/html/ ${GCP_TARGET}/stable
 
       # Uploading docs to GCS, so they can be served on lightning.ai
       - name: Upload docs/${{ matrix.pkg-name }}/latest to GCS 🪣
-        if: github.ref == 'refs/heads/master'
+        if: github.ref == 'refs/heads/master' && github.event_name == 'push'
         run: gsutil -m rsync -d -R docs/build/html/ ${GCP_TARGET}/latest
 
       # Uploading docs to GCS, so they can be served on lightning.ai
       - name: Upload docs/${{ matrix.pkg-name }}/release to GCS 🪣
-        if: startsWith(github.ref, 'refs/tags/')
-        run: gsutil -m rsync -d -R docs/build/html/ ${GCP_TARGET}/${{ github.ref_name }}
+        if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
+        run: gsutil -m rsync -d -R docs/build/html/ ${GCP_TARGET}/${{ env.VERSION }}
 
       # Uploading docs as archive to GCS, so they can be as backup
       - name: Upload docs as archive to GCS 🪣
-        if: startsWith(github.ref, 'refs/tags/')
+        if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
         working-directory: docs/build
         run: |
-          zip ${{  github.ref_name }}.zip -r html/
-          gsutil cp ${{  github.ref_name }}.zip ${GCP_TARGET}
+          zip ${{ env.VERSION }}.zip -r html/
+          gsutil cp ${{ env.VERSION }}.zip ${GCP_TARGET}

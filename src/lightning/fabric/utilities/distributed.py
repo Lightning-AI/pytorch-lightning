@@ -3,16 +3,18 @@ import logging
 import os
 import time
 from contextlib import nullcontext
+from datetime import timedelta
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Iterable, Iterator, List, Optional, Sized, Union
 
-import fsspec.utils
 import torch
 import torch.nn.functional as F
 from lightning_utilities.core.imports import package_available
 from torch import Tensor
 from torch.utils.data import Dataset, DistributedSampler, Sampler
+from typing_extensions import Self, override
 
+from lightning.fabric.utilities.cloud_io import _is_local_file_protocol
 from lightning.fabric.utilities.data import _num_cpus_available
 from lightning.fabric.utilities.rank_zero import rank_zero_info
 from lightning.fabric.utilities.types import _PATH, ReduceOp
@@ -48,7 +50,7 @@ def is_shared_filesystem(strategy: "Strategy", path: Optional[_PATH] = None, tim
 
     """
     # Fast path: Any non-local filesystem is considered shared (e.g., S3)
-    if path is not None and fsspec.utils.get_protocol(str(path)) != "file":
+    if path is not None and not _is_local_file_protocol(path):
         return True
 
     path = Path(Path.cwd() if path is None else path).resolve()
@@ -167,7 +169,7 @@ def _sync_ddp_if_available(
         reduced value
 
     """
-    if torch.distributed.is_initialized():
+    if _distributed_is_initialized():
         return _sync_ddp(result, group=group, reduce_op=reduce_op)
     return result
 
@@ -244,7 +246,7 @@ def _all_gather_ddp_if_available(
         A tensor of shape (world_size, batch, ...)
 
     """
-    if not torch.distributed.is_initialized():
+    if not _distributed_is_initialized():
         return tensor
 
     from torch.distributed.nn.functional import all_gather
@@ -328,6 +330,7 @@ class _DatasetSamplerWrapper(Dataset):
         # defer materializing an iterator until it is necessary
         self._sampler_list: Optional[List[Any]] = None
 
+    @override
     def __getitem__(self, index: int) -> Any:
         if self._sampler_list is None:
             self._sampler_list = list(self._sampler)
@@ -357,6 +360,7 @@ class DistributedSamplerWrapper(DistributedSampler):
     def __init__(self, sampler: Union[Sampler, Iterable], *args: Any, **kwargs: Any) -> None:
         super().__init__(_DatasetSamplerWrapper(sampler), *args, **kwargs)
 
+    @override
     def __iter__(self) -> Iterator:
         self.dataset.reset()
         return (self.dataset[index] for index in super().__iter__())
@@ -373,3 +377,39 @@ def _set_num_threads_if_needed(num_processes: int = 1) -> None:
         num_threads = _suggested_max_num_threads(num_processes)
         torch.set_num_threads(num_threads)
         os.environ["OMP_NUM_THREADS"] = str(num_threads)
+
+
+def _distributed_is_initialized() -> bool:
+    # `is_initialized` is only defined conditionally
+    # https://github.com/pytorch/pytorch/blob/v2.1.0/torch/distributed/__init__.py#L25
+    # this might happen to MacOS builds from source (default) or any build from source that sets `USE_DISTRIBUTED=0`
+    return torch.distributed.is_available() and torch.distributed.is_initialized()
+
+
+class _InfiniteBarrier:
+    """A barrier with an infinite timeout.
+
+    Creates a new process group with the GLOO backend with a very high timeout that makes the barrier effectively wait
+    forever. This is useful in cases where you want to execute a long-running operation on a subset of ranks that should
+    not be subject to the regular collective timeout.
+
+    """
+
+    def __init__(self) -> None:
+        self.group = None
+        self.barrier = lambda: None
+
+    def __call__(self) -> None:
+        self.barrier()
+
+    def __enter__(self) -> Self:
+        if _distributed_is_initialized():
+            # Create a barrier with an 'infinite' timeout (only reliably possible over the GLOO backend)
+            self.group = torch.distributed.new_group(backend="gloo", timeout=timedelta(days=10000))
+            self.barrier = self.group.monitored_barrier
+        return self
+
+    def __exit__(self, exc_type: Any, exc_value: Any, traceback: Any) -> None:
+        self.barrier()
+        if self.group is not None:
+            torch.distributed.destroy_process_group(self.group)

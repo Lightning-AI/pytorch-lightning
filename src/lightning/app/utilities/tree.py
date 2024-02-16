@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Utilities for traversing the tree of components in an app."""
+
 from typing import TYPE_CHECKING, Type
 
 import lightning.app

@@ -115,7 +115,7 @@ See the Full Example
 
 .. note::
 
-    When running a Lighting App on your local machine, any :class:`~lightning.app.utilities.packaging.cloud_compute.CloudCompute`
+    When running a Lightning App on your local machine, any :class:`~lightning.app.utilities.packaging.cloud_compute.CloudCompute`
     configuration (including a :class:`~lightning.app.storage.mount.Mount`) is ignored at runtime. If you need access to
     these files on your local disk, you should download a copy of them to your machine.
 

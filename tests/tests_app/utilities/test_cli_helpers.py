@@ -24,12 +24,10 @@ def test_format_input_env_variables():
         _format_input_env_variables(("=invalid=",))
 
     with pytest.raises(Exception, match="is duplicated. Please only include it once."):
-        _format_input_env_variables(
-            (
-                "FOO=bar",
-                "FOO=bar",
-            )
-        )
+        _format_input_env_variables((
+            "FOO=bar",
+            "FOO=bar",
+        ))
 
     with pytest.raises(
         Exception,
@@ -51,11 +49,11 @@ def test_arrow_time_callback():
     assert _arrow_time_callback(Mock(), Mock(), "2022-08-23 12:34:00.000") == arrow.Arrow(2022, 8, 23, 12, 34)
 
     # Just check humanized format is parsed
-    assert type(_arrow_time_callback(Mock(), Mock(), "48 hours ago")) == arrow.Arrow
+    assert type(_arrow_time_callback(Mock(), Mock(), "48 hours ago")) is arrow.Arrow
 
-    assert type(_arrow_time_callback(Mock(), Mock(), "60 minutes ago")) == arrow.Arrow
+    assert type(_arrow_time_callback(Mock(), Mock(), "60 minutes ago")) is arrow.Arrow
 
-    assert type(_arrow_time_callback(Mock(), Mock(), "120 seconds ago")) == arrow.Arrow
+    assert type(_arrow_time_callback(Mock(), Mock(), "120 seconds ago")) is arrow.Arrow
 
     # Check raising errors
     with pytest.raises(Exception, match="cannot parse time Mon"):
@@ -189,12 +187,10 @@ def test_check_environment_and_redirect(mock_redirect_command, tmpdir, monkeypat
     )
 
     with open(descriptor, "w") as f:
-        f.writelines(
-            [
-                "#!/bin/bash\n",
-                f'{sys.executable} "$@"',
-            ]
-        )
+        f.writelines([
+            "#!/bin/bash\n",
+            f'{sys.executable} "$@"',
+        ])
 
     monkeypatch.setenv("PATH", f"{tmpdir}")
     assert _check_environment_and_redirect() is None

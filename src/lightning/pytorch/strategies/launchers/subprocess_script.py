@@ -17,6 +17,7 @@ import subprocess
 from typing import Any, Callable, List, Optional
 
 from lightning_utilities.core.imports import RequirementCache
+from typing_extensions import override
 
 import lightning.pytorch as pl
 from lightning.fabric.plugins import ClusterEnvironment
@@ -79,9 +80,11 @@ class _SubprocessScriptLauncher(_Launcher):
         self.procs: List[subprocess.Popen] = []  # launched child subprocesses, does not include the launcher
 
     @property
+    @override
     def is_interactive_compatible(self) -> bool:
         return False
 
+    @override
     def launch(self, function: Callable, *args: Any, trainer: Optional["pl.Trainer"] = None, **kwargs: Any) -> Any:
         """Creates new processes, then calls the given function.
 
@@ -101,6 +104,7 @@ class _SubprocessScriptLauncher(_Launcher):
         _set_num_threads_if_needed(num_processes=self.num_processes)
         return function(*args, **kwargs)
 
+    @override
     def kill(self, signum: _SIGNUM) -> None:
         for proc in self.procs:
             log.info(f"pid {os.getpid()} killing {proc.pid} with {signum}")
