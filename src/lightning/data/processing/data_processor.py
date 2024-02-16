@@ -29,13 +29,13 @@ from lightning.data.constants import (
     _TORCH_GREATER_EQUAL_2_1_0,
 )
 from lightning.data.processing.readers import BaseReader
+from lightning.data.processing.utilities import _create_dataset
 from lightning.data.streaming import Cache
 from lightning.data.streaming.cache import Dir
 from lightning.data.streaming.client import S3Client
 from lightning.data.streaming.resolver import _resolve_dir
 from lightning.data.utilities.broadcast import broadcast_object
 from lightning.data.utilities.packing import _pack_greedily
-from lightning.data.processing.utilities import _create_dataset
 
 if _TORCH_GREATER_EQUAL_2_1_0:
     from torch.utils._pytree import tree_flatten, tree_unflatten, treespec_loads
