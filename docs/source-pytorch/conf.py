@@ -92,7 +92,7 @@ _transform_changelog(
 assist_local.AssistantCLI.pull_docs_files(
     gh_user_repo="Lightning-AI/lightning-Habana",
     target_dir="docs/source-pytorch/integrations/hpu",
-    checkout="refs/tags/1.3.0",
+    checkout="refs/tags/1.4.0",
 )
 
 # Copy strategies docs as single pages
