@@ -227,10 +227,8 @@ def detect_color_theme():
     if colored.supports_color():
         if colored.detect_color() == "truecolor":
             return "dark"
-        else:
-            return "light"
-    else:
-        return "unknown"
+        return "light"
+    return "unknown"
 
 
 class RichProgressBar(ProgressBar):
