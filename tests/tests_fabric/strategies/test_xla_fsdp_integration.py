@@ -22,7 +22,7 @@ from lightning.fabric import Fabric
 from lightning.fabric.strategies import XLAFSDPStrategy
 from torch.utils.data import DataLoader
 
-from tests_fabric.helpers.models import RandomDataset
+from tests_fabric.helpers.datasets import RandomDataset
 from tests_fabric.helpers.runif import RunIf
 
 

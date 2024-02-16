@@ -51,10 +51,10 @@ Run the Lightning App locally:
 
 .. code:: bash
 
-    lightning run app app.py
+    lightning_app run app app.py
 
 Run the Lightning App on the cloud:
 
 .. code:: bash
 
-    lightning run app app.py --cloud
+    lightning_app run app app.py --cloud

@@ -12,8 +12,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import inspect
+from copy import deepcopy
 from functools import wraps
-from typing import Any, Callable, Dict, Generator, Iterator, List, Mapping, Optional, TypeVar, Union, overload
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    Dict,
+    Generator,
+    Iterator,
+    List,
+    Mapping,
+    Optional,
+    Tuple,
+    TypeVar,
+    Union,
+    overload,
+)
 
 import torch
 from lightning_utilities.core.apply_func import apply_to_collection
@@ -31,6 +46,9 @@ from lightning.fabric.utilities.data import _set_sampler_epoch
 from lightning.fabric.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 from lightning.fabric.utilities.types import Optimizable
+
+if TYPE_CHECKING:
+    from torch._dynamo import OptimizedModule
 
 T_destination = TypeVar("T_destination", bound=Dict[str, Any])
 _LIGHTNING_MODULE_STEP_METHODS = ("training_step", "validation_step", "test_step", "predict_step")
@@ -124,12 +142,10 @@ class _FabricModule(_DeviceDtypeModuleMixin):
         return output
 
     @overload
-    def state_dict(self, *, destination: T_destination, prefix: str = ..., keep_vars: bool = ...) -> T_destination:
-        ...
+    def state_dict(self, *, destination: T_destination, prefix: str = ..., keep_vars: bool = ...) -> T_destination: ...
 
     @overload
-    def state_dict(self, *, prefix: str = ..., keep_vars: bool = ...) -> Dict[str, Any]:
-        ...
+    def state_dict(self, *, prefix: str = ..., keep_vars: bool = ...) -> Dict[str, Any]: ...
 
     @override
     def state_dict(
@@ -283,10 +299,10 @@ class _FabricDataLoader:
 
 def _unwrap_objects(collection: Any) -> Any:
     def _unwrap(
-        obj: Union[_FabricModule, _FabricOptimizer, _FabricDataLoader]
+        obj: Union[_FabricModule, _FabricOptimizer, _FabricDataLoader],
     ) -> Union[nn.Module, Optimizer, DataLoader]:
-        if isinstance(unwrapped := _unwrap_compiled(obj), _FabricModule):
-            return unwrapped._forward_module
+        if isinstance(unwrapped := _unwrap_compiled(obj)[0], _FabricModule):
+            return _unwrap_compiled(unwrapped._forward_module)[0]
         if isinstance(obj, _FabricOptimizer):
             return obj.optimizer
         if isinstance(obj, _FabricDataLoader):
@@ -302,19 +318,33 @@ def _unwrap_objects(collection: Any) -> Any:
     return apply_to_collection(collection, dtype=tuple(types), function=_unwrap)
 
 
-def _unwrap_compiled(obj: Any) -> Any:
+def _unwrap_compiled(obj: Union[Any, "OptimizedModule"]) -> Tuple[Union[Any, nn.Module], Optional[Dict[str, Any]]]:
     """Removes the :class:`torch._dynamo.OptimizedModule` around the object if it is wrapped.
 
     Use this function before instance checks against e.g. :class:`_FabricModule`.
 
     """
     if not _TORCH_GREATER_EQUAL_2_0:
-        return obj
+        # obj can't be an `OptimizedModule` anyway
+        return obj, None
+
     from torch._dynamo import OptimizedModule
 
     if isinstance(obj, OptimizedModule):
-        return obj._orig_mod
-    return obj
+        if (compile_kwargs := getattr(obj, "_compile_kwargs", None)) is None:
+            raise RuntimeError(
+                "Failed to determine the arguments that were used to compile the module. Make sure to import"
+                " lightning before `torch.compile` is used."
+            )
+        return obj._orig_mod, compile_kwargs
+    return obj, None
+
+
+def _to_compiled(module: nn.Module, compile_kwargs: Dict[str, Any]) -> "OptimizedModule":
+    if not _TORCH_GREATER_EQUAL_2_0:
+        raise RuntimeError("Converting to a compiled module is only supported in PyTorch >= 2.0.0")
+
+    return torch.compile(module, **compile_kwargs)  # type: ignore[return-value]
 
 
 def is_wrapped(obj: object) -> bool:
@@ -328,5 +358,30 @@ def is_wrapped(obj: object) -> bool:
         obj: The object to test.
 
     """
-    obj = _unwrap_compiled(obj)
+    obj, _ = _unwrap_compiled(obj)
     return isinstance(obj, (_FabricModule, _FabricOptimizer, _FabricDataLoader))
+
+
+def _capture_compile_kwargs(compile_fn: Callable) -> Callable:
+    """Wraps the ``torch.compile`` function and captures the compile arguments.
+
+    We extract the compile arguments so that we can reapply ``torch.compile`` in ``Fabric.setup()`` with the
+    same arguments as the user passed to the original call. The arguments get stored in a dictionary
+    ``_compile_kwargs`` on the returned compiled module.
+
+    """
+    # Limitation: Currently, the global compile config does not get captured on a per-model basis.
+    # PyTorch will resolve this in the future: https://github.com/pytorch/pytorch/issues/116575
+
+    @wraps(compile_fn)
+    def _capture(model: Any, **kwargs: Any) -> Any:
+        compiled_model = compile_fn(model, **kwargs)
+        if isinstance(model, nn.Module):
+            compiled_model._compile_kwargs = deepcopy(kwargs)
+        return compiled_model
+
+    return _capture
+
+
+if _TORCH_GREATER_EQUAL_2_0:
+    torch.compile = _capture_compile_kwargs(torch.compile)

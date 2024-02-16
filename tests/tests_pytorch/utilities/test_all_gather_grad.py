@@ -58,17 +58,15 @@ def test_all_gather_collection(tmpdir):
 
         def on_train_epoch_end(self):
             losses = torch.rand(2, 2).t()
-            gathered_loss = self.all_gather(
-                {
-                    "losses_tensor_int": losses.int(),
-                    "losses_tensor_float": losses,
-                    "losses_tensor_list": [losses, losses],
-                    "losses_np_ndarray": np.array([1, 2, 3]),
-                    "losses_bool": [True, False],
-                    "losses_float": [0.0, 1.0, 2.0],
-                    "losses_int": [0, 1, 2],
-                }
-            )
+            gathered_loss = self.all_gather({
+                "losses_tensor_int": losses.int(),
+                "losses_tensor_float": losses,
+                "losses_tensor_list": [losses, losses],
+                "losses_np_ndarray": np.array([1, 2, 3]),
+                "losses_bool": [True, False],
+                "losses_float": [0.0, 1.0, 2.0],
+                "losses_int": [0, 1, 2],
+            })
             assert gathered_loss["losses_tensor_int"][0].dtype == torch.int32
             assert gathered_loss["losses_tensor_float"][0].dtype == torch.float
             assert gathered_loss["losses_np_ndarray"][0].dtype == torch.int64

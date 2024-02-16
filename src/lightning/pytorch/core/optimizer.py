@@ -196,7 +196,7 @@ def _init_optimizers_and_lr_schedulers(
 
 
 def _configure_optimizers(
-    optim_conf: Union[Dict[str, Any], List, Optimizer, Tuple]
+    optim_conf: Union[Dict[str, Any], List, Optimizer, Tuple],
 ) -> Tuple[List, List, Optional[str]]:
     optimizers, lr_schedulers = [], []
     monitor = None
@@ -398,12 +398,10 @@ class _MockOptimizer(Optimizer):
         return {}  # Return Empty
 
     @overload
-    def step(self, closure: None = ...) -> None:
-        ...
+    def step(self, closure: None = ...) -> None: ...
 
     @overload
-    def step(self, closure: Callable[[], float]) -> float:
-        ...
+    def step(self, closure: Callable[[], float]) -> float: ...
 
     @override
     def step(self, closure: Optional[Callable[[], float]] = None) -> Optional[float]:

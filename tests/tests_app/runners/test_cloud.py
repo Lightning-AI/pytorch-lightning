@@ -38,7 +38,6 @@ from lightning_cloud.openapi import (
     V1DriveStatus,
     V1DriveType,
     V1EnvVar,
-    V1GetClusterResponse,
     V1GetUserResponse,
     V1LightningappInstanceSpec,
     V1LightningappInstanceState,
@@ -144,9 +143,9 @@ class TestAppCreationClient:
             memberships=[V1Membership(name="Default Project", project_id=project_id)]
         )
 
-        mock_client.cluster_service_list_clusters.return_value = V1ListClustersResponse(
-            [Externalv1Cluster(id=DEFAULT_CLUSTER)]
-        )
+        mock_client.cluster_service_list_clusters.return_value = V1ListClustersResponse([
+            Externalv1Cluster(id=DEFAULT_CLUSTER)
+        ])
         cloud_backend.client = mock_client
 
         app = mock.MagicMock()
@@ -193,12 +192,10 @@ class TestAppCreationClient:
         # Note:
         # backend converts "None" cluster to "litng-ai-03"
         # dispatch should receive None, but API calls should return "litng-ai-03"
-        mock_client.cluster_service_list_clusters.return_value = V1ListClustersResponse(
-            [
-                Externalv1Cluster(id=old_cluster or DEFAULT_CLUSTER),
-                Externalv1Cluster(id=new_cluster or DEFAULT_CLUSTER),
-            ]
-        )
+        mock_client.cluster_service_list_clusters.return_value = V1ListClustersResponse([
+            Externalv1Cluster(id=old_cluster or DEFAULT_CLUSTER),
+            Externalv1Cluster(id=new_cluster or DEFAULT_CLUSTER),
+        ])
 
         mock_client.projects_service_list_project_cluster_bindings.return_value = V1ListProjectClusterBindingsResponse(
             clusters=[
@@ -208,7 +205,7 @@ class TestAppCreationClient:
         )
 
         # Mock all clusters as global clusters
-        mock_client.cluster_service_get_cluster.side_effect = lambda cluster_id: V1GetClusterResponse(
+        mock_client.cluster_service_get_cluster.side_effect = lambda cluster_id: Externalv1Cluster(
             id=cluster_id, spec=V1ClusterSpec(cluster_type=V1ClusterType.GLOBAL)
         )
 
@@ -268,16 +265,16 @@ class TestAppCreationClient:
             cluster_id=DEFAULT_CLUSTER
         )
 
-        mock_client.cluster_service_list_clusters.return_value = V1ListClustersResponse(
-            [Externalv1Cluster(id=DEFAULT_CLUSTER)]
-        )
+        mock_client.cluster_service_list_clusters.return_value = V1ListClustersResponse([
+            Externalv1Cluster(id=DEFAULT_CLUSTER)
+        ])
 
         mock_client.projects_service_list_project_cluster_bindings.return_value = V1ListProjectClusterBindingsResponse(
             clusters=[V1ProjectClusterBinding(cluster_id=DEFAULT_CLUSTER)]
         )
 
         # Mock all clusters as global clusters
-        mock_client.cluster_service_get_cluster.side_effect = lambda cluster_id: V1GetClusterResponse(
+        mock_client.cluster_service_get_cluster.side_effect = lambda cluster_id: Externalv1Cluster(
             id=cluster_id, spec=V1ClusterSpec(cluster_type=V1ClusterType.GLOBAL)
         )
 
@@ -366,9 +363,9 @@ class TestAppCreationClient:
             V1ListLightningappInstancesResponse(lightningapps=[])
         )
         mock_client.cloud_space_service_create_lightning_run.return_value = V1LightningRun(cluster_id="test1234")
-        mock_client.cluster_service_list_clusters.return_value = V1ListClustersResponse(
-            [Externalv1Cluster(id="test1234")]
-        )
+        mock_client.cluster_service_list_clusters.return_value = V1ListClustersResponse([
+            Externalv1Cluster(id="test1234")
+        ])
         cloud_backend = mock.MagicMock()
         cloud_backend.client = mock_client
         monkeypatch.setattr(backends, "CloudBackend", mock.MagicMock(return_value=cloud_backend))
@@ -588,7 +585,7 @@ class TestAppCreationClient:
         mock_client.projects_service_list_project_cluster_bindings.return_value = V1ListProjectClusterBindingsResponse(
             clusters=[V1ProjectClusterBinding(cluster_id="test")]
         )
-        mock_client.cluster_service_get_cluster.side_effect = lambda cluster_id: V1GetClusterResponse(
+        mock_client.cluster_service_get_cluster.side_effect = lambda cluster_id: Externalv1Cluster(
             id=cluster_id, spec=V1ClusterSpec(cluster_type=V1ClusterType.GLOBAL)
         )
         mock_client.cloud_space_service_create_lightning_run_instance.return_value = V1LightningRun()
@@ -765,7 +762,7 @@ class TestAppCreationClient:
         mock_client.projects_service_list_project_cluster_bindings.return_value = V1ListProjectClusterBindingsResponse(
             clusters=[V1ProjectClusterBinding(cluster_id="test")]
         )
-        mock_client.cluster_service_get_cluster.side_effect = lambda cluster_id: V1GetClusterResponse(
+        mock_client.cluster_service_get_cluster.side_effect = lambda cluster_id: Externalv1Cluster(
             id=cluster_id, spec=V1ClusterSpec(cluster_type=V1ClusterType.GLOBAL)
         )
         mock_client.cloud_space_service_create_lightning_run_instance.return_value = V1LightningRun()
@@ -901,7 +898,7 @@ class TestAppCreationClient:
             mock_client.projects_service_list_project_cluster_bindings.return_value = (
                 V1ListProjectClusterBindingsResponse(clusters=[V1ProjectClusterBinding(cluster_id="test")])
             )
-            mock_client.cluster_service_get_cluster.side_effect = lambda cluster_id: V1GetClusterResponse(
+            mock_client.cluster_service_get_cluster.side_effect = lambda cluster_id: Externalv1Cluster(
                 id=cluster_id, spec=V1ClusterSpec(cluster_type=V1ClusterType.GLOBAL)
             )
         mock_client.cloud_space_service_list_cloud_spaces.return_value = V1ListCloudSpacesResponse(
@@ -1031,7 +1028,7 @@ class TestAppCreationClient:
                     ]
                 )
             )
-            mock_client.cluster_service_get_cluster.side_effect = lambda cluster_id: V1GetClusterResponse(
+            mock_client.cluster_service_get_cluster.side_effect = lambda cluster_id: Externalv1Cluster(
                 id=cluster_id, spec=V1ClusterSpec(cluster_type=V1ClusterType.GLOBAL)
             )
         mock_client.cloud_space_service_list_cloud_spaces.return_value = V1ListCloudSpacesResponse(
@@ -1247,7 +1244,7 @@ class TestAppCreationClient:
             mock_client.projects_service_list_project_cluster_bindings.return_value = (
                 V1ListProjectClusterBindingsResponse(clusters=[V1ProjectClusterBinding(cluster_id="test")])
             )
-            mock_client.cluster_service_get_cluster.side_effect = lambda cluster_id: V1GetClusterResponse(
+            mock_client.cluster_service_get_cluster.side_effect = lambda cluster_id: Externalv1Cluster(
                 id=cluster_id, spec=V1ClusterSpec(cluster_type=V1ClusterType.GLOBAL)
             )
         mock_client.cloud_space_service_list_cloud_spaces.return_value = V1ListCloudSpacesResponse(
@@ -1566,7 +1563,7 @@ class TestOpen:
         out, _ = capsys.readouterr()
 
         assert exited
-        assert "`lightning open` command has not been enabled" in out
+        assert "`lightning_app open` command has not been enabled" in out
 
 
 class TestCloudspaceDispatch:
@@ -1965,9 +1962,7 @@ def test_programmatic_lightningignore(monkeypatch, caplog, tmpdir):
         "lightning.app.runners.cloud._parse_lightningignore", wraps=_parse_lightningignore
     ) as parse_mock, mock.patch(
         "lightning.app.source_code.local._copytree", wraps=_copytree
-    ) as copy_mock, caplog.at_level(
-        logging.WARN
-    ):
+    ) as copy_mock, caplog.at_level(logging.WARN):
         cloud_runtime.dispatch()
 
     parse_mock.assert_called_once_with(("foo", "foo", "lightning_logs"))
@@ -2016,9 +2011,7 @@ def test_default_lightningignore(monkeypatch, caplog, tmpdir):
         "lightning.app.runners.cloud._parse_lightningignore", wraps=_parse_lightningignore
     ) as parse_mock, mock.patch(
         "lightning.app.source_code.local._copytree", wraps=_copytree
-    ) as copy_mock, caplog.at_level(
-        logging.WARN
-    ):
+    ) as copy_mock, caplog.at_level(logging.WARN):
         cloud_runtime.dispatch()
 
     parse_mock.assert_called_once_with(())

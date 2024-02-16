@@ -139,8 +139,7 @@ def test_torchscript_save_load_custom_filesystem(tmpdir, modelclass):
     _DUMMY_PRFEIX = "dummy"
     _PREFIX_SEPARATOR = "://"
 
-    class DummyFileSystem(LocalFileSystem):
-        ...
+    class DummyFileSystem(LocalFileSystem): ...
 
     fsspec.register_implementation(_DUMMY_PRFEIX, DummyFileSystem, clobber=True)
 

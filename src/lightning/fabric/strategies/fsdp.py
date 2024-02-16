@@ -63,13 +63,13 @@ from lightning.fabric.utilities.distributed import (
 )
 from lightning.fabric.utilities.distributed import group as _group
 from lightning.fabric.utilities.imports import (
-    _TORCH_GREATER_EQUAL_1_13,
     _TORCH_GREATER_EQUAL_2_0,
     _TORCH_GREATER_EQUAL_2_1,
     _TORCH_GREATER_EQUAL_2_2,
+    _TORCH_GREATER_EQUAL_2_3,
 )
 from lightning.fabric.utilities.init import _EmptyInit
-from lightning.fabric.utilities.load import _lazy_load, _materialize_tensors, _move_state_into
+from lightning.fabric.utilities.load import _METADATA_FILENAME, _lazy_load, _materialize_tensors, _move_state_into
 from lightning.fabric.utilities.rank_zero import rank_zero_deprecation, rank_zero_only, rank_zero_warn
 from lightning.fabric.utilities.seed import reset_seed
 from lightning.fabric.utilities.types import _PATH, _Stateful
@@ -87,7 +87,6 @@ if TYPE_CHECKING:
     _SHARDING_STRATEGY = Union[ShardingStrategy, Literal["FULL_SHARD", "SHARD_GRAD_OP", "NO_SHARD", "HYBRID_SHARD"]]
 
 _FSDP_ALIASES = ("fsdp", "fsdp_cpu_offload")
-_METADATA_FILENAME = "meta.pt"
 
 
 class FSDPStrategy(ParallelStrategy, _Sharded):
@@ -227,7 +226,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             return plugin.mixed_precision_config
         return None
 
-    @property  # type: ignore[override]
+    @property
     @override
     def precision(self) -> FSDPPrecision:
         plugin = self._precision
@@ -307,8 +306,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         _move_torchmetrics_to_device(module, self.root_device)
 
         # activation checkpointing needs to be set up after wrapping the model
-        if _TORCH_GREATER_EQUAL_1_13:
-            _setup_activation_checkpointing(module, self._activation_checkpointing_kwargs)
+        _setup_activation_checkpointing(module, self._activation_checkpointing_kwargs)
 
         return module
 
@@ -346,7 +344,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             # 1) materialize module 2) call `reset_parameters()` 3) shard the module.
             # These operations are applied to each submodule 'bottom up' in the module hierarchy.
             stack.enter_context(torch.device("meta"))
-        elif _TORCH_GREATER_EQUAL_1_13:
+        else:
             stack.enter_context(empty_ctx)
         stack.enter_context(precision_init_ctx)
         stack.enter_context(module_sharded_ctx)
@@ -451,7 +449,6 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         if path.is_dir() and self._state_dict_type == "full" and not _is_sharded_checkpoint(path):
             raise IsADirectoryError(f"The checkpoint path exists and is a directory: {path}")
 
-        from torch.distributed.checkpoint import FileSystemWriter, save_state_dict
         from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
 
         modules = [module for module in state.values() if _has_fsdp_modules(module)]
@@ -494,9 +491,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
                         target_dict = metadata
                     _apply_filter(key, filter or {}, converted, target_dict)
 
-            # FSDP's FileSystemWriter streams the tensors to disk to minimize memory peaks
-            writer = FileSystemWriter(path=path, single_file_per_rank=True)
-            save_state_dict(converted_state, writer)
+            _distributed_checkpoint_save(converted_state, path)
 
             if self.global_rank == 0:
                 torch.save(metadata, path / _METADATA_FILENAME)
@@ -558,15 +553,9 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
                 "Loading a single optimizer object from a checkpoint is not supported yet with the FSDP strategy."
             )
 
-        from torch.distributed.checkpoint import FileSystemReader
         from torch.distributed.checkpoint.optimizer import load_sharded_optimizer_state_dict
         from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
         from torch.distributed.fsdp import OptimStateKeyType
-
-        if _TORCH_GREATER_EQUAL_2_2:
-            from torch.distributed.checkpoint import load
-        else:
-            from torch.distributed.checkpoint import load_state_dict as load  # deprecated
 
         modules = {key: module for key, module in state.items() if _has_fsdp_modules(module)}
         if len(modules) == 0:
@@ -586,26 +575,31 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
 
         if _is_sharded_checkpoint(path):
             state_dict_ctx = _get_sharded_state_dict_context(module)
-            reader = FileSystemReader(path=path)
 
             with state_dict_ctx:
                 module_state = {module_key: module.state_dict()}
-                load(module_state, reader)
+                _distributed_checkpoint_load(module_state, path)
                 module.load_state_dict(module_state[module_key], strict=strict)
 
-                # the optimizer states must be loaded separately
-                for optim_key, optim in optimizers.items():
-                    optim_state = load_sharded_optimizer_state_dict(
-                        model_state_dict=module_state[module_key],
-                        optimizer_key=optim_key,
-                        storage_reader=reader,
-                    )
-                    flattened_osd = FSDP.optim_state_dict_to_load(
-                        optim_state_dict=optim_state[optim_key],
-                        model=module,
-                        optim=optim,
-                    )
-                    optim.load_state_dict(flattened_osd)
+                if optimizers:
+                    from torch.distributed.checkpoint import FileSystemReader
+
+                    # TODO: replace with newer APIs
+                    # https://github.com/pytorch/pytorch/issues/119800#issuecomment-1942156271
+                    reader = FileSystemReader(path=path)
+                    # the optimizer states must be loaded separately
+                    for optim_key, optim in optimizers.items():
+                        optim_state = load_sharded_optimizer_state_dict(
+                            model_state_dict=module_state[module_key],
+                            optimizer_key=optim_key,
+                            storage_reader=reader,
+                        )
+                        flattened_osd = FSDP.optim_state_dict_to_load(
+                            optim_state_dict=optim_state[optim_key],
+                            model=module,
+                            optim=optim,
+                        )
+                        optim.load_state_dict(flattened_osd)
 
             # Load metadata (anything not a module or optimizer)
             metadata = torch.load(path / _METADATA_FILENAME)
@@ -712,8 +706,6 @@ def _activation_checkpointing_kwargs(
             "You cannot set both `activation_checkpointing` and `activation_checkpointing_policy`. Use the latter."
         )
     if activation_checkpointing is not None:
-        if not _TORCH_GREATER_EQUAL_1_13:
-            raise ValueError("`activation_checkpointing` requires torch >= 1.13.0. HINT: `pip install -U torch`")
         if isinstance(activation_checkpointing, list):
             classes = tuple(activation_checkpointing)
         else:
@@ -800,25 +792,30 @@ def _init_cpu_offload(cpu_offload: Optional[Union[bool, "CPUOffload"]]) -> "CPUO
 def _init_sharding_strategy(sharding_strategy: "_SHARDING_STRATEGY", kwargs: Dict) -> "ShardingStrategy":
     from torch.distributed.fsdp import ShardingStrategy
 
+    if kwargs.get("process_group") is not None and kwargs.get("device_mesh") is not None:
+        raise ValueError(
+            "The arguments `FSDPStrategy(process_group=..., device_mesh=...)` are mutually exclusive."
+            "Pass only one of them."
+        )
+
     strategy = ShardingStrategy[sharding_strategy.upper()] if isinstance(sharding_strategy, str) else sharding_strategy
-    if "HYBRID" in strategy.name and kwargs.get("auto_wrap_policy") is None and kwargs.get("process_group") is None:
+    if (
+        "HYBRID" in strategy.name
+        and kwargs.get("auto_wrap_policy") is None
+        and kwargs.get("process_group") is None
+        and kwargs.get("device_mesh") is None
+    ):
         raise RuntimeError(
-            "The hybrid sharding strategy requires you to either set the `auto_wrap_policy` or pass a process"
-            " group tuple to the `process_group` parameter."
+            "The hybrid sharding strategy requires you to pass at least one of the parameters: `auto_wrap_policy`,"
+            " `process_group` tuple, or `device_mesh`."
         )
     return strategy
 
 
 def _optimizer_has_flat_params(optimizer: Optimizer) -> bool:
-    _FSDP_FLATTENED = "_fsdp_flattened"
-    if _TORCH_GREATER_EQUAL_1_13:
-        return any(
-            getattr(param, _FSDP_FLATTENED, False) for group in optimizer.param_groups for param in group["params"]
-        )
-
-    from torch.distributed.fsdp import FlatParameter
-
-    return any(isinstance(param, FlatParameter) for group in optimizer.param_groups for param in group["params"])
+    return any(
+        getattr(param, "_fsdp_flattened", False) for group in optimizer.param_groups for param in group["params"]
+    )
 
 
 def _get_sharded_state_dict_context(module: Module) -> Generator[None, None, None]:
@@ -922,3 +919,40 @@ def _move_torchmetrics_to_device(module: torch.nn.Module, device: torch.device) 
 
     for metric in (m for m in module.modules() if isinstance(m, Metric)):
         metric.to(device)  # `.to()` is in-place
+
+
+def _distributed_checkpoint_save(converted_state: Dict[str, Any], path: Path) -> None:
+    if _TORCH_GREATER_EQUAL_2_3:
+        from torch.distributed.checkpoint import save
+
+        # let torch automatically infer the writer to use. This might also support fsspec paths in the future
+        # https://github.com/pytorch/pytorch/issues/118036
+        save(converted_state, checkpoint_id=path)  # type: ignore[call-arg]
+    else:  # deprecated
+        from torch.distributed.checkpoint import FileSystemWriter
+
+        if _TORCH_GREATER_EQUAL_2_2:
+            from torch.distributed.checkpoint import save
+        else:
+            from torch.distributed.checkpoint import save_state_dict as save
+        # FSDP's FileSystemWriter streams the tensors to disk to minimize memory peaks
+        writer = FileSystemWriter(path=path, single_file_per_rank=True)
+        save(converted_state, writer)
+
+
+def _distributed_checkpoint_load(module_state: Dict[str, Any], path: Path) -> None:
+    if _TORCH_GREATER_EQUAL_2_3:
+        from torch.distributed.checkpoint import load
+
+        # let torch automatically infer the reader to use. This might also support fsspec paths in the future
+        # https://github.com/pytorch/pytorch/issues/118036
+        load(module_state, checkpoint_id=path)  # type: ignore[call-arg]
+    else:  # deprecated
+        from torch.distributed.checkpoint import FileSystemReader
+
+        if _TORCH_GREATER_EQUAL_2_2:
+            from torch.distributed.checkpoint import load
+        else:
+            from torch.distributed.checkpoint import load_state_dict as load
+        reader = FileSystemReader(path=path)
+        load(module_state, reader)

@@ -15,7 +15,8 @@ import pickle
 import warnings
 from functools import partial
 from io import BytesIO
-from typing import IO, TYPE_CHECKING, Any, Callable, Dict, Optional, OrderedDict, Sequence, Set, Union
+from pathlib import Path
+from typing import IO, TYPE_CHECKING, Any, Callable, Dict, Optional, OrderedDict, Sequence, Set, Tuple, Union
 
 import torch
 from lightning_utilities.core.apply_func import apply_to_collection
@@ -24,8 +25,15 @@ from torch._C import _TensorMeta
 from torch.nn import Parameter
 from typing_extensions import override
 
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
+from lightning.fabric.utilities.imports import (
+    _TORCH_GREATER_EQUAL_2_0,
+    _TORCH_GREATER_EQUAL_2_1,
+    _TORCH_GREATER_EQUAL_2_2,
+)
 from lightning.fabric.utilities.types import _PATH, _Stateful
+
+_METADATA_FILENAME = "meta.pt"
+
 
 if TYPE_CHECKING:
     from torch.storage import TypedStorage
@@ -227,3 +235,76 @@ def _move_state_into(
             destination[key].load_state_dict(state)
         else:
             destination[key] = state
+
+
+def _load_distributed_checkpoint(checkpoint_folder: Path) -> Dict[str, Any]:
+    """Loads a sharded checkpoint saved with the `torch.distributed.checkpoint` into a full state dict.
+
+    The current implementation assumes that the entire checkpoint fits in CPU memory.
+
+    """
+    if not _TORCH_GREATER_EQUAL_2_1:
+        raise ImportError("Processing distributed checkpoints requires PyTorch >= 2.1.")
+
+    from torch.distributed.checkpoint import FileSystemReader
+    from torch.distributed.checkpoint.metadata import BytesStorageMetadata, TensorStorageMetadata
+
+    if _TORCH_GREATER_EQUAL_2_2:
+        from torch.distributed.checkpoint import load
+    else:
+        from torch.distributed.checkpoint import load_state_dict as load  # deprecated
+
+    reader = FileSystemReader(checkpoint_folder)
+    metadata = reader.read_metadata()
+
+    # TODO: Add sequential save to avoid storing the entire checkpoint in memory
+    checkpoint: Dict[str, Any] = {}
+    for tensor_name, sd_metadata in metadata.state_dict_metadata.items():
+        if isinstance(sd_metadata, BytesStorageMetadata):
+            checkpoint[tensor_name] = "<bytes_io>"
+        elif isinstance(sd_metadata, TensorStorageMetadata):
+            checkpoint[tensor_name] = torch.empty(
+                size=sd_metadata.size,
+                dtype=sd_metadata.properties.dtype,
+                device=torch.device("cpu"),
+                memory_format=sd_metadata.properties.memory_format,
+                layout=sd_metadata.properties.layout,
+                requires_grad=sd_metadata.properties.requires_grad,
+                pin_memory=sd_metadata.properties.pin_memory,
+            )
+
+    load(state_dict=checkpoint, storage_reader=reader, no_dist=True)
+    checkpoint = _unflatten_dict(checkpoint, key_map=metadata.planner_data)
+
+    # This is the extra file saved by Fabric, with user data separate from weights and optimizer states
+    extra_file = checkpoint_folder / _METADATA_FILENAME
+    extra = torch.load(extra_file, map_location="cpu") if extra_file.is_file() else {}
+    checkpoint.update(extra)
+
+    return checkpoint
+
+
+def _unflatten_dict(checkpoint: Dict[str, Any], key_map: Dict[str, Tuple[str, ...]]) -> Dict[str, Any]:
+    """Converts the flat dictionary with keys 'x.y.z...' to a nested dictionary using the provided key map.
+
+    Args:
+        checkpoint: The flat checkpoint dictionary.
+        key_map: A dictionary that maps the keys in flattened format 'x.y.z...' to a tuple representing
+            the index path into the nested dictonary that this function should construct.
+
+    """
+    assert checkpoint.keys() == key_map.keys()
+    converted: Dict[str, Any] = {}
+    for flat_key in checkpoint:
+        key_path = key_map[flat_key]
+        _set_nested_dict_value(converted, key_path, checkpoint[flat_key])
+    return converted
+
+
+def _set_nested_dict_value(nested_dict: Dict[str, Any], key_path: Tuple[str, ...], value: Any) -> None:
+    result = nested_dict
+    for key in key_path[:-1]:
+        if key not in result:
+            result[key] = {}
+        result = result[key]
+    result[key_path[-1]] = value

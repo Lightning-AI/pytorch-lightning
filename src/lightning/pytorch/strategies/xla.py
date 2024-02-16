@@ -70,7 +70,7 @@ class XLAStrategy(DDPStrategy):
         self._launched = False
         self._sync_module_states = sync_module_states
 
-    @property  # type: ignore[override]
+    @property
     @override
     def checkpoint_io(self) -> Union[XLACheckpointIO, _WrappingCheckpointIO]:
         plugin = self._checkpoint_io
@@ -86,7 +86,7 @@ class XLAStrategy(DDPStrategy):
             raise TypeError(f"The XLA strategy can only work with the `XLACheckpointIO` plugin, found {io}")
         self._checkpoint_io = io
 
-    @property  # type: ignore[override]
+    @property
     @override
     def precision_plugin(self) -> XLAPrecision:
         plugin = self._precision_plugin
@@ -137,18 +137,20 @@ class XLAStrategy(DDPStrategy):
 
     @override
     def setup(self, trainer: "pl.Trainer") -> None:
-        assert self.accelerator
+        assert self.accelerator is not None
         self.accelerator.setup(trainer)
 
         if self.debug:
             os.environ["PT_XLA_DEBUG"] = "1"
 
-        assert self.lightning_module
-        shared_params = find_shared_parameters(self.lightning_module)
-        self.model_to_device()
+        assert self.model is not None
+        self.precision_plugin.convert_module(self.model)
 
-        set_shared_parameters(self.lightning_module, shared_params)
-        self.setup_precision_plugin()
+        shared_params = find_shared_parameters(self.model)
+        self.model_to_device()
+        set_shared_parameters(self.model, shared_params)
+
+        self.model = self._setup_model(self.model)
 
         if self._sync_module_states:
             if _XLA_GREATER_EQUAL_2_1:
@@ -160,6 +162,8 @@ class XLAStrategy(DDPStrategy):
 
         if trainer.state.fn == TrainerFn.FITTING:
             self.setup_optimizers(trainer)
+        self.setup_precision_plugin()
+        if trainer.state.fn == TrainerFn.FITTING:
             _optimizers_to_device(self.optimizers, self.root_device)
 
     @override

@@ -20,7 +20,9 @@ import numpy as np
 import pytest
 import torch
 from lightning import seed_everything
-from lightning.data.streaming import Cache, functions
+from lightning.data.processing import functions
+from lightning.data.streaming import Cache
+from lightning.data.streaming import dataset as dataset_module
 from lightning.data.streaming.dataloader import StreamingDataLoader
 from lightning.data.streaming.dataset import (
     _INDEX_FILENAME,
@@ -69,8 +71,10 @@ def test_streaming_dataset(tmpdir, monkeypatch):
 def test_should_replace_path():
     assert _should_replace_path(None)
     assert _should_replace_path("")
-    assert _should_replace_path(".../datasets/...")
-    assert _should_replace_path(".../_connections/...")
+    assert not _should_replace_path(".../datasets/...")
+    assert not _should_replace_path(".../s3__connections/...")
+    assert _should_replace_path("/teamspace/datasets/...")
+    assert _should_replace_path("/teamspace/s3_connections/...")
     assert not _should_replace_path("something_else")
 
 
@@ -97,31 +101,46 @@ def test_streaming_dataset_distributed_no_shuffle(drop_last, tmpdir):
     assert len(dataset) == 101
 
     dataset.distributed_env = _DistributedEnv(2, 0, 1)
+    assert len(dataset) == 50
+
+    dataset.distributed_env = _DistributedEnv(2, 1, 1)
     assert len(dataset) == 50 + int(not drop_last)
+
     dataset_iter = iter(dataset)
     assert len(dataset_iter) == 50 + int(not drop_last)
+
+    dataset.distributed_env = _DistributedEnv(2, 0, 1)
+
     process_1_1 = list(dataset_iter)
-    assert len(process_1_1) == 50 + int(not drop_last)
+
+    assert len(process_1_1) == 50
     assert process_1_1[:10] == [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
     dataset_iter = iter(dataset)
-    assert len(dataset_iter) == 50 + int(not drop_last)
+
+    assert len(dataset_iter) == 50
     process_1_2 = list(dataset_iter)
     assert process_1_2[:10] == [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
-    assert len(process_1_2) == 50 + int(not drop_last)
+
+    assert len(process_1_2) == 50
 
     dataset = StreamingDataset(input_dir=str(tmpdir), shuffle=False, drop_last=drop_last)
     dataset.distributed_env = _DistributedEnv(2, 1, 1)
-    assert len(dataset) == 50
-    dataset_iter = iter(dataset)
-    process_2_1 = list(dataset_iter)
-    assert process_2_1[:10] == [10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
-    assert len(process_2_1) == 50
-    dataset_iter = iter(dataset)
-    assert len(dataset_iter) == 50
-    process_2_2 = list(dataset_iter)
-    assert process_2_2[:10] == [10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
 
-    assert len(process_2_2) == 50
+    assert len(dataset) == 50 + int(not drop_last)
+    dataset_iter = iter(dataset)
+
+    process_2_1 = list(dataset_iter)
+    assert process_2_1[:10] == [50, 51, 52, 53, 54, 55, 56, 57, 58, 59]
+
+    assert len(process_2_1) == 50 + int(not drop_last)
+    dataset_iter = iter(dataset)
+
+    assert len(dataset_iter) == 50 + int(not drop_last)
+    process_2_2 = list(dataset_iter)
+
+    assert process_2_2[:10] == [50, 51, 52, 53, 54, 55, 56, 57, 58, 59]
+
+    assert len(process_2_2) == 50 + int(not drop_last)
 
     _, intervals_per_ranks = dataset.shuffler.get_chunks_and_intervals_per_ranks(
         dataset.distributed_env, dataset.current_epoch
@@ -500,11 +519,11 @@ def test_dataset_for_text_tokens_distributed_num_workers(tmpdir):
     assert len(dataset) == 20
 
     dataset.distributed_env = _DistributedEnv(2, 0, 1)
-    dataloader = DataLoader(dataset, batch_size=2, shuffle=False, num_workers=2)
+    dataloader = DataLoader(dataset, batch_size=2, shuffle=False)
 
-    assert len(dataloader) == 6
+    assert len(dataloader) == 5
 
-    expected = [[0, 10], [80, 90], [20, 30], [100, 110], [160, 170], [180, 190]]
+    expected = [[0, 10], [20, 30], [40, 50], [60, 70], [80, 90]]
 
     for batch_idx, batch in enumerate(dataloader):
         assert [batch[0][0].item(), batch[1][0].item()] == expected[batch_idx]
@@ -512,9 +531,9 @@ def test_dataset_for_text_tokens_distributed_num_workers(tmpdir):
     dataset.distributed_env = _DistributedEnv(2, 1, 1)
     dataloader = DataLoader(dataset, batch_size=2, shuffle=False)
 
-    assert len(dataloader) == 4
+    assert len(dataloader) == 5
 
-    expected = [[40, 50], [60, 70], [120, 130], [140, 150]]
+    expected = [[100, 110], [120, 130], [140, 150], [160, 170], [180, 190]]
 
     for batch_idx, batch in enumerate(dataloader):
         assert [batch[0][0].item(), batch[1][0].item()] == expected[batch_idx]
@@ -567,7 +586,7 @@ def test_dataset_for_text_tokens_distributed_num_workers_end_to_end(tmpdir, monk
 
     assert len(dataloader) == 5
 
-    expected = [[0, 10], [40, 50], [80, 90], [120, 130], [160, 170]]
+    expected = [[0, 10], [20, 30], [40, 50], [60, 70], [80, 90]]
 
     for batch_idx, batch in enumerate(dataloader):
         assert [batch[0][0].item(), batch[1][0].item()] == expected[batch_idx]
@@ -577,7 +596,7 @@ def test_dataset_for_text_tokens_distributed_num_workers_end_to_end(tmpdir, monk
 
     assert len(dataloader) == 5
 
-    expected = [[20, 30], [60, 70], [100, 110], [140, 150], [180, 190]]
+    expected = [[100, 110], [120, 130], [140, 150], [160, 170], [180, 190]]
 
     for batch_idx, batch in enumerate(dataloader):
         assert [batch[0][0].item(), batch[1][0].item()] == expected[batch_idx]
@@ -647,21 +666,22 @@ def test_resumable_dataset_two_workers(tmpdir):
 
     _ = next(dataloader_iter)
     state_dict_0 = dataloader.state_dict()
-    assert state_dict_0["0"]["num_samples_yielded"] == 2
-    assert state_dict_0["0"]["num_workers"] == 2
-    assert state_dict_0["0"]["batch_size"] == 2
+
+    assert state_dict_0["dataset"]["num_samples_yielded"] == 2
+    assert state_dict_0["dataset"]["num_workers"] == 2
+    assert state_dict_0["dataset"]["batch_size"] == 2
 
     _ = next(dataloader_iter)
     state_dict_1 = dataloader.state_dict()
-    assert state_dict_1["0"]["num_samples_yielded"] == 4
-    assert state_dict_1["0"]["num_workers"] == 2
-    assert state_dict_1["0"]["batch_size"] == 2
+    assert state_dict_1["dataset"]["num_samples_yielded"] == 4
+    assert state_dict_1["dataset"]["num_workers"] == 2
+    assert state_dict_1["dataset"]["batch_size"] == 2
 
     batch_2 = next(dataloader_iter)
     state_dict_2 = dataloader.state_dict()
-    assert state_dict_2["0"]["num_samples_yielded"] == 6
-    assert state_dict_2["0"]["num_workers"] == 2
-    assert state_dict_2["0"]["batch_size"] == 2
+    assert state_dict_2["dataset"]["num_samples_yielded"] == 6
+    assert state_dict_2["dataset"]["num_workers"] == 2
+    assert state_dict_2["dataset"]["batch_size"] == 2
 
     dataset = EmulateS3StreamingDataset(
         input_dir=Dir(cache_dir, data_dir),
@@ -669,21 +689,17 @@ def test_resumable_dataset_two_workers(tmpdir):
         shuffle=True,
     )
 
-    dataset.load_state_dict(state_dict_1)
     dataloader = StreamingDataLoader(dataset, num_workers=2, batch_size=2, prefetch_factor=1)
+    dataloader.load_state_dict(state_dict_1)
 
     dataloader_iter = iter(dataloader)
     batch_0_restart = next(dataloader_iter)
 
-    state_dict_2 = dataloader.state_dict()
-    assert len(state_dict_2) == 2
-    assert state_dict_2["0"]["num_samples_yielded"] == 4
-    assert state_dict_2["0"]["num_workers"] == 2
-    assert state_dict_2["0"]["batch_size"] == 2
+    state_dict_2 = dataloader.state_dict()["dataset"]
 
-    assert state_dict_2["1"]["num_samples_yielded"] == 2
-    assert state_dict_2["1"]["num_workers"] == 2
-    assert state_dict_2["1"]["batch_size"] == 2
+    assert state_dict_2["num_samples_yielded"] == 6
+    assert state_dict_2["num_workers"] == 2
+    assert state_dict_2["batch_size"] == 2
 
     assert torch.equal(batch_2, batch_0_restart)
 
@@ -738,7 +754,7 @@ def test_resumable_dataset_two_workers_2_epochs(tmpdir):
 
 
 @pytest.mark.skipif(sys.platform == "win32", reason="Not tested on windows and MacOs")
-def test_dataset_valid_state(tmpdir):
+def test_dataset_valid_state(tmpdir, monkeypatch):
     seed_everything(42)
 
     data_dir = os.path.join(tmpdir, "data")
@@ -760,7 +776,10 @@ def test_dataset_valid_state(tmpdir):
     cache.merge()
 
     dataset = EmulateS3StreamingDataset(
-        input_dir=Dir(cache_dir, data_dir), item_loader=TokensLoader(block_size), shuffle=False
+        input_dir=Dir(cache_dir, data_dir),
+        item_loader=TokensLoader(block_size),
+        shuffle=False,
+        drop_last=False,
     )
     dataloader = DataLoader(dataset, num_workers=1, batch_size=2)
     dataloader_iter = iter(dataloader)
@@ -776,7 +795,7 @@ def test_dataset_valid_state(tmpdir):
 
     dataset._validate_state_dict()
 
-    state_dict["0"]["drop_last"] = True
+    state_dict["drop_last"] = True
     dataset.load_state_dict(state_dict)
     with pytest.raises(
         ValueError,
@@ -784,7 +803,7 @@ def test_dataset_valid_state(tmpdir):
     ):
         dataset._validate_state_dict()
 
-    state_dict["0"]["item_loader"] = {}
+    state_dict["item_loader"] = {}
     dataset.load_state_dict(state_dict)
     with pytest.raises(
         ValueError,
@@ -792,7 +811,7 @@ def test_dataset_valid_state(tmpdir):
     ):
         dataset._validate_state_dict()
 
-    state_dict["0"]["seed"] = 12
+    state_dict["seed"] = 12
     dataset.load_state_dict(state_dict)
     with pytest.raises(
         ValueError,
@@ -800,7 +819,7 @@ def test_dataset_valid_state(tmpdir):
     ):
         dataset._validate_state_dict()
 
-    state_dict["0"]["input_dir_url"] = "toto"
+    state_dict["input_dir_url"] = "toto"
     dataset.load_state_dict(state_dict)
     with pytest.raises(
         ValueError,
@@ -808,7 +827,7 @@ def test_dataset_valid_state(tmpdir):
     ):
         dataset._validate_state_dict()
 
-    state_dict["0"]["input_dir_path"] = "toto"
+    state_dict["input_dir_path"] = "toto"
     dataset.load_state_dict(state_dict)
     with pytest.raises(
         ValueError,
@@ -816,7 +835,15 @@ def test_dataset_valid_state(tmpdir):
     ):
         dataset._validate_state_dict()
 
-    state_dict["0"]["num_workers"] = "8"
+    state_dict["input_dir_path"] = "/teamspace/datasets/coco"
+    dataset.load_state_dict(state_dict)
+    with pytest.raises(
+        ValueError,
+        match=f"The provided `input_dir` path state doesn't match the current one. Found `{cache_dir}` instead of ",  # noqa E501
+    ):
+        dataset._validate_state_dict()
+
+    state_dict["num_workers"] = "8"
     dataset.load_state_dict(state_dict)
     with pytest.raises(
         ValueError,
@@ -824,7 +851,7 @@ def test_dataset_valid_state(tmpdir):
     ):
         dataset._validate_state_dict()
 
-    state_dict["0"]["shuffle"] = True
+    state_dict["shuffle"] = True
     dataset.load_state_dict(state_dict)
     with pytest.raises(
         ValueError,
@@ -857,3 +884,28 @@ def test_replay_chunks_sampling():
     assert _replay_chunks_sampling(workers_intervals, {0: 16, 1: 11}) == ({0: 3, 1: 2}, {0: 1, 1: 1})
     assert _replay_chunks_sampling(workers_intervals, {0: 14, 1: 13}) == ({0: 2, 1: 2}, {0: 4, 1: 3})
     assert _replay_chunks_sampling(workers_intervals, {0: 15, 1: 12}) == ({0: 3, 1: 2}, {0: 0, 1: 2})
+
+
+def test_dataset_distributed_drop_last(tmpdir, monkeypatch):
+    class _DistributedEnvMock:
+        def detect(cls):
+            return _DistributedEnv(2, 0, 1)
+
+    logger_mock = mock.MagicMock()
+
+    monkeypatch.setattr(dataset_module, "_DistributedEnv", _DistributedEnvMock())
+    monkeypatch.setattr(dataset_module, "logger", logger_mock)
+
+    dataset = StreamingDataset(str(tmpdir), drop_last=None)
+    assert dataset.drop_last
+
+    dataset = StreamingDataset(str(tmpdir), drop_last=False)
+    assert not dataset.drop_last
+
+    warn_msg = logger_mock.warn._mock_mock_calls[0].args[0]
+    expected_warn_msg = (
+        "You're operating within a distributed environment and have disabled the `drop_last` option."
+        " Please note that this configuration may lead to training interruptions"
+        " if your system depends on distributed collectives."
+    )
+    assert expected_warn_msg == warn_msg
