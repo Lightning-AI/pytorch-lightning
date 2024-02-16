@@ -48,6 +48,9 @@ class HookedDataModule(BoringDataModule):
             update_wrapper(partial_h, attr)
             setattr(self, h, partial_h)
 
+    # override so that it gets called
+    def prepare_data(self): ...
+
 
 @pytest.mark.parametrize("max_steps", [1, 2, 3])
 def test_on_before_zero_grad_called(tmpdir, max_steps):
@@ -312,30 +315,28 @@ class HookedModel(BoringModel):
         using_deepspeed = kwargs.get("strategy") == "deepspeed"
         out = []
         for i in range(batches):
-            out.extend(
-                [
-                    {"name": "on_before_batch_transfer", "args": (ANY, 0)},
-                    {"name": "transfer_batch_to_device", "args": (ANY, device, 0)},
-                    {"name": "on_after_batch_transfer", "args": (ANY, 0)},
-                    {"name": "Callback.on_train_batch_start", "args": (trainer, model, ANY, i)},
-                    {"name": "on_train_batch_start", "args": (ANY, i)},
-                    {"name": "forward", "args": (ANY,)},
-                    {"name": "Callback.on_before_backward", "args": (trainer, model, ANY)},
-                    {"name": "on_before_backward", "args": (ANY,)},
-                    # DeepSpeed handles backward internally
-                    *([{"name": "backward", "args": (ANY,)}] if not using_deepspeed else []),
-                    {"name": "Callback.on_after_backward", "args": (trainer, model)},
-                    {"name": "on_after_backward"},
-                    # `manual_backward` calls the previous 3
-                    {"name": "manual_backward", "args": (ANY,)},
-                    {"name": "closure"},
-                    {"name": "Callback.on_before_optimizer_step", "args": (trainer, model, ANY)},
-                    {"name": "on_before_optimizer_step", "args": (ANY,)},
-                    {"name": "training_step", "args": (ANY, i)},
-                    {"name": "Callback.on_train_batch_end", "args": (trainer, model, {"loss": ANY}, ANY, i)},
-                    {"name": "on_train_batch_end", "args": ({"loss": ANY}, ANY, i)},
-                ]
-            )
+            out.extend([
+                {"name": "on_before_batch_transfer", "args": (ANY, 0)},
+                {"name": "transfer_batch_to_device", "args": (ANY, device, 0)},
+                {"name": "on_after_batch_transfer", "args": (ANY, 0)},
+                {"name": "Callback.on_train_batch_start", "args": (trainer, model, ANY, i)},
+                {"name": "on_train_batch_start", "args": (ANY, i)},
+                {"name": "forward", "args": (ANY,)},
+                {"name": "Callback.on_before_backward", "args": (trainer, model, ANY)},
+                {"name": "on_before_backward", "args": (ANY,)},
+                # DeepSpeed handles backward internally
+                *([{"name": "backward", "args": (ANY,)}] if not using_deepspeed else []),
+                {"name": "Callback.on_after_backward", "args": (trainer, model)},
+                {"name": "on_after_backward"},
+                # `manual_backward` calls the previous 3
+                {"name": "manual_backward", "args": (ANY,)},
+                {"name": "closure"},
+                {"name": "Callback.on_before_optimizer_step", "args": (trainer, model, ANY)},
+                {"name": "on_before_optimizer_step", "args": (ANY,)},
+                {"name": "training_step", "args": (ANY, i)},
+                {"name": "Callback.on_train_batch_end", "args": (trainer, model, {"loss": ANY}, ANY, i)},
+                {"name": "on_train_batch_end", "args": ({"loss": ANY}, ANY, i)},
+            ])
         return out
 
     @staticmethod
@@ -353,55 +354,50 @@ class HookedModel(BoringModel):
         out = []
         outputs = {key: ANY}
         for i in range(batches):
-            out.extend(
-                [
-                    {"name": "on_before_batch_transfer", "args": (ANY, 0)},
-                    {"name": "transfer_batch_to_device", "args": (ANY, device, 0)},
-                    {"name": "on_after_batch_transfer", "args": (ANY, 0)},
-                    {"name": f"Callback.on_{fn}_batch_start", "args": (trainer, model, ANY, i)},
-                    {"name": f"on_{fn}_batch_start", "args": (ANY, i)},
-                    {"name": "forward", "args": (ANY,)},
-                    {"name": f"{fn}_step", "args": (ANY, i)},
-                    {"name": f"Callback.on_{fn}_batch_end", "args": (trainer, model, outputs, ANY, i)},
-                    {"name": f"on_{fn}_batch_end", "args": (outputs, ANY, i)},
-                ]
-            )
+            out.extend([
+                {"name": "on_before_batch_transfer", "args": (ANY, 0)},
+                {"name": "transfer_batch_to_device", "args": (ANY, device, 0)},
+                {"name": "on_after_batch_transfer", "args": (ANY, 0)},
+                {"name": f"Callback.on_{fn}_batch_start", "args": (trainer, model, ANY, i)},
+                {"name": f"on_{fn}_batch_start", "args": (ANY, i)},
+                {"name": "forward", "args": (ANY,)},
+                {"name": f"{fn}_step", "args": (ANY, i)},
+                {"name": f"Callback.on_{fn}_batch_end", "args": (trainer, model, outputs, ANY, i)},
+                {"name": f"on_{fn}_batch_end", "args": (outputs, ANY, i)},
+            ])
         return out
 
     @staticmethod
     def _predict_batch(trainer, model, batches, device):
         out = []
         for i in range(batches):
-            out.extend(
-                [
-                    {"name": "on_before_batch_transfer", "args": (ANY, 0)},
-                    {"name": "transfer_batch_to_device", "args": (ANY, device, 0)},
-                    {"name": "on_after_batch_transfer", "args": (ANY, 0)},
-                    {"name": "Callback.on_predict_batch_start", "args": (trainer, model, ANY, i)},
-                    {"name": "on_predict_batch_start", "args": (ANY, i)},
-                    {"name": "forward", "args": (ANY,)},
-                    {"name": "predict_step", "args": (ANY, i)},
-                    {"name": "Callback.on_predict_batch_end", "args": (trainer, model, ANY, ANY, i)},
-                    {"name": "on_predict_batch_end", "args": (ANY, ANY, i)},
-                ]
-            )
+            out.extend([
+                {"name": "on_before_batch_transfer", "args": (ANY, 0)},
+                {"name": "transfer_batch_to_device", "args": (ANY, device, 0)},
+                {"name": "on_after_batch_transfer", "args": (ANY, 0)},
+                {"name": "Callback.on_predict_batch_start", "args": (trainer, model, ANY, i)},
+                {"name": "on_predict_batch_start", "args": (ANY, i)},
+                {"name": "forward", "args": (ANY,)},
+                {"name": "predict_step", "args": (ANY, i)},
+                {"name": "Callback.on_predict_batch_end", "args": (trainer, model, ANY, ANY, i)},
+                {"name": "on_predict_batch_end", "args": (ANY, ANY, i)},
+            ])
         return out
 
     # override so that it gets called
-    def configure_model(self):
-        ...
+    def configure_model(self): ...
 
     # override so that it gets called
-    def on_validation_model_train(self):
-        ...
+    def on_validation_model_train(self): ...
 
     # override so that it gets called
-    def on_test_model_train(self):
-        ...
+    def on_test_model_train(self): ...
 
     # override so that it gets called
-    def on_predict_model_train(self):
-        ...
+    def on_predict_model_train(self): ...
+
+    # override so that it gets called
+    def prepare_data(self): ...
 
 
 @pytest.mark.parametrize(
@@ -473,10 +469,10 @@ def test_trainer_model_hook_system_fit(override_on_validation_model_train, autom
     expected = [
         {"name": "configure_callbacks"},
         {"name": "prepare_data"},
-        # DeepSpeed needs the batch size to figure out throughput logging
-        *([{"name": "train_dataloader"}] if using_deepspeed else []),
         {"name": "Callback.setup", "args": (trainer, model), "kwargs": {"stage": "fit"}},
         {"name": "setup", "kwargs": {"stage": "fit"}},
+        # DeepSpeed needs the batch size to figure out throughput logging
+        *([{"name": "train_dataloader"}] if using_deepspeed else []),
         {"name": "configure_model"},
         {"name": "configure_optimizers"},
         {"name": "Callback.on_fit_start", "args": (trainer, model)},
@@ -572,10 +568,10 @@ def test_trainer_model_hook_system_fit_no_val_and_resume_max_epochs(tmpdir):
         {"name": "prepare_data"},
         {"name": "Callback.setup", "args": (trainer, model), "kwargs": {"stage": "fit"}},
         {"name": "setup", "kwargs": {"stage": "fit"}},
+        {"name": "configure_model"},
         {"name": "on_load_checkpoint", "args": (loaded_ckpt,)},
         {"name": "Callback.on_load_checkpoint", "args": (trainer, model, loaded_ckpt)},
         {"name": "Callback.load_state_dict", "args": ({"foo": True},)},
-        {"name": "configure_model"},
         {"name": "configure_optimizers"},
         {"name": "Callback.on_fit_start", "args": (trainer, model)},
         {"name": "on_fit_start"},
@@ -650,10 +646,10 @@ def test_trainer_model_hook_system_fit_no_val_and_resume_max_steps(tmpdir):
         {"name": "prepare_data"},
         {"name": "Callback.setup", "args": (trainer, model), "kwargs": {"stage": "fit"}},
         {"name": "setup", "kwargs": {"stage": "fit"}},
+        {"name": "configure_model"},
         {"name": "on_load_checkpoint", "args": (loaded_ckpt,)},
         {"name": "Callback.on_load_checkpoint", "args": (trainer, model, loaded_ckpt)},
         {"name": "Callback.load_state_dict", "args": ({"foo": True},)},
-        {"name": "configure_model"},
         {"name": "configure_optimizers"},
         {"name": "Callback.on_fit_start", "args": (trainer, model)},
         {"name": "on_fit_start"},
@@ -873,13 +869,22 @@ def test_trainer_datamodule_hook_system(tmpdir):
     assert called == expected
 
 
-def test_load_from_checkpoint_hook_calls(tmpdir):
+@pytest.mark.parametrize("override_configure_model", [True, False])
+def test_load_from_checkpoint_hook_calls(override_configure_model, tmpdir):
     class CustomHookedDataModule(HookedDataModule):
         def state_dict(self):
             return {"foo": "bar"}
 
+    class CustomHookedModel(HookedModel):
+        pass
+
+    if not override_configure_model:
+        CustomHookedModel.configure_model = None
+
     lm_called, ldm_called = [], []
-    model = HookedModel(lm_called)
+    model = CustomHookedModel(lm_called)
+    assert is_overridden("configure_model", model) == override_configure_model
+
     datamodule = CustomHookedDataModule(ldm_called)
     trainer = Trainer()
     trainer.strategy.connect(model)
@@ -904,9 +909,12 @@ def test_load_from_checkpoint_hook_calls(tmpdir):
     assert ldm_called == [{"name": "state_dict"}]
 
     lm_called, ldm_called = [], []
-    _ = HookedModel.load_from_checkpoint(ckpt_path, called=lm_called)
+    _ = CustomHookedModel.load_from_checkpoint(ckpt_path, called=lm_called)
     _ = CustomHookedDataModule.load_from_checkpoint(ckpt_path, called=ldm_called)
-    assert lm_called == [{"name": "on_load_checkpoint", "args": ({**saved_ckpt, "hyper_parameters": ANY},)}]
+
+    expected_lm_called = [{"name": "configure_model"}] if override_configure_model else []
+    expected_lm_called += [{"name": "on_load_checkpoint", "args": ({**saved_ckpt, "hyper_parameters": ANY},)}]
+    assert lm_called == expected_lm_called
     assert ldm_called == [{"name": "load_state_dict", "args": (saved_ckpt[datamodule_state_dict_key],)}]
 
 

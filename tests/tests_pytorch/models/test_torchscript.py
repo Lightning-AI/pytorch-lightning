@@ -48,6 +48,7 @@ def test_torchscript_input_output(modelclass):
 @pytest.mark.parametrize("modelclass", [BoringModel, ParityModuleRNN, BasicGAN])
 def test_torchscript_example_input_output_trace(modelclass):
     """Test that traced LightningModule forward works with example_input_array."""
+    torch.manual_seed(1)
     model = modelclass()
 
     if isinstance(model, BoringModel):
@@ -138,8 +139,7 @@ def test_torchscript_save_load_custom_filesystem(tmpdir, modelclass):
     _DUMMY_PRFEIX = "dummy"
     _PREFIX_SEPARATOR = "://"
 
-    class DummyFileSystem(LocalFileSystem):
-        ...
+    class DummyFileSystem(LocalFileSystem): ...
 
     fsspec.register_implementation(_DUMMY_PRFEIX, DummyFileSystem, clobber=True)
 

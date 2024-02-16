@@ -18,6 +18,8 @@ lightning.fabric.utilities
 
 .. autofunction:: lightning.fabric.utilities.throughput.measure_flops
 
+.. autoclass:: lightning.fabric.utilities.data.AttributeDict
+
 .. autoclass:: lightning.fabric.utilities.throughput.ThroughputMonitor
 
 .. autoclass:: lightning.fabric.utilities.throughput.Throughput

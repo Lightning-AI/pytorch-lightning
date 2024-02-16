@@ -13,7 +13,6 @@
 # limitations under the License.
 """Abstract base class used to build new loggers."""
 
-
 import functools
 import operator
 from abc import ABC

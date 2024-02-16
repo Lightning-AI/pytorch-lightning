@@ -18,6 +18,7 @@ from typing import TYPE_CHECKING, Any, Callable, Dict, List, Literal, Optional, 
 
 import torch
 import torch.distributed
+from lightning_utilities.core.rank_zero import rank_zero_only as utils_rank_zero_only
 from torch import Tensor
 from torch.nn import Module
 from torch.nn.parallel.distributed import DistributedDataParallel
@@ -149,25 +150,21 @@ class DDPStrategy(ParallelStrategy):
 
     @override
     def setup_environment(self) -> None:
-        self.setup_distributed()
         super().setup_environment()
+        self.setup_distributed()
 
     @override
     def setup(self, trainer: "pl.Trainer") -> None:
         assert self.accelerator is not None
         self.accelerator.setup(trainer)
 
-        # move the model to the correct device
-        self.model_to_device()
-
-        # skip wrapping the model if we are not fitting as no gradients need to be exchanged
         trainer_fn = trainer.state.fn
-
+        assert self.model is not None
         if trainer_fn == TrainerFn.FITTING and self._layer_sync:
-            assert self.model is not None
             self.model = self._layer_sync.apply(self.model)
 
-        self.setup_precision_plugin()
+        self.precision_plugin.convert_module(self.model)
+        self.model_to_device()
 
         if trainer_fn == TrainerFn.FITTING:
             # do not wrap with DDP if not fitting as there's no gradients to reduce
@@ -175,16 +172,17 @@ class DDPStrategy(ParallelStrategy):
 
             # set up optimizers after the wrapped module has been moved to the device
             self.setup_optimizers(trainer)
+        else:
+            # we need to manually synchronize the module's states since we aren't using the DDP wrapper
+            _sync_module_states(self.model)
+        self.setup_precision_plugin()
+        if trainer_fn == TrainerFn.FITTING:
             _optimizers_to_device(self.optimizers, self.root_device)
 
             import torch.distributed.algorithms.ddp_comm_hooks.post_localSGD_hook as post_localSGD
 
             if isinstance(self._ddp_comm_state, post_localSGD.PostLocalSGDState):
                 self._enable_model_averaging()
-        else:
-            # we need to manually synchronize the module's states since we aren't using the DDP wrapper
-            assert self.model is not None
-            _sync_module_states(self.model)
 
     @override
     def _setup_model(self, model: Module) -> DistributedDataParallel:
@@ -213,7 +211,7 @@ class DDPStrategy(ParallelStrategy):
             self.cluster_environment.set_world_size(self.num_nodes * self.num_processes)
         # `LightningEnvironment.set_global_rank` will do this too, but we cannot rely on that implementation detail
         # additionally, for some implementations, the setter is a no-op, so it's safer to access the getter
-        rank_zero_only.rank = self.global_rank
+        rank_zero_only.rank = utils_rank_zero_only.rank = self.global_rank
 
     def _register_ddp_hooks(self) -> None:
         log.debug(f"{self.__class__.__name__}: registering ddp hooks")

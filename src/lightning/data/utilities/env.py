@@ -13,9 +13,10 @@ class _DistributedEnv:
 
     """
 
-    def __init__(self, world_size: int, global_rank: int):
+    def __init__(self, world_size: int, global_rank: int, num_nodes: int):
         self.world_size = world_size
         self.global_rank = global_rank
+        self.num_nodes = num_nodes
 
     @classmethod
     def detect(cls) -> "_DistributedEnv":
@@ -30,14 +31,19 @@ class _DistributedEnv:
         if torch.distributed.is_available() and torch.distributed.is_initialized():
             world_size = torch.distributed.get_world_size()
             global_rank = torch.distributed.get_rank()
+            # Note: On multi node CPU, the number of nodes won't be correct.
+            num_nodes = world_size // torch.cuda.device_count() if torch.cuda.is_available() else world_size
+            if torch.cuda.is_available() and world_size % torch.cuda.device_count() != 0:
+                raise RuntimeError("The world size should be divisible by the number of GPUs.")
         else:
             world_size = None
             global_rank = 0
+            num_nodes = 1
 
         if world_size is None or world_size == -1:
             world_size = 1
 
-        return cls(world_size=world_size, global_rank=global_rank)
+        return cls(world_size=world_size, global_rank=global_rank, num_nodes=num_nodes)
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(world_size: {self.world_size}, global_rank: {self.global_rank}\n)"
@@ -113,7 +119,8 @@ class Environment:
                 the current training process
 
         """
-        dist_env = _DistributedEnv(dist_world_size, global_rank)
+        num_nodes = (dist_world_size // torch.cuda.device_count()) if torch.cuda.is_available() else 1
+        dist_env = _DistributedEnv(dist_world_size, global_rank, num_nodes)
         worker_env = _WorkerEnv(num_workers, current_worker_rank)
         return cls(dist_env=dist_env, worker_env=worker_env)
 
@@ -154,3 +161,7 @@ class Environment:
 
     def __str__(self) -> str:
         return repr(self)
+
+
+def _is_in_dataloader_worker() -> bool:
+    return torch_get_worker_info() is not None

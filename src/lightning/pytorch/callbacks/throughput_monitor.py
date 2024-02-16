@@ -15,6 +15,7 @@ import time
 from typing import TYPE_CHECKING, Any, Callable, Dict, Optional, Union
 
 import torch
+from typing_extensions import override
 
 from lightning.fabric.plugins import Precision as FabricPrecision
 from lightning.fabric.utilities.throughput import Throughput, get_available_flops
@@ -49,7 +50,7 @@ class ThroughputMonitor(Callback):
                     model = MyModel()
 
                     def sample_forward():
-                        batch = torch.randn(...)
+                        batch = torch.randn(..., device="meta")
                         return model(batch)
 
                     self.flops_per_batch = measure_flops(model, sample_forward, loss_fn=torch.Tensor.sum)
@@ -87,25 +88,15 @@ class ThroughputMonitor(Callback):
         self._t0s: Dict[RunningStage, float] = {}
         self._lengths: Dict[RunningStage, int] = {}
 
+    @override
     def setup(self, trainer: "Trainer", pl_module: "LightningModule", stage: str) -> None:
         dtype = _plugin_to_compute_dtype(trainer.precision_plugin)
         self.available_flops = get_available_flops(trainer.strategy.root_device, dtype)
 
-        if stage == TrainerFn.FITTING:
-            if trainer.accumulate_grad_batches % trainer.log_every_n_steps != 0:
-                raise ValueError(
-                    "The `ThroughputMonitor` only logs when gradient accumulation is finished. You set"
-                    f" `Trainer(accumulate_grad_batches={trainer.accumulate_grad_batches},"
-                    f" log_every_n_steps={trainer.log_every_n_steps})` but these are not divisible and thus will not"
-                    " log anything."
-                )
-
-            if trainer.enable_validation:
-                # `fit` includes validation inside
-                throughput = Throughput(
-                    available_flops=self.available_flops, world_size=trainer.world_size, **self.kwargs
-                )
-                self._throughputs[RunningStage.VALIDATING] = throughput
+        if stage == TrainerFn.FITTING and trainer.enable_validation:
+            # `fit` includes validation inside
+            throughput = Throughput(available_flops=self.available_flops, world_size=trainer.world_size, **self.kwargs)
+            self._throughputs[RunningStage.VALIDATING] = throughput
 
         throughput = Throughput(available_flops=self.available_flops, world_size=trainer.world_size, **self.kwargs)
         stage = trainer.state.stage
@@ -163,10 +154,12 @@ class ThroughputMonitor(Callback):
         metrics = {f"{stage.value}{throughput.separator}{k}": v for k, v in metrics.items()}
         trainer._logger_connector.log_metrics(metrics, step=iter_num)  # type: ignore[arg-type]
 
+    @override
     @rank_zero_only
     def on_train_start(self, trainer: "Trainer", *_: Any) -> None:
         self._start(trainer)
 
+    @override
     @rank_zero_only
     def on_train_batch_end(
         self, trainer: "Trainer", pl_module: "LightningModule", outputs: Any, batch: Any, *_: Any
@@ -177,12 +170,14 @@ class ThroughputMonitor(Callback):
         if not trainer.fit_loop._should_accumulate():
             self._compute(trainer)
 
+    @override
     @rank_zero_only
     def on_validation_start(self, trainer: "Trainer", *_: Any) -> None:
         if trainer.sanity_checking:
             return
         self._start(trainer)
 
+    @override
     @rank_zero_only
     def on_validation_batch_end(
         self, trainer: "Trainer", pl_module: "LightningModule", outputs: Any, batch: Any, *_: Any, **__: Any
@@ -193,20 +188,23 @@ class ThroughputMonitor(Callback):
         self._update(trainer, pl_module, batch, iter_num)
         self._compute(trainer, iter_num)
 
+    @override
+    @rank_zero_only
     def on_validation_end(self, trainer: "Trainer", *_: Any) -> None:
         if trainer.sanity_checking or trainer.state.fn != TrainerFn.FITTING:
             return
         # add the validation time to the training time before continuing to avoid sinking the training throughput
-        time_between_train_and_val = (
-            self._t0s[RunningStage.VALIDATING] - self._throughputs[RunningStage.TRAINING]._time[-1]
-        )
-        val_time = self._throughputs[RunningStage.VALIDATING]._time[-1]
+        training_finished = self._t0s[RunningStage.TRAINING] + sum(self._throughputs[RunningStage.TRAINING]._time)
+        time_between_train_and_val = self._t0s[RunningStage.VALIDATING] - training_finished
+        val_time = sum(self._throughputs[RunningStage.VALIDATING]._time)
         self._t0s[RunningStage.TRAINING] += time_between_train_and_val + val_time
 
+    @override
     @rank_zero_only
     def on_test_start(self, trainer: "Trainer", *_: Any) -> None:
         self._start(trainer)
 
+    @override
     @rank_zero_only
     def on_test_batch_end(
         self, trainer: "Trainer", pl_module: "LightningModule", outputs: Any, batch: Any, *_: Any, **__: Any
@@ -215,10 +213,12 @@ class ThroughputMonitor(Callback):
         self._update(trainer, pl_module, batch, iter_num)
         self._compute(trainer, iter_num)
 
+    @override
     @rank_zero_only
     def on_predict_start(self, trainer: "Trainer", *_: Any) -> None:
         self._start(trainer)
 
+    @override
     @rank_zero_only
     def on_predict_batch_end(
         self, trainer: "Trainer", pl_module: "LightningModule", outputs: Any, batch: Any, *_: Any, **__: Any

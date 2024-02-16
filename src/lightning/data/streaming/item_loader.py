@@ -19,7 +19,7 @@ from typing import Any, Dict, List, Optional, Tuple
 import numpy as np
 import torch
 
-from lightning.data.streaming.constants import (
+from lightning.data.constants import (
     _TORCH_DTYPES_MAPPING,
     _TORCH_GREATER_EQUAL_2_1_0,
 )
@@ -37,14 +37,27 @@ class BaseItemLoader(ABC):
         self._chunks = chunks
         self._serializers = serializers
 
+    def state_dict(self) -> Dict:
+        return {}
+
     @abstractmethod
     def generate_intervals(self) -> List[Tuple[int, int]]:
         """Returns a list of tuple describing the indexes intervals of the chunks."""
         pass
 
     @abstractmethod
+    def pre_load_chunk(self, chunk_index: int, chunk_filepath: str) -> None:
+        """Logic to load the chunk in background to gain some time."""
+        pass
+
+    @abstractmethod
     def load_item_from_chunk(self, index: int, chunk_index: int, chunk_filepath: str, begin: int) -> Any:
         """Returns an item loaded from a chunk."""
+        pass
+
+    @abstractmethod
+    def delete(self, chunk_index: int, chunk_filepath: str) -> None:
+        """Delete a chunk from the local filesystem."""
         pass
 
 
@@ -64,6 +77,9 @@ class PyTreeLoader(BaseItemLoader):
             begin += chunk["chunk_size"]
         return intervals
 
+    def pre_load_chunk(self, chunk_index: int, chunk_filepath: str) -> None:
+        pass
+
     def load_item_from_chunk(self, index: int, chunk_index: int, chunk_filepath: str, begin: int) -> bytes:
         offset = (1 + (index - begin) if index >= begin else index + 1) * 4
 
@@ -71,11 +87,12 @@ class PyTreeLoader(BaseItemLoader):
             del self._chunk_filepaths[chunk_filepath]
 
         if chunk_filepath not in self._chunk_filepaths:
-            while not os.path.exists(chunk_filepath):
-                sleep(0.01)
+            exists = os.path.exists(chunk_filepath) and os.stat(chunk_filepath).st_size > 0
 
-            # Wait to avoid any corruption when the file appears
-            sleep(0.01)
+            while not exists:
+                sleep(0.1)
+                exists = os.path.exists(chunk_filepath) and os.stat(chunk_filepath).st_size > 0
+
             self._chunk_filepaths[chunk_filepath] = True
 
         with open(chunk_filepath, "rb", 0) as fp:
@@ -98,6 +115,10 @@ class PyTreeLoader(BaseItemLoader):
             idx += size
         return tree_unflatten(data, self._config["data_spec"])
 
+    def delete(self, chunk_index: int, chunk_filepath: str) -> None:
+        if os.path.exists(chunk_filepath):
+            os.remove(chunk_filepath)
+
 
 class TokensLoader(BaseItemLoader):
     def __init__(self, block_size: int):
@@ -114,6 +135,11 @@ class TokensLoader(BaseItemLoader):
         self._buffers: Dict[int, bytes] = {}
         self._dtype: Optional[torch.dtype] = None
         self._chunk_filepaths: Dict[str, bool] = {}
+
+    def state_dict(self) -> Dict:
+        return {
+            "block_size": self._block_size,
+        }
 
     def setup(self, config: Dict, chunks: List, serializers: Dict[str, Serializer]) -> None:
         super().setup(config, chunks, serializers)
@@ -133,32 +159,51 @@ class TokensLoader(BaseItemLoader):
             begin += num_blocks
         return intervals
 
+    def _load_chunk(self, chunk_index: int, chunk_filepath: str) -> None:
+        if chunk_index in self._mmaps:
+            return
+        chunk = self._chunks[chunk_index]
+
+        # Skip the header
+        # The number of items + the number of offsets (number of items in the chunk + 1)
+        # multiplied by the header encoding dtype (np.uint32)
+        offset = (1 + chunk["chunk_size"] + 1) * 4
+        mmap = np.memmap(chunk_filepath, mode="r", order="C", offset=offset)
+        self._mmaps[chunk_index] = mmap
+        self._buffers[chunk_index] = memoryview(mmap)  # type: ignore
+
+    def pre_load_chunk(self, chunk_index: int, chunk_filepath: str) -> None:
+        # This is called within the prepare chunks thread, so we overlap data loading with data reading.
+        if chunk_filepath not in self._chunk_filepaths:
+            self._chunk_filepaths[chunk_filepath] = True
+
+        if os.path.exists(chunk_filepath) and os.stat(chunk_filepath).st_size > 0:
+            self._load_chunk(chunk_index, chunk_filepath)
+
     def load_item_from_chunk(self, index: int, chunk_index: int, chunk_filepath: str, begin: int) -> torch.Tensor:
         if chunk_filepath in self._chunk_filepaths and not os.path.isfile(chunk_filepath):
             del self._chunk_filepaths[chunk_filepath]
 
         if chunk_filepath not in self._chunk_filepaths:
-            while not os.path.exists(chunk_filepath):
-                sleep(0.01)
+            exists = os.path.exists(chunk_filepath) and os.stat(chunk_filepath).st_size > 0
 
-            # Wait to avoid any corruption when the file appears
-            sleep(0.01)
+            while not exists:
+                sleep(0.1)
+                exists = os.path.exists(chunk_filepath) and os.stat(chunk_filepath).st_size > 0
+
             self._chunk_filepaths[chunk_filepath] = True
 
-        if chunk_index not in self._mmaps:
-            # TODO: Add deletion and memmap close
-            chunk = self._chunks[chunk_index]
-
-            # Skip the header
-            # The number of items + the number of offsets (number of items in the chunk + 1)
-            # multiplied by the header encoding dtype (np.uint32)
-            offset = (1 + chunk["chunk_size"] + 1) * 4
-            mmap = np.memmap(chunk_filepath, mode="r", order="C", offset=offset)
-            self._mmaps[chunk_index] = mmap
-            self._buffers[chunk_index] = memoryview(mmap)  # type: ignore
-
+        self._load_chunk(chunk_index, chunk_filepath)
         assert self._dtype
 
         buffer: bytes = self._buffers[chunk_index]
         offset = self._dtype.itemsize * (index - begin) * self._block_size
         return torch.frombuffer(buffer, dtype=self._dtype, count=self._block_size, offset=offset)
+
+    def delete(self, chunk_index: int, chunk_filepath: str) -> None:
+        if os.path.exists(chunk_filepath):
+            if chunk_index in self._buffers:
+                del self._buffers[chunk_index]
+            if chunk_index in self._mmaps:
+                del self._mmaps[chunk_index]
+            os.remove(chunk_filepath)

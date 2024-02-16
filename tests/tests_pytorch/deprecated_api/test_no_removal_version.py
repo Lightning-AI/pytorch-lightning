@@ -9,13 +9,10 @@ from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.plugins.precision.double import LightningDoublePrecisionModule
 from lightning.pytorch.strategies import DDPStrategy, FSDPStrategy
 
-from tests_pytorch.helpers.runif import RunIf
-
 
 def test_configure_sharded_model():
     class MyModel(BoringModel):
-        def configure_sharded_model(self) -> None:
-            ...
+        def configure_sharded_model(self) -> None: ...
 
     model = MyModel()
     trainer = Trainer(devices=1, accelerator="cpu", fast_dev_run=1)
@@ -23,8 +20,7 @@ def test_configure_sharded_model():
         trainer.fit(model)
 
     class MyModelBoth(MyModel):
-        def configure_model(self):
-            ...
+        def configure_model(self): ...
 
     model = MyModelBoth()
     with pytest.raises(
@@ -39,7 +35,6 @@ def test_ddp_is_distributed():
         _ = strategy.is_distributed
 
 
-@RunIf(min_torch="1.13")
 def test_fsdp_activation_checkpointing(monkeypatch):
     with pytest.raises(ValueError, match="cannot set both `activation_checkpointing"):
         FSDPStrategy(activation_checkpointing=torch.nn.Linear, activation_checkpointing_policy=lambda *_: True)
@@ -125,7 +120,7 @@ def test_transformer_engine_precision_plugin(monkeypatch):
     from lightning.pytorch.plugins.precision.transformer_engine import TransformerEnginePrecisionPlugin
 
     with pytest.deprecated_call(match=r"The `TransformerEnginePrecisionPlugin` is deprecated"):
-        TransformerEnginePrecisionPlugin()
+        TransformerEnginePrecisionPlugin(weights_dtype=torch.float32)
 
 
 def test_xla_precision_plugin(xla_available):

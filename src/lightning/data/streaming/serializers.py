@@ -11,6 +11,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import io
 import os
 import pickle
 import tempfile
@@ -22,7 +23,7 @@ import numpy as np
 import torch
 from lightning_utilities.core.imports import RequirementCache
 
-from lightning.data.streaming.constants import _TORCH_DTYPES_MAPPING
+from lightning.data.constants import _NUMPY_DTYPES_MAPPING, _TORCH_DTYPES_MAPPING
 
 _PIL_AVAILABLE = RequirementCache("PIL")
 _TORCH_VISION_AVAILABLE = RequirementCache("torchvision")
@@ -30,10 +31,14 @@ _AV_AVAILABLE = RequirementCache("av")
 
 if _PIL_AVAILABLE:
     from PIL import Image
+    from PIL.GifImagePlugin import GifImageFile
     from PIL.JpegImagePlugin import JpegImageFile
+    from PIL.PngImagePlugin import PngImageFile
+    from PIL.WebPImagePlugin import WebPImageFile
 else:
     Image = None
     JpegImageFile = None
+    PngImageFile = None
 
 if _TORCH_VISION_AVAILABLE:
     from torchvision.io import decode_jpeg
@@ -84,20 +89,7 @@ class PILSerializer(Serializer):
         return Image.frombytes(mode, size, raw)  # pyright: ignore
 
     def can_serialize(self, item: Any) -> bool:
-        return isinstance(item, Image.Image) and not isinstance(item, JpegImageFile)
-
-
-class IntSerializer(Serializer):
-    """The IntSerializer serialize and deserialize integer to and from bytes."""
-
-    def serialize(self, item: int) -> Tuple[bytes, Optional[str]]:
-        return str(item).encode("utf-8"), None
-
-    def deserialize(self, data: bytes) -> int:
-        return int(data.decode("utf-8"))
-
-    def can_serialize(self, item: Any) -> bool:
-        return isinstance(item, int)
+        return bool(_PIL_AVAILABLE) and isinstance(item, Image.Image) and not isinstance(item, JpegImageFile)
 
 
 class JPEGSerializer(Serializer):
@@ -109,9 +101,23 @@ class JPEGSerializer(Serializer):
                 raise ValueError(
                     "The JPEG Image's filename isn't defined. HINT: Open the image in your Dataset __getitem__ method."
                 )
-            with open(item.filename, "rb") as f:
-                return f.read(), None
-        raise TypeError(f"The provided itemect should be of type {JpegImageFile}. Found {item}.")
+            if item.filename and os.path.isfile(item.filename):
+                # read the content of the file directly
+                with open(item.filename, "rb") as f:
+                    return f.read(), None
+            else:
+                item_bytes = io.BytesIO()
+                item.save(item_bytes, format="JPEG")
+                item_bytes = item_bytes.getvalue()
+                return item_bytes, None
+
+        if isinstance(item, (PngImageFile, WebPImageFile, GifImageFile, Image.Image)):
+            buff = io.BytesIO()
+            item.convert("RGB").save(buff, quality=100, format="JPEG")
+            buff.seek(0)
+            return buff.read(), None
+
+        raise TypeError(f"The provided item should be of type {JpegImageFile}. Found {item}.")
 
     def deserialize(self, data: bytes) -> Union[JpegImageFile, torch.Tensor]:
         if _TORCH_VISION_AVAILABLE:
@@ -128,7 +134,7 @@ class JPEGSerializer(Serializer):
         return img
 
     def can_serialize(self, item: Any) -> bool:
-        return isinstance(item, JpegImageFile)
+        return bool(_PIL_AVAILABLE) and isinstance(item, JpegImageFile)
 
 
 class BytesSerializer(Serializer):
@@ -149,10 +155,10 @@ class TensorSerializer(Serializer):
 
     def __init__(self) -> None:
         super().__init__()
-        self._dtype_to_indice = {v: k for k, v in _TORCH_DTYPES_MAPPING.items()}
+        self._dtype_to_indices = {v: k for k, v in _TORCH_DTYPES_MAPPING.items()}
 
     def serialize(self, item: torch.Tensor) -> Tuple[bytes, Optional[str]]:
-        dtype_indice = self._dtype_to_indice[item.dtype]
+        dtype_indice = self._dtype_to_indices[item.dtype]
         data = [np.uint32(dtype_indice).tobytes()]
         data.append(np.uint32(len(item.shape)).tobytes())
         for dim in item.shape:
@@ -182,14 +188,14 @@ class NoHeaderTensorSerializer(Serializer):
 
     def __init__(self) -> None:
         super().__init__()
-        self._dtype_to_indice = {v: k for k, v in _TORCH_DTYPES_MAPPING.items()}
+        self._dtype_to_indices = {v: k for k, v in _TORCH_DTYPES_MAPPING.items()}
         self._dtype: Optional[torch.dtype] = None
 
     def setup(self, data_format: str) -> None:
         self._dtype = _TORCH_DTYPES_MAPPING[int(data_format.split(":")[1])]
 
     def serialize(self, item: torch.Tensor) -> Tuple[bytes, Optional[str]]:
-        dtype_indice = self._dtype_to_indice[item.dtype]
+        dtype_indice = self._dtype_to_indices[item.dtype]
         return item.numpy().tobytes(order="C"), f"no_header_tensor:{dtype_indice}"
 
     def deserialize(self, data: bytes) -> torch.Tensor:
@@ -198,6 +204,65 @@ class NoHeaderTensorSerializer(Serializer):
 
     def can_serialize(self, item: torch.Tensor) -> bool:
         return isinstance(item, torch.Tensor) and type(item) == torch.Tensor and len(item.shape) == 1
+
+
+class NumpySerializer(Serializer):
+    """The NumpySerializer serialize and deserialize numpy to and from bytes."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self._dtype_to_indices = {v: k for k, v in _NUMPY_DTYPES_MAPPING.items()}
+
+    def serialize(self, item: np.ndarray) -> Tuple[bytes, Optional[str]]:
+        dtype_indice = self._dtype_to_indices[item.dtype]
+        data = [np.uint32(dtype_indice).tobytes()]
+        data.append(np.uint32(len(item.shape)).tobytes())
+        for dim in item.shape:
+            data.append(np.uint32(dim).tobytes())
+        data.append(item.tobytes(order="C"))
+        return b"".join(data), None
+
+    def deserialize(self, data: bytes) -> np.ndarray:
+        dtype_indice = np.frombuffer(data[0:4], np.uint32).item()
+        dtype = _NUMPY_DTYPES_MAPPING[dtype_indice]
+        shape_size = np.frombuffer(data[4:8], np.uint32).item()
+        shape = []
+        # deserialize the shape header
+        # Note: The start position of the shape value: 8 (dtype + shape length) + 4 * shape_idx
+        for shape_idx in range(shape_size):
+            shape.append(np.frombuffer(data[8 + 4 * shape_idx : 8 + 4 * (shape_idx + 1)], np.uint32).item())
+
+        # deserialize the numpy array bytes
+        tensor = np.frombuffer(data[8 + 4 * (shape_idx + 1) : len(data)], dtype=dtype)
+        if tensor.shape == shape:
+            return tensor
+        return np.reshape(tensor, shape)
+
+    def can_serialize(self, item: np.ndarray) -> bool:
+        return isinstance(item, np.ndarray) and type(item) == np.ndarray and len(item.shape) > 1
+
+
+class NoHeaderNumpySerializer(Serializer):
+    """The NoHeaderNumpySerializer serialize and deserialize numpy to and from bytes."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self._dtype_to_indices = {v: k for k, v in _NUMPY_DTYPES_MAPPING.items()}
+        self._dtype: Optional[np.dtype] = None
+
+    def setup(self, data_format: str) -> None:
+        self._dtype = _NUMPY_DTYPES_MAPPING[int(data_format.split(":")[1])]
+
+    def serialize(self, item: np.ndarray) -> Tuple[bytes, Optional[str]]:
+        dtype_indice: int = self._dtype_to_indices[item.dtype]
+        return item.tobytes(order="C"), f"no_header_numpy:{dtype_indice}"
+
+    def deserialize(self, data: bytes) -> np.ndarray:
+        assert self._dtype
+        return np.frombuffer(data, dtype=self._dtype)
+
+    def can_serialize(self, item: np.ndarray) -> bool:
+        return isinstance(item, np.ndarray) and type(item) == np.ndarray and len(item.shape) == 1
 
 
 class PickleSerializer(Serializer):
@@ -220,10 +285,10 @@ class FileSerializer(Serializer):
             return f.read(), file_extension.replace(".", "").lower()
 
     def deserialize(self, data: bytes) -> Any:
-        pass
+        return data
 
     def can_serialize(self, data: Any) -> bool:
-        return isinstance(data, str) and os.path.exists(data)
+        return isinstance(data, str) and os.path.isfile(data)
 
 
 class VideoSerializer(Serializer):
@@ -252,22 +317,66 @@ class VideoSerializer(Serializer):
             return torchvision.io.read_video(fname, pts_unit="sec")
 
     def can_serialize(self, data: Any) -> bool:
-        return isinstance(data, str) and os.path.exists(data) and any(data.endswith(ext) for ext in self._EXTENSIONS)
+        return isinstance(data, str) and os.path.isfile(data) and any(data.endswith(ext) for ext in self._EXTENSIONS)
 
 
-_SERIALIZERS = OrderedDict(
-    **{
-        "video": VideoSerializer(),
-        "file": FileSerializer(),
-        "pil": PILSerializer(),
-        "int": IntSerializer(),
-        "jpeg": JPEGSerializer(),
-        "bytes": BytesSerializer(),
-        "no_header_tensor": NoHeaderTensorSerializer(),
-        "tensor": TensorSerializer(),
-        "pickle": PickleSerializer(),
-    }
-)
+class StringSerializer(Serializer):
+    def serialize(self, obj: str) -> Tuple[bytes, Optional[str]]:
+        return obj.encode("utf-8"), None
+
+    def deserialize(self, data: bytes) -> str:
+        return data.decode("utf-8")
+
+    def can_serialize(self, data: str) -> bool:
+        return isinstance(data, str) and not os.path.isfile(data)
+
+
+class NumericSerializer:
+    """Store scalar."""
+
+    def __init__(self, dtype: type) -> None:
+        self.dtype = dtype
+        self.size = self.dtype().nbytes
+
+    def serialize(self, obj: Any) -> Tuple[bytes, Optional[str]]:
+        return self.dtype(obj).tobytes(), None
+
+    def deserialize(self, data: bytes) -> Any:
+        return np.frombuffer(data, self.dtype)[0]
+
+
+class IntegerSerializer(NumericSerializer, Serializer):
+    def __init__(self) -> None:
+        super().__init__(np.int64)
+
+    def can_serialize(self, data: int) -> bool:
+        return isinstance(data, int)
+
+
+class FloatSerializer(NumericSerializer, Serializer):
+    def __init__(self) -> None:
+        super().__init__(np.float64)
+
+    def can_serialize(self, data: float) -> bool:
+        return isinstance(data, float)
+
+
+_SERIALIZERS = OrderedDict(**{
+    "str": StringSerializer(),
+    "int": IntegerSerializer(),
+    "float": FloatSerializer(),
+    "video": VideoSerializer(),
+    "tif": FileSerializer(),
+    "file": FileSerializer(),
+    "pil": PILSerializer(),
+    "jpeg": JPEGSerializer(),
+    "bytes": BytesSerializer(),
+    "no_header_numpy": NoHeaderNumpySerializer(),
+    "numpy": NumpySerializer(),
+    "no_header_tensor": NoHeaderTensorSerializer(),
+    "tensor": TensorSerializer(),
+    "pickle": PickleSerializer(),
+})
 
 
 def _get_serializers(serializers: Optional[Dict[str, Serializer]]) -> Dict[str, Serializer]:

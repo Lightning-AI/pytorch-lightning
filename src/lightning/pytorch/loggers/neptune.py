@@ -15,6 +15,7 @@
 Neptune Logger
 --------------
 """
+
 import contextlib
 import logging
 import os
@@ -38,9 +39,12 @@ if TYPE_CHECKING:
 
 log = logging.getLogger(__name__)
 
-# neptune is available with two names on PyPI : `neptune` and `neptune-client`
+# Neptune is available with two names on PyPI : `neptune` and `neptune-client`
+# `neptune` was introduced as a name transition of neptune-client and the long-term target is to get
+# rid of Neptune-client package completely someday. It was introduced as a part of breaking-changes with a release
+# of neptune-client==1.0. neptune-client>=1.0 is just an alias of neptune package and have some breaking-changes
+# in compare to neptune-client<1.0.0.
 _NEPTUNE_AVAILABLE = RequirementCache("neptune>=1.0")
-_NEPTUNE_CLIENT_AVAILABLE = RequirementCache("neptune-client")
 _INTEGRATION_VERSION_KEY = "source_code/integrations/pytorch-lightning"
 
 
@@ -223,8 +227,9 @@ class NeptuneLogger(Logger):
         prefix: str = "training",
         **neptune_run_kwargs: Any,
     ):
-        if not _NEPTUNE_AVAILABLE and not _NEPTUNE_CLIENT_AVAILABLE:
+        if not _NEPTUNE_AVAILABLE:
             raise ModuleNotFoundError(str(_NEPTUNE_AVAILABLE))
+
         # verify if user passed proper init arguments
         self._verify_input_arguments(api_key, project, name, run, neptune_run_kwargs)
         super().__init__()
@@ -253,10 +258,7 @@ class NeptuneLogger(Logger):
             root_obj[_INTEGRATION_VERSION_KEY] = pl.__version__
 
     def _retrieve_run_data(self) -> None:
-        if _NEPTUNE_AVAILABLE:
-            from neptune.handler import Handler
-        else:
-            from neptune.new.handler import Handler
+        from neptune.handler import Handler
 
         assert self._run_instance is not None
         root_obj = self._run_instance
@@ -309,12 +311,9 @@ class NeptuneLogger(Logger):
         run: Optional[Union["Run", "Handler"]],
         neptune_run_kwargs: dict,
     ) -> None:
-        if _NEPTUNE_AVAILABLE:
-            from neptune import Run
-            from neptune.handler import Handler
-        else:
-            from neptune.new import Run
-            from neptune.new.handler import Handler
+        from neptune import Run
+        from neptune.handler import Handler
+
         # check if user passed the client `Run`/`Handler` object
         if run is not None and not isinstance(run, (Run, Handler)):
             raise ValueError("Run parameter expected to be of type `neptune.Run`, or `neptune.handler.Handler`.")
@@ -334,10 +333,7 @@ class NeptuneLogger(Logger):
         return state
 
     def __setstate__(self, state: Dict[str, Any]) -> None:
-        if _NEPTUNE_AVAILABLE:
-            import neptune
-        else:
-            import neptune.new as neptune
+        import neptune
 
         self.__dict__ = state
         self._run_instance = neptune.init_run(**self._neptune_init_args)
@@ -375,10 +371,7 @@ class NeptuneLogger(Logger):
     @property
     @rank_zero_experiment
     def run(self) -> "Run":
-        if _NEPTUNE_AVAILABLE:
-            import neptune
-        else:
-            import neptune.new as neptune
+        import neptune
 
         if not self._run_instance:
             self._run_instance = neptune.init_run(**self._neptune_init_args)
@@ -390,7 +383,7 @@ class NeptuneLogger(Logger):
 
     @override
     @rank_zero_only
-    def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:  # type: ignore[override]
+    def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:
         r"""Log hyperparameters to the run.
 
         Hyperparameters will be logged under the "<prefix>/hyperparams" namespace.
@@ -425,10 +418,7 @@ class NeptuneLogger(Logger):
             neptune_logger.log_hyperparams(PARAMS)
 
         """
-        if _NEPTUNE_AVAILABLE:
-            from neptune.utils import stringify_unsupported
-        else:
-            from neptune.new.utils import stringify_unsupported
+        from neptune.utils import stringify_unsupported
 
         params = _convert_params(params)
         params = _sanitize_callable_params(params)
@@ -447,7 +437,7 @@ class NeptuneLogger(Logger):
 
         Args:
             metrics: Dictionary with metric names as keys and measured quantities as values.
-            step: Step number at which the metrics should be recorded, currently ignored.
+            step: Step number at which the metrics should be recorded
 
         """
         if rank_zero_only.rank != 0:
@@ -456,9 +446,7 @@ class NeptuneLogger(Logger):
         metrics = _add_prefix(metrics, self._prefix, self.LOGGER_JOIN_CHAR)
 
         for key, val in metrics.items():
-            # `step` is ignored because Neptune expects strictly increasing step values which
-            # Lightning does not always guarantee.
-            self.run[key].append(val)
+            self.run[key].append(val, step=step)
 
     @override
     @rank_zero_only
@@ -486,10 +474,7 @@ class NeptuneLogger(Logger):
 
     @rank_zero_only
     def log_model_summary(self, model: "pl.LightningModule", max_depth: int = -1) -> None:
-        if _NEPTUNE_AVAILABLE:
-            from neptune.types import File
-        else:
-            from neptune.new.types import File
+        from neptune.types import File
 
         model_str = str(ModelSummary(model=model, max_depth=max_depth))
         self.run[self._construct_path_with_prefix("model/summary")] = File.from_content(
@@ -508,10 +493,7 @@ class NeptuneLogger(Logger):
         if not self._log_model_checkpoints:
             return
 
-        if _NEPTUNE_AVAILABLE:
-            from neptune.types import File
-        else:
-            from neptune.new.types import File
+        from neptune.types import File
 
         file_names = set()
         checkpoints_namespace = self._construct_path_with_prefix("model/checkpoints")
@@ -557,13 +539,14 @@ class NeptuneLogger(Logger):
     def _get_full_model_name(model_path: str, checkpoint_callback: Checkpoint) -> str:
         """Returns model name which is string `model_path` appended to `checkpoint_callback.dirpath`."""
         if hasattr(checkpoint_callback, "dirpath"):
-            expected_model_path = f"{checkpoint_callback.dirpath}{os.path.sep}"
+            model_path = os.path.normpath(model_path)
+            expected_model_path = os.path.normpath(checkpoint_callback.dirpath)
             if not model_path.startswith(expected_model_path):
                 raise ValueError(f"{model_path} was expected to start with {expected_model_path}.")
             # Remove extension from filepath
-            filepath, _ = os.path.splitext(model_path[len(expected_model_path) :])
-            return filepath
-        return model_path
+            filepath, _ = os.path.splitext(model_path[len(expected_model_path) + 1 :])
+            return filepath.replace(os.sep, "/")
+        return model_path.replace(os.sep, "/")
 
     @classmethod
     def _get_full_model_names_from_exp_structure(cls, exp_structure: Dict[str, Any], namespace: str) -> Set[str]:

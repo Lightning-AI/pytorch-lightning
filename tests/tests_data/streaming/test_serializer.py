@@ -11,6 +11,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import io
 import os
 import sys
 from time import time
@@ -21,11 +22,15 @@ import torch
 from lightning import seed_everything
 from lightning.data.streaming.serializers import (
     _AV_AVAILABLE,
+    _NUMPY_DTYPES_MAPPING,
     _SERIALIZERS,
     _TORCH_DTYPES_MAPPING,
     _TORCH_VISION_AVAILABLE,
-    IntSerializer,
+    IntegerSerializer,
+    JPEGSerializer,
+    NoHeaderNumpySerializer,
     NoHeaderTensorSerializer,
+    NumpySerializer,
     PickleSerializer,
     PILSerializer,
     TensorSerializer,
@@ -37,13 +42,19 @@ _PIL_AVAILABLE = RequirementCache("PIL")
 
 
 def test_serializers():
-    assert list(_SERIALIZERS.keys()) == [
+    keys = list(_SERIALIZERS.keys())
+    assert keys == [
+        "str",
+        "int",
+        "float",
         "video",
+        "tif",
         "file",
         "pil",
-        "int",
         "jpeg",
         "bytes",
+        "no_header_numpy",
+        "numpy",
         "no_header_tensor",
         "tensor",
         "pickle",
@@ -51,7 +62,7 @@ def test_serializers():
 
 
 def test_int_serializer():
-    serializer = IntSerializer()
+    serializer = IntegerSerializer()
 
     for i in range(100):
         data, _ = serializer.serialize(i)
@@ -79,6 +90,27 @@ def test_pil_serializer(mode):
 
     # Validate data content
     assert np.array_equal(np_data, np_dec_data)
+
+
+@pytest.mark.skipif(condition=not _PIL_AVAILABLE, reason="Requires: ['pil']")
+def test_jpeg_serializer():
+    serializer = JPEGSerializer()
+
+    from PIL import Image
+
+    array = np.random.randint(255, size=(28, 28, 3), dtype=np.uint8)
+    img = Image.fromarray(array)
+    img_bytes = io.BytesIO()
+    img.save(img_bytes, format="JPEG")
+    img_bytes = img_bytes.getvalue()
+
+    img = Image.open(io.BytesIO(img_bytes))
+
+    data, _ = serializer.serialize(img)
+    assert isinstance(data, bytes)
+
+    deserialized_img = serializer.deserialize(data)
+    assert deserialized_img.shape == torch.Size([3, 28, 28])
 
 
 @pytest.mark.flaky(reruns=3)
@@ -124,6 +156,25 @@ def test_tensor_serializer():
     assert np.mean(ratio_bytes) > 2
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason="Not supported on windows")
+def test_numpy_serializer():
+    seed_everything(42)
+
+    serializer_tensor = NumpySerializer()
+
+    shapes = [(10,), (10, 10), (10, 10, 10), (10, 10, 10, 5), (10, 10, 10, 5, 4)]
+    for dtype in _NUMPY_DTYPES_MAPPING.values():
+        # Those types aren't supported
+        if dtype.name in ["object", "bytes", "str", "void"]:
+            continue
+        for shape in shapes:
+            tensor = np.ones(shape, dtype=dtype)
+            data, _ = serializer_tensor.serialize(tensor)
+            deserialized_tensor = serializer_tensor.deserialize(data)
+            assert deserialized_tensor.dtype == dtype
+            np.testing.assert_equal(tensor, deserialized_tensor)
+
+
 def test_assert_bfloat16_tensor_serializer():
     serializer = TensorSerializer()
     tensor = torch.ones((10,), dtype=torch.bfloat16)
@@ -141,6 +192,19 @@ def test_assert_no_header_tensor_serializer():
     assert serializer._dtype == torch.float32
     new_t = serializer.deserialize(data)
     assert torch.equal(t, new_t)
+
+
+def test_assert_no_header_numpy_serializer():
+    serializer = NoHeaderNumpySerializer()
+    t = np.ones((10,))
+    assert serializer.can_serialize(t)
+    data, name = serializer.serialize(t)
+    assert name == "no_header_numpy:10"
+    assert serializer._dtype is None
+    serializer.setup(name)
+    assert serializer._dtype == np.dtype("float64")
+    new_t = serializer.deserialize(data)
+    np.testing.assert_equal(t, new_t)
 
 
 @pytest.mark.skipif(

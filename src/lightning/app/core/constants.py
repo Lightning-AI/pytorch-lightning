@@ -98,6 +98,8 @@ SYS_CUSTOMIZATIONS_SYNC_ROOT = "/tmp/sys-customizations-sync"  # noqa: S108 # to
 # directory where system customization sync files will be copied to be packed into app tarball
 SYS_CUSTOMIZATIONS_SYNC_PATH = ".sys-customizations-sync"
 
+BATCH_DELTA_COUNT = int(os.getenv("BATCH_DELTA_COUNT", "128"))
+
 
 def enable_multiple_works_in_default_container() -> bool:
     return bool(int(os.getenv("ENABLE_MULTIPLE_WORKS_IN_DEFAULT_CONTAINER", "0")))

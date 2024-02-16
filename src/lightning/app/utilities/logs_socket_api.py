@@ -33,8 +33,8 @@ class _LightningLogsSocketAPI(_AuthTokenGetter):
         project_id: str,
         app_id: str,
         component: str,
-        on_message_callback: Callable[[WebSocketApp, str], None],
-        on_error_callback: Optional[Callable[[Exception, str], None]] = None,
+        on_message_callback: Callable,
+        on_error_callback: Optional[Callable] = None,
     ) -> WebSocketApp:
         """Creates and returns WebSocketApp to listen to lightning app logs.
 

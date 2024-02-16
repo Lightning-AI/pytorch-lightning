@@ -15,7 +15,7 @@ import json
 import os
 from typing import Any, Dict, List, Optional, Tuple
 
-from lightning.data.streaming.constants import _INDEX_FILENAME, _TORCH_GREATER_EQUAL_2_1_0
+from lightning.data.constants import _INDEX_FILENAME, _TORCH_GREATER_EQUAL_2_1_0
 from lightning.data.streaming.downloader import get_downloader_cls
 from lightning.data.streaming.item_loader import BaseItemLoader, PyTreeLoader, TokensLoader
 from lightning.data.streaming.sampler import ChunkedIndex
@@ -64,7 +64,7 @@ class ChunksConfig:
         self._downloader = None
 
         if remote_dir:
-            self._downloader = get_downloader_cls(remote_dir)(remote_dir, cache_dir, self._chunks)
+            self._downloader = get_downloader_cls(remote_dir, cache_dir, self._chunks)
 
     def download_chunk_from_index(self, chunk_index: int) -> None:
         chunk_filename = self._chunks[chunk_index]["filename"]
@@ -84,6 +84,12 @@ class ChunksConfig:
         if self._intervals is None:
             raise RuntimeError("The intervals should be defined.")
         return self._intervals
+
+    @property
+    def num_bytes(self) -> int:
+        if self._config is None:
+            raise RuntimeError("The config should be defined.")
+        return sum(c["chunk_bytes"] for c in self._chunks)
 
     @property
     def data_format(self) -> Any:
@@ -128,6 +134,13 @@ class ChunksConfig:
         chunk = self._chunks[index.chunk_index]
         return os.path.join(self._cache_dir, chunk["filename"]), *self._intervals[index.chunk_index]
 
+    def _get_chunk_index_from_filename(self, chunk_filename: str) -> int:
+        """Retrieves the associated chunk_index for a given chunk filename."""
+        for chunk_index, chunk in enumerate(self._chunks):
+            if chunk["filename"] == chunk_filename:
+                return chunk_index
+        raise ValueError(f"The provided filename doesn't exist {chunk_filename}.")
+
     @classmethod
     def load(
         cls,
@@ -139,7 +152,7 @@ class ChunksConfig:
         cache_index_filepath = os.path.join(cache_dir, _INDEX_FILENAME)
 
         if isinstance(remote_dir, str):
-            downloader = get_downloader_cls(remote_dir)(remote_dir, cache_dir, [])
+            downloader = get_downloader_cls(remote_dir, cache_dir, [])
             downloader.download_file(os.path.join(remote_dir, _INDEX_FILENAME), cache_index_filepath)
 
         if not os.path.exists(cache_index_filepath):

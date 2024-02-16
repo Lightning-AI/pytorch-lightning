@@ -79,7 +79,7 @@ def test_ddp_with_hydra_runjob(subdir, tmp_path, monkeypatch):
     assert len(logs) == devices
 
 
-@mock.patch("lightning.fabric.strategies.launchers.subprocess_script.Thread")
+@mock.patch("lightning.fabric.strategies.launchers.subprocess_script._ChildProcessObserver")
 def test_kill(_):
     launcher = _SubprocessScriptLauncher(Mock(), 1, 1)
     proc0 = Mock(autospec=subprocess.Popen)
@@ -92,7 +92,7 @@ def test_kill(_):
 
 
 @mock.patch("lightning.fabric.strategies.launchers.subprocess_script.subprocess.Popen")
-@mock.patch("lightning.fabric.strategies.launchers.subprocess_script.Thread")
+@mock.patch("lightning.fabric.strategies.launchers.subprocess_script._ChildProcessObserver")
 def test_validate_cluster_environment_user_settings(*_):
     """Test that the launcher calls into the cluster environment to validate the user settings."""
     cluster_env = Mock(validate_settings=Mock(side_effect=RuntimeError("test")))

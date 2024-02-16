@@ -13,7 +13,7 @@
 # limitations under the License.
 import os
 from unittest import mock
-from unittest.mock import Mock
+from unittest.mock import ANY, Mock
 
 import pytest
 import torch
@@ -24,10 +24,10 @@ from lightning.pytorch.trainer.states import TrainerFn
 from lightning.pytorch.utilities.migration.utils import _set_version
 
 
-def test_preloaded_checkpoint_lifecycle(tmpdir):
+def test_preloaded_checkpoint_lifecycle(tmp_path):
     """Tests that the preloaded checkpoint contents gets cleared from memory when it is not required anymore."""
     model = BoringModel()
-    trainer = Trainer(default_root_dir=tmpdir, max_steps=1)
+    trainer = Trainer(default_root_dir=tmp_path, max_steps=1)
     trainer.fit(model)
 
     connector = trainer._checkpoint_connector
@@ -43,7 +43,7 @@ def test_preloaded_checkpoint_lifecycle(tmpdir):
     assert not connector._loaded_checkpoint
 
     ckpt_path = trainer.checkpoint_callback.best_model_path
-    trainer = Trainer(default_root_dir=tmpdir, max_steps=2)
+    trainer = Trainer(default_root_dir=tmp_path, max_steps=2)
     connector = trainer._checkpoint_connector
     connector.resume_start(ckpt_path)
     assert connector._ckpt_path == ckpt_path
@@ -57,22 +57,22 @@ def test_preloaded_checkpoint_lifecycle(tmpdir):
 
 
 @mock.patch("lightning.fabric.plugins.environments.slurm.SLURMEnvironment.detect", return_value=True)
-def test_hpc_restore_attempt(_, tmpdir):
+def test_hpc_restore_attempt(_, tmp_path):
     """Test that restore() attempts to restore the hpc_ckpt with highest priority."""
     model = BoringModel()
-    trainer = Trainer(default_root_dir=tmpdir, max_steps=1, enable_checkpointing=False, logger=False)
+    trainer = Trainer(default_root_dir=tmp_path, max_steps=1, enable_checkpointing=False, logger=False)
     trainer.fit(model)
 
-    hpc_ckpt_path = tmpdir / "hpc_ckpt_3.ckpt"
+    hpc_ckpt_path = tmp_path / "hpc_ckpt_3.ckpt"
     trainer.save_checkpoint(hpc_ckpt_path)
-    assert os.listdir(tmpdir) == ["hpc_ckpt_3.ckpt"]
+    assert os.listdir(tmp_path) == ["hpc_ckpt_3.ckpt"]
 
     # set weights to zero
     for param in model.parameters():
         torch.nn.init.constant_(param, 0)
 
     # case 1: restore hpc first, no explicit resume path provided
-    trainer = Trainer(default_root_dir=tmpdir, max_steps=2, enable_checkpointing=False, logger=False)
+    trainer = Trainer(default_root_dir=tmp_path, max_steps=2, enable_checkpointing=False, logger=False)
     trainer.fit(model)
 
     for param in model.parameters():
@@ -80,26 +80,26 @@ def test_hpc_restore_attempt(_, tmpdir):
         torch.nn.init.constant_(param, 0)
 
     # case 2: explicit resume path provided, file not found
-    trainer = Trainer(default_root_dir=tmpdir, max_steps=3)
+    trainer = Trainer(default_root_dir=tmp_path, max_steps=3)
 
     with pytest.raises(FileNotFoundError, match="Checkpoint file not found: not existing"):
         trainer.fit(model, ckpt_path="not existing")
 
 
-def test_hpc_max_ckpt_version(tmpdir):
+def test_hpc_max_ckpt_version(tmp_path):
     """Test that the _CheckpointConnector is able to find the hpc checkpoint file with the highest version."""
     model = BoringModel()
-    trainer = Trainer(default_root_dir=tmpdir, max_steps=1)
+    trainer = Trainer(default_root_dir=tmp_path, max_steps=1)
     trainer.fit(model)
-    trainer.save_checkpoint(tmpdir / "hpc_ckpt.ckpt")
-    trainer.save_checkpoint(tmpdir / "hpc_ckpt_0.ckpt")
-    trainer.save_checkpoint(tmpdir / "hpc_ckpt_3.ckpt")
-    trainer.save_checkpoint(tmpdir / "hpc_ckpt_33.ckpt")
+    trainer.save_checkpoint(tmp_path / "hpc_ckpt.ckpt")
+    trainer.save_checkpoint(tmp_path / "hpc_ckpt_0.ckpt")
+    trainer.save_checkpoint(tmp_path / "hpc_ckpt_3.ckpt")
+    trainer.save_checkpoint(tmp_path / "hpc_ckpt_33.ckpt")
 
-    assert trainer._checkpoint_connector._hpc_resume_path == str(tmpdir / "hpc_ckpt_33.ckpt")
-    assert trainer._checkpoint_connector._CheckpointConnector__max_ckpt_version_in_folder(tmpdir) == 33
+    assert trainer._checkpoint_connector._hpc_resume_path == str(tmp_path / "hpc_ckpt_33.ckpt")
+    assert trainer._checkpoint_connector._CheckpointConnector__max_ckpt_version_in_folder(tmp_path) == 33
     assert (
-        trainer._checkpoint_connector._CheckpointConnector__max_ckpt_version_in_folder(tmpdir / "not" / "existing")
+        trainer._checkpoint_connector._CheckpointConnector__max_ckpt_version_in_folder(tmp_path / "not" / "existing")
         is None
     )
 
@@ -107,7 +107,7 @@ def test_hpc_max_ckpt_version(tmpdir):
 def test_ckpt_for_fsspec():
     """Test that the _CheckpointConnector is able to write to fsspec file systems."""
     model = BoringModel()
-    # hardcoding dir since `tmpdir` can be windows path
+    # hardcoding dir since `tmp_path` can be windows path
     trainer = Trainer(
         default_root_dir="memory://test_ckpt_for_fsspec", limit_train_batches=1, limit_val_batches=1, max_epochs=1
     )
@@ -127,12 +127,12 @@ def test_ckpt_for_fsspec():
     )
 
 
-def test_loops_restore(tmpdir):
+def test_loops_restore(tmp_path):
     """Test that required loop state_dict is loaded correctly by checkpoint connector."""
     model = BoringModel()
-    checkpoint_callback = ModelCheckpoint(dirpath=tmpdir, save_last=True)
+    checkpoint_callback = ModelCheckpoint(dirpath=tmp_path, save_last=True)
     trainer_args = {
-        "default_root_dir": tmpdir,
+        "default_root_dir": tmp_path,
         "max_epochs": 1,
         "limit_train_batches": 1,
         "limit_val_batches": 1,
@@ -143,7 +143,7 @@ def test_loops_restore(tmpdir):
     trainer = Trainer(**trainer_args)
     trainer.fit(model)
 
-    ckpt_path = str(tmpdir / "last.ckpt")
+    ckpt_path = str(tmp_path / "last.ckpt")
 
     trainer = Trainer(**trainer_args)
     trainer.strategy.connect(model)
@@ -217,3 +217,20 @@ def test_stateful_trainer_ckpt_path_support(tmp_path):
     assert not trainer._checkpoint_connector._user_managed
     trainer.test()
     assert trainer.ckpt_path == best_path
+
+
+@pytest.mark.parametrize(("strict_loading", "expected"), [(None, True), (True, True), (False, False)])
+def test_strict_loading(strict_loading, expected, tmp_path):
+    """Test that the connector respects the `LightningModule.strict_loading` setting."""
+    model = BoringModel()
+    trainer = Trainer(default_root_dir=tmp_path, barebones=True, max_steps=1)
+    trainer.fit(model)
+    trainer.save_checkpoint(tmp_path / "checkpoint.ckpt")
+
+    model = BoringModel()
+    model.strict_loading = strict_loading
+    model.load_state_dict = Mock()
+
+    trainer = Trainer(default_root_dir=tmp_path, barebones=True, max_steps=2)
+    trainer.fit(model, ckpt_path=(tmp_path / "checkpoint.ckpt"))
+    model.load_state_dict.assert_called_once_with(ANY, strict=expected)

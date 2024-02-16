@@ -117,17 +117,17 @@ def test_rich_progress_bar_custom_theme():
         progress_bar.on_train_start(Trainer(), BoringModel())
 
         assert progress_bar.theme == theme
-        args, kwargs = mocks["CustomBarColumn"].call_args
+        _, kwargs = mocks["CustomBarColumn"].call_args
         assert kwargs["complete_style"] == theme.progress_bar
         assert kwargs["finished_style"] == theme.progress_bar_finished
 
-        args, kwargs = mocks["BatchesProcessedColumn"].call_args
+        _, kwargs = mocks["BatchesProcessedColumn"].call_args
         assert kwargs["style"] == theme.batch_progress
 
-        args, kwargs = mocks["CustomTimeColumn"].call_args
+        _, kwargs = mocks["CustomTimeColumn"].call_args
         assert kwargs["style"] == theme.time
 
-        args, kwargs = mocks["ProcessingSpeedColumn"].call_args
+        _, kwargs = mocks["ProcessingSpeedColumn"].call_args
         assert kwargs["style"] == theme.processing_speed
 
 
@@ -377,9 +377,12 @@ def test_rich_progress_bar_correct_value_epoch_end(tmp_path):
             items = super().get_metrics(trainer, model)
             del items["v_num"]
             # this is equivalent to mocking `set_postfix` as this method gets called every time
-            self.calls[trainer.state.fn].append(
-                (trainer.state.stage, trainer.current_epoch, trainer.global_step, items)
-            )
+            self.calls[trainer.state.fn].append((
+                trainer.state.stage,
+                trainer.current_epoch,
+                trainer.global_step,
+                items,
+            ))
             return items
 
     class MyModel(BoringModel):

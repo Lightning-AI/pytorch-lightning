@@ -19,6 +19,7 @@ from argparse import Namespace
 from typing import Any, Dict, List, Optional, Set, Union
 
 from torch import Tensor
+from typing_extensions import override
 
 from lightning.fabric.loggers.logger import Logger, rank_zero_experiment
 from lightning.fabric.utilities.cloud_io import _is_dir, get_filesystem
@@ -39,6 +40,8 @@ class CSVLogger(Logger):
         name: Experiment name. Defaults to ``'lightning_logs'``.
         version: Experiment version. If version is not specified the logger inspects the save
             directory for existing versions, then automatically assigns the next available version.
+            If the version is specified, and the directory already contains a metrics file for that version, it will be
+            overwritten.
         prefix: A string to put at the beginning of metric keys.
         flush_logs_every_n_steps: How often to flush logs to disk (defaults to every 100 steps).
 
@@ -73,6 +76,7 @@ class CSVLogger(Logger):
         self._flush_logs_every_n_steps = flush_logs_every_n_steps
 
     @property
+    @override
     def name(self) -> str:
         """Gets the name of the experiment.
 
@@ -83,6 +87,7 @@ class CSVLogger(Logger):
         return self._name
 
     @property
+    @override
     def version(self) -> Union[int, str]:
         """Gets the version of the experiment.
 
@@ -95,11 +100,13 @@ class CSVLogger(Logger):
         return self._version
 
     @property
+    @override
     def root_dir(self) -> str:
         """Gets the save directory where the versioned CSV experiments are saved."""
         return self._root_dir
 
     @property
+    @override
     def log_dir(self) -> str:
         """The log directory for this run.
 
@@ -128,10 +135,12 @@ class CSVLogger(Logger):
         self._experiment = _ExperimentWriter(log_dir=self.log_dir)
         return self._experiment
 
+    @override
     @rank_zero_only
-    def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:  # type: ignore[override]
+    def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:
         raise NotImplementedError("The `CSVLogger` does not yet support logging hyperparameters.")
 
+    @override
     @rank_zero_only
     def log_metrics(  # type: ignore[override]
         self, metrics: Dict[str, Union[Tensor, float]], step: Optional[int] = None
@@ -143,11 +152,13 @@ class CSVLogger(Logger):
         if (step + 1) % self._flush_logs_every_n_steps == 0:
             self.save()
 
+    @override
     @rank_zero_only
     def save(self) -> None:
         super().save()
         self.experiment.save()
 
+    @override
     @rank_zero_only
     def finalize(self, status: str) -> None:
         if self._experiment is None:
@@ -194,14 +205,10 @@ class _ExperimentWriter:
 
         self._fs = get_filesystem(log_dir)
         self.log_dir = log_dir
-        if self._fs.exists(self.log_dir) and self._fs.listdir(self.log_dir):
-            rank_zero_warn(
-                f"Experiment logs directory {self.log_dir} exists and is not empty."
-                " Previous log files in this directory will be deleted when the new ones are saved!"
-            )
-        self._fs.makedirs(self.log_dir, exist_ok=True)
-
         self.metrics_file_path = os.path.join(self.log_dir, self.NAME_METRICS_FILE)
+
+        self._check_log_dir_exists()
+        self._fs.makedirs(self.log_dir, exist_ok=True)
 
     def log_metrics(self, metrics_dict: Dict[str, float], step: Optional[int] = None) -> None:
         """Record metrics."""
@@ -244,6 +251,7 @@ class _ExperimentWriter:
         current_keys = set().union(*self.metrics)
         new_keys = current_keys - set(self.metrics_keys)
         self.metrics_keys.extend(new_keys)
+        self.metrics_keys.sort()
         return new_keys
 
     def _rewrite_with_new_header(self, fieldnames: List[str]) -> None:
@@ -254,3 +262,12 @@ class _ExperimentWriter:
             writer = csv.DictWriter(file, fieldnames=fieldnames)
             writer.writeheader()
             writer.writerows(metrics)
+
+    def _check_log_dir_exists(self) -> None:
+        if self._fs.exists(self.log_dir) and self._fs.listdir(self.log_dir):
+            rank_zero_warn(
+                f"Experiment logs directory {self.log_dir} exists and is not empty."
+                " Previous log files in this directory will be deleted when the new ones are saved!"
+            )
+            if self._fs.isfile(self.metrics_file_path):
+                self._fs.rm_file(self.metrics_file_path)
