@@ -447,7 +447,7 @@ class Fabric:
         try:
             self._strategy.backward(tensor, module, *args, **kwargs)
         finally:
-            lightning.fabric.wrappers._in_fabric_backward = True
+            lightning.fabric.wrappers._in_fabric_backward = False
 
     def clip_gradients(
         self,
