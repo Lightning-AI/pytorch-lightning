@@ -14,7 +14,6 @@
 import inspect
 import os
 from contextlib import contextmanager, nullcontext
-from contextvars import ContextVar
 from functools import partial
 from pathlib import Path
 from typing import (
