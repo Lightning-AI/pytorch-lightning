@@ -41,6 +41,7 @@ from torch import Tensor
 from torch.optim import Optimizer
 from torch.utils.data import BatchSampler, DataLoader, DistributedSampler, RandomSampler, SequentialSampler
 
+import lightning.fabric
 from lightning.fabric.accelerators.accelerator import Accelerator
 from lightning.fabric.connector import _PLUGIN_INPUT, _PRECISION_INPUT, _Connector, _is_using_cli
 from lightning.fabric.loggers import Logger
@@ -81,8 +82,6 @@ from lightning.fabric.wrappers import (
     _unwrap_compiled,
     _unwrap_objects,
 )
-
-_in_fabric_backward: ContextVar[bool] = ContextVar("in_fabric_backward", default=False)
 
 
 def _do_nothing(*_: Any) -> None:
@@ -445,11 +444,9 @@ class Fabric:
                 # requires to attach the current `DeepSpeedEngine` for the `_FabricOptimizer.step` call.
                 self._strategy._deepspeed_engine = module
 
-        token = _in_fabric_backward.set(True)
-        try:
-            self._strategy.backward(tensor, module, *args, **kwargs)
-        finally:
-            _in_fabric_backward.reset(token)
+        lightning.fabric.wrappers._in_fabric_backward = True
+        self._strategy.backward(tensor, module, *args, **kwargs)
+        lightning.fabric.wrappers._in_fabric_backward = True
 
     def clip_gradients(
         self,
