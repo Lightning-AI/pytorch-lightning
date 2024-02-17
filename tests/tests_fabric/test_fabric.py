@@ -34,7 +34,6 @@ from lightning.fabric.strategies import (
 )
 from lightning.fabric.strategies.strategy import _Sharded
 from lightning.fabric.utilities.exceptions import MisconfigurationException
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 from lightning.fabric.utilities.seed import pl_worker_init_function, seed_everything
 from lightning.fabric.utilities.warnings import PossibleUserWarning
 from lightning.fabric.wrappers import _FabricDataLoader, _FabricModule, _FabricOptimizer
