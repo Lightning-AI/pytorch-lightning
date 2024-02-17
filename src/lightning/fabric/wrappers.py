@@ -31,7 +31,6 @@ from typing import (
 )
 
 import torch
-
 from lightning_utilities import is_overridden
 from lightning_utilities.core.apply_func import apply_to_collection
 from torch import Tensor
