@@ -446,8 +446,10 @@ class Fabric:
                 self._strategy._deepspeed_engine = module
 
         token = _in_fabric_backward.set(True)
-        self._strategy.backward(tensor, module, *args, **kwargs)
-        _in_fabric_backward.reset(token)
+        try:
+            self._strategy.backward(tensor, module, *args, **kwargs)
+        finally:
+            _in_fabric_backward.reset(token)
 
     def clip_gradients(
         self,
