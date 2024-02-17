@@ -31,6 +31,8 @@ from typing import (
 )
 
 import torch
+
+from lightning_utilities import is_overridden
 from lightning_utilities.core.apply_func import apply_to_collection
 from torch import Tensor
 from torch import nn as nn
@@ -105,7 +107,7 @@ class _FabricOptimizer:
 
 class _FabricModule(_DeviceDtypeModuleMixin):
     def __init__(
-        self, forward_module: nn.Module, precision: Precision, original_module: Optional[nn.Module] = None
+        self, forward_module: nn.Module, strategy: Strategy, original_module: Optional[nn.Module] = None
     ) -> None:
         """The FabricModule is a thin wrapper around the :class:`torch.nn.Module` and handles precision / autocast
         automatically for the forward pass.
@@ -114,7 +116,7 @@ class _FabricModule(_DeviceDtypeModuleMixin):
 
         Args:
             forward_module: The module to wrap the ``forward`` method on.
-            precision: Reference to the precision plugin for handling precision context
+            strategy: Reference to the strategy for handling precision etc.
             original_module: The original, unmodified module as passed into the
                 :meth:`lightning.fabric.fabric.Fabric.setup` method. This is needed when attribute lookup
                 on this wrapper should pass through to the original module.
@@ -123,7 +125,7 @@ class _FabricModule(_DeviceDtypeModuleMixin):
         super().__init__()
         self._forward_module = forward_module
         self._original_module = original_module or forward_module
-        self._precision = precision
+        self._strategy = strategy  # TODO: weakref
         self._fabric_module_initialized = True
 
     @property
@@ -133,14 +135,15 @@ class _FabricModule(_DeviceDtypeModuleMixin):
     @override
     def forward(self, *args: Any, **kwargs: Any) -> Any:
         """Casts all inputs to the right precision and handles autocast for operations in the module forward method."""
-        args, kwargs = self._precision.convert_input((args, kwargs))
+        precision = self._strategy.precision
+        args, kwargs = precision.convert_input((args, kwargs))
 
-        with self._precision.forward_context():
+        with precision.forward_context():
             output = self._forward_module(*args, **kwargs)
 
-        output = self._precision.convert_output(output)
+        output = precision.convert_output(output)
 
-        apply_to_collection(output, dtype=Tensor, function=_register_backward_hook)
+        apply_to_collection(output, dtype=Tensor, function=self._register_backward_hook)
         return output
 
     @overload
@@ -215,6 +218,28 @@ class _FabricModule(_DeviceDtypeModuleMixin):
             return output
 
         return _wrapped_method
+
+    def _register_backward_hook(self, tensor: Tensor) -> Tensor:
+        if not tensor.requires_grad:
+            return tensor
+
+        from lightning.fabric.fabric import _in_fabric_backward
+
+        strategy_requires = is_overridden("backward", self._strategy, parent=Strategy)
+        precision_requires = any(
+            is_overridden(method, self._strategy.precision, parent=Precision)
+            for method in ("pre_backward", "backward", "post_backward")
+        )
+
+        def _backward_hook(_) -> None:
+            if (strategy_requires or precision_requires) and not _in_fabric_backward.get():
+                raise RuntimeError(
+                    "The current strategy and precision selection requires you to call `fabric.backward(loss)`"
+                    " instead of `loss.backward()`."
+                )
+
+        tensor.register_hook(_backward_hook)
+        return tensor
 
     @override
     def __getattr__(self, item: Any) -> Any:
@@ -387,26 +412,3 @@ def _capture_compile_kwargs(compile_fn: Callable) -> Callable:
 
 if _TORCH_GREATER_EQUAL_2_0:
     torch.compile = _capture_compile_kwargs(torch.compile)
-
-
-def _register_backward_hook(tensor: Tensor) -> Tensor:
-    from lightning.fabric.fabric import _in_fabric_backward
-
-    # strategy_requires = is_overridden("backward", self._strategy, parent=Strategy)
-    # precision_requires = any(
-    #     is_overridden(method, self._precision, parent=Precision)
-    #     for method in ("pre_backward", "backward", "post_backward")
-    # )
-    # TODO: How do we get a reference to strategy and precision here?
-    strategy_requires = True
-    precision_requires = True
-
-    def _backward_hook(_) -> None:
-        if (strategy_requires or precision_requires) and not _in_fabric_backward.get():
-            raise RuntimeError(
-                "The current strategy and precision selection requires you to call `fabric.backward(loss)`"
-                " instead of `loss.backward()`."
-            )
-
-    tensor.register_hook(_backward_hook)
-    return tensor

@@ -646,22 +646,24 @@ def test_backward_required(_, strategy, precision, error_expected, setup_method)
     # One model
     model1 = nn.Linear(2, 2)
     model1 = getattr(fabric, setup_method)(model1)
-    loss = model1(batch).sum()
+    output = model1(batch)
+    assert output._backward_hooks is not None
+    loss = output.sum()
     with error_context:
         loss.backward()
     loss = model1(batch).sum()
     fabric.backward(loss)  # no error
-    # assert not fabric._backward_called
 
     # Two models chained
     model2 = torch.nn.Linear(2, 2)
     model2 = getattr(fabric, setup_method)(model2)
-    loss = model2(model1(batch)).sum()
+    output = model2(model1(batch))
+    assert output._backward_hooks is not None
+    loss = output.sum()
     with error_context:
         loss.backward()
     loss = model2(model1(batch)).sum()
     fabric.backward(loss)  # no error
-    # assert not fabric._backward_called
 
     # Two independent models
     loss1 = model1(batch).sum()
@@ -680,16 +682,23 @@ def test_backward_required(_, strategy, precision, error_expected, setup_method)
     # Model that returns a datastructure of tensors
     class DictReturnModel(nn.Linear):
         def forward(self, x):
-            return {"loss": super().forward(x).sum()}
+            return {
+                "loss": super().forward(x).sum(),
+                "other": torch.rand(2, 2),  # does not require grad
+            }
 
     model3 = DictReturnModel(2, 2)
     model3 = getattr(fabric, setup_method)(model3)
-    loss = model3(batch)["loss"] * 2
+    output = model3(batch)
+    loss = output["loss"]
+    other = output["other"]
+    assert loss._backward_hooks is not None
+    assert other._backward_hooks is None
+
     with error_context:
-        loss.backward()
-    loss = model3(batch)["loss"] * 2
-    fabric.backward(loss)  # no error
-    # assert not fabric._backward_called
+        (loss * 2).backward()
+    loss = model3(batch)["loss"]
+    fabric.backward(loss * 2)  # no error
 
 
 @RunIf(deepspeed=True, mps=False)

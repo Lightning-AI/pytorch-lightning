@@ -255,7 +255,7 @@ class Fabric:
 
         if compile_kwargs is not None:
             module = _to_compiled(module, compile_kwargs)
-        module = _FabricModule(module, self._precision, original_module=original_module)
+        module = _FabricModule(module, self._strategy, original_module=original_module)
 
         # Update the _DeviceDtypeModuleMixin's device parameter
         # NOTE: for sharded strategies or manual device placement, there's no single root device
@@ -319,7 +319,7 @@ class Fabric:
 
         if compile_kwargs is not None:
             module = _to_compiled(module, compile_kwargs)
-        module = _FabricModule(module, self._precision, original_module=original_module)
+        module = _FabricModule(module, self._strategy, original_module=original_module)
 
         # Update the _DeviceDtypeModuleMixin's device parameter
         # NOTE: for sharded strategies or manual device placement, there's no single root device
