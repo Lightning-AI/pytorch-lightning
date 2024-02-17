@@ -263,10 +263,7 @@ class Fabric:
             module, device=self.device if move_to_device else next(module.parameters(), torch.tensor(0)).device
         )
 
-        optimizers = [
-            _FabricOptimizer(optimizer=optimizer, strategy=self._strategy, callbacks=self._callbacks)
-            for optimizer in optimizers
-        ]
+        optimizers = [_FabricOptimizer(optimizer, self._strategy, self._callbacks) for optimizer in optimizers]
 
         self._models_setup += 1
 
