@@ -231,7 +231,7 @@ class _FabricModule(_DeviceDtypeModuleMixin):
             for method in ("pre_backward", "backward", "post_backward")
         )
 
-        def _backward_hook(_) -> None:
+        def _backward_hook(*_: Any) -> None:
             if (strategy_requires or precision_requires) and not _in_fabric_backward.get():
                 raise RuntimeError(
                     "The current strategy and precision selection requires you to call `fabric.backward(loss)`"
