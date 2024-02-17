@@ -55,6 +55,8 @@ if TYPE_CHECKING:
 T_destination = TypeVar("T_destination", bound=Dict[str, Any])
 _LIGHTNING_MODULE_STEP_METHODS = ("training_step", "validation_step", "test_step", "predict_step")
 
+_in_fabric_backward: bool = False
+
 
 class _FabricOptimizer:
     def __init__(self, optimizer: Optimizer, strategy: Strategy, callbacks: Optional[List[Callable]] = None) -> None:
@@ -223,8 +225,6 @@ class _FabricModule(_DeviceDtypeModuleMixin):
         if not tensor.requires_grad:
             return tensor
 
-        from lightning.fabric.fabric import _in_fabric_backward
-
         strategy_requires = is_overridden("backward", self._strategy, parent=Strategy)
         precision_requires = any(
             is_overridden(method, self._strategy.precision, parent=Precision)
@@ -232,7 +232,7 @@ class _FabricModule(_DeviceDtypeModuleMixin):
         )
 
         def _backward_hook(_) -> None:
-            if (strategy_requires or precision_requires) and not _in_fabric_backward.get():
+            if (strategy_requires or precision_requires) and not _in_fabric_backward:
                 raise RuntimeError(
                     "The current strategy and precision selection requires you to call `fabric.backward(loss)`"
                     " instead of `loss.backward()`."
