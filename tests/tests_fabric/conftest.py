@@ -119,6 +119,7 @@ def reset_in_fabric_backward():
     """Ensures that the wrappers.in_fabric_backward global variable gets reset after each test."""
     import lightning.fabric.wrappers as wrappers
 
+    assert hasattr(wrappers, "_in_fabric_backward")
     yield
     wrappers._in_fabric_backward = False
 
