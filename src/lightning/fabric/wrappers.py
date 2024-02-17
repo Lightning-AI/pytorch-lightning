@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import inspect
+from contextvars import ContextVar
 from copy import deepcopy
 from functools import wraps
 from typing import (
@@ -139,6 +140,8 @@ class _FabricModule(_DeviceDtypeModuleMixin):
             output = self._forward_module(*args, **kwargs)
 
         output = self._precision.convert_output(output)
+
+        apply_to_collection(output, dtype=Tensor, function=_register_backward_hook)
         return output
 
     @overload
@@ -385,3 +388,26 @@ def _capture_compile_kwargs(compile_fn: Callable) -> Callable:
 
 if _TORCH_GREATER_EQUAL_2_0:
     torch.compile = _capture_compile_kwargs(torch.compile)
+
+
+def _register_backward_hook(tensor: Tensor) -> Tensor:
+    from lightning.fabric.fabric import _in_fabric_backward
+
+    # strategy_requires = is_overridden("backward", self._strategy, parent=Strategy)
+    # precision_requires = any(
+    #     is_overridden(method, self._precision, parent=Precision)
+    #     for method in ("pre_backward", "backward", "post_backward")
+    # )
+    # TODO: How do we get a reference to strategy and precision here?
+    strategy_requires = True
+    precision_requires = True
+
+    def _backward_hook(_) -> None:
+        if (strategy_requires or precision_requires) and not _in_fabric_backward.get():
+            raise RuntimeError(
+                "The current strategy and precision selection requires you to call `fabric.backward(loss)`"
+                " instead of `loss.backward()`."
+            )
+
+    tensor.register_hook(_backward_hook)
+    return tensor

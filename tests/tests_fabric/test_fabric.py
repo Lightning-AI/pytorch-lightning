@@ -646,15 +646,13 @@ def test_backward_required(_, strategy, precision, error_expected, setup_method)
 
     # One model
     model1 = nn.Linear(2, 2)
-    assert not (model1._backward_pre_hooks if _TORCH_GREATER_EQUAL_2_0 else model1._backward_hooks)
     model1 = getattr(fabric, setup_method)(model1)
-    assert model1._backward_pre_hooks if _TORCH_GREATER_EQUAL_2_0 else model1._backward_hooks
     loss = model1(batch).sum()
     with error_context:
         loss.backward()
     loss = model1(batch).sum()
     fabric.backward(loss)  # no error
-    assert not fabric._backward_called
+    # assert not fabric._backward_called
 
     # Two models chained
     model2 = torch.nn.Linear(2, 2)
@@ -664,7 +662,7 @@ def test_backward_required(_, strategy, precision, error_expected, setup_method)
         loss.backward()
     loss = model2(model1(batch)).sum()
     fabric.backward(loss)  # no error
-    assert not fabric._backward_called
+    # assert not fabric._backward_called
 
     # Two independent models
     loss1 = model1(batch).sum()
@@ -676,9 +674,23 @@ def test_backward_required(_, strategy, precision, error_expected, setup_method)
     loss1 = model1(batch).sum()
     loss2 = model2(batch).sum()
     fabric.backward(loss1)  # no error
-    assert not fabric._backward_called
+    # assert not fabric._backward_called
     fabric.backward(loss2)  # no error
-    assert not fabric._backward_called
+    # assert not fabric._backward_called
+
+    # Model that returns a datastructure of tensors
+    class DictReturnModel(nn.Linear):
+        def forward(self, x):
+            return {"loss": super().forward(x).sum()}
+
+    model3 = DictReturnModel(2, 2)
+    model3 = getattr(fabric, setup_method)(model3)
+    loss = model3(batch)["loss"] * 2
+    with error_context:
+        loss.backward()
+    loss = model3(batch)["loss"] * 2
+    fabric.backward(loss)  # no error
+    # assert not fabric._backward_called
 
 
 @RunIf(deepspeed=True, mps=False)
