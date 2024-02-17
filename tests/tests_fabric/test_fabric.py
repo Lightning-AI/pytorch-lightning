@@ -652,7 +652,9 @@ def test_backward_required(_, strategy, precision, error_expected, setup_method)
     with error_context:
         loss.backward()
     loss = model1(batch).sum()
+    assert not lightning.fabric.wrappers._in_fabric_backward
     fabric.backward(loss)  # no error
+    assert not lightning.fabric.wrappers._in_fabric_backward
 
     # Two models chained
     model2 = torch.nn.Linear(2, 2)
@@ -675,9 +677,7 @@ def test_backward_required(_, strategy, precision, error_expected, setup_method)
     loss1 = model1(batch).sum()
     loss2 = model2(batch).sum()
     fabric.backward(loss1)  # no error
-    # assert not fabric._backward_called
     fabric.backward(loss2)  # no error
-    # assert not fabric._backward_called
 
     # Model that returns a datastructure of tensors
     class DictReturnModel(nn.Linear):
