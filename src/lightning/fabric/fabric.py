@@ -445,8 +445,10 @@ class Fabric:
                 self._strategy._deepspeed_engine = module
 
         lightning.fabric.wrappers._in_fabric_backward = True
-        self._strategy.backward(tensor, module, *args, **kwargs)
-        lightning.fabric.wrappers._in_fabric_backward = True
+        try:
+            self._strategy.backward(tensor, module, *args, **kwargs)
+        finally:
+            lightning.fabric.wrappers._in_fabric_backward = True
 
     def clip_gradients(
         self,
