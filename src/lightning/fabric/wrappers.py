@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import inspect
+import weakref
 from copy import deepcopy
 from functools import wraps
 from typing import (
@@ -68,7 +69,7 @@ class _FabricOptimizer:
 
         """
         self._optimizer = optimizer
-        self._strategy = strategy
+        self._strategy = weakref.proxy(strategy)
         self._callbacks = callbacks or []
         # imitate the class of the wrapped object to make isinstance checks work
         self.__class__ = type("Fabric" + optimizer.__class__.__name__, (self.__class__, optimizer.__class__), {})
@@ -124,7 +125,7 @@ class _FabricModule(_DeviceDtypeModuleMixin):
         super().__init__()
         self._forward_module = forward_module
         self._original_module = original_module or forward_module
-        self._strategy = strategy  # TODO: weakref
+        self._strategy = weakref.proxy(strategy)
         self._fabric_module_initialized = True
 
     @property
