@@ -13,7 +13,7 @@
 # limitations under the License.
 import pytest
 import torch
-from lightning.fabric.utilities.apply_func import convert_tensors_to_scalars, move_data_to_device
+from lightning.fabric.utilities.apply_func import convert_tensors_to_scalars, move_data_to_device, _requires_grad
 from torch import Tensor
 
 
@@ -56,3 +56,34 @@ def test_convert_tensors_to_scalars():
 
     with pytest.raises(ValueError, match="does not contain a single element"):
         convert_tensors_to_scalars({"tensor": torch.tensor([1, 2, 3])})
+
+
+def test_requires_grad():
+    """Test detecting if any tensor in a collection requires grad."""
+    tensor_no_grad = torch.tensor(0.0, requires_grad=False)
+    tensor_requires_grad = torch.tensor(1.0, requires_grad=True)
+
+    # obj
+    assert not _requires_grad(1)
+    assert not _requires_grad("str")
+    assert not _requires_grad(None)
+
+    # tensor
+    assert not _requires_grad(tensor_no_grad)
+    assert _requires_grad(tensor_requires_grad)
+
+    # tuple
+    assert not _requires_grad(("str", tensor_no_grad, 1, tensor_no_grad))
+    assert _requires_grad(("str", tensor_requires_grad, 1, tensor_no_grad))
+
+    # list
+    assert not _requires_grad(["str", tensor_no_grad, 1, tensor_no_grad])
+    assert _requires_grad(["str", tensor_requires_grad, 1, tensor_no_grad])
+
+    # dict
+    assert not _requires_grad({"a": "str", "b": tensor_no_grad, "c": 1, "d": tensor_no_grad})
+    assert _requires_grad({"a": "str", "b": tensor_no_grad, "c": 1, "d": tensor_requires_grad})
+
+    # nested
+    assert not _requires_grad({"a": "str", "b": [tensor_no_grad, 1], "c": 2, "d": {"e": tensor_no_grad}})
+    assert _requires_grad({"a": "str", "b": [tensor_requires_grad, 1], "c": 2, "d": {"e": tensor_no_grad}})

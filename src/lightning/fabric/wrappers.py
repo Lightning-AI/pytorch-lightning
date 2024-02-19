@@ -31,6 +31,7 @@ from typing import (
 )
 
 import torch
+
 from lightning_utilities.core.apply_func import apply_to_collection
 from torch import Tensor
 from torch import nn as nn
@@ -42,6 +43,7 @@ from typing_extensions import override
 from lightning.fabric.plugins import Precision
 from lightning.fabric.strategies import Strategy
 from lightning.fabric.utilities import move_data_to_device
+from lightning.fabric.utilities.apply_func import _requires_grad
 from lightning.fabric.utilities.data import _set_sampler_epoch
 from lightning.fabric.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
@@ -202,7 +204,7 @@ class _FabricModule(_DeviceDtypeModuleMixin):
 
             output = method(*args, **kwargs)
 
-            if module_called:
+            if module_called and _requires_grad(output):
                 raise RuntimeError(
                     f"You are calling the method `{type(self._original_module).__name__}.{name}()` from outside the"
                     " model. This will bypass the wrapper from the strategy and result in incorrect behavior in"

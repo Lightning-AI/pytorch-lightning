@@ -127,3 +127,14 @@ def convert_tensors_to_scalars(data: Any) -> Any:
         return value.item()
 
     return apply_to_collection(data, Tensor, to_item)
+
+
+def _requires_grad(data: Any) -> bool:
+    requires_grad = False
+
+    def _check_requires_grad(tensor: Tensor) -> None:
+        nonlocal requires_grad
+        requires_grad = requires_grad or tensor.requires_grad
+
+    apply_to_collection(data, dtype=Tensor, function=_check_requires_grad)
+    return requires_grad

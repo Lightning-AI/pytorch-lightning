@@ -83,18 +83,20 @@ def test_fabric_module_method_lookup():
             self.submodule = torch.nn.Linear(2, 3)
 
         def forward(self, x):
-            return x
+            return self.submodule(x)
 
         def method_without_module_invocation(self):
             return 100
 
-        def method_with_submodule_invocation(self):
-            self.submodule(torch.rand(2, 2))
-            return 101
+        def method_with_submodule_invocation_and_grad(self):
+            return 101, self.submodule(torch.rand(2, 2))
+
+        @torch.no_grad()
+        def method_with_submodule_invocation_and_no_grad(self):
+            return 102, self.submodule(torch.rand(2, 2))
 
         def method_with_self_invocation(self):
-            self(None)
-            return 102
+            return 103, self(torch.rand(2, 2))
 
     class ModuleWrapper(torch.nn.Module):
         def __init__(self, module):
@@ -112,13 +114,15 @@ def test_fabric_module_method_lookup():
     fabric_module = _FabricModule(forward_module=wrapped_module, precision=Mock(), original_module=original_module)
     assert fabric_module.method_without_module_invocation() == 100
     with pytest.raises(
-        RuntimeError, match=r"You are calling the method `OriginalModule.method_with_submodule_invocation\(\)` from"
+        RuntimeError, match=r"You are calling .* `OriginalModule.method_with_submodule_invocation_and_grad\(\)` from"
     ):
-        assert fabric_module.method_with_submodule_invocation() == 101
+        assert fabric_module.method_with_submodule_invocation_and_grad()[0] == 101
+
+    assert fabric_module.method_with_submodule_invocation_and_no_grad()[0] == 102
     with pytest.raises(
         RuntimeError, match=r"You are calling the method `OriginalModule.method_with_self_invocation\(\)` from"
     ):
-        assert fabric_module.method_with_self_invocation() == 102
+        assert fabric_module.method_with_self_invocation()[0] == 103
 
 
 def test_fabric_module_setattr():
