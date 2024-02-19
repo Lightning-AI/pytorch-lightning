@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import shutil
-from contextlib import ExitStack
+from contextlib import ExitStack, nullcontext
 from datetime import timedelta
 from functools import partial
 from pathlib import Path
@@ -449,8 +449,6 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         if path.is_dir() and self._state_dict_type == "full" and not _is_sharded_checkpoint(path):
             raise IsADirectoryError(f"The checkpoint path exists and is a directory: {path}")
 
-        from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
-
         modules = [module for module in state.values() if _has_fsdp_modules(module)]
         if len(modules) == 0:
             raise ValueError(
@@ -471,28 +469,9 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
                 path.unlink()
             path.mkdir(parents=True, exist_ok=True)
 
-            state_dict_ctx = _get_sharded_state_dict_context(module)
-
-            # replace the modules and optimizer objects in the state with their local state dict
-            # and separate the user's metadata
-            converted_state: Dict[str, Any] = {}
-            metadata: Dict[str, Any] = {}
-            with state_dict_ctx:
-                for key, obj in state.items():
-                    converted: Any
-                    if isinstance(obj, Module):
-                        converted = obj.state_dict()
-                        target_dict = converted_state
-                    elif isinstance(obj, Optimizer):
-                        converted = FSDP.optim_state_dict(module, obj)
-                        target_dict = converted_state
-                    else:  # everything not a module or optimizer is considered metadata
-                        converted = obj.state_dict() if isinstance(obj, _Stateful) else obj
-                        target_dict = metadata
-                    _apply_filter(key, filter or {}, converted, target_dict)
-
-            _distributed_checkpoint_save(converted_state, path)
-
+            converted_state, metadata = _save_state_dict(
+                state, module, path, filter, self._state_dict_type, self.world_size
+            )
             if self.global_rank == 0:
                 torch.save(metadata, path / _METADATA_FILENAME)
 
@@ -500,20 +479,12 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             if _is_sharded_checkpoint(path):
                 shutil.rmtree(path)
 
-            state_dict_ctx = _get_full_state_dict_context(module, world_size=self.world_size)
-            full_state: Dict[str, Any] = {}
-            with state_dict_ctx:
-                for key, obj in state.items():
-                    if isinstance(obj, Module):
-                        converted = obj.state_dict()
-                    elif isinstance(obj, Optimizer):
-                        converted = FSDP.optim_state_dict(module, obj)
-                    else:  # everything not a module or optimizer is considered metadata
-                        converted = obj.state_dict() if isinstance(obj, _Stateful) else obj
-                    _apply_filter(key, filter or {}, converted, full_state)
-
+            converted_state, metadata = _save_state_dict(
+                state, module, path, filter, self._state_dict_type, self.world_size
+            )
+            converted_state.update(metadata)
             if self.global_rank == 0:
-                torch.save(full_state, path)
+                torch.save(converted_state, path)
         else:
             raise ValueError(f"Unknown state_dict_type: {self._state_dict_type}")
 
@@ -553,10 +524,6 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
                 "Loading a single optimizer object from a checkpoint is not supported yet with the FSDP strategy."
             )
 
-        from torch.distributed.checkpoint.optimizer import load_sharded_optimizer_state_dict
-        from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
-        from torch.distributed.fsdp import OptimStateKeyType
-
         modules = {key: module for key, module in state.items() if _has_fsdp_modules(module)}
         if len(modules) == 0:
             raise ValueError(
@@ -574,32 +541,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         module_key, module = list(modules.items())[0]
 
         if _is_sharded_checkpoint(path):
-            state_dict_ctx = _get_sharded_state_dict_context(module)
-
-            with state_dict_ctx:
-                module_state = {module_key: module.state_dict()}
-                _distributed_checkpoint_load(module_state, path)
-                module.load_state_dict(module_state[module_key], strict=strict)
-
-                if optimizers:
-                    from torch.distributed.checkpoint import FileSystemReader
-
-                    # TODO: replace with newer APIs
-                    # https://github.com/pytorch/pytorch/issues/119800#issuecomment-1942156271
-                    reader = FileSystemReader(path=path)
-                    # the optimizer states must be loaded separately
-                    for optim_key, optim in optimizers.items():
-                        optim_state = load_sharded_optimizer_state_dict(
-                            model_state_dict=module_state[module_key],
-                            optimizer_key=optim_key,
-                            storage_reader=reader,
-                        )
-                        flattened_osd = FSDP.optim_state_dict_to_load(
-                            optim_state_dict=optim_state[optim_key],
-                            model=module,
-                            optim=optim,
-                        )
-                        optim.load_state_dict(flattened_osd)
+            _load_state_dict(module, module_key, optimizers, path, "sharded", strict, self.world_size)
 
             # Load metadata (anything not a module or optimizer)
             metadata = torch.load(path / _METADATA_FILENAME)
@@ -609,47 +551,16 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
                 if key not in metadata:
                     continue
                 state[key] = metadata.pop(key)
-
             # return the remaining metadata that wasn't requested as part of `state`
             return metadata
 
         if _is_full_checkpoint(path):
-            checkpoint = _lazy_load(path) if _TORCH_GREATER_EQUAL_2_0 else torch.load(path, map_location="cpu")
-            _load_raw_module_state(checkpoint.pop(module_key), module=module, world_size=self.world_size, strict=strict)
-
-            if isinstance(state, Module):
-                return {}
-
-            if _TORCH_GREATER_EQUAL_2_0:
-                # Materialize lazy tensors if there are any left in the checkpoint
-                # The `torch.Optimizer.load_state_dict` method can't load lazy tensors because of deepcopy pickle issues
-                checkpoint = _materialize_tensors(checkpoint)
-
-            # Load optimizer states
-            for optim_key, optim in optimizers.items():
-                # rank0_only should be false because we need to load the optimizer state on all ranks
-                with _get_full_state_dict_context(module, world_size=self.world_size, rank0_only=False):
-                    temp_state_dict = checkpoint.pop(optim_key)
-
-                    # Handling the case where the optimizer state is saved from a normal optimizer
-                    if isinstance(list(temp_state_dict["state"].keys())[0], int):
-                        temp_state_dict = FSDP.rekey_optim_state_dict(
-                            temp_state_dict, OptimStateKeyType.PARAM_NAME, module
-                        )
-
-                    optim_state_dict = FSDP.optim_state_dict_to_load(
-                        optim_state_dict=temp_state_dict,
-                        model=module,
-                        optim=optim,
-                    )
-                    optim.load_state_dict(optim_state_dict)
+            checkpoint = _load_state_dict(module, module_key, optimizers, path, "full", strict, self.world_size)
 
             requested_metadata_keys = state.keys() - modules.keys() - optimizers.keys()
             _validate_keys_for_strict_loading(requested_metadata_keys, checkpoint.keys(), strict=strict)
-
             # Load metadata (anything not a module or optimizer)
             _move_state_into(source=checkpoint, destination=state, keys=requested_metadata_keys)
-
             # return the remaining metadata that wasn't requested as part of `state`
             return checkpoint
 
@@ -819,6 +730,9 @@ def _optimizer_has_flat_params(optimizer: Optimizer) -> bool:
 
 
 def _get_sharded_state_dict_context(module: Module) -> Generator[None, None, None]:
+    if _TORCH_GREATER_EQUAL_2_3:
+        pass  # reminder to remove this when 2.3 is the minimum torch version
+
     from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
     from torch.distributed.fsdp.api import ShardedOptimStateDictConfig, ShardedStateDictConfig, StateDictType
 
@@ -836,6 +750,9 @@ def _get_sharded_state_dict_context(module: Module) -> Generator[None, None, Non
 def _get_full_state_dict_context(
     module: Module, world_size: int, rank0_only: bool = True
 ) -> Generator[None, None, None]:
+    if _TORCH_GREATER_EQUAL_2_3:
+        pass  # reminder to remove this when 2.3 is the minimum torch version
+
     from torch.distributed.fsdp import FullStateDictConfig, StateDictType
     from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
 
@@ -895,8 +812,15 @@ def _load_raw_module_state(state_dict: Dict[str, Any], module: Module, world_siz
     if not isinstance(module, FSDP):
         module.load_state_dict(state_dict, strict=strict)
     else:
-        with _get_full_state_dict_context(module, world_size=world_size, rank0_only=False):
-            module.load_state_dict(state_dict, strict=strict)
+        if _TORCH_GREATER_EQUAL_2_2:
+            from torch.distributed.checkpoint.state_dict import StateDictOptions, set_model_state_dict
+
+            # `cpu_offload` disabled because when used with `full_state_dict` only rank 0 loads the state dict
+            options = StateDictOptions(full_state_dict=True, cpu_offload=False, strict=strict)
+            set_model_state_dict(module, state_dict, options=options)
+        else:
+            with _get_full_state_dict_context(module, world_size=world_size, rank0_only=False):
+                module.load_state_dict(state_dict, strict=strict)
 
 
 def _has_meta_device_parameters(obj: Union[Module, Optimizer]) -> bool:
@@ -921,13 +845,13 @@ def _move_torchmetrics_to_device(module: torch.nn.Module, device: torch.device) 
         metric.to(device)  # `.to()` is in-place
 
 
-def _distributed_checkpoint_save(converted_state: Dict[str, Any], path: Path) -> None:
+def _distributed_checkpoint_save(state_dict: Dict[str, Any], path: Path) -> None:
     if _TORCH_GREATER_EQUAL_2_3:
         from torch.distributed.checkpoint import save
 
         # let torch automatically infer the writer to use. This might also support fsspec paths in the future
         # https://github.com/pytorch/pytorch/issues/118036
-        save(converted_state, checkpoint_id=path)  # type: ignore[call-arg]
+        save(state_dict, checkpoint_id=path)  # type: ignore[call-arg]
     else:  # deprecated
         from torch.distributed.checkpoint import FileSystemWriter
 
@@ -937,7 +861,145 @@ def _distributed_checkpoint_save(converted_state: Dict[str, Any], path: Path) ->
             from torch.distributed.checkpoint import save_state_dict as save
         # FSDP's FileSystemWriter streams the tensors to disk to minimize memory peaks
         writer = FileSystemWriter(path=path, single_file_per_rank=True)
-        save(converted_state, writer)
+        save(state_dict, writer)
+
+
+def _save_state_dict(
+    state: Dict[str, Any],
+    module: Module,
+    path: Path,
+    filter: Optional[Dict[str, Callable[[str, Any], bool]]],
+    state_dict_type: Literal["sharded", "full"],
+    world_size: int,
+) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+    if _TORCH_GREATER_EQUAL_2_2:
+        from torch.distributed.checkpoint.state_dict import (
+            StateDictOptions,
+            get_model_state_dict,
+            get_optimizer_state_dict,
+        )
+
+        options = StateDictOptions(full_state_dict=state_dict_type == "full", cpu_offload=True)
+        state_dict_ctx = nullcontext()
+    else:
+        from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
+
+        state_dict_ctx = (
+            _get_sharded_state_dict_context(module)
+            if state_dict_type == "sharded"
+            else _get_full_state_dict_context(module, world_size=world_size)
+        )
+
+    # replace the modules and optimizer objects in the state with their local state dict
+    # and separate the user's metadata
+    converted_state: Dict[str, Any] = {}
+    metadata: Dict[str, Any] = {}
+    with state_dict_ctx:
+        for key, obj in state.items():
+            converted: Any
+            if isinstance(obj, Module):
+                converted = get_model_state_dict(obj, options=options) if _TORCH_GREATER_EQUAL_2_2 else obj.state_dict()
+                target_dict = converted_state
+            elif isinstance(obj, Optimizer):
+                converted = (
+                    get_optimizer_state_dict(module, obj, options=options)
+                    if _TORCH_GREATER_EQUAL_2_2
+                    else FSDP.optim_state_dict(module, obj)
+                )
+                target_dict = converted_state
+            else:  # everything not a module or optimizer is considered metadata
+                converted = obj.state_dict() if isinstance(obj, _Stateful) else obj
+                target_dict = metadata
+            _apply_filter(key, filter or {}, converted, target_dict)
+
+    _distributed_checkpoint_save(converted_state, path)
+
+    return converted_state, metadata
+
+
+def _load_state_dict(
+    module: Module,
+    module_key: str,
+    optimizers: Dict[str, torch.optim.Optimizer],
+    path: Path,
+    state_dict_type: Literal["sharded", "full"],
+    strict: bool,
+    world_size: int,
+) -> Optional[Dict[str, Any]]:
+    if _TORCH_GREATER_EQUAL_2_2:
+        from torch.distributed.checkpoint.state_dict import (
+            StateDictOptions,
+            set_model_state_dict,
+            set_optimizer_state_dict,
+        )
+
+        options = StateDictOptions(full_state_dict=state_dict_type == "full", cpu_offload=False)
+        module_state = {module_key: module.state_dict()}
+        _distributed_checkpoint_load(module_state, path)
+        set_model_state_dict(module, module_state, options=options)
+        for key, optimizer in optimizers.items():
+            optimizer_state = {key: optimizer.state_dict()}
+            _distributed_checkpoint_load(optimizer_state, path)
+            set_optimizer_state_dict(module, optimizer, optim_state_dict=optimizer_state, options=options)
+    else:
+        if state_dict_type == "sharded":
+            state_dict_ctx = _get_sharded_state_dict_context(module)
+            with state_dict_ctx:
+                module_state = {module_key: module.state_dict()}
+                _distributed_checkpoint_load(module_state, path)
+                module.load_state_dict(module_state[module_key], strict=strict)
+
+                if optimizers:
+                    from torch.distributed.checkpoint import FileSystemReader
+                    from torch.distributed.checkpoint.optimizer import load_sharded_optimizer_state_dict
+                    from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
+
+                    reader = FileSystemReader(path=path)
+                    # the optimizer states must be loaded separately
+                    for optim_key, optim in optimizers.items():
+                        optim_state = load_sharded_optimizer_state_dict(
+                            model_state_dict=module_state[module_key],
+                            optimizer_key=optim_key,
+                            storage_reader=reader,
+                        )
+                        flattened_osd = FSDP.optim_state_dict_to_load(
+                            optim_state_dict=optim_state[optim_key],
+                            model=module,
+                            optim=optim,
+                        )
+                        optim.load_state_dict(flattened_osd)
+        else:
+            checkpoint = _lazy_load(path) if _TORCH_GREATER_EQUAL_2_0 else torch.load(path, map_location="cpu")
+            _load_raw_module_state(checkpoint.pop(module_key), module=module, world_size=world_size, strict=strict)
+
+            if _TORCH_GREATER_EQUAL_2_0:
+                # Materialize lazy tensors if there are any left in the checkpoint
+                # The `torch.Optimizer.load_state_dict` method can't load lazy tensors because of deepcopy pickle issues
+                checkpoint = _materialize_tensors(checkpoint)
+
+            from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
+            from torch.distributed.fsdp import OptimStateKeyType
+
+            # Load optimizer states
+            for optim_key, optim in optimizers.items():
+                # rank0_only should be false because we need to load the optimizer state on all ranks
+                with _get_full_state_dict_context(module, world_size=world_size, rank0_only=False):
+                    temp_state_dict = checkpoint.pop(optim_key)
+
+                    # Handling the case where the optimizer state is saved from a normal optimizer
+                    if isinstance(list(temp_state_dict["state"].keys())[0], int):
+                        temp_state_dict = FSDP.rekey_optim_state_dict(
+                            temp_state_dict, OptimStateKeyType.PARAM_NAME, module
+                        )
+
+                    optim_state_dict = FSDP.optim_state_dict_to_load(
+                        optim_state_dict=temp_state_dict,
+                        model=module,
+                        optim=optim,
+                    )
+                    optim.load_state_dict(optim_state_dict)
+
+            return checkpoint
 
 
 def _distributed_checkpoint_load(module_state: Dict[str, Any], path: Path) -> None:
