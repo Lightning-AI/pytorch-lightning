@@ -22,7 +22,6 @@ from typing import (
     Callable,
     ContextManager,
     Dict,
-    Generator,
     List,
     Literal,
     Optional,
@@ -556,6 +555,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
 
         if _is_full_checkpoint(path):
             checkpoint = _load_state_dict(module, module_key, optimizers, path, "full", strict, self.world_size)
+            assert checkpoint is not None
 
             requested_metadata_keys = state.keys() - modules.keys() - optimizers.keys()
             _validate_keys_for_strict_loading(requested_metadata_keys, checkpoint.keys(), strict=strict)
@@ -729,7 +729,7 @@ def _optimizer_has_flat_params(optimizer: Optimizer) -> bool:
     )
 
 
-def _get_sharded_state_dict_context(module: Module) -> Generator[None, None, None]:
+def _get_sharded_state_dict_context(module: Module) -> ContextManager:
     if _TORCH_GREATER_EQUAL_2_3:
         pass  # reminder to remove this when 2.3 is the minimum torch version
 
@@ -744,12 +744,10 @@ def _get_sharded_state_dict_context(module: Module) -> Generator[None, None, Non
         state_dict_config=state_dict_config,
         optim_state_dict_config=optim_state_dict_config,
     )
-    return state_dict_type_context  # type: ignore[return-value]
+    return state_dict_type_context
 
 
-def _get_full_state_dict_context(
-    module: Module, world_size: int, rank0_only: bool = True
-) -> Generator[None, None, None]:
+def _get_full_state_dict_context(module: Module, world_size: int, rank0_only: bool = True) -> ContextManager:
     if _TORCH_GREATER_EQUAL_2_3:
         pass  # reminder to remove this when 2.3 is the minimum torch version
 
@@ -776,7 +774,7 @@ def _get_full_state_dict_context(
             state_dict_type=StateDictType.FULL_STATE_DICT,
             state_dict_config=state_dict_config,
         )
-    return state_dict_type_context  # type: ignore[return-value]
+    return state_dict_type_context
 
 
 def _is_sharded_checkpoint(path: Path) -> bool:
@@ -880,7 +878,7 @@ def _save_state_dict(
         )
 
         options = StateDictOptions(full_state_dict=state_dict_type == "full", cpu_offload=True)
-        state_dict_ctx = nullcontext()
+        state_dict_ctx: ContextManager = nullcontext()
     else:
         from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
 
@@ -936,7 +934,7 @@ def _load_state_dict(
         options = StateDictOptions(full_state_dict=state_dict_type == "full", cpu_offload=False)
         module_state = {module_key: module.state_dict()}
         _distributed_checkpoint_load(module_state, path)
-        set_model_state_dict(module, module_state, options=options)
+        set_model_state_dict(module, module_state, options=options)  # type: ignore[arg-type]
         for key, optimizer in optimizers.items():
             optimizer_state = {key: optimizer.state_dict()}
             _distributed_checkpoint_load(optimizer_state, path)

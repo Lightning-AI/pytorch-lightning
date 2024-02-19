@@ -244,9 +244,10 @@ def test_fsdp_save_checkpoint_storage_options(tmp_path):
 @mock.patch("lightning.fabric.strategies.fsdp.FSDPStrategy.broadcast", lambda _, x: x)
 @mock.patch("lightning.fabric.strategies.fsdp._get_full_state_dict_context")
 @mock.patch("lightning.fabric.strategies.fsdp._get_sharded_state_dict_context")
+@mock.patch("lightning.fabric.strategies.fsdp._save_state_dict", return_value=({}, {}))
 @mock.patch("lightning.fabric.strategies.fsdp.torch.save")
 @mock.patch("lightning.fabric.strategies.fsdp.shutil")
-def test_fsdp_save_checkpoint_path_exists(shutil_mock, torch_save_mock, __, ___, tmp_path):
+def test_fsdp_save_checkpoint_path_exists(shutil_mock, torch_save_mock, __, ___, ____, tmp_path):
     strategy = FSDPStrategy(state_dict_type="full")
 
     # state_dict_type='full', path exists, path is not a sharded checkpoint: error
