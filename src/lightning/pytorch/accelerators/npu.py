@@ -87,7 +87,7 @@ class NPUAccelerator(Accelerator):
     @override
     def is_available() -> bool:
         try:
-            import torch_npu # noqa: F401
+            import torch_npu  # noqa: F401
 
             return torch.npu.device_count() > 0
         except ImportError:

@@ -318,8 +318,8 @@ class DeepSpeedStrategy(DDPStrategy):
     def setup_environment(self) -> None:
         if not isinstance(self.accelerator, (CUDAAccelerator, NPUAccelerator)):
             raise RuntimeError(
-                f"The DeepSpeed strategy is only supported on CUDA GPUs or Ascend NPUs but"
-                 " `{self.accelerator.__class__.__name__}` is used."
+                "The DeepSpeed strategy is only supported on CUDA GPUs or Ascend NPUs but"
+                " `{self.accelerator.__class__.__name__}` is used."
             )
         super().setup_environment()
 
