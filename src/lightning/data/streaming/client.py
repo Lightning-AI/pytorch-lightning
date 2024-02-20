@@ -42,10 +42,9 @@ class S3Client:
 
     @property
     def client(self) -> Any:
-        if not self._has_cloud_space_id:
-            if self._client is None:
-                self._create_client()
-            return self._client
+        if self._client is None:
+            self._create_client()
+            self._last_time = time()
 
         # Re-generate credentials for EC2
         if self._last_time is None or (time() - self._last_time) > self._refetch_interval:
