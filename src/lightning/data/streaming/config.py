@@ -71,7 +71,7 @@ class ChunksConfig:
         self._compressor: Optional[Compressor] = None
 
         if self._compressor_name in _COMPRESSORS:
-            self._compressor: Compressor = _COMPRESSORS[self._compressor_name]
+            self._compressor = _COMPRESSORS[self._compressor_name]
 
     def download_chunk_from_index(self, chunk_index: int) -> None:
         chunk_filename = self._chunks[chunk_index]["filename"]
