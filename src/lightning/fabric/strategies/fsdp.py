@@ -551,7 +551,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             # return the remaining metadata that wasn't requested as part of `state`
             return metadata
 
-        elif _is_full_checkpoint(path):
+        if _is_full_checkpoint(path):
             checkpoint = _set_state_dict(module, module_key, optimizers, path, "full", strict, self.world_size)
             assert checkpoint is not None
 
