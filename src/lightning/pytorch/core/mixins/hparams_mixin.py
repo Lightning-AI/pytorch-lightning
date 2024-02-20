@@ -28,6 +28,7 @@ _ALLOWED_CONFIG_TYPES = (AttributeDict, MutableMapping, Namespace)
 
 _given_hyperparameters: ContextVar = ContextVar("_given_hyperparameters", default=None)
 
+
 @contextmanager
 def _given_hyperparameters_context(hparams: dict, instantiator: str) -> Iterator[None]:
     hparams = hparams.copy()
