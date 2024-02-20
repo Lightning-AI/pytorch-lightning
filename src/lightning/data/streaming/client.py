@@ -2,7 +2,7 @@ import os
 from time import time
 from typing import Any, Optional
 
-from lightning.data.constants import _BOTO3_AVAILABLE
+from lightning.data.constants import _BOTO3_AVAILABLE, _IS_IN_STUDIO
 
 if _BOTO3_AVAILABLE:
     import boto3
@@ -25,7 +25,7 @@ class S3Client:
             os.getenv("AWS_SHARED_CREDENTIALS_FILE") == os.getenv("AWS_CONFIG_FILE") == "/.credentials/.aws_credentials"
         )
 
-        if has_shared_credentials_file:
+        if has_shared_credentials_file or not _IS_IN_STUDIO:
             self._client = boto3.client(
                 "s3", config=botocore.config.Config(retries={"max_attempts": 1000, "mode": "adaptive"})
             )
