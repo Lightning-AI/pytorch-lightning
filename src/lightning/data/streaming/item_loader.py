@@ -101,6 +101,7 @@ class PyTreeLoader(BaseItemLoader):
             begin, end = np.frombuffer(pair, np.uint32)
             fp.seek(begin)
             data = fp.read(end - begin)
+
         return self.deserialize(data)
 
     def deserialize(self, raw_item_data: bytes) -> "PyTree":
@@ -109,7 +110,7 @@ class PyTreeLoader(BaseItemLoader):
         sizes = np.frombuffer(raw_item_data[:idx], np.uint32)
         data = []
         for size, data_format in zip(sizes, self._config["data_format"]):
-            serializer = self._serializers[data_format]
+            serializer = self._serializers[data_format.split(":")[0] if ":" in data_format else data_format]
             data_bytes = raw_item_data[idx : idx + size]
             data.append(serializer.deserialize(data_bytes))
             idx += size
