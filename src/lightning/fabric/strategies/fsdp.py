@@ -255,7 +255,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         super().setup_environment()
         self._setup_distributed()
 
-        # prepare process groups for hybrid sharding here, and put them in self.kwargs
+        # prepare process groups for hybrid sharding here, and put them in self._fsdp_kwargs
         fsdp_size = self.fsdp_size
         global_rank = self.cluster_environment.global_rank()
         world_size = self.cluster_environment.world_size()
