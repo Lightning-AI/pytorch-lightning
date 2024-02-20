@@ -158,7 +158,7 @@ class FSDPStrategy(ParallelStrategy):
         activation_checkpointing_policy: Optional["_POLICY"] = None,
         sharding_strategy: "_SHARDING_STRATEGY" = "FULL_SHARD",
         state_dict_type: Literal["full", "sharded"] = "full",
-        fsdp_size: int = 0,
+        fsdp_size: Optional[int] = None,
         **kwargs: Any,
     ) -> None:
         super().__init__(
@@ -174,7 +174,6 @@ class FSDPStrategy(ParallelStrategy):
         self.cpu_offload = _init_cpu_offload(cpu_offload)
         self.mixed_precision = mixed_precision
         self.kwargs = _auto_wrap_policy_kwargs(auto_wrap_policy, kwargs)
-        # self.sharding_strategy = _init_sharding_strategy(sharding_strategy, self.kwargs)
         self.fsdp_size = fsdp_size
         self.sharding_strategy = sharding_strategy
 
@@ -267,10 +266,15 @@ class FSDPStrategy(ParallelStrategy):
         fsdp_size = self.fsdp_size
         global_rank = self.cluster_environment.global_rank()
         world_size = self.cluster_environment.world_size()
-        if fsdp_size > 0 and fsdp_size < world_size:
-            assert world_size % fsdp_size == 0
-            from torch.distributed.fsdp.fully_sharded_data_parallel import ShardingStrategy
-            self.sharding_strategy = ShardingStrategy.HYBRID_SHARD
+        assert fsdp_size is None or (0 < fsdp_size <= world_size), f"fsdp_size={fsdp_size}, world_size={world_size}"
+        if fsdp_size is not None and fsdp_size < world_size:
+            assert world_size % fsdp_size == 0, f"fsdp_size={fsdp_size}, world_size={world_size}"
+            from torch.distributed.fsdp import ShardingStrategy
+            strategy = ShardingStrategy[self.sharding_strategy.upper()] if isinstance(self.sharding_strategy, str) else self.sharding_strategy
+            if "HYBRID" not in strategy.name:
+                raise ValueError(
+                    "The hybrid sharding strategy is required when 0 < fsdp_size < world_size."
+                )
             fsdp_groups = [[j for j in range(i, i + fsdp_size)] for i in range(0, world_size, fsdp_size)]
             for fsdp_group in fsdp_groups:
                 fsdp_group_handle = torch.distributed.new_group(fsdp_group)
