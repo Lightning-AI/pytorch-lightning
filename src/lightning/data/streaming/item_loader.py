@@ -106,7 +106,7 @@ class PyTreeLoader(BaseItemLoader):
         return self.deserialize(data)
 
     @functools.lru_cache(maxsize=128)
-    def _key_from_data_format(self, data_format: str):
+    def _data_format_to_key(self, data_format: str) -> str:
         if ":" in data_format:
             serialier, serializer_sub_type = data_format.split(":")
             if serializer_sub_type in self._serializers:
@@ -120,7 +120,7 @@ class PyTreeLoader(BaseItemLoader):
         sizes = np.frombuffer(raw_item_data[:idx], np.uint32)
         data = []
         for size, data_format in zip(sizes, self._config["data_format"]):
-            serializer = self._serializers[self._key_from_data_format(data_format)]
+            serializer = self._serializers[self._data_format_to_key(data_format)]
             data_bytes = raw_item_data[idx : idx + size]
             data.append(serializer.deserialize(data_bytes))
             idx += size
