@@ -29,7 +29,7 @@ import lightning.pytorch as pl
 from lightning.fabric.utilities.cloud_io import get_filesystem
 from lightning.fabric.utilities.types import _TORCH_LRSCHEDULER
 from lightning.pytorch import Callback, LightningDataModule, LightningModule, Trainer, seed_everything
-from lightning.pytorch.core.mixins.hparams_mixin import given_hyperparameters_context
+from lightning.pytorch.core.mixins.hparams_mixin import _given_hyperparameters_context
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.model_helpers import is_overridden
 from lightning.pytorch.utilities.rank_zero import rank_zero_warn
@@ -791,7 +791,10 @@ class _InstantiatorFn:
         self.key = key
 
     def __call__(self, class_type: Type[ModuleType], *args: Any, **kwargs: Any) -> ModuleType:
-        with given_hyperparameters_context(self.cli.config_dump.get(self.key, {})):
+        with _given_hyperparameters_context(
+            hparams=self.cli.config_dump.get(self.key, {}),
+            instantiator="lightning.pytorch.cli.instantiate_module",
+        ):
             return class_type(*args, **kwargs)
 
 

@@ -39,7 +39,6 @@ from lightning.pytorch.cli import (
     OptimizerCallable,
     SaveConfigCallback,
     instantiate_class,
-    instantiate_module,
 )
 from lightning.pytorch.demos.boring_classes import BoringDataModule, BoringModel
 from lightning.pytorch.loggers import CSVLogger, TensorBoardLogger
@@ -863,6 +862,7 @@ def test_lightning_cli_load_from_checkpoint_dependency_injection(cleandir):
     assert hparams_path.is_file()
     hparams = yaml.safe_load(hparams_path.read_text())
     expected = {
+        "_instantiator": "lightning.pytorch.cli.instantiate_module",
         "optimizer": "torch.optim.Adam",
         "scheduler": "torch.optim.lr_scheduler.ConstantLR",
         "activation": {"class_path": "torch.nn.LeakyReLU", "init_args": {"negative_slope": 0.05, "inplace": False}},
@@ -874,7 +874,7 @@ def test_lightning_cli_load_from_checkpoint_dependency_injection(cleandir):
     ckpt = torch.load(checkpoint_path)
     assert ckpt["hyper_parameters"] == expected
 
-    model = TestModel.load_from_checkpoint(checkpoint_path, instantiator=instantiate_module)
+    model = TestModel.load_from_checkpoint(checkpoint_path)
     assert isinstance(model, TestModel)
     assert isinstance(model.activation, torch.nn.LeakyReLU)
     assert model.activation.negative_slope == 0.05

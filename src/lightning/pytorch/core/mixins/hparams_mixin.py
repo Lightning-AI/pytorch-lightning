@@ -26,16 +26,17 @@ _PRIMITIVE_TYPES = (bool, int, float, str)
 _ALLOWED_CONFIG_TYPES = (AttributeDict, MutableMapping, Namespace)
 
 
-given_hyperparameters: ContextVar = ContextVar("given_hyperparameters", default=None)
-
+_given_hyperparameters: ContextVar = ContextVar("_given_hyperparameters", default=None)
 
 @contextmanager
-def given_hyperparameters_context(value: dict) -> Iterator[None]:
-    token = given_hyperparameters.set(value)
+def _given_hyperparameters_context(hparams: dict, instantiator: str) -> Iterator[None]:
+    hparams = hparams.copy()
+    hparams["_instantiator"] = instantiator
+    token = _given_hyperparameters.set(hparams)
     try:
         yield
     finally:
-        given_hyperparameters.reset(token)
+        _given_hyperparameters.reset(token)
 
 
 class HyperparametersMixin:
@@ -119,7 +120,7 @@ class HyperparametersMixin:
 
         """
         self._log_hyperparams = logger
-        given_hparams = given_hyperparameters.get()
+        given_hparams = _given_hyperparameters.get()
         # the frame needs to be created in this file.
         if given_hparams is None and not frame:
             current_frame = inspect.currentframe()
