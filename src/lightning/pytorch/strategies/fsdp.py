@@ -270,11 +270,14 @@ class FSDPStrategy(ParallelStrategy):
         if fsdp_size is not None and fsdp_size < world_size:
             assert world_size % fsdp_size == 0, f"fsdp_size={fsdp_size}, world_size={world_size}"
             from torch.distributed.fsdp import ShardingStrategy
-            strategy = ShardingStrategy[self.sharding_strategy.upper()] if isinstance(self.sharding_strategy, str) else self.sharding_strategy
+
+            strategy = (
+                ShardingStrategy[self.sharding_strategy.upper()]
+                if isinstance(self.sharding_strategy, str)
+                else self.sharding_strategy
+            )
             if "HYBRID" not in strategy.name:
-                raise ValueError(
-                    "The hybrid sharding strategy is required when 0 < fsdp_size < world_size."
-                )
+                raise ValueError("The hybrid sharding strategy is required when 0 < fsdp_size < world_size.")
             fsdp_groups = [[j for j in range(i, i + fsdp_size)] for i in range(0, world_size, fsdp_size)]
             for fsdp_group in fsdp_groups:
                 fsdp_group_handle = torch.distributed.new_group(fsdp_group)
