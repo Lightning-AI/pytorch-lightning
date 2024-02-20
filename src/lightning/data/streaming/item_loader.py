@@ -11,6 +11,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import functools
 import os
 from abc import ABC, abstractmethod
 from time import sleep
@@ -104,13 +105,22 @@ class PyTreeLoader(BaseItemLoader):
 
         return self.deserialize(data)
 
+    @functools.lru_cache(maxsize=128)
+    def _key_from_data_format(self, data_format: str):
+        if ":" in data_format:
+            serialier, serializer_sub_type = data_format.split(":")
+            if serializer_sub_type in self._serializers:
+                return serializer_sub_type
+            return serialier
+        return data_format
+
     def deserialize(self, raw_item_data: bytes) -> "PyTree":
         """Deserialize the raw bytes into their python equivalent."""
         idx = len(self._config["data_format"]) * 4
         sizes = np.frombuffer(raw_item_data[:idx], np.uint32)
         data = []
         for size, data_format in zip(sizes, self._config["data_format"]):
-            serializer = self._serializers[data_format.split(":")[0] if ":" in data_format else data_format]
+            serializer = self._serializers[self._key_from_data_format(data_format)]
             data_bytes = raw_item_data[idx : idx + size]
             data.append(serializer.deserialize(data_bytes))
             idx += size
