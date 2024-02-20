@@ -465,7 +465,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         module = modules[0]
 
         if self._state_dict_type == "sharded":
-            if path.is_file():
+            if _is_full_checkpoint(path):
                 path.unlink()
             path.mkdir(parents=True, exist_ok=True)
 
@@ -551,7 +551,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             # return the remaining metadata that wasn't requested as part of `state`
             return metadata
 
-        if _is_full_checkpoint(path):
+        elif _is_full_checkpoint(path):
             checkpoint = _set_state_dict(module, module_key, optimizers, path, "full", strict, self.world_size)
             assert checkpoint is not None
 
