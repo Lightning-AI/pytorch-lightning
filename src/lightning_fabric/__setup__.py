@@ -78,6 +78,11 @@ def _setup_args() -> Dict[str, Any]:
         "install_requires": assistant.load_requirements(
             _PATH_REQUIREMENTS, unfreeze="none" if _FREEZE_REQUIREMENTS else "all"
         ),
+        "entry_points": {
+            "console_scripts": [
+                "fabric = lightning_fabric.cli:_main",
+            ],
+        },
         "extras_require": _prepare_extras(),
         "project_urls": {
             "Bug Tracker": "https://github.com/Lightning-AI/lightning/issues",

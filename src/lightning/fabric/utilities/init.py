@@ -15,15 +15,11 @@ import itertools
 from typing import Any, Callable, Dict, Optional, Sequence
 
 import torch
+from torch.overrides import TorchFunctionMode
 from typing_extensions import override
 
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_13, _TORCH_GREATER_EQUAL_2_1
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_1
 from lightning.fabric.utilities.types import _DEVICE
-
-if _TORCH_GREATER_EQUAL_1_13:
-    from torch.overrides import TorchFunctionMode
-else:
-    TorchFunctionMode = object  # type: ignore[misc,assignment]
 
 
 # From https://lernapparat.de/faster-model-init by Thomas Viehmann
@@ -39,8 +35,6 @@ class _EmptyInit(TorchFunctionMode):
     """
 
     def __init__(self, enabled: bool = True) -> None:
-        if not _TORCH_GREATER_EQUAL_1_13:
-            raise NotImplementedError("Emtpy weight initialization requires PyTorch >= 1.13.")
         super().__init__()
         self.enabled = enabled
 
@@ -66,7 +60,7 @@ def _materialize(module: torch.nn.Module, device: _DEVICE) -> None:
     """Materialize a module."""
     if not _TORCH_GREATER_EQUAL_2_1:
         raise RuntimeError("recurse=False requires torch 2.1")
-    module.to_empty(device=device, recurse=False)  # type: ignore[arg-type]
+    module.to_empty(device=device, recurse=False)
     if not hasattr(module, "reset_parameters"):
         raise TypeError(
             f"Materialization requires that the `{type(module).__name__}.reset_parameters` method is implemented."

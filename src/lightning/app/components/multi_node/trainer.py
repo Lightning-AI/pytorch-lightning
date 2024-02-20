@@ -29,7 +29,7 @@ from lightning.app.utilities.tracer import Tracer
 class _LightningTrainerWorkProtocol(Protocol):
     @staticmethod
     def run() -> None:
-        ...
+        """Run."""
 
 
 @dataclass

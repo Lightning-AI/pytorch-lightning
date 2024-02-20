@@ -21,6 +21,7 @@ The string representation of this summary prints a table with columns containing
 the name, type and number of parameters for each layer.
 
 """
+
 import logging
 from typing import Any, Dict, List, Tuple, Union
 

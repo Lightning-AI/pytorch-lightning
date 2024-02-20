@@ -13,12 +13,13 @@
 
 from abc import ABC, abstractmethod
 from functools import lru_cache
-from typing import Any, List, Tuple
+from typing import Any, List
 
 import numpy as np
 
 from lightning.data.streaming import Cache
 from lightning.data.utilities.env import _DistributedEnv
+from lightning.data.utilities.shuffle import _associate_chunks_and_internals_to_ranks, _intra_node_chunk_shuffle
 
 
 class Shuffle(ABC):
@@ -37,8 +38,10 @@ class Shuffle(ABC):
             items_per_process = [
                 sum((interval[-1] - interval[0]) for interval in intervals) for intervals in intervals_per_ranks
             ]
-            min_items_per_process = min(items_per_process)
-            return min_items_per_process
+            # Validate each processes gets the exact number of elements
+            if len(items_per_process) > 1:
+                assert all(items_per_process[0] == items_to_process for items_to_process in items_per_process[:1])
+            return items_per_process[0]
 
         return sum((interval[-1] - interval[0]) for interval in intervals_per_ranks[distributed_env.global_rank])
 
@@ -57,13 +60,14 @@ class NoShuffle(Shuffle):
 
     @lru_cache(maxsize=10)
     def get_chunks_and_intervals_per_ranks(self, distributed_env: _DistributedEnv, current_epoch: int) -> Any:
+        # 1. Get the intervals
         chunk_intervals = self.cache.get_chunk_intervals()
-        chunks_per_ranks: List[List[int]] = [[] for _ in range(distributed_env.world_size)]
-        intervals_per_ranks: List[List[Tuple]] = [[] for _ in range(distributed_env.world_size)]
-        for chunk_index, chunk_interval in enumerate(chunk_intervals):
-            replica_index = chunk_index % distributed_env.world_size
-            chunks_per_ranks[replica_index].append(chunk_index)
-            intervals_per_ranks[replica_index].append(chunk_interval)
+        indexes = range(len(chunk_intervals))
+
+        # 2. Compute the items budget of each rank
+        chunks_per_ranks, intervals_per_ranks = _associate_chunks_and_internals_to_ranks(
+            distributed_env, indexes, chunk_intervals, self.drop_last
+        )
 
         return chunks_per_ranks, intervals_per_ranks
 
@@ -97,53 +101,33 @@ class FullShuffle(Shuffle):
         # 2. Shuffle them
         indexes = range(len(chunk_intervals))
 
-        # FIXME: Shuffling should be done only within the nodes to benefit
-        # from cache if the dataset doesn't fit on the node.
-        shuffled_indexes = np.random.RandomState(seed=self.seed + current_epoch).permutation(indexes)
-        shuffled_chunk_intervals = np.asarray(chunk_intervals)[shuffled_indexes]
+        # If we have multiple nodes, the seed_shift is constant here.
+        # Here is why. When you are running epoch 1, we need to shuffle the chunks
+        # and associate to each rank. This is done there.
+        # When you are running epoch 2 or more, we need to keep the same shuffling
+        # than in epoch 1 because shuffle a second time within the node.
+        # This is done slighyly down this function.
+        seed_shift = 1 if distributed_env.num_nodes > 1 else current_epoch
+        shuffled_indexes = np.random.RandomState(seed=self.seed + seed_shift).permutation(indexes)
+        shuffled_chunk_intervals = np.asarray(chunk_intervals)[shuffled_indexes].tolist()
 
         # 3. Compute the items budget of each rank
-        num_items = sum([(interval[-1] - interval[0]) for interval in chunk_intervals])
-        num_items_per_ranks: List[int] = [
-            num_items // distributed_env.world_size + num_items % distributed_env.world_size
-            if rank == distributed_env.world_size - 1 and not self.drop_last
-            else num_items // distributed_env.world_size
-            for rank in range(distributed_env.world_size)
-        ]
-        chunks_per_ranks: List[List[int]] = [[] for _ in range(distributed_env.world_size)]
-        intervals_per_ranks: List[List[List[int]]] = [[] for _ in range(distributed_env.world_size)]
+        chunks_per_ranks, intervals_per_ranks = _associate_chunks_and_internals_to_ranks(
+            distributed_env, shuffled_indexes, shuffled_chunk_intervals, self.drop_last
+        )
 
-        # 4. Assign the chunk & intervals to each rank
-        for chunk_index, chunk_interval in zip(shuffled_indexes, shuffled_chunk_intervals):
-            rank = 0
+        # For the first epoch, no need of further shuffling
+        if current_epoch == 1 or distributed_env.num_nodes == 1:
+            return chunks_per_ranks, intervals_per_ranks
 
-            while True:
-                if rank == len(num_items_per_ranks):
-                    break
+        # Perform shuffle within the nodes to avoid cache miss.
+        # Note: It is possible for the overlapping chunks to change due to the changing order.
+        shuffled_indexes = _intra_node_chunk_shuffle(distributed_env, chunks_per_ranks, self.seed, current_epoch)
+        shuffled_chunk_intervals = np.asarray(chunk_intervals)[shuffled_indexes].tolist()
 
-                items_left_to_assign = num_items_per_ranks[rank]
-
-                if items_left_to_assign == 0:
-                    rank += 1
-                    continue
-
-                items_in_chunk = chunk_interval[-1] - chunk_interval[0]
-
-                if items_in_chunk == 0:
-                    break
-
-                if items_in_chunk > items_left_to_assign:
-                    chunks_per_ranks[rank].append(chunk_index)
-                    begin, end = chunk_interval
-                    intervals_per_ranks[rank].append([begin, begin + items_left_to_assign])
-                    chunk_interval = (begin + items_left_to_assign, end)
-                    num_items_per_ranks[rank] = 0
-                    rank += 1
-                else:
-                    chunks_per_ranks[rank].append(chunk_index)
-                    intervals_per_ranks[rank].append(chunk_interval)
-                    num_items_per_ranks[rank] -= items_in_chunk
-                    break
+        chunks_per_ranks, intervals_per_ranks = _associate_chunks_and_internals_to_ranks(
+            distributed_env, shuffled_indexes, shuffled_chunk_intervals, self.drop_last
+        )
 
         return chunks_per_ranks, intervals_per_ranks
 

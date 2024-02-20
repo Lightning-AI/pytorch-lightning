@@ -13,27 +13,26 @@
 
 import hashlib
 import os
-from dataclasses import dataclass
+from logging import Logger
 from time import time
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
-from torch.utils.data import IterableDataset, get_worker_info
+from torch.utils.data import IterableDataset
 
-from lightning.data.streaming import Cache
-from lightning.data.streaming.constants import (
+from lightning.data.constants import (
     _DEFAULT_CACHE_DIR,
     _INDEX_FILENAME,
-    _LIGHTNING_CLOUD_LATEST,
 )
+from lightning.data.streaming import Cache
 from lightning.data.streaming.item_loader import BaseItemLoader
+from lightning.data.streaming.resolver import Dir, _resolve_dir
 from lightning.data.streaming.sampler import ChunkedIndex
 from lightning.data.streaming.serializers import Serializer
 from lightning.data.streaming.shuffle import FullShuffle, NoShuffle, Shuffle
-from lightning.data.utilities.env import Environment, _DistributedEnv, _WorkerEnv
+from lightning.data.utilities.env import _DistributedEnv, _is_in_dataloader_worker, _WorkerEnv
 
-if _LIGHTNING_CLOUD_LATEST:
-    from lightning_cloud.resolver import Dir, _resolve_dir
+logger = Logger(__name__)
 
 
 class StreamingDataset(IterableDataset):
@@ -41,10 +40,10 @@ class StreamingDataset(IterableDataset):
 
     def __init__(
         self,
-        input_dir: Union[str, "RemoteDir"],
+        input_dir: Union[str, "Dir"],
         item_loader: Optional[BaseItemLoader] = None,
         shuffle: bool = False,
-        drop_last: bool = False,
+        drop_last: Optional[bool] = None,
         seed: int = 42,
         serializers: Optional[Dict[str, Serializer]] = None,
         max_cache_size: Union[int, str] = "100GB",
@@ -57,6 +56,8 @@ class StreamingDataset(IterableDataset):
             shuffle: Whether to shuffle the data.
             drop_last: If `True`, drops the last items to ensure that
                 all processes/workers return the same amount of data.
+                The argument `drop_last` is set to `True` in a distributed setting
+                and `False` otherwise.
             seed: Random seed for shuffling.
             serializers: The serializers used to serialize and deserialize the chunks.
             max_cache_size: The maximum cache size used by the StreamingDataset.
@@ -66,20 +67,30 @@ class StreamingDataset(IterableDataset):
         if not isinstance(shuffle, bool):
             raise ValueError(f"Shuffle should be a boolean. Found {shuffle}")
 
-        if isinstance(input_dir, RemoteDir):
-            input_dir = Dir(path=input_dir.cache_dir, url=input_dir.remote)
-
         input_dir = _resolve_dir(input_dir)
 
         self.input_dir = input_dir
+
         self.item_loader = item_loader
         self.shuffle: bool = shuffle
-        self.drop_last = drop_last
+        self.distributed_env = _DistributedEnv.detect()
+
+        if self.distributed_env.world_size > 1:
+            if drop_last is False:
+                logger.warn(
+                    "You're operating within a distributed environment and have disabled the `drop_last` option. "
+                    "Please note that this configuration may lead to training interruptions if your system depends "
+                    "on distributed collectives."
+                )
+            else:
+                drop_last = True
+
+        self.drop_last = drop_last or False
+
         self.seed = seed
         self.max_cache_size = max_cache_size
 
         self.cache: Optional[Cache] = None
-        self.distributed_env = _DistributedEnv.detect()
         self.worker_env: Optional[_WorkerEnv] = None
         self.worker_chunks: List[int] = []
         self.worker_intervals: List[List[int]] = []
@@ -96,14 +107,24 @@ class StreamingDataset(IterableDataset):
         self.serializers = serializers
         self._state_dict: Optional[Dict[str, Any]] = None
 
-    def _create_cache(self, worker_env: _WorkerEnv) -> Cache:
-        env = Environment(dist_env=self.distributed_env, worker_env=worker_env)
+    def set_shuffle(self, shuffle: bool) -> None:
+        self.shuffle = shuffle
 
+    def set_epoch(self, current_epoch: int) -> None:
+        """Set the current epoch to the dataset on epoch starts.
+
+        When using the StreamingDataLoader, this is done automatically
+
+        """
+        # If the state dict has been reloaded, don't override the current epoch
+        # The StreamingDataloader would clean this out
+        if self._state_dict is None:
+            self.current_epoch = current_epoch
+
+    def _create_cache(self, worker_env: _WorkerEnv) -> Cache:
         if _should_replace_path(self.input_dir.path):
-            # FIXME: Remove the `shard_rank` from the cache_path to enable reloading chunks for the second epoch
-            # without paying the cost of re-download
             cache_path = _try_create_cache_dir(
-                input_dir=self.input_dir.path if self.input_dir.path else self.input_dir.url, shard_rank=env.shard_rank
+                input_dir=self.input_dir.path if self.input_dir.path else self.input_dir.url
             )
             if cache_path is not None:
                 self.input_dir.path = cache_path
@@ -129,8 +150,7 @@ class StreamingDataset(IterableDataset):
         seed = self.seed
         drop_last = self.drop_last
         if self._state_dict is not None:
-            restart_keys = sorted(self._state_dict)
-            state: Dict[str, Any] = self._state_dict[restart_keys[-1]]
+            state: Dict[str, Any] = self._state_dict
             seed = state["seed"]
             drop_last = state["drop_last"]
         return FullShuffle(cache, seed, drop_last) if self.shuffle else NoShuffle(cache, seed, drop_last)
@@ -149,8 +169,7 @@ class StreamingDataset(IterableDataset):
         # Handle restart
         if self._state_dict:
             self._validate_state_dict()
-            restart_keys = sorted(self._state_dict)
-            state: Dict[str, Any] = self._state_dict[restart_keys[-1]]
+            state: Dict[str, Any] = self._state_dict
             self.current_epoch = state["current_epoch"]
 
         chunks_per_replica, intervals_per_replica = self.shuffler.get_chunks_and_intervals_per_ranks(
@@ -197,16 +216,13 @@ class StreamingDataset(IterableDataset):
         assert self.worker_env
         assert self.shuffler
 
-        restart_keys = sorted(self._state_dict)
-
-        # Get the state from the previous run
-        state: Dict[str, Any] = self._state_dict[restart_keys[-1]]
+        state: Dict[str, Any] = self._state_dict
 
         num_workers = state["num_workers"]
         batch_size = state["batch_size"]
 
         # TODO: Implement elastic sampling where the number of workers, ranks can change.
-        num_samples_yielded = sum([state["num_samples_yielded"] for state in self._state_dict.values()])
+        num_samples_yielded = self._state_dict["num_samples_yielded"]
 
         # replay sampling from each worker / chunks using the batch size
         workers_chunks, workers_intervals = _associate_chunks_to_workers(
@@ -223,7 +239,7 @@ class StreamingDataset(IterableDataset):
         self.worker_intervals = workers_intervals[worker_rank]
 
         # replay the indexes for the current chunks
-        interval = workers_intervals[worker_rank][self.chunk_index]
+        interval = self.worker_intervals[self.chunk_index]
         current_indexes = np.arange(interval[0], interval[1])
 
         # re-shuffle the indexes
@@ -232,6 +248,8 @@ class StreamingDataset(IterableDataset):
         # skip any indexes already consumed
         current_indexes = current_indexes[indexes[worker_rank] :]
         self.current_indexes = current_indexes
+
+        self.global_index = num_samples_yielded
 
         # bump the chunk_index
         self.chunk_index += 1
@@ -293,6 +311,10 @@ class StreamingDataset(IterableDataset):
         if _is_in_dataloader_worker():
             raise RuntimeError("The method `state_dict` should only be called in the main process.")
 
+        if self._state_dict is not None:
+            self._state_dict["num_samples_yielded"] = num_samples_yielded
+            return self._state_dict
+
         state = {
             "num_samples_yielded": num_samples_yielded,
             "num_workers": num_workers,
@@ -307,10 +329,7 @@ class StreamingDataset(IterableDataset):
             "shuffle": self.shuffle,
         }
 
-        if self._state_dict:
-            num_restarts = len(self._state_dict)
-            return {**self._state_dict, f"{num_restarts}": state}
-        return {"0": state}
+        return state
 
     def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
         if state_dict:
@@ -322,8 +341,7 @@ class StreamingDataset(IterableDataset):
         assert self.worker_env
         assert self.cache
 
-        restart_keys = sorted(self._state_dict)
-        state: Dict[str, Any] = self._state_dict[restart_keys[-1]]
+        state: Dict[str, Any] = self._state_dict
 
         if state["shuffle"] != self.shuffle:
             raise ValueError(
@@ -337,7 +355,18 @@ class StreamingDataset(IterableDataset):
                 f"Found `{self.worker_env.world_size}` instead of `{state['num_workers']}`."
             )
 
-        if state["input_dir_path"] != self.input_dir.path:
+        # Note: We need to check whether the path has been resolved to its associated cache.
+        # In this case, validate the cache folder is the same.
+        if _should_replace_path(state["input_dir_path"]):
+            cache_path = _try_create_cache_dir(
+                input_dir=state["input_dir_path"] if state["input_dir_path"] else state["input_dir_url"]
+            )
+            if cache_path != self.input_dir.path:
+                raise ValueError(
+                    "The provided `input_dir` path state doesn't match the current one. "
+                    f"Found `{self.input_dir.path}` instead of `{cache_path}`."
+                )
+        elif state["input_dir_path"] != self.input_dir.path:
             raise ValueError(
                 "The provided `input_dir` path state doesn't match the current one. "
                 f"Found `{self.input_dir.path}` instead of `{state['input_dir_path']}`."
@@ -368,35 +397,23 @@ class StreamingDataset(IterableDataset):
             )
 
 
-def _try_create_cache_dir(input_dir: str, shard_rank: int = 0) -> Optional[str]:
-    hash_object = hashlib.md5(input_dir.encode())
+def _try_create_cache_dir(input_dir: Optional[str]) -> Optional[str]:
+    hash_object = hashlib.md5((input_dir or "").encode())
     if "LIGHTNING_CLUSTER_ID" not in os.environ or "LIGHTNING_CLOUD_PROJECT_ID" not in os.environ:
-        cache_dir = os.path.join(_DEFAULT_CACHE_DIR, hash_object.hexdigest(), str(shard_rank))
+        cache_dir = os.path.join(_DEFAULT_CACHE_DIR, hash_object.hexdigest())
         os.makedirs(cache_dir, exist_ok=True)
         return cache_dir
-    cache_dir = os.path.join("/cache", "chunks", hash_object.hexdigest(), str(shard_rank))
+    cache_dir = os.path.join("/cache", "chunks", hash_object.hexdigest())
     os.makedirs(cache_dir, exist_ok=True)
     return cache_dir
 
 
-def _should_replace_path(path: str) -> bool:
+def _should_replace_path(path: Optional[str]) -> bool:
     """Whether the input path is a special path to be replaced."""
     if path is None or path == "":
         return True
 
-    return "/datasets/" in path or "_connections/" in path
-
-
-def _is_in_dataloader_worker() -> bool:
-    return get_worker_info() is not None
-
-
-@dataclass
-class RemoteDir:
-    """Holds a remote URL to a directory and a cache directory where the data will be downloaded."""
-
-    cache_dir: str
-    remote: str
+    return path.startswith("/teamspace/datasets/") or path.startswith("/teamspace/s3_connections/")
 
 
 def is_integer(value: str) -> bool:

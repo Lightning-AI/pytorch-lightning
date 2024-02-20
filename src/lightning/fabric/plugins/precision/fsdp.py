@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import TYPE_CHECKING, Any, ContextManager, Dict, Literal, Optional, cast
+from typing import TYPE_CHECKING, Any, ContextManager, Dict, Literal, Optional
 
 import torch
 from lightning_utilities import apply_to_collection
@@ -128,7 +128,7 @@ class FSDPPrecision(Precision):
     @override
     def backward(self, tensor: Tensor, model: Optional[Module], *args: Any, **kwargs: Any) -> None:
         if self.scaler is not None:
-            tensor = cast(Tensor, self.scaler.scale(tensor))
+            tensor = self.scaler.scale(tensor)
         super().backward(tensor, model, *args, **kwargs)
 
     @override

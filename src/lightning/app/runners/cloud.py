@@ -131,7 +131,7 @@ class CloudRuntime(Runtime):
             user = self.backend.client.auth_service_get_user()
             if not user.features.code_tab:
                 rich.print(
-                    "[red]The `lightning open` command has not been enabled for your account. "
+                    "[red]The `lightning_app open` command has not been enabled for your account. "
                     "To request access, please contact support@lightning.ai[/red]"
                 )
                 sys.exit(1)

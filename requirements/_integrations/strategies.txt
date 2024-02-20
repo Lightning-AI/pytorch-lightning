@@ -2,4 +2,3 @@
 #  in case you want to preserve/enforce restrictions on the latest compatible version, add "strict" as an in-line comment
 
 lightning-colossalai >=0.1.0
-lightning-bagua >=0.1.0

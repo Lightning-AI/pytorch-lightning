@@ -47,7 +47,6 @@ The distributed checkpoint format is the default when you train with the :doc:`F
 
 With ``state_dict_type="sharded"``, each process/GPU will save its own file into a folder at the given path.
 This reduces memory peaks and speeds up the saving to disk.
-The resulting checkpoint folder will have this structure:
 
 .. collapse:: Full example
 
@@ -103,6 +102,7 @@ The resulting checkpoint folder will have this structure:
         ├── __1_0.distcp
         ├── __2_0.distcp
         ├── __3_0.distcp
+        ├── .metadata
         └── meta.pt
 
     The ``.distcp`` files contain the tensor shards from each process/GPU. You can see that the size of these files
@@ -183,4 +183,36 @@ Note that you can load the distributed checkpoint even if the world size has cha
 Convert a distributed checkpoint
 ********************************
 
-Coming soon.
+It is possible to convert a distributed checkpoint to a regular, single-file checkpoint with this utility:
+
+.. code-block:: bash
+
+    python -m lightning.fabric.utilities.consolidate_checkpoint path/to/my/checkpoint
+
+You will need to do this for example if you want to load the checkpoint into a script that doesn't use FSDP, or need to export the checkpoint to a different format for deployment, evaluation, etc.
+
+.. note::
+
+    All tensors in the checkpoint will be converted to CPU tensors, and no GPUs are required to run the conversion command.
+    This function assumes you have enough free CPU memory to hold the entire checkpoint in memory.
+
+.. collapse:: Full example
+
+    Assuming you have saved a checkpoint ``my-checkpoint.ckpt`` using the examples above, run the following command to convert it:
+
+    .. code-block:: bash
+
+        python -m lightning.fabric.utilities.consolidate_checkpoint my-checkpoint.ckpt
+
+    This saves a new file ``my-checkpoint.ckpt.consolidated`` next to the sharded checkpoint which you can load normally in PyTorch:
+
+    .. code-block:: python
+
+        import torch
+
+        checkpoint = torch.load("my-checkpoint.ckpt.consolidated")
+        print(list(checkpoint.keys()))
+        print(checkpoint["model"]["transformer.decoder.layers.31.norm1.weight"])
+
+
+|

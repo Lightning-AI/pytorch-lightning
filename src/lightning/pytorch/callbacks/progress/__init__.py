@@ -18,6 +18,7 @@ Progress Bars
 Use or override one of the progress bar callbacks.
 
 """
+
 from lightning.pytorch.callbacks.progress.progress_bar import ProgressBar  # noqa: F401
 from lightning.pytorch.callbacks.progress.rich_progress import RichProgressBar  # noqa: F401
 from lightning.pytorch.callbacks.progress.tqdm_progress import TQDMProgressBar  # noqa: F401
