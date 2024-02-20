@@ -62,12 +62,6 @@ wrap-descriptions = 120
 blank = true
 
 
-[tool.black]
-# https://github.com/psf/black
-line-length = 120
-exclude = "(.eggs|.git|.hg|.mypy_cache|.venv|_build|buck-out|build|dist)"
-
-
 [tool.mypy]
 files = [
     "src/lightning_utilities",

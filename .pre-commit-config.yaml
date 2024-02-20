@@ -42,12 +42,6 @@ repos:
         additional_dependencies: [tomli]
         args: ["--in-place"]
 
-  - repo: https://github.com/psf/black
-    rev: 24.1.1
-    hooks:
-      - id: black
-        name: Black code
-
   - repo: https://github.com/executablebooks/mdformat
     rev: 0.7.17
     hooks:
@@ -79,5 +73,7 @@ repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.2.0
     hooks:
+      - id: ruff-format
+        args: ["--preview"]
       - id: ruff
         args: ["--fix"]
