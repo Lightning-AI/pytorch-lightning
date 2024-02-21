@@ -63,7 +63,8 @@ class Cache:
         if not _LIGHTNING_CLOUD_LATEST:
             raise ModuleNotFoundError(
                 "The `lightning-cloud` package in your environement is out-dated."
-                " Run: `pip install -U lightning-cloud` to resolve this.")
+                " Run: `pip install -U lightning-cloud` to resolve this."
+            )
 
         input_dir = _resolve_dir(input_dir)
         self._cache_dir = input_dir.path

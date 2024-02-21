@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Integration tests for Automatic Mixed Precision (AMP) training."""
+
 import sys
 
 import pytest

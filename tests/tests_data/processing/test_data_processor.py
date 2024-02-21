@@ -10,6 +10,7 @@ import numpy as np
 import pytest
 import torch
 from lightning import seed_everything
+from lightning.data.constants import _TORCH_AUDIO_AVAILABLE, _ZSTD_AVAILABLE
 from lightning.data.processing import data_processor as data_processor_module
 from lightning.data.processing import functions
 from lightning.data.processing.data_processor import (
@@ -26,7 +27,7 @@ from lightning.data.processing.data_processor import (
     _wait_for_file_to_exist,
 )
 from lightning.data.processing.functions import LambdaDataTransformRecipe, map, optimize
-from lightning.data.streaming import resolver
+from lightning.data.streaming import StreamingDataset, resolver
 from lightning.data.streaming.cache import Cache, Dir
 from lightning_utilities.core.imports import RequirementCache
 
@@ -310,7 +311,7 @@ def test_map_items_to_workers_sequentially(monkeypatch):
     workers_user_items = _map_items_to_workers_sequentially(2, list(range(5)))
     assert workers_user_items == [[0, 1], [2, 3, 4]]
     workers_user_items = _map_items_to_workers_sequentially(3, list(range(5)))
-    assert workers_user_items == [[0], [1], [2, 3, 4]]
+    assert workers_user_items == [[0], [1, 2], [3, 4]]
     workers_user_items = _map_items_to_workers_sequentially(4, list(range(5)))
     assert workers_user_items == [[0], [1], [2], [3, 4]]
 
@@ -335,7 +336,7 @@ def test_map_items_to_workers_sequentially(monkeypatch):
     workers_user_items = _map_items_to_workers_sequentially(2, list(range(32)))
     assert workers_user_items == [[0, 1, 2, 3], [4, 5, 6, 7]]
     workers_user_items = _map_items_to_workers_sequentially(3, list(range(32)))
-    assert workers_user_items == [[0, 1], [2, 3], [4, 5, 6, 7]]
+    assert workers_user_items == [[0, 1], [2, 3], [4, 5]]
     workers_user_items = _map_items_to_workers_sequentially(4, list(range(32)))
     assert workers_user_items == [[0, 1], [2, 3], [4, 5], [6, 7]]
 
@@ -346,7 +347,7 @@ def test_map_items_to_workers_sequentially(monkeypatch):
     workers_user_items = _map_items_to_workers_sequentially(2, list(range(32)))
     assert workers_user_items == [[24, 25, 26, 27], [28, 29, 30, 31]]
     workers_user_items = _map_items_to_workers_sequentially(3, list(range(32)))
-    assert workers_user_items == [[24, 25], [26, 27], [28, 29, 30, 31]]
+    assert workers_user_items == [[23, 24, 25], [26, 27, 28], [29, 30, 31]]
     workers_user_items = _map_items_to_workers_sequentially(4, list(range(32)))
     assert workers_user_items == [[24, 25], [26, 27], [28, 29], [30, 31]]
 
@@ -999,6 +1000,7 @@ def test_map_error_when_not_empty(monkeypatch):
             error_when_not_empty=False,
         )
 
+
 def map_fn_is_last(index, output_dir, is_last):
     with open(os.path.join(output_dir, f"{index}_{is_last}.txt"), "w") as f:
         f.write("here")
@@ -1008,8 +1010,8 @@ def map_fn_is_last(index, output_dir, is_last):
 @pytest.mark.parametrize(
     ("num_workers", "expected"),
     [
-        (1, ['0_False.txt', '1_False.txt', '2_False.txt', '3_False.txt', '4_True.txt']),
-        (2, ['0_False.txt', '1_True.txt', '2_False.txt', '3_False.txt', '4_True.txt']),
+        (1, ["0_False.txt", "1_False.txt", "2_False.txt", "3_False.txt", "4_True.txt"]),
+        (2, ["0_False.txt", "1_True.txt", "2_False.txt", "3_False.txt", "4_True.txt"]),
     ],
 )
 def test_map_is_last(num_workers, expected, tmpdir):
@@ -1022,3 +1024,114 @@ def test_map_is_last(num_workers, expected, tmpdir):
     )
 
     assert sorted(os.listdir(tmpdir)) == expected
+
+
+def map_batch_size_fn(indexes, output_dir):
+    path = os.path.join(output_dir, str(indexes))
+    with open(path, "w") as f:
+        f.write("hello world")
+
+
+def test_map_batch_size(tmpdir):
+    map(
+        map_batch_size_fn,
+        list(range(5)),
+        output_dir=str(tmpdir),
+        error_when_not_empty=False,
+        num_workers=1,
+        batch_size=2,
+    )
+
+    assert sorted(os.listdir(tmpdir)) == ["[0, 1]", "[2, 3]", "[4]"]
+
+
+def no_op(index):
+    pass
+
+
+def test_empty_optimize(tmpdir):
+    optimize(
+        no_op,
+        list(range(10)),
+        output_dir=str(tmpdir),
+        chunk_bytes="64MB",
+        num_workers=1,
+    )
+
+    assert os.listdir(tmpdir) == ["index.json"]
+
+
+def create_synthetic_audio_bytes(index) -> dict:
+    from io import BytesIO
+
+    import torchaudio
+
+    # load dummy audio as bytes
+    data = torch.randn((1, 16000))
+
+    # convert tensor to bytes
+    with BytesIO() as f:
+        torchaudio.save(f, data, 16000, format="wav")
+        data = f.getvalue()
+
+    data = {"content": data}
+    return data
+
+
+@pytest.mark.skipif(condition=not _TORCH_AUDIO_AVAILABLE or not _ZSTD_AVAILABLE, reason="Requires: ['torchaudio']")
+@pytest.mark.parametrize("compression", [None, "zstd"])
+def test_load_torch_audio(tmpdir, compression):
+    seed_everything(42)
+
+    import torchaudio
+
+    optimize(
+        fn=create_synthetic_audio_bytes,
+        inputs=list(range(100)),
+        output_dir=str(tmpdir),
+        num_workers=1,
+        chunk_bytes="64MB",
+        compression=compression,
+    )
+
+    dataset = StreamingDataset(input_dir=str(tmpdir))
+    sample = dataset[0]
+    tensor = torchaudio.load(sample["content"])
+    assert tensor[0].shape == torch.Size([1, 16000])
+    assert tensor[1] == 16000
+
+
+def create_synthetic_audio_file(filepath) -> dict:
+    import torchaudio
+
+    # load dummy audio as bytes
+    data = torch.randn((1, 16000))
+
+    # convert tensor to bytes
+    with open(filepath, "wb") as f:
+        torchaudio.save(f, data, 16000, format="wav")
+
+    return filepath
+
+
+@pytest.mark.skipif(condition=not _TORCH_AUDIO_AVAILABLE or not _ZSTD_AVAILABLE, reason="Requires: ['torchaudio']")
+@pytest.mark.parametrize("compression", [None])
+def test_load_torch_audio_from_wav_file(tmpdir, compression):
+    seed_everything(42)
+
+    import torchaudio
+
+    optimize(
+        fn=create_synthetic_audio_file,
+        inputs=[os.path.join(tmpdir, f"{i}.wav") for i in range(5)],
+        output_dir=str(tmpdir),
+        num_workers=1,
+        chunk_bytes="64MB",
+        compression=compression,
+    )
+
+    dataset = StreamingDataset(input_dir=str(tmpdir))
+    sample = dataset[0]
+    tensor = torchaudio.load(sample)
+    assert tensor[0].shape == torch.Size([1, 16000])
+    assert tensor[1] == 16000

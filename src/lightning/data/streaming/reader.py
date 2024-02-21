@@ -229,7 +229,7 @@ class BinaryReader:
         if self._config is None and self._try_load_config() is None:
             raise Exception("The reader index isn't defined.")
 
-        if self._config and self._config._remote_dir:
+        if self._config and (self._config._remote_dir or self._config._compressor):
             # Create and start the prepare chunks thread
             if self._prepare_thread is None and self._config:
                 self._prepare_thread = PrepareChunksThread(

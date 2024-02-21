@@ -141,6 +141,11 @@ class LayerSummary:
         """Returns the number of parameters in this module."""
         return sum(math.prod(p.shape) if not _is_lazy_weight_tensor(p) else 0 for p in self._module.parameters())
 
+    @property
+    def training(self) -> bool:
+        """Returns whether the module is in training mode."""
+        return self._module.training
+
 
 class ModelSummary:
     """Generates a summary of all layers in a :class:`~lightning.pytorch.core.LightningModule`.
@@ -178,21 +183,21 @@ class ModelSummary:
         ...
         >>> model = LitModel()
         >>> ModelSummary(model, max_depth=1)  # doctest: +NORMALIZE_WHITESPACE
-          | Name | Type       | Params | In sizes  | Out sizes
-        ------------------------------------------------------------
-        0 | net  | Sequential | 132 K  | [10, 256] | [10, 512]
-        ------------------------------------------------------------
+          | Name | Type       | Params | Mode  | In sizes  | Out sizes
+        --------------------------------------------------------------------
+        0 | net  | Sequential | 132 K  | train | [10, 256] | [10, 512]
+        --------------------------------------------------------------------
         132 K     Trainable params
         0         Non-trainable params
         132 K     Total params
         0.530     Total estimated model params size (MB)
         >>> ModelSummary(model, max_depth=-1)  # doctest: +NORMALIZE_WHITESPACE
-          | Name  | Type        | Params | In sizes  | Out sizes
-        --------------------------------------------------------------
-        0 | net   | Sequential  | 132 K  | [10, 256] | [10, 512]
-        1 | net.0 | Linear      | 131 K  | [10, 256] | [10, 512]
-        2 | net.1 | BatchNorm1d | 1.0 K    | [10, 512] | [10, 512]
-        --------------------------------------------------------------
+          | Name  | Type        | Params | Mode  | In sizes  | Out sizes
+        ----------------------------------------------------------------------
+        0 | net   | Sequential  | 132 K  | train | [10, 256] | [10, 512]
+        1 | net.0 | Linear      | 131 K  | train | [10, 256] | [10, 512]
+        2 | net.1 | BatchNorm1d | 1.0 K  | train | [10, 512] | [10, 512]
+        ----------------------------------------------------------------------
         132 K     Trainable params
         0         Non-trainable params
         132 K     Total params
@@ -246,6 +251,10 @@ class ModelSummary:
     @property
     def param_nums(self) -> List[int]:
         return [layer.num_parameters for layer in self._layer_summary.values()]
+
+    @property
+    def training_modes(self) -> List[bool]:
+        return [layer.training for layer in self._layer_summary.values()]
 
     @property
     def total_parameters(self) -> int:
@@ -315,6 +324,7 @@ class ModelSummary:
             ("Name", self.layer_names),
             ("Type", self.layer_types),
             ("Params", list(map(get_human_readable_count, self.param_nums))),
+            ("Mode", ["train" if mode else "eval" for mode in self.training_modes]),
         ]
         if self._model.example_input_array is not None:
             arrays.append(("In sizes", [str(x) for x in self.in_sizes]))
@@ -333,6 +343,7 @@ class ModelSummary:
         layer_summaries["Name"].append(LEFTOVER_PARAMS_NAME)
         layer_summaries["Type"].append(NOT_APPLICABLE)
         layer_summaries["Params"].append(get_human_readable_count(total_leftover_params))
+        layer_summaries["Mode"].append(NOT_APPLICABLE)
         if "In sizes" in layer_summaries:
             layer_summaries["In sizes"].append(NOT_APPLICABLE)
         if "Out sizes" in layer_summaries:

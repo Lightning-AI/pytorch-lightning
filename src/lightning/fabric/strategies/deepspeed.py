@@ -745,12 +745,10 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
                     "max_in_cpu": max_in_cpu,
                     "pin_memory": pin_memory,
                 }
-            cfg.update(
-                {
-                    "zero_allow_untested_optimizer": zero_allow_untested_optimizer,
-                    "zero_optimization": zero_config,
-                }
-            )
+            cfg.update({
+                "zero_allow_untested_optimizer": zero_allow_untested_optimizer,
+                "zero_optimization": zero_config,
+            })
         if logging_batch_size_per_gpu:
             cfg["train_micro_batch_size_per_gpu"] = logging_batch_size_per_gpu
         return cfg

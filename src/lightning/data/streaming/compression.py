@@ -14,9 +14,9 @@
 from abc import ABC, abstractmethod
 from typing import Dict, TypeVar
 
-from lightning_utilities.core.imports import RequirementCache, requires
+from lightning_utilities.core.imports import requires
 
-_ZSTD_AVAILABLE = RequirementCache("zstd")
+from lightning.data.constants import _ZSTD_AVAILABLE
 
 if _ZSTD_AVAILABLE:
     import zstd

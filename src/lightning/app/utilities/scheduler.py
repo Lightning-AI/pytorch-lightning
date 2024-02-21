@@ -46,13 +46,11 @@ class SchedulerThread(threading.Thread):
             if current_date > next_event:
                 component_delta = ComponentDelta(
                     id=metadata["name"],
-                    delta=Delta(
-                        {
-                            "values_changed": {
-                                f"root['calls']['scheduling']['{call_hash}']['running']": {"new_value": True}
-                            }
+                    delta=Delta({
+                        "values_changed": {
+                            f"root['calls']['scheduling']['{call_hash}']['running']": {"new_value": True}
                         }
-                    ),
+                    }),
                 )
                 self._app.delta_queue.put(component_delta)
                 metadata["start_time"] = next_event.isoformat()

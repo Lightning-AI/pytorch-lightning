@@ -262,12 +262,10 @@ def test_after_save_checkpoint(neptune_mock):
         run_instance_mock.__getitem__.assert_any_call(f"{model_key_prefix}/checkpoints/model1")
         run_instance_mock.__getitem__.assert_any_call(f"{model_key_prefix}/checkpoints/model2/with/slashes")
 
-        run_attr_mock.upload.assert_has_calls(
-            [
-                call(os.path.join(models_root_dir, "model1")),
-                call(os.path.join(models_root_dir, "model2/with/slashes")),
-            ]
-        )
+        run_attr_mock.upload.assert_has_calls([
+            call(os.path.join(models_root_dir, "model1")),
+            call(os.path.join(models_root_dir, "model2/with/slashes")),
+        ])
 
 
 def test_save_dir(neptune_mock):

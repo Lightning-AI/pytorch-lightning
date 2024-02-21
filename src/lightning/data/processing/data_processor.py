@@ -29,6 +29,7 @@ from lightning.data.constants import (
     _TORCH_GREATER_EQUAL_2_1_0,
 )
 from lightning.data.processing.readers import BaseReader
+from lightning.data.processing.utilities import _create_dataset
 from lightning.data.streaming import Cache
 from lightning.data.streaming.cache import Dir
 from lightning.data.streaming.client import S3Client
@@ -41,7 +42,6 @@ if _TORCH_GREATER_EQUAL_2_1_0:
 
 if _LIGHTNING_CLOUD_LATEST:
     from lightning_cloud.openapi import V1DatasetType
-    from lightning_cloud.utils.dataset import _create_dataset
 
 
 if _BOTO3_AVAILABLE:
@@ -250,23 +250,35 @@ def _upload_fn(upload_queue: Queue, remove_queue: Queue, cache_dir: str, output_
 
 def _map_items_to_workers_sequentially(num_workers: int, user_items: List[Any]) -> List[List[Any]]:
     num_nodes = _get_num_nodes()
-    current_node_rank = _get_node_rank()
-    node_size = len(user_items) // num_nodes
-    workers_user_items = []
-    for node_rank in range(num_nodes):
-        if node_rank != current_node_rank:
-            continue
-        is_last_node = node_rank == num_nodes - 1
-        start_node = node_rank * node_size
-        end_node = len(user_items) if is_last_node else (node_rank + 1) * node_size
-        node_user_items = user_items[start_node:end_node]
-        worker_size = len(node_user_items) // num_workers
-        for worker_idx in range(num_workers):
-            is_last = worker_idx == num_workers - 1
-            begin = worker_idx * worker_size
-            end = len(node_user_items) if is_last else (worker_idx + 1) * worker_size
-            workers_user_items.append(node_user_items[begin:end])
-    return workers_user_items
+    world_size = num_nodes * num_workers
+    num_items_per_worker = len(user_items) // world_size
+
+    num_items_per_worker: List[int] = [num_items_per_worker for _ in range(world_size)]
+    reminder = len(user_items) % world_size
+
+    for worker_idx in range(len(num_items_per_worker) - 1, -1, -1):
+        if reminder == 0:
+            break
+        num_items_per_worker[worker_idx] += 1
+        reminder -= 1
+
+    num_items_cumsum_per_worker = np.cumsum([0] + num_items_per_worker)
+
+    out = []
+    node_rank = _get_node_rank()
+    worker_idx_start = node_rank * num_workers
+    worker_idx_end = (node_rank + 1) * num_workers
+
+    for worker_idx in range(world_size):
+        if worker_idx_start <= worker_idx and worker_idx < worker_idx_end:
+            start = num_items_cumsum_per_worker[worker_idx]
+            end = num_items_cumsum_per_worker[worker_idx + 1]
+            out.append(user_items[start:end])
+
+    if len(out) != num_workers:
+        raise RuntimeError("The items didn't haven't been assigned properly. Please, open an issue on Github.")
+
+    return out
 
 
 def _map_items_to_workers_weighted(
@@ -712,7 +724,12 @@ class DataChunkRecipe(DataRecipe):
 
             size = sum([c["dim"] if c["dim"] is not None else c["chunk_size"] for c in config["chunks"]])
             num_bytes = sum([c["chunk_bytes"] for c in config["chunks"]])
-            data_format = tree_unflatten(config["config"]["data_format"], treespec_loads(config["config"]["data_spec"]))
+            if config["config"] is not None:
+                data_format = tree_unflatten(
+                    config["config"]["data_format"], treespec_loads(config["config"]["data_spec"])
+                )
+            else:
+                data_format = None
             num_chunks = len(config["chunks"])
 
             # The platform can't store more than 1024 entries.
@@ -723,7 +740,7 @@ class DataChunkRecipe(DataRecipe):
                 size=size,
                 num_bytes=num_bytes,
                 data_format=data_format,
-                compression=config["config"]["compression"],
+                compression=config["config"]["compression"] if config["config"] else None,
                 num_chunks=len(config["chunks"]),
                 num_bytes_per_chunk=num_bytes_per_chunk,
             )
@@ -961,7 +978,8 @@ class DataProcessor:
         print("Workers are finished.")
         result = data_recipe._done(len(user_items), self.delete_cached_files, self.output_dir)
 
-        if num_nodes == node_rank + 1 and self.output_dir.url:
+        if num_nodes == node_rank + 1 and self.output_dir.url and _IS_IN_STUDIO:
+            assert self.output_dir.path
             _create_dataset(
                 input_dir=self.input_dir.path,
                 storage_dir=self.output_dir.path,

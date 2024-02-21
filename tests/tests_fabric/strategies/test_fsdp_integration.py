@@ -385,12 +385,10 @@ def test_setup_with_orig_params_and_multiple_param_groups():
         torch.nn.Linear(10, 10, bias=False),
         torch.nn.Linear(5, 2, bias=False),
     )
-    optimizer = torch.optim.Adam(
-        [
-            {"params": model[0].parameters(), "lr": 1e-2},
-            {"params": model[1].parameters(), "lr": 1e-6},
-        ]
-    )
+    optimizer = torch.optim.Adam([
+        {"params": model[0].parameters(), "lr": 1e-2},
+        {"params": model[1].parameters(), "lr": 1e-6},
+    ])
 
     # set up model and optimizer jointly
     wrapped_model, wrapped_optimizer = fabric.setup(model, optimizer)
@@ -441,7 +439,8 @@ def test_reapply_compile():
 
     # Smoke-testing forward to ensure we don't get compilation errors
     for _ in range(3):
-        fabric_model(torch.randn(2, 32, device=fabric.device)).sum().backward()
+        loss = fabric_model(torch.randn(2, 32, device=fabric.device)).sum()
+        fabric.backward(loss)
 
 
 @RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True)

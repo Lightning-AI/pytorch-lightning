@@ -19,6 +19,7 @@
 # DO NOT REMOVE THIS NOTICE
 # - WILLIAM FALCON
 """Trainer to automate the training."""
+
 import logging
 import math
 import os
