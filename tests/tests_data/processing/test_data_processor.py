@@ -1150,6 +1150,7 @@ def test_is_path_valid_in_studio(monkeypatch, tmpdir):
     assert _is_path("/teamspace/studios/this_studio", filepath)
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason="skip windows")
 def test_to_path(tmpdir):
     filepath = os.path.join(tmpdir, "a.png")
     with open(filepath, "w") as f:
