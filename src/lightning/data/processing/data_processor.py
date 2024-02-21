@@ -15,6 +15,7 @@ from queue import Empty
 from time import sleep, time
 from typing import Any, Dict, List, Optional, Tuple, TypeVar, Union
 from urllib import parse
+
 import numpy as np
 from tqdm.auto import tqdm as _tqdm
 
@@ -337,6 +338,25 @@ def _get_item_filesizes(items: List[Any], base_path: str = "") -> List[int]:
     return item_sizes
 
 
+def _to_path(element: str) -> str:
+    return element if element.startswith("/teamspace") else str(Path(element).resolve())
+
+
+def _is_path(input_dir: Optional[str], element: Any) -> bool:
+    if not isinstance(element, str):
+        return False
+
+    if _IS_IN_STUDIO and input_dir is not None:
+        if element.startswith(input_dir):
+            return True
+
+        element: str = str(Path(element).absolute())
+        if element.startswith(input_dir):
+            return True
+
+    return os.path.exists(element)
+
+
 class BaseWorker:
     def __init__(
         self,
@@ -501,24 +521,13 @@ class BaseWorker:
         for item in self.items:
             flattened_item, spec = tree_flatten(item)
 
-            def is_path(element: Any) -> bool:
-                if not isinstance(element, str):
-                    return False
-
-                if _IS_IN_STUDIO and self.input_dir.path is not None:
-                    if self.input_dir.path.startswith("/teamspace/studios/this_studio"):
-                        return os.path.exists(element)
-                    if element.startswith(self.input_dir.path):
-                        return True
-                    element: str = str(Path(element).absolute())
-                    return element.startswith(self.input_dir.path)
-                return os.path.exists(element)
-
             # For speed reasons, we assume starting with `self.input_dir` is enough to be a real file.
             # Other alternative would be too slow.
             # TODO: Try using dictionary for higher accurary.
             indexed_paths = {
-                index: element if element.startswith("/teamspace") else str(Path(element).resolve()) for index, element in enumerate(flattened_item) if is_path(element)
+                index: _to_path(element)
+                for index, element in enumerate(flattened_item)
+                if _is_path(self.input_dir.path, element)
             }
 
             if len(indexed_paths) == 0:
