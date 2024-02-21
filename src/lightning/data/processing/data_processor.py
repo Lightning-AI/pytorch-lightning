@@ -339,7 +339,7 @@ def _get_item_filesizes(items: List[Any], base_path: str = "") -> List[int]:
 
 
 def _to_path(element: str) -> str:
-    return element if element.startswith("/teamspace") else str(Path(element).resolve())
+    return element if _IS_IN_STUDIO and element.startswith("/teamspace") else str(Path(element).resolve())
 
 
 def _is_path(input_dir: Optional[str], element: Any) -> bool:
