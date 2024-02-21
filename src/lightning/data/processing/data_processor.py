@@ -15,6 +15,7 @@ from queue import Empty
 from time import sleep, time
 from typing import Any, Dict, List, Optional, Tuple, TypeVar, Union
 from urllib import parse
+
 import numpy as np
 from tqdm.auto import tqdm as _tqdm
 
@@ -518,7 +519,9 @@ class BaseWorker:
             # Other alternative would be too slow.
             # TODO: Try using dictionary for higher accurary.
             indexed_paths = {
-                index: element if element.startswith("/teamspace") else str(Path(element).resolve()) for index, element in enumerate(flattened_item) if is_path(element)
+                index: element if element.startswith("/teamspace") else str(Path(element).resolve())
+                for index, element in enumerate(flattened_item)
+                if is_path(element)
             }
 
             if len(indexed_paths) == 0:
