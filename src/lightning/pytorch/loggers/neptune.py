@@ -57,7 +57,7 @@ def catch_inactive(func: Callable) -> Callable:
     """
 
     @wraps(func)
-    def wrapper(*args, **kwargs):
+    def wrapper(*args: Any, **kwargs: Any) -> Any:
         from neptune.exceptions import InactiveRunException
 
         with contextlib.suppress(InactiveRunException):
@@ -447,9 +447,7 @@ class NeptuneLogger(Logger):
     @override
     @rank_zero_only
     @catch_inactive
-    def log_metrics(  # type: ignore[override]
-        self, metrics: Dict[str, Union[Tensor, float]], step: Optional[int] = None
-    ) -> None:
+    def log_metrics(self, metrics: Dict[str, Union[Tensor, float]], step: Optional[int] = None) -> None:
         """Log metrics (numeric values) in Neptune runs.
 
         Args:
