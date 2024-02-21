@@ -350,7 +350,7 @@ def _is_path(input_dir: Optional[str], element: Any) -> bool:
         if element.startswith(input_dir):
             return True
 
-        element: str = str(Path(element).absolute())
+        element = str(Path(element).absolute())
         if element.startswith(input_dir):
             return True
 
