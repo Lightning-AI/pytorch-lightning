@@ -62,7 +62,6 @@ def catch_inactive(func: Callable) -> Callable:
 
         with contextlib.suppress(InactiveRunException):
             return func(*args, **kwargs)
-        # return func(*args, **kwargs)
 
     return wrapper
 
