@@ -338,6 +338,25 @@ def _get_item_filesizes(items: List[Any], base_path: str = "") -> List[int]:
     return item_sizes
 
 
+def _to_path(element: str) -> str:
+    return element if _IS_IN_STUDIO and element.startswith("/teamspace") else str(Path(element).resolve())
+
+
+def _is_path(input_dir: Optional[str], element: Any) -> bool:
+    if not isinstance(element, str):
+        return False
+
+    if _IS_IN_STUDIO and input_dir is not None:
+        if element.startswith(input_dir):
+            return True
+
+        element = str(Path(element).absolute())
+        if element.startswith(input_dir):
+            return True
+
+    return os.path.exists(element)
+
+
 class BaseWorker:
     def __init__(
         self,
@@ -380,7 +399,6 @@ class BaseWorker:
         self.remove_queue: Queue = Queue()
         self.progress_queue: Queue = progress_queue
         self.error_queue: Queue = error_queue
-        self._collected_items = 0
         self._counter = 0
         self._last_time = time()
         self._index_counter = 0
@@ -503,22 +521,13 @@ class BaseWorker:
         for item in self.items:
             flattened_item, spec = tree_flatten(item)
 
-            def is_path(element: Any) -> bool:
-                if not isinstance(element, str):
-                    return False
-
-                element: str = str(Path(element).resolve())
-                if _IS_IN_STUDIO and self.input_dir.path is not None:
-                    if self.input_dir.path.startswith("/teamspace/studios/this_studio"):
-                        return os.path.exists(element)
-                    return element.startswith(self.input_dir.path)
-                return os.path.exists(element)
-
             # For speed reasons, we assume starting with `self.input_dir` is enough to be a real file.
             # Other alternative would be too slow.
             # TODO: Try using dictionary for higher accurary.
             indexed_paths = {
-                index: str(Path(element).resolve()) for index, element in enumerate(flattened_item) if is_path(element)
+                index: _to_path(element)
+                for index, element in enumerate(flattened_item)
+                if _is_path(self.input_dir.path, element)
             }
 
             if len(indexed_paths) == 0:
@@ -536,7 +545,6 @@ class BaseWorker:
             self.paths.append(paths)
 
             items.append(tree_unflatten(flattened_item, spec))
-            self._collected_items += 1
 
         self.items = items
 
