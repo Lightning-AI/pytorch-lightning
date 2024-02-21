@@ -15,7 +15,6 @@ from queue import Empty
 from time import sleep, time
 from typing import Any, Dict, List, Optional, Tuple, TypeVar, Union
 from urllib import parse
-
 import numpy as np
 from tqdm.auto import tqdm as _tqdm
 
@@ -380,7 +379,6 @@ class BaseWorker:
         self.remove_queue: Queue = Queue()
         self.progress_queue: Queue = progress_queue
         self.error_queue: Queue = error_queue
-        self._collected_items = 0
         self._counter = 0
         self._last_time = time()
         self._index_counter = 0
@@ -507,10 +505,12 @@ class BaseWorker:
                 if not isinstance(element, str):
                     return False
 
-                element: str = str(Path(element).resolve())
                 if _IS_IN_STUDIO and self.input_dir.path is not None:
                     if self.input_dir.path.startswith("/teamspace/studios/this_studio"):
                         return os.path.exists(element)
+                    if element.startswith(self.input_dir.path):
+                        return True
+                    element: str = str(Path(element).absolute())
                     return element.startswith(self.input_dir.path)
                 return os.path.exists(element)
 
@@ -518,7 +518,7 @@ class BaseWorker:
             # Other alternative would be too slow.
             # TODO: Try using dictionary for higher accurary.
             indexed_paths = {
-                index: str(Path(element).resolve()) for index, element in enumerate(flattened_item) if is_path(element)
+                index: element if element.startswith("/teamspace") else str(Path(element).resolve()) for index, element in enumerate(flattened_item) if is_path(element)
             }
 
             if len(indexed_paths) == 0:
@@ -536,7 +536,6 @@ class BaseWorker:
             self.paths.append(paths)
 
             items.append(tree_unflatten(flattened_item, spec))
-            self._collected_items += 1
 
         self.items = items
 
