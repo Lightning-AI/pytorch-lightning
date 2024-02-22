@@ -51,8 +51,8 @@ class _DistributedEnv:
 
     @classmethod
     def _instantiate_in_map_or_optimize(cls) -> "_DistributedEnv":
-        global_rank = int(os.getenv("DATA_OPTIMIZER_GLOBAL_RANK"))
-        num_workers = int(os.getenv("DATA_OPTIMIZER_NUM_WORKERS"))
+        global_rank = int(os.getenv("DATA_OPTIMIZER_GLOBAL_RANK", "0"))
+        num_workers = int(os.getenv("DATA_OPTIMIZER_NUM_WORKERS", "0"))
         num_nodes = int(os.getenv("DATA_OPTIMIZER_NUM_NODES", 1))
         return cls(world_size=num_workers * num_nodes, global_rank=int(global_rank), num_nodes=num_nodes)
 
