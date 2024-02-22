@@ -26,6 +26,7 @@ from lightning.data.constants import _IS_IN_STUDIO, _TORCH_GREATER_EQUAL_2_1_0
 from lightning.data.processing.data_processor import DataChunkRecipe, DataProcessor, DataTransformRecipe
 from lightning.data.processing.readers import BaseReader
 from lightning.data.processing.utilities import optimize_dns_context
+from lightning.data.streaming.dataloader import StreamingDataLoader
 from lightning.data.streaming.resolver import (
     Dir,
     _assert_dir_has_index_file,
@@ -176,6 +177,7 @@ def map(
         inputs: A sequence of input to be processed by the `fn` function.
             Each input should contain at least a valid filepath.
         output_dir: The folder where the processed data should be stored.
+        weights: Provide an associated weight to each input. This is used to balance work among workers.
         num_workers: The number of workers to use during processing
         fast_dev_run: Whether to use process only a sub part of the inputs
         num_nodes: When doing remote execution, the number of nodes to use. Only supported on https://lightning.ai/.
@@ -188,8 +190,14 @@ def map(
         batch_size: Group the inputs into batches of batch_size length.
 
     """
-    if not isinstance(inputs, Sequence):
-        raise ValueError(f"The provided inputs should be non empty sequence. Found {inputs}.")
+    if isinstance(inputs, StreamingDataLoader) and batch_size is not None:
+        raise ValueError("When providing a streaming dataloader, pass the batch_size to the dataloader directly.")
+
+    if isinstance(inputs, StreamingDataLoader) and weights is not None:
+        raise ValueError("When providing a streaming dataloader, weights isn't supported.")
+
+    if not isinstance(inputs, (Sequence, StreamingDataLoader)):
+        raise ValueError(f"The provided inputs should be non empty sequence or a streaming dataloader. Found {inputs}.")
 
     if len(inputs) == 0:
         raise ValueError(f"The provided inputs should be non empty. Found {inputs}.")
@@ -218,10 +226,13 @@ def map(
         if error_when_not_empty:
             _assert_dir_is_empty(_output_dir)
 
-        input_dir = _resolve_dir(_get_input_dir(inputs))
+        if not isinstance(inputs, StreamingDataLoader):
+            input_dir = _resolve_dir(_get_input_dir(inputs))
 
-        if isinstance(batch_size, int) and batch_size > 1:
-            inputs = [inputs[pos : pos + batch_size] for pos in range(0, len(inputs), batch_size)]
+            if isinstance(batch_size, int) and batch_size > 1:
+                inputs = [inputs[pos : pos + batch_size] for pos in range(0, len(inputs), batch_size)]
+        else:
+            input_dir = Dir()
 
         data_processor = DataProcessor(
             input_dir=input_dir,
@@ -247,6 +258,7 @@ def optimize(
     fn: Callable[[Any], Any],
     inputs: Sequence[Any],
     output_dir: str,
+    weights: Optional[List[int]] = None,
     chunk_size: Optional[int] = None,
     chunk_bytes: Optional[Union[int, str]] = None,
     compression: Optional[str] = None,
@@ -267,6 +279,7 @@ def optimize(
         inputs: A sequence of input to be processed by the `fn` function.
             Each input should contain at least a valid filepath.
         output_dir: The folder where the processed data should be stored.
+        weights: Provide an associated weight to each input. This is used to balance work among workers.
         chunk_size: The maximum number of elements to hold within a chunk.
         chunk_bytes: The maximum number of bytes to hold within a chunk.
         compression: The compression algorithm to use over the chunks.
@@ -281,8 +294,14 @@ def optimize(
         batch_size: Group the inputs into batches of batch_size length.
 
     """
-    if not isinstance(inputs, Sequence):
-        raise ValueError(f"The provided inputs should be non empty sequence. Found {inputs}.")
+    if isinstance(inputs, StreamingDataLoader) and batch_size is not None:
+        raise ValueError("When providing a streaming dataloader, pass the batch_size to the dataloader directly.")
+
+    if isinstance(inputs, StreamingDataLoader) and weights is not None:
+        raise ValueError("When providing a streaming dataloader, weights isn't supported.")
+
+    if not isinstance(inputs, (Sequence, StreamingDataLoader)):
+        raise ValueError(f"The provided inputs should be non empty sequence or a streaming dataloader. Found {inputs}.")
 
     if len(inputs) == 0:
         raise ValueError(f"The provided inputs should be non empty. Found {inputs}.")
@@ -313,10 +332,13 @@ def optimize(
 
         _assert_dir_has_index_file(_output_dir)
 
-        input_dir = _resolve_dir(_get_input_dir(inputs))
+        if not isinstance(inputs, StreamingDataLoader):
+            input_dir = _resolve_dir(_get_input_dir(inputs))
 
-        if isinstance(batch_size, int) and batch_size > 1:
-            inputs = [inputs[pos : pos + batch_size] for pos in range(0, len(inputs), batch_size)]
+            if isinstance(batch_size, int) and batch_size > 1:
+                inputs = [inputs[pos : pos + batch_size] for pos in range(0, len(inputs), batch_size)]
+        else:
+            input_dir = Dir()
 
         data_processor = DataProcessor(
             input_dir=input_dir,

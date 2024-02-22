@@ -93,3 +93,18 @@ class ParquetReader(BaseReader):
         print("Finished resharding the parquet files for optimized processing.")
 
         return new_items
+
+
+class StreamingDataLoaderReader(BaseReader):
+    def __init__(self, dataloader) -> None:
+        super().__init__()
+        self.dataloader = dataloader
+        self.dataloader_iter = None
+
+    def read(self, _) -> Any:
+        if self.dataloader_iter is None:
+            self.dataloader_iter = iter(self.dataloader)
+        return next(self.dataloader_iter)
+
+    def remap_items(self, items: List[str], _: int) -> List[str]:
+        return list(range(len(items)))
