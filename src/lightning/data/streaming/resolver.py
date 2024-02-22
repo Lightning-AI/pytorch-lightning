@@ -56,6 +56,9 @@ def _resolve_dir(dir_path: Optional[Union[str, Dir]]) -> Dir:
     if dir_path.startswith("s3://"):
         return Dir(path=None, url=dir_path)
 
+    if dir_path.startswith("local:"):
+        return Dir(path=None, url=dir_path)
+
     dir_path = _resolve_time_template(dir_path)
 
     dir_path_absolute = str(Path(dir_path).absolute().resolve())

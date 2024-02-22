@@ -95,7 +95,13 @@ class LocalDownloader(Downloader):
             shutil.copy(remote_filepath, local_filepath)
 
 
-_DOWNLOADERS = {"s3://": S3Downloader, "": LocalDownloader}
+class LocalDownloaderWithCache(LocalDownloader):
+    def download_file(self, remote_filepath: str, local_filepath: str) -> None:
+        remote_filepath = remote_filepath.replace("local:", "")
+        super().download_file(remote_filepath, local_filepath)
+
+
+_DOWNLOADERS = {"s3://": S3Downloader, "local": LocalDownloaderWithCache, "": LocalDownloader}
 
 
 def get_downloader_cls(remote_dir: str, cache_dir: str, chunks: List[Dict[str, Any]]) -> Downloader:
