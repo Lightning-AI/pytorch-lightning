@@ -1189,4 +1189,4 @@ def test_streaming_dataset_in_map(tmpdir):
         num_workers=2,
     )
 
-    assert len(os.listdir(output_dir)) == 107
+    assert sorted(os.listdir(output_dir)) == sorted([f"{i}.txt" for i in range(107)])
