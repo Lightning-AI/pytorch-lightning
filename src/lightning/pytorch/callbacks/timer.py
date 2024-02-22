@@ -89,7 +89,7 @@ class Timer(Callback):
     ) -> None:
         super().__init__()
         if isinstance(duration, str):
-            datematch = re.fullmatch(r"(\d+):(\d\d):(\d\d):(\d\d)", timestr.strip()):
+            datematch = re.fullmatch(r"(\d+):(\d\d):(\d\d):(\d\d)", timestr.strip())
             if not datematch:
                 raise MisconfigurationException(
                     f"Parameter value {interval!r} cannot be convert into duration. "
