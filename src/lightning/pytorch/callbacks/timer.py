@@ -92,14 +92,13 @@ class Timer(Callback):
             datematch = re.fullmatch(r"(\d+):(\d\d):(\d\d):(\d\d)", timestr.strip())
             if not datematch:
                 raise MisconfigurationException(
-                    f"Parameter value {interval!r} cannot be convert into duration. "
-                    "Expected DD:HH:MM:SS format."
+                    f"Parameter value {interval!r} cannot be convert into duration. " "Expected DD:HH:MM:SS format."
                 )
             duration = timedelta(
                 days=int(match.group(1)),
                 hours=int(match.group(2)),
                 minutes=int(match.group(3)),
-                seconds=int(match.group(4))
+                seconds=int(match.group(4)),
             )
         if isinstance(duration, dict):
             duration = timedelta(**duration)
