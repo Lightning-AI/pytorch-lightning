@@ -29,7 +29,7 @@ from lightning.data.processing.data_processor import (
     _wait_for_file_to_exist,
 )
 from lightning.data.processing.functions import LambdaDataTransformRecipe, map, optimize
-from lightning.data.streaming import StreamingDataset, resolver
+from lightning.data.streaming import StreamingDataLoader, StreamingDataset, resolver
 from lightning.data.streaming.cache import Cache, Dir
 from lightning_utilities.core.imports import RequirementCache
 
@@ -1158,3 +1158,35 @@ def test_to_path(tmpdir):
 
     assert _to_path("/teamspace/studios/this_studio/a.png") == "/teamspace/studios/this_studio/a.png"
     assert _to_path(filepath) == filepath
+
+
+def fetch_from_dataset(batch, output_dir):
+    for index in batch.numpy().tolist():
+        filepath = os.path.join(output_dir, f"{index}.txt")
+        with open(filepath, "w") as f:
+            f.write("Hello World!")
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="skip windows")
+def test_streaming_dataset_in_map(tmpdir):
+    seed_everything(42)
+
+    output_dir = os.path.join(tmpdir, "output_dir")
+
+    cache = Cache(input_dir=str(tmpdir), chunk_size=10)
+    for i in range(107):
+        cache[i] = i
+
+    cache.done()
+    cache.merge()
+
+    dataset = StreamingDataset(input_dir=str(tmpdir))
+
+    map(
+        fn=fetch_from_dataset,
+        inputs=StreamingDataLoader(dataset, num_workers=1, batch_size=2),
+        output_dir=output_dir,
+        num_workers=2,
+    )
+
+    assert sorted(os.listdir(output_dir)) == sorted([f"{i}.txt" for i in range(107)])
