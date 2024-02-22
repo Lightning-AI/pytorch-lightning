@@ -17,6 +17,7 @@ Timer
 """
 
 import logging
+import re
 import time
 from datetime import timedelta
 from typing import Any, Dict, Optional, Union
@@ -50,6 +51,8 @@ class Timer(Callback):
         verbose: Set this to ``False`` to suppress logging messages.
 
     Raises:
+        MisconfigurationException:
+            If ``duration`` is not in the expected format.
         MisconfigurationException:
             If ``interval`` is not one of the supported choices.
 
@@ -86,9 +89,18 @@ class Timer(Callback):
     ) -> None:
         super().__init__()
         if isinstance(duration, str):
-            dhms = duration.strip().split(":")
-            dhms = [int(i) for i in dhms]
-            duration = timedelta(days=dhms[0], hours=dhms[1], minutes=dhms[2], seconds=dhms[3])
+            datematch = re.fullmatch(r"(\d+):(\d\d):(\d\d):(\d\d)", timestr.strip()):
+            if not datematch:
+                raise MisconfigurationException(
+                    f"Parameter value {interval!r} cannot be convert into duration. "
+                    "Expected DD:HH:MM:SS format."
+                )
+            duration = timedelta(
+                days=int(match.group(1)),
+                hours=int(match.group(2)),
+                minutes=int(match.group(3)),
+                seconds=int(match.group(4))
+            )
         if isinstance(duration, dict):
             duration = timedelta(**duration)
         if interval not in set(Interval):
