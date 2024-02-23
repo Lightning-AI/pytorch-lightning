@@ -162,6 +162,10 @@ class StreamingDataset(IterableDataset):
         return self.shuffler.get_len(self.distributed_env, self.current_epoch)
 
     def __iter__(self) -> "StreamingDataset":
+        # When the StreamingDataset is used within map or optimize, let's refetch the distributed env.
+        if os.getenv("DATA_OPTIMIZER_GLOBAL_RANK"):
+            self.distributed_env = _DistributedEnv.detect()
+
         self.worker_env = _WorkerEnv.detect()
         self.cache = self._create_cache(worker_env=self.worker_env)
         self.shuffler = self._create_shuffler(self.cache)
