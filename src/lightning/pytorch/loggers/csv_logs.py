@@ -82,8 +82,8 @@ class CSVLogger(Logger, FabricCSVLogger):
 
     Args:
         save_dir: Save directory
-        name: Experiment name, optional. Defaults to ``'lightning_logs'``. If name is `None`, log
-            (versions) stored to the save dir directly.
+        name: Experiment name, optional. Defaults to ``'lightning_logs'``. If name is ``None``, logs
+            (versions) will be stored to the save dir directly.
         version: Experiment version. If version is not specified the logger inspects the save
             directory for existing versions, then automatically assigns the next available version.
         prefix: A string to put at the beginning of metric keys.
