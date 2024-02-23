@@ -69,7 +69,7 @@ def test_timer_parse_duration(duration, expected):
 
 @pytest.mark.parametrize("duration", ["6:00:00", "60 minutes"])
 def test_timer_parse_duration_misconfiguration(duration):
-    with pytest.raises(MisconfigurationException, match="DD:HH:MM:SS format"):
+    with pytest.raises(MisconfigurationException, match="format DD:HH:MM:SS"):
         Timer(duration=duration)
 
 
