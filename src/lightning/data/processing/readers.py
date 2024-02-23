@@ -6,6 +6,8 @@ from typing import Any, List
 from lightning_utilities.core.imports import RequirementCache
 from tqdm import tqdm
 
+from lightning.data.streaming.dataloader import StreamingDataLoader
+
 _PYARROW_AVAILABLE = RequirementCache("pyarrow")
 
 
@@ -17,7 +19,7 @@ class BaseReader(ABC):
         return int(os.getenv("DATA_OPTIMIZER_NODE_RANK", 0))
 
     @abstractmethod
-    def remap_items(self, items: List[Any], num_workers: int) -> List[Any]:
+    def remap_items(self, items: Any, num_workers: int) -> List[Any]:
         """This method is meant to remap the items provided by the users into items more adapted to be distributed."""
         pass
 
@@ -93,3 +95,18 @@ class ParquetReader(BaseReader):
         print("Finished resharding the parquet files for optimized processing.")
 
         return new_items
+
+
+class StreamingDataLoaderReader(BaseReader):
+    def __init__(self, dataloader: StreamingDataLoader) -> None:
+        super().__init__()
+        self.dataloader = dataloader
+        self.dataloader_iter: Any = None
+
+    def read(self, _: int) -> Any:
+        if self.dataloader_iter is None:
+            self.dataloader_iter = iter(self.dataloader)
+        return next(self.dataloader_iter)
+
+    def remap_items(self, dataloader: StreamingDataLoader, _: int) -> List[Any]:
+        return list(range(len(dataloader)))
