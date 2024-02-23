@@ -196,11 +196,6 @@ class SimpleModel(BoringModel):
         assert torch.equal(self.layer.weight.data, self.tied_layer.weight.data)
 
 
-@pytest.mark.xfail(
-    # https://github.com/pytorch/pytorch/issues/116056
-    sys.platform == "win32" and _TORCH_GREATER_EQUAL_2_2,
-    reason="Windows + DDP issue in PyTorch 2.2",
-)
 def test_memory_sharing_disabled():
     """Test that the multiprocessing launcher disables memory sharing on model parameters and buffers to avoid race
     conditions on model updates."""
@@ -221,11 +216,6 @@ def test_check_for_missing_main_guard():
         launcher.launch(function=Mock())
 
 
-@pytest.mark.xfail(
-    # https://github.com/pytorch/pytorch/issues/116056
-    sys.platform == "win32" and _TORCH_GREATER_EQUAL_2_2,
-    reason="Windows + DDP issue in PyTorch 2.2",
-)
 def test_fit_twice_raises():
     model = BoringModel()
     trainer = Trainer(

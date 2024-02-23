@@ -29,11 +29,6 @@ def spike_detection_test(fabric, global_rank_spike, spike_value, should_raise):
             )
 
 
-@pytest.mark.xfail(
-    # https://github.com/pytorch/pytorch/issues/116056
-    sys.platform == "win32" and _TORCH_GREATER_EQUAL_2_2,
-    reason="Windows + DDP issue in PyTorch 2.2",
-)
 @pytest.mark.flaky(max_runs=3)
 @pytest.mark.parametrize(
     ("global_rank_spike", "num_devices", "spike_value", "finite_only"),

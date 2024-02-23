@@ -52,11 +52,6 @@ def test_prediction_loop_stores_predictions(tmp_path):
     assert trainer.predict_loop.predictions == []
 
 
-@pytest.mark.xfail(
-    # https://github.com/pytorch/pytorch/issues/116056
-    sys.platform == "win32" and _TORCH_GREATER_EQUAL_2_2,
-    reason="Windows + DDP issue in PyTorch 2.2",
-)
 @pytest.mark.parametrize("use_distributed_sampler", [False, True])
 def test_prediction_loop_batch_sampler_set_epoch_called(tmp_path, use_distributed_sampler):
     """Tests that set_epoch is called on the dataloader's batch sampler (if any) during prediction."""

@@ -121,11 +121,6 @@ def test_collective_operations(devices, process):
     spawn_launch(process, devices)
 
 
-@pytest.mark.xfail(
-    # https://github.com/pytorch/pytorch/issues/116056
-    sys.platform == "win32" and _TORCH_GREATER_EQUAL_2_2,
-    reason="Windows + DDP issue in PyTorch 2.2",
-)
 @pytest.mark.flaky(reruns=3)  # flaky with "process 0 terminated with signal SIGABRT" (GLOO)
 def test_is_shared_filesystem(tmp_path, monkeypatch):
     # In the non-distributed case, every location is interpreted as 'shared'
