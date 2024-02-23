@@ -87,13 +87,13 @@ And here's the output you get when running the App using the **Lightning CLI**:
 
 .. code-block:: console
 
-	INFO: Your app has started. View it in your browser: http://127.0.0.1:7501/view
-	State: {'works': {'w': {'vars': {'counter': 1}}}}
-	State: {'works': {'w': {'vars': {'counter': 2}}}}
-	State: {'works': {'w': {'vars': {'counter': 3}}}}
-	State: {'works': {'w': {'vars': {'counter': 3}}}}
-	State: {'works': {'w': {'vars': {'counter': 4}}}}
-	...
+    INFO: Your app has started. View it in your browser: http://127.0.0.1:7501/view
+    State: {'works': {'w': {'vars': {'counter': 1}}}}
+    State: {'works': {'w': {'vars': {'counter': 2}}}}
+    State: {'works': {'w': {'vars': {'counter': 3}}}}
+    State: {'works': {'w': {'vars': {'counter': 3}}}}
+    State: {'works': {'w': {'vars': {'counter': 4}}}}
+    ...
 
 ----
 
