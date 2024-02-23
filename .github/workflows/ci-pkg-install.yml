@@ -85,7 +85,7 @@ jobs:
         working-directory: .actions/
         run: |
           pip install -q pytest -r requirements.txt
-          pip install -r requirements/data/data.txt
+          pip install -U litdata
           python -m pytest assistant.py
 
       - name: Adjust code for standalone
