@@ -90,15 +90,15 @@ class Timer(Callback):
         super().__init__()
         if isinstance(duration, str):
             duration_match = re.fullmatch(r"(\d+):(\d\d):(\d\d):(\d\d)", duration.strip())
-            if not datematch:
+            if not duration_match:
                 raise MisconfigurationException(
                     f"`Timer(duration={interval!r})` is not a valid duration. Expected a string in the format DD:HH:MM:SS."
                 )
             duration = timedelta(
-                days=int(datematch.group(1)),
-                hours=int(datematch.group(2)),
-                minutes=int(datematch.group(3)),
-                seconds=int(datematch.group(4)),
+                days=int(duration_match.group(1)),
+                hours=int(duration_match.group(2)),
+                minutes=int(duration_match.group(3)),
+                seconds=int(duration_match.group(4)),
             )
         if isinstance(duration, dict):
             duration = timedelta(**duration)
