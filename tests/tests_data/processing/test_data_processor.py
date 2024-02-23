@@ -19,9 +19,11 @@ from lightning.data.processing.data_processor import (
     DataTransformRecipe,
     _download_data_target,
     _get_item_filesizes,
+    _is_path,
     _map_items_to_workers_sequentially,
     _map_items_to_workers_weighted,
     _remove_target,
+    _to_path,
     _upload_fn,
     _wait_for_disk_usage_higher_than_threshold,
     _wait_for_file_to_exist,
@@ -1135,3 +1137,24 @@ def test_load_torch_audio_from_wav_file(tmpdir, compression):
     tensor = torchaudio.load(sample)
     assert tensor[0].shape == torch.Size([1, 16000])
     assert tensor[1] == 16000
+
+
+def test_is_path_valid_in_studio(monkeypatch, tmpdir):
+    filepath = os.path.join(tmpdir, "a.png")
+    with open(filepath, "w") as f:
+        f.write("Hello World")
+
+    monkeypatch.setattr(data_processor_module, "_IS_IN_STUDIO", True)
+
+    assert _is_path("/teamspace/studios/this_studio", "/teamspace/studios/this_studio/a.png")
+    assert _is_path("/teamspace/studios/this_studio", filepath)
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="skip windows")
+def test_to_path(tmpdir):
+    filepath = os.path.join(tmpdir, "a.png")
+    with open(filepath, "w") as f:
+        f.write("Hello World")
+
+    assert _to_path("/teamspace/studios/this_studio/a.png") == "/teamspace/studios/this_studio/a.png"
+    assert _to_path(filepath) == filepath
