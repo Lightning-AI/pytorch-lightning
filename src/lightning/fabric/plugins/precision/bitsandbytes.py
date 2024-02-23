@@ -39,8 +39,7 @@ from lightning.fabric.utilities.types import _DEVICE
 
 log = logging.getLogger(__name__)
 
-# TODO: unpin after resolving the `quant_state` format breaking changes
-_BITSANDBYTES_AVAILABLE = RequirementCache("bitsandbytes==0.41.0")
+_BITSANDBYTES_AVAILABLE = RequirementCache("bitsandbytes>=0.41.0")
 
 
 class BitsandbytesPrecision(Precision):
@@ -344,7 +343,8 @@ def _import_bitsandbytes() -> ModuleType:
         def to_empty(self, *, device: _DEVICE, recurse: bool = True) -> Self:
             if self.weight.dtype == torch.uint8:  # was quantized
                 # cannot init the quantized params directly
-                weight = torch.empty(self.weight.quant_state[1], device=device, dtype=torch.half)
+                shape = self.weight.shape if hasattr(self.weight, "shape") else self.weight.quant_state[1]
+                weight = torch.empty(shape, device=device, dtype=torch.half)
             else:
                 weight = torch.empty_like(self.weight.data, device=device)
             device = torch.device(device)
@@ -366,7 +366,8 @@ def _import_bitsandbytes() -> ModuleType:
             linear_init_finished = isinstance(self.weight, bnb.nn.Params4bit)
             if linear_init_finished and self.weight.dtype == torch.uint8:  # was quantized
                 # cannot init the quantized params directly
-                weight = torch.empty(self.weight.quant_state[1], device=self.weight.device, dtype=torch.half)
+                shape = self.weight.shape if hasattr(self.weight, "shape") else self.weight.quant_state[1]
+                weight = torch.empty(shape, device=self.weight.device, dtype=torch.half)
             else:
                 weight = self.weight.data
             torch.nn.init.kaiming_uniform_(weight, a=math.sqrt(5))
