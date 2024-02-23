@@ -396,6 +396,37 @@ def test_fsdp_checkpoint_multi_gpus(tmpdir, model, strategy, strategy_cfg):
     )
     _run_multiple_stages(trainer, model)
 
+@RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True)
+@pytest.mark.parametrize("save_weights_only", [True, False])
+@pytest.mark.parametrize("state_dict_type", ["full", "sharded"])
+def test_checkpoint_weights_only(tmpdir, save_weights_only, state_dict_type):
+    
+    ck = ModelCheckpoint(save_last=True, save_weights_only=save_weights_only)
+    
+    strategy = FSDPStrategy(auto_wrap_policy=custom_auto_wrap_policy,
+                            state_dict_type=state_dict_type)
+    
+    class TestShardedFSDPModelAutoWrapped(TestFSDPModelAutoWrapped):
+        @classmethod
+        def load_from_checkpoint(cls, ckpt_path):
+            return strategy.load_checkpoint(ckpt_path)
+        
+    model = TestShardedFSDPModelAutoWrapped()
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        accelerator="gpu",
+        devices=2,
+        strategy=strategy,
+        precision="16-mixed",
+        max_epochs=1,
+        limit_train_batches=2,
+        limit_val_batches=2,
+        limit_test_batches=2,
+        limit_predict_batches=2,
+        callbacks=[ck],)
+    
+    _run_multiple_stages(trainer, model)
 
 @RunIf(min_cuda_gpus=1, skip_windows=True, standalone=True)
 @pytest.mark.parametrize("use_orig_params", [None, False, True])
