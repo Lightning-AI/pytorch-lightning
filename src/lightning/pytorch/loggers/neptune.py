@@ -49,13 +49,9 @@ _NEPTUNE_AVAILABLE = RequirementCache("neptune>=1.0")
 _INTEGRATION_VERSION_KEY = "source_code/integrations/pytorch-lightning"
 
 
-def catch_inactive(func: Callable) -> Callable:
-    """Neptune client throws `InactiveRunException` when trying to log to an inactive run.
-
-    This may happen when the run was stopped through the UI and the logger is still trying to log to it.
-
-    """
-
+# Neptune client throws `InactiveRunException` when trying to log to an inactive run.
+# This may happen when the run was stopped through the UI and the logger is still trying to log to it.
+def _catch_inactive(func: Callable) -> Callable:
     @wraps(func)
     def wrapper(*args: Any, **kwargs: Any) -> Any:
         from neptune.exceptions import InactiveRunException
@@ -398,7 +394,7 @@ class NeptuneLogger(Logger):
 
     @override
     @rank_zero_only
-    @catch_inactive
+    @_catch_inactive
     def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:
         r"""Log hyperparameters to the run.
 
@@ -446,7 +442,7 @@ class NeptuneLogger(Logger):
 
     @override
     @rank_zero_only
-    @catch_inactive
+    @_catch_inactive
     def log_metrics(self, metrics: Dict[str, Union[Tensor, float]], step: Optional[int] = None) -> None:
         """Log metrics (numeric values) in Neptune runs.
 
@@ -465,7 +461,7 @@ class NeptuneLogger(Logger):
 
     @override
     @rank_zero_only
-    @catch_inactive
+    @_catch_inactive
     def finalize(self, status: str) -> None:
         if not self._run_instance:
             # When using multiprocessing, finalize() should be a no-op on the main process, as no experiment has been
@@ -489,7 +485,7 @@ class NeptuneLogger(Logger):
         return os.path.join(os.getcwd(), ".neptune")
 
     @rank_zero_only
-    @catch_inactive
+    @_catch_inactive
     def log_model_summary(self, model: "pl.LightningModule", max_depth: int = -1) -> None:
         from neptune.types import File
 
@@ -500,7 +496,7 @@ class NeptuneLogger(Logger):
 
     @override
     @rank_zero_only
-    @catch_inactive
+    @_catch_inactive
     def after_save_checkpoint(self, checkpoint_callback: Checkpoint) -> None:
         """Automatically log checkpointed model. Called after model checkpoint callback saves a new checkpoint.
 
