@@ -92,7 +92,8 @@ class Timer(Callback):
             duration_match = re.fullmatch(r"(\d+):(\d\d):(\d\d):(\d\d)", duration.strip())
             if not duration_match:
                 raise MisconfigurationException(
-                    f"`Timer(duration={interval!r})` is not a valid duration. Expected a string in the format DD:HH:MM:SS."
+                    f"`Timer(duration={duration!r})` is not a valid duration. "
+                    "Expected a string in the format DD:HH:MM:SS."
                 )
             duration = timedelta(
                 days=int(duration_match.group(1)),
