@@ -303,3 +303,13 @@ def test_get_full_model_names_from_exp_structure():
     }
     expected_keys = {"lvl1_1/lvl2/lvl3_1", "lvl1_1/lvl2/lvl3_2", "lvl1_2"}
     assert NeptuneLogger._get_full_model_names_from_exp_structure(input_dict, "foo/bar") == expected_keys
+
+
+def test_inactive_run(neptune_mock, tmp_path):
+    from neptune.exceptions import InactiveRunException
+
+    logger, run_instance_mock, _ = _get_logger_with_mocks(api_key="test", project="project")
+    run_instance_mock.__setitem__.side_effect = InactiveRunException
+
+    # this should work without any exceptions
+    _fit_and_test(logger=logger, model=BoringModel(), tmp_path=tmp_path)
