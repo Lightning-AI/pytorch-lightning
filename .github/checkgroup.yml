@@ -156,8 +156,6 @@ subprojects:
     paths:
       - ".actions/*"
       - "requirements/data/**"
-      - "src/lightning/data/**"
-      - "src/lightning_data/*"
       - "src/lightning/__init__.py"
       - "src/lightning/__setup__.py"
       - "src/lightning/__version__.py"

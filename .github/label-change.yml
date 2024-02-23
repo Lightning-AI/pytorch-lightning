@@ -10,13 +10,6 @@ app:
           - "docs/source-app/**"
           - "requirements/app/**"
 
-data:
-  - changed-files:
-      - any-glob-to-any-file:
-          - "src/lightning/data/**"
-          - "tests/tests_data/**"
-          - "requirements/data/**"
-
 store:
   - changed-files:
       - any-glob-to-any-file:
