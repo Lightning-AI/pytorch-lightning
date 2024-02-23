@@ -101,7 +101,7 @@ class Timer(Callback):
                 minutes=int(duration_match.group(3)),
                 seconds=int(duration_match.group(4)),
             )
-        if isinstance(duration, dict):
+        elif isinstance(duration, dict):
             duration = timedelta(**duration)
         if interval not in set(Interval):
             raise MisconfigurationException(
