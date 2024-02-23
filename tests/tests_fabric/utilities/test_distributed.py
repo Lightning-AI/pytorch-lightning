@@ -1,6 +1,5 @@
 import functools
 import os
-import sys
 from functools import partial
 from pathlib import Path
 from unittest import mock
@@ -19,7 +18,6 @@ from lightning.fabric.utilities.distributed import (
     _sync_ddp,
     is_shared_filesystem,
 )
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_2
 
 from tests_fabric.helpers.runif import RunIf
 

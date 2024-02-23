@@ -12,13 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-import sys
 from unittest import mock
 
 import pytest
 import torch
 from lightning.fabric.plugins.environments import SLURMEnvironment
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_2
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
 from torch.utils.data import DataLoader

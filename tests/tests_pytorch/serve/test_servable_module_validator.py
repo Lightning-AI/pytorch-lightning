@@ -1,9 +1,7 @@
-import sys
 from typing import Dict
 
 import pytest
 import torch
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_2
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.serve.servable_module_validator import ServableModule, ServableModuleValidator

@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-import sys
 from multiprocessing import Process
 from unittest import mock
 from unittest.mock import ANY, Mock, call, patch
@@ -20,7 +19,6 @@ from unittest.mock import ANY, Mock, call, patch
 import pytest
 import torch
 from lightning.fabric.plugins import ClusterEnvironment
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_2
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.strategies import DDPStrategy
