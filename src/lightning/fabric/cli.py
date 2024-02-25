@@ -19,6 +19,10 @@ import sys
 from argparse import Namespace
 from typing import Any, List, Optional
 
+import torch
+
+from fabric.utilities.consolidate_checkpoint import _process_cli_args
+from fabric.utilities.load import _load_distributed_checkpoint
 from lightning_utilities.core.imports import RequirementCache
 from typing_extensions import get_args
 
@@ -153,6 +157,19 @@ if _CLICK_AVAILABLE:
         """
         script_args = list(kwargs.pop("script_args", []))
         main(args=Namespace(**kwargs), script_args=script_args)
+
+
+    @_main.command(
+        "consolidate",
+        context_settings={
+            "ignore_unknown_options": True,
+        },
+    )
+    def _consolidate() -> None:
+        """Consolidate a distributed checkpoint into a single file."""
+        config = _process_cli_args(args)
+        checkpoint = _load_distributed_checkpoint(config.checkpoint_folder)
+        torch.save(checkpoint, config.output_file)
 
 
 def _set_env_variables(args: Namespace) -> None:
