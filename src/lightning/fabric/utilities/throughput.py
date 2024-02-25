@@ -172,17 +172,16 @@ class Throughput:
             # we are safe from ZeroDivisionError thanks to `_MonotonicWindow`
             dev_samples_per_sec = elapsed_samples / elapsed_time
             dev_batches_per_sec = elapsed_batches / elapsed_time
-            metrics.update(
-                {
-                    f"device{self.separator}batches_per_sec": elapsed_batches / elapsed_time,
-                    f"device{self.separator}samples_per_sec": dev_samples_per_sec,
-                }
-            )
+            metrics.update({
+                f"device{self.separator}batches_per_sec": elapsed_batches / elapsed_time,
+                f"device{self.separator}samples_per_sec": dev_samples_per_sec,
+            })
             if add_global_metrics:
                 samples_per_sec = dev_batches_per_sec * self.world_size
-                metrics.update(
-                    {"batches_per_sec": samples_per_sec, "samples_per_sec": dev_samples_per_sec * self.world_size}
-                )
+                metrics.update({
+                    "batches_per_sec": samples_per_sec,
+                    "samples_per_sec": dev_samples_per_sec * self.world_size,
+                })
 
             if len(self._lengths) == self._lengths.maxlen:
                 elapsed_lengths = self._lengths[-1] - self._lengths[0]

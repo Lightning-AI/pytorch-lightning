@@ -436,9 +436,10 @@ def test_wandb_log_media(wandb_mock, tmp_path):
     wandb_mock.init().log.reset_mock()
     logger.log_image(key="samples", images=["1.jpg", "2.jpg"], step=5)
     wandb_mock.Image.assert_called_with("2.jpg")
-    wandb_mock.init().log.assert_called_once_with(
-        {"samples": [wandb_mock.Image(), wandb_mock.Image()], "trainer/global_step": 5}
-    )
+    wandb_mock.init().log.assert_called_once_with({
+        "samples": [wandb_mock.Image(), wandb_mock.Image()],
+        "trainer/global_step": 5,
+    })
 
     # test log_image with captions
     wandb_mock.init().log.reset_mock()
@@ -465,9 +466,10 @@ def test_wandb_log_media(wandb_mock, tmp_path):
     wandb_mock.init().log.reset_mock()
     logger.log_audio(key="samples", audios=["1.mp3", "2.mp3"], step=5)
     wandb_mock.Audio.assert_called_with("2.mp3")
-    wandb_mock.init().log.assert_called_once_with(
-        {"samples": [wandb_mock.Audio(), wandb_mock.Audio()], "trainer/global_step": 5}
-    )
+    wandb_mock.init().log.assert_called_once_with({
+        "samples": [wandb_mock.Audio(), wandb_mock.Audio()],
+        "trainer/global_step": 5,
+    })
 
     # test log_audio with captions
     wandb_mock.init().log.reset_mock()
@@ -494,9 +496,10 @@ def test_wandb_log_media(wandb_mock, tmp_path):
     wandb_mock.init().log.reset_mock()
     logger.log_video(key="samples", videos=["1.mp4", "2.mp4"], step=5)
     wandb_mock.Video.assert_called_with("2.mp4")
-    wandb_mock.init().log.assert_called_once_with(
-        {"samples": [wandb_mock.Video(), wandb_mock.Video()], "trainer/global_step": 5}
-    )
+    wandb_mock.init().log.assert_called_once_with({
+        "samples": [wandb_mock.Video(), wandb_mock.Video()],
+        "trainer/global_step": 5,
+    })
 
     # test log_video with captions
     wandb_mock.init().log.reset_mock()

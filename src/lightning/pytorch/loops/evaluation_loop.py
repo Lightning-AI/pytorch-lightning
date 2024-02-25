@@ -478,7 +478,7 @@ class _EvaluationLoop(_Loop):
                 for new_key in apply_to_collection(v, dict, _EvaluationLoop._get_keys):
                     yield (k, *new_key)  # this need to be in parenthesis for older python versions
             else:
-                yield k,
+                yield (k,)
 
     @staticmethod
     def _find_value(data: dict, target: Iterable[str]) -> Optional[Any]:

@@ -258,8 +258,7 @@ def test_explicit_missing_args_hparams(tmpdir):
 
 def test_class_nesting():
     class MyModule(LightningModule):
-        def forward(self):
-            ...
+        def forward(self): ...
 
     # make sure PL modules are always nn.Module
     a = MyModule()
@@ -349,8 +348,7 @@ if _OMEGACONF_AVAILABLE:
 
 else:
 
-    class DictConfSubClassBoringModel:
-        ...
+    class DictConfSubClassBoringModel: ...
 
 
 @pytest.mark.parametrize(

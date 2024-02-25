@@ -234,7 +234,8 @@ def test_optimizer_return_options(tmpdir):
     # opt list of dictionaries
     model.automatic_optimization = False
     model.configure_optimizers = lambda: [
-        {"optimizer": opt_a, "lr_scheduler": scheduler_a}, {"optimizer": opt_b, "lr_scheduler": scheduler_a}
+        {"optimizer": opt_a, "lr_scheduler": scheduler_a},
+        {"optimizer": opt_b, "lr_scheduler": scheduler_a},
     ]
     opt, lr_sched = _init_optimizers_and_lr_schedulers(model)
     assert len(opt) == len(lr_sched) == 2
@@ -559,14 +560,11 @@ def test_lr_scheduler_step_hook(tmpdir):
         def __init__(self, optimizer):
             self.optimizer = optimizer
 
-        def step(self, epoch):
-            ...
+        def step(self, epoch): ...
 
-        def state_dict(self):
-            ...
+        def state_dict(self): ...
 
-        def load_state_dict(self, state_dict):
-            ...
+        def load_state_dict(self, state_dict): ...
 
     class CustomBoringModel(BoringModel):
         def lr_scheduler_step(self, scheduler: int, metric):
@@ -611,8 +609,7 @@ def test_invalid_scheduler_missing_state_dict():
         def __init__(self, optimizer):
             self.optimizer = optimizer
 
-        def step(self):
-            ...
+        def step(self): ...
 
     class CustomBoringModel(BoringModel):
         def configure_optimizers(self):
@@ -637,11 +634,9 @@ def test_invalid_lr_scheduler_with_custom_step_method(override):
         def step(self, foobar):  # breaks the API, forces user to override `lr_scheduler_step`
             ...
 
-        def state_dict(self):
-            ...
+        def state_dict(self): ...
 
-        def load_state_dict(self, state_dict):
-            ...
+        def load_state_dict(self, state_dict): ...
 
     class CustomBoringModel(BoringModel):
         def configure_optimizers(self):
@@ -653,8 +648,7 @@ def test_invalid_lr_scheduler_with_custom_step_method(override):
     model.trainer = Trainer()
     if override:
 
-        def lr_scheduler_step(*_):
-            ...
+        def lr_scheduler_step(*_): ...
 
         # the user did override the hook, no error
         model.lr_scheduler_step = lr_scheduler_step

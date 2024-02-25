@@ -6,6 +6,7 @@ To test a lightning app:
 
 run_once runs your app through one cycle of the event loop and then terminates
 """
+
 import io
 import os
 from contextlib import redirect_stdout

@@ -282,9 +282,10 @@ def test_complex_nested_model():
     directly themselves rather than exclusively their submodules containing parameters."""
 
     model = nn.Sequential(
-        OrderedDict(
-            [("encoder", nn.Sequential(ConvBlockParam(3, 64), ConvBlock(64, 128))), ("decoder", ConvBlock(128, 10))]
-        )
+        OrderedDict([
+            ("encoder", nn.Sequential(ConvBlockParam(3, 64), ConvBlock(64, 128))),
+            ("decoder", ConvBlock(128, 10)),
+        ])
     )
 
     # There are 10 leaf modules or parent modules w/ parameters in the test model

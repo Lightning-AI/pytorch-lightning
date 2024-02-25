@@ -77,17 +77,15 @@ class MultiNode(LightningFlow):
                 " To run on multiple nodes in the cloud, launch your app with `--cloud`."
             )
             num_nodes = 1
-        self.ws = _List(
-            *[
-                work_cls(
-                    *work_args,
-                    cloud_compute=cloud_compute.clone(),
-                    **work_kwargs,
-                    parallel=True,
-                )
-                for _ in range(num_nodes)
-            ]
-        )
+        self.ws = _List(*[
+            work_cls(
+                *work_args,
+                cloud_compute=cloud_compute.clone(),
+                **work_kwargs,
+                parallel=True,
+            )
+            for _ in range(num_nodes)
+        ])
 
     def run(self) -> None:
         # 1. Wait for all works to be started !

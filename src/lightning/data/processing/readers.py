@@ -6,10 +6,12 @@ from typing import Any, List
 from lightning_utilities.core.imports import RequirementCache
 from tqdm import tqdm
 
+from lightning.data.streaming.dataloader import StreamingDataLoader
+
 _PYARROW_AVAILABLE = RequirementCache("pyarrow")
 
-class BaseReader(ABC):
 
+class BaseReader(ABC):
     def get_num_nodes(self) -> int:
         return int(os.getenv("DATA_OPTIMIZER_NUM_NODES", 1))
 
@@ -17,7 +19,7 @@ class BaseReader(ABC):
         return int(os.getenv("DATA_OPTIMIZER_NODE_RANK", 0))
 
     @abstractmethod
-    def remap_items(self, items: List[Any], num_workers: int) -> List[Any]:
+    def remap_items(self, items: Any, num_workers: int) -> List[Any]:
         """This method is meant to remap the items provided by the users into items more adapted to be distributed."""
         pass
 
@@ -28,18 +30,14 @@ class BaseReader(ABC):
 
 
 class ParquetReader(BaseReader):
-
     def __init__(self, cache_folder: str, num_rows: int = 65536, to_pandas: bool = True) -> None:
         super().__init__()
         self.cache_folder = cache_folder
         self.num_rows = num_rows
         self.to_pandas = to_pandas
 
-
-
         if not _PYARROW_AVAILABLE:
             raise ModuleNotFoundError("Please, run: `pip install pyarrow`")
-
 
         self.parquet_file = None
 
@@ -92,8 +90,23 @@ class ParquetReader(BaseReader):
                 if table is None:
                     table = pq.read_table(filepath, memory_map=True)
 
-                pq.write_table(table[start: end], chunk_filepath)
+                pq.write_table(table[start:end], chunk_filepath)
 
         print("Finished resharding the parquet files for optimized processing.")
 
         return new_items
+
+
+class StreamingDataLoaderReader(BaseReader):
+    def __init__(self, dataloader: StreamingDataLoader) -> None:
+        super().__init__()
+        self.dataloader = dataloader
+        self.dataloader_iter: Any = None
+
+    def read(self, _: int) -> Any:
+        if self.dataloader_iter is None:
+            self.dataloader_iter = iter(self.dataloader)
+        return next(self.dataloader_iter)
+
+    def remap_items(self, dataloader: StreamingDataLoader, _: int) -> List[Any]:
+        return list(range(len(dataloader)))

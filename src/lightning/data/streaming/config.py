@@ -16,6 +16,7 @@ import os
 from typing import Any, Dict, List, Optional, Tuple
 
 from lightning.data.constants import _INDEX_FILENAME, _TORCH_GREATER_EQUAL_2_1_0
+from lightning.data.streaming.compression import _COMPRESSORS, Compressor
 from lightning.data.streaming.downloader import get_downloader_cls
 from lightning.data.streaming.item_loader import BaseItemLoader, PyTreeLoader, TokensLoader
 from lightning.data.streaming.sampler import ChunkedIndex
@@ -66,18 +67,46 @@ class ChunksConfig:
         if remote_dir:
             self._downloader = get_downloader_cls(remote_dir, cache_dir, self._chunks)
 
+        self._compressor_name = self._config["compression"]
+        self._compressor: Optional[Compressor] = None
+
+        if self._compressor_name in _COMPRESSORS:
+            self._compressor = _COMPRESSORS[self._compressor_name]
+
     def download_chunk_from_index(self, chunk_index: int) -> None:
         chunk_filename = self._chunks[chunk_index]["filename"]
 
         local_chunkpath = os.path.join(self._cache_dir, chunk_filename)
 
         if os.path.exists(local_chunkpath):
+            self.try_decompress(local_chunkpath)
             return
 
         if self._downloader is None:
             raise RuntimeError("The downloader should be defined.")
 
         self._downloader.download_chunk_from_index(chunk_index)
+
+        self.try_decompress(local_chunkpath)
+
+    def try_decompress(self, local_chunkpath: str) -> None:
+        if self._compressor is None:
+            return
+
+        target_local_chunkpath = local_chunkpath.replace(f".{self._compressor_name}", "")
+
+        if os.path.exists(target_local_chunkpath):
+            return
+
+        with open(local_chunkpath, "rb") as f:
+            data = f.read()
+
+        os.remove(local_chunkpath)
+
+        data = self._compressor.decompress(data)
+
+        with open(target_local_chunkpath, "wb") as f:
+            f.write(data)
 
     @property
     def intervals(self) -> List[Tuple[int, int]]:
@@ -132,7 +161,13 @@ class ChunksConfig:
     def __getitem__(self, index: ChunkedIndex) -> Tuple[str, int, int]:
         """Find the associated chunk metadata."""
         chunk = self._chunks[index.chunk_index]
-        return os.path.join(self._cache_dir, chunk["filename"]), *self._intervals[index.chunk_index]
+
+        local_chunkpath = os.path.join(self._cache_dir, chunk["filename"])
+
+        if self._compressor is not None:
+            local_chunkpath = local_chunkpath.replace(f".{self._compressor_name}", "")
+
+        return local_chunkpath, *self._intervals[index.chunk_index]
 
     def _get_chunk_index_from_filename(self, chunk_filename: str) -> int:
         """Retrieves the associated chunk_index for a given chunk filename."""
