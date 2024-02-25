@@ -1,8 +1,8 @@
 :orphan:
 
-#################################
-Level 13: Run on on-prem clusters
-#################################
+#####################################
+Level 13: Run on a multi-node cluster
+#####################################
 
 In this level you'll learn to run on on-prem clusters.
 
@@ -13,7 +13,14 @@ In this level you'll learn to run on on-prem clusters.
     <div class="display-card-container">
         <div class="row">
 
-.. Add callout items below this line
+
+.. displayitem::
+    :header: Run single or multi-node on Lightning Studios
+    :description: The easiest way to scale models in the cloud. No infrastructure setup required.
+    :col_css: col-md-4
+    :button_link: lightning_ai.html
+    :height: 150
+    :tag: basic
 
 .. displayitem::
    :header: Run on an on-prem cluster
