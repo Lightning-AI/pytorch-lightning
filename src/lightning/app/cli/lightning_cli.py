@@ -18,7 +18,6 @@ from pathlib import Path
 from typing import Tuple, Union
 
 import click
-from lightning_utilities.core.imports import RequirementCache
 from requests.exceptions import ConnectionError
 
 import lightning.app.core.constants as constants
