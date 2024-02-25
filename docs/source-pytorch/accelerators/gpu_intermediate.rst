@@ -173,9 +173,10 @@ To use it, specify the DDP strategy and the number of GPUs you want to use in th
 
     Trainer(accelerator="gpu", devices=8, strategy="ddp")
 
-Then simply launch your script with the `torchrun` command.
-:doc:`Read our guide for how to use TorchRun on a cluster <../clouds/cluster_intermediate_2>`.
+Then simply launch your script with the :doc:`torchrun <../clouds/cluster_intermediate_2>` command.
 
+
+----
 
 
 Optimize multi-machine communication
