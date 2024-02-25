@@ -9,18 +9,18 @@ GPU training (Intermediate)
 ----
 
 
-Distributed Training strategies
+Distributed training strategies
 -------------------------------
 Lightning supports multiple ways of doing distributed training.
+
+- Regular (``strategy='ddp'``)
+- Spawn (``strategy='ddp_spawn'``)
+- Notebook/Fork (``strategy='ddp_notebook'``)
 
 .. video:: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/yt/Trainer+flags+4-+multi+node+training_3.mp4
     :poster: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/yt_thumbs/thumb_multi_gpus.png
     :width: 400
 
-- DistributedDataParallel (multiple-gpus across many machines)
-    - Regular (``strategy='ddp'``)
-    - Spawn (``strategy='ddp_spawn'``)
-    - Notebook/Fork (``strategy='ddp_notebook'``)
 
 .. note::
     If you request multiple GPUs or nodes without setting a strategy, DDP will be automatically used.
@@ -43,6 +43,8 @@ Distributed Data Parallel
 5. The gradients are synced and averaged across all processes.
 6. Each process updates its optimizer.
 
+|
+
 .. code-block:: python
 
     # train on 8 GPUs (same machine (ie: node))
@@ -62,9 +64,12 @@ variables:
     MASTER_ADDR=localhost MASTER_PORT=random() WORLD_SIZE=3 NODE_RANK=0 LOCAL_RANK=2 python my_file.py --accelerator 'gpu' --devices 3 --etc
 
 Using DDP this way has a few disadvantages over ``torch.multiprocessing.spawn()``:
+
 1. All processes (including the main process) participate in training and have the updated state of the model and Trainer state.
 2. No multiprocessing pickle errors
 3. Easily scales to multi-node training
+
+|
 
 It is NOT possible to use DDP in interactive environments like Jupyter Notebook, Google COLAB, Kaggle, etc.
 In these situations you should use `ddp_notebook`.
@@ -76,7 +81,7 @@ In these situations you should use `ddp_notebook`.
 Distributed Data Parallel Spawn
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. warning:: It is STRONGLY recommended to use `DDP` for speed and performance.
+.. warning:: It is STRONGLY recommended to use DDP for speed and performance.
 
 The `ddp_spawn` strategy is similar to `ddp` except that it uses ``torch.multiprocessing.spawn()`` to start the training processes.
 Use this for debugging only, or if you are converting a code base to Lightning that relies on spawn.
@@ -120,7 +125,7 @@ Among the native distributed strategies, regular DDP (``strategy="ddp"``) is sti
 
 
 Comparison of DDP variants and tradeoffs
-****************************************
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. list-table:: DDP variants and their tradeoffs
    :widths: 40 20 20 20
@@ -154,29 +159,6 @@ Comparison of DDP variants and tradeoffs
      - Slow
      - Slow
      - Fast
-
-
-----
-
-
-Distributed and 16-bit precision
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-Below are the possible configurations we support.
-
-+-------+---------+-----+--------+-----------------------------------------------------------------------+
-| 1 GPU | 1+ GPUs | DDP | 16-bit | command                                                               |
-+=======+=========+=====+========+=======================================================================+
-| Y     |         |     |        | `Trainer(accelerator="gpu", devices=1)`                               |
-+-------+---------+-----+--------+-----------------------------------------------------------------------+
-| Y     |         |     | Y      | `Trainer(accelerator="gpu", devices=1, precision=16)`                 |
-+-------+---------+-----+--------+-----------------------------------------------------------------------+
-|       | Y       | Y   |        | `Trainer(accelerator="gpu", devices=k, strategy='ddp')`               |
-+-------+---------+-----+--------+-----------------------------------------------------------------------+
-|       | Y       | Y   | Y      | `Trainer(accelerator="gpu", devices=k, strategy='ddp', precision=16)` |
-+-------+---------+-----+--------+-----------------------------------------------------------------------+
-
-DDP can also be used with 1 GPU, but there's no reason to do so other than debugging distributed-related issues.
 
 
 ----
