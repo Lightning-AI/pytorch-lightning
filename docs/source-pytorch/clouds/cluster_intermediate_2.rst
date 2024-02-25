@@ -38,6 +38,10 @@ Run the below command with the appropriate variables set on each node.
 - ``--master_addr``: The IP address of the main node with node rank 0.
 - ``--master_port``: The port that will be used for communication between the nodes. Must be open in the firewall on each node to permit TCP traffic.
 
+For more advanced configuration options in TorchRun such as elastic, fault-tolerant training, see the `official documentation <https://pytorch.org/docs/stable/elastic/run.html>`_.
+
+|
+
 **Example running on 2 nodes with 8 GPUs each:**
 
 Assume the main node has the IP address 10.10.10.16.
@@ -54,12 +58,3 @@ On the second node, you would run this command:
     torchrun --nproc_per_node=8 --nnodes=2 --node_rank 1 --master_addr 10.10.10.16 --master_port 50000 train.py
 
 Note that the only difference between the two commands is the node rank!
-
-
-----
-
-
-*****************
-TorchRun on SLURM
-*****************
-

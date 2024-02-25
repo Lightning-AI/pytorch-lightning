@@ -164,42 +164,18 @@ Comparison of DDP variants and tradeoffs
 ----
 
 
-Torch Distributed Elastic
--------------------------
-Lightning supports the use of Torch Distributed Elastic to enable fault-tolerant and elastic distributed job scheduling. To use it, specify the 'ddp' backend and the number of GPUs you want to use in the trainer.
+TorchRun (TorchElastic)
+-----------------------
+Lightning supports the use of TorchRun (previously known as TorchElastic) to enable fault-tolerant and elastic distributed job scheduling.
+To use it, specify the DDP strategy and the number of GPUs you want to use in the Trainer.
 
 .. code-block:: python
 
     Trainer(accelerator="gpu", devices=8, strategy="ddp")
 
-To launch a fault-tolerant job, run the following on all nodes.
+Then simply launch your script with the `torchrun` command.
+:doc:`Read our guide for how to use TorchRun on a cluster <../clouds/cluster_intermediate_2>`.
 
-.. code-block:: bash
-
-    torchrun \
-        --node_rank=NODE_INDEX \
-        --nnodes=NUM_NODES \
-        --nproc_per_node=TRAINERS_PER_NODE \
-        --rdzv_id=JOB_ID \
-        --rdzv_backend=c10d \
-        --rdzv_endpoint=HOST_NODE_ADDR \
-        YOUR_LIGHTNING_TRAINING_SCRIPT.py --script_arg1 --script_arg2 ...
-
-To launch an elastic job, run the following on at least ``MIN_SIZE`` nodes and at most ``MAX_SIZE`` nodes.
-
-.. code-block:: bash
-
-    torchrun \
-        --node_rank=NODE_INDEX \
-        --nnodes=MIN_SIZE:MAX_SIZE \
-        --nproc_per_node=TRAINERS_PER_NODE \
-        --rdzv_id=JOB_ID \
-        --rdzv_backend=c10d \
-        --rdzv_endpoint=HOST_NODE_ADDR \
-        YOUR_LIGHTNING_TRAINING_SCRIPT.py --script_arg1 --script_arg2 ...
-
-See the official `Torch Distributed Elastic documentation <https://pytorch.org/docs/stable/distributed.elastic.html>`_ for details
-on installation and more use cases.
 
 
 Optimize multi-machine communication
