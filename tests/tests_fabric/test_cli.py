@@ -184,8 +184,8 @@ def test_cli_through_lightning_entry_point():
 
     deprecation_message = (
         "`lightning run model` is deprecated and will be removed in future versions. "
-        "Please call `fabric run model` instead"
+        "Please call `fabric run` instead"
     )
-    message = "Usage: lightning run model [OPTIONS] SCRIPT [SCRIPT_ARGS]"
+    message = "Usage: lightning run [OPTIONS] SCRIPT [SCRIPT_ARGS]"
     assert deprecation_message in result.stdout
     assert message in result.stdout or message in result.stderr
