@@ -305,9 +305,9 @@ def run_app(
 
 if RequirementCache("lightning-fabric>=1.9.0") or RequirementCache("lightning>=1.9.0"):
     # note it is automatically replaced to `from lightning.fabric.cli` when building monolithic/mirror package
-    from lightning.fabric.cli import _run_model
+    from lightning.fabric.cli import _run
 
-    run.add_command(_run_model)
+    run.add_command(_run)
 
 
 @_main.command("open", hidden=True)
