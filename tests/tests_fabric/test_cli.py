@@ -172,9 +172,9 @@ def test_cli_torchrun_num_processes_launched(_, devices, expected, monkeypatch, 
 
 
 def test_cli_through_fabric_entry_point():
-    result = subprocess.run("fabric run model --help", capture_output=True, text=True, shell=True)
+    result = subprocess.run("fabric run --help", capture_output=True, text=True, shell=True)
 
-    message = "Usage: fabric run model [OPTIONS] SCRIPT [SCRIPT_ARGS]"
+    message = "Usage: fabric run [OPTIONS] SCRIPT [SCRIPT_ARGS]"
     assert message in result.stdout or message in result.stderr
 
 

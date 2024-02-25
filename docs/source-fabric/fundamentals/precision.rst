@@ -66,7 +66,7 @@ The same values can also be set through the :doc:`command line interface <launch
 
 .. code-block:: bash
 
-    lightning run model train.py --precision=bf16-mixed
+    fabric run train.py --precision=bf16-mixed
 
 
 .. note::

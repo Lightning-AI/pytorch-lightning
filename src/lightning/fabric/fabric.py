@@ -839,7 +839,7 @@ class Fabric:
             Returns the output of the function that ran in worker process with rank 0.
 
         The ``launch()`` method should only be used if you intend to specify accelerator, devices, and so on in
-        the code (programmatically). If you are launching with the Lightning CLI, ``lightning run model ...``, remove
+        the code (programmatically). If you are launching with the Lightning CLI, ``fabric run ...``, remove
         ``launch()`` from your code.
 
         The ``launch()`` is a no-op when called multiple times and no function is passed in.
@@ -1028,7 +1028,7 @@ class Fabric:
         if not self._launched and not isinstance(self._strategy, (SingleDeviceStrategy, DataParallelStrategy)):
             raise RuntimeError(
                 "To use Fabric with more than one device, you must call `.launch()` or use the CLI:"
-                " `lightning run model --help`."
+                " `fabric run --help`."
             )
 
     def _validate_setup(self, module: nn.Module, optimizers: Sequence[Optimizer]) -> None:
