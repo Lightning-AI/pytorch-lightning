@@ -44,7 +44,7 @@
    SLURM <../clouds/cluster_advanced>
    Transfer learning <../advanced/transfer_learning>
    Trainer <../common/trainer>
-   Torch distributed <../clouds/cluster_intermediate_2>
+   TorchRun (TorchElastic) <../clouds/cluster_intermediate_2>
    Warnings <../advanced/warnings>
 
 
