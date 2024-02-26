@@ -2,22 +2,22 @@ import sys
 
 from lightning_utilities.core.imports import RequirementCache
 
-_LIGHTNING_DATA_AVAILABLE = RequirementCache("lightning_data")
+_LITDATA_AVAILABLE = RequirementCache("litdata")
 _LIGHTNING_SDK_AVAILABLE = RequirementCache("lightning_sdk")
 
-if _LIGHTNING_DATA_AVAILABLE:
-    import lightning_data
+if _LITDATA_AVAILABLE:
+    import litdata
 
     # Enable resolution at least for lower data namespace
-    sys.modules["lightning.data"] = lightning_data
+    sys.modules["lightning.data"] = litdata
 
-    from lightning_data.processing.functions import map, optimize, walk
-    from lightning_data.streaming.combined import CombinedStreamingDataset
-    from lightning_data.streaming.dataloader import StreamingDataLoader
-    from lightning_data.streaming.dataset import StreamingDataset
+    from litdata.processing.functions import map, optimize, walk
+    from litdata.streaming.combined import CombinedStreamingDataset
+    from litdata.streaming.dataloader import StreamingDataLoader
+    from litdata.streaming.dataset import StreamingDataset
 
 else:
-    # TODO: Delete all the code when everything is moved to lightning_data
+    # TODO: Delete all the code when everything is moved to litdata
     from lightning.data.processing.functions import map, optimize, walk
     from lightning.data.streaming.combined import CombinedStreamingDataset
     from lightning.data.streaming.dataloader import StreamingDataLoader
@@ -34,7 +34,7 @@ __all__ = [
     "walk",
 ]
 
-# TODO: Move this to lightning_data
+# TODO: Move this to litdata
 if _LIGHTNING_SDK_AVAILABLE:
     from lightning_sdk import Machine  # noqa: F401
 

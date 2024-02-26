@@ -20,7 +20,8 @@ import contextlib
 import logging
 import os
 from argparse import Namespace
-from typing import TYPE_CHECKING, Any, Dict, Generator, List, Optional, Set, Union
+from functools import wraps
+from typing import TYPE_CHECKING, Any, Callable, Dict, Generator, List, Optional, Set, Union
 
 from lightning_utilities.core.imports import RequirementCache
 from torch import Tensor
@@ -46,6 +47,19 @@ log = logging.getLogger(__name__)
 # in compare to neptune-client<1.0.0.
 _NEPTUNE_AVAILABLE = RequirementCache("neptune>=1.0")
 _INTEGRATION_VERSION_KEY = "source_code/integrations/pytorch-lightning"
+
+
+# Neptune client throws `InactiveRunException` when trying to log to an inactive run.
+# This may happen when the run was stopped through the UI and the logger is still trying to log to it.
+def _catch_inactive(func: Callable) -> Callable:
+    @wraps(func)
+    def wrapper(*args: Any, **kwargs: Any) -> Any:
+        from neptune.exceptions import InactiveRunException
+
+        with contextlib.suppress(InactiveRunException):
+            return func(*args, **kwargs)
+
+    return wrapper
 
 
 class NeptuneLogger(Logger):
@@ -245,10 +259,7 @@ class NeptuneLogger(Logger):
         if self._run_instance is not None:
             self._retrieve_run_data()
 
-            if _NEPTUNE_AVAILABLE:
-                from neptune.handler import Handler
-            else:
-                from neptune.new.handler import Handler
+            from neptune.handler import Handler
 
             # make sure that we've log integration version for outside `Run` instances
             root_obj = self._run_instance
@@ -383,6 +394,7 @@ class NeptuneLogger(Logger):
 
     @override
     @rank_zero_only
+    @_catch_inactive
     def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:
         r"""Log hyperparameters to the run.
 
@@ -430,9 +442,8 @@ class NeptuneLogger(Logger):
 
     @override
     @rank_zero_only
-    def log_metrics(  # type: ignore[override]
-        self, metrics: Dict[str, Union[Tensor, float]], step: Optional[int] = None
-    ) -> None:
+    @_catch_inactive
+    def log_metrics(self, metrics: Dict[str, Union[Tensor, float]], step: Optional[int] = None) -> None:
         """Log metrics (numeric values) in Neptune runs.
 
         Args:
@@ -450,6 +461,7 @@ class NeptuneLogger(Logger):
 
     @override
     @rank_zero_only
+    @_catch_inactive
     def finalize(self, status: str) -> None:
         if not self._run_instance:
             # When using multiprocessing, finalize() should be a no-op on the main process, as no experiment has been
@@ -473,6 +485,7 @@ class NeptuneLogger(Logger):
         return os.path.join(os.getcwd(), ".neptune")
 
     @rank_zero_only
+    @_catch_inactive
     def log_model_summary(self, model: "pl.LightningModule", max_depth: int = -1) -> None:
         from neptune.types import File
 
@@ -483,6 +496,7 @@ class NeptuneLogger(Logger):
 
     @override
     @rank_zero_only
+    @_catch_inactive
     def after_save_checkpoint(self, checkpoint_callback: Checkpoint) -> None:
         """Automatically log checkpointed model. Called after model checkpoint callback saves a new checkpoint.
 
