@@ -1285,20 +1285,12 @@ class LightningModule(
 
         Examples::
 
-            # DEFAULT
             def optimizer_step(self, epoch, batch_idx, optimizer, optimizer_closure):
+                # Add your custom logic to run directly before `optimizer.step()`
+
                 optimizer.step(closure=optimizer_closure)
 
-            # Learning rate warm-up
-            def optimizer_step(self, epoch, batch_idx, optimizer, optimizer_closure):
-                # update params
-                optimizer.step(closure=optimizer_closure)
-
-                # manually warm up lr without a scheduler
-                if self.trainer.global_step < 500:
-                    lr_scale = min(1.0, float(self.trainer.global_step + 1) / 500.0)
-                    for pg in optimizer.param_groups:
-                        pg["lr"] = lr_scale * self.learning_rate
+                # Add your custom logic to run directly after `optimizer.step()`
 
         """
         optimizer.step(closure=optimizer_closure)

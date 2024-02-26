@@ -62,10 +62,7 @@ from lightning.pytorch.strategies import (
 )
 from lightning.pytorch.strategies.ddp import _DDP_FORK_ALIASES
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning.pytorch.utilities.imports import (
-    _LIGHTNING_COLOSSALAI_AVAILABLE,
-    _habana_available_and_importable,
-)
+from lightning.pytorch.utilities.imports import _habana_available_and_importable
 from lightning.pytorch.utilities.rank_zero import rank_zero_info, rank_zero_warn
 
 log = logging.getLogger(__name__)
@@ -190,9 +187,6 @@ class _AcceleratorConnector:
             strategy = strategy.lower()
 
         self._strategy_flag = strategy
-
-        if strategy == "colossalai" and not _LIGHTNING_COLOSSALAI_AVAILABLE:
-            raise ModuleNotFoundError(str(_LIGHTNING_COLOSSALAI_AVAILABLE))
 
         if strategy != "auto" and strategy not in self._registered_strategies and not isinstance(strategy, Strategy):
             raise ValueError(
@@ -490,12 +484,6 @@ class _AcceleratorConnector:
             if isinstance(self.accelerator, HPUAccelerator):
                 return HPUPrecisionPlugin(self._precision_flag)
 
-        if _LIGHTNING_COLOSSALAI_AVAILABLE:
-            from lightning_colossalai import ColossalAIPrecisionPlugin, ColossalAIStrategy
-
-            if isinstance(self.strategy, ColossalAIStrategy):
-                return ColossalAIPrecisionPlugin(self._precision_flag)
-
         if isinstance(self.strategy, (SingleDeviceXLAStrategy, XLAStrategy)):
             return XLAPrecision(self._precision_flag)  # type: ignore
         if isinstance(self.strategy, DeepSpeedStrategy):
@@ -648,13 +636,6 @@ def _set_torch_flags(
 
 def _register_external_accelerators_and_strategies() -> None:
     """Registers all known strategies in other packages."""
-    if _LIGHTNING_COLOSSALAI_AVAILABLE:
-        from lightning_colossalai import ColossalAIStrategy
-
-        # TODO: Prevent registering multiple times
-        if "colossalai" not in StrategyRegistry:
-            ColossalAIStrategy.register_strategies(StrategyRegistry)
-
     if _habana_available_and_importable():
         from lightning_habana import HPUAccelerator, HPUParallelStrategy, SingleHPUStrategy
 
