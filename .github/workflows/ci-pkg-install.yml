@@ -71,7 +71,6 @@ jobs:
           pkg-folder: dist/${{ env.PKG_DIR }}
           pkg-name: ${{ matrix.pkg-name }}
           pkg-extra: ${{ matrix.pkg-extra }}
-          pip-flags: "--pre" # todo: drop this when `lidata` is released (not as RC only)
 
       - name: Run CLI (via python)
         if: ${{ (matrix.pkg-name == 'lightning' || matrix.pkg-name == 'notset') && matrix.pkg-extra == 'app' }}
