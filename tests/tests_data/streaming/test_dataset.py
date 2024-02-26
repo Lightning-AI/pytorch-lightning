@@ -799,7 +799,7 @@ def test_dataset_valid_state(tmpdir, monkeypatch):
     dataset.load_state_dict(state_dict)
     with pytest.raises(
         ValueError,
-        match="The provided `drop_last` state doesn't match the current one. Found `False` instead of `True`.",  # noqa E501
+        match="The provided `drop_last` state doesn't match the current one. Found `False` instead of `True`.",  # E501
     ):
         dataset._validate_state_dict()
 
@@ -815,7 +815,7 @@ def test_dataset_valid_state(tmpdir, monkeypatch):
     dataset.load_state_dict(state_dict)
     with pytest.raises(
         ValueError,
-        match="The provided `seed` state doesn't match the current one. Found `42` instead of `12`.",  # noqa E501
+        match="The provided `seed` state doesn't match the current one. Found `42` instead of `12`.",  # E501
     ):
         dataset._validate_state_dict()
 
@@ -839,7 +839,7 @@ def test_dataset_valid_state(tmpdir, monkeypatch):
     dataset.load_state_dict(state_dict)
     with pytest.raises(
         ValueError,
-        match=f"The provided `input_dir` path state doesn't match the current one. Found `{cache_dir}` instead of ",  # noqa E501
+        match=f"The provided `input_dir` path state doesn't match the current one. Found `{cache_dir}` instead of ",  # E501
     ):
         dataset._validate_state_dict()
 
