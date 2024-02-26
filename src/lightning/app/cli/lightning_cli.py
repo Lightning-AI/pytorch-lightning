@@ -179,7 +179,7 @@ def _run_app(
 ) -> None:
     if not os.path.exists(file):
         original_file = file
-        file = cmd_install.gallery_apps_and_components(file, True, "latest", overwrite=True)  # type: ignore[assignment]  # noqa E501
+        file = cmd_install.gallery_apps_and_components(file, True, "latest", overwrite=True)  # type: ignore[assignment]  # E501
         if file is None:
             click.echo(f"The provided entrypoint `{original_file}` doesn't exist.")
             sys.exit(1)

@@ -71,25 +71,18 @@ repos:
         additional_dependencies: [tomli]
         args: ["--in-place"]
 
-  - repo: https://github.com/asottile/yesqa
-    rev: v1.5.0
+  - repo: https://github.com/sphinx-contrib/sphinx-lint
+    rev: v0.9.1
     hooks:
-      - id: yesqa
-        name: Unused noqa
-        additional_dependencies:
-          #- pep8-naming
-          - flake8-pytest-style
-          - flake8-bandit
-          - flake8-simplify
-          - flake8-return
+      - id: sphinx-lint
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: "v0.2.0"
     hooks:
-      - id: ruff
-        args: ["--fix", "--preview"]
       - id: ruff-format
         args: ["--preview"]
+      - id: ruff
+        args: ["--fix", "--preview"]
 
   - repo: https://github.com/executablebooks/mdformat
     rev: 0.7.17
@@ -102,7 +95,6 @@ repos:
         exclude: |
           (?x)^(
               src/lightning/app/CHANGELOG.md|
-              src/lightning/data/CHANGELOG.md|
               src/lightning/fabric/CHANGELOG.md|
               src/lightning/pytorch/CHANGELOG.md|
               README.md

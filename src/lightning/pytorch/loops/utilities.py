@@ -161,14 +161,14 @@ def _no_grad_context(loop_run: Callable) -> Callable:
         if not hasattr(self, "inference_mode"):
             raise TypeError(f"`{type(self).__name__}.inference_mode` needs to be defined")
         context_manager: Type[ContextManager]
-        if _distributed_is_initialized() and dist.get_backend() == "gloo":  # noqa: SIM114
+        if _distributed_is_initialized() and dist.get_backend() == "gloo":
             # gloo backend does not work properly.
             # https://github.com/Lightning-AI/lightning/pull/12715/files#r854569110
             # TODO: explore why and possibly open an issue in PyTorch repository
             context_manager = torch.no_grad
-        elif isinstance(self.trainer.accelerator, XLAAccelerator):  # noqa: SIM114
+        elif isinstance(self.trainer.accelerator, XLAAccelerator):
             context_manager = torch.no_grad
-        elif isinstance(self.trainer.strategy, FSDPStrategy):  # noqa: SIM114
+        elif isinstance(self.trainer.strategy, FSDPStrategy):
             # https://github.com/pytorch/pytorch/issues/95957
             context_manager = torch.no_grad
         elif _TORCH_EQUAL_2_0 and self.trainer.lightning_module._compiler_ctx is not None:

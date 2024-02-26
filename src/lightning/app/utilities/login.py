@@ -189,7 +189,7 @@ class AuthServer:
 
             if not token:
                 logger.warn(
-                    "Login Failed. This is most likely because you're using an older version of the CLI. \n"  # noqa E501
+                    "Login Failed. This is most likely because you're using an older version of the CLI. \n"  # E501
                     "Please try to update the CLI or open an issue with this information \n"  # E501
                     f"expected token in {request.query_params.items()}"
                 )
