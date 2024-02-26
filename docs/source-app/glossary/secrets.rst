@@ -8,7 +8,7 @@ Encrypted Secrets allow you to pass private data to your apps, like API keys, ac
 Secrets provide you with a secure way to store this data in a way that is accessible to Apps so that they can authenticate third-party services/solutions.
 
 .. tip::
-	For non-sensitive configuration values, we recommend using :ref:`plain-text Environment Variables <environment_variables>`.
+    For non-sensitive configuration values, we recommend using :ref:`plain-text Environment Variables <environment_variables>`.
 
 ************
 Add a secret

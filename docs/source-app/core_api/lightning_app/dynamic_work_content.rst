@@ -41,9 +41,9 @@ There are a couple of ways you can add a dynamic Work:
         def run(self):
 
             if not hasattr(self, "work"):
-		        # The `Work` component is created and attached here.
+                # The `Work` component is created and attached here.
                 setattr(self, "work", Work())
-	        # Run the `Work` component.
+            # Run the `Work` component.
             getattr(self,  "work").run()
 
 **OPTION 2:** Use the built-in Lightning classes :class:`~lightning.app.structures.Dict` or :class:`~lightning.app.structures.List`
@@ -60,7 +60,7 @@ There are a couple of ways you can add a dynamic Work:
 
         def run(self):
             if "work" not in self.dict:
-			    # The `Work` component is attached here.
+                # The `Work` component is attached here.
                 self.dict["work"] = Work()
             self.dict["work"].run()
 
