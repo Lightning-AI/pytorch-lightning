@@ -839,7 +839,7 @@ def test_dataset_valid_state(tmpdir, monkeypatch):
     dataset.load_state_dict(state_dict)
     with pytest.raises(
         ValueError,
-        match=f"The provided `input_dir` path state doesn't match the current one. Found `{cache_dir}` instead of ",  # E501
+        match=f"The provided `input_dir` path state doesn't match the current one. Found `{cache_dir}` instead of ",
     ):
         dataset._validate_state_dict()
 
