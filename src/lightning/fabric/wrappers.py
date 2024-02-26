@@ -13,7 +13,7 @@
 # limitations under the License.
 import inspect
 from copy import deepcopy
-from functools import wraps, partial
+from functools import partial, wraps
 from typing import (
     TYPE_CHECKING,
     Any,
