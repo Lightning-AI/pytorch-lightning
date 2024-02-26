@@ -63,46 +63,65 @@ always exclude the first call to ``forward()``/``*_step()`` from your measuremen
     Below is an example that measures the speedup you get when compiling the InceptionV3 from TorchVision.
 
     .. code-block:: python
-
         import statistics
         import torch
         import torchvision.models as models
         import lightning as L
+        from torch.utils.data import DataLoader
 
 
-        @torch.no_grad()
-        def benchmark(model, input, num_iters=10):
-            """Runs the model on the input several times and returns the median execution time."""
-            start = torch.cuda.Event(enable_timing=True)
-            end = torch.cuda.Event(enable_timing=True)
-            times = []
-            for _ in range(num_iters):
-                start.record()
-                model(input)
-                end.record()
-                torch.cuda.synchronize()
-                times.append(start.elapsed_time(end) / 1000)
-            return statistics.median(times)
+        class MyLightningModule(L.LightningModule):
+            def __init__(self):
+                super().__init__()
+                self.model = models.inception_v3()
+
+            def training_step(self, batch):
+                return self.model(batch).logits.sum()
+
+            def train_dataloader(self):
+                return DataLoader([torch.randn(3, 512, 512) for _ in range(256)], batch_size=16)
+
+            def configure_optimizers(self):
+                return torch.optim.SGD(self.parameters(), lr=0.01)
 
 
-        fabric = L.Fabric(accelerator="cuda", devices=1)
+        class Benchmark(L.Callback):
+            """A callback that measures the median execution time between the start and end of a batch."""
+            def __init__(self):
+                self.start = torch.cuda.Event(enable_timing=True)
+                self.end = torch.cuda.Event(enable_timing=True)
+                self.times = []
 
-        model = models.inception_v3()
-        input = torch.randn(16, 3, 510, 512, device=fabric.device)
+            def median_time(self):
+                return statistics.median(self.times)
+
+            def on_train_batch_start(self, trainer, *args, **kwargs):
+                self.start.record()
+
+            def on_train_batch_end(self, trainer, *args, **kwargs):
+                # Exclude the first iteration to let the model warm up
+                if trainer.global_step > 1:
+                    self.end.record()
+                    torch.cuda.synchronize()
+                    self.times.append(self.start.elapsed_time(self.end) / 1000)
+
+
+        model = MyLightningModule()
 
         # Compile!
         compiled_model = torch.compile(model)
 
-        # Set up the model with Fabric
-        model = fabric.setup(model)
-        compiled_model = fabric.setup(compiled_model)
+        # Measure the median iteration time with uncompiled model
+        benchmark = Benchmark()
+        trainer = L.Trainer(accelerator="cuda", devices=1, max_steps=10, callbacks=[benchmark])
+        trainer.fit(model)
+        eager_time = benchmark.median_time()
 
-        # warm up the compiled model before we benchmark
-        compiled_model(input)
-
-        # Run multiple forward passes and time them
-        eager_time = benchmark(model, input)
-        compile_time = benchmark(compiled_model, input)
+        # Measure the median iteration time with compiled model
+        benchmark = Benchmark()
+        trainer = L.Trainer(accelerator="cuda", devices=1, max_steps=10, callbacks=[benchmark])
+        trainer.fit(compiled_model)
+        compile_time = benchmark.median_time()
 
         # Compare the speedup for the compiled execution
         speedup = eager_time / compile_time
@@ -110,13 +129,14 @@ always exclude the first call to ``forward()``/``*_step()`` from your measuremen
         print(f"Compile median time: {compile_time:.4f} seconds")
         print(f"Speedup: {speedup:.1f}x")
 
+
     On an NVIDIA A100 SXM4 40GB with PyTorch 2.2.0, CUDA 12.1, we get the following speedup:
 
     .. code-block:: text
 
-        Eager median time: 0.0254 seconds
-        Compile median time: 0.0185 seconds
-        Speedup: 1.4x
+        Eager median time: 0.0863 seconds
+        Compile median time: 0.0709 seconds
+        Speedup: 1.2x
 
 
 ----
@@ -148,15 +168,15 @@ Be aware that the error messages produced here are often quite cryptic, so you w
 Avoid recompilation
 *******************
 
-As mentioned before, the compilation of the model happens the first time you call ``forward()``.
+As mentioned before, the compilation of the model happens the first time you call ``forward()`` or the first time the Trainer calls the ``*_step()`` methods.
 At this point, PyTorch will inspect the input tensor(s) and optimize the compiled code for the particular shape, data type and other properties the input has.
-If the shape of the input remains the same across all calls to ``forward()``, PyTorch will reuse the compiled code it generated and you will get the best speedup.
-However, if these properties change across subsequent calls to ``forward()``, PyTorch will be forced to recompile the model for the new shapes, and this will significantly slow down your training if it happens on every iteration.
+If the shape of the input remains the same across all calls, PyTorch will reuse the compiled code it generated and you will get the best speedup.
+However, if these properties change across subsequent calls to ``forward()``/``*_step()``, PyTorch will be forced to recompile the model for the new shapes, and this will significantly slow down your training if it happens on every iteration.
 
 **When your training suddenly becomes slow, it's probably because PyTorch is recompiling the model!**
 Here are some common scenarios when this can happen:
 
-- Your training code includes an evaluation step on a different dataset, or you are using a ``Trainer`` that switches from training to validation/testing and the input shape changes, triggering a recompilation.
+- You are using dataset with different inputs or shapes for validation than for training, causing a recompilation whenever the Trainer switches between training and validation.
 - Your dataset size is not divisible by the batch size, and the dataloader has ``drop_last=False`` (the default).
   The last batch in your training loop will be smaller and trigger a recompilation.
 
@@ -178,32 +198,7 @@ On PyTorch 2.2 and later, ``torch.compile`` will detect dynamism automatically a
 
     .. code-block:: python
 
-        import time
-        import torch
-        import torchvision.models as models
-        import lightning as L
-
-        fabric = L.Fabric(accelerator="cuda", devices=1)
-
-        model = models.inception_v3()
-
-        # dynamic=False is the default
-        torch._dynamo.config.automatic_dynamic_shapes = False
-
-        compiled_model = torch.compile(model)
-        compiled_model = fabric.setup(compiled_model)
-
-        input = torch.randn(16, 3, 512, 512, device=fabric.device)
-        t0 = time.time()
-        compiled_model(input)
-        torch.cuda.synchronize()
-        print(f"1st forward: {time.time() - t0:.2f} seconds.")
-
-        input = torch.randn(8, 3, 512, 512, device=fabric.device)  # note the change in shape
-        t0 = time.time()
-        compiled_model(input)
-        torch.cuda.synchronize()
-        print(f"2nd forward: {time.time() - t0:.2f} seconds.")
+       TODO
 
     With ``automatic_dynamic_shapes=True``:
 
@@ -280,24 +275,21 @@ Always compare the speed and memory usage of the compiled model against the orig
 Limitations
 ***********
 
-As stated earlier, we recommend that you compile the model before calling ``fabric.setup()``.
-In the case of DDP and FSDP, ``fabric.setup()`` will automatically reapply the ``torch.compile`` call after the model gets wrapped in DDP/FSDP internally.
-This will ensure that the compilation can incorporate the distributed calls and optimize them.
-However, should you have issues compiling DDP and FSDP models, you can opt out of this feature:
+There are a few limitations you should be aware of when using ``torch.compile`` in conjunction with the Trainer:
+- ``torch.compile`` currently does not get reapplied over DDP/FSDP, meaning distributed operations can't benefit from speed ups at the moment.
+  This limitation will be lifted in the future.
+- In some cases, using ``self.log()`` in your LightningModule will cause compilation errors.
+  Until addressed, you can work around these issues by applying ``torch.compile`` to the submodule(s) of your LightningModule rather than to the entire LightningModule at once.
 
-.. code-block:: python
+  .. code-block:: python
 
-    # Choose a distributed strategy like DDP or FSDP
-    fabric = L.Fabric(devices=2, strategy="ddp")
+      import lightning as L
 
-    # Compile the model
-    model = torch.compile(model)
-
-    # Default: `fabric.setup()` will configure compilation over DDP/FSDP for you
-    model = fabric.setup(model, _reapply_compile=True)
-
-    # Turn it off if you see issues with DDP/FSDP
-    model = fabric.setup(model, _reapply_compile=False)
-
+      class MyLightningModule(L.LightningModule):
+          def __init__(self):
+              super().__init__()
+              self.model = MySubModule()
+              self.model = torch.compile(self.model)
+              ...
 
 |
