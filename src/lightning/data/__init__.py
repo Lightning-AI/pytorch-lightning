@@ -2,34 +2,35 @@ import sys
 
 from lightning_utilities.core.imports import RequirementCache
 
-_LIDATA_AVAILABLE = RequirementCache("litdata")
+__all__ = []
 
-if not _LIDATA_AVAILABLE:
+if not RequirementCache("litdata"):
     raise ModuleNotFoundError("Please, run `pip install litdata`")  # E111
 
-import litdata  # noqa: E402
+else:
+    import litdata
 
-# Enable resolution at least for lower data namespace
-sys.modules["lightning.data"] = litdata
+    # Enable resolution at least for lower data namespace
+    sys.modules["lightning.data"] = litdata
 
-from litdata.processing.functions import map, optimize, walk  # noqa: E402
-from litdata.streaming.combined import CombinedStreamingDataset  # noqa: E402
-from litdata.streaming.dataloader import StreamingDataLoader  # noqa: E402
-from litdata.streaming.dataset import StreamingDataset  # noqa: E402
+    from litdata.processing.functions import map, optimize, walk
+    from litdata.streaming.combined import CombinedStreamingDataset
+    from litdata.streaming.dataloader import StreamingDataLoader
+    from litdata.streaming.dataset import StreamingDataset
 
-__all__ = [
-    "LightningDataset",
-    "StreamingDataset",
-    "CombinedStreamingDataset",
-    "StreamingDataLoader",
-    "LightningIterableDataset",
-    "map",
-    "optimize",
-    "walk",
-]
+    __all__ += [
+        "LightningDataset",
+        "StreamingDataset",
+        "CombinedStreamingDataset",
+        "StreamingDataLoader",
+        "LightningIterableDataset",
+        "map",
+        "optimize",
+        "walk",
+    ]
 
 # TODO: Move this to litdata
 if RequirementCache("lightning_sdk"):
-    from lightning_sdk import Machine  # noqa: F401
+    from lightning_sdk import Machine
 
-    __all__.append("Machine")
+    __all__ += ["Machine"]
