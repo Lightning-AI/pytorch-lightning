@@ -39,7 +39,7 @@ def _get_hash(files: List[str], algorithm: str = "blake2", chunk_num_blocks: int
     if algorithm == "blake2":
         h = hashlib.blake2b(digest_size=20)
     elif algorithm == "md5":
-        h = hashlib.md5()  # noqa: S324
+        h = hashlib.md5()
     else:
         raise ValueError(f"Algorithm {algorithm} not supported")
 

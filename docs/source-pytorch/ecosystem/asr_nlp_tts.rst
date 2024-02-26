@@ -660,7 +660,7 @@ Hydra makes every aspect of the NeMo model, including the PyTorch Lightning Trai
 Using State-Of-The-Art Pre-trained TTS Model
 --------------------------------------------
 
-Generate speech using models trained on `LJSpeech <https://keithito.com/LJ-Speech-Dataset/>`,
+Generate speech using models trained on `LJSpeech <https://keithito.com/LJ-Speech-Dataset/>`_,
 around 24 hours of single speaker data.
 
 See this `TTS notebook <https://github.com/NVIDIA/NeMo/blob/v1.0.0b1/tutorials/tts/1_TTS_inference.ipynb>`_

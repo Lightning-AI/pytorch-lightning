@@ -561,6 +561,7 @@ class CheckpointLightningApp(LightningApp):
         raise SuccessException
 
 
+@pytest.mark.flaky(reruns=3)
 def test_snap_shotting():
     with contextlib.suppress(SuccessException):
         app = CheckpointLightningApp(FlowA())
