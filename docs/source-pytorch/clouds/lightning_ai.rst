@@ -81,9 +81,11 @@ Launch multi-node training in the cloud
             def __init__(self, vocab_size):
                 super().__init__()
                 self.vocab_size = vocab_size
+                self.model = None
 
-            def setup(self, stage):
-                self.model = Transformer(vocab_size=self.vocab_size)
+            def configure_model(self):
+                if self.model is None:
+                    self.model = Transformer(vocab_size=self.vocab_size)
 
             def training_step(self, batch, batch_idx):
                 input, target = batch
