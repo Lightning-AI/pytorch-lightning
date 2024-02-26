@@ -103,9 +103,6 @@ lint.ignore-init-module-imports = true
     "RET504",  # todo:Unnecessary variable assignment before `return` statement
     "RET503",
 ]
-"src/lightning/data/**" = [
-    "S310",  # todo: Audit URL open for permitted schemes. Allowing use of `file:` or custom schemes is often unexpected.
-]
 "tests/**" = [
     "S101",  # Use of `assert` detected
     "S105", "S106",  # todo: Possible hardcoded password: ...
