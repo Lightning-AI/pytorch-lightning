@@ -167,9 +167,11 @@ In distributed training cases where a model is running across many machines, Lig
     trainer = Trainer(strategy="ddp")
     model = MyLightningModule(hparams)
     trainer.fit(model)
+
     # Saves only on the main process
+    # Handles strategy-specific saving logic like XLA, FSDP, DeepSpeed etc.
     trainer.save_checkpoint("example.ckpt")
 
-Not using :meth:`~lightning.pytorch.trainer.trainer.Trainer.save_checkpoint` can lead to unexpected behavior and potential deadlock. Using other saving functions will result in all devices attempting to save the checkpoint. As a result, we highly recommend using the Trainer's save functionality.
-If using custom saving functions cannot be avoided, we recommend using the :func:`~lightning.pytorch.utilities.rank_zero.rank_zero_only` decorator to ensure saving occurs only on the main process. Note that this will only work if all ranks hold the exact same state and won't work when using
-model parallel distributed strategies such as deepspeed or sharded training.
+
+By using :meth:`~lightning.pytorch.trainer.trainer.Trainer.save_checkpoint` instead of ``torch.save``, you make your code agnostic to the distributed training strategy being used.
+It will ensure that checkpoints are saved correctly in a multi-process setting, avoiding race conditions, deadlocks and other common issues that normally require boilerplate code to handle properly.

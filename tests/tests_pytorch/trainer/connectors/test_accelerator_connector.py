@@ -59,7 +59,6 @@ from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.imports import (
     _LIGHTNING_HABANA_AVAILABLE,
 )
-from lightning_utilities.core.imports import package_available
 
 from tests_pytorch.conftest import mock_cuda_count, mock_mps_count, mock_tpu_available, mock_xla_available
 from tests_pytorch.helpers.runif import RunIf
@@ -843,21 +842,6 @@ def test_connector_defaults_match_trainer_defaults():
     # defaults should match on the intersection of argument names
     for name, connector_default in connector_defaults.items():
         assert connector_default == trainer_defaults[name]
-
-
-@RunIf(min_cuda_gpus=1)  # trigger this test on our GPU pipeline, because we don't install the package on the CPU suite
-@pytest.mark.xfail(raises=ImportError, reason="Not updated to latest API")
-@pytest.mark.skipif(not package_available("lightning_colossalai"), reason="Requires Colossal AI Strategy")
-def test_colossalai_external_strategy(monkeypatch):
-    with mock.patch(
-        "lightning.pytorch.trainer.connectors.accelerator_connector._LIGHTNING_COLOSSALAI_AVAILABLE", False
-    ), pytest.raises(ModuleNotFoundError):
-        Trainer(strategy="colossalai")
-
-    from lightning_colossalai import ColossalAIStrategy
-
-    trainer = Trainer(strategy="colossalai", precision="16-mixed")
-    assert isinstance(trainer.strategy, ColossalAIStrategy)
 
 
 class DeviceMock(Mock):
