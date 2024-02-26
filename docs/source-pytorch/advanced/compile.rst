@@ -191,31 +191,6 @@ However, when this is not possible, you can request PyTorch to compile the code 
 A model compiled with ``dynamic=True`` will typically be slower than a model compiled with static shapes, but it will avoid the extreme cost of recompilation every iteration.
 On PyTorch 2.2 and later, ``torch.compile`` will detect dynamism automatically and you should no longer need to set this.
 
-.. collapse:: Example with dynamic shapes
-
-    The code below shows an example where the model recompiles for several seconds because the input shape changed.
-    You can compare the timing results by toggling ``dynamic=True/False`` in the call to ``torch.compile``:
-
-    .. code-block:: python
-
-       TODO
-
-    With ``automatic_dynamic_shapes=True``:
-
-    .. code-block:: text
-
-        1st forward: 41.90 seconds.
-        2nd forward: 89.27 seconds.
-
-    With ``automatic_dynamic_shapes=False``:
-
-    .. code-block:: text
-
-        1st forward: 42.12 seconds.
-        2nd forward: 47.77 seconds.
-
-    Numbers produced with NVIDIA A100 SXM4 40GB, PyTorch 2.2.0, CUDA 12.1.
-
 
 ----
 
