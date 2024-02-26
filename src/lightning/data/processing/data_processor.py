@@ -28,10 +28,12 @@ from lightning.data.constants import (
     _LIGHTNING_CLOUD_LATEST,
     _TORCH_GREATER_EQUAL_2_1_0,
 )
-from lightning.data.processing.readers import BaseReader
+from lightning.data.processing.readers import BaseReader, StreamingDataLoaderReader
+from lightning.data.processing.utilities import _create_dataset
 from lightning.data.streaming import Cache
 from lightning.data.streaming.cache import Dir
 from lightning.data.streaming.client import S3Client
+from lightning.data.streaming.dataloader import StreamingDataLoader
 from lightning.data.streaming.resolver import _resolve_dir
 from lightning.data.utilities.broadcast import broadcast_object
 from lightning.data.utilities.packing import _pack_greedily
@@ -41,7 +43,6 @@ if _TORCH_GREATER_EQUAL_2_1_0:
 
 if _LIGHTNING_CLOUD_LATEST:
     from lightning_cloud.openapi import V1DatasetType
-    from lightning_cloud.utils.dataset import _create_dataset
 
 
 if _BOTO3_AVAILABLE:
@@ -63,11 +64,6 @@ def _get_node_rank() -> int:
 def _get_fast_dev_run() -> int:
     """Returns whether fast dev mode is enabled."""
     return bool(int(os.getenv("DATA_OPTIMIZER_FAST_DEV_RUN", 1)))
-
-
-def _get_home_folder() -> str:
-    """Returns whether cache folder for the filepaths."""
-    return os.getenv("DATA_OPTIMIZER_HOME_FOLDER", os.path.expanduser("~"))
 
 
 def _get_default_cache() -> str:
@@ -338,6 +334,25 @@ def _get_item_filesizes(items: List[Any], base_path: str = "") -> List[int]:
     return item_sizes
 
 
+def _to_path(element: str) -> str:
+    return element if _IS_IN_STUDIO and element.startswith("/teamspace") else str(Path(element).resolve())
+
+
+def _is_path(input_dir: Optional[str], element: Any) -> bool:
+    if not isinstance(element, str):
+        return False
+
+    if _IS_IN_STUDIO and input_dir is not None:
+        if element.startswith(input_dir):
+            return True
+
+        element = str(Path(element).absolute())
+        if element.startswith(input_dir):
+            return True
+
+    return os.path.exists(element)
+
+
 class BaseWorker:
     def __init__(
         self,
@@ -380,7 +395,6 @@ class BaseWorker:
         self.remove_queue: Queue = Queue()
         self.progress_queue: Queue = progress_queue
         self.error_queue: Queue = error_queue
-        self._collected_items = 0
         self._counter = 0
         self._last_time = time()
         self._index_counter = 0
@@ -503,22 +517,13 @@ class BaseWorker:
         for item in self.items:
             flattened_item, spec = tree_flatten(item)
 
-            def is_path(element: Any) -> bool:
-                if not isinstance(element, str):
-                    return False
-
-                element: str = str(Path(element).resolve())
-                if _IS_IN_STUDIO and self.input_dir.path is not None:
-                    if self.input_dir.path.startswith("/teamspace/studios/this_studio"):
-                        return os.path.exists(element)
-                    return element.startswith(self.input_dir.path)
-                return os.path.exists(element)
-
             # For speed reasons, we assume starting with `self.input_dir` is enough to be a real file.
             # Other alternative would be too slow.
             # TODO: Try using dictionary for higher accurary.
             indexed_paths = {
-                index: str(Path(element).resolve()) for index, element in enumerate(flattened_item) if is_path(element)
+                index: _to_path(element)
+                for index, element in enumerate(flattened_item)
+                if _is_path(self.input_dir.path, element)
             }
 
             if len(indexed_paths) == 0:
@@ -536,7 +541,6 @@ class BaseWorker:
             self.paths.append(paths)
 
             items.append(tree_unflatten(flattened_item, spec))
-            self._collected_items += 1
 
         self.items = items
 
@@ -724,7 +728,12 @@ class DataChunkRecipe(DataRecipe):
 
             size = sum([c["dim"] if c["dim"] is not None else c["chunk_size"] for c in config["chunks"]])
             num_bytes = sum([c["chunk_bytes"] for c in config["chunks"]])
-            data_format = tree_unflatten(config["config"]["data_format"], treespec_loads(config["config"]["data_spec"]))
+            if config["config"] is not None:
+                data_format = tree_unflatten(
+                    config["config"]["data_format"], treespec_loads(config["config"]["data_spec"])
+                )
+            else:
+                data_format = None
             num_chunks = len(config["chunks"])
 
             # The platform can't store more than 1024 entries.
@@ -735,7 +744,7 @@ class DataChunkRecipe(DataRecipe):
                 size=size,
                 num_bytes=num_bytes,
                 data_format=data_format,
-                compression=config["config"]["compression"],
+                compression=config["config"]["compression"] if config["config"] else None,
                 num_chunks=len(config["chunks"]),
                 num_bytes_per_chunk=num_bytes_per_chunk,
             )
@@ -879,8 +888,11 @@ class DataProcessor:
         # Call the setup method of the user
         user_items: List[Any] = data_recipe.prepare_structure(self.input_dir.path if self.input_dir else None)
 
-        if not isinstance(user_items, list):
+        if not isinstance(user_items, (list, StreamingDataLoader)):
             raise ValueError("The `prepare_structure` should return a list of item metadata.")
+
+        if isinstance(user_items, StreamingDataLoader):
+            self.reader = StreamingDataLoaderReader(user_items)
 
         if self.reader:
             user_items = self.reader.remap_items(user_items, self.num_workers)
@@ -973,7 +985,8 @@ class DataProcessor:
         print("Workers are finished.")
         result = data_recipe._done(len(user_items), self.delete_cached_files, self.output_dir)
 
-        if num_nodes == node_rank + 1 and self.output_dir.url:
+        if num_nodes == node_rank + 1 and self.output_dir.url and _IS_IN_STUDIO:
+            assert self.output_dir.path
             _create_dataset(
                 input_dir=self.input_dir.path,
                 storage_dir=self.output_dir.path,

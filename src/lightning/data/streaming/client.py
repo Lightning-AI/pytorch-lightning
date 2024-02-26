@@ -2,7 +2,7 @@ import os
 from time import time
 from typing import Any, Optional
 
-from lightning.data.constants import _BOTO3_AVAILABLE
+from lightning.data.constants import _BOTO3_AVAILABLE, _IS_IN_STUDIO
 
 if _BOTO3_AVAILABLE:
     import boto3
@@ -17,7 +17,6 @@ class S3Client:
     def __init__(self, refetch_interval: int = 3300) -> None:
         self._refetch_interval = refetch_interval
         self._last_time: Optional[float] = None
-        self._has_cloud_space_id: bool = "LIGHTNING_CLOUD_SPACE_ID" in os.environ
         self._client: Optional[Any] = None
 
     def _create_client(self) -> None:
@@ -25,7 +24,7 @@ class S3Client:
             os.getenv("AWS_SHARED_CREDENTIALS_FILE") == os.getenv("AWS_CONFIG_FILE") == "/.credentials/.aws_credentials"
         )
 
-        if has_shared_credentials_file:
+        if has_shared_credentials_file or not _IS_IN_STUDIO:
             self._client = boto3.client(
                 "s3", config=botocore.config.Config(retries={"max_attempts": 1000, "mode": "adaptive"})
             )
@@ -42,10 +41,9 @@ class S3Client:
 
     @property
     def client(self) -> Any:
-        if not self._has_cloud_space_id:
-            if self._client is None:
-                self._create_client()
-            return self._client
+        if self._client is None:
+            self._create_client()
+            self._last_time = time()
 
         # Re-generate credentials for EC2
         if self._last_time is None or (time() - self._last_time) > self._refetch_interval:

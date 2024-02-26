@@ -2,10 +2,76 @@ import io
 import os
 import urllib
 from contextlib import contextmanager
-from subprocess import Popen
-from typing import Any, Callable, Optional, Tuple
+from subprocess import DEVNULL, Popen
+from typing import Any, Callable, List, Optional, Tuple, Union
 
-from lightning.data.constants import _IS_IN_STUDIO
+from lightning.data.constants import _IS_IN_STUDIO, _LIGHTNING_CLOUD_LATEST
+
+if _LIGHTNING_CLOUD_LATEST:
+    from lightning_cloud.openapi import (
+        ProjectIdDatasetsBody,
+        V1DatasetType,
+    )
+    from lightning_cloud.openapi.rest import ApiException
+    from lightning_cloud.rest_client import LightningClient
+
+
+def _create_dataset(
+    input_dir: Optional[str],
+    storage_dir: str,
+    dataset_type: V1DatasetType,
+    empty: Optional[bool] = None,
+    size: Optional[int] = None,
+    num_bytes: Optional[str] = None,
+    data_format: Optional[Union[str, Tuple[str]]] = None,
+    compression: Optional[str] = None,
+    num_chunks: Optional[int] = None,
+    num_bytes_per_chunk: Optional[List[int]] = None,
+    name: Optional[str] = None,
+    version: Optional[int] = None,
+) -> None:
+    """Create a dataset with metadata information about its source and destination."""
+    project_id = os.getenv("LIGHTNING_CLOUD_PROJECT_ID", None)
+    cluster_id = os.getenv("LIGHTNING_CLUSTER_ID", None)
+    user_id = os.getenv("LIGHTNING_USER_ID", None)
+    cloud_space_id = os.getenv("LIGHTNING_CLOUD_SPACE_ID", None)
+    lightning_app_id = os.getenv("LIGHTNING_CLOUD_APP_ID", None)
+
+    if project_id is None:
+        return
+
+    if not storage_dir:
+        raise ValueError("The storage_dir should be defined.")
+
+    client = LightningClient(retry=False)
+
+    try:
+        client.dataset_service_create_dataset(
+            body=ProjectIdDatasetsBody(
+                cloud_space_id=cloud_space_id if lightning_app_id is None else None,
+                cluster_id=cluster_id,
+                creator_id=user_id,
+                empty=empty,
+                input_dir=input_dir,
+                lightning_app_id=lightning_app_id,
+                name=name,
+                size=size,
+                num_bytes=num_bytes,
+                data_format=str(data_format) if data_format else data_format,
+                compression=compression,
+                num_chunks=num_chunks,
+                num_bytes_per_chunk=num_bytes_per_chunk,
+                storage_dir=storage_dir,
+                type=dataset_type,
+                version=version,
+            ),
+            project_id=project_id,
+        )
+    except ApiException as ex:
+        if "already exists" in str(ex.body):
+            pass
+        else:
+            raise ex
 
 
 def get_worker_rank() -> Optional[str]:
@@ -68,7 +134,7 @@ def optimize_dns(enable: bool) -> None:
             f"sudo /home/zeus/miniconda3/envs/cloudspace/bin/python"
             f" -c 'from lightning.data.processing.utilities import _optimize_dns; _optimize_dns({enable})'"
         )
-        Popen(cmd, shell=True).wait()  # E501
+        Popen(cmd, shell=True, stdout=DEVNULL, stderr=DEVNULL).wait()  # E501
 
 
 def _optimize_dns(enable: bool) -> None:

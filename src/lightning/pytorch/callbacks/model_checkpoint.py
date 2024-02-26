@@ -89,13 +89,12 @@ class ModelCheckpoint(Checkpoint):
             in a deterministic manner. Default: ``None``.
         save_top_k: if ``save_top_k == k``,
             the best k models according to the quantity monitored will be saved.
-            if ``save_top_k == 0``, no models are saved.
-            if ``save_top_k == -1``, all models are saved.
+            If ``save_top_k == 0``, no models are saved.
+            If ``save_top_k == -1``, all models are saved.
             Please note that the monitors are checked every ``every_n_epochs`` epochs.
-            if ``save_top_k >= 2`` and the callback is called multiple
-            times inside an epoch, the name of the saved file will be
-            appended with a version count starting with ``v1``
-            unless ``enable_version_counter`` is set to False.
+            If ``save_top_k >= 2`` and the callback is called multiple times inside an epoch, and the filename remains
+            unchanged, the name of the saved file will be appended with a version count starting with ``v1`` to avoid
+            collisions unless ``enable_version_counter`` is set to False.
         mode: one of {min, max}.
             If ``save_top_k != 0``, the decision to overwrite the current save file is made
             based on either the maximization or the minimization of the monitored quantity.

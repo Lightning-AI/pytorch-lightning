@@ -282,7 +282,8 @@ class FileSerializer(Serializer):
     def serialize(self, filepath: str) -> Tuple[bytes, Optional[str]]:
         _, file_extension = os.path.splitext(filepath)
         with open(filepath, "rb") as f:
-            return f.read(), file_extension.replace(".", "").lower()
+            file_extension = file_extension.replace(".", "").lower()
+            return f.read(), f"file:{file_extension}"
 
     def deserialize(self, data: bytes) -> Any:
         return data
@@ -292,12 +293,13 @@ class FileSerializer(Serializer):
 
 
 class VideoSerializer(Serializer):
-    _EXTENSIONS = ("mp4", "ogv", "mjpeg", "avi", "mov", "h264", "mpg", "webm", "wmv", "wav")
+    _EXTENSIONS = ("mp4", "ogv", "mjpeg", "avi", "mov", "h264", "mpg", "webm", "wmv")
 
     def serialize(self, filepath: str) -> Tuple[bytes, Optional[str]]:
         _, file_extension = os.path.splitext(filepath)
         with open(filepath, "rb") as f:
-            return f.read(), file_extension.replace(".", "").lower()
+            file_extension = file_extension.replace(".", "").lower()
+            return f.read(), f"video:{file_extension}"
 
     def deserialize(self, data: bytes) -> Any:
         if not _TORCH_VISION_AVAILABLE:

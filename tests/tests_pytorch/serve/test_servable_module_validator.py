@@ -1,9 +1,7 @@
-import sys
 from typing import Dict
 
 import pytest
 import torch
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_2
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.serve.servable_module_validator import ServableModule, ServableModuleValidator
@@ -38,11 +36,6 @@ def test_servable_module_validator():
     callback.on_train_start(Trainer(accelerator="cpu"), model)
 
 
-@pytest.mark.xfail(
-    # https://github.com/pytorch/pytorch/issues/116056
-    sys.platform == "win32" and _TORCH_GREATER_EQUAL_2_2,
-    reason="Windows + DDP issue in PyTorch 2.2",
-)
 @pytest.mark.flaky(reruns=3)
 def test_servable_module_validator_with_trainer(tmpdir):
     callback = ServableModuleValidator()

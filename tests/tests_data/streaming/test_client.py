@@ -30,7 +30,7 @@ def test_s3_client_without_cloud_space_id(monkeypatch):
 
 
 @pytest.mark.skipif(sys.platform == "win32", reason="not supported on windows")
-@pytest.mark.parametrize("use_shared_credentials", [False, True])
+@pytest.mark.parametrize("use_shared_credentials", [False, True, None])
 def test_s3_client_with_cloud_space_id(use_shared_credentials, monkeypatch):
     boto3 = mock.MagicMock()
     monkeypatch.setattr(client, "boto3", boto3)
@@ -38,9 +38,8 @@ def test_s3_client_with_cloud_space_id(use_shared_credentials, monkeypatch):
     botocore = mock.MagicMock()
     monkeypatch.setattr(client, "botocore", botocore)
 
-    monkeypatch.setenv("LIGHTNING_CLOUD_SPACE_ID", "dummy")
-
-    if use_shared_credentials:
+    if isinstance(use_shared_credentials, bool):
+        monkeypatch.setenv("LIGHTNING_CLOUD_SPACE_ID", "dummy")
         monkeypatch.setenv("AWS_SHARED_CREDENTIALS_FILE", "/.credentials/.aws_credentials")
         monkeypatch.setenv("AWS_CONFIG_FILE", "/.credentials/.aws_credentials")
 
