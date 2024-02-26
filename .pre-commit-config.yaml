@@ -71,18 +71,6 @@ repos:
         additional_dependencies: [tomli]
         args: ["--in-place"]
 
-  - repo: https://github.com/asottile/yesqa
-    rev: v1.5.0
-    hooks:
-      - id: yesqa
-        name: Unused noqa
-        additional_dependencies:
-          #- pep8-naming
-          - flake8-pytest-style
-          - flake8-bandit
-          - flake8-simplify
-          - flake8-return
-
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: "v0.2.0"
     hooks:
