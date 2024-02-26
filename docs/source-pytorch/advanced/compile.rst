@@ -63,6 +63,7 @@ always exclude the first call to ``forward()``/``*_step()`` from your measuremen
     Below is an example that measures the speedup you get when compiling the InceptionV3 from TorchVision.
 
     .. code-block:: python
+
         import statistics
         import torch
         import torchvision.models as models
@@ -251,9 +252,11 @@ Limitations
 ***********
 
 There are a few limitations you should be aware of when using ``torch.compile`` in conjunction with the Trainer:
-- ``torch.compile`` currently does not get reapplied over DDP/FSDP, meaning distributed operations can't benefit from speed ups at the moment.
+
+* ``torch.compile`` currently does not get reapplied over DDP/FSDP, meaning distributed operations can't benefit from speed ups at the moment.
   This limitation will be lifted in the future.
-- In some cases, using ``self.log()`` in your LightningModule will cause compilation errors.
+
+* In some cases, using ``self.log()`` in your LightningModule will cause compilation errors.
   Until addressed, you can work around these issues by applying ``torch.compile`` to the submodule(s) of your LightningModule rather than to the entire LightningModule at once.
 
   .. code-block:: python
