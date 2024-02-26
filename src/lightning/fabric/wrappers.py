@@ -13,7 +13,7 @@
 # limitations under the License.
 import inspect
 from copy import deepcopy
-from functools import wraps
+from functools import wraps, partial
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -229,15 +229,8 @@ class _FabricModule(_DeviceDtypeModuleMixin):
             is_overridden(method, self._strategy.precision, parent=Precision)
             for method in ("pre_backward", "backward", "post_backward")
         )
-
-        def _backward_hook(*_: Any) -> None:
-            if (strategy_requires or precision_requires) and not _in_fabric_backward:
-                raise RuntimeError(
-                    "The current strategy and precision selection requires you to call `fabric.backward(loss)`"
-                    " instead of `loss.backward()`."
-                )
-
-        tensor.register_hook(_backward_hook)
+        hook = partial(_backward_hook, (strategy_requires or precision_requires))
+        tensor.register_hook(hook)
         return tensor
 
     @override
@@ -371,6 +364,14 @@ def _to_compiled(module: nn.Module, compile_kwargs: Dict[str, Any]) -> "Optimize
         raise RuntimeError("Converting to a compiled module is only supported in PyTorch >= 2.0.0")
 
     return torch.compile(module, **compile_kwargs)  # type: ignore[return-value]
+
+
+def _backward_hook(requires_backward: bool, *_: Any) -> None:
+    if requires_backward and not _in_fabric_backward:
+        raise RuntimeError(
+            "The current strategy and precision selection requires you to call `fabric.backward(loss)`"
+            " instead of `loss.backward()`."
+        )
 
 
 def is_wrapped(obj: object) -> bool:
