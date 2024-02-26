@@ -62,7 +62,7 @@ Here's the full documentation for the :class:`~lightning.pytorch.loggers.MLFlowL
 
 Neptune.ai
 ==========
-To use `Neptune.ai <https://neptune.ai/>`_ first install the neptune package:
+To use `Neptune.ai <https://www.neptune.ai/>`_ first install the neptune package:
 
 .. code-block:: bash
 
