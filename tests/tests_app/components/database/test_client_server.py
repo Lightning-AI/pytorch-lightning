@@ -53,7 +53,7 @@ def test_client_server():
 
     secrets = [Secret(name="example", value="secret")]
 
-    general = _GeneralModel.from_obj(TestConfig(name="name", secrets=secrets), token="a")  # noqa: S106
+    general = _GeneralModel.from_obj(TestConfig(name="name", secrets=secrets), token="a")
     assert general.cls_name == "TestConfig"
     assert general.data == '{"id": null, "name": "name", "secrets": [{"name": "example", "value": "secret"}]}'
 
