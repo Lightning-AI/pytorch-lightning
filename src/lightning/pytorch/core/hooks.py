@@ -85,6 +85,10 @@ class ModelHooks:
             batch: The batched data as it is returned by the training DataLoader.
             batch_idx: the index of the batch
 
+        Note:
+            The value ``outputs["loss"]`` here will be the normalized value w.r.t ``accumulate_grad_batches`` of the
+            loss returned from ``training_step``.
+
         """
 
     def on_validation_batch_start(self, batch: Any, batch_idx: int, dataloader_idx: int = 0) -> None:
