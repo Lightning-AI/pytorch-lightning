@@ -34,7 +34,7 @@ Now, imagine you have implemented a **KerasScriptRunner** component for training
 
 Here are the best practices steps before sharing the component:
 
-* **Testing**: Ensure your component is well tested by following the ref:`../testing` guide.
+* **Testing**: Ensure your component is well tested by following the :doc:`../testing` guide.
 * **Documented**: Ensure your component has a docstring and comes with some usage explications.
 
 .. Note:: As a Lightning user, it helps to implement your components thinking someone else is going to use them.
