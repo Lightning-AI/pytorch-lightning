@@ -118,7 +118,7 @@ jobs:
           done
 
       - name: pip wheels cache
-        uses: actions/cache/restore@v3
+        uses: actions/cache/restore@v4
         with:
           path: ${{ env.PYPI_CACHE_DIR }}
           key: pypi_wheels
@@ -177,7 +177,7 @@ jobs:
           coverage xml
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v4
         # see: https://github.com/actions/toolkit/issues/399
         continue-on-error: true
         with:

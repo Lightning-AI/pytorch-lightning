@@ -67,6 +67,12 @@ def test_timer_parse_duration(duration, expected):
     assert (timer.time_remaining() == expected is None) or (timer.time_remaining() == expected.total_seconds())
 
 
+@pytest.mark.parametrize("duration", ["6:00:00", "60 minutes"])
+def test_timer_parse_duration_misconfiguration(duration):
+    with pytest.raises(MisconfigurationException, match="format DD:HH:MM:SS"):
+        Timer(duration=duration)
+
+
 def test_timer_interval_choice():
     Timer(duration=timedelta(), interval="step")
     Timer(duration=timedelta(), interval="epoch")

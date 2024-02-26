@@ -73,7 +73,7 @@ jobs:
         run: python .actions/assistant.py replace_oldest_ver
 
       - name: pip wheels cache
-        uses: actions/cache/restore@v3
+        uses: actions/cache/restore@v4
         with:
           path: ${{ env.PYPI_CACHE_DIR }}
           key: pypi_wheels
@@ -151,7 +151,7 @@ jobs:
           coverage report -i
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v4
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           file: tests/coverage.xml

@@ -24,4 +24,4 @@ Environment variables are available in all Flows and Works, and can be accessed 
     print(os.environ["BAZ"])  # FAZ
 
 .. note::
-	Environment variables are not encrypted. For sensitive values, we recommend using :ref:`Encrypted Secrets <secrets>`.
+    Environment variables are not encrypted. For sensitive values, we recommend using :ref:`Encrypted Secrets <secrets>`.

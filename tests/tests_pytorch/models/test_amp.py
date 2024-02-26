@@ -12,13 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-import sys
 from unittest import mock
 
 import pytest
 import torch
 from lightning.fabric.plugins.environments import SLURMEnvironment
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_2
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
 from torch.utils.data import DataLoader
@@ -55,16 +53,7 @@ class AMPTestModel(BoringModel):
     [
         ("single_device", "16-mixed", 1),
         ("single_device", "bf16-mixed", 1),
-        pytest.param(
-            "ddp_spawn",
-            "16-mixed",
-            2,
-            marks=pytest.mark.xfail(
-                # https://github.com/pytorch/pytorch/issues/116056
-                sys.platform == "win32" and _TORCH_GREATER_EQUAL_2_2,
-                reason="Windows + DDP issue in PyTorch 2.2",
-            ),
-        ),
+        ("ddp_spawn", "16-mixed", 2),
         pytest.param("ddp_spawn", "bf16-mixed", 2, marks=RunIf(skip_windows=True)),
     ],
 )

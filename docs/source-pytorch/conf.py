@@ -92,7 +92,7 @@ _transform_changelog(
 assist_local.AssistantCLI.pull_docs_files(
     gh_user_repo="Lightning-AI/lightning-Habana",
     target_dir="docs/source-pytorch/integrations/hpu",
-    checkout="refs/tags/1.3.0",
+    checkout="refs/tags/1.4.0",
 )
 
 # Copy strategies docs as single pages
@@ -610,4 +610,5 @@ linkcheck_ignore = [
     "https://deepgenerativemodels.github.io/assets/slides/cs236_lecture11.pdf",
     "https://www.intel.com/content/www/us/en/products/docs/processors/what-is-a-gpu.html",
     "https://www.microsoft.com/en-us/research/blog/zero-infinity-and-deepspeed-unlocking-unprecedented-model-scale-for-deep-learning-training/",  # noqa: E501
+    "https://stackoverflow.com/questions/66640705/how-can-i-install-grpcio-on-an-apple-m1-silicon-laptop",
 ]

@@ -308,7 +308,7 @@ def test_model_checkpoint_options(tmpdir, save_top_k, save_last, expected_files)
     """Test ModelCheckpoint options."""
 
     def mock_save_function(filepath, *args):
-        open(filepath, "a").close()  # noqa: SIM115
+        open(filepath, "a").close()
 
     # simulated losses
     losses = [10, 9, 2.8, 5, 2.5]
