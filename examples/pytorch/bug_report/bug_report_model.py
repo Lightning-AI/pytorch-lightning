@@ -1,39 +1,65 @@
-from contextlib import contextmanager
-from typing import Generator, Literal, Optional
+import os
 
 import torch
-from lightning.pytorch.plugins.precision import MixedPrecisionPlugin
+from lightning.pytorch import LightningModule, Trainer
+from torch.utils.data import DataLoader, Dataset
 
 
-class PipelineMixedPrecisionPlugin(MixedPrecisionPlugin):
-    """Overrides PTL autocasting to not wrap training/val/test_step. We do this because we have the megatron-core
-    fwd/bwd functions in training_step. This means .backward is being called in training_step so we do not want the
-    whole step wrapped in autocast.
+class RandomDataset(Dataset):
+    def __init__(self, size, length):
+        self.len = length
+        self.data = torch.randn(length, size)
 
-    We instead wrap the fwd_output_and_loss_func that is passed to the megatron-core fwd/bwd functions.
+    def __getitem__(self, index):
+        return self.data[index]
 
-    """
-
-    def __init__(
-        self,
-        precision: Literal["16-mixed", "bf16-mixed"],
-        device: str,
-        scaler: Optional[torch.cuda.amp.GradScaler] = None,
-    ) -> None:
-        super().__init__(precision, device, scaler=scaler)
-        dtype = None
-        # MixedPrecisionPlugin class in PTL >= 2.0 takes only "16-mixed" or "bf16-mixed" for precision arg
-        if precision == "16-mixed":
-            dtype = torch.float16
-        elif precision == "bf16-mixed":
-            dtype = torch.bfloat16
-
-        torch.set_autocast_gpu_dtype(dtype)
-
-    @contextmanager
-    def forward_context(self) -> Generator[None, None, None]:
-        """Have the PTL context manager do nothing."""
-        yield
+    def __len__(self):
+        return self.len
 
 
-PipelineMixedPrecisionPlugin(precision="16-mixed", device="cuda:0")
+class BoringModel(LightningModule):
+    def __init__(self):
+        super().__init__()
+        self.layer = torch.nn.Linear(32, 2)
+
+    def forward(self, x):
+        return self.layer(x)
+
+    def training_step(self, batch, batch_idx):
+        loss = self(batch).sum()
+        self.log("train_loss", loss)
+        return {"loss": loss}
+
+    def validation_step(self, batch, batch_idx):
+        loss = self(batch).sum()
+        self.log("valid_loss", loss)
+
+    def test_step(self, batch, batch_idx):
+        loss = self(batch).sum()
+        self.log("test_loss", loss)
+
+    def configure_optimizers(self):
+        return torch.optim.SGD(self.layer.parameters(), lr=0.1)
+
+
+def run():
+    train_data = DataLoader(RandomDataset(32, 64), batch_size=2)
+    val_data = DataLoader(RandomDataset(32, 64), batch_size=2)
+    test_data = DataLoader(RandomDataset(32, 64), batch_size=2)
+
+    model = BoringModel()
+    trainer = Trainer(
+        default_root_dir=os.getcwd(),
+        limit_train_batches=1,
+        limit_val_batches=1,
+        limit_test_batches=1,
+        num_sanity_val_steps=0,
+        max_epochs=1,
+        enable_model_summary=False,
+    )
+    trainer.fit(model, train_dataloaders=train_data, val_dataloaders=val_data)
+    trainer.test(model, dataloaders=test_data)
+
+
+if __name__ == "__main__":
+    run()
