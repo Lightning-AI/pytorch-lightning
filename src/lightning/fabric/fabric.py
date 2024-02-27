@@ -639,12 +639,21 @@ class Fabric:
 
         """
         rank = self.local_rank if local else self.global_rank
+        exception: Optional[Exception] = None
         with _InfiniteBarrier() as barrier:
             if rank > 0:
                 barrier()
-            yield
+
+            try:
+                yield
+            except Exception as e:
+                exception = e
+
             if rank == 0:
                 barrier()
+
+        if exception is not None:
+            raise exception
 
     def no_backward_sync(self, module: _FabricModule, enabled: bool = True) -> ContextManager:
         r"""Skip gradient synchronization during backward to avoid redundant communication overhead.
