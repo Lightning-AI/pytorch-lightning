@@ -400,14 +400,12 @@ def test_fsdp_checkpoint_multi_gpus(tmpdir, model, strategy, strategy_cfg):
 @RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True)
 @pytest.mark.parametrize("state_dict_type", ["full", "sharded"])
 def test_checkpoint_weights_only(tmpdir, state_dict_type):
-    """Test to ensure that full and sharded state dicts are saved correctly if checkpointing weights only"""
-    
-    ck = ModelCheckpoint(save_last=True,
-                         dirpath=tmpdir,
-                         save_weights_only=True)
-    
+    """Test to ensure that full and sharded state dicts are saved correctly if checkpointing weights only."""
+
+    ck = ModelCheckpoint(save_last=True, dirpath=tmpdir, save_weights_only=True)
+
     strategy = FSDPStrategy(state_dict_type=state_dict_type)
-        
+
     model = TestFSDPModel()
 
     trainer = Trainer(
@@ -421,9 +419,10 @@ def test_checkpoint_weights_only(tmpdir, state_dict_type):
         limit_val_batches=2,
         limit_test_batches=2,
         limit_predict_batches=2,
-        callbacks=[ck],)
-    
-    trainer.fit(model) 
+        callbacks=[ck],
+    )
+
+    trainer.fit(model)
 
 
 @RunIf(min_cuda_gpus=1, skip_windows=True, standalone=True)
