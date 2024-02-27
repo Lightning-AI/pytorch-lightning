@@ -50,7 +50,7 @@ def _create_class(deprecated_name: str, new_class: type) -> type:
             f"The `{deprecated_name}` is deprecated."
             f" Use `lightning.pytorch.plugins.precision.{new_class.__name__}` instead."
         )
-        new_class.__init__(self, *args, **kwargs)
+        new_class.__init__(self, *args, **kwargs)  # type: ignore[misc]
 
     return type(deprecated_name, (new_class,), {"__init__": init})
 
