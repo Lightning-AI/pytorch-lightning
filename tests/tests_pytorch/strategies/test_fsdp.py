@@ -396,6 +396,7 @@ def test_fsdp_checkpoint_multi_gpus(tmpdir, model, strategy, strategy_cfg):
     )
     _run_multiple_stages(trainer, model)
 
+
 @RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True)
 @pytest.mark.parametrize("state_dict_type", ["full", "sharded"])
 def test_checkpoint_weights_only(tmpdir, state_dict_type):
@@ -423,6 +424,7 @@ def test_checkpoint_weights_only(tmpdir, state_dict_type):
         callbacks=[ck],)
     
     trainer.fit(model) 
+
 
 @RunIf(min_cuda_gpus=1, skip_windows=True, standalone=True)
 @pytest.mark.parametrize("use_orig_params", [None, False, True])
