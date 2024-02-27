@@ -19,5 +19,5 @@ def test_no_warning_call():
 
     with pytest.raises(
         AssertionError, match=escape("`DeprecationWarning` was raised: MyDeprecationWarning('bar')")
-    ), pytest.warns(DeprecationWarning), no_warning_call(DeprecationWarning):
+    ), no_warning_call(DeprecationWarning):
         warnings.warn("bar", category=MyDeprecationWarning)
