@@ -15,7 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
--
+- CI: parametrize source folder for typing check ([#228](https://github.com/Lightning-AI/utilities/pull/228))
 
 
 ### Deprecated

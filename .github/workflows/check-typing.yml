@@ -12,6 +12,11 @@ on:
         default: "3.9"
         required: false
         type: string
+      source-dir:
+        description: "Source directory to check"
+        default: "src/"
+        required: false
+        type: string
       extra-typing:
         description: "Package extra to be installed for type checks + include mypy"
         default: "test"
@@ -56,7 +61,7 @@ jobs:
           unfold: true
 
       # see: https://github.com/python/mypy/issues/10600#issuecomment-857351152
-      - run: yes | mypy src --install-types || true
+      - run: yes | mypy . --install-types || true
 
       - name: Check typing
         # mypy uses the config file found in the following order:
@@ -71,12 +76,14 @@ jobs:
 
       - name: suggest ignores
         if: failure()
+        env:
+          SOURCE_DIR: ${{ inputs.source-dir }}
         run: |
           mypy --no-error-summary 2>&1 \
             | tr ':' ' ' \
             | awk '{print $1}' \
             | sort \
             | uniq \
-            | sed 's/\.py//g;  s|src/||g;  s|\/__init__||g;  s|\/|\.|g' \
+            | sed 's/\.py//g;  s|${SOURCE_DIR}||g;  s|\/__init__||g;  s|\/|\.|g' \
             | xargs -I {} echo '"{}",' \
           || true
