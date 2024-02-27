@@ -37,7 +37,8 @@ class CSVLogger(Logger):
 
     Args:
         root_dir: The root directory in which all your experiments with different names and versions will be stored.
-        name: Experiment name. Defaults to ``'lightning_logs'``.
+        name: Experiment name. Defaults to ``'lightning_logs'``. If name is ``None``, logs
+            (versions) will be stored to the save dir directly.
         version: Experiment version. If version is not specified the logger inspects the save
             directory for existing versions, then automatically assigns the next available version.
             If the version is specified, and the directory already contains a metrics file for that version, it will be
@@ -60,7 +61,7 @@ class CSVLogger(Logger):
     def __init__(
         self,
         root_dir: _PATH,
-        name: str = "lightning_logs",
+        name: Optional[str] = "lightning_logs",
         version: Optional[Union[int, str]] = None,
         prefix: str = "",
         flush_logs_every_n_steps: int = 100,

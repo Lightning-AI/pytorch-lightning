@@ -6,7 +6,7 @@ import os
 from lightning_utilities import module_available
 
 if os.path.isfile(os.path.join(os.path.dirname(__file__), "__about__.py")):
-    from lightning.pytorch.__about__ import *  # noqa: F401, F403
+    from lightning.pytorch.__about__ import *  # noqa: F403
 if "__version__" not in locals():
     if os.path.isfile(os.path.join(os.path.dirname(__file__), "__version__.py")):
         from lightning.pytorch.__version__ import version as __version__

@@ -34,7 +34,6 @@ from lightning.fabric.strategies import (
 )
 from lightning.fabric.strategies.strategy import _Sharded
 from lightning.fabric.utilities.exceptions import MisconfigurationException
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 from lightning.fabric.utilities.seed import pl_worker_init_function, seed_everything
 from lightning.fabric.utilities.warnings import PossibleUserWarning
 from lightning.fabric.wrappers import _FabricDataLoader, _FabricModule, _FabricOptimizer
@@ -646,25 +645,27 @@ def test_backward_required(_, strategy, precision, error_expected, setup_method)
 
     # One model
     model1 = nn.Linear(2, 2)
-    assert not (model1._backward_pre_hooks if _TORCH_GREATER_EQUAL_2_0 else model1._backward_hooks)
     model1 = getattr(fabric, setup_method)(model1)
-    assert model1._backward_pre_hooks if _TORCH_GREATER_EQUAL_2_0 else model1._backward_hooks
-    loss = model1(batch).sum()
+    output = model1(batch)
+    assert output._backward_hooks is not None
+    loss = output.sum()
     with error_context:
         loss.backward()
     loss = model1(batch).sum()
+    assert not lightning.fabric.wrappers._in_fabric_backward
     fabric.backward(loss)  # no error
-    assert not fabric._backward_called
+    assert not lightning.fabric.wrappers._in_fabric_backward
 
     # Two models chained
     model2 = torch.nn.Linear(2, 2)
     model2 = getattr(fabric, setup_method)(model2)
-    loss = model2(model1(batch)).sum()
+    output = model2(model1(batch))
+    assert output._backward_hooks is not None
+    loss = output.sum()
     with error_context:
         loss.backward()
     loss = model2(model1(batch)).sum()
     fabric.backward(loss)  # no error
-    assert not fabric._backward_called
 
     # Two independent models
     loss1 = model1(batch).sum()
@@ -676,9 +677,28 @@ def test_backward_required(_, strategy, precision, error_expected, setup_method)
     loss1 = model1(batch).sum()
     loss2 = model2(batch).sum()
     fabric.backward(loss1)  # no error
-    assert not fabric._backward_called
     fabric.backward(loss2)  # no error
-    assert not fabric._backward_called
+
+    # Model that returns a datastructure of tensors
+    class DictReturnModel(nn.Linear):
+        def forward(self, x):
+            return {
+                "loss": super().forward(x).sum(),
+                "other": torch.rand(2, 2),  # does not require grad
+            }
+
+    model3 = DictReturnModel(2, 2)
+    model3 = getattr(fabric, setup_method)(model3)
+    output = model3(batch)
+    loss = output["loss"]
+    other = output["other"]
+    assert loss._backward_hooks is not None
+    assert other._backward_hooks is None
+
+    with error_context:
+        (loss * 2).backward()
+    loss = model3(batch)["loss"]
+    fabric.backward(loss * 2)  # no error
 
 
 @RunIf(deepspeed=True, mps=False)

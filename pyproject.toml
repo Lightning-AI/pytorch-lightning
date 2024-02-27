@@ -61,6 +61,7 @@ lint.extend-select = [
     "SIM",  # see: https://pypi.org/project/flake8-simplify
     "RET",  # see: https://pypi.org/project/flake8-return
     "PT",  # see: https://pypi.org/project/flake8-pytest-style
+    "RUF100",  # see: https://docs.astral.sh/ruff/rules/unused-noqa/
 ]
 lint.ignore = [
     "E731",  # Do not assign a lambda expression, use a def
@@ -101,9 +102,6 @@ lint.ignore-init-module-imports = true
     "S607",  # todo: Starting a process with a partial executable path
     "RET504",  # todo:Unnecessary variable assignment before `return` statement
     "RET503",
-]
-"src/lightning/data/**" = [
-    "S310",  # todo: Audit URL open for permitted schemes. Allowing use of `file:` or custom schemes is often unexpected.
 ]
 "tests/**" = [
     "S101",  # Use of `assert` detected

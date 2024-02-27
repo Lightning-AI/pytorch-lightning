@@ -32,8 +32,8 @@ As datasets grow in size and the number of nodes scales, loading training data c
 The `StreamingDataset <https://github.com/mosaicml/streaming>`__ can make training on large datasets from cloud storage
 as fast, cheap, and scalable as possible.
 
-This library uses a custom built class:`~torch.utils.data.IterableDataset`. The library recommends iterating through it
-via a regular class:`~torch.utils.data.DataLoader`. This means that support in the ``Trainer`` is seamless:
+This library uses a custom built :class:`~torch.utils.data.IterableDataset`. The library recommends iterating through it
+via a regular :class:`~torch.utils.data.DataLoader`. This means that support in the ``Trainer`` is seamless:
 
 .. code-block:: python
 
