@@ -107,7 +107,7 @@ def validate_dataloader(model, data_loader, fabric, hparams, fold, acc_metric):
 
 def run(hparams):
     # Create the Lightning Fabric object. The parameters like accelerator, strategy, devices etc. will be proided
-    # by the command line. See all options: `lightning run model --help`
+    # by the command line. See all options: `fabric run --help`
     fabric = Fabric()
 
     seed_everything(hparams.seed)  # instead of torch.manual_seed(...)
@@ -171,7 +171,7 @@ def run(hparams):
 if __name__ == "__main__":
     # Arguments can be passed in through the CLI as normal and will be parsed here
     # Example:
-    # lightning run model image_classifier.py accelerator=cuda --epochs=3
+    # fabric run image_classifier.py accelerator=cuda --epochs=3
     parser = argparse.ArgumentParser(description="Fabric MNIST K-Fold Cross Validation Example")
     parser.add_argument(
         "--batch-size", type=int, default=64, metavar="N", help="input batch size for training (default: 64)"
