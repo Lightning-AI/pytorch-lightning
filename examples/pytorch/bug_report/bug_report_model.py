@@ -1,18 +1,17 @@
 from contextlib import contextmanager
-from typing import Literal, Optional, Generator
+from typing import Generator, Literal, Optional
 
 import torch
 from lightning.pytorch.plugins.precision import MixedPrecisionPlugin
 
 
-
 class PipelineMixedPrecisionPlugin(MixedPrecisionPlugin):
-    """ Overrides PTL autocasting to not wrap training/val/test_step.
-        We do this because we have the megatron-core fwd/bwd functions in training_step.
-        This means .backward is being called in training_step so we do not want the whole
-        step wrapped in autocast.
+    """Overrides PTL autocasting to not wrap training/val/test_step. We do this because we have the megatron-core
+    fwd/bwd functions in training_step. This means .backward is being called in training_step so we do not want the
+    whole step wrapped in autocast.
 
-        We instead wrap the fwd_output_and_loss_func that is passed to the megatron-core fwd/bwd functions.
+    We instead wrap the fwd_output_and_loss_func that is passed to the megatron-core fwd/bwd functions.
+
     """
 
     def __init__(
@@ -24,9 +23,9 @@ class PipelineMixedPrecisionPlugin(MixedPrecisionPlugin):
         super().__init__(precision, device, scaler=scaler)
         dtype = None
         # MixedPrecisionPlugin class in PTL >= 2.0 takes only "16-mixed" or "bf16-mixed" for precision arg
-        if precision == '16-mixed':
+        if precision == "16-mixed":
             dtype = torch.float16
-        elif precision == 'bf16-mixed':
+        elif precision == "bf16-mixed":
             dtype = torch.bfloat16
 
         torch.set_autocast_gpu_dtype(dtype)
