@@ -39,11 +39,11 @@
      - `PR16184`_
 
    * - called the ``pl.tuner.auto_gpu_select.pick_single_gpu`` function
-     - use Trainer’s flag``devices="auto"``
+     - use Trainer’s flag ``devices="auto"``
      - `PR16184`_
 
    * - called the ``pl.tuner.auto_gpu_select.pick_multiple_gpus`` functions
-     - use Trainer’s flag``devices="auto"``
+     - use Trainer’s flag ``devices="auto"``
      - `PR16184`_
 
    * - used Trainer’s flag  ``accumulate_grad_batches`` with a scheduling dictionary value

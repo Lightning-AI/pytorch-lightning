@@ -20,7 +20,7 @@ from unittest import mock
 from unittest.mock import Mock
 
 import pytest
-from lightning.fabric.cli import _get_supported_strategies, _run_model
+from lightning.fabric.cli import _get_supported_strategies, _run
 
 from tests_fabric.helpers.runif import RunIf
 
@@ -36,7 +36,7 @@ def fake_script(tmp_path):
 def test_cli_env_vars_defaults(monkeypatch, fake_script):
     monkeypatch.setitem(sys.modules, "torch.distributed.run", Mock())
     with pytest.raises(SystemExit) as e:
-        _run_model.main([fake_script])
+        _run.main([fake_script])
     assert e.value.code == 0
     assert os.environ["LT_CLI_USED"] == "1"
     assert "LT_ACCELERATOR" not in os.environ
@@ -52,7 +52,7 @@ def test_cli_env_vars_defaults(monkeypatch, fake_script):
 def test_cli_env_vars_accelerator(_, accelerator, monkeypatch, fake_script):
     monkeypatch.setitem(sys.modules, "torch.distributed.run", Mock())
     with pytest.raises(SystemExit) as e:
-        _run_model.main([fake_script, "--accelerator", accelerator])
+        _run.main([fake_script, "--accelerator", accelerator])
     assert e.value.code == 0
     assert os.environ["LT_ACCELERATOR"] == accelerator
 
@@ -63,7 +63,7 @@ def test_cli_env_vars_accelerator(_, accelerator, monkeypatch, fake_script):
 def test_cli_env_vars_strategy(_, strategy, monkeypatch, fake_script):
     monkeypatch.setitem(sys.modules, "torch.distributed.run", Mock())
     with pytest.raises(SystemExit) as e:
-        _run_model.main([fake_script, "--strategy", strategy])
+        _run.main([fake_script, "--strategy", strategy])
     assert e.value.code == 0
     assert os.environ["LT_STRATEGY"] == strategy
 
@@ -79,7 +79,7 @@ def test_cli_get_supported_strategies():
 def test_cli_env_vars_unsupported_strategy(strategy, fake_script):
     ioerr = StringIO()
     with pytest.raises(SystemExit) as e, contextlib.redirect_stderr(ioerr):
-        _run_model.main([fake_script, "--strategy", strategy])
+        _run.main([fake_script, "--strategy", strategy])
     assert e.value.code == 2
     assert f"Invalid value for '--strategy': '{strategy}'" in ioerr.getvalue()
 
@@ -90,7 +90,7 @@ def test_cli_env_vars_unsupported_strategy(strategy, fake_script):
 def test_cli_env_vars_devices_cuda(_, devices, monkeypatch, fake_script):
     monkeypatch.setitem(sys.modules, "torch.distributed.run", Mock())
     with pytest.raises(SystemExit) as e:
-        _run_model.main([fake_script, "--accelerator", "cuda", "--devices", devices])
+        _run.main([fake_script, "--accelerator", "cuda", "--devices", devices])
     assert e.value.code == 0
     assert os.environ["LT_DEVICES"] == devices
 
@@ -101,7 +101,7 @@ def test_cli_env_vars_devices_cuda(_, devices, monkeypatch, fake_script):
 def test_cli_env_vars_devices_mps(accelerator, monkeypatch, fake_script):
     monkeypatch.setitem(sys.modules, "torch.distributed.run", Mock())
     with pytest.raises(SystemExit) as e:
-        _run_model.main([fake_script, "--accelerator", accelerator])
+        _run.main([fake_script, "--accelerator", accelerator])
     assert e.value.code == 0
     assert os.environ["LT_DEVICES"] == "1"
 
@@ -111,7 +111,7 @@ def test_cli_env_vars_devices_mps(accelerator, monkeypatch, fake_script):
 def test_cli_env_vars_num_nodes(num_nodes, monkeypatch, fake_script):
     monkeypatch.setitem(sys.modules, "torch.distributed.run", Mock())
     with pytest.raises(SystemExit) as e:
-        _run_model.main([fake_script, "--num-nodes", num_nodes])
+        _run.main([fake_script, "--num-nodes", num_nodes])
     assert e.value.code == 0
     assert os.environ["LT_NUM_NODES"] == num_nodes
 
@@ -121,7 +121,7 @@ def test_cli_env_vars_num_nodes(num_nodes, monkeypatch, fake_script):
 def test_cli_env_vars_precision(precision, monkeypatch, fake_script):
     monkeypatch.setitem(sys.modules, "torch.distributed.run", Mock())
     with pytest.raises(SystemExit) as e:
-        _run_model.main([fake_script, "--precision", precision])
+        _run.main([fake_script, "--precision", precision])
     assert e.value.code == 0
     assert os.environ["LT_PRECISION"] == precision
 
@@ -131,7 +131,7 @@ def test_cli_torchrun_defaults(monkeypatch, fake_script):
     torchrun_mock = Mock()
     monkeypatch.setitem(sys.modules, "torch.distributed.run", torchrun_mock)
     with pytest.raises(SystemExit) as e:
-        _run_model.main([fake_script])
+        _run.main([fake_script])
     assert e.value.code == 0
     torchrun_mock.main.assert_called_with([
         "--nproc_per_node=1",
@@ -159,7 +159,7 @@ def test_cli_torchrun_num_processes_launched(_, devices, expected, monkeypatch, 
     torchrun_mock = Mock()
     monkeypatch.setitem(sys.modules, "torch.distributed.run", torchrun_mock)
     with pytest.raises(SystemExit) as e:
-        _run_model.main([fake_script, "--accelerator", "cuda", "--devices", devices])
+        _run.main([fake_script, "--accelerator", "cuda", "--devices", devices])
     assert e.value.code == 0
     torchrun_mock.main.assert_called_with([
         f"--nproc_per_node={expected}",
@@ -172,9 +172,9 @@ def test_cli_torchrun_num_processes_launched(_, devices, expected, monkeypatch, 
 
 
 def test_cli_through_fabric_entry_point():
-    result = subprocess.run("fabric run model --help", capture_output=True, text=True, shell=True)
+    result = subprocess.run("fabric run --help", capture_output=True, text=True, shell=True)
 
-    message = "Usage: fabric run model [OPTIONS] SCRIPT [SCRIPT_ARGS]"
+    message = "Usage: fabric run [OPTIONS] SCRIPT [SCRIPT_ARGS]"
     assert message in result.stdout or message in result.stderr
 
 
@@ -184,8 +184,8 @@ def test_cli_through_lightning_entry_point():
 
     deprecation_message = (
         "`lightning run model` is deprecated and will be removed in future versions. "
-        "Please call `fabric run model` instead"
+        "Please call `fabric run` instead"
     )
-    message = "Usage: lightning run model [OPTIONS] SCRIPT [SCRIPT_ARGS]"
+    message = "Usage: lightning run [OPTIONS] SCRIPT [SCRIPT_ARGS]"
     assert deprecation_message in result.stdout
     assert message in result.stdout or message in result.stderr

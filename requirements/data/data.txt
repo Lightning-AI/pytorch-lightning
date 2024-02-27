@@ -1,8 +1,3 @@
-# NOTE: the upper bound for the package version is only set for CI stability, and it is dropped while installing this package
-#  in case you want to preserve/enforce restrictions on the latest compatible version, add "strict" as an in-line comment
+# NOTE: this is here only to expose `pip install lightning[data]`. we don't install or test it in this project's CI
 
-lightning-utilities >=0.8.0, <0.10.0
-# to be able to include also PL 2.0 and preserve `>` needed for CI min version bypass
-torch >0.14.0, <=2.2.0
-lightning-cloud
-filelock
+litdata >= 0.2.0rc, <0.3.0
