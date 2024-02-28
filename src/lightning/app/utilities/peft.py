@@ -4,7 +4,6 @@ from typing import Dict, Optional, Union
 
 from packaging import version
 
-
 ADAPTER_CONFIG_NAME = "adapter_config.json"
 ADAPTER_WEIGHTS_NAME = "adapter_model.bin"
 ADAPTER_SAFE_WEIGHTS_NAME = "adapter_model.safetensors"
@@ -22,9 +21,8 @@ def find_adapter_config_file(
     subfolder: str = "",
     _commit_hash: Optional[str] = None,
 ) -> Optional[str]:
-    r"""
-    Simply checks if the model stored on the Hub or locally is an adapter model or not, return the path of the adapter
-    config file if it is, None otherwise.
+    r"""Simply checks if the model stored on the Hub or locally is an adapter model or not, return the path of the
+    adapter config file if it is, None otherwise.
 
     Args:
         model_id (`str`):
@@ -59,11 +57,12 @@ def find_adapter_config_file(
         subfolder (`str`, *optional*, defaults to `""`):
             In case the relevant files are located inside a subfolder of the model repo on huggingface.co, you can
             specify the folder name here.
+
     """
     adapter_cached_filename = None
     if model_id is None:
         return None
-    elif os.path.isdir(model_id):
+    if os.path.isdir(model_id):
         list_remote_files = os.listdir(model_id)
         if ADAPTER_CONFIG_NAME in list_remote_files:
             adapter_cached_filename = os.path.join(model_id, ADAPTER_CONFIG_NAME)
@@ -71,12 +70,12 @@ def find_adapter_config_file(
 
 
 def check_peft_version(min_version: str) -> None:
-    r"""
-    Checks if the version of PEFT is compatible.
+    r"""Checks if the version of PEFT is compatible.
 
     Args:
         version (`str`):
             The version of PEFT to check against.
+
     """
     is_peft_version_compatible = version.parse(importlib.metadata.version("peft")) >= version.parse(min_version)
 

@@ -97,7 +97,7 @@ def _load_from_checkpoint(
                 **adapter_kwargs,
             )
         if _adapter_model_path is not None and os.path.isfile(_adapter_model_path):
-            with open(_adapter_model_path, "r", encoding="utf-8") as f:
+            with open(_adapter_model_path, encoding="utf-8") as f:
                 _adapter_model_path = pretrained_model_name_or_path
                 pretrained_model_name_or_path = json.load(f)["base_model_name_or_path"]
     checkpoint.setdefault(cls.CHECKPOINT_HYPER_PARAMS_KEY, {})
