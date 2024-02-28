@@ -57,7 +57,7 @@ Learn to scale up your models and enable collaborative model development at acad
 
 .. displayitem::
    :header: Level 12: Optimize training speed
-   :description: Use advanced profilers to mixed precision to train bigger models, faster.
+   :description: Use compilers, advanced profilers and mixed precision to train bigger models, faster.
    :col_css: col-md-6
    :button_link: intermediate_level_13.html
    :height: 150
