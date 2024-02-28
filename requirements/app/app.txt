@@ -27,3 +27,4 @@ urllib3 <2.1.0
 uvicorn <0.24.0
 websocket-client <1.7.0
 websockets <11.1.0
+peft <0.8.2

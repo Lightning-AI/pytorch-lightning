@@ -81,6 +81,25 @@ def _load_from_checkpoint(
 
     # TODO: make this a migration:
     # for past checkpoint need to add the new key
+    adapter_kwargs = kwargs.pop("adapter_kwargs", {})
+    if is_peft_available():
+        _adapter_model_path = adapter_kwargs.pop("_adapter_model_path", None)
+
+        if _adapter_model_path is None:
+            _adapter_model_path = find_adapter_config_file(
+                pretrained_model_name_or_path,
+                cache_dir=cache_dir,
+                force_download=force_download,
+                resume_download=resume_download,
+                proxies=proxies,
+                local_files_only=local_files_only,
+                _commit_hash=commit_hash,
+                **adapter_kwargs,
+            )
+        if _adapter_model_path is not None and os.path.isfile(_adapter_model_path):
+            with open(_adapter_model_path, "r", encoding="utf-8") as f:
+                _adapter_model_path = pretrained_model_name_or_path
+                pretrained_model_name_or_path = json.load(f)["base_model_name_or_path"]
     checkpoint.setdefault(cls.CHECKPOINT_HYPER_PARAMS_KEY, {})
     # override the hparams with values that were passed in
     checkpoint[cls.CHECKPOINT_HYPER_PARAMS_KEY].update(kwargs)
