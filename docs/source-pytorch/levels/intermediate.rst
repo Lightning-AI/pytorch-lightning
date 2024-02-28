@@ -64,8 +64,8 @@ Learn to scale up your models and enable collaborative model development at acad
    :tag: intermediate
 
 .. displayitem::
-   :header: Level 13: Run on on-prem clusters
-   :description: Run on a custom on-prem cluster or SLURM cluster.
+   :header: Level 13: Run on a multi-node cluster
+   :description: Learn to run on multi-node in the cloud or on your cluster
    :col_css: col-md-6
    :button_link: intermediate_level_14.html
    :height: 150
