@@ -129,11 +129,11 @@ def connect_app(app_name_or_id: str):
         with open(connected_file, "w") as f:
             f.write(app_name_or_id + "\n")
 
-        click.echo("The lightning CLI now responds to app commands. Use 'lightning --help' to see them.")
+        click.echo("The lightning App CLI now responds to app commands. Use 'lightning_app --help' to see them.")
         click.echo(" ")
 
         Popen(
-            f"LIGHTNING_CONNECT_PPID={_PPID} {sys.executable} -m lightning --help",
+            f"LIGHTNING_CONNECT_PPID={_PPID} {sys.executable} -m lightning_app --help",
             shell=True,
             stdout=sys.stdout,
             stderr=sys.stderr,
@@ -147,11 +147,11 @@ def connect_app(app_name_or_id: str):
             shutil.copytree(matched_commands, commands)
             shutil.copy(matched_connected_file, connected_file)
 
-        click.echo("The lightning CLI now responds to app commands. Use 'lightning --help' to see them.")
+        click.echo("The lightning App CLI now responds to app commands. Use 'lightning_app --help' to see them.")
         click.echo(" ")
 
         Popen(
-            f"LIGHTNING_CONNECT_PPID={_PPID} {sys.executable} -m lightning --help",
+            f"LIGHTNING_CONNECT_PPID={_PPID} {sys.executable} -m lightning_app --help",
             shell=True,
             stdout=sys.stdout,
             stderr=sys.stderr,
@@ -205,11 +205,11 @@ def connect_app(app_name_or_id: str):
             f.write(retriever.app_name + "\n")
             f.write(retriever.app_id + "\n")
 
-        click.echo("The lightning CLI now responds to app commands. Use 'lightning --help' to see them.")
+        click.echo("The lightning App CLI now responds to app commands. Use 'lightning_app --help' to see them.")
         click.echo(" ")
 
         Popen(
-            f"LIGHTNING_CONNECT_PPID={_PPID} {sys.executable} -m lightning --help",
+            f"LIGHTNING_CONNECT_PPID={_PPID} {sys.executable} -m lightning_app --help",
             shell=True,
             stdout=sys.stdout,
             stderr=sys.stderr,
@@ -238,7 +238,7 @@ def disconnect_app(logout: bool = False):
         if not logout:
             click.echo(
                 "You aren't connected to any Lightning App. "
-                "Please use `lightning connect app_name_or_id` to connect to one."
+                "Please use `lightning_app connect app_name_or_id` to connect to one."
             )
 
 

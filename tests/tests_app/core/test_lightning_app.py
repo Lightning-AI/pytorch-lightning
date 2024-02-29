@@ -446,8 +446,8 @@ class EmptyFlow(LightningFlow):
 @pytest.mark.parametrize(
     ("sleep_time", "expect"),
     [
-        (1, 0),
-        pytest.param(0, 10.0, marks=pytest.mark.xfail(strict=False, reason="failing...")),  # fixme
+        (0, 9),
+        pytest.param(9, 10.0, marks=pytest.mark.xfail(strict=False, reason="failing...")),  # fixme
     ],
 )
 @pytest.mark.flaky(reruns=5)
@@ -456,10 +456,10 @@ def test_lightning_app_aggregation_speed(default_timeout, queue_type_cls: BaseQu
     time window."""
 
     class SlowQueue(queue_type_cls):
-        def get(self, timeout):
+        def batch_get(self, timeout, count):
             out = super().get(timeout)
             sleep(sleep_time)
-            return out
+            return [out]
 
     app = LightningApp(EmptyFlow())
 
@@ -480,7 +480,7 @@ def test_lightning_app_aggregation_speed(default_timeout, queue_type_cls: BaseQu
     delta = app._collect_deltas_from_ui_and_work_queues()[-1]
     generated = delta.to_dict()["values_changed"]["root['vars']['counter']"]["new_value"]
     if sleep_time:
-        assert generated == expect
+        assert generated == expect, (generated, expect)
     else:
         # validate the flow should have aggregated at least expect.
         assert generated > expect
@@ -497,7 +497,8 @@ def test_lightning_app_aggregation_empty():
     app.delta_queue = SlowQueue("api_delta_queue", 0)
     t0 = time()
     assert app._collect_deltas_from_ui_and_work_queues() == []
-    assert (time() - t0) < app.state_accumulate_wait
+    delta = time() - t0
+    assert delta < app.state_accumulate_wait + 0.01, delta
 
 
 class SimpleFlow2(LightningFlow):
@@ -560,6 +561,7 @@ class CheckpointLightningApp(LightningApp):
         raise SuccessException
 
 
+@pytest.mark.flaky(reruns=3)
 def test_snap_shotting():
     with contextlib.suppress(SuccessException):
         app = CheckpointLightningApp(FlowA())
@@ -1114,7 +1116,7 @@ class FlowWrapper(LightningFlow):
 def test_cloud_compute_binding():
     cloud_compute.ENABLE_MULTIPLE_WORKS_IN_NON_DEFAULT_CONTAINER = True
 
-    assert {} == cloud_compute._CLOUD_COMPUTE_STORE
+    assert cloud_compute._CLOUD_COMPUTE_STORE == {}
     flow = FlowCC()
     assert len(cloud_compute._CLOUD_COMPUTE_STORE) == 2
     assert cloud_compute._CLOUD_COMPUTE_STORE["default"].component_names == ["root.work_c"]

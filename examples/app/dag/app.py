@@ -65,9 +65,9 @@ class DAG(LightningFlow):
         )
 
         # Step 3: Create the work to train the models_paths in parallel.
-        self.dict = Dict(
-            **{model_path.split(".")[-1]: ModelWork(model_path, parallel=True) for model_path in models_paths}
-        )
+        self.dict = Dict(**{
+            model_path.split(".")[-1]: ModelWork(model_path, parallel=True) for model_path in models_paths
+        })
 
         # Step 4: Some element to track components progress.
         self.has_completed = False

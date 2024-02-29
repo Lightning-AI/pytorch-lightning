@@ -14,6 +14,8 @@
 import logging
 import os
 import re
+import subprocess
+import sys
 from argparse import Namespace
 from typing import Any, List, Optional
 
@@ -29,6 +31,7 @@ from lightning.fabric.utilities.distributed import _suggested_max_num_threads
 _log = logging.getLogger(__name__)
 
 _CLICK_AVAILABLE = RequirementCache("click")
+_LIGHTNING_SDK_AVAILABLE = RequirementCache("lightning_sdk")
 
 _SUPPORTED_ACCELERATORS = ("cpu", "gpu", "cuda", "mps", "tpu")
 
@@ -44,8 +47,31 @@ def _get_supported_strategies() -> List[str]:
 if _CLICK_AVAILABLE:
     import click
 
-    @click.command(
-        "model",
+    def _legacy_main() -> None:
+        """Legacy CLI handler for fabric.
+
+        Raises deprecation warning and runs through fabric cli if necessary, else runs the entrypoint directly
+
+        """
+        print(
+            "`lightning run model` is deprecated and will be removed in future versions."
+            " Please call `fabric run` instead."
+        )
+        args = sys.argv[1:]
+        if args and args[0] == "run" and args[1] == "model":
+            _main()
+            return
+
+        if _LIGHTNING_SDK_AVAILABLE:
+            subprocess.run([sys.executable, "-m", "lightning_sdk.cli.entrypoint"] + args)
+            return
+
+    @click.group()
+    def _main() -> None:
+        pass
+
+    @_main.command(
+        "run",
         context_settings={
             "ignore_unknown_options": True,
         },
@@ -116,7 +142,7 @@ if _CLICK_AVAILABLE:
         ),
     )
     @click.argument("script_args", nargs=-1, type=click.UNPROCESSED)
-    def _run_model(**kwargs: Any) -> None:
+    def _run(**kwargs: Any) -> None:
         """Run a Lightning Fabric script.
 
         SCRIPT is the path to the Python script with the code to run. The script must contain a Fabric object.
@@ -195,4 +221,4 @@ if __name__ == "__main__":
         )
         raise SystemExit(1)
 
-    _run_model()
+    _run()

@@ -2,7 +2,7 @@
 Training models with billions of parameters
 ###########################################
 
-Use Fully Shared Data Parallel (FSDP) to train large models with billions of parameters efficiently on multiple GPUs and across multiple machines.
+Use Fully Sharded Data Parallel (FSDP) to train large models with billions of parameters efficiently on multiple GPUs and across multiple machines.
 
 .. note:: This is an experimental feature.
 
@@ -12,9 +12,9 @@ Even a single H100 GPU with 80 GB of VRAM (the biggest today) is not enough to t
 The memory consumption for training is generally made up of
 
 1. the model parameters,
-2. the layer activations (forward) and
-3. the gradients (backward).
-4. the optimizer states (e.g., Adam has two additional exponential averages per parameter),
+2. the layer activations (forward),
+3. the gradients (backward) and
+4. the optimizer states (e.g., Adam has two additional exponential averages per parameter).
 
 |
 
@@ -358,6 +358,7 @@ The resulting checkpoint folder will have this structure:
     ├── .metadata
     ├── __0_0.distcp
     ├── __1_0.distcp
+    ...
     └── meta.pt
 
 The “sharded” checkpoint format is the most efficient to save and load in Fabric.
@@ -374,7 +375,7 @@ However, if you prefer to have a single consolidated file instead, you can confi
 
 **Which checkpoint format should I use?**
 
-- ``state_dict_type="sharded"``: Use for pre-training very large models. It is fast and uses less memory, but it is less portable - you can’t easily load the checkpoint in raw PyTorch (in the future, Lightning will provide utilities to convert the checkpoint though).
+- ``state_dict_type="sharded"``: Use for pre-training very large models. It is fast and uses less memory, but it is less portable. An extra step is needed to :doc:`convert the sharded checkpoint into a regular checkpoint file <../../guide/checkpoint/distributed_checkpoint>`.
 - ``state_dict_type="full"``: Use when pre-training small to moderately large models (less than 10B parameters), when fine-tuning, and when portability is required.
 
 
@@ -400,7 +401,7 @@ You can easily load checkpoints saved by Fabric to resume training:
 
 Fabric will automatically recognize whether the provided path contains a checkpoint saved with ``state_dict_type="full"`` or ``state_dict_type="sharded"``.
 Checkpoints saved with ``state_dict_type="full"`` can be loaded by all strategies, but sharded checkpoints can only be loaded by FSDP.
-Read :doc:`the checkpoints guide <../../guide/checkpoint>` to explore more features.
+Read :doc:`the checkpoints guide <../../guide/checkpoint/index>` to explore more features.
 
 
 ----

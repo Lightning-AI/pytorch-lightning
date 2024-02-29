@@ -327,13 +327,13 @@ def test_empty_model_size(max_depth):
         pytest.param("mps", marks=RunIf(mps=True)),
     ],
 )
-def test_model_size_precision(tmpdir, accelerator):
+def test_model_size_precision(tmp_path, accelerator):
     """Test model size for half and full precision."""
     model = PreCalculatedModel()
 
     # fit model
     trainer = Trainer(
-        default_root_dir=tmpdir, accelerator=accelerator, devices=1, max_steps=1, max_epochs=1, precision=32
+        default_root_dir=tmp_path, accelerator=accelerator, devices=1, max_steps=1, max_epochs=1, precision=32
     )
     trainer.fit(model)
     summary = summarize(model)
@@ -430,3 +430,29 @@ def test_summary_restores_module_mode():
     assert model.training
     assert model.layer1.training
     assert not model.layer2.training
+
+
+def test_summary_training_mode():
+    """Test that the model summary captures the training mode on all submodules."""
+    model = DeepNestedModel()
+    model.branch1[1][0].eval()
+    model.branch2.eval()
+
+    summary = summarize(model, max_depth=1)
+    summary_data = OrderedDict(summary._get_summary_data())
+    assert summary_data["Mode"] == [
+        "train",  # branch1
+        "eval",  # branch2
+        "train",  # head
+    ]
+
+    summary = summarize(model, max_depth=-1)
+    expected_eval = {"branch1.1.0", "branch2"}
+    for name, layer_summary in summary._layer_summary.items():
+        assert (name in expected_eval) == (not layer_summary.training)
+
+    # A model with params not belonging to a layer
+    model = NonLayerParamsModel()
+    model.layer.eval()
+    summary_data = OrderedDict(summarize(model)._get_summary_data())
+    assert summary_data["Mode"] == ["eval", "n/a"]

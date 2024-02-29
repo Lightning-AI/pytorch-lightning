@@ -15,13 +15,29 @@ import copy
 import inspect
 import types
 from argparse import Namespace
-from typing import Any, List, MutableMapping, Optional, Sequence, Union
+from contextlib import contextmanager
+from contextvars import ContextVar
+from typing import Any, Iterator, List, MutableMapping, Optional, Sequence, Union
 
 from lightning.fabric.utilities.data import AttributeDict
 from lightning.pytorch.utilities.parsing import save_hyperparameters
 
 _PRIMITIVE_TYPES = (bool, int, float, str)
 _ALLOWED_CONFIG_TYPES = (AttributeDict, MutableMapping, Namespace)
+
+
+_given_hyperparameters: ContextVar = ContextVar("_given_hyperparameters", default=None)
+
+
+@contextmanager
+def _given_hyperparameters_context(hparams: dict, instantiator: str) -> Iterator[None]:
+    hparams = hparams.copy()
+    hparams["_instantiator"] = instantiator
+    token = _given_hyperparameters.set(hparams)
+    try:
+        yield
+    finally:
+        _given_hyperparameters.reset(token)
 
 
 class HyperparametersMixin:
@@ -105,12 +121,13 @@ class HyperparametersMixin:
 
         """
         self._log_hyperparams = logger
+        given_hparams = _given_hyperparameters.get()
         # the frame needs to be created in this file.
-        if not frame:
+        if given_hparams is None and not frame:
             current_frame = inspect.currentframe()
             if current_frame:
                 frame = current_frame.f_back
-        save_hyperparameters(self, *args, ignore=ignore, frame=frame)
+        save_hyperparameters(self, *args, ignore=ignore, frame=frame, given_hparams=given_hparams)
 
     def _set_hparams(self, hp: Union[MutableMapping, Namespace, str]) -> None:
         hp = self._to_hparams_dict(hp)

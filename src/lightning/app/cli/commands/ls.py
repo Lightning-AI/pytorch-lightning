@@ -81,7 +81,7 @@ def ls(path: Optional[str] = None, print: bool = True, use_live: bool = True) ->
         # This happens if the user changes cluster and the project doesn't exit.
         if len(project) == 0:
             return _error_and_exit(
-                f"There isn't any Lightning Project matching the name {splits[0]}." " HINT: Use `lightning cd`."
+                f"There isn't any Lightning Project matching the name {splits[0]}." " HINT: Use `lightning_app cd`."
             )
 
         project_id = project[0].project_id

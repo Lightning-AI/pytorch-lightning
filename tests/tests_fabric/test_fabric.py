@@ -12,18 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-import sys
+from contextlib import nullcontext
 from re import escape
 from unittest import mock
 from unittest.mock import ANY, MagicMock, Mock, PropertyMock, call
 
+import lightning.fabric
 import pytest
 import torch
 import torch.distributed
 import torch.nn.functional
-from lightning.fabric.accelerators.xla import _using_pjrt
 from lightning.fabric.fabric import Fabric
-from lightning.fabric.plugins import Precision
 from lightning.fabric.strategies import (
     DataParallelStrategy,
     DDPStrategy,
@@ -91,18 +90,28 @@ def test_setup_module(ddp_mock, setup_method):
 
 @RunIf(skip_windows=True, dynamo=True)
 @pytest.mark.parametrize("setup_method", ["setup", "setup_module"])
-def test_setup_compiled_module(setup_method):
+@pytest.mark.parametrize("reapply_compile", [True, False, None])
+def test_setup_compiled_module(reapply_compile, setup_method):
     """Test that an `OptimizedModule` can be passed to the setup method."""
     from torch._dynamo.eval_frame import OptimizedModule
 
     fabric = Fabric(devices=1)
     model = nn.Linear(1, 2)
     compiled_model = torch.compile(model)
+    assert compiled_model._compile_kwargs is not None
     assert isinstance(compiled_model, OptimizedModule)
     setup_method = getattr(fabric, setup_method)
-    fabric_model = setup_method(compiled_model)
+    fabric_model = setup_method(compiled_model, _reapply_compile=reapply_compile)
 
-    assert fabric_model.module == compiled_model
+    assert isinstance(fabric_model._forward_module, OptimizedModule)
+    if reapply_compile:
+        # The forward_module got rewrapped into a new OptimizedModule
+        assert fabric_model._forward_module != fabric_model._original_module
+        # The original_module points to the pure module
+        assert fabric_model._original_module is model
+        assert fabric_model._forward_module._orig_mod is model
+    else:
+        assert fabric_model._forward_module is fabric_model._original_module
     # Attributes get passed through
     assert fabric_model.weight is model.weight
 
@@ -156,8 +165,8 @@ def test_setup_module_parameters_on_different_devices(setup_method, move_to_devi
 
     fabric = Fabric(accelerator="cuda", devices=1)
 
-    module0 = nn.Linear(1, 2).to(device0)
-    module1 = nn.Linear(1, 2).to(device1)
+    module0 = nn.Linear(1, 2, device=device0)
+    module1 = nn.Linear(1, 2, device=device1)
     model = nn.Sequential(module0, module1)
 
     setup_method = getattr(fabric, setup_method)
@@ -173,7 +182,14 @@ def test_setup_module_parameters_on_different_devices(setup_method, move_to_devi
         assert module1.weight.device == module1.bias.device == device1
     else:
         with no_warning_call(expected_warning=PossibleUserWarning, match=match):
-            setup_method(model, move_to_device=move_to_device)
+            fabric_model = setup_method(model, move_to_device=move_to_device)
+
+        # the first device is set at the root
+        assert fabric_model.device == device0
+        assert fabric_model._device == device0
+        # the weights were not moved
+        assert module0.weight.device == module0.bias.device == device0
+        assert module1.weight.device == module1.bias.device == device1
 
 
 def test_setup_module_and_optimizers():
@@ -557,9 +573,6 @@ def test_setup_dataloaders_replace_standard_sampler(shuffle, strategy):
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_to_device(accelerator, expected):
     """Test that the to_device method can move various objects to the device determined by the accelerator."""
-    if accelerator == "tpu" and not _using_pjrt():
-        expected = "xla:1"
-
     fabric = Fabric(accelerator=accelerator, devices=1)
     fabric.launch()
 
@@ -598,10 +611,94 @@ def test_rank_properties():
 def test_backward():
     """Test that backward() calls into the precision plugin."""
     fabric = Fabric()
-    fabric._strategy = Mock(spec=Precision)
+    fabric._strategy = Mock(spec=Strategy)
     loss = Mock()
     fabric.backward(loss, "arg", keyword="kwarg")
     fabric._strategy.backward.assert_called_with(loss, None, "arg", keyword="kwarg")
+
+
+@pytest.mark.parametrize(
+    ("strategy", "precision", "error_expected"),
+    [
+        ("auto", "32-true", False),
+        ("auto", "bf16-true", False),
+        ("auto", "bf16-mixed", True),
+        pytest.param("fsdp", "32-true", True, marks=RunIf(min_cuda_gpus=1, min_torch="2.0.0")),
+    ],
+)
+@pytest.mark.parametrize("setup_method", ["setup", "setup_module"])
+@mock.patch("lightning.fabric.accelerators.mps.MPSAccelerator.is_available", return_value=False)
+def test_backward_required(_, strategy, precision, error_expected, setup_method):
+    """Test under which strategy and precision configurations the `fabric.backward()` call is required."""
+    fabric = Fabric(
+        accelerator=("cuda" if strategy == "fsdp" else "cpu"), strategy=strategy, precision=precision, devices=1
+    )
+    fabric._launched = True
+    fabric.strategy.setup_module = lambda module: module
+
+    error_context = (
+        pytest.raises(RuntimeError, match=escape("requires you to call `fabric.backward(loss)`"))
+        if error_expected
+        else nullcontext()
+    )
+    batch = torch.rand(2, 2)
+
+    # One model
+    model1 = nn.Linear(2, 2)
+    model1 = getattr(fabric, setup_method)(model1)
+    output = model1(batch)
+    assert output._backward_hooks is not None
+    loss = output.sum()
+    with error_context:
+        loss.backward()
+    loss = model1(batch).sum()
+    assert not lightning.fabric.wrappers._in_fabric_backward
+    fabric.backward(loss)  # no error
+    assert not lightning.fabric.wrappers._in_fabric_backward
+
+    # Two models chained
+    model2 = torch.nn.Linear(2, 2)
+    model2 = getattr(fabric, setup_method)(model2)
+    output = model2(model1(batch))
+    assert output._backward_hooks is not None
+    loss = output.sum()
+    with error_context:
+        loss.backward()
+    loss = model2(model1(batch)).sum()
+    fabric.backward(loss)  # no error
+
+    # Two independent models
+    loss1 = model1(batch).sum()
+    loss2 = model2(batch).sum()
+    with error_context:
+        loss1.backward()
+    with error_context:
+        loss2.backward()
+    loss1 = model1(batch).sum()
+    loss2 = model2(batch).sum()
+    fabric.backward(loss1)  # no error
+    fabric.backward(loss2)  # no error
+
+    # Model that returns a datastructure of tensors
+    class DictReturnModel(nn.Linear):
+        def forward(self, x):
+            return {
+                "loss": super().forward(x).sum(),
+                "other": torch.rand(2, 2),  # does not require grad
+            }
+
+    model3 = DictReturnModel(2, 2)
+    model3 = getattr(fabric, setup_method)(model3)
+    output = model3(batch)
+    loss = output["loss"]
+    other = output["other"]
+    assert loss._backward_hooks is not None
+    assert other._backward_hooks is None
+
+    with error_context:
+        (loss * 2).backward()
+    loss = model3(batch)["loss"]
+    fabric.backward(loss * 2)  # no error
 
 
 @RunIf(deepspeed=True, mps=False)
@@ -1117,7 +1214,7 @@ def test_all_reduce():
     fabric._strategy.all_reduce.assert_has_calls([call(torch.tensor(4), **defaults), call(torch.tensor(5), **defaults)])
 
 
-def test_rank_zero_first():
+def test_rank_zero_first(monkeypatch):
     """Test that rank 0 completes first before all other processes can execute under `.rank_zero_first()`."""
 
     def record_calls_for_rank(rank):
@@ -1125,7 +1222,8 @@ def test_rank_zero_first():
 
         fabric = Fabric()
         fabric._strategy = Mock(global_rank=rank)
-        fabric.barrier = Mock(side_effect=lambda *_: call_order.append("barrier"))
+        barrier_mock = MagicMock(side_effect=lambda *_: call_order.append("barrier"))
+        monkeypatch.setattr(lightning.fabric.utilities.distributed._InfiniteBarrier, "__call__", barrier_mock)
         target = Mock(run=Mock(side_effect=lambda *_: call_order.append("run")))
 
         with fabric.rank_zero_first():
@@ -1133,8 +1231,8 @@ def test_rank_zero_first():
 
         return call_order
 
-    assert record_calls_for_rank(0) == ["run", "barrier", "barrier"]
-    assert record_calls_for_rank(1) == ["barrier", "run", "barrier"]
+    assert record_calls_for_rank(0) == ["run", "barrier"]
+    assert record_calls_for_rank(1) == ["barrier", "run"]
 
 
 @pytest.mark.parametrize(("clip_val", "max_norm"), [(1e-3, None), (None, 1)])
@@ -1196,40 +1294,3 @@ def test_verify_launch_called():
     fabric.launch()
     assert fabric._launched
     fabric._validate_launched()
-
-
-@pytest.mark.skipif(sys.platform == "darwin", reason="https://github.com/pytorch/pytorch/issues/95708")
-@RunIf(dynamo=True)
-@pytest.mark.parametrize(
-    "kwargs",
-    [
-        {},
-        pytest.param({"precision": "16-true"}, marks=pytest.mark.xfail(raises=RuntimeError, match="Unsupported")),
-        pytest.param({"precision": "64-true"}, marks=pytest.mark.xfail(raises=RuntimeError, match="Unsupported")),
-    ],
-)
-def test_fabric_with_torchdynamo_fullgraph(kwargs):
-    class MyModel(torch.nn.Module):
-        def __init__(self):
-            super().__init__()
-            self.l = torch.nn.Linear(10, 10)
-
-        def forward(self, x):
-            # forward gets compiled
-            assert torch._dynamo.is_compiling()
-            return self.l(x)
-
-    def fn(model, x):
-        assert torch._dynamo.is_compiling()
-        a = x * 10
-        return model(a)
-
-    fabric = Fabric(devices=1, **kwargs)
-    model = MyModel()
-    fmodel = fabric.setup(model)
-    # we are compiling a function that calls model.forward() inside
-    cfn = torch.compile(fn, fullgraph=True)
-    x = torch.randn(10, 10, device=fabric.device)
-    # pass the fabric wrapped model to the compiled function, so that it gets compiled too
-    out = cfn(fmodel, x)
-    assert isinstance(out, torch.Tensor)

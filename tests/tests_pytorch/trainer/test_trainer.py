@@ -308,7 +308,7 @@ def test_model_checkpoint_options(tmpdir, save_top_k, save_last, expected_files)
     """Test ModelCheckpoint options."""
 
     def mock_save_function(filepath, *args):
-        open(filepath, "a").close()  # noqa: SIM115
+        open(filepath, "a").close()
 
     # simulated losses
     losses = [10, 9, 2.8, 5, 2.5]
@@ -2064,3 +2064,13 @@ def test_init_module_context(monkeypatch):
     with pytest.warns(PossibleUserWarning, match="can't place .* on the device"), trainer.init_module():
         pass
     strategy.tensor_init_context.assert_called_once()
+
+
+def test_expand_home_trainer():
+    """Test that the dirpath gets expanded if it contains `~`."""
+    home_root = Path.home()
+
+    trainer = Trainer(default_root_dir="~/trainer")
+    assert trainer.default_root_dir == str(home_root / "trainer")
+    trainer = Trainer(default_root_dir=Path("~/trainer"))
+    assert trainer.default_root_dir == str(home_root / "trainer")

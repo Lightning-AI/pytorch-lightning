@@ -1,4 +1,5 @@
 """Test configuration."""
+
 # pylint: disable=protected-access
 from unittest import mock
 

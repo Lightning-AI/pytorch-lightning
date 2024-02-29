@@ -38,7 +38,7 @@ def mlflow_mock(monkeypatch):
     mlflow.tracking = mlflow_tracking
     mlflow.entities = mlflow_entities
 
-    monkeypatch.setattr("lightning.pytorch.loggers.mlflow._MLFLOW_AVAILABLE", True),
+    (monkeypatch.setattr("lightning.pytorch.loggers.mlflow._MLFLOW_AVAILABLE", True),)
     return mlflow
 
 
@@ -140,6 +140,10 @@ def neptune_mock(monkeypatch):
     neptune_utils = ModuleType("utils")
     neptune_utils.stringify_unsupported = Mock()
     monkeypatch.setitem(sys.modules, "neptune.utils", neptune_utils)
+
+    neptune_exceptions = ModuleType("exceptions")
+    neptune_exceptions.InactiveRunException = Exception
+    monkeypatch.setitem(sys.modules, "neptune.exceptions", neptune_exceptions)
 
     neptune.handler = neptune_handler
     neptune.types = neptune_types

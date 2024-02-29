@@ -25,4 +25,4 @@ ComponentTuple = (LightningFlow, LightningWork, Dict, List)
 @runtime_checkable
 class Hashable(Protocol):
     def to_dict(self) -> t.Dict[str, t.Any]:
-        ...
+        """Convert to dictionaty."""

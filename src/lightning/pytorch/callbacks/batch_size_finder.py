@@ -20,6 +20,8 @@ Finds optimal batch size
 
 from typing import Optional
 
+from typing_extensions import override
+
 import lightning.pytorch as pl
 from lightning.pytorch.callbacks.callback import Callback
 from lightning.pytorch.tuner.batch_size_scaling import _scale_batch_size
@@ -29,10 +31,11 @@ from lightning.pytorch.utilities.rank_zero import rank_zero_warn
 
 
 class BatchSizeFinder(Callback):
-    """The ``BatchSizeFinder`` callback tries to find the largest batch size for a given model that does not give an
-    out of memory (OOM) error. All you need to do is add it as a callback inside Trainer and call
-    ``trainer.{fit,validate,test,predict}``. Internally it calls the respective step function ``steps_per_trial`` times
-    for each batch size until one of the batch sizes generates an OOM error.
+    """Finds the largest batch size supported by a given model before encountering an out of memory (OOM) error.
+
+    All you need to do is add it as a callback inside Trainer and call ``trainer.{fit,validate,test,predict}``.
+    Internally, it calls the respective step function ``steps_per_trial`` times for each batch size until one
+    of the batch sizes generates an OOM error.
 
     .. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
 
@@ -128,6 +131,7 @@ class BatchSizeFinder(Callback):
         self._batch_arg_name = batch_arg_name
         self._early_exit = False
 
+    @override
     def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: Optional[str] = None) -> None:
         if trainer._accelerator_connector.is_distributed:
             raise MisconfigurationException("The Batch size finder is not supported with distributed strategies.")
@@ -182,17 +186,21 @@ class BatchSizeFinder(Callback):
         if self._early_exit:
             raise _TunerExitException()
 
+    @override
     def on_fit_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         self.scale_batch_size(trainer, pl_module)
 
+    @override
     def on_validation_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         if trainer.sanity_checking or trainer.state.fn != "validate":
             return
 
         self.scale_batch_size(trainer, pl_module)
 
+    @override
     def on_test_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         self.scale_batch_size(trainer, pl_module)
 
+    @override
     def on_predict_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         self.scale_batch_size(trainer, pl_module)

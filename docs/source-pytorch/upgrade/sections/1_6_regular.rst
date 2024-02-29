@@ -15,7 +15,7 @@
      - `PR9699`_
 
    * - used Trainer’s flag ``checkpoint_callback``
-     - set ``enable_checkpointing``. If you set ``enable_checkpointing=True``, it configures a default ``ModelCheckpoint`` callback if none is provided ``lightning_pytorch.trainer.trainer.Trainer.callbacks.ModelCheckpoint``
+     - set ``enable_checkpointing``. If you set ``enable_checkpointing=True``, it configures a default ``ModelCheckpoint`` callback if none is provided ``lightning.pytorch.trainer.trainer.Trainer.callbacks.ModelCheckpoint``
      - `PR9754`_
 
    * - used Trainer’s flag ``stochastic_weight_avg``

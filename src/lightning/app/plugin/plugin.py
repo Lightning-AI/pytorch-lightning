@@ -154,7 +154,7 @@ def _run_plugin(run: _Run) -> Dict[str, Any]:
             logger.info("Extracting plugin source.")
 
             with tarfile.open(download_path, "r:gz") as tf:
-                tf.extractall(source_path)
+                tf.extractall(source_path)  # noqa: S202
         except Exception as ex:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

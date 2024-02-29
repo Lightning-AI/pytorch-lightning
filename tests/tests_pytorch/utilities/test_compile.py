@@ -25,10 +25,11 @@ from tests_pytorch.conftest import mock_cuda_count
 from tests_pytorch.helpers.runif import RunIf
 
 
+# https://github.com/pytorch/pytorch/issues/95708
+@pytest.mark.skipif(sys.platform == "darwin", reason="fatal error: 'omp.h' file not found")
 @RunIf(dynamo=True)
-@pytest.mark.skipif(sys.platform == "darwin", reason="https://github.com/pytorch/pytorch/issues/95708")
 @mock.patch("lightning.pytorch.trainer.call._call_and_handle_interrupt")
-def test_trainer_compiled_model(_, tmp_path, monkeypatch):
+def test_trainer_compiled_model(_, tmp_path, monkeypatch, mps_count_0):
     trainer_kwargs = {
         "default_root_dir": tmp_path,
         "fast_dev_run": True,
@@ -111,7 +112,8 @@ def test_compile_uncompile():
     assert not has_dynamo(to_uncompiled_model.predict_step)
 
 
-@pytest.mark.skipif(sys.platform == "darwin", reason="https://github.com/pytorch/pytorch/issues/95708")
+# https://github.com/pytorch/pytorch/issues/95708
+@pytest.mark.skipif(sys.platform == "darwin", reason="fatal error: 'omp.h' file not found")
 @RunIf(dynamo=True)
 def test_trainer_compiled_model_that_logs(tmp_path):
     class MyModel(BoringModel):
@@ -129,13 +131,15 @@ def test_trainer_compiled_model_that_logs(tmp_path):
         enable_checkpointing=False,
         enable_model_summary=False,
         enable_progress_bar=False,
+        accelerator="cpu",
     )
     trainer.fit(compiled_model)
 
     assert set(trainer.callback_metrics) == {"loss"}
 
 
-@pytest.mark.skipif(sys.platform == "darwin", reason="https://github.com/pytorch/pytorch/issues/95708")
+# https://github.com/pytorch/pytorch/issues/95708
+@pytest.mark.skipif(sys.platform == "darwin", reason="fatal error: 'omp.h' file not found")
 @RunIf(dynamo=True)
 def test_trainer_compiled_model_test(tmp_path):
     model = BoringModel()
@@ -147,5 +151,6 @@ def test_trainer_compiled_model_test(tmp_path):
         enable_checkpointing=False,
         enable_model_summary=False,
         enable_progress_bar=False,
+        accelerator="cpu",
     )
     trainer.test(compiled_model)

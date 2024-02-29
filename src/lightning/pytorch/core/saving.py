@@ -151,26 +151,39 @@ def _load_state(
     _cls_kwargs.update(cls_kwargs_loaded)
     _cls_kwargs.update(cls_kwargs_new)
 
+    instantiator = None
+    instantiator_path = _cls_kwargs.pop("_instantiator", None)
+    if instantiator_path is not None:
+        # import custom instantiator
+        module_path, name = instantiator_path.rsplit(".", 1)
+        instantiator = getattr(__import__(module_path, fromlist=[name]), name)
+
     if not cls_spec.varkw:
         # filter kwargs according to class init unless it allows any argument via kwargs
         _cls_kwargs = {k: v for k, v in _cls_kwargs.items() if k in cls_init_args_name}
 
-    obj = cls(**_cls_kwargs)
-
-    if isinstance(obj, pl.LightningModule):
-        if is_overridden("configure_model", obj):
-            obj.configure_model()
-
-        # give model a chance to load something
-        obj.on_load_checkpoint(checkpoint)
+    obj = instantiator(cls, _cls_kwargs) if instantiator else cls(**_cls_kwargs)
 
     if isinstance(obj, pl.LightningDataModule):
         if obj.__class__.__qualname__ in checkpoint:
             obj.load_state_dict(checkpoint[obj.__class__.__qualname__])
         return obj
 
+    if isinstance(obj, pl.LightningModule):
+        if obj._strict_loading is not None and strict is not None and strict != obj.strict_loading:
+            raise ValueError(
+                f"You set `.load_from_checkpoint(..., strict={strict!r})` which is in conflict with"
+                f" `{cls.__name__}.strict_loading={obj.strict_loading!r}. Please set the same value for both of them."
+            )
+        strict = obj.strict_loading if strict is None else strict
+
+        if is_overridden("configure_model", obj):
+            obj.configure_model()
+
+        # give model a chance to load something
+        obj.on_load_checkpoint(checkpoint)
+
     # load the state_dict on the model automatically
-    assert strict is not None
     keys = obj.load_state_dict(checkpoint["state_dict"], strict=strict)
 
     if not strict:

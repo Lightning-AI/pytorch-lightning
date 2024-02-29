@@ -224,8 +224,7 @@ def test_attach_model_callbacks():
     )
     assert trainer.callbacks == [progress_bar, early_stopping1, lr_monitor, grad_accumulation, early_stopping2]
 
-    class CustomProgressBar(TQDMProgressBar):
-        ...
+    class CustomProgressBar(TQDMProgressBar): ...
 
     custom_progress_bar = CustomProgressBar()
     # a custom callback that overrides ours

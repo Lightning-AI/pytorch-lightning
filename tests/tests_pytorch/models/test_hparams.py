@@ -258,8 +258,7 @@ def test_explicit_missing_args_hparams(tmpdir):
 
 def test_class_nesting():
     class MyModule(LightningModule):
-        def forward(self):
-            ...
+        def forward(self): ...
 
     # make sure PL modules are always nn.Module
     a = MyModule()
@@ -349,8 +348,7 @@ if _OMEGACONF_AVAILABLE:
 
 else:
 
-    class DictConfSubClassBoringModel:
-        ...
+    class DictConfSubClassBoringModel: ...
 
 
 @pytest.mark.parametrize(
@@ -667,6 +665,8 @@ def test_init_arg_with_runtime_change(tmpdir, cls):
         limit_test_batches=2,
         max_epochs=1,
         logger=TensorBoardLogger(tmpdir),
+        enable_progress_bar=False,
+        enable_checkpointing=False,
     )
     trainer.fit(model)
 

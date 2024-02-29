@@ -185,7 +185,7 @@ class _CheckpointConnector:
                 # not an error so it can be set and forget before the first `fit` run
                 rank_zero_warn(
                     f'.{fn}(ckpt_path="last") is set, but there is no last checkpoint available.'
-                    " No checkpoint will be loaded."
+                    " No checkpoint will be loaded. HINT: Set `ModelCheckpoint(..., save_last=True)`."
                 )
                 return None
             ckpt_path = max(candidates_ts, key=candidates_ts.get)  # type: ignore[arg-type]
@@ -268,12 +268,14 @@ class _CheckpointConnector:
         if not self._loaded_checkpoint:
             return
 
-        trainer = self.trainer
         # hook: give user access to checkpoint if needed.
-        call._call_lightning_module_hook(trainer, "on_load_checkpoint", self._loaded_checkpoint)
+        call._call_lightning_module_hook(self.trainer, "on_load_checkpoint", self._loaded_checkpoint)
 
         # restore model state_dict
-        trainer.strategy.load_model_state_dict(self._loaded_checkpoint)
+        self.trainer.strategy.load_model_state_dict(
+            self._loaded_checkpoint,
+            strict=self.trainer.lightning_module.strict_loading,
+        )
 
     def restore_training_state(self) -> None:
         """Restore the trainer state from the pre-loaded checkpoint.

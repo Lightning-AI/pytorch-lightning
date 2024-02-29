@@ -297,9 +297,11 @@ class PLAppArtifactsTracker(Callback):
         for logger in trainer.loggers:
             metadata = {"class_name": logger.__class__.__name__}
             if isinstance(logger, WandbLogger) and not logger._offline:
-                metadata.update(
-                    {"username": logger.experiment.entity, "project_name": logger.name, "run_id": logger.version}
-                )
+                metadata.update({
+                    "username": logger.experiment.entity,
+                    "project_name": logger.name,
+                    "run_id": logger.version,
+                })
 
             if metadata and metadata not in self.work.logger_metadatas:
                 self.work.logger_metadatas.append(metadata)

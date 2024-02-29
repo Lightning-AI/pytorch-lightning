@@ -140,7 +140,11 @@ def collect_init_args(
 
 
 def save_hyperparameters(
-    obj: Any, *args: Any, ignore: Optional[Union[Sequence[str], str]] = None, frame: Optional[types.FrameType] = None
+    obj: Any,
+    *args: Any,
+    ignore: Optional[Union[Sequence[str], str]] = None,
+    frame: Optional[types.FrameType] = None,
+    given_hparams: Optional[Dict[str, Any]] = None,
 ) -> None:
     """See :meth:`~lightning.pytorch.LightningModule.save_hyperparameters`"""
 
@@ -156,7 +160,9 @@ def save_hyperparameters(
     if not isinstance(frame, types.FrameType):
         raise AttributeError("There is no `frame` available while being required.")
 
-    if is_dataclass(obj):
+    if given_hparams is not None:
+        init_args = given_hparams
+    elif is_dataclass(obj):
         init_args = {f.name: getattr(obj, f.name) for f in fields(obj)}
     else:
         init_args = {}

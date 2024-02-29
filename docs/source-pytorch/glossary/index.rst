@@ -8,9 +8,11 @@
    Checkpointing <../common/checkpointing>
    Cluster <../clouds/cluster>
    Cloud checkpoint <../common/checkpointing_advanced>
+   Compile <../advanced/compile>
    Console Logging <../common/console_logs>
    Debugging <../debug/debugging>
    DeepSpeed <../advanced/model_parallel/deepspeed>
+   Distributed Checkpoints <../common/checkpointing_expert>
    Early stopping <../common/early_stopping>
    Experiment manager (Logger) <../visualize/experiment_managers>
    Finetuning <../advanced/finetuning>
@@ -19,7 +21,6 @@
    Half precision <../common/precision>
    HPU <../integrations/hpu/index>
    Inference <../deploy/production_intermediate>
-   IPU <../integrations/ipu/index>
    Lightning CLI <../cli/lightning_cli>
    LightningDataModule <../data/datamodule>
    LightningModule <../common/lightning_module>
@@ -38,12 +39,13 @@
    Remote filesystem and FSSPEC <../common/remote_fs>
    Strategy <../extensions/strategy>
    Strategy registry <../advanced/strategy_registry>
+   Strategy integrations <../integrations/strategies/index>
    Style guide <../starter/style_guide>
    SWA <../advanced/training_tricks>
    SLURM <../clouds/cluster_advanced>
    Transfer learning <../advanced/transfer_learning>
    Trainer <../common/trainer>
-   Torch distributed <../clouds/cluster_intermediate_2>
+   TorchRun (TorchElastic) <../clouds/cluster_intermediate_2>
    Warnings <../advanced/warnings>
 
 
@@ -92,6 +94,13 @@ Glossary
    :height: 100
 
 .. displayitem::
+   :header: Compile
+   :description: Use torch.compile to speed up models on modern hardware
+   :col_css: col-md-12
+   :button_link: ../advanced/compile.html
+   :height: 100
+
+.. displayitem::
    :header: Console Logging
    :description: Capture more visible logs
    :col_css: col-md-12
@@ -110,6 +119,13 @@ Glossary
    :description: Distribute models with billions of parameters across hundreds GPUs
    :col_css: col-md-12
    :button_link: ../advanced/model_parallel/deepspeed.html
+   :height: 100
+
+.. displayitem::
+   :header: Distributed Checkpoints
+   :description: Save and load very large models efficiently with distributed checkpoints
+   :col_css: col-md-12
+   :button_link: ../common/checkpointing_expert.html
    :height: 100
 
 .. displayitem::
@@ -166,13 +182,6 @@ Glossary
    :description: Making predictions by applying a trained model to unlabeled examples
    :col_css: col-md-12
    :button_link: ../deploy/production_intermediate.html
-   :height: 100
-
-.. displayitem::
-   :header: IPU
-   :description: Graphcore Intelligence Processing Unit for faster training
-   :col_css: col-md-12
-   :button_link: ../integrations/ipu/index.html
    :height: 100
 
 .. displayitem::

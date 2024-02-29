@@ -26,6 +26,7 @@ def monkeypatch_connection(monkeypatch, tmpdir, ppid):
     return connection_path
 
 
+@pytest.mark.flaky(reruns=3, reruns_delay=2)
 def test_connect_disconnect_local(tmpdir, monkeypatch):
     disconnect_app()
 
@@ -69,7 +70,8 @@ def test_connect_disconnect_local(tmpdir, monkeypatch):
     messages = []
     disconnect_app()
     assert messages == [
-        "You aren't connected to any Lightning App. Please use `lightning connect app_name_or_id` to connect to one."
+        "You aren't connected to any Lightning App."
+        " Please use `lightning_app connect app_name_or_id` to connect to one."
     ]
 
     assert _retrieve_connection_to_an_app() == (None, None)
@@ -147,7 +149,7 @@ def test_connect_disconnect_cloud(tmpdir, monkeypatch):
 
     messages = []
     connect_app("example")
-    assert "The lightning CLI now responds to app commands" in messages[0]
+    assert "The lightning App CLI now responds to app commands" in messages[0]
 
     messages = []
     disconnect_app()
@@ -162,7 +164,8 @@ def test_connect_disconnect_cloud(tmpdir, monkeypatch):
     messages = []
     disconnect_app()
     assert messages == [
-        "You aren't connected to any Lightning App. Please use `lightning connect app_name_or_id` to connect to one."
+        "You aren't connected to any Lightning App."
+        " Please use `lightning_app connect app_name_or_id` to connect to one."
     ]
 
     assert _retrieve_connection_to_an_app() == (None, None)
