@@ -93,21 +93,10 @@ class ThroughputMonitor(Callback):
         dtype = _plugin_to_compute_dtype(trainer.precision_plugin)
         self.available_flops = get_available_flops(trainer.strategy.root_device, dtype)
 
-        if stage == TrainerFn.FITTING:
-            if trainer.accumulate_grad_batches % trainer.log_every_n_steps != 0:
-                raise ValueError(
-                    "The `ThroughputMonitor` only logs when gradient accumulation is finished. You set"
-                    f" `Trainer(accumulate_grad_batches={trainer.accumulate_grad_batches},"
-                    f" log_every_n_steps={trainer.log_every_n_steps})` but these are not divisible and thus will not"
-                    " log anything."
-                )
-
-            if trainer.enable_validation:
-                # `fit` includes validation inside
-                throughput = Throughput(
-                    available_flops=self.available_flops, world_size=trainer.world_size, **self.kwargs
-                )
-                self._throughputs[RunningStage.VALIDATING] = throughput
+        if stage == TrainerFn.FITTING and trainer.enable_validation:
+            # `fit` includes validation inside
+            throughput = Throughput(available_flops=self.available_flops, world_size=trainer.world_size, **self.kwargs)
+            self._throughputs[RunningStage.VALIDATING] = throughput
 
         throughput = Throughput(available_flops=self.available_flops, world_size=trainer.world_size, **self.kwargs)
         stage = trainer.state.stage
