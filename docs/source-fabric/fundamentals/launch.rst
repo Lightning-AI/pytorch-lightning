@@ -67,7 +67,7 @@ An alternative way to launch your Python script in multiple processes is to use 
 
 .. code-block:: bash
 
-    fabric run model path/to/your/script.py
+    fabric run path/to/your/script.py
 
 This is essentially the same as running ``python path/to/your/script.py``, but it also lets you configure the following settings externally without changing your code:
 
@@ -80,9 +80,9 @@ This is essentially the same as running ``python path/to/your/script.py``, but i
 
 .. code-block:: bash
 
-    fabric run model --help
+    fabric run --help
 
-    Usage: fabric run model [OPTIONS] SCRIPT [SCRIPT_ARGS]...
+    Usage: fabric run [OPTIONS] SCRIPT [SCRIPT_ARGS]...
 
       Run a Lightning Fabric script.
 
@@ -128,7 +128,7 @@ Here is how you run DDP with 8 GPUs and `torch.bfloat16 <https://pytorch.org/doc
 
 .. code-block:: bash
 
-    fabric run model ./path/to/train.py \
+    fabric run ./path/to/train.py \
         --strategy=ddp \
         --devices=8 \
         --accelerator=cuda \
@@ -138,7 +138,7 @@ Or `DeepSpeed Zero3 <https://www.deepspeed.ai/2021/03/07/zero3-offload.html>`_ w
 
 .. code-block:: bash
 
-     fabric run model ./path/to/train.py \
+     fabric run ./path/to/train.py \
         --strategy=deepspeed_stage_3 \
         --devices=8 \
         --accelerator=cuda \
@@ -148,7 +148,7 @@ Or `DeepSpeed Zero3 <https://www.deepspeed.ai/2021/03/07/zero3-offload.html>`_ w
 
 .. code-block:: bash
 
-    fabric run model ./path/to/train.py \
+    fabric run ./path/to/train.py \
         --devices=auto \
         --accelerator=auto \
         --precision=16

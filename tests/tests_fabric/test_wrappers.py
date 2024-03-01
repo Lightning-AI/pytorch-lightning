@@ -103,13 +103,13 @@ def test_fabric_module_method_lookup():
 
     # Regular case: forward_module == original_module -> no warnings
     original_module = OriginalModule()
-    fabric_module = _FabricModule(forward_module=original_module, precision=Mock(), original_module=original_module)
+    fabric_module = _FabricModule(forward_module=original_module, strategy=Mock(), original_module=original_module)
     assert fabric_module.method_without_module_invocation() == 100
 
     # Special case: original module wrapped by forward module: -> warn if method accepts args
     original_module = OriginalModule()
     wrapped_module = ModuleWrapper(original_module)
-    fabric_module = _FabricModule(forward_module=wrapped_module, precision=Mock(), original_module=original_module)
+    fabric_module = _FabricModule(forward_module=wrapped_module, strategy=Mock(), original_module=original_module)
     assert fabric_module.method_without_module_invocation() == 100
     with pytest.raises(
         RuntimeError, match=r"You are calling the method `OriginalModule.method_with_submodule_invocation\(\)` from"
@@ -254,7 +254,7 @@ def test_fabric_module_forward_conversion(precision, input_type, expected_type, 
         return forward_input
 
     module = Mock(wraps=torch.nn.Identity(), side_effect=check_autocast)
-    fabric_module = _FabricModule(module, fabric._precision).to(device)
+    fabric_module = _FabricModule(module, fabric._strategy).to(device)
     out = fabric_module(torch.tensor([1, 2, 3], dtype=input_type, device=device))
     assert module.call_args[0][0].dtype == expected_type
     assert out.dtype == input_type or out.dtype == torch.get_default_dtype()
@@ -560,10 +560,11 @@ def test_step_method_redirection():
         def normal_method(self):
             pass
 
-    precision = Mock(wraps=Precision())
+    strategy = Mock()
+    strategy.precision = Mock(wraps=Precision())
     original_module = LightningModule()
     forward_module = DDP(original_module)
-    fabric_module = _FabricModule(forward_module=forward_module, precision=precision, original_module=original_module)
+    fabric_module = _FabricModule(forward_module=forward_module, strategy=strategy, original_module=original_module)
 
     # Regular methods on the original_module are visible and identical on the fabric_module ...
     assert fabric_module.normal_method.__wrapped__ == original_module.normal_method
@@ -585,13 +586,13 @@ def test_step_method_redirection():
     assert fabric_module.training_step("train_arg", kwarg="train_kwarg") == "training_step_return"
     assert fabric_module.training_step("train_arg", kwarg="train_kwarg") == "training_step_return"  # call 2nd time
     assert fabric_module.validation_step("val_arg", kwarg="val_kwarg") == "validation_step_return"
-    precision.forward_context.assert_called()
+    strategy.precision.forward_context.assert_called()
 
     # The forward method remains untouched/unpatched after the special methods have been called
     assert original_module.forward.__name__ == "forward"
 
     # Special case: forward_module == original_module -> no special treatment applied
-    fabric_module = _FabricModule(forward_module=original_module, precision=Mock(), original_module=original_module)
+    fabric_module = _FabricModule(forward_module=original_module, strategy=Mock(), original_module=original_module)
     assert fabric_module.training_step == original_module.training_step
     assert fabric_module.validation_step == original_module.validation_step
 

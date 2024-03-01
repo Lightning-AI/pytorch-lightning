@@ -20,12 +20,6 @@ from lightning.pytorch.callbacks import GradientAccumulationScheduler
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.strategies import DeepSpeedStrategy
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning.pytorch.utilities.imports import _LIGHTNING_COLOSSALAI_AVAILABLE
-
-if _LIGHTNING_COLOSSALAI_AVAILABLE:
-    from lightning_colossalai import ColossalAIStrategy
-else:
-    ColossalAIStrategy = None
 
 
 @pytest.mark.parametrize("accumulate_grad_batches", [1, 2, 3])
@@ -94,16 +88,7 @@ def test_invalid_values_for_grad_accum_scheduler(scheduling):
         _ = GradientAccumulationScheduler(scheduling=scheduling)
 
 
-@pytest.mark.parametrize(
-    "strategy_class",
-    [
-        pytest.param(
-            ColossalAIStrategy,
-            marks=pytest.mark.skipif(not _LIGHTNING_COLOSSALAI_AVAILABLE, reason="Requires ColossalAI strategy"),
-        ),
-        DeepSpeedStrategy,
-    ],
-)
+@pytest.mark.parametrize("strategy_class", [DeepSpeedStrategy])
 def test_unsupported_strategies(strategy_class):
     """Test that an error is raised for strategies that require the gradient accumulation factor to be fixed."""
     scheduler = GradientAccumulationScheduler({1: 2})

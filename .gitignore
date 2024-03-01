@@ -23,6 +23,7 @@ docs/source-pytorch/_static/images/course_UvA-DL
 docs/source-pytorch/_static/images/lightning_examples
 docs/source-pytorch/_static/fetched-s3-assets
 docs/source-pytorch/integrations/hpu
+docs/source-pytorch/integrations/strategies/Hivemind.rst
 
 docs/source-fabric/*/generated
 
@@ -193,7 +194,6 @@ our_model.tar
 test.png
 saved_models
 data/
-!src/lightning/data/
 !examples/data/
 !tests/tests_pytorch/utilities/data/
 !requirements/data/
