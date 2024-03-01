@@ -624,4 +624,6 @@ linkcheck_ignore = [
     "https://www.intel.com/content/www/us/en/products/docs/processors/what-is-a-gpu.html",
     "https://www.microsoft.com/en-us/research/blog/zero-infinity-and-deepspeed-unlocking-unprecedented-model-scale-for-deep-learning-training/",  # noqa: E501
     "https://stackoverflow.com/questions/66640705/how-can-i-install-grpcio-on-an-apple-m1-silicon-laptop",
+    "https://github.com/Lightning-AI/lightning/blob/master/examples/pytorch/ipu/mnist_sample.py",
+    "https://ngc.nvidia.com/catalog/containers/nvidia:nemo",  # in ecosystem/asr_nlp_tts.rst
 ]
