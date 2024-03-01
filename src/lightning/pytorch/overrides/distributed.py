@@ -26,7 +26,7 @@ from lightning.pytorch.utilities.types import _SizedIterable
 
 
 def _find_tensors(
-    obj: Union[Tensor, list, tuple, dict, Any]
+    obj: Union[Tensor, list, tuple, dict, Any],
 ) -> Union[List[Tensor], itertools.chain]:  # pragma: no-cover
     """Recursively find all tensors contained in the specified object."""
     if isinstance(obj, Tensor):

@@ -40,6 +40,7 @@ if _TORCH_VISION_AVAILABLE:
     from torchvision.io import decode_jpeg
     from torchvision.transforms.functional import pil_to_tensor
 
+
 class Serializer(ABC):
     """The base interface for any serializers.
 
@@ -322,22 +323,20 @@ class VideoSerializer(Serializer):
         return isinstance(data, str) and os.path.exists(data) and any(data.endswith(ext) for ext in self._EXTENSIONS)
 
 
-_SERIALIZERS = OrderedDict(
-    **{
-        "video": VideoSerializer(),
-        "tif": FileSerializer(),
-        "file": FileSerializer(),
-        "pil": PILSerializer(),
-        "int": IntSerializer(),
-        "jpeg": JPEGSerializer(),
-        "bytes": BytesSerializer(),
-        "no_header_numpy": NoHeaderNumpySerializer(),
-        "numpy": NumpySerializer(),
-        "no_header_tensor": NoHeaderTensorSerializer(),
-        "tensor": TensorSerializer(),
-        "pickle": PickleSerializer(),
-    }
-)
+_SERIALIZERS = OrderedDict(**{
+    "video": VideoSerializer(),
+    "tif": FileSerializer(),
+    "file": FileSerializer(),
+    "pil": PILSerializer(),
+    "int": IntSerializer(),
+    "jpeg": JPEGSerializer(),
+    "bytes": BytesSerializer(),
+    "no_header_numpy": NoHeaderNumpySerializer(),
+    "numpy": NumpySerializer(),
+    "no_header_tensor": NoHeaderTensorSerializer(),
+    "tensor": TensorSerializer(),
+    "pickle": PickleSerializer(),
+})
 
 
 def _get_serializers(serializers: Optional[Dict[str, Serializer]]) -> Dict[str, Serializer]:

@@ -13,7 +13,6 @@ _PYARROW_AVAILABLE = RequirementCache("pyarrow")
 
 
 class BaseReader(ABC):
-
     def get_num_nodes(self) -> int:
         return int(os.getenv("DATA_OPTIMIZER_NUM_NODES", 1))
 
@@ -35,13 +34,13 @@ class BaseReader(ABC):
 @dataclass
 class ParquetSlice:
     """Keep track of a parquet file slice with its filepath, start and end."""
+
     filepath: str
     start: int
     end: int
 
 
 class ParquetReader(BaseReader):
-
     def __init__(self, num_rows: Optional[int] = 2048, to_pandas: bool = True) -> None:
         self.num_rows = num_rows
         self.to_pandas = to_pandas
@@ -52,12 +51,14 @@ class ParquetReader(BaseReader):
     def _get_num_rows(self, path: str) -> int:
         if _PYARROW_AVAILABLE:
             import pyarrow.dataset as ds
+
             df = ds.dataset(path).scanner()
             return df.count_rows()
 
         # FIXED: There is a bug in polars. This leads to read_parquet to hang.
         if _POLARS_AVAILABLE:
             import polars as pol
+
             df = pol.scan_parquet(path)
             num_rows = df.select(pol.len()).collect().item()
             return num_rows
@@ -67,6 +68,7 @@ class ParquetReader(BaseReader):
     def read(self, item: ParquetSlice) -> Any:
         if _POLARS_AVAILABLE:
             import polars as pol
+
             df = pol.scan_parquet(item.filepath).slice(item.start, item.end).collect()
 
             if self.to_pandas:
@@ -88,7 +90,6 @@ class ParquetReader(BaseReader):
 
         raise RuntimeError("Please, install either pyarrow or polars.")
 
-
     def items_to_workers(self, items: Any, num_workers: int) -> List[List[ParquetSlice]]:
         intervals = [(0, self._get_num_rows(item)) for item in items]
 
@@ -97,7 +98,8 @@ class ParquetReader(BaseReader):
 
         fake_distributed_env = _DistributedEnv(world_size, 0, self.get_num_nodes())
         parquet_indexes_per_worker, p_slices_per_worker = _associate_chunks_and_internals_to_ranks(
-            fake_distributed_env, list(range(len(items))), intervals, False)
+            fake_distributed_env, list(range(len(items))), intervals, False
+        )
 
         workers_user_items: List[List[ParquetSlice]] = [[] for _ in range(num_workers)]
 
@@ -111,9 +113,11 @@ class ParquetReader(BaseReader):
                 if self.num_rows:
                     workers_user_items[worker_idx % num_workers].extend([
                         ParquetSlice(
-                            items[parquet_index], p_slice_start, p_slice_start + self.num_rows
-                            if p_slice[1] > (p_slice_start + self.num_rows) else
-                            p_slice[1]
+                            items[parquet_index],
+                            p_slice_start,
+                            p_slice_start + self.num_rows
+                            if p_slice[1] > (p_slice_start + self.num_rows)
+                            else p_slice[1],
                         )
                         for parquet_index, p_slice in zip(parquet_indexes, p_slices)
                         for p_slice_start in range(p_slice[0], p_slice[1] + self.num_rows, self.num_rows)

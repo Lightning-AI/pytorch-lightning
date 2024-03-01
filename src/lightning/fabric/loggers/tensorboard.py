@@ -78,6 +78,7 @@ class TensorBoardLogger(Logger):
         logger.finalize("success")
 
     """
+
     LOGGER_JOIN_CHAR = "-"
 
     def __init__(

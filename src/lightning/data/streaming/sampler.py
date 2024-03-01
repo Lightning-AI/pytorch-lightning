@@ -180,16 +180,14 @@ class CacheBatchSampler:
             interval_indices = np.arange(chunk_interval[0], chunk_interval[1])
             shuffled_interval_indices = np.random.permutation(interval_indices).tolist()
             is_empty = len(indices_per_workers[worker_id]) == 0
-            indices_per_workers[worker_id].extend(
-                [
-                    ChunkedIndex(
-                        index,
-                        chunk_index,
-                        chunk_indexes=chunks_per_workers[worker_id] if j == 0 and is_empty else None,
-                    )
-                    for j, index in enumerate(shuffled_interval_indices)
-                ]
-            )
+            indices_per_workers[worker_id].extend([
+                ChunkedIndex(
+                    index,
+                    chunk_index,
+                    chunk_indexes=chunks_per_workers[worker_id] if j == 0 and is_empty else None,
+                )
+                for j, index in enumerate(shuffled_interval_indices)
+            ])
 
         indices_per_workers_splitted = [self._chunk_list(indices, self._batch_size) for indices in indices_per_workers]
 

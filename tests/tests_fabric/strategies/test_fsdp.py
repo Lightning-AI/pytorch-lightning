@@ -279,7 +279,9 @@ def test_fsdp_save_checkpoint_path_exists(shutil_mock, torch_save_mock, __, ___,
     strategy = FSDPStrategy(state_dict_type="sharded")
     save_mock = mock.patch(
         "torch.distributed.checkpoint.save"
-        if _TORCH_GREATER_EQUAL_2_2 else "torch.distributed.checkpoint.save_state_dict")
+        if _TORCH_GREATER_EQUAL_2_2
+        else "torch.distributed.checkpoint.save_state_dict"
+    )
 
     # state_dict_type='sharded', path exists, path is a folder: no error (overwrite)
     path = tmp_path / "not-empty-2"
