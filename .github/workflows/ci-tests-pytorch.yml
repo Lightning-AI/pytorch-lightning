@@ -103,7 +103,9 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: basic setup
-        run: pip install -q -r .actions/requirements.txt
+        run: |
+          pip install uv
+          uv pip install -q -r .actions/requirements.txt
 
       - name: Set min. dependencies
         if: ${{ matrix.requires == 'oldest' }}
@@ -112,7 +114,7 @@ jobs:
       - name: Adjust PyTorch versions in requirements files
         if: ${{ matrix.requires != 'oldest' }}
         run: |
-          pip install -q -r requirements/ci.txt
+          uv pip install -q -r requirements/ci.txt
           python -m wget https://raw.githubusercontent.com/Lightning-AI/utilities/main/scripts/adjust-torch-versions.py
           for fpath in `ls requirements/**/*.txt`; do \
             python ./adjust-torch-versions.py $fpath ${{ matrix.pytorch-version }}; \
@@ -140,17 +142,17 @@ jobs:
       - name: Install package & dependencies
         timeout-minutes: 20
         run: |
-          pip install ".[${EXTRA_PREFIX}extra,${EXTRA_PREFIX}test,${EXTRA_PREFIX}strategies]" -U --prefer-binary \
+          uv pip install ".[${EXTRA_PREFIX}extra,${EXTRA_PREFIX}test,${EXTRA_PREFIX}strategies]" -U --prefer-binary \
             -r requirements/_integrations/accelerators.txt \
             --find-links="${TORCH_URL}" --find-links="${PYPI_CACHE_DIR}"
-          pip list
+          uv pip list
       - name: Drop LAI from extensions
         if: ${{ matrix.pkg-name != 'lightning' }}
         # Lightning is dependency of Habana or other accelerators/integrations so in case we test PL we need to remove it
-        run: pip uninstall -y lightning
+        run: uv pip uninstall -y lightning
       - name: Drop PL for LAI
         if: ${{ matrix.pkg-name == 'lightning' }}
-        run: pip uninstall -y pytorch-lightning
+        run: uv pip uninstall -y pytorch-lightning
       - name: Dump handy wheels
         if: github.event_name == 'push' && github.ref == 'refs/heads/master'
         continue-on-error: true
