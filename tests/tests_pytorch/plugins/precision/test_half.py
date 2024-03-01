@@ -90,8 +90,7 @@ def test_configure_model(precision, expected_dtype):
             # this is under the `module_init_context`
             assert self.l.weight.dtype == expected_dtype
 
-        def test_step(self, *_):
-            ...
+        def test_step(self, *_): ...
 
     model = MyModel()
     trainer = Trainer(barebones=True, precision=precision)

@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Test logging in the training loop."""
+
 import inspect
 from unittest import mock
 from unittest.mock import ANY

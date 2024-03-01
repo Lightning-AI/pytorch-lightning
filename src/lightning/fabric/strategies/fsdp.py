@@ -583,6 +583,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
 
                 if optimizers:
                     from torch.distributed.checkpoint import FileSystemReader
+
                     # TODO: replace with newer APIs
                     # https://github.com/pytorch/pytorch/issues/119800#issuecomment-1942156271
                     reader = FileSystemReader(path=path)
@@ -799,8 +800,10 @@ def _init_sharding_strategy(sharding_strategy: "_SHARDING_STRATEGY", kwargs: Dic
 
     strategy = ShardingStrategy[sharding_strategy.upper()] if isinstance(sharding_strategy, str) else sharding_strategy
     if (
-        "HYBRID" in strategy.name and kwargs.get("auto_wrap_policy") is None
-        and kwargs.get("process_group") is None and kwargs.get("device_mesh") is None
+        "HYBRID" in strategy.name
+        and kwargs.get("auto_wrap_policy") is None
+        and kwargs.get("process_group") is None
+        and kwargs.get("device_mesh") is None
     ):
         raise RuntimeError(
             "The hybrid sharding strategy requires you to pass at least one of the parameters: `auto_wrap_policy`,"
@@ -921,11 +924,13 @@ def _move_torchmetrics_to_device(module: torch.nn.Module, device: torch.device) 
 def _distributed_checkpoint_save(converted_state: Dict[str, Any], path: Path) -> None:
     if _TORCH_GREATER_EQUAL_2_3:
         from torch.distributed.checkpoint import save
+
         # let torch automatically infer the writer to use. This might also support fsspec paths in the future
         # https://github.com/pytorch/pytorch/issues/118036
         save(converted_state, checkpoint_id=path)  # type: ignore[call-arg]
     else:  # deprecated
         from torch.distributed.checkpoint import FileSystemWriter
+
         if _TORCH_GREATER_EQUAL_2_2:
             from torch.distributed.checkpoint import save
         else:
@@ -934,14 +939,17 @@ def _distributed_checkpoint_save(converted_state: Dict[str, Any], path: Path) ->
         writer = FileSystemWriter(path=path, single_file_per_rank=True)
         save(converted_state, writer)
 
+
 def _distributed_checkpoint_load(module_state: Dict[str, Any], path: Path) -> None:
     if _TORCH_GREATER_EQUAL_2_3:
         from torch.distributed.checkpoint import load
+
         # let torch automatically infer the reader to use. This might also support fsspec paths in the future
         # https://github.com/pytorch/pytorch/issues/118036
         load(module_state, checkpoint_id=path)  # type: ignore[call-arg]
     else:  # deprecated
         from torch.distributed.checkpoint import FileSystemReader
+
         if _TORCH_GREATER_EQUAL_2_2:
             from torch.distributed.checkpoint import load
         else:

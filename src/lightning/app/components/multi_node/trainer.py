@@ -28,8 +28,7 @@ from lightning.app.utilities.tracer import Tracer
 @runtime_checkable
 class _LightningTrainerWorkProtocol(Protocol):
     @staticmethod
-    def run() -> None:
-        ...
+    def run() -> None: ...
 
 
 @dataclass
