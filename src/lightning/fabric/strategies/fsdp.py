@@ -927,7 +927,7 @@ def _distributed_checkpoint_save(converted_state: Dict[str, Any], path: Path) ->
 
         # let torch automatically infer the writer to use. This might also support fsspec paths in the future
         # https://github.com/pytorch/pytorch/issues/118036
-        save(converted_state, checkpoint_id=path)  # type: ignore[call-arg]
+        save(converted_state, checkpoint_id=path)
     else:  # deprecated
         from torch.distributed.checkpoint import FileSystemWriter
 
@@ -946,7 +946,7 @@ def _distributed_checkpoint_load(module_state: Dict[str, Any], path: Path) -> No
 
         # let torch automatically infer the reader to use. This might also support fsspec paths in the future
         # https://github.com/pytorch/pytorch/issues/118036
-        load(module_state, checkpoint_id=path)  # type: ignore[call-arg]
+        load(module_state, checkpoint_id=path)
     else:  # deprecated
         from torch.distributed.checkpoint import FileSystemReader
 
