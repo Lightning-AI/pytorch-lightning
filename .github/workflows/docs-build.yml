@@ -76,9 +76,9 @@ jobs:
       - name: Pull sphinx template
         run: |
           pip install uv
-          uv pip install -q -r requirements/ci.txt
+          uv pip install -q -r requirements/ci.txt --system
           aws s3 sync --no-sign-request s3://sphinx-packages/ ${PYPI_LOCAL_DIR}
-          uv pip install lai-sphinx-theme -U -f ${PYPI_LOCAL_DIR}
+          uv pip install lai-sphinx-theme -U -f ${PYPI_LOCAL_DIR} --system
 
       - name: pip wheels cache
         uses: actions/cache/restore@v4
@@ -97,13 +97,13 @@ jobs:
         run: |
           mkdir -p ${PYPI_CACHE_DIR}  # in case cache was not hit
           ls -lh ${PYPI_CACHE_DIR}
-          uv pip install .[all] -U -r requirements/${{ matrix.pkg-name }}/docs.txt \
+          uv pip install .[all] -U -r requirements/${{ matrix.pkg-name }}/docs.txt --system \
             -f ${PYPI_LOCAL_DIR} -f ${PYPI_CACHE_DIR} -f ${TORCH_URL}
-          uv pip list
+          uv pip list --system
       - name: Install req. for Notebooks/tutorials
         if: matrix.pkg-name == 'pytorch'
         timeout-minutes: 10
-        run: uv pip install -q -r _notebooks/.actions/requires.txt
+        run: uv pip install -q -r _notebooks/.actions/requires.txt --system
 
       - name: Full build for deployment
         if: github.event_name != 'pull_request'
