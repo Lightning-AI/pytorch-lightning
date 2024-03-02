@@ -1,7 +1,7 @@
 -r ../docs.txt
 
 nbformat  # used for generate empty notebook
-ipython[notebook] <8.7.0
+ipython[notebook]
 setuptools<70.0
 
 -r ../../_notebooks/.actions/requires.txt
