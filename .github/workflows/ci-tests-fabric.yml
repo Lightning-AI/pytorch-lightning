@@ -136,7 +136,7 @@ jobs:
       - name: Install package & dependencies
         timeout-minutes: 20
         run: |
-          uv pip install -e ".[${EXTRA_PREFIX}test,${EXTRA_PREFIX}strategies]" -U --prefer-binary --system \
+          uv pip install -e ".[${EXTRA_PREFIX}test,${EXTRA_PREFIX}strategies]" -U --system \
             --find-links="${TORCH_URL}" --find-links="${PYPI_CACHE_DIR}"
           uv pip list --system
       - name: Dump handy wheels
