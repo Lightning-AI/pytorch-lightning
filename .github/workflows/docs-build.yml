@@ -97,7 +97,7 @@ jobs:
         run: |
           mkdir -p ${PYPI_CACHE_DIR}  # in case cache was not hit
           ls -lh ${PYPI_CACHE_DIR}
-          uv pip install .[all] -U -r requirements/${{ matrix.pkg-name }}/docs.txt --system \
+          uv pip install "lightning[dev] @ ." -U -r requirements/${{ matrix.pkg-name }}/docs.txt --system \
             -f ${PYPI_LOCAL_DIR} -f ${PYPI_CACHE_DIR} -f ${TORCH_URL}
           uv pip list --system
       - name: Install req. for Notebooks/tutorials
