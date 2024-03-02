@@ -149,10 +149,10 @@ jobs:
       - name: Drop LAI from extensions
         if: ${{ matrix.pkg-name != 'lightning' }}
         # Lightning is dependency of Habana or other accelerators/integrations so in case we test PL we need to remove it
-        run: uv pip uninstall -y lightning --system
+        run: uv pip uninstall lightning --system
       - name: Drop PL for LAI
         if: ${{ matrix.pkg-name == 'lightning' }}
-        run: uv pip uninstall -y pytorch-lightning --system
+        run: uv pip uninstall pytorch-lightning --system
       - name: Dump handy wheels
         if: github.event_name == 'push' && github.ref == 'refs/heads/master'
         continue-on-error: true
