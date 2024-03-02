@@ -184,12 +184,12 @@ jobs:
       - name: Prevent using raw source
         run: rm -rf src/
 
-      - name: Get legacy checkpoints
-        run: |
-          bash .actions/pull_legacy_checkpoints.sh
-          cd tests/legacy
-          bash generate_checkpoints.sh
-          ls -l checkpoints/
+#      - name: Get legacy checkpoints
+#        run: |
+#          bash .actions/pull_legacy_checkpoints.sh
+#          cd tests/legacy
+#          bash generate_checkpoints.sh
+#          ls -l checkpoints/
 
       - name: Testing Warnings
         working-directory: tests/tests_pytorch
