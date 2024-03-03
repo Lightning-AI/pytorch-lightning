@@ -20,7 +20,7 @@ from unittest import mock
 from unittest.mock import Mock
 
 import pytest
-from lightning.fabric.cli import _get_supported_strategies, _run, _consolidate
+from lightning.fabric.cli import _consolidate, _get_supported_strategies, _run
 
 from tests_fabric.helpers.runif import RunIf
 
@@ -199,7 +199,7 @@ def test_consolidate(save_mock, _, __, tmp_path):
     with pytest.raises(SystemExit) as e, contextlib.redirect_stderr(ioerr):
         _consolidate.main(["not exist"])
     assert e.value.code == 2
-    assert f"Path 'not exist' does not exist" in ioerr.getvalue()
+    assert "Path 'not exist' does not exist" in ioerr.getvalue()
 
     checkpoint_folder = tmp_path / "checkpoint"
     checkpoint_folder.mkdir()

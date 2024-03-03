@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import argparse
 import logging
 import os
 import re
@@ -21,7 +20,6 @@ from argparse import Namespace
 from typing import Any, List, Optional
 
 import torch
-
 from lightning_utilities.core.imports import RequirementCache
 from typing_extensions import get_args
 
@@ -159,7 +157,6 @@ if _CLICK_AVAILABLE:
         script_args = list(kwargs.pop("script_args", []))
         main(args=Namespace(**kwargs), script_args=script_args)
 
-
     @_main.command(
         "consolidate",
         context_settings={
@@ -184,6 +181,7 @@ if _CLICK_AVAILABLE:
         """Convert a distributed/sharded checkpoint into a single file that can be loaded with `torch.load()`.
 
         Only supports FSDP sharded checkpoints at the moment.
+
         """
         args = Namespace(checkpoint_folder=checkpoint_folder, output_file=output_file)
         config = _process_cli_args(args)
