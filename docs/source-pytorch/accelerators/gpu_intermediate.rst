@@ -8,18 +8,19 @@ GPU training (Intermediate)
 
 ----
 
-Distributed Training strategies
+
+Distributed training strategies
 -------------------------------
 Lightning supports multiple ways of doing distributed training.
+
+- Regular (``strategy='ddp'``)
+- Spawn (``strategy='ddp_spawn'``)
+- Notebook/Fork (``strategy='ddp_notebook'``)
 
 .. video:: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/yt/Trainer+flags+4-+multi+node+training_3.mp4
     :poster: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/yt_thumbs/thumb_multi_gpus.png
     :width: 400
 
-- DistributedDataParallel (multiple-gpus across many machines)
-    - Regular (``strategy='ddp'``)
-    - Spawn (``strategy='ddp_spawn'``)
-    - Notebook/Fork (``strategy='ddp_notebook'``)
 
 .. note::
     If you request multiple GPUs or nodes without setting a strategy, DDP will be automatically used.
@@ -28,21 +29,21 @@ For a deeper understanding of what Lightning is doing, feel free to read this
 `guide <https://medium.com/@_willfalcon/9-tips-for-training-lightning-fast-neural-networks-in-pytorch-8e63a502f565>`_.
 
 
+----
+
+
 Distributed Data Parallel
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 :class:`~torch.nn.parallel.DistributedDataParallel` (DDP) works as follows:
 
 1. Each GPU across each node gets its own process.
-
 2. Each GPU gets visibility into a subset of the overall dataset. It will only ever see that subset.
-
 3. Each process inits the model.
-
 4. Each process performs a full forward and backward pass in parallel.
-
 5. The gradients are synced and averaged across all processes.
-
 6. Each process updates its optimizer.
+
+|
 
 .. code-block:: python
 
@@ -59,34 +60,31 @@ variables:
 
     # example for 3 GPUs DDP
     MASTER_ADDR=localhost MASTER_PORT=random() WORLD_SIZE=3 NODE_RANK=0 LOCAL_RANK=0 python my_file.py --accelerator 'gpu' --devices 3 --etc
-    MASTER_ADDR=localhost MASTER_PORT=random() WORLD_SIZE=3 NODE_RANK=1 LOCAL_RANK=0 python my_file.py --accelerator 'gpu' --devices 3 --etc
-    MASTER_ADDR=localhost MASTER_PORT=random() WORLD_SIZE=3 NODE_RANK=2 LOCAL_RANK=0 python my_file.py --accelerator 'gpu' --devices 3 --etc
+    MASTER_ADDR=localhost MASTER_PORT=random() WORLD_SIZE=3 NODE_RANK=0 LOCAL_RANK=1 python my_file.py --accelerator 'gpu' --devices 3 --etc
+    MASTER_ADDR=localhost MASTER_PORT=random() WORLD_SIZE=3 NODE_RANK=0 LOCAL_RANK=2 python my_file.py --accelerator 'gpu' --devices 3 --etc
 
-We use DDP this way because `ddp_spawn` has a few limitations (due to Python and PyTorch):
+Using DDP this way has a few disadvantages over ``torch.multiprocessing.spawn()``:
 
-1. Since `.spawn()` trains the model in subprocesses, the model on the main process does not get updated.
-2. Dataloader(num_workers=N), where N is large, bottlenecks training with DDP... ie: it will be VERY slow or won't work at all. This is a PyTorch limitation.
-3. Forces everything to be picklable.
+1. All processes (including the main process) participate in training and have the updated state of the model and Trainer state.
+2. No multiprocessing pickle errors
+3. Easily scales to multi-node training
 
-There are cases in which it is NOT possible to use DDP. Examples are:
+|
 
-- Jupyter Notebook, Google COLAB, Kaggle, etc.
-- You have a nested script without a root package
+It is NOT possible to use DDP in interactive environments like Jupyter Notebook, Google COLAB, Kaggle, etc.
+In these situations you should use `ddp_notebook`.
 
-In these situations you should use `ddp_notebook` or `dp` instead.
+
+----
+
 
 Distributed Data Parallel Spawn
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-`ddp_spawn` is exactly like `ddp` except that it uses .spawn to start the training processes.
 
-.. warning:: It is STRONGLY recommended to use `DDP` for speed and performance.
+.. warning:: It is STRONGLY recommended to use DDP for speed and performance.
 
-.. code-block:: python
-
-    mp.spawn(self.ddp_train, nprocs=self.num_processes, args=(model,))
-
-If your script does not support being called from the command line (ie: it is nested without a root
-project module) you can use the following method:
+The `ddp_spawn` strategy is similar to `ddp` except that it uses ``torch.multiprocessing.spawn()`` to start the training processes.
+Use this for debugging only, or if you are converting a code base to Lightning that relies on spawn.
 
 .. code-block:: python
 
@@ -95,54 +93,12 @@ project module) you can use the following method:
 
 We STRONGLY discourage this use because it has limitations (due to Python and PyTorch):
 
-1. The model you pass in will not update. Please save a checkpoint and restore from there.
-2. Set Dataloader(num_workers=0) or it will bottleneck training.
+1. After ``.fit()``, only the model's weights get restored to the main process, but no other state of the Trainer.
+2. Does not support multi-node training.
+3. It is generally slower than DDP.
 
-`ddp` is MUCH faster than `ddp_spawn`. We recommend you
 
-1. Install a top-level module for your project using setup.py
-
-.. code-block:: python
-
-    # setup.py
-    #!/usr/bin/env python
-
-    from setuptools import setup, find_packages
-
-    setup(
-        name="src",
-        version="0.0.1",
-        description="Describe Your Cool Project",
-        author="",
-        author_email="",
-        url="https://github.com/YourSeed",  # REPLACE WITH YOUR OWN GITHUB PROJECT LINK
-        install_requires=["lightning"],
-        packages=find_packages(),
-    )
-
-2. Setup your project like so:
-
-.. code-block:: bash
-
-    /project
-        /src
-            some_file.py
-            /or_a_folder
-        setup.py
-
-3. Install as a root-level package
-
-.. code-block:: bash
-
-    cd /project
-    pip install -e .
-
-You can then call your scripts anywhere
-
-.. code-block:: bash
-
-    cd /project/src
-    python some_file.py --accelerator 'gpu' --devices 8 --strategy 'ddp'
+----
 
 
 Distributed Data Parallel in Notebooks
@@ -165,8 +121,11 @@ The Trainer enables it by default when such environments are detected.
 Among the native distributed strategies, regular DDP (``strategy="ddp"``) is still recommended as the go-to strategy over Spawn and Fork/Notebook for its speed and stability but it can only be used with scripts.
 
 
+----
+
+
 Comparison of DDP variants and tradeoffs
-****************************************
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. list-table:: DDP variants and their tradeoffs
    :widths: 40 20 20 20
@@ -202,68 +161,23 @@ Comparison of DDP variants and tradeoffs
      - Fast
 
 
-Distributed and 16-bit precision
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-Below are the possible configurations we support.
-
-+-------+---------+-----+--------+-----------------------------------------------------------------------+
-| 1 GPU | 1+ GPUs | DDP | 16-bit | command                                                               |
-+=======+=========+=====+========+=======================================================================+
-| Y     |         |     |        | `Trainer(accelerator="gpu", devices=1)`                               |
-+-------+---------+-----+--------+-----------------------------------------------------------------------+
-| Y     |         |     | Y      | `Trainer(accelerator="gpu", devices=1, precision=16)`                 |
-+-------+---------+-----+--------+-----------------------------------------------------------------------+
-|       | Y       | Y   |        | `Trainer(accelerator="gpu", devices=k, strategy='ddp')`               |
-+-------+---------+-----+--------+-----------------------------------------------------------------------+
-|       | Y       | Y   | Y      | `Trainer(accelerator="gpu", devices=k, strategy='ddp', precision=16)` |
-+-------+---------+-----+--------+-----------------------------------------------------------------------+
-
-DDP can also be used with 1 GPU, but there's no reason to do so other than debugging distributed-related issues.
+----
 
 
-Implement Your Own Distributed (DDP) training
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-If you need your own way to init PyTorch DDP you can override :meth:`lightning.pytorch.strategies.ddp.DDPStrategy.setup_distributed`.
-
-If you also need to use your own DDP implementation, override :meth:`lightning.pytorch.strategies.ddp.DDPStrategy.configure_ddp`.
-
-----------
-
-Torch Distributed Elastic
--------------------------
-Lightning supports the use of Torch Distributed Elastic to enable fault-tolerant and elastic distributed job scheduling. To use it, specify the 'ddp' backend and the number of GPUs you want to use in the trainer.
+TorchRun (TorchElastic)
+-----------------------
+Lightning supports the use of TorchRun (previously known as TorchElastic) to enable fault-tolerant and elastic distributed job scheduling.
+To use it, specify the DDP strategy and the number of GPUs you want to use in the Trainer.
 
 .. code-block:: python
 
     Trainer(accelerator="gpu", devices=8, strategy="ddp")
 
-To launch a fault-tolerant job, run the following on all nodes.
+Then simply launch your script with the :doc:`torchrun <../clouds/cluster_intermediate_2>` command.
 
-.. code-block:: bash
 
-    python -m torch.distributed.run
-            --nnodes=NUM_NODES
-            --nproc_per_node=TRAINERS_PER_NODE
-            --rdzv_id=JOB_ID
-            --rdzv_backend=c10d
-            --rdzv_endpoint=HOST_NODE_ADDR
-            YOUR_LIGHTNING_TRAINING_SCRIPT.py (--arg1 ... train script args...)
+----
 
-To launch an elastic job, run the following on at least ``MIN_SIZE`` nodes and at most ``MAX_SIZE`` nodes.
-
-.. code-block:: bash
-
-    python -m torch.distributed.run
-            --nnodes=MIN_SIZE:MAX_SIZE
-            --nproc_per_node=TRAINERS_PER_NODE
-            --rdzv_id=JOB_ID
-            --rdzv_backend=c10d
-            --rdzv_endpoint=HOST_NODE_ADDR
-            YOUR_LIGHTNING_TRAINING_SCRIPT.py (--arg1 ... train script args...)
-
-See the official `Torch Distributed Elastic documentation <https://pytorch.org/docs/stable/distributed.elastic.html>`_ for details
-on installation and more use cases.
 
 Optimize multi-machine communication
 ------------------------------------

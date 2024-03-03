@@ -146,7 +146,7 @@ if _CLICK_AVAILABLE:
         ),
     )
     @click.argument("script_args", nargs=-1, type=click.UNPROCESSED)
-    def _run_model(**kwargs: Any) -> None:
+    def _run(**kwargs: Any) -> None:
         """Run a Lightning Fabric script.
 
         SCRIPT is the path to the Python script with the code to run. The script must contain a Fabric object.
@@ -238,4 +238,4 @@ if __name__ == "__main__":
         )
         raise SystemExit(1)
 
-    _run_model()
+    _run()
