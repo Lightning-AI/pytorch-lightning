@@ -249,7 +249,7 @@ def _load_distributed_checkpoint(checkpoint_folder: Path) -> Dict[str, Any]:
     from torch.distributed.checkpoint.format_utils import _EmptyStateDictLoadPlanner
     from torch.distributed.checkpoint.state_dict_loader import _load_state_dict
 
-    checkpoint = {}
+    checkpoint: Dict[str, Any] = {}
     _load_state_dict(
         checkpoint,
         storage_reader=FileSystemReader(checkpoint_folder),
