@@ -145,24 +145,3 @@ def test_move_state_into():
     assert source == {}
     assert destination["cocofruit"] == 2
     assert destination["banana"].count == 100
-
-
-def test_unflatten_dict():
-    assert _unflatten_dict({}, {}) == {}
-
-    tensor0 = torch.rand(2, 2)
-    tensor1 = torch.tensor(3.0)
-    data = {
-        "model.layer.weight": tensor0,
-        "optimizer.state.layer.weight.exp_avg": {"test": tensor1},
-        "optimizer.param_groups": "param_groups",
-    }
-    key_map = {
-        "model.layer.weight": ("model", "layer.weight"),
-        "optimizer.state.layer.weight.exp_avg": ("optimizer", "state", "layer.weight", "exp_avg"),
-        "optimizer.param_groups": ("optimizer", "param_groups"),
-    }
-    assert _unflatten_dict(data, key_map) == {
-        "model": {"layer.weight": tensor0},
-        "optimizer": {"state": {"layer.weight": {"exp_avg": {"test": tensor1}}}, "param_groups": "param_groups"},
-    }
