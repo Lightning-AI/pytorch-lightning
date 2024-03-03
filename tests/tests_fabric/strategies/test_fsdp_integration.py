@@ -638,7 +638,8 @@ def test_save_sharded_and_consolidate_and_load(tmp_path):
     state = {"model": model, "optimizer": optimizer, "steps": 1}
 
     # run one iteration to init the state of the optimizer
-    model(torch.rand(1, 32, device=fabric.device)).sum().backward()
+    loss = model(torch.rand(1, 32, device=fabric.device)).sum()
+    fabric.backward(loss)
     optimizer.step()
 
     checkpoint_path_sharded = fabric.broadcast(str(tmp_path / "checkpoint_sharded"))
