@@ -19,7 +19,6 @@ from lightning.fabric.utilities.load import (
     _materialize_tensors,
     _move_state_into,
     _NotYetLoadedTensor,
-    _unflatten_dict,
 )
 
 from tests_fabric.helpers.runif import RunIf
