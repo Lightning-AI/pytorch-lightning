@@ -1,0 +1,2 @@
+pytest ==7.4.0
+pytest-doctestplus ==1.0.0

@@ -28,7 +28,6 @@ _TORCHMETRICS_GREATER_EQUAL_1_0_0 = RequirementCache("torchmetrics>=1.0.0")
 
 _OMEGACONF_AVAILABLE = package_available("omegaconf")
 _TORCHVISION_AVAILABLE = RequirementCache("torchvision")
-_LIGHTNING_COLOSSALAI_AVAILABLE = RequirementCache("lightning-colossalai")
 
 
 @functools.lru_cache(maxsize=128)
