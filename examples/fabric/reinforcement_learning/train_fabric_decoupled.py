@@ -14,7 +14,7 @@ Requirements:
 
 
 Run it with:
-    lightning run model --devices=2 train_fabric_decoupled.py
+    fabric run --devices=2 train_fabric_decoupled.py
 """
 
 import argparse

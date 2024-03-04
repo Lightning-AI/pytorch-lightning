@@ -18,7 +18,6 @@ from pathlib import Path
 from typing import Tuple, Union
 
 import click
-from lightning_utilities.core.imports import RequirementCache
 from requests.exceptions import ConnectionError
 
 import lightning.app.core.constants as constants
@@ -301,13 +300,6 @@ def run_app(
         run_app_comment_commands,
         enable_basic_auth,
     )
-
-
-if RequirementCache("lightning-fabric>=1.9.0") or RequirementCache("lightning>=1.9.0"):
-    # note it is automatically replaced to `from lightning.fabric.cli` when building monolithic/mirror package
-    from lightning.fabric.cli import _run_model
-
-    run.add_command(_run_model)
 
 
 @_main.command("open", hidden=True)

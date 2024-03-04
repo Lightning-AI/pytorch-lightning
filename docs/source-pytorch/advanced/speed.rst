@@ -149,7 +149,32 @@ Example::
 Read more in our :ref:`training-speedup` and :ref:`plugins` guides.
 
 
------------
+----
+
+
+*******************
+Compiling the model
+*******************
+
+Compiling your LightningModule can result in significant speedups, especially on the latest generations of GPUs.
+Simply call ``torch.compile`` on the model before passing it to the Trainer:
+
+.. code-block:: python
+
+    model = MyLightningModule()
+
+    # Compile the model
+    model = torch.compile(model)
+
+    trainer = Trainer()
+    trainer.fit(model)
+
+
+Follow :doc:`this detailed guide <compile>` to get the most performance out of your compiled model.
+
+
+----
+
 
 **************
 Early Stopping
@@ -160,7 +185,9 @@ Here :class:`~lightning.pytorch.callbacks.early_stopping.EarlyStopping` callback
 
 You can read more about it :ref:`here <early_stopping>`.
 
-----------
+
+----
+
 
 .. _speed-amp:
 
@@ -199,7 +226,7 @@ Lightning offers mixed precision training for GPUs and CPUs, as well as bfloat16
 Read more about :ref:`mixed-precision training <speed-amp>`.
 
 
-----------------
+----
 
 
 ***********************
@@ -240,7 +267,8 @@ You can also interrupt training based on training time:
 Learn more in our :ref:`trainer_flags` guide.
 
 
-----------------
+----
+
 
 ****************************
 Control Validation Frequency
@@ -284,7 +312,9 @@ Must use an ``int`` if using an :class:`~torch.utils.data.IterableDataset`.
 
 Learn more in our :ref:`trainer_flags` guide.
 
-----------------
+
+----
+
 
 *********************
 Preload Data Into RAM
@@ -314,7 +344,9 @@ Increase shared memory if necessary. Refer to the documentation of your OS on ho
 
         datamodule = MyDataModule(data_root="/dev/shm/my_data")
 
----------
+
+----
+
 
 **************
 Model Toggling
@@ -398,6 +430,7 @@ Here is an example of an advanced use case:
 
 -----
 
+
 *****************
 Set Grads to None
 *****************
@@ -416,6 +449,7 @@ This is enabled by default on ``torch>=2.0.0``.
 
 
 -----
+
 
 ***************
 Things to Avoid
