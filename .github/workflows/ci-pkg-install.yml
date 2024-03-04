@@ -115,7 +115,7 @@ jobs:
           done
       - name: Install pytest doctest extension
         run: |
-          pip install -q "pytest-doctestplus>=0.9.0"
+          pip install -q -r requirements/doctests.txt
           pip list
 
       - name: DocTest package
