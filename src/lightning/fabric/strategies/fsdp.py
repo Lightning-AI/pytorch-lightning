@@ -154,7 +154,6 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         activation_checkpointing_policy: Optional["_POLICY"] = None,
         sharding_strategy: "_SHARDING_STRATEGY" = "FULL_SHARD",
         state_dict_type: Literal["full", "sharded"] = "sharded",
-        fsdp_size: Optional[int] = None,
         **kwargs: Any,
     ) -> None:
         super().__init__(
@@ -177,8 +176,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             activation_checkpointing, activation_checkpointing_policy
         )
         self._state_dict_type = state_dict_type
-        self.fsdp_size = fsdp_size
-        self.sharding_strategy = sharding_strategy
+        self.sharding_strategy = _init_sharding_strategy(sharding_strategy, self._fsdp_kwargs)
         self.cpu_offload = _init_cpu_offload(cpu_offload)
         self.mixed_precision = mixed_precision
 
@@ -255,37 +253,10 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         super().setup_environment()
         self._setup_distributed()
 
-        # prepare process groups for hybrid sharding here, and put them in self._fsdp_kwargs
-        fsdp_size = self.fsdp_size
-        global_rank = self.cluster_environment.global_rank()
-        world_size = self.cluster_environment.world_size()
-        assert fsdp_size is None or (0 < fsdp_size <= world_size), f"fsdp_size={fsdp_size}, world_size={world_size}"
-        if fsdp_size is not None and fsdp_size < world_size:
-            assert world_size % fsdp_size == 0, f"fsdp_size={fsdp_size}, world_size={world_size}"
-            from torch.distributed.fsdp import ShardingStrategy
-
-            strategy = (
-                ShardingStrategy[self.sharding_strategy.upper()]
-                if isinstance(self.sharding_strategy, str)
-                else self.sharding_strategy
-            )
-            if "HYBRID" not in strategy.name:
-                raise ValueError("The hybrid sharding strategy is required when 0 < fsdp_size < world_size.")
-            fsdp_groups = [[j for j in range(i, i + fsdp_size)] for i in range(0, world_size, fsdp_size)]
-            for fsdp_group in fsdp_groups:
-                fsdp_group_handle = torch.distributed.new_group(fsdp_group)
-                if global_rank in fsdp_group:
-                    my_fsdp_group = fsdp_group_handle
-
-            ddp_groups = [[j for j in range(i, world_size, fsdp_size)] for i in range(fsdp_size)]
-            for ddp_group in ddp_groups:
-                ddp_group_handle = torch.distributed.new_group(ddp_group)
-                if global_rank in ddp_group:
-                    my_ddp_group = ddp_group_handle
-
-            self._fsdp_kwargs["process_group"] = (my_fsdp_group, my_ddp_group)
-
-        self.sharding_strategy = _init_sharding_strategy(self.sharding_strategy, self._fsdp_kwargs)
+        # if 'device_mesh' in the `_fsdp_kwargs` is provided as a tuple, update it into the `DeviceMesh` object here
+        if isinstance(self._fsdp_kwargs.get("device_mesh"), Tuple):
+            from torch.distributed.device_mesh import init_device_mesh
+            self._fsdp_kwargs["device_mesh"] = init_device_mesh("cuda", self._fsdp_kwargs["device_mesh"])
 
     @override
     def setup_module_and_optimizers(
