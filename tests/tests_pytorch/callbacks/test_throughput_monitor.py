@@ -160,7 +160,8 @@ def test_throughput_monitor_fit_no_length_fn(tmp_path):
     ]
 
 
-def test_throughput_monitor_fit_gradient_accumulation(tmp_path):
+@pytest.mark.parametrize("log_every_n_steps", [1, 3])
+def test_throughput_monitor_fit_gradient_accumulation(log_every_n_steps, tmp_path):
     logger_mock = Mock()
     logger_mock.save_dir = tmp_path
     monitor = ThroughputMonitor(length_fn=lambda x: 3 * 2, batch_size_fn=lambda x: 3, window_size=4, separator="|")
@@ -174,26 +175,8 @@ def test_throughput_monitor_fit_gradient_accumulation(tmp_path):
         limit_train_batches=5,
         limit_val_batches=0,
         max_epochs=2,
-        log_every_n_steps=3,
+        log_every_n_steps=log_every_n_steps,
         accumulate_grad_batches=2,
-        num_sanity_val_steps=2,
-        enable_checkpointing=False,
-        enable_model_summary=False,
-        enable_progress_bar=False,
-    )
-    with pytest.raises(ValueError, match="not divisible"):
-        trainer.fit(model)
-
-    trainer = Trainer(
-        devices=1,
-        logger=logger_mock,
-        callbacks=monitor,
-        limit_train_batches=5,
-        limit_val_batches=0,
-        max_epochs=2,
-        log_every_n_steps=1,
-        accumulate_grad_batches=2,
-        num_sanity_val_steps=2,
         enable_checkpointing=False,
         enable_model_summary=False,
         enable_progress_bar=False,
@@ -211,9 +194,19 @@ def test_throughput_monitor_fit_gradient_accumulation(tmp_path):
         "train|device|flops_per_sec": 10.0,
         "train|device|mfu": 0.1,
     }
-    assert logger_mock.log_metrics.mock_calls == [
+
+    all_log_calls = [
         call(
-            metrics={"train|time": 2.5, "train|batches": 2, "train|samples": 6, "train|lengths": 12, "epoch": 0}, step=0
+            metrics={
+                # The very first batch doesn't have the *_per_sec metrics yet
+                **(expected if log_every_n_steps > 1 else {}),
+                "train|time": 2.5,
+                "train|batches": 2,
+                "train|samples": 6,
+                "train|lengths": 12,
+                "epoch": 0,
+            },
+            step=0,
         ),
         call(
             metrics={
@@ -271,6 +264,8 @@ def test_throughput_monitor_fit_gradient_accumulation(tmp_path):
             step=5,
         ),
     ]
+    expected_log_calls = all_log_calls[(log_every_n_steps - 1) :: log_every_n_steps]
+    assert logger_mock.log_metrics.mock_calls == expected_log_calls
 
 
 @pytest.mark.parametrize("fn", ["validate", "test", "predict"])

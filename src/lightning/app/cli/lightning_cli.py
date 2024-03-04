@@ -18,7 +18,6 @@ from pathlib import Path
 from typing import Tuple, Union
 
 import click
-from lightning_utilities.core.imports import RequirementCache
 from requests.exceptions import ConnectionError
 
 import lightning.app.core.constants as constants
@@ -179,7 +178,7 @@ def _run_app(
 ) -> None:
     if not os.path.exists(file):
         original_file = file
-        file = cmd_install.gallery_apps_and_components(file, True, "latest", overwrite=True)  # type: ignore[assignment]  # noqa E501
+        file = cmd_install.gallery_apps_and_components(file, True, "latest", overwrite=True)  # type: ignore[assignment]  # E501
         if file is None:
             click.echo(f"The provided entrypoint `{original_file}` doesn't exist.")
             sys.exit(1)
@@ -301,13 +300,6 @@ def run_app(
         run_app_comment_commands,
         enable_basic_auth,
     )
-
-
-if RequirementCache("lightning-fabric>=1.9.0") or RequirementCache("lightning>=1.9.0"):
-    # note it is automatically replaced to `from lightning.fabric.cli` when building monolithic/mirror package
-    from lightning.fabric.cli import _run_model
-
-    run.add_command(_run_model)
 
 
 @_main.command("open", hidden=True)

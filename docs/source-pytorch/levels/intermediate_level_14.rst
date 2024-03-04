@@ -1,10 +1,10 @@
 :orphan:
 
-#################################
-Level 13: Run on on-prem clusters
-#################################
+#####################################
+Level 13: Run on a multi-node cluster
+#####################################
 
-In this level you'll learn to run on on-prem clusters.
+In this level you'll learn to run on cloud or on-prem clusters.
 
 ----
 
@@ -13,14 +13,21 @@ In this level you'll learn to run on on-prem clusters.
     <div class="display-card-container">
         <div class="row">
 
-.. Add callout items below this line
+
+.. displayitem::
+    :header: Run single or multi-node on Lightning Studios
+    :description: The easiest way to scale models in the cloud. No infrastructure setup required.
+    :col_css: col-md-4
+    :button_link: ../clouds/lightning_ai.html
+    :height: 160
+    :tag: basic
 
 .. displayitem::
    :header: Run on an on-prem cluster
    :description: Learn to train models on a general compute cluster.
    :col_css: col-md-4
    :button_link: ../clouds/cluster_intermediate_1.html
-   :height: 150
+   :height: 160
    :tag: intermediate
 
 .. displayitem::
@@ -28,7 +35,7 @@ In this level you'll learn to run on on-prem clusters.
    :description: Run models on a SLURM-managed cluster
    :col_css: col-md-4
    :button_link: ../clouds/cluster_advanced.html
-   :height: 150
+   :height: 160
    :tag: intermediate
 
 .. displayitem::
@@ -36,7 +43,7 @@ In this level you'll learn to run on on-prem clusters.
    :description: Run models on a cluster with torch distributed.
    :col_css: col-md-4
    :button_link: ../clouds/cluster_intermediate_2.html
-   :height: 150
+   :height: 160
    :tag: intermediate
 
 .. raw:: html
