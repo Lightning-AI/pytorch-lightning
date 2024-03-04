@@ -2,9 +2,8 @@
 Weights and Biases
 ##################
 
-`Weights & Biases (W&B) <https://wandb.ai>`_ is the AI developer platform, with tools for training models, fine-tuning models, and leveraging foundation models.
+`Weights & Biases (W&B) <https://wandb.ai>`_  allows machine learning practitioners to track experiments, visualize data, and share insights with a few lines of code.
 
-W&B allows machine learning practitioners to track experiments, visualize data, and share insights with a few lines of.
 It integrates seamlessly with your Lightning ML workflows to log metrics, output visualizations, and manage artifacts.
 This integration provides a simple way to log metrics and artifacts from your Fabric training loop to W&B via the ``WandbLogger``.
 The ``WandbLogger`` also supports all features of the Weights and Biases library, such as logging rich media (image, audio, video), artifacts, hyperparameters, tables, custom visualizations, and more.
