@@ -3,7 +3,7 @@ Speed up models by compiling them
 #################################
 
 Compiling your LightningModule can result in significant speedups, especially on the latest generations of GPUs.
-This guide shows you how to apply ``torch.compile`` correctly in your code.
+This guide shows you how to apply `torch.compile <https://pytorch.org/docs/2.2/generated/torch.compile.html>`_ correctly in your code.
 
 .. note::
 
@@ -192,6 +192,8 @@ However, when this is not possible, you can request PyTorch to compile the code 
 A model compiled with ``dynamic=True`` will typically be slower than a model compiled with static shapes, but it will avoid the extreme cost of recompilation every iteration.
 On PyTorch 2.2 and later, ``torch.compile`` will detect dynamism automatically and you should no longer need to set this.
 
+If you still see recompilation issues after dealing with the aforementioned cases, there is a `Compile Profiler in PyTorch <https://pytorch.org/docs/stable/torch.compiler_troubleshooting.html#excessive-recompilation>`_ for further investigation.
+
 
 ----
 
@@ -251,9 +253,9 @@ Always compare the speed and memory usage of the compiled model against the orig
 Limitations
 ***********
 
-There are a few limitations you should be aware of when using ``torch.compile`` in conjunction with the Trainer:
+There are a few limitations you should be aware of when using ``torch.compile`` **in conjunction with the Trainer**:
 
-* ``torch.compile`` currently does not get reapplied over DDP/FSDP, meaning distributed operations can't benefit from speed ups at the moment.
+* The Trainer currently does not reapply ``torch.compile`` over DDP/FSDP, meaning distributed operations can't benefit from speed ups at the moment.
   This limitation will be lifted in the future.
 
 * In some cases, using ``self.log()`` in your LightningModule will cause compilation errors.
@@ -269,5 +271,20 @@ There are a few limitations you should be aware of when using ``torch.compile`` 
               self.model = MySubModule()
               self.model = torch.compile(self.model)
               ...
+
+
+----
+
+
+********************
+Additional Resources
+********************
+
+Here are a few resources for further reading after you complete this tutorial:
+
+- `PyTorch 2.0 Paper <https://pytorch.org/blog/pytorch-2-paper-tutorial/>`_
+- `GenAI with PyTorch 2.0 blog post series <https://pytorch.org/blog/accelerating-generative-ai-4/>`_
+- `Training Production AI Models with PyTorch 2.0 <https://pytorch.org/blog/training-production-ai-models/>`_
+- `Empowering Models with Performance: The Art of Generalized Model Transformation Approach <https://pytorch.org/blog/empowering-models-performance/>`_
 
 |
