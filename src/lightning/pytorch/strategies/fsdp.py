@@ -16,7 +16,21 @@ import shutil
 from contextlib import contextmanager, nullcontext
 from datetime import timedelta
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable, Dict, Generator, List, Literal, Mapping, Optional, Set, Type, Union, Tuple
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    Dict,
+    Generator,
+    List,
+    Literal,
+    Mapping,
+    Optional,
+    Set,
+    Tuple,
+    Type,
+    Union,
+)
 
 import torch
 from lightning_utilities.core.rank_zero import rank_zero_only as utils_rank_zero_only
@@ -263,6 +277,7 @@ class FSDPStrategy(ParallelStrategy):
         # if 'device_mesh' in the `kwargs` is provided as a tuple, update it into the `DeviceMesh` object here
         if isinstance(self.kwargs.get("device_mesh"), Tuple):
             from torch.distributed.device_mesh import init_device_mesh
+
             self.kwargs["device_mesh"] = init_device_mesh("cuda", self.kwargs["device_mesh"])
 
     def _get_process_group_backend(self) -> str:

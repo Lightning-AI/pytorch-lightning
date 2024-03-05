@@ -256,6 +256,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         # if 'device_mesh' in the `_fsdp_kwargs` is provided as a tuple, update it into the `DeviceMesh` object here
         if isinstance(self._fsdp_kwargs.get("device_mesh"), Tuple):
             from torch.distributed.device_mesh import init_device_mesh
+
             self._fsdp_kwargs["device_mesh"] = init_device_mesh("cuda", self._fsdp_kwargs["device_mesh"])
 
     @override
