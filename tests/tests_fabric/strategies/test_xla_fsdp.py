@@ -50,13 +50,17 @@ def test_xla_fsdp_no_backward_sync():
 
     with pytest.raises(
         TypeError, match="is only possible if the module passed to .* is wrapped in `XlaFullyShardedDataParallel`"
-    ), strategy._backward_sync_control.no_backward_sync(object()):
+    ), strategy._backward_sync_control.no_backward_sync(object(), True):
         pass
 
     module = MagicMock(spec=XlaFullyShardedDataParallel)
-    with strategy._backward_sync_control.no_backward_sync(module):
-        pass
 
+    with strategy._backward_sync_control.no_backward_sync(module, False):
+        pass
+    module.no_sync.assert_not_called()
+
+    with strategy._backward_sync_control.no_backward_sync(module, True):
+        pass
     module.no_sync.assert_called_once()
 
 
