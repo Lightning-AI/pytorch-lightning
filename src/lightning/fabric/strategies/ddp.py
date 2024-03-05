@@ -228,7 +228,7 @@ class _DDPBackwardSyncControl(_BackwardSyncControl):
         """Blocks gradient synchronization inside the :class:`~torch.nn.parallel.distributed.DistributedDataParallel`
         wrapper."""
         if not enabled:
-            return nullcontext
+            return nullcontext()
 
         if not isinstance(module, DistributedDataParallel):
             raise TypeError(
