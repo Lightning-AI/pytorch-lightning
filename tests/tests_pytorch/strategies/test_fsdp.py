@@ -1013,8 +1013,7 @@ def test_module_init_context(precision, expected_dtype):
         _run_setup_assertions(empty_init=True, expected_device=torch.device("cpu"))
 
 
-# TODO: Support checkpoint consolidation with PyTorch >= 2.2
-@RunIf(min_cuda_gpus=2, standalone=True, min_torch="2.1.0", max_torch="2.2.0")
+@RunIf(min_cuda_gpus=2, standalone=True, min_torch="2.3.0")
 def test_save_sharded_and_consolidate_and_load(tmp_path):
     """Test the consolidation of a FSDP-sharded checkpoint into a single file."""
 

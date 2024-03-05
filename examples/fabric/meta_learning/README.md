@@ -33,7 +33,7 @@ torchrun --nproc_per_node=2 --standalone train_torch.py
 **Accelerated using Lightning Fabric:**
 
 ```bash
-lightning run model train_fabric.py --devices 2 --strategy ddp --accelerator cpu
+fabric run train_fabric.py --devices 2 --strategy ddp --accelerator cpu
 ```
 
 ### References

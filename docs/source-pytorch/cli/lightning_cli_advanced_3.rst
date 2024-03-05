@@ -197,6 +197,7 @@ Since the init parameters of the model have as a type hint a class, in the confi
                 decoder: Instance of a module for decoding
             """
             super().__init__()
+            self.save_hyperparameters()
             self.encoder = encoder
             self.decoder = decoder
 
@@ -215,6 +216,13 @@ If the CLI is implemented as ``LightningCLI(MyMainModel)`` the configuration wou
           ...
 
 It is also possible to combine ``subclass_mode_model=True`` and submodules, thereby having two levels of ``class_path``.
+
+.. tip::
+
+    By having ``self.save_hyperparameters()`` it becomes possible to load the model from a checkpoint. Simply do
+    ``ModelClass.load_from_checkpoint("path/to/checkpoint.ckpt")``. In the case of using ``subclass_mode_model=True``,
+    then load it like ``LightningModule.load_from_checkpoint("path/to/checkpoint.ckpt")``. ``save_hyperparameters`` is
+    optional and can be safely removed if there is no need to load from a checkpoint.
 
 
 Fixed optimizer and scheduler
@@ -279,6 +287,7 @@ An example of a model that uses two optimizers is the following:
     class MyModel(LightningModule):
         def __init__(self, optimizer1: OptimizerCallable, optimizer2: OptimizerCallable):
             super().__init__()
+            self.save_hyperparameters()
             self.optimizer1 = optimizer1
             self.optimizer2 = optimizer2
 
@@ -318,6 +327,7 @@ that uses dependency injection for an optimizer and a learning scheduler is:
             scheduler: LRSchedulerCallable = torch.optim.lr_scheduler.ConstantLR,
         ):
             super().__init__()
+            self.save_hyperparameters()
             self.optimizer = optimizer
             self.scheduler = scheduler
 

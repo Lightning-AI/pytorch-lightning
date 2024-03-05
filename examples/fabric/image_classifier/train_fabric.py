@@ -20,10 +20,10 @@
 3. Apply ``setup`` over each model and optimizers pair, ``setup_dataloaders`` on all your dataloaders,
 and replace ``loss.backward()`` with ``self.backward(loss)``.
 
-4. Run the script from the terminal using ``lightning run model path/to/train.py``
+4. Run the script from the terminal using ``fabric run path/to/train.py``
 
 Accelerate your training loop by setting the ``--accelerator``, ``--strategy``, ``--devices`` options directly from
-the command line. See ``lightning run model --help`` or learn more from the documentation:
+the command line. See ``fabric run --help`` or learn more from the documentation:
 https://lightning.ai/docs/fabric.
 
 """
@@ -71,7 +71,7 @@ class Net(nn.Module):
 
 def run(hparams):
     # Create the Lightning Fabric object. The parameters like accelerator, strategy, devices etc. will be proided
-    # by the command line. See all options: `lightning run model --help`
+    # by the command line. See all options: `fabric run --help`
     fabric = Fabric()
 
     seed_everything(hparams.seed)  # instead of torch.manual_seed(...)
@@ -168,7 +168,7 @@ def run(hparams):
 if __name__ == "__main__":
     # Arguments can be passed in through the CLI as normal and will be parsed here
     # Example:
-    # lightning run model image_classifier.py accelerator=cuda --epochs=3
+    # fabric run image_classifier.py accelerator=cuda --epochs=3
     parser = argparse.ArgumentParser(description="Fabric MNIST Example")
     parser.add_argument(
         "--batch-size", type=int, default=64, metavar="N", help="input batch size for training (default: 64)"

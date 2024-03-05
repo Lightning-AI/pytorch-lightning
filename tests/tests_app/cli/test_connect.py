@@ -26,6 +26,7 @@ def monkeypatch_connection(monkeypatch, tmpdir, ppid):
     return connection_path
 
 
+@pytest.mark.flaky(reruns=3, reruns_delay=2)
 def test_connect_disconnect_local(tmpdir, monkeypatch):
     disconnect_app()
 

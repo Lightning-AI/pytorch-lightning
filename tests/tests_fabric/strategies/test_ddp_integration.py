@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-import sys
 from copy import deepcopy
 from unittest import mock
 from unittest.mock import Mock
@@ -20,7 +19,7 @@ from unittest.mock import Mock
 import pytest
 import torch
 from lightning.fabric import Fabric
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0, _TORCH_GREATER_EQUAL_2_2
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 from torch.nn.parallel.distributed import DistributedDataParallel
 
 from tests_fabric.helpers.runif import RunIf
@@ -28,11 +27,6 @@ from tests_fabric.strategies.test_single_device import _run_test_clip_gradients
 from tests_fabric.test_fabric import BoringModel
 
 
-@pytest.mark.xfail(
-    # https://github.com/pytorch/pytorch/issues/116056
-    sys.platform == "win32" and _TORCH_GREATER_EQUAL_2_2,
-    reason="Windows + DDP issue in PyTorch 2.2",
-)
 @pytest.mark.parametrize(
     "accelerator",
     [
