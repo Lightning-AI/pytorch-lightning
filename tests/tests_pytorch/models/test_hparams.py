@@ -528,18 +528,25 @@ def test_hparams_pickle(tmpdir):
 class UnpickleableArgsBoringModel(BoringModel):
     """A model that has an attribute that cannot be pickled."""
 
-    def __init__(self, foo="bar", pickle_me=(lambda x: x + 1), **kwargs):
+    def __init__(self, foo="bar", pickle_me=(lambda x: x + 1), ignore=False, **kwargs):
         super().__init__(**kwargs)
         assert not is_picklable(pickle_me)
-        self.save_hyperparameters()
+        if ignore:
+            self.save_hyperparameters(ignore=["pickle_me"])
+        else:
+            self.save_hyperparameters()
 
 
 def test_hparams_pickle_warning(tmpdir):
     model = UnpickleableArgsBoringModel()
     trainer = Trainer(default_root_dir=tmpdir, max_steps=1)
-    with pytest.warns(UserWarning, match="attribute 'pickle_me' removed from hparams because it cannot be pickled"):
+    with pytest.warns(UserWarning, match="Attribute 'pickle_me' removed from hparams because it cannot be pickled"):
         trainer.fit(model)
     assert "pickle_me" not in model.hparams
+
+    model = UnpickleableArgsBoringModel(ignore=True)
+    with no_warning_call(UserWarning, match="Attribute 'pickle_me' removed from hparams because it cannot be pickled"):
+        trainer.fit(model)
 
 
 def test_hparams_save_yaml(tmpdir):

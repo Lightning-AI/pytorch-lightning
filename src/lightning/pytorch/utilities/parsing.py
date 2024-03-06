@@ -41,7 +41,10 @@ def clean_namespace(hparams: MutableMapping) -> None:
     del_attrs = [k for k, v in hparams.items() if not is_picklable(v)]
 
     for k in del_attrs:
-        rank_zero_warn(f"attribute '{k}' removed from hparams because it cannot be pickled")
+        rank_zero_warn(
+            f"Attribute '{k}' removed from hparams because it cannot be pickled. You can suppress this warning by"
+            f" setting `self.save_hyperparameters(ignore=['{k}'])`.",
+        )
         del hparams[k]
 
 
