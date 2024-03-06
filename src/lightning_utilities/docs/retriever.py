@@ -17,7 +17,7 @@ def _download_file(file_url: str, folder: str) -> str:
     if os.path.isfile(file_path):
         logging.warning(f'given file "{file_path}" already exists and will be overwritten with {file_url}')
     # see: https://stackoverflow.com/a/34957875
-    rq = requests.get(file_url)
+    rq = requests.get(file_url, timeout=10)
     with open(file_path, "wb") as outfile:
         outfile.write(rq.content)
     return fname
@@ -40,9 +40,7 @@ def _search_all_occurrences(list_files: List[str], pattern: str) -> List[str]:
     return collected
 
 
-def _replace_remote_with_local(
-    file_path: str, docs_folder: str, pairs_url_path: List[Tuple[str, str]], base_depth: int = 2
-) -> None:
+def _replace_remote_with_local(file_path: str, docs_folder: str, pairs_url_path: List[Tuple[str, str]]) -> None:
     """Replace all URL with local files in a given file.
 
     Args:

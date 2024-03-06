@@ -21,13 +21,6 @@ repos:
       - id: check-docstring-first
       - id: detect-private-key
 
-  - repo: https://github.com/asottile/pyupgrade
-    rev: v3.15.0
-    hooks:
-      - id: pyupgrade
-        args: ["--py37-plus"]
-        name: Upgrade code
-
   - repo: https://github.com/codespell-project/codespell
     rev: v2.2.6
     hooks:
@@ -59,19 +52,8 @@ repos:
         # https://prettier.io/docs/en/options.html#print-width
         args: ["--print-width=120"]
 
-  - repo: https://github.com/asottile/yesqa
-    rev: v1.5.0
-    hooks:
-      - id: yesqa
-        additional_dependencies:
-          - pep8-naming
-          - flake8-pytest-style
-          - flake8-bandit
-          - flake8-builtins
-          - flake8-bugbear
-
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.2.0
+    rev: v0.3.0
     hooks:
       - id: ruff-format
         args: ["--preview"]

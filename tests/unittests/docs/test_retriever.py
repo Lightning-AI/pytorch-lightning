@@ -1,9 +1,9 @@
 import os.path
 import shutil
 
-from unittests import _PATH_ROOT
-
 from lightning_utilities.docs import fetch_external_assets
+
+from unittests import _PATH_ROOT
 
 
 def test_retriever_s3():

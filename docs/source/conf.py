@@ -9,10 +9,10 @@ import inspect
 import os
 import re
 import sys
-
-import pt_lightning_sphinx_theme
+from typing import Optional
 
 import lightning_utilities
+import pt_lightning_sphinx_theme
 from lightning_utilities.docs import fetch_external_assets
 
 # -- Path setup --------------------------------------------------------------
@@ -265,7 +265,7 @@ def setup(app):
 
 # Ignoring Third-party packages
 # https://stackoverflow.com/questions/15889621/sphinx-how-to-exclude-imports-in-automodule
-def _package_list_from_file(file):
+def _package_list_from_file(file: str) -> list[str]:
     list_pkgs = []
     with open(file) as fp:
         lines = fp.readlines()
@@ -293,7 +293,7 @@ autodoc_mock_imports = MOCK_PACKAGES
 # Resolve function
 # This function is used to populate the (source) links in the API
 def linkcode_resolve(domain, info):
-    def find_source():
+    def find_source() -> Optional[str]:
         # try to find the file and line number, based on code from numpy:
         # https://github.com/numpy/numpy/blob/master/doc/source/conf.py#L286
         obj = sys.modules[info["module"]]

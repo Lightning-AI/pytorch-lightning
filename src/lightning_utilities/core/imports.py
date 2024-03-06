@@ -26,7 +26,7 @@ except ImportError:
     import importlib_metadata as metadata  # type: ignore
 
 
-@lru_cache()
+@lru_cache
 def package_available(package_name: str) -> bool:
     """Check if a package is available in your environment.
 
@@ -42,7 +42,7 @@ def package_available(package_name: str) -> bool:
         return False
 
 
-@lru_cache()
+@lru_cache
 def module_available(module_path: str) -> bool:
     """Check if a module path is available in your environment.
 

@@ -47,7 +47,7 @@ on:
         default: |
           {
             "os": ["ubuntu-20.04", "macos-11", "windows-2022"],
-            "python-version": ["3.7", "3.9"]
+            "python-version": ["3.8", "3.9"]
           }
 
 defaults:
