@@ -21,5 +21,5 @@ jinja2 <3.2.0
 # todo: until the release of 0.11.0, use the following line
 lightning-utilities @ https://github.com/Lightning-AI/utilities/archive/refs/heads/main.zip
 
-# installed from S3 additioan location and to fetched in advance
+# installed from S3 location and fetched in advance
 lai-sphinx-theme
