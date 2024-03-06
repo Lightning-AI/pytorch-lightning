@@ -1,73 +1,8 @@
-[metadata]
-license_file = "LICENSE"
-description-file = "README.md"
-
 [build-system]
 requires = [
-    "setuptools",
-    "wheel",
+  "setuptools",
+  "wheel",
 ]
-
-[tool.check-manifest]
-ignore = [
-    "*.yml",
-    ".github",
-    ".github/*"
-]
-
-[tool.pytest.ini_options]
-norecursedirs = [
-    ".git",
-    ".github",
-    "dist",
-    "build",
-    "docs",
-]
-addopts = [
-    "--strict-markers",
-    "--doctest-modules",
-    "--durations=25",
-    "--color=yes",
-    "--disable-pytest-warnings",
-]
-filterwarnings = ["error::FutureWarning"]  # todo: "error::DeprecationWarning"
-xfail_strict = true
-
-[tool.coverage.report]
-exclude_lines = [
-    "pragma: no cover",
-    "pass",
-]
-[tool.coverage.run]
-parallel = true
-concurrency = "thread"
-relative_files = true
-
-
-[tool.codespell]
-#skip = '*.py'
-quiet-level = 3
-# comma separated list of words; waiting for:
-#  https://github.com/codespell-project/codespell/issues/2839#issuecomment-1731601603
-# also adding links until they ignored by its: nature
-#  https://github.com/codespell-project/codespell/issues/2243#issuecomment-1732019960
-#ignore-words-list = ""
-
-
-[tool.docformatter]
-recursive = true
-# this need to be shorter as some docstings are r"""...
-wrap-summaries = 119
-wrap-descriptions = 120
-blank = true
-
-
-[tool.mypy]
-files = [
-    "src/lightning_utilities",
-]
-disallow_untyped_defs = true
-ignore_missing_imports = true
 
 [tool.ruff]
 line-length = 120
@@ -144,3 +79,61 @@ convention = "google"
 
 [tool.ruff.lint.mccabe]
 max-complexity = 10
+
+[tool.codespell]
+#skip = '*.py'
+quiet-level = 3
+# comma separated list of words; waiting for:
+#  https://github.com/codespell-project/codespell/issues/2839#issuecomment-1731601603
+# also adding links until they ignored by its: nature
+#  https://github.com/codespell-project/codespell/issues/2243#issuecomment-1732019960
+#ignore-words-list = ""
+
+[tool.docformatter]
+recursive = true
+# this need to be shorter as some docstings are r"""...
+wrap-summaries = 119
+wrap-descriptions = 120
+blank = true
+
+[tool.check-manifest]
+ignore = [
+    "*.yml",
+    ".github",
+    ".github/*"
+]
+
+[tool.pytest.ini_options]
+norecursedirs = [
+    ".git",
+    ".github",
+    "dist",
+    "build",
+    "docs",
+]
+addopts = [
+    "--strict-markers",
+    "--doctest-modules",
+    "--durations=25",
+    "--color=yes",
+    "--disable-pytest-warnings",
+]
+filterwarnings = ["error::FutureWarning"]  # todo: "error::DeprecationWarning"
+xfail_strict = true
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "pass",
+]
+[tool.coverage.run]
+parallel = true
+concurrency = "thread"
+relative_files = true
+
+[tool.mypy]
+files = [
+    "src/lightning_utilities",
+]
+disallow_untyped_defs = true
+ignore_missing_imports = true
