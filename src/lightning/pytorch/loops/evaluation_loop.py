@@ -139,6 +139,7 @@ class _EvaluationLoop(_Loop):
             finally:
                 self._restarting = False
         self._store_dataloader_outputs()
+        self.batch_progress.reset_on_run()
         return self.on_run_end()
 
     def setup_data(self) -> None:
