@@ -39,15 +39,15 @@ def test_parse_cli_args(args, expected):
 
 
 def test_process_cli_args(tmp_path, caplog, monkeypatch):
-    # PyTorch version < 2.1
-    monkeypatch.setattr(lightning.fabric.utilities.consolidate_checkpoint, "_TORCH_GREATER_EQUAL_2_1", False)
+    # PyTorch version < 2.3
+    monkeypatch.setattr(lightning.fabric.utilities.consolidate_checkpoint, "_TORCH_GREATER_EQUAL_2_3", False)
     with caplog.at_level(logging.ERROR, logger="lightning.fabric.utilities.consolidate_checkpoint"), pytest.raises(
         SystemExit
     ):
         _process_cli_args(Namespace())
-    assert "requires PyTorch >= 2.1." in caplog.text
+    assert "requires PyTorch >= 2.3." in caplog.text
     caplog.clear()
-    monkeypatch.setattr(lightning.fabric.utilities.consolidate_checkpoint, "_TORCH_GREATER_EQUAL_2_1", True)
+    monkeypatch.setattr(lightning.fabric.utilities.consolidate_checkpoint, "_TORCH_GREATER_EQUAL_2_3", True)
 
     # Checkpoint does not exist
     checkpoint_folder = Path("does/not/exist")
