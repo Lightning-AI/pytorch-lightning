@@ -32,6 +32,8 @@ from weakref import proxy
 
 import torch
 import yaml
+from fsspec import AbstractFileSystem
+from fsspec.implementations.local import LocalFileSystem
 from torch import Tensor
 from typing_extensions import override
 
@@ -247,9 +249,11 @@ class ModelCheckpoint(Checkpoint):
         self._last_checkpoint_saved = ""
 
         self.kth_value: Tensor
-        self.dirpath: Optional[_PATH]
+        self._fs: AbstractFileSystem
+        self._dirpath: Optional[_PATH]
+        self.dirpath = dirpath
+        self.filename = filename
         self.__init_monitor_mode(mode)
-        self.__init_ckpt_dir(dirpath, filename)
         self.__init_triggers(every_n_train_steps, every_n_epochs, train_time_interval)
         self.__validate_init_configuration()
 
@@ -263,6 +267,21 @@ class ModelCheckpoint(Checkpoint):
             every_n_epochs=self._every_n_epochs,
             train_time_interval=self._train_time_interval,
         )
+
+    @property
+    def dirpath(self) -> Optional[_PATH]:
+        return self._dirpath
+
+    @dirpath.setter
+    def dirpath(self, value: Optional[_PATH]) -> None:
+        if value is None:
+            self._fs = LocalFileSystem()
+            self._dirpath = None
+        else:
+            self._fs = get_filesystem(value)
+            self._dirpath = value
+            if self._fs.protocol == "file":
+                self._dirpath = os.path.realpath(self._dirpath)
 
     @override
     def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: str) -> None:
@@ -466,15 +485,6 @@ class ModelCheckpoint(Checkpoint):
                 f"ModelCheckpoint(save_top_k={self.save_top_k}, monitor=None) is not a valid"
                 " configuration. No quantity for top_k to track."
             )
-
-    def __init_ckpt_dir(self, dirpath: Optional[_PATH], filename: Optional[str]) -> None:
-        self._fs = get_filesystem(dirpath if dirpath else "")
-
-        if dirpath and _is_local_file_protocol(dirpath if dirpath else ""):
-            dirpath = os.path.realpath(os.path.expanduser(dirpath))
-
-        self.dirpath = dirpath
-        self.filename = filename
 
     def __init_monitor_mode(self, mode: str) -> None:
         torch_inf = torch.tensor(torch.inf)
