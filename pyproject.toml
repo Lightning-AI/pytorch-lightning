@@ -118,6 +118,9 @@ addopts = [
     "--color=yes",
     "--disable-pytest-warnings",
 ]
+markers = [
+    "online: run tests that require internet connection",
+]
 filterwarnings = ["error::FutureWarning"]  # todo: "error::DeprecationWarning"
 xfail_strict = true
 
