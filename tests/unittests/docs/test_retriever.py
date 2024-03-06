@@ -22,7 +22,7 @@ def test_retriever_s3(temp_docs):
 
     # validate the initial expectations
     line = _get_line_with_figure(path_index)
-    # that the image exists~
+    # that the image exists
     assert "Lightning.gif" in line
     # and it is sourced in S3
     assert ".s3." in line
@@ -31,7 +31,7 @@ def test_retriever_s3(temp_docs):
 
     # validate the final state of index page
     line = _get_line_with_figure(path_index)
-    # that the image exists~
+    # that the image exists
     assert os.path.join("fetched-s3-assets", "Lightning.gif") in line
     # but it is not sourced from S3
     assert ".s3." not in line

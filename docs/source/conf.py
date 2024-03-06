@@ -13,7 +13,7 @@ from typing import Optional
 
 import lightning_utilities
 import pt_lightning_sphinx_theme
-from lightning_utilities.docs import fetch_external_assets
+from lightning_utilities.docs import adjust_linked_external_docs, fetch_external_assets
 
 # -- Path setup --------------------------------------------------------------
 
@@ -46,6 +46,11 @@ github_repo = project
 # -- Project documents -------------------------------------------------------
 
 fetch_external_assets(docs_folder=_PATH_HERE)
+adjust_linked_external_docs(
+    source_link="https://numpy.org/doc/stable/",
+    target_link="https://numpy.org/doc/{numpy.__version__}/",
+    browse_folder=_PATH_HERE,
+)
 
 
 # export the READme

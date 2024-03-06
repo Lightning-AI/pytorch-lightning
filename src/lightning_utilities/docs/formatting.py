@@ -1,10 +1,14 @@
 # Licensed under the Apache License, Version 2.0 (the "License");
 #     http://www.apache.org/licenses/LICENSE-2.0
 #
+import glob
+import importlib
 import inspect
+import logging
 import os
+import re
 import sys
-from typing import Tuple
+from typing import Iterable, Optional, Tuple, Union
 
 
 def _transform_changelog(path_in: str, path_out: str) -> None:
@@ -63,3 +67,76 @@ def _linkcode_resolve(domain: str, github_user: str, github_repo: str, info: dic
     branch = {"latest": "master", "stable": "master"}.get(branch, branch)
     filename = "/".join([branch] + filename.split("/")[1:])
     return f"https://github.com/{github_user}/{github_repo}/blob/{filename}"
+
+
+def _update_link_based_imported_package(link: str, pkg_ver: str, version_digits: Optional[int]) -> str:
+    """Adjust the linked external docs to be local.
+
+    Args:
+        link: the source link to be replaced
+        pkg_ver: the target link to be replaced, if ``{package.version}`` is included it will be replaced accordingly
+        version_digits: for semantic versioning, how many digits to be considered
+
+    """
+    pkg_att = pkg_ver.split(".")
+    # load the package with all additional sub-modules
+    module = importlib.import_module(".".join(pkg_att[:-1]))
+    # load the attribute
+    ver = getattr(module, pkg_att[-1])
+    # drop any additional context after `+`
+    ver = ver.split("+")[0]
+    # crop the version to the number of digits
+    ver = ".".join(ver.split(".")[:version_digits])
+    # replace the version
+    return link.replace(f"{{{pkg_ver}}}", ver)
+
+
+def adjust_linked_external_docs(
+    source_link: str,
+    target_link: str,
+    browse_folder: Union[str, Iterable[str]],
+    file_extensions: Iterable[str] = (".rst", ".py"),
+    version_digits: int = 2,
+) -> None:
+    r"""Adjust the linked external docs to be local.
+
+    Args:
+        source_link: the link to be replaced
+        target_link: the link to be replaced, if ``{package.version}`` is included it will be replaced accordingly
+        browse_folder: the location of the browsable folder
+        file_extensions: what kind of files shall be scanned
+        version_digits: for semantic versioning, how many digits to be considered
+
+    Examples:
+        >>> adjust_linked_external_docs(
+        ...     "https://numpy.org/doc/stable/",
+        ...     "https://numpy.org/doc/{numpy.__version__}/",
+        ...     "docs/source",
+        ... )
+
+    """
+    list_files = []
+    if isinstance(browse_folder, str):
+        browse_folder = [browse_folder]
+    for folder in browse_folder:
+        for ext in file_extensions:
+            list_files += glob.glob(os.path.join(folder, "**", f"*{ext}"), recursive=True)
+    if not list_files:
+        logging.warning(f'No files were listed in folder "{browse_folder}" and pattern "{file_extensions}"')
+        return
+
+    # find the expression for package version in {} brackets if any, use re to find it
+    pkg_ver_all = re.findall(r"{([\w.]+)}", target_link)
+    for pkg_ver in pkg_ver_all:
+        target_link = _update_link_based_imported_package(target_link, pkg_ver, version_digits)
+
+    # replace the source link with target link
+    for fpath in set(list_files):
+        with open(fpath, encoding="UTF-8") as fopen:
+            body = fopen.read()
+        body_ = body.replace(source_link, target_link)
+        if body == body_:
+            continue
+        logging.debug(f'links adjusting in {fpath}: "{source_link}" -> "{target_link}"')
+        with open(fpath, "w", encoding="UTF-8") as fw:
+            fw.write(body_)

@@ -14,3 +14,5 @@ sphinx-autodoc-typehints >=1.0
 sphinx-paramlinks >=0.5.1
 sphinx-togglebutton >=0.2
 sphinx-copybutton >=0.3
+
+numpy # for validation of custom/local version adjustemnt

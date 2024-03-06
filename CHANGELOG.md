@@ -10,7 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
--
+- docs: enable pin version in links to external docs ([#236](https://github.com/Lightning-AI/utilities/pull/236))
 
 
 ### Changed
