@@ -48,6 +48,8 @@ def test_warning_invalid_trainstep_output(tmpdir):
         trainer.fit(model)
 
 
+# DO NOT SUBMIT:
+# move to tests/tests_pytorch/trainer/optimization/test_manual_optimization.py
 class MultiOptimizerModel(BoringModel):
     def __init__(self) -> None:
         # This initializes `BoringModel`'s parent, but skips `BoringModel`
@@ -76,9 +78,6 @@ class MultiOptimizerModel(BoringModel):
         for opt in self.optimizers():
             opt.step()
         return {"loss": loss}
-    
-    # DO NOT SUBMIT add a note in PR about not seeing the point of resetting
-    # the opt._on_be/af back to do_nothing_closure
 
     # def on_train_batch_end(self, outputs: STEP_OUTPUT, batch: Any, batch_idx: int) -> None:
     #     for sch in self.lr_schedulers():

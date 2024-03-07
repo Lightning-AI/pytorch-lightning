@@ -96,6 +96,8 @@ class _ManualOptimization(_Loop):
 
     def on_run_start(self) -> None:
         # inject logic around the optimizer step
+        # DO NOT SUBMIT
+        # This is no longer reset (as that seems not needed) - so instead do this once and not again and again:
         for lightning_optimizer in self.trainer.strategy._lightning_optimizers:
             incr = lightning_optimizer._should_increment
             lightning_optimizer._on_before_step = self._get_on_before_optim_step_func(increment=incr)
