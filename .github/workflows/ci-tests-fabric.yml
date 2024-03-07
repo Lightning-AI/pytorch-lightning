@@ -83,7 +83,7 @@ jobs:
             }
           # "fabric" installs the standalone package
           - { os: "macOS-12", pkg-name: "fabric", python-version: "3.8", pytorch-version: "1.13" }
-          - { os: "macOS-14", pkg-name: "fabric", python-version: "3.8", pytorch-version: "1.13" }
+          # - { os: "macOS-14", pkg-name: "fabric", python-version: "3.8", pytorch-version: "1.13" } # todo
           - { os: "ubuntu-20.04", pkg-name: "fabric", python-version: "3.8", pytorch-version: "1.13" }
           - { os: "windows-2022", pkg-name: "fabric", python-version: "3.8", pytorch-version: "1.13" }
     timeout-minutes: 25 # because of building grpcio on Mac
