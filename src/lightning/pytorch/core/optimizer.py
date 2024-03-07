@@ -428,7 +428,7 @@ def _validate_optim_conf_dict(optim_conf: Dict[str, Any]) -> None:
             num_opt = len(optim_conf["optimizer"]) if isinstance(optim_conf["optimizer"], (list, tuple)) else 1
             rank_zero_warn(
                 f"`should_increment` values should equal number of optimizers it is passed along with,"
-                f" but found {optim_conf['should_increment']} (len={len(optim_conf["should_increment"])}) and"
+                f" but found {optim_conf['should_increment']} (len={len(optim_conf['should_increment'])}) and"
                 f" {num_opt} optimizers",
                 category=RuntimeWarning,
             )
