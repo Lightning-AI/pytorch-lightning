@@ -86,7 +86,7 @@ To install from a local clone of NeMo:
     ./reinstall.sh # from cloned NeMo's git root
 
 For Docker users, the NeMo container is available on
-`NGC <https://ngc.nvidia.com/catalog/containers/nvidia:nemo>`_.
+`NGC <https://catalog.ngc.nvidia.com/orgs/nvidia/collections/nemotrainingframework>`_.
 
 .. code-block:: bash
 
