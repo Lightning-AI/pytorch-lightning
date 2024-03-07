@@ -41,5 +41,5 @@ body:
           Machine learning metrics for distributed, scalable PyTorch applications.
           enables pure PyTorch users to scale their existing code on any kind of device while retaining full control over their own loops and optimization logic.
         - [**GPT**](https://github.com/Lightning-AI/lit-GPT):
-                  Hackable implementation of state-of-the-art open-source LLMs based on nanoGPT.
-                  Supports flash attention, 4-bit and 8-bit quantization, LoRA and LLaMA-Adapter fine-tuning, pre-training. Apache 2.0-licensed.
+          Hackable implementation of state-of-the-art open-source LLMs based on nanoGPT.
+          Supports flash attention, 4-bit and 8-bit quantization, LoRA and LLaMA-Adapter fine-tuning, pre-training. Apache 2.0-licensed.
