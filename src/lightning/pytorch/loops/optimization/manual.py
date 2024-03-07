@@ -130,12 +130,13 @@ class _ManualOptimization(_Loop):
             if increment:
                 self.optim_step_progress.increment_ready()
             self.trainer.profiler.start("optimizer_step")
+
         return _on_before_step
-    
+
     def _get_on_after_optim_step_func(self, increment: bool) -> callable:
         def _on_before_step() -> None:
             self.trainer.profiler.stop("optimizer_step")
             if increment:
                 self.optim_step_progress.increment_completed()
-        return _on_before_step
 
+        return _on_before_step

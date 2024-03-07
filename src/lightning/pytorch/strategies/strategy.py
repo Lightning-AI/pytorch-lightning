@@ -113,13 +113,15 @@ class Strategy(ABC):
             opt._should_increment = False
         if len(self._lightning_optimizers) >= 1:
             self._lightning_optimizers[-1]._should_increment = True
-    
+
     def _set_optimizers_with_should_increments(self, optimizers: List[Optimizer], should_increment: List[bool]) -> None:
         """Relevant only for manual optimization loop, in which case the user can manually set for each optimizer
-        whether it counts towards incrementing the global step counter.
-        """
+        whether it counts towards incrementing the global step counter."""
         self._optimizers = optimizers
-        self._lightning_optimizers = [LightningOptimizer._to_lightning_optimizer(opt, self, incr) for opt, incr in zip(optimizers, should_increment)]
+        self._lightning_optimizers = [
+            LightningOptimizer._to_lightning_optimizer(opt, self, incr)
+            for opt, incr in zip(optimizers, should_increment)
+        ]
 
     def connect(self, model: "pl.LightningModule") -> None:
         """Called by the Trainer to connect the strategy with the model."""
@@ -149,12 +151,13 @@ class Strategy(ABC):
 
         """
         assert self.lightning_module is not None
-        optimizers, self.lr_scheduler_configs, should_increment = _init_optimizers_and_lr_schedulers(self.lightning_module)
+        optimizers, self.lr_scheduler_configs, should_increment = _init_optimizers_and_lr_schedulers(
+            self.lightning_module
+        )
         if not should_increment:
             self.optimizers = optimizers
         else:
             self._set_optimizers_with_should_increments(optimizers, should_increment)
-
 
     def setup(self, trainer: "pl.Trainer") -> None:
         """Sets up the accelerator, plugins and initializes the optimizers (if needed).

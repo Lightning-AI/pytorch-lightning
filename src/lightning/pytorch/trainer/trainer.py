@@ -416,7 +416,9 @@ class Trainer:
         self._signal_connector = _SignalConnector(self)
 
         # init loops
-        self.fit_loop = _FitLoop(self, min_epochs=min_epochs, max_epochs=max_epochs, min_steps=min_steps, max_steps=max_steps)
+        self.fit_loop = _FitLoop(
+            self, min_epochs=min_epochs, max_epochs=max_epochs, min_steps=min_steps, max_steps=max_steps
+        )
         self.validate_loop = _EvaluationLoop(
             self, TrainerFn.VALIDATING, RunningStage.VALIDATING, inference_mode=inference_mode
         )

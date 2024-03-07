@@ -77,6 +77,7 @@ class _FitLoop(_Loop):
         max_steps: Stop training after this number of steps. Disabled by default (-1). If ``max_steps = -1``
             and ``max_epochs = None``, :class:`~lightning.pytorch.trainer.trainer.Trainer` will default to
             ``max_epochs = 1000``. To enable infinite training, set ``max_epochs`` to ``-1``
+
     """
 
     def __init__(
