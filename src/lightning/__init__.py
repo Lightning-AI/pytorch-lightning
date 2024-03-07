@@ -39,7 +39,7 @@ def _cli_entry_point() -> None:
     if not (
         ModuleAvailableCache("lightning.app")
         if RequirementCache("lightning-utilities<0.10.0")
-        else RequirementCache(module="lightning.app")  # type: ignore[call-arg]
+        else RequirementCache(module="lightning.app")
     ):
         print("The `lightning` command requires additional dependencies: `pip install lightning[app]`")
         sys.exit(1)
