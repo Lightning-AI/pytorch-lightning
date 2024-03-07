@@ -209,14 +209,14 @@ def _configure_optimizers(optim_conf: OptimizerLRScheduler) -> Tuple[List, List,
     def _handle_single_dict(optim_conf: dict)  -> Tuple[List, List, Optional[str], Optional[List]]:
         _validate_optim_conf_dict(optim_conf)
         optimizers = _as_list(optim_conf["optimizer"])
-        monitor = optim_conf.get("monitor", None)
         lr_schedulers = _as_list(optim_conf.get("lr_scheduler", []))
+        monitor = optim_conf.get("monitor", None)
         should_increment = optim_conf.get("should_increment", None)
         if should_increment and len(optimizers) > len(_as_list(should_increment)):
             # `_validate_optim_conf_dict` checks `should_increment` to have length 1 if list
             single_val = should_increment[0] if isinstance(should_increment, (list, tuple)) else should_increment
             should_increment = [single_val for _ in optimizers]
-        return optimizers, monitor, lr_schedulers, should_increment
+        return optimizers, lr_schedulers, monitor, should_increment
 
 
     # single output, single optimizer
@@ -240,11 +240,11 @@ def _configure_optimizers(optim_conf: OptimizerLRScheduler) -> Tuple[List, List,
     
     # single dictionary
     elif isinstance(optim_conf, dict):
-        optimizers, monitor, lr_schedulers, should_increment = _handle_single_dict(optim_conf)
+        optimizers, lr_schedulers, monitor, should_increment = _handle_single_dict(optim_conf)
         
     # multiple dictionaries
     elif isinstance(optim_conf, (list, tuple)) and all(isinstance(d, dict) for d in optim_conf):
-        optimizers, monitor, lr_schedulers, should_increment = [], [], [], []
+        optimizers, lr_schedulers, monitor, should_increment = [], [], [], []
         
         # DO NOT SUBMIT add a test for this case first that breaks
         # If the user populated some `should_increment` but not all, the rest is assumed as `False`
@@ -256,19 +256,20 @@ def _configure_optimizers(optim_conf: OptimizerLRScheduler) -> Tuple[List, List,
         #         optim_dict["should_increment"] = optim_dict.get("should_increment", False)
             
         for optim_dict in optim_conf:
-            opt, mon, lr_sch, incr = _handle_single_dict(optim_dict)
+            opt, lr_sch, mon, incr = _handle_single_dict(optim_dict)
             optimizers.extend(opt)
             lr_schedulers.extend(lr_sch)
+            # DO NOT SUBMIT update downstream code according to when multiple monitor values are optained
             if mon:
                 monitor.extend(mon)
             if incr:
                 should_increment.extend(incr)
         
         # reset empty lists to None
-        if not monitor:
-            monitor = None
         if not should_increment:
             should_increment = None
+        if not monitor:
+            monitor = None
     
     # unknown configuration
     else:
