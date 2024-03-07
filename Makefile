@@ -42,6 +42,7 @@ test: clean
 
 	# run tests with coverage
 	python -m coverage run --source src/lightning/pytorch -m pytest src/lightning/pytorch tests/tests_pytorch -v
+	# DO NOT SUBMIT
 	python -m coverage run --source lightning/pytorch -m pytest ../tests/tests_pytorch/trainer ../tests/tests_pytorch/loops -v --ignore ../tests/tests_pytorch/models/test_onnx.py
 	python -m coverage run --source lightning/pytorch -m pytest tests/tests_pytorch/loops/optimization/test_manual_loop.py::test_multiple_optimizers -v -s
 	python -m coverage run --source src/lightning/app -m pytest tests/tests/app -v
