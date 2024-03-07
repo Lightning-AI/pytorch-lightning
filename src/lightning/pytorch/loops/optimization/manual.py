@@ -20,7 +20,6 @@ from torch import Tensor
 from typing_extensions import override
 
 import lightning.pytorch as pl
-from lightning.pytorch.core.optimizer import do_nothing_closure
 from lightning.pytorch.loops import _Loop
 from lightning.pytorch.loops.optimization.closure import OutputResult
 from lightning.pytorch.loops.progress import _Progress, _ReadyCompletedTracker
@@ -98,8 +97,9 @@ class _ManualOptimization(_Loop):
     def on_run_start(self) -> None:
         # inject logic around the optimizer step
         for lightning_optimizer in self.trainer.strategy._lightning_optimizers:
-            lightning_optimizer._on_before_step = self._on_before_step
-            lightning_optimizer._on_after_step = self._on_after_step
+            incr = lightning_optimizer._should_increment
+            lightning_optimizer._on_before_step = self._get_on_before_optim_step_func(increment=incr)
+            lightning_optimizer._on_after_step = self._get_on_after_optim_step_func(increment=incr)
 
     def advance(self, kwargs: OrderedDict) -> None:
         """Performs the training step for manual optimization.
@@ -121,16 +121,19 @@ class _ManualOptimization(_Loop):
     def on_run_end(self) -> _OUTPUTS_TYPE:
         """Returns the result of this loop, i.e., the post-processed outputs from the training step."""
         output, self._output = self._output, {}  # free memory
-        # reset logic around the optimizer step
-        for lightning_optimizer in self.trainer.strategy._lightning_optimizers:
-            lightning_optimizer._on_before_step = do_nothing_closure
-            lightning_optimizer._on_after_step = do_nothing_closure
         return output
 
-    def _on_before_step(self) -> None:
-        self.optim_step_progress.increment_ready()
-        self.trainer.profiler.start("optimizer_step")
+    def _get_on_before_optim_step_func(self, increment: bool) -> callable:
+        def _on_before_step() -> None:
+            if increment:
+                self.optim_step_progress.increment_ready()
+            self.trainer.profiler.start("optimizer_step")
+        return _on_before_step
+    
+    def _get_on_after_optim_step_func(self, increment: bool) -> callable:
+        def _on_before_step() -> None:
+            self.trainer.profiler.stop("optimizer_step")
+            if increment:
+                self.optim_step_progress.increment_completed()
+        return _on_before_step
 
-    def _on_after_step(self) -> None:
-        self.trainer.profiler.stop("optimizer_step")
-        self.optim_step_progress.increment_completed()
