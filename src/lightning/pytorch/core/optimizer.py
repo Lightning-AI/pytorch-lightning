@@ -162,7 +162,7 @@ class LightningOptimizer:
         cls,
         optimizer: Union[Optimizer, "LightningOptimizer"],
         strategy: "pl.strategies.Strategy",
-        should_increment: Optional[bool] = None
+        should_increment: Optional[bool] = None,
     ) -> "LightningOptimizer":
         # the user could return a `LightningOptimizer` from `configure_optimizers`, see test:
         # tests/core/test_lightning_optimizer.py::test_lightning_optimizer[False]
@@ -200,33 +200,33 @@ def _init_optimizers_and_lr_schedulers(
     _validate_scheduler_api(lr_scheduler_configs, model)
     return optimizers, lr_scheduler_configs, should_increment
 
+
 def _configure_optimizers(optim_conf: OptimizerLRScheduler) -> Tuple[List, List, Optional[str], Optional[List]]:
     optimizers, lr_schedulers = [], []
     monitor = None
     should_increment = None
-    _as_list = lambda values : list(values) if isinstance(values, (list, tuple)) else [values]
+    _as_list = lambda values: list(values) if isinstance(values, (list, tuple)) else [values]
 
-    def _handle_single_dict(optim_conf: dict)  -> Tuple[List, List, Optional[str], Optional[List]]:
+    def _handle_single_dict(optim_conf: dict) -> Tuple[List, List, Optional[str], Optional[List]]:
         _validate_optim_conf_dict(optim_conf)
         optimizers = _as_list(optim_conf["optimizer"])
+        monitor = optim_conf.get("monitor")
         lr_schedulers = _as_list(optim_conf.get("lr_scheduler", []))
-        monitor = optim_conf.get("monitor", None)
-        should_increment = optim_conf.get("should_increment", None)
+        should_increment = optim_conf.get("should_increment")
         if should_increment and len(optimizers) > len(_as_list(should_increment)):
             # `_validate_optim_conf_dict` checks `should_increment` to have length 1 if list
             single_val = should_increment[0] if isinstance(should_increment, (list, tuple)) else should_increment
             should_increment = [single_val for _ in optimizers]
-        return optimizers, lr_schedulers, monitor, should_increment
-
+        return optimizers, monitor, lr_schedulers, should_increment
 
     # single output, single optimizer
     if isinstance(optim_conf, Optimizable):
         optimizers = [optim_conf]
-    
+
     # single list or tuple of one or more optimizers
     elif isinstance(optim_conf, (list, tuple)) and all(isinstance(opt, Optimizable) for opt in optim_conf):
         optimizers = list(optim_conf)
-    
+
     # two lists, optimizer(s) + lr scheduler(s)
     elif (
         isinstance(optim_conf, (list, tuple))
@@ -237,15 +237,15 @@ def _configure_optimizers(optim_conf: OptimizerLRScheduler) -> Tuple[List, List,
         opt, sch = optim_conf
         optimizers = opt
         lr_schedulers = sch if isinstance(sch, list) else [sch]
-    
+
     # single dictionary
     elif isinstance(optim_conf, dict):
         optimizers, lr_schedulers, monitor, should_increment = _handle_single_dict(optim_conf)
-        
+
     # multiple dictionaries
     elif isinstance(optim_conf, (list, tuple)) and all(isinstance(d, dict) for d in optim_conf):
         optimizers, lr_schedulers, monitor, should_increment = [], [], [], []
-        
+
         # DO NOT SUBMIT add a test for this case first that breaks
         # If the user populated some `should_increment` but not all, the rest is assumed as `False`
         # if (
@@ -254,7 +254,7 @@ def _configure_optimizers(optim_conf: OptimizerLRScheduler) -> Tuple[List, List,
         # ):
         #     for optim_dict in optim_conf:
         #         optim_dict["should_increment"] = optim_dict.get("should_increment", False)
-            
+
         for optim_dict in optim_conf:
             opt, lr_sch, mon, incr = _handle_single_dict(optim_dict)
             optimizers.extend(opt)
@@ -264,13 +264,13 @@ def _configure_optimizers(optim_conf: OptimizerLRScheduler) -> Tuple[List, List,
                 monitor.extend(mon)
             if incr:
                 should_increment.extend(incr)
-        
+
         # reset empty lists to None
         if not should_increment:
             should_increment = None
         if not monitor:
             monitor = None
-    
+
     # unknown configuration
     else:
         raise MisconfigurationException(
@@ -417,20 +417,20 @@ def _validate_optim_conf_dict(optim_conf: Dict[str, Any]) -> None:
             f"Found unsupported keys in the optimizer configuration: {set(extra_keys)}", category=RuntimeWarning
         )
     if (
-        "should_increment" in optim_conf and
-        isinstance(optim_conf["should_increment"], (list, tuple)) and
-        len(optim_conf["should_increment"]) > 1
+        "should_increment" in optim_conf
+        and isinstance(optim_conf["should_increment"], (list, tuple))
+        and len(optim_conf["should_increment"]) > 1
     ):
-        # length needs to match optimizers length 
-        if (
-            not isinstance(optim_conf["optimizer"], (list, tuple)) or
-            len(optim_conf["should_increment"]) != len(optim_conf["optimizer"])
+        # length needs to match optimizers length
+        if not isinstance(optim_conf["optimizer"], (list, tuple)) or len(optim_conf["should_increment"]) != len(
+            optim_conf["optimizer"]
         ):
             num_opt = len(optim_conf["optimizer"]) if isinstance(optim_conf["optimizer"], (list, tuple)) else 1
             rank_zero_warn(
-                f"`should_increment` values should equal number of optimizers it is passed along with," \
-                f" but found {optim_conf['should_increment']} (len={len(optim_conf["should_increment"])}) and" \
-                f" {num_opt} optimizers", category=RuntimeWarning
+                f"`should_increment` values should equal number of optimizers it is passed along with,"
+                f" but found {optim_conf['should_increment']} (len={len(optim_conf["should_increment"])}) and"
+                f" {num_opt} optimizers",
+                category=RuntimeWarning,
             )
 
 

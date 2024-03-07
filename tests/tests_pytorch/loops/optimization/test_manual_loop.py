@@ -15,7 +15,6 @@ from typing import Any
 
 import pytest
 import torch
-
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.loops.optimization.manual import ManualResult
@@ -58,7 +57,7 @@ class MultiOptimizerModel(BoringModel):
         self.layer_1 = torch.nn.Linear(32, 4)
         self.layer_2 = torch.nn.Linear(4, 2)
         self.layer_3 = torch.nn.Linear(2, 1)
-        self.automatic_optimization=False
+        self.automatic_optimization = False
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         return self.layer_3(torch.relu(self.layer_2(torch.relu(self.layer_1(x)))))
@@ -70,10 +69,10 @@ class MultiOptimizerModel(BoringModel):
             # if i+1 < len(self.optimizers()):
             #     opt._on_before_step = lambda : self.trainer.profiler.start("optimizer_step")
             #     opt._on_after_step = lambda : self.trainer.profiler.stop("optimizer_step")
-        
+
         loss = self.step(batch)
         self.manual_backward(loss)
-        
+
         # self.optimizers().step()
         for opt in self.optimizers():
             opt.step()
@@ -91,9 +90,10 @@ class MultiOptimizerModel(BoringModel):
         # increments_step
         # test single dict with multi schedulers
         return (
-            {'optimizer': [opt1, opt2], 'should_increment': [True, False]},
-            {'optimizer': [opt3], 'should_increment': False}
+            {"optimizer": [opt1, opt2], "should_increment": [True, False]},
+            {"optimizer": [opt3], "should_increment": False},
         )
+
 
 # DO NOT SUBMIT: Parameterize to test default=no extra, explicit=is extra steps
 def test_multiple_optimizers(tmpdir):

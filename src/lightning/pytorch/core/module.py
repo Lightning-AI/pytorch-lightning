@@ -958,8 +958,8 @@ class LightningModule(
                 - an (optional) ``"lr_scheduler"`` key, whose value is an LR scheduler or ``lr_scheduler_config`` (one
                   or a list of more)
                 - an (optional) ``"should_increment"`` key, which is only relevant for the manual optimization mode, see
-                  :ref:`manual optimization<common/optimization:Manual optimization>` 
-              
+                  :ref:`manual optimization<common/optimization:Manual optimization>`
+
             - **None** - Fit will run without any optimizer.
 
         The ``lr_scheduler_config`` is a dictionary which contains the scheduler and its associated configuration.
