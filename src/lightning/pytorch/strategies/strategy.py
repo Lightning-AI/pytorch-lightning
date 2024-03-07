@@ -111,7 +111,8 @@ class Strategy(ABC):
         # having only the last of all optimizers count towards the global step counter, so that if all optimizers are called during
         for opt in self._lightning_optimizers:
             opt._should_increment = False
-        self._lightning_optimizers[-1]._should_increment = True
+        if len(self._lightning_optimizers) >= 1:
+            self._lightning_optimizers[-1]._should_increment = True
     
     def _set_optimizers_with_should_increments(self, optimizers: List[Optimizer], should_increment: List[bool]) -> None:
         """Relevant only for manual optimization loop, in which case the user can manually set for each optimizer

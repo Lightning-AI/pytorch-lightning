@@ -245,6 +245,16 @@ def _configure_optimizers(optim_conf: OptimizerLRScheduler) -> Tuple[List, List,
     # multiple dictionaries
     elif isinstance(optim_conf, (list, tuple)) and all(isinstance(d, dict) for d in optim_conf):
         optimizers, monitor, lr_schedulers, should_increment = [], [], [], []
+        
+        # DO NOT SUBMIT add a test for this case first that breaks
+        # If the user populated some `should_increment` but not all, the rest is assumed as `False`
+        # if (
+        #     any("should_increment" in optim_dict for optim_dict in optim_conf) and not
+        #     all("should_increment" in optim_dict for optim_dict in optim_conf)
+        # ):
+        #     for optim_dict in optim_conf:
+        #         optim_dict["should_increment"] = optim_dict.get("should_increment", False)
+            
         for optim_dict in optim_conf:
             opt, mon, lr_sch, incr = _handle_single_dict(optim_dict)
             optimizers.extend(opt)
