@@ -185,7 +185,8 @@ def _run_multiple_stages(trainer, model, model_path: Optional[str] = None):
     trainer.save_checkpoint(model_path.with_name("after-test"))
     trainer.save_checkpoint(model_path, weights_only=True)
 
-    _assert_save_equality(trainer, model_path, cls=model.__class__)
+    if not model_path.is_dir():  # TODO (@awaelchli): Add support for asserting equality of sharded checkpoints
+        _assert_save_equality(trainer, model_path, cls=model.__class__)
 
     with torch.inference_mode():
         # Test entry point
@@ -277,13 +278,14 @@ def test_fsdp_modules_without_parameters(tmp_path):
     trainer.fit(model)
 
 
-@RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True)
 @pytest.mark.parametrize("precision", ["16-mixed", pytest.param("bf16-mixed", marks=RunIf(bf16_cuda=True))])
-def test_fsdp_strategy_checkpoint(tmpdir, precision):
+@pytest.mark.parametrize("state_dict_type", ("sharded", "full"))
+def test_fsdp_strategy_checkpoint(state_dict_type, precision, tmpdir):
     """Test to ensure that checkpoint is saved correctly when using a single GPU, and all stages can be run."""
     model = TestFSDPModel()
+    strategy = FSDPStrategy(state_dict_type=state_dict_type)
     trainer = Trainer(
-        default_root_dir=tmpdir, accelerator="gpu", devices=2, strategy="fsdp", precision=precision, max_epochs=1
+        default_root_dir=tmpdir, accelerator="gpu", devices=2, strategy=strategy, precision=precision, max_epochs=1
     )
     _run_multiple_stages(trainer, model, os.path.join(tmpdir, "last.ckpt"))
 
@@ -395,34 +397,6 @@ def test_fsdp_checkpoint_multi_gpus(tmpdir, model, strategy, strategy_cfg):
         callbacks=[ck],
     )
     _run_multiple_stages(trainer, model)
-
-
-@RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True)
-@pytest.mark.parametrize("state_dict_type", ["full", "sharded"])
-def test_checkpoint_weights_only(tmpdir, state_dict_type):
-    """Test to ensure that full and sharded state dicts are saved correctly if checkpointing weights only."""
-
-    ck = ModelCheckpoint(save_last=True, dirpath=tmpdir, save_weights_only=True)
-
-    strategy = FSDPStrategy(state_dict_type=state_dict_type)
-
-    model = TestFSDPModel()
-
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        accelerator="gpu",
-        devices=2,
-        strategy=strategy,
-        precision="16-mixed",
-        max_epochs=1,
-        limit_train_batches=2,
-        limit_val_batches=2,
-        limit_test_batches=2,
-        limit_predict_batches=2,
-        callbacks=[ck],
-    )
-
-    trainer.fit(model)
 
 
 @RunIf(min_cuda_gpus=1, skip_windows=True, standalone=True)
