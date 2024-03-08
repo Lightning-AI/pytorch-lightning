@@ -278,6 +278,7 @@ def test_fsdp_modules_without_parameters(tmp_path):
     trainer.fit(model)
 
 
+@RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True)
 @pytest.mark.parametrize("precision", ["16-mixed", pytest.param("bf16-mixed", marks=RunIf(bf16_cuda=True))])
 @pytest.mark.parametrize("state_dict_type", ["sharded", "full"])
 def test_fsdp_strategy_checkpoint(state_dict_type, precision, tmpdir):
