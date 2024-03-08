@@ -2048,6 +2048,21 @@ def test_trainer_calls_strategy_on_exception(exception_type):
     on_exception_mock.assert_called_once_with(exception)
 
 
+@pytest.mark.parametrize("exception_type", [KeyboardInterrupt, RuntimeError])
+def test_trainer_calls_datamodule_on_exception(exception_type):
+    """Test that when an exception occurs, the Trainer lets the data module process it."""
+    exception = exception_type("Test exception")
+
+    class ExceptionModel(BoringModel):
+        def on_fit_start(self):
+            raise exception
+
+    trainer = Trainer()
+    with mock.patch("lightning.pytorch.LightningDataModule.on_exception") as on_exception_mock, suppress(Exception):
+        trainer.fit(ExceptionModel(), datamodule=LightningDataModule())
+    on_exception_mock.assert_called_once_with(exception)
+
+
 def test_init_module_context(monkeypatch):
     """Test that the strategy returns the context manager for initializing the module."""
     trainer = Trainer(accelerator="cpu", devices=1)
