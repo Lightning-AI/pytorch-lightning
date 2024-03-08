@@ -112,8 +112,8 @@ How-to Guides
     :height: 180
 
 .. displayitem::
-    :header: Run on an on-prem cluster
-    :description: Learn to run on your own cluster
+    :header: Run on a multi-node cluster
+    :description: Learn to run on multi-node in the cloud or on your cluster
     :button_link: ../clouds/cluster.html
     :col_css: col-md-4
     :height: 180

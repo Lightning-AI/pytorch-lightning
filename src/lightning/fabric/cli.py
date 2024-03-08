@@ -19,14 +19,17 @@ import sys
 from argparse import Namespace
 from typing import Any, List, Optional
 
+import torch
 from lightning_utilities.core.imports import RequirementCache
 from typing_extensions import get_args
 
 from lightning.fabric.accelerators import CPUAccelerator, CUDAAccelerator, MPSAccelerator
 from lightning.fabric.plugins.precision.precision import _PRECISION_INPUT_STR, _PRECISION_INPUT_STR_ALIAS
 from lightning.fabric.strategies import STRATEGY_REGISTRY
+from lightning.fabric.utilities.consolidate_checkpoint import _process_cli_args
 from lightning.fabric.utilities.device_parser import _parse_gpu_ids
 from lightning.fabric.utilities.distributed import _suggested_max_num_threads
+from lightning.fabric.utilities.load import _load_distributed_checkpoint
 
 _log = logging.getLogger(__name__)
 
@@ -153,6 +156,37 @@ if _CLICK_AVAILABLE:
         """
         script_args = list(kwargs.pop("script_args", []))
         main(args=Namespace(**kwargs), script_args=script_args)
+
+    @_main.command(
+        "consolidate",
+        context_settings={
+            "ignore_unknown_options": True,
+        },
+    )
+    @click.argument(
+        "checkpoint_folder",
+        type=click.Path(exists=True),
+    )
+    @click.option(
+        "--output_file",
+        type=click.Path(exists=True),
+        default=None,
+        help=(
+            "Path to the file where the converted checkpoint should be saved. The file should not already exist."
+            " If no path is provided, the file will be saved next to the input checkpoint folder with the same name"
+            " and a '.consolidated' suffix."
+        ),
+    )
+    def _consolidate(checkpoint_folder: str, output_file: Optional[str]) -> None:
+        """Convert a distributed/sharded checkpoint into a single file that can be loaded with `torch.load()`.
+
+        Only supports FSDP sharded checkpoints at the moment.
+
+        """
+        args = Namespace(checkpoint_folder=checkpoint_folder, output_file=output_file)
+        config = _process_cli_args(args)
+        checkpoint = _load_distributed_checkpoint(config.checkpoint_folder)
+        torch.save(checkpoint, config.output_file)
 
 
 def _set_env_variables(args: Namespace) -> None:
