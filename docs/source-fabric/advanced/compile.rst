@@ -3,7 +3,7 @@ Speed up models by compiling them
 #################################
 
 Compiling your PyTorch model can result in significant speedups, especially on the latest generations of GPUs.
-This guide shows you how to apply ``torch.compile`` correctly in your code.
+This guide shows you how to apply `torch.compile <https://pytorch.org/docs/2.2/generated/torch.compile.html>`_ correctly in your code.
 
 .. note::
 
@@ -223,6 +223,9 @@ On PyTorch 2.2 and later, ``torch.compile`` will detect dynamism automatically a
     Numbers produced with NVIDIA A100 SXM4 40GB, PyTorch 2.2.0, CUDA 12.1.
 
 
+If you still see recompilation issues after dealing with the aforementioned cases, there is a `Compile Profiler in PyTorch <https://pytorch.org/docs/stable/torch.compiler_troubleshooting.html#excessive-recompilation>`_ for further investigation.
+
+
 ----
 
 
@@ -300,5 +303,19 @@ However, should you have issues compiling DDP and FSDP models, you can opt out o
     # Turn it off if you see issues with DDP/FSDP
     model = fabric.setup(model, _reapply_compile=False)
 
+
+----
+
+
+********************
+Additional Resources
+********************
+
+Here are a few resources for further reading after you complete this tutorial:
+
+- `PyTorch 2.0 Paper <https://pytorch.org/blog/pytorch-2-paper-tutorial/>`_
+- `GenAI with PyTorch 2.0 blog post series <https://pytorch.org/blog/accelerating-generative-ai-4/>`_
+- `Training Production AI Models with PyTorch 2.0 <https://pytorch.org/blog/training-production-ai-models/>`_
+- `Empowering Models with Performance: The Art of Generalized Model Transformation Approach <https://pytorch.org/blog/empowering-models-performance/>`_
 
 |
