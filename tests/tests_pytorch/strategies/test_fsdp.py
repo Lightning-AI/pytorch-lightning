@@ -279,7 +279,7 @@ def test_fsdp_modules_without_parameters(tmp_path):
 
 
 @pytest.mark.parametrize("precision", ["16-mixed", pytest.param("bf16-mixed", marks=RunIf(bf16_cuda=True))])
-@pytest.mark.parametrize("state_dict_type", ("sharded", "full"))
+@pytest.mark.parametrize("state_dict_type", ["sharded", "full"])
 def test_fsdp_strategy_checkpoint(state_dict_type, precision, tmpdir):
     """Test to ensure that checkpoint is saved correctly when using a single GPU, and all stages can be run."""
     model = TestFSDPModel()
