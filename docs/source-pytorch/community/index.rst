@@ -36,7 +36,7 @@ Community
    :height: 100
 
 .. displayitem::
-   :header: How to Become a core contributor
+   :header: How to become a core contributor
    :description: Steps to be a core contributor
    :col_css: col-md-12
    :button_link: ../generated/BECOMING_A_CORE_CONTRIBUTOR.html
