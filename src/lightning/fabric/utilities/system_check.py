@@ -1,15 +1,15 @@
-import os
 import logging
+import os
 import shutil
 import subprocess
+import time
 from datetime import timedelta
 from pathlib import Path
+
+import torch
 import torch.distributed as dist
 import torch.multiprocessing as mp
-import torch
-import time
 from lightning_utilities.core.imports import RequirementCache
-
 
 _psutil_available = RequirementCache("psutil")
 _logger = logging.getLogger(__name__)
@@ -30,19 +30,19 @@ def main(timeout: int = 60) -> None:
     if num_cuda_devices > 1:
         _describe_nvidia_smi()
         _describe_gpu_connectivity()
-        
+
         success = _check_cuda_distributed(timeout)
-        
+
         if not success:
             _print0(
                 f"The multi-GPU NCCL test did not finish within {timeout} seconds."
                 " It looks like there is an issue with your multi-GPU setup."
                 " Now trying to run again with `NCCL_P2P_DISABLE=1` set."
-            ) 
+            )
             os.environ["NCCL_P2P_DISABLE"] = "1"
             success = _check_cuda_distributed(timeout)
             if not success:
-                _print0(f"Disabling peer-to-peer transport did not fix the issue.")
+                _print0("Disabling peer-to-peer transport did not fix the issue.")
         else:
             _print0("Multi-GPU test successful.")
 
@@ -90,7 +90,7 @@ def _run_all_reduce_test(local_rank: int, world_size: int) -> None:
         backend="nccl",
         world_size=world_size,
         rank=local_rank,
-        # NCCL gets initialized in the first collective call (e.g., barrier below), 
+        # NCCL gets initialized in the first collective call (e.g., barrier below),
         # which must be successful for this timeout to work.
         timeout=timedelta(seconds=10),
     )
@@ -162,5 +162,5 @@ def _kill_process(pid: int) -> None:
         pass
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

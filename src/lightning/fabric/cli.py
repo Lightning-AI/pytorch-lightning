@@ -26,11 +26,11 @@ from typing_extensions import get_args
 from lightning.fabric.accelerators import CPUAccelerator, CUDAAccelerator, MPSAccelerator
 from lightning.fabric.plugins.precision.precision import _PRECISION_INPUT_STR, _PRECISION_INPUT_STR_ALIAS
 from lightning.fabric.strategies import STRATEGY_REGISTRY
+from lightning.fabric.utilities import system_check
 from lightning.fabric.utilities.consolidate_checkpoint import _process_cli_args
 from lightning.fabric.utilities.device_parser import _parse_gpu_ids
 from lightning.fabric.utilities.distributed import _suggested_max_num_threads
 from lightning.fabric.utilities.load import _load_distributed_checkpoint
-from lightning.fabric.utilities import system_check
 
 _log = logging.getLogger(__name__)
 
