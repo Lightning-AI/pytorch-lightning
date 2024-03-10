@@ -20,7 +20,7 @@ from datetime import timedelta
 from pathlib import Path
 
 import torch
-import torch.distributed as dist
+import torch.distributed
 import torch.multiprocessing as mp
 from lightning_utilities.core.imports import RequirementCache
 
@@ -99,7 +99,7 @@ def _run_all_reduce_test(local_rank: int, world_size: int) -> None:
     torch.cuda.set_device(local_rank)
 
     _print0("Setting up the process group ...")
-    dist.init_process_group(
+    torch.distributed.init_process_group(
         backend="nccl",
         world_size=world_size,
         rank=local_rank,
@@ -108,16 +108,12 @@ def _run_all_reduce_test(local_rank: int, world_size: int) -> None:
         timeout=timedelta(seconds=10),
     )
 
-    # TODO: remove
-    # if local_rank > 0:
-    #     return
-
     _print0("Synchronizing GPUs ... ")
-    dist.barrier()
+    torch.distributed.barrier()
 
     payload = torch.rand(100, 100, device=device)
     _print0("Running all-reduce test ...")
-    dist.all_reduce(payload)
+    torch.distributed.all_reduce(payload)
 
 
 def _setup_logging() -> None:
