@@ -9,8 +9,12 @@ import torch.distributed as dist
 import torch.multiprocessing as mp
 import torch
 import time
+from lightning_utilities.core.imports import RequirementCache
 
-SYSTEM_CHECK_DIR = Path("./system_check")
+
+_psutil_available = RequirementCache("psutil")
+_logger = logging.getLogger(__name__)
+_system_check_dir = Path("./system_check")
 
 
 def main(timeout: int = 60) -> None:
@@ -40,23 +44,24 @@ def main(timeout: int = 60) -> None:
             os.environ["NCCL_P2P_DISABLE"] = "1"
             success = _check_cuda_distributed(timeout)
             if not success:
-                print(
-                    f"Disabling peer-to-peer transport did not fix the issue."
-                )
+                print(f"Disabling peer-to-peer transport did not fix the issue.")
         else:
             print("Multi-GPU test successful.")
 
-        print(f"Find detailed logs at {SYSTEM_CHECK_DIR.absolute()}")
+        print(f"Find detailed logs at {_system_check_dir.absolute()}")
 
 
 def _check_cuda_distributed(timeout: int) -> bool:
+    if not _psutil_available:
+        raise ModuleNotFoundError(str(_psutil_available))
+
     num_cuda_devices = torch.cuda.device_count()
     context = mp.spawn(
-            _run_all_reduce_test,
-            nprocs=num_cuda_devices,
-            args=(num_cuda_devices,),
-            join=False,
-        )
+        _run_all_reduce_test,
+        nprocs=num_cuda_devices,
+        args=(num_cuda_devices,),
+        join=False,
+    )
 
     start = time.time()
     success = False
@@ -77,7 +82,7 @@ def _run_all_reduce_test(local_rank: int, world_size: int) -> None:
     os.environ["RANK"] = str(local_rank)
     os.environ["LOCAL_RANK"] = str(local_rank)
     os.environ["NCCL_DEBUG"] = "INFO"
-    os.environ["NCCL_DEBUG_FILE"] = str(SYSTEM_CHECK_DIR / f"nccl-rank-{local_rank}.txt")
+    os.environ["NCCL_DEBUG_FILE"] = str(_system_check_dir / f"nccl-rank-{local_rank}.txt")
 
     device = torch.device("cuda", local_rank)
     torch.cuda.set_device(local_rank)
@@ -108,20 +113,22 @@ def _run_all_reduce_test(local_rank: int, world_size: int) -> None:
 
 
 def _setup_logging() -> None:
-    if SYSTEM_CHECK_DIR.is_dir():
-        shutil.rmtree(SYSTEM_CHECK_DIR)
-    SYSTEM_CHECK_DIR.mkdir()
+    if _system_check_dir.is_dir():
+        shutil.rmtree(_system_check_dir)
+    _system_check_dir.mkdir()
 
-    logger = logging.getLogger()
-    logger.setLevel(logging.INFO)
-    file_handler = logging.FileHandler(str(SYSTEM_CHECK_DIR / "logs.txt"))
+    _logger.setLevel(logging.INFO)
+    file_handler = logging.FileHandler(str(_system_check_dir / "logs.txt"))
     file_handler.setLevel(logging.INFO)
-    logger.addHandler(file_handler)
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(logging.INFO)
+    _logger.addHandler(file_handler)
+    _logger.addHandler(console_handler)
 
 
 def _print0(string: str, **kwargs: Any) -> None:
     if int(os.getenv("RANK", 0)) == 0:
-        print(string, **kwargs)
+        _logger.info(string, **kwargs)
 
 
 def _collect_nvidia_smi_topo() -> str:
@@ -132,22 +139,34 @@ def _collect_nvidia_smi() -> str:
     return subprocess.run(["nvidia-smi"], capture_output=True, text=True).stdout
 
 
+# def _collect_nvidia_driver_version() -> str:
+#     result = subprocess.run(
+#         [
+#             "nvidia-smi", 
+#             "--query-gpu=driver_version", 
+#             "--id=0",
+#             "--format=csv,noheader",
+#         ], 
+#         capture_output=True, 
+#         text=True,
+#     )
+#     return result.stdout
+
+
 def _describe_nvidia_smi() -> None:
-    logger = logging.getLogger()
-    logger.info(
+    _logger.info(
         "Below is the output of `nvidia-smi`. It shows information about the GPUs that are installed on this machine,"
         " the driver version, and the maximum supported CUDA version it can run.\n"
     )
-    logger.info(_collect_nvidia_smi())
+    _logger.info(_collect_nvidia_smi())
 
 
 def _describe_gpu_connectivity() -> None:
-    logger = logging.getLogger()
-    logger.info(
+    _logger.info(
         "The matrix below shows how the GPUs in this machine are connected."
         " NVLink (NV) is the fastest connection, and is only available on high-end systems like V100 or A100.\n"
     )
-    logger.info(_collect_nvidia_smi_topo())
+    _logger.info(_collect_nvidia_smi_topo())
 
 
 def _kill_process(pid: int) -> None:
