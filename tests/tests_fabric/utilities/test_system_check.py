@@ -2,7 +2,6 @@ import os
 from unittest import mock
 
 import torch
-
 from lightning.fabric.utilities.system_check import _run_all_reduce_test
 
 
