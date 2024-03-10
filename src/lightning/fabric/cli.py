@@ -190,7 +190,7 @@ if _CLICK_AVAILABLE:
         torch.save(checkpoint, config.output_file)
 
     @_main.command("system-check")
-    def _system_check():
+    def _system_check() -> None:
         """Run a system check to test your multi-GPU setup."""
         system_check.main()
 
