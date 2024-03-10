@@ -29,30 +29,48 @@ def main(timeout: int = 60) -> None:
         _describe_nvidia_smi()
         _describe_gpu_connectivity()
         
-        context = mp.spawn(
-            _check_cuda_distributed,
+        success = _check_cuda_distributed(timeout)
+        
+        if not success:
+            print(
+                f"The multi-GPU NCCL test did not finish within {timeout} seconds."
+                " It looks like there is an issue with your multi-GPU setup."
+                " Now trying to run again with `NCCL_P2P_DISABLE=1` set."
+            ) 
+            os.environ["NCCL_P2P_DISABLE"] = "1"
+            success = _check_cuda_distributed(timeout)
+            if not success:
+                print(
+                    f"Disabling peer-to-peer transport did not fix the issue."
+                )
+        else:
+            print("Multi-GPU test successful.")
+
+        print(f"Find detailed logs at {SYSTEM_CHECK_DIR.absolute()}")
+
+
+def _check_cuda_distributed(timeout: int) -> bool:
+    num_cuda_devices = torch.cuda.device_count()
+    context = mp.spawn(
+            _run_all_reduce_test,
             nprocs=num_cuda_devices,
             args=(num_cuda_devices,),
             join=False,
         )
 
-        start = time.time()
-        joined = False
-        while not joined and (time.time() - start < timeout):
-            joined = context.join(timeout=5)
-            time.sleep(1)
+    start = time.time()
+    success = False
+    while not success and (time.time() - start < timeout):
+        success = context.join(timeout=5)
+        time.sleep(1)
 
-        if not joined:
-            for pid in context.pids():
-                _kill_process(pid)
-            print("not successful")  # TODO
-
-        # TODO: relative dir
-        relative_dir = SYSTEM_CHECK_DIR.relative_to(Path.cwd())
-        print(f"Find detailed logs at {relative_dir}")
+    if not success:
+        for pid in context.pids():
+            _kill_process(pid)
+    return success
 
 
-def _check_cuda_distributed(local_rank: int, world_size: int) -> None:
+def _run_all_reduce_test(local_rank: int, world_size: int) -> None:
     os.environ["MASTER_ADDR"] = "localhost"
     os.environ["MASTER_PORT"] = "29500"
     os.environ["WORLD_SIZE"] = str(world_size)
@@ -76,19 +94,17 @@ def _check_cuda_distributed(local_rank: int, world_size: int) -> None:
     _print0("done.")
 
     # TODO: remove
-    # if local_rank > 0:
-    #     return
+    if local_rank > 0:
+        return
     
-    _print0(
-        "Synchronizing GPUs. If the program hangs for more than 30 seconds, there is a problem with your"
-        " multi-GPU setup."
-    )
+    _print0("Synchronizing GPUs ... ", end="")
     dist.barrier()
+    _print0("done.")
 
     payload = torch.rand(100, 100, device=device)
     _print0("Running all-reduce test ... ", end="")
     dist.all_reduce(payload)
-    _print0("Done.")
+    _print0("done.")
 
 
 def _setup_logging() -> None:
@@ -103,9 +119,9 @@ def _setup_logging() -> None:
     logger.addHandler(file_handler)
 
 
-def _print0(*args: Any, **kwargs: Any) -> None:
+def _print0(string: str, **kwargs: Any) -> None:
     if int(os.getenv("RANK", 0)) == 0:
-        print(*args, **kwargs)
+        print(string, **kwargs)
 
 
 def _collect_nvidia_smi_topo() -> str:
