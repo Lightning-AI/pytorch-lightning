@@ -30,6 +30,7 @@ from lightning.fabric.utilities.consolidate_checkpoint import _process_cli_args
 from lightning.fabric.utilities.device_parser import _parse_gpu_ids
 from lightning.fabric.utilities.distributed import _suggested_max_num_threads
 from lightning.fabric.utilities.load import _load_distributed_checkpoint
+from lightning.fabric.utilities import system_check
 
 _log = logging.getLogger(__name__)
 
@@ -187,6 +188,11 @@ if _CLICK_AVAILABLE:
         config = _process_cli_args(args)
         checkpoint = _load_distributed_checkpoint(config.checkpoint_folder)
         torch.save(checkpoint, config.output_file)
+
+    @_main.command("system-check")
+    def _system_check():
+        """Run a system check to test your multi-GPU setup."""
+        system_check.main()
 
 
 def _set_env_variables(args: Namespace) -> None:

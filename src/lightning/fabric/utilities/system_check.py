@@ -4,12 +4,10 @@ import shutil
 import subprocess
 from datetime import timedelta
 from pathlib import Path
-from typing import Any
 import torch.distributed as dist
 import torch.multiprocessing as mp
 import torch
 import time
-import pkg_resources
 from lightning_utilities.core.imports import RequirementCache
 
 
@@ -20,11 +18,9 @@ _system_check_dir = Path("./system_check")
 
 def main(timeout: int = 60) -> None:
     _setup_logging()
-    _collect_packages()
-    
+
     num_cuda_devices = torch.cuda.device_count()
 
-    
     if num_cuda_devices == 0:
         _print0("Warning: Skipping system check because no GPUs were detected.")
 
@@ -123,6 +119,7 @@ def _setup_logging() -> None:
     console_handler.setLevel(logging.INFO)
     _logger.addHandler(file_handler)
     _logger.addHandler(console_handler)
+    _logger.propagate = False
 
 
 def _print0(string: str) -> None:
@@ -163,20 +160,6 @@ def _kill_process(pid: int) -> None:
             process.kill()
     except (psutil.NoSuchProcess, psutil.AccessDenied):
         pass
-
-
-def _collect_packages() -> None:
-    packages = {}
-    for dist in pkg_resources.working_set:
-        package = dist.as_requirement()
-        packages[package.key] = package.specs[0][1]
-    
-    longest = max(len(p) for p in packages)
-    with open(_system_check_dir / "packages.txt", "w") as file:
-        for name in sorted(packages.keys()):
-            version = packages[name]
-            pad = " " * (longest - len(name))
-            file.write(f"{name}{pad}  {version}\n")
 
 
 if __name__ == '__main__':
