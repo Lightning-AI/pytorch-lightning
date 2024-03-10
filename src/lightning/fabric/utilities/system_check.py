@@ -48,7 +48,8 @@ def main(timeout: int = 60) -> None:
             print("not successful")  # TODO
 
         # TODO: relative dir
-        print(f"Find detailed logs at {SYSTEM_CHECK_DIR}")
+        relative_dir = SYSTEM_CHECK_DIR.relative_to(Path.cwd())
+        print(f"Find detailed logs at {relative_dir}")
 
 
 def _check_cuda_distributed(local_rank: int, world_size: int) -> None:
