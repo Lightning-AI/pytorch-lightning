@@ -1,4 +1,6 @@
 import os
+import logging
+import shutil
 import subprocess
 from datetime import timedelta
 from functools import lru_cache
@@ -9,8 +11,12 @@ import torch.multiprocessing as mp
 
 import torch
 
+system_check_dir = Path("./system_check")
+
 
 def main():
+    setup_logging()
+    
     # if not dist.is_available():
     #     raise RuntimeError("Requires PyTorch distributed to be available.")
 
@@ -33,9 +39,8 @@ def _check_cuda_distributed(local_rank: int) -> None:
     os.environ["WORLD_SIZE"] = str(num_cuda_devices())
     os.environ["RANK"] = str(local_rank)
     os.environ["LOCAL_RANK"] = str(local_rank)
-
-    system_check_dir = Path("./.system_check")
-    system_check_dir.mkdir(exist_ok=True)
+    os.environ["NCCL_DEBUG"] = "INFO"
+    os.environ["NCCL_DEBUG_FILE"] = str(system_check_dir / f"nccl-rank-{local_rank}.txt")
 
     dist.init_process_group(
         backend="nccl",
@@ -50,6 +55,18 @@ def _check_cuda_distributed(local_rank: int) -> None:
     dist.barrier()
     payload = torch.rand(100, 100, device=device)
     dist.all_reduce(payload)
+
+
+def setup_logging() -> None:
+    if system_check_dir.is_dir():
+        shutil.rmtree(system_check_dir)
+    system_check_dir.mkdir()
+
+    logger = logging.getLogger()
+    logger.setLevel(logging.INFO)
+    file_handler = logging.FileHandler(str(system_check_dir / "logs.txt"))
+    file_handler.setLevel(logging.INFO)
+    logger.addHandler(file_handler)
 
 
 @lru_cache()
@@ -95,21 +112,21 @@ def collect_nvidia_smi() -> str:
 
 
 def describe_nvidia_smi():
-    print(
+    logger = logging.getLogger()
+    logger.info(
         "Below is the output of `nvidia-smi`. It shows information about the GPUs that are installed on this machine,"
-        " the driver version, and the maximum supported CUDA version it can run."
+        " the driver version, and the maximum supported CUDA version it can run.\n"
     )
-    print()
-    print(collect_nvidia_smi())
+    logger.info(collect_nvidia_smi())
 
 
 def describe_gpu_connectivity():
-    print(
+    logger = logging.getLogger()
+    logger.info(
         "The matrix below shows how the GPUs in this machine are connected."
-        " NVLink (NV) is the fastest connection, and is only available on high-end systems like V100 or A100."
+        " NVLink (NV) is the fastest connection, and is only available on high-end systems like V100 or A100.\n"
     )
-    print()
-    print(collect_nvidia_smi_topo())
+    logger.info(collect_nvidia_smi_topo())
 
 
 if __name__ == '__main__':
