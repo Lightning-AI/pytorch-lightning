@@ -52,14 +52,13 @@ def _check_cuda_distributed(local_rank: int, world_size: int) -> None:
         # which must be successful for this timeout to work.
         timeout=timedelta(seconds=10),
     )
-    _print0("Done.")
+    _print0("done.")
     
     _print0(
-        "Synchronizing GPUs. If this step doesn't finish within 30 seconds, there is a problem with your"
+        "Synchronizing GPUs. If the program hangs for more than 30 seconds, there is a problem with your"
         " multi-GPU setup."
     )
     dist.barrier()
-    _print0("Done.")
 
     payload = torch.rand(100, 100, device=device)
     _print0("Running all-reduce test ... ", end="")
@@ -79,15 +78,8 @@ def _setup_logging() -> None:
     logger.addHandler(file_handler)
 
 
-@lru_cache()
-def _rank() -> int:
-    import torch.distributed as dist
-
-    return dist.get_rank()
-
-
 def _print0(*args: Any, **kwargs: Any) -> None:
-    if _rank() == 0:
+    if int(os.getenv("RANK", 0)) == 0:
         print(*args, **kwargs)
 
 
