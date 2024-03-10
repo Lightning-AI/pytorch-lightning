@@ -8,7 +8,6 @@ from pathlib import Path
 from typing import Any
 import torch.distributed as dist
 import torch.multiprocessing as mp
-
 import torch
 
 system_check_dir = Path("./system_check")
@@ -42,15 +41,17 @@ def _check_cuda_distributed(local_rank: int) -> None:
     os.environ["NCCL_DEBUG"] = "INFO"
     os.environ["NCCL_DEBUG_FILE"] = str(system_check_dir / f"nccl-rank-{local_rank}.txt")
 
+    device = torch.device("cuda", local_rank)
+    torch.cuda.set_device(local_rank)
+
     dist.init_process_group(
         backend="nccl",
         world_size=num_cuda_devices(),
         rank=local_rank,
-        timeout=timedelta(seconds=30),
+        # NCCL gets initialized in the first collective call (e.g., barrier below), 
+        # which must be successful for this timeout to work.
+        timeout=timedelta(seconds=10),
     )
-
-    device = torch.device("cuda", local_rank)
-    torch.cuda.set_device(local_rank)
 
     dist.barrier()
     payload = torch.rand(100, 100, device=device)
@@ -76,13 +77,6 @@ def rank() -> int:
     return dist.get_rank()
 
 
-@lru_cache()
-def world_size() -> int:
-    import torch.distributed as dist
-
-    return dist.get_world_size()
-
-
 def print0(*args: Any, **kwargs: Any) -> None:
     if rank() == 0:
         print(*args, **kwargs)
@@ -93,14 +87,6 @@ def num_cuda_devices() -> int:
     import torch
 
     return torch.cuda.device_count()
-
-
-def is_torch_available() -> bool:
-    try:
-        import torch  # noqa: F401
-    except (ImportError, ModuleNotFoundError):
-        return False
-    return True
 
 
 def collect_nvidia_smi_topo() -> str:
