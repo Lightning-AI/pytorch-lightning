@@ -3,17 +3,17 @@ import logging
 import shutil
 import subprocess
 from datetime import timedelta
-from functools import lru_cache
 from pathlib import Path
 from typing import Any
 import torch.distributed as dist
 import torch.multiprocessing as mp
 import torch
+import time
 
 SYSTEM_CHECK_DIR = Path("./system_check")
 
 
-def main() -> None:
+def main(timeout: int = 60) -> None:
     _setup_logging()
     num_cuda_devices = torch.cuda.device_count()
     
@@ -28,7 +28,27 @@ def main() -> None:
     if num_cuda_devices > 1:
         _describe_nvidia_smi()
         _describe_gpu_connectivity()
-        mp.spawn(_check_cuda_distributed, nprocs=num_cuda_devices, args=(num_cuda_devices,))
+        
+        context = mp.spawn(
+            _check_cuda_distributed,
+            nprocs=num_cuda_devices,
+            args=(num_cuda_devices,),
+            join=False,
+        )
+
+        start = time.time()
+        joined = False
+        while not joined and (time.time() - start < timeout):
+            joined = context.join(timeout=5)
+            time.sleep(1)
+
+        if not joined:
+            for pid in context.pids():
+                _kill_process(pid)
+            print("not successful")  # TODO
+
+        # TODO: relative dir
+        print(f"Find detailed logs at {SYSTEM_CHECK_DIR}")
 
 
 def _check_cuda_distributed(local_rank: int, world_size: int) -> None:
@@ -53,6 +73,10 @@ def _check_cuda_distributed(local_rank: int, world_size: int) -> None:
         timeout=timedelta(seconds=10),
     )
     _print0("done.")
+
+    # TODO: remove
+    # if local_rank > 0:
+    #     return
     
     _print0(
         "Synchronizing GPUs. If the program hangs for more than 30 seconds, there is a problem with your"
@@ -107,6 +131,19 @@ def _describe_gpu_connectivity() -> None:
         " NVLink (NV) is the fastest connection, and is only available on high-end systems like V100 or A100.\n"
     )
     logger.info(_collect_nvidia_smi_topo())
+
+
+def _kill_process(pid: int) -> None:
+    import psutil  # TODO
+
+    try:
+        process = psutil.Process(pid)
+        if process.is_running():
+            process.kill()
+    except psutil.NoSuchProcess:
+        pass
+    except psutil.AccessDenied:
+        pass
 
 
 if __name__ == '__main__':
