@@ -9,6 +9,7 @@ import torch.distributed as dist
 import torch.multiprocessing as mp
 import torch
 import time
+import pkg_resources
 from lightning_utilities.core.imports import RequirementCache
 
 
@@ -19,15 +20,16 @@ _system_check_dir = Path("./system_check")
 
 def main(timeout: int = 60) -> None:
     _setup_logging()
+    _collect_packages()
+    
     num_cuda_devices = torch.cuda.device_count()
+
     
     if num_cuda_devices == 0:
-        print("Warning: Skipping system check because no GPUs were detected.")
+        _print0("Warning: Skipping system check because no GPUs were detected.")
 
     if num_cuda_devices == 1:
-        # TODO
         _describe_nvidia_smi()
-        pass
 
     if num_cuda_devices > 1:
         _describe_nvidia_smi()
@@ -36,7 +38,7 @@ def main(timeout: int = 60) -> None:
         success = _check_cuda_distributed(timeout)
         
         if not success:
-            print(
+            _print0(
                 f"The multi-GPU NCCL test did not finish within {timeout} seconds."
                 " It looks like there is an issue with your multi-GPU setup."
                 " Now trying to run again with `NCCL_P2P_DISABLE=1` set."
@@ -44,11 +46,11 @@ def main(timeout: int = 60) -> None:
             os.environ["NCCL_P2P_DISABLE"] = "1"
             success = _check_cuda_distributed(timeout)
             if not success:
-                print(f"Disabling peer-to-peer transport did not fix the issue.")
+                _print0(f"Disabling peer-to-peer transport did not fix the issue.")
         else:
-            print("Multi-GPU test successful.")
+            _print0("Multi-GPU test successful.")
 
-        print(f"Find detailed logs at {_system_check_dir.absolute()}")
+    _print0(f"Find detailed logs at {_system_check_dir.absolute()}")
 
 
 def _check_cuda_distributed(timeout: int) -> bool:
@@ -87,7 +89,7 @@ def _run_all_reduce_test(local_rank: int, world_size: int) -> None:
     device = torch.device("cuda", local_rank)
     torch.cuda.set_device(local_rank)
 
-    _print0("Setting up the process group ... ", end="")
+    _print0("Setting up the process group ...")
     dist.init_process_group(
         backend="nccl",
         world_size=world_size,
@@ -96,20 +98,17 @@ def _run_all_reduce_test(local_rank: int, world_size: int) -> None:
         # which must be successful for this timeout to work.
         timeout=timedelta(seconds=10),
     )
-    _print0("done.")
 
-    # # TODO: remove
+    # TODO: remove
     # if local_rank > 0:
     #     return
-    
-    _print0("Synchronizing GPUs ... ", end="")
+
+    _print0("Synchronizing GPUs ... ")
     dist.barrier()
-    _print0("done.")
 
     payload = torch.rand(100, 100, device=device)
-    _print0("Running all-reduce test ... ", end="")
+    _print0("Running all-reduce test ...")
     dist.all_reduce(payload)
-    _print0("done.")
 
 
 def _setup_logging() -> None:
@@ -126,9 +125,9 @@ def _setup_logging() -> None:
     _logger.addHandler(console_handler)
 
 
-def _print0(string: str, **kwargs: Any) -> None:
+def _print0(string: str) -> None:
     if int(os.getenv("RANK", 0)) == 0:
-        _logger.info(string, **kwargs)
+        _logger.info(string)
 
 
 def _collect_nvidia_smi_topo() -> str:
@@ -137,20 +136,6 @@ def _collect_nvidia_smi_topo() -> str:
 
 def _collect_nvidia_smi() -> str:
     return subprocess.run(["nvidia-smi"], capture_output=True, text=True).stdout
-
-
-# def _collect_nvidia_driver_version() -> str:
-#     result = subprocess.run(
-#         [
-#             "nvidia-smi", 
-#             "--query-gpu=driver_version", 
-#             "--id=0",
-#             "--format=csv,noheader",
-#         ], 
-#         capture_output=True, 
-#         text=True,
-#     )
-#     return result.stdout
 
 
 def _describe_nvidia_smi() -> None:
@@ -164,22 +149,34 @@ def _describe_nvidia_smi() -> None:
 def _describe_gpu_connectivity() -> None:
     _logger.info(
         "The matrix below shows how the GPUs in this machine are connected."
-        " NVLink (NV) is the fastest connection, and is only available on high-end systems like V100 or A100.\n"
+        " NVLink (NV) is the fastest connection, and is only available on high-end systems like V100, A100, etc.\n"
     )
     _logger.info(_collect_nvidia_smi_topo())
 
 
 def _kill_process(pid: int) -> None:
-    import psutil  # TODO
+    import psutil
 
     try:
         process = psutil.Process(pid)
         if process.is_running():
             process.kill()
-    except psutil.NoSuchProcess:
+    except (psutil.NoSuchProcess, psutil.AccessDenied):
         pass
-    except psutil.AccessDenied:
-        pass
+
+
+def _collect_packages() -> None:
+    packages = {}
+    for dist in pkg_resources.working_set:
+        package = dist.as_requirement()
+        packages[package.key] = package.specs[0][1]
+    
+    longest = max(len(p) for p in packages)
+    with open(_system_check_dir / "packages.txt", "w") as file:
+        for name in sorted(packages.keys()):
+            version = packages[name]
+            pad = " " * (longest - len(name))
+            file.write(f"{name}{pad}  {version}\n")
 
 
 if __name__ == '__main__':
