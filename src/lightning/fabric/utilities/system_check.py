@@ -10,109 +10,111 @@ import torch.distributed as dist
 import torch.multiprocessing as mp
 import torch
 
-system_check_dir = Path("./system_check")
+SYSTEM_CHECK_DIR = Path("./system_check")
 
 
-def main():
-    setup_logging()
+def main() -> None:
+    _setup_logging()
+    num_cuda_devices = torch.cuda.device_count()
     
-    # if not dist.is_available():
-    #     raise RuntimeError("Requires PyTorch distributed to be available.")
+    if num_cuda_devices == 0:
+        print("Warning: Skipping system check because no GPUs were detected.")
 
-    if num_cuda_devices() == 0:
-        print0("Warning: Skipping system check because no GPUs were detected.")
-
-    if num_cuda_devices() == 1:
-        describe_nvidia_smi()
+    if num_cuda_devices == 1:
+        # TODO
+        _describe_nvidia_smi()
         pass
 
-    if num_cuda_devices() > 1:
-        describe_nvidia_smi()
-        describe_gpu_connectivity()
-        mp.spawn(_check_cuda_distributed, nprocs=num_cuda_devices())
+    if num_cuda_devices > 1:
+        _describe_nvidia_smi()
+        _describe_gpu_connectivity()
+        mp.spawn(_check_cuda_distributed, nprocs=num_cuda_devices, args=(num_cuda_devices,))
 
 
-def _check_cuda_distributed(local_rank: int) -> None:
+def _check_cuda_distributed(local_rank: int, world_size: int) -> None:
     os.environ["MASTER_ADDR"] = "localhost"
     os.environ["MASTER_PORT"] = "29500"
-    os.environ["WORLD_SIZE"] = str(num_cuda_devices())
+    os.environ["WORLD_SIZE"] = str(world_size)
     os.environ["RANK"] = str(local_rank)
     os.environ["LOCAL_RANK"] = str(local_rank)
     os.environ["NCCL_DEBUG"] = "INFO"
-    os.environ["NCCL_DEBUG_FILE"] = str(system_check_dir / f"nccl-rank-{local_rank}.txt")
+    os.environ["NCCL_DEBUG_FILE"] = str(SYSTEM_CHECK_DIR / f"nccl-rank-{local_rank}.txt")
 
     device = torch.device("cuda", local_rank)
     torch.cuda.set_device(local_rank)
 
+    _print0("Setting up the process group ... ", end="")
     dist.init_process_group(
         backend="nccl",
-        world_size=num_cuda_devices(),
+        world_size=world_size,
         rank=local_rank,
         # NCCL gets initialized in the first collective call (e.g., barrier below), 
         # which must be successful for this timeout to work.
         timeout=timedelta(seconds=10),
     )
-
+    _print0("Done.")
+    
+    _print0(
+        "Synchronizing GPUs. If this step doesn't finish within 30 seconds, there is a problem with your"
+        " multi-GPU setup."
+    )
     dist.barrier()
+    _print0("Done.")
+
     payload = torch.rand(100, 100, device=device)
+    _print0("Running all-reduce test ... ", end="")
     dist.all_reduce(payload)
+    _print0("Done.")
 
 
-def setup_logging() -> None:
-    if system_check_dir.is_dir():
-        shutil.rmtree(system_check_dir)
-    system_check_dir.mkdir()
+def _setup_logging() -> None:
+    if SYSTEM_CHECK_DIR.is_dir():
+        shutil.rmtree(SYSTEM_CHECK_DIR)
+    SYSTEM_CHECK_DIR.mkdir()
 
     logger = logging.getLogger()
     logger.setLevel(logging.INFO)
-    file_handler = logging.FileHandler(str(system_check_dir / "logs.txt"))
+    file_handler = logging.FileHandler(str(SYSTEM_CHECK_DIR / "logs.txt"))
     file_handler.setLevel(logging.INFO)
     logger.addHandler(file_handler)
 
 
 @lru_cache()
-def rank() -> int:
+def _rank() -> int:
     import torch.distributed as dist
 
     return dist.get_rank()
 
 
-def print0(*args: Any, **kwargs: Any) -> None:
-    if rank() == 0:
+def _print0(*args: Any, **kwargs: Any) -> None:
+    if _rank() == 0:
         print(*args, **kwargs)
 
 
-@lru_cache()
-def num_cuda_devices() -> int:
-    import torch
-
-    return torch.cuda.device_count()
-
-
-def collect_nvidia_smi_topo() -> str:
+def _collect_nvidia_smi_topo() -> str:
     return subprocess.run(["nvidia-smi", "topo", "-m"], capture_output=True, text=True).stdout
 
 
-def collect_nvidia_smi() -> str:
+def _collect_nvidia_smi() -> str:
     return subprocess.run(["nvidia-smi"], capture_output=True, text=True).stdout
 
 
-def describe_nvidia_smi():
+def _describe_nvidia_smi() -> None:
     logger = logging.getLogger()
     logger.info(
         "Below is the output of `nvidia-smi`. It shows information about the GPUs that are installed on this machine,"
         " the driver version, and the maximum supported CUDA version it can run.\n"
     )
-    logger.info(collect_nvidia_smi())
+    logger.info(_collect_nvidia_smi())
 
 
-def describe_gpu_connectivity():
+def _describe_gpu_connectivity() -> None:
     logger = logging.getLogger()
     logger.info(
         "The matrix below shows how the GPUs in this machine are connected."
         " NVLink (NV) is the fastest connection, and is only available on high-end systems like V100 or A100.\n"
     )
-    logger.info(collect_nvidia_smi_topo())
+    logger.info(_collect_nvidia_smi_topo())
 
 
 if __name__ == '__main__':
