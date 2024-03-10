@@ -93,9 +93,9 @@ def _run_all_reduce_test(local_rank: int, world_size: int) -> None:
     )
     _print0("done.")
 
-    # TODO: remove
-    if local_rank > 0:
-        return
+    # # TODO: remove
+    # if local_rank > 0:
+    #     return
     
     _print0("Synchronizing GPUs ... ", end="")
     dist.barrier()
