@@ -189,9 +189,9 @@ if _CLICK_AVAILABLE:
         checkpoint = _load_distributed_checkpoint(config.checkpoint_folder)
         torch.save(checkpoint, config.output_file)
 
-    @_main.command("system-check")
-    def _system_check() -> None:
-        """Run a system check to test your multi-GPU setup."""
+    @_main.command("diagnose")
+    def _diagnose() -> None:
+        """Diagnose issues with your multi-GPU setup."""
         system_check.main()
 
 
