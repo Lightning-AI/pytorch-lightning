@@ -28,7 +28,7 @@ jobs:
       - name: Keep artifact
         id: keep-artifact
         run: python -c "print('DAYS=' + str(5 if '${{ github.event_name }}'.startswith('pull_request') else 0))" >> $GITHUB_OUTPUT
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: ${{ inputs.artifact-name }}
           path: dist
@@ -62,7 +62,7 @@ jobs:
           mkdir pypi/${{ matrix.pkg-name }}
           cp dist/* pypi/${{ matrix.pkg-name }}/
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: ${{ inputs.artifact-name }}
           path: pypi
