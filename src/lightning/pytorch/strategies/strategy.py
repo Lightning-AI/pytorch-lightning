@@ -114,7 +114,7 @@ class Strategy(ABC):
         if self._which_optimizers_should_increment:
             for opt, incr in zip(self._lightning_optimizers, self._which_optimizers_should_increment):
                 opt._should_increment = incr
-        
+
         # Default case
         else:
             for opt in self._lightning_optimizers:
