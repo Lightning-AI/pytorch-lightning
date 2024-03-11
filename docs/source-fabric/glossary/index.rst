@@ -153,7 +153,7 @@ Glossary
 
 .. displayitem::
     :header: NCCL
-    :button_link: ../guide/troubleshoot.html
+    :button_link: ../guide/troubleshooting.html
     :col_css: col-md-4
 
 .. displayitem::
