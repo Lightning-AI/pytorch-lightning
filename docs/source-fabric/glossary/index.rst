@@ -8,6 +8,7 @@ Glossary
 
    Checkpoint <../guide/checkpoint/index>
    Weights and Biases <../guide/loggers/wandb>
+   Troubleshooting <../guide/troubleshooting>
 
 
 .. raw:: html
@@ -148,6 +149,11 @@ Glossary
 .. displayitem::
     :header: Multi-Node
     :button_link: ../fundamentals/launch.html
+    :col_css: col-md-4
+
+.. displayitem::
+    :header: NCCL
+    :button_link: ../guide/troubleshoot.html
     :col_css: col-md-4
 
 .. displayitem::
