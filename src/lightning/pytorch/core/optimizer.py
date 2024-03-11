@@ -162,13 +162,11 @@ class LightningOptimizer:
         cls,
         optimizer: Union[Optimizer, "LightningOptimizer"],
         strategy: "pl.strategies.Strategy",
-        should_increment: Optional[bool] = None,
     ) -> "LightningOptimizer":
         # the user could return a `LightningOptimizer` from `configure_optimizers`, see test:
         # tests/core/test_lightning_optimizer.py::test_lightning_optimizer[False]
         lightning_optimizer = optimizer if isinstance(optimizer, LightningOptimizer) else cls(optimizer)
         lightning_optimizer._strategy = proxy(strategy)
-        lightning_optimizer_should_increment = should_increment
         return lightning_optimizer
 
     def __getattr__(self, item: Any) -> Any:
@@ -258,7 +256,8 @@ def _configure_optimizers(optim_conf: OptimizerLRScheduler) -> Tuple[List, List,
         for optim_dict in optim_conf:
             opt, lr_sch, mon, incr = _handle_single_dict(optim_dict)
             optimizers.extend(opt)
-            lr_schedulers.extend(lr_sch)
+            if lr_sch:
+                lr_schedulers.extend(lr_sch)
             # DO NOT SUBMIT update downstream code according to when multiple monitor values are optained
             if mon:
                 monitor.extend(mon)

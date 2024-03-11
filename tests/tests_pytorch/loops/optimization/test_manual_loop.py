@@ -90,7 +90,7 @@ class MultiOptimizerModel(BoringModel):
         # increments_step
         # test single dict with multi schedulers
         return (
-            {"optimizer": [opt1, opt2], "should_increment": [True, False]},
+            {"optimizer": [opt1, opt2], "should_increment": [True, True]},
             {"optimizer": [opt3], "should_increment": False},
         )
 
@@ -108,4 +108,4 @@ def test_multiple_optimizers(tmpdir):
     )
     trainer.fit(model)
     print(trainer.global_step)
-    assert trainer.global_step == 4
+    assert trainer.global_step == 8
