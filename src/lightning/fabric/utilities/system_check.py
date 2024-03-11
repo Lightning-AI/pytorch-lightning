@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 import logging
 import os
 import shutil
@@ -54,7 +55,10 @@ def main(timeout: int = 60) -> None:
             )
             os.environ["NCCL_P2P_DISABLE"] = "1"
             success = _check_cuda_distributed(timeout)
-            if not success:
+            if success:
+                _print0("Disabling peer-to-peer transport fixed the issue.")
+                # TODO: Give advice
+            else:
                 _print0("Disabling peer-to-peer transport did not fix the issue.")
         else:
             _print0("Multi-GPU test successful.")

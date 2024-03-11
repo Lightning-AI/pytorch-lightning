@@ -2,6 +2,8 @@
 Troubleshooting
 ###############
 
+Learn how to troubleshoot possible causes for common issues related to CUDA, NCCL, and distributed training.
+
 
 ----
 
@@ -10,21 +12,37 @@ Troubleshooting
 Multi-GPU
 *********
 
-
-**My program is stuck initializing at startup. What is causing this?**
-
-You are seeing a message like this in the logs, but nothing happens:
+If your program is stuck at
 
 .. code-block::
 
     Initializing distributed: GLOBAL_RANK: 0, MEMBER: 1/4
 
-The most likely reasons and how to fix it:
-
+it indicates that PyTorch can't set up the communication between GPUs, and that your system is not configured correctly.
+Run the `diagnose` command from the Fabric CLI to investigate:
 
 .. code-block:: bash
 
     fabric diagnose
+
+This tool will run basic multi-GPU tests using only PyTorch.
+Any issues raised here will confirm that the problem is with your system and not with Lightning.
+Common solutions:
+
+- **Wrong driver version:** The NVIDIA driver for your GPU is too old or too new.
+  You can check the version of the driver by running
+
+  .. code-block:: bash
+
+      nvidia-smi --id=0 --query-gpu=driver_version --format=csv,noheader
+
+  *Solution*: Install a recent driver.
+  Search online for instructions how to update the driver on your platform.
+
+- **Peer-to-peer connection is broken:** The GPUs can't communicate with each other.
+  *Solution*: Try to set the environment variable ``NCCL_P2P_DISABLE=1``.
+  If you rerun your scipt and it fixes the problem, this means that peer-to-peer transport is not working properly (your training will run but it will be slow).
+  This is likely because of driver compatibility issues (see above) or because your GPU does not support peer-to-peer (e.g., certain RTX cards).
 
 
 ----
@@ -34,16 +52,15 @@ The most likely reasons and how to fix it:
 Multi-node
 **********
 
-
-**My program is stuck initializing at startup. What is causing this?**
-
-You are seeing a message like this in the logs, but nothing happens:
+Before troubleshooting multi-node connectivity issues, first ensure that multi-GPU within a single machine is working correctly by following the steps above.
+If single-node execution works, but multi-node hangs at
 
 .. code-block::
 
     Initializing distributed: GLOBAL_RANK: 0, MEMBER: 1/4
 
-The most likely reasons and how to fix it:
+it indicates that there is a connection issue between the nodes.
+Common solutions:
 
 - **Wrong network interface:** Some servers have multiple network interfaces.
   There is usually only one that can send and receive traffic from the network of the other nodes, but sometimes it is not set as the default.
@@ -68,12 +85,3 @@ The most likely reasons and how to fix it:
       echo "net.ipv4.ip_local_port_range = 50000 51000" >> /etc/sysctl.conf
       sysctl --system
       ufw allow 50000:51000/tcp
-
-
-**My program crashes with an NCCL error, but it is not helpful**
-
-Launch your command by prepending ``NCCL_DEBUG=INFO`` to get more info.
-
-.. code-block:: bash
-
-    NCCL_DEBUG=INFO fabric run ...
