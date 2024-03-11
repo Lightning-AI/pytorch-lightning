@@ -14,6 +14,7 @@
 import os
 import pickle
 from unittest import mock
+from unittest.mock import patch
 
 import pytest
 import yaml
@@ -22,8 +23,11 @@ from lightning.pytorch.callbacks import ModelCheckpoint
 from lightning.pytorch.cli import LightningCLI
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.loggers import WandbLogger
+from lightning.pytorch.strategies import DeepSpeedStrategy
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning_utilities.test.warning import no_warning_call
+
+from tests_pytorch.helpers.runif import RunIf
 
 
 def test_wandb_project_name(wandb_mock):
@@ -578,3 +582,43 @@ def test_wandb_logger_cli_integration(log_model, expected, wandb_mock, monkeypat
 
     with mock.patch("sys.argv", ["any.py", "--config", config_path, wandb_cli_arg]):
         InspectParsedCLI(BoringModel, run=False, save_config_callback=None)
+
+
+@RunIf(deepspeed=True, min_cuda_gpus=1)
+def test_wandb_logger_deepspeed_checkpoint_logging(tmpdir, wandb_mock):
+    """Test that WandbLogger correctly logs DeepSpeed checkpoints."""
+    model = BoringModel()
+    wandb_logger = WandbLogger(project="test_project", log_model=True)
+    checkpoint_callback = ModelCheckpoint(dirpath=tmpdir, filename="model-{epoch:02d}", save_top_k=-1)
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        strategy=DeepSpeedStrategy(stage=2),
+        accelerator="gpu",
+        devices=1,
+        fast_dev_run=True,
+        logger=wandb_logger,
+        callbacks=[checkpoint_callback],
+    )
+
+    with patch("wandb.Artifact") as mock_artifact:
+        trainer.fit(model)
+
+        # Assuming the checkpoint is saved after the first epoch (fast_dev_run=True)
+        expected_checkpoint_name = "model-epoch=00.ckpt"
+        expected_metadata = {
+            "score": None,
+            "original_filename": expected_checkpoint_name,
+            "ModelCheckpoint": {
+                "monitor": None,
+                "mode": "min",
+                "save_last": None,
+                "save_top_k": -1,
+                "save_weights_only": False,
+                "_every_n_train_steps": 0,
+            },
+        }
+
+        mock_artifact.assert_called_once_with(
+            name=f"model-{trainer.logger.experiment.id}", type="model", metadata=expected_metadata
+        )
