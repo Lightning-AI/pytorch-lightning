@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import shutil
-from contextlib import ExitStack
+from contextlib import ExitStack, nullcontext
 from datetime import timedelta
 from functools import partial
 from pathlib import Path
@@ -768,9 +768,11 @@ def _setup_activation_checkpointing(module: Module, activation_checkpointing_kwa
 
 class _FSDPBackwardSyncControl(_BackwardSyncControl):
     @override
-    def no_backward_sync(self, module: Module) -> ContextManager:
+    def no_backward_sync(self, module: Module, enabled: bool) -> ContextManager:
         """Blocks gradient synchronization inside the :class:`~torch.distributed.fsdp.FullyShardedDataParallel`
         wrapper."""
+        if not enabled:
+            return nullcontext()
         from torch.distributed.fsdp.fully_sharded_data_parallel import FullyShardedDataParallel
 
         if not isinstance(module, FullyShardedDataParallel):

@@ -61,13 +61,15 @@ def test_ddp_no_backward_sync():
 
     with pytest.raises(
         TypeError, match="is only possible if the module passed to .* is wrapped in `DistributedDataParallel`"
-    ), strategy._backward_sync_control.no_backward_sync(Mock()):
+    ), strategy._backward_sync_control.no_backward_sync(Mock(), True):
         pass
 
     module = MagicMock(spec=DistributedDataParallel)
-    with strategy._backward_sync_control.no_backward_sync(module):
+    with strategy._backward_sync_control.no_backward_sync(module, False):
         pass
-
+    module.no_sync.assert_not_called()
+    with strategy._backward_sync_control.no_backward_sync(module, True):
+        pass
     module.no_sync.assert_called_once()
 
 
