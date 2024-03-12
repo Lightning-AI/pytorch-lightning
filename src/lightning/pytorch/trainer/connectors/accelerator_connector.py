@@ -408,13 +408,16 @@ class _AcceleratorConnector:
         return LightningEnvironment()
 
     def _choose_strategy(self) -> Union[Strategy, str]:
-        if self._accelerator_flag == "hpu":
-            if not _habana_available_and_importable():
+        try:
+            from lightning_habana import HPUAccelerator
+        except ImportError as exc:
+            if self._accelerator_flag == "hpu" and not _habana_available_and_importable():
                 raise ImportError(
                     "You have asked for HPU but you miss install related integration."
                     " Please run `pip install lightning-habana` or see for further instructions"
                     " in https://github.com/Lightning-AI/lightning-Habana/."
-                )
+                ) from exc
+        if self._accelerator_flag == "hpu" or isinstance(self._accelerator_flag, HPUAccelerator):
             if self._parallel_devices and len(self._parallel_devices) > 1:
                 from lightning_habana import HPUParallelStrategy
 
