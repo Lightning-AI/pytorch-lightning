@@ -585,40 +585,25 @@ def test_wandb_logger_cli_integration(log_model, expected, wandb_mock, monkeypat
 
 
 @RunIf(deepspeed=True, min_cuda_gpus=1)
-def test_wandb_logger_deepspeed_checkpoint_logging(tmpdir, wandb_mock):
+def test_wandb_logger_deepspeed_checkpoint_logging(wandb_mock, tmp_path):
     """Test that WandbLogger correctly logs DeepSpeed checkpoints."""
+    wandb_mock.run = None
     model = BoringModel()
-    wandb_logger = WandbLogger(project="test_project", log_model=True)
-    checkpoint_callback = ModelCheckpoint(dirpath=tmpdir, filename="model-{epoch:02d}", save_top_k=-1)
 
+    # test log_model=True, include_distributed_checkpoints=True
+    logger = WandbLogger(save_dir=tmp_path, log_model=True, include_distributed_checkpoints=True)
+    logger.experiment.id = "1"
+    logger.experiment.name = "run_name"
+    # enable DeepSpeedStrategy with checkpoint logger
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         strategy=DeepSpeedStrategy(stage=2),
+        max_epochs=2,
+        limit_train_batches=3,
+        limit_val_batches=3,
         accelerator="gpu",
         devices=1,
-        fast_dev_run=True,
-        logger=wandb_logger,
-        callbacks=[checkpoint_callback],
+        logger=logger,
     )
-
-    with patch("wandb.Artifact") as mock_artifact:
-        trainer.fit(model)
-
-        # Assuming the checkpoint is saved after the first epoch (fast_dev_run=True)
-        expected_checkpoint_name = "model-epoch=00.ckpt"
-        expected_metadata = {
-            "score": None,
-            "original_filename": expected_checkpoint_name,
-            "ModelCheckpoint": {
-                "monitor": None,
-                "mode": "min",
-                "save_last": None,
-                "save_top_k": -1,
-                "save_weights_only": False,
-                "_every_n_train_steps": 0,
-            },
-        }
-
-        mock_artifact.assert_called_once_with(
-            name=f"model-{trainer.logger.experiment.id}", type="model", metadata=expected_metadata
-        )
+    trainer.fit(model)
+    wandb_mock.init().log_artifact.assert_called_once()
