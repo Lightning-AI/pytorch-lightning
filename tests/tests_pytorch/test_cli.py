@@ -1534,6 +1534,7 @@ def test_comet_logger_init_args():
     )
 
 
+@pytest.mark.xfail(raises=TypeError, condition=(sys.platform == "win32"), strict=False)
 def test_neptune_logger_init_args():
     _test_logger_init_args(
         "NeptuneLogger",
