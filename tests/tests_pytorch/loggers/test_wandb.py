@@ -14,12 +14,11 @@
 import os
 import pickle
 from unittest import mock
-from unittest.mock import patch
 
 import pytest
 import yaml
 from lightning.pytorch import Trainer
-from lightning.pytorch.callbacks import ModelCheckpoint, Callback
+from lightning.pytorch.callbacks import Callback, ModelCheckpoint
 from lightning.pytorch.cli import LightningCLI
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.loggers import WandbLogger
@@ -608,21 +607,23 @@ def test_wandb_logger_deepspeed_checkpoint_logging(wandb_mock, tmp_path):
     trainer.fit(model)
     wandb_mock.init().log_artifact.assert_called_once()
 
+
 def test_wandb_logger_log_checkpoint_on_failure(wandb_mock, tmp_path):
     class FailureSimulationCallback(Callback):
         def on_train_end(self, trainer, pl_module):
             # Raise RuntimeError to simulate a failure
             raise RuntimeError("Simulated training failure.")
 
-    """Test that WandbLogger logs checkpoints on failure when log_checkpoint_on is set to 'all' and does not log when set to 'success'."""
+    """Test that WandbLogger logs checkpoints on failure when log_checkpoint_on is set to 'all'
+    and does not log when set to 'success'."""
     wandb_mock.run = None
     model = BoringModel()
 
     # Set log_model=True and log_checkpoint_on='all' to ensure checkpoints are logged even on failure
-    logger = WandbLogger(save_dir=tmp_path, log_model=True, log_checkpoint_on='all')
+    logger = WandbLogger(save_dir=tmp_path, log_model=True, log_checkpoint_on="all")
     logger.experiment.id = "1"
     logger.experiment.name = "failure_run_logged"
-    
+
     # Simulate training with an expected failure
     trainer = Trainer(
         default_root_dir=tmp_path,
@@ -632,13 +633,13 @@ def test_wandb_logger_log_checkpoint_on_failure(wandb_mock, tmp_path):
         accelerator="gpu",
         devices=1,
         logger=logger,
-        callbacks=[FailureSimulationCallback()]
+        callbacks=[FailureSimulationCallback()],
     )
-    
+
     # Expecting an exception to simulate a failure
     with pytest.raises(RuntimeError):
         trainer.fit(model)
-    
+
     # Check if checkpoints were logged despite the failure
     wandb_mock.init().log_artifact.assert_called_once()
 
@@ -646,10 +647,10 @@ def test_wandb_logger_log_checkpoint_on_failure(wandb_mock, tmp_path):
     wandb_mock.init().log_artifact.reset_mock()
     wandb_mock.init.reset_mock()
 
-    logger = WandbLogger(save_dir=tmp_path, log_model=True, log_checkpoint_on='success')
+    logger = WandbLogger(save_dir=tmp_path, log_model=True, log_checkpoint_on="success")
     logger.experiment.id = "2"
     logger.experiment.name = "failure_run_not_logged"
-    
+
     trainer = Trainer(
         default_root_dir=tmp_path,
         max_epochs=1,
@@ -658,10 +659,10 @@ def test_wandb_logger_log_checkpoint_on_failure(wandb_mock, tmp_path):
         accelerator="gpu",
         devices=1,
         logger=logger,
-        callbacks=[FailureSimulationCallback()]
+        callbacks=[FailureSimulationCallback()],
     )
-    
+
     with pytest.raises(RuntimeError):
         trainer.fit(model)
-    
+
     wandb_mock.init().log_artifact.assert_not_called()
