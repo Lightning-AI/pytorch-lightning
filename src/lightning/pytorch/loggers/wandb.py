@@ -332,6 +332,7 @@ class WandbLogger(Logger):
         project = project or os.environ.get("WANDB_PROJECT", "lightning_logs")
 
         # set wandb init arguments
+        self._kwargs = kwargs
         self._wandb_init: Dict[str, Any] = {
             "name": name,
             "project": project,
@@ -340,7 +341,7 @@ class WandbLogger(Logger):
             "resume": "allow",
             "anonymous": ("allow" if anonymous else None),
         }
-        self._wandb_init.update(**kwargs)
+        self._wandb_init.update(**self._kwargs)  # BUG: If kwargs are not present in wandb.init, it will raise an error
         # extract parameters
         self._project = self._wandb_init.get("project")
         self._save_dir = self._wandb_init.get("dir")
