@@ -14,7 +14,12 @@
 import pytest
 import torch
 import torch.nn as nn
-from lightning.fabric.utilities.load import _lazy_load, _materialize_tensors, _move_state_into, _NotYetLoadedTensor
+from lightning.fabric.utilities.load import (
+    _lazy_load,
+    _materialize_tensors,
+    _move_state_into,
+    _NotYetLoadedTensor,
+)
 
 from tests_fabric.helpers.runif import RunIf
 

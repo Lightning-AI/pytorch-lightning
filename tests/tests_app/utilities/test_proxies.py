@@ -128,14 +128,12 @@ def test_work_runner(parallel, cache_calls, *_):
         "run_started_counter": 1,
         "statuses": [],
     }
-    caller_queue.put(
-        {
-            "args": (),
-            "kwargs": {},
-            "call_hash": call_hash,
-            "state": work.state,
-        }
-    )
+    caller_queue.put({
+        "args": (),
+        "kwargs": {},
+        "call_hash": call_hash,
+        "state": work.state,
+    })
     work_runner = WorkRunner(
         work,
         work.name,
@@ -254,15 +252,13 @@ class WorkRunnerPatch(WorkRunner):
                 called = self.caller_queue.get()
                 self.work.set_state(called["state"])
                 state = deepcopy(self.work.state)
-                self.work._calls[call_hash]["statuses"].append(
-                    {
-                        "name": self.work.name,
-                        "stage": WorkStageStatus.FAILED,
-                        "reason": WorkFailureReasons.TIMEOUT,
-                        "timestamp": time.time(),
-                        "message": None,
-                    }
-                )
+                self.work._calls[call_hash]["statuses"].append({
+                    "name": self.work.name,
+                    "stage": WorkStageStatus.FAILED,
+                    "reason": WorkFailureReasons.TIMEOUT,
+                    "timestamp": time.time(),
+                    "message": None,
+                })
                 self.delta_queue.put(
                     ComponentDelta(id=self.work_name, delta=Delta(DeepDiff(state, self.work.state, verbose_level=2)))
                 )
@@ -682,14 +678,12 @@ def test_work_runner_sets_public_and_private_ip(patch_constants, environment, ex
         "run_started_counter": 1,
         "statuses": [],
     }
-    work_runner.caller_queue.put(
-        {
-            "args": (),
-            "kwargs": {},
-            "call_hash": call_hash,
-            "state": work.state,
-        }
-    )
+    work_runner.caller_queue.put({
+        "args": (),
+        "kwargs": {},
+        "call_hash": call_hash,
+        "state": work.state,
+    })
 
     with mock.patch.dict(os.environ, environment, clear=True):
         work_runner.setup()

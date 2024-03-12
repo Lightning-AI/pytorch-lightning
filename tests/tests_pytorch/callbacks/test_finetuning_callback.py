@@ -15,7 +15,6 @@ from collections import OrderedDict
 
 import pytest
 import torch
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_13
 from lightning.pytorch import LightningModule, Trainer, seed_everything
 from lightning.pytorch.callbacks import BackboneFinetuning, BaseFinetuning, ModelCheckpoint
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
@@ -283,9 +282,10 @@ def test_complex_nested_model():
     directly themselves rather than exclusively their submodules containing parameters."""
 
     model = nn.Sequential(
-        OrderedDict(
-            [("encoder", nn.Sequential(ConvBlockParam(3, 64), ConvBlock(64, 128))), ("decoder", ConvBlock(128, 10))]
-        )
+        OrderedDict([
+            ("encoder", nn.Sequential(ConvBlockParam(3, 64), ConvBlock(64, 128))),
+            ("decoder", ConvBlock(128, 10)),
+        ])
     )
 
     # There are 10 leaf modules or parent modules w/ parameters in the test model
@@ -357,9 +357,8 @@ def test_callbacks_restore(tmpdir):
         "params": ["layer.3.weight", "layer.3.bias"],
         "maximize": False,
         "foreach": None,
+        "differentiable": False,
     }
-    if _TORCH_GREATER_EQUAL_1_13:
-        expected["differentiable"] = False
 
     assert callback._internal_optimizer_metadata[0][0] == expected
 
@@ -373,9 +372,8 @@ def test_callbacks_restore(tmpdir):
         "params": ["layer.0.weight", "layer.0.bias"],
         "maximize": False,
         "foreach": None,
+        "differentiable": False,
     }
-    if _TORCH_GREATER_EQUAL_1_13:
-        expected["differentiable"] = False
 
     assert callback._internal_optimizer_metadata[0][1] == expected
 

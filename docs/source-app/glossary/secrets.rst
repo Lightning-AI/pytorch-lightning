@@ -8,7 +8,7 @@ Encrypted Secrets allow you to pass private data to your apps, like API keys, ac
 Secrets provide you with a secure way to store this data in a way that is accessible to Apps so that they can authenticate third-party services/solutions.
 
 .. tip::
-	For non-sensitive configuration values, we recommend using :ref:`plain-text Environment Variables <environment_variables>`.
+    For non-sensitive configuration values, we recommend using :ref:`plain-text Environment Variables <environment_variables>`.
 
 ************
 Add a secret
@@ -45,13 +45,13 @@ Use a secret
 
 .. code:: bash
 
-    lightning run app app.py --cloud --secret <environment-variable>=<secret-name>
+    lightning_app run app app.py --cloud --secret <environment-variable>=<secret-name>
 
 In this example, the command would be:
 
 .. code:: bash
 
-    lightning run app app.py --cloud --secret api_token=github_api_token
+    lightning_app run app app.py --cloud --secret api_token=github_api_token
 
 
 The ``--secret`` option can be used for multiple Secrets, and alongside the ``--env`` option.
@@ -60,7 +60,7 @@ Here's an example:
 
 .. code:: bash
 
-    lightning run app app.py --cloud --env FOO=bar --secret MY_APP_SECRET=my-secret --secret ANOTHER_SECRET=another-secret
+    lightning_app run app app.py --cloud --env FOO=bar --secret MY_APP_SECRET=my-secret --secret ANOTHER_SECRET=another-secret
 
 
 ----

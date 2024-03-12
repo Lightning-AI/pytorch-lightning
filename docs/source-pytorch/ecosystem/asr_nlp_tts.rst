@@ -86,7 +86,7 @@ To install from a local clone of NeMo:
     ./reinstall.sh # from cloned NeMo's git root
 
 For Docker users, the NeMo container is available on
-`NGC <https://ngc.nvidia.com/catalog/containers/nvidia:nemo>`_.
+`NGC <https://catalog.ngc.nvidia.com/orgs/nvidia/collections/nemotrainingframework>`_.
 
 .. code-block:: bash
 
@@ -660,7 +660,7 @@ Hydra makes every aspect of the NeMo model, including the PyTorch Lightning Trai
 Using State-Of-The-Art Pre-trained TTS Model
 --------------------------------------------
 
-Generate speech using models trained on `LJSpeech <https://keithito.com/LJ-Speech-Dataset/>`,
+Generate speech using models trained on `LJSpeech <https://keithito.com/LJ-Speech-Dataset/>`_,
 around 24 hours of single speaker data.
 
 See this `TTS notebook <https://github.com/NVIDIA/NeMo/blob/v1.0.0b1/tutorials/tts/1_TTS_inference.ipynb>`_

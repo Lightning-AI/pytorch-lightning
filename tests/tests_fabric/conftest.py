@@ -63,8 +63,7 @@ def restore_env_variables():
         "PL_GLOBAL_SEED",
         "PL_SEED_WORKERS",
         "RANK",  # set by DeepSpeed
-        "POPLAR_ENGINE_OPTIONS",  # set by IPUStrategy
-        "CUDA_MODULE_LOADING",  # leaked since PyTorch 1.13
+        "CUDA_MODULE_LOADING",  # leaked by PyTorch
         "CRC32C_SW_MODE",  # set by tensorboardX
         "OMP_NUM_THREADS",  # set by our launchers
         # set by torchdynamo
@@ -113,6 +112,16 @@ def thread_police_duuu_daaa_duuu_daaa():
             continue
         else:
             raise AssertionError(f"Test left zombie thread: {thread}")
+
+
+@pytest.fixture(autouse=True)
+def reset_in_fabric_backward():
+    """Ensures that the wrappers.in_fabric_backward global variable gets reset after each test."""
+    import lightning.fabric.wrappers as wrappers
+
+    assert hasattr(wrappers, "_in_fabric_backward")
+    yield
+    wrappers._in_fabric_backward = False
 
 
 @pytest.fixture()

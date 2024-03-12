@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Integration tests for Automatic Mixed Precision (AMP) training."""
+
 import pytest
 import torch
 import torch.nn as nn
@@ -71,7 +72,7 @@ def _test_amp(fabric, expected_dtype):
     optimizer.zero_grad()
 
 
-@RunIf(min_torch="1.13", min_cuda_gpus=1)
+@RunIf(min_cuda_gpus=1)
 def test_amp_fused_optimizer_parity():
     def run(fused=False):
         seed_everything(1234)

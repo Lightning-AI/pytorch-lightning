@@ -158,17 +158,13 @@ class DDPStrategy(ParallelStrategy):
         assert self.accelerator is not None
         self.accelerator.setup(trainer)
 
-        # move the model to the correct device
-        self.model_to_device()
-
-        # skip wrapping the model if we are not fitting as no gradients need to be exchanged
         trainer_fn = trainer.state.fn
-
+        assert self.model is not None
         if trainer_fn == TrainerFn.FITTING and self._layer_sync:
-            assert self.model is not None
             self.model = self._layer_sync.apply(self.model)
 
-        self.setup_precision_plugin()
+        self.precision_plugin.convert_module(self.model)
+        self.model_to_device()
 
         if trainer_fn == TrainerFn.FITTING:
             # do not wrap with DDP if not fitting as there's no gradients to reduce
@@ -176,16 +172,17 @@ class DDPStrategy(ParallelStrategy):
 
             # set up optimizers after the wrapped module has been moved to the device
             self.setup_optimizers(trainer)
+        else:
+            # we need to manually synchronize the module's states since we aren't using the DDP wrapper
+            _sync_module_states(self.model)
+        self.setup_precision_plugin()
+        if trainer_fn == TrainerFn.FITTING:
             _optimizers_to_device(self.optimizers, self.root_device)
 
             import torch.distributed.algorithms.ddp_comm_hooks.post_localSGD_hook as post_localSGD
 
             if isinstance(self._ddp_comm_state, post_localSGD.PostLocalSGDState):
                 self._enable_model_averaging()
-        else:
-            # we need to manually synchronize the module's states since we aren't using the DDP wrapper
-            assert self.model is not None
-            _sync_module_states(self.model)
 
     @override
     def _setup_model(self, model: Module) -> DistributedDataParallel:

@@ -6,7 +6,7 @@
 Train models with billions of parameters using FSDP
 ###################################################
 
-Use Fully Shared Data Parallel (FSDP) to train large models with billions of parameters efficiently on multiple GPUs and across multiple machines.
+Use Fully Sharded Data Parallel (FSDP) to train large models with billions of parameters efficiently on multiple GPUs and across multiple machines.
 
 .. note:: This is an experimental feature.
 

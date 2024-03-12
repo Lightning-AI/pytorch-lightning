@@ -275,7 +275,7 @@ def run_app_in_cloud(
     token = res.json()["token"]
 
     # 3. Disconnect from the App if any.
-    Popen("lightning logout", shell=True).wait()
+    Popen("lightning_app logout", shell=True).wait()
 
     # 4. Launch the application in the cloud from the Lightning CLI.
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -338,9 +338,10 @@ def run_app_in_cloud(
         browser = p.chromium.launch(headless=bool(int(os.getenv("HEADLESS", "0"))))
         context = browser.new_context(
             # Eventually this will need to be deleted
-            http_credentials=HttpCredentials(
-                {"username": os.getenv("LAI_USER", "").strip(), "password": os.getenv("LAI_PASS", "")}
-            ),
+            http_credentials=HttpCredentials({
+                "username": os.getenv("LAI_USER", "").strip(),
+                "password": os.getenv("LAI_PASS", ""),
+            }),
             record_video_dir=os.path.join(_Config.video_location, TEST_APP_NAME),
             record_har_path=_Config.har_location,
         )

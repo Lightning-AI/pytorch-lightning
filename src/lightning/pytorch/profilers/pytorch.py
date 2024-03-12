@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Profiler to check if there are any bottlenecks in your code."""
+
 import inspect
 import logging
 import os
@@ -240,9 +241,8 @@ class PyTorchProfiler(Profiler):
         table_kwargs: Optional[Dict[str, Any]] = None,
         **profiler_kwargs: Any,
     ) -> None:
-        r"""This profiler uses PyTorch's Autograd Profiler and lets you inspect the cost of.
-
-        different operators inside your model - both on the CPU and GPU
+        r"""This profiler uses PyTorch's Autograd Profiler and lets you inspect the cost of
+        different operators inside your model - both on the CPU and GPU.
 
         Args:
             dirpath: Directory path for the ``filename``. If ``dirpath`` is ``None`` but ``filename`` is present, the

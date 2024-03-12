@@ -14,7 +14,7 @@ Requirements:
 
 
 Run it with:
-    lightning run model --devices=2 train_fabric_decoupled.py
+    fabric run --devices=2 train_fabric_decoupled.py
 """
 
 import argparse
@@ -59,9 +59,9 @@ def player(args, world_collective: TorchCollective, player_trainer_collective: T
     )
 
     # Environment setup
-    envs = gym.vector.SyncVectorEnv(
-        [make_env(args.env_id, args.seed + i, 0, args.capture_video, log_dir, "train") for i in range(args.num_envs)]
-    )
+    envs = gym.vector.SyncVectorEnv([
+        make_env(args.env_id, args.seed + i, 0, args.capture_video, log_dir, "train") for i in range(args.num_envs)
+    ])
     assert isinstance(envs.single_action_space, gym.spaces.Discrete), "only discrete action space is supported"
 
     # Define the agent

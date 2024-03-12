@@ -54,8 +54,7 @@ def test_no_grad_context():
 
     class Foo:
         @_no_grad_context
-        def run(self):
-            ...
+        def run(self): ...
 
     f = Foo()
     with pytest.raises(TypeError, match="Foo` needs to be a Loop"):
@@ -63,8 +62,7 @@ def test_no_grad_context():
 
     class Foo(_Loop):
         @_no_grad_context
-        def run(self):
-            ...
+        def run(self): ...
 
     f = Foo(trainer)
     with pytest.raises(TypeError, match="Foo.inference_mode` needs to be defined"):
@@ -76,8 +74,7 @@ def test_no_grad_context():
             self.inference_mode = False
 
         @_no_grad_context
-        def run(self):
-            ...
+        def run(self): ...
 
     f = Foo()
     with mock.patch("torch.no_grad") as no_grad_mock:

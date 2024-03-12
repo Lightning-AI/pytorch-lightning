@@ -268,12 +268,14 @@ class _CheckpointConnector:
         if not self._loaded_checkpoint:
             return
 
-        trainer = self.trainer
         # hook: give user access to checkpoint if needed.
-        call._call_lightning_module_hook(trainer, "on_load_checkpoint", self._loaded_checkpoint)
+        call._call_lightning_module_hook(self.trainer, "on_load_checkpoint", self._loaded_checkpoint)
 
         # restore model state_dict
-        trainer.strategy.load_model_state_dict(self._loaded_checkpoint)
+        self.trainer.strategy.load_model_state_dict(
+            self._loaded_checkpoint,
+            strict=self.trainer.lightning_module.strict_loading,
+        )
 
     def restore_training_state(self) -> None:
         """Restore the trainer state from the pre-loaded checkpoint.

@@ -15,6 +15,7 @@ import pickle
 import warnings
 from functools import partial
 from io import BytesIO
+from pathlib import Path
 from typing import IO, TYPE_CHECKING, Any, Callable, Dict, Optional, OrderedDict, Sequence, Set, Union
 
 import torch
@@ -24,8 +25,14 @@ from torch._C import _TensorMeta
 from torch.nn import Parameter
 from typing_extensions import override
 
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
+from lightning.fabric.utilities.imports import (
+    _TORCH_GREATER_EQUAL_2_0,
+    _TORCH_GREATER_EQUAL_2_3,
+)
 from lightning.fabric.utilities.types import _PATH, _Stateful
+
+_METADATA_FILENAME = "meta.pt"
+
 
 if TYPE_CHECKING:
     from torch.storage import TypedStorage
@@ -227,3 +234,32 @@ def _move_state_into(
             destination[key].load_state_dict(state)
         else:
             destination[key] = state
+
+
+def _load_distributed_checkpoint(checkpoint_folder: Path) -> Dict[str, Any]:
+    """Loads a sharded checkpoint saved with the `torch.distributed.checkpoint` into a full state dict.
+
+    The current implementation assumes that the entire checkpoint fits in CPU memory.
+
+    """
+    if not _TORCH_GREATER_EQUAL_2_3:
+        raise ImportError("Processing distributed checkpoints requires PyTorch >= 2.3.")
+
+    from torch.distributed.checkpoint import FileSystemReader
+    from torch.distributed.checkpoint.format_utils import _EmptyStateDictLoadPlanner
+    from torch.distributed.checkpoint.state_dict_loader import _load_state_dict
+
+    checkpoint: Dict[str, Any] = {}
+    _load_state_dict(
+        checkpoint,
+        storage_reader=FileSystemReader(checkpoint_folder),
+        planner=_EmptyStateDictLoadPlanner(),
+        no_dist=True,
+    )
+
+    # This is the extra file saved by Fabric, with user data separate from weights and optimizer states
+    extra_file = checkpoint_folder / _METADATA_FILENAME
+    extra = torch.load(extra_file, map_location="cpu") if extra_file.is_file() else {}
+    checkpoint.update(extra)
+
+    return checkpoint

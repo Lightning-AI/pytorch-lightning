@@ -57,9 +57,6 @@ Here are some examples:
     # Training with the DDP Spawn strategy on 8 TPU cores
     trainer = Trainer(strategy="ddp_spawn", accelerator="tpu", devices=8)
 
-    # Training with the default IPU strategy on 8 IPUs
-    trainer = Trainer(accelerator="ipu", devices=8)
-
 The below table lists all relevant strategies available in Lightning with their corresponding short-hand name:
 
 .. list-table:: Strategy Classes and Nicknames
@@ -77,7 +74,7 @@ The below table lists all relevant strategies available in Lightning with their 
      - Strategy for multi-process single-device training on one or multiple nodes. :ref:`Learn more. <accelerators/gpu_intermediate:Distributed Data Parallel>`
    * - ddp_spawn
      - :class:`~lightning.pytorch.strategies.DDPStrategy`
-     - Same as "ddp" but launches processes using :func:`torch.multiprocessing.spawn` method and joins processes after training finishes. :ref:`Learn more. <accelerators/gpu_intermediate:Distributed Data Parallel Spawn>`
+     - Same as "ddp" but launches processes using ``torch.multiprocessing.spawn`` method and joins processes after training finishes. :ref:`Learn more. <accelerators/gpu_intermediate:Distributed Data Parallel Spawn>`
    * - deepspeed
      - :class:`~lightning.pytorch.strategies.DeepSpeedStrategy`
      - Provides capabilities to run training using the DeepSpeed library, with training optimizations for large billion parameter models. :doc:`Learn more. <../advanced/model_parallel/deepspeed>`
@@ -87,9 +84,6 @@ The below table lists all relevant strategies available in Lightning with their 
    * - hpu_single
      - ``SingleHPUStrategy``
      - Strategy for training on a single HPU device. :doc:`Learn more. <../integrations/hpu/index>`
-   * - ipu_strategy
-     - ``IPUStrategy``
-     - Plugin for training on IPU devices. :doc:`Learn more. <../integrations/ipu/index>`
    * - xla
      - :class:`~lightning.pytorch.strategies.XLAStrategy`
      - Strategy for training on multiple TPU devices using the :func:`torch_xla.distributed.xla_multiprocessing.spawn` method. :doc:`Learn more. <../accelerators/tpu>`

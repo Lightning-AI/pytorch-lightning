@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Tests to ensure that the behaviours related to multiple optimizers works."""
+
 import lightning.pytorch as pl
 import pytest
 import torch

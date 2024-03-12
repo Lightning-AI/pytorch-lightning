@@ -7,6 +7,7 @@ Glossary
    :hidden:
 
    Checkpoint <../guide/checkpoint/index>
+   Weights and Biases <../guide/loggers/wandb>
 
 
 .. raw:: html
@@ -67,6 +68,11 @@ Glossary
 .. displayitem::
     :header: Collective
     :button_link: ../advanced/distributed_communication.html
+    :col_css: col-md-4
+
+.. displayitem::
+    :header: Compile
+    :button_link: ../advanced/compile.html
     :col_css: col-md-4
 
 .. displayitem::
@@ -197,6 +203,11 @@ Glossary
 .. displayitem::
     :header: Trainer
     :button_link: ../guide/trainer_template.html
+    :col_css: col-md-4
+
+.. displayitem::
+    :header: Weights and Biases
+    :button_link: ../guide/loggers/wandb.html
     :col_css: col-md-4
 
 .. displayitem::

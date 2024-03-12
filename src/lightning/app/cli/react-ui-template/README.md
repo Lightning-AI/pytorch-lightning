@@ -5,7 +5,7 @@ This is a full react template ready to use in a component
 This UI was automatically generated with:
 
 ```commandline
-lightning init react-ui
+lightning_app init react-ui
 ```
 
 ### Delete files
@@ -26,7 +26,7 @@ This template comes with `example_app.py` to show how to integrate the UI into a
 run it with:
 
 ```bash
-lightning run app react-ui/example_app.py
+lightning_app run app react-ui/example_app.py
 ```
 
 ### Connect React to your component

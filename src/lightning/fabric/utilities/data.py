@@ -108,9 +108,9 @@ def _get_dataloader_init_args_and_kwargs(
         if was_wrapped:
             # if the dataloader was wrapped in a hook, only take arguments with default values
             # and assume user passes their kwargs correctly
-            params.update(
-                {k: v for k, v in inspect.signature(DataLoader.__init__).parameters.items() if v.default is not v.empty}
-            )
+            params.update({
+                k: v for k, v in inspect.signature(DataLoader.__init__).parameters.items() if v.default is not v.empty
+            })
         else:
             params.update(inspect.signature(DataLoader.__init__).parameters)
             params.pop("self", None)

@@ -82,6 +82,7 @@ class TensorBoardLogger(Logger, FabricTensorBoardLogger):
             of the queue for pending logs before flushing. `flush_secs` determines how many seconds
             elapses before flushing.
     """
+
     NAME_HPARAMS_FILE = "hparams.yaml"
 
     def __init__(
@@ -154,7 +155,7 @@ class TensorBoardLogger(Logger, FabricTensorBoardLogger):
 
     @override
     @rank_zero_only
-    def log_hyperparams(  # type: ignore[override]
+    def log_hyperparams(
         self, params: Union[Dict[str, Any], Namespace], metrics: Optional[Dict[str, Any]] = None
     ) -> None:
         """Record hyperparameters. TensorBoard logs with and without saved hyperparameters are incompatible, the

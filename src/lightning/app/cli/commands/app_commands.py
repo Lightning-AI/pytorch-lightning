@@ -61,7 +61,7 @@ def _run_app_command(app_name: str, app_id: Optional[str]):
                 if value == command and "_" in value:
                     print(
                         f"The command `{value}` was provided with an underscore and it isn't allowed."
-                        f"Instead, use `lightning {value.replace('_', ' ')}`."
+                        f"Instead, use `lightning_app {value.replace('_', ' ')}`."
                     )
                     sys.exit(0)
             break
@@ -88,7 +88,7 @@ def _run_app_command(app_name: str, app_id: Optional[str]):
 def _handle_command_without_client(command: str, metadata: Dict, url: str) -> None:
     supported_params = list(metadata["parameters"])
     if _is_running_help(sys.argv):
-        print(f"Usage: lightning {command} [ARGS]...")
+        print(f"Usage: lightning_app {command} [ARGS]...")
         print(" ")
         print("Options")
         for param in supported_params:
