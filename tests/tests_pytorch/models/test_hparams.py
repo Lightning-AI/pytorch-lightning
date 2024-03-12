@@ -38,14 +38,13 @@ from lightning_utilities.core.imports import RequirementCache
 from lightning_utilities.test.warning import no_warning_call
 from torch.utils.data import DataLoader
 
-_PYTHON_GREATER_EQUAL_3_9_0 = (sys.version_info.major, sys.version_info.minor) >= (3, 9)
-
-
 from tests_pytorch.helpers.runif import RunIf
 
 if _OMEGACONF_AVAILABLE:
     from omegaconf import Container, OmegaConf
     from omegaconf.dictconfig import DictConfig
+
+_PYTHON_GREATER_EQUAL_3_9_0 = (sys.version_info.major, sys.version_info.minor) >= (3, 9)
 
 
 class SaveHparamsModel(BoringModel):
