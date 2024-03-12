@@ -633,8 +633,6 @@ def test_wandb_logger_log_checkpoint_on_failure(wandb_mock, tmp_path):
         max_epochs=1,
         limit_train_batches=1,
         limit_val_batches=1,
-        accelerator="gpu",
-        devices=1,
         logger=logger,
         callbacks=[FailureSimulationCallback()],
     )
@@ -659,8 +657,6 @@ def test_wandb_logger_log_checkpoint_on_failure(wandb_mock, tmp_path):
         max_epochs=1,
         limit_train_batches=1,
         limit_val_batches=1,
-        accelerator="gpu",
-        devices=1,
         logger=logger,
         callbacks=[FailureSimulationCallback()],
     )
