@@ -623,3 +623,7 @@ def test_unwrap_compiled():
     @torch.compile()
     def cos(x):
         return torch.cos(x)
+
+    @torch.compile
+    def sin(x):
+        return torch.sin(x)
