@@ -422,8 +422,8 @@ class _AcceleratorConnector:
                 return SingleHPUStrategy(device=torch.device("hpu"))
         if self._accelerator_flag == "hpu" and not _habana_available_and_importable():
             raise ImportError(
-                "You have asked for HPU but you miss install related integration."
-                " Please run `pip install lightning-habana` or see for further instructions"
+                "You asked to run with HPU but you are missing a required dependency."
+                " Please run `pip install lightning-habana` or seek further instructions"
                 " in https://github.com/Lightning-AI/lightning-Habana/."
             )
 
