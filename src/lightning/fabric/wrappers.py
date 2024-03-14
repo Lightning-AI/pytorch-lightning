@@ -403,7 +403,7 @@ def _capture_compile_kwargs(compile_fn: Callable) -> Callable:
     @wraps(compile_fn)
     def _capture(*args: Any, **kwargs: Any) -> Any:
         if not args:
-            # torch.compile is not being applied as a decorator
+            # torch.compile is being applied as a decorator
             return compile_fn(*args, **kwargs)
 
         model = args[0]
