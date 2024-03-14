@@ -407,9 +407,12 @@ def _capture_compile_kwargs(compile_fn: Callable) -> Callable:
             return compile_fn(*args, **kwargs)
 
         model = args[0]
+        if not isinstance(model, nn.Module):
+            # compiling something else
+            return compile_fn(*args, **kwargs)
+
         compiled_model = compile_fn(model, **kwargs)
-        if isinstance(model, nn.Module):
-            compiled_model._compile_kwargs = deepcopy(kwargs)
+        compiled_model._compile_kwargs = deepcopy(kwargs)
         return compiled_model
 
     return _capture
