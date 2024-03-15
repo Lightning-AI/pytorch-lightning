@@ -79,7 +79,6 @@ repos:
       - id: ruff-format
       # validate if all is fine with preview mode
       - id: ruff
-        args: ["--preview"]
 
   - repo: https://github.com/executablebooks/mdformat
     rev: 0.7.17
