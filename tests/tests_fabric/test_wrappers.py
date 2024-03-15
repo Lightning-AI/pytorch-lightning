@@ -601,6 +601,9 @@ def test_step_method_redirection():
 def test_unwrap_compiled():
     model = torch.nn.Linear(1, 1)
 
+    # We wrap `torch.compile` on import of lightning in `wrappers.py`
+    assert torch.compile.__wrapped__
+
     with mock.patch("lightning.fabric.wrappers", "_TORCH_GREATER_EQUAL_2_0", False):
         unwrapped, compile_kwargs = _unwrap_compiled(model)
     assert unwrapped is model
@@ -615,3 +618,12 @@ def test_unwrap_compiled():
     del compiled._compile_kwargs
     with pytest.raises(RuntimeError, match="Failed to determine the arguments that were used to compile the module"):
         _unwrap_compiled(compiled)
+
+    # can still be applied as decorator
+    @torch.compile()
+    def cos(x):
+        return torch.cos(x)
+
+    @torch.compile
+    def sin(x):
+        return torch.sin(x)
