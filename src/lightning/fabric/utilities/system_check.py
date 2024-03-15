@@ -23,8 +23,8 @@ from pathlib import Path
 import torch
 import torch.distributed
 import torch.multiprocessing as mp
-from torch.multiprocessing.spawn import ProcessRaisedException
 from lightning_utilities.core.imports import RequirementCache
+from torch.multiprocessing.spawn import ProcessRaisedException
 
 _psutil_available = RequirementCache("psutil")
 _logger = logging.getLogger(__name__)
@@ -55,7 +55,7 @@ def main(timeout: int = 60) -> None:
                 "NCCL_NET_PLUGIN": "none",
             }
             _print0(
-                f"The multi-GPU NCCL test did not succeed."
+                "The multi-GPU NCCL test did not succeed."
                 " It looks like there is an issue with your multi-GPU setup."
                 " Now trying to run again with NCCL features disabled."
             )
@@ -94,7 +94,7 @@ def _check_cuda_distributed(timeout: int) -> bool:
             _logger.debug(str(e))
             success = False
             break
-    
+
         time.sleep(1)
 
     if not success:
