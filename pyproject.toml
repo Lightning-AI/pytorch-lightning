@@ -48,14 +48,26 @@ ignore-words-list = "te, compiletime"
 
 [tool.ruff]
 line-length = 120
-# Enable Pyflakes `E` and `F` codes by default.
-lint.select = [
+target-version = "py38"
+# Exclude a variety of commonly ignored directories.
+exclude = [
+    ".git",
+    "docs",
+    "_notebooks"
+]
+
+[tool.ruff.format]
+preview = true
+
+[tool.ruff.lint]
+select = [
     "E", "W",  # see: https://pypi.org/project/pycodestyle
     "F",  # see: https://pypi.org/project/pyflakes
     "S",  # see: https://pypi.org/project/flake8-bandit
     "RUF018",  # see: https://docs.astral.sh/ruff/rules/assignment-in-assert
+    "UP", # see: https://docs.astral.sh/ruff/rules/#pyupgrade-up
 ]
-lint.extend-select = [
+extend-select = [
     "I",  # see: isort
     "C4",  # see: https://pypi.org/project/flake8-comprehensions
     "SIM",  # see: https://pypi.org/project/flake8-simplify
@@ -63,18 +75,12 @@ lint.extend-select = [
     "PT",  # see: https://pypi.org/project/flake8-pytest-style
     "RUF100",  # see: https://docs.astral.sh/ruff/rules/unused-noqa/
 ]
-lint.ignore = [
+ignore = [
     "E731",  # Do not assign a lambda expression, use a def
     "S108",
     "E203", # conflicts with black
 ]
-# Exclude a variety of commonly ignored directories.
-exclude = [
-    ".git",
-    "docs",
-    "_notebooks"
-]
-lint.ignore-init-module-imports = true
+ignore-init-module-imports = true
 
 [tool.ruff.lint.per-file-ignores]
 ".actions/*" = ["S101", "S310"]
