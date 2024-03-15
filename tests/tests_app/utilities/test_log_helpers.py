@@ -16,7 +16,7 @@ class TestErrorCallback(TestCase):
     def test_unknown_error(self):
         websocket = mock.Mock()
         with self.assertLogs("lightning.app.utilities.log_helpers") as captured:
-            _error_callback(websocket, IOError())
+            _error_callback(websocket, OSError())
         # check that there is only one log message
         assert len(captured.records) == 1
         # and it contains the error message expected
