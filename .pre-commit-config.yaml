@@ -50,13 +50,6 @@ repos:
           )$
       - id: detect-private-key
 
-  - repo: https://github.com/asottile/pyupgrade
-    rev: v3.15.0
-    hooks:
-      - id: pyupgrade
-        args: ["--py38-plus"]
-        name: Upgrade code
-
   - repo: https://github.com/codespell-project/codespell
     rev: v2.2.6
     hooks:

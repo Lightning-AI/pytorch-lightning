@@ -48,12 +48,14 @@ ignore-words-list = "te, compiletime"
 
 [tool.ruff]
 line-length = 120
+target-version = "py38"
 # Enable Pyflakes `E` and `F` codes by default.
 lint.select = [
     "E", "W",  # see: https://pypi.org/project/pycodestyle
     "F",  # see: https://pypi.org/project/pyflakes
     "S",  # see: https://pypi.org/project/flake8-bandit
     "RUF018",  # see: https://docs.astral.sh/ruff/rules/assignment-in-assert
+    "UP", # see: https://docs.astral.sh/ruff/rules/#pyupgrade-up
 ]
 lint.extend-select = [
     "I",  # see: isort
