@@ -15,6 +15,7 @@ import copy
 import functools
 import os
 import pickle
+import sys
 from argparse import Namespace
 from dataclasses import dataclass
 from enum import Enum
@@ -42,6 +43,8 @@ from tests_pytorch.helpers.runif import RunIf
 if _OMEGACONF_AVAILABLE:
     from omegaconf import Container, OmegaConf
     from omegaconf.dictconfig import DictConfig
+
+_PYTHON_GREATER_EQUAL_3_9_0 = (sys.version_info.major, sys.version_info.minor) >= (3, 9)
 
 
 class SaveHparamsModel(BoringModel):
@@ -697,6 +700,14 @@ def test_model_with_fsspec_as_parameter(tmpdir):
     trainer.test()
 
 
+@pytest.mark.xfail(
+    # AttributeError: 'OrphanPath' object has no attribute 'exists'
+    # Issue with `importlib_resources>=6.2.0`
+    raises=AttributeError,
+    condition=(not _PYTHON_GREATER_EQUAL_3_9_0),
+    reason="Issue with `importlib_resources`",
+    strict=False,
+)
 @pytest.mark.skipif(RequirementCache("hydra-core<1.1"), reason="Requires Hydra's Compose API")
 def test_model_save_hyper_parameters_interpolation_with_hydra(tmpdir):
     """This test relies on configuration saved under tests/models/conf/config.yaml."""

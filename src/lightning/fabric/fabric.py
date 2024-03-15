@@ -672,7 +672,7 @@ class Fabric:
                 "You need to set up the model first before you can call `fabric.no_backward_sync()`:"
                 " `model = fabric.setup(model, ...)`"
             )
-        if not enabled or isinstance(self._strategy, (SingleDeviceStrategy, XLAStrategy)):
+        if isinstance(self._strategy, (SingleDeviceStrategy, XLAStrategy)):
             return nullcontext()
         if self._strategy._backward_sync_control is None:
             rank_zero_warn(
@@ -683,7 +683,7 @@ class Fabric:
             return nullcontext()
 
         forward_module, _ = _unwrap_compiled(module._forward_module)
-        return self._strategy._backward_sync_control.no_backward_sync(forward_module)
+        return self._strategy._backward_sync_control.no_backward_sync(forward_module, enabled)
 
     def sharded_model(self) -> ContextManager:
         r"""Instantiate a model under this context manager to prepare it for model-parallel sharding.
