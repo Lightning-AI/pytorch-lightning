@@ -23,6 +23,7 @@ from pathlib import Path
 import torch
 import torch.distributed
 import torch.multiprocessing as mp
+from torch.multiprocessing.spawn import ProcessRaisedException
 from lightning_utilities.core.imports import RequirementCache
 
 _psutil_available = RequirementCache("psutil")
@@ -40,6 +41,7 @@ def main(timeout: int = 60) -> None:
 
     if num_cuda_devices == 1:
         _describe_nvidia_smi()
+        # _check_cuda()
 
     if num_cuda_devices > 1:
         _describe_nvidia_smi()
@@ -48,19 +50,24 @@ def main(timeout: int = 60) -> None:
         success = _check_cuda_distributed(timeout)
 
         if not success:
+            env = {
+                "NCCL_P2P_DISABLE": "1",
+                "NCCL_NET_PLUGIN": "none",
+            }
             _print0(
-                f"The multi-GPU NCCL test did not finish within {timeout} seconds."
+                f"The multi-GPU NCCL test did not succeed."
                 " It looks like there is an issue with your multi-GPU setup."
-                " Now trying to run again with `NCCL_P2P_DISABLE=1` set."
+                " Now trying to run again with NCCL features disabled."
             )
-            os.environ["NCCL_P2P_DISABLE"] = "1"
+            os.environ.update(env)
             success = _check_cuda_distributed(timeout)
             if success:
-                _print0("Disabling peer-to-peer transport fixed the issue.")
-                # TODO: Give advice
+                _print0("Disabling the following NCCL features seems to have fixed the issue:")
+                _print_env_variables(env)
             else:
-                _print0("Disabling peer-to-peer transport did not fix the issue.")
-        else:
+                _print0("Disabling NCCL features did not fix the issue.")
+
+        if success:
             _print0("Multi-GPU test successful.")
 
     _print0(f"Find detailed logs at {_system_check_dir.absolute()}")
@@ -81,7 +88,13 @@ def _check_cuda_distributed(timeout: int) -> bool:
     start = time.time()
     success = False
     while not success and (time.time() - start < timeout):
-        success = context.join(timeout=5)
+        try:
+            success = context.join(timeout=5)
+        except ProcessRaisedException as e:
+            _logger.debug(str(e))
+            success = False
+            break
+    
         time.sleep(1)
 
     if not success:
@@ -125,9 +138,9 @@ def _setup_logging() -> None:
         shutil.rmtree(_system_check_dir)
     _system_check_dir.mkdir()
 
-    _logger.setLevel(logging.INFO)
+    _logger.setLevel(logging.DEBUG)
     file_handler = logging.FileHandler(str(_system_check_dir / "logs.txt"))
-    file_handler.setLevel(logging.INFO)
+    file_handler.setLevel(logging.DEBUG)
     console_handler = logging.StreamHandler()
     console_handler.setLevel(logging.INFO)
     _logger.addHandler(file_handler)
@@ -138,6 +151,11 @@ def _setup_logging() -> None:
 def _print0(string: str) -> None:
     if int(os.getenv("RANK", 0)) == 0:
         _logger.info(string)
+
+
+def _print_env_variables(env: dict) -> None:
+    for k, v in env.items():
+        _print0(f"{k}={v}")
 
 
 def _collect_nvidia_smi_topo() -> str:
@@ -157,11 +175,11 @@ def _describe_nvidia_smi() -> None:
 
 
 def _describe_gpu_connectivity() -> None:
-    _logger.info(
+    _logger.debug(
         "The matrix below shows how the GPUs in this machine are connected."
         " NVLink (NV) is the fastest connection, and is only available on high-end systems like V100, A100, etc.\n"
     )
-    _logger.info(_collect_nvidia_smi_topo())
+    _logger.debug(_collect_nvidia_smi_topo())
 
 
 def _kill_process(pid: int) -> None:
