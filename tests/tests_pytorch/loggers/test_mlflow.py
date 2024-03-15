@@ -18,7 +18,7 @@ from unittest.mock import MagicMock, Mock
 import pytest
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
-from lightning.pytorch.loggers.mlflow import _MLFLOW_AVAILABLE, MLFlowLogger, _get_resolve_tags
+from lightning.pytorch.loggers.mlflow import _MLFLOW_AVAILABLE, AsyncMLFlowLogger, MLFlowLogger, _get_resolve_tags
 
 
 def mock_mlflow_run_creation(logger, experiment_name=None, experiment_id=None, run_id=None):
@@ -258,6 +258,43 @@ def test_mlflow_logger_experiment_calls(mlflow_mock, tmp_path):
     logger._mlflow_client.create_experiment.assert_called_once_with(
         name="test", artifact_location="my_artifact_location"
     )
+
+
+@mock.patch("lightning.pytorch.loggers.mlflow._get_resolve_tags", Mock())
+@mock.patch("lightning.pytorch.loggers.mlflow.ThreadPoolExecutor")
+def test_async_mlflow_logger_experiment_calls(executor_mock, mlflow_mock, tmp_path):
+    """Test that the logger calls methods on the mlflow experiment correctly."""
+    time = mlflow_mock.entities.time
+    metric = mlflow_mock.entities.Metric
+    param = mlflow_mock.entities.Param
+
+    def execute_now(fn, *args, **kwargs):
+        fn(*args, **kwargs)
+
+    executor_mock.return_value.submit.side_effect = execute_now
+
+    time.return_value = 1
+
+    mlflow_client = mlflow_mock.tracking.MlflowClient.return_value
+    log_batch = mlflow_client.log_batch
+    mlflow_client.get_experiment_by_name.return_value = None
+    logger = AsyncMLFlowLogger("test", save_dir=str(tmp_path), artifact_location="my_artifact_location")
+
+    params = {"test": "test_param"}
+    logger.log_hyperparams(params)
+
+    log_batch.assert_called_once_with(run_id=logger.run_id, params=[param(key="test", value="test_param")])
+    param.assert_called_with(key="test", value="test_param")
+
+    metrics = {"some_metric": 10}
+    logger.log_metrics(metrics)
+
+    log_batch.assert_called_with(
+        run_id=logger.run_id, metrics=[metric(key="some_metric", value=10, timestamp=1000, step=0)]
+    )
+    metric.assert_called_with(key="some_metric", value=10, timestamp=1000, step=0)
+
+    mlflow_client.create_experiment.assert_called_once_with(name="test", artifact_location="my_artifact_location")
 
 
 @mock.patch("lightning.pytorch.loggers.mlflow._get_resolve_tags", Mock())
