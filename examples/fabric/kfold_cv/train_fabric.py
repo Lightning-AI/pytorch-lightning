@@ -67,13 +67,8 @@ def train_dataloader(model, data_loader, optimizer, fabric, epoch, hparams, fold
         optimizer.step()
         if (batch_idx == 0) or ((batch_idx + 1) % hparams.log_interval == 0):
             print(
-                "Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}".format(
-                    epoch,
-                    batch_idx * len(data),
-                    len(data_loader.dataset),
-                    100.0 * batch_idx / len(data_loader),
-                    loss.item(),
-                )
+                f"Train Epoch: {epoch} [{batch_idx * len(data)}/{len(data_loader.dataset)}"
+                f" ({100.0 * batch_idx / len(data_loader):.0f}%)]\tLoss: {loss.item():.6f}"
             )
 
         if hparams.dry_run:
