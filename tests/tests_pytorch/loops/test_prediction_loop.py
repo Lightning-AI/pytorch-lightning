@@ -283,7 +283,7 @@ def test_invalid_dataloader_idx_raises_batch_end(tmp_path):
         trainer.predict(model)
 
 
-def test_prediction_loop_when_batch_idx_argument_is_not_given(tmpdir):
+def test_prediction_loop_when_batch_idx_argument_is_not_given(tmp_path):
     class TestModel(BoringModel):
         def __init__(self) -> None:
             super().__init__()
@@ -294,7 +294,7 @@ def test_prediction_loop_when_batch_idx_argument_is_not_given(tmpdir):
             return self.step(batch)
 
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         fast_dev_run=1,
         logger=False,
         enable_checkpointing=False,
