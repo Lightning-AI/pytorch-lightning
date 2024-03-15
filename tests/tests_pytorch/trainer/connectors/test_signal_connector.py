@@ -43,7 +43,7 @@ def test_signal_handlers_restored_in_teardown():
 
 
 @RunIf(skip_windows=True)
-def test_sigterm_handler_can_be_added(tmpdir):
+def test_sigterm_handler_can_be_added(tmp_path):
     handler_ran = False
 
     def handler(*_):
@@ -57,7 +57,7 @@ def test_sigterm_handler_can_be_added(tmpdir):
             os.kill(os.getpid(), signal.SIGTERM)
 
     model = TestModel()
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, limit_train_batches=2, limit_val_batches=0)
+    trainer = Trainer(default_root_dir=tmp_path, max_epochs=1, limit_train_batches=2, limit_val_batches=0)
 
     assert not trainer.received_sigterm
     assert not handler_ran
