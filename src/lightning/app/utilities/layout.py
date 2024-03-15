@@ -165,7 +165,7 @@ def _collect_content_layout(
             m = f"""
             A dictionary returned by `{flow.__class__.__name__}.configure_layout()` contains an unsupported entry.
 
-            {{'content': {repr(entry['content'])}}}
+            {{'content': {repr(entry["content"])}}}
 
             Set the `content` key to a child flow or a URL, for example:
 
