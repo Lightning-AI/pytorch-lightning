@@ -20,12 +20,12 @@ from lightning.pytorch.demos.boring_classes import BoringModel
 from tests_pytorch.helpers.runif import RunIf
 
 
-def test_model_torch_save(tmpdir):
+def test_model_torch_save(tmp_path):
     """Test to ensure torch save does not fail for model and trainer."""
     model = BoringModel()
     num_epochs = 1
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=num_epochs)
-    temp_path = os.path.join(tmpdir, "temp.pt")
+    trainer = Trainer(default_root_dir=tmp_path, max_epochs=num_epochs)
+    temp_path = os.path.join(tmp_path, "temp.pt")
     trainer.fit(model)
 
     # Ensure these do not fail
@@ -35,14 +35,19 @@ def test_model_torch_save(tmpdir):
 
 
 @RunIf(skip_windows=True)
-def test_model_torch_save_ddp_cpu(tmpdir):
+def test_model_torch_save_ddp_cpu(tmp_path):
     """Test to ensure torch save does not fail for model and trainer using cpu ddp."""
     model = BoringModel()
     num_epochs = 1
     trainer = Trainer(
-        default_root_dir=tmpdir, max_epochs=num_epochs, strategy="ddp_spawn", accelerator="cpu", devices=2, logger=False
+        default_root_dir=tmp_path,
+        max_epochs=num_epochs,
+        strategy="ddp_spawn",
+        accelerator="cpu",
+        devices=2,
+        logger=False,
     )
-    temp_path = os.path.join(tmpdir, "temp.pt")
+    temp_path = os.path.join(tmp_path, "temp.pt")
     trainer.fit(model)
 
     # Ensure these do not fail
@@ -51,14 +56,14 @@ def test_model_torch_save_ddp_cpu(tmpdir):
 
 
 @RunIf(min_cuda_gpus=2)
-def test_model_torch_save_ddp_cuda(tmpdir):
+def test_model_torch_save_ddp_cuda(tmp_path):
     """Test to ensure torch save does not fail for model and trainer using gpu ddp."""
     model = BoringModel()
     num_epochs = 1
     trainer = Trainer(
-        default_root_dir=tmpdir, max_epochs=num_epochs, strategy="ddp_spawn", accelerator="gpu", devices=2
+        default_root_dir=tmp_path, max_epochs=num_epochs, strategy="ddp_spawn", accelerator="gpu", devices=2
     )
-    temp_path = os.path.join(tmpdir, "temp.pt")
+    temp_path = os.path.join(tmp_path, "temp.pt")
     trainer.fit(model)
 
     # Ensure these do not fail
