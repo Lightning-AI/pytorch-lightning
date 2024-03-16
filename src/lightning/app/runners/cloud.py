@@ -208,7 +208,7 @@ class CloudRuntime(Runtime):
             name: The name for the run.
             cluster_id: The ID of the cluster to run on.
             source_app: Name of the source app that triggered the run.
-            keep_machines_after_stop: If true, machines will be left running after the run is finished (and can be reused after)
+            keep_machines_after_stop: If true, machines will be left running after the run is finished and reused after
 
         Raises:
             ApiException: If there was an issue in the backend.
