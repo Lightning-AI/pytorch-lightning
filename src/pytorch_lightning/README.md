@@ -174,7 +174,7 @@ class LitAutoEncoder(pl.LightningModule):
 
     def training_step(self, batch, batch_idx):
         # training_step defines the train loop. It is independent of forward
-        x, y = batch
+        x, _ = batch
         x = x.view(x.size(0), -1)
         z = self.encoder(x)
         x_hat = self.decoder(z)
