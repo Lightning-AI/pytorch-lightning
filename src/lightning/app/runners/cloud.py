@@ -197,6 +197,7 @@ class CloudRuntime(Runtime):
         name: str,
         cluster_id: str,
         source_app: Optional[str] = None,
+        keep_machines_after_stop: Optional[bool] = None,
     ) -> Externalv1LightningappInstance:
         """Slim dispatch for creating runs from a cloudspace. This dispatch avoids resolution of some properties such
         as the project and cluster IDs that are instead passed directly.
@@ -206,6 +207,8 @@ class CloudRuntime(Runtime):
             cloudspace_id: The ID of the cloudspace.
             name: The name for the run.
             cluster_id: The ID of the cluster to run on.
+            source_app: Name of the source app that triggered the run.
+            keep_machines_after_stop: If true, machines will be left running after the run is finished and reused after
 
         Raises:
             ApiException: If there was an issue in the backend.
@@ -278,6 +281,7 @@ class CloudRuntime(Runtime):
             queue_server_type,
             env_vars,
             source_app=source_app,
+            keep_machines_after_stop=keep_machines_after_stop,
         )
 
     def dispatch(
@@ -1016,6 +1020,7 @@ class CloudRuntime(Runtime):
         env_vars: Optional[List[V1EnvVar]] = None,
         auth: Optional[V1LightningAuth] = None,
         source_app: Optional[str] = None,
+        keep_machines_after_stop: Optional[bool] = None,
     ) -> Externalv1LightningappInstance:
         """Create a new instance of the given run with the given specification."""
         return self.backend.client.cloud_space_service_create_lightning_run_instance(
@@ -1030,6 +1035,7 @@ class CloudRuntime(Runtime):
                 env=env_vars,
                 auth=auth,
                 source_app=source_app,
+                keep_machines_after_stop=keep_machines_after_stop,
             ),
         )
 
