@@ -271,8 +271,8 @@ def caplog(caplog):
 
 
 @pytest.fixture()
-def tmpdir_server(tmpdir):
-    Handler = partial(SimpleHTTPRequestHandler, directory=str(tmpdir))
+def tmpdir_server(tmp_path):
+    Handler = partial(SimpleHTTPRequestHandler, directory=str(tmp_path))
     from http.server import ThreadingHTTPServer
 
     with ThreadingHTTPServer(("localhost", 0), Handler) as server:
