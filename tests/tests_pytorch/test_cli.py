@@ -47,6 +47,7 @@ from lightning.pytorch.trainer.states import TrainerFn
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.imports import _TORCHVISION_AVAILABLE
 from lightning_utilities import compare_version
+from lightning_utilities.core.imports import RequirementCache
 from lightning_utilities.test.warning import no_warning_call
 from tensorboard.backend.event_processing import event_accumulator
 from tensorboard.plugins.hparams.plugin_data_pb2 import HParamsPluginData
@@ -1481,6 +1482,12 @@ def test_cli_parameter_with_lazy_instance_default():
         assert cli.model.activation is not model.activation
 
 
+@pytest.mark.xfail(
+    # https://github.com/omni-us/jsonargparse/issues/473
+    condition=(RequirementCache("jsonargparse>=4.27.6")),
+    strict=False,
+    reason="Breaking change for `lazy_instance` in jsonargparse",
+)
 def test_ddpstrategy_instantiation_and_find_unused_parameters(mps_count_0):
     strategy_default = lazy_instance(DDPStrategy, find_unused_parameters=True)
     with mock.patch("sys.argv", ["any.py", "--trainer.strategy.process_group_backend=group"]):
