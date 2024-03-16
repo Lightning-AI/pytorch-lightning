@@ -423,7 +423,7 @@ class _TrainingEpochLoop(loops._Loop):
         # val_check_batch is inf for iterable datasets with no length defined
         is_infinite_dataset = self.trainer.val_check_batch == float("inf")
         is_last_batch = self.batch_progress.is_last_batch
-        if is_last_batch and (is_infinite_dataset or isinstance(data_fetcher, _DataLoaderIterDataFetcher)):
+        if is_last_batch:  # and (is_infinite_dataset or isinstance(data_fetcher, _DataLoaderIterDataFetcher)):
             return True
 
         if self.trainer.should_stop and self.trainer.fit_loop._can_stop_early:
