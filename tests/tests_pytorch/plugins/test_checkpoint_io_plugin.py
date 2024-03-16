@@ -59,13 +59,13 @@ def test_checkpoint_plugin_called(tmp_path):
 
     ckpt_files = {fn.name for fn in Path(tmp_path).glob("*.ckpt")}
     assert ckpt_files == {"epoch=1-step=2.ckpt", "last.ckpt"}
-    assert trainer.checkpoint_callback.best_model_path == tmp_path / "epoch=1-step=2.ckpt"
-    assert trainer.checkpoint_callback.last_model_path == tmp_path / "last.ckpt"
+    assert trainer.checkpoint_callback.best_model_path == str(tmp_path / "epoch=1-step=2.ckpt")
+    assert trainer.checkpoint_callback.last_model_path == str(tmp_path / "last.ckpt")
     assert checkpoint_plugin.save_checkpoint.call_count == 4
     assert checkpoint_plugin.remove_checkpoint.call_count == 1
 
     trainer.test(model, ckpt_path=ck.last_model_path)
-    checkpoint_plugin.load_checkpoint.assert_called_with(tmp_path / "last.ckpt")
+    checkpoint_plugin.load_checkpoint.assert_called_with(str(tmp_path / "last.ckpt"))
 
     checkpoint_plugin.reset_mock()
     ck = ModelCheckpoint(dirpath=tmp_path, save_last=True)
@@ -86,14 +86,14 @@ def test_checkpoint_plugin_called(tmp_path):
 
     ckpt_files = {fn.name for fn in Path(tmp_path).glob("*.ckpt")}
     assert ckpt_files == {"epoch=1-step=2.ckpt", "last.ckpt", "epoch=1-step=2-v1.ckpt", "last-v1.ckpt"}
-    assert trainer.checkpoint_callback.best_model_path == tmp_path / "epoch=1-step=2-v1.ckpt"
-    assert trainer.checkpoint_callback.last_model_path == tmp_path / "last-v1.ckpt"
+    assert trainer.checkpoint_callback.best_model_path == str(tmp_path / "epoch=1-step=2-v1.ckpt")
+    assert trainer.checkpoint_callback.last_model_path == str(tmp_path / "last-v1.ckpt")
     assert checkpoint_plugin.save_checkpoint.call_count == 4
     assert checkpoint_plugin.remove_checkpoint.call_count == 1
 
     trainer.test(model, ckpt_path=ck.last_model_path)
     checkpoint_plugin.load_checkpoint.assert_called_once()
-    checkpoint_plugin.load_checkpoint.assert_called_with(tmp_path / "last-v1.ckpt")
+    checkpoint_plugin.load_checkpoint.assert_called_with(str(tmp_path / "last-v1.ckpt"))
 
 
 def test_async_checkpoint_plugin(tmp_path):
