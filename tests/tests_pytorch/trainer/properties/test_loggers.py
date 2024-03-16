@@ -93,4 +93,4 @@ def test_no_logger(tmp_path, logger_value):
     )
     assert trainer.logger is None
     assert trainer.loggers == []
-    assert trainer.log_dir == tmp_path
+    assert trainer.log_dir == str(tmp_path)
