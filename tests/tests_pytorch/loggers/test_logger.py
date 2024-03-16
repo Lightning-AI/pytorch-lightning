@@ -333,7 +333,7 @@ def test_scan_checkpoints(checkpoint_callback_mock, tmp_path, save_top_k: int):
     for i in range(save_top_k):
         ckpt_path = tmp_path / f"{i}.ckpt"
         with open(ckpt_path, "w") as f:
-            f.write(f"")
+            f.write("")
         best_k_models[ckpt_path] = i
     checkpoint_callback_mock.best_k_models = best_k_models
 
