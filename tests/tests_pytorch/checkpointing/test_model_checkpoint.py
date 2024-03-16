@@ -151,7 +151,7 @@ def test_model_checkpoint_score_and_ckpt(
     calls = mock_training_epoch_loop(trainer)
     trainer.fit(model)
 
-    ckpt_files = list(Path(tmp_path).glob("*.ckpt"))
+    ckpt_files = list(tmp_path.glob("*.ckpt"))
     assert len(ckpt_files) == len(model.scores) == max_epochs
 
     for epoch in range(max_epochs):
@@ -280,7 +280,7 @@ def test_model_checkpoint_score_and_ckpt_val_check_interval(
 
         return score
 
-    ckpt_files = list(Path(tmp_path).glob("*.ckpt"))
+    ckpt_files = list(tmp_path.glob("*.ckpt"))
     assert len(ckpt_files) == len(model.scores) == per_epoch_val_checks * max_epochs
 
     for epoch in range(max_epochs):
@@ -302,7 +302,7 @@ def test_model_checkpoint_with_non_string_input(tmp_path, save_top_k: int):
         default_root_dir=tmp_path, callbacks=[checkpoint], overfit_batches=0.20, max_epochs=max_epochs, logger=False
     )
     trainer.fit(model)
-    assert checkpoint.dirpath == tmp_path / "checkpoints"
+    assert checkpoint.dirpath == str(tmp_path / "checkpoints")
 
     if save_top_k == -1:
         ckpt_files = os.listdir(checkpoint.dirpath)
@@ -321,7 +321,7 @@ def test_model_checkpoint_to_yaml(tmp_path, save_top_k: int):
     trainer = Trainer(default_root_dir=tmp_path, callbacks=[checkpoint], overfit_batches=0.20, max_epochs=2)
     trainer.fit(model)
 
-    path_yaml = os.path.join(tmp_path, "best_k_models.yaml")
+    path_yaml = tmp_path / "best_k_models.yaml"
     checkpoint.to_yaml(path_yaml)
     with open(path_yaml) as fo:
         d = yaml.full_load(fo)
@@ -335,7 +335,7 @@ def test_model_checkpoint_to_yaml(tmp_path, save_top_k: int):
 def test_model_checkpoint_path(tmp_path, logger_version: Union[None, int, str], expected: str):
     """Test that "version_" prefix is only added when logger's version is an integer."""
     model = LogInTwoMethods()
-    logger = TensorBoardLogger(str(tmp_path), version=logger_version)
+    logger = TensorBoardLogger(tmp_path, version=logger_version)
 
     trainer = Trainer(default_root_dir=tmp_path, overfit_batches=0.2, max_epochs=2, logger=logger)
     trainer.fit(model)
@@ -448,7 +448,7 @@ def test_model_checkpoint_format_checkpoint_name(tmp_path, monkeypatch):
     # with version
     ckpt = ModelCheckpoint(monitor="early_stop_on", dirpath=tmp_path, filename="name")
     ckpt_name = ckpt.format_checkpoint_name({}, ver=3)
-    assert ckpt_name == tmp_path / "name-v3.ckpt"
+    assert ckpt_name == str(tmp_path / "name-v3.ckpt")
 
     # using slashes
     ckpt = ModelCheckpoint(monitor="early_stop_on", dirpath=None, filename="{epoch}_{val/loss:.5f}")
@@ -697,8 +697,8 @@ def test_model_checkpoint_save_last_none_monitor(tmp_path, caplog):
 
     # these should not be set if monitor is None
     assert checkpoint_callback.monitor is None
-    assert checkpoint_callback.best_model_path == tmp_path / "epoch=1-step=20.ckpt"
-    assert checkpoint_callback.last_model_path == tmp_path / "last.ckpt"
+    assert checkpoint_callback.best_model_path == str(tmp_path / "epoch=1-step=20.ckpt")
+    assert checkpoint_callback.last_model_path == str(tmp_path / "last.ckpt")
     assert checkpoint_callback.best_model_score is None
     assert checkpoint_callback.best_k_models == {}
     assert checkpoint_callback.kth_best_model_path == ""
@@ -810,7 +810,7 @@ def test_model_checkpoint_topk_zero(tmp_path):
     assert checkpoint_callback.kth_best_model_path == ""
     # check that only the last ckpt was created
     assert os.listdir(tmp_path) == ["last.ckpt"]
-    assert checkpoint_callback.last_model_path == tmp_path / "last.ckpt"
+    assert checkpoint_callback.last_model_path == str(tmp_path / "last.ckpt")
     # 'last.ckpt' is not a symlink because there are no top-k checkpoints to link
     assert not os.path.islink(checkpoint_callback.last_model_path)
 
@@ -834,11 +834,11 @@ def test_model_checkpoint_topk_all(tmp_path):
     trainer.fit(model)
 
     assert checkpoint_callback.monitor == "epoch"
-    assert checkpoint_callback.best_model_path == tmp_path / "epoch=2.ckpt"
+    assert checkpoint_callback.best_model_path == str(tmp_path / "epoch=2.ckpt")
     assert checkpoint_callback.best_model_score == epochs - 1
     assert len(os.listdir(tmp_path)) == len(checkpoint_callback.best_k_models) == epochs
     assert set(checkpoint_callback.best_k_models.keys()) == {str(tmp_path / f"epoch={i}.ckpt") for i in range(epochs)}
-    assert checkpoint_callback.kth_best_model_path == tmp_path / "epoch=0.ckpt"
+    assert checkpoint_callback.kth_best_model_path == str(tmp_path / "epoch=0.ckpt")
 
 
 def test_ckpt_metric_names(tmp_path):
@@ -886,9 +886,9 @@ def test_default_checkpoint_behavior(tmp_path):
     save_dir = tmp_path / "checkpoints"
     save_weights_only = trainer.checkpoint_callback.save_weights_only
     save_mock.assert_has_calls([
-        call(save_dir / "epoch=0-step=5.ckpt", save_weights_only),
-        call(save_dir / "epoch=1-step=10.ckpt", save_weights_only),
-        call(save_dir / "epoch=2-step=15.ckpt", save_weights_only),
+        call(str(save_dir / "epoch=0-step=5.ckpt"), save_weights_only),
+        call(str(save_dir / "epoch=1-step=10.ckpt"), save_weights_only),
+        call(str(save_dir / "epoch=2-step=15.ckpt"), save_weights_only),
     ])
     ckpts = os.listdir(save_dir)
     assert len(ckpts) == 1
@@ -1019,7 +1019,7 @@ def test_checkpoint_repeated_strategy_extended(tmp_path):
         assert trainer.current_epoch == 0
 
     def get_last_checkpoint(ckpt_dir):
-        last = ckpt_dir.listdir(sort=True)[-1]
+        last = sorted(ckpt_dir.iterdir())[-1]
         return str(last)
 
     def assert_checkpoint_content(ckpt_dir):
@@ -1031,9 +1031,9 @@ def test_checkpoint_repeated_strategy_extended(tmp_path):
 
     def assert_checkpoint_log_dir(idx):
         lightning_logs = tmp_path / "lightning_logs"
-        actual = [d.basename for d in lightning_logs.listdir(sort=True)]
+        actual = [d.name for d in sorted(lightning_logs.iterdir())]
         assert actual == [f"version_{i}" for i in range(idx + 1)]
-        actual = [d.basename for d in ckpt_dir.listdir()]
+        actual = [d.name for d in sorted(ckpt_dir.iterdir())]
         assert len(actual) == epochs, actual
 
     ckpt_dir = tmp_path / "checkpoints"
@@ -1141,7 +1141,7 @@ def test_val_check_interval_checkpoint_files(tmp_path):
         enable_model_summary=False,
     )
     trainer.fit(model)
-    files = {p.basename for p in tmp_path.listdir()}
+    files = {p.name for p in tmp_path.iterdir()}
     assert files == {f"epoch=0-step={s}.ckpt" for s in [2, 4, 6, 8, 10]}
 
 
@@ -1166,7 +1166,7 @@ def test_current_score(tmp_path):
     )
     trainer.fit(TestModel())
     assert model_checkpoint.current_score == 0.3
-    ckpts = [torch.load(str(ckpt)) for ckpt in tmp_path.listdir()]
+    ckpts = [torch.load(ckpt) for ckpt in tmp_path.iterdir()]
     ckpts = [
         ckpt["callbacks"][
             "ModelCheckpoint{'monitor': 'foo', 'mode': 'min', 'every_n_train_steps': 0, 'every_n_epochs': 1,"
@@ -1257,7 +1257,7 @@ def test_ckpt_version_after_rerun_new_trainer(tmp_path):
         assert {Path(f).name for f in mc.best_k_models} == expected
 
     # check created ckpts
-    actual = {f.basename for f in tmp_path.listdir()}
+    actual = {f.name for f in tmp_path.iterdir()}
     assert actual == {"epoch=0.ckpt", "epoch=1.ckpt", "epoch=0-v1.ckpt", "epoch=1-v1.ckpt"}
 
 
@@ -1318,7 +1318,7 @@ def test_ckpt_version_counter_disabled_after_rerun_new_trainer(tmp_path):
         assert Path(mc.last_model_path).name == "last.ckpt"
 
     # check created ckpts
-    actual = {f.basename for f in tmp_path.listdir()}
+    actual = {f.name for f in tmp_path.iterdir()}
     assert actual == {"epoch=0.ckpt", "epoch=1.ckpt", "last.ckpt"}
 
 
@@ -1392,7 +1392,7 @@ def test_model_checkpoint_saveload_ckpt(tmp_path):
     # 2. "current_score" is left as initialized, i.e. None, and can therefore also be asserted
     # 3. When a different `dirpath` is passed to `ModelCheckpoint` to resume training, only
     #    `best_model_path` and `last_model_path` are reloaded (reloading for others is stopped).
-    cb_restore = ModelCheckpoint(dirpath=tmp_path + "/restore", monitor=None, save_top_k=-1, save_last=True)
+    cb_restore = ModelCheckpoint(dirpath=(tmp_path / "restore"), monitor=None, save_top_k=-1, save_last=True)
     with pytest.warns(UserWarning, match="The dirpath has changed from*"):
         cb_restore.load_state_dict(written_ckpt)
     make_assertions(cb_restore, written_ckpt)
@@ -1433,11 +1433,11 @@ def test_resume_training_preserves_old_ckpt_last(tmp_path):
 
     # Training it for 2 epochs for extra surety, that nothing gets deleted after multiple epochs
     trainer_kwargs["max_epochs"] += 1
-    mc_kwargs["dirpath"] = f"{tmp_path}/new"
+    mc_kwargs["dirpath"] = tmp_path / "new"
     trainer = Trainer(**trainer_kwargs, callbacks=ModelCheckpoint(**mc_kwargs))
-    trainer.fit(model, ckpt_path=f"{tmp_path}/checkpoints/step=2.ckpt")
+    trainer.fit(model, ckpt_path=(tmp_path / "checkpoints" / "step=2.ckpt"))
     # Ensure that the file is not deleted from the old folder
-    assert os.path.isfile(f"{tmp_path}/checkpoints/last.ckpt")
+    assert os.path.isfile(tmp_path / "checkpoints" / "last.ckpt")
 
 
 def test_save_last_saves_correct_last_model_path(tmp_path):
@@ -1449,9 +1449,9 @@ def test_save_last_saves_correct_last_model_path(tmp_path):
     mc._save_last_checkpoint(trainer, {"foo": torch.tensor(1)})
     expected = "foo=1-last.ckpt"
     assert os.listdir(tmp_path) == [expected]
-    full_path = str(tmp_path / expected)
+    full_path = tmp_path / expected
     ckpt = torch.load(full_path)
-    assert ckpt["callbacks"][mc.state_key]["last_model_path"] == full_path
+    assert ckpt["callbacks"][mc.state_key]["last_model_path"] == str(full_path)
 
 
 def test_save_last_versioning(tmp_path):

@@ -82,7 +82,7 @@ def test_trainer_save_checkpoint_storage_options(tmp_path, xla_available):
         enable_checkpointing=False,
     )
     trainer.fit(model)
-    instance_path = tmp_path + "/path.ckpt"
+    instance_path = tmp_path / "path.ckpt"
     instance_storage_options = "my instance storage options"
 
     with mock.patch("lightning.fabric.plugins.io.torch_io.TorchCheckpointIO.save_checkpoint") as io_mock:

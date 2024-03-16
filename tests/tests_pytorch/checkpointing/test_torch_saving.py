@@ -25,7 +25,7 @@ def test_model_torch_save(tmp_path):
     model = BoringModel()
     num_epochs = 1
     trainer = Trainer(default_root_dir=tmp_path, max_epochs=num_epochs)
-    temp_path = os.path.join(tmp_path, "temp.pt")
+    temp_path = tmp_path / "temp.pt"
     trainer.fit(model)
 
     # Ensure these do not fail
@@ -47,7 +47,7 @@ def test_model_torch_save_ddp_cpu(tmp_path):
         devices=2,
         logger=False,
     )
-    temp_path = os.path.join(tmp_path, "temp.pt")
+    temp_path = tmp_path / "temp.pt"
     trainer.fit(model)
 
     # Ensure these do not fail
@@ -63,7 +63,7 @@ def test_model_torch_save_ddp_cuda(tmp_path):
     trainer = Trainer(
         default_root_dir=tmp_path, max_epochs=num_epochs, strategy="ddp_spawn", accelerator="gpu", devices=2
     )
-    temp_path = os.path.join(tmp_path, "temp.pt")
+    temp_path = tmp_path / "temp.pt"
     trainer.fit(model)
 
     # Ensure these do not fail

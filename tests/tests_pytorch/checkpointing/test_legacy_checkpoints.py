@@ -46,7 +46,7 @@ def test_load_legacy_checkpoints(tmp_path, pl_version: str):
         path_ckpt = path_ckpts[-1]
 
         model = ClassificationModel.load_from_checkpoint(path_ckpt, num_features=24)
-        trainer = Trainer(default_root_dir=str(tmp_path))
+        trainer = Trainer(default_root_dir=tmp_path)
         dm = ClassifDataModule(num_features=24, length=6000, batch_size=128, n_clusters_per_class=2, n_informative=8)
         res = trainer.test(model, datamodule=dm)
         assert res[0]["test_loss"] <= 0.85, str(res[0]["test_loss"])
@@ -67,7 +67,7 @@ class LimitNbEpochs(Callback):
 
 @pytest.mark.parametrize("pl_version", LEGACY_BACK_COMPATIBLE_PL_VERSIONS)
 @RunIf(sklearn=True)
-def test_legacy_ckpt_threading(tmp_path, pl_version: str):
+def test_legacy_ckpt_threading(pl_version: str):
     PATH_LEGACY = os.path.join(LEGACY_CHECKPOINTS_PATH, pl_version)
     path_ckpts = sorted(glob.glob(os.path.join(PATH_LEGACY, f"*{CHECKPOINT_EXTENSION}")))
     assert path_ckpts, f'No checkpoints found in folder "{PATH_LEGACY}"'
@@ -105,7 +105,7 @@ def test_resume_legacy_checkpoints(tmp_path, pl_version: str):
         stop = LimitNbEpochs(1)
 
         trainer = Trainer(
-            default_root_dir=str(tmp_path),
+            default_root_dir=tmp_path,
             accelerator="auto",
             devices=1,
             precision=("16-mixed" if torch.cuda.is_available() else "32-true"),
