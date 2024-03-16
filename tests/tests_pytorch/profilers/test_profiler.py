@@ -103,9 +103,9 @@ def test_simple_profiler_dirpath(tmp_path):
     trainer = Trainer(default_root_dir=tmp_path, max_epochs=1, profiler=profiler, logger=False)
     trainer.fit(model)
 
-    assert trainer.log_dir == tmp_path
-    assert profiler.dirpath == trainer.log_dir
-    assert tmp_path.join("fit-profiler.txt").exists()
+    assert trainer.log_dir == str(tmp_path)
+    assert profiler.dirpath == str(trainer.log_dir)
+    assert (tmp_path / "fit-profiler.txt").exists()
 
 
 def test_simple_profiler_with_nonexisting_log_dir(tmp_path):
@@ -127,9 +127,9 @@ def test_simple_profiler_with_nonexisting_log_dir(tmp_path):
     trainer.fit(model)
 
     assert nonexisting_tmp_path.exists()
-    assert trainer.log_dir == nonexisting_tmp_path
+    assert trainer.log_dir == str(nonexisting_tmp_path)
     assert profiler.dirpath == trainer.log_dir
-    assert nonexisting_tmp_path.join("fit-profiler.txt").exists()
+    assert (nonexisting_tmp_path / "fit-profiler.txt").exists()
 
 
 def test_simple_profiler_with_nonexisting_dirpath(tmp_path):
@@ -145,7 +145,7 @@ def test_simple_profiler_with_nonexisting_dirpath(tmp_path):
     trainer.fit(model)
 
     assert nonexisting_tmp_path.exists()
-    assert nonexisting_tmp_path.join("fit-profiler.txt").exists()
+    assert (nonexisting_tmp_path / "fit-profiler.txt").exists()
 
 
 @RunIf(skip_windows=True)
@@ -170,7 +170,7 @@ def test_simple_profiler_distributed_files(tmp_path):
     expected = {f"{stage}-profiler-{rank}.txt" for stage in ("fit", "validate", "test") for rank in (0, 1)}
     assert actual == expected
 
-    for f in profiler.dirpath.listdir():
+    for f in profiler.dirpath.iterdir():
         assert f.read_text("utf-8")
 
 
