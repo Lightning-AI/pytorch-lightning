@@ -34,11 +34,11 @@ from tests_pytorch.helpers.simple_models import ClassificationModel
     ],
 )
 @RunIf(sklearn=True)
-def test_evaluate(tmpdir, trainer_kwargs):
+def test_evaluate(tmp_path, trainer_kwargs):
     dm = ClassifDataModule()
     model = ClassificationModel()
     trainer = Trainer(
-        default_root_dir=tmpdir, max_epochs=2, limit_train_batches=10, limit_val_batches=10, **trainer_kwargs
+        default_root_dir=tmp_path, max_epochs=2, limit_train_batches=10, limit_val_batches=10, **trainer_kwargs
     )
 
     trainer.fit(model, datamodule=dm)

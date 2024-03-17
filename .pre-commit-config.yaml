@@ -50,13 +50,6 @@ repos:
           )$
       - id: detect-private-key
 
-  - repo: https://github.com/asottile/pyupgrade
-    rev: v3.15.0
-    hooks:
-      - id: pyupgrade
-        args: ["--py38-plus"]
-        name: Upgrade code
-
   - repo: https://github.com/codespell-project/codespell
     rev: v2.2.6
     hooks:
@@ -77,12 +70,15 @@ repos:
       - id: sphinx-lint
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: "v0.2.0"
+    rev: v0.3.2
     hooks:
-      - id: ruff-format
-        args: ["--preview"]
+      # try to fix what is possible
       - id: ruff
-        args: ["--fix", "--preview"]
+        args: ["--fix"]
+      # perform formatting updates
+      - id: ruff-format
+      # validate if all is fine with preview mode
+      - id: ruff
 
   - repo: https://github.com/executablebooks/mdformat
     rev: 0.7.17
