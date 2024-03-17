@@ -514,7 +514,7 @@ class AssistantCLI:
         timestamp = datetime.now().strftime("%Y%m%d")
         version = f"{'.'.join(vers.groups())}.dev{timestamp}"
         with open(ver_file, "w") as fo:
-            fo.write(version + "\n")
+            fo.write(version + os.linesep)
 
 
 if __name__ == "__main__":
