@@ -43,6 +43,7 @@ jobs:
         with:
           pkg-name: ${{ env.PKG_NAME }}
           nb-dirs: ${{ env.NB_DIRS }}
+          allow-local-changes: "true"
 
       - uses: actions/upload-artifact@v3
         with:
