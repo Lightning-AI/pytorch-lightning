@@ -50,7 +50,7 @@ jobs:
           name: nightly-packages-${{ github.sha }}
           path: dist
 
-  pre-publish-packages:
+  publish-packages:
     runs-on: ubuntu-22.04
     needs: build-packages
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
