@@ -42,7 +42,7 @@ Examples
 .. displayitem::
     :header: Large Language Models
     :description: Pretrain a large language model (LLM)
-    :button_link: https://github.com/Lightning-AI/litgpt/blob/wip/tutorials/pretrain_tinyllama.md
+    :button_link: https://github.com/Lightning-AI/litgpt/blob/main/tutorials/pretrain_tinyllama.md
     :col_css: col-md-4
     :height: 150
     :tag: advanced
