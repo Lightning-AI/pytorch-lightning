@@ -201,7 +201,7 @@ def my_sync_dist(x, *_, **__):
     return x
 
 
-def test_result_collection_restoration(tmpdir):
+def test_result_collection_restoration(tmp_path):
     """This test make sure metrics are properly reloaded on failure."""
 
     result = _ResultCollection(True)
@@ -255,7 +255,7 @@ def test_result_collection_restoration(tmpdir):
         # make sure can be pickled
         pickle.loads(pickle.dumps(result))
         # make sure can be torch.loaded
-        filepath = str(tmpdir / "result")
+        filepath = str(tmp_path / "result")
         torch.save(result, filepath)
         torch.load(filepath)
 
@@ -380,12 +380,12 @@ def result_collection_reload(default_root_dir, accelerator="auto", devices=1, **
         trainer.fit(model)
     assert not model.has_validated_sum
 
-    tmpdir = (
+    tmp_path = (
         trainer.strategy.broadcast(trainer_kwargs["default_root_dir"], 0)
         if devices >= 2
         else trainer_kwargs["default_root_dir"]
     )
-    ckpt_path = os.path.join(tmpdir, "on_exception.ckpt")
+    ckpt_path = os.path.join(tmp_path, "on_exception.ckpt")
 
     trainer = Trainer(**trainer_kwargs)
     trainer.fit(model, ckpt_path=ckpt_path)
@@ -402,11 +402,11 @@ def result_collection_reload(default_root_dir, accelerator="auto", devices=1, **
         ),
     ],
 )
-def test_result_collection_reload(tmpdir, kwargs):
-    result_collection_reload(default_root_dir=tmpdir, **kwargs)
+def test_result_collection_reload(tmp_path, kwargs):
+    result_collection_reload(default_root_dir=tmp_path, **kwargs)
 
 
-def test_metric_collections(tmpdir):
+def test_metric_collections(tmp_path):
     """This test ensures the metric attribute is properly found even with complex nested metric structure."""
 
     class TestModel(BoringModel):
@@ -463,7 +463,7 @@ def test_metric_collections(tmpdir):
 
     model = TestModel()
 
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=2, limit_train_batches=2, limit_val_batches=0)
+    trainer = Trainer(default_root_dir=tmp_path, max_epochs=2, limit_train_batches=2, limit_val_batches=0)
     trainer.fit(model)
 
 
