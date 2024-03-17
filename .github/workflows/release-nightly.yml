@@ -33,6 +33,8 @@ jobs:
         with:
           python-version: 3.9
 
+      - name: Convert actual version to nightly
+        run: python .actions/assistant.py convert_version2nightly
       - run: python -c "print('NB_DIRS=' + str(2 if '${{ env.PKG_NAME }}' == 'pytorch' else 1))" >> $GITHUB_ENV
       - name: Build & check package
         uses: ./.github/actions/pkg-check
@@ -40,14 +42,10 @@ jobs:
           pkg-name: ${{ env.PKG_NAME }}
           nb-dirs: ${{ env.NB_DIRS }}
 
-      - run: |
-          mkdir pypi/${{ env.PKG_NAME }}
-          cp dist/* pypi/${{ env.PKG_NAME }}/
-
       - uses: actions/upload-artifact@v3
         with:
           name: nightly-packages-${{ github.sha }}
-          path: pypi
+          path: dist
 
   pre-publish-packages:
     runs-on: ubuntu-22.04
