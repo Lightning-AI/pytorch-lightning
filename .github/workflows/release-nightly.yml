@@ -34,7 +34,9 @@ jobs:
           python-version: 3.9
 
       - name: Convert actual version to nightly
-        run: python .actions/assistant.py convert_version2nightly
+        run: |
+          pip install -q -r .actions/requirements.txt
+          python .actions/assistant.py convert_version2nightly
       - run: python -c "print('NB_DIRS=' + str(2 if '${{ env.PKG_NAME }}' == 'pytorch' else 1))" >> $GITHUB_ENV
       - name: Build & check package
         uses: ./.github/actions/pkg-check
