@@ -57,22 +57,16 @@ jobs:
     env:
       PKG_NAME: "lightning"
     steps:
-      - uses: actions/checkout@v4 # needed for local action below
+      - uses: actions/checkout@v4 # needed to use local composite action
       - uses: actions/download-artifact@v4
         with:
           name: nightly-packages-${{ github.sha }}
           path: dist
-      - name: Browse folder
-        id: folder
-        run: |
-          sudo apt install -q -y tree
-          tree -L 2 -h dist/
-          python -c "print('pkg=' + '${{ env.PKG_NAME }}'.lower())" >> $GITHUB_OUTPUT
       - uses: ./.github/actions/pkg-publish
         with:
-          pkg-folder: dist/${{ steps.folder.outputs.pkg }}
+          pkg-folder: dist
           pypi-test-token: ${{ secrets[format('PYPI_TEST_TOKEN_{0}', env.PKG_NAME)] }}
       - uses: ./.github/actions/pkg-publish
         with:
-          pkg-folder: dist/${{ steps.folder.outputs.pkg }}
+          pkg-folder: dist
           pypi-token: ${{ secrets[format('PYPI_TOKEN_{0}', env.PKG_NAME)] }}
