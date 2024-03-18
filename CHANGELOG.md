@@ -5,28 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+---
 
-## [UnReleased] - 202Y-MM-DD
+## [0.11.0] - 2024-03-18
 
 ### Added
 
 - docs: enable pin version in links to external docs ([#236](https://github.com/Lightning-AI/utilities/pull/236))
 
-
 ### Changed
 
 - CI: parametrize source folder for typing check ([#228](https://github.com/Lightning-AI/utilities/pull/228))
 
-
-### Deprecated
-
--
-
-
-### Fixed
-
--
-
+---
 
 ## [0.10.1] - 2023-12-22
 
@@ -70,6 +61,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CI: resolve latex dependency for docs builds ([#181](https://github.com/Lightning-AI/utilities/pull/181))
 - CI: fixed branch for md links check ([#183](https://github.com/Lightning-AI/utilities/pull/183))
 
+---
 
 ## [0.9.0] - 2023-06-29
 
@@ -86,6 +78,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed - do not erase function types in decorators ([#135](https://github.com/Lightning-AI/utilities/pull/135))
 - CI: fix passing install flags in package check ([#137](https://github.com/Lightning-AI/utilities/pull/137))
 
+---
 
 ## [0.8.0] - 2023-03-10
 
@@ -94,6 +87,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added requirements parser ([#107](https://github.com/Lightning-AI/utilities/pull/107))
 - Added workflow for checking markdown links ([#81](https://github.com/Lightning-AI/utilities/pull/81))
 
+---
 
 ## [0.7.1] - 2023-02-23
 
@@ -103,7 +97,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- CI: allow specify typing extra ([#110](https://github.com/Lightning-AI/utilities/pull/110))
+- CI: allow to specify typing extra ([#110](https://github.com/Lightning-AI/utilities/pull/110))
 
 ### Fixed
 
@@ -131,6 +125,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     [#102](https://github.com/Lightning-AI/utilities/pull/102)
 )
 
+---
 
 ## [0.6.0] - 2023-01-23
 
@@ -148,6 +143,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - CI: Checking scheme in both yaml & yml + verbose ([#84](https://github.com/Lightning-AI/utilities/pull/84))
 
+---
 
 ## [0.5.0] - 2022-12-21
 
@@ -156,7 +152,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added method to lazily import modules ([#71](https://github.com/Lightning-AI/utilities/pull/71))
 - Added `requires` wrapper ([#70](https://github.com/Lightning-AI/utilities/pull/70))
 - Added several functions/class common to package's `__all__` ([#76](https://github.com/Lightning-AI/utilities/pull/76))
-
 
 ### Changed
 
@@ -168,6 +163,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed requirements parsing ([#69](https://github.com/Lightning-AI/utilities/pull/69))
 - Fixed missing `packaging` dependency ([#76](https://github.com/Lightning-AI/utilities/pull/76))
 
+---
 
 ## [0.4.2] - 2022-10-31
 
@@ -198,6 +194,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Increased verbosity and comment schema file location ([#49](https://github.com/Lightning-AI/utilities/pull/49))
 - Renamed `lightning_utilities.dev` to `lightning_utilities.cli` ([#46](https://github.com/Lightning-AI/utilities/pull/46))
 
+---
 
 ## [0.3.0] - 2022-09-06
 
@@ -208,6 +205,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added `is_overridden` utilities ([#35](https://github.com/Lightning-AI/utilities/pull/35))
 - Added `get_all_subclasses` ([#39](https://github.com/Lightning-AI/utilities/pull/39))
 
+---
 
 ## [0.2.0] - 2022-09-05
 
@@ -222,6 +220,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Renamed `pl-devtools` -> `lightning_utilities` ([#27](https://github.com/Lightning-AI/utilities/pull/27), [#30](https://github.com/Lightning-AI/utilities/pull/30))
 
+---
 
 ## [0.1.0] - 2022-08-22
 
