@@ -39,27 +39,27 @@ from tests_pytorch.helpers.simple_models import ClassificationModel
 
 
 @RunIf(min_cuda_gpus=2, standalone=True, sklearn=True)
-def test_multi_gpu_model_ddp_fit_only(tmpdir):
+def test_multi_gpu_model_ddp_fit_only(tmp_path):
     dm = ClassifDataModule()
     model = ClassificationModel()
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, accelerator="gpu", devices=2, strategy="ddp")
+    trainer = Trainer(default_root_dir=tmp_path, max_epochs=1, accelerator="gpu", devices=2, strategy="ddp")
     trainer.fit(model, datamodule=dm)
 
 
 @RunIf(min_cuda_gpus=2, standalone=True, sklearn=True)
-def test_multi_gpu_model_ddp_test_only(tmpdir):
+def test_multi_gpu_model_ddp_test_only(tmp_path):
     dm = ClassifDataModule()
     model = ClassificationModel()
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, accelerator="gpu", devices=2, strategy="ddp")
+    trainer = Trainer(default_root_dir=tmp_path, max_epochs=1, accelerator="gpu", devices=2, strategy="ddp")
     trainer.test(model, datamodule=dm)
 
 
 @RunIf(min_cuda_gpus=2, standalone=True, sklearn=True)
-def test_multi_gpu_model_ddp_fit_test(tmpdir):
+def test_multi_gpu_model_ddp_fit_test(tmp_path):
     seed_everything(4321)
     dm = ClassifDataModule()
     model = ClassificationModel()
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, accelerator="gpu", devices=2, strategy="ddp")
+    trainer = Trainer(default_root_dir=tmp_path, max_epochs=1, accelerator="gpu", devices=2, strategy="ddp")
     trainer.fit(model, datamodule=dm)
     result = trainer.test(model, datamodule=dm)
 
@@ -71,7 +71,7 @@ def test_multi_gpu_model_ddp_fit_test(tmpdir):
 @mock.patch("torch.cuda.set_device")
 @mock.patch("lightning.pytorch.accelerators.cuda._check_cuda_matmul_precision")
 @mock.patch("lightning.pytorch.accelerators.cuda._clear_cuda_memory")
-def test_ddp_torch_dist_is_available_in_setup(_, __, ___, cuda_count_1, mps_count_0, tmpdir):
+def test_ddp_torch_dist_is_available_in_setup(_, __, ___, cuda_count_1, mps_count_0, tmp_path):
     """Test to ensure torch distributed is available within the setup hook using ddp."""
 
     class TestModel(BoringModel):
@@ -81,7 +81,7 @@ def test_ddp_torch_dist_is_available_in_setup(_, __, ___, cuda_count_1, mps_coun
 
     model = TestModel()
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         fast_dev_run=True,
         strategy=DDPStrategy(process_group_backend="gloo"),
         accelerator="gpu",
@@ -93,7 +93,7 @@ def test_ddp_torch_dist_is_available_in_setup(_, __, ___, cuda_count_1, mps_coun
 
 @RunIf(min_cuda_gpus=2, standalone=True)
 @pytest.mark.parametrize("precision", ["16-mixed", "32-true"])
-def test_ddp_wrapper(tmpdir, precision):
+def test_ddp_wrapper(tmp_path, precision):
     """Test parameters to ignore are carried over for DDP."""
 
     class WeirdModule(torch.nn.Module):
@@ -119,7 +119,7 @@ def test_ddp_wrapper(tmpdir, precision):
 
     model = CustomModel()
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         fast_dev_run=True,
         precision=precision,
         strategy="ddp",
@@ -133,11 +133,11 @@ def test_ddp_wrapper(tmpdir, precision):
 
 
 @RunIf(min_cuda_gpus=2, sklearn=True)
-def test_multi_gpu_early_stop_ddp_spawn(tmpdir):
+def test_multi_gpu_early_stop_ddp_spawn(tmp_path):
     seed_everything(42)
 
     trainer_options = {
-        "default_root_dir": tmpdir,
+        "default_root_dir": tmp_path,
         "callbacks": [EarlyStopping(monitor="train_acc")],
         "max_epochs": 50,
         "limit_train_batches": 10,
@@ -153,11 +153,11 @@ def test_multi_gpu_early_stop_ddp_spawn(tmpdir):
 
 
 @RunIf(min_cuda_gpus=2)
-def test_multi_gpu_model_ddp_spawn(tmpdir):
+def test_multi_gpu_model_ddp_spawn(tmp_path):
     seed_everything(42)
 
     trainer_options = {
-        "default_root_dir": tmpdir,
+        "default_root_dir": tmp_path,
         "max_epochs": 1,
         "limit_train_batches": 10,
         "limit_val_batches": 10,
@@ -173,12 +173,12 @@ def test_multi_gpu_model_ddp_spawn(tmpdir):
 
 
 @RunIf(min_cuda_gpus=2)
-def test_ddp_all_dataloaders_passed_to_fit(tmpdir):
+def test_ddp_all_dataloaders_passed_to_fit(tmp_path):
     """Make sure DDP works with dataloaders passed to fit()"""
     model = BoringModel()
 
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         enable_progress_bar=False,
         max_epochs=1,
         limit_train_batches=0.2,
@@ -247,11 +247,11 @@ class TestDDPSpawnStrategy(DDPStrategy):
 
 
 @RunIf(skip_windows=True)
-def test_ddp_spawn_add_get_queue(tmpdir):
+def test_ddp_spawn_add_get_queue(tmp_path):
     """Tests get_extra_results/update_main_process_results with DDPSpawnStrategy."""
     ddp_spawn_strategy = TestDDPSpawnStrategy()
     trainer = Trainer(
-        default_root_dir=tmpdir, fast_dev_run=True, accelerator="cpu", devices=2, strategy=ddp_spawn_strategy
+        default_root_dir=tmp_path, fast_dev_run=True, accelerator="cpu", devices=2, strategy=ddp_spawn_strategy
     )
 
     val: float = 1.0
@@ -287,15 +287,15 @@ class BoringZeroRedundancyOptimizerModel(BoringModel):
 
 @RunIf(min_cuda_gpus=2, skip_windows=True)
 @pytest.mark.parametrize("strategy", [pytest.param("ddp", marks=RunIf(standalone=True)), "ddp_spawn"])
-def test_ddp_strategy_checkpoint_zero_redundancy_optimizer(tmpdir, strategy):
+def test_ddp_strategy_checkpoint_zero_redundancy_optimizer(tmp_path, strategy):
     """Test to ensure that checkpoint is saved correctly when using zero redundancy optimizer."""
     model = BoringZeroRedundancyOptimizerModel()
     trainer = Trainer(accelerator="gpu", devices=2, strategy=strategy, max_steps=1)
 
     trainer.fit(model)
 
-    checkpoint_path = os.path.join(tmpdir, "model.pt")
-    # need to broadcast because tmpdir is different on each process
+    checkpoint_path = os.path.join(tmp_path, "model.pt")
+    # need to broadcast because tmp_path is different on each process
     checkpoint_path = trainer.strategy.broadcast(checkpoint_path)
     trainer.save_checkpoint(checkpoint_path)
     saved_model = BoringModel.load_from_checkpoint(checkpoint_path)
@@ -409,12 +409,12 @@ def test_ddp_with_2_gpus():
 
 @RunIf(min_cuda_gpus=4, standalone=True)
 @mock.patch("torch.distributed.barrier")
-def test_ddp_barrier_non_consecutive_device_ids(barrier_mock, tmpdir):
+def test_ddp_barrier_non_consecutive_device_ids(barrier_mock, tmp_path):
     """Test correct usage of barriers when device ids do not start at 0 or are not consecutive."""
     model = BoringModel()
     gpus = [1, 3]
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         max_steps=1,
         accelerator="gpu",
         devices=gpus,
@@ -427,7 +427,7 @@ def test_ddp_barrier_non_consecutive_device_ids(barrier_mock, tmpdir):
 
 
 @mock.patch.dict(os.environ, {"LOCAL_RANK": "1"})
-def test_incorrect_ddp_script_spawning(tmpdir):
+def test_incorrect_ddp_script_spawning(tmp_path):
     """Test an error message when user accidentally instructs Lightning to spawn children processes on rank > 0."""
 
     class WronglyImplementedEnvironment(LightningEnvironment):
@@ -438,7 +438,7 @@ def test_incorrect_ddp_script_spawning(tmpdir):
 
     model = BoringModel()
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         strategy="ddp",
         accelerator="cpu",
         devices=2,

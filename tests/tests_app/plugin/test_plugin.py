@@ -85,6 +85,7 @@ plugin = TestPlugin()
                 cluster_id="any",
                 plugin_arguments={},
                 source_app="any",
+                keep_machines_after_stop=False,
             ),
             "Error downloading plugin source:",
             None,
@@ -99,6 +100,7 @@ plugin = TestPlugin()
                 cluster_id="any",
                 plugin_arguments={},
                 source_app="any",
+                keep_machines_after_stop=False,
             ),
             "Error extracting plugin source:",
             None,
@@ -113,6 +115,7 @@ plugin = TestPlugin()
                 cluster_id="any",
                 plugin_arguments={},
                 source_app="any",
+                keep_machines_after_stop=False,
             ),
             "Error loading plugin:",
             "plugin.py",
@@ -127,6 +130,7 @@ plugin = TestPlugin()
                 cluster_id="any",
                 plugin_arguments={},
                 source_app="any",
+                keep_machines_after_stop=False,
             ),
             "Error running plugin:",
             "plugin.py",
@@ -175,6 +179,7 @@ def test_run_job(mock_requests, mock_cloud_runtime, mock_cloud_backend, mock_plu
         cluster_id="test_cluster_id",
         plugin_arguments={"name": "test_name", "entrypoint": "test_entrypoint"},
         source_app="test_source_app",
+        keep_machines_after_stop=True,
     )
 
     mock_app = mock.MagicMock()
@@ -207,6 +212,7 @@ def test_run_job(mock_requests, mock_cloud_runtime, mock_cloud_backend, mock_plu
         name="test_name",
         cluster_id=body.cluster_id,
         source_app=body.source_app,
+        keep_machines_after_stop=body.keep_machines_after_stop,
     )
 
 

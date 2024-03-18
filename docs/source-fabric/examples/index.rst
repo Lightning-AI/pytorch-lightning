@@ -41,8 +41,8 @@ Examples
 
 .. displayitem::
     :header: Large Language Models
-    :description: Pre-train a GPT language model on OpenWebText data
-    :button_link: https://github.com/Lightning-AI/lit-gpt/blob/main/pretrain/openwebtext.py
+    :description: Pretrain a large language model (LLM)
+    :button_link: https://github.com/Lightning-AI/litgpt/blob/main/tutorials/pretrain_tinyllama.md
     :col_css: col-md-4
     :height: 150
     :tag: advanced
