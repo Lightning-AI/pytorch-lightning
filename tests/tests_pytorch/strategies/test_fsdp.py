@@ -214,13 +214,13 @@ def _assert_save_equality(trainer, ckpt_path, cls=TestFSDPModel):
             assert torch.equal(ddp_param, shard_param)
 
 
-def test_invalid_on_cpu(tmpdir, cuda_count_0):
+def test_invalid_on_cpu(tmp_path, cuda_count_0):
     """Test to ensure that we raise Misconfiguration for FSDP on CPU."""
     with pytest.raises(
         MisconfigurationException,
         match=f"You selected strategy to be `{FSDPStrategy.strategy_name}`, but GPU accelerator is not used.",
     ):
-        trainer = Trainer(accelerator="cpu", default_root_dir=tmpdir, fast_dev_run=True, strategy="fsdp")
+        trainer = Trainer(accelerator="cpu", default_root_dir=tmp_path, fast_dev_run=True, strategy="fsdp")
         assert isinstance(trainer.strategy, FSDPStrategy)
         trainer.strategy.setup_environment()
 
@@ -233,11 +233,11 @@ def test_fsdp_custom_mixed_precision():
 
 
 @RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True)
-def test_fsdp_strategy_sync_batchnorm(tmpdir):
+def test_fsdp_strategy_sync_batchnorm(tmp_path):
     """Test to ensure that sync_batchnorm works when using FSDP and GPU, and all stages can be run."""
     model = TestFSDPModel()
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         accelerator="gpu",
         devices=2,
         strategy="fsdp",
@@ -245,7 +245,7 @@ def test_fsdp_strategy_sync_batchnorm(tmpdir):
         max_epochs=1,
         sync_batchnorm=True,
     )
-    _run_multiple_stages(trainer, model, os.path.join(tmpdir, "last.ckpt"))
+    _run_multiple_stages(trainer, model, os.path.join(tmp_path, "last.ckpt"))
 
 
 @RunIf(min_cuda_gpus=1, skip_windows=True)
@@ -281,14 +281,14 @@ def test_fsdp_modules_without_parameters(tmp_path):
 @RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True)
 @pytest.mark.parametrize("precision", ["16-mixed", pytest.param("bf16-mixed", marks=RunIf(bf16_cuda=True))])
 @pytest.mark.parametrize("state_dict_type", ["sharded", "full"])
-def test_fsdp_strategy_checkpoint(state_dict_type, precision, tmpdir):
+def test_fsdp_strategy_checkpoint(state_dict_type, precision, tmp_path):
     """Test to ensure that checkpoint is saved correctly when using a single GPU, and all stages can be run."""
     model = TestFSDPModel()
     strategy = FSDPStrategy(state_dict_type=state_dict_type)
     trainer = Trainer(
-        default_root_dir=tmpdir, accelerator="gpu", devices=2, strategy=strategy, precision=precision, max_epochs=1
+        default_root_dir=tmp_path, accelerator="gpu", devices=2, strategy=strategy, precision=precision, max_epochs=1
     )
-    _run_multiple_stages(trainer, model, os.path.join(tmpdir, "last.ckpt"))
+    _run_multiple_stages(trainer, model, os.path.join(tmp_path, "last.ckpt"))
 
 
 if _TORCH_GREATER_EQUAL_2_0:
@@ -312,7 +312,7 @@ else:
 
 @RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True)
 @pytest.mark.parametrize("wrap_min_params", [2, 1024, 100000000])
-def test_fsdp_strategy_full_state_dict(tmpdir, wrap_min_params):
+def test_fsdp_strategy_full_state_dict(tmp_path, wrap_min_params):
     """Test to ensure that the full state dict is extracted when using FSDP strategy.
 
     Based on `wrap_min_params`, the model will be fully wrapped, half wrapped, and not wrapped at all.
@@ -323,7 +323,7 @@ def test_fsdp_strategy_full_state_dict(tmpdir, wrap_min_params):
 
     strategy = FSDPStrategy(auto_wrap_policy=partial(size_based_auto_wrap_policy, min_num_params=wrap_min_params))
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         accelerator="gpu",
         devices=2,
         strategy=strategy,
@@ -376,7 +376,7 @@ def test_fsdp_strategy_full_state_dict(tmpdir, wrap_min_params):
         ),
     ],
 )
-def test_fsdp_checkpoint_multi_gpus(tmpdir, model, strategy, strategy_cfg):
+def test_fsdp_checkpoint_multi_gpus(tmp_path, model, strategy, strategy_cfg):
     """Test to ensure that checkpoint is saved correctly when using multiple GPUs, and all stages can be run."""
     ck = ModelCheckpoint(save_last=True)
 
@@ -385,7 +385,7 @@ def test_fsdp_checkpoint_multi_gpus(tmpdir, model, strategy, strategy_cfg):
         strategy = strategy(**strategy_cfg)
 
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         accelerator="gpu",
         devices=2,
         strategy=strategy,
@@ -613,7 +613,7 @@ def test_fsdp_strategy_load_optimizer_states_multiple(_, tmp_path):
 
 @RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True)
 @pytest.mark.parametrize("wrap_min_params", [2, 1024, 100000000])
-def test_fsdp_strategy_save_optimizer_states(tmpdir, wrap_min_params):
+def test_fsdp_strategy_save_optimizer_states(tmp_path, wrap_min_params):
     """Test to ensure that the full state dict and optimizer states is saved when using FSDP strategy.
 
     Based on `wrap_min_params`, the model will be fully wrapped, half wrapped, and not wrapped at all. If the model can
@@ -624,7 +624,7 @@ def test_fsdp_strategy_save_optimizer_states(tmpdir, wrap_min_params):
 
     strategy = FSDPStrategy(auto_wrap_policy=partial(size_based_auto_wrap_policy, min_num_params=wrap_min_params))
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         accelerator="gpu",
         devices=2,
         strategy=strategy,
@@ -634,7 +634,7 @@ def test_fsdp_strategy_save_optimizer_states(tmpdir, wrap_min_params):
     )
 
     trainer.fit(model)
-    model_path = os.path.join(tmpdir, "last.ckpt")
+    model_path = os.path.join(tmp_path, "last.ckpt")
     model_path = trainer.strategy.broadcast(model_path)
     trainer.save_checkpoint(model_path)
 
@@ -652,7 +652,7 @@ def test_fsdp_strategy_save_optimizer_states(tmpdir, wrap_min_params):
 
     # restore model to ddp
     model = TestBoringModel()
-    trainer = Trainer(default_root_dir=tmpdir, accelerator="gpu", devices=2, strategy="ddp", max_epochs=1)
+    trainer = Trainer(default_root_dir=tmp_path, accelerator="gpu", devices=2, strategy="ddp", max_epochs=1)
 
     # This step will restore the model and optimizer states
     trainer.fit(model, ckpt_path=model_path)
@@ -674,7 +674,7 @@ def test_fsdp_strategy_save_optimizer_states(tmpdir, wrap_min_params):
 
 @RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True)
 @pytest.mark.parametrize("wrap_min_params", [2, 1024, 100000000])
-def test_fsdp_strategy_load_optimizer_states(tmpdir, wrap_min_params):
+def test_fsdp_strategy_load_optimizer_states(tmp_path, wrap_min_params):
     """Test to ensure that the full state dict and optimizer states can be load when using FSDP strategy.
 
     Based on `wrap_min_params`, the model will be fully wrapped, half wrapped, and not wrapped at all. If the DDP model
@@ -684,11 +684,11 @@ def test_fsdp_strategy_load_optimizer_states(tmpdir, wrap_min_params):
 
     # restore model to ddp
     model = TestBoringModel()
-    trainer = Trainer(default_root_dir=tmpdir, accelerator="gpu", devices=2, strategy="ddp", max_epochs=1)
+    trainer = Trainer(default_root_dir=tmp_path, accelerator="gpu", devices=2, strategy="ddp", max_epochs=1)
 
     # This step will restore the model and optimizer states
     trainer.fit(model)
-    model_path = os.path.join(tmpdir, "last.ckpt")
+    model_path = os.path.join(tmp_path, "last.ckpt")
     model_path = trainer.strategy.broadcast(model_path)
     trainer.save_checkpoint(model_path)
 
@@ -701,7 +701,7 @@ def test_fsdp_strategy_load_optimizer_states(tmpdir, wrap_min_params):
 
     strategy = FSDPStrategy(auto_wrap_policy=partial(size_based_auto_wrap_policy, min_num_params=wrap_min_params))
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         accelerator="gpu",
         devices=2,
         strategy=strategy,
