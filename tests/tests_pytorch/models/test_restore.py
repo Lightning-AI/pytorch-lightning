@@ -446,6 +446,7 @@ def test_load_model_from_checkpoint(tmp_path, model_template):
         "limit_test_batches": 2,
         "callbacks": [ModelCheckpoint(dirpath=tmp_path, monitor="val_loss", save_top_k=-1)],
         "default_root_dir": tmp_path,
+        "accelerator": "cpu",
     }
 
     # fit model
@@ -465,7 +466,6 @@ def test_load_model_from_checkpoint(tmp_path, model_template):
 
     # Ensure that model can be correctly restored from checkpoint
     pretrained_model = model_template.load_from_checkpoint(last_checkpoint)
-    pretrained_model.to(model.device)  # Move pretrained_model to the same device as model
 
     # test that hparams loaded correctly
     for k, v in model.hparams.items():
