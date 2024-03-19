@@ -106,7 +106,9 @@ jobs:
 
       - name: Full build for deployment
         if: github.event_name != 'pull_request'
-        run: echo "DOCS_FETCH_ASSETS=1" >> $GITHUB_ENV
+        run: |
+          echo "DOCS_FETCH_ASSETS=1" >> $GITHUB_ENV
+          echo "PIN_RELEASE_VERSIONS=1" >> $GITHUB_ENV
       - name: Make ${{ matrix.target }}
         working-directory: ./docs/source-${{ matrix.pkg-name }}
         # allow failing link check and doctest if you run with dispatch

@@ -17,6 +17,7 @@ sphinx-rtd-dark-mode
 sphinxcontrib-video ==0.2.0
 jinja2 <3.2.0
 
-lightning-utilities >=0.9.0
+lightning-utilities >=0.11.0, <0.12.0
 
+# installed from S3 location and fetched in advance
 lai-sphinx-theme

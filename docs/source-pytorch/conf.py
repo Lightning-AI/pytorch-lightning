@@ -14,13 +14,12 @@
 import glob
 import os
 import shutil
-import urllib.request
 import warnings
 from importlib.util import module_from_spec, spec_from_file_location
 from types import ModuleType
 
 import lai_sphinx_theme
-from lightning_utilities.docs import fetch_external_assets
+from lightning_utilities.docs import adjust_linked_external_docs, fetch_external_assets
 from lightning_utilities.docs.formatting import _transform_changelog
 
 import lightning
@@ -32,6 +31,7 @@ _SPHINX_MOCK_REQUIREMENTS = int(os.environ.get("SPHINX_MOCK_REQUIREMENTS", True)
 _FAST_DOCS_DEV = int(os.getenv("FAST_DOCS_DEV", True))
 _COPY_NOTEBOOKS = int(os.getenv("DOCS_COPY_NOTEBOOKS", not _FAST_DOCS_DEV))
 _FETCH_S3_ASSETS = int(os.getenv("DOCS_FETCH_ASSETS", not _FAST_DOCS_DEV))
+_PIN_RELEASE_VERSIONS = int(os.getenv("PIN_RELEASE_VERSIONS", not _FAST_DOCS_DEV))
 
 # -----------------------
 # BUILD stuff
@@ -110,6 +110,23 @@ if _FETCH_S3_ASSETS:
         retrieve_pattern=r"https?://[-a-zA-Z0-9_]+\.s3\.[-a-zA-Z0-9()_\\+.\\/=]+",
     )
 
+
+if _PIN_RELEASE_VERSIONS:
+    adjust_linked_external_docs(
+        "https://numpy.org/doc/stable/", "https://numpy.org/doc/{numpy.__version__}/", _PATH_ROOT
+    )
+    adjust_linked_external_docs(
+        "https://pytorch.org/docs/stable/", "https://pytorch.org/docs/{torch.__version__}/", _PATH_ROOT
+    )
+    adjust_linked_external_docs(
+        "https://lightning.ai/docs/torchmetrics", "https://lightning.ai/docs/torchmetrics/v{torchmetrics.__version__}/", _PATH_ROOT, version_digits=3
+    )
+    adjust_linked_external_docs(
+        "https://lightning.ai/docs/fabric/stable/", "https://lightning.ai/docs/fabric/{lightning_fabric.__version__}/", _PATH_ROOT, version_digits=3
+    )
+    adjust_linked_external_docs(
+        "https://tensorboardx.readthedocs.io/en/stable/", "https://tensorboardx.readthedocs.io/en/v{tensorboard.__version__}/", _PATH_ROOT
+    )
 
 # -- Project information -----------------------------------------------------
 
@@ -327,7 +344,7 @@ intersphinx_mapping = {
     "torch": ("https://pytorch.org/docs/stable/", None),
     "numpy": ("https://numpy.org/doc/stable/", None),
     "PIL": ("https://pillow.readthedocs.io/en/stable/", None),
-    "torchmetrics": ("https://torchmetrics.readthedocs.io/en/stable/", None),
+    "torchmetrics": ("https://lightning.ai/docs/torchmetrics/stable/", None),
     "lightning_habana": ("https://lightning-ai.github.io/lightning-Habana/", None),
     "tensorboardX": ("https://tensorboardx.readthedocs.io/en/stable/", None),
     # needed for referencing App from lightning scope
