@@ -15,7 +15,6 @@ import os
 import sys
 
 import lai_sphinx_theme
-from lightning_utilities.docs import fetch_external_assets
 
 import lightning
 
@@ -26,6 +25,7 @@ sys.path.insert(0, os.path.abspath(_PATH_ROOT))
 _SPHINX_MOCK_REQUIREMENTS = int(os.environ.get("SPHINX_MOCK_REQUIREMENTS", True))
 _FAST_DOCS_DEV = int(os.environ.get("FAST_DOCS_DEV", True))
 _FETCH_S3_ASSETS = int(os.getenv("DOCS_FETCH_ASSETS", not _FAST_DOCS_DEV))
+_PIN_RELEASE_VERSIONS = int(os.getenv("PIN_RELEASE_VERSIONS", not _FAST_DOCS_DEV))
 
 # -- Project information -----------------------------------------------------
 
@@ -47,10 +47,19 @@ github_repo = project
 # -- Project documents -------------------------------------------------------
 
 if _FETCH_S3_ASSETS:
+    from lightning_utilities.docs import fetch_external_assets
+
     fetch_external_assets(
         docs_folder=_PATH_HERE,
         assets_folder="_static/fetched-s3-assets",
         retrieve_pattern=r"https?://[-a-zA-Z0-9_]+\.s3\.[-a-zA-Z0-9()_\\+.\\/=]+",
+    )
+
+if _PIN_RELEASE_VERSIONS:
+    from lightning_utilities.docs import adjust_linked_external_docs
+
+    adjust_linked_external_docs(
+        "https://pytorch.org/docs/stable/", "https://pytorch.org/docs/{torch.__version__}/", _PATH_ROOT
     )
 
 # -- General configuration ---------------------------------------------------
