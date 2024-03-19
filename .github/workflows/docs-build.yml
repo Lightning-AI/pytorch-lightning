@@ -62,6 +62,7 @@ jobs:
         target: ["html", "doctest", "linkcheck"]
     env:
       DOCS_COPY_NOTEBOOKS: 1
+      PIN_RELEASE_VERSIONS: 1
       ARTIFACT_DAYS: 0
     steps:
       - uses: actions/checkout@v4
@@ -106,9 +107,7 @@ jobs:
 
       - name: Full build for deployment
         if: github.event_name != 'pull_request'
-        run: |
-          echo "DOCS_FETCH_ASSETS=1" >> $GITHUB_ENV
-          echo "PIN_RELEASE_VERSIONS=1" >> $GITHUB_ENV
+        run: echo "DOCS_FETCH_ASSETS=1" >> $GITHUB_ENV
       - name: Make ${{ matrix.target }}
         working-directory: ./docs/source-${{ matrix.pkg-name }}
         # allow failing link check and doctest if you run with dispatch
