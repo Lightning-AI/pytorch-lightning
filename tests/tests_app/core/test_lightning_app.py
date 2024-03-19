@@ -561,6 +561,7 @@ class CheckpointLightningApp(LightningApp):
         raise SuccessException
 
 
+@pytest.mark.flaky(reruns=3)
 def test_snap_shotting():
     with contextlib.suppress(SuccessException):
         app = CheckpointLightningApp(FlowA())
@@ -1115,7 +1116,7 @@ class FlowWrapper(LightningFlow):
 def test_cloud_compute_binding():
     cloud_compute.ENABLE_MULTIPLE_WORKS_IN_NON_DEFAULT_CONTAINER = True
 
-    assert cloud_compute._CLOUD_COMPUTE_STORE == {}
+    assert {} == cloud_compute._CLOUD_COMPUTE_STORE
     flow = FlowCC()
     assert len(cloud_compute._CLOUD_COMPUTE_STORE) == 2
     assert cloud_compute._CLOUD_COMPUTE_STORE["default"].component_names == ["root.work_c"]

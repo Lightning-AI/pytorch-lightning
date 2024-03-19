@@ -21,7 +21,7 @@ from torch.utils.data import DataLoader
     ("max_epochs", "expected_val_loop_calls", "expected_val_batches"),
     [(1, 0, [0]), (4, 2, [0, 2, 0, 2]), (5, 2, [0, 2, 0, 2, 0])],
 )
-def test_check_val_every_n_epoch(tmpdir, max_epochs, expected_val_loop_calls, expected_val_batches):
+def test_check_val_every_n_epoch(tmp_path, max_epochs, expected_val_loop_calls, expected_val_batches):
     class TestModel(BoringModel):
         val_epoch_calls = 0
         val_batches = []
@@ -34,7 +34,7 @@ def test_check_val_every_n_epoch(tmpdir, max_epochs, expected_val_loop_calls, ex
 
     model = TestModel()
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         max_epochs=max_epochs,
         num_sanity_val_steps=0,
         limit_val_batches=2,
@@ -48,7 +48,7 @@ def test_check_val_every_n_epoch(tmpdir, max_epochs, expected_val_loop_calls, ex
     assert model.val_batches == expected_val_batches
 
 
-def test_check_val_every_n_epoch_with_max_steps(tmpdir):
+def test_check_val_every_n_epoch_with_max_steps(tmp_path):
     data_samples_train = 2
     check_val_every_n_epoch = 3
     max_epochs = 4
@@ -67,7 +67,7 @@ def test_check_val_every_n_epoch_with_max_steps(tmpdir):
 
     model = TestModel()
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         max_steps=data_samples_train * max_epochs,
         check_val_every_n_epoch=check_val_every_n_epoch,
         num_sanity_val_steps=0,

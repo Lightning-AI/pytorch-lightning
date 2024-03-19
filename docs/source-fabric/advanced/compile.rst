@@ -3,7 +3,7 @@ Speed up models by compiling them
 #################################
 
 Compiling your PyTorch model can result in significant speedups, especially on the latest generations of GPUs.
-This guide shows you how to apply ``torch.compile`` correctly in your code.
+This guide shows you how to apply `torch.compile <https://pytorch.org/docs/2.2/generated/torch.compile.html>`_ correctly in your code.
 
 .. note::
 
@@ -132,7 +132,7 @@ If there are regions in the code that it doesn't understand, it will introduce a
 Graph breaks aren't a deal breaker, since the optimized parts should still run faster.
 But if you want to get the most out of ``torch.compile``, you might want to invest rewriting the problematic section of the code that produce the breaks.
 
-You can check whether your model produces graph breaks by calling ``torch.compile`` with ``fullraph=True``:
+You can check whether your model produces graph breaks by calling ``torch.compile`` with ``fullgraph=True``:
 
 .. code-block:: python
 
@@ -223,6 +223,9 @@ On PyTorch 2.2 and later, ``torch.compile`` will detect dynamism automatically a
     Numbers produced with NVIDIA A100 SXM4 40GB, PyTorch 2.2.0, CUDA 12.1.
 
 
+If you still see recompilation issues after dealing with the aforementioned cases, there is a `Compile Profiler in PyTorch <https://pytorch.org/docs/stable/torch.compiler_troubleshooting.html#excessive-recompilation>`_ for further investigation.
+
+
 ----
 
 
@@ -266,11 +269,11 @@ You can find a full list of compile options in the `PyTorch documentation <https
 A note about torch.compile in practice
 **************************************
 
-In practice, you will find that ``torch.compile`` often doesn't work well and can even be counter-productive.
-Compilation may fail with cryptic error messages that are impossible to debug without help from the PyTorch team.
-It is also not uncommon that ``torch.compile`` will produce a significantly *slower* model or one with much higher memory usage.
-On top of that, the compilation phase itself can be incredibly slow, taking several minutes to finish.
-For these reasons, we recommend that you don't waste too much time trying to apply ``torch.compile`` during development, and rather evaluate its effectiveness toward the end when you are about to launch long-running, expensive experiments.
+In practice, you will find that ``torch.compile`` may not work well at first or may be counter-productive to performance.
+Compilation may fail with cryptic error messages that are hard to debug, luckily the PyTorch team is responsive and it's likely that messaging will improve in time.
+It is not uncommon that ``torch.compile`` will produce a significantly *slower* model or one with higher memory usage. You'll need to invest time in this phase if the model is not among the ones that have a happy path.
+As a note, the compilation phase itself will take some time, taking up to several minutes.
+For these reasons, we recommend that you don't invest too much time trying to apply ``torch.compile`` during development, and rather evaluate its effectiveness toward the end when you are about to launch long-running, expensive experiments.
 Always compare the speed and memory usage of the compiled model against the original model!
 
 
@@ -300,5 +303,19 @@ However, should you have issues compiling DDP and FSDP models, you can opt out o
     # Turn it off if you see issues with DDP/FSDP
     model = fabric.setup(model, _reapply_compile=False)
 
+
+----
+
+
+********************
+Additional Resources
+********************
+
+Here are a few resources for further reading after you complete this tutorial:
+
+- `PyTorch 2.0 Paper <https://pytorch.org/blog/pytorch-2-paper-tutorial/>`_
+- `GenAI with PyTorch 2.0 blog post series <https://pytorch.org/blog/accelerating-generative-ai-4/>`_
+- `Training Production AI Models with PyTorch 2.0 <https://pytorch.org/blog/training-production-ai-models/>`_
+- `Empowering Models with Performance: The Art of Generalized Model Transformation Approach <https://pytorch.org/blog/empowering-models-performance/>`_
 
 |

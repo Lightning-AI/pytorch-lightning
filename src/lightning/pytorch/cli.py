@@ -11,13 +11,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import inspect
 import os
 import sys
 from functools import partial, update_wrapper
 from types import MethodType
-from typing import Any, Callable, Dict, Iterable, List, Optional, Set, Tuple, Type, Union
+from typing import Any, Callable, Dict, Iterable, List, Optional, Set, Tuple, Type, TypeVar, Union
 
 import torch
+import yaml
 from lightning_utilities.core.imports import RequirementCache
 from lightning_utilities.core.rank_zero import _warn
 from torch.optim import Optimizer
@@ -27,11 +29,12 @@ import lightning.pytorch as pl
 from lightning.fabric.utilities.cloud_io import get_filesystem
 from lightning.fabric.utilities.types import _TORCH_LRSCHEDULER
 from lightning.pytorch import Callback, LightningDataModule, LightningModule, Trainer, seed_everything
+from lightning.pytorch.core.mixins.hparams_mixin import _given_hyperparameters_context
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.model_helpers import is_overridden
 from lightning.pytorch.utilities.rank_zero import rank_zero_warn
 
-_JSONARGPARSE_SIGNATURES_AVAILABLE = RequirementCache("jsonargparse[signatures]>=4.26.1")
+_JSONARGPARSE_SIGNATURES_AVAILABLE = RequirementCache("jsonargparse[signatures]>=4.27.5")
 
 if _JSONARGPARSE_SIGNATURES_AVAILABLE:
     import docstring_parser
@@ -49,6 +52,8 @@ if _JSONARGPARSE_SIGNATURES_AVAILABLE:
 else:
     locals()["ArgumentParser"] = object
     locals()["Namespace"] = object
+
+ModuleType = TypeVar("ModuleType")
 
 
 class ReduceLROnPlateau(torch.optim.lr_scheduler.ReduceLROnPlateau):
@@ -381,6 +386,7 @@ class LightningCLI:
 
         self._set_seed()
 
+        self._add_instantiators()
         self.before_instantiate_classes()
         self.instantiate_classes()
 
@@ -526,6 +532,22 @@ class LightningCLI:
             self.config = parser.parse_object(args)
         else:
             self.config = parser.parse_args(args)
+
+    def _add_instantiators(self) -> None:
+        self.config_dump = yaml.safe_load(self.parser.dump(self.config, skip_link_targets=False))
+        if "subcommand" in self.config:
+            self.config_dump = self.config_dump[self.config.subcommand]
+
+        self.parser.add_instantiator(
+            _InstantiatorFn(cli=self, key="model"),
+            _get_module_type(self._model_class),
+            subclasses=self.subclass_mode_model,
+        )
+        self.parser.add_instantiator(
+            _InstantiatorFn(cli=self, key="data"),
+            _get_module_type(self._datamodule_class),
+            subclasses=self.subclass_mode_data,
+        )
 
     def before_instantiate_classes(self) -> None:
         """Implement to run some code before instantiating the classes."""
@@ -755,3 +777,33 @@ def _get_short_description(component: object) -> Optional[str]:
         return docstring.short_description
     except (ValueError, docstring_parser.ParseError) as ex:
         rank_zero_warn(f"Failed parsing docstring for {component}: {ex}")
+
+
+def _get_module_type(value: Union[Callable, type]) -> type:
+    if callable(value) and not isinstance(value, type):
+        return inspect.signature(value).return_annotation
+    return value
+
+
+class _InstantiatorFn:
+    def __init__(self, cli: LightningCLI, key: str) -> None:
+        self.cli = cli
+        self.key = key
+
+    def __call__(self, class_type: Type[ModuleType], *args: Any, **kwargs: Any) -> ModuleType:
+        with _given_hyperparameters_context(
+            hparams=self.cli.config_dump.get(self.key, {}),
+            instantiator="lightning.pytorch.cli.instantiate_module",
+        ):
+            return class_type(*args, **kwargs)
+
+
+def instantiate_module(class_type: Type[ModuleType], config: Dict[str, Any]) -> ModuleType:
+    parser = ArgumentParser(exit_on_error=False)
+    if "class_path" in config:
+        parser.add_subclass_arguments(class_type, "module")
+    else:
+        parser.add_class_arguments(class_type, "module")
+    cfg = parser.parse_object({"module": config})
+    init = parser.instantiate_classes(cfg)
+    return init.module

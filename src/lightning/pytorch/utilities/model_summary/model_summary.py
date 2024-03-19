@@ -463,8 +463,9 @@ def _is_lazy_weight_tensor(p: Tensor) -> bool:
 
     if isinstance(p, UninitializedParameter):
         warning_cache.warn(
-            "A layer with UninitializedParameter was found. "
-            "Thus, the total number of parameters detected may be inaccurate."
+            "The total number of parameters detected may be inaccurate because the model contains"
+            " an instance of `UninitializedParameter`. To get an accurate number, set `self.example_input_array`"
+            " in your LightningModule."
         )
         return True
     return False

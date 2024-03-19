@@ -48,32 +48,39 @@ ignore-words-list = "te, compiletime"
 
 [tool.ruff]
 line-length = 120
-# Enable Pyflakes `E` and `F` codes by default.
-lint.select = [
-    "E", "W",  # see: https://pypi.org/project/pycodestyle
-    "F",  # see: https://pypi.org/project/pyflakes
-    "S",  # see: https://pypi.org/project/flake8-bandit
-    "RUF018",  # see: https://docs.astral.sh/ruff/rules/assignment-in-assert
-]
-lint.extend-select = [
-    "I",  # see: isort
-    "C4",  # see: https://pypi.org/project/flake8-comprehensions
-    "SIM",  # see: https://pypi.org/project/flake8-simplify
-    "RET",  # see: https://pypi.org/project/flake8-return
-    "PT",  # see: https://pypi.org/project/flake8-pytest-style
-]
-lint.ignore = [
-    "E731",  # Do not assign a lambda expression, use a def
-    "S108",
-    "E203", # conflicts with black
-]
+target-version = "py38"
 # Exclude a variety of commonly ignored directories.
 exclude = [
     ".git",
     "docs",
     "_notebooks"
 ]
-lint.ignore-init-module-imports = true
+
+[tool.ruff.format]
+preview = true
+
+[tool.ruff.lint]
+select = [
+    "E", "W",  # see: https://pypi.org/project/pycodestyle
+    "F",  # see: https://pypi.org/project/pyflakes
+    "S",  # see: https://pypi.org/project/flake8-bandit
+    "RUF018",  # see: https://docs.astral.sh/ruff/rules/assignment-in-assert
+    "UP", # see: https://docs.astral.sh/ruff/rules/#pyupgrade-up
+]
+extend-select = [
+    "I",  # see: isort
+    "C4",  # see: https://pypi.org/project/flake8-comprehensions
+    "SIM",  # see: https://pypi.org/project/flake8-simplify
+    "RET",  # see: https://pypi.org/project/flake8-return
+    "PT",  # see: https://pypi.org/project/flake8-pytest-style
+    "RUF100",  # see: https://docs.astral.sh/ruff/rules/unused-noqa/
+]
+ignore = [
+    "E731",  # Do not assign a lambda expression, use a def
+    "S108",
+    "E203", # conflicts with black
+]
+ignore-init-module-imports = true
 
 [tool.ruff.lint.per-file-ignores]
 ".actions/*" = ["S101", "S310"]
@@ -101,9 +108,6 @@ lint.ignore-init-module-imports = true
     "S607",  # todo: Starting a process with a partial executable path
     "RET504",  # todo:Unnecessary variable assignment before `return` statement
     "RET503",
-]
-"src/lightning/data/**" = [
-    "S310",  # todo: Audit URL open for permitted schemes. Allowing use of `file:` or custom schemes is often unexpected.
 ]
 "tests/**" = [
     "S101",  # Use of `assert` detected

@@ -3,4 +3,4 @@
 
 torchvision >=0.14.0, <0.18.0
 torchmetrics >=0.10.0, <1.3.0
-lightning-utilities >=0.8.0, <0.10.0
+lightning-utilities >=0.8.0, <0.11.0

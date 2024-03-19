@@ -45,10 +45,10 @@ class DeviceAssertCallback(Callback):
 
 
 @RunIf(min_cuda_gpus=2)
-def test_submodules_multi_gpu_ddp_spawn(tmpdir):
+def test_submodules_multi_gpu_ddp_spawn(tmp_path):
     model = TopModule()
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         strategy="ddp_spawn",
         accelerator="gpu",
         devices=2,

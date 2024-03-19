@@ -141,6 +141,10 @@ def neptune_mock(monkeypatch):
     neptune_utils.stringify_unsupported = Mock()
     monkeypatch.setitem(sys.modules, "neptune.utils", neptune_utils)
 
+    neptune_exceptions = ModuleType("exceptions")
+    neptune_exceptions.InactiveRunException = Exception
+    monkeypatch.setitem(sys.modules, "neptune.exceptions", neptune_exceptions)
+
     neptune.handler = neptune_handler
     neptune.types = neptune_types
     neptune.utils = neptune_utils

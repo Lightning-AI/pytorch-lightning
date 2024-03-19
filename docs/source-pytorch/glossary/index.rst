@@ -8,6 +8,7 @@
    Checkpointing <../common/checkpointing>
    Cluster <../clouds/cluster>
    Cloud checkpoint <../common/checkpointing_advanced>
+   Compile <../advanced/compile>
    Console Logging <../common/console_logs>
    Debugging <../debug/debugging>
    DeepSpeed <../advanced/model_parallel/deepspeed>
@@ -44,7 +45,7 @@
    SLURM <../clouds/cluster_advanced>
    Transfer learning <../advanced/transfer_learning>
    Trainer <../common/trainer>
-   Torch distributed <../clouds/cluster_intermediate_2>
+   TorchRun (TorchElastic) <../clouds/cluster_intermediate_2>
    Warnings <../advanced/warnings>
 
 
@@ -90,6 +91,13 @@ Glossary
    :description: Save your models to cloud filesystems
    :col_css: col-md-12
    :button_link: ../common/checkpointing_advanced.html
+   :height: 100
+
+.. displayitem::
+   :header: Compile
+   :description: Use torch.compile to speed up models on modern hardware
+   :col_css: col-md-12
+   :button_link: ../advanced/compile.html
    :height: 100
 
 .. displayitem::

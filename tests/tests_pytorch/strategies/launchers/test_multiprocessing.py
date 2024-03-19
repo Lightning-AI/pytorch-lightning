@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-import sys
 from multiprocessing import Process
 from unittest import mock
 from unittest.mock import ANY, Mock, call, patch
@@ -20,7 +19,6 @@ from unittest.mock import ANY, Mock, call, patch
 import pytest
 import torch
 from lightning.fabric.plugins import ClusterEnvironment
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_2
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.strategies import DDPStrategy
@@ -91,7 +89,7 @@ def test_global_state_snapshot():
 @pytest.mark.parametrize("trainer_fn", [TrainerFn.FITTING, "other"])
 @pytest.mark.parametrize("fake_node_rank", [0, 1])
 @pytest.mark.parametrize("fake_local_rank", [0, 1])
-def test_collect_rank_zero_results(trainer_fn, fake_node_rank, fake_local_rank, tmpdir):
+def test_collect_rank_zero_results(trainer_fn, fake_node_rank, fake_local_rank, tmp_path):
     """Tests that the spawn strategy transfers the new weights to the main process and deletes the temporary file."""
     model = Mock(wraps=BoringModel(), spec=BoringModel)
     fake_global_rank = 2 * fake_node_rank + fake_local_rank
@@ -106,7 +104,7 @@ def test_collect_rank_zero_results(trainer_fn, fake_node_rank, fake_local_rank, 
     strategy._local_rank = fake_local_rank
 
     launcher = _MultiProcessingLauncher(strategy=strategy)
-    trainer = Trainer(accelerator="cpu", default_root_dir=tmpdir, strategy=strategy)
+    trainer = Trainer(accelerator="cpu", default_root_dir=tmp_path, strategy=strategy)
 
     assert strategy.node_rank == fake_node_rank
     assert strategy.local_rank == fake_local_rank
@@ -130,12 +128,12 @@ def test_collect_rank_zero_results(trainer_fn, fake_node_rank, fake_local_rank, 
 
 
 @pytest.mark.parametrize("trainer_fn", [TrainerFn.FITTING, "other"])
-def test_transfer_weights(tmpdir, trainer_fn):
+def test_transfer_weights(tmp_path, trainer_fn):
     """Tests that the multiprocessing launcher transfers the new weights to the main process and deletes the temporary
     file."""
     model = Mock(wraps=BoringModel(), spec=BoringModel)
     strategy = DDPStrategy(start_method="spawn")
-    trainer = Trainer(accelerator="cpu", default_root_dir=tmpdir, strategy=strategy)
+    trainer = Trainer(accelerator="cpu", default_root_dir=tmp_path, strategy=strategy)
     trainer.strategy.connect(model)
     trainer.state.fn = trainer_fn  # pretend we are in a particular trainer state
 
@@ -153,12 +151,12 @@ def test_transfer_weights(tmpdir, trainer_fn):
     assert model.load_state_dict.call_count == int(spawn_output.weights_path is not None)
 
 
-def test_non_strict_loading(tmpdir):
+def test_non_strict_loading(tmp_path):
     """Tests that the multiprocessing launcher loads the weights back into the main process but with strict loading
     disabled, not erroring for missing keys."""
     model = Mock(wraps=BoringModel(), spec=BoringModel)
     strategy = DDPStrategy(start_method="spawn")
-    trainer = Trainer(accelerator="cpu", default_root_dir=tmpdir, strategy=strategy)
+    trainer = Trainer(accelerator="cpu", default_root_dir=tmp_path, strategy=strategy)
     trainer.strategy.connect(model)
     trainer.state.fn = TrainerFn.FITTING  # state dict loading only relevant for the FITTING case
 
@@ -196,11 +194,6 @@ class SimpleModel(BoringModel):
         assert torch.equal(self.layer.weight.data, self.tied_layer.weight.data)
 
 
-@pytest.mark.xfail(
-    # https://github.com/pytorch/pytorch/issues/116056
-    sys.platform == "win32" and _TORCH_GREATER_EQUAL_2_2,
-    reason="Windows + DDP issue in PyTorch 2.2",
-)
 def test_memory_sharing_disabled():
     """Test that the multiprocessing launcher disables memory sharing on model parameters and buffers to avoid race
     conditions on model updates."""
@@ -221,11 +214,6 @@ def test_check_for_missing_main_guard():
         launcher.launch(function=Mock())
 
 
-@pytest.mark.xfail(
-    # https://github.com/pytorch/pytorch/issues/116056
-    sys.platform == "win32" and _TORCH_GREATER_EQUAL_2_2,
-    reason="Windows + DDP issue in PyTorch 2.2",
-)
 def test_fit_twice_raises():
     model = BoringModel()
     trainer = Trainer(

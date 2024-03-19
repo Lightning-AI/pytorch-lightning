@@ -114,6 +114,16 @@ def thread_police_duuu_daaa_duuu_daaa():
             raise AssertionError(f"Test left zombie thread: {thread}")
 
 
+@pytest.fixture(autouse=True)
+def reset_in_fabric_backward():
+    """Ensures that the wrappers.in_fabric_backward global variable gets reset after each test."""
+    import lightning.fabric.wrappers as wrappers
+
+    assert hasattr(wrappers, "_in_fabric_backward")
+    yield
+    wrappers._in_fabric_backward = False
+
+
 @pytest.fixture()
 def reset_deterministic_algorithm():
     """Ensures that torch determinism settings are reset before the next test runs."""

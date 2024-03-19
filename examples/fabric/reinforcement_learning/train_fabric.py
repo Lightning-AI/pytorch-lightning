@@ -14,7 +14,7 @@ Requirements:
 
 
 Run it with:
-    lightning run model --accelerator=cpu --strategy=ddp --devices=2 train_fabric.py
+    fabric run --accelerator=cpu --strategy=ddp --devices=2 train_fabric.py
 """
 
 import argparse
