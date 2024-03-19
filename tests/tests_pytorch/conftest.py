@@ -83,7 +83,6 @@ def restore_env_variables():
         "WANDB_REQUIRE_SERVICE",
         "WANDB_SERVICE",
         "RANK",  # set by DeepSpeed
-        "POPLAR_ENGINE_OPTIONS",  # set by IPUStrategy
         "CUDA_MODULE_LOADING",  # leaked by PyTorch
         "KMP_INIT_AT_FORK",  # leaked by PyTorch
         "KMP_DUPLICATE_LIB_OK",  # leaked by PyTorch
@@ -272,8 +271,8 @@ def caplog(caplog):
 
 
 @pytest.fixture()
-def tmpdir_server(tmpdir):
-    Handler = partial(SimpleHTTPRequestHandler, directory=str(tmpdir))
+def tmpdir_server(tmp_path):
+    Handler = partial(SimpleHTTPRequestHandler, directory=str(tmp_path))
     from http.server import ThreadingHTTPServer
 
     with ThreadingHTTPServer(("localhost", 0), Handler) as server:

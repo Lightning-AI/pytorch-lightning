@@ -3,7 +3,6 @@ import sys
 
 import pytest
 import torch
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_2
 from lightning.fabric.utilities.spike import _TORCHMETRICS_GREATER_EQUAL_1_0_0, TrainingSpikeException
 from lightning.pytorch import LightningModule, Trainer
 from lightning.pytorch.callbacks.spike import SpikeDetection
@@ -47,11 +46,6 @@ class MyTrainerSpikeDetection(SpikeDetection):
             super().on_train_batch_end(trainer, pl_module, outputs, batch, batch_idx)
 
 
-@pytest.mark.xfail(
-    # https://github.com/pytorch/pytorch/issues/116056
-    sys.platform == "win32" and _TORCH_GREATER_EQUAL_2_2,
-    reason="Windows + DDP issue in PyTorch 2.2",
-)
 @pytest.mark.flaky(max_runs=3)
 @pytest.mark.parametrize(
     ("global_rank_spike", "num_devices", "spike_value", "finite_only"),

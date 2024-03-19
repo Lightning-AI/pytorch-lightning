@@ -16,6 +16,7 @@
 Needs to be run outside of `pytest` as it captures all the warnings.
 
 """
+
 import importlib
 import inspect
 import os

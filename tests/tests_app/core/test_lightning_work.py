@@ -176,14 +176,12 @@ def test_lightning_status(enable_exception, raise_exception):
         "run_started_counter": 1,
         "statuses": [],
     }
-    caller_queue.put(
-        {
-            "args": (),
-            "kwargs": {},
-            "call_hash": call_hash,
-            "state": work.state,
-        }
-    )
+    caller_queue.put({
+        "args": (),
+        "kwargs": {},
+        "call_hash": call_hash,
+        "state": work.state,
+    })
     work_runner = WorkRunner(
         work,
         work.name,

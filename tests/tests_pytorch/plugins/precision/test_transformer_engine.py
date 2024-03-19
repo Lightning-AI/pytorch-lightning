@@ -64,13 +64,11 @@ def test_configure_model(monkeypatch):
             self.l = torch.nn.Linear(8, 16)
             assert self.l.weight.dtype == torch.float16
 
-        def test_step(self, *_):
-            ...
+        def test_step(self, *_): ...
 
     model = MyModel()
     trainer = Trainer(barebones=True, precision="transformer-engine-float16")
     trainer.test(model, [0])
     te_mock.pytorch.fp8_autocast.assert_called_once_with(enabled=True, fp8_recipe=ANY)
-    # TODO: invert condition once this gets fixed
-    assert not isinstance(model.l, ModuleMock)
+    assert isinstance(model.l, ModuleMock)
     assert model.l.weight.dtype == torch.float16

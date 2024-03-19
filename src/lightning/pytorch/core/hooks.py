@@ -85,6 +85,10 @@ class ModelHooks:
             batch: The batched data as it is returned by the training DataLoader.
             batch_idx: the index of the batch
 
+        Note:
+            The value ``outputs["loss"]`` here will be the normalized value w.r.t ``accumulate_grad_batches`` of the
+            loss returned from ``training_step``.
+
         """
 
     def on_validation_batch_start(self, batch: Any, batch_idx: int, dataloader_idx: int = 0) -> None:
@@ -601,10 +605,6 @@ class DataHooks:
                     batch = super().transfer_batch_to_device(batch, device, dataloader_idx)
                 return batch
 
-        Raises:
-            MisconfigurationException:
-                If using IPUs, ``Trainer(accelerator='ipu')``.
-
         See Also:
             - :meth:`move_data_to_device`
             - :meth:`apply_to_collection`
@@ -660,10 +660,6 @@ class DataHooks:
             def on_after_batch_transfer(self, batch, dataloader_idx):
                 batch['x'] = gpu_transforms(batch['x'])
                 return batch
-
-        Raises:
-            MisconfigurationException:
-                If using IPUs, ``Trainer(accelerator='ipu')``.
 
         See Also:
             - :meth:`on_before_batch_transfer`

@@ -1,6 +1,5 @@
 import functools
 import os
-import sys
 from functools import partial
 from pathlib import Path
 from unittest import mock
@@ -13,12 +12,12 @@ from lightning.fabric.strategies import DDPStrategy, SingleDeviceStrategy
 from lightning.fabric.strategies.launchers.multiprocessing import _MultiProcessingLauncher
 from lightning.fabric.utilities.distributed import (
     _gather_all_tensors,
+    _InfiniteBarrier,
     _set_num_threads_if_needed,
     _suggested_max_num_threads,
     _sync_ddp,
     is_shared_filesystem,
 )
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_2
 
 from tests_fabric.helpers.runif import RunIf
 
@@ -120,11 +119,6 @@ def test_collective_operations(devices, process):
     spawn_launch(process, devices)
 
 
-@pytest.mark.xfail(
-    # https://github.com/pytorch/pytorch/issues/116056
-    sys.platform == "win32" and _TORCH_GREATER_EQUAL_2_2,
-    reason="Windows + DDP issue in PyTorch 2.2",
-)
 @pytest.mark.flaky(reruns=3)  # flaky with "process 0 terminated with signal SIGABRT" (GLOO)
 def test_is_shared_filesystem(tmp_path, monkeypatch):
     # In the non-distributed case, every location is interpreted as 'shared'
@@ -196,3 +190,30 @@ def test_set_num_threads_if_needed(_, set_num_threads_mock, num_processes, expec
     _set_num_threads_if_needed(1)
     set_num_threads_mock.assert_not_called()
     assert os.environ["OMP_NUM_THREADS"] == str(expected)
+
+
+def test_infinite_barrier():
+    # distributed not available
+    barrier = _InfiniteBarrier()
+    assert barrier.group is None
+    with mock.patch("lightning.fabric.utilities.distributed._distributed_is_initialized", return_value=False):
+        barrier.__enter__()
+        assert barrier.group is None
+        barrier()
+        barrier.__exit__(None, None, None)
+        assert barrier.group is None
+
+    # distributed available
+    barrier = _InfiniteBarrier()
+    with mock.patch(
+        "lightning.fabric.utilities.distributed._distributed_is_initialized", return_value=True
+    ), mock.patch("lightning.fabric.utilities.distributed.torch.distributed") as dist_mock:
+        barrier.__enter__()
+        dist_mock.new_group.assert_called_once()
+        assert barrier.barrier == barrier.group.monitored_barrier
+        assert barrier.barrier.call_count == 0
+        barrier()
+        assert barrier.barrier.call_count == 1
+        barrier.__exit__(None, None, None)
+        assert barrier.barrier.call_count == 2
+        dist_mock.destroy_process_group.assert_called_once()

@@ -44,11 +44,7 @@ REQUIREMENT_FILES = {
         "requirements/fabric/base.txt",
         "requirements/fabric/strategies.txt",
     ),
-    "data": (
-        "requirements/data/data.txt",
-        "requirements/data/cloud.txt",
-        "requirements/data/examples.txt",
-    ),
+    "data": ("requirements/data/data.txt",),
 }
 REQUIREMENT_FILES_ALL = list(chain(*REQUIREMENT_FILES.values()))
 
@@ -504,6 +500,21 @@ class AssistantCLI:
             page = ":orphan:\n\n" + page
         with open(rst_out, "w", encoding="utf-8") as fopen:
             fopen.write(page)
+
+    @staticmethod
+    def convert_version2nightly(ver_file: str = "src/version.info") -> None:
+        """Load the actual version and convert it to the nightly version."""
+        from datetime import datetime
+
+        with open(ver_file) as fo:
+            version = fo.read().strip()
+        # parse X.Y.Z version and prune any suffix
+        vers = re.match(r"(\d+)\.(\d+)\.(\d+).*", version)
+        # create timestamp  YYYYMMDD
+        timestamp = datetime.now().strftime("%Y%m%d")
+        version = f"{'.'.join(vers.groups())}.dev{timestamp}"
+        with open(ver_file, "w") as fo:
+            fo.write(version + os.linesep)
 
 
 if __name__ == "__main__":

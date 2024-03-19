@@ -8,6 +8,7 @@
    Checkpointing <../common/checkpointing>
    Cluster <../clouds/cluster>
    Cloud checkpoint <../common/checkpointing_advanced>
+   Compile <../advanced/compile>
    Console Logging <../common/console_logs>
    Debugging <../debug/debugging>
    DeepSpeed <../advanced/model_parallel/deepspeed>
@@ -20,7 +21,6 @@
    Half precision <../common/precision>
    HPU <../integrations/hpu/index>
    Inference <../deploy/production_intermediate>
-   IPU <../integrations/ipu/index>
    Lightning CLI <../cli/lightning_cli>
    LightningDataModule <../data/datamodule>
    LightningModule <../common/lightning_module>
@@ -45,7 +45,7 @@
    SLURM <../clouds/cluster_advanced>
    Transfer learning <../advanced/transfer_learning>
    Trainer <../common/trainer>
-   Torch distributed <../clouds/cluster_intermediate_2>
+   TorchRun (TorchElastic) <../clouds/cluster_intermediate_2>
    Warnings <../advanced/warnings>
 
 
@@ -91,6 +91,13 @@ Glossary
    :description: Save your models to cloud filesystems
    :col_css: col-md-12
    :button_link: ../common/checkpointing_advanced.html
+   :height: 100
+
+.. displayitem::
+   :header: Compile
+   :description: Use torch.compile to speed up models on modern hardware
+   :col_css: col-md-12
+   :button_link: ../advanced/compile.html
    :height: 100
 
 .. displayitem::
@@ -175,13 +182,6 @@ Glossary
    :description: Making predictions by applying a trained model to unlabeled examples
    :col_css: col-md-12
    :button_link: ../deploy/production_intermediate.html
-   :height: 100
-
-.. displayitem::
-   :header: IPU
-   :description: Graphcore Intelligence Processing Unit for faster training
-   :col_css: col-md-12
-   :button_link: ../integrations/ipu/index.html
    :height: 100
 
 .. displayitem::

@@ -92,11 +92,13 @@ pip install -iU https://test.pypi.org/simple/ pytorch-lightning
 
 ______________________________________________________________________
 
-## Lightning has 3 core packages
+## Lightning has 4 core packages
 
 [PyTorch Lightning: Train and deploy PyTorch at scale](#pytorch-lightning-train-and-deploy-pytorch-at-scale).
 <br/>
 [Lightning Fabric: Expert control](#lightning-fabric-expert-control).
+<br/>
+[Lightning Data: Blazing fast, distributed streaming of training data from cloud storage](https://github.com/Lightning-AI/pytorch-lightning/tree/master/src/lightning/data).
 <br/>
 [Lightning Apps: Build AI products and ML workflows](#lightning-apps-build-ai-products-and-ml-workflows).
 
@@ -144,7 +146,7 @@ class LitAutoEncoder(L.LightningModule):
 
     def training_step(self, batch, batch_idx):
         # training_step defines the train loop. It is independent of forward
-        x, y = batch
+        x, _ = batch
         x = x.view(x.size(0), -1)
         z = self.encoder(x)
         x_hat = self.decoder(z)

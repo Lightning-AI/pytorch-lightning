@@ -47,7 +47,7 @@ Update React <-- Lightning app
 ******************************
 To change the React app from the Lightning app, use the values from the `lightningState`.
 
-In this example, when the `react_ui.counter`` increaes in the Lightning app:
+In this example, when the ``react_ui.counter`` increaes in the Lightning app:
 
 .. literalinclude:: ../../../../../src/lightning/app/cli/react-ui-template/example_app.py
     :emphasize-lines: 18, 24

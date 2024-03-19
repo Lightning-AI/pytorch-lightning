@@ -80,7 +80,7 @@ jobs:
           pip install lai-sphinx-theme -U -f ${PYPI_LOCAL_DIR}
 
       - name: pip wheels cache
-        uses: actions/cache/restore@v3
+        uses: actions/cache/restore@v4
         with:
           path: ${{ env.PYPI_CACHE_DIR }}
           key: pypi_wheels
@@ -109,6 +109,8 @@ jobs:
         run: echo "DOCS_FETCH_ASSETS=1" >> $GITHUB_ENV
       - name: Make ${{ matrix.target }}
         working-directory: ./docs/source-${{ matrix.pkg-name }}
+        # allow failing link check and doctest if you run with dispatch
+        continue-on-error: ${{ (matrix.target == 'doctest' || matrix.target == 'linkcheck')  && github.event_name == 'workflow_dispatch' }}
         run: make ${{ matrix.target }} --debug --jobs $(nproc) SPHINXOPTS="-W --keep-going"
 
       - name: Keep artifact

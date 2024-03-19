@@ -30,6 +30,7 @@ or show all options you can change:
     python imagenet.py fit --help
 
 """
+
 import os
 from typing import Optional
 
@@ -139,14 +140,12 @@ class ImageNetLightningModel(LightningModule):
             train_dir = os.path.join(self.data_path, "train")
             self.train_dataset = datasets.ImageFolder(
                 train_dir,
-                transforms.Compose(
-                    [
-                        transforms.RandomResizedCrop(224),
-                        transforms.RandomHorizontalFlip(),
-                        transforms.ToTensor(),
-                        normalize,
-                    ]
-                ),
+                transforms.Compose([
+                    transforms.RandomResizedCrop(224),
+                    transforms.RandomHorizontalFlip(),
+                    transforms.ToTensor(),
+                    normalize,
+                ]),
             )
         # all stages will use the eval dataset
         normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])

@@ -48,12 +48,24 @@ ignore-words-list = "te, compiletime"
 
 [tool.ruff]
 line-length = 120
-# Enable Pyflakes `E` and `F` codes by default.
+target-version = "py38"
+# Exclude a variety of commonly ignored directories.
+exclude = [
+    ".git",
+    "docs",
+    "_notebooks"
+]
+
+[tool.ruff.format]
+preview = true
+
+[tool.ruff.lint]
 select = [
     "E", "W",  # see: https://pypi.org/project/pycodestyle
     "F",  # see: https://pypi.org/project/pyflakes
     "S",  # see: https://pypi.org/project/flake8-bandit
     "RUF018",  # see: https://docs.astral.sh/ruff/rules/assignment-in-assert
+    "UP", # see: https://docs.astral.sh/ruff/rules/#pyupgrade-up
 ]
 extend-select = [
     "I",  # see: isort
@@ -61,21 +73,16 @@ extend-select = [
     "SIM",  # see: https://pypi.org/project/flake8-simplify
     "RET",  # see: https://pypi.org/project/flake8-return
     "PT",  # see: https://pypi.org/project/flake8-pytest-style
+    "RUF100",  # see: https://docs.astral.sh/ruff/rules/unused-noqa/
 ]
 ignore = [
     "E731",  # Do not assign a lambda expression, use a def
     "S108",
     "E203", # conflicts with black
 ]
-# Exclude a variety of commonly ignored directories.
-exclude = [
-    ".git",
-    "docs",
-    "_notebooks"
-]
 ignore-init-module-imports = true
 
-[tool.ruff.per-file-ignores]
+[tool.ruff.lint.per-file-ignores]
 ".actions/*" = ["S101", "S310"]
 "setup.py" = ["S101"]
 "examples/**" = [
@@ -123,7 +130,7 @@ ignore-init-module-imports = true
     "PT019",  # todo: Fixture `_` without value is injected as parameter, use `@pytest.mark.usefixtures` instead
 ]
 
-[tool.ruff.mccabe]
+[tool.ruff.lint.mccabe]
 # Unlike Flake8, default to a complexity level of 10.
 max-complexity = 10
 

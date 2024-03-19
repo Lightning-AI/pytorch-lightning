@@ -4,6 +4,19 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
+## [2.2.0] - 2024-02-09
+
+## Changed
+
+- Renames the `lightning` cli to `lightning_app` ([#19440](https://github.com/Lightning-AI/pytorch-lightning/pull/19440))
+
+
+## [2.1.4] - 2024-01-31
+
+### Changed
+
+- Remove torch distributed for the Dataset Optimizer ([#19182](https://github.com/Lightning-AI/lightning/pull/19182))
+
 
 ## [2.1.3] - 2023-12-21
 

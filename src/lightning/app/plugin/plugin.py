@@ -46,6 +46,7 @@ class LightningPlugin:
         self.cloudspace_id = ""
         self.cluster_id = ""
         self.source_app = ""
+        self.keep_machines_after_stop = False
 
     def run(self, *args: str, **kwargs: str) -> Externalv1LightningappInstance:
         """Override with the logic to execute on the cloudspace."""
@@ -95,6 +96,7 @@ class LightningPlugin:
             name=name,
             cluster_id=self.cluster_id,
             source_app=self.source_app,
+            keep_machines_after_stop=self.keep_machines_after_stop,
         )
 
     def _setup(
@@ -103,11 +105,13 @@ class LightningPlugin:
         cloudspace_id: str,
         cluster_id: str,
         source_app: str,
+        keep_machines_after_stop: bool,
     ) -> None:
         self.source_app = source_app
         self.project_id = project_id
         self.cloudspace_id = cloudspace_id
         self.cluster_id = cluster_id
+        self.keep_machines_after_stop = keep_machines_after_stop
 
 
 class _Run(BaseModel):
@@ -118,6 +122,7 @@ class _Run(BaseModel):
     cluster_id: str
     plugin_arguments: Dict[str, str]
     source_app: str
+    keep_machines_after_stop: bool
 
 
 def _run_plugin(run: _Run) -> Dict[str, Any]:
@@ -191,6 +196,7 @@ def _run_plugin(run: _Run) -> Dict[str, Any]:
                 cloudspace_id=run.cloudspace_id,
                 cluster_id=run.cluster_id,
                 source_app=run.source_app,
+                keep_machines_after_stop=run.keep_machines_after_stop,
             )
             app_instance = plugin.run(**run.plugin_arguments)
             return _to_clean_dict(app_instance, True)
