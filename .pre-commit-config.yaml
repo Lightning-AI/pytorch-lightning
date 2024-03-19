@@ -53,12 +53,12 @@ repos:
         args: ["--print-width=120"]
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.3.0
+    rev: v0.3.3
     hooks:
-      - id: ruff-format
-        args: ["--preview"]
       - id: ruff
         args: ["--fix"]
+      - id: ruff-format
+      - id: ruff
 
   - repo: https://github.com/sphinx-contrib/sphinx-lint
     rev: v0.9.1

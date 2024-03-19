@@ -7,7 +7,12 @@ requires = [
 [tool.ruff]
 line-length = 120
 target-version = "py38"
-lint.select = [
+
+[tool.ruff.format]
+preview = true
+
+[tool.ruff.lint]
+select = [
     "E", "W",  # see: https://pypi.org/project/pycodestyle
     "F",  # see: https://pypi.org/project/pyflakes
     "I",  #see: https://pypi.org/project/isort/
@@ -17,7 +22,7 @@ lint.select = [
     "UP", # see: https://docs.astral.sh/ruff/rules/#pyupgrade-up
     "RUF100", # see: https://docs.astral.sh/ruff/rules/#ruff-specific-rules-ruf
  ]
-lint.extend-select = [
+extend-select = [
     "A",  # see: https://pypi.org/project/flake8-builtins
     "B",  # see: https://pypi.org/project/flake8-bugbear
     "C4",  # see: https://pypi.org/project/flake8-comprehensions
@@ -35,10 +40,10 @@ lint.extend-select = [
     "PIE",  # see: https://pypi.org/project/flake8-pie
     "PLE",  # see: https://pypi.org/project/pylint/
 ]
-lint.ignore = [
+ignore = [
      "E731",
  ]
-lint.ignore-init-module-imports = true
+ignore-init-module-imports = true
 
 [tool.ruff.lint.per-file-ignores]
 "docs/source/conf.py" = ["D100", "D103", "A001", "ANN001", "ANN201"]
