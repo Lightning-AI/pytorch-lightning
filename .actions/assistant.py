@@ -366,7 +366,7 @@ def create_mirror_package(source_dir: str, package_mapping: Dict[str, str]) -> N
 
     mapping = {f"lightning.{sp}": sl for sp, sl in mapping.items()}
     for pkg_from, pkg_to in mapping.items():
-        source_imports, target_imports = zip(*package_mapping.items())
+        source_imports, target_imports = zip(*mapping.items())
         copy_replace_imports(
             source_dir=os.path.join(source_dir, pkg_from.replace(".", os.sep)),
             # pytorch_lightning uses lightning_fabric, so we need to replace all imports for all directories
