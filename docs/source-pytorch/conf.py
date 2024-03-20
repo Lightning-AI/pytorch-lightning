@@ -158,7 +158,6 @@ extensions = [
     "sphinx.ext.viewcode",
     "sphinx.ext.autosummary",
     "sphinx.ext.napoleon",
-    "sphinx.ext.imgmath",
     "sphinx.ext.autosectionlabel",
     # 'sphinxcontrib.mockautodoc',  # raises error: directive 'automodule' is already registered ...
     # 'sphinxcontrib.fulltoc',  # breaks pytorch-theme with unexpected kw argument 'titles_only'
@@ -170,6 +169,7 @@ extensions = [
     "sphinx_paramlinks",
     "sphinx_togglebutton",
     "lai_sphinx_theme.extensions.lightning",
+    'sphinx.ext.mathjax',
 ]
 
 # Suppress warnings about duplicate labels (needed for PL tutorials)
@@ -317,6 +317,13 @@ texinfo_documents = [
         "Miscellaneous",
     )
 ]
+
+# MathJax configuration
+mathjax3_config = {
+    'tex': {
+        'packages': {'[+]': ['ams', 'newcommand', 'configMacros']}
+    },
+}
 
 # -- Options for Epub output -------------------------------------------------
 
