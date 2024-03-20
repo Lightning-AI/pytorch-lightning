@@ -16,6 +16,7 @@ from dataclasses import fields
 from typing import Any, Dict, Generator, Iterable, Mapping, Optional, Sized, Tuple, Union
 
 import torch
+
 from lightning_utilities.core.apply_func import is_dataclass_instance
 from torch import Tensor
 from torch.utils.data import BatchSampler, DataLoader, IterableDataset, RandomSampler, Sampler, SequentialSampler
@@ -28,6 +29,7 @@ from lightning.fabric.utilities.data import (
     has_iterable_dataset,
     sized_len,
 )
+from lightning.fabric.utilities.warnings import PossibleUserWarning
 from lightning.pytorch.overrides.distributed import _IndexBatchSamplerWrapper
 from lightning.pytorch.trainer.states import RunningStage
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
@@ -303,10 +305,11 @@ def _dataloader_init_kwargs_resolve_sampler(
                 ) from ex
         elif is_predicting:
             rank_zero_warn(
-                f"Trying to inject `drop_last=False` into batch sampler since you are predicting, however "
-                f"it seems the class `{batch_sampler_cls.__qualname__}` does not support it. "
-                "Your predictions might be incomplete. To mitigate this, expose `drop_last` in "
-                "the `__init__` method of your custom class."
+                f"You are using a custom batch sampler `{batch_sampler_cls.__qualname__}` for prediction."
+                " Lightning would normally set `drop_last=False` to ensure all samples are returned, but for"
+                " custom samplers it can't guarantee this. Make sure your sampler is configured correctly to return"
+                " all indices.",
+                category=PossibleUserWarning,
             )
         else:
             # The sampler is not a PyTorch `BatchSampler`, we don't know how to inject a custom sampler or
