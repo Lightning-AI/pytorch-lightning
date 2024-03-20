@@ -301,6 +301,13 @@ def _dataloader_init_kwargs_resolve_sampler(
                     " or set `Trainer(use_distributed_sampler=False)`. If you choose the latter, you will be"
                     " responsible for handling the distributed sampling within your batch sampler."
                 ) from ex
+        elif is_predicting:
+            rank_zero_warn(
+                f"Trying to inject `drop_last=False` into batch sampler since you are predicting, however "
+                f"it seems the class `{batch_sampler_cls.__qualname__}` does not support it. "
+                "Your predictions might be incomplete. To mitigate this, expose `drop_last` in "
+                "the `__init__` method of your custom class."
+            )
         else:
             # The sampler is not a PyTorch `BatchSampler`, we don't know how to inject a custom sampler or
             # how to adjust the `drop_last` value
