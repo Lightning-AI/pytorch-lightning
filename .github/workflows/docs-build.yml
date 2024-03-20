@@ -90,7 +90,7 @@ jobs:
         timeout-minutes: 5
         run: |
           sudo apt-get update --fix-missing
-          sudo apt-get install -y pandoc texlive-latex-extra dvipng texlive-pictures
+          sudo apt-get install -y pandoc
       - name: Install package & dependencies
         timeout-minutes: 20
         run: |
