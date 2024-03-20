@@ -16,7 +16,6 @@ from dataclasses import fields
 from typing import Any, Dict, Generator, Iterable, Mapping, Optional, Sized, Tuple, Union
 
 import torch
-
 from lightning_utilities.core.apply_func import is_dataclass_instance
 from torch import Tensor
 from torch.utils.data import BatchSampler, DataLoader, IterableDataset, RandomSampler, Sampler, SequentialSampler

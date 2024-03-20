@@ -4,7 +4,6 @@ from unittest.mock import Mock
 import numpy as np
 import pytest
 import torch
-
 from lightning.fabric.utilities.data import _replace_dunder_methods
 from lightning.fabric.utilities.warnings import PossibleUserWarning
 from lightning.pytorch import Trainer
