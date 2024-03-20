@@ -28,5 +28,5 @@ ______________________________________________________________________
 ## Domain Examples
 
 This folder contains older examples. You should instead use the examples
-in [Lightning Bolts](https://lightning.ai/docs/pytorch/latest/ecosystem/bolts.html)
+in [Lightning Bolts](https://lightning.ai/docs/pytorch/stable/ecosystem/bolts.html)
 for advanced use cases.
