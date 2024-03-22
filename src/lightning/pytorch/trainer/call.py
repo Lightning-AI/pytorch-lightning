@@ -54,21 +54,23 @@ def _call_and_handle_interrupt(trainer: "pl.Trainer", trainer_fn: Callable, *arg
         rank_zero_warn("Detected KeyboardInterrupt, attempting graceful shutdown...")
         # user could press Ctrl+c many times... only shutdown once
         if not trainer.interrupted:
-            trainer.state.status = TrainerStatus.INTERRUPTED
-            _call_callback_hooks(trainer, "on_exception", exception)
-            trainer.strategy.on_exception(exception)
-            for logger in trainer.loggers:
-                logger.finalize("failed")
+            _interrupt(trainer, exception)
     except BaseException as exception:
-        trainer.state.status = TrainerStatus.INTERRUPTED
-        _call_callback_hooks(trainer, "on_exception", exception)
-        trainer.strategy.on_exception(exception)
-        for logger in trainer.loggers:
-            logger.finalize("failed")
+        _interrupt(trainer, exception)
         trainer._teardown()
         # teardown might access the stage so we reset it after
         trainer.state.stage = None
         raise
+
+
+def _interrupt(trainer: "pl.Trainer", exception: BaseException) -> None:
+    trainer.state.status = TrainerStatus.INTERRUPTED
+    _call_callback_hooks(trainer, "on_exception", exception)
+    if trainer.datamodule is not None:
+        _call_lightning_datamodule_hook(trainer, "on_exception", exception)
+    trainer.strategy.on_exception(exception)
+    for logger in trainer.loggers:
+        logger.finalize("failed")
 
 
 def _call_setup_hook(trainer: "pl.Trainer") -> None:
