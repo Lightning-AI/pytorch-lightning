@@ -26,7 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
--
+- docs: fix/use PyPI versions for pinning links ([#243](https://github.com/Lightning-AI/utilities/pull/243))
 
 
 ## [0.11.0] - 2024-03-18
