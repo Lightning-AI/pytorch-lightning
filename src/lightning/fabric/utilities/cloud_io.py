@@ -25,15 +25,13 @@ from fsspec.core import url_to_fs
 from fsspec.implementations.local import AbstractFileSystem
 from lightning_utilities.core.imports import module_available
 
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_1
 from lightning.fabric.utilities.types import _MAP_LOCATION_TYPE, _PATH
 
 log = logging.getLogger(__name__)
 
 
-def _load(
-    path_or_url: Union[IO, _PATH],
-    map_location: _MAP_LOCATION_TYPE = None,
-) -> Any:
+def _load(path_or_url: Union[IO, _PATH], map_location: _MAP_LOCATION_TYPE = None) -> Any:
     """Loads a checkpoint.
 
     Args:
@@ -52,6 +50,10 @@ def _load(
             str(path_or_url),
             map_location=map_location,  # type: ignore[arg-type]
         )
+    if _is_local_file_protocol(path_or_url):
+        kwargs = {"mmap": True} if _TORCH_GREATER_EQUAL_2_1 else {}
+        return torch.load(str(path_or_url), map_location=map_location, **kwargs)
+
     fs = get_filesystem(path_or_url)
     with fs.open(path_or_url, "rb") as f:
         return torch.load(f, map_location=map_location)  # type: ignore[arg-type]
