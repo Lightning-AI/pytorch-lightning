@@ -209,16 +209,43 @@ class RichProgressBarTheme:
 
     """
 
-    description: Union[str, Style] = "white"
-    progress_bar: Union[str, Style] = "#6206E0"
-    progress_bar_finished: Union[str, Style] = "#6206E0"
-    progress_bar_pulse: Union[str, Style] = "#6206E0"
-    batch_progress: Union[str, Style] = "white"
-    time: Union[str, Style] = "grey54"
-    processing_speed: Union[str, Style] = "grey70"
-    metrics: Union[str, Style] = "white"
-    metrics_text_delimiter: str = " "
-    metrics_format: str = ".3f"
+    @staticmethod
+    def detect_color_system() -> str:
+        console = Console()
+        return console.color_system
+
+    color_system = detect_color_system.__func__()
+
+    # Default colors for each color system
+    default_colors = {
+        "truecolor": {
+            "progress_bar": "bright_blue",
+            "time": "bright_cyan",
+            "processing_speed": "bright_yellow",
+        },
+        "256": {
+            "progress_bar": "color51",
+            "time": "color45",
+            "processing_speed": "color227",
+        },
+        "default": {
+            "progress_bar": "blue",
+            "time": "cyan",
+            "processing_speed": "yellow",
+        },
+    }
+
+    # Apply specific colors based on the detected color system
+    colors = default_colors.get(color_system, default_colors["default"])
+
+    description: Union[str, Style] = "default"
+    progress_bar: Union[str, Style] = colors["progress_bar"]
+    progress_bar_finished: Union[str, Style] = colors["progress_bar"]
+    progress_bar_pulse: Union[str, Style] = colors["progress_bar"]
+    batch_progress: Union[str, Style] = "default"
+    time: Union[str, Style] = colors["time"]
+    processing_speed: Union[str, Style] = colors["processing_speed"]
+    metrics: Union[str, Style] = "default"
 
 
 class RichProgressBar(ProgressBar):
