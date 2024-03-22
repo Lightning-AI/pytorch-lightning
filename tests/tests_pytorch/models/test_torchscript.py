@@ -26,6 +26,14 @@ from tests_pytorch.helpers.advanced_models import BasicGAN, ParityModuleRNN
 from tests_pytorch.helpers.runif import RunIf
 
 
+def test_torchscript_vanilla():
+    """Test that LightningModule itself can be converted."""
+    model = LightningModule()
+
+    script = model.to_torchscript()
+    assert isinstance(script, torch.jit.ScriptModule)
+
+
 @pytest.mark.parametrize("modelclass", [BoringModel, ParityModuleRNN, BasicGAN])
 def test_torchscript_input_output(modelclass):
     """Test that scripted LightningModule forward works."""
