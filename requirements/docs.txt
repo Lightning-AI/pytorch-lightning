@@ -23,4 +23,4 @@ lightning-utilities >=0.11.0, <0.12.0
 lai-sphinx-theme
 
 # needed for replacing stable keyword with latest version linkd
-tensorboard
+tensorboard  # todo: remove this when updating Utils to 0.11.1+
