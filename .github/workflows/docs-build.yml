@@ -90,7 +90,7 @@ jobs:
         timeout-minutes: 5
         run: |
           sudo apt-get update --fix-missing
-          sudo apt-get install -y pandoc texlive-latex-extra dvipng texlive-pictures
+          sudo apt-get install -y pandoc
       - name: Install package & dependencies
         timeout-minutes: 20
         run: |
@@ -106,9 +106,13 @@ jobs:
 
       - name: Full build for deployment
         if: github.event_name != 'pull_request'
-        run: echo "DOCS_FETCH_ASSETS=1" >> $GITHUB_ENV
+        run: |
+          echo "DOCS_FETCH_ASSETS=1" >> $GITHUB_ENV
+          echo "PIN_RELEASE_VERSIONS=1" >> $GITHUB_ENV
       - name: Make ${{ matrix.target }}
         working-directory: ./docs/source-${{ matrix.pkg-name }}
+        # allow failing link check and doctest if you run with dispatch
+        continue-on-error: ${{ (matrix.target == 'doctest' || matrix.target == 'linkcheck')  && github.event_name == 'workflow_dispatch' }}
         run: make ${{ matrix.target }} --debug --jobs $(nproc) SPHINXOPTS="-W --keep-going"
 
       - name: Keep artifact
