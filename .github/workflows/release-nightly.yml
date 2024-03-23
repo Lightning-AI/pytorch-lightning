@@ -17,11 +17,6 @@ defaults:
   run:
     shell: bash
 
-env:
-  FREEZE_REQUIREMENTS: 1
-  TORCH_URL: "https://download.pytorch.org/whl/cpu/torch_stable.html"
-  PYTHON_VER: "3.8"
-
 jobs:
   build-packages:
     runs-on: ubuntu-22.04
