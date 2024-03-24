@@ -139,7 +139,6 @@ class _FabricModule(_DeviceDtypeModuleMixin):
     def forward(self, *args: Any, **kwargs: Any) -> Any:
         """Casts all inputs to the right precision and handles autocast for operations in the module forward method."""
         precision = self._strategy.precision
-
         args, kwargs = precision.convert_input((args, kwargs))
 
         with precision.forward_context():
