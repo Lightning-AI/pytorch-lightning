@@ -534,8 +534,8 @@ def test_unwrap_objects(compile):
 
 
 def test_step_method_redirection():
-    """Test that the FabricModule redirects methods marked as 'forward methods' through forward to avoid bypassing
-    the DDP/FSDP wrappers."""
+    """Test that the FabricModule redirects methods marked as 'forward methods' through forward to avoid bypassing the
+    DDP/FSDP wrappers."""
 
     class DDP(torch.nn.Module):
         def __init__(self, module):

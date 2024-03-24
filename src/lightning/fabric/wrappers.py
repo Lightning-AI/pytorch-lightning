@@ -25,10 +25,11 @@ from typing import (
     List,
     Mapping,
     Optional,
+    Set,
     Tuple,
     TypeVar,
     Union,
-    overload, Set,
+    overload,
 )
 
 import torch
@@ -242,7 +243,11 @@ class _FabricModule(_DeviceDtypeModuleMixin):
 
     @override
     def __getattr__(self, item: Any) -> Any:
-        if item != "_forward_methods" and item in self._forward_methods and self._forward_module != self._original_module:
+        if (
+            item != "_forward_methods"
+            and item in self._forward_methods
+            and self._forward_module != self._original_module
+        ):
             # Special support for methods marked by `mark_forward_method` to prevent bypassing DDP's forward
             return self._redirection_through_forward(item)
 
