@@ -14,6 +14,7 @@
 import inspect
 from copy import deepcopy
 from functools import partial, wraps
+from types import MethodType
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -27,7 +28,7 @@ from typing import (
     Tuple,
     TypeVar,
     Union,
-    overload,
+    overload, Set,
 )
 
 import torch
@@ -127,6 +128,7 @@ class _FabricModule(_DeviceDtypeModuleMixin):
         self._forward_module = forward_module
         self._original_module = original_module or forward_module
         self._strategy = strategy
+        self._forward_methods: Set[str] = set(_LIGHTNING_MODULE_STEP_METHODS)
         self._fabric_module_initialized = True
 
     @property
@@ -137,6 +139,7 @@ class _FabricModule(_DeviceDtypeModuleMixin):
     def forward(self, *args: Any, **kwargs: Any) -> Any:
         """Casts all inputs to the right precision and handles autocast for operations in the module forward method."""
         precision = self._strategy.precision
+
         args, kwargs = precision.convert_input((args, kwargs))
 
         with precision.forward_context():
@@ -168,6 +171,11 @@ class _FabricModule(_DeviceDtypeModuleMixin):
         self, state_dict: Mapping[str, Any], strict: bool = True, **kwargs: Any
     ) -> _IncompatibleKeys:
         return self._original_module.load_state_dict(state_dict=state_dict, strict=strict, **kwargs)
+
+    def mark_forward_method(self, method: Union[MethodType, str]) -> None:
+        name = method if isinstance(method, str) else method.__name__
+        assert hasattr(self._original_module, name)
+        self._forward_methods.add(name)
 
     def _redirection_through_forward(self, method_name: str) -> Callable:
         assert method_name != "forward"
@@ -211,8 +219,8 @@ class _FabricModule(_DeviceDtypeModuleMixin):
             if module_called:
                 raise RuntimeError(
                     f"You are calling the method `{type(self._original_module).__name__}.{name}()` from outside the"
-                    " model. This will bypass the wrapper from the strategy and result in incorrect behavior in"
-                    " `.backward()`. You should pass your inputs through `forward()`.",
+                    " model. To avoid issues with the currently selected strategy, explicitly mark it as a"
+                    f" forward method with `fabric_model.mark_forward_method({name!r})` after `fabric.setup()`."
                 )
             for handle in handles:
                 handle.remove()
@@ -235,8 +243,8 @@ class _FabricModule(_DeviceDtypeModuleMixin):
 
     @override
     def __getattr__(self, item: Any) -> Any:
-        if item in _LIGHTNING_MODULE_STEP_METHODS and self._forward_module != self._original_module:
-            # Special support for `LightningModule`, to prevent bypassing DDP's forward
+        if item != "_forward_methods" and item in self._forward_methods and self._forward_module != self._original_module:
+            # Special support for methods marked by `mark_forward_method` to prevent bypassing DDP's forward
             return self._redirection_through_forward(item)
 
         try:
