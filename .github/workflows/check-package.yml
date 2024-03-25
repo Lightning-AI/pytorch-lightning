@@ -31,7 +31,7 @@ on:
         required: false
         default: ""
       build-matrix:
-        description: "what building configs in json format"
+        description: "what building configs in json format, expected keys are `os` and `python-version`"
         required: false
         type: string
         default: |
@@ -39,7 +39,7 @@ on:
             "os": ["ubuntu-latest"],
           }
       testing-matrix:
-        description: "what test configs to run in json format"
+        description: "what test configs to run in json format, expected keys are `os` and `python-version`"
         required: false
         type: string
         # default operating systems should be pinned to specific versions instead of "-latest" for stability
@@ -85,7 +85,7 @@ jobs:
       - name: Set up Python 🐍
         uses: actions/setup-python@v5
         with:
-          python-version: 3.8
+          python-version: ${{ matrix.python-version || '3.x' }}
 
       - name: Pull reusable 🤖 actions️
         uses: actions/checkout@v4
@@ -113,7 +113,7 @@ jobs:
       - name: Set up Python 🐍 ${{ matrix.python-version }}
         uses: actions/setup-python@v5
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: ${{ matrix.python-version || '3.x' }}
 
       - name: Pull reusable 🤖 actions️
         uses: actions/checkout@v4

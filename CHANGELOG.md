@@ -16,7 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
--
+- CI: enable setting python version for package build ([#244](https://github.com/Lightning-AI/utilities/pull/244))
 
 
 ### Deprecated
