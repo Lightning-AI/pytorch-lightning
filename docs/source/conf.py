@@ -46,10 +46,10 @@ github_repo = project
 # -- Project documents -------------------------------------------------------
 
 fetch_external_assets(docs_folder=_PATH_HERE)
+
+adjust_linked_external_docs("https://numpy.org/doc/stable/", "https://numpy.org/doc/{numpy.__version__}/", _PATH_HERE)
 adjust_linked_external_docs(
-    source_link="https://numpy.org/doc/stable/",
-    target_link="https://numpy.org/doc/{numpy.__version__}/",
-    browse_folder=_PATH_HERE,
+    "https://pytorch.org/docs/stable/", "https://pytorch.org/docs/{torch.__version__}/", _PATH_HERE
 )
 
 

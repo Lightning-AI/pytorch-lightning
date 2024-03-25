@@ -157,10 +157,21 @@ def adjust_linked_external_docs(
     # replace the source link with target link
     for fpath in set(list_files):
         with open(fpath, encoding="UTF-8") as fopen:
-            body = fopen.read()
-        body_ = body.replace(source_link, target_link)
-        if body == body_:
+            lines = fopen.readlines()
+        found, skip = False, False
+        for i, ln in enumerate(lines):
+            # prevent the replacement its own function calls
+            if f"{adjust_linked_external_docs.__name__}(" in ln:
+                skip = True
+            if not skip and source_link in ln:
+                # replace the link if any found
+                lines[i] = ln.replace(source_link, target_link)
+                # record the found link for later write file
+                found = True
+            if skip and ")" in ln:
+                skip = False
+        if not found:
             continue
         logging.debug(f'links adjusting in {fpath}: "{source_link}" -> "{target_link}"')
         with open(fpath, "w", encoding="UTF-8") as fw:
-            fw.write(body_)
+            fw.writelines(lines)
