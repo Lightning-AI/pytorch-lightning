@@ -39,14 +39,17 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { os: "macOS-11", pkg-name: "lightning", python-version: "3.10", pytorch-version: "1.13" }
+          - { os: "macOS-12", pkg-name: "lightning", python-version: "3.10", pytorch-version: "1.13" }
+          # - { os: "macOS-14", pkg-name: "lightning", python-version: "3.10", pytorch-version: "1.13" } # todo
           - { os: "ubuntu-20.04", pkg-name: "lightning", python-version: "3.10", pytorch-version: "1.13" }
           - { os: "windows-2022", pkg-name: "lightning", python-version: "3.10", pytorch-version: "1.13" }
           # only run PyTorch latest
-          - { os: "macOS-11", pkg-name: "lightning", python-version: "3.11", pytorch-version: "2.1" }
+          - { os: "macOS-12", pkg-name: "lightning", python-version: "3.11", pytorch-version: "2.1" }
+          # - { os: "macOS-14", pkg-name: "lightning", python-version: "3.11", pytorch-version: "2.1" } # todo
           - { os: "ubuntu-20.04", pkg-name: "lightning", python-version: "3.11", pytorch-version: "2.1" }
           - { os: "windows-2022", pkg-name: "lightning", python-version: "3.11", pytorch-version: "2.1" }
-          - { os: "macOS-11", pkg-name: "lightning", python-version: "3.11", pytorch-version: "2.2" }
+          - { os: "macOS-12", pkg-name: "lightning", python-version: "3.11", pytorch-version: "2.2" }
+          # - { os: "macOS-14", pkg-name: "lightning", python-version: "3.11", pytorch-version: "2.2" } # todo
           - { os: "ubuntu-20.04", pkg-name: "lightning", python-version: "3.11", pytorch-version: "2.2" }
           - { os: "windows-2022", pkg-name: "lightning", python-version: "3.11", pytorch-version: "2.2" }
           # only run PyTorch latest with Python latest, use Fabric scope to limit dependency issues
@@ -79,7 +82,8 @@ jobs:
               requires: "oldest",
             }
           # "fabric" installs the standalone package
-          - { os: "macOS-11", pkg-name: "fabric", python-version: "3.8", pytorch-version: "1.13" }
+          - { os: "macOS-12", pkg-name: "fabric", python-version: "3.8", pytorch-version: "1.13" }
+          # - { os: "macOS-14", pkg-name: "fabric", python-version: "3.8", pytorch-version: "1.13" } # todo
           - { os: "ubuntu-20.04", pkg-name: "fabric", python-version: "3.8", pytorch-version: "1.13" }
           - { os: "windows-2022", pkg-name: "fabric", python-version: "3.8", pytorch-version: "1.13" }
     timeout-minutes: 25 # because of building grpcio on Mac

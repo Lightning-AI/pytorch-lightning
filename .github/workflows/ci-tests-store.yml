@@ -37,7 +37,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: ["macOS-11", "ubuntu-20.04", "windows-2022"]
+        os: ["macOS-12", "ubuntu-20.04", "windows-2022"]
         pkg-name: ["lightning"]
         python-version: ["3.10"]
         pytorch-version: ["2.0"]
