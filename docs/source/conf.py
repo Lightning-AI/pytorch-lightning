@@ -9,7 +9,7 @@ import inspect
 import os
 import re
 import sys
-from typing import Optional
+from typing import List, Optional
 
 import lightning_utilities
 import pt_lightning_sphinx_theme
@@ -73,7 +73,7 @@ _convert_markdown(os.path.join(_PATH_ROOT, "README.md"), "readme.md", _PATH_ROOT
 
 # If your documentation needs a minimal Sphinx version, state it here.
 
-needs_sphinx = "6.2"
+needs_sphinx = "5.3"
 
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
@@ -270,7 +270,7 @@ def setup(app):
 
 # Ignoring Third-party packages
 # https://stackoverflow.com/questions/15889621/sphinx-how-to-exclude-imports-in-automodule
-def _package_list_from_file(file: str) -> list[str]:
+def _package_list_from_file(file: str) -> List[str]:
     list_pkgs = []
     with open(file) as fp:
         lines = fp.readlines()
