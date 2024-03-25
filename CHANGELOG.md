@@ -7,23 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [Unreleased] - 2024-MM-DD
-
-### Added
-
--
-
+## [0.11.1] - 2024-03-25
 
 ### Changed
 
 - CI: enable setting python version for package build ([#244](https://github.com/Lightning-AI/utilities/pull/244))
 - docs: fix/use PyPI versions for pinning links ([#243](https://github.com/Lightning-AI/utilities/pull/243))
-
-
-### Deprecated
-
--
-
 
 ### Fixed
 
