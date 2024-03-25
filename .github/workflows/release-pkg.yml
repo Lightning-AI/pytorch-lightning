@@ -1,4 +1,4 @@
-name: Releasing package
+name: Releasing packages
 
 # https://help.github.com/en/actions/reference/events-that-trigger-workflows
 on:
@@ -11,6 +11,7 @@ on:
     types: [opened, reopened, ready_for_review, synchronize]
     paths:
       - "requirements/ci.txt"
+      - ".github/actions/pkg-check/*"
       - ".github/actions/pkg-publish/*"
       - ".github/workflows/_legacy-checkpoints.yml.yml"
       - ".github/workflows/_build-packages.yml"
