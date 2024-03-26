@@ -237,6 +237,15 @@ Next steps
     :height: 160
     :tag: advanced
 
+.. displayitem::
+    :header: Troubleshooting
+    :description: Learn how to troubleshoot common multi-GPU issues
+    :button_link: ../guide/troubleshooting.html
+    :col_css: col-md-4
+    :height: 160
+    :tag: advanced
+
+
 .. raw:: html
 
         </div>

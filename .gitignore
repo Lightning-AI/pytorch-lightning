@@ -175,6 +175,7 @@ wandb
 *.prof
 *.tar.gz
 .neptune/
+system_check/
 
 # dataset generated from bolts in examples.
 cifar-10-batches-py
