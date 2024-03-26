@@ -25,7 +25,6 @@ from typing import (
     List,
     Mapping,
     Optional,
-    Set,
     Tuple,
     TypeVar,
     Union,
@@ -129,7 +128,7 @@ class _FabricModule(_DeviceDtypeModuleMixin):
         self._forward_module = forward_module
         self._original_module = original_module or forward_module
         self._strategy = strategy
-        self._forward_methods: Set[str] = set(_LIGHTNING_MODULE_STEP_METHODS)
+        self._forward_methods = set(_LIGHTNING_MODULE_STEP_METHODS)
         self._fabric_module_initialized = True
 
     @property
