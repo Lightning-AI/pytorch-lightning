@@ -2,6 +2,7 @@
 Manual Optimization
 *******************
 
+.. DO NOT SUBMIT update + include example.
 For advanced research topics like reinforcement learning, sparse coding, or GAN research, it may be desirable to
 manually manage the optimization process, especially when dealing with multiple optimizers at the same time.
 
