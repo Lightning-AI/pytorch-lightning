@@ -184,7 +184,7 @@ def test_fabric_module_setattr():
     assert "__repr__" not in _FabricModule.__dict__
     fabric_module.__repr__ = lambda *_: "test"
     assert fabric_module.__repr__() == "test"
-    # needs to be monkeypatched on the class for `repr()` to take change
+    # needs to be monkeypatched on the class for `repr()` to change
     assert repr(fabric_module) == "_FabricModule()"
     with mock.patch.object(_FabricModule, "__repr__", return_value="test"):
         assert fabric_module.__repr__() == "test"
