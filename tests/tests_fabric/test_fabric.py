@@ -623,7 +623,7 @@ def test_backward():
         ("auto", "32-true", False),
         ("auto", "bf16-true", False),
         ("auto", "bf16-mixed", True),
-        pytest.param("fsdp", "32-true", True, marks=RunIf(min_cuda_gpus=1, min_torch="2.0.0")),
+        pytest.param("fsdp", "32-true", True, marks=RunIf(min_cuda_gpus=1)),
     ],
 )
 @pytest.mark.parametrize("setup_method", ["setup", "setup_module"])

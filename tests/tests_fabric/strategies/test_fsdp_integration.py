@@ -118,7 +118,7 @@ class _TrainerManualWrapping(_Trainer):
         return model
 
 
-@RunIf(min_cuda_gpus=2, standalone=True, min_torch="2.0.0")
+@RunIf(min_cuda_gpus=2, standalone=True)
 @pytest.mark.parametrize("precision", ["16-mixed", pytest.param("bf16-mixed", marks=RunIf(bf16_cuda=True))])
 @pytest.mark.parametrize("manual_wrapping", [True, False])
 def test_fsdp_train_save_load(tmp_path, manual_wrapping, precision):
@@ -173,7 +173,7 @@ def test_fsdp_train_save_load(tmp_path, manual_wrapping, precision):
     assert state["coconut"] == 11
 
 
-@RunIf(min_cuda_gpus=2, standalone=True, min_torch="2.0.0")
+@RunIf(min_cuda_gpus=2, standalone=True)
 def test_fsdp_save_full_state_dict(tmp_path):
     """Test that FSDP saves the full state into a single file with `state_dict_type="full"`."""
     fabric = Fabric(
@@ -287,7 +287,7 @@ def test_fsdp_save_full_state_dict(tmp_path):
     trainer.run()
 
 
-@RunIf(min_cuda_gpus=2, standalone=True, min_torch="2.0.0")
+@RunIf(min_cuda_gpus=2, standalone=True)
 def test_fsdp_load_full_state_dict_into_sharded_model(tmp_path):
     """Test that the strategy can load a full-state checkpoint into a FSDP sharded model."""
     from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
@@ -367,7 +367,7 @@ def test_setup_module_move_to_device(fabric_module_mock, move_to_device):
     assert fabric.device == torch.device("cuda", fabric.local_rank)
 
 
-@RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True, min_torch="2.0.0")
+@RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True)
 def test_setup_with_orig_params_and_multiple_param_groups():
     """Test that Fabric sets `use_orig_params` for the user when jointly setting up model and optimizer."""
     strategy = FSDPStrategy(auto_wrap_policy=always_wrap_policy)
@@ -475,7 +475,7 @@ def test_module_init_context(precision, expected_dtype):
         _run_setup_assertions(empty_init=True, expected_device=torch.device("cpu"))
 
 
-@RunIf(min_cuda_gpus=2, standalone=True, min_torch="2.0.0")
+@RunIf(min_cuda_gpus=2, standalone=True)
 def test_fsdp_save_filter(tmp_path):
     fabric = Fabric(accelerator="cuda", strategy=FSDPStrategy(state_dict_type="full"), devices=2)
     fabric.launch()

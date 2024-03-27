@@ -332,14 +332,6 @@ def test_fsdp_strategy_full_state_dict(tmp_path, wrap_min_params):
             TestFSDPModelAutoWrapped(),
             FSDPStrategy,
             {"auto_wrap_policy": custom_auto_wrap_policy},
-            marks=RunIf(max_torch="2.0.0"),
-            id="autowrap_1x",
-        ),
-        pytest.param(
-            TestFSDPModelAutoWrapped(),
-            FSDPStrategy,
-            {"auto_wrap_policy": custom_auto_wrap_policy},
-            marks=RunIf(min_torch="2.0.0"),
             id="autowrap_2x",
         ),
         pytest.param(
@@ -512,7 +504,6 @@ def test_fsdp_sharding_strategy():
     assert strategy.sharding_strategy == ShardingStrategy.NO_SHARD
 
 
-@RunIf(min_torch="2.0")
 @pytest.mark.parametrize("sharding_strategy", ["HYBRID_SHARD", "_HYBRID_SHARD_ZERO2"])
 def test_fsdp_hybrid_sharding_strategy(sharding_strategy):
     """Test that the hybrid sharding strategies can only be used with automatic wrapping or a manually specified pg."""
@@ -560,7 +551,6 @@ def test_set_timeout(init_process_group_mock):
     )
 
 
-@RunIf(min_torch="2.0")
 @mock.patch("lightning.pytorch.strategies.fsdp._load_raw_module_state")
 def test_fsdp_strategy_load_optimizer_states_multiple(_, tmp_path):
     strategy = FSDPStrategy(parallel_devices=[torch.device("cpu")], state_dict_type="full")
@@ -747,7 +737,7 @@ def test_save_checkpoint_storage_options(tmp_path):
         strategy.save_checkpoint(filepath=tmp_path, checkpoint=Mock(), storage_options=Mock())
 
 
-@RunIf(min_torch="2.0.0")
+
 @mock.patch("lightning.pytorch.strategies.fsdp.FSDPStrategy.broadcast", lambda _, x: x)
 @mock.patch("lightning.pytorch.strategies.fsdp._get_full_state_dict_context")
 @mock.patch("lightning.pytorch.strategies.fsdp._get_sharded_state_dict_context")
@@ -846,7 +836,7 @@ class TestFSDPCheckpointModel(BoringModel):
             torch.testing.assert_close(p0, p1, atol=0, rtol=0, equal_nan=True)
 
 
-@RunIf(min_cuda_gpus=2, standalone=True, min_torch="2.0.0")
+@RunIf(min_cuda_gpus=2, standalone=True)
 def test_save_load_sharded_state_dict(tmp_path):
     """Test FSDP saving and loading with the sharded state dict format."""
     strategy = FSDPStrategy(auto_wrap_policy={nn.Linear}, state_dict_type="sharded")
