@@ -54,6 +54,7 @@ def wandb_mock(monkeypatch):
         watch=Mock(),
         log_artifact=Mock(),
         use_artifact=Mock(),
+        _label=Mock(),
         id="run_id",
     )
 

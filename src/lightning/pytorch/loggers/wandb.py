@@ -39,7 +39,7 @@ if TYPE_CHECKING:
     from wandb.sdk.lib import RunDisabled
     from wandb.wandb_run import Run
 
-_WANDB_AVAILABLE = RequirementCache("wandb>=0.12.10")
+_WANDB_AVAILABLE = RequirementCache("wandb>=0.15.0")
 
 
 class WandbLogger(Logger):
@@ -272,6 +272,9 @@ class WandbLogger(Logger):
         prefix: A string to put at the beginning of metric keys.
         experiment: WandB experiment object. Automatically set when creating a run.
         checkpoint_name: Name of the model checkpoint artifact being logged.
+        log_checkpoint_on: When to log model checkpoints as W&B artifacts. Only used if ``log_model`` is ``True``.
+             Options: ``"success"``, ``"all"``. Default: ``"success"``.
+        include_distributed_checkpoints: Whether to include distributed checkpoints when logging such as from deepspeed.
         \**kwargs: Arguments passed to :func:`wandb.init` like `entity`, `group`, `tags`, etc.
 
     Raises:
@@ -298,6 +301,8 @@ class WandbLogger(Logger):
         experiment: Union["Run", "RunDisabled", None] = None,
         prefix: str = "",
         checkpoint_name: Optional[str] = None,
+        log_checkpoint_on: Union[Literal["success"], Literal["all"]] = "success",
+        include_distributed_checkpoints: bool = False,
         **kwargs: Any,
     ) -> None:
         if not _WANDB_AVAILABLE:
@@ -327,6 +332,7 @@ class WandbLogger(Logger):
         project = project or os.environ.get("WANDB_PROJECT", "lightning_logs")
 
         # set wandb init arguments
+        self._kwargs = kwargs
         self._wandb_init: Dict[str, Any] = {
             "name": name,
             "project": project,
@@ -335,13 +341,15 @@ class WandbLogger(Logger):
             "resume": "allow",
             "anonymous": ("allow" if anonymous else None),
         }
-        self._wandb_init.update(**kwargs)
+        self._wandb_init.update(**self._kwargs)  # BUG: If kwargs are not present in wandb.init, it will raise an error
         # extract parameters
         self._project = self._wandb_init.get("project")
         self._save_dir = self._wandb_init.get("dir")
         self._name = self._wandb_init.get("name")
         self._id = self._wandb_init.get("id")
         self._checkpoint_name = checkpoint_name
+        self._log_checkpoint_on = log_checkpoint_on
+        self._include_distributed_checkpoints = include_distributed_checkpoints
 
     def __getstate__(self) -> Dict[str, Any]:
         import wandb
@@ -407,6 +415,7 @@ class WandbLogger(Logger):
                     self._experiment.define_metric("trainer/global_step")
                     self._experiment.define_metric("*", step_metric="trainer/global_step", step_sync=True)
 
+        self._experiment._label(repo="lightning_logger")  # pylint: disable=protected-access
         return self._experiment
 
     def watch(
@@ -630,43 +639,59 @@ class WandbLogger(Logger):
     @override
     @rank_zero_only
     def finalize(self, status: str) -> None:
-        if status != "success":
-            # Currently, checkpoints only get logged on success
+        # Return early if logging is only on success and the current status is not success
+        if self._log_checkpoint_on == "success" and status != "success":
             return
-        # log checkpoints as artifacts
-        if self._checkpoint_callback and self._experiment is not None:
+
+        # 1. If logging is set to 'all' or both 'success' and status is 'success'.
+        # 2. If callback and experiment are properly set.
+        if (
+            (self._log_checkpoint_on == "all" or (self._log_checkpoint_on == "success" and status == "success"))
+            and self._checkpoint_callback
+            and self._experiment is not None
+        ):
             self._scan_and_log_checkpoints(self._checkpoint_callback)
 
     def _scan_and_log_checkpoints(self, checkpoint_callback: ModelCheckpoint) -> None:
         import wandb
 
         # get checkpoints to be saved with associated score
-        checkpoints = _scan_checkpoints(checkpoint_callback, self._logged_model_time)
+        checkpoints = _scan_checkpoints(
+            checkpoint_callback,
+            self._logged_model_time,
+            include_distributed_checkpoints=self._include_distributed_checkpoints,
+        )
 
         # log iteratively all new checkpoints
         for t, p, s, tag in checkpoints:
-            metadata = {
-                "score": s.item() if isinstance(s, Tensor) else s,
-                "original_filename": Path(p).name,
-                checkpoint_callback.__class__.__name__: {
-                    k: getattr(checkpoint_callback, k)
-                    for k in [
-                        "monitor",
-                        "mode",
-                        "save_last",
-                        "save_top_k",
-                        "save_weights_only",
-                        "_every_n_train_steps",
-                    ]
-                    # ensure it does not break if `ModelCheckpoint` args change
-                    if hasattr(checkpoint_callback, k)
-                },
-            }
-            if not self._checkpoint_name:
-                self._checkpoint_name = f"model-{self.experiment.id}"
-            artifact = wandb.Artifact(name=self._checkpoint_name, type="model", metadata=metadata)
-            artifact.add_file(p, name="model.ckpt")
-            aliases = ["latest", "best"] if p == checkpoint_callback.best_model_path else ["latest"]
-            self.experiment.log_artifact(artifact, aliases=aliases)
-            # remember logged models - timestamp needed in case filename didn't change (lastkckpt or custom name)
-            self._logged_model_time[p] = t
+            if p:
+                metadata = {
+                    "score": s.item() if isinstance(s, Tensor) else s,
+                    "original_filename": Path(p).name,
+                    checkpoint_callback.__class__.__name__: {
+                        k: getattr(checkpoint_callback, k)
+                        for k in [
+                            "monitor",
+                            "mode",
+                            "save_last",
+                            "save_top_k",
+                            "save_weights_only",
+                            "_every_n_train_steps",
+                        ]
+                        # ensure it does not break if `ModelCheckpoint` args change
+                        if hasattr(checkpoint_callback, k)
+                    },
+                }
+                if not self._checkpoint_name:
+                    self._checkpoint_name = f"model-{self.experiment.id}"
+                artifact = wandb.Artifact(name=self._checkpoint_name, type="model", metadata=metadata)
+                if Path(p).is_file():
+                    artifact.add_file(p, name="model.ckpt")
+                elif Path(p).is_dir():
+                    artifact.add_dir(p)
+                else:
+                    raise ValueError(f"Path {p} is neither a file nor a directory.")
+                aliases = ["latest", "best"] if p == checkpoint_callback.best_model_path else ["latest"]
+                self.experiment.log_artifact(artifact, aliases=aliases)
+                # remember logged models - timestamp needed in case filename didn't change (lastkckpt or custom name)
+                self._logged_model_time[p] = t
