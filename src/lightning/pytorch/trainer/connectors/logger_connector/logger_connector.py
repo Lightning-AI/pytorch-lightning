@@ -47,12 +47,9 @@ class _LoggerConnector:
         self.trainer.log_every_n_steps = log_every_n_steps
 
     @property
-    def should_update_logs(self) -> bool:
-        trainer = self.trainer
-        if trainer.log_every_n_steps == 0:
-            return False
-        if (loop := trainer._active_loop) is None:
-            return True
+    def current_step(self) -> int:
+        if (loop := self.trainer._active_loop) is None:
+            raise RuntimeError
         if isinstance(loop, pl.loops._FitLoop):
             # `+ 1` because it can be checked before a step is executed, for example, in `on_train_batch_start`
             step = loop.epoch_loop._batches_that_stepped + 1
@@ -60,8 +57,21 @@ class _LoggerConnector:
             step = loop.batch_progress.current.ready
         else:
             raise NotImplementedError(loop)
-        should_log = step % trainer.log_every_n_steps == 0
-        return should_log or trainer.should_stop
+        return step
+
+    def should_update_logs(self, step: Optional[int] = None) -> bool:
+        trainer = self.trainer
+        if trainer.fast_dev_run:
+            return True
+        if trainer.log_every_n_steps == 0:
+            return False
+        if trainer.should_stop:
+            return True
+        if trainer.sanity_checking:
+            return False
+        if step is None:
+            step = self.current_step
+        return step % trainer.log_every_n_steps == 0
 
     def configure_logger(self, logger: Union[bool, Logger, Iterable[Logger]]) -> None:
         if not logger:
@@ -86,14 +96,13 @@ class _LoggerConnector:
         else:
             self.trainer.loggers = [logger]
 
-    def log_metrics(self, metrics: _OUT_DICT, step: Optional[int] = None) -> None:
-        """Logs the metric dict passed in. If `step` parameter is None and `step` key is presented is metrics, uses
-        metrics["step"] as a step.
+    def log_metrics(self, metrics: _OUT_DICT, step: int, add_epoch: bool = False) -> None:
+        """Logs the metric dict passed in.
 
         Args:
             metrics: Metric values
-            step: Step for which metrics should be logged. Default value is `self.global_step` during training or
-                the total validation / test log step count during validation and testing.
+            step: Step for which metrics should be logged.
+            add_epoch: Whether to add the current ``epoch``.
 
         """
         if not self.trainer.loggers or not metrics:
@@ -104,13 +113,11 @@ class _LoggerConnector:
         # turn all tensors to scalars
         scalar_metrics = convert_tensors_to_scalars(metrics)
 
-        if step is None:
-            step = scalar_metrics.pop("step", None)
-
-        if step is None:
-            # added metrics for convenience
+        step = scalar_metrics.pop("step", step)
+        # this is for backwards compatibility
+        if add_epoch:  # only enabled for training metrics
+            step -= 1
             scalar_metrics.setdefault("epoch", self.trainer.current_epoch)
-            step = self.trainer.fit_loop.epoch_loop._batches_that_stepped
 
         # log actual metrics
         for logger in self.trainer.loggers:
@@ -128,8 +135,8 @@ class _LoggerConnector:
 
     def update_eval_step_metrics(self, step: int) -> None:
         assert isinstance(self._first_loop_iter, bool)
-        # logs user requested information to logger
-        self.log_metrics(self.metrics["log"], step=step)
+        if self.should_update_logs(step):
+            self.log_metrics(self.metrics["log"], step=step)
 
     def update_eval_epoch_metrics(self) -> _OUT_DICT:
         assert self._first_loop_iter is None
@@ -147,7 +154,7 @@ class _LoggerConnector:
             return
 
         # log all the metrics as a single dict
-        self.log_metrics(metrics)
+        self.log_metrics(metrics, self.current_step)
 
     """
     Train metric updates
@@ -159,13 +166,14 @@ class _LoggerConnector:
 
         # when metrics should be logged
         assert isinstance(self._first_loop_iter, bool)
-        if self.should_update_logs or self.trainer.fast_dev_run:
-            self.log_metrics(self.metrics["log"])
+        step = self.current_step
+        if self.should_update_logs(step):
+            self.log_metrics(self.metrics["log"], step, add_epoch=True)
 
     def update_train_epoch_metrics(self) -> None:
-        # add the metrics to the loggers
         assert self._first_loop_iter is None
-        self.log_metrics(self.metrics["log"])
+
+        self.log_metrics(self.metrics["log"], self.current_step, add_epoch=True)
 
         # reset result collection for next epoch
         self.reset_results()

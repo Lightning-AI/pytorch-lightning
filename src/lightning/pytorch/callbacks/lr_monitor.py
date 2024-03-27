@@ -163,7 +163,7 @@ class LearningRateMonitor(Callback):
 
     @override
     def on_train_batch_start(self, trainer: "pl.Trainer", *args: Any, **kwargs: Any) -> None:
-        if not trainer._logger_connector.should_update_logs:
+        if not trainer._logger_connector.should_update_logs():
             return
 
         if self.logging_interval != "epoch":

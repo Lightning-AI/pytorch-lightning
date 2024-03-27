@@ -549,11 +549,11 @@ def test_validation_step_log_with_tensorboard(mock_log_metrics, tmp_path):
         call(metrics={"train_loss": ANY, "epoch": 0}, step=0),
         call(metrics={"valid_loss_0_step": ANY, "valid_loss_2": ANY}, step=0),
         call(metrics={"valid_loss_0_step": ANY, "valid_loss_2": ANY}, step=1),
-        call(metrics={"valid_loss_0_epoch": ANY, "valid_loss_1": ANY, "epoch": 0}, step=0),
+        call(metrics={"valid_loss_0_epoch": ANY, "valid_loss_1": ANY}, step=2),
         call(metrics={"train_loss": ANY, "epoch": 1}, step=1),
         call(metrics={"valid_loss_0_step": ANY, "valid_loss_2": ANY}, step=2),
         call(metrics={"valid_loss_0_step": ANY, "valid_loss_2": ANY}, step=3),
-        call(metrics={"valid_loss_0_epoch": ANY, "valid_loss_1": ANY, "epoch": 1}, step=1),
+        call(metrics={"valid_loss_0_epoch": ANY, "valid_loss_1": ANY}, step=2),
     ]
 
     def get_metrics_at_idx(idx):
@@ -738,7 +738,6 @@ def test_logging_multi_dataloader_on_epoch_end(mock_log_metrics, tmp_path):
 
     mock_call = mock_log_metrics.mock_calls[0]
     logged_metrics = mock_call.kwargs["metrics"] if _PYTHON_GREATER_EQUAL_3_8_0 else mock_call[2]["metrics"]
-    cb_metrics.add("epoch")
     assert set(logged_metrics) == cb_metrics
 
 
@@ -955,6 +954,7 @@ def test_eval_step_logging(mock_log_metrics, tmp_path, num_dataloaders):
         default_root_dir=tmp_path,
         max_epochs=max_epochs,
         limit_train_batches=1,
+        log_every_n_steps=1,
         limit_val_batches=limit_batches,
         limit_test_batches=limit_batches,
         logger=TensorBoardLogger(tmp_path),
