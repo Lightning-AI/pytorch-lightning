@@ -26,7 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
--
+- docs: fix parsing non-trivial package name ([#247](https://github.com/Lightning-AI/utilities/pull/247))
 
 
 ## [0.11.1] - 2024-03-25

@@ -8,7 +8,7 @@ Lightning-DevToolbox documentation
 
 .. figure:: https://pl-public-data.s3.amazonaws.com/assets_lightning/Lightning.gif
     :alt: What is Lightning gif.
-    :width: 100 %
+    :width: 80 %
 
 .. toctree::
    :maxdepth: 1

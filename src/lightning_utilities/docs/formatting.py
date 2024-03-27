@@ -150,7 +150,7 @@ def adjust_linked_external_docs(
         return
 
     # find the expression for package version in {} brackets if any, use re to find it
-    pkg_ver_all = re.findall(r"{([\w.]+)}", target_link)
+    pkg_ver_all = re.findall(r"{(.+)}", target_link)
     for pkg_ver in pkg_ver_all:
         target_link = _update_link_based_imported_package(target_link, pkg_ver, version_digits)
 
