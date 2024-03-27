@@ -13,7 +13,7 @@
 # limitations under the License.
 import logging
 from abc import ABC, abstractmethod
-from contextlib import contextmanager, nullcontext
+from contextlib import contextmanager
 from typing import Any, Callable, Dict, Generator, List, Mapping, Optional, Tuple, TypeVar, Union
 
 import torch

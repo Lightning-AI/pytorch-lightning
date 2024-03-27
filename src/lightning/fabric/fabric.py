@@ -51,7 +51,6 @@ from lightning.fabric.strategies import (
     FSDPStrategy,
     SingleDeviceStrategy,
     Strategy,
-    XLAFSDPStrategy,
     XLAStrategy,
 )
 from lightning.fabric.strategies.fsdp import _has_meta_device_parameters
@@ -698,8 +697,7 @@ class Fabric:
 
     def init_tensor(self) -> ContextManager:
         """Tensors that you instantiate under this context manager will be created on the device right away and have
-        the right data type depending on the precision setting in Fabric.
-        """
+        the right data type depending on the precision setting in Fabric."""
         return self._strategy.tensor_init_context()
 
     def init_module(self, empty_init: Optional[bool] = None) -> ContextManager:

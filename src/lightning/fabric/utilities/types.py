@@ -31,7 +31,6 @@ from torch import Tensor
 from torch.optim import Optimizer
 from typing_extensions import TypeAlias, overload
 
-
 UntypedStorage: TypeAlias = torch.UntypedStorage
 
 _PATH = Union[str, Path]

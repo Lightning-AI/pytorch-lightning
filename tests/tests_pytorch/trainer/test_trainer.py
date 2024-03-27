@@ -24,8 +24,6 @@ from unittest import mock
 from unittest.mock import ANY, Mock, call, patch
 
 import cloudpickle
-import lightning.fabric
-import lightning.pytorch
 import pytest
 import torch
 import torch.nn as nn
@@ -51,7 +49,6 @@ from lightning.pytorch.strategies.launchers import _MultiProcessingLauncher
 from lightning.pytorch.trainer.states import RunningStage, TrainerFn
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.imports import _OMEGACONF_AVAILABLE
-from lightning.pytorch.utilities.warnings import PossibleUserWarning
 from torch.multiprocessing import ProcessRaisedException
 from torch.nn.parallel.distributed import DistributedDataParallel
 from torch.optim import SGD

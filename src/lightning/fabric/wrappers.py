@@ -34,10 +34,10 @@ from lightning_utilities import is_overridden
 from lightning_utilities.core.apply_func import apply_to_collection
 from torch import Tensor
 from torch import nn as nn
+from torch._dynamo import OptimizedModule
 from torch.nn.modules.module import _IncompatibleKeys
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
-from torch._dynamo import OptimizedModule
 from typing_extensions import override
 
 from lightning.fabric.plugins import Precision

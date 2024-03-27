@@ -855,7 +855,6 @@ def test_module_sharding_context():
 
 def test_init_module_context(monkeypatch):
     """Test that the strategy returns the context manager for initializing the module."""
-    import lightning.fabric
 
     fabric = Fabric(accelerator="cpu")
     strategy = SingleDeviceStrategy(device=torch.device("cuda"))
@@ -869,7 +868,6 @@ def test_init_module_context(monkeypatch):
 
 def test_init_tensor_context(monkeypatch):
     """Test that `.init_tensor()` warns if using PyTorch < 2.0."""
-    import lightning.fabric
 
     fabric = Fabric(accelerator="cpu")
     strategy = SingleDeviceStrategy(device=torch.device("cuda"))
