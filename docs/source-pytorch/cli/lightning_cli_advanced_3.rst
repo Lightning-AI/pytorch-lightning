@@ -80,12 +80,12 @@ following:
 
     trainer:
       callbacks:
-        - class_path: lightning.pytorch.callbacks.EarlyStopping
+        - class_path: lightning.pytorch.callbacks.ModelCheckpoint
           init_args:
-            patience: 5
+            save_weights_only: true
         - class_path: lightning.pytorch.callbacks.LearningRateMonitor
           init_args:
-            ...
+            logging_interval: 'epoch'
 
 Similar to the callbacks, any parameter in :class:`~lightning.pytorch.trainer.trainer.Trainer` and user extended
 :class:`~lightning.pytorch.core.LightningModule` and

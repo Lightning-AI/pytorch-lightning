@@ -19,7 +19,6 @@ from importlib.util import module_from_spec, spec_from_file_location
 from types import ModuleType
 
 import lai_sphinx_theme
-from lightning_utilities.docs import adjust_linked_external_docs, fetch_external_assets
 from lightning_utilities.docs.formatting import _transform_changelog
 
 import lightning
@@ -104,14 +103,17 @@ assist_local.AssistantCLI.pull_docs_files(
 )
 
 if _FETCH_S3_ASSETS:
+    from lightning_utilities.docs import fetch_external_assets
+
     fetch_external_assets(
         docs_folder=_PATH_HERE,
         assets_folder="_static/fetched-s3-assets",
         retrieve_pattern=r"https?://[-a-zA-Z0-9_]+\.s3\.[-a-zA-Z0-9()_\\+.\\/=]+",
     )
 
-
 if _PIN_RELEASE_VERSIONS:
+    from lightning_utilities.docs import adjust_linked_external_docs
+
     adjust_linked_external_docs(
         "https://numpy.org/doc/stable/", "https://numpy.org/doc/{numpy.__version__}/", _PATH_ROOT
     )
