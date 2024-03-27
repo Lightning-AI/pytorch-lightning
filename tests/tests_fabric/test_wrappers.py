@@ -174,10 +174,21 @@ def test_fabric_module_setattr():
     assert linear in original_module.modules()
 
     # Check monkeypatching of methods
-    model = _FabricModule(Mock(), Mock())
-    original = id(model.forward)
-    model.forward = lambda *_: None
-    assert id(model.forward) != original
+    fabric_module = _FabricModule(Mock(), Mock())
+    original = id(fabric_module.forward)
+    fabric_module.forward = lambda *_: None
+    assert id(fabric_module.forward) != original
+    # Check special methods
+    assert "__repr__" in dir(fabric_module)
+    assert "__repr__" not in fabric_module.__dict__
+    assert "__repr__" not in _FabricModule.__dict__
+    fabric_module.__repr__ = lambda *_: "test"
+    assert fabric_module.__repr__() == "test"
+    # needs to be monkeypatched on the class for `repr()` to take change
+    assert repr(fabric_module) == "_FabricModule()"
+    with mock.patch.object(_FabricModule, "__repr__", return_value="test"):
+        assert fabric_module.__repr__() == "test"
+        assert repr(fabric_module) == "test"
 
 
 def test_fabric_module_state_dict_access():
