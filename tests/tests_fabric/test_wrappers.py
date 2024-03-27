@@ -155,6 +155,9 @@ def test_fabric_module_setattr():
 
     # Modify existing attribute on original_module
     fabric_module.attribute = 101
+    # "attribute" is only in the original_module, so it shouldn't get set in the fabric_module
+    assert "attribute" not in fabric_module.__dict__
+    assert fabric_module.attribute == 101  # returns it from original_module
     assert original_module.attribute == 101
 
     # Check setattr of original_module
@@ -172,7 +175,6 @@ def test_fabric_module_setattr():
 
     # Check monkeypatching of methods
     model = _FabricModule(Mock(), Mock())
-    assert isinstance(model, _FabricModule)
     original = id(model.forward)
     model.forward = lambda *_: None
     assert id(model.forward) != original
