@@ -21,6 +21,7 @@ import os
 import re
 import tempfile
 from argparse import Namespace
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from time import time
 from typing import TYPE_CHECKING, Any, Callable, Dict, List, Literal, Mapping, Optional, Union
@@ -374,6 +375,44 @@ class MLFlowLogger(Logger):
 
             # remember logged models - timestamp needed in case filename didn't change (lastkckpt or custom name)
             self._logged_model_time[p] = t
+
+
+class AsyncMLFlowLogger(MLFlowLogger):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+        self._executor = ThreadPoolExecutor(max_workers=1)
+        self._error = None
+        self._sync_log_batch = self.experiment.log_batch
+        self.experiment.log_batch = self.async_log_batch
+
+    def _log_batch(self, run_id: str, **kwargs: Dict[str, Any]) -> None:
+        """We need to detect errors that happen in the executing thread and resurface them from the calling one."""
+        try:
+            self._sync_log_batch(run_id=run_id, **kwargs)
+        except BaseException as ex:
+            self._error = ex
+
+    def async_log_batch(self, run_id: str, **kwargs: Dict[str, Any]) -> None:
+        """Running a SYNCHRONOUS function in the executor.
+
+        This will schedule the task to run immediately.
+        NOTE: metrics, params and tags are created synchronously prior this call,
+        hence preserving the original values and timestamps
+
+        """
+        self._executor.submit(self._log_batch, run_id, **kwargs)
+
+        # if an error was raised anytime in any of the `executor.submit` calls
+        if self._error:
+            raise self._error
+
+    def finalize(self, status: str) -> None:
+        super().finalize(status)
+        self._executor.shutdown(wait=True)
+
+        # if an error was raised anytime in any of the `executor.submit` calls
+        if self._error:
+            raise self._error
 
 
 def _get_resolve_tags() -> Callable:
