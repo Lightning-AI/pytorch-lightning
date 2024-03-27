@@ -460,6 +460,8 @@ class _AcceleratorConnector:
             if _habana_available_and_importable():
                 from lightning_habana import HPUAccelerator
                 if isinstance(self._accelerator_flag, HPUAccelerator):
+                    if strategy_flag:
+                        self._strategy_flag = strategy_flag
                     return
             raise MisconfigurationException(
                 f"You selected strategy to be `{FSDPStrategy.strategy_name}`, but GPU accelerator is not used."
