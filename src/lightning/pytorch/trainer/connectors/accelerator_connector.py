@@ -459,6 +459,7 @@ class _AcceleratorConnector:
         ) and self._accelerator_flag not in ("cuda", "gpu"):
             if _habana_available_and_importable():
                 from lightning_habana import HPUAccelerator
+
                 if isinstance(self._accelerator_flag, HPUAccelerator):
                     if strategy_flag:
                         self._strategy_flag = strategy_flag
