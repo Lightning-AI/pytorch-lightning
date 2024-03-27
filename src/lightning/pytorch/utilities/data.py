@@ -28,6 +28,7 @@ from lightning.fabric.utilities.data import (
     has_iterable_dataset,
     sized_len,
 )
+from lightning.fabric.utilities.warnings import PossibleUserWarning
 from lightning.pytorch.overrides.distributed import _IndexBatchSamplerWrapper
 from lightning.pytorch.trainer.states import RunningStage
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
@@ -301,6 +302,14 @@ def _dataloader_init_kwargs_resolve_sampler(
                     " or set `Trainer(use_distributed_sampler=False)`. If you choose the latter, you will be"
                     " responsible for handling the distributed sampling within your batch sampler."
                 ) from ex
+        elif is_predicting:
+            rank_zero_warn(
+                f"You are using a custom batch sampler `{batch_sampler_cls.__qualname__}` for prediction."
+                " Lightning would normally set `drop_last=False` to ensure all samples are returned, but for"
+                " custom samplers it can't guarantee this. Make sure your sampler is configured correctly to return"
+                " all indices.",
+                category=PossibleUserWarning,
+            )
         else:
             # The sampler is not a PyTorch `BatchSampler`, we don't know how to inject a custom sampler or
             # how to adjust the `drop_last` value
