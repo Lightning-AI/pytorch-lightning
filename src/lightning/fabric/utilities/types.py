@@ -31,7 +31,6 @@ from torch import Tensor
 from torch.optim import Optimizer
 from typing_extensions import TypeAlias, overload
 
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 
 UntypedStorage: TypeAlias = torch.UntypedStorage
 
@@ -41,7 +40,6 @@ _MAP_LOCATION_TYPE = Optional[
     Union[_DEVICE, Callable[[UntypedStorage, str], Optional[UntypedStorage]], Dict[_DEVICE, _DEVICE]]
 ]
 _PARAMETERS = Iterator[torch.nn.Parameter]
-
 
 if torch.distributed.is_available():
     from torch.distributed import ProcessGroup, ReduceOp
@@ -82,11 +80,7 @@ class LRScheduler(_Stateful[str], Protocol):
     def step(self, epoch: Optional[int] = None) -> None: ...
 
 
-_TORCH_LRSCHEDULER: TypeAlias = (
-    torch.optim.lr_scheduler.LRScheduler  # type: ignore[valid-type]
-    if _TORCH_GREATER_EQUAL_2_0
-    else torch.optim.lr_scheduler._LRScheduler
-)
+_TORCH_LRSCHEDULER: TypeAlias = torch.optim.lr_scheduler.LRScheduler  # type: ignore[valid-type]
 
 
 # Inferred from `torch.optim.lr_scheduler.pyi`

@@ -23,10 +23,7 @@ import torch.nn as nn
 from lightning.fabric import Fabric
 from lightning.fabric.plugins import FSDPPrecision
 from lightning.fabric.strategies import FSDPStrategy
-from lightning.fabric.utilities.imports import (
-    _TORCH_GREATER_EQUAL_2_0,
-    _TORCH_GREATER_EQUAL_2_1,
-)
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_1
 from lightning.fabric.utilities.load import _load_distributed_checkpoint
 from lightning.fabric.wrappers import _FabricOptimizer
 from torch.distributed.fsdp import FlatParameter, FullyShardedDataParallel, OptimStateKeyType
@@ -362,11 +359,7 @@ def test_setup_module_move_to_device(fabric_module_mock, move_to_device):
     # the linear layer got sharded and each part is on the expected device
     assert next(fabric_model.parameters()).device == torch.device("cuda", fabric.local_rank)
     assert next(fabric_model.parameters()).numel() == 50
-    if _TORCH_GREATER_EQUAL_2_0:
-        # In PyTorch >= 2.0 we set `use_orig_params=True` and don't see flattened parameters
-        assert isinstance(next(fabric_model.parameters()), Parameter)
-    else:
-        assert isinstance(next(fabric_model.parameters()), FlatParameter)
+    assert isinstance(next(fabric_model.parameters()), Parameter)
 
     # The _DeviceDtypeModuleMixin currently can't represent the device in a meaningful way for models with pieces on
     # different devices
@@ -407,10 +400,7 @@ def test_setup_with_orig_params_and_multiple_param_groups():
 
 
 @RunIf(min_cuda_gpus=2, standalone=True, min_torch="2.1.0", dynamo=True, skip_windows=True)
-@mock.patch(
-    "lightning.fabric.wrappers.torch.compile",
-    Mock(wraps=(torch.compile if _TORCH_GREATER_EQUAL_2_0 else None)),
-)
+@mock.patch("lightning.fabric.wrappers.torch.compile", Mock(wraps=torch.compile))
 @mock.patch.dict(os.environ, {})
 def test_reapply_compile():
     """Test that Fabric can rewrap a compiled module such that compilation happens over the FSDP-wrapper."""

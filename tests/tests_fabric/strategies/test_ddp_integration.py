@@ -19,7 +19,6 @@ from unittest.mock import Mock
 import pytest
 import torch
 from lightning.fabric import Fabric
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 from torch.nn.parallel.distributed import DistributedDataParallel
 
 from tests_fabric.helpers.runif import RunIf
@@ -71,10 +70,7 @@ def _run_ddp_save_load(fabric, tmp_path):
 
 
 @RunIf(min_cuda_gpus=2, standalone=True, min_torch="2.1.0", dynamo=True)
-@mock.patch(
-    "lightning.fabric.wrappers.torch.compile",
-    Mock(wraps=(torch.compile if _TORCH_GREATER_EQUAL_2_0 else None)),
-)
+@mock.patch("lightning.fabric.wrappers.torch.compile", Mock(wraps=torch.compile))
 @mock.patch.dict(os.environ, {})
 def test_reapply_compile():
     """Test that Fabric can rewrap a compiled module such that compilation happens over the DDP-wrapper."""

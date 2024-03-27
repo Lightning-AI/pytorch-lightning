@@ -624,11 +624,6 @@ def test_unwrap_compiled():
     # We wrap `torch.compile` on import of lightning in `wrappers.py`
     assert torch.compile.__wrapped__
 
-    with mock.patch("lightning.fabric.wrappers", "_TORCH_GREATER_EQUAL_2_0", False):
-        unwrapped, compile_kwargs = _unwrap_compiled(model)
-    assert unwrapped is model
-    assert compile_kwargs is None
-
     compiled = torch.compile(model, fullgraph=True, dynamic=True, disable=False)
     assert compiled._compile_kwargs == {"fullgraph": True, "dynamic": True, "disable": False}
     unwrapped, compile_kwargs = _unwrap_compiled(compiled)

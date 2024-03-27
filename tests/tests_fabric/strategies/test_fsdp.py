@@ -108,21 +108,6 @@ def test_fsdp_checkpoint_io_unsupported():
         strategy.checkpoint_io = Mock()
 
 
-@pytest.mark.parametrize("torch_ge_2_0", [False, True])
-def test_fsdp_setup_optimizer_validation(torch_ge_2_0):
-    """Test that `setup_optimizer()` validates the param groups and reference to FSDP parameters."""
-    module = nn.Linear(2, 2)
-    with mock.patch("lightning.fabric.strategies.fsdp._TORCH_GREATER_EQUAL_2_0", torch_ge_2_0):
-        strategy = FSDPStrategy(parallel_devices=[torch.device("cpu")])
-        bad_optimizer = Adam(module.parameters())
-
-        if torch_ge_2_0:
-            strategy.setup_optimizer(bad_optimizer)
-        else:
-            with pytest.raises(ValueError, match="The optimizer does not seem to reference any FSDP parameter"):
-                strategy.setup_optimizer(bad_optimizer)
-
-
 @RunIf(min_torch="2.0.0")
 @mock.patch("lightning.fabric.strategies.fsdp.FSDPStrategy.setup_module")
 def test_fsdp_setup_use_orig_params(_):
