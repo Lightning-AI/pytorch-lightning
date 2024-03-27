@@ -170,6 +170,13 @@ def test_fabric_module_setattr():
     assert linear in fabric_module.modules()
     assert linear in original_module.modules()
 
+    # Check monkeypatching of methods
+    model = _FabricModule(Mock(), Mock())
+    assert isinstance(model, _FabricModule)
+    original = id(model.forward)
+    model.forward = lambda *_: None
+    assert id(model.forward) != original
+
 
 def test_fabric_module_state_dict_access():
     """Test that state_dict access passes through to the original module."""
