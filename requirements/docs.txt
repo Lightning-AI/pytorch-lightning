@@ -17,10 +17,7 @@ sphinx-rtd-dark-mode
 sphinxcontrib-video ==0.2.0
 jinja2 <3.2.0
 
-lightning-utilities >=0.11.0, <0.12.0
+lightning-utilities >=0.11.1, <0.12.0
 
 # installed from S3 location and fetched in advance
 lai-sphinx-theme
-
-# needed for replacing stable keyword with latest version linkd
-tensorboard  # todo: remove this when updating Utils to 0.11.1+
