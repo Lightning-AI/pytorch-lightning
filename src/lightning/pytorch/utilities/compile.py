@@ -14,6 +14,7 @@
 from typing import Union
 
 import torch
+from torch._dynamo import OptimizedModule
 
 import lightning.pytorch as pl
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_1
@@ -21,7 +22,7 @@ from lightning.pytorch.strategies import DDPStrategy, DeepSpeedStrategy, FSDPStr
 from lightning.pytorch.utilities.model_helpers import _check_mixed_imports
 
 
-def from_compiled(model: "torch._dynamo.OptimizedModule") -> "pl.LightningModule":
+def from_compiled(model: OptimizedModule) -> "pl.LightningModule":
     """Returns an instance LightningModule from the output of ``torch.compile``.
 
     .. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
@@ -33,8 +34,6 @@ def from_compiled(model: "torch._dynamo.OptimizedModule") -> "pl.LightningModule
     Use this method to obtain a LightningModule that still runs with all the optimizations from ``torch.compile``.
 
     """
-    from torch._dynamo import OptimizedModule
-
     if not isinstance(model, OptimizedModule):
         raise ValueError(f"`model` is required to be a `OptimizedModule`. Found a `{type(model).__name__}` instead.")
 
@@ -79,8 +78,6 @@ def to_uncompiled(model: Union["pl.LightningModule", "torch._dynamo.OptimizedMod
     Note: this method will in-place modify the ``LightningModule`` that is passed in.
 
     """
-    from torch._dynamo import OptimizedModule
-
     if isinstance(model, OptimizedModule):
         original = model._orig_mod
         if not isinstance(original, pl.LightningModule):
@@ -111,8 +108,6 @@ def to_uncompiled(model: Union["pl.LightningModule", "torch._dynamo.OptimizedMod
 
 
 def _maybe_unwrap_optimized(model: object) -> "pl.LightningModule":
-    from torch._dynamo import OptimizedModule
-
     if isinstance(model, OptimizedModule):
         return from_compiled(model)
     if isinstance(model, pl.LightningModule):

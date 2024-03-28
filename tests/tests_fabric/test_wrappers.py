@@ -16,6 +16,8 @@ from unittest.mock import Mock, call
 
 import pytest
 import torch
+from torch._dynamo import OptimizedModule
+
 from lightning.fabric.fabric import Fabric
 from lightning.fabric.plugins import Precision
 from lightning.fabric.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
@@ -492,8 +494,6 @@ def test_is_wrapped(compile):
 
     # _FabricModule inside an OptimizedModule
     if compile:
-        from torch._dynamo import OptimizedModule
-
         module = torch.nn.Linear(2, 2)
         wrapped = torch.compile(_FabricModule(module, Mock()))
         assert isinstance(wrapped, OptimizedModule)

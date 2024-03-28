@@ -18,6 +18,8 @@ from unittest.mock import Mock
 
 import pytest
 import torch
+from torch._dynamo import OptimizedModule
+
 from lightning.fabric import Fabric
 from torch.nn.parallel.distributed import DistributedDataParallel
 
@@ -74,8 +76,6 @@ def _run_ddp_save_load(fabric, tmp_path):
 @mock.patch.dict(os.environ, {})
 def test_reapply_compile():
     """Test that Fabric can rewrap a compiled module such that compilation happens over the DDP-wrapper."""
-    from torch._dynamo import OptimizedModule
-
     fabric = Fabric(accelerator="cuda", devices=2, strategy="ddp")
     fabric.launch()
 

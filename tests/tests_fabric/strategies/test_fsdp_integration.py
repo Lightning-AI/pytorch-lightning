@@ -20,6 +20,8 @@ from unittest.mock import Mock
 import pytest
 import torch
 import torch.nn as nn
+from torch._dynamo import OptimizedModule
+
 from lightning.fabric import Fabric
 from lightning.fabric.plugins import FSDPPrecision
 from lightning.fabric.strategies import FSDPStrategy
@@ -404,8 +406,6 @@ def test_setup_with_orig_params_and_multiple_param_groups():
 @mock.patch.dict(os.environ, {})
 def test_reapply_compile():
     """Test that Fabric can rewrap a compiled module such that compilation happens over the FSDP-wrapper."""
-    from torch._dynamo import OptimizedModule
-
     strategy = FSDPStrategy(auto_wrap_policy=always_wrap_policy)
     fabric = Fabric(accelerator="cuda", devices=2, strategy=strategy)
     fabric.launch()
