@@ -18,9 +18,8 @@ from unittest.mock import Mock
 
 import pytest
 import torch
-from torch._dynamo import OptimizedModule
-
 from lightning.fabric import Fabric
+from torch._dynamo import OptimizedModule
 from torch.nn.parallel.distributed import DistributedDataParallel
 
 from tests_fabric.helpers.runif import RunIf
