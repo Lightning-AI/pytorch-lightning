@@ -39,9 +39,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { os: "macOS-11", pkg-name: "lightning", python-version: "3.10", pytorch-version: "1.13" }
-          - { os: "ubuntu-20.04", pkg-name: "lightning", python-version: "3.10", pytorch-version: "1.13" }
-          - { os: "windows-2022", pkg-name: "lightning", python-version: "3.10", pytorch-version: "1.13" }
+          - { os: "macOS-11", pkg-name: "lightning", python-version: "3.10", pytorch-version: "2.0" }
+          - { os: "ubuntu-20.04", pkg-name: "lightning", python-version: "3.10", pytorch-version: "2.0" }
+          - { os: "windows-2022", pkg-name: "lightning", python-version: "3.10", pytorch-version: "2.0" }
           # only run PyTorch latest
           - { os: "macOS-11", pkg-name: "lightning", python-version: "3.11", pytorch-version: "2.1" }
           - { os: "ubuntu-20.04", pkg-name: "lightning", python-version: "3.11", pytorch-version: "2.1" }
@@ -57,31 +57,25 @@ jobs:
           - { os: "ubuntu-22.04", pkg-name: "fabric", python-version: "3.11", pytorch-version: "2.1" }
           - { os: "windows-2022", pkg-name: "fabric", python-version: "3.11", pytorch-version: "2.1" }
           # "oldest" versions tests, only on minimum Python
-          - {
-              os: "macOS-11",
-              pkg-name: "lightning",
-              python-version: "3.8",
-              pytorch-version: "1.13",
-              requires: "oldest",
-            }
+          - { os: "macOS-11", pkg-name: "lightning", python-version: "3.8", pytorch-version: "2.0", requires: "oldest" }
           - {
               os: "ubuntu-20.04",
               pkg-name: "lightning",
               python-version: "3.8",
-              pytorch-version: "1.13",
+              pytorch-version: "2.0",
               requires: "oldest",
             }
           - {
               os: "windows-2022",
               pkg-name: "lightning",
               python-version: "3.8",
-              pytorch-version: "1.13",
+              pytorch-version: "2.0",
               requires: "oldest",
             }
           # "fabric" installs the standalone package
-          - { os: "macOS-11", pkg-name: "fabric", python-version: "3.8", pytorch-version: "1.13" }
-          - { os: "ubuntu-20.04", pkg-name: "fabric", python-version: "3.8", pytorch-version: "1.13" }
-          - { os: "windows-2022", pkg-name: "fabric", python-version: "3.8", pytorch-version: "1.13" }
+          - { os: "macOS-11", pkg-name: "fabric", python-version: "3.8", pytorch-version: "2.0" }
+          - { os: "ubuntu-20.04", pkg-name: "fabric", python-version: "3.8", pytorch-version: "2.0" }
+          - { os: "windows-2022", pkg-name: "fabric", python-version: "3.8", pytorch-version: "2.0" }
     timeout-minutes: 25 # because of building grpcio on Mac
     env:
       PACKAGE_NAME: ${{ matrix.pkg-name }}

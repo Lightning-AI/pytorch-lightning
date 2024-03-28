@@ -18,7 +18,6 @@ import pytest
 import torch
 from lightning.fabric.plugins import DoublePrecision, HalfPrecision, Precision
 from lightning.fabric.strategies import SingleDeviceStrategy
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 from lightning.fabric.utilities.types import _Stateful
 
 from tests_fabric.helpers.runif import RunIf
@@ -239,8 +238,7 @@ def test_module_init_context(device, precision, dtype, empty_init, monkeypatch):
     with strategy.module_init_context(empty_init=empty_init):
         module = torch.nn.Linear(2, 2)
 
-    expected_device = device if _TORCH_GREATER_EQUAL_2_0 else torch.device("cpu")
-    assert module.weight.device == module.bias.device == expected_device
+    assert module.weight.device == module.bias.device == device
     assert module.weight.dtype == module.bias.dtype == dtype
     if not empty_init:
         init_mock.assert_called()
@@ -274,8 +272,7 @@ def test_tensor_init_context(device, precision, dtype):
         tensor1 = torch.tensor(42)
         tensor2 = torch.tensor(42.0, dtype=torch.half)
 
-    expected_device = device if _TORCH_GREATER_EQUAL_2_0 else torch.device("cpu")
-    assert tensor0.device == tensor1.device == tensor2.device == expected_device
+    assert tensor0.device == tensor1.device == tensor2.device == device
     assert tensor0.dtype == dtype
     assert tensor1.dtype == torch.long  # `.init_tensor()` only affects floating point dtypes
     assert tensor2.dtype == torch.half  # this tensor was created with an explicit dtype assignment

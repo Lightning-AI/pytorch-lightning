@@ -24,8 +24,6 @@ from unittest import mock
 from unittest.mock import ANY, Mock, call, patch
 
 import cloudpickle
-import lightning.fabric
-import lightning.pytorch
 import pytest
 import torch
 import torch.nn as nn
@@ -51,7 +49,6 @@ from lightning.pytorch.strategies.launchers import _MultiProcessingLauncher
 from lightning.pytorch.trainer.states import RunningStage, TrainerFn
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.imports import _OMEGACONF_AVAILABLE
-from lightning.pytorch.utilities.warnings import PossibleUserWarning
 from torch.multiprocessing import ProcessRaisedException
 from torch.nn.parallel.distributed import DistributedDataParallel
 from torch.optim import SGD
@@ -2079,12 +2076,6 @@ def test_init_module_context(monkeypatch):
         pass
     strategy.tensor_init_context.assert_called_once_with(empty_init=None)
     strategy.tensor_init_context.reset_mock()
-
-    # Pretend we are using PyTorch < 2.0
-    monkeypatch.setattr(lightning.pytorch.trainer.trainer, "_TORCH_GREATER_EQUAL_2_0", False)
-    with pytest.warns(PossibleUserWarning, match="can't place .* on the device"), trainer.init_module():
-        pass
-    strategy.tensor_init_context.assert_called_once()
 
 
 def test_expand_home_trainer():

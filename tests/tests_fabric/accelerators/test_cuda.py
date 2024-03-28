@@ -25,8 +25,6 @@ from lightning.fabric.accelerators.cuda import (
     CUDAAccelerator,
     _check_cuda_matmul_precision,
     find_usable_cuda_devices,
-    is_cuda_available,
-    num_cuda_devices,
 )
 
 from tests_fabric.helpers.runif import RunIf
@@ -65,18 +63,6 @@ def test_set_cuda_device(_, set_device_mock):
     device = torch.device("cuda", 1)
     CUDAAccelerator().setup_device(device)
     set_device_mock.assert_called_once_with(device)
-
-
-@mock.patch("lightning.fabric.accelerators.cuda._device_count_nvml", return_value=-1)
-@mock.patch("torch.cuda.is_available", return_value=True)
-@mock.patch("torch.cuda.device_count", return_value=100)
-def test_num_cuda_devices_without_nvml(*_):
-    """Test that if NVML can't be loaded, our helper functions fall back to the default implementation for determining
-    CUDA availability."""
-    num_cuda_devices.cache_clear()
-    assert is_cuda_available()
-    assert num_cuda_devices() == 100
-    num_cuda_devices.cache_clear()
 
 
 @mock.patch.dict(os.environ, {}, clear=True)

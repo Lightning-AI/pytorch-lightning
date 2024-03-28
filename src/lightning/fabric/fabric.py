@@ -51,7 +51,6 @@ from lightning.fabric.strategies import (
     FSDPStrategy,
     SingleDeviceStrategy,
     Strategy,
-    XLAFSDPStrategy,
     XLAStrategy,
 )
 from lightning.fabric.strategies.fsdp import _has_meta_device_parameters
@@ -67,7 +66,6 @@ from lightning.fabric.utilities.data import (
 )
 from lightning.fabric.utilities.device_dtype_mixin import _update_properties
 from lightning.fabric.utilities.distributed import DistributedSamplerWrapper, _InfiniteBarrier
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 from lightning.fabric.utilities.rank_zero import rank_zero_deprecation, rank_zero_warn
 from lightning.fabric.utilities.registry import _load_external_callbacks
 from lightning.fabric.utilities.seed import seed_everything
@@ -699,26 +697,14 @@ class Fabric:
 
     def init_tensor(self) -> ContextManager:
         """Tensors that you instantiate under this context manager will be created on the device right away and have
-        the right data type depending on the precision setting in Fabric.
-
-        The automatic device placement under this context manager is only supported with PyTorch 2.0 and newer.
-
-        """
-        if not _TORCH_GREATER_EQUAL_2_0 and self.device.type != "cpu":
-            rank_zero_warn(
-                "`Fabric.init_tensor()` can't place tensors on the device directly"
-                " with PyTorch < 2.0. Parameters will remain on CPU until `Fabric.setup()` is called."
-                " Upgrade to PyTorch >= 2.0 to fully utilize this feature.",
-                category=PossibleUserWarning,
-            )
+        the right data type depending on the precision setting in Fabric."""
         return self._strategy.tensor_init_context()
 
     def init_module(self, empty_init: Optional[bool] = None) -> ContextManager:
         """Instantiate the model and its parameters under this context manager to reduce peak memory usage.
 
         The parameters get created on the device and with the right data type right away without wasting memory being
-        allocated unnecessarily. The automatic device placement under this context manager is only supported with
-        PyTorch 2.0 and newer.
+        allocated unnecessarily.
 
         Args:
             empty_init: Whether to initialize the model with empty weights (uninitialized memory).
@@ -727,13 +713,6 @@ class Fabric:
 
         """
         self._validate_launched()
-        if not _TORCH_GREATER_EQUAL_2_0 and self.device.type != "cpu":
-            rank_zero_warn(
-                "`Fabric.init_module()` can't place the model parameters on the device directly"
-                " with PyTorch < 2.0. Parameters will remain on CPU until `Fabric.setup()` is called."
-                " Upgrade to PyTorch >= 2.0 to fully utilize this feature.",
-                category=PossibleUserWarning,
-            )
         return self._strategy.module_init_context(empty_init=empty_init)
 
     def save(
@@ -1036,12 +1015,6 @@ class Fabric:
         if any(isinstance(opt, _FabricOptimizer) for opt in optimizers):
             raise ValueError("An optimizer should be passed only once to the `setup` method.")
 
-        if isinstance(self._strategy, (FSDPStrategy, XLAFSDPStrategy)) and not _TORCH_GREATER_EQUAL_2_0:
-            raise RuntimeError(
-                f"The `{type(self).__name__}` requires the model and optimizer(s) to be set up separately."
-                " Create and set up the model first through `model = self.setup_module(model)`. Then create the"
-                " optimizer and set it up: `optimizer = self.setup_optimizer(optimizer)`."
-            )
         if isinstance(self._strategy, FSDPStrategy) and any(
             _has_meta_device_parameters(optimizer) for optimizer in optimizers
         ):

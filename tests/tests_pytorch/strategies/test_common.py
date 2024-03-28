@@ -15,7 +15,6 @@ from unittest.mock import Mock
 
 import pytest
 import torch
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 from lightning.pytorch import Trainer
 from lightning.pytorch.plugins import DoublePrecision, HalfPrecision, Precision
 from lightning.pytorch.strategies import SingleDeviceStrategy
@@ -82,8 +81,7 @@ def test_module_init_context(device, precision, dtype, empty_init, monkeypatch):
     with strategy.tensor_init_context(empty_init=empty_init):
         module = torch.nn.Linear(2, 2)
 
-    expected_device = device if _TORCH_GREATER_EQUAL_2_0 else torch.device("cpu")
-    assert module.weight.device == module.bias.device == expected_device
+    assert module.weight.device == module.bias.device == device
     assert module.weight.dtype == module.bias.dtype == dtype
     if not empty_init:
         init_mock.assert_called()

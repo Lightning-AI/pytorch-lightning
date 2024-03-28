@@ -45,7 +45,7 @@ def _xla_fsdp_rewrap_warning(fabric: Fabric):
     assert isinstance(model._forward_module[2], XlaFullyShardedDataParallel)
 
 
-@RunIf(min_torch="2.0", tpu=True, standalone=True)
+@RunIf(tpu=True, standalone=True)
 def test_xla_fsdp_rewrap_warning():
     """Test that XLAFSDP warns about rewrapping the modules."""
     from torch_xla.distributed.fsdp.wrap import always_wrap_policy
@@ -159,7 +159,7 @@ def xla_fsdp_train_save_load(fabric: Fabric, tmp_path, state_dict_type):
                 torch.testing.assert_close(p0, p1, atol=0, rtol=0, equal_nan=True)
 
 
-@RunIf(min_torch="2.0", tpu=True, standalone=True)
+@RunIf(tpu=True, standalone=True)
 @pytest.mark.parametrize(
     ("use_auto_wrap_policy", "state_dict_type", "sequential_save"),
     [
@@ -196,7 +196,7 @@ def _test_setup_module_move_to_device(fabric, move_to_device):
     assert fabric.device.type == "xla"
 
 
-@RunIf(min_torch="2.0", tpu=True, standalone=True)
+@RunIf(tpu=True, standalone=True)
 @pytest.mark.parametrize("move_to_device", [True, False])
 def test_setup_module_move_to_device(move_to_device):
     """Test that `move_to_device` does nothing, FSDP decides which device parameters get moved to which device

@@ -22,7 +22,6 @@ import lightning.pytorch as pl
 from lightning.fabric.plugins.precision.amp import _optimizer_handles_unscaling
 from lightning.fabric.plugins.precision.fsdp import _PRECISION_INPUT
 from lightning.fabric.plugins.precision.utils import _convert_fp_tensor, _DtypeContextManager
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 from lightning.fabric.utilities.types import Optimizable
 from lightning.pytorch.plugins.precision.precision import Precision
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
@@ -87,21 +86,18 @@ class FSDPPrecision(Precision):
     def mixed_precision_config(self) -> "TorchMixedPrecision":
         from torch.distributed.fsdp.fully_sharded_data_parallel import MixedPrecision as TorchMixedPrecision
 
-        # With PyTorch < 2.0, FSDP uses the noneness of `param_dtype` as a proxy for the `_uses_param_mixed_precision`
-        # property. In order to avoid FSDP assertion failures, we therefore avoid setting `param_dtype` to
-        # `torch.float32` here with PyTorch < 2.0.
         if self.precision == "16-mixed":
-            param_dtype = None if not _TORCH_GREATER_EQUAL_2_0 else torch.float32
+            param_dtype = torch.float32
             reduce_dtype = buffer_dtype = torch.float16
         elif self.precision == "bf16-mixed":
-            param_dtype = None if not _TORCH_GREATER_EQUAL_2_0 else torch.float32
+            param_dtype = torch.float32
             reduce_dtype = buffer_dtype = torch.bfloat16
         elif self.precision == "16-true":
             param_dtype = reduce_dtype = buffer_dtype = torch.float16
         elif self.precision == "bf16-true":
             param_dtype = reduce_dtype = buffer_dtype = torch.bfloat16
         elif self.precision == "32-true":
-            param_dtype = None if not _TORCH_GREATER_EQUAL_2_0 else torch.float32
+            param_dtype = torch.float32
             reduce_dtype = buffer_dtype = torch.float32
         else:
             raise MisconfigurationException(f"Was unable to infer precision type, received {self.precision!r}.")

@@ -39,7 +39,6 @@ from lightning.fabric.strategies.strategy import (
     _validate_keys_for_strict_loading,
 )
 from lightning.fabric.utilities.cloud_io import get_filesystem
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 from lightning.fabric.utilities.init import _EmptyInit
 from lightning.fabric.utilities.rank_zero import rank_zero_only, rank_zero_warn
 from lightning.fabric.utilities.types import _PATH, Optimizable, ReduceOp
@@ -420,11 +419,6 @@ class XLAFSDPStrategy(ParallelStrategy, _Sharded):
         consolidated checkpoint combining all of the sharded checkpoints.
 
         """
-        if not _TORCH_GREATER_EQUAL_2_0:
-            raise NotImplementedError(
-                "Saving and loading checkpoints with the `XLAFSDPStrategy` is not supported in PyTorch < 2.0."
-                " Please upgrade `torch`."
-            )
         # broadcast the path from rank 0 to ensure all the states are saved in a common path
         path = Path(self.broadcast(path))
         if path.is_dir() and any(path.iterdir()):
@@ -527,11 +521,6 @@ class XLAFSDPStrategy(ParallelStrategy, _Sharded):
         directory of multiple files rather than a single file.
 
         """
-        if not _TORCH_GREATER_EQUAL_2_0:
-            raise NotImplementedError(
-                "Saving and loading checkpoints with the `FSDPStrategy` is not supported in PyTorch < 2.0."
-                " Please upgrade `torch` or file an issue: `https://github.com/Lightning-AI/lightning/issues`."
-            )
         if not state:
             raise ValueError(
                 f"Got `XLAFSDPStrategy.load_checkpoint(..., state={state!r})` but a state with at least "

@@ -20,7 +20,6 @@ from torch.nn import Module
 from torch.optim import LBFGS, Optimizer
 from typing_extensions import override
 
-from lightning.fabric.accelerators.cuda import _patch_cuda_is_available
 from lightning.fabric.plugins.precision.precision import Precision
 from lightning.fabric.plugins.precision.utils import _convert_fp_tensor
 from lightning.fabric.utilities.types import Optimizable
@@ -50,9 +49,7 @@ class MixedPrecision(Precision):
 
         self.precision = precision
         if scaler is None and self.precision == "16-mixed":
-            with _patch_cuda_is_available():
-                # if possible, we defer CUDA initialization to support strategies that will attempt forks
-                scaler = torch.cuda.amp.GradScaler()
+            scaler = torch.cuda.amp.GradScaler()
         if scaler is not None and self.precision == "bf16-mixed":
             raise ValueError(f"`precision='bf16-mixed'` does not use a scaler, found {scaler}.")
         self.device = device
