@@ -17,7 +17,7 @@ from typing import Optional, Union
 
 import lightning.pytorch as pl
 from lightning.fabric.utilities.warnings import PossibleUserWarning
-from lightning.pytorch.accelerators import CUDAAccelerator, MPSAccelerator, XLAAccelerator
+from lightning.pytorch.accelerators import CUDAAccelerator, MPSAccelerator, NPUAccelerator, XLAAccelerator
 from lightning.pytorch.loggers.logger import DummyLogger
 from lightning.pytorch.profilers import (
     AdvancedProfiler,
@@ -168,6 +168,9 @@ def _log_device_info(trainer: "pl.Trainer") -> None:
         hpu_available = False
     rank_zero_info(f"HPU available: {hpu_available}, using: {num_hpus} HPUs")
 
+    number_npu_cores = trainer.num_devices if isinstance(trainer.accelerator, NPUAccelerator) else 0
+    rank_zero_info(f"NPU available: {NPUAccelerator.is_available()}, using: {number_npu_cores} NPU cores")
+
     if (
         CUDAAccelerator.is_available()
         and not isinstance(trainer.accelerator, CUDAAccelerator)
@@ -187,3 +190,6 @@ def _log_device_info(trainer: "pl.Trainer") -> None:
 
         if HPUAccelerator.is_available() and not isinstance(trainer.accelerator, HPUAccelerator):
             rank_zero_warn("HPU available but not used. You can set it by doing `Trainer(accelerator='hpu')`.")
+
+    if NPUAccelerator.is_available() and not isinstance(trainer.accelerator, NPUAccelerator):
+        rank_zero_warn("NPU available but not used. You can set it by doing `Trainer(accelerator='npu')`.")

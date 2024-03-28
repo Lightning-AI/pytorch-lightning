@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import logging
-from contextlib import nullcontext
 from datetime import timedelta
 from typing import TYPE_CHECKING, Any, Callable, Dict, List, Literal, Optional, Union
 
@@ -31,7 +30,6 @@ from lightning.fabric.plugins.collectives.torch_collective import default_pg_tim
 from lightning.fabric.strategies import _StrategyRegistry
 from lightning.fabric.utilities.distributed import (
     _distributed_is_initialized,
-    _get_default_process_group_backend_for_device,
     _init_dist_connection,
     _sync_ddp_if_available,
 )
@@ -190,7 +188,8 @@ class DDPStrategy(ParallelStrategy):
         device_ids = self.determine_ddp_device_ids()
         log.debug(f"setting up DDP model with device ids: {device_ids}, kwargs: {self._ddp_kwargs}")
         # https://pytorch.org/docs/stable/notes/cuda.html#id5
-        ctx = torch.cuda.stream(torch.cuda.Stream()) if device_ids is not None else nullcontext()
+        assert self.accelerator is not None
+        ctx = self.accelerator.get_stream_context(device_ids)
         with ctx:
             return DistributedDataParallel(module=model, device_ids=device_ids, **self._ddp_kwargs)
 
@@ -203,7 +202,8 @@ class DDPStrategy(ParallelStrategy):
         _init_dist_connection(self.cluster_environment, self._process_group_backend, timeout=self._timeout)
 
     def _get_process_group_backend(self) -> str:
-        return self._process_group_backend or _get_default_process_group_backend_for_device(self.root_device)
+        assert self.accelerator is not None
+        return self._process_group_backend or self.accelerator.get_distribute_name()
 
     def set_world_ranks(self) -> None:
         if self.cluster_environment is not None:

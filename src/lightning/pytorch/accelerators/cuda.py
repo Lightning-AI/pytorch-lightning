@@ -15,6 +15,7 @@ import logging
 import os
 import shutil
 import subprocess
+from contextlib import nullcontext
 from typing import Any, Dict, List, Optional, Union
 
 import torch
@@ -103,6 +104,14 @@ class CUDAAccelerator(Accelerator):
     @override
     def is_available() -> bool:
         return num_cuda_devices() > 0
+
+    @override
+    def get_distribute_name(self) -> str:
+        return "nccl"
+
+    @override
+    def get_stream_context(self, device_id: List[int]) -> Any:
+        return torch.cuda.stream(torch.cuda.Stream()) if device_id is not None else nullcontext()
 
     @classmethod
     @override

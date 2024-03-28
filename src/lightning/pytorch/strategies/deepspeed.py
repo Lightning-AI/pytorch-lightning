@@ -39,6 +39,7 @@ from lightning.fabric.utilities.optimizer import _optimizers_to_device
 from lightning.fabric.utilities.seed import reset_seed
 from lightning.fabric.utilities.types import _PATH, LRScheduler, ReduceLROnPlateau
 from lightning.pytorch.accelerators.cuda import CUDAAccelerator
+from lightning.pytorch.accelerators.npu import NPUAccelerator
 from lightning.pytorch.core.optimizer import _init_optimizers_and_lr_schedulers
 from lightning.pytorch.plugins.precision import Precision
 from lightning.pytorch.strategies.ddp import DDPStrategy
@@ -315,10 +316,10 @@ class DeepSpeedStrategy(DDPStrategy):
 
     @override
     def setup_environment(self) -> None:
-        if not isinstance(self.accelerator, CUDAAccelerator):
+        if not isinstance(self.accelerator, (CUDAAccelerator, NPUAccelerator)):
             raise RuntimeError(
-                f"The DeepSpeed strategy is only supported on CUDA GPUs but `{self.accelerator.__class__.__name__}`"
-                " is used."
+                "The DeepSpeed strategy is only supported on CUDA GPUs or Ascend NPUs but"
+                " `{self.accelerator.__class__.__name__}` is used."
             )
         super().setup_environment()
 
