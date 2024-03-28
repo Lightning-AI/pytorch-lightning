@@ -33,8 +33,6 @@ from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_1, _TORCH_
 from torch.distributed.fsdp.fully_sharded_data_parallel import CPUOffload, FullyShardedDataParallel, MixedPrecision
 from torch.optim import Adam
 
-from tests_fabric.helpers.runif import RunIf
-
 
 def test_fsdp_custom_mixed_precision():
     """Test that passing a custom mixed precision config works."""
@@ -217,13 +215,11 @@ def test_fsdp_grad_clipping_norm_error():
         strategy.clip_gradients_norm(Mock(), Mock(), Mock())
 
 
-
 def test_fsdp_save_checkpoint_storage_options(tmp_path):
     """Test that the FSDP strategy does not accept storage options for saving checkpoints."""
     strategy = FSDPStrategy()
     with pytest.raises(TypeError, match=escape("FSDPStrategy.save_checkpoint(..., storage_options=...)` is not")):
         strategy.save_checkpoint(path=tmp_path, state=Mock(), storage_options=Mock())
-
 
 
 @mock.patch("lightning.fabric.strategies.fsdp.FSDPStrategy.broadcast", lambda _, x: x)
@@ -288,7 +284,6 @@ def test_fsdp_save_checkpoint_path_exists(shutil_mock, torch_save_mock, __, ___,
     assert path.is_dir()
 
 
-
 @mock.patch("lightning.fabric.strategies.fsdp.FSDPStrategy.broadcast", lambda _, x: x)
 def test_fsdp_save_checkpoint_one_fsdp_module_required(tmp_path):
     """Test that the FSDP strategy can only save one FSDP model per checkpoint."""
@@ -309,7 +304,6 @@ def test_fsdp_save_checkpoint_one_fsdp_module_required(tmp_path):
         strategy.save_checkpoint(path=tmp_path, state={"model1": model1, "model2": model2})
 
 
-
 def test_fsdp_load_checkpoint_no_state(tmp_path):
     """Test that the FSDP strategy can't load the full state without access to a model instance from the user."""
     strategy = FSDPStrategy()
@@ -317,7 +311,6 @@ def test_fsdp_load_checkpoint_no_state(tmp_path):
         strategy.load_checkpoint(path=tmp_path, state=None)
     with pytest.raises(ValueError, match=escape("Got FSDPStrategy.load_checkpoint(..., state={})")):
         strategy.load_checkpoint(path=tmp_path, state={})
-
 
 
 @mock.patch("lightning.fabric.strategies.fsdp.FSDPStrategy.broadcast", lambda _, x: x)
@@ -347,7 +340,6 @@ def test_fsdp_load_checkpoint_one_fsdp_module_required(tmp_path):
     strategy.load_checkpoint(path=path, state=model)
 
 
-
 @mock.patch("lightning.fabric.strategies.fsdp.FSDPStrategy.broadcast", lambda _, x: x)
 def test_fsdp_save_checkpoint_unknown_state_dict_type(tmp_path):
     strategy = FSDPStrategy(state_dict_type="invalid")
@@ -355,7 +347,6 @@ def test_fsdp_save_checkpoint_unknown_state_dict_type(tmp_path):
     model.modules.return_value = [model]
     with pytest.raises(ValueError, match="Unknown state_dict_type"):
         strategy.save_checkpoint(path=tmp_path, state={"model": model})
-
 
 
 def test_fsdp_load_unknown_checkpoint_type(tmp_path):
@@ -369,7 +360,6 @@ def test_fsdp_load_unknown_checkpoint_type(tmp_path):
         strategy.load_checkpoint(path=path, state={"model": model})
 
 
-
 def test_fsdp_load_raw_checkpoint_validate_single_file(tmp_path):
     """Test that we validate the given checkpoint is a single file when loading a raw PyTorch state-dict checkpoint."""
     strategy = FSDPStrategy()
@@ -378,7 +368,6 @@ def test_fsdp_load_raw_checkpoint_validate_single_file(tmp_path):
     path.mkdir()
     with pytest.raises(ValueError, match="The given path must be a single file containing the full state dict"):
         strategy.load_checkpoint(path=path, state=model)
-
 
 
 def test_fsdp_load_raw_checkpoint_optimizer_unsupported(tmp_path):

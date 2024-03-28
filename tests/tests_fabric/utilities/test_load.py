@@ -21,8 +21,6 @@ from lightning.fabric.utilities.load import (
     _NotYetLoadedTensor,
 )
 
-from tests_fabric.helpers.runif import RunIf
-
 
 def test_lazy_load_module(tmp_path):
     model0 = nn.Linear(2, 2)

@@ -737,7 +737,6 @@ def test_save_checkpoint_storage_options(tmp_path):
         strategy.save_checkpoint(filepath=tmp_path, checkpoint=Mock(), storage_options=Mock())
 
 
-
 @mock.patch("lightning.pytorch.strategies.fsdp.FSDPStrategy.broadcast", lambda _, x: x)
 @mock.patch("lightning.pytorch.strategies.fsdp._get_full_state_dict_context")
 @mock.patch("lightning.pytorch.strategies.fsdp._get_sharded_state_dict_context")
