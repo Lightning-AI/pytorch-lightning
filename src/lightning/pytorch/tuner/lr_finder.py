@@ -459,8 +459,7 @@ class _LinearLR(_TORCH_LRSCHEDULER):
         self.num_iter = num_iter
         super().__init__(optimizer, last_epoch)
 
-    # mypy can't follow the _TORCH_LRSCHEDULER TypeAlias, so ignore "no base method" error
-    @override  # type: ignore[misc]
+    @override
     def get_lr(self) -> List[float]:
         curr_iter = self.last_epoch + 1
         r = curr_iter / self.num_iter
@@ -497,8 +496,7 @@ class _ExponentialLR(_TORCH_LRSCHEDULER):
         self.num_iter = num_iter
         super().__init__(optimizer, last_epoch)
 
-    # mypy can't follow the _TORCH_LRSCHEDULER TypeAlias, so ignore "no base method" error
-    @override  # type: ignore[misc]
+    @override
     def get_lr(self) -> List[float]:
         curr_iter = self.last_epoch + 1
         r = curr_iter / self.num_iter

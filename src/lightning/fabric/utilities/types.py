@@ -79,7 +79,7 @@ class LRScheduler(_Stateful[str], Protocol):
     def step(self, epoch: Optional[int] = None) -> None: ...
 
 
-_TORCH_LRSCHEDULER: TypeAlias = torch.optim.lr_scheduler.LRScheduler  # type: ignore[valid-type]
+_TORCH_LRSCHEDULER: TypeAlias = torch.optim.lr_scheduler.LRScheduler
 
 
 # Inferred from `torch.optim.lr_scheduler.pyi`
