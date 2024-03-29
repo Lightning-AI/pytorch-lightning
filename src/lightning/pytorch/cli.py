@@ -380,7 +380,7 @@ class LightningCLI:
 
         main_kwargs, subparser_kwargs = self._setup_parser_kwargs(self.parser_kwargs)
         self.setup_parser(run, main_kwargs, subparser_kwargs)
-        self.parse_arguments(self.parser, args)
+        self.parse_arguments(self.parser, args, run)
 
         self.subcommand = self.config["subcommand"] if run else None
 
@@ -520,13 +520,18 @@ class LightningCLI:
                 add_class_path = _add_class_path_generator(class_type)
                 parser.link_arguments(key, link_to, compute_fn=add_class_path)
 
-    def parse_arguments(self, parser: LightningArgumentParser, args: ArgsType) -> None:
+    def parse_arguments(self, parser: LightningArgumentParser, args: ArgsType, run: bool) -> None:
         """Parses command line arguments and stores it in ``self.config``."""
         if args is not None and len(sys.argv) > 1:
             rank_zero_warn(
                 "LightningCLI's args parameter is intended to run from within Python like if it were from the command "
                 "line. To prevent mistakes it is not recommended to provide both args and command line arguments, got: "
                 f"sys.argv[1:]={sys.argv[1:]}, args={args}."
+            )
+        if args is None and run and len(sys.argv) > 1 and sys.argv[1] not in self.subcommands():
+            raise ValueError(
+                "When `LightningCLI(run=True)` is used (default), you need to provide a subcommand as the first"
+                f" argument. For example: `python {sys.argv[0]} fit ...`"
             )
         if isinstance(args, (dict, Namespace)):
             self.config = parser.parse_object(args)
