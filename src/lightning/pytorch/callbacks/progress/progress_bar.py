@@ -15,14 +15,14 @@ from typing import Any, Dict, Optional, Union
 
 from typing_extensions import override
 
-import lightning.pytorch as pl
-from lightning.pytorch.callbacks import Callback
-from lightning.pytorch.utilities.rank_zero import rank_zero_warn
+import lightning_pytorch as pl
+from lightning_pytorch.callbacks import Callback
+from lightning_pytorch.utilities.rank_zero import rank_zero_warn
 
 
 class ProgressBar(Callback):
-    r"""The base class for progress bars in Lightning. It is a :class:`~lightning.pytorch.callbacks.Callback` that keeps
-    track of the batch progress in the :class:`~lightning.pytorch.trainer.trainer.Trainer`. You should implement your
+    r"""The base class for progress bars in Lightning. It is a :class:`~lightning_pytorch.callbacks.Callback` that keeps
+    track of the batch progress in the :class:`~lightning_pytorch.trainer.trainer.Trainer`. You should implement your
     highly custom progress bars with this as the base class.
 
     Example::
@@ -157,7 +157,7 @@ class ProgressBar(Callback):
     def enable(self) -> None:
         """You should provide a way to enable the progress bar.
 
-        The :class:`~lightning.pytorch.trainer.trainer.Trainer` will call this in e.g. pre-training
+        The :class:`~lightning_pytorch.trainer.trainer.Trainer` will call this in e.g. pre-training
         routines like the :ref:`learning rate finder <advanced/training_tricks:Learning Rate Finder>`.
         to temporarily enable and disable the training progress bar.
 
@@ -221,7 +221,7 @@ def get_standard_metrics(trainer: "pl.Trainer") -> Dict[str, Union[int, str]]:
     """
     items_dict: Dict[str, Union[int, str]] = {}
     if trainer.loggers:
-        from lightning.pytorch.loggers.utilities import _version
+        from lightning_pytorch.loggers.utilities import _version
 
         if (version := _version(trainer.loggers)) not in ("", None):
             if isinstance(version, str):

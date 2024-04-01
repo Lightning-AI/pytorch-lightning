@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import lightning.pytorch._graveyard._torchmetrics
-import lightning.pytorch._graveyard.hpu
-import lightning.pytorch._graveyard.precision
-import lightning.pytorch._graveyard.tpu  # noqa: F401
+import lightning_pytorch._graveyard._torchmetrics
+import lightning_pytorch._graveyard.hpu
+import lightning_pytorch._graveyard.precision
+import lightning_pytorch._graveyard.tpu  # noqa: F401

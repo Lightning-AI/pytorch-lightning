@@ -20,9 +20,9 @@ from lightning.fabric.accelerators import _AcceleratorRegistry
 from lightning.fabric.accelerators.mps import MPSAccelerator as _MPSAccelerator
 from lightning.fabric.utilities.device_parser import _parse_gpu_ids
 from lightning.fabric.utilities.types import _DEVICE
-from lightning.pytorch.accelerators.accelerator import Accelerator
-from lightning.pytorch.accelerators.cpu import _PSUTIL_AVAILABLE
-from lightning.pytorch.utilities.exceptions import MisconfigurationException
+from lightning_pytorch.accelerators.accelerator import Accelerator
+from lightning_pytorch.accelerators.cpu import _PSUTIL_AVAILABLE
+from lightning_pytorch.utilities.exceptions import MisconfigurationException
 
 
 class MPSAccelerator(Accelerator):

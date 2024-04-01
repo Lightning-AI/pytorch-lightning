@@ -19,21 +19,21 @@ import torch
 import torch.distributed as dist
 from torch import Tensor
 
-import lightning.pytorch as pl
+import lightning_pytorch as pl
 from lightning.fabric.utilities.distributed import _distributed_is_initialized
 from lightning.fabric.utilities.imports import _TORCH_EQUAL_2_0
 from lightning.fabric.utilities.warnings import PossibleUserWarning
-from lightning.pytorch.accelerators.xla import XLAAccelerator
-from lightning.pytorch.callbacks.timer import Timer
-from lightning.pytorch.loops import _Loop
-from lightning.pytorch.loops.fetchers import _DataFetcher, _DataLoaderIterDataFetcher, _PrefetchDataFetcher
-from lightning.pytorch.loops.progress import _BaseProgress
-from lightning.pytorch.strategies import FSDPStrategy
-from lightning.pytorch.strategies.parallel import ParallelStrategy
-from lightning.pytorch.strategies.strategy import Strategy
-from lightning.pytorch.trainer.states import RunningStage
-from lightning.pytorch.utilities.rank_zero import rank_zero_warn
-from lightning.pytorch.utilities.signature_utils import is_param_in_hook_signature
+from lightning_pytorch.accelerators.xla import XLAAccelerator
+from lightning_pytorch.callbacks.timer import Timer
+from lightning_pytorch.loops import _Loop
+from lightning_pytorch.loops.fetchers import _DataFetcher, _DataLoaderIterDataFetcher, _PrefetchDataFetcher
+from lightning_pytorch.loops.progress import _BaseProgress
+from lightning_pytorch.strategies import FSDPStrategy
+from lightning_pytorch.strategies.parallel import ParallelStrategy
+from lightning_pytorch.strategies.strategy import Strategy
+from lightning_pytorch.trainer.states import RunningStage
+from lightning_pytorch.utilities.rank_zero import rank_zero_warn
+from lightning_pytorch.utilities.signature_utils import is_param_in_hook_signature
 
 
 def check_finite_loss(loss: Optional[Tensor]) -> None:
@@ -92,7 +92,7 @@ def _parse_loop_limits(
 
 @contextmanager
 def _block_parallel_sync_behavior(strategy: Strategy, block: bool = True) -> Generator[None, None, None]:
-    """Blocks synchronization in :class:`~lightning.pytorch.strategies.parallel.ParallelStrategy`. This is useful for
+    """Blocks synchronization in :class:`~lightning_pytorch.strategies.parallel.ParallelStrategy`. This is useful for
     example when accumulating gradients to reduce communication when it is not needed.
 
     Args:

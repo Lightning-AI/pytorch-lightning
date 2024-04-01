@@ -6,18 +6,18 @@ import pytest
 import torch
 from lightning.fabric.utilities.data import _replace_dunder_methods
 from lightning.fabric.utilities.warnings import PossibleUserWarning
-from lightning.pytorch import Trainer
-from lightning.pytorch.demos.boring_classes import RandomDataset, RandomIterableDataset
-from lightning.pytorch.overrides.distributed import _IndexBatchSamplerWrapper
-from lightning.pytorch.trainer.states import RunningStage
-from lightning.pytorch.utilities.data import (
+from lightning_pytorch import Trainer
+from lightning_pytorch.demos.boring_classes import RandomDataset, RandomIterableDataset
+from lightning_pytorch.overrides.distributed import _IndexBatchSamplerWrapper
+from lightning_pytorch.trainer.states import RunningStage
+from lightning_pytorch.utilities.data import (
     _get_dataloader_init_args_and_kwargs,
     _update_dataloader,
     extract_batch_size,
     has_len_all_ranks,
     warning_cache,
 )
-from lightning.pytorch.utilities.exceptions import MisconfigurationException
+from lightning_pytorch.utilities.exceptions import MisconfigurationException
 from lightning_utilities.test.warning import no_warning_call
 from torch import Tensor
 from torch.utils.data import BatchSampler, DataLoader, RandomSampler

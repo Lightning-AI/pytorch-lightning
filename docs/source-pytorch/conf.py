@@ -410,56 +410,56 @@ nitpick_ignore = [
     ("py:class", "lightning.fabric.utilities.throughput.Throughput"),
     ("py:func", "lightning.fabric.utilities.throughput.measure_flops"),
     ("py:class", "lightning.fabric.utilities.spike.SpikeDetection"),
-    ("py:meth", "lightning.pytorch.Callback.on_exception"),
-    ("py:class", "lightning.pytorch.LightningModule"),
-    ("py:meth", "lightning.pytorch.LightningModule.on_train_epoch_end"),
-    ("py:meth", "lightning.pytorch.LightningModule.on_validation_epoch_end"),
-    ("py:meth", "lightning.pytorch.LightningModule.save_hyperparameters"),
-    ("py:meth", "lightning.pytorch.LightningModule.test_step"),
-    ("py:meth", "lightning.pytorch.LightningModule.training_step"),
-    ("py:meth", "lightning.pytorch.LightningModule.validation_step"),
-    ("py:obj", "lightning.pytorch.accelerators.MPSAccelerator"),
-    ("py:meth", "lightning.pytorch.accelerators.accelerator.Accelerator.register_accelerators"),
-    ("py:paramref", "lightning.pytorch.callbacks.Checkpoint._sphinx_paramlinks_save_top_k"),
-    ("py:func", "lightning.pytorch.callbacks.RichProgressBar.configure_columns"),
-    ("py:meth", "lightning.pytorch.callbacks.callback.Callback.on_load_checkpoint"),
-    ("py:meth", "lightning.pytorch.callbacks.callback.Callback.on_save_checkpoint"),
-    ("py:class", "lightning.pytorch.callbacks.checkpoint.Checkpoint"),
-    ("py:meth", "lightning.pytorch.callbacks.progress.progress_bar.ProgressBar.get_metrics"),
-    ("py:class", "lightning.pytorch.callbacks.progress.rich_progress.RichProgressBarTheme"),
-    ("py:class", "lightning.pytorch.callbacks.progress.tqdm_progress.Tqdm"),
-    ("py:class", "lightning.pytorch.cli.ReduceLROnPlateau"),
-    ("py:meth", "lightning.pytorch.core.LightningDataModule.setup"),
-    ("py:meth", "lightning.pytorch.core.LightningModule.configure_model"),
-    ("py:meth", "lightning.pytorch.core.LightningModule.save_hyperparameters"),
-    ("py:meth", "lightning.pytorch.core.LightningModule.setup"),
-    ("py:meth", "lightning.pytorch.core.hooks.ModelHooks.on_after_batch_transfer"),
-    ("py:meth", "lightning.pytorch.core.hooks.ModelHooks.setup"),
-    ("py:meth", "lightning.pytorch.core.hooks.ModelHooks.transfer_batch_to_device"),
-    ("py:meth", "lightning.pytorch.core.mixins.hparams_mixin.HyperparametersMixin.save_hyperparameters"),
-    ("py:class", "lightning.pytorch.loggers.Logger"),
-    ("py:func", "lightning.pytorch.loggers.logger.rank_zero_experiment"),
-    ("py:class", "lightning.pytorch.plugins.environments.cluster_environment.ClusterEnvironment"),
-    ("py:class", "lightning.pytorch.plugins.environments.slurm_environment.SLURMEnvironment"),
-    ("py:class", "lightning.pytorch.plugins.io.wrapper._WrappingCheckpointIO"),
-    ("py:func", "lightning.pytorch.seed_everything"),
-    ("py:class", "lightning.pytorch.serve.servable_module.ServableModule"),
-    ("py:class", "lightning.pytorch.serve.servable_module_validator.ServableModuleValidator"),
-    ("py:mod", "lightning.pytorch.strategies"),
-    ("py:class", "lightning.pytorch.strategies.SingleXLAStrategy"),
-    ("py:meth", "lightning.pytorch.strategies.ddp.DDPStrategy.configure_ddp"),
-    ("py:meth", "lightning.pytorch.strategies.ddp.DDPStrategy.setup_distributed"),
-    ("py:meth", "lightning.pytorch.trainer.trainer.Trainer.lightning_module"),
-    ("py:class", "lightning.pytorch.tuner.lr_finder._LRFinder"),
-    ("py:class", "lightning.pytorch.utilities.CombinedLoader"),
-    ("py:obj", "lightning.pytorch.utilities.deepspeed.ds_checkpoint_dir"),
-    ("py:obj", "lightning.pytorch.utilities.memory.is_cuda_out_of_memory"),
-    ("py:obj", "lightning.pytorch.utilities.memory.is_cudnn_snafu"),
-    ("py:obj", "lightning.pytorch.utilities.memory.is_oom_error"),
-    ("py:obj", "lightning.pytorch.utilities.memory.is_out_of_cpu_memory"),
-    ("py:func", "lightning.pytorch.utilities.rank_zero.rank_zero_only"),
-    ("py:class", "lightning.pytorch.utilities.types.LRSchedulerConfig"),
-    ("py:class", "lightning.pytorch.utilities.types.OptimizerLRSchedulerConfig"),
+    ("py:meth", "lightning_pytorch.Callback.on_exception"),
+    ("py:class", "lightning_pytorch.LightningModule"),
+    ("py:meth", "lightning_pytorch.LightningModule.on_train_epoch_end"),
+    ("py:meth", "lightning_pytorch.LightningModule.on_validation_epoch_end"),
+    ("py:meth", "lightning_pytorch.LightningModule.save_hyperparameters"),
+    ("py:meth", "lightning_pytorch.LightningModule.test_step"),
+    ("py:meth", "lightning_pytorch.LightningModule.training_step"),
+    ("py:meth", "lightning_pytorch.LightningModule.validation_step"),
+    ("py:obj", "lightning_pytorch.accelerators.MPSAccelerator"),
+    ("py:meth", "lightning_pytorch.accelerators.accelerator.Accelerator.register_accelerators"),
+    ("py:paramref", "lightning_pytorch.callbacks.Checkpoint._sphinx_paramlinks_save_top_k"),
+    ("py:func", "lightning_pytorch.callbacks.RichProgressBar.configure_columns"),
+    ("py:meth", "lightning_pytorch.callbacks.callback.Callback.on_load_checkpoint"),
+    ("py:meth", "lightning_pytorch.callbacks.callback.Callback.on_save_checkpoint"),
+    ("py:class", "lightning_pytorch.callbacks.checkpoint.Checkpoint"),
+    ("py:meth", "lightning_pytorch.callbacks.progress.progress_bar.ProgressBar.get_metrics"),
+    ("py:class", "lightning_pytorch.callbacks.progress.rich_progress.RichProgressBarTheme"),
+    ("py:class", "lightning_pytorch.callbacks.progress.tqdm_progress.Tqdm"),
+    ("py:class", "lightning_pytorch.cli.ReduceLROnPlateau"),
+    ("py:meth", "lightning_pytorch.core.LightningDataModule.setup"),
+    ("py:meth", "lightning_pytorch.core.LightningModule.configure_model"),
+    ("py:meth", "lightning_pytorch.core.LightningModule.save_hyperparameters"),
+    ("py:meth", "lightning_pytorch.core.LightningModule.setup"),
+    ("py:meth", "lightning_pytorch.core.hooks.ModelHooks.on_after_batch_transfer"),
+    ("py:meth", "lightning_pytorch.core.hooks.ModelHooks.setup"),
+    ("py:meth", "lightning_pytorch.core.hooks.ModelHooks.transfer_batch_to_device"),
+    ("py:meth", "lightning_pytorch.core.mixins.hparams_mixin.HyperparametersMixin.save_hyperparameters"),
+    ("py:class", "lightning_pytorch.loggers.Logger"),
+    ("py:func", "lightning_pytorch.loggers.logger.rank_zero_experiment"),
+    ("py:class", "lightning_pytorch.plugins.environments.cluster_environment.ClusterEnvironment"),
+    ("py:class", "lightning_pytorch.plugins.environments.slurm_environment.SLURMEnvironment"),
+    ("py:class", "lightning_pytorch.plugins.io.wrapper._WrappingCheckpointIO"),
+    ("py:func", "lightning_pytorch.seed_everything"),
+    ("py:class", "lightning_pytorch.serve.servable_module.ServableModule"),
+    ("py:class", "lightning_pytorch.serve.servable_module_validator.ServableModuleValidator"),
+    ("py:mod", "lightning_pytorch.strategies"),
+    ("py:class", "lightning_pytorch.strategies.SingleXLAStrategy"),
+    ("py:meth", "lightning_pytorch.strategies.ddp.DDPStrategy.configure_ddp"),
+    ("py:meth", "lightning_pytorch.strategies.ddp.DDPStrategy.setup_distributed"),
+    ("py:meth", "lightning_pytorch.trainer.trainer.Trainer.lightning_module"),
+    ("py:class", "lightning_pytorch.tuner.lr_finder._LRFinder"),
+    ("py:class", "lightning_pytorch.utilities.CombinedLoader"),
+    ("py:obj", "lightning_pytorch.utilities.deepspeed.ds_checkpoint_dir"),
+    ("py:obj", "lightning_pytorch.utilities.memory.is_cuda_out_of_memory"),
+    ("py:obj", "lightning_pytorch.utilities.memory.is_cudnn_snafu"),
+    ("py:obj", "lightning_pytorch.utilities.memory.is_oom_error"),
+    ("py:obj", "lightning_pytorch.utilities.memory.is_out_of_cpu_memory"),
+    ("py:func", "lightning_pytorch.utilities.rank_zero.rank_zero_only"),
+    ("py:class", "lightning_pytorch.utilities.types.LRSchedulerConfig"),
+    ("py:class", "lightning_pytorch.utilities.types.OptimizerLRSchedulerConfig"),
     ("py:class", "lightning_habana.pytorch.plugins.precision.HPUPrecisionPlugin"),
     ("py:class", "lightning_habana.pytorch.strategies.HPUParallelStrategy"),
     ("py:class", "lightning_habana.pytorch.strategies.SingleHPUStrategy"),
@@ -475,7 +475,7 @@ nitpick_ignore = [
     ("py:meth", "optimizer_step"),
     ("py:class", "out_dict"),
     ("py:meth", "prepare_data"),
-    ("py:class", "lightning.pytorch.callbacks.device_stats_monitor.DeviceStatsMonitor"),
+    ("py:class", "lightning_pytorch.callbacks.device_stats_monitor.DeviceStatsMonitor"),
     ("py:meth", "setup"),
     ("py:meth", "test_step"),
     ("py:meth", "toggle_optimizer"),
@@ -604,18 +604,18 @@ import sys
 from typing import Optional
 
 import torch
-import lightning.pytorch as pl
+import lightning_pytorch as pl
 from torch import nn
 from torch.utils.data import IterableDataset, DataLoader, Dataset
-from lightning.pytorch import LightningDataModule, LightningModule, Trainer, seed_everything
-from lightning.pytorch.callbacks import Callback
-from lightning.pytorch.cli import _JSONARGPARSE_SIGNATURES_AVAILABLE as _JSONARGPARSE_AVAILABLE
-from lightning.pytorch.utilities.imports import _TORCHVISION_AVAILABLE
+from lightning_pytorch import LightningDataModule, LightningModule, Trainer, seed_everything
+from lightning_pytorch.callbacks import Callback
+from lightning_pytorch.cli import _JSONARGPARSE_SIGNATURES_AVAILABLE as _JSONARGPARSE_AVAILABLE
+from lightning_pytorch.utilities.imports import _TORCHVISION_AVAILABLE
 from lightning.fabric.loggers.tensorboard import _TENSORBOARD_AVAILABLE, _TENSORBOARDX_AVAILABLE
-from lightning.pytorch.loggers.neptune import _NEPTUNE_AVAILABLE
-from lightning.pytorch.loggers.comet import _COMET_AVAILABLE
-from lightning.pytorch.loggers.mlflow import _MLFLOW_AVAILABLE
-from lightning.pytorch.loggers.wandb import _WANDB_AVAILABLE
+from lightning_pytorch.loggers.neptune import _NEPTUNE_AVAILABLE
+from lightning_pytorch.loggers.comet import _COMET_AVAILABLE
+from lightning_pytorch.loggers.mlflow import _MLFLOW_AVAILABLE
+from lightning_pytorch.loggers.wandb import _WANDB_AVAILABLE
 """
 coverage_skip_undoc_in_source = True
 

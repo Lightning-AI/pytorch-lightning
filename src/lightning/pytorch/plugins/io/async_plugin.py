@@ -18,7 +18,7 @@ from typing import Any, Optional
 from typing_extensions import override
 
 from lightning.fabric.plugins import CheckpointIO
-from lightning.pytorch.plugins.io.wrapper import _WrappingCheckpointIO
+from lightning_pytorch.plugins.io.wrapper import _WrappingCheckpointIO
 
 
 class AsyncCheckpointIO(_WrappingCheckpointIO):

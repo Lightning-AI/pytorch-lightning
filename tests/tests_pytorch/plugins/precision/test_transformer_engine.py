@@ -18,9 +18,9 @@ from unittest.mock import ANY, Mock
 import lightning.fabric
 import pytest
 import torch
-from lightning.pytorch import LightningModule, Trainer
-from lightning.pytorch.plugins import TransformerEnginePrecision
-from lightning.pytorch.trainer.connectors.accelerator_connector import _AcceleratorConnector
+from lightning_pytorch import LightningModule, Trainer
+from lightning_pytorch.plugins import TransformerEnginePrecision
+from lightning_pytorch.trainer.connectors.accelerator_connector import _AcceleratorConnector
 
 
 def test_transformer_engine_precision_plugin(monkeypatch):

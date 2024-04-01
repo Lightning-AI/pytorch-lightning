@@ -21,10 +21,10 @@ from os import path
 from typing import Optional
 
 import torch
-from lightning.pytorch import LightningDataModule, LightningModule, cli_lightning_logo
-from lightning.pytorch.cli import LightningCLI
-from lightning.pytorch.demos.mnist_datamodule import MNIST
-from lightning.pytorch.utilities.imports import _TORCHVISION_AVAILABLE
+from lightning_pytorch import LightningDataModule, LightningModule, cli_lightning_logo
+from lightning_pytorch.cli import LightningCLI
+from lightning_pytorch.demos.mnist_datamodule import MNIST
+from lightning_pytorch.utilities.imports import _TORCHVISION_AVAILABLE
 from torch.nn import functional as F
 from torch.utils.data import DataLoader, random_split
 

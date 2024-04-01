@@ -23,7 +23,7 @@ Here is a minimal example of manual optimization.
 
 .. testcode:: python
 
-    from lightning.pytorch import LightningModule
+    from lightning_pytorch import LightningModule
 
 
     class MyModel(LightningModule):
@@ -47,8 +47,8 @@ Here is a minimal example of manual optimization.
 Access your Own Optimizer
 =========================
 
-The provided ``optimizer`` is a :class:`~lightning.pytorch.core.optimizer.LightningOptimizer` object wrapping your own optimizer
-configured in your :meth:`~lightning.pytorch.core.LightningModule.configure_optimizers`. You can access your own optimizer
+The provided ``optimizer`` is a :class:`~lightning_pytorch.core.optimizer.LightningOptimizer` object wrapping your own optimizer
+configured in your :meth:`~lightning_pytorch.core.LightningModule.configure_optimizers`. You can access your own optimizer
 with ``optimizer.optimizer``. However, if you use your own optimizer to perform a step, Lightning won't be able to
 support accelerators, precision and profiling for you.
 
@@ -104,7 +104,7 @@ To perform gradient clipping with one optimizer with manual optimization, you ca
 
 .. testcode:: python
 
-    from lightning.pytorch import LightningModule
+    from lightning_pytorch import LightningModule
 
 
     class SimpleModel(LightningModule):
@@ -139,7 +139,7 @@ Here is an example training a simple GAN with multiple optimizers using manual o
 
     import torch
     from torch import Tensor
-    from lightning.pytorch import LightningModule
+    from lightning_pytorch import LightningModule
 
 
     class SimpleGAN(LightningModule):
@@ -210,16 +210,16 @@ Learning Rate Scheduling
 
 Every optimizer you use can be paired with any
 `Learning Rate Scheduler <https://pytorch.org/docs/stable/optim.html#how-to-adjust-learning-rate>`_. Please see the
-documentation of :meth:`~lightning.pytorch.core.LightningModule.configure_optimizers` for all the available options
+documentation of :meth:`~lightning_pytorch.core.LightningModule.configure_optimizers` for all the available options
 
 You can call ``lr_scheduler.step()`` at arbitrary intervals.
-Use ``self.lr_schedulers()`` in  your :class:`~lightning.pytorch.core.LightningModule` to access any learning rate schedulers
-defined in your :meth:`~lightning.pytorch.core.LightningModule.configure_optimizers`.
+Use ``self.lr_schedulers()`` in  your :class:`~lightning_pytorch.core.LightningModule` to access any learning rate schedulers
+defined in your :meth:`~lightning_pytorch.core.LightningModule.configure_optimizers`.
 
 .. warning::
-   * ``lr_scheduler.step()`` can be called at arbitrary intervals by the user in case of manual optimization, or by Lightning if ``"interval"`` is defined in :meth:`~lightning.pytorch.core.LightningModule.configure_optimizers` in case of automatic optimization.
+   * ``lr_scheduler.step()`` can be called at arbitrary intervals by the user in case of manual optimization, or by Lightning if ``"interval"`` is defined in :meth:`~lightning_pytorch.core.LightningModule.configure_optimizers` in case of automatic optimization.
    * Note that the ``lr_scheduler_config`` keys, such as ``"frequency"`` and ``"interval"``, will be ignored even if they are provided in
-     your :meth:`~lightning.pytorch.core.LightningModule.configure_optimizers` during manual optimization.
+     your :meth:`~lightning_pytorch.core.LightningModule.configure_optimizers` during manual optimization.
 
 Here is an example calling ``lr_scheduler.step()`` every step.
 

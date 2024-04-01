@@ -14,9 +14,9 @@
 
 import torch
 import torch.nn.functional as F
-from lightning.pytorch.core.module import LightningModule
-from lightning.pytorch.utilities.imports import _TORCHVISION_AVAILABLE
-from lightning.pytorch.utilities.model_helpers import get_torchvision_model
+from lightning_pytorch.core.module import LightningModule
+from lightning_pytorch.utilities.imports import _TORCHVISION_AVAILABLE
+from lightning_pytorch.utilities.model_helpers import get_torchvision_model
 from tests_pytorch import _PATH_DATASETS
 from torch.utils.data import DataLoader
 

@@ -31,9 +31,9 @@ from lightning.fabric.loggers.csv_logs import _ExperimentWriter as _FabricExperi
 from lightning.fabric.loggers.logger import rank_zero_experiment
 from lightning.fabric.utilities.logger import _convert_params
 from lightning.fabric.utilities.types import _PATH
-from lightning.pytorch.core.saving import save_hparams_to_yaml
-from lightning.pytorch.loggers.logger import Logger
-from lightning.pytorch.utilities.rank_zero import rank_zero_only
+from lightning_pytorch.core.saving import save_hparams_to_yaml
+from lightning_pytorch.loggers.logger import Logger
+from lightning_pytorch.utilities.rank_zero import rank_zero_only
 
 log = logging.getLogger(__name__)
 
@@ -75,8 +75,8 @@ class CSVLogger(Logger, FabricCSVLogger):
     Logs are saved to ``os.path.join(save_dir, name, version)``.
 
     Example:
-        >>> from lightning.pytorch import Trainer
-        >>> from lightning.pytorch.loggers import CSVLogger
+        >>> from lightning_pytorch import Trainer
+        >>> from lightning_pytorch.loggers import CSVLogger
         >>> logger = CSVLogger("logs", name="my_exp_name")
         >>> trainer = Trainer(logger=logger)
 
@@ -156,7 +156,7 @@ class CSVLogger(Logger, FabricCSVLogger):
     @rank_zero_experiment
     def experiment(self) -> _FabricExperimentWriter:
         r"""Actual _ExperimentWriter object. To use _ExperimentWriter features in your
-        :class:`~lightning.pytorch.core.LightningModule` do the following.
+        :class:`~lightning_pytorch.core.LightningModule` do the following.
 
         Example::
 

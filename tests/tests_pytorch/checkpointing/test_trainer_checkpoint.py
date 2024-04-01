@@ -15,13 +15,13 @@ import os
 from unittest import mock
 from unittest.mock import ANY, Mock
 
-import lightning.pytorch as pl
+import lightning_pytorch as pl
 import pytest
 import torch
 from lightning.fabric.plugins import TorchCheckpointIO, XLACheckpointIO
-from lightning.pytorch import Trainer
-from lightning.pytorch.callbacks import ModelCheckpoint
-from lightning.pytorch.demos.boring_classes import BoringModel
+from lightning_pytorch import Trainer
+from lightning_pytorch.callbacks import ModelCheckpoint
+from lightning_pytorch.demos.boring_classes import BoringModel
 
 
 def test_finetuning_with_ckpt_path(tmp_path):

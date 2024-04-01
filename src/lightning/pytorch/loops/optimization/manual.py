@@ -19,21 +19,21 @@ from typing import Any, Dict
 from torch import Tensor
 from typing_extensions import override
 
-import lightning.pytorch as pl
-from lightning.pytorch.core.optimizer import do_nothing_closure
-from lightning.pytorch.loops import _Loop
-from lightning.pytorch.loops.optimization.closure import OutputResult
-from lightning.pytorch.loops.progress import _Progress, _ReadyCompletedTracker
-from lightning.pytorch.trainer import call
-from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning.pytorch.utilities.types import STEP_OUTPUT
+import lightning_pytorch as pl
+from lightning_pytorch.core.optimizer import do_nothing_closure
+from lightning_pytorch.loops import _Loop
+from lightning_pytorch.loops.optimization.closure import OutputResult
+from lightning_pytorch.loops.progress import _Progress, _ReadyCompletedTracker
+from lightning_pytorch.trainer import call
+from lightning_pytorch.utilities.exceptions import MisconfigurationException
+from lightning_pytorch.utilities.types import STEP_OUTPUT
 
 
 @dataclass
 class ManualResult(OutputResult):
     """A container to hold the result returned by ``_ManualOptimization``.
 
-    It is created from the output of :meth:`~lightning.pytorch.core.LightningModule.training_step`.
+    It is created from the output of :meth:`~lightning_pytorch.core.LightningModule.training_step`.
 
     Attributes:
         extra: Anything returned by the ``training_step``.
@@ -70,11 +70,11 @@ _OUTPUTS_TYPE = Dict[str, Any]
 
 class _ManualOptimization(_Loop):
     """A special loop implementing what is known in Lightning as Manual Optimization where the optimization happens
-    entirely in the :meth:`~lightning.pytorch.core.LightningModule.training_step` and therefore the user is responsible
+    entirely in the :meth:`~lightning_pytorch.core.LightningModule.training_step` and therefore the user is responsible
     for back-propagating gradients and making calls to the optimizers.
 
     This loop is a trivial case because it performs only a single iteration (calling directly into the module's
-    :meth:`~lightning.pytorch.core.LightningModule.training_step`) and passing through the output(s).
+    :meth:`~lightning_pytorch.core.LightningModule.training_step`) and passing through the output(s).
 
     """
 

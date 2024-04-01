@@ -68,7 +68,7 @@ Load the pretrained model with PyTorch Lightning:
 .. code-block:: python
 
     import torch
-    from lightning.pytorch import LightningModule
+    from lightning_pytorch import LightningModule
     from transformers import AutoConfig, AutoModelForSequenceClassification, AutoTokenizer
 
 

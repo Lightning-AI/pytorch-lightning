@@ -24,17 +24,17 @@ from unittest import mock
 from unittest.mock import Mock, call, patch
 
 import cloudpickle
-import lightning.pytorch as pl
+import lightning_pytorch as pl
 import pytest
 import torch
 import yaml
 from lightning.fabric.utilities.cloud_io import _load as pl_load
-from lightning.pytorch import Trainer, seed_everything
-from lightning.pytorch.callbacks import ModelCheckpoint
-from lightning.pytorch.demos.boring_classes import BoringModel
-from lightning.pytorch.loggers import CSVLogger, TensorBoardLogger
-from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning.pytorch.utilities.imports import _OMEGACONF_AVAILABLE
+from lightning_pytorch import Trainer, seed_everything
+from lightning_pytorch.callbacks import ModelCheckpoint
+from lightning_pytorch.demos.boring_classes import BoringModel
+from lightning_pytorch.loggers import CSVLogger, TensorBoardLogger
+from lightning_pytorch.utilities.exceptions import MisconfigurationException
+from lightning_pytorch.utilities.imports import _OMEGACONF_AVAILABLE
 from torch import optim
 
 from tests_pytorch.helpers.runif import RunIf
@@ -574,7 +574,7 @@ def test_model_checkpoint_link_checkpoint(tmp_path):
     file = tmp_path / "win_file"
     file.touch()
     link = tmp_path / "win_link"
-    with mock.patch("lightning.pytorch.callbacks.model_checkpoint.os.symlink", Mock(side_effect=OSError)):
+    with mock.patch("lightning_pytorch.callbacks.model_checkpoint.os.symlink", Mock(side_effect=OSError)):
         ModelCheckpoint._link_checkpoint(trainer, filepath=str(file), linkpath=str(link))
     assert not os.path.islink(link)
     assert os.path.isfile(link)  # fall back to copying instead of linking
@@ -761,7 +761,7 @@ def test_ckpt_every_n_train_steps(tmp_path):
     assert set(os.listdir(tmp_path)) == set(expected)
 
 
-@mock.patch("lightning.pytorch.callbacks.model_checkpoint.time")
+@mock.patch("lightning_pytorch.callbacks.model_checkpoint.time")
 def test_model_checkpoint_train_time_interval(mock_datetime, tmp_path) -> None:
     """Tests that the checkpoints are saved at the specified time interval."""
     seconds_per_batch = 7

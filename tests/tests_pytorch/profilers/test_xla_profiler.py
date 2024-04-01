@@ -16,9 +16,9 @@ from multiprocessing import Event, Process
 from unittest import mock
 
 import pytest
-from lightning.pytorch import Trainer
-from lightning.pytorch.demos.boring_classes import BoringModel
-from lightning.pytorch.profilers import XLAProfiler
+from lightning_pytorch import Trainer
+from lightning_pytorch.demos.boring_classes import BoringModel
+from lightning_pytorch.profilers import XLAProfiler
 
 from tests_pytorch.helpers.runif import RunIf
 

@@ -56,7 +56,7 @@ How to setup the debug mode for Training on TPUs?
 
 .. code-block:: python
 
-    import lightning as L
+    import lightning_pytorch as LP
 
     my_model = MyLightningModule()
     trainer = L.Trainer(accelerator="tpu", devices=8, strategy="xla_debug")

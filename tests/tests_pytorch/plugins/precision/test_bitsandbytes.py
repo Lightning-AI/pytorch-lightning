@@ -19,8 +19,8 @@ import pytest
 import torch
 import torch.distributed
 from lightning.fabric.plugins.precision.bitsandbytes import _BITSANDBYTES_AVAILABLE
-from lightning.pytorch import LightningModule, Trainer
-from lightning.pytorch.plugins.precision.bitsandbytes import BitsandbytesPrecision
+from lightning_pytorch import LightningModule, Trainer
+from lightning_pytorch.plugins.precision.bitsandbytes import BitsandbytesPrecision
 
 
 @pytest.mark.skipif(_BITSANDBYTES_AVAILABLE, reason="bitsandbytes needs to be unavailable")

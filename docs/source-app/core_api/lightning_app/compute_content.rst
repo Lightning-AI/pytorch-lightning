@@ -9,7 +9,7 @@ a :class:`~lightning.app.utilities.packaging.cloud_compute.CloudCompute` to your
 
 .. code-block:: python
 
-    import lightning as L
+    import lightning_pytorch as LP
 
     # Run on a small, shared CPU machine. This is the default for every LightningFlow.
     app = L.LightningApp(L.Flow(), flow_cloud_compute=L.CloudCompute())

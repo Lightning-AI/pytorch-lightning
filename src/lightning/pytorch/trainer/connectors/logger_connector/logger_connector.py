@@ -16,14 +16,14 @@ from typing import Any, Iterable, Optional, Union
 from lightning_utilities.core.apply_func import apply_to_collection
 from torch import Tensor
 
-import lightning.pytorch as pl
+import lightning_pytorch as pl
 from lightning.fabric.loggers.tensorboard import _TENSORBOARD_AVAILABLE, _TENSORBOARDX_AVAILABLE
 from lightning.fabric.plugins.environments import SLURMEnvironment
 from lightning.fabric.utilities import move_data_to_device
 from lightning.fabric.utilities.apply_func import convert_tensors_to_scalars
-from lightning.pytorch.loggers import CSVLogger, Logger, TensorBoardLogger
-from lightning.pytorch.trainer.connectors.logger_connector.result import _METRICS, _OUT_DICT, _PBAR_DICT
-from lightning.pytorch.utilities.rank_zero import WarningCache
+from lightning_pytorch.loggers import CSVLogger, Logger, TensorBoardLogger
+from lightning_pytorch.trainer.connectors.logger_connector.result import _METRICS, _OUT_DICT, _PBAR_DICT
+from lightning_pytorch.utilities.rank_zero import WarningCache
 
 warning_cache = WarningCache()
 
@@ -73,7 +73,7 @@ class _LoggerConnector:
                 logger_ = TensorBoardLogger(save_dir=self.trainer.default_root_dir, version=SLURMEnvironment.job_id())
             else:
                 warning_cache.warn(
-                    "Starting from v1.9.0, `tensorboardX` has been removed as a dependency of the `lightning.pytorch`"
+                    "Starting from v1.9.0, `tensorboardX` has been removed as a dependency of the `lightning_pytorch`"
                     " package, due to potential conflicts with other packages in the ML ecosystem. For this reason,"
                     " `logger=True` will use `CSVLogger` as the default logger, unless the `tensorboard`"
                     " or `tensorboardX` packages are found."

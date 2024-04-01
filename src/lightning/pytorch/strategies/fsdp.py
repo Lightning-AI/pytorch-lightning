@@ -25,7 +25,7 @@ from torch.nn import Module
 from torch.optim import Optimizer
 from typing_extensions import override
 
-import lightning.pytorch as pl
+import lightning_pytorch as pl
 from lightning.fabric.plugins import CheckpointIO, ClusterEnvironment
 from lightning.fabric.plugins.collectives.torch_collective import default_pg_timeout
 from lightning.fabric.strategies import _StrategyRegistry
@@ -63,15 +63,15 @@ from lightning.fabric.utilities.load import _lazy_load, _materialize_tensors
 from lightning.fabric.utilities.optimizer import _optimizers_to_device
 from lightning.fabric.utilities.seed import reset_seed
 from lightning.fabric.utilities.types import _PATH, ReduceOp
-from lightning.pytorch.core.optimizer import LightningOptimizer
-from lightning.pytorch.plugins.precision import Precision
-from lightning.pytorch.plugins.precision.fsdp import FSDPPrecision
-from lightning.pytorch.strategies.launchers.subprocess_script import _SubprocessScriptLauncher
-from lightning.pytorch.strategies.parallel import ParallelStrategy
-from lightning.pytorch.strategies.strategy import TBroadcast
-from lightning.pytorch.trainer.states import TrainerFn
-from lightning.pytorch.utilities.model_helpers import is_overridden
-from lightning.pytorch.utilities.rank_zero import rank_zero_info, rank_zero_only, rank_zero_warn
+from lightning_pytorch.core.optimizer import LightningOptimizer
+from lightning_pytorch.plugins.precision import Precision
+from lightning_pytorch.plugins.precision.fsdp import FSDPPrecision
+from lightning_pytorch.strategies.launchers.subprocess_script import _SubprocessScriptLauncher
+from lightning_pytorch.strategies.parallel import ParallelStrategy
+from lightning_pytorch.strategies.strategy import TBroadcast
+from lightning_pytorch.trainer.states import TrainerFn
+from lightning_pytorch.utilities.model_helpers import is_overridden
+from lightning_pytorch.utilities.rank_zero import rank_zero_info, rank_zero_only, rank_zero_warn
 
 if TYPE_CHECKING:
     from torch.distributed.fsdp.fully_sharded_data_parallel import CPUOffload, MixedPrecision, ShardingStrategy

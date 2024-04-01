@@ -20,10 +20,10 @@ import pytest
 import torch
 from lightning.fabric.plugins.environments import TorchElasticEnvironment
 from lightning.fabric.utilities.device_parser import _parse_gpu_ids
-from lightning.pytorch import Trainer, seed_everything
-from lightning.pytorch.accelerators import CPUAccelerator, CUDAAccelerator
-from lightning.pytorch.demos.boring_classes import BoringModel
-from lightning.pytorch.utilities.exceptions import MisconfigurationException
+from lightning_pytorch import Trainer, seed_everything
+from lightning_pytorch.accelerators import CPUAccelerator, CUDAAccelerator
+from lightning_pytorch.demos.boring_classes import BoringModel
+from lightning_pytorch.utilities.exceptions import MisconfigurationException
 
 import tests_pytorch.helpers.pipelines as tpipes
 from tests_pytorch.helpers.datamodules import ClassifDataModule

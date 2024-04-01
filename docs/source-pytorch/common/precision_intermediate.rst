@@ -183,11 +183,11 @@ If your model weights can fit on a single device with 16 bit precision, it's rec
 
 Quantizing the model will dramatically reduce the weight's memory requirements but  may have a negative impact on the model's performance or runtime.
 
-The :class:`~lightning.pytorch.plugins.precision.bitsandbytes.BitsandbytesPrecision` automatically replaces the :class:`torch.nn.Linear` layers in your model with their BNB alternatives.
+The :class:`~lightning_pytorch.plugins.precision.bitsandbytes.BitsandbytesPrecision` automatically replaces the :class:`torch.nn.Linear` layers in your model with their BNB alternatives.
 
 .. code-block:: python
 
-    from lightning.pytorch.plugins import BitsandbytesPrecision
+    from lightning_pytorch.plugins import BitsandbytesPrecision
 
     # this will pick out the compute dtype automatically, by default `bfloat16`
     precision = BitsandbytesPrecision(mode="nf4-dq")

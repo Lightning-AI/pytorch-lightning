@@ -19,11 +19,11 @@ import pytest
 import torch
 from lightning.fabric import Fabric
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
-from lightning.pytorch import LightningModule, Trainer
-from lightning.pytorch.core.module import _TrainerFabricShim
-from lightning.pytorch.demos.boring_classes import BoringModel
-from lightning.pytorch.loggers import TensorBoardLogger
-from lightning.pytorch.utilities.exceptions import MisconfigurationException
+from lightning_pytorch import LightningModule, Trainer
+from lightning_pytorch.core.module import _TrainerFabricShim
+from lightning_pytorch.demos.boring_classes import BoringModel
+from lightning_pytorch.loggers import TensorBoardLogger
+from lightning_pytorch.utilities.exceptions import MisconfigurationException
 from torch import nn
 from torch.optim import SGD, Adam
 
@@ -562,7 +562,7 @@ def test_fabric_log_dict():
 
 @pytest.mark.parametrize("algo", ["value", "norm"])
 def test_grad_clipping_lm_fabric(algo):
-    from lightning.pytorch.utilities import GradClipAlgorithmType
+    from lightning_pytorch.utilities import GradClipAlgorithmType
 
     class DummyLM(LightningModule):
         def __init__(self):

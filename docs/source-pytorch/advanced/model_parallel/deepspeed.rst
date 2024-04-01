@@ -52,7 +52,7 @@ It is recommended to skip Stage 1 and use Stage 2, which comes with larger memor
 
 .. code-block:: python
 
-    from lightning.pytorch import Trainer
+    from lightning_pytorch import Trainer
 
     model = MyModel()
     trainer = Trainer(accelerator="gpu", devices=4, strategy="deepspeed_stage_1", precision=16)
@@ -69,7 +69,7 @@ As a result, benefits can also be seen on a single GPU. Do note that the default
 
 .. code-block:: python
 
-    from lightning.pytorch import Trainer
+    from lightning_pytorch import Trainer
 
     model = MyModel()
     trainer = Trainer(accelerator="gpu", devices=4, strategy="deepspeed_stage_2", precision=16)
@@ -89,7 +89,7 @@ Below we show an example of running `ZeRO-Offload <https://www.deepspeed.ai/tuto
 
 .. code-block:: python
 
-    from lightning.pytorch import Trainer
+    from lightning_pytorch import Trainer
 
     model = MyModel()
     trainer = Trainer(accelerator="gpu", devices=4, strategy="deepspeed_stage_2_offload", precision=16)
@@ -107,8 +107,8 @@ You can also modify the ZeRO-Offload parameters via the strategy as below.
 
 .. code-block:: python
 
-    from lightning.pytorch import Trainer
-    from lightning.pytorch.strategies import DeepSpeedStrategy
+    from lightning_pytorch import Trainer
+    from lightning_pytorch.strategies import DeepSpeedStrategy
 
     model = MyModel()
     trainer = Trainer(
@@ -132,7 +132,7 @@ For even more speed benefit, DeepSpeed offers an optimized CPU version of ADAM c
 
 .. code-block:: python
 
-    from lightning.pytorch import LightningModule, Trainer
+    from lightning_pytorch import LightningModule, Trainer
     from deepspeed.ops.adam import DeepSpeedCPUAdam
 
 
@@ -175,7 +175,7 @@ Also please have a look at our :ref:`deepspeed-zero-stage-3-tips` which contains
 
 .. code-block:: python
 
-    from lightning.pytorch import Trainer
+    from lightning_pytorch import Trainer
     from deepspeed.ops.adam import FusedAdam
 
 
@@ -198,7 +198,7 @@ You can also use the Lightning Trainer to run predict or evaluate with DeepSpeed
 
 .. code-block:: python
 
-    from lightning.pytorch import Trainer
+    from lightning_pytorch import Trainer
 
 
     class MyModel(LightningModule):
@@ -223,7 +223,7 @@ This reduces the time taken to initialize very large models, as well as ensure w
 .. code-block:: python
 
     import torch.nn as nn
-    from lightning.pytorch import Trainer
+    from lightning_pytorch import Trainer
     from deepspeed.ops.adam import FusedAdam
 
 
@@ -263,8 +263,8 @@ DeepSpeed ZeRO Stage 3 Offloads optimizer state, gradients to the host CPU to re
 
 .. code-block:: python
 
-    from lightning.pytorch import Trainer
-    from lightning.pytorch.strategies import DeepSpeedStrategy
+    from lightning_pytorch import Trainer
+    from lightning_pytorch.strategies import DeepSpeedStrategy
 
     # Enable CPU Offloading
     model = MyModel()
@@ -293,8 +293,8 @@ Additionally, DeepSpeed supports offloading to NVMe drives for even larger model
 
 .. code-block:: python
 
-    from lightning.pytorch import Trainer
-    from lightning.pytorch.strategies import DeepSpeedStrategy
+    from lightning_pytorch import Trainer
+    from lightning_pytorch.strategies import DeepSpeedStrategy
 
     # Enable CPU Offloading
     model = MyModel()
@@ -339,7 +339,7 @@ This saves memory when training larger models, however requires using a checkpoi
 
 .. code-block:: python
 
-    from lightning.pytorch import Trainer
+    from lightning_pytorch import Trainer
     import deepspeed
 
 
@@ -361,8 +361,8 @@ This saves memory when training larger models, however requires using a checkpoi
 
 .. code-block:: python
 
-    from lightning.pytorch import Trainer
-    from lightning.pytorch.strategies import DeepSpeedStrategy
+    from lightning_pytorch import Trainer
+    from lightning_pytorch.strategies import DeepSpeedStrategy
     import deepspeed
 
 
@@ -418,7 +418,7 @@ After training using ZeRO Stage 3, you'll notice that your checkpoints are a dir
 
 .. code-block:: python
 
-    from lightning.pytorch.utilities.deepspeed import convert_zero_checkpoint_to_fp32_state_dict
+    from lightning_pytorch.utilities.deepspeed import convert_zero_checkpoint_to_fp32_state_dict
 
     # lightning deepspeed has saved a directory instead of a file
     save_path = "lightning_logs/version_0/checkpoints/epoch=0-step=0.ckpt/"
@@ -441,8 +441,8 @@ In some cases you may want to define your own DeepSpeed Config, to access all pa
 
 .. code-block:: python
 
-    from lightning.pytorch import Trainer
-    from lightning.pytorch.strategies import DeepSpeedStrategy
+    from lightning_pytorch import Trainer
+    from lightning_pytorch.strategies import DeepSpeedStrategy
 
     deepspeed_config = {
         "zero_allow_untested_optimizer": True,
@@ -484,8 +484,8 @@ We support taking the config as a json formatted file:
 
 .. code-block:: python
 
-    from lightning.pytorch import Trainer
-    from lightning.pytorch.strategies import DeepSpeedStrategy
+    from lightning_pytorch import Trainer
+    from lightning_pytorch.strategies import DeepSpeedStrategy
 
     model = MyModel()
     trainer = Trainer(

@@ -7,8 +7,8 @@ import torch
 @pytest.mark.parametrize(
     ("import_path", "name"),
     [
-        ("lightning.pytorch.strategies", "SingleTPUStrategy"),
-        ("lightning.pytorch.strategies.single_tpu", "SingleTPUStrategy"),
+        ("lightning_pytorch.strategies", "SingleTPUStrategy"),
+        ("lightning_pytorch.strategies.single_tpu", "SingleTPUStrategy"),
     ],
 )
 def test_graveyard_single_tpu(import_path, name):
@@ -22,16 +22,16 @@ def test_graveyard_single_tpu(import_path, name):
 @pytest.mark.parametrize(
     ("import_path", "name"),
     [
-        ("lightning.pytorch.accelerators", "TPUAccelerator"),
-        ("lightning.pytorch.accelerators.tpu", "TPUAccelerator"),
-        ("lightning.pytorch.plugins", "TPUPrecisionPlugin"),
-        ("lightning.pytorch.plugins.precision", "TPUPrecisionPlugin"),
-        ("lightning.pytorch.plugins.precision.tpu", "TPUPrecisionPlugin"),
-        ("lightning.pytorch.plugins", "TPUBf16PrecisionPlugin"),
-        ("lightning.pytorch.plugins.precision", "TPUBf16PrecisionPlugin"),
-        ("lightning.pytorch.plugins.precision.tpu_bf16", "TPUBf16PrecisionPlugin"),
-        ("lightning.pytorch.plugins.precision", "XLABf16PrecisionPlugin"),
-        ("lightning.pytorch.plugins.precision.xlabf16", "XLABf16PrecisionPlugin"),
+        ("lightning_pytorch.accelerators", "TPUAccelerator"),
+        ("lightning_pytorch.accelerators.tpu", "TPUAccelerator"),
+        ("lightning_pytorch.plugins", "TPUPrecisionPlugin"),
+        ("lightning_pytorch.plugins.precision", "TPUPrecisionPlugin"),
+        ("lightning_pytorch.plugins.precision.tpu", "TPUPrecisionPlugin"),
+        ("lightning_pytorch.plugins", "TPUBf16PrecisionPlugin"),
+        ("lightning_pytorch.plugins.precision", "TPUBf16PrecisionPlugin"),
+        ("lightning_pytorch.plugins.precision.tpu_bf16", "TPUBf16PrecisionPlugin"),
+        ("lightning_pytorch.plugins.precision", "XLABf16PrecisionPlugin"),
+        ("lightning_pytorch.plugins.precision.xlabf16", "XLABf16PrecisionPlugin"),
     ],
 )
 def test_graveyard_no_device(import_path, name):

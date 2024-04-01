@@ -17,13 +17,13 @@ from typing import Any, Callable, Dict, Optional, Type, Union
 
 from packaging.version import Version
 
-import lightning.pytorch as pl
+import lightning_pytorch as pl
 from lightning.fabric.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
-from lightning.pytorch.callbacks import Checkpoint, EarlyStopping
-from lightning.pytorch.trainer.states import TrainerStatus
-from lightning.pytorch.utilities.exceptions import _TunerExitException
-from lightning.pytorch.utilities.model_helpers import is_overridden
-from lightning.pytorch.utilities.rank_zero import rank_zero_warn
+from lightning_pytorch.callbacks import Checkpoint, EarlyStopping
+from lightning_pytorch.trainer.states import TrainerStatus
+from lightning_pytorch.utilities.exceptions import _TunerExitException
+from lightning_pytorch.utilities.model_helpers import is_overridden
+from lightning_pytorch.utilities.rank_zero import rank_zero_warn
 
 log = logging.getLogger(__name__)
 

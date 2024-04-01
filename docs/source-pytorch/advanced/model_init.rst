@@ -64,8 +64,8 @@ When loading a model from a checkpoint, for example when fine-tuning, set ``empt
 Model-parallel training (FSDP and DeepSpeed)
 ********************************************
 
-When training sharded models with :ref:`FSDP <fully-sharded-training>` or :ref:`DeepSpeed <deepspeed_advanced>`, :meth:`~lightning.pytorch.trainer.trainer.Trainer.init_module` **should not be used**.
-Instead, override the :meth:`~lightning.pytorch.core.hooks.ModelHooks.configure_model` hook:
+When training sharded models with :ref:`FSDP <fully-sharded-training>` or :ref:`DeepSpeed <deepspeed_advanced>`, :meth:`~lightning_pytorch.trainer.trainer.Trainer.init_module` **should not be used**.
+Instead, override the :meth:`~lightning_pytorch.core.hooks.ModelHooks.configure_model` hook:
 
 .. code-block:: python
 

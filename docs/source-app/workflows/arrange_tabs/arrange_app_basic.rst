@@ -14,7 +14,7 @@ To enable a single tab on the app UI, return a single dictionary from the ``conf
 .. code:: python
     :emphasize-lines: 9
 
-    import lightning as L
+    import lightning_pytorch as LP
 
 
     class DemoComponent(L.demo.dumb_component):
@@ -40,7 +40,7 @@ Enable multiple tabs
 .. code:: python
     :emphasize-lines: 7
 
-    import lightning as L
+    import lightning_pytorch as LP
 
 
     class DemoComponent(L.demo.dumb_component):

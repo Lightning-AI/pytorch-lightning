@@ -17,12 +17,12 @@ from unittest import mock
 
 import pytest
 import yaml
-from lightning.pytorch import Trainer
-from lightning.pytorch.callbacks import ModelCheckpoint
-from lightning.pytorch.cli import LightningCLI
-from lightning.pytorch.demos.boring_classes import BoringModel
-from lightning.pytorch.loggers import WandbLogger
-from lightning.pytorch.utilities.exceptions import MisconfigurationException
+from lightning_pytorch import Trainer
+from lightning_pytorch.callbacks import ModelCheckpoint
+from lightning_pytorch.cli import LightningCLI
+from lightning_pytorch.demos.boring_classes import BoringModel
+from lightning_pytorch.loggers import WandbLogger
+from lightning_pytorch.utilities.exceptions import MisconfigurationException
 from lightning_utilities.test.warning import no_warning_call
 
 
@@ -562,7 +562,7 @@ def test_wandb_logger_cli_integration(log_model, expected, wandb_mock, monkeypat
     input_config = {
         "trainer": {
             "logger": {
-                "class_path": "lightning.pytorch.loggers.wandb.WandbLogger",
+                "class_path": "lightning_pytorch.loggers.wandb.WandbLogger",
                 "init_args": {"log_model": log_model},
             },
         }

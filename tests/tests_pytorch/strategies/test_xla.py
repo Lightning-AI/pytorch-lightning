@@ -16,10 +16,10 @@ from unittest import mock
 from unittest.mock import Mock
 
 import torch
-from lightning.pytorch import Trainer
-from lightning.pytorch.accelerators import XLAAccelerator
-from lightning.pytorch.demos.boring_classes import BoringModel
-from lightning.pytorch.strategies import XLAStrategy
+from lightning_pytorch import Trainer
+from lightning_pytorch.accelerators import XLAAccelerator
+from lightning_pytorch.demos.boring_classes import BoringModel
+from lightning_pytorch.strategies import XLAStrategy
 
 from tests_pytorch.helpers.runif import RunIf
 

@@ -13,9 +13,9 @@
 # limitations under the License.
 from functools import partial
 
-from lightning.pytorch import Trainer, seed_everything
-from lightning.pytorch.callbacks import Callback, LambdaCallback
-from lightning.pytorch.demos.boring_classes import BoringModel
+from lightning_pytorch import Trainer, seed_everything
+from lightning_pytorch.callbacks import Callback, LambdaCallback
+from lightning_pytorch.demos.boring_classes import BoringModel
 
 from tests_pytorch.models.test_hooks import get_members
 

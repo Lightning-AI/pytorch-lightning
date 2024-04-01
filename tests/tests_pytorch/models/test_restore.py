@@ -22,10 +22,10 @@ import cloudpickle
 import pytest
 import torch
 from lightning.fabric import seed_everything
-from lightning.pytorch import Callback, Trainer
-from lightning.pytorch.callbacks import ModelCheckpoint
-from lightning.pytorch.demos.boring_classes import BoringModel
-from lightning.pytorch.trainer.states import TrainerFn
+from lightning_pytorch import Callback, Trainer
+from lightning_pytorch.callbacks import ModelCheckpoint
+from lightning_pytorch.demos.boring_classes import BoringModel
+from lightning_pytorch.trainer.states import TrainerFn
 from lightning_utilities.test.warning import no_warning_call
 from torch import Tensor
 

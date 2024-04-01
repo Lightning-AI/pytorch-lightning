@@ -20,15 +20,15 @@ from lightning.fabric.utilities.imports import (
     _TORCH_GREATER_EQUAL_2_2,
 )
 from lightning.fabric.utilities.load import _load_distributed_checkpoint
-from lightning.pytorch import Trainer
-from lightning.pytorch.callbacks import ModelCheckpoint
-from lightning.pytorch.demos.boring_classes import BoringModel
-from lightning.pytorch.plugins import HalfPrecision
-from lightning.pytorch.plugins.precision.fsdp import FSDPPrecision
-from lightning.pytorch.strategies import FSDPStrategy
-from lightning.pytorch.trainer.states import TrainerFn
-from lightning.pytorch.utilities.consolidate_checkpoint import _format_checkpoint
-from lightning.pytorch.utilities.exceptions import MisconfigurationException
+from lightning_pytorch import Trainer
+from lightning_pytorch.callbacks import ModelCheckpoint
+from lightning_pytorch.demos.boring_classes import BoringModel
+from lightning_pytorch.plugins import HalfPrecision
+from lightning_pytorch.plugins.precision.fsdp import FSDPPrecision
+from lightning_pytorch.strategies import FSDPStrategy
+from lightning_pytorch.trainer.states import TrainerFn
+from lightning_pytorch.utilities.consolidate_checkpoint import _format_checkpoint
+from lightning_pytorch.utilities.exceptions import MisconfigurationException
 from torch.distributed.fsdp.fully_sharded_data_parallel import CPUOffload, FullyShardedDataParallel, MixedPrecision
 from torch.distributed.fsdp.wrap import always_wrap_policy, size_based_auto_wrap_policy, wrap
 from torchmetrics import Accuracy
@@ -560,11 +560,11 @@ def test_fsdp_hybrid_sharding_strategy(sharding_strategy):
 
 def test_fsdp_use_orig_params():
     """Test that Lightning enables `use_orig_params` in PyTorch >= 2.0."""
-    with mock.patch("lightning.pytorch.strategies.fsdp._TORCH_GREATER_EQUAL_2_0", False):
+    with mock.patch("lightning_pytorch.strategies.fsdp._TORCH_GREATER_EQUAL_2_0", False):
         strategy = FSDPStrategy()
         assert "use_orig_params" not in strategy.kwargs
 
-    with mock.patch("lightning.pytorch.strategies.fsdp._TORCH_GREATER_EQUAL_2_0", True):
+    with mock.patch("lightning_pytorch.strategies.fsdp._TORCH_GREATER_EQUAL_2_0", True):
         strategy = FSDPStrategy()
         assert strategy.kwargs["use_orig_params"]
         strategy = FSDPStrategy(use_orig_params=False)
@@ -588,7 +588,7 @@ def test_set_timeout(init_process_group_mock):
 
 
 @RunIf(min_torch="2.0")
-@mock.patch("lightning.pytorch.strategies.fsdp._load_raw_module_state")
+@mock.patch("lightning_pytorch.strategies.fsdp._load_raw_module_state")
 def test_fsdp_strategy_load_optimizer_states_multiple(_, tmp_path):
     strategy = FSDPStrategy(parallel_devices=[torch.device("cpu")], state_dict_type="full")
     trainer = Trainer()
@@ -770,9 +770,9 @@ def test_configure_model(precision, expected_dtype):
     trainer.fit(model)
 
 
-@mock.patch("lightning.pytorch.strategies.fsdp._TORCH_GREATER_EQUAL_2_0", False)
-@mock.patch("lightning.pytorch.strategies.fsdp.torch.load")
-@mock.patch("lightning.pytorch.strategies.fsdp._load_raw_module_state")
+@mock.patch("lightning_pytorch.strategies.fsdp._TORCH_GREATER_EQUAL_2_0", False)
+@mock.patch("lightning_pytorch.strategies.fsdp.torch.load")
+@mock.patch("lightning_pytorch.strategies.fsdp._load_raw_module_state")
 def test_load_save_optimizer_torch_lt_2_0(_, __, tmp_path):
     strategy = FSDPStrategy(state_dict_type="full")
     with pytest.warns(UserWarning, match="does not support saving the optimizer state"):
@@ -787,7 +787,7 @@ def test_load_save_optimizer_torch_lt_2_0(_, __, tmp_path):
         strategy.load_checkpoint(file)
 
 
-@mock.patch("lightning.pytorch.strategies.fsdp._TORCH_GREATER_EQUAL_2_0", False)
+@mock.patch("lightning_pytorch.strategies.fsdp._TORCH_GREATER_EQUAL_2_0", False)
 def test_sharded_state_dict_type_support():
     """Test that the sharded state dict type is supported."""
     with pytest.raises(
@@ -805,11 +805,11 @@ def test_save_checkpoint_storage_options(tmp_path):
 
 
 @RunIf(min_torch="2.0.0")
-@mock.patch("lightning.pytorch.strategies.fsdp.FSDPStrategy.broadcast", lambda _, x: x)
-@mock.patch("lightning.pytorch.strategies.fsdp._get_full_state_dict_context")
-@mock.patch("lightning.pytorch.strategies.fsdp._get_sharded_state_dict_context")
+@mock.patch("lightning_pytorch.strategies.fsdp.FSDPStrategy.broadcast", lambda _, x: x)
+@mock.patch("lightning_pytorch.strategies.fsdp._get_full_state_dict_context")
+@mock.patch("lightning_pytorch.strategies.fsdp._get_sharded_state_dict_context")
 @mock.patch("lightning.fabric.plugins.io.torch_io._atomic_save")
-@mock.patch("lightning.pytorch.strategies.fsdp.shutil")
+@mock.patch("lightning_pytorch.strategies.fsdp.shutil")
 def test_fsdp_save_checkpoint_path_exists(shutil_mock, torch_save_mock, __, ___, tmp_path):
     strategy = FSDPStrategy(state_dict_type="full")
 
@@ -868,7 +868,7 @@ def test_fsdp_save_checkpoint_path_exists(shutil_mock, torch_save_mock, __, ___,
     assert path.is_dir()
 
 
-@mock.patch("lightning.pytorch.strategies.fsdp.FSDPStrategy.broadcast", lambda _, x: x)
+@mock.patch("lightning_pytorch.strategies.fsdp.FSDPStrategy.broadcast", lambda _, x: x)
 def test_fsdp_save_checkpoint_unknown_state_dict_type(tmp_path):
     strategy = FSDPStrategy(state_dict_type="invalid")
     with pytest.raises(ValueError, match="Unknown state_dict_type"):
@@ -940,9 +940,9 @@ def test_save_load_sharded_state_dict(tmp_path):
     trainer.fit(model, ckpt_path=checkpoint_path)
 
 
-@mock.patch("lightning.pytorch.strategies.fsdp.torch.load")
-@mock.patch("lightning.pytorch.strategies.fsdp._lazy_load")
-@mock.patch("lightning.pytorch.strategies.fsdp._load_raw_module_state")
+@mock.patch("lightning_pytorch.strategies.fsdp.torch.load")
+@mock.patch("lightning_pytorch.strategies.fsdp._lazy_load")
+@mock.patch("lightning_pytorch.strategies.fsdp._load_raw_module_state")
 def test_fsdp_lazy_load_full_state_dict(_, lazy_load_mock, torch_load_mock, tmp_path):
     """Test that loading a single file (full state) is lazy to reduce peak CPU memory usage."""
     model = BoringModel()

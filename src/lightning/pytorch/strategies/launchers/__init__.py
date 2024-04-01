@@ -11,9 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from lightning.pytorch.strategies.launchers.multiprocessing import _MultiProcessingLauncher
-from lightning.pytorch.strategies.launchers.subprocess_script import _SubprocessScriptLauncher
-from lightning.pytorch.strategies.launchers.xla import _XLALauncher
+from lightning_pytorch.strategies.launchers.multiprocessing import _MultiProcessingLauncher
+from lightning_pytorch.strategies.launchers.subprocess_script import _SubprocessScriptLauncher
+from lightning_pytorch.strategies.launchers.xla import _XLALauncher
 
 __all__ = [
     "_MultiProcessingLauncher",

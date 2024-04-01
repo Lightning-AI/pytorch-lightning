@@ -22,13 +22,13 @@ import torch
 from lightning_utilities.core.imports import RequirementCache
 from typing_extensions import override
 
-import lightning.pytorch as pl
+import lightning_pytorch as pl
 from lightning.fabric.utilities.types import _TORCH_LRSCHEDULER
-from lightning.pytorch.callbacks import Callback
-from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning.pytorch.utilities.parsing import lightning_hasattr, lightning_setattr
-from lightning.pytorch.utilities.rank_zero import rank_zero_warn
-from lightning.pytorch.utilities.types import STEP_OUTPUT, LRScheduler, LRSchedulerConfig
+from lightning_pytorch.callbacks import Callback
+from lightning_pytorch.utilities.exceptions import MisconfigurationException
+from lightning_pytorch.utilities.parsing import lightning_hasattr, lightning_setattr
+from lightning_pytorch.utilities.rank_zero import rank_zero_warn
+from lightning_pytorch.utilities.types import STEP_OUTPUT, LRScheduler, LRSchedulerConfig
 
 # check if ipywidgets is installed before importing tqdm.auto
 # to ensure it won't fail and a progress bar is displayed
@@ -108,7 +108,7 @@ class _LRFinder:
         # TODO: update docs here
         """Decorate `trainer.strategy.setup_optimizers` method such that it sets the user's originally specified
         optimizer together with a new scheduler that takes care of the learning rate search."""
-        from lightning.pytorch.core.optimizer import _validate_optimizers_attached
+        from lightning_pytorch.core.optimizer import _validate_optimizers_attached
 
         optimizers = trainer.strategy.optimizers
 
@@ -320,7 +320,7 @@ def __lr_finder_dump_params(trainer: "pl.Trainer") -> Dict[str, Any]:
 
 
 def __lr_finder_reset_params(trainer: "pl.Trainer", num_training: int, early_stop_threshold: Optional[float]) -> None:
-    from lightning.pytorch.loggers.logger import DummyLogger
+    from lightning_pytorch.loggers.logger import DummyLogger
 
     trainer.strategy.lr_scheduler_configs = []
     # Use special lr logger callback

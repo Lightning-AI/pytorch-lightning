@@ -14,9 +14,9 @@
 import itertools
 
 import pytest
-from lightning.pytorch import LightningModule, Trainer
-from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
-from lightning.pytorch.overrides.distributed import _IndexBatchSamplerWrapper
+from lightning_pytorch import LightningModule, Trainer
+from lightning_pytorch.demos.boring_classes import BoringModel, RandomDataset
+from lightning_pytorch.overrides.distributed import _IndexBatchSamplerWrapper
 from torch.utils.data import DataLoader, DistributedSampler, SequentialSampler
 
 

@@ -20,13 +20,13 @@ from unittest import mock
 
 import pytest
 import torch
-from lightning.pytorch import Trainer, seed_everything
-from lightning.pytorch.callbacks.lr_finder import LearningRateFinder
-from lightning.pytorch.demos.boring_classes import BoringModel
-from lightning.pytorch.tuner.lr_finder import _LRFinder
-from lightning.pytorch.tuner.tuning import Tuner
-from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning.pytorch.utilities.types import STEP_OUTPUT
+from lightning_pytorch import Trainer, seed_everything
+from lightning_pytorch.callbacks.lr_finder import LearningRateFinder
+from lightning_pytorch.demos.boring_classes import BoringModel
+from lightning_pytorch.tuner.lr_finder import _LRFinder
+from lightning_pytorch.tuner.tuning import Tuner
+from lightning_pytorch.utilities.exceptions import MisconfigurationException
+from lightning_pytorch.utilities.types import STEP_OUTPUT
 from lightning_utilities.test.warning import no_warning_call
 
 from tests_pytorch.helpers.datamodules import ClassifDataModule

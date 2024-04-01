@@ -26,7 +26,7 @@ from torch.nn import Module
 from torch.optim import Optimizer
 from typing_extensions import override
 
-import lightning.pytorch as pl
+import lightning_pytorch as pl
 from lightning.fabric.plugins import ClusterEnvironment
 from lightning.fabric.strategies import _StrategyRegistry
 from lightning.fabric.strategies.deepspeed import (
@@ -38,16 +38,16 @@ from lightning.fabric.strategies.deepspeed import (
 from lightning.fabric.utilities.optimizer import _optimizers_to_device
 from lightning.fabric.utilities.seed import reset_seed
 from lightning.fabric.utilities.types import _PATH, LRScheduler, ReduceLROnPlateau
-from lightning.pytorch.accelerators.cuda import CUDAAccelerator
-from lightning.pytorch.core.optimizer import _init_optimizers_and_lr_schedulers
-from lightning.pytorch.plugins.precision import Precision
-from lightning.pytorch.strategies.ddp import DDPStrategy
-from lightning.pytorch.trainer.states import TrainerFn
-from lightning.pytorch.utilities import GradClipAlgorithmType
-from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning.pytorch.utilities.model_helpers import is_overridden
-from lightning.pytorch.utilities.rank_zero import WarningCache, rank_zero_info, rank_zero_warn
-from lightning.pytorch.utilities.types import LRSchedulerConfig
+from lightning_pytorch.accelerators.cuda import CUDAAccelerator
+from lightning_pytorch.core.optimizer import _init_optimizers_and_lr_schedulers
+from lightning_pytorch.plugins.precision import Precision
+from lightning_pytorch.strategies.ddp import DDPStrategy
+from lightning_pytorch.trainer.states import TrainerFn
+from lightning_pytorch.utilities import GradClipAlgorithmType
+from lightning_pytorch.utilities.exceptions import MisconfigurationException
+from lightning_pytorch.utilities.model_helpers import is_overridden
+from lightning_pytorch.utilities.rank_zero import WarningCache, rank_zero_info, rank_zero_warn
+from lightning_pytorch.utilities.types import LRSchedulerConfig
 
 log = logging.getLogger(__name__)
 warning_cache = WarningCache()
@@ -660,7 +660,7 @@ class DeepSpeedStrategy(DDPStrategy):
         # Rely on deepspeed to load the checkpoint and necessary information
         assert self.lightning_module is not None
 
-        from lightning.pytorch.trainer.states import TrainerFn
+        from lightning_pytorch.trainer.states import TrainerFn
 
         is_fitting = self.lightning_module.trainer.state.fn == TrainerFn.FITTING
 

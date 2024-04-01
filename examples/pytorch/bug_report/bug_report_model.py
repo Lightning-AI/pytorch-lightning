@@ -1,7 +1,7 @@
 import os
 
 import torch
-from lightning.pytorch import LightningModule, Trainer
+from lightning_pytorch import LightningModule, Trainer
 from torch.utils.data import DataLoader, Dataset
 
 

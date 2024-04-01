@@ -16,8 +16,8 @@ from typing import Iterable
 import pytest
 import torch
 from lightning.fabric.utilities.data import has_len
-from lightning.pytorch import LightningModule, Trainer, seed_everything
-from lightning.pytorch.overrides.distributed import UnrepeatedDistributedSampler, _IndexBatchSamplerWrapper
+from lightning_pytorch import LightningModule, Trainer, seed_everything
+from lightning_pytorch.overrides.distributed import UnrepeatedDistributedSampler, _IndexBatchSamplerWrapper
 from torch.utils.data import BatchSampler, SequentialSampler
 
 from tests_pytorch.helpers.runif import RunIf

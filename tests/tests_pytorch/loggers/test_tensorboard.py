@@ -21,11 +21,11 @@ import numpy as np
 import pytest
 import torch
 import yaml
-from lightning.pytorch import Trainer
-from lightning.pytorch.demos.boring_classes import BoringModel
-from lightning.pytorch.loggers import TensorBoardLogger
-from lightning.pytorch.loggers.tensorboard import _TENSORBOARD_AVAILABLE
-from lightning.pytorch.utilities.imports import _OMEGACONF_AVAILABLE
+from lightning_pytorch import Trainer
+from lightning_pytorch.demos.boring_classes import BoringModel
+from lightning_pytorch.loggers import TensorBoardLogger
+from lightning_pytorch.loggers.tensorboard import _TENSORBOARD_AVAILABLE
+from lightning_pytorch.utilities.imports import _OMEGACONF_AVAILABLE
 
 from tests_pytorch.helpers.runif import RunIf
 
@@ -240,7 +240,7 @@ def test_tensorboard_log_graph_warning_no_example_input_array(tmp_path):
         logger.log_graph(model)
 
 
-@mock.patch("lightning.pytorch.loggers.TensorBoardLogger.log_metrics")
+@mock.patch("lightning_pytorch.loggers.TensorBoardLogger.log_metrics")
 def test_tensorboard_with_accummulated_gradients(mock_log_metrics, tmp_path):
     """Tests to ensure that tensorboard log properly when accumulated_gradients > 1."""
 
@@ -312,7 +312,7 @@ def test_tensorboard_save_hparams_to_yaml_once(tmp_path):
     assert not os.path.isfile(os.path.join(tmp_path, hparams_file))
 
 
-@mock.patch("lightning.pytorch.loggers.tensorboard.log")
+@mock.patch("lightning_pytorch.loggers.tensorboard.log")
 def test_tensorboard_with_symlink(log, tmp_path, monkeypatch):
     """Tests a specific failure case when tensorboard logger is used with empty name, symbolic link ``save_dir``, and
     relative paths."""

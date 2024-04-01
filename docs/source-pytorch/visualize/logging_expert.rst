@@ -19,11 +19,11 @@ If you'd like to change the way the progress bar displays information you can us
 
 Use the TQDMProgressBar
 =======================
-To use the TQDMProgressBar pass it into the *callbacks* :class:`~lightning.pytorch.trainer.trainer.Trainer` argument.
+To use the TQDMProgressBar pass it into the *callbacks* :class:`~lightning_pytorch.trainer.trainer.Trainer` argument.
 
 .. code-block:: python
 
-    from lightning.pytorch.callbacks import TQDMProgressBar
+    from lightning_pytorch.callbacks import TQDMProgressBar
 
     trainer = Trainer(callbacks=[TQDMProgressBar()])
 
@@ -37,11 +37,11 @@ The RichProgressBar can add custom colors and beautiful formatting for your prog
 
     pip install rich
 
-Then pass the callback into the callbacks :class:`~lightning.pytorch.trainer.trainer.Trainer` argument:
+Then pass the callback into the callbacks :class:`~lightning_pytorch.trainer.trainer.Trainer` argument:
 
 .. code-block:: python
 
-    from lightning.pytorch.callbacks import RichProgressBar
+    from lightning_pytorch.callbacks import RichProgressBar
 
     trainer = Trainer(callbacks=[RichProgressBar()])
 
@@ -49,8 +49,8 @@ The rich progress bar can also have custom themes
 
 .. code-block:: python
 
-    from lightning.pytorch.callbacks import RichProgressBar
-    from lightning.pytorch.callbacks.progress.rich_progress import RichProgressBarTheme
+    from lightning_pytorch.callbacks import RichProgressBar
+    from lightning_pytorch.callbacks.progress.rich_progress import RichProgressBarTheme
 
     # create your own theme!
     theme = RichProgressBarTheme(description="green_yellow", progress_bar="green1")
@@ -64,11 +64,11 @@ The rich progress bar can also have custom themes
 ************************
 Customize a progress bar
 ************************
-To customize either the  :class:`~lightning.pytorch.callbacks.TQDMProgressBar` or the  :class:`~lightning.pytorch.callbacks.RichProgressBar`, subclass it and override any of its methods.
+To customize either the  :class:`~lightning_pytorch.callbacks.TQDMProgressBar` or the  :class:`~lightning_pytorch.callbacks.RichProgressBar`, subclass it and override any of its methods.
 
 .. code-block:: python
 
-    from lightning.pytorch.callbacks import TQDMProgressBar
+    from lightning_pytorch.callbacks import TQDMProgressBar
 
 
     class LitProgressBar(TQDMProgressBar):
@@ -82,11 +82,11 @@ To customize either the  :class:`~lightning.pytorch.callbacks.TQDMProgressBar` o
 ***************************
 Build your own progress bar
 ***************************
-To build your own progress bar, subclass :class:`~lightning.pytorch.callbacks.ProgressBar`
+To build your own progress bar, subclass :class:`~lightning_pytorch.callbacks.ProgressBar`
 
 .. code-block:: python
 
-    from lightning.pytorch.callbacks import ProgressBar
+    from lightning_pytorch.callbacks import ProgressBar
 
 
     class LitProgressBar(ProgressBar):
@@ -112,11 +112,11 @@ To build your own progress bar, subclass :class:`~lightning.pytorch.callbacks.Pr
 *******************************
 Integrate an experiment manager
 *******************************
-To create an integration between a custom logger and Lightning, subclass :class:`~lightning.pytorch.loggers.Logger`
+To create an integration between a custom logger and Lightning, subclass :class:`~lightning_pytorch.loggers.Logger`
 
 .. code-block:: python
 
-    from lightning.pytorch.loggers import Logger
+    from lightning_pytorch.loggers import Logger
 
 
     class LitLogger(Logger):

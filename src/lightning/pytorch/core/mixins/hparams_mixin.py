@@ -20,7 +20,7 @@ from contextvars import ContextVar
 from typing import Any, Iterator, List, MutableMapping, Optional, Sequence, Union
 
 from lightning.fabric.utilities.data import AttributeDict
-from lightning.pytorch.utilities.parsing import save_hyperparameters
+from lightning_pytorch.utilities.parsing import save_hyperparameters
 
 _PRIMITIVE_TYPES = (bool, int, float, str)
 _ALLOWED_CONFIG_TYPES = (AttributeDict, MutableMapping, Namespace)
@@ -65,7 +65,7 @@ class HyperparametersMixin:
             logger: Whether to send the hyperparameters to the logger. Default: True
 
         Example::
-            >>> from lightning.pytorch.core.mixins import HyperparametersMixin
+            >>> from lightning_pytorch.core.mixins import HyperparametersMixin
             >>> class ManuallyArgsModel(HyperparametersMixin):
             ...     def __init__(self, arg1, arg2, arg3):
             ...         super().__init__()
@@ -78,7 +78,7 @@ class HyperparametersMixin:
             "arg1": 1
             "arg3": 3.14
 
-            >>> from lightning.pytorch.core.mixins import HyperparametersMixin
+            >>> from lightning_pytorch.core.mixins import HyperparametersMixin
             >>> class AutomaticArgsModel(HyperparametersMixin):
             ...     def __init__(self, arg1, arg2, arg3):
             ...         super().__init__()
@@ -92,7 +92,7 @@ class HyperparametersMixin:
             "arg2": abc
             "arg3": 3.14
 
-            >>> from lightning.pytorch.core.mixins import HyperparametersMixin
+            >>> from lightning_pytorch.core.mixins import HyperparametersMixin
             >>> class SingleArgModel(HyperparametersMixin):
             ...     def __init__(self, params):
             ...         super().__init__()
@@ -106,7 +106,7 @@ class HyperparametersMixin:
             "p2": abc
             "p3": 3.14
 
-            >>> from lightning.pytorch.core.mixins import HyperparametersMixin
+            >>> from lightning_pytorch.core.mixins import HyperparametersMixin
             >>> class ManuallyArgsModel(HyperparametersMixin):
             ...     def __init__(self, arg1, arg2, arg3):
             ...         super().__init__()

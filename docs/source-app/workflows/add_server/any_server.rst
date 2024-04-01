@@ -44,7 +44,7 @@ To enable the server inside the component, start the server in the run method an
 .. code:: python
     :emphasize-lines: 14-15
 
-    import lightning as L
+    import lightning_pytorch as LP
     import socketserver
     from http import HTTPStatus, server
 
@@ -74,7 +74,7 @@ In this case, we render the ``LitServer`` output in the ``home`` tab of the appl
 .. code:: python
     :emphasize-lines: 20, 23, 28
 
-    import lightning as L
+    import lightning_pytorch as LP
     import socketserver
     from http import HTTPStatus, server
 

@@ -27,12 +27,12 @@ from lightning_utilities.core.imports import RequirementCache
 from torch import Tensor
 from typing_extensions import override
 
-import lightning.pytorch as pl
+import lightning_pytorch as pl
 from lightning.fabric.utilities.logger import _add_prefix, _convert_params, _sanitize_callable_params
-from lightning.pytorch.callbacks import Checkpoint
-from lightning.pytorch.loggers.logger import Logger, rank_zero_experiment
-from lightning.pytorch.utilities.model_summary import ModelSummary
-from lightning.pytorch.utilities.rank_zero import rank_zero_only
+from lightning_pytorch.callbacks import Checkpoint
+from lightning_pytorch.loggers.logger import Logger, rank_zero_experiment
+from lightning_pytorch.utilities.model_summary import ModelSummary
+from lightning_pytorch.utilities.rank_zero import rank_zero_only
 
 if TYPE_CHECKING:
     from neptune import Run
@@ -84,8 +84,8 @@ class NeptuneLogger(Logger):
     .. code-block:: python
 
 
-        from lightning.pytorch import Trainer
-        from lightning.pytorch.loggers import NeptuneLogger
+        from lightning_pytorch import Trainer
+        from lightning_pytorch.loggers import NeptuneLogger
         import neptune
 
         neptune_logger = NeptuneLogger(
@@ -97,12 +97,12 @@ class NeptuneLogger(Logger):
 
     **How to use NeptuneLogger?**
 
-    Use the logger anywhere in your :class:`~lightning.pytorch.core.LightningModule` as follows:
+    Use the logger anywhere in your :class:`~lightning_pytorch.core.LightningModule` as follows:
 
     .. code-block:: python
 
         from neptune.types import File
-        from lightning.pytorch import LightningModule
+        from lightning_pytorch import LightningModule
 
 
         class LitModel(LightningModule):
@@ -151,7 +151,7 @@ class NeptuneLogger(Logger):
 
     **Log model checkpoints**
 
-    If you have :class:`~lightning.pytorch.callbacks.ModelCheckpoint` configured,
+    If you have :class:`~lightning_pytorch.callbacks.ModelCheckpoint` configured,
     the Neptune logger automatically logs model checkpoints.
     Model weights will be uploaded to the "model/checkpoints" namespace in the Neptune run.
     You can disable this option with:
@@ -167,8 +167,8 @@ class NeptuneLogger(Logger):
     .. testcode::
         :skipif: not _NEPTUNE_AVAILABLE
 
-        from lightning.pytorch import Trainer
-        from lightning.pytorch.loggers import NeptuneLogger
+        from lightning_pytorch import Trainer
+        from lightning_pytorch.loggers import NeptuneLogger
 
         neptune_logger = NeptuneLogger(
             project="common/pytorch-lightning-integration",
@@ -353,7 +353,7 @@ class NeptuneLogger(Logger):
     @rank_zero_experiment
     def experiment(self) -> "Run":
         r"""Actual Neptune run object. Allows you to use neptune logging features in your
-        :class:`~lightning.pytorch.core.LightningModule`.
+        :class:`~lightning_pytorch.core.LightningModule`.
 
         Example::
 
@@ -413,7 +413,7 @@ class NeptuneLogger(Logger):
 
         Example::
 
-            from lightning.pytorch.loggers import NeptuneLogger
+            from lightning_pytorch.loggers import NeptuneLogger
             import neptune
 
             PARAMS = {

@@ -21,16 +21,16 @@ from typing_extensions import override
 from lightning.fabric.accelerators.xla import _XLA_AVAILABLE
 from lightning.fabric.strategies.launchers.xla import _rank_teardown
 from lightning.fabric.utilities import move_data_to_device
-from lightning.pytorch.strategies.launchers.multiprocessing import (
+from lightning_pytorch.strategies.launchers.multiprocessing import (
     _GlobalStateSnapshot,
     _MultiProcessingLauncher,
     _WorkerOutput,
 )
-from lightning.pytorch.trainer.states import TrainerFn
-from lightning.pytorch.utilities.rank_zero import rank_zero_debug
+from lightning_pytorch.trainer.states import TrainerFn
+from lightning_pytorch.utilities.rank_zero import rank_zero_debug
 
 if TYPE_CHECKING:
-    import lightning.pytorch as pl
+    import lightning_pytorch as pl
 
 
 class _XLALauncher(_MultiProcessingLauncher):
@@ -70,7 +70,7 @@ class _XLALauncher(_MultiProcessingLauncher):
         Arguments:
             function: The entry point for all launched processes.
             *args: Optional positional arguments to be passed to the given function.
-            trainer: Optional reference to the :class:`~lightning.pytorch.trainer.trainer.Trainer` for which
+            trainer: Optional reference to the :class:`~lightning_pytorch.trainer.trainer.Trainer` for which
                 a selected set of attributes get restored in the main process after processes join.
             **kwargs: Optional keyword arguments to be passed to the given function.
 

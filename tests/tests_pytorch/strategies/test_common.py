@@ -16,9 +16,9 @@ from unittest.mock import Mock
 import pytest
 import torch
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
-from lightning.pytorch import Trainer
-from lightning.pytorch.plugins import DoublePrecision, HalfPrecision, Precision
-from lightning.pytorch.strategies import SingleDeviceStrategy
+from lightning_pytorch import Trainer
+from lightning_pytorch.plugins import DoublePrecision, HalfPrecision, Precision
+from lightning_pytorch.strategies import SingleDeviceStrategy
 
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.runif import RunIf

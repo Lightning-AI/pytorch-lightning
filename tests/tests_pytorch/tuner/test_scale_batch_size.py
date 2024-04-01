@@ -18,11 +18,11 @@ from unittest.mock import patch
 
 import pytest
 import torch
-from lightning.pytorch import Trainer
-from lightning.pytorch.callbacks.batch_size_finder import BatchSizeFinder
-from lightning.pytorch.demos.boring_classes import BoringDataModule, BoringModel, RandomDataset
-from lightning.pytorch.tuner.tuning import Tuner
-from lightning.pytorch.utilities.exceptions import MisconfigurationException
+from lightning_pytorch import Trainer
+from lightning_pytorch.callbacks.batch_size_finder import BatchSizeFinder
+from lightning_pytorch.demos.boring_classes import BoringDataModule, BoringModel, RandomDataset
+from lightning_pytorch.tuner.tuning import Tuner
+from lightning_pytorch.utilities.exceptions import MisconfigurationException
 from lightning_utilities.test.warning import no_warning_call
 from torch.utils.data import DataLoader
 
@@ -449,7 +449,7 @@ def test_batch_size_finder_with_multiple_eval_dataloaders(tmp_path):
 
 
 @pytest.mark.parametrize(("scale_method", "expected_batch_size"), [("power", 62), ("binsearch", 100)])
-@patch("lightning.pytorch.tuner.batch_size_scaling.is_oom_error", return_value=True)
+@patch("lightning_pytorch.tuner.batch_size_scaling.is_oom_error", return_value=True)
 def test_dataloader_batch_size_updated_on_failure(_, tmp_path, scale_method, expected_batch_size):
     class CustomBatchSizeModel(BatchSizeModel):
         def training_step(self, *_, **__):

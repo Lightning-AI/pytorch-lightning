@@ -14,11 +14,11 @@
 from dataclasses import dataclass
 from typing import Optional
 
-from lightning.pytorch.utilities.enums import LightningEnum
+from lightning_pytorch.utilities.enums import LightningEnum
 
 
 class TrainerStatus(LightningEnum):
-    """Enum for the status of the :class:`~lightning.pytorch.trainer.trainer.Trainer`"""
+    """Enum for the status of the :class:`~lightning_pytorch.trainer.trainer.Trainer`"""
 
     INITIALIZING = "initializing"  # trainer creation
     RUNNING = "running"
@@ -31,9 +31,9 @@ class TrainerStatus(LightningEnum):
 
 
 class TrainerFn(LightningEnum):
-    """Enum for the user-facing functions of the :class:`~lightning.pytorch.trainer.trainer.Trainer` such as
-    :meth:`~lightning.pytorch.trainer.trainer.Trainer.fit` and
-    :meth:`~lightning.pytorch.trainer.trainer.Trainer.test`."""
+    """Enum for the user-facing functions of the :class:`~lightning_pytorch.trainer.trainer.Trainer` such as
+    :meth:`~lightning_pytorch.trainer.trainer.Trainer.fit` and
+    :meth:`~lightning_pytorch.trainer.trainer.Trainer.test`."""
 
     FITTING = "fit"
     VALIDATING = "validate"
@@ -73,7 +73,7 @@ class RunningStage(LightningEnum):
 
 @dataclass
 class TrainerState:
-    """Dataclass to encapsulate the current :class:`~lightning.pytorch.trainer.trainer.Trainer` state."""
+    """Dataclass to encapsulate the current :class:`~lightning_pytorch.trainer.trainer.Trainer` state."""
 
     status: TrainerStatus = TrainerStatus.INITIALIZING
     fn: Optional[TrainerFn] = None

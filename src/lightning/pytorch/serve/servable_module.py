@@ -18,9 +18,9 @@ class ServableModule(ABC, torch.nn.Module):
 
         import torch
 
-        from lightning.pytorch import Trainer
-        from lightning.pytorch.demos.boring_classes import BoringModel
-        from lightning.pytorch.serve.servable_module_validator import ServableModule, ServableModuleValidator
+        from lightning_pytorch import Trainer
+        from lightning_pytorch.demos.boring_classes import BoringModel
+        from lightning_pytorch.serve.servable_module_validator import ServableModule, ServableModuleValidator
 
 
         class ServableBoringModel(BoringModel, ServableModule):

@@ -14,8 +14,8 @@
 import os
 
 import pytest
-from lightning.pytorch import Trainer
-from lightning.pytorch.demos.boring_classes import BoringModel
+from lightning_pytorch import Trainer
+from lightning_pytorch.demos.boring_classes import BoringModel
 
 from tests_pytorch.helpers.advanced_models import BasicGAN, ParityModuleMNIST, ParityModuleRNN
 from tests_pytorch.helpers.datamodules import ClassifDataModule, RegressDataModule

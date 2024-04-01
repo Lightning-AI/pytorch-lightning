@@ -1,6 +1,6 @@
 .. testsetup:: *
 
-    from lightning.pytorch.callbacks import StochasticWeightAveraging
+    from lightning_pytorch.callbacks import StochasticWeightAveraging
 
 .. _training_tricks:
 
@@ -33,7 +33,7 @@ If the Trainer's ``gradient_clip_algorithm`` is set to ``'value'`` (``'norm'`` b
     If using mixed precision, the ``gradient_clip_val`` does not need to be changed as the gradients are unscaled
     before applying the clipping function.
 
-.. seealso:: :class:`~lightning.pytorch.trainer.trainer.Trainer`
+.. seealso:: :class:`~lightning_pytorch.trainer.trainer.Trainer`
 
 .. testcode::
 
@@ -61,7 +61,7 @@ it harder to end up in a local minimum during optimization.
 For a more detailed explanation of SWA and how it works,
 read `this post <https://pytorch.org/blog/pytorch-1.6-now-includes-stochastic-weight-averaging>`__ by the PyTorch team.
 
-.. seealso:: The :class:`~lightning.pytorch.callbacks.StochasticWeightAveraging` callback
+.. seealso:: The :class:`~lightning_pytorch.callbacks.StochasticWeightAveraging` callback
 
 .. testcode::
 
@@ -80,11 +80,11 @@ Auto-scaling of batch size can be enabled to find the largest batch size that fi
 memory. Large batch size often yields a better estimation of the gradients, but may also result in
 longer training time. Inspired by https://github.com/BlackHC/toma.
 
-.. seealso:: :class:`~lightning.pytorch.tuner.tuning.Tuner`
+.. seealso:: :class:`~lightning_pytorch.tuner.tuning.Tuner`
 
 .. code-block:: python
 
-    from lightning.pytorch.tuner import Tuner
+    from lightning_pytorch.tuner import Tuner
 
     # Create a tuner for the trainer
     trainer = Trainer(...)
@@ -182,13 +182,13 @@ Customizing Batch Size Finder
 
 .. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
 
-1. You can also customize the :class:`~lightning.pytorch.callbacks.batch_size_finder.BatchSizeFinder` callback to run
+1. You can also customize the :class:`~lightning_pytorch.callbacks.batch_size_finder.BatchSizeFinder` callback to run
    at different epochs. This feature is useful while fine-tuning models since you can't always use the same batch size after
    unfreezing the backbone.
 
 .. code-block:: python
 
-    from lightning.pytorch.callbacks import BatchSizeFinder
+    from lightning_pytorch.callbacks import BatchSizeFinder
 
 
     class FineTuneBatchSizeFinder(BatchSizeFinder):
@@ -212,7 +212,7 @@ Customizing Batch Size Finder
 
 .. code-block:: python
 
-    from lightning.pytorch.callbacks import BatchSizeFinder
+    from lightning_pytorch.callbacks import BatchSizeFinder
 
 
     class EvalBatchSizeFinder(BatchSizeFinder):
@@ -267,7 +267,7 @@ Using Lightning's built-in LR finder
 
 To enable the learning rate finder, your :doc:`lightning module <../common/lightning_module>` needs to
 have a ``learning_rate`` or ``lr`` attribute (or as a field in your ``hparams`` i.e.
-``hparams.learning_rate`` or ``hparams.lr``). Then, create the :class:`~lightning.pytorch.tuner.tuning.Tuner` via ``tuner = Tuner(trainer)``
+``hparams.learning_rate`` or ``hparams.lr``). Then, create the :class:`~lightning_pytorch.tuner.tuning.Tuner` via ``tuner = Tuner(trainer)``
 and call ``tuner.lr_find(model)`` to run the LR finder.
 The suggested ``learning_rate`` will be written to the console and will be automatically
 set to your :doc:`lightning module <../common/lightning_module>`, which can be accessed
@@ -275,7 +275,7 @@ via ``self.learning_rate`` or ``self.lr``.
 
 .. code-block:: python
 
-    from lightning.pytorch.tuner import Tuner
+    from lightning_pytorch.tuner import Tuner
 
 
     class LitModel(LightningModule):
@@ -350,11 +350,11 @@ Customizing Learning Rate Finder
 
 .. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
 
-You can also customize the :class:`~lightning.pytorch.callbacks.lr_finder.LearningRateFinder` callback to run at different epochs. This feature is useful while fine-tuning models.
+You can also customize the :class:`~lightning_pytorch.callbacks.lr_finder.LearningRateFinder` callback to run at different epochs. This feature is useful while fine-tuning models.
 
 .. code-block:: python
 
-    from lightning.pytorch.callbacks import LearningRateFinder
+    from lightning_pytorch.callbacks import LearningRateFinder
 
 
     class FineTuneLearningRateFinder(LearningRateFinder):
@@ -394,7 +394,7 @@ Refer to :doc:`Advanced GPU Optimized Training <../advanced/model_parallel>` for
 Sharing Datasets Across Process Boundaries
 ******************************************
 
-The :class:`~lightning.pytorch.core.datamodule.LightningDataModule` class provides an organized way to decouple data loading from training logic, with :meth:`~lightning.pytorch.core.hooks.DataHooks.prepare_data` being used for downloading and pre-processing the dataset on a single process, and :meth:`~lightning.pytorch.core.hooks.DataHooks.setup` loading the pre-processed data for each process individually:
+The :class:`~lightning_pytorch.core.datamodule.LightningDataModule` class provides an organized way to decouple data loading from training logic, with :meth:`~lightning_pytorch.core.hooks.DataHooks.prepare_data` being used for downloading and pre-processing the dataset on a single process, and :meth:`~lightning_pytorch.core.hooks.DataHooks.setup` loading the pre-processed data for each process individually:
 
 .. code-block:: python
 

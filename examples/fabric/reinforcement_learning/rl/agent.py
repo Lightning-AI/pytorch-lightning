@@ -4,7 +4,7 @@ from typing import Dict, Tuple
 import gymnasium as gym
 import torch
 import torch.nn.functional as F
-from lightning.pytorch import LightningModule
+from lightning_pytorch import LightningModule
 from torch import Tensor
 from torch.distributions import Categorical
 from torchmetrics import MeanMetric

@@ -17,7 +17,7 @@ Here is an example:
 
 .. code-block:: python
 
-    import lightning as L
+    import lightning_pytorch as LP
     import pandas as pd
 
 
@@ -44,7 +44,7 @@ Once the Payload object is attached to your Work's state, it can be passed to an
 
 .. code-block:: python
 
-    import lightning as L
+    import lightning_pytorch as LP
     import pandas as pd
 
 

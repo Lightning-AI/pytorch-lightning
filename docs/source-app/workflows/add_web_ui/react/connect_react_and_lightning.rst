@@ -77,7 +77,7 @@ You can use this single react app for the FULL Lightning app, or you can specify
 .. code:: python
     :emphasize-lines: 5, 9, 18-20
 
-    import lightning as L
+    import lightning_pytorch as LP
 
 
     class ComponentA(L.LightningFlow):

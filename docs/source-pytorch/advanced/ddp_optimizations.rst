@@ -22,8 +22,8 @@ This can reduce peak memory usage and throughput as saved memory will be equal t
 
 .. code-block:: python
 
-    import lightning as L
-    from lightning.pytorch.strategies import DDPStrategy
+    import lightning_pytorch as LP
+    from lightning_pytorch.strategies import DDPStrategy
 
     model = MyModel()
     trainer = L.Trainer(devices=4, strategy=DDPStrategy(gradient_as_bucket_view=True))
@@ -44,8 +44,8 @@ DDP Static Graph
 
 .. code-block:: python
 
-    import lightning as L
-    from lightning.pytorch.strategies import DDPStrategy
+    import lightning_pytorch as LP
+    from lightning_pytorch.strategies import DDPStrategy
 
     trainer = L.Trainer(devices=4, strategy=DDPStrategy(static_graph=True))
 
@@ -90,8 +90,8 @@ Enable `FP16 Compress Hook for multi-node throughput improvement <https://pytorc
 
 .. code-block:: python
 
-    import lightning as L
-    from lightning.pytorch.strategies import DDPStrategy
+    import lightning_pytorch as LP
+    from lightning_pytorch.strategies import DDPStrategy
     from torch.distributed.algorithms.ddp_comm_hooks import default_hooks as default
 
     model = MyModel()
@@ -106,8 +106,8 @@ Enable `PowerSGD for multi-node throughput improvement <https://pytorch.org/docs
 
 .. code-block:: python
 
-    import lightning as L
-    from lightning.pytorch.strategies import DDPStrategy
+    import lightning_pytorch as LP
+    from lightning_pytorch.strategies import DDPStrategy
     from torch.distributed.algorithms.ddp_comm_hooks import powerSGD_hook as powerSGD
 
     model = MyModel()
@@ -130,8 +130,8 @@ Combine hooks for accumulated benefit:
 
 .. code-block:: python
 
-    import lightning as L
-    from lightning.pytorch.strategies import DDPStrategy
+    import lightning_pytorch as LP
+    from lightning_pytorch.strategies import DDPStrategy
     from torch.distributed.algorithms.ddp_comm_hooks import (
         default_hooks as default,
         powerSGD_hook as powerSGD,
@@ -158,8 +158,8 @@ When using Post-localSGD, you must also pass ``model_averaging_period`` to allow
 
 .. code-block:: python
 
-    import lightning as L
-    from lightning.pytorch.strategies import DDPStrategy
+    import lightning_pytorch as LP
+    from lightning_pytorch.strategies import DDPStrategy
     from torch.distributed.algorithms.ddp_comm_hooks import post_localSGD_hook as post_localSGD
 
     model = MyModel()

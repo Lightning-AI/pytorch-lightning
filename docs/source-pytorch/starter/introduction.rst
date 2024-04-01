@@ -112,7 +112,7 @@ A LightningModule enables your PyTorch nn.Module to play together in complex way
     from torch import optim, nn, utils, Tensor
     from torchvision.datasets import MNIST
     from torchvision.transforms import ToTensor
-    import lightning as L
+    import lightning_pytorch as LP
 
     # define any number of nn.Modules (or use your current ones)
     encoder = nn.Sequential(nn.Linear(28 * 28, 64), nn.ReLU(), nn.Linear(64, 3))

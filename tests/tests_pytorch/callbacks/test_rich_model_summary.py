@@ -16,10 +16,10 @@ from unittest import mock
 
 import pytest
 import torch
-from lightning.pytorch import Trainer
-from lightning.pytorch.callbacks import RichModelSummary, RichProgressBar
-from lightning.pytorch.demos.boring_classes import BoringModel
-from lightning.pytorch.utilities.model_summary import summarize
+from lightning_pytorch import Trainer
+from lightning_pytorch.callbacks import RichModelSummary, RichProgressBar
+from lightning_pytorch.demos.boring_classes import BoringModel
+from lightning_pytorch.utilities.model_summary import summarize
 
 from tests_pytorch.helpers.runif import RunIf
 
@@ -33,7 +33,7 @@ def test_rich_model_summary_callback():
 
 
 def test_rich_progress_bar_import_error(monkeypatch):
-    import lightning.pytorch.callbacks.rich_model_summary as imports
+    import lightning_pytorch.callbacks.rich_model_summary as imports
 
     monkeypatch.setattr(imports, "_RICH_AVAILABLE", False)
     with pytest.raises(ModuleNotFoundError, match="`RichModelSummary` requires `rich` to be installed."):

@@ -16,9 +16,9 @@ from collections import namedtuple
 
 import pytest
 import torch
-from lightning.pytorch import Trainer
-from lightning.pytorch.accelerators import MPSAccelerator
-from lightning.pytorch.demos.boring_classes import BoringModel
+from lightning_pytorch import Trainer
+from lightning_pytorch.accelerators import MPSAccelerator
+from lightning_pytorch.demos.boring_classes import BoringModel
 
 import tests_pytorch.helpers.pipelines as tpipes
 from tests_pytorch.helpers.runif import RunIf

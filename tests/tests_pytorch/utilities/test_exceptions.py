@@ -13,7 +13,7 @@
 # limitations under the License.
 from pathlib import Path
 
-from lightning.pytorch.utilities.exceptions import _augment_message
+from lightning_pytorch.utilities.exceptions import _augment_message
 
 
 def test_augment_message():

@@ -18,12 +18,12 @@ import pickle
 import sys
 from unittest.mock import ANY
 
-import lightning.pytorch as pl
+import lightning_pytorch as pl
 import pytest
 import torch
 from lightning.fabric.utilities.warnings import PossibleUserWarning
-from lightning.pytorch.utilities.migration import migrate_checkpoint, pl_legacy_patch
-from lightning.pytorch.utilities.migration.utils import _pl_migrate_checkpoint, _RedirectingUnpickler
+from lightning_pytorch.utilities.migration import migrate_checkpoint, pl_legacy_patch
+from lightning_pytorch.utilities.migration.utils import _pl_migrate_checkpoint, _RedirectingUnpickler
 from lightning_utilities.core.imports import module_available
 from lightning_utilities.test.warning import no_warning_call
 from packaging.version import Version
@@ -37,17 +37,17 @@ from tests_pytorch.checkpointing.test_legacy_checkpoints import (
 
 def test_patch_legacy_argparse_utils():
     with pl_legacy_patch():
-        from lightning.pytorch.utilities import argparse_utils
+        from lightning_pytorch.utilities import argparse_utils
 
         assert callable(argparse_utils._gpus_arg_default)
-        assert "lightning.pytorch.utilities.argparse_utils" in sys.modules
+        assert "lightning_pytorch.utilities.argparse_utils" in sys.modules
 
-    assert "lightning.pytorch.utilities.argparse_utils" not in sys.modules
+    assert "lightning_pytorch.utilities.argparse_utils" not in sys.modules
 
 
 def test_patch_legacy_gpus_arg_default():
     with pl_legacy_patch():
-        from lightning.pytorch.utilities.argparse import _gpus_arg_default
+        from lightning_pytorch.utilities.argparse import _gpus_arg_default
 
         assert callable(_gpus_arg_default)
     assert not hasattr(pl.utilities.argparse, "_gpus_arg_default")
@@ -56,7 +56,7 @@ def test_patch_legacy_gpus_arg_default():
 
 def test_patch_legacy_fault_tolerant_mode():
     with pl_legacy_patch():
-        from lightning.pytorch.utilities.enums import _FaultTolerantMode
+        from lightning_pytorch.utilities.enums import _FaultTolerantMode
 
         assert _FaultTolerantMode.AUTOMATIC.value == "automatic"
     assert not hasattr(pl.utilities.enums, "_FaultTolerantMode")
@@ -200,7 +200,7 @@ def test_migrate_checkpoint_for_pl(caplog):
 
     # simulate an old checkpoint that needed an upgrade
     loaded_checkpoint = {"pytorch-lightning_version": "0.0.1", "global_step": 2, "epoch": 0}
-    with caplog.at_level(logging.INFO, logger="lightning.pytorch.utilities.migration.utils"):
+    with caplog.at_level(logging.INFO, logger="lightning_pytorch.utilities.migration.utils"):
         new_checkpoint = _pl_migrate_checkpoint(loaded_checkpoint, "path/to/ckpt")
     assert new_checkpoint == {
         "legacy_pytorch-lightning_version": "0.0.1",

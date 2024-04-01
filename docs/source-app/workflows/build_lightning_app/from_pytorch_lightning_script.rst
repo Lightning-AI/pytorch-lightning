@@ -77,7 +77,7 @@ The command above generates an App file like this:
 
     from your_app_name import ComponentA, ComponentB
 
-    import lightning as L
+    import lightning_pytorch as LP
 
 
     class LitApp(L.LightningFlow):

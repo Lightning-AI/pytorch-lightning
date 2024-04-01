@@ -16,9 +16,9 @@ from re import escape
 from unittest.mock import Mock
 
 import pytest
-from lightning.pytorch import Callback, Trainer
-from lightning.pytorch.callbacks import ModelCheckpoint
-from lightning.pytorch.demos.boring_classes import BoringModel
+from lightning_pytorch import Callback, Trainer
+from lightning_pytorch.callbacks import ModelCheckpoint
+from lightning_pytorch.demos.boring_classes import BoringModel
 from lightning_utilities.test.warning import no_warning_call
 
 

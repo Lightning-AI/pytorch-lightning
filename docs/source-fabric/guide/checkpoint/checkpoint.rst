@@ -138,7 +138,7 @@ Here is a trivial example to illustrate how it works:
 .. code-block:: python
 
     import torch
-    import lightning as L
+    import lightning_pytorch as LP
 
     fabric = L.Fabric()
 

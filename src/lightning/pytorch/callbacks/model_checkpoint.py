@@ -35,13 +35,13 @@ import yaml
 from torch import Tensor
 from typing_extensions import override
 
-import lightning.pytorch as pl
+import lightning_pytorch as pl
 from lightning.fabric.utilities.cloud_io import _is_dir, _is_local_file_protocol, get_filesystem
 from lightning.fabric.utilities.types import _PATH
-from lightning.pytorch.callbacks import Checkpoint
-from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning.pytorch.utilities.rank_zero import WarningCache, rank_zero_info, rank_zero_warn
-from lightning.pytorch.utilities.types import STEP_OUTPUT
+from lightning_pytorch.callbacks import Checkpoint
+from lightning_pytorch.utilities.exceptions import MisconfigurationException
+from lightning_pytorch.utilities.rank_zero import WarningCache, rank_zero_info, rank_zero_warn
+from lightning_pytorch.utilities.types import STEP_OUTPUT
 
 log = logging.getLogger(__name__)
 warning_cache = WarningCache()
@@ -49,7 +49,7 @@ warning_cache = WarningCache()
 
 class ModelCheckpoint(Checkpoint):
     r"""Save the model periodically by monitoring a quantity. Every metric logged with
-    :meth:`~lightning.pytorch.core.LightningModule.log` or :meth:`~lightning.pytorch.core.LightningModule.log_dict` is
+    :meth:`~lightning_pytorch.core.LightningModule.log` or :meth:`~lightning_pytorch.core.LightningModule.log_dict` is
     a candidate for the monitor key. For more information, see :ref:`checkpointing`.
 
     After training finishes, use :attr:`best_model_path` to retrieve the path to the
@@ -65,8 +65,8 @@ class ModelCheckpoint(Checkpoint):
                 >>> checkpoint_callback = ModelCheckpoint(dirpath='my/path/')
 
             By default, dirpath is ``None`` and will be set at runtime to the location
-            specified by :class:`~lightning.pytorch.trainer.trainer.Trainer`'s
-            :paramref:`~lightning.pytorch.trainer.trainer.Trainer.default_root_dir` argument,
+            specified by :class:`~lightning_pytorch.trainer.trainer.Trainer`'s
+            :paramref:`~lightning_pytorch.trainer.trainer.Trainer.default_root_dir` argument,
             and if the Trainer uses a logger, the path will also contain logger name and version.
 
         filename: checkpoint filename. Can contain named formatting options to be auto-filled.
@@ -163,8 +163,8 @@ class ModelCheckpoint(Checkpoint):
 
     Example::
 
-        >>> from lightning.pytorch import Trainer
-        >>> from lightning.pytorch.callbacks import ModelCheckpoint
+        >>> from lightning_pytorch import Trainer
+        >>> from lightning_pytorch.callbacks import ModelCheckpoint
 
         # saves checkpoints to 'my/path/' at every epoch
         >>> checkpoint_callback = ModelCheckpoint(dirpath='my/path/')
@@ -411,7 +411,7 @@ class ModelCheckpoint(Checkpoint):
         trainer.strategy.barrier()
 
     def _should_skip_saving_checkpoint(self, trainer: "pl.Trainer") -> bool:
-        from lightning.pytorch.trainer.states import TrainerFn
+        from lightning_pytorch.trainer.states import TrainerFn
 
         return (
             bool(trainer.fast_dev_run)  # disable checkpointing with fast_dev_run

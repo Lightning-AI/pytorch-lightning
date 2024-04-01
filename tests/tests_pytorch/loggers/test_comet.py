@@ -16,10 +16,10 @@ from unittest import mock
 from unittest.mock import DEFAULT, Mock, patch
 
 import pytest
-from lightning.pytorch import Trainer
-from lightning.pytorch.demos.boring_classes import BoringModel
-from lightning.pytorch.loggers import CometLogger
-from lightning.pytorch.utilities.exceptions import MisconfigurationException
+from lightning_pytorch import Trainer
+from lightning_pytorch.demos.boring_classes import BoringModel
+from lightning_pytorch.loggers import CometLogger
+from lightning_pytorch.utilities.exceptions import MisconfigurationException
 from torch import tensor
 
 

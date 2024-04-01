@@ -14,8 +14,8 @@
 
 import pytest
 import torch
-from lightning.pytorch import LightningModule, Trainer
-from lightning.pytorch.plugins import HalfPrecision
+from lightning_pytorch import LightningModule, Trainer
+from lightning_pytorch.plugins import HalfPrecision
 
 
 @pytest.mark.parametrize(

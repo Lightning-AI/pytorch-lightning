@@ -19,7 +19,7 @@ For example, here we increase the count variable of the Lightning Component ever
     :emphasize-lines: 8, 14
 
     # app.py
-    import lightning as L
+    import lightning_pytorch as LP
     import lightning.app.frontend as frontend
     import streamlit as st
 
@@ -68,7 +68,7 @@ In this example we update the value of the counter from the component:
     :emphasize-lines: 7, 15
 
     # app.py
-    import lightning as L
+    import lightning_pytorch as LP
     import lightning.app.frontend as frontend
     import streamlit as st
 

@@ -13,10 +13,10 @@
 # limitations under the License.
 """Tests to ensure that the behaviours related to multiple optimizers works."""
 
-import lightning.pytorch as pl
+import lightning_pytorch as pl
 import pytest
 import torch
-from lightning.pytorch.demos.boring_classes import BoringModel
+from lightning_pytorch.demos.boring_classes import BoringModel
 
 
 class MultiOptModel(BoringModel):

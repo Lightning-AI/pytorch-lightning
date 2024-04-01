@@ -6,8 +6,8 @@
     import torch
     from unittest import mock
     from typing import List
-    import lightning.pytorch.cli as pl_cli
-    from lightning.pytorch import LightningModule, LightningDataModule, Trainer, Callback
+    import lightning_pytorch.cli as pl_cli
+    from lightning_pytorch import LightningModule, LightningDataModule, Trainer, Callback
 
 
     class NoFitTrainer(Trainer):
@@ -69,9 +69,9 @@ to subclass the CLI, but still, use the CLI's instantiation and argument parsing
 Trainer Callbacks and arguments with class type
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-A very important argument of the :class:`~lightning.pytorch.trainer.trainer.Trainer` class is the ``callbacks``. In
+A very important argument of the :class:`~lightning_pytorch.trainer.trainer.Trainer` class is the ``callbacks``. In
 contrast to simpler arguments that take numbers or strings, ``callbacks`` expects a list of instances of subclasses of
-:class:`~lightning.pytorch.callbacks.Callback`. To specify this kind of argument in a config file, each callback must be
+:class:`~lightning_pytorch.callbacks.Callback`. To specify this kind of argument in a config file, each callback must be
 given as a dictionary, including a ``class_path`` entry with an import path of the class and optionally an ``init_args``
 entry with arguments to use to instantiate. Therefore, a simple configuration file that defines two callbacks is the
 following:
@@ -80,18 +80,18 @@ following:
 
     trainer:
       callbacks:
-        - class_path: lightning.pytorch.callbacks.ModelCheckpoint
+        - class_path: lightning_pytorch.callbacks.ModelCheckpoint
           init_args:
             save_weights_only: true
-        - class_path: lightning.pytorch.callbacks.LearningRateMonitor
+        - class_path: lightning_pytorch.callbacks.LearningRateMonitor
           init_args:
             logging_interval: 'epoch'
 
-Similar to the callbacks, any parameter in :class:`~lightning.pytorch.trainer.trainer.Trainer` and user extended
-:class:`~lightning.pytorch.core.LightningModule` and
-:class:`~lightning.pytorch.core.datamodule.LightningDataModule` classes that have as type hint a class, can be
+Similar to the callbacks, any parameter in :class:`~lightning_pytorch.trainer.trainer.Trainer` and user extended
+:class:`~lightning_pytorch.core.LightningModule` and
+:class:`~lightning_pytorch.core.datamodule.LightningDataModule` classes that have as type hint a class, can be
 configured the same way using ``class_path`` and ``init_args``. If the package that defines a subclass is imported
-before the :class:`~lightning.pytorch.cli.LightningCLI` class is run, the name can be used instead of the full import
+before the :class:`~lightning_pytorch.cli.LightningCLI` class is run, the name can be used instead of the full import
 path.
 
 From command line the syntax is the following:
@@ -120,7 +120,7 @@ callback appended. Here is an example:
 
 .. note::
 
-    Serialized config files (e.g. ``--print_config`` or :class:`~lightning.pytorch.cli.SaveConfigCallback`) always have
+    Serialized config files (e.g. ``--print_config`` or :class:`~lightning_pytorch.cli.SaveConfigCallback`) always have
     the full ``class_path``, even when class name shorthand notation is used in the command line or in input config
     files.
 
@@ -152,14 +152,14 @@ A possible config file could be as follows:
         ...
     trainer:
       callbacks:
-        - class_path: lightning.pytorch.callbacks.EarlyStopping
+        - class_path: lightning_pytorch.callbacks.EarlyStopping
           init_args:
             patience: 5
         ...
 
 Only model classes that are a subclass of ``MyModelBaseClass`` would be allowed, and similarly, only subclasses of
-``MyDataModuleBaseClass``. If as base classes :class:`~lightning.pytorch.core.LightningModule` and
-:class:`~lightning.pytorch.core.datamodule.LightningDataModule` is given, then the CLI would allow any lightning module
+``MyDataModuleBaseClass``. If as base classes :class:`~lightning_pytorch.core.LightningModule` and
+:class:`~lightning_pytorch.core.datamodule.LightningDataModule` is given, then the CLI would allow any lightning module
 and data module.
 
 .. tip::
@@ -265,7 +265,7 @@ Multiple optimizers and schedulers
 
 By default, the CLIs support multiple optimizers and/or learning schedulers, automatically implementing
 ``configure_optimizers``. This behavior can be disabled by providing ``auto_configure_optimizers=False`` on
-instantiation of :class:`~lightning.pytorch.cli.LightningCLI`. This would be required for example to support multiple
+instantiation of :class:`~lightning_pytorch.cli.LightningCLI`. This would be required for example to support multiple
 optimizers, for each selecting a particular optimizer class. Similar to multiple submodules, this can be done via
 `dependency injection <https://en.wikipedia.org/wiki/Dependency_injection>`__. Unlike the submodules, it is not possible
 to expect an instance of a class, because optimizers require the module's parameters to optimize, which are only
@@ -317,7 +317,7 @@ that uses dependency injection for an optimizer and a learning scheduler is:
 
 .. code-block:: python
 
-    from lightning.pytorch.cli import OptimizerCallable, LRSchedulerCallable, LightningCLI
+    from lightning_pytorch.cli import OptimizerCallable, LRSchedulerCallable, LightningCLI
 
 
     class MyModel(LightningModule):
@@ -348,14 +348,14 @@ OptimizerCallable = lambda p: torch.optim.SGD(p, lr=0.01)``.
 Run from Python
 ^^^^^^^^^^^^^^^
 
-Even though the :class:`~lightning.pytorch.cli.LightningCLI` class is designed to help in the implementation of command
+Even though the :class:`~lightning_pytorch.cli.LightningCLI` class is designed to help in the implementation of command
 line tools, for some use cases it is desired to run directly from Python. To allow this there is the ``args`` parameter.
 An example could be to first implement a normal CLI script, but adding an ``args`` parameter with default ``None`` to
 the main function as follows:
 
 .. code:: python
 
-    from lightning.pytorch.cli import ArgsType, LightningCLI
+    from lightning_pytorch.cli import ArgsType, LightningCLI
 
 
     def cli_main(args: ArgsType = None):

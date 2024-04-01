@@ -13,8 +13,8 @@
 # limitations under the License.
 import pytest
 import torch
-from lightning.pytorch.demos.boring_classes import BoringModel
-from lightning.pytorch.utilities import find_shared_parameters, set_shared_parameters
+from lightning_pytorch.demos.boring_classes import BoringModel
+from lightning_pytorch.utilities import find_shared_parameters, set_shared_parameters
 from torch import nn
 
 

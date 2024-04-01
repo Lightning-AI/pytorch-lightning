@@ -16,10 +16,10 @@ from unittest.mock import MagicMock, Mock
 
 import pytest
 import torch
-from lightning.pytorch import Trainer
-from lightning.pytorch.core.optimizer import LightningOptimizer
-from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
-from lightning.pytorch.strategies import SingleDeviceStrategy
+from lightning_pytorch import Trainer
+from lightning_pytorch.core.optimizer import LightningOptimizer
+from lightning_pytorch.demos.boring_classes import BoringModel, RandomDataset
+from lightning_pytorch.strategies import SingleDeviceStrategy
 from torch.utils.data import DataLoader
 
 from tests_pytorch.helpers.dataloaders import CustomNotImplementedErrorDataloader

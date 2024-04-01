@@ -20,7 +20,7 @@ and connect the UIs. Create a file named **app.py** with this code:
 .. code:: python
     :emphasize-lines: 7,11
 
-    import lightning as L
+    import lightning_pytorch as LP
 
     class LitApp(L.LightningFlow):
         def configure_layout(self):

@@ -48,7 +48,7 @@ class _LightningTrainerRunExecutor(_PyTorchSpawnRunExecutor):
         strategies = []
         mps_accelerators = []
 
-        for pkg_name in ("lightning.pytorch", "pytorch_" + "lightning"):
+        for pkg_name in ("lightning_pytorch", "pytorch_" + "lightning"):
             try:
                 pkg = importlib.import_module(pkg_name)
                 trainers.append(pkg.Trainer)

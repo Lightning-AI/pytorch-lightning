@@ -11,12 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from lightning.pytorch.profilers.advanced import AdvancedProfiler
-from lightning.pytorch.profilers.base import PassThroughProfiler
-from lightning.pytorch.profilers.profiler import Profiler
-from lightning.pytorch.profilers.pytorch import PyTorchProfiler
-from lightning.pytorch.profilers.simple import SimpleProfiler
-from lightning.pytorch.profilers.xla import XLAProfiler
+from lightning_pytorch.profilers.advanced import AdvancedProfiler
+from lightning_pytorch.profilers.base import PassThroughProfiler
+from lightning_pytorch.profilers.profiler import Profiler
+from lightning_pytorch.profilers.pytorch import PyTorchProfiler
+from lightning_pytorch.profilers.simple import SimpleProfiler
+from lightning_pytorch.profilers.xla import XLAProfiler
 
 __all__ = [
     "Profiler",

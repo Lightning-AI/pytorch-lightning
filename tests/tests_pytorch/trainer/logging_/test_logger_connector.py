@@ -18,16 +18,16 @@ from unittest.mock import Mock
 
 import pytest
 import torch
-from lightning.pytorch import LightningModule
-from lightning.pytorch.callbacks.callback import Callback
-from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
-from lightning.pytorch.loggers import CSVLogger
-from lightning.pytorch.trainer import Trainer
-from lightning.pytorch.trainer.connectors.logger_connector.fx_validator import _FxValidator
-from lightning.pytorch.trainer.connectors.logger_connector.result import _ResultCollection
-from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning.pytorch.utilities.imports import _TORCHMETRICS_GREATER_EQUAL_0_9_1
-from lightning.pytorch.utilities.imports import _TORCHMETRICS_GREATER_EQUAL_0_11 as _TM_GE_0_11
+from lightning_pytorch import LightningModule
+from lightning_pytorch.callbacks.callback import Callback
+from lightning_pytorch.demos.boring_classes import BoringModel, RandomDataset
+from lightning_pytorch.loggers import CSVLogger
+from lightning_pytorch.trainer import Trainer
+from lightning_pytorch.trainer.connectors.logger_connector.fx_validator import _FxValidator
+from lightning_pytorch.trainer.connectors.logger_connector.result import _ResultCollection
+from lightning_pytorch.utilities.exceptions import MisconfigurationException
+from lightning_pytorch.utilities.imports import _TORCHMETRICS_GREATER_EQUAL_0_9_1
+from lightning_pytorch.utilities.imports import _TORCHMETRICS_GREATER_EQUAL_0_11 as _TM_GE_0_11
 from lightning_utilities.core.imports import compare_version
 from torch.utils.data import DataLoader
 from torchmetrics import Accuracy, MeanAbsoluteError, MeanSquaredError, MetricCollection

@@ -45,7 +45,7 @@ class JustPyFrontend(Frontend):
         .. code-block:: python
 
             from typing import Callable
-            from lightning import LightningApp, LightningFlow
+            from lightning_pytorch import LightningApp, LightningFlow
             from lightning.app.frontend import JustPyFrontend
 
 

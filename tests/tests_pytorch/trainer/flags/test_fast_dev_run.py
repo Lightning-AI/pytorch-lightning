@@ -3,12 +3,12 @@ from unittest.mock import Mock
 
 import pytest
 import torch
-from lightning.pytorch import Trainer
-from lightning.pytorch.callbacks import EarlyStopping, ModelCheckpoint
-from lightning.pytorch.demos.boring_classes import BoringModel
-from lightning.pytorch.loggers import TensorBoardLogger
-from lightning.pytorch.loggers.logger import DummyLogger
-from lightning.pytorch.tuner.tuning import Tuner
+from lightning_pytorch import Trainer
+from lightning_pytorch.callbacks import EarlyStopping, ModelCheckpoint
+from lightning_pytorch.demos.boring_classes import BoringModel
+from lightning_pytorch.loggers import TensorBoardLogger
+from lightning_pytorch.loggers.logger import DummyLogger
+from lightning_pytorch.tuner.tuning import Tuner
 
 
 def test_skip_on_fast_dev_run_tuner(tmp_path):

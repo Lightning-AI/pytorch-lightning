@@ -23,9 +23,9 @@ from typing import Any
 
 from typing_extensions import override
 
-import lightning.pytorch as pl
+import lightning_pytorch as pl
 from lightning.fabric.utilities.types import _PATH
-from lightning.pytorch.callbacks import Checkpoint
+from lightning_pytorch.callbacks import Checkpoint
 
 
 class OnExceptionCheckpoint(Checkpoint):
@@ -41,8 +41,8 @@ class OnExceptionCheckpoint(Checkpoint):
 
 
     Example:
-        >>> from lightning.pytorch import Trainer
-        >>> from lightning.pytorch.callbacks import OnExceptionCheckpoint
+        >>> from lightning_pytorch import Trainer
+        >>> from lightning_pytorch.callbacks import OnExceptionCheckpoint
         >>> trainer = Trainer(callbacks=[OnExceptionCheckpoint(".")])
 
     """

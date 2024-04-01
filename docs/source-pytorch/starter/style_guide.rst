@@ -2,7 +2,7 @@
 Style Guide
 ###########
 The main goal of PyTorch Lightning is to improve readability and reproducibility. Imagine looking into any GitHub repo or a research project,
-finding a :class:`~lightning.pytorch.core.LightningModule`, and knowing exactly where to look to find the things you care about.
+finding a :class:`~lightning_pytorch.core.LightningModule`, and knowing exactly where to look to find the things you care about.
 
 The goal of this style guide is to encourage Lightning code to be structured similarly.
 
@@ -12,7 +12,7 @@ The goal of this style guide is to encourage Lightning code to be structured sim
 LightningModule
 ***************
 
-These are best practices for structuring your :class:`~lightning.pytorch.core.LightningModule` class:
+These are best practices for structuring your :class:`~lightning_pytorch.core.LightningModule` class:
 
 Systems vs Models
 =================
@@ -165,8 +165,8 @@ In practice, the code looks like this:
 Forward vs training_step
 ========================
 
-We recommend using :meth:`~lightning.pytorch.core.LightningModule.forward` for inference/predictions and keeping
-:meth:`~lightning.pytorch.core.LightningModule.training_step` independent.
+We recommend using :meth:`~lightning_pytorch.core.LightningModule.forward` for inference/predictions and keeping
+:meth:`~lightning_pytorch.core.LightningModule.training_step` independent.
 
 .. code-block:: python
 
@@ -200,8 +200,8 @@ make sure to tune the number of workers for maximum efficiency.
 DataModules
 ===========
 
-The :class:`~lightning.pytorch.core.datamodule.LightningDataModule` is designed as a way of decoupling data-related
-hooks from the :class:`~lightning.pytorch.core.LightningModule` so you can develop dataset agnostic models. It makes it easy to hot swap different
+The :class:`~lightning_pytorch.core.datamodule.LightningDataModule` is designed as a way of decoupling data-related
+hooks from the :class:`~lightning_pytorch.core.LightningModule` so you can develop dataset agnostic models. It makes it easy to hot swap different
 datasets with your model, so you can test it and benchmark it across domains. It also makes sharing and reusing the exact data splits and transforms across projects possible.
 
 Check out :ref:`data` document to understand data management within Lightning and its best practices.

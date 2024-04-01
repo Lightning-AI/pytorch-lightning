@@ -25,7 +25,7 @@ from typing_extensions import override
 from lightning.fabric.loggers import Logger as FabricLogger
 from lightning.fabric.loggers.logger import _DummyExperiment as DummyExperiment  # for backward compatibility
 from lightning.fabric.loggers.logger import rank_zero_experiment  # noqa: F401  # for backward compatibility
-from lightning.pytorch.callbacks.model_checkpoint import ModelCheckpoint
+from lightning_pytorch.callbacks.model_checkpoint import ModelCheckpoint
 
 
 class Logger(FabricLogger, ABC):

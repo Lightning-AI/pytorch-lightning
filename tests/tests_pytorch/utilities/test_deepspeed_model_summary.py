@@ -12,11 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import lightning.pytorch as pl
-from lightning.pytorch import Callback, Trainer
-from lightning.pytorch.demos.boring_classes import BoringModel
-from lightning.pytorch.strategies import DeepSpeedStrategy
-from lightning.pytorch.utilities.model_summary import DeepSpeedSummary
+import lightning_pytorch as pl
+from lightning_pytorch import Callback, Trainer
+from lightning_pytorch.demos.boring_classes import BoringModel
+from lightning_pytorch.strategies import DeepSpeedStrategy
+from lightning_pytorch.utilities.model_summary import DeepSpeedSummary
 
 from tests_pytorch.helpers.runif import RunIf
 

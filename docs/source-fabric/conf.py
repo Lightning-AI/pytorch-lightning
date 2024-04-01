@@ -411,10 +411,10 @@ doctest_test_doctest_blocks = ""
 doctest_global_setup = """
 import importlib
 import os
-import lightning as L
+import lightning_pytorch as LP
 
 from lightning_utilities.core.imports import package_available
-from lightning import LightningModule, Trainer
+from lightning_pytorch import LightningModule, Trainer
 from lightning.fabric.loggers.tensorboard import _TENSORBOARD_AVAILABLE, _TENSORBOARDX_AVAILABLE
 
 _TORCHVISION_AVAILABLE = package_available("torchvision")

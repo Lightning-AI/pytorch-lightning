@@ -13,13 +13,13 @@
 # limitations under the License.
 import pytest
 import torch
-from lightning.pytorch import Trainer
-from lightning.pytorch.callbacks import EarlyStopping, LearningRateMonitor
-from lightning.pytorch.callbacks.callback import Callback
-from lightning.pytorch.callbacks.finetuning import BackboneFinetuning
-from lightning.pytorch.demos.boring_classes import BoringModel
-from lightning.pytorch.loggers import CSVLogger
-from lightning.pytorch.utilities.exceptions import MisconfigurationException
+from lightning_pytorch import Trainer
+from lightning_pytorch.callbacks import EarlyStopping, LearningRateMonitor
+from lightning_pytorch.callbacks.callback import Callback
+from lightning_pytorch.callbacks.finetuning import BackboneFinetuning
+from lightning_pytorch.demos.boring_classes import BoringModel
+from lightning_pytorch.loggers import CSVLogger
+from lightning_pytorch.utilities.exceptions import MisconfigurationException
 from torch import optim
 
 from tests_pytorch.helpers.datamodules import ClassifDataModule

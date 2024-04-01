@@ -13,10 +13,10 @@
 # limitations under the License.
 
 import pytest
-from lightning.pytorch import Trainer
-from lightning.pytorch.callbacks import ModelCheckpoint
-from lightning.pytorch.demos.boring_classes import BoringModel
-from lightning.pytorch.loggers import CSVLogger, TensorBoardLogger
+from lightning_pytorch import Trainer
+from lightning_pytorch.callbacks import ModelCheckpoint
+from lightning_pytorch.demos.boring_classes import BoringModel
+from lightning_pytorch.loggers import CSVLogger, TensorBoardLogger
 
 
 class TestModel(BoringModel):

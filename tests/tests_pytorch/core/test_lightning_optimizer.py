@@ -16,11 +16,11 @@ from unittest.mock import DEFAULT, Mock, patch
 
 import pytest
 import torch
-from lightning.pytorch import Trainer
-from lightning.pytorch.core.optimizer import LightningOptimizer
-from lightning.pytorch.demos.boring_classes import BoringModel
-from lightning.pytorch.loops.optimization.automatic import Closure
-from lightning.pytorch.tuner.tuning import Tuner
+from lightning_pytorch import Trainer
+from lightning_pytorch.core.optimizer import LightningOptimizer
+from lightning_pytorch.demos.boring_classes import BoringModel
+from lightning_pytorch.loops.optimization.automatic import Closure
+from lightning_pytorch.tuner.tuning import Tuner
 from torch.optim import SGD, Adam, Optimizer
 
 

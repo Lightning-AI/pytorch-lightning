@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import torch
-from lightning.pytorch.core.datamodule import LightningDataModule
+from lightning_pytorch.core.datamodule import LightningDataModule
 from lightning_utilities.core.imports import RequirementCache
 from torch.utils.data import DataLoader
 

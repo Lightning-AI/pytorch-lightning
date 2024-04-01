@@ -22,7 +22,7 @@ For logging, remote filesystem support depends on the particular logger integrat
 
 .. code-block:: python
 
-    from lightning.pytorch.loggers import TensorBoardLogger
+    from lightning_pytorch.loggers import TensorBoardLogger
 
     logger = TensorBoardLogger(save_dir="s3://my_bucket/logs/")
 

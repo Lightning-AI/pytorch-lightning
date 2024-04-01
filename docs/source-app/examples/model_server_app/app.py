@@ -2,7 +2,7 @@ from locust_component import Locust
 from model_server import MLServer
 from train import TrainModel
 
-from lightning import LightningApp, LightningFlow
+from lightning_pytorch import LightningApp, LightningFlow
 
 
 class TrainAndServe(LightningFlow):

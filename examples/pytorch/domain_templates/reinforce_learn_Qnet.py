@@ -41,7 +41,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from lightning.pytorch import LightningModule, Trainer, cli_lightning_logo, seed_everything
+from lightning_pytorch import LightningModule, Trainer, cli_lightning_logo, seed_everything
 from torch.optim.optimizer import Optimizer
 from torch.utils.data import DataLoader
 from torch.utils.data.dataset import IterableDataset

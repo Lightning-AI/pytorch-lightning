@@ -17,14 +17,14 @@ from unittest import mock
 
 import pytest
 import torch
-from lightning.pytorch import Trainer
-from lightning.pytorch.accelerators import XLAAccelerator
-from lightning.pytorch.callbacks import EarlyStopping
-from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
-from lightning.pytorch.strategies import XLAStrategy
-from lightning.pytorch.strategies.launchers.xla import _XLALauncher
-from lightning.pytorch.trainer.connectors.logger_connector.result import _Sync
-from lightning.pytorch.utilities.exceptions import MisconfigurationException
+from lightning_pytorch import Trainer
+from lightning_pytorch.accelerators import XLAAccelerator
+from lightning_pytorch.callbacks import EarlyStopping
+from lightning_pytorch.demos.boring_classes import BoringModel, RandomDataset
+from lightning_pytorch.strategies import XLAStrategy
+from lightning_pytorch.strategies.launchers.xla import _XLALauncher
+from lightning_pytorch.trainer.connectors.logger_connector.result import _Sync
+from lightning_pytorch.utilities.exceptions import MisconfigurationException
 from torch.utils.data import DataLoader
 
 import tests_pytorch.helpers.pipelines as tpipes

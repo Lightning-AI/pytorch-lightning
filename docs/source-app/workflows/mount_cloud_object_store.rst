@@ -82,7 +82,7 @@ See the Full Example
 
     import os
 
-    import lightning as L
+    import lightning_pytorch as LP
     from lightning.app import CloudCompute
     from lightning.app.storage import Mount
 

@@ -189,7 +189,7 @@ Lightning allows explicitly specifying the backend via the `process_group_backen
 
 .. code-block:: python
 
-    from lightning.pytorch.strategies import DDPStrategy
+    from lightning_pytorch.strategies import DDPStrategy
 
     # Explicitly specify the process group backend if you choose to
     ddp = DDPStrategy(process_group_backend="nccl")

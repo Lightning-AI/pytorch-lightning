@@ -17,9 +17,9 @@ import os
 from datetime import timedelta
 from typing import Dict, List, Optional, Sequence, Union
 
-import lightning.pytorch as pl
+import lightning_pytorch as pl
 from lightning.fabric.utilities.registry import _load_external_callbacks
-from lightning.pytorch.callbacks import (
+from lightning_pytorch.callbacks import (
     Callback,
     Checkpoint,
     ModelCheckpoint,
@@ -28,14 +28,14 @@ from lightning.pytorch.callbacks import (
     RichProgressBar,
     TQDMProgressBar,
 )
-from lightning.pytorch.callbacks.batch_size_finder import BatchSizeFinder
-from lightning.pytorch.callbacks.lr_finder import LearningRateFinder
-from lightning.pytorch.callbacks.rich_model_summary import RichModelSummary
-from lightning.pytorch.callbacks.timer import Timer
-from lightning.pytorch.trainer import call
-from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning.pytorch.utilities.model_helpers import is_overridden
-from lightning.pytorch.utilities.rank_zero import rank_zero_info
+from lightning_pytorch.callbacks.batch_size_finder import BatchSizeFinder
+from lightning_pytorch.callbacks.lr_finder import LearningRateFinder
+from lightning_pytorch.callbacks.rich_model_summary import RichModelSummary
+from lightning_pytorch.callbacks.timer import Timer
+from lightning_pytorch.trainer import call
+from lightning_pytorch.utilities.exceptions import MisconfigurationException
+from lightning_pytorch.utilities.model_helpers import is_overridden
+from lightning_pytorch.utilities.rank_zero import rank_zero_info
 
 _log = logging.getLogger(__name__)
 
@@ -75,7 +75,7 @@ class _CallbackConnector:
         # configure the ModelSummary callback
         self._configure_model_summary_callback(enable_model_summary)
 
-        self.trainer.callbacks.extend(_load_external_callbacks("lightning.pytorch.callbacks_factory"))
+        self.trainer.callbacks.extend(_load_external_callbacks("lightning_pytorch.callbacks_factory"))
         _validate_callbacks_list(self.trainer.callbacks)
 
         # push all model checkpoint callbacks to the end
@@ -159,7 +159,7 @@ class _CallbackConnector:
 
         If a callback returned by the model's configure_callback method has the same type as one or several
         callbacks already present in the trainer callbacks list, it will replace them.
-        In addition, all :class:`~lightning.pytorch.callbacks.model_checkpoint.ModelCheckpoint` callbacks
+        In addition, all :class:`~lightning_pytorch.callbacks.model_checkpoint.ModelCheckpoint` callbacks
         will be pushed to the end of the list, ensuring they run last.
 
         """

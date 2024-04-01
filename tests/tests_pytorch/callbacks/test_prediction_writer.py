@@ -14,10 +14,10 @@
 from unittest.mock import ANY, Mock, call
 
 import pytest
-from lightning.pytorch import Trainer
-from lightning.pytorch.callbacks import BasePredictionWriter
-from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
-from lightning.pytorch.utilities.exceptions import MisconfigurationException
+from lightning_pytorch import Trainer
+from lightning_pytorch.callbacks import BasePredictionWriter
+from lightning_pytorch.demos.boring_classes import BoringModel, RandomDataset
+from lightning_pytorch.utilities.exceptions import MisconfigurationException
 from torch.utils.data import DataLoader
 
 

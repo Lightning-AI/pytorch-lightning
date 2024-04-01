@@ -35,7 +35,7 @@ First of all, you would need to import the ``JustPyFrontend`` and return it from
 
     from typing import Callable
 
-    from lightning import LightningApp, LightningFlow
+    from lightning_pytorch import LightningApp, LightningFlow
     from lightning.app.frontend import JustPyFrontend
 
 

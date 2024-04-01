@@ -25,7 +25,7 @@ from torch.nn.parallel.distributed import DistributedDataParallel
 from torch.optim.optimizer import Optimizer
 from typing_extensions import override
 
-import lightning.pytorch as pl
+import lightning_pytorch as pl
 from lightning.fabric.plugins import CheckpointIO, ClusterEnvironment
 from lightning.fabric.plugins.collectives.torch_collective import default_pg_timeout
 from lightning.fabric.strategies import _StrategyRegistry
@@ -40,15 +40,15 @@ from lightning.fabric.utilities.imports import _IS_WINDOWS
 from lightning.fabric.utilities.optimizer import _optimizers_to_device
 from lightning.fabric.utilities.seed import reset_seed
 from lightning.fabric.utilities.types import ReduceOp
-from lightning.pytorch.core.optimizer import LightningOptimizer
-from lightning.pytorch.overrides.distributed import _register_ddp_comm_hook, _sync_module_states, prepare_for_backward
-from lightning.pytorch.plugins.precision import Precision
-from lightning.pytorch.strategies.launchers import _MultiProcessingLauncher, _SubprocessScriptLauncher
-from lightning.pytorch.strategies.parallel import ParallelStrategy
-from lightning.pytorch.strategies.strategy import TBroadcast, _ForwardRedirection
-from lightning.pytorch.trainer.states import TrainerFn
-from lightning.pytorch.utilities.exceptions import _augment_message
-from lightning.pytorch.utilities.rank_zero import rank_zero_deprecation, rank_zero_info, rank_zero_only
+from lightning_pytorch.core.optimizer import LightningOptimizer
+from lightning_pytorch.overrides.distributed import _register_ddp_comm_hook, _sync_module_states, prepare_for_backward
+from lightning_pytorch.plugins.precision import Precision
+from lightning_pytorch.strategies.launchers import _MultiProcessingLauncher, _SubprocessScriptLauncher
+from lightning_pytorch.strategies.parallel import ParallelStrategy
+from lightning_pytorch.strategies.strategy import TBroadcast, _ForwardRedirection
+from lightning_pytorch.trainer.states import TrainerFn
+from lightning_pytorch.utilities.exceptions import _augment_message
+from lightning_pytorch.utilities.rank_zero import rank_zero_deprecation, rank_zero_info, rank_zero_only
 
 if TYPE_CHECKING:
     from torch.distributed.algorithms.model_averaging.averagers import ModelAverager

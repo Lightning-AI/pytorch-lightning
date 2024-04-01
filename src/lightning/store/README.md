@@ -11,7 +11,7 @@
 **Storing to the cloud**
 
 ```python
-import lightning as L
+import lightning_pytorch as LP
 
 # Upload a checkpoint:
 L.store.upload_model("mnist_model", "mnist_model.ckpt")
@@ -23,7 +23,7 @@ L.store.upload_model("mnist_model", "mnist_model.ckpt", version="1.0.0")
 **List your models**
 
 ```python
-import lightning as L
+import lightning_pytorch as LP
 
 models = L.store.list_models()
 
@@ -34,7 +34,7 @@ print([model.name for model in models])
 **Downloading from the cloud**
 
 ```python
-import lightning as L
+import lightning_pytorch as LP
 
 # Download a checkpoint
 L.store.download_model("username/mnist_model", "any_path.ckpt")

@@ -23,7 +23,7 @@ Additionally, you can pass your custom registered training strategies to the ``s
 
 .. code-block:: python
 
-    from lightning.pytorch.strategies import DDPStrategy, StrategyRegistry, CheckpointIO
+    from lightning_pytorch.strategies import DDPStrategy, StrategyRegistry, CheckpointIO
 
 
     class CustomCheckpointIO(CheckpointIO):

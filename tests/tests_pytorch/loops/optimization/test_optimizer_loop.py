@@ -16,10 +16,10 @@ from typing import Dict, Generic, Iterator, Mapping, TypeVar
 
 import pytest
 import torch
-from lightning.pytorch import Trainer
-from lightning.pytorch.demos.boring_classes import BoringModel
-from lightning.pytorch.loops.optimization.automatic import ClosureResult
-from lightning.pytorch.utilities.exceptions import MisconfigurationException
+from lightning_pytorch import Trainer
+from lightning_pytorch.demos.boring_classes import BoringModel
+from lightning_pytorch.loops.optimization.automatic import ClosureResult
+from lightning_pytorch.utilities.exceptions import MisconfigurationException
 
 
 def test_closure_result_deepcopy():

@@ -20,21 +20,21 @@ from torch import Tensor
 from torch.nn import Module
 from typing_extensions import override
 
-import lightning.pytorch as pl
+import lightning_pytorch as pl
 from lightning.fabric.accelerators.xla import _XLA_AVAILABLE, _XLA_GREATER_EQUAL_2_1
 from lightning.fabric.plugins import XLACheckpointIO
 from lightning.fabric.plugins.environments import XLAEnvironment
 from lightning.fabric.strategies import _StrategyRegistry
 from lightning.fabric.utilities.optimizer import _optimizers_to_device
 from lightning.fabric.utilities.types import _PATH, ReduceOp
-from lightning.pytorch.plugins import XLAPrecision
-from lightning.pytorch.plugins.io.wrapper import _WrappingCheckpointIO
-from lightning.pytorch.strategies.ddp import DDPStrategy
-from lightning.pytorch.strategies.launchers.xla import _XLALauncher
-from lightning.pytorch.strategies.strategy import TBroadcast
-from lightning.pytorch.trainer.states import TrainerFn
-from lightning.pytorch.utilities import find_shared_parameters, set_shared_parameters
-from lightning.pytorch.utilities.rank_zero import rank_zero_only
+from lightning_pytorch.plugins import XLAPrecision
+from lightning_pytorch.plugins.io.wrapper import _WrappingCheckpointIO
+from lightning_pytorch.strategies.ddp import DDPStrategy
+from lightning_pytorch.strategies.launchers.xla import _XLALauncher
+from lightning_pytorch.strategies.strategy import TBroadcast
+from lightning_pytorch.trainer.states import TrainerFn
+from lightning_pytorch.utilities import find_shared_parameters, set_shared_parameters
+from lightning_pytorch.utilities.rank_zero import rank_zero_only
 
 if TYPE_CHECKING:
     from torch_xla.distributed.parallel_loader import MpDeviceLoader

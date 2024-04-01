@@ -69,7 +69,7 @@ Then, create a file named ``app.py`` with the following App content:
 
     # app.py
 
-    import lightning as L
+    import lightning_pytorch as LP
     from lightning.app.frontend import PanelFrontend
 
 
@@ -160,7 +160,7 @@ the ``configure_layout`` method of the Lightning Component you want to connect t
 .. code:: python
     :emphasize-lines: 7-10
 
-    import lightning as L
+    import lightning_pytorch as LP
     from lightning.app.frontend import PanelFrontend
 
 
@@ -198,7 +198,7 @@ In this case, we render the ``LitPanel`` UI in the ``home`` tab of the app.
 .. code:: python
     :emphasize-lines: 19-20
 
-    import lightning as L
+    import lightning_pytorch as LP
     from lightning.app.frontend import PanelFrontend
 
 

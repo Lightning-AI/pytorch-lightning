@@ -17,7 +17,7 @@ The distributed checkpoint format is the default when you train with the :doc:`F
 
 .. code-block:: python
 
-    import lightning as L
+    import lightning_pytorch as LP
     from lightning.fabric.strategies import FSDPStrategy
 
     # 1. Select the FSDP strategy
@@ -56,9 +56,9 @@ This reduces memory peaks and speeds up the saving to disk.
         import torch
         import torch.nn.functional as F
 
-        import lightning as L
+        import lightning_pytorch as LP
         from lightning.fabric.strategies import FSDPStrategy
-        from lightning.pytorch.demos import Transformer, WikiText2
+        from lightning_pytorch.demos import Transformer, WikiText2
 
         strategy = FSDPStrategy(state_dict_type="sharded")
         fabric = L.Fabric(accelerator="cuda", devices=4, strategy=strategy)
@@ -120,7 +120,7 @@ You can easily load a distributed checkpoint in Fabric if your script uses :doc:
 
 .. code-block:: python
 
-    import lightning as L
+    import lightning_pytorch as LP
     from lightning.fabric.strategies import FSDPStrategy
 
     # 1. Select the FSDP strategy
@@ -146,9 +146,9 @@ Note that you can load the distributed checkpoint even if the world size has cha
 
         import torch
 
-        import lightning as L
+        import lightning_pytorch as LP
         from lightning.fabric.strategies import FSDPStrategy
-        from lightning.pytorch.demos import Transformer, WikiText2
+        from lightning_pytorch.demos import Transformer, WikiText2
 
         strategy = FSDPStrategy(state_dict_type="sharded")
         fabric = L.Fabric(accelerator="cuda", devices=2, strategy=strategy)

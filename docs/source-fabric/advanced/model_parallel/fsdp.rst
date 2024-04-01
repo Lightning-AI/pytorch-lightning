@@ -70,9 +70,9 @@ Here is a full code example:
     import torch.nn as nn
     import torch.nn.functional as F
 
-    import lightning as L
+    import lightning_pytorch as LP
     from lightning.fabric.strategies import FSDPStrategy
-    from lightning.pytorch.demos import Transformer, WikiText2
+    from lightning_pytorch.demos import Transformer, WikiText2
 
     fabric = L.Fabric(accelerator="cuda", devices=2, strategy=FSDPStrategy())
     fabric.launch()

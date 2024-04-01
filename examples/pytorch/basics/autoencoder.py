@@ -22,11 +22,11 @@ from typing import Optional, Tuple
 
 import torch
 import torch.nn.functional as F
-from lightning.pytorch import LightningDataModule, LightningModule, Trainer, callbacks, cli_lightning_logo
-from lightning.pytorch.cli import LightningCLI
-from lightning.pytorch.demos.mnist_datamodule import MNIST
-from lightning.pytorch.utilities import rank_zero_only
-from lightning.pytorch.utilities.imports import _TORCHVISION_AVAILABLE
+from lightning_pytorch import LightningDataModule, LightningModule, Trainer, callbacks, cli_lightning_logo
+from lightning_pytorch.cli import LightningCLI
+from lightning_pytorch.demos.mnist_datamodule import MNIST
+from lightning_pytorch.utilities import rank_zero_only
+from lightning_pytorch.utilities.imports import _TORCHVISION_AVAILABLE
 from torch import nn
 from torch.utils.data import DataLoader, random_split
 

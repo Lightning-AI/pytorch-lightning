@@ -160,7 +160,7 @@ class FileServer(LightningWork):
 
 import requests
 
-from lightning import LightningWork
+from lightning_pytorch import LightningWork
 
 
 class TestFileServer(LightningWork):
@@ -184,7 +184,7 @@ class TestFileServer(LightningWork):
             assert response.json() == {"asset_names": ["test.txt"]}
 
 
-from lightning import LightningApp, LightningFlow
+from lightning_pytorch import LightningApp, LightningFlow
 
 
 class Flow(LightningFlow):

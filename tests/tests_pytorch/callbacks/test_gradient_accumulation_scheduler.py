@@ -15,11 +15,11 @@ import math
 from unittest.mock import Mock, patch
 
 import pytest
-from lightning.pytorch import Trainer
-from lightning.pytorch.callbacks import GradientAccumulationScheduler
-from lightning.pytorch.demos.boring_classes import BoringModel
-from lightning.pytorch.strategies import DeepSpeedStrategy
-from lightning.pytorch.utilities.exceptions import MisconfigurationException
+from lightning_pytorch import Trainer
+from lightning_pytorch.callbacks import GradientAccumulationScheduler
+from lightning_pytorch.demos.boring_classes import BoringModel
+from lightning_pytorch.strategies import DeepSpeedStrategy
+from lightning_pytorch.utilities.exceptions import MisconfigurationException
 
 
 @pytest.mark.parametrize("accumulate_grad_batches", [1, 2, 3])

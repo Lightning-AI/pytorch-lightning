@@ -21,8 +21,8 @@ from torch.utils.data import DistributedSampler, Sampler
 from typing_extensions import Self, override
 
 from lightning.fabric.utilities.distributed import _DatasetSamplerWrapper
-from lightning.pytorch.utilities.rank_zero import rank_zero_debug, rank_zero_info
-from lightning.pytorch.utilities.types import _SizedIterable
+from lightning_pytorch.utilities.rank_zero import rank_zero_debug, rank_zero_info
+from lightning_pytorch.utilities.types import _SizedIterable
 
 
 def _find_tensors(

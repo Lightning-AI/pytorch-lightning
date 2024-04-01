@@ -71,7 +71,7 @@ Finally, add the XPUAccelerator to the Trainer:
 
 .. code-block:: python
 
-    from lightning.pytorch import Trainer
+    from lightning_pytorch import Trainer
 
     accelerator = XPUAccelerator()
     trainer = Trainer(accelerator=accelerator, devices=2)
@@ -85,7 +85,7 @@ Finally, add the XPUAccelerator to the Trainer:
 Registering Accelerators
 ------------------------
 
-If you wish to switch to a custom accelerator from the CLI without code changes, you can implement the :meth:`~lightning.pytorch.accelerators.accelerator.Accelerator.register_accelerators` class method to register your new accelerator under a shorthand name like so:
+If you wish to switch to a custom accelerator from the CLI without code changes, you can implement the :meth:`~lightning_pytorch.accelerators.accelerator.Accelerator.register_accelerators` class method to register your new accelerator under a shorthand name like so:
 
 .. code-block:: python
 
@@ -118,7 +118,7 @@ Or if you are using the Lightning CLI, for example:
 Accelerator API
 ---------------
 
-.. currentmodule:: lightning.pytorch.accelerators
+.. currentmodule:: lightning_pytorch.accelerators
 
 .. autosummary::
     :nosignatures:

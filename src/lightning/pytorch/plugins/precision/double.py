@@ -20,11 +20,11 @@ from lightning_utilities.core.apply_func import apply_to_collection
 from torch import Tensor
 from typing_extensions import override
 
-import lightning.pytorch as pl
+import lightning_pytorch as pl
 from lightning.fabric.plugins.precision.utils import _convert_fp_tensor, _DtypeContextManager
 from lightning.fabric.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
-from lightning.pytorch.plugins.precision.precision import Precision
-from lightning.pytorch.utilities.rank_zero import rank_zero_deprecation
+from lightning_pytorch.plugins.precision.precision import Precision
+from lightning_pytorch.utilities.rank_zero import rank_zero_deprecation
 
 
 class DoublePrecision(Precision):
@@ -64,7 +64,7 @@ class LightningDoublePrecisionModule(_DeviceDtypeModuleMixin, nn.Module):
     """LightningModule wrapper which converts incoming floating point data in ``*_step`` and ``forward`` to double
     (``torch.float64``) precision.
 
-    .. deprecated:: Use :meth:`~lightning.pytorch.core.hooks.ModelHooks.configure_model` instead.
+    .. deprecated:: Use :meth:`~lightning_pytorch.core.hooks.ModelHooks.configure_model` instead.
 
     Args:
         pl_module: the model to wrap

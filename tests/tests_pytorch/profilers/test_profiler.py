@@ -21,13 +21,13 @@ from unittest.mock import patch
 import numpy as np
 import pytest
 import torch
-from lightning.pytorch import Callback, Trainer
-from lightning.pytorch.callbacks import EarlyStopping, StochasticWeightAveraging
-from lightning.pytorch.demos.boring_classes import BoringModel, ManualOptimBoringModel
-from lightning.pytorch.loggers import CSVLogger, TensorBoardLogger
-from lightning.pytorch.profilers import AdvancedProfiler, PassThroughProfiler, PyTorchProfiler, SimpleProfiler
-from lightning.pytorch.profilers.pytorch import _KINETO_AVAILABLE, RegisterRecordFunction, warning_cache
-from lightning.pytorch.utilities.exceptions import MisconfigurationException
+from lightning_pytorch import Callback, Trainer
+from lightning_pytorch.callbacks import EarlyStopping, StochasticWeightAveraging
+from lightning_pytorch.demos.boring_classes import BoringModel, ManualOptimBoringModel
+from lightning_pytorch.loggers import CSVLogger, TensorBoardLogger
+from lightning_pytorch.profilers import AdvancedProfiler, PassThroughProfiler, PyTorchProfiler, SimpleProfiler
+from lightning_pytorch.profilers.pytorch import _KINETO_AVAILABLE, RegisterRecordFunction, warning_cache
+from lightning_pytorch.utilities.exceptions import MisconfigurationException
 
 from tests_pytorch.helpers.runif import RunIf
 
@@ -178,7 +178,7 @@ def test_simple_profiler_logs(tmp_path, caplog, simple_profiler):
     """Ensure that the number of printed logs is correct."""
     model = BoringModel()
     trainer = Trainer(default_root_dir=tmp_path, fast_dev_run=2, profiler=simple_profiler, logger=False)
-    with caplog.at_level(logging.INFO, logger="lightning.pytorch.profiler"):
+    with caplog.at_level(logging.INFO, logger="lightning_pytorch.profiler"):
         trainer.fit(model)
         trainer.test(model)
 

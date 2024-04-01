@@ -20,13 +20,13 @@ from typing import Any, Dict, List, Optional, Union
 import torch
 from typing_extensions import override
 
-import lightning.pytorch as pl
+import lightning_pytorch as pl
 from lightning.fabric.accelerators import _AcceleratorRegistry
 from lightning.fabric.accelerators.cuda import _check_cuda_matmul_precision, _clear_cuda_memory, num_cuda_devices
 from lightning.fabric.utilities.device_parser import _parse_gpu_ids
 from lightning.fabric.utilities.types import _DEVICE
-from lightning.pytorch.accelerators.accelerator import Accelerator
-from lightning.pytorch.utilities.exceptions import MisconfigurationException
+from lightning_pytorch.accelerators.accelerator import Accelerator
+from lightning_pytorch.utilities.exceptions import MisconfigurationException
 
 _log = logging.getLogger(__name__)
 

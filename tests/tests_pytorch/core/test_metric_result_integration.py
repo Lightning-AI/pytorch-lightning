@@ -16,20 +16,20 @@ import pickle
 from contextlib import nullcontext, suppress
 from unittest import mock
 
-import lightning.pytorch as pl
+import lightning_pytorch as pl
 import pytest
 import torch
 from lightning.fabric.utilities.warnings import PossibleUserWarning
-from lightning.pytorch import Trainer
-from lightning.pytorch.callbacks import OnExceptionCheckpoint
-from lightning.pytorch.demos.boring_classes import BoringModel
-from lightning.pytorch.trainer.connectors.logger_connector.result import (
+from lightning_pytorch import Trainer
+from lightning_pytorch.callbacks import OnExceptionCheckpoint
+from lightning_pytorch.demos.boring_classes import BoringModel
+from lightning_pytorch.trainer.connectors.logger_connector.result import (
     _Metadata,
     _ResultCollection,
     _ResultMetric,
     _Sync,
 )
-from lightning.pytorch.utilities.imports import _TORCHMETRICS_GREATER_EQUAL_0_11 as _TM_GE_0_11
+from lightning_pytorch.utilities.imports import _TORCHMETRICS_GREATER_EQUAL_0_11 as _TM_GE_0_11
 from lightning_utilities.test.warning import no_warning_call
 from torch import Tensor, tensor
 from torch.nn import ModuleDict, ModuleList
@@ -488,7 +488,7 @@ def test_metric_result_computed_check():
     ],
 )
 def test_metric_result_respects_dtype(default_type, converted_type):
-    from lightning.pytorch.trainer.connectors.logger_connector.result import warning_cache
+    from lightning_pytorch.trainer.connectors.logger_connector.result import warning_cache
 
     warning_cache.clear()
 

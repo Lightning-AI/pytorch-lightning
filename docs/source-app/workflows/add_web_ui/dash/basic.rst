@@ -39,7 +39,7 @@ First **create a file named app.py** with the app content:
 
 .. code:: bash
 
-        import lightning as L
+        import lightning_pytorch as LP
         import dash
         import plotly.express as px
 
@@ -141,7 +141,7 @@ Add the dash app to the run method of a ``LightningWork`` component and run the 
 .. code:: python
     :emphasize-lines: 6, 18
 
-        import lightning as L
+        import lightning_pytorch as LP
         import dash
         import plotly.express as px
 
@@ -184,7 +184,7 @@ In this case, we render the ``LitDash`` UI in the ``home`` tab of the applicatio
 .. code:: python
     :emphasize-lines: 23, 29
 
-        import lightning as L
+        import lightning_pytorch as LP
         import dash
         import plotly.express as px
 

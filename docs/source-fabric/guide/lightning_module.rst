@@ -27,7 +27,7 @@ Take these main ingredients and put them in a LightningModule:
 
 .. code-block:: python
 
-    import lightning as L
+    import lightning_pytorch as LP
 
 
     class LitModel(L.LightningModule):
@@ -75,7 +75,7 @@ It is up to you to call everything at the right place.
 
 .. code-block:: python
 
-    import lightning as L
+    import lightning_pytorch as LP
 
     fabric = L.Fabric(...)
 
@@ -131,7 +131,7 @@ You can access the Fabric instance in any of the LightningModule hooks via ``sel
 
 .. code-block:: python
 
-    import lightning as L
+    import lightning_pytorch as LP
 
 
     class LitModel(L.LightningModule):

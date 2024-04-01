@@ -14,9 +14,9 @@
 import logging
 
 import pytest
-from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset, RandomIterableDataset
-from lightning.pytorch.trainer.trainer import Trainer
-from lightning.pytorch.utilities.exceptions import MisconfigurationException
+from lightning_pytorch.demos.boring_classes import BoringModel, RandomDataset, RandomIterableDataset
+from lightning_pytorch.trainer.trainer import Trainer
+from lightning_pytorch.utilities.exceptions import MisconfigurationException
 from torch.utils.data import DataLoader
 
 

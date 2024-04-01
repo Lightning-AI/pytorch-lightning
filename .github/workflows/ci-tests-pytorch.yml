@@ -176,7 +176,7 @@ jobs:
         if: ${{ matrix.pkg-name != 'lightning' }}
         run: |
           python .actions/assistant.py copy_replace_imports --source_dir="./tests" \
-            --source_import="lightning.fabric,lightning.pytorch" \
+            --source_import="lightning.fabric,lightning_pytorch" \
             --target_import="lightning_fabric,pytorch_lightning"
 
       - name: Prevent using raw source

@@ -14,6 +14,6 @@
 """"""
 
 from lightning.fabric.utilities.seed import seed_everything
-from lightning.pytorch.trainer.trainer import Trainer
+from lightning_pytorch.trainer.trainer import Trainer
 
 __all__ = ["Trainer", "seed_everything"]

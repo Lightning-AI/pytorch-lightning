@@ -39,7 +39,7 @@ To enable the server inside the component, start the Flask server in the run met
 .. code:: python
     :emphasize-lines: 12
 
-    import lightning as L
+    import lightning_pytorch as LP
     from flask import Flask
 
 
@@ -64,7 +64,7 @@ In this case, we render the ``LitFlask`` output in the ``home`` tab of the appli
 .. code:: python
     :emphasize-lines: 17, 23
 
-    import lightning as L
+    import lightning_pytorch as LP
     from flask import Flask
 
 

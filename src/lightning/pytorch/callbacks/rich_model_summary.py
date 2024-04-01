@@ -15,13 +15,13 @@ from typing import Any, List, Tuple
 
 from typing_extensions import override
 
-from lightning.pytorch.callbacks import ModelSummary
-from lightning.pytorch.callbacks.progress.rich_progress import _RICH_AVAILABLE
-from lightning.pytorch.utilities.model_summary import get_human_readable_count
+from lightning_pytorch.callbacks import ModelSummary
+from lightning_pytorch.callbacks.progress.rich_progress import _RICH_AVAILABLE
+from lightning_pytorch.utilities.model_summary import get_human_readable_count
 
 
 class RichModelSummary(ModelSummary):
-    r"""Generates a summary of all layers in a :class:`~lightning.pytorch.core.LightningModule` with `rich text
+    r"""Generates a summary of all layers in a :class:`~lightning_pytorch.core.LightningModule` with `rich text
     formatting <https://github.com/Textualize/rich>`_.
 
     Install it with pip:
@@ -32,17 +32,17 @@ class RichModelSummary(ModelSummary):
 
     .. code-block:: python
 
-        from lightning.pytorch import Trainer
-        from lightning.pytorch.callbacks import RichModelSummary
+        from lightning_pytorch import Trainer
+        from lightning_pytorch.callbacks import RichModelSummary
 
         trainer = Trainer(callbacks=RichModelSummary())
 
-    You could also enable ``RichModelSummary`` using the :class:`~lightning.pytorch.callbacks.RichProgressBar`
+    You could also enable ``RichModelSummary`` using the :class:`~lightning_pytorch.callbacks.RichProgressBar`
 
     .. code-block:: python
 
-        from lightning.pytorch import Trainer
-        from lightning.pytorch.callbacks import RichProgressBar
+        from lightning_pytorch import Trainer
+        from lightning_pytorch.callbacks import RichProgressBar
 
         trainer = Trainer(callbacks=RichProgressBar())
 

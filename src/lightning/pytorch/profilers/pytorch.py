@@ -28,12 +28,12 @@ from torch.utils.hooks import RemovableHandle
 from typing_extensions import override
 
 from lightning.fabric.accelerators.cuda import is_cuda_available
-from lightning.pytorch.profilers.profiler import Profiler
-from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning.pytorch.utilities.rank_zero import WarningCache, rank_zero_warn
+from lightning_pytorch.profilers.profiler import Profiler
+from lightning_pytorch.utilities.exceptions import MisconfigurationException
+from lightning_pytorch.utilities.rank_zero import WarningCache, rank_zero_warn
 
 if TYPE_CHECKING:
-    from lightning.pytorch.core.module import LightningModule
+    from lightning_pytorch.core.module import LightningModule
 
 
 log = logging.getLogger(__name__)
@@ -49,14 +49,14 @@ class RegisterRecordFunction:
     The Lightning PyTorch Profiler will activate this feature automatically. It can be deactivated as follows:
 
     Example::
-        from lightning.pytorch.profilers import PyTorchProfiler
+        from lightning_pytorch.profilers import PyTorchProfiler
         profiler = PyTorchProfiler(record_module_names=False)
         Trainer(profiler=profiler)
 
     It can be used outside of Lightning as follows:
 
     Example::
-        from lightning.pytorch import Trainer, seed_everything
+        from lightning_pytorch import Trainer, seed_everything
         with RegisterRecordFunction(model):
             out = model(batch)
 
@@ -246,7 +246,7 @@ class PyTorchProfiler(Profiler):
 
         Args:
             dirpath: Directory path for the ``filename``. If ``dirpath`` is ``None`` but ``filename`` is present, the
-                ``trainer.log_dir`` (from :class:`~lightning.pytorch.loggers.tensorboard.TensorBoardLogger`)
+                ``trainer.log_dir`` (from :class:`~lightning_pytorch.loggers.tensorboard.TensorBoardLogger`)
                 will be used.
 
             filename: If present, filename where the profiler results will be saved instead of printing to stdout.

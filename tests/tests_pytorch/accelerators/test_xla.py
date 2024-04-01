@@ -21,12 +21,12 @@ import lightning.fabric
 import pytest
 import torch
 from lightning.fabric.utilities.imports import _IS_WINDOWS
-from lightning.pytorch import Trainer
-from lightning.pytorch.accelerators import CPUAccelerator, XLAAccelerator
-from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
-from lightning.pytorch.plugins import Precision, XLACheckpointIO, XLAPrecision
-from lightning.pytorch.strategies import DDPStrategy, XLAStrategy
-from lightning.pytorch.utilities import find_shared_parameters
+from lightning_pytorch import Trainer
+from lightning_pytorch.accelerators import CPUAccelerator, XLAAccelerator
+from lightning_pytorch.demos.boring_classes import BoringModel, RandomDataset
+from lightning_pytorch.plugins import Precision, XLACheckpointIO, XLAPrecision
+from lightning_pytorch.strategies import DDPStrategy, XLAStrategy
+from lightning_pytorch.utilities import find_shared_parameters
 from torch import nn
 from torch.utils.data import DataLoader
 
@@ -184,7 +184,7 @@ def test_strategy_choice_tpu_str_ddp_spawn(tpu_available):
 
 
 @RunIf(skip_windows=True)
-@mock.patch("lightning.pytorch.strategies.xla.XLAStrategy.set_world_ranks")
+@mock.patch("lightning_pytorch.strategies.xla.XLAStrategy.set_world_ranks")
 def test_strategy_choice_tpu_str_xla_debug(_, tpu_available):
     trainer = Trainer(strategy="xla_debug", accelerator="tpu", devices=8)
     assert isinstance(trainer.strategy, XLAStrategy)
@@ -262,14 +262,14 @@ def test_tpu_invalid_raises(tpu_available, mps_count_0):
 
 
 @RunIf(skip_windows=True)
-@mock.patch("lightning.pytorch.strategies.xla.XLAStrategy.set_world_ranks")
+@mock.patch("lightning_pytorch.strategies.xla.XLAStrategy.set_world_ranks")
 def test_xla_checkpoint_plugin_being_default(_, tpu_available):
     trainer = Trainer(accelerator="tpu", devices=8)
     assert isinstance(trainer.strategy.checkpoint_io, XLACheckpointIO)
 
 
 @RunIf(tpu=True)
-@patch("lightning.pytorch.strategies.xla.XLAStrategy.root_device")
+@patch("lightning_pytorch.strategies.xla.XLAStrategy.root_device")
 def test_xla_mp_device_dataloader_attribute(_, monkeypatch):
     dataset = RandomDataset(32, 64)
     dataloader = DataLoader(dataset)

@@ -4,10 +4,10 @@ from unittest.mock import Mock
 import lightning.fabric
 import pytest
 import torch.nn
-from lightning.pytorch import Trainer
-from lightning.pytorch.demos.boring_classes import BoringModel
-from lightning.pytorch.plugins.precision.double import LightningDoublePrecisionModule
-from lightning.pytorch.strategies import DDPStrategy, FSDPStrategy
+from lightning_pytorch import Trainer
+from lightning_pytorch.demos.boring_classes import BoringModel
+from lightning_pytorch.plugins.precision.double import LightningDoublePrecisionModule
+from lightning_pytorch.strategies import DDPStrategy, FSDPStrategy
 
 
 def test_configure_sharded_model():
@@ -50,14 +50,14 @@ def test_double_precision_wrapper():
 
 
 def test_fsdp_mixed_precision_plugin():
-    from lightning.pytorch.plugins.precision.fsdp import FSDPMixedPrecisionPlugin
+    from lightning_pytorch.plugins.precision.fsdp import FSDPMixedPrecisionPlugin
 
     with pytest.deprecated_call(match=r"The `FSDPMixedPrecisionPlugin` is deprecated"):
         FSDPMixedPrecisionPlugin(precision="16-mixed", device="cuda")
 
 
 def test_fsdp_precision_plugin():
-    from lightning.pytorch.plugins.precision.fsdp import FSDPPrecisionPlugin
+    from lightning_pytorch.plugins.precision.fsdp import FSDPPrecisionPlugin
 
     with pytest.deprecated_call(match=r"The `FSDPPrecisionPlugin` is deprecated"):
         FSDPPrecisionPlugin(precision="16-mixed")
@@ -68,42 +68,42 @@ def test_bitsandbytes_precision_plugin(monkeypatch):
     bitsandbytes_mock = Mock()
     monkeypatch.setitem(sys.modules, "bitsandbytes", bitsandbytes_mock)
 
-    from lightning.pytorch.plugins.precision.bitsandbytes import BitsandbytesPrecisionPlugin
+    from lightning_pytorch.plugins.precision.bitsandbytes import BitsandbytesPrecisionPlugin
 
     with pytest.deprecated_call(match=r"The `BitsandbytesPrecisionPlugin` is deprecated"):
         BitsandbytesPrecisionPlugin("nf4")
 
 
 def test_deepspeed_precision_plugin():
-    from lightning.pytorch.plugins.precision.deepspeed import DeepSpeedPrecisionPlugin
+    from lightning_pytorch.plugins.precision.deepspeed import DeepSpeedPrecisionPlugin
 
     with pytest.deprecated_call(match=r"The `DeepSpeedPrecisionPlugin` is deprecated"):
         DeepSpeedPrecisionPlugin(precision="32-true")
 
 
 def test_double_precision_plugin():
-    from lightning.pytorch.plugins.precision.double import DoublePrecisionPlugin
+    from lightning_pytorch.plugins.precision.double import DoublePrecisionPlugin
 
     with pytest.deprecated_call(match=r"The `DoublePrecisionPlugin` is deprecated"):
         DoublePrecisionPlugin()
 
 
 def test_half_precision_plugin():
-    from lightning.pytorch.plugins.precision.half import HalfPrecisionPlugin
+    from lightning_pytorch.plugins.precision.half import HalfPrecisionPlugin
 
     with pytest.deprecated_call(match=r"The `HalfPrecisionPlugin` is deprecated"):
         HalfPrecisionPlugin()
 
 
 def test_mixed_precision_plugin():
-    from lightning.pytorch.plugins.precision.amp import MixedPrecisionPlugin
+    from lightning_pytorch.plugins.precision.amp import MixedPrecisionPlugin
 
     with pytest.deprecated_call(match=r"The `MixedPrecisionPlugin` is deprecated"):
         MixedPrecisionPlugin(precision="16-mixed", device="cuda")
 
 
 def test_precision_plugin():
-    from lightning.pytorch.plugins.precision.precision import PrecisionPlugin
+    from lightning_pytorch.plugins.precision.precision import PrecisionPlugin
 
     with pytest.deprecated_call(match=r"The `PrecisionPlugin` is deprecated"):
         PrecisionPlugin()
@@ -117,14 +117,14 @@ def test_transformer_engine_precision_plugin(monkeypatch):
     recipe_mock = Mock()
     monkeypatch.setitem(sys.modules, "transformer_engine.common.recipe", recipe_mock)
 
-    from lightning.pytorch.plugins.precision.transformer_engine import TransformerEnginePrecisionPlugin
+    from lightning_pytorch.plugins.precision.transformer_engine import TransformerEnginePrecisionPlugin
 
     with pytest.deprecated_call(match=r"The `TransformerEnginePrecisionPlugin` is deprecated"):
         TransformerEnginePrecisionPlugin(weights_dtype=torch.float32)
 
 
 def test_xla_precision_plugin(xla_available):
-    from lightning.pytorch.plugins.precision.xla import XLAPrecisionPlugin
+    from lightning_pytorch.plugins.precision.xla import XLAPrecisionPlugin
 
     with pytest.deprecated_call(match=r"The `XLAPrecisionPlugin` is deprecated"):
         XLAPrecisionPlugin()

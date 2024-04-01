@@ -18,10 +18,10 @@ from unittest.mock import MagicMock
 import fsspec
 import pytest
 import torch
-from lightning.pytorch import Trainer
-from lightning.pytorch.core.saving import load_hparams_from_yaml
-from lightning.pytorch.loggers import CSVLogger
-from lightning.pytorch.loggers.csv_logs import ExperimentWriter
+from lightning_pytorch import Trainer
+from lightning_pytorch.core.saving import load_hparams_from_yaml
+from lightning_pytorch.loggers import CSVLogger
+from lightning_pytorch.loggers.csv_logs import ExperimentWriter
 
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.runif import RunIf

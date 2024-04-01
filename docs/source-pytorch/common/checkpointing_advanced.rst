@@ -52,7 +52,7 @@ Checkpoints can also save the state of :doc:`datamodules <../extensions/datamodu
 ****************************
 Modify a checkpoint anywhere
 ****************************
-When you need to change the components of a checkpoint before saving or loading, use the :meth:`~lightning.pytorch.core.hooks.CheckpointHooks.on_save_checkpoint` and :meth:`~lightning.pytorch.core.hooks.CheckpointHooks.on_load_checkpoint` of your ``LightningModule``.
+When you need to change the components of a checkpoint before saving or loading, use the :meth:`~lightning_pytorch.core.hooks.CheckpointHooks.on_save_checkpoint` and :meth:`~lightning_pytorch.core.hooks.CheckpointHooks.on_load_checkpoint` of your ``LightningModule``.
 
 .. code-block:: python
 
@@ -63,11 +63,11 @@ When you need to change the components of a checkpoint before saving or loading,
         def on_load_checkpoint(self, checkpoint):
             my_cool_pickable_object = checkpoint["something_cool_i_want_to_save"]
 
-Use the above approach when you need to couple this behavior to your LightningModule for reproducibility reasons. Otherwise, Callbacks also have the :meth:`~lightning.pytorch.callbacks.callback.Callback.on_save_checkpoint` and :meth:`~lightning.pytorch.callbacks.callback.Callback.on_load_checkpoint` which you should use instead:
+Use the above approach when you need to couple this behavior to your LightningModule for reproducibility reasons. Otherwise, Callbacks also have the :meth:`~lightning_pytorch.callbacks.callback.Callback.on_save_checkpoint` and :meth:`~lightning_pytorch.callbacks.callback.Callback.on_load_checkpoint` which you should use instead:
 
 .. code-block:: python
 
-    import lightning as L
+    import lightning_pytorch as LP
 
 
     class LitCallback(L.Callback):
@@ -91,7 +91,7 @@ A common use case is when you have a pretrained feature extractor or encoder tha
 
 .. code-block:: python
 
-    import lightning as L
+    import lightning_pytorch as LP
 
     class LitModel(L.LightningModule):
         def __init__(self):

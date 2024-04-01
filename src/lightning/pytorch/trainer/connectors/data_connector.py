@@ -19,7 +19,7 @@ import torch.multiprocessing as mp
 from torch.utils.data import BatchSampler, DataLoader, RandomSampler, Sampler, SequentialSampler
 from torch.utils.data.distributed import DistributedSampler
 
-import lightning.pytorch as pl
+import lightning_pytorch as pl
 from lightning.fabric.utilities.data import (
     _auto_add_worker_init_fn,
     _replace_dunder_methods,
@@ -28,16 +28,16 @@ from lightning.fabric.utilities.data import (
     suggested_max_num_workers,
 )
 from lightning.fabric.utilities.distributed import DistributedSamplerWrapper, _InfiniteBarrier
-from lightning.pytorch.overrides.distributed import UnrepeatedDistributedSamplerWrapper
-from lightning.pytorch.trainer import call
-from lightning.pytorch.trainer.states import RunningStage, TrainerFn
-from lightning.pytorch.utilities.combined_loader import CombinedLoader
-from lightning.pytorch.utilities.data import _is_dataloader_shuffled, _update_dataloader
-from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning.pytorch.utilities.model_helpers import is_overridden
-from lightning.pytorch.utilities.rank_zero import WarningCache, rank_zero_warn
-from lightning.pytorch.utilities.types import EVAL_DATALOADERS, TRAIN_DATALOADERS
-from lightning.pytorch.utilities.warnings import PossibleUserWarning
+from lightning_pytorch.overrides.distributed import UnrepeatedDistributedSamplerWrapper
+from lightning_pytorch.trainer import call
+from lightning_pytorch.trainer.states import RunningStage, TrainerFn
+from lightning_pytorch.utilities.combined_loader import CombinedLoader
+from lightning_pytorch.utilities.data import _is_dataloader_shuffled, _update_dataloader
+from lightning_pytorch.utilities.exceptions import MisconfigurationException
+from lightning_pytorch.utilities.model_helpers import is_overridden
+from lightning_pytorch.utilities.rank_zero import WarningCache, rank_zero_warn
+from lightning_pytorch.utilities.types import EVAL_DATALOADERS, TRAIN_DATALOADERS
+from lightning_pytorch.utilities.warnings import PossibleUserWarning
 
 warning_cache = WarningCache()
 
@@ -265,8 +265,8 @@ class _DataLoaderSource:
 
     The source can be
 
-    1. from a ``*_dataloader()`` method on the :class:`~lightning.pytorch.core.LightningModule`,
-    2. from a ``*_dataloader()`` method on the :class:`~lightning.pytorch.core.datamodule.LightningDataModule`,
+    1. from a ``*_dataloader()`` method on the :class:`~lightning_pytorch.core.LightningModule`,
+    2. from a ``*_dataloader()`` method on the :class:`~lightning_pytorch.core.datamodule.LightningDataModule`,
     3. a direct instance of a :class:`~torch.utils.data.DataLoader` or supported collections thereof.
 
     Arguments:
@@ -331,8 +331,8 @@ class _DataHookSelector:
 
     The hook source can be:
 
-    1. the :class:`~lightning.pytorch.core.LightningModule`,
-    2. the :class:`~lightning.pytorch.core.datamodule.LightningDataModule`,
+    1. the :class:`~lightning_pytorch.core.LightningModule`,
+    2. the :class:`~lightning_pytorch.core.datamodule.LightningDataModule`,
 
     Arguments:
         model: A ``LightningModule``

@@ -15,9 +15,9 @@ from unittest.mock import Mock
 
 import torch
 from lightning.fabric import seed_everything
-from lightning.pytorch import Trainer
-from lightning.pytorch.demos.boring_classes import BoringModel
-from lightning.pytorch.plugins.precision import MixedPrecision
+from lightning_pytorch import Trainer
+from lightning_pytorch.demos.boring_classes import BoringModel
+from lightning_pytorch.plugins.precision import MixedPrecision
 
 from tests_pytorch.helpers.runif import RunIf
 

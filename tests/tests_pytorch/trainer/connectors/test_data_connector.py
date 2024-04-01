@@ -20,19 +20,19 @@ import lightning.fabric
 import pytest
 from lightning.fabric.utilities.distributed import DistributedSamplerWrapper
 from lightning.fabric.utilities.warnings import PossibleUserWarning
-from lightning.pytorch import Trainer
-from lightning.pytorch.demos.boring_classes import BoringDataModule, BoringModel, RandomDataset
-from lightning.pytorch.trainer.connectors.data_connector import (
+from lightning_pytorch import Trainer
+from lightning_pytorch.demos.boring_classes import BoringDataModule, BoringModel, RandomDataset
+from lightning_pytorch.trainer.connectors.data_connector import (
     _check_dataloader_iterable,
     _DataHookSelector,
     _DataLoaderSource,
     _worker_check,
     warning_cache,
 )
-from lightning.pytorch.trainer.states import RunningStage, TrainerFn
-from lightning.pytorch.utilities.combined_loader import CombinedLoader
-from lightning.pytorch.utilities.data import _update_dataloader
-from lightning.pytorch.utilities.exceptions import MisconfigurationException
+from lightning_pytorch.trainer.states import RunningStage, TrainerFn
+from lightning_pytorch.utilities.combined_loader import CombinedLoader
+from lightning_pytorch.utilities.data import _update_dataloader
+from lightning_pytorch.utilities.exceptions import MisconfigurationException
 from lightning_utilities.test.warning import no_warning_call
 from torch import Tensor
 from torch.utils.data import BatchSampler, DataLoader, DistributedSampler, Sampler, SequentialSampler
@@ -153,7 +153,7 @@ def test_dataloader_persistent_workers_performance_warning(num_workers, tmp_path
     ],
 )
 @mock.patch("lightning.fabric.utilities.data.os.cpu_count")
-@mock.patch("lightning.pytorch.trainer.connectors.data_connector.mp.get_start_method", return_value="not_spawn")
+@mock.patch("lightning_pytorch.trainer.connectors.data_connector.mp.get_start_method", return_value="not_spawn")
 def test_worker_check(_, cpu_count_mock, num_workers, cpu_count, expected_warning, monkeypatch):
     monkeypatch.delattr(lightning.fabric.utilities.data.os, "sched_getaffinity", raising=False)
     trainer = Mock(spec=Trainer)
@@ -171,7 +171,7 @@ def test_worker_check(_, cpu_count_mock, num_workers, cpu_count, expected_warnin
         _worker_check(trainer, dataloader=dataloader, name="train_dataloader")
 
 
-@mock.patch("lightning.pytorch.trainer.connectors.data_connector.suggested_max_num_workers", return_value=2)
+@mock.patch("lightning_pytorch.trainer.connectors.data_connector.suggested_max_num_workers", return_value=2)
 def test_worker_check_reload_dataloaders_every_n_epochs_limitations(_):
     """Test that we warn about problematic settings when using `dataloaders_every_n_epochs_limitations`."""
     trainer = Mock(reload_dataloaders_every_n_epochs=1)

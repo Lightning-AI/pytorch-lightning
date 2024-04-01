@@ -27,9 +27,9 @@ from torch.nn import Module
 from typing_extensions import override
 
 from lightning.fabric.utilities.logger import _add_prefix, _convert_params, _flatten_dict
-from lightning.pytorch.loggers.logger import Logger, rank_zero_experiment
-from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning.pytorch.utilities.rank_zero import rank_zero_only
+from lightning_pytorch.loggers.logger import Logger, rank_zero_experiment
+from lightning_pytorch.utilities.exceptions import MisconfigurationException
+from lightning_pytorch.utilities.rank_zero import rank_zero_only
 
 if TYPE_CHECKING:
     from comet_ml import ExistingExperiment, Experiment, OfflineExperiment
@@ -40,7 +40,7 @@ _COMET_AVAILABLE = RequirementCache("comet-ml>=3.31.0", module="comet_ml")
 
 class CometLogger(Logger):
     r"""Track your parameters, metrics, source code and more using `Comet
-    <https://www.comet.com/?utm_source=lightning.pytorch&utm_medium=referral>`_.
+    <https://www.comet.com/?utm_source=lightning_pytorch&utm_medium=referral>`_.
 
     Install it with pip:
 
@@ -55,8 +55,8 @@ class CometLogger(Logger):
     .. code-block:: python
 
         import os
-        from lightning.pytorch import Trainer
-        from lightning.pytorch.loggers import CometLogger
+        from lightning_pytorch import Trainer
+        from lightning_pytorch.loggers import CometLogger
 
         # arguments made to CometLogger are passed on to the comet_ml.Experiment class
         comet_logger = CometLogger(
@@ -74,7 +74,7 @@ class CometLogger(Logger):
 
     .. code-block:: python
 
-        from lightning.pytorch.loggers import CometLogger
+        from lightning_pytorch.loggers import CometLogger
 
         # arguments made to CometLogger are passed on to the comet_ml.Experiment class
         comet_logger = CometLogger(
@@ -88,7 +88,7 @@ class CometLogger(Logger):
 
     **Log Hyperparameters:**
 
-    Log parameters used to initialize a :class:`~lightning.pytorch.core.LightningModule`:
+    Log parameters used to initialize a :class:`~lightning_pytorch.core.LightningModule`:
 
     .. code-block:: python
 
@@ -260,7 +260,7 @@ class CometLogger(Logger):
     @property
     @rank_zero_experiment
     def experiment(self) -> Union["Experiment", "ExistingExperiment", "OfflineExperiment"]:
-        r"""Actual Comet object. To use Comet features in your :class:`~lightning.pytorch.core.LightningModule` do the
+        r"""Actual Comet object. To use Comet features in your :class:`~lightning_pytorch.core.LightningModule` do the
         following.
 
         Example::

@@ -15,7 +15,7 @@ from typing import Optional, Tuple, Union
 
 from typing_extensions import TypedDict
 
-from lightning.pytorch.utilities.exceptions import MisconfigurationException
+from lightning_pytorch.utilities.exceptions import MisconfigurationException
 
 
 class _FxValidator:

@@ -25,33 +25,33 @@ from unittest.mock import ANY, Mock, call, patch
 
 import cloudpickle
 import lightning.fabric
-import lightning.pytorch
+import lightning_pytorch
 import pytest
 import torch
 import torch.nn as nn
 from lightning.fabric.utilities.cloud_io import _load as pl_load
 from lightning.fabric.utilities.seed import seed_everything
-from lightning.pytorch import Callback, LightningDataModule, LightningModule, Trainer
-from lightning.pytorch.accelerators import CPUAccelerator, CUDAAccelerator
-from lightning.pytorch.callbacks import EarlyStopping, ModelCheckpoint, Timer
-from lightning.pytorch.callbacks.on_exception_checkpoint import OnExceptionCheckpoint
-from lightning.pytorch.callbacks.prediction_writer import BasePredictionWriter
-from lightning.pytorch.core.saving import load_hparams_from_tags_csv, load_hparams_from_yaml, save_hparams_to_tags_csv
-from lightning.pytorch.demos.boring_classes import (
+from lightning_pytorch import Callback, LightningDataModule, LightningModule, Trainer
+from lightning_pytorch.accelerators import CPUAccelerator, CUDAAccelerator
+from lightning_pytorch.callbacks import EarlyStopping, ModelCheckpoint, Timer
+from lightning_pytorch.callbacks.on_exception_checkpoint import OnExceptionCheckpoint
+from lightning_pytorch.callbacks.prediction_writer import BasePredictionWriter
+from lightning_pytorch.core.saving import load_hparams_from_tags_csv, load_hparams_from_yaml, save_hparams_to_tags_csv
+from lightning_pytorch.demos.boring_classes import (
     BoringDataModule,
     BoringModel,
     RandomDataset,
     RandomIterableDataset,
     RandomIterableDatasetWithLen,
 )
-from lightning.pytorch.loggers import TensorBoardLogger
-from lightning.pytorch.overrides.distributed import UnrepeatedDistributedSampler, _IndexBatchSamplerWrapper
-from lightning.pytorch.strategies import DDPStrategy, SingleDeviceStrategy
-from lightning.pytorch.strategies.launchers import _MultiProcessingLauncher
-from lightning.pytorch.trainer.states import RunningStage, TrainerFn
-from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning.pytorch.utilities.imports import _OMEGACONF_AVAILABLE
-from lightning.pytorch.utilities.warnings import PossibleUserWarning
+from lightning_pytorch.loggers import TensorBoardLogger
+from lightning_pytorch.overrides.distributed import UnrepeatedDistributedSampler, _IndexBatchSamplerWrapper
+from lightning_pytorch.strategies import DDPStrategy, SingleDeviceStrategy
+from lightning_pytorch.strategies.launchers import _MultiProcessingLauncher
+from lightning_pytorch.trainer.states import RunningStage, TrainerFn
+from lightning_pytorch.utilities.exceptions import MisconfigurationException
+from lightning_pytorch.utilities.imports import _OMEGACONF_AVAILABLE
+from lightning_pytorch.utilities.warnings import PossibleUserWarning
 from torch.multiprocessing import ProcessRaisedException
 from torch.nn.parallel.distributed import DistributedDataParallel
 from torch.optim import SGD
@@ -611,7 +611,7 @@ def test_trainer_min_steps_and_min_epochs_not_reached(tmp_path, caplog):
         limit_train_batches=2,
         callbacks=[early_stop],
     )
-    with caplog.at_level(logging.INFO, logger="lightning.pytorch.trainer.trainer"):
+    with caplog.at_level(logging.INFO, logger="lightning_pytorch.trainer.trainer"):
         trainer.fit(model)
 
     message = f"min_epochs={min_epochs}` or `min_steps=None` has not been met. Training will continue"
@@ -1227,7 +1227,7 @@ def test_trainer_setup_call(tmp_path, stage):
 
 
 @pytest.mark.parametrize(("train_batches", "max_steps", "log_interval"), [(10, 10, 1), (3, 10, 1), (3, 10, 5)])
-@patch("lightning.pytorch.loggers.tensorboard.TensorBoardLogger.log_metrics")
+@patch("lightning_pytorch.loggers.tensorboard.TensorBoardLogger.log_metrics")
 def test_log_every_n_steps(log_metrics_mock, tmp_path, train_batches, max_steps, log_interval):
     class TestModel(BoringModel):
         def training_step(self, *args, **kwargs):
@@ -2044,7 +2044,7 @@ def test_trainer_calls_strategy_on_exception(exception_type):
             raise exception
 
     trainer = Trainer()
-    with mock.patch("lightning.pytorch.strategies.strategy.Strategy.on_exception") as on_exception_mock, suppress(
+    with mock.patch("lightning_pytorch.strategies.strategy.Strategy.on_exception") as on_exception_mock, suppress(
         Exception
     ):
         trainer.fit(ExceptionModel())
@@ -2081,7 +2081,7 @@ def test_init_module_context(monkeypatch):
     strategy.tensor_init_context.reset_mock()
 
     # Pretend we are using PyTorch < 2.0
-    monkeypatch.setattr(lightning.pytorch.trainer.trainer, "_TORCH_GREATER_EQUAL_2_0", False)
+    monkeypatch.setattr(lightning_pytorch.trainer.trainer, "_TORCH_GREATER_EQUAL_2_0", False)
     with pytest.warns(PossibleUserWarning, match="can't place .* on the device"), trainer.init_module():
         pass
     strategy.tensor_init_context.assert_called_once()

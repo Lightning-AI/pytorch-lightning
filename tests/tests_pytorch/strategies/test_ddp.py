@@ -19,11 +19,11 @@ import pytest
 import torch
 from lightning.fabric.plugins.environments import LightningEnvironment
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
-from lightning.pytorch import LightningModule, Trainer
-from lightning.pytorch.demos.boring_classes import BoringModel
-from lightning.pytorch.plugins import DoublePrecision, HalfPrecision, Precision
-from lightning.pytorch.strategies import DDPStrategy
-from lightning.pytorch.trainer.states import TrainerFn
+from lightning_pytorch import LightningModule, Trainer
+from lightning_pytorch.demos.boring_classes import BoringModel
+from lightning_pytorch.plugins import DoublePrecision, HalfPrecision, Precision
+from lightning_pytorch.strategies import DDPStrategy
+from lightning_pytorch.trainer.states import TrainerFn
 from torch.nn.parallel import DistributedDataParallel
 
 from tests_pytorch.helpers.runif import RunIf

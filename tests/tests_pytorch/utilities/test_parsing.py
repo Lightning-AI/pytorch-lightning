@@ -15,8 +15,8 @@ import inspect
 import threading
 
 import pytest
-from lightning.pytorch import LightningDataModule, LightningModule, Trainer
-from lightning.pytorch.utilities.parsing import (
+from lightning_pytorch import LightningDataModule, LightningModule, Trainer
+from lightning_pytorch.utilities.parsing import (
     _get_init_args,
     clean_namespace,
     collect_init_args,

@@ -103,7 +103,7 @@ In order to do that, we are iterating over the list of ``jupyter_config_requests
 
 .. code-block:: python
 
-    import lightning as L
+    import lightning_pytorch as LP
 
 
     class JupyterLabManager(L.LightningFlow):

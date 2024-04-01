@@ -20,14 +20,14 @@ from unittest.mock import Mock
 
 import pytest
 import torch
-from lightning.pytorch import Trainer
-from lightning.pytorch.accelerators.cpu import _CPU_PERCENT, _CPU_SWAP_PERCENT, _CPU_VM_PERCENT, get_cpu_stats
-from lightning.pytorch.callbacks import DeviceStatsMonitor
-from lightning.pytorch.callbacks.device_stats_monitor import _prefix_metric_keys
-from lightning.pytorch.demos.boring_classes import BoringModel
-from lightning.pytorch.loggers import CSVLogger
-from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning.pytorch.utilities.rank_zero import rank_zero_only
+from lightning_pytorch import Trainer
+from lightning_pytorch.accelerators.cpu import _CPU_PERCENT, _CPU_SWAP_PERCENT, _CPU_VM_PERCENT, get_cpu_stats
+from lightning_pytorch.callbacks import DeviceStatsMonitor
+from lightning_pytorch.callbacks.device_stats_monitor import _prefix_metric_keys
+from lightning_pytorch.demos.boring_classes import BoringModel
+from lightning_pytorch.loggers import CSVLogger
+from lightning_pytorch.utilities.exceptions import MisconfigurationException
+from lightning_pytorch.utilities.rank_zero import rank_zero_only
 
 from tests_pytorch.helpers.runif import RunIf
 
@@ -67,7 +67,7 @@ def test_device_stats_gpu_from_torch(tmp_path):
 
 @RunIf(psutil=True)
 @pytest.mark.parametrize("cpu_stats", [None, True, False])
-@mock.patch("lightning.pytorch.accelerators.cpu.get_cpu_stats", side_effect=get_cpu_stats)
+@mock.patch("lightning_pytorch.accelerators.cpu.get_cpu_stats", side_effect=get_cpu_stats)
 def test_device_stats_cpu(cpu_stats_mock, tmp_path, cpu_stats):
     """Test CPU stats are logged when no accelerator is used."""
     model = BoringModel()
@@ -158,7 +158,7 @@ def test_prefix_metric_keys():
 
 def test_device_stats_monitor_warning_when_psutil_not_available(monkeypatch, tmp_path):
     """Test that warning is raised when psutil is not available."""
-    import lightning.pytorch.callbacks.device_stats_monitor as imports
+    import lightning_pytorch.callbacks.device_stats_monitor as imports
 
     monkeypatch.setattr(imports, "_PSUTIL_AVAILABLE", False)
     monitor = DeviceStatsMonitor()

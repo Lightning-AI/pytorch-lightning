@@ -6,7 +6,7 @@ Arbitrary iterable support
 Python iterables are objects that can be iterated or looped over. Examples of iterables in Python include lists and dictionaries.
 In PyTorch, a :class:`torch.utils.data.DataLoader` is also an iterable which typically retrieves data from a :class:`torch.utils.data.Dataset` or :class:`torch.utils.data.IterableDataset`.
 
-The :class:`~lightning.pytorch.trainer.trainer.Trainer` works with arbitrary iterables, but most people will use a :class:`torch.utils.data.DataLoader` as the iterable to feed data to the model.
+The :class:`~lightning_pytorch.trainer.trainer.Trainer` works with arbitrary iterables, but most people will use a :class:`torch.utils.data.DataLoader` as the iterable to feed data to the model.
 
 .. _multiple-dataloaders:
 
@@ -32,15 +32,15 @@ In addition to supporting arbitrary iterables, the ``Trainer`` also supports arb
     return {"a": [dl1, dl2], "b": [dl3, dl4]}
 
 Lightning automatically collates the batches from multiple iterables based on a "mode". This is done with our
-:class:`~lightning.pytorch.utilities.combined_loader.CombinedLoader` class.
-The list of modes available can be found by looking at the :paramref:`~lightning.pytorch.utilities.combined_loader.CombinedLoader.mode` documentation.
+:class:`~lightning_pytorch.utilities.combined_loader.CombinedLoader` class.
+The list of modes available can be found by looking at the :paramref:`~lightning_pytorch.utilities.combined_loader.CombinedLoader.mode` documentation.
 
 By default, the ``"max_size_cycle"`` mode is used during training and the ``"sequential"`` mode is used during validation, testing, and prediction.
-To choose a different mode, you can use the :class:`~lightning.pytorch.utilities.combined_loader.CombinedLoader` class directly with your mode of choice:
+To choose a different mode, you can use the :class:`~lightning_pytorch.utilities.combined_loader.CombinedLoader` class directly with your mode of choice:
 
 .. code-block:: python
 
-    from lightning.pytorch.utilities import CombinedLoader
+    from lightning_pytorch.utilities import CombinedLoader
 
     iterables = {"a": DataLoader(), "b": DataLoader()}
     combined_loader = CombinedLoader(iterables, mode="min_size")
@@ -58,7 +58,7 @@ Lightning will `raise an error <https://github.com/Lightning-AI/lightning/pull/1
 Using LightningDataModule
 -------------------------
 
-You can set more than one :class:`~torch.utils.data.DataLoader` in your :class:`~lightning.pytorch.core.datamodule.LightningDataModule` using its DataLoader hooks
+You can set more than one :class:`~torch.utils.data.DataLoader` in your :class:`~lightning_pytorch.core.datamodule.LightningDataModule` using its DataLoader hooks
 and Lightning will use the correct one.
 
 .. testcode::
@@ -83,11 +83,11 @@ and Lightning will use the correct one.
 Using LightningModule Hooks
 ---------------------------
 
-The exact same code as above works when overriding :class:`~lightning.pytorch.core.LightningModule`
+The exact same code as above works when overriding :class:`~lightning_pytorch.core.LightningModule`
 
 Passing the iterables to the Trainer
 ------------------------------------
 
 The same support for arbitrary iterables, or collection of iterables applies to the dataloader arguments of
-:meth:`~lightning.pytorch.trainer.trainer.Trainer.fit`, :meth:`~lightning.pytorch.trainer.trainer.Trainer.validate`,
-:meth:`~lightning.pytorch.trainer.trainer.Trainer.test`, :meth:`~lightning.pytorch.trainer.trainer.Trainer.predict`
+:meth:`~lightning_pytorch.trainer.trainer.Trainer.fit`, :meth:`~lightning_pytorch.trainer.trainer.Trainer.validate`,
+:meth:`~lightning_pytorch.trainer.trainer.Trainer.test`, :meth:`~lightning_pytorch.trainer.trainer.Trainer.predict`

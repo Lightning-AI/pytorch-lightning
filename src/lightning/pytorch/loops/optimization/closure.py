@@ -15,7 +15,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Any, Dict, Generic, Optional, TypeVar
 
-from lightning.pytorch.utilities.exceptions import MisconfigurationException
+from lightning_pytorch.utilities.exceptions import MisconfigurationException
 
 T = TypeVar("T")
 

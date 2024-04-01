@@ -44,7 +44,7 @@ To use a full TPU pod skip to the TPU pod section.
 
 .. code-block:: python
 
-    import lightning as L
+    import lightning_pytorch as LP
 
     my_model = MyLightningModule()
     trainer = L.Trainer(accelerator="tpu", devices=8)
@@ -61,7 +61,7 @@ By default, TPU training will use 32-bit precision. To enable it, do
 
 .. code-block:: python
 
-    import lightning as L
+    import lightning_pytorch as LP
 
     my_model = MyLightningModule()
     trainer = L.Trainer(accelerator="tpu", precision="16-true")

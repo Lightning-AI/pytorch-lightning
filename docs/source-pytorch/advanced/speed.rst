@@ -2,7 +2,7 @@
 
 .. testsetup:: *
 
-    from lightning.pytorch.callbacks.early_stopping import EarlyStopping
+    from lightning_pytorch.callbacks.early_stopping import EarlyStopping
 
 .. _training-speedup:
 
@@ -27,9 +27,9 @@ GPU Training
 
 Lightning supports a variety of strategies to speed up distributed GPU training. Most notably:
 
-* :class:`~lightning.pytorch.strategies.DDPStrategy`
-* :class:`~lightning.pytorch.strategies.FSDPStrategy`
-* :class:`~lightning.pytorch.strategies.DeepSpeedStrategy`
+* :class:`~lightning_pytorch.strategies.DDPStrategy`
+* :class:`~lightning_pytorch.strategies.FSDPStrategy`
+* :class:`~lightning_pytorch.strategies.DeepSpeedStrategy`
 
 .. code-block:: python
 
@@ -51,7 +51,7 @@ Refer to :doc:`Advanced GPU Optimized Training for more details <../advanced/mod
 
 |
 
-:class:`~lightning.pytorch.strategies.ddp.DDPStrategy` only performs two transfer operations for each step, making it the simplest distributed training strategy:
+:class:`~lightning_pytorch.strategies.ddp.DDPStrategy` only performs two transfer operations for each step, making it the simplest distributed training strategy:
 
 1. Moving data to the device.
 2. Transfer and sync gradients.
@@ -181,7 +181,7 @@ Early Stopping
 **************
 
 Usually, long training epochs can lead to either overfitting or no major improvements in your metrics due to no limited convergence.
-Here :class:`~lightning.pytorch.callbacks.early_stopping.EarlyStopping` callback can help you stop the training entirely by monitoring a metric of your choice.
+Here :class:`~lightning_pytorch.callbacks.early_stopping.EarlyStopping` callback can help you stop the training entirely by monitoring a metric of your choice.
 
 You can read more about it :ref:`here <early_stopping>`.
 
@@ -364,8 +364,8 @@ Here is an explanation of what it does:
 When performing gradient accumulation, there is no need to perform grad synchronization during the accumulation phase.
 Setting ``sync_grad`` to ``False`` will block this synchronization and improve your training speed.
 
-:class:`~lightning.pytorch.core.optimizer.LightningOptimizer` provides a
-:meth:`~lightning.pytorch.core.optimizer.LightningOptimizer.toggle_model` function as a
+:class:`~lightning_pytorch.core.optimizer.LightningOptimizer` provides a
+:meth:`~lightning_pytorch.core.optimizer.LightningOptimizer.toggle_model` function as a
 :func:`contextlib.contextmanager` for advanced users.
 
 Here is an example of an advanced use case:
@@ -435,7 +435,7 @@ Here is an example of an advanced use case:
 Set Grads to None
 *****************
 
-In order to improve performance, you can override :meth:`~lightning.pytorch.core.LightningModule.optimizer_zero_grad`.
+In order to improve performance, you can override :meth:`~lightning_pytorch.core.LightningModule.optimizer_zero_grad`.
 
 For a more detailed explanation of the pros / cons of this technique,
 read the documentation for :meth:`~torch.optim.Optimizer.zero_grad` by the PyTorch team.

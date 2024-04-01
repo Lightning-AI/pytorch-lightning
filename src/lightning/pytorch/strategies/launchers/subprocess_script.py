@@ -19,7 +19,7 @@ from typing import Any, Callable, List, Optional
 from lightning_utilities.core.imports import RequirementCache
 from typing_extensions import override
 
-import lightning.pytorch as pl
+import lightning_pytorch as pl
 from lightning.fabric.plugins import ClusterEnvironment
 from lightning.fabric.strategies.launchers.subprocess_script import (
     _basic_subprocess_cmd,
@@ -27,8 +27,8 @@ from lightning.fabric.strategies.launchers.subprocess_script import (
     _launch_process_observer,
 )
 from lightning.fabric.utilities.distributed import _set_num_threads_if_needed
-from lightning.pytorch.strategies.launchers.launcher import _Launcher
-from lightning.pytorch.trainer.connectors.signal_connector import _SIGNUM
+from lightning_pytorch.strategies.launchers.launcher import _Launcher
+from lightning_pytorch.trainer.connectors.signal_connector import _SIGNUM
 
 log = logging.getLogger(__name__)
 _HYDRA_AVAILABLE = RequirementCache("hydra-core")
@@ -92,7 +92,7 @@ class _SubprocessScriptLauncher(_Launcher):
             function: A callback function to execute after all processes have been created.
                 It is up to the implementation of this function to synchronize the processes, e.g., with barriers.
             *args: Optional positional arguments to be passed to the given function.
-            trainer: Optional reference to the :class:`~lightning.pytorch.trainer.trainer.Trainer`.
+            trainer: Optional reference to the :class:`~lightning_pytorch.trainer.trainer.Trainer`.
             **kwargs: Optional keyword arguments to be passed to the given function.
 
         """

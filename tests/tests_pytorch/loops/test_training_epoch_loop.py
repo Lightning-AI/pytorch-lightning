@@ -17,9 +17,9 @@ from unittest.mock import Mock, patch
 import pytest
 import torch
 from lightning.fabric.utilities.warnings import PossibleUserWarning
-from lightning.pytorch.callbacks import ModelCheckpoint
-from lightning.pytorch.demos.boring_classes import BoringModel
-from lightning.pytorch.trainer.trainer import Trainer
+from lightning_pytorch.callbacks import ModelCheckpoint
+from lightning_pytorch.demos.boring_classes import BoringModel
+from lightning_pytorch.trainer.trainer import Trainer
 from lightning_utilities.test.warning import no_warning_call
 
 
@@ -75,7 +75,7 @@ def test_should_stop_early_stopping_conditions_not_met(
     trainer.fit_loop.epoch_progress.current.completed = current_epoch - 1
 
     message = f"min_epochs={min_epochs}` or `min_steps={min_steps}` has not been met. Training will continue"
-    with caplog.at_level(logging.INFO, logger="lightning.pytorch.loops"):
+    with caplog.at_level(logging.INFO, logger="lightning_pytorch.loops"):
         assert trainer.fit_loop.epoch_loop.done is epoch_loop_done
 
     assert (message in caplog.text) is raise_info_msg

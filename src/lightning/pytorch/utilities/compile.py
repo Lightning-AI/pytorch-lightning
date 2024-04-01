@@ -15,10 +15,10 @@ from typing import Union
 
 import torch
 
-import lightning.pytorch as pl
+import lightning_pytorch as pl
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0, _TORCH_GREATER_EQUAL_2_1
-from lightning.pytorch.strategies import DDPStrategy, DeepSpeedStrategy, FSDPStrategy, SingleDeviceStrategy, Strategy
-from lightning.pytorch.utilities.model_helpers import _check_mixed_imports
+from lightning_pytorch.strategies import DDPStrategy, DeepSpeedStrategy, FSDPStrategy, SingleDeviceStrategy, Strategy
+from lightning_pytorch.utilities.model_helpers import _check_mixed_imports
 
 
 def from_compiled(model: "torch._dynamo.OptimizedModule") -> "pl.LightningModule":

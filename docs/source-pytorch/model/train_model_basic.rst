@@ -21,7 +21,7 @@ Add the relevant imports at the top of the file
     from torchvision import transforms
     from torchvision.datasets import MNIST
     from torch.utils.data import DataLoader
-    import lightning as L
+    import lightning_pytorch as LP
 
 ----
 

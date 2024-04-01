@@ -32,55 +32,55 @@ from weakref import proxy
 import torch
 from torch.optim import Optimizer
 
-import lightning.pytorch as pl
+import lightning_pytorch as pl
 from lightning.fabric.utilities.apply_func import convert_tensors_to_scalars
 from lightning.fabric.utilities.cloud_io import _is_local_file_protocol
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 from lightning.fabric.utilities.types import _PATH
-from lightning.pytorch.accelerators import Accelerator
-from lightning.pytorch.callbacks import Callback, Checkpoint, EarlyStopping, ProgressBar
-from lightning.pytorch.core.datamodule import LightningDataModule
-from lightning.pytorch.loggers import Logger
-from lightning.pytorch.loggers.csv_logs import CSVLogger
-from lightning.pytorch.loggers.tensorboard import TensorBoardLogger
-from lightning.pytorch.loggers.utilities import _log_hyperparams
-from lightning.pytorch.loops import _PredictionLoop, _TrainingEpochLoop
-from lightning.pytorch.loops.evaluation_loop import _EvaluationLoop
-from lightning.pytorch.loops.fit_loop import _FitLoop
-from lightning.pytorch.loops.utilities import _parse_loop_limits, _reset_progress
-from lightning.pytorch.plugins import _PLUGIN_INPUT, Precision
-from lightning.pytorch.profilers import Profiler
-from lightning.pytorch.strategies import ParallelStrategy, Strategy
-from lightning.pytorch.trainer import call, setup
-from lightning.pytorch.trainer.configuration_validator import _verify_loop_configurations
-from lightning.pytorch.trainer.connectors.accelerator_connector import (
+from lightning_pytorch.accelerators import Accelerator
+from lightning_pytorch.callbacks import Callback, Checkpoint, EarlyStopping, ProgressBar
+from lightning_pytorch.core.datamodule import LightningDataModule
+from lightning_pytorch.loggers import Logger
+from lightning_pytorch.loggers.csv_logs import CSVLogger
+from lightning_pytorch.loggers.tensorboard import TensorBoardLogger
+from lightning_pytorch.loggers.utilities import _log_hyperparams
+from lightning_pytorch.loops import _PredictionLoop, _TrainingEpochLoop
+from lightning_pytorch.loops.evaluation_loop import _EvaluationLoop
+from lightning_pytorch.loops.fit_loop import _FitLoop
+from lightning_pytorch.loops.utilities import _parse_loop_limits, _reset_progress
+from lightning_pytorch.plugins import _PLUGIN_INPUT, Precision
+from lightning_pytorch.profilers import Profiler
+from lightning_pytorch.strategies import ParallelStrategy, Strategy
+from lightning_pytorch.trainer import call, setup
+from lightning_pytorch.trainer.configuration_validator import _verify_loop_configurations
+from lightning_pytorch.trainer.connectors.accelerator_connector import (
     _LITERAL_WARN,
     _PRECISION_INPUT,
     _PRECISION_INPUT_STR,
     _AcceleratorConnector,
 )
-from lightning.pytorch.trainer.connectors.callback_connector import _CallbackConnector
-from lightning.pytorch.trainer.connectors.checkpoint_connector import _CheckpointConnector
-from lightning.pytorch.trainer.connectors.data_connector import _DataConnector
-from lightning.pytorch.trainer.connectors.logger_connector import _LoggerConnector
-from lightning.pytorch.trainer.connectors.logger_connector.result import _OUT_DICT, _PBAR_DICT, _ResultCollection
-from lightning.pytorch.trainer.connectors.signal_connector import _SignalConnector
-from lightning.pytorch.trainer.states import RunningStage, TrainerFn, TrainerState, TrainerStatus
-from lightning.pytorch.utilities import GradClipAlgorithmType, parsing
-from lightning.pytorch.utilities.argparse import _defaults_from_env_vars
-from lightning.pytorch.utilities.compile import _maybe_unwrap_optimized, _verify_strategy_supports_compile
-from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning.pytorch.utilities.model_helpers import is_overridden
-from lightning.pytorch.utilities.rank_zero import rank_zero_info, rank_zero_warn
-from lightning.pytorch.utilities.seed import isolate_rng
-from lightning.pytorch.utilities.types import (
+from lightning_pytorch.trainer.connectors.callback_connector import _CallbackConnector
+from lightning_pytorch.trainer.connectors.checkpoint_connector import _CheckpointConnector
+from lightning_pytorch.trainer.connectors.data_connector import _DataConnector
+from lightning_pytorch.trainer.connectors.logger_connector import _LoggerConnector
+from lightning_pytorch.trainer.connectors.logger_connector.result import _OUT_DICT, _PBAR_DICT, _ResultCollection
+from lightning_pytorch.trainer.connectors.signal_connector import _SignalConnector
+from lightning_pytorch.trainer.states import RunningStage, TrainerFn, TrainerState, TrainerStatus
+from lightning_pytorch.utilities import GradClipAlgorithmType, parsing
+from lightning_pytorch.utilities.argparse import _defaults_from_env_vars
+from lightning_pytorch.utilities.compile import _maybe_unwrap_optimized, _verify_strategy_supports_compile
+from lightning_pytorch.utilities.exceptions import MisconfigurationException
+from lightning_pytorch.utilities.model_helpers import is_overridden
+from lightning_pytorch.utilities.rank_zero import rank_zero_info, rank_zero_warn
+from lightning_pytorch.utilities.seed import isolate_rng
+from lightning_pytorch.utilities.types import (
     _EVALUATE_OUTPUT,
     _PREDICT_OUTPUT,
     EVAL_DATALOADERS,
     TRAIN_DATALOADERS,
     LRSchedulerConfig,
 )
-from lightning.pytorch.utilities.warnings import PossibleUserWarning
+from lightning_pytorch.utilities.warnings import PossibleUserWarning
 
 log = logging.getLogger(__name__)
 # warnings to ignore in trainer
@@ -221,7 +221,7 @@ class Trainer:
 
             enable_checkpointing: If ``True``, enable checkpointing.
                 It will configure a default ModelCheckpoint callback if there is no user-defined ModelCheckpoint in
-                :paramref:`~lightning.pytorch.trainer.trainer.Trainer.callbacks`.
+                :paramref:`~lightning_pytorch.trainer.trainer.Trainer.callbacks`.
                 Default: ``True``.
 
             enable_progress_bar: Whether to enable to progress bar by default.
@@ -247,7 +247,7 @@ class Trainer:
 
             benchmark: The value (``True`` or ``False``) to set ``torch.backends.cudnn.benchmark`` to.
                 The value for ``torch.backends.cudnn.benchmark`` set in the current session will be used
-                (``False`` if not manually set). If :paramref:`~lightning.pytorch.trainer.trainer.Trainer.deterministic`
+                (``False`` if not manually set). If :paramref:`~lightning_pytorch.trainer.trainer.Trainer.deterministic`
                 is set to ``True``, this will default to ``False``. Override to manually set a different value.
                 Default: ``None``.
 
@@ -271,17 +271,17 @@ class Trainer:
             barebones: Whether to run in "barebones mode", where all features that may impact raw speed are
                 disabled. This is meant for analyzing the Trainer overhead and is discouraged during regular training
                 runs. The following features are deactivated:
-                :paramref:`~lightning.pytorch.trainer.trainer.Trainer.enable_checkpointing`,
-                :paramref:`~lightning.pytorch.trainer.trainer.Trainer.logger`,
-                :paramref:`~lightning.pytorch.trainer.trainer.Trainer.enable_progress_bar`,
-                :paramref:`~lightning.pytorch.trainer.trainer.Trainer.log_every_n_steps`,
-                :paramref:`~lightning.pytorch.trainer.trainer.Trainer.enable_model_summary`,
-                :paramref:`~lightning.pytorch.trainer.trainer.Trainer.num_sanity_val_steps`,
-                :paramref:`~lightning.pytorch.trainer.trainer.Trainer.fast_dev_run`,
-                :paramref:`~lightning.pytorch.trainer.trainer.Trainer.detect_anomaly`,
-                :paramref:`~lightning.pytorch.trainer.trainer.Trainer.profiler`,
-                :meth:`~lightning.pytorch.core.LightningModule.log`,
-                :meth:`~lightning.pytorch.core.LightningModule.log_dict`.
+                :paramref:`~lightning_pytorch.trainer.trainer.Trainer.enable_checkpointing`,
+                :paramref:`~lightning_pytorch.trainer.trainer.Trainer.logger`,
+                :paramref:`~lightning_pytorch.trainer.trainer.Trainer.enable_progress_bar`,
+                :paramref:`~lightning_pytorch.trainer.trainer.Trainer.log_every_n_steps`,
+                :paramref:`~lightning_pytorch.trainer.trainer.Trainer.enable_model_summary`,
+                :paramref:`~lightning_pytorch.trainer.trainer.Trainer.num_sanity_val_steps`,
+                :paramref:`~lightning_pytorch.trainer.trainer.Trainer.fast_dev_run`,
+                :paramref:`~lightning_pytorch.trainer.trainer.Trainer.detect_anomaly`,
+                :paramref:`~lightning_pytorch.trainer.trainer.Trainer.profiler`,
+                :meth:`~lightning_pytorch.core.LightningModule.log`,
+                :meth:`~lightning_pytorch.core.LightningModule.log_dict`.
             plugins: Plugins allow modification of core behavior like ddp and amp, and enable custom lightning plugins.
                 Default: ``None``.
 
@@ -515,21 +515,21 @@ class Trainer:
             model: Model to fit.
 
             train_dataloaders: An iterable or collection of iterables specifying training samples.
-                Alternatively, a :class:`~lightning.pytorch.core.datamodule.LightningDataModule` that defines
-                the :class:`~lightning.pytorch.core.hooks.DataHooks.train_dataloader` hook.
+                Alternatively, a :class:`~lightning_pytorch.core.datamodule.LightningDataModule` that defines
+                the :class:`~lightning_pytorch.core.hooks.DataHooks.train_dataloader` hook.
 
             val_dataloaders: An iterable or collection of iterables specifying validation samples.
 
-            datamodule: A :class:`~lightning.pytorch.core.datamodule.LightningDataModule` that defines
-                the :class:`~lightning.pytorch.core.hooks.DataHooks.train_dataloader` hook.
+            datamodule: A :class:`~lightning_pytorch.core.datamodule.LightningDataModule` that defines
+                the :class:`~lightning_pytorch.core.hooks.DataHooks.train_dataloader` hook.
 
             ckpt_path: Path/URL of the checkpoint from which training is resumed. Could also be one of two special
                 keywords ``"last"`` and ``"hpc"``. If there is no checkpoint file at the path, an exception is raised.
 
         Raises:
             TypeError:
-                If ``model`` is not :class:`~lightning.pytorch.core.LightningModule` for torch version less than
-                2.0.0 and if ``model`` is not :class:`~lightning.pytorch.core.LightningModule` or
+                If ``model`` is not :class:`~lightning_pytorch.core.LightningModule` for torch version less than
+                2.0.0 and if ``model`` is not :class:`~lightning_pytorch.core.LightningModule` or
                 :class:`torch._dynamo.OptimizedModule` for torch versions greater than or equal to 2.0.0 .
 
         For more information about multiple dataloaders, see this :ref:`section <multiple-dataloaders>`.
@@ -597,8 +597,8 @@ class Trainer:
             model: The model to validate.
 
             dataloaders: An iterable or collection of iterables specifying validation samples.
-                Alternatively, a :class:`~lightning.pytorch.core.datamodule.LightningDataModule` that defines
-                the :class:`~lightning.pytorch.core.hooks.DataHooks.val_dataloader` hook.
+                Alternatively, a :class:`~lightning_pytorch.core.datamodule.LightningDataModule` that defines
+                the :class:`~lightning_pytorch.core.hooks.DataHooks.val_dataloader` hook.
 
             ckpt_path: Either ``"best"``, ``"last"``, ``"hpc"`` or path to the checkpoint you wish to validate.
                 If ``None`` and the model instance was passed, use the current weights.
@@ -607,14 +607,14 @@ class Trainer:
 
             verbose: If True, prints the validation results.
 
-            datamodule: A :class:`~lightning.pytorch.core.datamodule.LightningDataModule` that defines
-                the :class:`~lightning.pytorch.core.hooks.DataHooks.val_dataloader` hook.
+            datamodule: A :class:`~lightning_pytorch.core.datamodule.LightningDataModule` that defines
+                the :class:`~lightning_pytorch.core.hooks.DataHooks.val_dataloader` hook.
 
         For more information about multiple dataloaders, see this :ref:`section <multiple-dataloaders>`.
 
         Returns:
             List of dictionaries with metrics logged during the validation phase, e.g., in model- or callback hooks
-            like :meth:`~lightning.pytorch.LightningModule.validation_step` etc.
+            like :meth:`~lightning_pytorch.LightningModule.validation_step` etc.
             The length of the list corresponds to the number of validation dataloaders used.
 
         Raises:
@@ -706,8 +706,8 @@ class Trainer:
             model: The model to test.
 
             dataloaders: An iterable or collection of iterables specifying test samples.
-                Alternatively, a :class:`~lightning.pytorch.core.datamodule.LightningDataModule` that defines
-                the :class:`~lightning.pytorch.core.hooks.DataHooks.test_dataloader` hook.
+                Alternatively, a :class:`~lightning_pytorch.core.datamodule.LightningDataModule` that defines
+                the :class:`~lightning_pytorch.core.hooks.DataHooks.test_dataloader` hook.
 
             ckpt_path: Either ``"best"``, ``"last"``, ``"hpc"`` or path to the checkpoint you wish to test.
                 If ``None`` and the model instance was passed, use the current weights.
@@ -716,14 +716,14 @@ class Trainer:
 
             verbose: If True, prints the test results.
 
-            datamodule: A :class:`~lightning.pytorch.core.datamodule.LightningDataModule` that defines
-                the :class:`~lightning.pytorch.core.hooks.DataHooks.test_dataloader` hook.
+            datamodule: A :class:`~lightning_pytorch.core.datamodule.LightningDataModule` that defines
+                the :class:`~lightning_pytorch.core.hooks.DataHooks.test_dataloader` hook.
 
         For more information about multiple dataloaders, see this :ref:`section <multiple-dataloaders>`.
 
         Returns:
             List of dictionaries with metrics logged during the test phase, e.g., in model- or callback hooks
-            like :meth:`~lightning.pytorch.LightningModule.test_step` etc.
+            like :meth:`~lightning_pytorch.LightningModule.test_step` etc.
             The length of the list corresponds to the number of test dataloaders used.
 
         Raises:
@@ -815,11 +815,11 @@ class Trainer:
             model: The model to predict with.
 
             dataloaders: An iterable or collection of iterables specifying predict samples.
-                Alternatively, a :class:`~lightning.pytorch.core.datamodule.LightningDataModule` that defines
-                the :class:`~lightning.pytorch.core.hooks.DataHooks.predict_dataloader` hook.
+                Alternatively, a :class:`~lightning_pytorch.core.datamodule.LightningDataModule` that defines
+                the :class:`~lightning_pytorch.core.hooks.DataHooks.predict_dataloader` hook.
 
-            datamodule: A :class:`~lightning.pytorch.core.datamodule.LightningDataModule` that defines
-                the :class:`~lightning.pytorch.core.hooks.DataHooks.predict_dataloader` hook.
+            datamodule: A :class:`~lightning_pytorch.core.datamodule.LightningDataModule` that defines
+                the :class:`~lightning_pytorch.core.hooks.DataHooks.predict_dataloader` hook.
 
             return_predictions: Whether to return predictions.
                 ``True`` by default except when an accelerator that spawns processes is used (not supported).
@@ -1216,7 +1216,7 @@ class Trainer:
         """The LightningModule, but possibly wrapped into DataParallel or DistributedDataParallel.
 
         To access the pure LightningModule, use
-        :meth:`~lightning.pytorch.trainer.trainer.Trainer.lightning_module` instead.
+        :meth:`~lightning_pytorch.trainer.trainer.Trainer.lightning_module` instead.
 
         """
         return self.strategy.model
@@ -1290,33 +1290,33 @@ class Trainer:
 
     @property
     def early_stopping_callback(self) -> Optional[EarlyStopping]:
-        """The first :class:`~lightning.pytorch.callbacks.early_stopping.EarlyStopping` callback in the
+        """The first :class:`~lightning_pytorch.callbacks.early_stopping.EarlyStopping` callback in the
         Trainer.callbacks list, or ``None`` if it doesn't exist."""
         callbacks = self.early_stopping_callbacks
         return callbacks[0] if len(callbacks) > 0 else None
 
     @property
     def early_stopping_callbacks(self) -> List[EarlyStopping]:
-        """A list of all instances of :class:`~lightning.pytorch.callbacks.early_stopping.EarlyStopping` found in the
+        """A list of all instances of :class:`~lightning_pytorch.callbacks.early_stopping.EarlyStopping` found in the
         Trainer.callbacks list."""
         return [c for c in self.callbacks if isinstance(c, EarlyStopping)]
 
     @property
     def checkpoint_callback(self) -> Optional[Checkpoint]:
-        """The first :class:`~lightning.pytorch.callbacks.model_checkpoint.ModelCheckpoint` callback in the
+        """The first :class:`~lightning_pytorch.callbacks.model_checkpoint.ModelCheckpoint` callback in the
         Trainer.callbacks list, or ``None`` if it doesn't exist."""
         callbacks = self.checkpoint_callbacks
         return callbacks[0] if len(callbacks) > 0 else None
 
     @property
     def checkpoint_callbacks(self) -> List[Checkpoint]:
-        """A list of all instances of :class:`~lightning.pytorch.callbacks.model_checkpoint.ModelCheckpoint` found in
+        """A list of all instances of :class:`~lightning_pytorch.callbacks.model_checkpoint.ModelCheckpoint` found in
         the Trainer.callbacks list."""
         return [c for c in self.callbacks if isinstance(c, Checkpoint)]
 
     @property
     def progress_bar_callback(self) -> Optional[ProgressBar]:
-        """An instance of :class:`~lightning.pytorch.callbacks.progress.progress_bar.ProgressBar` found in the
+        """An instance of :class:`~lightning_pytorch.callbacks.progress.progress_bar.ProgressBar` found in the
         Trainer.callbacks list, or ``None`` if one doesn't exist."""
         for c in self.callbacks:
             if isinstance(c, ProgressBar):
@@ -1325,10 +1325,10 @@ class Trainer:
 
     @property
     def ckpt_path(self) -> Optional[_PATH]:
-        """Set to the path/URL of a checkpoint loaded via :meth:`~lightning.pytorch.trainer.trainer.Trainer.fit`,
-        :meth:`~lightning.pytorch.trainer.trainer.Trainer.validate`,
-        :meth:`~lightning.pytorch.trainer.trainer.Trainer.test`, or
-        :meth:`~lightning.pytorch.trainer.trainer.Trainer.predict`.
+        """Set to the path/URL of a checkpoint loaded via :meth:`~lightning_pytorch.trainer.trainer.Trainer.fit`,
+        :meth:`~lightning_pytorch.trainer.trainer.Trainer.validate`,
+        :meth:`~lightning_pytorch.trainer.trainer.Trainer.test`, or
+        :meth:`~lightning_pytorch.trainer.trainer.Trainer.predict`.
 
         ``None`` otherwise.
 
@@ -1588,7 +1588,7 @@ class Trainer:
 
     @property
     def logger(self) -> Optional[Logger]:
-        """The first :class:`~lightning.pytorch.loggers.logger.Logger` being used."""
+        """The first :class:`~lightning_pytorch.loggers.logger.Logger` being used."""
         return self.loggers[0] if len(self.loggers) > 0 else None
 
     @logger.setter
@@ -1600,7 +1600,7 @@ class Trainer:
 
     @property
     def loggers(self) -> List[Logger]:
-        """The list of :class:`~lightning.pytorch.loggers.logger.Logger` used.
+        """The list of :class:`~lightning_pytorch.loggers.logger.Logger` used.
 
         .. code-block:: python
 
@@ -1634,8 +1634,8 @@ class Trainer:
     def logged_metrics(self) -> _OUT_DICT:
         """The metrics sent to the loggers.
 
-        This includes metrics logged via :meth:`~lightning.pytorch.core.LightningModule.log` with the
-        :paramref:`~lightning.pytorch.core.LightningModule.log.logger` argument set.
+        This includes metrics logged via :meth:`~lightning_pytorch.core.LightningModule.log` with the
+        :paramref:`~lightning_pytorch.core.LightningModule.log.logger` argument set.
 
         """
         return self._logger_connector.logged_metrics
@@ -1644,8 +1644,8 @@ class Trainer:
     def progress_bar_metrics(self) -> _PBAR_DICT:
         """The metrics sent to the progress bar.
 
-        This includes metrics logged via :meth:`~lightning.pytorch.core.LightningModule.log` with the
-        :paramref:`~lightning.pytorch.core.LightningModule.log.prog_bar` argument set.
+        This includes metrics logged via :meth:`~lightning_pytorch.core.LightningModule.log` with the
+        :paramref:`~lightning_pytorch.core.LightningModule.log.prog_bar` argument set.
 
         """
         return self._logger_connector.progress_bar_metrics

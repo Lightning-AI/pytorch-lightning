@@ -18,7 +18,7 @@ from torch import Tensor
 from torch.nn.modules import MultiheadAttention
 from torch.utils.data import DataLoader, Dataset
 
-from lightning.pytorch import LightningModule
+from lightning_pytorch import LightningModule
 
 _REQUESTS_AVAILABLE = RequirementCache("requests")
 

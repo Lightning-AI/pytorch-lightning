@@ -17,11 +17,11 @@ from unittest.mock import ANY, Mock
 
 import pytest
 import torch
-from lightning.pytorch import Trainer
-from lightning.pytorch.callbacks import ModelCheckpoint
-from lightning.pytorch.demos.boring_classes import BoringModel
-from lightning.pytorch.trainer.states import TrainerFn
-from lightning.pytorch.utilities.migration.utils import _set_version
+from lightning_pytorch import Trainer
+from lightning_pytorch.callbacks import ModelCheckpoint
+from lightning_pytorch.demos.boring_classes import BoringModel
+from lightning_pytorch.trainer.states import TrainerFn
+from lightning_pytorch.utilities.migration.utils import _set_version
 
 
 def test_preloaded_checkpoint_lifecycle(tmp_path):

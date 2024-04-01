@@ -17,41 +17,41 @@ from typing import Any, Dict, Optional, Union
 
 from typing_extensions import override
 
-import lightning.pytorch as pl
+import lightning_pytorch as pl
 from lightning.fabric.utilities.types import _Stateful
 from lightning.fabric.utilities.warnings import PossibleUserWarning
-from lightning.pytorch import loops  # import as loops to avoid circular imports
-from lightning.pytorch.loops.fetchers import _DataFetcher, _DataLoaderIterDataFetcher
-from lightning.pytorch.loops.optimization import _AutomaticOptimization, _ManualOptimization
-from lightning.pytorch.loops.optimization.automatic import _OUTPUTS_TYPE as _OPTIMIZER_LOOP_OUTPUTS_TYPE
-from lightning.pytorch.loops.optimization.manual import _OUTPUTS_TYPE as _MANUAL_LOOP_OUTPUTS_TYPE
-from lightning.pytorch.loops.progress import _BatchProgress, _SchedulerProgress
-from lightning.pytorch.loops.utilities import _is_max_limit_reached
-from lightning.pytorch.trainer import call
-from lightning.pytorch.trainer.connectors.logger_connector.result import _ResultCollection
-from lightning.pytorch.trainer.states import RunningStage, TrainerFn
-from lightning.pytorch.utilities.exceptions import MisconfigurationException, SIGTERMException
-from lightning.pytorch.utilities.rank_zero import WarningCache, rank_zero_warn
-from lightning.pytorch.utilities.signature_utils import is_param_in_hook_signature
+from lightning_pytorch import loops  # import as loops to avoid circular imports
+from lightning_pytorch.loops.fetchers import _DataFetcher, _DataLoaderIterDataFetcher
+from lightning_pytorch.loops.optimization import _AutomaticOptimization, _ManualOptimization
+from lightning_pytorch.loops.optimization.automatic import _OUTPUTS_TYPE as _OPTIMIZER_LOOP_OUTPUTS_TYPE
+from lightning_pytorch.loops.optimization.manual import _OUTPUTS_TYPE as _MANUAL_LOOP_OUTPUTS_TYPE
+from lightning_pytorch.loops.progress import _BatchProgress, _SchedulerProgress
+from lightning_pytorch.loops.utilities import _is_max_limit_reached
+from lightning_pytorch.trainer import call
+from lightning_pytorch.trainer.connectors.logger_connector.result import _ResultCollection
+from lightning_pytorch.trainer.states import RunningStage, TrainerFn
+from lightning_pytorch.utilities.exceptions import MisconfigurationException, SIGTERMException
+from lightning_pytorch.utilities.rank_zero import WarningCache, rank_zero_warn
+from lightning_pytorch.utilities.signature_utils import is_param_in_hook_signature
 
 _BATCH_OUTPUTS_TYPE = Optional[Union[_OPTIMIZER_LOOP_OUTPUTS_TYPE, _MANUAL_LOOP_OUTPUTS_TYPE]]
 
 
 class _TrainingEpochLoop(loops._Loop):
     """Iterates over all batches in the dataloader (one epoch) that the user returns in their
-    :meth:`~lightning.pytorch.core.LightningModule.train_dataloader` method.
+    :meth:`~lightning_pytorch.core.LightningModule.train_dataloader` method.
 
     Its main responsibilities are calling the ``*_epoch_{start,end}`` hooks, accumulating outputs if the user request
     them in one of these hooks, and running validation at the requested interval.
 
     The validation is carried out by yet another loop,
-    :class:`~lightning.pytorch.loops._EvaluationLoop`.
+    :class:`~lightning_pytorch.loops._EvaluationLoop`.
 
     In the ``run()`` method, the training epoch loop could in theory simply call the
     ``LightningModule.training_step`` already and perform the optimization.
     However, Lightning has built-in support for automatic optimization with multiple optimizers.
     For this reason there are actually two more loops nested under
-    :class:`~lightning.pytorch.loops._TrainingEpochLoop`.
+    :class:`~lightning_pytorch.loops._TrainingEpochLoop`.
 
     Args:
         min_steps: The minimum number of steps (batches) to process

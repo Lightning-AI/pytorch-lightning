@@ -19,7 +19,7 @@ from textwrap import dedent
 from unittest import mock
 
 import pytest
-from lightning.pytorch.utilities.imports import _OMEGACONF_AVAILABLE
+from lightning_pytorch.utilities.imports import _OMEGACONF_AVAILABLE
 from lightning_utilities.core.imports import RequirementCache
 from torch.distributed import is_available
 
@@ -83,18 +83,18 @@ def clean_import():
     ("patch_name", "new_fn", "to_import"),
     [
         pytest.param(
-            "torch.distributed.is_available", _shortcut_patch(is_available, ()), "lightning.pytorch", id="ProcessGroup"
+            "torch.distributed.is_available", _shortcut_patch(is_available, ()), "lightning_pytorch", id="ProcessGroup"
         ),
         pytest.param(
             "lightning_utilities.core.imports.RequirementCache.__bool__",
             _shortcut_patch(RequirementCache.__bool__, ("neptune",), ("requirement",)),
-            "lightning.pytorch.loggers.neptune",
+            "lightning_pytorch.loggers.neptune",
             id="neptune",
         ),
         pytest.param(
             "lightning_utilities.core.imports.RequirementCache.__bool__",
             _shortcut_patch(RequirementCache.__bool__, ("jsonargparse[signatures]>=4.12.0",), ("requirement",)),
-            "lightning.pytorch.cli",
+            "lightning_pytorch.cli",
             id="cli",
         ),
     ],
@@ -125,7 +125,7 @@ def test_import_pytorch_lightning_with_torch_dist_unavailable():
 
         torch.distributed.is_available = lambda: False
 
-        import lightning.pytorch
+        import lightning_pytorch
         """
     )
     # run in complete isolation
@@ -137,12 +137,12 @@ def test_import_deepspeed_lazily():
     """Test that we are importing deepspeed only when necessary."""
     code = dedent(
         """
-        import lightning.pytorch
+        import lightning_pytorch
         import sys
 
         assert 'deepspeed' not in sys.modules
-        from lightning.pytorch.strategies import DeepSpeedStrategy
-        from lightning.pytorch.plugins import DeepSpeedPrecision
+        from lightning_pytorch.strategies import DeepSpeedStrategy
+        from lightning_pytorch.plugins import DeepSpeedPrecision
         assert 'deepspeed' not in sys.modules
 
         import deepspeed
@@ -156,7 +156,7 @@ def test_import_deepspeed_lazily():
 @RunIf(min_python="3.9")
 def test_import_lightning_multiprocessing_start_method_not_set():
     """Regression test for avoiding the lightning import to set the multiprocessing context."""
-    package_name = "pytorch_lightning" if "lightning.pytorch" == "pytorch_lightning" else "lightning"
+    package_name = "pytorch_lightning" if "lightning_pytorch" == "pytorch_lightning" else "lightning"
 
     # The following would fail with "context has already been set"
     code = dedent(

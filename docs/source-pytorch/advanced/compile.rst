@@ -22,7 +22,7 @@ Compiling a LightningModule is as simple as adding one line of code, calling :fu
 .. code-block:: python
 
     import torch
-    import lightning as L
+    import lightning_pytorch as LP
 
     # Define the model
     model = MyLightningModule()
@@ -67,7 +67,7 @@ always exclude the first call to ``forward()``/``*_step()`` from your measuremen
         import statistics
         import torch
         import torchvision.models as models
-        import lightning as L
+        import lightning_pytorch as LP
         from torch.utils.data import DataLoader
 
 
@@ -263,7 +263,7 @@ There are a few limitations you should be aware of when using ``torch.compile`` 
 
   .. code-block:: python
 
-      import lightning as L
+      import lightning_pytorch as LP
 
       class MyLightningModule(L.LightningModule):
           def __init__(self):

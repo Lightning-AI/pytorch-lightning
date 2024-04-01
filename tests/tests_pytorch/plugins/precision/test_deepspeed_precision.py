@@ -14,7 +14,7 @@
 
 import pytest
 import torch
-from lightning.pytorch.plugins.precision.deepspeed import DeepSpeedPrecision
+from lightning_pytorch.plugins.precision.deepspeed import DeepSpeedPrecision
 
 
 def test_invalid_precision_with_deepspeed_precision():

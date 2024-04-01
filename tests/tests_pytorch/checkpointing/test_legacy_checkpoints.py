@@ -16,10 +16,10 @@ import os
 import sys
 from unittest.mock import patch
 
-import lightning.pytorch as pl
+import lightning_pytorch as pl
 import pytest
 import torch
-from lightning.pytorch import Callback, Trainer
+from lightning_pytorch import Callback, Trainer
 
 from tests_pytorch import _PATH_LEGACY
 from tests_pytorch.helpers.datamodules import ClassifDataModule
@@ -75,7 +75,7 @@ def test_legacy_ckpt_threading(pl_version: str):
 
     def load_model():
         import torch
-        from lightning.pytorch.utilities.migration import pl_legacy_patch
+        from lightning_pytorch.utilities.migration import pl_legacy_patch
 
         with pl_legacy_patch():
             _ = torch.load(path_ckpt)

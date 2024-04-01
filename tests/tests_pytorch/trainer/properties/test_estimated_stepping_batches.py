@@ -18,9 +18,9 @@ from unittest import mock
 
 import pytest
 import torch
-from lightning.pytorch import Trainer
-from lightning.pytorch.demos.boring_classes import BoringModel, RandomIterableDataset
-from lightning.pytorch.strategies import SingleDeviceXLAStrategy
+from lightning_pytorch import Trainer
+from lightning_pytorch.demos.boring_classes import BoringModel, RandomIterableDataset
+from lightning_pytorch.strategies import SingleDeviceXLAStrategy
 from torch.utils.data import DataLoader
 
 from tests_pytorch.conftest import mock_cuda_count

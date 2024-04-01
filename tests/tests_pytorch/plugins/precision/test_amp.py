@@ -14,8 +14,8 @@
 from unittest.mock import Mock
 
 import pytest
-from lightning.pytorch.plugins import MixedPrecision
-from lightning.pytorch.utilities import GradClipAlgorithmType
+from lightning_pytorch.plugins import MixedPrecision
+from lightning_pytorch.utilities import GradClipAlgorithmType
 from torch.optim import Optimizer
 
 

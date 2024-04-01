@@ -39,7 +39,7 @@ Now import your Component and use it in a Lightning App:
 
     # app.py
     from your_component import TemplateComponent
-    import lightning as L
+    import lightning_pytorch as LP
 
     class LitApp(L.LightningFlow):
         def __init__(self) -> None:

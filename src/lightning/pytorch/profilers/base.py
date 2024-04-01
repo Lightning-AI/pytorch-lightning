@@ -15,7 +15,7 @@
 
 from typing_extensions import override
 
-from lightning.pytorch.profilers.profiler import Profiler
+from lightning_pytorch.profilers.profiler import Profiler
 
 
 class PassThroughProfiler(Profiler):

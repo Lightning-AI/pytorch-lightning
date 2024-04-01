@@ -16,7 +16,7 @@ Keep your regular nn.Module architecture
 
 .. testcode::
 
-    import lightning as L
+    import lightning_pytorch as LP
     import torch
     import torch.nn as nn
     import torch.nn.functional as F
@@ -62,7 +62,7 @@ In the training_step of the LightningModule configure how your training routine 
 ****************************************
 3. Move Optimizer(s) and LR Scheduler(s)
 ****************************************
-Move your optimizers to the :meth:`~lightning.pytorch.core.LightningModule.configure_optimizers` hook.
+Move your optimizers to the :meth:`~lightning_pytorch.core.LightningModule.configure_optimizers` hook.
 
 .. testcode::
 
@@ -163,7 +163,7 @@ Regular PyTorch DataLoaders work with Lightning. For more modular and scalable d
 Good to know
 ************
 
-Additionally, you can run only the validation loop using :meth:`~lightning.pytorch.trainer.trainer.Trainer.validate` method.
+Additionally, you can run only the validation loop using :meth:`~lightning_pytorch.trainer.trainer.Trainer.validate` method.
 
 .. code-block:: python
 
@@ -173,7 +173,7 @@ Additionally, you can run only the validation loop using :meth:`~lightning.pytor
 .. note:: ``model.eval()`` and ``torch.no_grad()`` are called automatically for validation.
 
 
-The test loop isn't used within :meth:`~lightning.pytorch.trainer.trainer.Trainer.fit`, therefore, you would need to explicitly call :meth:`~lightning.pytorch.trainer.trainer.Trainer.test`.
+The test loop isn't used within :meth:`~lightning_pytorch.trainer.trainer.Trainer.fit`, therefore, you would need to explicitly call :meth:`~lightning_pytorch.trainer.trainer.Trainer.test`.
 
 .. code-block:: python
 
@@ -185,7 +185,7 @@ The test loop isn't used within :meth:`~lightning.pytorch.trainer.trainer.Traine
 .. tip:: ``trainer.test()`` loads the best checkpoint automatically by default if checkpointing is enabled.
 
 
-The predict loop will not be used until you call :meth:`~lightning.pytorch.trainer.trainer.Trainer.predict`.
+The predict loop will not be used until you call :meth:`~lightning_pytorch.trainer.trainer.Trainer.predict`.
 
 .. code-block:: python
 

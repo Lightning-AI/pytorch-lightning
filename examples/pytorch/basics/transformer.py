@@ -1,7 +1,7 @@
-import lightning as L
+import lightning_pytorch as LP
 import torch
 import torch.nn.functional as F
-from lightning.pytorch.demos import Transformer, WikiText2
+from lightning_pytorch.demos import Transformer, WikiText2
 from torch.utils.data import DataLoader, random_split
 
 

@@ -45,7 +45,7 @@ Here's an example of this behavior with LightningWork:
 .. code:: python
     :emphasize-lines: 11, 17
 
-    import lightning as L
+    import lightning_pytorch as LP
 
 
     class ExampleWork(L.LightningWork):

@@ -9,13 +9,13 @@ import torch
 from lightning_utilities.core.imports import RequirementCache
 from typing_extensions import override
 
-import lightning.pytorch as pl
-from lightning.pytorch.callbacks import Callback
-from lightning.pytorch.serve.servable_module import ServableModule
-from lightning.pytorch.strategies import DeepSpeedStrategy, FSDPStrategy
-from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning.pytorch.utilities.model_helpers import is_overridden
-from lightning.pytorch.utilities.rank_zero import rank_zero_only
+import lightning_pytorch as pl
+from lightning_pytorch.callbacks import Callback
+from lightning_pytorch.serve.servable_module import ServableModule
+from lightning_pytorch.strategies import DeepSpeedStrategy, FSDPStrategy
+from lightning_pytorch.utilities.exceptions import MisconfigurationException
+from lightning_pytorch.utilities.model_helpers import is_overridden
+from lightning_pytorch.utilities.rank_zero import rank_zero_only
 
 _NOT_SUPPORTED_STRATEGIES = (
     DeepSpeedStrategy,

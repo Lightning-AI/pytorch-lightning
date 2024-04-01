@@ -19,9 +19,9 @@ from unittest.mock import ANY, Mock
 
 import pytest
 import torch
-from lightning.pytorch import Callback, Trainer
-from lightning.pytorch.demos.boring_classes import BoringModel
-from lightning.pytorch.loggers import (
+from lightning_pytorch import Callback, Trainer
+from lightning_pytorch.demos.boring_classes import BoringModel
+from lightning_pytorch.loggers import (
     CometLogger,
     CSVLogger,
     MLFlowLogger,
@@ -29,9 +29,9 @@ from lightning.pytorch.loggers import (
     TensorBoardLogger,
     WandbLogger,
 )
-from lightning.pytorch.loggers.logger import DummyExperiment, Logger
-from lightning.pytorch.loggers.tensorboard import _TENSORBOARD_AVAILABLE
-from lightning.pytorch.tuner.tuning import Tuner
+from lightning_pytorch.loggers.logger import DummyExperiment, Logger
+from lightning_pytorch.loggers.tensorboard import _TENSORBOARD_AVAILABLE
+from lightning_pytorch.tuner.tuning import Tuner
 
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.loggers.test_comet import _patch_comet_atexit
@@ -68,7 +68,7 @@ def _instantiate_logger(logger_class, save_dir, **override_kwargs):
 
 
 @mock.patch.dict(os.environ, {})
-@mock.patch("lightning.pytorch.loggers.mlflow._get_resolve_tags", Mock())
+@mock.patch("lightning_pytorch.loggers.mlflow._get_resolve_tags", Mock())
 @pytest.mark.parametrize("logger_class", ALL_LOGGER_CLASSES)
 def test_loggers_fit_test_all(logger_class, mlflow_mock, wandb_mock, comet_mock, neptune_mock, tmp_path):
     """Verify that basic functionality of all loggers."""
@@ -282,7 +282,7 @@ def _test_logger_initialization(tmp_path, logger_class):
 
 
 @mock.patch.dict(os.environ, {})
-@mock.patch("lightning.pytorch.loggers.mlflow._get_resolve_tags", Mock())
+@mock.patch("lightning_pytorch.loggers.mlflow._get_resolve_tags", Mock())
 def test_logger_with_prefix_all(mlflow_mock, wandb_mock, comet_mock, neptune_mock, monkeypatch, tmp_path):
     """Test that prefix is added at the beginning of the metric keys."""
     prefix = "tmp"
@@ -328,7 +328,7 @@ def test_logger_with_prefix_all(mlflow_mock, wandb_mock, comet_mock, neptune_moc
     logger.experiment.log.assert_called_once_with({"tmp-test": 1.0, "trainer/global_step": 0})
 
 
-@mock.patch("lightning.pytorch.loggers.mlflow._get_resolve_tags", Mock())
+@mock.patch("lightning_pytorch.loggers.mlflow._get_resolve_tags", Mock())
 def test_logger_default_name(mlflow_mock, monkeypatch, tmp_path):
     """Test that the default logger name is lightning_logs."""
     # CSV

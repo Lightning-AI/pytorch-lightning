@@ -22,9 +22,9 @@ from typing import Any, Dict, List, Literal, MutableMapping, Optional, Sequence,
 
 from torch import nn
 
-import lightning.pytorch as pl
+import lightning_pytorch as pl
 from lightning.fabric.utilities.data import AttributeDict as _AttributeDict
-from lightning.pytorch.utilities.rank_zero import rank_zero_warn
+from lightning_pytorch.utilities.rank_zero import rank_zero_warn
 
 
 def is_picklable(obj: object) -> bool:
@@ -149,7 +149,7 @@ def save_hyperparameters(
     frame: Optional[types.FrameType] = None,
     given_hparams: Optional[Dict[str, Any]] = None,
 ) -> None:
-    """See :meth:`~lightning.pytorch.LightningModule.save_hyperparameters`"""
+    """See :meth:`~lightning_pytorch.LightningModule.save_hyperparameters`"""
 
     if len(args) == 1 and not isinstance(args, str) and not args[0]:
         # args[0] is an empty container
@@ -170,7 +170,7 @@ def save_hyperparameters(
     else:
         init_args = {}
 
-        from lightning.pytorch.core.mixins import HyperparametersMixin
+        from lightning_pytorch.core.mixins import HyperparametersMixin
 
         for local_args in collect_init_args(frame, [], classes=(HyperparametersMixin,)):
             init_args.update(local_args)

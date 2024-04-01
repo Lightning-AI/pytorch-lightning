@@ -15,19 +15,19 @@ import os
 from unittest import mock
 from unittest.mock import Mock
 
-import lightning.pytorch as pl
+import lightning_pytorch as pl
 import pytest
 import torch
 from lightning.fabric.plugins.environments import ClusterEnvironment, LightningEnvironment
 from lightning.fabric.utilities.distributed import _distributed_is_initialized
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
-from lightning.pytorch import Trainer
-from lightning.pytorch.callbacks import Callback, EarlyStopping
-from lightning.pytorch.demos.boring_classes import BoringDataModule, BoringModel
-from lightning.pytorch.strategies import DDPStrategy
-from lightning.pytorch.strategies.launchers import _SubprocessScriptLauncher
-from lightning.pytorch.strategies.launchers.multiprocessing import _MultiProcessingLauncher
-from lightning.pytorch.trainer import seed_everything
+from lightning_pytorch import Trainer
+from lightning_pytorch.callbacks import Callback, EarlyStopping
+from lightning_pytorch.demos.boring_classes import BoringDataModule, BoringModel
+from lightning_pytorch.strategies import DDPStrategy
+from lightning_pytorch.strategies.launchers import _SubprocessScriptLauncher
+from lightning_pytorch.strategies.launchers.multiprocessing import _MultiProcessingLauncher
+from lightning_pytorch.trainer import seed_everything
 from torch.distributed.optim import ZeroRedundancyOptimizer
 from torch.multiprocessing import ProcessRaisedException
 from torch.nn.parallel.distributed import DistributedDataParallel
@@ -69,8 +69,8 @@ def test_multi_gpu_model_ddp_fit_test(tmp_path):
 
 @RunIf(skip_windows=True)
 @mock.patch("torch.cuda.set_device")
-@mock.patch("lightning.pytorch.accelerators.cuda._check_cuda_matmul_precision")
-@mock.patch("lightning.pytorch.accelerators.cuda._clear_cuda_memory")
+@mock.patch("lightning_pytorch.accelerators.cuda._check_cuda_matmul_precision")
+@mock.patch("lightning_pytorch.accelerators.cuda._clear_cuda_memory")
 def test_ddp_torch_dist_is_available_in_setup(_, __, ___, cuda_count_1, mps_count_0, tmp_path):
     """Test to ensure torch distributed is available within the setup hook using ddp."""
 

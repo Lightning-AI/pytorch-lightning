@@ -17,7 +17,7 @@ If you didn't find a Lightning App similar to the one you need, simply create a 
 
 .. code:: python
 
-    import lightning as L
+    import lightning_pytorch as LP
 
 
     class WordComponent(L.LightningWork):

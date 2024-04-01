@@ -21,7 +21,7 @@ However, for the user case stated in the previous section, we want to capture th
 
 .. code-block:: python
 
-    import lightning as L
+    import lightning_pytorch as LP
 
     MyCustomWork(raise_exception=False)  # <== HERE: The exception is captured.
 
@@ -33,7 +33,7 @@ And you can customize this behavior by overriding the ``on_exception`` hook to t
 
 .. code-block:: python
 
-    import lightning as L
+    import lightning_pytorch as LP
 
     class MyCustomWork(L.LightningWork):
 
@@ -50,7 +50,7 @@ This is the pseudo-code for the application described above.
 
 .. code-block:: python
 
-    import lightning as L
+    import lightning_pytorch as LP
 
     class RootFlow(L.LightningFlow):
         def __init__(self):

@@ -33,7 +33,7 @@ As the Work is running its own process, its state changes are sent to the Flow w
 
 .. code-block:: python
 
-    import lightning as L
+    import lightning_pytorch as LP
 
 
     class WorkCounter(L.LightningWork):
@@ -107,7 +107,7 @@ Here's an example of what would happen if you try to have the Flow communicate w
 
 .. code-block:: python
 
-    import lightning as L
+    import lightning_pytorch as LP
     from time import sleep
 
 

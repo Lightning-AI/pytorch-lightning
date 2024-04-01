@@ -20,8 +20,8 @@ from typing_extensions import override
 from lightning.fabric.plugins import Precision as FabricPrecision
 from lightning.fabric.utilities.throughput import Throughput, get_available_flops
 from lightning.fabric.utilities.throughput import _plugin_to_compute_dtype as fabric_plugin_to_compute_dtype
-from lightning.pytorch.callbacks import Callback
-from lightning.pytorch.plugins import (
+from lightning_pytorch.callbacks import Callback
+from lightning_pytorch.plugins import (
     BitsandbytesPrecision,
     DeepSpeedPrecision,
     DoublePrecision,
@@ -32,11 +32,11 @@ from lightning.pytorch.plugins import (
     TransformerEnginePrecision,
     XLAPrecision,
 )
-from lightning.pytorch.trainer.states import RunningStage, TrainerFn
-from lightning.pytorch.utilities.rank_zero import rank_zero_only, rank_zero_warn
+from lightning_pytorch.trainer.states import RunningStage, TrainerFn
+from lightning_pytorch.utilities.rank_zero import rank_zero_only, rank_zero_warn
 
 if TYPE_CHECKING:
-    from lightning.pytorch import LightningModule, Trainer
+    from lightning_pytorch import LightningModule, Trainer
 
 
 class ThroughputMonitor(Callback):

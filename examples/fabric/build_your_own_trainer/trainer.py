@@ -3,13 +3,13 @@ from collections.abc import Mapping
 from functools import partial
 from typing import Any, Iterable, List, Literal, Optional, Tuple, Union, cast
 
-import lightning as L
+import lightning_pytorch as LP
 import torch
 from lightning.fabric.accelerators import Accelerator
 from lightning.fabric.loggers import Logger
 from lightning.fabric.strategies import Strategy
 from lightning.fabric.wrappers import _unwrap_objects
-from lightning.pytorch.utilities.model_helpers import is_overridden
+from lightning_pytorch.utilities.model_helpers import is_overridden
 from lightning_utilities import apply_to_collection
 from tqdm import tqdm
 
@@ -36,7 +36,7 @@ class MyCustomTrainer:
     ) -> None:
         """Exemplary Trainer with Fabric. This is a very simple trainer focused on readablity but with reduced
         featureset. As a trainer with more included features, we recommend using the
-        :class:`lightning.pytorch.Trainer`.
+        :class:`lightning_pytorch.Trainer`.
 
         Args:
             accelerator: The hardware to run on. Possible choices are:
@@ -207,7 +207,7 @@ class MyCustomTrainer:
             limit_batches: Limits the batches during this training epoch.
                 If greater than the number of batches in the ``train_loader``, this has no effect.
             scheduler_cfg: The learning rate scheduler configuration.
-                Have a look at :meth:`~lightning.pytorch.core.LightningModule.configure_optimizers`
+                Have a look at :meth:`~lightning_pytorch.core.LightningModule.configure_optimizers`
                 for supported values.
 
         """
@@ -349,7 +349,7 @@ class MyCustomTrainer:
         Args:
             model: The LightningModule to train
             scheduler_cfg: The learning rate scheduler configuration.
-                Have a look at :meth:`lightning.pytorch.LightningModule.configure_optimizers` for supported values.
+                Have a look at :meth:`lightning_pytorch.LightningModule.configure_optimizers` for supported values.
             level: whether we are trying to step on epoch- or step-level
             current_value: Holds the current_epoch if ``level==epoch``, else holds the ``global_step``
 
@@ -463,11 +463,11 @@ class MyCustomTrainer:
         Optional[L.fabric.utilities.types.Optimizable],
         Optional[Mapping[str, Union[L.fabric.utilities.types.LRScheduler, bool, str, int]]],
     ]:
-        """Recursively parses the output of :meth:`lightning.pytorch.LightningModule.configure_optimizers`.
+        """Recursively parses the output of :meth:`lightning_pytorch.LightningModule.configure_optimizers`.
 
         Args:
             configure_optim_output: The output of ``configure_optimizers``.
-                For supported values, please refer to :meth:`lightning.pytorch.LightningModule.configure_optimizers`.
+                For supported values, please refer to :meth:`lightning_pytorch.LightningModule.configure_optimizers`.
 
         """
         _lr_sched_defaults = {"interval": "epoch", "frequency": 1, "monitor": "val_loss"}

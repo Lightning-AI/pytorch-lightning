@@ -14,25 +14,25 @@
 import os
 from unittest.mock import Mock, call, patch
 
-import lightning.pytorch
+import lightning_pytorch
 import numpy
 import pytest
 import torch
 from lightning.fabric.utilities.data import _auto_add_worker_init_fn, has_iterable_dataset
-from lightning.pytorch import Callback, Trainer, seed_everything
-from lightning.pytorch.callbacks import ModelCheckpoint
-from lightning.pytorch.demos.boring_classes import (
+from lightning_pytorch import Callback, Trainer, seed_everything
+from lightning_pytorch.callbacks import ModelCheckpoint
+from lightning_pytorch.demos.boring_classes import (
     BoringModel,
     RandomDataset,
     RandomIterableDataset,
     RandomIterableDatasetWithLen,
 )
-from lightning.pytorch.loggers import CSVLogger
-from lightning.pytorch.trainer.connectors.data_connector import _request_dataloader
-from lightning.pytorch.trainer.states import RunningStage
-from lightning.pytorch.utilities.combined_loader import CombinedLoader
-from lightning.pytorch.utilities.data import has_len_all_ranks
-from lightning.pytorch.utilities.exceptions import MisconfigurationException
+from lightning_pytorch.loggers import CSVLogger
+from lightning_pytorch.trainer.connectors.data_connector import _request_dataloader
+from lightning_pytorch.trainer.states import RunningStage
+from lightning_pytorch.utilities.combined_loader import CombinedLoader
+from lightning_pytorch.utilities.data import has_len_all_ranks
+from lightning_pytorch.utilities.exceptions import MisconfigurationException
 from lightning_utilities.test.warning import no_warning_call
 from torch.utils.data import RandomSampler
 from torch.utils.data.dataloader import DataLoader
@@ -1180,8 +1180,8 @@ def test_dataloaders_load_only_once_passed_loaders(tmp_path, monkeypatch, sanity
         return original_request_dataloader(ds)
 
     request_dataloader_mock = Mock(wraps=side_effect_request_dataloader)
-    monkeypatch.setattr(lightning.pytorch.loops.fit_loop, "_request_dataloader", request_dataloader_mock)
-    monkeypatch.setattr(lightning.pytorch.loops.evaluation_loop, "_request_dataloader", request_dataloader_mock)
+    monkeypatch.setattr(lightning_pytorch.loops.fit_loop, "_request_dataloader", request_dataloader_mock)
+    monkeypatch.setattr(lightning_pytorch.loops.evaluation_loop, "_request_dataloader", request_dataloader_mock)
 
     trainer = Trainer(
         default_root_dir=tmp_path,

@@ -37,7 +37,7 @@ via a regular :class:`~torch.utils.data.DataLoader`. This means that support in 
 
 .. code-block:: python
 
-    import lightning as L
+    import lightning_pytorch as LP
     from streaming import MDSWriter, StreamingDataset
 
 
@@ -66,7 +66,7 @@ the desired GPU in your pipeline. When moving data to a specific device, you can
 
 .. code-block:: python
 
-    import lightning as L
+    import lightning_pytorch as LP
     from ffcv.loader import Loader, OrderOption
     from ffcv.transforms import ToTensor, ToDevice, ToTorchImage, Cutout
     from ffcv.fields.decoders import IntDecoder, RandomResizedCropRGBImageDecoder
@@ -96,7 +96,7 @@ The webdataset library contains a small wrapper (``WebLoader``) that adds a flui
 
 .. code-block:: python
 
-    import lightning as L
+    import lightning_pytorch as LP
     import webdataset as wds
 
     dataset = wds.WebDataset(urls)
@@ -115,7 +115,7 @@ By just changing ``device_id=0`` to ``device_id=self.trainer.local_rank`` we can
 
 .. code-block:: python
 
-    import lightning as L
+    import lightning_pytorch as LP
     from nvidia.dali.pipeline import pipeline_def
     import nvidia.dali.types as types
     import nvidia.dali.fn as fn
@@ -168,5 +168,5 @@ Lightning needs to know a lot on the internals of these iterables.
 - In a distributed multi-GPU setting (ddp), Lightning wraps the DataLoader's sampler with a wrapper for distributed
   support. This makes sure that each GPU sees a different part of the dataset. As sampling can be implemented in
   arbitrary ways with custom iterables, Lightning might not be able to do this for you. If this is the case, you can use
-  the :paramref:`~lightning.pytorch.trainer.trainer.Trainer.use_distributed_sampler` argument to disable this logic and
+  the :paramref:`~lightning_pytorch.trainer.trainer.Trainer.use_distributed_sampler` argument to disable this logic and
   set the distributed sampler yourself.

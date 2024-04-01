@@ -20,7 +20,7 @@ You can use the Lightning Trainer in interactive notebooks just like in a regula
 
 .. code-block:: python
 
-    import lightning as L
+    import lightning_pytorch as LP
 
     # Works in Jupyter, Colab and Kaggle!
     trainer = L.Trainer(accelerator="auto", devices="auto")
@@ -42,7 +42,7 @@ Paste the following code block into a notebook cell:
 
 .. code-block:: python
 
-    import lightning as L
+    import lightning_pytorch as LP
     from torch import nn, optim, utils
     import torchvision
 
@@ -121,4 +121,4 @@ If you define/load your data in the main process before calling ``trainer.fit()`
     trainer = L.Trainer(accelerator="cuda", devices=2)
     trainer.fit(model, train_dataloader)
 
-The best practice is to move your data loading code inside the ``*_dataloader()`` hooks in the :class:`~lightning.pytorch.core.LightningModule` or :class:`~lightning.pytorch.core.datamodule.LightningDataModule` as shown in the :ref:`example above <jupyter_notebook_example>`.
+The best practice is to move your data loading code inside the ``*_dataloader()`` hooks in the :class:`~lightning_pytorch.core.LightningModule` or :class:`~lightning_pytorch.core.datamodule.LightningDataModule` as shown in the :ref:`example above <jupyter_notebook_example>`.

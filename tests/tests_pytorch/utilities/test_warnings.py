@@ -24,9 +24,9 @@ from contextlib import redirect_stderr
 from io import StringIO
 from unittest import mock
 
-import lightning.pytorch
+import lightning_pytorch
 import pytest
-from lightning.pytorch.utilities.warnings import PossibleUserWarning
+from lightning_pytorch.utilities.warnings import PossibleUserWarning
 from lightning_utilities.test.warning import no_warning_call
 
 if __name__ == "__main__":
@@ -34,7 +34,7 @@ if __name__ == "__main__":
     import logging
 
     root_logger = logging.getLogger()
-    lightning_logger = logging.getLogger("lightning.pytorch")
+    lightning_logger = logging.getLogger("lightning_pytorch")
     # should have a `StreamHandler`
     assert lightning_logger.hasHandlers()
     assert len(lightning_logger.handlers) == 1
@@ -65,7 +65,7 @@ def test_disable_possible_user_warnings_from_environment(setting):
     with pytest.warns(PossibleUserWarning):
         warnings.warn("test", PossibleUserWarning)
     os.environ["POSSIBLE_USER_WARNINGS"] = setting
-    importlib.reload(lightning.pytorch)
+    importlib.reload(lightning_pytorch)
     with no_warning_call(PossibleUserWarning):
         warnings.warn("test", PossibleUserWarning)
     warnings.resetwarnings()

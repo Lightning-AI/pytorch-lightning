@@ -14,10 +14,10 @@
 import os
 
 import torch
-from lightning.pytorch import Trainer
-from lightning.pytorch.demos.boring_classes import BoringModel
-from lightning.pytorch.strategies import DeepSpeedStrategy
-from lightning.pytorch.utilities.deepspeed import convert_zero_checkpoint_to_fp32_state_dict
+from lightning_pytorch import Trainer
+from lightning_pytorch.demos.boring_classes import BoringModel
+from lightning_pytorch.strategies import DeepSpeedStrategy
+from lightning_pytorch.utilities.deepspeed import convert_zero_checkpoint_to_fp32_state_dict
 
 from tests_pytorch.helpers.runif import RunIf
 

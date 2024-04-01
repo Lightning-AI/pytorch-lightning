@@ -28,7 +28,7 @@
 
    * - used ``LightningDeepSpeedModule``
      - use ``strategy="deepspeed"`` or ``strategy=DeepSpeedStrategy(...)``
-     - :class:`~lightning.pytorch.strategies.DeepSpeedStrategy`
+     - :class:`~lightning_pytorch.strategies.DeepSpeedStrategy`
 
    * - used the ``with init_meta_context()`` context manager from ``import pl.utilities.meta``
      - switch to ``deepspeed-zero-stage-3``

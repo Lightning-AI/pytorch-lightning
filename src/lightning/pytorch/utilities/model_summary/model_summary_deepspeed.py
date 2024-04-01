@@ -21,7 +21,7 @@ from lightning_utilities.core.imports import RequirementCache
 from torch.nn import Parameter
 from typing_extensions import override
 
-from lightning.pytorch.utilities.model_summary.model_summary import (
+from lightning_pytorch.utilities.model_summary.model_summary import (
     NOT_APPLICABLE,
     LayerSummary,
     ModelSummary,

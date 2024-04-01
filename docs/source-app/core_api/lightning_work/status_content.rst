@@ -36,7 +36,7 @@ the Work transitions from ``is_pending`` to ``is_running`` and then to ``has_suc
 .. code-block:: python
 
     from time import sleep
-    import lightning as L
+    import lightning_pytorch as LP
 
 
     class Work(L.LightningWork):
@@ -134,7 +134,7 @@ In order to access all statuses:
 .. code-block:: python
 
     from time import sleep
-    import lightning as L
+    import lightning_pytorch as LP
 
 
     class Work(L.LightningWork):

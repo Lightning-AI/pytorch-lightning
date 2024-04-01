@@ -3,9 +3,9 @@ from typing import Any, Mapping, Union
 
 import torch
 
-import lightning.pytorch as pl
+import lightning_pytorch as pl
 from lightning.fabric.utilities.spike import SpikeDetection as FabricSpikeDetection
-from lightning.pytorch.callbacks.callback import Callback
+from lightning_pytorch.callbacks.callback import Callback
 
 
 class SpikeDetection(FabricSpikeDetection, Callback):

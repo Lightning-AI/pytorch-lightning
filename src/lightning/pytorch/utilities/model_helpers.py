@@ -21,7 +21,7 @@ from lightning_utilities.core.imports import RequirementCache
 from torch import nn
 from typing_extensions import Concatenate, ParamSpec
 
-import lightning.pytorch as pl
+import lightning_pytorch as pl
 
 _log = logging.getLogger(__name__)
 
@@ -47,7 +47,7 @@ def is_overridden(method_name: str, instance: Optional[object] = None, parent: O
 
 
 def get_torchvision_model(model_name: str, **kwargs: Any) -> nn.Module:
-    from lightning.pytorch.utilities.imports import _TORCHVISION_AVAILABLE
+    from lightning_pytorch.utilities.imports import _TORCHVISION_AVAILABLE
 
     if not _TORCHVISION_AVAILABLE:
         raise ModuleNotFoundError(str(_TORCHVISION_AVAILABLE))

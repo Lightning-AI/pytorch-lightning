@@ -31,7 +31,7 @@ To *connect* this user interface to the Component, define the configure_layout m
 .. code:: python
     :emphasize-lines: 5, 6
 
-    import lightning as L
+    import lightning_pytorch as LP
 
 
     class LitHTMLComponent(L.LightningFlow):
@@ -44,7 +44,7 @@ Finally, route the Component's UI through the root Component's **configure_layou
     :emphasize-lines: 14
 
     # app.py
-    import lightning as L
+    import lightning_pytorch as LP
 
 
     class LitHTMLComponent(L.LightningFlow):

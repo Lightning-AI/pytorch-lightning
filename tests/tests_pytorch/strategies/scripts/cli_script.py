@@ -13,8 +13,8 @@
 # limitations under the License.
 """A trivial script that wraps a LightningCLI around the BoringModel and BoringDataModule."""
 
-from lightning.pytorch.cli import LightningCLI
-from lightning.pytorch.demos.boring_classes import BoringDataModule, BoringModel
+from lightning_pytorch.cli import LightningCLI
+from lightning_pytorch.demos.boring_classes import BoringDataModule, BoringModel
 
 if __name__ == "__main__":
     LightningCLI(

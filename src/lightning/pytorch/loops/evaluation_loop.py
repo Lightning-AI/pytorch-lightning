@@ -20,15 +20,15 @@ from typing import Any, DefaultDict, Iterable, Iterator, List, Optional, Tuple, 
 from lightning_utilities.core.apply_func import apply_to_collection
 from torch import Tensor
 
-import lightning.pytorch as pl
+import lightning_pytorch as pl
 from lightning.fabric.utilities.data import _set_sampler_epoch
-from lightning.pytorch.callbacks.progress.rich_progress import _RICH_AVAILABLE
-from lightning.pytorch.loops.fetchers import _DataFetcher, _DataLoaderIterDataFetcher
-from lightning.pytorch.loops.loop import _Loop
-from lightning.pytorch.loops.progress import _BatchProgress
-from lightning.pytorch.loops.utilities import _no_grad_context, _select_data_fetcher, _verify_dataloader_idx_requirement
-from lightning.pytorch.trainer import call
-from lightning.pytorch.trainer.connectors.data_connector import (
+from lightning_pytorch.callbacks.progress.rich_progress import _RICH_AVAILABLE
+from lightning_pytorch.loops.fetchers import _DataFetcher, _DataLoaderIterDataFetcher
+from lightning_pytorch.loops.loop import _Loop
+from lightning_pytorch.loops.progress import _BatchProgress
+from lightning_pytorch.loops.utilities import _no_grad_context, _select_data_fetcher, _verify_dataloader_idx_requirement
+from lightning_pytorch.trainer import call
+from lightning_pytorch.trainer.connectors.data_connector import (
     _check_dataloader_iterable,
     _DataLoaderSource,
     _parse_num_batches,
@@ -36,13 +36,13 @@ from lightning.pytorch.trainer.connectors.data_connector import (
     _request_dataloader,
     _resolve_overfit_batches,
 )
-from lightning.pytorch.trainer.connectors.logger_connector.result import _OUT_DICT, _ResultCollection
-from lightning.pytorch.trainer.states import RunningStage, TrainerFn
-from lightning.pytorch.utilities.combined_loader import CombinedLoader
-from lightning.pytorch.utilities.data import has_len_all_ranks
-from lightning.pytorch.utilities.exceptions import SIGTERMException
-from lightning.pytorch.utilities.model_helpers import _ModuleMode, is_overridden
-from lightning.pytorch.utilities.signature_utils import is_param_in_hook_signature
+from lightning_pytorch.trainer.connectors.logger_connector.result import _OUT_DICT, _ResultCollection
+from lightning_pytorch.trainer.states import RunningStage, TrainerFn
+from lightning_pytorch.utilities.combined_loader import CombinedLoader
+from lightning_pytorch.utilities.data import has_len_all_ranks
+from lightning_pytorch.utilities.exceptions import SIGTERMException
+from lightning_pytorch.utilities.model_helpers import _ModuleMode, is_overridden
+from lightning_pytorch.utilities.signature_utils import is_param_in_hook_signature
 
 
 class _EvaluationLoop(_Loop):

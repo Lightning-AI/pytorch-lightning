@@ -14,10 +14,10 @@
 import os
 import sys
 
-import lightning.pytorch as pl
+import lightning_pytorch as pl
 import torch
-from lightning.pytorch import seed_everything
-from lightning.pytorch.callbacks import EarlyStopping
+from lightning_pytorch import seed_everything
+from lightning_pytorch.callbacks import EarlyStopping
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.simple_models import ClassificationModel
 

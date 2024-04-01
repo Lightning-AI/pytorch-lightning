@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from lightning.fabric.plugins import CheckpointIO, TorchCheckpointIO, XLACheckpointIO
-from lightning.pytorch.plugins.io.async_plugin import AsyncCheckpointIO
+from lightning_pytorch.plugins.io.async_plugin import AsyncCheckpointIO
 
 __all__ = [
     "AsyncCheckpointIO",

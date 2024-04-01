@@ -19,9 +19,9 @@ from unittest.mock import Mock
 import pytest
 import torch
 from lightning.fabric.utilities.types import _Stateful
-from lightning.pytorch import Trainer
-from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
-from lightning.pytorch.utilities.combined_loader import (
+from lightning_pytorch import Trainer
+from lightning_pytorch.demos.boring_classes import BoringModel, RandomDataset
+from lightning_pytorch.utilities.combined_loader import (
     _LITERAL_SUPPORTED_MODES,
     _SUPPORTED_MODES,
     CombinedLoader,

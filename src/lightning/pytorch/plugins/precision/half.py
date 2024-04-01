@@ -21,7 +21,7 @@ from torch.nn import Module
 from typing_extensions import override
 
 from lightning.fabric.plugins.precision.utils import _convert_fp_tensor, _DtypeContextManager
-from lightning.pytorch.plugins.precision.precision import Precision
+from lightning_pytorch.plugins.precision.precision import Precision
 
 
 class HalfPrecision(Precision):

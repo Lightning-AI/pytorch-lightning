@@ -42,7 +42,7 @@ Here is a skeleton for training a model in a function ``train()``:
 
 .. code-block:: python
 
-    import lightning as L
+    import lightning_pytorch as LP
 
 
     def train(fabric, model, optimizer, dataloader):
@@ -90,7 +90,7 @@ Here is how the code would be structured if we did that periodically during trai
 
 .. code-block:: python
 
-    import lightning as L
+    import lightning_pytorch as LP
 
 
     def train(fabric, model, optimizer, train_dataloader, val_dataloader):

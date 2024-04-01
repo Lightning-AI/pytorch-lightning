@@ -34,7 +34,7 @@ from typing import Callable, Iterator, List, Tuple
 
 import gym
 import torch
-from lightning.pytorch import LightningModule, Trainer, cli_lightning_logo, seed_everything
+from lightning_pytorch import LightningModule, Trainer, cli_lightning_logo, seed_everything
 from torch import nn
 from torch.distributions import Categorical, Normal
 from torch.optim.optimizer import Optimizer

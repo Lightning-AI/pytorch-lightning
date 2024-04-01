@@ -52,7 +52,7 @@ presses a button:
 
     # app.py
 
-    import lightning as L
+    import lightning_pytorch as LP
     from lightning.app.frontend import PanelFrontend
 
     class LitPanel(L.LightningFlow):
@@ -125,7 +125,7 @@ In this example, we update the ``count`` value of the Component:
     from datetime import datetime as dt
     from lightning.app.frontend import PanelFrontend
 
-    import lightning as L
+    import lightning_pytorch as LP
 
 
     class LitPanel(L.LightningFlow):

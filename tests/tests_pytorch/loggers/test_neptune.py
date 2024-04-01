@@ -17,12 +17,12 @@ from collections import namedtuple
 from unittest import mock
 from unittest.mock import MagicMock, call
 
-import lightning.pytorch as pl
+import lightning_pytorch as pl
 import pytest
 import torch
-from lightning.pytorch import Trainer
-from lightning.pytorch.demos.boring_classes import BoringModel
-from lightning.pytorch.loggers import NeptuneLogger
+from lightning_pytorch import Trainer
+from lightning_pytorch.demos.boring_classes import BoringModel
+from lightning_pytorch.loggers import NeptuneLogger
 
 
 def _fetchable_paths(value):

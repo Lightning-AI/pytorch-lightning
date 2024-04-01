@@ -39,7 +39,7 @@ Suppressing all warnings of the ``PossibleUserWarning`` category can be done pro
 
 .. code-block:: python
 
-    from lightning.pytorch.utilities import disable_possible_user_warnings
+    from lightning_pytorch.utilities import disable_possible_user_warnings
 
     # ignore all warnings that could be false positives
     disable_possible_user_warnings()

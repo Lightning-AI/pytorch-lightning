@@ -20,9 +20,9 @@ class SIGTERMException(SystemExit):
     """Exception used when a :class:`signal.SIGTERM` is sent to a process.
 
     This exception is raised by the loops at specific points. It can be used to write custom logic in the
-    :meth:`lightning.pytorch.callbacks.callback.Callback.on_exception` method.
+    :meth:`lightning_pytorch.callbacks.callback.Callback.on_exception` method.
 
-    For example, you could use the :class:`lightning.pytorch.callbacks.fault_tolerance.OnExceptionCheckpoint` callback
+    For example, you could use the :class:`lightning_pytorch.callbacks.fault_tolerance.OnExceptionCheckpoint` callback
     that saves a checkpoint for you when this exception is raised.
 
     """

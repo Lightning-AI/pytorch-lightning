@@ -15,9 +15,9 @@ import os
 from unittest import mock
 
 import torch
-from lightning.pytorch import Trainer, seed_everything
-from lightning.pytorch.callbacks import Callback, EarlyStopping, ModelCheckpoint
-from lightning.pytorch.demos.boring_classes import BoringModel
+from lightning_pytorch import Trainer, seed_everything
+from lightning_pytorch.callbacks import Callback, EarlyStopping, ModelCheckpoint
+from lightning_pytorch.demos.boring_classes import BoringModel
 
 import tests_pytorch.helpers.pipelines as tpipes
 import tests_pytorch.helpers.utils as tutils

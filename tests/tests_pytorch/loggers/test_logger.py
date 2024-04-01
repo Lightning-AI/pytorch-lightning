@@ -21,12 +21,12 @@ import numpy as np
 import pytest
 import torch
 from lightning.fabric.utilities.logger import _convert_params, _sanitize_params
-from lightning.pytorch import Trainer
-from lightning.pytorch.demos.boring_classes import BoringDataModule, BoringModel
-from lightning.pytorch.loggers import Logger, TensorBoardLogger
-from lightning.pytorch.loggers.logger import DummyExperiment, DummyLogger
-from lightning.pytorch.loggers.utilities import _scan_checkpoints
-from lightning.pytorch.utilities.rank_zero import rank_zero_only
+from lightning_pytorch import Trainer
+from lightning_pytorch.demos.boring_classes import BoringDataModule, BoringModel
+from lightning_pytorch.loggers import Logger, TensorBoardLogger
+from lightning_pytorch.loggers.logger import DummyExperiment, DummyLogger
+from lightning_pytorch.loggers.utilities import _scan_checkpoints
+from lightning_pytorch.utilities.rank_zero import rank_zero_only
 
 
 class CustomLogger(Logger):
@@ -225,7 +225,7 @@ def test_np_sanitization():
 
 
 @pytest.mark.parametrize("logger", [True, False])
-@patch("lightning.pytorch.loggers.tensorboard.TensorBoardLogger.log_hyperparams")
+@patch("lightning_pytorch.loggers.tensorboard.TensorBoardLogger.log_hyperparams")
 def test_log_hyperparams_being_called(log_hyperparams_mock, tmp_path, logger):
     class TestModel(BoringModel):
         def __init__(self, param_one, param_two):
@@ -249,7 +249,7 @@ def test_log_hyperparams_being_called(log_hyperparams_mock, tmp_path, logger):
         log_hyperparams_mock.assert_not_called()
 
 
-@patch("lightning.pytorch.loggers.tensorboard.TensorBoardLogger.log_hyperparams")
+@patch("lightning_pytorch.loggers.tensorboard.TensorBoardLogger.log_hyperparams")
 def test_log_hyperparams_key_collision(_, tmp_path):
     class TestModel(BoringModel):
         def __init__(self, hparams: Dict[str, Any]) -> None:
@@ -324,7 +324,7 @@ def test_log_hyperparams_key_collision(_, tmp_path):
 
 
 @pytest.mark.parametrize("save_top_k", [0, 1, 2, 5])
-@patch("lightning.pytorch.callbacks.ModelCheckpoint")
+@patch("lightning_pytorch.callbacks.ModelCheckpoint")
 def test_scan_checkpoints(checkpoint_callback_mock, tmp_path, save_top_k: int):
     """Checks if the expected number of checkpoints is returned."""
     # Test first condition of _scan_checkpoints: if c[1] not in logged_model_time.keys()

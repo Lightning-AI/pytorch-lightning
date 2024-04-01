@@ -20,22 +20,22 @@ from torch import Tensor
 from torch.optim import Optimizer
 from typing_extensions import override
 
-import lightning.pytorch as pl
-from lightning.pytorch.loops.loop import _Loop
-from lightning.pytorch.loops.optimization.closure import AbstractClosure, OutputResult
-from lightning.pytorch.loops.progress import _OptimizationProgress
-from lightning.pytorch.loops.utilities import _block_parallel_sync_behavior
-from lightning.pytorch.trainer import call
-from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning.pytorch.utilities.rank_zero import WarningCache
-from lightning.pytorch.utilities.types import STEP_OUTPUT
+import lightning_pytorch as pl
+from lightning_pytorch.loops.loop import _Loop
+from lightning_pytorch.loops.optimization.closure import AbstractClosure, OutputResult
+from lightning_pytorch.loops.progress import _OptimizationProgress
+from lightning_pytorch.loops.utilities import _block_parallel_sync_behavior
+from lightning_pytorch.trainer import call
+from lightning_pytorch.utilities.exceptions import MisconfigurationException
+from lightning_pytorch.utilities.rank_zero import WarningCache
+from lightning_pytorch.utilities.types import STEP_OUTPUT
 
 
 @dataclass
 class ClosureResult(OutputResult):
     """A container to hold the result of a :class:`Closure` call.
 
-    It is created from the output of :meth:`~lightning.pytorch.core.LightningModule.training_step`.
+    It is created from the output of :meth:`~lightning_pytorch.core.LightningModule.training_step`.
 
     Attributes:
         closure_loss: The loss with a graph attached.
@@ -96,7 +96,7 @@ class Closure(AbstractClosure[ClosureResult]):
     do something with the output.
 
     Args:
-        step_fn: This is typically the :meth:`lightning.pytorch.core.module.LightningModule.training_step
+        step_fn: This is typically the :meth:`lightning_pytorch.core.module.LightningModule.training_step
             wrapped with processing for its outputs
         backward_fn: A function that takes a loss value as input, performs back-propagation and returns the loss value.
             Can be set to ``None`` to skip the backward operation.

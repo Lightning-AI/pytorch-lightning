@@ -24,14 +24,14 @@ from torch import Tensor, nn
 from torch.optim.swa_utils import SWALR
 from typing_extensions import override
 
-import lightning.pytorch as pl
+import lightning_pytorch as pl
 from lightning.fabric.utilities.types import LRScheduler
-from lightning.pytorch.callbacks.callback import Callback
-from lightning.pytorch.strategies import DeepSpeedStrategy
-from lightning.pytorch.strategies.fsdp import FSDPStrategy
-from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning.pytorch.utilities.rank_zero import rank_zero_info, rank_zero_warn
-from lightning.pytorch.utilities.types import LRSchedulerConfig
+from lightning_pytorch.callbacks.callback import Callback
+from lightning_pytorch.strategies import DeepSpeedStrategy
+from lightning_pytorch.strategies.fsdp import FSDPStrategy
+from lightning_pytorch.utilities.exceptions import MisconfigurationException
+from lightning_pytorch.utilities.rank_zero import rank_zero_info, rank_zero_warn
+from lightning_pytorch.utilities.types import LRSchedulerConfig
 
 _AVG_FN = Callable[[Tensor, Tensor, Tensor], Tensor]
 

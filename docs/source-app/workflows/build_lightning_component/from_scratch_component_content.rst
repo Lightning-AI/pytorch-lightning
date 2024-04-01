@@ -76,7 +76,7 @@ To implement a LightningFlow, simply subclass ``LightningFlow`` and define the r
     :emphasize-lines: 5
 
     # app.py
-    import lightning as L
+    import lightning_pytorch as LP
 
 
     class LitFlow(L.LightningFlow):
@@ -110,7 +110,7 @@ To implement a LightningWork, simply subclass ``LightningWork`` and define the r
 
     # app.py
     from time import sleep
-    import lightning as L
+    import lightning_pytorch as LP
 
 
     class LitWork(L.LightningWork):
@@ -125,7 +125,7 @@ A LightningWork must always be attached to a LightningFlow and explicitly asked 
     :emphasize-lines: 13, 16
 
     from time import sleep
-    import lightning as L
+    import lightning_pytorch as LP
 
 
     class LitWork(L.LightningWork):

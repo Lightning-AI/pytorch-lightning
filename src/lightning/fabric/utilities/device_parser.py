@@ -50,7 +50,7 @@ def _parse_gpu_ids(
     include_cuda: bool = False,
     include_mps: bool = False,
 ) -> Optional[List[int]]:
-    """Parses the GPU IDs given in the format as accepted by the :class:`~lightning.pytorch.trainer.trainer.Trainer`.
+    """Parses the GPU IDs given in the format as accepted by the :class:`~lightning_pytorch.trainer.trainer.Trainer`.
 
     Args:
         gpus: An int -1 or string '-1' indicate that all available GPUs should be used.

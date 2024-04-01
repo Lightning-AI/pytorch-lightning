@@ -20,14 +20,14 @@ from unittest.mock import Mock, PropertyMock, call
 
 import pytest
 import torch
-from lightning.pytorch import LightningDataModule, Trainer, seed_everything
-from lightning.pytorch.callbacks import ModelCheckpoint
-from lightning.pytorch.demos.boring_classes import BoringDataModule, BoringModel
-from lightning.pytorch.profilers.simple import SimpleProfiler
-from lightning.pytorch.trainer.states import TrainerFn
-from lightning.pytorch.utilities import AttributeDict
-from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning.pytorch.utilities.imports import _OMEGACONF_AVAILABLE
+from lightning_pytorch import LightningDataModule, Trainer, seed_everything
+from lightning_pytorch.callbacks import ModelCheckpoint
+from lightning_pytorch.demos.boring_classes import BoringDataModule, BoringModel
+from lightning_pytorch.profilers.simple import SimpleProfiler
+from lightning_pytorch.trainer.states import TrainerFn
+from lightning_pytorch.utilities import AttributeDict
+from lightning_pytorch.utilities.exceptions import MisconfigurationException
+from lightning_pytorch.utilities.imports import _OMEGACONF_AVAILABLE
 
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.runif import RunIf
@@ -37,8 +37,8 @@ if _OMEGACONF_AVAILABLE:
     from omegaconf import OmegaConf
 
 
-@mock.patch("lightning.pytorch.trainer.trainer.Trainer.node_rank", new_callable=PropertyMock)
-@mock.patch("lightning.pytorch.trainer.trainer.Trainer.local_rank", new_callable=PropertyMock)
+@mock.patch("lightning_pytorch.trainer.trainer.Trainer.node_rank", new_callable=PropertyMock)
+@mock.patch("lightning_pytorch.trainer.trainer.Trainer.local_rank", new_callable=PropertyMock)
 def test_can_prepare_data(local_rank, node_rank):
     class MyDataModule(LightningDataModule):
         def prepare_data(self):
@@ -287,7 +287,7 @@ def test_dm_init_from_datasets_dataloaders(iterable):
 
     train_ds = ds()
     dm = LightningDataModule.from_datasets(train_ds, batch_size=4, num_workers=0)
-    with mock.patch("lightning.pytorch.core.datamodule.DataLoader") as dl_mock:
+    with mock.patch("lightning_pytorch.core.datamodule.DataLoader") as dl_mock:
         dm.train_dataloader()
         dl_mock.assert_called_once_with(train_ds, batch_size=4, shuffle=not iterable, num_workers=0, pin_memory=True)
     with pytest.raises(MisconfigurationException, match="`val_dataloader` must be implemented"):
@@ -297,7 +297,7 @@ def test_dm_init_from_datasets_dataloaders(iterable):
 
     train_ds_sequence = [ds(), ds()]
     dm = LightningDataModule.from_datasets(train_ds_sequence, batch_size=4, num_workers=0)
-    with mock.patch("lightning.pytorch.core.datamodule.DataLoader") as dl_mock:
+    with mock.patch("lightning_pytorch.core.datamodule.DataLoader") as dl_mock:
         dm.train_dataloader()
         dl_mock.assert_has_calls([
             call(train_ds_sequence[0], batch_size=4, shuffle=not iterable, num_workers=0, pin_memory=True),
@@ -311,7 +311,7 @@ def test_dm_init_from_datasets_dataloaders(iterable):
     valid_ds = ds()
     test_ds = ds()
     dm = LightningDataModule.from_datasets(val_dataset=valid_ds, test_dataset=test_ds, batch_size=2, num_workers=0)
-    with mock.patch("lightning.pytorch.core.datamodule.DataLoader") as dl_mock:
+    with mock.patch("lightning_pytorch.core.datamodule.DataLoader") as dl_mock:
         dm.val_dataloader()
         dl_mock.assert_called_with(valid_ds, batch_size=2, shuffle=False, num_workers=0, pin_memory=True)
         dm.test_dataloader()
@@ -323,7 +323,7 @@ def test_dm_init_from_datasets_dataloaders(iterable):
     test_dss = [ds(), ds()]
     predict_dss = [ds(), ds()]
     dm = LightningDataModule.from_datasets(train_ds, valid_dss, test_dss, predict_dss, batch_size=4, num_workers=0)
-    with mock.patch("lightning.pytorch.core.datamodule.DataLoader") as dl_mock:
+    with mock.patch("lightning_pytorch.core.datamodule.DataLoader") as dl_mock:
         dm.val_dataloader()
         dm.test_dataloader()
         dm.predict_dataloader()

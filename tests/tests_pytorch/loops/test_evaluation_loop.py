@@ -17,16 +17,16 @@ from unittest.mock import Mock, call
 import pytest
 import torch
 from lightning.fabric.accelerators.cuda import _clear_cuda_memory
-from lightning.pytorch import LightningModule, Trainer
-from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
-from lightning.pytorch.utilities import CombinedLoader
+from lightning_pytorch import LightningModule, Trainer
+from lightning_pytorch.demos.boring_classes import BoringModel, RandomDataset
+from lightning_pytorch.utilities import CombinedLoader
 from torch.utils.data.dataloader import DataLoader
 from torch.utils.data.sampler import BatchSampler, RandomSampler
 
 from tests_pytorch.helpers.runif import RunIf
 
 
-@mock.patch("lightning.pytorch.loops.evaluation_loop._EvaluationLoop._on_evaluation_epoch_end")
+@mock.patch("lightning_pytorch.loops.evaluation_loop._EvaluationLoop._on_evaluation_epoch_end")
 def test_on_evaluation_epoch_end(eval_epoch_end_mock, tmp_path):
     """Tests that `on_evaluation_epoch_end` is called for `on_validation_epoch_end` and `on_test_epoch_end` hooks."""
     model = BoringModel()
@@ -87,7 +87,7 @@ def test_evaluation_loop_sampler_set_epoch_called(tmp_path, use_batch_sampler):
 
 
 @mock.patch(
-    "lightning.pytorch.trainer.connectors.logger_connector.logger_connector._LoggerConnector.log_eval_end_metrics"
+    "lightning_pytorch.trainer.connectors.logger_connector.logger_connector._LoggerConnector.log_eval_end_metrics"
 )
 def test_log_epoch_metrics_before_on_evaluation_end(update_eval_epoch_metrics_mock, tmp_path):
     """Test that the epoch metrics are logged before the `on_evaluation_end` hook is fired."""

@@ -14,7 +14,7 @@
 from abc import ABC, abstractmethod
 
 from lightning.fabric.strategies.launchers.launcher import _Launcher as _FabricLauncher
-from lightning.pytorch.trainer.connectors.signal_connector import _SIGNUM
+from lightning_pytorch.trainer.connectors.signal_connector import _SIGNUM
 
 
 class _Launcher(_FabricLauncher, ABC):

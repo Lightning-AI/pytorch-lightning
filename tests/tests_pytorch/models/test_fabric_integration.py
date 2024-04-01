@@ -17,7 +17,7 @@ from unittest.mock import Mock
 
 import torch
 from lightning.fabric import Fabric
-from lightning.pytorch.demos.boring_classes import BoringModel, ManualOptimBoringModel
+from lightning_pytorch.demos.boring_classes import BoringModel, ManualOptimBoringModel
 
 
 def test_fabric_boring_lightning_module_automatic():

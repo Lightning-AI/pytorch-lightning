@@ -124,7 +124,7 @@ ______________________________________________________________________
 # main.py
 # ! pip install torchvision
 import torch, torch.nn as nn, torch.utils.data as data, torchvision as tv, torch.nn.functional as F
-import lightning as L
+import lightning_pytorch as LP
 
 # --------------------------------
 # Step 1: Define a LightningModule
@@ -230,7 +230,7 @@ trainer = Trainer(precision=16)
   <summary>Experiment managers</summary>
 
 ```python
-from lightning import loggers
+from lightning_pytorch import loggers
 
 # tensorboard
 trainer = Trainer(logger=TensorBoardLogger("logs/"))
@@ -335,7 +335,7 @@ Fabric is designed for the most complex models like foundation model scaling, LL
 <sub>
 
 ```diff
-+ import lightning as L
++ import lightning_pytorch as LP
   import torch; import torchvision as tv
 
  dataset = tv.datasets.CIFAR10("data", download=True,
@@ -374,7 +374,7 @@ Fabric is designed for the most complex models like foundation model scaling, LL
 <sub>
 
 ```Python
-import lightning as L
+import lightning_pytorch as LP
 import torch; import torchvision as tv
 
 dataset = tv.datasets.CIFAR10("data", download=True,
@@ -465,7 +465,7 @@ fabric = Fabric(precision="64")
   <summary>Build your own custom Trainer using Fabric primitives for training checkpointing, logging, and more</summary>
 
 ```python
-import lightning as L
+import lightning_pytorch as LP
 
 
 class MyCustomTrainer:
@@ -513,7 +513,7 @@ Lightning Apps remove the cloud infrastructure boilerplate so you can focus on s
 
 ```python
 # app.py
-import lightning as L
+import lightning_pytorch as LP
 
 
 class TrainComponent(L.LightningWork):

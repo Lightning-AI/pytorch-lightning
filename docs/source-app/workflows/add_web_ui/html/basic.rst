@@ -52,7 +52,7 @@ First **create a file named app.py** with the app content (in the same folder as
 .. code:: bash
 
     # app.py
-    import lightning as L
+    import lightning_pytorch as LP
     import lightning.app.frontend as frontend
 
 
@@ -110,7 +110,7 @@ Give the component an HTML UI, by returning a ``StaticWebFrontend`` object from 
     :emphasize-lines: 6,7
 
     # app.py
-    import lightning as L
+    import lightning_pytorch as LP
     import lightning.app.frontend as frontend
 
     class HelloComponent(L.LightningFlow):
@@ -144,7 +144,7 @@ In this case, we render the ``HelloComponent`` UI in the ``home`` tab of the app
     :emphasize-lines: 18, 19
 
     # app.py
-    import lightning as L
+    import lightning_pytorch as LP
     import lightning.app.frontend as frontend
 
     class HelloComponent(L.LightningFlow):

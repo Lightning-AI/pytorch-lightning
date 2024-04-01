@@ -2,7 +2,7 @@ import joblib
 from sklearn import datasets, svm
 from sklearn.model_selection import train_test_split
 
-from lightning import LightningWork
+from lightning_pytorch import LightningWork
 from lightning.app.storage.path import Path
 
 

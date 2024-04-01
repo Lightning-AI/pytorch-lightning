@@ -13,10 +13,10 @@
 # limitations under the License.
 import pytest
 import torch
-from lightning.pytorch import Trainer
-from lightning.pytorch.demos.boring_classes import BoringModel
-from lightning.pytorch.loops.optimization.manual import ManualResult
-from lightning.pytorch.utilities.exceptions import MisconfigurationException
+from lightning_pytorch import Trainer
+from lightning_pytorch.demos.boring_classes import BoringModel
+from lightning_pytorch.loops.optimization.manual import ManualResult
+from lightning_pytorch.utilities.exceptions import MisconfigurationException
 
 
 def test_manual_result():

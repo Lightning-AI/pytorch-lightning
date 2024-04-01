@@ -19,23 +19,23 @@ from unittest.mock import ANY, Mock, call, patch
 import pytest
 import torch
 from lightning.fabric.plugins import ClusterEnvironment
-from lightning.pytorch import Trainer
-from lightning.pytorch.demos.boring_classes import BoringModel
-from lightning.pytorch.strategies import DDPStrategy
-from lightning.pytorch.strategies.launchers.multiprocessing import _GlobalStateSnapshot, _MultiProcessingLauncher
-from lightning.pytorch.trainer.states import TrainerFn
+from lightning_pytorch import Trainer
+from lightning_pytorch.demos.boring_classes import BoringModel
+from lightning_pytorch.strategies import DDPStrategy
+from lightning_pytorch.strategies.launchers.multiprocessing import _GlobalStateSnapshot, _MultiProcessingLauncher
+from lightning_pytorch.trainer.states import TrainerFn
 
 from tests_pytorch.helpers.runif import RunIf
 
 
-@mock.patch("lightning.pytorch.strategies.launchers.multiprocessing.mp.get_all_start_methods", return_value=[])
+@mock.patch("lightning_pytorch.strategies.launchers.multiprocessing.mp.get_all_start_methods", return_value=[])
 def test_multiprocessing_launcher_forking_on_unsupported_platform(_):
     with pytest.raises(ValueError, match="The start method 'fork' is not available on this platform"):
         _MultiProcessingLauncher(strategy=Mock(), start_method="fork")
 
 
 @pytest.mark.parametrize("start_method", ["spawn", pytest.param("fork", marks=RunIf(standalone=True))])
-@mock.patch("lightning.pytorch.strategies.launchers.multiprocessing.mp")
+@mock.patch("lightning_pytorch.strategies.launchers.multiprocessing.mp")
 def test_multiprocessing_launcher_start_method(mp_mock, start_method):
     mp_mock.get_all_start_methods.return_value = [start_method]
     launcher = _MultiProcessingLauncher(strategy=Mock(), start_method=start_method)
@@ -51,7 +51,7 @@ def test_multiprocessing_launcher_start_method(mp_mock, start_method):
 
 
 @pytest.mark.parametrize("start_method", ["spawn", pytest.param("fork", marks=RunIf(standalone=True))])
-@mock.patch("lightning.pytorch.strategies.launchers.multiprocessing.mp")
+@mock.patch("lightning_pytorch.strategies.launchers.multiprocessing.mp")
 def test_multiprocessing_launcher_restore_globals(mp_mock, start_method):
     """Test that we pass the global state snapshot to the worker function only if we are starting with 'spawn'."""
     mp_mock.get_all_start_methods.return_value = [start_method]
@@ -208,7 +208,7 @@ def test_memory_sharing_disabled():
 def test_check_for_missing_main_guard():
     launcher = _MultiProcessingLauncher(strategy=Mock(), start_method="spawn")
     with mock.patch(
-        "lightning.pytorch.strategies.launchers.multiprocessing.mp.current_process",
+        "lightning_pytorch.strategies.launchers.multiprocessing.mp.current_process",
         return_value=Mock(_inheriting=True),  # pretend that main is importing itself
     ), pytest.raises(RuntimeError, match="requires that your script guards the main"):
         launcher.launch(function=Mock())

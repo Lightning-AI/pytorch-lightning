@@ -19,7 +19,7 @@ from typing import Any, Dict, Optional, Union
 
 from typing_extensions import override
 
-from lightning.pytorch.utilities.types import STEP_OUTPUT
+from lightning_pytorch.utilities.types import STEP_OUTPUT
 
 # check if ipywidgets is installed before importing tqdm.auto
 # to ensure it won't fail and a progress bar is displayed
@@ -29,9 +29,9 @@ if importlib.util.find_spec("ipywidgets") is not None:
 else:
     from tqdm import tqdm as _tqdm
 
-import lightning.pytorch as pl
-from lightning.pytorch.callbacks.progress.progress_bar import ProgressBar
-from lightning.pytorch.utilities.rank_zero import rank_zero_debug
+import lightning_pytorch as pl
+from lightning_pytorch.callbacks.progress.progress_bar import ProgressBar
+from lightning_pytorch.utilities.rank_zero import rank_zero_debug
 
 _PAD_SIZE = 5
 
@@ -68,7 +68,7 @@ class TQDMProgressBar(ProgressBar):
         - **sanity check progress:** the progress during the sanity check run
         - **train progress:** shows the training progress. It will pause if validation starts and will resume
           when it ends, and also accounts for multiple validation runs during training when
-          :paramref:`~lightning.pytorch.trainer.trainer.Trainer.val_check_interval` is used.
+          :paramref:`~lightning_pytorch.trainer.trainer.Trainer.val_check_interval` is used.
         - **validation progress:** only visible during validation;
           shows total progress over all validation datasets.
         - **test progress:** only active when testing; shows total progress over all test datasets.
@@ -77,7 +77,7 @@ class TQDMProgressBar(ProgressBar):
 
     If you want to customize the default ``tqdm`` progress bars used by Lightning, you can override
     specific methods of the callback class and pass your custom implementation to the
-    :class:`~lightning.pytorch.trainer.trainer.Trainer`.
+    :class:`~lightning_pytorch.trainer.trainer.Trainer`.
 
     Example:
 
@@ -88,7 +88,7 @@ class TQDMProgressBar(ProgressBar):
         ...         return bar
         ...
         >>> bar = LitProgressBar()
-        >>> from lightning.pytorch import Trainer
+        >>> from lightning_pytorch import Trainer
         >>> trainer = Trainer(callbacks=[bar])
 
     Args:
@@ -97,8 +97,8 @@ class TQDMProgressBar(ProgressBar):
         process_position: Set this to a value greater than ``0`` to offset the progress bars by this many lines.
             This is useful when you have progress bars defined elsewhere and want to show all of them
             together. This corresponds to
-            :paramref:`~lightning.pytorch.trainer.trainer.Trainer.process_position` in the
-            :class:`~lightning.pytorch.trainer.trainer.Trainer`.
+            :paramref:`~lightning_pytorch.trainer.trainer.Trainer.process_position` in the
+            :class:`~lightning_pytorch.trainer.trainer.Trainer`.
 
     """
 

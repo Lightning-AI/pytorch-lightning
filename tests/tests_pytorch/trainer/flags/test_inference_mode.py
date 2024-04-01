@@ -17,10 +17,10 @@ from unittest.mock import Mock
 import pytest
 import torch
 from lightning.fabric.utilities.imports import _TORCH_EQUAL_2_0
-from lightning.pytorch import Trainer
-from lightning.pytorch.demos.boring_classes import BoringModel
-from lightning.pytorch.loops import _Loop
-from lightning.pytorch.loops.utilities import _no_grad_context
+from lightning_pytorch import Trainer
+from lightning_pytorch.demos.boring_classes import BoringModel
+from lightning_pytorch.loops import _Loop
+from lightning_pytorch.loops.utilities import _no_grad_context
 
 
 @pytest.mark.parametrize("trainer_fn", ["validate", "test", "predict"])

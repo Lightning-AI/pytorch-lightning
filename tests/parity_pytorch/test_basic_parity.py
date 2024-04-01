@@ -16,7 +16,7 @@ import os
 import numpy as np
 import pytest
 import torch
-from lightning.pytorch import LightningModule, Trainer, seed_everything
+from lightning_pytorch import LightningModule, Trainer, seed_everything
 from tests_pytorch.helpers.advanced_models import ParityModuleMNIST, ParityModuleRNN
 
 from parity_pytorch.measure import measure_loops

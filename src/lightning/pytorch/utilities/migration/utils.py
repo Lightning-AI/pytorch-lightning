@@ -23,13 +23,13 @@ from typing import Any, Dict, List, Optional, Tuple, Type
 from packaging.version import Version
 from typing_extensions import override
 
-import lightning.pytorch as pl
+import lightning_pytorch as pl
 from lightning.fabric.utilities.enums import LightningEnum
 from lightning.fabric.utilities.imports import _IS_WINDOWS
 from lightning.fabric.utilities.types import _PATH
 from lightning.fabric.utilities.warnings import PossibleUserWarning
-from lightning.pytorch.utilities.migration.migration import _migration_index
-from lightning.pytorch.utilities.rank_zero import rank_zero_warn
+from lightning_pytorch.utilities.migration.migration import _migration_index
+from lightning_pytorch.utilities.rank_zero import rank_zero_warn
 
 _log = logging.getLogger(__name__)
 _CHECKPOINT = Dict[str, Any]
@@ -80,14 +80,14 @@ class pl_legacy_patch:
     """Registers legacy artifacts (classes, methods, etc.) that were removed but still need to be included for
     unpickling old checkpoints. The following patches apply.
 
-        1. ``lightning.pytorch.utilities.argparse._gpus_arg_default``: Applies to all checkpoints saved prior to
+        1. ``lightning_pytorch.utilities.argparse._gpus_arg_default``: Applies to all checkpoints saved prior to
            version 1.2.8. See: https://github.com/Lightning-AI/lightning/pull/6898
-        2. ``lightning.pytorch.utilities.argparse_utils``: A module that was deprecated in 1.2 and removed in 1.4,
+        2. ``lightning_pytorch.utilities.argparse_utils``: A module that was deprecated in 1.2 and removed in 1.4,
            but still needs to be available for import for legacy checkpoints.
-        3. ``lightning.pytorch.utilities.enums._FaultTolerantMode``: This enum was removed in 2.0 but was pickled
+        3. ``lightning_pytorch.utilities.enums._FaultTolerantMode``: This enum was removed in 2.0 but was pickled
            into older checkpoints.
         4. In legacy versions of Lightning, callback classes got pickled into the checkpoint. These classes have a
-           module import path under ``pytorch_lightning`` and must be redirected to the ``lightning.pytorch``.
+           module import path under ``pytorch_lightning`` and must be redirected to the ``lightning_pytorch``.
 
     Example:
 
@@ -99,8 +99,8 @@ class pl_legacy_patch:
     def __enter__(self) -> "pl_legacy_patch":
         _lock.acquire()
         # `pl.utilities.argparse_utils` was renamed to `pl.utilities.argparse`
-        legacy_argparse_module = ModuleType("lightning.pytorch.utilities.argparse_utils")
-        sys.modules["lightning.pytorch.utilities.argparse_utils"] = legacy_argparse_module
+        legacy_argparse_module = ModuleType("lightning_pytorch.utilities.argparse_utils")
+        sys.modules["lightning_pytorch.utilities.argparse_utils"] = legacy_argparse_module
 
         # `_gpus_arg_default` used to be imported from these locations
         legacy_argparse_module._gpus_arg_default = lambda x: x
@@ -127,7 +127,7 @@ class pl_legacy_patch:
     ) -> None:
         if hasattr(pl.utilities.argparse, "_gpus_arg_default"):
             delattr(pl.utilities.argparse, "_gpus_arg_default")
-        del sys.modules["lightning.pytorch.utilities.argparse_utils"]
+        del sys.modules["lightning_pytorch.utilities.argparse_utils"]
         if hasattr(pl.utilities.enums, "_FaultTolerantMode"):
             delattr(pl.utilities.enums, "_FaultTolerantMode")
         pickle.Unpickler = self._old_unpickler  # type: ignore
@@ -154,7 +154,7 @@ def _pl_migrate_checkpoint(checkpoint: _CHECKPOINT, checkpoint_path: Optional[_P
     _log.info(
         f"Lightning automatically upgraded your loaded checkpoint from v{old_version} to v{new_version}."
         " To apply the upgrade to your files permanently, run"
-        f" `python -m lightning.pytorch.utilities.upgrade_checkpoint {str(path_hint)}`"
+        f" `python -m lightning_pytorch.utilities.upgrade_checkpoint {str(path_hint)}`"
     )
     return checkpoint
 
@@ -182,10 +182,10 @@ def _should_upgrade(checkpoint: _CHECKPOINT, target: str, max_version: Optional[
 
 
 class _RedirectingUnpickler(pickle._Unpickler):
-    """Redirects the unpickling of `pytorch_lightning` classes to `lightning.pytorch`.
+    """Redirects the unpickling of `pytorch_lightning` classes to `lightning_pytorch`.
 
     In legacy versions of Lightning, callback classes got pickled into the checkpoint. These classes are defined in the
-    `pytorch_lightning` but need to be loaded from `lightning.pytorch`.
+    `pytorch_lightning` but need to be loaded from `lightning_pytorch`.
 
     """
 
@@ -203,5 +203,5 @@ def _patch_pl_to_mirror_if_necessary(module: str) -> str:
     if module.startswith(_pl):
         # for the standalone package this won't do anything,
         # for the unified mirror package it will redirect the imports
-        return "lightning.pytorch" + module[len(_pl) :]
+        return "lightning_pytorch" + module[len(_pl) :]
     return module

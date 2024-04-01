@@ -13,7 +13,7 @@ Configure hyperparameters from the CLI (Intermediate)
 LightningCLI requirements
 *************************
 
-The :class:`~lightning.pytorch.cli.LightningCLI` class is designed to significantly ease the implementation of CLIs. To
+The :class:`~lightning_pytorch.cli.LightningCLI` class is designed to significantly ease the implementation of CLIs. To
 use this class, an additional Python requirement is necessary than the minimal installation of Lightning provides. To
 enable, either install all extras:
 
@@ -32,16 +32,16 @@ or if only interested in ``LightningCLI``, just install jsonargparse:
 ******************
 Implementing a CLI
 ******************
-Implementing a CLI is as simple as instantiating a :class:`~lightning.pytorch.cli.LightningCLI` object giving as
+Implementing a CLI is as simple as instantiating a :class:`~lightning_pytorch.cli.LightningCLI` object giving as
 arguments classes for a ``LightningModule`` and optionally a ``LightningDataModule``:
 
 .. code:: python
 
     # main.py
-    from lightning.pytorch.cli import LightningCLI
+    from lightning_pytorch.cli import LightningCLI
 
     # simple demo classes for your convenience
-    from lightning.pytorch.demos.boring_classes import DemoModel, BoringDataModule
+    from lightning_pytorch.demos.boring_classes import DemoModel, BoringDataModule
 
 
     def cli_main():
@@ -129,7 +129,7 @@ View all available options with the ``--help`` argument given after the subcomma
                                 (type: int, default: 10)
         --model.learning_rate LEARNING_RATE
                                 (type: float, default: 0.02)
-    <class 'lightning.pytorch.demos.boring_classes.BoringDataModule'>:
+    <class 'lightning_pytorch.demos.boring_classes.BoringDataModule'>:
     --data CONFIG         Path to a configuration file.
     --data.data_dir DATA_DIR
                             (type: str, default: ./)

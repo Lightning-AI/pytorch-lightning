@@ -16,9 +16,9 @@ import logging
 
 import pytest
 import torch.nn
-from lightning.pytorch import LightningDataModule
-from lightning.pytorch.demos.boring_classes import BoringDataModule, BoringModel
-from lightning.pytorch.utilities.model_helpers import _ModuleMode, _restricted_classmethod, is_overridden
+from lightning_pytorch import LightningDataModule
+from lightning_pytorch.demos.boring_classes import BoringDataModule, BoringModel
+from lightning_pytorch.utilities.model_helpers import _ModuleMode, _restricted_classmethod, is_overridden
 from lightning_utilities import module_available
 
 
@@ -41,16 +41,16 @@ def test_is_overridden():
     reason="This test is ONLY relevant for the UNIFIED package",
 )
 def test_mixed_imports_unified():
-    from lightning.pytorch.utilities.compile import _maybe_unwrap_optimized as new_unwrap
-    from lightning.pytorch.utilities.model_helpers import is_overridden as new_is_overridden
+    from lightning_pytorch.utilities.compile import _maybe_unwrap_optimized as new_unwrap
+    from lightning_pytorch.utilities.model_helpers import is_overridden as new_is_overridden
     from pytorch_lightning.callbacks import EarlyStopping as OldEarlyStopping
     from pytorch_lightning.demos.boring_classes import BoringModel as OldBoringModel
 
     model = OldBoringModel()
-    with pytest.raises(TypeError, match=r"`pytorch_lightning` object \(BoringModel\) to a `lightning.pytorch`"):
+    with pytest.raises(TypeError, match=r"`pytorch_lightning` object \(BoringModel\) to a `lightning_pytorch`"):
         new_unwrap(model)
 
-    with pytest.raises(TypeError, match=r"`pytorch_lightning` object \(EarlyStopping\) to a `lightning.pytorch`"):
+    with pytest.raises(TypeError, match=r"`pytorch_lightning` object \(EarlyStopping\) to a `lightning_pytorch`"):
         new_is_overridden("on_fit_start", OldEarlyStopping("foo"))
 
 
@@ -169,7 +169,7 @@ def test_module_mode_restore_new_module(caplog):
     mode.capture(model)
     model.child.eval()
     model.new_child = torch.nn.Linear(2, 2)
-    with caplog.at_level(logging.DEBUG, logger="lightning.pytorch.utilities.model_helpers"):
+    with caplog.at_level(logging.DEBUG, logger="lightning_pytorch.utilities.model_helpers"):
         mode.restore(model)
     assert "Restoring training mode on module 'new_child' not possible" in caplog.text
 

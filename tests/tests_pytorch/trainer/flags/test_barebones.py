@@ -14,10 +14,10 @@
 import logging
 
 import pytest
-from lightning.pytorch import Trainer
-from lightning.pytorch.callbacks import ModelSummary
-from lightning.pytorch.demos.boring_classes import BoringModel
-from lightning.pytorch.profilers import PassThroughProfiler
+from lightning_pytorch import Trainer
+from lightning_pytorch.callbacks import ModelSummary
+from lightning_pytorch.demos.boring_classes import BoringModel
+from lightning_pytorch.profilers import PassThroughProfiler
 
 
 def test_barebones_disables_logging():

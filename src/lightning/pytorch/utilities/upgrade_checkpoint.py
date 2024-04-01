@@ -21,7 +21,7 @@ from typing import List
 import torch
 from tqdm import tqdm
 
-from lightning.pytorch.utilities.migration import migrate_checkpoint, pl_legacy_patch
+from lightning_pytorch.utilities.migration import migrate_checkpoint, pl_legacy_patch
 
 _log = logging.getLogger(__name__)
 

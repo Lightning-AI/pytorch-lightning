@@ -18,7 +18,7 @@ import sys
 
 from lightning_utilities.core.imports import RequirementCache, package_available
 
-from lightning.pytorch.utilities.rank_zero import rank_zero_warn
+from lightning_pytorch.utilities.rank_zero import rank_zero_warn
 
 _PYTHON_GREATER_EQUAL_3_11_0 = (sys.version_info.major, sys.version_info.minor) >= (3, 11)
 _TORCHMETRICS_GREATER_EQUAL_0_8_0 = RequirementCache("torchmetrics>=0.8.0")

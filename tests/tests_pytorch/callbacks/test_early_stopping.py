@@ -22,10 +22,10 @@ from unittest.mock import Mock
 import cloudpickle
 import pytest
 import torch
-from lightning.pytorch import Trainer, seed_everything
-from lightning.pytorch.callbacks import EarlyStopping, ModelCheckpoint
-from lightning.pytorch.demos.boring_classes import BoringModel
-from lightning.pytorch.utilities.exceptions import MisconfigurationException
+from lightning_pytorch import Trainer, seed_everything
+from lightning_pytorch.callbacks import EarlyStopping, ModelCheckpoint
+from lightning_pytorch.demos.boring_classes import BoringModel
+from lightning_pytorch.utilities.exceptions import MisconfigurationException
 
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.runif import RunIf
@@ -456,7 +456,7 @@ def test_check_on_train_epoch_end_smart_handling(tmp_path, case):
 
     side_effect = [(False, "A"), (True, "B")]
     with mock.patch(
-        "lightning.pytorch.callbacks.EarlyStopping._evaluate_stopping_criteria", side_effect=side_effect
+        "lightning_pytorch.callbacks.EarlyStopping._evaluate_stopping_criteria", side_effect=side_effect
     ) as es_mock:
         trainer.fit(model)
 
@@ -473,7 +473,7 @@ def test_early_stopping_squeezes():
     trainer.callback_metrics["foo"] = torch.tensor([[[0]]])
 
     with mock.patch(
-        "lightning.pytorch.callbacks.EarlyStopping._evaluate_stopping_criteria", return_value=(False, "")
+        "lightning_pytorch.callbacks.EarlyStopping._evaluate_stopping_criteria", return_value=(False, "")
     ) as es_mock:
         early_stopping._run_early_stopping_check(trainer)
 
@@ -497,7 +497,7 @@ def test_early_stopping_log_info(log_rank_zero_only, world_size, global_rank, ex
     # or else always expect the simple logging message
     trainer = Mock(global_rank=global_rank, world_size=world_size)
 
-    with mock.patch("lightning.pytorch.callbacks.early_stopping.log.info") as log_mock:
+    with mock.patch("lightning_pytorch.callbacks.early_stopping.log.info") as log_mock:
         EarlyStopping._log_info(trainer, "bar", log_rank_zero_only)
 
     # check log.info() was called or not with expected arg

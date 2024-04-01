@@ -1,5 +1,5 @@
 import pytest
-from lightning.pytorch.utilities.testing import _runif_reasons
+from lightning_pytorch.utilities.testing import _runif_reasons
 
 
 def RunIf(**kwargs):

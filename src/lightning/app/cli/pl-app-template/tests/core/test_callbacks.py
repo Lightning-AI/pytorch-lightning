@@ -5,8 +5,8 @@ import pytest
 from core.callbacks import PLAppArtifactsTracker, PLAppProgressTracker, PLAppSummary
 from core.components.script_runner import ScriptRunner
 from lightning.app.storage.path import Path
-from lightning.pytorch import LightningModule, Trainer
-from lightning.pytorch.loggers import TensorBoardLogger
+from lightning_pytorch import LightningModule, Trainer
+from lightning_pytorch.loggers import TensorBoardLogger
 
 
 @pytest.mark.parametrize("rank", [0, 1])

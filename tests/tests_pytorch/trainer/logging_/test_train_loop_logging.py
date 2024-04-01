@@ -22,14 +22,14 @@ from unittest.mock import call
 import numpy as np
 import pytest
 import torch
-from lightning.pytorch import Trainer, callbacks
-from lightning.pytorch.callbacks import EarlyStopping, ModelCheckpoint, TQDMProgressBar
-from lightning.pytorch.core.module import LightningModule
-from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset, RandomDictDataset
-from lightning.pytorch.loggers.tensorboard import TensorBoardLogger
-from lightning.pytorch.trainer.states import RunningStage
-from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning.pytorch.utilities.imports import _TORCHMETRICS_GREATER_EQUAL_0_11 as _TM_GE_0_11
+from lightning_pytorch import Trainer, callbacks
+from lightning_pytorch.callbacks import EarlyStopping, ModelCheckpoint, TQDMProgressBar
+from lightning_pytorch.core.module import LightningModule
+from lightning_pytorch.demos.boring_classes import BoringModel, RandomDataset, RandomDictDataset
+from lightning_pytorch.loggers.tensorboard import TensorBoardLogger
+from lightning_pytorch.trainer.states import RunningStage
+from lightning_pytorch.utilities.exceptions import MisconfigurationException
+from lightning_pytorch.utilities.imports import _TORCHMETRICS_GREATER_EQUAL_0_11 as _TM_GE_0_11
 from lightning_utilities.test.warning import no_warning_call
 from torch import Tensor
 from torch.utils.data import DataLoader
@@ -710,7 +710,7 @@ def test_on_epoch_logging_with_sum_and_on_batch_start(tmp_path):
     trainer.fit(model, train_dataloaders=train_data, val_dataloaders=val_data)
 
 
-@mock.patch("lightning.pytorch.loggers.TensorBoardLogger.log_metrics")
+@mock.patch("lightning_pytorch.loggers.TensorBoardLogger.log_metrics")
 def test_log_metrics_epoch_step_values(mock_log_metrics, tmp_path):
     """Tests the default epoch and step values logged."""
 
@@ -743,7 +743,7 @@ def test_log_metrics_epoch_step_values(mock_log_metrics, tmp_path):
     ])
 
 
-@mock.patch("lightning.pytorch.loggers.TensorBoardLogger.log_metrics")
+@mock.patch("lightning_pytorch.loggers.TensorBoardLogger.log_metrics")
 def test_log_on_train_start(mock_log_metrics, tmp_path):
     """Tests that logged metrics on_train_start get reset after the first epoch."""
 

@@ -18,7 +18,7 @@ Once the app is installed, use it in an app:
 
 ```python
 from placeholdername import TemplateComponent
-import lightning as L
+import lightning_pytorch as LP
 
 
 class LitApp(L.LightningFlow):

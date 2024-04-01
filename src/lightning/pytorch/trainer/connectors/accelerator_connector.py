@@ -30,12 +30,12 @@ from lightning.fabric.plugins.environments import (
 )
 from lightning.fabric.utilities.device_parser import _determine_root_gpu_device
 from lightning.fabric.utilities.imports import _IS_INTERACTIVE
-from lightning.pytorch.accelerators import AcceleratorRegistry
-from lightning.pytorch.accelerators.accelerator import Accelerator
-from lightning.pytorch.accelerators.cuda import CUDAAccelerator
-from lightning.pytorch.accelerators.mps import MPSAccelerator
-from lightning.pytorch.accelerators.xla import XLAAccelerator
-from lightning.pytorch.plugins import (
+from lightning_pytorch.accelerators import AcceleratorRegistry
+from lightning_pytorch.accelerators.accelerator import Accelerator
+from lightning_pytorch.accelerators.cuda import CUDAAccelerator
+from lightning_pytorch.accelerators.mps import MPSAccelerator
+from lightning_pytorch.accelerators.xla import XLAAccelerator
+from lightning_pytorch.plugins import (
     _PLUGIN_INPUT,
     BitsandbytesPrecision,
     CheckpointIO,
@@ -48,8 +48,8 @@ from lightning.pytorch.plugins import (
     TransformerEnginePrecision,
     XLAPrecision,
 )
-from lightning.pytorch.plugins.layer_sync import LayerSync, TorchSyncBatchNorm
-from lightning.pytorch.strategies import (
+from lightning_pytorch.plugins.layer_sync import LayerSync, TorchSyncBatchNorm
+from lightning_pytorch.strategies import (
     DDPStrategy,
     DeepSpeedStrategy,
     FSDPStrategy,
@@ -60,10 +60,10 @@ from lightning.pytorch.strategies import (
     StrategyRegistry,
     XLAStrategy,
 )
-from lightning.pytorch.strategies.ddp import _DDP_FORK_ALIASES
-from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning.pytorch.utilities.imports import _habana_available_and_importable
-from lightning.pytorch.utilities.rank_zero import rank_zero_info, rank_zero_warn
+from lightning_pytorch.strategies.ddp import _DDP_FORK_ALIASES
+from lightning_pytorch.utilities.exceptions import MisconfigurationException
+from lightning_pytorch.utilities.imports import _habana_available_and_importable
+from lightning_pytorch.utilities.rank_zero import rank_zero_info, rank_zero_warn
 
 log = logging.getLogger(__name__)
 
@@ -191,7 +191,7 @@ class _AcceleratorConnector:
         if strategy != "auto" and strategy not in self._registered_strategies and not isinstance(strategy, Strategy):
             raise ValueError(
                 f"You selected an invalid strategy name: `strategy={strategy!r}`."
-                " It must be either a string or an instance of `lightning.pytorch.strategies.Strategy`."
+                " It must be either a string or an instance of `lightning_pytorch.strategies.Strategy`."
                 " Example choices: auto, ddp, ddp_spawn, deepspeed, ..."
                 " Find a complete list of options in our documentation at https://lightning.ai"
             )

@@ -18,9 +18,9 @@ import pytest
 import torch
 import torch.nn as nn
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
-from lightning.pytorch import LightningModule, Trainer
-from lightning.pytorch.demos.boring_classes import BoringModel
-from lightning.pytorch.utilities.model_summary.model_summary import (
+from lightning_pytorch import LightningModule, Trainer
+from lightning_pytorch.demos.boring_classes import BoringModel
+from lightning_pytorch.utilities.model_summary.model_summary import (
     LEFTOVER_PARAMS_NAME,
     NOT_APPLICABLE,
     UNKNOWN_SIZE,

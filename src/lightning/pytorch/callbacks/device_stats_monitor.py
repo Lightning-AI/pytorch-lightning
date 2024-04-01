@@ -23,11 +23,11 @@ from typing import Any, Dict, Optional
 
 from typing_extensions import override
 
-import lightning.pytorch as pl
-from lightning.pytorch.accelerators.cpu import _PSUTIL_AVAILABLE
-from lightning.pytorch.callbacks.callback import Callback
-from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning.pytorch.utilities.types import STEP_OUTPUT
+import lightning_pytorch as pl
+from lightning_pytorch.accelerators.cpu import _PSUTIL_AVAILABLE
+from lightning_pytorch.callbacks.callback import Callback
+from lightning_pytorch.utilities.exceptions import MisconfigurationException
+from lightning_pytorch.utilities.types import STEP_OUTPUT
 
 
 class DeviceStatsMonitor(Callback):
@@ -47,8 +47,8 @@ class DeviceStatsMonitor(Callback):
 
     Example::
 
-        from lightning import Trainer
-        from lightning.pytorch.callbacks import DeviceStatsMonitor
+        from lightning_pytorch import Trainer
+        from lightning_pytorch.callbacks import DeviceStatsMonitor
         device_stats = DeviceStatsMonitor()
         trainer = Trainer(callbacks=[device_stats])
 
@@ -90,7 +90,7 @@ class DeviceStatsMonitor(Callback):
 
         if self._cpu_stats and device.type != "cpu":
             # Don't query CPU stats twice if CPU is accelerator
-            from lightning.pytorch.accelerators.cpu import get_cpu_stats
+            from lightning_pytorch.accelerators.cpu import get_cpu_stats
 
             device_stats.update(get_cpu_stats())
 

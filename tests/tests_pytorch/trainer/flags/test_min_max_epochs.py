@@ -1,7 +1,7 @@
 import pytest
 from lightning.fabric.utilities.warnings import PossibleUserWarning
-from lightning.pytorch import Trainer
-from lightning.pytorch.demos.boring_classes import BoringModel
+from lightning_pytorch import Trainer
+from lightning_pytorch.demos.boring_classes import BoringModel
 from lightning_utilities.test.warning import no_warning_call
 
 

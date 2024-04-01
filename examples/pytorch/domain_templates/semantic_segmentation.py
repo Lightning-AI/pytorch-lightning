@@ -20,7 +20,7 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 import torchvision.transforms as transforms
-from lightning.pytorch import LightningModule, Trainer, cli_lightning_logo
+from lightning_pytorch import LightningModule, Trainer, cli_lightning_logo
 from PIL import Image
 from torch import nn
 from torch.utils.data import DataLoader, Dataset

@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from lightning.pytorch.core.datamodule import LightningDataModule
-from lightning.pytorch.core.module import LightningModule
+from lightning_pytorch.core.datamodule import LightningDataModule
+from lightning_pytorch.core.module import LightningModule
 
 __all__ = ["LightningDataModule", "LightningModule"]

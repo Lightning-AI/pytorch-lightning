@@ -22,7 +22,7 @@ from typing import Dict, Optional, Tuple, Union
 
 from typing_extensions import override
 
-from lightning.pytorch.profilers.profiler import Profiler
+from lightning_pytorch.profilers.profiler import Profiler
 
 log = logging.getLogger(__name__)
 
@@ -44,7 +44,7 @@ class AdvancedProfiler(Profiler):
         """
         Args:
             dirpath: Directory path for the ``filename``. If ``dirpath`` is ``None`` but ``filename`` is present, the
-                ``trainer.log_dir`` (from :class:`~lightning.pytorch.loggers.tensorboard.TensorBoardLogger`)
+                ``trainer.log_dir`` (from :class:`~lightning_pytorch.loggers.tensorboard.TensorBoardLogger`)
                 will be used.
 
             filename: If present, filename where the profiler results will be saved instead of printing to stdout.

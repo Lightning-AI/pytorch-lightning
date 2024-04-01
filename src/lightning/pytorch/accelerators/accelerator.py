@@ -14,7 +14,7 @@
 from abc import ABC
 from typing import Any, Dict
 
-import lightning.pytorch as pl
+import lightning_pytorch as pl
 from lightning.fabric.accelerators.accelerator import Accelerator as _Accelerator
 from lightning.fabric.utilities.types import _DEVICE
 

@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import torch
-from lightning.pytorch.utilities.memory import recursive_detach
+from lightning_pytorch.utilities.memory import recursive_detach
 
 
 def test_recursive_detach():

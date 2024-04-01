@@ -14,9 +14,9 @@
 from functools import partial
 
 import torch
-from lightning.pytorch import LightningDataModule, LightningModule, Trainer
-from lightning.pytorch.demos.boring_classes import BoringModel
-from lightning.pytorch.utilities.imports import _TORCHMETRICS_GREATER_EQUAL_0_11 as _TM_GE_0_11
+from lightning_pytorch import LightningDataModule, LightningModule, Trainer
+from lightning_pytorch.demos.boring_classes import BoringModel
+from lightning_pytorch.utilities.imports import _TORCHMETRICS_GREATER_EQUAL_0_11 as _TM_GE_0_11
 from torchmetrics.functional import accuracy
 
 from tests_pytorch.helpers.utils import get_default_logger, load_model_from_checkpoint

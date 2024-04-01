@@ -35,7 +35,7 @@ model and then starts a demo with `Gradio <https://gradio.app/>`_.
 .. code-block:: python
 
     import os.path as ops
-    import lightning as L
+    import lightning_pytorch as LP
     from quick_start.components import PyTorchLightningScript, ImageServeGradio
 
 
@@ -78,7 +78,7 @@ This is the power of `lightning.ai <https://lightning.ai/>`_ ecosystem 🔥⚡�
 .. code-block:: python
 
     import os.path as ops
-    import lightning as L
+    import lightning_pytorch as LP
     from quick_start.components import PyTorchLightningScript, ImageServeGradio
     import optuna
     from optuna.distributions import LogUniformDistribution

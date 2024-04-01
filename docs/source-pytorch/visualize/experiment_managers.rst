@@ -5,7 +5,7 @@ To track other artifacts, such as histograms or model topology graphs first sele
 
 .. code-block:: python
 
-    from lightning.pytorch import loggers as pl_loggers
+    from lightning_pytorch import loggers as pl_loggers
 
     tensorboard = pl_loggers.TensorBoardLogger()
     trainer = Trainer(logger=tensorboard)

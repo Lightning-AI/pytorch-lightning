@@ -11,15 +11,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from lightning.pytorch.plugins.precision.amp import MixedPrecision
-from lightning.pytorch.plugins.precision.bitsandbytes import BitsandbytesPrecision
-from lightning.pytorch.plugins.precision.deepspeed import DeepSpeedPrecision
-from lightning.pytorch.plugins.precision.double import DoublePrecision
-from lightning.pytorch.plugins.precision.fsdp import FSDPPrecision
-from lightning.pytorch.plugins.precision.half import HalfPrecision
-from lightning.pytorch.plugins.precision.precision import Precision
-from lightning.pytorch.plugins.precision.transformer_engine import TransformerEnginePrecision
-from lightning.pytorch.plugins.precision.xla import XLAPrecision
+from lightning_pytorch.plugins.precision.amp import MixedPrecision
+from lightning_pytorch.plugins.precision.bitsandbytes import BitsandbytesPrecision
+from lightning_pytorch.plugins.precision.deepspeed import DeepSpeedPrecision
+from lightning_pytorch.plugins.precision.double import DoublePrecision
+from lightning_pytorch.plugins.precision.fsdp import FSDPPrecision
+from lightning_pytorch.plugins.precision.half import HalfPrecision
+from lightning_pytorch.plugins.precision.precision import Precision
+from lightning_pytorch.plugins.precision.transformer_engine import TransformerEnginePrecision
+from lightning_pytorch.plugins.precision.xla import XLAPrecision
 
 __all__ = [
     "BitsandbytesPrecision",

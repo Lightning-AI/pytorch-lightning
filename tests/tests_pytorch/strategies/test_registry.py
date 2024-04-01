@@ -14,9 +14,9 @@
 from unittest import mock
 
 import pytest
-from lightning.pytorch import Trainer
-from lightning.pytorch.plugins import CheckpointIO
-from lightning.pytorch.strategies import DDPStrategy, DeepSpeedStrategy, FSDPStrategy, StrategyRegistry, XLAStrategy
+from lightning_pytorch import Trainer
+from lightning_pytorch.plugins import CheckpointIO
+from lightning_pytorch.strategies import DDPStrategy, DeepSpeedStrategy, FSDPStrategy, StrategyRegistry, XLAStrategy
 
 from tests_pytorch.helpers.runif import RunIf
 
@@ -47,7 +47,7 @@ def test_deepspeed_strategy_registry_with_trainer(tmp_path, strategy):
 
 
 @RunIf(skip_windows=True)
-@mock.patch("lightning.pytorch.strategies.xla.XLAStrategy.set_world_ranks")
+@mock.patch("lightning_pytorch.strategies.xla.XLAStrategy.set_world_ranks")
 def test_xla_debug_strategy_registry(_, tpu_available):
     strategy = "xla_debug"
 

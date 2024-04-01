@@ -16,13 +16,13 @@ from unittest.mock import Mock
 import pytest
 import torch
 from lightning.fabric.utilities.warnings import PossibleUserWarning
-from lightning.pytorch import LightningDataModule, LightningModule, Trainer
-from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
-from lightning.pytorch.trainer.configuration_validator import (
+from lightning_pytorch import LightningDataModule, LightningModule, Trainer
+from lightning_pytorch.demos.boring_classes import BoringModel, RandomDataset
+from lightning_pytorch.trainer.configuration_validator import (
     __verify_eval_loop_configuration,
     __verify_train_val_loop_configuration,
 )
-from lightning.pytorch.utilities.exceptions import MisconfigurationException
+from lightning_pytorch.utilities.exceptions import MisconfigurationException
 
 
 def test_wrong_train_setting(tmp_path):

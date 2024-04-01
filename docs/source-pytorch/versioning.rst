@@ -75,7 +75,7 @@ The table below indicates the coverage of tested versions in our CI. Versions ou
 .. list-table::
    :header-rows: 1
 
-   * - ``lightning.pytorch``
+   * - ``lightning_pytorch``
      - ``pytorch_lightning``
      - ``lightning.fabric``
      - ``torch``

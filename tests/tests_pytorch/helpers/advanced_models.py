@@ -16,7 +16,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from lightning.pytorch.core.module import LightningModule
+from lightning_pytorch.core.module import LightningModule
 from torch.utils.data import DataLoader
 
 from tests_pytorch import _PATH_DATASETS

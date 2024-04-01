@@ -15,11 +15,11 @@
 
 from typing import Optional, Union
 
-import lightning.pytorch as pl
+import lightning_pytorch as pl
 from lightning.fabric.utilities.warnings import PossibleUserWarning
-from lightning.pytorch.accelerators import CUDAAccelerator, MPSAccelerator, XLAAccelerator
-from lightning.pytorch.loggers.logger import DummyLogger
-from lightning.pytorch.profilers import (
+from lightning_pytorch.accelerators import CUDAAccelerator, MPSAccelerator, XLAAccelerator
+from lightning_pytorch.loggers.logger import DummyLogger
+from lightning_pytorch.profilers import (
     AdvancedProfiler,
     PassThroughProfiler,
     Profiler,
@@ -27,9 +27,9 @@ from lightning.pytorch.profilers import (
     SimpleProfiler,
     XLAProfiler,
 )
-from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning.pytorch.utilities.imports import _habana_available_and_importable
-from lightning.pytorch.utilities.rank_zero import rank_zero_info, rank_zero_warn
+from lightning_pytorch.utilities.exceptions import MisconfigurationException
+from lightning_pytorch.utilities.imports import _habana_available_and_importable
+from lightning_pytorch.utilities.rank_zero import rank_zero_info, rank_zero_warn
 
 
 def _init_debugging_flags(

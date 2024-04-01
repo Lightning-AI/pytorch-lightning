@@ -19,7 +19,7 @@ from unittest import mock
 from unittest.mock import Mock
 
 import lightning.fabric
-import lightning.pytorch
+import lightning_pytorch
 import pytest
 import torch
 import torch.distributed
@@ -31,11 +31,11 @@ from lightning.fabric.plugins.environments import (
     XLAEnvironment,
 )
 from lightning.fabric.utilities.imports import _IS_WINDOWS
-from lightning.pytorch import Trainer
-from lightning.pytorch.accelerators import Accelerator, CPUAccelerator, CUDAAccelerator, MPSAccelerator, XLAAccelerator
-from lightning.pytorch.plugins.io import TorchCheckpointIO
-from lightning.pytorch.plugins.layer_sync import LayerSync, TorchSyncBatchNorm
-from lightning.pytorch.plugins.precision import (
+from lightning_pytorch import Trainer
+from lightning_pytorch.accelerators import Accelerator, CPUAccelerator, CUDAAccelerator, MPSAccelerator, XLAAccelerator
+from lightning_pytorch.plugins.io import TorchCheckpointIO
+from lightning_pytorch.plugins.layer_sync import LayerSync, TorchSyncBatchNorm
+from lightning_pytorch.plugins.precision import (
     BitsandbytesPrecision,
     DeepSpeedPrecision,
     DoublePrecision,
@@ -44,7 +44,7 @@ from lightning.pytorch.plugins.precision import (
     MixedPrecision,
     Precision,
 )
-from lightning.pytorch.strategies import (
+from lightning_pytorch.strategies import (
     DDPStrategy,
     DeepSpeedStrategy,
     FSDPStrategy,
@@ -52,11 +52,11 @@ from lightning.pytorch.strategies import (
     SingleDeviceXLAStrategy,
     XLAStrategy,
 )
-from lightning.pytorch.strategies.ddp import _DDP_FORK_ALIASES
-from lightning.pytorch.strategies.launchers import _SubprocessScriptLauncher
-from lightning.pytorch.trainer.connectors.accelerator_connector import _AcceleratorConnector, _set_torch_flags
-from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning.pytorch.utilities.imports import (
+from lightning_pytorch.strategies.ddp import _DDP_FORK_ALIASES
+from lightning_pytorch.strategies.launchers import _SubprocessScriptLauncher
+from lightning_pytorch.trainer.connectors.accelerator_connector import _AcceleratorConnector, _set_torch_flags
+from lightning_pytorch.utilities.exceptions import MisconfigurationException
+from lightning_pytorch.utilities.imports import (
     _LIGHTNING_HABANA_AVAILABLE,
 )
 
@@ -170,7 +170,7 @@ def test_custom_cluster_environment_in_slurm_environment(cuda_count_0, tmp_path)
         "SLURM_LOCALID": "0",
     },
 )
-@mock.patch("lightning.pytorch.strategies.DDPStrategy.setup_distributed", autospec=True)
+@mock.patch("lightning_pytorch.strategies.DDPStrategy.setup_distributed", autospec=True)
 def test_custom_accelerator(cuda_count_0):
     class Accel(Accelerator):
         def setup_device(self, device: torch.device) -> None:
@@ -228,7 +228,7 @@ def test_custom_accelerator(cuda_count_0):
 
 @RunIf(mps=False)
 def test_interactive_incompatible_backend_error(cuda_count_2, monkeypatch):
-    monkeypatch.setattr(lightning.pytorch.trainer.connectors.accelerator_connector, "_IS_INTERACTIVE", True)
+    monkeypatch.setattr(lightning_pytorch.trainer.connectors.accelerator_connector, "_IS_INTERACTIVE", True)
     with pytest.raises(MisconfigurationException, match=r"strategy='ddp'\)`.*is not compatible"):
         Trainer(strategy="ddp", accelerator="gpu", devices=2)
 
@@ -238,7 +238,7 @@ def test_interactive_incompatible_backend_error(cuda_count_2, monkeypatch):
 
 @RunIf(skip_windows=True)
 def test_interactive_compatible_strategy_ddp_fork(monkeypatch):
-    monkeypatch.setattr(lightning.pytorch.trainer.connectors.accelerator_connector, "_IS_INTERACTIVE", True)
+    monkeypatch.setattr(lightning_pytorch.trainer.connectors.accelerator_connector, "_IS_INTERACTIVE", True)
     trainer = Trainer(strategy="ddp_fork", accelerator="cpu")
     assert trainer.strategy.launcher.is_interactive_compatible
 
@@ -402,7 +402,7 @@ def test_strategy_choice_ddp_spawn_cpu():
 
 
 @RunIf(skip_windows=True)
-@mock.patch("lightning.pytorch.trainer.connectors.accelerator_connector._IS_INTERACTIVE", True)
+@mock.patch("lightning_pytorch.trainer.connectors.accelerator_connector._IS_INTERACTIVE", True)
 def test_strategy_choice_ddp_fork_in_interactive():
     """Test that when strategy is unspecified, the connector chooses DDP Fork in interactive environments by
     default."""
@@ -469,7 +469,7 @@ def test_strategy_choice_ddp_slurm(cuda_count_2, strategy, job_name, expected_en
     },
 )
 @mock.patch("torch.cuda.set_device")
-@mock.patch("lightning.pytorch.strategies.DDPStrategy.setup_distributed", autospec=True)
+@mock.patch("lightning_pytorch.strategies.DDPStrategy.setup_distributed", autospec=True)
 def test_strategy_choice_ddp_torchelastic(_, __, mps_count_0, cuda_count_2):
     trainer = Trainer(fast_dev_run=True, accelerator="gpu", devices=2)
     assert isinstance(trainer.accelerator, CUDAAccelerator)
@@ -511,7 +511,7 @@ def test_torchelastic_priority_over_slurm(*_):
     },
 )
 @mock.patch("torch.cuda.set_device")
-@mock.patch("lightning.pytorch.strategies.DDPStrategy.setup_distributed", autospec=True)
+@mock.patch("lightning_pytorch.strategies.DDPStrategy.setup_distributed", autospec=True)
 def test_strategy_choice_ddp_kubeflow(_, __, mps_count_0, cuda_count_2):
     trainer = Trainer(fast_dev_run=True, accelerator="gpu", devices=2, plugins=KubeflowEnvironment())
     assert isinstance(trainer.accelerator, CUDAAccelerator)
@@ -531,7 +531,7 @@ def test_strategy_choice_ddp_kubeflow(_, __, mps_count_0, cuda_count_2):
         "RANK": "1",
     },
 )
-@mock.patch("lightning.pytorch.strategies.DDPStrategy.setup_distributed", autospec=True)
+@mock.patch("lightning_pytorch.strategies.DDPStrategy.setup_distributed", autospec=True)
 def test_strategy_choice_ddp_cpu_kubeflow(cuda_count_0):
     trainer = Trainer(fast_dev_run=True, accelerator="cpu", devices=2, plugins=KubeflowEnvironment())
     assert isinstance(trainer.accelerator, CPUAccelerator)
@@ -553,7 +553,7 @@ def test_strategy_choice_ddp_cpu_kubeflow(cuda_count_0):
         "SLURM_LOCALID": "0",
     },
 )
-@mock.patch("lightning.pytorch.strategies.DDPStrategy.setup_distributed", autospec=True)
+@mock.patch("lightning_pytorch.strategies.DDPStrategy.setup_distributed", autospec=True)
 @pytest.mark.parametrize("strategy", ["auto", "ddp", DDPStrategy()])
 def test_strategy_choice_ddp_cpu_slurm(cuda_count_0, strategy):
     trainer = Trainer(fast_dev_run=True, strategy=strategy, accelerator="cpu", devices=2)
@@ -629,7 +629,7 @@ def mock_hpu_count(monkeypatch, n=1):
         monkeypatch.setattr(lightning_habana, "HPUPrecisionPlugin", MockHPUPrecisionPlugin)
     else:
         monkeypatch.setattr(
-            "lightning.pytorch.trainer.connectors.accelerator_connector._habana_available_and_importable", lambda: n > 0
+            "lightning_pytorch.trainer.connectors.accelerator_connector._habana_available_and_importable", lambda: n > 0
         )
         if n < 1:
             return
@@ -798,8 +798,8 @@ def test_gpu_accelerator_backend_choice_mps(mps_count_1, cuda_count_0):
     assert isinstance(trainer.accelerator, MPSAccelerator)
 
 
-@mock.patch("lightning.pytorch.accelerators.mps.MPSAccelerator.is_available", return_value=False)
-@mock.patch("lightning.pytorch.accelerators.cuda.CUDAAccelerator.is_available", return_value=False)
+@mock.patch("lightning_pytorch.accelerators.mps.MPSAccelerator.is_available", return_value=False)
+@mock.patch("lightning_pytorch.accelerators.cuda.CUDAAccelerator.is_available", return_value=False)
 def test_gpu_accelerator_misconfiguration_exception(*_):
     with pytest.raises(MisconfigurationException, match="No supported gpu backend found!"):
         Trainer(accelerator="gpu")
@@ -813,7 +813,7 @@ def test_accelerator_specific_checkpoint_io():
 
 @pytest.mark.parametrize("strategy", _DDP_FORK_ALIASES)
 @mock.patch(
-    "lightning.pytorch.trainer.connectors.accelerator_connector.torch.multiprocessing.get_all_start_methods",
+    "lightning_pytorch.trainer.connectors.accelerator_connector.torch.multiprocessing.get_all_start_methods",
     return_value=[],
 )
 def test_ddp_fork_on_unsupported_platform(_, strategy):
@@ -870,7 +870,7 @@ def test_connector_auto_selection(monkeypatch, is_interactive):
 
     def _mock_interactive():
         monkeypatch.setattr(
-            lightning.pytorch.trainer.connectors.accelerator_connector, "_IS_INTERACTIVE", is_interactive
+            lightning_pytorch.trainer.connectors.accelerator_connector, "_IS_INTERACTIVE", is_interactive
         )
         if _IS_WINDOWS:
             # simulate fork support on windows
@@ -934,7 +934,7 @@ def test_connector_auto_selection(monkeypatch, is_interactive):
         mock_cuda_count(monkeypatch, 0)
         mock_mps_count(monkeypatch, 0)
         _mock_tpu_available(True)
-        monkeypatch.setattr(lightning.pytorch.accelerators.XLAAccelerator, "auto_device_count", lambda *_: 1)
+        monkeypatch.setattr(lightning_pytorch.accelerators.XLAAccelerator, "auto_device_count", lambda *_: 1)
         monkeypatch.setattr(torch, "device", DeviceMock())
         connector = _AcceleratorConnector()
     assert isinstance(connector.accelerator, XLAAccelerator)

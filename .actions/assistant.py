@@ -284,10 +284,10 @@ def _replace_imports(lines: List[str], mapping: List[Tuple[str, str]], lightning
     ...     "def _lightning_app():",
     ...     ":class:`~lightning_app.core.flow.LightningFlow`",
     ...     "http://pytorch_lightning.ai",
-    ...     "from lightning import __version__",
+    ...     "from lightning_pytorch import __version__",
     ...     "@lightning.ai"
     ... ]
-    >>> mapping = [("lightning_app", "lightning.app"), ("pytorch_lightning", "lightning.pytorch")]
+    >>> mapping = [("lightning_app", "lightning.app"), ("pytorch_lightning", "lightning_pytorch")]
     >>> _replace_imports(lns, mapping, lightning_by="lightning_fabric")  # doctest: +NORMALIZE_WHITESPACE
     ['"lightning.app"', \
      'lightning.app', \
@@ -295,7 +295,7 @@ def _replace_imports(lines: List[str], mapping: List[Tuple[str, str]], lightning
      'delete_cloud_lightning_apps', \
      'from lightning.app import', \
      'lightning_apps = []', \
-     'lightning.app and lightning.pytorch are ours', \
+     'lightning.app and lightning_pytorch are ours', \
      'def _lightning_app():', \
      ':class:`~lightning.app.core.flow.LightningFlow`', \
      'http://pytorch_lightning.ai', \
@@ -312,7 +312,7 @@ def _replace_imports(lines: List[str], mapping: List[Tuple[str, str]], lightning
                 ln,
             )
             if lightning_by:  # in addition, replace base package
-                out[i] = out[i].replace("from lightning import ", f"from {lightning_by} import ")
+                out[i] = out[i].replace("from lightning_pytorch import ", f"from {lightning_by} import ")
                 out[i] = out[i].replace("import lightning ", f"import {lightning_by} ")
     return out
 

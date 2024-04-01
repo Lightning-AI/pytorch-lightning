@@ -43,7 +43,7 @@ You can attach your components in the **__init__** method of a flow.
 
 .. code-block:: python
 
-    import lightning as L
+    import lightning_pytorch as LP
 
 
     class RootFlow(L.LightningFlow):

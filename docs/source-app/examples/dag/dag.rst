@@ -14,7 +14,7 @@ Below is a pseudo-code using the lightning framework that uses a LightningFlow t
 
 .. code-block:: python
 
-    import lightning as L
+    import lightning_pytorch as LP
 
     class DAGFlow(L.LightningFlow):
 
@@ -33,7 +33,7 @@ Below is a pseudo-code to run several works in parallel using a built-in :class:
 
 .. code-block:: python
 
-    import lightning as L
+    import lightning_pytorch as LP
 
     class DAGFlow(L.LightningFlow):
 

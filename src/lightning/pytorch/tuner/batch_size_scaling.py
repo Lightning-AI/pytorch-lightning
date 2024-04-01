@@ -17,10 +17,10 @@ import uuid
 from copy import deepcopy
 from typing import Any, Dict, Optional, Tuple
 
-import lightning.pytorch as pl
-from lightning.pytorch.utilities.memory import garbage_collection_cuda, is_oom_error
-from lightning.pytorch.utilities.parsing import lightning_getattr, lightning_setattr
-from lightning.pytorch.utilities.rank_zero import rank_zero_info, rank_zero_warn
+import lightning_pytorch as pl
+from lightning_pytorch.utilities.memory import garbage_collection_cuda, is_oom_error
+from lightning_pytorch.utilities.parsing import lightning_getattr, lightning_setattr
+from lightning_pytorch.utilities.rank_zero import rank_zero_info, rank_zero_warn
 
 log = logging.getLogger(__name__)
 
@@ -120,7 +120,7 @@ def __scale_batch_dump_params(trainer: "pl.Trainer") -> Dict[str, Any]:
 
 
 def __scale_batch_reset_params(trainer: "pl.Trainer", steps_per_trial: int) -> None:
-    from lightning.pytorch.loggers.logger import DummyLogger
+    from lightning_pytorch.loggers.logger import DummyLogger
 
     trainer.logger = DummyLogger() if trainer.logger is not None else None
     trainer.callbacks = []
@@ -280,7 +280,7 @@ def _adjust_batch_size(
     """Helper function for adjusting the batch size.
 
     Args:
-        trainer: instance of lightning.pytorch.Trainer
+        trainer: instance of lightning_pytorch.Trainer
         factor: value which the old batch size is multiplied by to get the
             new batch size
         value: if a value is given, will override the batch size with this value.

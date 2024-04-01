@@ -19,12 +19,12 @@ from unittest.mock import ANY, Mock
 
 import pytest
 import torch
-from lightning.pytorch import LightningModule, Trainer
-from lightning.pytorch.callbacks import Callback, ModelCheckpoint, OnExceptionCheckpoint
-from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
-from lightning.pytorch.loops import _Loop
-from lightning.pytorch.loops.progress import _BaseProgress
-from lightning.pytorch.utilities import CombinedLoader
+from lightning_pytorch import LightningModule, Trainer
+from lightning_pytorch.callbacks import Callback, ModelCheckpoint, OnExceptionCheckpoint
+from lightning_pytorch.demos.boring_classes import BoringModel, RandomDataset
+from lightning_pytorch.loops import _Loop
+from lightning_pytorch.loops.progress import _BaseProgress
+from lightning_pytorch.utilities import CombinedLoader
 from torch.utils.data.dataloader import DataLoader, _MultiProcessingDataLoaderIter
 
 from tests_pytorch.helpers.runif import RunIf

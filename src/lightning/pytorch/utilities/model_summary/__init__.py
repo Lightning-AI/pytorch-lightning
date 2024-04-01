@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from lightning.pytorch.utilities.model_summary.model_summary import (  # noqa: F401
+from lightning_pytorch.utilities.model_summary.model_summary import (  # noqa: F401
     LayerSummary,
     ModelSummary,
     get_formatted_model_size,
@@ -19,4 +19,4 @@ from lightning.pytorch.utilities.model_summary.model_summary import (  # noqa: F
     parse_batch_shape,
     summarize,
 )
-from lightning.pytorch.utilities.model_summary.model_summary_deepspeed import DeepSpeedSummary  # noqa: F401
+from lightning_pytorch.utilities.model_summary.model_summary_deepspeed import DeepSpeedSummary  # noqa: F401

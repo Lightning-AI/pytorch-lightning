@@ -1,5 +1,5 @@
 import torch
-from lightning.pytorch.utilities._pytree import _tree_flatten, tree_unflatten
+from lightning_pytorch.utilities._pytree import _tree_flatten, tree_unflatten
 from torch.utils.data import DataLoader, TensorDataset
 
 

@@ -21,7 +21,7 @@ export PJRT_DEVICE=TPU
 
 echo "--- Sanity check TPU availability ---"
 python3 -c "import torch_xla; print(torch_xla)"
-python3 -c "from lightning.pytorch.accelerators import XLAAccelerator; assert XLAAccelerator.is_available()"
+python3 -c "from lightning_pytorch.accelerators import XLAAccelerator; assert XLAAccelerator.is_available()"
 echo "Sanity check passed!"
 
 echo "--- Running PL tests ---"

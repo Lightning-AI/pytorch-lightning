@@ -22,15 +22,15 @@ from typing import List
 from unittest.mock import Mock
 
 import lightning.fabric
-import lightning.pytorch
+import lightning_pytorch
 import pytest
 import torch.distributed
 from lightning.fabric.plugins.environments.lightning import find_free_network_port
 from lightning.fabric.strategies.launchers.subprocess_script import _ChildProcessObserver
 from lightning.fabric.utilities.distributed import _distributed_is_initialized
 from lightning.fabric.utilities.imports import _IS_WINDOWS
-from lightning.pytorch.accelerators import XLAAccelerator
-from lightning.pytorch.trainer.connectors.signal_connector import _SignalConnector
+from lightning_pytorch.accelerators import XLAAccelerator
+from lightning_pytorch.trainer.connectors.signal_connector import _SignalConnector
 from tqdm import TMonitor
 
 from tests_pytorch import _PATH_DATASETS
@@ -48,7 +48,7 @@ def datadir():
 def preserve_global_rank_variable():
     """Ensures that the rank_zero_only.rank global variable gets reset in each test."""
     from lightning.fabric.utilities.rank_zero import rank_zero_only as rank_zero_only_fabric
-    from lightning.pytorch.utilities.rank_zero import rank_zero_only as rank_zero_only_pytorch
+    from lightning_pytorch.utilities.rank_zero import rank_zero_only as rank_zero_only_pytorch
     from lightning_utilities.core.rank_zero import rank_zero_only as rank_zero_only_utilities
 
     functions = (rank_zero_only_pytorch, rank_zero_only_fabric, rank_zero_only_utilities)
@@ -172,7 +172,7 @@ def thread_police_duuu_daaa_duuu_daaa():
 
 def mock_cuda_count(monkeypatch, n: int) -> None:
     monkeypatch.setattr(lightning.fabric.accelerators.cuda, "num_cuda_devices", lambda: n)
-    monkeypatch.setattr(lightning.pytorch.accelerators.cuda, "num_cuda_devices", lambda: n)
+    monkeypatch.setattr(lightning_pytorch.accelerators.cuda, "num_cuda_devices", lambda: n)
 
 
 @pytest.fixture()
@@ -211,10 +211,10 @@ def mps_count_1(monkeypatch):
 
 
 def mock_xla_available(monkeypatch: pytest.MonkeyPatch, value: bool = True) -> None:
-    monkeypatch.setattr(lightning.pytorch.strategies.xla, "_XLA_AVAILABLE", value)
-    monkeypatch.setattr(lightning.pytorch.strategies.single_xla, "_XLA_AVAILABLE", value)
-    monkeypatch.setattr(lightning.pytorch.plugins.precision.xla, "_XLA_AVAILABLE", value)
-    monkeypatch.setattr(lightning.pytorch.strategies.launchers.xla, "_XLA_AVAILABLE", value)
+    monkeypatch.setattr(lightning_pytorch.strategies.xla, "_XLA_AVAILABLE", value)
+    monkeypatch.setattr(lightning_pytorch.strategies.single_xla, "_XLA_AVAILABLE", value)
+    monkeypatch.setattr(lightning_pytorch.plugins.precision.xla, "_XLA_AVAILABLE", value)
+    monkeypatch.setattr(lightning_pytorch.strategies.launchers.xla, "_XLA_AVAILABLE", value)
     monkeypatch.setattr(lightning.fabric.accelerators.xla, "_XLA_AVAILABLE", value)
     monkeypatch.setattr(lightning.fabric.plugins.environments.xla, "_XLA_AVAILABLE", value)
     monkeypatch.setattr(lightning.fabric.plugins.io.xla, "_XLA_AVAILABLE", value)
@@ -228,9 +228,9 @@ def xla_available(monkeypatch: pytest.MonkeyPatch) -> None:
 
 def mock_tpu_available(monkeypatch: pytest.MonkeyPatch, value: bool = True) -> None:
     mock_xla_available(monkeypatch, value)
-    monkeypatch.setattr(lightning.pytorch.accelerators.xla.XLAAccelerator, "is_available", lambda: value)
+    monkeypatch.setattr(lightning_pytorch.accelerators.xla.XLAAccelerator, "is_available", lambda: value)
     monkeypatch.setattr(lightning.fabric.accelerators.xla.XLAAccelerator, "is_available", lambda: value)
-    monkeypatch.setattr(lightning.pytorch.accelerators.xla.XLAAccelerator, "auto_device_count", lambda *_: 8)
+    monkeypatch.setattr(lightning_pytorch.accelerators.xla.XLAAccelerator, "auto_device_count", lambda *_: 8)
     monkeypatch.setattr(lightning.fabric.accelerators.xla.XLAAccelerator, "auto_device_count", lambda *_: 8)
     monkeypatch.setitem(sys.modules, "torch_xla", Mock())
     monkeypatch.setitem(sys.modules, "torch_xla.core.xla_model", Mock())
@@ -258,7 +258,7 @@ def caplog(caplog):
     propagation_dict = {
         name: logging.getLogger(name).propagate
         for name in logging.root.manager.loggerDict
-        if name.startswith("lightning.pytorch")
+        if name.startswith("lightning_pytorch")
     }
     for name in propagation_dict:
         logging.getLogger(name).propagate = True

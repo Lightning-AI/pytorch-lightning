@@ -17,8 +17,8 @@ from unittest import mock
 import pytest
 import torch
 from lightning.fabric.plugins.environments import SLURMEnvironment
-from lightning.pytorch import Trainer
-from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
+from lightning_pytorch import Trainer
+from lightning_pytorch.demos.boring_classes import BoringModel, RandomDataset
 from torch.utils.data import DataLoader
 
 import tests_pytorch.helpers.utils as tutils

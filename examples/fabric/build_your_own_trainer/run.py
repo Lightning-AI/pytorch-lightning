@@ -1,4 +1,4 @@
-import lightning as L
+import lightning_pytorch as LP
 import torch
 from torchmetrics.functional.classification.accuracy import accuracy
 from trainer import MyCustomTrainer

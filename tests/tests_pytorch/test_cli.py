@@ -28,9 +28,9 @@ import pytest
 import torch
 import yaml
 from lightning.fabric.plugins.environments import SLURMEnvironment
-from lightning.pytorch import Callback, LightningDataModule, LightningModule, Trainer, __version__, seed_everything
-from lightning.pytorch.callbacks import LearningRateMonitor, ModelCheckpoint
-from lightning.pytorch.cli import (
+from lightning_pytorch import Callback, LightningDataModule, LightningModule, Trainer, __version__, seed_everything
+from lightning_pytorch.callbacks import LearningRateMonitor, ModelCheckpoint
+from lightning_pytorch.cli import (
     _JSONARGPARSE_SIGNATURES_AVAILABLE,
     LightningArgumentParser,
     LightningCLI,
@@ -40,12 +40,12 @@ from lightning.pytorch.cli import (
     SaveConfigCallback,
     instantiate_class,
 )
-from lightning.pytorch.demos.boring_classes import BoringDataModule, BoringModel
-from lightning.pytorch.loggers import CSVLogger, TensorBoardLogger
-from lightning.pytorch.strategies import DDPStrategy
-from lightning.pytorch.trainer.states import TrainerFn
-from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning.pytorch.utilities.imports import _TORCHVISION_AVAILABLE
+from lightning_pytorch.demos.boring_classes import BoringDataModule, BoringModel
+from lightning_pytorch.loggers import CSVLogger, TensorBoardLogger
+from lightning_pytorch.strategies import DDPStrategy
+from lightning_pytorch.trainer.states import TrainerFn
+from lightning_pytorch.utilities.exceptions import MisconfigurationException
+from lightning_pytorch.utilities.imports import _TORCHVISION_AVAILABLE
 from lightning_utilities import compare_version
 from lightning_utilities.test.warning import no_warning_call
 from tensorboard.backend.event_processing import event_accumulator
@@ -158,10 +158,10 @@ def test_lightning_cli(trainer_class, model_class, monkeypatch):
 def test_lightning_cli_args_callbacks(cleandir):
     callbacks = [
         {
-            "class_path": "lightning.pytorch.callbacks.LearningRateMonitor",
+            "class_path": "lightning_pytorch.callbacks.LearningRateMonitor",
             "init_args": {"logging_interval": "epoch", "log_momentum": True},
         },
-        {"class_path": "lightning.pytorch.callbacks.ModelCheckpoint", "init_args": {"monitor": "NAME"}},
+        {"class_path": "lightning_pytorch.callbacks.ModelCheckpoint", "init_args": {"monitor": "NAME"}},
     ]
 
     class TestModel(BoringModel):
@@ -187,7 +187,7 @@ def test_lightning_cli_single_arg_callback():
     with mock.patch("sys.argv", ["any.py", "--trainer.callbacks=DeviceStatsMonitor"]):
         cli = LightningCLI(BoringModel, run=False)
 
-    assert cli.config.trainer.callbacks.class_path == "lightning.pytorch.callbacks.DeviceStatsMonitor"
+    assert cli.config.trainer.callbacks.class_path == "lightning_pytorch.callbacks.DeviceStatsMonitor"
     assert not isinstance(cli.config_init.trainer, list)
 
 
@@ -387,7 +387,7 @@ def test_lightning_cli_logger_save_config(cleandir):
 def test_lightning_cli_config_and_subclass_mode(cleandir):
     input_config = {
         "fit": {
-            "model": {"class_path": "lightning.pytorch.demos.boring_classes.BoringModel"},
+            "model": {"class_path": "lightning_pytorch.demos.boring_classes.BoringModel"},
             "data": {
                 "class_path": "DataDirDataModule",
                 "init_args": {"data_dir": "."},
@@ -464,8 +464,8 @@ def test_lightning_cli_print_config():
         "any.py",
         "predict",
         "--seed_everything=1234",
-        "--model=lightning.pytorch.demos.boring_classes.BoringModel",
-        "--data=lightning.pytorch.demos.boring_classes.BoringDataModule",
+        "--model=lightning_pytorch.demos.boring_classes.BoringModel",
+        "--data=lightning_pytorch.demos.boring_classes.BoringDataModule",
         "--print_config",
     ]
     out = StringIO()
@@ -474,12 +474,12 @@ def test_lightning_cli_print_config():
 
     text = out.getvalue()
     # test dump_header
-    assert text.startswith(f"# lightning.pytorch=={__version__}")
+    assert text.startswith(f"# lightning_pytorch=={__version__}")
 
     outval = yaml.safe_load(text)
     assert outval["seed_everything"] == 1234
-    assert outval["model"]["class_path"] == "lightning.pytorch.demos.boring_classes.BoringModel"
-    assert outval["data"]["class_path"] == "lightning.pytorch.demos.boring_classes.BoringDataModule"
+    assert outval["model"]["class_path"] == "lightning_pytorch.demos.boring_classes.BoringModel"
+    assert outval["data"]["class_path"] == "lightning_pytorch.demos.boring_classes.BoringDataModule"
     assert outval["ckpt_path"] is None
 
 
@@ -493,9 +493,9 @@ def test_lightning_cli_submodules(cleandir):
     config = """model:
         main_param: 2
         submodule1:
-            class_path: lightning.pytorch.demos.boring_classes.BoringModel
+            class_path: lightning_pytorch.demos.boring_classes.BoringModel
         submodule2:
-            class_path: lightning.pytorch.demos.boring_classes.BoringModel
+            class_path: lightning_pytorch.demos.boring_classes.BoringModel
     """
     config_path = Path("config.yaml")
     config_path.write_text(config)
@@ -698,12 +698,12 @@ def test_cli_no_need_configure_optimizers(cleandir):
 
         # did not define `configure_optimizers`
 
-    from lightning.pytorch.trainer.configuration_validator import __verify_train_val_loop_configuration
+    from lightning_pytorch.trainer.configuration_validator import __verify_train_val_loop_configuration
 
     with mock.patch("sys.argv", ["any.py", "fit", "--optimizer=Adam"]), mock.patch(
-        "lightning.pytorch.Trainer._run_stage"
+        "lightning_pytorch.Trainer._run_stage"
     ) as run, mock.patch(
-        "lightning.pytorch.trainer.configuration_validator.__verify_train_val_loop_configuration",
+        "lightning_pytorch.trainer.configuration_validator.__verify_train_val_loop_configuration",
         wraps=__verify_train_val_loop_configuration,
     ) as verify:
         cli = LightningCLI(BoringModel)
@@ -861,7 +861,7 @@ def test_lightning_cli_load_from_checkpoint_dependency_injection(cleandir):
     assert hparams_path.is_file()
     hparams = yaml.safe_load(hparams_path.read_text())
     expected = {
-        "_instantiator": "lightning.pytorch.cli.instantiate_module",
+        "_instantiator": "lightning_pytorch.cli.instantiate_module",
         "optimizer": "torch.optim.Adam",
         "scheduler": "torch.optim.lr_scheduler.ConstantLR",
         "activation": {"class_path": "torch.nn.LeakyReLU", "init_args": {"negative_slope": 0.05, "inplace": False}},
@@ -888,7 +888,7 @@ def test_lightning_cli_load_from_checkpoint_dependency_injection_subclass_mode(c
     cli.trainer.fit(cli.model)
 
     expected = {
-        "_instantiator": "lightning.pytorch.cli.instantiate_module",
+        "_instantiator": "lightning_pytorch.cli.instantiate_module",
         "class_path": f"{__name__}.TestModelSaveHparams",
         "init_args": {
             "optimizer": "torch.optim.Adam",
@@ -1033,7 +1033,7 @@ class TestModel(BoringModel):
 
 def test_lightning_cli_model_short_arguments():
     with mock.patch("sys.argv", ["any.py", "fit", "--model=BoringModel"]), mock.patch(
-        "lightning.pytorch.Trainer._fit_impl"
+        "lightning_pytorch.Trainer._fit_impl"
     ) as run, mock_subclasses(LightningModule, BoringModel, TestModel):
         cli = LightningCLI(trainer_defaults={"fast_dev_run": 1})
         assert isinstance(cli.model, BoringModel)
@@ -1058,7 +1058,7 @@ class MyDataModule(BoringDataModule):
 def test_lightning_cli_datamodule_short_arguments():
     # with set model
     with mock.patch("sys.argv", ["any.py", "fit", "--data=BoringDataModule"]), mock.patch(
-        "lightning.pytorch.Trainer._fit_impl"
+        "lightning_pytorch.Trainer._fit_impl"
     ) as run, mock_subclasses(LightningDataModule, BoringDataModule):
         cli = LightningCLI(BoringModel, trainer_defaults={"fast_dev_run": 1})
         assert isinstance(cli.datamodule, BoringDataModule)
@@ -1074,7 +1074,7 @@ def test_lightning_cli_datamodule_short_arguments():
 
     # with configurable model
     with mock.patch("sys.argv", ["any.py", "fit", "--model", "BoringModel", "--data=BoringDataModule"]), mock.patch(
-        "lightning.pytorch.Trainer._fit_impl"
+        "lightning_pytorch.Trainer._fit_impl"
     ) as run, mock_subclasses(LightningModule, BoringModel), mock_subclasses(LightningDataModule, BoringDataModule):
         cli = LightningCLI(trainer_defaults={"fast_dev_run": 1})
         assert isinstance(cli.model, BoringModel)
@@ -1123,8 +1123,8 @@ def test_callbacks_append(use_class_path_callbacks):
     extras = []
     if use_class_path_callbacks:
         callbacks = [
-            {"class_path": "lightning.pytorch.callbacks.Callback"},
-            {"class_path": "lightning.pytorch.callbacks.Callback", "init_args": {}},
+            {"class_path": "lightning_pytorch.callbacks.Callback"},
+            {"class_path": "lightning_pytorch.callbacks.Callback", "init_args": {}},
         ]
         cli_args += [f"--trainer.callbacks+={json.dumps(callbacks)}"]
         extras = [Callback, Callback]
@@ -1248,7 +1248,7 @@ def test_optimizers_and_lr_schedulers_add_arguments_to_parser_implemented_reload
 def test_lightning_cli_config_with_subcommand():
     config = {"test": {"trainer": {"limit_test_batches": 1}, "verbose": True, "ckpt_path": "foobar"}}
     with mock.patch("sys.argv", ["any.py", f"--config={config}"]), mock.patch(
-        "lightning.pytorch.Trainer.test", autospec=True
+        "lightning_pytorch.Trainer.test", autospec=True
     ) as test_mock:
         cli = LightningCLI(BoringModel)
 
@@ -1263,7 +1263,7 @@ def test_lightning_cli_config_before_subcommand():
     }
 
     with mock.patch("sys.argv", ["any.py", f"--config={config}", "test"]), mock.patch(
-        "lightning.pytorch.Trainer.test", autospec=True
+        "lightning_pytorch.Trainer.test", autospec=True
     ) as test_mock:
         cli = LightningCLI(BoringModel)
 
@@ -1275,7 +1275,7 @@ def test_lightning_cli_config_before_subcommand():
     assert save_config_callback.parser.subcommand == "test"
 
     with mock.patch("sys.argv", ["any.py", f"--config={config}", "validate"]), mock.patch(
-        "lightning.pytorch.Trainer.validate", autospec=True
+        "lightning_pytorch.Trainer.validate", autospec=True
     ) as validate_mock:
         cli = LightningCLI(BoringModel)
 
@@ -1292,7 +1292,7 @@ def test_lightning_cli_config_before_subcommand_two_configs():
     config2 = {"test": {"trainer": {"limit_test_batches": 1}, "verbose": True, "ckpt_path": "foobar"}}
 
     with mock.patch("sys.argv", ["any.py", f"--config={config1}", f"--config={config2}", "test"]), mock.patch(
-        "lightning.pytorch.Trainer.test", autospec=True
+        "lightning_pytorch.Trainer.test", autospec=True
     ) as test_mock:
         cli = LightningCLI(BoringModel)
 
@@ -1300,7 +1300,7 @@ def test_lightning_cli_config_before_subcommand_two_configs():
     assert cli.trainer.limit_test_batches == 1
 
     with mock.patch("sys.argv", ["any.py", f"--config={config1}", f"--config={config2}", "validate"]), mock.patch(
-        "lightning.pytorch.Trainer.validate", autospec=True
+        "lightning_pytorch.Trainer.validate", autospec=True
     ) as validate_mock:
         cli = LightningCLI(BoringModel)
 
@@ -1311,7 +1311,7 @@ def test_lightning_cli_config_before_subcommand_two_configs():
 def test_lightning_cli_config_after_subcommand():
     config = {"trainer": {"limit_test_batches": 1}, "verbose": True, "ckpt_path": "foobar"}
     with mock.patch("sys.argv", ["any.py", "test", f"--config={config}"]), mock.patch(
-        "lightning.pytorch.Trainer.test", autospec=True
+        "lightning_pytorch.Trainer.test", autospec=True
     ) as test_mock:
         cli = LightningCLI(BoringModel)
 
@@ -1323,7 +1323,7 @@ def test_lightning_cli_config_before_and_after_subcommand():
     config1 = {"test": {"trainer": {"limit_test_batches": 1}, "verbose": True, "ckpt_path": "foobar"}}
     config2 = {"trainer": {"fast_dev_run": 1}, "verbose": False, "ckpt_path": "foobar"}
     with mock.patch("sys.argv", ["any.py", f"--config={config1}", "test", f"--config={config2}"]), mock.patch(
-        "lightning.pytorch.Trainer.test", autospec=True
+        "lightning_pytorch.Trainer.test", autospec=True
     ) as test_mock:
         cli = LightningCLI(BoringModel)
 
@@ -1347,7 +1347,7 @@ def test_lightning_cli_parse_kwargs_with_subcommands(cleandir):
     }
 
     with mock.patch("sys.argv", ["any.py", "fit"]), mock.patch(
-        "lightning.pytorch.Trainer.fit", autospec=True
+        "lightning_pytorch.Trainer.fit", autospec=True
     ) as fit_mock:
         cli = LightningCLI(BoringModel, parser_kwargs=parser_kwargs)
     fit_mock.assert_called()
@@ -1355,7 +1355,7 @@ def test_lightning_cli_parse_kwargs_with_subcommands(cleandir):
     assert cli.trainer.limit_val_batches == 1.0
 
     with mock.patch("sys.argv", ["any.py", "validate"]), mock.patch(
-        "lightning.pytorch.Trainer.validate", autospec=True
+        "lightning_pytorch.Trainer.validate", autospec=True
     ) as validate_mock:
         cli = LightningCLI(BoringModel, parser_kwargs=parser_kwargs)
     validate_mock.assert_called()
@@ -1375,7 +1375,7 @@ def test_lightning_cli_subcommands_common_default_config_files(cleandir):
     parser_kwargs = {"default_config_files": [str(config_path)]}
 
     with mock.patch("sys.argv", ["any.py", "fit"]), mock.patch(
-        "lightning.pytorch.Trainer.fit", autospec=True
+        "lightning_pytorch.Trainer.fit", autospec=True
     ) as fit_mock:
         cli = LightningCLI(Model, parser_kwargs=parser_kwargs)
     fit_mock.assert_called()
@@ -1645,7 +1645,7 @@ def test_unresolvable_import_paths():
 
 
 def test_pytorch_profiler_init_args():
-    from lightning.pytorch.profilers import Profiler, PyTorchProfiler
+    from lightning_pytorch.profilers import Profiler, PyTorchProfiler
 
     init = {
         "dirpath": "profiler",  # Resolve from PyTorchProfiler.__init__

@@ -54,8 +54,8 @@ All steps combined, this is how your code will change:
 .. code-block:: diff
 
       import torch
-      from lightning.pytorch.demos import WikiText2, Transformer
-    + import lightning as L
+      from lightning_pytorch.demos import WikiText2, Transformer
+    + import lightning_pytorch as LP
 
     - device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     + fabric = L.Fabric(accelerator="cuda", devices=8, strategy="ddp")

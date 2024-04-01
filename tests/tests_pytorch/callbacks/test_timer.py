@@ -17,11 +17,11 @@ from datetime import timedelta
 from unittest.mock import Mock, patch
 
 import pytest
-from lightning.pytorch import Trainer
-from lightning.pytorch.callbacks import ModelCheckpoint
-from lightning.pytorch.callbacks.timer import Timer
-from lightning.pytorch.demos.boring_classes import BoringModel
-from lightning.pytorch.utilities.exceptions import MisconfigurationException
+from lightning_pytorch import Trainer
+from lightning_pytorch.callbacks import ModelCheckpoint
+from lightning_pytorch.callbacks.timer import Timer
+from lightning_pytorch.demos.boring_classes import BoringModel
+from lightning_pytorch.utilities.exceptions import MisconfigurationException
 
 from tests_pytorch.helpers.runif import RunIf
 
@@ -80,7 +80,7 @@ def test_timer_interval_choice():
         Timer(duration=timedelta(), interval="invalid")
 
 
-@patch("lightning.pytorch.callbacks.timer.time")
+@patch("lightning_pytorch.callbacks.timer.time")
 def test_timer_time_remaining(time_mock):
     """Test that the timer tracks the elapsed and remaining time correctly."""
     start_time = time.monotonic()

@@ -13,9 +13,9 @@
 # limitations under the License.
 from typing import Any, List, Tuple
 
-from lightning.pytorch import Trainer
-from lightning.pytorch.callbacks import ModelSummary
-from lightning.pytorch.demos.boring_classes import BoringModel
+from lightning_pytorch import Trainer
+from lightning_pytorch.callbacks import ModelSummary
+from lightning_pytorch.demos.boring_classes import BoringModel
 
 
 def test_model_summary_callback_present_trainer():

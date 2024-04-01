@@ -21,8 +21,8 @@ The distributed checkpoint format can be enabled when you train with the :doc:`F
 
 .. code-block:: python
 
-    import lightning as L
-    from lightning.pytorch.strategies import FSDPStrategy
+    import lightning_pytorch as LP
+    from lightning_pytorch.strategies import FSDPStrategy
 
     # 1. Select the FSDP strategy and set the sharded/distributed checkpoint format
     strategy = FSDPStrategy(state_dict_type="sharded")
@@ -41,9 +41,9 @@ This reduces memory peaks and speeds up the saving to disk.
 
     .. code-block:: python
 
-        import lightning as L
-        from lightning.pytorch.strategies import FSDPStrategy
-        from lightning.pytorch.demos import LightningTransformer
+        import lightning_pytorch as LP
+        from lightning_pytorch.strategies import FSDPStrategy
+        from lightning_pytorch.demos import LightningTransformer
 
         model = LightningTransformer()
 
@@ -88,8 +88,8 @@ You can easily load a distributed checkpoint in Trainer if your script uses :doc
 
 .. code-block:: python
 
-    import lightning as L
-    from lightning.pytorch.strategies import FSDPStrategy
+    import lightning_pytorch as LP
+    from lightning_pytorch.strategies import FSDPStrategy
 
     # 1. Select the FSDP strategy and set the sharded/distributed checkpoint format
     strategy = FSDPStrategy(state_dict_type="sharded")
@@ -106,9 +106,9 @@ Note that you can load the distributed checkpoint even if the world size has cha
 
     .. code-block:: python
 
-        import lightning as L
-        from lightning.pytorch.strategies import FSDPStrategy
-        from lightning.pytorch.demos import LightningTransformer
+        import lightning_pytorch as LP
+        from lightning_pytorch.strategies import FSDPStrategy
+        from lightning_pytorch.demos import LightningTransformer
 
         model = LightningTransformer()
 
@@ -140,7 +140,7 @@ It is possible to convert a distributed checkpoint to a regular, single-file che
 
 .. code-block:: bash
 
-    python -m lightning.pytorch.utilities.consolidate_checkpoint path/to/my/checkpoint
+    python -m lightning_pytorch.utilities.consolidate_checkpoint path/to/my/checkpoint
 
 You will need to do this for example if you want to load the checkpoint into a script that doesn't use FSDP, or need to export the checkpoint to a different format for deployment, evaluation, etc.
 
@@ -156,7 +156,7 @@ You will need to do this for example if you want to load the checkpoint into a s
     .. code-block:: bash
 
         cd lightning_logs/version_0/checkpoints
-        python -m lightning.pytorch.utilities.consolidate_checkpoint epoch=0-step=3.ckpt
+        python -m lightning_pytorch.utilities.consolidate_checkpoint epoch=0-step=3.ckpt
 
     This saves a new file ``epoch=0-step=3.ckpt.consolidated`` next to the sharded checkpoint which you can load normally in PyTorch:
 

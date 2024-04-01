@@ -24,8 +24,8 @@ Overfit your model on a Subset of Data
 A good debugging technique is to take a tiny portion of your data (say 2 samples per class),
 and try to get your model to overfit. If it can't, it's a sign it won't work with large datasets.
 
-(See: :paramref:`~lightning.pytorch.trainer.trainer.Trainer.overfit_batches`
-argument of :class:`~lightning.pytorch.trainer.trainer.Trainer`)
+(See: :paramref:`~lightning_pytorch.trainer.trainer.Trainer.overfit_batches`
+argument of :class:`~lightning_pytorch.trainer.trainer.Trainer`)
 
 .. testcode::
 
@@ -53,7 +53,7 @@ You can keep an eye on the gradient norm by logging it in your LightningModule:
 
 .. code-block:: python
 
-    from lightning.pytorch.utilities import grad_norm
+    from lightning_pytorch.utilities import grad_norm
 
 
     def on_before_optimizer_step(self, optimizer):

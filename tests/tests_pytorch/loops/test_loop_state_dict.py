@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from lightning.pytorch.loops import _FitLoop
-from lightning.pytorch.trainer.trainer import Trainer
+from lightning_pytorch.loops import _FitLoop
+from lightning_pytorch.trainer.trainer import Trainer
 
 
 def test_loops_state_dict():

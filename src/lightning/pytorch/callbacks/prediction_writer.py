@@ -22,11 +22,11 @@ from typing import Any, Literal, Optional, Sequence
 
 from typing_extensions import override
 
-import lightning.pytorch as pl
-from lightning.pytorch.callbacks.callback import Callback
-from lightning.pytorch.utilities import LightningEnum
-from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning.pytorch.utilities.signature_utils import is_param_in_hook_signature
+import lightning_pytorch as pl
+from lightning_pytorch.callbacks.callback import Callback
+from lightning_pytorch.utilities import LightningEnum
+from lightning_pytorch.utilities.exceptions import MisconfigurationException
+from lightning_pytorch.utilities.signature_utils import is_param_in_hook_signature
 
 
 class WriteInterval(LightningEnum):
@@ -52,7 +52,7 @@ class BasePredictionWriter(Callback):
     Example::
 
         import torch
-        from lightning.pytorch.callbacks import BasePredictionWriter
+        from lightning_pytorch.callbacks import BasePredictionWriter
 
         class CustomWriter(BasePredictionWriter):
 
@@ -79,7 +79,7 @@ class BasePredictionWriter(Callback):
         # multi-device inference example
 
         import torch
-        from lightning.pytorch.callbacks import BasePredictionWriter
+        from lightning_pytorch.callbacks import BasePredictionWriter
 
         class CustomWriter(BasePredictionWriter):
 

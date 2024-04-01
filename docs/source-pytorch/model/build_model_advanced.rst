@@ -16,7 +16,7 @@ Inject custom code anywhere in the Training loop using any of the 20+ methods (:
 
 .. testcode::
 
-    import lightning as L
+    import lightning_pytorch as LP
 
 
     class LitModel(L.LightningModule):

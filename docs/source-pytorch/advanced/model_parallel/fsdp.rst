@@ -61,7 +61,7 @@ This is equivalent to the above, but will let us configure additional settings l
 
 .. code-block:: python
 
-    from lightning.pytorch.strategies import FSDPStrategy
+    from lightning_pytorch.strategies import FSDPStrategy
 
     trainer = L.Trainer(accelerator="cuda", devices=2, strategy=FSDPStrategy())
 
@@ -75,9 +75,9 @@ Here is a full code example:
     import torch.nn.functional as F
     from torch.utils.data import DataLoader
 
-    import lightning as L
-    from lightning.pytorch.strategies import FSDPStrategy
-    from lightning.pytorch.demos import Transformer, WikiText2
+    import lightning_pytorch as LP
+    from lightning_pytorch.strategies import FSDPStrategy
+    from lightning_pytorch.demos import Transformer, WikiText2
 
 
     class LanguageModel(L.LightningModule):
@@ -190,7 +190,7 @@ Speed up model initialization
 
 The standard practice in PyTorch is to put all model parameters into CPU memory first and then in a second step move them to the GPU device.
 However, the larger the model the longer these two steps take.
-If you create the large model layers inside the :meth:`~lightning.pytorch.core.hooks.ModelHooks.configure_model` hook, you can initialize very large models quickly and reduce memory peaks.
+If you create the large model layers inside the :meth:`~lightning_pytorch.core.hooks.ModelHooks.configure_model` hook, you can initialize very large models quickly and reduce memory peaks.
 
 Before:
 
@@ -226,7 +226,7 @@ After:
             )
 
 
-It is best practice to make the code in :meth:`~lightning.pytorch.core.hooks.ModelHooks.configure_model` idempotent as shown here.
+It is best practice to make the code in :meth:`~lightning_pytorch.core.hooks.ModelHooks.configure_model` idempotent as shown here.
 Learn more about :doc:`efficient initialization of models in Lightning <../model_init>`.
 
 
@@ -485,7 +485,7 @@ Manual wrapping
 
 Manual wrapping can be useful to explore complex sharding strategies by applying ``wrap`` selectively to some parts of the model.
 To activate parameter sharding with manual wrapping, you can wrap your model using the ``wrap`` function.
-Internally in Lightning, we enable a context manager around the :meth:`~lightning.pytorch.core.hooks.ModelHooks.configure_model` hook to make sure the ``wrap`` parameters are passed correctly.
+Internally in Lightning, we enable a context manager around the :meth:`~lightning_pytorch.core.hooks.ModelHooks.configure_model` hook to make sure the ``wrap`` parameters are passed correctly.
 
 Here is an example that uses ``wrap`` to create a model:
 
@@ -493,7 +493,7 @@ Here is an example that uses ``wrap`` to create a model:
 
     import torch
     import torch.nn as nn
-    import lightning as L
+    import lightning_pytorch as LP
 
     from torch.distributed.fsdp.wrap import wrap
 

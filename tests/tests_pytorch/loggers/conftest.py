@@ -38,7 +38,7 @@ def mlflow_mock(monkeypatch):
     mlflow.tracking = mlflow_tracking
     mlflow.entities = mlflow_entities
 
-    (monkeypatch.setattr("lightning.pytorch.loggers.mlflow._MLFLOW_AVAILABLE", True),)
+    (monkeypatch.setattr("lightning_pytorch.loggers.mlflow._MLFLOW_AVAILABLE", True),)
     return mlflow
 
 
@@ -84,7 +84,7 @@ def wandb_mock(monkeypatch):
     wandb.sdk.lib = wandb_sdk_lib
     wandb.wandb_run = wandb_wandb_run
 
-    monkeypatch.setattr("lightning.pytorch.loggers.wandb._WANDB_AVAILABLE", True)
+    monkeypatch.setattr("lightning_pytorch.loggers.wandb._WANDB_AVAILABLE", True)
     return wandb
 
 
@@ -105,7 +105,7 @@ def comet_mock(monkeypatch):
 
     comet.api = comet_api
 
-    monkeypatch.setattr("lightning.pytorch.loggers.comet._COMET_AVAILABLE", True)
+    monkeypatch.setattr("lightning_pytorch.loggers.comet._COMET_AVAILABLE", True)
     return comet
 
 
@@ -149,5 +149,5 @@ def neptune_mock(monkeypatch):
     neptune.types = neptune_types
     neptune.utils = neptune_utils
 
-    monkeypatch.setattr("lightning.pytorch.loggers.neptune._NEPTUNE_AVAILABLE", True)
+    monkeypatch.setattr("lightning_pytorch.loggers.neptune._NEPTUNE_AVAILABLE", True)
     return neptune

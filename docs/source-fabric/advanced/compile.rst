@@ -22,7 +22,7 @@ Compiling a model in a script together with Fabric is as simple as adding one li
 .. code-block:: python
 
     import torch
-    import lightning as L
+    import lightning_pytorch as LP
 
     # Set up Fabric
     fabric = L.Fabric(devices=1)
@@ -68,7 +68,7 @@ always exclude the first call to ``forward()`` from your measurements, since it 
         import statistics
         import torch
         import torchvision.models as models
-        import lightning as L
+        import lightning_pytorch as LP
 
 
         @torch.no_grad()
@@ -182,7 +182,7 @@ On PyTorch 2.2 and later, ``torch.compile`` will detect dynamism automatically a
         import time
         import torch
         import torchvision.models as models
-        import lightning as L
+        import lightning_pytorch as LP
 
         fabric = L.Fabric(accelerator="cuda", devices=1)
 

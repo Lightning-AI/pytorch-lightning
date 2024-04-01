@@ -28,11 +28,11 @@ from typing_extensions import override
 
 from lightning.fabric.utilities.logger import _add_prefix, _convert_params, _sanitize_callable_params
 from lightning.fabric.utilities.types import _PATH
-from lightning.pytorch.callbacks.model_checkpoint import ModelCheckpoint
-from lightning.pytorch.loggers.logger import Logger, rank_zero_experiment
-from lightning.pytorch.loggers.utilities import _scan_checkpoints
-from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning.pytorch.utilities.rank_zero import rank_zero_only, rank_zero_warn
+from lightning_pytorch.callbacks.model_checkpoint import ModelCheckpoint
+from lightning_pytorch.loggers.logger import Logger, rank_zero_experiment
+from lightning_pytorch.loggers.utilities import _scan_checkpoints
+from lightning_pytorch.utilities.exceptions import MisconfigurationException
+from lightning_pytorch.utilities.rank_zero import rank_zero_only, rank_zero_warn
 
 if TYPE_CHECKING:
     from wandb import Artifact
@@ -57,7 +57,7 @@ class WandbLogger(Logger):
 
     .. code-block:: python
 
-        from lightning.pytorch.loggers import WandbLogger
+        from lightning_pytorch.loggers import WandbLogger
 
         wandb_logger = WandbLogger(project="MNIST")
 
@@ -71,7 +71,7 @@ class WandbLogger(Logger):
 
     **Log metrics**
 
-    Log from :class:`~lightning.pytorch.core.LightningModule`:
+    Log from :class:`~lightning_pytorch.core.LightningModule`:
 
     .. code-block:: python
 
@@ -87,7 +87,7 @@ class WandbLogger(Logger):
 
     **Log hyper-parameters**
 
-    Save :class:`~lightning.pytorch.core.LightningModule` parameters:
+    Save :class:`~lightning_pytorch.core.LightningModule` parameters:
 
     .. code-block:: python
 
@@ -147,7 +147,7 @@ class WandbLogger(Logger):
 
         wandb_logger = WandbLogger(log_model="all")
 
-    Custom checkpointing can be set up through :class:`~lightning.pytorch.callbacks.ModelCheckpoint`:
+    Custom checkpointing can be set up through :class:`~lightning_pytorch.callbacks.ModelCheckpoint`:
 
     .. code-block:: python
 
@@ -224,7 +224,7 @@ class WandbLogger(Logger):
 
     .. code-block:: python
 
-        from lightning.pytorch.loggers import WandbLogger
+        from lightning_pytorch.loggers import WandbLogger
 
         artifact_dir = WandbLogger.download_artifact(artifact="path/to/artifact")
 
@@ -241,7 +241,7 @@ class WandbLogger(Logger):
 
     .. code-block:: python
 
-        from lightning.pytorch.loggers import WandbLogger
+        from lightning_pytorch.loggers import WandbLogger
 
         wandb_logger = WandbLogger(project="my_project", name="my_run")
         wandb_logger.use_artifact(artifact="path/to/artifact")
@@ -260,12 +260,12 @@ class WandbLogger(Logger):
         anonymous: Enables or explicitly disables anonymous logging.
         project: The name of the project to which this run will belong. If not set, the environment variable
             `WANDB_PROJECT` will be used as a fallback. If both are not set, it defaults to ``'lightning_logs'``.
-        log_model: Log checkpoints created by :class:`~lightning.pytorch.callbacks.ModelCheckpoint`
+        log_model: Log checkpoints created by :class:`~lightning_pytorch.callbacks.ModelCheckpoint`
             as W&B artifacts. `latest` and `best` aliases are automatically set.
 
             * if ``log_model == 'all'``, checkpoints are logged during training.
             * if ``log_model == True``, checkpoints are logged at the end of training, except when
-              :paramref:`~lightning.pytorch.callbacks.ModelCheckpoint.save_top_k` ``== -1``
+              :paramref:`~lightning_pytorch.callbacks.ModelCheckpoint.save_top_k` ``== -1``
               which also logs every checkpoint during training.
             * if ``log_model == False`` (default), no checkpoint is logged.
 
@@ -367,7 +367,7 @@ class WandbLogger(Logger):
     @property
     @rank_zero_experiment
     def experiment(self) -> Union["Run", "RunDisabled"]:
-        r"""Actual wandb object. To use wandb features in your :class:`~lightning.pytorch.core.LightningModule` do the
+        r"""Actual wandb object. To use wandb features in your :class:`~lightning_pytorch.core.LightningModule` do the
         following.
 
         Example::

@@ -38,7 +38,7 @@ First **create a file named app.py** with the app content:
 .. code:: python
 
     # app.py
-    import lightning as L
+    import lightning_pytorch as LP
     import lightning.app.frontend as frontend
     import streamlit as st
 
@@ -121,7 +121,7 @@ the ``configure_layout`` method of the Lightning component you want to connect t
     :emphasize-lines: 9-11
 
     # app.py
-    import lightning as L
+    import lightning_pytorch as LP
     import lightning.app.frontend as frontend
     import streamlit as st
 
@@ -160,7 +160,7 @@ In this case, we render the ``LitStreamlit`` UI in the ``home`` tab of the appli
     :emphasize-lines: 22
 
     # app.py
-    import lightning as L
+    import lightning_pytorch as LP
     import lightning.app.frontend as frontend
     import streamlit as st
 

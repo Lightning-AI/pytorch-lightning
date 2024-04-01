@@ -21,13 +21,13 @@ from torch import optim
 from torch.optim import Optimizer
 from typing_extensions import override
 
-import lightning.pytorch as pl
+import lightning_pytorch as pl
 from lightning.fabric.utilities.types import Optimizable, ReduceLROnPlateau, _Stateful
-from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning.pytorch.utilities.model_helpers import is_overridden
-from lightning.pytorch.utilities.rank_zero import rank_zero_warn
-from lightning.pytorch.utilities.signature_utils import is_param_in_hook_signature
-from lightning.pytorch.utilities.types import LRSchedulerConfig, LRSchedulerTypeTuple
+from lightning_pytorch.utilities.exceptions import MisconfigurationException
+from lightning_pytorch.utilities.model_helpers import is_overridden
+from lightning_pytorch.utilities.rank_zero import rank_zero_warn
+from lightning_pytorch.utilities.signature_utils import is_param_in_hook_signature
+from lightning_pytorch.utilities.types import LRSchedulerConfig, LRSchedulerTypeTuple
 
 
 def do_nothing_closure() -> None:
@@ -70,7 +70,7 @@ class LightningOptimizer:
 
         """
         # local import here to avoid circular import
-        from lightning.pytorch.loops.utilities import _block_parallel_sync_behavior
+        from lightning_pytorch.loops.utilities import _block_parallel_sync_behavior
 
         assert self._strategy is not None
         lightning_module = self._strategy.lightning_module
@@ -173,7 +173,7 @@ def _init_optimizers_and_lr_schedulers(
     model: "pl.LightningModule",
 ) -> Tuple[List[Optimizer], List[LRSchedulerConfig]]:
     """Calls `LightningModule.configure_optimizers` and parses and validates the output."""
-    from lightning.pytorch.trainer import call
+    from lightning_pytorch.trainer import call
 
     optim_conf = call._call_lightning_module_hook(model.trainer, "configure_optimizers", pl_module=model)
 
@@ -380,7 +380,7 @@ def _validate_optim_conf(optim_conf: Dict[str, Any]) -> None:
 
 class _MockOptimizer(Optimizer):
     """The `_MockOptimizer` will be used inplace of an optimizer in the event that `None` is returned from
-    :meth:`~lightning.pytorch.core.LightningModule.configure_optimizers`."""
+    :meth:`~lightning_pytorch.core.LightningModule.configure_optimizers`."""
 
     def __init__(self) -> None:
         super().__init__([torch.zeros(1)], {})

@@ -16,9 +16,9 @@ from unittest import mock
 
 import pytest
 import torch
-from lightning.pytorch import LightningModule, Trainer
-from lightning.pytorch.demos.boring_classes import BoringModel
-from lightning.pytorch.utilities.compile import from_compiled, to_uncompiled
+from lightning_pytorch import LightningModule, Trainer
+from lightning_pytorch.demos.boring_classes import BoringModel
+from lightning_pytorch.utilities.compile import from_compiled, to_uncompiled
 from lightning_utilities.core import module_available
 
 from tests_pytorch.conftest import mock_cuda_count
@@ -28,7 +28,7 @@ from tests_pytorch.helpers.runif import RunIf
 # https://github.com/pytorch/pytorch/issues/95708
 @pytest.mark.skipif(sys.platform == "darwin", reason="fatal error: 'omp.h' file not found")
 @RunIf(dynamo=True)
-@mock.patch("lightning.pytorch.trainer.call._call_and_handle_interrupt")
+@mock.patch("lightning_pytorch.trainer.call._call_and_handle_interrupt")
 def test_trainer_compiled_model(_, tmp_path, monkeypatch, mps_count_0):
     trainer_kwargs = {
         "default_root_dir": tmp_path,

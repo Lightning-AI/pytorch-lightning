@@ -25,11 +25,11 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from lightning.pytorch import cli_lightning_logo
-from lightning.pytorch.core import LightningModule
-from lightning.pytorch.demos.mnist_datamodule import MNISTDataModule
-from lightning.pytorch.trainer import Trainer
-from lightning.pytorch.utilities.imports import _TORCHVISION_AVAILABLE
+from lightning_pytorch import cli_lightning_logo
+from lightning_pytorch.core import LightningModule
+from lightning_pytorch.demos.mnist_datamodule import MNISTDataModule
+from lightning_pytorch.trainer import Trainer
+from lightning_pytorch.utilities.imports import _TORCHVISION_AVAILABLE
 
 if _TORCHVISION_AVAILABLE:
     import torchvision

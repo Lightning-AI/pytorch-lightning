@@ -4,8 +4,8 @@ import sys
 import pytest
 import torch
 from lightning.fabric.utilities.spike import _TORCHMETRICS_GREATER_EQUAL_1_0_0, TrainingSpikeException
-from lightning.pytorch import LightningModule, Trainer
-from lightning.pytorch.callbacks.spike import SpikeDetection
+from lightning_pytorch import LightningModule, Trainer
+from lightning_pytorch.callbacks.spike import SpikeDetection
 
 
 class IdentityModule(LightningModule):

@@ -98,7 +98,7 @@ use the following utility function to pick GPU indices that are "accessible", wi
 
 .. code-block:: python
 
-    from lightning.pytorch.accelerators import find_usable_cuda_devices
+    from lightning_pytorch.accelerators import find_usable_cuda_devices
 
     # Find two GPUs on the system that are not already occupied
     trainer = Trainer(accelerator="cuda", devices=find_usable_cuda_devices(2))

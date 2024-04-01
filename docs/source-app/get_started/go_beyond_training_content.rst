@@ -104,7 +104,7 @@ This is the App's code:
 
     # lightning-quick-start/app.py
     import os.path as ops
-    import lightning as L
+    import lightning_pytorch as LP
     from quick_start.components import PyTorchLightningScript, ImageServeGradio
 
     class TrainDeploy(L.LightningFlow):
@@ -149,7 +149,7 @@ The top-level component (Root) must subclass ``L.LightningFlow``
 
     # lightning-quick-start/app.py
     import os.path as ops
-    import lightning as L
+    import lightning_pytorch as LP
     from quick_start.components import PyTorchLightningScript, ImageServeGradio
 
     class TrainDeploy(L.LightningFlow):
@@ -190,7 +190,7 @@ start a Gradio server for demo purposes.
 
     # lightning-quick-start/app.py
     import os.path as ops
-    import lightning as L
+    import lightning_pytorch as LP
     from quick_start.components import PyTorchLightningScript, ImageServeGradio
 
     class TrainDeploy(L.LightningFlow):
@@ -232,7 +232,7 @@ demo server:
 
     # lightning-quick-start/app.py
     import os.path as ops
-    import lightning as L
+    import lightning_pytorch as LP
     from quick_start.components import PyTorchLightningScript, ImageServeGradio
 
     class TrainDeploy(L.LightningFlow):
@@ -275,7 +275,7 @@ Implement the ``configure_layout`` method to connect them together:
 
     # lightning-quick-start/app.py
     import os.path as ops
-    import lightning as L
+    import lightning_pytorch as LP
     from quick_start.components import PyTorchLightningScript, ImageServeGradio
 
     class TrainDeploy(L.LightningFlow):
@@ -314,7 +314,7 @@ Initialize an ``app`` object with the ``TrainDeploy`` component (this won't run 
 
     # lightning-quick-start/app.py
     import os.path as ops
-    import lightning as L
+    import lightning_pytorch as LP
     from quick_start.components import PyTorchLightningScript, ImageServeGradio
 
     class TrainDeploy(L.LightningFlow):

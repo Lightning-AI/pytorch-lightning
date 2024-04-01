@@ -7,7 +7,7 @@ from functools import partial
 from subprocess import Popen
 from typing import Dict, List, Optional
 
-from lightning import BuildConfig, CloudCompute, LightningApp, LightningFlow
+from lightning_pytorch import BuildConfig, CloudCompute, LightningApp, LightningFlow
 from lightning.app import structures
 from lightning.app.components import TracerPythonScript
 from lightning.app.frontend import StreamlitFrontend
@@ -80,8 +80,8 @@ class PyTorchLightningGithubRepoRunner(GithubRepoRunner):
         self.best_model_score = None
 
     def configure_tracer(self):
-        from lightning.pytorch import Trainer
-        from lightning.pytorch.callbacks import Callback
+        from lightning_pytorch import Trainer
+        from lightning_pytorch.callbacks import Callback
 
         tracer = super().configure_tracer()
 

@@ -81,8 +81,8 @@ Since in deep learning, memory is always a bottleneck, especially when dealing w
 It is recommended using single precision for better speed. Although you can still use it if you want for your particular use-case.
 
 When working with complex numbers, instantiation of complex tensors should be done in the
-:meth:`~lightning.pytorch.core.hooks.ModelHooks.configure_model` hook or under the
-:meth:`~lightning.pytorch.trainer.trainer.Trainer.init_module` context manager so that the `complex128` dtype
+:meth:`~lightning_pytorch.core.hooks.ModelHooks.configure_model` hook or under the
+:meth:`~lightning_pytorch.trainer.trainer.Trainer.init_module` context manager so that the `complex128` dtype
 is properly selected.
 
 .. code-block:: python

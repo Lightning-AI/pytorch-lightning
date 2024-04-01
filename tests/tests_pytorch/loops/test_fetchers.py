@@ -16,13 +16,13 @@ from typing import Any, Iterator
 
 import pytest
 import torch
-from lightning.pytorch import LightningDataModule, Trainer
-from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
-from lightning.pytorch.loops.fetchers import _DataLoaderIterDataFetcher, _PrefetchDataFetcher
-from lightning.pytorch.profilers import SimpleProfiler
-from lightning.pytorch.utilities.combined_loader import CombinedLoader
-from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning.pytorch.utilities.types import STEP_OUTPUT
+from lightning_pytorch import LightningDataModule, Trainer
+from lightning_pytorch.demos.boring_classes import BoringModel, RandomDataset
+from lightning_pytorch.loops.fetchers import _DataLoaderIterDataFetcher, _PrefetchDataFetcher
+from lightning_pytorch.profilers import SimpleProfiler
+from lightning_pytorch.utilities.combined_loader import CombinedLoader
+from lightning_pytorch.utilities.exceptions import MisconfigurationException
+from lightning_pytorch.utilities.types import STEP_OUTPUT
 from torch import Tensor
 from torch.utils.data import DataLoader, Dataset, IterableDataset
 

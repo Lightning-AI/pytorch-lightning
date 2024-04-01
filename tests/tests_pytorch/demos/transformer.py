@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import torch
-from lightning.pytorch.demos import Transformer
+from lightning_pytorch.demos import Transformer
 
 
 def test_compile_transformer():

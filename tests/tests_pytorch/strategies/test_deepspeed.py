@@ -22,15 +22,15 @@ from unittest.mock import ANY, Mock
 import pytest
 import torch
 import torch.nn.functional as F
-from lightning.pytorch import LightningModule, Trainer
-from lightning.pytorch.accelerators import CUDAAccelerator
-from lightning.pytorch.callbacks import Callback, LearningRateMonitor, ModelCheckpoint
-from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset, RandomIterableDataset
-from lightning.pytorch.loggers import CSVLogger
-from lightning.pytorch.plugins import DeepSpeedPrecision
-from lightning.pytorch.strategies.deepspeed import _DEEPSPEED_AVAILABLE, DeepSpeedStrategy
-from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning.pytorch.utilities.imports import _TORCHMETRICS_GREATER_EQUAL_0_11 as _TM_GE_0_11
+from lightning_pytorch import LightningModule, Trainer
+from lightning_pytorch.accelerators import CUDAAccelerator
+from lightning_pytorch.callbacks import Callback, LearningRateMonitor, ModelCheckpoint
+from lightning_pytorch.demos.boring_classes import BoringModel, RandomDataset, RandomIterableDataset
+from lightning_pytorch.loggers import CSVLogger
+from lightning_pytorch.plugins import DeepSpeedPrecision
+from lightning_pytorch.strategies.deepspeed import _DEEPSPEED_AVAILABLE, DeepSpeedStrategy
+from lightning_pytorch.utilities.exceptions import MisconfigurationException
+from lightning_pytorch.utilities.imports import _TORCHMETRICS_GREATER_EQUAL_0_11 as _TM_GE_0_11
 from torch import Tensor, nn
 from torch.utils.data import DataLoader
 from torchmetrics import Accuracy
@@ -209,7 +209,7 @@ def test_warn_deepspeed_ignored(tmp_path):
     [(RandomDataset, "auto"), (RandomDataset, 10), (RandomIterableDataset, "auto"), (RandomIterableDataset, 10)],
 )
 @mock.patch("deepspeed.init_distributed", autospec=True)
-@mock.patch("lightning.pytorch.Trainer.log_dir", new_callable=mock.PropertyMock, return_value="abc")
+@mock.patch("lightning_pytorch.Trainer.log_dir", new_callable=mock.PropertyMock, return_value="abc")
 def test_deepspeed_auto_batch_size_config_select(_, __, tmp_path, dataset_cls, value):
     """Test to ensure that the batch size is correctly set as expected for deepspeed logging purposes."""
 

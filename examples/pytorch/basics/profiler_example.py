@@ -28,10 +28,10 @@ from os import path
 import torch
 import torchvision
 import torchvision.transforms as T
-from lightning.pytorch import LightningDataModule, LightningModule, cli_lightning_logo
-from lightning.pytorch.cli import LightningCLI
-from lightning.pytorch.profilers.pytorch import PyTorchProfiler
-from lightning.pytorch.utilities.model_helpers import get_torchvision_model
+from lightning_pytorch import LightningDataModule, LightningModule, cli_lightning_logo
+from lightning_pytorch.cli import LightningCLI
+from lightning_pytorch.profilers.pytorch import PyTorchProfiler
+from lightning_pytorch.utilities.model_helpers import get_torchvision_model
 
 DATASETS_PATH = path.join(path.dirname(__file__), "..", "..", "Datasets")
 

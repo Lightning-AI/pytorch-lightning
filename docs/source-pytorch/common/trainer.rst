@@ -4,18 +4,18 @@
 .. testsetup:: *
 
     import os
-    from lightning.pytorch import Trainer, LightningModule, seed_everything
+    from lightning_pytorch import Trainer, LightningModule, seed_everything
 
 .. _trainer:
 
 Trainer
 =======
 
-Once you've organized your PyTorch code into a :class:`~lightning.pytorch.core.LightningModule`, the ``Trainer`` automates everything else.
+Once you've organized your PyTorch code into a :class:`~lightning_pytorch.core.LightningModule`, the ``Trainer`` automates everything else.
 
 The ``Trainer`` achieves the following:
 
-1. You maintain control over all aspects via PyTorch code in your :class:`~lightning.pytorch.core.LightningModule`.
+1. You maintain control over all aspects via PyTorch code in your :class:`~lightning_pytorch.core.LightningModule`.
 
 2. The trainer uses best practices embedded by contributors and users
    from top AI labs such as Facebook AI Research, NYU, MIT, Stanford, etc...
@@ -117,14 +117,14 @@ So you can run it like so:
 If you want to stop a training run early, you can press "Ctrl + C" on your keyboard.
 The trainer will catch the ``KeyboardInterrupt`` and attempt a graceful shutdown. The trainer object will also set
 an attribute ``interrupted`` to ``True`` in such cases. If you have a callback which shuts down compute
-resources, for example, you can conditionally run the shutdown logic for only uninterrupted runs by overriding :meth:`lightning.pytorch.Callback.on_exception`.
+resources, for example, you can conditionally run the shutdown logic for only uninterrupted runs by overriding :meth:`lightning_pytorch.Callback.on_exception`.
 
 ------------
 
 Validation
 ----------
 You can perform an evaluation epoch over the validation set, outside of the training loop,
-using :meth:`~lightning.pytorch.trainer.trainer.Trainer.validate`. This might be
+using :meth:`~lightning_pytorch.trainer.trainer.Trainer.validate`. This might be
 useful if you want to collect new metrics from a model right at its initialization
 or after it has already been trained.
 
@@ -153,7 +153,7 @@ and set ``deterministic`` flag in ``Trainer``.
 
 Example::
 
-    from lightning.pytorch import Trainer, seed_everything
+    from lightning_pytorch import Trainer, seed_everything
 
     seed_everything(42, workers=True)
     # sets seeds for numpy, torch and python.random.
@@ -161,7 +161,7 @@ Example::
     trainer = Trainer(deterministic=True)
 
 
-By setting ``workers=True`` in :func:`~lightning.pytorch.seed_everything`, Lightning derives
+By setting ``workers=True`` in :func:`~lightning_pytorch.seed_everything`, Lightning derives
 unique seeds across all dataloader workers and processes for :mod:`torch`, :mod:`numpy` and stdlib
 :mod:`random` number generators. When turned on, it ensures that e.g. data augmentations are not repeated across workers.
 
@@ -256,7 +256,7 @@ benchmark
 
 The value (``True`` or ``False``) to set ``torch.backends.cudnn.benchmark`` to. The value for
 ``torch.backends.cudnn.benchmark`` set in the current session will be used (``False`` if not manually set).
-If :paramref:`~lightning.pytorch.trainer.trainer.Trainer.deterministic` is set to ``True``, this will default to ``False``.
+If :paramref:`~lightning_pytorch.trainer.trainer.Trainer.deterministic` is set to ``True``, this will default to ``False``.
 You can read more about the interaction of ``torch.backends.cudnn.benchmark`` and ``torch.backends.cudnn.deterministic``
 `here <https://pytorch.org/docs/stable/notes/randomness.html#cuda-convolution-benchmarking>`__
 
@@ -294,9 +294,9 @@ Example::
 callbacks
 ^^^^^^^^^
 
-This argument can be used to add a :class:`~lightning.pytorch.callbacks.callback.Callback` or a list of them.
+This argument can be used to add a :class:`~lightning_pytorch.callbacks.callback.Callback` or a list of them.
 Callbacks run sequentially in the order defined here
-with the exception of :class:`~lightning.pytorch.callbacks.model_checkpoint.ModelCheckpoint` callbacks which run
+with the exception of :class:`~lightning_pytorch.callbacks.model_checkpoint.ModelCheckpoint` callbacks which run
 after all others to ensure all states are saved to the checkpoints.
 
 .. code-block:: python
@@ -309,7 +309,7 @@ after all others to ensure all states are saved to the checkpoints.
 
 Example::
 
-    from lightning.pytorch.callbacks import Callback
+    from lightning_pytorch.callbacks import Callback
 
     class PrintCallback(Callback):
         def on_train_start(self, trainer, pl_module):
@@ -319,10 +319,10 @@ Example::
 
 
 Model-specific callbacks can also be added inside the ``LightningModule`` through
-:meth:`~lightning.pytorch.core.LightningModule.configure_callbacks`.
+:meth:`~lightning_pytorch.core.LightningModule.configure_callbacks`.
 Callbacks returned in this hook will extend the list initially given to the ``Trainer`` argument, and replace
 the trainer callbacks should there be two or more of the same type.
-:class:`~lightning.pytorch.callbacks.model_checkpoint.ModelCheckpoint` callbacks always run last.
+:class:`~lightning_pytorch.callbacks.model_checkpoint.ModelCheckpoint` callbacks always run last.
 
 
 check_val_every_n_epoch
@@ -353,7 +353,7 @@ default_root_dir
     :muted:
 
 Default path for logs and weights when no logger or
-:class:`lightning.pytorch.callbacks.ModelCheckpoint` callback passed.  On
+:class:`lightning_pytorch.callbacks.ModelCheckpoint` callback passed.  On
 certain clusters you might want to separate where logs and checkpoints are
 stored. If you don't then use this argument for convenience. Paths can be local
 paths or remote paths such as ``s3://bucket/path`` or ``hdfs://path/``. Credentials
@@ -429,13 +429,13 @@ To disable automatic checkpointing, set this to `False`.
     trainer = Trainer(enable_checkpointing=False)
 
 
-You can override the default behavior by initializing the :class:`~lightning.pytorch.callbacks.ModelCheckpoint`
-callback, and adding it to the :paramref:`~lightning.pytorch.trainer.trainer.Trainer.callbacks` list.
+You can override the default behavior by initializing the :class:`~lightning_pytorch.callbacks.ModelCheckpoint`
+callback, and adding it to the :paramref:`~lightning_pytorch.trainer.trainer.Trainer.callbacks` list.
 See :doc:`Saving and Loading Checkpoints <../common/checkpointing>` for how to customize checkpointing.
 
 .. testcode::
 
-    from lightning.pytorch.callbacks import ModelCheckpoint
+    from lightning_pytorch.callbacks import ModelCheckpoint
 
     # Init ModelCheckpoint callback, monitoring 'val_loss'
     checkpoint_callback = ModelCheckpoint(monitor="val_loss")
@@ -478,10 +478,10 @@ impact to subsequent runs. These are the changes enabled:
 - Sets ``Trainer(check_every_n_epoch=1)``.
 - Disables all loggers.
 - Disables passing logged metrics to loggers.
-- The :class:`~lightning.pytorch.callbacks.model_checkpoint.ModelCheckpoint` callbacks will not trigger.
-- The :class:`~lightning.pytorch.callbacks.early_stopping.EarlyStopping` callbacks will not trigger.
+- The :class:`~lightning_pytorch.callbacks.model_checkpoint.ModelCheckpoint` callbacks will not trigger.
+- The :class:`~lightning_pytorch.callbacks.early_stopping.EarlyStopping` callbacks will not trigger.
 - Sets ``limit_{train,val,test,predict}_batches`` to 1 or the number passed.
-- Disables the tuning callbacks (:class:`~lightning.pytorch.callbacks.batch_size_finder.BatchSizeFinder`, :class:`~lightning.pytorch.callbacks.lr_finder.LearningRateFinder`).
+- Disables the tuning callbacks (:class:`~lightning_pytorch.callbacks.batch_size_finder.BatchSizeFinder`, :class:`~lightning_pytorch.callbacks.lr_finder.LearningRateFinder`).
 - If using the CLI, the configuration file is not saved.
 
 
@@ -603,7 +603,7 @@ logger
 .. testcode::
     :skipif: not _TENSORBOARD_AVAILABLE and not _TENSORBOARDX_AVAILABLE
 
-    from lightning.pytorch.loggers import TensorBoardLogger
+    from lightning_pytorch.loggers import TensorBoardLogger
 
     # default logger used by trainer (if tensorboard is installed)
     logger = TensorBoardLogger(save_dir=os.getcwd(), version=1, name="lightning_logs")
@@ -687,7 +687,7 @@ max_time
 ^^^^^^^^
 
 Set the maximum amount of time for training. Training will get interrupted mid-epoch.
-For customizable options use the :class:`~lightning.pytorch.callbacks.timer.Timer` callback.
+For customizable options use the :class:`~lightning_pytorch.callbacks.timer.Timer` callback.
 
 .. testcode::
 
@@ -782,11 +782,11 @@ plugins
 - :ref:`Precision Plugins <precision_expert>`
 
 To define your own behavior, subclass the relevant class and pass it in. Here's an example linking up your own
-:class:`~lightning.pytorch.plugins.environments.ClusterEnvironment`.
+:class:`~lightning_pytorch.plugins.environments.ClusterEnvironment`.
 
 .. code-block:: python
 
-    from lightning.pytorch.plugins.environments import ClusterEnvironment
+    from lightning_pytorch.plugins.environments import ClusterEnvironment
 
 
     class MyCluster(ClusterEnvironment):
@@ -855,7 +855,7 @@ See the :doc:`profiler documentation <../tuning/profiler>` for more details.
 
 .. testcode::
 
-    from lightning.pytorch.profilers import SimpleProfiler, AdvancedProfiler
+    from lightning_pytorch.profilers import SimpleProfiler, AdvancedProfiler
 
     # default used by the Trainer
     trainer = Trainer(profiler=None)
@@ -915,7 +915,7 @@ The pseudocode applies also to the ``val_dataloader``.
 use_distributed_sampler
 ^^^^^^^^^^^^^^^^^^^^^^^
 
-See :paramref:`lightning.pytorch.trainer.Trainer.params.use_distributed_sampler`.
+See :paramref:`lightning_pytorch.trainer.Trainer.params.use_distributed_sampler`.
 
 .. testcode::
 
@@ -952,7 +952,7 @@ Additionally, you can pass a strategy object.
 
 .. code-block:: python
 
-    from lightning.pytorch.strategies import DDPStrategy
+    from lightning_pytorch.strategies import DDPStrategy
 
     trainer = Trainer(strategy=DDPStrategy(static_graph=True), accelerator="gpu", devices=2)
 
@@ -1041,7 +1041,7 @@ Whether to enable or disable the model summarization. Defaults to True.
     trainer = Trainer(enable_model_summary=False)
 
     # enable custom summarization
-    from lightning.pytorch.callbacks import ModelSummary
+    from lightning_pytorch.callbacks import ModelSummary
 
     trainer = Trainer(enable_model_summary=True, callbacks=[ModelSummary(max_depth=-1)])
 
@@ -1089,31 +1089,31 @@ Methods
 init
 ****
 
-.. automethod:: lightning.pytorch.trainer.Trainer.__init__
+.. automethod:: lightning_pytorch.trainer.Trainer.__init__
    :noindex:
 
 fit
 ****
 
-.. automethod:: lightning.pytorch.trainer.Trainer.fit
+.. automethod:: lightning_pytorch.trainer.Trainer.fit
    :noindex:
 
 validate
 ********
 
-.. automethod:: lightning.pytorch.trainer.Trainer.validate
+.. automethod:: lightning_pytorch.trainer.Trainer.validate
    :noindex:
 
 test
 ****
 
-.. automethod:: lightning.pytorch.trainer.Trainer.test
+.. automethod:: lightning_pytorch.trainer.Trainer.test
    :noindex:
 
 predict
 *******
 
-.. automethod:: lightning.pytorch.trainer.Trainer.predict
+.. automethod:: lightning_pytorch.trainer.Trainer.predict
    :noindex:
 
 
@@ -1125,7 +1125,7 @@ callback_metrics
 
 The metrics available to callbacks.
 
-This includes metrics logged via :meth:`~lightning.pytorch.core.LightningModule.log`.
+This includes metrics logged via :meth:`~lightning_pytorch.core.LightningModule.log`.
 
 .. code-block:: python
 
@@ -1141,16 +1141,16 @@ logged_metrics
 
 The metrics sent to the loggers.
 
-This includes metrics logged via :meth:`~lightning.pytorch.core.LightningModule.log` with the
-:paramref:`~lightning.pytorch.core.LightningModule.log.logger` argument set.
+This includes metrics logged via :meth:`~lightning_pytorch.core.LightningModule.log` with the
+:paramref:`~lightning_pytorch.core.LightningModule.log.logger` argument set.
 
 progress_bar_metrics
 ********************
 
 The metrics sent to the progress bar.
 
-This includes metrics logged via :meth:`~lightning.pytorch.core.LightningModule.log` with the
-:paramref:`~lightning.pytorch.core.LightningModule.log.prog_bar` argument set.
+This includes metrics logged via :meth:`~lightning_pytorch.core.LightningModule.log` with the
+:paramref:`~lightning_pytorch.core.LightningModule.log.prog_bar` argument set.
 
 current_epoch
 *************
@@ -1181,12 +1181,12 @@ This includes multiple optimizers (if enabled).
 logger
 *******
 
-The first :class:`~lightning.pytorch.loggers.logger.Logger` being used.
+The first :class:`~lightning_pytorch.loggers.logger.Logger` being used.
 
 loggers
 ********
 
-The list of :class:`~lightning.pytorch.loggers.logger.Logger` used.
+The list of :class:`~lightning_pytorch.loggers.logger.Logger` used.
 
 .. code-block:: python
 

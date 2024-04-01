@@ -15,9 +15,9 @@ from collections import OrderedDict
 
 import pytest
 import torch
-from lightning.pytorch import LightningModule, Trainer, seed_everything
-from lightning.pytorch.callbacks import BackboneFinetuning, BaseFinetuning, ModelCheckpoint
-from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
+from lightning_pytorch import LightningModule, Trainer, seed_everything
+from lightning_pytorch.callbacks import BackboneFinetuning, BaseFinetuning, ModelCheckpoint
+from lightning_pytorch.demos.boring_classes import BoringModel, RandomDataset
 from torch import nn
 from torch.optim import SGD, Optimizer
 from torch.utils.data import DataLoader

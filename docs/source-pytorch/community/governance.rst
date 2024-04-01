@@ -58,7 +58,7 @@ Alumni
 Project Management and Decision Making
 **************************************
 
-The decision what goes into a release is governed by the maintainers of ``lightning.pytorch``.
+The decision what goes into a release is governed by the maintainers of ``lightning_pytorch``.
 Whenever possible, discussion happens publicly on GitHub and includes the whole community.
 For controversial changes, it is mandatory to seek consultation from :ref:`governance_bdfl` for a final decision.
 When a consensus is reached, maintainers assign milestones and labels to the issue and/or pull request

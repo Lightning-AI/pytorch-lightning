@@ -31,10 +31,10 @@ from torch import Tensor
 from typing_extensions import override
 
 from lightning.fabric.utilities.logger import _add_prefix, _convert_params, _flatten_dict
-from lightning.pytorch.callbacks.model_checkpoint import ModelCheckpoint
-from lightning.pytorch.loggers.logger import Logger, rank_zero_experiment
-from lightning.pytorch.loggers.utilities import _scan_checkpoints
-from lightning.pytorch.utilities.rank_zero import rank_zero_only, rank_zero_warn
+from lightning_pytorch.callbacks.model_checkpoint import ModelCheckpoint
+from lightning_pytorch.loggers.logger import Logger, rank_zero_experiment
+from lightning_pytorch.loggers.utilities import _scan_checkpoints
+from lightning_pytorch.utilities.rank_zero import rank_zero_only, rank_zero_warn
 
 if TYPE_CHECKING:
     from mlflow.tracking import MlflowClient
@@ -55,17 +55,17 @@ class MLFlowLogger(Logger):
 
     .. code-block:: python
 
-        from lightning.pytorch import Trainer
-        from lightning.pytorch.loggers import MLFlowLogger
+        from lightning_pytorch import Trainer
+        from lightning_pytorch.loggers import MLFlowLogger
 
         mlf_logger = MLFlowLogger(experiment_name="lightning_logs", tracking_uri="file:./ml-runs")
         trainer = Trainer(logger=mlf_logger)
 
-    Use the logger anywhere in your :class:`~lightning.pytorch.core.LightningModule` as follows:
+    Use the logger anywhere in your :class:`~lightning_pytorch.core.LightningModule` as follows:
 
     .. code-block:: python
 
-        from lightning.pytorch import LightningModule
+        from lightning_pytorch import LightningModule
 
 
         class LitModel(LightningModule):
@@ -87,12 +87,12 @@ class MLFlowLogger(Logger):
         save_dir: A path to a local directory where the MLflow runs get saved.
             Defaults to `./mlruns` if `tracking_uri` is not provided.
             Has no effect if `tracking_uri` is provided.
-        log_model: Log checkpoints created by :class:`~lightning.pytorch.callbacks.model_checkpoint.ModelCheckpoint`
+        log_model: Log checkpoints created by :class:`~lightning_pytorch.callbacks.model_checkpoint.ModelCheckpoint`
             as MLFlow artifacts.
 
             * if ``log_model == 'all'``, checkpoints are logged during training.
             * if ``log_model == True``, checkpoints are logged at the end of training, except when
-              :paramref:`~lightning.pytorch.callbacks.Checkpoint.save_top_k` ``== -1``
+              :paramref:`~lightning_pytorch.callbacks.Checkpoint.save_top_k` ``== -1``
               which also logs every checkpoint during training.
             * if ``log_model == False`` (default), no checkpoint is logged.
 
@@ -148,7 +148,7 @@ class MLFlowLogger(Logger):
     @property
     @rank_zero_experiment
     def experiment(self) -> "MlflowClient":
-        r"""Actual MLflow object. To use MLflow features in your :class:`~lightning.pytorch.core.LightningModule` do the
+        r"""Actual MLflow object. To use MLflow features in your :class:`~lightning_pytorch.core.LightningModule` do the
         following.
 
         Example::

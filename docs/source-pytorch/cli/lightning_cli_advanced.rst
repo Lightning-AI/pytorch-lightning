@@ -9,7 +9,7 @@ Configure hyperparameters from the CLI (Advanced)
 
 As a project becomes more complex, the number of configurable options becomes very large, making it inconvenient to
 control through individual command line arguments. To address this, CLIs implemented using
-:class:`~lightning.pytorch.cli.LightningCLI` always support receiving input from configuration files. The default format
+:class:`~lightning_pytorch.cli.LightningCLI` always support receiving input from configuration files. The default format
 used for config files is YAML.
 
 .. tip::
@@ -48,7 +48,7 @@ respective log directory a ``config.yaml`` file. These files can be used to triv
 
     python main.py fit --config lightning_logs/version_7/config.yaml
 
-The automatic saving of the config is done by the special callback :class:`~lightning.pytorch.cli.SaveConfigCallback`.
+The automatic saving of the config is done by the special callback :class:`~lightning_pytorch.cli.SaveConfigCallback`.
 This callback is automatically added to the ``Trainer``. To disable the save of the config, instantiate ``LightningCLI``
 with ``save_config_callback=None``.
 
@@ -60,7 +60,7 @@ with ``save_config_callback=None``.
 
         cli = LightningCLI(..., save_config_kwargs={"config_filename": "name.yaml"})
 
-It is also possible to extend the :class:`~lightning.pytorch.cli.SaveConfigCallback` class, for instance to additionally
+It is also possible to extend the :class:`~lightning_pytorch.cli.SaveConfigCallback` class, for instance to additionally
 save the config in a logger. An example of this is:
 
     .. code:: python
@@ -137,7 +137,7 @@ which generates a config like:
     trainer:
       ...
     model:
-      class_path: lightning.pytorch.demos.boring_classes.DemoModel
+      class_path: lightning_pytorch.demos.boring_classes.DemoModel
       init_args:
         out_dim: 10
         learning_rate: 0.02
@@ -186,7 +186,7 @@ configuration files and automatic creation of objects, so you don't need to do i
 
 .. note::
 
-    Lightning automatically registers all subclasses of :class:`~lightning.pytorch.core.LightningModule`,
+    Lightning automatically registers all subclasses of :class:`~lightning_pytorch.core.LightningModule`,
     so the complete import path is not required for them and can be replaced by the class name.
 
 .. note::
@@ -196,7 +196,7 @@ configuration files and automatic creation of objects, so you don't need to do i
     To somewhat overcome these limitations, there is a special key ``dict_kwargs`` that can be used
     to provide arguments that will not be validated during parsing, but will be used for class instantiation.
 
-    For example, then using the ``lightning.pytorch.profilers.PyTorchProfiler`` profiler,
+    For example, then using the ``lightning_pytorch.profilers.PyTorchProfiler`` profiler,
     the ``profile_memory`` argument has a type that is determined dynamically. As a result, it's not possible
     to know the expected type during parsing. To account for this, your config file should be set up like this:
 
@@ -204,7 +204,7 @@ configuration files and automatic creation of objects, so you don't need to do i
 
         trainer:
           profiler:
-            class_path: lightning.pytorch.profilers.PyTorchProfiler
+            class_path: lightning_pytorch.profilers.PyTorchProfiler
             dict_kwargs:
               profile_memory: true
 

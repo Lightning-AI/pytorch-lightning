@@ -4,7 +4,7 @@ When a checkpoint is created, it asks every DataModule for their state. If your 
 
 .. code:: python
 
-    import lightning as L
+    import lightning_pytorch as LP
 
 
     class LitDataModule(L.LightningDataModule):

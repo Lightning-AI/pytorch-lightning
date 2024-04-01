@@ -15,12 +15,12 @@ Integrate your own cluster
 Lightning provides an interface for providing your own definition of a cluster environment. It mainly consists of
 parsing the right environment variables to access information such as world size, global and local rank (process id),
 and node rank (node id). Here is an example of a custom
-:class:`~lightning.pytorch.plugins.environments.cluster_environment.ClusterEnvironment`:
+:class:`~lightning_pytorch.plugins.environments.cluster_environment.ClusterEnvironment`:
 
 .. code-block:: python
 
     import os
-    from lightning.pytorch.plugins.environments import ClusterEnvironment
+    from lightning_pytorch.plugins.environments import ClusterEnvironment
 
 
     class MyClusterEnvironment(ClusterEnvironment):

@@ -3,7 +3,7 @@
 accelerators
 ------------
 
-.. currentmodule:: lightning.pytorch.accelerators
+.. currentmodule:: lightning_pytorch.accelerators
 
 .. autosummary::
     :toctree: api
@@ -18,7 +18,7 @@ accelerators
 callbacks
 ---------
 
-.. currentmodule:: lightning.pytorch.callbacks
+.. currentmodule:: lightning_pytorch.callbacks
 
 .. autosummary::
     :toctree: api
@@ -52,7 +52,7 @@ callbacks
 cli
 -----
 
-.. currentmodule:: lightning.pytorch.cli
+.. currentmodule:: lightning_pytorch.cli
 
 .. autosummary::
     :toctree: api
@@ -66,7 +66,7 @@ cli
 core
 ----
 
-.. currentmodule:: lightning.pytorch.core
+.. currentmodule:: lightning_pytorch.core
 
 .. autosummary::
     :toctree: api
@@ -87,7 +87,7 @@ core
 loggers
 -------
 
-.. currentmodule:: lightning.pytorch.loggers
+.. currentmodule:: lightning_pytorch.loggers
 
 .. autosummary::
     :toctree: api
@@ -107,7 +107,7 @@ plugins
 precision
 """""""""
 
-.. currentmodule:: lightning.pytorch.plugins.precision
+.. currentmodule:: lightning_pytorch.plugins.precision
 
 .. autosummary::
     :toctree: api
@@ -127,7 +127,7 @@ precision
 environments
 """"""""""""
 
-.. currentmodule:: lightning.pytorch.plugins.environments
+.. currentmodule:: lightning_pytorch.plugins.environments
 
 .. autosummary::
     :toctree: api
@@ -146,7 +146,7 @@ environments
 io
 ""
 
-.. currentmodule:: lightning.pytorch.plugins.io
+.. currentmodule:: lightning_pytorch.plugins.io
 
 .. autosummary::
     :toctree: api
@@ -162,7 +162,7 @@ io
 others
 """"""
 
-.. currentmodule:: lightning.pytorch.plugins
+.. currentmodule:: lightning_pytorch.plugins
 
 .. autosummary::
     :toctree: api
@@ -175,7 +175,7 @@ others
 profiler
 --------
 
-.. currentmodule:: lightning.pytorch.profilers
+.. currentmodule:: lightning_pytorch.profilers
 
 .. autosummary::
     :toctree: api
@@ -192,7 +192,7 @@ profiler
 trainer
 -------
 
-.. currentmodule:: lightning.pytorch.trainer.trainer
+.. currentmodule:: lightning_pytorch.trainer.trainer
 
 .. autosummary::
     :toctree: api
@@ -204,7 +204,7 @@ trainer
 strategies
 ----------
 
-.. currentmodule:: lightning.pytorch.strategies
+.. currentmodule:: lightning_pytorch.strategies
 
 .. autosummary::
     :toctree: api
@@ -223,7 +223,7 @@ strategies
 tuner
 -----
 
-.. currentmodule:: lightning.pytorch.tuner.tuning
+.. currentmodule:: lightning_pytorch.tuner.tuning
 
 .. autosummary::
     :toctree: api
@@ -235,7 +235,7 @@ tuner
 utilities
 ---------
 
-.. currentmodule:: lightning.pytorch.utilities
+.. currentmodule:: lightning_pytorch.utilities
 
 .. autosummary::
     :toctree: api
@@ -251,4 +251,4 @@ utilities
     seed
     warnings
 
-.. autofunction:: lightning.pytorch.utilities.measure_flops
+.. autofunction:: lightning_pytorch.utilities.measure_flops

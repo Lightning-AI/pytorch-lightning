@@ -13,13 +13,13 @@
 # limitations under the License.
 from typing import TYPE_CHECKING, Literal, Optional, Union
 
-import lightning.pytorch as pl
-from lightning.pytorch.callbacks.callback import Callback
-from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning.pytorch.utilities.types import EVAL_DATALOADERS, TRAIN_DATALOADERS
+import lightning_pytorch as pl
+from lightning_pytorch.callbacks.callback import Callback
+from lightning_pytorch.utilities.exceptions import MisconfigurationException
+from lightning_pytorch.utilities.types import EVAL_DATALOADERS, TRAIN_DATALOADERS
 
 if TYPE_CHECKING:
-    from lightning.pytorch.tuner.lr_finder import _LRFinder
+    from lightning_pytorch.tuner.lr_finder import _LRFinder
 
 
 class Tuner:
@@ -48,12 +48,12 @@ class Tuner:
         Args:
             model: Model to tune.
             train_dataloaders: A collection of :class:`torch.utils.data.DataLoader` or a
-                :class:`~lightning.pytorch.core.datamodule.LightningDataModule` specifying training samples.
+                :class:`~lightning_pytorch.core.datamodule.LightningDataModule` specifying training samples.
                 In the case of multiple dataloaders, please see this :ref:`section <multiple-dataloaders>`.
             val_dataloaders: A :class:`torch.utils.data.DataLoader` or a sequence of them specifying validation samples.
             dataloaders: A :class:`torch.utils.data.DataLoader` or a sequence of them specifying val/test/predict
                 samples used for running tuner on validation/testing/prediction.
-            datamodule: An instance of :class:`~lightning.pytorch.core.datamodule.LightningDataModule`.
+            datamodule: An instance of :class:`~lightning_pytorch.core.datamodule.LightningDataModule`.
             method: Method to run tuner on. It can be any of ``("fit", "validate", "test", "predict")``.
             mode: Search strategy to update the batch size:
 
@@ -80,7 +80,7 @@ class Tuner:
         _check_scale_batch_size_configuration(self._trainer)
 
         # local import to avoid circular import
-        from lightning.pytorch.callbacks.batch_size_finder import BatchSizeFinder
+        from lightning_pytorch.callbacks.batch_size_finder import BatchSizeFinder
 
         batch_size_finder: Callback = BatchSizeFinder(
             mode=mode,
@@ -127,12 +127,12 @@ class Tuner:
         Args:
             model: Model to tune.
             train_dataloaders: A collection of :class:`torch.utils.data.DataLoader` or a
-                :class:`~lightning.pytorch.core.datamodule.LightningDataModule` specifying training samples.
+                :class:`~lightning_pytorch.core.datamodule.LightningDataModule` specifying training samples.
                 In the case of multiple dataloaders, please see this :ref:`section <multiple-dataloaders>`.
             val_dataloaders: A :class:`torch.utils.data.DataLoader` or a sequence of them specifying validation samples.
             dataloaders: A :class:`torch.utils.data.DataLoader` or a sequence of them specifying val/test/predict
                 samples used for running tuner on validation/testing/prediction.
-            datamodule: An instance of :class:`~lightning.pytorch.core.datamodule.LightningDataModule`.
+            datamodule: An instance of :class:`~lightning_pytorch.core.datamodule.LightningDataModule`.
             method: Method to run tuner on. It can be any of ``("fit", "validate", "test", "predict")``.
             min_lr: minimum learning rate to investigate
             max_lr: maximum learning rate to investigate
@@ -162,7 +162,7 @@ class Tuner:
         _check_lr_find_configuration(self._trainer)
 
         # local import to avoid circular import
-        from lightning.pytorch.callbacks.lr_finder import LearningRateFinder
+        from lightning_pytorch.callbacks.lr_finder import LearningRateFinder
 
         lr_finder_callback: Callback = LearningRateFinder(
             min_lr=min_lr,
@@ -210,7 +210,7 @@ def _check_tuner_configuration(
 
 def _check_lr_find_configuration(trainer: "pl.Trainer") -> None:
     # local import to avoid circular import
-    from lightning.pytorch.callbacks.lr_finder import LearningRateFinder
+    from lightning_pytorch.callbacks.lr_finder import LearningRateFinder
 
     configured_callbacks = [cb for cb in trainer.callbacks if isinstance(cb, LearningRateFinder)]
     if configured_callbacks:
@@ -225,7 +225,7 @@ def _check_scale_batch_size_configuration(trainer: "pl.Trainer") -> None:
         raise ValueError("Tuning the batch size is currently not supported with distributed strategies.")
 
     # local import to avoid circular import
-    from lightning.pytorch.callbacks.batch_size_finder import BatchSizeFinder
+    from lightning_pytorch.callbacks.batch_size_finder import BatchSizeFinder
 
     configured_callbacks = [cb for cb in trainer.callbacks if isinstance(cb, BatchSizeFinder)]
     if configured_callbacks:

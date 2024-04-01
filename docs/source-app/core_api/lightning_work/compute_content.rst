@@ -8,7 +8,7 @@ a :class:`~lightning.app.utilities.packaging.cloud_compute.CloudCompute` to your
 
 .. code-block:: python
 
-    import lightning as L
+    import lightning_pytorch as LP
 
     # Run on a free, shared CPU machine. This is the default for every LightningWork.
     MyCustomWork(cloud_compute=L.CloudCompute())
@@ -79,7 +79,7 @@ By providing **idle_timeout=X Seconds**, the work is automatically stopped **X s
 
 .. code-block:: python
 
-    import lightning as L
+    import lightning_pytorch as LP
 
     # Run on a single CPU and turn down immediately when idle.
     MyCustomWork(cloud_compute=L.CloudCompute("gpu", idle_timeout=0))

@@ -12,11 +12,11 @@ Find bottlenecks in your code (advanced)
 ************************
 Profile cloud TPU models
 ************************
-To profile TPU models use the :class:`~lightning.pytorch.profilers.xla.XLAProfiler`
+To profile TPU models use the :class:`~lightning_pytorch.profilers.xla.XLAProfiler`
 
 .. code-block:: python
 
-    from lightning.pytorch.profilers import XLAProfiler
+    from lightning_pytorch.profilers import XLAProfiler
 
     profiler = XLAProfiler(port=9001)
     trainer = Trainer(profiler=profiler)

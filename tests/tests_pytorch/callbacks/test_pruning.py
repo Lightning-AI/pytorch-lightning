@@ -19,10 +19,10 @@ from typing import Union
 import pytest
 import torch
 import torch.nn.utils.prune as pytorch_prune
-from lightning.pytorch import Trainer, seed_everything
-from lightning.pytorch.callbacks import ModelCheckpoint, ModelPruning
-from lightning.pytorch.demos.boring_classes import BoringModel
-from lightning.pytorch.utilities.exceptions import MisconfigurationException
+from lightning_pytorch import Trainer, seed_everything
+from lightning_pytorch.callbacks import ModelCheckpoint, ModelPruning
+from lightning_pytorch.demos.boring_classes import BoringModel
+from lightning_pytorch.utilities.exceptions import MisconfigurationException
 from torch import nn
 from torch.nn import Sequential
 

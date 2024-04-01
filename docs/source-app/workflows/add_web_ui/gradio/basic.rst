@@ -39,7 +39,7 @@ First **create a file named app.py** with the app content:
 
 .. code:: python
 
-    import lightning as L
+    import lightning_pytorch as LP
     from lightning.app.components import ServeGradio
     import gradio as gr
 
@@ -147,7 +147,7 @@ In this case, we render the ``LitGradio`` UI in the ``home`` tab of the applicat
 .. code:: python
     :emphasize-lines: 21, 27
 
-    import lightning as L
+    import lightning_pytorch as LP
     from lightning.app.components import ServeGradio
     import gradio as gr
 
@@ -186,7 +186,7 @@ Finally, don't forget to call run inside the Root Flow to serve the Gradio app.
 .. code:: python
     :emphasize-lines: 24
 
-    import lightning as L
+    import lightning_pytorch as LP
     from lightning.app.components import ServeGradio
     import gradio as gr
 

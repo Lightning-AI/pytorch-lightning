@@ -3,15 +3,15 @@ from pathlib import Path
 from typing import Any, Dict, Union
 from unittest.mock import Mock
 
-import lightning.pytorch as pl
+import lightning_pytorch as pl
 import pytest
 import torch
 from lightning.fabric.plugins import TorchCheckpointIO
-from lightning.pytorch import Trainer
-from lightning.pytorch.accelerators import CPUAccelerator
-from lightning.pytorch.demos.boring_classes import BoringModel
-from lightning.pytorch.plugins.precision.precision import Precision
-from lightning.pytorch.strategies import SingleDeviceStrategy
+from lightning_pytorch import Trainer
+from lightning_pytorch.accelerators import CPUAccelerator
+from lightning_pytorch.demos.boring_classes import BoringModel
+from lightning_pytorch.plugins.precision.precision import Precision
+from lightning_pytorch.strategies import SingleDeviceStrategy
 
 from tests_pytorch.helpers.runif import RunIf
 
