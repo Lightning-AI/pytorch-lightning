@@ -129,7 +129,7 @@ class FSDPStrategy(ParallelStrategy):
 
             Also accepts a :class:`torch.distributed.fsdp.ShardingStrategy` enum value.
 
-        device_mesh: A tuple `(sharding size, replication size)` that defines over how many devices to shard and
+        device_mesh: A tuple `(replication size, sharding size)` that defines over how many devices to shard and
             replicate the model. The product of the two numbers must equal the world size. Only valid in combination
             with the `HYBRID_SHARD` sharding strategy.
 
