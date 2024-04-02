@@ -454,15 +454,16 @@ class _AcceleratorConnector:
         # TODO this logic should apply to both str and object config
         strategy_flag = "" if isinstance(self._strategy_flag, Strategy) else self._strategy_flag
 
+        if _habana_available_and_importable():
+            from lightning_habana import HPUAccelerator
+            if isinstance(self._accelerator_flag, HPUAccelerator):
+                if strategy_flag:
+                    self._strategy_flag = strategy_flag
+                return
+
         if (
             strategy_flag in FSDPStrategy.get_registered_strategies() or isinstance(self._strategy_flag, FSDPStrategy)
         ) and self._accelerator_flag not in ("cuda", "gpu"):
-            if _habana_available_and_importable():
-                from lightning_habana import HPUAccelerator
-                if isinstance(self._accelerator_flag, HPUAccelerator):
-                    if strategy_flag:
-                        self._strategy_flag = strategy_flag
-                    return
             raise MisconfigurationException(
                 f"You selected strategy to be `{FSDPStrategy.strategy_name}`, but GPU accelerator is not used."
             )
