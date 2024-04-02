@@ -199,6 +199,7 @@ class _FitLoop(_Loop):
             return
         self.reset()
         self.on_run_start()
+        self.setup_data_fetcher()
         while not self.done:
             try:
                 self.on_advance_start()
@@ -257,7 +258,11 @@ class _FitLoop(_Loop):
         combined_loader.limits = limits
 
         self._load_combined_loader_states()
+        # self.setup_data_fetcher()
 
+    def setup_data_fetcher(self):
+        trainer = self.trainer
+        combined_loader = self._combined_loader
         self._data_fetcher = _select_data_fetcher(trainer, RunningStage.TRAINING)
         self._data_fetcher.setup(combined_loader)
         iter(self._data_fetcher)  # creates the iterator inside the fetcher
