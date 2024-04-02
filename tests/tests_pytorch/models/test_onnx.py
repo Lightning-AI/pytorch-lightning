@@ -13,6 +13,7 @@
 # limitations under the License.
 import operator
 import os
+from pathlib import Path
 from unittest.mock import patch
 
 import numpy as np
@@ -36,6 +37,20 @@ def test_model_saves_with_input_sample(tmp_path):
     trainer.fit(model)
 
     file_path = os.path.join(tmp_path, "model.onnx")
+    input_sample = torch.randn((1, 32))
+    model.to_onnx(file_path, input_sample)
+    assert os.path.isfile(file_path)
+    assert os.path.getsize(file_path) > 4e2
+
+
+@RunIf(onnx=True)
+def test_model_saves_with_pathlib_file_path(tmp_path):
+    """Test that ONNX model saves with pathlib.Path file_path and size is greater than 3 MB."""
+    model = BoringModel()
+    trainer = Trainer(fast_dev_run=True)
+    trainer.fit(model)
+
+    file_path = Path(tmp_path) / "model.onnx"
     input_sample = torch.randn((1, 32))
     model.to_onnx(file_path, input_sample)
     assert os.path.isfile(file_path)
