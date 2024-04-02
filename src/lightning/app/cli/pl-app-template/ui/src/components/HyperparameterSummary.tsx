@@ -16,11 +16,11 @@ export default function HyperparameterSummary(props: any) {
 
   const [searched, setSearched] = useState<string>("");
   const filteredModelHparams = model_hparams_keys
-    .filter((key) => key.toLowerCase().includes(searched.toLowerCase()))
-    .map((key) => [key, model_hparams[key]]);
+    .filter(key => key.toLowerCase().includes(searched.toLowerCase()))
+    .map(key => [key, model_hparams[key]]);
   const filteredTrainerHparams = trainer_hparams_keys
-    .filter((key) => key.toLowerCase().includes(searched.toLowerCase()))
-    .map((key) => [key, trainer_hparams[key]]);
+    .filter(key => key.toLowerCase().includes(searched.toLowerCase()))
+    .map(key => [key, trainer_hparams[key]]);
 
   const [modelHparamsVisible, setModelHparamsVisible] = useState<boolean>(true);
   const [trainerHparamsVisible, setTrainerHparamsVisible] = useState<boolean>(true);
