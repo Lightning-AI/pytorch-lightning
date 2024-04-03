@@ -16,6 +16,7 @@ from unittest import mock
 
 import pytest
 import torch
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_2
 from lightning.pytorch import LightningModule, Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.utilities.compile import from_compiled, to_uncompiled
@@ -114,6 +115,9 @@ def test_compile_uncompile():
 
 # https://github.com/pytorch/pytorch/issues/95708
 @pytest.mark.skipif(sys.platform == "darwin", reason="fatal error: 'omp.h' file not found")
+@pytest.mark.xfail(
+    sys.platform == "win32" and _TORCH_GREATER_EQUAL_2_2, strict=False, reason="RuntimeError: Failed to import"
+)
 @RunIf(dynamo=True)
 def test_trainer_compiled_model_that_logs(tmp_path):
     class MyModel(BoringModel):
@@ -140,6 +144,9 @@ def test_trainer_compiled_model_that_logs(tmp_path):
 
 # https://github.com/pytorch/pytorch/issues/95708
 @pytest.mark.skipif(sys.platform == "darwin", reason="fatal error: 'omp.h' file not found")
+@pytest.mark.xfail(
+    sys.platform == "win32" and _TORCH_GREATER_EQUAL_2_2, strict=False, reason="RuntimeError: Failed to import"
+)
 @RunIf(dynamo=True)
 def test_trainer_compiled_model_test(tmp_path):
     model = BoringModel()
