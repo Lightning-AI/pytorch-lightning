@@ -138,6 +138,9 @@ If you want to use such methods, you need to mark them explicitly with ``.mark_f
     # You must mark special forward methods explicitly:
     model.mark_forward_method(model.generate)
 
+    # Passing just the name is also sufficient
+    model.mark_forward_method("generate")
+
     # OK: Fabric will do some rerouting behind the scenes now
     output = model.generate()
 
