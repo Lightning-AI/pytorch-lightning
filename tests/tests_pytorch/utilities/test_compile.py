@@ -16,10 +16,10 @@ from unittest import mock
 
 import pytest
 import torch
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_2
 from lightning.pytorch import LightningModule, Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.utilities.compile import from_compiled, to_uncompiled
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_2
 from lightning_utilities.core import module_available
 
 from tests_pytorch.conftest import mock_cuda_count
