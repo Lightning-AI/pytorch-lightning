@@ -47,7 +47,6 @@ class _DeviceDtypeModuleMixin(Module):
         if hasattr(torch, "xpu") and device.type == "xpu" and device.index is None:
             return torch.device(f"xpu:{torch.xpu.current_device()}")
 
-
         return device
 
     @override
