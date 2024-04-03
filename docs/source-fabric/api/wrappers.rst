@@ -91,7 +91,7 @@ Using methods other than forward for computation
 ************************************************
 
 PyTorch's ``nn.Modules`` have a special contract you need to follow when using them for training: Your forward computation has to be defined in the **forward** method and you should call this forward method directly.
-But sometimes your model may need to define different flavors of `forward`, like in this example below where the regular forward is used for training, but the `generate` method does something slightly different for inference:
+But sometimes your model may need to define different flavors of forward, like in this example below where the regular forward is used for training, but the `generate` method does something slightly different for inference:
 
 .. code-block:: python
 
@@ -130,8 +130,8 @@ If you were to run this model in Fabric with multiple devices (DDP or FSDP), you
     # ERROR: Calling another method that calls forward indirectly
     output = model.generate()
 
-Fabric produces an error here informing the user about incorrect usage because this is normally not allowed in PyTorch and could potentially lead to silent correctness bugs.
-If you want to use such methods, you need to mark them explicitly with `.mark_forward_method()` so that Fabric can do some rerouting behind the scenes for you to do the right thing:
+Fabric produces an error there informing the user about incorrect usage because this is normally not allowed in PyTorch and could potentially lead to silent correctness bugs.
+If you want to use such methods, you need to mark them explicitly with ``.mark_forward_method()`` so that Fabric can do some rerouting behind the scenes for you to do the right thing:
 
 .. code-block:: python
 
@@ -140,3 +140,5 @@ If you want to use such methods, you need to mark them explicitly with `.mark_fo
 
     # OK: Fabric will do some rerouting behind the scenes now
     output = model.generate()
+
+|
