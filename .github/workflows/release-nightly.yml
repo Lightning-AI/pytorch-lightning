@@ -1,0 +1,67 @@
+name: Nightly packages
+
+on:
+  pull_request: # this shall test only the part of workflow before publishing
+    branches: [master, "release/*"]
+    types: [opened, reopened, ready_for_review, synchronize]
+    paths:
+      - "requirements/ci.txt"
+      - ".github/actions/pkg-check/*"
+      - ".github/actions/pkg-publish/*"
+      - ".github/workflows/release-nightly.yml"
+  schedule:
+    - cron: "0 0 * * 0" # on Sundays
+  workflow_dispatch: {}
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  build-packages:
+    runs-on: ubuntu-22.04
+    env:
+      PKG_NAME: "lightning"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: 3.9
+
+      - name: Convert actual version to nightly
+        run: |
+          pip install -q -r .actions/requirements.txt
+          python .actions/assistant.py convert_version2nightly
+      - run: python -c "print('NB_DIRS=' + str(2 if '${{ env.PKG_NAME }}' == 'pytorch' else 1))" >> $GITHUB_ENV
+      - name: Build & check package
+        uses: ./.github/actions/pkg-check
+        with:
+          pkg-name: ${{ env.PKG_NAME }}
+          nb-dirs: ${{ env.NB_DIRS }}
+          allow-local-changes: "true"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nightly-packages-${{ github.sha }}
+          path: dist
+
+  publish-packages:
+    runs-on: ubuntu-22.04
+    needs: build-packages
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    env:
+      PKG_NAME: "lightning"
+    steps:
+      - uses: actions/checkout@v4 # needed to use local composite action
+      - uses: actions/download-artifact@v4
+        with:
+          name: nightly-packages-${{ github.sha }}
+          path: dist
+      - uses: ./.github/actions/pkg-publish
+        with:
+          pkg-folder: dist
+          pypi-test-token: ${{ secrets[format('PYPI_TEST_TOKEN_{0}', env.PKG_NAME)] }}
+      - uses: ./.github/actions/pkg-publish
+        with:
+          pkg-folder: dist
+          pypi-token: ${{ secrets[format('PYPI_TOKEN_{0}', env.PKG_NAME)] }}
