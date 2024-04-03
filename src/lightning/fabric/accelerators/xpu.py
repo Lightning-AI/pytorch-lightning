@@ -76,7 +76,7 @@ class XPUAccelerator(Accelerator):
 
     @classmethod
     @override
-    def register_accelerators(cls, accelerator_registry: _AcceleratorRegistry) -> None:
+    def register_accelerators(cls, accelerator_registry: Any) -> None:
         accelerator_registry.register(
             "xpu",
             cls,
