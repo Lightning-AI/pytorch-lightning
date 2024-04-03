@@ -29,7 +29,7 @@ from lightning.fabric.strategies.fsdp import (
     _has_meta_device_parameters,
     _is_sharded_checkpoint,
 )
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_1
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_1, _TORCH_GREATER_EQUAL_2_2
 from torch.distributed.fsdp.fully_sharded_data_parallel import CPUOffload, FullyShardedDataParallel, MixedPrecision
 from torch.optim import Adam
 
@@ -150,13 +150,15 @@ def test_fsdp_no_backward_sync():
 
     with pytest.raises(
         TypeError, match="is only possible if the module passed to .* is wrapped in `FullyShardedDataParallel`"
-    ), strategy._backward_sync_control.no_backward_sync(Mock()):
+    ), strategy._backward_sync_control.no_backward_sync(Mock(), True):
         pass
 
     module = MagicMock(spec=FullyShardedDataParallel)
-    with strategy._backward_sync_control.no_backward_sync(module):
+    with strategy._backward_sync_control.no_backward_sync(module, False):
         pass
-
+    module.no_sync.assert_not_called()
+    with strategy._backward_sync_control.no_backward_sync(module, True):
+        pass
     module.no_sync.assert_called_once()
 
 
@@ -241,13 +243,12 @@ def test_fsdp_save_checkpoint_storage_options(tmp_path):
 
 
 @RunIf(min_torch="2.0.0")
-@mock.patch("torch.distributed.checkpoint.save_state_dict", return_value=MagicMock())
 @mock.patch("lightning.fabric.strategies.fsdp.FSDPStrategy.broadcast", lambda _, x: x)
-@mock.patch("lightning.fabric.strategies.fsdp._get_full_state_dict_context", return_value=MagicMock())
-@mock.patch("lightning.fabric.strategies.fsdp._get_sharded_state_dict_context", return_value=MagicMock())
-@mock.patch("lightning.fabric.strategies.fsdp.torch.save", return_value=Mock())
-@mock.patch("lightning.fabric.strategies.fsdp.shutil", return_value=MagicMock())
-def test_fsdp_save_checkpoint_path_exists(shutil_mock, torch_save_mock, __, ___, ____, tmp_path):
+@mock.patch("lightning.fabric.strategies.fsdp._get_full_state_dict_context")
+@mock.patch("lightning.fabric.strategies.fsdp._get_sharded_state_dict_context")
+@mock.patch("lightning.fabric.strategies.fsdp.torch.save")
+@mock.patch("lightning.fabric.strategies.fsdp.shutil")
+def test_fsdp_save_checkpoint_path_exists(shutil_mock, torch_save_mock, __, ___, tmp_path):
     strategy = FSDPStrategy(state_dict_type="full")
 
     # state_dict_type='full', path exists, path is not a sharded checkpoint: error
@@ -278,6 +279,11 @@ def test_fsdp_save_checkpoint_path_exists(shutil_mock, torch_save_mock, __, ___,
     torch_save_mock.assert_called_once()
 
     strategy = FSDPStrategy(state_dict_type="sharded")
+    save_mock = mock.patch(
+        "torch.distributed.checkpoint.save"
+        if _TORCH_GREATER_EQUAL_2_2
+        else "torch.distributed.checkpoint.save_state_dict"
+    )
 
     # state_dict_type='sharded', path exists, path is a folder: no error (overwrite)
     path = tmp_path / "not-empty-2"
@@ -285,7 +291,8 @@ def test_fsdp_save_checkpoint_path_exists(shutil_mock, torch_save_mock, __, ___,
     (path / "file").touch()
     model = Mock(spec=FullyShardedDataParallel)
     model.modules.return_value = [model]
-    strategy.save_checkpoint(path=path, state={"model": model})
+    with save_mock:
+        strategy.save_checkpoint(path=path, state={"model": model})
     assert (path / "file").exists()
 
     # state_dict_type='sharded', path exists, path is a file: no error (overwrite)
@@ -293,7 +300,8 @@ def test_fsdp_save_checkpoint_path_exists(shutil_mock, torch_save_mock, __, ___,
     path.touch()
     model = Mock(spec=FullyShardedDataParallel)
     model.modules.return_value = [model]
-    strategy.save_checkpoint(path=path, state={"model": model})
+    with save_mock:
+        strategy.save_checkpoint(path=path, state={"model": model})
     assert path.is_dir()
 
 

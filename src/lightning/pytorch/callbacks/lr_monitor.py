@@ -19,6 +19,7 @@ Learning Rate Monitor
 Monitor and logs learning rate for lr schedulers during training.
 
 """
+
 import itertools
 from collections import defaultdict
 from typing import Any, DefaultDict, Dict, List, Literal, Optional, Set, Tuple, Type
@@ -210,9 +211,9 @@ class LearningRateMonitor(Callback):
             current_stat = self._get_optimizer_stats(opt, names)
             latest_stat.update(current_stat)
 
-        trainer.callback_metrics.update(
-            {name: torch.tensor(value, device=trainer.strategy.root_device) for name, value in latest_stat.items()}
-        )
+        trainer.callback_metrics.update({
+            name: torch.tensor(value, device=trainer.strategy.root_device) for name, value in latest_stat.items()
+        })
 
         return latest_stat
 

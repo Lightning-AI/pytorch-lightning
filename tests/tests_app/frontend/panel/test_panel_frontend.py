@@ -1,4 +1,5 @@
 """The PanelFrontend wraps your Panel code in your LightningFlow."""
+
 # pylint: disable=protected-access, too-few-public-methods
 import os
 import runpy

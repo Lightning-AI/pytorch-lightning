@@ -41,10 +41,8 @@
 /src/lightning/pytorch/core/hooks.py         @williamfalcon @tchaton @awaelchli @carmocca
 /src/lightning/pytorch/core/module.py        @williamfalcon @tchaton @awaelchli @carmocca
 
-# Data Utilities
-/examples/data/           @tchaton @nohalon @justusschock @lantiga
+# Lightning Data
 /src/lightning/data/      @tchaton
-/tests/tests_data         @tchaton
 
 # Lightning Fabric
 /src/lightning/fabric                       @awaelchli @carmocca @justusschock

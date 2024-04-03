@@ -18,6 +18,7 @@ After a few epochs, launch TensorBoard to see the images being generated at ever
 tensorboard --logdir default
 
 """
+
 from argparse import ArgumentParser, Namespace
 
 import numpy as np

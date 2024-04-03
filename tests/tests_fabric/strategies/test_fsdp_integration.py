@@ -385,12 +385,10 @@ def test_setup_with_orig_params_and_multiple_param_groups():
         torch.nn.Linear(10, 10, bias=False),
         torch.nn.Linear(5, 2, bias=False),
     )
-    optimizer = torch.optim.Adam(
-        [
-            {"params": model[0].parameters(), "lr": 1e-2},
-            {"params": model[1].parameters(), "lr": 1e-6},
-        ]
-    )
+    optimizer = torch.optim.Adam([
+        {"params": model[0].parameters(), "lr": 1e-2},
+        {"params": model[1].parameters(), "lr": 1e-6},
+    ])
 
     # set up model and optimizer jointly
     wrapped_model, wrapped_optimizer = fabric.setup(model, optimizer)
@@ -441,7 +439,8 @@ def test_reapply_compile():
 
     # Smoke-testing forward to ensure we don't get compilation errors
     for _ in range(3):
-        fabric_model(torch.randn(2, 32, device=fabric.device)).sum().backward()
+        loss = fabric_model(torch.randn(2, 32, device=fabric.device)).sum()
+        fabric.backward(loss)
 
 
 @RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True)
@@ -622,8 +621,7 @@ def test_clip_gradients(clip_type, precision):
     optimizer.zero_grad()
 
 
-# TODO: Support checkpoint consolidation with PyTorch >= 2.2
-@RunIf(min_cuda_gpus=2, standalone=True, min_torch="2.1.0", max_torch="2.2.0")
+@RunIf(min_cuda_gpus=2, standalone=True, min_torch="2.3.0")
 def test_save_sharded_and_consolidate_and_load(tmp_path):
     """Test the consolidation of a FSDP-sharded checkpoint into a single file."""
 
@@ -640,7 +638,8 @@ def test_save_sharded_and_consolidate_and_load(tmp_path):
     state = {"model": model, "optimizer": optimizer, "steps": 1}
 
     # run one iteration to init the state of the optimizer
-    model(torch.rand(1, 32, device=fabric.device)).sum().backward()
+    loss = model(torch.rand(1, 32, device=fabric.device)).sum()
+    fabric.backward(loss)
     optimizer.step()
 
     checkpoint_path_sharded = fabric.broadcast(str(tmp_path / "checkpoint_sharded"))

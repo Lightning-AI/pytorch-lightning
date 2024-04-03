@@ -18,7 +18,6 @@ from pathlib import Path
 from typing import Tuple, Union
 
 import click
-from lightning_utilities.core.imports import RequirementCache
 from requests.exceptions import ConnectionError
 
 import lightning.app.core.constants as constants
@@ -179,7 +178,7 @@ def _run_app(
 ) -> None:
     if not os.path.exists(file):
         original_file = file
-        file = cmd_install.gallery_apps_and_components(file, True, "latest", overwrite=True)  # type: ignore[assignment]  # noqa E501
+        file = cmd_install.gallery_apps_and_components(file, True, "latest", overwrite=True)  # type: ignore[assignment]  # E501
         if file is None:
             click.echo(f"The provided entrypoint `{original_file}` doesn't exist.")
             sys.exit(1)
@@ -303,13 +302,6 @@ def run_app(
     )
 
 
-if RequirementCache("lightning-fabric>=1.9.0") or RequirementCache("lightning>=1.9.0"):
-    # note it is automatically replaced to `from lightning.fabric.cli` when building monolithic/mirror package
-    from lightning.fabric.cli import _run_model
-
-    run.add_command(_run_model)
-
-
 @_main.command("open", hidden=True)
 @click.argument("path", type=str, default=".")
 @click.option("--name", help="The name to use for the CloudSpace", default="", type=str)
@@ -363,7 +355,7 @@ def init_pl_app(source: Union[Tuple[str], Tuple[str, str]], name: str, overwrite
         source_dir = str(Path(script_path).resolve().parent)
     elif len(source) == 2:
         # enable type checking once https://github.com/python/mypy/issues/1178 is available
-        source_dir, script_path = source  # type: ignore
+        source_dir, script_path = source
     else:
         click.echo(
             f"Incorrect number of arguments. You passed ({', '.join(source)}) but only either one argument"

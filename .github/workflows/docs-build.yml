@@ -62,6 +62,7 @@ jobs:
         target: ["html", "doctest", "linkcheck"]
     env:
       DOCS_COPY_NOTEBOOKS: 1
+      PIN_RELEASE_VERSIONS: 1
       ARTIFACT_DAYS: 0
     steps:
       - uses: actions/checkout@v4
@@ -80,7 +81,7 @@ jobs:
           pip install lai-sphinx-theme -U -f ${PYPI_LOCAL_DIR}
 
       - name: pip wheels cache
-        uses: actions/cache/restore@v3
+        uses: actions/cache/restore@v4
         with:
           path: ${{ env.PYPI_CACHE_DIR }}
           key: pypi_wheels
@@ -90,7 +91,7 @@ jobs:
         timeout-minutes: 5
         run: |
           sudo apt-get update --fix-missing
-          sudo apt-get install -y pandoc texlive-latex-extra dvipng texlive-pictures
+          sudo apt-get install -y pandoc
       - name: Install package & dependencies
         timeout-minutes: 20
         run: |
@@ -109,6 +110,8 @@ jobs:
         run: echo "DOCS_FETCH_ASSETS=1" >> $GITHUB_ENV
       - name: Make ${{ matrix.target }}
         working-directory: ./docs/source-${{ matrix.pkg-name }}
+        # allow failing link check and doctest if you run with dispatch
+        continue-on-error: ${{ (matrix.target == 'doctest' || matrix.target == 'linkcheck')  && github.event_name == 'workflow_dispatch' }}
         run: make ${{ matrix.target }} --debug --jobs $(nproc) SPHINXOPTS="-W --keep-going"
 
       - name: Keep artifact

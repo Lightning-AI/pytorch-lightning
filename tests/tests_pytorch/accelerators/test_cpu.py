@@ -29,7 +29,7 @@ def test_availability():
 
 
 @RunIf(psutil=True)
-def test_get_device_stats(tmpdir):
+def test_get_device_stats(tmp_path):
     gpu_stats = CPUAccelerator().get_device_stats(Mock())
     fields = ["cpu_vm_percent", "cpu_percent", "cpu_swap_percent"]
 
@@ -38,7 +38,7 @@ def test_get_device_stats(tmpdir):
 
 
 @pytest.mark.parametrize("restore_after_pre_setup", [True, False])
-def test_restore_checkpoint_after_pre_setup(tmpdir, restore_after_pre_setup):
+def test_restore_checkpoint_after_pre_setup(tmp_path, restore_after_pre_setup):
     """Test to ensure that if restore_checkpoint_after_setup is True, then we only load the state after pre- dispatch
     is called."""
 
@@ -58,10 +58,10 @@ def test_restore_checkpoint_after_pre_setup(tmpdir, restore_after_pre_setup):
             return super().load_checkpoint(checkpoint_path)
 
     model = BoringModel()
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
+    trainer = Trainer(default_root_dir=tmp_path, fast_dev_run=True)
     trainer.fit(model)
 
-    checkpoint_path = os.path.join(tmpdir, "model.pt")
+    checkpoint_path = os.path.join(tmp_path, "model.pt")
     trainer.save_checkpoint(checkpoint_path)
 
     plugin = TestPlugin(
@@ -72,7 +72,7 @@ def test_restore_checkpoint_after_pre_setup(tmpdir, restore_after_pre_setup):
     )
     assert plugin.restore_checkpoint_after_setup == restore_after_pre_setup
 
-    trainer = Trainer(default_root_dir=tmpdir, strategy=plugin, fast_dev_run=True)
+    trainer = Trainer(default_root_dir=tmp_path, strategy=plugin, fast_dev_run=True)
     trainer.fit(model, ckpt_path=checkpoint_path)
     for func in (trainer.test, trainer.validate, trainer.predict):
         plugin.setup_called = False

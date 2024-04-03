@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import sys
 from re import escape
 from typing import Sized
 from unittest import mock
@@ -20,7 +19,6 @@ from unittest.mock import Mock
 import lightning.fabric
 import pytest
 from lightning.fabric.utilities.distributed import DistributedSamplerWrapper
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_2
 from lightning.fabric.utilities.warnings import PossibleUserWarning
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringDataModule, BoringModel, RandomDataset
@@ -125,11 +123,6 @@ class TestSpawnBoringModel(BoringModel):
             self.ctx.__exit__(None, None, None)
 
 
-@pytest.mark.xfail(
-    # https://github.com/pytorch/pytorch/issues/116056
-    sys.platform == "win32" and _TORCH_GREATER_EQUAL_2_2,
-    reason="Windows + DDP issue in PyTorch 2.2",
-)
 @pytest.mark.parametrize("num_workers", [0, 1, 2])
 def test_dataloader_persistent_workers_performance_warning(num_workers, tmp_path):
     """Test that when the multiprocessing start-method is 'spawn', we recommend setting `persistent_workers=True`."""
@@ -430,18 +423,17 @@ def test_error_raised_with_float_limited_eval_batches():
         (DataLoader(dataset=RandomDataset(32, 64), sampler=list(range(64))), False),
         (CombinedLoader(DataLoader(dataset=RandomDataset(32, 64), shuffle=True)), True),
         (
-            CombinedLoader(
-                [DataLoader(dataset=RandomDataset(32, 64)), DataLoader(dataset=RandomDataset(32, 64), shuffle=True)]
-            ),
+            CombinedLoader([
+                DataLoader(dataset=RandomDataset(32, 64)),
+                DataLoader(dataset=RandomDataset(32, 64), shuffle=True),
+            ]),
             True,
         ),
         (
-            CombinedLoader(
-                {
-                    "dl1": DataLoader(dataset=RandomDataset(32, 64)),
-                    "dl2": DataLoader(dataset=RandomDataset(32, 64), shuffle=True),
-                }
-            ),
+            CombinedLoader({
+                "dl1": DataLoader(dataset=RandomDataset(32, 64)),
+                "dl2": DataLoader(dataset=RandomDataset(32, 64), shuffle=True),
+            }),
             True,
         ),
     ],

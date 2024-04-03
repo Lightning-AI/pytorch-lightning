@@ -66,12 +66,10 @@ def start_application_server(
     if isinstance(queues, Dict):
         kwargs.update(queues)
     else:
-        kwargs.update(
-            {
-                "api_publish_state_queue": queue_system.get_api_state_publish_queue(queue_id=queue_id),
-                "api_response_queue": queue_system.get_api_response_queue(queue_id=queue_id),
-            }
-        )
+        kwargs.update({
+            "api_publish_state_queue": queue_system.get_api_state_publish_queue(queue_id=queue_id),
+            "api_response_queue": queue_system.get_api_response_queue(queue_id=queue_id),
+        })
 
     app = load_app_from_file(entrypoint_file)
 

@@ -103,13 +103,13 @@ def test_fabric_module_method_lookup():
 
     # Regular case: forward_module == original_module -> no warnings
     original_module = OriginalModule()
-    fabric_module = _FabricModule(forward_module=original_module, precision=Mock(), original_module=original_module)
+    fabric_module = _FabricModule(forward_module=original_module, strategy=Mock(), original_module=original_module)
     assert fabric_module.method_without_module_invocation() == 100
 
     # Special case: original module wrapped by forward module: -> warn if method accepts args
     original_module = OriginalModule()
     wrapped_module = ModuleWrapper(original_module)
-    fabric_module = _FabricModule(forward_module=wrapped_module, precision=Mock(), original_module=original_module)
+    fabric_module = _FabricModule(forward_module=wrapped_module, strategy=Mock(), original_module=original_module)
     assert fabric_module.method_without_module_invocation() == 100
     with pytest.raises(
         RuntimeError, match=r"You are calling the method `OriginalModule.method_with_submodule_invocation\(\)` from"
@@ -155,6 +155,9 @@ def test_fabric_module_setattr():
 
     # Modify existing attribute on original_module
     fabric_module.attribute = 101
+    # "attribute" is only in the original_module, so it shouldn't get set in the fabric_module
+    assert "attribute" not in fabric_module.__dict__
+    assert fabric_module.attribute == 101  # returns it from original_module
     assert original_module.attribute == 101
 
     # Check setattr of original_module
@@ -169,6 +172,23 @@ def test_fabric_module_setattr():
     assert isinstance(original_module.linear, torch.nn.Module)
     assert linear in fabric_module.modules()
     assert linear in original_module.modules()
+
+    # Check monkeypatching of methods
+    fabric_module = _FabricModule(Mock(), Mock())
+    original = id(fabric_module.forward)
+    fabric_module.forward = lambda *_: None
+    assert id(fabric_module.forward) != original
+    # Check special methods
+    assert "__repr__" in dir(fabric_module)
+    assert "__repr__" not in fabric_module.__dict__
+    assert "__repr__" not in _FabricModule.__dict__
+    fabric_module.__repr__ = lambda *_: "test"
+    assert fabric_module.__repr__() == "test"
+    # needs to be monkeypatched on the class for `repr()` to change
+    assert repr(fabric_module) == "_FabricModule()"
+    with mock.patch.object(_FabricModule, "__repr__", return_value="test"):
+        assert fabric_module.__repr__() == "test"
+        assert repr(fabric_module) == "test"
 
 
 def test_fabric_module_state_dict_access():
@@ -254,7 +274,7 @@ def test_fabric_module_forward_conversion(precision, input_type, expected_type, 
         return forward_input
 
     module = Mock(wraps=torch.nn.Identity(), side_effect=check_autocast)
-    fabric_module = _FabricModule(module, fabric._precision).to(device)
+    fabric_module = _FabricModule(module, fabric._strategy).to(device)
     out = fabric_module(torch.tensor([1, 2, 3], dtype=input_type, device=device))
     assert module.call_args[0][0].dtype == expected_type
     assert out.dtype == input_type or out.dtype == torch.get_default_dtype()
@@ -560,10 +580,11 @@ def test_step_method_redirection():
         def normal_method(self):
             pass
 
-    precision = Mock(wraps=Precision())
+    strategy = Mock()
+    strategy.precision = Mock(wraps=Precision())
     original_module = LightningModule()
     forward_module = DDP(original_module)
-    fabric_module = _FabricModule(forward_module=forward_module, precision=precision, original_module=original_module)
+    fabric_module = _FabricModule(forward_module=forward_module, strategy=strategy, original_module=original_module)
 
     # Regular methods on the original_module are visible and identical on the fabric_module ...
     assert fabric_module.normal_method.__wrapped__ == original_module.normal_method
@@ -585,13 +606,13 @@ def test_step_method_redirection():
     assert fabric_module.training_step("train_arg", kwarg="train_kwarg") == "training_step_return"
     assert fabric_module.training_step("train_arg", kwarg="train_kwarg") == "training_step_return"  # call 2nd time
     assert fabric_module.validation_step("val_arg", kwarg="val_kwarg") == "validation_step_return"
-    precision.forward_context.assert_called()
+    strategy.precision.forward_context.assert_called()
 
     # The forward method remains untouched/unpatched after the special methods have been called
     assert original_module.forward.__name__ == "forward"
 
     # Special case: forward_module == original_module -> no special treatment applied
-    fabric_module = _FabricModule(forward_module=original_module, precision=Mock(), original_module=original_module)
+    fabric_module = _FabricModule(forward_module=original_module, strategy=Mock(), original_module=original_module)
     assert fabric_module.training_step == original_module.training_step
     assert fabric_module.validation_step == original_module.validation_step
 
@@ -599,6 +620,9 @@ def test_step_method_redirection():
 @RunIf(dynamo=True)
 def test_unwrap_compiled():
     model = torch.nn.Linear(1, 1)
+
+    # We wrap `torch.compile` on import of lightning in `wrappers.py`
+    assert torch.compile.__wrapped__
 
     with mock.patch("lightning.fabric.wrappers", "_TORCH_GREATER_EQUAL_2_0", False):
         unwrapped, compile_kwargs = _unwrap_compiled(model)
@@ -614,3 +638,12 @@ def test_unwrap_compiled():
     del compiled._compile_kwargs
     with pytest.raises(RuntimeError, match="Failed to determine the arguments that were used to compile the module"):
         _unwrap_compiled(compiled)
+
+    # can still be applied as decorator
+    @torch.compile()
+    def cos(x):
+        return torch.cos(x)
+
+    @torch.compile
+    def sin(x):
+        return torch.sin(x)

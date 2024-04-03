@@ -12,8 +12,7 @@ from lightning.pytorch.strategies import DDPStrategy, FSDPStrategy
 
 def test_configure_sharded_model():
     class MyModel(BoringModel):
-        def configure_sharded_model(self) -> None:
-            ...
+        def configure_sharded_model(self) -> None: ...
 
     model = MyModel()
     trainer = Trainer(devices=1, accelerator="cpu", fast_dev_run=1)
@@ -21,8 +20,7 @@ def test_configure_sharded_model():
         trainer.fit(model)
 
     class MyModelBoth(MyModel):
-        def configure_model(self):
-            ...
+        def configure_model(self): ...
 
     model = MyModelBoth()
     with pytest.raises(

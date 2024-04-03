@@ -116,12 +116,10 @@ class TransformerEnginePrecision(Precision):
         if self.replace_layers:
             import transformer_engine.pytorch as te
 
-            context_manager = _ClassReplacementContextManager(
-                {
-                    "torch.nn.Linear": te.Linear,
-                    "torch.nn.LayerNorm": te.LayerNorm,
-                }
-            )
+            context_manager = _ClassReplacementContextManager({
+                "torch.nn.Linear": te.Linear,
+                "torch.nn.LayerNorm": te.LayerNorm,
+            })
             stack.enter_context(context_manager)
         stack.enter_context(dtype_ctx)
         return stack

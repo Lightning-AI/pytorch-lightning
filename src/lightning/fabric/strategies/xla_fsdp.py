@@ -124,7 +124,7 @@ class XLAFSDPStrategy(ParallelStrategy, _Sharded):
     def num_processes(self) -> int:
         return len(self.parallel_devices) if self.parallel_devices is not None else 0
 
-    @property  # type: ignore[override]
+    @property
     @override
     def checkpoint_io(self) -> XLACheckpointIO:
         plugin = self._checkpoint_io
@@ -140,7 +140,7 @@ class XLAFSDPStrategy(ParallelStrategy, _Sharded):
             raise TypeError(f"The XLA strategy can only work with the `XLACheckpointIO` plugin, found {io}")
         self._checkpoint_io = io
 
-    @property  # type: ignore[override]
+    @property
     @override
     def precision(self) -> XLAPrecision:
         plugin = self._precision
@@ -679,9 +679,11 @@ def _activation_checkpointing_kwargs(policy: Optional[_POLICY_SET], kwargs: Dict
 
 class _XLAFSDPBackwardSyncControl(_BackwardSyncControl):
     @override
-    def no_backward_sync(self, module: Module) -> ContextManager:
+    def no_backward_sync(self, module: Module, enabled: bool) -> ContextManager:
         """Blocks gradient synchronization inside the :class:`~torch_xla.distributed.fsdp.XlaFullyShardedDataParallel`
         wrapper."""
+        if not enabled:
+            return nullcontext()
         from torch_xla.distributed.fsdp import XlaFullyShardedDataParallel as XLAFSDP
 
         if not isinstance(module, XLAFSDP):

@@ -44,11 +44,7 @@ REQUIREMENT_FILES = {
         "requirements/fabric/base.txt",
         "requirements/fabric/strategies.txt",
     ),
-    "data": (
-        "requirements/data/data.txt",
-        "requirements/data/cloud.txt",
-        "requirements/data/examples.txt",
-    ),
+    "data": ("requirements/data/data.txt",),
 }
 REQUIREMENT_FILES_ALL = list(chain(*REQUIREMENT_FILES.values()))
 
@@ -363,17 +359,19 @@ def copy_replace_imports(
 
 
 def create_mirror_package(source_dir: str, package_mapping: Dict[str, str]) -> None:
+    """Create a mirror package with adjusted imports."""
     # replace imports and copy the code
     mapping = package_mapping.copy()
     mapping.pop("lightning", None)  # pop this key to avoid replacing `lightning` to `lightning.lightning`
 
     mapping = {f"lightning.{sp}": sl for sp, sl in mapping.items()}
     for pkg_from, pkg_to in mapping.items():
+        source_imports, target_imports = zip(*mapping.items())
         copy_replace_imports(
             source_dir=os.path.join(source_dir, pkg_from.replace(".", os.sep)),
             # pytorch_lightning uses lightning_fabric, so we need to replace all imports for all directories
-            source_imports=mapping.keys(),
-            target_imports=mapping.values(),
+            source_imports=source_imports,
+            target_imports=target_imports,
             target_dir=os.path.join(source_dir, pkg_to.replace(".", os.sep)),
             lightning_by=pkg_from,
         )
@@ -504,6 +502,21 @@ class AssistantCLI:
             page = ":orphan:\n\n" + page
         with open(rst_out, "w", encoding="utf-8") as fopen:
             fopen.write(page)
+
+    @staticmethod
+    def convert_version2nightly(ver_file: str = "src/version.info") -> None:
+        """Load the actual version and convert it to the nightly version."""
+        from datetime import datetime
+
+        with open(ver_file) as fo:
+            version = fo.read().strip()
+        # parse X.Y.Z version and prune any suffix
+        vers = re.match(r"(\d+)\.(\d+)\.(\d+).*", version)
+        # create timestamp  YYYYMMDD
+        timestamp = datetime.now().strftime("%Y%m%d")
+        version = f"{'.'.join(vers.groups())}.dev{timestamp}"
+        with open(ver_file, "w") as fo:
+            fo.write(version + os.linesep)
 
 
 if __name__ == "__main__":

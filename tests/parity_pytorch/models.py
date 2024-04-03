@@ -37,9 +37,10 @@ class ParityModuleCIFAR(LightningModule):
         self.classifier = torch.nn.Sequential(
             torch.nn.Linear(1000, hidden_dim), torch.nn.Linear(hidden_dim, self.num_classes)
         )
-        self.transform = transforms.Compose(
-            [transforms.ToTensor(), transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))]
-        )
+        self.transform = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
+        ])
         self._loss = []  # needed for checking if the loss is the same as vanilla torch
 
     def training_step(self, batch, batch_idx):

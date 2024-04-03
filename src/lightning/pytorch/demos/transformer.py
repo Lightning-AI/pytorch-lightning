@@ -4,6 +4,7 @@ Code is adapted from the PyTorch examples at
 https://github.com/pytorch/examples/blob/main/word_language_model
 
 """
+
 import math
 import os
 from pathlib import Path
@@ -61,7 +62,7 @@ class Transformer(nn.Module):
         # we assume target is already shifted w.r.t. inputs
         if mask is None:
             mask = torch.tril(torch.ones(t, t, device=inputs.device)) == 1
-            mask = mask.float().masked_fill(mask == 0, float("-inf")).masked_fill(mask == 1, float(0.0))
+            mask = mask.float().masked_fill(mask == 0, float("-inf")).masked_fill(mask == 1, 0.0)
 
         src = self.pos_encoder(self.embedding(inputs) * math.sqrt(self.ninp))
         target = self.pos_encoder(self.embedding(target) * math.sqrt(self.ninp))

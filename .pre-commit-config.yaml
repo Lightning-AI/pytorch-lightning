@@ -50,13 +50,6 @@ repos:
           )$
       - id: detect-private-key
 
-  - repo: https://github.com/asottile/pyupgrade
-    rev: v3.15.0
-    hooks:
-      - id: pyupgrade
-        args: ["--py38-plus"]
-        name: Upgrade code
-
   - repo: https://github.com/codespell-project/codespell
     rev: v2.2.6
     hooks:
@@ -71,23 +64,21 @@ repos:
         additional_dependencies: [tomli]
         args: ["--in-place"]
 
-  - repo: https://github.com/asottile/yesqa
-    rev: v1.5.0
+  - repo: https://github.com/sphinx-contrib/sphinx-lint
+    rev: v0.9.1
     hooks:
-      - id: yesqa
-        name: Unused noqa
-        additional_dependencies:
-          #- pep8-naming
-          - flake8-pytest-style
-          - flake8-bandit
-          - flake8-simplify
-          - flake8-return
+      - id: sphinx-lint
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: "v0.1.15"
+    rev: v0.3.2
     hooks:
+      # try to fix what is possible
       - id: ruff
-        args: ["--fix", "--preview"]
+        args: ["--fix"]
+      # perform formatting updates
+      - id: ruff-format
+      # validate if all is fine with preview mode
+      - id: ruff
 
   - repo: https://github.com/executablebooks/mdformat
     rev: 0.7.17
@@ -100,7 +91,6 @@ repos:
         exclude: |
           (?x)^(
               src/lightning/app/CHANGELOG.md|
-              src/lightning/data/CHANGELOG.md|
               src/lightning/fabric/CHANGELOG.md|
               src/lightning/pytorch/CHANGELOG.md|
               README.md

@@ -46,8 +46,8 @@ jobs:
           - { os: "macOS-11", pkg-name: "lightning", python-version: "3.11", pytorch-version: "2.1" }
           - { os: "ubuntu-20.04", pkg-name: "lightning", python-version: "3.11", pytorch-version: "2.1" }
           - { os: "windows-2022", pkg-name: "lightning", python-version: "3.11", pytorch-version: "2.1" }
-          - { os: "macOS-12", pkg-name: "lightning", python-version: "3.11", pytorch-version: "2.2" }
-          - { os: "ubuntu-22.04", pkg-name: "lightning", python-version: "3.11", pytorch-version: "2.2" }
+          - { os: "macOS-11", pkg-name: "lightning", python-version: "3.11", pytorch-version: "2.2" }
+          - { os: "ubuntu-20.04", pkg-name: "lightning", python-version: "3.11", pytorch-version: "2.2" }
           - { os: "windows-2022", pkg-name: "lightning", python-version: "3.11", pytorch-version: "2.2" }
           # only run PyTorch latest with Python latest, use Fabric scope to limit dependency issues
           - { os: "macOS-12", pkg-name: "fabric", python-version: "3.11", pytorch-version: "2.0" }
@@ -114,7 +114,7 @@ jobs:
           done
 
       - name: pip wheels cache
-        uses: actions/cache/restore@v3
+        uses: actions/cache/restore@v4
         with:
           path: ${{ env.PYPI_CACHE_DIR }}
           key: pypi_wheels
@@ -173,7 +173,7 @@ jobs:
           coverage xml
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v4
         # see: https://github.com/actions/toolkit/issues/399
         continue-on-error: true
         with:
