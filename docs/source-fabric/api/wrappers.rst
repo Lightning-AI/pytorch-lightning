@@ -19,7 +19,7 @@ This wrapper module takes care of a few things for you, notably:
 
 - Strategy: Handles strategy-specific logic for the forward method (DDP, FSDP, etc.).
 - Precision: Inputs and outputs passed through ``forward`` get automatically converted to the right precision depending on the ``Fabric(precision=...)`` setting.
-- Device: The wrapper remembers which device the model is on, you can access `model.device`.
+- Device: The wrapper remembers which device the model is on. You can access it with `model.device`.
 
 .. note::
     The FabricModule wrapper is completely transparent and most users will never need to interact with it directly.
