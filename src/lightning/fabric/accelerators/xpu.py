@@ -58,6 +58,7 @@ class XPUAccelerator(Accelerator):
         # Carefully check before trying to import:
         if _IPEX_AVAILABLE:
             import intel_extension_for_pytorch as ipex
+
             return ipex.xpu.is_available()
         return False
 
@@ -83,6 +84,7 @@ class XPUAccelerator(Accelerator):
             description=cls.__name__,
         )
 
+
 _IPEX_AVAILABLE = RequirementCache("intel_extension_for_pytorch>=2.0", "intel_extension_for_pytorch")
 
 
@@ -96,8 +98,10 @@ def num_xpu_devices() -> int:
     """
     if _IPEX_AVAILABLE:
         import intel_extension_for_pytorch as ipex
+
         return ipex.xpu.device_count()
     return 0
+
 
 def _get_all_visible_xpu_devices() -> List[int]:
     """Returns a list of all visible Intel XPU devices.
