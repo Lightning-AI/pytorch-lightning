@@ -424,7 +424,7 @@ class _BackwardSyncControl(ABC):
     """
 
     @abstractmethod
-    def no_backward_sync(self, module: Module) -> ContextManager:
+    def no_backward_sync(self, module: Module, enabled: bool) -> ContextManager:
         """Blocks the synchronization of gradients during the backward pass.
 
         This is a context manager. It is only effective if it wraps a call to `.backward()`.

@@ -63,7 +63,7 @@ def _catch_inactive(func: Callable) -> Callable:
 
 
 class NeptuneLogger(Logger):
-    r"""Log using `Neptune <https://neptune.ai>`_.
+    r"""Log using `Neptune <https://docs.neptune.ai/integrations/lightning/>`_.
 
     Install it with pip:
 
@@ -198,14 +198,14 @@ class NeptuneLogger(Logger):
 
     Args:
         api_key: Optional.
-            Neptune API token, found on https://neptune.ai upon registration.
+            Neptune API token, found on https://www.neptune.ai upon registration.
             You should save your token to the `NEPTUNE_API_TOKEN`
             environment variable and leave the api_key argument out of your code.
             Instructions: `Setting your API token <https://docs.neptune.ai/setup/setting_api_token/>`_.
         project: Optional.
             Name of a project in the form "workspace-name/project-name", for example "tom/mask-rcnn".
             If ``None``, the value of `NEPTUNE_PROJECT` environment variable is used.
-            You need to create the project on https://neptune.ai first.
+            You need to create the project on https://www.neptune.ai first.
         name: Optional. Editable name of the run.
             The run name is displayed in the Neptune web app.
         run: Optional. Default is ``None``. A Neptune ``Run`` object.

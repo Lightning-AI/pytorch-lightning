@@ -9,6 +9,10 @@ inputs:
     description: nb of packages in the wrap/distribution
     required: false
     default: "1"
+  allow-local-changes:
+    description: allow changes in the local git repo
+    required: false
+    default: "false"
 
 runs:
   using: "composite"
@@ -30,9 +34,13 @@ runs:
       run: python setup.py sdist bdist_wheel
       shell: bash
 
+    - name: Make sure there are no local unstated changes
+      if: ${{ inputs.allow-local-changes != 'true' }}
+      run: git diff --exit-code || exit $?
+      shell: bash
+
     - name: Check package
       run: |
-        git diff --exit-code || exit $?  # make sure there are no local unstaged changes
         ls -l dist/
         twine check dist/*
       shell: bash

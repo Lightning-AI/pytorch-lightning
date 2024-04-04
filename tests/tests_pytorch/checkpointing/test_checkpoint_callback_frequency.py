@@ -22,7 +22,7 @@ from lightning.pytorch.demos.boring_classes import BoringModel
 from tests_pytorch.helpers.runif import RunIf
 
 
-def test_disabled_checkpointing(tmpdir):
+def test_disabled_checkpointing():
     # no callback
     trainer = Trainer(max_epochs=3, enable_checkpointing=False)
     assert not trainer.checkpoint_callbacks
@@ -34,10 +34,10 @@ def test_disabled_checkpointing(tmpdir):
 @pytest.mark.parametrize(
     ("epochs", "val_check_interval", "expected"), [(1, 1.0, 1), (2, 1.0, 2), (1, 0.25, 4), (2, 0.3, 6)]
 )
-def test_default_checkpoint_freq(save_mock, tmpdir, epochs: int, val_check_interval: float, expected: int):
+def test_default_checkpoint_freq(save_mock, tmp_path, epochs: int, val_check_interval: float, expected: int):
     model = BoringModel()
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         max_epochs=epochs,
         enable_model_summary=False,
         val_check_interval=val_check_interval,
@@ -55,7 +55,7 @@ def test_default_checkpoint_freq(save_mock, tmpdir, epochs: int, val_check_inter
     ("k", "epochs", "val_check_interval", "expected"), [(1, 1, 1.0, 1), (2, 2, 1.0, 2), (2, 1, 0.25, 4), (2, 2, 0.3, 6)]
 )
 @pytest.mark.parametrize("save_last", [False, True, "link"])
-def test_top_k(save_mock, tmpdir, k, epochs, val_check_interval, expected, save_last):
+def test_top_k(save_mock, tmp_path, k, epochs, val_check_interval, expected, save_last):
     class TestModel(BoringModel):
         def __init__(self):
             super().__init__()
@@ -71,8 +71,8 @@ def test_top_k(save_mock, tmpdir, k, epochs, val_check_interval, expected, save_
 
     model = TestModel()
     trainer = Trainer(
-        callbacks=[callbacks.ModelCheckpoint(dirpath=tmpdir, monitor="my_loss", save_top_k=k, save_last=save_last)],
-        default_root_dir=tmpdir,
+        callbacks=[callbacks.ModelCheckpoint(dirpath=tmp_path, monitor="my_loss", save_top_k=k, save_last=save_last)],
+        default_root_dir=tmp_path,
         max_epochs=epochs,
         enable_model_summary=False,
         val_check_interval=val_check_interval,
@@ -87,7 +87,7 @@ def test_top_k(save_mock, tmpdir, k, epochs, val_check_interval, expected, save_
 @mock.patch("torch.save")
 @RunIf(min_cuda_gpus=2, standalone=True)
 @pytest.mark.parametrize(("k", "epochs", "val_check_interval", "expected"), [(1, 1, 1.0, 1), (2, 2, 0.3, 4)])
-def test_top_k_ddp(save_mock, tmpdir, k, epochs, val_check_interval, expected):
+def test_top_k_ddp(save_mock, tmp_path, k, epochs, val_check_interval, expected):
     class TestModel(BoringModel):
         def training_step(self, batch, batch_idx):
             local_rank = int(os.getenv("LOCAL_RANK"))
@@ -106,8 +106,8 @@ def test_top_k_ddp(save_mock, tmpdir, k, epochs, val_check_interval, expected):
 
     model = TestModel()
     trainer = Trainer(
-        callbacks=[callbacks.ModelCheckpoint(dirpath=tmpdir, monitor="my_loss_step", save_top_k=k, mode="max")],
-        default_root_dir=tmpdir,
+        callbacks=[callbacks.ModelCheckpoint(dirpath=tmp_path, monitor="my_loss_step", save_top_k=k, mode="max")],
+        default_root_dir=tmp_path,
         enable_progress_bar=False,
         max_epochs=epochs,
         enable_model_summary=False,
