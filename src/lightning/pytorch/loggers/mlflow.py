@@ -42,6 +42,7 @@ if TYPE_CHECKING:
 log = logging.getLogger(__name__)
 LOCAL_FILE_URI_PREFIX = "file:"
 _MLFLOW_AVAILABLE = RequirementCache("mlflow>=1.0.0", "mlflow")
+_MLFLOW_SYNCHRONOUS_AVAILABLE = RequirementCache("mlflow>=2.8.0", "mlflow")
 
 
 class MLFlowLogger(Logger):
@@ -100,6 +101,8 @@ class MLFlowLogger(Logger):
         artifact_location: The location to store run artifacts. If not provided, the server picks an appropriate
             default.
         run_id: The run identifier of the experiment. If not provided, a new run is started.
+        synchronous: Hints mlflow whether to block the execution for every logging call until complete where
+            applicable. Requires mlflow >= 2.8.0
 
     Raises:
         ModuleNotFoundError:
@@ -120,9 +123,12 @@ class MLFlowLogger(Logger):
         prefix: str = "",
         artifact_location: Optional[str] = None,
         run_id: Optional[str] = None,
+        synchronous: Optional[bool] = None,
     ):
         if not _MLFLOW_AVAILABLE:
             raise ModuleNotFoundError(str(_MLFLOW_AVAILABLE))
+        if synchronous is not None and not _MLFLOW_SYNCHRONOUS_AVAILABLE:
+            raise ModuleNotFoundError("`synchronous` requires mlflow>=2.8.0")
         super().__init__()
         if not tracking_uri:
             tracking_uri = f"{LOCAL_FILE_URI_PREFIX}{save_dir}"
@@ -138,7 +144,7 @@ class MLFlowLogger(Logger):
         self._checkpoint_callback: Optional[ModelCheckpoint] = None
         self._prefix = prefix
         self._artifact_location = artifact_location
-
+        self._log_batch_kwargs = {} if synchronous is None else {"synchronous": synchronous}
         self._initialized = False
 
         from mlflow.tracking import MlflowClient
@@ -233,7 +239,7 @@ class MLFlowLogger(Logger):
 
         # Log in chunks of 100 parameters (the maximum allowed by MLflow).
         for idx in range(0, len(params_list), 100):
-            self.experiment.log_batch(run_id=self.run_id, params=params_list[idx : idx + 100])
+            self.experiment.log_batch(run_id=self.run_id, params=params_list[idx : idx + 100], **self._log_batch_kwargs)
 
     @override
     @rank_zero_only
@@ -261,7 +267,7 @@ class MLFlowLogger(Logger):
                 k = new_k
             metrics_list.append(Metric(key=k, value=v, timestamp=timestamp_ms, step=step or 0))
 
-        self.experiment.log_batch(run_id=self.run_id, metrics=metrics_list)
+        self.experiment.log_batch(run_id=self.run_id, metrics=metrics_list, **self._log_batch_kwargs)
 
     @override
     @rank_zero_only
