@@ -86,6 +86,11 @@ if TYPE_CHECKING:
 
     _SHARDING_STRATEGY = Union[ShardingStrategy, Literal["FULL_SHARD", "SHARD_GRAD_OP", "NO_SHARD", "HYBRID_SHARD"]]
 
+    if _TORCH_GREATER_EQUAL_2_2:
+        from torch.distributed._tensor import DeviceMesh
+    else:
+        DeviceMesh = None
+
 _FSDP_ALIASES = ("fsdp", "fsdp_cpu_offload")
 
 
@@ -158,6 +163,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         activation_checkpointing_policy: Optional["_POLICY"] = None,
         sharding_strategy: "_SHARDING_STRATEGY" = "FULL_SHARD",
         state_dict_type: Literal["full", "sharded"] = "sharded",
+        device_mesh: Optional[Union[Tuple[int], "DeviceMesh"]] = None,
         **kwargs: Any,
     ) -> None:
         super().__init__(
@@ -175,6 +181,11 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         if _TORCH_GREATER_EQUAL_2_0:
             # Enables joint setup of model and optimizer, multiple optimizer param groups, and `torch.compile()`
             self._fsdp_kwargs.setdefault("use_orig_params", True)
+
+        if device_mesh is not None:
+            if not _TORCH_GREATER_EQUAL_2_2:
+                raise ValueError("The device_mesh argument is only supported in torch >= 2.2.")
+            self._fsdp_kwargs["device_mesh"] = device_mesh
 
         self._activation_checkpointing_kwargs = _activation_checkpointing_kwargs(
             activation_checkpointing, activation_checkpointing_policy
