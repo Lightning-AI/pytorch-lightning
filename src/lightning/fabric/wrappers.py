@@ -172,8 +172,15 @@ class _FabricModule(_DeviceDtypeModuleMixin):
         return self._original_module.load_state_dict(state_dict=state_dict, strict=strict, **kwargs)
 
     def mark_forward_method(self, method: Union[MethodType, str]) -> None:
+        """Mark a method as a 'forward' method to prevent it bypassing the strategy wrapper (e.g., DDP)."""
         name = method if isinstance(method, str) else method.__name__
-        assert hasattr(self._original_module, name)
+        if name == "forward":
+            raise ValueError("You cannot mark the forward method itself as a forward method.")
+        if not inspect.ismethod(getattr(self._original_module, name, None)):
+            raise AttributeError(
+                f"You marked '{name}' as a forward method, but `{type(self._original_module).__name__}.{name}` does not"
+                f" exist or is not a method."
+            )
         self._forward_methods.add(name)
 
     def _redirection_through_forward(self, method_name: str) -> Callable:

@@ -125,6 +125,42 @@ def test_fabric_module_method_lookup():
     assert fabric_module.method_with_self_invocation() == 102
 
 
+def test_fabric_module_mark_forward_method():
+
+    class OriginalModule(torch.nn.Module):
+        attribute = 1
+
+        def forward(self, x):
+            return x
+
+        def special(self):
+            pass
+
+    original_module = OriginalModule()
+    fabric_module = _FabricModule(original_module, Mock(), original_module=original_module)
+
+    with pytest.raises(ValueError, match="You cannot mark the forward method itself"):
+        fabric_module.mark_forward_method("forward")
+
+    with pytest.raises(AttributeError, match="`OriginalModule.not_exist` does not exist or is not a method."):
+        fabric_module.mark_forward_method("not_exist")
+
+    with pytest.raises(AttributeError, match="`OriginalModule.attribute` does not exist or is not a method."):
+        fabric_module.mark_forward_method("attribute")
+
+    lightning_module_methods = {"training_step", "validation_step", "test_step", "predict_step"}
+    assert fabric_module._forward_methods == lightning_module_methods
+
+    # Mark via name
+    fabric_module.mark_forward_method("special")
+    assert fabric_module._forward_methods == {"special"} | lightning_module_methods
+
+    # Mark by passing in the method itself
+    fabric_module = _FabricModule(original_module, Mock(), original_module=original_module)
+    fabric_module.mark_forward_method(original_module.special)
+    assert fabric_module._forward_methods == {"special"} | lightning_module_methods
+
+
 def test_fabric_module_setattr():
     """Test that setattr sets attributes on the original module."""
 
