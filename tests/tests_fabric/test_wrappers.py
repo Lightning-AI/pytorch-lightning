@@ -126,7 +126,6 @@ def test_fabric_module_method_lookup():
 
 
 def test_fabric_module_mark_forward_method():
-
     class OriginalModule(torch.nn.Module):
         attribute = 1
 
