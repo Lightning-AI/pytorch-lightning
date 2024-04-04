@@ -674,12 +674,13 @@ class Fabric:
             )
         if isinstance(self._strategy, (SingleDeviceStrategy, XLAStrategy)):
             return nullcontext()
-        if enabled and self._strategy._backward_sync_control is None:
-            rank_zero_warn(
-                f"The `{self._strategy.__class__.__name__}` does not support skipping the gradient synchronization."
-                f" Remove `.no_backward_sync()` from your code or choose a different strategy.",
-                category=PossibleUserWarning,
-            )
+        if self._strategy._backward_sync_control is None:
+            if enabled:
+                rank_zero_warn(
+                    f"The `{self._strategy.__class__.__name__}` does not support skipping the gradient synchronization."
+                    f" Remove `.no_backward_sync()` from your code or choose a different strategy.",
+                    category=PossibleUserWarning,
+                )
             return nullcontext()
 
         forward_module, _ = _unwrap_compiled(module._forward_module)
