@@ -109,10 +109,12 @@ def test_fabric_module_method_lookup():
     fabric_module = _FabricModule(forward_module=original_module, strategy=Mock(), original_module=original_module)
     assert fabric_module.method_without_module_invocation() == 100
 
-    # Special case: original module wrapped by forward module: -> warn if method accepts args
+    # Special case: original module wrapped by forward module: -> error if method requires rerouting
     original_module = OriginalModule()
     wrapped_module = ModuleWrapper(original_module)
-    fabric_module = _FabricModule(forward_module=wrapped_module, strategy=Mock(precision=Precision()), original_module=original_module)
+    fabric_module = _FabricModule(
+        forward_module=wrapped_module, strategy=Mock(precision=Precision()), original_module=original_module
+    )
     assert fabric_module.method_without_module_invocation() == 100
     with pytest.raises(
         RuntimeError, match=r"You are calling the method `OriginalModule.method_with_submodule_invocation\(\)` from"
