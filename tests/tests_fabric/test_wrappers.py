@@ -152,6 +152,12 @@ def test_fabric_module_mark_forward_method():
     with pytest.raises(AttributeError, match="`OriginalModule.attribute` does not exist or is not a method."):
         fabric_module.mark_forward_method("attribute")
 
+    def special(x):
+        return x
+
+    with pytest.raises(TypeError, match="Expected a method or a string"):
+        fabric_module.mark_forward_method(special)
+
     lightning_module_methods = {"training_step", "validation_step", "test_step", "predict_step"}
     assert fabric_module._forward_methods == lightning_module_methods
 
