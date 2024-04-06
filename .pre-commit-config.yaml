@@ -49,6 +49,7 @@ repos:
     rev: v3.1.0
     hooks:
       - id: prettier
+        files: \.(json|yml|yaml|toml)
         # https://prettier.io/docs/en/options.html#print-width
         args: ["--print-width=120"]
 
