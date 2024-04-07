@@ -205,19 +205,22 @@ class TensorBoardLogger(Logger):
         metrics = _add_prefix(metrics, self._prefix, self.LOGGER_JOIN_CHAR)
 
         for k, v in metrics.items():
-            if isinstance(v, Tensor):
+            if isinstance(v, Tensor) and v.ndim == 0:
                 v = v.item()
 
-            if isinstance(v, dict):
-                self.experiment.add_scalars(k, v, step)
-            else:
-                try:
+            try:
+                if isinstance(v, dict):
+                    self.experiment.add_scalars(k, v, step)
+                elif isinstance(v, Tensor):
+                    self.experiment.add_histogram(k, v, step)
+                else:
                     self.experiment.add_scalar(k, v, step)
-                # TODO(fabric): specify the possible exception
-                except Exception as ex:
-                    raise ValueError(
-                        f"\n you tried to log {v} which is currently not supported. Try a dict or a scalar/tensor."
-                    ) from ex
+
+            # TODO(fabric): specify the possible exception
+            except Exception as ex:
+                raise ValueError(
+                    f"\n you tried to log {v} which is currently not supported. Try a dict or a scalar/tensor."
+                ) from ex
 
     @override
     @rank_zero_only
