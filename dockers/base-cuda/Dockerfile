@@ -66,12 +66,15 @@ RUN \
 
 RUN \
     # Install python
-    add-apt-repository ppa:deadsnakes/ppa && \
+    add-apt-repository ppa:deadsnakes/ppa
+
+RUN \
     apt-get install -y \
         python${PYTHON_VERSION} \
         python${PYTHON_VERSION}-distutils \
-        python${PYTHON_VERSION}-dev \
-    && \
+        python${PYTHON_VERSION}-dev
+
+RUN \
     update-alternatives --install /usr/bin/python${PYTHON_VERSION%%.*} python${PYTHON_VERSION%%.*} /usr/bin/python${PYTHON_VERSION} 1 && \
     update-alternatives --install /usr/bin/python python /usr/bin/python${PYTHON_VERSION} 1 && \
     # Cleaning
