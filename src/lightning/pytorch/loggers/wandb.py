@@ -20,6 +20,7 @@ import os
 from argparse import Namespace
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Dict, List, Literal, Mapping, Optional, Union
+import inspect
 
 import torch.nn as nn
 from lightning_utilities.core.imports import RequirementCache
@@ -341,7 +342,9 @@ class WandbLogger(Logger):
             "resume": "allow",
             "anonymous": ("allow" if anonymous else None),
         }
-        self._wandb_init.update(**self._kwargs)  # BUG: If kwargs are not present in wandb.init, it will raise an error
+        valid_wandb_init_args = inspect.signature(wandb.init).parameters
+        valid_kwargs = {k: v for k, v in self._kwargs.items() if k in valid_wandb_init_args}
+        self._wandb_init.update(**valid_kwargs)
         # extract parameters
         self._project = self._wandb_init.get("project")
         self._save_dir = self._wandb_init.get("dir")
