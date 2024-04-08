@@ -342,9 +342,6 @@ class WandbLogger(Logger):
             "resume": "allow",
             "anonymous": ("allow" if anonymous else None),
         }
-        valid_wandb_init_args = inspect.signature(wandb.init).parameters
-        valid_kwargs = {k: v for k, v in self._kwargs.items() if k in valid_wandb_init_args}
-        self._wandb_init.update(**valid_kwargs)
         # extract parameters
         self._project = self._wandb_init.get("project")
         self._save_dir = self._wandb_init.get("dir")
@@ -408,6 +405,11 @@ class WandbLogger(Logger):
                 # attach to wandb process referenced
                 self._experiment = wandb._attach(attach_id)
             else:
+                # Extract valid kwargs from the signature and update the init args
+                valid_wandb_init_args = inspect.signature(wandb.init).parameters
+                valid_kwargs = {k: v for k, v in self._kwargs.items() if k in valid_wandb_init_args}
+                self._wandb_init.update(**valid_kwargs)
+
                 # create new wandb process
                 self._experiment = wandb.init(**self._wandb_init)
 
