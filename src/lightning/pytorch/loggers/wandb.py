@@ -16,11 +16,11 @@ Weights and Biases Logger
 -------------------------
 """
 
+import inspect
 import os
 from argparse import Namespace
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Dict, List, Literal, Mapping, Optional, Union
-import inspect
 
 import torch.nn as nn
 from lightning_utilities.core.imports import RequirementCache
