@@ -109,7 +109,6 @@ class _DeviceDtypeModuleMixin(Module):
 def _update_properties(
     root: torch.nn.Module, device: Optional[torch.device] = None, dtype: Optional[Union[str, torch.dtype]] = None
 ) -> None:
-
     for module in root.modules():
         if not isinstance(module, _DeviceDtypeModuleMixin):
             continue
