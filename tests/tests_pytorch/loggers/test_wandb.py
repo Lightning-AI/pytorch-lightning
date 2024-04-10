@@ -24,6 +24,7 @@ from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.loggers import WandbLogger
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning_utilities.test.warning import no_warning_call
+
 from tests_pytorch.test_cli import _xfail_python_3_11_9
 
 
