@@ -20,7 +20,6 @@ from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.loggers.mlflow import (
     _MLFLOW_AVAILABLE,
-    _MLFLOW_SYNCHRONOUS_AVAILABLE,
     MLFlowLogger,
     _get_resolve_tags,
 )
