@@ -155,6 +155,9 @@ def test_fabric_module_setattr():
 
     # Modify existing attribute on original_module
     fabric_module.attribute = 101
+    # "attribute" is only in the original_module, so it shouldn't get set in the fabric_module
+    assert "attribute" not in fabric_module.__dict__
+    assert fabric_module.attribute == 101  # returns it from original_module
     assert original_module.attribute == 101
 
     # Check setattr of original_module
@@ -169,6 +172,23 @@ def test_fabric_module_setattr():
     assert isinstance(original_module.linear, torch.nn.Module)
     assert linear in fabric_module.modules()
     assert linear in original_module.modules()
+
+    # Check monkeypatching of methods
+    fabric_module = _FabricModule(Mock(), Mock())
+    original = id(fabric_module.forward)
+    fabric_module.forward = lambda *_: None
+    assert id(fabric_module.forward) != original
+    # Check special methods
+    assert "__repr__" in dir(fabric_module)
+    assert "__repr__" not in fabric_module.__dict__
+    assert "__repr__" not in _FabricModule.__dict__
+    fabric_module.__repr__ = lambda *_: "test"
+    assert fabric_module.__repr__() == "test"
+    # needs to be monkeypatched on the class for `repr()` to change
+    assert repr(fabric_module) == "_FabricModule()"
+    with mock.patch.object(_FabricModule, "__repr__", return_value="test"):
+        assert fabric_module.__repr__() == "test"
+        assert repr(fabric_module) == "test"
 
 
 def test_fabric_module_state_dict_access():
