@@ -568,7 +568,8 @@ class FSDPStrategy(ParallelStrategy):
 
             converted_state = {"model": checkpoint.pop("state_dict")}
             converted_state.update({
-                f"optimizer_{idx}": optim_state for idx, optim_state in enumerate(checkpoint.pop("optimizer_states"))
+                f"optimizer_{idx}": optim_state
+                for idx, optim_state in enumerate(checkpoint.pop("optimizer_states", []))
             })
 
             _distributed_checkpoint_save(converted_state, path)
