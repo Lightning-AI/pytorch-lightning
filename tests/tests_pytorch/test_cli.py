@@ -65,7 +65,7 @@ else:
         return None
 
 
-_xfail_python_3_11_9 = pytest.mark.xfail(
+_xfail_python_ge_3_11_9 = pytest.mark.xfail(
     # https://github.com/omni-us/jsonargparse/issues/484
     Version(f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}") >= Version("3.11.9"),
     strict=False,
@@ -356,7 +356,7 @@ def test_save_to_log_dir_false_error():
         )
 
 
-@_xfail_python_3_11_9
+@_xfail_python_ge_3_11_9
 def test_lightning_cli_logger_save_config(cleandir):
     class LoggerSaveConfigCallback(SaveConfigCallback):
         def __init__(self, *args, **kwargs) -> None:
@@ -746,7 +746,7 @@ def test_lightning_cli_optimizer_and_lr_scheduler_subclasses(cleandir):
     assert cli.trainer.lr_scheduler_configs[0].scheduler.step_size == 50
 
 
-@_xfail_python_3_11_9
+@_xfail_python_ge_3_11_9
 @pytest.mark.parametrize("use_generic_base_class", [False, True])
 def test_lightning_cli_optimizers_and_lr_scheduler_with_link_to(use_generic_base_class):
     class MyLightningCLI(LightningCLI):
@@ -793,7 +793,7 @@ def test_lightning_cli_optimizers_and_lr_scheduler_with_link_to(use_generic_base
     assert isinstance(cli.model.scheduler, torch.optim.lr_scheduler.ExponentialLR)
 
 
-@_xfail_python_3_11_9
+@_xfail_python_ge_3_11_9
 def test_lightning_cli_optimizers_and_lr_scheduler_with_callable_type():
     class TestModel(BoringModel):
         def __init__(
@@ -1042,7 +1042,7 @@ class TestModel(BoringModel):
         self.bar = bar
 
 
-@_xfail_python_3_11_9
+@_xfail_python_ge_3_11_9
 def test_lightning_cli_model_short_arguments():
     with mock.patch("sys.argv", ["any.py", "fit", "--model=BoringModel"]), mock.patch(
         "lightning.pytorch.Trainer._fit_impl"
@@ -1067,7 +1067,7 @@ class MyDataModule(BoringDataModule):
         self.bar = bar
 
 
-@_xfail_python_3_11_9
+@_xfail_python_ge_3_11_9
 def test_lightning_cli_datamodule_short_arguments():
     # with set model
     with mock.patch("sys.argv", ["any.py", "fit", "--data=BoringDataModule"]), mock.patch(
@@ -1113,7 +1113,7 @@ def test_lightning_cli_datamodule_short_arguments():
         assert cli.parser.groups["data"].group_class is BoringDataModule
 
 
-@_xfail_python_3_11_9
+@_xfail_python_ge_3_11_9
 @pytest.mark.parametrize("use_class_path_callbacks", [False, True])
 def test_callbacks_append(use_class_path_callbacks):
     """This test validates registries are used when simplified command line are being used."""
@@ -1157,7 +1157,7 @@ def test_callbacks_append(use_class_path_callbacks):
     assert all(t in callback_types for t in expected)
 
 
-@_xfail_python_3_11_9
+@_xfail_python_ge_3_11_9
 def test_optimizers_and_lr_schedulers_reload(cleandir):
     base = ["any.py", "--trainer.max_epochs=1"]
     input = base + [
@@ -1189,7 +1189,7 @@ def test_optimizers_and_lr_schedulers_reload(cleandir):
         LightningCLI(BoringModel, run=False)
 
 
-@_xfail_python_3_11_9
+@_xfail_python_ge_3_11_9
 def test_optimizers_and_lr_schedulers_add_arguments_to_parser_implemented_reload(cleandir):
     class TestLightningCLI(LightningCLI):
         def __init__(self, *args):
@@ -1443,7 +1443,7 @@ def test_cli_help_message():
     assert "Implements Adam" in shorthand_help.getvalue()
 
 
-@_xfail_python_3_11_9
+@_xfail_python_ge_3_11_9
 def test_cli_reducelronplateau():
     with mock.patch(
         "sys.argv", ["any.py", "--optimizer=Adam", "--lr_scheduler=ReduceLROnPlateau", "--lr_scheduler.monitor=foo"]
@@ -1454,7 +1454,7 @@ def test_cli_reducelronplateau():
     assert config["lr_scheduler"]["scheduler"].monitor == "foo"
 
 
-@_xfail_python_3_11_9
+@_xfail_python_ge_3_11_9
 def test_cli_configureoptimizers_can_be_overridden():
     class MyCLI(LightningCLI):
         def __init__(self):
@@ -1499,7 +1499,7 @@ def test_cli_parameter_with_lazy_instance_default():
         assert cli.model.activation is not model.activation
 
 
-@_xfail_python_3_11_9
+@_xfail_python_ge_3_11_9
 def test_ddpstrategy_instantiation_and_find_unused_parameters(mps_count_0):
     strategy_default = lazy_instance(DDPStrategy, find_unused_parameters=True)
     with mock.patch("sys.argv", ["any.py", "--trainer.strategy.process_group_backend=group"]):
@@ -1515,7 +1515,7 @@ def test_ddpstrategy_instantiation_and_find_unused_parameters(mps_count_0):
     assert strategy_default is not cli.config_init.trainer.strategy
 
 
-@_xfail_python_3_11_9
+@_xfail_python_ge_3_11_9
 def test_cli_logger_shorthand():
     with mock.patch("sys.argv", ["any.py"]):
         cli = LightningCLI(TestModel, run=False, trainer_defaults={"logger": False})
@@ -1546,7 +1546,7 @@ def _test_logger_init_args(logger_name, init, unresolved=None):
         assert data["dict_kwargs"] == unresolved
 
 
-@_xfail_python_3_11_9
+@_xfail_python_ge_3_11_9
 def test_comet_logger_init_args():
     _test_logger_init_args(
         "CometLogger",
@@ -1555,7 +1555,7 @@ def test_comet_logger_init_args():
     )
 
 
-@_xfail_python_3_11_9
+@_xfail_python_ge_3_11_9
 @pytest.mark.xfail(
     # Only on Windows: TypeError: 'NoneType' object is not subscriptable
     raises=TypeError,
@@ -1571,7 +1571,7 @@ def test_neptune_logger_init_args():
     )
 
 
-@_xfail_python_3_11_9
+@_xfail_python_ge_3_11_9
 def test_tensorboard_logger_init_args():
     _test_logger_init_args(
         "TensorBoardLogger",
@@ -1583,7 +1583,7 @@ def test_tensorboard_logger_init_args():
     )
 
 
-@_xfail_python_3_11_9
+@_xfail_python_ge_3_11_9
 def test_wandb_logger_init_args():
     _test_logger_init_args(
         "WandbLogger",
@@ -1668,7 +1668,7 @@ def test_unresolvable_import_paths():
     assert "a_func: torch.nn.Softmax" in out.getvalue()
 
 
-@_xfail_python_3_11_9
+@_xfail_python_ge_3_11_9
 def test_pytorch_profiler_init_args():
     from lightning.pytorch.profilers import Profiler, PyTorchProfiler
 
