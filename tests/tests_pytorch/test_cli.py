@@ -66,9 +66,10 @@ else:
 
 
 _xfail_python_3_11_9 = pytest.mark.xfail(
+    # https://github.com/omni-us/jsonargparse/issues/484
     Version(f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}") >= Version("3.11.9"),
     strict=False,
-    reason="argparse error in Python 3.11.9: not enough values to unpack",
+    reason="jsonargparse + Python 3.11.9 compatibility issue",
 )
 
 
