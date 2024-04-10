@@ -195,7 +195,6 @@ our_model.tar
 test.png
 saved_models
 data/
-!src/lightning/data/
 !examples/data/
 !tests/tests_pytorch/utilities/data/
 !requirements/data/
