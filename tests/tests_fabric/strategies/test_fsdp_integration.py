@@ -674,14 +674,14 @@ def test_save_sharded_and_consolidate_and_load(tmp_path):
 def test_no_call_to_apply(monkeypatch):
     """Regression test to ensure we're not calling `FSDP.apply()` indirectly (see #19755)."""
     monkeypatch.setattr(torch.distributed.fsdp.FullyShardedDataParallel, "apply", Mock())
-    
+
     fabric = Fabric(
         accelerator="cuda",
         strategy=FSDPStrategy(auto_wrap_policy=always_wrap_policy),
         devices=2,
     )
     fabric.launch()
-    
+
     for setup_method in ("setup", "setup_module"):
         model = BoringModel()
         setup = getattr(fabric, setup_method)
