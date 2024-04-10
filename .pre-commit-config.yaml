@@ -107,7 +107,6 @@ repos:
         exclude: |
           (?x)^(
               src/lightning/app/CHANGELOG.md|
-              src/lightning/data/CHANGELOG.md|
               src/lightning/fabric/CHANGELOG.md|
               src/lightning/pytorch/CHANGELOG.md|
               README.md
