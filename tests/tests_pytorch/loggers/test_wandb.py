@@ -24,6 +24,7 @@ from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.loggers import WandbLogger
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning_utilities.test.warning import no_warning_call
+from tests_pytorch.test_cli import _xfail_python_3_11_9
 
 
 def test_wandb_project_name(wandb_mock):
@@ -548,6 +549,7 @@ def test_wandb_logger_download_artifact(wandb_mock, tmp_path):
     wandb_mock.Api().artifact.assert_called_once_with("test_artifact", type="model")
 
 
+@_xfail_python_3_11_9
 @pytest.mark.parametrize(("log_model", "expected"), [("True", True), ("False", False), ("all", "all")])
 def test_wandb_logger_cli_integration(log_model, expected, wandb_mock, monkeypatch, tmp_path):
     """Test that the WandbLogger can be used with the LightningCLI."""
