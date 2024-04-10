@@ -446,6 +446,7 @@ def test_load_model_from_checkpoint(tmpdir, model_template):
         "limit_test_batches": 2,
         "callbacks": [ModelCheckpoint(dirpath=tmpdir, monitor="val_loss", save_top_k=-1)],
         "default_root_dir": tmpdir,
+        "accelerator": "cpu",
     }
 
     # fit model
