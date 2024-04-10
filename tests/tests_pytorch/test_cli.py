@@ -18,7 +18,6 @@ import operator
 import os
 import sys
 from contextlib import ExitStack, contextmanager, redirect_stdout
-from packaging.version import Version
 from io import StringIO
 from pathlib import Path
 from typing import Callable, List, Optional, Union
@@ -49,6 +48,7 @@ from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.imports import _TORCHVISION_AVAILABLE
 from lightning_utilities import compare_version
 from lightning_utilities.test.warning import no_warning_call
+from packaging.version import Version
 from tensorboard.backend.event_processing import event_accumulator
 from tensorboard.plugins.hparams.plugin_data_pb2 import HParamsPluginData
 from torch.optim import SGD
@@ -68,7 +68,7 @@ else:
 _xfail_python_3_11_9 = pytest.mark.xfail(
     Version(f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}") < Version("3.11.9"),
     strict=False,
-    reason="argparse error in Python 3.11.9: not enough values to unpack"
+    reason="argparse error in Python 3.11.9: not enough values to unpack",
 )
 
 
