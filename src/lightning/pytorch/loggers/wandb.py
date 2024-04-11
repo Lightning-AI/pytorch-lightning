@@ -16,7 +16,6 @@ Weights and Biases Logger
 -------------------------
 """
 
-import inspect
 import os
 from argparse import Namespace
 from pathlib import Path
