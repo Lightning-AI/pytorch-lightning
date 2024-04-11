@@ -29,6 +29,7 @@ from lightning_utilities.test.warning import no_warning_call
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.test_cli import _xfail_python_ge_3_11_9
 
+
 def test_wandb_project_name(wandb_mock):
     with mock.patch.dict(os.environ, {}):
         logger = WandbLogger()
