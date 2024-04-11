@@ -668,6 +668,7 @@ def test_wandb_logger_log_checkpoint_on_failure(wandb_mock, tmp_path):
 
     wandb_mock.init().log_artifact.assert_not_called()
 
+
 # def test_multi_wandb_logger_checkpoint_aliasing_no_monitors(wandb_mock, tmp_path):
 #     """Test that WandbLogger adds unique aliases for the model checkpoints logged from each checkpoint called"""
 #     wandb_mock.run = None
