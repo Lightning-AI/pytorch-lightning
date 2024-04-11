@@ -243,6 +243,7 @@ module = [
     "lightning.app.utilities.state",
     "lightning.app.utilities.tracer",
     "lightning.app.utilities.tree",
+    "lightning.data.streaming.serializers",
     "lightning.store.utils",
 ]
 ignore_errors = "True"
