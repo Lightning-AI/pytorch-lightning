@@ -77,6 +77,7 @@ jobs:
         with:
           repository: gridai/base-images
           token: ${{ secrets.PAT_GHOST }}
+          ref: "main"
       - name: Update lightning version
         run: |
           import json, os, re
