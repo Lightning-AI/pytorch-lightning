@@ -40,7 +40,7 @@ if TYPE_CHECKING:
     from wandb.sdk.lib import RunDisabled
     from wandb.wandb_run import Run
 
-_WANDB_AVAILABLE = RequirementCache("wandb>=0.16.0")
+_WANDB_AVAILABLE = RequirementCache("wandb>=0.16.3")
 
 
 class WandbLogger(Logger):
@@ -342,6 +342,36 @@ class WandbLogger(Logger):
             "resume": "allow",
             "anonymous": ("allow" if anonymous else None),
         }
+        # NOTE: We cannot use list(inspect.signature(wandb.init).keys()) to get the current init args
+        # even if placed in experiment(...) here due to TYPE_CHECKING Guards
+        # As a result we must manually curate this list
+        self._valid_wandb_init_args: List[str] = [
+            "job_type",
+            "dir",
+            "config",
+            "project",
+            "entity",
+            "reinit",
+            "tags",
+            "group",
+            "name",
+            "notes",
+            "magic",
+            "config_exclude_keys",
+            "config_include_keys",
+            "anonymous",
+            "mode",
+            "allow_val_change",
+            "resume",
+            "force",
+            "tensorboard",
+            "sync_tensorboard",
+            "monitor_gym",
+            "save_code",
+            "id",
+            "fork_from",
+            "settings",
+        ]
         # extract parameters
         self._project = self._wandb_init.get("project")
         self._save_dir = self._wandb_init.get("dir")
@@ -406,8 +436,7 @@ class WandbLogger(Logger):
                 self._experiment = wandb._attach(attach_id)
             else:
                 # Extract valid kwargs from the signature and update the init args
-                valid_wandb_init_args = inspect.signature(wandb.init).parameters
-                valid_kwargs = {k: v for k, v in self._kwargs.items() if k in valid_wandb_init_args}
+                valid_kwargs = {k: v for k, v in self._kwargs.items() if k in self._valid_wandb_init_args}
                 self._wandb_init.update(**valid_kwargs)
 
                 # create new wandb process

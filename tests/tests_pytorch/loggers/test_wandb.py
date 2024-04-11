@@ -667,3 +667,41 @@ def test_wandb_logger_log_checkpoint_on_failure(wandb_mock, tmp_path):
         trainer.fit(model)
 
     wandb_mock.init().log_artifact.assert_not_called()
+
+def test_multi_wandb_logger_checkpoint_aliasing_no_monitors(wandb_mock, tmp_path):
+    """Test that WandbLogger adds unique aliases for the model checkpoints logged from each checkpoint called"""
+    wandb_mock.run = None
+    model = BoringModel()
+
+    logger = WandbLogger(save_dir=tmp_path, log_model="all")
+    logger.experiment.id = "1"
+    logger.experiment.name = "run_name"
+
+    checkpoint_callback1 = ModelCheckpoint(monitor="epoch", mode="min")
+    checkpoint_callback2 = ModelCheckpoint()
+
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        max_epochs=2,
+        limit_train_batches=3,
+        limit_val_batches=3,
+        logger=logger,
+        callbacks=[checkpoint_callback1, checkpoint_callback2],
+    )
+    trainer.fit(model)
+
+    # print wandb_mock
+    print(wandb_mock)
+
+    # Print wandb_mock calls and arguments
+    print("wandb_mock calls:")
+    for call in wandb_mock.mock_calls:
+        print(f"  {call}")
+
+    # Print nested calls and arguments
+    print("\nNested calls:")
+    for attr, value in vars(wandb_mock).items():
+        if isinstance(value, mock.Mock):
+            print(f"{attr} calls:")
+            for call in value.mock_calls:
+                print(f"  {call}")
