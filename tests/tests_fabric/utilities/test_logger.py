@@ -91,7 +91,7 @@ def test_flatten_dict():
 
 
 def test_sanitize_callable_params():
-    """Callback function are not serializable.
+    """Callback functions are not serializable.
 
     Therefore, we get them a chance to return something and if the returned type is not accepted, return None.
 
