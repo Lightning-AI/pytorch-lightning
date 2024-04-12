@@ -11,6 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import torch
+from pathlib import Path
+
 import os
 import pickle
 from unittest import mock
@@ -583,3 +586,31 @@ def test_wandb_logger_cli_integration(log_model, expected, wandb_mock, monkeypat
 
     with mock.patch("sys.argv", ["any.py", "--config", config_path, wandb_cli_arg]):
         InspectParsedCLI(BoringModel, run=False, save_config_callback=None)
+
+
+def test_log_hyperparameters(wandb_mock):
+    logger = WandbLogger(project="test_project")
+    hparams = {
+        # JSON-serializable
+        "none": None,
+        "int": 1,
+        "float": 1.1,
+        "bool": True,
+        "dict": {"a": 1},
+        "list": [2, 3, 4],
+        # not JSON-serializable
+        "path": Path("/path"),
+        "tensor": torch.tensor(1),
+    }
+    expected = {
+        "none": None,
+        "int": 1,
+        "float": 1.1,
+        "bool": True,
+        "dict": {"a": 1},
+        "list": [2, 3, 4],
+        "path": "/path",
+        "tensor": "tensor(1)",
+    }
+    logger.log_hyperparams(hparams)
+    logger.experiment.config.update.assert_called_once_with(expected, allow_val_change=True)
