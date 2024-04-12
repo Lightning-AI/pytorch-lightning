@@ -11,19 +11,19 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from pathlib import Path
-
 from argparse import Namespace
 from dataclasses import dataclass
+from pathlib import Path
 
 import numpy as np
 import torch
 from lightning.fabric.utilities.logger import (
     _add_prefix,
+    _convert_json_serializable,
     _convert_params,
     _flatten_dict,
     _sanitize_callable_params,
-    _sanitize_params, _convert_json_serializable,
+    _sanitize_params,
 )
 
 
