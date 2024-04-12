@@ -127,6 +127,9 @@ def test_sanitize_object_params():
         pass
 
     class SomethingElse:
+        def __init__(self):
+            pass
+
         def __repr__(self):
             return "SomethingElseElse"
 
@@ -138,6 +141,7 @@ def test_sanitize_object_params():
 
     params = _convert_params(params)
     params = _flatten_dict(params)
+    params = _sanitize_callable_params(params)
     params = _sanitize_object_params(params)
     assert params["foo"] == "bar"
     assert params["something"] == "Something"
