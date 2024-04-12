@@ -122,13 +122,14 @@ def test_sanitize_callable_params():
 
 def test_sanitize_object_params():
     """Verify sanitize object params converts object types to loggable strings."""
+
     class Something:
         pass
 
     class SomethingElse:
         def __repr__(self):
             return "SomethingElseElse"
-        
+
     params = Namespace(
         foo="bar",
         something=Something,

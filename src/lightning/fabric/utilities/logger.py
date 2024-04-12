@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import inspect
 from argparse import Namespace
 from dataclasses import asdict, is_dataclass
-import inspect
 from typing import Any, Dict, Mapping, MutableMapping, Optional, Union
 
 import numpy as np
