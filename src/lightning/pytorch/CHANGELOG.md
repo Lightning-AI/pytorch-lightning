@@ -44,14 +44,19 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
+-
+
+-
+
+-
+
+
+## [2.2.2] - 2024-04-11
+
+### Fixed
+
 - Fixed a KeyError when saving a FSDP sharded checkpoint and setting `save_weights_only=True` ([#19524](https://github.com/Lightning-AI/pytorch-lightning/pull/19524))
-
-
 - Fixed an issue causing a TypeError when using `torch.compile` as a decorator ([#19627](https://github.com/Lightning-AI/pytorch-lightning/pull/19627))
-
--
-
--
 
 
 ## [2.2.1] - 2024-03-04
