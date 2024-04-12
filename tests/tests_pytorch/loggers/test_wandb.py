@@ -17,7 +17,6 @@ from pathlib import Path
 from unittest import mock
 
 import pytest
-import torch
 import yaml
 from lightning.pytorch import Trainer
 from lightning.pytorch.callbacks import ModelCheckpoint
@@ -115,9 +114,10 @@ def test_wandb_logger_init(wandb_mock):
     wandb_mock.init().log.assert_called_with({"acc": 1.0, "trainer/global_step": 6})
 
     # log hyper parameters
-    hparams = {"test": None, "nested": {"a": 1}, "b": [2, 3, 4]}
+    hparams = {"none": None, "dict": {"a": 1}, "b": [2, 3, 4], "path": Path("/path")},
+    expected = {"none": None, "dict": {"a": 1}, "b": [2, 3, 4], "path": "/path"},
     logger.log_hyperparams(hparams)
-    wandb_mock.init().config.update.assert_called_once_with(hparams, allow_val_change=True)
+    wandb_mock.init().config.update.assert_called_once_with(expected, allow_val_change=True)
 
     # watch a model
     logger.watch("model", "log", 10, False)
@@ -585,31 +585,3 @@ def test_wandb_logger_cli_integration(log_model, expected, wandb_mock, monkeypat
 
     with mock.patch("sys.argv", ["any.py", "--config", config_path, wandb_cli_arg]):
         InspectParsedCLI(BoringModel, run=False, save_config_callback=None)
-
-
-def test_log_hyperparameters(wandb_mock):
-    logger = WandbLogger(project="test_project")
-    hparams = {
-        # JSON-serializable
-        "none": None,
-        "int": 1,
-        "float": 1.1,
-        "bool": True,
-        "dict": {"a": 1},
-        "list": [2, 3, 4],
-        # not JSON-serializable
-        "path": Path("/path"),
-        "tensor": torch.tensor(1),
-    }
-    expected = {
-        "none": None,
-        "int": 1,
-        "float": 1.1,
-        "bool": True,
-        "dict": {"a": 1},
-        "list": [2, 3, 4],
-        "path": "/path",
-        "tensor": "tensor(1)",
-    }
-    logger.log_hyperparams(hparams)
-    logger.experiment.config.update.assert_called_once_with(expected, allow_val_change=True)

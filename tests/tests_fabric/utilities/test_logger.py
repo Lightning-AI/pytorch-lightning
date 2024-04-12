@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from pathlib import Path
 
 from argparse import Namespace
 from dataclasses import dataclass
@@ -22,7 +23,7 @@ from lightning.fabric.utilities.logger import (
     _convert_params,
     _flatten_dict,
     _sanitize_callable_params,
-    _sanitize_params,
+    _sanitize_params, _convert_json_serializable,
 )
 
 
@@ -167,3 +168,29 @@ def test_add_prefix():
     assert "prefix-metric2" not in metrics
     assert metrics["prefix2_prefix-metric1"] == 1
     assert metrics["prefix2_prefix-metric2"] == 2
+
+
+def test_convert_json_serializable():
+    data = {
+        # JSON-serializable
+        "none": None,
+        "int": 1,
+        "float": 1.1,
+        "bool": True,
+        "dict": {"a": 1},
+        "list": [2, 3, 4],
+        # not JSON-serializable
+        "path": Path("/path"),
+        "tensor": torch.tensor(1),
+    }
+    expected = {
+        "none": None,
+        "int": 1,
+        "float": 1.1,
+        "bool": True,
+        "dict": {"a": 1},
+        "list": [2, 3, 4],
+        "path": "/path",
+        "tensor": "tensor(1)",
+    }
+    assert _convert_json_serializable(data) == expected
