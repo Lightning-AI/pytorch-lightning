@@ -22,6 +22,7 @@ from lightning.fabric.utilities.logger import (
     _convert_params,
     _flatten_dict,
     _sanitize_callable_params,
+    _sanitize_object_params,
     _sanitize_params,
 )
 
@@ -91,7 +92,7 @@ def test_flatten_dict():
 
 
 def test_sanitize_callable_params():
-    """Callback function are not serializiable.
+    """Callback function are not serializable.
 
     Therefore, we get them a chance to return something and if the returned type is not accepted, return None.
 
@@ -117,6 +118,29 @@ def test_sanitize_callable_params():
     assert params["something"] == "something"
     assert params["wrapper_something"] == "wrapper_something"
     assert params["wrapper_something_wo_name"] == "<lambda>"
+
+
+def test_sanitize_object_params():
+    """Verify sanitize object params converts object types to loggable strings."""
+    class Something:
+        pass
+
+    class SomethingElse:
+        def __repr__(self):
+            return "SomethingElseElse"
+        
+    params = Namespace(
+        foo="bar",
+        something=Something,
+        something_else=SomethingElse,
+    )
+
+    params = _convert_params(params)
+    params = _flatten_dict(params)
+    params = _sanitize_object_params(params)
+    assert params["foo"] == "bar"
+    assert params["something"] == "Something"
+    assert params["something_else"] == "SomethingElse"
 
 
 def test_sanitize_params():

@@ -14,6 +14,7 @@
 
 from argparse import Namespace
 from dataclasses import asdict, is_dataclass
+import inspect
 from typing import Any, Dict, Mapping, MutableMapping, Optional, Union
 
 import numpy as np
@@ -65,6 +66,25 @@ def _sanitize_callable_params(params: Dict[str, Any]) -> Dict[str, Any]:
         return val
 
     return {key: _sanitize_callable(val) for key, val in params.items()}
+
+
+def _sanitize_object_params(params: Dict[str, Any]) -> Dict[str, Any]:
+    """Sanitize object params dict, e.g. ``{'a': __main__.ClassName} -> {'a': 'ClassName'}``.
+
+    Args:
+        params: Dictionary containing the hyperparameters
+
+    Returns:
+        dictionary with all objects sanitized
+
+    """
+
+    def _sanitize_object(val: Any) -> Any:
+        if inspect.isclass(val):
+            return getattr(val, "__name__", None)
+        return val
+
+    return {key: _sanitize_object(val) for key, val in params.items()}
 
 
 def _flatten_dict(params: MutableMapping[Any, Any], delimiter: str = "/", parent_key: str = "") -> Dict[str, Any]:
