@@ -22,7 +22,6 @@ from lightning.fabric.utilities.logger import (
     _convert_params,
     _flatten_dict,
     _sanitize_callable_params,
-    _sanitize_object_params,
     _sanitize_params,
 )
 
@@ -103,12 +102,24 @@ def test_sanitize_callable_params():
 
     def wrapper_something():
         return return_something
+    class Something:
+        def __init__(self):
+            pass
+
+    class SomethingElse:
+        def __init__(self, arg):
+            self.arg = arg
+
+        def __repr__(self):
+            return "SomethingElseElse"
 
     params = Namespace(
         foo="bar",
         something=return_something,
         wrapper_something_wo_name=(lambda: lambda: "1"),
         wrapper_something=wrapper_something,
+        something_class=Something,
+        something_else=SomethingElse,
     )
 
     params = _convert_params(params)
@@ -118,34 +129,8 @@ def test_sanitize_callable_params():
     assert params["something"] == "something"
     assert params["wrapper_something"] == "wrapper_something"
     assert params["wrapper_something_wo_name"] == "<lambda>"
-
-
-def test_sanitize_object_params():
-    """Verify sanitize object params converts object types to loggable strings."""
-
-    class Something:
-        pass
-
-    class SomethingElse:
-        def __init__(self):
-            pass
-
-        def __repr__(self):
-            return "SomethingElseElse"
-
-    params = Namespace(
-        foo="bar",
-        something=Something,
-        something_else=SomethingElse,
-    )
-
-    params = _convert_params(params)
-    params = _flatten_dict(params)
-    params = _sanitize_callable_params(params)
-    params = _sanitize_object_params(params)
-    assert params["foo"] == "bar"
-    assert params["something"] == "Something"
-    assert params["something_else"] == "SomethingElse"
+    assert params["something_class"] == "Something"
+    assert params["something_else"] == "SomethingElseElse"
 
 
 def test_sanitize_params():

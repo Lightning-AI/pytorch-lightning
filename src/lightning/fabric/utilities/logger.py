@@ -53,6 +53,10 @@ def _sanitize_callable_params(params: Dict[str, Any]) -> Dict[str, Any]:
     """
 
     def _sanitize_callable(val: Any) -> Any:
+        # If it's a class, return the name; otherwise for a class without any initialization arguments,
+        # the configuration will store an instance of the class, which is not what we want.
+        if inspect.isclass(val):
+            return getattr(val, "__name__", None)
         # Give them one chance to return a value. Don't go rabbit hole of recursive call
         if callable(val):
             try:
@@ -66,25 +70,6 @@ def _sanitize_callable_params(params: Dict[str, Any]) -> Dict[str, Any]:
         return val
 
     return {key: _sanitize_callable(val) for key, val in params.items()}
-
-
-def _sanitize_object_params(params: Dict[str, Any]) -> Dict[str, Any]:
-    """Sanitize object params dict, e.g. ``{'a': __main__.ClassName} -> {'a': 'ClassName'}``.
-
-    Args:
-        params: Dictionary containing the hyperparameters
-
-    Returns:
-        dictionary with all objects sanitized
-
-    """
-
-    def _sanitize_object(val: Any) -> Any:
-        if inspect.isclass(val):
-            return getattr(val, "__name__", None)
-        return val
-
-    return {key: _sanitize_object(val) for key, val in params.items()}
 
 
 def _flatten_dict(params: MutableMapping[Any, Any], delimiter: str = "/", parent_key: str = "") -> Dict[str, Any]:

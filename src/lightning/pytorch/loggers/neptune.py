@@ -31,8 +31,7 @@ import lightning.pytorch as pl
 from lightning.fabric.utilities.logger import (
     _add_prefix,
     _convert_params,
-    _sanitize_callable_params,
-    _sanitize_object_params,
+    _sanitize_callable_params
 )
 from lightning.pytorch.callbacks import Checkpoint
 from lightning.pytorch.loggers.logger import Logger, rank_zero_experiment
@@ -439,7 +438,6 @@ class NeptuneLogger(Logger):
 
         params = _convert_params(params)
         params = _sanitize_callable_params(params)
-        params = _sanitize_object_params(params)
 
         parameters_key = self.PARAMETERS_KEY
         parameters_key = self._construct_path_with_prefix(parameters_key)
