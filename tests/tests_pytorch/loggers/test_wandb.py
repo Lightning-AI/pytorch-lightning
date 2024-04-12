@@ -11,14 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import torch
-from pathlib import Path
-
 import os
 import pickle
+from pathlib import Path
 from unittest import mock
 
 import pytest
+import torch
 import yaml
 from lightning.pytorch import Trainer
 from lightning.pytorch.callbacks import ModelCheckpoint
