@@ -102,6 +102,7 @@ def test_sanitize_callable_params():
 
     def wrapper_something():
         return return_something
+
     class Something:
         def __init__(self):
             pass
