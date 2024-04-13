@@ -70,7 +70,7 @@ repos:
       - id: sphinx-lint
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.3.2
+    rev: v0.3.5
     hooks:
       # try to fix what is possible
       - id: ruff
@@ -101,4 +101,5 @@ repos:
     hooks:
       - id: prettier
         # https://prettier.io/docs/en/options.html#print-width
+        files: \.(json|yml|yaml|toml)
         args: ["--print-width=120"]
