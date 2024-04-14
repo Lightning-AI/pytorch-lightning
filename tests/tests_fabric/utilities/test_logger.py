@@ -180,7 +180,7 @@ def test_convert_json_serializable():
         "dict": {"a": 1},
         "list": [2, 3, 4],
         # not JSON-serializable
-        "path": Path("/path"),
+        "path": Path("path"),
         "tensor": torch.tensor(1),
     }
     expected = {
@@ -190,7 +190,7 @@ def test_convert_json_serializable():
         "bool": True,
         "dict": {"a": 1},
         "list": [2, 3, 4],
-        "path": "/path",
+        "path": "path",
         "tensor": "tensor(1)",
     }
     assert _convert_json_serializable(data) == expected

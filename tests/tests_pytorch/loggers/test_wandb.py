@@ -114,8 +114,8 @@ def test_wandb_logger_init(wandb_mock):
     wandb_mock.init().log.assert_called_with({"acc": 1.0, "trainer/global_step": 6})
 
     # log hyper parameters
-    hparams = {"none": None, "dict": {"a": 1}, "b": [2, 3, 4], "path": Path("/path")}
-    expected = {"none": None, "dict": {"a": 1}, "b": [2, 3, 4], "path": "/path"}
+    hparams = {"none": None, "dict": {"a": 1}, "b": [2, 3, 4], "path": Path("path")}
+    expected = {"none": None, "dict": {"a": 1}, "b": [2, 3, 4], "path": "path"}
     logger.log_hyperparams(hparams)
     wandb_mock.init().config.update.assert_called_once_with(expected, allow_val_change=True)
 
