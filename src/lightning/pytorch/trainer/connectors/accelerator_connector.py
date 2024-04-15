@@ -447,6 +447,14 @@ class _AcceleratorConnector:
             return "ddp_fork"
         return "ddp"
 
+    def _is_hpu_accelerator(self) -> bool:
+        if _habana_available_and_importable():
+                from lightning_habana import HPUAccelerator
+
+                if isinstance(self._accelerator_flag, HPUAccelerator):
+                    return True
+        return False
+
     def _check_strategy_and_fallback(self) -> None:
         """Checks edge cases when the strategy selection was a string input, and we need to fall back to a different
         choice depending on other parameters or the environment."""
@@ -454,18 +462,11 @@ class _AcceleratorConnector:
         # TODO this logic should apply to both str and object config
         strategy_flag = "" if isinstance(self._strategy_flag, Strategy) else self._strategy_flag
 
-        if _habana_available_and_importable():
-            from lightning_habana import HPUAccelerator
-            if isinstance(self._accelerator_flag, HPUAccelerator):
-                if strategy_flag:
-                    self._strategy_flag = strategy_flag
-                return
-
         if (
             strategy_flag in FSDPStrategy.get_registered_strategies() or isinstance(self._strategy_flag, FSDPStrategy)
-        ) and self._accelerator_flag not in ("cuda", "gpu"):
+        ) and self._accelerator_flag not in ("cuda", "gpu") and not self._is_hpu_accelerator():
             raise MisconfigurationException(
-                f"You selected strategy to be `{FSDPStrategy.strategy_name}`, but GPU accelerator is not used."
+                f"You selected strategy to be `{FSDPStrategy.strategy_name}`, but GPU or HPU accelerator is not used."
             )
         if strategy_flag in _DDP_FORK_ALIASES and "fork" not in torch.multiprocessing.get_all_start_methods():
             raise ValueError(

@@ -566,7 +566,7 @@ def test_strategy_choice_ddp_cpu_slurm(cuda_count_0, strategy):
 def test_check_fsdp_strategy_and_fallback():
     with pytest.raises(
         MisconfigurationException,
-        match=f"You selected strategy to be `{FSDPStrategy.strategy_name}`, but GPU accelerator is not used.",
+        match=f"You selected strategy to be `{FSDPStrategy.strategy_name}`, but GPU or HPU accelerator is not used.",
     ):
         Trainer(accelerator="cpu", strategy="fsdp")
 

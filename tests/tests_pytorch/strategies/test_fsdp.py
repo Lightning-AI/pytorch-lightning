@@ -218,7 +218,7 @@ def test_invalid_on_cpu(tmp_path, cuda_count_0):
     """Test to ensure that we raise Misconfiguration for FSDP on CPU."""
     with pytest.raises(
         MisconfigurationException,
-        match=f"You selected strategy to be `{FSDPStrategy.strategy_name}`, but GPU accelerator is not used.",
+        match=f"You selected strategy to be `{FSDPStrategy.strategy_name}`, but GPU or HPU accelerator is not used.",
     ):
         trainer = Trainer(accelerator="cpu", default_root_dir=tmp_path, fast_dev_run=True, strategy="fsdp")
         assert isinstance(trainer.strategy, FSDPStrategy)
