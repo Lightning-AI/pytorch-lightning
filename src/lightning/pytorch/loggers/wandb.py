@@ -30,7 +30,7 @@ from lightning.fabric.utilities.logger import _add_prefix, _convert_params, _san
 from lightning.fabric.utilities.types import _PATH
 from lightning.pytorch.callbacks.model_checkpoint import ModelCheckpoint
 from lightning.pytorch.loggers.logger import Logger, rank_zero_experiment
-from lightning.pytorch.loggers.utilities import _scan_checkpoints, _generate_checkpoint_identifier
+from lightning.pytorch.loggers.utilities import _generate_checkpoint_identifier, _scan_checkpoints
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.rank_zero import rank_zero_only, rank_zero_warn
 
@@ -303,6 +303,7 @@ class WandbLogger(Logger):
         checkpoint_name: Optional[str] = None,
         log_checkpoint_on: Union[Literal["success"], Literal["all"]] = "success",
         include_distributed_checkpoints: bool = False,
+        verbose_checkpoint_aliases: bool = False,
         **kwargs: Any,
     ) -> None:
         if not _WANDB_AVAILABLE:
@@ -379,6 +380,7 @@ class WandbLogger(Logger):
         self._checkpoint_name = checkpoint_name
         self._log_checkpoint_on = log_checkpoint_on
         self._include_distributed_checkpoints = include_distributed_checkpoints
+        self._verbose_checkpoint_aliases = verbose_checkpoint_aliases
 
     def __getstate__(self) -> Dict[str, Any]:
         import wandb
@@ -727,15 +729,18 @@ class WandbLogger(Logger):
                     artifact.add_dir(p)
                 else:
                     raise ValueError(f"Path {p} is neither a file nor a directory.")
-                
+
                 # Generate aliases based on checkpoint identifier logic
                 checkpoint_identifier = _generate_checkpoint_identifier(checkpoint_callback)
-                aliases = ["latest", checkpoint_identifier]  # Retain 'latest' for compatibility
+                aliases = ["latest"]  # Retain 'latest' for compatibility
+                if self._verbose_checkpoint_aliases:
+                    aliases.append(checkpoint_identifier)
                 if p == checkpoint_callback.best_model_path:
-                    best_alias = f"best--{checkpoint_identifier}"
-                    aliases.append(best_alias)
+                    if self._verbose_checkpoint_aliases:
+                        best_alias = f"best--{checkpoint_identifier}"
+                        aliases.append(best_alias)
                     aliases.append("best")  # Retain 'best' for not breaking pre-existing workflows
-                
+
                 self.experiment.log_artifact(artifact, aliases=aliases)
                 # remember logged models - timestamp needed in case filename didn't change (lastkckpt or custom name)
                 self._logged_model_time[p] = t
