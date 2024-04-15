@@ -101,3 +101,36 @@ def _log_hyperparams(trainer: "pl.Trainer") -> None:
             logger.log_hyperparams(hparams_initial)
         logger.log_graph(pl_module)
         logger.save()
+
+def _generate_checkpoint_identifier(checkpoint_callback) -> str:
+    parts = []
+    
+    # Include monitor, mode, and save_top_k if they are not None
+    if hasattr(checkpoint_callback, 'monitor') and checkpoint_callback.monitor is not None:
+        parts.append(f"monitor={checkpoint_callback.monitor}")
+    if hasattr(checkpoint_callback, 'mode') and checkpoint_callback.mode is not None:
+        parts.append(f"mode={checkpoint_callback.mode}")
+    if hasattr(checkpoint_callback, 'save_top_k'):
+        parts.append(f"save_top_k={checkpoint_callback.save_top_k}")
+    
+    # Frequency of saving based on training steps or epochs
+    if hasattr(checkpoint_callback, '_every_n_train_steps') and checkpoint_callback._every_n_train_steps:
+        parts.append(f"every_n_train_steps={checkpoint_callback._every_n_train_steps}")
+    if hasattr(checkpoint_callback, 'every_n_epochs') and checkpoint_callback.every_n_epochs:
+        parts.append(f"every_n_epochs={checkpoint_callback.every_n_epochs}")
+    
+    # Time interval for saving, if applicable
+    # if hasattr(checkpoint_callback, 'train_time_interval') and checkpoint_callback.train_time_interval:
+    #     # Assuming train_time_interval is a timedelta object or similar
+    #     time_str = f"{checkpoint_callback.train_time_interval.total_seconds()}s"
+    #     parts.append(f"time_interval={time_str}")
+    
+    # Custom file naming, if used
+    # if hasattr(checkpoint_callback, 'filename') and checkpoint_callback.filename:
+    #     parts.append(f"filename={checkpoint_callback.filename}")
+    
+    # Ensure there's at least one part in the identifier; use a default if not
+    if not parts:
+        parts.append("default_checkpoint")
+    
+    return "__".join(parts)

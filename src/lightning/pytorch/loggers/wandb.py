@@ -30,7 +30,7 @@ from lightning.fabric.utilities.logger import _add_prefix, _convert_params, _san
 from lightning.fabric.utilities.types import _PATH
 from lightning.pytorch.callbacks.model_checkpoint import ModelCheckpoint
 from lightning.pytorch.loggers.logger import Logger, rank_zero_experiment
-from lightning.pytorch.loggers.utilities import _scan_checkpoints
+from lightning.pytorch.loggers.utilities import _scan_checkpoints, _generate_checkpoint_identifier
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.rank_zero import rank_zero_only, rank_zero_warn
 
@@ -430,9 +430,11 @@ class WandbLogger(Logger):
                     " this run. If this is not desired, call `wandb.finish()` before instantiating `WandbLogger`."
                 )
                 self._experiment = wandb.run
+                self._experiment._label(repo="lightning_logger")  # pylint: disable=protected-access
             elif attach_id is not None and hasattr(wandb, "_attach"):
                 # attach to wandb process referenced
                 self._experiment = wandb._attach(attach_id)
+                self._experiment._label(repo="lightning_logger")  # pylint: disable=protected-access
             else:
                 # Extract valid kwargs from the signature and update the init args
                 valid_kwargs = {k: v for k, v in self._kwargs.items() if k in self._valid_wandb_init_args}
@@ -440,6 +442,7 @@ class WandbLogger(Logger):
 
                 # create new wandb process
                 self._experiment = wandb.init(**self._wandb_init)
+                self._experiment._label(repo="lightning_logger")  # pylint: disable=protected-access
 
                 # define default x-axis
                 if isinstance(self._experiment, (Run, RunDisabled)) and getattr(
@@ -448,7 +451,6 @@ class WandbLogger(Logger):
                     self._experiment.define_metric("trainer/global_step")
                     self._experiment.define_metric("*", step_metric="trainer/global_step", step_sync=True)
 
-        self._experiment._label(repo="lightning_logger")  # pylint: disable=protected-access
         return self._experiment
 
     def watch(
@@ -696,6 +698,7 @@ class WandbLogger(Logger):
         )
 
         # log iteratively all new checkpoints
+        # t=time, p=path, s=score, tag=checkpoint tag (e.g., "best", "latest")
         for t, p, s, tag in checkpoints:
             if p:
                 metadata = {
@@ -724,7 +727,15 @@ class WandbLogger(Logger):
                     artifact.add_dir(p)
                 else:
                     raise ValueError(f"Path {p} is neither a file nor a directory.")
-                aliases = ["latest", "best"] if p == checkpoint_callback.best_model_path else ["latest"]
+                
+                # Generate aliases based on checkpoint identifier logic
+                checkpoint_identifier = _generate_checkpoint_identifier(checkpoint_callback)
+                aliases = ["latest", checkpoint_identifier]  # Retain 'latest' for compatibility
+                if p == checkpoint_callback.best_model_path:
+                    best_alias = f"best--{checkpoint_identifier}"
+                    aliases.append(best_alias)
+                    aliases.append("best")  # Retain 'best' for not breaking pre-existing workflows
+                
                 self.experiment.log_artifact(artifact, aliases=aliases)
                 # remember logged models - timestamp needed in case filename didn't change (lastkckpt or custom name)
                 self._logged_model_time[p] = t

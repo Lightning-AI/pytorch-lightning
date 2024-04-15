@@ -14,6 +14,7 @@
 import os
 import pickle
 from unittest import mock
+import re
 
 import pytest
 import yaml
@@ -22,6 +23,7 @@ from lightning.pytorch.callbacks import Callback, ModelCheckpoint
 from lightning.pytorch.cli import LightningCLI
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.loggers import WandbLogger
+from lightning.pytorch.loggers.utilities import _generate_checkpoint_identifier
 from lightning.pytorch.strategies import DeepSpeedStrategy
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning_utilities.test.warning import no_warning_call
@@ -668,40 +670,80 @@ def test_wandb_logger_log_checkpoint_on_failure(wandb_mock, tmp_path):
 
     wandb_mock.init().log_artifact.assert_not_called()
 
-# def test_multi_wandb_logger_checkpoint_aliasing_no_monitors(wandb_mock, tmp_path):
-#     """Test that WandbLogger adds unique aliases for the model checkpoints logged from each checkpoint called"""
-#     wandb_mock.run = None
-#     model = BoringModel()
+def test_multi_wandb_logger_checkpoint_aliasing(wandb_mock, tmp_path):
+    """Test that WandbLogger adds unique aliases for the model checkpoints logged from each checkpoint called"""
+    wandb_mock.run = None
+    model = BoringModel()
 
-#     logger = WandbLogger(save_dir=tmp_path, log_model="all")
-#     logger.experiment.id = "1"
-#     logger.experiment.name = "run_name"
+    logger = WandbLogger(save_dir=tmp_path, log_model="all")
+    logger.experiment.id = "1"
+    logger.experiment.name = "run_name"
 
-#     checkpoint_callback1 = ModelCheckpoint(monitor="epoch", mode="min")
-#     checkpoint_callback2 = ModelCheckpoint()
+    checkpoint_callback1 = ModelCheckpoint(dirpath=os.path.join(tmp_path, "ckpt1"), filename="checkpoint1-model-{epoch:02d}-{step:02d}")
+    checkpoint_callback2 = ModelCheckpoint(dirpath=os.path.join(tmp_path, "ckpt2"), filename="checkpoint2-model-{epoch:02d}-{step:02d}", monitor="epoch", mode="max")
+    checkpoint_callback3 = ModelCheckpoint(dirpath=os.path.join(tmp_path, "ckpt3"), filename="checkpoint3-model-{epoch:02d}-{step:02d}", monitor="step", mode="max", every_n_train_steps=1)
+    checkpoint_callback4 = ModelCheckpoint(dirpath=os.path.join(tmp_path, "ckpt4"), filename="checkpoint4-model-{epoch:02d}-{step:02d}", monitor="epoch", mode="min")
 
-#     trainer = Trainer(
-#         default_root_dir=tmp_path,
-#         max_epochs=2,
-#         limit_train_batches=3,
-#         limit_val_batches=3,
-#         logger=logger,
-#         callbacks=[checkpoint_callback1, checkpoint_callback2],
-#     )
-#     trainer.fit(model)
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        max_epochs=2,
+        limit_train_batches=3,
+        limit_val_batches=3,
+        logger=logger,
+        callbacks=[
+            checkpoint_callback1, 
+            checkpoint_callback2, 
+            checkpoint_callback3,
+            checkpoint_callback4
+        ],
+    )
+    trainer.fit(model)
 
-#     # print wandb_mock
-#     print(wandb_mock)
+    run_mock = wandb_mock.init.return_value
+    for artifact_call, log_artifact_call in zip(wandb_mock.Artifact.call_args_list, run_mock.log_artifact.mock_calls):
+        print(artifact_call)
+        print(log_artifact_call)
+        print()
 
-#     # Print wandb_mock calls and arguments
-#     print("wandb_mock calls:")
-#     for call in wandb_mock.mock_calls:
-#         print(f"  {call}")
+def test_multi_wandb_logger_checkpoint_aliasing(wandb_mock, tmp_path):
+    """Test that WandbLogger adds unique aliases for the model checkpoints logged from each checkpoint called"""
+    wandb_mock.run = None
+    model = BoringModel()
 
-#     # Print nested calls and arguments
-#     print("\nNested calls:")
-#     for attr, value in vars(wandb_mock).items():
-#         if isinstance(value, mock.Mock):
-#             print(f"{attr} calls:")
-#             for call in value.mock_calls:
-#                 print(f"  {call}")
+    logger = WandbLogger(save_dir=tmp_path, log_model="all")
+    logger.experiment.id = "1"
+    logger.experiment.name = "run_name"
+
+    kwargs_list = [
+        {"dirpath": os.path.join(tmp_path, "ckpt1"), "filename": "checkpoint1-model-{epoch:02d}-{step:02d}"},
+        {"dirpath": os.path.join(tmp_path, "ckpt2"), "filename": "checkpoint2-model-{epoch:02d}-{step:02d}", "monitor": "epoch", "mode": "max"},
+        {"dirpath": os.path.join(tmp_path, "ckpt3"), "filename": "checkpoint3-model-{epoch:02d}-{step:02d}", "monitor": "step", "mode": "max", "every_n_train_steps": 1},
+        {"dirpath": os.path.join(tmp_path, "ckpt4"), "filename": "checkpoint4-model-{epoch:02d}-{step:02d}", "monitor": "epoch", "mode": "min"},
+    ]
+    checkpoint_callbacks = [ModelCheckpoint(**kwargs) for kwargs in kwargs_list]
+
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        max_epochs=2,
+        limit_train_batches=3,
+        limit_val_batches=3,
+        logger=logger,
+        callbacks=checkpoint_callbacks,
+    )
+    trainer.fit(model)
+
+    # This test checks that the WandbLogger correctly logs model checkpoints with the appropriate aliases.
+    # It iterates through the mocked wandb.Artifact and run.log_artifact calls, extracts the original 
+    # checkpoint filename, and verifies that the logged artifact has the expected aliases based on the
+    # checkpoint identifier generated from the ModelCheckpoint callback's configuration.
+    run_mock = wandb_mock.init.return_value
+    for artifact_call, log_artifact_call in zip(wandb_mock.Artifact.call_args_list, run_mock.log_artifact.mock_calls):
+        original_filename = artifact_call[1]["metadata"]["original_filename"]
+        match = re.search(r'epoch=(\d+)-step=(\d+)', original_filename)
+        if match:
+            epoch, step = match.groups()
+            for checkpoint_callback, kwargs in zip(checkpoint_callbacks, kwargs_list):
+                expected_filename = checkpoint_callback._format_checkpoint_name(filename=kwargs["filename"], metrics=dict(epoch=int(epoch), step=int(step)))
+                if expected_filename in original_filename:
+                    checkpoint_identifier = _generate_checkpoint_identifier(checkpoint_callback)
+                    assert log_artifact_call[2]["aliases"] == ["latest", checkpoint_identifier, f"best--{checkpoint_identifier}", "best"]
