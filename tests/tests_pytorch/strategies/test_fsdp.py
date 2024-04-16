@@ -216,10 +216,7 @@ def _assert_save_equality(trainer, ckpt_path, cls=TestFSDPModel):
 
 def test_invalid_on_cpu(tmp_path, cuda_count_0):
     """Test to ensure that we raise Misconfiguration for FSDP on CPU."""
-    with pytest.raises(
-        MisconfigurationException,
-        match=f"You selected strategy to be `{FSDPStrategy.strategy_name}`, but GPU accelerator is not used.",
-    ):
+    with pytest.raises(ValueError, match=f"The strategy `fsdp` requires a GPU accelerator"):
         trainer = Trainer(accelerator="cpu", default_root_dir=tmp_path, fast_dev_run=True, strategy="fsdp")
         assert isinstance(trainer.strategy, FSDPStrategy)
         trainer.strategy.setup_environment()
