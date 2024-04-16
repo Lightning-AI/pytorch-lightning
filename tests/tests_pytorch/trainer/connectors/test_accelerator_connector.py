@@ -564,7 +564,7 @@ def test_strategy_choice_ddp_cpu_slurm(cuda_count_0, strategy):
 
 
 def test_check_fsdp_strategy_and_fallback():
-    with pytest.raises(ValueError, match=f"The strategy `fsdp` requires a GPU accelerator"):
+    with pytest.raises(ValueError, match="The strategy `fsdp` requires a GPU accelerator"):
         Trainer(accelerator="cpu", strategy="fsdp")
 
     class FSDPStrategySubclass(FSDPStrategy):
