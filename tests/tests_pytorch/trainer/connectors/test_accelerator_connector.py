@@ -570,8 +570,12 @@ def test_check_fsdp_strategy_and_fallback():
     class FSDPStrategySubclass(FSDPStrategy):
         pass
 
+    class AcceleratorSubclass(CPUAccelerator):
+        pass
+
     # we allow subclasses of FSDPStrategy to be used with other accelerators
     Trainer(accelerator="cpu", strategy=FSDPStrategySubclass())
+    Trainer(accelerator=AcceleratorSubclass(), strategy=FSDPStrategySubclass())
 
 
 @mock.patch.dict(os.environ, {}, clear=True)
