@@ -89,7 +89,7 @@ if TYPE_CHECKING:
     if _TORCH_GREATER_EQUAL_2_2:
         from torch.distributed._tensor import DeviceMesh
     else:
-        DeviceMesh = None    # type: ignore[misc]
+        DeviceMesh = None  # type: ignore[misc]
 
 _FSDP_ALIASES = ("fsdp", "fsdp_cpu_offload")
 
