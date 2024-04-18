@@ -549,13 +549,14 @@ def test_fsdp_hybrid_sharding_strategy(sharding_strategy):
     assert strategy.sharding_strategy.name == sharding_strategy
     assert strategy.kwargs["process_group"] is process_group
 
-    device_mesh = Mock()
-    strategy = FSDPStrategy(sharding_strategy=sharding_strategy, device_mesh=device_mesh)
-    assert strategy.sharding_strategy.name == sharding_strategy
-    assert strategy.kwargs["device_mesh"] is device_mesh
+    with mock.patch("lightning.pytorch.strategies.fsdp._TORCH_GREATER_EQUAL_2_2", True):
+        device_mesh = Mock()
+        strategy = FSDPStrategy(sharding_strategy=sharding_strategy, device_mesh=device_mesh)
+        assert strategy.sharding_strategy.name == sharding_strategy
+        assert strategy.kwargs["device_mesh"] is device_mesh
 
-    with pytest.raises(ValueError, match="process_group.* device_mesh=.* are mutually exclusive"):
-        FSDPStrategy(sharding_strategy=sharding_strategy, process_group=process_group, device_mesh=device_mesh)
+        with pytest.raises(ValueError, match="process_group.* device_mesh=.* are mutually exclusive"):
+            FSDPStrategy(sharding_strategy=sharding_strategy, process_group=process_group, device_mesh=device_mesh)
 
 
 def test_fsdp_use_orig_params():

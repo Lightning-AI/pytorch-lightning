@@ -89,13 +89,14 @@ def test_fsdp_hybrid_shard_configuration(sharding_strategy):
     assert strategy.sharding_strategy.name == sharding_strategy
     assert strategy._fsdp_kwargs["process_group"] is process_group
 
-    device_mesh = Mock()
-    strategy = FSDPStrategy(sharding_strategy=sharding_strategy, device_mesh=device_mesh)
-    assert strategy.sharding_strategy.name == sharding_strategy
-    assert strategy._fsdp_kwargs["device_mesh"] is device_mesh
+    with mock.patch("lightning.fabric.strategies.fsdp._TORCH_GREATER_EQUAL_2_2", True):
+        device_mesh = Mock()
+        strategy = FSDPStrategy(sharding_strategy=sharding_strategy, device_mesh=device_mesh)
+        assert strategy.sharding_strategy.name == sharding_strategy
+        assert strategy._fsdp_kwargs["device_mesh"] is device_mesh
 
-    with pytest.raises(ValueError, match="process_group.* device_mesh=.* are mutually exclusive"):
-        FSDPStrategy(sharding_strategy=sharding_strategy, process_group=process_group, device_mesh=device_mesh)
+        with pytest.raises(ValueError, match="process_group.* device_mesh=.* are mutually exclusive"):
+            FSDPStrategy(sharding_strategy=sharding_strategy, process_group=process_group, device_mesh=device_mesh)
 
 
 def test_fsdp_checkpoint_io_unsupported():
