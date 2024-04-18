@@ -103,7 +103,7 @@ if TYPE_CHECKING:
     if _TORCH_GREATER_EQUAL_2_2:
         from torch.distributed._tensor import DeviceMesh
     else:
-        DeviceMesh = None  # type: ignore[assignment]
+        DeviceMesh = None  # type: ignore
 
 
 log = logging.getLogger(__name__)
