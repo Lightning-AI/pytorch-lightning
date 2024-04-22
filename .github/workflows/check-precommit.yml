@@ -58,7 +58,7 @@ jobs:
 
       - name: Fixing Pull Request ↩️
         if: always() && inputs.push-fixes == true && steps.precommit.outcome == 'failure'
-        uses: actions-js/push@v1.4
+        uses: actions-js/push@v1.5
         with:
           github_token: ${{ secrets.github-token || github.token }}
           message: "pre-commit: running and fixing..."
