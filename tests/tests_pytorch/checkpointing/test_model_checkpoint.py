@@ -18,6 +18,7 @@ import re
 import time
 from argparse import Namespace
 from datetime import timedelta
+from inspect import signature
 from pathlib import Path
 from typing import Union
 from unittest import mock
@@ -28,6 +29,7 @@ import lightning.pytorch as pl
 import pytest
 import torch
 import yaml
+from jsonargparse import ArgumentParser
 from lightning.fabric.utilities.cloud_io import _load as pl_load
 from lightning.pytorch import Trainer, seed_everything
 from lightning.pytorch.callbacks import ModelCheckpoint
@@ -41,6 +43,26 @@ from tests_pytorch.helpers.runif import RunIf
 
 if _OMEGACONF_AVAILABLE:
     from omegaconf import Container, OmegaConf
+
+
+@pytest.mark.parametrize(
+    ("val", "expected"),
+    [
+        ("yes", True),
+        ("True", True),
+        ("true", True),
+        ("no", False),
+        ("false", False),
+        ("False", False),
+        ("link", "link"),
+    ],
+)
+def test_save_last_cli(val, expected):
+    annot = signature(ModelCheckpoint).parameters["save_last"].annotation
+    parser = ArgumentParser()
+    parser.add_argument("--a", type=annot)
+    args = parser.parse_args(["--a", val])
+    assert args.a == expected
 
 
 def test_model_checkpoint_state_key():
