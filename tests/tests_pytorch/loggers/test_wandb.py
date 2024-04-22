@@ -13,6 +13,7 @@
 # limitations under the License.
 import os
 import pickle
+from pathlib import Path
 from unittest import mock
 
 import pytest
@@ -113,9 +114,10 @@ def test_wandb_logger_init(wandb_mock):
     wandb_mock.init().log.assert_called_with({"acc": 1.0, "trainer/global_step": 6})
 
     # log hyper parameters
-    hparams = {"test": None, "nested": {"a": 1}, "b": [2, 3, 4]}
+    hparams = {"none": None, "dict": {"a": 1}, "b": [2, 3, 4], "path": Path("path")}
+    expected = {"none": None, "dict": {"a": 1}, "b": [2, 3, 4], "path": "path"}
     logger.log_hyperparams(hparams)
-    wandb_mock.init().config.update.assert_called_once_with(hparams, allow_val_change=True)
+    wandb_mock.init().config.update.assert_called_once_with(expected, allow_val_change=True)
 
     # watch a model
     logger.watch("model", "log", 10, False)
