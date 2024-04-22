@@ -38,7 +38,8 @@ def mlflow_mock(monkeypatch):
     mlflow.tracking = mlflow_tracking
     mlflow.entities = mlflow_entities
 
-    (monkeypatch.setattr("lightning.pytorch.loggers.mlflow._MLFLOW_AVAILABLE", True),)
+    monkeypatch.setattr("lightning.pytorch.loggers.mlflow._MLFLOW_AVAILABLE", True)
+    monkeypatch.setattr("lightning.pytorch.loggers.mlflow._MLFLOW_SYNCHRONOUS_AVAILABLE", True)
     return mlflow
 
 
