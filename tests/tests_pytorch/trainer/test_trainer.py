@@ -38,6 +38,7 @@ from lightning.pytorch.callbacks.on_exception_checkpoint import OnExceptionCheck
 from lightning.pytorch.callbacks.prediction_writer import BasePredictionWriter
 from lightning.pytorch.core.saving import load_hparams_from_tags_csv, load_hparams_from_yaml, save_hparams_to_tags_csv
 from lightning.pytorch.demos.boring_classes import (
+    BoringDataModule,
     BoringModel,
     RandomDataset,
     RandomIterableDataset,
@@ -2048,6 +2049,24 @@ def test_trainer_calls_strategy_on_exception(exception_type):
     ):
         trainer.fit(ExceptionModel())
     on_exception_mock.assert_called_once_with(exception)
+
+
+@pytest.mark.parametrize("exception_type", [KeyboardInterrupt, RuntimeError])
+def test_trainer_calls_datamodule_on_exception(exception_type):
+    """Test that when an exception occurs, the Trainer lets the data module process it."""
+    exception = exception_type("Test exception")
+
+    class ExceptionModel(BoringModel):
+        def on_fit_start(self):
+            raise exception
+
+    datamodule = BoringDataModule()
+    datamodule.on_exception = Mock()
+    trainer = Trainer()
+
+    with suppress(Exception):
+        trainer.fit(ExceptionModel(), datamodule=datamodule)
+    datamodule.on_exception.assert_called_once_with(exception)
 
 
 def test_init_module_context(monkeypatch):

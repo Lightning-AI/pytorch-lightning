@@ -13,6 +13,7 @@
 # limitations under the License.
 import operator
 import os
+from pathlib import Path
 from unittest.mock import patch
 
 import numpy as np
@@ -32,11 +33,14 @@ from tests_pytorch.utilities.test_model_summary import UnorderedModel
 def test_model_saves_with_input_sample(tmp_path):
     """Test that ONNX model saves with input sample and size is greater than 3 MB."""
     model = BoringModel()
-    trainer = Trainer(fast_dev_run=True)
-    trainer.fit(model)
-
-    file_path = os.path.join(tmp_path, "model.onnx")
     input_sample = torch.randn((1, 32))
+
+    file_path = os.path.join(tmp_path, "os.path.onnx")
+    model.to_onnx(file_path, input_sample)
+    assert os.path.isfile(file_path)
+    assert os.path.getsize(file_path) > 4e2
+
+    file_path = Path(tmp_path) / "pathlib.onnx"
     model.to_onnx(file_path, input_sample)
     assert os.path.isfile(file_path)
     assert os.path.getsize(file_path) > 4e2
