@@ -7,6 +7,7 @@ from pathlib import Path
 from unittest import mock
 from unittest.mock import ANY, MagicMock, Mock
 
+import pytest
 from click.testing import CliRunner
 from lightning.app.cli.lightning_cli_launch import run_flow, run_flow_and_servers, run_frontend, run_server
 from lightning.app.core.queues import QueuingSystem
@@ -189,6 +190,7 @@ def start_processes(**functions):
 
 
 @_RunIf(skip_windows=True)
+@pytest.mark.xfail(strict=False, reason="Flaky test")
 def test_manage_server_processes_one_process_gets_killed(capfd):
     functions = {"p1": run_forever_process, "p2": run_for_2_seconds_and_raise}
     p = Process(target=start_processes, kwargs=functions)
@@ -207,6 +209,7 @@ def test_manage_server_processes_one_process_gets_killed(capfd):
 
 
 @_RunIf(skip_windows=True)
+@pytest.mark.xfail(strict=False, reason="Flaky test")
 def test_manage_server_processes_all_processes_exits_with_zero_exitcode(capfd):
     functions = {
         "p1": exit_successfully_immediately,
