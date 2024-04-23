@@ -263,7 +263,7 @@ class _FabricModule(_DeviceDtypeModuleMixin):
         original_has_attr = hasattr(original_module, name)
         # Can't use super().__getattr__ because nn.Module only checks _parameters, _buffers, and _modules
         # Can't use self.__getattr__ because it would pass through to the original module
-        fabric_has_attr = name in self.__dict__
+        fabric_has_attr = name in dir(self)
 
         if not (original_has_attr or fabric_has_attr):
             setattr(original_module, name, value)
@@ -401,10 +401,14 @@ def _capture_compile_kwargs(compile_fn: Callable) -> Callable:
     # PyTorch will resolve this in the future: https://github.com/pytorch/pytorch/issues/116575
 
     @wraps(compile_fn)
-    def _capture(model: Any, **kwargs: Any) -> Any:
+    def _capture(*args: Any, **kwargs: Any) -> Any:
+        if not args or not isinstance(args[0], nn.Module):
+            # either torch.compile is being applied as a decorator or we're compiling something else
+            return compile_fn(*args, **kwargs)
+
+        model = args[0]
         compiled_model = compile_fn(model, **kwargs)
-        if isinstance(model, nn.Module):
-            compiled_model._compile_kwargs = deepcopy(kwargs)
+        compiled_model._compile_kwargs = deepcopy(kwargs)
         return compiled_model
 
     return _capture

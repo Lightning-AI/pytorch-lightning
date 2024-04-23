@@ -767,11 +767,11 @@ def test_no_backward_sync():
     # disabling the context manager makes it a no-op
     with fabric.no_backward_sync(model, enabled=False):
         pass
-    fabric._strategy._backward_sync_control.no_backward_sync.assert_not_called()
-    # when enabled, the wrapped module gets passed down
+    fabric._strategy._backward_sync_control.no_backward_sync.assert_called_once_with(model._forward_module, False)
+    fabric._strategy._backward_sync_control.reset_mock()
     with fabric.no_backward_sync(model):
         pass
-    fabric._strategy._backward_sync_control.no_backward_sync.assert_called_once_with(model._forward_module)
+    fabric._strategy._backward_sync_control.no_backward_sync.assert_called_once_with(model._forward_module, True)
 
 
 def test_launch_without_function():

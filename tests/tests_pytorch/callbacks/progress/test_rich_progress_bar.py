@@ -541,7 +541,7 @@ def test_rich_progress_bar_disabled(tmp_path):
 
 @RunIf(rich=True)
 @pytest.mark.parametrize("metrics_format", [".3f", ".3e"])
-def test_rich_progress_bar_metrics_format(tmpdir, metrics_format):
+def test_rich_progress_bar_metrics_format(tmp_path, metrics_format):
     metric_name = "train_loss"
 
     class CustomModel(BoringModel):
@@ -552,7 +552,7 @@ def test_rich_progress_bar_metrics_format(tmpdir, metrics_format):
 
     progress_bar = RichProgressBar(theme=RichProgressBarTheme(metrics_format=metrics_format))
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         fast_dev_run=True,
         callbacks=progress_bar,
     )

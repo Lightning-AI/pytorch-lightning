@@ -5,6 +5,7 @@ import numpy as np
 import pytest
 import torch
 from lightning.fabric.utilities.data import _replace_dunder_methods
+from lightning.fabric.utilities.warnings import PossibleUserWarning
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import RandomDataset, RandomIterableDataset
 from lightning.pytorch.overrides.distributed import _IndexBatchSamplerWrapper
@@ -230,7 +231,8 @@ def test_custom_torch_batch_sampler_doppelganger(predicting):
     assert batch_sampler.drop_last == (not predicting)
 
 
-def test_custom_batch_sampler():
+@pytest.mark.parametrize("predicting", [True, False])
+def test_custom_batch_sampler(predicting):
     """Test that a custom (non-PyTorch) batch sampler requires the user to set `use_distributed_sampler=False`."""
 
     class CustomBatchSampler:  # not inheriting from `BatchSampler`
@@ -240,8 +242,13 @@ def test_custom_batch_sampler():
 
     batch_sampler = CustomBatchSampler()
     dataloader = DataLoader(range(100), batch_sampler=batch_sampler)
-    with pytest.raises(TypeError, match=r"can't inject a \(distributed\) sampler into your batch sampler"):
-        _ = _update_dataloader(dataloader, sampler=Mock())
+
+    if predicting:
+        with pytest.warns(PossibleUserWarning, match=r"Make sure your sampler is configured correctly to return all"):
+            _ = _update_dataloader(dataloader, sampler=Mock(), mode=RunningStage.PREDICTING)
+    else:
+        with pytest.raises(TypeError, match=r"can't inject a \(distributed\) sampler into your batch sampler"):
+            _ = _update_dataloader(dataloader, sampler=Mock(), mode=None)
 
 
 def test_custom_batch_sampler_no_drop_last():

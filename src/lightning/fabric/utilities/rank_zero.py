@@ -74,7 +74,7 @@ if not _UTILITIES_GREATER_EQUAL_0_10:
 
     rank_zero_module.rank_zero_only.rank = getattr(rank_zero_module.rank_zero_only, "rank", _get_rank() or 0)
 else:
-    rank_zero_only = rank_zero_module.rank_zero_only  # type: ignore[assignment]
+    rank_zero_only = rank_zero_module.rank_zero_only
 
 # add the attribute to the function but don't overwrite in case Trainer has already set it
 rank_zero_only.rank = getattr(rank_zero_only, "rank", _get_rank() or 0)

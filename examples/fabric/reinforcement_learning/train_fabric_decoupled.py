@@ -104,10 +104,9 @@ def player(args, world_collective: TorchCollective, player_trainer_collective: T
     if not args.share_data:
         if single_global_step < world_collective.world_size - 1:
             raise RuntimeError(
-                "The number of trainers ({}) is greater than the available collected data ({}). ".format(
-                    world_collective.world_size - 1, single_global_step
-                )
-                + "Consider to lower the number of trainers at least to the size of available collected data"
+                f"The number of trainers ({world_collective.world_size - 1})"
+                f" is greater than the available collected data ({single_global_step})."
+                f" Consider to lower the number of trainers at least to the size of available collected data"
             )
         chunks_sizes = [
             len(chunk)
