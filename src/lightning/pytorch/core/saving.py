@@ -359,7 +359,7 @@ def save_hparams_to_yaml(config_yaml: _PATH, hparams: Union[dict, Namespace], us
         try:
             v = v.name if isinstance(v, Enum) else v
             yaml.dump(v)
-        except TypeError:
+        except (TypeError, ValueError):
             warn(f"Skipping '{k}' parameter because it is not possible to safely dump to YAML.")
             hparams[k] = type(v).__name__
         else:
