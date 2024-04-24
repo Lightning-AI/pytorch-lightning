@@ -1395,7 +1395,7 @@ class LightningModule(
         input_sample = self._on_before_batch_transfer(input_sample)
         input_sample = self._apply_batch_transfer_handler(input_sample)
 
-        torch.onnx.export(self, input_sample, file_path, **kwargs)
+        torch.onnx.export(self, input_sample, str(file_path), **kwargs)
         self.train(mode)
 
     @torch.no_grad()
