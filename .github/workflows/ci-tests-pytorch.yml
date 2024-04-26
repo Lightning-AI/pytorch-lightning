@@ -98,7 +98,7 @@ jobs:
       FREEZE_REQUIREMENTS: ${{ ! (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/')) }}
       PYPI_CACHE_DIR: "_pip-wheels"
       # TODO: Remove this - Enable running MPS tests on this platform
-      CI_DISABLE_MPS_TESTS: ${{ matrix.os == 'macOS-14' }}
+      CI_DISABLE_MPS_TESTS: ${{ matrix.os == 'macOS-14' && '1' || '0' }}
     steps:
       - uses: actions/checkout@v4
 
