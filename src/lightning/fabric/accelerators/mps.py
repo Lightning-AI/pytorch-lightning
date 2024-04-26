@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import os
+
 import platform
 from functools import lru_cache
 from typing import List, Optional, Union
@@ -70,7 +72,8 @@ class MPSAccelerator(Accelerator):
     @lru_cache(1)
     def is_available() -> bool:
         """MPS is only available on a machine with the ARM-based Apple Silicon processors."""
-        return torch.backends.mps.is_available() and platform.processor() in ("arm", "arm64")
+        mps_disabled = os.getenv("DISABLE_MPS", "0") == "1"
+        return not mps_disabled and torch.backends.mps.is_available() and platform.processor() in ("arm", "arm64")
 
     @classmethod
     @override

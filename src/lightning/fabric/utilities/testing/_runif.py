@@ -102,9 +102,7 @@ def _runif_reasons(
         kwargs["tpu"] = True
 
     if mps is not None:
-        if mps and os.getenv("CI_DISABLE_MPS_TESTS", "0") == "1":
-            reasons.append("MPS enabled in CI")
-        elif mps and not MPSAccelerator.is_available():
+        if mps and not MPSAccelerator.is_available():
             reasons.append("MPS")
         elif not mps and MPSAccelerator.is_available():
             reasons.append("not MPS")
