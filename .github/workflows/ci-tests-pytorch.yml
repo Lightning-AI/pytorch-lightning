@@ -188,6 +188,7 @@ jobs:
         run: rm -rf src/
 
       - name: Get legacy checkpoints
+        if: ${{ matrix.os != 'macOS-14' }}  # TODO: Remove this - Enable running MPS tests on this platform
         run: |
           bash .actions/pull_legacy_checkpoints.sh
           cd tests/legacy
