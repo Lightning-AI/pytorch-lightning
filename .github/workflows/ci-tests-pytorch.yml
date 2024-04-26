@@ -53,7 +53,7 @@ jobs:
           - { os: "macOS-11", pkg-name: "lightning", python-version: "3.10", pytorch-version: "2.2" }
           - { os: "ubuntu-20.04", pkg-name: "lightning", python-version: "3.10", pytorch-version: "2.2" }
           - { os: "windows-2022", pkg-name: "lightning", python-version: "3.10", pytorch-version: "2.2" }
-          - { os: "macOS-12", pkg-name: "lightning", python-version: "3.10", pytorch-version: "2.3" }
+          - { os: "macOS-14", pkg-name: "lightning", python-version: "3.10", pytorch-version: "2.3" }
           - { os: "ubuntu-20.04", pkg-name: "lightning", python-version: "3.10", pytorch-version: "2.3" }
           - { os: "windows-2022", pkg-name: "lightning", python-version: "3.10", pytorch-version: "2.3" }
           # only run PyTorch latest with Python latest, use PyTorch scope to limit dependency issues
