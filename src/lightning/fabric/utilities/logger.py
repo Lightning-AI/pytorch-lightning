@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import json
 from argparse import Namespace
 from dataclasses import asdict, is_dataclass
 from typing import Any, Dict, Mapping, MutableMapping, Optional, Union
@@ -130,6 +130,23 @@ def _sanitize_params(params: Dict[str, Any]) -> Dict[str, Any]:
         elif type(params[k]) not in [bool, int, float, str, Tensor]:
             params[k] = str(params[k])
     return params
+
+
+def _convert_json_serializable(params: Dict[str, Any]) -> Dict[str, Any]:
+    """Convert non-serializable objects in params to string."""
+    return {k: str(v) if not _is_json_serializable(v) else v for k, v in params.items()}
+
+
+def _is_json_serializable(value: Any) -> bool:
+    """Test whether a variable can be encoded as json."""
+    if value is None or isinstance(value, (bool, int, float, str, list, dict)):  # fast path
+        return True
+    try:
+        json.dumps(value)
+        return True
+    except (TypeError, OverflowError):
+        # OverflowError is raised if number is too large to encode
+        return False
 
 
 def _add_prefix(
