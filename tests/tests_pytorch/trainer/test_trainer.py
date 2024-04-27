@@ -2049,7 +2049,7 @@ def test_trainer_calls_strategy_on_exception(exception_type, tmp_path):
 
 
 @pytest.mark.parametrize("exception_type", [KeyboardInterrupt, RuntimeError])
-def test_trainer_calls_datamodule_on_exception(exception_type):
+def test_trainer_calls_datamodule_on_exception(exception_type, tmp_path):
     """Test that when an exception occurs, the Trainer lets the data module process it."""
     exception = exception_type("Test exception")
 
@@ -2059,7 +2059,7 @@ def test_trainer_calls_datamodule_on_exception(exception_type):
 
     datamodule = BoringDataModule()
     datamodule.on_exception = Mock()
-    trainer = Trainer()
+    trainer = Trainer(default_root_dir=tmp_path)
 
     with suppress(Exception):
         trainer.fit(ExceptionModel(), datamodule=datamodule)
