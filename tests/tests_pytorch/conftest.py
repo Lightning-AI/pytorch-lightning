@@ -311,9 +311,9 @@ def single_process_pg():
 @pytest.fixture(autouse=True)
 def leave_no_artifacts_behind():
     tests_root = Path(__file__).parent.parent
-    files_before = set(p for p in tests_root.rglob("*") if "__pycache__" not in p.parts)
+    files_before = {p for p in tests_root.rglob("*") if "__pycache__" not in p.parts}
     yield
-    files_after = set(p for p in tests_root.rglob("*") if "__pycache__" not in p.parts)
+    files_after = {p for p in tests_root.rglob("*") if "__pycache__" not in p.parts}
     difference = files_after - files_before
     difference = {str(f.relative_to(tests_root)) for f in difference}
     assert not difference, f"Test left artifacts behind: {difference}"
