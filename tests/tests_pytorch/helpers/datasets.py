@@ -132,16 +132,6 @@ class TrialMNIST(MNIST):
         num_samples: number of examples per selected class/digit
         digits: list selected MNIST digits/classes
         kwargs: Same as MNIST
-
-    Examples:
-        >>> dataset = TrialMNIST(".", download=True)
-        >>> len(dataset)
-        300
-        >>> sorted(set([d.item() for d in dataset.targets]))
-        [0, 1, 2]
-        >>> torch.bincount(dataset.targets)
-        tensor([100, 100, 100])
-
     """
 
     def __init__(self, root: str, num_samples: int = 100, digits: Optional[Sequence] = (0, 1, 2), **kwargs):
