@@ -132,6 +132,7 @@ class TrialMNIST(MNIST):
         num_samples: number of examples per selected class/digit
         digits: list selected MNIST digits/classes
         kwargs: Same as MNIST
+
     """
 
     def __init__(self, root: str, num_samples: int = 100, digits: Optional[Sequence] = (0, 1, 2), **kwargs):
