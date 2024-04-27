@@ -17,10 +17,10 @@ from pathlib import Path
 
 import pytest
 
-_TEST_ROOT = Path(__file__).parent
-_PROJECT_ROOT = _TEST_ROOT.parent.parent
+_TEST_ROOT = Path(__file__).parent.parent
+_PROJECT_ROOT = _TEST_ROOT.parent
 _PATH_DATASETS = _PROJECT_ROOT / "Datasets"
-_PATH_LEGACY = _PROJECT_ROOT / "legacy"
+_PATH_LEGACY = _TEST_ROOT / "legacy"
 
 # todo: this setting `PYTHONPATH` may not be used by other evns like Conda for import packages
 if str(_PROJECT_ROOT) not in os.getenv("PYTHONPATH", ""):
