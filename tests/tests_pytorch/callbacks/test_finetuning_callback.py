@@ -113,7 +113,7 @@ def test_finetuning_callback_warning(tmp_path):
         trainer.fit(model)
 
     assert model.backbone.has_been_used
-    trainer = Trainer(max_epochs=3)
+    trainer = Trainer(default_root_dir=tmp_path, max_epochs=3)
     trainer.fit(model, ckpt_path=chk.last_model_path)
 
 
@@ -245,7 +245,7 @@ def test_base_finetuning_internal_optimizer_metadata(tmp_path):
 
     model = FreezeModel()
     cb = OnEpochLayerFinetuning()
-    trainer = Trainer(max_epochs=10, callbacks=[cb])
+    trainer = Trainer(default_root_dir=tmp_path, max_epochs=10, callbacks=[cb])
     with pytest.raises(IndexError, match="index 6 is out of range"):
         trainer.fit(model, ckpt_path=chk.last_model_path)
 
