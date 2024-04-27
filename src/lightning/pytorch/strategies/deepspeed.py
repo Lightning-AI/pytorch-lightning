@@ -24,6 +24,7 @@ from typing import TYPE_CHECKING, Any, Dict, Generator, List, Mapping, Optional,
 import torch
 from torch.nn import Module
 from torch.optim import Optimizer
+from torch.optim.lr_scheduler import LRScheduler, ReduceLROnPlateau
 from typing_extensions import override
 
 import lightning.pytorch as pl
@@ -37,7 +38,7 @@ from lightning.fabric.strategies.deepspeed import (
 )
 from lightning.fabric.utilities.optimizer import _optimizers_to_device
 from lightning.fabric.utilities.seed import reset_seed
-from lightning.fabric.utilities.types import _PATH, LRScheduler, ReduceLROnPlateau
+from lightning.fabric.utilities.types import _PATH
 from lightning.pytorch.accelerators.cuda import CUDAAccelerator
 from lightning.pytorch.core.optimizer import _init_optimizers_and_lr_schedulers
 from lightning.pytorch.plugins.precision import Precision

@@ -54,10 +54,7 @@ from lightning.fabric.utilities.distributed import (
     _sync_ddp_if_available,
 )
 from lightning.fabric.utilities.distributed import group as _group
-from lightning.fabric.utilities.imports import (
-    _TORCH_GREATER_EQUAL_2_0,
-    _TORCH_GREATER_EQUAL_2_1,
-)
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_1
 from lightning.fabric.utilities.init import _EmptyInit
 from lightning.fabric.utilities.load import _lazy_load, _materialize_tensors
 from lightning.fabric.utilities.optimizer import _optimizers_to_device
@@ -75,14 +72,9 @@ from lightning.pytorch.utilities.rank_zero import rank_zero_info, rank_zero_only
 
 if TYPE_CHECKING:
     from torch.distributed.fsdp.fully_sharded_data_parallel import CPUOffload, MixedPrecision, ShardingStrategy
+    from torch.distributed.fsdp.wrap import ModuleWrapPolicy
 
-    if _TORCH_GREATER_EQUAL_2_0:
-        from torch.distributed.fsdp.wrap import ModuleWrapPolicy
-
-        _POLICY = Union[Set[Type[Module]], Callable[[Module, bool, int], bool], ModuleWrapPolicy]
-    else:
-        _POLICY = Union[Set[Type[Module]], Callable[[Module, bool, int], bool]]  # type: ignore[misc]
-
+    _POLICY = Union[Set[Type[Module]], Callable[[Module, bool, int], bool], ModuleWrapPolicy]
     _SHARDING_STRATEGY = Union[ShardingStrategy, Literal["FULL_SHARD", "SHARD_GRAD_OP", "NO_SHARD", "HYBRID_SHARD"]]
 
 
@@ -175,20 +167,13 @@ class FSDPStrategy(ParallelStrategy):
         self.kwargs = _auto_wrap_policy_kwargs(auto_wrap_policy, kwargs)
         self.sharding_strategy = _init_sharding_strategy(sharding_strategy, self.kwargs)
 
-        if _TORCH_GREATER_EQUAL_2_0:
-            # Avoids the need for user to reference params in `configure_optimizers` via
-            # `self.trainer.model.parameters()` and enables support for multiple parameter groups.
-            self.kwargs.setdefault("use_orig_params", True)
+        # Avoids the need for user to reference params in `configure_optimizers` via
+        # `self.trainer.model.parameters()` and enables support for multiple parameter groups.
+        self.kwargs.setdefault("use_orig_params", True)
 
         self._activation_checkpointing_kwargs = _activation_checkpointing_kwargs(
             activation_checkpointing, activation_checkpointing_policy
         )
-
-        if state_dict_type == "sharded" and not _TORCH_GREATER_EQUAL_2_0:
-            raise NotImplementedError(
-                "Saving checkpoints with `FSDPStrategy(state_dict_type='sharded')` is not supported in PyTorch < 2.0."
-                " Please upgrade `torch`."
-            )
         self._state_dict_type = state_dict_type
 
     @property
@@ -517,10 +502,6 @@ class FSDPStrategy(ParallelStrategy):
 
     @override
     def optimizer_state(self, optimizer: Optimizer) -> Dict[str, Tensor]:
-        if not _TORCH_GREATER_EQUAL_2_0:
-            rank_zero_warn("FSDP in Lightning with PyTorch < 2.0 does not support saving the optimizer state.")
-            return {}
-
         from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
         from torch.distributed.fsdp import OptimStateKeyType
 
@@ -629,7 +610,7 @@ class FSDPStrategy(ParallelStrategy):
             return metadata
 
         if _is_full_checkpoint(path):
-            checkpoint = _lazy_load(path) if _TORCH_GREATER_EQUAL_2_0 else torch.load(path, map_location="cpu")
+            checkpoint = _lazy_load(path)
             _load_raw_module_state(
                 checkpoint.pop("state_dict"),
                 module=self.model,
@@ -637,10 +618,9 @@ class FSDPStrategy(ParallelStrategy):
                 strict=self.lightning_module.strict_loading,
             )
 
-            if _TORCH_GREATER_EQUAL_2_0:
-                # Materialize lazy tensors if there are any left in the checkpoint
-                # The `torch.Optimizer.load_state_dict` method can't load lazy tensors because of deepcopy pickle issues
-                checkpoint = _materialize_tensors(checkpoint)
+            # Materialize lazy tensors if there are any left in the checkpoint
+            # The `torch.Optimizer.load_state_dict` method can't load lazy tensors because of deepcopy pickle issues
+            checkpoint = _materialize_tensors(checkpoint)
 
             from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
             from torch.distributed.fsdp import OptimStateKeyType
@@ -648,9 +628,6 @@ class FSDPStrategy(ParallelStrategy):
             optimizer_states = checkpoint.get("optimizer_states")
             if optimizer_states is None or self.lightning_module.trainer.state.fn != TrainerFn.FITTING:
                 # If the optimizer states are not present, we don't need to do anything (backward compatibility)
-                return checkpoint
-            if not _TORCH_GREATER_EQUAL_2_0:
-                rank_zero_warn("FSDP in Lightning with PyTorch < 2.0 does not support loading the optimizer state.")
                 return checkpoint
             if len(self.optimizers) != len(optimizer_states):
                 raise RuntimeError(
