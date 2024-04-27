@@ -20,7 +20,6 @@ import pytest
 import torch
 from lightning.fabric.plugins.environments import ClusterEnvironment, LightningEnvironment
 from lightning.fabric.utilities.distributed import _distributed_is_initialized
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 from lightning.pytorch import Trainer
 from lightning.pytorch.callbacks import Callback, EarlyStopping
 from lightning.pytorch.demos.boring_classes import BoringDataModule, BoringModel
@@ -112,9 +111,7 @@ def test_ddp_wrapper(tmp_path, precision):
         def on_train_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
             assert isinstance(trainer.strategy.model, DistributedDataParallel)
             expected = ["something"]
-            assert (
-                trainer.strategy.model.parameters_to_ignore == set(expected) if _TORCH_GREATER_EQUAL_2_0 else expected
-            )
+            assert trainer.strategy.model.parameters_to_ignore == set(expected)
             assert trainer.strategy.model.module._ddp_params_and_buffers_to_ignore == expected
 
     model = CustomModel()
