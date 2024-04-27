@@ -25,7 +25,7 @@ def test_passing_no_env_variables():
     assert trainer.logger is not None
     assert trainer.max_steps == -1
     assert trainer.max_epochs is None
-    trainer = Trainer(logger=False, max_steps=1)
+    trainer = Trainer(max_steps=1, logger=False, enable_checkpointing=False)
     trainer.fit(model)
     assert trainer.logger is None
     assert trainer.max_steps == 1
