@@ -284,10 +284,10 @@ class BoringZeroRedundancyOptimizerModel(BoringModel):
 
 @RunIf(min_cuda_gpus=2, skip_windows=True)
 @pytest.mark.parametrize("strategy", [pytest.param("ddp", marks=RunIf(standalone=True)), "ddp_spawn"])
-def test_ddp_strategy_checkpoint_zero_redundancy_optimizer(tmp_path, strategy):
+def test_ddp_strategy_checkpoint_zero_redundancy_optimizer(strategy, tmp_path):
     """Test to ensure that checkpoint is saved correctly when using zero redundancy optimizer."""
     model = BoringZeroRedundancyOptimizerModel()
-    trainer = Trainer(accelerator="gpu", devices=2, strategy=strategy, max_steps=1)
+    trainer = Trainer(default_root_dir=tmp_path, accelerator="gpu", devices=2, strategy=strategy, max_steps=1)
 
     trainer.fit(model)
 
