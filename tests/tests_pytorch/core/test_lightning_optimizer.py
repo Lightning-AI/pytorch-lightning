@@ -16,6 +16,8 @@ from unittest.mock import DEFAULT, Mock, patch
 
 import pytest
 import torch
+
+from tests_pytorch.helpers.runif import RunIf
 from lightning.pytorch import Trainer
 from lightning.pytorch.core.optimizer import LightningOptimizer
 from lightning.pytorch.demos.boring_classes import BoringModel
@@ -232,6 +234,7 @@ def test_lightning_optimizer_automatic_optimization_optimizer_step(tmp_path):
     assert sgd["zero_grad"].call_count == limit_train_batches
 
 
+@RunIf(mps=False)  # mps does not support LBFGS
 def test_lightning_optimizer_automatic_optimization_lbfgs_zero_grad(tmp_path):
     """Test zero_grad is called the same number of times as LBFGS requires for reevaluation of the loss in
     automatic_optimization."""

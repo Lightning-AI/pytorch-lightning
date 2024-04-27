@@ -49,7 +49,7 @@ def test_passing_env_variables_defaults():
 
 
 @mock.patch.dict(os.environ, {"CUDA_VISIBLE_DEVICES": "0,1", "PL_TRAINER_DEVICES": "2"})
-def test_passing_env_variables_devices(cuda_count_2):
+def test_passing_env_variables_devices(cuda_count_2, mps_count_0):
     """Testing overwriting trainer arguments."""
     trainer = Trainer()
     assert trainer.num_devices == 2
