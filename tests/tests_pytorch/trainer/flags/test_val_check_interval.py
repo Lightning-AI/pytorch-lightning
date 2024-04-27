@@ -107,6 +107,8 @@ def test_validation_check_interval_exceed_data_length_wrong():
     trainer = Trainer(
         limit_train_batches=10,
         val_check_interval=100,
+        logger=False,
+        enable_checkpointing=False,
     )
 
     model = BoringModel()

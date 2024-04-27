@@ -679,7 +679,7 @@ def test_warning_with_small_dataloader_and_logging_interval(tmp_path):
 
     with pytest.warns(UserWarning, match=r"The number of training batches \(1\) is smaller than the logging interval"):
         trainer = Trainer(
-            default_root_dir=tmp_path, max_epochs=1, log_every_n_steps=2, limit_train_batches=1, logger=CSVLogger(".")
+            default_root_dir=tmp_path, max_epochs=1, log_every_n_steps=2, limit_train_batches=1, logger=CSVLogger(tmp_path)
         )
         trainer.fit(model)
 
