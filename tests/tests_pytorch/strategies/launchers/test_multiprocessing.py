@@ -201,7 +201,9 @@ def test_memory_sharing_disabled(tmp_path):
     assert not model.layer.weight.is_shared()
     assert model.layer.weight.data_ptr() == model.tied_layer.weight.data_ptr()
 
-    trainer = Trainer(default_root_dir=tmp_path, logger=False, accelerator="cpu", devices=2, strategy="ddp_spawn", max_steps=0)
+    trainer = Trainer(
+        default_root_dir=tmp_path, logger=False, accelerator="cpu", devices=2, strategy="ddp_spawn", max_steps=0
+    )
     trainer.fit(model)
 
 

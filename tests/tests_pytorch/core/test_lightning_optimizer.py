@@ -16,14 +16,14 @@ from unittest.mock import DEFAULT, Mock, patch
 
 import pytest
 import torch
-
-from tests_pytorch.helpers.runif import RunIf
 from lightning.pytorch import Trainer
 from lightning.pytorch.core.optimizer import LightningOptimizer
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.loops.optimization.automatic import Closure
 from lightning.pytorch.tuner.tuning import Tuner
 from torch.optim import SGD, Adam, Optimizer
+
+from tests_pytorch.helpers.runif import RunIf
 
 
 @pytest.mark.parametrize("auto", [True, False])

@@ -25,7 +25,9 @@ def test_backward_count_simple(torch_backward, num_steps):
 def test_backward_count_with_grad_accumulation(torch_backward):
     """Test that backward is called the correct number of times when accumulating gradients."""
     model = BoringModel()
-    trainer = Trainer(max_epochs=1, limit_train_batches=6, accumulate_grad_batches=2, logger=False, enable_checkpointing=False)
+    trainer = Trainer(
+        max_epochs=1, limit_train_batches=6, accumulate_grad_batches=2, logger=False, enable_checkpointing=False
+    )
     trainer.fit(model)
     assert torch_backward.call_count == 6
 
