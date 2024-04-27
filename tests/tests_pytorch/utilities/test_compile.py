@@ -117,7 +117,7 @@ def test_compile_uncompile():
 
 # https://github.com/pytorch/pytorch/issues/95708
 @pytest.mark.skipif(sys.platform == "darwin", reason="fatal error: 'omp.h' file not found")
-@pytest.mark.xfail(not _PYTHON_GREATER_EQUAL_3_9_0, strict=False, reason="AssertionError: failed to reach fixed point")
+@pytest.mark.skipif(not _PYTHON_GREATER_EQUAL_3_9_0, reason="AssertionError: failed to reach fixed point")
 @pytest.mark.xfail(
     sys.platform == "win32" and _TORCH_GREATER_EQUAL_2_2, strict=False, reason="RuntimeError: Failed to import"
 )
@@ -147,6 +147,7 @@ def test_trainer_compiled_model_that_logs(tmp_path):
 
 # https://github.com/pytorch/pytorch/issues/95708
 @pytest.mark.skipif(sys.platform == "darwin", reason="fatal error: 'omp.h' file not found")
+@pytest.mark.skipif(not _PYTHON_GREATER_EQUAL_3_9_0, reason="AssertionError: failed to reach fixed point")
 @pytest.mark.xfail(
     sys.platform == "win32" and _TORCH_GREATER_EQUAL_2_2, strict=False, reason="RuntimeError: Failed to import"
 )
