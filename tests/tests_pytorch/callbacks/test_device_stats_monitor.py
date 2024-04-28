@@ -162,7 +162,7 @@ def test_device_stats_monitor_warning_when_psutil_not_available(monkeypatch, tmp
 
     monkeypatch.setattr(imports, "_PSUTIL_AVAILABLE", False)
     monitor = DeviceStatsMonitor()
-    trainer = Trainer(logger=CSVLogger(tmp_path))
+    trainer = Trainer(accelerator="cpu", logger=CSVLogger(tmp_path))
     assert trainer.strategy.root_device == torch.device("cpu")
     with pytest.raises(ModuleNotFoundError, match="psutil` is not installed"):
         monitor.setup(trainer, Mock(), "fit")

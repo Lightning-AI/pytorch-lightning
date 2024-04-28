@@ -910,7 +910,7 @@ def test_manual_optimization_with_non_pytorch_scheduler(automatic_optimization):
             return [optimizer], [scheduler]
 
     model = Model()
-    trainer = Trainer(accelerator="cpu", max_epochs=0)
+    trainer = Trainer(accelerator="cpu", max_epochs=0, logger=False, enable_checkpointing=False)
     if automatic_optimization:
         with pytest.raises(MisconfigurationException, match="doesn't follow PyTorch's LRScheduler"):
             trainer.fit(model)

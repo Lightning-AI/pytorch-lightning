@@ -15,9 +15,23 @@ import pickle
 
 import cloudpickle
 import pytest
+import torch
 
 from tests_pytorch import _PATH_DATASETS
 from tests_pytorch.helpers.datasets import MNIST, AverageDataset, TrialMNIST
+
+
+def test_mnist(tmp_path):
+    dataset = MNIST(tmp_path, download=True)
+    assert len(dataset) == 60000
+    assert torch.bincount(dataset.targets).tolist() == [5923, 6742, 5958, 6131, 5842, 5421, 5918, 6265, 5851, 5949]
+
+
+def test_trial_mnist(tmp_path):
+    dataset = TrialMNIST(tmp_path, download=True)
+    assert len(dataset) == 300
+    assert set(dataset.targets.tolist()) == {0, 1, 2}
+    assert torch.bincount(dataset.targets).tolist() == [100, 100, 100]
 
 
 @pytest.mark.parametrize(
