@@ -24,8 +24,6 @@ from unittest import mock
 from unittest.mock import ANY, Mock, call, patch
 
 import cloudpickle
-import lightning.fabric
-import lightning.pytorch
 import pytest
 import torch
 import torch.nn as nn
@@ -51,7 +49,6 @@ from lightning.pytorch.strategies.launchers import _MultiProcessingLauncher
 from lightning.pytorch.trainer.states import RunningStage, TrainerFn
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.imports import _OMEGACONF_AVAILABLE
-from lightning.pytorch.utilities.warnings import PossibleUserWarning
 from torch.multiprocessing import ProcessRaisedException
 from torch.nn.parallel.distributed import DistributedDataParallel
 from torch.optim import SGD
@@ -2035,7 +2032,7 @@ def test_trainer_calls_logger_finalize_on_exception(tmp_path):
 
 
 @pytest.mark.parametrize("exception_type", [KeyboardInterrupt, RuntimeError])
-def test_trainer_calls_strategy_on_exception(exception_type):
+def test_trainer_calls_strategy_on_exception(exception_type, tmp_path):
     """Test that when an exception occurs, the Trainer lets the strategy process it."""
     exception = exception_type("Test exception")
 
@@ -2043,7 +2040,7 @@ def test_trainer_calls_strategy_on_exception(exception_type):
         def on_fit_start(self):
             raise exception
 
-    trainer = Trainer()
+    trainer = Trainer(default_root_dir=tmp_path)
     with mock.patch("lightning.pytorch.strategies.strategy.Strategy.on_exception") as on_exception_mock, suppress(
         Exception
     ):
@@ -2052,7 +2049,7 @@ def test_trainer_calls_strategy_on_exception(exception_type):
 
 
 @pytest.mark.parametrize("exception_type", [KeyboardInterrupt, RuntimeError])
-def test_trainer_calls_datamodule_on_exception(exception_type):
+def test_trainer_calls_datamodule_on_exception(exception_type, tmp_path):
     """Test that when an exception occurs, the Trainer lets the data module process it."""
     exception = exception_type("Test exception")
 
@@ -2062,7 +2059,7 @@ def test_trainer_calls_datamodule_on_exception(exception_type):
 
     datamodule = BoringDataModule()
     datamodule.on_exception = Mock()
-    trainer = Trainer()
+    trainer = Trainer(default_root_dir=tmp_path)
 
     with suppress(Exception):
         trainer.fit(ExceptionModel(), datamodule=datamodule)
@@ -2079,12 +2076,6 @@ def test_init_module_context(monkeypatch):
         pass
     strategy.tensor_init_context.assert_called_once_with(empty_init=None)
     strategy.tensor_init_context.reset_mock()
-
-    # Pretend we are using PyTorch < 2.0
-    monkeypatch.setattr(lightning.pytorch.trainer.trainer, "_TORCH_GREATER_EQUAL_2_0", False)
-    with pytest.warns(PossibleUserWarning, match="can't place .* on the device"), trainer.init_module():
-        pass
-    strategy.tensor_init_context.assert_called_once()
 
 
 def test_expand_home_trainer():

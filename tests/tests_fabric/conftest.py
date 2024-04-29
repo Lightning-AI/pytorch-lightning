@@ -14,6 +14,7 @@
 import os
 import sys
 import threading
+from pathlib import Path
 from typing import List
 from unittest.mock import Mock
 
@@ -183,6 +184,17 @@ def caplog(caplog):
     lightning_logger.propagate = True
     yield caplog
     lightning_logger.propagate = propagate
+
+
+@pytest.fixture(autouse=True)
+def leave_no_artifacts_behind():
+    tests_root = Path(__file__).parent.parent
+    files_before = {p for p in tests_root.rglob("*") if "__pycache__" not in p.parts}
+    yield
+    files_after = {p for p in tests_root.rglob("*") if "__pycache__" not in p.parts}
+    difference = files_after - files_before
+    difference = {str(f.relative_to(tests_root)) for f in difference}
+    assert not difference, f"Test left artifacts behind: {difference}"
 
 
 def pytest_collection_modifyitems(items: List[pytest.Function], config: pytest.Config) -> None:

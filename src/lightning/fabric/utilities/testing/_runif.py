@@ -24,7 +24,7 @@ from lightning.fabric.accelerators import XLAAccelerator
 from lightning.fabric.accelerators.cuda import num_cuda_devices
 from lightning.fabric.accelerators.mps import MPSAccelerator
 from lightning.fabric.strategies.deepspeed import _DEEPSPEED_AVAILABLE
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0, _TORCH_GREATER_EQUAL_2_1
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_1
 
 
 def _runif_reasons(
@@ -122,7 +122,6 @@ def _runif_reasons(
             cond = not is_dynamo_supported()
         else:
             cond = sys.platform == "win32" or sys.version_info >= (3, 11)
-        cond |= not _TORCH_GREATER_EQUAL_2_0
         if cond:
             reasons.append("torch.dynamo")
 

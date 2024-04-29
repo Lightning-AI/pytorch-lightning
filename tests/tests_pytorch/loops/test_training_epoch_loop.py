@@ -30,6 +30,7 @@ def test_no_val_on_train_epoch_loop_restart(tmp_path):
         "limit_train_batches": 1,
         "limit_val_batches": 1,
         "num_sanity_val_steps": 0,
+        "logger": False,
         "enable_checkpointing": False,
     }
     trainer = Trainer(**trainer_kwargs)

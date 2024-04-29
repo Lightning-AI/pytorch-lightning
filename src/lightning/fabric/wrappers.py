@@ -16,7 +16,6 @@ from copy import deepcopy
 from functools import partial, wraps
 from types import MethodType
 from typing import (
-    TYPE_CHECKING,
     Any,
     Callable,
     Dict,
@@ -36,6 +35,7 @@ from lightning_utilities import is_overridden
 from lightning_utilities.core.apply_func import apply_to_collection
 from torch import Tensor
 from torch import nn as nn
+from torch._dynamo import OptimizedModule
 from torch.nn.modules.module import _IncompatibleKeys
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
@@ -46,11 +46,7 @@ from lightning.fabric.strategies import Strategy
 from lightning.fabric.utilities import move_data_to_device
 from lightning.fabric.utilities.data import _set_sampler_epoch
 from lightning.fabric.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 from lightning.fabric.utilities.types import Optimizable
-
-if TYPE_CHECKING:
-    from torch._dynamo import OptimizedModule
 
 T_destination = TypeVar("T_destination", bound=Dict[str, Any])
 _LIGHTNING_MODULE_STEP_METHODS = ("training_step", "validation_step", "test_step", "predict_step")
@@ -349,26 +345,17 @@ def _unwrap_objects(collection: Any) -> Any:
         return obj
 
     types = [_FabricModule, _FabricOptimizer, _FabricDataLoader]
-    if _TORCH_GREATER_EQUAL_2_0:
-        from torch._dynamo import OptimizedModule
-
-        types.append(OptimizedModule)
+    types.append(OptimizedModule)
 
     return apply_to_collection(collection, dtype=tuple(types), function=_unwrap)
 
 
-def _unwrap_compiled(obj: Union[Any, "OptimizedModule"]) -> Tuple[Union[Any, nn.Module], Optional[Dict[str, Any]]]:
+def _unwrap_compiled(obj: Union[Any, OptimizedModule]) -> Tuple[Union[Any, nn.Module], Optional[Dict[str, Any]]]:
     """Removes the :class:`torch._dynamo.OptimizedModule` around the object if it is wrapped.
 
     Use this function before instance checks against e.g. :class:`_FabricModule`.
 
     """
-    if not _TORCH_GREATER_EQUAL_2_0:
-        # obj can't be an `OptimizedModule` anyway
-        return obj, None
-
-    from torch._dynamo import OptimizedModule
-
     if isinstance(obj, OptimizedModule):
         if (compile_kwargs := getattr(obj, "_compile_kwargs", None)) is None:
             raise RuntimeError(
@@ -379,10 +366,7 @@ def _unwrap_compiled(obj: Union[Any, "OptimizedModule"]) -> Tuple[Union[Any, nn.
     return obj, None
 
 
-def _to_compiled(module: nn.Module, compile_kwargs: Dict[str, Any]) -> "OptimizedModule":
-    if not _TORCH_GREATER_EQUAL_2_0:
-        raise RuntimeError("Converting to a compiled module is only supported in PyTorch >= 2.0.0")
-
+def _to_compiled(module: nn.Module, compile_kwargs: Dict[str, Any]) -> OptimizedModule:
     return torch.compile(module, **compile_kwargs)  # type: ignore[return-value]
 
 
@@ -434,5 +418,4 @@ def _capture_compile_kwargs(compile_fn: Callable) -> Callable:
     return _capture
 
 
-if _TORCH_GREATER_EQUAL_2_0:
-    torch.compile = _capture_compile_kwargs(torch.compile)
+torch.compile = _capture_compile_kwargs(torch.compile)
