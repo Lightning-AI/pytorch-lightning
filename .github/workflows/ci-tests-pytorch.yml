@@ -53,6 +53,9 @@ jobs:
           - { os: "macOS-11", pkg-name: "lightning", python-version: "3.10", pytorch-version: "2.2" }
           - { os: "ubuntu-20.04", pkg-name: "lightning", python-version: "3.10", pytorch-version: "2.2" }
           - { os: "windows-2022", pkg-name: "lightning", python-version: "3.10", pytorch-version: "2.2" }
+          - { os: "macOS-14", pkg-name: "lightning", python-version: "3.10", pytorch-version: "2.3" }
+          - { os: "ubuntu-20.04", pkg-name: "lightning", python-version: "3.10", pytorch-version: "2.3" }
+          - { os: "windows-2022", pkg-name: "lightning", python-version: "3.10", pytorch-version: "2.3" }
           # only run PyTorch latest with Python latest, use PyTorch scope to limit dependency issues
           - { os: "macOS-12", pkg-name: "pytorch", python-version: "3.11", pytorch-version: "2.0" }
           - { os: "ubuntu-22.04", pkg-name: "pytorch", python-version: "3.11", pytorch-version: "2.0" }
@@ -88,6 +91,8 @@ jobs:
       TORCH_URL_TEST: "https://download.pytorch.org/whl/test/cpu/torch_test.html"
       FREEZE_REQUIREMENTS: ${{ ! (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/')) }}
       PYPI_CACHE_DIR: "_pip-wheels"
+      # TODO: Remove this - Enable running MPS tests on this platform
+      DISABLE_MPS: ${{ matrix.os == 'macOS-14' && '1' || '0' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -125,7 +130,7 @@ jobs:
       - name: Env. variables
         run: |
           # Switch PyTorch URL
-          python -c "print('TORCH_URL=' + str('${{env.TORCH_URL_TEST}}' if '${{ matrix.pytorch-version }}' == '2.2' else '${{env.TORCH_URL_STABLE}}'))" >> $GITHUB_ENV
+          python -c "print('TORCH_URL=' + str('${{env.TORCH_URL_TEST}}' if '${{ matrix.pytorch-version }}' == '2.3' else '${{env.TORCH_URL_STABLE}}'))" >> $GITHUB_ENV
           # Switch coverage scope
           python -c "print('COVERAGE_SCOPE=' + str('lightning' if '${{matrix.pkg-name}}' == 'lightning' else 'pytorch_lightning'))" >> $GITHUB_ENV
           # if you install mono-package set dependency only for this subpackage

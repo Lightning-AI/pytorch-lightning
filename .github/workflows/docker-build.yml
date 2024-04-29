@@ -109,6 +109,7 @@ jobs:
           - { python_version: "3.10", pytorch_version: "2.2", cuda_version: "12.1.0" }
           - { python_version: "3.11", pytorch_version: "2.1", cuda_version: "12.1.0" }
           - { python_version: "3.11", pytorch_version: "2.2", cuda_version: "12.1.0" }
+          - { python_version: "3.11", pytorch_version: "2.3", cuda_version: "12.1.0" }
           # - { python_version: "3.12", pytorch_version: "2.2", cuda_version: "12.1.0" }  # todo: pending on `onnxruntime`
     steps:
       - uses: actions/checkout@v4

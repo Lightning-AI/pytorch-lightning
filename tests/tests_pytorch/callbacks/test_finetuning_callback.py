@@ -15,6 +15,7 @@ from collections import OrderedDict
 
 import pytest
 import torch
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_3
 from lightning.pytorch import LightningModule, Trainer, seed_everything
 from lightning.pytorch.callbacks import BackboneFinetuning, BaseFinetuning, ModelCheckpoint
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
@@ -359,6 +360,8 @@ def test_callbacks_restore(tmp_path):
         "foreach": None,
         "differentiable": False,
     }
+    if _TORCH_GREATER_EQUAL_2_3:
+        expected["fused"] = None
 
     assert callback._internal_optimizer_metadata[0][0] == expected
 
@@ -374,6 +377,8 @@ def test_callbacks_restore(tmp_path):
         "foreach": None,
         "differentiable": False,
     }
+    if _TORCH_GREATER_EQUAL_2_3:
+        expected["fused"] = None
 
     assert callback._internal_optimizer_metadata[0][1] == expected
 
