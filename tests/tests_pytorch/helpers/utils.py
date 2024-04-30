@@ -18,23 +18,19 @@ from lightning.pytorch.callbacks import ModelCheckpoint
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.loggers import TensorBoardLogger
 
-from tests_pytorch import _TEMP_PATH
-
 
 def get_default_logger(save_dir, version=None):
     # set up logger object without actually saving logs
     return TensorBoardLogger(save_dir, name="lightning_logs", version=version)
 
 
-def get_data_path(expt_logger, path_dir=None):
+def get_data_path(expt_logger, path_dir):
     # some calls contain only experiment not complete logger
 
     # each logger has to have these attributes
     name, version = expt_logger.name, expt_logger.version
 
     # the other experiments...
-    if not path_dir:
-        path_dir = expt_logger.save_dir if hasattr(expt_logger, "save_dir") and expt_logger.save_dir else _TEMP_PATH
     path_expt = os.path.join(path_dir, name, "version_%s" % version)
 
     # try if the new sub-folder exists, typical case for test-tube

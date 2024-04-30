@@ -23,12 +23,10 @@ import torch.nn as nn
 from lightning.fabric import Fabric
 from lightning.fabric.plugins import FSDPPrecision
 from lightning.fabric.strategies import FSDPStrategy
-from lightning.fabric.utilities.imports import (
-    _TORCH_GREATER_EQUAL_2_0,
-    _TORCH_GREATER_EQUAL_2_1,
-)
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_1
 from lightning.fabric.utilities.load import _load_distributed_checkpoint
 from lightning.fabric.wrappers import _FabricOptimizer
+from torch._dynamo import OptimizedModule
 from torch.distributed.fsdp import FlatParameter, FullyShardedDataParallel, OptimStateKeyType
 from torch.distributed.fsdp.wrap import always_wrap_policy, wrap
 from torch.nn import Parameter
@@ -121,7 +119,7 @@ class _TrainerManualWrapping(_Trainer):
         return model
 
 
-@RunIf(min_cuda_gpus=2, standalone=True, min_torch="2.0.0")
+@RunIf(min_cuda_gpus=2, standalone=True)
 @pytest.mark.parametrize("precision", ["16-mixed", pytest.param("bf16-mixed", marks=RunIf(bf16_cuda=True))])
 @pytest.mark.parametrize("manual_wrapping", [True, False])
 def test_fsdp_train_save_load(tmp_path, manual_wrapping, precision):
@@ -176,7 +174,7 @@ def test_fsdp_train_save_load(tmp_path, manual_wrapping, precision):
     assert state["coconut"] == 11
 
 
-@RunIf(min_cuda_gpus=2, standalone=True, min_torch="2.0.0")
+@RunIf(min_cuda_gpus=2, standalone=True)
 def test_fsdp_save_full_state_dict(tmp_path):
     """Test that FSDP saves the full state into a single file with `state_dict_type="full"`."""
     fabric = Fabric(
@@ -290,7 +288,7 @@ def test_fsdp_save_full_state_dict(tmp_path):
     trainer.run()
 
 
-@RunIf(min_cuda_gpus=2, standalone=True, min_torch="2.0.0")
+@RunIf(min_cuda_gpus=2, standalone=True)
 def test_fsdp_load_full_state_dict_into_sharded_model(tmp_path):
     """Test that the strategy can load a full-state checkpoint into a FSDP sharded model."""
     from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
@@ -362,11 +360,7 @@ def test_setup_module_move_to_device(fabric_module_mock, move_to_device):
     # the linear layer got sharded and each part is on the expected device
     assert next(fabric_model.parameters()).device == torch.device("cuda", fabric.local_rank)
     assert next(fabric_model.parameters()).numel() == 50
-    if _TORCH_GREATER_EQUAL_2_0:
-        # In PyTorch >= 2.0 we set `use_orig_params=True` and don't see flattened parameters
-        assert isinstance(next(fabric_model.parameters()), Parameter)
-    else:
-        assert isinstance(next(fabric_model.parameters()), FlatParameter)
+    assert isinstance(next(fabric_model.parameters()), Parameter)
 
     # The _DeviceDtypeModuleMixin currently can't represent the device in a meaningful way for models with pieces on
     # different devices
@@ -374,7 +368,7 @@ def test_setup_module_move_to_device(fabric_module_mock, move_to_device):
     assert fabric.device == torch.device("cuda", fabric.local_rank)
 
 
-@RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True, min_torch="2.0.0")
+@RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True)
 def test_setup_with_orig_params_and_multiple_param_groups():
     """Test that Fabric sets `use_orig_params` for the user when jointly setting up model and optimizer."""
     strategy = FSDPStrategy(auto_wrap_policy=always_wrap_policy)
@@ -407,15 +401,10 @@ def test_setup_with_orig_params_and_multiple_param_groups():
 
 
 @RunIf(min_cuda_gpus=2, standalone=True, min_torch="2.1.0", dynamo=True, skip_windows=True)
-@mock.patch(
-    "lightning.fabric.wrappers.torch.compile",
-    Mock(wraps=(torch.compile if _TORCH_GREATER_EQUAL_2_0 else None)),
-)
+@mock.patch("lightning.fabric.wrappers.torch.compile", Mock(wraps=torch.compile))
 @mock.patch.dict(os.environ, {})
 def test_reapply_compile():
     """Test that Fabric can rewrap a compiled module such that compilation happens over the FSDP-wrapper."""
-    from torch._dynamo import OptimizedModule
-
     strategy = FSDPStrategy(auto_wrap_policy=always_wrap_policy)
     fabric = Fabric(accelerator="cuda", devices=2, strategy=strategy)
     fabric.launch()
@@ -485,7 +474,7 @@ def test_module_init_context(precision, expected_dtype):
         _run_setup_assertions(empty_init=True, expected_device=torch.device("cpu"))
 
 
-@RunIf(min_cuda_gpus=2, standalone=True, min_torch="2.0.0")
+@RunIf(min_cuda_gpus=2, standalone=True)
 def test_fsdp_save_filter(tmp_path):
     fabric = Fabric(accelerator="cuda", strategy=FSDPStrategy(state_dict_type="full"), devices=2)
     fabric.launch()

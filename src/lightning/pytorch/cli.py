@@ -23,11 +23,11 @@ import yaml
 from lightning_utilities.core.imports import RequirementCache
 from lightning_utilities.core.rank_zero import _warn
 from torch.optim import Optimizer
+from torch.optim.lr_scheduler import LRScheduler
 from typing_extensions import override
 
 import lightning.pytorch as pl
 from lightning.fabric.utilities.cloud_io import get_filesystem
-from lightning.fabric.utilities.types import _TORCH_LRSCHEDULER
 from lightning.pytorch import Callback, LightningDataModule, LightningModule, Trainer, seed_everything
 from lightning.pytorch.core.mixins.hparams_mixin import _given_hyperparameters_context
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
@@ -63,15 +63,15 @@ class ReduceLROnPlateau(torch.optim.lr_scheduler.ReduceLROnPlateau):
 
 
 # LightningCLI requires the ReduceLROnPlateau defined here, thus it shouldn't accept the one from pytorch:
-LRSchedulerTypeTuple = (_TORCH_LRSCHEDULER, ReduceLROnPlateau)
-LRSchedulerTypeUnion = Union[_TORCH_LRSCHEDULER, ReduceLROnPlateau]
-LRSchedulerType = Union[Type[_TORCH_LRSCHEDULER], Type[ReduceLROnPlateau]]
+LRSchedulerTypeTuple = (LRScheduler, ReduceLROnPlateau)
+LRSchedulerTypeUnion = Union[LRScheduler, ReduceLROnPlateau]
+LRSchedulerType = Union[Type[LRScheduler], Type[ReduceLROnPlateau]]
 
 
 # Type aliases intended for convenience of CLI developers
 ArgsType = Optional[Union[List[str], Dict[str, Any], Namespace]]
 OptimizerCallable = Callable[[Iterable], Optimizer]
-LRSchedulerCallable = Callable[[Optimizer], Union[_TORCH_LRSCHEDULER, ReduceLROnPlateau]]
+LRSchedulerCallable = Callable[[Optimizer], Union[LRScheduler, ReduceLROnPlateau]]
 
 
 class LightningArgumentParser(ArgumentParser):
