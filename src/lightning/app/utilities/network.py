@@ -97,14 +97,14 @@ def create_retry_strategy():
         total=_CONNECTION_RETRY_TOTAL,
         backoff_factor=_CONNECTION_RETRY_BACKOFF_FACTOR,
         status_forcelist={
-            408,                            # Request Timeout
-            429,                            # Too Many Requests
-            *range(500, 600)                # Any 5xx Server Error status
+            408,  # Request Timeout
+            429,  # Too Many Requests
+            *range(500, 600),  # Any 5xx Server Error status
         },
-        allowed_methods = {
-            "POST",                         # Default methods are idempotent, add POST here
-            *Retry.DEFAULT_ALLOWED_METHODS
-        }
+        allowed_methods={
+            "POST",  # Default methods are idempotent, add POST here
+            *Retry.DEFAULT_ALLOWED_METHODS,
+        },
     )
 
 
