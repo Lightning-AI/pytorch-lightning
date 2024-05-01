@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
+
+## [2.2.4] - 2024-05-02
+
+## Fixed
+
+- Fixed HTTPClient retry for flow/work queue ([#19837](https://github.com/Lightning-AI/pytorch-lightning/pull/19837))
+
+
 ## [2.2.0] - 2024-02-09
 
 ## Changed
