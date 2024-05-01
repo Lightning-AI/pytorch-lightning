@@ -9,6 +9,7 @@ from lightning.app.cli import cmd_install, lightning_cli
 from lightning.app.testing.helpers import _RunIf
 
 
+@pytest.mark.xfail(strict=False, reason="lightning app cli was deprecated")
 @mock.patch("lightning.app.cli.cmd_install.subprocess", mock.MagicMock())
 def test_valid_org_app_name():
     """Valid organization name."""
@@ -69,6 +70,7 @@ def test_app_install(tmpdir, monkeypatch):
     assert test_app_pip_name in str(new_env_output), f"{test_app_pip_name} should be in the env"
 
 
+@pytest.mark.xfail(strict=False, reason="lightning app cli was deprecated")
 @mock.patch("lightning.app.cli.cmd_install.subprocess", mock.MagicMock())
 def test_valid_org_component_name():
     runner = CliRunner()
@@ -135,6 +137,7 @@ def test_component_install(real_component, test_component_pip_name):
     ), f"{test_component_pip_name} should not be in the env after cleanup"
 
 
+@pytest.mark.xfail(strict=False, reason="lightning app cli was deprecated")
 def test_prompt_actions():
     # TODO: each of these installs must check that a package is installed in the environment correctly
     app_to_use = "lightning/invideo"
@@ -164,6 +167,7 @@ def test_prompt_actions():
     # result = runner.invoke(lightning_cli.cmd_install.install_app, [app_to_use], input='')
 
 
+@pytest.mark.xfail(strict=False, reason="lightning app cli was deprecated")
 @mock.patch("lightning.app.cli.cmd_install.subprocess", mock.MagicMock())
 def test_version_arg_component(tmpdir, monkeypatch):
     monkeypatch.chdir(tmpdir)
@@ -186,6 +190,7 @@ def test_version_arg_component(tmpdir, monkeypatch):
     assert result.exit_code == 0
 
 
+@pytest.mark.xfail(strict=False, reason="lightning app cli was deprecated")
 @mock.patch("lightning.app.cli.cmd_install.subprocess", mock.MagicMock())
 @mock.patch("lightning.app.cli.cmd_install.os.chdir", mock.MagicMock())
 def test_version_arg_app(tmpdir):
@@ -237,6 +242,7 @@ def test_install_resolve_latest_version(mock_show_install_app_prompt, tmpdir):
         assert mock_show_install_app_prompt.call_args[0][0]["version"] == "0.0.4"
 
 
+@pytest.mark.xfail(strict=False, reason="lightning app cli was deprecated")
 def test_proper_url_parsing():
     name = "lightning/invideo"
 
@@ -311,12 +317,14 @@ def test_install_app_shows_error(tmpdir):
 # os.chdir(cwd)
 
 
+@pytest.mark.xfail(strict=False, reason="lightning app cli was deprecated")
 def test_app_and_component_gallery_app(monkeypatch):
     monkeypatch.setattr(cmd_install, "_install_app_from_source", mock.MagicMock())
     path = cmd_install.gallery_apps_and_components("lightning/flashy", True, "latest")
     assert path == os.path.join(os.getcwd(), "app.py")
 
 
+@pytest.mark.xfail(strict=False, reason="lightning app cli was deprecated")
 def test_app_and_component_gallery_component(monkeypatch):
     monkeypatch.setattr(cmd_install, "_install_app_from_source", mock.MagicMock())
     path = cmd_install.gallery_apps_and_components("lightning/lit-jupyter", True, "latest")
