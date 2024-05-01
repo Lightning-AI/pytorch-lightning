@@ -1,9 +1,9 @@
-from unittest import mock
 from http.client import HTTPMessage
+from unittest import mock
 
 import pytest
 from lightning.app.core import constants
-from lightning.app.utilities.network import find_free_network_port, HTTPClient
+from lightning.app.utilities.network import HTTPClient, find_free_network_port
 
 
 def test_find_free_network_port():
