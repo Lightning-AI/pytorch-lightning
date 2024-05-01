@@ -1,4 +1,4 @@
-lightning-cloud == 0.5.67  # Must be pinned to ensure compatibility
+lightning-cloud == 0.5.68  # Must be pinned to ensure compatibility
 packaging
 typing-extensions >=4.4.0, <4.10.0
 deepdiff >=5.7.0, <6.6.0
