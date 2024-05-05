@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import itertools
 import shutil
 from contextlib import ExitStack, nullcontext
 from datetime import timedelta
@@ -271,7 +272,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
 
         if any(isinstance(mod, FullyShardedDataParallel) for mod in module.modules()):
             # The user has wrapped their submodules manually, don't apply the auto wrap policy.
-            if _has_meta_device_parameters(module):
+            if _has_meta_device_parameters_or_buffers(module):
                 rank_zero_warn(
                     "The model is already wrapped in `FSDP` but there are still parameters on the meta device."
                 )
@@ -870,13 +871,13 @@ def _load_raw_module_state(state_dict: Dict[str, Any], module: Module, world_siz
             module.load_state_dict(state_dict, strict=strict)
 
 
-def _has_meta_device_parameters(obj: Union[Module, Optimizer]) -> bool:
+def _has_meta_device_parameters_or_buffers(obj: Union[Module, Optimizer], recurse: bool = True) -> bool:
     if isinstance(obj, Optimizer):
         return any(
             t.is_meta for param_group in obj.param_groups for t in param_group["params"] if isinstance(t, Parameter)
         )
     if isinstance(obj, Module):
-        return any(t.is_meta for t in obj.parameters())
+        return any(t.is_meta for t in itertools.chain(obj.parameters(recurse=recurse), obj.buffers(recurse=recurse)))
     raise TypeError(f"Expected `torch.nn.Module` or `torch.optim.Optimizer`, got: {type(obj).__name__}")
 
 

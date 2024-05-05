@@ -37,7 +37,7 @@ from lightning.fabric.strategies.fsdp import (
     _distributed_checkpoint_save,
     _get_full_state_dict_context,
     _get_sharded_state_dict_context,
-    _has_meta_device_parameters,
+    _has_meta_device_parameters_or_buffers,
     _init_cpu_offload,
     _init_sharding_strategy,
     _is_full_checkpoint,
@@ -269,7 +269,7 @@ class FSDPStrategy(ParallelStrategy):
         from torch.distributed.fsdp import FullyShardedDataParallel
 
         if any(isinstance(mod, FullyShardedDataParallel) for mod in model.modules()):
-            if _has_meta_device_parameters(model):
+            if _has_meta_device_parameters_or_buffers(model):
                 rank_zero_warn(
                     "The model is already wrapped in `FSDP` but there are still parameters on the meta device."
                 )
