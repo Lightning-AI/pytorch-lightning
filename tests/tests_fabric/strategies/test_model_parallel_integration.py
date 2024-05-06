@@ -141,7 +141,7 @@ def test_tensor_parallel():
     model = fabric.setup(model)
     optimizer = torch.optim.AdamW(model.parameters())
     optimizer = fabric.setup_optimizers(optimizer)
-    
+
     device_mesh = fabric.strategy.device_mesh
     assert all(tensor.device_mesh == device_mesh["tensor_parallel"] for tensor in optimizer.param_groups[0]["params"])
     assert all(isinstance(weight, DTensor) for weight in model.parameters())
@@ -434,7 +434,9 @@ def test_clip_gradients(clip_type, precision):
         val = model.weight.grad.full_tensor()[0, 0].item()
         new_val = val / 2.0
         fabric.clip_gradients(model, optimizer, clip_val=new_val)
-        assert torch.allclose(model.weight.grad.full_tensor(), torch.full_like(model.weight.grad.full_tensor(), new_val))
+        assert torch.allclose(
+            model.weight.grad.full_tensor(), torch.full_like(model.weight.grad.full_tensor(), new_val)
+        )
     else:
         raise AssertionError(f"Unknown clip type: {clip_type}")
 
