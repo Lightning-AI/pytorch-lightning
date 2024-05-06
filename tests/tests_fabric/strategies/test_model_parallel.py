@@ -77,6 +77,17 @@ def test_load_non_strict_unsupported(tmp_path):
 
 
 @RunIf(min_torch="2.3")
+def test_fsdp_v1_modules_unsupported():
+    """Test that the strategy won't allow setting up a module wrapped with the legacy FSDP API."""
+    from torch.distributed.fsdp import FullyShardedDataParallel
+
+    module = Mock(modules=Mock(return_value=[Mock(spec=FullyShardedDataParallel)]))
+    strategy = ModelParallelStrategy(parallelize_fn=(lambda x, _: x))
+    with pytest.raises(TypeError, match="only supports the new FSDP2 APIs in PyTorch >= 2.3"):
+        strategy.setup_module(module)
+
+
+@RunIf(min_torch="2.3")
 def test_parallelize_fn_call():
     model = nn.Linear(2, 2)
     optimizer = Adam(model.parameters())

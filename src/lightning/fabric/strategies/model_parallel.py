@@ -58,8 +58,9 @@ class ModelParallelStrategy(ParallelStrategy):
 
     .. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
 
-    Currently supports up to 2D parallelism, for example Fully Sharded Data-Parallel combined with
-    Tensor Parallelism. Requires PyTorch 2.3 or newer.
+    Currently supports up to 2D parallelism. Specifically, it supports the combination of
+    Fully Sharded Data-Parallel 2 (FSDP2) with Tensor Parallelism (DTensor). These PyTorch APIs are currently still
+    experimental in PyTorch. Requires PyTorch 2.3 or newer.
 
     Arguments:
         parallelize_fn: A function that applies parallelisms to a module. The strategy will provide the
@@ -151,6 +152,14 @@ class ModelParallelStrategy(ParallelStrategy):
 
     @override
     def setup_module(self, module: Module) -> Module:
+        from torch.distributed.fsdp import FullyShardedDataParallel
+
+        if any(isinstance(mod, FullyShardedDataParallel) for mod in module.modules()):
+            raise TypeError(
+                "Found modules that are wrapped with `torch.distributed.fsdp.FullyShardedDataParallel`."
+                f" The `{self.__class__.__name__}` only supports the new FSDP2 APIs in PyTorch >= 2.3."
+            )
+
         module = self._parallelize_fn(module, self.device_mesh)
         if not isinstance(module, Module):
             raise TypeError(
