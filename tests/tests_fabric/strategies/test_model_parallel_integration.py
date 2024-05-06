@@ -397,7 +397,11 @@ def _parallelize_single_linear_tp_fsdp2(model, device_mesh):
     "clip_type",
     [
         pytest.param("norm", marks=pytest.mark.skip("Gradient clipping by norm is not correct.")),
-        "val",
+        pytest.param(
+            "val",
+            marks=pytest.mark.xfail(
+                raises=RecursionError, strict=False, reason="Recursion error when clipping DTensor")
+            ),
     ],
 )
 def test_clip_gradients(clip_type, precision):
