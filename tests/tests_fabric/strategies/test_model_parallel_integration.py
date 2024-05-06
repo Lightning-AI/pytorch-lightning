@@ -477,11 +477,6 @@ def test_save_sharded_and_consolidate_and_load(tmp_path):
     fabric = Fabric(accelerator="cuda", devices=4, strategy=strategy)
     fabric.launch()
 
-    import time
-
-    print(checkpoint_path_full)
-    time.sleep(60)
-
     model = FeedForward()
     optimizer = torch.optim.Adam(model.parameters())
     model, optimizer = fabric.setup(model, optimizer)
