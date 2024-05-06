@@ -62,7 +62,7 @@ def _convert_markdown(path_in: str, path_out: str, path_root: str) -> None:
     readme = re.sub(r"(!\[.*.gif\))", "", readme)
     folder_names = (os.path.basename(p) for p in glob.glob(os.path.join(path_root, "*")) if os.path.isdir(p))
     for dir_name in folder_names:
-        readme = readme.replace("](%s/" % dir_name, "](%s/" % os.path.join(path_root, dir_name))
+        readme = readme.replace(f"]({dir_name}/", f"]({os.path.join(path_root, dir_name)}/")
     with open(path_out, "w") as fp:
         fp.write(readme)
 
