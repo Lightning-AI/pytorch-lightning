@@ -646,7 +646,7 @@ class LightningModule(
         # check tensor contains single element (implies value.ndim == 0), or is a non-empty 1D array
         if not (torch.numel(value) == 1 or (torch.numel(value) > 0 and value.ndim == 1)):
             raise ValueError(
-                f"`self.log({name}, {value})` was called, but the tensor must have a single element,"
+                f"`self.log({name}, {value})` was called, but the tensor must have a single element, "
                 f"or a single non-empty dimension. You can try doing `self.log({name}, {value}.mean())`"
             )
         value = value.squeeze()
