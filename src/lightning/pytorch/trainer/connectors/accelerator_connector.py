@@ -455,10 +455,11 @@ class _AcceleratorConnector:
         strategy_flag = "" if isinstance(self._strategy_flag, Strategy) else self._strategy_flag
 
         if (
-            strategy_flag in FSDPStrategy.get_registered_strategies() or isinstance(self._strategy_flag, FSDPStrategy)
+            strategy_flag in FSDPStrategy.get_registered_strategies() or type(self._strategy_flag) is FSDPStrategy
         ) and self._accelerator_flag not in ("cuda", "gpu"):
-            raise MisconfigurationException(
-                f"You selected strategy to be `{FSDPStrategy.strategy_name}`, but GPU accelerator is not used."
+            raise ValueError(
+                f"The strategy `{FSDPStrategy.strategy_name}` requires a GPU accelerator, but got:"
+                f" {self._accelerator_flag}"
             )
         if strategy_flag in _DDP_FORK_ALIASES and "fork" not in torch.multiprocessing.get_all_start_methods():
             raise ValueError(

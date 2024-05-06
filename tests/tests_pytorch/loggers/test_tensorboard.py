@@ -109,7 +109,6 @@ def test_tensorboard_no_name(tmp_path, name):
     assert os.listdir(tmp_path / "version_0")
 
 
-@mock.patch.dict(os.environ, {}, clear=True)
 def test_tensorboard_log_sub_dir(tmp_path):
     class TestLogger(TensorBoardLogger):
         # for reproducibility
@@ -141,14 +140,15 @@ def test_tensorboard_log_sub_dir(tmp_path):
     trainer = Trainer(**trainer_args, logger=logger)
     assert trainer.logger.log_dir == os.path.join(explicit_save_dir, "name", "version", "sub_dir")
 
-    # test env var (`$`) handling
-    test_env_dir = "some_directory"
-    os.environ["TEST_ENV_DIR"] = test_env_dir
-    save_dir = "$TEST_ENV_DIR/tmp"
-    explicit_save_dir = f"{test_env_dir}/tmp"
-    logger = TestLogger(save_dir, sub_dir="sub_dir")
-    trainer = Trainer(**trainer_args, logger=logger)
-    assert trainer.logger.log_dir == os.path.join(explicit_save_dir, "name", "version", "sub_dir")
+    with mock.patch.dict(os.environ, {}):
+        # test env var (`$`) handling
+        test_env_dir = "some_directory"
+        os.environ["TEST_ENV_DIR"] = test_env_dir
+        save_dir = "$TEST_ENV_DIR/tmp"
+        explicit_save_dir = f"{test_env_dir}/tmp"
+        logger = TestLogger(save_dir, sub_dir="sub_dir")
+        trainer = Trainer(**trainer_args, logger=logger)
+        assert trainer.logger.log_dir == os.path.join(explicit_save_dir, "name", "version", "sub_dir")
 
 
 @pytest.mark.parametrize("step_idx", [10, None])

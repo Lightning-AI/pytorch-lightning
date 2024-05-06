@@ -28,10 +28,10 @@ from typing import (
 
 import torch
 from torch import Tensor
-from torch.optim import Optimizer
-from typing_extensions import TypeAlias, overload
 
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
+# TODO: Unused import, but lightning_habana imports these from here
+from torch.optim.lr_scheduler import LRScheduler, ReduceLROnPlateau  # noqa: F401
+from typing_extensions import TypeAlias, overload
 
 UntypedStorage: TypeAlias = torch.UntypedStorage
 
@@ -41,7 +41,6 @@ _MAP_LOCATION_TYPE = Optional[
     Union[_DEVICE, Callable[[UntypedStorage, str], Optional[UntypedStorage]], Dict[_DEVICE, _DEVICE]]
 ]
 _PARAMETERS = Iterator[torch.nn.Parameter]
-
 
 if torch.distributed.is_available():
     from torch.distributed import ProcessGroup, ReduceOp
@@ -68,49 +67,6 @@ class CollectibleGroup(Protocol):
     def size(self) -> int: ...
 
     def rank(self) -> int: ...
-
-
-# Inferred from `torch.optim.lr_scheduler.pyi`
-# Missing attributes were added to improve typing
-@runtime_checkable
-class LRScheduler(_Stateful[str], Protocol):
-    optimizer: Optimizer
-    base_lrs: List[float]
-
-    def __init__(self, optimizer: Optimizer, *args: Any, **kwargs: Any) -> None: ...
-
-    def step(self, epoch: Optional[int] = None) -> None: ...
-
-
-_TORCH_LRSCHEDULER: TypeAlias = (
-    torch.optim.lr_scheduler.LRScheduler  # type: ignore[valid-type]
-    if _TORCH_GREATER_EQUAL_2_0
-    else torch.optim.lr_scheduler._LRScheduler
-)
-
-
-# Inferred from `torch.optim.lr_scheduler.pyi`
-# Missing attributes were added to improve typing
-@runtime_checkable
-class ReduceLROnPlateau(_Stateful[str], Protocol):
-    in_cooldown: bool
-    optimizer: Optimizer
-
-    def __init__(
-        self,
-        optimizer: Optimizer,
-        mode: str = ...,
-        factor: float = ...,
-        patience: int = ...,
-        verbose: bool = ...,
-        threshold: float = ...,
-        threshold_mode: str = ...,
-        cooldown: int = ...,
-        min_lr: float = ...,
-        eps: float = ...,
-    ) -> None: ...
-
-    def step(self, metrics: Union[float, int, Tensor], epoch: Optional[int] = None) -> None: ...
 
 
 @runtime_checkable

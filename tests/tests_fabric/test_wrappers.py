@@ -28,6 +28,7 @@ from lightning.fabric.wrappers import (
     _unwrap_objects,
     is_wrapped,
 )
+from torch._dynamo import OptimizedModule
 from torch.utils.data import BatchSampler, DistributedSampler
 from torch.utils.data.dataloader import DataLoader
 
@@ -492,8 +493,6 @@ def test_is_wrapped(compile):
 
     # _FabricModule inside an OptimizedModule
     if compile:
-        from torch._dynamo import OptimizedModule
-
         module = torch.nn.Linear(2, 2)
         wrapped = torch.compile(_FabricModule(module, Mock()))
         assert isinstance(wrapped, OptimizedModule)
@@ -623,11 +622,6 @@ def test_unwrap_compiled():
 
     # We wrap `torch.compile` on import of lightning in `wrappers.py`
     assert torch.compile.__wrapped__
-
-    with mock.patch("lightning.fabric.wrappers", "_TORCH_GREATER_EQUAL_2_0", False):
-        unwrapped, compile_kwargs = _unwrap_compiled(model)
-    assert unwrapped is model
-    assert compile_kwargs is None
 
     compiled = torch.compile(model, fullgraph=True, dynamic=True, disable=False)
     assert compiled._compile_kwargs == {"fullgraph": True, "dynamic": True, "disable": False}
