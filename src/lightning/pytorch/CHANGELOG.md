@@ -25,7 +25,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Relaxed the requirement for custom batch samplers to expose `drop_last` for prediction ([#19678](https://github.com/Lightning-AI/pytorch-lightning/pull/19678))
 
--
+- Allow `LightningModule` to log `Tensorboard` histograms ([#19851](https://github.com/Lightning-AI/pytorch-lightning/pull/19851))
 
 ### Deprecated
 
