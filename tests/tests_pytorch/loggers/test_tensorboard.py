@@ -159,7 +159,7 @@ def test_tensorboard_log_metrics(tmp_path, step_idx):
         "int": 1,
         "FloatTensor": torch.tensor(0.1),
         "IntTensor": torch.tensor(1),
-        "Histogram": torch.tensor([10, 100, 1000])
+        "Histogram": torch.tensor([10, 100, 1000]),
     }
     logger.log_metrics(metrics, step_idx)
 
