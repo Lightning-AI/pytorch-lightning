@@ -151,7 +151,7 @@ class ModelParallelStrategy(ParallelStrategy):
         self._setup_device_mesh()
 
     @override
-    def setup_module(self, module: Module) -> Module:
+    def setup_module(self, module: TModel) -> TModel:
         from torch.distributed.fsdp import FullyShardedDataParallel
 
         if any(isinstance(mod, FullyShardedDataParallel) for mod in module.modules()):
