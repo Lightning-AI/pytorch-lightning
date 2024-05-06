@@ -1,5 +1,5 @@
 import torch
-
+from model import Transformer
 from torch.distributed._composable.fsdp import MixedPrecisionPolicy
 from torch.distributed._composable.fsdp.fully_shard import fully_shard
 from torch.distributed._tensor import Replicate, Shard
@@ -12,8 +12,6 @@ from torch.distributed.tensor.parallel import (
     SequenceParallel,
     parallelize_module,
 )
-
-from model import Transformer
 
 
 # Taken and modified from torchtitan
