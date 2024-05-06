@@ -9,6 +9,8 @@ class RandomTokenDataset(Dataset):
         self.tokens = torch.randint(
             self.vocab_size,
             size=(len(self), self.seq_length + 1),
+            # Set a seed to make this toy dataset the same on each rank
+            # Fabric will add a `DistributedSampler` to shard the data correctly
             generator=torch.Generator().manual_seed(42),
         )
 
