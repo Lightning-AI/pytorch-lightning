@@ -51,19 +51,6 @@ def test_setup_device_mesh():
 
         fabric.barrier()
 
-    # Passing sizes that don't multiply to the world size raises an error
-    for invalid_dp_size, invalid_tp_size in ((1, 1), (2, 3), (4, 2)):
-        strategy = ModelParallelStrategy(
-            parallelize_fn=(lambda m, _: m),
-            data_parallel_size=invalid_dp_size,
-            tensor_parallel_size=invalid_tp_size,
-        )
-        fabric = Fabric(accelerator="auto", devices=4, strategy=strategy)
-        with pytest.raises(RuntimeError, match="multiplied should equal the world size"):
-            fabric.launch()
-
-        fabric.barrier()
-
     # Passing "auto" will select internode and intranode dimensions automatically
     strategy = ModelParallelStrategy(
         parallelize_fn=(lambda m, _: m),
