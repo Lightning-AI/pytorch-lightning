@@ -68,7 +68,7 @@ from lightning.fabric.utilities.imports import (
     _TORCH_GREATER_EQUAL_2_2,
     _TORCH_GREATER_EQUAL_2_3,
 )
-from lightning.fabric.utilities.init import _EmptyInit
+from lightning.fabric.utilities.init import _EmptyInit, _has_meta_device_parameters_or_buffers
 from lightning.fabric.utilities.load import _METADATA_FILENAME, _lazy_load, _materialize_tensors, _move_state_into
 from lightning.fabric.utilities.rank_zero import rank_zero_deprecation, rank_zero_only, rank_zero_warn
 from lightning.fabric.utilities.seed import reset_seed
@@ -869,16 +869,6 @@ def _load_raw_module_state(state_dict: Dict[str, Any], module: Module, world_siz
     else:
         with _get_full_state_dict_context(module, world_size=world_size, rank0_only=False):
             module.load_state_dict(state_dict, strict=strict)
-
-
-def _has_meta_device_parameters_or_buffers(obj: Union[Module, Optimizer], recurse: bool = True) -> bool:
-    if isinstance(obj, Optimizer):
-        return any(
-            t.is_meta for param_group in obj.param_groups for t in param_group["params"] if isinstance(t, Parameter)
-        )
-    if isinstance(obj, Module):
-        return any(t.is_meta for t in itertools.chain(obj.parameters(recurse=recurse), obj.buffers(recurse=recurse)))
-    raise TypeError(f"Expected `torch.nn.Module` or `torch.optim.Optimizer`, got: {type(obj).__name__}")
 
 
 def _move_torchmetrics_to_device(module: torch.nn.Module, device: torch.device) -> None:

@@ -24,12 +24,12 @@ from torch.nn import Module
 from torch.optim import Optimizer
 from typing_extensions import override
 
+from lightning.fabric.utilities.init import _materialize_distributed_module
 from lightning.fabric.plugins import CheckpointIO
 from lightning.fabric.plugins.collectives.torch_collective import default_pg_timeout
 from lightning.fabric.strategies.fsdp import (
     _distributed_checkpoint_load,
     _distributed_checkpoint_save,
-    _has_meta_device_parameters_or_buffers,
 )
 from lightning.fabric.strategies.launchers.subprocess_script import _SubprocessScriptLauncher
 from lightning.fabric.strategies.parallel import ParallelStrategy
@@ -165,7 +165,7 @@ class ModelParallelStrategy(ParallelStrategy):
             raise TypeError(
                 f"The `parallelize_fn` must return a `nn.Module` instance, but got: {type(module).__name__}"
             )
-        _materialize_module(module, self.root_device)
+        _materialize_distributed_module(module, self.root_device)
         return module
 
     @override
@@ -285,33 +285,6 @@ class ModelParallelStrategy(ParallelStrategy):
         # `LightningEnvironment.set_global_rank` will do this too, but we cannot rely on that implementation detail
         # additionally, for some implementations, the setter is a no-op, so it's safer to access the getter
         rank_zero_only.rank = utils_rank_zero_only.rank = self.global_rank
-
-
-def _materialize_module(module: Module, device: torch.device) -> None:
-    # Reference: https://github.com/pytorch/torchtitan/blob/main/docs/fsdp.md#meta-device-initialization
-    # TODO: Introduce `Fabric.materialize(module)` to give user control when materialization should happen
-    # TODO: Make `torchmetrics.Metric` compatible with the `to_empty()` + `reset_parameters()` semantics
-    if not _has_meta_device_parameters_or_buffers(module):
-        return
-
-    module.to_empty(device=device)  # has to be called on the root module
-
-    uninitialized_modules = set()
-    for submodule in module.modules():
-        if all(False for _ in itertools.chain(submodule.parameters(recurse=False), submodule.buffers(recurse=False))):
-            # module has no parameters or buffers
-            continue
-        if callable(reset_method := getattr(submodule, "reset_parameters", None)):
-            reset_method()
-        else:
-            uninitialized_modules.add(type(submodule).__name__)
-
-    if uninitialized_modules:
-        rank_zero_warn(
-            "Parameter initialization incomplete. The following modules have parameters or buffers with uninitialized"
-            " memory because they don't define a `reset_parameters()` method for re-initialization:"
-            f" {', '.join(uninitialized_modules)}"
-        )
 
 
 class _ParallelBackwardSyncControl(_BackwardSyncControl):

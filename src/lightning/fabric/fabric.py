@@ -53,7 +53,7 @@ from lightning.fabric.strategies import (
     Strategy,
     XLAStrategy,
 )
-from lightning.fabric.strategies.fsdp import _has_meta_device_parameters_or_buffers
+from lightning.fabric.utilities.init import _has_meta_device_parameters_or_buffers
 from lightning.fabric.strategies.launchers import _MultiProcessingLauncher, _XLALauncher
 from lightning.fabric.strategies.strategy import TBroadcast, _Sharded
 from lightning.fabric.utilities import move_data_to_device

@@ -26,7 +26,6 @@ from lightning.fabric.strategies import FSDPStrategy
 from lightning.fabric.strategies.fsdp import (
     _FSDPBackwardSyncControl,
     _get_full_state_dict_context,
-    _has_meta_device_parameters_or_buffers,
     _is_sharded_checkpoint,
 )
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_1, _TORCH_GREATER_EQUAL_2_2
@@ -394,33 +393,6 @@ def test_set_timeout(init_process_group_mock):
     init_process_group_mock.assert_called_with(
         process_group_backend, rank=global_rank, world_size=world_size, timeout=test_timedelta
     )
-
-
-def test_has_meta_device_parameters_or_buffers():
-    """Test that the `_has_meta_device_parameters_or_buffers` function can find meta-device parameters in models and
-    optimizers."""
-
-    class BufferModule(nn.Module):
-        def __init__(self):
-            super().__init__()
-            self.register_buffer("buffer", torch.ones(2, device="meta"))
-
-    # nn.Module
-    module = nn.Linear(2, 2)
-    meta_module = nn.Linear(2, 2, device="meta")
-    buffer_meta_module = BufferModule()
-    assert not _has_meta_device_parameters_or_buffers(module)
-    assert _has_meta_device_parameters_or_buffers(meta_module)
-    assert _has_meta_device_parameters_or_buffers(nn.Sequential(module, meta_module, nn.ReLU()))
-    assert _has_meta_device_parameters_or_buffers(buffer_meta_module)
-    # optim.Optimizer
-    optimizer = torch.optim.SGD(module.parameters(), lr=0.1)
-    meta_optimizer = torch.optim.SGD(meta_module.parameters(), lr=0.1)
-    assert not _has_meta_device_parameters_or_buffers(optimizer)
-    assert _has_meta_device_parameters_or_buffers(meta_optimizer)
-    # unsupported objects
-    with pytest.raises(TypeError, match="Expected `torch.nn.Module` or `torch.optim.Optimizer`"):
-        _has_meta_device_parameters_or_buffers(None)
 
 
 @pytest.mark.parametrize("torch_ge_2_1", [True, False])
