@@ -26,7 +26,6 @@ from lightning.fabric.strategies import FSDPStrategy
 from lightning.fabric.strategies.fsdp import (
     _FSDPBackwardSyncControl,
     _get_full_state_dict_context,
-    _has_meta_device_parameters,
     _is_sharded_checkpoint,
 )
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_1, _TORCH_GREATER_EQUAL_2_2
@@ -34,14 +33,14 @@ from torch.distributed.fsdp.fully_sharded_data_parallel import CPUOffload, Fully
 from torch.optim import Adam
 
 
-def test_fsdp_custom_mixed_precision():
+def test_custom_mixed_precision():
     """Test that passing a custom mixed precision config works."""
     config = MixedPrecision()
     strategy = FSDPStrategy(mixed_precision=config)
     assert strategy.mixed_precision_config == config
 
 
-def test_fsdp_cpu_offload():
+def test_cpu_offload():
     """Test the different ways cpu offloading can be enabled."""
     # bool
     strategy = FSDPStrategy(cpu_offload=True)
@@ -53,7 +52,7 @@ def test_fsdp_cpu_offload():
     assert strategy.cpu_offload == config
 
 
-def test_fsdp_sharding_strategy():
+def test_sharding_strategy():
     """Test the different ways the sharding strategy can be set."""
     from torch.distributed.fsdp import ShardingStrategy
 
@@ -73,7 +72,7 @@ def test_fsdp_sharding_strategy():
 
 
 @pytest.mark.parametrize("sharding_strategy", ["HYBRID_SHARD", "_HYBRID_SHARD_ZERO2"])
-def test_fsdp_hybrid_shard_configuration(sharding_strategy):
+def test_hybrid_shard_configuration(sharding_strategy):
     """Test that the hybrid sharding strategies can only be used with automatic wrapping or a manually specified pg."""
     with pytest.raises(RuntimeError, match="The hybrid sharding strategy requires you to pass at least one of"):
         FSDPStrategy(sharding_strategy=sharding_strategy)
@@ -95,7 +94,7 @@ def test_fsdp_hybrid_shard_configuration(sharding_strategy):
         FSDPStrategy(sharding_strategy=sharding_strategy, process_group=process_group, device_mesh=device_mesh)
 
 
-def test_fsdp_checkpoint_io_unsupported():
+def test_checkpoint_io_unsupported():
     """Test that the FSDP strategy does not support the `CheckpointIO` plugin."""
     strategy = FSDPStrategy()
     with pytest.raises(NotImplementedError, match="does not use the `CheckpointIO` plugin"):
@@ -106,7 +105,7 @@ def test_fsdp_checkpoint_io_unsupported():
 
 
 @mock.patch("lightning.fabric.strategies.fsdp.FSDPStrategy.setup_module")
-def test_fsdp_setup_use_orig_params(_):
+def test_setup_use_orig_params(_):
     module = nn.Linear(2, 2)
     optimizer = Adam(module.parameters())
 
@@ -122,7 +121,7 @@ def test_fsdp_setup_use_orig_params(_):
     assert strategy._fsdp_kwargs["use_orig_params"]
 
 
-def test_fsdp_no_backward_sync():
+def test_no_backward_sync():
     """Test that the backward sync control calls `.no_sync()`, and only on a module wrapped in
     FullyShardedDataParallel."""
 
@@ -143,14 +142,14 @@ def test_fsdp_no_backward_sync():
     module.no_sync.assert_called_once()
 
 
-def test_fsdp_activation_checkpointing_support(monkeypatch):
+def test_activation_checkpointing_support(monkeypatch):
     """Test that we error out if activation checkpointing requires a newer PyTorch version."""
     monkeypatch.setattr(lightning.fabric.strategies.fsdp, "_TORCH_GREATER_EQUAL_2_1", False)
     with pytest.raises(ValueError, match="activation_checkpointing_policy` requires torch >= 2.1.0"):
         FSDPStrategy(activation_checkpointing_policy=Mock())
 
 
-def test_fsdp_activation_checkpointing():
+def test_activation_checkpointing():
     """Test that the FSDP strategy can apply activation checkpointing to the given layers."""
 
     class Block1(nn.Linear):
@@ -197,7 +196,7 @@ def test_fsdp_activation_checkpointing():
     apply_mock.assert_called_with(wrapped, checkpoint_wrapper_fn=ANY, **strategy._activation_checkpointing_kwargs)
 
 
-def test_fsdp_forbidden_precision_raises():
+def test_forbidden_precision_raises():
     with pytest.raises(TypeError, match="can only work with the `FSDPPrecision"):
         FSDPStrategy(precision=HalfPrecision())
 
@@ -206,7 +205,7 @@ def test_fsdp_forbidden_precision_raises():
         strategy.precision = HalfPrecision()
 
 
-def test_fsdp_grad_clipping_norm_error():
+def test_grad_clipping_norm_error():
     strategy = FSDPStrategy()
     with pytest.raises(
         TypeError,
@@ -215,7 +214,7 @@ def test_fsdp_grad_clipping_norm_error():
         strategy.clip_gradients_norm(Mock(), Mock(), Mock())
 
 
-def test_fsdp_save_checkpoint_storage_options(tmp_path):
+def test_save_checkpoint_storage_options(tmp_path):
     """Test that the FSDP strategy does not accept storage options for saving checkpoints."""
     strategy = FSDPStrategy()
     with pytest.raises(TypeError, match=escape("FSDPStrategy.save_checkpoint(..., storage_options=...)` is not")):
@@ -227,7 +226,7 @@ def test_fsdp_save_checkpoint_storage_options(tmp_path):
 @mock.patch("lightning.fabric.strategies.fsdp._get_sharded_state_dict_context")
 @mock.patch("lightning.fabric.strategies.fsdp.torch.save")
 @mock.patch("lightning.fabric.strategies.fsdp.shutil")
-def test_fsdp_save_checkpoint_path_exists(shutil_mock, torch_save_mock, __, ___, tmp_path):
+def test_save_checkpoint_path_exists(shutil_mock, torch_save_mock, __, ___, tmp_path):
     strategy = FSDPStrategy(state_dict_type="full")
 
     # state_dict_type='full', path exists, path is not a sharded checkpoint: error
@@ -285,7 +284,7 @@ def test_fsdp_save_checkpoint_path_exists(shutil_mock, torch_save_mock, __, ___,
 
 
 @mock.patch("lightning.fabric.strategies.fsdp.FSDPStrategy.broadcast", lambda _, x: x)
-def test_fsdp_save_checkpoint_one_fsdp_module_required(tmp_path):
+def test_save_checkpoint_one_fsdp_module_required(tmp_path):
     """Test that the FSDP strategy can only save one FSDP model per checkpoint."""
     strategy = FSDPStrategy()
 
@@ -304,7 +303,7 @@ def test_fsdp_save_checkpoint_one_fsdp_module_required(tmp_path):
         strategy.save_checkpoint(path=tmp_path, state={"model1": model1, "model2": model2})
 
 
-def test_fsdp_load_checkpoint_no_state(tmp_path):
+def test_load_checkpoint_no_state(tmp_path):
     """Test that the FSDP strategy can't load the full state without access to a model instance from the user."""
     strategy = FSDPStrategy()
     with pytest.raises(ValueError, match=escape("Got FSDPStrategy.load_checkpoint(..., state=None")):
@@ -315,7 +314,7 @@ def test_fsdp_load_checkpoint_no_state(tmp_path):
 
 @mock.patch("lightning.fabric.strategies.fsdp.FSDPStrategy.broadcast", lambda _, x: x)
 @mock.patch("lightning.fabric.strategies.fsdp._lazy_load", Mock())
-def test_fsdp_load_checkpoint_one_fsdp_module_required(tmp_path):
+def test_load_checkpoint_one_fsdp_module_required(tmp_path):
     """Test that the FSDP strategy can only load one FSDP model per checkpoint."""
     strategy = FSDPStrategy()
 
@@ -341,7 +340,7 @@ def test_fsdp_load_checkpoint_one_fsdp_module_required(tmp_path):
 
 
 @mock.patch("lightning.fabric.strategies.fsdp.FSDPStrategy.broadcast", lambda _, x: x)
-def test_fsdp_save_checkpoint_unknown_state_dict_type(tmp_path):
+def test_save_checkpoint_unknown_state_dict_type(tmp_path):
     strategy = FSDPStrategy(state_dict_type="invalid")
     model = Mock(spec=FullyShardedDataParallel)
     model.modules.return_value = [model]
@@ -349,7 +348,7 @@ def test_fsdp_save_checkpoint_unknown_state_dict_type(tmp_path):
         strategy.save_checkpoint(path=tmp_path, state={"model": model})
 
 
-def test_fsdp_load_unknown_checkpoint_type(tmp_path):
+def test_load_unknown_checkpoint_type(tmp_path):
     """Test that the strategy validates the contents at the checkpoint path."""
     strategy = FSDPStrategy()
     model = Mock(spec=FullyShardedDataParallel)
@@ -360,7 +359,7 @@ def test_fsdp_load_unknown_checkpoint_type(tmp_path):
         strategy.load_checkpoint(path=path, state={"model": model})
 
 
-def test_fsdp_load_raw_checkpoint_validate_single_file(tmp_path):
+def test_load_raw_checkpoint_validate_single_file(tmp_path):
     """Test that we validate the given checkpoint is a single file when loading a raw PyTorch state-dict checkpoint."""
     strategy = FSDPStrategy()
     model = Mock(spec=nn.Module)
@@ -370,7 +369,7 @@ def test_fsdp_load_raw_checkpoint_validate_single_file(tmp_path):
         strategy.load_checkpoint(path=path, state=model)
 
 
-def test_fsdp_load_raw_checkpoint_optimizer_unsupported(tmp_path):
+def test_load_raw_checkpoint_optimizer_unsupported(tmp_path):
     """Validate that the FSDP strategy does not yet support loading the raw PyTorch state-dict for an optimizer."""
     strategy = FSDPStrategy()
     optimizer = Mock(spec=torch.optim.Optimizer)
@@ -394,25 +393,6 @@ def test_set_timeout(init_process_group_mock):
     init_process_group_mock.assert_called_with(
         process_group_backend, rank=global_rank, world_size=world_size, timeout=test_timedelta
     )
-
-
-def test_has_meta_device_parameters():
-    """Test that the `_has_meta_device_parameters` function can find meta-device parameters in models and
-    optimizers."""
-    # nn.Module
-    module = nn.Linear(2, 2)
-    meta_module = nn.Linear(2, 2, device="meta")
-    assert not _has_meta_device_parameters(module)
-    assert _has_meta_device_parameters(meta_module)
-    assert _has_meta_device_parameters(nn.Sequential(module, meta_module, nn.ReLU()))
-    # optim.Optimizer
-    optimizer = torch.optim.SGD(module.parameters(), lr=0.1)
-    meta_optimizer = torch.optim.SGD(meta_module.parameters(), lr=0.1)
-    assert not _has_meta_device_parameters(optimizer)
-    assert _has_meta_device_parameters(meta_optimizer)
-    # unsupported objects
-    with pytest.raises(TypeError, match="Expected `torch.nn.Module` or `torch.optim.Optimizer`"):
-        _has_meta_device_parameters(None)
 
 
 @pytest.mark.parametrize("torch_ge_2_1", [True, False])
