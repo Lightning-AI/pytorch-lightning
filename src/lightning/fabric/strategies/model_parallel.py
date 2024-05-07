@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import itertools
 from contextlib import ExitStack
 from datetime import timedelta
 from pathlib import Path
@@ -24,7 +23,6 @@ from torch.nn import Module
 from torch.optim import Optimizer
 from typing_extensions import override
 
-from lightning.fabric.utilities.init import _materialize_distributed_module
 from lightning.fabric.plugins import CheckpointIO
 from lightning.fabric.plugins.collectives.torch_collective import default_pg_timeout
 from lightning.fabric.strategies.fsdp import (
@@ -43,7 +41,8 @@ from lightning.fabric.utilities.distributed import (
 )
 from lightning.fabric.utilities.distributed import group as _group
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_3
-from lightning.fabric.utilities.rank_zero import rank_zero_only, rank_zero_warn
+from lightning.fabric.utilities.init import _materialize_distributed_module
+from lightning.fabric.utilities.rank_zero import rank_zero_only
 from lightning.fabric.utilities.seed import reset_seed
 from lightning.fabric.utilities.types import _PATH
 

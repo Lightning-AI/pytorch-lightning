@@ -53,7 +53,6 @@ from lightning.fabric.strategies import (
     Strategy,
     XLAStrategy,
 )
-from lightning.fabric.utilities.init import _has_meta_device_parameters_or_buffers
 from lightning.fabric.strategies.launchers import _MultiProcessingLauncher, _XLALauncher
 from lightning.fabric.strategies.strategy import TBroadcast, _Sharded
 from lightning.fabric.utilities import move_data_to_device
@@ -66,6 +65,7 @@ from lightning.fabric.utilities.data import (
 )
 from lightning.fabric.utilities.device_dtype_mixin import _update_properties
 from lightning.fabric.utilities.distributed import DistributedSamplerWrapper, _InfiniteBarrier
+from lightning.fabric.utilities.init import _has_meta_device_parameters_or_buffers
 from lightning.fabric.utilities.rank_zero import rank_zero_deprecation, rank_zero_warn
 from lightning.fabric.utilities.registry import _load_external_callbacks
 from lightning.fabric.utilities.seed import seed_everything

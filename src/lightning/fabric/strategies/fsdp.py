@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import itertools
 import shutil
 from contextlib import ExitStack, nullcontext
 from datetime import timedelta
@@ -37,7 +36,7 @@ import torch
 from lightning_utilities.core.imports import RequirementCache
 from lightning_utilities.core.rank_zero import rank_zero_only as utils_rank_zero_only
 from torch import Tensor
-from torch.nn import Module, Parameter
+from torch.nn import Module
 from torch.optim import Optimizer
 from typing_extensions import TypeGuard, override
 

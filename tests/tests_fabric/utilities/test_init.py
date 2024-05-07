@@ -18,8 +18,8 @@ import pytest
 import torch.nn
 from lightning.fabric.utilities.init import (
     _EmptyInit,
+    _has_meta_device_parameters_or_buffers,
     _materialize_meta_tensors,
-    _has_meta_device_parameters_or_buffers
 )
 
 from tests_fabric.helpers.runif import RunIf

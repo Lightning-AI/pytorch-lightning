@@ -41,15 +41,18 @@ def test_device_mesh_access():
 
 
 @RunIf(min_torch="2.3")
-@pytest.mark.parametrize(("num_nodes", "devices", "invalid_dp_size", "invalid_tp_size"), [
-    (1, 4, 1, 1),
-    (1, 4, 2, 3),
-    (1, 4, 4, 2),
-    (2, 4, 1, 4),
-    (2, 4, 2, 1),
-])
+@pytest.mark.parametrize(
+    ("num_nodes", "devices", "invalid_dp_size", "invalid_tp_size"),
+    [
+        (1, 4, 1, 1),
+        (1, 4, 2, 3),
+        (1, 4, 4, 2),
+        (2, 4, 1, 4),
+        (2, 4, 2, 1),
+    ],
+)
 def test_validate_device_mesh_dimensions(num_nodes, devices, invalid_dp_size, invalid_tp_size):
-    """Test passing sizes that don't multiply to the world size raises an error"""
+    """Test passing sizes that don't multiply to the world size raises an error."""
     strategy = ModelParallelStrategy(
         parallelize_fn=(lambda m, _: m),
         data_parallel_size=invalid_dp_size,
@@ -58,8 +61,7 @@ def test_validate_device_mesh_dimensions(num_nodes, devices, invalid_dp_size, in
     strategy._setup_distributed = Mock()
     strategy._accelerator = Mock()
     strategy.cluster_environment = Mock(
-        world_size=Mock(return_value=(num_nodes * devices)),
-        local_rank=Mock(return_value=1)
+        world_size=Mock(return_value=(num_nodes * devices)), local_rank=Mock(return_value=1)
     )
     strategy.parallel_devices = [torch.device("cpu")] * devices
     strategy.num_nodes = num_nodes
