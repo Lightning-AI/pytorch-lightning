@@ -79,7 +79,10 @@ def parallelize(model: Transformer, device_mesh: DeviceMesh) -> Transformer:
     if dp_mesh.size() > 1:
         assert dp_mesh.ndim == 1  # Hybrid-sharding not supported
 
+        # NOTE: Currently, the user is required to manually handle precision settings such as the `mp_policy` here
+        # because the model parallel strategy does not respect all settings of `Fabric(precision=...)` at the moment.
         mp_policy = MixedPrecisionPolicy(param_dtype=torch.bfloat16, reduce_dtype=torch.float32)
+
         fsdp_config = {"mesh": dp_mesh, "mp_policy": mp_policy}
         for layer_id, transformer_block in enumerate(model.layers):
             # Apply activation checkpointing
