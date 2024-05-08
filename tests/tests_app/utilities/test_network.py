@@ -1,8 +1,9 @@
+from http.client import HTTPMessage
 from unittest import mock
 
 import pytest
 from lightning.app.core import constants
-from lightning.app.utilities.network import find_free_network_port
+from lightning.app.utilities.network import HTTPClient, find_free_network_port
 
 
 def test_find_free_network_port():
@@ -42,3 +43,41 @@ def test_find_free_network_port_cloudspace(_, patch_constants):
 
     # Shouldn't use the APP_SERVER_PORT
     assert constants.APP_SERVER_PORT not in ports
+
+
+@mock.patch("urllib3.connectionpool.HTTPConnectionPool._get_conn")
+def test_http_client_retry_post(getconn_mock):
+    getconn_mock.return_value.getresponse.side_effect = [
+        mock.Mock(status=500, msg=HTTPMessage()),
+        mock.Mock(status=429, msg=HTTPMessage()),
+        mock.Mock(status=200, msg=HTTPMessage()),
+    ]
+
+    client = HTTPClient(base_url="http://test.url")
+    r = client.post("/test")
+    r.raise_for_status()
+
+    assert getconn_mock.return_value.request.mock_calls == [
+        mock.call("POST", "/test", body=None, headers=mock.ANY),
+        mock.call("POST", "/test", body=None, headers=mock.ANY),
+        mock.call("POST", "/test", body=None, headers=mock.ANY),
+    ]
+
+
+@mock.patch("urllib3.connectionpool.HTTPConnectionPool._get_conn")
+def test_http_client_retry_get(getconn_mock):
+    getconn_mock.return_value.getresponse.side_effect = [
+        mock.Mock(status=500, msg=HTTPMessage()),
+        mock.Mock(status=429, msg=HTTPMessage()),
+        mock.Mock(status=200, msg=HTTPMessage()),
+    ]
+
+    client = HTTPClient(base_url="http://test.url")
+    r = client.get("/test")
+    r.raise_for_status()
+
+    assert getconn_mock.return_value.request.mock_calls == [
+        mock.call("GET", "/test", body=None, headers=mock.ANY),
+        mock.call("GET", "/test", body=None, headers=mock.ANY),
+        mock.call("GET", "/test", body=None, headers=mock.ANY),
+    ]

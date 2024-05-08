@@ -122,7 +122,7 @@ class _TrainerManualWrapping(_Trainer):
 @RunIf(min_cuda_gpus=2, standalone=True)
 @pytest.mark.parametrize("precision", ["16-mixed", pytest.param("bf16-mixed", marks=RunIf(bf16_cuda=True))])
 @pytest.mark.parametrize("manual_wrapping", [True, False])
-def test_fsdp_train_save_load(tmp_path, manual_wrapping, precision):
+def test_train_save_load(tmp_path, manual_wrapping, precision):
     """Test FSDP training, saving and loading with different wrapping and precision settings."""
     trainer_cls = _TrainerManualWrapping if manual_wrapping else _Trainer
     fabric = Fabric(
@@ -175,7 +175,7 @@ def test_fsdp_train_save_load(tmp_path, manual_wrapping, precision):
 
 
 @RunIf(min_cuda_gpus=2, standalone=True)
-def test_fsdp_save_full_state_dict(tmp_path):
+def test_save_full_state_dict(tmp_path):
     """Test that FSDP saves the full state into a single file with `state_dict_type="full"`."""
     fabric = Fabric(
         accelerator="cuda",
@@ -289,7 +289,7 @@ def test_fsdp_save_full_state_dict(tmp_path):
 
 
 @RunIf(min_cuda_gpus=2, standalone=True)
-def test_fsdp_load_full_state_dict_into_sharded_model(tmp_path):
+def test_load_full_state_dict_into_sharded_model(tmp_path):
     """Test that the strategy can load a full-state checkpoint into a FSDP sharded model."""
     from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
 
@@ -475,7 +475,7 @@ def test_module_init_context(precision, expected_dtype):
 
 
 @RunIf(min_cuda_gpus=2, standalone=True)
-def test_fsdp_save_filter(tmp_path):
+def test_save_filter(tmp_path):
     fabric = Fabric(accelerator="cuda", strategy=FSDPStrategy(state_dict_type="full"), devices=2)
     fabric.launch()
     model = nn.Linear(32, 2)
@@ -498,7 +498,7 @@ def test_fsdp_save_filter(tmp_path):
 
 
 @RunIf(min_cuda_gpus=1)
-def test_fsdp_manual_activation_checkpointing():
+def test_manual_activation_checkpointing():
     model = torch.nn.Sequential(torch.nn.Linear(1, 1), torch.nn.Linear(1, 1))
     strategy = FSDPStrategy(activation_checkpointing_policy={torch.nn.Linear})
     fabric = Fabric(devices=1, accelerator="cuda", strategy=strategy)

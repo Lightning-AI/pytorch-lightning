@@ -89,18 +89,32 @@ _CONNECTION_RETRY_BACKOFF_FACTOR = 0.5
 _DEFAULT_REQUEST_TIMEOUT = 30  # seconds
 
 
+def create_retry_strategy():
+    return Retry(
+        # wait time between retries increases exponentially according to: backoff_factor * (2 ** (retry - 1))
+        # but the the maximum wait time is 120 secs. By setting a large value (2880), we'll make sure clients
+        # are going to be alive for a very long time (~ 4 days) but retries every 120 seconds
+        total=_CONNECTION_RETRY_TOTAL,
+        backoff_factor=_CONNECTION_RETRY_BACKOFF_FACTOR,
+        status_forcelist={
+            408,  # Request Timeout
+            429,  # Too Many Requests
+            *range(500, 600),  # Any 5xx Server Error status
+        },
+        allowed_methods={
+            "POST",  # Default methods are idempotent, add POST here
+            *Retry.DEFAULT_ALLOWED_METHODS,
+        },
+    )
+
+
 def _configure_session() -> Session:
     """Configures the session for GET and POST requests.
 
     It enables a generous retrial strategy that waits for the application server to connect.
 
     """
-    retry_strategy = Retry(
-        # wait time between retries increases exponentially according to: backoff_factor * (2 ** (retry - 1))
-        total=_CONNECTION_RETRY_TOTAL,
-        backoff_factor=_CONNECTION_RETRY_BACKOFF_FACTOR,
-        status_forcelist=[429, 500, 502, 503, 504],
-    )
+    retry_strategy = create_retry_strategy()
     adapter = HTTPAdapter(max_retries=retry_strategy)
     http = requests.Session()
     http.mount("https://", adapter)
@@ -157,21 +171,7 @@ class HTTPClient:
         self, base_url: str, auth_token: Optional[str] = None, log_callback: Optional[Callable] = None
     ) -> None:
         self.base_url = base_url
-        retry_strategy = Retry(
-            # wait time between retries increases exponentially according to: backoff_factor * (2 ** (retry - 1))
-            # but the the maximum wait time is 120 secs. By setting a large value (2880), we'll make sure clients
-            # are going to be alive for a very long time (~ 4 days) but retries every 120 seconds
-            total=_CONNECTION_RETRY_TOTAL,
-            backoff_factor=_CONNECTION_RETRY_BACKOFF_FACTOR,
-            status_forcelist=[
-                408,  # Request Timeout
-                429,  # Too Many Requests
-                500,  # Internal Server Error
-                502,  # Bad Gateway
-                503,  # Service Unavailable
-                504,  # Gateway Timeout
-            ],
-        )
+        retry_strategy = create_retry_strategy()
         adapter = CustomRetryAdapter(max_retries=retry_strategy, timeout=_DEFAULT_REQUEST_TIMEOUT)
         self.session = requests.Session()
 
