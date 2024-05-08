@@ -90,8 +90,8 @@ If you ever need to, you can access the original model explicitly via ``.module`
 Using methods other than forward for computation
 ************************************************
 
-PyTorch's ``nn.Modules`` have a special contract you need to follow when using them for training: Your forward computation has to be defined in the **forward** method and you should call this forward method directly.
-But sometimes your model may need to define different flavors of forward, like in this example below where the regular forward is used for training, but the `generate` method does something slightly different for inference:
+PyTorch's ``nn.Modules`` have a special contract you need to follow when using them for training: Your forward computation has to be defined in the **`forward`** method and you should call this forward method directly.
+But sometimes your model may need to define different flavors of `forward`, like in this example below where the regular `forward` is used for training, but the `generate` method does something slightly different for inference:
 
 .. code-block:: python
 
