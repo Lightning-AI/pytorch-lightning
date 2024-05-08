@@ -22,7 +22,7 @@ This wrapper module takes care of a few things for you, notably:
 - Device: The wrapper remembers which device the model is on. You can access it with `model.device`.
 
 .. note::
-    The FabricModule wrapper is completely transparent and most users will never need to interact with it directly.
+    The ``FabricModule`` wrapper is completely transparent and most users will never need to interact with it directly.
 
 Below we describe a few functions and properties of the wrapper for advanced use cases.
 This might be useful if you are building a custom Trainer using Fabric as the core.
