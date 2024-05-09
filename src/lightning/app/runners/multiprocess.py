@@ -81,16 +81,17 @@ class MultiProcessRuntime(Runtime):
 
             _set_flow_context()
 
-            storage_orchestrator = StorageOrchestrator(
-                self.app,
-                self.app.request_queues,
-                self.app.response_queues,
-                self.app.copy_request_queues,
-                self.app.copy_response_queues,
-            )
-            self.threads.append(storage_orchestrator)
-            storage_orchestrator.setDaemon(True)
-            storage_orchestrator.start()
+            if constants.ENABLE_ORCHESTRATOR:
+                storage_orchestrator = StorageOrchestrator(
+                    self.app,
+                    self.app.request_queues,
+                    self.app.response_queues,
+                    self.app.copy_request_queues,
+                    self.app.copy_response_queues,
+                )
+                self.threads.append(storage_orchestrator)
+                storage_orchestrator.setDaemon(True)
+                storage_orchestrator.start()
 
             if self.start_server:
                 self.app.should_publish_changes_to_api = True
