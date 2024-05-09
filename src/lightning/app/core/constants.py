@@ -99,6 +99,7 @@ SYS_CUSTOMIZATIONS_SYNC_ROOT = "/tmp/sys-customizations-sync"  # todo
 SYS_CUSTOMIZATIONS_SYNC_PATH = ".sys-customizations-sync"
 
 BATCH_DELTA_COUNT = int(os.getenv("BATCH_DELTA_COUNT", "128"))
+CHECK_ERROR_QUEUE_INTERVAL = float(os.getenv("CHECK_ERROR_QUEUE_INTERVAL", "30"))
 
 
 def enable_multiple_works_in_default_container() -> bool:
