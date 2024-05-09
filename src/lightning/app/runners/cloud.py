@@ -34,7 +34,7 @@ from lightning_cloud.openapi import (
     CloudspaceIdRunsBody,
     Externalv1LightningappInstance,
     Gridv1ImageSpec,
-    IdGetBody1,
+    IdGetBody,
     ProjectIdCloudspacesBody,
     V1BuildSpec,
     V1CloudSpace,
@@ -1027,7 +1027,7 @@ class CloudRuntime(Runtime):
             project_id=project_id,
             cloudspace_id=cloudspace_id,
             id=run_id,
-            body=IdGetBody1(
+            body=IdGetBody(
                 cluster_id=cluster_id,
                 name=run_name,
                 desired_state=desired_state,
