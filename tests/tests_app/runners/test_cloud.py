@@ -24,7 +24,7 @@ from lightning_cloud.openapi import (
     Externalv1Cluster,
     Externalv1LightningappInstance,
     Gridv1ImageSpec,
-    IdGetBody1,
+    IdGetBody,
     ProjectIdProjectclustersbindingsBody,
     V1BuildSpec,
     V1CloudSpace,
@@ -508,7 +508,7 @@ class TestAppCreationClient:
             project_id="test-project-id",
             cloudspace_id=mock.ANY,
             id=mock.ANY,
-            body=IdGetBody1(
+            body=IdGetBody(
                 desired_state=mock.ANY,
                 name=mock.ANY,
                 env=mock.ANY,
@@ -712,7 +712,7 @@ class TestAppCreationClient:
         cloud_runtime.dispatch()
 
         # calling with no env variable set
-        body = IdGetBody1(
+        body = IdGetBody(
             desired_state=V1LightningappInstanceState.STOPPED,
             env=[],
             name=mock.ANY,
@@ -727,7 +727,7 @@ class TestAppCreationClient:
         monkeypatch.setitem(os.environ, "LIGHTNING_CLOUD_QUEUE_TYPE", "http")
         cloud_runtime.backend.client.reset_mock()
         cloud_runtime.dispatch()
-        body = IdGetBody1(
+        body = IdGetBody(
             desired_state=V1LightningappInstanceState.STOPPED,
             env=mock.ANY,
             name=mock.ANY,
@@ -998,7 +998,7 @@ class TestAppCreationClient:
                 project_id="test-project-id",
                 cloudspace_id=mock.ANY,
                 id=mock.ANY,
-                body=IdGetBody1(
+                body=IdGetBody(
                     desired_state=V1LightningappInstanceState.STOPPED,
                     name=mock.ANY,
                     env=[V1EnvVar(name="ENABLE_APP_COMMENT_COMMAND_EXECUTION", value="1")],
