@@ -79,6 +79,8 @@ class _LRFinder:
 
         num_training: number of steps to take between lr_min and lr_max
 
+        opt_method: Chooses how the optimum learning rate is determined. It can be any of ``("gradient", "slide", "valley")``.
+
     Example::
         # Run lr finder
         lr_finder = trainer.lr_find(model)
@@ -299,7 +301,7 @@ def _lr_find(
         update_attr: Whether to update the learning rate attribute or not.
         attr_name: Name of the attribute which stores the learning rate. The names 'learning_rate' or 'lr' get
             automatically detected. Otherwise, set the name here.
-
+        opt_method: Chooses how the optimum learning rate is determined. It can be any of ``("gradient", "slide", "valley")``.
     """
     if trainer.fast_dev_run:
         rank_zero_warn("Skipping learning rate finder since `fast_dev_run` is enabled.")
