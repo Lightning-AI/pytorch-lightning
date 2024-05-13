@@ -537,13 +537,14 @@ def _load_dtensor_state_dict(state_dict: Dict[str, Any], module: Module, strict:
     # support loading the optimizer state yet. Caveat: Custom `Module.load_state_dict()` methods are not supported
     from torch.distributed._tensor import DTensor, distribute_tensor
 
-    module_keys = {name for name, _ in itertools.chain(module.named_parameters(), module.named_buffers())}
-    state_dict_keys = set(state_dict.keys())
-    if strict and module_keys != state_dict_keys:
-        raise KeyError(
-            "The state-dict keys in the model and checkpoint don't match. To disable strict loading,"
-            " set `strict=False`."
-        )
+    if strict:
+        module_keys = {name for name, _ in itertools.chain(module.named_parameters(), module.named_buffers())}
+        state_dict_keys = set(state_dict.keys())
+        if module_keys != state_dict_keys:
+            raise KeyError(
+                "The state-dict keys in the model and checkpoint don't match. To disable strict loading,"
+                " set `strict=False`."
+            )
 
     for name, param in itertools.chain(module.named_parameters(), module.named_buffers()):
         if name not in state_dict:
