@@ -41,11 +41,11 @@ from lightning.fabric.strategies.fsdp import (
     _init_sharding_strategy,
     _is_full_checkpoint,
     _is_sharded_checkpoint,
-    _load_raw_module_state,
     _move_torchmetrics_to_device,
     _optimizer_has_flat_params,
     _setup_activation_checkpointing,
 )
+from lightning.fabric.strategies.model_parallel import _load_raw_module_state
 from lightning.fabric.utilities.distributed import (
     _distributed_is_initialized,
     _get_default_process_group_backend_for_device,

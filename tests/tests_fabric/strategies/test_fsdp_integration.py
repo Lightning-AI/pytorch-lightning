@@ -489,7 +489,7 @@ def test_save_filter(tmp_path):
     fabric.save(checkpoint_path, state, filter=filter)
     checkpoint = torch.load(checkpoint_path)["model"]
     assert set(checkpoint) == {"bias"}
-    assert isinstance(checkpoint["bias"], torch.Tensor)
+    assert type(checkpoint["bias"]) is torch.Tensor
 
     fabric.strategy._state_dict_type = "sharded"
     checkpoint_path = tmp_path / "sharded"
