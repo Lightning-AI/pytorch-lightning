@@ -18,7 +18,7 @@ LearningRateFinder
 Finds optimal learning rate
 """
 
-from typing import Optional, Literal
+from typing import Literal, Optional
 
 from typing_extensions import override
 

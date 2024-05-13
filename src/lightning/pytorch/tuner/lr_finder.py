@@ -16,7 +16,7 @@ import logging
 import os
 import uuid
 from copy import deepcopy
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Union, Literal
+from typing import TYPE_CHECKING, Any, Dict, List, Literal, Optional, Union
 
 import torch
 from lightning_utilities.core.imports import RequirementCache
@@ -29,7 +29,6 @@ from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.parsing import lightning_hasattr, lightning_setattr
 from lightning.pytorch.utilities.rank_zero import rank_zero_warn
 from lightning.pytorch.utilities.types import STEP_OUTPUT, LRSchedulerConfig
-import numpy as np
 
 # check if ipywidgets is installed before importing tqdm.auto
 # to ensure it won't fail and a progress bar is displayed
@@ -227,7 +226,6 @@ class _LRFinder:
             self._optimal_idx = min_grad + skip_begin
             opt_lr = self.results["lr"][self._optimal_idx]
         elif self.opt_method == "slide":
-
             # See https://forums.fast.ai/t/automated-learning-rate-suggester/44199 "slide" method
             loss_t = self.opt_parameters.get("loss_threshold", 0.5)
             lr_diff = self.opt_parameters.get("lr_diff", 15)
@@ -302,6 +300,7 @@ def _lr_find(
         attr_name: Name of the attribute which stores the learning rate. The names 'learning_rate' or 'lr' get
             automatically detected. Otherwise, set the name here.
         opt_method: Chooses how the optimum learning rate is determined. It can be any of ``("gradient", "slide", "valley")``.
+
     """
     if trainer.fast_dev_run:
         rank_zero_warn("Skipping learning rate finder since `fast_dev_run` is enabled.")
