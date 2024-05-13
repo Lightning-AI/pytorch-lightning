@@ -530,6 +530,7 @@ def _load_raw_module_state(state_dict: Dict[str, Any], module: Module, world_siz
         module.load_state_dict(state_dict, strict=strict)
 
 
+@torch.no_grad()
 def _load_dtensor_state_dict(state_dict: Dict[str, Any], module: Module, strict: bool = True) -> None:
     # Note: There is currently no standard way in PyTorch to load a single-file checkpoint into a
     # DTensor module and/or optimizer. We manually reshard and assign the tensors to the model, but don't
@@ -558,6 +559,5 @@ def _load_dtensor_state_dict(state_dict: Dict[str, Any], module: Module, strict:
                 device_mesh=param.device_mesh,
                 placements=param.placements,
             )
-        with torch.no_grad():
-            param.copy_(loaded_tensor)
+        param.copy_(loaded_tensor)
         del loaded_tensor
