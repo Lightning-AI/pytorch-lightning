@@ -120,6 +120,7 @@ class Tuner:
         early_stop_threshold: Optional[float] = 4.0,
         update_attr: bool = True,
         attr_name: str = "",
+        opt_method: Literal["gradient", "slide", "valley"] = "gradient",
     ) -> Optional["_LRFinder"]:
         """Enables the user to do a range test of good initial learning rates, to reduce the amount of guesswork in
         picking a good starting learning rate.
@@ -172,6 +173,7 @@ class Tuner:
             early_stop_threshold=early_stop_threshold,
             update_attr=update_attr,
             attr_name=attr_name,
+            opt_method=opt_method,
         )
 
         lr_finder_callback._early_exit = True
