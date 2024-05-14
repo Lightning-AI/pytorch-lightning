@@ -299,7 +299,7 @@ def test_train_save_load(precision, tmp_path):
     assert state["coconut"] == 11
 
 
-@RunIf(min_torch="2.3", min_cuda_gpus=2, standalone=True)
+@RunIf(min_torch="2.4", min_cuda_gpus=2, standalone=True)
 def test_save_full_state_dict(tmp_path):
     """Test that ModelParallelStrategy saves the full state into a single file with
     `save_distributed_checkpoint=False`."""
@@ -404,7 +404,7 @@ def test_save_full_state_dict(tmp_path):
     _train(fabric, model, optimizer)
 
 
-@RunIf(min_cuda_gpus=2, standalone=True)
+@RunIf(min_torch="2.4", min_cuda_gpus=2, standalone=True)
 def test_load_full_state_dict_into_sharded_model(tmp_path):
     """Test that the strategy can load a full-state checkpoint into a distributed model."""
     fabric = Fabric(accelerator="cuda", devices=1)
@@ -510,7 +510,7 @@ def test_module_init_context(precision, expected_dtype):
     _run_setup_assertions(empty_init=True, expected_device=torch.device("meta"))
 
 
-@RunIf(min_cuda_gpus=2, standalone=True)
+@RunIf(min_torch="2.3", min_cuda_gpus=2, standalone=True)
 def test_save_filter(tmp_path):
     strategy = ModelParallelStrategy(
         parallelize_fn=_parallelize_feed_forward_fsdp2,

@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import itertools
 import shutil
 from contextlib import ExitStack
 from datetime import timedelta
@@ -50,9 +49,9 @@ from lightning.fabric.utilities.distributed import (
     _sync_ddp_if_available,
 )
 from lightning.fabric.utilities.distributed import group as _group
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_3
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_3, _TORCH_GREATER_EQUAL_2_4
 from lightning.fabric.utilities.init import _materialize_distributed_module
-from lightning.fabric.utilities.load import _METADATA_FILENAME, _lazy_load, _move_state_into, _NotYetLoadedTensor
+from lightning.fabric.utilities.load import _METADATA_FILENAME, _lazy_load, _move_state_into
 from lightning.fabric.utilities.rank_zero import rank_zero_only
 from lightning.fabric.utilities.seed import reset_seed
 from lightning.fabric.utilities.types import _PATH, _Stateful
@@ -430,6 +429,7 @@ def _load_checkpoint(
         StateDictOptions,
         get_model_state_dict,
         get_optimizer_state_dict,
+        set_model_state_dict,
         set_optimizer_state_dict,
     )
 
@@ -481,9 +481,16 @@ def _load_checkpoint(
                 "Loading the optimizer states from a non-distributed checkpoint into a distributed model"
                 " is currently not supported."
             )
+        if not _TORCH_GREATER_EQUAL_2_4:
+            raise ImportError("Loading a non-distributed checkpoint into a distributed model requires PyTorch >= 2.4.")
 
+        state_dict_options = StateDictOptions(
+            broadcast_from_rank0=True,  # type: ignore[call-arg]
+            full_state_dict=True,
+            strict=strict,
+        )
         checkpoint = torch.load(path, mmap=True, map_location="cpu")
-        _load_raw_module_state(state_dict=checkpoint.pop(module_key), module=module, world_size=1, strict=strict)
+        set_model_state_dict(module, checkpoint.pop(module_key), options=state_dict_options)
 
         requested_metadata_keys = state.keys() - modules.keys() - optimizers.keys()
         _validate_keys_for_strict_loading(requested_metadata_keys, checkpoint.keys(), strict=strict)
@@ -513,54 +520,26 @@ def _load_raw_module_state_from_path(path: Path, module: Module, world_size: int
             "Failed to load checkpoint directly into the model. The given path must be a single file containing the"
             f" full state dict: {path}"
         )
-    # Use `lazy_load` instead of `torch.load` here to avoid storing a copy of the full checkpoint per rank
-    _load_raw_module_state(state_dict=_lazy_load(path), module=module, world_size=world_size, strict=strict)
+    # Use `lazy_load`/`mmap` instead to avoid storing a copy of the full checkpoint per rank
+    state_dict = torch.load(path, mmap=True, map_location="cpu") if _TORCH_GREATER_EQUAL_2_3 else _lazy_load(path)
+    _load_raw_module_state(state_dict=state_dict, module=module, world_size=world_size, strict=strict)
 
 
 def _load_raw_module_state(state_dict: Dict[str, Any], module: Module, world_size: int, strict: bool = True) -> None:
     """Loads the state dict into the module by gathering all weights first and then and writing back to each shard."""
     from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
 
-    if _TORCH_GREATER_EQUAL_2_3 and _has_dtensor_modules(module):
-        _load_dtensor_state_dict(state_dict, module=module, strict=strict)
+    if _has_dtensor_modules(module):
+        if not _TORCH_GREATER_EQUAL_2_4:
+            raise ImportError("Loading a non-distributed checkpoint into a distributed model requires PyTorch >= 2.4.")
+
+        from torch.distributed.checkpoint.state_dict import StateDictOptions, set_model_state_dict
+
+        state_dict_options = StateDictOptions(broadcast_from_rank0=True, full_state_dict=True)  # type: ignore[call-arg]
+        set_model_state_dict(module, state_dict, options=state_dict_options)
+
     elif isinstance(module, FSDP):
         with _get_full_state_dict_context(module, world_size=world_size, rank0_only=False):
             module.load_state_dict(state_dict, strict=strict)
     else:
         module.load_state_dict(state_dict, strict=strict)
-
-
-@torch.no_grad()
-def _load_dtensor_state_dict(state_dict: Dict[str, Any], module: Module, strict: bool = True) -> None:
-    # Note: There is currently no standard way in PyTorch to load a single-file checkpoint into a
-    # DTensor module and/or optimizer. We manually reshard and assign the tensors to the model, but don't
-    # support loading the optimizer state yet. Caveat: Custom `Module.load_state_dict()` methods are not supported
-    from torch.distributed._tensor import DTensor, distribute_tensor
-
-    if strict:
-        module_param_keys = {name for name, _ in module.named_parameters()}
-        module_buffer_keys = {name for name, _ in module.named_buffers()}
-        module_buffer_keys = module_buffer_keys - module._non_persistent_buffers_set
-        state_dict_keys = set(state_dict.keys())
-        if (module_param_keys | module_buffer_keys) != state_dict_keys:
-            raise KeyError(
-                "The state-dict keys in the model and checkpoint don't match. To disable strict loading,"
-                " set `strict=False`."
-            )
-
-    for name, param in itertools.chain(module.named_parameters(), module.named_buffers()):
-        if name not in state_dict:
-            # Strict loading already handled above
-            continue
-
-        loaded_tensor = state_dict[name]
-        if isinstance(loaded_tensor, _NotYetLoadedTensor):
-            loaded_tensor = loaded_tensor._load_tensor()
-        if isinstance(param, DTensor):
-            loaded_tensor = distribute_tensor(
-                tensor=loaded_tensor,
-                device_mesh=param.device_mesh,
-                placements=param.placements,
-            )
-        param.copy_(loaded_tensor)
-        del loaded_tensor
