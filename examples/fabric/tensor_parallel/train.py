@@ -30,13 +30,13 @@ def train():
 
     fabric.print(f"Number of model parameters: {sum(p.numel() for p in model.parameters()) / 1e9:.1f} B")
 
+    # Set up model and optimizer
+    model = fabric.setup(model)
+    model.init_weights()
+
     # Define the optimizer
     optimizer = torch.optim.AdamW(model.parameters(), lr=3e-3, foreach=True)
-
-    # Set up model and optimizer
-    model, optimizer = fabric.setup(model, optimizer)
-
-    model.init_weights()
+    optimizer = fabric.setup_optimizers(optimizer)
 
     # Define dataset/dataloader
     dataset = RandomTokenDataset(vocab_size=model_args.vocab_size, seq_length=128)
