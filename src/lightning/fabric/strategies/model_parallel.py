@@ -16,7 +16,7 @@ import shutil
 from contextlib import ExitStack
 from datetime import timedelta
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable, ContextManager, Dict, Literal, Optional, TypeVar, Union
+from typing import TYPE_CHECKING, Any, Callable, ContextManager, Dict, Generator, Literal, Optional, TypeVar, Union
 
 import torch
 from lightning_utilities.core.rank_zero import rank_zero_only as utils_rank_zero_only
@@ -532,15 +532,23 @@ def _load_raw_module_state(
 
         from torch.distributed.checkpoint.state_dict import StateDictOptions, set_model_state_dict
 
-        state_dict_options = StateDictOptions(broadcast_from_rank0=True, full_state_dict=True, strict=strict)  # type: ignore[call-arg]
+        state_dict_options = StateDictOptions(
+            broadcast_from_rank0=True,  # type: ignore[call-arg]
+            full_state_dict=True, 
+            strict=strict,  # gets ignored at the moment
+        )
 
         for submodule_name, submodule in module.named_modules():
-            for param_name, _ in itertools.chain(
-                submodule.named_buffers(recurse=False), submodule.named_parameters(recurse=False)
-            ):
-                if param_name in submodule._non_persistent_buffers_set:
-                    continue
-                full_param_name = f"{submodule_name}.{param_name}"
+            for param_name, _ in _named_parameters_and_buffers_to_load(submodule):
+                full_param_name = f"{submodule_name}{'.' if submodule_name else ''}{param_name}"
+                if full_param_name not in state_dict:
+                    # Note: PyTorch does not currently respect the `strict` setting in state_dict_options!
+                    if not strict:
+                        continue
+                    raise KeyError(
+                        f"The model contains a key '{full_param_name}' that does not exist in the loaded checkpoint."
+                        " To disable strict loading, set `strict=False`."
+                    )
                 local_state_dict = {param_name: state_dict[full_param_name]}
                 set_model_state_dict(submodule, local_state_dict, options=state_dict_options)
 
@@ -549,3 +557,14 @@ def _load_raw_module_state(
             module.load_state_dict(state_dict, strict=strict)
     else:
         module.load_state_dict(state_dict, strict=strict)
+
+
+def _named_parameters_and_buffers_to_load(module: Module) -> Generator:
+    """Returns parameters and buffers, with non-persistent buffers excluded."""
+    for param_name, param in itertools.chain(
+        module.named_buffers(recurse=False), 
+        module.named_parameters(recurse=False),
+    ):
+        if param_name in module._non_persistent_buffers_set:
+            continue
+        yield param_name, param
