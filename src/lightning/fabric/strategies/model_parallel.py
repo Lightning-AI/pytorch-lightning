@@ -21,8 +21,6 @@ from typing import TYPE_CHECKING, Any, Callable, ContextManager, Dict, Generator
 import torch
 from lightning_utilities.core.rank_zero import rank_zero_only as utils_rank_zero_only
 from torch import Tensor
-from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
-from torch.distributed.fsdp import OptimStateKeyType
 from torch.nn import Module
 from torch.optim import Optimizer
 from typing_extensions import TypeGuard, override
@@ -489,10 +487,7 @@ def _load_checkpoint(
             strict=strict,
         )
         for optimizer_name, optimizer in optimizers.items():
-            optimizer_state = checkpoint.pop(optimizer_name)
-            # Handling the case where the optimizer state is saved from a normal optimizer
-            if isinstance(list(optimizer_state["state"].keys())[0], int):
-                optimizer_state = FSDP.rekey_optim_state_dict(optimizer_state, OptimStateKeyType.PARAM_NAME, module)
+            optimizer_state = _rekey_optimizer_state_if_needed(checkpoint.pop(optimizer_name), module)
             set_optimizer_state_dict(
                 module,
                 optimizer,
@@ -581,3 +576,14 @@ def _named_parameters_and_buffers_to_load(module: Module) -> Generator:
         if param_name in module._non_persistent_buffers_set:
             continue
         yield param_name, param
+
+
+def _rekey_optimizer_state_if_needed(optimizer_state_dict: Dict[str, Any], module: Module) -> Dict[str, Any]:
+    """Handles the case where the optimizer state is saved from a normal optimizer and converts the keys to
+    parameter names."""
+    from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
+    from torch.distributed.fsdp import OptimStateKeyType
+
+    if isinstance(list(optimizer_state_dict["state"].keys())[0], int):
+        optimizer_state_dict = FSDP.rekey_optim_state_dict(optimizer_state_dict, OptimStateKeyType.PARAM_NAME, module)
+    return optimizer_state_dict
