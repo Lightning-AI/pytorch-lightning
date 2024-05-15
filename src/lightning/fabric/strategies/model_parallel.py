@@ -579,8 +579,8 @@ def _named_parameters_and_buffers_to_load(module: Module) -> Generator:
 
 
 def _rekey_optimizer_state_if_needed(optimizer_state_dict: Dict[str, Any], module: Module) -> Dict[str, Any]:
-    """Handles the case where the optimizer state is saved from a normal optimizer and converts the keys to
-    parameter names."""
+    """Handles the case where the optimizer state is saved from a normal optimizer and converts the keys to parameter
+    names."""
     from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
     from torch.distributed.fsdp import OptimStateKeyType
 

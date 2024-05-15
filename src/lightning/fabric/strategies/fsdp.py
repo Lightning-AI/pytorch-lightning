@@ -529,7 +529,6 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
 
         from torch.distributed.checkpoint.optimizer import load_sharded_optimizer_state_dict
         from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
-        from torch.distributed.fsdp import OptimStateKeyType
 
         modules = {key: module for key, module in state.items() if _has_fsdp_modules(module)}
         if len(modules) == 0:
@@ -590,8 +589,10 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         if _is_full_checkpoint(path):
             checkpoint = _lazy_load(path)
 
-            from lightning.fabric.strategies.model_parallel import _load_raw_module_state
-            from lightning.fabric.strategies.model_parallel import _rekey_optimizer_state_if_needed
+            from lightning.fabric.strategies.model_parallel import (
+                _load_raw_module_state,
+                _rekey_optimizer_state_if_needed,
+            )
 
             _load_raw_module_state(checkpoint.pop(module_key), module=module, world_size=self.world_size, strict=strict)
 
