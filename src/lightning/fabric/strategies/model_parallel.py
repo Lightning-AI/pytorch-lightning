@@ -21,6 +21,8 @@ from typing import TYPE_CHECKING, Any, Callable, ContextManager, Dict, Generator
 import torch
 from lightning_utilities.core.rank_zero import rank_zero_only as utils_rank_zero_only
 from torch import Tensor
+from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
+from torch.distributed.fsdp import OptimStateKeyType
 from torch.nn import Module
 from torch.optim import Optimizer
 from typing_extensions import TypeGuard, override
@@ -475,17 +477,28 @@ def _load_checkpoint(
         return metadata
 
     if _is_full_checkpoint(path):
-        # TODO: Support loading optimizer states
-        if any(isinstance(obj, Optimizer) for obj in state.values()):
-            raise NotImplementedError(
-                "Loading the optimizer states from a non-distributed checkpoint into a distributed model"
-                " is currently not supported."
-            )
         if not _TORCH_GREATER_EQUAL_2_4:
             raise ImportError("Loading a non-distributed checkpoint into a distributed model requires PyTorch >= 2.4.")
 
         checkpoint = torch.load(path, mmap=True, map_location="cpu")
         _load_raw_module_state(checkpoint.pop(module_key), module, strict=strict)
+
+        state_dict_options = StateDictOptions(
+            broadcast_from_rank0=True,  # type: ignore[call-arg]
+            full_state_dict=True,
+            strict=strict,
+        )
+        for optimizer_name, optimizer in optimizers.items():
+            optimizer_state = checkpoint.pop(optimizer_name)
+            # Handling the case where the optimizer state is saved from a normal optimizer
+            if isinstance(list(optimizer_state["state"].keys())[0], int):
+                optimizer_state = FSDP.rekey_optim_state_dict(optimizer_state, OptimStateKeyType.PARAM_NAME, module)
+            set_optimizer_state_dict(
+                module,
+                optimizer,
+                optim_state_dict=optimizer_state,
+                options=state_dict_options,
+            )
 
         requested_metadata_keys = state.keys() - modules.keys() - optimizers.keys()
         _validate_keys_for_strict_loading(requested_metadata_keys, checkpoint.keys(), strict=strict)
