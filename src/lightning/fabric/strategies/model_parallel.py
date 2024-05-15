@@ -534,7 +534,7 @@ def _load_raw_module_state(
 
         state_dict_options = StateDictOptions(
             broadcast_from_rank0=True,  # type: ignore[call-arg]
-            full_state_dict=True, 
+            full_state_dict=True,
             strict=strict,  # gets ignored at the moment
         )
 
@@ -562,7 +562,7 @@ def _load_raw_module_state(
 def _named_parameters_and_buffers_to_load(module: Module) -> Generator:
     """Returns parameters and buffers, with non-persistent buffers excluded."""
     for param_name, param in itertools.chain(
-        module.named_buffers(recurse=False), 
+        module.named_buffers(recurse=False),
         module.named_parameters(recurse=False),
     ):
         if param_name in module._non_persistent_buffers_set:
