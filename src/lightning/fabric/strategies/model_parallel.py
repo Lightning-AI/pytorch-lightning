@@ -484,7 +484,7 @@ def _load_checkpoint(
             raise ImportError("Loading a non-distributed checkpoint into a distributed model requires PyTorch >= 2.4.")
 
         checkpoint = torch.load(path, mmap=True, map_location="cpu")
-        _load_raw_module_state(checkpoint.pop(module_key), module, world_size=self.world_size, strict=strict)
+        _load_raw_module_state(checkpoint.pop(module_key), module, strict=strict)
 
         requested_metadata_keys = state.keys() - modules.keys() - optimizers.keys()
         _validate_keys_for_strict_loading(requested_metadata_keys, checkpoint.keys(), strict=strict)
@@ -519,7 +519,9 @@ def _load_raw_module_state_from_path(path: Path, module: Module, world_size: int
     _load_raw_module_state(state_dict=state_dict, module=module, world_size=world_size, strict=strict)
 
 
-def _load_raw_module_state(state_dict: Dict[str, Any], module: Module, world_size: int, strict: bool = True) -> None:
+def _load_raw_module_state(
+    state_dict: Dict[str, Any], module: Module, world_size: int = 1, strict: bool = True
+) -> None:
     """Loads the state dict into the module by gathering all weights first and then and writing back to each shard."""
     from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
 
