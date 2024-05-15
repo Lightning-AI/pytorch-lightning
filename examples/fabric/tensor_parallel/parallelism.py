@@ -31,11 +31,10 @@ def parallelize(model: Transformer, device_mesh: DeviceMesh) -> Transformer:
         # 1. Parallelize the first embedding and the last linear proj layer
         # 2. Parallelize the root norm layer over the sequence dim
         # 3. Shard the first transformer block's inputs
+
         # Parallelize the first embedding and the last linear out projection
         plan = {
-            "tok_embeddings": RowwiseParallel(
-                input_layouts=Replicate(),
-            ),
+            "tok_embeddings": RowwiseParallel(input_layouts=Replicate()),
             "output": ColwiseParallel(input_layouts=Shard(1), output_layouts=Replicate()),
             "norm": SequenceParallel(),
             "layers.0": PrepareModuleInput(
