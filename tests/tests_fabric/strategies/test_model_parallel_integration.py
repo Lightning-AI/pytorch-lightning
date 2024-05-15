@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+from copy import deepcopy
 from pathlib import Path
 from unittest import mock
 
@@ -20,7 +21,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from lightning.fabric import Fabric
-from lightning.fabric.strategies import ModelParallelStrategy
+from lightning.fabric.strategies.model_parallel import ModelParallelStrategy, _load_raw_module_state
 from lightning.fabric.utilities.load import _load_distributed_checkpoint
 from torch.utils.data import DataLoader, DistributedSampler
 
@@ -675,3 +676,46 @@ def test_save_sharded_and_consolidate_and_load(tmp_path):
 
     state = {"model": model, "steps": 1}
     fabric.load(checkpoint_path_full, state)
+
+
+@RunIf(min_torch="2.4", min_cuda_gpus=2, standalone=True)
+def test_load_raw_module_state():
+    from torch.distributed.device_mesh import init_device_mesh
+    from torch.distributed.tensor.parallel import ColwiseParallel, parallelize_module
+
+    class CustomModel(nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.parameter = nn.Parameter(torch.rand(2, 2))
+            self.layer1 = nn.Linear(4, 4)
+            self.layer2 = nn.Linear(4, 4)
+            self.register_buffer("persistent_buffer", torch.rand(2), persistent=True)
+            self.register_buffer("non_persistent_buffer", torch.rand(2), persistent=False)
+
+    fabric = Fabric(accelerator="cuda", devices=2)
+    fabric.launch()
+    fabric.seed_everything(0)
+
+    with fabric.init_module():
+        model = CustomModel()
+
+    state_dict = deepcopy(model.state_dict())
+
+    with fabric.init_module():
+        model = CustomModel()
+
+    device_mesh = init_device_mesh("cuda", mesh_shape=(2,), mesh_dim_names=("tp",))
+    plan = {"layer1": ColwiseParallel()}
+    parallelize_module(model, device_mesh, plan)
+    _load_raw_module_state(state_dict, model, strict=True)
+
+    assert torch.equal(model.parameter, state_dict["parameter"])
+    assert torch.equal(model.layer1.weight.full_tensor(), state_dict["layer1.weight"])
+    assert torch.equal(model.layer2.weight, state_dict["layer2.weight"])
+    assert torch.equal(model.persistent_buffer, state_dict["persistent_buffer"])
+
+    state_dict.pop("parameter")
+    with pytest.raises(KeyError, match="The model contains a key 'parameter' that does not exist"):
+        _load_raw_module_state(state_dict, model, strict=True)
+
+    _load_raw_module_state(state_dict, model, strict=False)

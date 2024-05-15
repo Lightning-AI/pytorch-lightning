@@ -11,11 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import itertools
 import shutil
 from contextlib import ExitStack
 from datetime import timedelta
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable, ContextManager, Dict, Literal, Optional, TypeVar, Union
+from typing import TYPE_CHECKING, Any, Callable, ContextManager, Dict, Generator, Literal, Optional, TypeVar, Union
 
 import torch
 from lightning_utilities.core.rank_zero import rank_zero_only as utils_rank_zero_only
@@ -429,7 +430,6 @@ def _load_checkpoint(
         StateDictOptions,
         get_model_state_dict,
         get_optimizer_state_dict,
-        set_model_state_dict,
         set_optimizer_state_dict,
     )
 
@@ -484,13 +484,8 @@ def _load_checkpoint(
         if not _TORCH_GREATER_EQUAL_2_4:
             raise ImportError("Loading a non-distributed checkpoint into a distributed model requires PyTorch >= 2.4.")
 
-        state_dict_options = StateDictOptions(
-            broadcast_from_rank0=True,  # type: ignore[call-arg]
-            full_state_dict=True,
-            strict=strict,
-        )
         checkpoint = torch.load(path, mmap=True, map_location="cpu")
-        set_model_state_dict(module, checkpoint.pop(module_key), options=state_dict_options)
+        _load_raw_module_state(checkpoint.pop(module_key), module, strict=strict)
 
         requested_metadata_keys = state.keys() - modules.keys() - optimizers.keys()
         _validate_keys_for_strict_loading(requested_metadata_keys, checkpoint.keys(), strict=strict)
@@ -525,7 +520,9 @@ def _load_raw_module_state_from_path(path: Path, module: Module, world_size: int
     _load_raw_module_state(state_dict=state_dict, module=module, world_size=world_size, strict=strict)
 
 
-def _load_raw_module_state(state_dict: Dict[str, Any], module: Module, world_size: int, strict: bool = True) -> None:
+def _load_raw_module_state(
+    state_dict: Dict[str, Any], module: Module, world_size: int = 1, strict: bool = True
+) -> None:
     """Loads the state dict into the module by gathering all weights first and then and writing back to each shard."""
     from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
 
@@ -535,11 +532,39 @@ def _load_raw_module_state(state_dict: Dict[str, Any], module: Module, world_siz
 
         from torch.distributed.checkpoint.state_dict import StateDictOptions, set_model_state_dict
 
-        state_dict_options = StateDictOptions(broadcast_from_rank0=True, full_state_dict=True)  # type: ignore[call-arg]
-        set_model_state_dict(module, state_dict, options=state_dict_options)
+        state_dict_options = StateDictOptions(
+            broadcast_from_rank0=True,  # type: ignore[call-arg]
+            full_state_dict=True,
+            strict=strict,  # gets ignored at the moment
+        )
+
+        for submodule_name, submodule in module.named_modules():
+            for param_name, _ in _named_parameters_and_buffers_to_load(submodule):
+                full_param_name = f"{submodule_name}{'.' if submodule_name else ''}{param_name}"
+                if full_param_name not in state_dict:
+                    # Note: PyTorch does not currently respect the `strict` setting in state_dict_options!
+                    if not strict:
+                        continue
+                    raise KeyError(
+                        f"The model contains a key '{full_param_name}' that does not exist in the loaded checkpoint."
+                        " To disable strict loading, set `strict=False`."
+                    )
+                local_state_dict = {param_name: state_dict[full_param_name]}
+                set_model_state_dict(submodule, local_state_dict, options=state_dict_options)
 
     elif isinstance(module, FSDP):
         with _get_full_state_dict_context(module, world_size=world_size, rank0_only=False):
             module.load_state_dict(state_dict, strict=strict)
     else:
         module.load_state_dict(state_dict, strict=strict)
+
+
+def _named_parameters_and_buffers_to_load(module: Module) -> Generator:
+    """Returns parameters and buffers, with non-persistent buffers excluded."""
+    for param_name, param in itertools.chain(
+        module.named_buffers(recurse=False),
+        module.named_parameters(recurse=False),
+    ):
+        if param_name in module._non_persistent_buffers_set:
+            continue
+        yield param_name, param
