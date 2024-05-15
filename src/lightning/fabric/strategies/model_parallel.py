@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import itertools
 import shutil
 from contextlib import ExitStack
 from datetime import timedelta
@@ -534,7 +535,9 @@ def _load_raw_module_state(
         state_dict_options = StateDictOptions(broadcast_from_rank0=True, full_state_dict=True, strict=strict)  # type: ignore[call-arg]
 
         for submodule_name, submodule in module.named_modules():
-            for param_name, _ in submodule.named_parameters(recurse=False):
+            for param_name, _ in itertools.chain(submodule.named_buffers(recurse=False), submodule.named_parameters(recurse=False)):
+                if param_name in submodule._non_persistent_buffers_set:
+                    continue
                 full_param_name = f"{submodule_name}.{param_name}"
                 local_state_dict = {param_name: state_dict[full_param_name]}
                 set_model_state_dict(submodule, local_state_dict, options=state_dict_options)
