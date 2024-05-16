@@ -35,7 +35,7 @@ def test_prediction_writer_invalid_write_interval():
         DummyPredictionWriter("something")
 
 
-def test_prediction_writer_hook_call_intervals():
+def test_prediction_writer_hook_call_intervals(tmp_path):
     """Test that the `write_on_batch_end` and `write_on_epoch_end` hooks get invoked based on the defined interval."""
     DummyPredictionWriter.write_on_batch_end = Mock()
     DummyPredictionWriter.write_on_epoch_end = Mock()
@@ -44,7 +44,7 @@ def test_prediction_writer_hook_call_intervals():
 
     model = BoringModel()
     cb = DummyPredictionWriter("batch_and_epoch")
-    trainer = Trainer(limit_predict_batches=4, callbacks=cb)
+    trainer = Trainer(default_root_dir=tmp_path, logger=False, limit_predict_batches=4, callbacks=cb)
     results = trainer.predict(model, dataloaders=dataloader)
     assert len(results) == 4
     assert cb.write_on_batch_end.call_count == 4
@@ -54,7 +54,7 @@ def test_prediction_writer_hook_call_intervals():
     DummyPredictionWriter.write_on_epoch_end.reset_mock()
 
     cb = DummyPredictionWriter("batch_and_epoch")
-    trainer = Trainer(limit_predict_batches=4, callbacks=cb)
+    trainer = Trainer(default_root_dir=tmp_path, logger=False, limit_predict_batches=4, callbacks=cb)
     trainer.predict(model, dataloaders=dataloader, return_predictions=False)
     assert cb.write_on_batch_end.call_count == 4
     assert cb.write_on_epoch_end.call_count == 1
@@ -63,7 +63,7 @@ def test_prediction_writer_hook_call_intervals():
     DummyPredictionWriter.write_on_epoch_end.reset_mock()
 
     cb = DummyPredictionWriter("batch")
-    trainer = Trainer(limit_predict_batches=4, callbacks=cb)
+    trainer = Trainer(default_root_dir=tmp_path, logger=False, limit_predict_batches=4, callbacks=cb)
     trainer.predict(model, dataloaders=dataloader, return_predictions=False)
     assert cb.write_on_batch_end.call_count == 4
     assert cb.write_on_epoch_end.call_count == 0
@@ -72,21 +72,21 @@ def test_prediction_writer_hook_call_intervals():
     DummyPredictionWriter.write_on_epoch_end.reset_mock()
 
     cb = DummyPredictionWriter("epoch")
-    trainer = Trainer(limit_predict_batches=4, callbacks=cb)
+    trainer = Trainer(default_root_dir=tmp_path, logger=False, limit_predict_batches=4, callbacks=cb)
     trainer.predict(model, dataloaders=dataloader, return_predictions=False)
     assert cb.write_on_batch_end.call_count == 0
     assert cb.write_on_epoch_end.call_count == 1
 
 
 @pytest.mark.parametrize("num_workers", [0, 2])
-def test_prediction_writer_batch_indices(num_workers):
+def test_prediction_writer_batch_indices(num_workers, tmp_path):
     DummyPredictionWriter.write_on_batch_end = Mock()
     DummyPredictionWriter.write_on_epoch_end = Mock()
 
     dataloader = DataLoader(RandomDataset(32, 64), batch_size=4, num_workers=num_workers)
     model = BoringModel()
     writer = DummyPredictionWriter("batch_and_epoch")
-    trainer = Trainer(limit_predict_batches=4, callbacks=writer)
+    trainer = Trainer(default_root_dir=tmp_path, logger=False, limit_predict_batches=4, callbacks=writer)
     trainer.predict(model, dataloaders=dataloader)
 
     writer.write_on_batch_end.assert_has_calls([
@@ -101,7 +101,7 @@ def test_prediction_writer_batch_indices(num_workers):
     ])
 
 
-def test_batch_level_batch_indices():
+def test_batch_level_batch_indices(tmp_path):
     """Test that batch_indices are returned when `return_predictions=False`."""
     DummyPredictionWriter.write_on_batch_end = Mock()
 
@@ -112,7 +112,7 @@ def test_batch_level_batch_indices():
     writer = DummyPredictionWriter("batch")
     model = CustomBoringModel()
     dataloader = DataLoader(RandomDataset(32, 64), batch_size=4)
-    trainer = Trainer(limit_predict_batches=4, callbacks=writer)
+    trainer = Trainer(default_root_dir=tmp_path, logger=False, limit_predict_batches=4, callbacks=writer)
     trainer.predict(model, dataloaders=dataloader, return_predictions=False)
 
     writer.write_on_batch_end.assert_has_calls([

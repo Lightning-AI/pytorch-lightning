@@ -50,7 +50,7 @@ from lightning.fabric.loggers import Logger as FabricLogger
 from lightning.fabric.utilities.apply_func import convert_to_tensors
 from lightning.fabric.utilities.cloud_io import get_filesystem
 from lightning.fabric.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
-from lightning.fabric.utilities.imports import _IS_WINDOWS, _TORCH_GREATER_EQUAL_2_0, _TORCH_GREATER_EQUAL_2_1
+from lightning.fabric.utilities.imports import _IS_WINDOWS, _TORCH_GREATER_EQUAL_2_1
 from lightning.fabric.utilities.types import _MAP_LOCATION_TYPE, _PATH
 from lightning.fabric.wrappers import _FabricOptimizer
 from lightning.pytorch.callbacks.callback import Callback
@@ -217,9 +217,6 @@ class LightningModule(
         for v in self.children():
             if isinstance(v, LightningModule):
                 v.trainer = trainer  # type: ignore[assignment]
-        # https://github.com/pytorch/pytorch/issues/95857
-        if not _TORCH_GREATER_EQUAL_2_0 and trainer is not None and not isinstance(trainer, weakref.ProxyTypes):
-            trainer = weakref.proxy(trainer)
         self._trainer = trainer
 
     @property
@@ -1377,7 +1374,7 @@ class LightningModule(
             model.to_onnx("export.onnx", input_sample, export_params=True)
 
         """
-        if _TORCH_GREATER_EQUAL_2_0 and not _ONNX_AVAILABLE:
+        if not _ONNX_AVAILABLE:
             raise ModuleNotFoundError(
                 f"`torch>=2.0` requires `onnx` to be installed to use `{type(self).__name__}.to_onnx()`"
             )

@@ -37,7 +37,13 @@ def test_val_check_interval(tmp_path, max_epochs, denominator):
                 self.val_epoch_calls += 1
 
     model = TestModel()
-    trainer = Trainer(max_epochs=max_epochs, val_check_interval=1 / denominator, logger=False)
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        enable_checkpointing=False,
+        logger=False,
+        max_epochs=max_epochs,
+        val_check_interval=1 / denominator,
+    )
     trainer.fit(model)
 
     assert model.train_epoch_calls == max_epochs
@@ -107,6 +113,8 @@ def test_validation_check_interval_exceed_data_length_wrong():
     trainer = Trainer(
         limit_train_batches=10,
         val_check_interval=100,
+        logger=False,
+        enable_checkpointing=False,
     )
 
     model = BoringModel()

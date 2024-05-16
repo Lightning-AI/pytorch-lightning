@@ -679,7 +679,11 @@ def test_warning_with_small_dataloader_and_logging_interval(tmp_path):
 
     with pytest.warns(UserWarning, match=r"The number of training batches \(1\) is smaller than the logging interval"):
         trainer = Trainer(
-            default_root_dir=tmp_path, max_epochs=1, log_every_n_steps=2, limit_train_batches=1, logger=CSVLogger(".")
+            default_root_dir=tmp_path,
+            max_epochs=1,
+            log_every_n_steps=2,
+            limit_train_batches=1,
+            logger=CSVLogger(tmp_path),
         )
         trainer.fit(model)
 
@@ -727,7 +731,7 @@ def test_warning_with_iterable_dataset_and_len(tmp_path):
 
 
 @pytest.mark.parametrize("yield_at_all", [False, True])
-def test_iterable_dataset_stop_iteration_at_epoch_beginning(yield_at_all):
+def test_iterable_dataset_stop_iteration_at_epoch_beginning(yield_at_all, tmp_path):
     """Test that the training loop skips execution if the iterator is empty from the start."""
 
     class TestDataset(IterableDataset):
@@ -748,7 +752,8 @@ def test_iterable_dataset_stop_iteration_at_epoch_beginning(yield_at_all):
     model = TestModel()
     train_dataloader = DataLoader(TestDataset(model.gen), batch_size=2)
     trainer = Trainer(
-        default_root_dir=os.getcwd(),
+        default_root_dir=tmp_path,
+        logger=False,
         max_epochs=2,
         enable_model_summary=False,
     )

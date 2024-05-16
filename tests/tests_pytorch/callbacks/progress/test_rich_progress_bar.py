@@ -447,9 +447,10 @@ def test_rich_progress_bar_padding():
 
 
 @RunIf(rich=True)
-def test_rich_progress_bar_can_be_pickled():
+def test_rich_progress_bar_can_be_pickled(tmp_path):
     bar = RichProgressBar()
     trainer = Trainer(
+        default_root_dir=tmp_path,
         callbacks=[bar],
         max_epochs=1,
         limit_train_batches=1,
