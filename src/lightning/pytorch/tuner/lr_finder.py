@@ -101,7 +101,7 @@ class _LRFinder:
         lr_min: float,
         lr_max: float,
         num_training: int,
-        opt_method: Literal["gradient", "slide", "valley"] = "gradient",
+        opt_method: Literal["gradient", "slide", "valley", "valley_grad"] = "gradient",
         opt_parameters: Dict[str, float | int] = None,
     ) -> None:
         assert mode in ("linear", "exponential"), "mode should be either `linear` or `exponential`"
@@ -114,7 +114,6 @@ class _LRFinder:
         self.results: Dict[str, Any] = {}
         self._total_batch_idx = 0  # for debug purpose
 
-        assert self.opt_method in ["gradient", "slide", "valley"]
         self.opt_parameters = opt_parameters
         if self.opt_parameters is None:
             self.opt_parameters = {}
@@ -239,7 +238,7 @@ class _LRFinder:
                 r_idx -= 1
                 l_idx -= 1
             opt_lr = local_min_lr * adjust_value
-        else:
+        elif self.opt_method in ["valley", "valley_grad"]:
             # See https://forums.fast.ai/t/automated-learning-rate-suggester/44199 "valley" method
             n = len(losses)
             max_start = 0
@@ -257,9 +256,17 @@ class _LRFinder:
                         max_start = max_end - lds[max_end]
 
             sections = (max_end - max_start) / 3
-            self._optimal_idx = (
+            valley_lip_idx = (
                 max_start + int(sections) + int(sections / 2)
             ) + skip_begin  # pick something midway, or 2/3rd of the way to be more aggressive
+            if self.opt_method == "valley":
+                self._optimal_idx = valley_lip_idx
+            # Look for grad minimum inside the feasible region
+            else:
+                feasible_region = slice(valley_lip_idx, valley_lip_idx + losses[valley_lip_idx:].argmin())
+                gradients = torch.gradient(losses)[0]  # Unpack the tuple
+                self._optimal_idx = gradients[feasible_region].argmin() + valley_lip_idx
+
             opt_lr = self.results["lr"][self._optimal_idx]
 
         self._optimal_lr = opt_lr
@@ -277,7 +284,7 @@ def _lr_find(
     early_stop_threshold: Optional[float] = 4.0,
     update_attr: bool = False,
     attr_name: str = "",
-    opt_method: Literal["gradient", "slide", "valley"] = "gradient",
+    opt_method: Literal["gradient", "slide", "valley", "valley_grad"] = "gradient",
 ) -> Optional[_LRFinder]:
     """Enables the user to do a range test of good initial learning rates, to reduce the amount of guesswork in picking
     a good starting learning rate.
