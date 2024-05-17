@@ -330,7 +330,7 @@ class LightningModule(
     @property
     def device_mesh(self) -> Optional["DeviceMesh"]:
         """Strategies like ``ModelParallelStrategy`` will create a device mesh that can be accessed in the
-        :meth:`configure_model` hook to parallelize the LightningModule."""
+        :meth:`~lightning.pytorch.core.hooks.ModelHooks.configure_model` hook to parallelize the LightningModule."""
         return self._device_mesh
 
     def _call_batch_hook(self, hook_name: str, *args: Any) -> Any:
