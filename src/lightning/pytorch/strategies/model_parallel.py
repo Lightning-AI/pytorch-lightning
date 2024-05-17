@@ -153,12 +153,14 @@ class ModelParallelStrategy(ParallelStrategy):
             self._data_parallel_size, self._tensor_parallel_size, self.world_size, self.root_device
         )
         # Users can access device mesh in `LightningModule.configure_model()`
+        assert self.lightning_module is not None
         self.lightning_module._device_mesh = self._device_mesh
 
     @override
     def setup(self, trainer: "pl.Trainer") -> None:
         from torch.distributed.fsdp import FullyShardedDataParallel
 
+        assert self.model is not None
         assert self.accelerator is not None
         self.accelerator.setup(trainer)
 
@@ -262,7 +264,7 @@ class ModelParallelStrategy(ParallelStrategy):
         pass
 
     @override
-    def optimizer_state(self, optimizer: Optimizer) -> Dict[str, Tensor]:
+    def optimizer_state(self, optimizer: Optimizer) -> Dict[str, Any]:
         from torch.distributed.checkpoint.state_dict import StateDictOptions, get_optimizer_state_dict
         from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
         from torch.distributed.fsdp import OptimStateKeyType
