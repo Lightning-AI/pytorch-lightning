@@ -263,7 +263,7 @@ def test_fsdp2_tensor_parallel():
     trainer.fit(model)
 
 
-@RunIf(min_torch="2.3", min_cuda_gpus=2)
+@RunIf(min_torch="2.3", min_cuda_gpus=2, standalone=True)
 def test_modules_without_parameters(tmp_path):
     """Test that TorchMetrics get moved to the device despite not having any parameters."""
 
