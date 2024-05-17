@@ -114,7 +114,7 @@ class LightningModule(
             "trainer",
             "fabric",
             "strict_loading",
-            "device_mesh"
+            "device_mesh",
         ]
         + _DeviceDtypeModuleMixin.__jit_unused_properties__
         + HyperparametersMixin.__jit_unused_properties__
