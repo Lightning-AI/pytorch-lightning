@@ -18,15 +18,14 @@ import torch
 from torch import Tensor
 from typing_extensions import override
 
-from lightning.fabric.utilities.distributed import _all_gather_if_available, _all_reduce_if_available
-from lightning.fabric.plugins.collectives import Collective, TorchCollective
 from lightning.fabric.accelerators.accelerator import Accelerator
+from lightning.fabric.plugins.collectives import Collective, TorchCollective
 from lightning.fabric.plugins.environments.cluster_environment import ClusterEnvironment
 from lightning.fabric.plugins.io.checkpoint_io import CheckpointIO
 from lightning.fabric.plugins.precision import Precision
-from lightning.fabric.strategies.strategy import Strategy
+from lightning.fabric.strategies.strategy import Strategy, TBroadcast
+from lightning.fabric.utilities.distributed import _all_gather_if_available, _all_reduce_if_available
 from lightning.fabric.utilities.types import ReduceOp
-from lightning.fabric.strategies.strategy import TBroadcast
 
 
 class ParallelStrategy(Strategy, ABC):
