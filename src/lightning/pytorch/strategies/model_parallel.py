@@ -56,7 +56,8 @@ class ModelParallelStrategy(ParallelStrategy):
 
     Currently supports up to 2D parallelism. Specifically, it supports the combination of
     Fully Sharded Data-Parallel 2 (FSDP2) with Tensor Parallelism (DTensor). These PyTorch APIs are currently still
-    experimental in PyTorch. Requires PyTorch 2.3 or newer.
+    experimental in PyTorch (see https://pytorch.org/docs/stable/distributed.tensor.parallel.html).
+    Requires PyTorch 2.3 or newer.
 
     Arguments:
         data_parallel_size: The number of devices within a data-parallel group. Defaults to ``"auto"``, which
