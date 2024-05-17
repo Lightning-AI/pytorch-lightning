@@ -20,7 +20,7 @@ from unittest.mock import Mock
 import pytest
 import torch
 import torch.nn as nn
-from lightning import LightningModule
+from lightning.pytorch import LightningModule
 from lightning.pytorch.plugins.environments import LightningEnvironment
 from lightning.pytorch.strategies import ModelParallelStrategy
 
