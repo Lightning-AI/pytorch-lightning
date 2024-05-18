@@ -33,10 +33,10 @@ distributed_backend=nccl
 All distributed processes registered. Starting with 4 processes
 ----------------------------------------------------------------------------------------------------
 
-LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [4,5,6,7]
-LOCAL_RANK: 3 - CUDA_VISIBLE_DEVICES: [4,5,6,7]
-LOCAL_RANK: 1 - CUDA_VISIBLE_DEVICES: [4,5,6,7]
-LOCAL_RANK: 2 - CUDA_VISIBLE_DEVICES: [4,5,6,7]
+LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [0,1,2,3]
+LOCAL_RANK: 3 - CUDA_VISIBLE_DEVICES: [0,1,2,3]
+LOCAL_RANK: 1 - CUDA_VISIBLE_DEVICES: [0,1,2,3]
+LOCAL_RANK: 2 - CUDA_VISIBLE_DEVICES: [0,1,2,3]
 
 Epoch 0: 100%|█████████████████████████████████████████████| 10/10 [01:49<00:00, 0.09it/s, v_num=2]
 `Trainer.fit` stopped: `max_epochs=1` reached.                                      

@@ -46,7 +46,7 @@ def parallelize(model: Transformer, device_mesh: DeviceMesh) -> Transformer:
         model = parallelize_module(model, tp_mesh, plan)
 
         # Parallelize each transformer block
-        for transformer_block in model.layers:
+        for transformer_block in model.layers.values():
             plan = {
                 "attention": PrepareModuleInput(
                     input_layouts=(Shard(1), None),
@@ -83,12 +83,12 @@ def parallelize(model: Transformer, device_mesh: DeviceMesh) -> Transformer:
         mp_policy = MixedPrecisionPolicy(param_dtype=torch.bfloat16, reduce_dtype=torch.float32)
 
         fsdp_config = {"mesh": dp_mesh, "mp_policy": mp_policy}
-        for layer_id, transformer_block in enumerate(model.layers):
+        for layer_id, transformer_block in model.layers.items():
             # Apply activation checkpointing
             transformer_block = checkpoint_wrapper(transformer_block)
             # As an optimization, do not reshard after forward for the last
             # transformer block since FSDP would prefetch it immediately
-            reshard_after_forward = layer_id < len(model.layers) - 1
+            reshard_after_forward = int(layer_id) < len(model.layers) - 1
             fully_shard(
                 transformer_block,
                 **fsdp_config,
