@@ -20,6 +20,7 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import (
     IO,
+    TYPE_CHECKING,
     Any,
     Callable,
     Dict,
@@ -76,6 +77,9 @@ from lightning.pytorch.utilities.types import (
     OptimizerLRScheduler,
 )
 
+if TYPE_CHECKING:
+    from torch.distributed.device_mesh import DeviceMesh
+
 _ONNX_AVAILABLE = RequirementCache("onnx")
 
 warning_cache = WarningCache()
@@ -110,6 +114,7 @@ class LightningModule(
             "trainer",
             "fabric",
             "strict_loading",
+            "device_mesh",
         ]
         + _DeviceDtypeModuleMixin.__jit_unused_properties__
         + HyperparametersMixin.__jit_unused_properties__
@@ -141,6 +146,9 @@ class LightningModule(
         # attributes only used when using fabric
         self._fabric: Optional["lf.Fabric"] = None
         self._fabric_optimizers: List[_FabricOptimizer] = []
+
+        # access to device mesh in `conigure_model()` hook
+        self._device_mesh: Optional["DeviceMesh"] = None
 
     @overload
     def optimizers(
@@ -318,6 +326,12 @@ class LightningModule(
         if self._trainer is not None:
             return self._trainer.loggers
         return []
+
+    @property
+    def device_mesh(self) -> Optional["DeviceMesh"]:
+        """Strategies like ``ModelParallelStrategy`` will create a device mesh that can be accessed in the
+        :meth:`~lightning.pytorch.core.hooks.ModelHooks.configure_model` hook to parallelize the LightningModule."""
+        return self._device_mesh
 
     def _call_batch_hook(self, hook_name: str, *args: Any) -> Any:
         trainer = self._trainer

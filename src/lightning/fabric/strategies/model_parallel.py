@@ -163,7 +163,13 @@ class ModelParallelStrategy(ParallelStrategy):
     def setup_environment(self) -> None:
         super().setup_environment()
         self._setup_distributed()
-        self._setup_device_mesh()
+        if self._data_parallel_size == "auto":
+            self._data_parallel_size = self.num_nodes
+        if self._tensor_parallel_size == "auto":
+            self._tensor_parallel_size = self.num_processes
+        self._device_mesh = _setup_device_mesh(
+            self._data_parallel_size, self._tensor_parallel_size, self.world_size, self.root_device
+        )
 
     @override
     def setup_module(self, module: TModel) -> TModel:
@@ -302,25 +308,6 @@ class ModelParallelStrategy(ParallelStrategy):
         self._process_group_backend = self._get_process_group_backend()
         assert self.cluster_environment is not None
         _init_dist_connection(self.cluster_environment, self._process_group_backend, timeout=self._timeout)
-
-    def _setup_device_mesh(self) -> None:
-        from torch.distributed.device_mesh import init_device_mesh
-
-        if self._data_parallel_size == "auto":
-            self._data_parallel_size = self.num_nodes
-        if self._tensor_parallel_size == "auto":
-            self._tensor_parallel_size = self.num_processes
-        if self._data_parallel_size * self._tensor_parallel_size != self.world_size:
-            raise RuntimeError(
-                f"The sizes `data_parallel_size={self._data_parallel_size}` and"
-                f" `tensor_parallel_size={self._tensor_parallel_size}` multiplied should equal the world size"
-                f" ({self.world_size})."
-            )
-        self._device_mesh = init_device_mesh(
-            device_type=self.root_device.type,
-            mesh_shape=(self._data_parallel_size, self._tensor_parallel_size),
-            mesh_dim_names=("data_parallel", "tensor_parallel"),
-        )
 
     def _get_process_group_backend(self) -> str:
         return self._process_group_backend or _get_default_process_group_backend_for_device(self.root_device)
@@ -507,6 +494,27 @@ def _load_checkpoint(
     raise ValueError(
         f"The path {str(path)!r} does not point to a valid checkpoint. Make sure the path points to either a"
         " directory with distributed checkpoint shards, or a single file with a full checkpoint."
+    )
+
+
+def _setup_device_mesh(
+    data_parallel_size: int,
+    tensor_parallel_size: int,
+    world_size: int,
+    device: torch.device,
+) -> "DeviceMesh":
+    from torch.distributed.device_mesh import init_device_mesh
+
+    if data_parallel_size * tensor_parallel_size != world_size:
+        raise RuntimeError(
+            f"The sizes `data_parallel_size={data_parallel_size}` and"
+            f" `tensor_parallel_size={tensor_parallel_size}` multiplied should equal the world size"
+            f" ({world_size})."
+        )
+    return init_device_mesh(
+        device_type=device.type,
+        mesh_shape=(data_parallel_size, tensor_parallel_size),
+        mesh_dim_names=("data_parallel", "tensor_parallel"),
     )
 
 
