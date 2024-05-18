@@ -529,7 +529,6 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
 
         from torch.distributed.checkpoint.optimizer import load_sharded_optimizer_state_dict
         from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
-        from torch.distributed.fsdp import OptimStateKeyType
 
         modules = {key: module for key, module in state.items() if _has_fsdp_modules(module)}
         if len(modules) == 0:
@@ -590,7 +589,10 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         if _is_full_checkpoint(path):
             checkpoint = _lazy_load(path)
 
-            from lightning.fabric.strategies.model_parallel import _load_raw_module_state
+            from lightning.fabric.strategies.model_parallel import (
+                _load_raw_module_state,
+                _rekey_optimizer_state_if_needed,
+            )
 
             _load_raw_module_state(checkpoint.pop(module_key), module=module, world_size=self.world_size, strict=strict)
 
@@ -605,14 +607,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             for optim_key, optim in optimizers.items():
                 # rank0_only should be false because we need to load the optimizer state on all ranks
                 with _get_full_state_dict_context(module, world_size=self.world_size, rank0_only=False):
-                    temp_state_dict = checkpoint.pop(optim_key)
-
-                    # Handling the case where the optimizer state is saved from a normal optimizer
-                    if isinstance(list(temp_state_dict["state"].keys())[0], int):
-                        temp_state_dict = FSDP.rekey_optim_state_dict(
-                            temp_state_dict, OptimStateKeyType.PARAM_NAME, module
-                        )
-
+                    temp_state_dict = _rekey_optimizer_state_if_needed(checkpoint.pop(optim_key), module)
                     optim_state_dict = FSDP.optim_state_dict_to_load(
                         optim_state_dict=temp_state_dict,
                         model=module,

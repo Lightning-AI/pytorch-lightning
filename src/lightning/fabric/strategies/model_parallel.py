@@ -163,7 +163,13 @@ class ModelParallelStrategy(ParallelStrategy):
     def setup_environment(self) -> None:
         super().setup_environment()
         self._setup_distributed()
-        self._setup_device_mesh()
+        if self._data_parallel_size == "auto":
+            self._data_parallel_size = self.num_nodes
+        if self._tensor_parallel_size == "auto":
+            self._tensor_parallel_size = self.num_processes
+        self._device_mesh = _setup_device_mesh(
+            self._data_parallel_size, self._tensor_parallel_size, self.world_size, self.root_device
+        )
 
     @override
     def setup_module(self, module: TModel) -> TModel:
@@ -302,25 +308,6 @@ class ModelParallelStrategy(ParallelStrategy):
         self._process_group_backend = self._get_process_group_backend()
         assert self.cluster_environment is not None
         _init_dist_connection(self.cluster_environment, self._process_group_backend, timeout=self._timeout)
-
-    def _setup_device_mesh(self) -> None:
-        from torch.distributed.device_mesh import init_device_mesh
-
-        if self._data_parallel_size == "auto":
-            self._data_parallel_size = self.num_nodes
-        if self._tensor_parallel_size == "auto":
-            self._tensor_parallel_size = self.num_processes
-        if self._data_parallel_size * self._tensor_parallel_size != self.world_size:
-            raise RuntimeError(
-                f"The sizes `data_parallel_size={self._data_parallel_size}` and"
-                f" `tensor_parallel_size={self._tensor_parallel_size}` multiplied should equal the world size"
-                f" ({self.world_size})."
-            )
-        self._device_mesh = init_device_mesh(
-            device_type=self.root_device.type,
-            mesh_shape=(self._data_parallel_size, self._tensor_parallel_size),
-            mesh_dim_names=("data_parallel", "tensor_parallel"),
-        )
 
     def _get_process_group_backend(self) -> str:
         return self._process_group_backend or _get_default_process_group_backend_for_device(self.root_device)
@@ -475,17 +462,25 @@ def _load_checkpoint(
         return metadata
 
     if _is_full_checkpoint(path):
-        # TODO: Support loading optimizer states
-        if any(isinstance(obj, Optimizer) for obj in state.values()):
-            raise NotImplementedError(
-                "Loading the optimizer states from a non-distributed checkpoint into a distributed model"
-                " is currently not supported."
-            )
         if not _TORCH_GREATER_EQUAL_2_4:
             raise ImportError("Loading a non-distributed checkpoint into a distributed model requires PyTorch >= 2.4.")
 
         checkpoint = torch.load(path, mmap=True, map_location="cpu")
         _load_raw_module_state(checkpoint.pop(module_key), module, strict=strict)
+
+        state_dict_options = StateDictOptions(
+            broadcast_from_rank0=True,  # type: ignore[call-arg]
+            full_state_dict=True,
+            strict=strict,
+        )
+        for optimizer_name, optimizer in optimizers.items():
+            optimizer_state = _rekey_optimizer_state_if_needed(checkpoint.pop(optimizer_name), module)
+            set_optimizer_state_dict(
+                module,
+                optimizer,
+                optim_state_dict=optimizer_state,
+                options=state_dict_options,
+            )
 
         requested_metadata_keys = state.keys() - modules.keys() - optimizers.keys()
         _validate_keys_for_strict_loading(requested_metadata_keys, checkpoint.keys(), strict=strict)
@@ -499,6 +494,27 @@ def _load_checkpoint(
     raise ValueError(
         f"The path {str(path)!r} does not point to a valid checkpoint. Make sure the path points to either a"
         " directory with distributed checkpoint shards, or a single file with a full checkpoint."
+    )
+
+
+def _setup_device_mesh(
+    data_parallel_size: int,
+    tensor_parallel_size: int,
+    world_size: int,
+    device: torch.device,
+) -> "DeviceMesh":
+    from torch.distributed.device_mesh import init_device_mesh
+
+    if data_parallel_size * tensor_parallel_size != world_size:
+        raise RuntimeError(
+            f"The sizes `data_parallel_size={data_parallel_size}` and"
+            f" `tensor_parallel_size={tensor_parallel_size}` multiplied should equal the world size"
+            f" ({world_size})."
+        )
+    return init_device_mesh(
+        device_type=device.type,
+        mesh_shape=(data_parallel_size, tensor_parallel_size),
+        mesh_dim_names=("data_parallel", "tensor_parallel"),
     )
 
 
@@ -568,3 +584,14 @@ def _named_parameters_and_buffers_to_load(module: Module) -> Generator:
         if param_name in module._non_persistent_buffers_set:
             continue
         yield param_name, param
+
+
+def _rekey_optimizer_state_if_needed(optimizer_state_dict: Dict[str, Any], module: Module) -> Dict[str, Any]:
+    """Handles the case where the optimizer state is saved from a normal optimizer and converts the keys to parameter
+    names."""
+    from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
+    from torch.distributed.fsdp import OptimStateKeyType
+
+    if isinstance(list(optimizer_state_dict["state"].keys())[0], int):
+        optimizer_state_dict = FSDP.rekey_optim_state_dict(optimizer_state_dict, OptimStateKeyType.PARAM_NAME, module)
+    return optimizer_state_dict

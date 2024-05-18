@@ -29,6 +29,57 @@ from tests_fabric.helpers.datasets import RandomDataset
 from tests_fabric.helpers.runif import RunIf
 
 
+class FeedForward(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.w1 = nn.Linear(32, 64)
+        self.w2 = nn.Linear(32, 64)
+        self.w3 = nn.Linear(64, 32)
+
+    def forward(self, x):
+        return self.w3(F.silu(self.w1(x)) * self.w2(x))
+
+
+def _parallelize_feed_forward_tp(model, device_mesh):
+    from torch.distributed.tensor.parallel import ColwiseParallel, RowwiseParallel, parallelize_module
+
+    tp_mesh = device_mesh["tensor_parallel"]
+    tp_plan = {
+        "w1": ColwiseParallel(),
+        "w2": ColwiseParallel(),
+        "w3": RowwiseParallel(),
+    }
+    parallelize_module(model, tp_mesh, tp_plan)
+    return model
+
+
+def _parallelize_feed_forward_fsdp2(model, device_mesh):
+    from torch.distributed._composable.fsdp.fully_shard import fully_shard
+
+    dp_mesh = device_mesh["data_parallel"]
+    assert dp_mesh.ndim == 1  # Hybrid-sharding not supported
+
+    # Fully-shard each layer
+    fully_shard(model.w1, mesh=dp_mesh)
+    fully_shard(model.w2, mesh=dp_mesh)
+    fully_shard(model.w3, mesh=dp_mesh)
+
+    # TODO: Re-enable activation checkpointing
+    # Currently, state dict keys get prefixed with '_checkpoint_wrapper' in the keys
+    # which leads to mismatches when loading weights into a checkpoint-wrapped module.
+    # PyTorch should handle this automatically.
+
+    # model = checkpoint_wrapper(model)
+
+    return model
+
+
+def _parallelize_feed_forward_fsdp2_tp(model, device_mesh):
+    model = _parallelize_feed_forward_tp(model, device_mesh)
+    model = _parallelize_feed_forward_fsdp2(model, device_mesh)
+    return model
+
+
 @RunIf(min_torch="2.3", standalone=True, min_cuda_gpus=4)
 def test_setup_device_mesh():
     from torch.distributed.device_mesh import DeviceMesh
@@ -63,54 +114,6 @@ def test_setup_device_mesh():
     assert fabric.strategy.device_mesh.mesh_dim_names == ("data_parallel", "tensor_parallel")
     assert fabric.strategy.device_mesh.size(0) == 1
     assert fabric.strategy.device_mesh.size(1) == 4
-
-
-class FeedForward(nn.Module):
-    def __init__(self):
-        super().__init__()
-        self.w1 = nn.Linear(32, 64)
-        self.w2 = nn.Linear(32, 64)
-        self.w3 = nn.Linear(64, 32)
-
-    def forward(self, x):
-        return self.w3(F.silu(self.w1(x)) * self.w2(x))
-
-
-def _parallelize_feed_forward_tp(model, device_mesh):
-    from torch.distributed.tensor.parallel import ColwiseParallel, RowwiseParallel, parallelize_module
-
-    tp_mesh = device_mesh["tensor_parallel"]
-    tp_plan = {
-        "w1": ColwiseParallel(),
-        "w2": ColwiseParallel(),
-        "w3": RowwiseParallel(),
-    }
-    parallelize_module(model, tp_mesh, tp_plan)
-    return model
-
-
-def _parallelize_feed_forward_fsdp2(model, device_mesh):
-    from torch.distributed._composable.fsdp.fully_shard import fully_shard
-    from torch.distributed.algorithms._checkpoint.checkpoint_wrapper import checkpoint_wrapper
-
-    dp_mesh = device_mesh["data_parallel"]
-    assert dp_mesh.ndim == 1  # Hybrid-sharding not supported
-
-    # Fully-shard each layer
-    fully_shard(model.w1, mesh=dp_mesh)
-    fully_shard(model.w2, mesh=dp_mesh)
-    fully_shard(model.w3, mesh=dp_mesh)
-
-    # Activation checkpointing
-    model = checkpoint_wrapper(model)
-
-    return model
-
-
-def _parallelize_feed_forward_fsdp2_tp(model, device_mesh):
-    model = _parallelize_feed_forward_tp(model, device_mesh)
-    model = _parallelize_feed_forward_fsdp2(model, device_mesh)
-    return model
 
 
 @RunIf(min_torch="2.3", standalone=True, min_cuda_gpus=2)
@@ -341,21 +344,17 @@ def test_save_full_state_dict(tmp_path):
     fabric.launch()
     model, optimizer = _train(fabric)
 
-    # TODO: Support loading optimizer states from full checkpoint
-    with pytest.raises(NotImplementedError, match="Loading the optimizer states .* not supported"):
-        fabric.load(checkpoint_path, {"model": model, "optimizer": optimizer})
-
-    metadata = fabric.load(checkpoint_path, {"model": model})
-    assert metadata == {"steps": 1, "optimizer": mock.ANY}
+    metadata = fabric.load(checkpoint_path, {"model": model, "optimizer": optimizer})
+    assert metadata == {"steps": 1}
 
     params_after = [p.full_tensor() for p in model.parameters()]
     assert all(torch.equal(p0.cpu(), p1.cpu()) for p0, p1 in zip(params_before, params_after))
 
-    # TODO: assert the correct optimizer state was loaded
-    # optimizer_state_after = get_optimizer_state_dict(model, optimizer)
-    # assert set(optimizer_state_after.keys()) == set(optimizer_state_before.keys()) == {"state", "param_groups"}
-    # torch.testing.assert_close(optimizer_state_after["state"], optimizer_state_before["state"], atol=0, rtol=0)
-    # assert optimizer_state_after["param_groups"] == optimizer_state_before["param_groups"]
+    optimizer_state_after = get_optimizer_state_dict(model, optimizer)
+    optimizer_state_after["param_groups"][0]["betas"] = tuple(optimizer_state_after["param_groups"][0]["betas"])
+    assert set(optimizer_state_after.keys()) == set(optimizer_state_before.keys()) == {"state", "param_groups"}
+    torch.testing.assert_close(optimizer_state_after["state"], optimizer_state_before["state"], atol=0, rtol=0)
+    assert optimizer_state_after["param_groups"] == optimizer_state_before["param_groups"]
 
     # run a step to verify the optimizer state is correct
     _train(fabric, model, optimizer)
@@ -372,10 +371,12 @@ def test_save_full_state_dict(tmp_path):
     normal_checkpoint_path = Path(fabric.broadcast(str(tmp_path / "normal-checkpoint.pt")))
     fabric.save(normal_checkpoint_path, {"model": model, "optimizer": optimizer, "steps": 2})
 
-    # TODO: assert the correct optimizer state was loaded
-    # optimizer_state_after = torch.load(normal_checkpoint_path)["optimizer"]
-    # assert set(optimizer_state_after.keys()) == set(optimizer_state_before.keys()) == {"state", "param_groups"}
-    # torch.testing.assert_close(optimizer_state_after["state"], optimizer_state_before["state"], atol=0, rtol=0)
+    optimizer_state_after = torch.load(normal_checkpoint_path)["optimizer"]
+    assert set(optimizer_state_after.keys()) == set(optimizer_state_before.keys()) == {"state", "param_groups"}
+    assert torch.equal(
+        optimizer_state_after["state"][0]["exp_avg"],
+        optimizer_state_before["state"]["_forward_module.w1.weight"]["exp_avg"].full_tensor().cpu(),
+    )
 
     # run a step to verify the optimizer state is correct
     _train(fabric, model, optimizer)
@@ -386,20 +387,17 @@ def test_save_full_state_dict(tmp_path):
     fabric.launch()
     model, optimizer = _train(fabric)
 
-    # TODO: Support loading optimizer states from full checkpoint
-    with pytest.raises(NotImplementedError, match="Loading the optimizer states .* not supported"):
-        fabric.load(checkpoint_path, {"model": model, "optimizer": optimizer})
-    metadata = fabric.load(normal_checkpoint_path, {"model": model})
-    assert metadata == {"steps": 2, "optimizer": mock.ANY}
+    metadata = fabric.load(normal_checkpoint_path, {"model": model, "optimizer": optimizer})
+    assert metadata == {"steps": 2}
 
     params_after = [p.full_tensor() for p in model.parameters()]
     assert all(torch.equal(p0.cpu(), p1.cpu()) for p0, p1 in zip(params_before, params_after))
 
-    # TODO: assert the correct optimizer state was loaded
-    # optimizer_state_after = get_optimizer_state_dict(model, optimizer)
-    # assert set(optimizer_state_after.keys()) == set(optimizer_state_before.keys()) == {"state", "param_groups"}
-    # torch.testing.assert_close(optimizer_state_after["state"], optimizer_state_before["state"], atol=0, rtol=0)
-    # assert optimizer_state_after["param_groups"] == optimizer_state_before["param_groups"]
+    optimizer_state_after = get_optimizer_state_dict(model, optimizer)
+    optimizer_state_after["param_groups"][0]["betas"] = tuple(optimizer_state_after["param_groups"][0]["betas"])
+    assert set(optimizer_state_after.keys()) == set(optimizer_state_before.keys()) == {"state", "param_groups"}
+    torch.testing.assert_close(optimizer_state_after["state"], optimizer_state_before["state"], atol=0, rtol=0)
+    assert optimizer_state_after["param_groups"] == optimizer_state_before["param_groups"]
 
     # run a step to verify the optimizer state is correct
     _train(fabric, model, optimizer)
@@ -426,12 +424,7 @@ def test_load_full_state_dict_into_sharded_model(tmp_path):
     fabric.launch()
     model, optimizer = _train(fabric)
 
-    # TODO: Support loading optimizer states from full checkpoint
-    with pytest.raises(NotImplementedError, match="Loading the optimizer states .* not supported"):
-        state = {"model": model, "optimizer": optimizer, "steps": 44}
-        fabric.load(checkpoint_path, state)
-
-    state = {"model": model, "steps": 44}
+    state = {"model": model, "optimizer": optimizer, "steps": 44}
     fabric.load(checkpoint_path, state)
     assert state["steps"] == 1
 
@@ -669,12 +662,6 @@ def test_save_sharded_and_consolidate_and_load(tmp_path):
     optimizer = torch.optim.Adam(model.parameters())
     optimizer = fabric.setup_optimizers(optimizer)
     state = {"model": model, "optimizer": optimizer, "steps": 1}
-
-    # TODO: Support loading optimizer states from full checkpoint
-    with pytest.raises(NotImplementedError, match="Loading the optimizer states .* not supported"):
-        fabric.load(checkpoint_path_full, state)
-
-    state = {"model": model, "steps": 1}
     fabric.load(checkpoint_path_full, state)
 
 

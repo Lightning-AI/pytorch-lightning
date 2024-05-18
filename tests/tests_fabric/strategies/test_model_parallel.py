@@ -118,8 +118,7 @@ def test_parallelize_fn_call():
 
 @RunIf(min_torch="2.3")
 def test_no_backward_sync():
-    """Test that the backward sync control calls `.no_sync()`, and only on a module wrapped in
-    FullyShardedDataParallel."""
+    """Test that the backward sync control disables gradient sync on modules that benefit from it."""
     from torch.distributed._composable.fsdp import FSDP
 
     strategy = ModelParallelStrategy(parallelize_fn=(lambda m, _: m))
@@ -141,7 +140,7 @@ def test_no_backward_sync():
 
 @RunIf(min_torch="2.3")
 def test_save_checkpoint_storage_options(tmp_path):
-    """Test that the FSDP strategy does not accept storage options for saving checkpoints."""
+    """Test that the strategy does not accept storage options for saving checkpoints."""
     strategy = ModelParallelStrategy(parallelize_fn=(lambda m, _: m))
     with pytest.raises(
         TypeError, match=escape("ModelParallelStrategy.save_checkpoint(..., storage_options=...)` is not")
@@ -326,7 +325,7 @@ def test_load_raw_checkpoint_optimizer_unsupported(tmp_path):
 
 
 @RunIf(min_torch="2.3")
-@mock.patch("lightning.fabric.strategies.ModelParallelStrategy._setup_device_mesh")
+@mock.patch("lightning.fabric.strategies.model_parallel._setup_device_mesh")
 @mock.patch("torch.distributed.init_process_group")
 def test_set_timeout(init_process_group_mock, _):
     """Test that the timeout gets passed to the ``torch.distributed.init_process_group`` function."""
