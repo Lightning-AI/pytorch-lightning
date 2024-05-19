@@ -96,10 +96,14 @@ def create_retry_strategy():
         # are going to be alive for a very long time (~ 4 days) but retries every 120 seconds
         total=_CONNECTION_RETRY_TOTAL,
         backoff_factor=_CONNECTION_RETRY_BACKOFF_FACTOR,
+        # Any 4xx and 5xx statuses except
+        # 400 Bad Request
+        # 401 Unauthorized
+        # 403 Forbidden
+        # 404 Not Found
         status_forcelist={
-            408,  # Request Timeout
-            429,  # Too Many Requests
-            *range(500, 600),  # Any 5xx Server Error status
+            402,
+            *range(405, 600),
         },
         allowed_methods={
             "POST",  # Default methods are idempotent, add POST here
