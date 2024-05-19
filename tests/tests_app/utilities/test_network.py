@@ -49,7 +49,8 @@ def test_find_free_network_port_cloudspace(_, patch_constants):
 def test_http_client_retry_post(getconn_mock):
     getconn_mock.return_value.getresponse.side_effect = [
         mock.Mock(status=500, msg=HTTPMessage()),
-        mock.Mock(status=429, msg=HTTPMessage()),
+        mock.Mock(status=599, msg=HTTPMessage()),
+        mock.Mock(status=405, msg=HTTPMessage()),
         mock.Mock(status=200, msg=HTTPMessage()),
     ]
 
@@ -61,6 +62,7 @@ def test_http_client_retry_post(getconn_mock):
         mock.call("POST", "/test", body=None, headers=mock.ANY),
         mock.call("POST", "/test", body=None, headers=mock.ANY),
         mock.call("POST", "/test", body=None, headers=mock.ANY),
+        mock.call("POST", "/test", body=None, headers=mock.ANY),
     ]
 
 
@@ -68,7 +70,8 @@ def test_http_client_retry_post(getconn_mock):
 def test_http_client_retry_get(getconn_mock):
     getconn_mock.return_value.getresponse.side_effect = [
         mock.Mock(status=500, msg=HTTPMessage()),
-        mock.Mock(status=429, msg=HTTPMessage()),
+        mock.Mock(status=599, msg=HTTPMessage()),
+        mock.Mock(status=405, msg=HTTPMessage()),
         mock.Mock(status=200, msg=HTTPMessage()),
     ]
 
@@ -77,6 +80,7 @@ def test_http_client_retry_get(getconn_mock):
     r.raise_for_status()
 
     assert getconn_mock.return_value.request.mock_calls == [
+        mock.call("GET", "/test", body=None, headers=mock.ANY),
         mock.call("GET", "/test", body=None, headers=mock.ANY),
         mock.call("GET", "/test", body=None, headers=mock.ANY),
         mock.call("GET", "/test", body=None, headers=mock.ANY),
