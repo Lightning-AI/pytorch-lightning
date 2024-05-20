@@ -36,7 +36,7 @@ def parallelize(model: Transformer, device_mesh: DeviceMesh) -> Transformer:
         plan = {
             "tok_embeddings": RowwiseParallel(input_layouts=Replicate()),
             "output": ColwiseParallel(
-                input_layouts=Shard(1), 
+                input_layouts=Shard(1),
                 # Optional: Shard the output along the class dimension to compute the loss in parallel.
                 # See `loss_parallel` in `train.py`
                 output_layouts=Shard(-1),
