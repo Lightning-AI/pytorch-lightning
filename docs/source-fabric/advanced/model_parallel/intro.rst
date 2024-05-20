@@ -53,7 +53,7 @@ Parallelisms compared
 
 |
 
-**Tensor-Parallel (TP)**
+**Tensor Parallel (TP)**
 
 .. raw:: html
 
@@ -84,3 +84,48 @@ Parallelisms compared
 |
 
 Lightning Fabric supports all the parallelisms mentioned above natively through PyTorch, with the exception of pipeline parallelism (PP) which is not yet supported.
+
+
+
+----
+
+
+***********
+Get started
+***********
+
+.. raw:: html
+
+    <div class="display-card-container">
+        <div class="row">
+
+.. displayitem::
+    :header: Fully-Sharded Data Parallel (FSDP)
+    :description: Get started training large multi-billion parameter models with minimal code changes
+    :col_css: col-md-4
+    :button_link: fsdp.html
+    :height: 180
+    :tag: advanced
+
+.. displayitem::
+    :header: Tensor Parallel (TP)
+    :description: Learn the principles behind tensor parallelism and how to apply it to your model
+    :col_css: col-md-4
+    :button_link: tp.html
+    :height: 180
+    :tag: advanced
+
+.. displayitem::
+    :header: 2D Parallel (FSDP + TP)
+    :description: Combine Tensor Parallelism with FSDP (2D Parallel) to train efficiently on 100s of GPUs
+    :button_link: tp_fsdp.html
+    :col_css: col-md-4
+    :height: 180
+    :tag: advanced
+
+.. raw:: html
+
+        </div>
+    </div>
+
+|
