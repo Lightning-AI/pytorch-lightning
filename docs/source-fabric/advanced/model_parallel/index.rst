@@ -2,18 +2,44 @@
 Training models with billions of parameters
 ###########################################
 
-Model parallelism is a technique used in deep learning to train very large models across multiple devices, making it possible to handle models that are too big for a single device's memory.
-This is important as models become increasingly complex and large.
+Today, large models with billions of parameters are trained with many GPUs across several machines in parallel.
+Even a single H100 GPU with 80 GB of VRAM (the biggest today) is not enough to train just a 30B parameter model (even with batch size 1 and 16-bit precision).
+The memory consumption for training is generally made up of
 
-Model parallelism comes into play when a model's parameters are too large for one GPU.
-There are different types of parallelism, each with its own advantages and trade-offs.
-**Data Parallelism (DDP)** divides the data across multiple devices, with each device having a complete copy of the model and processing different parts of the data.
-It's easy to implement but doesn't solve memory issues for very large models.
-**Fully Sharded Data Parallel (FSDP)** improves on this by spreading the model weights across GPUs, which saves memory but makes communication between devices more complex.
-**Tensor Parallelism (TP)** breaks down individual layers of the model to spread them across devices, allowing for more detailed distribution but needing careful synchronization.
-**Pipeline Parallelism (PP)** splits the model into stages, with each stage assigned to a different device.
-This reduces memory use per device but can introduce delays and inefficiencies (pipeline bubbles).
-Choosing the right type of model parallelism depends on balancing memory use, communication needs, and computational efficiency, based on the specific model and hardware setup.
+1. the model parameters,
+2. the layer activations (forward),
+3. the gradients (backward) and
+4. the optimizer states (e.g., Adam has two additional exponential averages per parameter).
+
+|
+
+When the sum of these memory components exceed the VRAM of a single GPU, regular data-parallel training (DDP) can no longer be employed.
+To alleviate this limitation, we need to introduce **Model Parallelism**.
+
+
+----
+
+
+**************************
+What is Model Parallelism?
+**************************
+
+There are different types of model parallelism, each with its own trade-offs.
+
+**Fully Sharded Data Parallelism (FSDP)** shards both model parameters and optimizer states across multiple GPUs, significantly reducing memory usage per GPU.
+This method, while highly memory-efficient, involves frequent synchronization between GPUs, introducing communication overhead and complexity in implementation.
+FSDP is advantageous when memory constraints are the primary issue, provided there are high-bandwidth interconnects to minimize latency.
+
+**Tensor Parallelism (TP)** splits individual tensors across GPUs, enabling fine-grained distribution of computation and memory.
+It scales well to a large number of GPUs but requires synchronization of tensor slices after each operation, which adds communication overhead.
+TP is most effective with models that have many linear layers (LLMs), offering a balance between memory distribution and computational efficiency.
+
+**Pipeline Parallelism (PP)** divides model layers into segments, each processed by different GPUs, reducing memory load per GPU and minimizing inter-GPU communication to pipeline stage boundaries.
+While this reduces communication overhead, it can introduce pipeline bubbles where some GPUs idle, leading to potential inefficiencies.
+PP is ideal for deep models with sequential architectures (LLMs), though it requires careful management to minimize idle times.
+
+Choosing a model parallelism style involves considering model architecture, hardware interconnects, and training efficiency.
+In practice, hybrid approaches combining FSDP, TP, and PP are often used to leverage the strengths of each method while mitigating their weaknesses.
 
 
 ----
@@ -48,6 +74,14 @@ Get started
     :header: 2D Parallel (FSDP + TP)
     :description: Combine Tensor Parallelism with FSDP (2D Parallel) to train efficiently on 100s of GPUs
     :button_link: tp_fsdp.html
+    :col_css: col-md-4
+    :height: 180
+    :tag: advanced
+
+.. displayitem::
+    :header: Pipeline Parallelism
+    :description: Coming soon
+    :button_link:
     :col_css: col-md-4
     :height: 180
     :tag: advanced
