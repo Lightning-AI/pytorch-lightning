@@ -5,7 +5,6 @@ from data import RandomTokenDataset
 from lightning.pytorch.strategies import ModelParallelStrategy
 from model import ModelArgs, Transformer
 from parallelism import parallelize
-from torch.distributed.tensor.parallel import loss_parallel
 from torch.utils.data import DataLoader
 
 
@@ -27,8 +26,7 @@ class Llama2(L.LightningModule):
         inputs = batch[:, :-1]
         labels = batch[:, 1:]
         output = self.model(inputs)
-        with loss_parallel():
-            return F.cross_entropy(output.reshape(-1, output.size(-1)), labels.reshape(-1))
+        return F.cross_entropy(output.reshape(-1, output.size(-1)), labels.reshape(-1))
 
     def configure_optimizers(self):
         return torch.optim.AdamW(self.model.parameters(), lr=3e-3, foreach=True)
