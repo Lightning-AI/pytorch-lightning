@@ -198,7 +198,7 @@ When measuring the peak memory consumption, we should see that doubling the numb
 
 
 .. list-table::
-   :widths: 25 25 25 25 25
+   :widths: 20 20 20 20 20
    :header-rows: 1
 
    * -
