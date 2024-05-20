@@ -8,6 +8,7 @@ This method is most effective for very large models, significantly enhancing per
 
 .. note:: This is an experimental feature.
 
+
 ----
 
 
@@ -58,6 +59,9 @@ This way, we avoid costly data transfers between GPUs.
 Note that activation functions between the layers can still be applied without additional communication because they are element-wise, but are not shown in the figures for simplicity.
 
 
+----
+
+
 ***********************************
 Apply tensor parallelism to a model
 ***********************************
@@ -83,9 +87,9 @@ Let's start with a simple MLP toy example:
             return self.w2(F.silu(self.w1(x)) * self.w3(x))
 
 
-This model has three linear layers. Layer ``w1`` and ``w3`` produce an output that is later multiplied element-wise.
+This model has three linear layers. Layers ``w1`` and ``w3`` produce an output that is later multiplied element-wise.
 That output is then fed into layer ``w2``.
-Therefore, ``w1`` and ``w2`` are suitable candidates for column-wise parallelism, because their output(s) can easily be combined with ``w3`` in row-wise fashion.
+Therefore, ``w1`` and ``w3`` are suitable candidates for column-wise parallelism, because their output(s) can easily be combined with ``w2`` in row-wise fashion.
 
 In Fabric, define a function that applies the tensor parallelism to the model:
 
@@ -114,7 +118,10 @@ Next, configure the :class:`~lightning.fabric.strategies.model_parallel.ModelPar
     import lightning as L
     from lightning.fabric.strategies import ModelParallelStrategy
 
+    # 1. Pass the parallelization function to the strategy
     strategy = ModelParallelStrategy(parallelize_fn=parallelize_feedforward)
+
+    # 2. Configure devices and set the strategy in Fabric
     fabric = L.Fabric(accelerator="cuda", devices=2, strategy=strategy)
     fabric.launch()
 
@@ -211,6 +218,21 @@ When measuring the peak memory consumption, we should see that doubling the numb
      - 0.61
 
 Beyond this toy example, we recommend you study our `LLM Tensor Parallel Example (Llama 2) <https://github.com/Lightning-AI/pytorch-lightning/tree/master/examples/fabric/tensor_parallel>`_.
+
+
+----
+
+
+***************************
+Data-loading considerations
+***************************
+
+In a tensor-parallelized model, it is important that the model receives an identical input on each GPU.
+Otherwise, training won't converge.
+Therefore, when you shuffle data in your dataset or data loader, or when applying randomized transformations/augmentations in your data, ensure that the seed is set appropriately.
+
+Given this requirement, your global batch size will be limited by the memory of a single GPU.
+To scale the batch size and accelerate training further, you can combine :doc:`tensor parallelism with data parallelism (in particular, FSDP) <tp_fsdp>`.
 
 
 ----

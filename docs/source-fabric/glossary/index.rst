@@ -11,6 +11,7 @@ Glossary
    Wrappers <../api/wrappers>
    Model Parallel <../advanced/model_parallel/index>
    Tensor Parallel <../advanced/model_parallel/tp>
+   2D Parallelism <../advanced/model_parallel/tp_fsdp>
 
 
 .. raw:: html
