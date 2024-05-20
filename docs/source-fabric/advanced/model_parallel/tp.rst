@@ -211,3 +211,41 @@ When measuring the peak memory consumption, we should see that doubling the numb
      - 2.15
      - 1.08
      - 0.61
+
+Beyond this toy example, we recommend you study our `LLM Tensor Parallel Example (Llama 2) <https://github.com/Lightning-AI/pytorch-lightning/tree/master/examples/fabric/tensor_parallel>`_.
+
+
+----
+
+
+**********
+Next steps
+**********
+
+.. raw:: html
+
+    <div class="display-card-container">
+        <div class="row">
+
+.. displayitem::
+    :header: LLM Tensor Parallel Example
+    :description: Full example how to apply tensor parallelism to a large language model (Llama 2)
+    :col_css: col-md-4
+    :button_link: https://github.com/Lightning-AI/pytorch-lightning/tree/master/examples/fabric/tensor_parallel
+    :height: 160
+    :tag: advanced
+
+.. displayitem::
+    :header: 2D Parallel (FSDP + TP)
+    :description: Combine Tensor Parallelism with FSDP (2D Parallel) to train efficiently on 100s of GPUs
+    :button_link: tp_fsdp.html
+    :col_css: col-md-4
+    :height: 160
+    :tag: advanced
+
+.. raw:: html
+
+        </div>
+    </div>
+
+|
