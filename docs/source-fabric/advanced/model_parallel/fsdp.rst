@@ -1,6 +1,6 @@
-###########################################
-Training models with billions of parameters
-###########################################
+#####################################################
+Training models with billions of parameters with FSDP
+#####################################################
 
 Use Fully Sharded Data Parallel (FSDP) to train large models with billions of parameters efficiently on multiple GPUs and across multiple machines.
 
