@@ -337,10 +337,6 @@ class DeepSpeedStrategy(DDPStrategy):
         assert self.accelerator is not None
         self.accelerator.setup(trainer)
 
-        # we set the device so that optimizers can be created with distributed comms.
-        assert self.lightning_module is not None
-        self.lightning_module._device = self.root_device
-
         assert self.model is not None
         self.model = self.precision_plugin.convert_module(self.model)
         self.model = self._setup_model(self.model)

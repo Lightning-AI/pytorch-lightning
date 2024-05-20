@@ -305,10 +305,6 @@ class FSDPStrategy(ParallelStrategy):
         if trainer.state.fn == TrainerFn.FITTING and self._layer_sync:
             self.model = self._layer_sync.apply(self.model)
 
-        # we set the device so that optimizers can be created with distributed comms.
-        assert self.lightning_module is not None
-        self.lightning_module._device = self.root_device
-
         self.model = self.precision_plugin.convert_module(self.model)
 
         if is_overridden("configure_sharded_model", self.lightning_module):
