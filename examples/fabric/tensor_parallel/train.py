@@ -57,8 +57,8 @@ def train():
 
         with loss_parallel():
             loss = F.cross_entropy(output.reshape(-1, output.size(-1)), labels.reshape(-1))
+            fabric.backward(loss)
 
-        fabric.backward(loss)
         optimizer.step()
         optimizer.zero_grad()
         fabric.print(f"Iteration {i} complete")

@@ -35,7 +35,13 @@ def parallelize(model: Transformer, device_mesh: DeviceMesh) -> Transformer:
         # Parallelize the first embedding and the last linear out projection
         plan = {
             "tok_embeddings": RowwiseParallel(input_layouts=Replicate()),
-            "output": ColwiseParallel(input_layouts=Shard(1), output_layouts=Replicate()),
+            "output": ColwiseParallel(
+                input_layouts=Shard(1),
+                # Optional: Shard the output along the class dimension to compute the loss in parallel.
+                # See `loss_parallel` in `train.py`
+                output_layouts=Shard(-1),
+                use_local_output=False,
+            ),
             "norm": SequenceParallel(),
             "layers.0": PrepareModuleInput(
                 input_layouts=(Replicate(), None),

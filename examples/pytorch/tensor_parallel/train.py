@@ -27,8 +27,13 @@ class Llama2(L.LightningModule):
         inputs = batch[:, :-1]
         labels = batch[:, 1:]
         output = self.model(inputs)
+        # Optional: Parallelize loss computation across class dimension (see parallelism.py)
         with loss_parallel():
             return F.cross_entropy(output.reshape(-1, output.size(-1)), labels.reshape(-1))
+
+    def backward(self, *args, **kwargs):
+        with loss_parallel():
+            super().backward(*args, **kwargs)
 
     def configure_optimizers(self):
         return torch.optim.AdamW(self.model.parameters(), lr=3e-3, foreach=True)
