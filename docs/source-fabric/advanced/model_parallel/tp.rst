@@ -117,7 +117,7 @@ Next, configure the :class:`~lightning.fabric.strategies.model_parallel.ModelPar
     from lightning.fabric.strategies import ModelParallelStrategy
 
     strategy = ModelParallelStrategy(parallelize_fn=parallelize_feedforward)
-    fabric = L.Fabric(accelerator="cuda", devices=4, strategy=strategy)
+    fabric = L.Fabric(accelerator="cuda", devices=2, strategy=strategy)
     fabric.launch()
 
 The strategy takes the custom parallelization function as input.
@@ -242,6 +242,15 @@ Next steps
     :col_css: col-md-4
     :height: 160
     :tag: advanced
+
+.. displayitem::
+    :header: PyTorch API Reference
+    :description: Explore the official PyTorch Tensor Parallel APIs
+    :button_link: https://pytorch.org/docs/stable/distributed.tensor.parallel.html
+    :col_css: col-md-4
+    :height: 160
+    :tag: advanced
+
 
 .. raw:: html
 
