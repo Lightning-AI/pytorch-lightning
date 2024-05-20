@@ -29,8 +29,8 @@ Each GPU is sent the same input, and computes a regular matrix multiplication wi
 At the end, the outputs from each GPU can be concatenated to form the final output.
 
 
-.. figure:: tp-colwise.jpeg
-   :alt:
+.. figure:: https://pl-public-data.s3.amazonaws.com/assets_lightning/fabric/tp-colwise.jpeg
+   :alt: Left: Regular matrix multiplication. Right: Column-wise parallel matrix multiplication split across two GPUs.
    :width: 100%
 
 Row-wise Parallel
@@ -41,8 +41,8 @@ In addition, the input gets split the same way along the inner dimension (becaus
 Each GPU then performs a regular matrix multiplication with its portion of the weight matrix and inputs.
 At the end, the outputs from each GPU can be summed up element-wise (all-reduce) to form the final output.
 
-.. figure:: tp-rowwise.jpeg
-   :alt:
+.. figure:: https://pl-public-data.s3.amazonaws.com/assets_lightning/fabric/tp-rowwise.jpeg
+   :alt: Left: Regular matrix multiplication. Right: Row-wise parallel matrix multiplication split across two GPUs.
    :width: 100%
 
 
@@ -53,8 +53,8 @@ When there are multiple linear layers in sequence, e.g., in a MLP or a Transform
 Instead of concatenating the output of the column-wise parallel layer, we keep the outputs separate and feed them directly to the row-wise parallel layer.
 This way, we avoid costly data transfers between GPUs.
 
-.. figure:: tp-combined.jpeg
-   :alt:
+.. figure:: https://pl-public-data.s3.amazonaws.com/assets_lightning/fabric/tp-combined.jpeg
+   :alt: Top: Two regular matrix multiplications in sequence. Bottom: Combined column-wise and row-wise parallel matrix multiplications across two GPUs.
    :width: 100%
 
 Note that activation functions between the layers can still be applied without additional communication because they are element-wise, but are not shown in the figures for simplicity.
@@ -87,7 +87,7 @@ Let's start with a simple MLP toy example:
 
 This model has three linear layers. Layer ``w1`` and ``w3`` produce an output that is later multiplied element-wise.
 That output is then fed into layer ``w2``.
-Therefore, ``w1`` and ``w2`` are suitable candidates for column-wise parallelism, because their output(s) can easily be combind with ``w3`` in row-wise fashion.
+Therefore, ``w1`` and ``w2`` are suitable candidates for column-wise parallelism, because their output(s) can easily be combined with ``w3`` in row-wise fashion.
 
 In Fabric, define a function that applies the tensor parallelism to the model:
 
