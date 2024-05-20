@@ -14,7 +14,7 @@ It's easy to implement but doesn't solve memory issues for very large models.
 **Fully Sharded Data Parallel (FSDP)** improves on this by spreading the model weights across GPUs, which saves memory but makes communication between devices more complex.
 **Tensor Parallelism (TP)** breaks down individual layers of the model to spread them across devices, allowing for more detailed distribution but needing careful synchronization.
 **Pipeline Parallelism (PP)** splits the model into stages, with each stage assigned to a different device.
-This reduces memory use per device but can introduce delays and inefficiencies.
+This reduces memory use per device but can introduce delays and inefficiencies (pipeline bubbles).
 Choosing the right type of model parallelism depends on balancing memory use, communication needs, and computational efficiency, based on the specific model and hardware setup.
 
 
@@ -82,3 +82,5 @@ Parallelisms compared
     </ul>
 
 |
+
+Lightning Fabric supports all the parallelisms mentioned above natively through PyTorch, with the exception of pipeline parallelism (PP) which is not yet supported.
