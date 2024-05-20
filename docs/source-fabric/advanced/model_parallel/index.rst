@@ -71,9 +71,9 @@ Parallelisms compared
 .. raw:: html
 
     <ul class="no-bullets">
-        <li>✅&nbsp; No model code changes required</li>
-        <li>✅&nbsp; Training with very large batch sizes (batch size scales with number of GPUs)</li>
-        <li>❗&nbsp; Model (weights, optimizer state, activations) must fit into a GPU</li>
+        <li>✅ &nbsp; No model code changes required</li>
+        <li>✅ &nbsp; Training with very large batch sizes (batch size scales with number of GPUs)</li>
+        <li>❗ &nbsp; Model (weights, optimizer state, activations) must fit into a GPU</li>
     </ul>
 
 |
@@ -83,12 +83,12 @@ Parallelisms compared
 .. raw:: html
 
     <ul class="no-bullets">
-        <li>✅&nbsp; No model code changes required </li>
-        <li>✅&nbsp; Training with very large batch sizes (batch size scales with number of GPUs)</li>
-        <li>✅&nbsp; Model (weights, optimizer state, activations) gets distributed across all GPUs </li>
-        <li>❗&nbsp; Forward/backward computation requires a single layer must fit into a GPU </li>
-        <li>❗&nbsp; Requires some knowledge about model architecture to set configuration options correctly </li>
-        <li>❗&nbsp; Requires very fast networking (multi-node), data transfers between GPUs often become a bottleneck </li>
+        <li>✅ &nbsp; No model code changes required </li>
+        <li>✅ &nbsp; Training with very large batch sizes (batch size scales with number of GPUs)</li>
+        <li>✅ &nbsp; Model (weights, optimizer state, activations) gets distributed across all GPUs </li>
+        <li>❗ &nbsp; Forward/backward computation requires a single layer must fit into a GPU </li>
+        <li>❗ &nbsp; Requires some knowledge about model architecture to set configuration options correctly </li>
+        <li>❗ &nbsp; Requires very fast networking (multi-node), data transfers between GPUs often become a bottleneck </li>
     </ul>
 
 |
@@ -98,12 +98,12 @@ Parallelisms compared
 .. raw:: html
 
     <ul class="no-bullets">
-        <li>❗&nbsp; Model code changes required </li>
-        <li>🤔&nbsp; Fixed global batch size (does not scale with number of GPUs) </li>
-        <li>✅&nbsp; Model (weights, optimizer state, activations) gets distributed across all GPUs</li>
-        <li>✅&nbsp; Parallelizes the computation of layers that are too large to fit onto a single GPU </li>
-        <li>❗&nbsp; Requires lots of knowledge about model architecture to set configuration options correctly </li>
-        <li>🤔&nbsp; Less GPU data transfers required, but data transfers don't overlap with computation like in FSDP </li>
+        <li>❗ &nbsp; Model code changes required </li>
+        <li>🤔 &nbsp; Fixed global batch size (does not scale with number of GPUs) </li>
+        <li>✅ &nbsp; Model (weights, optimizer state, activations) gets distributed across all GPUs</li>
+        <li>✅ &nbsp; Parallelizes the computation of layers that are too large to fit onto a single GPU </li>
+        <li>❗ &nbsp; Requires lots of knowledge about model architecture to set configuration options correctly </li>
+        <li>🤔 &nbsp; Less GPU data transfers required, but data transfers don't overlap with computation like in FSDP </li>
     </ul>
 
 |
@@ -113,12 +113,12 @@ Parallelisms compared
 .. raw:: html
 
     <ul class="no-bullets">
-        <li>❗&nbsp; Model code changes required</li>
-        <li>✅&nbsp; Training with very large batch sizes (batch size scales across data-parallel dimension)</li>
-        <li>✅&nbsp; Model (weights, optimizer state, activations) gets distributed across all GPUs</li>
-        <li>✅&nbsp; Parallelizes the computation of layers that are too large to fit onto a single GPU</li>
-        <li>❗&nbsp; Requires lots of knowledge about model architecture to set configuration options correctly</li>
-        <li>✅&nbsp; Tensor-parallel within machines and FSDP across machines reduces data transfer bottlenecks</li>
+        <li>❗ &nbsp; Model code changes required</li>
+        <li>✅ &nbsp; Training with very large batch sizes (batch size scales across data-parallel dimension)</li>
+        <li>✅ &nbsp; Model (weights, optimizer state, activations) gets distributed across all GPUs</li>
+        <li>✅ &nbsp; Parallelizes the computation of layers that are too large to fit onto a single GPU</li>
+        <li>❗ &nbsp; Requires lots of knowledge about model architecture to set configuration options correctly</li>
+        <li>✅ &nbsp; Tensor-parallel within machines and FSDP across machines reduces data transfer bottlenecks</li>
     </ul>
 
 |
