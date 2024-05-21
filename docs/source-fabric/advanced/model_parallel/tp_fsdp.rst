@@ -83,4 +83,3 @@ Finally, pass the parallelization function to the strategy and configure the dat
 ***************
 The device mesh
 ***************
-
