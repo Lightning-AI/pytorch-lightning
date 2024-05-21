@@ -3,13 +3,14 @@ Training models with billions of parameters
 ###########################################
 
 Today, large models with billions of parameters are trained with many GPUs across several machines in parallel.
-Even a single H100 GPU with 80 GB of VRAM (the biggest today) is not enough to train just a 30B parameter model (even with batch size 1 and 16-bit precision).
+Even a single H100 GPU with 80 GB of VRAM (one of the biggest today) is not enough to train just a 30B parameter model (even with batch size 1 and 16-bit precision).
 The memory consumption for training is generally made up of
 
 1. the model parameters,
 2. the layer activations (forward),
-3. the gradients (backward) and
-4. the optimizer states (e.g., Adam has two additional exponential averages per parameter).
+3. the gradients (backward),
+4. the optimizer states (e.g., Adam has two additional exponential averages per parameter) and
+5. model outputs and loss for each batch.
 
 |
 

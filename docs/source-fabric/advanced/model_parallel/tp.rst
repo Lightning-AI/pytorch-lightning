@@ -71,7 +71,6 @@ Let's start with a simple MLP toy example:
 
 .. code-block:: python
 
-    import torch
     import torch.nn as nn
     import torch.nn.functional as F
 
