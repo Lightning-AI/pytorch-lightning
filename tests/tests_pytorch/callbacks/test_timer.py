@@ -26,24 +26,24 @@ from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from tests_pytorch.helpers.runif import RunIf
 
 
-def test_trainer_flag(caplog):
+def test_trainer_flag(caplog, tmp_path):
     class TestModel(BoringModel):
         def on_fit_start(self):
             raise SystemExit()
 
-    trainer = Trainer(max_time={"seconds": 1337})
+    trainer = Trainer(default_root_dir=tmp_path, logger=False, max_time={"seconds": 1337})
     with pytest.raises(SystemExit):
         trainer.fit(TestModel())
     timer = [c for c in trainer.callbacks if isinstance(c, Timer)][0]
     assert timer._duration == 1337
 
-    trainer = Trainer(max_time={"seconds": 1337}, callbacks=[Timer()])
+    trainer = Trainer(default_root_dir=tmp_path, logger=False, max_time={"seconds": 1337}, callbacks=[Timer()])
     with pytest.raises(SystemExit), caplog.at_level(level=logging.INFO):
         trainer.fit(TestModel())
     assert "callbacks list already contains a Timer" in caplog.text
 
     # Make sure max_time still honored even if max_epochs == -1
-    trainer = Trainer(max_time={"seconds": 1}, max_epochs=-1)
+    trainer = Trainer(default_root_dir=tmp_path, logger=False, max_time={"seconds": 1}, max_epochs=-1)
     with pytest.raises(SystemExit):
         trainer.fit(TestModel())
     timer = [c for c in trainer.callbacks if isinstance(c, Timer)][0]

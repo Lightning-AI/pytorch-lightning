@@ -88,6 +88,7 @@ def restore_env_variables():
         "KMP_DUPLICATE_LIB_OK",  # leaked by PyTorch
         "CRC32C_SW_MODE",  # leaked by tensorboardX
         "TRITON_CACHE_DIR",  # leaked by torch.compile
+        "_TORCHINDUCTOR_PYOBJECT_TENSOR_DATA_PTR",  # leaked by torch.compile
         "OMP_NUM_THREADS",  # set by our launchers
         # leaked by XLA
         "ALLOW_MULTIPLE_LIBTPU_LOAD",
@@ -306,6 +307,17 @@ def single_process_pg():
         torch.distributed.destroy_process_group()
         os.environ.clear()
         os.environ.update(orig_environ)
+
+
+@pytest.fixture(autouse=True)
+def leave_no_artifacts_behind():
+    tests_root = Path(__file__).parent.parent
+    files_before = {p for p in tests_root.rglob("*") if "__pycache__" not in p.parts}
+    yield
+    files_after = {p for p in tests_root.rglob("*") if "__pycache__" not in p.parts}
+    difference = files_after - files_before
+    difference = {str(f.relative_to(tests_root)) for f in difference}
+    assert not difference, f"Test left artifacts behind: {difference}"
 
 
 def pytest_collection_modifyitems(items: List[pytest.Function], config: pytest.Config) -> None:

@@ -16,19 +16,19 @@ import logging
 import os
 import uuid
 from copy import deepcopy
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Union, cast
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Union
 
 import torch
 from lightning_utilities.core.imports import RequirementCache
+from torch.optim.lr_scheduler import LRScheduler
 from typing_extensions import override
 
 import lightning.pytorch as pl
-from lightning.fabric.utilities.types import _TORCH_LRSCHEDULER
 from lightning.pytorch.callbacks import Callback
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.parsing import lightning_hasattr, lightning_setattr
 from lightning.pytorch.utilities.rank_zero import rank_zero_warn
-from lightning.pytorch.utilities.types import STEP_OUTPUT, LRScheduler, LRSchedulerConfig
+from lightning.pytorch.utilities.types import STEP_OUTPUT, LRSchedulerConfig
 
 # check if ipywidgets is installed before importing tqdm.auto
 # to ensure it won't fail and a progress bar is displayed
@@ -127,7 +127,6 @@ class _LRFinder:
 
         args = (optimizer, self.lr_max, self.num_training)
         scheduler = _LinearLR(*args) if self.mode == "linear" else _ExponentialLR(*args)
-        scheduler = cast(LRScheduler, scheduler)
 
         trainer.strategy.optimizers = [optimizer]
         trainer.strategy.lr_scheduler_configs = [LRSchedulerConfig(scheduler, interval="step")]
@@ -439,7 +438,7 @@ class _LRCallback(Callback):
         self.losses.append(smoothed_loss)
 
 
-class _LinearLR(_TORCH_LRSCHEDULER):
+class _LinearLR(LRScheduler):
     """Linearly increases the learning rate between two boundaries over a number of iterations.
 
     Args:
@@ -459,9 +458,8 @@ class _LinearLR(_TORCH_LRSCHEDULER):
         self.num_iter = num_iter
         super().__init__(optimizer, last_epoch)
 
-    # mypy can't follow the _TORCH_LRSCHEDULER TypeAlias, so ignore "no base method" error
-    @override  # type: ignore[misc]
-    def get_lr(self) -> List[float]:
+    @override
+    def get_lr(self) -> List[float]:  # type: ignore[override]
         curr_iter = self.last_epoch + 1
         r = curr_iter / self.num_iter
 
@@ -477,7 +475,7 @@ class _LinearLR(_TORCH_LRSCHEDULER):
         return self._lr
 
 
-class _ExponentialLR(_TORCH_LRSCHEDULER):
+class _ExponentialLR(LRScheduler):
     """Exponentially increases the learning rate between two boundaries over a number of iterations.
 
     Arguments:
@@ -497,9 +495,8 @@ class _ExponentialLR(_TORCH_LRSCHEDULER):
         self.num_iter = num_iter
         super().__init__(optimizer, last_epoch)
 
-    # mypy can't follow the _TORCH_LRSCHEDULER TypeAlias, so ignore "no base method" error
-    @override  # type: ignore[misc]
-    def get_lr(self) -> List[float]:
+    @override
+    def get_lr(self) -> List[float]:  # type: ignore[override]
         curr_iter = self.last_epoch + 1
         r = curr_iter / self.num_iter
 
