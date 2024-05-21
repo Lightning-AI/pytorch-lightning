@@ -53,6 +53,7 @@ from lightning.pytorch.strategies import (
     DDPStrategy,
     DeepSpeedStrategy,
     FSDPStrategy,
+    ModelParallelStrategy,
     ParallelStrategy,
     SingleDeviceStrategy,
     SingleDeviceXLAStrategy,
@@ -600,6 +601,7 @@ class _AcceleratorConnector:
             DDPStrategy,
             FSDPStrategy,
             DeepSpeedStrategy,
+            ModelParallelStrategy,
             XLAStrategy,
         ]
         if _habana_available_and_importable():

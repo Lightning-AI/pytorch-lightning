@@ -356,8 +356,6 @@ intersphinx_mapping = {
     "torchmetrics": ("https://lightning.ai/docs/torchmetrics/stable/", None),
     "lightning_habana": ("https://lightning-ai.github.io/lightning-Habana/", None),
     "tensorboardX": ("https://tensorboardx.readthedocs.io/en/stable/", None),
-    # needed for referencing App from lightning scope
-    "lightning.app": ("https://lightning.ai/docs/app/stable/", None),
     # needed for referencing Fabric from lightning scope
     "lightning.fabric": ("https://lightning.ai/docs/fabric/stable/", None),
     # TODO: these are missing objects.inv
@@ -637,4 +635,6 @@ linkcheck_ignore = [
     "https://www.intel.com/content/www/us/en/products/docs/processors/what-is-a-gpu.html",
     "https://www.microsoft.com/en-us/research/blog/zero-infinity-and-deepspeed-unlocking-unprecedented-model-scale-for-deep-learning-training/",  # noqa: E501
     "https://stackoverflow.com/questions/66640705/how-can-i-install-grpcio-on-an-apple-m1-silicon-laptop",
+    "https://openai.com/blog/.*",
+    "https://tinyurl.com/.*",  # has a human verification check on redirect
 ]

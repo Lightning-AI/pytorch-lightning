@@ -168,7 +168,7 @@ def test_metrics_reset_after_save(tmp_path):
     # Mock the existance check, so we can simulate appending to the metrics file
     "lightning.fabric.loggers.csv_logs._ExperimentWriter._check_log_dir_exists"
 )
-def test_append_metrics_file(tmp_path):
+def test_append_metrics_file(_, tmp_path):
     """Test that the logger appends to the file instead of rewriting it on every save."""
     logger = CSVLogger(tmp_path, name="test", version=0, flush_logs_every_n_steps=1)
 
