@@ -4,7 +4,7 @@ Tensor Parallelism
 
 Tensor parallelism is a technique for training large models by distributing layers across multiple devices, improving memory management and efficiency by reducing inter-device communication.
 However, for smaller models, the communication overhead may outweigh its benefits.
-This method is most effective for very large models, significantly enhancing performance and memory efficiency.
+This method is most effective for models with very large layers, significantly enhancing performance and memory efficiency.
 
 .. note:: This is an experimental feature.
 
