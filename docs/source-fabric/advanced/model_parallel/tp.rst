@@ -108,8 +108,8 @@ In Fabric, define a function that applies the tensor parallelism to the model:
             "w2": RowwiseParallel(),
             "w3": ColwiseParallel(),
         }
-        parallel_model = parallelize_module(model, tp_mesh, plan)
-        return parallel_model
+        parallelize_module(model, tp_mesh, plan)
+        return model
 
 Next, configure the :class:`~lightning.fabric.strategies.model_parallel.ModelParallelStrategy` in Fabric:
 
@@ -165,8 +165,8 @@ Later in the code, when you call ``fabric.setup(model)``, Fabric will apply the 
                 "w2": RowwiseParallel(),
                 "w3": ColwiseParallel(),
             }
-            parallel_model = parallelize_module(model, tp_mesh, plan)
-            return parallel_model
+            parallelize_module(model, tp_mesh, plan)
+            return model
 
 
         strategy = ModelParallelStrategy(parallelize_fn=parallelize_feedforward)
