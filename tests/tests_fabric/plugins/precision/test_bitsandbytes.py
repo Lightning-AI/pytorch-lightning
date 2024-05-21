@@ -236,6 +236,7 @@ def test_bitsandbytes_layers_meta_device(args, expected, tmp_path):
 @pytest.mark.skipif(not _BITSANDBYTES_AVAILABLE, reason="bitsandbytes unavailable")
 def test_load_quantized_checkpoint(tmp_path):
     """Test that a checkpoint saved from a quantized model can be loaded back into a quantized model."""
+
     class Model(torch.nn.Module):
         def __init__(self):
             super().__init__()
