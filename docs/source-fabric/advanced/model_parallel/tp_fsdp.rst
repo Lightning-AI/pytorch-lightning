@@ -181,7 +181,7 @@ Finally, the tensor parallelism will apply to each group, splitting the sharded 
             optimizer.zero_grad()
             fabric.print(f"Iteration {i} complete")
 
-        fabric.print(f"Peak memory usage: {torch.cuda.max_memory_reserved() / 1e9:.02f} GB")
+        fabric.print(f"Peak memory usage: {torch.cuda.max_memory_allocated() / 1e9:.02f} GB")
 
 
 
@@ -222,7 +222,7 @@ In a tensor-parallelized model, it is important that the model receives an ident
 However, across the data-parallel dimension, the inputs should be different.
 In other words, if TP is applied within a node, and FSDP across nodes, each node must receive a different batch, but every GPU within the node gets the same batch of data.
 
-If you use a PyTorch DataLoader and set it up using :meth:`~lightning.fabric.fabric.Fabric.setup_dataloaders`, Fabric will automatically handle this for you by configuring the distributed sampler.
+If you use a PyTorch data loader and set it up using :meth:`~lightning.fabric.fabric.Fabric.setup_dataloaders`, Fabric will automatically handle this for you by configuring the distributed sampler.
 However, when you shuffle data in your dataset or data loader, or when applying randomized transformations/augmentations in your data, you must still ensure that the seed is set appropriately.
 
 
@@ -247,3 +247,39 @@ However, when you shuffle data in your dataset or data loader, or when applying 
 
 
 
+
+----
+
+
+**********
+Next steps
+**********
+
+.. raw:: html
+
+    <div class="display-card-container">
+        <div class="row">
+
+.. displayitem::
+    :header: LLM 2D Parallel Example
+    :description: Full example how to combine TP + FSDP to a large language model (Llama 2)
+    :col_css: col-md-4
+    :button_link: https://github.com/Lightning-AI/pytorch-lightning/tree/master/examples/fabric/tensor_parallel
+    :height: 160
+    :tag: advanced
+
+.. displayitem::
+    :header: Pipeline Parallelism
+    :description: Coming sooon
+    :button_link:
+    :col_css: col-md-4
+    :height: 160
+    :tag: advanced
+
+
+.. raw:: html
+
+        </div>
+    </div>
+
+|
