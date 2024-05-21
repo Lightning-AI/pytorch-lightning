@@ -262,4 +262,5 @@ def test_load_quantized_checkpoint(tmp_path):
     model.load_state_dict(state_dict)
     assert model.linear.weight.dtype == torch.uint8
     assert model.linear.weight.shape == (128, 1)
+    # Shapes match during forward (weight is being dequantized during forward)
     model(torch.randn(2, 16, device=fabric.device))
