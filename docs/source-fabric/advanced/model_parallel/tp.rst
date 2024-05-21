@@ -194,7 +194,7 @@ Later in the code, when you call ``fabric.setup(model)``, Fabric will apply the 
             optimizer.zero_grad()
             fabric.print(f"Iteration {i} complete")
 
-        fabric.print(f"Peak memory usage: {torch.cuda.max_memory_reserved() / 1e9:.02f} GB")
+        fabric.print(f"Peak memory usage: {torch.cuda.max_memory_allocated() / 1e9:.02f} GB")
 
 |
 
@@ -211,10 +211,10 @@ When measuring the peak memory consumption, we should see that doubling the numb
      - 4 GPUs
      - 8 GPUs
    * - Memory per GPU
-     - 4.05 GB
-     - 2.15 GB
-     - 1.08 GB
-     - 0.61 GB
+     - 4.04 GB
+     - 2.03 GB
+     - 1.02 GB
+     - 0.60 GB
 
 Beyond this toy example, we recommend you study our `LLM Tensor Parallel Example (Llama 2) <https://github.com/Lightning-AI/pytorch-lightning/tree/master/examples/fabric/tensor_parallel>`_.
 

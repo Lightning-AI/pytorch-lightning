@@ -10,7 +10,7 @@ The memory consumption for training is generally made up of
 2. the layer activations (forward),
 3. the gradients (backward),
 4. the optimizer states (e.g., Adam has two additional exponential averages per parameter) and
-5. model outputs and loss for each batch.
+5. model outputs and loss.
 
 |
 

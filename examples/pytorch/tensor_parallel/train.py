@@ -71,7 +71,7 @@ def train():
     trainer.fit(model)
 
     trainer.print("Training successfully completed!")
-    trainer.print(f"Peak memory usage: {torch.cuda.max_memory_reserved() / 1e9:.02f} GB")
+    trainer.print(f"Peak memory usage: {torch.cuda.max_memory_allocated() / 1e9:.02f} GB")
 
 
 if __name__ == "__main__":
