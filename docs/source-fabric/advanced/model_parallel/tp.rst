@@ -211,11 +211,11 @@ When measuring the peak memory consumption, we should see that doubling the numb
      - 2 GPUs
      - 4 GPUs
      - 8 GPUs
-   * - Memory (GB)
-     - 4.05
-     - 2.15
-     - 1.08
-     - 0.61
+   * - Memory per GPU
+     - 4.05 GB
+     - 2.15 GB
+     - 1.08 GB
+     - 0.61 GB
 
 Beyond this toy example, we recommend you study our `LLM Tensor Parallel Example (Llama 2) <https://github.com/Lightning-AI/pytorch-lightning/tree/master/examples/fabric/tensor_parallel>`_.
 
