@@ -177,7 +177,7 @@ Later in the code, when you call ``fabric.setup(model)``, Fabric will apply the 
         model = fabric.setup(model)
 
         # Define the optimizer
-        optimizer = torch.optim.AdamW(model.parameters(), lr=3e-3, foreach=True)
+        optimizer = torch.optim.AdamW(model.parameters(), lr=3e-3)
         optimizer = fabric.setup_optimizers(optimizer)
 
         # Define dataset/dataloader
@@ -216,7 +216,7 @@ When measuring the peak memory consumption, we should see that doubling the numb
      - 1.02 GB
      - 0.60 GB
 
-Beyond this toy example, we recommend you study our `LLM Tensor Parallel Example (Llama 2) <https://github.com/Lightning-AI/pytorch-lightning/tree/master/examples/fabric/tensor_parallel>`_.
+Beyond this toy example, we recommend you study our `LLM Tensor Parallel Example (Llama 3) <https://github.com/Lightning-AI/pytorch-lightning/tree/master/examples/fabric/tensor_parallel>`_.
 
 
 ----
@@ -248,7 +248,7 @@ Next steps
 
 .. displayitem::
     :header: LLM Tensor Parallel Example
-    :description: Full example how to apply tensor parallelism to a large language model (Llama 2)
+    :description: Full example how to apply tensor parallelism to a large language model (Llama 3)
     :col_css: col-md-4
     :button_link: https://github.com/Lightning-AI/pytorch-lightning/tree/master/examples/fabric/tensor_parallel
     :height: 160
