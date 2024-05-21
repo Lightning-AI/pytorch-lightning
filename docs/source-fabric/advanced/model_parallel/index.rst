@@ -82,7 +82,6 @@ Get started
 .. displayitem::
     :header: Pipeline Parallelism
     :description: Coming soon
-    :button_link:
     :col_css: col-md-4
     :height: 180
     :tag: advanced

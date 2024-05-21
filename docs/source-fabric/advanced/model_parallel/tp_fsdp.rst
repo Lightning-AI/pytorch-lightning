@@ -183,6 +183,9 @@ Finally, the tensor parallelism will apply to each group, splitting the sharded 
 
         fabric.print(f"Peak memory usage: {torch.cuda.max_memory_allocated() / 1e9:.02f} GB")
 
+|
+
+Beyond this toy example, we recommend you study our `LLM 2D Parallel Example (Llama 3) <https://github.com/Lightning-AI/pytorch-lightning/tree/master/examples/fabric/tensor_parallel>`_.
 
 
 ----
@@ -192,7 +195,7 @@ Finally, the tensor parallelism will apply to each group, splitting the sharded 
 Effective use cases
 *******************
 
-In the toy example above, the parallelization is configured to work within single machine across multiple GPUs.
+In the toy example above, the parallelization is configured to work within a single machine across multiple GPUs.
 However, in practice the main use case for 2D parallelism is in multi-node training, where one can effectively combine both methods to maximize throughput and model scale.
 Since tensor-parallelism requires blocking collective calls, fast GPU data transfers are essential to keep throughput high and therefore TP is typically applied across GPUs within a machine.
 On the other hand, FSDP by design has the advantage that it can overlap GPU transfers with the computation (it can prefetch layers).
@@ -262,7 +265,7 @@ Next steps
 
 .. displayitem::
     :header: LLM 2D Parallel Example
-    :description: Full example how to combine TP + FSDP to a large language model (Llama 2)
+    :description: Full example how to combine TP + FSDP in a large language model (Llama 3)
     :col_css: col-md-4
     :button_link: https://github.com/Lightning-AI/pytorch-lightning/tree/master/examples/fabric/tensor_parallel
     :height: 160
@@ -271,7 +274,6 @@ Next steps
 .. displayitem::
     :header: Pipeline Parallelism
     :description: Coming sooon
-    :button_link:
     :col_css: col-md-4
     :height: 160
     :tag: advanced
