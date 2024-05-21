@@ -8,6 +8,7 @@ Glossary
 
    Checkpoint <../guide/checkpoint/index>
    Weights and Biases <../guide/loggers/wandb>
+   Wrappers <../api/wrappers>
 
 
 .. raw:: html
@@ -78,6 +79,11 @@ Glossary
 .. displayitem::
     :header: CUDA
     :button_link: ../fundamentals/accelerators.html
+    :col_css: col-md-4
+
+.. displayitem::
+    :header: FabricModule
+    :button_link: ../api/wrappers.html
     :col_css: col-md-4
 
 .. displayitem::

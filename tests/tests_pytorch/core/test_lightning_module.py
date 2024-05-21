@@ -18,7 +18,6 @@ from unittest.mock import Mock
 import pytest
 import torch
 from lightning.fabric import Fabric
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 from lightning.pytorch import LightningModule, Trainer
 from lightning.pytorch.core.module import _TrainerFabricShim
 from lightning.pytorch.demos.boring_classes import BoringModel
@@ -444,9 +443,6 @@ def test_trainer_reference_recursively():
     ensemble.trainer = trainer
     # references match
     assert ensemble.trainer is inner.trainer
-    if not _TORCH_GREATER_EQUAL_2_0:
-        # and the trainer was weakly referenced
-        assert inner.trainer is weakref.proxy(trainer)
 
 
 def test_fabric_reference_recursively():
