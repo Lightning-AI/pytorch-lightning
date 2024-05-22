@@ -199,7 +199,7 @@ In the toy example above, the parallelization is configured to work within a sin
 However, in practice the main use case for 2D parallelism is in multi-node training, where one can effectively combine both methods to maximize throughput and model scale.
 Since tensor-parallelism requires blocking collective calls, fast GPU data transfers are essential to keep throughput high and therefore TP is typically applied across GPUs within a machine.
 On the other hand, FSDP by design has the advantage that it can overlap GPU transfers with the computation (it can prefetch layers).
-Hence, combining FSDP for inter-node parallelism and TP for intra-node parallelism is generally a good strategy to minimize the network bandwidth usage, making it possible to scale to much larger models than is possible with FSDP alone.
+Hence, combining FSDP for inter-node parallelism and TP for intra-node parallelism is generally a good strategy to minimize both the latency and network bandwidth usage, making it possible to scale to much larger models than is possible with FSDP alone.
 
 
 .. code-block:: python
