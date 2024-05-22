@@ -303,7 +303,7 @@ class ModelParallelStrategy(ParallelStrategy):
                 f"`{type(self).__name__}.save_checkpoint(..., storage_options=...)` is not supported because"
                 f" `{type(self).__name__}` does not use the `CheckpointIO`."
             )
-# broadcast the path from rank 0 to ensure all the checkpoints are saved to a common path
+        # broadcast the path from rank 0 to ensure all the checkpoints are saved to a common path
         path = Path(self.broadcast(filepath))
         if path.is_dir() and not self._save_distributed_checkpoint and not _is_sharded_checkpoint(path):
             raise IsADirectoryError(f"The checkpoint path exists and is a directory: {path}")
