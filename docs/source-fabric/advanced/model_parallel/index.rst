@@ -119,9 +119,9 @@ Parallelisms compared
 
     <ul class="no-bullets">
         <li>✅ &nbsp; No model code changes required </li>
-        <li>✅ &nbsp; Training with very large batch sizes (batch size scales with number of GPUs)</li>
-        <li>✅ &nbsp; Model (weights, optimizer state, activations) gets distributed across all GPUs </li>
-        <li>❗ &nbsp; Forward/backward computation requires a single layer must fit into a GPU </li>
+        <li>✅ &nbsp; Training with very large batch sizes (batch size scales with number of GPUs) </li>
+        <li>✅ &nbsp; Model (weights, optimizer state, gradients) gets distributed across all GPUs </li>
+        <li>❗ &nbsp; A single FSDP layer when gathered during forward/backward must fit into the GPU </li>
         <li>❗ &nbsp; Requires some knowledge about model architecture to set configuration options correctly </li>
         <li>❗ &nbsp; Requires very fast networking (multi-node), data transfers between GPUs often become a bottleneck </li>
     </ul>
