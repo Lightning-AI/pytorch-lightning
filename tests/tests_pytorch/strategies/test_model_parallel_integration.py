@@ -471,7 +471,7 @@ def test_save_load_sharded_state_dict(tmp_path):
             if self.params_to_compare is None:
                 return
             for p0, p1 in zip(self.params_to_compare, self.trainer.model.parameters()):
-                torch.testing.assert_close(p0, p1.full_tensor(), atol=0, rtol=0, equal_nan=True)
+                assert torch.equal(p0, p1.full_tensor())
 
     seed_everything(0)
 
