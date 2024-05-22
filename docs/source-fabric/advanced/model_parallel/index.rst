@@ -108,7 +108,7 @@ Parallelisms compared
     <ul class="no-bullets">
         <li>✅ &nbsp; No model code changes required</li>
         <li>✅ &nbsp; Training with very large batch sizes (batch size scales with number of GPUs)</li>
-        <li>❗ &nbsp; Model (weights, optimizer state, activations) must fit into a GPU</li>
+        <li>❗ &nbsp; Model (weights, optimizer state, activations / gradients) must fit into a GPU</li>
     </ul>
 
 |
