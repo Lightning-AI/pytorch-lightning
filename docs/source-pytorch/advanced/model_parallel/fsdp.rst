@@ -20,7 +20,7 @@ The memory consumption for training is generally made up of
 |
 
 When the sum of these memory components exceed the VRAM of a single GPU, regular data-parallel training (DDP) can no longer be employed.
-One of the methods that can alleviate this limitation is called **model-parallel** training, and known as **FSDP** in PyTorch, and in this guide, you will learn how to effectively scale large models with it.
+One of the methods that can alleviate this limitation is called **Fully Sharded Data Parallel (FSDP)**, and in this guide, you will learn how to effectively scale large models with it.
 
 
 ----
