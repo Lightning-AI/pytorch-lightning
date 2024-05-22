@@ -8,6 +8,10 @@ Glossary
 
    Checkpoint <../guide/checkpoint/index>
    Weights and Biases <../guide/loggers/wandb>
+   Wrappers <../api/wrappers>
+   Model Parallel <../advanced/model_parallel/index>
+   Tensor Parallel <../advanced/model_parallel/tp>
+   2D Parallelism <../advanced/model_parallel/tp_fsdp>
 
 
 .. raw:: html
@@ -81,6 +85,11 @@ Glossary
     :col_css: col-md-4
 
 .. displayitem::
+    :header: FabricModule
+    :button_link: ../api/wrappers.html
+    :col_css: col-md-4
+
+.. displayitem::
     :header: FSDP
     :button_link: ../advanced/model_parallel/fsdp.html
     :col_css: col-md-4
@@ -128,6 +137,11 @@ Glossary
 .. displayitem::
     :header: Mixed Precision
     :button_link: ../fundamentals/precision.html
+    :col_css: col-md-4
+
+.. displayitem::
+    :header: Model Parallelism
+    :button_link: ../advanced/model_parallel/index.html
     :col_css: col-md-4
 
 .. displayitem::
@@ -183,6 +197,11 @@ Glossary
 .. displayitem::
     :header: TensorBoard
     :button_link: ../guide/logging.html
+    :col_css: col-md-4
+
+.. displayitem::
+    :header: Tensor Parallelism
+    :button_link: ../advanced/model_parallel/tp.html
     :col_css: col-md-4
 
 .. displayitem::

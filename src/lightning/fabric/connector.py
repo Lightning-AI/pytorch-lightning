@@ -429,7 +429,7 @@ class _Connector:
                 f" platform. We recommed `Fabric(strategy='ddp_spawn')` instead."
             )
         if (
-            strategy_flag in _FSDP_ALIASES or isinstance(self._strategy_flag, FSDPStrategy)
+            strategy_flag in _FSDP_ALIASES or type(self._strategy_flag) is FSDPStrategy
         ) and self._accelerator_flag not in ("cuda", "gpu"):
             raise ValueError(
                 "You selected the FSDP strategy but FSDP is only available on GPU. Set `Fabric(accelerator='gpu', ...)`"

@@ -8,11 +8,8 @@ Train models with billions of parameters using FSDP
 
 Use Fully Sharded Data Parallel (FSDP) to train large models with billions of parameters efficiently on multiple GPUs and across multiple machines.
 
-.. note:: This is an experimental feature.
-
-
 Today, large models with billions of parameters are trained with many GPUs across several machines in parallel.
-Even a single H100 GPU with 80 GB of VRAM (the biggest today) is not enough to train just a 30B parameter model (even with batch size 1 and 16-bit precision).
+Even a single H100 GPU with 80 GB of VRAM (one of the biggest today) is not enough to train just a 30B parameter model (even with batch size 1 and 16-bit precision).
 The memory consumption for training is generally made up of
 
 1. the model parameters,
