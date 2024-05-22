@@ -110,6 +110,7 @@ In Fabric, define a function that applies the tensor parallelism to the model:
         parallelize_module(model, tp_mesh, plan)
         return model
 
+By writing the parallelization code in a separate function rather than hardcoding it into the model, we keep the original source code clean and maintainable.
 Next, configure the :class:`~lightning.fabric.strategies.model_parallel.ModelParallelStrategy` in Fabric:
 
 .. code-block:: python
@@ -221,6 +222,8 @@ Beyond this toy example, we recommend you study our `LLM Tensor Parallel Example
 
 ----
 
+
+.. _tp-data-loading:
 
 ***************************
 Data-loading considerations
