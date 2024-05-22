@@ -458,7 +458,7 @@ def test_load_standard_checkpoint_into_distributed_model(tmp_path):
     trainer.strategy.barrier()
 
 
-@RunIf(min_torch="2.3", min_cuda_gpus=2, standalone=True)
+@RunIf(min_torch="2.4", min_cuda_gpus=2, standalone=True)
 def test_save_load_sharded_state_dict(tmp_path):
     """Test saving and loading with the distributed state dict format."""
 
