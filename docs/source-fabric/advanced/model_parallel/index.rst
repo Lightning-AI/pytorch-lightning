@@ -158,6 +158,6 @@ Parallelisms compared
 
 |
 
-Lightning Fabric supports all the parallelisms mentioned above natively through PyTorch, with the exception of pipeline parallelism (PP) which is not yet supported.
+PyTorch Lightning supports all the parallelisms mentioned above natively through PyTorch, with the exception of pipeline parallelism (PP) which is not yet supported.
 
 |

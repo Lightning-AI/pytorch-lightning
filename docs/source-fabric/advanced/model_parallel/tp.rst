@@ -66,7 +66,7 @@ Note that activation functions between the layers can still be applied without a
 Apply tensor parallelism to a model
 ***********************************
 
-To apply tensor parallelism to a model with Fabric, you need a good understanding of your model's architecture to make the decision of where to apply the parallel styles you've seen above.
+To apply tensor parallelism to a LightningModule, you need a good understanding of your model's architecture to make the decision of where to apply the parallel styles you've seen above.
 Let's start with a simple MLP toy example:
 
 .. code-block:: python
@@ -90,7 +90,7 @@ This model has three linear layers. Layers ``w1`` and ``w3`` produce an output t
 That output is then fed into layer ``w2``.
 Therefore, ``w1`` and ``w3`` are suitable candidates for column-wise parallelism, because their output(s) can easily be combined with ``w2`` in row-wise fashion.
 
-In Fabric, define a function that applies the tensor parallelism to the model:
+Now, define a function that applies the tensor parallelism to the model:
 
 .. code-block:: python
 
@@ -110,21 +110,20 @@ In Fabric, define a function that applies the tensor parallelism to the model:
         parallelize_module(model, tp_mesh, plan)
         return model
 
-Next, configure the :class:`~lightning.fabric.strategies.model_parallel.ModelParallelStrategy` in Fabric:
+Next, configure the :class:`~lightning.pytorch.strategies.model_parallel.ModelParallelStrategy` in the Trainer:
 
 .. code-block:: python
 
     import lightning as L
-    from lightning.fabric.strategies import ModelParallelStrategy
+    from lightning.pytorch.strategies import ModelParallelStrategy
 
-    # 1. Pass the parallelization function to the strategy
-    strategy = ModelParallelStrategy(parallelize_fn=parallelize_feedforward)
+    # 1. Create the strategy
+    strategy = ModelParallelStrategy()
 
     # 2. Configure devices and set the strategy in Fabric
-    fabric = L.Fabric(accelerator="cuda", devices=2, strategy=strategy)
-    fabric.launch()
+    fabric = L.Trainer(accelerator="cuda", devices=2, strategy=strategy)
+    fabric.fit(...)
 
-The strategy takes the custom parallelization function as input.
 No other changes to your training code are necessary at this point.
 Later in the code, when you call ``fabric.setup(model)``, Fabric will apply the ``parallelize_feedforward`` function to the model automatically.
 
