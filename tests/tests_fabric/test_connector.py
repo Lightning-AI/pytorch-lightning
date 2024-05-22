@@ -978,6 +978,16 @@ def test_fsdp_unsupported_on_cpu(_):
     with pytest.raises(ValueError, match="You selected the FSDP strategy but FSDP is only available on GPU"):
         _Connector(accelerator="cpu", strategy="fsdp")
 
+    class FSDPStrategySubclass(FSDPStrategy):
+        pass
+
+    class AcceleratorSubclass(CPUAccelerator):
+        pass
+
+    # we allow subclasses of FSDPStrategy to be used with other accelerators
+    _Connector(accelerator="cpu", strategy=FSDPStrategySubclass())
+    _Connector(accelerator=AcceleratorSubclass(), strategy=FSDPStrategySubclass())
+
 
 def test_connector_defaults_match_fabric_defaults():
     """Test that the default values for the init arguments of Connector match the ones in Fabric."""
