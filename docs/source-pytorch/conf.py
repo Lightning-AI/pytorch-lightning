@@ -343,8 +343,6 @@ intersphinx_mapping = {
     "graphcore": ("https://docs.graphcore.ai/en/latest/", None),
     "lightning_habana": ("https://lightning-ai.github.io/lightning-Habana/", None),
     "tensorboardX": ("https://tensorboardx.readthedocs.io/en/stable/", None),
-    # needed for referencing App from lightning scope
-    "lightning.app": ("https://lightning.ai/docs/app/stable/", None),
     # needed for referencing Fabric from lightning scope
     "lightning.fabric": ("https://lightning.ai/docs/fabric/stable/", None),
     # TODO: these are missing objects.inv
@@ -626,4 +624,5 @@ linkcheck_ignore = [
     "https://stackoverflow.com/questions/66640705/how-can-i-install-grpcio-on-an-apple-m1-silicon-laptop",
     "https://github.com/Lightning-AI/lightning/blob/master/examples/pytorch/ipu/mnist_sample.py",
     "https://ngc.nvidia.com/catalog/containers/nvidia:nemo",  # in ecosystem/asr_nlp_tts.rst
+    "https://openai.com/",
 ]
