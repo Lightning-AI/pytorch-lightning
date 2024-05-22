@@ -438,7 +438,7 @@ def test_batch_size_finder_with_multiple_eval_dataloaders(tmp_path):
         def val_dataloader(self):
             return [super().val_dataloader(), super().val_dataloader()]
 
-    trainer = Trainer()
+    trainer = Trainer(logger=False, enable_checkpointing=False)
     tuner = Tuner(trainer)
     model = CustomModel()
 

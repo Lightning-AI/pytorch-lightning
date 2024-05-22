@@ -13,6 +13,8 @@ from tests_pytorch.helpers.runif import RunIf
 def create_boring_checkpoint(tmp_path, model, accelerator="cuda"):
     checkpoint_callback = ModelCheckpoint(dirpath=tmp_path, filename="checkpoint")
     trainer = pl.Trainer(
+        default_root_dir=tmp_path,
+        logger=False,
         devices=1,
         accelerator=accelerator,
         max_epochs=1,

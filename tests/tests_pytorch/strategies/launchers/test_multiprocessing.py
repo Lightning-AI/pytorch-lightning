@@ -194,14 +194,16 @@ class SimpleModel(BoringModel):
         assert torch.equal(self.layer.weight.data, self.tied_layer.weight.data)
 
 
-def test_memory_sharing_disabled():
+def test_memory_sharing_disabled(tmp_path):
     """Test that the multiprocessing launcher disables memory sharing on model parameters and buffers to avoid race
     conditions on model updates."""
     model = SimpleModel()
     assert not model.layer.weight.is_shared()
     assert model.layer.weight.data_ptr() == model.tied_layer.weight.data_ptr()
 
-    trainer = Trainer(accelerator="cpu", devices=2, strategy="ddp_spawn", max_steps=0)
+    trainer = Trainer(
+        default_root_dir=tmp_path, logger=False, accelerator="cpu", devices=2, strategy="ddp_spawn", max_steps=0
+    )
     trainer.fit(model)
 
 
@@ -214,7 +216,7 @@ def test_check_for_missing_main_guard():
         launcher.launch(function=Mock())
 
 
-def test_fit_twice_raises():
+def test_fit_twice_raises(mps_count_0):
     model = BoringModel()
     trainer = Trainer(
         limit_train_batches=1,

@@ -149,15 +149,17 @@ def test_neptune_additional_methods(neptune_mock):
     run_instance_mock.__getitem__().log.assert_called_once_with(torch.ones(1))
 
 
-def test_neptune_leave_open_experiment_after_fit(neptune_mock, tmp_path):
+def test_neptune_leave_open_experiment_after_fit(neptune_mock, tmp_path, monkeypatch):
     """Verify that neptune experiment was NOT closed after training."""
+    monkeypatch.chdir(tmp_path)
     logger, run_instance_mock, _ = _get_logger_with_mocks(api_key="test", project="project")
     _fit_and_test(logger=logger, model=BoringModel(), tmp_path=tmp_path)
     assert run_instance_mock.stop.call_count == 0
 
 
-def test_neptune_log_metrics_on_trained_model(neptune_mock, tmp_path):
+def test_neptune_log_metrics_on_trained_model(neptune_mock, tmp_path, monkeypatch):
     """Verify that trained models do log data."""
+    monkeypatch.chdir(tmp_path)
 
     class LoggingModel(BoringModel):
         def on_validation_epoch_end(self):
@@ -305,9 +307,10 @@ def test_get_full_model_names_from_exp_structure():
     assert NeptuneLogger._get_full_model_names_from_exp_structure(input_dict, "foo/bar") == expected_keys
 
 
-def test_inactive_run(neptune_mock, tmp_path):
+def test_inactive_run(neptune_mock, tmp_path, monkeypatch):
     from neptune.exceptions import InactiveRunException
 
+    monkeypatch.chdir(tmp_path)
     logger, run_instance_mock, _ = _get_logger_with_mocks(api_key="test", project="project")
     run_instance_mock.__setitem__.side_effect = InactiveRunException
 

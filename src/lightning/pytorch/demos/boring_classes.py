@@ -18,9 +18,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch import Tensor
 from torch.optim import Optimizer
+from torch.optim.lr_scheduler import LRScheduler
 from torch.utils.data import DataLoader, Dataset, IterableDataset, Subset
 
-from lightning.fabric.utilities.types import _TORCH_LRSCHEDULER
 from lightning.pytorch import LightningDataModule, LightningModule
 from lightning.pytorch.core.optimizer import LightningOptimizer
 from lightning.pytorch.utilities.types import STEP_OUTPUT
@@ -134,7 +134,7 @@ class BoringModel(LightningModule):
     def test_step(self, batch: Any, batch_idx: int) -> STEP_OUTPUT:
         return {"y": self.step(batch)}
 
-    def configure_optimizers(self) -> Tuple[List[torch.optim.Optimizer], List[_TORCH_LRSCHEDULER]]:
+    def configure_optimizers(self) -> Tuple[List[torch.optim.Optimizer], List[LRScheduler]]:
         optimizer = torch.optim.SGD(self.parameters(), lr=0.1)
         lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1)
         return [optimizer], [lr_scheduler]
