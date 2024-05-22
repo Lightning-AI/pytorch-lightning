@@ -456,3 +456,9 @@ linkcheck_timeout = 60
 
 # ignore all links in any CHANGELOG file
 linkcheck_exclude_documents = [r"^(.*\/)*CHANGELOG.*$"]
+
+
+# ignore the following relative links (false positive errors during linkcheck)
+linkcheck_ignore = [
+    "https://www.openai.com/index/clip/",
+]
