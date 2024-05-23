@@ -35,66 +35,69 @@ We will start off with the same feed forward example model as in the :doc:`Tenso
         def forward(self, x):
             return self.w2(F.silu(self.w1(x)) * self.w3(x))
 
-Next, we define a function that applies the desired parallelism to our model.
-The function must take as first argument the model and as second argument the a :class:`~torch.distributed.device_mesh.DeviceMesh`.
-More on how the device mesh works later.
-
-.. code-block:: python
-
-    from torch.distributed.tensor.parallel import ColwiseParallel, RowwiseParallel
-    from torch.distributed.tensor.parallel import parallelize_module
-    from torch.distributed._composable.fsdp.fully_shard import fully_shard
-
-    def parallelize_feedforward(model, device_mesh):
-        # Lightning will set up a device mesh for you
-        # Here, it is 2-dimensional
-        tp_mesh = device_mesh["tensor_parallel"]
-        dp_mesh = device_mesh["data_parallel"]
-
-        if tp_mesh.size() > 1:
-            # Use PyTorch's distributed tensor APIs to parallelize the model
-            plan = {
-                "w1": ColwiseParallel(),
-                "w2": RowwiseParallel(),
-                "w3": ColwiseParallel(),
-            }
-            parallelize_module(model, tp_mesh, plan)
-
-        if dp_mesh.size() > 1:
-            # Use PyTorch's FSDP2 APIs to parallelize the model
-            fully_shard(model.w1, mesh=dp_mesh)
-            fully_shard(model.w2, mesh=dp_mesh)
-            fully_shard(model.w3, mesh=dp_mesh)
-            fully_shard(model, mesh=dp_mesh)
-
-        return model
-
-By writing the parallelization code in a separate function rather than hardcoding it into the model, we keep the original source code clean and maintainable.
-In addition to the tensor-parallel code from the :doc:`Tensor Parallelism tutorial <tp>`, this function also shards the model's parameters using FSDP along the data-parallel dimension.
-
-Finally, pass the parallelization function to the :class:`~lightning.fabric.strategies.model_parallel.ModelParallelStrategy` and configure the data-parallel and tensor-parallel sizes:
+Next, we implement the LightningModule and override the :meth:`~lightning.pytorch.core.hooks.ModelHooks.configure_model` that applies the desired parallelism to our model.
 
 .. code-block:: python
 
     import lightning as L
-    from lightning.fabric.strategies import ModelParallelStrategy
+    from torch.distributed.tensor.parallel import ColwiseParallel, RowwiseParallel
+    from torch.distributed.tensor.parallel import parallelize_module
+    from torch.distributed._composable.fsdp.fully_shard import fully_shard
 
+
+    class LitModel(L.LightningModule):
+        def __init__(self):
+            super().__init__()
+            self.model = FeedForward(8192, 8192)
+
+        def configure_model(self):
+            # Lightning will set up a `self.device_mesh` for you
+            # Here, it is 2-dimensional
+            tp_mesh = self.device_mesh["tensor_parallel"]
+            dp_mesh = self.device_mesh["data_parallel"]
+
+            if tp_mesh.size() > 1:
+                # Use PyTorch's distributed tensor APIs to parallelize the model
+                plan = {
+                    "w1": ColwiseParallel(),
+                    "w2": RowwiseParallel(),
+                    "w3": ColwiseParallel(),
+                }
+                parallelize_module(self.model, tp_mesh, plan)
+
+            if dp_mesh.size() > 1:
+                # Use PyTorch's FSDP2 APIs to parallelize the model
+                fully_shard(self.model.w1, mesh=dp_mesh)
+                fully_shard(self.model.w2, mesh=dp_mesh)
+                fully_shard(self.model.w3, mesh=dp_mesh)
+                fully_shard(self.model, mesh=dp_mesh)
+
+By writing the parallelization code in this special hook rather than hardcoding it into the model, we keep the original source code clean and maintainable.
+In addition to the tensor-parallel code from the :doc:`Tensor Parallelism tutorial <tp>`, this implementation now also shards the model's parameters using FSDP along the data-parallel dimension.
+
+Finally, configure the :class:`~lightning.pytorch.strategies.model_parallel.ModelParallelStrategy` and configure the data-parallel and tensor-parallel sizes:
+
+.. code-block:: python
+
+    import lightning as L
+    from lightning.pytorch.strategies import ModelParallelStrategy
+
+    # 1. Create the strategy
     strategy = ModelParallelStrategy(
-        parallelize_fn=parallelize_feedforward,
         # Define the size of the 2D parallelism
         # Set these to "auto" (default) to apply TP intra-node and FSDP inter-node
         data_parallel_size=2,
         tensor_parallel_size=2,
     )
 
-    fabric = L.Fabric(accelerator="cuda", devices=4, strategy=strategy)
-    fabric.launch()
+    # 2. Configure devices and set the strategy in Trainer
+    trainer = L.Trainer(accelerator="cuda", devices=4, strategy=strategy)
+    trainer.fit(...)
 
 
-In this example with 4 GPUs, Fabric will create a device mesh that groups GPU 0-1 and GPU 2-3 (2 groups because ``data_parallel_size=2``, and 2 GPUs per group because ``tensor_parallel_size=2``).
-Later on when ``fabric.setup(model)`` is called, each layer wrapped with FSDP (``fully_shard``) will be split into two shards, one for the GPU 0-1 group, and one for the GPU 2-3 group.
+In this example with 4 GPUs, the Trainer will create a device mesh that groups GPU 0-1 and GPU 2-3 (2 groups because ``data_parallel_size=2``, and 2 GPUs per group because ``tensor_parallel_size=2``).
+Later on when ``trainer.fit(model)`` is called, each layer wrapped with FSDP (``fully_shard``) will be split into two shards, one for the GPU 0-1 group, and one for the GPU 2-3 group.
 Finally, the tensor parallelism will apply to each group, splitting the sharded tensor across the GPUs within each group.
-
 
 .. collapse:: Full training example (requires at least 4 GPUs).
 
@@ -110,7 +113,7 @@ Finally, the tensor parallelism will apply to each group, splitting the sharded 
 
         import lightning as L
         from lightning.pytorch.demos.boring_classes import RandomDataset
-        from lightning.fabric.strategies import ModelParallelStrategy
+        from lightning.pytorch.strategies import ModelParallelStrategy
 
 
         class FeedForward(nn.Module):
@@ -124,67 +127,72 @@ Finally, the tensor parallelism will apply to each group, splitting the sharded 
                 return self.w2(F.silu(self.w1(x)) * self.w3(x))
 
 
-        def parallelize_feedforward(model, device_mesh):
-            # Lightning will set up a device mesh for you
-            # Here, it is 2-dimensional
-            tp_mesh = device_mesh["tensor_parallel"]
-            dp_mesh = device_mesh["data_parallel"]
+        class LitModel(L.LightningModule):
+            def __init__(self):
+                super().__init__()
+                self.model = FeedForward(8192, 8192)
 
-            if tp_mesh.size() > 1:
-                # Use PyTorch's distributed tensor APIs to parallelize the model
-                plan = {
-                    "w1": ColwiseParallel(),
-                    "w2": RowwiseParallel(),
-                    "w3": ColwiseParallel(),
-                }
-                parallelize_module(model, tp_mesh, plan)
+            def configure_model(self):
+                if self.device_mesh is None:
+                    return
 
-            if dp_mesh.size() > 1:
-                # Use PyTorch's FSDP2 APIs to parallelize the model
-                fully_shard(model.w1, mesh=dp_mesh)
-                fully_shard(model.w2, mesh=dp_mesh)
-                fully_shard(model.w3, mesh=dp_mesh)
-                fully_shard(model, mesh=dp_mesh)
+                # Lightning will set up a `self.device_mesh` for you
+                # Here, it is 2-dimensional
+                tp_mesh = self.device_mesh["tensor_parallel"]
+                dp_mesh = self.device_mesh["data_parallel"]
 
-            return model
+                if tp_mesh.size() > 1:
+                    # Use PyTorch's distributed tensor APIs to parallelize the model
+                    plan = {
+                        "w1": ColwiseParallel(),
+                        "w2": RowwiseParallel(),
+                        "w3": ColwiseParallel(),
+                    }
+                    parallelize_module(self.model, tp_mesh, plan)
+
+                if dp_mesh.size() > 1:
+                    # Use PyTorch's FSDP2 APIs to parallelize the model
+                    fully_shard(self.model.w1, mesh=dp_mesh)
+                    fully_shard(self.model.w2, mesh=dp_mesh)
+                    fully_shard(self.model.w3, mesh=dp_mesh)
+                    fully_shard(self.model, mesh=dp_mesh)
+
+
+            def training_step(self, batch):
+                output = self.model(batch)
+                loss = output.sum()
+                return loss
+
+            def configure_optimizers(self):
+                return torch.optim.AdamW(self.model.parameters(), lr=3e-3)
+
+            def train_dataloader(self):
+                # Trainer configures the sampler automatically for you such that
+                # all batches in a tensor-parallel group are identical
+                dataset = RandomDataset(8192, 64)
+                return torch.utils.data.DataLoader(dataset, batch_size=8, num_workers=2)
 
 
         strategy = ModelParallelStrategy(
-            parallelize_fn=parallelize_feedforward,
             data_parallel_size=2,
             tensor_parallel_size=2,
         )
+        trainer = L.Trainer(
+            accelerator="cuda",
+            devices=4,
+            strategy=strategy,
+            max_epochs=1,
+        )
 
-        fabric = L.Fabric(accelerator="cuda", devices=4, strategy=strategy)
-        fabric.launch()
+        model = LitModel()
+        trainer.fit(model)
 
-        # Initialize the model
-        model = FeedForward(8192, 8192)
-        model = fabric.setup(model)
+        trainer.print(f"Peak memory usage: {torch.cuda.max_memory_allocated() / 1e9:.02f} GB")
 
-        # Define the optimizer
-        optimizer = torch.optim.AdamW(model.parameters(), lr=3e-3)
-        optimizer = fabric.setup_optimizers(optimizer)
-
-        # Define dataset/dataloader
-        dataset = RandomDataset(8192, 128)
-        dataloader = torch.utils.data.DataLoader(dataset, batch_size=8)
-        dataloader = fabric.setup_dataloaders(dataloader)
-
-        # Simplified training loop
-        for i, batch in enumerate(dataloader):
-            output = model(batch)
-            loss = output.sum()
-            fabric.backward(loss)
-            optimizer.step()
-            optimizer.zero_grad()
-            fabric.print(f"Iteration {i} complete")
-
-        fabric.print(f"Peak memory usage: {torch.cuda.max_memory_allocated() / 1e9:.02f} GB")
 
 |
 
-Beyond this toy example, we recommend you study our `LLM 2D Parallel Example (Llama 3) <https://github.com/Lightning-AI/pytorch-lightning/tree/master/examples/fabric/tensor_parallel>`_.
+Beyond this toy example, we recommend you study our `LLM 2D Parallel Example (Llama 3) <https://github.com/Lightning-AI/pytorch-lightning/tree/master/examples/pytorch/tensor_parallel>`_.
 
 
 ----
@@ -203,7 +211,7 @@ Hence, combining FSDP for inter-node parallelism and TP for intra-node paralleli
 
 .. code-block:: python
 
-    from lightning.fabric.strategies import ModelParallelStrategy
+    from lightning.pytorch.strategies import ModelParallelStrategy
 
     strategy = ModelParallelStrategy(
         # Default is "auto"
@@ -224,7 +232,7 @@ In a tensor-parallelized model, it is important that the model receives an ident
 However, across the data-parallel dimension, the inputs should be different.
 In other words, if TP is applied within a node, and FSDP across nodes, each node must receive a different batch, but every GPU within the node gets the same batch of data.
 
-If you use a PyTorch data loader and set it up using :meth:`~lightning.fabric.fabric.Fabric.setup_dataloaders`, Fabric will automatically handle this for you by configuring the distributed sampler.
+If you use a PyTorch data loader, the Trainer will automatically handle this for you by configuring the distributed sampler.
 However, when you shuffle data in your dataset or data loader, or when applying randomized transformations/augmentations in your data, you must still ensure that the seed is set appropriately.
 
 
@@ -232,22 +240,20 @@ However, when you shuffle data in your dataset or data loader, or when applying 
 
     import lightning as L
 
-    fabric = L.Fabric(...)
+    trainer = L.Trainer(...)
 
     # Define dataset/dataloader
     # If there is randomness/augmentation in the dataset, fix the seed
     dataset = MyDataset(seed=42)
     dataloader = DataLoader(dataset, batch_size=8, shuffle=True)
 
-    # Fabric configures the sampler automatically for you such that
+    # PyTorch Lightning configures the sampler automatically for you such that
     # all batches in a tensor-parallel group are identical,
     # while still sharding the dataset across the data-parallel group
-    dataloader = fabric.setup_dataloaders(dataloader)
+    trainer.fit(model, dataloader)
 
     for i, batch in enumerate(dataloader):
         ...
-
-
 
 
 ----
@@ -266,7 +272,7 @@ Next steps
     :header: LLM 2D Parallel Example
     :description: Full example how to combine TP + FSDP in a large language model (Llama 3)
     :col_css: col-md-4
-    :button_link: https://github.com/Lightning-AI/pytorch-lightning/tree/master/examples/fabric/tensor_parallel
+    :button_link: https://github.com/Lightning-AI/pytorch-lightning/tree/master/examples/pytorch/tensor_parallel
     :height: 160
     :tag: advanced
 
