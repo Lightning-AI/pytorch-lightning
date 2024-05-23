@@ -41,11 +41,6 @@ version = lightning.__version__
 # The full version, including alpha/beta/rc tags
 release = lightning.__version__
 
-# Options for the linkcode extension
-# ----------------------------------
-github_user = "Lightning-AI"
-github_repo = project
-
 # -- Project documents -------------------------------------------------------
 
 if _FETCH_S3_ASSETS:
@@ -71,7 +66,7 @@ extensions = [
     "sphinx_toolbox.collapse",
     "sphinx.ext.todo",
     "sphinx.ext.coverage",
-    "sphinx.ext.linkcode",
+    # "sphinx.ext.linkcode",
     "sphinx.ext.autosummary",
     "sphinx.ext.napoleon",
     # 'sphinxcontrib.mockautodoc',  # raises error: directive 'automodule' is already registered ...
@@ -324,15 +319,6 @@ def setup(app):
     app.add_js_file("copybutton.js")
     app.add_css_file("main.css")
 
-
-# copy all notebooks to local folder
-path_nbs = os.path.join(_PATH_HERE, "notebooks")
-if not os.path.isdir(path_nbs):
-    os.mkdir(path_nbs)
-for path_ipynb in glob.glob(os.path.join(_PATH_ROOT, "notebooks", "*.ipynb")):
-    path_ipynb2 = os.path.join(path_nbs, os.path.basename(path_ipynb))
-    shutil.copy(path_ipynb, path_ipynb2)
-
 # copy all examples to local folder
 path_examples = os.path.join(_PATH_HERE, "..", "examples")
 if not os.path.isdir(path_examples):
@@ -368,44 +354,6 @@ if _SPHINX_MOCK_REQUIREMENTS:
 MOCK_PACKAGES = [PACKAGE_MAPPING.get(pkg, pkg) for pkg in MOCK_PACKAGES]
 
 autodoc_mock_imports = MOCK_PACKAGES
-
-
-# Resolve function
-# This function is used to populate the (source-app) links in the API
-def linkcode_resolve(domain, info):
-    def find_source():
-        # try to find the file and line number, based on code from numpy:
-        # https://github.com/numpy/numpy/blob/master/doc/source/conf.py#L286
-        obj = sys.modules[info["module"]]
-        for part in info["fullname"].split("."):
-            obj = getattr(obj, part)
-        fname = inspect.getsourcefile(obj)
-        # https://github.com/rtfd/readthedocs.org/issues/5735
-        if any(s in fname for s in ("readthedocs", "rtfd", "checkouts")):
-            # /home/docs/checkouts/readthedocs.org/user_builds/pytorch_lightning/checkouts/
-            #  devel/pytorch_lightning/utilities/cls_experiment.py#L26-L176
-            path_top = os.path.abspath(os.path.join("..", "..", ".."))
-            fname = os.path.relpath(fname, start=path_top)
-        else:
-            # Local build, imitate master
-            fname = "master/" + os.path.relpath(fname, start=os.path.abspath(".."))
-        source, lineno = inspect.getsourcelines(obj)
-        return fname, lineno, lineno + len(source) - 1
-
-    if domain != "py" or not info["module"]:
-        return None
-    try:
-        filename = "%s#L%d-L%d" % find_source()
-    except Exception:
-        filename = info["module"].replace(".", "/") + ".py"
-    # import subprocess
-    # tag = subprocess.Popen(['git', 'rev-parse', 'HEAD'], stdout=subprocess.PIPE,
-    #                        universal_newlines=True).communicate()[0][:-1]
-    branch = filename.split("/")[0]
-    # do mapping from latest tags to master
-    branch = {"latest": "master", "stable": "master"}.get(branch, branch)
-    filename = "/".join([branch] + filename.split("/")[1:])
-    return f"https://github.com/{github_user}/{github_repo}/blob/{filename}"
 
 
 autosummary_generate = True
