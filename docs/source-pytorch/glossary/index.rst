@@ -3,6 +3,7 @@
    :maxdepth: 1
    :hidden:
 
+   2D Parallelism <../advanced/model_parallel/tp_fsdp>
    Accelerators <../extensions/accelerator>
    Callback <../extensions/callbacks>
    Checkpointing <../common/checkpointing>
@@ -58,6 +59,13 @@ Glossary
 
     <div class="display-card-container">
         <div class="row">
+
+.. displayitem::
+   :header: 2D Parallelism
+   :description: Combine Tensor Parallelism with FSDP (2D Parallel) to train efficiently on 100s of GPUs
+   :col_css: col-md-12
+   :button_link: ../advanced/model_parallel/tp_fsdp.html
+   :height: 100
 
 .. displayitem::
    :header: Accelerators
