@@ -123,6 +123,7 @@ Now, when implementing the LightningModule, override the :meth:`~lightning.pytor
         def train_dataloader(self):
             ...
 
+By writing the parallelization code in this special hook rather than hardcoding it into the model, we keep the original source code clean and maintainable.
 Next, configure the :class:`~lightning.pytorch.strategies.model_parallel.ModelParallelStrategy` in the Trainer:
 
 .. code-block:: python
