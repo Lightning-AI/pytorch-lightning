@@ -66,14 +66,13 @@ Note that activation functions between the layers can still be applied without a
 Apply tensor parallelism to a model
 ***********************************
 
-To apply tensor parallelism to a model with Fabric, you need a good understanding of your model's architecture to make the decision of where to apply the parallel styles you've seen above.
+To apply tensor parallelism to a LightningModule, you need a good understanding of your model's architecture to make the decision of where to apply the parallel styles you've seen above.
 Let's start with a simple MLP toy example:
 
 .. code-block:: python
 
     import torch.nn as nn
     import torch.nn.functional as F
-
 
     class FeedForward(nn.Module):
         def __init__(self, dim, hidden_dim):
@@ -90,43 +89,56 @@ This model has three linear layers. Layers ``w1`` and ``w3`` produce an output t
 That output is then fed into layer ``w2``.
 Therefore, ``w1`` and ``w3`` are suitable candidates for column-wise parallelism, because their output(s) can easily be combined with ``w2`` in row-wise fashion.
 
-In Fabric, define a function that applies the tensor parallelism to the model:
-
-.. code-block:: python
-
-    from torch.distributed.tensor.parallel import ColwiseParallel, RowwiseParallel
-    from torch.distributed.tensor.parallel import parallelize_module
-
-
-    def parallelize_feedforward(model, device_mesh):
-        # Lightning will set up a device mesh for you
-        tp_mesh = device_mesh["tensor_parallel"]
-        # Use PyTorch's distributed tensor APIs to parallelize the model
-        plan = {
-            "w1": ColwiseParallel(),
-            "w2": RowwiseParallel(),
-            "w3": ColwiseParallel(),
-        }
-        parallelize_module(model, tp_mesh, plan)
-        return model
-
-Next, configure the :class:`~lightning.fabric.strategies.model_parallel.ModelParallelStrategy` in Fabric:
+Now, when implementing the LightningModule, override the :meth:`~lightning.pytorch.core.hooks.ModelHooks.configure_model` hook and apply the tensor parallelism to the model:
 
 .. code-block:: python
 
     import lightning as L
-    from lightning.fabric.strategies import ModelParallelStrategy
+    from torch.distributed.tensor.parallel import ColwiseParallel, RowwiseParallel
+    from torch.distributed.tensor.parallel import parallelize_module
 
-    # 1. Pass the parallelization function to the strategy
-    strategy = ModelParallelStrategy(parallelize_fn=parallelize_feedforward)
 
-    # 2. Configure devices and set the strategy in Fabric
-    fabric = L.Fabric(accelerator="cuda", devices=2, strategy=strategy)
-    fabric.launch()
+    class LitModel(L.LightningModule):
+        def __init__(self):
+            super().__init__()
+            self.model = FeedForward(8192, 8192)
 
-The strategy takes the custom parallelization function as input.
+        def configure_model(self):
+            # Lightning will set up a `self.device_mesh` for you
+            tp_mesh = self.device_mesh["tensor_parallel"]
+            # Use PyTorch's distributed tensor APIs to parallelize the model
+            plan = {
+                "w1": ColwiseParallel(),
+                "w2": RowwiseParallel(),
+                "w3": ColwiseParallel(),
+            }
+            parallelize_module(self.model, tp_mesh, plan)
+
+        def training_step(self, batch):
+            ...
+
+        def configure_optimizers(self):
+            ...
+
+        def train_dataloader(self):
+            ...
+
+Next, configure the :class:`~lightning.pytorch.strategies.model_parallel.ModelParallelStrategy` in the Trainer:
+
+.. code-block:: python
+
+    import lightning as L
+    from lightning.pytorch.strategies import ModelParallelStrategy
+
+    # 1. Create the strategy
+    strategy = ModelParallelStrategy()
+
+    # 2. Configure devices and set the strategy in Trainer
+    trainer = L.Trainer(accelerator="cuda", devices=2, strategy=strategy)
+    trainer.fit(...)
+
 No other changes to your training code are necessary at this point.
-Later in the code, when you call ``fabric.setup(model)``, Fabric will apply the ``parallelize_feedforward`` function to the model automatically.
+When ``trainer.fit(...)`` (or ``validate()``, ``test``, etc.) gets called, the Trainer will call your :meth:`~lightning.pytorch.core.hooks.ModelHooks.configure_model` hook before the training loop starts.
 
 .. collapse:: Full training example (requires at least 2 GPUs).
 
@@ -141,7 +153,7 @@ Later in the code, when you call ``fabric.setup(model)``, Fabric will apply the 
 
         import lightning as L
         from lightning.pytorch.demos.boring_classes import RandomDataset
-        from lightning.fabric.strategies import ModelParallelStrategy
+        from lightning.pytorch.strategies import ModelParallelStrategy
 
 
         class FeedForward(nn.Module):
@@ -155,46 +167,52 @@ Later in the code, when you call ``fabric.setup(model)``, Fabric will apply the 
                 return self.w2(F.silu(self.w1(x)) * self.w3(x))
 
 
-        def parallelize_feedforward(model, device_mesh):
-            # Lightning will set up a device mesh for you
-            tp_mesh = device_mesh["tensor_parallel"]
-            # Use PyTorch's distributed tensor APIs to parallelize the model
-            plan = {
-                "w1": ColwiseParallel(),
-                "w2": RowwiseParallel(),
-                "w3": ColwiseParallel(),
-            }
-            parallelize_module(model, tp_mesh, plan)
-            return model
+        class LitModel(L.LightningModule):
+            def __init__(self):
+                super().__init__()
+                self.model = FeedForward(8192, 8192)
+
+            def configure_model(self):
+                if self.device_mesh is None:
+                    return
+
+                # Lightning will set up a `self.device_mesh` for you
+                tp_mesh = self.device_mesh["tensor_parallel"]
+                # Use PyTorch's distributed tensor APIs to parallelize the model
+                plan = {
+                    "w1": ColwiseParallel(),
+                    "w2": RowwiseParallel(),
+                    "w3": ColwiseParallel(),
+                }
+                parallelize_module(self.model, tp_mesh, plan)
+
+            def training_step(self, batch):
+                output = self.model(batch)
+                loss = output.sum()
+                return loss
+
+            def configure_optimizers(self):
+                return torch.optim.AdamW(self.model.parameters(), lr=3e-3)
+
+            def train_dataloader(self):
+                # Trainer configures the sampler automatically for you such that
+                # all batches in a tensor-parallel group are identical
+                dataset = RandomDataset(8192, 64)
+                return torch.utils.data.DataLoader(dataset, batch_size=8, num_workers=2)
 
 
-        strategy = ModelParallelStrategy(parallelize_fn=parallelize_feedforward)
-        fabric = L.Fabric(accelerator="cuda", devices=2, strategy=strategy)
-        fabric.launch()
+        strategy = ModelParallelStrategy()
+        trainer = L.Trainer(
+            accelerator="cuda",
+            devices=2,
+            strategy=strategy,
+            max_epochs=1,
+        )
 
-        # Initialize the model
-        model = FeedForward(8192, 8192)
-        model = fabric.setup(model)
+        model = LitModel()
+        trainer.fit(model)
 
-        # Define the optimizer
-        optimizer = torch.optim.AdamW(model.parameters(), lr=3e-3)
-        optimizer = fabric.setup_optimizers(optimizer)
-
-        # Define dataset/dataloader
-        dataset = RandomDataset(8192, 64)
-        dataloader = torch.utils.data.DataLoader(dataset, batch_size=8)
-        dataloader = fabric.setup_dataloaders(dataloader)
-
-        # Simplified training loop
-        for i, batch in enumerate(dataloader):
-            output = model(batch)
-            loss = output.sum()
-            fabric.backward(loss)
-            optimizer.step()
-            optimizer.zero_grad()
-            fabric.print(f"Iteration {i} complete")
-
-        fabric.print(f"Peak memory usage: {torch.cuda.max_memory_allocated() / 1e9:.02f} GB")
+        trainer.print(f"Peak memory usage: {torch.cuda.max_memory_allocated() / 1e9:.02f} GB")
 
 |
 
@@ -216,7 +234,7 @@ When measuring the peak memory consumption, we should see that doubling the numb
      - 1.02 GB
      - 0.60 GB
 
-Beyond this toy example, we recommend you study our `LLM Tensor Parallel Example (Llama 3) <https://github.com/Lightning-AI/pytorch-lightning/tree/master/examples/fabric/tensor_parallel>`_.
+Beyond this toy example, we recommend you study our `LLM Tensor Parallel Example (Llama 3) <https://github.com/Lightning-AI/pytorch-lightning/tree/master/examples/pytorch/tensor_parallel>`_.
 
 
 ----
@@ -250,7 +268,7 @@ Next steps
     :header: LLM Tensor Parallel Example
     :description: Full example how to apply tensor parallelism to a large language model (Llama 3)
     :col_css: col-md-4
-    :button_link: https://github.com/Lightning-AI/pytorch-lightning/tree/master/examples/fabric/tensor_parallel
+    :button_link: https://github.com/Lightning-AI/pytorch-lightning/tree/master/examples/pytorch/tensor_parallel
     :height: 160
     :tag: advanced
 
