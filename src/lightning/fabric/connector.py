@@ -461,15 +461,11 @@ class _Connector:
             return DeepSpeedPrecision(self._precision_input)  # type: ignore
         if isinstance(self.strategy, FSDPStrategy):
             return FSDPPrecision(precision=self._precision_input)  # type: ignore[arg-type]
-        if isinstance(self.strategy, ModelParallelStrategy) and self._precision_input not in (
-            "32-true",
-            "bf16-mixed",
-            "bf16-true",
-            "16-true",
-        ):
+        mp_precision_supported = ("32-true", "bf16-mixed", "bf16-true", "16-true")
+        if isinstance(self.strategy, ModelParallelStrategy) and self._precision_input not in mp_precision_supported:
             raise ValueError(
                 f"The `ModelParallelStrategy` does not support `Fabric(..., precision={self._precision_input!r})`."
-                " Choose a different precision."
+                f" Choose a different precision among: {', '.join(mp_precision_supported)}."
             )
         if self._precision_input in ("16-true", "bf16-true"):
             return HalfPrecision(self._precision_input)  # type: ignore
