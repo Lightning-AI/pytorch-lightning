@@ -530,7 +530,10 @@ class _AcceleratorConnector:
         ):
             raise RuntimeError("Bitsandbytes is only supported on CUDA GPUs.")
         mp_precision_supported = ("32-true", "bf16-mixed", "bf16-true", "16-true")
-        if isinstance(self._strategy_flag, ModelParallelStrategy) and self._precision_flag not in mp_precision_supported:
+        if (
+            isinstance(self._strategy_flag, ModelParallelStrategy)
+            and self._precision_flag not in mp_precision_supported
+        ):
             raise ValueError(
                 f"The `ModelParallelStrategy` does not support `Fabric(..., precision={self._precision_flag!r})`."
                 f" Choose a different precision among: {', '.join(mp_precision_supported)}."
