@@ -21,7 +21,6 @@ We will start off with the same feed forward example model as in the :doc:`Tenso
 
 .. code-block:: python
 
-    import torch
     import torch.nn as nn
     import torch.nn.functional as F
 
@@ -164,7 +163,7 @@ Finally, the tensor parallelism will apply to each group, splitting the sharded 
         model = fabric.setup(model)
 
         # Define the optimizer
-        optimizer = torch.optim.AdamW(model.parameters(), lr=3e-3, foreach=True)
+        optimizer = torch.optim.AdamW(model.parameters(), lr=3e-3)
         optimizer = fabric.setup_optimizers(optimizer)
 
         # Define dataset/dataloader

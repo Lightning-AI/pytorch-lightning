@@ -82,7 +82,6 @@ Get started
 .. displayitem::
     :header: Pipeline Parallelism
     :description: Coming soon
-    :button_link:
     :col_css: col-md-4
     :height: 180
     :tag: advanced
@@ -158,6 +157,6 @@ Parallelisms compared
 
 |
 
-Lightning Fabric supports all the parallelisms mentioned above natively through PyTorch, with the exception of pipeline parallelism (PP) which is not yet supported.
+PyTorch Lightning supports all the parallelisms mentioned above natively through PyTorch, with the exception of pipeline parallelism (PP) which is not yet supported.
 
 |
