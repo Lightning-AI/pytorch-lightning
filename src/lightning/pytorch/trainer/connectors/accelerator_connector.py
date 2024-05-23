@@ -529,6 +529,14 @@ class _AcceleratorConnector:
             self.accelerator, CUDAAccelerator
         ):
             raise RuntimeError("Bitsandbytes is only supported on CUDA GPUs.")
+        if isinstance(self._strategy_flag, ModelParallelStrategy) and self._precision_flag not in (
+            "32-true", "bf16-mixed", "bf16-true", "16-true"
+        ):
+            raise ValueError(
+                f"The `ModelParallelStrategy` does not support `Trainer(..., precision={self._precision_flag!r})`."
+                " Choose a different precision."
+            )
+            
         if _habana_available_and_importable():
             from lightning_habana import HPUAccelerator
 

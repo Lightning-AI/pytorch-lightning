@@ -241,9 +241,7 @@ def _train(fabric, model=None, optimizer=None):
 @pytest.mark.parametrize(
     "precision",
     [
-        pytest.param(
-            "16-mixed", marks=pytest.mark.xfail(reason="Precision plugin does not implement ShardedGradScaler yet")
-        ),
+        pytest.param("32-true"),
         pytest.param("bf16-mixed", marks=RunIf(bf16_cuda=True)),
     ],
 )
@@ -548,7 +546,6 @@ def _parallelize_single_linear_tp_fsdp2(model, device_mesh):
     "precision",
     [
         "32-true",
-        pytest.param("16-mixed"),
         pytest.param("bf16-mixed", marks=RunIf(bf16_cuda=True)),
     ],
 )
@@ -556,18 +553,10 @@ def _parallelize_single_linear_tp_fsdp2(model, device_mesh):
     "clip_type",
     [
         pytest.param("norm", marks=pytest.mark.skip("Gradient clipping by norm is not correct.")),
-        pytest.param(
-            "val",
-            marks=pytest.mark.xfail(
-                raises=RecursionError, strict=False, reason="Recursion error when clipping DTensor"
-            ),
-        ),
+        "val",
     ],
 )
 def test_clip_gradients(clip_type, precision):
-    if clip_type == "norm" and precision == "16-mixed":
-        pytest.skip(reason="Clipping by norm with 16-mixed is numerically unstable.")
-
     strategy = ModelParallelStrategy(_parallelize_single_linear_tp_fsdp2)
     fabric = Fabric(accelerator="auto", devices=2, precision=precision, strategy=strategy)
     fabric.launch()
