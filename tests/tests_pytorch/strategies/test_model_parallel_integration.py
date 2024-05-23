@@ -11,6 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import os
+from pathlib import Path
+
 import pytest
 import torch
 import torch.nn as nn
@@ -338,3 +341,169 @@ def test_module_init_context(precision, expected_dtype, tmp_path):
 
     # Case 2: Empty-init with PyTorch >= 2.1 supports meta device
     _run_setup_assertions(empty_init=True, expected_device=torch.device("meta"))
+
+
+@RunIf(min_torch="2.3", min_cuda_gpus=2, skip_windows=True, standalone=True)
+@pytest.mark.parametrize("save_distributed_checkpoint", [True, False])
+def test_strategy_state_dict(tmp_path, save_distributed_checkpoint):
+    """Test that the strategy returns the correct state dict of the LightningModule."""
+    model = FSDP2Model()
+    correct_state_dict = model.state_dict()  # State dict before wrapping
+
+    strategy = ModelParallelStrategy(save_distributed_checkpoint=save_distributed_checkpoint)
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        accelerator="cuda",
+        devices=2,
+        strategy=strategy,
+        max_epochs=1,
+        barebones=True,
+    )
+    trainer.fit(model)
+
+    state_dict = trainer.strategy.lightning_module_state_dict()
+
+    if save_distributed_checkpoint:
+        # All ranks return a state dict
+        assert len(state_dict) > 0
+        # State dict should contain same keys as non-distributed state dict
+        assert list(state_dict.keys()) == list(correct_state_dict.keys())
+    else:
+        if trainer.global_rank != 0:
+            # The full state-dict is only returned on rank 0
+            assert len(state_dict) == 0
+            return
+        # State dict should contain same keys as non-distributed state dict
+        assert list(state_dict.keys()) == list(correct_state_dict.keys())
+
+
+@RunIf(min_torch="2.3", min_cuda_gpus=2, skip_windows=True, standalone=True)
+def test_load_full_state_checkpoint_into_regular_model(tmp_path):
+    """Test that a full-state checkpoint saved from a distributed model can be loaded back into a regular model."""
+
+    # Save a regular full-state checkpoint from a distributed model
+    model = FSDP2Model()
+    strategy = ModelParallelStrategy(save_distributed_checkpoint=False)
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        accelerator="gpu",
+        devices=2,
+        strategy=strategy,
+        max_epochs=1,
+        barebones=True,
+    )
+    trainer.fit(model)
+    model_path = tmp_path / "last.ckpt"
+    model_path = trainer.strategy.broadcast(model_path)
+    trainer.save_checkpoint(model_path)
+    model_state_dict = trainer.strategy.lightning_module_state_dict()
+    optimizer_state_dict = trainer.strategy.optimizer_state(model.optimizers())
+
+    if trainer.global_rank != 0:
+        assert len(model_state_dict) == 0
+        assert len(optimizer_state_dict) == 0
+
+    # Create a regular model and load the checkpoint into it
+    model = TemplateModel()
+    trainer = Trainer(default_root_dir=tmp_path, accelerator="gpu", devices=2, strategy="ddp", max_epochs=1)
+    trainer.fit(model, ckpt_path=model_path)
+    restored_model_state_dict = trainer.strategy.lightning_module_state_dict()
+    restored_optimizer_state_dict = trainer.strategy.optimizer_state(model.optimizers())
+
+    if trainer.global_rank == 0:
+        assert len(model_state_dict) == len(restored_model_state_dict)
+        assert len(optimizer_state_dict) == len(restored_optimizer_state_dict)
+        torch.testing.assert_close(model_state_dict, restored_model_state_dict, atol=0, rtol=0)
+        torch.testing.assert_close(optimizer_state_dict, restored_optimizer_state_dict, atol=0, rtol=0)
+    trainer.strategy.barrier()
+
+
+@RunIf(min_torch="2.4", min_cuda_gpus=2, skip_windows=True, standalone=True)
+def test_load_standard_checkpoint_into_distributed_model(tmp_path):
+    """Test that a regular checkpoint (weights and optimizer states) can be loaded into a distributed model."""
+
+    # Save a regular DDP checkpoint
+    model = TemplateModel()
+    trainer = Trainer(default_root_dir=tmp_path, accelerator="gpu", devices=2, strategy="ddp", max_epochs=1)
+    trainer.fit(model)
+    model_path = tmp_path / "last.ckpt"
+    model_path = trainer.strategy.broadcast(model_path)
+    trainer.save_checkpoint(model_path)
+    model_state_dict = trainer.strategy.lightning_module_state_dict()
+    optimizer_state_dict = trainer.strategy.optimizer_state(model.optimizers())
+
+    # Create a distributed model and load the checkpoint into it
+    model = FSDP2Model()
+    strategy = ModelParallelStrategy(save_distributed_checkpoint=False)
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        accelerator="gpu",
+        devices=2,
+        strategy=strategy,
+        max_epochs=1,
+        barebones=True,
+    )
+    trainer.fit(model, ckpt_path=model_path)
+    restored_model_state_dict = trainer.strategy.lightning_module_state_dict()
+    restored_optimizer_state_dict = trainer.strategy.optimizer_state(model.optimizers())
+
+    if trainer.global_rank != 0:
+        assert len(restored_model_state_dict) == 0
+        assert len(restored_optimizer_state_dict) == 0
+    if trainer.global_rank == 0:
+        assert len(model_state_dict) == len(restored_model_state_dict)
+        assert len(optimizer_state_dict) == len(restored_optimizer_state_dict)
+        torch.testing.assert_close(model_state_dict, restored_model_state_dict, atol=0, rtol=0)
+        torch.testing.assert_close(optimizer_state_dict, restored_optimizer_state_dict, atol=0, rtol=0)
+    trainer.strategy.barrier()
+
+
+@RunIf(min_torch="2.4", min_cuda_gpus=2, standalone=True)
+def test_save_load_sharded_state_dict(tmp_path):
+    """Test saving and loading with the distributed state dict format."""
+
+    class CheckpointModel(FSDP2Model):
+        def __init__(self, params_to_compare=None):
+            super().__init__()
+            self.params_to_compare = params_to_compare
+
+        def on_train_start(self):
+            if self.params_to_compare is None:
+                return
+            for p0, p1 in zip(self.params_to_compare, self.trainer.model.parameters()):
+                assert torch.equal(p0, p1.full_tensor())
+
+    seed_everything(0)
+
+    strategy = ModelParallelStrategy(save_distributed_checkpoint=True)
+    trainer_kwargs = {
+        "default_root_dir": tmp_path,
+        "accelerator": "cuda",
+        "devices": 2,
+        "max_epochs": 1,
+        "enable_progress_bar": False,
+        "enable_model_summary": False,
+        "logger": False,
+    }
+
+    # Initial training
+    model = CheckpointModel()
+    trainer = Trainer(**trainer_kwargs, strategy=strategy)
+    trainer.fit(model)
+    params_before = [p.full_tensor() for p in trainer.model.parameters()]
+
+    checkpoint_path = Path(trainer.strategy.broadcast(trainer.checkpoint_callback.best_model_path))
+    assert set(os.listdir(checkpoint_path)) == {"meta.pt", ".metadata", "__0_0.distcp", "__1_0.distcp"}
+
+    metadata = torch.load(checkpoint_path / "meta.pt")
+    assert "pytorch-lightning_version" in metadata
+    assert len(metadata["callbacks"]) == 1  # model checkpoint callback
+    assert "state_dict" not in metadata
+    assert "optimizer_states" not in metadata
+
+    # Load checkpoint and continue training
+    trainer_kwargs.update(max_epochs=2)
+    model = CheckpointModel(params_to_compare=params_before)
+    strategy = ModelParallelStrategy(save_distributed_checkpoint=True)
+    trainer = Trainer(**trainer_kwargs, strategy=strategy)
+    trainer.fit(model, ckpt_path=checkpoint_path)

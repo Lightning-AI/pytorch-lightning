@@ -412,6 +412,7 @@ def _load_checkpoint(
     path: Path,
     state: Dict[str, Union[Module, Optimizer, Any]],
     strict: bool = True,
+    optimizer_states_from_list: bool = False,
 ) -> Dict[str, Any]:
     from torch.distributed.checkpoint.state_dict import (
         StateDictOptions,
@@ -473,8 +474,15 @@ def _load_checkpoint(
             full_state_dict=True,
             strict=strict,
         )
-        for optimizer_name, optimizer in optimizers.items():
-            optimizer_state = _rekey_optimizer_state_if_needed(checkpoint.pop(optimizer_name), module)
+        for optimizer_idx, (optimizer_name, optimizer) in enumerate(optimizers.items()):
+            if optimizer_states_from_list:
+                # This code path is only used by `lightning.pytorch`, which saves optimizer states as a list
+                # rather than individual states at the top level.
+                optimizer_state = checkpoint["optimizer_states"][optimizer_idx]
+            else:
+                optimizer_state = checkpoint.pop(optimizer_name)
+
+            optimizer_state = _rekey_optimizer_state_if_needed(optimizer_state, module)
             set_optimizer_state_dict(
                 module,
                 optimizer,
