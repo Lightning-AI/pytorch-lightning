@@ -23,7 +23,6 @@ import lightning.fabric
 import pytest
 import torch
 import torch.distributed
-
 from lightning.fabric import Fabric
 from lightning.fabric.accelerators import XLAAccelerator
 from lightning.fabric.accelerators.accelerator import Accelerator
@@ -869,9 +868,10 @@ def test_precision_selection_amp_ddp(strategy, devices, is_custom_plugin, plugin
     assert isinstance(connector.precision, plugin_cls)
 
 
-@pytest.mark.parametrize(("precision", "raises"), [
-    ("32-true", False), ("16-true", False), ("bf16-true", False), ("16-mixed", True), ("bf16-mixed", False)
-])
+@pytest.mark.parametrize(
+    ("precision", "raises"),
+    [("32-true", False), ("16-true", False), ("bf16-true", False), ("16-mixed", True), ("bf16-mixed", False)],
+)
 @mock.patch("lightning.fabric.accelerators.mps.MPSAccelerator.is_available", return_value=False)
 def test_precision_selection_model_parallel(_, precision, raises):
     error_context = pytest.raises(ValueError, match=f"does not support .*{precision}") if raises else nullcontext()

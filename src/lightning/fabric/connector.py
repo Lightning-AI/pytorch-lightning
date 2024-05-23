@@ -462,7 +462,10 @@ class _Connector:
         if isinstance(self.strategy, FSDPStrategy):
             return FSDPPrecision(precision=self._precision_input)  # type: ignore[arg-type]
         if isinstance(self.strategy, ModelParallelStrategy) and self._precision_input not in (
-            "32-true", "bf16-mixed", "bf16-true", "16-true"
+            "32-true",
+            "bf16-mixed",
+            "bf16-true",
+            "16-true",
         ):
             raise ValueError(
                 f"The `ModelParallelStrategy` does not support `Fabric(..., precision={self._precision_input!r})`."
