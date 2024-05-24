@@ -12,10 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-[metadata]
+[project]
 name = "lightning"
-author = "Lightning-AI et al."
-url = "https://github.com/Lightning-AI/lightning"
+dynamic = ["version"]
+authors = [{name = "Lightning-AI et al."}]
+readme = "README.md"
+license = {file = "LICENSE"}
+
+[project.urls]
+repository = "https://github.com/Lightning-AI/lightning"
 
 [build-system]
 requires = [
