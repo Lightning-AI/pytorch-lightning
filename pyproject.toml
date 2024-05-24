@@ -12,24 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-[project]
-name = "lightning"
-dynamic = [
-    "classifiers",
-    "description",
-    "dependencies",
-    "keywords",
-    "optional-dependencies",
-    "readme",
-    "requires-python",
-    "version",
-]
-authors = [{name = "Lightning-AI et al."}]
-license = {file = "LICENSE"}
-
-[project.urls]
-repository = "https://github.com/Lightning-AI/lightning"
-
 [build-system]
 requires = [
     "setuptools",
