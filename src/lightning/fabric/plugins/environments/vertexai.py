@@ -4,7 +4,7 @@ import json
 from lightning.fabric.plugins.environments.lightning import LightningEnvironment
 
 
-class VertexAICluster(LightningEnvironment):
+class VertexAIEnvironment(LightningEnvironment):
     """
     Configures distributed training on a vertex ai custom training job,
     More information:
