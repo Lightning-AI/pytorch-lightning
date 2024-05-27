@@ -20,4 +20,5 @@ from lightning.fabric.plugins.environments import (  # noqa: F401
     SLURMEnvironment,
     TorchElasticEnvironment,
     XLAEnvironment,
+    VertexAIEnvironment,
 )
