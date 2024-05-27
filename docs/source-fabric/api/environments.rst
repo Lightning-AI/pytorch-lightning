@@ -23,3 +23,4 @@ Environments
     ~slurm.SLURMEnvironment
     ~torchelastic.TorchElasticEnvironment
     ~xla.XLAEnvironment
+    ~vertexai.VertexAIEnvironment
