@@ -27,7 +27,6 @@ from lightning.fabric.plugins.environments import (
     MPIEnvironment,
     SLURMEnvironment,
     TorchElasticEnvironment,
-    VertexAIEnvironment,
 )
 from lightning.fabric.utilities.device_parser import _determine_root_gpu_device
 from lightning.fabric.utilities.imports import _IS_INTERACTIVE

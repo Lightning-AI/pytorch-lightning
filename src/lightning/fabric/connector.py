@@ -40,7 +40,6 @@ from lightning.fabric.plugins.environments import (
     MPIEnvironment,
     SLURMEnvironment,
     TorchElasticEnvironment,
-    VertexAIEnvironment
 )
 from lightning.fabric.plugins.precision.double import DoublePrecision
 from lightning.fabric.plugins.precision.fsdp import FSDPPrecision

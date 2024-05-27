@@ -9,7 +9,7 @@ class VertexAIEnvironment(LightningEnvironment):
     Configures distributed training on a vertex ai custom training job,
     More information:
     https://cloud.google.com/vertex-ai/docs/training/distributed-training#cluster-spec-format
-    
+
     Example:
         Consider a cluster with 3 nodes, each composed of 2 gpus
 
@@ -43,8 +43,7 @@ class VertexAIEnvironment(LightningEnvironment):
 
     @property
     def main_port(self) -> int:
-        """Set common fixed MASTER_PORT port across processes
-        """
+        """Set common fixed MASTER_PORT port across processes."""
         return int(self.cluster_spec["cluster"]["workerpool0"][0].split(':')[1])
 
     def node_rank(self) -> int:
