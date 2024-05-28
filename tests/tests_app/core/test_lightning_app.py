@@ -1188,3 +1188,27 @@ class SimpleWork2(LightningWork):
 def test_lightning_work_stopped():
     app = LightningApp(SimpleWork2())
     MultiProcessRuntime(app, start_server=False).dispatch()
+
+
+class FailedWork(LightningWork):
+    def run(self):
+        raise Exception
+
+
+class CheckErrorQueueLightningApp(LightningApp):
+    def check_error_queue(self):
+        super().check_error_queue()
+
+
+def test_error_queue_check(monkeypatch):
+    import sys
+
+    from lightning.app.core import app as app_module
+
+    sys_mock = mock.MagicMock()
+    monkeypatch.setattr(app_module, "CHECK_ERROR_QUEUE_INTERVAL", 0)
+    monkeypatch.setattr(sys, "exit", sys_mock)
+    app = LightningApp(FailedWork())
+    MultiProcessRuntime(app, start_server=False).dispatch()
+    assert app.stage == AppStage.FAILED
+    assert app._last_check_error_queue != 0.0

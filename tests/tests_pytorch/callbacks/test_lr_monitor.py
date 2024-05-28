@@ -44,6 +44,9 @@ def test_lr_monitor_single_lr(tmp_path):
 
     assert lr_monitor.lrs, "No learning rates logged"
     assert all(v is None for v in lr_monitor.last_momentum_values.values()), "Momentum should not be logged by default"
+    assert all(
+        v is None for v in lr_monitor.last_weight_decay_values.values()
+    ), "Weight decay should not be logged by default"
     assert len(lr_monitor.lrs) == len(trainer.lr_scheduler_configs)
     assert list(lr_monitor.lrs) == ["lr-SGD"]
 

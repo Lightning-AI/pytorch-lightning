@@ -30,6 +30,7 @@ from lightning.app import _console
 from lightning.app.api.request_types import _APIRequest, _CommandRequest, _DeltaRequest
 from lightning.app.core.constants import (
     BATCH_DELTA_COUNT,
+    CHECK_ERROR_QUEUE_INTERVAL,
     DEBUG_ENABLED,
     FLOW_DURATION_SAMPLES,
     FLOW_DURATION_THRESHOLD,
@@ -165,6 +166,7 @@ class LightningApp:
 
         self._last_run_time: float = 0.0
         self._run_times: list = []
+        self._last_check_error_queue: float = 0.0
 
         # Path attributes can't get properly attached during the initialization, because the full name
         # is only available after all Flows and Works have been instantiated.
@@ -318,10 +320,12 @@ class LightningApp:
             return []
 
     def check_error_queue(self) -> None:
-        exception: Exception = self.get_state_changed_from_queue(self.error_queue)  # type: ignore[assignment,arg-type]
-        if isinstance(exception, Exception):
-            self.exception = exception
-            self.stage = AppStage.FAILED
+        if (time() - self._last_check_error_queue) > CHECK_ERROR_QUEUE_INTERVAL:
+            exception: Exception = self.get_state_changed_from_queue(self.error_queue)  # type: ignore[assignment,arg-type]
+            if isinstance(exception, Exception):
+                self.exception = exception
+                self.stage = AppStage.FAILED
+            self._last_check_error_queue = time()
 
     @property
     def flows(self) -> List[Union[LightningWork, "LightningFlow"]]:

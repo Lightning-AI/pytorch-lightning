@@ -233,9 +233,9 @@ def _import_bitsandbytes() -> ModuleType:
             """Inplace quantize."""
             if weight is None:
                 weight = self.weight.data
-                if weight.data.type == torch.int8:
-                    # already quantized
-                    return
+            if weight.data.dtype == torch.int8:
+                # already quantized
+                return
             assert isinstance(self.weight, bnb.nn.Int8Params)
             self.weight = self.quantize(self.weight, weight, device)
 
@@ -317,9 +317,9 @@ def _import_bitsandbytes() -> ModuleType:
             """Inplace quantize."""
             if weight is None:
                 weight = self.weight.data
-                if weight.data.type == torch.uint8:
-                    # already quantized
-                    return
+            if weight.data.dtype == torch.uint8:
+                # already quantized
+                return
             assert isinstance(self.weight, bnb.nn.Params4bit)
             self.weight = self.quantize(self.weight, weight, device)
 

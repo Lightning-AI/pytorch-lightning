@@ -152,6 +152,6 @@ class MultiprocessModel(BoringModel):
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_num_stepping_batches_with_tpu_multi():
     """Test stepping batches with the TPU strategy across multiple devices."""
-    trainer = Trainer(accelerator="tpu", devices="auto", max_epochs=1)
+    trainer = Trainer(accelerator="tpu", devices="auto", max_epochs=1, logger=False, enable_checkpointing=False)
     model = MultiprocessModel()
     trainer.fit(model)

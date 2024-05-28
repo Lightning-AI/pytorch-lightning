@@ -102,15 +102,20 @@ def test_fabric_module_method_lookup():
             super().__init__()
             self.wrapped = module
 
+        def forward(self, *args, **kwargs):
+            return self.wrapped(*args, **kwargs)
+
     # Regular case: forward_module == original_module -> no warnings
     original_module = OriginalModule()
     fabric_module = _FabricModule(forward_module=original_module, strategy=Mock(), original_module=original_module)
     assert fabric_module.method_without_module_invocation() == 100
 
-    # Special case: original module wrapped by forward module: -> warn if method accepts args
+    # Special case: original module wrapped by forward module: -> error if method requires rerouting
     original_module = OriginalModule()
     wrapped_module = ModuleWrapper(original_module)
-    fabric_module = _FabricModule(forward_module=wrapped_module, strategy=Mock(), original_module=original_module)
+    fabric_module = _FabricModule(
+        forward_module=wrapped_module, strategy=Mock(precision=Precision()), original_module=original_module
+    )
     assert fabric_module.method_without_module_invocation() == 100
     with pytest.raises(
         RuntimeError, match=r"You are calling the method `OriginalModule.method_with_submodule_invocation\(\)` from"
@@ -120,6 +125,51 @@ def test_fabric_module_method_lookup():
         RuntimeError, match=r"You are calling the method `OriginalModule.method_with_self_invocation\(\)` from"
     ):
         assert fabric_module.method_with_self_invocation() == 102
+
+    # No error if explicitly marked as forward method
+    fabric_module.mark_forward_method("method_with_self_invocation")
+    assert fabric_module.method_with_self_invocation() == 102
+
+
+def test_fabric_module_mark_forward_method():
+    class OriginalModule(torch.nn.Module):
+        attribute = 1
+
+        def forward(self, x):
+            return x
+
+        def special(self):
+            pass
+
+    original_module = OriginalModule()
+    fabric_module = _FabricModule(original_module, Mock(), original_module=original_module)
+
+    with pytest.raises(ValueError, match="You cannot mark the forward method itself"):
+        fabric_module.mark_forward_method("forward")
+
+    with pytest.raises(AttributeError, match="`OriginalModule.not_exist` does not exist or is not a method."):
+        fabric_module.mark_forward_method("not_exist")
+
+    with pytest.raises(AttributeError, match="`OriginalModule.attribute` does not exist or is not a method."):
+        fabric_module.mark_forward_method("attribute")
+
+    def special(x):
+        return x
+
+    with pytest.raises(TypeError, match="Expected a method or a string"):
+        fabric_module.mark_forward_method(special)
+
+    lightning_module_methods = {"training_step", "validation_step", "test_step", "predict_step"}
+    assert fabric_module._forward_methods == lightning_module_methods
+
+    # Mark via name
+    fabric_module.mark_forward_method("special")
+    assert fabric_module._forward_methods == {"special"} | lightning_module_methods
+
+    # Mark by passing in the method itself
+    fabric_module = _FabricModule(original_module, Mock(), original_module=original_module)
+    fabric_module.mark_forward_method(original_module.special)
+    assert fabric_module._forward_methods == {"special"} | lightning_module_methods
 
 
 def test_fabric_module_setattr():
@@ -549,8 +599,8 @@ def test_unwrap_objects(compile):
 
 
 def test_step_method_redirection():
-    """Test that the FabricModule redirects the special `LightningModule.*_step` methods through the forward-
-    module."""
+    """Test that the FabricModule redirects methods marked as 'forward methods' through forward to avoid bypassing the
+    DDP/FSDP wrappers."""
 
     class DDP(torch.nn.Module):
         def __init__(self, module):
@@ -570,11 +620,11 @@ def test_step_method_redirection():
             assert kwarg == "train_kwarg"
             return "training_step_return"
 
-        def validation_step(self, arg, kwarg=None):
+        def marked_method(self, arg, kwarg=None):
             assert self() == "forward_return"
-            assert arg == "val_arg"
-            assert kwarg == "val_kwarg"
-            return "validation_step_return"
+            assert arg == "marked_arg"
+            assert kwarg == "marked_kwarg"
+            return "marked_method_return"
 
         def normal_method(self):
             pass
@@ -602,10 +652,18 @@ def test_step_method_redirection():
     assert original_module.forward.__name__ == "forward"
 
     # The special methods get redirected correctly to produce the expected output
+    strategy.precision.forward_context.reset_mock()
     assert fabric_module.training_step("train_arg", kwarg="train_kwarg") == "training_step_return"
     assert fabric_module.training_step("train_arg", kwarg="train_kwarg") == "training_step_return"  # call 2nd time
-    assert fabric_module.validation_step("val_arg", kwarg="val_kwarg") == "validation_step_return"
-    strategy.precision.forward_context.assert_called()
+    assert strategy.precision.forward_context.call_count == 2
+
+    # Other methods must be marked explicitly to be redirected
+    strategy.precision.forward_context.reset_mock()
+    with pytest.raises(RuntimeError, match="You are calling the method .* from outside the model"):
+        fabric_module.marked_method("marked_arg", kwarg="marked_kwarg")
+    fabric_module.mark_forward_method("marked_method")
+    assert fabric_module.marked_method("marked_arg", kwarg="marked_kwarg") == "marked_method_return"
+    strategy.precision.forward_context.assert_called_once()
 
     # The forward method remains untouched/unpatched after the special methods have been called
     assert original_module.forward.__name__ == "forward"
@@ -613,7 +671,7 @@ def test_step_method_redirection():
     # Special case: forward_module == original_module -> no special treatment applied
     fabric_module = _FabricModule(forward_module=original_module, strategy=Mock(), original_module=original_module)
     assert fabric_module.training_step == original_module.training_step
-    assert fabric_module.validation_step == original_module.validation_step
+    assert fabric_module.marked_method == original_module.marked_method
 
 
 @RunIf(dynamo=True)
