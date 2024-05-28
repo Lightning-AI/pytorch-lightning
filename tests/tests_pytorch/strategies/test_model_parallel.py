@@ -20,6 +20,7 @@ from unittest.mock import Mock
 import pytest
 import torch
 import torch.nn as nn
+from lightning.fabric.strategies.model_parallel import _is_sharded_checkpoint
 from lightning.pytorch import LightningModule
 from lightning.pytorch.plugins.environments import LightningEnvironment
 from lightning.pytorch.strategies import ModelParallelStrategy
@@ -66,17 +67,6 @@ def test_validate_device_mesh_dimensions(num_nodes, devices, invalid_dp_size, in
     strategy.num_nodes = num_nodes
     with pytest.raises(RuntimeError, match="multiplied should equal the world size"):
         strategy.setup_environment()
-
-
-@RunIf(min_torch="2.3")
-def test_checkpoint_io_unsupported():
-    """Test that the ModelParallel strategy does not support the `CheckpointIO` plugin."""
-    strategy = ModelParallelStrategy()
-    with pytest.raises(NotImplementedError, match="does not use the `CheckpointIO` plugin"):
-        _ = strategy.checkpoint_io
-
-    with pytest.raises(NotImplementedError, match="does not support setting a `CheckpointIO` plugin"):
-        strategy.checkpoint_io = Mock()
 
 
 @RunIf(min_torch="2.3")
@@ -135,18 +125,87 @@ def test_save_checkpoint_storage_options(tmp_path):
 
 
 @RunIf(min_torch="2.3")
-def test_save_checkpoint_path_exists():
-    pytest.skip("Checkpoint saving and loading not implemented")
+@mock.patch("lightning.pytorch.strategies.model_parallel.ModelParallelStrategy.broadcast", lambda _, x: x)
+@mock.patch("lightning.fabric.plugins.io.torch_io._atomic_save")
+@mock.patch("lightning.pytorch.strategies.model_parallel.shutil")
+def test_save_checkpoint_path_exists(shutil_mock, torch_save_mock, tmp_path):
+    strategy = ModelParallelStrategy(save_distributed_checkpoint=False)
+
+    # save_distributed_checkpoint=False, path exists, path is not a sharded checkpoint: error
+    path = tmp_path / "not-empty"
+    path.mkdir()
+    (path / "file").touch()
+    assert not _is_sharded_checkpoint(path)
+    with pytest.raises(IsADirectoryError, match="exists and is a directory"):
+        strategy.save_checkpoint(Mock(), filepath=path)
+
+    # save_distributed_checkpoint=False, path exists, path is a sharded checkpoint: no error (overwrite)
+    path = tmp_path / "sharded-checkpoint"
+    path.mkdir()
+    (path / "meta.pt").touch()
+    assert _is_sharded_checkpoint(path)
+    strategy.save_checkpoint(Mock(), filepath=path)
+    shutil_mock.rmtree.assert_called_once_with(path)
+
+    # save_distributed_checkpoint=False, path exists, path is a file: no error (overwrite)
+    path = tmp_path / "file.pt"
+    path.touch()
+    torch_save_mock.reset_mock()
+    strategy.save_checkpoint(Mock(), filepath=path)
+    torch_save_mock.assert_called_once()
+
+    strategy = ModelParallelStrategy(save_distributed_checkpoint=True)
+
+    save_mock = mock.patch("torch.distributed.checkpoint.save")
+
+    # save_distributed_checkpoint=True, path exists, path is a folder: no error (overwrite)
+    path = tmp_path / "not-empty-2"
+    path.mkdir()
+    (path / "file").touch()
+    with save_mock:
+        strategy.save_checkpoint({"state_dict": {}, "optimizer_states": {"": {}}}, filepath=path)
+    assert (path / "file").exists()
+
+    # save_distributed_checkpoint=True, path exists, path is a file: no error (overwrite)
+    path = tmp_path / "file-2.pt"
+    path.touch()
+    with save_mock:
+        strategy.save_checkpoint({"state_dict": {}, "optimizer_states": {"": {}}}, filepath=path)
+    assert path.is_dir()
 
 
 @RunIf(min_torch="2.3")
-def test_load_full_checkpoint_support():
-    pytest.skip("Checkpoint saving and loading not implemented")
+@mock.patch("lightning.fabric.strategies.model_parallel._TORCH_GREATER_EQUAL_2_4", False)
+def test_load_full_checkpoint_support(tmp_path):
+    """Test that loading non-distributed checkpoints into distributed models requires PyTorch >= 2.4."""
+    strategy = ModelParallelStrategy()
+    strategy.model = Mock()
+    strategy._lightning_module = Mock(strict_loading=True)
+    path = tmp_path / "full.ckpt"
+    path.touch()
+
+    with pytest.raises(ImportError, match="Loading .* into a distributed model requires PyTorch >= 2.4"), mock.patch(
+        "lightning.fabric.strategies.model_parallel._has_dtensor_modules", return_value=True
+    ):
+        strategy.load_checkpoint(checkpoint_path=path)
+
+    with pytest.raises(ImportError, match="Loading .* into a distributed model requires PyTorch >= 2.4"), mock.patch(
+        "lightning.fabric.strategies.model_parallel._has_dtensor_modules", return_value=True
+    ):
+        strategy.load_checkpoint(checkpoint_path=path)
 
 
 @RunIf(min_torch="2.3")
-def test_load_unknown_checkpoint_type():
-    pytest.skip("Checkpoint saving and loading not implemented")
+@mock.patch("lightning.fabric.strategies.model_parallel._has_dtensor_modules", return_value=True)
+def test_load_unknown_checkpoint_type(_, tmp_path):
+    """Test that the strategy validates the contents at the checkpoint path."""
+    strategy = ModelParallelStrategy()
+    strategy.model = Mock()
+    strategy._lightning_module = Mock(strict_loading=True)
+    path = tmp_path / "empty_dir"  # neither a single file nor a directory with meta file
+    path.mkdir()
+    with pytest.raises(ValueError, match="does not point to a valid checkpoint"):
+        strategy.load_checkpoint(checkpoint_path=path)
 
 
 @RunIf(min_torch="2.3")
