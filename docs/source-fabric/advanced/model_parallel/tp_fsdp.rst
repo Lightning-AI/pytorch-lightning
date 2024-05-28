@@ -13,8 +13,6 @@ The :doc:`Tensor Parallelism documentation <tp>` and a general understanding of 
       <img src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/app-2/studio-badge.svg" alt="Open In Studio" style="width: auto; max-width: none;"/>
     </a>
 
-.. note:: 2D Parallelism in Lightning Fabric as well as PyTorch is experimental. The APIs may change in the future.
-
 
 ----
 
@@ -188,7 +186,7 @@ Finally, the tensor parallelism will apply to each group, splitting the sharded 
 
         fabric.print(f"Peak memory usage: {torch.cuda.max_memory_allocated() / 1e9:.02f} GB")
 
-|
+.. note:: 2D Parallelism in Lightning Fabric as well as PyTorch is experimental. The APIs may change in the future.
 
 Beyond this toy example, we recommend you study our `LLM 2D Parallel Example (Llama 3) <https://github.com/Lightning-AI/pytorch-lightning/tree/master/examples/fabric/tensor_parallel>`_.
 

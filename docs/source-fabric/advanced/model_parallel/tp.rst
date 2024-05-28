@@ -13,9 +13,6 @@ This method is most effective for models with very large layers, significantly e
     </a>
 
 
-.. note:: Tensor Parallelism in Lightning Fabric as well as PyTorch is experimental. The APIs may change in the future.
-
-
 ----
 
 
@@ -204,7 +201,8 @@ Later in the code, when you call ``fabric.setup(model)``, Fabric will apply the 
 
         fabric.print(f"Peak memory usage: {torch.cuda.max_memory_allocated() / 1e9:.02f} GB")
 
-|
+
+.. note:: Tensor Parallelism in Lightning Fabric as well as PyTorch is experimental. The APIs may change in the future.
 
 When measuring the peak memory consumption, we should see that doubling the number of GPUs reduces the memory consumption roughly by half:
 
