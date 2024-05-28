@@ -199,7 +199,7 @@ Later in the code, when you call ``fabric.setup(model)``, Fabric will apply the 
 
 |
 
-When measuring the peak memory consumption, we should see that doubling the number of GPUs reduces the memory consuption roughly by half:
+When measuring the peak memory consumption, we should see that doubling the number of GPUs reduces the memory consumption roughly by half:
 
 
 .. list-table::

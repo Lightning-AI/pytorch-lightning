@@ -217,7 +217,7 @@ When ``trainer.fit(...)`` (or ``validate()``, ``test``, etc.) gets called, the T
 
 |
 
-When measuring the peak memory consumption, we should see that doubling the number of GPUs reduces the memory consuption roughly by half:
+When measuring the peak memory consumption, we should see that doubling the number of GPUs reduces the memory consumption roughly by half:
 
 
 .. list-table::
