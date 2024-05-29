@@ -314,8 +314,12 @@ class _AutomaticOptimization(_Loop):
         """
         trainer = self.trainer
 
-        # manually capture logged metrics
         training_step_output = call._call_strategy_hook(trainer, "training_step", *kwargs.values())
         self.trainer.strategy.post_training_step()  # unused hook - call anyway for backward compatibility
+
+        if training_step_output is None and trainer.world_size > 0:
+            raise RuntimeError(
+                "Skipping the `training_step` by returning None in distributed training is not supported."
+            )
 
         return self.output_result_cls.from_training_step_output(training_step_output, trainer.accumulate_grad_batches)
