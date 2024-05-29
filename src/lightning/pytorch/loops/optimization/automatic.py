@@ -317,7 +317,7 @@ class _AutomaticOptimization(_Loop):
         training_step_output = call._call_strategy_hook(trainer, "training_step", *kwargs.values())
         self.trainer.strategy.post_training_step()  # unused hook - call anyway for backward compatibility
 
-        if training_step_output is None and trainer.world_size > 0:
+        if training_step_output is None and trainer.world_size > 1:
             raise RuntimeError(
                 "Skipping the `training_step` by returning None in distributed training is not supported."
             )

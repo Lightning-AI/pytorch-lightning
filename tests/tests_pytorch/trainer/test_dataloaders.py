@@ -641,6 +641,7 @@ class MultiProcessModel(BoringModel):
 
     def training_step(self, batch, batch_idx):
         self.batches_seen.append(batch)
+        return super().training_step(batch, batch_idx)
 
     def on_train_epoch_end(self):
         world_size = 2
