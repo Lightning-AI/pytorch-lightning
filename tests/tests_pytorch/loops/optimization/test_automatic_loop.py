@@ -87,6 +87,7 @@ def test_warning_invalid_trainstep_output(tmp_path, case):
 @pytest.mark.parametrize("world_size", [1, 2])
 def test_skip_training_step_not_allowed(world_size, tmp_path):
     """Test that skipping the training_step in distributed training is not allowed."""
+
     class TestModel(BoringModel):
         def training_step(self, batch, batch_idx):
             return None
@@ -98,6 +99,10 @@ def test_skip_training_step_not_allowed(world_size, tmp_path):
         barebones=True,
     )
     trainer.strategy.world_size = world_size
-    error_context = pytest.raises(RuntimeError, match="Skipping the `training_step` .* is not supported") if world_size > 1 else nullcontext()
+    error_context = (
+        pytest.raises(RuntimeError, match="Skipping the `training_step` .* is not supported")
+        if world_size > 1
+        else nullcontext()
+    )
     with error_context:
         trainer.fit(model)
