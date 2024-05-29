@@ -320,6 +320,8 @@ class _AutomaticOptimization(_Loop):
         if training_step_output is None and trainer.world_size > 1:
             raise RuntimeError(
                 "Skipping the `training_step` by returning None in distributed training is not supported."
+                " It is recommended that you rewrite your training logic to avoid having to skip the step in the first"
+                " place."
             )
 
         return self.output_result_cls.from_training_step_output(training_step_output, trainer.accumulate_grad_batches)

@@ -98,7 +98,7 @@ def test_skip_training_step_not_allowed(world_size, tmp_path):
         max_steps=1,
         barebones=True,
     )
-    trainer.strategy.world_size = world_size
+    trainer.strategy.world_size = world_size  # mock world size without launching processes
     error_context = (
         pytest.raises(RuntimeError, match="Skipping the `training_step` .* is not supported")
         if world_size > 1
