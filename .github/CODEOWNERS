@@ -5,7 +5,7 @@
 # the repo. Unless a later match takes precedence,
 # @global-owner1 and @global-owner2 will be requested for
 # review when someone opens a pull request.
-* @lantiga @borda @tchaton @awaelchli
+* @lantiga @borda @tchaton @awaelchli @justusschock
 
 # CI/CD and configs
 /.actions/                  @borda @ethanwharris @justusschock
@@ -28,17 +28,13 @@
 /docs/source-app/                           @williamfalcon @lantiga @tchaton
 
 # PyTorch Lightning
-/src/lightning/pytorch                      @williamfalcon @awaelchli @justusschock
-/src/pytorch_lightning                      @williamfalcon @awaelchli @justusschock
-/tests/tests_pytorch                        @awaelchli @justusschock @borda
+/src/lightning/pytorch                      @lantiga @borda @tchaton @awaelchli @justusschock
 
 # Lightning Data
 /src/lightning/data/                        @tchaton @lantiga
 
 # Lightning Fabric
-/src/lightning/fabric                       @awaelchli @justusschock
-/src/lightning_fabric                       @awaelchli @justusschock
-/tests/tests_fabric                         @awaelchli @justusschock
+/src/lightning/fabric                       @lantiga @borda @tchaton @awaelchli @justusschock
 
 # Lightning App
 /src/lightning/app                          @tchaton @lantiga @awaelchli @ethanwharris
