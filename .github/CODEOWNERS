@@ -33,7 +33,7 @@
 /tests/tests_pytorch                        @awaelchli @justusschock @borda
 
 # Lightning Data
-/src/lightning/data/                        @tchaton
+/src/lightning/data/                        @tchaton @lantiga
 
 # Lightning Fabric
 /src/lightning/fabric                       @awaelchli @justusschock
