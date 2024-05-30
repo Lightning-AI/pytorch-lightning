@@ -178,6 +178,8 @@ def test_transfer_batch_hook_ddp(tmp_path):
         def training_step(self, batch, batch_idx):
             assert batch.samples.device == self.device
             assert isinstance(batch_idx, int)
+            # the actual training step is not needed for the assertions
+            return super().training_step(torch.rand(1, 32, device=self.device), batch_idx)
 
         def train_dataloader(self):
             return torch.utils.data.DataLoader(RandomDataset(32, 64), collate_fn=collate_fn)
