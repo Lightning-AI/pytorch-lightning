@@ -1,8 +1,10 @@
+import atexit
 import functools
 import os
 from functools import partial
 from pathlib import Path
 from unittest import mock
+from unittest.mock import Mock
 
 import pytest
 import torch
@@ -16,6 +18,8 @@ from lightning.fabric.utilities.distributed import (
     _set_num_threads_if_needed,
     _suggested_max_num_threads,
     _sync_ddp,
+    _destroy_dist_connection,
+    _init_dist_connection,
     is_shared_filesystem,
 )
 
@@ -217,3 +221,10 @@ def test_infinite_barrier():
         barrier.__exit__(None, None, None)
         assert barrier.barrier.call_count == 2
         dist_mock.destroy_process_group.assert_called_once()
+
+
+@mock.patch("lightning.fabric.utilities.distributed.atexit")
+@mock.patch("lightning.fabric.utilities.distributed.torch.distributed.init_process_group")
+def test_init_dist_connection_registers_destruction_handler(_, atexit_mock):
+    _init_dist_connection(LightningEnvironment(), "nccl")
+    atexit_mock.register.assert_called_once_with(_destroy_dist_connection)
