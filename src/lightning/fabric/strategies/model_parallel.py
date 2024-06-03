@@ -275,12 +275,7 @@ class ModelParallelStrategy(ParallelStrategy):
         state: Optional[Union[Module, Optimizer, Dict[str, Union[Module, Optimizer, Any]]]] = None,
         strict: bool = True,
     ) -> Dict[str, Any]:
-        """Load the contents from a checkpoint and restore the state of the given objects.
-
-        Currently does not support loading the optimizer state if the model is distributed but the checkpoint is a full,
-        non-distributed checkpoint.
-
-        """
+        """Load the contents from a checkpoint and restore the state of the given objects."""
         if not state:
             raise ValueError(
                 f"Got {type(self).__name__}.load_checkpoint(..., state={state!r}) but a state with at least "
@@ -559,20 +554,12 @@ def _load_raw_module_state(
         state_dict_options = StateDictOptions(
             broadcast_from_rank0=True,  # type: ignore[call-arg]
             full_state_dict=True,
-            strict=strict,  # gets ignored at the moment
+            strict=strict,
         )
 
         for submodule_name, submodule in module.named_modules():
             for param_name, _ in _named_parameters_and_buffers_to_load(submodule):
                 full_param_name = f"{submodule_name}{'.' if submodule_name else ''}{param_name}"
-                if full_param_name not in state_dict:
-                    # Note: PyTorch does not currently respect the `strict` setting in state_dict_options!
-                    if not strict:
-                        continue
-                    raise KeyError(
-                        f"The model contains a key '{full_param_name}' that does not exist in the loaded checkpoint."
-                        " To disable strict loading, set `strict=False`."
-                    )
                 local_state_dict = {param_name: state_dict[full_param_name]}
                 set_model_state_dict(submodule, local_state_dict, options=state_dict_options)
 
