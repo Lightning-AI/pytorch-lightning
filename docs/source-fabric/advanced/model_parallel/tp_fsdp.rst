@@ -7,7 +7,11 @@ This hybrid approach balances the trade-offs of each method, optimizing memory u
 
 The :doc:`Tensor Parallelism documentation <tp>` and a general understanding of `FSDP <https://pytorch.org/tutorials/intermediate/FSDP_tutorial.html>`_ are a prerequisite for this tutorial.
 
-.. note:: This is an experimental feature.
+.. raw:: html
+
+    <a target="_blank" href="https://lightning.ai/lightning-ai/studios/tensor-parallelism-supercharging-large-model-training-with-lightning-fabric">
+      <img src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/app-2/studio-badge.svg" alt="Open In Studio" style="width: auto; max-width: none;"/>
+    </a>
 
 
 ----
@@ -182,7 +186,7 @@ Finally, the tensor parallelism will apply to each group, splitting the sharded 
 
         fabric.print(f"Peak memory usage: {torch.cuda.max_memory_allocated() / 1e9:.02f} GB")
 
-|
+.. note:: 2D Parallelism in Lightning Fabric as well as PyTorch is experimental. The APIs may change in the future.
 
 Beyond this toy example, we recommend you study our `LLM 2D Parallel Example (Llama 3) <https://github.com/Lightning-AI/pytorch-lightning/tree/master/examples/fabric/tensor_parallel>`_.
 
