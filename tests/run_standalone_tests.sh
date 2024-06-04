@@ -34,7 +34,7 @@ printf "source path: $test_path\n"
 standalone_tests=$(python3 -m pytest $test_path -q --collect-only --pythonwarnings ignore)
 printf "Collected tests: \n $standalone_tests\n"
 # match only lines with tests
-parametrizations=$(perl -nle'print $& while m{\S+::test_\S+}g' <<< "$standalone_tests")
+parametrizations=$(perl -nle 'print $& while m{\S+::test_\S+}g' <<< "$standalone_tests")
 # convert the list to be array
 parametrizations_arr=($parametrizations)
 report=''
@@ -46,7 +46,7 @@ function show_batched_output {
   if [ -f standalone_test_output.txt ]; then  # if exists
     cat standalone_test_output.txt
     # heuristic: stop if there's mentions of errors. this can prevent false negatives when only some of the ranks fail
-    if perl -nle'print if /error|(?<!(?-i)on_)exception|traceback|(?<!(?-i)x)failed/i' standalone_test_output.txt | grep -qv -f testnames.txt; then
+    if perl -nle 'print if /error|(?<!(?-i)on_)exception|traceback|(?<!(?-i)x)failed/i' standalone_test_output.txt | grep -qv -f testnames.txt; then
       echo "Potential error! Stopping."
       rm standalone_test_output.txt
       exit 1
