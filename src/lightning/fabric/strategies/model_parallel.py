@@ -275,12 +275,7 @@ class ModelParallelStrategy(ParallelStrategy):
         state: Optional[Union[Module, Optimizer, Dict[str, Union[Module, Optimizer, Any]]]] = None,
         strict: bool = True,
     ) -> Dict[str, Any]:
-        """Load the contents from a checkpoint and restore the state of the given objects.
-
-        Currently does not support loading the optimizer state if the model is distributed but the checkpoint is a full,
-        non-distributed checkpoint.
-
-        """
+        """Load the contents from a checkpoint and restore the state of the given objects."""
         if not state:
             raise ValueError(
                 f"Got {type(self).__name__}.load_checkpoint(..., state={state!r}) but a state with at least "
