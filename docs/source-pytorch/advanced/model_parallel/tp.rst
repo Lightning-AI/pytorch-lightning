@@ -6,7 +6,11 @@ Tensor parallelism is a technique for training large models by distributing laye
 However, for smaller models, the communication overhead may outweigh its benefits.
 This method is most effective for models with very large layers, significantly enhancing performance and memory efficiency.
 
-.. note:: This is an experimental feature.
+.. raw:: html
+
+    <a target="_blank" href="https://lightning.ai/lightning-ai/studios/tensor-parallelism-supercharging-large-model-training-with-pytorch-lightning">
+      <img src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/app-2/studio-badge.svg" alt="Open In Studio" style="width: auto; max-width: none;"/>
+    </a>
 
 
 ----
@@ -215,9 +219,9 @@ When ``trainer.fit(...)`` (or ``validate()``, ``test``, etc.) gets called, the T
 
         trainer.print(f"Peak memory usage: {torch.cuda.max_memory_allocated() / 1e9:.02f} GB")
 
-|
+.. note:: Tensor Parallelism in PyTorch Lightning as well as PyTorch is experimental. The APIs may change in the future.
 
-When measuring the peak memory consumption, we should see that doubling the number of GPUs reduces the memory consuption roughly by half:
+When measuring the peak memory consumption, we should see that doubling the number of GPUs reduces the memory consumption roughly by half:
 
 
 .. list-table::
