@@ -121,11 +121,11 @@ To build the documentation locally, simply execute the following commands from p
 
 All added or edited code shall be the own original work of the particular contributor.
 If you use some third-party implementation, all such blocks/functions/modules shall be properly referred and if possible also agreed by code's author. For example - `This code is inspired from http://...`.
-In case you adding new dependencies, make sure that they are compatible with the actual PyTorch Lightning license (ie. dependencies should be _at least_ as permissive as the PyTorch Lightning license).
+In case you are adding new dependencies, make sure that they are compatible with the actual PyTorch Lightning license (i.e. dependencies should be _at least_ as permissive as the PyTorch Lightning license).
 
 ### Coding Style
 
-1. Use f-strings for output formation (except logging when we stay with lazy `logging.info("Hello %s!", name)`.
+1. Use f-strings for output formation (except logging when we stay with lazy `logging.info("Hello %s!", name)`).
 1. You can use [pre-commit](https://pre-commit.com/) to make sure your code style is correct.
 
 ### Documentation
@@ -234,9 +234,9 @@ Here are tutorials:
 
 Here is the process to create a new test
 
-- 0. Optional: Follow tutorials !
-- 1. Find a file in tests/ which match what you want to test. If none, create one.
-- 2. Use this template to get started !
+- 0. Optional: Follow tutorials!
+- 1. Find a file in tests/ which matches what you want to test. If none, create one.
+- 2. Use this template to get started!
 - 3. Use **BoringModel and derivates to test out your code**.
 
 ```python
