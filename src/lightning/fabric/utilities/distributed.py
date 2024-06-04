@@ -306,6 +306,8 @@ def _init_dist_connection(
 
 def _destroy_dist_connection() -> None:
     if _distributed_is_initialized():
+        # ensure at least one collective op ran, otherwise `destroy_process_group()` hangs
+        torch.distributed.barrier()
         torch.distributed.destroy_process_group()
 
 
