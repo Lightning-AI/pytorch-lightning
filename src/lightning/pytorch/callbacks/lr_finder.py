@@ -18,7 +18,7 @@ LearningRateFinder
 Finds optimal learning rate
 """
 
-from typing import Optional
+from typing import Literal, Optional
 
 from typing_extensions import override
 
@@ -50,6 +50,7 @@ class LearningRateFinder(Callback):
         update_attr: Whether to update the learning rate attribute or not.
         attr_name: Name of the attribute which stores the learning rate. The names 'learning_rate' or 'lr' get
             automatically detected. Otherwise, set the name here.
+        opt_method: Chooses how the optimum learning rate is determined. It can be any of ``("gradient", "slide", "valley")``.
 
     Example::
 
@@ -92,6 +93,7 @@ class LearningRateFinder(Callback):
         early_stop_threshold: Optional[float] = 4.0,
         update_attr: bool = True,
         attr_name: str = "",
+        opt_method: Literal["gradient", "slide", "valley"] = "gradient",
     ) -> None:
         mode = mode.lower()
         if mode not in self.SUPPORTED_MODES:
@@ -104,7 +106,7 @@ class LearningRateFinder(Callback):
         self._early_stop_threshold = early_stop_threshold
         self._update_attr = update_attr
         self._attr_name = attr_name
-
+        self._opt_method = opt_method
         self._early_exit = False
         self.lr_finder: Optional[_LRFinder] = None
 
@@ -120,6 +122,7 @@ class LearningRateFinder(Callback):
                 early_stop_threshold=self._early_stop_threshold,
                 update_attr=self._update_attr,
                 attr_name=self._attr_name,
+                opt_method=self._opt_method,
             )
 
         if self._early_exit:

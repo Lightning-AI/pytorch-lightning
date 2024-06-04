@@ -16,7 +16,7 @@ import logging
 import os
 import uuid
 from copy import deepcopy
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Union
+from typing import TYPE_CHECKING, Any, Dict, List, Literal, Optional, Union
 
 import torch
 from lightning_utilities.core.imports import RequirementCache
@@ -78,6 +78,8 @@ class _LRFinder:
 
         num_training: number of steps to take between lr_min and lr_max
 
+        opt_method: Chooses how the optimum learning rate is determined. It can be any of ``("gradient", "slide", "valley")``.
+
     Example::
         # Run lr finder
         lr_finder = trainer.lr_find(model)
@@ -93,16 +95,28 @@ class _LRFinder:
 
     """
 
-    def __init__(self, mode: str, lr_min: float, lr_max: float, num_training: int) -> None:
+    def __init__(
+        self,
+        mode: str,
+        lr_min: float,
+        lr_max: float,
+        num_training: int,
+        opt_method: Literal["gradient", "slide", "valley", "valley_grad"] = "gradient",
+        opt_parameters: Dict[str, float | int] = None,
+    ) -> None:
         assert mode in ("linear", "exponential"), "mode should be either `linear` or `exponential`"
 
         self.mode = mode
         self.lr_min = lr_min
         self.lr_max = lr_max
         self.num_training = num_training
-
+        self.opt_method = opt_method
         self.results: Dict[str, Any] = {}
         self._total_batch_idx = 0  # for debug purpose
+
+        self.opt_parameters = opt_parameters
+        if self.opt_parameters is None:
+            self.opt_parameters = {}
 
     def _exchange_scheduler(self, trainer: "pl.Trainer") -> None:
         # TODO: update docs here
@@ -167,6 +181,8 @@ class _LRFinder:
             _ = self.suggestion()
             if self._optimal_idx:
                 ax.plot(lrs[self._optimal_idx], losses[self._optimal_idx], markersize=10, marker="o", color="red")
+            elif self._optimal_lr:
+                ax.axvline(self._optimal_lr, linestyle="--")
 
         if show:
             plt.show()
@@ -188,8 +204,10 @@ class _LRFinder:
         """
         losses = torch.tensor(self.results["loss"][skip_begin:-skip_end])
         losses = losses[torch.isfinite(losses)]
+        lrs = self.results["lr"][skip_begin:-skip_end]
 
-        if len(losses) < 2:
+        self._optimal_lr = None
+        if self.opt_method == "gradient" and len(losses) < 2:
             # computing np.gradient requires at least 2 points
             log.error(
                 "Failed to compute suggestion for learning rate because there are not enough points. Increase the loop"
@@ -198,13 +216,62 @@ class _LRFinder:
             self._optimal_idx = None
             return None
 
-        # TODO: When computing the argmin here, and some losses are non-finite, the expected indices could be
-        #   incorrectly shifted by an offset
-        gradients = torch.gradient(losses)[0]  # Unpack the tuple
-        min_grad = torch.argmin(gradients).item()
+        if self.opt_method == "gradient":
+            # TODO: When computing the argmin here, and some losses are non-finite, the expected indices could be
+            #   incorrectly shifted by an offset
+            gradients = torch.gradient(losses)[0]  # Unpack the tuple
+            min_grad = torch.argmin(gradients).item()
 
-        self._optimal_idx = min_grad + skip_begin
-        return self.results["lr"][self._optimal_idx]
+            self._optimal_idx = min_grad + skip_begin
+            opt_lr = self.results["lr"][self._optimal_idx]
+        elif self.opt_method == "slide":
+            # See https://forums.fast.ai/t/automated-learning-rate-suggester/44199 "slide" method
+            loss_t = self.opt_parameters.get("loss_threshold", 0.5)
+            lr_diff = self.opt_parameters.get("lr_diff", 15)
+            adjust_value = self.opt_parameters.get("adjust_value", 1.0)
+            r_idx = -1
+            l_idx = r_idx - lr_diff
+            gradients = torch.gradient(losses)[0]  # Unpack the tuple
+
+            while (l_idx >= -len(losses)) and (abs(gradients[r_idx] - gradients[l_idx]) > loss_t):
+                local_min_lr = lrs[l_idx]
+                r_idx -= 1
+                l_idx -= 1
+            opt_lr = local_min_lr * adjust_value
+        elif self.opt_method in ["valley", "valley_grad"]:
+            # See https://forums.fast.ai/t/automated-learning-rate-suggester/44199 "valley" method
+            n = len(losses)
+            max_start = 0
+            max_end = 0
+
+            # finding the longest valley.
+            lds = [1] * n
+
+            for i in range(1, n):
+                for j in range(0, i):
+                    if losses[i] < losses[j] and lds[i] < lds[j] + 1:
+                        lds[i] = lds[j] + 1
+                    if lds[max_end] < lds[i]:
+                        max_end = i
+                        max_start = max_end - lds[max_end]
+
+            sections = (max_end - max_start) / 3
+            valley_lip_idx = (
+                max_start + int(sections) + int(sections / 2)
+            ) + skip_begin  # pick something midway, or 2/3rd of the way to be more aggressive
+            if self.opt_method == "valley":
+                self._optimal_idx = valley_lip_idx
+            # Look for grad minimum inside the feasible region
+            else:
+                feasible_region = slice(valley_lip_idx, valley_lip_idx + losses[valley_lip_idx:].argmin())
+                gradients = torch.gradient(losses)[0]  # Unpack the tuple
+                self._optimal_idx = gradients[feasible_region].argmin() + valley_lip_idx
+
+            opt_lr = self.results["lr"][self._optimal_idx]
+
+        self._optimal_lr = opt_lr
+
+        return opt_lr
 
 
 def _lr_find(
@@ -217,6 +284,7 @@ def _lr_find(
     early_stop_threshold: Optional[float] = 4.0,
     update_attr: bool = False,
     attr_name: str = "",
+    opt_method: Literal["gradient", "slide", "valley", "valley_grad"] = "gradient",
 ) -> Optional[_LRFinder]:
     """Enables the user to do a range test of good initial learning rates, to reduce the amount of guesswork in picking
     a good starting learning rate.
@@ -238,6 +306,7 @@ def _lr_find(
         update_attr: Whether to update the learning rate attribute or not.
         attr_name: Name of the attribute which stores the learning rate. The names 'learning_rate' or 'lr' get
             automatically detected. Otherwise, set the name here.
+        opt_method: Chooses how the optimum learning rate is determined. It can be any of ``("gradient", "slide", "valley")``.
 
     """
     if trainer.fast_dev_run:
@@ -266,7 +335,7 @@ def _lr_find(
         trainer.progress_bar_callback.disable()
 
     # Initialize lr finder object (stores results)
-    lr_finder = _LRFinder(mode, min_lr, max_lr, num_training)
+    lr_finder = _LRFinder(mode, min_lr, max_lr, num_training, opt_method=opt_method)
 
     # Configure optimizer and scheduler
     lr_finder._exchange_scheduler(trainer)
