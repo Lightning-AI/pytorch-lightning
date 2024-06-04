@@ -15,11 +15,11 @@
 
 import functools
 import operator
+import statistics
 from abc import ABC
 from collections import defaultdict
 from typing import Any, Callable, Dict, Mapping, Optional, Sequence
 
-import statistics
 from typing_extensions import override
 
 from lightning.fabric.loggers import Logger as FabricLogger
