@@ -559,14 +559,14 @@ def _load_raw_module_state(
         state_dict_options = StateDictOptions(
             broadcast_from_rank0=True,  # type: ignore[call-arg]
             full_state_dict=True,
-            strict=strict,  # gets ignored at the moment
+            # must be set False to allow loading each param separately below
+            strict=False,
         )
 
         for submodule_name, submodule in module.named_modules():
             for param_name, _ in _named_parameters_and_buffers_to_load(submodule):
                 full_param_name = f"{submodule_name}{'.' if submodule_name else ''}{param_name}"
                 if full_param_name not in state_dict:
-                    # Note: PyTorch does not currently respect the `strict` setting in state_dict_options!
                     if not strict:
                         continue
                     raise KeyError(
