@@ -11,7 +11,8 @@ from typing import Dict, List, Optional
 
 VERSIONS = [
     {"torch": "2.4.0", "torchvision": "0.19.0", "torchtext": "0.19.0", "torchaudio": "2.4.0"},  # nightly
-    {"torch": "2.3.0", "torchvision": "0.18.0", "torchtext": "0.18.0", "torchaudio": "2.3.0"},  # stable
+    {"torch": "2.3.1", "torchvision": "0.18.1", "torchtext": "0.18.0", "torchaudio": "2.3.1"},  # stable
+    {"torch": "2.3.0", "torchvision": "0.18.0", "torchtext": "0.18.0", "torchaudio": "2.3.0"},
     {"torch": "2.2.2", "torchvision": "0.17.2", "torchtext": "0.17.2", "torchaudio": "2.2.2"},
     {"torch": "2.2.1", "torchvision": "0.17.1", "torchtext": "0.17.1", "torchaudio": "2.2.1"},
     {"torch": "2.2.0", "torchvision": "0.17.0", "torchtext": "0.17.0", "torchaudio": "2.2.0"},
