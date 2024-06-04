@@ -23,6 +23,8 @@ from lightning.pytorch.loops.optimization.automatic import Closure
 from lightning.pytorch.tuner.tuning import Tuner
 from torch.optim import SGD, Adam, Optimizer
 
+from tests_pytorch.helpers.runif import RunIf
+
 
 @pytest.mark.parametrize("auto", [True, False])
 def test_lightning_optimizer(tmp_path, auto):
@@ -232,6 +234,7 @@ def test_lightning_optimizer_automatic_optimization_optimizer_step(tmp_path):
     assert sgd["zero_grad"].call_count == limit_train_batches
 
 
+@RunIf(mps=False)  # mps does not support LBFGS
 def test_lightning_optimizer_automatic_optimization_lbfgs_zero_grad(tmp_path):
     """Test zero_grad is called the same number of times as LBFGS requires for reevaluation of the loss in
     automatic_optimization."""

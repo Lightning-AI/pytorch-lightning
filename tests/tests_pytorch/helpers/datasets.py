@@ -39,14 +39,6 @@ class MNIST(Dataset):
         download: If true, downloads the dataset from the internet and
             puts it in root directory. If dataset is already downloaded, it is not
             downloaded again.
-
-    Examples:
-        >>> dataset = MNIST(".", download=True)
-        >>> len(dataset)
-        60000
-        >>> torch.bincount(dataset.targets)
-        tensor([5923, 6742, 5958, 6131, 5842, 5421, 5918, 6265, 5851, 5949])
-
     """
 
     RESOURCES = (
@@ -140,15 +132,6 @@ class TrialMNIST(MNIST):
         num_samples: number of examples per selected class/digit
         digits: list selected MNIST digits/classes
         kwargs: Same as MNIST
-
-    Examples:
-        >>> dataset = TrialMNIST(".", download=True)
-        >>> len(dataset)
-        300
-        >>> sorted(set([d.item() for d in dataset.targets]))
-        [0, 1, 2]
-        >>> torch.bincount(dataset.targets)
-        tensor([100, 100, 100])
 
     """
 

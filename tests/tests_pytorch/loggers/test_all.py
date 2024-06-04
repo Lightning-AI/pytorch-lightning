@@ -70,8 +70,9 @@ def _instantiate_logger(logger_class, save_dir, **override_kwargs):
 @mock.patch.dict(os.environ, {})
 @mock.patch("lightning.pytorch.loggers.mlflow._get_resolve_tags", Mock())
 @pytest.mark.parametrize("logger_class", ALL_LOGGER_CLASSES)
-def test_loggers_fit_test_all(logger_class, mlflow_mock, wandb_mock, comet_mock, neptune_mock, tmp_path):
+def test_loggers_fit_test_all(logger_class, mlflow_mock, wandb_mock, comet_mock, neptune_mock, tmp_path, monkeypatch):
     """Verify that basic functionality of all loggers."""
+    monkeypatch.chdir(tmp_path)
 
     class CustomModel(BoringModel):
         def training_step(self, batch, batch_idx):
@@ -116,12 +117,12 @@ def test_loggers_fit_test_all(logger_class, mlflow_mock, wandb_mock, comet_mock,
 
     model = CustomModel()
     trainer = Trainer(
+        default_root_dir=tmp_path,
         max_epochs=1,
         logger=logger,
         limit_train_batches=1,
         limit_val_batches=1,
         log_every_n_steps=1,
-        default_root_dir=tmp_path,
     )
     trainer.fit(model)
     trainer.test()

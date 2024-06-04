@@ -35,7 +35,6 @@ from torch.optim import Optimizer
 import lightning.pytorch as pl
 from lightning.fabric.utilities.apply_func import convert_tensors_to_scalars
 from lightning.fabric.utilities.cloud_io import _is_local_file_protocol
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 from lightning.fabric.utilities.types import _PATH
 from lightning.pytorch.accelerators import Accelerator
 from lightning.pytorch.callbacks import Callback, Checkpoint, EarlyStopping, ProgressBar
@@ -1018,9 +1017,7 @@ class Trainer:
     def _run_stage(self) -> Optional[Union[_PREDICT_OUTPUT, _EVALUATE_OUTPUT]]:
         # wait for all to join if on distributed
         self.strategy.barrier("run-stage")
-
-        zero_grad_kwargs = {} if _TORCH_GREATER_EQUAL_2_0 else {"set_to_none": True}
-        self.lightning_module.zero_grad(**zero_grad_kwargs)
+        self.lightning_module.zero_grad()
 
         if self.evaluating:
             return self._evaluation_loop.run()
@@ -1084,8 +1081,7 @@ class Trainer:
         the right data type depending on the precision setting in the Trainer.
 
         The parameters and tensors get created on the device and with the right data type right away without wasting
-        memory being allocated unnecessarily. The automatic device placement under this context manager is only
-        supported with PyTorch 2.0 and newer.
+        memory being allocated unnecessarily.
 
         Args:
             empty_init: Whether to initialize the model with empty weights (uninitialized memory).
@@ -1093,13 +1089,6 @@ class Trainer:
                 Set this to ``True`` if you are loading a checkpoint into a large model.
 
         """
-        if not _TORCH_GREATER_EQUAL_2_0 and self.strategy.root_device.type != "cpu":
-            rank_zero_warn(
-                "`Trainer.init_module()` can't place tensors on the device directly"
-                " with PyTorch < 2.0. Parameters will remain on CPU until the trainer starts."
-                " Upgrade to PyTorch >= 2.0 to fully utilize this feature.",
-                category=PossibleUserWarning,
-            )
         if is_overridden("model_sharded_context", self.strategy, parent=Strategy):
             # warning instead of error so that code changes are not required when changing strategies
             # this is a limitation because processes are not expected to have been launched when this is called

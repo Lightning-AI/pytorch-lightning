@@ -20,6 +20,7 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import (
     IO,
+    TYPE_CHECKING,
     Any,
     Callable,
     Dict,
@@ -50,7 +51,7 @@ from lightning.fabric.loggers import Logger as FabricLogger
 from lightning.fabric.utilities.apply_func import convert_to_tensors
 from lightning.fabric.utilities.cloud_io import get_filesystem
 from lightning.fabric.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
-from lightning.fabric.utilities.imports import _IS_WINDOWS, _TORCH_GREATER_EQUAL_2_0, _TORCH_GREATER_EQUAL_2_1
+from lightning.fabric.utilities.imports import _IS_WINDOWS, _TORCH_GREATER_EQUAL_2_1
 from lightning.fabric.utilities.types import _MAP_LOCATION_TYPE, _PATH
 from lightning.fabric.wrappers import _FabricOptimizer
 from lightning.pytorch.callbacks.callback import Callback
@@ -75,6 +76,9 @@ from lightning.pytorch.utilities.types import (
     LRSchedulerTypeUnion,
     OptimizerLRScheduler,
 )
+
+if TYPE_CHECKING:
+    from torch.distributed.device_mesh import DeviceMesh
 
 _ONNX_AVAILABLE = RequirementCache("onnx")
 
@@ -110,6 +114,7 @@ class LightningModule(
             "trainer",
             "fabric",
             "strict_loading",
+            "device_mesh",
         ]
         + _DeviceDtypeModuleMixin.__jit_unused_properties__
         + HyperparametersMixin.__jit_unused_properties__
@@ -141,6 +146,9 @@ class LightningModule(
         # attributes only used when using fabric
         self._fabric: Optional["lf.Fabric"] = None
         self._fabric_optimizers: List[_FabricOptimizer] = []
+
+        # access to device mesh in `conigure_model()` hook
+        self._device_mesh: Optional["DeviceMesh"] = None
 
     @overload
     def optimizers(
@@ -217,9 +225,6 @@ class LightningModule(
         for v in self.children():
             if isinstance(v, LightningModule):
                 v.trainer = trainer  # type: ignore[assignment]
-        # https://github.com/pytorch/pytorch/issues/95857
-        if not _TORCH_GREATER_EQUAL_2_0 and trainer is not None and not isinstance(trainer, weakref.ProxyTypes):
-            trainer = weakref.proxy(trainer)
         self._trainer = trainer
 
     @property
@@ -322,6 +327,12 @@ class LightningModule(
             return self._trainer.loggers
         return []
 
+    @property
+    def device_mesh(self) -> Optional["DeviceMesh"]:
+        """Strategies like ``ModelParallelStrategy`` will create a device mesh that can be accessed in the
+        :meth:`~lightning.pytorch.core.hooks.ModelHooks.configure_model` hook to parallelize the LightningModule."""
+        return self._device_mesh
+
     def _call_batch_hook(self, hook_name: str, *args: Any) -> Any:
         trainer = self._trainer
         if trainer:
@@ -394,7 +405,7 @@ class LightningModule(
         The default behavior per hook is documented here: :ref:`extensions/logging:Automatic Logging`.
 
         Args:
-            name: key to log.
+            name: key to log. Must be identical across all processes if using DDP or any other distributed strategy.
             value: value to log. Can be a ``float``, ``Tensor``, or a ``Metric``.
             prog_bar: if ``True`` logs to the progress bar.
             logger: if ``True`` logs to the logger.
@@ -558,6 +569,7 @@ class LightningModule(
 
         Args:
             dictionary: key value pairs.
+                Keys must be identical across all processes if using DDP or any other distributed strategy.
                 The values can be a ``float``, ``Tensor``, ``Metric``, or ``MetricCollection``.
             prog_bar: if ``True`` logs to the progress base.
             logger: if ``True`` logs to the logger.
@@ -1377,7 +1389,7 @@ class LightningModule(
             model.to_onnx("export.onnx", input_sample, export_params=True)
 
         """
-        if _TORCH_GREATER_EQUAL_2_0 and not _ONNX_AVAILABLE:
+        if not _ONNX_AVAILABLE:
             raise ModuleNotFoundError(
                 f"`torch>=2.0` requires `onnx` to be installed to use `{type(self).__name__}.to_onnx()`"
             )
