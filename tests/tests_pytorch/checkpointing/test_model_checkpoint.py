@@ -45,26 +45,6 @@ if _OMEGACONF_AVAILABLE:
     from omegaconf import Container, OmegaConf
 
 
-@pytest.mark.parametrize(
-    ("val", "expected"),
-    [
-        ("yes", True),
-        ("True", True),
-        ("true", True),
-        ("no", False),
-        ("false", False),
-        ("False", False),
-        ("link", "link"),
-    ],
-)
-def test_save_last_cli(val, expected):
-    annot = signature(ModelCheckpoint).parameters["save_last"].annotation
-    parser = ArgumentParser()
-    parser.add_argument("--a", type=annot)
-    args = parser.parse_args(["--a", val])
-    assert args.a == expected
-
-
 def test_model_checkpoint_state_key():
     early_stopping = ModelCheckpoint(monitor="val_loss")
     expected_id = (
@@ -1623,3 +1603,24 @@ def test_expand_home():
     # it is possible to have a folder with the name `~`
     checkpoint = ModelCheckpoint(dirpath="./~/checkpoints")
     assert checkpoint.dirpath == str(Path.cwd() / "~" / "checkpoints")
+
+
+@pytest.mark.parametrize(
+    ("val", "expected"),
+    [
+        ("yes", True),
+        ("True", True),
+        ("true", True),
+        ("no", False),
+        ("false", False),
+        ("False", False),
+        ("link", "link"),
+    ],
+)
+def test_save_last_cli(val, expected):
+    """Test that the CLI can parse the `save_last` argument correctly (composed type)."""
+    annot = signature(ModelCheckpoint).parameters["save_last"].annotation
+    parser = ArgumentParser()
+    parser.add_argument("--a", type=annot)
+    args = parser.parse_args(["--a", val])
+    assert args.a == expected
