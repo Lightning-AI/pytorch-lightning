@@ -94,6 +94,7 @@ class SpikeDetection:
             is_finite_all = self.finite_only or fabric.strategy.reduce_boolean_decision(
                 bool(torch.isfinite(loss).all()), all=True
             )
+            print(f"{is_finite_all=}")
             if is_finite_all:
                 self._update_stats(loss)
 
