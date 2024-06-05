@@ -44,6 +44,8 @@ class LearningRateMonitor(Callback):
             according to the ``interval`` key of each scheduler. Defaults to ``None``.
         log_momentum: option to also log the momentum values of the optimizer, if the optimizer
             has the ``momentum`` or ``betas`` attribute. Defaults to ``False``.
+        log_weight_decay: option to also log the weight decay values of the optimizer. Defaults to
+            ``False``.
 
     Raises:
         MisconfigurationException:
@@ -58,7 +60,7 @@ class LearningRateMonitor(Callback):
 
     Logging names are automatically determined based on optimizer class name.
     In case of multiple optimizers of same type, they will be named ``Adam``,
-    ``Adam-1`` etc. If a optimizer has multiple parameter groups they will
+    ``Adam-1`` etc. If an optimizer has multiple parameter groups they will
     be named ``Adam/pg1``, ``Adam/pg2`` etc. To control naming, pass in a
     ``name`` keyword in the construction of the learning rate schedulers.
     A ``name`` keyword can also be used for parameter groups in the

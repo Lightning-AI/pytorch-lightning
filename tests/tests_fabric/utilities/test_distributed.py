@@ -11,8 +11,10 @@ from lightning.fabric.plugins.environments import LightningEnvironment
 from lightning.fabric.strategies import DDPStrategy, SingleDeviceStrategy
 from lightning.fabric.strategies.launchers.multiprocessing import _MultiProcessingLauncher
 from lightning.fabric.utilities.distributed import (
+    _destroy_dist_connection,
     _gather_all_tensors,
     _InfiniteBarrier,
+    _init_dist_connection,
     _set_num_threads_if_needed,
     _suggested_max_num_threads,
     _sync_ddp,
@@ -217,3 +219,13 @@ def test_infinite_barrier():
         barrier.__exit__(None, None, None)
         assert barrier.barrier.call_count == 2
         dist_mock.destroy_process_group.assert_called_once()
+
+
+@mock.patch("lightning.fabric.utilities.distributed.atexit")
+@mock.patch("lightning.fabric.utilities.distributed.torch.distributed.init_process_group")
+def test_init_dist_connection_registers_destruction_handler(_, atexit_mock):
+    _init_dist_connection(LightningEnvironment(), "nccl")
+    atexit_mock.register.assert_called_once_with(_destroy_dist_connection)
+    atexit_mock.reset_mock()
+    _init_dist_connection(LightningEnvironment(), "gloo")
+    atexit_mock.register.assert_not_called()

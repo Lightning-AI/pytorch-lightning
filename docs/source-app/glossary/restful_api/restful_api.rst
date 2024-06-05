@@ -25,7 +25,7 @@ These methods are guidelines to organize your RESTful Services and help users un
 * **`PUT`:** Updates/replaces existing resources.
 * **`DELETE`:** Deletes resources.
 
-Learn more about `HTTP Methods for RESTful Services here <https://www.restapitutorial.com/lessons/httpmethods.html#:~:text=The%20primary%20or%20most%2Dcommonly,but%20are%20utilized%20less%20frequently.>`_.
+Learn more about `HTTP Methods for RESTful Services here <https://www.restapitutorial.com/introduction/whatisrest>`_.
 
 The Lightning App framework uses the popular `FastAPI <https://fastapi.tiangolo.com/>`_ and `Pydantic <https://pydantic-docs.helpmanual.io/>`_ frameworks under the hood. This means you can use all their features while building your App.
 

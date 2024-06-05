@@ -23,7 +23,7 @@ import pytest
 import torch.distributed
 from lightning.fabric.accelerators import XLAAccelerator
 from lightning.fabric.strategies.launchers.subprocess_script import _ChildProcessObserver
-from lightning.fabric.utilities.distributed import _distributed_is_initialized
+from lightning.fabric.utilities.distributed import _destroy_dist_connection
 
 if sys.version_info >= (3, 9):
     from concurrent.futures.process import _ExecutorManagerThread
@@ -78,8 +78,7 @@ def restore_env_variables():
 def teardown_process_group():
     """Ensures that the distributed process group gets closed before the next test runs."""
     yield
-    if _distributed_is_initialized():
-        torch.distributed.destroy_process_group()
+    _destroy_dist_connection()
 
 
 @pytest.fixture(autouse=True)

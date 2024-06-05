@@ -210,7 +210,7 @@ def test_invalid_on_cpu(tmp_path, cuda_count_0):
         trainer.strategy.setup_environment()
 
 
-def test_fsdp_custom_mixed_precision():
+def test_custom_mixed_precision():
     """Test to ensure that passing a custom mixed precision config works."""
     config = MixedPrecision()
     strategy = FSDPStrategy(mixed_precision=config)
@@ -218,7 +218,7 @@ def test_fsdp_custom_mixed_precision():
 
 
 @RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True)
-def test_fsdp_strategy_sync_batchnorm(tmp_path):
+def test_strategy_sync_batchnorm(tmp_path):
     """Test to ensure that sync_batchnorm works when using FSDP and GPU, and all stages can be run."""
     model = TestFSDPModel()
     trainer = Trainer(
@@ -234,7 +234,7 @@ def test_fsdp_strategy_sync_batchnorm(tmp_path):
 
 
 @RunIf(min_cuda_gpus=1, skip_windows=True)
-def test_fsdp_modules_without_parameters(tmp_path):
+def test_modules_without_parameters(tmp_path):
     """Test that TorchMetrics get moved to the device despite not having any parameters."""
 
     class MetricsModel(BoringModel):
@@ -266,7 +266,7 @@ def test_fsdp_modules_without_parameters(tmp_path):
 @RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True)
 @pytest.mark.parametrize("precision", ["16-mixed", pytest.param("bf16-mixed", marks=RunIf(bf16_cuda=True))])
 @pytest.mark.parametrize("state_dict_type", ["sharded", "full"])
-def test_fsdp_strategy_checkpoint(state_dict_type, precision, tmp_path):
+def test_strategy_checkpoint(state_dict_type, precision, tmp_path):
     """Test to ensure that checkpoint is saved correctly when using a single GPU, and all stages can be run."""
     model = TestFSDPModel()
     strategy = FSDPStrategy(state_dict_type=state_dict_type)
@@ -286,7 +286,7 @@ def custom_auto_wrap_policy(
 
 @RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True)
 @pytest.mark.parametrize("wrap_min_params", [2, 1024, 100000000])
-def test_fsdp_strategy_full_state_dict(tmp_path, wrap_min_params):
+def test_strategy_full_state_dict(tmp_path, wrap_min_params):
     """Test to ensure that the full state dict is extracted when using FSDP strategy.
 
     Based on `wrap_min_params`, the model will be fully wrapped, half wrapped, and not wrapped at all.
@@ -342,7 +342,7 @@ def test_fsdp_strategy_full_state_dict(tmp_path, wrap_min_params):
         ),
     ],
 )
-def test_fsdp_checkpoint_multi_gpus(tmp_path, model, strategy, strategy_cfg):
+def test_checkpoint_multi_gpus(tmp_path, model, strategy, strategy_cfg):
     """Test to ensure that checkpoint is saved correctly when using multiple GPUs, and all stages can be run."""
     ck = ModelCheckpoint(save_last=True)
 
@@ -410,7 +410,7 @@ def test_invalid_parameters_in_optimizer(use_orig_params):
         trainer.fit(model)
 
 
-def test_fsdp_forbidden_precision_raises():
+def test_forbidden_precision_raises():
     with pytest.raises(TypeError, match="can only work with the `FSDPPrecision"):
         FSDPStrategy(precision_plugin=HalfPrecision())
 
@@ -419,7 +419,7 @@ def test_fsdp_forbidden_precision_raises():
         strategy.precision_plugin = HalfPrecision()
 
 
-def test_fsdp_activation_checkpointing():
+def test_activation_checkpointing():
     """Test that the FSDP strategy can apply activation checkpointing to the given layers."""
 
     class Block1(nn.Linear):
@@ -469,7 +469,7 @@ def test_fsdp_activation_checkpointing():
     apply_mock.assert_called_with(wrapped, checkpoint_wrapper_fn=ANY, **strategy._activation_checkpointing_kwargs)
 
 
-def test_fsdp_strategy_cpu_offload():
+def test_strategy_cpu_offload():
     """Test the different ways cpu offloading can be enabled."""
     # bool
     strategy = FSDPStrategy(cpu_offload=True)
@@ -481,7 +481,7 @@ def test_fsdp_strategy_cpu_offload():
     assert strategy.cpu_offload == config
 
 
-def test_fsdp_sharding_strategy():
+def test_sharding_strategy():
     """Test the different ways the sharding strategy can be set."""
     from torch.distributed.fsdp import ShardingStrategy
 
@@ -501,7 +501,7 @@ def test_fsdp_sharding_strategy():
 
 
 @pytest.mark.parametrize("sharding_strategy", ["HYBRID_SHARD", "_HYBRID_SHARD_ZERO2"])
-def test_fsdp_hybrid_sharding_strategy(sharding_strategy):
+def test_hybrid_sharding_strategy(sharding_strategy):
     """Test that the hybrid sharding strategies can only be used with automatic wrapping or a manually specified pg."""
     with pytest.raises(RuntimeError, match="The hybrid sharding strategy requires you to pass at least one of"):
         FSDPStrategy(sharding_strategy=sharding_strategy)
@@ -523,7 +523,7 @@ def test_fsdp_hybrid_sharding_strategy(sharding_strategy):
         FSDPStrategy(sharding_strategy=sharding_strategy, process_group=process_group, device_mesh=device_mesh)
 
 
-def test_fsdp_use_orig_params():
+def test_use_orig_params():
     """Test that Lightning enables `use_orig_params` automatically."""
     strategy = FSDPStrategy()
     assert strategy.kwargs["use_orig_params"]
@@ -548,7 +548,7 @@ def test_set_timeout(init_process_group_mock):
 
 
 @mock.patch("lightning.pytorch.strategies.fsdp._load_raw_module_state")
-def test_fsdp_strategy_load_optimizer_states_multiple(_, tmp_path):
+def test_strategy_load_optimizer_states_multiple(_, tmp_path):
     strategy = FSDPStrategy(parallel_devices=[torch.device("cpu")], state_dict_type="full")
     trainer = Trainer()
     trainer.state.fn = TrainerFn.FITTING
@@ -572,7 +572,7 @@ def test_fsdp_strategy_load_optimizer_states_multiple(_, tmp_path):
 
 @RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True)
 @pytest.mark.parametrize("wrap_min_params", [2, 1024, 100000000])
-def test_fsdp_strategy_save_optimizer_states(tmp_path, wrap_min_params):
+def test_strategy_save_optimizer_states(tmp_path, wrap_min_params):
     """Test to ensure that the full state dict and optimizer states is saved when using FSDP strategy.
 
     Based on `wrap_min_params`, the model will be fully wrapped, half wrapped, and not wrapped at all. If the model can
@@ -630,7 +630,7 @@ def test_fsdp_strategy_save_optimizer_states(tmp_path, wrap_min_params):
 
 @RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True)
 @pytest.mark.parametrize("wrap_min_params", [2, 1024, 100000000])
-def test_fsdp_strategy_load_optimizer_states(wrap_min_params, tmp_path):
+def test_strategy_load_optimizer_states(wrap_min_params, tmp_path):
     """Test to ensure that the full state dict and optimizer states can be load when using FSDP strategy.
 
     Based on `wrap_min_params`, the model will be fully wrapped, half wrapped, and not wrapped at all. If the DDP model
@@ -741,7 +741,7 @@ def test_save_checkpoint_storage_options(tmp_path):
 @mock.patch("lightning.pytorch.strategies.fsdp._get_sharded_state_dict_context")
 @mock.patch("lightning.fabric.plugins.io.torch_io._atomic_save")
 @mock.patch("lightning.pytorch.strategies.fsdp.shutil")
-def test_fsdp_save_checkpoint_path_exists(shutil_mock, torch_save_mock, __, ___, tmp_path):
+def test_save_checkpoint_path_exists(shutil_mock, torch_save_mock, __, ___, tmp_path):
     strategy = FSDPStrategy(state_dict_type="full")
 
     # state_dict_type='full', path exists, path is not a sharded checkpoint: error
@@ -757,16 +757,12 @@ def test_fsdp_save_checkpoint_path_exists(shutil_mock, torch_save_mock, __, ___,
     path.mkdir()
     (path / "meta.pt").touch()
     assert _is_sharded_checkpoint(path)
-    model = Mock(spec=FullyShardedDataParallel)
-    model.modules.return_value = [model]
     strategy.save_checkpoint(Mock(), filepath=path)
     shutil_mock.rmtree.assert_called_once_with(path)
 
     # state_dict_type='full', path exists, path is a file: no error (overwrite)
     path = tmp_path / "file.pt"
     path.touch()
-    model = Mock(spec=FullyShardedDataParallel)
-    model.modules.return_value = [model]
     torch_save_mock.reset_mock()
     strategy.save_checkpoint(Mock(), filepath=path)
     torch_save_mock.assert_called_once()
@@ -783,8 +779,6 @@ def test_fsdp_save_checkpoint_path_exists(shutil_mock, torch_save_mock, __, ___,
     path = tmp_path / "not-empty-2"
     path.mkdir()
     (path / "file").touch()
-    model = Mock(spec=FullyShardedDataParallel)
-    model.modules.return_value = [model]
     with save_mock:
         strategy.save_checkpoint({"state_dict": {}, "optimizer_states": {"": {}}}, filepath=path)
     assert (path / "file").exists()
@@ -792,21 +786,19 @@ def test_fsdp_save_checkpoint_path_exists(shutil_mock, torch_save_mock, __, ___,
     # state_dict_type='sharded', path exists, path is a file: no error (overwrite)
     path = tmp_path / "file-2.pt"
     path.touch()
-    model = Mock(spec=FullyShardedDataParallel)
-    model.modules.return_value = [model]
     with save_mock:
         strategy.save_checkpoint({"state_dict": {}, "optimizer_states": {"": {}}}, filepath=path)
     assert path.is_dir()
 
 
 @mock.patch("lightning.pytorch.strategies.fsdp.FSDPStrategy.broadcast", lambda _, x: x)
-def test_fsdp_save_checkpoint_unknown_state_dict_type(tmp_path):
+def test_save_checkpoint_unknown_state_dict_type(tmp_path):
     strategy = FSDPStrategy(state_dict_type="invalid")
     with pytest.raises(ValueError, match="Unknown state_dict_type"):
         strategy.save_checkpoint(checkpoint=Mock(), filepath=tmp_path)
 
 
-def test_fsdp_load_unknown_checkpoint_type(tmp_path):
+def test_load_unknown_checkpoint_type(tmp_path):
     """Test that the strategy validates the contents at the checkpoint path."""
     strategy = FSDPStrategy()
     strategy.model = Mock()
@@ -874,7 +866,7 @@ def test_save_load_sharded_state_dict(tmp_path):
 @mock.patch("lightning.pytorch.strategies.fsdp.torch.load")
 @mock.patch("lightning.pytorch.strategies.fsdp._lazy_load")
 @mock.patch("lightning.pytorch.strategies.fsdp._load_raw_module_state")
-def test_fsdp_lazy_load_full_state_dict(_, lazy_load_mock, torch_load_mock, tmp_path):
+def test_lazy_load_full_state_dict(_, lazy_load_mock, torch_load_mock, tmp_path):
     """Test that loading a single file (full state) is lazy to reduce peak CPU memory usage."""
     model = BoringModel()
     checkpoint = {"state_dict": model.state_dict()}

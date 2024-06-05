@@ -142,7 +142,7 @@ How-to Guides
 .. displayitem::
     :header: Train models with billions of parameters
     :description: Scale GPU training for models with billions of parameters
-    :button_link: ../advanced/model_parallel.html
+    :button_link: ../advanced/model_parallel/index.html
     :col_css: col-md-4
     :height: 180
 

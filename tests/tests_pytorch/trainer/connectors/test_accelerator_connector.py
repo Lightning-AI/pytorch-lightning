@@ -14,6 +14,7 @@
 import inspect
 import os
 import sys
+from contextlib import nullcontext
 from typing import Any, Dict
 from unittest import mock
 from unittest.mock import Mock
@@ -48,6 +49,7 @@ from lightning.pytorch.strategies import (
     DDPStrategy,
     DeepSpeedStrategy,
     FSDPStrategy,
+    ModelParallelStrategy,
     SingleDeviceStrategy,
     SingleDeviceXLAStrategy,
     XLAStrategy,
@@ -1063,3 +1065,14 @@ def test_bitsandbytes_precision_cuda_required(monkeypatch):
     monkeypatch.setitem(sys.modules, "bitsandbytes", Mock())
     with pytest.raises(RuntimeError, match="Bitsandbytes is only supported on CUDA GPUs"):
         _AcceleratorConnector(accelerator="cpu", plugins=BitsandbytesPrecision(mode="int8"))
+
+
+@RunIf(min_torch="2.3")
+@pytest.mark.parametrize(
+    ("precision", "raises"),
+    [("32-true", False), ("16-true", False), ("bf16-true", False), ("16-mixed", True), ("bf16-mixed", False)],
+)
+def test_precision_selection_model_parallel(precision, raises, mps_count_0):
+    error_context = pytest.raises(ValueError, match=f"does not support .*{precision}") if raises else nullcontext()
+    with error_context:
+        _AcceleratorConnector(precision=precision, strategy=ModelParallelStrategy())
