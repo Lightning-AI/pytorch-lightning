@@ -32,12 +32,12 @@ def spike_detection_test(fabric, global_rank_spike, spike_value, should_raise):
 @pytest.mark.parametrize(
     ("global_rank_spike", "num_devices", "spike_value", "finite_only"),
     [
-        # pytest.param(0, 1, None, True),
-        # pytest.param(0, 1, None, False),
-        # pytest.param(0, 1, float("inf"), True),
-        # pytest.param(0, 1, float("inf"), False),
-        # pytest.param(0, 1, float("-inf"), True),
-        # pytest.param(0, 1, float("-inf"), False),
+        pytest.param(0, 1, None, True),
+        pytest.param(0, 1, None, False),
+        pytest.param(0, 1, float("inf"), True),
+        pytest.param(0, 1, float("inf"), False),
+        pytest.param(0, 1, float("-inf"), True),
+        pytest.param(0, 1, float("-inf"), False),
         pytest.param(0, 1, float("NaN"), True),
         pytest.param(0, 1, float("NaN"), False),
         # pytest.param(
@@ -205,3 +205,4 @@ def test_fabric_spike_detection_integration(tmp_path, global_rank_spike, num_dev
         spike_value=spike_value,
         should_raise=should_raise,
     )
+    print("test end")

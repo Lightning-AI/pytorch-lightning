@@ -308,7 +308,9 @@ def _destroy_dist_connection() -> None:
     if _distributed_is_initialized():
         # ensure at least one collective op ran, otherwise `destroy_process_group()` hangs
         torch.distributed.barrier()
+        print("destroying dist")
         torch.distributed.destroy_process_group()
+        print("dist destroyed")
 
 
 def _get_default_process_group_backend_for_device(device: torch.device) -> str:

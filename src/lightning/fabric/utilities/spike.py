@@ -87,6 +87,7 @@ class SpikeDetection:
 
         # While spike-detection happens on a per-rank level, we need to fail all ranks if any rank detected a spike
         is_spike_global = fabric.strategy.reduce_boolean_decision(is_spike, all=False)
+        print(f"{is_spike_global=}")
 
         if is_spike_global:
             self._handle_spike(fabric, batch_idx)
