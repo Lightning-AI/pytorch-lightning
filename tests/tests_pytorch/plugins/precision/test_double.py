@@ -134,6 +134,7 @@ class DoublePrecisionBoringModelComplexBuffer(BoringModel):
         return super().training_step(batch, batch_idx)
 
 
+@RunIf(mps=False)  # mps does not support float64
 @pytest.mark.parametrize(
     "boring_model",
     [
