@@ -156,6 +156,9 @@ jobs:
         # needs to run outside `pytest`
         run: python utilities/test_warnings.py
 
+      - name: Setup tmate session
+        uses: mxschmitt/action-tmate@v3
+
       - name: Testing Fabric
         working-directory: tests/tests_fabric
         # NOTE: do not include coverage report here, see: https://github.com/nedbat/coveragepy/issues/1003
