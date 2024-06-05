@@ -39,7 +39,7 @@ def spike_detection_test(fabric, global_rank_spike, spike_value, should_raise):
         # pytest.param(0, 1, float("-inf"), True),
         # pytest.param(0, 1, float("-inf"), False),
         pytest.param(0, 1, float("NaN"), True),
-        # pytest.param(0, 1, float("NaN"), False),
+        pytest.param(0, 1, float("NaN"), False),
         # pytest.param(
         #     0,
         #     2,
