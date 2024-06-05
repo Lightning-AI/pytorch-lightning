@@ -76,14 +76,11 @@ from lightning.fabric.utilities.types import _PATH, _Stateful
 if TYPE_CHECKING:
     from torch.distributed.fsdp.fully_sharded_data_parallel import CPUOffload, MixedPrecision, ShardingStrategy
     from torch.distributed.fsdp.wrap import ModuleWrapPolicy
+    from torch.distributed.device_mesh import DeviceMesh
 
     _POLICY = Union[Set[Type[Module]], Callable[[Module, bool, int], bool], ModuleWrapPolicy]
     _SHARDING_STRATEGY = Union[ShardingStrategy, Literal["FULL_SHARD", "SHARD_GRAD_OP", "NO_SHARD", "HYBRID_SHARD"]]
 
-    if _TORCH_GREATER_EQUAL_2_2:
-        from torch.distributed._tensor import DeviceMesh
-    else:
-        DeviceMesh = None  # type: ignore
 
 _FSDP_ALIASES = ("fsdp", "fsdp_cpu_offload")
 
@@ -175,7 +172,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
 
         if device_mesh is not None:
             if not _TORCH_GREATER_EQUAL_2_2:
-                raise ValueError("The device_mesh argument is only supported in torch >= 2.2.")
+                raise ValueError("The `device_mesh` argument is only supported in torch >= 2.2.")
             self._fsdp_kwargs["device_mesh"] = device_mesh
 
         self._activation_checkpointing_kwargs = _activation_checkpointing_kwargs(

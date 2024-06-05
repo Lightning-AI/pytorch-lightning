@@ -87,16 +87,12 @@ from lightning.pytorch.utilities.model_helpers import is_overridden
 from lightning.pytorch.utilities.rank_zero import rank_zero_info, rank_zero_only, rank_zero_warn
 
 if TYPE_CHECKING:
+    from torch.distributed.device_mesh import DeviceMesh
     from torch.distributed.fsdp.fully_sharded_data_parallel import CPUOffload, MixedPrecision, ShardingStrategy
     from torch.distributed.fsdp.wrap import ModuleWrapPolicy
 
     _POLICY = Union[Set[Type[Module]], Callable[[Module, bool, int], bool], ModuleWrapPolicy]
     _SHARDING_STRATEGY = Union[ShardingStrategy, Literal["FULL_SHARD", "SHARD_GRAD_OP", "NO_SHARD", "HYBRID_SHARD"]]
-
-    if _TORCH_GREATER_EQUAL_2_2:
-        from torch.distributed._tensor import DeviceMesh
-    else:
-        DeviceMesh = None  # type: ignore
 
 
 log = logging.getLogger(__name__)
@@ -192,7 +188,7 @@ class FSDPStrategy(ParallelStrategy):
 
         if device_mesh is not None:
             if not _TORCH_GREATER_EQUAL_2_2:
-                raise ValueError("The device_mesh argument is only supported in torch >= 2.2.")
+                raise ValueError("The `device_mesh` argument is only supported in torch >= 2.2.")
             self.kwargs["device_mesh"] = device_mesh
 
         self.sharding_strategy = _init_sharding_strategy(sharding_strategy, self.kwargs)
