@@ -226,3 +226,6 @@ def test_infinite_barrier():
 def test_init_dist_connection_registers_destruction_handler(_, atexit_mock):
     _init_dist_connection(LightningEnvironment(), "nccl")
     atexit_mock.register.assert_called_once_with(_destroy_dist_connection)
+    atexit_mock.reset_mock()
+    _init_dist_connection(LightningEnvironment(), "gloo")
+    atexit_mock.register.assert_not_called()
