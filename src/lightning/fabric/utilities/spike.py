@@ -125,6 +125,7 @@ class SpikeDetection:
 
             with open(self.exclude_batches_path, "w") as f:
                 json.dump(self.bad_batches, f, indent=4)
+        fabric.strategy.barrier()
 
         raise TrainingSpikeException(batch_idx=batch_idx)
 
