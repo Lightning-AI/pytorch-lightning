@@ -17,6 +17,7 @@ from lightning.fabric.strategies.ddp import DDPStrategy  # noqa: F401
 from lightning.fabric.strategies.deepspeed import DeepSpeedStrategy  # noqa: F401
 from lightning.fabric.strategies.dp import DataParallelStrategy  # noqa: F401
 from lightning.fabric.strategies.fsdp import FSDPStrategy  # noqa: F401
+from lightning.fabric.strategies.model_parallel import ModelParallelStrategy  # noqa: F401
 from lightning.fabric.strategies.parallel import ParallelStrategy  # noqa: F401
 from lightning.fabric.strategies.registry import _StrategyRegistry
 from lightning.fabric.strategies.single_device import SingleDeviceStrategy  # noqa: F401

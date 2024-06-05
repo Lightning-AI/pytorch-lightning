@@ -20,7 +20,6 @@ from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.loggers.mlflow import (
     _MLFLOW_AVAILABLE,
-    _MLFLOW_SYNCHRONOUS_AVAILABLE,
     MLFlowLogger,
     _get_resolve_tags,
 )
@@ -269,8 +268,6 @@ def test_mlflow_logger_experiment_calls(mlflow_mock, tmp_path):
 @mock.patch("lightning.pytorch.loggers.mlflow._get_resolve_tags", Mock())
 def test_mlflow_logger_experiment_calls_with_synchronous(mlflow_mock, tmp_path, synchronous):
     """Test that the logger calls methods on the mlflow experiment with the specified synchronous flag."""
-    if not _MLFLOW_SYNCHRONOUS_AVAILABLE:
-        pytest.skip("this test requires mlflow>=2.8.0")
 
     time = mlflow_mock.entities.time
     metric = mlflow_mock.entities.Metric

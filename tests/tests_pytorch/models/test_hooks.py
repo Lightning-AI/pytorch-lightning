@@ -18,7 +18,6 @@ from unittest.mock import ANY, PropertyMock
 
 import pytest
 import torch
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 from lightning.pytorch import Callback, LightningDataModule, LightningModule, Trainer, __version__
 from lightning.pytorch.demos.boring_classes import BoringDataModule, BoringModel, RandomDataset
 from lightning.pytorch.utilities.model_helpers import is_overridden
@@ -179,6 +178,8 @@ def test_transfer_batch_hook_ddp(tmp_path):
         def training_step(self, batch, batch_idx):
             assert batch.samples.device == self.device
             assert isinstance(batch_idx, int)
+            # the actual training step is not needed for the assertions
+            return super().training_step(torch.rand(1, 32, device=self.device), batch_idx)
 
         def train_dataloader(self):
             return torch.utils.data.DataLoader(RandomDataset(32, 64), collate_fn=collate_fn)
@@ -479,7 +480,7 @@ def test_trainer_model_hook_system_fit(override_on_validation_model_train, autom
         {"name": "configure_optimizers"},
         {"name": "Callback.on_fit_start", "args": (trainer, model)},
         {"name": "on_fit_start"},
-        {"name": "zero_grad", **({} if _TORCH_GREATER_EQUAL_2_0 else {"kwargs": {"set_to_none": True}})},
+        {"name": "zero_grad"},
         {"name": "Callback.on_sanity_check_start", "args": (trainer, model)},
         {"name": "val_dataloader"},
         {"name": "train", "args": (False,)},
@@ -497,7 +498,7 @@ def test_trainer_model_hook_system_fit(override_on_validation_model_train, autom
         {"name": "Callback.on_train_epoch_start", "args": (trainer, model)},
         {"name": "on_train_epoch_start"},
         *model._train_batch(trainer, model, train_batches, device=device, **kwargs),
-        {"name": "zero_grad", **({} if _TORCH_GREATER_EQUAL_2_0 else {"kwargs": {"set_to_none": True}})},
+        {"name": "zero_grad"},
         {"name": "on_validation_model_zero_grad"},
         {"name": "train", "args": (False,)},
         {"name": "on_validation_model_eval"},
@@ -577,7 +578,7 @@ def test_trainer_model_hook_system_fit_no_val_and_resume_max_epochs(tmp_path):
         {"name": "configure_optimizers"},
         {"name": "Callback.on_fit_start", "args": (trainer, model)},
         {"name": "on_fit_start"},
-        {"name": "zero_grad", **({} if _TORCH_GREATER_EQUAL_2_0 else {"kwargs": {"set_to_none": True}})},
+        {"name": "zero_grad"},
         {"name": "train_dataloader"},
         {"name": "Callback.on_train_start", "args": (trainer, model)},
         {"name": "on_train_start"},
@@ -655,7 +656,7 @@ def test_trainer_model_hook_system_fit_no_val_and_resume_max_steps(tmp_path):
         {"name": "configure_optimizers"},
         {"name": "Callback.on_fit_start", "args": (trainer, model)},
         {"name": "on_fit_start"},
-        {"name": "zero_grad", **({} if _TORCH_GREATER_EQUAL_2_0 else {"kwargs": {"set_to_none": True}})},
+        {"name": "zero_grad"},
         {"name": "train_dataloader"},
         {"name": "Callback.on_train_start", "args": (trainer, model)},
         {"name": "on_train_start"},
@@ -718,7 +719,7 @@ def test_trainer_model_hook_system_eval(tmp_path, override_on_x_model_train, bat
         {"name": "Callback.setup", "args": (trainer, model), "kwargs": {"stage": verb}},
         {"name": "setup", "kwargs": {"stage": verb}},
         {"name": "configure_model"},
-        {"name": "zero_grad", **({} if _TORCH_GREATER_EQUAL_2_0 else {"kwargs": {"set_to_none": True}})},
+        {"name": "zero_grad"},
         *(hooks if batches else []),
         {"name": "Callback.teardown", "args": (trainer, model), "kwargs": {"stage": verb}},
         {"name": "teardown", "kwargs": {"stage": verb}},
@@ -741,7 +742,7 @@ def test_trainer_model_hook_system_predict(tmp_path):
         {"name": "Callback.setup", "args": (trainer, model), "kwargs": {"stage": "predict"}},
         {"name": "setup", "kwargs": {"stage": "predict"}},
         {"name": "configure_model"},
-        {"name": "zero_grad", **({} if _TORCH_GREATER_EQUAL_2_0 else {"kwargs": {"set_to_none": True}})},
+        {"name": "zero_grad"},
         {"name": "predict_dataloader"},
         {"name": "train", "args": (False,)},
         {"name": "on_predict_model_eval"},

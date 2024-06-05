@@ -36,7 +36,7 @@ def test_min_max_steps_epochs(tmp_path, min_epochs, max_epochs, min_steps, max_s
         assert trainer.global_step == trainer.max_steps
 
 
-def test_max_epochs_not_set_warning():
+def test_max_epochs_not_set_warning(tmp_path):
     """Test that a warning is only emitted when `max_epochs` was not set by the user."""
 
     class CustomModel(BoringModel):
@@ -46,7 +46,7 @@ def test_max_epochs_not_set_warning():
     match = "`max_epochs` was not set. Setting it to 1000 epochs."
 
     model = CustomModel()
-    trainer = Trainer(max_epochs=None, limit_train_batches=1)
+    trainer = Trainer(logger=False, enable_checkpointing=False, max_epochs=None, limit_train_batches=1)
     with pytest.warns(PossibleUserWarning, match=match):
         trainer.fit(model)
 

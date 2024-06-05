@@ -36,7 +36,7 @@ def test_multiple_optimizers_automatic_optimization_raises():
     model = TestModel()
     model.automatic_optimization = True
 
-    trainer = pl.Trainer()
+    trainer = pl.Trainer(logger=False, enable_checkpointing=False)
     with pytest.raises(RuntimeError, match="Remove the `optimizer_idx` argument from `training_step`"):
         trainer.fit(model)
 
@@ -47,7 +47,7 @@ def test_multiple_optimizers_automatic_optimization_raises():
     model = TestModel()
     model.automatic_optimization = True
 
-    trainer = pl.Trainer()
+    trainer = pl.Trainer(logger=False, enable_checkpointing=False)
     with pytest.raises(RuntimeError, match="multiple optimizers is only supported with manual optimization"):
         trainer.fit(model)
 

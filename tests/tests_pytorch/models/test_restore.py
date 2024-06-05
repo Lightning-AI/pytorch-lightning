@@ -258,7 +258,7 @@ def test_fit_twice(tmp_path):
 def test_try_resume_from_non_existing_checkpoint(tmp_path):
     """Test that trying to resume from non-existing `ckpt_path` fails with an error."""
     model = BoringModel()
-    trainer = Trainer()
+    trainer = Trainer(logger=False)
 
     with pytest.raises(FileNotFoundError, match="Checkpoint file not found"):
         trainer.fit(model, ckpt_path=str(tmp_path / "non_existing.ckpt"))

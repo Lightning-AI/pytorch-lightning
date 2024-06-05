@@ -37,7 +37,7 @@ def test_servable_module_validator():
 
 
 @pytest.mark.flaky(reruns=3)
-def test_servable_module_validator_with_trainer(tmp_path):
+def test_servable_module_validator_with_trainer(tmp_path, mps_count_0):
     callback = ServableModuleValidator()
     trainer = Trainer(
         default_root_dir=tmp_path,
