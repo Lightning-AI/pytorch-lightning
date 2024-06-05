@@ -10,35 +10,39 @@ pip install 'torch>=2.3'
 Navigate to this example folder and run the training script:
 
 ```bash
-cd examples/fabric/tensor_parallel
+cd examples/pytorch/tensor_parallel
 python train.py
 ```
 
 You should see an output like this:
 
 ```
+GPU available: True (cuda), used: True
+TPU available: False, using: 0 TPU cores
+HPU available: False, using: 0 HPUs
+
+Number of model parameters: 6.7 B
+Starting training ...
+
 Initializing distributed: GLOBAL_RANK: 0, MEMBER: 1/4
+Initializing distributed: GLOBAL_RANK: 1, MEMBER: 2/4
 Initializing distributed: GLOBAL_RANK: 3, MEMBER: 4/4
 Initializing distributed: GLOBAL_RANK: 2, MEMBER: 3/4
-Initializing distributed: GLOBAL_RANK: 1, MEMBER: 2/4
 ----------------------------------------------------------------------------------------------------
 distributed_backend=nccl
 All distributed processes registered. Starting with 4 processes
 ----------------------------------------------------------------------------------------------------
 
-Number of model parameters: 6.7 B
-Starting training ...
-Iteration 0 complete
-Iteration 1 complete
-Iteration 2 complete
-Iteration 3 complete
-Iteration 4 complete
-Iteration 5 complete
-Iteration 6 complete
-Iteration 7 complete
+LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [0,1,2,3]
+LOCAL_RANK: 3 - CUDA_VISIBLE_DEVICES: [0,1,2,3]
+LOCAL_RANK: 1 - CUDA_VISIBLE_DEVICES: [0,1,2,3]
+LOCAL_RANK: 2 - CUDA_VISIBLE_DEVICES: [0,1,2,3]
+
+Epoch 0: 100%|█████████████████████████████████████████████| 10/10 [01:49<00:00, 0.09it/s, v_num=2]
+`Trainer.fit` stopped: `max_epochs=1` reached.                                      
 Saving a (distributed) checkpoint ...
 Training successfully completed!
-Peak memory usage: 17.95 GB
+Peak memory usage: 36.73 GB
 ```
 
 > \[!NOTE\]

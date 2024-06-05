@@ -53,6 +53,7 @@ from lightning.pytorch.strategies import (
     DDPStrategy,
     DeepSpeedStrategy,
     FSDPStrategy,
+    ModelParallelStrategy,
     ParallelStrategy,
     SingleDeviceStrategy,
     SingleDeviceXLAStrategy,
@@ -327,7 +328,8 @@ class _AcceleratorConnector:
                 f" using {accelerator_name} accelerator."
             )
 
-    def _choose_auto_accelerator(self) -> str:
+    @staticmethod
+    def _choose_auto_accelerator() -> str:
         """Choose the accelerator type (str) based on availability."""
         if XLAAccelerator.is_available():
             return "tpu"
@@ -528,6 +530,16 @@ class _AcceleratorConnector:
             self.accelerator, CUDAAccelerator
         ):
             raise RuntimeError("Bitsandbytes is only supported on CUDA GPUs.")
+        mp_precision_supported = ("32-true", "bf16-mixed", "bf16-true", "16-true")
+        if (
+            isinstance(self._strategy_flag, ModelParallelStrategy)
+            and self._precision_flag not in mp_precision_supported
+        ):
+            raise ValueError(
+                f"The `ModelParallelStrategy` does not support `Fabric(..., precision={self._precision_flag!r})`."
+                f" Choose a different precision among: {', '.join(mp_precision_supported)}."
+            )
+
         if _habana_available_and_importable():
             from lightning_habana import HPUAccelerator
 
@@ -600,6 +612,7 @@ class _AcceleratorConnector:
             DDPStrategy,
             FSDPStrategy,
             DeepSpeedStrategy,
+            ModelParallelStrategy,
             XLAStrategy,
         ]
         if _habana_available_and_importable():

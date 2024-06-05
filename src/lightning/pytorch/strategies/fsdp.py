@@ -105,8 +105,6 @@ log = logging.getLogger(__name__)
 class FSDPStrategy(ParallelStrategy):
     r"""Strategy for Fully Sharded Data Parallel provided by torch.distributed.
 
-    .. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
-
     Fully Sharded Training shards the entire model across all available GPUs, allowing you to scale model
     size, whilst using efficient communication to reduce overhead. In practice, this means we can remain
     at parity with PyTorch DDP, whilst scaling our model sizes dramatically. The technique is similar
@@ -343,10 +341,6 @@ class FSDPStrategy(ParallelStrategy):
         assert self.model is not None
         if trainer.state.fn == TrainerFn.FITTING and self._layer_sync:
             self.model = self._layer_sync.apply(self.model)
-
-        # we set the device so that optimizers can be created with distributed comms.
-        assert self.lightning_module is not None
-        self.lightning_module._device = self.root_device
 
         self.model = self.precision_plugin.convert_module(self.model)
 
