@@ -54,12 +54,11 @@ def _sanitize_callable_params(params: Dict[str, Any]) -> Dict[str, Any]:
     """
 
     def _sanitize_callable(val: Any) -> Any:
-        # If it's a class, return the name; otherwise for a class without any initialization arguments,
-        # the configuration will store an instance of the class, which is not what we want.
         if inspect.isclass(val):
-            return getattr(val, "__name__", None)
-        # Give them one chance to return a value. Don't go rabbit hole of recursive call
+            # If it's a class, don't try to instantiate it, just return the name
+            return val.__name__
         if callable(val):
+            # Callables get a chance to return a name
             try:
                 _val = val()
                 if callable(_val):
