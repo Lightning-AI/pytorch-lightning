@@ -21,6 +21,7 @@ tensorboard --logdir default
 
 from argparse import ArgumentParser, Namespace
 
+import math
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -58,7 +59,7 @@ class Generator(nn.Module):
             *block(128, 256),
             *block(256, 512),
             *block(512, 1024),
-            nn.Linear(1024, int(torch.prod(img_shape))),
+            nn.Linear(1024, int(math.prod(img_shape))),
             nn.Tanh(),
         )
 
@@ -79,7 +80,7 @@ class Discriminator(nn.Module):
         super().__init__()
 
         self.model = nn.Sequential(
-            nn.Linear(int(torch.prod(img_shape)), 512),
+            nn.Linear(int(math.prod(img_shape)), 512),
             nn.LeakyReLU(0.2, inplace=True),
             nn.Linear(512, 256),
             nn.LeakyReLU(0.2, inplace=True),
