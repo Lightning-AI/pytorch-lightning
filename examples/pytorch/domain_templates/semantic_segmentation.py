@@ -16,7 +16,6 @@ import os
 import random
 from argparse import ArgumentParser, Namespace
 
-import numpy as np
 import torch
 import torch.nn.functional as F
 import torchvision.transforms as transforms
@@ -107,11 +106,11 @@ class KITTI(Dataset):
     def __getitem__(self, idx):
         img = Image.open(self.img_list[idx])
         img = img.resize(self.img_size)
-        img = np.array(img)
+        img = torch.tensor(img)
 
         mask = Image.open(self.mask_list[idx]).convert("L")
         mask = mask.resize(self.img_size)
-        mask = np.array(mask)
+        mask = torch.tensor(mask)
         mask = self.encode_segmap(mask)
 
         if self.transform:

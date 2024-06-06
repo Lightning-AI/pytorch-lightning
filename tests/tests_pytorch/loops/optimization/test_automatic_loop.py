@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+from contextlib import nullcontext
 from typing import Dict, Generic, Iterator, Mapping, TypeVar
 
 import pytest
@@ -81,4 +81,28 @@ def test_warning_invalid_trainstep_output(tmp_path, case):
     trainer = Trainer(default_root_dir=tmp_path, fast_dev_run=1)
 
     with pytest.raises(MisconfigurationException, match=match):
+        trainer.fit(model)
+
+
+@pytest.mark.parametrize("world_size", [1, 2])
+def test_skip_training_step_not_allowed(world_size, tmp_path):
+    """Test that skipping the training_step in distributed training is not allowed."""
+
+    class TestModel(BoringModel):
+        def training_step(self, batch, batch_idx):
+            return None
+
+    model = TestModel()
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        max_steps=1,
+        barebones=True,
+    )
+    trainer.strategy.world_size = world_size  # mock world size without launching processes
+    error_context = (
+        pytest.raises(RuntimeError, match="Skipping the `training_step` .* is not supported")
+        if world_size > 1
+        else nullcontext()
+    )
+    with error_context:
         trainer.fit(model)

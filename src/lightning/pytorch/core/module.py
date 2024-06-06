@@ -405,7 +405,7 @@ class LightningModule(
         The default behavior per hook is documented here: :ref:`extensions/logging:Automatic Logging`.
 
         Args:
-            name: key to log.
+            name: key to log. Must be identical across all processes if using DDP or any other distributed strategy.
             value: value to log. Can be a ``float``, ``Tensor``, or a ``Metric``.
             prog_bar: if ``True`` logs to the progress bar.
             logger: if ``True`` logs to the logger.
@@ -569,6 +569,7 @@ class LightningModule(
 
         Args:
             dictionary: key value pairs.
+                Keys must be identical across all processes if using DDP or any other distributed strategy.
                 The values can be a ``float``, ``Tensor``, ``Metric``, or ``MetricCollection``.
             prog_bar: if ``True`` logs to the progress base.
             logger: if ``True`` logs to the logger.

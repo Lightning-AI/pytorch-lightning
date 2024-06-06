@@ -60,6 +60,7 @@ subprojects:
       - "src/lightning/pytorch/**"
       - "src/pytorch_lightning/*"
       - "tests/tests_pytorch/**"
+      - "tests/run_standalone_*.sh"
       - "pyproject.toml" # includes pytest config
       - "requirements/fabric/**"
       - "src/lightning/fabric/**"
@@ -201,7 +202,6 @@ subprojects:
       - ".azure/gpu-tests-fabric.yml"
       - "examples/fabric/**"
       - "examples/run_fabric_examples.sh"
-      - "tests/run_standalone_*.sh"
       - "requirements/fabric/**"
       - "src/lightning/__init__.py"
       - "src/lightning/__setup__.py"
@@ -209,6 +209,7 @@ subprojects:
       - "src/lightning/fabric/**"
       - "src/lightning_fabric/*"
       - "tests/tests_fabric/**"
+      - "tests/run_standalone_*.sh"
       - "pyproject.toml" # includes pytest config
       - "!requirements/*/docs.txt"
       - "!*.md"
