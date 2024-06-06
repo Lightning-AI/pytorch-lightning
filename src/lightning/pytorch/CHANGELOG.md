@@ -50,7 +50,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Fixed `WandbLogger.log_hyperparameters()` raising an error if hyperparameters are not JSON serializable ([#19769](https://github.com/Lightning-AI/pytorch-lightning/pull/19769))
 
-- Fixed ignoring `nn.Module` and `Tensor` parameters when dumping LightningModule parameters to YAML ([#19804](https://github.com/Lightning-AI/pytorch-lightning/pull/19804))
+
+- Fixed an issue causing ValueError for certain object such as TorchMetrics when dumping hyperparameters to YAML ([#19804](https://github.com/Lightning-AI/pytorch-lightning/pull/19804))
 
 
 ## [2.2.2] - 2024-04-11
