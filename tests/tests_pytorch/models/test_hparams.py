@@ -25,7 +25,6 @@ import cloudpickle
 import pytest
 import torch
 from fsspec.implementations.local import LocalFileSystem
-from torchmetrics.classification import Accuracy
 from lightning.pytorch import LightningModule, Trainer
 from lightning.pytorch.callbacks import ModelCheckpoint
 from lightning.pytorch.core.datamodule import LightningDataModule
@@ -594,8 +593,8 @@ def test_save_hparams_to_yaml(tmp_path):
 def test_save_hparams_to_yaml_warning(tmp_path):
     """Test that we warn about unserializable parameters that need to be dropped."""
     path_yaml = tmp_path / "hparams.yaml"
-    hparams = {"metric": Accuracy(task="multiclass", num_classes=2)}
-    with pytest.warns(UserWarning, match="Skipping 'metric' parameter"):
+    hparams = {"torch_type": torch.float32}
+    with pytest.warns(UserWarning, match="Skipping 'torch_type' parameter"):
         save_hparams_to_yaml(path_yaml, hparams)
 
 
