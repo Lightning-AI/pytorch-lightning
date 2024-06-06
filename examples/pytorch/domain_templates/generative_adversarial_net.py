@@ -19,9 +19,9 @@ tensorboard --logdir default
 
 """
 
+import math
 from argparse import ArgumentParser, Namespace
 
-import math
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
