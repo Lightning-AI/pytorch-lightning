@@ -33,11 +33,11 @@ Second-Edition/blob/master/Chapter06/02_dqn_pong.py
 """
 
 import argparse
+import random
 from collections import OrderedDict, deque, namedtuple
 from typing import Iterator, List, Tuple
 
 import gym
-import random
 import torch
 import torch.nn as nn
 import torch.optim as optim
