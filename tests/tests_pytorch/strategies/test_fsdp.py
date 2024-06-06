@@ -501,7 +501,7 @@ def test_sharding_strategy():
 
 
 @pytest.mark.parametrize("sharding_strategy", ["HYBRID_SHARD", "_HYBRID_SHARD_ZERO2"])
-def test_hybrid_sharding_strategy(sharding_strategy):
+def test_hybrid_shard_configuration(sharding_strategy, monkeypatch):
     """Test that the hybrid sharding strategies can only be used with automatic wrapping or a manually specified pg."""
     with pytest.raises(RuntimeError, match="The hybrid sharding strategy requires you to pass at least one of"):
         FSDPStrategy(sharding_strategy=sharding_strategy)
@@ -514,6 +514,11 @@ def test_hybrid_sharding_strategy(sharding_strategy):
     assert strategy.sharding_strategy.name == sharding_strategy
     assert strategy.kwargs["process_group"] is process_group
 
+    monkeypatch.setattr("lightning.pytorch.strategies.fsdp._TORCH_GREATER_EQUAL_2_2", False)
+    with pytest.raises(ValueError, match="`device_mesh` argument is only supported in torch >= 2.2."):
+        FSDPStrategy(device_mesh=Mock())
+
+    monkeypatch.setattr("lightning.pytorch.strategies.fsdp._TORCH_GREATER_EQUAL_2_2", True)
     device_mesh = Mock()
     strategy = FSDPStrategy(sharding_strategy=sharding_strategy, device_mesh=device_mesh)
     assert strategy.sharding_strategy.name == sharding_strategy
