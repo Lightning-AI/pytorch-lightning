@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+import inspect
 import json
 from argparse import Namespace
 from dataclasses import asdict, is_dataclass
@@ -52,8 +54,11 @@ def _sanitize_callable_params(params: Dict[str, Any]) -> Dict[str, Any]:
     """
 
     def _sanitize_callable(val: Any) -> Any:
-        # Give them one chance to return a value. Don't go rabbit hole of recursive call
+        if inspect.isclass(val):
+            # If it's a class, don't try to instantiate it, just return the name
+            return val.__name__
         if callable(val):
+            # Callables get a chance to return a name
             try:
                 _val = val()
                 if callable(_val):
