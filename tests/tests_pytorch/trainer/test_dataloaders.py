@@ -641,6 +641,8 @@ class MultiProcessModel(BoringModel):
 
     def training_step(self, batch, batch_idx):
         self.batches_seen.append(batch)
+        # the actual training step is not needed for the assertions below
+        return super().training_step(torch.rand(1, 32, device=self.device), batch_idx)
 
     def on_train_epoch_end(self):
         world_size = 2
@@ -810,8 +812,10 @@ class TestModelUniqueDDPSampling(BoringModel):
         super().__init__()
         self.seen_samples = []
 
-    def training_step(self, batch):
+    def training_step(self, batch, batch_idx):
         self.seen_samples.extend(batch.tolist())
+        # the actual training step is not needed for the test
+        return super().training_step(torch.rand(1, 32, device=self.device), batch_idx)
 
     def on_train_end(self):
         seen_samples = self.all_gather(self.seen_samples)

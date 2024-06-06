@@ -85,7 +85,7 @@ Find the `ScratchPad App <https://lightning.ai/app/hvUwbEG70B-ScratchPad%2C%20No
 InVideo Search (Public)
 ***********************
 
-This App lets you find anything you're looking for inside a video. The engine is powered by `Open AI CLIP <https://openai.com/blog/clip/>`_.
+This App lets you find anything you're looking for inside a video. The engine is powered by `Open AI CLIP <https://www.openai.com/index/clip/>`_.
 
 Find the `InVideo Search App <https://lightning.ai/app/7pmQNIDxAE-InVideo%20Search>`_  on the App Gallery and the `InVideo Search App codebase. <https://github.com/Lightning-AI/LAI-InVideo-search-App>`_ in GitHub.
 

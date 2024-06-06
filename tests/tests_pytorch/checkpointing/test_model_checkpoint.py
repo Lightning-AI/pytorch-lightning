@@ -18,6 +18,7 @@ import re
 import time
 from argparse import Namespace
 from datetime import timedelta
+from inspect import signature
 from pathlib import Path
 from typing import Union
 from unittest import mock
@@ -28,6 +29,7 @@ import lightning.pytorch as pl
 import pytest
 import torch
 import yaml
+from jsonargparse import ArgumentParser
 from lightning.fabric.utilities.cloud_io import _load as pl_load
 from lightning.pytorch import Trainer, seed_everything
 from lightning.pytorch.callbacks import ModelCheckpoint
@@ -1601,3 +1603,24 @@ def test_expand_home():
     # it is possible to have a folder with the name `~`
     checkpoint = ModelCheckpoint(dirpath="./~/checkpoints")
     assert checkpoint.dirpath == str(Path.cwd() / "~" / "checkpoints")
+
+
+@pytest.mark.parametrize(
+    ("val", "expected"),
+    [
+        ("yes", True),
+        ("True", True),
+        ("true", True),
+        ("no", False),
+        ("false", False),
+        ("False", False),
+        ("link", "link"),
+    ],
+)
+def test_save_last_cli(val, expected):
+    """Test that the CLI can parse the `save_last` argument correctly (composed type)."""
+    annot = signature(ModelCheckpoint).parameters["save_last"].annotation
+    parser = ArgumentParser()
+    parser.add_argument("--a", type=annot)
+    args = parser.parse_args(["--a", val])
+    assert args.a == expected

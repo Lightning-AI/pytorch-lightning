@@ -62,6 +62,7 @@ from lightning.fabric.strategies import (
 )
 from lightning.fabric.strategies.ddp import _DDP_FORK_ALIASES
 from lightning.fabric.strategies.fsdp import _FSDP_ALIASES, FSDPStrategy
+from lightning.fabric.strategies.model_parallel import ModelParallelStrategy
 from lightning.fabric.utilities import rank_zero_info, rank_zero_warn
 from lightning.fabric.utilities.device_parser import _determine_root_gpu_device
 from lightning.fabric.utilities.imports import _IS_INTERACTIVE
@@ -312,7 +313,8 @@ class _Connector:
                 f" using {accelerator_name} accelerator."
             )
 
-    def _choose_auto_accelerator(self) -> str:
+    @staticmethod
+    def _choose_auto_accelerator() -> str:
         """Choose the accelerator type (str) based on availability when ``accelerator='auto'``."""
         if XLAAccelerator.is_available():
             return "tpu"
@@ -429,7 +431,7 @@ class _Connector:
                 f" platform. We recommed `Fabric(strategy='ddp_spawn')` instead."
             )
         if (
-            strategy_flag in _FSDP_ALIASES or isinstance(self._strategy_flag, FSDPStrategy)
+            strategy_flag in _FSDP_ALIASES or type(self._strategy_flag) is FSDPStrategy
         ) and self._accelerator_flag not in ("cuda", "gpu"):
             raise ValueError(
                 "You selected the FSDP strategy but FSDP is only available on GPU. Set `Fabric(accelerator='gpu', ...)`"
@@ -460,6 +462,12 @@ class _Connector:
             return DeepSpeedPrecision(self._precision_input)  # type: ignore
         if isinstance(self.strategy, FSDPStrategy):
             return FSDPPrecision(precision=self._precision_input)  # type: ignore[arg-type]
+        mp_precision_supported = ("32-true", "bf16-mixed", "bf16-true", "16-true")
+        if isinstance(self.strategy, ModelParallelStrategy) and self._precision_input not in mp_precision_supported:
+            raise ValueError(
+                f"The `ModelParallelStrategy` does not support `Fabric(..., precision={self._precision_input!r})`."
+                f" Choose a different precision among: {', '.join(mp_precision_supported)}."
+            )
         if self._precision_input in ("16-true", "bf16-true"):
             return HalfPrecision(self._precision_input)  # type: ignore
         if self._precision_input == "32-true":

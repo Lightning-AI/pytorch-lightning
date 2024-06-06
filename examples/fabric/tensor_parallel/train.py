@@ -69,7 +69,7 @@ def train():
     fabric.save("checkpoint.pt", state)
 
     fabric.print("Training successfully completed!")
-    fabric.print(f"Peak memory usage: {torch.cuda.max_memory_reserved() / 1e9:.02f} GB")
+    fabric.print(f"Peak memory usage: {torch.cuda.max_memory_allocated() / 1e9:.02f} GB")
 
 
 if __name__ == "__main__":
