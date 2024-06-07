@@ -434,6 +434,7 @@ def test_lr_finder_callback_restarting(tmp_path):
             super().lr_find(trainer, pl_module)
             pl_module._expected_max_steps = None
             assert not trainer.fit_loop.restarting
+            assert not trainer.fit_loop.epoch_loop.restarting
 
         def on_train_epoch_start(self, trainer, pl_module):
             if trainer.current_epoch in self.milestones or trainer.current_epoch == 0:
