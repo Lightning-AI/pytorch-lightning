@@ -17,7 +17,6 @@ from abc import ABC
 from functools import partial
 from typing import Any, Callable, List, Tuple, Union
 
-import numpy as np
 import torch
 from lightning_utilities.core.apply_func import apply_to_collection
 from torch import Tensor
