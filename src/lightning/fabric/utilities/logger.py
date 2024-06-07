@@ -17,6 +17,7 @@ from dataclasses import asdict, is_dataclass
 from typing import Any, Dict, Mapping, MutableMapping, Optional, Union
 
 import numpy as np
+import torch
 from torch import Tensor
 
 
@@ -125,7 +126,7 @@ def _sanitize_params(params: Dict[str, Any]) -> Dict[str, Any]:
     """
     for k in params:
         # convert relevant np scalars to python types first (instead of str)
-        if isinstance(params[k], (np.bool_, np.integer, np.floating)):
+        if isinstance(params[k], (torch.bool, np.integer, np.floating)):
             params[k] = params[k].item()
         elif type(params[k]) not in [bool, int, float, str, Tensor]:
             params[k] = str(params[k])
