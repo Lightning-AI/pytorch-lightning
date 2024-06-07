@@ -27,7 +27,7 @@ import pytest
 import torch.distributed
 from lightning.fabric.plugins.environments.lightning import find_free_network_port
 from lightning.fabric.strategies.launchers.subprocess_script import _ChildProcessObserver
-from lightning.fabric.utilities.distributed import _distributed_is_initialized
+from lightning.fabric.utilities.distributed import _destroy_dist_connection, _distributed_is_initialized
 from lightning.fabric.utilities.imports import _IS_WINDOWS
 from lightning.pytorch.accelerators import XLAAccelerator
 from lightning.pytorch.trainer.connectors.signal_connector import _SignalConnector
@@ -123,8 +123,7 @@ def restore_signal_handlers():
 def teardown_process_group():
     """Ensures that the distributed process group gets closed before the next test runs."""
     yield
-    if _distributed_is_initialized():
-        torch.distributed.destroy_process_group()
+    _destroy_dist_connection()
 
 
 @pytest.fixture(autouse=True)

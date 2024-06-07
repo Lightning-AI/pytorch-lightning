@@ -328,7 +328,8 @@ class _AcceleratorConnector:
                 f" using {accelerator_name} accelerator."
             )
 
-    def _choose_auto_accelerator(self) -> str:
+    @staticmethod
+    def _choose_auto_accelerator() -> str:
         """Choose the accelerator type (str) based on availability."""
         if XLAAccelerator.is_available():
             return "tpu"

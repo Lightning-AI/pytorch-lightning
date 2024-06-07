@@ -190,7 +190,7 @@ class _LRFinder:
         losses = losses[torch.isfinite(losses)]
 
         if len(losses) < 2:
-            # computing np.gradient requires at least 2 points
+            # computing torch.gradient requires at least 2 points
             log.error(
                 "Failed to compute suggestion for learning rate because there are not enough points. Increase the loop"
                 " iteration limits or the size of your dataset/dataloader."

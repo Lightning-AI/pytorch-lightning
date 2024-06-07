@@ -16,7 +16,21 @@ import shutil
 from contextlib import contextmanager, nullcontext
 from datetime import timedelta
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable, Dict, Generator, List, Literal, Mapping, Optional, Set, Type, Union
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    Dict,
+    Generator,
+    List,
+    Literal,
+    Mapping,
+    Optional,
+    Set,
+    Tuple,
+    Type,
+    Union,
+)
 
 import torch
 from lightning_utilities.core.rank_zero import rank_zero_only as utils_rank_zero_only
@@ -53,7 +67,10 @@ from lightning.fabric.utilities.distributed import (
     _sync_ddp_if_available,
 )
 from lightning.fabric.utilities.distributed import group as _group
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_1
+from lightning.fabric.utilities.imports import (
+    _TORCH_GREATER_EQUAL_2_1,
+    _TORCH_GREATER_EQUAL_2_2,
+)
 from lightning.fabric.utilities.init import _EmptyInit, _has_meta_device_parameters_or_buffers
 from lightning.fabric.utilities.load import _lazy_load, _materialize_tensors
 from lightning.fabric.utilities.optimizer import _optimizers_to_device
@@ -70,6 +87,7 @@ from lightning.pytorch.utilities.model_helpers import is_overridden
 from lightning.pytorch.utilities.rank_zero import rank_zero_info, rank_zero_only, rank_zero_warn
 
 if TYPE_CHECKING:
+    from torch.distributed.device_mesh import DeviceMesh
     from torch.distributed.fsdp.fully_sharded_data_parallel import CPUOffload, MixedPrecision, ShardingStrategy
     from torch.distributed.fsdp.wrap import ModuleWrapPolicy
 
@@ -114,9 +132,13 @@ class FSDPStrategy(ParallelStrategy):
             - ``"SHARD_GRAD_OP"``: Shards gradients and optimizer states only. Model parameters get replicated.
             - ``"NO_SHARD"``: No sharding (identical to regular DDP).
             - ``"HYBRID_SHARD"``: Shards model parameters, gradients, and optimizer states within a single machine, but
-              replicates across machines.
+              replicates across machines. See also the `device_mesh` parameter below.
 
             Also accepts a :class:`torch.distributed.fsdp.ShardingStrategy` enum value.
+
+        device_mesh: A tuple `(replication size, sharding size)` that defines over how many devices to shard and
+            replicate the model. The product of the two numbers must equal the world size. Only valid in combination
+            with the `HYBRID_SHARD` sharding strategy.
 
         state_dict_type: The format in which the state of the model and optimizers gets saved into the checkpoint.
 
@@ -147,6 +169,7 @@ class FSDPStrategy(ParallelStrategy):
         activation_checkpointing_policy: Optional["_POLICY"] = None,
         sharding_strategy: "_SHARDING_STRATEGY" = "FULL_SHARD",
         state_dict_type: Literal["full", "sharded"] = "full",
+        device_mesh: Optional[Union[Tuple[int], "DeviceMesh"]] = None,
         **kwargs: Any,
     ) -> None:
         super().__init__(
@@ -162,6 +185,12 @@ class FSDPStrategy(ParallelStrategy):
         self.cpu_offload = _init_cpu_offload(cpu_offload)
         self.mixed_precision = mixed_precision
         self.kwargs = _auto_wrap_policy_kwargs(auto_wrap_policy, kwargs)
+
+        if device_mesh is not None:
+            if not _TORCH_GREATER_EQUAL_2_2:
+                raise ValueError("The `device_mesh` argument is only supported in torch >= 2.2.")
+            self.kwargs["device_mesh"] = device_mesh
+
         self.sharding_strategy = _init_sharding_strategy(sharding_strategy, self.kwargs)
 
         # Avoids the need for user to reference params in `configure_optimizers` via
@@ -241,6 +270,12 @@ class FSDPStrategy(ParallelStrategy):
         self._process_group_backend = self._get_process_group_backend()
         assert self.cluster_environment is not None
         _init_dist_connection(self.cluster_environment, self._process_group_backend, timeout=self._timeout)
+
+        # if 'device_mesh' in the `kwargs` is provided as a tuple, update it into the `DeviceMesh` object here
+        if isinstance(self.kwargs.get("device_mesh"), tuple):
+            from torch.distributed.device_mesh import init_device_mesh
+
+            self.kwargs["device_mesh"] = init_device_mesh("cuda", self.kwargs["device_mesh"])
 
     def _get_process_group_backend(self) -> str:
         return self._process_group_backend or _get_default_process_group_backend_for_device(self.root_device)
