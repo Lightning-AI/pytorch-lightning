@@ -17,7 +17,6 @@ from dataclasses import asdict, is_dataclass
 from typing import Any, Dict, Mapping, MutableMapping, Optional, Union
 
 import numpy as np
-import torch
 from torch import Tensor
 
 
