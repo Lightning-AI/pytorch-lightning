@@ -206,7 +206,7 @@ class Trainer:
                 across epochs or during iteration-based training.
                 Default: ``1.0``.
 
-            check_val_every_n_epoch: Perform a validation loop every after every `N` training epochs. If ``None``,
+            check_val_every_n_epoch: Perform a validation loop after every `N` training epochs. If ``None``,
                 validation will be done solely based on the number of training batches, requiring ``val_check_interval``
                 to be an integer value.
                 Default: ``1``.
