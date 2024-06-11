@@ -15,7 +15,7 @@ We developed `StreamingDataset` to optimize training of large datasets stored on
 
 Specifically crafted for multi-gpu & multi-node (with [DDP](https://lightning.ai/docs/pytorch/stable/accelerators/gpu_intermediate.html), [FSDP](https://lightning.ai/docs/pytorch/stable/advanced/model_parallel/fsdp.html), etc...), distributed training with large models, it enhances accuracy, performance, and user-friendliness. Now, training efficiently is possible regardless of the data's location. Simply stream in the required data when needed.
 
-The `StreamingDataset` is compatible with any data type, including **images, text, video, audio, geo-spatial, and multimodal data** and it is a drop-in replacement for your PyTorch [IterableDataset](https://pytorch.org/docs/stable/data.html#torch.utils.data.IterableDataset) class. For example, it is used by [Lit-GPT](https://github.com/Lightning-AI/lit-gpt/blob/main/pretrain/tinyllama.py) to pretrain LLMs.
+The `StreamingDataset` is compatible with any data type, including **images, text, video, audio, geo-spatial, and multimodal data** and it is a drop-in replacement for your PyTorch [IterableDataset](https://pytorch.org/docs/stable/data.html#torch.utils.data.IterableDataset) class. For example, it is used by [Lit-GPT](https://github.com/Lightning-AI/lit-gpt/blob/main/litgpt/data/tinyllama.py) to pretrain LLMs.
 
 <br/>
 
@@ -284,7 +284,7 @@ for batch in tqdm(train_dataloader):
 
 Lightning Data provides a stateful `StreamingDataLoader`. This simplifies resuming training over large datasets.
 
-Note: The `StreamingDataLoader` is used by [Lit-GPT](https://github.com/Lightning-AI/lit-gpt/blob/main/pretrain/tinyllama.py) to pretrain LLMs. The statefulness still works when using a mixture of datasets with the `CombinedStreamingDataset`.
+Note: The `StreamingDataLoader` is used by [Lit-GPT](https://github.com/Lightning-AI/lit-gpt/blob/main/litgpt/data/tinyllama.py) to pretrain LLMs. The statefulness still works when using a mixture of datasets with the `CombinedStreamingDataset`.
 
 ```python
 import os
