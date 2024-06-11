@@ -14,8 +14,8 @@ ______________________________________________________________________
 <p align="center">
   <a href="https://lightning.ai/">Lightning AI</a> •   
   <a href="#examples">Examples</a> •
-  <a href="https://lightning.ai/docs/pytorch/stable/">PyTorch Lightning</a> •
-  <a href="https://lightning.ai/docs/fabric/stable/">Fabric</a> •
+  <a href="#pytorch-lightning-train-and-deploy-pytorch-at-scale">PyTorch Lightning</a> •
+  <a href="#lightning-fabric-expert-control">Fabric</a> •
   <a href="https://pytorch-lightning.readthedocs.io/en/stable/">Docs</a> •
   <a href="#community">Community</a> •
   <a href="https://lightning.ai/docs/pytorch/stable/generated/CONTRIBUTING.html">Contribute</a> •
@@ -36,6 +36,20 @@ ______________________________________________________________________
 <!--
 [![CodeFactor](https://www.codefactor.io/repository/github/Lightning-AI/lightning/badge)](https://www.codefactor.io/repository/github/Lightning-AI/lightning)
 -->
+
+</div>
+
+<div align="center">
+  
+<p align="center">
+
+&nbsp;
+  
+<a target="_blank" href="https://lightning.ai/docs/pytorch/latest/starter/introduction.html#define-a-lightningmodule">
+  <img src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/app-2/get-started-badge.svg" height="36px" alt="Get started"/>
+</a>
+
+</p>
 
 </div>
 
@@ -329,7 +343,7 @@ ______________________________________________________________________
 &nbsp;
 &nbsp;
 
-# Lightning Fabric: Expert control.
+# Lightning Fabric: Expert control
 
 Run on any device at any scale with expert-level control over PyTorch training loop and scaling strategy. You can even write your own Trainer.
 
