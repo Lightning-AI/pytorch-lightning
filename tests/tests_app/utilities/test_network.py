@@ -48,40 +48,42 @@ def test_find_free_network_port_cloudspace(_, patch_constants):
 @mock.patch("urllib3.connectionpool.HTTPConnectionPool._get_conn")
 def test_http_client_retry_post(getconn_mock):
     getconn_mock.return_value.getresponse.side_effect = [
-        mock.Mock(status=500, msg=HTTPMessage()),
-        mock.Mock(status=599, msg=HTTPMessage()),
-        mock.Mock(status=405, msg=HTTPMessage()),
-        mock.Mock(status=200, msg=HTTPMessage()),
+        mock.Mock(status=500, msg=HTTPMessage(), headers={}),
+        mock.Mock(status=599, msg=HTTPMessage(), headers={}),
+        mock.Mock(status=405, msg=HTTPMessage(), headers={}),
+        mock.Mock(status=200, msg=HTTPMessage(), headers={}),
     ]
 
     client = HTTPClient(base_url="http://test.url")
+    client.session.stream = True
     r = client.post("/test")
     r.raise_for_status()
 
     assert getconn_mock.return_value.request.mock_calls == [
-        mock.call("POST", "/test", body=None, headers=mock.ANY),
-        mock.call("POST", "/test", body=None, headers=mock.ANY),
-        mock.call("POST", "/test", body=None, headers=mock.ANY),
-        mock.call("POST", "/test", body=None, headers=mock.ANY),
+        mock.call("POST", "/test", body=None, headers=mock.ANY, chunked=False, preload_content=False, decode_content=False, enforce_content_length=True),
+        mock.call("POST", "/test", body=None, headers=mock.ANY, chunked=False, preload_content=False, decode_content=False, enforce_content_length=True),
+        mock.call("POST", "/test", body=None, headers=mock.ANY, chunked=False, preload_content=False, decode_content=False, enforce_content_length=True),
+        mock.call("POST", "/test", body=None, headers=mock.ANY, chunked=False, preload_content=False, decode_content=False, enforce_content_length=True),
     ]
 
 
 @mock.patch("urllib3.connectionpool.HTTPConnectionPool._get_conn")
 def test_http_client_retry_get(getconn_mock):
     getconn_mock.return_value.getresponse.side_effect = [
-        mock.Mock(status=500, msg=HTTPMessage()),
-        mock.Mock(status=599, msg=HTTPMessage()),
-        mock.Mock(status=405, msg=HTTPMessage()),
-        mock.Mock(status=200, msg=HTTPMessage()),
+        mock.Mock(status=500, msg=HTTPMessage(), headers={}),
+        mock.Mock(status=599, msg=HTTPMessage(), headers={}),
+        mock.Mock(status=405, msg=HTTPMessage(), headers={}),
+        mock.Mock(status=200, msg=HTTPMessage(), headers={}),
     ]
 
     client = HTTPClient(base_url="http://test.url")
+    client.session.stream = True
     r = client.get("/test")
     r.raise_for_status()
 
     assert getconn_mock.return_value.request.mock_calls == [
-        mock.call("GET", "/test", body=None, headers=mock.ANY),
-        mock.call("GET", "/test", body=None, headers=mock.ANY),
-        mock.call("GET", "/test", body=None, headers=mock.ANY),
-        mock.call("GET", "/test", body=None, headers=mock.ANY),
+        mock.call("GET", "/test", body=None, headers=mock.ANY, chunked=False, preload_content=False, decode_content=False, enforce_content_length=True),
+        mock.call("GET", "/test", body=None, headers=mock.ANY, chunked=False, preload_content=False, decode_content=False, enforce_content_length=True),
+        mock.call("GET", "/test", body=None, headers=mock.ANY, chunked=False, preload_content=False, decode_content=False, enforce_content_length=True),
+        mock.call("GET", "/test", body=None, headers=mock.ANY, chunked=False, preload_content=False, decode_content=False, enforce_content_length=True),
     ]
