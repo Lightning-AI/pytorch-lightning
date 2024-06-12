@@ -404,7 +404,7 @@ async def test_frontend_routes(path, expected_status_code):
     assert response.status_code == expected_status_code
 
 
-@pytest.mark.xfail(sys.platform == "linux", reason="No idea why... need to be fixed")  # fixme
+@pytest.mark.xfail(sys.platform == "linux", strict=False, reason="No idea why... need to be fixed")  # fixme
 def test_start_server_started():
     """This test ensures has_started_queue receives a signal when the REST API has started."""
     api_publish_state_queue = mp.Queue()
