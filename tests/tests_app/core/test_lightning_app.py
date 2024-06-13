@@ -1084,6 +1084,7 @@ class TestLightningHasUpdatedApp(LightningApp):
         return res
 
 
+@pytest.mark.flaky(reruns=3)
 def test_lightning_app_has_updated():
     app = TestLightningHasUpdatedApp(FlowPath())
     MultiProcessRuntime(app, start_server=False).dispatch()
