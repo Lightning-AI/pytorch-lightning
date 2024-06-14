@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import logging
+import signal
 from copy import deepcopy
 from typing import Any, Callable, Dict, Optional, Type, Union
 
@@ -55,6 +56,11 @@ def _call_and_handle_interrupt(trainer: "pl.Trainer", trainer_fn: Callable, *arg
         # user could press Ctrl+c many times... only shutdown once
         if not trainer.interrupted:
             _interrupt(trainer, exception)
+
+        launcher = trainer.strategy.launcher
+        if launcher is not None:
+            launcher.kill(signal.SIGTERM)
+        exit(0)
     except BaseException as exception:
         _interrupt(trainer, exception)
         trainer._teardown()
