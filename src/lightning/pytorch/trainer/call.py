@@ -55,10 +55,11 @@ def _call_and_handle_interrupt(trainer: "pl.Trainer", trainer_fn: Callable, *arg
         rank_zero_warn("Detected KeyboardInterrupt, attempting graceful shutdown...")
         # user could press Ctrl+C many times, disable KeyboardInterrupt for shutdown
         signal.signal(signal.SIGINT, signal.SIG_IGN)
+        _interrupt(trainer, exception)
         launcher = trainer.strategy.launcher
         if isinstance(launcher, _SubprocessScriptLauncher):
             launcher.kill(signal.SIGKILL)
-        exit(0)
+        exit(1)
     except BaseException as exception:
         _interrupt(trainer, exception)
         trainer._teardown()
