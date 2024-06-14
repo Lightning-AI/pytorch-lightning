@@ -21,6 +21,7 @@ from packaging.version import Version
 import lightning.pytorch as pl
 from lightning.fabric.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
 from lightning.pytorch.callbacks import Checkpoint, EarlyStopping
+from lightning.pytorch.strategies.launchers import _SubprocessScriptLauncher
 from lightning.pytorch.trainer.states import TrainerStatus
 from lightning.pytorch.utilities.exceptions import _TunerExitException
 from lightning.pytorch.utilities.model_helpers import is_overridden
@@ -55,7 +56,7 @@ def _call_and_handle_interrupt(trainer: "pl.Trainer", trainer_fn: Callable, *arg
         # user could press Ctrl+C many times, disable KeyboardInterrupt for shutdown
         signal.signal(signal.SIGINT, signal.SIG_IGN)
         launcher = trainer.strategy.launcher
-        if launcher is not None:
+        if isinstance(launcher, _SubprocessScriptLauncher):
             launcher.kill(signal.SIGKILL)
         exit(0)
     except BaseException as exception:
