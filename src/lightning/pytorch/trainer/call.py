@@ -50,17 +50,15 @@ def _call_and_handle_interrupt(trainer: "pl.Trainer", trainer_fn: Callable, *arg
         trainer.state.status = TrainerStatus.FINISHED
         trainer.state.stage = None
 
-    # TODO: Unify both exceptions below, where `KeyboardError` doesn't re-raise
     except KeyboardInterrupt as exception:
         rank_zero_warn("Detected KeyboardInterrupt, attempting graceful shutdown...")
         # user could press Ctrl+c many times... only shutdown once
         if not trainer.interrupted:
             _interrupt(trainer, exception)
-
-        launcher = trainer.strategy.launcher
-        if launcher is not None:
-            launcher.kill(signal.SIGKILL)
-        exit(0)
+            launcher = trainer.strategy.launcher
+            if launcher is not None:
+                launcher.kill(signal.SIGKILL)
+            exit(0)
     except BaseException as exception:
         _interrupt(trainer, exception)
         trainer._teardown()
