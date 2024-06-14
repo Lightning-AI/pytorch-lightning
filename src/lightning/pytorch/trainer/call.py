@@ -59,7 +59,7 @@ def _call_and_handle_interrupt(trainer: "pl.Trainer", trainer_fn: Callable, *arg
 
         launcher = trainer.strategy.launcher
         if launcher is not None:
-            launcher.kill(signal.SIGTERM)
+            launcher.kill(signal.SIGKILL)
         exit(0)
     except BaseException as exception:
         _interrupt(trainer, exception)
