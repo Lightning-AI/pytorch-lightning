@@ -1007,7 +1007,8 @@ def test_on_exception_hook(tmp_path):
     )
     assert not trainer.interrupted
     assert handle_interrupt_callback.exception is None
-    trainer.fit(model)
+    with pytest.raises(SystemExit):
+        trainer.fit(model)
     assert trainer.interrupted
     assert isinstance(handle_interrupt_callback.exception, KeyboardInterrupt)
     with pytest.raises(MisconfigurationException):
@@ -2042,7 +2043,7 @@ def test_trainer_calls_strategy_on_exception(exception_type, tmp_path):
 
     trainer = Trainer(default_root_dir=tmp_path)
     with mock.patch("lightning.pytorch.strategies.strategy.Strategy.on_exception") as on_exception_mock, suppress(
-        Exception
+        Exception, SystemExit
     ):
         trainer.fit(ExceptionModel())
     on_exception_mock.assert_called_once_with(exception)
@@ -2061,7 +2062,7 @@ def test_trainer_calls_datamodule_on_exception(exception_type, tmp_path):
     datamodule.on_exception = Mock()
     trainer = Trainer(default_root_dir=tmp_path)
 
-    with suppress(Exception):
+    with suppress(Exception, SystemExit):
         trainer.fit(ExceptionModel(), datamodule=datamodule)
     datamodule.on_exception.assert_called_once_with(exception)
 
