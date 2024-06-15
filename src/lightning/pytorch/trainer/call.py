@@ -57,6 +57,9 @@ def _call_and_handle_interrupt(trainer: "pl.Trainer", trainer_fn: Callable, *arg
         signal.signal(signal.SIGINT, signal.SIG_IGN)
         _interrupt(trainer, exception)
         trainer._teardown()
+        launcher = trainer.strategy.launcher
+        if isinstance(launcher, _SubprocessScriptLauncher):
+            launcher.kill(signal.SIGKILL)
         exit(1)
 
     except BaseException as exception:
@@ -75,9 +78,6 @@ def _interrupt(trainer: "pl.Trainer", exception: BaseException) -> None:
     trainer.strategy.on_exception(exception)
     for logger in trainer.loggers:
         logger.finalize("failed")
-    launcher = trainer.strategy.launcher
-    if isinstance(launcher, _SubprocessScriptLauncher):
-        launcher.kill(signal.SIGKILL)
 
 
 def _call_setup_hook(trainer: "pl.Trainer") -> None:
