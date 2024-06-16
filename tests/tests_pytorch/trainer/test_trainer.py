@@ -45,7 +45,7 @@ from lightning.pytorch.demos.boring_classes import (
 from lightning.pytorch.loggers import TensorBoardLogger
 from lightning.pytorch.overrides.distributed import UnrepeatedDistributedSampler, _IndexBatchSamplerWrapper
 from lightning.pytorch.strategies import DDPStrategy, SingleDeviceStrategy
-from lightning.pytorch.strategies.launchers import _MultiProcessingLauncher
+from lightning.pytorch.strategies.launchers import _MultiProcessingLauncher, _SubprocessScriptLauncher
 from lightning.pytorch.trainer.states import RunningStage, TrainerFn
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.imports import _OMEGACONF_AVAILABLE
@@ -1015,6 +1015,30 @@ def test_on_exception_hook(tmp_path):
         trainer.test(model)
     assert trainer.interrupted
     assert isinstance(handle_interrupt_callback.exception, MisconfigurationException)
+
+
+def test_keyboard_interrupt(tmp_path):
+    class InterruptCallback(Callback):
+        def __init__(self):
+            super().__init__()
+
+        def on_train_batch_start(self, trainer, pl_module, batch, batch_idx):
+            raise KeyboardInterrupt
+
+    model = BoringModel()
+    trainer = Trainer(
+        callbacks=[InterruptCallback()],
+        barebones=True,
+        default_root_dir=tmp_path,
+    )
+
+    trainer.strategy._launcher = Mock(spec=_SubprocessScriptLauncher)
+    trainer.strategy._launcher.launch = lambda function, *args, trainer, **kwargs: function(*args, **kwargs)
+
+    with pytest.raises(SystemExit) as exc_info:
+        trainer.fit(model)
+    assert exc_info.value.args[0] == 1
+    trainer.strategy._launcher.kill.assert_called_once_with(9)
 
 
 @pytest.mark.parametrize("precision", ["32-true", pytest.param("16-mixed", marks=RunIf(min_cuda_gpus=1))])
