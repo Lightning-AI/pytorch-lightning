@@ -85,7 +85,7 @@ We will discuss ``application_testing`` in a bit, but first let's review the str
 LightningTestApp
 ^^^^^^^^^^^^^^^^^
 
-The :class:`lightning.app.testing.testing.LightningTestApp` class is available to use for provisioning and setting up your testing needs. Note that you do not need this class to move forward with testing. Any application that inherits ``LightningApp`` should suffice as long as you override the correct methods. Reviewing the TestLightnigApp we see some overrides that are already there. Please revuew the class for more information.
+The :class:`lightning.app.testing.testing.LightningTestApp` class is available to use for provisioning and setting up your testing needs. Note that you do not need this class to move forward with testing. Any application that inherits ``LightningApp`` should suffice as long as you override the correct methods. Reviewing the TestLightnigApp we see some overrides that are already there. Please review the class for more information.
 
 .. code-block:: python
 
