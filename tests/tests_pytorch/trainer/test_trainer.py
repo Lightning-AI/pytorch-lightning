@@ -28,6 +28,7 @@ import pytest
 import torch
 import torch.nn as nn
 from lightning.fabric.utilities.cloud_io import _load as pl_load
+from lightning.fabric.utilities.imports import _IS_WINDOWS
 from lightning.fabric.utilities.seed import seed_everything
 from lightning.pytorch import Callback, LightningDataModule, LightningModule, Trainer
 from lightning.pytorch.accelerators import CPUAccelerator, CUDAAccelerator
@@ -1038,7 +1039,7 @@ def test_keyboard_interrupt(tmp_path):
     with pytest.raises(SystemExit) as exc_info:
         trainer.fit(model)
     assert exc_info.value.args[0] == 1
-    trainer.strategy._launcher.kill.assert_called_once_with(9)
+    trainer.strategy._launcher.kill.assert_called_once_with(15 if _IS_WINDOWS else 9)
 
 
 @pytest.mark.parametrize("precision", ["32-true", pytest.param("16-mixed", marks=RunIf(min_cuda_gpus=1))])

@@ -22,6 +22,7 @@ import lightning.pytorch as pl
 from lightning.fabric.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
 from lightning.pytorch.callbacks import Checkpoint, EarlyStopping
 from lightning.pytorch.strategies.launchers import _SubprocessScriptLauncher
+from lightning.pytorch.trainer.connectors.signal_connector import _get_sigkill_signal
 from lightning.pytorch.trainer.states import TrainerStatus
 from lightning.pytorch.utilities.exceptions import _TunerExitException
 from lightning.pytorch.utilities.model_helpers import is_overridden
@@ -59,7 +60,7 @@ def _call_and_handle_interrupt(trainer: "pl.Trainer", trainer_fn: Callable, *arg
         trainer._teardown()
         launcher = trainer.strategy.launcher
         if isinstance(launcher, _SubprocessScriptLauncher):
-            launcher.kill(signal.SIGKILL)
+            launcher.kill(_get_sigkill_signal())
         exit(1)
 
     except BaseException as exception:
