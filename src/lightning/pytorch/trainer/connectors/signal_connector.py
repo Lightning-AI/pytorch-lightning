@@ -2,7 +2,6 @@ import logging
 import os
 import re
 import signal
-import sys
 import threading
 from subprocess import call
 from types import FrameType
