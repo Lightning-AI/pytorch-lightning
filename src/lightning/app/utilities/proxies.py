@@ -102,6 +102,7 @@ def _send_data_to_caller_queue(
     data.update({"state": work_state})
     if isinstance(data["args"][0], Action) and data["args"][0].method == "start":
         data["method"] = "start"
+        data.pop("args")
 
     logger.debug(f"Sending to {work.name}: {data}")
     print("BEFORE SENDING TO QUEUE ", caller_queue)
@@ -681,7 +682,7 @@ class WorkRunner:
                 path.get(overwrite=True)
 
     def _is_starting(self, called, reference_state, call_hash) -> bool:
-        if len(called["args"]) == 1 and "method" in called:
+        if "method" in called:
             if called["method"] == "start":
                 called.pop("method")
                 # 9. Inform the flow the work is running and add the delta to the deepcopy.
