@@ -100,13 +100,16 @@ def _send_data_to_caller_queue(
     }
 
     data.update({"state": work_state})
+
+    data = deepcopy(data)
+
     if isinstance(data["args"][0], Action) and data["args"][0].method == "start":
         data["method"] = "start"
         data.pop("args")
 
     logger.debug(f"Sending to {work.name}: {data}")
     print("BEFORE SENDING TO QUEUE ", caller_queue)
-    caller_queue.put(deepcopy(data))
+    caller_queue.put(data)
     print("AFTER SENDING TO QUEUE ", caller_queue)
 
     # Reset the calls entry.
