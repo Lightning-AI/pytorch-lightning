@@ -526,7 +526,7 @@ class HTTPQueue(BaseQueue):
         if not self.app_id:
             raise ValueError(f"The Lightning App ID couldn't be extracted from the queue name: {self.name}")
 
-        value = pickle.dumps(item)
+        value = pickle.dumps(item, protocol=pickle.HIGHEST_PROTOCOL)
         queue_len = self.length()
         if queue_len >= WARNING_QUEUE_SIZE:
             warnings.warn(
