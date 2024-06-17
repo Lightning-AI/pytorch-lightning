@@ -100,7 +100,7 @@ def _send_data_to_caller_queue(
     }
 
     data.update({"state": work_state})
-    if isinstance(data["args"], Action) and data["args"][0].method == "start":
+    if isinstance(data["args"][0], Action) and data["args"][0].method == "start":
         data["method"] == "start"
 
     logger.debug(f"Sending to {work.name}: {data}")
