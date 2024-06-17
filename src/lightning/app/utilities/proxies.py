@@ -130,6 +130,8 @@ class ProxyWorkRun:
         self.work_state = None
 
     def __call__(self, *args: Any, **kwargs: Any):
+        t0 = time.time()
+
         self.has_sent = False
 
         self._validate_call_args(args, kwargs)
@@ -155,6 +157,8 @@ class ProxyWorkRun:
                 _send_data_to_caller_queue(self, self.work, self.caller_queue, data, call_hash)
         if not self.work.parallel:
             raise CacheMissException("Task never called before. Triggered now")
+
+        print("EEE", time.time() - t0)
 
     def _validate_call_args(self, args: Tuple[Any, ...], kwargs: Dict[str, Any]) -> None:
         """Validate the call args before they get passed to the run method of the Work.
