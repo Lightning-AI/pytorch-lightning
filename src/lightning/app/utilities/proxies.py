@@ -103,9 +103,9 @@ def _send_data_to_caller_queue(
 
     data = deepcopy(data)
 
-    if isinstance(data["args"][0], Action) and data["args"][0].method == "start":
-        data["method"] = "start"
-        data.pop("args")
+    # if len(data.get("args", [])) and isinstance(data["args"][0], Action) and data["args"][0].method == "start":
+    #     data["method"] = "start"
+    #     data.pop("args")
 
     logger.debug(f"Sending to {work.name}: {data}")
     print("BEFORE SENDING TO QUEUE ", caller_queue)

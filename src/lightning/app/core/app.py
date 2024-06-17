@@ -526,7 +526,7 @@ class LightningApp:
 
         self.ready = self.root.ready
 
-        self._start_with_flow_works()
+        # self._start_with_flow_works()
 
         if self.should_publish_changes_to_api and self.api_publish_state_queue is not None:
             self.api_publish_state_queue.put((self.state_vars, self.status))
