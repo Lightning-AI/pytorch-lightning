@@ -529,7 +529,7 @@ class LightningApp:
         self.ready = self.root.ready
 
         if self._should_start_works_with_flow:
-            print("STARTING WORKS WITH FLOW")
+            logger.debug("STARTING WORKS WITH FLOW")
             self._start_with_flow_works()
 
         if self.should_publish_changes_to_api and self.api_publish_state_queue is not None:
