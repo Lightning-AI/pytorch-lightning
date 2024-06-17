@@ -78,8 +78,8 @@ def unwrap(fn):
 def _send_data_to_caller_queue(
     proxy, work: "LightningWork", caller_queue: "BaseQueue", data: Dict, call_hash: str
 ) -> Dict:
-    t0 = time.time() 
-    
+    t0 = time.time()
+
     proxy.has_sent = True
 
     if work._calls[CacheCallsKeys.LATEST_CALL_HASH] is None:
