@@ -95,7 +95,7 @@ def _send_data_to_caller_queue(
 
     work_state = work.state
 
-    print("AAA", time() - t0)
+    print("AAA", time.time() - t0)
 
     # There is no need to send all call hashes to the work.
     calls = deepcopy(work_state["calls"])
@@ -103,15 +103,15 @@ def _send_data_to_caller_queue(
         k: v for k, v in work_state["calls"].items() if k in (call_hash, CacheCallsKeys.LATEST_CALL_HASH)
     }
 
-    print("BBB", time() - t0)
+    print("BBB", time.time() - t0)
 
     data.update({"state": work_state})
-    print("CCC", time() - t0)
+    print("CCC", time.time() - t0)
 
     logger.debug(f"Sending to {work.name}: {data}")
     caller_queue.put(deepcopy(data))
 
-    print("DDD", time() - t0)
+    print("DDD", time.time() - t0)
 
     # Reset the calls entry.
     work_state["calls"] = calls
