@@ -469,6 +469,8 @@ class LightningApp:
 
         t0 = time()
 
+        print("TOTO")
+
         try:
             self.check_error_queue()
             # Execute the flow only if:

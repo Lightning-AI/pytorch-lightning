@@ -80,6 +80,8 @@ class QueuingSystem(Enum):
             return MultiProcessQueue(queue_name, default_timeout=STATE_UPDATE_TIMEOUT)
         if self == QueuingSystem.REDIS:
             return RedisQueue(queue_name, default_timeout=REDIS_QUEUES_READ_DEFAULT_TIMEOUT)
+        if queue_name in CALLER_QUEUE_CONSTANT:
+            return HTTPQueue(queue_name, default_timeout=STATE_UPDATE_TIMEOUT)
         return RateLimitedQueue(
             HTTPQueue(queue_name, default_timeout=STATE_UPDATE_TIMEOUT), HTTP_QUEUE_REQUESTS_PER_SECOND
         )
