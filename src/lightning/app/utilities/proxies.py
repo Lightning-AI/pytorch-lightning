@@ -78,8 +78,6 @@ def unwrap(fn):
 def _send_data_to_caller_queue(
     proxy, work: "LightningWork", caller_queue: "BaseQueue", data: Dict, call_hash: str
 ) -> Dict:
-    t0 = time.time()
-
     proxy.has_sent = True
 
     if work._calls[CacheCallsKeys.LATEST_CALL_HASH] is None:
@@ -95,23 +93,16 @@ def _send_data_to_caller_queue(
 
     work_state = work.state
 
-    print("AAA", time.time() - t0)
-
     # There is no need to send all call hashes to the work.
     calls = deepcopy(work_state["calls"])
     work_state["calls"] = {
         k: v for k, v in work_state["calls"].items() if k in (call_hash, CacheCallsKeys.LATEST_CALL_HASH)
     }
 
-    print("BBB", time.time() - t0)
-
     data.update({"state": work_state})
-    print("CCC", time.time() - t0)
 
     logger.debug(f"Sending to {work.name}: {data}")
     caller_queue.put(deepcopy(data))
-
-    print("DDD", time.time() - t0)
 
     # Reset the calls entry.
     work_state["calls"] = calls
@@ -130,8 +121,6 @@ class ProxyWorkRun:
         self.work_state = None
 
     def __call__(self, *args: Any, **kwargs: Any):
-        t0 = time.time()
-
         self.has_sent = False
 
         self._validate_call_args(args, kwargs)
@@ -157,8 +146,6 @@ class ProxyWorkRun:
                 _send_data_to_caller_queue(self, self.work, self.caller_queue, data, call_hash)
         if not self.work.parallel:
             raise CacheMissException("Task never called before. Triggered now")
-
-        print("EEE", time.time() - t0)
 
     def _validate_call_args(self, args: Tuple[Any, ...], kwargs: Dict[str, Any]) -> None:
         """Validate the call args before they get passed to the run method of the Work.
