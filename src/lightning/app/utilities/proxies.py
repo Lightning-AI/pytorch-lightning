@@ -470,6 +470,7 @@ class WorkRunner:
         self.work.on_start()
 
         delta = Delta(DeepDiff(reference_state, self.work.state))
+        print("Sending delta_queue ", delta)
         self.delta_queue.put(ComponentDelta(id=self.work_name, delta=delta))
 
         # 8. Inform the flow that the work is ready to receive data through the caller queue.
