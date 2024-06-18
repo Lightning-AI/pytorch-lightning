@@ -278,7 +278,7 @@ class MyCustomTrainer:
         val_loader: Optional[torch.utils.data.DataLoader],
         limit_batches: Union[int, float] = float("inf"),
     ):
-        """The validation loop ruunning a single validation epoch.
+        """The validation loop running a single validation epoch.
 
         Args:
             model: the LightningModule to evaluate
