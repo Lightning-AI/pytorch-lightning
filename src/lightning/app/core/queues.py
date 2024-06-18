@@ -501,7 +501,14 @@ class HTTPQueue(BaseQueue):
             resp = self.client.post(f"v1/{self.app_id}/{self._name_suffix}", query_params={"action": "pop"})
             if resp.status_code == 204:
                 raise queue.Empty
-            return pickle.loads(resp.content)
+
+            if (
+                WORK_QUEUE_CONSTANT in self.name
+                or DELTA_QUEUE_CONSTANT in self.name
+                or ERROR_QUEUE_CONSTANT in self.name
+            ):
+                return pickle.loads(resp.content)
+            return msgpack.unpackb(resp.content)
         except ConnectionError:
             # Note: If the Http Queue service isn't available,
             # we consider the queue is empty to avoid failing the app.
