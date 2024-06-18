@@ -516,7 +516,11 @@ class HTTPQueue(BaseQueue):
             if resp.status_code == 204:
                 raise queue.Empty
 
-            if WORK_QUEUE_CONSTANT in self.name or DELTA_QUEUE_CONSTANT in self.name:
+            if (
+                WORK_QUEUE_CONSTANT in self.name
+                or DELTA_QUEUE_CONSTANT in self.name
+                or ERROR_QUEUE_CONSTANT in self.name
+            ):
                 return [pickle.loads(base64.b64decode(data)) for data in resp.json()]
             return [msgpack.unpackb(base64.b64decode(data)) for data in resp.json()]
         except ConnectionError:
@@ -529,7 +533,7 @@ class HTTPQueue(BaseQueue):
         if not self.app_id:
             raise ValueError(f"The Lightning App ID couldn't be extracted from the queue name: {self.name}")
 
-        if WORK_QUEUE_CONSTANT in self.name or DELTA_QUEUE_CONSTANT in self.name:
+        if WORK_QUEUE_CONSTANT in self.name or DELTA_QUEUE_CONSTANT in self.name or ERROR_QUEUE_CONSTANT in self.name:
             value = pickle.dumps(item, protocol=pickle.HIGHEST_PROTOCOL)
         else:
             value = msgpack.packb(item)
