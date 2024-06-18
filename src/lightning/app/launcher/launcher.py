@@ -153,8 +153,30 @@ def run_lightning_work(
 
     load_app_from_file(file)
 
-    queue = queues.get_work_queue(work_name=work_name, queue_id=queue_id)
-    work = queue.get()
+    if os.getenv("DISTRIBUTED_ARGUMENTS") is not None:
+        from lightning.app import CloudCompute
+
+        print("Fast loading of the ScriptLauncher")
+
+        import json
+
+        from multi_node.launcher import ScriptLauncher
+
+        script_command = os.environ["COMMAND"]
+        distributed_arguments = os.environ["DISTRIBUTED_ARGUMENTS"]
+        distributed_arguments = json.loads(distributed_arguments)
+        cloud_compute = distributed_arguments["cloud_compute"]
+        disk_size = int(distributed_arguments.get("disk_size", 400))
+
+        work = ScriptLauncher(
+            cloud_compute=CloudCompute(cloud_compute, disk_size=disk_size),
+            parallel=True,
+            command=script_command,
+        )
+
+    else:
+        queue = queues.get_work_queue(work_name=work_name, queue_id=queue_id)
+        work = queue.get()
 
     extras = {}
 
@@ -272,7 +294,7 @@ def serve_frontend(file: str, flow_name: str, host: str, port: int):
     frontend.start_server(host, port)
 
 
-def start_server_in_process(target: Callable, args: Tuple = tuple(), kwargs: Dict = {}) -> Process:
+def start_server_in_process(target: Callable, args: Tuple = (), kwargs: Dict = {}) -> Process:
     p = Process(target=target, args=args, kwargs=kwargs)
     p.start()
     return p
