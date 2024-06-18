@@ -101,7 +101,7 @@ def _send_data_to_caller_queue(
 
     data.update({"state": work_state})
     logger.debug(f"Sending to {work.name}: {data}")
-    caller_queue.put(deepcopy(data))
+    caller_queue.put(data)
 
     # Reset the calls entry.
     work_state["calls"] = calls
