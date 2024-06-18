@@ -67,17 +67,17 @@ class Backend(ABC):
                 f" Make sure to set this work as an attribute of a `LightningFlow` before calling the run method."
             )
 
+        # 1. Create and register the queues associated the work
+        self._register_queues(app, work)
+
+        work.run = work_run
+
         if os.getenv("DISTRIBUTED_ARGUMENTS") is None:
-            # 1. Create and register the queues associated the work
-            self._register_queues(app, work)
-
-            work.run = work_run
-
             # 2. Create the work
             self.create_work(app, work)
 
-            # 3. Attach backend
-            work._backend = self
+        # 3. Attach backend
+        work._backend = self
 
         # 4. Create the work proxy to manipulate the work
         work.run = ProxyWorkRun(
