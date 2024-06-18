@@ -23,6 +23,7 @@ import torch
 from lightning_utilities.core.imports import RequirementCache
 from typing_extensions import get_args
 
+from lightning.app.cli.lightning_cli import main as main_cli
 from lightning.fabric.accelerators import CPUAccelerator, CUDAAccelerator, MPSAccelerator
 from lightning.fabric.plugins.precision.precision import _PRECISION_INPUT_STR, _PRECISION_INPUT_STR_ALIAS
 from lightning.fabric.strategies import STRATEGY_REGISTRY
@@ -60,13 +61,13 @@ if _CLICK_AVAILABLE:
             "`lightning run model` is deprecated and will be removed in future versions."
             " Please call `fabric run` instead."
         )
-        args = sys.argv[1:]
-        if args and args[0] in ["run", "model", "flow-and-servers", "frontend", "server", "work"]:
-            _main()
+        hparams = sys.argv[1:]
+        if hparams and hparams[0] in ["run", "model", "flow-and-servers", "frontend", "server", "work"]:
+            main_cli()
             return
 
         if _LIGHTNING_SDK_AVAILABLE:
-            subprocess.run([sys.executable, "-m", "lightning_sdk.cli.entrypoint"] + args)
+            subprocess.run([sys.executable, "-m", "lightning_sdk.cli.entrypoint"] + hparams)
             return
 
     @click.group()

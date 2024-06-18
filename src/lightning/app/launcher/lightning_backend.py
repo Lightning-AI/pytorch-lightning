@@ -51,7 +51,8 @@ from lightning_cloud.openapi import (
     V1UserRequestedComputeConfig,
 )
 from lightning_cloud.openapi.rest import ApiException
-from lightning_launcher.utils import LIGHTNING_VERSION, cloud_work_stage_to_work_status_stage
+
+from lightning.app.launcher.utils import LIGHTNING_VERSION, cloud_work_stage_to_work_status_stage
 
 logger = logging.getLogger(__name__)
 
