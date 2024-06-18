@@ -533,8 +533,11 @@ class LightningApp:
             self._start_with_flow_works()
         else:
             for work in self.works:
+                _backend = work._backend
+                work._backend = None
                 self.backend._register_queues(self, work)
                 self.backend.create_work(self, work)
+                work._backend = _backend
 
         if self.should_publish_changes_to_api and self.api_publish_state_queue is not None:
             self.api_publish_state_queue.put((self.state_vars, self.status))
