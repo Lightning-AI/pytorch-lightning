@@ -477,8 +477,8 @@ class WorkRunner:
         print("Sending delta_queue ", delta)
         self.delta_queue.put(ComponentDelta(id=self.work_name, delta=delta))
 
-        # 8. Inform the flow that the work is ready to receive data through the caller queue.
-        self.readiness_queue.put(True)
+        # # 8. Inform the flow that the work is ready to receive data through the caller queue.
+        # self.readiness_queue.put(True)
 
     def run_once(self):
         # 1. Wait for the caller queue data.

@@ -14,6 +14,7 @@
 
 import base64
 import multiprocessing
+import os
 import pickle
 import queue  # needed as import instead from/import for mocking in tests
 import time
@@ -81,7 +82,7 @@ class QueuingSystem(Enum):
             return MultiProcessQueue(queue_name, default_timeout=STATE_UPDATE_TIMEOUT)
         if self == QueuingSystem.REDIS:
             return RedisQueue(queue_name, default_timeout=REDIS_QUEUES_READ_DEFAULT_TIMEOUT)
-        if CALLER_QUEUE_CONSTANT in queue_name:
+        if CALLER_QUEUE_CONSTANT in queue_name and os.getenv("LIGHTNING_CLOUD_WORK_NAME") is None:
             return HTTPQueue(queue_name, default_timeout=STATE_UPDATE_TIMEOUT)
         return RateLimitedQueue(
             HTTPQueue(queue_name, default_timeout=STATE_UPDATE_TIMEOUT), HTTP_QUEUE_REQUESTS_PER_SECOND
@@ -287,14 +288,14 @@ class RedisQueue(BaseQueue):
             item._backend = None
 
         value = pickle.dumps(item)
-        queue_len = self.length()
-        if queue_len >= WARNING_QUEUE_SIZE:
-            warnings.warn(
-                f"The Redis Queue {self.name} length is larger than the "
-                f"recommended length of {WARNING_QUEUE_SIZE}. "
-                f"Found {queue_len}. This might cause your application to crash, "
-                "please investigate this."
-            )
+        # queue_len = self.length()
+        # if queue_len >= WARNING_QUEUE_SIZE:
+        #     warnings.warn(
+        #         f"The Redis Queue {self.name} length is larger than the "
+        #         f"recommended length of {WARNING_QUEUE_SIZE}. "
+        #         f"Found {queue_len}. This might cause your application to crash, "
+        #         "please investigate this."
+        #     )
         try:
             self.redis.rpush(self.name, value)
         except redis.exceptions.ConnectionError:
@@ -454,6 +455,9 @@ class HTTPQueue(BaseQueue):
             return False
         return False
 
+    @backoff.on_exception(
+        backoff.expo, (RuntimeError, requests.exceptions.HTTPError, requests.exceptions.ChunkedEncodingError)
+    )
     def get(self, timeout: Optional[float] = None) -> Any:
         if not self.app_id:
             raise ValueError(f"App ID couldn't be extracted from the queue name: {self.name}")
@@ -535,7 +539,9 @@ class HTTPQueue(BaseQueue):
             # we consider the queue is empty to avoid failing the app.
             raise queue.Empty
 
-    @backoff.on_exception(backoff.expo, (RuntimeError, requests.exceptions.HTTPError))
+    @backoff.on_exception(
+        backoff.expo, (RuntimeError, requests.exceptions.HTTPError, requests.exceptions.ChunkedEncodingError)
+    )
     def put(self, item: Any) -> None:
         if not self.app_id:
             raise ValueError(f"The Lightning App ID couldn't be extracted from the queue name: {self.name}")
