@@ -533,6 +533,7 @@ class LightningApp:
             self._start_with_flow_works()
         else:
             for work in self.works:
+                logger.debug(f"creating {work.name}")
                 _backend = work._backend
                 work._backend = None
                 work.run = unwrap(work.run)
