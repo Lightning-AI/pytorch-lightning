@@ -157,13 +157,17 @@ class MyCustomTrainer:
         model, optimizer = self.fabric.setup(model, optimizer)
 
         if not is_overridden("on_validation_model_eval", _unwrap_objects(model)):
+
             def ovme(s) -> None:
                 s.eval()
+
             model.on_validation_model_eval = MethodType(ovme, model)
 
         if not is_overridden("on_validation_model_train", _unwrap_objects(model)):
+
             def ovmt(s) -> None:
                 s.train()
+
             model.on_validation_model_train = MethodType(ovmt, model)
 
         # assemble state (current epoch and global step will be added in save)
