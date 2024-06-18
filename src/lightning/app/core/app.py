@@ -532,15 +532,7 @@ class LightningApp:
             logger.debug("STARTING WORKS WITH FLOW")
             self._start_with_flow_works()
         else:
-            for work in self.works:
-                logger.debug(f"creating {work.name}")
-                _backend = work._backend
-                work._backend = None
-                work.run = unwrap(work.run)
-                self.backend._register_queues(self, work)
-                self.backend.create_work(self, work)
-                work._backend = _backend
-                self.backend._wrap_run_method(self, work)  # type: ignore[arg-type]
+            self._create_works()
 
         logger.debug("ready to loop over the flow")
 
@@ -755,3 +747,17 @@ class LightningApp:
                 w._parallel = True
                 w.start()
                 w._parallel = parallel
+
+    def _create_works(self) -> None:
+        if os.getenv("DISTRIBUTED_ARGUMENTS") is not None:
+            return
+
+        for work in self.works:
+            logger.debug(f"creating {work.name}")
+            _backend = work._backend
+            work._backend = None
+            work.run = unwrap(work.run)
+            self.backend._register_queues(self, work)
+            self.backend.create_work(self, work)
+            work._backend = _backend
+            self.backend._wrap_run_method(self, work)  # type: ignore[arg-type]
