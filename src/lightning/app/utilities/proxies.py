@@ -32,6 +32,7 @@ from deepdiff import DeepDiff, Delta
 from lightning_utilities.core.apply_func import apply_to_collection
 
 from lightning.app.core import constants
+from lightning.app.core.constants import ENABLE_ORCHESTRATOR
 from lightning.app.core.queues import MultiProcessQueue
 from lightning.app.storage.copier import _Copier, _copy_files
 from lightning.app.storage.drive import Drive, _maybe_create_drive
@@ -417,7 +418,8 @@ class WorkRunner:
                     if self.state_observer.started:
                         self.state_observer.join(0)
                     self.state_observer = None
-                self.copier.join(0)
+                if self.copier:
+                    self.copier.join(0)
             except LightningSigtermStateException as ex:
                 logger.debug("Exiting")
                 os._exit(ex.exit_code)
@@ -429,7 +431,8 @@ class WorkRunner:
                     if self.state_observer.started:
                         self.state_observer.join(0)
                     self.state_observer = None
-                self.copier.join(0)
+                if self.copier:
+                    self.copier.join(0)
                 raise ex
 
     def setup(self):
@@ -448,9 +451,10 @@ class WorkRunner:
 
         # 3. Starts the Copier thread. This thread enables transfering files using
         # the Path object between works.
-        self.copier = _Copier(self.work, self.copy_request_queue, self.copy_response_queue)
-        self.copier.setDaemon(True)
-        self.copier.start()
+        if ENABLE_ORCHESTRATOR:
+            self.copier = _Copier(self.work, self.copy_request_queue, self.copy_response_queue)
+            self.copier.setDaemon(True)
+            self.copier.start()
 
         # 4. If the work is restarting, reload the latest state.
         # TODO (tchaton) Add support for capturing the latest state.
@@ -634,7 +638,8 @@ class WorkRunner:
         delta = Delta(DeepDiff(state, deepcopy(self.work.state), verbose_level=2))
         self.delta_queue.put(ComponentDelta(id=self.work_name, delta=delta))
 
-        self.copier.join(0)
+        if self.copier:
+            self.copier.join(0)
         raise LightningSigtermStateException(0)
 
     def _proxy_setattr(self, cleanup: bool = False):
