@@ -18,7 +18,6 @@ import os
 import pickle
 import queue  # needed as import instead from/import for mocking in tests
 import time
-import warnings
 from abc import ABC, abstractmethod
 from enum import Enum
 from pathlib import Path
@@ -43,7 +42,6 @@ from lightning.app.core.constants import (
     REDIS_PORT,
     REDIS_QUEUES_READ_DEFAULT_TIMEOUT,
     STATE_UPDATE_TIMEOUT,
-    WARNING_QUEUE_SIZE,
 )
 from lightning.app.utilities.app_helpers import Logger
 from lightning.app.utilities.imports import _is_redis_available, requires
@@ -550,12 +548,6 @@ class HTTPQueue(BaseQueue):
             value = pickle.dumps(item, protocol=pickle.HIGHEST_PROTOCOL)
         else:
             value = msgpack.packb(item)
-        queue_len = self.length()
-        if queue_len >= WARNING_QUEUE_SIZE:
-            warnings.warn(
-                f"The Queue {self._name_suffix} length is larger than the recommended length of {WARNING_QUEUE_SIZE}. "
-                f"Found {queue_len}. This might cause your application to crash, please investigate this."
-            )
         resp = self.client.post(f"v1/{self.app_id}/{self._name_suffix}", data=value, query_params={"action": "push"})
         if resp.status_code != 201:
             raise RuntimeError(f"Failed to push to queue: {self._name_suffix}")
