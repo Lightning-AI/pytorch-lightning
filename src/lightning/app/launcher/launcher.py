@@ -173,8 +173,8 @@ def run_lightning_work(
             parallel=True,
             command=script_command,
         )
-        work._name = os.getenv("LIGHTNING_CLOUD_WORK_NAME", "")
-
+        work_name = os.getenv("LIGHTNING_CLOUD_WORK_NAME", "")
+        work._name = work_name
     else:
         queue = queues.get_work_queue(work_name=work_name, queue_id=queue_id)
         work = queue.get()
