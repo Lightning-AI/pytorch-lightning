@@ -56,7 +56,7 @@ from lightning.app.utilities.component import _convert_paths_after_init, _valida
 from lightning.app.utilities.enum import AppStage, CacheCallsKeys
 from lightning.app.utilities.exceptions import CacheMissException, ExitAppException, LightningFlowException
 from lightning.app.utilities.layout import _collect_layout
-from lightning.app.utilities.proxies import ComponentDelta
+from lightning.app.utilities.proxies import ComponentDelta, unwrap
 from lightning.app.utilities.scheduler import SchedulerThread
 from lightning.app.utilities.tree import breadth_first
 from lightning.app.utilities.warnings import LightningFlowWarning
@@ -535,6 +535,7 @@ class LightningApp:
             for work in self.works:
                 _backend = work._backend
                 work._backend = None
+                work.run = unwrap(work.run)
                 self.backend._register_queues(self, work)
                 self.backend.create_work(self, work)
                 work._backend = _backend
