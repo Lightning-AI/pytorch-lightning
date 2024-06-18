@@ -515,11 +515,7 @@ class HTTPQueue(BaseQueue):
             )
             if resp.status_code == 204:
                 raise queue.Empty
-
-            if CALLER_QUEUE_CONSTANT in self.name:
-                return [msgpack.unpackb(base64.b64decode(data)) for data in resp.json()]
-            return [pickle.loads(base64.b64decode(data)) for data in resp.json()]
-
+            return [msgpack.unpackb(base64.b64decode(data)) for data in resp.json()]
         except ConnectionError:
             # Note: If the Http Queue service isn't available,
             # we consider the queue is empty to avoid failing the app.
@@ -530,11 +526,7 @@ class HTTPQueue(BaseQueue):
         if not self.app_id:
             raise ValueError(f"The Lightning App ID couldn't be extracted from the queue name: {self.name}")
 
-        if CALLER_QUEUE_CONSTANT in self.name:
-            value = msgpack.packb(item)
-        else:
-            value = pickle.dumps(item, protocol=pickle.HIGHEST_PROTOCOL)
-
+        value = msgpack.packb(item)
         queue_len = self.length()
         if queue_len >= WARNING_QUEUE_SIZE:
             warnings.warn(

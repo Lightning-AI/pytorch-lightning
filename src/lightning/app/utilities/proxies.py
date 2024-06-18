@@ -457,6 +457,15 @@ class WorkRunner:
         if self.work._restarting:
             self.work.load_state_dict(self.work.state)
 
+        # Set the internal IP address.
+        # Set this here after the state observer is initialized, since it needs to record it as a change and send
+        # it back to the flow
+        default_internal_ip = "127.0.0.1" if constants.LIGHTNING_CLOUDSPACE_HOST is None else "0.0.0.0"  # noqa: S104
+        self.work._internal_ip = os.environ.get("LIGHTNING_NODE_PRIVATE_IP", default_internal_ip)
+        self.work._public_ip = os.environ.get("LIGHTNING_NODE_IP", "")
+
+        self.work.on_start()
+
         # 5. Inform the flow that the work is ready to receive data through the caller queue.
         self.readiness_queue.put(True)
 
