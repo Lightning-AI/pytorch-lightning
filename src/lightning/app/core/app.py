@@ -531,6 +531,9 @@ class LightningApp:
         if self._should_start_works_with_flow:
             logger.debug("STARTING WORKS WITH FLOW")
             self._start_with_flow_works()
+        else:
+            for work in self.works:
+                self.backend.create_work(self, work)
 
         if self.should_publish_changes_to_api and self.api_publish_state_queue is not None:
             self.api_publish_state_queue.put((self.state_vars, self.status))
