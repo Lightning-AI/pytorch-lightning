@@ -101,7 +101,7 @@ def _send_data_to_caller_queue(
 
     data.update({"state": work_state})
     logger.debug(f"Sending to {work.name}: {data}")
-    caller_queue.put(deepcopy(data))
+    caller_queue.put(data)
 
     # Reset the calls entry.
     work_state["calls"] = calls
@@ -457,7 +457,23 @@ class WorkRunner:
         if self.work._restarting:
             self.work.load_state_dict(self.work.state)
 
-        # 5. Inform the flow that the work is ready to receive data through the caller queue.
+        # 7. Deepcopy the work state and send the first `RUNNING` status delta to the flow.
+        reference_state = deepcopy(self.work.state)
+
+        # Set the internal IP address.
+        # Set this here after the state observer is initialized, since it needs to record it as a change and send
+        # it back to the flow
+        default_internal_ip = "127.0.0.1" if constants.LIGHTNING_CLOUDSPACE_HOST is None else "0.0.0.0"  # noqa: S104
+        self.work._internal_ip = os.environ.get("LIGHTNING_NODE_PRIVATE_IP", default_internal_ip)
+        self.work._public_ip = os.environ.get("LIGHTNING_NODE_IP", "")
+
+        self.work.on_start()
+
+        delta = Delta(DeepDiff(reference_state, self.work.state))
+        print("Sending delta_queue ", delta)
+        self.delta_queue.put(ComponentDelta(id=self.work_name, delta=delta))
+
+        # 8. Inform the flow that the work is ready to receive data through the caller queue.
         self.readiness_queue.put(True)
 
     def run_once(self):

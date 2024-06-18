@@ -539,6 +539,7 @@ class LightningApp:
                 self.backend._register_queues(self, work)
                 self.backend.create_work(self, work)
                 work._backend = _backend
+                self.backend._wrap_run_method(self, work)  # type: ignore[arg-type]
 
         if self.should_publish_changes_to_api and self.api_publish_state_queue is not None:
             self.api_publish_state_queue.put((self.state_vars, self.status))
