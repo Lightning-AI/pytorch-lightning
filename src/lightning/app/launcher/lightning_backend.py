@@ -8,6 +8,24 @@ import urllib
 from time import monotonic, sleep, time
 from typing import List, Optional
 
+from lightning.app import LightningApp, LightningWork
+from lightning.app.core.queues import QueuingSystem
+from lightning.app.runners.backends.backend import Backend
+from lightning.app.storage import Drive
+from lightning.app.utilities.enum import WorkStageStatus, WorkStopReasons, make_status
+from lightning.app.utilities.network import LightningClient, _check_service_url_is_ready
+
+try:
+    # TODO: remove try block and just import after lighting_app > 0.6.3 is released
+    from lightning.app.storage import Mount
+except (ImportError, ModuleNotFoundError):
+    pass
+
+try:
+    from lightning.app.utilities.exceptions import LightningPlatformException
+except ImportError:
+    LightningPlatformException = Exception
+
 from lightning_cloud.openapi import (
     AppinstancesIdBody,
     Externalv1LightningappInstance,
@@ -33,35 +51,29 @@ from lightning_cloud.openapi import (
     V1UserRequestedComputeConfig,
 )
 from lightning_cloud.openapi.rest import ApiException
-
-from lightning.app.core import LightningApp, LightningWork
-from lightning.app.core.queues import QueuingSystem
-from lightning.app.runners.backends.backend import Backend
-from lightning.app.storage import Drive, Mount
-from lightning.app.utilities.enum import WorkStageStatus, WorkStopReasons, make_status
-from lightning.app.utilities.exceptions import LightningPlatformException
-from lightning.app.utilities.network import LightningClient, _check_service_url_is_ready
+from lightning_launcher.utils import LIGHTNING_VERSION, cloud_work_stage_to_work_status_stage
 
 logger = logging.getLogger(__name__)
 
-from lightning_cloud.openapi import SpecLightningappInstanceIdWorksBody, WorksIdBody  # noqa: E402
+# TODO: For future travelers: This backward incompatible change is being introduced when lightning app is at 0.6.0
+#  Once we are safe to remove the support for 0.6.0, remove this ugly import
+try:
+    from lightning_cloud.openapi import SpecLightningappInstanceIdWorksBody, WorksIdBody
+except ImportError:
+    logger.warning(
+        f"You are using an old version of lightning ({LIGHTNING_VERSION}). " f"Please upgrade to the latest version."
+    )
+    from lightning_cloud.openapi import Body5 as SpecLightningappInstanceIdWorksBody
+    from lightning_cloud.openapi import Body6 as WorksIdBody
+except Exception as e:
+    logger.warning(
+        f"You are using an old version of lightning ({LIGHTNING_VERSION}). "
+        f"Please upgrade to the latest version. {e}"
+    )
+    from lightning_cloud.openapi import Body5 as SpecLightningappInstanceIdWorksBody
+    from lightning_cloud.openapi import Body6 as WorksIdBody
 
 LIGHTNING_STOP_TIMEOUT = int(os.getenv("LIGHTNING_STOP_TIMEOUT", 2 * 60))
-
-
-def cloud_work_stage_to_work_status_stage(stage: V1LightningworkState) -> str:
-    """Maps the Work stage names from the cloud backend to the status names in the Lightning framework."""
-    mapping = {
-        V1LightningworkState.STOPPED: WorkStageStatus.STOPPED,
-        V1LightningworkState.PENDING: WorkStageStatus.PENDING,
-        V1LightningworkState.NOT_STARTED: WorkStageStatus.PENDING,
-        V1LightningworkState.IMAGE_BUILDING: WorkStageStatus.PENDING,
-        V1LightningworkState.RUNNING: WorkStageStatus.RUNNING,
-        V1LightningworkState.FAILED: WorkStageStatus.FAILED,
-    }
-    if stage not in mapping:
-        raise ValueError(f"Cannot map the lightning-cloud work state {stage} to the lightning status stage.")
-    return mapping[stage]
 
 
 class CloudBackend(Backend):
@@ -116,25 +128,27 @@ class CloudBackend(Backend):
                 ),
             )
 
-        # this should really be part of the work.cloud_compute struct, but to save
-        # time we are not going to modify the backend in this set of PRs & instead
-        # use the same s3 drives API which we used before.
-        if work.cloud_compute.mounts is not None:
-            if isinstance(work.cloud_compute.mounts, Mount):
-                drive_specs.append(
-                    _create_mount_drive_spec(
-                        work_name=work.name,
-                        mount=work.cloud_compute.mounts,
-                    )
-                )
-            else:
-                for mount in work.cloud_compute.mounts:
+        # TODO: remove after we move lighting_app past v0.6.3
+        if hasattr(work.cloud_compute, "mounts"):
+            # this should really be part of the work.cloud_compute struct, but to save
+            # time we are not going to modify the backend in this set of PRs & instead
+            # use the same s3 drives API which we used before.
+            if work.cloud_compute.mounts is not None:
+                if isinstance(work.cloud_compute.mounts, Mount):
                     drive_specs.append(
                         _create_mount_drive_spec(
                             work_name=work.name,
-                            mount=mount,
+                            mount=work.cloud_compute.mounts,
                         )
                     )
+                else:
+                    for mount in work.cloud_compute.mounts:
+                        drive_specs.append(
+                            _create_mount_drive_spec(
+                                work_name=work.name,
+                                mount=mount,
+                            )
+                        )
 
         if hasattr(work.cloud_compute, "interruptible"):
             preemptible = work.cloud_compute.interruptible
@@ -154,7 +168,7 @@ class CloudBackend(Backend):
             affinity_identifier=colocation_group_id,
         )
 
-        random_name = "".join(random.choice(string.ascii_lowercase) for _ in range(5))  # noqa: S311
+        random_name = "".join(random.choice(string.ascii_lowercase) for _ in range(5))
 
         return V1LightningworkSpec(
             build_spec=build_spec,
@@ -234,7 +248,7 @@ class CloudBackend(Backend):
                 raise LightningPlatformException(message) from None
 
         # Replace the undefined url and host by the known one.
-        work._host = "0.0.0.0"  # noqa: S104
+        work._host = "0.0.0.0"
         work._future_url = f"{self._get_proxy_scheme()}://{spec.network_config[0].host}"
 
         # removing the backend to avoid the threadlock error
@@ -250,8 +264,8 @@ class CloudBackend(Backend):
         """Pulls the status of each Work instance in the cloud.
 
         Normally, the Lightning frameworks communicates statuses through the queues, but while the Work instance is
-        being provisionied, the queues don't exist yet and hence we need to make API calls directly to the backend to
-        fetch the status and update it in the states.
+        being provisionied, the queues don't exist yet and hence we need to make API calls directly to the Grid backend
+        to fetch the status and update it in the states.
 
         """
         if not works:
@@ -287,7 +301,8 @@ class CloudBackend(Backend):
                 if local_work.status.stage == WorkStageStatus.PENDING and cloud_stage in WorkStageStatus.FAILED:
                     if local_work._raise_exception:
                         raise Exception(f"The work {local_work.name} failed during pending phase.")
-                    logger.error(f"The work {local_work.name} failed during pending phase.")
+                    else:
+                        logger.error(f"The work {local_work.name} failed during pending phase.")
 
                 # 5. Skip the pending and running as this is already handled by Lightning.
                 if cloud_stage in (WorkStageStatus.PENDING, WorkStageStatus.RUNNING):
@@ -334,6 +349,11 @@ class CloudBackend(Backend):
                 break
 
     def resolve_url(self, app, base_url: Optional[str] = None) -> None:
+        # The code below was used in a legacy feature. This used to render web servers running inside the works as iframes into our old UI
+        # This isn't strictly supported anymore and this would hang as the `_internal_ip` isn't accessible across AWS regions.
+        # TODO: Decide whether to keep or delete this algother
+        return
+
         if not self.base_url:
             self.base_url = base_url
 
@@ -350,17 +370,14 @@ class CloudBackend(Backend):
                     flow._layout["target"] = frontend_url
 
         for work in app.works:
-            if (
-                work._url == ""
-                and work.status.stage
-                in (
-                    WorkStageStatus.RUNNING,
-                    WorkStageStatus.SUCCEEDED,
-                )
-                and work._internal_ip != ""
-                and _check_service_url_is_ready(f"http://{work._internal_ip}:{work._port}")
+            if work._url == "" and work.status.stage in (
+                WorkStageStatus.RUNNING,
+                WorkStageStatus.SUCCEEDED,
             ):
-                work._url = work._future_url
+                if work._internal_ip != "" and _check_service_url_is_ready(
+                    f"http://{work._internal_ip}:{work._port}", timeout=0.1
+                ):
+                    work._url = work._future_url
 
     @staticmethod
     def _get_proxy_scheme() -> str:
@@ -399,7 +416,7 @@ class CloudBackend(Backend):
 
     def _register_queues(self, app, work):
         super()._register_queues(app, work)
-        kw = {"queue_id": self.queue_id, "work_name": work.name}
+        kw = dict(queue_id=self.queue_id, work_name=work.name)
         app.work_queues.update({work.name: self.queues.get_work_queue(**kw)})
 
     def stop_work(self, app: LightningApp, work: LightningWork) -> None:
@@ -448,7 +465,7 @@ class CloudBackend(Backend):
         )
         print(f"Deleting {work_resp.name} ...")
 
-    def update_lightning_app_frontend(self, app: "lightning.LightningApp"):  # noqa: F821
+    def update_lightning_app_frontend(self, app: "lightning.LightningApp"):
         """Used to create frontend's if the app couldn't be loaded locally."""
         if not len(app.frontends.keys()):
             return
@@ -479,7 +496,7 @@ class CloudBackend(Backend):
                 body=AppinstancesIdBody(spec=spec),
             )
 
-    def stop_app(self, app: "lightning.LightningApp"):  # noqa: F821
+    def stop_app(self, app: "lightning.LightningApp"):
         """Used to mark the App has stopped if everything has fine."""
 
         external_app_spec: "Externalv1LightningappInstance" = (

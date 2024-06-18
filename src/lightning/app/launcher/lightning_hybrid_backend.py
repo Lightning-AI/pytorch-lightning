@@ -39,15 +39,15 @@ class CloudHybridBackend(Backend):
 
         client = LightningClient()
         list_apps_resp = client.lightningapp_instance_service_list_lightningapp_instances(project_id=project_id)
-        lit_app: Optional[Externalv1LightningappInstance] = None
+        lightning_app: Optional[Externalv1LightningappInstance] = None
 
-        for lapp in list_apps_resp.lightningapps:
-            if lapp.id == app_id:
-                lit_app = lapp
+        for lightningapp in list_apps_resp.lightningapps:
+            if lightningapp.id == app_id:
+                lightning_app = lightningapp
 
-        assert lit_app
+        assert lightning_app
 
-        network_configs = lit_app.spec.network_config
+        network_configs = lightning_app.spec.network_config
 
         index = len(self.work_to_network_configs)
 
@@ -55,17 +55,17 @@ class CloudHybridBackend(Backend):
             self.work_to_network_configs[work.name] = network_configs[index]
 
         # Enable Ingress and update the specs.
-        lit_app.spec.network_config[index].enable = True
+        lightning_app.spec.network_config[index].enable = True
 
         client.lightningapp_instance_service_update_lightningapp_instance(
             project_id=project_id,
-            id=lit_app.id,
-            body=AppinstancesIdBody(name=lit_app.name, spec=lit_app.spec),
+            id=lightning_app.id,
+            body=AppinstancesIdBody(name=lightning_app.name, spec=lightning_app.spec),
         )
 
         work_network_config = self.work_to_network_configs[work.name]
 
-        work._host = "0.0.0.0"  # noqa: S104
+        work._host = "0.0.0.0"
         work._port = work_network_config.port
         work._future_url = f"{self._get_proxy_scheme()}://{work_network_config.host}"
 
@@ -85,7 +85,7 @@ class CloudHybridBackend(Backend):
             backend = self._get_backend(works[0])
             backend.resolve_url(app, base_url)
 
-    def update_lightning_app_frontend(self, app: "lightning.LightningApp"):  # noqa: F821
+    def update_lightning_app_frontend(self, app: "lightning.LightningApp"):
         self.backends["cloud"].update_lightning_app_frontend(app)
 
     def stop_work(self, app, work) -> None:
@@ -107,24 +107,24 @@ class CloudHybridBackend(Backend):
 
         client = LightningClient()
         list_apps_resp = client.lightningapp_instance_service_list_lightningapp_instances(project_id=project_id)
-        lit_app: Optional[Externalv1LightningappInstance] = None
+        lightning_app: Optional[Externalv1LightningappInstance] = None
 
-        for lapp in list_apps_resp.lightningapps:
-            if lapp.id == app_id:
-                lit_app = lapp
+        for lightningapp in list_apps_resp.lightningapps:
+            if lightningapp.id == app_id:
+                lightning_app = lightningapp
 
-        assert lit_app
+        assert lightning_app
 
         network_config = self.work_to_network_configs[work.name]
 
-        for nc in lit_app.spec.network_config:
+        for nc in lightning_app.spec.network_config:
             if nc.host == network_config.host:
                 nc.enable = False
 
         client.lightningapp_instance_service_update_lightningapp_instance(
             project_id=project_id,
-            id=lit_app.id,
-            body=AppinstancesIdBody(name=lit_app.name, spec=lit_app.spec),
+            id=lightning_app.id,
+            body=AppinstancesIdBody(name=lightning_app.name, spec=lightning_app.spec),
         )
 
         del self.work_to_network_configs[work.name]
@@ -150,6 +150,6 @@ class CloudHybridBackend(Backend):
     def _get_project_id() -> str:
         return os.environ["LIGHTNING_CLOUD_PROJECT_ID"]
 
-    def stop_app(self, app: "lightning.LightningApp"):  # noqa: F821
+    def stop_app(self, app: "lightning.LightningApp"):
         """Used to mark the App has stopped if everything has fine."""
         self.backends["cloud"].stop_app(app)

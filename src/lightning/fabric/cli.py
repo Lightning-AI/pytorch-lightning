@@ -61,7 +61,7 @@ if _CLICK_AVAILABLE:
             " Please call `fabric run` instead."
         )
         args = sys.argv[1:]
-        if args and args[0] == "run" and args[1] == "model":
+        if args and args[0] in ["run", "model", "flow-and-servers", "frontend", "server", "work"]:
             _main()
             return
 
