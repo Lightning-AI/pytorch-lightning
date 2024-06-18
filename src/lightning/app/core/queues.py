@@ -522,7 +522,6 @@ class HTTPQueue(BaseQueue):
 
     @backoff.on_exception(backoff.expo, (RuntimeError, requests.exceptions.HTTPError))
     def put(self, item: Any) -> None:
-        t0 = time.time()
         if not self.app_id:
             raise ValueError(f"The Lightning App ID couldn't be extracted from the queue name: {self.name}")
 
@@ -533,13 +532,9 @@ class HTTPQueue(BaseQueue):
                 f"The Queue {self._name_suffix} length is larger than the recommended length of {WARNING_QUEUE_SIZE}. "
                 f"Found {queue_len}. This might cause your application to crash, please investigate this."
             )
-        print("AAA", time.time() - t0)
         resp = self.client.post(f"v1/{self.app_id}/{self._name_suffix}", data=value, query_params={"action": "push"})
-        print("BBB", time.time() - t0)
         if resp.status_code != 201:
             raise RuntimeError(f"Failed to push to queue: {self._name_suffix}")
-
-        print("CCC", time.time() - t0)
 
     def length(self) -> int:
         if not self.app_id:
