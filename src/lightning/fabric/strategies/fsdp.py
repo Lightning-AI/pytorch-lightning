@@ -48,20 +48,15 @@ from lightning.fabric.strategies.launchers.subprocess_script import _SubprocessS
 from lightning.fabric.strategies.parallel import ParallelStrategy
 from lightning.fabric.strategies.registry import _StrategyRegistry
 from lightning.fabric.strategies.strategy import (
-    TBroadcast,
     _apply_filter,
     _BackwardSyncControl,
     _Sharded,
     _validate_keys_for_strict_loading,
 )
 from lightning.fabric.utilities.distributed import (
-    ReduceOp,
-    _distributed_is_initialized,
     _get_default_process_group_backend_for_device,
     _init_dist_connection,
-    _sync_ddp_if_available,
 )
-from lightning.fabric.utilities.distributed import group as _group
 from lightning.fabric.utilities.imports import (
     _TORCH_GREATER_EQUAL_2_1,
     _TORCH_GREATER_EQUAL_2_2,
@@ -366,32 +361,6 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             device_id=self.root_device.index,
             **self._fsdp_kwargs,
         )
-
-    @override
-    def all_reduce(
-        self, tensor: Tensor, group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = "mean"
-    ) -> Tensor:
-        if isinstance(tensor, Tensor):
-            return _sync_ddp_if_available(tensor, group, reduce_op=reduce_op)
-        return tensor
-
-    @override
-    def barrier(self, *args: Any, **kwargs: Any) -> None:
-        if not _distributed_is_initialized():
-            return
-        if torch.distributed.get_backend() == "nccl":
-            torch.distributed.barrier(device_ids=[self.root_device.index])
-        else:
-            torch.distributed.barrier()
-
-    @override
-    def broadcast(self, obj: TBroadcast, src: int = 0) -> TBroadcast:
-        if not _distributed_is_initialized():
-            return obj
-
-        obj = [obj]
-        torch.distributed.broadcast_object_list(obj, src, group=_group.WORLD)
-        return obj[0]
 
     @override
     def clip_gradients_norm(

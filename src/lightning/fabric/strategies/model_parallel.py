@@ -20,7 +20,6 @@ from typing import TYPE_CHECKING, Any, Callable, ContextManager, Dict, Generator
 
 import torch
 from lightning_utilities.core.rank_zero import rank_zero_only as utils_rank_zero_only
-from torch import Tensor
 from torch.nn import Module
 from torch.optim import Optimizer
 from typing_extensions import TypeGuard, override
@@ -37,19 +36,14 @@ from lightning.fabric.strategies.fsdp import (
 from lightning.fabric.strategies.launchers.subprocess_script import _SubprocessScriptLauncher
 from lightning.fabric.strategies.parallel import ParallelStrategy
 from lightning.fabric.strategies.strategy import (
-    TBroadcast,
     _apply_filter,
     _BackwardSyncControl,
     _validate_keys_for_strict_loading,
 )
 from lightning.fabric.utilities.distributed import (
-    ReduceOp,
-    _distributed_is_initialized,
     _get_default_process_group_backend_for_device,
     _init_dist_connection,
-    _sync_ddp_if_available,
 )
-from lightning.fabric.utilities.distributed import group as _group
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_3, _TORCH_GREATER_EQUAL_2_4
 from lightning.fabric.utilities.init import _materialize_distributed_module
 from lightning.fabric.utilities.load import _METADATA_FILENAME, _lazy_load, _move_state_into
@@ -203,32 +197,6 @@ class ModelParallelStrategy(ParallelStrategy):
             stack.enter_context(torch.device("meta"))
         stack.enter_context(precision_init_ctx)
         return stack
-
-    @override
-    def all_reduce(
-        self, tensor: Tensor, group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = "mean"
-    ) -> Tensor:
-        if isinstance(tensor, Tensor):
-            return _sync_ddp_if_available(tensor, group, reduce_op=reduce_op)
-        return tensor
-
-    @override
-    def barrier(self, *args: Any, **kwargs: Any) -> None:
-        if not _distributed_is_initialized():
-            return
-        if torch.distributed.get_backend() == "nccl":
-            torch.distributed.barrier(device_ids=[self.root_device.index])
-        else:
-            torch.distributed.barrier()
-
-    @override
-    def broadcast(self, obj: TBroadcast, src: int = 0) -> TBroadcast:
-        if not _distributed_is_initialized():
-            return obj
-
-        obj = [obj]
-        torch.distributed.broadcast_object_list(obj, src, group=_group.WORLD)
-        return obj[0]
 
     @override
     def save_checkpoint(
