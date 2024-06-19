@@ -454,7 +454,7 @@ class DeepSpeedStrategy(DDPStrategy):
 
     def _init_optimizers(self) -> Tuple[Optimizer, Optional[LRSchedulerConfig]]:
         assert self.lightning_module is not None
-        optimizers, lr_schedulers = _init_optimizers_and_lr_schedulers(self.lightning_module)
+        optimizers, lr_schedulers, _ = _init_optimizers_and_lr_schedulers(self.lightning_module)
         if len(optimizers) > 1 or len(lr_schedulers) > 1:
             raise MisconfigurationException(
                 "DeepSpeed currently only supports single optimizer, single optional scheduler."

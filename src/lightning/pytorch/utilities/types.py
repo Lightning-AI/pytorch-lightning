@@ -113,6 +113,7 @@ class LRSchedulerConfigType(TypedDict, total=False):
 class OptimizerLRSchedulerConfig(TypedDict):
     optimizer: Optimizer
     lr_scheduler: NotRequired[Union[LRSchedulerTypeUnion, LRSchedulerConfigType]]
+    should_increment: NotRequired[Union[bool, Sequence[bool]]]
 
 
 OptimizerLRScheduler = Optional[

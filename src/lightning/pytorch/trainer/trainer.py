@@ -43,7 +43,7 @@ from lightning.pytorch.loggers import Logger
 from lightning.pytorch.loggers.csv_logs import CSVLogger
 from lightning.pytorch.loggers.tensorboard import TensorBoardLogger
 from lightning.pytorch.loggers.utilities import _log_hyperparams
-from lightning.pytorch.loops import _PredictionLoop, _TrainingEpochLoop
+from lightning.pytorch.loops import _PredictionLoop
 from lightning.pytorch.loops.evaluation_loop import _EvaluationLoop
 from lightning.pytorch.loops.fit_loop import _FitLoop
 from lightning.pytorch.loops.utilities import _parse_loop_limits, _reset_progress
@@ -167,11 +167,11 @@ class Trainer:
                 of train, val and test to find any bugs (ie: a sort of unit test).
                 Default: ``False``.
 
-            max_epochs: Stop training once this number of epochs is reached. Disabled by default (None).
+            max_epochs: Stop training once this number of epochs is reached. Disabled by default (``None``).
                 If both max_epochs and max_steps are not specified, defaults to ``max_epochs = 1000``.
                 To enable infinite training, set ``max_epochs = -1``.
 
-            min_epochs: Force training for at least these many epochs. Disabled by default (None).
+            min_epochs: Force training for at least these many epochs. Disabled by default (``None``).
 
             max_steps: Stop training after this number of steps. Disabled by default (-1). If ``max_steps = -1``
                 and ``max_epochs = None``, will default to ``max_epochs = 1000``. To enable infinite training, set
@@ -415,8 +415,9 @@ class Trainer:
         self._signal_connector = _SignalConnector(self)
 
         # init loops
-        self.fit_loop = _FitLoop(self, min_epochs=min_epochs, max_epochs=max_epochs)
-        self.fit_loop.epoch_loop = _TrainingEpochLoop(self, min_steps=min_steps, max_steps=max_steps)
+        self.fit_loop = _FitLoop(
+            self, min_epochs=min_epochs, max_epochs=max_epochs, min_steps=min_steps, max_steps=max_steps
+        )
         self.validate_loop = _EvaluationLoop(
             self, TrainerFn.VALIDATING, RunningStage.VALIDATING, inference_mode=inference_mode
         )

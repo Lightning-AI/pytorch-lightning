@@ -963,10 +963,15 @@ class LightningModule(
 
             - **Single optimizer**.
             - **List or Tuple** of optimizers.
-            - **Two lists** - The first list has multiple optimizers, and the second has multiple LR schedulers
-              (or multiple ``lr_scheduler_config``).
-            - **Dictionary**, with an ``"optimizer"`` key, and (optionally) a ``"lr_scheduler"``
-              key whose value is a single LR scheduler or ``lr_scheduler_config``.
+            - **Two lists** - The first list has one or more optimizers, and the second has one or more LR schedulers
+              (or ``lr_scheduler_config``s).
+            - **Dictionary**, with:
+                - an ``"optimizer"`` key
+                - an (optional) ``"lr_scheduler"`` key, whose value is an LR scheduler or ``lr_scheduler_config`` (one
+                  or a list of more)
+                - an (optional) ``"should_increment"`` key, which is only relevant for the manual optimization mode, see
+                  :ref:`manual optimization<common/optimization:Manual optimization>`
+
             - **None** - Fit will run without any optimizer.
 
         The ``lr_scheduler_config`` is a dictionary which contains the scheduler and its associated configuration.
