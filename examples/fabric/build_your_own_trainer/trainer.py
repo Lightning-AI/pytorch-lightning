@@ -156,20 +156,6 @@ class MyCustomTrainer:
         assert optimizer is not None
         model, optimizer = self.fabric.setup(model, optimizer)
 
-        if not is_overridden("on_validation_model_eval", _unwrap_objects(model)):
-
-            def ovme(s) -> None:
-                s.eval()
-
-            model.on_validation_model_eval = MethodType(ovme, model)
-
-        if not is_overridden("on_validation_model_train", _unwrap_objects(model)):
-
-            def ovmt(s) -> None:
-                s.train()
-
-            model.on_validation_model_train = MethodType(ovmt, model)
-
         # assemble state (current epoch and global step will be added in save)
         state = {"model": model, "optim": optimizer, "scheduler": scheduler_cfg}
 
@@ -298,8 +284,11 @@ class MyCustomTrainer:
                 "but you passed a validation dataloder. Skipping Validation."
             )
             return
-
-        self.fabric.call("on_validation_model_eval")  # calls `model.eval()`
+        
+        if not is_overridden("on_validation_model_eval", _unwrap_objects(model)):
+            model.eval()
+        else:
+            self.fabric.call("on_validation_model_eval")  # calls `model.eval()`
 
         torch.set_grad_enabled(False)
 
@@ -325,7 +314,10 @@ class MyCustomTrainer:
 
         self.fabric.call("on_validation_epoch_end")
 
-        self.fabric.call("on_validation_model_train")
+        if not is_overridden("on_validation_model_train", _unwrap_objects(model)):
+            model.train()
+        else:
+            self.fabric.call("on_validation_model_train")
         torch.set_grad_enabled(True)
 
     def training_step(self, model: L.LightningModule, batch: Any, batch_idx: int) -> torch.Tensor:
