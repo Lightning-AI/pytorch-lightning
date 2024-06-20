@@ -284,7 +284,7 @@ class MyCustomTrainer:
                 "but you passed a validation dataloder. Skipping Validation."
             )
             return
-        
+
         if not is_overridden("on_validation_model_eval", _unwrap_objects(model)):
             model.eval()
         else:
