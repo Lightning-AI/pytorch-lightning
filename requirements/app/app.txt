@@ -29,4 +29,3 @@ websocket-client <1.7.0
 websockets <11.1.0
 numpy<2.0,>=1.17.2
 msgpack
-tabulate

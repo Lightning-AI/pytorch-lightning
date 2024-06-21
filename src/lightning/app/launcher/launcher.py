@@ -9,8 +9,6 @@ from functools import partial
 from multiprocessing import Process
 from typing import Callable, Dict, List, Optional, Tuple, TypedDict
 
-from tabulate import tabulate
-
 from lightning.app import LightningFlow
 from lightning.app.core import constants
 from lightning.app.core.api import start_server
@@ -298,6 +296,26 @@ def start_server_in_process(target: Callable, args: Tuple = (), kwargs: Dict = {
     p = Process(target=target, args=args, kwargs=kwargs)
     p.start()
     return p
+
+
+def format_row(elements, col_widths, padding=1):
+    elements = [el.ljust(w - padding * 2) for el, w in zip(elements, col_widths)]
+    pad = " " * padding
+    elements = [f"{pad}{el}{pad}" for el in elements]
+    return f'|{"|".join(elements)}|'
+
+
+def tabulate(data, headers):
+    data = [[str(el) for el in row] for row in data]
+    col_widths = [len(el) for el in headers]
+    for row in data:
+        col_widths = [max(len(el), curr) for el, curr in zip(row, col_widths)]
+    col_widths = [w + 2 for w in col_widths]
+    seps = ["-" * w for w in col_widths]
+    lines = [format_row(headers, col_widths), format_row(seps, col_widths, padding=0)] + [
+        format_row(row, col_widths) for row in data
+    ]
+    return "\n".join(lines)
 
 
 def manage_server_processes(processes: List[Tuple[str, Process]]) -> None:
