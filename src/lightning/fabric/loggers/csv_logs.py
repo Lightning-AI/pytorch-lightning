@@ -18,6 +18,7 @@ import os
 from argparse import Namespace
 from typing import Any, Dict, List, Optional, Set, Union
 
+from fsspec.implementations import local
 from torch import Tensor
 from typing_extensions import override
 
@@ -233,15 +234,14 @@ class _ExperimentWriter:
 
         new_keys = self._record_new_keys()
         file_exists = self._fs.isfile(self.metrics_file_path)
+        rewrite_file = not isinstance(self._fs, local.LocalFileSystem) or new_keys
 
-        if new_keys and file_exists:
-            # we need to re-write the file if the keys (header) change
-            self._rewrite_with_new_header(self.metrics_keys)
+        if rewrite_file and file_exists:
+            self._append_recorded_metrics()
 
-        with self._fs.open(self.metrics_file_path, mode=("a" if file_exists else "w"), newline="") as file:
+        with self._fs.open(self.metrics_file_path, mode=("a" if not rewrite_file else "w"), newline="") as file:
             writer = csv.DictWriter(file, fieldnames=self.metrics_keys)
-            if not file_exists:
-                # only write the header if we're writing a fresh file
+            if rewrite_file:
                 writer.writeheader()
             writer.writerows(self.metrics)
 
@@ -255,14 +255,15 @@ class _ExperimentWriter:
         self.metrics_keys.sort()
         return new_keys
 
-    def _rewrite_with_new_header(self, fieldnames: List[str]) -> None:
-        with self._fs.open(self.metrics_file_path, "r", newline="") as file:
-            metrics = list(csv.DictReader(file))
+    def _append_recorded_metrics(self) -> None:
+        """Appends the previous recorded metrics to the current ``self.metrics``."""
+        metrics = self._fetch_recorded_metrics()
+        self.metrics = metrics + self.metrics
 
-        with self._fs.open(self.metrics_file_path, "w", newline="") as file:
-            writer = csv.DictWriter(file, fieldnames=fieldnames)
-            writer.writeheader()
-            writer.writerows(metrics)
+    def _fetch_recorded_metrics(self) -> List[Dict[str, Any]]:
+        """Fetches the previous recorded metrics."""
+        with self._fs.open(self.metrics_file_path, "r", newline="") as file:
+            return list(csv.DictReader(file))
 
     def _check_log_dir_exists(self) -> None:
         if self._fs.exists(self.log_dir) and self._fs.listdir(self.log_dir):
