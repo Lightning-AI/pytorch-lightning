@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 
 class AttributeDict(Dict):
@@ -32,7 +32,7 @@ class AttributeDict(Dict):
 
     """
 
-    def __getattr__(self, key: str) -> Optional[Any]:
+    def __getattr__(self, key: str) -> Any:
         try:
             return self[key]
         except KeyError as exp:
