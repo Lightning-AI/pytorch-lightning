@@ -358,7 +358,6 @@ def manage_server_processes(processes: List[Tuple[str, Process]]) -> None:
                 tabulate(
                     [(name, p.exitcode) for name, p in processes if not p.is_alive() and p.exitcode != 0],
                     headers=["Name", "Exit Code"],
-                    tablefmt="github",
                 )
             )
             exitcode = 1
