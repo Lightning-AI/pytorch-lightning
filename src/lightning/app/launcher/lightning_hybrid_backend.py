@@ -65,7 +65,7 @@ class CloudHybridBackend(Backend):
 
         work_network_config = self.work_to_network_configs[work.name]
 
-        work._host = "0.0.0.0"
+        work._host = "0.0.0.0"  # noqa: S104
         work._port = work_network_config.port
         work._future_url = f"{self._get_proxy_scheme()}://{work_network_config.host}"
 
@@ -85,7 +85,7 @@ class CloudHybridBackend(Backend):
             backend = self._get_backend(works[0])
             backend.resolve_url(app, base_url)
 
-    def update_lightning_app_frontend(self, app: "lightning.LightningApp"):
+    def update_lightning_app_frontend(self, app):
         self.backends["cloud"].update_lightning_app_frontend(app)
 
     def stop_work(self, app, work) -> None:
@@ -150,6 +150,6 @@ class CloudHybridBackend(Backend):
     def _get_project_id() -> str:
         return os.environ["LIGHTNING_CLOUD_PROJECT_ID"]
 
-    def stop_app(self, app: "lightning.LightningApp"):
+    def stop_app(self, app):
         """Used to mark the App has stopped if everything has fine."""
         self.backends["cloud"].stop_app(app)

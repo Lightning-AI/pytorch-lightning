@@ -1,10 +1,10 @@
+import contextlib
 import inspect
 import json
 import logging
 import os
 import random
 import string
-import urllib
 from time import monotonic, sleep, time
 from typing import List, Optional
 
@@ -13,13 +13,11 @@ from lightning.app.core.queues import QueuingSystem
 from lightning.app.runners.backends.backend import Backend
 from lightning.app.storage import Drive
 from lightning.app.utilities.enum import WorkStageStatus, WorkStopReasons, make_status
-from lightning.app.utilities.network import LightningClient, _check_service_url_is_ready
+from lightning.app.utilities.network import LightningClient
 
-try:
+with contextlib.suppress(ImportError, ModuleNotFoundError):
     # TODO: remove try block and just import after lighting_app > 0.6.3 is released
     from lightning.app.storage import Mount
-except (ImportError, ModuleNotFoundError):
-    pass
 
 try:
     from lightning.app.utilities.exceptions import LightningPlatformException
@@ -130,26 +128,25 @@ class CloudBackend(Backend):
             )
 
         # TODO: remove after we move lighting_app past v0.6.3
-        if hasattr(work.cloud_compute, "mounts"):
+        if hasattr(work.cloud_compute, "mounts") and work.cloud_compute.mounts is not None:
             # this should really be part of the work.cloud_compute struct, but to save
             # time we are not going to modify the backend in this set of PRs & instead
             # use the same s3 drives API which we used before.
-            if work.cloud_compute.mounts is not None:
-                if isinstance(work.cloud_compute.mounts, Mount):
+            if isinstance(work.cloud_compute.mounts, Mount):
+                drive_specs.append(
+                    _create_mount_drive_spec(
+                        work_name=work.name,
+                        mount=work.cloud_compute.mounts,
+                    )
+                )
+            else:
+                for mount in work.cloud_compute.mounts:
                     drive_specs.append(
                         _create_mount_drive_spec(
                             work_name=work.name,
-                            mount=work.cloud_compute.mounts,
+                            mount=mount,
                         )
                     )
-                else:
-                    for mount in work.cloud_compute.mounts:
-                        drive_specs.append(
-                            _create_mount_drive_spec(
-                                work_name=work.name,
-                                mount=mount,
-                            )
-                        )
 
         if hasattr(work.cloud_compute, "interruptible"):
             preemptible = work.cloud_compute.interruptible
@@ -169,7 +166,7 @@ class CloudBackend(Backend):
             affinity_identifier=colocation_group_id,
         )
 
-        random_name = "".join(random.choice(string.ascii_lowercase) for _ in range(5))
+        random_name = "".join(random.choice(string.ascii_lowercase) for _ in range(5))  # noqa: S311
 
         return V1LightningworkSpec(
             build_spec=build_spec,
@@ -249,7 +246,7 @@ class CloudBackend(Backend):
                 raise LightningPlatformException(message) from None
 
         # Replace the undefined url and host by the known one.
-        work._host = "0.0.0.0"
+        work._host = "0.0.0.0"  # noqa: S104
         work._future_url = f"{self._get_proxy_scheme()}://{spec.network_config[0].host}"
 
         # removing the backend to avoid the threadlock error
@@ -302,8 +299,7 @@ class CloudBackend(Backend):
                 if local_work.status.stage == WorkStageStatus.PENDING and cloud_stage in WorkStageStatus.FAILED:
                     if local_work._raise_exception:
                         raise Exception(f"The work {local_work.name} failed during pending phase.")
-                    else:
-                        logger.error(f"The work {local_work.name} failed during pending phase.")
+                    logger.error(f"The work {local_work.name} failed during pending phase.")
 
                 # 5. Skip the pending and running as this is already handled by Lightning.
                 if cloud_stage in (WorkStageStatus.PENDING, WorkStageStatus.RUNNING):
@@ -350,35 +346,11 @@ class CloudBackend(Backend):
                 break
 
     def resolve_url(self, app, base_url: Optional[str] = None) -> None:
-        # The code below was used in a legacy feature. This used to render web servers running inside the works as iframes into our old UI
-        # This isn't strictly supported anymore and this would hang as the `_internal_ip` isn't accessible across AWS regions.
+        # The code below was used in a legacy feature. This used to render web servers running inside the works
+        # as iframes into our old UI. This isn't strictly supported anymore and this would hang as the
+        # `_internal_ip` isn't accessible across AWS regions.
         # TODO: Decide whether to keep or delete this algother
-        return
-
-        if not self.base_url:
-            self.base_url = base_url
-
-        for flow in app.flows:
-            if self.base_url:
-                # Replacing the path with complete URL
-                if not (self.base_url.startswith("http://") or self.base_url.startswith("https://")):
-                    raise ValueError(
-                        "Base URL doesn't have a valid scheme, expected it to start with 'http://' or 'https://' "
-                    )
-                if isinstance(flow._layout, dict) and "target" not in flow._layout:
-                    # FIXME: Why _check_service_url_is_ready doesn't work ?
-                    frontend_url = urllib.parse.urljoin(self.base_url, flow.name + "/")
-                    flow._layout["target"] = frontend_url
-
-        for work in app.works:
-            if work._url == "" and work.status.stage in (
-                WorkStageStatus.RUNNING,
-                WorkStageStatus.SUCCEEDED,
-            ):
-                if work._internal_ip != "" and _check_service_url_is_ready(
-                    f"http://{work._internal_ip}:{work._port}", timeout=0.1
-                ):
-                    work._url = work._future_url
+        pass
 
     @staticmethod
     def _get_proxy_scheme() -> str:
@@ -417,7 +389,7 @@ class CloudBackend(Backend):
 
     def _register_queues(self, app, work):
         super()._register_queues(app, work)
-        kw = dict(queue_id=self.queue_id, work_name=work.name)
+        kw = dict(queue_id=self.queue_id, work_name=work.name)  # noqa: C408
         app.work_queues.update({work.name: self.queues.get_work_queue(**kw)})
 
     def stop_work(self, app: LightningApp, work: LightningWork) -> None:
@@ -466,7 +438,7 @@ class CloudBackend(Backend):
         )
         print(f"Deleting {work_resp.name} ...")
 
-    def update_lightning_app_frontend(self, app: "lightning.LightningApp"):
+    def update_lightning_app_frontend(self, app):
         """Used to create frontend's if the app couldn't be loaded locally."""
         if not len(app.frontends.keys()):
             return
@@ -497,7 +469,7 @@ class CloudBackend(Backend):
                 body=AppinstancesIdBody(spec=spec),
             )
 
-    def stop_app(self, app: "lightning.LightningApp"):
+    def stop_app(self, app):
         """Used to mark the App has stopped if everything has fine."""
 
         external_app_spec: "Externalv1LightningappInstance" = (
