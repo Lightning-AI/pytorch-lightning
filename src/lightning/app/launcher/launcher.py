@@ -17,6 +17,7 @@ from lightning.app.core.api import start_server
 from lightning.app.core.constants import (
     CHECK_ERROR_QUEUE_INTERVAL,
     ENABLE_ORCHESTRATOR,
+    IS_DISTRIBUTED_PLUGIN,
     enable_multiple_works_in_default_container,
 )
 from lightning.app.core.queues import MultiProcessQueue, QueuingSystem
@@ -153,14 +154,12 @@ def run_lightning_work(
 
     load_app_from_file(file)
 
-    if os.getenv("DISTRIBUTED_ARGUMENTS") is not None:
-        from lightning.app import CloudCompute
-
-        print("Fast loading of the ScriptLauncher")
-
+    if IS_DISTRIBUTED_PLUGIN:
         import json
 
         from multi_node.launcher import ScriptLauncher
+
+        from lightning.app import CloudCompute
 
         script_command = os.environ["COMMAND"]
         distributed_arguments = os.environ["DISTRIBUTED_ARGUMENTS"]

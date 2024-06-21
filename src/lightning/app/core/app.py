@@ -56,7 +56,7 @@ from lightning.app.utilities.component import _convert_paths_after_init, _valida
 from lightning.app.utilities.enum import AppStage, CacheCallsKeys
 from lightning.app.utilities.exceptions import CacheMissException, ExitAppException, LightningFlowException
 from lightning.app.utilities.layout import _collect_layout
-from lightning.app.utilities.proxies import ComponentDelta, unwrap
+from lightning.app.utilities.proxies import ComponentDelta
 from lightning.app.utilities.scheduler import SchedulerThread
 from lightning.app.utilities.tree import breadth_first
 from lightning.app.utilities.warnings import LightningFlowWarning
@@ -529,10 +529,7 @@ class LightningApp:
         self.ready = self.root.ready
 
         if self._should_start_works_with_flow:
-            logger.debug("STARTING WORKS WITH FLOW")
             self._start_with_flow_works()
-        else:
-            self._create_works()
 
         logger.debug("ready to loop over the flow")
 
@@ -747,17 +744,3 @@ class LightningApp:
                 w._parallel = True
                 w.start()
                 w._parallel = parallel
-
-    def _create_works(self) -> None:
-        if os.getenv("DISTRIBUTED_ARGUMENTS") is not None:
-            return
-
-        for work in self.works:
-            logger.debug(f"creating {work.name}")
-            _backend = work._backend
-            work._backend = None
-            work.run = unwrap(work.run)
-            self.backend._register_queues(self, work)
-            self.backend.create_work(self, work)
-            work._backend = _backend
-            self.backend._wrap_run_method(self, work)  # type: ignore[arg-type]

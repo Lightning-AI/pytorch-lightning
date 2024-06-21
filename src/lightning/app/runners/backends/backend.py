@@ -12,11 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
 from abc import ABC, abstractmethod
 from functools import partial
 from typing import TYPE_CHECKING, Any, Callable, List, Optional
 
+from lightning.app.core.constants import IS_DISTRIBUTED_PLUGIN
 from lightning.app.core.queues import QueuingSystem
 from lightning.app.utilities.proxies import ProxyWorkRun, unwrap
 
@@ -72,7 +72,7 @@ class Backend(ABC):
 
         work.run = work_run
 
-        if os.getenv("DISTRIBUTED_ARGUMENTS") is None:
+        if IS_DISTRIBUTED_PLUGIN:
             # 2. Create the work
             self.create_work(app, work)
 
