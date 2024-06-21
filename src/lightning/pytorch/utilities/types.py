@@ -107,7 +107,7 @@ class LRSchedulerConfigType(TypedDict, total=False):
     frequency: int
     reduce_on_plateau: bool
     monitor: Optional[str]
-    scrict: bool
+    strict: bool
 
 
 class OptimizerLRSchedulerConfig(TypedDict):

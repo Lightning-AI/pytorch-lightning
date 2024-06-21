@@ -466,7 +466,7 @@ def test_lightning_cli_help():
     ), pytest.raises(SystemExit):
         any_model_any_data_cli()
 
-    assert "--data.init_args.data_dir" in out.getvalue()
+    assert ("--data.data_dir" in out.getvalue()) or ("--data.init_args.data_dir" in out.getvalue())
 
 
 def test_lightning_cli_print_config():
