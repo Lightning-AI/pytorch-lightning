@@ -135,7 +135,7 @@ def player(args, world_collective: TorchCollective, player_trainer_collective: T
             # Single environment step
             next_obs, reward, done, truncated, info = envs.step(action.cpu().numpy())
             done = torch.logical_or(torch.tensor(done), torch.tensor(truncated))
-            rewards[step] = torch.tensor(reward, device=device).view(-1)
+            rewards[step] = torch.tensor(reward, device=device, dtype=torch.float32).view(-1)
             next_obs, next_done = torch.tensor(next_obs, device=device), done.to(device)
 
             if "final_info" in info:
