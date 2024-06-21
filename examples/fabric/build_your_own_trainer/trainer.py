@@ -227,7 +227,7 @@ class MyCustomTrainer:
             should_optim_step = self.global_step % self.grad_accum_steps == 0
             if should_optim_step:
                 # currently only supports a single optimizer
-                self.fabric.call("on_before_optimizer_step", optimizer, 0)
+                self.fabric.call("on_before_optimizer_step", optimizer)
 
                 # optimizer step runs train step internally through closure
                 optimizer.step(partial(self.training_step, model=model, batch=batch, batch_idx=batch_idx))
