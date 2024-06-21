@@ -32,7 +32,6 @@ from deepdiff import DeepDiff, Delta
 from lightning_utilities.core.apply_func import apply_to_collection
 
 from lightning.app.core import constants
-from lightning.app.core.constants import ENABLE_ORCHESTRATOR
 from lightning.app.core.queues import MultiProcessQueue
 from lightning.app.storage.copier import _Copier, _copy_files
 from lightning.app.storage.drive import Drive, _maybe_create_drive
@@ -418,8 +417,7 @@ class WorkRunner:
                     if self.state_observer.started:
                         self.state_observer.join(0)
                     self.state_observer = None
-                if self.copier:
-                    self.copier.join(0)
+                self.copier.join(0)
             except LightningSigtermStateException as ex:
                 logger.debug("Exiting")
                 os._exit(ex.exit_code)
@@ -431,8 +429,7 @@ class WorkRunner:
                     if self.state_observer.started:
                         self.state_observer.join(0)
                     self.state_observer = None
-                if self.copier:
-                    self.copier.join(0)
+                self.copier.join(0)
                 raise ex
 
     def setup(self):
@@ -451,34 +448,17 @@ class WorkRunner:
 
         # 3. Starts the Copier thread. This thread enables transfering files using
         # the Path object between works.
-        if ENABLE_ORCHESTRATOR:
-            self.copier = _Copier(self.work, self.copy_request_queue, self.copy_response_queue)
-            self.copier.setDaemon(True)
-            self.copier.start()
+        self.copier = _Copier(self.work, self.copy_request_queue, self.copy_response_queue)
+        self.copier.setDaemon(True)
+        self.copier.start()
 
         # 4. If the work is restarting, reload the latest state.
         # TODO (tchaton) Add support for capturing the latest state.
         if self.work._restarting:
             self.work.load_state_dict(self.work.state)
 
-        # 7. Deepcopy the work state and send the first `RUNNING` status delta to the flow.
-        reference_state = deepcopy(self.work.state)
-
-        # Set the internal IP address.
-        # Set this here after the state observer is initialized, since it needs to record it as a change and send
-        # it back to the flow
-        default_internal_ip = "127.0.0.1" if constants.LIGHTNING_CLOUDSPACE_HOST is None else "0.0.0.0"  # noqa: S104
-        self.work._internal_ip = os.environ.get("LIGHTNING_NODE_PRIVATE_IP", default_internal_ip)
-        self.work._public_ip = os.environ.get("LIGHTNING_NODE_IP", "")
-
-        self.work.on_start()
-
-        delta = Delta(DeepDiff(reference_state, self.work.state))
-        print("Sending delta_queue ", delta)
-        self.delta_queue.put(ComponentDelta(id=self.work_name, delta=delta))
-
-        # # 8. Inform the flow that the work is ready to receive data through the caller queue.
-        # self.readiness_queue.put(True)
+        # 5. Inform the flow that the work is ready to receive data through the caller queue.
+        self.readiness_queue.put(True)
 
     def run_once(self):
         # 1. Wait for the caller queue data.
@@ -638,8 +618,7 @@ class WorkRunner:
         delta = Delta(DeepDiff(state, deepcopy(self.work.state), verbose_level=2))
         self.delta_queue.put(ComponentDelta(id=self.work_name, delta=delta))
 
-        if self.copier:
-            self.copier.join(0)
+        self.copier.join(0)
         raise LightningSigtermStateException(0)
 
     def _proxy_setattr(self, cleanup: bool = False):
