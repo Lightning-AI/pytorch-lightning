@@ -72,7 +72,7 @@ class Backend(ABC):
 
         work.run = work_run
 
-        if IS_DISTRIBUTED_PLUGIN:
+        if not IS_DISTRIBUTED_PLUGIN:
             # 2. Create the work
             self.create_work(app, work)
 
