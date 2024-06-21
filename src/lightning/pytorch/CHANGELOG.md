@@ -11,7 +11,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 -
 
--
+- The `TQDMProgressBar` now provides an option to retain prior training epoch bars. ([#19578])(https://github.com/Lightning-AI/pytorch-lightning/pull/19578)
 
 ### Changed
 
