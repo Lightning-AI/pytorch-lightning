@@ -533,7 +533,7 @@ class HTTPQueue(BaseQueue):
 
         value = pickle.dumps(item, protocol=pickle.HIGHEST_PROTOCOL) if self._use_pickle() else msgpack.packb(item)
         resp = self.client.post(f"v1/{self.app_id}/{self._name_suffix}", data=value, query_params={"action": "push"})
-        if resp.status_code != 201:
+        if resp.status_code != 200:
             raise RuntimeError(f"Failed to push to queue: {self._name_suffix}")
 
     def length(self) -> int:

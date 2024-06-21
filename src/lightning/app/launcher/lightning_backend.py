@@ -346,11 +346,34 @@ class CloudBackend(Backend):
                 break
 
     def resolve_url(self, app, base_url: Optional[str] = None) -> None:
-        # The code below was used in a legacy feature. This used to render web servers running inside the works
-        # as iframes into our old UI. This isn't strictly supported anymore and this would hang as the
-        # `_internal_ip` isn't accessible across AWS regions.
-        # TODO: Decide whether to keep or delete this algother
         pass
+        # if not self.base_url:
+        #     self.base_url = base_url
+
+        # for flow in app.flows:
+        #     if self.base_url:
+        #         # Replacing the path with complete URL
+        #         if not (self.base_url.startswith("http://") or self.base_url.startswith("https://")):
+        #             raise ValueError(
+        #                 "Base URL doesn't have a valid scheme, expected it to start with 'http://' or 'https://' "
+        #             )
+        #         if isinstance(flow._layout, dict) and "target" not in flow._layout:
+        #             # FIXME: Why _check_service_url_is_ready doesn't work ?
+        #             frontend_url = urllib.parse.urljoin(self.base_url, flow.name + "/")
+        #             flow._layout["target"] = frontend_url
+
+        # for work in app.works:
+        #     if (
+        #         work._url == ""
+        #         and work.status.stage
+        #         in (
+        #             WorkStageStatus.RUNNING,
+        #             WorkStageStatus.SUCCEEDED,
+        #         )
+        #         and work._internal_ip != ""
+        #         and _check_service_url_is_ready(f"http://{work._internal_ip}:{work._port}")
+        #     ):
+        #         work._url = work._future_url
 
     @staticmethod
     def _get_proxy_scheme() -> str:

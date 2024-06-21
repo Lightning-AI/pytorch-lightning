@@ -630,7 +630,7 @@ class LightningWork:
         # This enables to start the run method with a phony input and exit.
         self.run(Action(method="start"))
 
-    def on_start(self):
+    def on_start(self) -> None:
         """Define actions to perform when the work has started."""
 
     def run(self, *args: Any, **kwargs: Any) -> None:

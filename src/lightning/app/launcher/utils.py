@@ -27,7 +27,7 @@ def cloud_work_stage_to_work_status_stage(stage: V1LightningworkState) -> str:
     return mapping[stage]
 
 
-def _print_to_logger_info(*args, **kwargs):
+def _print_to_logger_info(*args: Any, **kwargs: Any) -> None:
     # TODO Find a better way to re-direct print to loggers.
     _logger.info(" ".join([str(v) for v in args]))
 
@@ -46,7 +46,7 @@ def convert_print_to_logger_info(func: Callable) -> Callable:
     return wrapper
 
 
-def _enable_debugging():
+def _enable_debugging() -> None:
     tar_file = os.path.join(os.getcwd(), f"lightning-{LIGHTNING_VERSION}.tar.gz")
 
     if not os.path.exists(tar_file):
@@ -71,7 +71,7 @@ def enable_debugging(func: Callable) -> Callable:
     return wrapper
 
 
-def exit_app(app: LightningApp):
+def exit_app(app: LightningApp) -> None:
     """This function checks if dumb-init is running on process 0 and exits the containter with exit code 0.
 
     Otherwise we fall back to stopping the app via backend API call
