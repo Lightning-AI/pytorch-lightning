@@ -23,7 +23,6 @@ import torch
 from lightning_utilities.core.imports import RequirementCache
 from typing_extensions import get_args
 
-from lightning.app.cli.lightning_cli import main as main_cli
 from lightning.fabric.accelerators import CPUAccelerator, CUDAAccelerator, MPSAccelerator
 from lightning.fabric.plugins.precision.precision import _PRECISION_INPUT_STR, _PRECISION_INPUT_STR_ALIAS
 from lightning.fabric.strategies import STRATEGY_REGISTRY
@@ -62,7 +61,13 @@ if _CLICK_AVAILABLE:
             " Please call `fabric run` instead."
         )
         hparams = sys.argv[1:]
-        if hparams and hparams[0] in ["run", "model", "flow-and-servers", "frontend", "server", "work"]:
+        if len(hparams) > 2 and hparams[0] == "run":
+            if hparams[1] == "model":
+                _main()
+                return
+
+            from lightning.app.cli.lightning_cli import main as main_cli
+
             main_cli()
             return
 

@@ -528,10 +528,7 @@ class LightningApp:
 
         self.ready = self.root.ready
 
-        if self._should_start_works_with_flow:
-            self._start_with_flow_works()
-
-        logger.debug("ready to loop over the flow")
+        self._start_with_flow_works()
 
         if self.should_publish_changes_to_api and self.api_publish_state_queue is not None:
             self.api_publish_state_queue.put((self.state_vars, self.status))
@@ -738,6 +735,9 @@ class LightningApp:
                 self.flow_to_work_delta_queues[w.name].put(deep_diff)
 
     def _start_with_flow_works(self) -> None:
+        if not self._should_start_works_with_flow:
+            return
+
         for w in self.works:
             if w._start_with_flow:
                 parallel = w.parallel
