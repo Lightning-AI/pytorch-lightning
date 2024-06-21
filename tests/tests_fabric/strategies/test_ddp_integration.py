@@ -18,9 +18,8 @@ from unittest.mock import Mock
 
 import pytest
 import torch
-from lightning_utilities.core.imports import RequirementCache
-
 from lightning.fabric import Fabric
+from lightning_utilities.core.imports import RequirementCache
 from torch._dynamo import OptimizedModule
 from torch.nn.parallel.distributed import DistributedDataParallel
 
