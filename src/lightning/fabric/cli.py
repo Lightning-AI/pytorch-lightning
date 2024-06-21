@@ -56,13 +56,13 @@ if _CLICK_AVAILABLE:
         Raises deprecation warning and runs through fabric cli if necessary, else runs the entrypoint directly
 
         """
-        print(
-            "`lightning run model` is deprecated and will be removed in future versions."
-            " Please call `fabric run` instead."
-        )
         hparams = sys.argv[1:]
-        if len(hparams) > 2 and hparams[0] == "run":
+        if len(hparams) >= 2 and hparams[0] == "run":
             if hparams[1] == "model":
+                print(
+                    "`lightning run model` is deprecated and will be removed in future versions."
+                    " Please call `fabric run` instead."
+                )
                 _main()
                 return
 
