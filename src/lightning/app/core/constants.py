@@ -113,8 +113,9 @@ class DistributedPluginChecker:
 
         self.running_distributed_plugin = False
 
-        if distributed_arguments and distributed_arguments != "" and work_name:
+        if distributed_arguments and work_name:
             distributed_arguments = json.loads(distributed_arguments)
+            assert distributed_arguments
             num_nodes = distributed_arguments.get("num_instances", 0)
             node_rank = int(self.work_name.split(".")[-1])
 
