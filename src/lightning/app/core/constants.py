@@ -120,7 +120,7 @@ class DistributedPluginChecker:
             node_rank = int(work_name.split(".")[-1])
 
             # Only the start with flow works are skipped for performance purposes
-            self.running_distributed_plugin = node_rank <= num_nodes
+            self.running_distributed_plugin = node_rank < num_nodes
 
     def __bool__(self) -> bool:
         return self.running_distributed_plugin
