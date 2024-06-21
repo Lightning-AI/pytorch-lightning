@@ -107,7 +107,7 @@ IS_RUNNING_IN_FLOW = os.getenv("LIGHTNING_CLOUD_WORK_NAME") is None
 
 
 class DistributedPluginChecker:
-    def __init__(self):
+    def __init__(self) -> None:
         distributed_arguments = os.getenv("DISTRIBUTED_ARGUMENTS")
         work_name = os.getenv("LIGHTNING_CLOUD_WORK_NAME")
 
@@ -121,7 +121,7 @@ class DistributedPluginChecker:
             # Only the start with flow works are skipped for performance purposes
             self.running_distributed_plugin = node_rank <= num_nodes
 
-    def __bool__(self):
+    def __bool__(self) -> bool:
         return self.running_distributed_plugin
 
 
