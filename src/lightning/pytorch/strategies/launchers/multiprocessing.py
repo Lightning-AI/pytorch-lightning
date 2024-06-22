@@ -236,7 +236,6 @@ class _MultiProcessingLauncher(_Launcher):
             process this output.
 
         """
-
         def tensor_to_bytes(tensor: Tensor) -> bytes:
             buffer = io.BytesIO()
             torch.save(tensor.cpu(), buffer)
@@ -256,13 +255,12 @@ class _MultiProcessingLauncher(_Launcher):
                 on the current trainer.
 
         """
-
         def bytes_to_tensor(tensor_bytes: bytes) -> Tensor:
             return torch.load(io.BytesIO(tensor_bytes))
 
         # NOTE: `get_extra_results` needs to be called before
         callback_metrics = extra["callback_metrics"]
-        trainer.callback_metrics.update(apply_to_collection(callback_metrics, bytes, bytes_to_tensor)
+        trainer.callback_metrics.update(apply_to_collection(callback_metrics, bytes, bytes_to_tensor))
 
     @override
     def kill(self, signum: _SIGNUM) -> None:
