@@ -20,6 +20,7 @@ from lightning.fabric.utilities.distributed import (
     _sync_ddp,
     is_shared_filesystem,
 )
+from lightning_utilities.core.imports import RequirementCache
 
 from tests_fabric.helpers.runif import RunIf
 
@@ -121,6 +122,10 @@ def test_collective_operations(devices, process):
     spawn_launch(process, devices)
 
 
+@pytest.mark.skipif(
+    RequirementCache("torch<2.4") and RequirementCache("numpy>=2.0"),
+    reason="torch.distributed not compatible with numpy>=2.0",
+)
 @pytest.mark.flaky(reruns=3)  # flaky with "process 0 terminated with signal SIGABRT" (GLOO)
 def test_is_shared_filesystem(tmp_path, monkeypatch):
     # In the non-distributed case, every location is interpreted as 'shared'
