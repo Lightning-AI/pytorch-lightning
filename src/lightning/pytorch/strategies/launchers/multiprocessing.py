@@ -236,6 +236,7 @@ class _MultiProcessingLauncher(_Launcher):
             process this output.
 
         """
+
         def tensor_to_bytes(tensor: Tensor) -> bytes:
             buffer = io.BytesIO()
             torch.save(tensor.cpu(), buffer)
@@ -255,6 +256,7 @@ class _MultiProcessingLauncher(_Launcher):
                 on the current trainer.
 
         """
+
         def bytes_to_tensor(tensor_bytes: bytes) -> Tensor:
             return torch.load(io.BytesIO(tensor_bytes))
 
