@@ -329,7 +329,7 @@ class LoggingSyncDistModel(BoringModel):
 
         self.log("foo_6", value, on_step=False, on_epoch=True, sync_dist=True, reduce_fx="sum")
         self.log("foo_7", 2, on_step=False, on_epoch=True, sync_dist=True, reduce_fx="sum")
-        # self.log("foo_8", 2, on_step=False, on_epoch=True, sync_dist=True, reduce_fx="mean")
+        self.log("foo_8", 2, on_step=False, on_epoch=True, sync_dist=True, reduce_fx="mean")
         # self.log("foo_9", value, on_step=False, on_epoch=True, sync_dist=True, reduce_fx="mean")
         # self.log("foo_10", batch_idx, on_step=False, on_epoch=True, sync_dist=True, reduce_fx="max")
         # self.log("foo_11", batch_idx + self.rank, on_step=True, on_epoch=True, sync_dist=True, reduce_fx="mean")
