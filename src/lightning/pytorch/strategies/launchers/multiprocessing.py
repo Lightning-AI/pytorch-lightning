@@ -236,15 +236,11 @@ class _MultiProcessingLauncher(_Launcher):
             process this output.
 
         """
-
-        def tensor_to_bytes(tensor: Tensor) -> bytes:
-            buffer = io.BytesIO()
-            torch.save(tensor.cpu(), buffer)
-            return buffer.getvalue()
-
+        callback_metrics = apply_to_collection(trainer.callback_metrics, Tensor, lambda t: t.cpu())
+        buffer = io.BytesIO()
+        torch.save(callback_metrics, buffer)
         # send tensors as bytes to avoid issues with memory sharing
-        callback_metrics = apply_to_collection(trainer.callback_metrics, Tensor, tensor_to_bytes)
-        return {"callback_metrics": callback_metrics}
+        return {"callback_metrics_bytes": buffer.getvalue()}
 
     def update_main_process_results(self, trainer: "pl.Trainer", extra: Dict[str, Any]) -> None:
         """Retrieve the :attr:`trainer.callback_metrics` dictionary from the given queue. To preserve consistency, we
@@ -256,13 +252,10 @@ class _MultiProcessingLauncher(_Launcher):
                 on the current trainer.
 
         """
-
-        def bytes_to_tensor(tensor_bytes: bytes) -> Tensor:
-            return torch.load(io.BytesIO(tensor_bytes))
-
         # NOTE: `get_extra_results` needs to be called before
-        callback_metrics = extra["callback_metrics"]
-        trainer.callback_metrics.update(apply_to_collection(callback_metrics, bytes, bytes_to_tensor))
+        callback_metrics_bytes = extra["callback_metrics_bytes"]
+        callback_metrics = torch.load(io.BytesIO(callback_metrics_bytes))
+        trainer.callback_metrics.update(callback_metrics)
 
     @override
     def kill(self, signum: _SIGNUM) -> None:
