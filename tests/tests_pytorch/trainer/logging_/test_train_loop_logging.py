@@ -331,14 +331,14 @@ class LoggingSyncDistModel(BoringModel):
         self.log("foo_7", 2, on_step=False, on_epoch=True, sync_dist=True, reduce_fx="sum")
         self.log("foo_8", 2, on_step=False, on_epoch=True, sync_dist=True, reduce_fx="mean")
         self.log("foo_9", value, on_step=False, on_epoch=True, sync_dist=True, reduce_fx="mean")
-        # self.log("foo_10", batch_idx, on_step=False, on_epoch=True, sync_dist=True, reduce_fx="max")
-        # self.log("foo_11", batch_idx + self.rank, on_step=True, on_epoch=True, sync_dist=True, reduce_fx="mean")
+        self.log("foo_10", batch_idx, on_step=False, on_epoch=True, sync_dist=True, reduce_fx="max")
+        self.log("foo_11", batch_idx + self.rank, on_step=True, on_epoch=True, sync_dist=True, reduce_fx="mean")
         return super().training_step(batch, batch_idx)
 
     def validation_step(self, batch, batch_idx):
-        # self.log("bar", self.fake_result, on_step=False, on_epoch=True, sync_dist=True, reduce_fx="sum")
-        # self.log("bar_2", self.fake_result, on_step=False, on_epoch=True, sync_dist=True, reduce_fx="mean")
-        # self.log("bar_3", batch_idx + self.rank, on_step=False, on_epoch=True, sync_dist=True, reduce_fx="max")
+        self.log("bar", self.fake_result, on_step=False, on_epoch=True, sync_dist=True, reduce_fx="sum")
+        self.log("bar_2", self.fake_result, on_step=False, on_epoch=True, sync_dist=True, reduce_fx="mean")
+        self.log("bar_3", batch_idx + self.rank, on_step=False, on_epoch=True, sync_dist=True, reduce_fx="max")
         return super().validation_step(batch, batch_idx)
 
 
