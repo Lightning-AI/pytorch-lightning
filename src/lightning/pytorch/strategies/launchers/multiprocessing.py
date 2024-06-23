@@ -239,8 +239,7 @@ class _MultiProcessingLauncher(_Launcher):
 
         def tensor_to_bytes(tensor: Tensor) -> bytes:
             buffer = io.BytesIO()
-            print(tensor.cpu().is_shared())
-            torch.save(tensor.cpu(), buffer)
+            torch.save(tensor.cpu().clone(), buffer)
             return buffer.getvalue()
 
         # send tensors as bytes to avoid issues with memory sharing
