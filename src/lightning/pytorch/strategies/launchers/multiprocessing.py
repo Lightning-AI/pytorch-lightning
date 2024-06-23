@@ -243,12 +243,12 @@ class _MultiProcessingLauncher(_Launcher):
             return buffer.getvalue()
 
         # send tensors as bytes to avoid issues with memory sharing
-        print("callback metrics trainer", trainer.callback_metrics)
-        # callback_metrics = {
-        #     'foo': torch.tensor(3.), 'foo_2': torch.tensor(4.), 'foo_3': torch.tensor(2.), 'foo_4': torch.tensor(1.5000), 'foo_6': torch.tensor(9.),
-        #  'foo_7': torch.tensor(12.), 'foo_8': torch.tensor(2.), 'foo_9': torch.tensor(1.5000)}
-        # callback_metrics = apply_to_collection(callback_metrics, Tensor, tensor_to_bytes)
-        callback_metrics = apply_to_collection(trainer.callback_metrics, Tensor, tensor_to_bytes)
+        # print("callback metrics trainer", trainer.callback_metrics)
+        callback_metrics = {'foo': torch.tensor(3.), 'foo_2': torch.tensor(4.), 'foo_3': torch.tensor(2.), 'foo_4': torch.tensor(1.5000), 'foo_5': torch.tensor(3.),
+         'foo_11': torch.tensor(1.5000), 'foo_11_step': torch.tensor(2.5000), 'bar': torch.tensor(6.), 'bar_2': torch.tensor(1.),
+         'bar_3': torch.tensor(3.), 'foo_6': torch.tensor(9.), 'foo_7': torch.tensor(12.), 'foo_8': torch.tensor(2.), 'foo_9': torch.tensor(1.5000),
+         'foo_10': torch.tensor(2.), 'foo_11_epoch': torch.tensor(1.5000)}
+        callback_metrics = apply_to_collection(callback_metrics, Tensor, tensor_to_bytes)
         # print("callback metrics bytes", callback_metrics)
         return {"callback_metrics": callback_metrics}
 
