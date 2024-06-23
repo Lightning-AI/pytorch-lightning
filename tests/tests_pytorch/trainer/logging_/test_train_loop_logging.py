@@ -321,7 +321,7 @@ class LoggingSyncDistModel(BoringModel):
 
     def training_step(self, batch, batch_idx):
         value = self.fake_result + self.rank
-        # self.log("foo", value, on_step=True, on_epoch=False, sync_dist=True, reduce_fx="sum")
+        self.log("foo", value, on_step=True, on_epoch=False, sync_dist=True, reduce_fx="sum")
         # self.log("foo_2", 2, on_step=True, on_epoch=False, sync_dist=True, reduce_fx="sum")
         # self.log("foo_3", 2, on_step=True, on_epoch=False, sync_dist=True, reduce_fx="mean")
         # self.log("foo_4", value, on_step=True, on_epoch=False, sync_dist=True, reduce_fx="mean")
