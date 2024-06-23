@@ -243,7 +243,7 @@ class _MultiProcessingLauncher(_Launcher):
             return buffer.getvalue()
 
         # send tensors as bytes to avoid issues with memory sharing
-        # print("callback metrics trainer", trainer.callback_metrics)
+        print("callback metrics trainer", trainer.callback_metrics)
         # callback_metrics = {
         #     'foo': torch.tensor(3.), 'foo_2': torch.tensor(4.), 'foo_3': torch.tensor(2.), 'foo_4': torch.tensor(1.5000), 'foo_6': torch.tensor(9.),
         #  'foo_7': torch.tensor(12.), 'foo_8': torch.tensor(2.), 'foo_9': torch.tensor(1.5000)}
