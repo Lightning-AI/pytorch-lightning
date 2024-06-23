@@ -220,6 +220,7 @@ class _MultiProcessingLauncher(_Launcher):
             self._strategy.checkpoint_io.save_checkpoint(state_dict, weights_path)
 
         # add extra result data from trainer to send to main process
+        assert False
         extra = self.get_extra_results(trainer)
 
         return _WorkerOutput(best_model_path, weights_path, trainer.state, results, extra)
