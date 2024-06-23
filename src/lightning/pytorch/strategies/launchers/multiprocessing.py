@@ -243,7 +243,9 @@ class _MultiProcessingLauncher(_Launcher):
             return buffer.getvalue()
 
         # send tensors as bytes to avoid issues with memory sharing
+        print("callback metrics trainer", trainer.callback_metrics)
         callback_metrics = apply_to_collection(trainer.callback_metrics, Tensor, tensor_to_bytes)
+        print("callback metrics bytes", callback_metrics)
         return {"callback_metrics": callback_metrics}
 
     def update_main_process_results(self, trainer: "pl.Trainer", extra: Dict[str, Any]) -> None:
@@ -262,6 +264,7 @@ class _MultiProcessingLauncher(_Launcher):
 
         # NOTE: `get_extra_results` needs to be called before
         callback_metrics = extra["callback_metrics"]
+        print("received callback metrics bytes", callback_metrics)
         trainer.callback_metrics.update(apply_to_collection(callback_metrics, bytes, bytes_to_tensor))
 
     @override
