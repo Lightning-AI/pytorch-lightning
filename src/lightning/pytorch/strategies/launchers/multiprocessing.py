@@ -239,13 +239,14 @@ class _MultiProcessingLauncher(_Launcher):
 
         def tensor_to_bytes(tensor: Tensor) -> bytes:
             buffer = io.BytesIO()
+            print(tensor.cpu().is_shared())
             torch.save(tensor.cpu(), buffer)
             return buffer.getvalue()
 
         # send tensors as bytes to avoid issues with memory sharing
         print("callback metrics trainer", trainer.callback_metrics)
         callback_metrics = apply_to_collection(trainer.callback_metrics, Tensor, tensor_to_bytes)
-        print("callback metrics bytes", callback_metrics)
+        # print("callback metrics bytes", callback_metrics)
         return {"callback_metrics": callback_metrics}
 
     def update_main_process_results(self, trainer: "pl.Trainer", extra: Dict[str, Any]) -> None:
