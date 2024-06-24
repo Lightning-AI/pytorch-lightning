@@ -63,7 +63,6 @@ from lightning.fabric.utilities.distributed import (
 )
 from lightning.fabric.utilities.distributed import group as _group
 from lightning.fabric.utilities.imports import (
-    _TORCH_GREATER_EQUAL_2_1,
     _TORCH_GREATER_EQUAL_2_2,
     _TORCH_GREATER_EQUAL_2_3,
 )
@@ -325,7 +324,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         if self._fsdp_kwargs.get("use_orig_params"):
             return super().setup_optimizer(optimizer)
         if not _optimizer_has_flat_params(optimizer):
-            # We avoid this limitation in PyTorch >= 2.0 by setting `use_orig_params=True`
+            # We avoid this limitation by setting `use_orig_params=True`
             raise ValueError(
                 "The optimizer does not seem to reference any FSDP parameters. HINT: Make sure to create the optimizer"
                 " after setting up the model."
@@ -342,7 +341,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         module_sharded_ctx = self.module_sharded_context()
         empty_ctx = _EmptyInit(enabled=bool(empty_init))
         stack = ExitStack()
-        if _TORCH_GREATER_EQUAL_2_1 and empty_init:
+        if empty_init:
             # Materialization happens in `setup`. When modules get wrapped by FSDP, the sequence of operations is:
             # 1) materialize module 2) call `reset_parameters()` 3) shard the module.
             # These operations are applied to each submodule 'bottom up' in the module hierarchy.
@@ -697,18 +696,13 @@ def _activation_checkpointing_kwargs(
             classes = tuple(activation_checkpointing)
         else:
             classes = (activation_checkpointing,)
-        if _TORCH_GREATER_EQUAL_2_1:
-            rank_zero_deprecation(
-                f"`FSDPStrategy(activation_checkpointing={activation_checkpointing})` is deprecated, use "
-                f"`FSDPStrategy(activation_checkpointing_policy={set(classes)})` instead."
-            )
+        rank_zero_deprecation(
+            f"`FSDPStrategy(activation_checkpointing={activation_checkpointing})` is deprecated, use "
+            f"`FSDPStrategy(activation_checkpointing_policy={set(classes)})` instead."
+        )
         return {"check_fn": lambda submodule: isinstance(submodule, classes)}
     if isinstance(activation_checkpointing_policy, set):
-        if _TORCH_GREATER_EQUAL_2_1:
-            return _auto_wrap_policy_kwargs(activation_checkpointing_policy, {})
-        return {"check_fn": lambda submodule: isinstance(submodule, tuple(activation_checkpointing_policy))}
-    if not _TORCH_GREATER_EQUAL_2_1:
-        raise ValueError("`activation_checkpointing_policy` requires torch >= 2.1.0. HINT: `pip install -U torch`")
+        return _auto_wrap_policy_kwargs(activation_checkpointing_policy, {})
     return {"auto_wrap_policy": activation_checkpointing_policy}
 
 
@@ -716,15 +710,10 @@ def _auto_wrap_policy_kwargs(policy: Optional["_POLICY"], kwargs: Dict) -> Dict:
     if policy is None:
         return kwargs
     if isinstance(policy, set):
-        if _TORCH_GREATER_EQUAL_2_1:
-            from torch.distributed.fsdp.wrap import ModuleWrapPolicy
+        from torch.distributed.fsdp.wrap import ModuleWrapPolicy
 
-            policy = ModuleWrapPolicy(policy)
-        else:
-            from torch.distributed.fsdp.wrap import transformer_auto_wrap_policy
+        policy = ModuleWrapPolicy(policy)
 
-            # this is not transformer specific despite the name
-            policy = partial(transformer_auto_wrap_policy, transformer_layer_cls=policy)
     kwargs["auto_wrap_policy"] = policy
     return kwargs
 
@@ -829,11 +818,8 @@ def _get_full_state_dict_context(
     from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
     from torch.distributed.fsdp.api import FullOptimStateDictConfig
 
-    # In PyTorch < 2.1, offload to CPU in combination with `world_size=1` is not possible
-    offload_to_cpu = world_size > 1 or _TORCH_GREATER_EQUAL_2_1
-    state_dict_config = FullStateDictConfig(offload_to_cpu=offload_to_cpu, rank0_only=rank0_only)
-
-    optim_state_dict_config = FullOptimStateDictConfig(offload_to_cpu=offload_to_cpu, rank0_only=rank0_only)
+    state_dict_config = FullStateDictConfig(offload_to_cpu=True, rank0_only=rank0_only)
+    optim_state_dict_config = FullOptimStateDictConfig(offload_to_cpu=True, rank0_only=rank0_only)
     state_dict_type_context = FSDP.state_dict_type(
         module=module,
         state_dict_type=StateDictType.FULL_STATE_DICT,

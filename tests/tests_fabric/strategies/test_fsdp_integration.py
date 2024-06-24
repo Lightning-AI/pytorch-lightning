@@ -23,7 +23,6 @@ import torch.nn as nn
 from lightning.fabric import Fabric
 from lightning.fabric.plugins import FSDPPrecision
 from lightning.fabric.strategies import FSDPStrategy
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_1
 from lightning.fabric.utilities.load import _load_distributed_checkpoint
 from lightning.fabric.wrappers import _FabricOptimizer
 from torch._dynamo import OptimizedModule
@@ -400,7 +399,7 @@ def test_setup_with_orig_params_and_multiple_param_groups():
         assert not isinstance(layer.weight, FlatParameter)
 
 
-@RunIf(min_cuda_gpus=2, standalone=True, min_torch="2.1.0", dynamo=True, skip_windows=True)
+@RunIf(min_cuda_gpus=2, standalone=True, dynamo=True, skip_windows=True)
 @mock.patch("lightning.fabric.wrappers.torch.compile", Mock(wraps=torch.compile))
 @mock.patch.dict(os.environ, {})
 def test_reapply_compile():
@@ -466,12 +465,8 @@ def test_module_init_context(precision, expected_dtype):
     # Case 1: No empty init
     _run_setup_assertions(empty_init=False, expected_device=torch.device("cpu"))
 
-    if _TORCH_GREATER_EQUAL_2_1:
-        # Case 2: Empty-init with PyTorch >= 2.1 supports meta device
-        _run_setup_assertions(empty_init=True, expected_device=torch.device("meta"))
-    else:
-        # Case 2: Empty-init with PyTorch < 2.1 only supports `torch.empty()`-init
-        _run_setup_assertions(empty_init=True, expected_device=torch.device("cpu"))
+    # Case 2: Empty-init with meta device
+    _run_setup_assertions(empty_init=True, expected_device=torch.device("meta"))
 
 
 @RunIf(min_cuda_gpus=2, standalone=True)
@@ -537,9 +532,6 @@ def test_rewrap_warnings():
         model = fabric.setup(model)
     assert not isinstance(model._forward_module, FullyShardedDataParallel)
     assert isinstance(model._forward_module[2], FullyShardedDataParallel)
-
-    if not _TORCH_GREATER_EQUAL_2_1:
-        return
 
     with fabric.init_module(empty_init=True):
         model = torch.nn.Sequential(torch.nn.Linear(1, 1), torch.nn.ReLU(), wrap(torch.nn.Linear(1, 1)))

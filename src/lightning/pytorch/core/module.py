@@ -51,7 +51,7 @@ from lightning.fabric.loggers import Logger as FabricLogger
 from lightning.fabric.utilities.apply_func import convert_to_tensors
 from lightning.fabric.utilities.cloud_io import get_filesystem
 from lightning.fabric.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
-from lightning.fabric.utilities.imports import _IS_WINDOWS, _TORCH_GREATER_EQUAL_2_1
+from lightning.fabric.utilities.imports import _IS_WINDOWS
 from lightning.fabric.utilities.types import _MAP_LOCATION_TYPE, _PATH
 from lightning.fabric.wrappers import _FabricOptimizer
 from lightning.pytorch.callbacks.callback import Callback
@@ -140,7 +140,6 @@ class LightningModule(
         self._current_fx_name: Optional[str] = None
         self._param_requires_grad_state: Dict[str, bool] = {}
         self._metric_attributes: Optional[Dict[int, str]] = None
-        self._register_sharded_tensor_state_dict_hooks_if_available()
         self._compiler_ctx: Optional[Dict[str, Any]] = None
 
         # attributes only used when using fabric
@@ -1390,9 +1389,7 @@ class LightningModule(
 
         """
         if not _ONNX_AVAILABLE:
-            raise ModuleNotFoundError(
-                f"`torch>=2.0` requires `onnx` to be installed to use `{type(self).__name__}.to_onnx()`"
-            )
+            raise ModuleNotFoundError(f"`{type(self).__name__}.to_onnx()` requires `onnx` to be installed.")
 
         mode = self.training
 
@@ -1598,24 +1595,6 @@ class LightningModule(
         state = dict(self.__dict__)
         state["_trainer"] = None
         return state
-
-    def _register_sharded_tensor_state_dict_hooks_if_available(self) -> None:
-        """Adds ShardedTensor state dict hooks if ShardedTensors are supported.
-
-        These hooks ensure that ShardedTensors are included when saving, and are loaded the LightningModule correctly.
-
-        """
-        if _TORCH_GREATER_EQUAL_2_1:
-            # ShardedTensor is deprecated in favor of DistributedTensor
-            return
-        if _IS_WINDOWS or not torch.distributed.is_available():
-            rank_zero_debug("Could not register sharded tensor state dict hooks")
-            return
-
-        from torch.distributed._shard.sharded_tensor import pre_load_state_dict_hook, state_dict_hook
-
-        self._register_state_dict_hook(state_dict_hook)
-        self._register_load_state_dict_pre_hook(pre_load_state_dict_hook, True)
 
 
 @contextmanager

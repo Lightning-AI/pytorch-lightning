@@ -11,7 +11,6 @@ from lightning.pytorch.demos.boring_classes import BoringModel
 from tests_pytorch.helpers.runif import RunIf
 
 
-@RunIf(min_torch="2.1")
 def test_measure_flops():
     with torch.device("meta"):
         model = BoringModel()

@@ -67,10 +67,7 @@ from lightning.fabric.utilities.distributed import (
     _sync_ddp_if_available,
 )
 from lightning.fabric.utilities.distributed import group as _group
-from lightning.fabric.utilities.imports import (
-    _TORCH_GREATER_EQUAL_2_1,
-    _TORCH_GREATER_EQUAL_2_2,
-)
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_2
 from lightning.fabric.utilities.init import _EmptyInit, _has_meta_device_parameters_or_buffers
 from lightning.fabric.utilities.load import _lazy_load, _materialize_tensors
 from lightning.fabric.utilities.optimizer import _optimizers_to_device
@@ -368,8 +365,8 @@ class FSDPStrategy(ParallelStrategy):
 
         invalid_params_error = False
         try:
-            # In PyTorch < 2.0, or if `use_orig_params=False` the user needs to do access
-            # `self.trainer.model.parameters()` in configure_optimizers()
+            # If `use_orig_params=False` the user needs to do access `self.trainer.model.parameters()` in
+            # `configure_optimizers()`
             super().setup_optimizers(trainer)
         except ValueError as ex:
             if "optimizer got an empty parameter list" not in str(ex):
@@ -377,7 +374,7 @@ class FSDPStrategy(ParallelStrategy):
             invalid_params_error = True
 
         if invalid_params_error or any(not _optimizer_has_flat_params(optimizer) for optimizer in self.optimizers):
-            # We avoid this limitation in PyTorch >= 2.0 by setting `use_orig_params=True`
+            # We avoid this limitation by setting `use_orig_params=True`
             raise ValueError(
                 "The optimizer does not seem to reference any FSDP parameters. HINT: Make sure to create the"
                 " optimizer after setting up the model by referencing `self.trainer.model.parameters()` in the"
@@ -394,7 +391,7 @@ class FSDPStrategy(ParallelStrategy):
     @override
     def tensor_init_context(self, empty_init: Optional[bool] = None) -> Generator[None, None, None]:
         empty_init_context: Union[torch.device, _EmptyInit, nullcontext]
-        if _TORCH_GREATER_EQUAL_2_1 and empty_init:
+        if empty_init:
             # Materialization happens in `setup`. When modules get wrapped by FSDP, the sequence of operations is:
             # 1) materialize module 2) call `reset_parameters()` 3) shard the module.
             # These operations are applied to each submodule 'bottom up' in the module hierarchy.
