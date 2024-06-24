@@ -639,3 +639,23 @@ def test_result_collection_no_batch_size_extraction():
     assert results["training_step.epoch_log_val"].value == log_val * batch_size
     assert results["training_step.epoch_log_val"].cumulated_batch_size == batch_size
     assert results["training_step.epoch_sum_log_val"].value == log_val
+
+
+def test_result_collection_changes_device():  # mock_torch):
+    results = _ResultCollection(training=True)
+    fx_name = "training_step"
+    log_val = torch.tensor(7.0)
+
+    # same device as the original tensor
+    results.log(fx_name, "step_log_val", log_val, on_step=True, on_epoch=False, reduce_fx="mean")
+    assert results["training_step.step_log_val"].cumulated_batch_size.device == log_val.device
+
+    # moved to cpu
+    cumulated_batch_size = results["training_step.step_log_val"].cumulated_batch_size = Mock(spec=torch.Tensor)
+    cumulated_batch_size.to.return_value = Mock(spec=torch.Tensor)
+    results.cpu()
+    cumulated_batch_size.to.assert_called_once_with(log_val.device)
+
+    # same device as the new tensor
+    results.log(fx_name, "step_log_val", log_val, on_step=True, on_epoch=False, reduce_fx="mean")
+    cumulated_batch_size.to.return_value.to.assert_called_once_with(log_val.device)
