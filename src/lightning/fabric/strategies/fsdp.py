@@ -66,7 +66,7 @@ from lightning.fabric.utilities.imports import (
     _TORCH_GREATER_EQUAL_2_2,
     _TORCH_GREATER_EQUAL_2_3,
 )
-from lightning.fabric.utilities.init import _EmptyInit, _has_meta_device_parameters_or_buffers
+from lightning.fabric.utilities.init import _has_meta_device_parameters_or_buffers
 from lightning.fabric.utilities.load import _METADATA_FILENAME, _lazy_load, _materialize_tensors, _move_state_into
 from lightning.fabric.utilities.rank_zero import rank_zero_deprecation, rank_zero_only, rank_zero_warn
 from lightning.fabric.utilities.seed import reset_seed
@@ -339,15 +339,12 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
     def module_init_context(self, empty_init: Optional[bool] = None) -> ContextManager:
         precision_init_ctx = self.precision.module_init_context()
         module_sharded_ctx = self.module_sharded_context()
-        empty_ctx = _EmptyInit(enabled=bool(empty_init))
         stack = ExitStack()
         if empty_init:
             # Materialization happens in `setup`. When modules get wrapped by FSDP, the sequence of operations is:
             # 1) materialize module 2) call `reset_parameters()` 3) shard the module.
             # These operations are applied to each submodule 'bottom up' in the module hierarchy.
             stack.enter_context(torch.device("meta"))
-        else:
-            stack.enter_context(empty_ctx)
         stack.enter_context(precision_init_ctx)
         stack.enter_context(module_sharded_ctx)
         return stack

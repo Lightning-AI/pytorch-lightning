@@ -80,5 +80,5 @@ def test_no_grad_context():
         f.run()
     no_grad_mock.assert_called_once_with()
     f.inference_mode = True
-    with mock.patch("torch.inference_mode") as inference_mode_mock:
+    with mock.patch("torch.inference_mode"):
         f.run()

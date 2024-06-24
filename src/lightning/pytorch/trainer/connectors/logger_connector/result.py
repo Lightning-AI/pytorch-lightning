@@ -111,7 +111,7 @@ class _Metadata:
     on_step: bool = False
     on_epoch: bool = True
     # https://github.com/pytorch/pytorch/issues/96197
-    reduce_fx: Callable = torch.mean  # type: ignore[assignment]
+    reduce_fx: Callable = torch.mean
     enable_graph: bool = False
     add_dataloader_idx: bool = True
     dataloader_idx: Optional[int] = None
@@ -361,7 +361,7 @@ class _ResultCollection(dict):
         on_step: bool = False,
         on_epoch: bool = True,
         # https://github.com/pytorch/pytorch/issues/96197
-        reduce_fx: Callable = torch.mean,  # type: ignore[assignment]
+        reduce_fx: Callable = torch.mean,
         enable_graph: bool = False,
         sync_dist: bool = False,
         sync_dist_fn: Callable = _Sync.no_op,

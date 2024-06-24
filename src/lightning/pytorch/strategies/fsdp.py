@@ -68,7 +68,7 @@ from lightning.fabric.utilities.distributed import (
 )
 from lightning.fabric.utilities.distributed import group as _group
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_2
-from lightning.fabric.utilities.init import _EmptyInit, _has_meta_device_parameters_or_buffers
+from lightning.fabric.utilities.init import _has_meta_device_parameters_or_buffers
 from lightning.fabric.utilities.load import _lazy_load, _materialize_tensors
 from lightning.fabric.utilities.optimizer import _optimizers_to_device
 from lightning.fabric.utilities.seed import reset_seed
@@ -390,14 +390,10 @@ class FSDPStrategy(ParallelStrategy):
     @contextmanager
     @override
     def tensor_init_context(self, empty_init: Optional[bool] = None) -> Generator[None, None, None]:
-        empty_init_context: Union[torch.device, _EmptyInit, nullcontext]
-        if empty_init:
-            # Materialization happens in `setup`. When modules get wrapped by FSDP, the sequence of operations is:
-            # 1) materialize module 2) call `reset_parameters()` 3) shard the module.
-            # These operations are applied to each submodule 'bottom up' in the module hierarchy.
-            empty_init_context = torch.device("meta")
-        else:
-            empty_init_context = _EmptyInit(enabled=bool(empty_init))
+        # Materialization happens in `setup`. When modules get wrapped by FSDP, the sequence of operations is:
+        # 1) materialize module 2) call `reset_parameters()` 3) shard the module.
+        # These operations are applied to each submodule 'bottom up' in the module hierarchy.
+        empty_init_context = torch.device("meta") if empty_init else nullcontext()
         with empty_init_context, self.precision_plugin.tensor_init_context():
             yield
 
