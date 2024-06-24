@@ -1,5 +1,6 @@
 mypy==1.8.0
 torch==2.2.0
+colored
 
 types-Markdown
 types-PyYAML
