@@ -76,7 +76,10 @@ def _atomic_save(checkpoint: Dict[str, Any], filepath: Union[str, Path]) -> None
     bytesbuffer = io.BytesIO()
     log.debug(f"Saving checkpoint: {filepath}")
     torch.save(checkpoint, bytesbuffer)
-    with fsspec.open(filepath, "wb") as f:
+
+    # We use a transaction here so that if the save gets interrupted, existing checkpoints are not trashed.
+    fs = fsspec.filesystem(filepath)
+    with fs.transaction, fs.open(filepath, "wb") as f:
         f.write(bytesbuffer.getvalue())
 
 
