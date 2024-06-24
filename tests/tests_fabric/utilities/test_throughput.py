@@ -13,7 +13,6 @@ from lightning.fabric.utilities.throughput import (
     measure_flops,
 )
 
-from tests_fabric.helpers.runif import RunIf
 from tests_fabric.test_fabric import BoringModel
 
 

@@ -8,8 +8,6 @@ from lightning.pytorch import Trainer
 from lightning.pytorch.callbacks.throughput_monitor import ThroughputMonitor
 from lightning.pytorch.demos.boring_classes import BoringModel
 
-from tests_pytorch.helpers.runif import RunIf
-
 
 def test_measure_flops():
     with torch.device("meta"):
