@@ -16,7 +16,6 @@ from unittest.mock import DEFAULT, Mock, patch
 
 import pytest
 import torch
-
 from lightning.pytorch import Trainer, seed_everything
 from lightning.pytorch.core.optimizer import LightningOptimizer
 from lightning.pytorch.demos.boring_classes import BoringModel
