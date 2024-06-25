@@ -2,15 +2,6 @@ tests/tests_pytorch/trainer/test_trainer.py::test_model_in_correct_mode_during_s
 tests/tests_pytorch/trainer/test_trainer.py::test_predict_return_predictions_cpu[64-true-False]
 tests/tests_pytorch/trainer/test_trainer.py::test_trainer_min_steps_and_epochs
 tests/tests_pytorch/utilities/test_exceptions.py::test_augment_message
-tests/tests_pytorch/models/test_onnx.py::test_model_saves_on_gpu[mps]
-tests/tests_pytorch/models/test_onnx.py::test_model_saves_with_example_input_array[UnorderedModel-input_sample1]
-tests/tests_pytorch/models/test_onnx.py::test_model_saves_with_input_sample
-tests/tests_pytorch/models/test_onnx.py::test_model_saves_on_multi_gpu
-tests/tests_pytorch/models/test_onnx.py::test_model_saves_with_example_input_array[BoringModel-input_sample0]
-tests/tests_pytorch/models/test_onnx.py::test_error_if_no_input
-tests/tests_pytorch/models/test_onnx.py::test_model_saves_on_gpu[gpu]
-tests/tests_pytorch/models/test_onnx.py::test_verbose_param
-tests/tests_pytorch/models/test_onnx.py::test_if_inference_output_is_valid
 tests/tests_pytorch/trainer/connectors/test_checkpoint_connector.py::test_stateful_trainer_ckpt_path_support
 tests/tests_pytorch/trainer/connectors/test_checkpoint_connector.py::test_hpc_max_ckpt_version
 tests/tests_pytorch/trainer/connectors/test_checkpoint_connector.py::test_hpc_restore_attempt
