@@ -86,4 +86,5 @@ tests/tests_pytorch/core/test_lightning_optimizer.py::test_lightning_optimizer_m
 tests/tests_pytorch/core/test_lightning_optimizer.py::test_lightning_optimizer[False]
 tests/tests_pytorch/core/test_lightning_optimizer.py::test_lightning_optimizer_automatic_optimization_optimizer_step
 tests/tests_pytorch/core/test_lightning_optimizer.py::test_lightning_optimizer[True]
+tests/tests_pytorch/core/test_lightning_optimizer.py::test_params_groups_and_state_are_accessible
 tests/tests_pytorch/core/test_lightning_optimizer.py::test_lightning_optimizer_automatic_optimization_lbfgs_zero_grad
