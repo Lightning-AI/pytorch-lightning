@@ -241,19 +241,21 @@ def test_lightning_optimizer_automatic_optimization_lbfgs_zero_grad(tmp_path):
 
     class TestModel(BoringModel):
         def configure_optimizers(self):
-            return torch.optim.LBFGS(self.parameters())
+            optimizer = torch.optim.LBFGS(self.parameters())
+            optimizer.zero_grad = Mock()
+            return optimizer
 
     model = TestModel()
     trainer = Trainer(
         default_root_dir=tmp_path, limit_train_batches=1, limit_val_batches=1, max_epochs=1, enable_model_summary=False
     )
 
-    with patch("torch.optim.LBFGS.zero_grad") as zero_grad:
-        trainer.fit(model)
+    # with patch("torch.optim.LBFGS.zero_grad") as zero_grad:
+    trainer.fit(model)
 
     lbfgs = model.optimizers()
     max_iter = lbfgs.param_groups[0]["max_iter"]
-    assert zero_grad.call_count == max_iter
+    assert lbfgs.zero_grad.call_count == max_iter
 
 
 class OptimizerWithHooks(Optimizer):
