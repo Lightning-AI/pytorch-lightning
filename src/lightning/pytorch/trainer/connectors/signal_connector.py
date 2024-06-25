@@ -2,7 +2,6 @@ import logging
 import os
 import re
 import signal
-import sys
 import threading
 from subprocess import call
 from types import FrameType
@@ -54,7 +53,7 @@ class _SignalConnector:
             sigterm_handlers.append(self._sigterm_handler_fn)
 
         # Windows seems to have signal incompatibilities
-        if not self._is_on_windows():
+        if not _IS_WINDOWS:
             sigusr = environment.requeue_signal if isinstance(environment, SLURMEnvironment) else signal.SIGUSR1
             assert sigusr is not None
             if sigusr_handlers and not self._has_already_handler(sigusr):
@@ -156,10 +155,6 @@ class _SignalConnector:
         return set(signal.Signals)
 
     @staticmethod
-    def _is_on_windows() -> bool:
-        return sys.platform == "win32"
-
-    @staticmethod
     def _has_already_handler(signum: _SIGNUM) -> bool:
         return signal.getsignal(signum) not in (None, signal.SIG_DFL)
 
@@ -172,3 +167,7 @@ class _SignalConnector:
         state = self.__dict__.copy()
         state["_original_handlers"] = {}
         return state
+
+
+def _get_sigkill_signal() -> _SIGNUM:
+    return signal.SIGTERM if _IS_WINDOWS else signal.SIGKILL

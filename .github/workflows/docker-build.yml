@@ -83,7 +83,7 @@ jobs:
               gh_env.write("DOCKER_TAGS=" + ",".join(tags))
         shell: python
 
-      - uses: docker/build-push-action@v5
+      - uses: docker/build-push-action@v6
         with:
           build-args: |
             PYTHON_VERSION=${{ matrix.python_version }}
@@ -119,7 +119,7 @@ jobs:
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
-      - uses: docker/build-push-action@v5
+      - uses: docker/build-push-action@v6
         with:
           build-args: |
             PYTHON_VERSION=${{ matrix.python_version }}
@@ -151,7 +151,7 @@ jobs:
       - name: Build Conda Docker
         # publish master/release
         continue-on-error: true
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           file: dockers/nvidia/Dockerfile
           push: false
