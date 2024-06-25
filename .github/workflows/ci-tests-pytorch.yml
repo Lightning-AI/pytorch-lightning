@@ -38,7 +38,7 @@ defaults:
 jobs:
   pl-cpu:
     runs-on: ${{ matrix.os }}
-#    if: github.event.pull_request.draft == false
+    #    if: github.event.pull_request.draft == false
     strategy:
       fail-fast: false
       matrix:
