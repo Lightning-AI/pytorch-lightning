@@ -253,7 +253,7 @@ def test_lightning_optimizer_automatic_optimization_lbfgs_zero_grad(tmp_path):
     # with patch("torch.optim.LBFGS.zero_grad") as zero_grad:
     trainer.fit(model)
 
-    lbfgs = model.optimizers()
+    lbfgs = model.optimizers(use_pl_optimizer=False)
     max_iter = lbfgs.param_groups[0]["max_iter"]
     assert lbfgs.zero_grad.call_count == max_iter
 
