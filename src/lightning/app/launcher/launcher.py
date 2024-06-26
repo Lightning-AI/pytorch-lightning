@@ -419,8 +419,6 @@ def start_flow_and_servers(
     port: int,
     flow_names_and_ports: Tuple[Tuple[str, int]],
 ):
-    raise Exception("HERE")
-
     processes: List[Tuple[str, Process]] = []
 
     # Queues between Flow and its Rest API are using multiprocessing to:
