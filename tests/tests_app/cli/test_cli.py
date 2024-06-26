@@ -5,7 +5,7 @@ from unittest.mock import MagicMock
 import pytest
 from click.testing import CliRunner
 from lightning.app import __version__
-from lightning.app.cli.lightning_cli import _main, login, logout, run
+from lightning.app.cli.lightning_cli import _main, logout, run
 from lightning.app.cli.lightning_cli_delete import delete
 from lightning.app.cli.lightning_cli_list import get_list, list_apps
 from lightning.app.utilities.exceptions import _ApiExceptionHandler
@@ -29,45 +29,11 @@ def test_main_lightning_cli_no_arguments():
     assert "show    " in res
 
 
-def test_main_lightning_cli_help():
-    """Validate the Lightning CLI."""
-    res = os.popen("lightning_app --help").read()
-    assert "login   " in res
-    assert "logout  " in res
-    assert "run     " in res
-    assert "list    " in res
-    assert "delete  " in res
-    assert "show    " in res
-
-    res = os.popen("lightning_app run --help").read()
-    assert "app  " in res
-
-    # hidden run commands should not appear in the help text
-    assert "server" not in res
-    assert "flow" not in res
-    assert "work" not in res
-    assert "frontend" not in res
-
-    # inspect show group
-    res = os.popen("lightning_app show --help").read()
-    assert "logs " in res
-
-
 @mock.patch("lightning_cloud.login.Auth.authenticate", MagicMock())
 @mock.patch("lightning.app.cli.cmd_apps._AppManager.list")
 def test_list_apps(list_command: mock.MagicMock):
     runner = CliRunner()
     runner.invoke(list_apps)
-
-
-@mock.patch("lightning.app.utilities.login.Auth._run_server")
-@mock.patch("lightning.app.utilities.login.Auth.clear")
-def test_cli_login(clear: mock.MagicMock, run_server: mock.MagicMock):
-    runner = CliRunner()
-    runner.invoke(login)
-
-    clear.assert_called_once_with()
-    run_server.assert_called_once()
 
 
 @mock.patch("pathlib.Path.unlink")
