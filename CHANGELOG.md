@@ -26,7 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
--
+- CI: freeze tools for Pkg action ([#273](https://github.com/Lightning-AI/utilities/pull/273))
 
 
 ## [0.11.2] - 2024-03-28

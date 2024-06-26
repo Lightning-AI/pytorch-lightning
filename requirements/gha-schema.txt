@@ -1,1 +1,1 @@
-check-jsonschema ==0.28.6
+check-jsonschema ==0.28.*

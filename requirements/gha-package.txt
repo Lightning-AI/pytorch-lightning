@@ -1,0 +1,5 @@
+twine ==5.0.*
+setuptools ==70.1.*
+wheel ==0.43.*
+build ==1.2.*
+importlib_metadata ==7.2.*

@@ -11,7 +11,7 @@ runs:
   using: "composite"
   steps:
     - name: Prepare dev. env
-      run: pip install "twine==4.0.2" setuptools wheel build
+      run: pip install -r requirements/gha-package.txt
       shell: bash
 
     - name: Create package 📦
