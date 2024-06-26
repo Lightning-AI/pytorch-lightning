@@ -452,6 +452,7 @@ class HTTPQueue(BaseQueue):
         backoff.expo, (RuntimeError, requests.exceptions.HTTPError, requests.exceptions.ChunkedEncodingError)
     )
     def get(self, timeout: Optional[float] = None) -> Any:
+        logger.debug("get")
         if not self.app_id:
             raise ValueError(f"App ID couldn't be extracted from the queue name: {self.name}")
 
@@ -508,6 +509,7 @@ class HTTPQueue(BaseQueue):
             raise queue.Empty
 
     def batch_get(self, timeout: Optional[float] = None, count: Optional[int] = None) -> List[Any]:
+        logger.debug("batch_get")
         try:
             resp = self.client.post(
                 f"v1/{self.app_id}/{self._name_suffix}",
@@ -528,6 +530,7 @@ class HTTPQueue(BaseQueue):
         backoff.expo, (RuntimeError, requests.exceptions.HTTPError, requests.exceptions.ChunkedEncodingError)
     )
     def put(self, item: Any) -> None:
+        logger.debug("put")
         if not self.app_id:
             raise ValueError(f"The Lightning App ID couldn't be extracted from the queue name: {self.name}")
 
