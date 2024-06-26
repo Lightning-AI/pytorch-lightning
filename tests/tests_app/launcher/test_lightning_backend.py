@@ -159,10 +159,9 @@ def test_stop_all_works(mock_client):
     cloud_backend._get_cloud_work_specs = BackendMock()._get_cloud_work_specs
     cloud_backend.stop_all_works([work_a, work_b])
 
-    mock_client().lightningwork_service_update_lightningwork.assert_called_with(
+    mock_client().lightningwork_service_batch_update_lightningworks.assert_called_with(
         project_id="project_id",
-        id=ANY,
-        spec_lightningapp_instance_id="app_id",
+        app_id="app_id",
         body=ANY,
     )
     assert spec1.spec.desired_state == V1LightningworkState.RUNNING
