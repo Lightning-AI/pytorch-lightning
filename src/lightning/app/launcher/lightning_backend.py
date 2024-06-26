@@ -375,7 +375,7 @@ class CloudBackend(Backend):
                     work_ids=[w.id for w in cloud_works_to_stop],
                 ),
             )
-            print(f"Stopping {','.join([w.name for w in cloud_works_to_stop])} ...")
+        print(f"Stopping {','.join([w.name for w in cloud_works_to_stop])} ...")
 
     def resolve_url(self, app, base_url: Optional[str] = None) -> None:
         pass
