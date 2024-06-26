@@ -16,7 +16,7 @@ from abc import ABC, abstractmethod
 from functools import partial
 from typing import TYPE_CHECKING, Any, Callable, List, Optional
 
-from lightning.app.core.constants import IS_DISTRIBUTED_PLUGIN
+from lightning.app.core.constants import PLUGIN_CHECKER
 from lightning.app.core.queues import QueuingSystem
 from lightning.app.utilities.proxies import ProxyWorkRun, unwrap
 
@@ -77,8 +77,7 @@ class Backend(ABC):
         work.run = work_run
 
         # Note: This is an optimization as the MMT is created directly within the launcher.
-        if not IS_DISTRIBUTED_PLUGIN or not work._start_with_flow:
-            print(work.__dict__)
+        if PLUGIN_CHECKER.should_create_work(work):
             # 2. Create the work
             self.create_work(app, work)
 
