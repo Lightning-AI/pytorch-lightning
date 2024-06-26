@@ -27,6 +27,8 @@ jobs:
         with:
           python-version: 3.8
 
+      - name: Prepare build env.
+        run: pip install -r ./requirements/gha-package.txt
       - name: Create 📦 package
         uses: ./.github/actions/pkg-create
       - name: Upload 📤 to the share store

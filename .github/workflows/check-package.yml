@@ -93,6 +93,8 @@ jobs:
           ref: ${{ inputs.actions-ref }}
           path: .cicd
           repository: Lightning-AI/utilities
+      - name: Prepare build env.
+        run: pip install -r ./.cicd/requirements/gha-package.txt
       - name: Create package 📦
         uses: ./.cicd/.github/actions/pkg-create
         with:

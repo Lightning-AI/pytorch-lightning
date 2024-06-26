@@ -10,10 +10,6 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - name: Prepare dev. env
-      run: pip install -r requirements/gha-package.txt
-      shell: bash
-
     - name: Create package 📦
       # python setup.py clean
       run: python -m build
