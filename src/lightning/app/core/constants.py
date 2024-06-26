@@ -109,12 +109,14 @@ IS_RUNNING_IN_FLOW = os.getenv("LIGHTNING_CLOUD_WORK_NAME", None) is None
 class DistributedPluginChecker:
     def __init__(self) -> None:
         self.distributed_arguments = os.getenv("DISTRIBUTED_ARGUMENTS", None)
+        if self.distributed_arguments:
+            self.distributed_arguments = json.loads(self.distributed_arguments)
+
         work_name = os.getenv("LIGHTNING_CLOUD_WORK_NAME")
 
         self.running_distributed_plugin = False
 
         if self.distributed_arguments and work_name:
-            self.distributed_arguments = json.loads(self.distributed_arguments)
             assert self.distributed_arguments
             num_nodes = self.distributed_arguments.get("num_instances", 0)
             node_rank = int(work_name.split(".")[-1])
