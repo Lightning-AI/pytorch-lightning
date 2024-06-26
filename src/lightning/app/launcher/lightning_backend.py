@@ -367,7 +367,6 @@ class CloudBackend(Backend):
                     break
 
         if cloud_works_to_stop:
-            spec.desired_state = V1LightningworkState.STOPPED
             self.client.lightningwork_service_batch_update_lightningworks(
                 project_id=CloudBackend._get_project_id(),
                 app_id=CloudBackend._get_app_id(),
@@ -376,7 +375,7 @@ class CloudBackend(Backend):
                     work_ids=[w.id for w in cloud_works_to_stop],
                 ),
             )
-        print(f"Stopping {','.join([w.name for w in cloud_works_to_stop])} ...")
+            print(f"Stopping {','.join([w.name for w in cloud_works_to_stop])} ...")
 
     def resolve_url(self, app, base_url: Optional[str] = None) -> None:
         pass
