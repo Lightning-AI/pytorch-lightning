@@ -452,7 +452,7 @@ class HTTPQueue(BaseQueue):
         backoff.expo, (RuntimeError, requests.exceptions.HTTPError, requests.exceptions.ChunkedEncodingError)
     )
     def get(self, timeout: Optional[float] = None) -> Any:
-        logger.debug("get")
+        logger.debug(f"get {self.name}")
         if not self.app_id:
             raise ValueError(f"App ID couldn't be extracted from the queue name: {self.name}")
 
@@ -509,7 +509,7 @@ class HTTPQueue(BaseQueue):
             raise queue.Empty
 
     def batch_get(self, timeout: Optional[float] = None, count: Optional[int] = None) -> List[Any]:
-        logger.debug("batch_get")
+        logger.debug(f"batch_get {self.name}")
         try:
             resp = self.client.post(
                 f"v1/{self.app_id}/{self._name_suffix}",
@@ -530,13 +530,13 @@ class HTTPQueue(BaseQueue):
         backoff.expo, (RuntimeError, requests.exceptions.HTTPError, requests.exceptions.ChunkedEncodingError)
     )
     def put(self, item: Any) -> None:
-        logger.debug("put")
+        logger.debug(f"put {self.name}")
         if not self.app_id:
             raise ValueError(f"The Lightning App ID couldn't be extracted from the queue name: {self.name}")
 
         value = pickle.dumps(item, protocol=pickle.HIGHEST_PROTOCOL) if self._use_pickle() else msgpack.packb(item)
         resp = self.client.post(f"v1/{self.app_id}/{self._name_suffix}", data=value, query_params={"action": "push"})
-        if resp.status_code != 200:
+        if resp.status_code != 201:
             raise RuntimeError(f"Failed to push to queue: {self._name_suffix}")
 
     def length(self) -> int:
