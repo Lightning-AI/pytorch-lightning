@@ -33,7 +33,14 @@ def _transform_changelog(path_in: str, path_out: str) -> None:
         fp.writelines(chlog_lines)
 
 
-def _linkcode_resolve(domain: str, github_user: str, github_repo: str, info: dict) -> str:
+def _linkcode_resolve(
+    domain: str,
+    info: dict,
+    github_user: str,
+    github_repo: str,
+    main_branch: str = "master",
+    stable_branch: str = "release/stable",
+) -> str:
     def find_source() -> Tuple[str, int, int]:
         # try to find the file and line number, based on code from numpy:
         # https://github.com/numpy/numpy/blob/master/doc/source/conf.py#L286
@@ -49,7 +56,7 @@ def _linkcode_resolve(domain: str, github_user: str, github_repo: str, info: dic
             fname = str(os.path.relpath(fname, start=path_top))
         else:
             # Local build, imitate master
-            fname = f'master/{os.path.relpath(fname, start=os.path.abspath(".."))}'
+            fname = f'{main_branch}/{os.path.relpath(fname, start=os.path.abspath(".."))}'
         source, line_start = inspect.getsourcelines(obj)
         return fname, line_start, line_start + len(source) - 1
 
@@ -64,7 +71,7 @@ def _linkcode_resolve(domain: str, github_user: str, github_repo: str, info: dic
     #                        universal_newlines=True).communicate()[0][:-1]
     branch = filename.split("/")[0]
     # do mapping from latest tags to master
-    branch = {"latest": "master", "stable": "master"}.get(branch, branch)
+    branch = {"latest": main_branch, "stable": stable_branch}.get(branch, branch)
     filename = "/".join([branch] + filename.split("/")[1:])
     return f"https://github.com/{github_user}/{github_repo}/blob/{filename}"
 
