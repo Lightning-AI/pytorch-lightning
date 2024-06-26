@@ -43,6 +43,7 @@ repos:
           - mdformat-gfm
           - mdformat-black
           - mdformat_frontmatter
+        args: ["--number"]
         exclude: CHANGELOG.md
 
   - repo: https://github.com/pre-commit/mirrors-prettier
