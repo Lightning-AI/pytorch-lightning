@@ -135,7 +135,7 @@ class DistributedPluginChecker:
         node_rank = int(work.name.split(".")[-1])
 
         # Only the start with flow works are skipped for performance purposes
-        return node_rank < num_nodes
+        return node_rank >= num_nodes
 
 
 PLUGIN_CHECKER = IS_DISTRIBUTED_PLUGIN = DistributedPluginChecker()
