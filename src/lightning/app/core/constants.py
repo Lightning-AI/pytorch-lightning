@@ -122,7 +122,7 @@ class DistributedPluginChecker:
 
     def should_create_work(self, work: Any) -> bool:
         if not self.distributed_arguments:
-            return False
+            return True
 
         num_nodes = self.distributed_arguments.get("num_instances", 0)
         node_rank = int(work.name.split(".")[-1])
