@@ -72,6 +72,7 @@ class Backend(ABC):
 
         work.run = work_run
 
+        # Note: This is an optimization as the MMT is created directly within the launcher.
         if not IS_DISTRIBUTED_PLUGIN:
             # 2. Create the work
             self.create_work(app, work)

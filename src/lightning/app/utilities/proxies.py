@@ -401,6 +401,7 @@ class WorkRunner:
     copy_response_queue: "BaseQueue"
     flow_to_work_delta_queue: Optional["BaseQueue"] = None
     run_executor_cls: Type[WorkRunExecutor] = WorkRunExecutor
+    enable_copier: bool = constants.ENABLE_ORCHESTRATOR
 
     def __post_init__(self):
         self.parallel = self.work.parallel
@@ -450,7 +451,7 @@ class WorkRunner:
 
         # 3. Starts the Copier thread. This thread enables transfering files using
         # the Path object between works.
-        if constants.ENABLE_ORCHESTRATOR:
+        if self.enable_copier:
             self.copier = _Copier(self.work, self.copy_request_queue, self.copy_response_queue)
             self.copier.setDaemon(True)
             self.copier.start()
