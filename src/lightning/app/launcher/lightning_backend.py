@@ -343,7 +343,7 @@ class CloudBackend(Backend):
             if time() - t0 > LIGHTNING_STOP_TIMEOUT:
                 break
 
-    def stop_works(self, works: "List[LightningWork]") -> None:
+    def stop_works(self, works) -> None:
         # Used to stop all the works in a batch
         cloud_works = self._get_cloud_work_specs(self.client)
 
