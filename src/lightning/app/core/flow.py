@@ -842,7 +842,7 @@ class LightningFlow:
                 f"Your app has been already dispatched, so modifying the `{self.name}.lightningignore` does not have an"
                 " effect"
             )
-        self._backend.stop_works(self, works)
+        self._backend.stop_works(works)
 
 
 class _RootFlow(LightningFlow):
