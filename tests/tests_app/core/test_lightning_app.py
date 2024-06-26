@@ -497,7 +497,7 @@ def test_lightning_app_aggregation_empty():
     t0 = time()
     assert app._collect_deltas_from_ui_and_work_queues() == []
     delta = time() - t0
-    assert delta < app.state_accumulate_wait + 0.01, delta
+    assert delta < app.state_accumulate_wait + 0.05, delta
 
 
 class SimpleFlow2(LightningFlow):

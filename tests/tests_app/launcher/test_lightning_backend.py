@@ -141,7 +141,7 @@ def test_stop_all_works(mock_client):
 
     spec1 = Mock()
     spec1.name = "root.work_a"
-    spec1.spec.desired_state = V1LightningworkState.RUNNING
+    spec1.spec.desired_state = V1LightningworkState.STOPPED
     spec1.status.phase = V1LightningworkState.FAILED
     spec2 = Mock()
     spec2.name = "root.work_b"
@@ -157,15 +157,14 @@ def test_stop_all_works(mock_client):
             return value
 
     cloud_backend._get_cloud_work_specs = BackendMock()._get_cloud_work_specs
-    cloud_backend.stop_all_works([work_a, work_b])
 
-    mock_client().lightningwork_service_update_lightningwork.assert_called_with(
-        project_id="project_id",
-        id=ANY,
-        spec_lightningapp_instance_id="app_id",
-        body=ANY,
-    )
-    assert spec1.spec.desired_state == V1LightningworkState.RUNNING
+    def lightningwork_service_batch_update_lightningworks(*args, **kwargs):
+        spec2.spec.desired_state = V1LightningworkState.STOPPED
+
+    mock_client().lightningwork_service_batch_update_lightningworks = lightningwork_service_batch_update_lightningworks
+
+    cloud_backend.stop_all_works([work_a, work_b])
+    assert spec1.spec.desired_state == V1LightningworkState.STOPPED
     assert spec2.spec.desired_state == V1LightningworkState.STOPPED
 
 
