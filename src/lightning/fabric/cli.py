@@ -56,17 +56,23 @@ if _CLICK_AVAILABLE:
         Raises deprecation warning and runs through fabric cli if necessary, else runs the entrypoint directly
 
         """
-        print(
-            "`lightning run model` is deprecated and will be removed in future versions."
-            " Please call `fabric run` instead."
-        )
-        args = sys.argv[1:]
-        if args and args[0] == "run" and args[1] == "model":
-            _main()
+        hparams = sys.argv[1:]
+        if len(hparams) >= 2 and hparams[0] == "run":
+            if hparams[1] == "model":
+                print(
+                    "`lightning run model` is deprecated and will be removed in future versions."
+                    " Please call `fabric run` instead."
+                )
+                _main()
+                return
+
+            from lightning.app.cli.lightning_cli import main as main_cli
+
+            main_cli()
             return
 
         if _LIGHTNING_SDK_AVAILABLE:
-            subprocess.run([sys.executable, "-m", "lightning_sdk.cli.entrypoint"] + args)
+            subprocess.run([sys.executable, "-m", "lightning_sdk.cli.entrypoint"] + hparams)
             return
 
     @click.group()

@@ -28,3 +28,4 @@ uvicorn <0.24.0
 websocket-client <1.7.0
 websockets <11.1.0
 numpy >=1.17.2, <2.0
+msgpack

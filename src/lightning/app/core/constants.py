@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import json
 import os
 from pathlib import Path
 from typing import Optional
@@ -101,6 +102,31 @@ SYS_CUSTOMIZATIONS_SYNC_PATH = ".sys-customizations-sync"
 
 BATCH_DELTA_COUNT = int(os.getenv("BATCH_DELTA_COUNT", "128"))
 CHECK_ERROR_QUEUE_INTERVAL = float(os.getenv("CHECK_ERROR_QUEUE_INTERVAL", "30"))
+SHOULD_START_WORKS_WITH_FLOW = bool(int(os.getenv("SHOULD_START_WORKS_WITH_FLOW", "1")))
+IS_RUNNING_IN_FLOW = os.getenv("LIGHTNING_CLOUD_WORK_NAME", None) is None
+
+
+class DistributedPluginChecker:
+    def __init__(self) -> None:
+        distributed_arguments = os.getenv("DISTRIBUTED_ARGUMENTS", None)
+        work_name = os.getenv("LIGHTNING_CLOUD_WORK_NAME")
+
+        self.running_distributed_plugin = False
+
+        if distributed_arguments and work_name:
+            distributed_arguments = json.loads(distributed_arguments)
+            assert distributed_arguments
+            num_nodes = distributed_arguments.get("num_instances", 0)
+            node_rank = int(work_name.split(".")[-1])
+
+            # Only the start with flow works are skipped for performance purposes
+            self.running_distributed_plugin = node_rank < num_nodes
+
+    def __bool__(self) -> bool:
+        return self.running_distributed_plugin
+
+
+IS_DISTRIBUTED_PLUGIN = DistributedPluginChecker()
 
 
 def enable_multiple_works_in_default_container() -> bool:

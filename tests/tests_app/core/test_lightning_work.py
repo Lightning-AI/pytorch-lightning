@@ -197,11 +197,11 @@ def test_lightning_status(enable_exception, raise_exception):
     with contextlib.suppress(Exception, Empty):
         work_runner()
 
-    res = delta_queue._queue[0].delta.to_dict()["iterable_item_added"]
+    res = delta_queue._queue[1].delta.to_dict()["iterable_item_added"]
     L = len(delta_queue._queue) - 1
     if enable_exception:
         exception_cls = Exception if raise_exception else Empty
-        assert isinstance(error_queue._queue[0], exception_cls)
+        assert isinstance(error_queue._queue[-1], exception_cls)
         res_end = delta_queue._queue[L].delta.to_dict()["iterable_item_added"]
         res_end[f"root['calls']['{call_hash}']['statuses'][1]"]["stage"] == "failed"
         res_end[f"root['calls']['{call_hash}']['statuses'][1]"]["message"] == "Custom Exception"
