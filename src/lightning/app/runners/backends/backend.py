@@ -31,7 +31,6 @@ class Backend(ABC):
         self.queues: QueuingSystem = queues
         self.queue_id = queue_id
         self.entrypoint_file = entrypoint_file
-        self.should_create_work = not bool(IS_DISTRIBUTED_PLUGIN)
 
     @abstractmethod
     def create_work(self, app: "lightning.app.LightningApp", work: "lightning.app.LightningWork") -> None:
