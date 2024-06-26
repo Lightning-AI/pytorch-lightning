@@ -858,7 +858,7 @@ class CloudRuntime(Runtime):
             run_body.user_requested_flow_compute_config = V1UserRequestedFlowComputeConfig(
                 name=self.app.flow_cloud_compute.name,
                 shm_size=self.app.flow_cloud_compute.shm_size,
-                preemptible=False,
+                spot=False,
             )
 
             run_body.is_headless = _is_headless(self.app)
