@@ -184,7 +184,7 @@ def test_http_queue_put(monkeypatch):
     test_queue = HTTPQueue("WORK_QUEUE", STATE_UPDATE_TIMEOUT)
 
     response = mock.MagicMock()
-    response.status_code = 200
+    response.status_code = 201
     client = mock.MagicMock()
 
     client.post.return_value = response
@@ -229,7 +229,7 @@ def test_unreachable_queue(monkeypatch):
     resp1.status_code = 204
 
     resp2 = mock.MagicMock()
-    resp2.status_code = 200
+    resp2.status_code = 201
 
     test_queue.client = mock.MagicMock()
     test_queue.client.post = mock.Mock(side_effect=[resp1, resp1, resp2])
