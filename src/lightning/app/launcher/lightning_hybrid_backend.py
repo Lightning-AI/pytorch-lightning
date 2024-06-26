@@ -79,6 +79,11 @@ class CloudHybridBackend(Backend):
             backend = self._get_backend(works[0])
             backend.stop_all_works(works)
 
+    def stop_works(self, works) -> None:
+        if works:
+            backend = self._get_backend(works[0])
+            backend.stop_works(works)
+
     def resolve_url(self, app, base_url: Optional[str] = None) -> None:
         works = app.works
         if works:
