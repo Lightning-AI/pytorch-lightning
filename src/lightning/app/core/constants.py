@@ -131,6 +131,7 @@ class DistributedPluginChecker:
         return node_rank >= num_nodes
 
 
+# TODO (tchaton): Add LitData and JobPlugin optimizations
 PLUGIN_CHECKER = IS_DISTRIBUTED_PLUGIN = DistributedPluginChecker()
 
 
