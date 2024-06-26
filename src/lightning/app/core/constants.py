@@ -112,11 +112,9 @@ class DistributedPluginChecker:
         if self.distributed_arguments:
             self.distributed_arguments = json.loads(self.distributed_arguments)
 
-        work_name = os.getenv("LIGHTNING_CLOUD_WORK_NAME")
-
         self.running_distributed_plugin = False
 
-        if self.distributed_arguments and work_name:
+        if self.distributed_arguments and os.getenv("LIGHTNING_CLOUD_WORK_NAME"):
             self.running_distributed_plugin = True
 
     def __bool__(self) -> bool:
