@@ -369,7 +369,7 @@ class CloudBackend(Backend):
         spec.desired_state = V1LightningworkState.STOPPED
         self.client.lightningwork_service_batch_update_lightningworks(
             project_id=CloudBackend._get_project_id(),
-            spec_lightningapp_instance_id=CloudBackend._get_app_id(),
+            app_id=CloudBackend._get_app_id(),
             body=AppIdWorksBody(
                 desired_state=V1LightningworkState.STOPPED,
                 work_ids=[w.id for w in cloud_works_to_stop],
