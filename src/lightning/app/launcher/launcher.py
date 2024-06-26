@@ -16,7 +16,6 @@ from lightning.app.core.constants import (
     CHECK_ERROR_QUEUE_INTERVAL,
     ENABLE_ORCHESTRATOR,
     IS_DISTRIBUTED_PLUGIN,
-    enable_multiple_works_in_default_container,
 )
 from lightning.app.core.queues import MultiProcessQueue, QueuingSystem
 from lightning.app.storage.orchestrator import StorageOrchestrator
@@ -35,10 +34,7 @@ try:
 except (ImportError, ModuleNotFoundError):
     ABLE_TO_RUN_APP_COMMANDS = False
 
-if enable_multiple_works_in_default_container():
-    from lightning.app.launcher.lightning_hybrid_backend import CloudHybridBackend as CloudBackend
-else:
-    from lightning.app.launcher.lightning_backend import CloudBackend
+from lightning.app.launcher.lightning_backend import CloudBackend
 from lightning.app.launcher.utils import LIGHTNING_VERSION, convert_print_to_logger_info, enable_debugging, exit_app
 
 if hasattr(constants, "get_cloud_queue_type"):

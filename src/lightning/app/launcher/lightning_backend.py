@@ -25,6 +25,7 @@ except ImportError:
     LightningPlatformException = Exception
 
 from lightning_cloud.openapi import (
+    AppIdWorksBody,
     AppinstancesIdBody,
     Externalv1LightningappInstance,
     Externalv1Lightningwork,
@@ -149,9 +150,9 @@ class CloudBackend(Backend):
                     )
 
         if hasattr(work.cloud_compute, "interruptible"):
-            preemptible = work.cloud_compute.interruptible
+            spot = work.cloud_compute.interruptible
         else:
-            preemptible = work.cloud_compute.preemptible
+            spot = work.cloud_compute.preemptible
 
         colocation_group_id = None
         if hasattr(work.cloud_compute, "colocation_group_id"):
@@ -161,7 +162,7 @@ class CloudBackend(Backend):
             name=work.cloud_compute.name,
             count=1,
             disk_size=work.cloud_compute.disk_size,
-            preemptible=preemptible,
+            spot=spot,
             shm_size=work.cloud_compute.shm_size,
             affinity_identifier=colocation_group_id,
         )
@@ -320,10 +321,7 @@ class CloudBackend(Backend):
         The Works are stopped rather than deleted so that they can be inspected for debugging.
 
         """
-        cloud_works = self._get_cloud_work_specs(self.client)
-
-        for cloud_work in cloud_works:
-            self._stop_work(cloud_work)
+        self.stop_works(works)
 
         def all_works_stopped(works: List[Externalv1Lightningwork]) -> bool:
             for work in works:
@@ -344,6 +342,40 @@ class CloudBackend(Backend):
             # Break if we reached timeout.
             if time() - t0 > LIGHTNING_STOP_TIMEOUT:
                 break
+
+    def stop_works(self, works) -> None:
+        # Used to stop all the works in a batch
+        cloud_works = self._get_cloud_work_specs(self.client)
+
+        cloud_works_to_stop = []
+        for cloud_work in cloud_works:
+            # Skip the works already stopped
+            spec: V1LightningworkSpec = cloud_work.spec
+            if spec.desired_state == V1LightningworkState.DELETED:
+                # work is set to be deleted. Do nothing
+                continue
+            if spec.desired_state == V1LightningworkState.STOPPED:
+                # work is set to be stopped already. Do nothing
+                continue
+            if cloud_work.status.phase == V1LightningworkState.FAILED:
+                # work is already failed. Do nothing
+                continue
+
+            for w in works:
+                if not w.has_failed and w.name == cloud_work.name:
+                    cloud_works_to_stop.append(cloud_work)
+                    break
+
+        if cloud_works_to_stop:
+            self.client.lightningwork_service_batch_update_lightningworks(
+                project_id=CloudBackend._get_project_id(),
+                app_id=CloudBackend._get_app_id(),
+                body=AppIdWorksBody(
+                    desired_state=V1LightningworkState.STOPPED,
+                    work_ids=[w.id for w in cloud_works_to_stop],
+                ),
+            )
+            print(f"Stopping {','.join([w.name for w in cloud_works_to_stop])} ...")
 
     def resolve_url(self, app, base_url: Optional[str] = None) -> None:
         pass
