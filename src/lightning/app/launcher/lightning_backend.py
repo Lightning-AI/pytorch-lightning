@@ -347,8 +347,6 @@ class CloudBackend(Backend):
         # Used to stop all the works in a batch
         cloud_works = self._get_cloud_work_specs(self.client)
 
-        logger.debug(f"cloud works to stop {cloud_works}")
-
         cloud_works_to_stop = []
         for cloud_work in cloud_works:
             # Skip the works already stopped
@@ -364,7 +362,7 @@ class CloudBackend(Backend):
                 continue
 
             for w in works:
-                if w.name == cloud_work.name:
+                if not w.has_failed and w.name == cloud_work.name:
                     cloud_works_to_stop.append(cloud_work)
                     break
 
