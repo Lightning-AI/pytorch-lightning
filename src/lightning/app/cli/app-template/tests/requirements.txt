@@ -5,4 +5,4 @@ pytest-cov
 pytest-flake8
 flake8
 check-manifest
-twine==4.0.1
+twine==5.1.1
