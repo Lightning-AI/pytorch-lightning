@@ -797,7 +797,7 @@ class CloudRuntime(Runtime):
                 name=work.cloud_compute.name,
                 count=1,
                 disk_size=work.cloud_compute.disk_size,
-                preemptible=work.cloud_compute.interruptible,
+                spot=work.cloud_compute.interruptible,
                 shm_size=work.cloud_compute.shm_size,
                 affinity_identifier=work.cloud_compute.colocation_group_id,
             )
@@ -858,7 +858,7 @@ class CloudRuntime(Runtime):
             run_body.user_requested_flow_compute_config = V1UserRequestedFlowComputeConfig(
                 name=self.app.flow_cloud_compute.name,
                 shm_size=self.app.flow_cloud_compute.shm_size,
-                preemptible=False,
+                spot=False,
             )
 
             run_body.is_headless = _is_headless(self.app)

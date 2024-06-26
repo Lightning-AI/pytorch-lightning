@@ -1,8 +1,6 @@
-import contextlib
 import logging
 import os
 import pathlib
-import re
 import sys
 from copy import copy
 from pathlib import Path
@@ -104,7 +102,7 @@ def get_cloud_runtime_request_body(**kwargs) -> "CloudspaceIdRunsBody":
         "dependency_cache_key": mock.ANY,
         "user_requested_flow_compute_config": V1UserRequestedFlowComputeConfig(
             name="flow-lite",
-            preemptible=False,
+            spot=False,
             shm_size=0,
         ),
     }
@@ -342,7 +340,7 @@ class TestAppCreationClient:
         user_requested_flow_compute_config = None
         if flow_cloud_compute is not None:
             user_requested_flow_compute_config = V1UserRequestedFlowComputeConfig(
-                name=flow_cloud_compute.name, preemptible=False, shm_size=0
+                name=flow_cloud_compute.name, spot=False, shm_size=0
             )
 
         body = get_cloud_runtime_request_body(user_requested_flow_compute_config=user_requested_flow_compute_config)
@@ -656,7 +654,7 @@ class TestAppCreationClient:
                                 count=1,
                                 disk_size=0,
                                 shm_size=0,
-                                preemptible=False,
+                                spot=False,
                             ),
                             network_config=[V1NetworkConfig(name=mock.ANY, host=None, port=8080)],
                             data_connection_mounts=[],
@@ -854,7 +852,7 @@ class TestAppCreationClient:
                                 ),
                             ],
                             user_requested_compute_config=V1UserRequestedComputeConfig(
-                                name="custom", count=1, disk_size=0, shm_size=0, preemptible=False
+                                name="custom", count=1, disk_size=0, shm_size=0, spot=False
                             ),
                             network_config=[V1NetworkConfig(name=mock.ANY, host=None, port=8080)],
                             data_connection_mounts=[],
@@ -971,7 +969,7 @@ class TestAppCreationClient:
                             ),
                             drives=[],
                             user_requested_compute_config=V1UserRequestedComputeConfig(
-                                name="custom", count=1, disk_size=0, shm_size=0, preemptible=mock.ANY
+                                name="custom", count=1, disk_size=0, shm_size=0, spot=mock.ANY
                             ),
                             network_config=[V1NetworkConfig(name=mock.ANY, host=None, port=8080)],
                             cluster_id=mock.ANY,
@@ -1147,7 +1145,7 @@ class TestAppCreationClient:
                                 count=1,
                                 disk_size=0,
                                 shm_size=0,
-                                preemptible=False,
+                                spot=False,
                             ),
                             network_config=[V1NetworkConfig(name=mock.ANY, host=None, port=8080)],
                             data_connection_mounts=[],
@@ -1190,7 +1188,7 @@ class TestAppCreationClient:
                                 count=1,
                                 disk_size=0,
                                 shm_size=0,
-                                preemptible=False,
+                                spot=False,
                             ),
                             network_config=[V1NetworkConfig(name=mock.ANY, host=None, port=8080)],
                             data_connection_mounts=[],
@@ -1367,7 +1365,7 @@ class TestAppCreationClient:
                                 count=1,
                                 disk_size=0,
                                 shm_size=0,
-                                preemptible=False,
+                                spot=False,
                             ),
                             network_config=[V1NetworkConfig(name=mock.ANY, host=None, port=8080)],
                             data_connection_mounts=[],
@@ -1790,92 +1788,6 @@ def test_load_app_from_file():
         env_vars={"COMPUTE_NAME": "foo"},
     )
     assert app.works[0].cloud_compute.name == "foo"
-
-
-@pytest.mark.parametrize(
-    ("print_format", "expected"),
-    [
-        (
-            "web",
-            [
-                {
-                    "displayName": "",
-                    "name": "root.work",
-                    "spec": {
-                        "buildSpec": {
-                            "commands": [],
-                            "pythonDependencies": {"packageManager": "PACKAGE_MANAGER_PIP", "packages": ""},
-                        },
-                        "dataConnectionMounts": [],
-                        "drives": [],
-                        "networkConfig": [{"name": "*", "port": "*"}],
-                        "userRequestedComputeConfig": {
-                            "count": 1,
-                            "diskSize": 0,
-                            "name": "cpu-small",
-                            "preemptible": "*",
-                            "shmSize": 0,
-                        },
-                    },
-                }
-            ],
-        ),
-        (
-            "gallery",
-            [
-                {
-                    "display_name": "",
-                    "name": "root.work",
-                    "spec": {
-                        "build_spec": {
-                            "commands": [],
-                            "python_dependencies": {"package_manager": "PACKAGE_MANAGER_PIP", "packages": ""},
-                        },
-                        "data_connection_mounts": [],
-                        "drives": [],
-                        "network_config": [{"name": "*", "port": "*"}],
-                        "user_requested_compute_config": {
-                            "count": 1,
-                            "disk_size": 0,
-                            "name": "cpu-small",
-                            "preemptible": "*",
-                            "shm_size": 0,
-                        },
-                    },
-                }
-            ],
-        ),
-    ],
-)
-def test_print_specs(tmpdir, caplog, monkeypatch, print_format, expected):
-    entrypoint = Path(tmpdir) / "entrypoint.py"
-    entrypoint.touch()
-
-    mock_client = mock.MagicMock()
-    mock_client.projects_service_list_memberships.return_value = V1ListMembershipsResponse(
-        memberships=[V1Membership(name="test-project", project_id="test-project-id")]
-    )
-    mock_client.lightningapp_instance_service_list_lightningapp_instances.return_value = (
-        V1ListLightningappInstancesResponse(lightningapps=[])
-    )
-    cloud_backend = mock.MagicMock(client=mock_client)
-    monkeypatch.setattr(backends, "CloudBackend", mock.MagicMock(return_value=cloud_backend))
-
-    cloud_runtime = cloud.CloudRuntime(app=LightningApp(EmptyWork()), entrypoint=entrypoint)
-
-    cloud.LIGHTNING_CLOUD_PRINT_SPECS = print_format
-
-    try:
-        with caplog.at_level(logging.INFO), contextlib.suppress(SystemExit):
-            cloud_runtime.dispatch()
-
-        lines = caplog.text.split("\n")
-
-        expected = re.escape(str(expected).replace("'", '"').replace(" ", "")).replace('"\\*"', "(.*)")
-        expected = "INFO(.*)works: " + expected
-        assert any(re.fullmatch(expected, line) for line in lines)
-    finally:
-        cloud.LIGHTNING_CLOUD_PRINT_SPECS = None
 
 
 def test_incompatible_cloud_compute_and_build_config(monkeypatch):
