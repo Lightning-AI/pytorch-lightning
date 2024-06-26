@@ -104,7 +104,7 @@ def get_cloud_runtime_request_body(**kwargs) -> "CloudspaceIdRunsBody":
         "dependency_cache_key": mock.ANY,
         "user_requested_flow_compute_config": V1UserRequestedFlowComputeConfig(
             name="flow-lite",
-            preemptible=False,
+            spot=False,
             shm_size=0,
         ),
     }
@@ -342,7 +342,7 @@ class TestAppCreationClient:
         user_requested_flow_compute_config = None
         if flow_cloud_compute is not None:
             user_requested_flow_compute_config = V1UserRequestedFlowComputeConfig(
-                name=flow_cloud_compute.name, preemptible=False, shm_size=0
+                name=flow_cloud_compute.name, spot=False, shm_size=0
             )
 
         body = get_cloud_runtime_request_body(user_requested_flow_compute_config=user_requested_flow_compute_config)
@@ -656,7 +656,7 @@ class TestAppCreationClient:
                                 count=1,
                                 disk_size=0,
                                 shm_size=0,
-                                preemptible=False,
+                                spot=False,
                             ),
                             network_config=[V1NetworkConfig(name=mock.ANY, host=None, port=8080)],
                             data_connection_mounts=[],
@@ -854,7 +854,7 @@ class TestAppCreationClient:
                                 ),
                             ],
                             user_requested_compute_config=V1UserRequestedComputeConfig(
-                                name="custom", count=1, disk_size=0, shm_size=0, preemptible=False
+                                name="custom", count=1, disk_size=0, shm_size=0, spot=False
                             ),
                             network_config=[V1NetworkConfig(name=mock.ANY, host=None, port=8080)],
                             data_connection_mounts=[],
@@ -971,7 +971,7 @@ class TestAppCreationClient:
                             ),
                             drives=[],
                             user_requested_compute_config=V1UserRequestedComputeConfig(
-                                name="custom", count=1, disk_size=0, shm_size=0, preemptible=mock.ANY
+                                name="custom", count=1, disk_size=0, shm_size=0, spot=mock.ANY
                             ),
                             network_config=[V1NetworkConfig(name=mock.ANY, host=None, port=8080)],
                             cluster_id=mock.ANY,
@@ -1147,7 +1147,7 @@ class TestAppCreationClient:
                                 count=1,
                                 disk_size=0,
                                 shm_size=0,
-                                preemptible=False,
+                                spot=False,
                             ),
                             network_config=[V1NetworkConfig(name=mock.ANY, host=None, port=8080)],
                             data_connection_mounts=[],
@@ -1190,7 +1190,7 @@ class TestAppCreationClient:
                                 count=1,
                                 disk_size=0,
                                 shm_size=0,
-                                preemptible=False,
+                                spot=False,
                             ),
                             network_config=[V1NetworkConfig(name=mock.ANY, host=None, port=8080)],
                             data_connection_mounts=[],
@@ -1367,7 +1367,7 @@ class TestAppCreationClient:
                                 count=1,
                                 disk_size=0,
                                 shm_size=0,
-                                preemptible=False,
+                                spot=False,
                             ),
                             network_config=[V1NetworkConfig(name=mock.ANY, host=None, port=8080)],
                             data_connection_mounts=[],
@@ -1813,7 +1813,7 @@ def test_load_app_from_file():
                             "count": 1,
                             "diskSize": 0,
                             "name": "cpu-small",
-                            "preemptible": "*",
+                            "spot": "*",
                             "shmSize": 0,
                         },
                     },
@@ -1838,7 +1838,7 @@ def test_load_app_from_file():
                             "count": 1,
                             "disk_size": 0,
                             "name": "cpu-small",
-                            "preemptible": "*",
+                            "spot": "*",
                             "shm_size": 0,
                         },
                     },

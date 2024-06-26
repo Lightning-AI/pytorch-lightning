@@ -797,7 +797,7 @@ class CloudRuntime(Runtime):
                 name=work.cloud_compute.name,
                 count=1,
                 disk_size=work.cloud_compute.disk_size,
-                preemptible=work.cloud_compute.interruptible,
+                spot=work.cloud_compute.interruptible,
                 shm_size=work.cloud_compute.shm_size,
                 affinity_identifier=work.cloud_compute.colocation_group_id,
             )
