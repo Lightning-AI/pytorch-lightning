@@ -19,4 +19,11 @@ def test_distributed_checker(monkeypatch):
     assert bool(DistributedPluginChecker())
 
     monkeypatch.setenv("LIGHTNING_CLOUD_WORK_NAME", "nodes.2")
-    assert not bool(DistributedPluginChecker())
+    assert bool(DistributedPluginChecker())
+
+    mock_work = mock.MagicMock()
+    mock_work.name = "nodes.1"
+    assert not DistributedPluginChecker().should_create_work(mock_work)
+
+    mock_work.name = "nodes.2"
+    assert DistributedPluginChecker().should_create_work(mock_work)
