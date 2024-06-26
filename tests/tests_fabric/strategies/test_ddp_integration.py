@@ -19,6 +19,7 @@ from unittest.mock import Mock
 import pytest
 import torch
 from lightning.fabric import Fabric
+from lightning_utilities.core.imports import RequirementCache
 from torch._dynamo import OptimizedModule
 from torch.nn.parallel.distributed import DistributedDataParallel
 
@@ -27,6 +28,10 @@ from tests_fabric.strategies.test_single_device import _run_test_clip_gradients
 from tests_fabric.test_fabric import BoringModel
 
 
+@pytest.mark.skipif(
+    RequirementCache("torch<2.4") and RequirementCache("numpy>=2.0"),
+    reason="torch.distributed not compatible with numpy>=2.0",
+)
 @pytest.mark.parametrize(
     "accelerator",
     [

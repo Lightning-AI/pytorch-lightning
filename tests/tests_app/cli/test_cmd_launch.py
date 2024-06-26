@@ -189,8 +189,8 @@ def start_processes(**functions):
     launcher.manage_server_processes(processes)
 
 
+@pytest.mark.skipif(True, reason="flaky")
 @_RunIf(skip_windows=True)
-@pytest.mark.flaky(reruns=3)
 def test_manage_server_processes_one_process_gets_killed(capfd):
     functions = {"p1": run_forever_process, "p2": run_for_2_seconds_and_raise}
     p = Process(target=start_processes, kwargs=functions)

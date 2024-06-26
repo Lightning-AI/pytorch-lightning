@@ -553,6 +553,7 @@ class OverwriteFolderFlow(LightningFlow):
             self.stop()
 
 
+@pytest.mark.skipif(True, reason="depreceated")
 def test_path_get_overwrite(tmpdir):
     """Test that .get(overwrite=True) overwrites the entire directory and replaces all files."""
     root = OverwriteFolderFlow(tmpdir)

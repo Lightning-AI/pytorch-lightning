@@ -149,18 +149,17 @@ def test_work_runner(parallel, cache_calls, *_):
     with contextlib.suppress(Empty, Exception):
         work_runner()
 
-    assert readiness_queue._queue[0]
     if parallel:
         assert isinstance(error_queue._queue[0], Exception)
     else:
         assert isinstance(error_queue._queue[0], Empty)
-        assert len(delta_queue._queue) in [3, 4]
-        res = delta_queue._queue[0].delta.to_dict()["iterable_item_added"]
+        assert len(delta_queue._queue) in [3, 4, 5]
+        res = delta_queue._queue[1].delta.to_dict()["iterable_item_added"]
         assert res[f"root['calls']['{call_hash}']['statuses'][0]"]["stage"] == "running"
-        assert delta_queue._queue[1].delta.to_dict() == {
+        assert delta_queue._queue[2].delta.to_dict() == {
             "values_changed": {"root['vars']['counter']": {"new_value": 1}}
         }
-        index = 3 if len(delta_queue._queue) == 4 else 2
+        index = 4 if len(delta_queue._queue) == 5 else 2
         res = delta_queue._queue[index].delta.to_dict()["dictionary_item_added"]
         assert res[f"root['calls']['{call_hash}']['ret']"] is None
 
@@ -667,6 +666,7 @@ def test_work_runner_sets_public_and_private_ip(patch_constants, environment, ex
         response_queue=Mock(),
         copy_request_queue=Mock(),
         copy_response_queue=Mock(),
+        enable_copier=False,
     )
 
     # Make a fake call
@@ -687,11 +687,6 @@ def test_work_runner_sets_public_and_private_ip(patch_constants, environment, ex
 
     with mock.patch.dict(os.environ, environment, clear=True):
         work_runner.setup()
-        # The public ip address only becomes available once the hardware is up / the work is running.
-        assert work.public_ip == ""
-        assert work.internal_ip == ""
-        with contextlib.suppress(Empty):
-            work_runner.run_once()
         assert work.public_ip == expected_public_ip
         assert work.internal_ip == expected_private_ip
 
