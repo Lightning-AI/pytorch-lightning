@@ -117,12 +117,7 @@ class DistributedPluginChecker:
         self.running_distributed_plugin = False
 
         if self.distributed_arguments and work_name:
-            assert self.distributed_arguments
-            num_nodes = self.distributed_arguments.get("num_instances", 0)
-            node_rank = int(work_name.split(".")[-1])
-
-            # Only the start with flow works are skipped for performance purposes
-            self.running_distributed_plugin = node_rank < num_nodes
+            self.running_distributed_plugin = True
 
     def __bool__(self) -> bool:
         return self.running_distributed_plugin
