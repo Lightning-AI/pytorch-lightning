@@ -31,6 +31,7 @@ class Backend(ABC):
         self.queues: QueuingSystem = queues
         self.queue_id = queue_id
         self.entrypoint_file = entrypoint_file
+        self.should_create_work = not bool(IS_DISTRIBUTED_PLUGIN)
 
     @abstractmethod
     def create_work(self, app: "lightning.app.LightningApp", work: "lightning.app.LightningWork") -> None:
@@ -77,7 +78,7 @@ class Backend(ABC):
         work.run = work_run
 
         # Note: This is an optimization as the MMT is created directly within the launcher.
-        if not IS_DISTRIBUTED_PLUGIN:
+        if self.should_create_work:
             # 2. Create the work
             self.create_work(app, work)
 
