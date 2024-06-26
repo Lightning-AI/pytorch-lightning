@@ -197,8 +197,6 @@ def run_lightning_work(
 def run_lightning_flow(entrypoint_file: str, queue_id: str, base_url: str, queues: Optional[FlowRestAPIQueues] = None):
     _set_flow_context()
 
-    raise Exception("HERE")
-
     logger.debug(f"Run Lightning Flow {entrypoint_file} {queue_id} {base_url}")
 
     app = load_app_from_file(entrypoint_file)
@@ -421,6 +419,8 @@ def start_flow_and_servers(
     port: int,
     flow_names_and_ports: Tuple[Tuple[str, int]],
 ):
+    raise Exception("HERE")
+
     processes: List[Tuple[str, Process]] = []
 
     # Queues between Flow and its Rest API are using multiprocessing to:
