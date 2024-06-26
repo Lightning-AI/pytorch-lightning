@@ -150,9 +150,9 @@ class CloudBackend(Backend):
                     )
 
         if hasattr(work.cloud_compute, "interruptible"):
-            preemptible = work.cloud_compute.interruptible
+            spot = work.cloud_compute.interruptible
         else:
-            preemptible = work.cloud_compute.preemptible
+            spot = work.cloud_compute.preemptible
 
         colocation_group_id = None
         if hasattr(work.cloud_compute, "colocation_group_id"):
@@ -162,7 +162,7 @@ class CloudBackend(Backend):
             name=work.cloud_compute.name,
             count=1,
             disk_size=work.cloud_compute.disk_size,
-            preemptible=preemptible,
+            spot=spot,
             shm_size=work.cloud_compute.shm_size,
             affinity_identifier=colocation_group_id,
         )
