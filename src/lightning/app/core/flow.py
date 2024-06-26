@@ -838,10 +838,7 @@ class LightningFlow:
 
     def stop_works(self, works: List[Any]) -> None:
         if self._backend is None:
-            raise RuntimeError(
-                f"Your app has been already dispatched, so modifying the `{self.name}.lightningignore` does not have an"
-                " effect"
-            )
+            raise RuntimeError("Your flow should have a backend attached. Found None.")
         self._backend.stop_works(works)
 
 
