@@ -836,6 +836,14 @@ class LightningFlow:
             elif strict:
                 raise ValueError(f"The component {child_name} wasn't instantiated for the component {self.name}")
 
+    def stop_works(self, works: List[Any]) -> None:
+        if self._backend is not None:
+            raise RuntimeError(
+                f"Your app has been already dispatched, so modifying the `{self.name}.lightningignore` does not have an"
+                " effect"
+            )
+        self._backend.stop_works(self, works)
+
 
 class _RootFlow(LightningFlow):
     def __init__(self, work: LightningWork) -> None:

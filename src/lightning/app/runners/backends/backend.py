@@ -52,6 +52,10 @@ class Backend(ABC):
     def stop_work(self, app: "lightning.app.LightningApp", work: "lightning.app.LightningWork") -> None:
         pass
 
+    @abstractmethod
+    def stop_works(self, works: "List[lightning.app.LightningWork]") -> None:
+        pass
+
     def _dynamic_run_wrapper(
         self,
         *args: Any,
