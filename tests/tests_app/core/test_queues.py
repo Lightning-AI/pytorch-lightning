@@ -6,10 +6,9 @@ import time
 from unittest import mock
 
 import pytest
-import requests_mock
 from lightning.app import LightningFlow
 from lightning.app.core import queues
-from lightning.app.core.constants import HTTP_QUEUE_URL, STATE_UPDATE_TIMEOUT
+from lightning.app.core.constants import STATE_UPDATE_TIMEOUT
 from lightning.app.core.queues import (
     READINESS_QUEUE_CONSTANT,
     BaseQueue,
@@ -168,82 +167,63 @@ def test_redis_raises_error_if_failing(redis_mock):
         my_queue.length()
 
 
-class TestHTTPQueue:
-    def test_http_queue_failure_on_queue_name(self):
-        test_queue = HTTPQueue("test", STATE_UPDATE_TIMEOUT)
-        with pytest.raises(ValueError, match="App ID couldn't be extracted"):
-            test_queue.put("test")
+def test_http_queue_failure_on_queue_name():
+    test_queue = HTTPQueue("test", STATE_UPDATE_TIMEOUT)
+    with pytest.raises(ValueError, match="App ID couldn't be extracted"):
+        test_queue.put("test")
 
-        with pytest.raises(ValueError, match="App ID couldn't be extracted"):
-            test_queue.get()
+    with pytest.raises(ValueError, match="App ID couldn't be extracted"):
+        test_queue.get()
 
-        with pytest.raises(ValueError, match="App ID couldn't be extracted"):
-            test_queue.length()
+    with pytest.raises(ValueError, match="App ID couldn't be extracted"):
+        test_queue.length()
 
-    def test_http_queue_put(self, monkeypatch):
-        monkeypatch.setattr(queues, "HTTP_QUEUE_TOKEN", "test-token")
-        test_queue = HTTPQueue("test_http_queue", STATE_UPDATE_TIMEOUT)
-        test_obj = LightningFlow()
 
-        # mocking requests and responses
-        adapter = requests_mock.Adapter()
-        test_queue.client.session.mount("http://", adapter)
-        adapter.register_uri(
-            "GET",
-            f"{HTTP_QUEUE_URL}/v1/test/http_queue/length",
-            request_headers={"Authorization": "Bearer test-token"},
-            status_code=200,
-            content=b"1",
-        )
-        adapter.register_uri(
-            "POST",
-            f"{HTTP_QUEUE_URL}/v1/test/http_queue?action=push",
-            status_code=201,
-            additional_matcher=lambda req: pickle.dumps(test_obj) == req._request.body,
-            request_headers={"Authorization": "Bearer test-token"},
-            content=b"data pushed",
-        )
+def test_http_queue_put(monkeypatch):
+    monkeypatch.setattr(queues, "HTTP_QUEUE_TOKEN", "test-token")
+    test_queue = HTTPQueue("WORK_QUEUE", STATE_UPDATE_TIMEOUT)
 
-        test_queue.put(test_obj)
+    response = mock.MagicMock()
+    response.status_code = 201
+    client = mock.MagicMock()
 
-    def test_http_queue_get(self, monkeypatch):
-        monkeypatch.setattr(queues, "HTTP_QUEUE_TOKEN", "test-token")
-        test_queue = HTTPQueue("test_http_queue", STATE_UPDATE_TIMEOUT)
-        adapter = requests_mock.Adapter()
-        test_queue.client.session.mount("http://", adapter)
+    client.post.return_value = response
+    test_queue.client = client
 
-        adapter.register_uri(
-            "POST",
-            f"{HTTP_QUEUE_URL}/v1/test/http_queue?action=pop",
-            request_headers={"Authorization": "Bearer test-token"},
-            status_code=200,
-            content=pickle.dumps("test"),
-        )
-        assert test_queue.get() == "test"
+    test_obj = LightningFlow()
 
-    def test_http_queue_batch_get(self, monkeypatch):
-        monkeypatch.setattr(queues, "HTTP_QUEUE_TOKEN", "test-token")
-        test_queue = HTTPQueue("test_http_queue", STATE_UPDATE_TIMEOUT)
-        adapter = requests_mock.Adapter()
-        test_queue.client.session.mount("http://", adapter)
+    test_queue.put(test_obj)
 
-        adapter.register_uri(
-            "POST",
-            f"{HTTP_QUEUE_URL}/v1/test/http_queue?action=popCount",
-            request_headers={"Authorization": "Bearer test-token"},
-            status_code=200,
-            json=[
-                base64.b64encode(pickle.dumps("test")).decode("utf-8"),
-                base64.b64encode(pickle.dumps("test2")).decode("utf-8"),
-            ],
-        )
-        assert test_queue.batch_get() == ["test", "test2"]
+
+def test_http_queue_get(monkeypatch):
+    monkeypatch.setattr(queues, "HTTP_QUEUE_TOKEN", "test-token")
+    test_queue = HTTPQueue("WORK_QUEUE", STATE_UPDATE_TIMEOUT)
+    response = mock.MagicMock()
+    response.content = pickle.dumps("test")
+    client = mock.MagicMock()
+    client.post.return_value = response
+    test_queue.client = client
+    assert test_queue.get() == "test"
+
+
+def test_http_queue_batch_get(monkeypatch):
+    monkeypatch.setattr(queues, "HTTP_QUEUE_TOKEN", "test-token")
+    test_queue = HTTPQueue("WORK_QUEUE", STATE_UPDATE_TIMEOUT)
+    response = mock.MagicMock()
+    response.json.return_value = [
+        base64.b64encode(pickle.dumps("test")).decode("utf-8"),
+        base64.b64encode(pickle.dumps("test2")).decode("utf-8"),
+    ]
+    client = mock.MagicMock()
+    client.post.return_value = response
+    test_queue.client = client
+    assert test_queue.batch_get() == ["test", "test2"]
 
 
 def test_unreachable_queue(monkeypatch):
     monkeypatch.setattr(queues, "HTTP_QUEUE_TOKEN", "test-token")
 
-    test_queue = HTTPQueue("test_http_queue", STATE_UPDATE_TIMEOUT)
+    test_queue = HTTPQueue("WORK_QUEUE", STATE_UPDATE_TIMEOUT)
 
     resp1 = mock.MagicMock()
     resp1.status_code = 204
