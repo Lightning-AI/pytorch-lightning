@@ -344,6 +344,7 @@ class CloudBackend(Backend):
                 break
 
     def stop_works(self, works: "List[LightningWork]") -> None:
+        # Used to stop all the works in a batch
         cloud_works = self._get_cloud_work_specs(self.client)
 
         cloud_works_to_stop = []
