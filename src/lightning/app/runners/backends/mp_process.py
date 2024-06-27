@@ -91,6 +91,10 @@ class MultiProcessingBackend(Backend):
     def update_work_statuses(self, works) -> None:
         pass
 
+    def stop_works(self, works: "List[lightning.app.LightningWork]") -> None:
+        for w in works:
+            w.stop()
+
     def stop_all_works(self, works: List["lightning.app.LightningWork"]) -> None:
         pass
 

@@ -38,3 +38,6 @@ class DockerBackend(Backend):
 
     def stop_all_works(self, works: List["lightning.app.LightningWork"]) -> None:
         pass
+
+    def stop_works(self, works: "List[lightning.app.LightningWork]") -> None:
+        pass

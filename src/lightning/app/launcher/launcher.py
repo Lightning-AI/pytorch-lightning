@@ -9,31 +9,33 @@ from functools import partial
 from multiprocessing import Process
 from typing import Callable, Dict, List, Optional, Tuple, TypedDict
 
-ENABLE_MULTIPLE_WORKS_IN_DEFAULT_CONTAINER = bool(int(os.getenv("ENABLE_MULTIPLE_WORKS_IN_DEFAULT_CONTAINER", "0")))
+from lightning.app import LightningFlow
+from lightning.app.core import constants
+from lightning.app.core.api import start_server
+from lightning.app.core.constants import (
+    CHECK_ERROR_QUEUE_INTERVAL,
+    ENABLE_ORCHESTRATOR,
+    IS_DISTRIBUTED_PLUGIN,
+)
+from lightning.app.core.queues import MultiProcessQueue, QueuingSystem
+from lightning.app.storage.orchestrator import StorageOrchestrator
+from lightning.app.utilities.cloud import _sigterm_flow_handler
+from lightning.app.utilities.component import _set_flow_context, _set_frontend_context
+from lightning.app.utilities.enum import AppStage
+from lightning.app.utilities.exceptions import ExitAppException
+from lightning.app.utilities.load_app import extract_metadata_from_app, load_app_from_file
+from lightning.app.utilities.proxies import WorkRunner
+from lightning.app.utilities.redis import check_if_redis_running
 
-if True:  # ToDo: Avoid Module level import not at top of file
-    from lightning.app.core import constants
-    from lightning.app.core.api import start_server
-    from lightning.app.core.flow import LightningFlow
-    from lightning.app.core.queues import MultiProcessQueue, QueuingSystem
-    from lightning.app.storage.orchestrator import StorageOrchestrator
+try:
     from lightning.app.utilities.app_commands import run_app_commands
-    from lightning.app.utilities.cloud import _sigterm_flow_handler
-    from lightning.app.utilities.component import _set_flow_context, _set_frontend_context
-    from lightning.app.utilities.enum import AppStage
-    from lightning.app.utilities.exceptions import ExitAppException
-    from lightning.app.utilities.load_app import extract_metadata_from_app, load_app_from_file
-    from lightning.app.utilities.proxies import WorkRunner
-    from lightning.app.utilities.redis import check_if_redis_running
 
-if ENABLE_MULTIPLE_WORKS_IN_DEFAULT_CONTAINER:
-    from lightning.app.launcher.lightning_hybrid_backend import CloudHybridBackend as CloudBackend
-else:
-    from lightning.app.launcher.lightning_backend import CloudBackend
+    ABLE_TO_RUN_APP_COMMANDS = True
+except (ImportError, ModuleNotFoundError):
+    ABLE_TO_RUN_APP_COMMANDS = False
 
-if True:  # Avoid Module level import not at top of file
-    from lightning.app.utilities.app_helpers import convert_print_to_logger_info
-    from lightning.app.utilities.packaging.lightning_utils import enable_debugging
+from lightning.app.launcher.lightning_backend import CloudBackend
+from lightning.app.launcher.utils import LIGHTNING_VERSION, convert_print_to_logger_info, enable_debugging, exit_app
 
 if hasattr(constants, "get_cloud_queue_type"):
     CLOUD_QUEUE_TYPE = constants.get_cloud_queue_type() or "redis"
@@ -46,6 +48,22 @@ logger = logging.getLogger(__name__)
 class FlowRestAPIQueues(TypedDict):
     api_publish_state_queue: MultiProcessQueue
     api_response_queue: MultiProcessQueue
+
+
+def check_error_queue(self) -> None:
+    if not getattr(self, "_last_check_error_queue", None):
+        self._last_check_error_queue = 0.0
+
+    if (time.time() - self._last_check_error_queue) > CHECK_ERROR_QUEUE_INTERVAL:
+        exception: Exception = self.get_state_changed_from_queue(self.error_queue)  # type: ignore[assignment,arg-type]
+        if isinstance(exception, Exception):
+            self.exception = exception
+            self.stage = AppStage.FAILED
+        self._last_check_error_queue = time.time()
+
+
+def patch_app(app):
+    app.check_error_queue = partial(check_error_queue, self=app)
 
 
 @convert_print_to_logger_info
@@ -72,6 +90,7 @@ def start_application_server(
         })
 
     app = load_app_from_file(entrypoint_file)
+    patch_app(app)
 
     from lightning.app.api.http_methods import _add_tags_to_api, _validate_api
     from lightning.app.utilities.app_helpers import is_overridden
@@ -124,12 +143,34 @@ def run_lightning_work(
     copy_request_queues = queues.get_orchestrator_copy_request_queue(work_name=work_name, queue_id=queue_id)
     copy_response_queues = queues.get_orchestrator_copy_response_queue(work_name=work_name, queue_id=queue_id)
 
-    run_app_commands(file)
+    if ABLE_TO_RUN_APP_COMMANDS:
+        run_app_commands(file)
 
     load_app_from_file(file)
 
-    queue = queues.get_work_queue(work_name=work_name, queue_id=queue_id)
-    work = queue.get()
+    if IS_DISTRIBUTED_PLUGIN:
+        import json
+
+        from multi_node.launcher import ScriptLauncher
+
+        from lightning.app import CloudCompute
+
+        script_command = os.environ["COMMAND"]
+        distributed_arguments = os.environ["DISTRIBUTED_ARGUMENTS"]
+        distributed_arguments = json.loads(distributed_arguments)
+        cloud_compute = distributed_arguments["cloud_compute"]
+        disk_size = int(distributed_arguments.get("disk_size", 400))
+
+        work = ScriptLauncher(
+            cloud_compute=CloudCompute(cloud_compute, disk_size=disk_size),
+            parallel=True,
+            command=script_command,
+        )
+        work_name = os.getenv("LIGHTNING_CLOUD_WORK_NAME", "")
+        work._name = work_name
+    else:
+        queue = queues.get_work_queue(work_name=work_name, queue_id=queue_id)
+        work = queue.get()
 
     extras = {}
 
@@ -179,15 +220,17 @@ def run_lightning_flow(entrypoint_file: str, queue_id: str, base_url: str, queue
 
     app.should_publish_changes_to_api = True
 
-    storage_orchestrator = StorageOrchestrator(
-        app,
-        app.request_queues,
-        app.response_queues,
-        app.copy_request_queues,
-        app.copy_response_queues,
-    )
-    storage_orchestrator.setDaemon(True)
-    storage_orchestrator.start()
+    # reduces the number of requests to the CP
+    if ENABLE_ORCHESTRATOR:
+        storage_orchestrator = StorageOrchestrator(
+            app,
+            app.request_queues,
+            app.response_queues,
+            app.copy_request_queues,
+            app.copy_response_queues,
+        )
+        storage_orchestrator.setDaemon(True)
+        storage_orchestrator.start()
 
     # refresh the layout with the populated urls.
     app._update_layout()
@@ -211,14 +254,16 @@ def run_lightning_flow(entrypoint_file: str, queue_id: str, base_url: str, queue
         app.stage = AppStage.FAILED
         print(traceback.format_exc())
 
-    storage_orchestrator.join(0)
+    if ENABLE_ORCHESTRATOR:
+        storage_orchestrator.join(0)
+
     app.backend.stop_all_works(app.works)
 
     exit_code = 1 if app.stage == AppStage.FAILED else 0
     print(f"Finishing the App with exit_code: {str(exit_code)}...")
 
     if not exit_code:
-        app.backend.stop_app(app)
+        exit_app(app)
 
     sys.exit(exit_code)
 
@@ -385,12 +430,13 @@ def start_flow_and_servers(
         "api_response_queue": queue_system.get_api_response_queue(queue_id=queue_id),
     }
 
-    # In order to avoid running this function 3 seperate times while executing the
-    # `run_lightning_flow`, `start_application_server`, & `serve_frontend` functions
-    # in a subprocess we extract this to the top level. If we intend to make changes
-    # to be able to start these components in seperate containers, the implementation
-    # will have to move a call to this function within the initialization process.
-    run_app_commands(entrypoint_file)
+    if ABLE_TO_RUN_APP_COMMANDS:
+        # In order to avoid running this function 3 seperate times while executing the
+        # `run_lightning_flow`, `start_application_server`, & `serve_frontend` functions
+        # in a subprocess we extract this to the top level. If we intend to make changes
+        # to be able to start these components in seperate containers, the implementation
+        # will have to move a call to this function within the initialization process.
+        run_app_commands(entrypoint_file)
 
     flow_process = start_server_in_process(
         run_lightning_flow,
@@ -434,6 +480,12 @@ def wait_for_queues(queue_system: QueuingSystem) -> None:
                 logger.warning("Waiting for http queues to start...")
             time.sleep(1)
     else:
+        if CLOUD_QUEUE_TYPE != "redis":
+            raise ValueError(
+                f"Queue system {queue_system} is not correctly configured. You seem to have requested HTTP queues,"
+                f"but using an old version of lightning framework ({LIGHTNING_VERSION}) that doesn't support "
+                f"HTTP queues. Try upgrading lightning framework to the latest version."
+            )
         while not check_if_redis_running():
             if (int(time.time()) - queue_check_start_time) % 10 == 0:
                 logger.warning("Waiting for redis queues to start...")
