@@ -16,7 +16,7 @@ from unittest.mock import DEFAULT, Mock, patch
 
 import pytest
 import torch
-from lightning.pytorch import Trainer
+from lightning.pytorch import Trainer, seed_everything
 from lightning.pytorch.core.optimizer import LightningOptimizer
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.loops.optimization.automatic import Closure
@@ -238,6 +238,8 @@ def test_lightning_optimizer_automatic_optimization_optimizer_step(tmp_path):
 def test_lightning_optimizer_automatic_optimization_lbfgs_zero_grad(tmp_path):
     """Test zero_grad is called the same number of times as LBFGS requires for reevaluation of the loss in
     automatic_optimization."""
+
+    seed_everything(0)
 
     class TestModel(BoringModel):
         def configure_optimizers(self):
