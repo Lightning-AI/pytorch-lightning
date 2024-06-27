@@ -12,9 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import json
 import os
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 
 import lightning_cloud.env
 
@@ -101,6 +102,37 @@ SYS_CUSTOMIZATIONS_SYNC_PATH = ".sys-customizations-sync"
 
 BATCH_DELTA_COUNT = int(os.getenv("BATCH_DELTA_COUNT", "128"))
 CHECK_ERROR_QUEUE_INTERVAL = float(os.getenv("CHECK_ERROR_QUEUE_INTERVAL", "30"))
+SHOULD_START_WORKS_WITH_FLOW = bool(int(os.getenv("SHOULD_START_WORKS_WITH_FLOW", "1")))
+IS_RUNNING_IN_FLOW = os.getenv("LIGHTNING_CLOUD_WORK_NAME", None) is None
+
+
+class DistributedPluginChecker:
+    def __init__(self) -> None:
+        self.distributed_arguments = os.getenv("DISTRIBUTED_ARGUMENTS", None)
+        if self.distributed_arguments:
+            self.distributed_arguments = json.loads(self.distributed_arguments)
+
+        self.running_distributed_plugin = False
+
+        if self.distributed_arguments and os.getenv("LIGHTNING_CLOUD_WORK_NAME"):
+            self.running_distributed_plugin = True
+
+    def __bool__(self) -> bool:
+        return self.running_distributed_plugin
+
+    def should_create_work(self, work: Any) -> bool:
+        if not self.distributed_arguments:
+            return True
+
+        num_nodes = self.distributed_arguments.get("num_instances", 0)
+        node_rank = int(work.name.split(".")[-1])
+
+        # Only the start with flow works are skipped for performance purposes
+        return node_rank >= num_nodes
+
+
+# TODO (tchaton): Add LitData and JobPlugin optimizations
+PLUGIN_CHECKER = IS_DISTRIBUTED_PLUGIN = DistributedPluginChecker()
 
 
 def enable_multiple_works_in_default_container() -> bool:
