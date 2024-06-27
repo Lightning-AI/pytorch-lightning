@@ -17,7 +17,7 @@ from typing import Optional, Union
 
 import lightning.pytorch as pl
 from lightning.fabric.utilities.warnings import PossibleUserWarning
-from lightning.pytorch.accelerators import CUDAAccelerator, MPSAccelerator, XLAAccelerator
+from lightning.pytorch.accelerators import CUDAAccelerator, MPSAccelerator, XLAAccelerator, XPUAccelerator
 from lightning.pytorch.loggers.logger import DummyLogger
 from lightning.pytorch.profilers import (
     AdvancedProfiler,
@@ -148,11 +148,14 @@ def _log_device_info(trainer: "pl.Trainer") -> None:
     elif MPSAccelerator.is_available():
         gpu_available = True
         gpu_type = " (mps)"
+    elif XPUAccelerator.is_available():
+        gpu_available = True
+        gpu_type = " (xpu)"
     else:
         gpu_available = False
         gpu_type = ""
 
-    gpu_used = isinstance(trainer.accelerator, (CUDAAccelerator, MPSAccelerator))
+    gpu_used = isinstance(trainer.accelerator, (CUDAAccelerator, MPSAccelerator, XPUAccelerator))
     rank_zero_info(f"GPU available: {gpu_available}{gpu_type}, used: {gpu_used}")
 
     num_tpu_cores = trainer.num_devices if isinstance(trainer.accelerator, XLAAccelerator) else 0
@@ -173,6 +176,8 @@ def _log_device_info(trainer: "pl.Trainer") -> None:
         and not isinstance(trainer.accelerator, CUDAAccelerator)
         or MPSAccelerator.is_available()
         and not isinstance(trainer.accelerator, MPSAccelerator)
+        or XPUAccelerator.is_available()
+        and not isinstance(trainer.accelerator, XPUAccelerator)
     ):
         rank_zero_warn(
             "GPU available but not used. You can set it by doing `Trainer(accelerator='gpu')`.",

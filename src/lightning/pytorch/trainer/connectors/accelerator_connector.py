@@ -35,6 +35,7 @@ from lightning.pytorch.accelerators.accelerator import Accelerator
 from lightning.pytorch.accelerators.cuda import CUDAAccelerator
 from lightning.pytorch.accelerators.mps import MPSAccelerator
 from lightning.pytorch.accelerators.xla import XLAAccelerator
+from lightning.pytorch.accelerators.xpu import XPUAccelerator
 from lightning.pytorch.plugins import (
     _PLUGIN_INPUT,
     BitsandbytesPrecision,
@@ -308,6 +309,13 @@ class _AcceleratorConnector:
                             f" but accelerator set to {self._accelerator_flag}, please choose one device type"
                         )
                     self._accelerator_flag = "cuda"
+                if self._strategy_flag.parallel_devices[0].type == "xpu":
+                    if self._accelerator_flag and self._accelerator_flag not in ("auto", "xpu", "gpu"):
+                        raise MisconfigurationException(
+                            f"GPU parallel_devices set through {self._strategy_flag.__class__.__name__} class,"
+                            f" but accelerator set to {self._accelerator_flag}, please choose one device type"
+                        )
+                    self._accelerator_flag = "xpu"
                 self._parallel_devices = self._strategy_flag.parallel_devices
 
     def _check_device_config_and_set_final_flags(self, devices: Union[List[int], str, int], num_nodes: int) -> None:
@@ -342,6 +350,8 @@ class _AcceleratorConnector:
             return "mps"
         if CUDAAccelerator.is_available():
             return "cuda"
+        if XPUAccelerator.is_available():
+            return "xpu"
         return "cpu"
 
     @staticmethod
@@ -350,6 +360,8 @@ class _AcceleratorConnector:
             return "mps"
         if CUDAAccelerator.is_available():
             return "cuda"
+        if XPUAccelerator.is_available():
+            return "xpu"
         raise MisconfigurationException("No supported gpu backend found!")
 
     def _set_parallel_devices_and_init_accelerator(self) -> None:

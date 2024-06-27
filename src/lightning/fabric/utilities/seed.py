@@ -102,7 +102,7 @@ def pl_worker_init_function(worker_id: int, rank: Optional[int] = None) -> None:
     random.seed(stdlib_seed)
 
 
-def _collect_rng_states(include_cuda: bool = True) -> Dict[str, Any]:
+def _collect_rng_states(include_cuda: bool = True, include_xpu: bool = True) -> Dict[str, Any]:
     r"""Collect the global random state of :mod:`torch`, :mod:`torch.cuda`, :mod:`numpy` and Python."""
     states = {
         "torch": torch.get_rng_state(),
@@ -111,6 +111,8 @@ def _collect_rng_states(include_cuda: bool = True) -> Dict[str, Any]:
     }
     if include_cuda:
         states["torch.cuda"] = torch.cuda.get_rng_state_all() if torch.cuda.is_available() else []
+    if include_xpu and hasattr(torch, "xpu"):
+        states["torch.xpu"] = torch.xpu.get_rng_state_all() if torch.xpu.is_available() else []
     return states
 
 
@@ -121,6 +123,8 @@ def _set_rng_states(rng_state_dict: Dict[str, Any]) -> None:
     # torch.cuda rng_state is only included since v1.8.
     if "torch.cuda" in rng_state_dict:
         torch.cuda.set_rng_state_all(rng_state_dict["torch.cuda"])
+    if "torch.xpu" in rng_state_dict and hasattr(torch, "xpu"):
+        torch.xpu.set_rng_state_all(rng_state_dict["torch.xpu"])
     np.random.set_state(rng_state_dict["numpy"])
     version, state, gauss = rng_state_dict["python"]
     python_set_rng_state((version, tuple(state), gauss))
