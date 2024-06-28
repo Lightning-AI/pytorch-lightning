@@ -92,14 +92,14 @@ _transform_changelog(
 assist_local.AssistantCLI.pull_docs_files(
     gh_user_repo="Lightning-AI/lightning-Habana",
     target_dir="docs/source-pytorch/integrations/hpu",
-    checkout="refs/tags/1.5.0",
+    checkout="refs/tags/1.6.0",
 )
 # the HPU also need some images
-URL_RAW_DOCS_GRAPHCORE = "https://raw.githubusercontent.com/Lightning-AI/lightning-Habana/1.5.0/docs/source"
+URL_RAW_DOCS_HABANA = "https://raw.githubusercontent.com/Lightning-AI/lightning-Habana/1.5.0/docs/source"
 for img in ["_images/HPUProfiler.png", "_images/IGP.png"]:
     img_ = os.path.join(_PATH_HERE, "integrations", "hpu", img)
     os.makedirs(os.path.dirname(img_), exist_ok=True)
-    urllib.request.urlretrieve(f"{URL_RAW_DOCS_GRAPHCORE}/{img}", img_)
+    urllib.request.urlretrieve(f"{URL_RAW_DOCS_HABANA}/{img}", img_)
 
 # Copy strategies docs as single pages
 assist_local.AssistantCLI.pull_docs_files(
