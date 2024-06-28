@@ -22,7 +22,7 @@ Once the file is uploaded, we are putting the file into the :class:`~lightning.a
 Implement the fist_files method
 *******************************
 
-First, in this method, we get the file in the file server filesystem, if available in the Drive. Once done, we list the the files under the provided paths and return the results.
+First, in this method, we get the file in the file server filesystem, if available in the Drive. Once done, we list the files under the provided paths and return the results.
 
 .. literalinclude:: ./app.py
     :lines: 12, 100-130

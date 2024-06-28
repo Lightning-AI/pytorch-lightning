@@ -205,7 +205,7 @@ class ModelPruning(Callback):
             raise MisconfigurationException(
                 f"`pruning_fn` is expected to be a str in {list(_PYTORCH_PRUNING_FUNCTIONS.keys())}"
                 f" or a PyTorch `BasePruningMethod`. Found: {pruning_fn}."
-                " HINT: if passing a `BasePruningMethod`, pass the the class, not an instance"
+                " HINT: if passing a `BasePruningMethod`, pass the class, not an instance"
             )
 
         # need to ignore typing here since pytorch base class does not define the PRUNING_TYPE attribute

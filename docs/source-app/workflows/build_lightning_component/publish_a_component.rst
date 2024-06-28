@@ -2,7 +2,7 @@
 Publish a Lightning Component
 #############################
 
-**Audience:** Users who want to build a Ligthtning Component (Component) to publish to the Lightning Gallery
+**Audience:** Users who want to build a Lightning Component (Component) to publish to the Lightning Gallery
 
 ----
 
