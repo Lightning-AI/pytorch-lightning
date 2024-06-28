@@ -48,10 +48,10 @@ def test_find_free_network_port_cloudspace(_, patch_constants):
 @mock.patch("urllib3.connectionpool.HTTPConnectionPool._get_conn")
 def test_http_client_retry_post(getconn_mock):
     getconn_mock.return_value.getresponse.side_effect = [
-        mock.Mock(status=500, msg=HTTPMessage()),
-        mock.Mock(status=599, msg=HTTPMessage()),
-        mock.Mock(status=405, msg=HTTPMessage()),
-        mock.Mock(status=200, msg=HTTPMessage()),
+        mock.Mock(status=500, msg=HTTPMessage(), headers={}),
+        mock.Mock(status=599, msg=HTTPMessage(), headers={}),
+        mock.Mock(status=405, msg=HTTPMessage(), headers={}),
+        mock.Mock(status=200, msg=HTTPMessage(), headers={}),
     ]
 
     client = HTTPClient(base_url="http://test.url")
@@ -69,10 +69,10 @@ def test_http_client_retry_post(getconn_mock):
 @mock.patch("urllib3.connectionpool.HTTPConnectionPool._get_conn")
 def test_http_client_retry_get(getconn_mock):
     getconn_mock.return_value.getresponse.side_effect = [
-        mock.Mock(status=500, msg=HTTPMessage()),
-        mock.Mock(status=599, msg=HTTPMessage()),
-        mock.Mock(status=405, msg=HTTPMessage()),
-        mock.Mock(status=200, msg=HTTPMessage()),
+        mock.Mock(status=500, msg=HTTPMessage(), headers={}),
+        mock.Mock(status=599, msg=HTTPMessage(), headers={}),
+        mock.Mock(status=405, msg=HTTPMessage(), headers={}),
+        mock.Mock(status=200, msg=HTTPMessage(), headers={}),
     ]
 
     client = HTTPClient(base_url="http://test.url")

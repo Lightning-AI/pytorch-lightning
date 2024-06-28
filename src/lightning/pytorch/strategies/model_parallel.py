@@ -11,8 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import shutil
 from contextlib import contextmanager, nullcontext
 from datetime import timedelta
+from pathlib import Path
 from typing import TYPE_CHECKING, Any, Dict, Generator, List, Literal, Mapping, Optional, Union
 
 import torch
@@ -22,9 +24,13 @@ from torch.optim import Optimizer
 from typing_extensions import override
 
 import lightning.pytorch as pl
-from lightning.fabric.plugins import CheckpointIO
 from lightning.fabric.plugins.collectives.torch_collective import default_pg_timeout
-from lightning.fabric.strategies.model_parallel import _setup_device_mesh
+from lightning.fabric.strategies.model_parallel import (
+    _distributed_checkpoint_save,
+    _is_sharded_checkpoint,
+    _load_checkpoint,
+    _setup_device_mesh,
+)
 from lightning.fabric.utilities.distributed import (
     _distributed_is_initialized,
     _get_default_process_group_backend_for_device,
@@ -34,6 +40,7 @@ from lightning.fabric.utilities.distributed import (
 from lightning.fabric.utilities.distributed import group as _group
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_3
 from lightning.fabric.utilities.init import _materialize_distributed_module
+from lightning.fabric.utilities.load import _METADATA_FILENAME
 from lightning.fabric.utilities.optimizer import _optimizers_to_device
 from lightning.fabric.utilities.seed import reset_seed
 from lightning.fabric.utilities.types import _PATH, ReduceOp
@@ -94,16 +101,6 @@ class ModelParallelStrategy(ParallelStrategy):
         if self._device_mesh is None:
             raise RuntimeError("Accessing the device mesh before processes have initialized is not allowed.")
         return self._device_mesh
-
-    @property
-    @override
-    def checkpoint_io(self) -> CheckpointIO:
-        raise NotImplementedError(f"The `{type(self).__name__}` does not use the `CheckpointIO` plugin interface.")
-
-    @checkpoint_io.setter
-    @override
-    def checkpoint_io(self, io: CheckpointIO) -> None:
-        raise NotImplementedError(f"The `{type(self).__name__}` does not support setting a `CheckpointIO` plugin.")
 
     @property
     @override
@@ -253,6 +250,11 @@ class ModelParallelStrategy(ParallelStrategy):
 
     @override
     def lightning_module_state_dict(self) -> Dict[str, Any]:
+        """Collects the state dict of the model.
+
+        Only returns a non-empty state dict on rank 0 if ``save_distributed_checkpoint=False``.
+
+        """
         from torch.distributed.checkpoint.state_dict import StateDictOptions, get_model_state_dict
 
         state_dict_options = StateDictOptions(full_state_dict=(not self._save_distributed_checkpoint), cpu_offload=True)
@@ -266,6 +268,11 @@ class ModelParallelStrategy(ParallelStrategy):
 
     @override
     def optimizer_state(self, optimizer: Optimizer) -> Dict[str, Any]:
+        """Collects the state of the given optimizer.
+
+        Only returns a non-empty state dict on rank 0 if ``save_distributed_checkpoint=False``.
+
+        """
         from torch.distributed.checkpoint.state_dict import StateDictOptions, get_optimizer_state_dict
         from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
         from torch.distributed.fsdp import OptimStateKeyType
@@ -275,8 +282,9 @@ class ModelParallelStrategy(ParallelStrategy):
             optimizer = optimizer._optimizer
 
         assert self.model is not None
+
         state_dict = get_optimizer_state_dict(self.model, optimizer, options=state_dict_options)
-        if not self._save_distributed_checkpoint:
+        if not self._save_distributed_checkpoint and self.global_rank == 0:
             # Store the optimizer state dict in standard format
             state_dict = FSDP.rekey_optim_state_dict(state_dict, OptimStateKeyType.PARAM_ID, self.model)
         return state_dict
@@ -295,11 +303,45 @@ class ModelParallelStrategy(ParallelStrategy):
                 f"`{type(self).__name__}.save_checkpoint(..., storage_options=...)` is not supported because"
                 f" `{type(self).__name__}` does not use the `CheckpointIO`."
             )
-        raise NotImplementedError("Checkpoint saving is not yet implemented.")
+        # broadcast the path from rank 0 to ensure all the checkpoints are saved to a common path
+        path = Path(self.broadcast(filepath))
+        if path.is_dir() and not self._save_distributed_checkpoint and not _is_sharded_checkpoint(path):
+            raise IsADirectoryError(f"The checkpoint path exists and is a directory: {path}")
+
+        if self._save_distributed_checkpoint:
+            if path.is_file():
+                path.unlink()
+            path.mkdir(parents=True, exist_ok=True)
+
+            converted_state = {"state_dict": checkpoint.pop("state_dict")}
+            converted_state.update({
+                f"optimizer_{idx}": optim_state
+                for idx, optim_state in enumerate(checkpoint.pop("optimizer_states", []))
+            })
+            _distributed_checkpoint_save(converted_state, path)
+
+            if self.global_rank == 0:
+                torch.save(checkpoint, path / _METADATA_FILENAME)
+        else:
+            if _is_sharded_checkpoint(path):
+                shutil.rmtree(path)
+            return super().save_checkpoint(checkpoint=checkpoint, filepath=path)
 
     @override
     def load_checkpoint(self, checkpoint_path: _PATH) -> Dict[str, Any]:
-        raise NotImplementedError("Checkpoint loading is not yet implemented.")
+        # broadcast the path from rank 0 to ensure all the states are loaded from a common path
+        path = Path(self.broadcast(checkpoint_path))
+        state = {
+            "state_dict": self.model,
+            **{f"optimizer_{idx}": optimizer for idx, optimizer in enumerate(self.optimizers)},
+        }
+        assert self.lightning_module is not None
+        return _load_checkpoint(
+            path=path,
+            state=state,
+            strict=self.lightning_module.strict_loading,
+            optimizer_states_from_list=True,
+        )
 
     def _setup_distributed(self) -> None:
         super().setup_environment()

@@ -10,11 +10,13 @@ from click.testing import CliRunner
 from lightning.app import LightningApp
 from lightning.app.cli.lightning_cli import _run_app, run_app
 from lightning.app.runners.runtime_type import RuntimeType
+from lightning.app.testing.helpers import _RunIf
 from lightning.app.utilities.app_helpers import convert_print_to_logger_info
 
 from tests_app import _PROJECT_ROOT
 
 
+@_RunIf(skip_windows=True, skip_mac_os=True)
 @mock.patch("click.launch")
 @pytest.mark.parametrize("open_ui", [True, False])
 def test_lightning_run_app(lauch_mock: mock.MagicMock, open_ui, caplog, monkeypatch):

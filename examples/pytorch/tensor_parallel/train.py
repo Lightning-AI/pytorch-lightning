@@ -9,7 +9,7 @@ from torch.distributed.tensor.parallel import loss_parallel
 from torch.utils.data import DataLoader
 
 
-class Llama2(L.LightningModule):
+class Llama3(L.LightningModule):
     def __init__(self):
         super().__init__()
         self.model_args = ModelArgs(vocab_size=32000)
@@ -63,7 +63,7 @@ def train():
 
     # Initialize the model
     with trainer.init_module(empty_init=True):
-        model = Llama2()
+        model = Llama3()
 
     trainer.print(f"Number of model parameters: {sum(p.numel() for p in model.parameters()) / 1e9:.1f} B")
     trainer.print("Starting training ...")

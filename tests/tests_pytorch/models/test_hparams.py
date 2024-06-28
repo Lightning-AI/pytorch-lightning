@@ -552,7 +552,7 @@ def test_hparams_pickle_warning(tmp_path):
         trainer.fit(model)
 
 
-def test_hparams_save_yaml(tmp_path):
+def test_save_hparams_to_yaml(tmp_path):
     class Options(str, Enum):
         option1name = "option1val"
         option2name = "option2val"
@@ -588,6 +588,14 @@ def test_hparams_save_yaml(tmp_path):
     if _OMEGACONF_AVAILABLE:
         save_hparams_to_yaml(path_yaml, OmegaConf.create(hparams))
         _compare_params(load_hparams_from_yaml(path_yaml), hparams)
+
+
+def test_save_hparams_to_yaml_warning(tmp_path):
+    """Test that we warn about unserializable parameters that need to be dropped."""
+    path_yaml = tmp_path / "hparams.yaml"
+    hparams = {"torch_type": torch.float32}
+    with pytest.warns(UserWarning, match="Skipping 'torch_type' parameter"):
+        save_hparams_to_yaml(path_yaml, hparams)
 
 
 class NoArgsSubClassBoringModel(CustomBoringModel):

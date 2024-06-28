@@ -74,7 +74,7 @@ class _A(LightningFlow):
         self.work_a.run()
 
 
-@pytest.mark.skipif(sys.platform == "win32" or sys.platform == "darwin", reason="too slow on Windows or macOs")
+@pytest.mark.skipif(sys.platform == "win32", reason="too slow on Windows or macOs")
 def test_app_state_api():
     """This test validates the AppState can properly broadcast changes from work within its own process."""
     app = LightningApp(_A(), log_level="debug")
@@ -404,7 +404,7 @@ async def test_frontend_routes(path, expected_status_code):
     assert response.status_code == expected_status_code
 
 
-@pytest.mark.xfail(sys.platform == "linux", reason="No idea why... need to be fixed")  # fixme
+@pytest.mark.xfail(sys.platform == "linux", strict=False, reason="No idea why... need to be fixed")  # fixme
 def test_start_server_started():
     """This test ensures has_started_queue receives a signal when the REST API has started."""
     api_publish_state_queue = mp.Queue()

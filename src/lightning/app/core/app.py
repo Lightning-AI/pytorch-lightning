@@ -35,6 +35,7 @@ from lightning.app.core.constants import (
     FLOW_DURATION_SAMPLES,
     FLOW_DURATION_THRESHOLD,
     FRONTEND_DIR,
+    SHOULD_START_WORKS_WITH_FLOW,
     STATE_ACCUMULATE_WAIT,
 )
 from lightning.app.core.queues import BaseQueue
@@ -144,6 +145,7 @@ class LightningApp:
         self.threads: List[threading.Thread] = []
         self.exception = None
         self.collect_changes: bool = True
+        self._should_start_works_with_flow: bool = SHOULD_START_WORKS_WITH_FLOW
 
         self.status: Optional[AppStatus] = None
         # TODO: Enable ready locally for opening the UI.
@@ -733,6 +735,9 @@ class LightningApp:
                 self.flow_to_work_delta_queues[w.name].put(deep_diff)
 
     def _start_with_flow_works(self) -> None:
+        if not self._should_start_works_with_flow:
+            return
+
         for w in self.works:
             if w._start_with_flow:
                 parallel = w.parallel

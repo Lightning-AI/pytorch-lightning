@@ -206,7 +206,7 @@ class Trainer:
                 across epochs or during iteration-based training.
                 Default: ``1.0``.
 
-            check_val_every_n_epoch: Perform a validation loop every after every `N` training epochs. If ``None``,
+            check_val_every_n_epoch: Perform a validation loop after every `N` training epochs. If ``None``,
                 validation will be done solely based on the number of training batches, requiring ``val_check_interval``
                 to be an integer value.
                 Default: ``1``.
@@ -1654,8 +1654,8 @@ class Trainer:
     def estimated_stepping_batches(self) -> Union[int, float]:
         r"""The estimated number of batches that will ``optimizer.step()`` during training.
 
-        This accounts for gradient accumulation and the current trainer configuration. This might sets up your training
-        dataloader if hadn't been set up already.
+        This accounts for gradient accumulation and the current trainer configuration. This might be used when setting
+        up your training dataloader, if it hasn't been set up already.
 
         .. code-block:: python
 

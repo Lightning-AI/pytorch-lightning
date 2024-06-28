@@ -17,7 +17,6 @@ import multiprocessing
 import pickle
 import queue  # needed as import instead from/import for mocking in tests
 import time
-import warnings
 from abc import ABC, abstractmethod
 from enum import Enum
 from pathlib import Path
@@ -25,6 +24,7 @@ from typing import Any, List, Optional, Tuple
 from urllib.parse import urljoin
 
 import backoff
+import msgpack
 import requests
 from requests.exceptions import ConnectionError, ConnectTimeout, ReadTimeout
 
@@ -34,6 +34,7 @@ from lightning.app.core.constants import (
     HTTP_QUEUE_REQUESTS_PER_SECOND,
     HTTP_QUEUE_TOKEN,
     HTTP_QUEUE_URL,
+    IS_RUNNING_IN_FLOW,
     LIGHTNING_DIR,
     QUEUE_DEBUG_ENABLED,
     REDIS_HOST,
@@ -41,7 +42,6 @@ from lightning.app.core.constants import (
     REDIS_PORT,
     REDIS_QUEUES_READ_DEFAULT_TIMEOUT,
     STATE_UPDATE_TIMEOUT,
-    WARNING_QUEUE_SIZE,
 )
 from lightning.app.utilities.app_helpers import Logger
 from lightning.app.utilities.imports import _is_redis_available, requires
@@ -80,9 +80,14 @@ class QueuingSystem(Enum):
             return MultiProcessQueue(queue_name, default_timeout=STATE_UPDATE_TIMEOUT)
         if self == QueuingSystem.REDIS:
             return RedisQueue(queue_name, default_timeout=REDIS_QUEUES_READ_DEFAULT_TIMEOUT)
-        return RateLimitedQueue(
-            HTTPQueue(queue_name, default_timeout=STATE_UPDATE_TIMEOUT), HTTP_QUEUE_REQUESTS_PER_SECOND
-        )
+
+        queue = HTTPQueue(queue_name, default_timeout=STATE_UPDATE_TIMEOUT)
+
+        # In the flow, don't rate limit the caller queue. Otherwise, startup time would be slow with lot of works.
+        if CALLER_QUEUE_CONSTANT in queue_name and IS_RUNNING_IN_FLOW:
+            return queue
+
+        return RateLimitedQueue(queue, HTTP_QUEUE_REQUESTS_PER_SECOND)
 
     def get_api_response_queue(self, queue_id: Optional[str] = None) -> "BaseQueue":
         queue_name = f"{queue_id}_{API_RESPONSE_QUEUE_CONSTANT}" if queue_id else API_RESPONSE_QUEUE_CONSTANT
@@ -284,14 +289,6 @@ class RedisQueue(BaseQueue):
             item._backend = None
 
         value = pickle.dumps(item)
-        queue_len = self.length()
-        if queue_len >= WARNING_QUEUE_SIZE:
-            warnings.warn(
-                f"The Redis Queue {self.name} length is larger than the "
-                f"recommended length of {WARNING_QUEUE_SIZE}. "
-                f"Found {queue_len}. This might cause your application to crash, "
-                "please investigate this."
-            )
         try:
             self.redis.rpush(self.name, value)
         except redis.exceptions.ConnectionError:
@@ -451,7 +448,11 @@ class HTTPQueue(BaseQueue):
             return False
         return False
 
+    @backoff.on_exception(
+        backoff.expo, (RuntimeError, requests.exceptions.HTTPError, requests.exceptions.ChunkedEncodingError)
+    )
     def get(self, timeout: Optional[float] = None) -> Any:
+        logger.debug(f"get {self.name}")
         if not self.app_id:
             raise ValueError(f"App ID couldn't be extracted from the queue name: {self.name}")
 
@@ -498,13 +499,17 @@ class HTTPQueue(BaseQueue):
             resp = self.client.post(f"v1/{self.app_id}/{self._name_suffix}", query_params={"action": "pop"})
             if resp.status_code == 204:
                 raise queue.Empty
-            return pickle.loads(resp.content)
+
+            if self._use_pickle():
+                return pickle.loads(resp.content)
+            return msgpack.unpackb(resp.content)
         except ConnectionError:
             # Note: If the Http Queue service isn't available,
             # we consider the queue is empty to avoid failing the app.
             raise queue.Empty
 
     def batch_get(self, timeout: Optional[float] = None, count: Optional[int] = None) -> List[Any]:
+        logger.debug(f"batch_get {self.name}")
         try:
             resp = self.client.post(
                 f"v1/{self.app_id}/{self._name_suffix}",
@@ -512,24 +517,24 @@ class HTTPQueue(BaseQueue):
             )
             if resp.status_code == 204:
                 raise queue.Empty
-            return [pickle.loads(base64.b64decode(data)) for data in resp.json()]
+
+            if self._use_pickle():
+                return [pickle.loads(base64.b64decode(data)) for data in resp.json()]
+            return [msgpack.unpackb(base64.b64decode(data)) for data in resp.json()]
         except ConnectionError:
             # Note: If the Http Queue service isn't available,
             # we consider the queue is empty to avoid failing the app.
             raise queue.Empty
 
-    @backoff.on_exception(backoff.expo, (RuntimeError, requests.exceptions.HTTPError))
+    @backoff.on_exception(
+        backoff.expo, (RuntimeError, requests.exceptions.HTTPError, requests.exceptions.ChunkedEncodingError)
+    )
     def put(self, item: Any) -> None:
+        logger.debug(f"put {self.name}")
         if not self.app_id:
             raise ValueError(f"The Lightning App ID couldn't be extracted from the queue name: {self.name}")
 
-        value = pickle.dumps(item)
-        queue_len = self.length()
-        if queue_len >= WARNING_QUEUE_SIZE:
-            warnings.warn(
-                f"The Queue {self._name_suffix} length is larger than the recommended length of {WARNING_QUEUE_SIZE}. "
-                f"Found {queue_len}. This might cause your application to crash, please investigate this."
-            )
+        value = pickle.dumps(item, protocol=pickle.HIGHEST_PROTOCOL) if self._use_pickle() else msgpack.packb(item)
         resp = self.client.post(f"v1/{self.app_id}/{self._name_suffix}", data=value, query_params={"action": "push"})
         if resp.status_code != 201:
             raise RuntimeError(f"Failed to push to queue: {self._name_suffix}")
@@ -567,6 +572,12 @@ class HTTPQueue(BaseQueue):
     @classmethod
     def from_dict(cls, state: dict) -> "HTTPQueue":
         return cls(**state)
+
+    def _use_pickle(self) -> bool:
+        # Note: msgpack is faster than pickle to serialize and deserialize simple JSON
+        return (
+            WORK_QUEUE_CONSTANT in self.name or DELTA_QUEUE_CONSTANT in self.name or ERROR_QUEUE_CONSTANT in self.name
+        )
 
 
 def debug_log_callback(message: str, *args: Any, **kwargs: Any) -> None:

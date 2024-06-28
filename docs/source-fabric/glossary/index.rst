@@ -20,6 +20,11 @@ Glossary
         <div class="row">
 
 .. displayitem::
+    :header: 2D Parallelism
+    :button_link: ../advanced/model_parallel/tp_fsdp.html
+    :col_css: col-md-4
+
+.. displayitem::
     :header: Accelerator
     :button_link: ../fundamentals/accelerators.html
     :col_css: col-md-4

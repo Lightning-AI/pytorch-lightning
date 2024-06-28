@@ -190,7 +190,7 @@ class _LRFinder:
         losses = losses[torch.isfinite(losses)]
 
         if len(losses) < 2:
-            # computing np.gradient requires at least 2 points
+            # computing torch.gradient requires at least 2 points
             log.error(
                 "Failed to compute suggestion for learning rate because there are not enough points. Increase the loop"
                 " iteration limits or the size of your dataset/dataloader."
@@ -301,6 +301,7 @@ def _lr_find(
     trainer._checkpoint_connector.restore(ckpt_path)
     trainer.strategy.remove_checkpoint(ckpt_path)
     trainer.fit_loop.restarting = False  # reset restarting flag as checkpoint restoring sets it to True
+    trainer.fit_loop.epoch_loop.restarting = False  # reset restarting flag as checkpoint restoring sets it to True
     trainer.fit_loop.epoch_loop.val_loop._combined_loader = None
 
     return lr_finder
