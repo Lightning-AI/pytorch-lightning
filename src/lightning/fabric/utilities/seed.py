@@ -12,8 +12,8 @@ from lightning.fabric.utilities.rank_zero import _get_rank, rank_prefixed_messag
 
 log = logging.getLogger(__name__)
 
-max_seed_value = np.iinfo(np.uint32).max
-min_seed_value = np.iinfo(np.uint32).min
+max_seed_value = torch.iinfo(torch.uint32).max
+min_seed_value = torch.iinfo(torch.uint32).min
 
 
 def seed_everything(seed: Optional[int] = None, workers: bool = False) -> int:
@@ -54,7 +54,6 @@ def seed_everything(seed: Optional[int] = None, workers: bool = False) -> int:
     log.info(rank_prefixed_message(f"Seed set to {seed}", _get_rank()))
     os.environ["PL_GLOBAL_SEED"] = str(seed)
     random.seed(seed)
-    np.random.seed(seed)
     torch.manual_seed(seed)
 
     os.environ["PL_SEED_WORKERS"] = f"{int(workers)}"
@@ -93,12 +92,12 @@ def pl_worker_init_function(worker_id: int, rank: Optional[int] = None) -> None:
     )
     ss = np.random.SeedSequence([base_seed, worker_id, global_rank])
     # use 128 bits (4 x 32-bit words)
-    np.random.seed(ss.generate_state(4))
+    random.seed(ss.generate_state(4))
     # Spawn distinct SeedSequences for the PyTorch PRNG and the stdlib random module
     torch_ss, stdlib_ss = ss.spawn(2)
-    torch.manual_seed(torch_ss.generate_state(1, dtype=np.uint64)[0])
+    torch.manual_seed(torch_ss.generate_state(1, dtype=torch.uint64)[0])
     # use 128 bits expressed as an integer
-    stdlib_seed = (stdlib_ss.generate_state(2, dtype=np.uint64).astype(object) * [1 << 64, 1]).sum()
+    stdlib_seed = (stdlib_ss.generate_state(2, dtype=torch.uint64).astype(object) * [1 << 64, 1]).sum()
     random.seed(stdlib_seed)
 
 
