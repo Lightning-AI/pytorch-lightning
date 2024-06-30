@@ -40,7 +40,7 @@ class MixedPrecision(Precision):
         self,
         precision: Literal["16-mixed", "bf16-mixed"],
         device: str,
-        scaler: Optional["torch.amp.GradScaler"] = None,
+        scaler: Optional["torch.amp.GradScaler"] = None,  # type: ignore[name-defined]
     ) -> None:
         if precision not in ("16-mixed", "bf16-mixed"):
             raise ValueError(
@@ -88,7 +88,7 @@ class MixedPrecision(Precision):
         if isinstance(optimizer, LBFGS):
             raise TypeError("AMP and the LBFGS optimizer are not compatible.")
         # note: the scaler will skip the `optimizer.step` if nonfinite gradients are found
-        step_output = self.scaler.step(optimizer, **kwargs)  # type: ignore[arg-type]
+        step_output = self.scaler.step(optimizer, **kwargs)
         self.scaler.update()
         return step_output
 
