@@ -16,6 +16,7 @@ from abc import ABC, abstractmethod
 from functools import partial
 from typing import TYPE_CHECKING, Any, Callable, List, Optional
 
+from lightning.app.core.constants import PLUGIN_CHECKER
 from lightning.app.core.queues import QueuingSystem
 from lightning.app.utilities.proxies import ProxyWorkRun, unwrap
 
@@ -51,6 +52,10 @@ class Backend(ABC):
     def stop_work(self, app: "lightning.app.LightningApp", work: "lightning.app.LightningWork") -> None:
         pass
 
+    @abstractmethod
+    def stop_works(self, works: "List[lightning.app.LightningWork]") -> None:
+        pass
+
     def _dynamic_run_wrapper(
         self,
         *args: Any,
@@ -71,8 +76,10 @@ class Backend(ABC):
 
         work.run = work_run
 
-        # 2. Create the work
-        self.create_work(app, work)
+        # Note: This is an optimization as the MMT is created directly within the launcher.
+        if PLUGIN_CHECKER.should_create_work(work):
+            # 2. Create the work
+            self.create_work(app, work)
 
         # 3. Attach backend
         work._backend = self

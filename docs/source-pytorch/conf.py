@@ -14,6 +14,7 @@
 import glob
 import os
 import shutil
+import urllib
 import warnings
 from importlib.util import module_from_spec, spec_from_file_location
 from types import ModuleType
@@ -91,8 +92,14 @@ _transform_changelog(
 assist_local.AssistantCLI.pull_docs_files(
     gh_user_repo="Lightning-AI/lightning-Habana",
     target_dir="docs/source-pytorch/integrations/hpu",
-    checkout="refs/tags/1.4.0",
+    checkout="refs/tags/1.6.0",
 )
+# the HPU also need some images
+URL_RAW_DOCS_HABANA = "https://raw.githubusercontent.com/Lightning-AI/lightning-Habana/1.5.0/docs/source"
+for img in ["_images/HPUProfiler.png", "_images/IGP.png"]:
+    img_ = os.path.join(_PATH_HERE, "integrations", "hpu", img)
+    os.makedirs(os.path.dirname(img_), exist_ok=True)
+    urllib.request.urlretrieve(f"{URL_RAW_DOCS_HABANA}/{img}", img_)
 
 # Copy strategies docs as single pages
 assist_local.AssistantCLI.pull_docs_files(
@@ -459,6 +466,7 @@ nitpick_ignore = [
     ("py:class", "lightning.pytorch.utilities.types.LRSchedulerConfig"),
     ("py:class", "lightning.pytorch.utilities.types.OptimizerLRSchedulerConfig"),
     ("py:class", "lightning_habana.pytorch.plugins.precision.HPUPrecisionPlugin"),
+    ("py:class", "lightning_habana.pytorch.strategies.HPUDDPStrategy"),
     ("py:class", "lightning_habana.pytorch.strategies.HPUParallelStrategy"),
     ("py:class", "lightning_habana.pytorch.strategies.SingleHPUStrategy"),
     ("py:obj", "logger.experiment"),
