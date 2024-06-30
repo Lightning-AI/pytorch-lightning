@@ -5,10 +5,6 @@ Speed up models by compiling them
 Compiling your PyTorch model can result in significant speedups, especially on the latest generations of GPUs.
 This guide shows you how to apply `torch.compile <https://pytorch.org/docs/2.2/generated/torch.compile.html>`_ correctly in your code.
 
-.. note::
-
-    This requires PyTorch >= 2.0.
-
 
 ----
 

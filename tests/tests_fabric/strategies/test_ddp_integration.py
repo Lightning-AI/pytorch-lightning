@@ -75,7 +75,7 @@ def _run_ddp_save_load(fabric, tmp_path):
     assert_params_equal(params_before, wrapped_model.parameters())
 
 
-@RunIf(min_cuda_gpus=2, standalone=True, min_torch="2.1.0", dynamo=True)
+@RunIf(min_cuda_gpus=2, standalone=True, dynamo=True)
 @mock.patch("lightning.fabric.wrappers.torch.compile", Mock(wraps=torch.compile))
 @mock.patch.dict(os.environ, {})
 def test_reapply_compile():

@@ -14,7 +14,7 @@ import torch
 import torch.nn as nn
 from lightning.fabric.plugins.environments import LightningEnvironment
 from lightning.fabric.strategies.fsdp import _is_sharded_checkpoint
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_1, _TORCH_GREATER_EQUAL_2_2
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_2
 from lightning.fabric.utilities.load import _load_distributed_checkpoint
 from lightning.pytorch import Trainer
 from lightning.pytorch.callbacks import ModelCheckpoint
@@ -334,10 +334,9 @@ def test_strategy_full_state_dict(tmp_path, wrap_min_params):
             TestFSDPModelAutoWrapped(),
             FSDPStrategy,
             {
-                "auto_wrap_policy": ModuleWrapPolicy({nn.Linear}) if _TORCH_GREATER_EQUAL_2_1 else None,
+                "auto_wrap_policy": ModuleWrapPolicy({nn.Linear}),
                 "use_orig_params": True,
             },
-            marks=RunIf(min_torch="2.1.0"),
             id="autowrap_use_orig_params",
         ),
     ],
@@ -380,19 +379,12 @@ def test_invalid_parameters_in_optimizer(use_orig_params):
         fast_dev_run=1,
     )
 
-    error_context = (
-        nullcontext()
-        if _TORCH_GREATER_EQUAL_2_1 or use_orig_params is not False
-        else pytest.raises(ValueError, match="The optimizer does not seem to reference any FSDP parameters")
-    )
-
     class EmptyParametersModel(BoringModel):
         def configure_optimizers(self):
             return torch.optim.Adam(self.parameters(), lr=1e-2)
 
     model = EmptyParametersModel()
-    with error_context:
-        trainer.fit(model)
+    trainer.fit(model)
 
     class NoFlatParametersModel(BoringModel):
         def configure_optimizers(self):
@@ -435,28 +427,13 @@ def test_activation_checkpointing():
             self.layer1 = Block2(2, 2)
             self.layer2 = nn.Linear(3, 3)
 
-    if _TORCH_GREATER_EQUAL_2_1:
-        from torch.distributed.fsdp.wrap import ModuleWrapPolicy
+    strategy = FSDPStrategy(activation_checkpointing_policy={Block1})
+    assert set(strategy._activation_checkpointing_kwargs) == {"auto_wrap_policy"}
+    assert isinstance(strategy._activation_checkpointing_kwargs["auto_wrap_policy"], ModuleWrapPolicy)
 
-        strategy = FSDPStrategy(activation_checkpointing_policy={Block1})
-        assert set(strategy._activation_checkpointing_kwargs) == {"auto_wrap_policy"}
-        assert isinstance(strategy._activation_checkpointing_kwargs["auto_wrap_policy"], ModuleWrapPolicy)
-
-        strategy = FSDPStrategy(activation_checkpointing_policy=ModuleWrapPolicy({Block1, Block2}))
-        assert set(strategy._activation_checkpointing_kwargs) == {"auto_wrap_policy"}
-        assert isinstance(strategy._activation_checkpointing_kwargs["auto_wrap_policy"], ModuleWrapPolicy)
-    else:
-        strategy = FSDPStrategy(activation_checkpointing=Block1)
-        assert set(strategy._activation_checkpointing_kwargs) == {"check_fn"}
-
-        strategy = FSDPStrategy(activation_checkpointing=[Block1, Block2])
-        assert set(strategy._activation_checkpointing_kwargs) == {"check_fn"}
-
-        strategy = FSDPStrategy(activation_checkpointing_policy={Block1})
-        assert set(strategy._activation_checkpointing_kwargs) == {"check_fn"}
-
-        strategy = FSDPStrategy(activation_checkpointing_policy={Block1, Block2})
-        assert set(strategy._activation_checkpointing_kwargs) == {"check_fn"}
+    strategy = FSDPStrategy(activation_checkpointing_policy=ModuleWrapPolicy({Block1, Block2}))
+    assert set(strategy._activation_checkpointing_kwargs) == {"auto_wrap_policy"}
+    assert isinstance(strategy._activation_checkpointing_kwargs["auto_wrap_policy"], ModuleWrapPolicy)
 
     model = Model()
     strategy._parallel_devices = [torch.device("cuda", 0)]
@@ -608,7 +585,7 @@ def test_strategy_save_optimizer_states(tmp_path, wrap_min_params):
     if trainer.global_rank != 0:
         assert len(model_state_dict) == 0
 
-    if trainer.global_rank != 0 and _TORCH_GREATER_EQUAL_2_1:
+    if trainer.global_rank != 0:
         assert len(optimizer_state_dict) == 0
 
     # restore model to ddp
@@ -679,7 +656,7 @@ def test_strategy_load_optimizer_states(wrap_min_params, tmp_path):
     if trainer.global_rank != 0:
         assert len(restored_model_state_dict) == 0
 
-    if trainer.global_rank != 0 and _TORCH_GREATER_EQUAL_2_1:
+    if trainer.global_rank != 0:
         assert len(restored_optimizer_state_dict) == 0
 
     if trainer.global_rank == 0:
@@ -936,12 +913,8 @@ def test_module_init_context(precision, expected_dtype, tmp_path):
     # Case 1: No empty init
     _run_setup_assertions(empty_init=False, expected_device=torch.device("cpu"))
 
-    if _TORCH_GREATER_EQUAL_2_1:
-        # Case 2: Empty-init with PyTorch >= 2.1 supports meta device
-        _run_setup_assertions(empty_init=True, expected_device=torch.device("meta"))
-    else:
-        # Case 2: Empty-init with PyTorch < 2.1 only supports `torch.empty()`-init
-        _run_setup_assertions(empty_init=True, expected_device=torch.device("cpu"))
+    # Case 2: Empty-init with meta device
+    _run_setup_assertions(empty_init=True, expected_device=torch.device("meta"))
 
 
 @RunIf(min_cuda_gpus=2, standalone=True, min_torch="2.3.0")
