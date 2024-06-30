@@ -32,7 +32,7 @@ class MixedPrecision(Precision):
     Args:
         precision: Whether to use ``torch.float16`` (``'16-mixed'``) or ``torch.bfloat16`` (``'bf16-mixed'``).
         device: The device for ``torch.autocast``.
-        scaler: An optional :class:`torch.amp.GradScaler` to use.
+        scaler: An optional :class:`torch.cuda.amp.GradScaler` to use.
 
     """
 
@@ -114,7 +114,7 @@ class MixedPrecision(Precision):
 
 def _optimizer_handles_unscaling(optimizer: Any) -> bool:
     """Determines whether a PyTorch optimizer handles unscaling gradients in the step method rather than through the
-    :class:`torch.amp.GradScaler`.
+    :class:`torch.cuda.amp.GradScaler`.
 
     Since, the current implementation of this function checks a PyTorch internal variable on the optimizer, the return
     value will only be reliable for built-in PyTorch optimizers.
