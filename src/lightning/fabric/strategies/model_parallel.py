@@ -70,7 +70,7 @@ class ModelParallelStrategy(ParallelStrategy):
 
     Currently supports up to 2D parallelism. Specifically, it supports the combination of
     Fully Sharded Data-Parallel 2 (FSDP2) with Tensor Parallelism (DTensor). These PyTorch APIs are currently still
-    experimental in PyTorch. Requires PyTorch 2.3 or newer.
+    experimental in PyTorch. Requires PyTorch 2.4 or newer.
 
     Arguments:
         parallelize_fn: A function that applies parallelisms to a module. The strategy will provide the
@@ -95,8 +95,8 @@ class ModelParallelStrategy(ParallelStrategy):
         timeout: Optional[timedelta] = default_pg_timeout,
     ) -> None:
         super().__init__()
-        if not _TORCH_GREATER_EQUAL_2_3:
-            raise ImportError(f"{type(self).__name__} requires PyTorch 2.3 or higher.")
+        if not _TORCH_GREATER_EQUAL_2_4:
+            raise ImportError(f"{type(self).__name__} requires PyTorch 2.4 or higher.")
         self._parallelize_fn = parallelize_fn
         self._data_parallel_size = data_parallel_size
         self._tensor_parallel_size = tensor_parallel_size
@@ -178,7 +178,7 @@ class ModelParallelStrategy(ParallelStrategy):
         if any(isinstance(mod, FullyShardedDataParallel) for mod in module.modules()):
             raise TypeError(
                 "Found modules that are wrapped with `torch.distributed.fsdp.FullyShardedDataParallel`."
-                f" The `{self.__class__.__name__}` only supports the new FSDP2 APIs in PyTorch >= 2.3."
+                f" The `{self.__class__.__name__}` only supports the new FSDP2 APIs in PyTorch >= 2.4."
             )
 
         module = self._parallelize_fn(module, self.device_mesh)
@@ -329,10 +329,10 @@ class _FSDPNoSync(ContextManager):
         self._enabled = enabled
 
     def _set_requires_grad_sync(self, requires_grad_sync: bool) -> None:
-        from torch.distributed._composable.fsdp import FSDP
+        from torch.distributed._composable.fsdp import FSDPModule
 
         for mod in self._module.modules():
-            if isinstance(mod, FSDP):
+            if isinstance(mod, FSDPModule):
                 mod.set_requires_gradient_sync(requires_grad_sync, recurse=False)
 
     def __enter__(self) -> None:
@@ -458,9 +458,6 @@ def _load_checkpoint(
         return metadata
 
     if _is_full_checkpoint(path):
-        if not _TORCH_GREATER_EQUAL_2_4:
-            raise ImportError("Loading a non-distributed checkpoint into a distributed model requires PyTorch >= 2.4.")
-
         checkpoint = torch.load(path, mmap=True, map_location="cpu")
         _load_raw_module_state(checkpoint.pop(module_key), module, strict=strict)
 
@@ -546,9 +543,6 @@ def _load_raw_module_state(
     from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
 
     if _has_dtensor_modules(module):
-        if not _TORCH_GREATER_EQUAL_2_4:
-            raise ImportError("Loading a non-distributed checkpoint into a distributed model requires PyTorch >= 2.4.")
-
         from torch.distributed.checkpoint.state_dict import StateDictOptions, set_model_state_dict
 
         state_dict_options = StateDictOptions(

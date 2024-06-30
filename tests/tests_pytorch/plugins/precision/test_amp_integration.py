@@ -15,6 +15,7 @@ from unittest.mock import Mock
 
 import torch
 from lightning.fabric import seed_everything
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_4
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.plugins.precision import MixedPrecision
@@ -28,7 +29,8 @@ class FusedOptimizerParityModel(BoringModel):
         self.fused = fused
 
     def configure_optimizers(self):
-        assert isinstance(self.trainer.precision_plugin.scaler, torch.cuda.amp.GradScaler)
+        scaler_cls = torch.amp.GradScaler if _TORCH_GREATER_EQUAL_2_4 else torch.cuda.amp.GradScaler
+        assert isinstance(self.trainer.precision_plugin.scaler, scaler_cls)
         return torch.optim.Adam(self.parameters(), lr=1.0, fused=self.fused)
 
 

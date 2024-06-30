@@ -868,7 +868,7 @@ def test_precision_selection_amp_ddp(strategy, devices, is_custom_plugin, plugin
     assert isinstance(connector.precision, plugin_cls)
 
 
-@RunIf(min_torch="2.3")
+@RunIf(min_torch="2.4")
 @pytest.mark.parametrize(
     ("precision", "raises"),
     [("32-true", False), ("16-true", False), ("bf16-true", False), ("16-mixed", True), ("bf16-mixed", False)],

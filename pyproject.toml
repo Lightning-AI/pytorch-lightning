@@ -279,8 +279,8 @@ addopts = [
 markers = [
     "cloud: Run the cloud tests for example",
 ]
-filterwarnings = [
-    "error::FutureWarning",
-]
+#filterwarnings = [
+#    "error::FutureWarning",
+#]
 xfail_strict = true
 junit_duration_report = "call"

@@ -687,7 +687,7 @@ def test_unwrap_compiled():
     assert unwrapped is compiled._orig_mod
     assert compile_kwargs == {"fullgraph": True, "dynamic": True, "disable": False}
 
-    del compiled._compile_kwargs
+    compiled._compile_kwargs = None
     with pytest.raises(RuntimeError, match="Failed to determine the arguments that were used to compile the module"):
         _unwrap_compiled(compiled)
 

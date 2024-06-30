@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import shutil
+import warnings
 from contextlib import ExitStack, nullcontext
 from datetime import timedelta
 from functools import partial
@@ -83,6 +84,9 @@ if TYPE_CHECKING:
 
 
 _FSDP_ALIASES = ("fsdp", "fsdp_cpu_offload")
+
+# TODO: Switch to new state-dict APIs
+warnings.filterwarnings("ignore", category=FutureWarning, message=".*FSDP.state_dict_type.*")  # from torch >= 2.4
 
 
 class FSDPStrategy(ParallelStrategy, _Sharded):

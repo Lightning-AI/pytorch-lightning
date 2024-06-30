@@ -153,7 +153,10 @@ def thread_police_duuu_daaa_duuu_daaa():
             assert not thread.is_alive()
         elif isinstance(thread, _ChildProcessObserver):
             thread.join(timeout=10)
-        elif thread.name == "QueueFeederThread":  # tensorboardX
+        elif (
+            thread.name == "QueueFeederThread"  # tensorboardX
+            or "(_read_thread)" in thread.name  # torch.compile
+        ):
             thread.join(timeout=20)
         elif isinstance(thread, TMonitor):
             thread.exit()

@@ -111,7 +111,7 @@ class FSDP2TensorParallelModel(TemplateModel):
         _parallelize_feed_forward_fsdp2_tp(self.model, device_mesh=self.device_mesh)
 
 
-@RunIf(min_torch="2.3", standalone=True, min_cuda_gpus=4)
+@RunIf(min_torch="2.4", standalone=True, min_cuda_gpus=4)
 def test_setup_device_mesh():
     from torch.distributed.device_mesh import DeviceMesh
 
@@ -168,7 +168,7 @@ def test_setup_device_mesh():
     trainer.fit(model)
 
 
-@RunIf(min_torch="2.3", standalone=True, min_cuda_gpus=2)
+@RunIf(min_torch="2.4", standalone=True, min_cuda_gpus=2)
 def test_tensor_parallel():
     from torch.distributed._tensor import DTensor
 
@@ -209,7 +209,7 @@ def test_tensor_parallel():
     trainer.fit(model)
 
 
-@RunIf(min_torch="2.3", standalone=True, min_cuda_gpus=4)
+@RunIf(min_torch="2.4", standalone=True, min_cuda_gpus=4)
 def test_fsdp2_tensor_parallel():
     from torch.distributed._tensor import DTensor
 
@@ -266,7 +266,7 @@ def test_fsdp2_tensor_parallel():
     trainer.fit(model)
 
 
-@RunIf(min_torch="2.3", min_cuda_gpus=2, standalone=True)
+@RunIf(min_torch="2.4", min_cuda_gpus=2, standalone=True)
 def test_modules_without_parameters(tmp_path):
     """Test that TorchMetrics get moved to the device despite not having any parameters."""
 
@@ -297,7 +297,7 @@ def test_modules_without_parameters(tmp_path):
     trainer.fit(model)
 
 
-@RunIf(min_torch="2.3", min_cuda_gpus=2, standalone=True)
+@RunIf(min_torch="2.4", min_cuda_gpus=2, standalone=True)
 @pytest.mark.parametrize(
     ("precision", "expected_dtype"),
     [
@@ -343,7 +343,7 @@ def test_module_init_context(precision, expected_dtype, tmp_path):
     _run_setup_assertions(empty_init=True, expected_device=torch.device("meta"))
 
 
-@RunIf(min_torch="2.3", min_cuda_gpus=2, skip_windows=True, standalone=True)
+@RunIf(min_torch="2.4", min_cuda_gpus=2, skip_windows=True, standalone=True)
 @pytest.mark.parametrize("save_distributed_checkpoint", [True, False])
 def test_strategy_state_dict(tmp_path, save_distributed_checkpoint):
     """Test that the strategy returns the correct state dict of the LightningModule."""
@@ -377,7 +377,7 @@ def test_strategy_state_dict(tmp_path, save_distributed_checkpoint):
         assert list(state_dict.keys()) == list(correct_state_dict.keys())
 
 
-@RunIf(min_torch="2.3", min_cuda_gpus=2, skip_windows=True, standalone=True)
+@RunIf(min_torch="2.4", min_cuda_gpus=2, skip_windows=True, standalone=True)
 def test_load_full_state_checkpoint_into_regular_model(tmp_path):
     """Test that a full-state checkpoint saved from a distributed model can be loaded back into a regular model."""
 

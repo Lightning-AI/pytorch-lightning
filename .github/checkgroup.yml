@@ -149,12 +149,16 @@ subprojects:
       - "build-cuda (3.10, 2.2, 12.1.0)"
       - "build-cuda (3.11, 2.1, 12.1.0)"
       - "build-cuda (3.11, 2.2, 12.1.0)"
+      - "build-cuda (3.11, 2.3, 12.1.0)"
+      - "build-cuda (3.11, 2.4, 12.1.0)"
       #- "build-NGC"
       - "build-pl (3.10, 2.0, 11.8.0)"
       - "build-pl (3.10, 2.1, 12.1.0)"
       - "build-pl (3.10, 2.2, 12.1.0)"
       - "build-pl (3.11, 2.1, 12.1.0)"
       - "build-pl (3.11, 2.2, 12.1.0)"
+      - "build-pl (3.11, 2.3, 12.1.0)"
+      - "build-pl (3.11, 2.4, 12.1.0)"
 
   # SECTION: lightning_fabric
 

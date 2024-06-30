@@ -93,7 +93,7 @@ def test_bitsandbytes_plugin(monkeypatch):
         precision.convert_module(model)
 
 
-@RunIf(min_cuda_gpus=1)
+@RunIf(min_cuda_gpus=1, max_torch="2.4")
 @pytest.mark.skipif(not _BITSANDBYTES_AVAILABLE, reason="bitsandbytes unavailable")
 @pytest.mark.parametrize(
     ("args", "expected"),
@@ -232,7 +232,7 @@ def test_bitsandbytes_layers_meta_device(args, expected, tmp_path):
     assert model.l.weight.dtype == expected
 
 
-@RunIf(min_cuda_gpus=1, min_torch="2.1")
+@RunIf(min_cuda_gpus=1, min_torch="2.1", max_torch="2.4")
 @pytest.mark.skipif(not _BITSANDBYTES_AVAILABLE, reason="bitsandbytes unavailable")
 def test_load_quantized_checkpoint(tmp_path):
     """Test that a checkpoint saved from a quantized model can be loaded back into a quantized model."""

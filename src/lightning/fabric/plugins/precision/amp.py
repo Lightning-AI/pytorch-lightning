@@ -22,6 +22,7 @@ from typing_extensions import override
 
 from lightning.fabric.plugins.precision.precision import Precision
 from lightning.fabric.plugins.precision.utils import _convert_fp_tensor
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_4
 from lightning.fabric.utilities.types import Optimizable
 
 
@@ -31,7 +32,7 @@ class MixedPrecision(Precision):
     Args:
         precision: Whether to use ``torch.float16`` (``'16-mixed'``) or ``torch.bfloat16`` (``'bf16-mixed'``).
         device: The device for ``torch.autocast``.
-        scaler: An optional :class:`torch.cuda.amp.GradScaler` to use.
+        scaler: An optional :class:`torch.amp.GradScaler` to use.
 
     """
 
@@ -39,7 +40,7 @@ class MixedPrecision(Precision):
         self,
         precision: Literal["16-mixed", "bf16-mixed"],
         device: str,
-        scaler: Optional[torch.cuda.amp.GradScaler] = None,
+        scaler: Optional["torch.amp.GradScaler"] = None,
     ) -> None:
         if precision not in ("16-mixed", "bf16-mixed"):
             raise ValueError(
@@ -49,7 +50,7 @@ class MixedPrecision(Precision):
 
         self.precision = precision
         if scaler is None and self.precision == "16-mixed":
-            scaler = torch.cuda.amp.GradScaler()
+            scaler = torch.amp.GradScaler(device=device) if _TORCH_GREATER_EQUAL_2_4 else torch.cuda.amp.GradScaler()
         if scaler is not None and self.precision == "bf16-mixed":
             raise ValueError(f"`precision='bf16-mixed'` does not use a scaler, found {scaler}.")
         self.device = device
@@ -113,7 +114,7 @@ class MixedPrecision(Precision):
 
 def _optimizer_handles_unscaling(optimizer: Any) -> bool:
     """Determines whether a PyTorch optimizer handles unscaling gradients in the step method rather than through the
-    :class:`torch.cuda.amp.GradScaler`.
+    :class:`torch.amp.GradScaler`.
 
     Since, the current implementation of this function checks a PyTorch internal variable on the optimizer, the return
     value will only be reliable for built-in PyTorch optimizers.

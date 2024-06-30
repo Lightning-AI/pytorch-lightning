@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import os
 import sys
 from unittest import mock
 
@@ -122,6 +123,7 @@ def test_compile_uncompile():
     sys.platform == "win32" and _TORCH_GREATER_EQUAL_2_2, strict=False, reason="RuntimeError: Failed to import"
 )
 @RunIf(dynamo=True)
+@mock.patch.dict(os.environ, {})
 def test_trainer_compiled_model_that_logs(tmp_path):
     class MyModel(BoringModel):
         def training_step(self, batch, batch_idx):
@@ -152,6 +154,7 @@ def test_trainer_compiled_model_that_logs(tmp_path):
     sys.platform == "win32" and _TORCH_GREATER_EQUAL_2_2, strict=False, reason="RuntimeError: Failed to import"
 )
 @RunIf(dynamo=True)
+@mock.patch.dict(os.environ, {})
 def test_trainer_compiled_model_test(tmp_path):
     model = BoringModel()
     compiled_model = torch.compile(model)
