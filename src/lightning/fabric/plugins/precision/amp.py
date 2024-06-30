@@ -25,8 +25,6 @@ from lightning.fabric.plugins.precision.utils import _convert_fp_tensor
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_4
 from lightning.fabric.utilities.types import Optimizable
 
-_GRAD_SCALER = Union[torch.amp.GradScaler, torch.cuda.amp.GradScaler]
-
 
 class MixedPrecision(Precision):
     """Plugin for Automatic Mixed Precision (AMP) training with ``torch.autocast``.
@@ -42,7 +40,7 @@ class MixedPrecision(Precision):
         self,
         precision: Literal["16-mixed", "bf16-mixed"],
         device: str,
-        scaler: Optional[_GRAD_SCALER] = None,  # type: ignore[name-defined]
+        scaler: Optional["torch.cuda.amp.GradScaler"] = None,
     ) -> None:
         if precision not in ("16-mixed", "bf16-mixed"):
             raise ValueError(
