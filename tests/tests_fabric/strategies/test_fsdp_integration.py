@@ -288,6 +288,7 @@ def test_save_full_state_dict(tmp_path):
     trainer.run()
 
 
+@pytest.mark.filterwarnings("ignore::FutureWarning")
 @RunIf(min_cuda_gpus=2, standalone=True)
 def test_load_full_state_dict_into_sharded_model(tmp_path):
     """Test that the strategy can load a full-state checkpoint into a FSDP sharded model."""
