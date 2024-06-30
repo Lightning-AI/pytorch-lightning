@@ -19,7 +19,7 @@ subprojects:
       - "!*.md"
       - "!**/*.md"
     checks:
-      - "pl-cpu (macOS-14, lightning, 3.8, 2.0, oldest)"
+      - "pl-cpu (macOS-13, lightning, 3.8, 2.0, oldest)"
       - "pl-cpu (macOS-14, lightning, 3.10, 2.0)"
       - "pl-cpu (macOS-14, lightning, 3.10, 2.1)"
       - "pl-cpu (macOS-14, lightning, 3.10, 2.2)"
@@ -171,7 +171,7 @@ subprojects:
       - "!*.md"
       - "!**/*.md"
     checks:
-      - "fabric-cpu (macOS-14, lightning, 3.8, 2.0, oldest)"
+      - "fabric-cpu (macOS-13, lightning, 3.8, 2.0, oldest)"
       - "fabric-cpu (macOS-14, lightning, 3.10, 2.0)"
       - "fabric-cpu (macOS-14, lightning, 3.11, 2.1)"
       - "fabric-cpu (macOS-14, lightning, 3.11, 2.2)"

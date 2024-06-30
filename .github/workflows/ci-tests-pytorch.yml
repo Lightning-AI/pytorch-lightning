@@ -64,7 +64,7 @@ jobs:
           - { os: "ubuntu-22.04", pkg-name: "pytorch", python-version: "3.11", pytorch-version: "2.1" }
           - { os: "windows-2022", pkg-name: "pytorch", python-version: "3.11", pytorch-version: "2.1" }
           # "oldest" versions tests, only on minimum Python
-          - { os: "macOS-14", pkg-name: "lightning", python-version: "3.8", pytorch-version: "2.0", requires: "oldest" }
+          - { os: "macOS-13", pkg-name: "lightning", python-version: "3.8", pytorch-version: "2.0", requires: "oldest" }
           - {
               os: "ubuntu-20.04",
               pkg-name: "lightning",
