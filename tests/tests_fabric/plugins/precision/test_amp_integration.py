@@ -17,6 +17,7 @@ import pytest
 import torch
 import torch.nn as nn
 from lightning.fabric import Fabric, seed_everything
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_4
 
 from tests_fabric.helpers.runif import RunIf
 
@@ -82,7 +83,8 @@ def test_amp_fused_optimizer_parity():
         optimizer = torch.optim.Adam(model.parameters(), lr=1.0, fused=fused)
 
         model, optimizer = fabric.setup(model, optimizer)
-        assert isinstance(fabric._precision.scaler, torch.cuda.amp.GradScaler)
+        scaler_cls = torch.amp.GradScaler if _TORCH_GREATER_EQUAL_2_4 else torch.cuda.amp.GradScaler
+        assert isinstance(fabric._precision.scaler, scaler_cls)
 
         data = torch.randn(10, 10, device="cuda")
         target = torch.randn(10, 10, device="cuda")
