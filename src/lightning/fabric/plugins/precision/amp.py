@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, ContextManager, Dict, Literal, Optional
+from typing import Any, ContextManager, Dict, Literal, Optional, Union
 
 import torch
 from lightning_utilities.core.apply_func import apply_to_collection
@@ -24,6 +24,8 @@ from lightning.fabric.plugins.precision.precision import Precision
 from lightning.fabric.plugins.precision.utils import _convert_fp_tensor
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_4
 from lightning.fabric.utilities.types import Optimizable
+
+_GRAD_SCALER = Union[torch.amp.GradScaler, torch.cuda.amp.GradScaler]
 
 
 class MixedPrecision(Precision):
@@ -40,7 +42,7 @@ class MixedPrecision(Precision):
         self,
         precision: Literal["16-mixed", "bf16-mixed"],
         device: str,
-        scaler: Optional["torch.amp.GradScaler"] = None,  # type: ignore[name-defined]
+        scaler: Optional[_GRAD_SCALER] = None,  # type: ignore[name-defined]
     ) -> None:
         if precision not in ("16-mixed", "bf16-mixed"):
             raise ValueError(
