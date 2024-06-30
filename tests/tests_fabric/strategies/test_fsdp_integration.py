@@ -174,7 +174,8 @@ def test_train_save_load(tmp_path, manual_wrapping, precision):
     assert state["coconut"] == 11
 
 
-@RunIf(min_cuda_gpus=2, standalone=True, max_torch="2.4")
+@pytest.mark.filterwarnings("ignore::FutureWarning")
+@RunIf(min_cuda_gpus=2, standalone=True)
 def test_save_full_state_dict(tmp_path):
     """Test that FSDP saves the full state into a single file with `state_dict_type="full"`."""
     fabric = Fabric(
@@ -475,6 +476,7 @@ def test_module_init_context(precision, expected_dtype):
         _run_setup_assertions(empty_init=True, expected_device=torch.device("cpu"))
 
 
+@pytest.mark.filterwarnings("ignore::FutureWarning")
 @RunIf(min_cuda_gpus=2, standalone=True)
 def test_save_filter(tmp_path):
     fabric = Fabric(accelerator="cuda", strategy=FSDPStrategy(state_dict_type="full"), devices=2)
