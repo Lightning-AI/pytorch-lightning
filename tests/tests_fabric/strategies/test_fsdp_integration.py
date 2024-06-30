@@ -174,7 +174,7 @@ def test_train_save_load(tmp_path, manual_wrapping, precision):
     assert state["coconut"] == 11
 
 
-@RunIf(min_cuda_gpus=2, standalone=True)
+@RunIf(min_cuda_gpus=2, standalone=True, max_torch="2.4")
 def test_save_full_state_dict(tmp_path):
     """Test that FSDP saves the full state into a single file with `state_dict_type="full"`."""
     fabric = Fabric(
