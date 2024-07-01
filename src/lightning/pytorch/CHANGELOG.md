@@ -17,7 +17,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Triggering KeyboardInterrupt (Ctrl+C) during `.fit()`, `.evaluate()`, `.test()` or `.predict()` now terminates all processes launched by the Trainer and exits the program ([#19976](https://github.com/Lightning-AI/pytorch-lightning/pull/19976))
 
--
+- Allow `LightningModule` to log `Tensorboard` histograms ([#19851](https://github.com/Lightning-AI/pytorch-lightning/pull/19851))
 
 ### Deprecated
 

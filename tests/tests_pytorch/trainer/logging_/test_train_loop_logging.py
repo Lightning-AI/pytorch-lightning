@@ -640,10 +640,18 @@ def test_logging_raises(tmp_path):
 
     class TestModel(BoringModel):
         def on_train_start(self):
-            self.log("foo", torch.tensor([1.0, 2.0]))
+            self.log("foo", torch.tensor([]))  # empty
 
     model = TestModel()
-    with pytest.raises(ValueError, match="tensor must have a single element"):
+    with pytest.raises(ValueError, match="tensor must have a single element, or a single non-empty dimension."):
+        trainer.fit(model)
+
+    class TestModel(BoringModel):
+        def on_train_start(self):
+            self.log("foo", torch.tensor([[1.0], [2.0]]))  # too-many dimensions
+
+    model = TestModel()
+    with pytest.raises(ValueError, match="tensor must have a single element, or a single non-empty dimension."):
         trainer.fit(model)
 
 

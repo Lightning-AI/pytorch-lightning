@@ -154,7 +154,13 @@ def test_tensorboard_log_sub_dir(tmp_path):
 @pytest.mark.parametrize("step_idx", [10, None])
 def test_tensorboard_log_metrics(tmp_path, step_idx):
     logger = TensorBoardLogger(tmp_path)
-    metrics = {"float": 0.3, "int": 1, "FloatTensor": torch.tensor(0.1), "IntTensor": torch.tensor(1)}
+    metrics = {
+        "float": 0.3,
+        "int": 1,
+        "FloatTensor": torch.tensor(0.1),
+        "IntTensor": torch.tensor(1),
+        "Histogram": torch.tensor([10, 100, 1000]),
+    }
     logger.log_metrics(metrics, step_idx)
 
 
