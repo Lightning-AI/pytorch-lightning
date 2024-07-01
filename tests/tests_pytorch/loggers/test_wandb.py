@@ -13,19 +13,23 @@
 # limitations under the License.
 import os
 import pickle
+import re
 from pathlib import Path
 from unittest import mock
 
 import pytest
 import yaml
 from lightning.pytorch import Trainer
-from lightning.pytorch.callbacks import ModelCheckpoint
+from lightning.pytorch.callbacks import Callback, ModelCheckpoint
 from lightning.pytorch.cli import LightningCLI
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.loggers import WandbLogger
+from lightning.pytorch.loggers.utilities import _generate_checkpoint_identifier
+from lightning.pytorch.strategies import DeepSpeedStrategy
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning_utilities.test.warning import no_warning_call
 
+from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.test_cli import _xfail_python_ge_3_11_9
 
 
@@ -144,6 +148,7 @@ def test_wandb_pickle(wandb_mock, tmp_path):
         id = "the_id"
         step = 0
         dir = "wandb"
+        _label = mock.Mock()
 
         @property
         def name(self):
@@ -585,3 +590,151 @@ def test_wandb_logger_cli_integration(log_model, expected, wandb_mock, monkeypat
 
     with mock.patch("sys.argv", ["any.py", "--config", config_path, wandb_cli_arg]):
         InspectParsedCLI(BoringModel, run=False, save_config_callback=None)
+
+
+@RunIf(deepspeed=True, min_cuda_gpus=1)
+def test_wandb_logger_deepspeed_checkpoint_logging(wandb_mock, tmp_path):
+    """Test that WandbLogger correctly logs DeepSpeed checkpoints."""
+    wandb_mock.run = None
+    model = BoringModel()
+
+    # test log_model=True, include_distributed_checkpoints=True
+    logger = WandbLogger(save_dir=tmp_path, log_model=True, include_distributed_checkpoints=True)
+    logger.experiment.id = "1"
+    logger.experiment.name = "run_name"
+    # enable DeepSpeedStrategy with checkpoint logger
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        strategy=DeepSpeedStrategy(stage=2),
+        max_epochs=2,
+        limit_train_batches=3,
+        limit_val_batches=3,
+        accelerator="gpu",
+        devices=1,
+        logger=logger,
+    )
+    trainer.fit(model)
+    wandb_mock.init().log_artifact.assert_called_once()
+
+
+def test_wandb_logger_log_checkpoint_on_failure(wandb_mock, tmp_path):
+    class FailureSimulationCallback(Callback):
+        def on_train_end(self, trainer, pl_module):
+            # Raise RuntimeError to simulate a failure
+            raise RuntimeError("Simulated training failure.")
+
+    """Test that WandbLogger logs checkpoints on failure when log_checkpoint_on is set to 'all'
+    and does not log when set to 'success'."""
+    wandb_mock.run = None
+    model = BoringModel()
+
+    # Set log_model=True and log_checkpoint_on='all' to ensure checkpoints are logged even on failure
+    logger = WandbLogger(save_dir=tmp_path, log_model=True, log_checkpoint_on="all")
+    logger.experiment.id = "1"
+    logger.experiment.name = "failure_run_logged"
+
+    # Simulate training with an expected failure
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        max_epochs=1,
+        limit_train_batches=1,
+        limit_val_batches=1,
+        logger=logger,
+        callbacks=[FailureSimulationCallback()],
+    )
+
+    # Expecting an exception to simulate a failure
+    with pytest.raises(RuntimeError):
+        trainer.fit(model)
+
+    # Check if checkpoints were logged despite the failure
+    wandb_mock.init().log_artifact.assert_called_once()
+
+    # Set log_model=True and log_checkpoint_on='success' to ensure checkpoints are not logged on failure
+    wandb_mock.init().log_artifact.reset_mock()
+    wandb_mock.init.reset_mock()
+
+    logger = WandbLogger(save_dir=tmp_path, log_model=True, log_checkpoint_on="success")
+    logger.experiment.id = "2"
+    logger.experiment.name = "failure_run_not_logged"
+
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        max_epochs=1,
+        limit_train_batches=1,
+        limit_val_batches=1,
+        logger=logger,
+        callbacks=[FailureSimulationCallback()],
+    )
+
+    with pytest.raises(RuntimeError):
+        trainer.fit(model)
+
+    wandb_mock.init().log_artifact.assert_not_called()
+
+
+def test_multi_wandb_logger_checkpoint_aliasing(wandb_mock, tmp_path):
+    """Test that WandbLogger adds unique aliases for the model checkpoints logged from each checkpoint called."""
+    wandb_mock.run = None
+    model = BoringModel()
+
+    logger = WandbLogger(save_dir=tmp_path, log_model="all", verbose_checkpoint_aliases=True)
+    logger.experiment.id = "1"
+    logger.experiment.name = "run_name"
+
+    kwargs_list = [
+        {"dirpath": os.path.join(tmp_path, "ckpt1"), "filename": "checkpoint1-model-{epoch:02d}-{step:02d}"},
+        {
+            "dirpath": os.path.join(tmp_path, "ckpt2"),
+            "filename": "checkpoint2-model-{epoch:02d}-{step:02d}",
+            "monitor": "epoch",
+            "mode": "max",
+        },
+        {
+            "dirpath": os.path.join(tmp_path, "ckpt3"),
+            "filename": "checkpoint3-model-{epoch:02d}-{step:02d}",
+            "monitor": "step",
+            "mode": "max",
+            "every_n_train_steps": 1,
+        },
+        {
+            "dirpath": os.path.join(tmp_path, "ckpt4"),
+            "filename": "checkpoint4-model-{epoch:02d}-{step:02d}",
+            "monitor": "epoch",
+            "mode": "min",
+        },
+    ]
+    checkpoint_callbacks = [ModelCheckpoint(**kwargs) for kwargs in kwargs_list]
+
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        max_epochs=2,
+        limit_train_batches=3,
+        limit_val_batches=3,
+        logger=logger,
+        callbacks=checkpoint_callbacks,
+    )
+    trainer.fit(model)
+
+    # This test checks that the WandbLogger correctly logs model checkpoints with the appropriate aliases.
+    # It iterates through the mocked wandb.Artifact and run.log_artifact calls, extracts the original
+    # checkpoint filename, and verifies that the logged artifact has the expected aliases based on the
+    # checkpoint identifier generated from the ModelCheckpoint callback's configuration.
+    run_mock = wandb_mock.init.return_value
+    for artifact_call, log_artifact_call in zip(wandb_mock.Artifact.call_args_list, run_mock.log_artifact.mock_calls):
+        original_filename = artifact_call[1]["metadata"]["original_filename"]
+        match = re.search(r"epoch=(\d+)-step=(\d+)", original_filename)
+        if match:
+            epoch, step = match.groups()
+            for checkpoint_callback, kwargs in zip(checkpoint_callbacks, kwargs_list):
+                expected_filename = checkpoint_callback._format_checkpoint_name(
+                    filename=kwargs["filename"], metrics={"epoch": int(epoch), "step": int(step)}
+                )
+                if expected_filename in original_filename:
+                    checkpoint_identifier = _generate_checkpoint_identifier(checkpoint_callback)
+                    assert log_artifact_call[2]["aliases"] == [
+                        "latest",
+                        checkpoint_identifier,
+                        f"best--{checkpoint_identifier}",
+                        "best",
+                    ]
