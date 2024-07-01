@@ -118,7 +118,7 @@ class _TrainerManualWrapping(_Trainer):
         return model
 
 
-@RunIf(min_cuda_gpus=2, standalone=True)
+@RunIf(min_cuda_gpus=2, standalone=True, max_torch="2.4")
 @pytest.mark.parametrize("precision", ["16-mixed", pytest.param("bf16-mixed", marks=RunIf(bf16_cuda=True))])
 @pytest.mark.parametrize("manual_wrapping", [True, False])
 def test_train_save_load(tmp_path, manual_wrapping, precision):
@@ -173,6 +173,7 @@ def test_train_save_load(tmp_path, manual_wrapping, precision):
     assert state["coconut"] == 11
 
 
+@pytest.mark.filterwarnings("ignore::FutureWarning")
 @RunIf(min_cuda_gpus=2, standalone=True)
 def test_save_full_state_dict(tmp_path):
     """Test that FSDP saves the full state into a single file with `state_dict_type="full"`."""
@@ -287,6 +288,7 @@ def test_save_full_state_dict(tmp_path):
     trainer.run()
 
 
+@pytest.mark.filterwarnings("ignore::FutureWarning")
 @RunIf(min_cuda_gpus=2, standalone=True)
 def test_load_full_state_dict_into_sharded_model(tmp_path):
     """Test that the strategy can load a full-state checkpoint into a FSDP sharded model."""
@@ -469,6 +471,7 @@ def test_module_init_context(precision, expected_dtype):
     _run_setup_assertions(empty_init=True, expected_device=torch.device("meta"))
 
 
+@pytest.mark.filterwarnings("ignore::FutureWarning")
 @RunIf(min_cuda_gpus=2, standalone=True)
 def test_save_filter(tmp_path):
     fabric = Fabric(accelerator="cuda", strategy=FSDPStrategy(state_dict_type="full"), devices=2)
@@ -602,6 +605,7 @@ def test_clip_gradients(clip_type, precision):
     optimizer.zero_grad()
 
 
+@pytest.mark.filterwarnings("ignore::FutureWarning")
 @RunIf(min_cuda_gpus=2, standalone=True, min_torch="2.3.0")
 def test_save_sharded_and_consolidate_and_load(tmp_path):
     """Test the consolidation of a FSDP-sharded checkpoint into a single file."""

@@ -17,11 +17,13 @@ from unittest.mock import Mock
 import pytest
 import torch
 from lightning.fabric.plugins.precision.amp import MixedPrecision
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_4
 
 
 def test_amp_precision_default_scaler():
     precision = MixedPrecision(precision="16-mixed", device=Mock())
-    assert isinstance(precision.scaler, torch.cuda.amp.GradScaler)
+    scaler_cls = torch.amp.GradScaler if _TORCH_GREATER_EQUAL_2_4 else torch.cuda.amp.GradScaler
+    assert isinstance(precision.scaler, scaler_cls)
 
 
 def test_amp_precision_scaler_with_bf16():
@@ -36,7 +38,8 @@ def test_amp_precision_forward_context():
     """Test to ensure that the context manager correctly is set to bfloat16 on CPU and CUDA."""
     precision = MixedPrecision(precision="16-mixed", device="cuda")
     assert precision.device == "cuda"
-    assert isinstance(precision.scaler, torch.cuda.amp.GradScaler)
+    scaler_cls = torch.amp.GradScaler if _TORCH_GREATER_EQUAL_2_4 else torch.cuda.amp.GradScaler
+    assert isinstance(precision.scaler, scaler_cls)
     assert torch.get_default_dtype() == torch.float32
     with precision.forward_context():
         assert torch.get_autocast_gpu_dtype() == torch.float16
