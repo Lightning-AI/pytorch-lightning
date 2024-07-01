@@ -102,7 +102,7 @@ jobs:
             --capture=no -v --color=yes
 
       - name: Upload recordings
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         if: failure()
         with:
           name: flahship-app-${{ matrix.app }}
