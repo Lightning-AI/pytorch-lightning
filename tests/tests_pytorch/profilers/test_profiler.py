@@ -299,6 +299,25 @@ def test_advanced_profiler_describe(tmp_path, advanced_profiler):
     assert len(data) > 0
 
 
+def test_advanced_profiler_dump_states(tmp_path):
+    advanced_profiler = AdvancedProfiler(dirpath=tmp_path, dump_stats=True)
+    """Ensure the profiler dump stats during summary."""
+    # record at least one event
+    with advanced_profiler.profile(action_name := "test"):
+        pass
+    # dump_stats to file
+    advanced_profiler.describe()
+    path = advanced_profiler.dirpath / f"{action_name}.prof"
+    data = path.read_bytes()
+    assert len(data) > 0
+
+
+def test_advanced_profiler_dump_states_needs_dirpath():
+    """Ensure the profiler requires dirpath to dump stats."""
+    with pytest.raises(AssertionError):
+        AdvancedProfiler(dump_stats=True)
+
+
 def test_advanced_profiler_value_errors(advanced_profiler):
     """Ensure errors are raised where expected."""
     action = "test"
