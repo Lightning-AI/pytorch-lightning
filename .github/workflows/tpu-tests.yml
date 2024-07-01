@@ -119,7 +119,7 @@ jobs:
           if [[ "${{ matrix.accelerator_type }}" == v4* ]]; then
             gcloud compute tpus tpu-vm create "$JOB_NAME" \
               --accelerator-type=${{ matrix.accelerator_type }} \
-              --version="tpu-vm-v4-pt-$XLA_VER" \
+              --version="tpu-vm-v4-pt-2.0" \
               --preemptible
           fi
 
