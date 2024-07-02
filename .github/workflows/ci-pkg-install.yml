@@ -65,10 +65,6 @@ jobs:
           pkg-folder: dist/${{ env.PKG_DIR }}
           pkg-name: ${{ matrix.pkg-name }}
 
-      - name: Run CLI (via python)
-        if: ${{ (matrix.pkg-name == 'lightning' || matrix.pkg-name == 'notset') }}
-        run: python -m lightning --version
-
       - name: DocTests actions
         working-directory: .actions/
         run: |
