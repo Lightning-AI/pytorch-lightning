@@ -119,7 +119,7 @@ class LightningFlow:
         self._changes: dict = {}
         self._layout: Union[List[Dict], Dict] = {}
         self._paths: dict = {}
-        self._backend: Optional["Backend"] = None
+        self._backend: Optional[Backend] = None
         # tuple instead of a list so that it cannot be modified without using the setter
         self._lightningignore: Tuple[str, ...] = ()
 

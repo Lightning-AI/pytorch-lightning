@@ -291,7 +291,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         self.hysteresis = hysteresis
         self.min_loss_scale = min_loss_scale
 
-        self._deepspeed_engine: Optional["DeepSpeedEngine"] = None
+        self._deepspeed_engine: Optional[DeepSpeedEngine] = None
 
     @property
     def zero_stage_3(self) -> bool:

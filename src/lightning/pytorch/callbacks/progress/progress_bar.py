@@ -48,7 +48,7 @@ class ProgressBar(Callback):
     """
 
     def __init__(self) -> None:
-        self._trainer: Optional["pl.Trainer"] = None
+        self._trainer: Optional[pl.Trainer] = None
         self._current_eval_dataloader_idx: Optional[int] = None
 
     @property

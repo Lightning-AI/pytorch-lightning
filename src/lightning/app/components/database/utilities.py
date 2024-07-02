@@ -175,7 +175,7 @@ class _SelectAll:
             return {"status": "failure", "reason": "Unauthorized request to the database."}
 
         with Session(engine) as session:
-            cls: Type["SQLModel"] = self.models[data["cls_name"]]
+            cls: Type[SQLModel] = self.models[data["cls_name"]]
             statement = select(cls)
             results = session.exec(statement)
             return results.all()

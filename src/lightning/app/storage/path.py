@@ -93,9 +93,9 @@ class Path(PathlibPath):
     def _init_attributes(self):
         self._name: Optional[str] = None
         # the origin is the work that created this Path and wants to expose file(s)
-        self._origin: Optional[Union["LightningWork", str]] = None
+        self._origin: Optional[Union[LightningWork, str]] = None
         # the consumer is the Work that needs access to the file(s) from the consumer
-        self._consumer: Optional[Union["LightningWork", str]] = None
+        self._consumer: Optional[Union[LightningWork, str]] = None
         self._metadata = {}
         # request queue: used to transfer message to storage orchestrator
         self._request_queue: Optional[BaseQueue] = None
@@ -138,7 +138,7 @@ class Path(PathlibPath):
 
     @property
     def parents(self) -> Sequence["Path"]:
-        parents: List["Path"] = list(super().parents)
+        parents: List[Path] = list(super().parents)
         for parent in parents:
             parent._copy_properties_from(self)
         return parents

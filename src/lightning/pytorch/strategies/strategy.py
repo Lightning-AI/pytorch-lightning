@@ -52,7 +52,7 @@ class Strategy(ABC):
         checkpoint_io: Optional[CheckpointIO] = None,
         precision_plugin: Optional[Precision] = None,
     ) -> None:
-        self._accelerator: Optional["pl.accelerators.Accelerator"] = accelerator
+        self._accelerator: Optional[pl.accelerators.Accelerator] = accelerator
         self._checkpoint_io: Optional[CheckpointIO] = checkpoint_io
         self._precision_plugin: Optional[Precision] = None
         # Call the precision setter for input validation

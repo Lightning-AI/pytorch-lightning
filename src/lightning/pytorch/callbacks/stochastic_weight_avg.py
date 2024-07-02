@@ -123,7 +123,7 @@ class StochasticWeightAveraging(Callback):
         self._avg_fn = avg_fn or self.avg_fn
         self._device = device
         self._model_contains_batch_norm: Optional[bool] = None
-        self._average_model: Optional["pl.LightningModule"] = None
+        self._average_model: Optional[pl.LightningModule] = None
         self._initialized = False
         self._swa_scheduler: Optional[LRScheduler] = None
         self._scheduler_state: Optional[Dict] = None

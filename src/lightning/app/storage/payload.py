@@ -38,9 +38,9 @@ class _BasePayload(ABC):
         # the attribute name given to the payload
         self._name: Optional[str] = None
         # the origin is the work that created this Path and wants to expose file(s)
-        self._origin: Optional[Union["LightningWork", str]] = None
+        self._origin: Optional[Union[LightningWork, str]] = None
         # the consumer is the Work that needs access to the file(s) from the consumer
-        self._consumer: Optional[Union["LightningWork", str]] = None
+        self._consumer: Optional[Union[LightningWork, str]] = None
         self._metadata = {}
         # request queue: used to transfer message to storage orchestrator
         self._request_queue: Optional[BaseQueue] = None

@@ -498,7 +498,7 @@ class CloudBackend(Backend):
         if not len(app.frontends.keys()):
             return
 
-        external_app_spec: "Externalv1LightningappInstance" = (
+        external_app_spec: Externalv1LightningappInstance = (
             self.client.lightningapp_instance_service_get_lightningapp_instance(
                 project_id=CloudBackend._get_project_id(),
                 id=CloudBackend._get_app_id(),
@@ -527,7 +527,7 @@ class CloudBackend(Backend):
     def stop_app(self, app):
         """Used to mark the App has stopped if everything has fine."""
 
-        external_app_spec: "Externalv1LightningappInstance" = (
+        external_app_spec: Externalv1LightningappInstance = (
             self.client.lightningapp_instance_service_get_lightningapp_instance(
                 project_id=CloudBackend._get_project_id(),
                 id=CloudBackend._get_app_id(),

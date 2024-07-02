@@ -135,9 +135,9 @@ class LightningApp:
 
         self.should_publish_changes_to_api = False
         self.component_affiliation = None
-        self.backend: Optional["Backend"] = None
+        self.backend: Optional[Backend] = None
         _LightningAppRef.connect(self)
-        self.processes: Dict[str, "WorkManager"] = {}
+        self.processes: Dict[str, WorkManager] = {}
         self.frontends: Dict[str, Frontend] = {}
         self.stage = AppStage.RUNNING
         self._has_updated: bool = True

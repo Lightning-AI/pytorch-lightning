@@ -301,8 +301,8 @@ class PyTorchProfiler(Profiler):
         self._table_kwargs = table_kwargs if table_kwargs is not None else {}
 
         self.profiler: Optional[_PROFILER] = None
-        self.function_events: Optional["EventList"] = None
-        self._lightning_module: Optional["LightningModule"] = None  # set by ProfilerConnector
+        self.function_events: Optional[EventList] = None
+        self._lightning_module: Optional[LightningModule] = None  # set by ProfilerConnector
         self._register: Optional[RegisterRecordFunction] = None
         self._parent_profiler: Optional[ContextManager] = None
         self._recording_map: Dict[str, record_function] = {}
@@ -400,7 +400,7 @@ class PyTorchProfiler(Profiler):
         return None
 
     def _default_activities(self) -> List["ProfilerActivity"]:
-        activities: List["ProfilerActivity"] = []
+        activities: List[ProfilerActivity] = []
         if not _KINETO_AVAILABLE:
             return activities
         if self._profiler_kwargs.get("use_cpu", True):

@@ -128,7 +128,7 @@ class LightningModule(
         super().__init__(*args, **kwargs)
 
         # pointer to the trainer object
-        self._trainer: Optional["pl.Trainer"] = None
+        self._trainer: Optional[pl.Trainer] = None
 
         # attributes that can be set by user
         self._example_input_array: Optional[Union[Tensor, Tuple, Dict]] = None
@@ -142,11 +142,11 @@ class LightningModule(
         self._compiler_ctx: Optional[Dict[str, Any]] = None
 
         # attributes only used when using fabric
-        self._fabric: Optional["lf.Fabric"] = None
+        self._fabric: Optional[lf.Fabric] = None
         self._fabric_optimizers: List[_FabricOptimizer] = []
 
         # access to device mesh in `conigure_model()` hook
-        self._device_mesh: Optional["DeviceMesh"] = None
+        self._device_mesh: Optional[DeviceMesh] = None
 
     @overload
     def optimizers(
