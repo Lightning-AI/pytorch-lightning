@@ -27,7 +27,7 @@ class Frontend(ABC):
     """
 
     def __init__(self) -> None:
-        self.flow: Optional["LightningFlow"] = None
+        self.flow: Optional[LightningFlow] = None
 
     @abstractmethod
     def start_server(self, host: str, port: int, root_path: str = "") -> None:
