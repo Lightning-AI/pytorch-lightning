@@ -1,5 +1,4 @@
 # the default package dependencies
 
--r ./requirements/app/app.txt
 -r ./requirements/fabric/base.txt
 -r ./requirements/pytorch/base.txt

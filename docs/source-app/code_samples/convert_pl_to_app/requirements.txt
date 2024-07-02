@@ -1,3 +1,0 @@
-torch
-torchvision
-pytorch_lightning

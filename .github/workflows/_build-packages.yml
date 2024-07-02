@@ -12,7 +12,7 @@ on:
         required: false
         type: string
         default: |
-          ["lightning", "app", "fabric", "pytorch"]
+          ["lightning", "fabric", "pytorch"]
 
 defaults:
   run:

@@ -15,8 +15,6 @@ on:
       - "docs/**"
       - "_notebooks"
       - "requirements/**"
-      - "src/lightning/app/**"
-      - "src/lightning_app/*"
       - "src/lightning/fabric/**"
       - "src/lightning_fabric/*"
       - "src/lightning/pytorch/**"
@@ -58,7 +56,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        pkg-name: ["app", "fabric", "pytorch"]
+        pkg-name: ["fabric", "pytorch"]
         target: ["html", "doctest", "linkcheck"]
     env:
       DOCS_COPY_NOTEBOOKS: 1
@@ -144,7 +142,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        pkg-name: ["app", "fabric", "pytorch"]
+        pkg-name: ["fabric", "pytorch"]
     env:
       GCP_TARGET: "gs://lightning-docs-${{ matrix.pkg-name }}"
       # use input if dispatch or git tag

@@ -16,8 +16,6 @@ A Lightning release number is in the format of ``MAJOR.MINOR.PATCH``.
 
 With every release, we publish a changelog where we list additions, removals, deprecations, changed functionality and fixes.
 
-The ``lightning.app`` package is an exception to this rule, as it may contain any change with or without deprecations in any of the releases.
-
 API Stability
 *************
 

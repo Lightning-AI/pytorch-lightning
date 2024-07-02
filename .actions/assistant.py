@@ -14,10 +14,8 @@
 import glob
 import logging
 import os
-import pathlib
 import re
 import shutil
-import tarfile
 import tempfile
 import urllib.request
 from distutils.version import LooseVersion
@@ -34,11 +32,6 @@ REQUIREMENT_FILES = {
         "requirements/pytorch/extra.txt",
         "requirements/pytorch/strategies.txt",
         "requirements/pytorch/examples.txt",
-    ),
-    "app": (
-        "requirements/app/app.txt",
-        "requirements/app/cloud.txt",
-        "requirements/app/ui.txt",
     ),
     "fabric": (
         "requirements/fabric/base.txt",
@@ -214,30 +207,6 @@ def distribute_version(src_folder: str, ver_file: str = "version.info") -> None:
         if os.path.isfile(fpath):
             os.remove(fpath)
         shutil.copy2(ver_template, fpath)
-
-
-def _download_frontend(pkg_path: str, version: str = "v0.0.0"):
-    """Downloads an archive file for a specific release of the Lightning frontend and extracts it to the correct
-    directory."""
-
-    try:
-        frontend_dir = pathlib.Path(pkg_path, "ui")
-        download_dir = tempfile.mkdtemp()
-
-        shutil.rmtree(frontend_dir, ignore_errors=True)
-        # TODO: remove this once lightning-ui package is ready as a dependency
-        frontend_release_url = f"https://lightning-packages.s3.amazonaws.com/ui/{version}.tar.gz"
-        response = urllib.request.urlopen(frontend_release_url)
-
-        file = tarfile.open(fileobj=response, mode="r|gz")
-        file.extractall(path=download_dir)  # noqa: S202
-
-        shutil.move(download_dir, frontend_dir)
-        print("The Lightning UI has successfully been downloaded!")
-
-    # If installing from source without internet connection, we don't want to break the installation
-    except Exception:
-        print("The Lightning UI downloading has failed!")
 
 
 def _load_aggregate_requirements(req_dir: str = "requirements", freeze_requirements: bool = False) -> None:
@@ -466,7 +435,7 @@ class AssistantCLI:
                 raise RuntimeError(f"Requesting file '{zip_url}' does not exist or it is just unavailable.")
 
             with zipfile.ZipFile(zip_file, "r") as zip_ref:
-                zip_ref.extractall(tmp)  # noqa: S202
+                zip_ref.extractall(tmp)
 
             zip_dirs = [d for d in glob.glob(os.path.join(tmp, "*")) if os.path.isdir(d)]
             # check that the extracted archive has only repo folder

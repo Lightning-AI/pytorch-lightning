@@ -44,7 +44,6 @@ jobs:
           FREEZE_REQUIREMENTS: 1
         timeout-minutes: 20
         run: |
-          # TODO: investigate hanging installation with app sub-package
           pip install -e '.[pytorch-all,fabric-all]' -r requirements/typing.txt
           pip list
 

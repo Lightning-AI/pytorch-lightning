@@ -21,13 +21,10 @@ clean:
 	rm -rf ./docs/source-pytorch/generated
 	rm -rf ./docs/source-pytorch/*/generated
 	rm -rf ./docs/source-pytorch/api
-	rm -rf ./docs/source-app/generated
-	rm -rf ./docs/source-app/*/generated
 	rm -rf build
 	rm -rf dist
 	rm -rf *.egg-info
 	rm -rf src/*.egg-info
-	rm -rf src/lightning_app/*/
 	rm -rf src/lightning_fabric/*/
 	rm -rf src/pytorch_lightning/*/
 
@@ -35,14 +32,11 @@ test: clean
 	# Review the CONTRIBUTING documentation for other ways to test.
 	pip install -e . \
 	-r requirements/pytorch/base.txt \
-	-r requirements/app/app.txt \
 	-r requirements/fabric/base.txt \
 	-r requirements/pytorch/test.txt \
-	-r requirements/app/test.txt
 
 	# run tests with coverage
 	python -m coverage run --source src/lightning/pytorch -m pytest src/lightning/pytorch tests/tests_pytorch -v
-	python -m coverage run --source src/lightning/app -m pytest tests/tests/app -v
 	python -m coverage run --source src/lightning/fabric -m pytest src/lightning/fabric tests/tests_fabric -v
 	python -m coverage report
 
@@ -53,10 +47,6 @@ sphinx-theme:
 	mkdir -p dist/
 	aws s3 sync --no-sign-request s3://sphinx-packages/ dist/
 	pip install lai-sphinx-theme -f dist/
-
-docs-app: clean sphinx-theme
-	pip install -e .[all] --quiet -r requirements/app/docs.txt
-	cd docs/source-app && $(MAKE) html --jobs $(nproc)
 
 docs-fabric: clean sphinx-theme
 	pip install -e .[all] --quiet -r requirements/fabric/docs.txt
