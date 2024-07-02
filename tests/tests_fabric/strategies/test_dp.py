@@ -74,6 +74,7 @@ def test_dp_module_state_dict():
         assert strategy.get_module_state_dict(wrapped_module).keys() == original_module.state_dict().keys()
 
 
+@pytest.mark.filterwarnings("ignore::FutureWarning")
 @pytest.mark.parametrize(
     "precision",
     [
