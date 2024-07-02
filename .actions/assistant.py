@@ -14,10 +14,8 @@
 import glob
 import logging
 import os
-import pathlib
 import re
 import shutil
-import tarfile
 import tempfile
 import urllib.request
 from distutils.version import LooseVersion
@@ -437,7 +435,7 @@ class AssistantCLI:
                 raise RuntimeError(f"Requesting file '{zip_url}' does not exist or it is just unavailable.")
 
             with zipfile.ZipFile(zip_file, "r") as zip_ref:
-                zip_ref.extractall(tmp)  # noqa: S202
+                zip_ref.extractall(tmp)
 
             zip_dirs = [d for d in glob.glob(os.path.join(tmp, "*")) if os.path.isdir(d)]
             # check that the extracted archive has only repo folder
