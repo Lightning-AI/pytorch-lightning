@@ -216,30 +216,6 @@ def distribute_version(src_folder: str, ver_file: str = "version.info") -> None:
         shutil.copy2(ver_template, fpath)
 
 
-def _download_frontend(pkg_path: str, version: str = "v0.0.0"):
-    """Downloads an archive file for a specific release of the Lightning frontend and extracts it to the correct
-    directory."""
-
-    try:
-        frontend_dir = pathlib.Path(pkg_path, "ui")
-        download_dir = tempfile.mkdtemp()
-
-        shutil.rmtree(frontend_dir, ignore_errors=True)
-        # TODO: remove this once lightning-ui package is ready as a dependency
-        frontend_release_url = f"https://lightning-packages.s3.amazonaws.com/ui/{version}.tar.gz"
-        response = urllib.request.urlopen(frontend_release_url)
-
-        file = tarfile.open(fileobj=response, mode="r|gz")
-        file.extractall(path=download_dir)  # noqa: S202
-
-        shutil.move(download_dir, frontend_dir)
-        print("The Lightning UI has successfully been downloaded!")
-
-    # If installing from source without internet connection, we don't want to break the installation
-    except Exception:
-        print("The Lightning UI downloading has failed!")
-
-
 def _load_aggregate_requirements(req_dir: str = "requirements", freeze_requirements: bool = False) -> None:
     """Load all base requirements from all particular packages and prune duplicates.
 
