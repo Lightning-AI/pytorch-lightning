@@ -35,11 +35,6 @@ REQUIREMENT_FILES = {
         "requirements/pytorch/strategies.txt",
         "requirements/pytorch/examples.txt",
     ),
-    "app": (
-        "requirements/app/app.txt",
-        "requirements/app/cloud.txt",
-        "requirements/app/ui.txt",
-    ),
     "fabric": (
         "requirements/fabric/base.txt",
         "requirements/fabric/strategies.txt",
