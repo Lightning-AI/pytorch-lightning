@@ -68,8 +68,15 @@ class _FitLoop(_Loop):
             ...
 
     Args:
-        min_epochs: The minimum number of epochs
-        max_epochs: The maximum number of epochs, can be set -1 to turn this limit off
+        min_epochs: The minimum number of epochs, default 0
+        max_epochs: The maximum number of epochs, disabled by default (``None``).
+            If both ``max_epochs`` and ``max_steps`` are not specified,
+            :class:`~lightning.pytorch.trainer.trainer.Trainer` will default to ``max_epochs = 1000``.
+            To enable infinite training, set ``max_epochs = -1``.
+        min_steps: Force training for at least these number of steps. Disabled by default (``None``)
+        max_steps: Stop training after this number of steps. Disabled by default (-1). If ``max_steps = -1``
+            and ``max_epochs = None``, :class:`~lightning.pytorch.trainer.trainer.Trainer` will default to
+            ``max_epochs = 1000``. To enable infinite training, set ``max_epochs`` to ``-1``
 
     """
 
@@ -78,6 +85,8 @@ class _FitLoop(_Loop):
         trainer: "pl.Trainer",
         min_epochs: Optional[int] = 0,
         max_epochs: Optional[int] = None,
+        min_steps: Optional[int] = None,
+        max_steps: int = -1,
     ) -> None:
         super().__init__(trainer)
         if isinstance(max_epochs, int) and max_epochs < -1:
@@ -88,7 +97,7 @@ class _FitLoop(_Loop):
 
         self.max_epochs = max_epochs
         self.min_epochs = min_epochs
-        self.epoch_loop = _TrainingEpochLoop(trainer)
+        self.epoch_loop = _TrainingEpochLoop(trainer, min_steps, max_steps)
         self.epoch_progress = _Progress()
         self.max_batches: Union[int, float] = float("inf")
 

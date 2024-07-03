@@ -179,7 +179,7 @@ def test_optimizer_return_options(tmp_path):
 
     # single optimizer
     model.configure_optimizers = lambda: opt_a
-    opt, lr_sched = _init_optimizers_and_lr_schedulers(model)
+    opt, lr_sched, _ = _init_optimizers_and_lr_schedulers(model)
     assert len(opt) == 1
     assert len(lr_sched) == 0
 
