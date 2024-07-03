@@ -498,7 +498,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
             )
         engine = engines[0]
 
-        from deepspeed.runtime import DeepSpeedOptimizer
+        from deepspeed.runtime.base_optimizer import DeepSpeedOptimizer
 
         optimzer_state_requested = any(isinstance(item, (Optimizer, DeepSpeedOptimizer)) for item in state.values())
 
