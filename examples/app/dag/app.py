@@ -1,18 +1,14 @@
 import os
 from importlib import import_module
 
-import numpy as np
 import pandas as pd
+import torch
+import torch.nn as nn
 from lightning.app import LightningApp, LightningFlow, LightningWork
 from lightning.app.components import TracerPythonScript
 from lightning.app.storage import Payload
 from lightning.app.structures import Dict, List
 from sklearn import datasets
-from sklearn.metrics import mean_squared_error
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
-
 
 
 def get_path(path):
@@ -21,6 +17,7 @@ def get_path(path):
 
 class GetDataWork(LightningWork):
     """This component is responsible to download some data and store them with a PayLoad."""
+
     def __init__(self):
         super().__init__()
         self.df_data = None
@@ -46,7 +43,7 @@ class ModelWork(LightningWork):
         print(f"Starting training and evaluating {self.model_name}...")
         module = import_module(f"sklearn.{self.model_path}")
         model = getattr(module, self.model_name)()
-    
+
         # Convert pandas DataFrames to PyTorch tensors
         X_train_tensor = torch.tensor(X_train.value.values, dtype=torch.float32)
         y_train_tensor = torch.tensor(y_train.value.values, dtype=torch.float32).reshape(-1)
@@ -55,19 +52,20 @@ class ModelWork(LightningWork):
 
         # Fit the model (still using numpy as sklearn expects numpy arrays)
         model.fit(X_train_tensor.numpy(), y_train_tensor.numpy())
-    
+
         # Predict using PyTorch
         y_test_prediction = torch.tensor(model.predict(X_test_tensor.numpy()), dtype=torch.float32)
-    
+
         # Calculate the MSE using PyTorch
         criterion = nn.MSELoss()
         mse = criterion(y_test_prediction, y_test_tensor)
-    
+
         # Calculate the RMSE
         self.test_rmse = torch.sqrt(mse).item()
-    
+
         print(f"Finished training and evaluating {self.model_name}.")
-        
+
+
 class DAG(LightningFlow):
     """This component is a DAG."""
 
