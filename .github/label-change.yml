@@ -4,13 +4,6 @@ data:
           - "src/lightning/data/**"
           - "requirements/data/**"
 
-store:
-  - changed-files:
-      - any-glob-to-any-file:
-          - "src/lightning/store/**"
-          - "tests/tests_store/**"
-          - "requirements/store/**"
-
 pl:
   - changed-files:
       - any-glob-to-any-file:
