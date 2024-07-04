@@ -114,7 +114,6 @@ def _setup_args() -> Dict[str, Any]:
             "console_scripts": [
                 "fabric = lightning.fabric.cli:_main",
                 "lightning = lightning.fabric.cli:_legacy_main",
-                "lightning_app = lightning:_cli_entry_point",
             ],
         },
         "setup_requires": [],
