@@ -213,19 +213,6 @@ subprojects:
     checks:
       - "test-on-tpus (pytorch, pjrt, v4-8)"
 
-  - id: "lightning: Store"
-    paths:
-      - ".github/workflows/ci-tests-store.yml"
-      - "src/lightning/__init__.py"
-      - "src/lightning/__setup__.py"
-      - "src/lightning/__version__.py"
-      - "src/lightning/store/**"
-      - "tests/tests_store/**"
-    checks:
-      - "store-cpu (macOS-14, lightning, 3.10, 2.0)"
-      - "store-cpu (ubuntu-20.04, lightning, 3.10, 2.0)"
-      - "store-cpu (windows-2022, lightning, 3.10, 2.0)"
-
   # SECTION: common
 
   - id: "mypy"
