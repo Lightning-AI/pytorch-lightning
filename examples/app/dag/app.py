@@ -9,6 +9,10 @@ from lightning.app.storage import Payload
 from lightning.app.structures import Dict, List
 from sklearn import datasets
 from sklearn.metrics import mean_squared_error
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
 
 
 def get_path(path):
@@ -17,7 +21,6 @@ def get_path(path):
 
 class GetDataWork(LightningWork):
     """This component is responsible to download some data and store them with a PayLoad."""
-
     def __init__(self):
         super().__init__()
         self.df_data = None
@@ -43,45 +46,53 @@ class ModelWork(LightningWork):
         print(f"Starting training and evaluating {self.model_name}...")
         module = import_module(f"sklearn.{self.model_path}")
         model = getattr(module, self.model_name)()
-        model.fit(X_train.value, y_train.value.ravel())
-        y_test_prediction = model.predict(X_test.value)
-        self.test_rmse = np.sqrt(mean_squared_error(y_test.value, y_test_prediction))
+    
+        # Convert pandas DataFrames to PyTorch tensors
+        X_train_tensor = torch.tensor(X_train.value.values, dtype=torch.float32)
+        y_train_tensor = torch.tensor(y_train.value.values, dtype=torch.float32).reshape(-1)
+        X_test_tensor = torch.tensor(X_test.value.values, dtype=torch.float32)
+        y_test_tensor = torch.tensor(y_test.value.values, dtype=torch.float32).reshape(-1)
+
+        # Fit the model (still using numpy as sklearn expects numpy arrays)
+        model.fit(X_train_tensor.numpy(), y_train_tensor.numpy())
+    
+        # Predict using PyTorch
+        y_test_prediction = torch.tensor(model.predict(X_test_tensor.numpy()), dtype=torch.float32)
+    
+        # Calculate the MSE using PyTorch
+        criterion = nn.MSELoss()
+        mse = criterion(y_test_prediction, y_test_tensor)
+    
+        # Calculate the RMSE
+        self.test_rmse = torch.sqrt(mse).item()
+    
         print(f"Finished training and evaluating {self.model_name}.")
-
-
+        
 class DAG(LightningFlow):
     """This component is a DAG."""
 
     def __init__(self, models_paths: list):
         super().__init__()
-        # Step 1: Create a work to get the data.
         self.data_collector = GetDataWork()
-
-        # Step 2: Create a tracer component. This is used to execute python script
-        # and collect any outputs from its globals as Payloads.
         self.processing = TracerPythonScript(
             get_path("processing.py"),
             outputs=["X_train", "X_test", "y_train", "y_test"],
         )
 
-        # Step 3: Create the work to train the models_paths in parallel.
         self.dict = Dict(**{
             model_path.split(".")[-1]: ModelWork(model_path, parallel=True) for model_path in models_paths
         })
 
-        # Step 4: Some element to track components progress.
         self.has_completed = False
         self.metrics = {}
 
     def run(self):
-        # Step 1 and 2: Download and process the data.
         self.data_collector.run()
         self.processing.run(
             df_data=self.data_collector.df_data,
             df_target=self.data_collector.df_target,
         )
 
-        # Step 3: Launch n models training in parallel.
         for model, work in self.dict.items():
             work.run(
                 X_train=self.processing.X_train,
