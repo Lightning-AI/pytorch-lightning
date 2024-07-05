@@ -104,6 +104,7 @@ def thread_police_duuu_daaa_duuu_daaa():
         elif (
             thread.name == "QueueFeederThread"  # tensorboardX
             or thread.name == "QueueManagerThread"  # torch.compile
+            or "(_read_thread)" in thread.name  # torch.compile
         ):
             thread.join(timeout=20)
         elif (
