@@ -98,7 +98,6 @@ body:
         #- CUDA/cuDNN version:
         #- GPU models and configuration:
         #- How you installed Lightning(`conda`, `pip`, source):
-        #- Running environment of LightningApp (e.g. local, cloud):
         ```
 
         </details>
