@@ -93,7 +93,7 @@ class ModelParallelStrategy(ParallelStrategy):
         self._save_distributed_checkpoint = save_distributed_checkpoint
         self._process_group_backend: Optional[str] = process_group_backend
         self._timeout: Optional[timedelta] = timeout
-        self._device_mesh: Optional["DeviceMesh"] = None
+        self._device_mesh: Optional[DeviceMesh] = None
         self.num_nodes = 1
 
     @property

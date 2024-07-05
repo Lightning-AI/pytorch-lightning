@@ -106,7 +106,7 @@ class ModelParallelStrategy(ParallelStrategy):
         self._timeout: Optional[timedelta] = timeout
         self._backward_sync_control = _ParallelBackwardSyncControl()
 
-        self._device_mesh: Optional["DeviceMesh"] = None
+        self._device_mesh: Optional[DeviceMesh] = None
 
     @property
     def device_mesh(self) -> "DeviceMesh":
