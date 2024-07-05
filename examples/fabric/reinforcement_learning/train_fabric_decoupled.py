@@ -55,7 +55,7 @@ def player(args, world_collective: TorchCollective, player_trainer_collective: T
     # Log hyperparameters
     logger.experiment.add_text(
         "hyperparameters",
-        "|param|value|\n|-|-|\n%s" % ("\n".join([f"|{key}|{value}|" for key, value in vars(args).items()])),
+        "|param|value|\n|-|-|\n{}".format("\n".join([f"|{key}|{value}|" for key, value in vars(args).items()])),
     )
 
     # Environment setup
