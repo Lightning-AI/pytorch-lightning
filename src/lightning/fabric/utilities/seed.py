@@ -16,6 +16,7 @@ _NUMPY_AVAILABLE = RequirementCache("numpy")
 
 if _NUMPY_AVAILABLE:
     import numpy as np
+
     max_seed_value = np.iinfo(np.uint32).max
     min_seed_value = np.iinfo(np.uint32).min
 

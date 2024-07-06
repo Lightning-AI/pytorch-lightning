@@ -7,14 +7,21 @@ import torch
 # Only import numpy if it's available
 try:
     import numpy as np
+
     _NUMPY_AVAILABLE = True
 except ImportError:
     _NUMPY_AVAILABLE = False
 
-from lightning.fabric.utilities.seed import seed_everything, reset_seed, pl_worker_init_function, _collect_rng_states, _set_rng_states
+from lightning.fabric.utilities.seed import (
+    _collect_rng_states,
+    _set_rng_states,
+    pl_worker_init_function,
+    reset_seed,
+    seed_everything,
+)
+
 
 class TestSeedingFunctions(unittest.TestCase):
-
     def test_seed_everything(self):
         seed = 42
         seed_everything(seed)
@@ -73,24 +80,24 @@ class TestSeedingFunctions(unittest.TestCase):
         # Capture the RNG states after initializing the worker
         after_states = _collect_rng_states()
 
-        self.assertFalse(torch.equal(before_states['torch'], after_states['torch']))
-        self.assertNotEqual(before_states['python'], after_states['python'])
+        self.assertFalse(torch.equal(before_states["torch"], after_states["torch"]))
+        self.assertNotEqual(before_states["python"], after_states["python"])
 
         if _NUMPY_AVAILABLE:
-            self.assertFalse(np.array_equal(before_states['numpy'][1], after_states['numpy'][1]))
+            self.assertFalse(np.array_equal(before_states["numpy"][1], after_states["numpy"][1]))
 
     def test_collect_and_set_rng_states(self):
         seed = 42
         seed_everything(seed)
 
         states = _collect_rng_states()
-        self.assertIn('torch', states)
-        self.assertIn('python', states)
+        self.assertIn("torch", states)
+        self.assertIn("python", states)
 
         if _NUMPY_AVAILABLE:
-            self.assertIn('numpy', states)
+            self.assertIn("numpy", states)
         if torch.cuda.is_available():
-            self.assertIn('torch.cuda', states)
+            self.assertIn("torch.cuda", states)
 
         new_seed = 123
         seed_everything(new_seed)
@@ -98,14 +105,15 @@ class TestSeedingFunctions(unittest.TestCase):
         _set_rng_states(states)
 
         restored_states = _collect_rng_states()
-        self.assertTrue(torch.equal(torch.tensor(states['torch']), torch.tensor(restored_states['torch'])))
-        self.assertEqual(states['python'], restored_states['python'])
+        self.assertTrue(torch.equal(torch.tensor(states["torch"]), torch.tensor(restored_states["torch"])))
+        self.assertEqual(states["python"], restored_states["python"])
 
         if _NUMPY_AVAILABLE:
-            np.testing.assert_array_equal(states['numpy'][1], restored_states['numpy'][1])
+            np.testing.assert_array_equal(states["numpy"][1], restored_states["numpy"][1])
         if torch.cuda.is_available():
-            for state1, state2 in zip(states['torch.cuda'], restored_states['torch.cuda']):
+            for state1, state2 in zip(states["torch.cuda"], restored_states["torch.cuda"]):
                 self.assertTrue(torch.equal(torch.tensor(state1), torch.tensor(state2)))
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     unittest.main()
