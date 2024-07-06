@@ -17,8 +17,7 @@ import operator
 import platform
 import sys
 
-from lightning_utilities.core.imports import compare_version
-from lightning_utilities.core.imports import RequirementCache
+from lightning_utilities.core.imports import RequirementCache, compare_version
 
 _NUMPY_AVAILABLE = RequirementCache("numpy")
 
