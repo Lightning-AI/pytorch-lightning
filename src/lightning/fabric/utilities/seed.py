@@ -7,17 +7,15 @@ from typing import Any, Dict, Optional
 
 import numpy as np
 import torch
-from lightning_utilities.core.imports import RequirementCache
 
+from lightning.fabric.utilities.imports import _NUMPY_AVAILABLE
 from lightning.fabric.utilities.rank_zero import _get_rank, rank_prefixed_message, rank_zero_only, rank_zero_warn
 
 log = logging.getLogger(__name__)
-_NUMPY_AVAILABLE = RequirementCache("numpy")
 
-if _NUMPY_AVAILABLE:
-    import numpy as np
-    max_seed_value = np.iinfo(np.uint32).max
-    min_seed_value = np.iinfo(np.uint32).min
+
+max_seed_value = 4294967295  # 2^32 - 1 (uint32)
+min_seed_value = 0
 
 
 def seed_everything(seed: Optional[int] = None, workers: bool = False) -> int:
@@ -105,7 +103,10 @@ def pl_worker_init_function(worker_id: int, rank: Optional[int] = None) -> None:
         torch.manual_seed(torch_ss.generate_state(1, dtype=np.uint64)[0])
         # use 128 bits expressed as an integer
         stdlib_seed = (stdlib_ss.generate_state(2, dtype=np.uint64).astype(object) * [1 << 64, 1]).sum()
-    random.seed(stdlib_seed)
+        random.seed(stdlib_seed)
+    else:
+        torch.manual_seed(base_seed)
+        random.seed(base_seed)
 
 
 def _collect_rng_states(include_cuda: bool = True) -> Dict[str, Any]:
