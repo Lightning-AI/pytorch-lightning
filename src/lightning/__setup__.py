@@ -93,8 +93,8 @@ def _setup_args() -> Dict[str, Any]:
         "long_description_content_type": "text/markdown",
         "include_package_data": True,
         "zip_safe": False,
-        "keywords": ["deep learning", "pytorch", "AI"],  # todo: aggregate tags from all packages
-        "python_requires": ">=3.8",  # todo: take the lowes based on all packages
+        "keywords": ["deep learning", "pytorch", "AI"],
+        "python_requires": ">=3.9",
         "entry_points": {
             "console_scripts": [
                 "fabric = lightning.fabric.cli:_main",

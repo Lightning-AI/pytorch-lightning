@@ -2,7 +2,7 @@ import contextlib
 from unittest import mock
 from unittest.mock import Mock
 
-from lightning.fabric.utilities.imports import _PYTHON_GREATER_EQUAL_3_8_0, _PYTHON_GREATER_EQUAL_3_10_0
+from lightning.fabric.utilities.imports import _PYTHON_GREATER_EQUAL_3_10_0
 from lightning.fabric.utilities.registry import _load_external_callbacks
 
 
@@ -54,11 +54,9 @@ def _make_entry_point_query_mock(callback_factory):
     if _PYTHON_GREATER_EQUAL_3_10_0:
         query_mock.return_value = [entry_point]
         import_path = "importlib.metadata.entry_points"
-    elif _PYTHON_GREATER_EQUAL_3_8_0:
+    else:
         query_mock().get.return_value = [entry_point]
         import_path = "importlib.metadata.entry_points"
-    else:
-        query_mock.return_value = [entry_point]
-        import_path = "pkg_resources.iter_entry_points"
+
     with mock.patch(import_path, query_mock):
         yield
