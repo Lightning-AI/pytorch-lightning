@@ -2,6 +2,7 @@ import atexit
 import contextlib
 import logging
 import os
+import signal
 import time
 from contextlib import nullcontext
 from datetime import timedelta
@@ -306,8 +307,11 @@ def _init_dist_connection(
 
 
 def _destroy_dist_connection() -> None:
+    # Don't allow Ctrl+C to interrupt this handler
+    signal.signal(signal.SIGINT, signal.SIG_IGN)
     if _distributed_is_initialized():
         torch.distributed.destroy_process_group()
+    signal.signal(signal.SIGINT, signal.SIG_DFL)
 
 
 def _get_default_process_group_backend_for_device(device: torch.device) -> str:

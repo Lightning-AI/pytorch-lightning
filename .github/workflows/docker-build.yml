@@ -43,7 +43,6 @@ jobs:
         include:
           # We only release one docker image per PyTorch version.
           # Make sure the matrix here matches the one below.
-          - { python_version: "3.10", pytorch_version: "2.0", cuda_version: "11.8.0" }
           - { python_version: "3.10", pytorch_version: "2.1", cuda_version: "12.1.0" }
           - { python_version: "3.10", pytorch_version: "2.2", cuda_version: "12.1.0" }
           - { python_version: "3.11", pytorch_version: "2.1", cuda_version: "12.1.0" }
@@ -83,7 +82,7 @@ jobs:
               gh_env.write("DOCKER_TAGS=" + ",".join(tags))
         shell: python
 
-      - uses: docker/build-push-action@v5
+      - uses: docker/build-push-action@v6
         with:
           build-args: |
             PYTHON_VERSION=${{ matrix.python_version }}
@@ -104,7 +103,6 @@ jobs:
         include:
           # These are the base images for PL release docker images.
           # Make sure the matrix here matches the one above.
-          - { python_version: "3.10", pytorch_version: "2.0", cuda_version: "11.8.0" }
           - { python_version: "3.10", pytorch_version: "2.1", cuda_version: "12.1.0" }
           - { python_version: "3.10", pytorch_version: "2.2", cuda_version: "12.1.0" }
           - { python_version: "3.11", pytorch_version: "2.1", cuda_version: "12.1.0" }
@@ -119,7 +117,7 @@ jobs:
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
-      - uses: docker/build-push-action@v5
+      - uses: docker/build-push-action@v6
         with:
           build-args: |
             PYTHON_VERSION=${{ matrix.python_version }}
@@ -151,7 +149,7 @@ jobs:
       - name: Build Conda Docker
         # publish master/release
         continue-on-error: true
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           file: dockers/nvidia/Dockerfile
           push: false

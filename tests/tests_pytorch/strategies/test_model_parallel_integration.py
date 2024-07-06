@@ -339,7 +339,7 @@ def test_module_init_context(precision, expected_dtype, tmp_path):
     # Case 1: No empty init
     _run_setup_assertions(empty_init=False, expected_device=torch.device("cpu"))
 
-    # Case 2: Empty-init with PyTorch >= 2.1 supports meta device
+    # Case 2: Empty-init with meta device
     _run_setup_assertions(empty_init=True, expected_device=torch.device("meta"))
 
 

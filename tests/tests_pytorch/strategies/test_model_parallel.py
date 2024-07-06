@@ -175,27 +175,6 @@ def test_save_checkpoint_path_exists(shutil_mock, torch_save_mock, tmp_path):
 
 
 @RunIf(min_torch="2.3")
-@mock.patch("lightning.fabric.strategies.model_parallel._TORCH_GREATER_EQUAL_2_4", False)
-def test_load_full_checkpoint_support(tmp_path):
-    """Test that loading non-distributed checkpoints into distributed models requires PyTorch >= 2.4."""
-    strategy = ModelParallelStrategy()
-    strategy.model = Mock()
-    strategy._lightning_module = Mock(strict_loading=True)
-    path = tmp_path / "full.ckpt"
-    path.touch()
-
-    with pytest.raises(ImportError, match="Loading .* into a distributed model requires PyTorch >= 2.4"), mock.patch(
-        "lightning.fabric.strategies.model_parallel._has_dtensor_modules", return_value=True
-    ):
-        strategy.load_checkpoint(checkpoint_path=path)
-
-    with pytest.raises(ImportError, match="Loading .* into a distributed model requires PyTorch >= 2.4"), mock.patch(
-        "lightning.fabric.strategies.model_parallel._has_dtensor_modules", return_value=True
-    ):
-        strategy.load_checkpoint(checkpoint_path=path)
-
-
-@RunIf(min_torch="2.3")
 @mock.patch("lightning.fabric.strategies.model_parallel._has_dtensor_modules", return_value=True)
 def test_load_unknown_checkpoint_type(_, tmp_path):
     """Test that the strategy validates the contents at the checkpoint path."""

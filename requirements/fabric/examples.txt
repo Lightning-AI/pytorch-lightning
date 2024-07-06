@@ -1,6 +1,6 @@
 # NOTE: the upper bound for the package version is only set for CI stability, and it is dropped while installing this package
 #  in case you want to preserve/enforce restrictions on the latest compatible version, add "strict" as an in-line comment
 
-torchvision >=0.15.0, <0.19.0
+torchvision >=0.16.0, <0.20.0
 torchmetrics >=0.10.0, <1.3.0
 lightning-utilities >=0.8.0, <0.12.0

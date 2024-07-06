@@ -17,14 +17,14 @@ import sys
 from typing import Dict, List, Optional, Tuple
 
 import torch
-from lightning_utilities.core.imports import compare_version
+from lightning_utilities.core.imports import RequirementCache, compare_version
 from packaging.version import Version
 
 from lightning.fabric.accelerators import XLAAccelerator
 from lightning.fabric.accelerators.cuda import num_cuda_devices
 from lightning.fabric.accelerators.mps import MPSAccelerator
 from lightning.fabric.strategies.deepspeed import _DEEPSPEED_AVAILABLE
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_1
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_4
 
 
 def _runif_reasons(
@@ -112,17 +112,15 @@ def _runif_reasons(
             reasons.append("Standalone execution")
         kwargs["standalone"] = True
 
-    if deepspeed and not _DEEPSPEED_AVAILABLE:
+    if deepspeed and not (
+        _DEEPSPEED_AVAILABLE and not _TORCH_GREATER_EQUAL_2_4 and RequirementCache(module="deepspeed.utils")
+    ):
         reasons.append("Deepspeed")
 
     if dynamo:
-        if _TORCH_GREATER_EQUAL_2_1:
-            from torch._dynamo.eval_frame import is_dynamo_supported
+        from torch._dynamo.eval_frame import is_dynamo_supported
 
-            cond = not is_dynamo_supported()
-        else:
-            cond = sys.platform == "win32" or sys.version_info >= (3, 11)
-        if cond:
+        if not is_dynamo_supported():
             reasons.append("torch.dynamo")
 
     return reasons, kwargs

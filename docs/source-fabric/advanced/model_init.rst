@@ -81,4 +81,4 @@ When training distributed models with :doc:`FSDP/TP <model_parallel/index>` or D
 
 .. note::
     Empty-init is experimental and the behavior may change in the future.
-    For distributed models on PyTorch 2.1+, it is required that all user-defined modules that manage parameters implement a ``reset_parameters()`` method (all PyTorch built-in modules have this too).
+    For distributed models, it is required that all user-defined modules that manage parameters implement a ``reset_parameters()`` method (all PyTorch built-in modules have this too).

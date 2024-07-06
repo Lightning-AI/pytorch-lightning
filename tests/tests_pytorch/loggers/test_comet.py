@@ -67,6 +67,20 @@ def test_comet_logger_online(comet_mock):
 
 
 @mock.patch.dict(os.environ, {})
+def test_comet_experiment_resets_if_not_alive(comet_mock):
+    """Test that the CometLogger creates a new experiment if the old one is not alive anymore."""
+    logger = CometLogger()
+    assert logger._experiment is None
+    alive_experiment = Mock(alive=True)
+    logger._experiment = alive_experiment
+    assert logger.experiment is alive_experiment
+
+    unalive_experiment = Mock(alive=False)
+    logger._experiment = unalive_experiment
+    assert logger.experiment is not unalive_experiment
+
+
+@mock.patch.dict(os.environ, {})
 def test_comet_logger_no_api_key_given(comet_mock):
     """Test that CometLogger fails to initialize if both api key and save_dir are missing."""
     with pytest.raises(MisconfigurationException, match="requires either api_key or save_dir"):

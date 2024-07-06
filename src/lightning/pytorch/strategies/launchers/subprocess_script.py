@@ -107,7 +107,7 @@ class _SubprocessScriptLauncher(_Launcher):
     @override
     def kill(self, signum: _SIGNUM) -> None:
         for proc in self.procs:
-            log.info(f"pid {os.getpid()} killing {proc.pid} with {signum}")
+            log.debug(f"Process {os.getpid()} is terminating {proc.pid} with {signum}")
             # this skips subprocesses already terminated
             proc.send_signal(signum)
 

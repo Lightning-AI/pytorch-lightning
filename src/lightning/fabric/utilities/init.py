@@ -20,7 +20,6 @@ from torch.optim import Optimizer
 from torch.overrides import TorchFunctionMode
 from typing_extensions import override
 
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_1
 from lightning.fabric.utilities.rank_zero import rank_zero_warn
 from lightning.fabric.utilities.types import _DEVICE
 
@@ -61,8 +60,6 @@ class _EmptyInit(TorchFunctionMode):
 
 def _materialize(module: Module, device: _DEVICE) -> None:
     """Materialize a module."""
-    if not _TORCH_GREATER_EQUAL_2_1:
-        raise RuntimeError("recurse=False requires torch 2.1")
     module.to_empty(device=device, recurse=False)
     if not hasattr(module, "reset_parameters"):
         raise TypeError(
