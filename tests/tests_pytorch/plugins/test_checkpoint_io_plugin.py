@@ -31,7 +31,7 @@ class CustomCheckpointIO(CheckpointIO):
         torch.save(checkpoint, path)
 
     def load_checkpoint(self, path: _PATH, storage_options: Optional[Any] = None) -> Dict[str, Any]:
-        return torch.load(path)
+        return torch.load(path, weights_only=True)
 
     def remove_checkpoint(self, path: _PATH) -> None:
         os.remove(path)

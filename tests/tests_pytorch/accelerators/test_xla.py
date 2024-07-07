@@ -67,7 +67,7 @@ def test_resume_training_on_cpu(tmp_path):
     model_path = trainer.checkpoint_callback.best_model_path
 
     # Verify saved Tensors are on CPU
-    ckpt = torch.load(model_path)
+    ckpt = torch.load(model_path, weights_only=True)
     weight_tensor = list(ckpt["state_dict"].values())[0]
     assert weight_tensor.device == torch.device("cpu")
 
