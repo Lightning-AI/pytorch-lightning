@@ -102,7 +102,7 @@ def test_collect_rng_states_if_cuda_init_fails(get_rng_state_all_mock):
 
 
 @pytest.mark.parametrize(["num_workers", "num_ranks"], [(64, 64)])
-@pytest.mark.parametrize("base_seed", [0, 42, 2 ** 32 - 1])
+@pytest.mark.parametrize("base_seed", [100, 1024, 2 ** 32 - 1])
 def test_pl_worker_init_function(base_seed, num_workers, num_ranks):
     """Test that Lightning's `worker_init_fn` sets unique seeds per worker/rank derived from the base seed."""
     torch_rands = set()
