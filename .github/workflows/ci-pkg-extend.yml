@@ -1,0 +1,53 @@
+name: Package extras
+
+# see: https://help.github.com/en/actions/reference/events-that-trigger-workflows
+on:
+  push:
+    branches: [master, "release/*"]
+  pull_request:
+    branches: [master, "release/*"]
+    types: [opened, reopened, ready_for_review, synchronize] # added `ready_for_review` since draft is skipped
+    paths:
+      - ".github/workflows/ci-pkg-extend.yml"
+      - "requirements/ci.txt"
+      - "requirements/app/*"
+      - "requirements/data/*"
+      - "src/lightning/app/*"
+      - "src/lightning/data/*"
+      - "!*.md"
+      - "!**/*.md"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+
+  import-pkg:
+    needs: build-packages
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ["ubuntu-22.04", "macOS-12", "windows-2022"]
+        pkg-name: ["app", "data"]
+        python-version: ["3.8", "3.11"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install package
+        run: pip install lightning[${{ matrix.pkg-name }}]
+        timeout-minutes: 10
+
+      - name: Try importing
+        run: |
+          from lightning.${{ matrix.pkg-name }} import *
+        shell: python
+
