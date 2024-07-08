@@ -8,7 +8,7 @@ if not RequirementCache("lightning_app"):
     raise ModuleNotFoundError("Please, run `pip install lightning-app`")  # E111
 
 else:
-    import litdata
+    import lightning_app
 
     # Enable resolution at least for lower data namespace
     sys.modules["lightning.app"] = lightning_app
