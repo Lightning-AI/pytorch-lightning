@@ -831,7 +831,7 @@ def test_save_load_sharded_state_dict(tmp_path):
     checkpoint_path = Path(trainer.strategy.broadcast(trainer.checkpoint_callback.best_model_path))
     assert set(os.listdir(checkpoint_path)) == {"meta.pt", ".metadata", "__0_0.distcp", "__1_0.distcp"}
 
-    metadata = torch.load(checkpoint_path / "meta.pt")
+    metadata = torch.load(checkpoint_path / "meta.pt", weights_only=True)
     assert "pytorch-lightning_version" in metadata
     assert len(metadata["callbacks"]) == 1  # model checkpoint callback
     assert "state_dict" not in metadata

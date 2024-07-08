@@ -881,7 +881,7 @@ def test_lightning_cli_load_from_checkpoint_dependency_injection(cleandir):
 
     checkpoint_path = next(Path(cli.trainer.log_dir, "checkpoints").glob("*.ckpt"), None)
     assert checkpoint_path.is_file()
-    ckpt = torch.load(checkpoint_path)
+    ckpt = torch.load(checkpoint_path, weights_only=True)
     assert ckpt["hyper_parameters"] == expected
 
     model = TestModelSaveHparams.load_from_checkpoint(checkpoint_path)
@@ -910,7 +910,7 @@ def test_lightning_cli_load_from_checkpoint_dependency_injection_subclass_mode(c
 
     checkpoint_path = next(Path(cli.trainer.log_dir, "checkpoints").glob("*.ckpt"), None)
     assert checkpoint_path.is_file()
-    ckpt = torch.load(checkpoint_path)
+    ckpt = torch.load(checkpoint_path, weights_only=True)
     assert ckpt["hyper_parameters"] == expected
 
     model = LightningModule.load_from_checkpoint(checkpoint_path)

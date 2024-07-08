@@ -93,7 +93,7 @@ def test_migrate_loop_batches_that_stepped(tmp_path, model_class):
     ckpt_path = trainer.checkpoint_callback.best_model_path
 
     # pretend we have a checkpoint produced in < v1.6.5; the key "_batches_that_stepped" didn't exist back then
-    ckpt = torch.load(ckpt_path)
+    ckpt = torch.load(ckpt_path, weights_only=True)
     del ckpt["loops"]["fit_loop"]["epoch_loop.state_dict"]["_batches_that_stepped"]
     _set_version(ckpt, "1.6.4")
     torch.save(ckpt, ckpt_path)
