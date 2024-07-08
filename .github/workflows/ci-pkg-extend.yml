@@ -28,10 +28,9 @@ defaults:
 jobs:
 
   import-pkg:
-    needs: build-packages
     runs-on: ${{ matrix.os }}
     strategy:
-      fail-fast: false
+      fail-fast: true
       matrix:
         os: ["ubuntu-22.04", "macOS-12", "windows-2022"]
         pkg-name: ["app", "data"]
@@ -45,12 +44,10 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Install package
-        run: |
-          pip install lightning[${{ matrix.pkg-name }}] -f $TORCH_URL
+        run: pip install lightning[${{ matrix.pkg-name }}] -f $TORCH_URL
         timeout-minutes: 10
 
       - name: Try importing
-        run: |
-          from lightning.${{ matrix.pkg-name }} import *
+        run: from lightning.${{ matrix.pkg-name }} import *
         shell: python
 
