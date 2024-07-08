@@ -6,16 +6,16 @@ Brief description of all our automation tools used for boosting development perf
 
 ## Unit and Integration Testing
 
-| workflow file                          | action                                                                                    | accelerator |
-| -------------------------------------- | ----------------------------------------------------------------------------------------- | ----------- |
-| .github/workflows/ci-tests-fabric.yml  | Run all tests except for accelerator-specific and standalone.                             | CPU         |
-| .github/workflows/ci-tests-pytorch.yml | Run all tests except for accelerator-specific and standalone.                             | CPU         |
-| .github/workflows/ci-tests-data.yml    | Run unit and integration tests with data pipelining.                                      | CPU         |
-| .azure-pipelines/gpu-tests-fabric.yml  | Run only GPU-specific tests, standalone\*, and examples.                                  | GPU         |
-| .azure-pipelines/gpu-tests-pytorch.yml | Run only GPU-specific tests, standalone\*, and examples.                                  | GPU         |
-| .azure-pipelines/gpu-benchmarks.yml    | Run speed/memory benchmarks for parity with vanila PyTorch.                               | GPU         |
-| .github/workflows/ci-tests-pytorch.yml | Run all tests except for accelerator-specific, standalone and slow tests.                 | CPU         |
-| .github/workflows/tpu-tests.yml        | Run only TPU-specific tests. Requires that the PR title contains '\[TPU\]'                | TPU         |
+| workflow file                          | action                                                                     | accelerator |
+| -------------------------------------- | -------------------------------------------------------------------------- | ----------- |
+| .github/workflows/ci-tests-fabric.yml  | Run all tests except for accelerator-specific and standalone.              | CPU         |
+| .github/workflows/ci-tests-pytorch.yml | Run all tests except for accelerator-specific and standalone.              | CPU         |
+| .github/workflows/ci-tests-data.yml    | Run unit and integration tests with data pipelining.                       | CPU         |
+| .azure-pipelines/gpu-tests-fabric.yml  | Run only GPU-specific tests, standalone\*, and examples.                   | GPU         |
+| .azure-pipelines/gpu-tests-pytorch.yml | Run only GPU-specific tests, standalone\*, and examples.                   | GPU         |
+| .azure-pipelines/gpu-benchmarks.yml    | Run speed/memory benchmarks for parity with vanila PyTorch.                | GPU         |
+| .github/workflows/ci-tests-pytorch.yml | Run all tests except for accelerator-specific, standalone and slow tests.  | CPU         |
+| .github/workflows/tpu-tests.yml        | Run only TPU-specific tests. Requires that the PR title contains '\[TPU\]' | TPU         |
 
 \* Each standalone test needs to be run in separate processes to avoid unwanted interactions between test cases.
 
