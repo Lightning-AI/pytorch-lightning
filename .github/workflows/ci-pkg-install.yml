@@ -88,7 +88,7 @@ jobs:
         if: ${{ matrix.pkg-name == 'lightning' || matrix.pkg-name == 'notset' }}
         working-directory: src/lit
         run: |
-          items=("data")
+          items=("app" "data")
           for item in "${items[@]}"; do
             echo "Removing $item"
             rm -rf $item

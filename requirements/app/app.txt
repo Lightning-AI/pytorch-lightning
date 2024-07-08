@@ -1,0 +1,3 @@
+# NOTE: this is here only to expose `pip install lightning[app]`. we don't install or test it in this project's CI
+
+lightning_app >= 2.3.3, <2.3.4
