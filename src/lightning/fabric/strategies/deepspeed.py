@@ -45,6 +45,7 @@ if TYPE_CHECKING:
 _DEEPSPEED_AVAILABLE = RequirementCache("deepspeed")
 _DEEPSPEED_GREATER_EQUAL_0_14_1 = RequirementCache("deepspeed>=0.14.1")
 
+
 # TODO(fabric): Links in the docstrings to PL-specific deepspeed user docs need to be replaced.
 class DeepSpeedStrategy(DDPStrategy, _Sharded):
     DEEPSPEED_ENV_VAR = "PL_DEEPSPEED_CONFIG_PATH"
