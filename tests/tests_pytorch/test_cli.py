@@ -920,6 +920,38 @@ def test_lightning_cli_load_from_checkpoint_dependency_injection_subclass_mode(c
     assert isinstance(lr_scheduler, torch.optim.lr_scheduler.ConstantLR)
 
 
+class TestModelSaveHparamsUntyped(BoringModel):
+    def __init__(self, learning_rate, step_size=None, **kwargs):
+        super().__init__()
+        self.save_hyperparameters()
+        self.learning_rate = learning_rate
+        self.step_size = step_size
+        self.kwargs = kwargs
+
+
+def test_lightning_cli_save_hyperparameters_untyped_module(cleandir):
+    config = {
+        "model": {
+            "class_path": f"{__name__}.TestModelSaveHparamsUntyped",
+            "init_args": {"learning_rate": 1e-2},
+            "dict_kwargs": {"x": 1},
+        }
+    }
+    with mock.patch("sys.argv", ["any.py", f"--config={json.dumps(config)}", "--trainer.max_epochs=1"]):
+        cli = LightningCLI(BoringModel, run=False, auto_configure_optimizers=False, subclass_mode_model=True)
+    cli.trainer.fit(cli.model)
+    assert isinstance(cli.model, TestModelSaveHparamsUntyped)
+    assert cli.model.hparams["learning_rate"] == 1e-2
+    assert cli.model.hparams["step_size"] is None
+    assert cli.model.hparams["x"] == 1
+
+    checkpoint_path = next(Path(cli.trainer.log_dir, "checkpoints").glob("*.ckpt"), None)
+    model = TestModelSaveHparamsUntyped.load_from_checkpoint(checkpoint_path)
+    assert model.learning_rate == 1e-2
+    assert model.step_size is None
+    assert model.kwargs == {"x": 1}
+
+
 @pytest.mark.parametrize("fn", [fn.value for fn in TrainerFn])
 def test_lightning_cli_trainer_fn(fn):
     class TestCLI(LightningCLI):
