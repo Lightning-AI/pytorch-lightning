@@ -900,12 +900,10 @@ def test_lightning_cli_load_from_checkpoint_dependency_injection_subclass_mode(c
 
     expected = {
         "_instantiator": "lightning.pytorch.cli.instantiate_module",
-        "class_path": f"{__name__}.TestModelSaveHparams",
-        "init_args": {
-            "optimizer": "torch.optim.Adam",
-            "scheduler": "torch.optim.lr_scheduler.ConstantLR",
-            "activation": {"class_path": "torch.nn.LeakyReLU", "init_args": {"negative_slope": 0.05, "inplace": False}},
-        },
+        "_class_path": f"{__name__}.TestModelSaveHparams",
+        "optimizer": "torch.optim.Adam",
+        "scheduler": "torch.optim.lr_scheduler.ConstantLR",
+        "activation": {"class_path": "torch.nn.LeakyReLU", "init_args": {"negative_slope": 0.05, "inplace": False}},
     }
 
     checkpoint_path = next(Path(cli.trainer.log_dir, "checkpoints").glob("*.ckpt"), None)

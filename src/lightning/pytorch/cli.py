@@ -791,8 +791,14 @@ class _InstantiatorFn:
         self.key = key
 
     def __call__(self, class_type: Type[ModuleType], *args: Any, **kwargs: Any) -> ModuleType:
+        hparams = self.cli.config_dump.get(self.key, {})
+        if "class_path" in hparams:
+            hparams = {
+                "_class_path": hparams["class_path"],
+                **hparams.get("init_args", {}),
+            }
         with _given_hyperparameters_context(
-            hparams=self.cli.config_dump.get(self.key, {}),
+            hparams=hparams,
             instantiator="lightning.pytorch.cli.instantiate_module",
         ):
             return class_type(*args, **kwargs)
@@ -800,8 +806,12 @@ class _InstantiatorFn:
 
 def instantiate_module(class_type: Type[ModuleType], config: Dict[str, Any]) -> ModuleType:
     parser = ArgumentParser(exit_on_error=False)
-    if "class_path" in config:
+    if "_class_path" in config:
         parser.add_subclass_arguments(class_type, "module")
+        config = {
+            "class_path": config["_class_path"],
+            "init_args": {k: v for k, v in config.items() if k != "_class_path"},
+        }
     else:
         parser.add_class_arguments(class_type, "module")
     cfg = parser.parse_object({"module": config})
