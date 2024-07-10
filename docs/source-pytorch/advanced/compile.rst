@@ -241,6 +241,8 @@ As a note, the compilation phase itself will take some time, taking up to severa
 For these reasons, we recommend that you don't invest too much time trying to apply ``torch.compile`` during development, and rather evaluate its effectiveness toward the end when you are about to launch long-running, expensive experiments.
 Always compare the speed and memory usage of the compiled model against the original model!
 
+For a thorough troubleshooting guide, see `Torch.compile: the missing manual <https://docs.google.com/document/d/1y5CRfMLdwEoF1nTk9q8qEu1mgMUuUtvhklPKJ2emLU8/edit?usp=sharing>`_.
+
 
 ----
 
@@ -282,5 +284,6 @@ Here are a few resources for further reading after you complete this tutorial:
 - `GenAI with PyTorch 2.0 blog post series <https://pytorch.org/blog/accelerating-generative-ai-4/>`_
 - `Training Production AI Models with PyTorch 2.0 <https://pytorch.org/blog/training-production-ai-models/>`_
 - `Empowering Models with Performance: The Art of Generalized Model Transformation Approach <https://pytorch.org/blog/empowering-models-performance/>`_
+- `Torch.compile: the missing manual <https://docs.google.com/document/d/1y5CRfMLdwEoF1nTk9q8qEu1mgMUuUtvhklPKJ2emLU8/edit?usp=sharing>`_
 
 |

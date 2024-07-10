@@ -13,6 +13,7 @@
 # limitations under the License.
 import pickle
 from argparse import Namespace
+from contextlib import nullcontext
 from copy import deepcopy
 from typing import Any, Dict, Optional
 from unittest.mock import patch
@@ -20,6 +21,7 @@ from unittest.mock import patch
 import numpy as np
 import pytest
 import torch
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_4
 from lightning.fabric.utilities.logger import _convert_params, _sanitize_params
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringDataModule, BoringModel
@@ -122,7 +124,8 @@ def test_multiple_loggers_pickle(tmp_path):
 
     trainer = Trainer(logger=[logger1, logger2])
     pkl_bytes = pickle.dumps(trainer)
-    trainer2 = pickle.loads(pkl_bytes)
+    with pytest.warns(FutureWarning, match="`weights_only=False`") if _TORCH_GREATER_EQUAL_2_4 else nullcontext():
+        trainer2 = pickle.loads(pkl_bytes)
     for logger in trainer2.loggers:
         logger.log_metrics({"acc": 1.0}, 0)
 

@@ -191,7 +191,7 @@ def test_save_full_state_dict(tmp_path):
     state = {"model": trainer.model, "optimizer": trainer.optimizer, "steps": 1}
     fabric.save(checkpoint_path, state)
 
-    checkpoint = torch.load(checkpoint_path)
+    checkpoint = torch.load(checkpoint_path, weights_only=True)
     assert checkpoint["steps"] == 1
     loaded_state_dict = checkpoint["model"]
 
@@ -248,7 +248,7 @@ def test_save_full_state_dict(tmp_path):
     # get optimizer state after loading
     normal_checkpoint_path = Path(fabric.broadcast(str(tmp_path / "normal-checkpoint.pt")))
     fabric.save(normal_checkpoint_path, {"model": trainer.model, "optimizer": trainer.optimizer, "steps": 2})
-    optimizer_state_after = torch.load(normal_checkpoint_path)["optimizer"]
+    optimizer_state_after = torch.load(normal_checkpoint_path, weights_only=True)["optimizer"]
     optimizer_state_after = FullyShardedDataParallel.rekey_optim_state_dict(
         optimizer_state_after, optim_state_key_type=OptimStateKeyType.PARAM_NAME, model=trainer.model
     )
@@ -330,7 +330,7 @@ def test_load_full_state_dict_into_sharded_model(tmp_path):
     # Create a raw state-dict checkpoint to test `Fabric.load_raw` too
     raw_checkpoint_path = checkpoint_path.with_name("model-state-dict")
     if fabric.global_rank == 0:
-        checkpoint = torch.load(checkpoint_path)
+        checkpoint = torch.load(checkpoint_path, weights_only=True)
         torch.save(checkpoint["model"], raw_checkpoint_path)
     fabric.barrier()
 
@@ -485,7 +485,7 @@ def test_save_filter(tmp_path):
 
     checkpoint_path = tmp_path / "full.pth"
     fabric.save(checkpoint_path, state, filter=filter)
-    checkpoint = torch.load(checkpoint_path)["model"]
+    checkpoint = torch.load(checkpoint_path, weights_only=True)["model"]
     assert set(checkpoint) == {"bias"}
     assert type(checkpoint["bias"]) is torch.Tensor
 
