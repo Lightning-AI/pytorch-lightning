@@ -14,7 +14,7 @@
 import contextlib
 import logging
 from unittest import mock
-from unittest.mock import Mock, MagicMock
+from unittest.mock import MagicMock, Mock
 
 import pytest
 import torch

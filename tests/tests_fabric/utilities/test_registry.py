@@ -1,6 +1,6 @@
 import contextlib
 from unittest import mock
-from unittest.mock import Mock, MagicMock
+from unittest.mock import MagicMock, Mock
 
 from lightning.fabric.utilities.imports import _PYTHON_GREATER_EQUAL_3_10_0
 from lightning.fabric.utilities.registry import _load_external_callbacks
