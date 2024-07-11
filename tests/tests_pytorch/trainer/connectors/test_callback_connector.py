@@ -300,7 +300,7 @@ def _make_entry_point_query_mock(callback_factory):
     if _PYTHON_GREATER_EQUAL_3_10_0:
         query_mock.return_value = [entry_point]
     else:
-        query_mock().__getitem__.return_value = [entry_point]
+        query_mock().get.return_value = [entry_point]
 
     with mock.patch("lightning.fabric.utilities.registry.entry_points", query_mock):
         yield
