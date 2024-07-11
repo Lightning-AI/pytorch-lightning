@@ -13,11 +13,13 @@
 # limitations under the License.
 import os
 import pickle
+from contextlib import nullcontext
 from pathlib import Path
 from unittest import mock
 
 import pytest
 import yaml
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_4
 from lightning.pytorch import Trainer
 from lightning.pytorch.callbacks import ModelCheckpoint
 from lightning.pytorch.cli import LightningCLI
@@ -160,7 +162,8 @@ def test_wandb_pickle(wandb_mock, tmp_path):
     assert trainer.logger.experiment, "missing experiment"
     assert trainer.log_dir == logger.save_dir
     pkl_bytes = pickle.dumps(trainer)
-    trainer2 = pickle.loads(pkl_bytes)
+    with pytest.warns(FutureWarning, match="`weights_only=False`") if _TORCH_GREATER_EQUAL_2_4 else nullcontext():
+        trainer2 = pickle.loads(pkl_bytes)
 
     assert os.environ["WANDB_MODE"] == "dryrun"
     assert trainer2.logger.__class__.__name__ == WandbLogger.__name__

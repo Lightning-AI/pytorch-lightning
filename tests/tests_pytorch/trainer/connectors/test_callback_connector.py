@@ -144,7 +144,7 @@ def test_all_callback_states_saved_before_checkpoint_callback(tmp_path):
     )
     trainer.fit(model)
 
-    ckpt = torch.load(str(tmp_path / "all_states.ckpt"))
+    ckpt = torch.load(str(tmp_path / "all_states.ckpt"), weights_only=True)
     state0 = ckpt["callbacks"]["StatefulCallback0"]
     state1 = ckpt["callbacks"]["StatefulCallback1{'unique': 'one'}"]
     state2 = ckpt["callbacks"]["StatefulCallback1{'unique': 'two'}"]

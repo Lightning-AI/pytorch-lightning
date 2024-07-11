@@ -254,7 +254,7 @@ class _MultiProcessingLauncher(_Launcher):
         """
         # NOTE: `get_extra_results` needs to be called before
         callback_metrics_bytes = extra["callback_metrics_bytes"]
-        callback_metrics = torch.load(io.BytesIO(callback_metrics_bytes))
+        callback_metrics = torch.load(io.BytesIO(callback_metrics_bytes), weights_only=True)
         trainer.callback_metrics.update(callback_metrics)
 
     @override

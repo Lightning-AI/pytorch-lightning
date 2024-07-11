@@ -47,6 +47,8 @@ jobs:
           - { python_version: "3.10", pytorch_version: "2.2", cuda_version: "12.1.0" }
           - { python_version: "3.11", pytorch_version: "2.1", cuda_version: "12.1.0" }
           - { python_version: "3.11", pytorch_version: "2.2", cuda_version: "12.1.0" }
+          - { python_version: "3.11", pytorch_version: "2.3", cuda_version: "12.1.0" }
+          - { python_version: "3.11", pytorch_version: "2.4", cuda_version: "12.1.0" }
     steps:
       - uses: actions/checkout@v4
         with:
@@ -74,7 +76,7 @@ jobs:
           tags = [f"latest-py{py_ver}-torch{pt_ver}-cuda{cuda_ver}"]
           if ver:
             tags += [f"{ver}-py{py_ver}-torch{pt_ver}-cuda{cuda_ver}"]
-          if py_ver == '3.10' and pt_ver == '2.1' and cuda_ver == '12.1.0':
+          if py_ver == '3.11' and pt_ver == '2.3' and cuda_ver == '12.1.0':
             tags += ["latest"]
 
           tags = [f"{repo}:{tag}" for tag in tags]
@@ -108,6 +110,7 @@ jobs:
           - { python_version: "3.11", pytorch_version: "2.1", cuda_version: "12.1.0" }
           - { python_version: "3.11", pytorch_version: "2.2", cuda_version: "12.1.0" }
           - { python_version: "3.11", pytorch_version: "2.3", cuda_version: "12.1.0" }
+          - { python_version: "3.11", pytorch_version: "2.4", cuda_version: "12.1.0" }
           # - { python_version: "3.12", pytorch_version: "2.2", cuda_version: "12.1.0" }  # todo: pending on `onnxruntime`
     steps:
       - uses: actions/checkout@v4

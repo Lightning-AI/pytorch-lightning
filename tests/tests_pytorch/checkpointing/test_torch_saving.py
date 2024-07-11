@@ -30,7 +30,7 @@ def test_model_torch_save(tmp_path):
     # Ensure these do not fail
     torch.save(trainer.model, temp_path)
     torch.save(trainer, temp_path)
-    trainer = torch.load(temp_path)
+    trainer = torch.load(temp_path, weights_only=False)
 
 
 @RunIf(skip_windows=True)
