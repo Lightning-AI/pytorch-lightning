@@ -64,8 +64,7 @@ subprojects:
       - "!*.md"
       - "!**/*.md"
     checks:
-      - "pytorch-lightning (GPUs) (testing Lightning | latest)"
-      - "pytorch-lightning (GPUs) (testing PyTorch | latest)"
+      - "pytorch-lightning (GPUs) (testing Lightning PyTorch | latest)"
 
   - id: "pytorch_lightning: Benchmarks"
     paths:
@@ -205,8 +204,7 @@ subprojects:
       - "!*.md"
       - "!**/*.md"
     checks:
-      - "lightning-fabric (GPUs) (testing Fabric | latest)"
-      - "lightning-fabric (GPUs) (testing Lightning | latest)"
+      - "lightning-fabric (GPUs) (testing Lightning Fabric | latest)"
 
   - id: "lightning_fabric: TPU workflow"
     paths:
