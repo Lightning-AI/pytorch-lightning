@@ -36,7 +36,7 @@ def _load_external_callbacks(group: str) -> List[Any]:
         A list of all callbacks collected from external factories.
 
     """
-    factories = entry_points(group=group) if _PYTHON_GREATER_EQUAL_3_10_0 else entry_points()[group]
+    factories = entry_points(group=group) if _PYTHON_GREATER_EQUAL_3_10_0 else entry_points().get(group, {})
 
     external_callbacks: List[Any] = []
     for factory in factories:
