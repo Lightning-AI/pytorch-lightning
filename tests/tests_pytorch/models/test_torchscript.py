@@ -19,6 +19,7 @@ import pytest
 import torch
 from fsspec.implementations.local import LocalFileSystem
 from lightning.fabric.utilities.cloud_io import get_filesystem
+from lightning.fabric.utilities.imports import _IS_WINDOWS, _TORCH_GREATER_EQUAL_2_4
 from lightning.pytorch.core.module import LightningModule
 from lightning.pytorch.demos.boring_classes import BoringModel
 
@@ -26,6 +27,7 @@ from tests_pytorch.helpers.advanced_models import BasicGAN, ParityModuleRNN
 from tests_pytorch.helpers.runif import RunIf
 
 
+@pytest.mark.skipif(_IS_WINDOWS and _TORCH_GREATER_EQUAL_2_4, reason="not close on Windows + PyTorch 2.4")
 @pytest.mark.parametrize("modelclass", [BoringModel, ParityModuleRNN, BasicGAN])
 def test_torchscript_input_output(modelclass):
     """Test that scripted LightningModule forward works."""
@@ -45,6 +47,7 @@ def test_torchscript_input_output(modelclass):
     assert torch.allclose(script_output, model_output)
 
 
+@pytest.mark.skipif(_IS_WINDOWS and _TORCH_GREATER_EQUAL_2_4, reason="not close on Windows + PyTorch 2.4")
 @pytest.mark.parametrize("modelclass", [BoringModel, ParityModuleRNN, BasicGAN])
 def test_torchscript_example_input_output_trace(modelclass):
     """Test that traced LightningModule forward works with example_input_array."""

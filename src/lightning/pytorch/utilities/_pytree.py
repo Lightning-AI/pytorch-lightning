@@ -25,7 +25,7 @@ def _tree_flatten(pytree: PyTree) -> Tuple[List[Any], TreeSpec]:
     child_pytrees, context = flatten_fn(pytree)
 
     result: List[Any] = []
-    children_specs: List["TreeSpec"] = []
+    children_specs: List[TreeSpec] = []
     for child in child_pytrees:
         flat, child_spec = _tree_flatten(child)
         result += flat

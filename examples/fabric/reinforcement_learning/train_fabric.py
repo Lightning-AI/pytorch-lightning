@@ -80,7 +80,7 @@ def main(args: argparse.Namespace):
     # Log hyperparameters
     fabric.logger.experiment.add_text(
         "hyperparameters",
-        "|param|value|\n|-|-|\n%s" % ("\n".join([f"|{key}|{value}|" for key, value in vars(args).items()])),
+        "|param|value|\n|-|-|\n{}".format("\n".join([f"|{key}|{value}|" for key, value in vars(args).items()])),
     )
 
     # Environment setup

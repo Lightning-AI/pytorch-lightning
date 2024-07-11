@@ -19,6 +19,7 @@ from unittest import mock
 import lightning.pytorch as pl
 import pytest
 import torch
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_4
 from lightning.fabric.utilities.warnings import PossibleUserWarning
 from lightning.pytorch import Trainer
 from lightning.pytorch.callbacks import OnExceptionCheckpoint
@@ -253,11 +254,12 @@ def test_result_collection_restoration(tmp_path):
         }
 
         # make sure can be pickled
-        pickle.loads(pickle.dumps(result))
+        with pytest.warns(FutureWarning, match="`weights_only=False`") if _TORCH_GREATER_EQUAL_2_4 else nullcontext():
+            pickle.loads(pickle.dumps(result))
         # make sure can be torch.loaded
         filepath = str(tmp_path / "result")
         torch.save(result, filepath)
-        torch.load(filepath)
+        torch.load(filepath, weights_only=False)
 
         # assert metric state reset to default values
         result.reset()

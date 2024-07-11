@@ -133,11 +133,12 @@ ______________________________________________________________________
 ### Examples
 Explore various types of training possible with PyTorch Lightning. Pretrain and finetune ANY kind of model to perform ANY task like classification, segmentation, summarization and more:    
 
-| Task  | Description | Run |
-|---|---|---|
-| [Hello world](#hello-simple-model)  | Pretrain - Hello world example | <a target="_blank" href="https://lightning.ai/lightning-ai/studios/pytorch-lightning-hello-world"><img src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/app-2/studio-badge.svg" alt="Open In Studio"/></a> |
-| [Image segmentation](https://lightning.ai/lightning-ai/studios/image-segmentation-with-pytorch-lightning)  | Finetune - ResNet-50 model to segment images | <a target="_blank" href="https://lightning.ai/lightning-ai/studios/image-segmentation-with-pytorch-lightning"><img src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/app-2/studio-badge.svg" alt="Open In Studio"/></a> |   
-| [Text classification](https://lightning.ai/lightning-ai/studios/text-classification-with-pytorch-lightning)  | Finetune - text classifier (BERT model) | <a target="_blank" href="https://lightning.ai/lightning-ai/studios/text-classification-with-pytorch-lightning"><img src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/app-2/studio-badge.svg" alt="Open In Studio"/></a> |   
+| Task                                                                                                        | Description                                    | Run |
+|-------------------------------------------------------------------------------------------------------------|------------------------------------------------|---|
+| [Hello world](#hello-simple-model)                                                                          | Pretrain - Hello world example                 | <a target="_blank" href="https://lightning.ai/lightning-ai/studios/pytorch-lightning-hello-world"><img src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/app-2/studio-badge.svg" alt="Open In Studio"/></a> |
+| [Image segmentation](https://lightning.ai/lightning-ai/studios/image-segmentation-with-pytorch-lightning)   | Finetune - ResNet-50 model to segment images   | <a target="_blank" href="https://lightning.ai/lightning-ai/studios/image-segmentation-with-pytorch-lightning"><img src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/app-2/studio-badge.svg" alt="Open In Studio"/></a> |   
+| [Text classification](https://lightning.ai/lightning-ai/studios/text-classification-with-pytorch-lightning) | Finetune - text classifier (BERT model)        | <a target="_blank" href="https://lightning.ai/lightning-ai/studios/text-classification-with-pytorch-lightning"><img src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/app-2/studio-badge.svg" alt="Open In Studio"/></a> |   
+| [Audio generation](https://lightning.ai/lightning-ai/studios/finetune-a-personal-ai-music-generator)    | Finetune - audio generator (transformer model) | <a target="_blank" href="https://lightning.ai/lightning-ai/studios/finetune-a-personal-ai-music-generator"><img src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/app-2/studio-badge.svg" alt="Open In Studio"/></a> |   
 
 ### Hello simple model
 

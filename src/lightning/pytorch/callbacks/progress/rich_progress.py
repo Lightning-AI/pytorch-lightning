@@ -148,7 +148,7 @@ if _RICH_AVAILABLE:
             self._trainer = trainer
             self._tasks: Dict[Union[int, TaskID], Any] = {}
             self._current_task_id = 0
-            self._metrics: Dict[Union[str, "Style"], Any] = {}
+            self._metrics: Dict[Union[str, Style], Any] = {}
             self._style = style
             self._text_delimiter = text_delimiter
             self._metrics_format = metrics_format
@@ -274,13 +274,13 @@ class RichProgressBar(ProgressBar):
         self._console_kwargs = console_kwargs or {}
         self._enabled: bool = True
         self.progress: Optional[CustomProgress] = None
-        self.train_progress_bar_id: Optional["TaskID"]
-        self.val_sanity_progress_bar_id: Optional["TaskID"] = None
-        self.val_progress_bar_id: Optional["TaskID"]
-        self.test_progress_bar_id: Optional["TaskID"]
-        self.predict_progress_bar_id: Optional["TaskID"]
+        self.train_progress_bar_id: Optional[TaskID]
+        self.val_sanity_progress_bar_id: Optional[TaskID] = None
+        self.val_progress_bar_id: Optional[TaskID]
+        self.test_progress_bar_id: Optional[TaskID]
+        self.predict_progress_bar_id: Optional[TaskID]
         self._reset_progress_bar_ids()
-        self._metric_component: Optional["MetricsTextColumn"] = None
+        self._metric_component: Optional[MetricsTextColumn] = None
         self._progress_stopped: bool = False
         self.theme = theme
         self._update_for_light_colab_theme()
