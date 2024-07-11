@@ -1067,7 +1067,7 @@ def test_bitsandbytes_precision_cuda_required(monkeypatch):
         _AcceleratorConnector(accelerator="cpu", plugins=BitsandbytesPrecision(mode="int8"))
 
 
-@RunIf(min_torch="2.3")
+@RunIf(min_torch="2.4")
 @pytest.mark.parametrize(
     ("precision", "raises"),
     [("32-true", False), ("16-true", False), ("bf16-true", False), ("16-mixed", True), ("bf16-mixed", False)],
