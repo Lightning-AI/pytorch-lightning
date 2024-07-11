@@ -124,7 +124,6 @@ def _setup_args() -> Dict[str, Any]:
             "Operating System :: OS Independent",
             # Specify the Python versions you support here.
             "Programming Language :: Python :: 3",
-            "Programming Language :: Python :: 3.8",
             "Programming Language :: Python :: 3.9",
             "Programming Language :: Python :: 3.10",
             "Programming Language :: Python :: 3.11",
