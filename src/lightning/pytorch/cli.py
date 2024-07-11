@@ -534,7 +534,7 @@ class LightningCLI:
             self.config = parser.parse_args(args)
 
     def _add_instantiators(self) -> None:
-        self.config_dump = yaml.safe_load(self.parser.dump(self.config, skip_link_targets=False))
+        self.config_dump = yaml.safe_load(self.parser.dump(self.config, skip_link_targets=False, skip_none=False))
         if "subcommand" in self.config:
             self.config_dump = self.config_dump[self.config.subcommand]
 
@@ -791,8 +791,18 @@ class _InstantiatorFn:
         self.key = key
 
     def __call__(self, class_type: Type[ModuleType], *args: Any, **kwargs: Any) -> ModuleType:
+        hparams = self.cli.config_dump.get(self.key, {})
+        if "class_path" in hparams:
+            # To make hparams backwards compatible, and so that it is the same irrespective of subclass_mode, the
+            # parameters are stored directly, and the class_path in a special key `_class_path` to clarify its internal
+            # use.
+            hparams = {
+                "_class_path": hparams["class_path"],
+                **hparams.get("init_args", {}),
+                **hparams.get("dict_kwargs", {}),
+            }
         with _given_hyperparameters_context(
-            hparams=self.cli.config_dump.get(self.key, {}),
+            hparams=hparams,
             instantiator="lightning.pytorch.cli.instantiate_module",
         ):
             return class_type(*args, **kwargs)
@@ -800,10 +810,14 @@ class _InstantiatorFn:
 
 def instantiate_module(class_type: Type[ModuleType], config: Dict[str, Any]) -> ModuleType:
     parser = ArgumentParser(exit_on_error=False)
-    if "class_path" in config:
-        parser.add_subclass_arguments(class_type, "module")
+    if "_class_path" in config:
+        parser.add_subclass_arguments(class_type, "module", fail_untyped=False)
+        config = {
+            "class_path": config["_class_path"],
+            "dict_kwargs": {k: v for k, v in config.items() if k != "_class_path"},
+        }
     else:
-        parser.add_class_arguments(class_type, "module")
+        parser.add_class_arguments(class_type, "module", fail_untyped=False)
     cfg = parser.parse_object({"module": config})
     init = parser.instantiate_classes(cfg)
     return init.module
