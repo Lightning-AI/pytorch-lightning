@@ -793,6 +793,9 @@ class _InstantiatorFn:
     def __call__(self, class_type: Type[ModuleType], *args: Any, **kwargs: Any) -> ModuleType:
         hparams = self.cli.config_dump.get(self.key, {})
         if "class_path" in hparams:
+            # To make hparams backwards compatible, and so that it is the same irrespective of subclass_mode, the
+            # parameters are stored directly, and the class_path in a special key `_class_path` to clarify its internal
+            # use.
             hparams = {
                 "_class_path": hparams["class_path"],
                 **hparams.get("init_args", {}),
