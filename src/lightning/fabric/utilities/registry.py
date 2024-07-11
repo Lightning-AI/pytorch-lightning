@@ -12,10 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import logging
+from importlib.metadata import entry_points
 from inspect import getmembers, isclass
 from types import ModuleType
 from typing import Any, List, Type, Union
-from importlib.metadata import entry_points
 
 from lightning_utilities import is_overridden
 
