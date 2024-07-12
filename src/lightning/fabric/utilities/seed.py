@@ -3,17 +3,19 @@ import os
 import random
 from random import getstate as python_get_rng_state
 from random import setstate as python_set_rng_state
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 import numpy as np
 import torch
 
+from lightning.fabric.utilities.imports import _NUMPY_AVAILABLE
 from lightning.fabric.utilities.rank_zero import _get_rank, rank_prefixed_message, rank_zero_only, rank_zero_warn
 
 log = logging.getLogger(__name__)
 
-max_seed_value = np.iinfo(np.uint32).max
-min_seed_value = np.iinfo(np.uint32).min
+
+max_seed_value = 4294967295  # 2^32 - 1 (uint32)
+min_seed_value = 0
 
 
 def seed_everything(seed: Optional[int] = None, workers: bool = False) -> int:
@@ -54,7 +56,8 @@ def seed_everything(seed: Optional[int] = None, workers: bool = False) -> int:
     log.info(rank_prefixed_message(f"Seed set to {seed}", _get_rank()))
     os.environ["PL_GLOBAL_SEED"] = str(seed)
     random.seed(seed)
-    np.random.seed(seed)
+    if _NUMPY_AVAILABLE:
+        np.random.seed(seed)
     torch.manual_seed(seed)
 
     os.environ["PL_SEED_WORKERS"] = f"{int(workers)}"
@@ -91,24 +94,34 @@ def pl_worker_init_function(worker_id: int, rank: Optional[int] = None) -> None:
     log.debug(
         f"Initializing random number generators of process {global_rank} worker {worker_id} with base seed {base_seed}"
     )
-    ss = np.random.SeedSequence([base_seed, worker_id, global_rank])
-    # use 128 bits (4 x 32-bit words)
-    np.random.seed(ss.generate_state(4))
-    # Spawn distinct SeedSequences for the PyTorch PRNG and the stdlib random module
-    torch_ss, stdlib_ss = ss.spawn(2)
-    torch.manual_seed(torch_ss.generate_state(1, dtype=np.uint64)[0])
-    # use 128 bits expressed as an integer
-    stdlib_seed = (stdlib_ss.generate_state(2, dtype=np.uint64).astype(object) * [1 << 64, 1]).sum()
-    random.seed(stdlib_seed)
+    seed_sequence = _generate_seed_sequence(base_seed, worker_id, global_rank, count=4)
+    torch.manual_seed(seed_sequence[0])  # torch takes a 64-bit seed
+    random.seed((seed_sequence[1] << 32) | seed_sequence[2])  # combine two 64-bit seeds
+    if _NUMPY_AVAILABLE:
+        np.random.seed(seed_sequence[3] & 0xFFFFFFFF)  # numpy takes 32-bit seed only
+
+
+def _generate_seed_sequence(base_seed: int, worker_id: int, global_rank: int, count: int) -> List[int]:
+    """Generates a sequence of seeds from a base seed, worker id and rank using the linear congruential generator (LCG)
+    algorithm."""
+    # Combine base seed, worker id and rank into a unique 64-bit number
+    combined_seed = (base_seed << 32) | (worker_id << 16) | global_rank
+    seeds = []
+    for _ in range(count):
+        # x_(n+1) = (a * x_n + c) mod m. With c=1, m=2^64 and a is D. Knuth's constant
+        combined_seed = (combined_seed * 6364136223846793005 + 1) & ((1 << 64) - 1)
+        seeds.append(combined_seed)
+    return seeds
 
 
 def _collect_rng_states(include_cuda: bool = True) -> Dict[str, Any]:
     r"""Collect the global random state of :mod:`torch`, :mod:`torch.cuda`, :mod:`numpy` and Python."""
     states = {
         "torch": torch.get_rng_state(),
-        "numpy": np.random.get_state(),
         "python": python_get_rng_state(),
     }
+    if _NUMPY_AVAILABLE:
+        states["numpy"] = np.random.get_state()
     if include_cuda:
         states["torch.cuda"] = torch.cuda.get_rng_state_all() if torch.cuda.is_available() else []
     return states
@@ -121,6 +134,7 @@ def _set_rng_states(rng_state_dict: Dict[str, Any]) -> None:
     # torch.cuda rng_state is only included since v1.8.
     if "torch.cuda" in rng_state_dict:
         torch.cuda.set_rng_state_all(rng_state_dict["torch.cuda"])
-    np.random.set_state(rng_state_dict["numpy"])
+    if _NUMPY_AVAILABLE and "numpy" in rng_state_dict:
+        np.random.set_state(rng_state_dict["numpy"])
     version, state, gauss = rng_state_dict["python"]
     python_set_rng_state((version, tuple(state), gauss))
