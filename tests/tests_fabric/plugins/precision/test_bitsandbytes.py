@@ -225,7 +225,7 @@ def test_bitsandbytes_layers_meta_device(args, expected, tmp_path):
         model = MyModel()
     ckpt_path = tmp_path / "foo.ckpt"
     torch.save(state_dict, ckpt_path)
-    torch.load(str(ckpt_path), mmap=True)
+    torch.load(str(ckpt_path), mmap=True, weights_only=True)
     keys = model.load_state_dict(state_dict, strict=True, assign=True)  # quantizes
     assert not keys.missing_keys
     assert model.l.weight.device.type == "cuda"
@@ -258,7 +258,7 @@ def test_load_quantized_checkpoint(tmp_path):
     fabric = Fabric(accelerator="cuda", devices=1, plugins=BitsandbytesPrecision("nf4-dq"))
     model = Model()
     model = fabric.setup(model)
-    state_dict = torch.load(tmp_path / "checkpoint.pt")
+    state_dict = torch.load(tmp_path / "checkpoint.pt", weights_only=True)
     model.load_state_dict(state_dict)
     assert model.linear.weight.dtype == torch.uint8
     assert model.linear.weight.shape == (128, 1)
