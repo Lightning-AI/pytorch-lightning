@@ -12,13 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import logging
+from importlib.metadata import entry_points
 from inspect import getmembers, isclass
 from types import ModuleType
 from typing import Any, List, Type, Union
 
 from lightning_utilities import is_overridden
 
-from lightning.fabric.utilities.imports import _PYTHON_GREATER_EQUAL_3_8_0, _PYTHON_GREATER_EQUAL_3_10_0
+from lightning.fabric.utilities.imports import _PYTHON_GREATER_EQUAL_3_10_0
 
 _log = logging.getLogger(__name__)
 
@@ -35,16 +36,9 @@ def _load_external_callbacks(group: str) -> List[Any]:
         A list of all callbacks collected from external factories.
 
     """
-    if _PYTHON_GREATER_EQUAL_3_8_0:
-        from importlib.metadata import entry_points
-
-        factories = (
-            entry_points(group=group) if _PYTHON_GREATER_EQUAL_3_10_0 else entry_points().get(group, {})  # type: ignore[arg-type]
-        )
-    else:
-        from pkg_resources import iter_entry_points
-
-        factories = iter_entry_points(group)  # type: ignore[assignment]
+    factories = (
+        entry_points(group=group) if _PYTHON_GREATER_EQUAL_3_10_0 else entry_points().get(group, {})  # type: ignore[arg-type]
+    )
 
     external_callbacks: List[Any] = []
     for factory in factories:

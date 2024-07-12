@@ -33,7 +33,6 @@ _TORCH_GREATER_EQUAL_2_2 = compare_version("torch", operator.ge, "2.2.0")
 _TORCH_GREATER_EQUAL_2_3 = compare_version("torch", operator.ge, "2.3.0")
 _TORCH_GREATER_EQUAL_2_4 = compare_version("torch", operator.ge, "2.4.0")
 
-_PYTHON_GREATER_EQUAL_3_8_0 = (sys.version_info.major, sys.version_info.minor) >= (3, 8)
 _PYTHON_GREATER_EQUAL_3_10_0 = (sys.version_info.major, sys.version_info.minor) >= (3, 10)
 
 _UTILITIES_GREATER_EQUAL_0_10 = compare_version("lightning_utilities", operator.ge, "0.10.0")

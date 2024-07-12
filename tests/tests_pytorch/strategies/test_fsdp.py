@@ -217,6 +217,7 @@ def test_custom_mixed_precision():
     assert strategy.mixed_precision_config == config
 
 
+@pytest.mark.filterwarnings("ignore::FutureWarning")
 @RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True)
 def test_strategy_sync_batchnorm(tmp_path):
     """Test to ensure that sync_batchnorm works when using FSDP and GPU, and all stages can be run."""
@@ -233,6 +234,7 @@ def test_strategy_sync_batchnorm(tmp_path):
     _run_multiple_stages(trainer, model, os.path.join(tmp_path, "last.ckpt"))
 
 
+@pytest.mark.filterwarnings("ignore::FutureWarning")
 @RunIf(min_cuda_gpus=1, skip_windows=True)
 def test_modules_without_parameters(tmp_path):
     """Test that TorchMetrics get moved to the device despite not having any parameters."""
@@ -263,6 +265,7 @@ def test_modules_without_parameters(tmp_path):
     trainer.fit(model)
 
 
+@pytest.mark.filterwarnings("ignore::FutureWarning")
 @RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True)
 @pytest.mark.parametrize("precision", ["16-mixed", pytest.param("bf16-mixed", marks=RunIf(bf16_cuda=True))])
 @pytest.mark.parametrize("state_dict_type", ["sharded", "full"])
@@ -284,6 +287,7 @@ def custom_auto_wrap_policy(
     return nonwrapped_numel >= 2
 
 
+@pytest.mark.filterwarnings("ignore::FutureWarning")
 @RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True)
 @pytest.mark.parametrize("wrap_min_params", [2, 1024, 100000000])
 def test_strategy_full_state_dict(tmp_path, wrap_min_params):
@@ -319,6 +323,7 @@ def test_strategy_full_state_dict(tmp_path, wrap_min_params):
     assert all(_ex == _co for _ex, _co in zip(full_state_dict.keys(), correct_state_dict.keys()))
 
 
+@pytest.mark.filterwarnings("ignore::FutureWarning")
 @RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True)
 @pytest.mark.parametrize(
     ("model", "strategy", "strategy_cfg"),
@@ -552,6 +557,7 @@ def test_strategy_load_optimizer_states_multiple(_, tmp_path):
         strategy.load_checkpoint(tmp_path / "one-state.ckpt")
 
 
+@pytest.mark.filterwarnings("ignore::FutureWarning")
 @RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True)
 @pytest.mark.parametrize("wrap_min_params", [2, 1024, 100000000])
 def test_strategy_save_optimizer_states(tmp_path, wrap_min_params):
@@ -610,6 +616,7 @@ def test_strategy_save_optimizer_states(tmp_path, wrap_min_params):
     trainer.strategy.barrier()
 
 
+@pytest.mark.filterwarnings("ignore::FutureWarning")
 @RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True)
 @pytest.mark.parametrize("wrap_min_params", [2, 1024, 100000000])
 def test_strategy_load_optimizer_states(wrap_min_params, tmp_path):
@@ -808,6 +815,7 @@ class TestFSDPCheckpointModel(BoringModel):
             torch.testing.assert_close(p0, p1, atol=0, rtol=0, equal_nan=True)
 
 
+@pytest.mark.filterwarnings("ignore::FutureWarning")
 @RunIf(min_cuda_gpus=2, standalone=True)
 def test_save_load_sharded_state_dict(tmp_path):
     """Test FSDP saving and loading with the sharded state dict format."""
@@ -917,11 +925,20 @@ def test_module_init_context(precision, expected_dtype, tmp_path):
     _run_setup_assertions(empty_init=True, expected_device=torch.device("meta"))
 
 
+@pytest.mark.filterwarnings("ignore::FutureWarning")
 @RunIf(min_cuda_gpus=2, standalone=True, min_torch="2.3.0")
 def test_save_sharded_and_consolidate_and_load(tmp_path):
     """Test the consolidation of a FSDP-sharded checkpoint into a single file."""
 
-    model = BoringModel()
+    class CustomModel(BoringModel):
+        def configure_optimizers(self):
+            # Use Adam instead of SGD for this test because it has state
+            # In PyTorch >= 2.4, saving an optimizer with empty state would result in a `KeyError: 'state'`
+            # when loading the optimizer state-dict back.
+            # TODO: To resolve this, switch to the new `torch.distributed.checkpoint` APIs in FSDPStrategy
+            return torch.optim.Adam(self.parameters(), lr=0.1)
+
+    model = CustomModel()
     trainer = Trainer(
         default_root_dir=tmp_path,
         accelerator="cuda",
@@ -942,7 +959,7 @@ def test_save_sharded_and_consolidate_and_load(tmp_path):
         torch.save(checkpoint, checkpoint_path_full)
     trainer.strategy.barrier()
 
-    model = BoringModel()
+    model = CustomModel()
     trainer = Trainer(
         default_root_dir=tmp_path,
         accelerator="cuda",
