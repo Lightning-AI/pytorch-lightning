@@ -103,9 +103,13 @@ def pl_worker_init_function(worker_id: int, rank: Optional[int] = None) -> None:
 
 
 def _generate_seed_sequence(base_seed: int, worker_id: int, global_rank: int, count: int) -> List[int]:
+    """Generates a sequence of seeds from a base seed, worker id and rank using the linear congruential
+    generator (LCG) algorithm."""
+    # Combine base seed, worker id and rank into a unique 64-bit number
     combined_seed = (base_seed << 32) | (worker_id << 16) | global_rank
     seeds = []
     for _ in range(count):
+        # x_(n+1) = (a * x_n + c) mod m. With c=1, m=2^64 and a is D. Knuth's constant
         combined_seed = (combined_seed * 6364136223846793005 + 1) & ((1 << 64) - 1)
         seeds.append(combined_seed)
     return seeds
