@@ -1,11 +1,18 @@
 import os
+import random
 from unittest import mock
 from unittest.mock import Mock
 
 import lightning.fabric.utilities
+import numpy
 import pytest
 import torch
-from lightning.fabric.utilities.seed import _collect_rng_states, _set_rng_states
+from lightning.fabric.utilities.seed import (
+    _collect_rng_states,
+    _set_rng_states,
+    pl_worker_init_function,
+    seed_everything,
+)
 
 
 @mock.patch.dict(os.environ, clear=True)
@@ -95,3 +102,26 @@ def test_collect_rng_states_if_cuda_init_fails(get_rng_state_all_mock):
     get_rng_state_all_mock.side_effect = RuntimeError("The NVIDIA driver on your system is too old")
     states = _collect_rng_states()
     assert states["torch.cuda"] == []
+
+
+@pytest.mark.parametrize(("num_workers", "num_ranks"), [(64, 64)])
+@pytest.mark.parametrize("base_seed", [100, 1024, 2**32 - 1])
+def test_pl_worker_init_function(base_seed, num_workers, num_ranks):
+    """Test that Lightning's `worker_init_fn` sets unique seeds per worker/rank derived from the base seed."""
+    torch_rands = set()
+    stdlib_rands = set()
+    numpy_rands = set()
+
+    for worker_id in range(num_workers):
+        for rank in range(num_ranks):
+            seed_everything(base_seed)
+            pl_worker_init_function(worker_id, rank)
+            torch_rands.add(tuple(torch.randint(0, 1_000_000, (100,)).tolist()))
+            stdlib_rands.add(tuple(random.randint(0, 1_000_000) for _ in range(100)))
+            numpy_rands.add(tuple(numpy.random.randint(0, 1_000_000, (100,)).tolist()))
+
+    # Assert there are no duplicates (no collisions)
+    assert len(torch_rands) == num_ranks * num_workers
+    assert len(stdlib_rands) == num_ranks * num_workers
+    assert len(numpy_rands) == num_ranks * num_workers
+    assert len(torch_rands | stdlib_rands | numpy_rands) == 3 * num_workers * num_ranks
