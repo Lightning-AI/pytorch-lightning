@@ -291,6 +291,10 @@ def _init_dist_connection(
     os.environ["MASTER_ADDR"] = cluster_environment.main_address
     os.environ["MASTER_PORT"] = str(cluster_environment.main_port)
     log.info(f"Initializing distributed: GLOBAL_RANK: {global_rank}, MEMBER: {global_rank + 1}/{world_size}")
+
+    if torch_distributed_backend.lower() == "ccl":
+        pass
+
     torch.distributed.init_process_group(torch_distributed_backend, rank=global_rank, world_size=world_size, **kwargs)
 
     if torch_distributed_backend == "nccl":
@@ -315,7 +319,11 @@ def _destroy_dist_connection() -> None:
 
 
 def _get_default_process_group_backend_for_device(device: torch.device) -> str:
-    return "nccl" if device.type == "cuda" else "gloo"
+    if device.type == "cuda":
+        return "nccl"
+    if device.type == "xpu":
+        return "ccl"
+    return "gloo"
 
 
 class _DatasetSamplerWrapper(Dataset):
