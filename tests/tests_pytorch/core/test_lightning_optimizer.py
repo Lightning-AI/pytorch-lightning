@@ -14,7 +14,6 @@
 from copy import deepcopy
 from unittest.mock import DEFAULT, Mock, patch
 
-import pytest
 import torch
 from lightning.pytorch import Trainer, seed_everything
 from lightning.pytorch.core.optimizer import LightningOptimizer
@@ -26,16 +25,12 @@ from torch.optim import SGD, Adam, Optimizer
 from tests_pytorch.helpers.runif import RunIf
 
 
-@pytest.mark.parametrize("auto", [True, False])
-def test_lightning_optimizer(tmp_path, auto):
+def test_lightning_optimizer(tmp_path):
     """Test that optimizer are correctly wrapped by our LightningOptimizer."""
 
     class TestModel(BoringModel):
         def configure_optimizers(self):
             optimizer = torch.optim.SGD(self.layer.parameters(), lr=0.1)
-            if not auto:
-                # note: this is not recommended, only done for coverage
-                optimizer = LightningOptimizer(optimizer)
             lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1)
             return [optimizer], [lr_scheduler]
 

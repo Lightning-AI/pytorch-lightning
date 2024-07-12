@@ -13,11 +13,11 @@
 # limitations under the License.
 from contextlib import contextmanager
 from dataclasses import fields
-from typing import Any, Callable, Dict, Generator, List, Optional, Tuple, Union, overload, DefaultDict
+from typing import Any, Callable, Dict, Generator, List, Optional, Tuple, Union, overload
 from weakref import proxy
 
 import torch
-from torch import optim, Tensor
+from torch import optim
 from torch.optim import Optimizer
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from typing_extensions import override
@@ -57,21 +57,6 @@ class LightningOptimizer:
     @property
     def optimizer(self) -> Optimizer:
         return self._optimizer
-
-    @property
-    def param_groups(self) -> List[Dict[str, Any]]:
-        # Added to enable structural typing against `Optimizable`
-        return self._optimizer.param_groups
-
-    @property
-    def defaults(self) -> Dict[str, Any]:
-        # Added to enable structural typing against `Optimizable`
-        return self._optimizer.defaults
-
-    @property
-    def state(self) -> DefaultDict[Tensor, Any]:
-        # Added to enable structural typing against `Optimizable`
-        return self._optimizer.state
 
     @contextmanager
     def toggle_model(self, sync_grad: bool = True) -> Generator[None, None, None]:
