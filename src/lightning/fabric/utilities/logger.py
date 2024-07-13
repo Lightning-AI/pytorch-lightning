@@ -18,8 +18,9 @@ from argparse import Namespace
 from dataclasses import asdict, is_dataclass
 from typing import Any, Dict, Mapping, MutableMapping, Optional, Union
 
-import numpy as np
 from torch import Tensor
+
+from lightning.fabric.utilities.imports import _NUMPY_AVAILABLE
 
 
 def _convert_params(params: Optional[Union[Dict[str, Any], Namespace]]) -> Dict[str, Any]:
@@ -129,10 +130,12 @@ def _sanitize_params(params: Dict[str, Any]) -> Dict[str, Any]:
 
     """
     for k in params:
-        # convert relevant np scalars to python types first (instead of str)
-        if isinstance(params[k], (np.bool_, np.integer, np.floating)):
-            params[k] = params[k].item()
-        elif type(params[k]) not in [bool, int, float, str, Tensor]:
+        if _NUMPY_AVAILABLE:
+            import numpy as np
+
+            if isinstance(params[k], (np.bool_, np.integer, np.floating)):
+                params[k] = params[k].item()
+        if type(params[k]) not in [bool, int, float, str, Tensor]:
             params[k] = str(params[k])
     return params
 
