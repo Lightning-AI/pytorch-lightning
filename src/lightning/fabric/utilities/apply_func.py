@@ -23,6 +23,8 @@ from lightning_utilities.core.apply_func import apply_to_collection
 from torch import Tensor
 
 from lightning.fabric.utilities.types import _DEVICE
+from lightning.fabric.utilities.imports import _NUMPY_AVAILABLE
+
 
 _BLOCKING_DEVICE_TYPES = ("cpu", "mps")
 
@@ -36,8 +38,10 @@ CONVERSION_DTYPES: List[Tuple[Any, Callable[[Any, Any], Tensor]]] = [
     (bool, partial(torch.tensor, dtype=torch.uint8)),
     (int, partial(torch.tensor, dtype=torch.int)),
     (float, partial(torch.tensor, dtype=torch.float)),
-    (np.ndarray, _from_numpy),
 ]
+
+if _NUMPY_AVAILABLE:
+    CONVERSION_DTYPES.append((np.ndarray, _from_numpy))
 
 
 class _TransferableDataType(ABC):
