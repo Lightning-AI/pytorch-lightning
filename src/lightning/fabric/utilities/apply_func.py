@@ -15,7 +15,7 @@
 
 from abc import ABC
 from functools import partial
-from typing import Any, Callable, List, Tuple, Union, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Callable, List, Tuple, Union
 
 import torch
 from lightning_utilities.core.apply_func import apply_to_collection
