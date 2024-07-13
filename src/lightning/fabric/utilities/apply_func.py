@@ -15,7 +15,7 @@
 
 from abc import ABC
 from functools import partial
-from typing import Any, Callable, List, Tuple, Union
+from typing import Any, Callable, List, Tuple, Union, TYPE_CHECKING
 
 import torch
 from lightning_utilities.core.apply_func import apply_to_collection
@@ -23,6 +23,9 @@ from torch import Tensor
 
 from lightning.fabric.utilities.imports import _NUMPY_AVAILABLE
 from lightning.fabric.utilities.types import _DEVICE
+
+if TYPE_CHECKING:
+    import numpy as np
 
 _BLOCKING_DEVICE_TYPES = ("cpu", "mps")
 
