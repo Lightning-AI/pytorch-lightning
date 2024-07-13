@@ -22,9 +22,8 @@ import torch
 from lightning_utilities.core.apply_func import apply_to_collection
 from torch import Tensor
 
-from lightning.fabric.utilities.types import _DEVICE
 from lightning.fabric.utilities.imports import _NUMPY_AVAILABLE
-
+from lightning.fabric.utilities.types import _DEVICE
 
 _BLOCKING_DEVICE_TYPES = ("cpu", "mps")
 
