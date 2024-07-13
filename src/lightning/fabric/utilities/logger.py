@@ -134,7 +134,7 @@ def _sanitize_params(params: Dict[str, Any]) -> Dict[str, Any]:
 
             if isinstance(params[k], (np.bool_, np.integer, np.floating)):
                 params[k] = params[k].item()
-        if type(params[k]) not in [bool, int, float, str, Tensor]:
+        elif type(params[k]) not in [bool, int, float, str, Tensor]:
             params[k] = str(params[k])
     return params
 

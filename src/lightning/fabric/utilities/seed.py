@@ -5,7 +5,6 @@ from random import getstate as python_get_rng_state
 from random import setstate as python_set_rng_state
 from typing import Any, Dict, List, Optional
 
-import numpy as np
 import torch
 
 from lightning.fabric.utilities.imports import _NUMPY_AVAILABLE
@@ -57,6 +56,8 @@ def seed_everything(seed: Optional[int] = None, workers: bool = False) -> int:
     os.environ["PL_GLOBAL_SEED"] = str(seed)
     random.seed(seed)
     if _NUMPY_AVAILABLE:
+        import numpy as np
+
         np.random.seed(seed)
     torch.manual_seed(seed)
 
@@ -98,6 +99,8 @@ def pl_worker_init_function(worker_id: int, rank: Optional[int] = None) -> None:
     torch.manual_seed(seed_sequence[0])  # torch takes a 64-bit seed
     random.seed((seed_sequence[1] << 32) | seed_sequence[2])  # combine two 64-bit seeds
     if _NUMPY_AVAILABLE:
+        import numpy as np
+
         np.random.seed(seed_sequence[3] & 0xFFFFFFFF)  # numpy takes 32-bit seed only
 
 
@@ -121,6 +124,8 @@ def _collect_rng_states(include_cuda: bool = True) -> Dict[str, Any]:
         "python": python_get_rng_state(),
     }
     if _NUMPY_AVAILABLE:
+        import numpy as np
+
         states["numpy"] = np.random.get_state()
     if include_cuda:
         states["torch.cuda"] = torch.cuda.get_rng_state_all() if torch.cuda.is_available() else []
@@ -135,6 +140,8 @@ def _set_rng_states(rng_state_dict: Dict[str, Any]) -> None:
     if "torch.cuda" in rng_state_dict:
         torch.cuda.set_rng_state_all(rng_state_dict["torch.cuda"])
     if _NUMPY_AVAILABLE and "numpy" in rng_state_dict:
+        import numpy as np
+
         np.random.set_state(rng_state_dict["numpy"])
     version, state, gauss = rng_state_dict["python"]
     python_set_rng_state((version, tuple(state), gauss))

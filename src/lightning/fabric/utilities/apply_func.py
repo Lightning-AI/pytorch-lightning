@@ -17,7 +17,6 @@ from abc import ABC
 from functools import partial
 from typing import Any, Callable, List, Tuple, Union
 
-import numpy as np
 import torch
 from lightning_utilities.core.apply_func import apply_to_collection
 from torch import Tensor
@@ -41,6 +40,8 @@ CONVERSION_DTYPES: List[Tuple[Any, Callable[[Any, Any], Tensor]]] = [
 ]
 
 if _NUMPY_AVAILABLE:
+    import numpy as np
+
     CONVERSION_DTYPES.append((np.ndarray, _from_numpy))
 
 
