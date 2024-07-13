@@ -30,7 +30,7 @@ if TYPE_CHECKING:
 _BLOCKING_DEVICE_TYPES = ("cpu", "mps")
 
 
-def _from_numpy(value: np.ndarray, device: _DEVICE) -> Tensor:
+def _from_numpy(value: "np.ndarray", device: _DEVICE) -> Tensor:
     return torch.from_numpy(value).to(device)
 
 
