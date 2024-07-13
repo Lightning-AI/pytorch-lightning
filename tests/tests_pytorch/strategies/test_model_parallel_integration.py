@@ -418,6 +418,7 @@ def test_load_full_state_checkpoint_into_regular_model(tmp_path):
     trainer.strategy.barrier()
 
 
+@pytest.mark.filterwarnings("ignore::FutureWarning")
 @RunIf(min_torch="2.4", min_cuda_gpus=2, skip_windows=True, standalone=True)
 def test_load_standard_checkpoint_into_distributed_model(tmp_path):
     """Test that a regular checkpoint (weights and optimizer states) can be loaded into a distributed model."""
@@ -458,6 +459,7 @@ def test_load_standard_checkpoint_into_distributed_model(tmp_path):
     trainer.strategy.barrier()
 
 
+@pytest.mark.filterwarnings("ignore::FutureWarning")
 @RunIf(min_torch="2.4", min_cuda_gpus=2, standalone=True)
 def test_save_load_sharded_state_dict(tmp_path):
     """Test saving and loading with the distributed state dict format."""
