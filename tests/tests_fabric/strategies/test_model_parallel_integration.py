@@ -301,6 +301,7 @@ def test_train_save_load(precision, tmp_path):
     assert state["coconut"] == 11
 
 
+@pytest.mark.filterwarnings("ignore::FutureWarning")
 @RunIf(min_torch="2.4", min_cuda_gpus=2, standalone=True)
 def test_save_full_state_dict(tmp_path):
     """Test that ModelParallelStrategy saves the full state into a single file with
@@ -401,6 +402,7 @@ def test_save_full_state_dict(tmp_path):
     _train(fabric, model, optimizer)
 
 
+@pytest.mark.filterwarnings("ignore::FutureWarning")
 @RunIf(min_torch="2.4", min_cuda_gpus=2, standalone=True)
 def test_load_full_state_dict_into_sharded_model(tmp_path):
     """Test that the strategy can load a full-state checkpoint into a distributed model."""
