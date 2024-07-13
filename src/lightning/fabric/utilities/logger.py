@@ -17,6 +17,7 @@ import json
 from argparse import Namespace
 from dataclasses import asdict, is_dataclass
 from typing import Any, Dict, Mapping, MutableMapping, Optional, Union
+
 from torch import Tensor
 
 from lightning.fabric.utilities.imports import _NUMPY_AVAILABLE
@@ -137,7 +138,6 @@ def _sanitize_params(params: Dict[str, Any]) -> Dict[str, Any]:
         elif type(params[k]) not in [bool, int, float, str, Tensor]:
             params[k] = str(params[k])
     return params
-
 
 
 def _convert_json_serializable(params: Dict[str, Any]) -> Dict[str, Any]:
