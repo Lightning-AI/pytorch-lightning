@@ -19,6 +19,7 @@ import torch
 from lightning.fabric.fabric import Fabric
 from lightning.fabric.plugins import Precision
 from lightning.fabric.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
+from lightning.fabric.utilities.types import Optimizable
 from lightning.fabric.wrappers import (
     _FabricDataLoader,
     _FabricModule,
@@ -497,6 +498,7 @@ def test_fabric_optimizer_steps():
 
     # with model as optimizer
     strategy = Mock(spec=["optimizer_step", "model"])
+    strategy.model = Mock(spec=Optimizable)
     fabric_optimizer = _FabricOptimizer(optimizer=optimizer, strategy=strategy)
     fabric_optimizer.step()
     strategy.optimizer_step.assert_called_once_with(strategy.model)

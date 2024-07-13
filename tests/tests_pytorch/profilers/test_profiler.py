@@ -14,6 +14,7 @@
 import logging
 import os
 import platform
+import sys
 import time
 from copy import deepcopy
 from unittest.mock import patch
@@ -33,6 +34,13 @@ from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from tests_pytorch.helpers.runif import RunIf
 
 PROFILER_OVERHEAD_MAX_TOLERANCE = 0.0005
+
+
+# TODO: Nested profile calls are not supported and raise an error in Python 3.12+
+#   https://github.com/Lightning-AI/pytorch-lightning/issues/19983
+skip_advanced_profiler_py312 = pytest.mark.skipif(
+    sys.version_info >= (3, 12), reason="Nested profiler calls not supported."
+)
 
 
 def _get_python_cprofile_total_duration(profile):
@@ -333,6 +341,7 @@ def test_pytorch_profiler_describe(pytorch_profiler):
     assert len(data) > 0
 
 
+@skip_advanced_profiler_py312
 def test_advanced_profiler_cprofile_deepcopy(tmp_path):
     """Checks for pickle issue reported in #6522."""
     model = BoringModel()
@@ -510,7 +519,14 @@ def test_register_record_function(tmp_path):
     assert "[pl][module]torch.nn.modules.linear.Linear: layer.2" in event_names
 
 
-@pytest.mark.parametrize("cls", [SimpleProfiler, AdvancedProfiler, PyTorchProfiler])
+@pytest.mark.parametrize(
+    "cls",
+    [
+        SimpleProfiler,
+        PyTorchProfiler,
+        pytest.param(AdvancedProfiler, marks=skip_advanced_profiler_py312),
+    ],
+)
 def test_profiler_teardown(tmp_path, cls):
     """This test checks if profiler teardown method is called when trainer is exiting."""
 
