@@ -7,13 +7,14 @@ import importlib
 import os
 import warnings
 from functools import lru_cache
+from importlib.metadata import PackageNotFoundError
+from importlib.metadata import version as _version
 from importlib.util import find_spec
 from types import ModuleType
 from typing import Any, Callable, List, Optional, TypeVar
 
-import pkg_resources
 from packaging.requirements import Requirement
-from packaging.version import Version
+from packaging.version import InvalidVersion, Version
 from typing_extensions import ParamSpec
 
 T = TypeVar("T")
@@ -75,15 +76,12 @@ def compare_version(package: str, op: Callable, version: str, use_base_version: 
     """
     try:
         pkg = importlib.import_module(package)
-    except (ImportError, pkg_resources.DistributionNotFound):
+    except ImportError:
         return False
     try:
-        if hasattr(pkg, "__version__"):
-            pkg_version = Version(pkg.__version__)
-        else:
-            # try pkg_resources to infer version
-            pkg_version = Version(pkg_resources.get_distribution(package).version)
-    except TypeError:
+        # Use importlib.metadata to infer version
+        pkg_version = Version(pkg.__version__) if hasattr(pkg, "__version__") else Version(_version(package))
+    except (TypeError, PackageNotFoundError):
         # this is mocked by Sphinx, so it should return True to generate all summaries
         return True
     if use_base_version:
@@ -128,17 +126,20 @@ class RequirementCache:
     def _check_requirement(self) -> None:
         assert self.requirement  # noqa: S101; needed for typing
         try:
-            # first try the pkg_resources requirement
-            pkg_resources.require(self.requirement)
-            self.available = True
-            self.message = f"Requirement {self.requirement!r} met"
-        except Exception as ex:
+            req = Requirement(self.requirement)
+            pkg_version = Version(_version(req.name))
+            self.available = req.specifier.contains(pkg_version)
+        except (PackageNotFoundError, InvalidVersion) as ex:
             self.available = False
             self.message = f"{ex.__class__.__name__}: {ex}. HINT: Try running `pip install -U {self.requirement!r}`"
+
+        if self.available:
+            self.message = f"Requirement {self.requirement!r} met"
+        else:
             req_include_version = any(c in self.requirement for c in "=<>")
             if not req_include_version or self.module is not None:
                 module = self.requirement if self.module is None else self.module
-                # sometimes `pkg_resources.require()` fails but the module is importable
+                # Sometimes `importlib.metadata.version` fails but the module is importable
                 self.available = module_available(module)
                 if self.available:
                     self.message = f"Module {module!r} available"

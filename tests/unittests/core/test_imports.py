@@ -48,7 +48,7 @@ def testcompare_version(monkeypatch):
 def test_requirement_cache():
     assert RequirementCache(f"pytest>={pytest.__version__}")
     assert not RequirementCache(f"pytest<{pytest.__version__}")
-    assert "pip install -U '-'" in str(RequirementCache("-"))
+    assert "pip install -U 'not-found-requirement'" in str(RequirementCache("not-found-requirement"))
 
     # invalid requirement is skipped by valid module
     assert RequirementCache(f"pytest<{pytest.__version__}", "pytest")
