@@ -458,7 +458,7 @@ def _load_checkpoint(
         return metadata
 
     if _is_full_checkpoint(path):
-        checkpoint = torch.load(path, mmap=True, map_location="cpu")
+        checkpoint = torch.load(path, mmap=True, map_location="cpu", weights_only=False)
         _load_raw_module_state(checkpoint.pop(module_key), module, strict=strict)
 
         state_dict_options = StateDictOptions(
