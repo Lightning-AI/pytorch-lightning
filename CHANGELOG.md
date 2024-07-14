@@ -6,15 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
-## [UnRaleased] - 2024-MM-DD
+
+## [0.11.4] - 2024-07-15
 
 ### Changed
 
 - Replaced deprecated `pkg_resources` with `importlib.metadata` ([#281](https://github.com/Lightning-AI/utilities/pull/281))
 
-### Fixed
-
--
 
 ## [0.11.3] - 2024-06-26
 
