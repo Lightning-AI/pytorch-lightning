@@ -468,6 +468,7 @@ class ModelCheckpoint(Checkpoint):
             )
 
     def __init_ckpt_dir(self, dirpath: Optional[_PATH], filename: Optional[str]) -> None:
+        self._dir_path_was_passed = dirpath is not None
         self._fs = get_filesystem(dirpath if dirpath else "")
 
         if dirpath and _is_local_file_protocol(dirpath if dirpath else ""):
@@ -616,7 +617,7 @@ class ModelCheckpoint(Checkpoint):
         The path gets extended with subdirectory "checkpoints".
 
         """
-        if self.dirpath is not None:
+        if self._dir_path_was_passed:
             # short circuit if dirpath was passed to ModelCheckpoint
             return self.dirpath
 
