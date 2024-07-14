@@ -69,6 +69,7 @@ jobs:
         working-directory: .actions/
         run: |
           pip install -q pytest -r requirements.txt
+          pip install git+https://github.com/lightning-ai/utilities.git@bugfix/extras  # FIXME: remove
           python -m pytest assistant.py
 
       - name: Adjust code for standalone
