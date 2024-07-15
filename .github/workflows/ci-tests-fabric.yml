@@ -134,7 +134,6 @@ jobs:
         run: |
           pip install -e ".[${EXTRA_PREFIX}test,${EXTRA_PREFIX}strategies]" -U --prefer-binary \
             --find-links="${TORCH_URL}" --find-links="${PYPI_CACHE_DIR}"
-          pip install git+https://github.com/lightning-ai/utilities.git@bugfix/extras  # FIXME: remove
           pip list
       - name: Dump handy wheels
         if: github.event_name == 'push' && github.ref == 'refs/heads/master'
