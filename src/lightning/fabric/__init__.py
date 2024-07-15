@@ -37,9 +37,6 @@ import lightning.fabric._graveyard  # noqa: E402, F401  # isort: skip
 
 __all__ = ["Fabric", "seed_everything", "is_wrapped"]
 
-# for compatibility with namespace packages
-__import__("pkg_resources").declare_namespace(__name__)
-
 
 if os.environ.get("POSSIBLE_USER_WARNINGS", "").lower() in ("0", "off"):
     disable_possible_user_warnings()
