@@ -15,8 +15,6 @@ on:
       - "docs/**"
       - "_notebooks"
       - "requirements/**"
-      - "src/lightning/app/**"
-      - "src/lightning_app/*"
       - "src/lightning/fabric/**"
       - "src/lightning_fabric/*"
       - "src/lightning/pytorch/**"
@@ -58,7 +56,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        pkg-name: ["app", "fabric", "pytorch"]
+        pkg-name: ["fabric", "pytorch"]
         target: ["html", "doctest", "linkcheck"]
     env:
       DOCS_COPY_NOTEBOOKS: 1
@@ -108,11 +106,14 @@ jobs:
       - name: Full build for deployment
         if: github.event_name != 'pull_request'
         run: echo "DOCS_FETCH_ASSETS=1" >> $GITHUB_ENV
+      - name: Build without warnings
+        if: github.event_name != 'workflow_dispatch'
+        run: echo "BUILD_SPHINX_OPTS=-W --keep-going" >> $GITHUB_ENV
       - name: Make ${{ matrix.target }}
         working-directory: ./docs/source-${{ matrix.pkg-name }}
         # allow failing link check and doctest if you run with dispatch
-        continue-on-error: ${{ (matrix.target == 'doctest' || matrix.target == 'linkcheck')  && github.event_name == 'workflow_dispatch' }}
-        run: make ${{ matrix.target }} --debug --jobs $(nproc) SPHINXOPTS="-W --keep-going"
+        continue-on-error: ${{ (matrix.target == 'doctest' || matrix.target == 'linkcheck') && github.event_name == 'workflow_dispatch' }}
+        run: make ${{ matrix.target }} --debug --jobs $(nproc) SPHINXOPTS="$BUILD_SPHINX_OPTS"
 
       - name: Keep artifact
         if: github.event_name == 'pull_request'
@@ -141,7 +142,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        pkg-name: ["app", "fabric", "pytorch"]
+        pkg-name: ["fabric", "pytorch"]
     env:
       GCP_TARGET: "gs://lightning-docs-${{ matrix.pkg-name }}"
       # use input if dispatch or git tag

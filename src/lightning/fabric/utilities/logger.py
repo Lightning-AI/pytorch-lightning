@@ -12,12 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import inspect
+import json
 from argparse import Namespace
 from dataclasses import asdict, is_dataclass
 from typing import Any, Dict, Mapping, MutableMapping, Optional, Union
 
-import numpy as np
 from torch import Tensor
+
+from lightning.fabric.utilities.imports import _NUMPY_AVAILABLE
 
 
 def _convert_params(params: Optional[Union[Dict[str, Any], Namespace]]) -> Dict[str, Any]:
@@ -52,8 +55,11 @@ def _sanitize_callable_params(params: Dict[str, Any]) -> Dict[str, Any]:
     """
 
     def _sanitize_callable(val: Any) -> Any:
-        # Give them one chance to return a value. Don't go rabbit hole of recursive call
+        if inspect.isclass(val):
+            # If it's a class, don't try to instantiate it, just return the name
+            return val.__name__
         if callable(val):
+            # Callables get a chance to return a name
             try:
                 _val = val()
                 if callable(_val):
@@ -124,12 +130,31 @@ def _sanitize_params(params: Dict[str, Any]) -> Dict[str, Any]:
 
     """
     for k in params:
-        # convert relevant np scalars to python types first (instead of str)
-        if isinstance(params[k], (np.bool_, np.integer, np.floating)):
-            params[k] = params[k].item()
-        elif type(params[k]) not in [bool, int, float, str, Tensor]:
+        if _NUMPY_AVAILABLE:
+            import numpy as np
+
+            if isinstance(params[k], (np.bool_, np.integer, np.floating)):
+                params[k] = params[k].item()
+        if type(params[k]) not in [bool, int, float, str, Tensor]:
             params[k] = str(params[k])
     return params
+
+
+def _convert_json_serializable(params: Dict[str, Any]) -> Dict[str, Any]:
+    """Convert non-serializable objects in params to string."""
+    return {k: str(v) if not _is_json_serializable(v) else v for k, v in params.items()}
+
+
+def _is_json_serializable(value: Any) -> bool:
+    """Test whether a variable can be encoded as json."""
+    if value is None or isinstance(value, (bool, int, float, str, list, dict)):  # fast path
+        return True
+    try:
+        json.dumps(value)
+        return True
+    except (TypeError, OverflowError):
+        # OverflowError is raised if number is too large to encode
+        return False
 
 
 def _add_prefix(

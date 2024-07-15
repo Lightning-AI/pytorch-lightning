@@ -24,7 +24,6 @@ from typing_extensions import TypedDict, override
 from lightning.fabric.utilities import move_data_to_device
 from lightning.fabric.utilities.apply_func import convert_tensors_to_scalars
 from lightning.fabric.utilities.distributed import _distributed_is_initialized
-from lightning.fabric.utilities.imports import _TORCH_EQUAL_2_0, _TORCH_GREATER_EQUAL_2_0
 from lightning.pytorch.utilities.data import extract_batch_size
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.imports import _TORCHMETRICS_GREATER_EQUAL_1_0_0
@@ -112,7 +111,7 @@ class _Metadata:
     on_step: bool = False
     on_epoch: bool = True
     # https://github.com/pytorch/pytorch/issues/96197
-    reduce_fx: Callable = "mean" if _TORCH_EQUAL_2_0 else torch.mean  # type: ignore[assignment]
+    reduce_fx: Callable = torch.mean
     enable_graph: bool = False
     add_dataloader_idx: bool = True
     dataloader_idx: Optional[int] = None
@@ -305,9 +304,7 @@ class _ResultMetric(Metric):
 
     @override
     def to(self, *args: Any, **kwargs: Any) -> "_ResultMetric":
-        d = self.__dict__
-        if _TORCH_GREATER_EQUAL_2_0:  # https://github.com/pytorch/pytorch/issues/96198
-            d = dict(d)
+        d = dict(self.__dict__)
         self.__dict__.update(apply_to_collection(d, (Tensor, Metric), move_data_to_device, *args, **kwargs))
         return self
 
@@ -364,7 +361,7 @@ class _ResultCollection(dict):
         on_step: bool = False,
         on_epoch: bool = True,
         # https://github.com/pytorch/pytorch/issues/96197
-        reduce_fx: Callable = "mean" if _TORCH_EQUAL_2_0 else torch.mean,  # type: ignore[assignment]
+        reduce_fx: Callable = torch.mean,
         enable_graph: bool = False,
         sync_dist: bool = False,
         sync_dist_fn: Callable = _Sync.no_op,

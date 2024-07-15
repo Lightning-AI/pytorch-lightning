@@ -27,7 +27,7 @@ import pytest
 import torch.distributed
 from lightning.fabric.plugins.environments.lightning import find_free_network_port
 from lightning.fabric.strategies.launchers.subprocess_script import _ChildProcessObserver
-from lightning.fabric.utilities.distributed import _distributed_is_initialized
+from lightning.fabric.utilities.distributed import _destroy_dist_connection, _distributed_is_initialized
 from lightning.fabric.utilities.imports import _IS_WINDOWS
 from lightning.pytorch.accelerators import XLAAccelerator
 from lightning.pytorch.trainer.connectors.signal_connector import _SignalConnector
@@ -88,6 +88,7 @@ def restore_env_variables():
         "KMP_DUPLICATE_LIB_OK",  # leaked by PyTorch
         "CRC32C_SW_MODE",  # leaked by tensorboardX
         "TRITON_CACHE_DIR",  # leaked by torch.compile
+        "_TORCHINDUCTOR_PYOBJECT_TENSOR_DATA_PTR",  # leaked by torch.compile
         "OMP_NUM_THREADS",  # set by our launchers
         # leaked by XLA
         "ALLOW_MULTIPLE_LIBTPU_LOAD",
@@ -122,8 +123,7 @@ def restore_signal_handlers():
 def teardown_process_group():
     """Ensures that the distributed process group gets closed before the next test runs."""
     yield
-    if _distributed_is_initialized():
-        torch.distributed.destroy_process_group()
+    _destroy_dist_connection()
 
 
 @pytest.fixture(autouse=True)
@@ -153,7 +153,11 @@ def thread_police_duuu_daaa_duuu_daaa():
             assert not thread.is_alive()
         elif isinstance(thread, _ChildProcessObserver):
             thread.join(timeout=10)
-        elif thread.name == "QueueFeederThread":  # tensorboardX
+        elif (
+            thread.name == "QueueFeederThread"  # tensorboardX
+            or thread.name == "QueueManagerThread"  # torch.compile
+            or "(_read_thread)" in thread.name  # torch.compile
+        ):
             thread.join(timeout=20)
         elif isinstance(thread, TMonitor):
             thread.exit()
@@ -306,6 +310,17 @@ def single_process_pg():
         torch.distributed.destroy_process_group()
         os.environ.clear()
         os.environ.update(orig_environ)
+
+
+@pytest.fixture(autouse=True)
+def leave_no_artifacts_behind():
+    tests_root = Path(__file__).parent.parent
+    files_before = {p for p in tests_root.rglob("*") if "__pycache__" not in p.parts}
+    yield
+    files_after = {p for p in tests_root.rglob("*") if "__pycache__" not in p.parts}
+    difference = files_after - files_before
+    difference = {str(f.relative_to(tests_root)) for f in difference}
+    assert not difference, f"Test left artifacts behind: {difference}"
 
 
 def pytest_collection_modifyitems(items: List[pytest.Function], config: pytest.Config) -> None:

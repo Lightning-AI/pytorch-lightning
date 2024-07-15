@@ -11,13 +11,16 @@ from lightning.fabric.plugins.environments import LightningEnvironment
 from lightning.fabric.strategies import DDPStrategy, SingleDeviceStrategy
 from lightning.fabric.strategies.launchers.multiprocessing import _MultiProcessingLauncher
 from lightning.fabric.utilities.distributed import (
+    _destroy_dist_connection,
     _gather_all_tensors,
     _InfiniteBarrier,
+    _init_dist_connection,
     _set_num_threads_if_needed,
     _suggested_max_num_threads,
     _sync_ddp,
     is_shared_filesystem,
 )
+from lightning_utilities.core.imports import RequirementCache
 
 from tests_fabric.helpers.runif import RunIf
 
@@ -119,6 +122,10 @@ def test_collective_operations(devices, process):
     spawn_launch(process, devices)
 
 
+@pytest.mark.skipif(
+    RequirementCache("torch<2.4") and RequirementCache("numpy>=2.0"),
+    reason="torch.distributed not compatible with numpy>=2.0",
+)
 @pytest.mark.flaky(reruns=3)  # flaky with "process 0 terminated with signal SIGABRT" (GLOO)
 def test_is_shared_filesystem(tmp_path, monkeypatch):
     # In the non-distributed case, every location is interpreted as 'shared'
@@ -217,3 +224,13 @@ def test_infinite_barrier():
         barrier.__exit__(None, None, None)
         assert barrier.barrier.call_count == 2
         dist_mock.destroy_process_group.assert_called_once()
+
+
+@mock.patch("lightning.fabric.utilities.distributed.atexit")
+@mock.patch("lightning.fabric.utilities.distributed.torch.distributed.init_process_group")
+def test_init_dist_connection_registers_destruction_handler(_, atexit_mock):
+    _init_dist_connection(LightningEnvironment(), "nccl")
+    atexit_mock.register.assert_called_once_with(_destroy_dist_connection)
+    atexit_mock.reset_mock()
+    _init_dist_connection(LightningEnvironment(), "gloo")
+    atexit_mock.register.assert_not_called()

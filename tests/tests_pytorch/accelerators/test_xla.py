@@ -56,7 +56,7 @@ def test_resume_training_on_cpu(tmp_path):
     """Checks if training can be resumed from a saved checkpoint on CPU."""
     # Train a model on TPU
     model = BoringModel()
-    trainer = Trainer(max_epochs=1, accelerator="tpu", devices="auto")
+    trainer = Trainer(max_epochs=1, accelerator="tpu", devices="auto", default_root_dir=tmp_path)
     trainer.fit(model)
 
     if trainer.world_size != trainer.num_devices:
@@ -67,7 +67,7 @@ def test_resume_training_on_cpu(tmp_path):
     model_path = trainer.checkpoint_callback.best_model_path
 
     # Verify saved Tensors are on CPU
-    ckpt = torch.load(model_path)
+    ckpt = torch.load(model_path, weights_only=True)
     weight_tensor = list(ckpt["state_dict"].values())[0]
     assert weight_tensor.device == torch.device("cpu")
 

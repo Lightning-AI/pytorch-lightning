@@ -18,7 +18,6 @@ from typing import TYPE_CHECKING, Any, Callable, Deque, Dict, List, Optional, Ty
 import torch
 from typing_extensions import override
 
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_1
 from lightning.fabric.utilities.rank_zero import rank_zero_only, rank_zero_warn
 
 if TYPE_CHECKING:
@@ -292,11 +291,9 @@ def measure_flops(
             FLOPs will be included in the result.
 
     """
-    if not _TORCH_GREATER_EQUAL_2_1:
-        raise ImportError("`measure_flops` requires PyTorch >= 2.1.")
     from torch.utils.flop_counter import FlopCounterMode
 
-    flop_counter = FlopCounterMode(model, display=False)
+    flop_counter = FlopCounterMode(display=False)
     with flop_counter:
         if loss_fn is None:
             forward_fn()

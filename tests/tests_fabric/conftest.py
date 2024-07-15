@@ -14,6 +14,7 @@
 import os
 import sys
 import threading
+from pathlib import Path
 from typing import List
 from unittest.mock import Mock
 
@@ -22,7 +23,7 @@ import pytest
 import torch.distributed
 from lightning.fabric.accelerators import XLAAccelerator
 from lightning.fabric.strategies.launchers.subprocess_script import _ChildProcessObserver
-from lightning.fabric.utilities.distributed import _distributed_is_initialized
+from lightning.fabric.utilities.distributed import _destroy_dist_connection
 
 if sys.version_info >= (3, 9):
     from concurrent.futures.process import _ExecutorManagerThread
@@ -77,8 +78,7 @@ def restore_env_variables():
 def teardown_process_group():
     """Ensures that the distributed process group gets closed before the next test runs."""
     yield
-    if _distributed_is_initialized():
-        torch.distributed.destroy_process_group()
+    _destroy_dist_connection()
 
 
 @pytest.fixture(autouse=True)
@@ -101,7 +101,11 @@ def thread_police_duuu_daaa_duuu_daaa():
             assert not thread.is_alive()
         elif isinstance(thread, _ChildProcessObserver):
             thread.join(timeout=10)
-        elif thread.name == "QueueFeederThread":  # tensorboardX
+        elif (
+            thread.name == "QueueFeederThread"  # tensorboardX
+            or thread.name == "QueueManagerThread"  # torch.compile
+            or "(_read_thread)" in thread.name  # torch.compile
+        ):
             thread.join(timeout=20)
         elif (
             sys.version_info >= (3, 9)
@@ -183,6 +187,17 @@ def caplog(caplog):
     lightning_logger.propagate = True
     yield caplog
     lightning_logger.propagate = propagate
+
+
+@pytest.fixture(autouse=True)
+def leave_no_artifacts_behind():
+    tests_root = Path(__file__).parent.parent
+    files_before = {p for p in tests_root.rglob("*") if "__pycache__" not in p.parts}
+    yield
+    files_after = {p for p in tests_root.rglob("*") if "__pycache__" not in p.parts}
+    difference = files_after - files_before
+    difference = {str(f.relative_to(tests_root)) for f in difference}
+    assert not difference, f"Test left artifacts behind: {difference}"
 
 
 def pytest_collection_modifyitems(items: List[pytest.Function], config: pytest.Config) -> None:

@@ -13,11 +13,9 @@ from lightning.fabric.utilities.throughput import (
     measure_flops,
 )
 
-from tests_fabric.helpers.runif import RunIf
 from tests_fabric.test_fabric import BoringModel
 
 
-@RunIf(min_torch="2.1")
 def test_measure_flops():
     with torch.device("meta"):
         model = BoringModel()

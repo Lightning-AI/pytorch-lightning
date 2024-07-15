@@ -17,7 +17,9 @@ import pickle
 import re
 import time
 from argparse import Namespace
+from contextlib import nullcontext
 from datetime import timedelta
+from inspect import signature
 from pathlib import Path
 from typing import Union
 from unittest import mock
@@ -28,7 +30,9 @@ import lightning.pytorch as pl
 import pytest
 import torch
 import yaml
+from jsonargparse import ArgumentParser
 from lightning.fabric.utilities.cloud_io import _load as pl_load
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_4
 from lightning.pytorch import Trainer, seed_everything
 from lightning.pytorch.callbacks import ModelCheckpoint
 from lightning.pytorch.demos.boring_classes import BoringModel
@@ -348,11 +352,13 @@ def test_pickling(tmp_path):
     ckpt = ModelCheckpoint(dirpath=tmp_path)
 
     ckpt_pickled = pickle.dumps(ckpt)
-    ckpt_loaded = pickle.loads(ckpt_pickled)
+    with pytest.warns(FutureWarning, match="`weights_only=False`") if _TORCH_GREATER_EQUAL_2_4 else nullcontext():
+        ckpt_loaded = pickle.loads(ckpt_pickled)
     assert vars(ckpt) == vars(ckpt_loaded)
 
     ckpt_pickled = cloudpickle.dumps(ckpt)
-    ckpt_loaded = cloudpickle.loads(ckpt_pickled)
+    with pytest.warns(FutureWarning, match="`weights_only=False`") if _TORCH_GREATER_EQUAL_2_4 else nullcontext():
+        ckpt_loaded = cloudpickle.loads(ckpt_pickled)
     assert vars(ckpt) == vars(ckpt_loaded)
 
 
@@ -918,8 +924,8 @@ def test_model_checkpoint_save_last_checkpoint_contents(tmp_path):
     assert os.path.isfile(path_last_epoch)
     assert os.path.isfile(path_last)
 
-    ckpt_last_epoch = torch.load(path_last_epoch)
-    ckpt_last = torch.load(path_last)
+    ckpt_last_epoch = torch.load(path_last_epoch, weights_only=True)
+    ckpt_last = torch.load(path_last, weights_only=True)
 
     assert ckpt_last_epoch["epoch"] == ckpt_last["epoch"]
     assert ckpt_last_epoch["global_step"] == ckpt_last["global_step"]
@@ -1166,7 +1172,7 @@ def test_current_score(tmp_path):
     )
     trainer.fit(TestModel())
     assert model_checkpoint.current_score == 0.3
-    ckpts = [torch.load(ckpt) for ckpt in tmp_path.iterdir()]
+    ckpts = [torch.load(ckpt, weights_only=True) for ckpt in tmp_path.iterdir()]
     ckpts = [
         ckpt["callbacks"][
             "ModelCheckpoint{'monitor': 'foo', 'mode': 'min', 'every_n_train_steps': 0, 'every_n_epochs': 1,"
@@ -1450,7 +1456,7 @@ def test_save_last_saves_correct_last_model_path(tmp_path):
     expected = "foo=1-last.ckpt"
     assert os.listdir(tmp_path) == [expected]
     full_path = tmp_path / expected
-    ckpt = torch.load(full_path)
+    ckpt = torch.load(full_path, weights_only=True)
     assert ckpt["callbacks"][mc.state_key]["last_model_path"] == str(full_path)
 
 
@@ -1482,7 +1488,7 @@ def test_none_monitor_saves_correct_best_model_path(tmp_path):
     expected = "epoch=0-step=0.ckpt"
     assert os.listdir(tmp_path) == [expected]
     full_path = str(tmp_path / expected)
-    ckpt = torch.load(full_path)
+    ckpt = torch.load(full_path, weights_only=True)
     assert ckpt["callbacks"][mc.state_key]["best_model_path"] == full_path
 
 
@@ -1601,3 +1607,24 @@ def test_expand_home():
     # it is possible to have a folder with the name `~`
     checkpoint = ModelCheckpoint(dirpath="./~/checkpoints")
     assert checkpoint.dirpath == str(Path.cwd() / "~" / "checkpoints")
+
+
+@pytest.mark.parametrize(
+    ("val", "expected"),
+    [
+        ("yes", True),
+        ("True", True),
+        ("true", True),
+        ("no", False),
+        ("false", False),
+        ("False", False),
+        ("link", "link"),
+    ],
+)
+def test_save_last_cli(val, expected):
+    """Test that the CLI can parse the `save_last` argument correctly (composed type)."""
+    annot = signature(ModelCheckpoint).parameters["save_last"].annotation
+    parser = ArgumentParser()
+    parser.add_argument("--a", type=annot)
+    args = parser.parse_args(["--a", val])
+    assert args.a == expected

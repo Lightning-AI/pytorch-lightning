@@ -108,7 +108,7 @@ def _run_standard_hparams_test(tmp_path, model, cls, datamodule=None, try_overwr
 
     # make sure the raw checkpoint saved the properties
     raw_checkpoint_path = _raw_checkpoint_path(trainer)
-    raw_checkpoint = torch.load(raw_checkpoint_path)
+    raw_checkpoint = torch.load(raw_checkpoint_path, weights_only=False)
     assert cls.CHECKPOINT_HYPER_PARAMS_KEY in raw_checkpoint
     assert raw_checkpoint[cls.CHECKPOINT_HYPER_PARAMS_KEY]["test_arg"] == 14
 
@@ -242,7 +242,7 @@ def test_explicit_missing_args_hparams(tmp_path):
 
     # make sure the raw checkpoint saved the properties
     raw_checkpoint_path = _raw_checkpoint_path(trainer)
-    raw_checkpoint = torch.load(raw_checkpoint_path)
+    raw_checkpoint = torch.load(raw_checkpoint_path, weights_only=True)
     assert LightningModule.CHECKPOINT_HYPER_PARAMS_KEY in raw_checkpoint
     assert raw_checkpoint[LightningModule.CHECKPOINT_HYPER_PARAMS_KEY]["test_arg"] == 14
 
@@ -393,7 +393,7 @@ def test_collect_init_arguments(tmp_path, cls):
 
     raw_checkpoint_path = _raw_checkpoint_path(trainer)
 
-    raw_checkpoint = torch.load(raw_checkpoint_path)
+    raw_checkpoint = torch.load(raw_checkpoint_path, weights_only=False)
     assert LightningModule.CHECKPOINT_HYPER_PARAMS_KEY in raw_checkpoint
     assert raw_checkpoint[LightningModule.CHECKPOINT_HYPER_PARAMS_KEY]["batch_size"] == 179
 
@@ -507,7 +507,7 @@ def test_load_past_checkpoint(tmp_path, past_key):
 
     # make sure the raw checkpoint saved the properties
     raw_checkpoint_path = _raw_checkpoint_path(trainer)
-    raw_checkpoint = torch.load(raw_checkpoint_path)
+    raw_checkpoint = torch.load(raw_checkpoint_path, weights_only=True)
     raw_checkpoint[past_key] = raw_checkpoint[LightningModule.CHECKPOINT_HYPER_PARAMS_KEY]
     raw_checkpoint["hparams_type"] = "Namespace"
     raw_checkpoint[past_key]["batch_size"] = -17
@@ -552,7 +552,7 @@ def test_hparams_pickle_warning(tmp_path):
         trainer.fit(model)
 
 
-def test_hparams_save_yaml(tmp_path):
+def test_save_hparams_to_yaml(tmp_path):
     class Options(str, Enum):
         option1name = "option1val"
         option2name = "option2val"
@@ -588,6 +588,14 @@ def test_hparams_save_yaml(tmp_path):
     if _OMEGACONF_AVAILABLE:
         save_hparams_to_yaml(path_yaml, OmegaConf.create(hparams))
         _compare_params(load_hparams_from_yaml(path_yaml), hparams)
+
+
+def test_save_hparams_to_yaml_warning(tmp_path):
+    """Test that we warn about unserializable parameters that need to be dropped."""
+    path_yaml = tmp_path / "hparams.yaml"
+    hparams = {"torch_type": torch.float32}
+    with pytest.warns(UserWarning, match="Skipping 'torch_type' parameter"):
+        save_hparams_to_yaml(path_yaml, hparams)
 
 
 class NoArgsSubClassBoringModel(CustomBoringModel):
@@ -764,7 +772,7 @@ def test_ignore_args_list_hparams(tmp_path, ignore):
 
     # make sure the raw checkpoint saved the properties
     raw_checkpoint_path = _raw_checkpoint_path(trainer)
-    raw_checkpoint = torch.load(raw_checkpoint_path)
+    raw_checkpoint = torch.load(raw_checkpoint_path, weights_only=True)
     assert LightningModule.CHECKPOINT_HYPER_PARAMS_KEY in raw_checkpoint
     assert raw_checkpoint[LightningModule.CHECKPOINT_HYPER_PARAMS_KEY]["arg1"] == 14
 

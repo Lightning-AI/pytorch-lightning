@@ -107,7 +107,7 @@ class TensorBoardLogger(Logger):
         self._prefix = prefix
         self._fs = get_filesystem(root_dir)
 
-        self._experiment: Optional["SummaryWriter"] = None
+        self._experiment: Optional[SummaryWriter] = None
         self._kwargs = kwargs
 
     @property

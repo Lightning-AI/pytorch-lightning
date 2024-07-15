@@ -21,7 +21,7 @@ if not _root_logger.hasHandlers():
     _logger.propagate = False
 
 
-# In PyTorch 2.0+, setting this variable will force `torch.cuda.is_available()` and `torch.cuda.device_count()`
+# Setting this variable will force `torch.cuda.is_available()` and `torch.cuda.device_count()`
 # to use an NVML-based implementation that doesn't poison forks.
 # https://github.com/pytorch/pytorch/issues/83973
 os.environ["PYTORCH_NVML_BASED_CUDA_CHECK"] = "1"
@@ -36,9 +36,6 @@ from lightning.fabric.wrappers import is_wrapped  # noqa: E402
 import lightning.fabric._graveyard  # noqa: E402, F401  # isort: skip
 
 __all__ = ["Fabric", "seed_everything", "is_wrapped"]
-
-# for compatibility with namespace packages
-__import__("pkg_resources").declare_namespace(__name__)
 
 
 if os.environ.get("POSSIBLE_USER_WARNINGS", "").lower() in ("0", "off"):

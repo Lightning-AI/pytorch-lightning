@@ -14,11 +14,13 @@
 import inspect
 import os
 import pickle
+from contextlib import nullcontext
 from unittest import mock
 from unittest.mock import ANY, Mock
 
 import pytest
 import torch
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_4
 from lightning.pytorch import Callback, Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.loggers import (
@@ -70,8 +72,9 @@ def _instantiate_logger(logger_class, save_dir, **override_kwargs):
 @mock.patch.dict(os.environ, {})
 @mock.patch("lightning.pytorch.loggers.mlflow._get_resolve_tags", Mock())
 @pytest.mark.parametrize("logger_class", ALL_LOGGER_CLASSES)
-def test_loggers_fit_test_all(logger_class, mlflow_mock, wandb_mock, comet_mock, neptune_mock, tmp_path):
+def test_loggers_fit_test_all(logger_class, mlflow_mock, wandb_mock, comet_mock, neptune_mock, tmp_path, monkeypatch):
     """Verify that basic functionality of all loggers."""
+    monkeypatch.chdir(tmp_path)
 
     class CustomModel(BoringModel):
         def training_step(self, batch, batch_idx):
@@ -116,12 +119,12 @@ def test_loggers_fit_test_all(logger_class, mlflow_mock, wandb_mock, comet_mock,
 
     model = CustomModel()
     trainer = Trainer(
+        default_root_dir=tmp_path,
         max_epochs=1,
         logger=logger,
         limit_train_batches=1,
         limit_val_batches=1,
         log_every_n_steps=1,
-        default_root_dir=tmp_path,
     )
     trainer.fit(model)
     trainer.test()
@@ -181,7 +184,8 @@ def _test_loggers_pickle(tmp_path, monkeypatch, logger_class):
     trainer = Trainer(max_epochs=1, logger=logger)
     pkl_bytes = pickle.dumps(trainer)
 
-    trainer2 = pickle.loads(pkl_bytes)
+    with pytest.warns(FutureWarning, match="`weights_only=False`") if _TORCH_GREATER_EQUAL_2_4 else nullcontext():
+        trainer2 = pickle.loads(pkl_bytes)
     trainer2.logger.log_metrics({"acc": 1.0})
 
     # make sure we restored properly

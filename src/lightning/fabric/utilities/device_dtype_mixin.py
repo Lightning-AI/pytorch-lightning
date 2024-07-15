@@ -109,14 +109,12 @@ class _DeviceDtypeModuleMixin(Module):
 def _update_properties(
     root: torch.nn.Module, device: Optional[torch.device] = None, dtype: Optional[Union[str, torch.dtype]] = None
 ) -> None:
-    def apply_fn(module: Union[_DeviceDtypeModuleMixin, Module]) -> None:
+    for module in root.modules():
         if not isinstance(module, _DeviceDtypeModuleMixin):
-            return
+            continue
         # cannot use `module.to()` because we don't actually want to move the model in case there are multiple
         # devices types (such as partial meta parameters)
         if device is not None:
             module._device = device
         if dtype is not None:
             module._dtype = dtype
-
-    root.apply(apply_fn)

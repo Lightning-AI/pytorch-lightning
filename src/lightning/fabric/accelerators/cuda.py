@@ -11,18 +11,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import os
-import warnings
-from contextlib import contextmanager
 from functools import lru_cache
-from typing import Generator, List, Optional, Union, cast
+from typing import List, Optional, Union
 
 import torch
 from typing_extensions import override
 
 from lightning.fabric.accelerators.accelerator import Accelerator
 from lightning.fabric.accelerators.registry import _AcceleratorRegistry
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 from lightning.fabric.utilities.rank_zero import rank_zero_info
 
 
@@ -144,211 +140,15 @@ def _get_all_visible_cuda_devices() -> List[int]:
     return list(range(num_cuda_devices()))
 
 
-# TODO: Remove once minimum supported PyTorch version is 2.0
-@contextmanager
-def _patch_cuda_is_available() -> Generator:
-    """Context manager that safely patches :func:`torch.cuda.is_available` with its NVML-based version if possible."""
-    if hasattr(torch._C, "_cuda_getDeviceCount") and _device_count_nvml() >= 0 and not _TORCH_GREATER_EQUAL_2_0:
-        # we can safely patch is_available if both torch has CUDA compiled and the NVML count is succeeding
-        # otherwise, patching is_available could lead to attribute errors or infinite recursion
-        orig_check = torch.cuda.is_available
-        torch.cuda.is_available = is_cuda_available
-        try:
-            yield
-        finally:
-            torch.cuda.is_available = orig_check
-    else:
-        yield
-
-
-@lru_cache(1)
 def num_cuda_devices() -> int:
-    """Returns the number of available CUDA devices.
-
-    Unlike :func:`torch.cuda.device_count`, this function does its best not to create a CUDA context for fork support,
-    if the platform allows it.
-
-    """
-    if _TORCH_GREATER_EQUAL_2_0:
-        return torch.cuda.device_count()
-
-    # Implementation copied from upstream: https://github.com/pytorch/pytorch/pull/84879
-    # TODO: Remove once minimum supported PyTorch version is 2.0
-    nvml_count = _device_count_nvml()
-    return torch.cuda.device_count() if nvml_count < 0 else nvml_count
+    """Returns the number of available CUDA devices."""
+    return torch.cuda.device_count()
 
 
 def is_cuda_available() -> bool:
-    """Returns a bool indicating if CUDA is currently available.
-
-    Unlike :func:`torch.cuda.is_available`, this function does its best not to create a CUDA context for fork support,
-    if the platform allows it.
-
-    """
+    """Returns a bool indicating if CUDA is currently available."""
     # We set `PYTORCH_NVML_BASED_CUDA_CHECK=1` in lightning.fabric.__init__.py
-    return torch.cuda.is_available() if _TORCH_GREATER_EQUAL_2_0 else num_cuda_devices() > 0
-
-
-# TODO: Remove once minimum supported PyTorch version is 2.0
-def _parse_visible_devices() -> Union[List[int], List[str]]:
-    """Parse CUDA_VISIBLE_DEVICES environment variable."""
-    var = os.getenv("CUDA_VISIBLE_DEVICES")
-    if var is None:
-        return list(range(64))
-
-    def _strtoul(s: str) -> int:
-        """Return -1 or positive integer sequence string starts with,"""
-        if not s:
-            return -1
-        for idx, c in enumerate(s):
-            if not (c.isdigit() or (idx == 0 and c in "+-")):
-                break
-            if idx + 1 == len(s):
-                idx += 1
-        return int(s[:idx]) if idx > 0 else -1
-
-    def parse_list_with_prefix(lst: str, prefix: str) -> List[str]:
-        rcs: List[str] = []
-        for elem in lst.split(","):
-            # Repeated id results in empty set
-            if elem in rcs:
-                return cast(List[str], [])
-            # Anything other but prefix is ignored
-            if not elem.startswith(prefix):
-                break
-            rcs.append(elem)
-        return rcs
-
-    if var.startswith("GPU-"):
-        return parse_list_with_prefix(var, "GPU-")
-    if var.startswith("MIG-"):
-        return parse_list_with_prefix(var, "MIG-")
-    # CUDA_VISIBLE_DEVICES uses something like strtoul
-    # which makes `1gpu2,2ampere` is equivalent to `1,2`
-    rc: List[int] = []
-    for elem in var.split(","):
-        x = _strtoul(elem.strip())
-        # Repeated ordinal results in empty set
-        if x in rc:
-            return cast(List[int], [])
-        # Negative value aborts the sequence
-        if x < 0:
-            break
-        rc.append(x)
-    return rc
-
-
-# TODO: Remove once minimum supported PyTorch version is 2.0
-def _raw_device_count_nvml() -> int:
-    """Return number of devices as reported by NVML or negative value if NVML discovery/initialization failed."""
-    from ctypes import CDLL, byref, c_int
-
-    nvml_h = CDLL("libnvidia-ml.so.1")
-    rc = nvml_h.nvmlInit()
-    if rc != 0:
-        warnings.warn("Can't initialize NVML")
-        return -1
-    dev_count = c_int(-1)
-    rc = nvml_h.nvmlDeviceGetCount_v2(byref(dev_count))
-    if rc != 0:
-        warnings.warn("Can't get nvml device count")
-        return -1
-    del nvml_h
-    return dev_count.value
-
-
-# TODO: Remove once minimum supported PyTorch version is 2.0
-def _raw_device_uuid_nvml() -> Optional[List[str]]:
-    """Return list of device UUID as reported by NVML or None if NVM discovery/initialization failed."""
-    from ctypes import CDLL, byref, c_int, c_void_p, create_string_buffer
-
-    nvml_h = CDLL("libnvidia-ml.so.1")
-    rc = nvml_h.nvmlInit()
-    if rc != 0:
-        warnings.warn("Can't initialize NVML")
-        return None
-    dev_count = c_int(-1)
-    rc = nvml_h.nvmlDeviceGetCount_v2(byref(dev_count))
-    if rc != 0:
-        warnings.warn("Can't get nvml device count")
-        return None
-    uuids: List[str] = []
-    for idx in range(dev_count.value):
-        dev_id = c_void_p()
-        rc = nvml_h.nvmlDeviceGetHandleByIndex_v2(idx, byref(dev_id))
-        if rc != 0:
-            warnings.warn("Can't get device handle")
-            return None
-        buf_len = 96
-        buf = create_string_buffer(buf_len)
-        rc = nvml_h.nvmlDeviceGetUUID(dev_id, buf, buf_len)
-        if rc != 0:
-            warnings.warn("Can't get device UUID")
-            return None
-        uuids.append(buf.raw.decode("ascii").strip("\0"))
-    del nvml_h
-    return uuids
-
-
-# TODO: Remove once minimum supported PyTorch version is 2.0
-def _transform_uuid_to_ordinals(candidates: List[str], uuids: List[str]) -> List[int]:
-    """Given the set of partial uuids and list of known uuids builds a set of ordinals excluding ambiguous partials
-    IDs."""
-
-    def uuid_to_orinal(candidate: str, uuids: List[str]) -> int:
-        best_match = -1
-        for idx, uuid in enumerate(uuids):
-            if not uuid.startswith(candidate):
-                continue
-            # Ambigous candidate
-            if best_match != -1:
-                return -1
-            best_match = idx
-        return best_match
-
-    rc: List[int] = []
-    for candidate in candidates:
-        idx = uuid_to_orinal(candidate, uuids)
-        # First invalid ordinal stops parsing
-        if idx < 0:
-            break
-        # Duplicates result in empty set
-        if idx in rc:
-            return cast(List[int], [])
-        rc.append(idx)
-    return rc
-
-
-# TODO: Remove once minimum supported PyTorch version is 2.0
-def _device_count_nvml() -> int:
-    """Return number of devices as reported by NVML taking CUDA_VISIBLE_DEVICES into account.
-
-    Negative value is returned if NVML discovery or initialization has failed.
-
-    """
-    visible_devices = _parse_visible_devices()
-    if not visible_devices:
-        return 0
-    try:
-        if isinstance(visible_devices[0], str):
-            # Skip MIG parsing
-            if visible_devices[0].startswith("MIG-"):
-                return -1
-            uuids = _raw_device_uuid_nvml()
-            if uuids is None:
-                return -1
-            visible_devices = _transform_uuid_to_ordinals(cast(List[str], visible_devices), uuids)
-        else:
-            raw_cnt = _raw_device_count_nvml()
-            if raw_cnt <= 0:
-                return raw_cnt
-            # Trim the list up to a maximum available device
-            for idx, val in enumerate(visible_devices):
-                if cast(int, val) >= raw_cnt:
-                    return idx
-    except (OSError, AttributeError):
-        return -1
-    return len(visible_devices)
+    return torch.cuda.is_available()
 
 
 def _is_ampere_or_later(device: Optional[torch.device] = None) -> bool:
@@ -375,7 +175,7 @@ def _check_cuda_matmul_precision(device: torch.device) -> None:
 
 def _clear_cuda_memory() -> None:
     # strangely, the attribute function be undefined when torch.compile is used
-    if _TORCH_GREATER_EQUAL_2_0 and hasattr(torch._C, "_cuda_clearCublasWorkspaces"):
+    if hasattr(torch._C, "_cuda_clearCublasWorkspaces"):
         # https://github.com/pytorch/pytorch/issues/95668
         torch._C._cuda_clearCublasWorkspaces()
     torch.cuda.empty_cache()

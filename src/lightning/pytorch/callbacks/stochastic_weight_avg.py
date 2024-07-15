@@ -21,11 +21,11 @@ from typing import Any, Callable, Dict, List, Optional, Union, cast
 
 import torch
 from torch import Tensor, nn
+from torch.optim.lr_scheduler import LRScheduler
 from torch.optim.swa_utils import SWALR
 from typing_extensions import override
 
 import lightning.pytorch as pl
-from lightning.fabric.utilities.types import LRScheduler
 from lightning.pytorch.callbacks.callback import Callback
 from lightning.pytorch.strategies import DeepSpeedStrategy
 from lightning.pytorch.strategies.fsdp import FSDPStrategy
@@ -123,7 +123,7 @@ class StochasticWeightAveraging(Callback):
         self._avg_fn = avg_fn or self.avg_fn
         self._device = device
         self._model_contains_batch_norm: Optional[bool] = None
-        self._average_model: Optional["pl.LightningModule"] = None
+        self._average_model: Optional[pl.LightningModule] = None
         self._initialized = False
         self._swa_scheduler: Optional[LRScheduler] = None
         self._scheduler_state: Optional[Dict] = None

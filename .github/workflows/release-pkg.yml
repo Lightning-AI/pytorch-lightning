@@ -24,7 +24,7 @@ defaults:
 env:
   FREEZE_REQUIREMENTS: 1
   TORCH_URL: "https://download.pytorch.org/whl/cpu/torch_stable.html"
-  PYTHON_VER: "3.8"
+  PYTHON_VER: "3.9"
 
 jobs:
   build-packages:
@@ -130,34 +130,6 @@ jobs:
             ethanwharris
             borda
 
-  waiting:
-    runs-on: ubuntu-22.04
-    needs: [release-version, signaling]
-    env:
-      TAG: ${{ needs.release-version.outputs.tag }}
-    # due to PR process this may take longer
-    timeout-minutes: 180
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: ${{ env.PYTHON_VER }}
-      - run: pip install gitpython
-      - name: Delay releasing
-        run: |
-          import git, os, time
-          repo = git.Repo('.')
-          branch = f"origin/builds/{os.getenv('TAG')}"
-          while True:
-            remote_refs = [b.name for b in repo.remote().refs]
-            print([n for n in remote_refs if "builds" in n])
-            if branch in remote_refs:
-              break
-            time.sleep(60)
-            for remote in repo.remotes:
-              remote.fetch()
-        shell: python
-
   pre-publish-packages:
     runs-on: ubuntu-22.04
     needs: build-packages
@@ -165,7 +137,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        name: ["APP", "FABRIC", "PYTORCH", "LIGHTNING"]
+        name: ["FABRIC", "PYTORCH", "LIGHTNING"]
     steps:
       - uses: actions/checkout@v4 # needed for local action below
       - uses: actions/download-artifact@v3
@@ -185,12 +157,12 @@ jobs:
 
   publish-packages:
     runs-on: ubuntu-22.04
-    needs: [build-packages, waiting]
+    needs: [build-packages]
     if: startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release'
     strategy:
       fail-fast: false
       matrix:
-        name: ["APP", "FABRIC", "PYTORCH", "LIGHTNING"]
+        name: ["FABRIC", "PYTORCH", "LIGHTNING"]
     steps:
       - uses: actions/checkout@v4 # needed for local action below
       - uses: actions/download-artifact@v3

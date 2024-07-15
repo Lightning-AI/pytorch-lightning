@@ -81,7 +81,7 @@ class LightningDataModule(DataHooks, HyperparametersMixin):
     def __init__(self) -> None:
         super().__init__()
         # Pointer to the trainer object
-        self.trainer: Optional["pl.Trainer"] = None
+        self.trainer: Optional[pl.Trainer] = None
 
     @classmethod
     def from_datasets(

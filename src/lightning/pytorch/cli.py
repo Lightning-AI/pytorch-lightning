@@ -23,11 +23,11 @@ import yaml
 from lightning_utilities.core.imports import RequirementCache
 from lightning_utilities.core.rank_zero import _warn
 from torch.optim import Optimizer
+from torch.optim.lr_scheduler import LRScheduler
 from typing_extensions import override
 
 import lightning.pytorch as pl
 from lightning.fabric.utilities.cloud_io import get_filesystem
-from lightning.fabric.utilities.types import _TORCH_LRSCHEDULER
 from lightning.pytorch import Callback, LightningDataModule, LightningModule, Trainer, seed_everything
 from lightning.pytorch.core.mixins.hparams_mixin import _given_hyperparameters_context
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
@@ -63,15 +63,15 @@ class ReduceLROnPlateau(torch.optim.lr_scheduler.ReduceLROnPlateau):
 
 
 # LightningCLI requires the ReduceLROnPlateau defined here, thus it shouldn't accept the one from pytorch:
-LRSchedulerTypeTuple = (_TORCH_LRSCHEDULER, ReduceLROnPlateau)
-LRSchedulerTypeUnion = Union[_TORCH_LRSCHEDULER, ReduceLROnPlateau]
-LRSchedulerType = Union[Type[_TORCH_LRSCHEDULER], Type[ReduceLROnPlateau]]
+LRSchedulerTypeTuple = (LRScheduler, ReduceLROnPlateau)
+LRSchedulerTypeUnion = Union[LRScheduler, ReduceLROnPlateau]
+LRSchedulerType = Union[Type[LRScheduler], Type[ReduceLROnPlateau]]
 
 
 # Type aliases intended for convenience of CLI developers
 ArgsType = Optional[Union[List[str], Dict[str, Any], Namespace]]
 OptimizerCallable = Callable[[Iterable], Optimizer]
-LRSchedulerCallable = Callable[[Optimizer], Union[_TORCH_LRSCHEDULER, ReduceLROnPlateau]]
+LRSchedulerCallable = Callable[[Optimizer], Union[LRScheduler, ReduceLROnPlateau]]
 
 
 class LightningArgumentParser(ArgumentParser):
@@ -534,7 +534,7 @@ class LightningCLI:
             self.config = parser.parse_args(args)
 
     def _add_instantiators(self) -> None:
-        self.config_dump = yaml.safe_load(self.parser.dump(self.config, skip_link_targets=False))
+        self.config_dump = yaml.safe_load(self.parser.dump(self.config, skip_link_targets=False, skip_none=False))
         if "subcommand" in self.config:
             self.config_dump = self.config_dump[self.config.subcommand]
 
@@ -791,8 +791,18 @@ class _InstantiatorFn:
         self.key = key
 
     def __call__(self, class_type: Type[ModuleType], *args: Any, **kwargs: Any) -> ModuleType:
+        hparams = self.cli.config_dump.get(self.key, {})
+        if "class_path" in hparams:
+            # To make hparams backwards compatible, and so that it is the same irrespective of subclass_mode, the
+            # parameters are stored directly, and the class_path in a special key `_class_path` to clarify its internal
+            # use.
+            hparams = {
+                "_class_path": hparams["class_path"],
+                **hparams.get("init_args", {}),
+                **hparams.get("dict_kwargs", {}),
+            }
         with _given_hyperparameters_context(
-            hparams=self.cli.config_dump.get(self.key, {}),
+            hparams=hparams,
             instantiator="lightning.pytorch.cli.instantiate_module",
         ):
             return class_type(*args, **kwargs)
@@ -800,10 +810,14 @@ class _InstantiatorFn:
 
 def instantiate_module(class_type: Type[ModuleType], config: Dict[str, Any]) -> ModuleType:
     parser = ArgumentParser(exit_on_error=False)
-    if "class_path" in config:
-        parser.add_subclass_arguments(class_type, "module")
+    if "_class_path" in config:
+        parser.add_subclass_arguments(class_type, "module", fail_untyped=False)
+        config = {
+            "class_path": config["_class_path"],
+            "dict_kwargs": {k: v for k, v in config.items() if k != "_class_path"},
+        }
     else:
-        parser.add_class_arguments(class_type, "module")
+        parser.add_class_arguments(class_type, "module", fail_untyped=False)
     cfg = parser.parse_object({"module": config})
     init = parser.instantiate_classes(cfg)
     return init.module

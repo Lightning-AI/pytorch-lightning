@@ -12,15 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-[metadata]
-name = "lightning"
-author = "Lightning-AI et al."
-url = "https://github.com/Lightning-AI/lightning"
-
 [build-system]
 requires = [
     "setuptools",
     "wheel",
+    "packaging",
 ]
 
 
@@ -139,13 +135,7 @@ max-complexity = 10
 files = [
     "src/lightning",
 ]
-# This section is for folders with "-" as they are not valid python modules
-exclude = [
-    "src/lightning/app/cli/app-template",
-    "src/lightning/app/cli/component-template",
-    "src/lightning/app/cli/pl-app-template",
-    "src/lightning/app/cli/react-ui-template",
-]
+
 install_types = "True"
 non_interactive = "True"
 disallow_untyped_defs = "True"
@@ -159,100 +149,6 @@ allow_redefinition = "True"
 disable_error_code = "attr-defined"
 # style choices
 warn_no_return = "False"
-
-# Ignore mypy errors for these files
-# TODO: the goal is for this to be empty
-[[tool.mypy.overrides]]
-# the list can be generated with:
-# mypy --no-error-summary 2>&1 | tr ':' ' ' | awk '{print $1}' | sort | uniq | sed 's/\.py//g; s|src/||g;  s|\/|\.|g' | xargs -I {} echo '"{}",'
-module = [
-    "lightning.app.api.http_methods",
-    "lightning.app.api.request_types",
-    "lightning.app.cli.cmd_install",
-    "lightning.app.cli.commands.app_commands",
-    "lightning.app.cli.commands.cd",
-    "lightning.app.cli.commands.cp",
-    "lightning.app.cli.commands.ls",
-    "lightning.app.cli.connect.app",
-    "lightning.app.components.database.client",
-    "lightning.app.components.database.server",
-    "lightning.app.components.database.utilities",
-    "lightning.app.components.multi_node.base",
-    "lightning.app.components.multi_node.fabric",
-    "lightning.app.components.multi_node.pytorch_spawn",
-    "lightning.app.components.multi_node.trainer",
-    "lightning.app.components.python.popen",
-    "lightning.app.components.python.tracer",
-    "lightning.app.components.serve.auto_scaler",
-    "lightning.app.components.serve.gradio_server",
-    "lightning.app.components.serve.python_server",
-    "lightning.app.components.serve.serve",
-    "lightning.app.components.serve.streamlit",
-    "lightning.app.components.serve.types.image",
-    "lightning.app.components.serve.types.type",
-    "lightning.app.components.training",
-    "lightning.app.frontend.panel.app_state_comm",
-    "lightning.app.frontend.panel.app_state_watcher",
-    "lightning.app.frontend.panel.panel_frontend",
-    "lightning.app.frontend.panel.panel_serve_render_fn",
-    "lightning.app.frontend.streamlit_base",
-    "lightning.app.frontend.stream_lit",
-    "lightning.app.frontend.utils",
-    "lightning.app.frontend.web",
-    "lightning.app.launcher.launcher",
-    "lightning.app.launcher.lightning_backend",
-    "lightning.app.launcher.lightning_hybrid_backend",
-    "lightning.app.pdb.pdb",
-    "lightning.app.runners.backends.backend",
-    "lightning.app.runners.backends.cloud",
-    "lightning.app.runners.backends.docker",
-    "lightning.app.runners.backends.mp_process",
-    "lightning.app.runners.cloud",
-    "lightning.app.runners.multiprocess",
-    "lightning.app.runners.runtime",
-    "lightning.app.source_code.copytree",
-    "lightning.app.source_code.hashing",
-    "lightning.app.source_code.local",
-    "lightning.app.source_code.tar",
-    "lightning.app.source_code.uploader",
-    "lightning.app.storage.copier",
-    "lightning.app.storage.drive",
-    "lightning.app.storage.filesystem",
-    "lightning.app.storage.orchestrator",
-    "lightning.app.storage.path",
-    "lightning.app.storage.payload",
-    "lightning.app.structures.dict",
-    "lightning.app.structures.list",
-    "lightning.app.testing.helpers",
-    "lightning.app.testing.testing",
-    "lightning.app.utilities.app_helpers",
-    "lightning.app.utilities.app_logs",
-    "lightning.app.utilities.cli_helpers",
-    "lightning.app.utilities.cloud",
-    "lightning.app.utilities.commands.base",
-    "lightning.app.utilities.component",
-    "lightning.app.utilities.enum",
-    "lightning.app.utilities.exceptions",
-    "lightning.app.utilities.git",
-    "lightning.app.utilities.imports",
-    "lightning.app.utilities.introspection",
-    "lightning.app.utilities.layout",
-    "lightning.app.utilities.load_app",
-    "lightning.app.utilities.log_helpers",
-    "lightning.app.utilities.login",
-    "lightning.app.utilities.name_generator",
-    "lightning.app.utilities.network",
-    "lightning.app.utilities.openapi",
-    "lightning.app.utilities.packaging.cloud_compute",
-    "lightning.app.utilities.packaging.lightning_utils",
-    "lightning.app.utilities.proxies",
-    "lightning.app.utilities.scheduler",
-    "lightning.app.utilities.state",
-    "lightning.app.utilities.tracer",
-    "lightning.app.utilities.tree",
-    "lightning.store.utils",
-]
-ignore_errors = "True"
 
 
 [tool.coverage.report]

@@ -53,6 +53,7 @@ from lightning.pytorch.strategies import (
     DDPStrategy,
     DeepSpeedStrategy,
     FSDPStrategy,
+    ModelParallelStrategy,
     ParallelStrategy,
     SingleDeviceStrategy,
     SingleDeviceXLAStrategy,
@@ -327,7 +328,8 @@ class _AcceleratorConnector:
                 f" using {accelerator_name} accelerator."
             )
 
-    def _choose_auto_accelerator(self) -> str:
+    @staticmethod
+    def _choose_auto_accelerator() -> str:
         """Choose the accelerator type (str) based on availability."""
         if XLAAccelerator.is_available():
             return "tpu"
@@ -455,10 +457,11 @@ class _AcceleratorConnector:
         strategy_flag = "" if isinstance(self._strategy_flag, Strategy) else self._strategy_flag
 
         if (
-            strategy_flag in FSDPStrategy.get_registered_strategies() or isinstance(self._strategy_flag, FSDPStrategy)
+            strategy_flag in FSDPStrategy.get_registered_strategies() or type(self._strategy_flag) is FSDPStrategy
         ) and self._accelerator_flag not in ("cuda", "gpu"):
-            raise MisconfigurationException(
-                f"You selected strategy to be `{FSDPStrategy.strategy_name}`, but GPU accelerator is not used."
+            raise ValueError(
+                f"The strategy `{FSDPStrategy.strategy_name}` requires a GPU accelerator, but got:"
+                f" {self._accelerator_flag}"
             )
         if strategy_flag in _DDP_FORK_ALIASES and "fork" not in torch.multiprocessing.get_all_start_methods():
             raise ValueError(
@@ -527,6 +530,16 @@ class _AcceleratorConnector:
             self.accelerator, CUDAAccelerator
         ):
             raise RuntimeError("Bitsandbytes is only supported on CUDA GPUs.")
+        mp_precision_supported = ("32-true", "bf16-mixed", "bf16-true", "16-true")
+        if (
+            isinstance(self._strategy_flag, ModelParallelStrategy)
+            and self._precision_flag not in mp_precision_supported
+        ):
+            raise ValueError(
+                f"The `ModelParallelStrategy` does not support `Fabric(..., precision={self._precision_flag!r})`."
+                f" Choose a different precision among: {', '.join(mp_precision_supported)}."
+            )
+
         if _habana_available_and_importable():
             from lightning_habana import HPUAccelerator
 
@@ -599,6 +612,7 @@ class _AcceleratorConnector:
             DDPStrategy,
             FSDPStrategy,
             DeepSpeedStrategy,
+            ModelParallelStrategy,
             XLAStrategy,
         ]
         if _habana_available_and_importable():

@@ -5,7 +5,7 @@ from pathlib import Path
 from types import ModuleType
 from typing import Any, Dict
 
-from setuptools import find_packages
+from setuptools import find_namespace_packages
 
 _PROJECT_ROOT = "."
 _SOURCE_ROOT = os.path.join(_PROJECT_ROOT, "src")
@@ -45,12 +45,8 @@ def _prepare_extras() -> Dict[str, Any]:
     extras["fabric-dev"] = extras["fabric-all"] + extras["fabric-test"]
     extras["pytorch-all"] = extras["pytorch-extra"] + extras["pytorch-strategies"] + extras["pytorch-examples"]
     extras["pytorch-dev"] = extras["pytorch-all"] + extras["pytorch-test"]
-    extras["app-extra"] = extras["app-app"] + extras["app-cloud"] + extras["app-ui"] + extras["app-components"]
-    extras["app-all"] = extras["app-extra"]
-    extras["app-dev"] = extras["app-all"] + extras["app-test"]
-    extras["store-store"] = extras["app-app"]  # todo: consider cutting/leaning this dependency
 
-    # merge per-project extras of the same category, e.g. `app-test` + `fabric-test`
+    # merge per-project extras of the same category
     for extra in list(extras):
         name = "-".join(extra.split("-")[1:])
         extras[name] = extras.get(name, []) + extras[extra]
@@ -74,17 +70,6 @@ def _setup_args() -> Dict[str, Any]:
         _PROJECT_ROOT, homepage=about.__homepage__, version=version.version
     )
 
-    # TODO: remove this once lightning-ui package is ready as a dependency
-    ui_ver_file = os.path.join(_SOURCE_ROOT, "app-ui-version.info")
-    if os.path.isfile(ui_ver_file):
-        with open(ui_ver_file, encoding="utf-8") as fo:
-            ui_version = fo.readlines()[0].strip()
-        download_fe_version = {"version": ui_version}
-    else:
-        print(f"Missing file with FE version: {ui_ver_file}")
-        download_fe_version = {}
-    _ASSISTANT._download_frontend(os.path.join(_PACKAGE_ROOT, "app"), **download_fe_version)
-
     # TODO: consider invaliding some additional arguments from packages, for example if include data or safe to zip
 
     install_requires = _ASSISTANT.load_requirements(
@@ -102,19 +87,18 @@ def _setup_args() -> Dict[str, Any]:
         "url": about.__homepage__,
         "download_url": "https://github.com/Lightning-AI/lightning",
         "license": about.__license__,
-        "packages": find_packages(where="src", include=["lightning", "lightning.*"]),
+        "packages": find_namespace_packages(where="src", include=["lightning", "lightning.*"]),
         "package_dir": {"": "src"},
         "long_description": long_description,
         "long_description_content_type": "text/markdown",
         "include_package_data": True,
         "zip_safe": False,
-        "keywords": ["deep learning", "pytorch", "AI"],  # todo: aggregate tags from all packages
-        "python_requires": ">=3.8",  # todo: take the lowes based on all packages
+        "keywords": ["deep learning", "pytorch", "AI"],
+        "python_requires": ">=3.9",
         "entry_points": {
             "console_scripts": [
                 "fabric = lightning.fabric.cli:_main",
                 "lightning = lightning.fabric.cli:_legacy_main",
-                "lightning_app = lightning:_cli_entry_point",
             ],
         },
         "setup_requires": [],
@@ -140,9 +124,9 @@ def _setup_args() -> Dict[str, Any]:
             "Operating System :: OS Independent",
             # Specify the Python versions you support here.
             "Programming Language :: Python :: 3",
-            "Programming Language :: Python :: 3.8",
             "Programming Language :: Python :: 3.9",
             "Programming Language :: Python :: 3.10",
             "Programming Language :: Python :: 3.11",
+            "Programming Language :: Python :: 3.12",
         ],  # todo: consider aggregation/union of tags from particular packages
     }
