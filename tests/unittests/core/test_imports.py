@@ -1,5 +1,7 @@
 import operator
 import re
+from unittest import mock
+from unittest.mock import Mock
 
 import pytest
 from lightning_utilities.core.imports import (
@@ -60,6 +62,41 @@ def test_requirement_cache():
     cache = RequirementCache("this_module_is_not_installed", "this_also_is_not")
     assert not cache
     assert "pip install -U 'this_module_is_not_installed" in str(cache)
+
+    cache = RequirementCache("pytest[not-valid-extra]")
+    assert not cache
+    assert "pip install -U 'pytest[not-valid-extra]" in str(cache)
+
+
+@mock.patch("lightning_utilities.core.imports.Requirement")
+@mock.patch("lightning_utilities.core.imports._version")
+@mock.patch("lightning_utilities.core.imports.distribution")
+def test_requirement_cache_with_extras(distribution_mock, version_mock, requirement_mock):
+    requirement_mock().specifier.contains.return_value = True
+    requirement_mock().name = "jsonargparse"
+    requirement_mock().extras = []
+    version_mock.return_value = "1.0.0"
+    assert RequirementCache("jsonargparse>=1.0.0")
+
+    with mock.patch("lightning_utilities.core.imports.RequirementCache._get_extra_requirements") as get_extra_req_mock:
+        get_extra_req_mock.return_value = [
+            # Extra packages, all versions satisfied
+            Mock(name="extra_package1", specifier=Mock(contains=Mock(return_value=True))),
+            Mock(name="extra_package2", specifier=Mock(contains=Mock(return_value=True))),
+        ]
+        distribution_mock.return_value = Mock(version="0.10.0")
+        requirement_mock().extras = ["signatures"]
+        assert RequirementCache("jsonargparse[signatures]>=1.0.0")
+
+    with mock.patch("lightning_utilities.core.imports.RequirementCache._get_extra_requirements") as get_extra_req_mock:
+        get_extra_req_mock.return_value = [
+            # Extra packages, but not all versions are satisfied
+            Mock(name="extra_package1", specifier=Mock(contains=Mock(return_value=True))),
+            Mock(name="extra_package2", specifier=Mock(contains=Mock(return_value=False))),
+        ]
+        distribution_mock.return_value = Mock(version="0.10.0")
+        requirement_mock().extras = ["signatures"]
+        assert not RequirementCache("jsonargparse[signatures]>=1.0.0")
 
 
 def test_module_available_cache():

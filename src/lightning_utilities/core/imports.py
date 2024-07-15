@@ -7,7 +7,7 @@ import importlib
 import os
 import warnings
 from functools import lru_cache
-from importlib.metadata import PackageNotFoundError
+from importlib.metadata import PackageNotFoundError, distribution
 from importlib.metadata import version as _version
 from importlib.util import find_spec
 from types import ModuleType
@@ -128,7 +128,9 @@ class RequirementCache:
         try:
             req = Requirement(self.requirement)
             pkg_version = Version(_version(req.name))
-            self.available = req.specifier.contains(pkg_version)
+            self.available = req.specifier.contains(pkg_version) and (
+                not req.extras or self._check_extras_available(req)
+            )
         except (PackageNotFoundError, InvalidVersion) as ex:
             self.available = False
             self.message = f"{ex.__class__.__name__}: {ex}. HINT: Try running `pip install -U {self.requirement!r}`"
@@ -143,6 +145,9 @@ class RequirementCache:
                 self.available = module_available(module)
                 if self.available:
                     self.message = f"Module {module!r} available"
+            self.message = (
+                f"Requirement {self.requirement!r} not met. HINT: Try running `pip install -U {self.requirement!r}`"
+            )
 
     def _check_module(self) -> None:
         assert self.module  # noqa: S101; needed for typing
@@ -159,6 +164,34 @@ class RequirementCache:
             self._check_requirement()
         if getattr(self, "available", True) and self.module:
             self._check_module()
+
+    def _check_extras_available(self, requirement: Requirement) -> bool:
+        if not requirement.extras:
+            return True
+
+        extra_requirements = self._get_extra_requirements(requirement)
+
+        if not extra_requirements:
+            # The specified extra is not found in the package metadata
+            return False
+
+        # Verify each extra requirement is installed
+        for extra_req in extra_requirements:
+            try:
+                extra_dist = distribution(extra_req.name)
+                extra_installed_version = Version(extra_dist.version)
+                if extra_req.specifier and not extra_req.specifier.contains(extra_installed_version):
+                    return False
+            except importlib.metadata.PackageNotFoundError:
+                return False
+
+        return True
+
+    def _get_extra_requirements(self, requirement: Requirement) -> List[Requirement]:
+        dist = distribution(requirement.name)
+        # Get the required dependencies for the specified extras
+        extra_requirements = dist.metadata.get_all("Requires-Dist") or []
+        return [Requirement(r) for r in extra_requirements if any(extra in r for extra in requirement.extras)]
 
     def __bool__(self) -> bool:
         """Format as bool."""
