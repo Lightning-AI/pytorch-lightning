@@ -35,7 +35,7 @@ def _optimizer_to_device_old(optimizer: Optimizer, device: _DEVICE) -> None:
         optimizer.state[p] = apply_to_collection(v, Tensor, move_data_to_device, device, allow_frozen=True)
 
 
-def _optimizer_to_device(optimizer: Optimizer, device: _DEVICE) -> None:
+def _optimizer_to_device_fancy(optimizer: Optimizer, device: _DEVICE) -> None:
     """Moves the state of a single optimizer to the device."""
     # Note special logic for 'step' parameter
     # The 'step' parameter needs to remain unmoved (possibly on the CPU) since that is where the optimizer needs it.
@@ -49,3 +49,7 @@ def _optimizer_to_device(optimizer: Optimizer, device: _DEVICE) -> None:
         for key, val in v.items():
             if key != "step" or fused:
                 v[key] = move_data_to_device(val, device)
+
+
+def _optimizer_to_device(optimizer: Optimizer, device: _DEVICE) -> None:
+    pass  # Rely on optimizer.load_state_dict to do the right thing
