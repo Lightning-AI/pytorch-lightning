@@ -15,8 +15,6 @@
 import contextlib
 from typing import Iterable
 
-from lightning_utilities.core.apply_func import apply_to_collection
-from torch import Tensor
 from torch.optim import Optimizer
 
 from lightning.fabric.utilities.apply_func import move_data_to_device
@@ -29,14 +27,9 @@ def _optimizers_to_device(optimizers: Iterable[Optimizer], device: _DEVICE) -> N
         _optimizer_to_device(opt, device)
 
 
-def _optimizer_to_device_old(optimizer: Optimizer, device: _DEVICE) -> None:
+def _optimizer_to_device_deprecated(optimizer: Optimizer, device: _DEVICE) -> None:
     """Moves the state of a single optimizer to the device."""
-    for p, v in optimizer.state.items():
-        optimizer.state[p] = apply_to_collection(v, Tensor, move_data_to_device, device, allow_frozen=True)
-
-
-def _optimizer_to_device_fancy(optimizer: Optimizer, device: _DEVICE) -> None:
-    """Moves the state of a single optimizer to the device."""
+    """Deprecated because it seems this is unnecessary."""
     # Note special logic for 'step' parameter
     # The 'step' parameter needs to remain unmoved (possibly on the CPU) since that is where the optimizer needs it.
     # See https://github.com/pytorch/pytorch/issues/74424 and
@@ -52,4 +45,24 @@ def _optimizer_to_device_fancy(optimizer: Optimizer, device: _DEVICE) -> None:
 
 
 def _optimizer_to_device(optimizer: Optimizer, device: _DEVICE) -> None:
-    pass  # Rely on optimizer.load_state_dict to do the right thing
+    """Moves the state of a single optimizer to the device.
+
+    In fact, it looks like we dont need this function but can rely on optimizer.load_state_dict to do the right thing
+    after given a correct prototype on the target device. For now we do nothing and assume that we don't care about
+    transferring the optimizer back to the CPU on teardown. See details below.
+
+    """
+    pass
+
+    # To test for correct behaviour here we have created two tests:
+    # 1. tests/tests_fabric/utilities/test_optimizer.py to test Optimizer.load_state_dict with a prototype
+    # 2. tests/tests_pytorch/checkpointing/test_trainer_move_device.py to test higher level checkpointing on
+    #    one device and resuming on a different device
+
+    # Details on how this function is called.
+    # 1st call is in Strategy.setup(), to initialize empty optimizer. src/lightning/pytorch/strategies/strategy.py: 158
+    # Note: Strategy.setup() first calls Strategy.setup_optimizers which eventually invokes Model.configure_optimizers()
+    # based on a model that has been moved to the device. Thus it essentially creates a prototype optimizer on the
+    # target device and then, eventually, relies on Optimizer.load_state_dict() to transfer the state.
+    # 2nd call when restoring checkpoint, as part of Strategy.load_optimizer_state_dict(). Source strategy.py: 377
+    # Final call in Strategy.teardown(), move optimizer back to CPU. Source strategy.py: 525

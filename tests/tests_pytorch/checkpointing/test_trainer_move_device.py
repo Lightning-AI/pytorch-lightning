@@ -88,6 +88,7 @@ def test_change_device(tmpdir):
             loss = self.step(batch)
             self.log("val_loss", loss, on_epoch=True, prog_bar=True)
 
+    # Train on different devices to create profile of where the state Tensors are located for each device
     devices = ["cpu", "gpu"]
     optimizer_dict = {}
     model_dict = {}
@@ -116,7 +117,9 @@ def test_change_device(tmpdir):
         trainer.fit(model)
         checkpoint_path[device] = checkpoint_callback.best_model_path
 
-    # cross load from checkpoint
+    # Cross load from checkpoint
+    # That is, load CPU checkpoint, but target continuation on GPU, and vice versa
+    # Expected state is checked via TrainerStateChecker using the above trainers created on GPU and CPU devices
     trainer_resume_dict = {}
     for device_idx, device in enumerate(devices):
         cross_device = devices[(device_idx + 1) % len(devices)]

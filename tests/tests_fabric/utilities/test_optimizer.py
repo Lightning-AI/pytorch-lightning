@@ -6,12 +6,12 @@ from typing import Tuple
 import pytest
 import torch
 import torch.nn as nn
-from lightning.fabric.utilities.optimizer import _optimizer_to_device
+from lightning.fabric.utilities.optimizer import _optimizer_to_device_deprecated
 from torch import Tensor
 from torch.utils.data import DataLoader
 
 
-def test_optimizer_to_device_match_locations():
+def create_optimizer_on_devices():
     @dataclasses.dataclass(frozen=True)
     class FooState:
         bar: int
@@ -38,16 +38,11 @@ def test_optimizer_to_device_match_locations():
             loss.backward()
             optimizer.step()
 
-    if not torch.cuda.is_available():
-        return
-
     gpu_device = "cuda"
     devices = ["cpu", gpu_device]
-
     num_features = 32
     num_responses = 2
     batch_size = 16
-
     optimizer_on_device = {}
     for device in devices:
         dataset = CachedRandomTensorDataset(batch_size, num_features, num_responses, batch_size * 16, device)
@@ -63,57 +58,82 @@ def test_optimizer_to_device_match_locations():
                 optimizer_on_device[device + "_fused_" + str(fused)] = optimizer
             else:
                 optimizer_on_device[device] = optimizer
+    return gpu_device, optimizer_on_device
+
+
+def test_optimizer_to_device_match_locations():
+    """Test the _optimizer_to_device_deprecated function by ensuring that moving the internal state matches what is
+    expected."""
+
+    if not torch.cuda.is_available():
+        return
+
+    gpu_device, optimizer_on_device = create_optimizer_on_devices()
 
     # Test _optimizer_to_device function
     # Test cpu-->gpu, fused = False from CPU
     opt_to_gpu = copy.deepcopy(optimizer_on_device["cpu"])
-    _optimizer_to_device(opt_to_gpu, gpu_device)
+    _optimizer_to_device_deprecated(opt_to_gpu, gpu_device)
     assert_opt_state_in_expected_location(opt_to_gpu, optimizer_on_device[gpu_device])
 
     # Test gpu-->cpu, fused = False
     opt_to_cpu = copy.deepcopy(optimizer_on_device[gpu_device])
-    _optimizer_to_device(opt_to_cpu, "cpu")
+    _optimizer_to_device_deprecated(opt_to_cpu, "cpu")
     assert_opt_state_in_expected_location(opt_to_cpu, optimizer_on_device["cpu"])
 
     # Test gpu-->cpu, fused = True
     opt_to_cpu = copy.deepcopy(optimizer_on_device[gpu_device + "_fused_True"])
-    _optimizer_to_device(opt_to_cpu, "cpu")
+    _optimizer_to_device_deprecated(opt_to_cpu, "cpu")
     assert_opt_state_in_expected_location(opt_to_cpu, optimizer_on_device["cpu"])
 
-    # Try from_dict
-    # These all pretend that we have an appropriate prototype, I don't think we can actually do this since
-    # all we may have is a CPU pickle
-    # For now, this is a future idea for _optimizer_to_device
 
-    if False:
-        # GPU prototypes
-        # Use from_dict with gpu prototype, fused = False
-        opt_cpu_dict = optimizer_on_device["cpu"].state_dict()
-        gpu_prototype = copy.deepcopy(optimizer_on_device[gpu_device])
-        gpu_prototype.load_state_dict(opt_cpu_dict)
-        print(opt_cpu_dict)
-        assert_opt_state_in_expected_location(gpu_prototype, optimizer_on_device[gpu_device])
+def test_load_state_dict():
+    """Test that optimizer.load_state_dict() with a model prototype on the target device is equivalent to moving the
+    optimizer onto the device manually."""
 
-        # Use from_dict with gpu prototype, fused = True
-        opt_cpu_dict = optimizer_on_device["cpu"].state_dict()
-        gpu_prototype = copy.deepcopy(optimizer_on_device[gpu_device + "_fused_True"])
-        gpu_prototype.load_state_dict(opt_cpu_dict)
-        assert_opt_state_in_expected_location(
-            gpu_prototype, optimizer_on_device[gpu_device]
-        )  # fused=False from CPU, overrides prototype
+    if not torch.cuda.is_available():
+        return
 
-        # CPU prototypes
-        # Use from_dict with cpu prototype, fused = False
-        opt_gpu_dict = optimizer_on_device[gpu_device].state_dict()
-        cpu_prototype = copy.deepcopy(optimizer_on_device["cpu"])
-        cpu_prototype.load_state_dict(opt_gpu_dict)
-        assert_opt_state_in_expected_location(cpu_prototype, optimizer_on_device["cpu"])
+    gpu_device, optimizer_on_device = create_optimizer_on_devices()
 
-        # Use from_dict with cpu prototype, fused = True
-        opt_gpu_dict = optimizer_on_device[gpu_device + "_fused_True"].state_dict()
-        cpu_prototype = copy.deepcopy(optimizer_on_device["cpu"])
-        cpu_prototype.load_state_dict(opt_gpu_dict)  # This should give an error / refuse to allow fused = True
-        assert_opt_state_in_expected_location(cpu_prototype, optimizer_on_device["cpu"])
+    ######################################################################################
+    # GPU prototypes
+    ######################################################################################
+
+    # CPU -> GPU, fused=False
+    # Use from_dict with gpu prototype, fused = False
+    opt_cpu_dict = optimizer_on_device["cpu"].state_dict()
+    gpu_prototype = copy.deepcopy(optimizer_on_device[gpu_device])
+    gpu_prototype.load_state_dict(opt_cpu_dict)
+    print(opt_cpu_dict)
+    assert_opt_state_in_expected_location(gpu_prototype, optimizer_on_device[gpu_device])
+
+    # CPU -> GPU, fused=True
+    # Use from_dict with gpu prototype, fused = True
+    opt_cpu_dict = optimizer_on_device["cpu"].state_dict()
+    gpu_prototype = copy.deepcopy(optimizer_on_device[gpu_device + "_fused_True"])
+    gpu_prototype.load_state_dict(opt_cpu_dict)
+    assert_opt_state_in_expected_location(
+        gpu_prototype, optimizer_on_device[gpu_device]
+    )  # fused=False from CPU, overrides prototype
+
+    ######################################################################################
+    # CPU prototypes
+    ######################################################################################
+
+    # GPU, fused=False -> CPU
+    # Use from_dict with cpu prototype, fused = False
+    opt_gpu_dict = optimizer_on_device[gpu_device].state_dict()
+    cpu_prototype = copy.deepcopy(optimizer_on_device["cpu"])
+    cpu_prototype.load_state_dict(opt_gpu_dict)
+    assert_opt_state_in_expected_location(cpu_prototype, optimizer_on_device["cpu"])
+
+    # GPU, fused=True -> CPU
+    # Use from_dict with cpu prototype, fused = True
+    opt_gpu_dict = optimizer_on_device[gpu_device + "_fused_True"].state_dict()
+    cpu_prototype = copy.deepcopy(optimizer_on_device["cpu"])
+    cpu_prototype.load_state_dict(opt_gpu_dict)  # !!!!! This should give an error / refuse to allow fused = True
+    assert_opt_state_in_expected_location(cpu_prototype, optimizer_on_device["cpu"])
 
 
 def assert_opt_state_in_expected_location(opt, expected_opt):
