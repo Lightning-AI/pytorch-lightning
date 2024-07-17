@@ -88,7 +88,7 @@ class PositionalEncoding(nn.Module):
             # TODO: Could make this a `nn.Parameter` with `requires_grad=False`
             self.pe = self._init_pos_encoding(device=x.device)
 
-        x + self.pe[: x.size(0), :]
+        x = x + self.pe[: x.size(0), :]
         return self.dropout(x)
 
     def _init_pos_encoding(self, device: torch.device) -> Tensor:
