@@ -25,7 +25,7 @@ on:
         description: "Import name to test with after installation"
         required: true
         type: string
-      import-extras:
+      custom-import:
         description: "additional import statement, need to be full python code"
         type: string
         required: false
@@ -131,7 +131,7 @@ jobs:
           pkg-extras: ${{ inputs.install-extras }}
           pip-flags: ${{ inputs.install-flags }}
           import-name: ${{ inputs.import-name }}
-          import-extras: ${{ inputs.import-extras }}
+          custom-import: ${{ inputs.custom-import }}
 
     # TODO: add run doctests
 
