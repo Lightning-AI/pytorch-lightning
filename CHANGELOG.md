@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - CI: rename `import-extras` to `custom-import` in package check ([#287](https://github.com/Lightning-AI/utilities/pull/287))
 
+### Fixed
+
+- CI: update type/`mypy` check ([#288](https://github.com/Lightning-AI/utilities/pull/288))
+
 ## [0.11.4] - 2024-07-15
 
 ### Changed

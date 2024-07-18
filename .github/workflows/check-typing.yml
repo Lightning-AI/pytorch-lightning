@@ -61,7 +61,11 @@ jobs:
           unfold: true
 
       # see: https://github.com/python/mypy/issues/10600#issuecomment-857351152
-      - run: yes | mypy . --install-types || true
+      - name: init mypy
+        continue-on-error: true
+        run: |
+          mkdir -p .mypy_cache
+          mypy --install-types --non-interactive .
 
       - name: Check typing
         # mypy uses the config file found in the following order:
