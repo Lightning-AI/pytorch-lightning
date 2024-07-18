@@ -23,7 +23,6 @@
 import logging
 import math
 import os
-import warnings
 from contextlib import contextmanager
 from datetime import timedelta
 from typing import Any, Dict, Generator, Iterable, List, Optional, Union
