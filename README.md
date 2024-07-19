@@ -1,6 +1,6 @@
 <div align="center">
 
-<img alt="Lightning" src="https://pl-public-data.s3.amazonaws.com/assets_lightning/LightningColor.png" width="800px" style="max-width: 100%;">
+<img alt="Lightning" src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/app-2/ptl_banner.png" width="800px" style="max-width: 100%;">
 
 <br/>
 <br/>
