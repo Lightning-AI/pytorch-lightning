@@ -9,8 +9,8 @@ __This repository covers the following use-cases:__
 
 1. _Reusable GitHub workflows_
 2. _Shared GitHub actions_
-3. _CLI `python -m lightning_utilities.cli --help`_
-4. _General Python utilities in `lightning_utilities.core`_
+3. _General Python utilities in `lightning_utilities.core`_
+4. _CLI `python -m lightning_utilities.cli --help`_
 
 ## 1. Reusable workflows
 
@@ -61,9 +61,7 @@ jobs:
         requires: oldest # or latest
 ```
 
-## 3. CLI `lightning_utilities.cli`
-
-The package provides common CLI commands.
+## 3. General Python utilities `lightning_utilities.core`
 
 <details>
   <summary>Installation</summary>
@@ -72,6 +70,32 @@ From source:
 ```bash
 pip install https://github.com/Lightning-AI/utilities/archive/refs/heads/main.zip
 ```
+
+From pypi:
+
+```bash
+pip install lightning_utilities
+```
+
+</details>
+
+__Usage:__
+
+Example for optional imports:
+
+```python
+from lightning_utilities.core.imports import module_available
+
+if module_available("some_package.something"):
+    from some_package import something
+```
+
+## 4. CLI `lightning_utilities.cli`
+
+The package provides common CLI commands.
+
+<details>
+  <summary>Installation</summary>
 
 From pypi:
 
@@ -107,27 +131,3 @@ pytest-timeout
 ```
 
 </details>
-
-## 4. General Python utilities `lightning_utilities.core`
-
-<details>
-  <summary>Installation</summary>
-
-From pypi:
-
-```bash
-pip install lightning_utilities
-```
-
-</details>
-
-__Usage:__
-
-Example for optional imports:
-
-```python
-from lightning_utilities.core.imports import module_available
-
-if module_available("some_package.something"):
-    from some_package import something
-```

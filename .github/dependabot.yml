@@ -6,21 +6,21 @@ updates:
     directory: "/requirements"
     schedule:
       interval: "weekly"
-    labels: ["ci/cd"]
+    labels: ["requirements", "enhancement"]
     pull-request-branch-name:
       separator: "-"
     open-pull-requests-limit: 5
     reviewers:
-      - "Lightning-AI/core-lightning"
+      - "borda"
 
   # Enable version updates for GitHub Actions
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: "weekly"
-    labels: ["ci/cd"]
+    labels: ["ci/cd", "enhancement"]
     pull-request-branch-name:
       separator: "-"
     open-pull-requests-limit: 5
     reviewers:
-      - "Lightning-AI/core-lightning"
+      - "borda"
