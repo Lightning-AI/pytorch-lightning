@@ -23,7 +23,6 @@
 import logging
 import math
 import os
-import warnings
 from contextlib import contextmanager
 from datetime import timedelta
 from typing import Any, Dict, Generator, Iterable, List, Optional, Union
@@ -82,10 +81,6 @@ from lightning.pytorch.utilities.types import (
 from lightning.pytorch.utilities.warnings import PossibleUserWarning
 
 log = logging.getLogger(__name__)
-# warnings to ignore in trainer
-warnings.filterwarnings(
-    "ignore", message="torch.distributed.reduce_op is deprecated, please use torch.distributed.ReduceOp instead"
-)
 
 
 class Trainer:
