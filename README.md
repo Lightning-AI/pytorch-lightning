@@ -1,5 +1,10 @@
 # Lightning Utilities
 
+[![PyPI Status](https://badge.fury.io/py/lightning-utilities.svg)](https://badge.fury.io/py/lightning-utilities)
+[![license](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/Lightning-AI/lightning_utilities/blob/master/LICENSE)
+[![PyPI - Downloads](https://img.shields.io/pypi/dm/lightning-utilities)](https://pepy.tech/project/lightning-utilities)
+[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/lightning-utilities)](https://pypi.org/project/lightning-utilities/)
+
 [![UnitTests](https://github.com/Lightning-AI/utilities/actions/workflows/ci-testing.yml/badge.svg?event=push)](https://github.com/Lightning-AI/utilities/actions/workflows/ci-testing.yml)
 [![Apply checks](https://github.com/Lightning-AI/utilities/actions/workflows/ci-use-checks.yaml/badge.svg?event=push)](https://github.com/Lightning-AI/utilities/actions/workflows/ci-use-checks.yaml)
 [![Docs Status](https://readthedocs.org/projects/lit-utilities/badge/?version=latest)](https://lit-utilities.readthedocs.io/en/latest/?badge=latest)
