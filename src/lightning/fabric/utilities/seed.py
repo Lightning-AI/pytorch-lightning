@@ -17,7 +17,7 @@ max_seed_value = 4294967295  # 2^32 - 1 (uint32)
 min_seed_value = 0
 
 
-def seed_everything(seed: Optional[int] = None, workers: bool = False) -> int:
+def seed_everything(seed: Optional[int] = None, workers: bool = False, verbose: bool = True) -> int:
     r"""Function that sets the seed for pseudo-random number generators in: torch, numpy, and Python's random module.
     In addition, sets the following environment variables:
 
@@ -32,6 +32,7 @@ def seed_everything(seed: Optional[int] = None, workers: bool = False) -> int:
             Trainer with a ``worker_init_fn``. If the user already provides such a function
             for their dataloaders, setting this argument will have no influence. See also:
             :func:`~lightning.fabric.utilities.seed.pl_worker_init_function`.
+        verbose: Whether to print a message on each rank with the seed being set.
 
     """
     if seed is None:
@@ -52,7 +53,9 @@ def seed_everything(seed: Optional[int] = None, workers: bool = False) -> int:
         rank_zero_warn(f"{seed} is not in bounds, numpy accepts from {min_seed_value} to {max_seed_value}")
         seed = 0
 
-    log.info(rank_prefixed_message(f"Seed set to {seed}", _get_rank()))
+    if verbose:
+        log.info(rank_prefixed_message(f"Seed set to {seed}", _get_rank()))
+
     os.environ["PL_GLOBAL_SEED"] = str(seed)
     random.seed(seed)
     if _NUMPY_AVAILABLE:
@@ -76,7 +79,7 @@ def reset_seed() -> None:
     if seed is None:
         return
     workers = os.environ.get("PL_SEED_WORKERS", "0")
-    seed_everything(int(seed), workers=bool(int(workers)))
+    seed_everything(int(seed), workers=bool(int(workers)), verbose=False)
 
 
 def pl_worker_init_function(worker_id: int, rank: Optional[int] = None) -> None:  # pragma: no cover
