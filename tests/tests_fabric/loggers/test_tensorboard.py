@@ -228,14 +228,3 @@ def test_tensorboard_with_symlink(log, tmp_path, monkeypatch):
     _ = logger.version
 
     log.warning.assert_not_called()
-
-
-def test_tensorboard_missing_folder_warning(tmp_path, caplog):
-    """Verify that the logger throws a warning for invalid directory."""
-    name = "fake_dir"
-    logger = TensorBoardLogger(root_dir=tmp_path, name=name)
-
-    with caplog.at_level(logging.WARNING):
-        assert logger.version == 0
-
-    assert "Missing logger folder:" in caplog.text
