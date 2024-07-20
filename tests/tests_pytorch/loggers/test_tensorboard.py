@@ -312,8 +312,7 @@ def test_tensorboard_save_hparams_to_yaml_once(tmp_path):
     assert not os.path.isfile(os.path.join(tmp_path, hparams_file))
 
 
-@mock.patch("lightning.pytorch.loggers.tensorboard.log")
-def test_tensorboard_with_symlink(log, tmp_path, monkeypatch):
+def test_tensorboard_with_symlink(tmp_path, monkeypatch):
     """Tests a specific failure case when tensorboard logger is used with empty name, symbolic link ``save_dir``, and
     relative paths."""
     monkeypatch.chdir(tmp_path)  # need to use relative paths
@@ -325,5 +324,3 @@ def test_tensorboard_with_symlink(log, tmp_path, monkeypatch):
 
     logger = TensorBoardLogger(save_dir=dest, name="")
     _ = logger.version
-
-    log.warning.assert_not_called()

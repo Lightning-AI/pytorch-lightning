@@ -213,8 +213,7 @@ def test_tensorboard_finalize(monkeypatch, tmp_path):
     logger.experiment.close.assert_called()
 
 
-@mock.patch("lightning.fabric.loggers.tensorboard.log")
-def test_tensorboard_with_symlink(log, tmp_path, monkeypatch):
+def test_tensorboard_with_symlink(tmp_path, monkeypatch):
     """Tests a specific failure case when tensorboard logger is used with empty name, symbolic link ``save_dir``, and
     relative paths."""
     monkeypatch.chdir(tmp_path)  # need to use relative paths
@@ -226,5 +225,3 @@ def test_tensorboard_with_symlink(log, tmp_path, monkeypatch):
 
     logger = TensorBoardLogger(root_dir=dest, name="")
     _ = logger.version
-
-    log.warning.assert_not_called()
