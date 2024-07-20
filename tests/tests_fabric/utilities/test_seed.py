@@ -10,8 +10,8 @@ from lightning.fabric.utilities.seed import (
     _collect_rng_states,
     _set_rng_states,
     pl_worker_init_function,
-    seed_everything,
     reset_seed,
+    seed_everything,
 )
 
 
