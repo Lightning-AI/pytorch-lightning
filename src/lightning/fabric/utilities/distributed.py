@@ -297,13 +297,14 @@ def _init_dist_connection(
         # PyTorch >= 2.4 warns about undestroyed NCCL process group, so we need to do it at program exit
         atexit.register(_destroy_dist_connection)
 
-    # On rank=0 let everyone know training is starting
-    rank_zero_info(
-        f"{'-' * 100}\n"
-        f"distributed_backend={torch_distributed_backend}\n"
-        f"All distributed processes registered. Starting with {world_size} processes\n"
-        f"{'-' * 100}\n"
-    )
+    # On local_rank=0 let everyone know training is starting
+    if cluster_environment.local_rank() == 0:
+        log.info(
+            f"{'-' * 100}\n"
+            f"Distributed backend: {torch_distributed_backend.upper()}\n"
+            f"All distributed processes registered. Starting with {world_size} processes\n"
+            f"{'-' * 100}\n"
+        )
 
 
 def _destroy_dist_connection() -> None:

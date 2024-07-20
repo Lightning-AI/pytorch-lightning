@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import importlib
-import logging
 import math
 import os
 import sys
@@ -34,7 +33,6 @@ import lightning.pytorch as pl
 from lightning.pytorch.callbacks.progress.progress_bar import ProgressBar
 from lightning.pytorch.utilities.rank_zero import rank_zero_debug
 
-_log = logging.getLogger(__name__)
 _PAD_SIZE = 5
 
 
@@ -247,10 +245,6 @@ class TQDMProgressBar(ProgressBar):
             file=sys.stdout,
             bar_format=self.BAR_FORMAT,
         )
-
-    def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: str) -> None:
-        if trainer.node_rank > 0 and trainer.local_rank == 0:
-            _log.info("The progress bar output will appear on node 0.")
 
     @override
     def on_sanity_check_start(self, *_: Any) -> None:

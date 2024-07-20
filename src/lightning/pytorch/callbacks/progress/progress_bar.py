@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import logging
 from typing import Any, Dict, Optional, Union
 
 from typing_extensions import override
@@ -18,6 +19,8 @@ from typing_extensions import override
 import lightning.pytorch as pl
 from lightning.pytorch.callbacks import Callback
 from lightning.pytorch.utilities.rank_zero import rank_zero_warn
+
+_log = logging.getLogger(__name__)
 
 
 class ProgressBar(Callback):
@@ -173,6 +176,8 @@ class ProgressBar(Callback):
         self._trainer = trainer
         if not trainer.is_global_zero:
             self.disable()
+        if trainer.node_rank > 0 and trainer.local_rank == 0:
+            _log.info("The progress bar output will appear on node 0.")
 
     def get_metrics(
         self, trainer: "pl.Trainer", pl_module: "pl.LightningModule"
