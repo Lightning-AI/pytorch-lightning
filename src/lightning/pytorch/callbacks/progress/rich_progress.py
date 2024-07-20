@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import logging
 import math
 from dataclasses import dataclass
 from datetime import timedelta
@@ -24,6 +25,8 @@ from lightning.pytorch.callbacks.progress.progress_bar import ProgressBar
 from lightning.pytorch.utilities.types import STEP_OUTPUT
 
 _RICH_AVAILABLE = RequirementCache("rich>=10.2.2")
+_log = logging.getLogger(__name__)
+
 
 if _RICH_AVAILABLE:
     from rich import get_console, reconfigure
@@ -362,6 +365,10 @@ class RichProgressBar(ProgressBar):
     def refresh(self) -> None:
         if self.progress:
             self.progress.refresh()
+
+    def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: str) -> None:
+        if trainer.node_rank > 0 and trainer.local_rank == 0:
+            _log.info("The progress bar output will appear on node 0.")
 
     @override
     def on_train_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
