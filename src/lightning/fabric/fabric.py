@@ -909,7 +909,7 @@ class Fabric:
             logger.log_metrics(metrics=metrics, step=step)
 
     @staticmethod
-    def seed_everything(seed: Optional[int] = None, workers: Optional[bool] = None) -> int:
+    def seed_everything(seed: Optional[int] = None, workers: Optional[bool] = None, verbose: bool = True) -> int:
         r"""Helper function to seed everything without explicitly importing Lightning.
 
         See :func:`~lightning.fabric.utilities.seed.seed_everything` for more details.
@@ -919,7 +919,7 @@ class Fabric:
             # Lightning sets `workers=False` by default to avoid breaking reproducibility, but since this is a new
             # release, we can afford to do it.
             workers = True
-        return seed_everything(seed=seed, workers=workers)
+        return seed_everything(seed=seed, workers=workers, verbose=verbose)
 
     def _wrap_and_launch(self, to_run: Callable, *args: Any, **kwargs: Any) -> Any:
         self._launched = True
