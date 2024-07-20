@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import logging
 import os
 from argparse import Namespace
 from typing import TYPE_CHECKING, Any, Dict, Mapping, Optional, Union
@@ -26,11 +25,10 @@ from lightning.fabric.loggers.logger import Logger, rank_zero_experiment
 from lightning.fabric.utilities.cloud_io import _is_dir, get_filesystem
 from lightning.fabric.utilities.logger import _add_prefix, _convert_params, _flatten_dict
 from lightning.fabric.utilities.logger import _sanitize_params as _utils_sanitize_params
-from lightning.fabric.utilities.rank_zero import rank_zero_only, rank_zero_warn
+from lightning.fabric.utilities.rank_zero import rank_zero_only, rank_zero_warn, rank_zero_info
 from lightning.fabric.utilities.types import _PATH
 from lightning.fabric.wrappers import _unwrap_objects
 
-log = logging.getLogger(__name__)
 
 _TENSORBOARD_AVAILABLE = RequirementCache("tensorboard")
 _TENSORBOARDX_AVAILABLE = RequirementCache("tensorboardX")
@@ -305,8 +303,6 @@ class TensorBoardLogger(Logger):
         try:
             listdir_info = self._fs.listdir(save_dir)
         except OSError:
-            # TODO(fabric): This message can be confusing (did user do something wrong?). Improve it or remove it.
-            log.warning("Missing logger folder: %s", save_dir)
             return 0
 
         existing_versions = []
