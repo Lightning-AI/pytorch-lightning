@@ -3,7 +3,6 @@ import random
 from unittest import mock
 from unittest.mock import Mock
 
-import lightning.fabric.utilities
 import numpy
 import pytest
 import torch
@@ -11,6 +10,7 @@ from lightning.fabric.utilities.seed import (
     _collect_rng_states,
     _set_rng_states,
     pl_worker_init_function,
+    reset_seed,
     seed_everything,
 )
 
@@ -18,7 +18,7 @@ from lightning.fabric.utilities.seed import (
 @mock.patch.dict(os.environ, clear=True)
 def test_default_seed():
     """Test that the default seed is 0 when no seed provided and no environment variable set."""
-    assert lightning.fabric.utilities.seed.seed_everything() == 0
+    assert seed_everything() == 0
     assert os.environ["PL_GLOBAL_SEED"] == "0"
 
 
@@ -26,11 +26,11 @@ def test_default_seed():
 def test_seed_stays_same_with_multiple_seed_everything_calls():
     """Ensure that after the initial seed everything, the seed stays the same for the same run."""
     with pytest.warns(UserWarning, match="No seed found"):
-        lightning.fabric.utilities.seed.seed_everything()
+        seed_everything()
     initial_seed = os.environ.get("PL_GLOBAL_SEED")
 
     with pytest.warns(None) as record:
-        lightning.fabric.utilities.seed.seed_everything()
+        seed_everything()
     assert not record  # does not warn
     seed = os.environ.get("PL_GLOBAL_SEED")
 
@@ -40,14 +40,14 @@ def test_seed_stays_same_with_multiple_seed_everything_calls():
 @mock.patch.dict(os.environ, {"PL_GLOBAL_SEED": "2020"}, clear=True)
 def test_correct_seed_with_environment_variable():
     """Ensure that the PL_GLOBAL_SEED environment is read."""
-    assert lightning.fabric.utilities.seed.seed_everything() == 2020
+    assert seed_everything() == 2020
 
 
 @mock.patch.dict(os.environ, {"PL_GLOBAL_SEED": "invalid"}, clear=True)
 def test_invalid_seed():
     """Ensure that we still fix the seed even if an invalid seed is given."""
     with pytest.warns(UserWarning, match="Invalid seed found"):
-        seed = lightning.fabric.utilities.seed.seed_everything()
+        seed = seed_everything()
     assert seed == 0
 
 
@@ -56,7 +56,7 @@ def test_invalid_seed():
 def test_out_of_bounds_seed(seed):
     """Ensure that we still fix the seed even if an out-of-bounds seed is given."""
     with pytest.warns(UserWarning, match="is not in bounds"):
-        actual = lightning.fabric.utilities.seed.seed_everything(seed)
+        actual = seed_everything(seed)
     assert actual == 0
 
 
@@ -64,7 +64,7 @@ def test_reset_seed_no_op():
     """Test that the reset_seed function is a no-op when seed_everything() was not used."""
     assert "PL_GLOBAL_SEED" not in os.environ
     seed_before = torch.initial_seed()
-    lightning.fabric.utilities.seed.reset_seed()
+    reset_seed()
     assert torch.initial_seed() == seed_before
     assert "PL_GLOBAL_SEED" not in os.environ
 
@@ -75,16 +75,24 @@ def test_reset_seed_everything(workers):
     assert "PL_GLOBAL_SEED" not in os.environ
     assert "PL_SEED_WORKERS" not in os.environ
 
-    lightning.fabric.utilities.seed.seed_everything(123, workers)
+    seed_everything(123, workers)
     before = torch.rand(1)
     assert os.environ["PL_GLOBAL_SEED"] == "123"
     assert os.environ["PL_SEED_WORKERS"] == str(int(workers))
 
-    lightning.fabric.utilities.seed.reset_seed()
+    reset_seed()
     after = torch.rand(1)
     assert os.environ["PL_GLOBAL_SEED"] == "123"
     assert os.environ["PL_SEED_WORKERS"] == str(int(workers))
     assert torch.allclose(before, after)
+
+
+def test_reset_seed_non_verbose(caplog):
+    seed_everything(123)
+    assert len(caplog.records) == 1
+    caplog.clear()
+    reset_seed()  # should call `seed_everything(..., verbose=False)`
+    assert len(caplog.records) == 0
 
 
 def test_backward_compatibility_rng_states_dict():
