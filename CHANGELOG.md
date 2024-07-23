@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - CI: update type/`mypy` check ([#288](https://github.com/Lightning-AI/utilities/pull/288))
+- Fixed parsing pre-release package versions in `RequirementCache` ([#292](https://github.com/Lightning-AI/utilities/pull/292))
 
 ## [0.11.4] - 2024-07-15
 

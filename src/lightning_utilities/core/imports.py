@@ -128,7 +128,7 @@ class RequirementCache:
         try:
             req = Requirement(self.requirement)
             pkg_version = Version(_version(req.name))
-            self.available = req.specifier.contains(pkg_version) and (
+            self.available = req.specifier.contains(pkg_version, prereleases=True) and (
                 not req.extras or self._check_extras_available(req)
             )
         except (PackageNotFoundError, InvalidVersion) as ex:
@@ -180,7 +180,7 @@ class RequirementCache:
             try:
                 extra_dist = distribution(extra_req.name)
                 extra_installed_version = Version(extra_dist.version)
-                if extra_req.specifier and not extra_req.specifier.contains(extra_installed_version):
+                if extra_req.specifier and not extra_req.specifier.contains(extra_installed_version, prereleases=True):
                     return False
             except importlib.metadata.PackageNotFoundError:
                 return False
