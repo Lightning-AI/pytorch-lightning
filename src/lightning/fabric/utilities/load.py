@@ -160,7 +160,7 @@ class _NotYetLoadedTensor:
             return getattr(self.metatensor, name)
 
         # materializing these is needed for quantization (see lit-gpt)
-        if name in {"contiguous", "cuda", "half"}:
+        if name in {"contiguous", "cuda", "half", "data"}:
             return getattr(self._load_tensor(), name)
 
         raise AttributeError(f"'{type(self).__name__}' object has no attribute '{name}'")
