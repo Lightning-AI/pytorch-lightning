@@ -377,15 +377,6 @@ class DDPStrategy(ParallelStrategy):
                 find_unused_parameters=fup,
                 start_method=start_method,
             )
-            
-        strategy_registry.register(
-            "ddp_find_unused_parameters_true",
-            cls,
-            description="Alias for DDP strategy with `find_unused_parameters=True` and `start_method='popen'`",
-            find_unused_parameters = True,
-            start_method = "popen"
-            
-        )
 
     @override
     def on_exception(self, exception: BaseException) -> None:
