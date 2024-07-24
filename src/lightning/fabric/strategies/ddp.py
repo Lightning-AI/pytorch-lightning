@@ -204,9 +204,10 @@ class DDPStrategy(ParallelStrategy):
             "ddp_find_unused_parameters_true",
             cls,
             description="Alias for `ddp_find_unused_parameters_true` and `start_method='popen'`",
-            find_unused_parameters = True,
-            start_method = "popen",
+            find_unused_parameters=True,
+            start_method="popen",
         )
+
     def _setup_distributed(self) -> None:
         self._set_world_ranks()
         self._process_group_backend = self._get_process_group_backend()
