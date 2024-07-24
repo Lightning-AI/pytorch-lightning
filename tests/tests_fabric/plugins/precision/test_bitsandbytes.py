@@ -22,6 +22,7 @@ from lightning.fabric import Fabric
 from lightning.fabric.connector import _Connector
 from lightning.fabric.plugins.precision.bitsandbytes import _BITSANDBYTES_AVAILABLE, BitsandbytesPrecision
 from lightning.fabric.utilities.init import _materialize_meta_tensors
+from lightning.fabric.utilities.load import _lazy_load
 
 from tests_fabric.helpers.runif import RunIf
 
@@ -264,3 +265,10 @@ def test_load_quantized_checkpoint(tmp_path):
     assert model.linear.weight.shape == (128, 1)
     # Shapes match during forward (weight is being dequantized during forward)
     model(torch.randn(2, 16, device=fabric.device))
+
+    # Test with lazy load (LitGPT uses this)
+    # TODO: Replace `_lazy_load` with `torch.load(..., mmap=True)` in LitGPT
+    state_dict = _lazy_load(tmp_path / "checkpoint.pt")
+    model.load_state_dict(state_dict)
+    assert model.linear.weight.dtype == torch.uint8
+    assert model.linear.weight.shape == (128, 1)
