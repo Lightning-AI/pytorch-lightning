@@ -643,7 +643,7 @@ def test_result_collection_no_batch_size_extraction():
 
 
 @RunIf(min_cuda_gpus=1)
-def test_gpu_result_collection_changes_device():
+def test_result_collection_changes_device():
     """Test that the keys in the ResultCollection are moved to the device together with the collection."""
     results = _ResultCollection(training=True)
     fx, name = "training_step", "step_log_val"
@@ -654,9 +654,8 @@ def test_gpu_result_collection_changes_device():
     assert results[f"{fx}.{name}"].cumulated_batch_size.device == log_val.device
 
     # moved to cpu
-    cumulated_batch_size = results[f"{fx}.{name}"].cumulated_batch_size
     results.cpu()
-    assert cumulated_batch_size.device == "cpu"
+    assert results[f"{fx}.{name}"].cumulated_batch_size.device == torch.device("cpu")
 
     # same device as the new tensor
     results.log(fx, name, log_val, on_step=True, on_epoch=False, reduce_fx="mean")
