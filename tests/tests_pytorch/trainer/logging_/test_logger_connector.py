@@ -644,7 +644,7 @@ def test_result_collection_no_batch_size_extraction():
 
 @RunIf(min_cuda_gpus=1)
 def test_gpu_result_collection_changes_device():
-    """Test that the keys in the ResultCollection are moved to the device together with the collection"""
+    """Test that the keys in the ResultCollection are moved to the device together with the collection."""
     results = _ResultCollection(training=True)
     fx, name = "training_step", "step_log_val"
     log_val = torch.tensor(7.0, device="cuda:0")
