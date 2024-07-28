@@ -70,11 +70,9 @@ if _COPY_NOTEBOOKS:
         _PATH_HERE,
         "notebooks",
         patterns=[".", "course_UvA-DL", "lightning_examples"],
-        # TODO(@aniketmaurya): Complete converting the missing items and add them back
-        ignore=[
-            # "course_UvA-DL/13-contrastive-learning",
-            "lightning_examples/warp-drive",
-        ],
+        # ignore=[
+        #     "lightning_examples/warp-drive",
+        # ],
     )
 
 
