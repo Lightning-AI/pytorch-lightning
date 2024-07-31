@@ -17,7 +17,7 @@ from lightning.pytorch.core import LightningModule
 from lightning.pytorch.demos.transformer import WikiText2
 
 
-class LSTMModel(nn.Module):
+class SimpleLSTM(nn.Module):
     def __init__(
         self, vocab_size: int = 33278, ninp: int = 512, nhid: int = 512, nlayers: int = 4, dropout: float = 0.2
     ):
