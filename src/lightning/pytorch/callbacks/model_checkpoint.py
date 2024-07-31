@@ -95,6 +95,18 @@ class ModelCheckpoint(Checkpoint):
             If ``save_top_k >= 2`` and the callback is called multiple times inside an epoch, and the filename remains
             unchanged, the name of the saved file will be appended with a version count starting with ``v1`` to avoid
             collisions unless ``enable_version_counter`` is set to False.
+            
+            .. note::
+
+                **You should not rely on the appended version to retrieve the
+                best k model**, since there is no relationship between version
+                count and model performance. For example, ``filename-v2.ckpt``
+                doesn't necessarily correspond to the 2nd best model.
+
+                The versioning is only there to prevent overwriting files. **It is recommended
+                that you pass formatting options to** ``filename``, **so the best k models can
+                be easily retrieved.** Otherwise, all checkpoints must be loaded and checked.
+
         mode: one of {min, max}.
             If ``save_top_k != 0``, the decision to overwrite the current save file is made
             based on either the maximization or the minimization of the monitored quantity.
