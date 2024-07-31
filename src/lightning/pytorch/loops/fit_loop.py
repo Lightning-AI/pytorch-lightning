@@ -177,7 +177,7 @@ class _FitLoop(_Loop):
         if stop_epochs:
             # in case they are not equal, override so `trainer.current_epoch` has the expected value
             self.epoch_progress.current.completed = self.epoch_progress.current.processed
-            rank_zero_info(f"`Trainer.fit` stopped: `max_epochs={self.max_epochs!r}` reached.")
+            self.trainer.lightning_module.print(f"`Trainer.fit` stopped: `max_epochs={self.max_epochs!r}` reached.")
             return True
 
         if self.trainer.should_stop and self._can_stop_early:
