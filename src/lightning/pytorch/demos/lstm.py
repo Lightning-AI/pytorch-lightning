@@ -2,8 +2,10 @@
 
 Code is adapted from the PyTorch examples at
 https://github.com/pytorch/examples/blob/main/word_language_model
+
 """
-from typing import List, Tuple, Sized, Iterator, Optional
+
+from typing import Iterator, List, Optional, Sized, Tuple
 
 import torch
 import torch.nn as nn
@@ -11,8 +13,9 @@ import torch.nn.functional as F
 from torch import Tensor
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, Sampler
-from lightning.pytorch.demos import WikiText2
+
 import lightning as L
+from lightning.pytorch.demos import WikiText2
 
 
 class LSTMModel(nn.Module):
@@ -84,7 +87,7 @@ class LightningLSTM(L.LightningModule):
         loss = F.nll_loss(output, target.view(-1))
         self.log("train_loss", loss, prog_bar=True)
         return loss
-    
+
     def prepare_data(self) -> None:
         WikiText2(download=True)
 
