@@ -95,7 +95,7 @@ class ModelCheckpoint(Checkpoint):
             If ``save_top_k >= 2`` and the callback is called multiple times inside an epoch, and the filename remains
             unchanged, the name of the saved file will be appended with a version count starting with ``v1`` to avoid
             collisions unless ``enable_version_counter`` is set to False.
-            
+
             .. note::
 
                 **You should not rely on the appended version to retrieve the
