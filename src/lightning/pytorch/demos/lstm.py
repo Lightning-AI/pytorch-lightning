@@ -71,7 +71,7 @@ class SequenceSampler(Sampler[List[int]]):
 class LightningLSTM(LightningModule):
     def __init__(self, vocab_size: int = 33278):
         super().__init__()
-        self.model = LSTMModel(vocab_size=vocab_size)
+        self.model = SimpleLSTM(vocab_size=vocab_size)
         self.hidden: Optional[Tuple[Tensor, Tensor]] = None
 
     def on_train_epoch_end(self) -> None:
