@@ -13,6 +13,7 @@ import torch.nn.functional as F
 from torch import Tensor
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, Sampler
+
 from lightning.pytorch.core import LightningModule
 from lightning.pytorch.demos.transformer import WikiText2
 
@@ -40,8 +41,7 @@ class SimpleLSTM(nn.Module):
         emb = self.drop(self.encoder(input))
         output, hidden = self.rnn(emb, hidden)
         output = self.drop(output)
-        decoded = self.decoder(output)
-        decoded = decoded.view(-1, self.vocab_size)
+        decoded = self.decoder(output).view(-1, self.vocab_size)
         return F.log_softmax(decoded, dim=1), hidden
 
     def init_hidden(self, batch_size: int) -> Tuple[Tensor, Tensor]:
