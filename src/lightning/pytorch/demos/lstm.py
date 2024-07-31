@@ -15,7 +15,7 @@ from torch.optim import Optimizer
 from torch.utils.data import DataLoader, Sampler
 
 import lightning as L
-from lightning.pytorch.demos import WikiText2
+from lightning.pytorch.demos.transformer import WikiText2
 
 
 class LSTMModel(nn.Module):
