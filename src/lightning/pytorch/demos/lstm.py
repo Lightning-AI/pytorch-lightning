@@ -13,8 +13,7 @@ import torch.nn.functional as F
 from torch import Tensor
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, Sampler
-
-import lightning as L
+from lightning.pytorch.core import LightningModule
 from lightning.pytorch.demos.transformer import WikiText2
 
 
@@ -69,7 +68,7 @@ class SequenceSampler(Sampler[List[int]]):
         return self.chunk_size
 
 
-class LightningLSTM(L.LightningModule):
+class LightningLSTM(LightningModule):
     def __init__(self, vocab_size: int = 33278):
         super().__init__()
         self.model = LSTMModel(vocab_size=vocab_size)
