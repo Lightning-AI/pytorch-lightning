@@ -13,7 +13,9 @@
 # limitations under the License.
 
 from typing import Iterable
+from collections.abc import Mapping
 
+from numpy import isin
 from torch.optim import Optimizer
 
 from lightning.fabric.utilities.apply_func import move_data_to_device
@@ -33,7 +35,9 @@ def _optimizer_to_device(optimizer: Optimizer, device: _DEVICE) -> None:
     # The 'step' parameter needs to remain unmoved (possibly on the CPU) since that is where the optimizer needs it.
     # See https://github.com/pytorch/pytorch/issues/74424 and
     # _process_value_according_to_param_policy in torch/optim/optimizer.py:618
-    for p, v in optimizer.state.items():
+    for _, v in optimizer.state.items():
+        if not isinstance(v, Mapping):
+            continue
         for key, val in v.items():
             if key != "step":
                 v[key] = move_data_to_device(val, device)
