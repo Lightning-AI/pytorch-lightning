@@ -21,14 +21,20 @@ from tests_fabric.helpers.runif import RunIf
         torch.optim.Adamax,
     ],
 )
-@pytest.mark.parametrize("src_device", [
-    torch.device("cpu"),
-    pytest.param(torch.device("cuda"), marks=RunIf(min_cuda_gpus=1)),
-])
-@pytest.mark.parametrize("dst_device", [
-    torch.device("cpu"),
-    pytest.param(torch.device("cuda"), marks=RunIf(min_cuda_gpus=1)),
-])
+@pytest.mark.parametrize(
+    "src_device",
+    [
+        torch.device("cpu"),
+        pytest.param(torch.device("cuda"), marks=RunIf(min_cuda_gpus=1)),
+    ],
+)
+@pytest.mark.parametrize(
+    "dst_device",
+    [
+        torch.device("cpu"),
+        pytest.param(torch.device("cuda"), marks=RunIf(min_cuda_gpus=1)),
+    ],
+)
 def test_optimizer_to_device(optimizer_class, src_device, dst_device):
     # Optimizer with no state initialized
     model = torch.nn.Linear(2, 2, device=src_device)
