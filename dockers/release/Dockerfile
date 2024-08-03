@@ -39,7 +39,7 @@ RUN \
     fi && \
     # otherwise there is collision with folder name and pkg name on Pypi
     cd pytorch-lightning && \
-    pip install setuptools==59.5.0 && \
+    pip install setuptools && \
     PACKAGE_NAME=lightning pip install '.[extra,loggers,strategies]' --no-cache-dir && \
     PACKAGE_NAME=pytorch pip install '.[extra,loggers,strategies]' --no-cache-dir && \
     cd .. && \

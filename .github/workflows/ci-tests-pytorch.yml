@@ -43,52 +43,49 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { os: "macOS-11", pkg-name: "lightning", python-version: "3.10", pytorch-version: "2.0" }
-          - { os: "ubuntu-20.04", pkg-name: "lightning", python-version: "3.10", pytorch-version: "2.0" }
-          - { os: "windows-2022", pkg-name: "lightning", python-version: "3.10", pytorch-version: "2.0" }
           # only run PyTorch latest
-          - { os: "macOS-11", pkg-name: "lightning", python-version: "3.10", pytorch-version: "2.1" }
+          - { os: "macOS-14", pkg-name: "lightning", python-version: "3.10", pytorch-version: "2.1" }
           - { os: "ubuntu-20.04", pkg-name: "lightning", python-version: "3.10", pytorch-version: "2.1" }
           - { os: "windows-2022", pkg-name: "lightning", python-version: "3.10", pytorch-version: "2.1" }
-          - { os: "macOS-11", pkg-name: "lightning", python-version: "3.10", pytorch-version: "2.2" }
-          - { os: "ubuntu-20.04", pkg-name: "lightning", python-version: "3.10", pytorch-version: "2.2" }
-          - { os: "windows-2022", pkg-name: "lightning", python-version: "3.10", pytorch-version: "2.2" }
-          - { os: "macOS-14", pkg-name: "lightning", python-version: "3.10", pytorch-version: "2.3" }
-          - { os: "ubuntu-20.04", pkg-name: "lightning", python-version: "3.10", pytorch-version: "2.3" }
-          - { os: "windows-2022", pkg-name: "lightning", python-version: "3.10", pytorch-version: "2.3" }
+          - { os: "macOS-14", pkg-name: "lightning", python-version: "3.11", pytorch-version: "2.2" }
+          - { os: "ubuntu-20.04", pkg-name: "lightning", python-version: "3.11", pytorch-version: "2.2" }
+          - { os: "windows-2022", pkg-name: "lightning", python-version: "3.11", pytorch-version: "2.2" }
+          - { os: "macOS-14", pkg-name: "lightning", python-version: "3.11", pytorch-version: "2.3" }
+          - { os: "ubuntu-20.04", pkg-name: "lightning", python-version: "3.11", pytorch-version: "2.3" }
+          - { os: "windows-2022", pkg-name: "lightning", python-version: "3.11", pytorch-version: "2.3" }
+          - { os: "macOS-14", pkg-name: "lightning", python-version: "3.12", pytorch-version: "2.4" }
+          - { os: "ubuntu-20.04", pkg-name: "lightning", python-version: "3.12", pytorch-version: "2.4" }
+          - { os: "windows-2022", pkg-name: "lightning", python-version: "3.12", pytorch-version: "2.4" }
           # only run PyTorch latest with Python latest, use PyTorch scope to limit dependency issues
-          - { os: "macOS-12", pkg-name: "pytorch", python-version: "3.11", pytorch-version: "2.0" }
-          - { os: "ubuntu-22.04", pkg-name: "pytorch", python-version: "3.11", pytorch-version: "2.0" }
-          - { os: "windows-2022", pkg-name: "pytorch", python-version: "3.11", pytorch-version: "2.0" }
-          - { os: "macOS-12", pkg-name: "pytorch", python-version: "3.11", pytorch-version: "2.1" }
-          - { os: "ubuntu-22.04", pkg-name: "pytorch", python-version: "3.11", pytorch-version: "2.1" }
-          - { os: "windows-2022", pkg-name: "pytorch", python-version: "3.11", pytorch-version: "2.1" }
+          - { os: "macOS-12", pkg-name: "pytorch", python-version: "3.10", pytorch-version: "2.1" }
+          - { os: "ubuntu-22.04", pkg-name: "pytorch", python-version: "3.10", pytorch-version: "2.1" }
+          - { os: "windows-2022", pkg-name: "pytorch", python-version: "3.10", pytorch-version: "2.1" }
           # "oldest" versions tests, only on minimum Python
-          - { os: "macOS-11", pkg-name: "lightning", python-version: "3.8", pytorch-version: "2.0", requires: "oldest" }
+          - { os: "macOS-13", pkg-name: "lightning", python-version: "3.9", pytorch-version: "2.1", requires: "oldest" }
           - {
               os: "ubuntu-20.04",
               pkg-name: "lightning",
-              python-version: "3.8",
-              pytorch-version: "2.0",
+              python-version: "3.9",
+              pytorch-version: "2.1",
               requires: "oldest",
             }
           - {
               os: "windows-2022",
               pkg-name: "lightning",
-              python-version: "3.8",
-              pytorch-version: "2.0",
+              python-version: "3.9",
+              pytorch-version: "2.1",
               requires: "oldest",
             }
           # "pytorch" installs the standalone package
-          - { os: "macOS-11", pkg-name: "pytorch", python-version: "3.8", pytorch-version: "2.0" }
-          - { os: "ubuntu-20.04", pkg-name: "pytorch", python-version: "3.8", pytorch-version: "2.0" }
-          - { os: "windows-2022", pkg-name: "pytorch", python-version: "3.8", pytorch-version: "2.0" }
+          - { os: "macOS-14", pkg-name: "pytorch", python-version: "3.9", pytorch-version: "2.1" }
+          - { os: "ubuntu-20.04", pkg-name: "pytorch", python-version: "3.9", pytorch-version: "2.1" }
+          - { os: "windows-2022", pkg-name: "pytorch", python-version: "3.9", pytorch-version: "2.1" }
     timeout-minutes: 50
     env:
       PACKAGE_NAME: ${{ matrix.pkg-name }}
       TORCH_URL: "https://download.pytorch.org/whl/cpu/torch_stable.html"
       TORCH_URL_STABLE: "https://download.pytorch.org/whl/cpu/torch_stable.html"
-      TORCH_URL_TEST: "https://download.pytorch.org/whl/test/cpu/torch_test.html"
+      TORCH_URL_TEST: "https://download.pytorch.org/whl/test/cpu/torch"
       FREEZE_REQUIREMENTS: ${{ ! (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/')) }}
       PYPI_CACHE_DIR: "_pip-wheels"
       # TODO: Remove this - Enable running MPS tests on this platform
@@ -130,11 +127,13 @@ jobs:
       - name: Env. variables
         run: |
           # Switch PyTorch URL
-          python -c "print('TORCH_URL=' + str('${{env.TORCH_URL_TEST}}' if '${{ matrix.pytorch-version }}' == '2.3' else '${{env.TORCH_URL_STABLE}}'))" >> $GITHUB_ENV
+          python -c "print('TORCH_URL=' + str('${{env.TORCH_URL_TEST}}' if '${{ matrix.pytorch-version }}' == '2.5' else '${{env.TORCH_URL_STABLE}}'))" >> $GITHUB_ENV
           # Switch coverage scope
           python -c "print('COVERAGE_SCOPE=' + str('lightning' if '${{matrix.pkg-name}}' == 'lightning' else 'pytorch_lightning'))" >> $GITHUB_ENV
           # if you install mono-package set dependency only for this subpackage
           python -c "print('EXTRA_PREFIX=' + str('' if '${{matrix.pkg-name}}' != 'lightning' else 'pytorch-'))" >> $GITHUB_ENV
+          # Avoid issue on Windows with PyTorch 2.4: "RuntimeError: use_libuv was requested but PyTorch was build without libuv support"
+          python -c "print('USE_LIBUV=0' if '${{matrix.os}}' == 'windows-2022' and '${{matrix.pytorch-version}}' == '2.4' else '')" >> $GITHUB_ENV
 
       - name: Install package & dependencies
         timeout-minutes: 20

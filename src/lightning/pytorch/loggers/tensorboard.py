@@ -16,7 +16,6 @@ TensorBoard Logger
 ------------------
 """
 
-import logging
 import os
 from argparse import Namespace
 from typing import Any, Dict, Optional, Union
@@ -35,8 +34,6 @@ from lightning.pytorch.core.saving import save_hparams_to_yaml
 from lightning.pytorch.loggers.logger import Logger
 from lightning.pytorch.utilities.imports import _OMEGACONF_AVAILABLE
 from lightning.pytorch.utilities.rank_zero import rank_zero_only, rank_zero_warn
-
-log = logging.getLogger(__name__)
 
 
 class TensorBoardLogger(Logger, FabricTensorBoardLogger):
@@ -245,7 +242,6 @@ class TensorBoardLogger(Logger, FabricTensorBoardLogger):
         try:
             listdir_info = self._fs.listdir(root_dir)
         except OSError:
-            log.warning("Missing logger folder: %s", root_dir)
             return 0
 
         existing_versions = []

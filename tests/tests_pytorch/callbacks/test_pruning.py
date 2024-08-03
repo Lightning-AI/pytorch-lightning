@@ -273,7 +273,7 @@ def test_multiple_pruning_callbacks(tmp_path, caplog, make_pruning_permanent: bo
     filepath = str(tmp_path / "foo.ckpt")
     trainer.save_checkpoint(filepath)
 
-    model.load_state_dict(torch.load(filepath), strict=False)
+    model.load_state_dict(torch.load(filepath, weights_only=True), strict=False)
     has_pruning = hasattr(model.layer.mlp_1, "weight_orig")
     assert not has_pruning if make_pruning_permanent else has_pruning
 

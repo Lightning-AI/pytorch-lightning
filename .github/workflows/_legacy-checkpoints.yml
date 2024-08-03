@@ -114,8 +114,8 @@ jobs:
       - name: Upload checkpoints to S3
         working-directory: ${{ env.LEGACY_FOLDER }}
         env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_PUB_ACCESS_KEY }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_PUB_SECRET_KEY }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_KEY }}
           AWS_DEFAULT_REGION: ${{ secrets.AWS_REGION }}
         run: |
           aws s3 sync $AWS_RUN checkpoints/ s3://pl-public-data/legacy/checkpoints/

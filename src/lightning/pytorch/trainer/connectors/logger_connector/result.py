@@ -24,7 +24,6 @@ from typing_extensions import TypedDict, override
 from lightning.fabric.utilities import move_data_to_device
 from lightning.fabric.utilities.apply_func import convert_tensors_to_scalars
 from lightning.fabric.utilities.distributed import _distributed_is_initialized
-from lightning.fabric.utilities.imports import _TORCH_EQUAL_2_0
 from lightning.pytorch.utilities.data import extract_batch_size
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.imports import _TORCHMETRICS_GREATER_EQUAL_1_0_0
@@ -92,7 +91,7 @@ class _Sync:
         fn = self.no_op if self.fn is None or not self.should or self.rank_zero_only else self.fn
         # save the function as `_fn` as the meta are being re-created and the object references need to match.
         # ignore typing, bad support for `partial`: mypy/issues/1484
-        self._fn: Callable = partial(fn, reduce_op=self.op, group=self.group)  # type: ignore [arg-type]
+        self._fn: Callable = partial(fn, reduce_op=self.op, group=self.group)  # type: ignore[arg-type,operator,misc]
 
     @property
     def __call__(self) -> Any:
@@ -112,7 +111,7 @@ class _Metadata:
     on_step: bool = False
     on_epoch: bool = True
     # https://github.com/pytorch/pytorch/issues/96197
-    reduce_fx: Callable = "mean" if _TORCH_EQUAL_2_0 else torch.mean  # type: ignore[assignment]
+    reduce_fx: Callable = torch.mean
     enable_graph: bool = False
     add_dataloader_idx: bool = True
     dataloader_idx: Optional[int] = None
@@ -362,7 +361,7 @@ class _ResultCollection(dict):
         on_step: bool = False,
         on_epoch: bool = True,
         # https://github.com/pytorch/pytorch/issues/96197
-        reduce_fx: Callable = "mean" if _TORCH_EQUAL_2_0 else torch.mean,  # type: ignore[assignment]
+        reduce_fx: Callable = torch.mean,
         enable_graph: bool = False,
         sync_dist: bool = False,
         sync_dist_fn: Callable = _Sync.no_op,
@@ -401,25 +400,18 @@ class _ResultCollection(dict):
 
         # register logged value if it doesn't exist
         if key not in self:
-            self.register_key(key, meta, value)
+            metric = _ResultMetric(meta, isinstance(value, Tensor))
+            self[key] = metric
 
         # check the stored metadata and the current one match
         elif meta != self[key].meta:
             raise MisconfigurationException(
                 f"You called `self.log({name}, ...)` twice in `{fx}` with different arguments. This is not allowed"
             )
+        self[key].to(value.device)
 
         batch_size = self._extract_batch_size(self[key], batch_size, meta)
         self.update_metrics(key, value, batch_size)
-
-    def register_key(self, key: str, meta: _Metadata, value: _VALUE) -> None:
-        """Create one _ResultMetric object per value.
-
-        Value can be provided as a nested collection
-
-        """
-        metric = _ResultMetric(meta, isinstance(value, Tensor)).to(value.device)
-        self[key] = metric
 
     def update_metrics(self, key: str, value: _VALUE, batch_size: int) -> None:
         result_metric = self[key]

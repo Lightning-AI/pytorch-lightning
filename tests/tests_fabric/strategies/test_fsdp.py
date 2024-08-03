@@ -16,7 +16,6 @@ from re import escape
 from unittest import mock
 from unittest.mock import ANY, MagicMock, Mock
 
-import lightning.fabric
 import pytest
 import torch
 import torch.nn as nn
@@ -28,8 +27,9 @@ from lightning.fabric.strategies.fsdp import (
     _get_full_state_dict_context,
     _is_sharded_checkpoint,
 )
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_1, _TORCH_GREATER_EQUAL_2_2
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_2
 from torch.distributed.fsdp.fully_sharded_data_parallel import CPUOffload, FullyShardedDataParallel, MixedPrecision
+from torch.distributed.fsdp.wrap import ModuleWrapPolicy
 from torch.optim import Adam
 
 
@@ -147,13 +147,6 @@ def test_no_backward_sync():
     module.no_sync.assert_called_once()
 
 
-def test_activation_checkpointing_support(monkeypatch):
-    """Test that we error out if activation checkpointing requires a newer PyTorch version."""
-    monkeypatch.setattr(lightning.fabric.strategies.fsdp, "_TORCH_GREATER_EQUAL_2_1", False)
-    with pytest.raises(ValueError, match="activation_checkpointing_policy` requires torch >= 2.1.0"):
-        FSDPStrategy(activation_checkpointing_policy=Mock())
-
-
 def test_activation_checkpointing():
     """Test that the FSDP strategy can apply activation checkpointing to the given layers."""
 
@@ -170,28 +163,13 @@ def test_activation_checkpointing():
             self.layer1 = Block2(2, 2)
             self.layer2 = nn.Linear(3, 3)
 
-    if _TORCH_GREATER_EQUAL_2_1:
-        from torch.distributed.fsdp.wrap import ModuleWrapPolicy
+    strategy = FSDPStrategy(activation_checkpointing_policy={Block1})
+    assert set(strategy._activation_checkpointing_kwargs) == {"auto_wrap_policy"}
+    assert isinstance(strategy._activation_checkpointing_kwargs["auto_wrap_policy"], ModuleWrapPolicy)
 
-        strategy = FSDPStrategy(activation_checkpointing_policy={Block1})
-        assert set(strategy._activation_checkpointing_kwargs) == {"auto_wrap_policy"}
-        assert isinstance(strategy._activation_checkpointing_kwargs["auto_wrap_policy"], ModuleWrapPolicy)
-
-        strategy = FSDPStrategy(activation_checkpointing_policy=ModuleWrapPolicy({Block1, Block2}))
-        assert set(strategy._activation_checkpointing_kwargs) == {"auto_wrap_policy"}
-        assert isinstance(strategy._activation_checkpointing_kwargs["auto_wrap_policy"], ModuleWrapPolicy)
-    else:
-        strategy = FSDPStrategy(activation_checkpointing=Block1)
-        assert set(strategy._activation_checkpointing_kwargs) == {"check_fn"}
-
-        strategy = FSDPStrategy(activation_checkpointing=[Block1, Block2])
-        assert set(strategy._activation_checkpointing_kwargs) == {"check_fn"}
-
-        strategy = FSDPStrategy(activation_checkpointing_policy={Block1})
-        assert set(strategy._activation_checkpointing_kwargs) == {"check_fn"}
-
-        strategy = FSDPStrategy(activation_checkpointing_policy={Block1, Block2})
-        assert set(strategy._activation_checkpointing_kwargs) == {"check_fn"}
+    strategy = FSDPStrategy(activation_checkpointing_policy=ModuleWrapPolicy({Block1, Block2}))
+    assert set(strategy._activation_checkpointing_kwargs) == {"auto_wrap_policy"}
+    assert isinstance(strategy._activation_checkpointing_kwargs["auto_wrap_policy"], ModuleWrapPolicy)
 
     strategy._parallel_devices = [torch.device("cuda", 0)]
     with mock.patch("torch.distributed.fsdp.FullyShardedDataParallel", new=MagicMock), mock.patch(
@@ -401,15 +379,13 @@ def test_set_timeout(init_process_group_mock):
     )
 
 
-@pytest.mark.parametrize("torch_ge_2_1", [True, False])
 @mock.patch("torch.distributed.fsdp.fully_sharded_data_parallel.FullyShardedDataParallel.set_state_dict_type")
-def test_get_full_state_dict_context_offload(set_type_mock, monkeypatch, torch_ge_2_1):
-    """Test that the state dict context manager handles CPU offloading depending on the PyTorch version."""
-    monkeypatch.setattr("lightning.fabric.strategies.fsdp._TORCH_GREATER_EQUAL_2_1", torch_ge_2_1)
+def test_get_full_state_dict_context_offload(set_type_mock, monkeypatch):
+    """Test that the state dict context manager handles CPU offloading."""
 
     with _get_full_state_dict_context(module=Mock(spec=FullyShardedDataParallel), world_size=1):
-        assert set_type_mock.call_args_list[0][0][2].offload_to_cpu is torch_ge_2_1  # model config
-        assert set_type_mock.call_args_list[0][0][3].offload_to_cpu is torch_ge_2_1  # optim config
+        assert set_type_mock.call_args_list[0][0][2].offload_to_cpu  # model config
+        assert set_type_mock.call_args_list[0][0][3].offload_to_cpu  # optim config
 
     set_type_mock.reset_mock()
 

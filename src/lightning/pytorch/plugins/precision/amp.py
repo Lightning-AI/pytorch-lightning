@@ -19,6 +19,7 @@ from typing_extensions import override
 
 import lightning.pytorch as pl
 from lightning.fabric.plugins.precision.amp import _optimizer_handles_unscaling
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_4
 from lightning.fabric.utilities.types import Optimizable
 from lightning.pytorch.plugins.precision.precision import Precision
 from lightning.pytorch.utilities import GradClipAlgorithmType
@@ -39,7 +40,7 @@ class MixedPrecision(Precision):
         self,
         precision: Literal["16-mixed", "bf16-mixed"],
         device: str,
-        scaler: Optional[torch.cuda.amp.GradScaler] = None,
+        scaler: Optional["torch.amp.GradScaler"] = None,
     ) -> None:
         if precision not in ("16-mixed", "bf16-mixed"):
             raise ValueError(
@@ -49,7 +50,7 @@ class MixedPrecision(Precision):
 
         self.precision = precision
         if scaler is None and self.precision == "16-mixed":
-            scaler = torch.cuda.amp.GradScaler()
+            scaler = torch.amp.GradScaler(device=device) if _TORCH_GREATER_EQUAL_2_4 else torch.cuda.amp.GradScaler()
         if scaler is not None and self.precision == "bf16-mixed":
             raise MisconfigurationException(f"`precision='bf16-mixed'` does not use a scaler, found {scaler}.")
         self.device = device

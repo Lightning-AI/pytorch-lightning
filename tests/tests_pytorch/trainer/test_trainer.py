@@ -103,7 +103,7 @@ def test_no_val_module(monkeypatch, tmp_path, tmpdir_server, url_ckpt):
     trainer.save_checkpoint(new_weights_path)
 
     # assert ckpt has hparams
-    ckpt = torch.load(new_weights_path)
+    ckpt = torch.load(new_weights_path, weights_only=True)
     assert LightningModule.CHECKPOINT_HYPER_PARAMS_KEY in ckpt, "hyper_parameters missing from checkpoints"
 
     # load new model
@@ -364,7 +364,7 @@ def test_model_checkpoint_only_weights(tmp_path):
     checkpoint_path = trainer.checkpoint_callback.best_model_path
 
     # assert saved checkpoint has no trainer data
-    checkpoint = torch.load(checkpoint_path)
+    checkpoint = torch.load(checkpoint_path, weights_only=True)
     assert "optimizer_states" not in checkpoint, "checkpoint should contain only model weights"
     assert "lr_schedulers" not in checkpoint, "checkpoint should contain only model weights"
 
@@ -375,7 +375,7 @@ def test_model_checkpoint_only_weights(tmp_path):
     new_weights_path = os.path.join(tmp_path, "save_test.ckpt")
     trainer.save_checkpoint(new_weights_path, weights_only=True)
     # assert saved checkpoint has no trainer data
-    checkpoint = torch.load(new_weights_path)
+    checkpoint = torch.load(new_weights_path, weights_only=True)
     assert "optimizer_states" not in checkpoint, "checkpoint should contain only model weights"
     assert "lr_schedulers" not in checkpoint, "checkpoint should contain only model weights"
 

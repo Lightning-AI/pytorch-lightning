@@ -8,7 +8,7 @@ on:
 
 jobs:
   check:
-    uses: Lightning-AI/utilities/.github/workflows/check-schema.yml@v0.11.2
+    uses: Lightning-AI/utilities/.github/workflows/check-schema.yml@v0.11.6
     with:
       # skip azure due to the wrong schema file by MSFT
       # https://github.com/Lightning-AI/lightning-flash/pull/1455#issuecomment-1244793607

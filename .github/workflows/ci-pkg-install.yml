@@ -43,14 +43,8 @@ jobs:
       fail-fast: false
       matrix:
         os: ["ubuntu-22.04", "macOS-12", "windows-2022"]
-        pkg-name: ["app", "fabric", "pytorch", "lightning", "notset"]
-        python-version: ["3.8", "3.11"]
-        # TODO: add also install from source
-        include:
-          - { os: "macOS-12", pkg-name: "lightning", python-version: "3.9", pkg-extra: "app" }
-          - { os: "macOS-12", pkg-name: "notset", python-version: "3.9", pkg-extra: "app" }
-          - { os: "ubuntu-22.04", pkg-name: "lightning", python-version: "3.9", pkg-extra: "app" }
-          - { os: "ubuntu-22.04", pkg-name: "notset", python-version: "3.9", pkg-extra: "app" }
+        pkg-name: ["fabric", "pytorch", "lightning", "notset"]
+        python-version: ["3.9", "3.11"]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -70,16 +64,6 @@ jobs:
         with:
           pkg-folder: dist/${{ env.PKG_DIR }}
           pkg-name: ${{ matrix.pkg-name }}
-          pkg-extra: ${{ matrix.pkg-extra }}
-
-      - name: Run CLI (via python)
-        if: ${{ (matrix.pkg-name == 'lightning' || matrix.pkg-name == 'notset') && matrix.pkg-extra == 'app' }}
-        run: python -m lightning --version
-      - name: Run CLI (direct bash)
-        if: |
-          ((matrix.pkg-name == 'lightning' || matrix.pkg-name == 'notset') && matrix.pkg-extra == 'app') ||
-          matrix.pkg-name == 'app'
-        run: lightning_app --version
 
       - name: DocTests actions
         working-directory: .actions/
@@ -88,15 +72,15 @@ jobs:
           python -m pytest assistant.py
 
       - name: Adjust code for standalone
-        if: contains(fromJSON('["app", "fabric", "pytorch"]'), matrix.pkg-name)
+        if: contains(fromJSON('["fabric", "pytorch"]'), matrix.pkg-name)
         run: |
           python .actions/assistant.py copy_replace_imports --source_dir="./src" \
-            --source_import="lightning.pytorch,lightning.fabric,lightning.app" \
-            --target_import="pytorch_lightning,lightning_fabric,lightning_app"
+            --source_import="lightning.pytorch,lightning.fabric" \
+            --target_import="pytorch_lightning,lightning_fabric"
       - name: Rename src folders
         working-directory: src/
         run: |
-          python -c "n = '${{matrix.pkg-name}}' ; n = n if n in ('app', 'fabric', 'pytorch') else '' ; print('PKG_NAME=' + n)" >> $GITHUB_ENV
+          python -c "n = '${{matrix.pkg-name}}' ; n = n if n in ('fabric', 'pytorch') else '' ; print('PKG_NAME=' + n)" >> $GITHUB_ENV
           rm -f ./*/__*.py
           rm -f ./**/__*.py
           mv lightning lit  # rename lightning folder to prevent accidental local imports
@@ -104,12 +88,8 @@ jobs:
         if: ${{ matrix.pkg-name == 'lightning' || matrix.pkg-name == 'notset' }}
         working-directory: src/lit
         run: |
-          items=("data" "store" "app")
+          items=("data")
           for item in "${items[@]}"; do
-            if [[ "$item" == "${{ matrix.pkg-extra }}" ]]; then
-              echo "Skipping $item"
-              continue # Skip this iteration
-            fi
             echo "Removing $item"
             rm -rf $item
           done

@@ -80,7 +80,7 @@ def _parallelize_feed_forward_fsdp2_tp(model, device_mesh):
     return model
 
 
-@RunIf(min_torch="2.3", standalone=True, min_cuda_gpus=4)
+@RunIf(min_torch="2.4", standalone=True, min_cuda_gpus=4)
 def test_setup_device_mesh():
     from torch.distributed.device_mesh import DeviceMesh
 
@@ -116,7 +116,7 @@ def test_setup_device_mesh():
     assert fabric.strategy.device_mesh.size(1) == 4
 
 
-@RunIf(min_torch="2.3", standalone=True, min_cuda_gpus=2)
+@RunIf(min_torch="2.4", standalone=True, min_cuda_gpus=2)
 def test_tensor_parallel():
     from torch.distributed._tensor import DTensor
 
@@ -160,7 +160,7 @@ def test_tensor_parallel():
         optimizer.zero_grad()
 
 
-@RunIf(min_torch="2.3", standalone=True, min_cuda_gpus=4)
+@RunIf(min_torch="2.4", standalone=True, min_cuda_gpus=4)
 def test_fsdp2_tensor_parallel():
     from torch.distributed._tensor import DTensor
 
@@ -237,7 +237,7 @@ def _train(fabric, model=None, optimizer=None):
     return model, optimizer
 
 
-@RunIf(min_torch="2.3", min_cuda_gpus=4, standalone=True)
+@RunIf(min_torch="2.4", min_cuda_gpus=4, standalone=True)
 @pytest.mark.parametrize(
     "precision",
     [
@@ -301,6 +301,7 @@ def test_train_save_load(precision, tmp_path):
     assert state["coconut"] == 11
 
 
+@pytest.mark.filterwarnings("ignore::FutureWarning")
 @RunIf(min_torch="2.4", min_cuda_gpus=2, standalone=True)
 def test_save_full_state_dict(tmp_path):
     """Test that ModelParallelStrategy saves the full state into a single file with
@@ -321,7 +322,7 @@ def test_save_full_state_dict(tmp_path):
     state = {"model": model, "optimizer": optimizer, "steps": 1}
     fabric.save(checkpoint_path, state)
 
-    checkpoint = torch.load(checkpoint_path)
+    checkpoint = torch.load(checkpoint_path, weights_only=True)
     assert checkpoint["steps"] == 1
     loaded_state_dict = checkpoint["model"]
 
@@ -369,7 +370,7 @@ def test_save_full_state_dict(tmp_path):
     normal_checkpoint_path = Path(fabric.broadcast(str(tmp_path / "normal-checkpoint.pt")))
     fabric.save(normal_checkpoint_path, {"model": model, "optimizer": optimizer, "steps": 2})
 
-    optimizer_state_after = torch.load(normal_checkpoint_path)["optimizer"]
+    optimizer_state_after = torch.load(normal_checkpoint_path, weights_only=True)["optimizer"]
     assert set(optimizer_state_after.keys()) == set(optimizer_state_before.keys()) == {"state", "param_groups"}
     assert torch.equal(
         optimizer_state_after["state"][0]["exp_avg"],
@@ -401,6 +402,7 @@ def test_save_full_state_dict(tmp_path):
     _train(fabric, model, optimizer)
 
 
+@pytest.mark.filterwarnings("ignore::FutureWarning")
 @RunIf(min_torch="2.4", min_cuda_gpus=2, standalone=True)
 def test_load_full_state_dict_into_sharded_model(tmp_path):
     """Test that the strategy can load a full-state checkpoint into a distributed model."""
@@ -433,7 +435,7 @@ def test_load_full_state_dict_into_sharded_model(tmp_path):
     # Create a raw state-dict checkpoint to test `Fabric.load_raw` too
     raw_checkpoint_path = checkpoint_path.with_name("model-state-dict")
     if fabric.global_rank == 0:
-        checkpoint = torch.load(checkpoint_path)
+        checkpoint = torch.load(checkpoint_path, weights_only=True)
         torch.save(checkpoint["model"], raw_checkpoint_path)
     fabric.barrier()
 
@@ -445,7 +447,7 @@ def test_load_full_state_dict_into_sharded_model(tmp_path):
     assert torch.equal(params_before, params_after)
 
 
-@RunIf(min_torch="2.3", min_cuda_gpus=2, skip_windows=True, standalone=True)
+@RunIf(min_torch="2.4", min_cuda_gpus=2, skip_windows=True, standalone=True)
 @pytest.mark.parametrize("move_to_device", [True, False])
 @mock.patch("lightning.fabric.wrappers._FabricModule")
 def test_setup_module_move_to_device(fabric_module_mock, move_to_device):
@@ -471,7 +473,7 @@ def test_setup_module_move_to_device(fabric_module_mock, move_to_device):
     assert fabric.device == torch.device("cuda", fabric.local_rank)
 
 
-@RunIf(min_torch="2.3", min_cuda_gpus=2, skip_windows=True, standalone=True)
+@RunIf(min_torch="2.4", min_cuda_gpus=2, skip_windows=True, standalone=True)
 @pytest.mark.parametrize(
     ("precision", "expected_dtype"),
     [
@@ -502,7 +504,7 @@ def test_module_init_context(precision, expected_dtype):
     _run_setup_assertions(empty_init=True, expected_device=torch.device("meta"))
 
 
-@RunIf(min_torch="2.3", min_cuda_gpus=2, standalone=True)
+@RunIf(min_torch="2.4", min_cuda_gpus=2, standalone=True)
 def test_save_filter(tmp_path):
     strategy = ModelParallelStrategy(
         parallelize_fn=_parallelize_feed_forward_fsdp2,
@@ -519,7 +521,7 @@ def test_save_filter(tmp_path):
 
     checkpoint_path = tmp_path / "full.pth"
     fabric.save(checkpoint_path, state, filter=filter)
-    checkpoint = torch.load(checkpoint_path)["model"]
+    checkpoint = torch.load(checkpoint_path, weights_only=True)["model"]
     assert set(checkpoint) == {"w1.bias", "w2.bias", "w3.bias"}
     assert type(checkpoint["w1.bias"]) is torch.Tensor
 
@@ -541,7 +543,7 @@ def _parallelize_single_linear_tp_fsdp2(model, device_mesh):
     return model
 
 
-@RunIf(min_torch="2.3", min_cuda_gpus=2, standalone=True)
+@RunIf(min_torch="2.4", min_cuda_gpus=2, standalone=True)
 @pytest.mark.parametrize(
     "precision",
     [
@@ -597,7 +599,7 @@ def test_clip_gradients(clip_type, precision):
     optimizer.zero_grad()
 
 
-@RunIf(min_torch="2.3", min_cuda_gpus=4, standalone=True)
+@RunIf(min_torch="2.4", min_cuda_gpus=4, standalone=True)
 def test_save_sharded_and_consolidate_and_load(tmp_path):
     """Test the consolidation of a distributed (DTensor) checkpoint into a single file."""
     strategy = ModelParallelStrategy(

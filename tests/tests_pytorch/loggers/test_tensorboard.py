@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import logging
 import os
 from argparse import Namespace
 from unittest import mock
@@ -312,8 +311,7 @@ def test_tensorboard_save_hparams_to_yaml_once(tmp_path):
     assert not os.path.isfile(os.path.join(tmp_path, hparams_file))
 
 
-@mock.patch("lightning.pytorch.loggers.tensorboard.log")
-def test_tensorboard_with_symlink(log, tmp_path, monkeypatch):
+def test_tensorboard_with_symlink(tmp_path, monkeypatch):
     """Tests a specific failure case when tensorboard logger is used with empty name, symbolic link ``save_dir``, and
     relative paths."""
     monkeypatch.chdir(tmp_path)  # need to use relative paths
@@ -325,16 +323,3 @@ def test_tensorboard_with_symlink(log, tmp_path, monkeypatch):
 
     logger = TensorBoardLogger(save_dir=dest, name="")
     _ = logger.version
-
-    log.warning.assert_not_called()
-
-
-def test_tensorboard_missing_folder_warning(tmp_path, caplog):
-    """Verify that the logger throws a warning for invalid directory."""
-    name = "fake_dir"
-    logger = TensorBoardLogger(save_dir=tmp_path, name=name)
-
-    with caplog.at_level(logging.WARNING):
-        assert logger.version == 0
-
-    assert "Missing logger folder:" in caplog.text

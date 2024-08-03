@@ -39,7 +39,7 @@ def test_load_from_checkpoint_map_location_automatic(accelerator, tmp_path, monk
     create_boring_checkpoint(tmp_path, BoringModel(), accelerator=accelerator)
 
     # The checkpoint contains tensors with storage tag on the accelerator
-    checkpoint = torch.load(f"{tmp_path}/checkpoint.ckpt")
+    checkpoint = torch.load(f"{tmp_path}/checkpoint.ckpt", weights_only=True)
     assert checkpoint["state_dict"]["layer.weight"].device.type.startswith(accelerator)
 
     # Pretend that the accelerator is not available
@@ -113,7 +113,7 @@ def test_load_from_checkpoint_warn_on_empty_state_dict(tmp_path):
     """Test that checkpoints can be loaded with an empty state dict and that the appropriate warning is raised."""
     create_boring_checkpoint(tmp_path, BoringModel(), accelerator="cpu")
     # Now edit so the state_dict is empty
-    checkpoint = torch.load(tmp_path / "checkpoint.ckpt")
+    checkpoint = torch.load(tmp_path / "checkpoint.ckpt", weights_only=True)
     checkpoint["state_dict"] = {}
     torch.save(checkpoint, tmp_path / "checkpoint.ckpt")
 

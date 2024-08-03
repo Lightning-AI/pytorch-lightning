@@ -106,7 +106,7 @@ class MNIST(Dataset):
         assert os.path.isfile(path_data), f"missing file: {path_data}"
         for _ in range(trials):
             try:
-                res = torch.load(path_data)
+                res = torch.load(path_data, weights_only=True)
             # todo: specify the possible exception
             except Exception as ex:
                 exception = ex

@@ -57,18 +57,12 @@ if _CLICK_AVAILABLE:
 
         """
         hparams = sys.argv[1:]
-        if len(hparams) >= 2 and hparams[0] == "run":
-            if hparams[1] == "model":
-                print(
-                    "`lightning run model` is deprecated and will be removed in future versions."
-                    " Please call `fabric run` instead."
-                )
-                _main()
-                return
-
-            from lightning.app.cli.lightning_cli import main as main_cli
-
-            main_cli()
+        if len(hparams) >= 2 and hparams[0] == "run" and hparams[1] == "model":
+            print(
+                "`lightning run model` is deprecated and will be removed in future versions."
+                " Please call `fabric run` instead."
+            )
+            _main()
             return
 
         if _LIGHTNING_SDK_AVAILABLE:

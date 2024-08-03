@@ -31,7 +31,7 @@ def get_data_path(expt_logger, path_dir):
     name, version = expt_logger.name, expt_logger.version
 
     # the other experiments...
-    path_expt = os.path.join(path_dir, name, "version_%s" % version)
+    path_expt = os.path.join(path_dir, name, f"version_{version}")
 
     # try if the new sub-folder exists, typical case for test-tube
     if not os.path.isdir(path_expt):

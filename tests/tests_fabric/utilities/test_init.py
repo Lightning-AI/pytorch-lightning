@@ -58,7 +58,6 @@ def test_empty_init_speed():
     assert normal_init_time > 2 * empty_init_time
 
 
-@RunIf(min_torch="2.1")
 def test_materialize_meta_tensors():
     class Submodule(torch.nn.Module):
         def __init__(self):
