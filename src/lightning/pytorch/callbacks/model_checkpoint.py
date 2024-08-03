@@ -96,18 +96,6 @@ class ModelCheckpoint(Checkpoint):
             unchanged, the name of the saved file will be appended with a version count starting with ``v1`` to avoid
             collisions unless ``enable_version_counter`` is set to False. The version counter is unrelated to the top-k
             ranking of the checkpoint and we recommend formatting the filename to include the monitored metric to avoid collisions.
-
-            .. note::
-
-                **You should not rely on the appended version to retrieve the
-                best k model**, since there is no relationship between version
-                count and model performance. For example, ``filename-v2.ckpt``
-                doesn't necessarily correspond to the 2nd best model.
-
-                The versioning is only there to prevent overwriting files. **It is recommended
-                that you pass formatting options to** ``filename``, **so the best k models can
-                be easily retrieved.** Otherwise, all checkpoints must be loaded and checked.
-
         mode: one of {min, max}.
             If ``save_top_k != 0``, the decision to overwrite the current save file is made
             based on either the maximization or the minimization of the monitored quantity.

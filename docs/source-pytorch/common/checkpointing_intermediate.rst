@@ -57,6 +57,19 @@ Which
 - You can save the last checkpoint when training ends using ``save_last`` argument.
 - You can save top-K and last-K checkpoints by configuring the ``monitor`` and ``save_top_k`` argument.
 
+.. note::
+
+    If ``save_top_k >= 2`` and ``enable_version_counter=True``, a version is
+    appended to the ``filename`` to prevent overwriting files. **You should not
+    rely on the appended version to retrieve the top-k model**, since there is
+    no relationship between version count and model performance. For example,
+    ``filename-v2.ckpt`` doesn't necessarily correspond to the top-2 model.
+
+    **It is recommended that you pass formatting options to** ``filename``, **so
+    the best k models can be easily retrieved**. Otherwise, all checkpoints must
+    be loaded and checked.
+
+
 |
 
     .. testcode::
