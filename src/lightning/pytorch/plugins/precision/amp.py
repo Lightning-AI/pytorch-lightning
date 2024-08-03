@@ -40,7 +40,7 @@ class MixedPrecision(Precision):
         self,
         precision: Literal["16-mixed", "bf16-mixed"],
         device: str,
-        scaler: Optional["torch.cuda.amp.GradScaler"] = None,
+        scaler: Optional["torch.amp.GradScaler"] = None,
     ) -> None:
         if precision not in ("16-mixed", "bf16-mixed"):
             raise ValueError(

@@ -188,7 +188,7 @@ if _RICH_AVAILABLE:
                 yield f"{name}: {value}"
 
 else:
-    Task, Style = Any, Any  # type: ignore[assignment, misc]
+    Task, Style = Any, Any
 
 
 @dataclass
