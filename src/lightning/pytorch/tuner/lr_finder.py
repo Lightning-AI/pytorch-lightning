@@ -132,7 +132,9 @@ class _LRFinder:
         trainer.strategy.lr_scheduler_configs = [LRSchedulerConfig(scheduler, interval="step")]
         _validate_optimizers_attached(trainer.optimizers, trainer.lr_scheduler_configs)
 
-    def plot(self, suggest: bool = False, show: bool = False, ax: Optional["Axes"] = None) -> Optional[Union["plt.Figure", "plt.SubFigure"]]:
+    def plot(
+        self, suggest: bool = False, show: bool = False, ax: Optional["Axes"] = None
+    ) -> Optional[Union["plt.Figure", "plt.SubFigure"]]:
         """Plot results from lr_find run
         Args:
             suggest: if True, will mark suggested lr to use with a red point
@@ -151,7 +153,7 @@ class _LRFinder:
         lrs = self.results["lr"]
         losses = self.results["loss"]
 
-        fig: Optional[Union["plt.Figure", "plt.SubFigure"]]
+        fig: Optional[Union[plt.Figure, plt.SubFigure]]
         if ax is None:
             fig, ax = plt.subplots()
         else:
