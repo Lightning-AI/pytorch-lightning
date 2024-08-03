@@ -29,14 +29,12 @@ def _optimizers_to_device(optimizers: Iterable[Optimizer], device: _DEVICE) -> N
 
 def _optimizer_to_device(optimizer: Optimizer, device: _DEVICE) -> None:
     """Moves the state of a single optimizer to the device."""
-
-    # Note special logic for 'step' parameter
-    # The 'step' parameter needs to remain unmoved (possibly on the CPU) since that is where the optimizer needs it.
-    # See https://github.com/pytorch/pytorch/issues/74424 and
-    # _process_value_according_to_param_policy in torch/optim/optimizer.py:618
     for _, v in optimizer.state.items():
         if not isinstance(v, Mapping):
             continue
         for key, val in v.items():
+            # Note special logic for 'step' parameter
+            # The 'step' parameter needs to remain unmoved (possibly on the CPU) since that is where the optimizer
+            # needs it. See https://github.com/pytorch/pytorch/issues/74424
             if key != "step":
                 v[key] = move_data_to_device(val, device)
