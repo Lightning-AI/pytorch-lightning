@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from collections.abc import Mapping
+from collections.abc import MutableMapping
 from typing import Iterable
 
 from torch.optim import Optimizer
@@ -30,10 +30,9 @@ def _optimizers_to_device(optimizers: Iterable[Optimizer], device: _DEVICE) -> N
 def _optimizer_to_device(optimizer: Optimizer, device: _DEVICE) -> None:
     """Moves the state of a single optimizer to the device."""
     for _, v in optimizer.state.items():
-        if not isinstance(v, Mapping):
+        if not isinstance(v, MutableMapping):
             continue
         for key, val in v.items():
-            # Note special logic for 'step' parameter
             # The 'step' parameter needs to remain unmoved (possibly on the CPU) since that is where the optimizer
             # needs it. See https://github.com/pytorch/pytorch/issues/74424
             if key != "step":
