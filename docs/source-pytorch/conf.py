@@ -488,6 +488,7 @@ nitpick_ignore = [
     ("py:class", "torch.distributed.fsdp.fully_sharded_data_parallel.MixedPrecision"),
     ("py:class", "torch.distributed.fsdp.fully_sharded_data_parallel.ShardingStrategy"),
     ("py:class", "torch.distributed.fsdp.sharded_grad_scaler.ShardedGradScaler"),
+    ("py:class", "torch.amp.grad_scaler.GradScaler"),
     ("py:class", "torch.distributed.fsdp.wrap.ModuleWrapPolicy"),
     ("py:func", "torch.inference_mode"),
     ("py:meth", "torch.mean"),

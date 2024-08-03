@@ -187,9 +187,6 @@ if _RICH_AVAILABLE:
                     value = f"{value:{self._metrics_format}}"
                 yield f"{name}: {value}"
 
-else:
-    Task, Style = Any, Any  # type: ignore[assignment, misc]
-
 
 @dataclass
 class RichProgressBarTheme:
@@ -209,14 +206,14 @@ class RichProgressBarTheme:
 
     """
 
-    description: Union[str, Style] = "white"
-    progress_bar: Union[str, Style] = "#6206E0"
-    progress_bar_finished: Union[str, Style] = "#6206E0"
-    progress_bar_pulse: Union[str, Style] = "#6206E0"
-    batch_progress: Union[str, Style] = "white"
-    time: Union[str, Style] = "grey54"
-    processing_speed: Union[str, Style] = "grey70"
-    metrics: Union[str, Style] = "white"
+    description: Union[str, "Style"] = "white"
+    progress_bar: Union[str, "Style"] = "#6206E0"
+    progress_bar_finished: Union[str, "Style"] = "#6206E0"
+    progress_bar_pulse: Union[str, "Style"] = "#6206E0"
+    batch_progress: Union[str, "Style"] = "white"
+    time: Union[str, "Style"] = "grey54"
+    processing_speed: Union[str, "Style"] = "grey70"
+    metrics: Union[str, "Style"] = "white"
     metrics_text_delimiter: str = " "
     metrics_format: str = ".3f"
 
@@ -298,25 +295,25 @@ class RichProgressBar(ProgressBar):
         return not self.is_enabled
 
     @property
-    def train_progress_bar(self) -> Task:
+    def train_progress_bar(self) -> "Task":
         assert self.progress is not None
         assert self.train_progress_bar_id is not None
         return self.progress.tasks[self.train_progress_bar_id]
 
     @property
-    def val_sanity_check_bar(self) -> Task:
+    def val_sanity_check_bar(self) -> "Task":
         assert self.progress is not None
         assert self.val_sanity_progress_bar_id is not None
         return self.progress.tasks[self.val_sanity_progress_bar_id]
 
     @property
-    def val_progress_bar(self) -> Task:
+    def val_progress_bar(self) -> "Task":
         assert self.progress is not None
         assert self.val_progress_bar_id is not None
         return self.progress.tasks[self.val_progress_bar_id]
 
     @property
-    def test_progress_bar(self) -> Task:
+    def test_progress_bar(self) -> "Task":
         assert self.progress is not None
         assert self.test_progress_bar_id is not None
         return self.progress.tasks[self.test_progress_bar_id]

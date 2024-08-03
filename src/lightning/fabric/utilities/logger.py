@@ -95,7 +95,7 @@ def _flatten_dict(params: MutableMapping[Any, Any], delimiter: str = "/", parent
     result: Dict[str, Any] = {}
     for k, v in params.items():
         new_key = parent_key + delimiter + str(k) if parent_key else str(k)
-        if is_dataclass(v):
+        if is_dataclass(v) and not isinstance(v, type):
             v = asdict(v)
         elif isinstance(v, Namespace):
             v = vars(v)
