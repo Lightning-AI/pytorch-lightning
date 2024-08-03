@@ -18,7 +18,7 @@ import re
 import shutil
 import tempfile
 import urllib.request
-from distutils.version import LooseVersion
+from packaging.version import Version
 from itertools import chain
 from os.path import dirname, isfile
 from pathlib import Path
@@ -84,7 +84,7 @@ class _RequirementWithComment(Requirement):
         if unfreeze == "major":
             for operator, version in specs:
                 if operator in ("<", "<="):
-                    major = LooseVersion(version).version[0]
+                    major = Version(version).major
                     # replace upper bound with major version increased by one
                     return out.replace(f"{operator}{version}", f"<{major + 1}.0")
         elif unfreeze == "all":
