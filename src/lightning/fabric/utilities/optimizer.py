@@ -12,10 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Iterable
 from collections.abc import Mapping
+from typing import Iterable
 
-from numpy import isin
 from torch.optim import Optimizer
 
 from lightning.fabric.utilities.apply_func import move_data_to_device
