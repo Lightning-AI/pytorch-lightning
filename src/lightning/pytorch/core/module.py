@@ -1580,7 +1580,7 @@ class LightningModule(
 
         """
         loaded = _load_from_checkpoint(
-            cls,  # type: ignore[arg-type]
+            cls,
             checkpoint_path,
             map_location,
             hparams_file,
