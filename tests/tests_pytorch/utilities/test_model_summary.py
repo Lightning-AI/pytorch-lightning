@@ -13,6 +13,8 @@
 # limitations under the License.
 from collections import OrderedDict
 from typing import Any
+from unittest import mock
+from unittest.mock import Mock, MagicMock
 
 import pytest
 import torch
@@ -119,6 +121,18 @@ class LazyModel(LightningModule):
 
     def forward(self, inp):
         return self.layer2(self.layer1(inp))
+
+
+# class FakeDTensorModel(LightningModule):
+#     """A model which contains DTensor parameters."""
+#
+#     def __init__(self):
+#         super().__init__()
+#         from torch.distributed._tensor import DTensor
+#         # self.parameter = nn.Parameter(DTensor.from_local(torch.rand(2, 2)))
+#
+#         self.parameter = MagicMock(wraps=nn.Parameter, spec=DTensor)(torch.rand(2, 2))
+#         assert isinstance(self.parameter, DTensor)
 
 
 class DeepNestedModel(LightningModule):
@@ -343,6 +357,18 @@ def test_lazy_model_summary():
     with pytest.warns(UserWarning, match="The total number of parameters detected may be inaccurate."):
         assert summary.total_parameters == 0
         assert summary.trainable_parameters == 0
+
+
+@mock.patch("lightning.pytorch.utilities.model_summary.model_summary._is_dtensor", return_value=True)
+def test_dtensor_model_summary(_):
+    """Test that the model summary can work with layers that have DTensor parameters."""
+    # We mock the `_is_dtensor` to pretend parameters are DTensors, because testing with real DTensors
+    # would require setting up distributed
+    dtensor_model = UnorderedModel()
+    summary = ModelSummary(dtensor_model)
+    assert summary.total_layer_params > 0
+    assert summary.total_parameters > 0
+    assert summary.trainable_parameters > 0
 
 
 @pytest.mark.parametrize("max_depth", [-1, 0, 1, 3, 999])
