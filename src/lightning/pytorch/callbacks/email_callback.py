@@ -61,6 +61,7 @@ class EmailCallback(Callback):
 
     Example:
 
+        >>> import os
         >>> from lightning.pytorch import Trainer
         >>> from lightning.pytorch.callbacks import EmailCallback
         >>> my_passsword = os.getenv("EMAIL_PASSWORD") # strongly suggest not to hardcode password
