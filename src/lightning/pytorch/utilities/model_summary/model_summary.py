@@ -187,6 +187,8 @@ class ModelSummary:
         0         Non-trainable params
         132 K     Total params
         0.530     Total estimated model params size (MB)
+        1         Modules in train mode
+        0         Modules in eval mode
         >>> ModelSummary(model, max_depth=-1)  # doctest: +NORMALIZE_WHITESPACE
           | Name  | Type        | Params | Mode  | In sizes  | Out sizes
         ----------------------------------------------------------------------
@@ -198,7 +200,8 @@ class ModelSummary:
         0         Non-trainable params
         132 K     Total params
         0.530     Total estimated model params size (MB)
-
+        3         Modules in train mode
+        0         Modules in eval mode
     """
 
     def __init__(self, model: "pl.LightningModule", max_depth: int = 1) -> None:
