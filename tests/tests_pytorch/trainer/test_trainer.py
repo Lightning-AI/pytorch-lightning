@@ -1766,7 +1766,7 @@ def test_multiple_trainer_constant_memory_allocated(tmp_path):
     trainer.fit(model)
 
     assert trainer.strategy.model is model
-    assert list(trainer.optimizers[0].state.values())[0]["exp_avg_sq"].device == torch.device("cpu")
+    assert list(trainer.optimizers[0].state.values())[0]["exp_avg_sq"].device == torch.device("cuda", 0)
     assert trainer.callback_metrics["train_loss"].device == torch.device("cpu")
 
     assert current_memory() <= initial
