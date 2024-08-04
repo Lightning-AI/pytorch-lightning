@@ -99,7 +99,8 @@ class TQDMProgressBar(ProgressBar):
             together. This corresponds to
             :paramref:`~lightning.pytorch.trainer.trainer.Trainer.process_position` in the
             :class:`~lightning.pytorch.trainer.trainer.Trainer`.
-        leave: Leaves the finished progress bar in the terminal at the end of the epoch. Default: False
+        leave: If set to ``True``, leaves the finished progress bar in the terminal at the end of the epoch.
+            Default: ``False``
 
     """
 
