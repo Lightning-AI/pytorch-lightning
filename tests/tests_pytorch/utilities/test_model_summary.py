@@ -122,18 +122,6 @@ class LazyModel(LightningModule):
         return self.layer2(self.layer1(inp))
 
 
-# class FakeDTensorModel(LightningModule):
-#     """A model which contains DTensor parameters."""
-#
-#     def __init__(self):
-#         super().__init__()
-#         from torch.distributed._tensor import DTensor
-#         # self.parameter = nn.Parameter(DTensor.from_local(torch.rand(2, 2)))
-#
-#         self.parameter = MagicMock(wraps=nn.Parameter, spec=DTensor)(torch.rand(2, 2))
-#         assert isinstance(self.parameter, DTensor)
-
-
 class DeepNestedModel(LightningModule):
     """A model with deep nested layers."""
 
