@@ -7,14 +7,14 @@ import time
 from contextlib import nullcontext
 from datetime import timedelta
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Iterable, Iterator, List, Optional, Sized, TypeGuard, Union
+from typing import TYPE_CHECKING, Any, Iterable, Iterator, List, Optional, Sized, Union
 
 import torch
 import torch.nn.functional as F
 from lightning_utilities.core.imports import package_available
 from torch import Tensor
 from torch.utils.data import Dataset, DistributedSampler, Sampler
-from typing_extensions import Self, override
+from typing_extensions import Self, TypeGuard, override
 
 from lightning.fabric.utilities.cloud_io import _is_local_file_protocol
 from lightning.fabric.utilities.data import _num_cpus_available
