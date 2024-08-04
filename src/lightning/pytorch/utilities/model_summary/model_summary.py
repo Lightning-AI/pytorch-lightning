@@ -253,6 +253,12 @@ class ModelSummary:
         return [layer.training for layer in self._layer_summary.values()]
 
     @property
+    def total_training_modes(self) -> Dict[str, int]:
+        modes = [layer.training for layer in self._model.modules()]
+        modes = modes[1:]  # exclude the root module
+        return {"train": modes.count(True), "eval": modes.count(False)}
+
+    @property
     def total_parameters(self) -> int:
         return sum(p.numel() if not _is_lazy_weight_tensor(p) else 0 for p in self._model.parameters())
 
@@ -373,7 +379,7 @@ def _format_summary_table(
     total_parameters: int,
     trainable_parameters: int,
     model_size: float,
-    training_modes: List[bool],
+    total_training_modes: Dict[str, int],
     *cols: Tuple[str, List[str]],
 ) -> str:
     """Takes in a number of arrays, each specifying a column in the summary table, and combines them all into one big
@@ -410,9 +416,9 @@ def _format_summary_table(
     summary += "Total params"
     summary += "\n" + s.format(get_formatted_model_size(model_size), 10)
     summary += "Total estimated model params size (MB)"
-    summary += "\n" + s.format(training_modes.count(True), 10)
+    summary += "\n" + s.format(total_training_modes["train"], 10)
     summary += "Modules in train mode"
-    summary += "\n" + s.format(training_modes.count(False), 10)
+    summary += "\n" + s.format(total_training_modes["eval"], 10)
     summary += "Modules in eval mode"
 
     return summary
