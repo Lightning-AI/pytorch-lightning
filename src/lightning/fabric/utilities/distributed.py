@@ -7,7 +7,7 @@ import time
 from contextlib import nullcontext
 from datetime import timedelta
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Iterable, Iterator, List, Optional, Sized, Union
+from typing import TYPE_CHECKING, Any, Iterable, Iterator, List, Optional, Sized, Union, TypeGuard
 
 import torch
 import torch.nn.functional as F
@@ -20,6 +20,7 @@ from lightning.fabric.utilities.cloud_io import _is_local_file_protocol
 from lightning.fabric.utilities.data import _num_cpus_available
 from lightning.fabric.utilities.rank_zero import rank_zero_info
 from lightning.fabric.utilities.types import _PATH, ReduceOp
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_4
 
 if torch.distributed.is_available():
     from torch.distributed import group
@@ -32,6 +33,7 @@ else:
 if TYPE_CHECKING:
     from lightning.fabric.plugins import ClusterEnvironment
     from lightning.fabric.strategies import Strategy
+    from torch.distributed._tensor import DTensor
 
 
 log = logging.getLogger(__name__)
@@ -427,3 +429,11 @@ class _InfiniteBarrier:
         self.barrier()
         if self.group is not None:
             torch.distributed.destroy_process_group(self.group)
+
+
+def _is_dtensor(tensor: Tensor) -> TypeGuard["DTensor"]:
+    if _TORCH_GREATER_EQUAL_2_4:
+        from torch.distributed._tensor import DTensor
+
+        return isinstance(tensor, DTensor)
+    return False
