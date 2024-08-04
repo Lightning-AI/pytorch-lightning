@@ -361,9 +361,9 @@ class ModelSummary:
         total_parameters = self.total_parameters
         trainable_parameters = self.trainable_parameters
         model_size = self.model_size
-        training_modes = self.training_modes
+        total_training_modes = self.total_training_modes
 
-        return _format_summary_table(total_parameters, trainable_parameters, model_size, training_modes, *arrays)
+        return _format_summary_table(total_parameters, trainable_parameters, model_size, total_training_modes, *arrays)
 
     def __repr__(self) -> str:
         return str(self)
