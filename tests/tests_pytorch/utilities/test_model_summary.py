@@ -14,7 +14,6 @@
 from collections import OrderedDict
 from typing import Any
 from unittest import mock
-from unittest.mock import Mock, MagicMock
 
 import pytest
 import torch
