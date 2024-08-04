@@ -786,10 +786,17 @@ def test_tqdm_progress_bar_disabled_when_not_rank_zero(is_global_zero):
 
 
 @pytest.mark.parametrize("leave", [True, False])
-def test_tqdm_leave(leave):
+def test_tqdm_leave(leave, tmp_path):
     pbar = TQDMProgressBar(leave=leave)
     pbar.init_train_tqdm = Mock(wraps=pbar.init_train_tqdm)
     model = BoringModel()
-    trainer = Trainer(callbacks=[pbar], max_epochs=3, limit_train_batches=1, limit_val_batches=1, benchmark=True)
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        callbacks=[pbar],
+        max_epochs=3,
+        limit_train_batches=1,
+        limit_val_batches=1,
+        benchmark=True,
+    )
     trainer.fit(model)
     assert pbar.init_train_tqdm.call_count == (4 if leave else 1)
