@@ -3,9 +3,11 @@ import os
 from functools import partial
 from pathlib import Path
 from unittest import mock
+from unittest.mock import Mock
 
 import pytest
 import torch
+import lightning.fabric
 from lightning.fabric.accelerators import CPUAccelerator, CUDAAccelerator, MPSAccelerator
 from lightning.fabric.plugins.environments import LightningEnvironment
 from lightning.fabric.strategies import DDPStrategy, SingleDeviceStrategy
@@ -19,6 +21,7 @@ from lightning.fabric.utilities.distributed import (
     _suggested_max_num_threads,
     _sync_ddp,
     is_shared_filesystem,
+    _is_dtensor,
 )
 from lightning_utilities.core.imports import RequirementCache
 
@@ -234,3 +237,14 @@ def test_init_dist_connection_registers_destruction_handler(_, atexit_mock):
     atexit_mock.reset_mock()
     _init_dist_connection(LightningEnvironment(), "gloo")
     atexit_mock.register.assert_not_called()
+
+
+@RunIf(min_torch="2.4")
+def test_is_dtensor(monkeypatch):
+    from torch.distributed._tensor import DTensor
+
+    assert _is_dtensor(Mock(spec=DTensor))
+    assert not _is_dtensor(torch.zeros(2, 2))
+
+    monkeypatch.setattr(lightning.fabric.utilities.distributed, "_TORCH_GREATER_EQUAL_2_4", False)
+    assert not _is_dtensor(Mock(spec=DTensor))
