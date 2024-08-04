@@ -94,7 +94,9 @@ class ModelCheckpoint(Checkpoint):
             Please note that the monitors are checked every ``every_n_epochs`` epochs.
             If ``save_top_k >= 2`` and the callback is called multiple times inside an epoch, and the filename remains
             unchanged, the name of the saved file will be appended with a version count starting with ``v1`` to avoid
-            collisions unless ``enable_version_counter`` is set to False.
+            collisions unless ``enable_version_counter`` is set to False. The version counter is unrelated to the top-k
+            ranking of the checkpoint, and we recommend formatting the filename to include the monitored metric to avoid
+            collisions.
         mode: one of {min, max}.
             If ``save_top_k != 0``, the decision to overwrite the current save file is made
             based on either the maximization or the minimization of the monitored quantity.
