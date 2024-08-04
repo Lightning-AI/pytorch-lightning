@@ -25,7 +25,6 @@ from torch import Tensor
 from torch.utils.hooks import RemovableHandle
 
 import lightning.pytorch as pl
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 from lightning.pytorch.utilities.model_helpers import _ModuleMode
 from lightning.pytorch.utilities.rank_zero import WarningCache
 
@@ -107,10 +106,7 @@ class LayerSummary:
 
         handle = None
         if not isinstance(self._module, torch.jit.ScriptModule):
-            if _TORCH_GREATER_EQUAL_2_0:
-                handle = self._module.register_forward_hook(hook_with_kwargs, with_kwargs=True)
-            else:
-                handle = self._module.register_forward_hook(hook)
+            handle = self._module.register_forward_hook(hook_with_kwargs, with_kwargs=True)
 
         return handle
 
@@ -463,8 +459,9 @@ def _is_lazy_weight_tensor(p: Tensor) -> bool:
 
     if isinstance(p, UninitializedParameter):
         warning_cache.warn(
-            "A layer with UninitializedParameter was found. "
-            "Thus, the total number of parameters detected may be inaccurate."
+            "The total number of parameters detected may be inaccurate because the model contains"
+            " an instance of `UninitializedParameter`. To get an accurate number, set `self.example_input_array`"
+            " in your LightningModule."
         )
         return True
     return False

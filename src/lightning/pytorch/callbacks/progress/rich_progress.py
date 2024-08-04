@@ -148,7 +148,7 @@ if _RICH_AVAILABLE:
             self._trainer = trainer
             self._tasks: Dict[Union[int, TaskID], Any] = {}
             self._current_task_id = 0
-            self._metrics: Dict[Union[str, "Style"], Any] = {}
+            self._metrics: Dict[Union[str, Style], Any] = {}
             self._style = style
             self._text_delimiter = text_delimiter
             self._metrics_format = metrics_format
@@ -187,9 +187,6 @@ if _RICH_AVAILABLE:
                     value = f"{value:{self._metrics_format}}"
                 yield f"{name}: {value}"
 
-else:
-    Task, Style = Any, Any  # type: ignore[assignment, misc]
-
 
 @dataclass
 class RichProgressBarTheme:
@@ -209,14 +206,14 @@ class RichProgressBarTheme:
 
     """
 
-    description: Union[str, Style] = "white"
-    progress_bar: Union[str, Style] = "#6206E0"
-    progress_bar_finished: Union[str, Style] = "#6206E0"
-    progress_bar_pulse: Union[str, Style] = "#6206E0"
-    batch_progress: Union[str, Style] = "white"
-    time: Union[str, Style] = "grey54"
-    processing_speed: Union[str, Style] = "grey70"
-    metrics: Union[str, Style] = "white"
+    description: Union[str, "Style"] = "white"
+    progress_bar: Union[str, "Style"] = "#6206E0"
+    progress_bar_finished: Union[str, "Style"] = "#6206E0"
+    progress_bar_pulse: Union[str, "Style"] = "#6206E0"
+    batch_progress: Union[str, "Style"] = "white"
+    time: Union[str, "Style"] = "grey54"
+    processing_speed: Union[str, "Style"] = "grey70"
+    metrics: Union[str, "Style"] = "white"
     metrics_text_delimiter: str = " "
     metrics_format: str = ".3f"
 
@@ -274,13 +271,13 @@ class RichProgressBar(ProgressBar):
         self._console_kwargs = console_kwargs or {}
         self._enabled: bool = True
         self.progress: Optional[CustomProgress] = None
-        self.train_progress_bar_id: Optional["TaskID"]
-        self.val_sanity_progress_bar_id: Optional["TaskID"] = None
-        self.val_progress_bar_id: Optional["TaskID"]
-        self.test_progress_bar_id: Optional["TaskID"]
-        self.predict_progress_bar_id: Optional["TaskID"]
+        self.train_progress_bar_id: Optional[TaskID]
+        self.val_sanity_progress_bar_id: Optional[TaskID] = None
+        self.val_progress_bar_id: Optional[TaskID]
+        self.test_progress_bar_id: Optional[TaskID]
+        self.predict_progress_bar_id: Optional[TaskID]
         self._reset_progress_bar_ids()
-        self._metric_component: Optional["MetricsTextColumn"] = None
+        self._metric_component: Optional[MetricsTextColumn] = None
         self._progress_stopped: bool = False
         self.theme = theme
         self._update_for_light_colab_theme()
@@ -298,25 +295,25 @@ class RichProgressBar(ProgressBar):
         return not self.is_enabled
 
     @property
-    def train_progress_bar(self) -> Task:
+    def train_progress_bar(self) -> "Task":
         assert self.progress is not None
         assert self.train_progress_bar_id is not None
         return self.progress.tasks[self.train_progress_bar_id]
 
     @property
-    def val_sanity_check_bar(self) -> Task:
+    def val_sanity_check_bar(self) -> "Task":
         assert self.progress is not None
         assert self.val_sanity_progress_bar_id is not None
         return self.progress.tasks[self.val_sanity_progress_bar_id]
 
     @property
-    def val_progress_bar(self) -> Task:
+    def val_progress_bar(self) -> "Task":
         assert self.progress is not None
         assert self.val_progress_bar_id is not None
         return self.progress.tasks[self.val_progress_bar_id]
 
     @property
-    def test_progress_bar(self) -> Task:
+    def test_progress_bar(self) -> "Task":
         assert self.progress is not None
         assert self.test_progress_bar_id is not None
         return self.progress.tasks[self.test_progress_bar_id]

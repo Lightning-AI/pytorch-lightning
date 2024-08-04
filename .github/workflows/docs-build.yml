@@ -15,8 +15,6 @@ on:
       - "docs/**"
       - "_notebooks"
       - "requirements/**"
-      - "src/lightning/app/**"
-      - "src/lightning_app/*"
       - "src/lightning/fabric/**"
       - "src/lightning_fabric/*"
       - "src/lightning/pytorch/**"
@@ -58,10 +56,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        pkg-name: ["app", "fabric", "pytorch"]
+        pkg-name: ["fabric", "pytorch"]
         target: ["html", "doctest", "linkcheck"]
     env:
       DOCS_COPY_NOTEBOOKS: 1
+      PIN_RELEASE_VERSIONS: 1
       ARTIFACT_DAYS: 0
     steps:
       - uses: actions/checkout@v4
@@ -69,9 +68,18 @@ jobs:
           ref: ${{ inputs.checkout }}
           # only Pytorch has/uses notebooks
           submodules: ${{ matrix.pkg-name == 'pytorch' }}
+          lfs: ${{ matrix.pkg-name == 'pytorch' }}
       - uses: actions/setup-python@v5
         with:
           python-version: "3.9"
+
+      - name: List notebooks
+        if: ${{ matrix.pkg-name == 'pytorch' }}
+        working-directory: _notebooks/
+        run: |
+          pip install -q py-tree
+          py-tree .notebooks/
+          ls -lhR .notebooks/
 
       - name: Pull sphinx template
         run: |
@@ -90,7 +98,7 @@ jobs:
         timeout-minutes: 5
         run: |
           sudo apt-get update --fix-missing
-          sudo apt-get install -y pandoc texlive-latex-extra dvipng texlive-pictures
+          sudo apt-get install -y pandoc
       - name: Install package & dependencies
         timeout-minutes: 20
         run: |
@@ -107,9 +115,14 @@ jobs:
       - name: Full build for deployment
         if: github.event_name != 'pull_request'
         run: echo "DOCS_FETCH_ASSETS=1" >> $GITHUB_ENV
+      - name: Build without warnings
+        if: github.event_name != 'workflow_dispatch'
+        run: echo "BUILD_SPHINX_OPTS=-W --keep-going" >> $GITHUB_ENV
       - name: Make ${{ matrix.target }}
         working-directory: ./docs/source-${{ matrix.pkg-name }}
-        run: make ${{ matrix.target }} --debug --jobs $(nproc) SPHINXOPTS="-W --keep-going"
+        # allow failing link check and doctest if you run with dispatch
+        continue-on-error: ${{ (matrix.target == 'doctest' || matrix.target == 'linkcheck') && github.event_name == 'workflow_dispatch' }}
+        run: make ${{ matrix.target }} --debug --jobs $(nproc) SPHINXOPTS="$BUILD_SPHINX_OPTS"
 
       - name: Keep artifact
         if: github.event_name == 'pull_request'
@@ -138,7 +151,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        pkg-name: ["app", "fabric", "pytorch"]
+        pkg-name: ["fabric", "pytorch"]
     env:
       GCP_TARGET: "gs://lightning-docs-${{ matrix.pkg-name }}"
       # use input if dispatch or git tag

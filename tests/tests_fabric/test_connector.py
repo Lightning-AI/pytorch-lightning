@@ -14,6 +14,7 @@
 import inspect
 import os
 import sys
+from contextlib import nullcontext
 from typing import Any, Dict
 from unittest import mock
 from unittest.mock import Mock
@@ -53,6 +54,7 @@ from lightning.fabric.strategies import (
     DDPStrategy,
     DeepSpeedStrategy,
     FSDPStrategy,
+    ModelParallelStrategy,
     SingleDeviceStrategy,
     SingleDeviceXLAStrategy,
     XLAFSDPStrategy,
@@ -866,6 +868,18 @@ def test_precision_selection_amp_ddp(strategy, devices, is_custom_plugin, plugin
     assert isinstance(connector.precision, plugin_cls)
 
 
+@RunIf(min_torch="2.4")
+@pytest.mark.parametrize(
+    ("precision", "raises"),
+    [("32-true", False), ("16-true", False), ("bf16-true", False), ("16-mixed", True), ("bf16-mixed", False)],
+)
+@mock.patch("lightning.fabric.accelerators.mps.MPSAccelerator.is_available", return_value=False)
+def test_precision_selection_model_parallel(_, precision, raises):
+    error_context = pytest.raises(ValueError, match=f"does not support .*{precision}") if raises else nullcontext()
+    with error_context:
+        _Connector(precision=precision, strategy=ModelParallelStrategy(lambda x, _: x))
+
+
 def test_bitsandbytes_precision_cuda_required(monkeypatch):
     monkeypatch.setattr(lightning.fabric.plugins.precision.bitsandbytes, "_BITSANDBYTES_AVAILABLE", True)
     monkeypatch.setitem(sys.modules, "bitsandbytes", Mock())
@@ -977,6 +991,16 @@ def test_fsdp_unsupported_on_cpu(_):
     """Test that we raise an error if attempting to run FSDP without GPU."""
     with pytest.raises(ValueError, match="You selected the FSDP strategy but FSDP is only available on GPU"):
         _Connector(accelerator="cpu", strategy="fsdp")
+
+    class FSDPStrategySubclass(FSDPStrategy):
+        pass
+
+    class AcceleratorSubclass(CPUAccelerator):
+        pass
+
+    # we allow subclasses of FSDPStrategy to be used with other accelerators
+    _Connector(accelerator="cpu", strategy=FSDPStrategySubclass())
+    _Connector(accelerator=AcceleratorSubclass(), strategy=FSDPStrategySubclass())
 
 
 def test_connector_defaults_match_fabric_defaults():

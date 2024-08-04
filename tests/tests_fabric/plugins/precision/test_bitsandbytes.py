@@ -22,6 +22,7 @@ from lightning.fabric import Fabric
 from lightning.fabric.connector import _Connector
 from lightning.fabric.plugins.precision.bitsandbytes import _BITSANDBYTES_AVAILABLE, BitsandbytesPrecision
 from lightning.fabric.utilities.init import _materialize_meta_tensors
+from lightning.fabric.utilities.load import _lazy_load
 
 from tests_fabric.helpers.runif import RunIf
 
@@ -93,7 +94,7 @@ def test_bitsandbytes_plugin(monkeypatch):
         precision.convert_module(model)
 
 
-@RunIf(min_cuda_gpus=1)
+@RunIf(min_cuda_gpus=1, max_torch="2.4")
 @pytest.mark.skipif(not _BITSANDBYTES_AVAILABLE, reason="bitsandbytes unavailable")
 @pytest.mark.parametrize(
     ("args", "expected"),
@@ -148,7 +149,7 @@ def test_bitsandbytes_layers(args, expected):
     assert model.l.weight.dtype == expected
 
 
-@RunIf(min_cuda_gpus=1, min_torch="2.1")
+@RunIf(min_cuda_gpus=1)
 @pytest.mark.skipif(not _BITSANDBYTES_AVAILABLE, reason="bitsandbytes unavailable")
 @pytest.mark.parametrize(
     ("args", "expected"),
@@ -225,8 +226,49 @@ def test_bitsandbytes_layers_meta_device(args, expected, tmp_path):
         model = MyModel()
     ckpt_path = tmp_path / "foo.ckpt"
     torch.save(state_dict, ckpt_path)
-    torch.load(str(ckpt_path), mmap=True)
+    torch.load(str(ckpt_path), mmap=True, weights_only=True)
     keys = model.load_state_dict(state_dict, strict=True, assign=True)  # quantizes
     assert not keys.missing_keys
     assert model.l.weight.device.type == "cuda"
     assert model.l.weight.dtype == expected
+
+
+@RunIf(min_cuda_gpus=1, max_torch="2.4")
+@pytest.mark.skipif(not _BITSANDBYTES_AVAILABLE, reason="bitsandbytes unavailable")
+def test_load_quantized_checkpoint(tmp_path):
+    """Test that a checkpoint saved from a quantized model can be loaded back into a quantized model."""
+
+    class Model(torch.nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.linear = torch.nn.Linear(16, 16, bias=False)
+
+        def forward(self, x):
+            return self.linear(x)
+
+    fabric = Fabric(accelerator="cuda", devices=1, plugins=BitsandbytesPrecision("nf4-dq"))
+    model = Model()
+    model = fabric.setup(model)
+    model(torch.randn(2, 16, device=fabric.device))
+    state_dict = model.state_dict()
+    # The checkpoint contains quantized weights
+    assert state_dict["linear.weight"].dtype == torch.uint8
+    assert state_dict["linear.weight"].shape == (128, 1)
+    torch.save(state_dict, tmp_path / "checkpoint.pt")
+
+    fabric = Fabric(accelerator="cuda", devices=1, plugins=BitsandbytesPrecision("nf4-dq"))
+    model = Model()
+    model = fabric.setup(model)
+    state_dict = torch.load(tmp_path / "checkpoint.pt", weights_only=True)
+    model.load_state_dict(state_dict)
+    assert model.linear.weight.dtype == torch.uint8
+    assert model.linear.weight.shape == (128, 1)
+    # Shapes match during forward (weight is being dequantized during forward)
+    model(torch.randn(2, 16, device=fabric.device))
+
+    # Test with lazy load (LitGPT uses this)
+    # TODO: Replace `_lazy_load` with `torch.load(..., mmap=True)` in LitGPT
+    state_dict = _lazy_load(tmp_path / "checkpoint.pt")
+    model.load_state_dict(state_dict)
+    assert model.linear.weight.dtype == torch.uint8
+    assert model.linear.weight.shape == (128, 1)

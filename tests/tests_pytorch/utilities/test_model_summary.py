@@ -17,7 +17,6 @@ from typing import Any
 import pytest
 import torch
 import torch.nn as nn
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 from lightning.pytorch import LightningModule, Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.utilities.model_summary.model_summary import (
@@ -294,10 +293,6 @@ def test_example_input_array_types(example_input, expected_size, max_depth):
         def forward(self, *args, **kwargs):
             return self.layer(*args, **kwargs)
 
-    if isinstance(example_input, dict) and not _TORCH_GREATER_EQUAL_2_0:
-        # kwargs are not supported when torch < 2.0
-        expected_size = UNKNOWN_SIZE
-
     model = DummyLightningModule()
     model.example_input_array = example_input
     summary = summarize(model, max_depth=max_depth)
@@ -345,11 +340,7 @@ def test_lazy_model_summary():
     lazy_model = LazyModel()
     summary = ModelSummary(lazy_model)
 
-    with pytest.warns(
-        UserWarning,
-        match=r"A layer with UninitializedParameter was found. "
-        r"Thus, the total number of parameters detected may be inaccurate.",
-    ):
+    with pytest.warns(UserWarning, match="The total number of parameters detected may be inaccurate."):
         assert summary.total_parameters == 0
         assert summary.trainable_parameters == 0
 

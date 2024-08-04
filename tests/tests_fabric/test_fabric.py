@@ -289,7 +289,7 @@ def test_setup_optimizers_not_supported(strategy_cls):
         fabric.setup_optimizers(optimizer)
 
 
-@RunIf(min_cuda_gpus=1, min_torch="2.1")
+@RunIf(min_cuda_gpus=1)
 def test_setup_optimizer_on_meta_device():
     """Test that the setup-methods validate that the optimizer doesn't have references to meta-device parameters."""
     fabric = Fabric(strategy="fsdp", devices=1)
@@ -623,7 +623,7 @@ def test_backward():
         ("auto", "32-true", False),
         ("auto", "bf16-true", False),
         ("auto", "bf16-mixed", True),
-        pytest.param("fsdp", "32-true", True, marks=RunIf(min_cuda_gpus=1, min_torch="2.0.0")),
+        pytest.param("fsdp", "32-true", True, marks=RunIf(min_cuda_gpus=1)),
     ],
 )
 @pytest.mark.parametrize("setup_method", ["setup", "setup_module"])
@@ -767,11 +767,11 @@ def test_no_backward_sync():
     # disabling the context manager makes it a no-op
     with fabric.no_backward_sync(model, enabled=False):
         pass
-    fabric._strategy._backward_sync_control.no_backward_sync.assert_not_called()
-    # when enabled, the wrapped module gets passed down
+    fabric._strategy._backward_sync_control.no_backward_sync.assert_called_once_with(model._forward_module, False)
+    fabric._strategy._backward_sync_control.reset_mock()
     with fabric.no_backward_sync(model):
         pass
-    fabric._strategy._backward_sync_control.no_backward_sync.assert_called_once_with(model._forward_module)
+    fabric._strategy._backward_sync_control.no_backward_sync.assert_called_once_with(model._forward_module, True)
 
 
 def test_launch_without_function():
@@ -855,7 +855,6 @@ def test_module_sharding_context():
 
 def test_init_module_context(monkeypatch):
     """Test that the strategy returns the context manager for initializing the module."""
-    import lightning.fabric
 
     fabric = Fabric(accelerator="cpu")
     strategy = SingleDeviceStrategy(device=torch.device("cuda"))
@@ -866,18 +865,8 @@ def test_init_module_context(monkeypatch):
     strategy.module_init_context.assert_called_once_with(empty_init=None)
     strategy.module_init_context.reset_mock()
 
-    # Pretend we are using PyTorch < 2.0
-    monkeypatch.setattr(lightning.fabric.fabric, "_TORCH_GREATER_EQUAL_2_0", False)
-    with pytest.warns(PossibleUserWarning, match="can't place the model parameters on the device"):  # noqa: SIM117
-        with fabric.init_module():
-            pass
-    strategy.module_init_context.assert_called_once()
-
 
 def test_init_tensor_context(monkeypatch):
-    """Test that `.init_tensor()` warns if using PyTorch < 2.0."""
-    import lightning.fabric
-
     fabric = Fabric(accelerator="cpu")
     strategy = SingleDeviceStrategy(device=torch.device("cuda"))
     strategy.tensor_init_context = Mock(wraps=strategy.tensor_init_context)
@@ -886,13 +875,6 @@ def test_init_tensor_context(monkeypatch):
         pass
     strategy.tensor_init_context.assert_called_once()
     strategy.tensor_init_context.reset_mock()
-
-    # Pretend we are using PyTorch < 2.0
-    monkeypatch.setattr(lightning.fabric.fabric, "_TORCH_GREATER_EQUAL_2_0", False)
-    with pytest.warns(PossibleUserWarning, match="can't place tensors on the device directly"):  # noqa: SIM117
-        with fabric.init_tensor():
-            pass
-    strategy.tensor_init_context.assert_called_once()
 
 
 def test_callbacks_input():

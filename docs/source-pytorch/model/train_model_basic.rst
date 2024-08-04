@@ -68,7 +68,7 @@ The LightningModule is the full **recipe** that defines how your nn.Modules inte
 
         def training_step(self, batch, batch_idx):
             # training_step defines the train loop.
-            x, y = batch
+            x, _ = batch
             x = x.view(x.size(0), -1)
             z = self.encoder(x)
             x_hat = self.decoder(z)

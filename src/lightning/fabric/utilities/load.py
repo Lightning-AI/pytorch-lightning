@@ -25,10 +25,7 @@ from torch._C import _TensorMeta
 from torch.nn import Parameter
 from typing_extensions import override
 
-from lightning.fabric.utilities.imports import (
-    _TORCH_GREATER_EQUAL_2_0,
-    _TORCH_GREATER_EQUAL_2_3,
-)
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_3
 from lightning.fabric.utilities.types import _PATH, _Stateful
 
 _METADATA_FILENAME = "meta.pt"
@@ -163,7 +160,7 @@ class _NotYetLoadedTensor:
             return getattr(self.metatensor, name)
 
         # materializing these is needed for quantization (see lit-gpt)
-        if name in {"contiguous", "cuda", "half"}:
+        if name in {"contiguous", "cuda", "half", "data"}:
             return getattr(self._load_tensor(), name)
 
         raise AttributeError(f"'{type(self).__name__}' object has no attribute '{name}'")
@@ -202,8 +199,6 @@ class _LazyLoadingUnpickler(pickle.Unpickler):
 
 
 def _lazy_load(filename: _PATH) -> Any:
-    if not _TORCH_GREATER_EQUAL_2_0:
-        raise NotImplementedError("Lazy-loading is only supported with PyTorch >= 2.0.")
     if not os.path.isfile(filename):
         raise FileNotFoundError(f"Path {str(filename)!r} does not exist or is not a file.")
     file_reader = torch.PyTorchFileReader(str(filename))

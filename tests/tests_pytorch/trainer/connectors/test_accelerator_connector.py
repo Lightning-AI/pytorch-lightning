@@ -14,6 +14,7 @@
 import inspect
 import os
 import sys
+from contextlib import nullcontext
 from typing import Any, Dict
 from unittest import mock
 from unittest.mock import Mock
@@ -48,6 +49,7 @@ from lightning.pytorch.strategies import (
     DDPStrategy,
     DeepSpeedStrategy,
     FSDPStrategy,
+    ModelParallelStrategy,
     SingleDeviceStrategy,
     SingleDeviceXLAStrategy,
     XLAStrategy,
@@ -101,14 +103,14 @@ def test_precision_and_precision_plugin_raises():
 
 
 @RunIf(skip_windows=True, standalone=True)
-def test_strategy_choice_ddp_on_cpu(tmpdir):
+def test_strategy_choice_ddp_on_cpu(tmp_path):
     """Test that selecting DDPStrategy on CPU works."""
-    _test_strategy_choice_ddp_and_cpu(tmpdir, ddp_strategy_class=DDPStrategy)
+    _test_strategy_choice_ddp_and_cpu(tmp_path, ddp_strategy_class=DDPStrategy)
 
 
-def _test_strategy_choice_ddp_and_cpu(tmpdir, ddp_strategy_class):
+def _test_strategy_choice_ddp_and_cpu(tmp_path, ddp_strategy_class):
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         fast_dev_run=True,
         strategy=ddp_strategy_class(find_unused_parameters=True),
         accelerator="cpu",
@@ -132,7 +134,7 @@ def _test_strategy_choice_ddp_and_cpu(tmpdir, ddp_strategy_class):
         "SLURM_LOCALID": "0",
     },
 )
-def test_custom_cluster_environment_in_slurm_environment(cuda_count_0, tmpdir):
+def test_custom_cluster_environment_in_slurm_environment(cuda_count_0, tmp_path):
     """Test that we choose the custom cluster even when SLURM or TE flags are around."""
 
     class CustomCluster(LightningEnvironment):
@@ -145,7 +147,7 @@ def test_custom_cluster_environment_in_slurm_environment(cuda_count_0, tmpdir):
             return True
 
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         plugins=[CustomCluster()],
         fast_dev_run=True,
         accelerator="cpu",
@@ -253,8 +255,8 @@ def test_interactive_compatible_strategy_ddp_fork(monkeypatch):
     ],
 )
 @pytest.mark.parametrize("devices", [1, 2])
-def test_accelerator_choice_multi_node_gpu(cuda_count_2, tmpdir, strategy, strategy_class, devices):
-    trainer = Trainer(default_root_dir=tmpdir, num_nodes=2, accelerator="gpu", strategy=strategy, devices=devices)
+def test_accelerator_choice_multi_node_gpu(cuda_count_2, tmp_path, strategy, strategy_class, devices):
+    trainer = Trainer(default_root_dir=tmp_path, num_nodes=2, accelerator="gpu", strategy=strategy, devices=devices)
     assert isinstance(trainer.strategy, strategy_class)
 
 
@@ -564,11 +566,18 @@ def test_strategy_choice_ddp_cpu_slurm(cuda_count_0, strategy):
 
 
 def test_check_fsdp_strategy_and_fallback():
-    with pytest.raises(
-        MisconfigurationException,
-        match=f"You selected strategy to be `{FSDPStrategy.strategy_name}`, but GPU accelerator is not used.",
-    ):
+    with pytest.raises(ValueError, match="The strategy `fsdp` requires a GPU accelerator"):
         Trainer(accelerator="cpu", strategy="fsdp")
+
+    class FSDPStrategySubclass(FSDPStrategy):
+        pass
+
+    class AcceleratorSubclass(CPUAccelerator):
+        pass
+
+    # we allow subclasses of FSDPStrategy to be used with other accelerators
+    Trainer(accelerator="cpu", strategy=FSDPStrategySubclass())
+    Trainer(accelerator=AcceleratorSubclass(), strategy=FSDPStrategySubclass())
 
 
 @mock.patch.dict(os.environ, {}, clear=True)
@@ -1056,3 +1065,14 @@ def test_bitsandbytes_precision_cuda_required(monkeypatch):
     monkeypatch.setitem(sys.modules, "bitsandbytes", Mock())
     with pytest.raises(RuntimeError, match="Bitsandbytes is only supported on CUDA GPUs"):
         _AcceleratorConnector(accelerator="cpu", plugins=BitsandbytesPrecision(mode="int8"))
+
+
+@RunIf(min_torch="2.4")
+@pytest.mark.parametrize(
+    ("precision", "raises"),
+    [("32-true", False), ("16-true", False), ("bf16-true", False), ("16-mixed", True), ("bf16-mixed", False)],
+)
+def test_precision_selection_model_parallel(precision, raises, mps_count_0):
+    error_context = pytest.raises(ValueError, match=f"does not support .*{precision}") if raises else nullcontext()
+    with error_context:
+        _AcceleratorConnector(precision=precision, strategy=ModelParallelStrategy())

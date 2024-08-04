@@ -55,7 +55,7 @@ def player(args, world_collective: TorchCollective, player_trainer_collective: T
     # Log hyperparameters
     logger.experiment.add_text(
         "hyperparameters",
-        "|param|value|\n|-|-|\n%s" % ("\n".join([f"|{key}|{value}|" for key, value in vars(args).items()])),
+        "|param|value|\n|-|-|\n{}".format("\n".join([f"|{key}|{value}|" for key, value in vars(args).items()])),
     )
 
     # Environment setup
@@ -104,10 +104,9 @@ def player(args, world_collective: TorchCollective, player_trainer_collective: T
     if not args.share_data:
         if single_global_step < world_collective.world_size - 1:
             raise RuntimeError(
-                "The number of trainers ({}) is greater than the available collected data ({}). ".format(
-                    world_collective.world_size - 1, single_global_step
-                )
-                + "Consider to lower the number of trainers at least to the size of available collected data"
+                f"The number of trainers ({world_collective.world_size - 1})"
+                f" is greater than the available collected data ({single_global_step})."
+                f" Consider to lower the number of trainers at least to the size of available collected data"
             )
         chunks_sizes = [
             len(chunk)
@@ -136,7 +135,7 @@ def player(args, world_collective: TorchCollective, player_trainer_collective: T
             # Single environment step
             next_obs, reward, done, truncated, info = envs.step(action.cpu().numpy())
             done = torch.logical_or(torch.tensor(done), torch.tensor(truncated))
-            rewards[step] = torch.tensor(reward, device=device).view(-1)
+            rewards[step] = torch.tensor(reward, device=device, dtype=torch.float32).view(-1)
             next_obs, next_done = torch.tensor(next_obs, device=device), done.to(device)
 
             if "final_info" in info:

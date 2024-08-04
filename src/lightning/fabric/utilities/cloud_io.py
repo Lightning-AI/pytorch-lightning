@@ -33,6 +33,7 @@ log = logging.getLogger(__name__)
 def _load(
     path_or_url: Union[IO, _PATH],
     map_location: _MAP_LOCATION_TYPE = None,
+    weights_only: bool = False,
 ) -> Any:
     """Loads a checkpoint.
 
@@ -46,15 +47,21 @@ def _load(
         return torch.load(
             path_or_url,
             map_location=map_location,  # type: ignore[arg-type] # upstream annotation is not correct
+            weights_only=weights_only,
         )
     if str(path_or_url).startswith("http"):
         return torch.hub.load_state_dict_from_url(
             str(path_or_url),
             map_location=map_location,  # type: ignore[arg-type]
+            weights_only=weights_only,
         )
     fs = get_filesystem(path_or_url)
     with fs.open(path_or_url, "rb") as f:
-        return torch.load(f, map_location=map_location)  # type: ignore[arg-type]
+        return torch.load(
+            f,
+            map_location=map_location,  # type: ignore[arg-type]
+            weights_only=weights_only,
+        )
 
 
 def get_filesystem(path: _PATH, **kwargs: Any) -> AbstractFileSystem:
@@ -76,7 +83,10 @@ def _atomic_save(checkpoint: Dict[str, Any], filepath: Union[str, Path]) -> None
     bytesbuffer = io.BytesIO()
     log.debug(f"Saving checkpoint: {filepath}")
     torch.save(checkpoint, bytesbuffer)
-    with fsspec.open(filepath, "wb") as f:
+
+    # We use a transaction here to avoid file corruption if the save gets interrupted
+    fs, urlpath = fsspec.core.url_to_fs(str(filepath))
+    with fs.transaction, fs.open(urlpath, "wb") as f:
         f.write(bytesbuffer.getvalue())
 
 

@@ -143,7 +143,7 @@ def test_rich_progress_bar_keyboard_interrupt(tmp_path):
 
     with mock.patch(
         "lightning.pytorch.callbacks.progress.rich_progress.Progress.stop", autospec=True
-    ) as mock_progress_stop:
+    ) as mock_progress_stop, pytest.raises(SystemExit):
         progress_bar = RichProgressBar()
         trainer = Trainer(
             default_root_dir=tmp_path,
@@ -447,9 +447,10 @@ def test_rich_progress_bar_padding():
 
 
 @RunIf(rich=True)
-def test_rich_progress_bar_can_be_pickled():
+def test_rich_progress_bar_can_be_pickled(tmp_path):
     bar = RichProgressBar()
     trainer = Trainer(
+        default_root_dir=tmp_path,
         callbacks=[bar],
         max_epochs=1,
         limit_train_batches=1,
@@ -541,7 +542,7 @@ def test_rich_progress_bar_disabled(tmp_path):
 
 @RunIf(rich=True)
 @pytest.mark.parametrize("metrics_format", [".3f", ".3e"])
-def test_rich_progress_bar_metrics_format(tmpdir, metrics_format):
+def test_rich_progress_bar_metrics_format(tmp_path, metrics_format):
     metric_name = "train_loss"
 
     class CustomModel(BoringModel):
@@ -552,7 +553,7 @@ def test_rich_progress_bar_metrics_format(tmpdir, metrics_format):
 
     progress_bar = RichProgressBar(theme=RichProgressBarTheme(metrics_format=metrics_format))
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         fast_dev_run=True,
         callbacks=progress_bar,
     )

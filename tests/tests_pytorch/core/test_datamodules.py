@@ -145,7 +145,7 @@ def test_dm_pickle_after_init():
 
 
 @RunIf(sklearn=True)
-def test_train_loop_only(tmpdir):
+def test_train_loop_only(tmp_path):
     seed_everything(7)
 
     dm = ClassifDataModule()
@@ -154,7 +154,7 @@ def test_train_loop_only(tmpdir):
     model.validation_step = None
     model.test_step = None
 
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, enable_model_summary=False)
+    trainer = Trainer(default_root_dir=tmp_path, max_epochs=1, enable_model_summary=False)
 
     # fit model
     trainer.fit(model, datamodule=dm)
@@ -163,7 +163,7 @@ def test_train_loop_only(tmpdir):
 
 
 @RunIf(sklearn=True)
-def test_train_val_loop_only(tmpdir):
+def test_train_val_loop_only(tmp_path):
     seed_everything(7)
 
     dm = ClassifDataModule()
@@ -171,7 +171,7 @@ def test_train_val_loop_only(tmpdir):
 
     model.validation_step = None
 
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, enable_model_summary=False)
+    trainer = Trainer(default_root_dir=tmp_path, max_epochs=1, enable_model_summary=False)
 
     # fit model
     trainer.fit(model, datamodule=dm)
@@ -179,7 +179,7 @@ def test_train_val_loop_only(tmpdir):
     assert trainer.callback_metrics["train_loss"] < 1.1
 
 
-def test_dm_checkpoint_save_and_load(tmpdir):
+def test_dm_checkpoint_save_and_load(tmp_path):
     class CustomBoringModel(BoringModel):
         def validation_step(self, batch, batch_idx):
             out = super().validation_step(batch, batch_idx)
@@ -197,18 +197,18 @@ def test_dm_checkpoint_save_and_load(tmpdir):
     model = CustomBoringModel()
 
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         max_epochs=1,
         limit_train_batches=2,
         limit_val_batches=1,
         enable_model_summary=False,
-        callbacks=[ModelCheckpoint(dirpath=tmpdir, monitor="early_stop_on")],
+        callbacks=[ModelCheckpoint(dirpath=tmp_path, monitor="early_stop_on")],
     )
 
     # fit model
     trainer.fit(model, datamodule=dm)
     checkpoint_path = list(trainer.checkpoint_callback.best_k_models.keys())[0]
-    checkpoint = torch.load(checkpoint_path)
+    checkpoint = torch.load(checkpoint_path, weights_only=True)
     assert dm.__class__.__qualname__ in checkpoint
     assert checkpoint[dm.__class__.__qualname__] == {"my": "state_dict"}
 
@@ -219,13 +219,13 @@ def test_dm_checkpoint_save_and_load(tmpdir):
 
 
 @RunIf(sklearn=True)
-def test_full_loop(tmpdir):
+def test_full_loop(tmp_path):
     seed_everything(7)
 
     dm = ClassifDataModule()
     model = ClassificationModel()
 
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, enable_model_summary=False, deterministic="warn")
+    trainer = Trainer(default_root_dir=tmp_path, max_epochs=1, enable_model_summary=False, deterministic="warn")
 
     # fit model
     trainer.fit(model, dm)
@@ -243,7 +243,7 @@ def test_full_loop(tmpdir):
     assert result[0]["test_acc"] > 0.57
 
 
-def test_dm_reload_dataloaders_every_n_epochs(tmpdir):
+def test_dm_reload_dataloaders_every_n_epochs(tmp_path):
     """Test datamodule, where trainer argument reload_dataloaders_every_n_epochs is set to a non negative integer."""
 
     class CustomBoringDataModule(BoringDataModule):
@@ -262,7 +262,9 @@ def test_dm_reload_dataloaders_every_n_epochs(tmpdir):
     model.validation_step = None
     model.test_step = None
 
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=3, limit_train_batches=2, reload_dataloaders_every_n_epochs=2)
+    trainer = Trainer(
+        default_root_dir=tmp_path, max_epochs=3, limit_train_batches=2, reload_dataloaders_every_n_epochs=2
+    )
     trainer.fit(model, dm)
 
 
@@ -450,11 +452,12 @@ def test_define_as_dataclass():
 
 
 @RunIf(skip_windows=True)  # TODO: all durations are 0 on Windows
-def test_datamodule_hooks_are_profiled():
+def test_datamodule_hooks_are_profiled(tmp_path):
     """Test that `LightningDataModule` hooks are profiled."""
 
     def get_trainer():
         return Trainer(
+            default_root_dir=tmp_path,
             max_steps=1,
             limit_val_batches=0,
             profiler="simple",

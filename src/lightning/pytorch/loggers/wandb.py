@@ -26,7 +26,12 @@ from lightning_utilities.core.imports import RequirementCache
 from torch import Tensor
 from typing_extensions import override
 
-from lightning.fabric.utilities.logger import _add_prefix, _convert_params, _sanitize_callable_params
+from lightning.fabric.utilities.logger import (
+    _add_prefix,
+    _convert_json_serializable,
+    _convert_params,
+    _sanitize_callable_params,
+)
 from lightning.fabric.utilities.types import _PATH
 from lightning.pytorch.callbacks.model_checkpoint import ModelCheckpoint
 from lightning.pytorch.loggers.logger import Logger, rank_zero_experiment
@@ -419,6 +424,7 @@ class WandbLogger(Logger):
     def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:
         params = _convert_params(params)
         params = _sanitize_callable_params(params)
+        params = _convert_json_serializable(params)
         self.experiment.config.update(params, allow_val_change=True)
 
     @override

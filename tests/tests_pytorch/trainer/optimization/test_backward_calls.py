@@ -11,7 +11,7 @@ from lightning.pytorch.demos.boring_classes import BoringModel
 def test_backward_count_simple(torch_backward, num_steps):
     """Test that backward is called exactly once per step."""
     model = BoringModel()
-    trainer = Trainer(max_steps=num_steps)
+    trainer = Trainer(max_steps=num_steps, logger=False, enable_checkpointing=False)
     trainer.fit(model)
     assert torch_backward.call_count == num_steps
 
@@ -25,19 +25,21 @@ def test_backward_count_simple(torch_backward, num_steps):
 def test_backward_count_with_grad_accumulation(torch_backward):
     """Test that backward is called the correct number of times when accumulating gradients."""
     model = BoringModel()
-    trainer = Trainer(max_epochs=1, limit_train_batches=6, accumulate_grad_batches=2)
+    trainer = Trainer(
+        max_epochs=1, limit_train_batches=6, accumulate_grad_batches=2, logger=False, enable_checkpointing=False
+    )
     trainer.fit(model)
     assert torch_backward.call_count == 6
 
     torch_backward.reset_mock()
 
-    trainer = Trainer(max_steps=6, accumulate_grad_batches=2)
+    trainer = Trainer(max_steps=6, accumulate_grad_batches=2, logger=False, enable_checkpointing=False)
     trainer.fit(model)
     assert torch_backward.call_count == 12
 
 
 @patch("torch.Tensor.backward")
-def test_backward_count_with_closure(torch_backward):
+def test_backward_count_with_closure(torch_backward, tmp_path):
     """Using a closure (e.g. with LBFGS) should lead to no extra backward calls."""
 
     class TestModel(BoringModel):
@@ -45,12 +47,12 @@ def test_backward_count_with_closure(torch_backward):
             return torch.optim.LBFGS(self.parameters(), lr=0.1)
 
     model = TestModel()
-    trainer = Trainer(max_steps=5)
+    trainer = Trainer(max_steps=5, logger=False, enable_checkpointing=False)
     trainer.fit(model)
     assert torch_backward.call_count == 5
 
     torch_backward.reset_mock()
 
-    trainer = Trainer(max_steps=5, accumulate_grad_batches=2)
+    trainer = Trainer(max_steps=5, accumulate_grad_batches=2, logger=False, enable_checkpointing=False)
     trainer.fit(model)
     assert torch_backward.call_count == 10

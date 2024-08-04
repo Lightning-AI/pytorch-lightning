@@ -268,7 +268,7 @@ class CometLogger(Logger):
             self.logger.experiment.some_comet_function()
 
         """
-        if self._experiment is not None:
+        if self._experiment is not None and self._experiment.alive:
             return self._experiment
 
         if self._future_experiment_key is not None:

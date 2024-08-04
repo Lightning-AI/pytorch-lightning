@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import logging
+import signal
 from copy import deepcopy
 from typing import Any, Callable, Dict, Optional, Type, Union
 
@@ -20,10 +21,12 @@ from packaging.version import Version
 import lightning.pytorch as pl
 from lightning.fabric.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
 from lightning.pytorch.callbacks import Checkpoint, EarlyStopping
+from lightning.pytorch.strategies.launchers import _SubprocessScriptLauncher
+from lightning.pytorch.trainer.connectors.signal_connector import _get_sigkill_signal
 from lightning.pytorch.trainer.states import TrainerStatus
 from lightning.pytorch.utilities.exceptions import _TunerExitException
 from lightning.pytorch.utilities.model_helpers import is_overridden
-from lightning.pytorch.utilities.rank_zero import rank_zero_warn
+from lightning.pytorch.utilities.rank_zero import rank_zero_info, rank_zero_warn
 
 log = logging.getLogger(__name__)
 
@@ -49,26 +52,33 @@ def _call_and_handle_interrupt(trainer: "pl.Trainer", trainer_fn: Callable, *arg
         trainer.state.status = TrainerStatus.FINISHED
         trainer.state.stage = None
 
-    # TODO: Unify both exceptions below, where `KeyboardError` doesn't re-raise
     except KeyboardInterrupt as exception:
-        rank_zero_warn("Detected KeyboardInterrupt, attempting graceful shutdown...")
-        # user could press Ctrl+c many times... only shutdown once
-        if not trainer.interrupted:
-            trainer.state.status = TrainerStatus.INTERRUPTED
-            _call_callback_hooks(trainer, "on_exception", exception)
-            trainer.strategy.on_exception(exception)
-            for logger in trainer.loggers:
-                logger.finalize("failed")
+        rank_zero_info("\nDetected KeyboardInterrupt, attempting graceful shutdown ...")
+        # user could press Ctrl+C many times, disable KeyboardInterrupt for shutdown
+        signal.signal(signal.SIGINT, signal.SIG_IGN)
+        _interrupt(trainer, exception)
+        trainer._teardown()
+        launcher = trainer.strategy.launcher
+        if isinstance(launcher, _SubprocessScriptLauncher):
+            launcher.kill(_get_sigkill_signal())
+        exit(1)
+
     except BaseException as exception:
-        trainer.state.status = TrainerStatus.INTERRUPTED
-        _call_callback_hooks(trainer, "on_exception", exception)
-        trainer.strategy.on_exception(exception)
-        for logger in trainer.loggers:
-            logger.finalize("failed")
+        _interrupt(trainer, exception)
         trainer._teardown()
         # teardown might access the stage so we reset it after
         trainer.state.stage = None
         raise
+
+
+def _interrupt(trainer: "pl.Trainer", exception: BaseException) -> None:
+    trainer.state.status = TrainerStatus.INTERRUPTED
+    _call_callback_hooks(trainer, "on_exception", exception)
+    if trainer.datamodule is not None:
+        _call_lightning_datamodule_hook(trainer, "on_exception", exception)
+    trainer.strategy.on_exception(exception)
+    for logger in trainer.loggers:
+        logger.finalize("failed")
 
 
 def _call_setup_hook(trainer: "pl.Trainer") -> None:

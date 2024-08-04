@@ -5,62 +5,39 @@
 # the repo. Unless a later match takes precedence,
 # @global-owner1 and @global-owner2 will be requested for
 # review when someone opens a pull request.
-* @lantiga @borda @tchaton @awaelchli
+* @lantiga @borda @tchaton @awaelchli @justusschock
 
 # CI/CD and configs
-/.actions/                  @borda @carmocca @ethanwharris @justusschock
-/.github/                   @borda @carmocca @ethanwharris @justusschock
-/.azure/                    @borda @carmocca @ethanwharris @justusschock
-/.azure/app-cloud-e2e.yml   @awaelchli @ethanwharris @lantiga
-/dockers/                   @borda @carmocca @ethanwharris @justusschock
-*.yml                       @borda @carmocca @ethanwharris @justusschock
+/.actions/                  @borda @ethanwharris @justusschock
+/.github/                   @borda @ethanwharris @justusschock
+/.azure/                    @borda @ethanwharris @justusschock
+/dockers/                   @borda @ethanwharris @justusschock
+*.yml                       @borda @ethanwharris @justusschock
 
 # Docs
-/docs/                                      @edenlightning @lantiga @borda @awaelchli
-/docs/*/conf.py                             @borda @awaelchli @carmocca
-/.github/*.md                               @edenlightning @williamfalcon @lantiga @borda
-/.github/ISSUE_TEMPLATE/                    @edenlightning @borda @tchaton @awaelchli
-/docs/source-fabric/conf.py                 @borda @awaelchli @carmocca
-/docs/source-fabric/index.rst               @awaelchli @lantiga @carmocca
-/docs/source-pytorch/conf.py                @borda @awaelchli @carmocca
+/docs/                                      @lantiga @borda @awaelchli
+/docs/*/conf.py                             @borda @awaelchli
+/.github/*.md                               @williamfalcon @lantiga @borda
+/.github/ISSUE_TEMPLATE/                    @borda @tchaton @awaelchli
+/docs/source-fabric/conf.py                 @borda @awaelchli
+/docs/source-fabric/index.rst               @awaelchli @lantiga
+/docs/source-pytorch/conf.py                @borda @awaelchli
 /docs/source-pytorch/index.rst              @williamfalcon @lantiga
 /docs/source-pytorch/levels                 @williamfalcon @lantiga
-/docs/source-app/                           @williamfalcon @lantiga @tchaton @awaelchli
-/docs/source-app/index.rst                  @williamfalcon @lantiga
-/docs/source-app/expertise_levels           @williamfalcon @lantiga
 
 # PyTorch Lightning
-/src/lightning/pytorch                      @williamfalcon @awaelchli @carmocca @justusschock
-/src/pytorch_lightning                      @williamfalcon @awaelchli @carmocca @justusschock
-/tests/tests_pytorch                        @awaelchli @carmocca @justusschock @borda
-
-# Core APIs
-/src/lightning/pytorch/callbacks/callback.py @williamfalcon @awaelchli @carmocca
-/src/lightning/pytorch/core/datamodule.py    @williamFalcon @awaelchli @carmocca
-/src/lightning/pytorch/trainer/trainer.py    @williamfalcon @tchaton @awaelchli @carmocca
-/src/lightning/pytorch/core/hooks.py         @williamfalcon @tchaton @awaelchli @carmocca
-/src/lightning/pytorch/core/module.py        @williamfalcon @tchaton @awaelchli @carmocca
+/src/lightning/pytorch                      @lantiga @borda @tchaton @awaelchli @justusschock
 
 # Lightning Data
-/src/lightning/data/      @tchaton
+/src/lightning/data/                        @tchaton @lantiga
 
 # Lightning Fabric
-/src/lightning/fabric                       @awaelchli @carmocca @justusschock
-/src/lightning_fabric                       @awaelchli @carmocca @justusschock
-/tests/tests_fabric                         @awaelchli @carmocca @justusschock
-
-# Lightning App
-/src/lightning/app                          @tchaton @lantiga @awaelchli @ethanwharris
-/src/lightning_app                          @tchaton @lantiga @awaelchli @ethanwharris
-/tests/tests_app                            @tchaton @lantiga @awaelchli @ethanwharris
-/tests/integrations_app                     @tchaton @lantiga @awaelchli @ethanwharris
-/examples/app_*                             @tchaton @lantiga @awaelchli @ethanwharris
+/src/lightning/fabric                       @lantiga @borda @tchaton @awaelchli @justusschock
 
 /.github/CODEOWNERS                  @williamfalcon
 /SECURITY.md                         @williamfalcon @lantiga
 /README.md                           @williamfalcon @lantiga
-/setup.py                            @williamfalcon @borda @carmocca
-/src/pytorch_lightning/__about__.py  @williamfalcon @borda @carmocca
-/src/lightning_app/__about__.py      @williamfalcon @lantiga @borda
+/setup.py                            @williamfalcon @borda
+/src/pytorch_lightning/__about__.py  @williamfalcon @borda
 /src/lightning_fabric/__about__.py   @williamfalcon @borda @awaelchli
-/src/*/__setup__.py                  @borda @carmocca @justusschock
+/src/*/__setup__.py                  @borda @justusschock

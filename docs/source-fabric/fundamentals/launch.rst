@@ -223,7 +223,7 @@ Next steps
 
 .. displayitem::
     :header: Mixed Precision Training
-    :description:  Save memory and speed up training using mixed precision
+    :description: Save memory and speed up training using mixed precision
     :col_css: col-md-4
     :button_link: ../fundamentals/precision.html
     :height: 160

@@ -62,7 +62,7 @@ class Transformer(nn.Module):
         # we assume target is already shifted w.r.t. inputs
         if mask is None:
             mask = torch.tril(torch.ones(t, t, device=inputs.device)) == 1
-            mask = mask.float().masked_fill(mask == 0, float("-inf")).masked_fill(mask == 1, float(0.0))
+            mask = mask.float().masked_fill(mask == 0, float("-inf")).masked_fill(mask == 1, 0.0)
 
         src = self.pos_encoder(self.embedding(inputs) * math.sqrt(self.ninp))
         target = self.pos_encoder(self.embedding(target) * math.sqrt(self.ninp))
@@ -85,11 +85,10 @@ class PositionalEncoding(nn.Module):
         if self.pe is None:
             # 1) can't use buffer, see https://github.com/pytorch/pytorch/issues/68407
             # 2) can't use parameter becauses pe gets sliced and DDP requires all params to participate in forward
-            # 3) can't make it a `requires_grad=False` parameter because FSDP in PyTorch < 2.1 needs all params to
-            # require grad
+            # TODO: Could make this a `nn.Parameter` with `requires_grad=False`
             self.pe = self._init_pos_encoding(device=x.device)
 
-        x + self.pe[: x.size(0), :]
+        x = x + self.pe[: x.size(0), :]
         return self.dropout(x)
 
     def _init_pos_encoding(self, device: torch.device) -> Tensor:

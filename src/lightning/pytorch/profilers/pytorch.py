@@ -28,6 +28,7 @@ from torch.utils.hooks import RemovableHandle
 from typing_extensions import override
 
 from lightning.fabric.accelerators.cuda import is_cuda_available
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_4
 from lightning.pytorch.profilers.profiler import Profiler
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.rank_zero import WarningCache, rank_zero_warn
@@ -295,14 +296,14 @@ class PyTorchProfiler(Profiler):
         self._emit_nvtx = emit_nvtx
         self._export_to_chrome = export_to_chrome
         self._row_limit = row_limit
-        self._sort_by_key = sort_by_key or f"{'cuda' if profiler_kwargs.get('use_cuda', False) else 'cpu'}_time_total"
+        self._sort_by_key = sort_by_key or _default_sort_by_key(profiler_kwargs)
         self._record_module_names = record_module_names
         self._profiler_kwargs = profiler_kwargs
         self._table_kwargs = table_kwargs if table_kwargs is not None else {}
 
         self.profiler: Optional[_PROFILER] = None
-        self.function_events: Optional["EventList"] = None
-        self._lightning_module: Optional["LightningModule"] = None  # set by ProfilerConnector
+        self.function_events: Optional[EventList] = None
+        self._lightning_module: Optional[LightningModule] = None  # set by ProfilerConnector
         self._register: Optional[RegisterRecordFunction] = None
         self._parent_profiler: Optional[ContextManager] = None
         self._recording_map: Dict[str, record_function] = {}
@@ -400,13 +401,19 @@ class PyTorchProfiler(Profiler):
         return None
 
     def _default_activities(self) -> List["ProfilerActivity"]:
-        activities: List["ProfilerActivity"] = []
+        activities: List[ProfilerActivity] = []
         if not _KINETO_AVAILABLE:
             return activities
-        if self._profiler_kwargs.get("use_cpu", True):
+        if _TORCH_GREATER_EQUAL_2_4:
             activities.append(ProfilerActivity.CPU)
-        if self._profiler_kwargs.get("use_cuda", is_cuda_available()):
-            activities.append(ProfilerActivity.CUDA)
+            if is_cuda_available():
+                activities.append(ProfilerActivity.CUDA)
+        else:
+            # `use_cpu` and `use_cuda` are deprecated in PyTorch >= 2.4
+            if self._profiler_kwargs.get("use_cpu", True):
+                activities.append(ProfilerActivity.CPU)
+            if self._profiler_kwargs.get("use_cuda", is_cuda_available()):
+                activities.append(ProfilerActivity.CUDA)
         return activities
 
     @override
@@ -565,3 +572,13 @@ class PyTorchProfiler(Profiler):
         self._recording_map = {}
 
         super().teardown(stage=stage)
+
+
+def _default_sort_by_key(profiler_kwargs: dict) -> str:
+    activities = profiler_kwargs.get("activities", [])
+    is_cuda = (
+        profiler_kwargs.get("use_cuda", False)  # `use_cuda` is deprecated in PyTorch >= 2.4
+        or (activities and ProfilerActivity.CUDA in activities)
+        or (not activities and is_cuda_available())
+    )
+    return f"{'cuda' if is_cuda else 'cpu'}_time_total"

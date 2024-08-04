@@ -14,8 +14,8 @@
 import inspect
 from copy import deepcopy
 from functools import partial, wraps
+from types import MethodType
 from typing import (
-    TYPE_CHECKING,
     Any,
     Callable,
     Dict,
@@ -35,6 +35,7 @@ from lightning_utilities import is_overridden
 from lightning_utilities.core.apply_func import apply_to_collection
 from torch import Tensor
 from torch import nn as nn
+from torch._dynamo import OptimizedModule
 from torch.nn.modules.module import _IncompatibleKeys
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
@@ -45,11 +46,7 @@ from lightning.fabric.strategies import Strategy
 from lightning.fabric.utilities import move_data_to_device
 from lightning.fabric.utilities.data import _set_sampler_epoch
 from lightning.fabric.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 from lightning.fabric.utilities.types import Optimizable
-
-if TYPE_CHECKING:
-    from torch._dynamo import OptimizedModule
 
 T_destination = TypeVar("T_destination", bound=Dict[str, Any])
 _LIGHTNING_MODULE_STEP_METHODS = ("training_step", "validation_step", "test_step", "predict_step")
@@ -127,6 +124,7 @@ class _FabricModule(_DeviceDtypeModuleMixin):
         self._forward_module = forward_module
         self._original_module = original_module or forward_module
         self._strategy = strategy
+        self._forward_methods = set(_LIGHTNING_MODULE_STEP_METHODS)
         self._fabric_module_initialized = True
 
     @property
@@ -168,6 +166,20 @@ class _FabricModule(_DeviceDtypeModuleMixin):
         self, state_dict: Mapping[str, Any], strict: bool = True, **kwargs: Any
     ) -> _IncompatibleKeys:
         return self._original_module.load_state_dict(state_dict=state_dict, strict=strict, **kwargs)
+
+    def mark_forward_method(self, method: Union[MethodType, str]) -> None:
+        """Mark a method as a 'forward' method to prevent it bypassing the strategy wrapper (e.g., DDP)."""
+        if not isinstance(method, (MethodType, str)):
+            raise TypeError(f"Expected a method or a string, but got: {type(method).__name__}")
+        name = method if isinstance(method, str) else method.__name__
+        if name == "forward":
+            raise ValueError("You cannot mark the forward method itself as a forward method.")
+        if not isinstance(getattr(self._original_module, name, None), MethodType):
+            raise AttributeError(
+                f"You marked '{name}' as a forward method, but `{type(self._original_module).__name__}.{name}` does not"
+                f" exist or is not a method."
+            )
+        self._forward_methods.add(name)
 
     def _redirection_through_forward(self, method_name: str) -> Callable:
         assert method_name != "forward"
@@ -211,8 +223,8 @@ class _FabricModule(_DeviceDtypeModuleMixin):
             if module_called:
                 raise RuntimeError(
                     f"You are calling the method `{type(self._original_module).__name__}.{name}()` from outside the"
-                    " model. This will bypass the wrapper from the strategy and result in incorrect behavior in"
-                    " `.backward()`. You should pass your inputs through `forward()`.",
+                    " model. To avoid issues with the currently selected strategy, explicitly mark it as a"
+                    f" forward method with `fabric_model.mark_forward_method({name!r})` after `fabric.setup()`."
                 )
             for handle in handles:
                 handle.remove()
@@ -235,8 +247,12 @@ class _FabricModule(_DeviceDtypeModuleMixin):
 
     @override
     def __getattr__(self, item: Any) -> Any:
-        if item in _LIGHTNING_MODULE_STEP_METHODS and self._forward_module != self._original_module:
-            # Special support for `LightningModule`, to prevent bypassing DDP's forward
+        if (
+            item != "_forward_methods"
+            and item in self._forward_methods
+            and self._forward_module != self._original_module
+        ):
+            # Special support for methods marked by `mark_forward_method` to prevent bypassing DDP's forward
             return self._redirection_through_forward(item)
 
         try:
@@ -263,7 +279,7 @@ class _FabricModule(_DeviceDtypeModuleMixin):
         original_has_attr = hasattr(original_module, name)
         # Can't use super().__getattr__ because nn.Module only checks _parameters, _buffers, and _modules
         # Can't use self.__getattr__ because it would pass through to the original module
-        fabric_has_attr = name in self.__dict__
+        fabric_has_attr = name in dir(self)
 
         if not (original_has_attr or fabric_has_attr):
             setattr(original_module, name, value)
@@ -329,26 +345,17 @@ def _unwrap_objects(collection: Any) -> Any:
         return obj
 
     types = [_FabricModule, _FabricOptimizer, _FabricDataLoader]
-    if _TORCH_GREATER_EQUAL_2_0:
-        from torch._dynamo import OptimizedModule
-
-        types.append(OptimizedModule)
+    types.append(OptimizedModule)
 
     return apply_to_collection(collection, dtype=tuple(types), function=_unwrap)
 
 
-def _unwrap_compiled(obj: Union[Any, "OptimizedModule"]) -> Tuple[Union[Any, nn.Module], Optional[Dict[str, Any]]]:
+def _unwrap_compiled(obj: Union[Any, OptimizedModule]) -> Tuple[Union[Any, nn.Module], Optional[Dict[str, Any]]]:
     """Removes the :class:`torch._dynamo.OptimizedModule` around the object if it is wrapped.
 
     Use this function before instance checks against e.g. :class:`_FabricModule`.
 
     """
-    if not _TORCH_GREATER_EQUAL_2_0:
-        # obj can't be an `OptimizedModule` anyway
-        return obj, None
-
-    from torch._dynamo import OptimizedModule
-
     if isinstance(obj, OptimizedModule):
         if (compile_kwargs := getattr(obj, "_compile_kwargs", None)) is None:
             raise RuntimeError(
@@ -359,10 +366,7 @@ def _unwrap_compiled(obj: Union[Any, "OptimizedModule"]) -> Tuple[Union[Any, nn.
     return obj, None
 
 
-def _to_compiled(module: nn.Module, compile_kwargs: Dict[str, Any]) -> "OptimizedModule":
-    if not _TORCH_GREATER_EQUAL_2_0:
-        raise RuntimeError("Converting to a compiled module is only supported in PyTorch >= 2.0.0")
-
+def _to_compiled(module: nn.Module, compile_kwargs: Dict[str, Any]) -> OptimizedModule:
     return torch.compile(module, **compile_kwargs)  # type: ignore[return-value]
 
 
@@ -401,14 +405,17 @@ def _capture_compile_kwargs(compile_fn: Callable) -> Callable:
     # PyTorch will resolve this in the future: https://github.com/pytorch/pytorch/issues/116575
 
     @wraps(compile_fn)
-    def _capture(model: Any, **kwargs: Any) -> Any:
+    def _capture(*args: Any, **kwargs: Any) -> Any:
+        if not args or not isinstance(args[0], nn.Module):
+            # either torch.compile is being applied as a decorator or we're compiling something else
+            return compile_fn(*args, **kwargs)
+
+        model = args[0]
         compiled_model = compile_fn(model, **kwargs)
-        if isinstance(model, nn.Module):
-            compiled_model._compile_kwargs = deepcopy(kwargs)
+        compiled_model._compile_kwargs = deepcopy(kwargs)
         return compiled_model
 
     return _capture
 
 
-if _TORCH_GREATER_EQUAL_2_0:
-    torch.compile = _capture_compile_kwargs(torch.compile)
+torch.compile = _capture_compile_kwargs(torch.compile)

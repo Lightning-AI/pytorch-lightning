@@ -172,7 +172,6 @@ class CSVLogger(Logger):
         versions_root = os.path.join(self._root_dir, self.name)
 
         if not _is_dir(self._fs, versions_root, strict=True):
-            log.warning("Missing logger folder: %s", versions_root)
             return 0
 
         existing_versions = []

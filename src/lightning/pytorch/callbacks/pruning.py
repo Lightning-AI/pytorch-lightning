@@ -205,14 +205,14 @@ class ModelPruning(Callback):
             raise MisconfigurationException(
                 f"`pruning_fn` is expected to be a str in {list(_PYTORCH_PRUNING_FUNCTIONS.keys())}"
                 f" or a PyTorch `BasePruningMethod`. Found: {pruning_fn}."
-                " HINT: if passing a `BasePruningMethod`, pass the the class, not an instance"
+                " HINT: if passing a `BasePruningMethod`, pass the class, not an instance"
             )
 
         # need to ignore typing here since pytorch base class does not define the PRUNING_TYPE attribute
         if use_global_unstructured and pruning_fn.PRUNING_TYPE != "unstructured":  # type: ignore
             raise MisconfigurationException(
-                'Only the "unstructured" PRUNING_TYPE is supported with `use_global_unstructured=True`.'  # type: ignore
-                f" Found method {pruning_fn} of type {pruning_fn.PRUNING_TYPE}. "
+                'Only the "unstructured" PRUNING_TYPE is supported with `use_global_unstructured=True`.'
+                f" Found method {pruning_fn} of type {pruning_fn.PRUNING_TYPE}. "  # type: ignore[union-attr]
             )
 
         self.pruning_fn = pruning_fn
@@ -308,7 +308,7 @@ class ModelPruning(Callback):
 
     def _apply_local_pruning(self, amount: float) -> None:
         for module, name in self._parameters_to_prune:
-            self.pruning_fn(module, name=name, amount=amount)
+            self.pruning_fn(module, name=name, amount=amount)  # type: ignore[call-arg]
 
     def _resolve_global_kwargs(self, amount: float) -> Dict[str, Any]:
         self._global_kwargs["amount"] = amount

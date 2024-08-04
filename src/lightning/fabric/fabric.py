@@ -51,10 +51,8 @@ from lightning.fabric.strategies import (
     FSDPStrategy,
     SingleDeviceStrategy,
     Strategy,
-    XLAFSDPStrategy,
     XLAStrategy,
 )
-from lightning.fabric.strategies.fsdp import _has_meta_device_parameters
 from lightning.fabric.strategies.launchers import _MultiProcessingLauncher, _XLALauncher
 from lightning.fabric.strategies.strategy import TBroadcast, _Sharded
 from lightning.fabric.utilities import move_data_to_device
@@ -67,7 +65,7 @@ from lightning.fabric.utilities.data import (
 )
 from lightning.fabric.utilities.device_dtype_mixin import _update_properties
 from lightning.fabric.utilities.distributed import DistributedSamplerWrapper, _InfiniteBarrier
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
+from lightning.fabric.utilities.init import _has_meta_device_parameters_or_buffers
 from lightning.fabric.utilities.rank_zero import rank_zero_deprecation, rank_zero_warn
 from lightning.fabric.utilities.registry import _load_external_callbacks
 from lightning.fabric.utilities.seed import seed_everything
@@ -227,8 +225,7 @@ class Fabric:
             _reapply_compile: If ``True`` (default), and the model was ``torch.compile``d before, the
                 corresponding :class:`~torch._dynamo.OptimizedModule` wrapper will be removed and reapplied with the
                 same settings after the model was set up by the strategy (e.g., after the model was wrapped by DDP,
-                FSDP etc.). Only applies on PyTorch >= 2.1. Set it to ``False`` if compiling DDP/FSDP is causing
-                issues.
+                FSDP etc.). Set it to ``False`` if compiling DDP/FSDP is causing issues.
 
         Returns:
             The tuple containing wrapped module and the optimizers, in the same order they were passed in.
@@ -294,8 +291,7 @@ class Fabric:
             _reapply_compile: If ``True`` (default), and the model was ``torch.compile``d before, the
                 corresponding :class:`~torch._dynamo.OptimizedModule` wrapper will be removed and reapplied with the
                 same settings after the model was set up by the strategy (e.g., after the model was wrapped by DDP,
-                FSDP etc.). Only applies on PyTorch >= 2.1. Set it to ``False`` if compiling DDP/FSDP is causing
-                issues.
+                FSDP etc.). Set it to ``False`` if compiling DDP/FSDP is causing issues.
         Returns:
             The wrapped model.
 
@@ -672,7 +668,7 @@ class Fabric:
                 "You need to set up the model first before you can call `fabric.no_backward_sync()`:"
                 " `model = fabric.setup(model, ...)`"
             )
-        if not enabled or isinstance(self._strategy, (SingleDeviceStrategy, XLAStrategy)):
+        if isinstance(self._strategy, (SingleDeviceStrategy, XLAStrategy)):
             return nullcontext()
         if self._strategy._backward_sync_control is None:
             rank_zero_warn(
@@ -683,7 +679,7 @@ class Fabric:
             return nullcontext()
 
         forward_module, _ = _unwrap_compiled(module._forward_module)
-        return self._strategy._backward_sync_control.no_backward_sync(forward_module)
+        return self._strategy._backward_sync_control.no_backward_sync(forward_module, enabled)
 
     def sharded_model(self) -> ContextManager:
         r"""Instantiate a model under this context manager to prepare it for model-parallel sharding.
@@ -699,26 +695,14 @@ class Fabric:
 
     def init_tensor(self) -> ContextManager:
         """Tensors that you instantiate under this context manager will be created on the device right away and have
-        the right data type depending on the precision setting in Fabric.
-
-        The automatic device placement under this context manager is only supported with PyTorch 2.0 and newer.
-
-        """
-        if not _TORCH_GREATER_EQUAL_2_0 and self.device.type != "cpu":
-            rank_zero_warn(
-                "`Fabric.init_tensor()` can't place tensors on the device directly"
-                " with PyTorch < 2.0. Parameters will remain on CPU until `Fabric.setup()` is called."
-                " Upgrade to PyTorch >= 2.0 to fully utilize this feature.",
-                category=PossibleUserWarning,
-            )
+        the right data type depending on the precision setting in Fabric."""
         return self._strategy.tensor_init_context()
 
     def init_module(self, empty_init: Optional[bool] = None) -> ContextManager:
         """Instantiate the model and its parameters under this context manager to reduce peak memory usage.
 
         The parameters get created on the device and with the right data type right away without wasting memory being
-        allocated unnecessarily. The automatic device placement under this context manager is only supported with
-        PyTorch 2.0 and newer.
+        allocated unnecessarily.
 
         Args:
             empty_init: Whether to initialize the model with empty weights (uninitialized memory).
@@ -727,13 +711,6 @@ class Fabric:
 
         """
         self._validate_launched()
-        if not _TORCH_GREATER_EQUAL_2_0 and self.device.type != "cpu":
-            rank_zero_warn(
-                "`Fabric.init_module()` can't place the model parameters on the device directly"
-                " with PyTorch < 2.0. Parameters will remain on CPU until `Fabric.setup()` is called."
-                " Upgrade to PyTorch >= 2.0 to fully utilize this feature.",
-                category=PossibleUserWarning,
-            )
         return self._strategy.module_init_context(empty_init=empty_init)
 
     def save(
@@ -932,7 +909,7 @@ class Fabric:
             logger.log_metrics(metrics=metrics, step=step)
 
     @staticmethod
-    def seed_everything(seed: Optional[int] = None, workers: Optional[bool] = None) -> int:
+    def seed_everything(seed: Optional[int] = None, workers: Optional[bool] = None, verbose: bool = True) -> int:
         r"""Helper function to seed everything without explicitly importing Lightning.
 
         See :func:`~lightning.fabric.utilities.seed.seed_everything` for more details.
@@ -942,7 +919,7 @@ class Fabric:
             # Lightning sets `workers=False` by default to avoid breaking reproducibility, but since this is a new
             # release, we can afford to do it.
             workers = True
-        return seed_everything(seed=seed, workers=workers)
+        return seed_everything(seed=seed, workers=workers, verbose=verbose)
 
     def _wrap_and_launch(self, to_run: Callable, *args: Any, **kwargs: Any) -> Any:
         self._launched = True
@@ -1036,14 +1013,8 @@ class Fabric:
         if any(isinstance(opt, _FabricOptimizer) for opt in optimizers):
             raise ValueError("An optimizer should be passed only once to the `setup` method.")
 
-        if isinstance(self._strategy, (FSDPStrategy, XLAFSDPStrategy)) and not _TORCH_GREATER_EQUAL_2_0:
-            raise RuntimeError(
-                f"The `{type(self).__name__}` requires the model and optimizer(s) to be set up separately."
-                " Create and set up the model first through `model = self.setup_module(model)`. Then create the"
-                " optimizer and set it up: `optimizer = self.setup_optimizer(optimizer)`."
-            )
         if isinstance(self._strategy, FSDPStrategy) and any(
-            _has_meta_device_parameters(optimizer) for optimizer in optimizers
+            _has_meta_device_parameters_or_buffers(optimizer) for optimizer in optimizers
         ):
             raise RuntimeError(
                 "The optimizer has references to the model's meta-device parameters. Materializing them is"
@@ -1071,7 +1042,7 @@ class Fabric:
         if any(isinstance(opt, _FabricOptimizer) for opt in optimizers):
             raise ValueError("An optimizer should be passed only once to the `setup_optimizers` method.")
 
-        if any(_has_meta_device_parameters(optimizer) for optimizer in optimizers):
+        if any(_has_meta_device_parameters_or_buffers(optimizer) for optimizer in optimizers):
             raise RuntimeError(
                 "The optimizer has references to the model's meta-device parameters. Materializing them is"
                 " is currently not supported. Create the optimizer after setting up the model, then call"

@@ -16,8 +16,6 @@ A Lightning release number is in the format of ``MAJOR.MINOR.PATCH``.
 
 With every release, we publish a changelog where we list additions, removals, deprecations, changed functionality and fixes.
 
-The ``lightning.app`` package is an exception to this rule, as it may contain any change with or without deprecations in any of the releases.
-
 API Stability
 *************
 
@@ -81,6 +79,18 @@ The table below indicates the coverage of tested versions in our CI. Versions ou
      - ``torch``
      - ``torchmetrics``
      - Python
+   * - 2.4
+     - 2.4
+     - 2.4
+     - ≥2.1, ≤2.4
+     - ≥0.7.0
+     - ≥3.9, ≤3.12
+   * - 2.3
+     - 2.3
+     - 2.3
+     - ≥2.0, ≤2.3
+     - ≥0.7.0
+     - ≥3.8, ≤3.11
    * - 2.2
      - 2.2
      - 2.2
