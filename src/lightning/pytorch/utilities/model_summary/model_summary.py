@@ -27,6 +27,7 @@ from torch.utils.hooks import RemovableHandle
 import lightning.pytorch as pl
 from lightning.pytorch.utilities.model_helpers import _ModuleMode
 from lightning.pytorch.utilities.rank_zero import WarningCache
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_4
 
 log = logging.getLogger(__name__)
 warning_cache = WarningCache()
@@ -472,6 +473,12 @@ def get_human_readable_count(number: int) -> str:
 
 def _is_lazy_weight_tensor(p: Tensor) -> bool:
     from torch.nn.parameter import UninitializedParameter
+
+    if _TORCH_GREATER_EQUAL_2_4:
+        from torch.distributed._tensor import DTensor
+
+        if isinstance(p, DTensor):
+            return False
 
     if isinstance(p, UninitializedParameter):
         warning_cache.warn(
