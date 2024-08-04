@@ -49,7 +49,7 @@ def test_custom_model_summary_callback_summarize(tmp_path):
             total_parameters: int,
             trainable_parameters: int,
             model_size: float,
-            training_modes,
+            total_training_modes,
             **summarize_kwargs: Any,
         ) -> None:
             assert summary_data[1][0] == "Name"
@@ -65,7 +65,7 @@ def test_custom_model_summary_callback_summarize(tmp_path):
             assert summary_data[4][0] == "Mode"
             assert summary_data[4][1][0] == "train"
 
-            assert training_modes == [True]
+            assert total_training_modes == {"train": 1, "eval": 0}
 
     model = BoringModel()
     trainer = Trainer(default_root_dir=tmp_path, callbacks=CustomModelSummary(), max_steps=1)

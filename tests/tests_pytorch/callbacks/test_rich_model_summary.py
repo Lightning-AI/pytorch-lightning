@@ -57,7 +57,11 @@ def test_rich_summary_tuples(mock_table_add_row, mock_console):
     summary_data = summary._get_summary_data()
 
     model_summary.summarize(
-        summary_data=summary_data, total_parameters=1, trainable_parameters=1, model_size=1, training_modes=[True]
+        summary_data=summary_data,
+        total_parameters=1,
+        trainable_parameters=1,
+        model_size=1,
+        total_training_modes=summary.total_training_modes,
     )
 
     # ensure that summary was logged + the breakdown of model parameters
