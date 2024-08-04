@@ -202,6 +202,7 @@ class ModelSummary:
         0.530     Total estimated model params size (MB)
         3         Modules in train mode
         0         Modules in eval mode
+
     """
 
     def __init__(self, model: "pl.LightningModule", max_depth: int = 1) -> None:

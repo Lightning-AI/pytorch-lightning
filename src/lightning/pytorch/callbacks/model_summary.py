@@ -75,7 +75,7 @@ class ModelSummary(Callback):
                 trainable_parameters,
                 model_size,
                 total_training_modes,
-                **self._summarize_kwargs
+                **self._summarize_kwargs,
             )
 
     def _summary(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> Union[DeepSpeedSummary, Summary]:

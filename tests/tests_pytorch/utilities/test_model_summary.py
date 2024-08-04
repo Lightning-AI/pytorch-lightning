@@ -424,7 +424,9 @@ def test_summary_restores_module_mode():
 
 
 def test_total_training_modes():
-    """Test that the `total_training_modes` counts the modules in 'train' and 'eval' mode, excluding the root module."""
+    """Test that the `total_training_modes` counts the modules in 'train' and 'eval' mode, excluding the root
+    module."""
+
     class ModelWithoutChildren(LightningModule):
         pass
 
