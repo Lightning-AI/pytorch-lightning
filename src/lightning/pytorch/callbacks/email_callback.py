@@ -59,10 +59,10 @@ class EmailCallback(Callback):
         smtp_provider: SMTP provider to use for sending the email. Defaults to SMTPProvider.GMAIL.
         metric_precision: Number of decimal places to use for metric values in the email. Defaults to 5.
 
-    Example::
+    Example:
 
         >>> from lightning.pytorch import Trainer
-        >>> from email_callback import EmailCallback
+        >>> from lightning.pytorch.callbacks import EmailCallback
         >>> my_passsword = os.getenv("EMAIL_PASSWORD") # strongly suggest not to hardcode password
         >>> email_callback = EmailCallback(sender_email="your_email@example.com",
                                             password=my_password,
