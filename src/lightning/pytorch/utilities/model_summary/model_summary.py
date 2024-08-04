@@ -351,8 +351,9 @@ class ModelSummary:
         total_parameters = self.total_parameters
         trainable_parameters = self.trainable_parameters
         model_size = self.model_size
+        training_modes = self.training_modes
 
-        return _format_summary_table(total_parameters, trainable_parameters, model_size, *arrays)
+        return _format_summary_table(total_parameters, trainable_parameters, model_size, training_modes, *arrays)
 
     def __repr__(self) -> str:
         return str(self)
@@ -372,6 +373,7 @@ def _format_summary_table(
     total_parameters: int,
     trainable_parameters: int,
     model_size: float,
+    training_modes: List[bool],
     *cols: Tuple[str, List[str]],
 ) -> str:
     """Takes in a number of arrays, each specifying a column in the summary table, and combines them all into one big
@@ -408,6 +410,10 @@ def _format_summary_table(
     summary += "Total params"
     summary += "\n" + s.format(get_formatted_model_size(model_size), 10)
     summary += "Total estimated model params size (MB)"
+    summary += "\n" + s.format(training_modes.count(True), 10)
+    summary += "Submodules in train mode"
+    summary += "\n" + s.format(training_modes.count(False), 10)
+    summary += "Submodules in eval mode"
 
     return summary
 
