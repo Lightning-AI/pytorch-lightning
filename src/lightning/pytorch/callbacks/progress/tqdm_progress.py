@@ -96,9 +96,7 @@ class TQDMProgressBar(ProgressBar):
             Set it to ``0`` to disable the display.
         process_position: Set this to a value greater than ``0`` to offset the progress bars by this many lines.
             This is useful when you have progress bars defined elsewhere and want to show all of them
-            together. This corresponds to
-            :paramref:`~lightning.pytorch.trainer.trainer.Trainer.process_position` in the
-            :class:`~lightning.pytorch.trainer.trainer.Trainer`.
+            together.
         leave: If set to ``True``, leaves the finished progress bar in the terminal at the end of the epoch.
             Default: ``False``
 
