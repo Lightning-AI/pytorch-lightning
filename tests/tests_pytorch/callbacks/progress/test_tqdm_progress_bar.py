@@ -18,7 +18,7 @@ import sys
 from collections import defaultdict
 from typing import Union
 from unittest import mock
-from unittest.mock import ANY, PropertyMock, call, Mock
+from unittest.mock import ANY, Mock, PropertyMock, call
 
 import pytest
 import torch
@@ -790,12 +790,6 @@ def test_tqdm_leave(leave):
     pbar = TQDMProgressBar(leave=leave)
     pbar.init_train_tqdm = Mock(wraps=pbar.init_train_tqdm)
     model = BoringModel()
-    trainer = Trainer(
-        callbacks=[pbar],
-        max_epochs=3,
-        limit_train_batches=1,
-        limit_val_batches=1,
-        benchmark=True
-    )
+    trainer = Trainer(callbacks=[pbar], max_epochs=3, limit_train_batches=1, limit_val_batches=1, benchmark=True)
     trainer.fit(model)
     assert pbar.init_train_tqdm.call_count == (4 if leave else 1)
