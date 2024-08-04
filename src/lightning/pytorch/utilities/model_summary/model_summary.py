@@ -472,6 +472,7 @@ def get_human_readable_count(number: int) -> str:
 def _tensor_has_shape(p: Tensor) -> bool:
     from torch.nn.parameter import UninitializedParameter
 
+    # DTensor is a subtype of `UninitializedParameter`, but the shape is known
     if isinstance(p, UninitializedParameter) and not _is_dtensor(p):
         warning_cache.warn(
             "The total number of parameters detected may be inaccurate because the model contains"
