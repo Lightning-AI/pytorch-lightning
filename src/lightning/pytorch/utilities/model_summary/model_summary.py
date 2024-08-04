@@ -411,9 +411,9 @@ def _format_summary_table(
     summary += "\n" + s.format(get_formatted_model_size(model_size), 10)
     summary += "Total estimated model params size (MB)"
     summary += "\n" + s.format(training_modes.count(True), 10)
-    summary += "Submodules in train mode"
+    summary += "Modules in train mode"
     summary += "\n" + s.format(training_modes.count(False), 10)
-    summary += "Submodules in eval mode"
+    summary += "Modules in eval mode"
 
     return summary
 

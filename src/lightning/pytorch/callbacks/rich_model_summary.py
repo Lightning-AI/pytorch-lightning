@@ -71,6 +71,7 @@ class RichModelSummary(ModelSummary):
         total_parameters: int,
         trainable_parameters: int,
         model_size: float,
+        training_modes: List[bool],
         **summarize_kwargs: Any,
     ) -> None:
         from rich import get_console
@@ -110,5 +111,7 @@ class RichModelSummary(ModelSummary):
         grid.add_row(f"[bold]Non-trainable params[/]: {parameters[1]}")
         grid.add_row(f"[bold]Total params[/]: {parameters[2]}")
         grid.add_row(f"[bold]Total estimated model params size (MB)[/]: {parameters[3]}")
+        grid.add_row(f"[bold]Modules in train mode[/]: {training_modes.count(True)}")
+        grid.add_row(f"[bold]Modules in eval mode[/]: {training_modes.count(False)}")
 
         console.print(grid)
