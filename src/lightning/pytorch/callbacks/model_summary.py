@@ -66,9 +66,17 @@ class ModelSummary(Callback):
         total_parameters = model_summary.total_parameters
         trainable_parameters = model_summary.trainable_parameters
         model_size = model_summary.model_size
+        total_training_modes = model_summary.total_training_modes
 
         if trainer.is_global_zero:
-            self.summarize(summary_data, total_parameters, trainable_parameters, model_size, **self._summarize_kwargs)
+            self.summarize(
+                summary_data,
+                total_parameters,
+                trainable_parameters,
+                model_size,
+                total_training_modes,
+                **self._summarize_kwargs,
+            )
 
     def _summary(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> Union[DeepSpeedSummary, Summary]:
         from lightning.pytorch.strategies.deepspeed import DeepSpeedStrategy
@@ -83,12 +91,14 @@ class ModelSummary(Callback):
         total_parameters: int,
         trainable_parameters: int,
         model_size: float,
+        total_training_modes: Dict[str, int],
         **summarize_kwargs: Any,
     ) -> None:
         summary_table = _format_summary_table(
             total_parameters,
             trainable_parameters,
             model_size,
+            total_training_modes,
             *summary_data,
         )
         log.info("\n" + summary_table)

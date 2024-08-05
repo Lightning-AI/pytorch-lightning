@@ -25,7 +25,7 @@ from lightning.pytorch.utilities.model_summary.model_summary import (
     NOT_APPLICABLE,
     LayerSummary,
     ModelSummary,
-    _is_lazy_weight_tensor,
+    _tensor_has_shape,
     get_human_readable_count,
 )
 
@@ -40,7 +40,7 @@ class DeepSpeedLayerSummary(LayerSummary):
     @override
     def num_parameters(self) -> int:
         """Returns the number of parameters in this module."""
-        return sum(deepspeed_param_size(p) if not _is_lazy_weight_tensor(p) else 0 for p in self._module.parameters())
+        return sum(deepspeed_param_size(p) if not _tensor_has_shape(p) else 0 for p in self._module.parameters())
 
     @property
     def average_shard_parameters(self) -> int:
@@ -49,7 +49,7 @@ class DeepSpeedLayerSummary(LayerSummary):
         def partitioned_size(p: Parameter) -> int:
             return p.partitioned_size() if RequirementCache("deepspeed<0.6.6") else p.partition_numel()
 
-        return sum(partitioned_size(p) if not _is_lazy_weight_tensor(p) else 0 for p in self._module.parameters())
+        return sum(partitioned_size(p) if not _tensor_has_shape(p) else 0 for p in self._module.parameters())
 
 
 class DeepSpeedSummary(ModelSummary):
@@ -71,13 +71,13 @@ class DeepSpeedSummary(ModelSummary):
     @property
     @override
     def total_parameters(self) -> int:
-        return sum(deepspeed_param_size(p) if not _is_lazy_weight_tensor(p) else 0 for p in self._model.parameters())
+        return sum(deepspeed_param_size(p) if not _tensor_has_shape(p) else 0 for p in self._model.parameters())
 
     @property
     @override
     def trainable_parameters(self) -> int:
         return sum(
-            deepspeed_param_size(p) if not _is_lazy_weight_tensor(p) else 0
+            deepspeed_param_size(p) if not _tensor_has_shape(p) else 0
             for p in self._model.parameters()
             if p.requires_grad
         )
