@@ -643,6 +643,6 @@ linkcheck_ignore = [
     "https://www.microsoft.com/en-us/research/blog/zero-infinity-and-deepspeed-unlocking-unprecedented-model-scale-for-deep-learning-training/",  # noqa: E501
     "https://stackoverflow.com/questions/66640705/how-can-i-install-grpcio-on-an-apple-m1-silicon-laptop",
     "https://openai.com/blog/.*",
-    "https://openai.com/index/*"
+    "https://openai.com/index/*",
     "https://tinyurl.com/.*",  # has a human verification check on redirect
 ]
