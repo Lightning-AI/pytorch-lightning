@@ -4,6 +4,8 @@ policy:
   - section:
       - id: ["versions"]
         label:
+          - name: "ver: 1.x"
+            keys: ["v1_x", "v1.X", "1.x"]
           - name: "ver: 2.0.x"
             keys: ["v2_0", "v2.0", "2.0.x"]
           - name: "ver: 2.1.x"
