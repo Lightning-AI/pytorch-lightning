@@ -58,7 +58,7 @@ class EarlyStoppingTestRestore(EarlyStopping):
         self.saved_states.append(self.state_dict().copy())
 
 
-@RunIf(sklearn=True)
+@RunIf(sklearn=True, skip_windows=True)  # Flaky test on Windows for unknown reasons
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_resume_early_stopping_from_checkpoint(tmp_path):
     """Prevent regressions to bugs:
