@@ -25,6 +25,7 @@ from torch import Tensor
 from torch.utils.hooks import RemovableHandle
 
 import lightning.pytorch as pl
+from lightning.fabric.utilities.distributed import _is_dtensor
 from lightning.pytorch.utilities.model_helpers import _ModuleMode
 from lightning.pytorch.utilities.rank_zero import WarningCache
 
@@ -135,7 +136,7 @@ class LayerSummary:
     @property
     def num_parameters(self) -> int:
         """Returns the number of parameters in this module."""
-        return sum(math.prod(p.shape) if not _is_lazy_weight_tensor(p) else 0 for p in self._module.parameters())
+        return sum(p.numel() if not _tensor_has_shape(p) else 0 for p in self._module.parameters())
 
     @property
     def training(self) -> bool:
@@ -264,13 +265,11 @@ class ModelSummary:
 
     @property
     def total_parameters(self) -> int:
-        return sum(p.numel() if not _is_lazy_weight_tensor(p) else 0 for p in self._model.parameters())
+        return sum(p.numel() if not _tensor_has_shape(p) else 0 for p in self._model.parameters())
 
     @property
     def trainable_parameters(self) -> int:
-        return sum(
-            p.numel() if not _is_lazy_weight_tensor(p) else 0 for p in self._model.parameters() if p.requires_grad
-        )
+        return sum(p.numel() if not _tensor_has_shape(p) else 0 for p in self._model.parameters() if p.requires_grad)
 
     @property
     def total_layer_params(self) -> int:
@@ -470,10 +469,11 @@ def get_human_readable_count(number: int) -> str:
     return f"{number:,.1f} {labels[index]}"
 
 
-def _is_lazy_weight_tensor(p: Tensor) -> bool:
+def _tensor_has_shape(p: Tensor) -> bool:
     from torch.nn.parameter import UninitializedParameter
 
-    if isinstance(p, UninitializedParameter):
+    # DTensor is a subtype of `UninitializedParameter`, but the shape is known
+    if isinstance(p, UninitializedParameter) and not _is_dtensor(p):
         warning_cache.warn(
             "The total number of parameters detected may be inaccurate because the model contains"
             " an instance of `UninitializedParameter`. To get an accurate number, set `self.example_input_array`"
