@@ -5,41 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
-## [unreleased] - YYYY-MM-DD
+## [2.4.0] - 2024-08-06
 
 ### Added
 
 - Made saving non-distributed checkpoints fully atomic ([#20011](https://github.com/Lightning-AI/pytorch-lightning/pull/20011))
-
 - Added a flag `verbose` to the `seed_everything()` function ([#20108](https://github.com/Lightning-AI/pytorch-lightning/pull/20108))
-
+- Added support for PyTorch 2.4 ([#20028](https://github.com/Lightning-AI/pytorch-lightning/pull/20028))
+- Added support for Python 3.12 ([20078](https://github.com/Lightning-AI/pytorch-lightning/pull/20078))
 
 ### Changed
 
 - Changed the implementation of how seeds are chosen for dataloader workers when using `seed_everything(..., workers=True)` ([#20055](https://github.com/Lightning-AI/pytorch-lightning/pull/20055))
-
 - NumPy is no longer a required dependency ([#20090](https://github.com/Lightning-AI/pytorch-lightning/issues/20090))
-
-### Deprecated
-
--
-
--
 
 ### Removed
 
 - Removed support for PyTorch 2.1 ([#20009](https://github.com/Lightning-AI/lightning/pull/20009))
-
-
 - Removed support for Python 3.8 ([#20071](https://github.com/Lightning-AI/lightning/pull/20071))
 
 ### Fixed
 
 - Fixed an attribute error when loading a checkpoint into a quantized model using the `_lazy_load()` function ([#20121](https://github.com/Lightning-AI/lightning/pull/20121))
-
-
 - Fixed `_optimizer_to_device` logic for special 'step' key in optimizer state causing performance regression ([#20019](https://github.com/Lightning-AI/lightning/pull/20019))
-
 
 
 ## [2.3.0] - 2024-06-13
