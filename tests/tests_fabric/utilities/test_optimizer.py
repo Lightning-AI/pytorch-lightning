@@ -1,5 +1,4 @@
 import dataclasses
-from collections.abc import Mapping
 
 import pytest
 import torch
@@ -49,7 +48,7 @@ def test_optimizer_to_device(optimizer_class, src_device, dst_device):
     optimizer.step()
     _optimizer_to_device(optimizer, dst_device)
     _assert_opt_parameters_on_device(optimizer, dst_device)
-    
+
 
 def _assert_opt_parameters_on_device(opt, device):
     for _, v in opt.state.items():
