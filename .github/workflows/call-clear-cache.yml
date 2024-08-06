@@ -1,0 +1,33 @@
+name: Clear cache weekly
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/call-clear-cache.yml"
+  workflow_dispatch:
+    inputs:
+      pattern:
+        description: "pattern for cleaning cache"
+        default: "pip-|conda"
+        required: false
+        type: string
+  schedule:
+    # on Sundays
+    - cron: "0 0 * * 0"
+
+jobs:
+  cron-clear:
+    if: github.event_name == 'schedule' || github.event_name == 'pull_request'
+    uses: Lightning-AI/utilities/.github/workflows/cleanup-caches.yml@v0.11.6
+    with:
+      scripts-ref: v0.11.6
+      dry-run: ${{ github.event_name == 'pull_request' }}
+      pattern: "latest|docs"
+
+  direct-clear:
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'pull_request'
+    uses: Lightning-AI/utilities/.github/workflows/cleanup-caches.yml@v0.11.6
+    with:
+      scripts-ref: v0.11.6
+      dry-run: ${{ github.event_name == 'pull_request' }}
+      pattern: ${{ inputs.pattern }}
