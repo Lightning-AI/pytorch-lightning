@@ -47,10 +47,12 @@ jobs:
     if: github.event_name == 'schedule'
     uses: Lightning-AI/utilities/.github/workflows/cleanup-caches.yml@v0.11.6
     with:
+      scripts-ref: v0.11.6
       pattern: "latest|docs"
 
   direct-clear:
     #if: github.event_name == 'workflow_dispatch' # fixme
     uses: Lightning-AI/utilities/.github/workflows/cleanup-caches.yml@v0.11.6
     with:
+      scripts-ref: v0.11.6
       pattern: ${{ inputs.pattern }}
