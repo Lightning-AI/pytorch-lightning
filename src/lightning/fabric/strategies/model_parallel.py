@@ -172,7 +172,7 @@ class ModelParallelStrategy(ParallelStrategy):
         )
 
     @override
-    def setup_module(self, module: TModel) -> TModel:
+    def setup_module(self, module: Module) -> Module:
         from torch.distributed.fsdp import FullyShardedDataParallel
 
         if any(isinstance(mod, FullyShardedDataParallel) for mod in module.modules()):
@@ -181,7 +181,7 @@ class ModelParallelStrategy(ParallelStrategy):
                 f" The `{self.__class__.__name__}` only supports the new FSDP2 APIs in PyTorch >= 2.4."
             )
 
-        module = self._parallelize_fn(module, self.device_mesh)
+        module = self._parallelize_fn(module, self.device_mesh)  # type: ignore[arg-type]
         if not isinstance(module, Module):
             raise TypeError(
                 f"The `parallelize_fn` must return a `nn.Module` instance, but got: {type(module).__name__}"
@@ -462,7 +462,7 @@ def _load_checkpoint(
         _load_raw_module_state(checkpoint.pop(module_key), module, strict=strict)
 
         state_dict_options = StateDictOptions(
-            broadcast_from_rank0=True,  # type: ignore[call-arg]
+            broadcast_from_rank0=True,
             full_state_dict=True,
             strict=strict,
         )
@@ -546,7 +546,7 @@ def _load_raw_module_state(
         from torch.distributed.checkpoint.state_dict import StateDictOptions, set_model_state_dict
 
         state_dict_options = StateDictOptions(
-            broadcast_from_rank0=True,  # type: ignore[call-arg]
+            broadcast_from_rank0=True,
             full_state_dict=True,
             # must be set False to allow loading each param separately below
             strict=False,

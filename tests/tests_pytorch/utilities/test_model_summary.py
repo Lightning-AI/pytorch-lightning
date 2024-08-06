@@ -13,6 +13,7 @@
 # limitations under the License.
 from collections import OrderedDict
 from typing import Any
+from unittest import mock
 
 import pytest
 import torch
@@ -345,6 +346,18 @@ def test_lazy_model_summary():
         assert summary.trainable_parameters == 0
 
 
+@mock.patch("lightning.pytorch.utilities.model_summary.model_summary._is_dtensor", return_value=True)
+def test_dtensor_model_summary(_):
+    """Test that the model summary can work with layers that have DTensor parameters."""
+    # We mock the `_is_dtensor` to pretend parameters are DTensors, because testing with real DTensors
+    # would require setting up distributed
+    dtensor_model = UnorderedModel()
+    summary = ModelSummary(dtensor_model)
+    assert summary.total_layer_params > 0
+    assert summary.total_parameters > 0
+    assert summary.trainable_parameters > 0
+
+
 @pytest.mark.parametrize("max_depth", [-1, 0, 1, 3, 999])
 def test_max_depth_param(max_depth):
     """Test that only the modules up to the desired depth are shown."""
@@ -423,6 +436,29 @@ def test_summary_restores_module_mode():
     assert not model.layer2.training
 
 
+def test_total_training_modes():
+    """Test that the `total_training_modes` counts the modules in 'train' and 'eval' mode, excluding the root
+    module."""
+
+    class ModelWithoutChildren(LightningModule):
+        pass
+
+    summary = ModelSummary(ModelWithoutChildren())
+    assert summary.total_training_modes == {"train": 0, "eval": 0}
+
+    model = DeepNestedModel()
+    summary = ModelSummary(model)
+    assert summary.total_training_modes == {"train": 19, "eval": 0}
+    assert sum(summary.total_training_modes.values()) == len(list(model.modules())) - 1
+
+    model = DeepNestedModel()
+    summary = ModelSummary(model)
+    model.branch1[1][0].eval()
+    model.branch2.eval()
+    assert summary.total_training_modes == {"train": 17, "eval": 2}
+    assert sum(summary.total_training_modes.values()) == len(list(model.modules())) - 1
+
+
 def test_summary_training_mode():
     """Test that the model summary captures the training mode on all submodules."""
     model = DeepNestedModel()
@@ -436,6 +472,7 @@ def test_summary_training_mode():
         "eval",  # branch2
         "train",  # head
     ]
+    assert summary.total_training_modes == {"train": 17, "eval": 2}
 
     summary = summarize(model, max_depth=-1)
     expected_eval = {"branch1.1.0", "branch2"}
@@ -445,5 +482,7 @@ def test_summary_training_mode():
     # A model with params not belonging to a layer
     model = NonLayerParamsModel()
     model.layer.eval()
-    summary_data = OrderedDict(summarize(model)._get_summary_data())
+    summary = summarize(model)
+    summary_data = OrderedDict(summary._get_summary_data())
     assert summary_data["Mode"] == ["eval", "n/a"]
+    assert summary.total_training_modes == {"train": 0, "eval": 1}

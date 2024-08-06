@@ -83,6 +83,15 @@ Which
             filename="sample-mnist-{epoch:02d}-{global_step}",
         )
 
+    .. note::
+
+        It is recommended that you pass formatting options to ``filename`` to include the monitored metric like shown
+        in the example above. Otherwise, if ``save_top_k >= 2`` and ``enable_version_counter=True`` (default), a
+        version is appended to the ``filename`` to prevent filename collisions. You should not rely on the appended
+        version to retrieve the top-k model, since there is no relationship between version count and model performance.
+        For example, ``filename-v2.ckpt`` doesn't necessarily correspond to the top-2 model.
+
+
 -  You can customize the checkpointing behavior to monitor any quantity of your training or validation steps. For example, if you want to update your checkpoints based on your validation loss:
 
 |

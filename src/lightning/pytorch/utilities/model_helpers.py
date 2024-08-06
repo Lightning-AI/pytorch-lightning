@@ -127,6 +127,9 @@ class _restricted_classmethod_impl(Generic[_T, _P, _R_co]):
         return wrapper
 
 
-# trick static type checkers into thinking it's a @classmethod
-# https://github.com/microsoft/pyright/issues/5865
-_restricted_classmethod = classmethod if TYPE_CHECKING else _restricted_classmethod_impl
+if TYPE_CHECKING:
+    # trick static type checkers into thinking it's a @classmethod
+    # https://github.com/microsoft/pyright/issues/5865
+    _restricted_classmethod = classmethod
+else:
+    _restricted_classmethod = _restricted_classmethod_impl

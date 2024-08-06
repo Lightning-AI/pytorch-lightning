@@ -68,9 +68,18 @@ jobs:
           ref: ${{ inputs.checkout }}
           # only Pytorch has/uses notebooks
           submodules: ${{ matrix.pkg-name == 'pytorch' }}
+          lfs: ${{ matrix.pkg-name == 'pytorch' }}
       - uses: actions/setup-python@v5
         with:
           python-version: "3.9"
+
+      - name: List notebooks
+        if: ${{ matrix.pkg-name == 'pytorch' }}
+        working-directory: _notebooks/
+        run: |
+          pip install -q py-tree
+          py-tree .notebooks/
+          ls -lhR .notebooks/
 
       - name: Pull sphinx template
         run: |
@@ -126,14 +135,14 @@ jobs:
           path: docs/build/html/
           retention-days: ${{ env.ARTIFACT_DAYS }}
 
-      - name: Dump handy wheels
-        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
-        continue-on-error: true
-        uses: ./.github/actions/pip-wheels
-        with:
-          wheel-dir: ${{ env.PYPI_CACHE_DIR }}
-          torch-url: ${{ env.TORCH_URL }}
-          cache-key: "pypi_wheels"
+      #- name: Dump handy wheels
+      #  if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+      #  continue-on-error: true
+      #  uses: ./.github/actions/pip-wheels
+      #  with:
+      #    wheel-dir: ${{ env.PYPI_CACHE_DIR }}
+      #    torch-url: ${{ env.TORCH_URL }}
+      #    cache-key: "pypi_wheels"
 
   deploy-docs:
     needs: docs-make

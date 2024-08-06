@@ -25,6 +25,7 @@ from torch import Tensor
 from torch.utils.hooks import RemovableHandle
 
 import lightning.pytorch as pl
+from lightning.fabric.utilities.distributed import _is_dtensor
 from lightning.pytorch.utilities.model_helpers import _ModuleMode
 from lightning.pytorch.utilities.rank_zero import WarningCache
 
@@ -135,7 +136,7 @@ class LayerSummary:
     @property
     def num_parameters(self) -> int:
         """Returns the number of parameters in this module."""
-        return sum(math.prod(p.shape) if not _is_lazy_weight_tensor(p) else 0 for p in self._module.parameters())
+        return sum(p.numel() if not _tensor_has_shape(p) else 0 for p in self._module.parameters())
 
     @property
     def training(self) -> bool:
@@ -187,6 +188,8 @@ class ModelSummary:
         0         Non-trainable params
         132 K     Total params
         0.530     Total estimated model params size (MB)
+        3         Modules in train mode
+        0         Modules in eval mode
         >>> ModelSummary(model, max_depth=-1)  # doctest: +NORMALIZE_WHITESPACE
           | Name  | Type        | Params | Mode  | In sizes  | Out sizes
         ----------------------------------------------------------------------
@@ -198,6 +201,8 @@ class ModelSummary:
         0         Non-trainable params
         132 K     Total params
         0.530     Total estimated model params size (MB)
+        3         Modules in train mode
+        0         Modules in eval mode
 
     """
 
@@ -253,14 +258,18 @@ class ModelSummary:
         return [layer.training for layer in self._layer_summary.values()]
 
     @property
+    def total_training_modes(self) -> Dict[str, int]:
+        modes = [layer.training for layer in self._model.modules()]
+        modes = modes[1:]  # exclude the root module
+        return {"train": modes.count(True), "eval": modes.count(False)}
+
+    @property
     def total_parameters(self) -> int:
-        return sum(p.numel() if not _is_lazy_weight_tensor(p) else 0 for p in self._model.parameters())
+        return sum(p.numel() if not _tensor_has_shape(p) else 0 for p in self._model.parameters())
 
     @property
     def trainable_parameters(self) -> int:
-        return sum(
-            p.numel() if not _is_lazy_weight_tensor(p) else 0 for p in self._model.parameters() if p.requires_grad
-        )
+        return sum(p.numel() if not _tensor_has_shape(p) else 0 for p in self._model.parameters() if p.requires_grad)
 
     @property
     def total_layer_params(self) -> int:
@@ -351,8 +360,9 @@ class ModelSummary:
         total_parameters = self.total_parameters
         trainable_parameters = self.trainable_parameters
         model_size = self.model_size
+        total_training_modes = self.total_training_modes
 
-        return _format_summary_table(total_parameters, trainable_parameters, model_size, *arrays)
+        return _format_summary_table(total_parameters, trainable_parameters, model_size, total_training_modes, *arrays)
 
     def __repr__(self) -> str:
         return str(self)
@@ -372,6 +382,7 @@ def _format_summary_table(
     total_parameters: int,
     trainable_parameters: int,
     model_size: float,
+    total_training_modes: Dict[str, int],
     *cols: Tuple[str, List[str]],
 ) -> str:
     """Takes in a number of arrays, each specifying a column in the summary table, and combines them all into one big
@@ -408,6 +419,10 @@ def _format_summary_table(
     summary += "Total params"
     summary += "\n" + s.format(get_formatted_model_size(model_size), 10)
     summary += "Total estimated model params size (MB)"
+    summary += "\n" + s.format(total_training_modes["train"], 10)
+    summary += "Modules in train mode"
+    summary += "\n" + s.format(total_training_modes["eval"], 10)
+    summary += "Modules in eval mode"
 
     return summary
 
@@ -454,10 +469,11 @@ def get_human_readable_count(number: int) -> str:
     return f"{number:,.1f} {labels[index]}"
 
 
-def _is_lazy_weight_tensor(p: Tensor) -> bool:
+def _tensor_has_shape(p: Tensor) -> bool:
     from torch.nn.parameter import UninitializedParameter
 
-    if isinstance(p, UninitializedParameter):
+    # DTensor is a subtype of `UninitializedParameter`, but the shape is known
+    if isinstance(p, UninitializedParameter) and not _is_dtensor(p):
         warning_cache.warn(
             "The total number of parameters detected may be inaccurate because the model contains"
             " an instance of `UninitializedParameter`. To get an accurate number, set `self.example_input_array`"

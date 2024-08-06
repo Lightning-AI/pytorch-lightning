@@ -4,17 +4,17 @@ policy:
   - section:
       - id: ["versions"]
         label:
-          - name: "ver: 1.6.x"
-            keys: ["v1_6", "v1.6", "1.6.x"]
-          - name: "ver: 1.7.x"
-            keys: ["v1_7", "v1.7", "1.7.x"]
-          - name: "ver: 1.8.x"
-            keys: ["v1_8", "v1.8", "1.8.x"]
-          - name: "ver: 1.9.x"
-            keys: ["v1_9", "v1.9", "1.9.x"]
+          - name: "ver: 1.x"
+            keys: ["v1_x", "v1.X", "1.x"]
           - name: "ver: 2.0.x"
             keys: ["v2_0", "v2.0", "2.0.x"]
           - name: "ver: 2.1.x"
             keys: ["v2_1", "v2.1", "2.1.x"]
           - name: "ver: 2.2.x"
+            keys: ["v2_2", "v2.2", "2.2.x"]
+          - name: "ver: 2.3.x"
+            keys: ["v2_3", "v2.3", "2.3.x"]
+          - name: "ver: 2.4.x"
+            keys: ["v2_4", "v2.4", "2.4.x"]
+          - name: "ver: 2.4.x"
             keys: ["master"]

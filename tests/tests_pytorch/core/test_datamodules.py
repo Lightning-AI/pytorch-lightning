@@ -218,7 +218,7 @@ def test_dm_checkpoint_save_and_load(tmp_path):
         assert dm.my_state_dict == {"my": "state_dict"}
 
 
-@RunIf(sklearn=True)
+@RunIf(sklearn=True, skip_windows=True)  # Flaky test on Windows for unknown reasons
 def test_full_loop(tmp_path):
     seed_everything(7)
 

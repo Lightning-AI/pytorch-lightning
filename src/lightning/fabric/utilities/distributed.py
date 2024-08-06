@@ -14,10 +14,11 @@ import torch.nn.functional as F
 from lightning_utilities.core.imports import package_available
 from torch import Tensor
 from torch.utils.data import Dataset, DistributedSampler, Sampler
-from typing_extensions import Self, override
+from typing_extensions import Self, TypeGuard, override
 
 from lightning.fabric.utilities.cloud_io import _is_local_file_protocol
 from lightning.fabric.utilities.data import _num_cpus_available
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_4
 from lightning.fabric.utilities.rank_zero import rank_zero_info
 from lightning.fabric.utilities.types import _PATH, ReduceOp
 
@@ -30,6 +31,8 @@ else:
 
 
 if TYPE_CHECKING:
+    from torch.distributed._tensor import DTensor
+
     from lightning.fabric.plugins import ClusterEnvironment
     from lightning.fabric.strategies import Strategy
 
@@ -427,3 +430,11 @@ class _InfiniteBarrier:
         self.barrier()
         if self.group is not None:
             torch.distributed.destroy_process_group(self.group)
+
+
+def _is_dtensor(tensor: Tensor) -> TypeGuard["DTensor"]:
+    if _TORCH_GREATER_EQUAL_2_4:
+        from torch.distributed._tensor import DTensor
+
+        return isinstance(tensor, DTensor)
+    return False
