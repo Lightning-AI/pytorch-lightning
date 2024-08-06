@@ -9,6 +9,10 @@ on:
         default: "pip-|conda"
         required: false
         type: string
+  schedule:
+    # on Sundays
+    - cron: "0 0 * * 0"
+
 
 
 jobs:
