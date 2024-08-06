@@ -13,8 +13,6 @@ on:
     # on Sundays
     - cron: "0 0 * * 0"
 
-
-
 jobs:
   pr-cleanup:
     # https://docs.github.com/en/actions/using-workflows/caching-dependencies-to-speed-up-workflows#force-deleting-cache-entries
