@@ -17,6 +17,11 @@ on:
         default: "pip"
         required: false
         type: string
+      age-days:
+        description: "setting the age of caches in days to be dropped"
+        required: true
+        type: number
+        default: 7
 
 jobs:
   drop-unused-caches:
@@ -26,4 +31,4 @@ jobs:
       dry-run: ${{ github.event_name == 'pull_request' }}
       # ise input if set of default...
       pattern: ${{ inputs.pattern || 'pip|conda' }}
-      age-days: 2
+      age-days: ${{ fromJSON(inputs.age-days) || 2 }}
