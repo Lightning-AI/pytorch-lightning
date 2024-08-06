@@ -37,4 +37,4 @@ jobs:
       scripts-ref: v0.11.6
       dry-run: ${{ github.event_name == 'pull_request' }}
       pattern: ${{ inputs.pattern }}
-      age-days: ${{ inputs.age-days || 3 }} # setting 3 in case of PR
+      age-days: ${{ inputs.age-days || 0 }} # setting 0 in case of PR
