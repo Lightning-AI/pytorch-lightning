@@ -1,7 +1,7 @@
 name: cleanup caches
 on:
   pull_request:
-    types: [closed]
+    #types: [closed] # fixme
   workflow_dispatch:
     inputs:
       pattern:
@@ -50,7 +50,7 @@ jobs:
       pattern: "latest|docs"
 
   direct-clear:
-    if: github.event_name == 'workflow_dispatch'
+    #if: github.event_name == 'workflow_dispatch' # fixme
     uses: Lightning-AI/utilities/.github/workflows/cleanup-caches.yml@v0.11.6
     with:
       pattern: ${{ inputs.pattern }}
