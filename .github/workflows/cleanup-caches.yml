@@ -3,10 +3,19 @@ name: cleanup caches by a branch
 on:
   pull_request:
     types: [closed]
+  workflow_dispatch:
+    inputs:
+      pattern:
+        description: "pattern for cleaning cache"
+        default: "pip-|conda"
+        required: false
+        type: string
+
 
 jobs:
   pr-cleanup:
     runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'pull_request' }}
     steps:
       - name: Check out code
         uses: actions/checkout@v4
@@ -31,3 +40,15 @@ jobs:
           echo "Done"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  cron-clear:
+    if: github.event_name == 'schedule'
+    uses: Lightning-AI/utilities/.github/workflows/cleanup-caches.yml@v0.11.6
+    with:
+      pattern: "latest|docs"
+
+  direct-clear:
+    if: github.event_name == 'workflow_dispatch'
+    uses: Lightning-AI/utilities/.github/workflows/cleanup-caches.yml@v0.11.6
+    with:
+      pattern: ${{ inputs.pattern }}
