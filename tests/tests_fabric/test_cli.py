@@ -73,7 +73,7 @@ def test_run_get_supported_strategies():
     CLI."""
     assert len(_get_supported_strategies()) == 8
     assert "fsdp" in _get_supported_strategies()
-    assert "find_unused_parameters_true" in _get_supported_strategies()
+    assert "ddp_find_unused_parameters_true" in _get_supported_strategies()
 
 
 @pytest.mark.parametrize("strategy", ["ddp_spawn", "ddp_fork", "ddp_notebook", "deepspeed_stage_3_offload"])
