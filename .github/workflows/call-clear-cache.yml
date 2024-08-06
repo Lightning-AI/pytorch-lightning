@@ -1,6 +1,9 @@
 name: Clear cache weekly
 
 on:
+  pull_request:
+    paths:
+      - ".github/workflows/call-clear-cache.yml"
   workflow_dispatch:
     inputs:
       pattern:
@@ -8,16 +11,30 @@ on:
         default: "pip-|conda"
         required: false
         type: string
+      age-days:
+        description: "setting the age of caches in days to be dropped"
+        required: true
+        type: number
+        default: 5
+  schedule:
+    # on Sundays
+    - cron: "0 0 * * 0"
 
 jobs:
   cron-clear:
-    if: github.event_name == 'schedule'
-    uses: Lightning-AI/utilities/.github/workflows/clear-cache.yml@v0.11.6
+    if: github.event_name == 'schedule' || github.event_name == 'pull_request'
+    uses: Lightning-AI/utilities/.github/workflows/cleanup-caches.yml@v0.11.6
     with:
+      scripts-ref: v0.11.6
+      dry-run: ${{ github.event_name == 'pull_request' }}
       pattern: "latest|docs"
+      age-days: 7
 
   direct-clear:
-    if: github.event_name == 'workflow_dispatch'
-    uses: Lightning-AI/utilities/.github/workflows/clear-cache.yml@v0.11.6
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'pull_request'
+    uses: Lightning-AI/utilities/.github/workflows/cleanup-caches.yml@v0.11.6
     with:
-      pattern: ${{ inputs.pattern }}
+      scripts-ref: v0.11.6
+      dry-run: ${{ github.event_name == 'pull_request' }}
+      pattern: ${{ inputs.pattern || 'pypi_wheels' }} # setting str in case of PR / debugging
+      age-days: ${{ inputs.age-days || 0 }} # setting 0 in case of PR / debugging
