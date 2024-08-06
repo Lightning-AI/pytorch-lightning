@@ -11,6 +11,11 @@ on:
         default: "pip-|conda"
         required: false
         type: string
+      age-days:
+        description: "setting the age of caches in days to be dropped"
+        required: true
+        type: number
+        default: 5
   schedule:
     # on Sundays
     - cron: "0 0 * * 0"
@@ -23,6 +28,7 @@ jobs:
       scripts-ref: v0.11.6
       dry-run: ${{ github.event_name == 'pull_request' }}
       pattern: "latest|docs"
+      age-days: 7
 
   direct-clear:
     if: github.event_name == 'workflow_dispatch' || github.event_name == 'pull_request'
@@ -31,3 +37,4 @@ jobs:
       scripts-ref: v0.11.6
       dry-run: ${{ github.event_name == 'pull_request' }}
       pattern: ${{ inputs.pattern }}
+      age-days: ${{ inputs.age-days }}
