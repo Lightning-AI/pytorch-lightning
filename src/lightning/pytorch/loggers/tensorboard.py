@@ -153,15 +153,19 @@ class TensorBoardLogger(Logger, FabricTensorBoardLogger):
     @override
     @rank_zero_only
     def log_hyperparams(
-        self, params: Union[Dict[str, Any], Namespace], metrics: Optional[Dict[str, Any]] = None
+        self,
+        params: Union[Dict[str, Any], Namespace],
+        metrics: Optional[Dict[str, Any]] = None,
+        step: Optional[int] = None,
     ) -> None:
         """Record hyperparameters. TensorBoard logs with and without saved hyperparameters are incompatible, the
         hyperparameters are then not displayed in the TensorBoard. Please delete or move the previously saved logs to
         display the new ones with hyperparameters.
 
         Args:
-            params: a dictionary-like container with the hyperparameters
+            params: A dictionary-like container with the hyperparameters
             metrics: Dictionary with metric names as keys and measured quantities as values
+            step: Optional global step number for the logged metrics
 
         """
         if _OMEGACONF_AVAILABLE:
@@ -175,7 +179,7 @@ class TensorBoardLogger(Logger, FabricTensorBoardLogger):
         else:
             self.hparams.update(params)
 
-        return super().log_hyperparams(params=params, metrics=metrics)
+        return super().log_hyperparams(params=params, metrics=metrics, step=step)
 
     @override
     @rank_zero_only
