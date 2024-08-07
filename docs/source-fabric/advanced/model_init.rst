@@ -90,7 +90,6 @@ With DeepSpeed Stage 3, the use of :meth:`~lightning.fabric.fabric.Fabric.init_m
     optimizer = torch.optim.Adam(model.parameters())
     model, optimizer = fabric.setup(model, optimizer)
 
-
 .. note::
     Empty-init is experimental and the behavior may change in the future.
     For distributed models, it is required that all user-defined modules that manage parameters implement a ``reset_parameters()`` method (all PyTorch built-in modules have this too).
