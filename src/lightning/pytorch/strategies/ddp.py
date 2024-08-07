@@ -134,7 +134,7 @@ class DDPStrategy(ParallelStrategy):
     @property
     @override
     def distributed_sampler_kwargs(self) -> Dict[str, Any]:
-        return {"num_replicas": (self.num_nodes * self.num_processes), "rank": self.global_rank}
+        return {"num_replicas": self.world_size, "rank": self.global_rank}
 
     @property
     def process_group_backend(self) -> Optional[str]:
