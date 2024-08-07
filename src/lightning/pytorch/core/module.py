@@ -17,6 +17,7 @@ import logging
 import numbers
 import weakref
 from contextlib import contextmanager
+from io import BytesIO
 from pathlib import Path
 from typing import (
     IO,
@@ -1364,7 +1365,7 @@ class LightningModule(
             )
 
     @torch.no_grad()
-    def to_onnx(self, file_path: Union[str, Path, IO], input_sample: Optional[Any] = None, **kwargs: Any) -> None:
+    def to_onnx(self, file_path: Union[str, Path, BytesIO], input_sample: Optional[Any] = None, **kwargs: Any) -> None:
         """Saves the model in ONNX format.
 
         Args:
