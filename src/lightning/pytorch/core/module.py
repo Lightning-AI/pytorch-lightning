@@ -1403,8 +1403,7 @@ class LightningModule(
         input_sample = self._on_before_batch_transfer(input_sample)
         input_sample = self._apply_batch_transfer_handler(input_sample)
 
-        if isinstance(file_path, Path):
-            file_path = file_path.as_posix()
+        file_path = str(file_path) if isinstance(file_path, Path) else file_path
         torch.onnx.export(self, input_sample, file_path, **kwargs)
         self.train(mode)
 
