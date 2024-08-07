@@ -17,6 +17,7 @@ import logging
 import numbers
 import weakref
 from contextlib import contextmanager
+from io import BytesIO
 from pathlib import Path
 from typing import (
     IO,
@@ -1364,7 +1365,7 @@ class LightningModule(
             )
 
     @torch.no_grad()
-    def to_onnx(self, file_path: Union[str, Path], input_sample: Optional[Any] = None, **kwargs: Any) -> None:
+    def to_onnx(self, file_path: Union[str, Path, BytesIO], input_sample: Optional[Any] = None, **kwargs: Any) -> None:
         """Saves the model in ONNX format.
 
         Args:
@@ -1403,7 +1404,8 @@ class LightningModule(
         input_sample = self._on_before_batch_transfer(input_sample)
         input_sample = self._apply_batch_transfer_handler(input_sample)
 
-        torch.onnx.export(self, input_sample, str(file_path), **kwargs)
+        file_path = str(file_path) if isinstance(file_path, Path) else file_path
+        torch.onnx.export(self, input_sample, file_path, **kwargs)
         self.train(mode)
 
     @torch.no_grad()
