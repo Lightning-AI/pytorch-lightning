@@ -64,11 +64,11 @@ class EmailCallback(Callback):
         >>> import os
         >>> from lightning.pytorch import Trainer
         >>> from lightning.pytorch.callbacks import EmailCallback
-        >>> my_password = os.getenv("EMAIL_PASSWORD")  # strongly suggest not to hardcode password
+        >>> your_password = os.getenv("EMAIL_PASSWORD")  # strongly suggest not to hardcode password
         >>> email_callback = EmailCallback(
-        ...     sender_email="your_email@example.com",
-        ...     password=my_password,
-        ...     receiver_emails=["receiver@example.com"]
+        ...     sender_email = "your_email@example.com",
+        ...     password = your_password,
+        ...     receiver_emails = ["receiver@example.com"]
         ... )
         >>> trainer = Trainer(callbacks=[email_callback])
 
