@@ -141,7 +141,7 @@ class _NotYetLoadedTensor:
         return func(*loaded_args, **kwargs)
 
     @property
-    def device(self):
+    def device(self) -> torch.device:
         return torch.device(self.storageinfo[3])
 
     def __getattr__(self, name: str) -> Any:
