@@ -630,8 +630,10 @@ linkcheck_anchors = False
 # A timeout value, in seconds, for the linkcheck builder.
 linkcheck_timeout = 60
 
-# ignore all links in any CHANGELOG file
-linkcheck_exclude_documents = [r"^(.*\/)*CHANGELOG.*$"]
+linkcheck_exclude_documents = [
+    r"^(.*\/)*CHANGELOG.*$",  # ignore all links in any CHANGELOG file
+    r"notebooks/.*",  # ignore notebooks, it's a submodule
+]
 
 # ignore the following relative links (false positive errors during linkcheck)
 linkcheck_ignore = [
@@ -643,6 +645,6 @@ linkcheck_ignore = [
     "https://www.microsoft.com/en-us/research/blog/zero-infinity-and-deepspeed-unlocking-unprecedented-model-scale-for-deep-learning-training/",  # noqa: E501
     "https://stackoverflow.com/questions/66640705/how-can-i-install-grpcio-on-an-apple-m1-silicon-laptop",
     "https://openai.com/blog/.*",
-    "https://openai.com/index/*"
+    "https://openai.com/index/*",
     "https://tinyurl.com/.*",  # has a human verification check on redirect
 ]
