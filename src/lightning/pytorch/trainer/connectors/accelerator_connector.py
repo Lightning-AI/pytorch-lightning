@@ -15,6 +15,7 @@
 import logging
 import os
 from collections import Counter
+from collections.abc import Iterable
 from typing import Dict, List, Literal, Optional, Union
 
 import torch
@@ -182,7 +183,7 @@ class _AcceleratorConnector:
 
         """
         if plugins is not None:
-            plugins = [plugins] if not isinstance(plugins, list) else plugins
+            plugins = [plugins] if not isinstance(plugins, Iterable) else plugins
 
         if isinstance(strategy, str):
             strategy = strategy.lower()
