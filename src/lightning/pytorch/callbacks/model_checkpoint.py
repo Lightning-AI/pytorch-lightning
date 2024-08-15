@@ -260,7 +260,6 @@ class ModelCheckpoint(Checkpoint):
         self.last_model_path = ""
         self._last_checkpoint_saved = ""
 
-
     @property
     @override
     def state_key(self) -> str:
