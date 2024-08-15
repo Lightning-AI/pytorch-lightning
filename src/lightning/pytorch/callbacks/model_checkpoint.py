@@ -249,7 +249,7 @@ class ModelCheckpoint(Checkpoint):
         self.__init_triggers(every_n_train_steps, every_n_epochs, train_time_interval)
         self.__validate_init_configuration()
 
-    def __init_state(self):
+    def __init_state(self) -> None:
         self._last_global_step_saved = 0  # no need to save when no steps were taken
         self._last_time_checked: Optional[float] = None
         self.current_score: Optional[Tensor] = None
