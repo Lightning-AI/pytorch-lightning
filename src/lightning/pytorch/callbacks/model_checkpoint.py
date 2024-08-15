@@ -242,7 +242,7 @@ class ModelCheckpoint(Checkpoint):
         self._filename = filename
         self._mode = mode
 
-        self.kth_value: Tensor
+        self.kth_value: Optional[Tensor] = None
         self.dirpath: Optional[_PATH]
 
         self.__init_state()
@@ -266,7 +266,7 @@ class ModelCheckpoint(Checkpoint):
     def state_key(self) -> str:
         return self._generate_state_key(
             monitor=self.monitor,
-            mode=self.mode,
+            mode=self._mode,
             every_n_train_steps=self._every_n_train_steps,
             every_n_epochs=self._every_n_epochs,
             train_time_interval=self._train_time_interval,
@@ -351,7 +351,7 @@ class ModelCheckpoint(Checkpoint):
             "best_model_score": self.best_model_score,
             "best_model_path": self.best_model_path,
             "current_score": self.current_score,
-            "dirpath": self.dirpath,
+            "dirpath": self._dirpath,
             "best_k_models": self.best_k_models,
             "kth_best_model_path": self.kth_best_model_path,
             "kth_value": self.kth_value,
