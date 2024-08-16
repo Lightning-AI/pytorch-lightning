@@ -12,13 +12,13 @@
 ______________________________________________________________________
 
 <p align="center">
-  <a href="https://lightning.ai/">Lightning AI</a> •   
+    <a href="#quick-start" style="margin: 0 10px;">Quick start</a> •
   <a href="#examples">Examples</a> •
-  <a href="#pytorch-lightning-train-and-deploy-pytorch-at-scale">PyTorch Lightning</a> •
+  <a href="#why-pytorch-lightning">PyTorch Lightning</a> •
   <a href="#lightning-fabric-expert-control">Fabric</a> •
-  <a href="https://pytorch-lightning.readthedocs.io/en/stable/">Docs</a> •
+  <a href="https://lightning.ai/">Lightning AI</a> •   
   <a href="#community">Community</a> •
-  <a href="https://lightning.ai/docs/pytorch/stable/generated/CONTRIBUTING.html">Contribute</a> •
+  <a href="https://pytorch-lightning.readthedocs.io/en/stable/">Docs</a>
 </p>
 
 <!-- DO NOT ADD CONDA DOWNLOADS... README CHANGES MUST BE APPROVED BY EDEN OR WILL -->
@@ -53,9 +53,24 @@ ______________________________________________________________________
 
 </div>
 
-## Install Lightning
+&nbsp;
 
-Simple installation from PyPI
+# Lightning has 2 core packages
+
+[PyTorch Lightning: Train and deploy PyTorch at scale](#why-pytorch-lightning).
+<br/>
+[Lightning Fabric: Expert control](#lightning-fabric-expert-control).
+
+Lightning gives you granular control over how much abstraction you want to add over PyTorch.
+
+<div align="center">
+    <img src="https://pl-public-data.s3.amazonaws.com/assets_lightning/continuum.png" width="80%">
+</div>
+
+&nbsp;
+
+# Quick start
+Install Lightning:
 
 ```bash
 pip install lightning
@@ -64,7 +79,7 @@ pip install lightning
 <!-- following section will be skipped from PyPI description -->
 
 <details>
-  <summary>Other installation options</summary>
+  <summary>Advanced install options</summary>
     <!-- following section will be skipped from PyPI description -->
 
 #### Install with optional dependencies
@@ -104,48 +119,8 @@ pip install -iU https://test.pypi.org/simple/ pytorch-lightning
 </details>
 <!-- end skipping PyPI description -->
 
-______________________________________________________________________
-
-## Lightning has 2 core packages
-
-[PyTorch Lightning: Train and deploy PyTorch at scale](#pytorch-lightning-train-and-deploy-pytorch-at-scale).
-<br/>
-[Lightning Fabric: Expert control](#lightning-fabric-expert-control).
-
-Lightning gives you granular control over how much abstraction you want to add over PyTorch.
-
-<div align="center">
-    <img src="https://pl-public-data.s3.amazonaws.com/assets_lightning/continuum.png" width="80%">
-</div>
-
-&nbsp;
-&nbsp;
-
-
-# PyTorch Lightning: Train and Deploy PyTorch at Scale
-
-PyTorch Lightning is just organized PyTorch - Lightning disentangles PyTorch code to decouple the science from the engineering.
-
-![PT to PL](docs/source-pytorch/_static/images/general/pl_quick_start_full_compressed.gif)
-
-______________________________________________________________________
-
-### Examples
-Explore various types of training possible with PyTorch Lightning. Pretrain and finetune ANY kind of model to perform ANY task like classification, segmentation, summarization and more:    
-
-| Task                                                                                                        | Description                                                    | Run |
-|-------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------|---|
-| [Hello world](#hello-simple-model)                                                                          | Pretrain - Hello world example                                 | <a target="_blank" href="https://lightning.ai/lightning-ai/studios/pytorch-lightning-hello-world"><img src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/app-2/studio-badge.svg" alt="Open In Studio"/></a> |
-| [Image classification](https://lightning.ai/lightning-ai/studios/image-classification-with-pytorch-lightning) | Finetune - ResNet-34 model to classify images of cars          | <a target="_blank" href="https://lightning.ai/lightning-ai/studios/image-classification-with-pytorch-lightning"><img src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/app-2/studio-badge.svg" alt="Open In Studio"/></a> |   
-| [Image segmentation](https://lightning.ai/lightning-ai/studios/image-segmentation-with-pytorch-lightning)   | Finetune - ResNet-50 model to segment images                   | <a target="_blank" href="https://lightning.ai/lightning-ai/studios/image-segmentation-with-pytorch-lightning"><img src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/app-2/studio-badge.svg" alt="Open In Studio"/></a> |   
-| [Object detection](https://lightning.ai/lightning-ai/studios/object-detection-with-pytorch-lightning)       | Finetune - Faster R-CNN model to detect objects                   | <a target="_blank" href="https://lightning.ai/lightning-ai/studios/object-detection-with-pytorch-lightning"><img src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/app-2/studio-badge.svg" alt="Open In Studio"/></a> |
-| [Text classification](https://lightning.ai/lightning-ai/studios/text-classification-with-pytorch-lightning) | Finetune - text classifier (BERT model)                        | <a target="_blank" href="https://lightning.ai/lightning-ai/studios/text-classification-with-pytorch-lightning"><img src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/app-2/studio-badge.svg" alt="Open In Studio"/></a> |   
-| [Text summarization](https://lightning.ai/lightning-ai/studios/text-summarization-with-pytorch-lightning)   | Finetune - text summarization (Hugging Face transformer model) | <a target="_blank" href="https://lightning.ai/lightning-ai/studios/text-summarization-with-pytorch-lightning"><img src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/app-2/studio-badge.svg" alt="Open In Studio"/></a> |   
-| [Audio generation](https://lightning.ai/lightning-ai/studios/finetune-a-personal-ai-music-generator)        | Finetune - audio generator (transformer model)                 | <a target="_blank" href="https://lightning.ai/lightning-ai/studios/finetune-a-personal-ai-music-generator"><img src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/app-2/studio-badge.svg" alt="Open In Studio"/></a> |   
-| [LLM finetuning](https://lightning.ai/lightning-ai/studios/finetune-an-llm-with-pytorch-lightning)          | Finetune - LLM (Meta Llama 3.1 8B)                | <a target="_blank" href="https://lightning.ai/lightning-ai/studios/finetune-an-llm-with-pytorch-lightning"><img src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/app-2/studio-badge.svg" alt="Open In Studio"/></a> | 
-| [Image generation](https://lightning.ai/lightning-ai/studios/train-a-diffusion-model-with-pytorch-lightning)          | Pretrain - Image generator (diffusion model)                | <a target="_blank" href="https://lightning.ai/lightning-ai/studios/train-a-diffusion-model-with-pytorch-lightning"><img src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/app-2/studio-badge.svg" alt="Open In Studio"/></a> | 
-
-### Hello simple model
+### PyTorch Lightning example
+Define the training workflow. Here's a toy example ([explore real examples](https://lightning.ai/lightning-ai/studios?view=public&section=featured&query=pytorch+lightning)):
 
 ```python
 # main.py
@@ -206,6 +181,34 @@ Run the model on your terminal
 pip install torchvision
 python main.py
 ```
+
+&nbsp;
+
+
+# Why PyTorch Lightning?
+
+PyTorch Lightning is just organized PyTorch - Lightning disentangles PyTorch code to decouple the science from the engineering.
+
+![PT to PL](docs/source-pytorch/_static/images/general/pl_quick_start_full_compressed.gif)
+
+&nbsp;
+
+----
+
+### Examples
+Explore various types of training possible with PyTorch Lightning. Pretrain and finetune ANY kind of model to perform ANY task like classification, segmentation, summarization and more:    
+
+| Task                                                                                                        | Description                                                    | Run |
+|-------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------|---|
+| [Hello world](#hello-simple-model)                                                                          | Pretrain - Hello world example                                 | <a target="_blank" href="https://lightning.ai/lightning-ai/studios/pytorch-lightning-hello-world"><img src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/app-2/studio-badge.svg" alt="Open In Studio"/></a> |
+| [Image classification](https://lightning.ai/lightning-ai/studios/image-classification-with-pytorch-lightning) | Finetune - ResNet-34 model to classify images of cars          | <a target="_blank" href="https://lightning.ai/lightning-ai/studios/image-classification-with-pytorch-lightning"><img src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/app-2/studio-badge.svg" alt="Open In Studio"/></a> |   
+| [Image segmentation](https://lightning.ai/lightning-ai/studios/image-segmentation-with-pytorch-lightning)   | Finetune - ResNet-50 model to segment images                   | <a target="_blank" href="https://lightning.ai/lightning-ai/studios/image-segmentation-with-pytorch-lightning"><img src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/app-2/studio-badge.svg" alt="Open In Studio"/></a> |   
+| [Object detection](https://lightning.ai/lightning-ai/studios/object-detection-with-pytorch-lightning)       | Finetune - Faster R-CNN model to detect objects                   | <a target="_blank" href="https://lightning.ai/lightning-ai/studios/object-detection-with-pytorch-lightning"><img src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/app-2/studio-badge.svg" alt="Open In Studio"/></a> |
+| [Text classification](https://lightning.ai/lightning-ai/studios/text-classification-with-pytorch-lightning) | Finetune - text classifier (BERT model)                        | <a target="_blank" href="https://lightning.ai/lightning-ai/studios/text-classification-with-pytorch-lightning"><img src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/app-2/studio-badge.svg" alt="Open In Studio"/></a> |   
+| [Text summarization](https://lightning.ai/lightning-ai/studios/text-summarization-with-pytorch-lightning)   | Finetune - text summarization (Hugging Face transformer model) | <a target="_blank" href="https://lightning.ai/lightning-ai/studios/text-summarization-with-pytorch-lightning"><img src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/app-2/studio-badge.svg" alt="Open In Studio"/></a> |   
+| [Audio generation](https://lightning.ai/lightning-ai/studios/finetune-a-personal-ai-music-generator)        | Finetune - audio generator (transformer model)                 | <a target="_blank" href="https://lightning.ai/lightning-ai/studios/finetune-a-personal-ai-music-generator"><img src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/app-2/studio-badge.svg" alt="Open In Studio"/></a> |   
+| [LLM finetuning](https://lightning.ai/lightning-ai/studios/finetune-an-llm-with-pytorch-lightning)          | Finetune - LLM (Meta Llama 3.1 8B)                | <a target="_blank" href="https://lightning.ai/lightning-ai/studios/finetune-an-llm-with-pytorch-lightning"><img src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/app-2/studio-badge.svg" alt="Open In Studio"/></a> | 
+| [Image generation](https://lightning.ai/lightning-ai/studios/train-a-diffusion-model-with-pytorch-lightning)          | Pretrain - Image generator (diffusion model)                | <a target="_blank" href="https://lightning.ai/lightning-ai/studios/train-a-diffusion-model-with-pytorch-lightning"><img src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/app-2/studio-badge.svg" alt="Open In Studio"/></a> | 
 
 ______________________________________________________________________
 
