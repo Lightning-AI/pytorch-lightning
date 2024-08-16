@@ -37,4 +37,4 @@ jobs:
       scripts-ref: v0.11.6
       dry-run: ${{ github.event_name == 'pull_request' }}
       pattern: ${{ inputs.pattern || 'pypi_wheels' }} # setting str in case of PR / debugging
-      age-days: ${{ inputs.age-days || 0 }} # setting 0 in case of PR / debugging
+      age-days: ${{ fromJSON(inputs.age-days) || 0 }} # setting 0 in case of PR / debugging
