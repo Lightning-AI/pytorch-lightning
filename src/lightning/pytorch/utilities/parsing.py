@@ -201,6 +201,9 @@ def save_hyperparameters(
             obj._hparams_name = "kwargs"
 
     # `hparams` are expected here
+
+    # filter out hp based on ignore list
+    hp = {k: v for k, v in hp.items() if k not in ignore}
     obj._set_hparams(hp)
 
     for k, v in obj._hparams.items():
