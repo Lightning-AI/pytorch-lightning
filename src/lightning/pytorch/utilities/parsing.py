@@ -19,6 +19,7 @@ import pickle
 import types
 from dataclasses import fields, is_dataclass
 from typing import Any, Dict, List, Literal, MutableMapping, Optional, Sequence, Tuple, Type, Union
+from argparse import Namespace
 
 from torch import nn
 
@@ -203,6 +204,8 @@ def save_hyperparameters(
     # `hparams` are expected here
 
     # filter out hp based on ignore list
+    if isinstance(hp, Namespace):
+        hp =  vars(hp)
     hp = {k: v for k, v in hp.items() if k not in ignore}
     obj._set_hparams(hp)
 
