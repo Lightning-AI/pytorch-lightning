@@ -11,13 +11,13 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
-- Merging of hparams when logging now ignores parameter names that begin with underscore `_` ([#???](https://github.com/Lightning-AI/pytorch-lightning/pull/???))
+- Merging of hparams when logging now ignores parameter names that begin with underscore `_` ([#20221](https://github.com/Lightning-AI/pytorch-lightning/pull/20221))
 
 ### Removed
 
 ### Fixed
 
-- Fix LightningCLI failing when both module and data module save hyperparameters due to conflicting internal `_class_path` parameter ([#???](https://github.com/Lightning-AI/pytorch-lightning/pull/???))
+- Fix LightningCLI failing when both module and data module save hyperparameters due to conflicting internal `_class_path` parameter ([#20221](https://github.com/Lightning-AI/pytorch-lightning/pull/20221))
 
 
 ## [2.4.0] - 2024-08-06
