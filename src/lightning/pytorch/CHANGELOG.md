@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
+## [unreleased] - YYYY-MM-DD
+
+### Added
+
+### Changed
+
+- Merging of hparams when logging now ignores parameter names that begin with underscore `_` ([#???](https://github.com/Lightning-AI/pytorch-lightning/pull/???))
+
+### Removed
+
+### Fixed
+
+- Fix LightningCLI failing when both module and data module save hyperparameters due to conflicting internal `_class_path` parameter ([#???](https://github.com/Lightning-AI/pytorch-lightning/pull/???))
+
+
 ## [2.4.0] - 2024-08-06
 
 ### Added
