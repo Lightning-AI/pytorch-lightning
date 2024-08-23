@@ -31,6 +31,8 @@ def test_lazy_load_module(tmp_path):
     model1.load_state_dict(checkpoint)
 
     assert isinstance(checkpoint["weight"], _NotYetLoadedTensor)
+    assert checkpoint["weight"].device == torch.device("cpu")
+    assert type(checkpoint["weight"].to("cpu")) is torch.Tensor
     assert type(model0.weight.data) is torch.Tensor
     assert torch.equal(model0.weight, model1.weight)
     assert torch.equal(model0.bias, model1.bias)
