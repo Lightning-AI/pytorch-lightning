@@ -7,7 +7,7 @@
 
 **The deep learning framework to pretrain, finetune and deploy AI models.**
 
-**NEW- Lightning 2.0 features a clean and stable API!!**
+**NEW- Deploying models? Check out [LitServe](https://github.com/Lightning-AI/litserve), the PyTorch Lightning for model serving**
 
 ______________________________________________________________________
 
