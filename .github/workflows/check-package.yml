@@ -68,6 +68,7 @@ jobs:
         with:
           name: ${{ inputs.artifact-name }}
           path: dist
+          include-hidden-files: true
 
   pkg-build:
     needs: init-store

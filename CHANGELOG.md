@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - CI: rename `import-extras` to `custom-import` in package check ([#287](https://github.com/Lightning-AI/utilities/pull/287))
+- CI: pass `include-hidden-files: true` to upload created packages ([#303](https://github.com/Lightning-AI/utilities/pull/303))
 
 ### Fixed
 
