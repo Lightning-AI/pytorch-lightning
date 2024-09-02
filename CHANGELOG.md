@@ -11,15 +11,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- CI: rename `import-extras` to `custom-import` in package check ([#287](https://github.com/Lightning-AI/utilities/pull/287))
 - CI: pass `include-hidden-files: true` to upload created packages ([#303](https://github.com/Lightning-AI/utilities/pull/303))
+
+### Fixed
+
+
+## [0.11.6] - 2024-07-23
+
+### Changed
+
+- CI: rename `import-extras` to `custom-import` in package check ([#287](https://github.com/Lightning-AI/utilities/pull/287))
 
 ### Fixed
 
 - CI: update type/`mypy` check ([#288](https://github.com/Lightning-AI/utilities/pull/288))
 - Fixed parsing pre-release package versions in `RequirementCache` ([#292](https://github.com/Lightning-AI/utilities/pull/292))
 
-## [0.11.4] - 2024-07-15
+
+## [0.11.5] - 2024-07-15
+
+### Fixed
+
+- Fixed extras check in RequirementCache ([#283](https://github.com/Lightning-AI/utilities/pull/283))
+
+
+## [0.11.4] - 2024-07-14
 
 ### Changed
 
