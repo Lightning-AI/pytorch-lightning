@@ -7,13 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [UnReleased] - 2024-MM-DD
-
-### Changed
-
-- CI: pass `include-hidden-files: true` to upload created packages ([#303](https://github.com/Lightning-AI/utilities/pull/303))
+## [0.11.7] - 2024-09-02
 
 ### Fixed
+
+- CI: pass `include-hidden-files: true` to upload created packages ([#303](https://github.com/Lightning-AI/utilities/pull/303))
 
 
 ## [0.11.6] - 2024-07-23
