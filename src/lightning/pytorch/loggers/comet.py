@@ -26,7 +26,7 @@ from torch import Tensor
 from torch.nn import Module
 from typing_extensions import override
 
-from lightning.fabric.utilities.logger import _add_prefix, _convert_params
+from lightning.fabric.utilities.logger import _convert_params
 from lightning.pytorch.loggers.logger import Logger, rank_zero_experiment
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.rank_zero import rank_zero_only
@@ -36,6 +36,8 @@ if TYPE_CHECKING:
 
 log = logging.getLogger(__name__)
 _COMET_AVAILABLE = RequirementCache("comet-ml>=3.44.4", module="comet_ml")
+
+FRAMEWORK_NAME = "pytorch-lightning"
 
 
 class CometLogger(Logger):
@@ -196,8 +198,6 @@ class CometLogger(Logger):
 
     """
 
-    LOGGER_JOIN_CHAR = "-"
-
     def __init__(
         self,
         api_key: Optional[str] = None,
@@ -293,7 +293,7 @@ class CometLogger(Logger):
                 self._experiment = OfflineExperiment(
                     offline_directory=self.save_dir, project_name=self._project_name, **self._kwargs
                 )
-            self._experiment.log_other("Created from", "pytorch-lightning")
+            self._experiment.log_other("Created from", FRAMEWORK_NAME)
         finally:
             if self._future_experiment_key is not None:
                 os.environ.pop("COMET_EXPERIMENT_KEY")
@@ -308,7 +308,10 @@ class CometLogger(Logger):
     @rank_zero_only
     def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:
         params = _convert_params(params)
-        self.experiment.log_parameters(params)
+        self.experiment.__internal_api__log_parameters__(
+            parameters=params,
+            framework=FRAMEWORK_NAME,
+        )
 
     @override
     @rank_zero_only
@@ -321,8 +324,13 @@ class CometLogger(Logger):
                 metrics_without_epoch[key] = val.cpu().detach()
 
         epoch = metrics_without_epoch.pop("epoch", None)
-        metrics_without_epoch = _add_prefix(metrics_without_epoch, self._prefix, self.LOGGER_JOIN_CHAR)
-        self.experiment.log_metrics(metrics_without_epoch, step=step, epoch=epoch)
+        self.experiment.__internal_api__log_metrics__(
+            metrics_without_epoch,
+            step=step,
+            epoch=epoch,
+            prefix=self._prefix,
+            framework=FRAMEWORK_NAME,
+        )
 
 
     @override
@@ -423,4 +431,7 @@ class CometLogger(Logger):
     @override
     def log_graph(self, model: Module, input_array: Optional[Tensor] = None) -> None:
         if self._experiment is not None:
-            self._experiment.set_model_graph(model)
+            self._experiment.__internal_api__set_model_graph__(
+                graph=model,
+                framework=FRAMEWORK_NAME,
+            )
