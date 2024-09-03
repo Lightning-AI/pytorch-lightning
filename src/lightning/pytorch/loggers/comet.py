@@ -26,7 +26,7 @@ from torch import Tensor
 from torch.nn import Module
 from typing_extensions import override
 
-from lightning.fabric.utilities.logger import _add_prefix, _convert_params, _flatten_dict
+from lightning.fabric.utilities.logger import _add_prefix, _convert_params
 from lightning.pytorch.loggers.logger import Logger, rank_zero_experiment
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.rank_zero import rank_zero_only
@@ -104,6 +104,9 @@ class CometLogger(Logger):
         # log multiple parameters
         logger.log_hyperparams({"batch_size": 16, "learning_rate": 0.001})
 
+        # log nested parameters
+        logger.log_hyperparams({"specific": {'param': {'subparam': "value"}}})
+
     **Log Metrics:**
 
     .. code-block:: python
@@ -113,6 +116,9 @@ class CometLogger(Logger):
 
         # add multiple metrics
         logger.log_metrics({"train/loss": 0.001, "val/loss": 0.002})
+
+        # add nested metrics
+        logger.log_hyperparams({"specific": {'metric': {'submetric': "value"}}})
 
     **Access the Comet Experiment object:**
 
@@ -302,7 +308,6 @@ class CometLogger(Logger):
     @rank_zero_only
     def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:
         params = _convert_params(params)
-        params = _flatten_dict(params)
         self.experiment.log_parameters(params)
 
     @override
