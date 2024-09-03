@@ -60,11 +60,6 @@ def test_comet_logger_online(comet_mock):
     )
     comet_existing().set_name.assert_called_once_with("experiment")
 
-    # API experiment
-    api = comet_mock.api.API
-    CometLogger(api_key="key", workspace="dummy-test", project_name="general", rest_api_key="rest")
-    api.assert_called_once_with("rest")
-
 
 @mock.patch.dict(os.environ, {})
 def test_comet_experiment_resets_if_not_alive(comet_mock):

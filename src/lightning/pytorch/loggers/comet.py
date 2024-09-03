@@ -35,7 +35,7 @@ if TYPE_CHECKING:
     from comet_ml import ExistingExperiment, Experiment, OfflineExperiment
 
 log = logging.getLogger(__name__)
-_COMET_AVAILABLE = RequirementCache("comet-ml>=3.31.0", module="comet_ml")
+_COMET_AVAILABLE = RequirementCache("comet-ml>=3.44.4", module="comet_ml")
 
 
 class CometLogger(Logger):
@@ -64,7 +64,6 @@ class CometLogger(Logger):
             workspace=os.environ.get("COMET_WORKSPACE"),  # Optional
             save_dir=".",  # Optional
             project_name="default_project",  # Optional
-            rest_api_key=os.environ.get("COMET_REST_API_KEY"),  # Optional
             experiment_key=os.environ.get("COMET_EXPERIMENT_KEY"),  # Optional
             experiment_name="lightning_logs",  # Optional
         )
@@ -81,7 +80,6 @@ class CometLogger(Logger):
             save_dir=".",
             workspace=os.environ.get("COMET_WORKSPACE"),  # Optional
             project_name="default_project",  # Optional
-            rest_api_key=os.environ.get("COMET_REST_API_KEY"),  # Optional
             experiment_name="lightning_logs",  # Optional
         )
         trainer = Trainer(logger=comet_logger)
@@ -172,10 +170,8 @@ class CometLogger(Logger):
         save_dir: Required in offline mode. The path for the directory to save local
             comet logs. If given, this also sets the directory for saving checkpoints.
         project_name: Optional. Send your experiment to a specific project.
-            Otherwise will be sent to Uncategorized Experiments.
+            Otherwise, will be sent to Uncategorized Experiments.
             If the project name does not already exist, Comet.ml will create a new project.
-        rest_api_key: Optional. Rest API key found in Comet.ml settings.
-            This is used to determine version number
         experiment_name: Optional. String representing the name for this particular experiment on Comet.ml.
         experiment_key: Optional. If set, restores from existing experiment.
         offline: If api_key and save_dir are both given, this determines whether
@@ -201,7 +197,6 @@ class CometLogger(Logger):
         api_key: Optional[str] = None,
         save_dir: Optional[str] = None,
         project_name: Optional[str] = None,
-        rest_api_key: Optional[str] = None,
         experiment_name: Optional[str] = None,
         experiment_key: Optional[str] = None,
         offline: bool = False,
@@ -213,9 +208,9 @@ class CometLogger(Logger):
         super().__init__()
         self._experiment = None
         self._save_dir: Optional[str]
-        self.rest_api_key: Optional[str]
 
         # needs to be set before the first `comet_ml` import
+        # because comet_ml imported after another machine learning libraries (Torch)
         os.environ["COMET_DISABLE_AUTO_LOGGING"] = "1"
 
         import comet_ml
