@@ -2,10 +2,11 @@ import os.path
 import re
 
 import pytest
+
 from lightning_utilities.docs import adjust_linked_external_docs
 
 
-@pytest.mark.online()
+@pytest.mark.online
 def test_adjust_linked_external_docs(temp_docs):
     # take config as it includes API references with `stable`
     path_conf = os.path.join(temp_docs, "conf.py")

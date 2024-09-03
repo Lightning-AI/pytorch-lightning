@@ -9,8 +9,9 @@ import os
 import re
 from typing import List
 
-import lightning_utilities
 import pt_lightning_sphinx_theme
+
+import lightning_utilities
 from lightning_utilities.docs import adjust_linked_external_docs, fetch_external_assets
 
 # This function is used to populate the (source) links in the API

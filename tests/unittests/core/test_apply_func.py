@@ -5,8 +5,9 @@ from dataclasses import InitVar
 from typing import Any, ClassVar, List, Optional
 
 import pytest
-from lightning_utilities.core.apply_func import apply_to_collection, apply_to_collections
 from unittests.mocks import torch
+
+from lightning_utilities.core.apply_func import apply_to_collection, apply_to_collections
 
 _TENSOR_0 = torch.tensor(0)
 _TENSOR_1 = torch.tensor(1)

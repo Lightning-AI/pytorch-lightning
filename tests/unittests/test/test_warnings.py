@@ -2,6 +2,7 @@ import warnings
 from re import escape
 
 import pytest
+
 from lightning_utilities.test.warning import no_warning_call
 
 

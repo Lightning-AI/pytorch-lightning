@@ -2,10 +2,11 @@ import os.path
 import shutil
 
 import pytest
+
 from lightning_utilities.docs import fetch_external_assets
 
 
-@pytest.mark.online()
+@pytest.mark.online
 def test_retriever_s3(temp_docs):
     # take the index page
     path_index = os.path.join(temp_docs, "index.rst")
