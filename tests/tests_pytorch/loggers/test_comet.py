@@ -203,7 +203,7 @@ def test_comet_version_without_experiment(comet_mock):
 
     _ = logger.experiment
 
-    logger.reset_experiment()
+    logger._experiment = None
 
     second_version = logger.version == "1234"
     assert second_version is not None

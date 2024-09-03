@@ -164,15 +164,15 @@ class CometLogger(Logger):
         - `Comet Documentation <https://www.comet.com/docs/v2/integrations/ml-frameworks/pytorch-lightning/>`__
 
     Args:
-        api_key: Required in online mode. API key, found on Comet.ml. If not given, this
+        api_key: Required in online mode. API key, found on Comet.com. If not given, this
             will be loaded from the environment variable COMET_API_KEY or ~/.comet.config
             if either exists.
         save_dir: Required in offline mode. The path for the directory to save local
             comet logs. If given, this also sets the directory for saving checkpoints.
         project_name: Optional. Send your experiment to a specific project.
             Otherwise, will be sent to Uncategorized Experiments.
-            If the project name does not already exist, Comet.ml will create a new project.
-        experiment_name: Optional. String representing the name for this particular experiment on Comet.ml.
+            If the project name does not already exist, Comet.com will create a new project.
+        experiment_name: Optional. String representing the name for this particular experiment on Comet.com.
         experiment_key: Optional. If set, restores from existing experiment.
         offline: If api_key and save_dir are both given, this determines whether
             the experiment will be in online or offline mode. This is useful if you use
@@ -309,7 +309,7 @@ class CometLogger(Logger):
     @rank_zero_only
     def log_metrics(self, metrics: Mapping[str, Union[Tensor, float]], step: Optional[int] = None) -> None:
         assert rank_zero_only.rank == 0, "experiment tried to log from global_rank != 0"
-        # Comet.ml expects metrics to be a dictionary of detached tensors on CPU
+        # Comet.com expects metrics to be a dictionary of detached tensors on CPU
         metrics_without_epoch = metrics.copy()
         for key, val in metrics_without_epoch.items():
             if isinstance(val, Tensor):
@@ -319,26 +319,22 @@ class CometLogger(Logger):
         metrics_without_epoch = _add_prefix(metrics_without_epoch, self._prefix, self.LOGGER_JOIN_CHAR)
         self.experiment.log_metrics(metrics_without_epoch, step=step, epoch=epoch)
 
-    def reset_experiment(self) -> None:
-        self._experiment = None
 
     @override
     @rank_zero_only
     def finalize(self, status: str) -> None:
-        r"""When calling ``self.experiment.end()``, that experiment won't log any more data to Comet. That's why, if you
-        need to log any more data, you need to create an ExistingCometExperiment. For example, to log data when testing
-        your model after training, because when training is finalized :meth:`CometLogger.finalize` is called.
-
-        This happens automatically in the :meth:`~CometLogger.experiment` property, when
-        ``self._experiment`` is set to ``None``, i.e. ``self.reset_experiment()``.
+        """
+        We will not end experiment (self._experiment.end()) here
+        to have an ability to continue using it after training is complete
+        but instead of ending we will upload/save all the data
 
         """
         if self._experiment is None:
             # When using multiprocessing, finalize() should be a no-op on the main process, as no experiment has been
             # initialized there
             return
-        self.experiment.end()
-        self.reset_experiment()
+
+        self.experiment.flush()
 
     @property
     @override
