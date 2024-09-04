@@ -66,7 +66,7 @@ class ModelCheckpoint(Checkpoint):
 
             By default, dirpath is ``None`` and will be set at runtime to the location
             specified by :class:`~lightning.pytorch.trainer.trainer.Trainer`'s
-            :paramref:`~lightning.pytorch.trainer.trainer.Trainer.default_root_dir` argument,
+            :param:`~lightning.pytorch.trainer.trainer.Trainer.default_root_dir` argument,
             and if the Trainer uses a logger, the path will also contain logger name and version.
 
         filename: checkpoint filename. Can contain named formatting options to be auto-filled.
