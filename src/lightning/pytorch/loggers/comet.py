@@ -332,16 +332,11 @@ class CometLogger(Logger):
             framework=FRAMEWORK_NAME,
         )
 
-
     @override
     @rank_zero_only
     def finalize(self, status: str) -> None:
-        """
-        We will not end experiment (self._experiment.end()) here
-        to have an ability to continue using it after training is complete
-        but instead of ending we will upload/save all the data
-
-        """
+        """We will not end experiment (self._experiment.end()) here to have an ability to continue using it after
+        training is complete but instead of ending we will upload/save all the data."""
         if self._experiment is None:
             # When using multiprocessing, finalize() should be a no-op on the main process, as no experiment has been
             # initialized there
