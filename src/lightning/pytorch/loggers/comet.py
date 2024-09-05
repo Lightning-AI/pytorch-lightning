@@ -249,7 +249,7 @@ class CometLogger(Logger):
             api_key=api_key,
             workspace=self._workspace,
             project=self._project_name,
-            experiment_key=self._experiment,
+            experiment_key=self._experiment_key,
             mode=self._mode,
             online=self._online,
             experiment_config=self._comet_config,
