@@ -140,7 +140,7 @@ if _CLICK_AVAILABLE:
         type=click.Choice(get_args(_PRECISION_INPUT_STR) + get_args(_PRECISION_INPUT_STR_ALIAS)),
         default=None,
         help=(
-            "Double precision (``64-true`` or ``64``), full precision (``32-true`` or ``64``), "
+            "Double precision (``64-true`` or ``64``), full precision (``32-true`` or ``32``), "
             "half precision (``16-mixed`` or ``16``) or bfloat16 precision (``bf16-mixed`` or ``bf16``)"
         ),
     )
