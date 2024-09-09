@@ -266,7 +266,7 @@ class CometLogger(Logger):
 
         self._create_experiment()
 
-    def _create_experiment(self):
+    def _create_experiment(self) -> None:
         import comet_ml
 
         self._experiment = comet_ml.start(
