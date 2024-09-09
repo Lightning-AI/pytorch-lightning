@@ -120,7 +120,7 @@ class CometLogger(Logger):
         logger.log_metrics({"train/loss": 0.001, "val/loss": 0.002})
 
         # add nested metrics
-        logger.log_hyperparams({"specific": {'metric': {'submetric': "value"}}})
+        logger.log_metrics({"specific": {'metric': {'submetric': "value"}}})
 
     **Access the Comet Experiment object:**
 
@@ -184,7 +184,9 @@ class CometLogger(Logger):
             * ``"create"``: Always creates of a new experiment, useful for HPO sweeps.
         online (boolean, optional): If True, the data will be logged to Comet server, otherwise it will be stored
             locally in an offline experiment. Default is ``True``.
-        **kwargs: Additional arguments like `experiment_name`, `log_code`, `prefix`, `offline_directory` etc. used by
+        prefix (str, optional): The prefix to add to names of the logged metrics.
+            example: prefix=`exp1`, then metric name will be `exp1_metric_name`
+        **kwargs: Additional arguments like `experiment_name`, `log_code`, `offline_directory` etc. used by
             :class:`CometExperiment` can be passed as keyword arguments in this logger.
 
     Raises:
@@ -201,6 +203,7 @@ class CometLogger(Logger):
         experiment_key: Optional[str] = None,
         mode: Optional[Literal["get_or_create", "get", "create"]] = None,
         online: Optional[bool] = None,
+        prefix: Optional[str] = None,
         **kwargs: Any,
     ):
         if not _COMET_AVAILABLE:
@@ -209,28 +212,44 @@ class CometLogger(Logger):
         super().__init__()
 
         ##################################################
-        # HANDLE PASSED OLD_TYPE PARAMS
-        self._prefix: Optional[str] = kwargs.pop("prefix", None)
+        # HANDLE PASSED OLD TYPE PARAMS
 
         # handle old "project name" param
-        if "project_name" in kwargs and project is None:
-            project = kwargs.pop("project_name")
+        if "project_name" in kwargs:
+            log.warning('The parameter "project_name" is deprecated, please use "project" instead.')
+            if project is None:
+                project = kwargs.pop("project_name")
+            else:
+                log.warning('You specified both "project_name" and "project" parameters, please use "project" only')
 
         # handle old "offline" experiment flag
-        if "offline" in kwargs and online is None:
-            online = kwargs.pop("offline")
+        if "offline" in kwargs:
+            log.warning('The parameter "offline" is deprecated, please use "online" instead.')
+            if online is None:
+                online = kwargs.pop("offline")
+            else:
+                log.warning('You specified both "offline" and "online" parameters, please use "online" only')
 
         # handle old "save_dir" param
-        if "save_dir" in kwargs and "offline_directory" not in kwargs:
-            kwargs["offline_directory"] = kwargs.pop("save_dir")
+        if "save_dir" in kwargs:
+            log.warning('The parameter "save_dir" is deprecated, please use "offline_directory" instead.')
+            if "offline_directory" not in kwargs:
+                kwargs["offline_directory"] = kwargs.pop("save_dir")
+            else:
+                log.warning(
+                    'You specified both "save_dir" and "offline_directory" parameters, '
+                    'please use "offline_directory" only'
+                )
         ##################################################
 
+        self._api_key: Optional[str] = api_key
         self._experiment: Optional[comet_experiment] = None
         self._workspace: Optional[str] = workspace
         self._mode: Optional[Literal["get_or_create", "get", "create"]] = mode
         self._online: Optional[bool] = online
         self._project_name: Optional[str] = project
         self._experiment_key: Optional[str] = experiment_key
+        self._prefix: Optional[str] = prefix
         self._kwargs: Dict[str, Any] = kwargs
 
         # needs to be set before the first `comet_ml` import
@@ -241,12 +260,17 @@ class CometLogger(Logger):
 
         self._comet_config = comet_ml.ExperimentConfig(**self._kwargs)
 
-        # create real experiment only on main node/process
+        # create real experiment only on main node/process (when strategy=auto/ddp)
         if _get_rank() is not None and _get_rank() != 0:
             return
 
+        self._create_experiment()
+
+    def _create_experiment(self):
+        import comet_ml
+
         self._experiment = comet_ml.start(
-            api_key=api_key,
+            api_key=self._api_key,
             workspace=self._workspace,
             project=self._project_name,
             experiment_key=self._experiment_key,
@@ -254,12 +278,9 @@ class CometLogger(Logger):
             online=self._online,
             experiment_config=self._comet_config,
         )
-
         self._experiment_key = self._experiment.get_key()
-        self._project_name = self.experiment.project_name
-
+        self._project_name = self._experiment.project_name
         self._experiment.log_other("Created from", FRAMEWORK_NAME)
-
 
     @property
     @rank_zero_experiment
@@ -272,6 +293,11 @@ class CometLogger(Logger):
             self.logger.experiment.some_comet_function()
 
         """
+
+        # if by some chance there is no experiment created yet (for example, when strategy=ddp_spawn)
+        # then we will create a new one
+        if not self._experiment:
+            self._create_experiment()
 
         return self._experiment
 
