@@ -278,6 +278,10 @@ class CometLogger(Logger):
             online=self._online,
             experiment_config=self._comet_config,
         )
+
+        if self._experiment is None:
+            raise comet_ml.exceptions.ExperimentNotFound("Failed to create Comet experiment.")
+
         self._experiment_key = self._experiment.get_key()
         self._project_name = self._experiment.project_name
         self._experiment.log_other("Created from", FRAMEWORK_NAME)
