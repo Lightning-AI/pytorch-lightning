@@ -290,6 +290,9 @@ class Trainer:
                 Default: ``os.getcwd()``.
                 Can be remote file paths such as `s3://mybucket/path` or 'hdfs://path/'
 
+            compile_fn: Provide torch.compile function to be applied after configuring strategy
+                Default: ``None``.
+
         Raises:
             TypeError:
                 If ``gradient_clip_val`` is not an int or float.
