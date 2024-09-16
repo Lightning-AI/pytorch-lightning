@@ -60,13 +60,13 @@ jobs:
         uses: ./.github/actions/unittesting
         with:
           python-version: ${{ matrix.python-version }}
-          pytorch-version: ${{ matrix.pytorch-version }}
           dirs: "unittests"
           pkg-name: "lightning_utilities"
           pytest-args: "--timeout=120"
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v4.5.0
+        continue-on-error: true
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           file: ./coverage.xml

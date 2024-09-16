@@ -35,8 +35,8 @@ runs:
         pip list
       shell: ${{ inputs.shell-type }}
 
-    - run: |
-        echo "artifact=test-results-${{ runner.os }}-py${{ inputs.python-version }}-${{ inputs.requires }}" >> $GITHUB_OUTPUT
+    - name: Determine artifact file name
+      run: echo "artifact=test-results-${{ runner.os }}-py${{ inputs.python-version }}-${{ inputs.requires }}" >> $GITHUB_OUTPUT
       id: location
       shell: bash
 
@@ -49,7 +49,7 @@ runs:
       shell: ${{ inputs.shell-type }}
 
     - name: Upload pytest results
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         name: ${{ steps.location.outputs.artifact }}
         path: "test/${{ steps.location.outputs.artifact }}.xml"
