@@ -138,7 +138,7 @@ jobs:
         run: echo ${PL_VERSION} >> back-compatible-versions.txt
 
       - name: Create Pull Request
-        uses: peter-evans/create-pull-request@v6
+        uses: peter-evans/create-pull-request@v7
         with:
           title: Adding test for legacy checkpoint created with ${{ env.PL_VERSION }}
           committer: GitHub <noreply@github.com>
