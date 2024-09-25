@@ -217,29 +217,29 @@ class CometLogger(Logger):
 
         # handle old "project name" param
         if "project_name" in kwargs:
-            log.warning('The parameter `project_name` is deprecated, please use `project` instead.')
+            log.warning("The parameter `project_name` is deprecated, please use `project` instead.")
             if project is None:
                 project = kwargs.pop("project_name")
             else:
-                log.warning('You specified both `project_name` and `project` parameters, please use `project` only')
+                log.warning("You specified both `project_name` and `project` parameters, please use `project` only")
 
         # handle old "offline" experiment flag
         if "offline" in kwargs:
-            log.warning('The parameter `offline is deprecated, please use `online` instead.')
+            log.warning("The parameter `offline is deprecated, please use `online` instead.")
             if online is None:
                 online = kwargs.pop("offline")
             else:
-                log.warning('You specified both `offline` and `online` parameters, please use `online` only')
+                log.warning("You specified both `offline` and `online` parameters, please use `online` only")
 
         # handle old "save_dir" param
         if "save_dir" in kwargs:
-            log.warning('The parameter `save_dir` is deprecated, please use `offline_directory` instead.')
+            log.warning("The parameter `save_dir` is deprecated, please use `offline_directory` instead.")
             if "offline_directory" not in kwargs:
                 kwargs["offline_directory"] = kwargs.pop("save_dir")
             else:
                 log.warning(
-                    'You specified both `save_dir` and `offline_directory` parameters, '
-                    'please use `offline_directory` only'
+                    "You specified both `save_dir` and `offline_directory` parameters, "
+                    "please use `offline_directory` only"
                 )
         ##################################################
 
