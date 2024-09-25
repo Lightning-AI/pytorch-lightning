@@ -16,16 +16,17 @@
 import inspect
 from typing import IO, Any, Dict, Iterable, Optional, Union, cast
 
-import pytorch_lightning as pl
-from lightning_fabric.utilities.types import _MAP_LOCATION_TYPE, _PATH
 from lightning_utilities import apply_to_collection
-from pytorch_lightning.core.hooks import DataHooks
-from pytorch_lightning.core.mixins import HyperparametersMixin
-from pytorch_lightning.core.saving import _load_from_checkpoint
-from pytorch_lightning.utilities.model_helpers import _restricted_classmethod
-from pytorch_lightning.utilities.types import EVAL_DATALOADERS, TRAIN_DATALOADERS
 from torch.utils.data import DataLoader, Dataset, IterableDataset
 from typing_extensions import Self
+
+import lightning.pytorch as pl
+from lightning.fabric.utilities.types import _MAP_LOCATION_TYPE, _PATH
+from lightning.pytorch.core.hooks import DataHooks
+from lightning.pytorch.core.mixins import HyperparametersMixin
+from lightning.pytorch.core.saving import _load_from_checkpoint
+from lightning.pytorch.utilities.model_helpers import _restricted_classmethod
+from lightning.pytorch.utilities.types import EVAL_DATALOADERS, TRAIN_DATALOADERS
 
 
 class LightningDataModule(DataHooks, HyperparametersMixin):
@@ -34,9 +35,9 @@ class LightningDataModule(DataHooks, HyperparametersMixin):
 
     Example::
 
-        import lightning.pytorch as L
+        import lightning as L
         import torch.utils.data as data
-        from pytorch_lightning.demos.boring_classes import RandomDataset
+        from lightning.pytorch.demos.boring_classes import RandomDataset
 
         class MyDataModule(L.LightningDataModule):
             def prepare_data(self):
