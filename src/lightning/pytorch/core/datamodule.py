@@ -261,11 +261,6 @@ class LightningDataModule(DataHooks, HyperparametersMixin):
                     datasets_info.append(f"{attr_name}, dataset size={len(attr)}")
                 else:
                     datasets_info.append(f"{attr_name}, dataset size=Unavailable")
-            elif isinstance(attr, (list, tuple)) and all(isinstance(item, Dataset) for item in attr):
-                if all(hasattr(item, "__len__") for item in attr):
-                    datasets_info.append(f"{attr_name}, dataset size={[len(ds) for ds in attr]}")
-                else:
-                    datasets_info.append(f"{attr_name}, dataset size=Unavailable")
 
         if not datasets_info:
             return "No datasets are set up."
