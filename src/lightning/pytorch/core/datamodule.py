@@ -252,17 +252,24 @@ class LightningDataModule(DataHooks, HyperparametersMixin):
         """
         datasets_info = []
 
+        def len_implemented(obj):
+            try:
+                len(obj)
+                return True
+            except NotImplementedError:
+                return False
+
         for attr_name in dir(self):
             attr = getattr(self, attr_name)
 
             # Get Dataset information
             if isinstance(attr, Dataset):
-                if hasattr(attr, "__len__"):
-                    datasets_info.append(f"{attr_name}, dataset size={len(attr)}")
+                if hasattr(attr, "__len__") and len_implemented(attr):
+                    datasets_info.append(f"name={attr_name}, size={len(attr)}")
                 else:
-                    datasets_info.append(f"{attr_name}, dataset size=Unavailable")
+                    datasets_info.append(f"name={attr_name}, size=Unavailable")
 
         if not datasets_info:
             return "No datasets are set up."
 
-        return "\n".join(datasets_info)
+        return "\n".join(datasets_info) + "\n"

@@ -22,7 +22,12 @@ import pytest
 import torch
 from lightning.pytorch import LightningDataModule, Trainer, seed_everything
 from lightning.pytorch.callbacks import ModelCheckpoint
-from lightning.pytorch.demos.boring_classes import BoringDataModule, BoringModel
+from lightning.pytorch.demos.boring_classes import (
+    BoringDataModule,
+    BoringDataModuleLenNotImplemented,
+    BoringDataModuleNoLen,
+    BoringModel,
+)
 from lightning.pytorch.profilers.simple import SimpleProfiler
 from lightning.pytorch.trainer.states import TrainerFn
 from lightning.pytorch.utilities import AttributeDict
@@ -510,3 +515,59 @@ def test_datamodule_hooks_are_profiled(tmp_path):
         durations = profiler.recorded_durations[key]
         assert len(durations) == 1
         assert durations[0] > 0
+
+
+def test_datamodule_string_no_datasets():
+    dm = BoringDataModule()
+    del dm.random_full
+    expected_output = "No datasets are set up."
+    assert str(dm) == expected_output
+
+
+def test_datamodule_string_no_length():
+    dm = BoringDataModuleNoLen()
+    expected_output = "name=random_full, size=Unavailable\n"
+    assert str(dm) == expected_output
+
+
+def test_datamodule_string_length_not_implemented():
+    dm = BoringDataModuleLenNotImplemented()
+    expected_output = "name=random_full, size=Unavailable\n"
+    assert str(dm) == expected_output
+
+
+def test_datamodule_string_fit_setup():
+    dm = BoringDataModule()
+    dm.setup(stage="fit")
+
+    expected_outputs = ["name=random_full, size=256\n", "name=random_train, size=64\n", "name=random_val, size=64\n"]
+    output = str(dm)
+    for expected_output in expected_outputs:
+        assert expected_output in output
+
+
+def test_datamodule_string_validation_setup():
+    dm = BoringDataModule()
+    dm.setup(stage="validate")
+    expected_outputs = ["name=random_full, size=256\n", "name=random_val, size=64\n"]
+    output = str(dm)
+    for expected_output in expected_outputs:
+        assert expected_output in output
+
+
+def test_datamodule_string_test_setup():
+    dm = BoringDataModule()
+    dm.setup(stage="test")
+    expected_outputs = ["name=random_full, size=256\n", "name=random_test, size=64\n"]
+    output = str(dm)
+    for expected_output in expected_outputs:
+        assert expected_output in output
+
+
+def test_datamodule_string_predict_setup():
+    dm = BoringDataModule()
+    dm.setup(stage="predict")
+    expected_outputs = ["name=random_full, size=256\n", "name=random_predict, size=64\n"]
+    output = str(dm)
+    for expected_output in expected_outputs:
+        assert expected_output in output
