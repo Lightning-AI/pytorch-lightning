@@ -197,6 +197,7 @@ class CometLogger(Logger):
 
     def __init__(
         self,
+        *,
         api_key: Optional[str] = None,
         workspace: Optional[str] = None,
         project: Optional[str] = None,
