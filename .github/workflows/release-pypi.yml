@@ -36,6 +36,7 @@ jobs:
         with:
           name: pypi-packages-${{ github.sha }}
           path: dist
+          include-hidden-files: true
 
   upload-package:
     needs: build-package

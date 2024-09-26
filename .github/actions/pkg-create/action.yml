@@ -40,3 +40,4 @@ runs:
       with:
         name: ${{ inputs.artifact-name }}
         path: pypi
+        include-hidden-files: true

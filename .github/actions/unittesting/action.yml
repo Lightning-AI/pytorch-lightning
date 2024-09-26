@@ -53,6 +53,7 @@ runs:
       with:
         name: ${{ steps.location.outputs.artifact }}
         path: "test/${{ steps.location.outputs.artifact }}.xml"
+        include-hidden-files: true
       if: failure()
 
     - name: Statistics

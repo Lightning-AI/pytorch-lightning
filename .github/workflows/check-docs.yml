@@ -109,3 +109,4 @@ jobs:
           name: docs-${{ matrix.target }}-${{ github.sha }}
           path: ${{ inputs.docs-dir }}/build/
           retention-days: ${{ env.KEEP_DAYS }}
+          include-hidden-files: true
