@@ -32,7 +32,7 @@ import torch
 import yaml
 from jsonargparse import ArgumentParser
 from lightning.fabric.utilities.cloud_io import _load as pl_load
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_4, _TORCH_EQUAL_2_4_0
+from lightning.fabric.utilities.imports import _TORCH_EQUAL_2_4_0
 from lightning.pytorch import Trainer, seed_everything
 from lightning.pytorch.callbacks import ModelCheckpoint
 from lightning.pytorch.demos.boring_classes import BoringModel

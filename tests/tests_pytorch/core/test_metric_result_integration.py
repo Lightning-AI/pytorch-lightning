@@ -19,7 +19,7 @@ from unittest import mock
 import lightning.pytorch as pl
 import pytest
 import torch
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_4, _TORCH_EQUAL_2_4_0
+from lightning.fabric.utilities.imports import _TORCH_EQUAL_2_4_0
 from lightning.fabric.utilities.warnings import PossibleUserWarning
 from lightning.pytorch import Trainer
 from lightning.pytorch.callbacks import OnExceptionCheckpoint

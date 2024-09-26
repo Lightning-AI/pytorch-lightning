@@ -19,7 +19,7 @@ from unittest import mock
 
 import pytest
 import yaml
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_4, _TORCH_EQUAL_2_4_0
+from lightning.fabric.utilities.imports import _TORCH_EQUAL_2_4_0
 from lightning.pytorch import Trainer
 from lightning.pytorch.callbacks import ModelCheckpoint
 from lightning.pytorch.cli import LightningCLI

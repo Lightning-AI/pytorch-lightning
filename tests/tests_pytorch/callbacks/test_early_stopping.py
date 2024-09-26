@@ -23,7 +23,7 @@ from unittest.mock import Mock
 import cloudpickle
 import pytest
 import torch
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_4, _TORCH_EQUAL_2_4_0
+from lightning.fabric.utilities.imports import _TORCH_EQUAL_2_4_0
 from lightning.pytorch import Trainer, seed_everything
 from lightning.pytorch.callbacks import EarlyStopping, ModelCheckpoint
 from lightning.pytorch.demos.boring_classes import BoringModel

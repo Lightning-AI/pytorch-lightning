@@ -21,7 +21,7 @@ from unittest.mock import patch
 import numpy as np
 import pytest
 import torch
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_4, _TORCH_EQUAL_2_4_0
+from lightning.fabric.utilities.imports import _TORCH_EQUAL_2_4_0
 from lightning.fabric.utilities.logger import _convert_params, _sanitize_params
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringDataModule, BoringModel
