@@ -17,6 +17,7 @@ from contextlib import nullcontext
 import cloudpickle
 import pytest
 import torch
+from lightning.fabric.utilities.imports import _TORCH_EQUAL_2_4_0
 
 from tests_pytorch import _PATH_DATASETS
 from tests_pytorch.helpers.datasets import MNIST, AverageDataset, TrialMNIST
