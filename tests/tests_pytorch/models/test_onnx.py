@@ -13,6 +13,7 @@
 # limitations under the License.
 import operator
 import os
+from io import BytesIO
 from pathlib import Path
 from unittest.mock import patch
 
@@ -44,6 +45,10 @@ def test_model_saves_with_input_sample(tmp_path):
     model.to_onnx(file_path, input_sample)
     assert os.path.isfile(file_path)
     assert os.path.getsize(file_path) > 4e2
+
+    file_path = BytesIO()
+    model.to_onnx(file_path=file_path, input_sample=input_sample)
+    assert len(file_path.getvalue()) > 4e2
 
 
 @pytest.mark.parametrize(

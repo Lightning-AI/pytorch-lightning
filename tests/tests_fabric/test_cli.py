@@ -71,8 +71,9 @@ def test_run_env_vars_strategy(_, strategy, monkeypatch, fake_script):
 def test_run_get_supported_strategies():
     """Test to ensure that when new strategies get added, we must consider updating the list of supported ones in the
     CLI."""
-    assert len(_get_supported_strategies()) == 7
+    assert len(_get_supported_strategies()) == 8
     assert "fsdp" in _get_supported_strategies()
+    assert "ddp_find_unused_parameters_true" in _get_supported_strategies()
 
 
 @pytest.mark.parametrize("strategy", ["ddp_spawn", "ddp_fork", "ddp_notebook", "deepspeed_stage_3_offload"])
