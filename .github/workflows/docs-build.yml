@@ -134,6 +134,7 @@ jobs:
           name: docs-${{ matrix.pkg-name }}-${{ github.sha }}
           path: docs/build/html/
           retention-days: ${{ env.ARTIFACT_DAYS }}
+          include-hidden-files: true
 
       #- name: Dump handy wheels
       #  if: github.event_name == 'push' && github.ref == 'refs/heads/master'

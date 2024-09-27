@@ -48,7 +48,7 @@ _WANDB_AVAILABLE = RequirementCache("wandb>=0.12.10")
 
 
 class WandbLogger(Logger):
-    r"""Log using `Weights and Biases <https://docs.wandb.ai/integrations/lightning>`_.
+    r"""Log using `Weights and Biases <https://docs.wandb.ai/guides/integrations/lightning>`_.
 
     **Installation and set-up**
 
@@ -253,7 +253,7 @@ class WandbLogger(Logger):
 
     See Also:
         - `Demo in Google Colab <http://wandb.me/lightning>`__ with hyperparameter search and model logging
-        - `W&B Documentation <https://docs.wandb.ai/integrations/lightning>`__
+        - `W&B Documentation <https://docs.wandb.ai/guides/integrations/lightning>`__
 
     Args:
         name: Display name for the run.

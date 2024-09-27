@@ -33,6 +33,7 @@ jobs:
           name: ${{ inputs.artifact-name }}
           path: dist
           retention-days: ${{ steps.keep-artifact.outputs.DAYS }}
+          include-hidden-files: true
 
   build-packages:
     needs: init
@@ -66,3 +67,4 @@ jobs:
         with:
           name: ${{ inputs.artifact-name }}
           path: pypi
+          include-hidden-files: true
