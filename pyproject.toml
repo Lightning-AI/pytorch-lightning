@@ -76,7 +76,6 @@ ignore = [
     "S108",
     "E203", # conflicts with black
 ]
-ignore-init-module-imports = true
 
 [tool.ruff.lint.per-file-ignores]
 ".actions/*" = ["S101", "S310"]
