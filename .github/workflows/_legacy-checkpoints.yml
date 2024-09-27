@@ -109,6 +109,7 @@ jobs:
           name: checkpoints-${{ github.sha }}
           path: ${{ env.LEGACY_FOLDER }}/checkpoints/
           retention-days: ${{ env.KEEP_DAYS }}
+          include-hidden-files: true
 
       - run: pip install -r requirements/ci.txt
       - name: Upload checkpoints to S3
