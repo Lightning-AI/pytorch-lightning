@@ -44,6 +44,7 @@ jobs:
         with:
           name: nightly-packages-${{ github.sha }}
           path: dist
+          include-hidden-files: true
 
   publish-packages:
     runs-on: ubuntu-22.04
