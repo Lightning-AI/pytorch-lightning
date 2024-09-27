@@ -31,7 +31,9 @@ _IS_INTERACTIVE = hasattr(sys, "ps1") or bool(sys.flags.interactive)
 
 _TORCH_GREATER_EQUAL_2_2 = compare_version("torch", operator.ge, "2.2.0")
 _TORCH_GREATER_EQUAL_2_3 = compare_version("torch", operator.ge, "2.3.0")
+_TORCH_EQUAL_2_4_0 = compare_version("torch", operator.eq, "2.4.0")
 _TORCH_GREATER_EQUAL_2_4 = compare_version("torch", operator.ge, "2.4.0")
+_TORCH_GREATER_EQUAL_2_4_1 = compare_version("torch", operator.ge, "2.4.1")
 
 _PYTHON_GREATER_EQUAL_3_10_0 = (sys.version_info.major, sys.version_info.minor) >= (3, 10)
 
