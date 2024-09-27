@@ -17,7 +17,7 @@ from contextlib import nullcontext
 import cloudpickle
 import pytest
 import torch
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_4
+from lightning.fabric.utilities.imports import _TORCH_EQUAL_2_4_0
 
 from tests_pytorch import _PATH_DATASETS
 from tests_pytorch.helpers.datasets import MNIST, AverageDataset, TrialMNIST
@@ -44,9 +44,9 @@ def test_pickling_dataset_mnist(dataset_cls, args):
     mnist = dataset_cls(**args)
 
     mnist_pickled = pickle.dumps(mnist)
-    with pytest.warns(FutureWarning, match="`weights_only=False`") if _TORCH_GREATER_EQUAL_2_4 else nullcontext():
+    with pytest.warns(FutureWarning, match="`weights_only=False`") if _TORCH_EQUAL_2_4_0 else nullcontext():
         pickle.loads(mnist_pickled)
 
     mnist_pickled = cloudpickle.dumps(mnist)
-    with pytest.warns(FutureWarning, match="`weights_only=False`") if _TORCH_GREATER_EQUAL_2_4 else nullcontext():
+    with pytest.warns(FutureWarning, match="`weights_only=False`") if _TORCH_EQUAL_2_4_0 else nullcontext():
         cloudpickle.loads(mnist_pickled)
