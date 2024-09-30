@@ -20,7 +20,7 @@ from unittest.mock import ANY, Mock
 
 import pytest
 import torch
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_4
+from lightning.fabric.utilities.imports import _TORCH_EQUAL_2_4_0, _TORCH_GREATER_EQUAL_2_4_1
 from lightning.pytorch import Callback, Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.loggers import (
@@ -163,7 +163,7 @@ def test_loggers_pickle_all(tmp_path, monkeypatch, logger_class):
         pytest.xfail(f"pickle test requires {logger_class.__class__} dependencies to be installed.")
 
 
-def _test_loggers_pickle(tmp_path, monkeypatch, logger_class):
+def _test_loggers_pickle(tmp_path, monkeypatch, logger_class: Logger):
     """Verify that pickling trainer with logger works."""
     _patch_comet_atexit(monkeypatch)
 
@@ -184,7 +184,11 @@ def _test_loggers_pickle(tmp_path, monkeypatch, logger_class):
     trainer = Trainer(max_epochs=1, logger=logger)
     pkl_bytes = pickle.dumps(trainer)
 
-    with pytest.warns(FutureWarning, match="`weights_only=False`") if _TORCH_GREATER_EQUAL_2_4 else nullcontext():
+    with (
+        pytest.warns(FutureWarning, match="`weights_only=False`")
+        if _TORCH_EQUAL_2_4_0 or (_TORCH_GREATER_EQUAL_2_4_1 and logger_class not in (CSVLogger, TensorBoardLogger))
+        else nullcontext()
+    ):
         trainer2 = pickle.loads(pkl_bytes)
     trainer2.logger.log_metrics({"acc": 1.0})
 

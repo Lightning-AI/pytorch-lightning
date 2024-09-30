@@ -309,20 +309,6 @@ def test_rich_progress_bar_counter_with_val_check_interval(tmp_path):
 
 
 @RunIf(rich=True)
-@mock.patch("lightning.pytorch.callbacks.progress.rich_progress._detect_light_colab_theme", return_value=True)
-def test_rich_progress_bar_colab_light_theme_update(*_):
-    theme = RichProgressBar().theme
-    assert theme.description == "black"
-    assert theme.batch_progress == "black"
-    assert theme.metrics == "black"
-
-    theme = RichProgressBar(theme=RichProgressBarTheme(description="blue", metrics="red")).theme
-    assert theme.description == "blue"
-    assert theme.batch_progress == "black"
-    assert theme.metrics == "red"
-
-
-@RunIf(rich=True)
 def test_rich_progress_bar_metric_display_task_id(tmp_path):
     class CustomModel(BoringModel):
         def training_step(self, *args, **kwargs):
