@@ -206,14 +206,14 @@ class RichProgressBarTheme:
 
     """
 
-    description: Union[str, "Style"] = "white"
+    description: Union[str, "Style"] = ""
     progress_bar: Union[str, "Style"] = "#6206E0"
     progress_bar_finished: Union[str, "Style"] = "#6206E0"
     progress_bar_pulse: Union[str, "Style"] = "#6206E0"
-    batch_progress: Union[str, "Style"] = "white"
-    time: Union[str, "Style"] = "grey54"
-    processing_speed: Union[str, "Style"] = "grey70"
-    metrics: Union[str, "Style"] = "white"
+    batch_progress: Union[str, "Style"] = ""
+    time: Union[str, "Style"] = "dim"
+    processing_speed: Union[str, "Style"] = "dim underline"
+    metrics: Union[str, "Style"] = "italic"
     metrics_text_delimiter: str = " "
     metrics_format: str = ".3f"
 
@@ -280,7 +280,6 @@ class RichProgressBar(ProgressBar):
         self._metric_component: Optional[MetricsTextColumn] = None
         self._progress_stopped: bool = False
         self.theme = theme
-        self._update_for_light_colab_theme()
 
     @property
     def refresh_rate(self) -> float:
@@ -317,13 +316,6 @@ class RichProgressBar(ProgressBar):
         assert self.progress is not None
         assert self.test_progress_bar_id is not None
         return self.progress.tasks[self.test_progress_bar_id]
-
-    def _update_for_light_colab_theme(self) -> None:
-        if _detect_light_colab_theme():
-            attributes = ["description", "batch_progress", "metrics"]
-            for attr in attributes:
-                if getattr(self.theme, attr) == "white":
-                    setattr(self.theme, attr, "black")
 
     @override
     def disable(self) -> None:
@@ -449,7 +441,7 @@ class RichProgressBar(ProgressBar):
     def _add_task(self, total_batches: Union[int, float], description: str, visible: bool = True) -> "TaskID":
         assert self.progress is not None
         return self.progress.add_task(
-            f"[{self.theme.description}]{description}",
+            f"[{self.theme.description}]{description}" if self.theme.description else description,
             total=total_batches,
             visible=visible,
         )
@@ -656,20 +648,3 @@ class RichProgressBar(ProgressBar):
         state["progress"] = None
         state["_console"] = None
         return state
-
-
-def _detect_light_colab_theme() -> bool:
-    """Detect if it's light theme in Colab."""
-    try:
-        import get_ipython
-    except (NameError, ModuleNotFoundError):
-        return False
-    ipython = get_ipython()
-    if "google.colab" in str(ipython.__class__):
-        try:
-            from google.colab import output
-
-            return output.eval_js('document.documentElement.matches("[theme=light]")')
-        except ModuleNotFoundError:
-            return False
-    return False
