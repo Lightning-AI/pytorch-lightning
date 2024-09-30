@@ -107,6 +107,7 @@ def test_loggers_fit_test_all(logger_class, mlflow_mock, wandb_mock, comet_mock,
 
     if logger_class == CometLogger:
         logger.experiment.id = "foo"
+        logger._comet_config.offline_directory = None
         logger.experiment.project_name = "bar"
 
     if logger_class == NeptuneLogger:
@@ -299,7 +300,9 @@ def test_logger_with_prefix_all(mlflow_mock, wandb_mock, comet_mock, neptune_moc
     _patch_comet_atexit(monkeypatch)
     logger = _instantiate_logger(CometLogger, save_dir=tmp_path, prefix=prefix)
     logger.log_metrics({"test": 1.0}, step=0)
-    logger.experiment.log_metrics.assert_called_once_with({"tmp-test": 1.0}, epoch=None, step=0)
+    logger.experiment.__internal_api__log_metrics__.assert_called_once_with(
+        {"test": 1.0}, epoch=None, step=0, prefix=prefix, framework="pytorch-lightning"
+    )
 
     # MLflow
     Metric = mlflow_mock.entities.Metric
