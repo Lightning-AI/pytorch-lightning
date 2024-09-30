@@ -16,8 +16,8 @@ from collections import deque
 from typing import TYPE_CHECKING, Any, Callable, Deque, Dict, List, Optional, TypeVar, Union
 
 import torch
+from typing_extensions import override
 
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_1
 from lightning.fabric.utilities.rank_zero import rank_zero_only, rank_zero_warn
 
 if TYPE_CHECKING:
@@ -171,17 +171,16 @@ class Throughput:
             # we are safe from ZeroDivisionError thanks to `_MonotonicWindow`
             dev_samples_per_sec = elapsed_samples / elapsed_time
             dev_batches_per_sec = elapsed_batches / elapsed_time
-            metrics.update(
-                {
-                    f"device{self.separator}batches_per_sec": elapsed_batches / elapsed_time,
-                    f"device{self.separator}samples_per_sec": dev_samples_per_sec,
-                }
-            )
+            metrics.update({
+                f"device{self.separator}batches_per_sec": elapsed_batches / elapsed_time,
+                f"device{self.separator}samples_per_sec": dev_samples_per_sec,
+            })
             if add_global_metrics:
                 samples_per_sec = dev_batches_per_sec * self.world_size
-                metrics.update(
-                    {"batches_per_sec": samples_per_sec, "samples_per_sec": dev_samples_per_sec * self.world_size}
-                )
+                metrics.update({
+                    "batches_per_sec": samples_per_sec,
+                    "samples_per_sec": dev_samples_per_sec * self.world_size,
+                })
 
             if len(self._lengths) == self._lengths.maxlen:
                 elapsed_lengths = self._lengths[-1] - self._lengths[0]
@@ -222,7 +221,7 @@ class ThroughputMonitor(Throughput):
 
         logger = ...
         fabric = Fabric(logger=logger)
-        throughput = ThroughputMonitor()
+        throughput = ThroughputMonitor(fabric)
         t0 = time()
         for i in range(1, 100):
             do_work()
@@ -292,11 +291,9 @@ def measure_flops(
             FLOPs will be included in the result.
 
     """
-    if not _TORCH_GREATER_EQUAL_2_1:
-        raise ImportError("`measure_flops` requires PyTorch >= 2.1.")
     from torch.utils.flop_counter import FlopCounterMode
 
-    flop_counter = FlopCounterMode(model, display=False)
+    flop_counter = FlopCounterMode(display=False)
     with flop_counter:
         if loss_fn is None:
             forward_fn()
@@ -596,7 +593,9 @@ def get_available_flops(device: torch.device, dtype: Union[torch.dtype, str]) ->
         else:
             from torch_xla.experimental import tpu
 
-        device_name = tpu.get_tpu_env()["TYPE"]
+        tpu_env = tpu.get_tpu_env()
+        # not all TPU generations define the "TYPE" envar. example: TYPE="V4", ACCELERATOR_TYPE="v4-8"
+        device_name = tpu_env.get("TYPE") or tpu_env["ACCELERATOR_TYPE"].split("-")[0]
         chip = device_name.lower()
         assert isinstance(device_name, str)
         if chip not in _TPU_FLOPS:
@@ -654,6 +653,7 @@ class _MonotonicWindow(List[T]):
             return self[-1]
         return None
 
+    @override
     def append(self, x: T) -> None:
         last = self.last
         if last is not None and last >= x:
@@ -663,6 +663,7 @@ class _MonotonicWindow(List[T]):
         if len(self) > self.maxlen:
             del self[0]
 
+    @override
     def __setitem__(self, key: Any, value: Any) -> None:
         # assigning is not implemented since we don't use it. it could be by checking all previous values
         raise NotImplementedError("__setitem__ is not supported")

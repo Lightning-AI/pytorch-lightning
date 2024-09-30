@@ -19,10 +19,11 @@ from weakref import proxy
 import torch
 from torch import optim
 from torch.optim import Optimizer
+from torch.optim.lr_scheduler import ReduceLROnPlateau
 from typing_extensions import override
 
 import lightning.pytorch as pl
-from lightning.fabric.utilities.types import Optimizable, ReduceLROnPlateau, _Stateful
+from lightning.fabric.utilities.types import Optimizable, _Stateful
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.model_helpers import is_overridden
 from lightning.pytorch.utilities.rank_zero import rank_zero_warn
@@ -196,7 +197,7 @@ def _init_optimizers_and_lr_schedulers(
 
 
 def _configure_optimizers(
-    optim_conf: Union[Dict[str, Any], List, Optimizer, Tuple]
+    optim_conf: Union[Dict[str, Any], List, Optimizer, Tuple],
 ) -> Tuple[List, List, Optional[str]]:
     optimizers, lr_schedulers = [], []
     monitor = None
@@ -398,12 +399,10 @@ class _MockOptimizer(Optimizer):
         return {}  # Return Empty
 
     @overload
-    def step(self, closure: None = ...) -> None:
-        ...
+    def step(self, closure: None = ...) -> None: ...
 
     @overload
-    def step(self, closure: Callable[[], float]) -> float:
-        ...
+    def step(self, closure: Callable[[], float]) -> float: ...
 
     @override
     def step(self, closure: Optional[Callable[[], float]] = None) -> Optional[float]:

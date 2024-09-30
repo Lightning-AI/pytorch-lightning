@@ -19,10 +19,10 @@
 # DO NOT REMOVE THIS NOTICE
 # - WILLIAM FALCON
 """Trainer to automate the training."""
+
 import logging
 import math
 import os
-import warnings
 from contextlib import contextmanager
 from datetime import timedelta
 from typing import Any, Dict, Generator, Iterable, List, Optional, Union
@@ -34,7 +34,6 @@ from torch.optim import Optimizer
 import lightning.pytorch as pl
 from lightning.fabric.utilities.apply_func import convert_tensors_to_scalars
 from lightning.fabric.utilities.cloud_io import _is_local_file_protocol
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 from lightning.fabric.utilities.types import _PATH
 from lightning.pytorch.accelerators import Accelerator
 from lightning.pytorch.callbacks import Callback, Checkpoint, EarlyStopping, ProgressBar
@@ -82,10 +81,6 @@ from lightning.pytorch.utilities.types import (
 from lightning.pytorch.utilities.warnings import PossibleUserWarning
 
 log = logging.getLogger(__name__)
-# warnings to ignore in trainer
-warnings.filterwarnings(
-    "ignore", message="torch.distributed.reduce_op is deprecated, please use torch.distributed.ReduceOp instead"
-)
 
 
 class Trainer:
@@ -136,7 +131,7 @@ class Trainer:
         r"""Customize every aspect of training via flags.
 
         Args:
-            accelerator: Supports passing different accelerator types ("cpu", "gpu", "tpu", "ipu", "hpu", "mps", "auto")
+            accelerator: Supports passing different accelerator types ("cpu", "gpu", "tpu", "hpu", "mps", "auto")
                 as well as custom accelerator instances.
 
             strategy: Supports different training strategies with aliases as well custom strategies.
@@ -151,7 +146,7 @@ class Trainer:
 
             precision: Double precision (64, '64' or '64-true'), full precision (32, '32' or '32-true'),
                 16bit mixed precision (16, '16', '16-mixed') or bfloat16 mixed precision ('bf16', 'bf16-mixed').
-                Can be used on CPU, GPU, TPUs, HPUs or IPUs.
+                Can be used on CPU, GPU, TPUs, or HPUs.
                 Default: ``'32-true'``.
 
             logger: Logger (or iterable collection of loggers) for experiment tracking. A ``True`` value uses
@@ -206,7 +201,7 @@ class Trainer:
                 across epochs or during iteration-based training.
                 Default: ``1.0``.
 
-            check_val_every_n_epoch: Perform a validation loop every after every `N` training epochs. If ``None``,
+            check_val_every_n_epoch: Perform a validation loop after every `N` training epochs. If ``None``,
                 validation will be done solely based on the number of training batches, requiring ``val_check_interval``
                 to be an integer value.
                 Default: ``1``.
@@ -506,7 +501,7 @@ class Trainer:
         train_dataloaders: Optional[Union[TRAIN_DATALOADERS, LightningDataModule]] = None,
         val_dataloaders: Optional[EVAL_DATALOADERS] = None,
         datamodule: Optional[LightningDataModule] = None,
-        ckpt_path: Optional[str] = None,
+        ckpt_path: Optional[_PATH] = None,
     ) -> None:
         r"""Runs the full optimization routine.
 
@@ -550,7 +545,7 @@ class Trainer:
         train_dataloaders: Optional[Union[TRAIN_DATALOADERS, LightningDataModule]] = None,
         val_dataloaders: Optional[EVAL_DATALOADERS] = None,
         datamodule: Optional[LightningDataModule] = None,
-        ckpt_path: Optional[str] = None,
+        ckpt_path: Optional[_PATH] = None,
     ) -> None:
         log.debug(f"{self.__class__.__name__}: trainer fit stage")
 
@@ -586,7 +581,7 @@ class Trainer:
         self,
         model: Optional["pl.LightningModule"] = None,
         dataloaders: Optional[Union[EVAL_DATALOADERS, LightningDataModule]] = None,
-        ckpt_path: Optional[str] = None,
+        ckpt_path: Optional[_PATH] = None,
         verbose: bool = True,
         datamodule: Optional[LightningDataModule] = None,
     ) -> _EVALUATE_OUTPUT:
@@ -649,7 +644,7 @@ class Trainer:
         self,
         model: Optional["pl.LightningModule"] = None,
         dataloaders: Optional[Union[EVAL_DATALOADERS, LightningDataModule]] = None,
-        ckpt_path: Optional[str] = None,
+        ckpt_path: Optional[_PATH] = None,
         verbose: bool = True,
         datamodule: Optional[LightningDataModule] = None,
     ) -> Optional[Union[_PREDICT_OUTPUT, _EVALUATE_OUTPUT]]:
@@ -694,7 +689,7 @@ class Trainer:
         self,
         model: Optional["pl.LightningModule"] = None,
         dataloaders: Optional[Union[EVAL_DATALOADERS, LightningDataModule]] = None,
-        ckpt_path: Optional[str] = None,
+        ckpt_path: Optional[_PATH] = None,
         verbose: bool = True,
         datamodule: Optional[LightningDataModule] = None,
     ) -> _EVALUATE_OUTPUT:
@@ -758,7 +753,7 @@ class Trainer:
         self,
         model: Optional["pl.LightningModule"] = None,
         dataloaders: Optional[Union[EVAL_DATALOADERS, LightningDataModule]] = None,
-        ckpt_path: Optional[str] = None,
+        ckpt_path: Optional[_PATH] = None,
         verbose: bool = True,
         datamodule: Optional[LightningDataModule] = None,
     ) -> Optional[Union[_PREDICT_OUTPUT, _EVALUATE_OUTPUT]]:
@@ -805,7 +800,7 @@ class Trainer:
         dataloaders: Optional[Union[EVAL_DATALOADERS, LightningDataModule]] = None,
         datamodule: Optional[LightningDataModule] = None,
         return_predictions: Optional[bool] = None,
-        ckpt_path: Optional[str] = None,
+        ckpt_path: Optional[_PATH] = None,
     ) -> Optional[_PREDICT_OUTPUT]:
         r"""Run inference on your data. This will call the model forward function to compute predictions. Useful to
         perform distributed and batched predictions. Logging is disabled in the predict hooks.
@@ -870,7 +865,7 @@ class Trainer:
         dataloaders: Optional[Union[EVAL_DATALOADERS, LightningDataModule]] = None,
         datamodule: Optional[LightningDataModule] = None,
         return_predictions: Optional[bool] = None,
-        ckpt_path: Optional[str] = None,
+        ckpt_path: Optional[_PATH] = None,
     ) -> Optional[_PREDICT_OUTPUT]:
         # --------------------
         # SETUP HOOK
@@ -1017,9 +1012,7 @@ class Trainer:
     def _run_stage(self) -> Optional[Union[_PREDICT_OUTPUT, _EVALUATE_OUTPUT]]:
         # wait for all to join if on distributed
         self.strategy.barrier("run-stage")
-
-        zero_grad_kwargs = {} if _TORCH_GREATER_EQUAL_2_0 else {"set_to_none": True}
-        self.lightning_module.zero_grad(**zero_grad_kwargs)
+        self.lightning_module.zero_grad()
 
         if self.evaluating:
             return self._evaluation_loop.run()
@@ -1083,22 +1076,14 @@ class Trainer:
         the right data type depending on the precision setting in the Trainer.
 
         The parameters and tensors get created on the device and with the right data type right away without wasting
-        memory being allocated unnecessarily. The automatic device placement under this context manager is only
-        supported with PyTorch 2.0 and newer.
+        memory being allocated unnecessarily.
 
         Args:
             empty_init: Whether to initialize the model with empty weights (uninitialized memory).
                 If ``None``, the strategy will decide. Some strategies may not support all options.
-                Set this to ``True`` if you are loading a checkpoint into a large model. Requires `torch >= 1.13`.
+                Set this to ``True`` if you are loading a checkpoint into a large model.
 
         """
-        if not _TORCH_GREATER_EQUAL_2_0 and self.strategy.root_device.type != "cpu":
-            rank_zero_warn(
-                "`Trainer.init_module()` can't place tensors on the device directly"
-                " with PyTorch < 2.0. Parameters will remain on CPU until the trainer starts."
-                " Upgrade to PyTorch >= 2.0 to fully utilize this feature.",
-                category=PossibleUserWarning,
-            )
         if is_overridden("model_sharded_context", self.strategy, parent=Strategy):
             # warning instead of error so that code changes are not required when changing strategies
             # this is a limitation because processes are not expected to have been launched when this is called
@@ -1664,8 +1649,8 @@ class Trainer:
     def estimated_stepping_batches(self) -> Union[int, float]:
         r"""The estimated number of batches that will ``optimizer.step()`` during training.
 
-        This accounts for gradient accumulation and the current trainer configuration. This might sets up your training
-        dataloader if hadn't been set up already.
+        This accounts for gradient accumulation and the current trainer configuration. This might be used when setting
+        up your training dataloader, if it hasn't been set up already.
 
         .. code-block:: python
 

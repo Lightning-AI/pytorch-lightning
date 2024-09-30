@@ -19,12 +19,13 @@ from typing import Dict, List, Tuple
 import torch
 from lightning_utilities.core.imports import RequirementCache
 from torch.nn import Parameter
+from typing_extensions import override
 
 from lightning.pytorch.utilities.model_summary.model_summary import (
     NOT_APPLICABLE,
     LayerSummary,
     ModelSummary,
-    _is_lazy_weight_tensor,
+    _tensor_has_shape,
     get_human_readable_count,
 )
 
@@ -36,9 +37,10 @@ def deepspeed_param_size(p: torch.nn.Parameter) -> int:
 
 class DeepSpeedLayerSummary(LayerSummary):
     @property
+    @override
     def num_parameters(self) -> int:
         """Returns the number of parameters in this module."""
-        return sum(deepspeed_param_size(p) if not _is_lazy_weight_tensor(p) else 0 for p in self._module.parameters())
+        return sum(deepspeed_param_size(p) if not _tensor_has_shape(p) else 0 for p in self._module.parameters())
 
     @property
     def average_shard_parameters(self) -> int:
@@ -47,10 +49,11 @@ class DeepSpeedLayerSummary(LayerSummary):
         def partitioned_size(p: Parameter) -> int:
             return p.partitioned_size() if RequirementCache("deepspeed<0.6.6") else p.partition_numel()
 
-        return sum(partitioned_size(p) if not _is_lazy_weight_tensor(p) else 0 for p in self._module.parameters())
+        return sum(partitioned_size(p) if not _tensor_has_shape(p) else 0 for p in self._module.parameters())
 
 
 class DeepSpeedSummary(ModelSummary):
+    @override
     def summarize(self) -> Dict[str, DeepSpeedLayerSummary]:  # type: ignore[override]
         summary = OrderedDict((name, DeepSpeedLayerSummary(module)) for name, module in self.named_modules)
         if self._model.example_input_array is not None:
@@ -66,13 +69,15 @@ class DeepSpeedSummary(ModelSummary):
         return summary
 
     @property
+    @override
     def total_parameters(self) -> int:
-        return sum(deepspeed_param_size(p) if not _is_lazy_weight_tensor(p) else 0 for p in self._model.parameters())
+        return sum(deepspeed_param_size(p) if not _tensor_has_shape(p) else 0 for p in self._model.parameters())
 
     @property
+    @override
     def trainable_parameters(self) -> int:
         return sum(
-            deepspeed_param_size(p) if not _is_lazy_weight_tensor(p) else 0
+            deepspeed_param_size(p) if not _tensor_has_shape(p) else 0
             for p in self._model.parameters()
             if p.requires_grad
         )
@@ -81,6 +86,7 @@ class DeepSpeedSummary(ModelSummary):
     def parameters_per_layer(self) -> List[int]:
         return [layer.average_shard_parameters for layer in self._layer_summary.values()]
 
+    @override
     def _get_summary_data(self) -> List[Tuple[str, List[str]]]:
         """Makes a summary listing with:
 
@@ -93,6 +99,7 @@ class DeepSpeedSummary(ModelSummary):
             ("Type", self.layer_types),
             ("Params", list(map(get_human_readable_count, self.param_nums))),
             ("Params per Device", list(map(get_human_readable_count, self.parameters_per_layer))),
+            ("Mode", ["train" if mode else "eval" for mode in self.training_modes]),
         ]
         if self._model.example_input_array is not None:
             arrays.append(("In sizes", [str(x) for x in self.in_sizes]))
@@ -104,6 +111,7 @@ class DeepSpeedSummary(ModelSummary):
 
         return arrays
 
+    @override
     def _add_leftover_params_to_summary(self, arrays: List[Tuple[str, List[str]]], total_leftover_params: int) -> None:
         """Add summary of params not associated with module or layer to model summary."""
         super()._add_leftover_params_to_summary(arrays, total_leftover_params)

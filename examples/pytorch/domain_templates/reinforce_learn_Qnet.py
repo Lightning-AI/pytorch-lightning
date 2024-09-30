@@ -33,11 +33,11 @@ Second-Edition/blob/master/Chapter06/02_dqn_pong.py
 """
 
 import argparse
+import random
 from collections import OrderedDict, deque, namedtuple
 from typing import Iterator, List, Tuple
 
 import gym
-import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -103,15 +103,15 @@ class ReplayBuffer:
         self.buffer.append(experience)
 
     def sample(self, batch_size: int) -> Tuple:
-        indices = np.random.choice(len(self.buffer), batch_size, replace=False)
+        indices = random.sample(range(len(self.buffer)), batch_size)
         states, actions, rewards, dones, next_states = zip(*(self.buffer[idx] for idx in indices))
 
         return (
-            np.array(states),
-            np.array(actions),
-            np.array(rewards, dtype=np.float32),
-            np.array(dones, dtype=np.bool),
-            np.array(next_states),
+            torch.tensor(states),
+            torch.tensor(actions),
+            torch.tensor(rewards, dtype=torch.float32),
+            torch.tensor(dones, dtype=torch.bool),
+            torch.tensor(next_states),
         )
 
 
@@ -175,7 +175,7 @@ class Agent:
             action
 
         """
-        if np.random.random() < epsilon:
+        if random.random() < epsilon:
             action = self.env.action_space.sample()
         else:
             state = torch.tensor([self.state])

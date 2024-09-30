@@ -79,11 +79,6 @@ class SingleDeviceStrategy(Strategy):
         if self.model.device.type != self.root_device.type:
             self.model.to(self.root_device)
 
-    @override
-    def setup(self, trainer: pl.Trainer) -> None:
-        self.model_to_device()
-        super().setup(trainer)
-
     @property
     @override
     def is_global_zero(self) -> bool:

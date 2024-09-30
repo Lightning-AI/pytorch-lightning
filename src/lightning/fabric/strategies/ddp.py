@@ -200,6 +200,13 @@ class DDPStrategy(ParallelStrategy):
                 description=f"DDP strategy with `start_method={start_method!r}`",
                 start_method=start_method,
             )
+        strategy_registry.register(
+            "ddp_find_unused_parameters_true",
+            cls,
+            description="Alias for `find_unused_parameters_true` and `start_method='popen'`",
+            find_unused_parameters=True,
+            start_method="popen",
+        )
 
     def _setup_distributed(self) -> None:
         self._set_world_ranks()
@@ -224,9 +231,12 @@ class DDPStrategy(ParallelStrategy):
 
 class _DDPBackwardSyncControl(_BackwardSyncControl):
     @override
-    def no_backward_sync(self, module: Module) -> ContextManager:
+    def no_backward_sync(self, module: Module, enabled: bool) -> ContextManager:
         """Blocks gradient synchronization inside the :class:`~torch.nn.parallel.distributed.DistributedDataParallel`
         wrapper."""
+        if not enabled:
+            return nullcontext()
+
         if not isinstance(module, DistributedDataParallel):
             raise TypeError(
                 "Blocking backward sync is only possible if the module passed to"

@@ -21,6 +21,7 @@ from types import ModuleType, TracebackType
 from typing import Any, Dict, List, Optional, Tuple, Type
 
 from packaging.version import Version
+from typing_extensions import override
 
 import lightning.pytorch as pl
 from lightning.fabric.utilities.enums import LightningEnum
@@ -188,6 +189,7 @@ class _RedirectingUnpickler(pickle._Unpickler):
 
     """
 
+    @override
     def find_class(self, module: str, name: str) -> Any:
         new_module = _patch_pl_to_mirror_if_necessary(module)
         # this warning won't trigger for standalone as these imports are identical

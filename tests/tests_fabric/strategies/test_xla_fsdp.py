@@ -27,7 +27,7 @@ from torch.optim import Adam
 from tests_fabric.helpers.runif import RunIf
 
 
-@RunIf(min_torch="2.0", tpu=True)
+@RunIf(tpu=True)
 def test_xla_fsdp_setup_optimizer_validation():
     """Test that `setup_optimizer()` validates the param groups and reference to FSDP parameters."""
     module = nn.Linear(2, 2)
@@ -39,7 +39,7 @@ def test_xla_fsdp_setup_optimizer_validation():
         strategy.setup_optimizer(bad_optimizer)
 
 
-@RunIf(min_torch="2.0", tpu=True)
+@RunIf(tpu=True)
 def test_xla_fsdp_no_backward_sync():
     """Test that the backward sync control calls `.no_sync()`, and only on a module wrapped in
     XlaFullyShardedDataParallel."""
@@ -50,17 +50,21 @@ def test_xla_fsdp_no_backward_sync():
 
     with pytest.raises(
         TypeError, match="is only possible if the module passed to .* is wrapped in `XlaFullyShardedDataParallel`"
-    ), strategy._backward_sync_control.no_backward_sync(object()):
+    ), strategy._backward_sync_control.no_backward_sync(object(), True):
         pass
 
     module = MagicMock(spec=XlaFullyShardedDataParallel)
-    with strategy._backward_sync_control.no_backward_sync(module):
-        pass
 
+    with strategy._backward_sync_control.no_backward_sync(module, False):
+        pass
+    module.no_sync.assert_not_called()
+
+    with strategy._backward_sync_control.no_backward_sync(module, True):
+        pass
     module.no_sync.assert_called_once()
 
 
-@RunIf(min_torch="2.0", tpu=True)
+@RunIf(tpu=True)
 def test_xla_fsdp_grad_clipping_value_error():
     strategy = XLAFSDPStrategy()
     with pytest.raises(NotImplementedError, match="does not support to clip gradients by value"):

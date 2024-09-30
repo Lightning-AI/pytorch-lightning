@@ -6,121 +6,167 @@
 Distributed checkpoints (expert)
 ################################
 
-*********************************
-Writing your own Checkpoint class
-*********************************
-
-We provide ``Checkpoint`` class, for easier subclassing. Users may want to subclass this class in case of writing custom ``ModelCheckpoint`` callback, so that the ``Trainer`` recognizes the custom class as a checkpointing callback.
+Generally, the bigger your model is, the longer it takes to save a checkpoint to disk.
+With distributed checkpoints (sometimes called sharded checkpoints), you can save and load the state of your training script with multiple GPUs or nodes more efficiently, avoiding memory issues.
 
 
-***********************
-Customize Checkpointing
-***********************
-
-.. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
-
-Lightning supports modifying the checkpointing save/load functionality through the ``CheckpointIO``. This encapsulates the save/load logic
-that is managed by the ``Strategy``. ``CheckpointIO`` is different from :meth:`~lightning.pytorch.core.hooks.CheckpointHooks.on_save_checkpoint`
-and :meth:`~lightning.pytorch.core.hooks.CheckpointHooks.on_load_checkpoint` methods as it determines how the checkpoint is saved/loaded to storage rather than
-what's saved in the checkpoint.
+----
 
 
-.. TODO:: I don't understand this...
+*****************************
+Save a distributed checkpoint
+*****************************
 
-******************************
-Built-in Checkpoint IO Plugins
-******************************
-
-.. list-table:: Built-in Checkpoint IO Plugins
-   :widths: 25 75
-   :header-rows: 1
-
-   * - Plugin
-     - Description
-   * - :class:`~lightning.pytorch.plugins.io.TorchCheckpointIO`
-     - CheckpointIO that utilizes :func:`torch.save` and :func:`torch.load` to save and load checkpoints
-       respectively, common for most use cases.
-   * - :class:`~lightning.pytorch.plugins.io.XLACheckpointIO`
-     - CheckpointIO that utilizes ``xm.save`` to save checkpoints for TPU training strategies.
-   * - :class:`~lightning.pytorch.plugins.io.AsyncCheckpointIO`
-     - ``AsyncCheckpointIO`` enables saving the checkpoints asynchronously in a thread.
-
-
-***************************
-Custom Checkpoint IO Plugin
-***************************
-
-``CheckpointIO`` can be extended to include your custom save/load functionality to and from a path. The ``CheckpointIO`` object can be passed to either a ``Trainer`` directly or a ``Strategy`` as shown below:
+The distributed checkpoint format can be enabled when you train with the :doc:`FSDP strategy <../advanced/model_parallel/fsdp>`.
 
 .. code-block:: python
 
-    from lightning.pytorch import Trainer
-    from lightning.pytorch.callbacks import ModelCheckpoint
-    from lightning.pytorch.plugins import CheckpointIO
-    from lightning.pytorch.strategies import SingleDeviceStrategy
+    import lightning as L
+    from lightning.pytorch.strategies import FSDPStrategy
 
+    # 1. Select the FSDP strategy and set the sharded/distributed checkpoint format
+    strategy = FSDPStrategy(state_dict_type="sharded")
 
-    class CustomCheckpointIO(CheckpointIO):
-        def save_checkpoint(self, checkpoint, path, storage_options=None):
-            ...
+    # 2. Pass the strategy to the Trainer
+    trainer = L.Trainer(devices=2, strategy=strategy, ...)
 
-        def load_checkpoint(self, path, storage_options=None):
-            ...
-
-        def remove_checkpoint(self, path):
-            ...
-
-
-    custom_checkpoint_io = CustomCheckpointIO()
-
-    # Either pass into the Trainer object
-    model = MyModel()
-    trainer = Trainer(
-        plugins=[custom_checkpoint_io],
-        callbacks=ModelCheckpoint(save_last=True),
-    )
+    # 3. Run the trainer
     trainer.fit(model)
 
-    # or pass into Strategy
-    model = MyModel()
-    device = torch.device("cpu")
-    trainer = Trainer(
-        strategy=SingleDeviceStrategy(device, checkpoint_io=custom_checkpoint_io),
-        callbacks=ModelCheckpoint(save_last=True),
-    )
-    trainer.fit(model)
+
+With ``state_dict_type="sharded"``, each process/GPU will save its own file into a folder at the given path.
+This reduces memory peaks and speeds up the saving to disk.
+
+.. collapse:: Full example
+
+    .. code-block:: python
+
+        import lightning as L
+        from lightning.pytorch.strategies import FSDPStrategy
+        from lightning.pytorch.demos import LightningTransformer
+
+        model = LightningTransformer()
+
+        strategy = FSDPStrategy(state_dict_type="sharded")
+        trainer = L.Trainer(
+            accelerator="cuda",
+            devices=4,
+            strategy=strategy,
+            max_steps=3,
+        )
+        trainer.fit(model)
+
+
+    Check the contents of the checkpoint folder:
+
+    .. code-block:: bash
+
+        ls -a lightning_logs/version_0/checkpoints/epoch=0-step=3.ckpt/
+
+    .. code-block::
+
+        epoch=0-step=3.ckpt/
+        ├── __0_0.distcp
+        ├── __1_0.distcp
+        ├── __2_0.distcp
+        ├── __3_0.distcp
+        ├── .metadata
+        └── meta.pt
+
+    The ``.distcp`` files contain the tensor shards from each process/GPU. You can see that the size of these files
+    is roughly 1/4 of the total size of the checkpoint since the script distributes the model across 4 GPUs.
+
+
+----
+
+
+*****************************
+Load a distributed checkpoint
+*****************************
+
+You can easily load a distributed checkpoint in Trainer if your script uses :doc:`FSDP <../advanced/model_parallel/fsdp>`.
+
+.. code-block:: python
+
+    import lightning as L
+    from lightning.pytorch.strategies import FSDPStrategy
+
+    # 1. Select the FSDP strategy and set the sharded/distributed checkpoint format
+    strategy = FSDPStrategy(state_dict_type="sharded")
+
+    # 2. Pass the strategy to the Trainer
+    trainer = L.Trainer(devices=2, strategy=strategy, ...)
+
+    # 3. Set the checkpoint path to load
+    trainer.fit(model, ckpt_path="path/to/checkpoint")
+
+Note that you can load the distributed checkpoint even if the world size has changed, i.e., you are running on a different number of GPUs than when you saved the checkpoint.
+
+.. collapse:: Full example
+
+    .. code-block:: python
+
+        import lightning as L
+        from lightning.pytorch.strategies import FSDPStrategy
+        from lightning.pytorch.demos import LightningTransformer
+
+        model = LightningTransformer()
+
+        strategy = FSDPStrategy(state_dict_type="sharded")
+        trainer = L.Trainer(
+            accelerator="cuda",
+            devices=2,
+            strategy=strategy,
+            max_steps=5,
+        )
+        trainer.fit(model, ckpt_path="lightning_logs/version_0/checkpoints/epoch=0-step=3.ckpt")
+
+
+.. important::
+
+    If you want to load a distributed checkpoint into a script that doesn't use FSDP (or Trainer at all), then you will have to :ref:`convert it to a single-file checkpoint first <Convert dist-checkpoint>`.
+
+
+----
+
+
+.. _Convert dist-checkpoint:
+
+********************************
+Convert a distributed checkpoint
+********************************
+
+It is possible to convert a distributed checkpoint to a regular, single-file checkpoint with this utility:
+
+.. code-block:: bash
+
+    python -m lightning.pytorch.utilities.consolidate_checkpoint path/to/my/checkpoint
+
+You will need to do this for example if you want to load the checkpoint into a script that doesn't use FSDP, or need to export the checkpoint to a different format for deployment, evaluation, etc.
 
 .. note::
 
-    Some ``Strategy``s like ``DeepSpeedStrategy`` do not support custom ``CheckpointIO`` as checkpointing logic is not modifiable.
+    All tensors in the checkpoint will be converted to CPU tensors, and no GPUs are required to run the conversion command.
+    This function assumes you have enough free CPU memory to hold the entire checkpoint in memory.
+
+.. collapse:: Full example
+
+    Assuming you have saved a checkpoint ``epoch=0-step=3.ckpt`` using the examples above, run the following command to convert it:
+
+    .. code-block:: bash
+
+        cd lightning_logs/version_0/checkpoints
+        python -m lightning.pytorch.utilities.consolidate_checkpoint epoch=0-step=3.ckpt
+
+    This saves a new file ``epoch=0-step=3.ckpt.consolidated`` next to the sharded checkpoint which you can load normally in PyTorch:
+
+    .. code-block:: python
+
+        import torch
+
+        checkpoint = torch.load("epoch=0-step=3.ckpt.consolidated")
+        print(list(checkpoint.keys()))
+        print(checkpoint["state_dict"]["model.transformer.decoder.layers.31.norm1.weight"])
 
 
-**************************
-Asynchronous Checkpointing
-**************************
-
-.. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
-
-To enable saving the checkpoints asynchronously without blocking your training, you can configure
-:class:`~lightning.pytorch.plugins.io.async_plugin.AsyncCheckpointIO` plugin to ``Trainer``.
-
-.. code-block:: python
-
-   from lightning.pytorch.plugins.io import AsyncCheckpointIO
-
-
-   async_ckpt_io = AsyncCheckpointIO()
-   trainer = Trainer(plugins=[async_ckpt_io])
-
-
-It uses its base ``CheckpointIO`` plugin's saving logic to save the checkpoint but performs this operation asynchronously.
-By default, this base ``CheckpointIO`` will be set-up for you and all you need to provide is the ``AsyncCheckpointIO`` instance to the ``Trainer``.
-But if you want the plugin to use your own custom base ``CheckpointIO`` and want the base to behave asynchronously, pass it as an argument while initializing ``AsyncCheckpointIO``.
-
-.. code-block:: python
-
-   from lightning.pytorch.plugins.io import AsyncCheckpointIO
-
-   base_ckpt_io = MyCustomCheckpointIO()
-   async_ckpt_io = AsyncCheckpointIO(checkpoint_io=base_ckpt_io)
-   trainer = Trainer(plugins=[async_ckpt_io])
+|

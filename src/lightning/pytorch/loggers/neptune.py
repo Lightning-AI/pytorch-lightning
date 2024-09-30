@@ -15,11 +15,13 @@
 Neptune Logger
 --------------
 """
+
 import contextlib
 import logging
 import os
 from argparse import Namespace
-from typing import TYPE_CHECKING, Any, Dict, Generator, List, Optional, Set, Union
+from functools import wraps
+from typing import TYPE_CHECKING, Any, Callable, Dict, Generator, List, Optional, Set, Union
 
 from lightning_utilities.core.imports import RequirementCache
 from torch import Tensor
@@ -38,14 +40,30 @@ if TYPE_CHECKING:
 
 log = logging.getLogger(__name__)
 
-# neptune is available with two names on PyPI : `neptune` and `neptune-client`
+# Neptune is available with two names on PyPI : `neptune` and `neptune-client`
+# `neptune` was introduced as a name transition of neptune-client and the long-term target is to get
+# rid of Neptune-client package completely someday. It was introduced as a part of breaking-changes with a release
+# of neptune-client==1.0. neptune-client>=1.0 is just an alias of neptune package and have some breaking-changes
+# in compare to neptune-client<1.0.0.
 _NEPTUNE_AVAILABLE = RequirementCache("neptune>=1.0")
-_NEPTUNE_CLIENT_AVAILABLE = RequirementCache("neptune-client")
 _INTEGRATION_VERSION_KEY = "source_code/integrations/pytorch-lightning"
 
 
+# Neptune client throws `InactiveRunException` when trying to log to an inactive run.
+# This may happen when the run was stopped through the UI and the logger is still trying to log to it.
+def _catch_inactive(func: Callable) -> Callable:
+    @wraps(func)
+    def wrapper(*args: Any, **kwargs: Any) -> Any:
+        from neptune.exceptions import InactiveRunException
+
+        with contextlib.suppress(InactiveRunException):
+            return func(*args, **kwargs)
+
+    return wrapper
+
+
 class NeptuneLogger(Logger):
-    r"""Log using `Neptune <https://neptune.ai>`_.
+    r"""Log using `Neptune <https://docs.neptune.ai/integrations/lightning/>`_.
 
     Install it with pip:
 
@@ -180,14 +198,14 @@ class NeptuneLogger(Logger):
 
     Args:
         api_key: Optional.
-            Neptune API token, found on https://neptune.ai upon registration.
+            Neptune API token, found on https://www.neptune.ai upon registration.
             You should save your token to the `NEPTUNE_API_TOKEN`
             environment variable and leave the api_key argument out of your code.
             Instructions: `Setting your API token <https://docs.neptune.ai/setup/setting_api_token/>`_.
         project: Optional.
             Name of a project in the form "workspace-name/project-name", for example "tom/mask-rcnn".
             If ``None``, the value of `NEPTUNE_PROJECT` environment variable is used.
-            You need to create the project on https://neptune.ai first.
+            You need to create the project on https://www.neptune.ai first.
         name: Optional. Editable name of the run.
             The run name is displayed in the Neptune web app.
         run: Optional. Default is ``None``. A Neptune ``Run`` object.
@@ -223,8 +241,9 @@ class NeptuneLogger(Logger):
         prefix: str = "training",
         **neptune_run_kwargs: Any,
     ):
-        if not _NEPTUNE_AVAILABLE and not _NEPTUNE_CLIENT_AVAILABLE:
+        if not _NEPTUNE_AVAILABLE:
             raise ModuleNotFoundError(str(_NEPTUNE_AVAILABLE))
+
         # verify if user passed proper init arguments
         self._verify_input_arguments(api_key, project, name, run, neptune_run_kwargs)
         super().__init__()
@@ -240,10 +259,7 @@ class NeptuneLogger(Logger):
         if self._run_instance is not None:
             self._retrieve_run_data()
 
-            if _NEPTUNE_AVAILABLE:
-                from neptune.handler import Handler
-            else:
-                from neptune.new.handler import Handler
+            from neptune.handler import Handler
 
             # make sure that we've log integration version for outside `Run` instances
             root_obj = self._run_instance
@@ -253,10 +269,7 @@ class NeptuneLogger(Logger):
             root_obj[_INTEGRATION_VERSION_KEY] = pl.__version__
 
     def _retrieve_run_data(self) -> None:
-        if _NEPTUNE_AVAILABLE:
-            from neptune.handler import Handler
-        else:
-            from neptune.new.handler import Handler
+        from neptune.handler import Handler
 
         assert self._run_instance is not None
         root_obj = self._run_instance
@@ -309,12 +322,9 @@ class NeptuneLogger(Logger):
         run: Optional[Union["Run", "Handler"]],
         neptune_run_kwargs: dict,
     ) -> None:
-        if _NEPTUNE_AVAILABLE:
-            from neptune import Run
-            from neptune.handler import Handler
-        else:
-            from neptune.new import Run
-            from neptune.new.handler import Handler
+        from neptune import Run
+        from neptune.handler import Handler
+
         # check if user passed the client `Run`/`Handler` object
         if run is not None and not isinstance(run, (Run, Handler)):
             raise ValueError("Run parameter expected to be of type `neptune.Run`, or `neptune.handler.Handler`.")
@@ -334,10 +344,7 @@ class NeptuneLogger(Logger):
         return state
 
     def __setstate__(self, state: Dict[str, Any]) -> None:
-        if _NEPTUNE_AVAILABLE:
-            import neptune
-        else:
-            import neptune.new as neptune
+        import neptune
 
         self.__dict__ = state
         self._run_instance = neptune.init_run(**self._neptune_init_args)
@@ -375,10 +382,7 @@ class NeptuneLogger(Logger):
     @property
     @rank_zero_experiment
     def run(self) -> "Run":
-        if _NEPTUNE_AVAILABLE:
-            import neptune
-        else:
-            import neptune.new as neptune
+        import neptune
 
         if not self._run_instance:
             self._run_instance = neptune.init_run(**self._neptune_init_args)
@@ -390,7 +394,8 @@ class NeptuneLogger(Logger):
 
     @override
     @rank_zero_only
-    def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:  # type: ignore[override]
+    @_catch_inactive
+    def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:
         r"""Log hyperparameters to the run.
 
         Hyperparameters will be logged under the "<prefix>/hyperparams" namespace.
@@ -425,10 +430,7 @@ class NeptuneLogger(Logger):
             neptune_logger.log_hyperparams(PARAMS)
 
         """
-        if _NEPTUNE_AVAILABLE:
-            from neptune.utils import stringify_unsupported
-        else:
-            from neptune.new.utils import stringify_unsupported
+        from neptune.utils import stringify_unsupported
 
         params = _convert_params(params)
         params = _sanitize_callable_params(params)
@@ -440,9 +442,8 @@ class NeptuneLogger(Logger):
 
     @override
     @rank_zero_only
-    def log_metrics(  # type: ignore[override]
-        self, metrics: Dict[str, Union[Tensor, float]], step: Optional[int] = None
-    ) -> None:
+    @_catch_inactive
+    def log_metrics(self, metrics: Dict[str, Union[Tensor, float]], step: Optional[int] = None) -> None:
         """Log metrics (numeric values) in Neptune runs.
 
         Args:
@@ -460,6 +461,7 @@ class NeptuneLogger(Logger):
 
     @override
     @rank_zero_only
+    @_catch_inactive
     def finalize(self, status: str) -> None:
         if not self._run_instance:
             # When using multiprocessing, finalize() should be a no-op on the main process, as no experiment has been
@@ -483,11 +485,9 @@ class NeptuneLogger(Logger):
         return os.path.join(os.getcwd(), ".neptune")
 
     @rank_zero_only
+    @_catch_inactive
     def log_model_summary(self, model: "pl.LightningModule", max_depth: int = -1) -> None:
-        if _NEPTUNE_AVAILABLE:
-            from neptune.types import File
-        else:
-            from neptune.new.types import File
+        from neptune.types import File
 
         model_str = str(ModelSummary(model=model, max_depth=max_depth))
         self.run[self._construct_path_with_prefix("model/summary")] = File.from_content(
@@ -496,6 +496,7 @@ class NeptuneLogger(Logger):
 
     @override
     @rank_zero_only
+    @_catch_inactive
     def after_save_checkpoint(self, checkpoint_callback: Checkpoint) -> None:
         """Automatically log checkpointed model. Called after model checkpoint callback saves a new checkpoint.
 
@@ -506,10 +507,7 @@ class NeptuneLogger(Logger):
         if not self._log_model_checkpoints:
             return
 
-        if _NEPTUNE_AVAILABLE:
-            from neptune.types import File
-        else:
-            from neptune.new.types import File
+        from neptune.types import File
 
         file_names = set()
         checkpoints_namespace = self._construct_path_with_prefix("model/checkpoints")

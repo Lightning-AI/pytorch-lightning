@@ -25,7 +25,7 @@ from lightning.fabric.plugins import DeepSpeedPrecision
 from lightning.fabric.strategies import DeepSpeedStrategy
 from torch.utils.data import DataLoader
 
-from tests_fabric.helpers.models import RandomDataset, RandomIterableDataset
+from tests_fabric.helpers.datasets import RandomDataset, RandomIterableDataset
 from tests_fabric.helpers.runif import RunIf
 from tests_fabric.test_fabric import BoringModel
 
@@ -312,11 +312,11 @@ def _assert_saved_model_is_equal(fabric, model, checkpoint_path):
             single_ckpt_path = checkpoint_path / "single_model.pt"
             # the tag is hardcoded in DeepSpeedStrategy
             convert_zero_checkpoint_to_fp32_state_dict(checkpoint_path, single_ckpt_path, tag="checkpoint")
-            state_dict = torch.load(single_ckpt_path)
+            state_dict = torch.load(single_ckpt_path, weights_only=False)
         else:
             # 'checkpoint' is the tag, hardcoded in DeepSpeedStrategy
             single_ckpt_path = checkpoint_path / "checkpoint" / "mp_rank_00_model_states.pt"
-            state_dict = torch.load(single_ckpt_path)["module"]
+            state_dict = torch.load(single_ckpt_path, weights_only=False)["module"]
 
         model = model.cpu()
 

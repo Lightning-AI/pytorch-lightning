@@ -16,7 +16,6 @@ import os
 import random
 from argparse import ArgumentParser, Namespace
 
-import numpy as np
 import torch
 import torch.nn.functional as F
 import torchvision.transforms as transforms
@@ -107,11 +106,11 @@ class KITTI(Dataset):
     def __getitem__(self, idx):
         img = Image.open(self.img_list[idx])
         img = img.resize(self.img_size)
-        img = np.array(img)
+        img = torch.tensor(img)
 
         mask = Image.open(self.mask_list[idx]).convert("L")
         mask = mask.resize(self.img_size)
-        mask = np.array(mask)
+        mask = torch.tensor(mask)
         mask = self.encode_segmap(mask)
 
         if self.transform:
@@ -333,14 +332,10 @@ class SegModel(LightningModule):
         self.net = UNet(
             num_classes=19, num_layers=self.num_layers, features_start=self.features_start, bilinear=self.bilinear
         )
-        self.transform = transforms.Compose(
-            [
-                transforms.ToTensor(),
-                transforms.Normalize(
-                    mean=[0.35675976, 0.37380189, 0.3764753], std=[0.32064945, 0.32098866, 0.32325324]
-                ),
-            ]
-        )
+        self.transform = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[0.35675976, 0.37380189, 0.3764753], std=[0.32064945, 0.32098866, 0.32325324]),
+        ])
         self.trainset = KITTI(self.data_path, split="train", transform=self.transform)
         self.validset = KITTI(self.data_path, split="valid", transform=self.transform)
 

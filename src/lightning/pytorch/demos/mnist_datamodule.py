@@ -248,9 +248,10 @@ class MNISTDataModule(LightningDataModule):
         from torchvision import transforms
 
         if self.normalize:
-            mnist_transforms = transforms.Compose(
-                [transforms.ToTensor(), transforms.Normalize(mean=(0.5,), std=(0.5,))]
-            )
+            mnist_transforms = transforms.Compose([
+                transforms.ToTensor(),
+                transforms.Normalize(mean=(0.5,), std=(0.5,)),
+            ])
         else:
             mnist_transforms = transforms.ToTensor()
 

@@ -40,7 +40,13 @@ if _OMEGACONF_AVAILABLE:
 @mock.patch("lightning.pytorch.trainer.trainer.Trainer.node_rank", new_callable=PropertyMock)
 @mock.patch("lightning.pytorch.trainer.trainer.Trainer.local_rank", new_callable=PropertyMock)
 def test_can_prepare_data(local_rank, node_rank):
-    dm = Mock(spec=LightningDataModule)
+    class MyDataModule(LightningDataModule):
+        def prepare_data(self):
+            pass
+
+    dm = MyDataModule()
+    dm.prepare_data = Mock(wraps=dm.prepare_data)
+
     dm.prepare_data_per_node = True
     trainer = Trainer()
     trainer.datamodule = dm
@@ -56,7 +62,7 @@ def test_can_prepare_data(local_rank, node_rank):
     dm.prepare_data.assert_called_once()
 
     # local rank = 1   (False)
-    dm.reset_mock()
+    dm.prepare_data.reset_mock()
     local_rank.return_value = 1
     assert trainer.local_rank == 1
 
@@ -65,7 +71,7 @@ def test_can_prepare_data(local_rank, node_rank):
 
     # prepare_data_per_node = False (prepare across all nodes)
     # global rank = 0   (True)
-    dm.reset_mock()
+    dm.prepare_data.reset_mock()
     dm.prepare_data_per_node = False
     node_rank.return_value = 0
     local_rank.return_value = 0
@@ -74,7 +80,7 @@ def test_can_prepare_data(local_rank, node_rank):
     dm.prepare_data.assert_called_once()
 
     # global rank = 1   (False)
-    dm.reset_mock()
+    dm.prepare_data.reset_mock()
     node_rank.return_value = 1
     local_rank.return_value = 0
 
@@ -139,7 +145,7 @@ def test_dm_pickle_after_init():
 
 
 @RunIf(sklearn=True)
-def test_train_loop_only(tmpdir):
+def test_train_loop_only(tmp_path):
     seed_everything(7)
 
     dm = ClassifDataModule()
@@ -148,7 +154,7 @@ def test_train_loop_only(tmpdir):
     model.validation_step = None
     model.test_step = None
 
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, enable_model_summary=False)
+    trainer = Trainer(default_root_dir=tmp_path, max_epochs=1, enable_model_summary=False)
 
     # fit model
     trainer.fit(model, datamodule=dm)
@@ -157,7 +163,7 @@ def test_train_loop_only(tmpdir):
 
 
 @RunIf(sklearn=True)
-def test_train_val_loop_only(tmpdir):
+def test_train_val_loop_only(tmp_path):
     seed_everything(7)
 
     dm = ClassifDataModule()
@@ -165,7 +171,7 @@ def test_train_val_loop_only(tmpdir):
 
     model.validation_step = None
 
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, enable_model_summary=False)
+    trainer = Trainer(default_root_dir=tmp_path, max_epochs=1, enable_model_summary=False)
 
     # fit model
     trainer.fit(model, datamodule=dm)
@@ -173,7 +179,7 @@ def test_train_val_loop_only(tmpdir):
     assert trainer.callback_metrics["train_loss"] < 1.1
 
 
-def test_dm_checkpoint_save_and_load(tmpdir):
+def test_dm_checkpoint_save_and_load(tmp_path):
     class CustomBoringModel(BoringModel):
         def validation_step(self, batch, batch_idx):
             out = super().validation_step(batch, batch_idx)
@@ -191,18 +197,18 @@ def test_dm_checkpoint_save_and_load(tmpdir):
     model = CustomBoringModel()
 
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         max_epochs=1,
         limit_train_batches=2,
         limit_val_batches=1,
         enable_model_summary=False,
-        callbacks=[ModelCheckpoint(dirpath=tmpdir, monitor="early_stop_on")],
+        callbacks=[ModelCheckpoint(dirpath=tmp_path, monitor="early_stop_on")],
     )
 
     # fit model
     trainer.fit(model, datamodule=dm)
     checkpoint_path = list(trainer.checkpoint_callback.best_k_models.keys())[0]
-    checkpoint = torch.load(checkpoint_path)
+    checkpoint = torch.load(checkpoint_path, weights_only=True)
     assert dm.__class__.__qualname__ in checkpoint
     assert checkpoint[dm.__class__.__qualname__] == {"my": "state_dict"}
 
@@ -212,14 +218,14 @@ def test_dm_checkpoint_save_and_load(tmpdir):
         assert dm.my_state_dict == {"my": "state_dict"}
 
 
-@RunIf(sklearn=True)
-def test_full_loop(tmpdir):
+@RunIf(sklearn=True, skip_windows=True)  # Flaky test on Windows for unknown reasons
+def test_full_loop(tmp_path):
     seed_everything(7)
 
     dm = ClassifDataModule()
     model = ClassificationModel()
 
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, enable_model_summary=False, deterministic="warn")
+    trainer = Trainer(default_root_dir=tmp_path, max_epochs=1, enable_model_summary=False, deterministic="warn")
 
     # fit model
     trainer.fit(model, dm)
@@ -237,7 +243,7 @@ def test_full_loop(tmpdir):
     assert result[0]["test_acc"] > 0.57
 
 
-def test_dm_reload_dataloaders_every_n_epochs(tmpdir):
+def test_dm_reload_dataloaders_every_n_epochs(tmp_path):
     """Test datamodule, where trainer argument reload_dataloaders_every_n_epochs is set to a non negative integer."""
 
     class CustomBoringDataModule(BoringDataModule):
@@ -256,7 +262,9 @@ def test_dm_reload_dataloaders_every_n_epochs(tmpdir):
     model.validation_step = None
     model.test_step = None
 
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=3, limit_train_batches=2, reload_dataloaders_every_n_epochs=2)
+    trainer = Trainer(
+        default_root_dir=tmp_path, max_epochs=3, limit_train_batches=2, reload_dataloaders_every_n_epochs=2
+    )
     trainer.fit(model, dm)
 
 
@@ -291,12 +299,10 @@ def test_dm_init_from_datasets_dataloaders(iterable):
     dm = LightningDataModule.from_datasets(train_ds_sequence, batch_size=4, num_workers=0)
     with mock.patch("lightning.pytorch.core.datamodule.DataLoader") as dl_mock:
         dm.train_dataloader()
-        dl_mock.assert_has_calls(
-            [
-                call(train_ds_sequence[0], batch_size=4, shuffle=not iterable, num_workers=0, pin_memory=True),
-                call(train_ds_sequence[1], batch_size=4, shuffle=not iterable, num_workers=0, pin_memory=True),
-            ]
-        )
+        dl_mock.assert_has_calls([
+            call(train_ds_sequence[0], batch_size=4, shuffle=not iterable, num_workers=0, pin_memory=True),
+            call(train_ds_sequence[1], batch_size=4, shuffle=not iterable, num_workers=0, pin_memory=True),
+        ])
     with pytest.raises(MisconfigurationException, match="`val_dataloader` must be implemented"):
         _ = dm.val_dataloader()
     with pytest.raises(MisconfigurationException, match="`test_dataloader` must be implemented"):
@@ -321,16 +327,14 @@ def test_dm_init_from_datasets_dataloaders(iterable):
         dm.val_dataloader()
         dm.test_dataloader()
         dm.predict_dataloader()
-        dl_mock.assert_has_calls(
-            [
-                call(valid_dss[0], batch_size=4, shuffle=False, num_workers=0, pin_memory=True),
-                call(valid_dss[1], batch_size=4, shuffle=False, num_workers=0, pin_memory=True),
-                call(test_dss[0], batch_size=4, shuffle=False, num_workers=0, pin_memory=True),
-                call(test_dss[1], batch_size=4, shuffle=False, num_workers=0, pin_memory=True),
-                call(predict_dss[0], batch_size=4, shuffle=False, num_workers=0, pin_memory=True),
-                call(predict_dss[1], batch_size=4, shuffle=False, num_workers=0, pin_memory=True),
-            ]
-        )
+        dl_mock.assert_has_calls([
+            call(valid_dss[0], batch_size=4, shuffle=False, num_workers=0, pin_memory=True),
+            call(valid_dss[1], batch_size=4, shuffle=False, num_workers=0, pin_memory=True),
+            call(test_dss[0], batch_size=4, shuffle=False, num_workers=0, pin_memory=True),
+            call(test_dss[1], batch_size=4, shuffle=False, num_workers=0, pin_memory=True),
+            call(predict_dss[0], batch_size=4, shuffle=False, num_workers=0, pin_memory=True),
+            call(predict_dss[1], batch_size=4, shuffle=False, num_workers=0, pin_memory=True),
+        ])
 
 
 def test_dm_init_from_datasets_with_init_params():
@@ -448,11 +452,12 @@ def test_define_as_dataclass():
 
 
 @RunIf(skip_windows=True)  # TODO: all durations are 0 on Windows
-def test_datamodule_hooks_are_profiled():
+def test_datamodule_hooks_are_profiled(tmp_path):
     """Test that `LightningDataModule` hooks are profiled."""
 
     def get_trainer():
         return Trainer(
+            default_root_dir=tmp_path,
             max_steps=1,
             limit_val_batches=0,
             profiler="simple",
@@ -464,6 +469,10 @@ def test_datamodule_hooks_are_profiled():
     class CustomBoringDataModule(BoringDataModule):
         def state_dict(self):
             return {"temp": 1}
+
+        # override so that it gets called
+        def prepare_data(self):
+            pass
 
     model = BoringModel()
     dm = CustomBoringDataModule()

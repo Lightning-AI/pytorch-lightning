@@ -268,7 +268,7 @@ class CometLogger(Logger):
             self.logger.experiment.some_comet_function()
 
         """
-        if self._experiment is not None:
+        if self._experiment is not None and self._experiment.alive:
             return self._experiment
 
         if self._future_experiment_key is not None:
@@ -305,7 +305,7 @@ class CometLogger(Logger):
 
     @override
     @rank_zero_only
-    def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:  # type: ignore[override]
+    def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:
         params = _convert_params(params)
         params = _flatten_dict(params)
         self.experiment.log_parameters(params)

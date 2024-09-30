@@ -13,10 +13,13 @@
 # limitations under the License.
 import os
 import pickle
+from contextlib import nullcontext
+from pathlib import Path
 from unittest import mock
 
 import pytest
 import yaml
+from lightning.fabric.utilities.imports import _TORCH_EQUAL_2_4_0
 from lightning.pytorch import Trainer
 from lightning.pytorch.callbacks import ModelCheckpoint
 from lightning.pytorch.cli import LightningCLI
@@ -24,6 +27,8 @@ from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.loggers import WandbLogger
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning_utilities.test.warning import no_warning_call
+
+from tests_pytorch.test_cli import _xfail_python_ge_3_11_9
 
 
 def test_wandb_project_name(wandb_mock):
@@ -111,9 +116,10 @@ def test_wandb_logger_init(wandb_mock):
     wandb_mock.init().log.assert_called_with({"acc": 1.0, "trainer/global_step": 6})
 
     # log hyper parameters
-    hparams = {"test": None, "nested": {"a": 1}, "b": [2, 3, 4]}
+    hparams = {"none": None, "dict": {"a": 1}, "b": [2, 3, 4], "path": Path("path")}
+    expected = {"none": None, "dict": {"a": 1}, "b": [2, 3, 4], "path": "path"}
     logger.log_hyperparams(hparams)
-    wandb_mock.init().config.update.assert_called_once_with(hparams, allow_val_change=True)
+    wandb_mock.init().config.update.assert_called_once_with(expected, allow_val_change=True)
 
     # watch a model
     logger.watch("model", "log", 10, False)
@@ -156,7 +162,8 @@ def test_wandb_pickle(wandb_mock, tmp_path):
     assert trainer.logger.experiment, "missing experiment"
     assert trainer.log_dir == logger.save_dir
     pkl_bytes = pickle.dumps(trainer)
-    trainer2 = pickle.loads(pkl_bytes)
+    with pytest.warns(FutureWarning, match="`weights_only=False`") if _TORCH_EQUAL_2_4_0 else nullcontext():
+        trainer2 = pickle.loads(pkl_bytes)
 
     assert os.environ["WANDB_MODE"] == "dryrun"
     assert trainer2.logger.__class__.__name__ == WandbLogger.__name__
@@ -436,9 +443,10 @@ def test_wandb_log_media(wandb_mock, tmp_path):
     wandb_mock.init().log.reset_mock()
     logger.log_image(key="samples", images=["1.jpg", "2.jpg"], step=5)
     wandb_mock.Image.assert_called_with("2.jpg")
-    wandb_mock.init().log.assert_called_once_with(
-        {"samples": [wandb_mock.Image(), wandb_mock.Image()], "trainer/global_step": 5}
-    )
+    wandb_mock.init().log.assert_called_once_with({
+        "samples": [wandb_mock.Image(), wandb_mock.Image()],
+        "trainer/global_step": 5,
+    })
 
     # test log_image with captions
     wandb_mock.init().log.reset_mock()
@@ -465,9 +473,10 @@ def test_wandb_log_media(wandb_mock, tmp_path):
     wandb_mock.init().log.reset_mock()
     logger.log_audio(key="samples", audios=["1.mp3", "2.mp3"], step=5)
     wandb_mock.Audio.assert_called_with("2.mp3")
-    wandb_mock.init().log.assert_called_once_with(
-        {"samples": [wandb_mock.Audio(), wandb_mock.Audio()], "trainer/global_step": 5}
-    )
+    wandb_mock.init().log.assert_called_once_with({
+        "samples": [wandb_mock.Audio(), wandb_mock.Audio()],
+        "trainer/global_step": 5,
+    })
 
     # test log_audio with captions
     wandb_mock.init().log.reset_mock()
@@ -494,9 +503,10 @@ def test_wandb_log_media(wandb_mock, tmp_path):
     wandb_mock.init().log.reset_mock()
     logger.log_video(key="samples", videos=["1.mp4", "2.mp4"], step=5)
     wandb_mock.Video.assert_called_with("2.mp4")
-    wandb_mock.init().log.assert_called_once_with(
-        {"samples": [wandb_mock.Video(), wandb_mock.Video()], "trainer/global_step": 5}
-    )
+    wandb_mock.init().log.assert_called_once_with({
+        "samples": [wandb_mock.Video(), wandb_mock.Video()],
+        "trainer/global_step": 5,
+    })
 
     # test log_video with captions
     wandb_mock.init().log.reset_mock()
@@ -545,6 +555,7 @@ def test_wandb_logger_download_artifact(wandb_mock, tmp_path):
     wandb_mock.Api().artifact.assert_called_once_with("test_artifact", type="model")
 
 
+@_xfail_python_ge_3_11_9
 @pytest.mark.parametrize(("log_model", "expected"), [("True", True), ("False", False), ("all", "all")])
 def test_wandb_logger_cli_integration(log_model, expected, wandb_mock, monkeypatch, tmp_path):
     """Test that the WandbLogger can be used with the LightningCLI."""

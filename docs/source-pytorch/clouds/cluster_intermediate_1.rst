@@ -5,13 +5,15 @@ Run on an on-prem cluster (intermediate)
 ########################################
 **Audience**: Users who need to run on an academic or enterprise private cluster.
 
+
 ----
+
 
 .. _non-slurm:
 
-*****************
-Setup the cluster
-*****************
+******************
+Set up the cluster
+******************
 This guide shows how to run a training job on a general purpose cluster. We recommend beginners to try this method
 first because it requires the least amount of configuration and changes to the code.
 To setup a multi-node computing cluster you need:
@@ -29,11 +31,13 @@ PyTorch Lightning follows the design of `PyTorch distributed communication packa
 
 .. _training_script_setup:
 
+
 ----
 
-*************************
-Setup the training script
-*************************
+
+**************************
+Set up the training script
+**************************
 To train a model using multiple nodes, do the following:
 
 1.  Design your :ref:`lightning_module` (no need to add anything specific here).
@@ -45,7 +49,9 @@ To train a model using multiple nodes, do the following:
        # train on 32 GPUs across 4 nodes
        trainer = Trainer(accelerator="gpu", devices=8, num_nodes=4, strategy="ddp")
 
+
 ----
+
 
 ***************************
 Submit a job to the cluster
@@ -57,7 +63,9 @@ This means that you need to:
 2. Copy all your import dependencies and the script itself to each node.
 3. Run the script on each node.
 
+
 ----
+
 
 ******************
 Debug on a cluster

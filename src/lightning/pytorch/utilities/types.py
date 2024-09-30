@@ -16,6 +16,7 @@ Convention:
  - Do not include any `_TYPE` suffix
  - Types used in public hooks (as those in the `LightningModule` and `Callback`) should be public (no leading `_`)
 """
+
 from contextlib import contextmanager
 from dataclasses import dataclass
 from typing import (
@@ -37,10 +38,11 @@ from typing import (
 import torch
 from torch import Tensor
 from torch.optim import Optimizer
+from torch.optim.lr_scheduler import LRScheduler, ReduceLROnPlateau
 from torchmetrics import Metric
 from typing_extensions import NotRequired, Required
 
-from lightning.fabric.utilities.types import _TORCH_LRSCHEDULER, LRScheduler, ProcessGroup, ReduceLROnPlateau
+from lightning.fabric.utilities.types import ProcessGroup
 
 _NUMBER = Union[int, float]
 _METRIC = Union[Metric, Tensor, _NUMBER]
@@ -68,24 +70,22 @@ class DistributedDataParallel(Protocol):
         check_reduction: bool = False,
         gradient_as_bucket_view: bool = False,
         static_graph: bool = False,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @contextmanager
-    def no_sync(self) -> Generator:
-        ...
+    def no_sync(self) -> Generator: ...
 
 
 # todo: improve LRSchedulerType naming/typing
-LRSchedulerTypeTuple = (_TORCH_LRSCHEDULER, torch.optim.lr_scheduler.ReduceLROnPlateau)
-LRSchedulerTypeUnion = Union[_TORCH_LRSCHEDULER, torch.optim.lr_scheduler.ReduceLROnPlateau]
-LRSchedulerType = Union[Type[_TORCH_LRSCHEDULER], Type[torch.optim.lr_scheduler.ReduceLROnPlateau]]
+LRSchedulerTypeTuple = (LRScheduler, ReduceLROnPlateau)
+LRSchedulerTypeUnion = Union[LRScheduler, ReduceLROnPlateau]
+LRSchedulerType = Union[Type[LRScheduler], Type[ReduceLROnPlateau]]
 LRSchedulerPLType = Union[LRScheduler, ReduceLROnPlateau]
 
 
 @dataclass
 class LRSchedulerConfig:
-    scheduler: Union[_TORCH_LRSCHEDULER, ReduceLROnPlateau]
+    scheduler: Union[LRScheduler, ReduceLROnPlateau]
     # no custom name
     name: Optional[str] = None
     # after epoch is over
@@ -107,7 +107,7 @@ class LRSchedulerConfigType(TypedDict, total=False):
     frequency: int
     reduce_on_plateau: bool
     monitor: Optional[str]
-    scrict: bool
+    strict: bool
 
 
 class OptimizerLRSchedulerConfig(TypedDict):
@@ -121,6 +121,7 @@ OptimizerLRScheduler = Optional[
         Sequence[Optimizer],
         Tuple[Sequence[Optimizer], Sequence[Union[LRSchedulerTypeUnion, LRSchedulerConfig]]],
         OptimizerLRSchedulerConfig,
+        Sequence[OptimizerLRSchedulerConfig],
     ]
 ]
 

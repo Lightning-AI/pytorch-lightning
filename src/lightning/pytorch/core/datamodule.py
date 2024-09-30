@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """LightningDataModule for loading DataLoaders with ease."""
+
 import inspect
 from typing import IO, Any, Dict, Iterable, Optional, Union, cast
 
@@ -61,6 +62,10 @@ class LightningDataModule(DataHooks, HyperparametersMixin):
             def test_dataloader(self):
                 return data.DataLoader(self.test)
 
+            def on_exception(self, exception):
+                # clean up state after the trainer faced an exception
+                ...
+
             def teardown(self):
                 # clean up state after the trainer stops, delete files...
                 # called on every process in DDP
@@ -76,7 +81,7 @@ class LightningDataModule(DataHooks, HyperparametersMixin):
     def __init__(self) -> None:
         super().__init__()
         # Pointer to the trainer object
-        self.trainer: Optional["pl.Trainer"] = None
+        self.trainer: Optional[pl.Trainer] = None
 
     @classmethod
     def from_datasets(
@@ -160,6 +165,10 @@ class LightningDataModule(DataHooks, HyperparametersMixin):
         """
         pass
 
+    def on_exception(self, exception: BaseException) -> None:
+        """Called when the trainer execution is interrupted by an exception."""
+        pass
+
     @_restricted_classmethod
     def load_from_checkpoint(
         cls,
@@ -226,7 +235,7 @@ class LightningDataModule(DataHooks, HyperparametersMixin):
 
         """
         loaded = _load_from_checkpoint(
-            cls,  # type: ignore[arg-type]
+            cls,
             checkpoint_path,
             map_location=map_location,
             hparams_file=hparams_file,

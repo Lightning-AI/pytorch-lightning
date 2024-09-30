@@ -2,11 +2,27 @@
 Glossary
 ########
 
+.. toctree::
+   :maxdepth: 1
+   :hidden:
+
+   Checkpoint <../guide/checkpoint/index>
+   Weights and Biases <../guide/loggers/wandb>
+   Wrappers <../api/wrappers>
+   Model Parallel <../advanced/model_parallel/index>
+   Tensor Parallel <../advanced/model_parallel/tp>
+   2D Parallelism <../advanced/model_parallel/tp_fsdp>
+
 
 .. raw:: html
 
     <div class="display-card-container">
         <div class="row">
+
+.. displayitem::
+    :header: 2D Parallelism
+    :button_link: ../advanced/model_parallel/tp_fsdp.html
+    :col_css: col-md-4
 
 .. displayitem::
     :header: Accelerator
@@ -45,7 +61,7 @@ Glossary
 
 .. displayitem::
     :header: Checkpoint
-    :button_link: ../guide/checkpoint.html
+    :button_link: ../guide/checkpoint/index.html
     :col_css: col-md-4
 
 .. displayitem::
@@ -64,8 +80,18 @@ Glossary
     :col_css: col-md-4
 
 .. displayitem::
+    :header: Compile
+    :button_link: ../advanced/compile.html
+    :col_css: col-md-4
+
+.. displayitem::
     :header: CUDA
     :button_link: ../fundamentals/accelerators.html
+    :col_css: col-md-4
+
+.. displayitem::
+    :header: FabricModule
+    :button_link: ../api/wrappers.html
     :col_css: col-md-4
 
 .. displayitem::
@@ -116,6 +142,11 @@ Glossary
 .. displayitem::
     :header: Mixed Precision
     :button_link: ../fundamentals/precision.html
+    :col_css: col-md-4
+
+.. displayitem::
+    :header: Model Parallelism
+    :button_link: ../advanced/model_parallel/index.html
     :col_css: col-md-4
 
 .. displayitem::
@@ -174,6 +205,11 @@ Glossary
     :col_css: col-md-4
 
 .. displayitem::
+    :header: Tensor Parallelism
+    :button_link: ../advanced/model_parallel/tp.html
+    :col_css: col-md-4
+
+.. displayitem::
     :header: TorchElastic
     :button_link: ../guide/multi_node/barebones.html
     :col_css: col-md-4
@@ -191,6 +227,11 @@ Glossary
 .. displayitem::
     :header: Trainer
     :button_link: ../guide/trainer_template.html
+    :col_css: col-md-4
+
+.. displayitem::
+    :header: Weights and Biases
+    :button_link: ../guide/loggers/wandb.html
     :col_css: col-md-4
 
 .. displayitem::

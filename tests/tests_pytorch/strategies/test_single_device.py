@@ -62,8 +62,7 @@ def test_single_gpu():
     assert cuda_memory < model.start_cuda_memory
 
 
-class MockOptimizer:
-    ...
+class MockOptimizer: ...
 
 
 def test_strategy_pickle():

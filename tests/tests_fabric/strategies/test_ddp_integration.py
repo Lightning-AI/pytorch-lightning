@@ -11,16 +11,27 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import os
 from copy import deepcopy
+from unittest import mock
+from unittest.mock import Mock
 
 import pytest
 import torch
 from lightning.fabric import Fabric
+from lightning_utilities.core.imports import RequirementCache
+from torch._dynamo import OptimizedModule
+from torch.nn.parallel.distributed import DistributedDataParallel
 
 from tests_fabric.helpers.runif import RunIf
 from tests_fabric.strategies.test_single_device import _run_test_clip_gradients
+from tests_fabric.test_fabric import BoringModel
 
 
+@pytest.mark.skipif(
+    RequirementCache("torch<2.4") and RequirementCache("numpy>=2.0"),
+    reason="torch.distributed not compatible with numpy>=2.0",
+)
 @pytest.mark.parametrize(
     "accelerator",
     [
@@ -62,6 +73,35 @@ def _run_ddp_save_load(fabric, tmp_path):
     assert_params_equal(params_before, wrapped_model.parameters())
     fabric.load(tmp_path / "saved_after_setup.ckpt", {"model": wrapped_model})
     assert_params_equal(params_before, wrapped_model.parameters())
+
+
+@RunIf(min_cuda_gpus=2, standalone=True, dynamo=True)
+@mock.patch("lightning.fabric.wrappers.torch.compile", Mock(wraps=torch.compile))
+@mock.patch.dict(os.environ, {})
+def test_reapply_compile():
+    """Test that Fabric can rewrap a compiled module such that compilation happens over the DDP-wrapper."""
+    fabric = Fabric(accelerator="cuda", devices=2, strategy="ddp")
+    fabric.launch()
+
+    model = BoringModel()
+    compile_kwargs = {"mode": "reduce-overhead"}
+    compiled_model = torch.compile(model, **compile_kwargs)
+    torch.compile.reset_mock()
+
+    fabric_model = fabric.setup(compiled_model, _reapply_compile=True)
+
+    assert isinstance(fabric_model._forward_module, OptimizedModule)
+    assert isinstance(fabric_model._forward_module._orig_mod, DistributedDataParallel)
+    # Assert we called compile again with the same arguments, but on the DDP-wrapped module
+    torch.compile.assert_called_with(fabric_model._forward_module._orig_mod, **compile_kwargs)
+
+    assert fabric_model._original_module == model
+    assert fabric_model._forward_module._orig_mod.module == model
+    assert fabric_model.device == fabric.device
+
+    # Smoke-testing forward to ensure we don't get compilation errors
+    for _ in range(3):
+        fabric_model(torch.randn(2, 32, device=fabric.device)).sum().backward()
 
 
 @pytest.mark.parametrize(

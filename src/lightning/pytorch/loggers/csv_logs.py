@@ -18,7 +18,7 @@ CSV logger
 CSV logger for basic experiment logging that does not require opening ports
 
 """
-import logging
+
 import os
 from argparse import Namespace
 from typing import Any, Dict, Optional, Union
@@ -33,8 +33,6 @@ from lightning.fabric.utilities.types import _PATH
 from lightning.pytorch.core.saving import save_hparams_to_yaml
 from lightning.pytorch.loggers.logger import Logger
 from lightning.pytorch.utilities.rank_zero import rank_zero_only
-
-log = logging.getLogger(__name__)
 
 
 class ExperimentWriter(_FabricExperimentWriter):
@@ -81,7 +79,8 @@ class CSVLogger(Logger, FabricCSVLogger):
 
     Args:
         save_dir: Save directory
-        name: Experiment name. Defaults to ``'lightning_logs'``.
+        name: Experiment name, optional. Defaults to ``'lightning_logs'``. If name is ``None``, logs
+            (versions) will be stored to the save dir directly.
         version: Experiment version. If version is not specified the logger inspects the save
             directory for existing versions, then automatically assigns the next available version.
         prefix: A string to put at the beginning of metric keys.
@@ -94,7 +93,7 @@ class CSVLogger(Logger, FabricCSVLogger):
     def __init__(
         self,
         save_dir: _PATH,
-        name: str = "lightning_logs",
+        name: Optional[str] = "lightning_logs",
         version: Optional[Union[int, str]] = None,
         prefix: str = "",
         flush_logs_every_n_steps: int = 100,
@@ -145,7 +144,7 @@ class CSVLogger(Logger, FabricCSVLogger):
 
     @override
     @rank_zero_only
-    def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:  # type: ignore[override]
+    def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:
         params = _convert_params(params)
         self.experiment.log_hparams(params)
 

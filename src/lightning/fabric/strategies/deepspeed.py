@@ -43,6 +43,7 @@ if TYPE_CHECKING:
     from deepspeed import DeepSpeedEngine
 
 _DEEPSPEED_AVAILABLE = RequirementCache("deepspeed")
+_DEEPSPEED_GREATER_EQUAL_0_14_1 = RequirementCache("deepspeed>=0.14.1")
 
 
 # TODO(fabric): Links in the docstrings to PL-specific deepspeed user docs need to be replaced.
@@ -291,7 +292,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         self.hysteresis = hysteresis
         self.min_loss_scale = min_loss_scale
 
-        self._deepspeed_engine: Optional["DeepSpeedEngine"] = None
+        self._deepspeed_engine: Optional[DeepSpeedEngine] = None
 
     @property
     def zero_stage_3(self) -> bool:
@@ -498,7 +499,10 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
             )
         engine = engines[0]
 
-        from deepspeed.runtime import DeepSpeedOptimizer
+        if _DEEPSPEED_GREATER_EQUAL_0_14_1:
+            from deepspeed.runtime.base_optimizer import DeepSpeedOptimizer
+        else:
+            from deepspeed.runtime import DeepSpeedOptimizer
 
         optimzer_state_requested = any(isinstance(item, (Optimizer, DeepSpeedOptimizer)) for item in state.values())
 
@@ -551,6 +555,13 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
     def register_strategies(cls, strategy_registry: _StrategyRegistry) -> None:
         strategy_registry.register("deepspeed", cls, description="Default DeepSpeed Strategy")
         strategy_registry.register("deepspeed_stage_1", cls, description="DeepSpeed with ZeRO Stage 1 enabled", stage=1)
+        strategy_registry.register(
+            "deepspeed_stage_1_offload",
+            cls,
+            description="DeepSpeed with ZeRO Stage 1 and optimizer CPU Offload",
+            stage=1,
+            offload_optimizer=True,
+        )
         strategy_registry.register("deepspeed_stage_2", cls, description="DeepSpeed with ZeRO Stage 2 enabled", stage=2)
         strategy_registry.register(
             "deepspeed_stage_2_offload",
@@ -738,12 +749,10 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
                     "max_in_cpu": max_in_cpu,
                     "pin_memory": pin_memory,
                 }
-            cfg.update(
-                {
-                    "zero_allow_untested_optimizer": zero_allow_untested_optimizer,
-                    "zero_optimization": zero_config,
-                }
-            )
+            cfg.update({
+                "zero_allow_untested_optimizer": zero_allow_untested_optimizer,
+                "zero_optimization": zero_config,
+            })
         if logging_batch_size_per_gpu:
             cfg["train_micro_batch_size_per_gpu"] = logging_batch_size_per_gpu
         return cfg

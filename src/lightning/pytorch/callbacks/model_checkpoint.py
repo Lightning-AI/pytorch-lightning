@@ -17,6 +17,7 @@ Model Checkpointing
 
 Automatically save model checkpoints during training.
 """
+
 import logging
 import os
 import re
@@ -26,7 +27,7 @@ import warnings
 from copy import deepcopy
 from datetime import timedelta
 from pathlib import Path
-from typing import Any, Dict, Literal, Optional, Set
+from typing import Any, Dict, Literal, Optional, Set, Union
 from weakref import proxy
 
 import torch
@@ -88,13 +89,14 @@ class ModelCheckpoint(Checkpoint):
             in a deterministic manner. Default: ``None``.
         save_top_k: if ``save_top_k == k``,
             the best k models according to the quantity monitored will be saved.
-            if ``save_top_k == 0``, no models are saved.
-            if ``save_top_k == -1``, all models are saved.
+            If ``save_top_k == 0``, no models are saved.
+            If ``save_top_k == -1``, all models are saved.
             Please note that the monitors are checked every ``every_n_epochs`` epochs.
-            if ``save_top_k >= 2`` and the callback is called multiple
-            times inside an epoch, the name of the saved file will be
-            appended with a version count starting with ``v1``
-            unless ``enable_version_counter`` is set to False.
+            If ``save_top_k >= 2`` and the callback is called multiple times inside an epoch, and the filename remains
+            unchanged, the name of the saved file will be appended with a version count starting with ``v1`` to avoid
+            collisions unless ``enable_version_counter`` is set to False. The version counter is unrelated to the top-k
+            ranking of the checkpoint, and we recommend formatting the filename to include the monitored metric to avoid
+            collisions.
         mode: one of {min, max}.
             If ``save_top_k != 0``, the decision to overwrite the current save file is made
             based on either the maximization or the minimization of the monitored quantity.
@@ -216,7 +218,7 @@ class ModelCheckpoint(Checkpoint):
         filename: Optional[str] = None,
         monitor: Optional[str] = None,
         verbose: bool = False,
-        save_last: Optional[Literal[True, False, "link"]] = None,
+        save_last: Optional[Union[bool, Literal["link"]]] = None,
         save_top_k: int = 1,
         save_weights_only: bool = False,
         mode: str = "min",
@@ -403,7 +405,7 @@ class ModelCheckpoint(Checkpoint):
             elif os.path.isdir(linkpath):
                 shutil.rmtree(linkpath)
             try:
-                os.symlink(filepath, linkpath)
+                os.symlink(os.path.relpath(filepath, os.path.dirname(linkpath)), linkpath)
             except OSError:
                 # on Windows, special permissions are required to create symbolic links as a regular user
                 # fall back to copying the file

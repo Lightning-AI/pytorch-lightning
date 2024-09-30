@@ -15,6 +15,7 @@
 Weights and Biases Logger
 -------------------------
 """
+
 import os
 from argparse import Namespace
 from pathlib import Path
@@ -25,7 +26,12 @@ from lightning_utilities.core.imports import RequirementCache
 from torch import Tensor
 from typing_extensions import override
 
-from lightning.fabric.utilities.logger import _add_prefix, _convert_params, _sanitize_callable_params
+from lightning.fabric.utilities.logger import (
+    _add_prefix,
+    _convert_json_serializable,
+    _convert_params,
+    _sanitize_callable_params,
+)
 from lightning.fabric.utilities.types import _PATH
 from lightning.pytorch.callbacks.model_checkpoint import ModelCheckpoint
 from lightning.pytorch.loggers.logger import Logger, rank_zero_experiment
@@ -42,7 +48,7 @@ _WANDB_AVAILABLE = RequirementCache("wandb>=0.12.10")
 
 
 class WandbLogger(Logger):
-    r"""Log using `Weights and Biases <https://docs.wandb.ai/integrations/lightning>`_.
+    r"""Log using `Weights and Biases <https://docs.wandb.ai/guides/integrations/lightning>`_.
 
     **Installation and set-up**
 
@@ -247,7 +253,7 @@ class WandbLogger(Logger):
 
     See Also:
         - `Demo in Google Colab <http://wandb.me/lightning>`__ with hyperparameter search and model logging
-        - `W&B Documentation <https://docs.wandb.ai/integrations/lightning>`__
+        - `W&B Documentation <https://docs.wandb.ai/guides/integrations/lightning>`__
 
     Args:
         name: Display name for the run.
@@ -415,9 +421,10 @@ class WandbLogger(Logger):
 
     @override
     @rank_zero_only
-    def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:  # type: ignore[override]
+    def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:
         params = _convert_params(params)
         params = _sanitize_callable_params(params)
+        params = _convert_json_serializable(params)
         self.experiment.config.update(params, allow_val_change=True)
 
     @override
