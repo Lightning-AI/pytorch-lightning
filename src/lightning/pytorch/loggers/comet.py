@@ -67,7 +67,7 @@ class CometLogger(Logger):
             workspace="COMET_WORKSPACE",  # Optional
             project="default_project",  # Optional
             experiment_key="COMET_EXPERIMENT_KEY",  # Optional
-            experiment_name="lightning_logs",  # Optional
+            name="lightning_logs",  # Optional
         )
         trainer = Trainer(logger=comet_logger)
 
@@ -81,7 +81,7 @@ class CometLogger(Logger):
         comet_logger = CometLogger(
             workspace="COMET_WORKSPACE",  # Optional
             project="default_project",  # Optional
-            experiment_name="lightning_logs",  # Optional
+            name="lightning_logs",  # Optional
             online=False
         )
         trainer = Trainer(logger=comet_logger)
@@ -186,7 +186,7 @@ class CometLogger(Logger):
             locally in an offline experiment. Default is ``True``.
         prefix (str, optional): The prefix to add to names of the logged metrics.
             example: prefix=`exp1`, then metric name will be `exp1_metric_name`
-        **kwargs: Additional arguments like `experiment_name`, `log_code`, `offline_directory` etc. used by
+        **kwargs: Additional arguments like `name`, `log_code`, `offline_directory` etc. used by
             :class:`CometExperiment` can be passed as keyword arguments in this logger.
 
     Raises:
@@ -215,7 +215,20 @@ class CometLogger(Logger):
         ##################################################
         # HANDLE PASSED OLD TYPE PARAMS
 
-        # handle old "project name" param
+        # handle old "experiment_name" param
+        if "experiment_name" in kwargs:
+            log.warning("The parameter `experiment_name` is deprecated, please use `name` instead.")
+            experiment_name = kwargs.pop("experiment_name")
+
+            if "name" not in kwargs:
+                kwargs["name"] = experiment_name
+            else:
+                log.warning(
+                    "You specified both `experiment_name` and `name` parameters, "
+                    "please use `name` only"
+                )
+
+        # handle old "project_name" param
         if "project_name" in kwargs:
             log.warning("The parameter `project_name` is deprecated, please use `project` instead.")
             if project is None:

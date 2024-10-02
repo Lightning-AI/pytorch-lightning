@@ -100,6 +100,7 @@ def test_comet_logger_experiment_name(comet_mock):
 
     comet_start = comet_mock.start
 
+    # here we use old style arg "experiment_name" (new one is "name")
     logger = CometLogger(api_key=api_key, experiment_name=experiment_name)
     comet_start.assert_called_once_with(
         api_key=api_key,
@@ -110,11 +111,13 @@ def test_comet_logger_experiment_name(comet_mock):
         online=None,
         experiment_config=comet_mock.ExperimentConfig(),
     )
-    # check that we saved "experiment name" in kwargs
-    assert logger._kwargs["experiment_name"] == experiment_name
+    # check that we saved "experiment name" in kwargs as new "name" arg
+    assert logger._kwargs["name"] == experiment_name
+    assert "experiment_name" not in logger._kwargs
 
-    # check that "experiment name" was passed to experiment config
-    assert call(experiment_name=experiment_name) in comet_mock.ExperimentConfig.call_args_list
+    # check that "experiment name" was passed to experiment config correctly
+    assert call(experiment_name=experiment_name) not in comet_mock.ExperimentConfig.call_args_list
+    assert call(name=experiment_name) in comet_mock.ExperimentConfig.call_args_list
 
 
 @mock.patch.dict(os.environ, {})
@@ -123,7 +126,7 @@ def test_comet_version(comet_mock):
     api_key = "key"
     experiment_name = "My Name"
 
-    logger = CometLogger(api_key=api_key, experiment_name=experiment_name)
+    logger = CometLogger(api_key=api_key, name=experiment_name)
     assert logger._experiment is not None
     _ = logger.version
 
