@@ -39,7 +39,7 @@ from lightning.fabric.utilities.types import _DEVICE
 
 log = logging.getLogger(__name__)
 
-_BITSANDBYTES_AVAILABLE = RequirementCache("bitsandbytes>=0.44.0")
+_BITSANDBYTES_AVAILABLE = RequirementCache("bitsandbytes>=0.42.0")
 
 
 class BitsandbytesPrecision(Precision):
