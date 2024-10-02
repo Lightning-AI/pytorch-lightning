@@ -184,15 +184,15 @@ def _replace_param(
     if param.device.type == "meta":
         if isinstance(param, bnb.nn.Params4bit):
             return bnb.nn.Params4bit(
-                data = data,
-                requires_grad = data.requires_grad,
-                quant_state = quant_state,
-                blocksize = param.blocksize,
-                compress_statistics = param.compress_statistics,
-                quant_type = param.quant_type,
-                quant_storage = param.quant_storage,
-                module = param.module,
-                bnb_quantized = param.bnb_quantized
+                data=data,
+                requires_grad=data.requires_grad,
+                quant_state=quant_state,
+                blocksize=param.blocksize,
+                compress_statistics=param.compress_statistics,
+                quant_type=param.quant_type,
+                quant_storage=param.quant_storage,
+                module=param.module,
+                bnb_quantized=param.bnb_quantized,
             )
         return torch.nn.Parameter(data, requires_grad=data.requires_grad)
     param.data = data
