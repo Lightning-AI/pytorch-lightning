@@ -223,10 +223,7 @@ class CometLogger(Logger):
             if "name" not in kwargs:
                 kwargs["name"] = experiment_name
             else:
-                log.warning(
-                    "You specified both `experiment_name` and `name` parameters, "
-                    "please use `name` only"
-                )
+                log.warning("You specified both `experiment_name` and `name` parameters, please use `name` only")
 
         # handle old "project_name" param
         if "project_name" in kwargs:
