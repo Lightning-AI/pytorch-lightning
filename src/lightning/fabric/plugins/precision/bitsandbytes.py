@@ -39,11 +39,11 @@ from lightning.fabric.utilities.types import _DEVICE
 
 log = logging.getLogger(__name__)
 
-_BITSANDBYTES_AVAILABLE = RequirementCache("bitsandbytes>=0.42.0")
+_BITSANDBYTES_AVAILABLE = RequirementCache("bitsandbytes>=0.44.0")
 
 
 class BitsandbytesPrecision(Precision):
-    """Plugin for quantizing weights with `bitsandbytes <https://github.com/TimDettmers/bitsandbytes>`__.
+    """Plugin for quantizing weights with `bitsandbytes <https://github.com/bitsandbytes-foundation/bitsandbytes>`__.
 
     .. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
 
@@ -322,6 +322,7 @@ def _import_bitsandbytes() -> ModuleType:
                 return
             assert isinstance(self.weight, bnb.nn.Params4bit)
             self.weight = self.quantize(self.weight, weight, device)
+            self.weight.bnb_quantized = True
 
         @staticmethod
         def quantize(
