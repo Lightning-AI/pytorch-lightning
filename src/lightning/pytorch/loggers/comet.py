@@ -172,20 +172,20 @@ class CometLogger(Logger):
         - `Comet Documentation <https://www.comet.com/docs/v2/integrations/ml-frameworks/pytorch-lightning/>`__
 
     Args:
-        api_key (str, optional): Comet API key. It's recommended to configure the API Key with `comet login`.
-        workspace (str, optional): Comet workspace name. If not provided, uses the default workspace.
-        project (str, optional): Comet project name. Defaults to `Uncategorized`.
-        experiment_key (str, optional): The Experiment identifier to be used for logging. This is used either to append
+        api_key: Comet API key. It's recommended to configure the API Key with `comet login`.
+        workspace: Comet workspace name. If not provided, uses the default workspace.
+        project: Comet project name. Defaults to `Uncategorized`.
+        experiment_key: The Experiment identifier to be used for logging. This is used either to append
             data to an Existing Experiment or to control the key of new experiments (for example to match another
             identifier). Must be an alphanumeric string whose length is between 32 and 50 characters.
-        mode (str, optional): Control how the Comet experiment is started.
+        mode: Control how the Comet experiment is started.
             * ``"get_or_create"``: Starts a fresh experiment if required, or persists logging to an existing one.
             * ``"get"``: Continue logging to an existing experiment identified by the ``experiment_key`` value.
             * ``"create"``: Always creates of a new experiment, useful for HPO sweeps.
-        online (boolean, optional): If True, the data will be logged to Comet server, otherwise it will be stored
+        online: If True, the data will be logged to Comet server, otherwise it will be stored
             locally in an offline experiment. Default is ``True``.
-        prefix (str, optional): The prefix to add to names of the logged metrics.
-            example: prefix=`exp1`, then metric name will be `exp1_metric_name`
+        prefix: The prefix to add to names of the logged metrics.
+            example: prefix=`exp1`, then metric name will be logged as `exp1_metric_name`
         **kwargs: Additional arguments like `name`, `log_code`, `offline_directory` etc. used by
             :class:`CometExperiment` can be passed as keyword arguments in this logger.
 
