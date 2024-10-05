@@ -38,6 +38,7 @@ from lightning_utilities.core.apply_func import apply_to_collection
 from lightning_utilities.core.overrides import is_overridden
 from torch import Tensor
 from torch.optim import Optimizer
+from torch.optim.lr_scheduler import LRScheduler
 from torch.utils.data import BatchSampler, DataLoader, DistributedSampler, RandomSampler, SequentialSampler
 
 import lightning.fabric
@@ -208,71 +209,66 @@ class Fabric:
 
         """
 
-    def setup(
-        self,
-        module: nn.Module,
-        *optimizers: Optimizer,
-        move_to_device: bool = True,
-        _reapply_compile: bool = True,
-    ) -> Any:  # no specific return because the way we want our API to look does not play well with mypy
+    def setup(self, module: nn.Module, *optimizers: Optimizer, scheduler: Optional[LRScheduler] = None, move_to_device: bool = True, _reapply_compile: bool = True,) -> Any:  # no specific return because the way we want our API to look does not play well with mypy
         r"""Set up a model and its optimizers for accelerated training.
-
+    
         Args:
             module: A :class:`torch.nn.Module` to set up
             *optimizers: The optimizer(s) to set up (no optimizers is also possible)
+            scheduler: The learning rate scheduler to set up (no learning rate scheduler is also possible)
             move_to_device: If set ``True`` (default), moves the model to the correct device. Set this to ``False``
                 and alternatively use :meth:`to_device` manually.
             _reapply_compile: If ``True`` (default), and the model was ``torch.compile``d before, the
                 corresponding :class:`~torch._dynamo.OptimizedModule` wrapper will be removed and reapplied with the
                 same settings after the model was set up by the strategy (e.g., after the model was wrapped by DDP,
                 FSDP etc.). Set it to ``False`` if compiling DDP/FSDP is causing issues.
-
+    
         Returns:
             The tuple containing wrapped module and the optimizers, in the same order they were passed in.
-
+    
         """
         self._validate_setup(module, optimizers)
         module, compile_kwargs = _unwrap_compiled(module) if _reapply_compile else (module, None)
         original_module = module
-
+    
         module = self._precision.convert_module(module)
-
+    
         if move_to_device:
             module = self._move_model_to_device(model=module, optimizers=list(optimizers))
-
+    
         # Let accelerator/plugin wrap and connect the models and optimizers
         if optimizers:
-            module, optimizers = self._strategy.setup_module_and_optimizers(  # type: ignore[assignment]
-                module, list(optimizers)
+            module, optimizers, scheduler = self._strategy.setup_module_and_optimizers(  # type: ignore[assignment]
+                module, list(optimizers), scheduler
             )
         else:
             module = self._strategy.setup_module(module)
-
+    
         if compile_kwargs is not None:
             module = _to_compiled(module, compile_kwargs)
         module = _FabricModule(module, self._strategy, original_module=original_module)
-
+    
         # Update the _DeviceDtypeModuleMixin's device parameter
         # NOTE: for sharded strategies or manual device placement, there's no single root device
         _update_properties(
             module, device=self.device if move_to_device else next(module.parameters(), torch.tensor(0)).device
         )
-
+    
         optimizers = [_FabricOptimizer(optimizer, self._strategy, self._callbacks) for optimizer in optimizers]
-
+    
         self._models_setup += 1
-
+    
         if hasattr(original_module, "_fabric"):  # this is probably a LightningModule
             original_module._fabric = self
             original_module._fabric_optimizers = optimizers
             if original_module not in self._callbacks:
                 self._callbacks.append(original_module)
-
+    
         self.call("on_after_setup", fabric=self, module=module)
-
+    
         if optimizers:
             # join both types in a tuple for API convenience
-            return (module, *optimizers)
+            return (module, *optimizers, scheduler)
         return module
 
     def setup_module(
