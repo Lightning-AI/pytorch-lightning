@@ -25,7 +25,7 @@ import torch
 from lightning_utilities.core.imports import RequirementCache
 from torch.nn import Module
 from torch.optim import Optimizer
-from torch.optim.lr_scheduler import LRScheduler
+from torch.optim.lr_scheduler import _LRScheduler
 from typing_extensions import override
 
 from lightning.fabric.accelerators import Accelerator, CUDAAccelerator
@@ -311,7 +311,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         return self._deepspeed_engine
 
     @override
-    def setup_module_and_optimizers(self, module: Module, optimizers: List[Optimizer], scheduler: Optional[LRScheduler] = None) -> Tuple["DeepSpeedEngine", List[Optimizer], Optional[LRScheduler]]:
+    def setup_module_and_optimizers(self, module: Module, optimizers: List[Optimizer], scheduler: Optional[_LRScheduler] = None) -> Tuple["DeepSpeedEngine", List[Optimizer], Optional[_LRScheduler]]:
         """Set up a model and multiple optimizers together along with an optional learning rate scheduler.
     
         Currently, only a single optimizer is supported.
@@ -590,28 +590,25 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
             offload_optimizer_device="nvme",
         )
 
-    def _initialize_engine(
-        self,
-        model: Module,
-        optimizer: Optional[Optimizer] = None,
-    ) -> Tuple["DeepSpeedEngine", Optimizer]:
+    def _initialize_engine(self, model: Module, optimizer: Optional[Optimizer] = None, scheduler: Optional[_LRScheduler] = None) -> Tuple["DeepSpeedEngine", Optimizer, Optional[_LRScheduler]]:
         """Initialize one model and one optimizer with an optional learning rate scheduler.
-
+    
         This calls :func:`deepspeed.initialize` internally.
-
+    
         """
         import deepspeed
-
+    
         model_parameters = filter(lambda p: p.requires_grad, model.parameters())
-        deepspeed_engine, deepspeed_optimizer, _, _ = deepspeed.initialize(
+        deepspeed_engine, deepspeed_optimizer, _, deepspeed_scheduler = deepspeed.initialize(
             args=argparse.Namespace(device_rank=self.root_device.index),
             config=self.config,
             model=model,
             model_parameters=model_parameters,
             optimizer=optimizer,
+            lr_scheduler=scheduler,
             dist_init_required=False,
         )
-        return deepspeed_engine, deepspeed_optimizer
+        return deepspeed_engine, deepspeed_optimizer, deepspeed_scheduler
 
     @override
     def setup_environment(self) -> None:
