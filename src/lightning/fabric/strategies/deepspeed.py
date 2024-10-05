@@ -340,7 +340,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         For training, see :meth:`setup_module_and_optimizers`.
 
         """
-        self._deepspeed_engine, _ = self._initialize_engine(module)
+        self._deepspeed_engine, _, _ = self._initialize_engine(module)
         return self._deepspeed_engine
 
     @override
