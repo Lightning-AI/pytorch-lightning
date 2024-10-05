@@ -20,6 +20,7 @@ import torch
 from torch import Tensor
 from torch.nn import Module
 from torch.optim import Optimizer
+from torch.optim.lr_scheduler import _LRScheduler
 from torch.utils.data import DataLoader
 
 from lightning.fabric.accelerators import Accelerator
