@@ -311,22 +311,24 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         return self._deepspeed_engine
 
     @override
-    def setup_module_and_optimizers(self, module: Module, optimizers: List[Optimizer], scheduler: Optional[_LRScheduler] = None) -> Tuple["DeepSpeedEngine", List[Optimizer], Optional[_LRScheduler]]:
+    def setup_module_and_optimizers(
+        self, module: Module, optimizers: List[Optimizer], scheduler: Optional[_LRScheduler] = None
+    ) -> Tuple["DeepSpeedEngine", List[Optimizer], Optional[_LRScheduler]]:
         """Set up a model and multiple optimizers together along with an optional learning rate scheduler.
-    
+
         Currently, only a single optimizer is supported.
-    
+
         Return:
             The model wrapped into a :class:`deepspeed.DeepSpeedEngine` and a list with a single
             deepspeed optimizer.
-    
+
         """
         if len(optimizers) != 1:
             raise ValueError(
                 f"Currently only one optimizer is supported with DeepSpeed."
                 f" Got {len(optimizers)} optimizers instead."
             )
-    
+
         self._deepspeed_engine, optimizer, scheduler = self._initialize_engine(module, optimizers[0], scheduler)
         self._set_deepspeed_activation_checkpointing()
         return self._deepspeed_engine, [optimizer], scheduler
@@ -590,14 +592,16 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
             offload_optimizer_device="nvme",
         )
 
-    def _initialize_engine(self, model: Module, optimizer: Optional[Optimizer] = None, scheduler: Optional[_LRScheduler] = None) -> Tuple["DeepSpeedEngine", Optimizer, Optional[_LRScheduler]]:
+    def _initialize_engine(
+        self, model: Module, optimizer: Optional[Optimizer] = None, scheduler: Optional[_LRScheduler] = None
+    ) -> Tuple["DeepSpeedEngine", Optimizer, Optional[_LRScheduler]]:
         """Initialize one model and one optimizer with an optional learning rate scheduler.
-    
+
         This calls :func:`deepspeed.initialize` internally.
-    
+
         """
         import deepspeed
-    
+
         model_parameters = filter(lambda p: p.requires_grad, model.parameters())
         deepspeed_engine, deepspeed_optimizer, _, deepspeed_scheduler = deepspeed.initialize(
             args=argparse.Namespace(device_rank=self.root_device.index),
