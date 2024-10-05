@@ -39,6 +39,7 @@ from lightning_utilities.core.rank_zero import rank_zero_only as utils_rank_zero
 from torch import Tensor
 from torch.nn import Module
 from torch.optim import Optimizer
+from torch.optim.lr_scheduler import _LRScheduler
 from typing_extensions import TypeGuard, override
 
 from lightning.fabric.accelerators import Accelerator
@@ -267,7 +268,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
 
     @override
     def setup_module_and_optimizers(
-        self, module: Module, optimizers: List[Optimizer]
+        self, module: Module, optimizers: List[Optimizer], scheduler: Optional[_LRScheduler] = None
     ) -> Tuple[Module, List[Optimizer]]:
         """Wraps the model into a :class:`~torch.distributed.fsdp.fully_sharded_data_parallel.FullyShardedDataParallel`
         module and sets `use_orig_params=True` to keep the reference to the original parameters in the optimizer."""
