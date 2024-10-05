@@ -38,7 +38,7 @@ from lightning_utilities.core.apply_func import apply_to_collection
 from lightning_utilities.core.overrides import is_overridden
 from torch import Tensor
 from torch.optim import Optimizer
-from torch.optim.lr_scheduler import LRScheduler
+from torch.optim.lr_scheduler import _LRScheduler
 from torch.utils.data import BatchSampler, DataLoader, DistributedSampler, RandomSampler, SequentialSampler
 
 import lightning.fabric
@@ -209,7 +209,7 @@ class Fabric:
 
         """
 
-    def setup(self, module: nn.Module, *optimizers: Optimizer, scheduler: Optional[LRScheduler] = None, move_to_device: bool = True, _reapply_compile: bool = True,) -> Any:  # no specific return because the way we want our API to look does not play well with mypy
+    def setup(self, module: nn.Module, *optimizers: Optimizer, scheduler: Optional[_LRScheduler] = None, move_to_device: bool = True, _reapply_compile: bool = True,) -> Any:  # no specific return because the way we want our API to look does not play well with mypy
         r"""Set up a model and its optimizers for accelerated training.
     
         Args:
