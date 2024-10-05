@@ -25,6 +25,7 @@ import torch
 from lightning_utilities.core.imports import RequirementCache
 from torch.nn import Module
 from torch.optim import Optimizer
+from torch.optim.lr_scheduler import LRScheduler
 from typing_extensions import override
 
 from lightning.fabric.accelerators import Accelerator, CUDAAccelerator
@@ -310,27 +311,25 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         return self._deepspeed_engine
 
     @override
-    def setup_module_and_optimizers(
-        self, module: Module, optimizers: List[Optimizer]
-    ) -> Tuple["DeepSpeedEngine", List[Optimizer]]:
-        """Set up a model and multiple optimizers together.
-
+    def setup_module_and_optimizers(self, module: Module, optimizers: List[Optimizer], scheduler: Optional[LRScheduler] = None) -> Tuple["DeepSpeedEngine", List[Optimizer], Optional[LRScheduler]]:
+        """Set up a model and multiple optimizers together along with an optional learning rate scheduler.
+    
         Currently, only a single optimizer is supported.
-
+    
         Return:
             The model wrapped into a :class:`deepspeed.DeepSpeedEngine` and a list with a single
             deepspeed optimizer.
-
+    
         """
         if len(optimizers) != 1:
             raise ValueError(
                 f"Currently only one optimizer is supported with DeepSpeed."
                 f" Got {len(optimizers)} optimizers instead."
             )
-
-        self._deepspeed_engine, optimizer = self._initialize_engine(module, optimizers[0])
+    
+        self._deepspeed_engine, optimizer, scheduler = self._initialize_engine(module, optimizers[0], scheduler)
         self._set_deepspeed_activation_checkpointing()
-        return self._deepspeed_engine, [optimizer]
+        return self._deepspeed_engine, [optimizer], scheduler
 
     @override
     def setup_module(self, module: Module) -> "DeepSpeedEngine":
