@@ -198,7 +198,7 @@ class XLAFSDPStrategy(ParallelStrategy, _Sharded):
     @override
     def setup_module_and_optimizers(
         self, module: Module, optimizers: List[Optimizer], scheduler: Optional[_LRScheduler] = None
-    ) -> Tuple[Module, List[Optimizer]]:
+    ) -> Tuple[Module, List[Optimizer], Optional[_LRScheduler]]:
         """Returns NotImplementedError since for XLAFSDP optimizer setup must happen after module setup."""
         raise NotImplementedError(
             f"The `{type(self).__name__}` does not support the joint setup of module and optimizer(s)."
