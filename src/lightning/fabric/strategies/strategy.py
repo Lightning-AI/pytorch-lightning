@@ -144,7 +144,7 @@ class Strategy(ABC):
         return stack
 
     def setup_module_and_optimizers(
-        self, module: Module, optimizers: List[Optimizer]
+        self, module: Module, optimizers: List[Optimizer], scheduler: Optional[_LRScheduler] = None
     ) -> Tuple[Module, List[Optimizer]]:
         """Set up a model and multiple optimizers together.
 
@@ -154,7 +154,7 @@ class Strategy(ABC):
         """
         module = self.setup_module(module)
         optimizers = [self.setup_optimizer(optimizer) for optimizer in optimizers]
-        return module, optimizers
+        return module, optimizers, scheduler
 
     def setup_module(self, module: Module) -> Module:
         """Performs setup for the model, e.g., by wrapping it by another class."""
