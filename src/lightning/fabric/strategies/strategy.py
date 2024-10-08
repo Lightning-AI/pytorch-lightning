@@ -20,6 +20,7 @@ import torch
 from torch import Tensor
 from torch.nn import Module
 from torch.optim import Optimizer
+from torch.optim.lr_scheduler import _LRScheduler
 from torch.utils.data import DataLoader
 
 from lightning.fabric.accelerators import Accelerator
@@ -144,8 +145,8 @@ class Strategy(ABC):
         return stack
 
     def setup_module_and_optimizers(
-        self, module: Module, optimizers: List[Optimizer]
-    ) -> Tuple[Module, List[Optimizer]]:
+        self, module: Module, optimizers: List[Optimizer], scheduler: Optional[_LRScheduler] = None
+    ) -> Tuple[Module, List[Optimizer], Optional[_LRScheduler]]:
         """Set up a model and multiple optimizers together.
 
         The returned objects are expected to be in the same order they were passed in. The default implementation will
@@ -154,7 +155,7 @@ class Strategy(ABC):
         """
         module = self.setup_module(module)
         optimizers = [self.setup_optimizer(optimizer) for optimizer in optimizers]
-        return module, optimizers
+        return module, optimizers, scheduler
 
     def setup_module(self, module: Module) -> Module:
         """Performs setup for the model, e.g., by wrapping it by another class."""
