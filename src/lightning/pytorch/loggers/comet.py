@@ -323,6 +323,8 @@ class CometLogger(Logger):
         self.experiment.__internal_api__log_parameters__(
             parameters=params,
             framework=FRAMEWORK_NAME,
+            flatten_nested=True,
+            source="manual",
         )
 
     @override
