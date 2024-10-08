@@ -108,7 +108,8 @@ def test_loggers_fit_test_all(logger_class, mlflow_mock, wandb_mock, comet_mock,
     if logger_class == CometLogger:
         logger.experiment.id = "foo"
         logger._comet_config.offline_directory = None
-        logger.experiment.project_name = "bar"
+        logger._project_name = "bar"
+        logger.experiment.get_key.return_value = "SOME_KEY"
 
     if logger_class == NeptuneLogger:
         logger._retrieve_run_data = Mock()
