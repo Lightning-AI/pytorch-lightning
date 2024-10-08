@@ -63,10 +63,10 @@ class CometLogger(Logger):
 
         # arguments made to CometLogger are passed on to the comet_ml.Experiment class
         comet_logger = CometLogger(
-            api_key="COMET_API_KEY",  # Optional
-            workspace="COMET_WORKSPACE",  # Optional
+            api_key=os.environ.get("COMET_API_KEY"),  # Optional
+            workspace=os.environ.get("COMET_WORKSPACE"),  # Optional
             project="default_project",  # Optional
-            experiment_key="COMET_EXPERIMENT_KEY",  # Optional
+            experiment_key=os.environ.get("COMET_EXPERIMENT_KEY"),  # Optional
             name="lightning_logs",  # Optional
         )
         trainer = Trainer(logger=comet_logger)
@@ -79,7 +79,7 @@ class CometLogger(Logger):
 
         # arguments made to CometLogger are passed on to the comet_ml.Experiment class
         comet_logger = CometLogger(
-            workspace="COMET_WORKSPACE",  # Optional
+            workspace=os.environ.get("COMET_WORKSPACE"),  # Optional
             project="default_project",  # Optional
             name="lightning_logs",  # Optional
             online=False
