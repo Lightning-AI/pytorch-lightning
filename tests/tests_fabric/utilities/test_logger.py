@@ -63,6 +63,17 @@ def test_flatten_dict():
     assert params["c/8"] == "foo"
     assert params["c/9/10"] == "bar"
 
+    # Test list of nested dicts flattening
+    params = {"dl": [{"a": 1, "c": 3}, {"b": 2, "d": 5}], "l": [1, 2, 3, 4]}
+    params = _flatten_dict(params)
+
+    assert "dl" not in params
+    assert params["dl/0/a"] == 1
+    assert params["dl/0/c"] == 3
+    assert params["dl/1/b"] == 2
+    assert params["dl/1/d"] == 5
+    assert params["l"] == [1, 2, 3, 4]
+
     # Test flattening of argparse Namespace
     params = Namespace(a=1, b=2)
     wrapping_dict = {"params": params}
