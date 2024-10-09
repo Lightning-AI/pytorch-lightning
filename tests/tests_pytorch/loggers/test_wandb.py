@@ -374,6 +374,44 @@ def test_wandb_log_model(wandb_mock, tmp_path):
     )
     wandb_mock.init().log_artifact.assert_called_with(wandb_mock.Artifact(), aliases=["latest", "best"])
 
+    # Test wandb artifact with two checkpoint_callbacks
+    wandb_mock.init().log_artifact.reset_mock()
+    wandb_mock.init.reset_mock()
+    wandb_mock.Artifact.reset_mock()
+    logger = WandbLogger(save_dir=tmp_path, log_model=True)
+    logger.experiment.id = "1"
+    logger.experiment.name = "run_name"
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        logger=logger,
+        max_epochs=3,
+        limit_train_batches=3,
+        limit_val_batches=3,
+        callbacks=[
+            ModelCheckpoint(monitor="epoch", save_top_k=2),
+            ModelCheckpoint(monitor="step", save_top_k=2),
+        ],
+    )
+    trainer.fit(model)
+    for name, val, version in [("epoch", 0, 2), ("step", 3, 3)]:
+        wandb_mock.Artifact.assert_any_call(
+            name="model-1",
+            type="model",
+            metadata={
+                "score": val,
+                "original_filename": f"epoch=0-step=3-v{version}.ckpt",
+                "ModelCheckpoint": {
+                    "monitor": name,
+                    "mode": "min",
+                    "save_last": None,
+                    "save_top_k": 2,
+                    "save_weights_only": False,
+                    "_every_n_train_steps": 0,
+                },
+            },
+        )
+        wandb_mock.init().log_artifact.assert_any_call(wandb_mock.Artifact(), aliases=["latest"])
+
 
 def test_wandb_log_model_with_score(wandb_mock, tmp_path):
     """Test to prevent regression on #15543, ensuring the score is logged as a Python number, not a scalar tensor."""
