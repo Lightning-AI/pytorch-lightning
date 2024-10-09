@@ -219,15 +219,19 @@ class TensorBoardLogger(Logger):
     @override
     @rank_zero_only
     def log_hyperparams(
-        self, params: Union[Dict[str, Any], Namespace], metrics: Optional[Dict[str, Any]] = None
+        self,
+        params: Union[Dict[str, Any], Namespace],
+        metrics: Optional[Dict[str, Any]] = None,
+        step: Optional[int] = None,
     ) -> None:
         """Record hyperparameters. TensorBoard logs with and without saved hyperparameters are incompatible, the
         hyperparameters are then not displayed in the TensorBoard. Please delete or move the previously saved logs to
         display the new ones with hyperparameters.
 
         Args:
-            params: a dictionary-like container with the hyperparameters
+            params: A dictionary-like container with the hyperparameters
             metrics: Dictionary with metric names as keys and measured quantities as values
+            step: Optional global step number for the logged metrics
 
         """
         params = _convert_params(params)
@@ -243,7 +247,7 @@ class TensorBoardLogger(Logger):
             metrics = {"hp_metric": metrics}
 
         if metrics:
-            self.log_metrics(metrics, 0)
+            self.log_metrics(metrics, step)
 
             if _TENSORBOARD_AVAILABLE:
                 from torch.utils.tensorboard.summary import hparams
@@ -252,9 +256,9 @@ class TensorBoardLogger(Logger):
 
             exp, ssi, sei = hparams(params, metrics)
             writer = self.experiment._get_file_writer()
-            writer.add_summary(exp)
-            writer.add_summary(ssi)
-            writer.add_summary(sei)
+            writer.add_summary(exp, step)
+            writer.add_summary(ssi, step)
+            writer.add_summary(sei, step)
 
     @override
     @rank_zero_only
