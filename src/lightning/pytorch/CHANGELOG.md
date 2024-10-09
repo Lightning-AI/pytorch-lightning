@@ -104,6 +104,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added shortcut name `strategy='deepspeed_stage_1_offload'` to the strategy registry ([#19075](https://github.com/Lightning-AI/lightning/pull/19075))
 - Added support for non-strict state-dict loading in Trainer via the new `LightningModule.strict_loading = True | False` attribute ([#19404](https://github.com/Lightning-AI/lightning/pull/19404))
 
+- Added support for the `max_size_cycle|max_size|min_size` iteration modes during prediction ([#17749](https://github.com/Lightning-AI/lightning/pull/17749))
 
 ### Changed
 
