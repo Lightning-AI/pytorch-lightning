@@ -98,6 +98,7 @@ def comet_mock(monkeypatch):
     comet_experiment = MagicMock(name="CommonExperiment")
     setattr(comet_experiment, "__internal_api__set_model_graph__", MagicMock())
     setattr(comet_experiment, "__internal_api__log_metrics__", MagicMock())
+    setattr(comet_experiment, "__internal_api__log_parameters__", MagicMock())
 
     comet.Experiment = MagicMock(name="Experiment", return_value=comet_experiment)
     comet.ExistingExperiment = MagicMock(name="ExistingExperiment", return_value=comet_experiment)

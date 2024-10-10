@@ -18,6 +18,8 @@ from unittest.mock import Mock, call
 from lightning.pytorch.loggers import CometLogger
 from torch import tensor
 
+FRAMEWORK_NAME = "pytorch-lightning"
+
 
 def _patch_comet_atexit(monkeypatch):
     """Prevent comet logger from trying to print at exit, since pytest's stdout/stderr redirection breaks it."""
@@ -144,6 +146,46 @@ def test_comet_epoch_logging(comet_mock, tmp_path, monkeypatch):
         epoch=1,
         step=123,
         prefix=logger._prefix,
+        framework="pytorch-lightning",
+    )
+
+
+@mock.patch.dict(os.environ, {})
+def test_comet_log_hyperparams(comet_mock, tmp_path, monkeypatch):
+    """Test that CometLogger.log_hyperparams calls internal API method."""
+    _patch_comet_atexit(monkeypatch)
+
+    logger = CometLogger(project_name="test")
+    hyperparams = {
+        "batch_size": 256,
+        "config": {
+            "SLURM Job ID": "22334455",
+            "RGB slurm jobID": "12345678",
+            "autoencoder_model": False,
+        },
+    }
+    logger.log_hyperparams(hyperparams)
+
+    logger.experiment.__internal_api__log_parameters__.assert_called_once_with(
+        parameters=hyperparams,
+        framework=FRAMEWORK_NAME,
+        flatten_nested=True,
+        source="manual",
+    )
+
+
+@mock.patch.dict(os.environ, {})
+def test_comet_log_graph(comet_mock, tmp_path, monkeypatch):
+    """Test that CometLogger.log_hyperparams calls internal API method."""
+    _patch_comet_atexit(monkeypatch)
+
+    logger = CometLogger(project_name="test")
+    model = Mock()
+
+    logger.log_graph(model=model)
+
+    logger.experiment.__internal_api__set_model_graph__.assert_called_once_with(
+        graph=model,
         framework="pytorch-lightning",
     )
 
