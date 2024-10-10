@@ -6,7 +6,7 @@
      - Then
      - Ref
 
-   * - used PyTorch 3.11
+   * - used PyTorch 1.11
      - upgrade to PyTorch 2.1 or higher
      - `PR18691`_
 
