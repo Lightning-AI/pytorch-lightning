@@ -7,15 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [UnReleased] - 2024-MM-DD
+## [0.11.8] - 2024-10-15
 
 ### Changed
 
 - CI: enable custom env. vars in pkg check workflow ([#317](https://github.com/Lightning-AI/utilities/pull/317))
 
-### Fixed
-
--
 
 ## [0.11.7] - 2024-09-02
 
