@@ -49,6 +49,14 @@ on:
             "os": ["ubuntu-20.04", "macos-11", "windows-2022"],
             "python-version": ["3.8", "3.9"]
           }
+      env-vars:
+        description: "custom environment variables in json format"
+        required: false
+        type: string
+        default: |
+          {
+            "SAMPLE_ENV_VARIABLE": 1,
+          }
 
 defaults:
   run:
@@ -73,6 +81,7 @@ jobs:
   pkg-build:
     needs: init-store
     runs-on: ${{ matrix.os }}
+    env: ${{ fromJSON(inputs.env-vars) }}
     strategy:
       max-parallel: 1 # run sequential to prevent download/upload collisions
       fail-fast: false
@@ -104,6 +113,7 @@ jobs:
   pkg-check:
     needs: pkg-build
     runs-on: ${{ matrix.os }}
+    env: ${{ fromJSON(inputs.env-vars) }}
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(inputs.testing-matrix) }}

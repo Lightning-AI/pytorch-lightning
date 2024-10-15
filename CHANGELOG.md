@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
--
+- CI: enable custom env. vars in pkg check workflow ([#317](https://github.com/Lightning-AI/utilities/pull/317))
 
 ### Fixed
 
