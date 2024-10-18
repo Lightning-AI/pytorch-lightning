@@ -22,6 +22,8 @@ def _determine_torchaudio(torch_version: str) -> str:
 
     """
     _version_exceptions = {
+        "2.0.1": "2.0.2",
+        "2.0.0": "2.0.1",
         "1.8.2": "0.9.1",
     }
     if torch_version in _version_exceptions:
