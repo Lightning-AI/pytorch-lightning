@@ -87,6 +87,11 @@ class MPSAccelerator(Accelerator):
             description=cls.__name__,
         )
 
+    @staticmethod
+    @override
+    def get_device() -> str:
+        return "mps"
+
 
 # device metrics
 _VM_PERCENT = "M1_vm_percent"

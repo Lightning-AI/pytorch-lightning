@@ -325,7 +325,10 @@ class Strategy(ABC):
             given, the full checkpoint will be returned.
 
         """
-        torch.cuda.empty_cache()
+        if isinstance(self.accelerator, Accelerator) and self.accelerator.get_device() != "cpu":
+            getattr(torch, self.root_device.type.split(":")[0]).empty_cache()
+        else:
+            torch.cuda.empty_cache()
         checkpoint = self.checkpoint_io.load_checkpoint(path)
         if not state:
             return checkpoint

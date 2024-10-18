@@ -316,10 +316,14 @@ class DeepSpeedStrategy(DDPStrategy):
 
     @override
     def setup_environment(self) -> None:
-        if not isinstance(self.accelerator, CUDAAccelerator):
+        from deepspeed.runtime.utils import get_accelerator
+
+        if (
+            not isinstance(self.accelerator, CUDAAccelerator)
+        ) and self.accelerator.get_device() != get_accelerator().device_name():  # type: ignore[union-attr]
             raise RuntimeError(
-                f"The DeepSpeed strategy is only supported on CUDA GPUs but `{self.accelerator.__class__.__name__}`"
-                " is used."
+                f"The DeepSpeed strategy is only supported on {get_accelerator().device_name().upper()} GPUs, "
+                f"but `{self.accelerator.__class__.__name__}` is used."
             )
         super().setup_environment()
 
