@@ -56,7 +56,7 @@ class XLAFSDPStrategy(ParallelStrategy, _Sharded):
 
     .. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
 
-    For more information check out https://github.com/pytorch/xla/blob/master/docs/fsdp.md
+    For more information check out https://github.com/pytorch/xla/blob/v2.5.0/docs/fsdp.md
 
     Args:
         auto_wrap_policy: Same as ``auto_wrap_policy`` parameter in
