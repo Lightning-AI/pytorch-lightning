@@ -187,6 +187,38 @@ class BoringDataModule(LightningDataModule):
         return DataLoader(self.random_predict)
 
 
+class BoringDataModuleNoLen(LightningDataModule):
+    """
+    .. warning::  This is meant for testing/debugging and is experimental.
+    """
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.random_full = RandomIterableDataset(32, 64 * 4)
+
+
+class BoringDataModuleLenNotImplemented(LightningDataModule):
+    """
+    .. warning::  This is meant for testing/debugging and is experimental.
+    """
+
+    def __init__(self) -> None:
+        super().__init__()
+
+        class DS(Dataset):
+            def __init__(self, size: int, length: int):
+                self.len = length
+                self.data = torch.randn(length, size)
+
+            def __getitem__(self, index: int) -> Tensor:
+                return self.data[index]
+
+            def __len__(self) -> int:
+                raise NotImplementedError
+
+        self.random_full = DS(32, 64 * 4)
+
+
 class ManualOptimBoringModel(BoringModel):
     """
     .. warning::  This is meant for testing/debugging and is experimental.
