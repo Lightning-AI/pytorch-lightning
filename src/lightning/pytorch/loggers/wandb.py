@@ -321,7 +321,7 @@ class WandbLogger(Logger):
         self._prefix = prefix
         self._experiment = experiment
         self._logged_model_time: Dict[str, float] = {}
-        self._checkpoint_callback: Optional[ModelCheckpoint] = None
+        self._checkpoint_callbacks: Dict[int, ModelCheckpoint] = {}
 
         # paths are processed as strings
         if save_dir is not None:
@@ -587,7 +587,7 @@ class WandbLogger(Logger):
         if self._log_model == "all" or self._log_model is True and checkpoint_callback.save_top_k == -1:
             self._scan_and_log_checkpoints(checkpoint_callback)
         elif self._log_model is True:
-            self._checkpoint_callback = checkpoint_callback
+            self._checkpoint_callbacks[id(checkpoint_callback)] = checkpoint_callback
 
     @staticmethod
     @rank_zero_only
@@ -640,8 +640,9 @@ class WandbLogger(Logger):
             # Currently, checkpoints only get logged on success
             return
         # log checkpoints as artifacts
-        if self._checkpoint_callback and self._experiment is not None:
-            self._scan_and_log_checkpoints(self._checkpoint_callback)
+        if self._experiment is not None:
+            for checkpoint_callback in self._checkpoint_callbacks.values():
+                self._scan_and_log_checkpoints(checkpoint_callback)
 
     def _scan_and_log_checkpoints(self, checkpoint_callback: ModelCheckpoint) -> None:
         import wandb
