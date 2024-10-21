@@ -50,8 +50,11 @@ jobs:
           - { os: "ubuntu-20.04", pkg-name: "lightning", python-version: "3.11", pytorch-version: "2.3" }
           - { os: "windows-2022", pkg-name: "lightning", python-version: "3.11", pytorch-version: "2.3" }
           - { os: "macOS-14", pkg-name: "lightning", python-version: "3.12", pytorch-version: "2.4" }
-          - { os: "ubuntu-20.04", pkg-name: "lightning", python-version: "3.12", pytorch-version: "2.4" }
+          - { os: "ubuntu-22.04", pkg-name: "lightning", python-version: "3.12", pytorch-version: "2.4" }
           - { os: "windows-2022", pkg-name: "lightning", python-version: "3.12", pytorch-version: "2.4" }
+          - { os: "macOS-14", pkg-name: "lightning", python-version: "3.12", pytorch-version: "2.5" }
+          - { os: "ubuntu-22.04", pkg-name: "lightning", python-version: "3.12", pytorch-version: "2.5" }
+          - { os: "windows-2022", pkg-name: "lightning", python-version: "3.12", pytorch-version: "2.5" }
           # only run PyTorch latest with Python latest, use Fabric scope to limit dependency issues
           - { os: "macOS-12", pkg-name: "fabric", python-version: "3.10", pytorch-version: "2.1" }
           - { os: "ubuntu-22.04", pkg-name: "fabric", python-version: "3.10", pytorch-version: "2.1" }
