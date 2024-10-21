@@ -1,5 +1,5 @@
 twine ==5.1.*
-setuptools ==75.1.*
+setuptools ==75.2.*
 wheel ==0.44.*
 build ==1.2.*
 importlib_metadata ==8.5.*
