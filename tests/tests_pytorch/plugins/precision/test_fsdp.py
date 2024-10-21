@@ -40,6 +40,24 @@ def test_fsdp_precision_config(precision, expected):
     assert config.reduce_dtype == expected[2]
 
 
+@pytest.mark.parametrize(
+    ("precision", "expected_dtype"),
+    [
+        ("32-true", torch.float32),
+        ("bf16-mixed", torch.float32),
+        ("16-mixed", torch.float32),
+        ("bf16-true", torch.bfloat16),
+        ("16-true", torch.float16),
+    ],
+)
+def test_convert_module(precision, expected_dtype):
+    precision = FSDPPrecision(precision=precision)
+    module = torch.nn.Linear(2, 2)
+    assert module.weight.dtype == module.bias.dtype == torch.float32
+    module = precision.convert_module(module)
+    assert module.weight.dtype == module.bias.dtype == expected_dtype
+
+
 def test_fsdp_precision_default_scaler():
     from torch.distributed.fsdp.sharded_grad_scaler import ShardedGradScaler
 
