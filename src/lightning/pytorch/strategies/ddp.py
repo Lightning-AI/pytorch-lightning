@@ -190,7 +190,13 @@ class DDPStrategy(ParallelStrategy):
         device_ids = self.determine_ddp_device_ids()
         log.debug(f"setting up DDP model with device ids: {device_ids}, kwargs: {self._ddp_kwargs}")
         # https://pytorch.org/docs/stable/notes/cuda.html#id5
-        ctx = torch.cuda.stream(torch.cuda.Stream()) if device_ids is not None else nullcontext()
+        ctx = (
+            getattr(torch, f"{self.root_device.type.split(':')[0]}").stream(
+                getattr(torch, f"{self.root_device.type.split(':')[0]}").Stream()
+            )
+            if device_ids is not None
+            else nullcontext()
+        )
         with ctx:
             return DistributedDataParallel(module=model, device_ids=device_ids, **self._ddp_kwargs)
 

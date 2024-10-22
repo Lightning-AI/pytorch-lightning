@@ -506,7 +506,11 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
 
         optimzer_state_requested = any(isinstance(item, (Optimizer, DeepSpeedOptimizer)) for item in state.values())
 
-        torch.cuda.empty_cache()
+        if isinstance(self.accelerator, Accelerator) and self.accelerator.get_device() != "cpu":
+            getattr(torch, self.root_device.type.split(":")[0]).empty_cache()
+        else:
+            torch.cuda.empty_cache()
+
         _, client_state = engine.load_checkpoint(
             path,
             tag="checkpoint",
@@ -616,10 +620,14 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
 
     @override
     def setup_environment(self) -> None:
-        if not isinstance(self.accelerator, CUDAAccelerator):
+        from deepspeed.runtime.utils import get_accelerator
+
+        if (
+            not isinstance(self.accelerator, CUDAAccelerator)
+        ) and self.accelerator.get_device() != get_accelerator().device_name():  # type: ignore[union-attr]
             raise RuntimeError(
-                f"The DeepSpeed strategy is only supported on CUDA GPUs but `{self.accelerator.__class__.__name__}`"
-                " is used."
+                f"The DeepSpeed strategy is only supported on {get_accelerator().device_name().upper()} GPUs, "
+                f"but `{self.accelerator.__class__.__name__}` is used."
             )
         super().setup_environment()
 
