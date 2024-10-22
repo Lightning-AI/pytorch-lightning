@@ -16,6 +16,7 @@ from torch import Tensor
 from torch.utils.data import Dataset, DistributedSampler, Sampler
 from typing_extensions import Self, TypeGuard, override
 
+from lightning.fabric.plugins.collectives import Collective
 from lightning.fabric.utilities.cloud_io import _is_local_file_protocol
 from lightning.fabric.utilities.data import _num_cpus_available
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_4
@@ -99,6 +100,7 @@ def is_shared_filesystem(strategy: "Strategy", path: Optional[_PATH] = None, tim
     return all_found
 
 
+# TODO: This function has no usages in our code base
 def _gather_all_tensors(result: Tensor, group: Optional[Any] = None) -> List[Tensor]:
     """Function to gather all tensors from several DDP processes onto a list that is broadcasted to all processes.
 
@@ -153,40 +155,23 @@ def _gather_all_tensors(result: Tensor, group: Optional[Any] = None) -> List[Ten
     return gathered_result
 
 
+# TODO: This function has no usages in our code base
 def _simple_gather_all_tensors(result: Tensor, group: Any, world_size: int) -> List[Tensor]:
     gathered_result = [torch.zeros_like(result) for _ in range(world_size)]
     torch.distributed.all_gather(gathered_result, result, group)
     return gathered_result
 
 
-def _sync_ddp_if_available(
-    result: Tensor, group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = None
+def _all_reduce_if_available(
+    tensor: Tensor, collective: Collective, reduce_op: Optional[Union[ReduceOp, str]] = None
 ) -> Tensor:
-    """Function to reduce a tensor across worker processes during distributed training.
-
-    Args:
-        result: The value to sync and reduce (typically tensor or number)
-        group: The process group to gather results from. Defaults to all processes (world)
-        reduce_op: The reduction operation. Defaults to sum.
-            Can also be a string of 'avg', 'mean' to calculate the mean during reduction.
-
-    Return:
-        reduced value
-
-    """
-    if _distributed_is_initialized():
-        return _sync_ddp(result, group=group, reduce_op=reduce_op)
-    return result
-
-
-def _sync_ddp(result: Tensor, group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = None) -> Tensor:
     """Reduces a tensor across several distributed processes.
 
     This operation is performed in-place, meaning the result will be placed back into the input tensor on all processes.
 
     Args:
-        result: The value to sync and reduce (typically tensor or number)
-        group: The process group to gather results from. Defaults to all processes (world)
+        tensor: The value to sync and reduce (typically tensor or number)
+        collective: The collective backend to use for the all-reduce.
         reduce_op: The reduction operation. Defaults to sum.
             Can also be a string of 'avg', 'mean' to calculate the mean during reduction.
 
@@ -194,13 +179,15 @@ def _sync_ddp(result: Tensor, group: Optional[Any] = None, reduce_op: Optional[U
         The reduced value.
 
     """
+    if not collective.is_initialized():
+        return tensor
+
     divide_by_world_size = False
-    group = torch.distributed.group.WORLD if group is None else group
 
     op: Optional[ReduceOp]
     if isinstance(reduce_op, str):
         reduce_op = "avg" if reduce_op == "mean" else reduce_op
-        if reduce_op.lower() == "avg" and torch.distributed.get_backend(group) == "gloo":
+        if reduce_op.lower() == "avg" and torch.distributed.get_backend() == "gloo":
             # The GLOO backend does not support the `ReduceOp.AVG` operation
             op = ReduceOp.SUM  # type: ignore[assignment]
             divide_by_world_size = True
@@ -214,46 +201,44 @@ def _sync_ddp(result: Tensor, group: Optional[Any] = None, reduce_op: Optional[U
     if (
         package_available("habana_frameworks")
         and os.environ.get("HCCL_DISTRIBUTED_BACKEND") == "1"
-        and result.type()
+        and tensor.type()
         in (
             "torch.LongTensor",
             "torch.hpu.LongTensor",
         )
     ):
         rank_zero_info("Long tensor unsupported on HPU, casting to float")
-        result = result.float()
+        tensor = tensor.float()
 
     # Sync all processes before reduction
-    torch.distributed.barrier(group=group)
-    torch.distributed.all_reduce(result, op=op, group=group, async_op=False)
-    world_size = torch.distributed.get_world_size(group)
+    collective.barrier()
+    collective.all_reduce(tensor, op=op)
 
     if not divide_by_world_size:
-        return result
-    # `torch.distributed.all_reduce` is in-place, so we should do the division in-place to leave the modified tensors
+        return tensor
+    # `all_reduce` is in-place, so we should do the division in-place to leave the modified tensors
     # with the expected value
-    if not torch.is_floating_point(result):
-        return result.copy_(result / world_size)
-    return result.div_(world_size)
+    if not torch.is_floating_point(tensor):
+        return tensor.copy_(tensor / collective.world_size)
+    return tensor.div_(collective.world_size)
 
 
-def _all_gather_ddp_if_available(
-    tensor: Tensor, group: Optional["torch.distributed.ProcessGroup"] = None, sync_grads: bool = False
-) -> Tensor:
+def _all_gather_if_available(tensor: Tensor, collective: Collective, sync_grads: bool = False) -> Tensor:
     """Function to gather a tensor from several distributed processes.
 
     Args:
         tensor: Tensor of shape (batch, ...)
-        group: The process group to gather results from. Defaults to all processes (world)
+        collective: The collective backend to use for the all-gather.
         sync_grads: Flag that allows users to synchronize gradients for all_gather op
 
     Return:
         A tensor of shape (world_size, batch, ...)
 
     """
-    if not _distributed_is_initialized():
+    if not collective.is_initialized():
         return tensor
 
+    # TODO: Enable all-gather with grads in TorchCollective
     from torch.distributed.nn.functional import all_gather
 
     tensor = tensor.contiguous()  # https://github.com/pytorch/pytorch/issues/73515
