@@ -25,7 +25,7 @@ import math
 import os
 from contextlib import contextmanager
 from datetime import timedelta
-from typing import Any, Dict, Generator, Iterable, List, Optional, Union
+from typing import Any, Callable, Dict, Generator, Iterable, List, Optional, Union
 from weakref import proxy
 
 import torch
@@ -127,6 +127,7 @@ class Trainer:
         sync_batchnorm: bool = False,
         reload_dataloaders_every_n_epochs: int = 0,
         default_root_dir: Optional[_PATH] = None,
+        compile_fn: Optional[Callable] = None,
     ) -> None:
         r"""Customize every aspect of training via flags.
 
@@ -288,6 +289,9 @@ class Trainer:
             default_root_dir: Default path for logs and weights when no logger/ckpt_callback passed.
                 Default: ``os.getcwd()``.
                 Can be remote file paths such as `s3://mybucket/path` or 'hdfs://path/'
+
+            compile_fn: Provide torch.compile function to be applied after configuring strategy
+                Default: ``None``.
 
         Raises:
             TypeError:
@@ -467,6 +471,8 @@ class Trainer:
 
         self.should_stop = False
         self.state = TrainerState()
+
+        self.compile_fn = compile_fn
 
         # configure profiler
         setup._init_profiler(self, profiler)
@@ -955,6 +961,10 @@ class Trainer:
 
         # strategy will configure model and move it to the device
         self.strategy.setup(self)
+
+        # compile if compile_fn provided after configured strategy
+        if self.compile_fn is not None:
+            self.strategy.model = self.compile_fn(self.strategy.model)
 
         # hook
         if self.state.fn == TrainerFn.FITTING:
