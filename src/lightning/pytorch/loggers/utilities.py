@@ -69,6 +69,9 @@ def _log_hyperparams(trainer: "pl.Trainer") -> None:
         lightning_hparams = pl_module.hparams_initial
         inconsistent_keys = []
         for key in lightning_hparams.keys() & datamodule_hparams.keys():
+            if key.startswith("_"):
+                # Prevent merging LightningCLI's internal hparams and discourage of private param names
+                continue
             lm_val, dm_val = lightning_hparams[key], datamodule_hparams[key]
             if (
                 type(lm_val) != type(dm_val)
