@@ -91,11 +91,12 @@ def pl_worker_init_function(worker_id: int, rank: Optional[int] = None) -> None:
 
     """
     # implementation notes: https://github.com/pytorch/pytorch/issues/5059#issuecomment-817392562
-    assert (
-        "PL_GLOBAL_SEED" in os.environ
-    ), "`seed_everything(seed, workers=True)` must be called before training to use this function."
     global_rank = rank if rank is not None else rank_zero_only.rank
-    process_seed = int(os.environ["PL_GLOBAL_SEED"])
+    env_seed = os.environ.get("PL_GLOBAL_SEED", None)
+    if env_seed is None:
+        env_seed = "0"
+        rank_zero_warn(f"No seed found, worker seed set to {env_seed}")
+    process_seed = int(env_seed)
     # back out the base seed so we can use all the bits
     base_seed = process_seed - worker_id
     log.debug(
