@@ -267,7 +267,7 @@ class _TrainingEpochLoop(loops._Loop):
             self.batch_progress.is_last_batch = data_fetcher.done
 
         # we increment prior to on_batch_end so checkpoints can see progress correctly
-        # failure to do this will lead to incorrect restarts
+        # failure to do this will lead to incorrect total batch completed progress counts
         self.batch_progress.increment_completed()
 
         call._call_callback_hooks(trainer, "on_train_batch_end", batch_output, batch, batch_idx)
