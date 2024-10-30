@@ -410,9 +410,9 @@ class _EvaluationLoop(_Loop):
         call._call_callback_hooks(trainer, hook_name, output, *hook_kwargs.values())
         call._call_lightning_module_hook(trainer, hook_name, output, *hook_kwargs.values())
 
-        trainer._logger_connector.on_batch_end()
-
         self.batch_progress.increment_completed()
+
+        trainer._logger_connector.on_batch_end()
 
         if not trainer.sanity_checking:
             # indicate the loop has run

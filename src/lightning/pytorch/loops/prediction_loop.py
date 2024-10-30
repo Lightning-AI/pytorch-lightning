@@ -263,10 +263,10 @@ class _PredictionLoop(_Loop):
             dataloader_idx = data_fetcher._dataloader_idx
             hook_kwargs = self._build_kwargs(batch, batch_idx, dataloader_idx if self.num_dataloaders > 1 else None)
 
+        self.batch_progress.increment_completed()
+
         call._call_callback_hooks(trainer, "on_predict_batch_end", predictions, *hook_kwargs.values())
         call._call_lightning_module_hook(trainer, "on_predict_batch_end", predictions, *hook_kwargs.values())
-
-        self.batch_progress.increment_completed()
 
         if self._return_predictions or any_on_epoch:
             self._predictions[dataloader_idx].append(move_data_to_device(predictions, torch.device("cpu")))

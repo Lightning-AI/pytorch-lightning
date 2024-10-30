@@ -570,10 +570,11 @@ def test_fit_loop_reset(tmp_path):
     assert epoch_loop.restarting
     assert epoch_loop.batch_progress.total.ready == 2
     assert epoch_loop.batch_progress.total.processed == 2
-    assert epoch_loop.batch_progress.total.completed == 1  # the checkpoint was saved on train_batch_end
-    assert epoch_loop.batch_progress.current.ready == 1  # currents get set to the completed value
-    assert epoch_loop.batch_progress.current.processed == 1
-    assert epoch_loop.batch_progress.current.completed == 1
+    assert epoch_loop.batch_progress.total.completed == 2  # the checkpoint was saved on train_batch_end
+                                                           # this used to be 1 but progress is now recorded before train_batch_end
+    assert epoch_loop.batch_progress.current.ready == 2  # currents get set to the completed value
+    assert epoch_loop.batch_progress.current.processed == 2
+    assert epoch_loop.batch_progress.current.completed == 2
 
     assert optimizer_loop.restarting
 
@@ -600,10 +601,10 @@ def test_fit_loop_reset(tmp_path):
     assert epoch_loop.restarting
     assert epoch_loop.batch_progress.total.ready == 4
     assert epoch_loop.batch_progress.total.processed == 4
-    assert epoch_loop.batch_progress.total.completed == 3  # the checkpoint was saved on train_batch_end
-    assert epoch_loop.batch_progress.current.ready == 3  # currents get set to the completed value
-    assert epoch_loop.batch_progress.current.processed == 3
-    assert epoch_loop.batch_progress.current.completed == 3
+    assert epoch_loop.batch_progress.total.completed == 4  # the checkpoint was saved on train_batch_end
+    assert epoch_loop.batch_progress.current.ready == 4  # currents get set to the completed value
+    assert epoch_loop.batch_progress.current.processed == 4
+    assert epoch_loop.batch_progress.current.completed == 4
 
 
 @pytest.mark.parametrize(
