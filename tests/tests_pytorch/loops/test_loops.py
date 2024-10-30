@@ -575,6 +575,8 @@ def test_fit_loop_reset(tmp_path):
     assert epoch_loop.batch_progress.current.processed == 2
     assert epoch_loop.batch_progress.current.completed == 2
 
+    assert epoch_loop._batches_that_stepped == 2
+
     assert optimizer_loop.restarting
 
     # reset state loaded from a checkpoint from the end of an epoch
@@ -604,6 +606,8 @@ def test_fit_loop_reset(tmp_path):
     assert epoch_loop.batch_progress.current.ready == 4  # currents get set to the completed value
     assert epoch_loop.batch_progress.current.processed == 4
     assert epoch_loop.batch_progress.current.completed == 4
+
+    assert epoch_loop._batches_that_stepped == 4
 
 
 @pytest.mark.parametrize(

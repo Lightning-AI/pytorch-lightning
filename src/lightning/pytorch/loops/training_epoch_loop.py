@@ -270,6 +270,10 @@ class _TrainingEpochLoop(loops._Loop):
         # failure to do this will lead to incorrect total batch completed progress counts
         self.batch_progress.increment_completed()
 
+        if not self._should_accumulate():
+            # this is increased once per batch disregarding multiple optimizers on purpose for loggers
+            self._batches_that_stepped += 1
+
         call._call_callback_hooks(trainer, "on_train_batch_end", batch_output, batch, batch_idx)
         call._call_lightning_module_hook(trainer, "on_train_batch_end", batch_output, batch, batch_idx)
         trainer._logger_connector.on_batch_end()
@@ -301,9 +305,6 @@ class _TrainingEpochLoop(loops._Loop):
         # update plateau LR scheduler after metrics are logged
         self.update_lr_schedulers("step", update_plateau_schedulers=True)
 
-        if not self._should_accumulate():
-            # this is increased once per batch disregarding multiple optimizers on purpose for loggers
-            self._batches_that_stepped += 1
         # this will save based on the `batches_that_stepped` value
         self._save_loggers_on_train_batch_end()
 
