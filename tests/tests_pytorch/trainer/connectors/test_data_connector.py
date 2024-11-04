@@ -135,7 +135,7 @@ def test_dataloader_persistent_workers_performance_warning(num_workers, tmp_path
         barebones=True,
     )
     model = TestSpawnBoringModel(warning_expected=(num_workers > 0))
-    dataloader = DataLoader(RandomDataset(32, 64), num_workers=num_workers, persistent_workers=True)
+    dataloader = DataLoader(RandomDataset(32, 64), num_workers=num_workers, persistent_workers=num_workers > 0)
     trainer.fit(model, dataloader)
 
 
