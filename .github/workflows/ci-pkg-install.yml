@@ -42,7 +42,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: ["ubuntu-22.04", "macOS-12", "windows-2022"]
+        os: ["ubuntu-22.04", "macOS-13", "windows-2022"]
         pkg-name: ["fabric", "pytorch", "lightning", "notset"]
         python-version: ["3.9", "3.11"]
     steps:
