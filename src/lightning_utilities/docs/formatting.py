@@ -56,7 +56,7 @@ def _linkcode_resolve(
             fname = str(os.path.relpath(fname, start=path_top))
         else:
             # Local build, imitate master
-            fname = f'{main_branch}/{os.path.relpath(fname, start=os.path.abspath(".."))}'
+            fname = f"{main_branch}/{os.path.relpath(fname, start=os.path.abspath('..'))}"
         source, line_start = inspect.getsourcelines(obj)
         return fname, line_start, line_start + len(source) - 1
 

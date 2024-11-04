@@ -153,27 +153,27 @@ def test_recursive_application_to_collection():
 
     assert isinstance(reduced, dict), "Type Consistency of dict not preserved"
     assert all(x in reduced for x in to_reduce), "Not all entries of the dict were preserved"
-    assert all(
-        isinstance(reduced[k], type(expected_result[k])) for k in to_reduce
-    ), "At least one type was not correctly preserved"
+    assert all(isinstance(reduced[k], type(expected_result[k])) for k in to_reduce), (
+        "At least one type was not correctly preserved"
+    )
 
     assert isinstance(reduced["a"], torch.Tensor), "Reduction Result of a Tensor should be a Tensor"
     assert torch.equal(expected_result["a"], reduced["a"]), "Reduction of a tensor does not yield the expected value"
 
     assert isinstance(reduced["b"], list), "Reduction Result of a list should be a list"
-    assert all(
-        torch.equal(x, y) for x, y in zip(reduced["b"], expected_result["b"])
-    ), "At least one value of list reduction did not come out as expected"
+    assert all(torch.equal(x, y) for x, y in zip(reduced["b"], expected_result["b"])), (
+        "At least one value of list reduction did not come out as expected"
+    )
 
     assert isinstance(reduced["c"], tuple), "Reduction Result of a tuple should be a tuple"
-    assert all(
-        torch.equal(x, y) for x, y in zip(reduced["c"], expected_result["c"])
-    ), "At least one value of tuple reduction did not come out as expected"
+    assert all(torch.equal(x, y) for x, y in zip(reduced["c"], expected_result["c"])), (
+        "At least one value of tuple reduction did not come out as expected"
+    )
 
     assert isinstance(reduced["d"], ntc), "Type Consistency for named tuple not given"
-    assert isinstance(
-        reduced["d"].bar, numbers.Number
-    ), "Failure in type promotion while reducing fields of named tuples"
+    assert isinstance(reduced["d"].bar, numbers.Number), (
+        "Failure in type promotion while reducing fields of named tuples"
+    )
     assert reduced["d"].bar == expected_result["d"].bar
 
     assert isinstance(reduced["f"], str), "A string should not be reduced"
@@ -183,9 +183,9 @@ def test_recursive_application_to_collection():
     assert reduced["g"] == expected_result["g"], "Reduction of a number did not yield the desired result"
 
     def _assert_dataclass_reduction(actual, expected, dataclass_type: str = ""):
-        assert dataclasses.is_dataclass(
-            actual
-        ), f"Reduction of a {dataclass_type} dataclass should result in a dataclass"
+        assert dataclasses.is_dataclass(actual), (
+            f"Reduction of a {dataclass_type} dataclass should result in a dataclass"
+        )
         assert not isinstance(actual, type)
         for field in dataclasses.fields(actual):
             if dataclasses.is_dataclass(field.type):
@@ -204,9 +204,9 @@ def test_recursive_application_to_collection():
 
     dataclass_type = "Class-and-InitVar-containing"
     _assert_dataclass_reduction(reduced["l"], expected_result["l"], dataclass_type)
-    assert torch.equal(
-        WithClassAndInitVar.class_var, torch.tensor(0)
-    ), f"Reduction of a {dataclass_type} dataclass should not change the class var"
+    assert torch.equal(WithClassAndInitVar.class_var, torch.tensor(0)), (
+        f"Reduction of a {dataclass_type} dataclass should not change the class var"
+    )
 
 
 @pytest.mark.parametrize(
