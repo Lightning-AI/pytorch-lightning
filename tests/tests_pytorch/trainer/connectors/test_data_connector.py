@@ -252,7 +252,9 @@ def test_update_dataloader_with_multiprocessing_context():
     """This test verifies that `use_distributed_sampler` conserves multiprocessing context."""
     train = RandomDataset(32, 64)
     context = "spawn"
-    train = DataLoader(train, batch_size=32, num_workers=2, multiprocessing_context=context, shuffle=True, persistent_workers=True)
+    train = DataLoader(
+        train, batch_size=32, num_workers=2, multiprocessing_context=context, shuffle=True, persistent_workers=True
+    )
     new_data_loader = _update_dataloader(train, SequentialSampler(train.dataset))
     assert new_data_loader.multiprocessing_context == train.multiprocessing_context
 

@@ -218,4 +218,9 @@ class ParityModuleMNIST(LightningModule):
         return torch.optim.Adam(self.parameters(), lr=0.02)
 
     def train_dataloader(self):
-        return DataLoader(MNIST(root=_PATH_DATASETS, train=True, download=True), batch_size=128, num_workers=1, persistent_workers=True)
+        return DataLoader(
+            MNIST(root=_PATH_DATASETS, train=True, download=True),
+            batch_size=128,
+            num_workers=1,
+            persistent_workers=True,
+        )
