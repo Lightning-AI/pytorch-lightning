@@ -59,4 +59,5 @@ class ParityModuleCIFAR(LightningModule):
             CIFAR10(root=_PATH_DATASETS, train=True, download=True, transform=self.transform),
             batch_size=32,
             num_workers=1,
+            persistent_workers=True,
         )

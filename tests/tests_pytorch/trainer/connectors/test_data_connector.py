@@ -135,7 +135,7 @@ def test_dataloader_persistent_workers_performance_warning(num_workers, tmp_path
         barebones=True,
     )
     model = TestSpawnBoringModel(warning_expected=(num_workers > 0))
-    dataloader = DataLoader(RandomDataset(32, 64), num_workers=num_workers)
+    dataloader = DataLoader(RandomDataset(32, 64), num_workers=num_workers, persistent_workers=True)
     trainer.fit(model, dataloader)
 
 
@@ -252,7 +252,7 @@ def test_update_dataloader_with_multiprocessing_context():
     """This test verifies that `use_distributed_sampler` conserves multiprocessing context."""
     train = RandomDataset(32, 64)
     context = "spawn"
-    train = DataLoader(train, batch_size=32, num_workers=2, multiprocessing_context=context, shuffle=True)
+    train = DataLoader(train, batch_size=32, num_workers=2, multiprocessing_context=context, shuffle=True, persistent_workers=True)
     new_data_loader = _update_dataloader(train, SequentialSampler(train.dataset))
     assert new_data_loader.multiprocessing_context == train.multiprocessing_context
 

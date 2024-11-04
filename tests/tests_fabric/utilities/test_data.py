@@ -638,9 +638,9 @@ def test_suggested_max_num_workers_not_triggering_torch_warning(local_world_size
 
     # The dataloader runs a check in `DataLoader.check_worker_number_rationality`
     with pytest.warns(UserWarning, match="This DataLoader will create"):
-        DataLoader(range(2), num_workers=(cpu_count + 1))
+        DataLoader(range(2), num_workers=(cpu_count + 1), persistent_workers=True)
     with no_warning_call():
-        DataLoader(range(2), num_workers=suggested_max_num_workers(local_world_size))
+        DataLoader(range(2), num_workers=suggested_max_num_workers(local_world_size), persistent_workers=True)
 
 
 def test_state():

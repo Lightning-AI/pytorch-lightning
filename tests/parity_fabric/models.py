@@ -76,6 +76,7 @@ class ConvNet(ParityModel):
             dataset,
             batch_size=self.batch_size,
             num_workers=2,
+            persistent_workers=True,
         )
 
     def get_loss_function(self):

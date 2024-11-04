@@ -661,7 +661,7 @@ def test_auto_add_worker_init_fn_distributed(tmp_path, monkeypatch):
     num_workers = 2
     batch_size = 2
 
-    dataloader = DataLoader(dataset, batch_size=batch_size, num_workers=num_workers)
+    dataloader = DataLoader(dataset, batch_size=batch_size, num_workers=num_workers, persistent_workers=True)
     seed_everything(0, workers=True)
     trainer = Trainer(default_root_dir=tmp_path, max_epochs=1, accelerator="gpu", devices=2, strategy="ddp_spawn")
     model = MultiProcessModel()
