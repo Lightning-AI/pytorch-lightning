@@ -14,7 +14,7 @@
 import os
 from copy import deepcopy
 from dataclasses import dataclass
-from typing import Dict, Iterator
+from typing import Dict, Iterator, Any
 from unittest.mock import ANY, Mock
 
 import pytest
@@ -25,6 +25,7 @@ from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
 from lightning.pytorch.loops import _Loop
 from lightning.pytorch.loops.progress import _BaseProgress
 from lightning.pytorch.utilities import CombinedLoader
+from lightning.pytorch.utilities.types import STEP_OUTPUT
 from torch.utils.data.dataloader import DataLoader, _MultiProcessingDataLoaderIter
 
 from tests_pytorch.helpers.runif import RunIf
@@ -621,6 +622,10 @@ def compare_state_dicts(dict1, dict2):
                     result[key] = res
             elif isinstance(val1, dict) or isinstance(val2, dict):
                 raise ValueError("dicts have different leaves")
+            elif type(val1) == torch.Tensor and type(val2) == torch.Tensor:
+                diff = torch.norm(val1 - val2)
+                if diff > 1e-8:
+                    result[key] = f"{diff} > 1e-8"
             elif type(val1) == float and type(val2) == float:
                 if abs(val1 - val2) > 1e-8:
                     result[key] = f"{val1} != {val2}"
@@ -630,12 +635,48 @@ def compare_state_dicts(dict1, dict2):
     return compare_leaves(dict1, dict2)
 
 
+class RangeDataset(torch.utils.data.Dataset):
+    def __init__(self, size: int, length: int):
+        self.len = length
+        data = torch.arange(0, size) / size
+        self.data = data.unsqueeze(0).repeat(length, 1)
+
+    def __getitem__(self, index: int) -> torch.Tensor:
+        return self.data[index]
+
+    def __len__(self) -> int:
+        return self.len
+
+
+class PredictableBoringModel(BoringModel):
+    def __init__(self) -> None:
+        super().__init__()
+        self.last_loss = float("inf")
+
+    def train_dataloader(self) -> DataLoader:
+        return DataLoader(RangeDataset(32, 64))
+
+    def val_dataloader(self) -> DataLoader:
+        return DataLoader(RangeDataset(32, 64))
+
+    def test_dataloader(self) -> DataLoader:
+        return DataLoader(RangeDataset(32, 64))
+
+    def predict_dataloader(self) -> DataLoader:
+        return DataLoader(RangeDataset(32, 64))
+
+    def training_step(self, batch: Any, batch_idx: int) -> STEP_OUTPUT:
+        loss = self.step(batch)
+        self.last_loss = loss
+        return {"loss": loss}
+
+
 def test_restart_at_batch_end(tmp_path):
     """
     TODO
     """
 
-    model = BoringModel()
+    model = PredictableBoringModel()
     checkpoint_callback = ModelCheckpoint(
         dirpath=tmp_path,
         every_n_train_steps=2,
@@ -650,6 +691,7 @@ def test_restart_at_batch_end(tmp_path):
         enable_model_summary=False,
     )
     trainer.fit(model)
+    loss = model.last_loss
 
     trainer = Trainer(
         default_root_dir=tmp_path,
@@ -660,6 +702,9 @@ def test_restart_at_batch_end(tmp_path):
         enable_model_summary=False,
     )
     trainer.fit(model, ckpt_path=str(tmp_path / "epoch=0-step=2.ckpt"))
+    loss_v1 = model.last_loss
+
+    assert(abs(loss - loss_v1) < 1e-8)
 
     end_of_epoch_ckpt = torch.load(str(tmp_path / "epoch=0-step=4.ckpt"), weights_only=True)
     end_of_epoch_ckpt_v1 = torch.load(str(tmp_path / "epoch=0-step=4-v1.ckpt"), weights_only=True)
@@ -668,6 +713,7 @@ def test_restart_at_batch_end(tmp_path):
     assert compare_state_dicts(end_of_epoch_ckpt["lr_schedulers"][0], end_of_epoch_ckpt_v1["lr_schedulers"][0]) == {}
     assert end_of_epoch_ckpt["epoch"] == end_of_epoch_ckpt_v1["epoch"]
     assert end_of_epoch_ckpt["global_step"] == end_of_epoch_ckpt_v1["global_step"]
+    assert compare_state_dicts(end_of_epoch_ckpt["state_dict"], end_of_epoch_ckpt_v1["state_dict"]) == {}
 
     mid_epoch_ckpt = torch.load(str(tmp_path / "epoch=1-step=6.ckpt"), weights_only=True)
     mid_epoch_ckpt_v1 = torch.load(str(tmp_path / "epoch=1-step=6-v1.ckpt"), weights_only=True)
@@ -676,6 +722,7 @@ def test_restart_at_batch_end(tmp_path):
     assert compare_state_dicts(mid_epoch_ckpt["lr_schedulers"][0], mid_epoch_ckpt_v1["lr_schedulers"][0]) == {}
     assert mid_epoch_ckpt["epoch"] == mid_epoch_ckpt_v1["epoch"]
     assert mid_epoch_ckpt["global_step"] == mid_epoch_ckpt_v1["global_step"]
+    assert compare_state_dicts(mid_epoch_ckpt["state_dict"], mid_epoch_ckpt_v1["state_dict"]) == {}
 
     end_of_epoch_ckpt = torch.load(str(tmp_path / "epoch=1-step=8.ckpt"), weights_only=True)
     end_of_epoch_ckpt_v1 = torch.load(str(tmp_path / "epoch=1-step=8-v1.ckpt"), weights_only=True)
@@ -684,6 +731,7 @@ def test_restart_at_batch_end(tmp_path):
     assert compare_state_dicts(end_of_epoch_ckpt["lr_schedulers"][0], end_of_epoch_ckpt_v1["lr_schedulers"][0]) == {}
     assert end_of_epoch_ckpt["epoch"] == end_of_epoch_ckpt_v1["epoch"]
     assert end_of_epoch_ckpt["global_step"] == end_of_epoch_ckpt_v1["global_step"]
+    assert compare_state_dicts(end_of_epoch_ckpt["state_dict"], end_of_epoch_ckpt_v1["state_dict"]) == {}
 
 
 @pytest.mark.parametrize(
