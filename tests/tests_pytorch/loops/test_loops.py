@@ -671,11 +671,7 @@ class PredictableBoringModel(BoringModel):
         return {"loss": loss}
 
 
-def test_restart_at_batch_end(tmp_path):
-    """
-    TODO
-    """
-
+def test_restart_parity(tmp_path):
     model = PredictableBoringModel()
     checkpoint_callback = ModelCheckpoint(
         dirpath=tmp_path,
