@@ -302,12 +302,39 @@ class _FitLoop(_Loop):
                 category=PossibleUserWarning,
             )
 
+    @property
+    def restarting_on_epoch_start(self) -> bool:
+        return (
+            self.restarting
+            and self.epoch_progress.total.started == self.epoch_progress.total.ready - 1
+            and self.epoch_progress.total.processed == self.epoch_progress.total.started
+            and self.epoch_progress.total.completed == self.epoch_progress.total.processed
+        )
+
+    @property
+    def restarting_mid_epoch(self) -> bool:
+        return (
+            self.restarting
+            and self.epoch_progress.total.started == self.epoch_progress.total.ready
+            and self.epoch_progress.total.processed == self.epoch_progress.total.started - 1
+            and self.epoch_progress.total.completed == self.epoch_progress.total.processed
+        )
+
+    @property
+    def restarting_on_epoch_end(self) -> bool:
+        return (
+            self.restarting
+            and self.epoch_progress.total.started == self.epoch_progress.total.ready
+            and self.epoch_progress.total.processed == self.epoch_progress.total.started
+            and self.epoch_progress.total.completed == self.epoch_progress.total.processed - 1
+        )
+
     def reset(self) -> None:
         """Resets the internal state of this loop."""
         assert self.trainer.model is not None
         torch.set_grad_enabled(True)
 
-        if self.restarting:
+        if self.restarting_on_epoch_start:
             self.epoch_progress.reset_on_restart()
 
     def on_run_start(self) -> None:
@@ -340,12 +367,14 @@ class _FitLoop(_Loop):
         for i, dl in enumerate(self._combined_loader.flattened):
             _set_sampler_epoch(dl, self.epoch_progress.current.processed)
 
-        self.epoch_progress.increment_ready()
+        if not self.restarting_mid_epoch and not self.restarting_on_epoch_end:
+            if not self.restarting_on_epoch_start:
+                self.epoch_progress.increment_ready()
 
-        call._call_callback_hooks(trainer, "on_train_epoch_start")
-        call._call_lightning_module_hook(trainer, "on_train_epoch_start")
+            call._call_callback_hooks(trainer, "on_train_epoch_start")
+            call._call_lightning_module_hook(trainer, "on_train_epoch_start")
 
-        self.epoch_progress.increment_started()
+            self.epoch_progress.increment_started()
 
     def advance(self) -> None:
         """Runs one whole epoch."""
@@ -379,8 +408,7 @@ class _FitLoop(_Loop):
 
         trainer._logger_connector.on_epoch_end()
 
-        if self.epoch_loop._num_ready_batches_reached():
-            # if we are restarting and the above condition holds, it's because we are reloading an epoch-end checkpoint.
+        if not self.restarting and self.epoch_loop._num_ready_batches_reached():
             # since metric-based schedulers require access to metrics and those are not currently saved in the
             # checkpoint, the plateau schedulers shouldn't be updated
             self.epoch_loop.update_lr_schedulers("epoch", update_plateau_schedulers=not self.restarting)

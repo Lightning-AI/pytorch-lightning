@@ -564,7 +564,7 @@ def test_fit_loop_reset(tmp_path):
     assert fit_loop.restarting
     assert fit_loop.epoch_progress.total.ready == 1
     assert fit_loop.epoch_progress.total.completed == 0  # the checkpoint was saved mid epoch
-    assert fit_loop.epoch_progress.current.ready == 0
+    assert fit_loop.epoch_progress.current.ready == 1
     assert fit_loop.epoch_progress.current.completed == 0
 
     assert epoch_loop.restarting
@@ -594,7 +594,7 @@ def test_fit_loop_reset(tmp_path):
     assert fit_loop.restarting
     assert fit_loop.epoch_progress.total.ready == 1
     assert fit_loop.epoch_progress.total.completed == 0  # the checkpoint saves before the epoch completes
-    assert fit_loop.epoch_progress.current.ready == 0
+    assert fit_loop.epoch_progress.current.ready == 1
     assert fit_loop.epoch_progress.current.completed == 0
 
     assert epoch_loop.restarting
@@ -604,6 +604,86 @@ def test_fit_loop_reset(tmp_path):
     assert epoch_loop.batch_progress.current.ready == 3  # currents get set to the completed value
     assert epoch_loop.batch_progress.current.processed == 3
     assert epoch_loop.batch_progress.current.completed == 3
+
+
+def compare_state_dicts(dict1, dict2):
+    def compare_leaves(d1, d2):
+        result = {}
+        all_keys = set(d1.keys()).union(d2.keys())
+        
+        for key in all_keys:
+            val1 = d1.get(key, None)
+            val2 = d2.get(key, None)
+            
+            if isinstance(val1, dict) and isinstance(val2, dict):
+                res = compare_leaves(val1, val2)
+                if res:
+                    result[key] = res
+            elif isinstance(val1, dict) or isinstance(val2, dict):
+                raise ValueError("dicts have different leaves")
+            elif type(val1) == float and type(val2) == float:
+                if abs(val1 - val2) > 1e-8:
+                    result[key] = f"{val1} != {val2}"
+            elif val1 != val2:
+                result[key] = f"{val1} != {val2}"
+        return result
+    return compare_leaves(dict1, dict2)
+
+
+def test_restart_at_batch_end(tmp_path):
+    """
+    TODO
+    """
+
+    model = BoringModel()
+    checkpoint_callback = ModelCheckpoint(
+        dirpath=tmp_path,
+        every_n_train_steps=2,
+        save_top_k=-1,
+    )
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        limit_train_batches=4,
+        max_epochs=4,
+        callbacks=[checkpoint_callback],
+        logger=False,
+        enable_model_summary=False,
+    )
+    trainer.fit(model)
+
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        limit_train_batches=4,
+        max_epochs=4,
+        callbacks=[checkpoint_callback],
+        logger=False,
+        enable_model_summary=False,
+    )
+    trainer.fit(model, ckpt_path=str(tmp_path / "epoch=0-step=2.ckpt"))
+
+    end_of_epoch_ckpt = torch.load(str(tmp_path / "epoch=0-step=4.ckpt"), weights_only=True)
+    end_of_epoch_ckpt_v1 = torch.load(str(tmp_path / "epoch=0-step=4-v1.ckpt"), weights_only=True)
+
+    assert compare_state_dicts(end_of_epoch_ckpt["loops"], end_of_epoch_ckpt_v1["loops"]) == {}
+    assert compare_state_dicts(end_of_epoch_ckpt["lr_schedulers"][0], end_of_epoch_ckpt_v1["lr_schedulers"][0]) == {}
+    assert end_of_epoch_ckpt["epoch"] == end_of_epoch_ckpt_v1["epoch"]
+    assert end_of_epoch_ckpt["global_step"] == end_of_epoch_ckpt_v1["global_step"]
+
+    mid_epoch_ckpt = torch.load(str(tmp_path / "epoch=1-step=6.ckpt"), weights_only=True)
+    mid_epoch_ckpt_v1 = torch.load(str(tmp_path / "epoch=1-step=6-v1.ckpt"), weights_only=True)
+
+    assert compare_state_dicts(mid_epoch_ckpt["loops"], mid_epoch_ckpt_v1["loops"]) == {}
+    assert compare_state_dicts(mid_epoch_ckpt["lr_schedulers"][0], mid_epoch_ckpt_v1["lr_schedulers"][0]) == {}
+    assert mid_epoch_ckpt["epoch"] == mid_epoch_ckpt_v1["epoch"]
+    assert mid_epoch_ckpt["global_step"] == mid_epoch_ckpt_v1["global_step"]
+
+    end_of_epoch_ckpt = torch.load(str(tmp_path / "epoch=1-step=8.ckpt"), weights_only=True)
+    end_of_epoch_ckpt_v1 = torch.load(str(tmp_path / "epoch=1-step=8-v1.ckpt"), weights_only=True)
+
+    assert compare_state_dicts(end_of_epoch_ckpt["loops"], end_of_epoch_ckpt_v1["loops"]) == {}
+    assert compare_state_dicts(end_of_epoch_ckpt["lr_schedulers"][0], end_of_epoch_ckpt_v1["lr_schedulers"][0]) == {}
+    assert end_of_epoch_ckpt["epoch"] == end_of_epoch_ckpt_v1["epoch"]
+    assert end_of_epoch_ckpt["global_step"] == end_of_epoch_ckpt_v1["global_step"]
 
 
 @pytest.mark.parametrize(
