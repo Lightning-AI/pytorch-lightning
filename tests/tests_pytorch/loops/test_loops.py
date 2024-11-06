@@ -14,7 +14,7 @@
 import os
 from copy import deepcopy
 from dataclasses import dataclass
-from typing import Dict, Iterator, Any
+from typing import Any, Dict, Iterator
 from unittest.mock import ANY, Mock
 
 import pytest
@@ -575,7 +575,7 @@ def test_fit_loop_reset(tmp_path):
 
     fit_loop.reset()
     epoch_loop.reset()
- 
+
     # resetting from a mid-of-epoch checkpoint SHOULD NOT reset the current counters to 0
     assert fit_loop.restarting
     assert fit_loop.epoch_progress.total.ready == 1
@@ -629,27 +629,28 @@ def compare_state_dicts(dict1, dict2):
     def compare_leaves(d1, d2):
         result = {}
         all_keys = set(d1.keys()).union(d2.keys())
-        
+
         for key in all_keys:
             val1 = d1.get(key, None)
             val2 = d2.get(key, None)
-            
+
             if isinstance(val1, dict) and isinstance(val2, dict):
                 res = compare_leaves(val1, val2)
                 if res:
                     result[key] = res
             elif isinstance(val1, dict) or isinstance(val2, dict):
                 raise ValueError("dicts have different leaves")
-            elif type(val1) == torch.Tensor and type(val2) == torch.Tensor:
+            elif isinstance(val1, torch.Tensor) and isinstance(val2, torch.Tensor):
                 diff = torch.norm(val1 - val2)
                 if diff > 1e-8:
                     result[key] = f"{diff} > 1e-8"
-            elif type(val1) == float and type(val2) == float:
+            elif isinstance(val1, float) and isinstance(val2, float):
                 if abs(val1 - val2) > 1e-8:
                     result[key] = f"{val1} != {val2}"
             elif val1 != val2:
                 result[key] = f"{val1} != {val2}"
         return result
+
     return compare_leaves(dict1, dict2)
 
 
@@ -718,7 +719,7 @@ def test_restart_parity(tmp_path):
     trainer.fit(model, ckpt_path=str(tmp_path / "epoch=0-step=2.ckpt"))
     loss_v1 = model.last_loss
 
-    assert(abs(loss - loss_v1) < 1e-8)
+    assert abs(loss - loss_v1) < 1e-8
 
     end_of_epoch_ckpt = torch.load(str(tmp_path / "epoch=0-step=4.ckpt"), weights_only=True)
     end_of_epoch_ckpt_v1 = torch.load(str(tmp_path / "epoch=0-step=4-v1.ckpt"), weights_only=True)
@@ -783,7 +784,7 @@ def test_restart_parity_with_val(tmp_path):
     trainer.fit(model, ckpt_path=str(tmp_path / "epoch=0-step=2.ckpt"))
     loss_v1 = model.last_loss
 
-    assert(abs(loss - loss_v1) < 1e-8)
+    assert abs(loss - loss_v1) < 1e-8
 
     end_of_epoch_ckpt = torch.load(str(tmp_path / "epoch=0-step=4.ckpt"), weights_only=True)
     end_of_epoch_ckpt_v1 = torch.load(str(tmp_path / "epoch=0-step=4-v1.ckpt"), weights_only=True)
