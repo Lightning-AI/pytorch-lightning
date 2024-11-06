@@ -217,8 +217,9 @@ class _TrainingEpochLoop(loops._Loop):
 
         """
         if self.restarting and self._should_check_val_fx(data_fetcher):
-            # skip training and run validation in `on_advance_end`
-            return
+            # fast forward progress counters to end of validation
+            self.val_loop.increment_progress_to_evaluation_end()
+
         # we are going to train first so the val loop does not need to restart
         self.val_loop.restarting = False
 

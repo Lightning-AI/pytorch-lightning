@@ -201,7 +201,7 @@ class _EvaluationLoop(_Loop):
     def restarting_on_evaluation_end(self) -> bool:
         return (
             self.restarting
-            and self.batch.progress.total.started == self.batch_progress.total.ready
+            and self.batch_progress.total.started == self.batch_progress.total.ready
             and self.batch_progress.total.processed == self.batch_progress.total.started
             and self.batch_progress.total.completed == self.batch_progress.total.processed - 1
         )
@@ -244,6 +244,14 @@ class _EvaluationLoop(_Loop):
         data_fetcher._start_profiler = self._on_before_fetch
         data_fetcher._stop_profiler = self._on_after_fetch
         self._data_fetcher = data_fetcher
+
+    def increment_progress_to_evaluation_end(self) -> None:
+        self.setup_data()
+        if self.skip:
+            return
+        self.reset()
+        max_batch = max(self.max_batches)
+        self.batch_progress.increment_by(max_batch, True)
 
     def on_run_start(self) -> None:
         """Runs the ``_on_evaluation_model_eval``, ``_on_evaluation_start`` and ``_on_evaluation_epoch_start``

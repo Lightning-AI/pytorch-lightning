@@ -730,6 +730,71 @@ def test_restart_parity(tmp_path):
     assert compare_state_dicts(end_of_epoch_ckpt["state_dict"], end_of_epoch_ckpt_v1["state_dict"]) == {}
 
 
+def test_restart_parity_with_val(tmp_path):
+    model = PredictableBoringModel()
+    checkpoint_callback = ModelCheckpoint(
+        dirpath=tmp_path,
+        every_n_train_steps=2,
+        save_top_k=-1,
+    )
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        limit_train_batches=4,
+        max_epochs=4,
+        callbacks=[checkpoint_callback],
+        logger=False,
+        enable_model_summary=False,
+        enable_progress_bar=False,
+        limit_val_batches=4,
+        val_check_interval=2,
+    )
+    trainer.fit(model)
+    loss = model.last_loss
+
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        limit_train_batches=4,
+        max_epochs=4,
+        callbacks=[checkpoint_callback],
+        logger=False,
+        enable_model_summary=False,
+        enable_progress_bar=False,
+        limit_val_batches=4,
+        val_check_interval=2,
+    )
+    trainer.fit(model, ckpt_path=str(tmp_path / "epoch=0-step=2.ckpt"))
+    loss_v1 = model.last_loss
+
+    assert(abs(loss - loss_v1) < 1e-8)
+
+    end_of_epoch_ckpt = torch.load(str(tmp_path / "epoch=0-step=4.ckpt"), weights_only=True)
+    end_of_epoch_ckpt_v1 = torch.load(str(tmp_path / "epoch=0-step=4-v1.ckpt"), weights_only=True)
+
+    assert compare_state_dicts(end_of_epoch_ckpt["loops"], end_of_epoch_ckpt_v1["loops"]) == {}
+    assert compare_state_dicts(end_of_epoch_ckpt["lr_schedulers"][0], end_of_epoch_ckpt_v1["lr_schedulers"][0]) == {}
+    assert end_of_epoch_ckpt["epoch"] == end_of_epoch_ckpt_v1["epoch"]
+    assert end_of_epoch_ckpt["global_step"] == end_of_epoch_ckpt_v1["global_step"]
+    assert compare_state_dicts(end_of_epoch_ckpt["state_dict"], end_of_epoch_ckpt_v1["state_dict"]) == {}
+
+    mid_epoch_ckpt = torch.load(str(tmp_path / "epoch=1-step=6.ckpt"), weights_only=True)
+    mid_epoch_ckpt_v1 = torch.load(str(tmp_path / "epoch=1-step=6-v1.ckpt"), weights_only=True)
+
+    assert compare_state_dicts(mid_epoch_ckpt["loops"], mid_epoch_ckpt_v1["loops"]) == {}
+    assert compare_state_dicts(mid_epoch_ckpt["lr_schedulers"][0], mid_epoch_ckpt_v1["lr_schedulers"][0]) == {}
+    assert mid_epoch_ckpt["epoch"] == mid_epoch_ckpt_v1["epoch"]
+    assert mid_epoch_ckpt["global_step"] == mid_epoch_ckpt_v1["global_step"]
+    assert compare_state_dicts(mid_epoch_ckpt["state_dict"], mid_epoch_ckpt_v1["state_dict"]) == {}
+
+    end_of_epoch_ckpt = torch.load(str(tmp_path / "epoch=1-step=8.ckpt"), weights_only=True)
+    end_of_epoch_ckpt_v1 = torch.load(str(tmp_path / "epoch=1-step=8-v1.ckpt"), weights_only=True)
+
+    assert compare_state_dicts(end_of_epoch_ckpt["loops"], end_of_epoch_ckpt_v1["loops"]) == {}
+    assert compare_state_dicts(end_of_epoch_ckpt["lr_schedulers"][0], end_of_epoch_ckpt_v1["lr_schedulers"][0]) == {}
+    assert end_of_epoch_ckpt["epoch"] == end_of_epoch_ckpt_v1["epoch"]
+    assert end_of_epoch_ckpt["global_step"] == end_of_epoch_ckpt_v1["global_step"]
+    assert compare_state_dicts(end_of_epoch_ckpt["state_dict"], end_of_epoch_ckpt_v1["state_dict"]) == {}
+
+
 @pytest.mark.parametrize(
     ("train_datasets", "val_datasets"),
     [([RandomDataset], [RandomDataset]), ([RandomDataset], [RandomDataset, RandomDataset])],
