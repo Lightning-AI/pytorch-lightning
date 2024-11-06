@@ -198,6 +198,15 @@ class _EvaluationLoop(_Loop):
         self._seen_batches_per_dataloader = defaultdict(int)
 
     @property
+    def restarting_mid_evaluation(self) -> bool:
+        return (
+            self.restarting
+            and self.batch_progress.total.started == self.batch_progress.total.ready
+            and self.batch_progress.total.processed == self.batch_progress.total.started - 1
+            and self.batch_progress.total.completed == self.batch_progress.total.processed
+        )
+
+    @property
     def restarting_on_evaluation_end(self) -> bool:
         return (
             self.restarting

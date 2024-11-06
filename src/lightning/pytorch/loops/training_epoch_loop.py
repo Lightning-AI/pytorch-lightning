@@ -217,6 +217,8 @@ class _TrainingEpochLoop(loops._Loop):
 
         """
         if self.restarting and self._should_check_val_fx(data_fetcher):
+            if self.val_loop.restarting_mid_evaluation:
+                return
             # fast forward progress counters to end of validation
             self.val_loop.increment_progress_to_evaluation_end()
 

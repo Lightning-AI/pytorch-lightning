@@ -397,12 +397,13 @@ def test_loop_state_on_exception(accumulate_grad_batches, stop_epoch, stop_batch
     assert state_dict == checkpoint["loops"]["fit_loop"]
 
     trainer.fit_loop.load_state_dict(checkpoint["loops"]["fit_loop"])
-    # test resetting manually, we expect all `ready` counters to be reset to `completed`
+    # test resetting manually, we expect the `ready` counter for batch to be reset to `completed`
+    # but the `ready` counter for epoch to not be reset, since we are still mid epoch
     trainer.fit_loop.reset()
     trainer.fit_loop.epoch_loop.reset()
 
     epoch_progress = trainer.fit_loop.epoch_progress
-    assert epoch_progress.current.ready == stop_epoch
+    assert epoch_progress.current.ready == stop_epoch + 1
     assert epoch_progress.current.completed == stop_epoch
 
     batch_progress = trainer.fit_loop.epoch_loop.batch_progress
@@ -418,7 +419,7 @@ def test_loop_state_on_exception(accumulate_grad_batches, stop_epoch, stop_batch
     state_dict = trainer.fit_loop.state_dict()
     assert state_dict != checkpoint["loops"]["fit_loop"]
     assert state_dict["epoch_progress"]["total"]["started"] == stop_epoch + 1
-    assert state_dict["epoch_progress"]["current"]["started"] == stop_epoch
+    assert state_dict["epoch_progress"]["current"]["started"] == stop_epoch + 1
 
 
 def test_loop_state_on_complete_run(tmp_path):
