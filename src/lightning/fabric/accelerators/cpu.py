@@ -77,7 +77,7 @@ def _parse_cpu_cores(cpu_cores: Union[int, str]) -> int:
     :class:`~lightning.pytorch.trainer.trainer.Trainer`.
 
     Args:
-        cpu_cores: An int > 0.
+        cpu_cores: An int > 0 or a string that can be converted to an int > 0.
 
     Returns:
         An int representing the number of processes
