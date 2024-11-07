@@ -18,7 +18,7 @@ from unittest.mock import ANY, Mock
 import pytest
 import torch
 from lightning.pytorch import Trainer
-from lightning.pytorch.callbacks import ModelCheckpoint
+from lightning.pytorch.callbacks import ModelCheckpoint, Callback
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.trainer.states import TrainerFn
 from lightning.pytorch.utilities.migration.utils import _set_version
@@ -234,3 +234,46 @@ def test_strict_loading(strict_loading, expected, tmp_path):
     trainer = Trainer(default_root_dir=tmp_path, barebones=True, max_steps=2)
     trainer.fit(model, ckpt_path=(tmp_path / "checkpoint.ckpt"))
     model.load_state_dict.assert_called_once_with(ANY, strict=expected)
+
+
+@pytest.mark.parametrize("trainer_fn", ["validate", "test", "predict"])
+def test_restore_callbacks_in_non_fit_phases(tmp_path, trainer_fn):
+    """Test that callbacks are properly restored in non-fit phases."""
+
+    class TestCallback(Callback):
+        def __init__(self):
+            self.restored = False
+
+        def on_load_checkpoint(self, trainer, pl_module, checkpoint):
+            # This should be called when checkpoint is loaded
+            self.restored = True
+
+        def state_dict(self):
+            return {"restored": self.restored}
+
+        def load_state_dict(self, state_dict):
+            self.restored = state_dict["restored"]
+
+    # Initial training to create checkpoint
+    callback = TestCallback()
+    model = BoringModel()
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        max_steps=1,
+        callbacks=[callback],
+        enable_checkpointing=True,
+    )
+    trainer.fit(model)
+    ckpt_path = trainer.checkpoint_callback.best_model_path
+    assert os.path.exists(ckpt_path)
+
+    # Test restoration in different phases
+    new_callback = TestCallback()
+    assert not new_callback.restored  # Should start False
+
+    new_trainer = Trainer(callbacks=[new_callback])
+    fn = getattr(new_trainer, trainer_fn)
+    fn(model, ckpt_path=ckpt_path)
+
+    # Verify callback restoration was triggered
+    assert new_callback.restored  # Should be True if restore_callbacks() was called
