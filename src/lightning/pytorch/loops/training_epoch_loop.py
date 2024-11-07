@@ -81,6 +81,8 @@ class _TrainingEpochLoop(loops._Loop):
         self._results = _ResultCollection(training=True)
         self._warning_cache = WarningCache()
         self._batches_that_stepped: int = 0
+        self._restarting_on_train_batch_end: bool = None
+        self._restarting_on_last: bool = None
 
     @property
     def total_batch_idx(self) -> int:
@@ -146,15 +148,43 @@ class _TrainingEpochLoop(loops._Loop):
 
     @property
     def restarting_on_train_batch_end(self) -> bool:
-        return (
-            self.restarting
-            and self.batch_progress.total.started == self.batch_progress.total.ready
-            and self.batch_progress.total.processed == self.batch_progress.total.started
-            and self.batch_progress.total.completed == self.batch_progress.total.processed - 1
-        )
+        if self._restarting_on_train_batch_end is None:
+            self._restarting_on_train_batch_end = (
+                self.restarting
+                and self.batch_progress.total.started == self.batch_progress.total.ready
+                and self.batch_progress.total.processed == self.batch_progress.total.started
+                and self.batch_progress.total.completed == self.batch_progress.total.processed - 1
+            )
+        return self._restarting_on_train_batch_end
+
+    @property
+    def restarting_on_last(self) -> bool:
+        if self._restarting_on_last is None:
+            self._restarting_on_last = (
+                self.restarting
+                and self.batch_progress.total.started == self.batch_progress.total.ready
+                and self.batch_progress.total.processed == self.batch_progress.total.started
+                and self.batch_progress.total.completed == self.batch_progress.total.processed
+            )
+        return self._restarting_on_last
+
+    def reset_restarting_states(self) -> None:
+        self._restarting_on_train_batch_end = None
+        self._restarting_on_last = None
+        self.restarting_on_train_batch_end
+        self.restarting_on_last
 
     def reset(self) -> None:
+        self.reset_restarting_states()
         """Resets the internal state of the loop for a new run."""
+        if self.restarting and not self._should_accumulate():
+            # batches_that_stepped is never set prior to saving a checkpoint, even when saving
+            # happens on_validation_end
+            # we could set it in the checkpoint but we prefer to keep checkpoints backward compatible
+            if self.restarting_on_train_batch_end or not self.restarting_on_last:
+            # if not self.restarting_on_train_batch_end and not self.restarting_on_last:
+                self._batches_that_stepped += 1
+
         if self.restarting_on_train_batch_end:
             self.batch_progress.increment_completed()
             # handle situation in which save happened on_train_batch_end and epoch is at end
@@ -163,8 +193,6 @@ class _TrainingEpochLoop(loops._Loop):
                 self.scheduler_progress.reset_on_run()
                 self.automatic_optimization.optim_progress.reset_on_run()
                 self.val_loop.batch_progress.total.reset()
-            if not self._should_accumulate():
-                self._batches_that_stepped += 1
 
         if self.restarting:
             self.batch_progress.reset_on_restart()
@@ -217,7 +245,7 @@ class _TrainingEpochLoop(loops._Loop):
 
         """
         if self.restarting and self._should_check_val_fx(data_fetcher):
-            if self.val_loop.restarting_mid_evaluation:
+            if self.val_loop.restarting_mid_evaluation or self.restarting_on_last:
                 return
             # fast forward progress counters to end of validation
             self.val_loop.increment_progress_to_evaluation_end()

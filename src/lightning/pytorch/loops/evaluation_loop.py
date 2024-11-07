@@ -206,15 +206,6 @@ class _EvaluationLoop(_Loop):
             and self.batch_progress.total.completed == self.batch_progress.total.processed
         )
 
-    @property
-    def restarting_on_evaluation_end(self) -> bool:
-        return (
-            self.restarting
-            and self.batch_progress.total.started == self.batch_progress.total.ready
-            and self.batch_progress.total.processed == self.batch_progress.total.started
-            and self.batch_progress.total.completed == self.batch_progress.total.processed - 1
-        )
-
     def reset(self) -> None:
         """Resets the internal state of the loop."""
         trainer = self.trainer

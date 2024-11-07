@@ -329,13 +329,42 @@ class _FitLoop(_Loop):
             and self.epoch_progress.total.completed == self.epoch_progress.total.processed - 1
         )
 
+    @property
+    def progress_at_epoch_end(self) -> bool:
+        # TODO LUCA comment for restart last without val
+        return (
+            self.epoch_progress.total.started == self.epoch_progress.total.ready
+            and self.epoch_progress.total.processed == self.epoch_progress.total.started
+            and self.epoch_progress.total.completed == self.epoch_progress.total.processed - 1
+        )
+
     def reset(self) -> None:
         """Resets the internal state of this loop."""
         assert self.trainer.model is not None
         torch.set_grad_enabled(True)
 
+        self.epoch_loop.reset_restarting_states()
+
         if self.restarting_on_epoch_start:
             self.epoch_progress.reset_on_restart()
+
+        if self.progress_at_epoch_end:
+            self.epoch_progress.increment_completed()
+
+        # TODO LUCA: refactor restarting for fit_loop
+        restarting_mid_epoch = self.restarting_mid_epoch
+
+        if (self.epoch_loop.restarting_on_train_batch_end
+            and self.restarting_mid_epoch
+            and self.epoch_loop.batch_progress.is_last_batch):
+            self.epoch_progress.increment_processed()
+            self.epoch_progress.increment_completed()
+
+        if (self.epoch_loop.restarting_on_train_batch_end
+            and self.epoch_loop.batch_progress.is_last_batch
+            and not restarting_mid_epoch
+            and not self.epoch_loop.val_loop.batch_progress.is_last_batch):
+            self.epoch_progress.increment_completed()
 
     def on_run_start(self) -> None:
         """Calls the ``on_train_start`` hook."""
