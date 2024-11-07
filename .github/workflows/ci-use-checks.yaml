@@ -64,7 +64,7 @@ jobs:
       install-extras: "[cli]"
       # todo: when we have a module with depence on extra, replace it
       #  tried to import `lightning_utilities.cli.__main__` but told me it does not exits
-      custom-import: "import fire"
+      custom-import-code: "import fire"
       testing-matrix: |
         {
           "os": ["ubuntu-22.04", "macos-13", "windows-2022"],

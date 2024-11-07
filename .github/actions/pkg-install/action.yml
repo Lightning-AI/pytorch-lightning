@@ -17,7 +17,7 @@ inputs:
     description: "additional pip install flags"
     required: false
     default: "-f https://download.pytorch.org/whl/cpu/torch_stable.html"
-  custom-import:
+  custom-import-code:
     description: "additional import statement, need to be full python code"
     required: false
     default: ""
@@ -49,11 +49,16 @@ runs:
         pip list
       shell: bash
 
-    - name: package check
+    - name: package check / import
+      if: ${{ inputs.import-name != '' }}
       run: |
-        set -ex
         python -c "import ${{ inputs.import-name }} as pkg; print(f'version: {pkg.__version__}')"
-        python -c '${{ inputs.custom-import }}'
+      shell: bash
+
+    - name: package check / custom import
+      if: ${{ inputs.custom-import-code != '' }}
+      run: |
+        python -c '${{ inputs.custom-import-code }}'
       shell: bash
 
     - name: Uninstall all
@@ -76,5 +81,5 @@ runs:
       run: |
         set -ex
         python -c "import ${{ inputs.import-name }} as pkg; print(f'version: {pkg.__version__}')"
-        python -c '${{ inputs.custom-import }}'
+        python -c '${{ inputs.custom-import-code }}'
       shell: bash

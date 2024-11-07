@@ -25,7 +25,7 @@ on:
         description: "Import name to test with after installation"
         required: true
         type: string
-      custom-import:
+      custom-import-code:
         description: "additional import statement, need to be full python code"
         type: string
         required: false
@@ -91,6 +91,7 @@ jobs:
       - name: Checkout 🛎️
         uses: actions/checkout@v4
         with:
+          fetch-depth: 0 # checkout entire history for all branches (required when using scm-based versioning)
           submodules: recursive
       - name: Set up Python 🐍
         uses: actions/setup-python@v5
@@ -142,7 +143,7 @@ jobs:
           pkg-extras: ${{ inputs.install-extras }}
           pip-flags: ${{ inputs.install-flags }}
           import-name: ${{ inputs.import-name }}
-          custom-import: ${{ inputs.custom-import }}
+          custom-import-code: ${{ inputs.custom-import-code }}
 
     # TODO: add run doctests
 
