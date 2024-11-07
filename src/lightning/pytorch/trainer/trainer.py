@@ -1361,9 +1361,10 @@ class Trainer:
                 "Saving a checkpoint is only possible if a model is attached to the Trainer. Did you call"
                 " `Trainer.save_checkpoint()` before calling `Trainer.{fit,validate,test,predict}`?"
             )
-        checkpoint = self._checkpoint_connector.dump_checkpoint(weights_only)
-        self.strategy.save_checkpoint(checkpoint, filepath, storage_options=storage_options)
-        self.strategy.barrier("Trainer.save_checkpoint")
+        with self.profiler.profile("save_checkpoint"):
+            checkpoint = self._checkpoint_connector.dump_checkpoint(weights_only)
+            self.strategy.save_checkpoint(checkpoint, filepath, storage_options=storage_options)
+            self.strategy.barrier("Trainer.save_checkpoint")
 
     """
     State properties
