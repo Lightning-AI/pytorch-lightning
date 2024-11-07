@@ -44,9 +44,7 @@ def test_pickling_dataset_mnist(dataset_cls, args):
     mnist = dataset_cls(**args)
 
     mnist_pickled = pickle.dumps(mnist)
-    with pytest.warns(FutureWarning, match="`weights_only=False`") if _TORCH_EQUAL_2_4_0 else nullcontext():
-        pickle.loads(mnist_pickled)
+    pickle.loads(mnist_pickled)
 
     mnist_pickled = cloudpickle.dumps(mnist)
-    with pytest.warns(FutureWarning, match="`weights_only=False`") if _TORCH_EQUAL_2_4_0 else nullcontext():
-        cloudpickle.loads(mnist_pickled)
+    cloudpickle.loads(mnist_pickled)

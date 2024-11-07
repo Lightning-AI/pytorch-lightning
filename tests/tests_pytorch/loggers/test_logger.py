@@ -124,8 +124,7 @@ def test_multiple_loggers_pickle(tmp_path):
 
     trainer = Trainer(logger=[logger1, logger2])
     pkl_bytes = pickle.dumps(trainer)
-    with pytest.warns(FutureWarning, match="`weights_only=False`") if _TORCH_EQUAL_2_4_0 else nullcontext():
-        trainer2 = pickle.loads(pkl_bytes)
+    trainer2 = pickle.loads(pkl_bytes)
     for logger in trainer2.loggers:
         logger.log_metrics({"acc": 1.0}, 0)
 

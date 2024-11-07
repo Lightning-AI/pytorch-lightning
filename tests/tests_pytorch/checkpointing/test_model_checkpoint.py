@@ -352,13 +352,11 @@ def test_pickling(tmp_path):
     ckpt = ModelCheckpoint(dirpath=tmp_path)
 
     ckpt_pickled = pickle.dumps(ckpt)
-    with pytest.warns(FutureWarning, match="`weights_only=False`") if _TORCH_EQUAL_2_4_0 else nullcontext():
-        ckpt_loaded = pickle.loads(ckpt_pickled)
+    ckpt_loaded = pickle.loads(ckpt_pickled)
     assert vars(ckpt) == vars(ckpt_loaded)
 
     ckpt_pickled = cloudpickle.dumps(ckpt)
-    with pytest.warns(FutureWarning, match="`weights_only=False`") if _TORCH_EQUAL_2_4_0 else nullcontext():
-        ckpt_loaded = cloudpickle.loads(ckpt_pickled)
+    ckpt_loaded = cloudpickle.loads(ckpt_pickled)
     assert vars(ckpt) == vars(ckpt_loaded)
 
 

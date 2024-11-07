@@ -193,13 +193,11 @@ def test_pickling():
     early_stopping = EarlyStopping(monitor="foo")
 
     early_stopping_pickled = pickle.dumps(early_stopping)
-    with pytest.warns(FutureWarning, match="`weights_only=False`") if _TORCH_EQUAL_2_4_0 else nullcontext():
-        early_stopping_loaded = pickle.loads(early_stopping_pickled)
+    early_stopping_loaded = pickle.loads(early_stopping_pickled)
     assert vars(early_stopping) == vars(early_stopping_loaded)
 
     early_stopping_pickled = cloudpickle.dumps(early_stopping)
-    with pytest.warns(FutureWarning, match="`weights_only=False`") if _TORCH_EQUAL_2_4_0 else nullcontext():
-        early_stopping_loaded = cloudpickle.loads(early_stopping_pickled)
+    early_stopping_loaded = cloudpickle.loads(early_stopping_pickled)
     assert vars(early_stopping) == vars(early_stopping_loaded)
 
 

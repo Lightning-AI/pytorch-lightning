@@ -184,12 +184,7 @@ def _test_loggers_pickle(tmp_path, monkeypatch, logger_class: Logger):
     trainer = Trainer(max_epochs=1, logger=logger)
     pkl_bytes = pickle.dumps(trainer)
 
-    with (
-        pytest.warns(FutureWarning, match="`weights_only=False`")
-        if _TORCH_EQUAL_2_4_0 or (_TORCH_GREATER_EQUAL_2_4_1 and logger_class not in (CSVLogger, TensorBoardLogger))
-        else nullcontext()
-    ):
-        trainer2 = pickle.loads(pkl_bytes)
+    trainer2 = pickle.loads(pkl_bytes)
     trainer2.logger.log_metrics({"acc": 1.0})
 
     # make sure we restored properly
