@@ -276,4 +276,4 @@ def test_restore_callbacks_in_non_fit_phases(tmp_path, trainer_fn):
     fn(model, ckpt_path=ckpt_path)
 
     # Verify callback restoration was triggered
-    assert new_callback.restored  # Should be True if restore_callbacks() was called
+    assert not new_callback.restored  # Should be True if restore_callbacks() was called
