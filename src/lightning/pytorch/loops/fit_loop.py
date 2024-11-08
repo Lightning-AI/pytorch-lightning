@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import logging
+from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Union
 
 import torch
@@ -43,6 +44,15 @@ from lightning.pytorch.utilities.model_helpers import is_overridden
 from lightning.pytorch.utilities.rank_zero import rank_zero_debug, rank_zero_info, rank_zero_warn
 
 log = logging.getLogger(__name__)
+
+
+@dataclass
+class RestartStage:
+    NONE = "none"
+    RESTARTED_ON_EPOCH_START = "restarted_on_epoch_start"
+    RESTARTED_MID_EPOCH = "restarted_mid_epoch"
+    RESTARTED_ON_EPOCH_END = "restarted_on_epoch_end"
+    RESUMED_ON_EPOCH_END = "resumed_on_epoch_end"
 
 
 class _FitLoop(_Loop):
@@ -97,6 +107,7 @@ class _FitLoop(_Loop):
         self._combined_loader_states_to_load: List[Dict[str, Any]] = []
         self._data_fetcher: Optional[_DataFetcher] = None
         self._last_train_dl_reload_epoch = float("-inf")
+        self._restart_stage = RestartStage.NONE
 
     @property
     def total_batch_idx(self) -> int:
@@ -204,9 +215,10 @@ class _FitLoop(_Loop):
                 self.on_advance_start()
                 self.advance()
                 self.on_advance_end()
-                self._restarting = False
             except StopIteration:
                 break
+            finally:
+                self.on_iteration_done()
         self._restarting = False
         self.on_run_end()
 
@@ -303,67 +315,89 @@ class _FitLoop(_Loop):
             )
 
     @property
-    def restarting_on_epoch_start(self) -> bool:
-        return (
+    def restarted_on_epoch_start(self) -> bool:
+        return self._restart_stage == RestartStage.RESTARTED_ON_EPOCH_START
+
+    @property
+    def restarted_mid_epoch(self) -> bool:
+        return self._restart_stage == RestartStage.RESTARTED_MID_EPOCH
+
+    @property
+    def restarted_on_epoch_end(self) -> bool:
+        return self._restart_stage == RestartStage.RESTARTED_ON_EPOCH_END
+
+    @property
+    def resumed_on_epoch_end(self) -> bool:
+        # This case happens when restarting from last without validation at
+        # the end of epoch. In this case self.restarting is False.
+        return self._restart_stage == RestartStage.RESUMED_ON_EPOCH_END
+
+    def update_restart_stage(self) -> None:
+        if (
             self.restarting
             and self.epoch_progress.total.started == self.epoch_progress.total.ready - 1
             and self.epoch_progress.total.processed == self.epoch_progress.total.started
             and self.epoch_progress.total.completed == self.epoch_progress.total.processed
-        )
-
-    @property
-    def restarting_mid_epoch(self) -> bool:
-        return (
+        ):
+            self._restart_stage = RestartStage.RESTARTED_ON_EPOCH_START
+        elif (
             self.restarting
             and self.epoch_progress.total.started == self.epoch_progress.total.ready
             and self.epoch_progress.total.processed == self.epoch_progress.total.started - 1
             and self.epoch_progress.total.completed == self.epoch_progress.total.processed
-        )
-
-    @property
-    def restarting_on_epoch_end(self) -> bool:
-        return (
+        ):
+            self._restart_stage = RestartStage.RESTARTED_MID_EPOCH
+        elif (
             self.restarting
             and self.epoch_progress.total.started == self.epoch_progress.total.ready
             and self.epoch_progress.total.processed == self.epoch_progress.total.started
             and self.epoch_progress.total.completed == self.epoch_progress.total.processed - 1
-        )
-
-    @property
-    def progress_at_epoch_end(self) -> bool:
-        # TODO LUCA comment for restart last without val
-        return (
-            self.epoch_progress.total.started == self.epoch_progress.total.ready
+        ):
+            self._restart_stage = RestartStage.RESTARTED_ON_EPOCH_END
+        elif (
+            self._loaded_from_state_dict
+            and self.epoch_progress.total.started == self.epoch_progress.total.ready
             and self.epoch_progress.total.processed == self.epoch_progress.total.started
             and self.epoch_progress.total.completed == self.epoch_progress.total.processed - 1
-        )
+        ):
+            self._restart_stage = RestartStage.RESUMED_ON_EPOCH_END
+        else:
+            self._restart_stage = RestartStage.NONE
+
+        self.epoch_loop.update_restart_stage()
+
+    def reset_restart_stage(self) -> None:
+        self._restart_stage = RestartStage.NONE
 
     def reset(self) -> None:
         """Resets the internal state of this loop."""
         assert self.trainer.model is not None
         torch.set_grad_enabled(True)
 
-        self.epoch_loop.reset_restarting_states()
+        self.update_restart_stage()
 
-        if self.restarting_on_epoch_start:
+        if self.restarted_on_epoch_start:
             self.epoch_progress.reset_on_restart()
 
-        if self.progress_at_epoch_end:
+        if self.resumed_on_epoch_end:
+            # when restarting from last without validation at end of epoch,
+            # self.restarting is False but it's still resuming
             self.epoch_progress.increment_completed()
 
-        # TODO LUCA: refactor restarting for fit_loop
-        restarting_mid_epoch = self.restarting_mid_epoch
-
-        if (self.epoch_loop.restarting_on_train_batch_end
-            and self.restarting_mid_epoch
-            and self.epoch_loop.batch_progress.is_last_batch):
+        if (
+            self.epoch_loop.restarted_on_train_batch_end
+            and self.restarted_mid_epoch
+            and self.epoch_loop.batch_progress.is_last_batch
+        ):
             self.epoch_progress.increment_processed()
             self.epoch_progress.increment_completed()
 
-        if (self.epoch_loop.restarting_on_train_batch_end
+        if (
+            self.epoch_loop.restarted_on_train_batch_end
             and self.epoch_loop.batch_progress.is_last_batch
-            and not restarting_mid_epoch
-            and not self.epoch_loop.val_loop.batch_progress.is_last_batch):
+            and not self.restarted_mid_epoch
+            and not self.epoch_loop.val_loop.batch_progress.is_last_batch
+        ):
             self.epoch_progress.increment_completed()
 
     def on_run_start(self) -> None:
@@ -396,8 +430,8 @@ class _FitLoop(_Loop):
         for i, dl in enumerate(self._combined_loader.flattened):
             _set_sampler_epoch(dl, self.epoch_progress.current.processed)
 
-        if not self.restarting_mid_epoch and not self.restarting_on_epoch_end:
-            if not self.restarting_on_epoch_start:
+        if not self.restarted_mid_epoch and not self.restarted_on_epoch_end:
+            if not self.restarted_on_epoch_start:
                 self.epoch_progress.increment_ready()
 
             call._call_callback_hooks(trainer, "on_train_epoch_start")
