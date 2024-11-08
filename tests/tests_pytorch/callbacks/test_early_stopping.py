@@ -15,7 +15,6 @@ import logging
 import math
 import os
 import pickle
-from contextlib import nullcontext
 from typing import List, Optional
 from unittest import mock
 from unittest.mock import Mock
@@ -23,7 +22,6 @@ from unittest.mock import Mock
 import cloudpickle
 import pytest
 import torch
-from lightning.fabric.utilities.imports import _TORCH_EQUAL_2_4_0
 from lightning.pytorch import Trainer, seed_everything
 from lightning.pytorch.callbacks import EarlyStopping, ModelCheckpoint
 from lightning.pytorch.demos.boring_classes import BoringModel

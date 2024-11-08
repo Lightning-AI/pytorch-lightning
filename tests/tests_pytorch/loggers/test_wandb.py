@@ -13,13 +13,11 @@
 # limitations under the License.
 import os
 import pickle
-from contextlib import nullcontext
 from pathlib import Path
 from unittest import mock
 
 import pytest
 import yaml
-from lightning.fabric.utilities.imports import _TORCH_EQUAL_2_4_0
 from lightning.pytorch import Trainer
 from lightning.pytorch.callbacks import ModelCheckpoint
 from lightning.pytorch.cli import LightningCLI

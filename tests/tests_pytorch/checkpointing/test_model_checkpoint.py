@@ -17,7 +17,6 @@ import pickle
 import re
 import time
 from argparse import Namespace
-from contextlib import nullcontext
 from datetime import timedelta
 from inspect import signature
 from pathlib import Path
@@ -32,7 +31,6 @@ import torch
 import yaml
 from jsonargparse import ArgumentParser
 from lightning.fabric.utilities.cloud_io import _load as pl_load
-from lightning.fabric.utilities.imports import _TORCH_EQUAL_2_4_0
 from lightning.pytorch import Trainer, seed_everything
 from lightning.pytorch.callbacks import ModelCheckpoint
 from lightning.pytorch.demos.boring_classes import BoringModel

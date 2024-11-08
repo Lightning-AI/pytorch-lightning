@@ -13,7 +13,6 @@
 # limitations under the License.
 import pickle
 from argparse import Namespace
-from contextlib import nullcontext
 from copy import deepcopy
 from typing import Any, Dict, Optional
 from unittest.mock import patch
@@ -21,7 +20,6 @@ from unittest.mock import patch
 import numpy as np
 import pytest
 import torch
-from lightning.fabric.utilities.imports import _TORCH_EQUAL_2_4_0
 from lightning.fabric.utilities.logger import _convert_params, _sanitize_params
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringDataModule, BoringModel

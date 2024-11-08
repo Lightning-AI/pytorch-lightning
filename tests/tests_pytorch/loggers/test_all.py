@@ -14,13 +14,11 @@
 import inspect
 import os
 import pickle
-from contextlib import nullcontext
 from unittest import mock
 from unittest.mock import ANY, Mock
 
 import pytest
 import torch
-from lightning.fabric.utilities.imports import _TORCH_EQUAL_2_4_0, _TORCH_GREATER_EQUAL_2_4_1
 from lightning.pytorch import Callback, Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.loggers import (
