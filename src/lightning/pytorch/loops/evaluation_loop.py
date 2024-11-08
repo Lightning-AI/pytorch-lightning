@@ -222,7 +222,7 @@ class _EvaluationLoop(_Loop):
 
     def reset_restart_stage(self) -> None:
         self._restart_stage = RestartStage.NONE
- 
+
     def reset(self) -> None:
         """Resets the internal state of the loop."""
         trainer = self.trainer
