@@ -599,7 +599,11 @@ def test_lightning_cli_link_arguments():
 
 # Notes:
 # - if variable is class attribute, it will only be present after instantiation -> apply_on="instantiate"
-# If you link argumetns and then try to pass them additionally, it will raise an error
+# - if you link argumetns and then try to pass them additionally, it will raise an error
+# - if you initilize the model from the cmd instead of passing it as an instance to CLI init_args needs to be
+#   added additionally
+# - if you initilize the model from the cmd instead of passing it as an instance to CLI apply on instantiate needs to
+#   be always true for linked arguments
 
 
 def test_lightning_cli_link_arguments_init():
@@ -624,8 +628,8 @@ def test_lightning_cli_link_arguments_init():
     # Will work without init_args ("--data.batch_size=12")
     class MyLightningCLI(LightningCLI):
         def add_arguments_to_parser(self, parser):
-            parser.link_arguments("data.batch_size", "model.batch_size")
-            parser.link_arguments("data.num_classes", "model.num_classes", apply_on="instantiate")
+            parser.link_arguments("data.batch_size", "model.init_args.batch_size", apply_on="instantiate")
+            parser.link_arguments("data.num_classes", "model.init_args.num_classes", apply_on="instantiate")
 
     cli_args = [
         "--data=tests_pytorch.test_cli.BoringDataModuleBatchSizeAndClasses",
