@@ -138,7 +138,10 @@ class LightningArgumentParser(ArgumentParser):
             if issubclass(lightning_class, Callback):
                 self.callback_keys.append(nested_key)
             if subclass_mode:
+                print("Subclass mode")
+                print(nested_key)
                 return self.add_subclass_arguments(lightning_class, nested_key, fail_untyped=False, required=required)
+            print(nested_key)
             return self.add_class_arguments(
                 lightning_class,
                 nested_key,
