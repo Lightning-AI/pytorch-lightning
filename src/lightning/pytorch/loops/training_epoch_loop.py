@@ -90,6 +90,7 @@ class _TrainingEpochLoop(loops._Loop):
         self._warning_cache = WarningCache()
         self._batches_that_stepped: int = 0
         self._restart_stage = RestartStage.NONE
+        self._skip_next_val = False
 
     @property
     def total_batch_idx(self) -> int:
@@ -257,8 +258,15 @@ class _TrainingEpochLoop(loops._Loop):
 
         """
         if self.restarting and self._should_check_val_fx(data_fetcher):
-            if self.val_loop.restarted_mid_evaluation or self.restarted_on_last:
+            if self.val_loop.restarted_mid_evaluation:
+                # Go back and finish running validation
                 return
+
+            if self.restarted_on_last:
+                # Avoid running validation again if we saved on last
+                self._skip_next_val = True
+                return
+
             # fast forward progress counters to end of validation
             self.val_loop.increment_progress_to_evaluation_end()
 
@@ -345,6 +353,11 @@ class _TrainingEpochLoop(loops._Loop):
         # VALIDATE IF NEEDED
         # -----------------------------------------
         should_check_val = self._should_check_val_fx(data_fetcher)
+
+        if self._skip_next_val:
+            should_check_val = False
+            self._skip_next_val = False
+
         if should_check_val:
             # this needs to be set so the correct `trainer._active_loop` is picked
             self.trainer.validating = True
