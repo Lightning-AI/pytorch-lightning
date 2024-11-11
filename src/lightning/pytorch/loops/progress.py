@@ -225,7 +225,7 @@ class _BatchProgress(_Progress):
         super().reset_on_run()
         self.is_last_batch = False
 
-    def increment_by(self, n: int, is_last_batch: bool=False) -> None:
+    def increment_by(self, n: int, is_last_batch: bool = False) -> None:
         super().increment_by(n)
         self.is_last_batch = is_last_batch
 
