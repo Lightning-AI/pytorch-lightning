@@ -59,7 +59,6 @@ class _ReadyCompletedTracker(_BaseProgress):
         self.ready = 0
         self.completed = 0
 
-    @override
     def reset_on_restart(self) -> None:
         """Reset the progress on restart.
 
@@ -69,8 +68,7 @@ class _ReadyCompletedTracker(_BaseProgress):
         """
         self.ready = self.completed
 
-    @override
-    def increment_by(self, n) -> None:
+    def increment_by(self, n: int) -> None:
         self.ready += n
         self.completed += n
 
@@ -101,7 +99,7 @@ class _StartedTracker(_ReadyCompletedTracker):
         self.started = self.completed
 
     @override
-    def increment_by(self, n) -> None:
+    def increment_by(self, n: int) -> None:
         super().increment_by(n)
         self.started += n
 
@@ -133,7 +131,7 @@ class _ProcessedTracker(_StartedTracker):
         self.processed = self.completed
 
     @override
-    def increment_by(self, n) -> None:
+    def increment_by(self, n: int) -> None:
         super().increment_by(n)
         self.processed += n
 
@@ -192,7 +190,7 @@ class _Progress(_BaseProgress):
         self.current.reset_on_restart()
 
     @override
-    def increment_by(self, n) -> None:
+    def increment_by(self, n: int) -> None:
         self.total.increment_by(n)
         self.current.increment_by(n)
 
@@ -227,7 +225,7 @@ class _BatchProgress(_Progress):
         super().reset_on_run()
         self.is_last_batch = False
 
-    def increment_by(self, n, is_last_batch=False) -> None:
+    def increment_by(self, n: int, is_last_batch: bool=False) -> None:
         super().increment_by(n)
         self.is_last_batch = is_last_batch
 

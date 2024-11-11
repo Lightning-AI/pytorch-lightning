@@ -182,7 +182,7 @@ class _TrainingEpochLoop(loops._Loop):
 
         self.val_loop.update_restart_stage()
 
-    def reset_restart_stage(self):
+    def reset_restart_stage(self) -> None:
         self._restart_stage = RestartStage.NONE
 
     def reset(self) -> None:
