@@ -189,7 +189,6 @@ class _Progress(_BaseProgress):
     def reset_on_restart(self) -> None:
         self.current.reset_on_restart()
 
-    @override
     def increment_by(self, n: int) -> None:
         self.total.increment_by(n)
         self.current.increment_by(n)

@@ -267,7 +267,9 @@ class _EvaluationLoop(_Loop):
         if self.skip:
             return
         self.reset()
-        max_batch = max(self.max_batches)
+        max_batch = int(max(self.max_batches))
+        if max_batch == -1:
+            return
         self.batch_progress.increment_by(max_batch, True)
 
     def on_run_start(self) -> None:
