@@ -597,7 +597,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
     ) -> Tuple["DeepSpeedEngine", Optimizer, Optional[_LRScheduler]]:
         """Initialize one model and one optimizer with an optional learning rate scheduler.
 
-        This calls :func:`deepspeed.initialize` internally.
+        This calls ``deepspeed.initialize`` internally.
 
         """
         import deepspeed
