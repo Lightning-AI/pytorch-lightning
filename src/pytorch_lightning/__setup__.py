@@ -3,7 +3,7 @@ import os.path
 from importlib.util import module_from_spec, spec_from_file_location
 from pathlib import Path
 from types import ModuleType
-from typing import Any, Dict
+from typing import Any
 
 from pkg_resources import parse_requirements
 from setuptools import find_packages
@@ -29,7 +29,7 @@ def _load_assistant() -> ModuleType:
     return _load_py_module("assistant", location)
 
 
-def _prepare_extras() -> Dict[str, Any]:
+def _prepare_extras() -> dict[str, Any]:
     assistant = _load_assistant()
     # https://setuptools.readthedocs.io/en/latest/setuptools.html#declaring-extras
     # Define package extras. These are only installed if you specify them.
@@ -49,7 +49,7 @@ def _prepare_extras() -> Dict[str, Any]:
     return extras
 
 
-def _setup_args() -> Dict[str, Any]:
+def _setup_args() -> dict[str, Any]:
     assistant = _load_assistant()
     about = _load_py_module("about", os.path.join(_PACKAGE_ROOT, "__about__.py"))
     version = _load_py_module("version", os.path.join(_PACKAGE_ROOT, "__version__.py"))

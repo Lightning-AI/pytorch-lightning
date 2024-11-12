@@ -14,7 +14,7 @@
 import pickle
 from argparse import Namespace
 from dataclasses import dataclass
-from typing import Any, Dict
+from typing import Any
 from unittest import mock
 from unittest.mock import Mock, PropertyMock, call
 
@@ -187,10 +187,10 @@ def test_dm_checkpoint_save_and_load(tmp_path):
             return out
 
     class CustomBoringDataModule(BoringDataModule):
-        def state_dict(self) -> Dict[str, Any]:
+        def state_dict(self) -> dict[str, Any]:
             return {"my": "state_dict"}
 
-        def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
+        def load_state_dict(self, state_dict: dict[str, Any]) -> None:
             self.my_state_dict = state_dict
 
     dm = CustomBoringDataModule()

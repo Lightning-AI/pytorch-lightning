@@ -19,10 +19,7 @@ from types import MethodType
 from typing import (
     Any,
     Callable,
-    Dict,
-    List,
     Optional,
-    Tuple,
     TypeVar,
     Union,
     overload,
@@ -46,14 +43,14 @@ from lightning.fabric.utilities.data import _set_sampler_epoch
 from lightning.fabric.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
 from lightning.fabric.utilities.types import Optimizable
 
-T_destination = TypeVar("T_destination", bound=Dict[str, Any])
+T_destination = TypeVar("T_destination", bound=dict[str, Any])
 _LIGHTNING_MODULE_STEP_METHODS = ("training_step", "validation_step", "test_step", "predict_step")
 
 _in_fabric_backward: bool = False
 
 
 class _FabricOptimizer:
-    def __init__(self, optimizer: Optimizer, strategy: Strategy, callbacks: Optional[List[Callable]] = None) -> None:
+    def __init__(self, optimizer: Optimizer, strategy: Strategy, callbacks: Optional[list[Callable]] = None) -> None:
         """FabricOptimizer is a thin wrapper around the :class:`~torch.optim.Optimizer` that delegates the optimizer
         step calls to the strategy.
 
@@ -74,10 +71,10 @@ class _FabricOptimizer:
     def optimizer(self) -> Optimizer:
         return self._optimizer
 
-    def state_dict(self) -> Dict[str, Tensor]:
+    def state_dict(self) -> dict[str, Tensor]:
         return self._strategy.get_optimizer_state(self.optimizer)
 
-    def load_state_dict(self, state_dict: Dict[str, Tensor]) -> None:
+    def load_state_dict(self, state_dict: dict[str, Tensor]) -> None:
         self.optimizer.load_state_dict(state_dict)
 
     def step(self, closure: Optional[Callable] = None) -> Any:
@@ -147,12 +144,12 @@ class _FabricModule(_DeviceDtypeModuleMixin):
     def state_dict(self, *, destination: T_destination, prefix: str = ..., keep_vars: bool = ...) -> T_destination: ...
 
     @overload
-    def state_dict(self, *, prefix: str = ..., keep_vars: bool = ...) -> Dict[str, Any]: ...
+    def state_dict(self, *, prefix: str = ..., keep_vars: bool = ...) -> dict[str, Any]: ...
 
     @override
     def state_dict(
         self, destination: Optional[T_destination] = None, prefix: str = "", keep_vars: bool = False
-    ) -> Optional[Dict[str, Any]]:
+    ) -> Optional[dict[str, Any]]:
         return self._original_module.state_dict(
             destination=destination,  # type: ignore[type-var]
             prefix=prefix,
@@ -348,7 +345,7 @@ def _unwrap_objects(collection: Any) -> Any:
     return apply_to_collection(collection, dtype=tuple(types), function=_unwrap)
 
 
-def _unwrap_compiled(obj: Union[Any, OptimizedModule]) -> Tuple[Union[Any, nn.Module], Optional[Dict[str, Any]]]:
+def _unwrap_compiled(obj: Union[Any, OptimizedModule]) -> tuple[Union[Any, nn.Module], Optional[dict[str, Any]]]:
     """Removes the :class:`torch._dynamo.OptimizedModule` around the object if it is wrapped.
 
     Use this function before instance checks against e.g. :class:`_FabricModule`.
@@ -364,7 +361,7 @@ def _unwrap_compiled(obj: Union[Any, OptimizedModule]) -> Tuple[Union[Any, nn.Mo
     return obj, None
 
 
-def _to_compiled(module: nn.Module, compile_kwargs: Dict[str, Any]) -> OptimizedModule:
+def _to_compiled(module: nn.Module, compile_kwargs: dict[str, Any]) -> OptimizedModule:
     return torch.compile(module, **compile_kwargs)  # type: ignore[return-value]
 
 

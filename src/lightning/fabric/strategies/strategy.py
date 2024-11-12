@@ -15,7 +15,7 @@ import logging
 from abc import ABC, abstractmethod
 from collections.abc import Iterable
 from contextlib import ExitStack
-from typing import Any, Callable, ContextManager, Dict, List, Optional, Tuple, TypeVar, Union
+from typing import Any, Callable, ContextManager, Optional, TypeVar, Union
 
 import torch
 from torch import Tensor
@@ -145,8 +145,8 @@ class Strategy(ABC):
         return stack
 
     def setup_module_and_optimizers(
-        self, module: Module, optimizers: List[Optimizer]
-    ) -> Tuple[Module, List[Optimizer]]:
+        self, module: Module, optimizers: list[Optimizer]
+    ) -> tuple[Module, list[Optimizer]]:
         """Set up a model and multiple optimizers together.
 
         The returned objects are expected to be in the same order they were passed in. The default implementation will
@@ -257,9 +257,9 @@ class Strategy(ABC):
     def save_checkpoint(
         self,
         path: _PATH,
-        state: Dict[str, Union[Module, Optimizer, Any]],
+        state: dict[str, Union[Module, Optimizer, Any]],
         storage_options: Optional[Any] = None,
-        filter: Optional[Dict[str, Callable[[str, Any], bool]]] = None,
+        filter: Optional[dict[str, Callable[[str, Any], bool]]] = None,
     ) -> None:
         """Save model, optimizer, and other state as a checkpoint file.
 
@@ -277,17 +277,17 @@ class Strategy(ABC):
         if self.is_global_zero:
             self.checkpoint_io.save_checkpoint(checkpoint=state, path=path, storage_options=storage_options)
 
-    def get_module_state_dict(self, module: Module) -> Dict[str, Union[Any, Tensor]]:
+    def get_module_state_dict(self, module: Module) -> dict[str, Union[Any, Tensor]]:
         """Returns model state."""
         return module.state_dict()
 
     def load_module_state_dict(
-        self, module: Module, state_dict: Dict[str, Union[Any, Tensor]], strict: bool = True
+        self, module: Module, state_dict: dict[str, Union[Any, Tensor]], strict: bool = True
     ) -> None:
         """Loads the given state into the model."""
         module.load_state_dict(state_dict, strict=strict)
 
-    def get_optimizer_state(self, optimizer: Optimizer) -> Dict[str, Tensor]:
+    def get_optimizer_state(self, optimizer: Optimizer) -> dict[str, Tensor]:
         """Returns state of an optimizer.
 
         Allows for syncing/collating optimizer state from processes in custom plugins.
@@ -305,9 +305,9 @@ class Strategy(ABC):
     def load_checkpoint(
         self,
         path: _PATH,
-        state: Optional[Union[Module, Optimizer, Dict[str, Union[Module, Optimizer, Any]]]] = None,
+        state: Optional[Union[Module, Optimizer, dict[str, Union[Module, Optimizer, Any]]]] = None,
         strict: bool = True,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Load the contents from a checkpoint and restore the state of the given objects.
 
         Args:
@@ -395,9 +395,9 @@ class Strategy(ABC):
         )
 
     def _convert_stateful_objects_in_state(
-        self, state: Dict[str, Union[Module, Optimizer, Any]], filter: Dict[str, Callable[[str, Any], bool]]
-    ) -> Dict[str, Any]:
-        converted_state: Dict[str, Any] = {}
+        self, state: dict[str, Union[Module, Optimizer, Any]], filter: dict[str, Callable[[str, Any], bool]]
+    ) -> dict[str, Any]:
+        converted_state: dict[str, Any] = {}
         for key, obj in state.items():
             # convert the state
             if isinstance(obj, Module):
@@ -455,7 +455,7 @@ def _validate_keys_for_strict_loading(
 
 
 def _apply_filter(
-    key: str, filter: Dict[str, Callable[[str, Any], bool]], source_dict: object, target_dict: Dict[str, Any]
+    key: str, filter: dict[str, Callable[[str, Any], bool]], source_dict: object, target_dict: dict[str, Any]
 ) -> None:
     # filter out if necessary
     if key in filter and isinstance(source_dict, dict):

@@ -20,7 +20,7 @@ import sys
 from contextlib import ExitStack, contextmanager, redirect_stdout
 from io import StringIO
 from pathlib import Path
-from typing import Callable, List, Optional, Union
+from typing import Callable, Optional, Union
 from unittest import mock
 from unittest.mock import ANY
 
@@ -127,7 +127,7 @@ def _model_builder(model_param: int) -> Model:
 
 
 def _trainer_builder(
-    limit_train_batches: int, fast_dev_run: bool = False, callbacks: Optional[Union[List[Callback], Callback]] = None
+    limit_train_batches: int, fast_dev_run: bool = False, callbacks: Optional[Union[list[Callback], Callback]] = None
 ) -> Trainer:
     return Trainer(limit_train_batches=limit_train_batches, fast_dev_run=fast_dev_run, callbacks=callbacks)
 
@@ -526,7 +526,7 @@ def test_lightning_cli_submodules(cleandir):
 @pytest.mark.skipif(not _TORCHVISION_AVAILABLE, reason=str(_TORCHVISION_AVAILABLE))
 def test_lightning_cli_torch_modules(cleandir):
     class TestModule(BoringModel):
-        def __init__(self, activation: torch.nn.Module = None, transform: Optional[List[torch.nn.Module]] = None):
+        def __init__(self, activation: torch.nn.Module = None, transform: Optional[list[torch.nn.Module]] = None):
             super().__init__()
             self.activation = activation
             self.transform = transform

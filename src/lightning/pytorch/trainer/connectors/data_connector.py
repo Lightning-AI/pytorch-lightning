@@ -14,7 +14,7 @@
 import os
 from collections.abc import Iterable
 from dataclasses import dataclass, field
-from typing import Any, Optional, Tuple, Union
+from typing import Any, Optional, Union
 
 import torch.multiprocessing as mp
 from torch.utils.data import BatchSampler, DataLoader, RandomSampler, Sampler, SequentialSampler
@@ -343,7 +343,7 @@ class _DataHookSelector:
 
     model: "pl.LightningModule"
     datamodule: Optional["pl.LightningDataModule"]
-    _valid_hooks: Tuple[str, ...] = field(
+    _valid_hooks: tuple[str, ...] = field(
         default=("on_before_batch_transfer", "transfer_batch_to_device", "on_after_batch_transfer")
     )
 

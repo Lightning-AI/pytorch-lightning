@@ -13,7 +13,7 @@
 # limitations under the License.
 from collections.abc import Iterator, Mapping
 from contextlib import nullcontext
-from typing import Dict, Generic, TypeVar
+from typing import Generic, TypeVar
 
 import pytest
 import torch
@@ -50,8 +50,8 @@ T = TypeVar("T")
 
 
 class OutputMapping(Generic[T], Mapping[str, T]):
-    def __init__(self, d: Dict[str, T]) -> None:
-        self.d: Dict[str, T] = d
+    def __init__(self, d: dict[str, T]) -> None:
+        self.d: dict[str, T] = d
 
     def __iter__(self) -> Iterator[str]:
         return iter(self.d)

@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from contextlib import nullcontext
-from typing import Any, ContextManager, Dict, Literal, Optional, Union
+from typing import Any, ContextManager, Literal, Optional, Union
 
 from torch import Tensor
 from torch.nn import Module
@@ -135,7 +135,7 @@ class Precision:
     def unscale_gradients(self, optimizer: Optimizer) -> None:
         return
 
-    def state_dict(self) -> Dict[str, Any]:
+    def state_dict(self) -> dict[str, Any]:
         """Called when saving a checkpoint, implement to generate precision plugin state_dict.
 
         Returns:
@@ -144,7 +144,7 @@ class Precision:
         """
         return {}
 
-    def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
+    def load_state_dict(self, state_dict: dict[str, Any]) -> None:
         """Called when loading a checkpoint, implement to reload precision plugin state given precision plugin
         state_dict.
 
