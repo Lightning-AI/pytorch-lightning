@@ -190,8 +190,7 @@ class _TrainingEpochLoop(loops._Loop):
         if (
             self.restarting
             and not self._should_accumulate()
-            and self.restarted_on_train_batch_end
-            or not self.restarted_on_last
+            and (self.restarted_on_train_batch_end or not self.restarted_on_last)
         ):
             # batches_that_stepped is never set prior to saving a checkpoint, even when saving
             # happens on_validation_end
