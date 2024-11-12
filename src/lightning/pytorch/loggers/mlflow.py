@@ -360,7 +360,7 @@ class MLFlowLogger(Logger):
             aliases = ["latest", "best"] if p == checkpoint_callback.best_model_path else ["latest"]
 
             # Artifact path on mlflow
-            artifact_path = f"model/checkpoints/{Path(p).stem}"
+            artifact_path = Path(p).stem
 
             # Log the checkpoint
             self.experiment.log_artifact(self._run_id, p, artifact_path)
