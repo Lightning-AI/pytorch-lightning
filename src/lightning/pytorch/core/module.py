@@ -531,7 +531,7 @@ class LightningModule(
             logger=logger,
             on_step=on_step,
             on_epoch=on_epoch,
-            reduce_fx=reduce_fx,  # type: ignore[arg-type]
+            reduce_fx=reduce_fx,
             enable_graph=enable_graph,
             add_dataloader_idx=add_dataloader_idx,
             batch_size=batch_size,
