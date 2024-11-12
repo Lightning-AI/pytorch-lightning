@@ -67,13 +67,7 @@ def test_flatten_dict():
     params = {"dl": [{"a": 1, "c": 3}, {"b": 2, "d": 5}], "l": [1, 2, 3, 4]}
     params = _flatten_dict(params)
 
-    assert params == {
-    "dl/0/a": 1,
-    "dl/0/c": 3,
-    "dl/1/b": 2,
-    "dl/1/d": 5,
-    "l": [1, 2, 3, 4]
-    }
+    assert params == {"dl/0/a": 1, "dl/0/c": 3, "dl/1/b": 2, "dl/1/d": 5, "l": [1, 2, 3, 4]}
 
     # Test flattening of argparse Namespace
     params = Namespace(a=1, b=2)
