@@ -16,10 +16,11 @@ import json
 import logging
 import os
 import platform
+from collections.abc import Mapping
 from contextlib import ExitStack
 from itertools import chain
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable, ContextManager, Dict, List, Mapping, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Any, Callable, ContextManager, Dict, List, Optional, Tuple, Union
 
 import torch
 from lightning_utilities.core.imports import RequirementCache

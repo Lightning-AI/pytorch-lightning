@@ -19,7 +19,8 @@ Comet Logger
 import logging
 import os
 from argparse import Namespace
-from typing import TYPE_CHECKING, Any, Dict, Mapping, Optional, Union
+from collections.abc import Mapping
+from typing import TYPE_CHECKING, Any, Dict, Optional, Union
 
 from lightning_utilities.core.imports import RequirementCache
 from torch import Tensor

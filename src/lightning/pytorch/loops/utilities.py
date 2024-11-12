@@ -12,8 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import inspect
+from collections.abc import Generator
 from contextlib import contextmanager
-from typing import Any, Callable, ContextManager, Generator, Optional, Tuple, Type
+from typing import Any, Callable, ContextManager, Optional, Tuple, Type
 
 import torch
 import torch.distributed as dist

@@ -30,7 +30,8 @@ References
 """
 
 import argparse
-from typing import Callable, Iterator, List, Tuple
+from collections.abc import Iterator
+from typing import Callable, List, Tuple
 
 import gym
 import torch

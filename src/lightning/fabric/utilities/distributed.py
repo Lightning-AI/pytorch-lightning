@@ -4,10 +4,11 @@ import logging
 import os
 import signal
 import time
+from collections.abc import Iterable, Iterator, Sized
 from contextlib import nullcontext
 from datetime import timedelta
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Iterable, Iterator, List, Optional, Sized, Union
+from typing import TYPE_CHECKING, Any, List, Optional, Union
 
 import torch
 import torch.nn.functional as F

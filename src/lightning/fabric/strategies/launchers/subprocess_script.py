@@ -18,7 +18,8 @@ import subprocess
 import sys
 import threading
 import time
-from typing import Any, Callable, List, Optional, Sequence, Tuple
+from collections.abc import Sequence
+from typing import Any, Callable, List, Optional, Tuple
 
 from lightning_utilities.core.imports import RequirementCache
 from typing_extensions import override

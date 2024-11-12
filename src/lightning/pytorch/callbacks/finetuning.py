@@ -19,7 +19,8 @@ Freeze and unfreeze models for finetuning purposes.
 """
 
 import logging
-from typing import Any, Callable, Dict, Generator, Iterable, List, Optional, Union
+from collections.abc import Generator, Iterable
+from typing import Any, Callable, Dict, List, Optional, Union
 
 import torch
 from torch.nn import Module, ModuleDict

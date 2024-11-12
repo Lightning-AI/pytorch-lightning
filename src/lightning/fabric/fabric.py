@@ -13,6 +13,7 @@
 # limitations under the License.
 import inspect
 import os
+from collections.abc import Generator, Mapping, Sequence
 from contextlib import contextmanager, nullcontext
 from functools import partial
 from pathlib import Path
@@ -21,11 +22,8 @@ from typing import (
     Callable,
     ContextManager,
     Dict,
-    Generator,
     List,
-    Mapping,
     Optional,
-    Sequence,
     Tuple,
     Union,
     cast,

@@ -18,7 +18,8 @@ import operator
 import statistics
 from abc import ABC
 from collections import defaultdict
-from typing import Any, Callable, Dict, Mapping, Optional, Sequence
+from collections.abc import Mapping, Sequence
+from typing import Any, Callable, Dict, Optional
 
 from typing_extensions import override
 

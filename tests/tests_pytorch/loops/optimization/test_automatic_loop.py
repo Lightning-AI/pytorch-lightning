@@ -11,8 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from collections.abc import Iterator, Mapping
 from contextlib import nullcontext
-from typing import Dict, Generic, Iterator, Mapping, TypeVar
+from typing import Dict, Generic, TypeVar
 
 import pytest
 import torch

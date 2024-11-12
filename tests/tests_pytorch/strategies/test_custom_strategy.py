@@ -12,7 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-from typing import Any, Mapping
+from collections.abc import Mapping
+from typing import Any
 
 import pytest
 import torch

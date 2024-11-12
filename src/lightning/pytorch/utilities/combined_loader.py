@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import contextlib
-from collections.abc import Iterable
-from typing import Any, Callable, Dict, Iterator, List, Literal, Optional, Tuple, Type, Union
+from collections.abc import Iterable, Iterator
+from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Type, Union
 
 from torch.utils.data.dataloader import _BaseDataLoaderIter, _MultiProcessingDataLoaderIter
 from typing_extensions import Self, TypedDict, override

@@ -17,17 +17,14 @@ Convention:
  - Types used in public hooks (as those in the `LightningModule` and `Callback`) should be public (no leading `_`)
 """
 
+from collections.abc import Generator, Iterator, Mapping, Sequence
 from contextlib import contextmanager
 from dataclasses import dataclass
 from typing import (
     Any,
-    Generator,
-    Iterator,
     List,
-    Mapping,
     Optional,
     Protocol,
-    Sequence,
     Tuple,
     Type,
     TypedDict,

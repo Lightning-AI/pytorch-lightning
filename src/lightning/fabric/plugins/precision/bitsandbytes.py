@@ -16,10 +16,11 @@ import logging
 import math
 import os
 import warnings
+from collections import OrderedDict
 from contextlib import ExitStack
 from functools import partial
 from types import ModuleType
-from typing import Any, Callable, ContextManager, Literal, Optional, OrderedDict, Set, Tuple, Type, cast
+from typing import Any, Callable, ContextManager, Literal, Optional, Set, Tuple, Type, cast
 
 import torch
 from lightning_utilities import apply_to_collection

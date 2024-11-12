@@ -17,8 +17,9 @@ import copy
 import inspect
 import pickle
 import types
+from collections.abc import MutableMapping, Sequence
 from dataclasses import fields, is_dataclass
-from typing import Any, Dict, List, Literal, MutableMapping, Optional, Sequence, Tuple, Type, Union
+from typing import Any, Dict, List, Literal, Optional, Tuple, Type, Union
 
 from torch import nn
 

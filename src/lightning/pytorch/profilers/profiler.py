@@ -16,9 +16,10 @@
 import logging
 import os
 from abc import ABC, abstractmethod
+from collections.abc import Generator
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Any, Callable, Dict, Generator, Optional, TextIO, Union
+from typing import Any, Callable, Dict, Optional, TextIO, Union
 
 from lightning.fabric.utilities.cloud_io import get_filesystem
 

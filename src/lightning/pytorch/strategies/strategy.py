@@ -13,8 +13,9 @@
 # limitations under the License.
 import logging
 from abc import ABC, abstractmethod
+from collections.abc import Generator, Mapping
 from contextlib import contextmanager
-from typing import Any, Callable, Dict, Generator, List, Mapping, Optional, Tuple, TypeVar, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple, TypeVar, Union
 
 import torch
 from torch import Tensor

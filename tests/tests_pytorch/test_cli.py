@@ -409,8 +409,9 @@ def test_lightning_cli_config_and_subclass_mode(cleandir):
     with open(config_path, "w") as f:
         f.write(yaml.dump(input_config))
 
-    with mock.patch("sys.argv", ["any.py", "--config", config_path]), mock_subclasses(
-        LightningDataModule, DataDirDataModule
+    with (
+        mock.patch("sys.argv", ["any.py", "--config", config_path]),
+        mock_subclasses(LightningDataModule, DataDirDataModule),
     ):
         cli = LightningCLI(
             BoringModel,
@@ -461,9 +462,12 @@ def test_lightning_cli_help():
 
     cli_args = ["any.py", "fit", "--data.help=DataDirDataModule"]
     out = StringIO()
-    with mock.patch("sys.argv", cli_args), redirect_stdout(out), mock_subclasses(
-        LightningDataModule, DataDirDataModule
-    ), pytest.raises(SystemExit):
+    with (
+        mock.patch("sys.argv", cli_args),
+        redirect_stdout(out),
+        mock_subclasses(LightningDataModule, DataDirDataModule),
+        pytest.raises(SystemExit),
+    ):
         any_model_any_data_cli()
 
     assert ("--data.data_dir" in out.getvalue()) or ("--data.init_args.data_dir" in out.getvalue())
@@ -609,8 +613,9 @@ class EarlyExitTestModel(BoringModel):
 def test_cli_distributed_save_config_callback(cleandir, logger, strategy):
     from torch.multiprocessing import ProcessRaisedException
 
-    with mock.patch("sys.argv", ["any.py", "fit"]), pytest.raises(
-        (MisconfigurationException, ProcessRaisedException), match=r"Error on fit start"
+    with (
+        mock.patch("sys.argv", ["any.py", "fit"]),
+        pytest.raises((MisconfigurationException, ProcessRaisedException), match=r"Error on fit start"),
     ):
         LightningCLI(
             EarlyExitTestModel,
@@ -710,12 +715,14 @@ def test_cli_no_need_configure_optimizers(cleandir):
 
     from lightning.pytorch.trainer.configuration_validator import __verify_train_val_loop_configuration
 
-    with mock.patch("sys.argv", ["any.py", "fit", "--optimizer=Adam"]), mock.patch(
-        "lightning.pytorch.Trainer._run_stage"
-    ) as run, mock.patch(
-        "lightning.pytorch.trainer.configuration_validator.__verify_train_val_loop_configuration",
-        wraps=__verify_train_val_loop_configuration,
-    ) as verify:
+    with (
+        mock.patch("sys.argv", ["any.py", "fit", "--optimizer=Adam"]),
+        mock.patch("lightning.pytorch.Trainer._run_stage") as run,
+        mock.patch(
+            "lightning.pytorch.trainer.configuration_validator.__verify_train_val_loop_configuration",
+            wraps=__verify_train_val_loop_configuration,
+        ) as verify,
+    ):
         cli = LightningCLI(BoringModel)
     run.assert_called_once()
     verify.assert_called_once_with(cli.trainer, cli.model)
@@ -1074,15 +1081,18 @@ class TestModel(BoringModel):
 
 @_xfail_python_ge_3_11_9
 def test_lightning_cli_model_short_arguments():
-    with mock.patch("sys.argv", ["any.py", "fit", "--model=BoringModel"]), mock.patch(
-        "lightning.pytorch.Trainer._fit_impl"
-    ) as run, mock_subclasses(LightningModule, BoringModel, TestModel):
+    with (
+        mock.patch("sys.argv", ["any.py", "fit", "--model=BoringModel"]),
+        mock.patch("lightning.pytorch.Trainer._fit_impl") as run,
+        mock_subclasses(LightningModule, BoringModel, TestModel),
+    ):
         cli = LightningCLI(trainer_defaults={"fast_dev_run": 1})
         assert isinstance(cli.model, BoringModel)
         run.assert_called_once_with(cli.model, ANY, ANY, ANY, ANY)
 
-    with mock.patch("sys.argv", ["any.py", "--model=TestModel", "--model.foo", "123"]), mock_subclasses(
-        LightningModule, BoringModel, TestModel
+    with (
+        mock.patch("sys.argv", ["any.py", "--model=TestModel", "--model.foo", "123"]),
+        mock_subclasses(LightningModule, BoringModel, TestModel),
     ):
         cli = LightningCLI(run=False)
         assert isinstance(cli.model, TestModel)
@@ -1100,15 +1110,18 @@ class MyDataModule(BoringDataModule):
 @_xfail_python_ge_3_11_9
 def test_lightning_cli_datamodule_short_arguments():
     # with set model
-    with mock.patch("sys.argv", ["any.py", "fit", "--data=BoringDataModule"]), mock.patch(
-        "lightning.pytorch.Trainer._fit_impl"
-    ) as run, mock_subclasses(LightningDataModule, BoringDataModule):
+    with (
+        mock.patch("sys.argv", ["any.py", "fit", "--data=BoringDataModule"]),
+        mock.patch("lightning.pytorch.Trainer._fit_impl") as run,
+        mock_subclasses(LightningDataModule, BoringDataModule),
+    ):
         cli = LightningCLI(BoringModel, trainer_defaults={"fast_dev_run": 1})
         assert isinstance(cli.datamodule, BoringDataModule)
         run.assert_called_once_with(ANY, ANY, ANY, cli.datamodule, ANY)
 
-    with mock.patch("sys.argv", ["any.py", "--data=MyDataModule", "--data.foo", "123"]), mock_subclasses(
-        LightningDataModule, MyDataModule
+    with (
+        mock.patch("sys.argv", ["any.py", "--data=MyDataModule", "--data.foo", "123"]),
+        mock_subclasses(LightningDataModule, MyDataModule),
     ):
         cli = LightningCLI(BoringModel, run=False)
         assert isinstance(cli.datamodule, MyDataModule)
@@ -1116,17 +1129,22 @@ def test_lightning_cli_datamodule_short_arguments():
         assert cli.datamodule.bar == 5
 
     # with configurable model
-    with mock.patch("sys.argv", ["any.py", "fit", "--model", "BoringModel", "--data=BoringDataModule"]), mock.patch(
-        "lightning.pytorch.Trainer._fit_impl"
-    ) as run, mock_subclasses(LightningModule, BoringModel), mock_subclasses(LightningDataModule, BoringDataModule):
+    with (
+        mock.patch("sys.argv", ["any.py", "fit", "--model", "BoringModel", "--data=BoringDataModule"]),
+        mock.patch("lightning.pytorch.Trainer._fit_impl") as run,
+        mock_subclasses(LightningModule, BoringModel),
+        mock_subclasses(LightningDataModule, BoringDataModule),
+    ):
         cli = LightningCLI(trainer_defaults={"fast_dev_run": 1})
         assert isinstance(cli.model, BoringModel)
         assert isinstance(cli.datamodule, BoringDataModule)
         run.assert_called_once_with(cli.model, ANY, ANY, cli.datamodule, ANY)
 
-    with mock.patch("sys.argv", ["any.py", "--model", "BoringModel", "--data=MyDataModule"]), mock_subclasses(
-        LightningModule, BoringModel
-    ), mock_subclasses(LightningDataModule, MyDataModule):
+    with (
+        mock.patch("sys.argv", ["any.py", "--model", "BoringModel", "--data=MyDataModule"]),
+        mock_subclasses(LightningModule, BoringModel),
+        mock_subclasses(LightningDataModule, MyDataModule),
+    ):
         cli = LightningCLI(run=False)
         assert isinstance(cli.model, BoringModel)
         assert isinstance(cli.datamodule, MyDataModule)
@@ -1293,9 +1311,10 @@ def test_optimizers_and_lr_schedulers_add_arguments_to_parser_implemented_reload
 
 def test_lightning_cli_config_with_subcommand():
     config = {"test": {"trainer": {"limit_test_batches": 1}, "verbose": True, "ckpt_path": "foobar"}}
-    with mock.patch("sys.argv", ["any.py", f"--config={config}"]), mock.patch(
-        "lightning.pytorch.Trainer.test", autospec=True
-    ) as test_mock:
+    with (
+        mock.patch("sys.argv", ["any.py", f"--config={config}"]),
+        mock.patch("lightning.pytorch.Trainer.test", autospec=True) as test_mock,
+    ):
         cli = LightningCLI(BoringModel)
 
     test_mock.assert_called_once_with(cli.trainer, cli.model, verbose=True, ckpt_path="foobar")
@@ -1308,9 +1327,10 @@ def test_lightning_cli_config_before_subcommand():
         "test": {"trainer": {"limit_test_batches": 1}, "verbose": True, "ckpt_path": "foobar"},
     }
 
-    with mock.patch("sys.argv", ["any.py", f"--config={config}", "test"]), mock.patch(
-        "lightning.pytorch.Trainer.test", autospec=True
-    ) as test_mock:
+    with (
+        mock.patch("sys.argv", ["any.py", f"--config={config}", "test"]),
+        mock.patch("lightning.pytorch.Trainer.test", autospec=True) as test_mock,
+    ):
         cli = LightningCLI(BoringModel)
 
     test_mock.assert_called_once_with(cli.trainer, model=cli.model, verbose=True, ckpt_path="foobar")
@@ -1320,9 +1340,10 @@ def test_lightning_cli_config_before_subcommand():
     assert save_config_callback.config.trainer.limit_test_batches == 1
     assert save_config_callback.parser.subcommand == "test"
 
-    with mock.patch("sys.argv", ["any.py", f"--config={config}", "validate"]), mock.patch(
-        "lightning.pytorch.Trainer.validate", autospec=True
-    ) as validate_mock:
+    with (
+        mock.patch("sys.argv", ["any.py", f"--config={config}", "validate"]),
+        mock.patch("lightning.pytorch.Trainer.validate", autospec=True) as validate_mock,
+    ):
         cli = LightningCLI(BoringModel)
 
     validate_mock.assert_called_once_with(cli.trainer, cli.model, verbose=False, ckpt_path="barfoo")
@@ -1337,17 +1358,19 @@ def test_lightning_cli_config_before_subcommand_two_configs():
     config1 = {"validate": {"trainer": {"limit_val_batches": 1}, "verbose": False, "ckpt_path": "barfoo"}}
     config2 = {"test": {"trainer": {"limit_test_batches": 1}, "verbose": True, "ckpt_path": "foobar"}}
 
-    with mock.patch("sys.argv", ["any.py", f"--config={config1}", f"--config={config2}", "test"]), mock.patch(
-        "lightning.pytorch.Trainer.test", autospec=True
-    ) as test_mock:
+    with (
+        mock.patch("sys.argv", ["any.py", f"--config={config1}", f"--config={config2}", "test"]),
+        mock.patch("lightning.pytorch.Trainer.test", autospec=True) as test_mock,
+    ):
         cli = LightningCLI(BoringModel)
 
     test_mock.assert_called_once_with(cli.trainer, model=cli.model, verbose=True, ckpt_path="foobar")
     assert cli.trainer.limit_test_batches == 1
 
-    with mock.patch("sys.argv", ["any.py", f"--config={config1}", f"--config={config2}", "validate"]), mock.patch(
-        "lightning.pytorch.Trainer.validate", autospec=True
-    ) as validate_mock:
+    with (
+        mock.patch("sys.argv", ["any.py", f"--config={config1}", f"--config={config2}", "validate"]),
+        mock.patch("lightning.pytorch.Trainer.validate", autospec=True) as validate_mock,
+    ):
         cli = LightningCLI(BoringModel)
 
     validate_mock.assert_called_once_with(cli.trainer, cli.model, verbose=False, ckpt_path="barfoo")
@@ -1356,9 +1379,10 @@ def test_lightning_cli_config_before_subcommand_two_configs():
 
 def test_lightning_cli_config_after_subcommand():
     config = {"trainer": {"limit_test_batches": 1}, "verbose": True, "ckpt_path": "foobar"}
-    with mock.patch("sys.argv", ["any.py", "test", f"--config={config}"]), mock.patch(
-        "lightning.pytorch.Trainer.test", autospec=True
-    ) as test_mock:
+    with (
+        mock.patch("sys.argv", ["any.py", "test", f"--config={config}"]),
+        mock.patch("lightning.pytorch.Trainer.test", autospec=True) as test_mock,
+    ):
         cli = LightningCLI(BoringModel)
 
     test_mock.assert_called_once_with(cli.trainer, cli.model, verbose=True, ckpt_path="foobar")
@@ -1368,9 +1392,10 @@ def test_lightning_cli_config_after_subcommand():
 def test_lightning_cli_config_before_and_after_subcommand():
     config1 = {"test": {"trainer": {"limit_test_batches": 1}, "verbose": True, "ckpt_path": "foobar"}}
     config2 = {"trainer": {"fast_dev_run": 1}, "verbose": False, "ckpt_path": "foobar"}
-    with mock.patch("sys.argv", ["any.py", f"--config={config1}", "test", f"--config={config2}"]), mock.patch(
-        "lightning.pytorch.Trainer.test", autospec=True
-    ) as test_mock:
+    with (
+        mock.patch("sys.argv", ["any.py", f"--config={config1}", "test", f"--config={config2}"]),
+        mock.patch("lightning.pytorch.Trainer.test", autospec=True) as test_mock,
+    ):
         cli = LightningCLI(BoringModel)
 
     test_mock.assert_called_once_with(cli.trainer, model=cli.model, verbose=False, ckpt_path="foobar")
@@ -1392,17 +1417,19 @@ def test_lightning_cli_parse_kwargs_with_subcommands(cleandir):
         "validate": {"default_config_files": [str(validate_config_path)]},
     }
 
-    with mock.patch("sys.argv", ["any.py", "fit"]), mock.patch(
-        "lightning.pytorch.Trainer.fit", autospec=True
-    ) as fit_mock:
+    with (
+        mock.patch("sys.argv", ["any.py", "fit"]),
+        mock.patch("lightning.pytorch.Trainer.fit", autospec=True) as fit_mock,
+    ):
         cli = LightningCLI(BoringModel, parser_kwargs=parser_kwargs)
     fit_mock.assert_called()
     assert cli.trainer.limit_train_batches == 2
     assert cli.trainer.limit_val_batches == 1.0
 
-    with mock.patch("sys.argv", ["any.py", "validate"]), mock.patch(
-        "lightning.pytorch.Trainer.validate", autospec=True
-    ) as validate_mock:
+    with (
+        mock.patch("sys.argv", ["any.py", "validate"]),
+        mock.patch("lightning.pytorch.Trainer.validate", autospec=True) as validate_mock,
+    ):
         cli = LightningCLI(BoringModel, parser_kwargs=parser_kwargs)
     validate_mock.assert_called()
     assert cli.trainer.limit_train_batches == 1.0
@@ -1420,9 +1447,10 @@ def test_lightning_cli_subcommands_common_default_config_files(cleandir):
     config_path.write_text(str(config))
     parser_kwargs = {"default_config_files": [str(config_path)]}
 
-    with mock.patch("sys.argv", ["any.py", "fit"]), mock.patch(
-        "lightning.pytorch.Trainer.fit", autospec=True
-    ) as fit_mock:
+    with (
+        mock.patch("sys.argv", ["any.py", "fit"]),
+        mock.patch("lightning.pytorch.Trainer.fit", autospec=True) as fit_mock,
+    ):
         cli = LightningCLI(Model, parser_kwargs=parser_kwargs)
     fit_mock.assert_called()
     assert cli.model.foo == 123

@@ -12,8 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import inspect
+from collections.abc import Generator, Iterable, Mapping, Sized
 from dataclasses import fields
-from typing import Any, Dict, Generator, Iterable, Mapping, Optional, Sized, Tuple, Union
+from typing import Any, Dict, Optional, Tuple, Union
 
 import torch
 from lightning_utilities.core.apply_func import is_dataclass_instance

@@ -13,10 +13,12 @@
 import os
 import pickle
 import warnings
+from collections import OrderedDict
+from collections.abc import Sequence
 from functools import partial
 from io import BytesIO
 from pathlib import Path
-from typing import IO, TYPE_CHECKING, Any, Callable, Dict, Optional, OrderedDict, Sequence, Set, Union
+from typing import IO, TYPE_CHECKING, Any, Callable, Dict, Optional, Set, Union
 
 import torch
 from lightning_utilities.core.apply_func import apply_to_collection

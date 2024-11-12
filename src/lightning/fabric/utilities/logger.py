@@ -15,8 +15,9 @@
 import inspect
 import json
 from argparse import Namespace
+from collections.abc import Mapping, MutableMapping
 from dataclasses import asdict, is_dataclass
-from typing import Any, Dict, Mapping, MutableMapping, Optional, Union
+from typing import Any, Dict, Optional, Union
 
 from torch import Tensor
 

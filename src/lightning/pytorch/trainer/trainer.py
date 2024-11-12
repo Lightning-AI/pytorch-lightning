@@ -23,9 +23,10 @@
 import logging
 import math
 import os
+from collections.abc import Generator, Iterable
 from contextlib import contextmanager
 from datetime import timedelta
-from typing import Any, Dict, Generator, Iterable, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 from weakref import proxy
 
 import torch

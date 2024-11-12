@@ -13,6 +13,7 @@
 # limitations under the License.
 import shutil
 import warnings
+from collections.abc import Generator
 from contextlib import ExitStack, nullcontext
 from datetime import timedelta
 from functools import partial
@@ -23,7 +24,6 @@ from typing import (
     Callable,
     ContextManager,
     Dict,
-    Generator,
     List,
     Literal,
     Optional,

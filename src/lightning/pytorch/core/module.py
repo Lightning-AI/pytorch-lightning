@@ -16,6 +16,7 @@
 import logging
 import numbers
 import weakref
+from collections.abc import Generator, Mapping, Sequence
 from contextlib import contextmanager
 from io import BytesIO
 from pathlib import Path
@@ -25,12 +26,9 @@ from typing import (
     Any,
     Callable,
     Dict,
-    Generator,
     List,
     Literal,
-    Mapping,
     Optional,
-    Sequence,
     Tuple,
     Union,
     cast,

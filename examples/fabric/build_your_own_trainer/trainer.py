@@ -1,7 +1,7 @@
 import os
-from collections.abc import Mapping
+from collections.abc import Iterable, Mapping
 from functools import partial
-from typing import Any, Iterable, List, Literal, Optional, Tuple, Union, cast
+from typing import Any, List, Literal, Optional, Tuple, Union, cast
 
 import lightning as L
 import torch

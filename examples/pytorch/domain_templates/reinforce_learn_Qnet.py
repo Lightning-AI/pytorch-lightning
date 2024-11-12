@@ -35,7 +35,8 @@ Second-Edition/blob/master/Chapter06/02_dqn_pong.py
 import argparse
 import random
 from collections import OrderedDict, deque, namedtuple
-from typing import Iterator, List, Tuple
+from collections.abc import Iterator
+from typing import List, Tuple
 
 import gym
 import torch

@@ -18,10 +18,11 @@ import re
 import shutil
 import tempfile
 import urllib.request
+from collections.abc import Iterable, Iterator, Sequence
 from itertools import chain
 from os.path import dirname, isfile
 from pathlib import Path
-from typing import Any, Dict, Iterable, Iterator, List, Optional, Sequence, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from packaging.requirements import Requirement
 from packaging.version import Version

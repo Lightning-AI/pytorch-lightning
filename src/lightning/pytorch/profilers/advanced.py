@@ -89,9 +89,10 @@ class AdvancedProfiler(Profiler):
         dst_fs = get_filesystem(dst_filepath)
         dst_fs.mkdirs(self.dirpath, exist_ok=True)
         # temporarily save to local since pstats can only dump into a local file
-        with tempfile.TemporaryDirectory(
-            prefix="test", suffix=str(rank_zero_only.rank), dir=os.getcwd()
-        ) as tmp_dir, dst_fs.open(dst_filepath, "wb") as dst_file:
+        with (
+            tempfile.TemporaryDirectory(prefix="test", suffix=str(rank_zero_only.rank), dir=os.getcwd()) as tmp_dir,
+            dst_fs.open(dst_filepath, "wb") as dst_file,
+        ):
             src_filepath = os.path.join(tmp_dir, "tmp.prof")
             profile.dump_stats(src_filepath)
             src_fs = get_filesystem(src_filepath)

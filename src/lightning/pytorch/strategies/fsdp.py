@@ -13,6 +13,7 @@
 # limitations under the License.
 import logging
 import shutil
+from collections.abc import Generator, Mapping
 from contextlib import contextmanager, nullcontext
 from datetime import timedelta
 from pathlib import Path
@@ -21,10 +22,8 @@ from typing import (
     Any,
     Callable,
     Dict,
-    Generator,
     List,
     Literal,
-    Mapping,
     Optional,
     Set,
     Tuple,

@@ -16,7 +16,8 @@ import os
 import random
 import time
 import urllib
-from typing import Any, Callable, Optional, Sized, Tuple, Union
+from collections.abc import Sized
+from typing import Any, Callable, Optional, Tuple, Union
 from urllib.error import HTTPError
 from warnings import warn
 

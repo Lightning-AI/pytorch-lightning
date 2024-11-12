@@ -14,9 +14,10 @@
 import inspect
 import os
 import sys
+from collections.abc import Iterable
 from functools import partial, update_wrapper
 from types import MethodType
-from typing import Any, Callable, Dict, Iterable, List, Optional, Set, Tuple, Type, TypeVar, Union
+from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Type, TypeVar, Union
 
 import torch
 import yaml

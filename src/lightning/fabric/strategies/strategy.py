@@ -13,8 +13,9 @@
 # limitations under the License.
 import logging
 from abc import ABC, abstractmethod
+from collections.abc import Iterable
 from contextlib import ExitStack
-from typing import Any, Callable, ContextManager, Dict, Iterable, List, Optional, Tuple, TypeVar, Union
+from typing import Any, Callable, ContextManager, Dict, List, Optional, Tuple, TypeVar, Union
 
 import torch
 from torch import Tensor

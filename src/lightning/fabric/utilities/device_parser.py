@@ -11,7 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import List, MutableSequence, Optional, Tuple, Union
+from collections.abc import MutableSequence
+from typing import List, Optional, Tuple, Union
 
 import torch
 

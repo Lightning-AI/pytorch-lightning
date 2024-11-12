@@ -21,9 +21,10 @@ import os
 import re
 import tempfile
 from argparse import Namespace
+from collections.abc import Mapping
 from pathlib import Path
 from time import time
-from typing import TYPE_CHECKING, Any, Callable, Dict, List, Literal, Mapping, Optional, Union
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Literal, Optional, Union
 
 import yaml
 from lightning_utilities.core.imports import RequirementCache

@@ -12,7 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from collections import OrderedDict
-from typing import Any, Iterator, List, Optional, Union
+from collections.abc import Iterator
+from typing import Any, List, Optional, Union
 
 import torch
 from lightning_utilities import WarningCache

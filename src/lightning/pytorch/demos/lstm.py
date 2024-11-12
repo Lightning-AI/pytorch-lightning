@@ -5,7 +5,8 @@ https://github.com/pytorch/examples/blob/main/word_language_model
 
 """
 
-from typing import Iterator, List, Optional, Sized, Tuple
+from collections.abc import Iterator, Sized
+from typing import List, Optional, Tuple
 
 import torch
 import torch.nn as nn

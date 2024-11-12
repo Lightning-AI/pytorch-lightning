@@ -14,8 +14,9 @@
 
 import logging
 import os
+from collections.abc import Sequence
 from datetime import timedelta
-from typing import Dict, List, Optional, Sequence, Union
+from typing import Dict, List, Optional, Union
 
 import lightning.pytorch as pl
 from lightning.fabric.utilities.registry import _load_external_callbacks

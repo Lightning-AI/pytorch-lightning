@@ -15,9 +15,10 @@ import copy
 import inspect
 import types
 from argparse import Namespace
+from collections.abc import Iterator, MutableMapping, Sequence
 from contextlib import contextmanager
 from contextvars import ContextVar
-from typing import Any, Iterator, List, MutableMapping, Optional, Sequence, Union
+from typing import Any, List, Optional, Union
 
 from lightning.fabric.utilities.data import AttributeDict
 from lightning.pytorch.utilities.parsing import save_hyperparameters

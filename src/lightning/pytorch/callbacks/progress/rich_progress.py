@@ -12,9 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import math
+from collections.abc import Generator
 from dataclasses import dataclass
 from datetime import timedelta
-from typing import Any, Dict, Generator, Optional, Union, cast
+from typing import Any, Dict, Optional, Union, cast
 
 from lightning_utilities.core.imports import RequirementCache
 from typing_extensions import override

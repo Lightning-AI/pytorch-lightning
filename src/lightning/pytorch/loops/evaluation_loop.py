@@ -15,7 +15,8 @@ import os
 import shutil
 import sys
 from collections import ChainMap, OrderedDict, defaultdict
-from typing import Any, DefaultDict, Iterable, Iterator, List, Optional, Tuple, Union
+from collections.abc import Iterable, Iterator
+from typing import Any, DefaultDict, List, Optional, Tuple, Union
 
 from lightning_utilities.core.apply_func import apply_to_collection
 from torch import Tensor
