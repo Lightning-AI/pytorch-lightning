@@ -43,7 +43,7 @@ _BITSANDBYTES_AVAILABLE = RequirementCache("bitsandbytes>=0.42.0")
 
 
 class BitsandbytesPrecision(Precision):
-    """Plugin for quantizing weights with `bitsandbytes <https://github.com/TimDettmers/bitsandbytes>`__.
+    """Plugin for quantizing weights with `bitsandbytes <https://github.com/bitsandbytes-foundation/bitsandbytes>`__.
 
     .. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
 
@@ -184,11 +184,15 @@ def _replace_param(
     if param.device.type == "meta":
         if isinstance(param, bnb.nn.Params4bit):
             return bnb.nn.Params4bit(
-                data,
+                data=data,
                 requires_grad=data.requires_grad,
                 quant_state=quant_state,
+                blocksize=param.blocksize,
                 compress_statistics=param.compress_statistics,
                 quant_type=param.quant_type,
+                quant_storage=param.quant_storage,
+                module=param.module,
+                bnb_quantized=param.bnb_quantized,
             )
         return torch.nn.Parameter(data, requires_grad=data.requires_grad)
     param.data = data
@@ -322,6 +326,7 @@ def _import_bitsandbytes() -> ModuleType:
                 return
             assert isinstance(self.weight, bnb.nn.Params4bit)
             self.weight = self.quantize(self.weight, weight, device)
+            self.weight.bnb_quantized = True
 
         @staticmethod
         def quantize(
@@ -337,6 +342,7 @@ def _import_bitsandbytes() -> ModuleType:
                 blocksize=params4bit.blocksize,
                 compress_statistics=params4bit.compress_statistics,
                 quant_type=params4bit.quant_type,
+                quant_storage=params4bit.quant_storage,
             )
             return _replace_param(params4bit, w_4bit, quant_state)
 
