@@ -138,7 +138,7 @@ def main(args: argparse.Namespace):
     if global_rank == 0:
         logger.add_text(
             "hyperparameters",
-            "|param|value|\n|-|-|\n%s" % ("\n".join([f"|{key}|{value}|" for key, value in vars(args).items()])),
+            "|param|value|\n|-|-|\n{}".format("\n".join([f"|{key}|{value}|" for key, value in vars(args).items()])),
         )
 
     # Environment setup

@@ -282,6 +282,8 @@ class BoringZeroRedundancyOptimizerModel(BoringModel):
         return ZeroRedundancyOptimizer(self.layer.parameters(), optimizer_class=torch.optim.Adam, lr=0.1)
 
 
+# ZeroRedundancyOptimizer internally calls `torch.load` with `weights_only` not set, triggering the FutureWarning
+@pytest.mark.filterwarnings("ignore::FutureWarning")
 @RunIf(min_cuda_gpus=2, skip_windows=True)
 @pytest.mark.parametrize("strategy", [pytest.param("ddp", marks=RunIf(standalone=True)), "ddp_spawn"])
 def test_ddp_strategy_checkpoint_zero_redundancy_optimizer(strategy, tmp_path):

@@ -48,6 +48,7 @@ function show_batched_output {
     # heuristic: stop if there's mentions of errors. this can prevent false negatives when only some of the ranks fail
     if perl -nle 'print if /error|(?<!(?-i)on_)exception|traceback|(?<!(?-i)x)failed/i' standalone_test_output.txt | grep -qv -f testnames.txt; then
       echo "Potential error! Stopping."
+      perl -nle 'print if /error|(?<!(?-i)on_)exception|traceback|(?<!(?-i)x)failed/i' standalone_test_output.txt
       rm standalone_test_output.txt
       exit 1
     fi

@@ -19,7 +19,6 @@ CSV logger for basic experiment logging that does not require opening ports
 
 """
 
-import logging
 import os
 from argparse import Namespace
 from typing import Any, Dict, Optional, Union
@@ -34,8 +33,6 @@ from lightning.fabric.utilities.types import _PATH
 from lightning.pytorch.core.saving import save_hparams_to_yaml
 from lightning.pytorch.loggers.logger import Logger
 from lightning.pytorch.utilities.rank_zero import rank_zero_only
-
-log = logging.getLogger(__name__)
 
 
 class ExperimentWriter(_FabricExperimentWriter):

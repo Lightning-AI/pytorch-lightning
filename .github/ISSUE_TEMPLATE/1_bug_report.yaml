@@ -32,11 +32,11 @@ body:
       description: select all version where you have experienced this issue
       multiple: true
       options:
-        - "v1.8"
-        - "v1.9"
-        - "v2.0"
+        - "v1.x"
         - "v2.1"
         - "v2.2"
+        - "v2.3"
+        - "v2.4"
         - "master"
     validations:
       required: true
@@ -91,16 +91,13 @@ body:
           <summary>Current environment</summary>
 
         ```
-        #- Lightning Component (e.g. Trainer, LightningModule, LightningApp, LightningWork, LightningFlow):
-        #- PyTorch Lightning Version (e.g., 1.5.0):
-        #- Lightning App Version (e.g., 0.5.2):
-        #- PyTorch Version (e.g., 2.0):
-        #- Python version (e.g., 3.9):
+        #- PyTorch Lightning Version (e.g., 2.4.0):
+        #- PyTorch Version (e.g., 2.4):
+        #- Python version (e.g., 3.12):
         #- OS (e.g., Linux):
         #- CUDA/cuDNN version:
         #- GPU models and configuration:
         #- How you installed Lightning(`conda`, `pip`, source):
-        #- Running environment of LightningApp (e.g. local, cloud):
         ```
 
         </details>

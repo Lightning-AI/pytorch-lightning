@@ -3,7 +3,9 @@ import os
 from functools import partial
 from pathlib import Path
 from unittest import mock
+from unittest.mock import Mock
 
+import lightning.fabric
 import pytest
 import torch
 from lightning.fabric.accelerators import CPUAccelerator, CUDAAccelerator, MPSAccelerator
@@ -15,11 +17,13 @@ from lightning.fabric.utilities.distributed import (
     _gather_all_tensors,
     _InfiniteBarrier,
     _init_dist_connection,
+    _is_dtensor,
     _set_num_threads_if_needed,
     _suggested_max_num_threads,
     _sync_ddp,
     is_shared_filesystem,
 )
+from lightning_utilities.core.imports import RequirementCache
 
 from tests_fabric.helpers.runif import RunIf
 
@@ -121,6 +125,10 @@ def test_collective_operations(devices, process):
     spawn_launch(process, devices)
 
 
+@pytest.mark.skipif(
+    RequirementCache("torch<2.4") and RequirementCache("numpy>=2.0"),
+    reason="torch.distributed not compatible with numpy>=2.0",
+)
 @pytest.mark.flaky(reruns=3)  # flaky with "process 0 terminated with signal SIGABRT" (GLOO)
 def test_is_shared_filesystem(tmp_path, monkeypatch):
     # In the non-distributed case, every location is interpreted as 'shared'
@@ -229,3 +237,14 @@ def test_init_dist_connection_registers_destruction_handler(_, atexit_mock):
     atexit_mock.reset_mock()
     _init_dist_connection(LightningEnvironment(), "gloo")
     atexit_mock.register.assert_not_called()
+
+
+@RunIf(min_torch="2.4")
+def test_is_dtensor(monkeypatch):
+    from torch.distributed._tensor import DTensor
+
+    assert _is_dtensor(Mock(spec=DTensor))
+    assert not _is_dtensor(torch.zeros(2, 2))
+
+    monkeypatch.setattr(lightning.fabric.utilities.distributed, "_TORCH_GREATER_EQUAL_2_4", False)
+    assert not _is_dtensor(Mock(spec=DTensor))

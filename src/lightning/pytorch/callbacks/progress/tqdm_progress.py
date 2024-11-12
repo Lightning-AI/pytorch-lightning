@@ -96,15 +96,15 @@ class TQDMProgressBar(ProgressBar):
             Set it to ``0`` to disable the display.
         process_position: Set this to a value greater than ``0`` to offset the progress bars by this many lines.
             This is useful when you have progress bars defined elsewhere and want to show all of them
-            together. This corresponds to
-            :paramref:`~lightning.pytorch.trainer.trainer.Trainer.process_position` in the
-            :class:`~lightning.pytorch.trainer.trainer.Trainer`.
+            together.
+        leave: If set to ``True``, leaves the finished progress bar in the terminal at the end of the epoch.
+            Default: ``False``
 
     """
 
     BAR_FORMAT = "{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}, {rate_noinv_fmt}{postfix}]"
 
-    def __init__(self, refresh_rate: int = 1, process_position: int = 0):
+    def __init__(self, refresh_rate: int = 1, process_position: int = 0, leave: bool = False):
         super().__init__()
         self._refresh_rate = self._resolve_refresh_rate(refresh_rate)
         self._process_position = process_position
@@ -113,6 +113,7 @@ class TQDMProgressBar(ProgressBar):
         self._val_progress_bar: Optional[_tqdm] = None
         self._test_progress_bar: Optional[_tqdm] = None
         self._predict_progress_bar: Optional[_tqdm] = None
+        self._leave = leave
 
     def __getstate__(self) -> Dict:
         # can't pickle the tqdm objects
@@ -262,6 +263,8 @@ class TQDMProgressBar(ProgressBar):
 
     @override
     def on_train_epoch_start(self, trainer: "pl.Trainer", *_: Any) -> None:
+        if self._leave:
+            self.train_progress_bar = self.init_train_tqdm()
         self.train_progress_bar.reset(convert_inf(self.total_train_batches))
         self.train_progress_bar.initial = 0
         self.train_progress_bar.set_description(f"Epoch {trainer.current_epoch}")
@@ -279,6 +282,8 @@ class TQDMProgressBar(ProgressBar):
     def on_train_epoch_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         if not self.train_progress_bar.disable:
             self.train_progress_bar.set_postfix(self.get_metrics(trainer, pl_module))
+        if self._leave:
+            self.train_progress_bar.close()
 
     @override
     def on_train_end(self, *_: Any) -> None:

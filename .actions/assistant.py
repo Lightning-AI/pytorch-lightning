@@ -14,19 +14,17 @@
 import glob
 import logging
 import os
-import pathlib
 import re
 import shutil
-import tarfile
 import tempfile
 import urllib.request
-from distutils.version import LooseVersion
 from itertools import chain
 from os.path import dirname, isfile
 from pathlib import Path
-from typing import Any, Dict, Iterable, Iterator, List, Optional, Sequence, Tuple, Union
+from typing import Any, Dict, Iterable, Iterator, List, Optional, Sequence, Tuple
 
-from pkg_resources import Requirement, parse_requirements, yield_lines
+from packaging.requirements import Requirement
+from packaging.version import Version
 
 REQUIREMENT_FILES = {
     "pytorch": (
@@ -34,11 +32,6 @@ REQUIREMENT_FILES = {
         "requirements/pytorch/extra.txt",
         "requirements/pytorch/strategies.txt",
         "requirements/pytorch/examples.txt",
-    ),
-    "app": (
-        "requirements/app/app.txt",
-        "requirements/app/cloud.txt",
-        "requirements/app/ui.txt",
     ),
     "fabric": (
         "requirements/fabric/base.txt",
@@ -87,14 +80,15 @@ class _RequirementWithComment(Requirement):
         out = str(self)
         if self.strict:
             return f"{out}  {self.strict_string}"
+        specs = [(spec.operator, spec.version) for spec in self.specifier]
         if unfreeze == "major":
-            for operator, version in self.specs:
+            for operator, version in specs:
                 if operator in ("<", "<="):
-                    major = LooseVersion(version).version[0]
+                    major = Version(version).major
                     # replace upper bound with major version increased by one
                     return out.replace(f"{operator}{version}", f"<{major + 1}.0")
         elif unfreeze == "all":
-            for operator, version in self.specs:
+            for operator, version in specs:
                 if operator in ("<", "<="):
                     # drop upper bound
                     return out.replace(f"{operator}{version},", "")
@@ -103,33 +97,25 @@ class _RequirementWithComment(Requirement):
         return out
 
 
-def _parse_requirements(strs: Union[str, Iterable[str]]) -> Iterator[_RequirementWithComment]:
+def _parse_requirements(lines: Iterable[str]) -> Iterator[_RequirementWithComment]:
     """Adapted from `pkg_resources.parse_requirements` to include comments.
 
     >>> txt = ['# ignored', '', 'this # is an', '--piparg', 'example', 'foo # strict', 'thing', '-r different/file.txt']
     >>> [r.adjust('none') for r in _parse_requirements(txt)]
     ['this', 'example', 'foo  # strict', 'thing']
-    >>> txt = '\\n'.join(txt)
-    >>> [r.adjust('none') for r in _parse_requirements(txt)]
-    ['this', 'example', 'foo  # strict', 'thing']
 
     """
-    lines = yield_lines(strs)
     pip_argument = None
     for line in lines:
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
         # Drop comments -- a hash without a space may be in a URL.
         if " #" in line:
             comment_pos = line.find(" #")
             line, comment = line[:comment_pos], line[comment_pos:]
         else:
             comment = ""
-        # If there is a line continuation, drop it, and append the next line.
-        if line.endswith("\\"):
-            line = line[:-2].strip()
-            try:
-                line += next(lines)
-            except StopIteration:
-                return
         # If there's a pip argument, save it
         if line.startswith("--"):
             pip_argument = line
@@ -155,7 +141,7 @@ def load_requirements(path_dir: str, file_name: str = "base.txt", unfreeze: str 
         logging.warning(f"Folder {path_dir} does not have any base requirements.")
         return []
     assert path.exists(), (path_dir, file_name, path)
-    text = path.read_text()
+    text = path.read_text().splitlines()
     return [req.adjust(unfreeze) for req in _parse_requirements(text)]
 
 
@@ -214,30 +200,6 @@ def distribute_version(src_folder: str, ver_file: str = "version.info") -> None:
         if os.path.isfile(fpath):
             os.remove(fpath)
         shutil.copy2(ver_template, fpath)
-
-
-def _download_frontend(pkg_path: str, version: str = "v0.0.0"):
-    """Downloads an archive file for a specific release of the Lightning frontend and extracts it to the correct
-    directory."""
-
-    try:
-        frontend_dir = pathlib.Path(pkg_path, "ui")
-        download_dir = tempfile.mkdtemp()
-
-        shutil.rmtree(frontend_dir, ignore_errors=True)
-        # TODO: remove this once lightning-ui package is ready as a dependency
-        frontend_release_url = f"https://lightning-packages.s3.amazonaws.com/ui/{version}.tar.gz"
-        response = urllib.request.urlopen(frontend_release_url)
-
-        file = tarfile.open(fileobj=response, mode="r|gz")
-        file.extractall(path=download_dir)  # noqa: S202
-
-        shutil.move(download_dir, frontend_dir)
-        print("The Lightning UI has successfully been downloaded!")
-
-    # If installing from source without internet connection, we don't want to break the installation
-    except Exception:
-        print("The Lightning UI downloading has failed!")
 
 
 def _load_aggregate_requirements(req_dir: str = "requirements", freeze_requirements: bool = False) -> None:
@@ -399,7 +361,7 @@ class AssistantCLI:
             if not ln_ or ln_.startswith("#"):
                 final.append(line)
                 continue
-            req = list(parse_requirements(ln_))[0]
+            req = list(_parse_requirements([ln_]))[0]
             if req.name not in packages:
                 final.append(line)
         print(final)
@@ -466,7 +428,7 @@ class AssistantCLI:
                 raise RuntimeError(f"Requesting file '{zip_url}' does not exist or it is just unavailable.")
 
             with zipfile.ZipFile(zip_file, "r") as zip_ref:
-                zip_ref.extractall(tmp)  # noqa: S202
+                zip_ref.extractall(tmp)
 
             zip_dirs = [d for d in glob.glob(os.path.join(tmp, "*")) if os.path.isdir(d)]
             # check that the extracted archive has only repo folder

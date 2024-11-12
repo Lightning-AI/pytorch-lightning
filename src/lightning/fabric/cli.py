@@ -56,17 +56,17 @@ if _CLICK_AVAILABLE:
         Raises deprecation warning and runs through fabric cli if necessary, else runs the entrypoint directly
 
         """
-        print(
-            "`lightning run model` is deprecated and will be removed in future versions."
-            " Please call `fabric run` instead."
-        )
-        args = sys.argv[1:]
-        if args and args[0] == "run" and args[1] == "model":
+        hparams = sys.argv[1:]
+        if len(hparams) >= 2 and hparams[0] == "run" and hparams[1] == "model":
+            print(
+                "`lightning run model` is deprecated and will be removed in future versions."
+                " Please call `fabric run` instead."
+            )
             _main()
             return
 
         if _LIGHTNING_SDK_AVAILABLE:
-            subprocess.run([sys.executable, "-m", "lightning_sdk.cli.entrypoint"] + args)
+            subprocess.run([sys.executable, "-m", "lightning_sdk.cli.entrypoint"] + hparams)
             return
 
     @click.group()
@@ -140,7 +140,7 @@ if _CLICK_AVAILABLE:
         type=click.Choice(get_args(_PRECISION_INPUT_STR) + get_args(_PRECISION_INPUT_STR_ALIAS)),
         default=None,
         help=(
-            "Double precision (``64-true`` or ``64``), full precision (``32-true`` or ``64``), "
+            "Double precision (``64-true`` or ``64``), full precision (``32-true`` or ``32``), "
             "half precision (``16-mixed`` or ``16``) or bfloat16 precision (``bf16-mixed`` or ``bf16``)"
         ),
     )

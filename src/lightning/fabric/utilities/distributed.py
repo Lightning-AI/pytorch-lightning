@@ -2,6 +2,7 @@ import atexit
 import contextlib
 import logging
 import os
+import signal
 import time
 from contextlib import nullcontext
 from datetime import timedelta
@@ -13,10 +14,11 @@ import torch.nn.functional as F
 from lightning_utilities.core.imports import package_available
 from torch import Tensor
 from torch.utils.data import Dataset, DistributedSampler, Sampler
-from typing_extensions import Self, override
+from typing_extensions import Self, TypeGuard, override
 
 from lightning.fabric.utilities.cloud_io import _is_local_file_protocol
 from lightning.fabric.utilities.data import _num_cpus_available
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_4
 from lightning.fabric.utilities.rank_zero import rank_zero_info
 from lightning.fabric.utilities.types import _PATH, ReduceOp
 
@@ -29,6 +31,8 @@ else:
 
 
 if TYPE_CHECKING:
+    from torch.distributed._tensor import DTensor
+
     from lightning.fabric.plugins import ClusterEnvironment
     from lightning.fabric.strategies import Strategy
 
@@ -306,8 +310,11 @@ def _init_dist_connection(
 
 
 def _destroy_dist_connection() -> None:
+    # Don't allow Ctrl+C to interrupt this handler
+    signal.signal(signal.SIGINT, signal.SIG_IGN)
     if _distributed_is_initialized():
         torch.distributed.destroy_process_group()
+    signal.signal(signal.SIGINT, signal.SIG_DFL)
 
 
 def _get_default_process_group_backend_for_device(device: torch.device) -> str:
@@ -423,3 +430,11 @@ class _InfiniteBarrier:
         self.barrier()
         if self.group is not None:
             torch.distributed.destroy_process_group(self.group)
+
+
+def _is_dtensor(tensor: Tensor) -> TypeGuard["DTensor"]:
+    if _TORCH_GREATER_EQUAL_2_4:
+        from torch.distributed._tensor import DTensor
+
+        return isinstance(tensor, DTensor)
+    return False

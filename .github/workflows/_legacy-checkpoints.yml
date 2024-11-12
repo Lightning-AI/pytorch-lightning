@@ -109,13 +109,14 @@ jobs:
           name: checkpoints-${{ github.sha }}
           path: ${{ env.LEGACY_FOLDER }}/checkpoints/
           retention-days: ${{ env.KEEP_DAYS }}
+          include-hidden-files: true
 
       - run: pip install -r requirements/ci.txt
       - name: Upload checkpoints to S3
         working-directory: ${{ env.LEGACY_FOLDER }}
         env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_PUB_ACCESS_KEY }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_PUB_SECRET_KEY }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_KEY }}
           AWS_DEFAULT_REGION: ${{ secrets.AWS_REGION }}
         run: |
           aws s3 sync $AWS_RUN checkpoints/ s3://pl-public-data/legacy/checkpoints/
@@ -138,7 +139,7 @@ jobs:
         run: echo ${PL_VERSION} >> back-compatible-versions.txt
 
       - name: Create Pull Request
-        uses: peter-evans/create-pull-request@v6
+        uses: peter-evans/create-pull-request@v7
         with:
           title: Adding test for legacy checkpoint created with ${{ env.PL_VERSION }}
           committer: GitHub <noreply@github.com>

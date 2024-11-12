@@ -19,6 +19,7 @@ from unittest.mock import Mock
 import pytest
 import torch
 from lightning.fabric import Fabric
+from lightning_utilities.core.imports import RequirementCache
 from torch._dynamo import OptimizedModule
 from torch.nn.parallel.distributed import DistributedDataParallel
 
@@ -27,6 +28,10 @@ from tests_fabric.strategies.test_single_device import _run_test_clip_gradients
 from tests_fabric.test_fabric import BoringModel
 
 
+@pytest.mark.skipif(
+    RequirementCache("torch<2.4") and RequirementCache("numpy>=2.0"),
+    reason="torch.distributed not compatible with numpy>=2.0",
+)
 @pytest.mark.parametrize(
     "accelerator",
     [
@@ -70,7 +75,7 @@ def _run_ddp_save_load(fabric, tmp_path):
     assert_params_equal(params_before, wrapped_model.parameters())
 
 
-@RunIf(min_cuda_gpus=2, standalone=True, min_torch="2.1.0", dynamo=True)
+@RunIf(min_cuda_gpus=2, standalone=True, dynamo=True)
 @mock.patch("lightning.fabric.wrappers.torch.compile", Mock(wraps=torch.compile))
 @mock.patch.dict(os.environ, {})
 def test_reapply_compile():

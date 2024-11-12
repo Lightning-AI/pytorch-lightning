@@ -257,7 +257,7 @@ def test_result_collection_restoration(tmp_path):
         # make sure can be torch.loaded
         filepath = str(tmp_path / "result")
         torch.save(result, filepath)
-        torch.load(filepath)
+        torch.load(filepath, weights_only=False)
 
         # assert metric state reset to default values
         result.reset()

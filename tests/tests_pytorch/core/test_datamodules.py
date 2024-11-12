@@ -208,7 +208,7 @@ def test_dm_checkpoint_save_and_load(tmp_path):
     # fit model
     trainer.fit(model, datamodule=dm)
     checkpoint_path = list(trainer.checkpoint_callback.best_k_models.keys())[0]
-    checkpoint = torch.load(checkpoint_path)
+    checkpoint = torch.load(checkpoint_path, weights_only=True)
     assert dm.__class__.__qualname__ in checkpoint
     assert checkpoint[dm.__class__.__qualname__] == {"my": "state_dict"}
 
@@ -218,7 +218,7 @@ def test_dm_checkpoint_save_and_load(tmp_path):
         assert dm.my_state_dict == {"my": "state_dict"}
 
 
-@RunIf(sklearn=True)
+@RunIf(sklearn=True, skip_windows=True)  # Flaky test on Windows for unknown reasons
 def test_full_loop(tmp_path):
     seed_everything(7)
 

@@ -12,13 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from collections.abc import MutableMapping
 from typing import Iterable
 
-from lightning_utilities.core.apply_func import apply_to_collection
 from torch import Tensor
 from torch.optim import Optimizer
 
-from lightning.fabric.utilities.apply_func import move_data_to_device
+from lightning.fabric.utilities.apply_func import apply_to_collection, move_data_to_device
 from lightning.fabric.utilities.types import _DEVICE
 
 
@@ -31,4 +31,12 @@ def _optimizers_to_device(optimizers: Iterable[Optimizer], device: _DEVICE) -> N
 def _optimizer_to_device(optimizer: Optimizer, device: _DEVICE) -> None:
     """Moves the state of a single optimizer to the device."""
     for p, v in optimizer.state.items():
-        optimizer.state[p] = apply_to_collection(v, Tensor, move_data_to_device, device, allow_frozen=True)
+        if not isinstance(v, MutableMapping):
+            # Support for custom optimizers
+            optimizer.state[p] = apply_to_collection(v, Tensor, move_data_to_device, device, allow_frozen=True)
+            continue
+        for key, val in v.items():
+            # The 'step' parameter needs to remain unmoved (possibly on the CPU) since that is where the optimizer
+            # needs it. See https://github.com/pytorch/pytorch/issues/74424
+            if key != "step":
+                v[key] = move_data_to_device(val, device)

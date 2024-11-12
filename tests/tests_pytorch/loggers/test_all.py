@@ -161,7 +161,7 @@ def test_loggers_pickle_all(tmp_path, monkeypatch, logger_class):
         pytest.xfail(f"pickle test requires {logger_class.__class__} dependencies to be installed.")
 
 
-def _test_loggers_pickle(tmp_path, monkeypatch, logger_class):
+def _test_loggers_pickle(tmp_path, monkeypatch, logger_class: Logger):
     """Verify that pickling trainer with logger works."""
     _patch_comet_atexit(monkeypatch)
 

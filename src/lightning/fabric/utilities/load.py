@@ -140,6 +140,10 @@ class _NotYetLoadedTensor:
         loaded_args = [(arg._load_tensor() if isinstance(arg, _NotYetLoadedTensor) else arg) for arg in args]
         return func(*loaded_args, **kwargs)
 
+    @property
+    def device(self) -> torch.device:
+        return torch.device(self.storageinfo[3])
+
     def __getattr__(self, name: str) -> Any:
         # These properties don't require materialization and can be accessed through the meta tensor directly
         if name in {
@@ -160,7 +164,7 @@ class _NotYetLoadedTensor:
             return getattr(self.metatensor, name)
 
         # materializing these is needed for quantization (see lit-gpt)
-        if name in {"contiguous", "cuda", "half"}:
+        if name in {"contiguous", "cuda", "half", "data", "to"}:
             return getattr(self._load_tensor(), name)
 
         raise AttributeError(f"'{type(self).__name__}' object has no attribute '{name}'")

@@ -1,6 +1,7 @@
-setuptools
-wheel
+setuptools <70.1.1
+wheel <0.44.0
 awscli >=1.30.0, <1.31.0
 twine ==4.0.1
+importlib-metadata <8.0.0
 wget
-packaging
+packaging <24.2

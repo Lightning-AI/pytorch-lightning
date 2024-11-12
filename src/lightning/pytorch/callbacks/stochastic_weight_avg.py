@@ -17,7 +17,7 @@ Stochastic Weight Averaging Callback
 """
 
 from copy import deepcopy
-from typing import Any, Callable, Dict, List, Optional, Union, cast
+from typing import Any, Callable, Dict, List, Literal, Optional, Union, cast
 
 import torch
 from torch import Tensor, nn
@@ -42,7 +42,7 @@ class StochasticWeightAveraging(Callback):
         swa_lrs: Union[float, List[float]],
         swa_epoch_start: Union[int, float] = 0.8,
         annealing_epochs: int = 10,
-        annealing_strategy: str = "cos",
+        annealing_strategy: Literal["cos", "linear"] = "cos",
         avg_fn: Optional[_AVG_FN] = None,
         device: Optional[Union[torch.device, str]] = torch.device("cpu"),
     ):
@@ -123,7 +123,7 @@ class StochasticWeightAveraging(Callback):
         self._avg_fn = avg_fn or self.avg_fn
         self._device = device
         self._model_contains_batch_norm: Optional[bool] = None
-        self._average_model: Optional["pl.LightningModule"] = None
+        self._average_model: Optional[pl.LightningModule] = None
         self._initialized = False
         self._swa_scheduler: Optional[LRScheduler] = None
         self._scheduler_state: Optional[Dict] = None
@@ -303,14 +303,14 @@ class StochasticWeightAveraging(Callback):
                 dtype=module.running_var.dtype,
             )
             self.momenta[module] = module.momentum
-            module.momentum = None  # type: ignore[assignment]
+            module.momentum = None
             assert module.num_batches_tracked is not None
             module.num_batches_tracked *= 0
 
     def reset_momenta(self) -> None:
         """Adapted from https://github.com/pytorch/pytorch/blob/v1.7.1/torch/optim/swa_utils.py#L164-L165."""
         for bn_module in self.momenta:
-            bn_module.momentum = self.momenta[bn_module]  # type: ignore[assignment]
+            bn_module.momentum = self.momenta[bn_module]
 
     @staticmethod
     def update_parameters(

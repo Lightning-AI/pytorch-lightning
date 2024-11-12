@@ -920,8 +920,8 @@ def test_model_checkpoint_save_last_checkpoint_contents(tmp_path):
     assert os.path.isfile(path_last_epoch)
     assert os.path.isfile(path_last)
 
-    ckpt_last_epoch = torch.load(path_last_epoch)
-    ckpt_last = torch.load(path_last)
+    ckpt_last_epoch = torch.load(path_last_epoch, weights_only=True)
+    ckpt_last = torch.load(path_last, weights_only=True)
 
     assert ckpt_last_epoch["epoch"] == ckpt_last["epoch"]
     assert ckpt_last_epoch["global_step"] == ckpt_last["global_step"]
@@ -1168,7 +1168,7 @@ def test_current_score(tmp_path):
     )
     trainer.fit(TestModel())
     assert model_checkpoint.current_score == 0.3
-    ckpts = [torch.load(ckpt) for ckpt in tmp_path.iterdir()]
+    ckpts = [torch.load(ckpt, weights_only=True) for ckpt in tmp_path.iterdir()]
     ckpts = [
         ckpt["callbacks"][
             "ModelCheckpoint{'monitor': 'foo', 'mode': 'min', 'every_n_train_steps': 0, 'every_n_epochs': 1,"
@@ -1452,7 +1452,7 @@ def test_save_last_saves_correct_last_model_path(tmp_path):
     expected = "foo=1-last.ckpt"
     assert os.listdir(tmp_path) == [expected]
     full_path = tmp_path / expected
-    ckpt = torch.load(full_path)
+    ckpt = torch.load(full_path, weights_only=True)
     assert ckpt["callbacks"][mc.state_key]["last_model_path"] == str(full_path)
 
 
@@ -1484,7 +1484,7 @@ def test_none_monitor_saves_correct_best_model_path(tmp_path):
     expected = "epoch=0-step=0.ckpt"
     assert os.listdir(tmp_path) == [expected]
     full_path = str(tmp_path / expected)
-    ckpt = torch.load(full_path)
+    ckpt = torch.load(full_path, weights_only=True)
     assert ckpt["callbacks"][mc.state_key]["best_model_path"] == full_path
 
 

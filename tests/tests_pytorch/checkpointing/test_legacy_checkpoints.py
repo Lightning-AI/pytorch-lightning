@@ -78,7 +78,7 @@ def test_legacy_ckpt_threading(pl_version: str):
         from lightning.pytorch.utilities.migration import pl_legacy_patch
 
         with pl_legacy_patch():
-            _ = torch.load(path_ckpt)
+            _ = torch.load(path_ckpt, weights_only=False)
 
     with patch("sys.path", [PATH_LEGACY] + sys.path):
         t1 = ThreadExceptionHandler(target=load_model)

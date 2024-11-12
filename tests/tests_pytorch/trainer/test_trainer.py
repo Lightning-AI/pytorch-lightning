@@ -28,6 +28,7 @@ import pytest
 import torch
 import torch.nn as nn
 from lightning.fabric.utilities.cloud_io import _load as pl_load
+from lightning.fabric.utilities.imports import _IS_WINDOWS
 from lightning.fabric.utilities.seed import seed_everything
 from lightning.pytorch import Callback, LightningDataModule, LightningModule, Trainer
 from lightning.pytorch.accelerators import CPUAccelerator, CUDAAccelerator
@@ -45,7 +46,7 @@ from lightning.pytorch.demos.boring_classes import (
 from lightning.pytorch.loggers import TensorBoardLogger
 from lightning.pytorch.overrides.distributed import UnrepeatedDistributedSampler, _IndexBatchSamplerWrapper
 from lightning.pytorch.strategies import DDPStrategy, SingleDeviceStrategy
-from lightning.pytorch.strategies.launchers import _MultiProcessingLauncher
+from lightning.pytorch.strategies.launchers import _MultiProcessingLauncher, _SubprocessScriptLauncher
 from lightning.pytorch.trainer.states import RunningStage, TrainerFn
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.imports import _OMEGACONF_AVAILABLE
@@ -102,7 +103,7 @@ def test_no_val_module(monkeypatch, tmp_path, tmpdir_server, url_ckpt):
     trainer.save_checkpoint(new_weights_path)
 
     # assert ckpt has hparams
-    ckpt = torch.load(new_weights_path)
+    ckpt = torch.load(new_weights_path, weights_only=True)
     assert LightningModule.CHECKPOINT_HYPER_PARAMS_KEY in ckpt, "hyper_parameters missing from checkpoints"
 
     # load new model
@@ -363,7 +364,7 @@ def test_model_checkpoint_only_weights(tmp_path):
     checkpoint_path = trainer.checkpoint_callback.best_model_path
 
     # assert saved checkpoint has no trainer data
-    checkpoint = torch.load(checkpoint_path)
+    checkpoint = torch.load(checkpoint_path, weights_only=True)
     assert "optimizer_states" not in checkpoint, "checkpoint should contain only model weights"
     assert "lr_schedulers" not in checkpoint, "checkpoint should contain only model weights"
 
@@ -374,7 +375,7 @@ def test_model_checkpoint_only_weights(tmp_path):
     new_weights_path = os.path.join(tmp_path, "save_test.ckpt")
     trainer.save_checkpoint(new_weights_path, weights_only=True)
     # assert saved checkpoint has no trainer data
-    checkpoint = torch.load(new_weights_path)
+    checkpoint = torch.load(new_weights_path, weights_only=True)
     assert "optimizer_states" not in checkpoint, "checkpoint should contain only model weights"
     assert "lr_schedulers" not in checkpoint, "checkpoint should contain only model weights"
 
@@ -1007,13 +1008,38 @@ def test_on_exception_hook(tmp_path):
     )
     assert not trainer.interrupted
     assert handle_interrupt_callback.exception is None
-    trainer.fit(model)
+    with pytest.raises(SystemExit):
+        trainer.fit(model)
     assert trainer.interrupted
     assert isinstance(handle_interrupt_callback.exception, KeyboardInterrupt)
     with pytest.raises(MisconfigurationException):
         trainer.test(model)
     assert trainer.interrupted
     assert isinstance(handle_interrupt_callback.exception, MisconfigurationException)
+
+
+def test_keyboard_interrupt(tmp_path):
+    class InterruptCallback(Callback):
+        def __init__(self):
+            super().__init__()
+
+        def on_train_batch_start(self, trainer, pl_module, batch, batch_idx):
+            raise KeyboardInterrupt
+
+    model = BoringModel()
+    trainer = Trainer(
+        callbacks=[InterruptCallback()],
+        barebones=True,
+        default_root_dir=tmp_path,
+    )
+
+    trainer.strategy._launcher = Mock(spec=_SubprocessScriptLauncher)
+    trainer.strategy._launcher.launch = lambda function, *args, trainer, **kwargs: function(*args, **kwargs)
+
+    with pytest.raises(SystemExit) as exc_info:
+        trainer.fit(model)
+    assert exc_info.value.args[0] == 1
+    trainer.strategy._launcher.kill.assert_called_once_with(15 if _IS_WINDOWS else 9)
 
 
 @pytest.mark.parametrize("precision", ["32-true", pytest.param("16-mixed", marks=RunIf(min_cuda_gpus=1))])
@@ -2042,7 +2068,7 @@ def test_trainer_calls_strategy_on_exception(exception_type, tmp_path):
 
     trainer = Trainer(default_root_dir=tmp_path)
     with mock.patch("lightning.pytorch.strategies.strategy.Strategy.on_exception") as on_exception_mock, suppress(
-        Exception
+        Exception, SystemExit
     ):
         trainer.fit(ExceptionModel())
     on_exception_mock.assert_called_once_with(exception)
@@ -2061,7 +2087,7 @@ def test_trainer_calls_datamodule_on_exception(exception_type, tmp_path):
     datamodule.on_exception = Mock()
     trainer = Trainer(default_root_dir=tmp_path)
 
-    with suppress(Exception):
+    with suppress(Exception, SystemExit):
         trainer.fit(ExceptionModel(), datamodule=datamodule)
     datamodule.on_exception.assert_called_once_with(exception)
 

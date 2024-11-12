@@ -226,7 +226,7 @@ def test_loop_restart_progress_multiple_dataloaders(tmp_path, n_dataloaders, sto
         trainer.fit(model)
 
     ckpt_path = str(tmp_path / "on_exception.ckpt")
-    checkpoint = torch.load(ckpt_path)["loops"]["fit_loop"]
+    checkpoint = torch.load(ckpt_path, weights_only=True)["loops"]["fit_loop"]
 
     trainer.fit_loop.load_state_dict(checkpoint)
 
@@ -285,7 +285,7 @@ def test_loop_state_on_exception(accumulate_grad_batches, stop_epoch, stop_batch
 
     ckpt_path = str(tmp_path / "on_exception.ckpt")
     assert os.path.exists(ckpt_path)
-    checkpoint = torch.load(ckpt_path)
+    checkpoint = torch.load(ckpt_path, weights_only=True)
 
     optim_progress = trainer.fit_loop.epoch_loop.automatic_optimization.optim_progress
     sch_progress = trainer.fit_loop.epoch_loop.scheduler_progress
@@ -446,7 +446,7 @@ def test_loop_state_on_complete_run(tmp_path):
 
     ckpt_path = trainer.checkpoint_callback.best_model_path
     assert os.path.exists(ckpt_path)
-    checkpoint = torch.load(ckpt_path)
+    checkpoint = torch.load(ckpt_path, weights_only=True)
 
     n_sch_steps_total = n_epochs
     n_sch_steps_current = 1
@@ -547,7 +547,7 @@ def test_fit_loop_reset(tmp_path):
     trainer.fit(model)
 
     # reset state loaded from a checkpoint from mid-epoch
-    mid_epoch_ckpt = torch.load(str(tmp_path / "epoch=0-step=2.ckpt"))
+    mid_epoch_ckpt = torch.load(str(tmp_path / "epoch=0-step=2.ckpt"), weights_only=True)
     fit_loop = trainer.fit_loop
     epoch_loop = fit_loop.epoch_loop
     optimizer_loop = epoch_loop.automatic_optimization
@@ -578,7 +578,7 @@ def test_fit_loop_reset(tmp_path):
     assert optimizer_loop.restarting
 
     # reset state loaded from a checkpoint from the end of an epoch
-    end_of_epoch_ckpt = torch.load(str(tmp_path / "epoch=0-step=4.ckpt"))
+    end_of_epoch_ckpt = torch.load(str(tmp_path / "epoch=0-step=4.ckpt"), weights_only=True)
     fit_loop = trainer.fit_loop
     epoch_loop = fit_loop.epoch_loop
     fit_loop.restarting = False
@@ -696,7 +696,7 @@ def test_fit_can_fail_during_validation(train_datasets, val_datasets, val_check_
         trainer.fit(model)
 
     assert os.path.exists(ckpt_path)
-    checkpoint = torch.load(ckpt_path)["loops"]["fit_loop"]
+    checkpoint = torch.load(ckpt_path, weights_only=True)["loops"]["fit_loop"]
 
     per_val_train_batches = int(n_batches * val_check_interval)
     assert checkpoint["epoch_loop.batch_progress"] == {
@@ -963,7 +963,7 @@ def test_fit_loop_save_and_restore_dataloaders(
 
     # Save a checkpoint
     trainer.save_checkpoint(tmp_path / "checkpoint.ckpt")
-    checkpoint = torch.load(tmp_path / "checkpoint.ckpt")
+    checkpoint = torch.load(tmp_path / "checkpoint.ckpt", weights_only=True)
     if has_state:
         assert checkpoint["loops"]["fit_loop"]["state_dict"]["combined_loader"]
     else:

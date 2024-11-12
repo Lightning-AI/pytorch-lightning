@@ -17,6 +17,7 @@ import logging
 import numbers
 import weakref
 from contextlib import contextmanager
+from io import BytesIO
 from pathlib import Path
 from typing import (
     IO,
@@ -51,7 +52,6 @@ from lightning.fabric.loggers import Logger as FabricLogger
 from lightning.fabric.utilities.apply_func import convert_to_tensors
 from lightning.fabric.utilities.cloud_io import get_filesystem
 from lightning.fabric.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
-from lightning.fabric.utilities.imports import _IS_WINDOWS, _TORCH_GREATER_EQUAL_2_1
 from lightning.fabric.utilities.types import _MAP_LOCATION_TYPE, _PATH
 from lightning.fabric.wrappers import _FabricOptimizer
 from lightning.pytorch.callbacks.callback import Callback
@@ -67,7 +67,7 @@ from lightning.pytorch.utilities import GradClipAlgorithmType
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.imports import _TORCHMETRICS_GREATER_EQUAL_0_9_1
 from lightning.pytorch.utilities.model_helpers import _restricted_classmethod
-from lightning.pytorch.utilities.rank_zero import WarningCache, rank_zero_debug, rank_zero_warn
+from lightning.pytorch.utilities.rank_zero import WarningCache, rank_zero_warn
 from lightning.pytorch.utilities.signature_utils import is_param_in_hook_signature
 from lightning.pytorch.utilities.types import (
     _METRIC,
@@ -129,7 +129,7 @@ class LightningModule(
         super().__init__(*args, **kwargs)
 
         # pointer to the trainer object
-        self._trainer: Optional["pl.Trainer"] = None
+        self._trainer: Optional[pl.Trainer] = None
 
         # attributes that can be set by user
         self._example_input_array: Optional[Union[Tensor, Tuple, Dict]] = None
@@ -140,15 +140,14 @@ class LightningModule(
         self._current_fx_name: Optional[str] = None
         self._param_requires_grad_state: Dict[str, bool] = {}
         self._metric_attributes: Optional[Dict[int, str]] = None
-        self._register_sharded_tensor_state_dict_hooks_if_available()
         self._compiler_ctx: Optional[Dict[str, Any]] = None
 
         # attributes only used when using fabric
-        self._fabric: Optional["lf.Fabric"] = None
+        self._fabric: Optional[lf.Fabric] = None
         self._fabric_optimizers: List[_FabricOptimizer] = []
 
         # access to device mesh in `conigure_model()` hook
-        self._device_mesh: Optional["DeviceMesh"] = None
+        self._device_mesh: Optional[DeviceMesh] = None
 
     @overload
     def optimizers(
@@ -532,7 +531,7 @@ class LightningModule(
             logger=logger,
             on_step=on_step,
             on_epoch=on_epoch,
-            reduce_fx=reduce_fx,  # type: ignore[arg-type]
+            reduce_fx=reduce_fx,
             enable_graph=enable_graph,
             add_dataloader_idx=add_dataloader_idx,
             batch_size=batch_size,
@@ -1366,7 +1365,7 @@ class LightningModule(
             )
 
     @torch.no_grad()
-    def to_onnx(self, file_path: Union[str, Path], input_sample: Optional[Any] = None, **kwargs: Any) -> None:
+    def to_onnx(self, file_path: Union[str, Path, BytesIO], input_sample: Optional[Any] = None, **kwargs: Any) -> None:
         """Saves the model in ONNX format.
 
         Args:
@@ -1390,9 +1389,7 @@ class LightningModule(
 
         """
         if not _ONNX_AVAILABLE:
-            raise ModuleNotFoundError(
-                f"`torch>=2.0` requires `onnx` to be installed to use `{type(self).__name__}.to_onnx()`"
-            )
+            raise ModuleNotFoundError(f"`{type(self).__name__}.to_onnx()` requires `onnx` to be installed.")
 
         mode = self.training
 
@@ -1407,7 +1404,10 @@ class LightningModule(
         input_sample = self._on_before_batch_transfer(input_sample)
         input_sample = self._apply_batch_transfer_handler(input_sample)
 
-        torch.onnx.export(self, input_sample, str(file_path), **kwargs)
+        file_path = str(file_path) if isinstance(file_path, Path) else file_path
+        # PyTorch (2.5) declares file_path to be str | PathLike[Any] | None, but
+        #               BytesIO does work, too.
+        torch.onnx.export(self, input_sample, file_path, **kwargs)  # type: ignore
         self.train(mode)
 
     @torch.no_grad()
@@ -1584,7 +1584,7 @@ class LightningModule(
 
         """
         loaded = _load_from_checkpoint(
-            cls,  # type: ignore[arg-type]
+            cls,
             checkpoint_path,
             map_location,
             hparams_file,
@@ -1598,24 +1598,6 @@ class LightningModule(
         state = dict(self.__dict__)
         state["_trainer"] = None
         return state
-
-    def _register_sharded_tensor_state_dict_hooks_if_available(self) -> None:
-        """Adds ShardedTensor state dict hooks if ShardedTensors are supported.
-
-        These hooks ensure that ShardedTensors are included when saving, and are loaded the LightningModule correctly.
-
-        """
-        if _TORCH_GREATER_EQUAL_2_1:
-            # ShardedTensor is deprecated in favor of DistributedTensor
-            return
-        if _IS_WINDOWS or not torch.distributed.is_available():
-            rank_zero_debug("Could not register sharded tensor state dict hooks")
-            return
-
-        from torch.distributed._shard.sharded_tensor import pre_load_state_dict_hook, state_dict_hook
-
-        self._register_state_dict_hook(state_dict_hook)
-        self._register_load_state_dict_pre_hook(pre_load_state_dict_hook, True)
 
 
 @contextmanager

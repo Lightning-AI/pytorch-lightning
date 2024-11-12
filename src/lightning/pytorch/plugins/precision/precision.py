@@ -95,7 +95,7 @@ class Precision(FabricPrecision, CheckpointHooks):
     def _wrap_closure(
         self,
         model: "pl.LightningModule",
-        optimizer: Optimizer,
+        optimizer: Steppable,
         closure: Callable[[], Any],
     ) -> Any:
         """This double-closure allows makes sure the ``closure`` is executed before the ``on_before_optimizer_step``
