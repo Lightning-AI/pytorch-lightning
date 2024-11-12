@@ -351,6 +351,7 @@ class _ResultCollection(dict):
 
         return batch_size
 
+    @torch.compiler.disable
     def log(
         self,
         fx: str,
