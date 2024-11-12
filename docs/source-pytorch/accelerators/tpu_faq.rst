@@ -40,9 +40,9 @@ Unsupported datatype transfer to TPUs?
 
 .. code-block::
 
-    File "/usr/local/lib/python3.8/dist-packages/torch_xla/utils/utils.py", line 205, in _for_each_instance_rewrite
+    File "/usr/local/lib/python3.9/dist-packages/torch_xla/utils/utils.py", line 205, in _for_each_instance_rewrite
         v = _for_each_instance_rewrite(result.__dict__[k], select_fn, fn, rwmap)
-    File "/usr/local/lib/python3.8/dist-packages/torch_xla/utils/utils.py", line 206, in _for_each_instance_rewrite
+    File "/usr/local/lib/python3.9/dist-packages/torch_xla/utils/utils.py", line 206, in _for_each_instance_rewrite
         result.__dict__[k] = v
     TypeError: 'mappingproxy' object does not support item assignment
 
