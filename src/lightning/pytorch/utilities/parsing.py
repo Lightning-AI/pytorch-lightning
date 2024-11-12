@@ -61,7 +61,7 @@ def parse_class_init_keys(cls: type) -> tuple[str, Optional[str], Optional[str]]
         ('self', 'my_args', 'my_kwargs')
 
     """
-    init_parameters = inspect.signature(cls.__init__).parameters
+    init_parameters = inspect.signature(cls.__init__).parameters  # type: ignore[misc]
     # docs claims the params are always ordered
     # https://docs.python.org/3/library/inspect.html#inspect.Signature.parameters
     init_params = list(init_parameters.values())

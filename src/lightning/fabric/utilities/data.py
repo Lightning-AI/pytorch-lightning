@@ -367,8 +367,8 @@ def _replace_dunder_methods(base_cls: type, store_explicit_arg: Optional[str] = 
         # Check that __init__ belongs to the class
         # https://stackoverflow.com/a/5253424
         if "__init__" in cls.__dict__:
-            cls.__old__init__ = cls.__init__
-            cls.__init__ = _wrap_init_method(cls.__init__, store_explicit_arg)
+            cls.__old__init__ = cls.__init__  # type: ignore[misc]
+            cls.__init__ = _wrap_init_method(cls.__init__, store_explicit_arg)  # type: ignore[misc]
 
         # we want at least one setattr/delattr in the chain to be patched and it can happen, that none of the subclasses
         # implement `__setattr__`/`__delattr__`. Therefore, we are always patching the `base_cls`
