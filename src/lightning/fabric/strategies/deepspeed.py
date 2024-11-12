@@ -17,10 +17,10 @@ import logging
 import os
 import platform
 from collections.abc import Mapping
-from contextlib import ExitStack
+from contextlib import AbstractContextManager, ExitStack
 from itertools import chain
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable, ContextManager, Optional, Union
+from typing import TYPE_CHECKING, Any, Callable, Optional, Union
 
 import torch
 from lightning_utilities.core.imports import RequirementCache
@@ -353,7 +353,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         raise NotImplementedError(self._err_msg_joint_setup_required())
 
     @override
-    def module_init_context(self, empty_init: Optional[bool] = None) -> ContextManager:
+    def module_init_context(self, empty_init: Optional[bool] = None) -> AbstractContextManager:
         if self.zero_stage_3 and empty_init is False:
             raise NotImplementedError(
                 f"`{empty_init=}` is not a valid choice with `DeepSpeedStrategy` when ZeRO stage 3 is enabled."
@@ -366,7 +366,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         return stack
 
     @override
-    def module_sharded_context(self) -> ContextManager:
+    def module_sharded_context(self) -> AbstractContextManager:
         # Current limitation in Fabric: The config needs to be fully determined at the time of calling the context
         # manager. Later modifications through e.g. `Fabric.setup()` won't have an effect here.
 

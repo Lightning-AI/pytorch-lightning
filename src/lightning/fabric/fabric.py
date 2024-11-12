@@ -14,13 +14,12 @@
 import inspect
 import os
 from collections.abc import Generator, Mapping, Sequence
-from contextlib import contextmanager, nullcontext
+from contextlib import AbstractContextManager, contextmanager, nullcontext
 from functools import partial
 from pathlib import Path
 from typing import (
     Any,
     Callable,
-    ContextManager,
     Optional,
     Union,
     cast,
@@ -484,7 +483,7 @@ class Fabric:
             )
         raise ValueError("You have to specify either `clip_val` or `max_norm` to do gradient clipping!")
 
-    def autocast(self) -> ContextManager:
+    def autocast(self) -> AbstractContextManager:
         """A context manager to automatically convert operations for the chosen precision.
 
         Use this only if the `forward` method of your model does not cover all operations you wish to run with the
@@ -634,7 +633,7 @@ class Fabric:
             if rank == 0:
                 barrier()
 
-    def no_backward_sync(self, module: _FabricModule, enabled: bool = True) -> ContextManager:
+    def no_backward_sync(self, module: _FabricModule, enabled: bool = True) -> AbstractContextManager:
         r"""Skip gradient synchronization during backward to avoid redundant communication overhead.
 
         Use this context manager when performing gradient accumulation to speed up training with multiple devices.
@@ -676,7 +675,7 @@ class Fabric:
         forward_module, _ = _unwrap_compiled(module._forward_module)
         return self._strategy._backward_sync_control.no_backward_sync(forward_module, enabled)
 
-    def sharded_model(self) -> ContextManager:
+    def sharded_model(self) -> AbstractContextManager:
         r"""Instantiate a model under this context manager to prepare it for model-parallel sharding.
 
         .. deprecated:: This context manager is deprecated in favor of :meth:`init_module`, use it instead.
@@ -688,12 +687,12 @@ class Fabric:
             return self.strategy.module_sharded_context()
         return nullcontext()
 
-    def init_tensor(self) -> ContextManager:
+    def init_tensor(self) -> AbstractContextManager:
         """Tensors that you instantiate under this context manager will be created on the device right away and have
         the right data type depending on the precision setting in Fabric."""
         return self._strategy.tensor_init_context()
 
-    def init_module(self, empty_init: Optional[bool] = None) -> ContextManager:
+    def init_module(self, empty_init: Optional[bool] = None) -> AbstractContextManager:
         """Instantiate the model and its parameters under this context manager to reduce peak memory usage.
 
         The parameters get created on the device and with the right data type right away without wasting memory being

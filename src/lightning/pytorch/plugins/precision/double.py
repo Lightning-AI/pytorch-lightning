@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from collections.abc import Generator
-from contextlib import contextmanager
-from typing import Any, ContextManager, Literal
+from contextlib import AbstractContextManager, contextmanager
+from typing import Any, Literal
 
 import torch
 import torch.nn as nn
@@ -38,11 +38,11 @@ class DoublePrecision(Precision):
         return module.double()
 
     @override
-    def tensor_init_context(self) -> ContextManager:
+    def tensor_init_context(self) -> AbstractContextManager:
         return _DtypeContextManager(torch.float64)
 
     @override
-    def module_init_context(self) -> ContextManager:
+    def module_init_context(self) -> AbstractContextManager:
         return self.tensor_init_context()
 
     @override

@@ -13,8 +13,8 @@
 # limitations under the License.
 import inspect
 from collections.abc import Generator
-from contextlib import contextmanager
-from typing import Any, Callable, ContextManager, Optional
+from contextlib import AbstractContextManager, contextmanager
+from typing import Any, Callable, Optional
 
 import torch
 import torch.distributed as dist
@@ -160,7 +160,7 @@ def _no_grad_context(loop_run: Callable) -> Callable:
             raise TypeError(f"`{type(self).__name__}` needs to be a Loop.")
         if not hasattr(self, "inference_mode"):
             raise TypeError(f"`{type(self).__name__}.inference_mode` needs to be defined")
-        context_manager: type[ContextManager]
+        context_manager: type[AbstractContextManager]
         if _distributed_is_initialized() and dist.get_backend() == "gloo":
             # gloo backend does not work properly.
             # https://github.com/Lightning-AI/lightning/pull/12715/files#r854569110

@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from collections.abc import Generator
-from contextlib import contextmanager
-from typing import Any, ContextManager, Literal
+from contextlib import AbstractContextManager, contextmanager
+from typing import Any, Literal
 
 import torch
 from lightning_utilities import apply_to_collection
@@ -44,11 +44,11 @@ class HalfPrecision(Precision):
         return module.to(dtype=self._desired_input_dtype)
 
     @override
-    def tensor_init_context(self) -> ContextManager:
+    def tensor_init_context(self) -> AbstractContextManager:
         return _DtypeContextManager(self._desired_input_dtype)
 
     @override
-    def module_init_context(self) -> ContextManager:
+    def module_init_context(self) -> AbstractContextManager:
         return self.tensor_init_context()
 
     @override

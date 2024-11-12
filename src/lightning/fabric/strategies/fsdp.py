@@ -14,7 +14,7 @@
 import shutil
 import warnings
 from collections.abc import Generator
-from contextlib import ExitStack, nullcontext
+from contextlib import AbstractContextManager, ExitStack, nullcontext
 from datetime import timedelta
 from functools import partial
 from pathlib import Path
@@ -22,7 +22,6 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
-    ContextManager,
     Literal,
     Optional,
     Union,
@@ -335,7 +334,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         pass
 
     @override
-    def module_init_context(self, empty_init: Optional[bool] = None) -> ContextManager:
+    def module_init_context(self, empty_init: Optional[bool] = None) -> AbstractContextManager:
         precision_init_ctx = self.precision.module_init_context()
         module_sharded_ctx = self.module_sharded_context()
         stack = ExitStack()
@@ -349,7 +348,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         return stack
 
     @override
-    def module_sharded_context(self) -> ContextManager:
+    def module_sharded_context(self) -> AbstractContextManager:
         from torch.distributed.fsdp.fully_sharded_data_parallel import FullyShardedDataParallel
         from torch.distributed.fsdp.wrap import enable_wrap
 
@@ -740,7 +739,7 @@ def _setup_activation_checkpointing(module: Module, activation_checkpointing_kwa
 
 class _FSDPBackwardSyncControl(_BackwardSyncControl):
     @override
-    def no_backward_sync(self, module: Module, enabled: bool) -> ContextManager:
+    def no_backward_sync(self, module: Module, enabled: bool) -> AbstractContextManager:
         """Blocks gradient synchronization inside the :class:`~torch.distributed.fsdp.FullyShardedDataParallel`
         wrapper."""
         if not enabled:

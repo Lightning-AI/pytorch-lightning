@@ -16,9 +16,10 @@
 import inspect
 import logging
 import os
+from contextlib import AbstractContextManager
 from functools import lru_cache, partial
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable, ContextManager, Optional, Union
+from typing import TYPE_CHECKING, Any, Callable, Optional, Union
 
 import torch
 from torch import Tensor, nn
@@ -305,7 +306,7 @@ class PyTorchProfiler(Profiler):
         self.function_events: Optional[EventList] = None
         self._lightning_module: Optional[LightningModule] = None  # set by ProfilerConnector
         self._register: Optional[RegisterRecordFunction] = None
-        self._parent_profiler: Optional[ContextManager] = None
+        self._parent_profiler: Optional[AbstractContextManager] = None
         self._recording_map: dict[str, record_function] = {}
         self._start_action_name: Optional[str] = None
         self._schedule: Optional[ScheduleWrapper] = None

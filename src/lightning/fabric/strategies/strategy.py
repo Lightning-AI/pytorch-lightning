@@ -14,8 +14,8 @@
 import logging
 from abc import ABC, abstractmethod
 from collections.abc import Iterable
-from contextlib import ExitStack
-from typing import Any, Callable, ContextManager, Optional, TypeVar, Union
+from contextlib import AbstractContextManager, ExitStack
+from typing import Any, Callable, Optional, TypeVar, Union
 
 import torch
 from torch import Tensor
@@ -118,7 +118,7 @@ class Strategy(ABC):
         """
         return dataloader
 
-    def tensor_init_context(self) -> ContextManager:
+    def tensor_init_context(self) -> AbstractContextManager:
         """Controls how tensors get created (device, dtype)."""
         precision_init_ctx = self.precision.tensor_init_context()
         stack = ExitStack()
@@ -126,7 +126,7 @@ class Strategy(ABC):
         stack.enter_context(precision_init_ctx)
         return stack
 
-    def module_init_context(self, empty_init: Optional[bool] = None) -> ContextManager:
+    def module_init_context(self, empty_init: Optional[bool] = None) -> AbstractContextManager:
         """A context manager wrapping the model instantiation.
 
         Here, the strategy can control how the parameters of the model get created (device, dtype) and or apply other
@@ -422,7 +422,7 @@ class _BackwardSyncControl(ABC):
     """
 
     @abstractmethod
-    def no_backward_sync(self, module: Module, enabled: bool) -> ContextManager:
+    def no_backward_sync(self, module: Module, enabled: bool) -> AbstractContextManager:
         """Blocks the synchronization of gradients during the backward pass.
 
         This is a context manager. It is only effective if it wraps a call to `.backward()`.
@@ -434,7 +434,7 @@ class _Sharded(ABC):
     """Mixin-interface for any :class:`Strategy` that wants to expose functionality for sharding model parameters."""
 
     @abstractmethod
-    def module_sharded_context(self) -> ContextManager:
+    def module_sharded_context(self) -> AbstractContextManager:
         """A context manager that goes over the instantiation of an :class:`torch.nn.Module` and handles sharding of
         parameters on creation.
 

@@ -14,10 +14,10 @@
 import itertools
 import shutil
 from collections.abc import Generator
-from contextlib import ExitStack
+from contextlib import AbstractContextManager, ExitStack
 from datetime import timedelta
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable, ContextManager, Literal, Optional, TypeVar, Union
+from typing import TYPE_CHECKING, Any, Callable, Literal, Optional, TypeVar, Union
 
 import torch
 from lightning_utilities.core.rank_zero import rank_zero_only as utils_rank_zero_only
@@ -195,7 +195,7 @@ class ModelParallelStrategy(ParallelStrategy):
         pass
 
     @override
-    def module_init_context(self, empty_init: Optional[bool] = None) -> ContextManager:
+    def module_init_context(self, empty_init: Optional[bool] = None) -> AbstractContextManager:
         precision_init_ctx = self.precision.module_init_context()
         stack = ExitStack()
         if empty_init:
@@ -319,12 +319,12 @@ class ModelParallelStrategy(ParallelStrategy):
 
 class _ParallelBackwardSyncControl(_BackwardSyncControl):
     @override
-    def no_backward_sync(self, module: Module, enabled: bool) -> ContextManager:
+    def no_backward_sync(self, module: Module, enabled: bool) -> AbstractContextManager:
         """Blocks gradient synchronization inside the FSDP2 modules."""
         return _FSDPNoSync(module=module, enabled=enabled)
 
 
-class _FSDPNoSync(ContextManager):
+class _FSDPNoSync(AbstractContextManager):
     def __init__(self, module: Module, enabled: bool) -> None:
         self._module = module
         self._enabled = enabled

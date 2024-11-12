@@ -17,10 +17,10 @@ import math
 import os
 import warnings
 from collections import OrderedDict
-from contextlib import ExitStack
+from contextlib import AbstractContextManager, ExitStack
 from functools import partial
 from types import ModuleType
-from typing import Any, Callable, ContextManager, Literal, Optional, cast
+from typing import Any, Callable, Literal, Optional, cast
 
 import torch
 from lightning_utilities import apply_to_collection
@@ -123,11 +123,11 @@ class BitsandbytesPrecision(Precision):
         return module
 
     @override
-    def tensor_init_context(self) -> ContextManager:
+    def tensor_init_context(self) -> AbstractContextManager:
         return _DtypeContextManager(self.dtype)
 
     @override
-    def module_init_context(self) -> ContextManager:
+    def module_init_context(self) -> AbstractContextManager:
         if self.ignore_modules:
             # cannot patch the Linear class if the user wants to skip some submodules
             raise RuntimeError(
@@ -145,7 +145,7 @@ class BitsandbytesPrecision(Precision):
         return stack
 
     @override
-    def forward_context(self) -> ContextManager:
+    def forward_context(self) -> AbstractContextManager:
         return _DtypeContextManager(self.dtype)
 
     @override

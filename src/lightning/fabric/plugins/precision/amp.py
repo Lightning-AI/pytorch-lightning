@@ -11,7 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, ContextManager, Literal, Optional
+from contextlib import AbstractContextManager
+from typing import Any, Literal, Optional
 
 import torch
 from lightning_utilities.core.apply_func import apply_to_collection
@@ -59,7 +60,7 @@ class MixedPrecision(Precision):
         self._desired_input_dtype = torch.bfloat16 if self.precision == "bf16-mixed" else torch.float16
 
     @override
-    def forward_context(self) -> ContextManager:
+    def forward_context(self) -> AbstractContextManager:
         return torch.autocast(self.device, dtype=self._desired_input_dtype)
 
     @override

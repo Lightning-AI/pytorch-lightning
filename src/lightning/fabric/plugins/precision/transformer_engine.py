@@ -13,8 +13,8 @@
 # limitations under the License.
 import logging
 from collections.abc import Mapping
-from contextlib import ExitStack
-from typing import TYPE_CHECKING, Any, ContextManager, Literal, Optional, Union
+from contextlib import AbstractContextManager, ExitStack
+from typing import TYPE_CHECKING, Any, Literal, Optional, Union
 
 import torch
 from lightning_utilities import apply_to_collection
@@ -107,11 +107,11 @@ class TransformerEnginePrecision(Precision):
         return module
 
     @override
-    def tensor_init_context(self) -> ContextManager:
+    def tensor_init_context(self) -> AbstractContextManager:
         return _DtypeContextManager(self.weights_dtype)
 
     @override
-    def module_init_context(self) -> ContextManager:
+    def module_init_context(self) -> AbstractContextManager:
         dtype_ctx = self.tensor_init_context()
         stack = ExitStack()
         if self.replace_layers:
@@ -126,7 +126,7 @@ class TransformerEnginePrecision(Precision):
         return stack
 
     @override
-    def forward_context(self) -> ContextManager:
+    def forward_context(self) -> AbstractContextManager:
         dtype_ctx = _DtypeContextManager(self.weights_dtype)
         fallback_autocast_ctx = torch.autocast(device_type="cuda", dtype=self.fallback_compute_dtype)
         import transformer_engine.pytorch as te
