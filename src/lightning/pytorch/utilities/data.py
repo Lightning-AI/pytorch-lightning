@@ -349,7 +349,8 @@ def _is_dataloader_shuffled(dataloader: object) -> bool:
     if not hasattr(dataloader, "sampler"):
         # shuffling is enabled via a sampler. No sampler, no shuffling
         return False
-    sampler = dataloader.sampler
+    batch_sampler = dataloader.batch_sampler
+    sampler = batch_sampler.sampler if batch_sampler is not None else dataloader.sampler
     if isinstance(sampler, SequentialSampler):
         return False
     return isinstance(sampler, RandomSampler)
