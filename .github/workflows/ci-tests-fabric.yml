@@ -111,6 +111,7 @@ jobs:
           for fpath in `ls requirements/**/*.txt`; do \
             python ./adjust-torch-versions.py $fpath ${{ matrix.pytorch-version }}; \
           done
+          pip install "pyyaml==5.4" --no-build-isolation
 
       - name: pip wheels cache
         uses: actions/cache/restore@v4
