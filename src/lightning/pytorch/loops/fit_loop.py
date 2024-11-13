@@ -13,7 +13,7 @@
 # limitations under the License.
 import logging
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Optional, Union
 
 import torch
 from typing_extensions import override
@@ -104,7 +104,7 @@ class _FitLoop(_Loop):
 
         self._data_source = _DataLoaderSource(None, "train_dataloader")
         self._combined_loader: Optional[CombinedLoader] = None
-        self._combined_loader_states_to_load: List[Dict[str, Any]] = []
+        self._combined_loader_states_to_load: list[dict[str, Any]] = []
         self._data_fetcher: Optional[_DataFetcher] = None
         self._last_train_dl_reload_epoch = float("-inf")
         self._restart_stage = RestartStage.NONE
@@ -504,14 +504,14 @@ class _FitLoop(_Loop):
         self.epoch_loop.teardown()
 
     @override
-    def on_save_checkpoint(self) -> Dict:
+    def on_save_checkpoint(self) -> dict:
         state_dict = super().on_save_checkpoint()
         if self._combined_loader is not None and (loader_states := self._combined_loader._state_dicts()):
             state_dict["combined_loader"] = loader_states
         return state_dict
 
     @override
-    def on_load_checkpoint(self, state_dict: Dict) -> None:
+    def on_load_checkpoint(self, state_dict: dict) -> None:
         self._combined_loader_states_to_load = state_dict.get("combined_loader", [])
         super().on_load_checkpoint(state_dict)
 
