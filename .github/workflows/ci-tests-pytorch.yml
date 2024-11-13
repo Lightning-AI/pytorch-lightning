@@ -106,7 +106,10 @@ jobs:
 
       - name: Set min. dependencies
         if: ${{ matrix.requires == 'oldest' }}
-        run: python .actions/assistant.py replace_oldest_ver
+        run: |
+          python .actions/assistant.py replace_oldest_ver
+          pip install "cython<3.0" wheel
+          pip install "pyyaml==5.4" --no-build-isolation
 
       - name: Adjust PyTorch versions in requirements files
         if: ${{ matrix.requires != 'oldest' }}
@@ -117,7 +120,6 @@ jobs:
             python ./adjust-torch-versions.py $fpath ${{ matrix.pytorch-version }}; \
           done
           cat requirements/pytorch/base.txt
-          pip install "pyyaml==5.4" --no-build-isolation
 
       - name: pip wheels cache
         uses: actions/cache/restore@v4
