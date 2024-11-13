@@ -40,9 +40,9 @@ subprojects:
       - "pl-cpu (macOS-14, pytorch, 3.9, 2.1)"
       - "pl-cpu (ubuntu-20.04, pytorch, 3.9, 2.1)"
       - "pl-cpu (windows-2022, pytorch, 3.9, 2.1)"
-      - "pl-cpu (macOS-14, pytorch, 3.10, 2.1)"
-      - "pl-cpu (ubuntu-22.04, pytorch, 3.10, 2.1)"
-      - "pl-cpu (windows-2022, pytorch, 3.10, 2.1)"
+      - "pl-cpu (macOS-14, pytorch, 3.12, 2.5.1)"
+      - "pl-cpu (ubuntu-22.04, pytorch, 3.12, 2.5.1)"
+      - "pl-cpu (windows-2022, pytorch, 3.12, 2.5.1)"
 
   - id: "pytorch_lightning: Azure GPU"
     paths:
@@ -192,9 +192,9 @@ subprojects:
       - "fabric-cpu (macOS-14, fabric, 3.9, 2.1)"
       - "fabric-cpu (ubuntu-20.04, fabric, 3.9, 2.1)"
       - "fabric-cpu (windows-2022, fabric, 3.9, 2.1)"
-      - "fabric-cpu (macOS-14, fabric, 3.10, 2.1)"
-      - "fabric-cpu (ubuntu-22.04, fabric, 3.10, 2.1)"
-      - "fabric-cpu (windows-2022, fabric, 3.10, 2.1)"
+      - "fabric-cpu (macOS-14, fabric, 3.12, 2.5.1)"
+      - "fabric-cpu (ubuntu-22.04, fabric, 3.12, 2.5.1)"
+      - "fabric-cpu (windows-2022, fabric, 3.12, 2.5.1)"
 
   - id: "lightning_fabric: Azure GPU"
     paths:
