@@ -68,6 +68,10 @@ class _ReadyCompletedTracker(_BaseProgress):
         """
         self.ready = self.completed
 
+    def increment_by(self, n: int) -> None:
+        self.ready += n
+        self.completed += n
+
 
 @dataclass
 class _StartedTracker(_ReadyCompletedTracker):
@@ -93,6 +97,11 @@ class _StartedTracker(_ReadyCompletedTracker):
     def reset_on_restart(self) -> None:
         super().reset_on_restart()
         self.started = self.completed
+
+    @override
+    def increment_by(self, n: int) -> None:
+        super().increment_by(n)
+        self.started += n
 
 
 @dataclass
@@ -120,6 +129,11 @@ class _ProcessedTracker(_StartedTracker):
     def reset_on_restart(self) -> None:
         super().reset_on_restart()
         self.processed = self.completed
+
+    @override
+    def increment_by(self, n: int) -> None:
+        super().increment_by(n)
+        self.processed += n
 
 
 @dataclass
@@ -175,6 +189,10 @@ class _Progress(_BaseProgress):
     def reset_on_restart(self) -> None:
         self.current.reset_on_restart()
 
+    def increment_by(self, n: int) -> None:
+        self.total.increment_by(n)
+        self.current.increment_by(n)
+
     @override
     def load_state_dict(self, state_dict: dict) -> None:
         self.total.load_state_dict(state_dict["total"])
@@ -205,6 +223,10 @@ class _BatchProgress(_Progress):
     def reset_on_run(self) -> None:
         super().reset_on_run()
         self.is_last_batch = False
+
+    def increment_by(self, n: int, is_last_batch: bool = False) -> None:
+        super().increment_by(n)
+        self.is_last_batch = is_last_batch
 
     @override
     def load_state_dict(self, state_dict: dict) -> None:
