@@ -299,7 +299,7 @@ class MLFlowLogger(Logger):
 
         """
         if self._tracking_uri.startswith(LOCAL_FILE_URI_PREFIX):
-            return self._tracking_uri.lstrip(LOCAL_FILE_URI_PREFIX)
+            return self._tracking_uri[len(LOCAL_FILE_URI_PREFIX) :]
         return None
 
     @property
@@ -360,7 +360,7 @@ class MLFlowLogger(Logger):
             aliases = ["latest", "best"] if p == checkpoint_callback.best_model_path else ["latest"]
 
             # Artifact path on mlflow
-            artifact_path = f"model/checkpoints/{Path(p).stem}"
+            artifact_path = Path(p).stem
 
             # Log the checkpoint
             self.experiment.log_artifact(self._run_id, p, artifact_path)
