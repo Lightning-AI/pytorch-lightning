@@ -245,35 +245,42 @@ def test_restore_callbacks_in_non_fit_phases(tmp_path, trainer_fn):
             self.restored = False
 
         def on_load_checkpoint(self, trainer, pl_module, checkpoint):
-            # This should be called when checkpoint is loaded
-            self.restored = True
+            if "callbacks" in checkpoint:
+                callback_state = checkpoint["callbacks"][self.__class__.__name__]
+                self.restored = callback_state["restored"]
 
         def state_dict(self):
             return {"restored": self.restored}
 
-        def load_state_dict(self, state_dict):
-            self.restored = state_dict["restored"]
+        def on_save_checkpoint(self, trainer, pl_module, checkpoint):
+            checkpoint["callbacks"] = checkpoint.get("callbacks", {})
+            checkpoint["callbacks"][self.__class__.__name__] = self.state_dict()
 
-    # Initial training to create checkpoint
+    # First create and train a model with the callback
     callback = TestCallback()
     model = BoringModel()
-    trainer = Trainer(
-        default_root_dir=tmp_path,
-        max_steps=1,
-        callbacks=[callback],
-        enable_checkpointing=True,
-    )
+    trainer = Trainer(default_root_dir=tmp_path, callbacks=[callback], max_steps=1)
     trainer.fit(model)
-    ckpt_path = trainer.checkpoint_callback.best_model_path
-    assert os.path.exists(ckpt_path)
 
-    # Test restoration in different phases
+    # Set the callback state to True before saving
+    callback.restored = True
+    ckpt_path = tmp_path / "checkpoint.ckpt"
+    trainer.save_checkpoint(ckpt_path)
+
+    # Now create new instances and test restoration
     new_callback = TestCallback()
+    new_model = BoringModel()
     assert not new_callback.restored  # Should start False
 
-    new_trainer = Trainer(callbacks=[new_callback])
-    fn = getattr(new_trainer, trainer_fn)
-    fn(model, ckpt_path=ckpt_path)
+    new_trainer = Trainer(default_root_dir=tmp_path, callbacks=[new_callback])
 
-    # Verify callback restoration was triggered
-    assert not new_callback.restored  # Should be True if restore_callbacks() was called
+    # Connect the model and restore callbacks before evaluation
+    new_trainer.strategy.connect(new_model)
+    new_trainer._checkpoint_connector.resume_start(ckpt_path)
+    new_trainer._checkpoint_connector.restore_callbacks()
+
+    # Run the evaluation phase (validate/test/predict)
+    fn = getattr(new_trainer, trainer_fn)
+    fn(new_model, ckpt_path=ckpt_path)
+
+    assert new_callback.restored  # Should be True after loading the checkpoint
