@@ -299,7 +299,7 @@ class MLFlowLogger(Logger):
 
         """
         if self._tracking_uri.startswith(LOCAL_FILE_URI_PREFIX):
-            return self._tracking_uri.lstrip(LOCAL_FILE_URI_PREFIX)
+            return self._tracking_uri[len(LOCAL_FILE_URI_PREFIX) :]
         return None
 
     @property
