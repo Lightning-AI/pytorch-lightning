@@ -48,13 +48,13 @@ class CPUAccelerator(Accelerator):
 
     @staticmethod
     @override
-    def parse_devices(devices: Union[int, str, List[int]]) -> int:
+    def parse_devices(devices: Union[int, str]) -> int:
         """Accelerator device parsing logic."""
         return _parse_cpu_cores(devices)
 
     @staticmethod
     @override
-    def get_parallel_devices(devices: Union[int, str, List[int]]) -> List[torch.device]:
+    def get_parallel_devices(devices: Union[int, str]) -> List[torch.device]:
         """Gets parallel devices for the Accelerator."""
         devices = _parse_cpu_cores(devices)
         return [torch.device("cpu")] * devices
