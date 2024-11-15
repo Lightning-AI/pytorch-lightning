@@ -347,6 +347,14 @@ _CUDA_FLOPS: Dict[str, Dict[Union[str, torch.dtype], float]] = {
         torch.int8: 389.9e12,
         "int4": 779.8e12,
     },
+    "rtx 4080 super": {
+        torch.float32: 52.2e12,
+        "tfloat32": 52.2e12,
+        torch.bfloat16: 52.2e12,
+        torch.float16: 52.2e12,
+        torch.int8: 417.6e12,
+        "int4": 835.2e12,
+    },
     "l4": {
         torch.float32: 30.3e12,
         "tfloat32": 60e12,

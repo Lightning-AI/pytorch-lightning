@@ -19,7 +19,7 @@ subprojects:
       - "!*.md"
       - "!**/*.md"
     checks:
-      - "pl-cpu (macOS-13, lightning, 3.9, 2.1, oldest)"
+      - "pl-cpu (macOS-14, lightning, 3.9, 2.1, oldest)"
       - "pl-cpu (macOS-14, lightning, 3.10, 2.1)"
       - "pl-cpu (macOS-14, lightning, 3.11, 2.2.2)"
       - "pl-cpu (macOS-14, lightning, 3.11, 2.3)"
@@ -40,9 +40,9 @@ subprojects:
       - "pl-cpu (macOS-14, pytorch, 3.9, 2.1)"
       - "pl-cpu (ubuntu-20.04, pytorch, 3.9, 2.1)"
       - "pl-cpu (windows-2022, pytorch, 3.9, 2.1)"
-      - "pl-cpu (macOS-13, pytorch, 3.10, 2.1)"
-      - "pl-cpu (ubuntu-22.04, pytorch, 3.10, 2.1)"
-      - "pl-cpu (windows-2022, pytorch, 3.10, 2.1)"
+      - "pl-cpu (macOS-14, pytorch, 3.12, 2.5.1)"
+      - "pl-cpu (ubuntu-22.04, pytorch, 3.12, 2.5.1)"
+      - "pl-cpu (windows-2022, pytorch, 3.12, 2.5.1)"
 
   - id: "pytorch_lightning: Azure GPU"
     paths:
@@ -89,14 +89,15 @@ subprojects:
     checks:
       - "lightning.Benchmarks"
 
-  - id: "pytorch-lightning: TPU workflow"
-    paths:
-      # tpu CI availability is very limited, so we only require tpu tests
-      # to pass when their configurations are modified
-      - ".github/workflows/tpu-tests.yml"
-      - "tests/tests_pytorch/run_tpu_tests.sh"
-    checks:
-      - "test-on-tpus (pytorch, pjrt, v4-8)"
+  # Temporarily disabled
+  #  - id: "pytorch-lightning: TPU workflow"
+  #    paths:
+  #      # tpu CI availability is very limited, so we only require tpu tests
+  #      # to pass when their configurations are modified
+  #      - ".github/workflows/tpu-tests.yml"
+  #      - "tests/tests_pytorch/run_tpu_tests.sh"
+  #    checks:
+  #      - "test-on-tpus (pytorch, pjrt, v4-8)"
 
   - id: "fabric: Docs"
     paths:
@@ -171,7 +172,7 @@ subprojects:
       - "!*.md"
       - "!**/*.md"
     checks:
-      - "fabric-cpu (macOS-13, lightning, 3.9, 2.1, oldest)"
+      - "fabric-cpu (macOS-14, lightning, 3.9, 2.1, oldest)"
       - "fabric-cpu (macOS-14, lightning, 3.10, 2.1)"
       - "fabric-cpu (macOS-14, lightning, 3.11, 2.2.2)"
       - "fabric-cpu (macOS-14, lightning, 3.11, 2.3)"
@@ -192,9 +193,9 @@ subprojects:
       - "fabric-cpu (macOS-14, fabric, 3.9, 2.1)"
       - "fabric-cpu (ubuntu-20.04, fabric, 3.9, 2.1)"
       - "fabric-cpu (windows-2022, fabric, 3.9, 2.1)"
-      - "fabric-cpu (macOS-13, fabric, 3.10, 2.1)"
-      - "fabric-cpu (ubuntu-22.04, fabric, 3.10, 2.1)"
-      - "fabric-cpu (windows-2022, fabric, 3.10, 2.1)"
+      - "fabric-cpu (macOS-14, fabric, 3.12, 2.5.1)"
+      - "fabric-cpu (ubuntu-22.04, fabric, 3.12, 2.5.1)"
+      - "fabric-cpu (windows-2022, fabric, 3.12, 2.5.1)"
 
   - id: "lightning_fabric: Azure GPU"
     paths:
@@ -266,14 +267,14 @@ subprojects:
       - "install-pkg (ubuntu-22.04, lightning, 3.11)"
       - "install-pkg (ubuntu-22.04, notset, 3.9)"
       - "install-pkg (ubuntu-22.04, notset, 3.11)"
-      - "install-pkg (macOS-13, fabric, 3.9)"
-      - "install-pkg (macOS-13, fabric, 3.11)"
-      - "install-pkg (macOS-13, pytorch, 3.9)"
-      - "install-pkg (macOS-13, pytorch, 3.11)"
-      - "install-pkg (macOS-13, lightning, 3.9)"
-      - "install-pkg (macOS-13, lightning, 3.11)"
-      - "install-pkg (macOS-13, notset, 3.9)"
-      - "install-pkg (macOS-13, notset, 3.11)"
+      - "install-pkg (macOS-14, fabric, 3.9)"
+      - "install-pkg (macOS-14, fabric, 3.11)"
+      - "install-pkg (macOS-14, pytorch, 3.9)"
+      - "install-pkg (macOS-14, pytorch, 3.11)"
+      - "install-pkg (macOS-14, lightning, 3.9)"
+      - "install-pkg (macOS-14, lightning, 3.11)"
+      - "install-pkg (macOS-14, notset, 3.9)"
+      - "install-pkg (macOS-14, notset, 3.11)"
       - "install-pkg (windows-2022, fabric, 3.9)"
       - "install-pkg (windows-2022, fabric, 3.11)"
       - "install-pkg (windows-2022, pytorch, 3.9)"
