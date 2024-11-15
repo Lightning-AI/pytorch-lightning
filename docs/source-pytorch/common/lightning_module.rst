@@ -1074,19 +1074,19 @@ recurrent network trajectories."
 
         def __init__(self):
             super().__init__()
-            
+
             # 1. Switch to manual optimization
             self.automatic_optimization = False
-            
+
             self.truncated_bptt_steps = 10
             self.my_rnn = ...
-            
+
         # 2. Remove the `hiddens` argument
         def training_step(self, batch, batch_idx):
-            
+
             # 3. Split the batch in chunks along the time dimension
             split_batches = split_batch(batch, self.truncated_bptt_steps)
-            
+
             hiddens = ...  # 3. Choose the initial hidden state
             for split_batch in range(split_batches):
                 # 4. Perform the optimization in a loop
@@ -1094,10 +1094,10 @@ recurrent network trajectories."
                 self.backward(loss)
                 optimizer.step()
                 optimizer.zero_grad()
-                
+
                 # 5. "Truncate"
                 hiddens = hiddens.detach()
-            
+
             # 6. Remove the return of `hiddens`
             # Returning loss in manual optimization is not needed
             return None
