@@ -531,7 +531,7 @@ class LightningModule(
             logger=logger,
             on_step=on_step,
             on_epoch=on_epoch,
-            reduce_fx=reduce_fx,  # type: ignore[arg-type]
+            reduce_fx=reduce_fx,
             enable_graph=enable_graph,
             add_dataloader_idx=add_dataloader_idx,
             batch_size=batch_size,
@@ -1405,7 +1405,9 @@ class LightningModule(
         input_sample = self._apply_batch_transfer_handler(input_sample)
 
         file_path = str(file_path) if isinstance(file_path, Path) else file_path
-        torch.onnx.export(self, input_sample, file_path, **kwargs)
+        # PyTorch (2.5) declares file_path to be str | PathLike[Any] | None, but
+        #               BytesIO does work, too.
+        torch.onnx.export(self, input_sample, file_path, **kwargs)  # type: ignore
         self.train(mode)
 
     @torch.no_grad()
