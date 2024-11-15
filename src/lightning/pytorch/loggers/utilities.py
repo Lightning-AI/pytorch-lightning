@@ -63,16 +63,16 @@ def _log_hyperparams(trainer: "pl.Trainer") -> None:
     pl_module = trainer.lightning_module
     datamodule_log_hyperparams = trainer.datamodule._log_hyperparams if trainer.datamodule is not None else False
 
+    lightningcli_internal_hparams = {"_class_path", "_instantiator"}
+
     hparams_initial = None
     if pl_module._log_hyperparams and datamodule_log_hyperparams:
         datamodule_hparams = trainer.datamodule.hparams_initial
         lightning_hparams = pl_module.hparams_initial
         inconsistent_keys = []
         for key in lightning_hparams.keys() & datamodule_hparams.keys():
-            if key in {"_class_path", "_instantiator"}:
-                # Prevent merging LightningCLI's internal hparams
-                lightning_hparams.pop(key)
-                datamodule_hparams.pop(key)
+            if key in lightningcli_internal_hparams:
+                # Skip LightningCLI's internal hparams
                 continue
             lm_val, dm_val = lightning_hparams[key], datamodule_hparams[key]
             if (
@@ -92,6 +92,10 @@ def _log_hyperparams(trainer: "pl.Trainer") -> None:
         hparams_initial = pl_module.hparams_initial
     elif datamodule_log_hyperparams:
         hparams_initial = trainer.datamodule.hparams_initial
+
+    # Don't log LightningCLI's internal hparams
+    if hparams_initial is not None:
+        hparams_initial = {k: v for k, v in hparams_initial.items() if k not in lightningcli_internal_hparams}
 
     for logger in trainer.loggers:
         if hparams_initial is not None:
