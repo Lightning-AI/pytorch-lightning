@@ -1061,11 +1061,6 @@ split along the time-dimensions into splits of size k to the
 ``training_step``. In order to keep the same forward propagation behavior, all
 hidden states should be kept in-between each time-dimension split.
 
-(`Williams et al. "An efficient gradient-based algorithm for on-line training of
-recurrent network trajectories."
-<http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.56.7941&rep=rep1&type=pdf>`_)
-
-`Tutorial <https://d2l.ai/chapter_recurrent-neural-networks/bptt.html>`_
 
 .. code-block:: python
     import lightning as L
