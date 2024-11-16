@@ -1062,7 +1062,7 @@ split along the time-dimensions into splits of size k to the
 hidden states should be kept in-between each time-dimension split.
 
 
-.. code-block:: python
+.. testcode:: python
     import lightning as L
 
     class LitModel(L.LightningModule):
