@@ -49,7 +49,8 @@ tests=($(grep -oP '\S+::test_\S+' "$COLLECTED_TESTS_FILE"))
 test_count=${#tests[@]}
 # present the collected tests
 printf "collected $test_count tests:\n-------------------\n"
-echo $(IFS='\n'; echo "${tests[@]}")
+# replace space with new line
+echo "${tests[@]}" | tr ' ' '\n'
 printf "\n===================\n"
 
 # if test count is one print warning
