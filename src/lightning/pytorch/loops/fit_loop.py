@@ -34,22 +34,6 @@ from lightning.pytorch.trainer.connectors.data_connector import (
     _request_dataloader,
     _resolve_overfit_batches,
 )
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 from lightning.pytorch.trainer.connectors.logger_connector.result import _ResultCollection
 from lightning.pytorch.trainer.states import RunningStage, TrainerFn
 from lightning.pytorch.utilities.combined_loader import _SUPPORTED_MODES, CombinedLoader
@@ -231,6 +215,7 @@ class _FitLoop(_Loop):
 
         This method checks if the data loader needs to be reloaded based on the current epoch and the specified
         conditions. It initializes the combined loader for training and handles overfitting scenarios.
+
         """
         if self._combined_loader is not None and not self._should_reload_train_dl:
             return  # No need to reload if already set up and not required
