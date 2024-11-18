@@ -19,6 +19,7 @@ set -e
 # It can be set through the env variable PL_STANDALONE_TESTS_BATCH_SIZE and defaults to 6 if not set
 test_batch_size="${PL_STANDALONE_TESTS_BATCH_SIZE:-6}"
 source="${PL_STANDALONE_TESTS_SOURCE:-"lightning"}"
+COLLECTED_TESTS_FILE="collected_tests.txt"
 
 # this environment variable allows special tests to run
 export PL_RUN_STANDALONE_TESTS=1
@@ -28,7 +29,7 @@ echo "Using defaults: ${defaults}"
 
 # get the list of parametrizations. we need to call them separately. the last two lines are removed.
 # note: if there's a syntax error, this will fail with some garbled output
-python3 -um pytest -q --collect-only --pythonwarnings ignore 2>&1 > "$COLLECTED_TESTS_FILE"
+python3 -um pytest -q --collect-only --pythonwarnings ignore 2>&1 > $COLLECTED_TESTS_FILE
 # early terminate if collection failed (e.g. syntax error)
 if [[ $? != 0 ]]; then
   cat $COLLECTED_TESTS_FILE
