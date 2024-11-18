@@ -70,7 +70,8 @@ pids=() # array of PID for running tests
 test_ids=() # array of indexes of running tests
 printf "Running $test_count tests in batches of $test_batch_size\n"
 for i in "${!tests[@]}"; do
-  test=${tests[$i]}
+  # remove initial "tests/" from the test name
+  test=${tests[$i]/tests\//}
   printf "Running test $((i+1))/$test_count: $test\n"
 
   # execute the test in the background
