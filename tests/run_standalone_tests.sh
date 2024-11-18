@@ -34,7 +34,7 @@ echo "Using defaults: ${defaults}"
 
 # get the list of parametrizations. we need to call them separately. the last two lines are removed.
 # note: if there's a syntax error, this will fail with some garbled output
-python3 -um pytest -q --collect-only --pythonwarnings ignore 2>&1 > $COLLECTED_TESTS_FILE
+python3 -um pytest $test_dir -q --collect-only --pythonwarnings ignore 2>&1 > $COLLECTED_TESTS_FILE
 # early terminate if collection failed (e.g. syntax error)
 if [[ $? != 0 ]]; then
   cat $COLLECTED_TESTS_FILE
