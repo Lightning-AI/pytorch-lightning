@@ -23,7 +23,7 @@ source="${PL_STANDALONE_TESTS_SOURCE:-"lightning"}"
 test_dir=$1 # parse the first argument
 COLLECTED_TESTS_FILE="collected_tests.txt"
 
-cd ${test_dir}
+#cd ${test_dir}
 ls -lh .  # show the contents of the directory
 
 # this environment variable allows special tests to run
