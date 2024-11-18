@@ -21,6 +21,9 @@ test_batch_size="${PL_STANDALONE_TESTS_BATCH_SIZE:-6}"
 source="${PL_STANDALONE_TESTS_SOURCE:-"lightning"}"
 COLLECTED_TESTS_FILE="collected_tests.txt"
 
+cd ${test_dir}
+ls -lh .  # show the contents of the directory
+
 # this environment variable allows special tests to run
 export PL_RUN_STANDALONE_TESTS=1
 # python arguments
