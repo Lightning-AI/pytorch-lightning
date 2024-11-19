@@ -7,6 +7,8 @@ on: # Trigger the workflow on push or pull request, but only for the master bran
     tags: ["v?[0-9]+.[0-9]+.[0-9]+"]
   release:
     types: [published]
+  pull_request:
+    branches: [main]
 
 defaults:
   run:
@@ -25,7 +27,7 @@ jobs:
       - name: Set up Python 🐍
         uses: actions/setup-python@v5
         with:
-          python-version: 3.8
+          python-version: "3.9"
 
       - name: Prepare build env.
         run: pip install -r ./requirements/gha-package.txt
