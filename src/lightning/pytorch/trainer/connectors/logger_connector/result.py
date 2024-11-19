@@ -351,6 +351,7 @@ class _ResultCollection(dict):
 
         return batch_size
 
+    @torch.compiler.disable
     def log(
         self,
         fx: str,
@@ -413,6 +414,7 @@ class _ResultCollection(dict):
         batch_size = self._extract_batch_size(self[key], batch_size, meta)
         self.update_metrics(key, value, batch_size)
 
+    @torch.compiler.disable
     def update_metrics(self, key: str, value: _VALUE, batch_size: int) -> None:
         result_metric = self[key]
         # performance: avoid calling `__call__` to avoid the checks in `torch.nn.Module._call_impl`

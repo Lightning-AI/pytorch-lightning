@@ -15,6 +15,7 @@ import os
 import shutil
 import sys
 from collections import ChainMap, OrderedDict, defaultdict
+from dataclasses import dataclass
 from typing import Any, DefaultDict, Iterable, Iterator, List, Optional, Tuple, Union
 
 from lightning_utilities.core.apply_func import apply_to_collection
@@ -45,6 +46,12 @@ from lightning.pytorch.utilities.model_helpers import _ModuleMode, is_overridden
 from lightning.pytorch.utilities.signature_utils import is_param_in_hook_signature
 
 
+@dataclass
+class RestartStage:
+    NONE = "none"
+    RESTARTED_MID_EVALUATION = "restarted_mid_evaluation"
+
+
 class _EvaluationLoop(_Loop):
     """Top-level loop where validation/testing starts."""
 
@@ -73,6 +80,7 @@ class _EvaluationLoop(_Loop):
         self._seen_batches_per_dataloader: DefaultDict[int, int] = defaultdict(int)
         self._last_val_dl_reload_epoch = float("-inf")
         self._module_mode = _ModuleMode()
+        self._restart_stage = RestartStage.NONE
 
     @property
     def num_dataloaders(self) -> int:
@@ -137,7 +145,7 @@ class _EvaluationLoop(_Loop):
                 # this needs to wrap the `*_step` call too (not just `next`) for `dataloader_iter` support
                 break
             finally:
-                self._restarting = False
+                self.on_iteration_done()
         self._store_dataloader_outputs()
         return self.on_run_end()
 
@@ -197,6 +205,24 @@ class _EvaluationLoop(_Loop):
         # this depends on the data used, so reset it too
         self._seen_batches_per_dataloader = defaultdict(int)
 
+    @property
+    def restarted_mid_evaluation(self) -> bool:
+        return self._restart_stage == RestartStage.RESTARTED_MID_EVALUATION
+
+    def update_restart_stage(self) -> None:
+        if (
+            self.restarting
+            and self.batch_progress.total.started == self.batch_progress.total.ready
+            and self.batch_progress.total.processed == self.batch_progress.total.started - 1
+            and self.batch_progress.total.completed == self.batch_progress.total.processed
+        ):
+            self._restart_stage = RestartStage.RESTARTED_MID_EVALUATION
+        else:
+            self._restart_stage = RestartStage.NONE
+
+    def reset_restart_stage(self) -> None:
+        self._restart_stage = RestartStage.NONE
+
     def reset(self) -> None:
         """Resets the internal state of the loop."""
         trainer = self.trainer
@@ -235,6 +261,16 @@ class _EvaluationLoop(_Loop):
         data_fetcher._start_profiler = self._on_before_fetch
         data_fetcher._stop_profiler = self._on_after_fetch
         self._data_fetcher = data_fetcher
+
+    def increment_progress_to_evaluation_end(self) -> None:
+        self.setup_data()
+        if self.skip:
+            return
+        self.reset()
+        max_batch = int(max(self.max_batches))
+        if max_batch == -1:
+            return
+        self.batch_progress.increment_by(max_batch, True)
 
     def on_run_start(self) -> None:
         """Runs the ``_on_evaluation_model_eval``, ``_on_evaluation_start`` and ``_on_evaluation_epoch_start``
