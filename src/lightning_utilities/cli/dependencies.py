@@ -5,7 +5,7 @@
 import glob
 import os.path
 from pprint import pprint
-from typing import Sequence
+from typing import Sequence, Union
 
 REQUIREMENT_ROOT = "requirements.txt"
 REQUIREMENT_FILES_ALL: list = glob.glob(os.path.join("requirements", "*.txt"))
@@ -14,8 +14,12 @@ if os.path.isfile(REQUIREMENT_ROOT):
     REQUIREMENT_FILES_ALL += [REQUIREMENT_ROOT]
 
 
-def prune_pkgs_in_requirements(packages: Sequence[str], req_files: Sequence[str] = REQUIREMENT_FILES_ALL) -> None:
+def prune_pkgs_in_requirements(
+    packages: Union[str, Sequence[str]], req_files: Union[str, Sequence[str]] = REQUIREMENT_FILES_ALL
+) -> None:
     """Remove some packages from given requirement files."""
+    if isinstance(packages, str):
+        packages = [packages]
     if isinstance(req_files, str):
         req_files = [req_files]
     for req in req_files:
@@ -44,7 +48,9 @@ def _replace_min(fname: str) -> None:
         fw.write(req)
 
 
-def replace_oldest_ver(req_files: Sequence[str] = REQUIREMENT_FILES_ALL) -> None:
+def replace_oldest_ver(req_files: Union[str, Sequence[str]] = REQUIREMENT_FILES_ALL) -> None:
     """Replace the min package version by fixed one."""
+    if isinstance(req_files, str):
+        req_files = [req_files]
     for fname in req_files:
         _replace_min(fname)

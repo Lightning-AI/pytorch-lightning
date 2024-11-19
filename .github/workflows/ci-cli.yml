@@ -33,10 +33,12 @@ jobs:
           pip list
 
       - name: run CLI
-        working-directory: ./scripts
+        working-directory: ./requirements
         run: |
           python -m lightning_utilities.cli version
           python -m lightning_utilities.cli --help
+          python -m lightning_utilities.cli requirements set-oldest --req_files="cli.txt"
+          python -m lightning_utilities.cli requirements set-oldest --req_files='["cli.txt", "docs.txt"]'
 
   cli-guardian:
     runs-on: ubuntu-latest
