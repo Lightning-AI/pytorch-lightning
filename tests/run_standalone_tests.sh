@@ -23,7 +23,6 @@ source="${PL_STANDALONE_TESTS_SOURCE:-"lightning"}"
 test_dir=$1 # parse the first argument
 COLLECTED_TESTS_FILE="collected_tests.txt"
 
-#cd ${test_dir}
 ls -lh .  # show the contents of the directory
 
 # this environment variable allows special tests to run
@@ -114,5 +113,5 @@ printf "\n$report"
 printf '=%.s' {1..80}
 printf '\n'
 
-# exit with the worse test result
+# exit with the worst test result
 exit $status
