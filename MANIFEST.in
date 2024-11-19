@@ -1,5 +1,4 @@
 include CHANGELOG.md
 recursive-include src py.typed
-graft src/lightning_utilities/test
+
 graft requirements
-prune src/lightning_utilities/cli

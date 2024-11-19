@@ -1,4 +1,4 @@
-name: Test scripts
+name: Test CLI
 
 on:
   push:
@@ -11,14 +11,14 @@ defaults:
     shell: bash
 
 jobs:
-  test-scripts:
+  test-cli:
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         os: ["ubuntu-latest", "macos-latest", "windows-latest"]
         python-version: ["3.10"]
-    timeout-minutes: 15
+    timeout-minutes: 10
     steps:
       - name: Checkout 🛎
         uses: actions/checkout@v4
@@ -26,29 +26,28 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
-          cache: "pip"
 
-      - name: Install dependencies
-        timeout-minutes: 5
+      - name: install package
         run: |
-          pip install -r requirements/_tests.txt
-          pip --version
+          pip install -e '.[cli]'
           pip list
 
-      - name: test Scripts
+      - name: run CLI
         working-directory: ./scripts
-        run: pytest . -v
+        run: |
+          python -m lightning_utilities.cli version
+          python -m lightning_utilities.cli --help
 
-  scripts-guardian:
+  cli-guardian:
     runs-on: ubuntu-latest
-    needs: test-scripts
+    needs: test-cli
     if: always()
     steps:
-      - run: echo "${{ needs.test-scripts.result }}"
+      - run: echo "${{ needs.test-cli.result }}"
       - name: failing...
-        if: needs.test-scripts.result == 'failure'
+        if: needs.test-cli.result == 'failure'
         run: exit 1
       - name: cancelled or skipped...
-        if: contains(fromJSON('["cancelled", "skipped"]'), needs.test-scripts.result)
+        if: contains(fromJSON('["cancelled", "skipped"]'), needs.test-cli.result)
         timeout-minutes: 1
         run: sleep 90
