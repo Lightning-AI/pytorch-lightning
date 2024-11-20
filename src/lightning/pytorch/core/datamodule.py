@@ -14,6 +14,7 @@
 """LightningDataModule for loading DataLoaders with ease."""
 
 import inspect
+import os
 from typing import IO, Any, Dict, Iterable, Optional, Union, cast
 
 from lightning_utilities import apply_to_collection
@@ -251,7 +252,7 @@ class LightningDataModule(DataHooks, HyperparametersMixin):
             A string representation of the datasets that are setup.
 
         """
-        datasets_info = []
+        datasets_info: Optional[str] = []
 
         def len_implemented(obj):
             try:
@@ -273,4 +274,4 @@ class LightningDataModule(DataHooks, HyperparametersMixin):
         if not datasets_info:
             return "No datasets are set up."
 
-        return "\n".join(datasets_info) + "\n"
+        return os.linesep.join(datasets_info)

@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import os
 import pickle
 from argparse import Namespace
 from dataclasses import dataclass
@@ -526,13 +527,13 @@ def test_datamodule_string_no_datasets():
 
 def test_datamodule_string_no_length():
     dm = BoringDataModuleNoLen()
-    expected_output = "name=random_full, size=Unavailable\n"
+    expected_output = "name=random_full, size=Unavailable"
     assert str(dm) == expected_output
 
 
 def test_datamodule_string_length_not_implemented():
     dm = BoringDataModuleLenNotImplemented()
-    expected_output = "name=random_full, size=Unavailable\n"
+    expected_output = "name=random_full, size=Unavailable"
     assert str(dm) == expected_output
 
 
@@ -540,34 +541,39 @@ def test_datamodule_string_fit_setup():
     dm = BoringDataModule()
     dm.setup(stage="fit")
 
-    expected_outputs = ["name=random_full, size=256\n", "name=random_train, size=64\n", "name=random_val, size=64\n"]
+    expected_output = (
+        f"name=random_full, size=256{os.linesep}" f"name=random_train, size=64{os.linesep}" f"name=random_val, size=64"
+    )
     output = str(dm)
-    for expected_output in expected_outputs:
-        assert expected_output in output
+
+    assert expected_output == output
 
 
 def test_datamodule_string_validation_setup():
     dm = BoringDataModule()
     dm.setup(stage="validate")
-    expected_outputs = ["name=random_full, size=256\n", "name=random_val, size=64\n"]
+
+    expected_output = f"name=random_full, size=256{os.linesep}" f"name=random_val, size=64"
     output = str(dm)
-    for expected_output in expected_outputs:
-        assert expected_output in output
+
+    assert expected_output == output
 
 
 def test_datamodule_string_test_setup():
     dm = BoringDataModule()
     dm.setup(stage="test")
-    expected_outputs = ["name=random_full, size=256\n", "name=random_test, size=64\n"]
+
+    expected_output = f"name=random_full, size=256{os.linesep}" f"name=random_test, size=64"
     output = str(dm)
-    for expected_output in expected_outputs:
-        assert expected_output in output
+
+    assert expected_output == output
 
 
 def test_datamodule_string_predict_setup():
     dm = BoringDataModule()
     dm.setup(stage="predict")
-    expected_outputs = ["name=random_full, size=256\n", "name=random_predict, size=64\n"]
+
+    expected_output = f"name=random_full, size=256{os.linesep}" f"name=random_predict, size=64"
     output = str(dm)
-    for expected_output in expected_outputs:
-        assert expected_output in output
+
+    assert expected_output == output
