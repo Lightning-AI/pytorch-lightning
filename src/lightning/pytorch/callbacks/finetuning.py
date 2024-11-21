@@ -274,9 +274,6 @@ class BaseFinetuning(Callback):
 
     @override
     def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: str) -> None:
-        if hasattr(pl_module, "configure_model"):
-            pl_module.configure_model()
-
         self.freeze_before_training(pl_module)
 
         from lightning.pytorch.strategies import DeepSpeedStrategy
