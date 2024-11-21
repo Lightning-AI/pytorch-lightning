@@ -46,6 +46,9 @@ ALL_LOGGER_CLASSES = (
     WandbLogger,
 )
 ALL_LOGGER_CLASSES_WO_NEPTUNE = tuple(filter(lambda cls: cls is not NeptuneLogger, ALL_LOGGER_CLASSES))
+ALL_LOGGER_CLASSES_WO_NEPTUNE_AND_WANDB = tuple(
+    filter(lambda cls: cls is not WandbLogger, ALL_LOGGER_CLASSES_WO_NEPTUNE)
+)
 
 
 def _get_logger_args(logger_class, save_dir):
@@ -146,7 +149,7 @@ def test_loggers_fit_test_all(logger_class, mlflow_mock, wandb_mock, comet_mock,
 
 @mock.patch.dict(os.environ, {})
 @pytest.mark.parametrize(
-    "logger_class", ALL_LOGGER_CLASSES_WO_NEPTUNE
+    "logger_class", ALL_LOGGER_CLASSES_WO_NEPTUNE_AND_WANDB
 )  # WandbLogger and NeptuneLogger get tested separately
 def test_loggers_pickle_all(tmp_path, monkeypatch, logger_class):
     """Test that the logger objects can be pickled.
@@ -251,7 +254,7 @@ class CustomLoggerWithoutExperiment(Logger):
 
 
 @mock.patch.dict(os.environ, {})
-@pytest.mark.parametrize("logger_class", [*ALL_LOGGER_CLASSES_WO_NEPTUNE, CustomLoggerWithoutExperiment])
+@pytest.mark.parametrize("logger_class", [*ALL_LOGGER_CLASSES_WO_NEPTUNE_AND_WANDB, CustomLoggerWithoutExperiment])
 @RunIf(skip_windows=True)
 def test_logger_initialization(tmp_path, monkeypatch, logger_class):
     """Test that loggers get replaced by dummy loggers on global rank > 0 and that the experiment object is available

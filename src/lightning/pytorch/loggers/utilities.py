@@ -19,7 +19,7 @@ from typing import Any, List, Tuple, Union
 from torch import Tensor
 
 import lightning.pytorch as pl
-from lightning.pytorch.callbacks import Checkpoint
+from lightning.pytorch.callbacks import Checkpoint, ModelCheckpoint
 
 
 def _version(loggers: List[Any], separator: str = "_") -> Union[int, str]:
@@ -29,12 +29,18 @@ def _version(loggers: List[Any], separator: str = "_") -> Union[int, str]:
     return separator.join(dict.fromkeys(str(logger.version) for logger in loggers))
 
 
-def _scan_checkpoints(checkpoint_callback: Checkpoint, logged_model_time: dict) -> List[Tuple[float, str, float, str]]:
+def _scan_checkpoints(
+    checkpoint_callback: Checkpoint, logged_model_time: dict, include_distributed_checkpoints: bool = False
+) -> List[Tuple[float, str, float, str]]:
     """Return the checkpoints to be logged.
 
     Args:
         checkpoint_callback: Checkpoint callback reference.
         logged_model_time: dictionary containing the logged model times.
+        include_distributed_checkpoints: flag to include distributed directories.
+
+    Returns:
+        List of tuples containing the time, path, score, and tag of the checkpoints.
 
     """
     # get checkpoints to be saved with associated score
@@ -50,7 +56,9 @@ def _scan_checkpoints(checkpoint_callback: Checkpoint, logged_model_time: dict) 
             checkpoints[key] = (value, "best_k")
 
     checkpoints = sorted(
-        (Path(p).stat().st_mtime, p, s, tag) for p, (s, tag) in checkpoints.items() if Path(p).is_file()
+        (Path(p).stat().st_mtime, p, s, tag)
+        for p, (s, tag) in checkpoints.items()
+        if Path(p).is_file() or (include_distributed_checkpoints and Path(p).is_dir())
     )
     checkpoints = [c for c in checkpoints if c[1] not in logged_model_time or logged_model_time[c[1]] < c[0]]
     return checkpoints
@@ -93,3 +101,37 @@ def _log_hyperparams(trainer: "pl.Trainer") -> None:
             logger.log_hyperparams(hparams_initial)
         logger.log_graph(pl_module)
         logger.save()
+
+
+def _generate_checkpoint_identifier(checkpoint_callback: ModelCheckpoint) -> str:
+    parts = []
+
+    # Include monitor, mode, and save_top_k if they are not None
+    if hasattr(checkpoint_callback, "monitor") and checkpoint_callback.monitor is not None:
+        parts.append(f"monitor={checkpoint_callback.monitor}")
+    if hasattr(checkpoint_callback, "mode") and checkpoint_callback.mode is not None:
+        parts.append(f"mode={checkpoint_callback.mode}")
+    if hasattr(checkpoint_callback, "save_top_k"):
+        parts.append(f"save_top_k={checkpoint_callback.save_top_k}")
+
+    # Frequency of saving based on training steps or epochs
+    if hasattr(checkpoint_callback, "_every_n_train_steps") and checkpoint_callback._every_n_train_steps:
+        parts.append(f"every_n_train_steps={checkpoint_callback._every_n_train_steps}")
+    if hasattr(checkpoint_callback, "every_n_epochs") and checkpoint_callback.every_n_epochs:
+        parts.append(f"every_n_epochs={checkpoint_callback.every_n_epochs}")
+
+    # Time interval for saving, if applicable
+    # if hasattr(checkpoint_callback, 'train_time_interval') and checkpoint_callback.train_time_interval:
+    #     # Assuming train_time_interval is a timedelta object or similar
+    #     time_str = f"{checkpoint_callback.train_time_interval.total_seconds()}s"
+    #     parts.append(f"time_interval={time_str}")
+
+    # Custom file naming, if used
+    # if hasattr(checkpoint_callback, 'filename') and checkpoint_callback.filename:
+    #     parts.append(f"filename={checkpoint_callback.filename}")
+
+    # Ensure there's at least one part in the identifier; use a default if not
+    if not parts:
+        parts.append("default_checkpoint")
+
+    return "__".join(parts)
