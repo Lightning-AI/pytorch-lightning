@@ -32,15 +32,11 @@ from lightning.fabric.strategies.launchers.multiprocessing import _MultiProcessi
 from lightning.fabric.strategies.launchers.subprocess_script import _SubprocessScriptLauncher
 from lightning.fabric.strategies.parallel import ParallelStrategy
 from lightning.fabric.strategies.registry import _StrategyRegistry
-from lightning.fabric.strategies.strategy import TBroadcast, _BackwardSyncControl
+from lightning.fabric.strategies.strategy import _BackwardSyncControl
 from lightning.fabric.utilities.distributed import (
-    ReduceOp,
-    _distributed_is_initialized,
     _get_default_process_group_backend_for_device,
     _init_dist_connection,
-    _sync_ddp_if_available,
 )
-from lightning.fabric.utilities.distributed import group as _group
 from lightning.fabric.utilities.rank_zero import rank_zero_only
 
 _DDP_FORK_ALIASES = (
@@ -131,44 +127,6 @@ class DDPStrategy(ParallelStrategy):
     @override
     def module_to_device(self, module: Module) -> None:
         module.to(self.root_device)
-
-    @override
-    def all_reduce(
-        self, tensor: Tensor, group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = "mean"
-    ) -> Tensor:
-        """Reduces a tensor from several distributed processes to one aggregated tensor.
-
-        Args:
-            tensor: the tensor to sync and reduce
-            group: the process group to gather results from. Defaults to all processes (world)
-            reduce_op: the reduction operation. Defaults to 'mean'/'avg'.
-                Can also be a string 'sum' to calculate the sum during reduction.
-
-        Return:
-            reduced value, except when the input was not a tensor the output remains is unchanged
-
-        """
-        if isinstance(tensor, Tensor):
-            return _sync_ddp_if_available(tensor, group, reduce_op=reduce_op)
-        return tensor
-
-    @override
-    def barrier(self, *args: Any, **kwargs: Any) -> None:
-        if not _distributed_is_initialized():
-            return
-        if torch.distributed.get_backend() == "nccl":
-            torch.distributed.barrier(device_ids=self._determine_ddp_device_ids())
-        else:
-            torch.distributed.barrier()
-
-    @override
-    def broadcast(self, obj: TBroadcast, src: int = 0) -> TBroadcast:
-        if not _distributed_is_initialized():
-            return obj
-
-        obj = [obj]
-        torch.distributed.broadcast_object_list(obj, src, group=_group.WORLD)
-        return obj[0]
 
     @override
     def get_module_state_dict(self, module: Module) -> Dict[str, Union[Any, Tensor]]:

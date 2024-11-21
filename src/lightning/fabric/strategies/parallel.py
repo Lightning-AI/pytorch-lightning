@@ -12,18 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from abc import ABC
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
 import torch
 from torch import Tensor
 from typing_extensions import override
 
 from lightning.fabric.accelerators.accelerator import Accelerator
+from lightning.fabric.plugins.collectives import Collective, TorchCollective
 from lightning.fabric.plugins.environments.cluster_environment import ClusterEnvironment
 from lightning.fabric.plugins.io.checkpoint_io import CheckpointIO
 from lightning.fabric.plugins.precision import Precision
-from lightning.fabric.strategies.strategy import Strategy
-from lightning.fabric.utilities.distributed import _all_gather_ddp_if_available
+from lightning.fabric.strategies.strategy import Strategy, TBroadcast
+from lightning.fabric.utilities.distributed import _all_gather_if_available, _all_reduce_if_available
 from lightning.fabric.utilities.types import ReduceOp
 
 
@@ -37,10 +38,12 @@ class ParallelStrategy(Strategy, ABC):
         cluster_environment: Optional[ClusterEnvironment] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
         precision: Optional[Precision] = None,
+        collective: Optional[Collective] = None,
     ):
         super().__init__(accelerator=accelerator, checkpoint_io=checkpoint_io, precision=precision)
         self.parallel_devices = parallel_devices
         self.cluster_environment: Optional[ClusterEnvironment] = cluster_environment
+        self.collective: Collective = collective if collective is not None else TorchCollective()
 
     @property
     def global_rank(self) -> int:
@@ -82,8 +85,28 @@ class ParallelStrategy(Strategy, ABC):
 
     @override
     def all_gather(self, tensor: Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> Tensor:
-        """Perform a all_gather on all processes."""
-        return _all_gather_ddp_if_available(tensor, group=group, sync_grads=sync_grads)
+        return _all_gather_if_available(tensor, collective=self.collective, sync_grads=sync_grads)
+
+    @override
+    def all_reduce(
+        self, tensor: Tensor, group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = "mean"
+    ) -> Tensor:
+        return _all_reduce_if_available(tensor, collective=self.collective, reduce_op=reduce_op)
+
+    @override
+    def barrier(self, *args: Any, **kwargs: Any) -> None:
+        if not self.collective.is_initialized():
+            return
+        self.collective.barrier(device_ids=([self.root_device.index] if self.root_device.index is not None else None))
+
+    @override
+    def broadcast(self, obj: TBroadcast, src: int = 0) -> TBroadcast:
+        if not self.collective.is_initialized():
+            return obj
+
+        object_list = [obj]
+        self.collective.broadcast_object_list(object_list=object_list, src=src, device=self.root_device)
+        return object_list[0]
 
     @override
     def reduce_boolean_decision(self, decision: bool, all: bool = True) -> bool:
@@ -111,4 +134,5 @@ class ParallelStrategy(Strategy, ABC):
     def teardown(self) -> None:
         assert self.cluster_environment is not None
         self.cluster_environment.teardown()
+        self.collective.teardown()  # TODO: is this desired?
         return super().teardown()
