@@ -544,7 +544,7 @@ def test_validation_step_log_with_tensorboard(mock_log_metrics, tmp_path):
         "valid_loss_1",
     }
     assert mock_log_metrics.mock_calls == [
-        call({"hp_metric": -1}, 0),
+        call({"hp_metric": -1}, None),
         call(metrics={"train_loss": ANY, "epoch": 0}, step=0),
         call(metrics={"valid_loss_0_step": ANY, "valid_loss_2": ANY}, step=0),
         call(metrics={"valid_loss_0_step": ANY, "valid_loss_2": ANY}, step=1),
