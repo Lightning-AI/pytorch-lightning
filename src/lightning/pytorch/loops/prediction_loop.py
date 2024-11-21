@@ -53,7 +53,8 @@ class _PredictionLoop(_Loop):
         self.epoch_batch_indices: List[List[List[int]]] = []
         self.current_batch_indices: List[int] = []  # used by PredictionWriter
         self.batch_progress = _Progress()  # across dataloaders
-        self.max_batches: List[Union[int, float]] = []
+        #  list in "sequential" mode, number otherwise
+        self.max_batches: Union[int, float, List[Union[int, float]]] = []
 
         self._warning_cache = WarningCache()
         self._data_source = _DataLoaderSource(None, "predict_dataloader")
@@ -97,7 +98,12 @@ class _PredictionLoop(_Loop):
 
     @property
     def skip(self) -> bool:
-        return sum(self.max_batches) == 0
+        return sum(self.max_batches) == 0 if isinstance(self.max_batches, list) else self.max_batches == 0
+
+    @property
+    def _is_sequential(self) -> bool:
+        assert self._combined_loader is not None
+        return self._combined_loader._mode == "sequential"
 
     @_no_grad_context
     def run(self) -> Optional[_PREDICT_OUTPUT]:
@@ -151,18 +157,23 @@ class _PredictionLoop(_Loop):
         trainer_fn = TrainerFn.PREDICTING
         stage = RunningStage.PREDICTING
         dataloaders = []
-        self.max_batches = []
         for dl in combined_loader.flattened:
             _check_dataloader_iterable(dl, source, trainer_fn)
             dl = _process_dataloader(trainer, trainer_fn, stage, dl)
             dataloaders.append(dl)
-
-            # determine number of batches
-            length = len(dl) if has_len_all_ranks(dl, trainer.strategy, allow_zero_length) else float("inf")
-            num_batches = _parse_num_batches(stage, length, trainer.limit_predict_batches)
-            self.max_batches.append(num_batches)
         combined_loader.flattened = dataloaders
         self._combined_loader = combined_loader
+
+        if self._is_sequential:
+            self.max_batches = []
+            for dl in combined_loader.flattened:
+                # determine number of batches
+                length = len(dl) if has_len_all_ranks(dl, trainer.strategy, allow_zero_length) else float("inf")
+                num_batches = _parse_num_batches(stage, length, trainer.limit_predict_batches)
+                self.max_batches.append(num_batches)
+        else:
+            has_len_all_ranks_ = has_len_all_ranks(combined_loader, trainer.strategy, allow_zero_length)
+            self.max_batches = len(combined_loader) if has_len_all_ranks_ else float("inf")
 
     def reset(self) -> None:
         """Resets the internal state of the loop for a new run."""
@@ -237,7 +248,9 @@ class _PredictionLoop(_Loop):
 
         # the `_step` methods don't take a batch_idx when `dataloader_iter` is used, but all other hooks still do,
         # so we need different kwargs
-        hook_kwargs = self._build_kwargs(batch, batch_idx, dataloader_idx if self.num_dataloaders > 1 else None)
+        hook_kwargs = self._build_kwargs(
+            batch, batch_idx, dataloader_idx if self._is_sequential and self.num_dataloaders > 1 else None
+        )
 
         call._call_callback_hooks(trainer, "on_predict_batch_start", *hook_kwargs.values())
         call._call_lightning_module_hook(trainer, "on_predict_batch_start", *hook_kwargs.values())
