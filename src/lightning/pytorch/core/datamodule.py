@@ -15,7 +15,7 @@
 
 import inspect
 import os
-from typing import IO, Any, Dict, Iterable, Optional, Union, cast
+from typing import IO, Any, Dict, Iterable, List, Optional, Union, cast
 
 from lightning_utilities import apply_to_collection
 from torch.utils.data import DataLoader, Dataset, IterableDataset
@@ -252,9 +252,9 @@ class LightningDataModule(DataHooks, HyperparametersMixin):
             A string representation of the datasets that are setup.
 
         """
-        datasets_info: Optional[str] = []
+        datasets_info: Optional[List[str]] = []
 
-        def len_implemented(obj):
+        def len_implemented(obj: Dataset) -> bool:
             try:
                 len(obj)
                 return True
