@@ -28,8 +28,10 @@ from datetime import timedelta
 from typing import Any, Dict, Generator, Iterable, List, Optional, Union
 from weakref import proxy
 
-import lightning.pytorch as pl
 import torch
+from torch.optim import Optimizer
+
+import lightning.pytorch as pl
 from lightning.fabric.utilities.apply_func import convert_tensors_to_scalars
 from lightning.fabric.utilities.cloud_io import _is_local_file_protocol
 from lightning.fabric.utilities.types import _PATH
@@ -77,7 +79,6 @@ from lightning.pytorch.utilities.types import (
     LRSchedulerConfig,
 )
 from lightning.pytorch.utilities.warnings import PossibleUserWarning
-from torch.optim import Optimizer
 
 log = logging.getLogger(__name__)
 

@@ -19,10 +19,11 @@ from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_3
 from lightning.pytorch import LightningModule, Trainer, seed_everything
 from lightning.pytorch.callbacks import BackboneFinetuning, BaseFinetuning, ModelCheckpoint
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
-from tests_pytorch.helpers.runif import RunIf
 from torch import nn
 from torch.optim import SGD, Optimizer
 from torch.utils.data import DataLoader
+
+from tests_pytorch.helpers.runif import RunIf
 
 
 class TestBackboneFinetuningCallback(BackboneFinetuning):
@@ -282,12 +283,10 @@ def test_complex_nested_model():
     directly themselves rather than exclusively their submodules containing parameters."""
 
     model = nn.Sequential(
-        OrderedDict(
-            [
-                ("encoder", nn.Sequential(ConvBlockParam(3, 64), ConvBlock(64, 128))),
-                ("decoder", ConvBlock(128, 10)),
-            ]
-        )
+        OrderedDict([
+            ("encoder", nn.Sequential(ConvBlockParam(3, 64), ConvBlock(64, 128))),
+            ("decoder", ConvBlock(128, 10)),
+        ])
     )
 
     # There are 10 leaf modules or parent modules w/ parameters in the test model
@@ -437,8 +436,8 @@ def test_unsupported_strategies(tmp_path):
 
 
 def test_finetuning_with_configure_model(tmp_path):
-    """Test that BaseFinetuning works correctly with configure_model by ensuring freeze_before_training
-    is called after configure_model but before training starts."""
+    """Test that BaseFinetuning works correctly with configure_model by ensuring freeze_before_training is called after
+    configure_model but before training starts."""
 
     class TrackingFinetuningCallback(BaseFinetuning):
         def __init__(self):
