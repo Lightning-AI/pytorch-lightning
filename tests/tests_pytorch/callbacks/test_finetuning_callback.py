@@ -19,11 +19,10 @@ from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_3
 from lightning.pytorch import LightningModule, Trainer, seed_everything
 from lightning.pytorch.callbacks import BackboneFinetuning, BaseFinetuning, ModelCheckpoint
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
+from tests_pytorch.helpers.runif import RunIf
 from torch import nn
 from torch.optim import SGD, Optimizer
 from torch.utils.data import DataLoader
-
-from tests_pytorch.helpers.runif import RunIf
 
 
 class TestBackboneFinetuningCallback(BackboneFinetuning):
@@ -283,10 +282,12 @@ def test_complex_nested_model():
     directly themselves rather than exclusively their submodules containing parameters."""
 
     model = nn.Sequential(
-        OrderedDict([
-            ("encoder", nn.Sequential(ConvBlockParam(3, 64), ConvBlock(64, 128))),
-            ("decoder", ConvBlock(128, 10)),
-        ])
+        OrderedDict(
+            [
+                ("encoder", nn.Sequential(ConvBlockParam(3, 64), ConvBlock(64, 128))),
+                ("decoder", ConvBlock(128, 10)),
+            ]
+        )
     )
 
     # There are 10 leaf modules or parent modules w/ parameters in the test model
@@ -346,6 +347,8 @@ def test_callbacks_restore(tmp_path):
     assert len(callback._internal_optimizer_metadata) == 1
 
     # only 2 param groups
+    print("##########")
+    print(callback._internal_optimizer_metadata[0])
     assert len(callback._internal_optimizer_metadata[0]) == 2
 
     # original parameters
@@ -431,3 +434,52 @@ def test_unsupported_strategies(tmp_path):
     trainer = Trainer(accelerator="cpu", strategy="deepspeed", callbacks=[callback])
     with pytest.raises(NotImplementedError, match="does not support running with the DeepSpeed strategy"):
         callback.setup(trainer, model, stage=None)
+
+
+def test_finetuning_with_configure_model(tmp_path):
+    """Test that BaseFinetuning works correctly with configure_model by ensuring freeze_before_training
+    is called after configure_model but before training starts."""
+
+    class TrackingFinetuningCallback(BaseFinetuning):
+        def __init__(self):
+            super().__init__()
+
+        def freeze_before_training(self, pl_module):
+            assert hasattr(pl_module, "backbone"), "backbone should be configured before freezing"
+            self.freeze(pl_module.backbone)
+
+        def finetune_function(self, pl_module, epoch, optimizer):
+            pass
+
+    class TestModel(LightningModule):
+        def __init__(self):
+            super().__init__()
+            self.configure_model_called_count = 0
+
+        def configure_model(self):
+            self.backbone = nn.Linear(32, 32)
+            self.classifier = nn.Linear(32, 2)
+            self.configure_model_called_count += 1
+
+        def forward(self, x):
+            x = self.backbone(x)
+            return self.classifier(x)
+
+        def training_step(self, batch, batch_idx):
+            return self.forward(batch).sum()
+
+        def configure_optimizers(self):
+            return torch.optim.SGD(self.parameters(), lr=0.1)
+
+    print("start of the test")
+    model = TestModel()
+    callback = TrackingFinetuningCallback()
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        callbacks=[callback],
+        max_epochs=1,
+        limit_train_batches=1,
+    )
+
+    trainer.fit(model, torch.randn(10, 32))
+    assert model.configure_model_called_count == 1
