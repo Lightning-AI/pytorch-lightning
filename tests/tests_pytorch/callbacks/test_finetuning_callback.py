@@ -19,11 +19,10 @@ from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_3
 from lightning.pytorch import LightningModule, Trainer, seed_everything
 from lightning.pytorch.callbacks import BackboneFinetuning, BaseFinetuning, ModelCheckpoint
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
+from tests_pytorch.helpers.runif import RunIf
 from torch import nn
 from torch.optim import SGD, Optimizer
 from torch.utils.data import DataLoader
-
-from tests_pytorch.helpers.runif import RunIf
 
 
 class TestBackboneFinetuningCallback(BackboneFinetuning):
@@ -283,10 +282,12 @@ def test_complex_nested_model():
     directly themselves rather than exclusively their submodules containing parameters."""
 
     model = nn.Sequential(
-        OrderedDict([
-            ("encoder", nn.Sequential(ConvBlockParam(3, 64), ConvBlock(64, 128))),
-            ("decoder", ConvBlock(128, 10)),
-        ])
+        OrderedDict(
+            [
+                ("encoder", nn.Sequential(ConvBlockParam(3, 64), ConvBlock(64, 128))),
+                ("decoder", ConvBlock(128, 10)),
+            ]
+        )
     )
 
     # There are 10 leaf modules or parent modules w/ parameters in the test model
@@ -346,8 +347,6 @@ def test_callbacks_restore(tmp_path):
     assert len(callback._internal_optimizer_metadata) == 1
 
     # only 2 param groups
-    print("##########")
-    print(callback._internal_optimizer_metadata[0])
     assert len(callback._internal_optimizer_metadata[0]) == 2
 
     # original parameters
@@ -470,7 +469,6 @@ def test_finetuning_with_configure_model(tmp_path):
         def configure_optimizers(self):
             return torch.optim.SGD(self.parameters(), lr=0.1)
 
-    print("start of the test")
     model = TestModel()
     callback = TrackingFinetuningCallback()
     trainer = Trainer(
