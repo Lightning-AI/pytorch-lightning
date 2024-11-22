@@ -1,16 +1,13 @@
+import lightning as L
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.utils.data import DataLoader
-from torch.distributed._composable.fsdp.fully_shard import fully_shard
-from torch.distributed.device_mesh import DeviceMesh
-
-from torchao.float8 import convert_to_float8_training, Float8LinearConfig
-
-import lightning as L
 from lightning.fabric.strategies import ModelParallelStrategy
 from lightning.pytorch.demos import Transformer, WikiText2
-
+from torch.distributed._composable.fsdp.fully_shard import fully_shard
+from torch.distributed.device_mesh import DeviceMesh
+from torch.utils.data import DataLoader
+from torchao.float8 import Float8LinearConfig, convert_to_float8_training
 from tqdm import tqdm
 
 
@@ -58,11 +55,7 @@ def train():
             nhead=32,
         )
 
-    strategy = ModelParallelStrategy(
-        data_parallel_size=4,
-        tensor_parallel_size=1,
-        parallelize_fn=configure_model
-    )
+    strategy = ModelParallelStrategy(data_parallel_size=4, tensor_parallel_size=1, parallelize_fn=configure_model)
 
     fabric = L.Fabric(precision="bf16-true", strategy=strategy)
     fabric.launch()
@@ -101,6 +94,6 @@ def train():
 
 
 if __name__ == "__main__":
-    torch.set_float32_matmul_precision('high')
+    torch.set_float32_matmul_precision("high")
 
     train()
