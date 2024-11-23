@@ -104,6 +104,7 @@ _XLA_AVAILABLE = RequirementCache("torch_xla>=1.13", "torch_xla")
 _XLA_GREATER_EQUAL_2_1 = RequirementCache("torch_xla>=2.1")
 _XLA_GREATER_EQUAL_2_5 = RequirementCache("torch_xla>=2.5")
 
+
 def _using_pjrt() -> bool:
     # `using_pjrt` is removed in torch_xla 2.5
     if _XLA_GREATER_EQUAL_2_5:
@@ -111,7 +112,7 @@ def _using_pjrt() -> bool:
 
         return xr.device_type() is not None
     # delete me when torch_xla 2.2 is the min supported version, where XRT support has been dropped.
-    elif _XLA_GREATER_EQUAL_2_1:
+    if _XLA_GREATER_EQUAL_2_1:
         from torch_xla import runtime as xr
 
         return xr.using_pjrt()

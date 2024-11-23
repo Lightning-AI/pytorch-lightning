@@ -45,6 +45,7 @@ def test_get_parallel_devices_raises(tpu_available):
     with pytest.raises(ValueError, match="Could not parse.*anything-else'"):
         XLAAccelerator.get_parallel_devices("anything-else")
 
+
 @pytest.mark.skipif(not _XLA_AVAILABLE, reason="test requires torch_xla to be present")
 def test_instantiate_xla_accelerator():
-    xla_accelerator = XLAAccelerator()
+    _ = XLAAccelerator()
