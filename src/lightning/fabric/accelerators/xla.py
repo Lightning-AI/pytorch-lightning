@@ -109,7 +109,7 @@ def _using_pjrt() -> bool:
     if _XLA_GREATER_EQUAL_2_1:
         from torch_xla import runtime as xr
 
-        return xr.using_pjrt()
+        return xr.device_type() is not None
     from torch_xla.experimental import pjrt
 
     return pjrt.using_pjrt()
