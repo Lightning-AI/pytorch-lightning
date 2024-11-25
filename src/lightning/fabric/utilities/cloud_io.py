@@ -16,7 +16,7 @@
 import io
 import logging
 from pathlib import Path
-from typing import IO, Any, Dict, Union
+from typing import IO, Any, Union
 
 import fsspec
 import fsspec.utils
@@ -69,7 +69,7 @@ def get_filesystem(path: _PATH, **kwargs: Any) -> AbstractFileSystem:
     return fs
 
 
-def _atomic_save(checkpoint: Dict[str, Any], filepath: Union[str, Path]) -> None:
+def _atomic_save(checkpoint: dict[str, Any], filepath: Union[str, Path]) -> None:
     """Saves a checkpoint atomically, avoiding the creation of incomplete checkpoints.
 
     Args:

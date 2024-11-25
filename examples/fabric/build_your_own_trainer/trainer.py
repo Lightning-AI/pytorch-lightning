@@ -1,7 +1,7 @@
 import os
-from collections.abc import Mapping
+from collections.abc import Iterable, Mapping
 from functools import partial
-from typing import Any, Iterable, List, Literal, Optional, Tuple, Union, cast
+from typing import Any, Literal, Optional, Union, cast
 
 import lightning as L
 import torch
@@ -19,11 +19,11 @@ class MyCustomTrainer:
         self,
         accelerator: Union[str, Accelerator] = "auto",
         strategy: Union[str, Strategy] = "auto",
-        devices: Union[List[int], str, int] = "auto",
+        devices: Union[list[int], str, int] = "auto",
         precision: Union[str, int] = "32-true",
         plugins: Optional[Union[str, Any]] = None,
-        callbacks: Optional[Union[List[Any], Any]] = None,
-        loggers: Optional[Union[Logger, List[Logger]]] = None,
+        callbacks: Optional[Union[list[Any], Any]] = None,
+        loggers: Optional[Union[Logger, list[Logger]]] = None,
         max_epochs: Optional[int] = 1000,
         max_steps: Optional[int] = None,
         grad_accum_steps: int = 1,
@@ -465,7 +465,7 @@ class MyCustomTrainer:
 
     def _parse_optimizers_schedulers(
         self, configure_optim_output
-    ) -> Tuple[
+    ) -> tuple[
         Optional[L.fabric.utilities.types.Optimizable],
         Optional[Mapping[str, Union[L.fabric.utilities.types.LRScheduler, bool, str, int]]],
     ]:

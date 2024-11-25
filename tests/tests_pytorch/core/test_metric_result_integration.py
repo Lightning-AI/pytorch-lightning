@@ -625,8 +625,9 @@ def test_logger_sync_dist(distributed_env, log_val):
         else nullcontext()
     )
 
-    with warning_ctx(
-        PossibleUserWarning, match=r"recommended to use `self.log\('bar', ..., sync_dist=True\)`"
-    ), patch_ctx:
+    with (
+        warning_ctx(PossibleUserWarning, match=r"recommended to use `self.log\('bar', ..., sync_dist=True\)`"),
+        patch_ctx,
+    ):
         value = _ResultCollection._get_cache(result_metric, on_step=False)
     assert value == 0.5

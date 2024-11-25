@@ -18,9 +18,10 @@ ModelPruning
 
 import inspect
 import logging
+from collections.abc import Sequence
 from copy import deepcopy
 from functools import partial
-from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
+from typing import Any, Callable, Optional, Union
 
 import torch.nn.utils.prune as pytorch_prune
 from lightning_utilities.core.apply_func import apply_to_collection
@@ -49,14 +50,14 @@ _PYTORCH_PRUNING_METHOD = {
     "random_unstructured": pytorch_prune.RandomUnstructured,
 }
 
-_PARAM_TUPLE = Tuple[nn.Module, str]
+_PARAM_TUPLE = tuple[nn.Module, str]
 _PARAM_LIST = Sequence[_PARAM_TUPLE]
 _MODULE_CONTAINERS = (LightningModule, nn.Sequential, nn.ModuleList, nn.ModuleDict)
 
 
 class _LayerRef(TypedDict):
     data: nn.Module
-    names: List[Tuple[int, str]]
+    names: list[tuple[int, str]]
 
 
 class ModelPruning(Callback):
@@ -66,7 +67,7 @@ class ModelPruning(Callback):
         self,
         pruning_fn: Union[Callable, str],
         parameters_to_prune: _PARAM_LIST = (),
-        parameter_names: Optional[List[str]] = None,
+        parameter_names: Optional[list[str]] = None,
         use_global_unstructured: bool = True,
         amount: Union[int, float, Callable[[int], Union[int, float]]] = 0.5,
         apply_pruning: Union[bool, Callable[[int], bool]] = True,
@@ -165,8 +166,8 @@ class ModelPruning(Callback):
         self._resample_parameters = resample_parameters
         self._prune_on_train_epoch_end = prune_on_train_epoch_end
         self._parameter_names = parameter_names or self.PARAMETER_NAMES
-        self._global_kwargs: Dict[str, Any] = {}
-        self._original_layers: Optional[Dict[int, _LayerRef]] = None
+        self._global_kwargs: dict[str, Any] = {}
+        self._original_layers: Optional[dict[int, _LayerRef]] = None
         self._pruning_method_name: Optional[str] = None
 
         for name in self._parameter_names:
@@ -310,7 +311,7 @@ class ModelPruning(Callback):
         for module, name in self._parameters_to_prune:
             self.pruning_fn(module, name=name, amount=amount)  # type: ignore[call-arg]
 
-    def _resolve_global_kwargs(self, amount: float) -> Dict[str, Any]:
+    def _resolve_global_kwargs(self, amount: float) -> dict[str, Any]:
         self._global_kwargs["amount"] = amount
         params = set(inspect.signature(self.pruning_fn).parameters)
         params.discard("self")
@@ -322,7 +323,7 @@ class ModelPruning(Callback):
         )
 
     @staticmethod
-    def _get_pruned_stats(module: nn.Module, name: str) -> Tuple[int, int]:
+    def _get_pruned_stats(module: nn.Module, name: str) -> tuple[int, int]:
         attr = f"{name}_mask"
         if not hasattr(module, attr):
             return 0, 1
@@ -345,7 +346,7 @@ class ModelPruning(Callback):
 
     @rank_zero_only
     def _log_sparsity_stats(
-        self, prev: List[Tuple[int, int]], curr: List[Tuple[int, int]], amount: Union[int, float] = 0
+        self, prev: list[tuple[int, int]], curr: list[tuple[int, int]], amount: Union[int, float] = 0
     ) -> None:
         total_params = sum(p.numel() for layer, _ in self._parameters_to_prune for p in layer.parameters())
         prev_total_zeros = sum(zeros for zeros, _ in prev)
@@ -414,7 +415,7 @@ class ModelPruning(Callback):
             rank_zero_debug("`ModelPruning.on_train_end`. Pruning is made permanent for this checkpoint")
             self.make_pruning_permanent(pl_module)
 
-    def _make_pruning_permanent_on_state_dict(self, pl_module: LightningModule) -> Dict[str, Any]:
+    def _make_pruning_permanent_on_state_dict(self, pl_module: LightningModule) -> dict[str, Any]:
         state_dict = pl_module.state_dict()
 
         # find the mask and the original weights.
@@ -432,7 +433,7 @@ class ModelPruning(Callback):
         return apply_to_collection(state_dict, Tensor, move_to_cpu)
 
     @override
-    def on_save_checkpoint(self, trainer: "pl.Trainer", pl_module: LightningModule, checkpoint: Dict[str, Any]) -> None:
+    def on_save_checkpoint(self, trainer: "pl.Trainer", pl_module: LightningModule, checkpoint: dict[str, Any]) -> None:
         if self._make_pruning_permanent:
             rank_zero_debug("`ModelPruning.on_save_checkpoint`. Pruning is made permanent for this checkpoint")
             # manually prune the weights so training can keep going with the same buffers

@@ -15,7 +15,7 @@ import logging
 import math
 import os
 import pickle
-from typing import List, Optional
+from typing import Optional
 from unittest import mock
 from unittest.mock import Mock
 
@@ -407,7 +407,7 @@ _SPAWN_MARK = {"marks": RunIf(skip_windows=True)}
 )
 def test_multiple_early_stopping_callbacks(
     tmp_path,
-    callbacks: List[EarlyStopping],
+    callbacks: list[EarlyStopping],
     expected_stop_epoch: int,
     check_on_train_epoch_end: bool,
     strategy: str,

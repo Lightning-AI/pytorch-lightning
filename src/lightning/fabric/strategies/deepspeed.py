@@ -16,10 +16,11 @@ import json
 import logging
 import os
 import platform
-from contextlib import ExitStack
+from collections.abc import Mapping
+from contextlib import AbstractContextManager, ExitStack
 from itertools import chain
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable, ContextManager, Dict, List, Mapping, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Any, Callable, Optional, Union
 
 import torch
 from lightning_utilities.core.imports import RequirementCache
@@ -80,9 +81,9 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         reduce_bucket_size: int = 200_000_000,
         zero_allow_untested_optimizer: bool = True,
         logging_batch_size_per_gpu: Optional[int] = None,
-        config: Optional[Union[_PATH, Dict[str, Any]]] = None,
+        config: Optional[Union[_PATH, dict[str, Any]]] = None,
         logging_level: int = logging.WARN,
-        parallel_devices: Optional[List[torch.device]] = None,
+        parallel_devices: Optional[list[torch.device]] = None,
         cluster_environment: Optional[ClusterEnvironment] = None,
         loss_scale: float = 0,
         initial_scale_power: int = 16,
@@ -302,7 +303,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
 
     @property
     @override
-    def distributed_sampler_kwargs(self) -> Dict[str, int]:
+    def distributed_sampler_kwargs(self) -> dict[str, int]:
         return {"num_replicas": self.world_size, "rank": self.global_rank}
 
     @property
@@ -311,8 +312,8 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
 
     @override
     def setup_module_and_optimizers(
-        self, module: Module, optimizers: List[Optimizer]
-    ) -> Tuple["DeepSpeedEngine", List[Optimizer]]:
+        self, module: Module, optimizers: list[Optimizer]
+    ) -> tuple["DeepSpeedEngine", list[Optimizer]]:
         """Set up a model and multiple optimizers together.
 
         Currently, only a single optimizer is supported.
@@ -352,7 +353,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         raise NotImplementedError(self._err_msg_joint_setup_required())
 
     @override
-    def module_init_context(self, empty_init: Optional[bool] = None) -> ContextManager:
+    def module_init_context(self, empty_init: Optional[bool] = None) -> AbstractContextManager:
         if self.zero_stage_3 and empty_init is False:
             raise NotImplementedError(
                 f"`{empty_init=}` is not a valid choice with `DeepSpeedStrategy` when ZeRO stage 3 is enabled."
@@ -365,7 +366,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         return stack
 
     @override
-    def module_sharded_context(self) -> ContextManager:
+    def module_sharded_context(self) -> AbstractContextManager:
         # Current limitation in Fabric: The config needs to be fully determined at the time of calling the context
         # manager. Later modifications through e.g. `Fabric.setup()` won't have an effect here.
 
@@ -382,9 +383,9 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
     def save_checkpoint(
         self,
         path: _PATH,
-        state: Dict[str, Union[Module, Optimizer, Any]],
+        state: dict[str, Union[Module, Optimizer, Any]],
         storage_options: Optional[Any] = None,
-        filter: Optional[Dict[str, Callable[[str, Any], bool]]] = None,
+        filter: Optional[dict[str, Callable[[str, Any], bool]]] = None,
     ) -> None:
         """Save model, optimizer, and other state in a checkpoint directory.
 
@@ -447,9 +448,9 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
     def load_checkpoint(
         self,
         path: _PATH,
-        state: Optional[Union[Module, Optimizer, Dict[str, Union[Module, Optimizer, Any]]]] = None,
+        state: Optional[Union[Module, Optimizer, dict[str, Union[Module, Optimizer, Any]]]] = None,
         strict: bool = True,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Load the contents from a checkpoint and restore the state of the given objects.
 
         Args:
@@ -595,7 +596,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         self,
         model: Module,
         optimizer: Optional[Optimizer] = None,
-    ) -> Tuple["DeepSpeedEngine", Optimizer]:
+    ) -> tuple["DeepSpeedEngine", Optimizer]:
         """Initialize one model and one optimizer with an optional learning rate scheduler.
 
         This calls ``deepspeed.initialize`` internally.
@@ -714,7 +715,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         overlap_events: bool,
         thread_count: int,
         **zero_kwargs: Any,
-    ) -> Dict:
+    ) -> dict:
         cfg = {
             "activation_checkpointing": {
                 "partition_activations": partition_activations,
@@ -769,9 +770,9 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         import deepspeed
 
         def load(module: torch.nn.Module, prefix: str = "") -> None:
-            missing_keys: List[str] = []
-            unexpected_keys: List[str] = []
-            error_msgs: List[str] = []
+            missing_keys: list[str] = []
+            unexpected_keys: list[str] = []
+            error_msgs: list[str] = []
             state_dict = ckpt["state_dict"]
 
             # copy state_dict so _load_from_state_dict can modify it
@@ -802,7 +803,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
 
         load(module, prefix="")
 
-    def _load_config(self, config: Optional[Union[_PATH, Dict[str, Any]]]) -> Optional[Dict[str, Any]]:
+    def _load_config(self, config: Optional[Union[_PATH, dict[str, Any]]]) -> Optional[dict[str, Any]]:
         if config is None and self.DEEPSPEED_ENV_VAR in os.environ:
             rank_zero_info(f"Loading DeepSpeed config from set {self.DEEPSPEED_ENV_VAR} environment variable")
             config = os.environ[self.DEEPSPEED_ENV_VAR]
@@ -817,14 +818,14 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         return config
 
 
-def _get_deepspeed_engines_from_state(state: Dict[str, Any]) -> List["DeepSpeedEngine"]:
+def _get_deepspeed_engines_from_state(state: dict[str, Any]) -> list["DeepSpeedEngine"]:
     from deepspeed import DeepSpeedEngine
 
     modules = chain(*(module.modules() for module in state.values() if isinstance(module, Module)))
     return [engine for engine in modules if isinstance(engine, DeepSpeedEngine)]
 
 
-def _validate_state_keys(state: Dict[str, Any]) -> None:
+def _validate_state_keys(state: dict[str, Any]) -> None:
     # DeepSpeed merges the client state into its internal engine state when saving, but it does not check for
     # colliding keys from the user. We explicitly check it here:
     deepspeed_internal_keys = {
@@ -851,7 +852,7 @@ def _validate_state_keys(state: Dict[str, Any]) -> None:
         )
 
 
-def _validate_device_index_selection(parallel_devices: List[torch.device]) -> None:
+def _validate_device_index_selection(parallel_devices: list[torch.device]) -> None:
     selected_device_indices = [device.index for device in parallel_devices]
     expected_device_indices = list(range(len(parallel_devices)))
     if selected_device_indices != expected_device_indices:
@@ -903,7 +904,7 @@ def _validate_checkpoint_directory(path: _PATH) -> None:
 
 
 def _format_precision_config(
-    config: Dict[str, Any],
+    config: dict[str, Any],
     precision: str,
     loss_scale: float,
     loss_scale_window: int,
