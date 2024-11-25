@@ -15,7 +15,7 @@ import importlib
 import math
 import os
 import sys
-from typing import Any, Dict, Optional, Union
+from typing import Any, Optional, Union
 
 from typing_extensions import override
 
@@ -115,7 +115,7 @@ class TQDMProgressBar(ProgressBar):
         self._predict_progress_bar: Optional[_tqdm] = None
         self._leave = leave
 
-    def __getstate__(self) -> Dict:
+    def __getstate__(self) -> dict:
         # can't pickle the tqdm objects
         return {k: v if not isinstance(v, _tqdm) else None for k, v in vars(self).items()}
 

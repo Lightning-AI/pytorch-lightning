@@ -19,7 +19,8 @@ Comet Logger
 import logging
 import os
 from argparse import Namespace
-from typing import TYPE_CHECKING, Any, Dict, Mapping, Optional, Union
+from collections.abc import Mapping
+from typing import TYPE_CHECKING, Any, Optional, Union
 
 from lightning_utilities.core.imports import RequirementCache
 from torch import Tensor
@@ -305,7 +306,7 @@ class CometLogger(Logger):
 
     @override
     @rank_zero_only
-    def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:
+    def log_hyperparams(self, params: Union[dict[str, Any], Namespace]) -> None:
         params = _convert_params(params)
         params = _flatten_dict(params)
         self.experiment.log_parameters(params)
@@ -410,7 +411,7 @@ class CometLogger(Logger):
 
         return self._future_experiment_key
 
-    def __getstate__(self) -> Dict[str, Any]:
+    def __getstate__(self) -> dict[str, Any]:
         state = self.__dict__.copy()
 
         # Save the experiment id in case an experiment object already exists,
