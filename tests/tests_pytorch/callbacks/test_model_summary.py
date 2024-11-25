@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, List, Tuple
+from typing import Any
 
 from lightning.pytorch import Trainer
 from lightning.pytorch.callbacks import ModelSummary
@@ -45,7 +45,7 @@ def test_custom_model_summary_callback_summarize(tmp_path):
     class CustomModelSummary(ModelSummary):
         @staticmethod
         def summarize(
-            summary_data: List[Tuple[str, List[str]]],
+            summary_data: list[tuple[str, list[str]]],
             total_parameters: int,
             trainable_parameters: int,
             model_size: float,
