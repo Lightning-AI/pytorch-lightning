@@ -1,5 +1,6 @@
-truncated_bptt_steps
-~~~~~~~~~~~~~~~~~~~~
+##############
+Truncated Backpropagation Through Time (TBPTT)
+##############
 
 Truncated Backpropagation Through Time (TBPTT) performs perform backpropogation every k steps of
 a much longer sequence. This is made possible by passing training batches
@@ -8,7 +9,7 @@ split along the time-dimensions into splits of size k to the
 hidden states should be kept in-between each time-dimension split.
 
 
-.. testcode:: python
+.. code-block:: python
     import lightning as L
 
     class LitModel(L.LightningModule):
