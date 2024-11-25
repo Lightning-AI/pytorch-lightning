@@ -15,7 +15,7 @@
 
 import inspect
 import os
-from collections.abc import Sized, Iterable
+from collections.abc import Iterable, Sized
 from typing import IO, Any, Optional, Union, cast
 
 from lightning_utilities import apply_to_collection
