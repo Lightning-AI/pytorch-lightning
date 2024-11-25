@@ -115,7 +115,6 @@ always exclude the first call to ``forward()`` from your measurements, since it 
         Compile median time: 0.0185 seconds
         Speedup: 1.4x
 
-
 ----
 
 *********************************
@@ -219,6 +218,8 @@ needed to achieve the equivalent of `compile(distributed(quantized(model)))`:
         fabric.launch()
 
         model = fabric.setup(model)
+
+For a full example, see our `FP8 Distributed Transformer example <https://github.com/Lightning-AI/lightning/blob/master/examples/fabric/fp8_distributed_transformer>`_.
 
 ----
 
