@@ -13,9 +13,9 @@
 # limitations under the License.
 """LightningDataModule for loading DataLoaders with ease."""
 
-from collections.abc import Iterable
 import inspect
 import os
+from collections.abc import Iterable
 from typing import IO, Any, Optional, Union, cast
 
 from lightning_utilities import apply_to_collection
