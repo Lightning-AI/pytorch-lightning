@@ -147,7 +147,7 @@ class Strategy(ABC):
 
     def setup_module_and_optimizers(
         self, module: Module, optimizers: list[Optimizer], scheduler: Optional[_LRScheduler] = None
-    ) -> Tuple[Module, list[Optimizer], Optional[_LRScheduler]]:
+    ) -> tuple[Module, list[Optimizer], Optional[_LRScheduler]]:
         """Set up a model and multiple optimizers together.
 
         The returned objects are expected to be in the same order they were passed in. The default implementation will
