@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import time
-from typing import TYPE_CHECKING, Any, Callable, Dict, Optional, Union
+from typing import TYPE_CHECKING, Any, Callable, Optional, Union
 
 import torch
 from typing_extensions import override
@@ -84,9 +84,9 @@ class ThroughputMonitor(Callback):
         self.batch_size_fn = batch_size_fn
         self.length_fn = length_fn
         self.available_flops: Optional[int] = None
-        self._throughputs: Dict[RunningStage, Throughput] = {}
-        self._t0s: Dict[RunningStage, float] = {}
-        self._lengths: Dict[RunningStage, int] = {}
+        self._throughputs: dict[RunningStage, Throughput] = {}
+        self._t0s: dict[RunningStage, float] = {}
+        self._lengths: dict[RunningStage, int] = {}
 
     @override
     def setup(self, trainer: "Trainer", pl_module: "LightningModule", stage: str) -> None:

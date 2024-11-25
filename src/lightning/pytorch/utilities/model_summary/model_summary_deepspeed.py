@@ -14,7 +14,6 @@
 """Utilities that can be used with Deepspeed."""
 
 from collections import OrderedDict
-from typing import Dict, List, Tuple
 
 import torch
 from lightning_utilities.core.imports import RequirementCache
@@ -54,7 +53,7 @@ class DeepSpeedLayerSummary(LayerSummary):
 
 class DeepSpeedSummary(ModelSummary):
     @override
-    def summarize(self) -> Dict[str, DeepSpeedLayerSummary]:  # type: ignore[override]
+    def summarize(self) -> dict[str, DeepSpeedLayerSummary]:  # type: ignore[override]
         summary = OrderedDict((name, DeepSpeedLayerSummary(module)) for name, module in self.named_modules)
         if self._model.example_input_array is not None:
             self._forward_example_input()
@@ -83,11 +82,11 @@ class DeepSpeedSummary(ModelSummary):
         )
 
     @property
-    def parameters_per_layer(self) -> List[int]:
+    def parameters_per_layer(self) -> list[int]:
         return [layer.average_shard_parameters for layer in self._layer_summary.values()]
 
     @override
-    def _get_summary_data(self) -> List[Tuple[str, List[str]]]:
+    def _get_summary_data(self) -> list[tuple[str, list[str]]]:
         """Makes a summary listing with:
 
         Layer Name, Layer Type, Number of Parameters, Input Sizes, Output Sizes, Model Size
@@ -112,7 +111,7 @@ class DeepSpeedSummary(ModelSummary):
         return arrays
 
     @override
-    def _add_leftover_params_to_summary(self, arrays: List[Tuple[str, List[str]]], total_leftover_params: int) -> None:
+    def _add_leftover_params_to_summary(self, arrays: list[tuple[str, list[str]]], total_leftover_params: int) -> None:
         """Add summary of params not associated with module or layer to model summary."""
         super()._add_leftover_params_to_summary(arrays, total_leftover_params)
         layer_summaries = dict(arrays)

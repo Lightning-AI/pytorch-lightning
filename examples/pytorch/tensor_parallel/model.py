@@ -9,7 +9,7 @@
 
 
 from dataclasses import dataclass
-from typing import Optional, Tuple
+from typing import Optional
 
 import torch
 import torch.nn.functional as F
@@ -87,7 +87,7 @@ def apply_rotary_emb(
     xq: torch.Tensor,
     xk: torch.Tensor,
     freqs_cis: torch.Tensor,
-) -> Tuple[torch.Tensor, torch.Tensor]:
+) -> tuple[torch.Tensor, torch.Tensor]:
     """Apply rotary embeddings to input tensors using the given frequency tensor.
 
     This function applies rotary embeddings to the given query 'xq' and key 'xk' tensors using the provided

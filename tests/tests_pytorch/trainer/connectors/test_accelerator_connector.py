@@ -15,7 +15,7 @@ import inspect
 import os
 import sys
 from contextlib import nullcontext
-from typing import Any, Dict
+from typing import Any
 from unittest import mock
 from unittest.mock import Mock
 
@@ -178,7 +178,7 @@ def test_custom_accelerator(cuda_count_0):
         def setup_device(self, device: torch.device) -> None:
             pass
 
-        def get_device_stats(self, device: torch.device) -> Dict[str, Any]:
+        def get_device_stats(self, device: torch.device) -> dict[str, Any]:
             pass
 
         def teardown(self) -> None:
