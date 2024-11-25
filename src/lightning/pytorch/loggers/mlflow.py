@@ -21,9 +21,10 @@ import os
 import re
 import tempfile
 from argparse import Namespace
+from collections.abc import Mapping
 from pathlib import Path
 from time import time
-from typing import TYPE_CHECKING, Any, Callable, Dict, List, Literal, Mapping, Optional, Union
+from typing import TYPE_CHECKING, Any, Callable, Literal, Optional, Union
 
 import yaml
 from lightning_utilities.core.imports import RequirementCache
@@ -117,7 +118,7 @@ class MLFlowLogger(Logger):
         experiment_name: str = "lightning_logs",
         run_name: Optional[str] = None,
         tracking_uri: Optional[str] = os.getenv("MLFLOW_TRACKING_URI"),
-        tags: Optional[Dict[str, Any]] = None,
+        tags: Optional[dict[str, Any]] = None,
         save_dir: Optional[str] = "./mlruns",
         log_model: Literal[True, False, "all"] = False,
         prefix: str = "",
@@ -140,7 +141,7 @@ class MLFlowLogger(Logger):
         self._run_id = run_id
         self.tags = tags
         self._log_model = log_model
-        self._logged_model_time: Dict[str, float] = {}
+        self._logged_model_time: dict[str, float] = {}
         self._checkpoint_callback: Optional[ModelCheckpoint] = None
         self._prefix = prefix
         self._artifact_location = artifact_location
@@ -227,7 +228,7 @@ class MLFlowLogger(Logger):
 
     @override
     @rank_zero_only
-    def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:
+    def log_hyperparams(self, params: Union[dict[str, Any], Namespace]) -> None:
         params = _convert_params(params)
         params = _flatten_dict(params)
 
@@ -249,7 +250,7 @@ class MLFlowLogger(Logger):
         from mlflow.entities import Metric
 
         metrics = _add_prefix(metrics, self._prefix, self.LOGGER_JOIN_CHAR)
-        metrics_list: List[Metric] = []
+        metrics_list: list[Metric] = []
 
         timestamp_ms = int(time() * 1000)
         for k, v in metrics.items():

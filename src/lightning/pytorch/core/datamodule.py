@@ -13,9 +13,10 @@
 # limitations under the License.
 """LightningDataModule for loading DataLoaders with ease."""
 
+from collections.abc import Iterable
 import inspect
 import os
-from typing import IO, Any, Dict, Iterable, List, Optional, Union, cast
+from typing import IO, Any, Optional, Union, cast
 
 from lightning_utilities import apply_to_collection
 from torch.utils.data import DataLoader, Dataset, IterableDataset
@@ -148,7 +149,7 @@ class LightningDataModule(DataHooks, HyperparametersMixin):
             datamodule.predict_dataloader = predict_dataloader  # type: ignore[method-assign]
         return datamodule
 
-    def state_dict(self) -> Dict[str, Any]:
+    def state_dict(self) -> dict[str, Any]:
         """Called when saving a checkpoint, implement to generate and save datamodule state.
 
         Returns:
@@ -157,7 +158,7 @@ class LightningDataModule(DataHooks, HyperparametersMixin):
         """
         return {}
 
-    def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
+    def load_state_dict(self, state_dict: dict[str, Any]) -> None:
         """Called when loading a checkpoint, implement to reload datamodule state given datamodule state_dict.
 
         Args:
@@ -252,7 +253,7 @@ class LightningDataModule(DataHooks, HyperparametersMixin):
             A string representation of the datasets that are setup.
 
         """
-        datasets_info: Optional[List[str]] = []
+        datasets_info: Optional[list[str]] = []
 
         def len_implemented(obj: Dataset) -> bool:
             try:

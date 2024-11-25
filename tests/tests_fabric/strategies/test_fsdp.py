@@ -133,9 +133,12 @@ def test_no_backward_sync():
     strategy = FSDPStrategy()
     assert isinstance(strategy._backward_sync_control, _FSDPBackwardSyncControl)
 
-    with pytest.raises(
-        TypeError, match="is only possible if the module passed to .* is wrapped in `FullyShardedDataParallel`"
-    ), strategy._backward_sync_control.no_backward_sync(Mock(), True):
+    with (
+        pytest.raises(
+            TypeError, match="is only possible if the module passed to .* is wrapped in `FullyShardedDataParallel`"
+        ),
+        strategy._backward_sync_control.no_backward_sync(Mock(), True),
+    ):
         pass
 
     module = MagicMock(spec=FullyShardedDataParallel)
@@ -172,9 +175,12 @@ def test_activation_checkpointing():
     assert isinstance(strategy._activation_checkpointing_kwargs["auto_wrap_policy"], ModuleWrapPolicy)
 
     strategy._parallel_devices = [torch.device("cuda", 0)]
-    with mock.patch("torch.distributed.fsdp.FullyShardedDataParallel", new=MagicMock), mock.patch(
-        "torch.distributed.algorithms._checkpoint.checkpoint_wrapper.apply_activation_checkpointing"
-    ) as apply_mock:
+    with (
+        mock.patch("torch.distributed.fsdp.FullyShardedDataParallel", new=MagicMock),
+        mock.patch(
+            "torch.distributed.algorithms._checkpoint.checkpoint_wrapper.apply_activation_checkpointing"
+        ) as apply_mock,
+    ):
         wrapped = strategy.setup_module(Model())
     apply_mock.assert_called_with(wrapped, checkpoint_wrapper_fn=ANY, **strategy._activation_checkpointing_kwargs)
 

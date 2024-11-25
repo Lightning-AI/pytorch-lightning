@@ -17,19 +17,13 @@ Convention:
  - Types used in public hooks (as those in the `LightningModule` and `Callback`) should be public (no leading `_`)
 """
 
+from collections.abc import Generator, Iterator, Mapping, Sequence
 from contextlib import contextmanager
 from dataclasses import dataclass
 from typing import (
     Any,
-    Generator,
-    Iterator,
-    List,
-    Mapping,
     Optional,
     Protocol,
-    Sequence,
-    Tuple,
-    Type,
     TypedDict,
     Union,
     runtime_checkable,
@@ -47,8 +41,8 @@ from lightning.fabric.utilities.types import ProcessGroup
 _NUMBER = Union[int, float]
 _METRIC = Union[Metric, Tensor, _NUMBER]
 STEP_OUTPUT = Optional[Union[Tensor, Mapping[str, Any]]]
-_EVALUATE_OUTPUT = List[Mapping[str, float]]  # 1 dict per DataLoader
-_PREDICT_OUTPUT = Union[List[Any], List[List[Any]]]
+_EVALUATE_OUTPUT = list[Mapping[str, float]]  # 1 dict per DataLoader
+_PREDICT_OUTPUT = Union[list[Any], list[list[Any]]]
 TRAIN_DATALOADERS = Any  # any iterable or collection of iterables
 EVAL_DATALOADERS = Any  # any iterable or collection of iterables
 
@@ -60,7 +54,7 @@ class DistributedDataParallel(Protocol):
     def __init__(
         self,
         module: torch.nn.Module,
-        device_ids: Optional[List[Union[int, torch.device]]] = None,
+        device_ids: Optional[list[Union[int, torch.device]]] = None,
         output_device: Optional[Union[int, torch.device]] = None,
         dim: int = 0,
         broadcast_buffers: bool = True,
@@ -79,7 +73,7 @@ class DistributedDataParallel(Protocol):
 # todo: improve LRSchedulerType naming/typing
 LRSchedulerTypeTuple = (LRScheduler, ReduceLROnPlateau)
 LRSchedulerTypeUnion = Union[LRScheduler, ReduceLROnPlateau]
-LRSchedulerType = Union[Type[LRScheduler], Type[ReduceLROnPlateau]]
+LRSchedulerType = Union[type[LRScheduler], type[ReduceLROnPlateau]]
 LRSchedulerPLType = Union[LRScheduler, ReduceLROnPlateau]
 
 
@@ -119,7 +113,7 @@ OptimizerLRScheduler = Optional[
     Union[
         Optimizer,
         Sequence[Optimizer],
-        Tuple[Sequence[Optimizer], Sequence[Union[LRSchedulerTypeUnion, LRSchedulerConfig]]],
+        tuple[Sequence[Optimizer], Sequence[Union[LRSchedulerTypeUnion, LRSchedulerConfig]]],
         OptimizerLRSchedulerConfig,
         Sequence[OptimizerLRSchedulerConfig],
     ]

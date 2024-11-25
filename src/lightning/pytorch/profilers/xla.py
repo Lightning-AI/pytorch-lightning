@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import logging
-from typing import Dict
 
 from typing_extensions import override
 
@@ -45,8 +44,8 @@ class XLAProfiler(Profiler):
             raise ModuleNotFoundError(str(_XLA_AVAILABLE))
         super().__init__(dirpath=None, filename=None)
         self.port = port
-        self._recording_map: Dict = {}
-        self._step_recoding_map: Dict = {}
+        self._recording_map: dict = {}
+        self._step_recoding_map: dict = {}
         self._start_trace: bool = False
 
     @override
