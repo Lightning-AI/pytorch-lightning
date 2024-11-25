@@ -13,16 +13,14 @@ from tqdm import tqdm
 
 def configure_model(model: nn.Module, device_mesh: DeviceMesh) -> nn.Module:
     float8_config = Float8LinearConfig(
-        # pip install -U --index-url https://aiinfra.pkgs.visualstudio.com/PublicPackages/_packaging/Triton-Nightly/pypi/simple/ triton-nightly
+        # pip install -U --index-url https://aiinfra.pkgs.visualstudio.com/PublicPackages/_packaging/Triton-Nightly/pypi/simple/ triton-nightly  # noqa
         pad_inner_dim=True,
     )
 
     def module_filter_fn(mod: torch.nn.Module, fqn: str):
         # we skip the decoder because it typically vocabulary size
         # is not divisible by 16 as required by float8
-        if fqn == "decoder":
-            return False
-        return True
+        return fqn != "decoder"
 
     convert_to_float8_training(model, config=float8_config, module_filter_fn=module_filter_fn)
 
@@ -32,9 +30,7 @@ def configure_model(model: nn.Module, device_mesh: DeviceMesh) -> nn.Module:
 
     fully_shard(model, mesh=device_mesh)
 
-    model = torch.compile(model)
-
-    return model
+    return torch.compile(model)
 
 
 def train():
@@ -42,6 +38,8 @@ def train():
 
     batch_size = 8
     micro_batch_size = 1
+
+    max_steps = 100
 
     dataset = WikiText2()
     dataloader = DataLoader(dataset, num_workers=8, batch_size=micro_batch_size)
@@ -69,6 +67,8 @@ def train():
 
     iterable = tqdm(enumerate(dataloader), total=len(dataloader)) if fabric.is_global_zero else enumerate(dataloader)
 
+    steps = 0
+
     for i, batch in iterable:
         input, target = batch
 
@@ -83,11 +83,12 @@ def train():
             fabric.clip_gradients(model, optimizer, max_norm=1.0)
             optimizer.step()
             optimizer.zero_grad()
+            steps += 1
 
         if fabric.is_global_zero:
             iterable.set_postfix_str(f"train_loss={loss.item():.2f}")
 
-        if i // (batch_size // micro_batch_size) > 100:
+        if steps == max_steps:
             break
 
     fabric.print(torch.cuda.memory_summary())

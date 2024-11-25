@@ -29,16 +29,14 @@ class LanguageModel(L.LightningModule):
             )
 
         float8_config = Float8LinearConfig(
-            # pip install -U --index-url https://aiinfra.pkgs.visualstudio.com/PublicPackages/_packaging/Triton-Nightly/pypi/simple/ triton-nightly
+            # pip install -U --index-url https://aiinfra.pkgs.visualstudio.com/PublicPackages/_packaging/Triton-Nightly/pypi/simple/ triton-nightly  # noqa
             pad_inner_dim=True,
         )
 
         def module_filter_fn(mod: torch.nn.Module, fqn: str):
             # we skip the decoder because it typically vocabulary size
             # is not divisible by 16 as required by float8
-            if fqn == "decoder":
-                return False
-            return True
+            return fqn != "decoder"
 
         convert_to_float8_training(model, config=float8_config, module_filter_fn=module_filter_fn)
 

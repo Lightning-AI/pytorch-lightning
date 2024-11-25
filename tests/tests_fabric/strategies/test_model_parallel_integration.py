@@ -116,11 +116,28 @@ def test_setup_device_mesh():
     assert fabric.strategy.device_mesh.size(1) == 4
 
 
+def _parallelize_with_compile(parallelize):
+    def fn(model, device_mesh):
+        model = parallelize(model, device_mesh)
+        return torch.compile(model)
+
+    return fn
+
+
 @RunIf(min_torch="2.4", standalone=True, min_cuda_gpus=2)
-def test_tensor_parallel():
+@pytest.mark.parametrize(
+    "compile",
+    [True, False],
+)
+def test_tensor_parallel(compile):
     from torch.distributed._tensor import DTensor
 
-    strategy = ModelParallelStrategy(parallelize_fn=_parallelize_feed_forward_tp)
+    parallelize = _parallelize_feed_forward_tp
+
+    if compile:
+        parallelize = _parallelize_with_compile(parallelize)
+
+    strategy = ModelParallelStrategy(parallelize_fn=parallelize)
     fabric = Fabric(accelerator="auto", devices=2, strategy=strategy)
     fabric.launch()
 
@@ -161,8 +178,17 @@ def test_tensor_parallel():
 
 
 @RunIf(min_torch="2.4", standalone=True, min_cuda_gpus=4)
-def test_fsdp2_tensor_parallel():
+@pytest.mark.parametrize(
+    "compile",
+    [True, False],
+)
+def test_fsdp2_tensor_parallel(compile):
     from torch.distributed._tensor import DTensor
+
+    parallelize = _parallelize_feed_forward_fsdp2_tp
+
+    if compile:
+        parallelize = _parallelize_with_compile(parallelize)
 
     strategy = ModelParallelStrategy(
         parallelize_fn=_parallelize_feed_forward_fsdp2_tp,

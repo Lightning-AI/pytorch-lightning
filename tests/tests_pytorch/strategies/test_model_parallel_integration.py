@@ -78,10 +78,19 @@ def _parallelize_feed_forward_fsdp2_tp(model, device_mesh):
     return model
 
 
+def _parallelize_with_compile(parallelize):
+    def fn(model, device_mesh):
+        model = parallelize(model, device_mesh)
+        return torch.compile(model)
+
+    return fn
+
+
 class TemplateModel(LightningModule):
-    def __init__(self):
+    def __init__(self, compile=False):
         super().__init__()
         self.model = FeedForward()
+        self._compile = compile
 
     def training_step(self, batch):
         output = self.model(batch)
@@ -98,17 +107,26 @@ class TemplateModel(LightningModule):
 
 class FSDP2Model(TemplateModel):
     def configure_model(self):
-        _parallelize_feed_forward_fsdp2(self.model, device_mesh=self.device_mesh)
+        parallelize = _parallelize_feed_forward_fsdp2_tp
+        if self._compile:
+            parallelize = _parallelize_with_compile(parallelize)
+        parallelize(self.model, device_mesh=self.device_mesh)
 
 
 class TensorParallelModel(TemplateModel):
     def configure_model(self):
-        _parallelize_feed_forward_tp(self.model, device_mesh=self.device_mesh)
+        parallelize = _parallelize_feed_forward_tp
+        if self._compile:
+            parallelize = _parallelize_with_compile(parallelize)
+        parallelize(self.model, device_mesh=self.device_mesh)
 
 
 class FSDP2TensorParallelModel(TemplateModel):
     def configure_model(self):
-        _parallelize_feed_forward_fsdp2_tp(self.model, device_mesh=self.device_mesh)
+        parallelize = _parallelize_feed_forward_fsdp2_tp
+        if self._compile:
+            parallelize = _parallelize_with_compile(parallelize)
+        parallelize(self.model, device_mesh=self.device_mesh)
 
 
 @RunIf(min_torch="2.4", standalone=True, min_cuda_gpus=4)
@@ -169,7 +187,11 @@ def test_setup_device_mesh():
 
 
 @RunIf(min_torch="2.4", standalone=True, min_cuda_gpus=2)
-def test_tensor_parallel():
+@pytest.mark.parametrize(
+    "compile",
+    [True, False],
+)
+def test_tensor_parallel(compile):
     from torch.distributed._tensor import DTensor
 
     class Model(TensorParallelModel):
@@ -204,13 +226,17 @@ def test_tensor_parallel():
 
     seed_everything(0)
     with trainer.init_module(empty_init=True):
-        model = Model()
+        model = Model(compile=compile)
 
     trainer.fit(model)
 
 
 @RunIf(min_torch="2.4", standalone=True, min_cuda_gpus=4)
-def test_fsdp2_tensor_parallel():
+@pytest.mark.parametrize(
+    "compile",
+    [True, False],
+)
+def test_fsdp2_tensor_parallel(compile):
     from torch.distributed._tensor import DTensor
 
     class Model(FSDP2TensorParallelModel):
@@ -261,7 +287,7 @@ def test_fsdp2_tensor_parallel():
 
     seed_everything(0)
     with trainer.init_module(empty_init=True):
-        model = Model()
+        model = Model(compile=compile)
 
     trainer.fit(model)
 
@@ -306,7 +332,11 @@ def test_modules_without_parameters(tmp_path):
         pytest.param("bf16-true", torch.bfloat16, marks=RunIf(bf16_cuda=True)),
     ],
 )
-def test_module_init_context(precision, expected_dtype, tmp_path):
+@pytest.mark.parametrize(
+    "compile",
+    [True, False],
+)
+def test_module_init_context(compile, precision, expected_dtype, tmp_path):
     """Test that the module under the init-context gets moved to the right device and dtype."""
 
     class Model(FSDP2Model):
@@ -329,7 +359,7 @@ def test_module_init_context(precision, expected_dtype, tmp_path):
             logger=False,
         )
         with trainer.init_module(empty_init=empty_init):
-            model = Model()
+            model = Model(compile=compile)
 
         # The model is on the CPU/meta-device until after `ModelParallelStrategy.setup()`
         assert model.model.w1.weight.device == expected_device
