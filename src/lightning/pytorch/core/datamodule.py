@@ -15,7 +15,7 @@
 
 import inspect
 import os
-from collections.abc import Iterable
+from collections.abc import Sized, Iterable
 from typing import IO, Any, Optional, Union, cast
 
 from lightning_utilities import apply_to_collection
@@ -253,21 +253,14 @@ class LightningDataModule(DataHooks, HyperparametersMixin):
             A string representation of the datasets that are setup.
 
         """
-        datasets_info: Optional[list[str]] = []
-
-        def len_implemented(obj: Dataset) -> bool:
-            try:
-                len(obj)
-                return True
-            except NotImplementedError:
-                return False
+        datasets_info: list[str] = []
 
         for attr_name in dir(self):
             attr = getattr(self, attr_name)
 
             # Get Dataset information
             if isinstance(attr, Dataset):
-                if hasattr(attr, "__len__") and len_implemented(attr):
+                if isinstance(attr, Sized):
                     datasets_info.append(f"name={attr_name}, size={len(attr)}")
                 else:
                     datasets_info.append(f"name={attr_name}, size=Unavailable")
