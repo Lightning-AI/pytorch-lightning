@@ -14,8 +14,8 @@
 import os
 import sys
 import threading
+from concurrent.futures.process import _ExecutorManagerThread
 from pathlib import Path
-from typing import List
 from unittest.mock import Mock
 
 import lightning.fabric
@@ -24,9 +24,6 @@ import torch.distributed
 from lightning.fabric.accelerators import XLAAccelerator
 from lightning.fabric.strategies.launchers.subprocess_script import _ChildProcessObserver
 from lightning.fabric.utilities.distributed import _destroy_dist_connection
-
-if sys.version_info >= (3, 9):
-    from concurrent.futures.process import _ExecutorManagerThread
 
 
 @pytest.fixture(autouse=True)
@@ -200,7 +197,7 @@ def leave_no_artifacts_behind():
     assert not difference, f"Test left artifacts behind: {difference}"
 
 
-def pytest_collection_modifyitems(items: List[pytest.Function], config: pytest.Config) -> None:
+def pytest_collection_modifyitems(items: list[pytest.Function], config: pytest.Config) -> None:
     """An adaptation of `tests/tests_pytorch/conftest.py::pytest_collection_modifyitems`"""
     initial_size = len(items)
     conditions = []

@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import functools
-from typing import Any, List, Union
+from typing import Any, Union
 
 import torch
 from lightning_utilities.core.imports import RequirementCache
@@ -47,13 +47,13 @@ class XLAAccelerator(Accelerator):
 
     @staticmethod
     @override
-    def parse_devices(devices: Union[int, str, List[int]]) -> Union[int, List[int]]:
+    def parse_devices(devices: Union[int, str, list[int]]) -> Union[int, list[int]]:
         """Accelerator device parsing logic."""
         return _parse_tpu_devices(devices)
 
     @staticmethod
     @override
-    def get_parallel_devices(devices: Union[int, List[int]]) -> List[torch.device]:
+    def get_parallel_devices(devices: Union[int, list[int]]) -> list[torch.device]:
         """Gets parallel devices for the Accelerator."""
         devices = _parse_tpu_devices(devices)
         if isinstance(devices, int):
@@ -102,20 +102,27 @@ class XLAAccelerator(Accelerator):
 # PJRT support requires this minimum version
 _XLA_AVAILABLE = RequirementCache("torch_xla>=1.13", "torch_xla")
 _XLA_GREATER_EQUAL_2_1 = RequirementCache("torch_xla>=2.1")
+_XLA_GREATER_EQUAL_2_5 = RequirementCache("torch_xla>=2.5")
 
 
 def _using_pjrt() -> bool:
+    # `using_pjrt` is removed in torch_xla 2.5
+    if _XLA_GREATER_EQUAL_2_5:
+        from torch_xla import runtime as xr
+
+        return xr.device_type() is not None
     # delete me when torch_xla 2.2 is the min supported version, where XRT support has been dropped.
     if _XLA_GREATER_EQUAL_2_1:
         from torch_xla import runtime as xr
 
         return xr.using_pjrt()
+
     from torch_xla.experimental import pjrt
 
     return pjrt.using_pjrt()
 
 
-def _parse_tpu_devices(devices: Union[int, str, List[int]]) -> Union[int, List[int]]:
+def _parse_tpu_devices(devices: Union[int, str, list[int]]) -> Union[int, list[int]]:
     """Parses the TPU devices given in the format as accepted by the
     :class:`~lightning.pytorch.trainer.trainer.Trainer` and :class:`~lightning.fabric.Fabric`.
 
@@ -152,7 +159,7 @@ def _check_tpu_devices_valid(devices: object) -> None:
     )
 
 
-def _parse_tpu_devices_str(devices: str) -> Union[int, List[int]]:
+def _parse_tpu_devices_str(devices: str) -> Union[int, list[int]]:
     devices = devices.strip()
     try:
         return int(devices)
