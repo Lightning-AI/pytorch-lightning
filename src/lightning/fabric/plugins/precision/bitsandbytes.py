@@ -16,10 +16,11 @@ import logging
 import math
 import os
 import warnings
-from contextlib import ExitStack
+from collections import OrderedDict
+from contextlib import AbstractContextManager, ExitStack
 from functools import partial
 from types import ModuleType
-from typing import Any, Callable, ContextManager, Literal, Optional, OrderedDict, Set, Tuple, Type, cast
+from typing import Any, Callable, Literal, Optional, cast
 
 import torch
 from lightning_utilities import apply_to_collection
@@ -70,7 +71,7 @@ class BitsandbytesPrecision(Precision):
         self,
         mode: Literal["nf4", "nf4-dq", "fp4", "fp4-dq", "int8", "int8-training"],
         dtype: Optional[torch.dtype] = None,
-        ignore_modules: Optional[Set[str]] = None,
+        ignore_modules: Optional[set[str]] = None,
     ) -> None:
         _import_bitsandbytes()
 
@@ -122,11 +123,11 @@ class BitsandbytesPrecision(Precision):
         return module
 
     @override
-    def tensor_init_context(self) -> ContextManager:
+    def tensor_init_context(self) -> AbstractContextManager:
         return _DtypeContextManager(self.dtype)
 
     @override
-    def module_init_context(self) -> ContextManager:
+    def module_init_context(self) -> AbstractContextManager:
         if self.ignore_modules:
             # cannot patch the Linear class if the user wants to skip some submodules
             raise RuntimeError(
@@ -144,7 +145,7 @@ class BitsandbytesPrecision(Precision):
         return stack
 
     @override
-    def forward_context(self) -> ContextManager:
+    def forward_context(self) -> AbstractContextManager:
         return _DtypeContextManager(self.dtype)
 
     @override
@@ -175,7 +176,7 @@ def _ignore_missing_weights_hook(module: torch.nn.Module, incompatible_keys: _In
 
 
 def _replace_param(
-    param: torch.nn.Parameter, data: torch.Tensor, quant_state: Optional[Tuple] = None
+    param: torch.nn.Parameter, data: torch.Tensor, quant_state: Optional[tuple] = None
 ) -> torch.nn.Parameter:
     bnb = _import_bitsandbytes()
 
@@ -418,7 +419,7 @@ def _import_bitsandbytes() -> ModuleType:
     return bnb
 
 
-def _convert_layers(module: torch.nn.Module, linear_cls: Type, ignore_modules: Set[str], prefix: str = "") -> None:
+def _convert_layers(module: torch.nn.Module, linear_cls: type, ignore_modules: set[str], prefix: str = "") -> None:
     for name, child in module.named_children():
         fullname = f"{prefix}.{name}" if prefix else name
         if isinstance(child, torch.nn.Linear) and not any(fullname.startswith(s) for s in ignore_modules):

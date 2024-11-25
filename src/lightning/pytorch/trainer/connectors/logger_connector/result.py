@@ -11,9 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from collections.abc import Generator
 from dataclasses import dataclass
 from functools import partial, wraps
-from typing import Any, Callable, Dict, Generator, List, Optional, Tuple, Union, cast
+from typing import Any, Callable, Optional, Union, cast
 
 import torch
 from lightning_utilities.core.apply_func import apply_to_collection
@@ -32,8 +33,8 @@ from lightning.pytorch.utilities.rank_zero import WarningCache, rank_zero_warn
 from lightning.pytorch.utilities.warnings import PossibleUserWarning
 
 _VALUE = Union[Metric, Tensor]  # Do not include scalars as they were converted to tensors
-_OUT_DICT = Dict[str, Tensor]
-_PBAR_DICT = Dict[str, float]
+_OUT_DICT = dict[str, Tensor]
+_PBAR_DICT = dict[str, float]
 
 
 class _METRICS(TypedDict):
@@ -333,7 +334,7 @@ class _ResultCollection(dict):
         self.dataloader_idx: Optional[int] = None
 
     @property
-    def result_metrics(self) -> List[_ResultMetric]:
+    def result_metrics(self) -> list[_ResultMetric]:
         return list(self.values())
 
     def _extract_batch_size(self, value: _ResultMetric, batch_size: Optional[int], meta: _Metadata) -> int:
@@ -456,7 +457,7 @@ class _ResultCollection(dict):
         """This function is used to iterate over current valid metrics."""
         return ((k, v) for k, v in self.items() if not v.has_reset and self.dataloader_idx == v.meta.dataloader_idx)
 
-    def _forked_name(self, result_metric: _ResultMetric, on_step: bool) -> Tuple[str, str]:
+    def _forked_name(self, result_metric: _ResultMetric, on_step: bool) -> tuple[str, str]:
         name = result_metric.meta.name
         forked_name = result_metric.meta.forked_name(on_step)
         add_dataloader_idx = result_metric.meta.add_dataloader_idx

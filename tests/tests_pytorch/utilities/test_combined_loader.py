@@ -13,7 +13,8 @@
 # limitations under the License.
 import math
 import pickle
-from typing import Any, NamedTuple, Sequence, get_args
+from collections.abc import Sequence
+from typing import Any, NamedTuple, get_args
 from unittest.mock import Mock
 
 import pytest

@@ -14,7 +14,7 @@
 import pickle
 from argparse import Namespace
 from copy import deepcopy
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 from unittest.mock import patch
 
 import numpy as np
@@ -252,12 +252,12 @@ def test_log_hyperparams_being_called(log_hyperparams_mock, tmp_path, logger):
 @patch("lightning.pytorch.loggers.tensorboard.TensorBoardLogger.log_hyperparams")
 def test_log_hyperparams_key_collision(_, tmp_path):
     class TestModel(BoringModel):
-        def __init__(self, hparams: Dict[str, Any]) -> None:
+        def __init__(self, hparams: dict[str, Any]) -> None:
             super().__init__()
             self.save_hyperparameters(hparams)
 
     class TestDataModule(BoringDataModule):
-        def __init__(self, hparams: Dict[str, Any]) -> None:
+        def __init__(self, hparams: dict[str, Any]) -> None:
             super().__init__()
             self.save_hyperparameters(hparams)
 

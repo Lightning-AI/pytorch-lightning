@@ -141,9 +141,12 @@ def test_rich_progress_bar_keyboard_interrupt(tmp_path):
 
     model = TestModel()
 
-    with mock.patch(
-        "lightning.pytorch.callbacks.progress.rich_progress.Progress.stop", autospec=True
-    ) as mock_progress_stop, pytest.raises(SystemExit):
+    with (
+        mock.patch(
+            "lightning.pytorch.callbacks.progress.rich_progress.Progress.stop", autospec=True
+        ) as mock_progress_stop,
+        pytest.raises(SystemExit),
+    ):
         progress_bar = RichProgressBar()
         trainer = Trainer(
             default_root_dir=tmp_path,

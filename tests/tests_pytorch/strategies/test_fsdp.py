@@ -444,9 +444,12 @@ def test_activation_checkpointing():
     strategy._parallel_devices = [torch.device("cuda", 0)]
     strategy._lightning_module = model
     strategy._process_group = Mock()
-    with mock.patch("torch.distributed.fsdp.FullyShardedDataParallel", new=MagicMock), mock.patch(
-        "torch.distributed.algorithms._checkpoint.checkpoint_wrapper.apply_activation_checkpointing"
-    ) as apply_mock:
+    with (
+        mock.patch("torch.distributed.fsdp.FullyShardedDataParallel", new=MagicMock),
+        mock.patch(
+            "torch.distributed.algorithms._checkpoint.checkpoint_wrapper.apply_activation_checkpointing"
+        ) as apply_mock,
+    ):
         wrapped = strategy._setup_model(model)
     apply_mock.assert_called_with(wrapped, checkpoint_wrapper_fn=ANY, **strategy._activation_checkpointing_kwargs)
 

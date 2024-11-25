@@ -14,7 +14,8 @@
 
 import os
 from argparse import Namespace
-from typing import TYPE_CHECKING, Any, Dict, Mapping, Optional, Union
+from collections.abc import Mapping
+from typing import TYPE_CHECKING, Any, Optional, Union
 
 from lightning_utilities.core.imports import RequirementCache
 from torch import Tensor
@@ -219,7 +220,7 @@ class TensorBoardLogger(Logger):
     @override
     @rank_zero_only
     def log_hyperparams(
-        self, params: Union[Dict[str, Any], Namespace], metrics: Optional[Dict[str, Any]] = None
+        self, params: Union[dict[str, Any], Namespace], metrics: Optional[dict[str, Any]] = None
     ) -> None:
         """Record hyperparameters. TensorBoard logs with and without saved hyperparameters are incompatible, the
         hyperparameters are then not displayed in the TensorBoard. Please delete or move the previously saved logs to
@@ -318,12 +319,12 @@ class TensorBoardLogger(Logger):
         return max(existing_versions) + 1
 
     @staticmethod
-    def _sanitize_params(params: Dict[str, Any]) -> Dict[str, Any]:
+    def _sanitize_params(params: dict[str, Any]) -> dict[str, Any]:
         params = _utils_sanitize_params(params)
         # logging of arrays with dimension > 1 is not supported, sanitize as string
         return {k: str(v) if hasattr(v, "ndim") and v.ndim > 1 else v for k, v in params.items()}
 
-    def __getstate__(self) -> Dict[str, Any]:
+    def __getstate__(self) -> dict[str, Any]:
         state = self.__dict__.copy()
         state["_experiment"] = None
         return state
