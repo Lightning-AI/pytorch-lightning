@@ -10,9 +10,8 @@ hidden states should be kept in-between each time-dimension split.
 
 
 .. code-block:: python
-    import lightning as L
-
-    class LitModel(L.LightningModule):
+    
+    class LitModel(LightningModule):
 
         def __init__(self):
             super().__init__()
