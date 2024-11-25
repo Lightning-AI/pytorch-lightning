@@ -2,7 +2,7 @@
 import logging
 import operator
 from dataclasses import dataclass
-from typing import Dict, List, Union
+from typing import Union
 
 import torch
 import torch.nn as nn
@@ -46,7 +46,7 @@ MODULE_FILTER_MAP = {
 class Float8TrainingHandler:
     """Handler for configuring models for FP8 training using torchao."""
 
-    def __init__(self, args: FP8Config, model_path: str, parallel_dims: Dict[str, bool]):
+    def __init__(self, args: FP8Config, model_path: str, parallel_dims: dict[str, bool]):
         """Initializes the handler for FP8 training and configuration.
 
         Args:
@@ -164,7 +164,7 @@ class Float8TrainingHandler:
             f"Swapped to Float8Linear layers with enable_fsdp_float8_all_gather={self.config.enable_fsdp_float8_all_gather}"
         )
 
-    def precompute_float8_dynamic_scale_for_fsdp(self, model: Union[nn.Module, List[nn.Module]]):
+    def precompute_float8_dynamic_scale_for_fsdp(self, model: Union[nn.Module, list[nn.Module]]):
         if not self.enable_fp8 or not self.precompute_scale:
             return
 
@@ -174,7 +174,7 @@ class Float8TrainingHandler:
         for m in models:
             precompute_float8_dynamic_scale_for_fsdp(m)
 
-    def sync_float8_amax_and_scale_history(self, model: Union[nn.Module, List[nn.Module]]):
+    def sync_float8_amax_and_scale_history(self, model: Union[nn.Module, list[nn.Module]]):
         if not self.enable_fp8 or not self.delayed_scaling:
             return
 

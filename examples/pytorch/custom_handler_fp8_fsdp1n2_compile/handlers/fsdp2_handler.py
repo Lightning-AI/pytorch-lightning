@@ -75,13 +75,13 @@ class FSDP2Handler:
         dp_mesh = self.device_mesh["data_parallel"]
         assert dp_mesh.size() > 1, "FSDP requires at least two devices."
 
-        fsdp_policy = dict(
-            mesh=dp_mesh,
-            mp_policy=self.MixedPrecisionPolicy(
+        fsdp_policy = {
+            "mesh": dp_mesh,
+            "mp_policy": self.MixedPrecisionPolicy(
                 param_dtype=torch.bfloat16,
                 reduce_dtype=torch.float32,
             ),
-        )
+        }
         if self.args.enable_cpu_offload:
             fsdp_policy["offload_policy"] = self.CPUOffloadPolicy()
 

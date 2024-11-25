@@ -1,6 +1,7 @@
 import unittest
 from unittest.mock import patch
 
+import pytest
 import torch.nn as nn
 from handlers.fp8_training_handler import Float8TrainingHandler, FP8Config
 from lightning.pytorch.demos import Transformer
@@ -38,33 +39,30 @@ class TestFloat8TrainingHandler(unittest.TestCase):
     @patch("handlers.fp8_training_handler.is_sm89_or_later", return_value=True)
     def test_handler_initialization(self, mock_sm89):
         handler = Float8TrainingHandler(self.args, self.model_path, self.parallel_dims)
-        self.assertTrue(handler.enable_fp8)
-        self.assertFalse(handler.compile)
-        self.assertIsNotNone(handler.args)
-        self.assertIsNotNone(handler.parallel_dims)
+        assert handler.enable_fp8
+        assert not handler.compile
+        assert handler.args is not None
+        assert handler.parallel_dims is not None
 
     @patch("handlers.fp8_training_handler.is_sm89_or_later", return_value=True)
     def test_compile_flag(self, mock_sm89):
         self.args.enable_torch_compile = True
         handler = Float8TrainingHandler(self.args, self.model_path, self.parallel_dims)
-        self.assertTrue(handler.compile)
+        assert handler.compile
 
     @patch("handlers.fp8_training_handler.is_sm89_or_later", return_value=False)
     def test_handler_disabled_on_unsupported_hardware(self, mock_sm89):
         # Assert that the RuntimeError is raised
-        with self.assertRaises(RuntimeError) as context:
+        with pytest.raises(RuntimeError) as context:
             Float8TrainingHandler(self.args, self.model_path, self.parallel_dims)
 
         # Check that the error message matches the expected text
-        self.assertIn(
-            "Float8Linear operation is not supported on the current hardware.",
-            str(context.exception),
-        )
+        assert "Float8Linear operation is not supported on the current hardware." in str(context.exception)
 
     def test_handler_disabled_when_fp8_not_enabled(self):
         self.args.enable_fp8 = False
         handler = Float8TrainingHandler(self.args, self.model_path, self.parallel_dims)
-        self.assertFalse(handler.enable_fp8)
+        assert not handler.enable_fp8
 
     @patch("handlers.fp8_training_handler.is_sm89_or_later", return_value=True)
     def test_convert_to_float8_training(self, mock_sm89):
@@ -75,9 +73,9 @@ class TestFloat8TrainingHandler(unittest.TestCase):
         print(self.model)
         for module_name, module in self.model.named_modules():
             if any(proj in module_name for proj in ["w1", "w2", "w3"]):  # Float8Linear
-                self.assertIsInstance(module, Float8Linear, f"{module_name} should be Float8Linear")
+                assert isinstance(module, Float8Linear), f"{module_name} should be Float8Linear"
             elif isinstance(module, nn.Linear):
-                self.assertNotIsInstance(module, Float8Linear, f"{module_name} should not be Float8Linear")
+                assert not isinstance(module, Float8Linear), f"{module_name} should not be Float8Linear"
 
     @patch("handlers.fp8_training_handler.is_sm89_or_later", return_value=True)
     def test_precompute_float8_dynamic_scale_for_fsdp(self, mock_sm89):

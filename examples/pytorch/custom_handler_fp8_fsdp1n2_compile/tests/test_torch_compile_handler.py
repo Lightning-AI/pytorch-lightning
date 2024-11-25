@@ -43,11 +43,7 @@ class TestTorchCompileHandler(unittest.TestCase):
         handler.compile_model(self.model)
 
         # Ensure torch.compile was called with the correct layer
-        self.assertEqual(
-            mock_compile.call_count,
-            self.num_layers,
-            f"Expected mock_compile to be called {self.num_layers} times",
-        )
+        assert mock_compile.call_count == self.num_layers, f"Expected mock_compile to be called {self.num_layers} times"
 
     def test_compile_disabled(self):
         handler = TorchCompileHandler(False, self.model_path)
@@ -74,9 +70,5 @@ class TestTorchCompileHandler(unittest.TestCase):
         handler.compile_model(model)
 
         # LlamaMLP inside NestedModel should be compiled
-        self.assertTrue(mock_compile.called)
-        self.assertEqual(
-            mock_compile.call_count,
-            self.num_layers,
-            f"Expected mock_compile to be called {self.num_layers} times",
-        )
+        assert mock_compile.called
+        assert mock_compile.call_count == self.num_layers, f"Expected mock_compile to be called {self.num_layers} times"

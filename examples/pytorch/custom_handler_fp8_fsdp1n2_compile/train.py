@@ -1,19 +1,20 @@
 import argparse
-from dataclasses import dataclass
 import logging
+from dataclasses import dataclass
 
-import torch.distributed as dist
 import lightning as L
 import torch
+import torch.distributed as dist
 import torch.nn as nn
 import torch.nn.functional as F
-from lightning.pytorch.demos import Transformer, WikiText2
+from lightning.pytorch.demos import WikiText2
 from lightning.pytorch.strategies import FSDPStrategy, ModelParallelStrategy
 from torch.distributed.fsdp import BackwardPrefetch, MixedPrecision
 from torch.utils.data import DataLoader
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 log = logging.getLogger(__name__)
+
 
 @dataclass
 class Args:
@@ -24,9 +25,10 @@ class Args:
     enable_gradient_checkpointing: bool = False
     enable_fsdp2: bool = False
 
+
 class SimpleLayer(nn.Module):
     def __init__(self, hidden_size):
-        super(SimpleLayer, self).__init__()
+        super().__init__()
         self.linear = nn.Linear(hidden_size, hidden_size)
         self.activation = nn.ReLU()
 
@@ -34,31 +36,29 @@ class SimpleLayer(nn.Module):
         print(f"Input shape before Linear: {x.shape}")
         x = self.linear(x)
         print(f"Output shape after Linear: {x.shape}")
-        x = self.activation(x)
-        return x
+        return self.activation(x)
+
 
 class InnerModel(nn.Module):
     def __init__(self, num_layers, hidden_size, vocab_size=32000):
-        super(InnerModel, self).__init__()
+        super().__init__()
         # Embedding layer
         self.embedding = nn.Embedding(num_embeddings=vocab_size, embedding_dim=hidden_size)
         # Initialize a ModuleList to store the intermediate layers
         self.layers = nn.ModuleList([SimpleLayer(hidden_size) for _ in range(num_layers)])
         self.lm_head = nn.Linear(hidden_size, vocab_size)
 
-
     def forward(self, x):
         x = self.embedding(x)
         # Pass the input through each layer sequentially
         for layer in self.layers:
             x = layer(x)
-        x = self.lm_head(x)
-        return x
+        return self.lm_head(x)
 
 
 class ModelWrapper(nn.Module):
     def __init__(self, model):
-        super(ModelWrapper, self).__init__()
+        super().__init__()
         self.model = model  # The wrapped Transformer model
 
     def forward(self, *args, **kwargs):
@@ -66,14 +66,15 @@ class ModelWrapper(nn.Module):
 
 
 class LanguageModel(L.LightningModule):
-    def __init__(self, 
-                vocab_size=32000,
-                enable_fp8 = False, 
-                enable_fsdp2 = False,
-                enable_torch_compile = False,
-                enable_gradient_checkpointing = False,
-                enable_cpu_offload = False
-                ):
+    def __init__(
+        self,
+        vocab_size=32000,
+        enable_fp8=False,
+        enable_fsdp2=False,
+        enable_torch_compile=False,
+        enable_gradient_checkpointing=False,
+        enable_cpu_offload=False,
+    ):
         super().__init__()
         self.model = None
         self.vocab_size = vocab_size
@@ -83,15 +84,14 @@ class LanguageModel(L.LightningModule):
         self.enable_gradient_checkpointing = enable_gradient_checkpointing
         self.enable_cpu_offload = enable_cpu_offload
         self.model_path = "dummy"  # placeholder
-        self.parallel_dims = {
-            "dp_shard_enabled": True if torch.cuda.device_count() > 1 else False
-        }  # only used for FP8 training
+        self.parallel_dims = {"dp_shard_enabled": torch.cuda.device_count() > 1}  # only used for FP8 training
 
     def log_model_stage(self, stage: str):
-        """
-        Logs the current state of the model with a description of the stage.
+        """Logs the current state of the model with a description of the stage.
+
         Args:
             stage (str): Description of the current model stage.
+
         """
         log.warning(f"Model at stage: {stage}\n{self.model}")
 
@@ -129,7 +129,7 @@ class LanguageModel(L.LightningModule):
 
     def configure_fp8(self):
         # Setup fp8 training, if enable_fp8 is false, it will create a fake handler
-        from handlers.fp8_training_handler import FP8Config, Float8TrainingHandler
+        from handlers.fp8_training_handler import Float8TrainingHandler, FP8Config
 
         fp8_config = FP8Config(
             enable_fp8=self.enable_fp8,
@@ -207,13 +207,14 @@ def train(args):
     dataset = WikiText2()
     train_dataloader = DataLoader(dataset, num_workers=8, batch_size=1)
 
-    model = LanguageModel(vocab_size=args.vocab_size,
-                          enable_fp8 = args.enable_fp8,
-                          enable_fsdp2 = args.enable_fsdp2,
-                          enable_torch_compile = args.enable_torch_compile,
-                          enable_gradient_checkpointing = args.enable_gradient_checkpointing,
-                          enable_cpu_offload = args.enable_cpu_offload,
-                          )
+    model = LanguageModel(
+        vocab_size=args.vocab_size,
+        enable_fp8=args.enable_fp8,
+        enable_fsdp2=args.enable_fsdp2,
+        enable_torch_compile=args.enable_torch_compile,
+        enable_gradient_checkpointing=args.enable_gradient_checkpointing,
+        enable_cpu_offload=args.enable_cpu_offload,
+    )
 
     if args.enable_fsdp2:
         strategy = ModelParallelStrategy(

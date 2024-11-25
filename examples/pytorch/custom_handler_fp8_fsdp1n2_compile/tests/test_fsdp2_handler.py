@@ -1,6 +1,7 @@
 import unittest
 from unittest.mock import MagicMock, patch
 
+import pytest
 import torch.nn as nn
 from handlers.fsdp2_handler import FSDP2Config, FSDP2Handler
 
@@ -37,7 +38,7 @@ class TestFSDP2Handler(unittest.TestCase):
 
         class ModelWrapper(nn.Module):
             def __init__(self, model):
-                super(ModelWrapper, self).__init__()
+                super().__init__()
                 self.model = model  # The wrapped Transformer model
 
             def forward(self, *args, **kwargs):
@@ -45,7 +46,7 @@ class TestFSDP2Handler(unittest.TestCase):
 
         class InnerModel(nn.Module):
             def __init__(self, num_layers, input_size, hidden_size):
-                super(InnerModel, self).__init__()
+                super().__init__()
                 # Initialize a ModuleList to store the layers
                 self.layers = nn.ModuleList()
                 for _ in range(num_layers):
@@ -77,23 +78,23 @@ class TestFSDP2Handler(unittest.TestCase):
         wrapped_model = handler.wrap_model(self.model)
 
         # Ensure fully_shard and checkpoint_wrapper are called
-        self.assertTrue(mock_fully_shard_func.called, "fully_shard was not called")
-        self.assertTrue(mock_checkpoint_wrapper_func.called, "checkpoint_wrapper was not called")
+        assert mock_fully_shard_func.called, "fully_shard was not called"
+        assert mock_checkpoint_wrapper_func.called, "checkpoint_wrapper was not called"
 
         # Verify that the model's layers have been wrapped
-        self.assertIsNotNone(wrapped_model, "wrapped_model is None")
+        assert wrapped_model is not None, "wrapped_model is None"
         mock_fully_shard_func.assert_called()
 
         # Ensure that checkpoint_wrapper is called for each layer
-        self.assertEqual(mock_checkpoint_wrapper_func.call_count, len(self.model.model.layers))
+        assert mock_checkpoint_wrapper_func.call_count == len(self.model.model.layers)
         # Ensure that fully_shard is called for each layer + full module
-        self.assertEqual(mock_fully_shard_func.call_count, len(self.model.model.layers) + 1)
+        assert mock_fully_shard_func.call_count == len(self.model.model.layers) + 1
 
     def test_wrap_model_with_single_device(self):
         # Simulate single device
         self.device_mesh["data_parallel"].size.return_value = 1
         handler = FSDP2Handler(self.args, self.device_mesh)
-        with self.assertRaises(AssertionError):
+        with pytest.raises(AssertionError):
             handler.wrap_model(self.model)
 
     @patch("torch.distributed._composable.fsdp.fully_shard", side_effect=mock_fully_shard)
@@ -103,8 +104,8 @@ class TestFSDP2Handler(unittest.TestCase):
         handler.wrap_model(self.model)
         # Check if CPUOffloadPolicy is used
         args, kwargs = mock_fully_shard_func.call_args
-        self.assertIn("offload_policy", kwargs)
-        self.assertIsNotNone(kwargs["offload_policy"])
+        assert "offload_policy" in kwargs
+        assert kwargs["offload_policy"] is not None
 
     @patch("torch.distributed._composable.fsdp.fully_shard", side_effect=mock_fully_shard)
     @patch(
@@ -116,4 +117,4 @@ class TestFSDP2Handler(unittest.TestCase):
         handler = FSDP2Handler(self.args, self.device_mesh)
         handler.wrap_model(self.model)
         # Check if gradient checkpointing is disabled
-        self.assertFalse(mock_checkpoint_wrapper_func.called, "Error: checkpoint_wrapper was unexpectedly called.")
+        assert not mock_checkpoint_wrapper_func.called, "Error: checkpoint_wrapper was unexpectedly called."
