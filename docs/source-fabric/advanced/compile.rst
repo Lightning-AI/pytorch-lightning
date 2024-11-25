@@ -168,7 +168,7 @@ Here is an example:
 The advantage here is that `parallelize` is called when sharding the model,
 so :func:`torch.compile` is guaranteed to run on model shards and capture distributed operations.
 
-Also, when using other libraries like `torch ao <https://github.com/pytorch/ao>`
+Also, when using other libraries like `torch ao <https://github.com/pytorch/ao>`_
 that need to be applied in a similar fashion, it's easy to reason about the sequence of calls
 needed to achieve the equivalent of `compile(distributed(quantized(model)))`:
 
