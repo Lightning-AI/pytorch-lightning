@@ -79,7 +79,7 @@ class _AcceleratorConnector:
         num_nodes: int = 1,
         accelerator: Union[str, Accelerator] = "auto",
         strategy: Union[str, Strategy] = "auto",
-        plugins: Optional[Union[_PLUGIN_INPUT, list[_PLUGIN_INPUT]]] = None,
+        plugins: Optional[Union[_PLUGIN_INPUT, Iterable[_PLUGIN_INPUT]]] = None,
         precision: Optional[_PRECISION_INPUT] = None,
         sync_batchnorm: bool = False,
         benchmark: Optional[bool] = None,
@@ -167,7 +167,7 @@ class _AcceleratorConnector:
         strategy: Union[str, Strategy],
         accelerator: Union[str, Accelerator],
         precision: Optional[_PRECISION_INPUT],
-        plugins: Optional[Union[_PLUGIN_INPUT, list[_PLUGIN_INPUT]]],
+        plugins: Optional[Union[_PLUGIN_INPUT, Iterable[_PLUGIN_INPUT]]],
         sync_batchnorm: bool,
     ) -> None:
         """This method checks:
