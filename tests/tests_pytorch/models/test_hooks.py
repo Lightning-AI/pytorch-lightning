@@ -660,8 +660,6 @@ def test_trainer_model_hook_system_fit_no_val_and_resume_max_steps(tmp_path):
         {"name": "train_dataloader"},
         {"name": "Callback.on_train_start", "args": (trainer, model)},
         {"name": "on_train_start"},
-        {"name": "Callback.on_train_epoch_start", "args": (trainer, model)},
-        {"name": "on_train_epoch_start"},
         *model._train_batch(trainer, model, steps_after_reload, trainer.strategy.root_device, current_batch=1),
         {"name": "Callback.on_train_epoch_end", "args": (trainer, model)},
         {"name": "on_train_epoch_end"},  # before ModelCheckpoint because it's a "monitoring callback"

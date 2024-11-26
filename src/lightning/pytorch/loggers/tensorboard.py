@@ -18,7 +18,7 @@ TensorBoard Logger
 
 import os
 from argparse import Namespace
-from typing import Any, Dict, Optional, Union
+from typing import Any, Optional, Union
 
 from torch import Tensor
 from typing_extensions import override
@@ -108,7 +108,7 @@ class TensorBoardLogger(Logger, FabricTensorBoardLogger):
                 f"{str(_TENSORBOARD_AVAILABLE)}"
             )
         self._log_graph = log_graph and _TENSORBOARD_AVAILABLE
-        self.hparams: Union[Dict[str, Any], Namespace] = {}
+        self.hparams: Union[dict[str, Any], Namespace] = {}
 
     @property
     @override
@@ -153,7 +153,7 @@ class TensorBoardLogger(Logger, FabricTensorBoardLogger):
     @override
     @rank_zero_only
     def log_hyperparams(
-        self, params: Union[Dict[str, Any], Namespace], metrics: Optional[Dict[str, Any]] = None
+        self, params: Union[dict[str, Any], Namespace], metrics: Optional[dict[str, Any]] = None
     ) -> None:
         """Record hyperparameters. TensorBoard logs with and without saved hyperparameters are incompatible, the
         hyperparameters are then not displayed in the TensorBoard. Please delete or move the previously saved logs to

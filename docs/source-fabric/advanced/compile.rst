@@ -115,9 +115,115 @@ always exclude the first call to ``forward()`` from your measurements, since it 
         Compile median time: 0.0185 seconds
         Speedup: 1.4x
 
-
 ----
 
+**********************************************
+Apply torch.compile with ModelParallelStrategy
+**********************************************
+
+:func:`torch.compile` can also be invoked as part of the `parallelize_fn` argument of :class:`~lightning.fabric.strategies.model_parallel.ModelParallelStrategy`.
+
+This is particularly handy when :func:`torch.compile` is used in combination with the `torch.distributed.tensor` API.
+
+Here is an example:
+
+.. code-block:: python
+
+    import lightning as L
+    import torch
+    import torch.nn as nn
+    import torch.nn.functional as F
+    from lightning.pytorch.demos import Transformer
+    from lightning.fabric.strategies.model_parallel import ModelParallelStrategy
+    from torch.distributed._composable.fsdp.fully_shard import fully_shard
+    from torch.distributed.device_mesh import DeviceMesh
+
+    def parallelize(model: nn.Module, device_mesh: DeviceMesh) -> nn.Module:
+        for module in model.modules():
+            if isinstance(module, (torch.nn.TransformerEncoderLayer, torch.nn.TransformerDecoderLayer)):
+                fully_shard(module, mesh=device_mesh)
+
+        fully_shard(model, mesh=device_mesh)
+
+        return torch.compile(model)
+
+    def train():
+        L.seed_everything(42)
+
+        with torch.device("meta"):
+            model = Transformer(
+                vocab_size=50257,
+                nlayers=16,
+                nhid=4096,
+                ninp=1024,
+                nhead=32,
+            )
+
+        strategy = ModelParallelStrategy(data_parallel_size=4, tensor_parallel_size=1, parallelize_fn=parallelize)
+
+        fabric = L.Fabric(precision="bf16-true", strategy=strategy)
+        fabric.launch()
+
+        model = fabric.setup(model)
+
+The advantage here is that `parallelize` is called when sharding the model,
+so :func:`torch.compile` is guaranteed to run on model shards and capture distributed operations.
+
+Also, when using other libraries like `torch ao <https://github.com/pytorch/ao>`_
+that need to be applied in a similar fashion, it's easy to reason about the sequence of calls
+needed to achieve the equivalent of `compile(distributed(quantized(model)))`:
+
+.. code-block:: python
+
+    import lightning as L
+    import torch
+    import torch.nn as nn
+    import torch.nn.functional as F
+    from lightning.pytorch.demos import Transformer
+    from torch.distributed._composable.fsdp.fully_shard import fully_shard
+    from torch.distributed.device_mesh import DeviceMesh
+    from torchao.float8 import Float8LinearConfig, convert_to_float8_training
+
+    def parallelize(model: nn.Module, device_mesh: DeviceMesh) -> nn.Module:
+        float8_config = Float8LinearConfig(
+            pad_inner_dim=True,
+        )
+
+        def module_filter_fn(mod: torch.nn.Module, fqn: str):
+            return fqn != "decoder"
+
+        convert_to_float8_training(model, config=float8_config, module_filter_fn=module_filter_fn)
+
+        for module in model.modules():
+            if isinstance(module, (torch.nn.TransformerEncoderLayer, torch.nn.TransformerDecoderLayer)):
+                fully_shard(module, mesh=device_mesh)
+
+        fully_shard(model, mesh=device_mesh)
+
+        return torch.compile(model)
+
+    def train():
+        L.seed_everything(42)
+
+        with torch.device("meta"):
+            model = Transformer(
+                vocab_size=50257,
+                nlayers=16,
+                nhid=4096,
+                ninp=1024,
+                nhead=32,
+            )
+
+        strategy = ModelParallelStrategy(data_parallel_size=4, tensor_parallel_size=1, parallelize_fn=parallelize)
+
+        fabric = L.Fabric(precision="bf16-true", strategy=strategy)
+        fabric.launch()
+
+        model = fabric.setup(model)
+
+For a full example, see our `FP8 Distributed Transformer example <https://github.com/Lightning-AI/lightning/blob/master/examples/fabric/fp8_distributed_transformer>`_.
+
+----
 
 ******************
 Avoid graph breaks

@@ -43,21 +43,24 @@ jobs:
           - { os: "macOS-14", pkg-name: "lightning", python-version: "3.10", pytorch-version: "2.1" }
           - { os: "ubuntu-20.04", pkg-name: "lightning", python-version: "3.10", pytorch-version: "2.1" }
           - { os: "windows-2022", pkg-name: "lightning", python-version: "3.10", pytorch-version: "2.1" }
-          - { os: "macOS-14", pkg-name: "lightning", python-version: "3.11", pytorch-version: "2.2" }
-          - { os: "ubuntu-20.04", pkg-name: "lightning", python-version: "3.11", pytorch-version: "2.2" }
-          - { os: "windows-2022", pkg-name: "lightning", python-version: "3.11", pytorch-version: "2.2" }
+          - { os: "macOS-14", pkg-name: "lightning", python-version: "3.11", pytorch-version: "2.2.2" }
+          - { os: "ubuntu-20.04", pkg-name: "lightning", python-version: "3.11", pytorch-version: "2.2.2" }
+          - { os: "windows-2022", pkg-name: "lightning", python-version: "3.11", pytorch-version: "2.2.2" }
           - { os: "macOS-14", pkg-name: "lightning", python-version: "3.11", pytorch-version: "2.3" }
           - { os: "ubuntu-20.04", pkg-name: "lightning", python-version: "3.11", pytorch-version: "2.3" }
           - { os: "windows-2022", pkg-name: "lightning", python-version: "3.11", pytorch-version: "2.3" }
-          - { os: "macOS-14", pkg-name: "lightning", python-version: "3.12", pytorch-version: "2.4" }
-          - { os: "ubuntu-20.04", pkg-name: "lightning", python-version: "3.12", pytorch-version: "2.4" }
-          - { os: "windows-2022", pkg-name: "lightning", python-version: "3.12", pytorch-version: "2.4" }
+          - { os: "macOS-14", pkg-name: "lightning", python-version: "3.12", pytorch-version: "2.4.1" }
+          - { os: "ubuntu-22.04", pkg-name: "lightning", python-version: "3.12", pytorch-version: "2.4.1" }
+          - { os: "windows-2022", pkg-name: "lightning", python-version: "3.12", pytorch-version: "2.4.1" }
+          - { os: "macOS-14", pkg-name: "lightning", python-version: "3.12", pytorch-version: "2.5.1" }
+          - { os: "ubuntu-22.04", pkg-name: "lightning", python-version: "3.12", pytorch-version: "2.5.1" }
+          - { os: "windows-2022", pkg-name: "lightning", python-version: "3.12", pytorch-version: "2.5.1" }
           # only run PyTorch latest with Python latest, use Fabric scope to limit dependency issues
-          - { os: "macOS-12", pkg-name: "fabric", python-version: "3.10", pytorch-version: "2.1" }
-          - { os: "ubuntu-22.04", pkg-name: "fabric", python-version: "3.10", pytorch-version: "2.1" }
-          - { os: "windows-2022", pkg-name: "fabric", python-version: "3.10", pytorch-version: "2.1" }
+          - { os: "macOS-14", pkg-name: "fabric", python-version: "3.12", pytorch-version: "2.5.1" }
+          - { os: "ubuntu-22.04", pkg-name: "fabric", python-version: "3.12", pytorch-version: "2.5.1" }
+          - { os: "windows-2022", pkg-name: "fabric", python-version: "3.12", pytorch-version: "2.5.1" }
           # "oldest" versions tests, only on minimum Python
-          - { os: "macOS-13", pkg-name: "lightning", python-version: "3.9", pytorch-version: "2.1", requires: "oldest" }
+          - { os: "macOS-14", pkg-name: "lightning", python-version: "3.9", pytorch-version: "2.1", requires: "oldest" }
           - {
               os: "ubuntu-20.04",
               pkg-name: "lightning",
@@ -98,7 +101,10 @@ jobs:
 
       - name: Set min. dependencies
         if: ${{ matrix.requires == 'oldest' }}
-        run: python .actions/assistant.py replace_oldest_ver
+        run: |
+          python .actions/assistant.py replace_oldest_ver
+          pip install "cython<3.0" wheel
+          pip install "pyyaml==5.4" --no-build-isolation
 
       - name: Adjust PyTorch versions in requirements files
         if: ${{ matrix.requires != 'oldest' }}
@@ -171,7 +177,7 @@ jobs:
           coverage xml
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5
         # see: https://github.com/actions/toolkit/issues/399
         continue-on-error: true
         with:

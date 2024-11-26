@@ -2,7 +2,7 @@ import base64
 from dataclasses import dataclass
 from io import BytesIO
 from os import path
-from typing import Dict, Optional
+from typing import Optional
 
 import numpy as np
 import torch
@@ -93,7 +93,7 @@ class ProductionReadyModel(LitModule, ServableModule):
     def configure_serialization(self):
         return {"x": Image(224, 224).deserialize}, {"output": Top1().serialize}
 
-    def serve_step(self, x: torch.Tensor) -> Dict[str, torch.Tensor]:
+    def serve_step(self, x: torch.Tensor) -> dict[str, torch.Tensor]:
         return {"output": self.model(x)}
 
     def configure_response(self):

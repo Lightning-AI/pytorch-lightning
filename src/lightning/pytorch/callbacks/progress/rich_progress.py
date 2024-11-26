@@ -12,9 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import math
+from collections.abc import Generator
 from dataclasses import dataclass
 from datetime import timedelta
-from typing import Any, Dict, Generator, Optional, Union, cast
+from typing import Any, Optional, Union, cast
 
 from lightning_utilities.core.imports import RequirementCache
 from typing_extensions import override
@@ -146,15 +147,15 @@ if _RICH_AVAILABLE:
             metrics_format: str,
         ):
             self._trainer = trainer
-            self._tasks: Dict[Union[int, TaskID], Any] = {}
+            self._tasks: dict[Union[int, TaskID], Any] = {}
             self._current_task_id = 0
-            self._metrics: Dict[Union[str, Style], Any] = {}
+            self._metrics: dict[Union[str, Style], Any] = {}
             self._style = style
             self._text_delimiter = text_delimiter
             self._metrics_format = metrics_format
             super().__init__()
 
-        def update(self, metrics: Dict[Any, Any]) -> None:
+        def update(self, metrics: dict[Any, Any]) -> None:
             # Called when metrics are ready to be rendered.
             # This is to prevent render from causing deadlock issues by requesting metrics
             # in separate threads.
@@ -257,7 +258,7 @@ class RichProgressBar(ProgressBar):
         refresh_rate: int = 1,
         leave: bool = False,
         theme: RichProgressBarTheme = RichProgressBarTheme(),
-        console_kwargs: Optional[Dict[str, Any]] = None,
+        console_kwargs: Optional[dict[str, Any]] = None,
     ) -> None:
         if not _RICH_AVAILABLE:
             raise ModuleNotFoundError(
@@ -642,7 +643,7 @@ class RichProgressBar(ProgressBar):
             ProcessingSpeedColumn(style=self.theme.processing_speed),
         ]
 
-    def __getstate__(self) -> Dict:
+    def __getstate__(self) -> dict:
         state = self.__dict__.copy()
         # both the console and progress object can hold thread lock objects that are not pickleable
         state["progress"] = None
