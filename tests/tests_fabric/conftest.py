@@ -66,6 +66,7 @@ def restore_env_variables():
         "OMP_NUM_THREADS",  # set by our launchers
         # set by torchdynamo
         "TRITON_CACHE_DIR",
+        "TORCHINDUCTOR_CACHE_DIR",
     }
     leaked_vars.difference_update(allowlist)
     assert not leaked_vars, f"test is leaking environment variable(s): {set(leaked_vars)}"
