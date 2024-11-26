@@ -86,6 +86,13 @@ def _parallelize_with_compile(parallelize):
     return fn
 
 
+@pytest.fixture
+def distributed():
+    yield
+    if torch.distributed.is_initialized():
+        torch.distributed.destroy_process_group()
+
+
 class TemplateModel(LightningModule):
     def __init__(self, compile=False):
         super().__init__()
@@ -130,7 +137,7 @@ class FSDP2TensorParallelModel(TemplateModel):
 
 
 @RunIf(min_torch="2.4", standalone=True, min_cuda_gpus=4)
-def test_setup_device_mesh():
+def test_setup_device_mesh(distributed):
     from torch.distributed.device_mesh import DeviceMesh
 
     for dp_size, tp_size in ((1, 4), (4, 1), (2, 2)):
@@ -191,7 +198,7 @@ def test_setup_device_mesh():
     "compile",
     [True, False],
 )
-def test_tensor_parallel(compile):
+def test_tensor_parallel(distributed, compile):
     from torch.distributed._tensor import DTensor
 
     class Model(TensorParallelModel):
@@ -236,7 +243,7 @@ def test_tensor_parallel(compile):
     "compile",
     [True, False],
 )
-def test_fsdp2_tensor_parallel(compile):
+def test_fsdp2_tensor_parallel(distributed, compile):
     from torch.distributed._tensor import DTensor
 
     class Model(FSDP2TensorParallelModel):
@@ -293,7 +300,7 @@ def test_fsdp2_tensor_parallel(compile):
 
 
 @RunIf(min_torch="2.4", min_cuda_gpus=2, standalone=True)
-def test_modules_without_parameters(tmp_path):
+def test_modules_without_parameters(distributed, tmp_path):
     """Test that TorchMetrics get moved to the device despite not having any parameters."""
 
     class MetricsModel(TensorParallelModel):
@@ -336,7 +343,7 @@ def test_modules_without_parameters(tmp_path):
     "compile",
     [True, False],
 )
-def test_module_init_context(compile, precision, expected_dtype, tmp_path):
+def test_module_init_context(distributed, compile, precision, expected_dtype, tmp_path):
     """Test that the module under the init-context gets moved to the right device and dtype."""
 
     class Model(FSDP2Model):
@@ -375,7 +382,7 @@ def test_module_init_context(compile, precision, expected_dtype, tmp_path):
 
 @RunIf(min_torch="2.4", min_cuda_gpus=2, skip_windows=True, standalone=True)
 @pytest.mark.parametrize("save_distributed_checkpoint", [True, False])
-def test_strategy_state_dict(tmp_path, save_distributed_checkpoint):
+def test_strategy_state_dict(distributed, tmp_path, save_distributed_checkpoint):
     """Test that the strategy returns the correct state dict of the LightningModule."""
     model = FSDP2Model()
     correct_state_dict = model.state_dict()  # State dict before wrapping
@@ -408,7 +415,7 @@ def test_strategy_state_dict(tmp_path, save_distributed_checkpoint):
 
 
 @RunIf(min_torch="2.4", min_cuda_gpus=2, skip_windows=True, standalone=True)
-def test_load_full_state_checkpoint_into_regular_model(tmp_path):
+def test_load_full_state_checkpoint_into_regular_model(distributed, tmp_path):
     """Test that a full-state checkpoint saved from a distributed model can be loaded back into a regular model."""
 
     # Save a regular full-state checkpoint from a distributed model
@@ -450,7 +457,7 @@ def test_load_full_state_checkpoint_into_regular_model(tmp_path):
 
 @pytest.mark.filterwarnings("ignore::FutureWarning")
 @RunIf(min_torch="2.4", min_cuda_gpus=2, skip_windows=True, standalone=True)
-def test_load_standard_checkpoint_into_distributed_model(tmp_path):
+def test_load_standard_checkpoint_into_distributed_model(distributed, tmp_path):
     """Test that a regular checkpoint (weights and optimizer states) can be loaded into a distributed model."""
 
     # Save a regular DDP checkpoint
@@ -491,7 +498,7 @@ def test_load_standard_checkpoint_into_distributed_model(tmp_path):
 
 @pytest.mark.filterwarnings("ignore::FutureWarning")
 @RunIf(min_torch="2.4", min_cuda_gpus=2, standalone=True)
-def test_save_load_sharded_state_dict(tmp_path):
+def test_save_load_sharded_state_dict(distributed, tmp_path):
     """Test saving and loading with the distributed state dict format."""
 
     class CheckpointModel(FSDP2Model):

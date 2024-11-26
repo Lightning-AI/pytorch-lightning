@@ -29,6 +29,13 @@ from tests_fabric.helpers.datasets import RandomDataset
 from tests_fabric.helpers.runif import RunIf
 
 
+@pytest.fixture
+def distributed():
+    yield
+    if torch.distributed.is_initialized():
+        torch.distributed.destroy_process_group()
+
+
 class FeedForward(nn.Module):
     def __init__(self):
         super().__init__()
@@ -81,7 +88,7 @@ def _parallelize_feed_forward_fsdp2_tp(model, device_mesh):
 
 
 @RunIf(min_torch="2.4", standalone=True, min_cuda_gpus=4)
-def test_setup_device_mesh():
+def test_setup_device_mesh(distributed):
     from torch.distributed.device_mesh import DeviceMesh
 
     for dp_size, tp_size in ((1, 4), (4, 1), (2, 2)):
@@ -129,7 +136,7 @@ def _parallelize_with_compile(parallelize):
     "compile",
     [True, False],
 )
-def test_tensor_parallel(compile):
+def test_tensor_parallel(distributed, compile):
     from torch.distributed._tensor import DTensor
 
     parallelize = _parallelize_feed_forward_tp
@@ -182,7 +189,7 @@ def test_tensor_parallel(compile):
     "compile",
     [True, False],
 )
-def test_fsdp2_tensor_parallel(compile):
+def test_fsdp2_tensor_parallel(distributed, compile):
     from torch.distributed._tensor import DTensor
 
     parallelize = _parallelize_feed_forward_fsdp2_tp
@@ -264,6 +271,7 @@ def _train(fabric, model=None, optimizer=None):
 
 
 @RunIf(min_torch="2.4", min_cuda_gpus=4, standalone=True)
+@pytest.mark.filterwarnings("ignore::UserWarning")
 @pytest.mark.parametrize(
     "precision",
     [
@@ -271,7 +279,7 @@ def _train(fabric, model=None, optimizer=None):
         pytest.param("bf16-mixed", marks=RunIf(bf16_cuda=True)),
     ],
 )
-def test_train_save_load(precision, tmp_path):
+def test_train_save_load(distributed, precision, tmp_path):
     """Test 2D-parallel training, saving and loading precision settings."""
     strategy = ModelParallelStrategy(
         _parallelize_feed_forward_fsdp2_tp,
@@ -329,7 +337,7 @@ def test_train_save_load(precision, tmp_path):
 
 @pytest.mark.filterwarnings("ignore::FutureWarning")
 @RunIf(min_torch="2.4", min_cuda_gpus=2, standalone=True)
-def test_save_full_state_dict(tmp_path):
+def test_save_full_state_dict(distributed, tmp_path):
     """Test that ModelParallelStrategy saves the full state into a single file with
     `save_distributed_checkpoint=False`."""
     from torch.distributed.checkpoint.state_dict import get_optimizer_state_dict
@@ -430,7 +438,7 @@ def test_save_full_state_dict(tmp_path):
 
 @pytest.mark.filterwarnings("ignore::FutureWarning")
 @RunIf(min_torch="2.4", min_cuda_gpus=2, standalone=True)
-def test_load_full_state_dict_into_sharded_model(tmp_path):
+def test_load_full_state_dict_into_sharded_model(distributed, tmp_path):
     """Test that the strategy can load a full-state checkpoint into a distributed model."""
     fabric = Fabric(accelerator="cuda", devices=1)
     fabric.seed_everything(0)
@@ -476,7 +484,7 @@ def test_load_full_state_dict_into_sharded_model(tmp_path):
 @RunIf(min_torch="2.4", min_cuda_gpus=2, skip_windows=True, standalone=True)
 @pytest.mark.parametrize("move_to_device", [True, False])
 @mock.patch("lightning.fabric.wrappers._FabricModule")
-def test_setup_module_move_to_device(fabric_module_mock, move_to_device):
+def test_setup_module_move_to_device(fabric_module_mock, move_to_device, distributed):
     """Test that `move_to_device` does nothing, ModelParallel decides which device parameters get moved to which device
     (sharding)."""
     from torch.distributed._tensor import DTensor
@@ -508,7 +516,7 @@ def test_setup_module_move_to_device(fabric_module_mock, move_to_device):
         pytest.param("bf16-true", torch.bfloat16, marks=RunIf(bf16_cuda=True)),
     ],
 )
-def test_module_init_context(precision, expected_dtype):
+def test_module_init_context(distributed, precision, expected_dtype):
     """Test that the module under the init-context gets moved to the right device and dtype."""
     strategy = ModelParallelStrategy(parallelize_fn=_parallelize_feed_forward_fsdp2)
     fabric = Fabric(accelerator="cuda", devices=2, strategy=strategy, precision=precision)
@@ -531,7 +539,7 @@ def test_module_init_context(precision, expected_dtype):
 
 
 @RunIf(min_torch="2.4", min_cuda_gpus=2, standalone=True)
-def test_save_filter(tmp_path):
+def test_save_filter(distributed, tmp_path):
     strategy = ModelParallelStrategy(
         parallelize_fn=_parallelize_feed_forward_fsdp2,
         save_distributed_checkpoint=False,
@@ -584,7 +592,7 @@ def _parallelize_single_linear_tp_fsdp2(model, device_mesh):
         "val",
     ],
 )
-def test_clip_gradients(clip_type, precision):
+def test_clip_gradients(distributed, clip_type, precision):
     strategy = ModelParallelStrategy(_parallelize_single_linear_tp_fsdp2)
     fabric = Fabric(accelerator="auto", devices=2, precision=precision, strategy=strategy)
     fabric.launch()
@@ -626,7 +634,7 @@ def test_clip_gradients(clip_type, precision):
 
 
 @RunIf(min_torch="2.4", min_cuda_gpus=4, standalone=True)
-def test_save_sharded_and_consolidate_and_load(tmp_path):
+def test_save_sharded_and_consolidate_and_load(distributed, tmp_path):
     """Test the consolidation of a distributed (DTensor) checkpoint into a single file."""
     strategy = ModelParallelStrategy(
         _parallelize_feed_forward_fsdp2_tp,
@@ -683,7 +691,7 @@ def test_save_sharded_and_consolidate_and_load(tmp_path):
 
 
 @RunIf(min_torch="2.4", min_cuda_gpus=2, standalone=True)
-def test_load_raw_module_state():
+def test_load_raw_module_state(distributed):
     from torch.distributed.device_mesh import init_device_mesh
     from torch.distributed.tensor.parallel import ColwiseParallel, parallelize_module
 
