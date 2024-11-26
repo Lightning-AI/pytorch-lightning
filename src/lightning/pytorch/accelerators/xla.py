@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Dict
+from typing import Any
 
 from typing_extensions import override
 
@@ -29,7 +29,7 @@ class XLAAccelerator(Accelerator, FabricXLAAccelerator):
     """
 
     @override
-    def get_device_stats(self, device: _DEVICE) -> Dict[str, Any]:
+    def get_device_stats(self, device: _DEVICE) -> dict[str, Any]:
         """Gets stats for the given XLA device.
 
         Args:

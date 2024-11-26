@@ -13,8 +13,8 @@
 # limitations under the License.
 """Utilities to help with reproducibility of models."""
 
+from collections.abc import Generator
 from contextlib import contextmanager
-from typing import Generator
 
 from lightning.fabric.utilities.seed import _collect_rng_states, _set_rng_states
 

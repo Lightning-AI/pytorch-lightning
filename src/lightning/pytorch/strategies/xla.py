@@ -13,7 +13,7 @@
 # limitations under the License.
 import io
 import os
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Union
+from typing import TYPE_CHECKING, Any, Optional, Union
 
 import torch
 from torch import Tensor
@@ -49,7 +49,7 @@ class XLAStrategy(DDPStrategy):
     def __init__(
         self,
         accelerator: Optional["pl.accelerators.Accelerator"] = None,
-        parallel_devices: Optional[List[torch.device]] = None,
+        parallel_devices: Optional[list[torch.device]] = None,
         checkpoint_io: Optional[Union[XLACheckpointIO, _WrappingCheckpointIO]] = None,
         precision_plugin: Optional[XLAPrecision] = None,
         debug: bool = False,
@@ -172,7 +172,7 @@ class XLAStrategy(DDPStrategy):
 
     @property
     @override
-    def distributed_sampler_kwargs(self) -> Dict[str, int]:
+    def distributed_sampler_kwargs(self) -> dict[str, int]:
         return {"num_replicas": self.world_size, "rank": self.global_rank}
 
     @override
@@ -295,7 +295,7 @@ class XLAStrategy(DDPStrategy):
 
     @override
     def save_checkpoint(
-        self, checkpoint: Dict[str, Any], filepath: _PATH, storage_options: Optional[Any] = None
+        self, checkpoint: dict[str, Any], filepath: _PATH, storage_options: Optional[Any] = None
     ) -> None:
         import torch_xla.core.xla_model as xm
 

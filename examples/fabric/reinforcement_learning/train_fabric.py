@@ -21,7 +21,6 @@ import argparse
 import os
 import time
 from datetime import datetime
-from typing import Dict
 
 import gymnasium as gym
 import torch
@@ -38,7 +37,7 @@ def train(
     fabric: Fabric,
     agent: PPOLightningAgent,
     optimizer: torch.optim.Optimizer,
-    data: Dict[str, Tensor],
+    data: dict[str, Tensor],
     global_step: int,
     args: argparse.Namespace,
 ):

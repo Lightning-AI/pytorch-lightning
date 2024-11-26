@@ -14,7 +14,7 @@
 import csv
 import os
 import re
-from typing import Dict, Optional
+from typing import Optional
 from unittest import mock
 from unittest.mock import Mock
 
@@ -40,7 +40,7 @@ def test_device_stats_gpu_from_torch(tmp_path):
 
     class DebugLogger(CSVLogger):
         @rank_zero_only
-        def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
+        def log_metrics(self, metrics: dict[str, float], step: Optional[int] = None) -> None:
             fields = [
                 "allocated_bytes.all.freed",
                 "inactive_split.all.peak",
@@ -74,7 +74,7 @@ def test_device_stats_cpu(cpu_stats_mock, tmp_path, cpu_stats):
     CPU_METRIC_KEYS = (_CPU_VM_PERCENT, _CPU_SWAP_PERCENT, _CPU_PERCENT)
 
     class DebugLogger(CSVLogger):
-        def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
+        def log_metrics(self, metrics: dict[str, float], step: Optional[int] = None) -> None:
             enabled = cpu_stats is not False
             for f in CPU_METRIC_KEYS:
                 has_cpu_metrics = any(f in h for h in metrics)

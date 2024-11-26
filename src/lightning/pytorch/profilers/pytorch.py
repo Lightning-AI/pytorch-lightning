@@ -16,9 +16,10 @@
 import inspect
 import logging
 import os
+from contextlib import AbstractContextManager
 from functools import lru_cache, partial
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable, ContextManager, Dict, List, Optional, Type, Union
+from typing import TYPE_CHECKING, Any, Callable, Optional, Union
 
 import torch
 from torch import Tensor, nn
@@ -65,8 +66,8 @@ class RegisterRecordFunction:
 
     def __init__(self, model: nn.Module) -> None:
         self._model = model
-        self._records: Dict[str, record_function] = {}
-        self._handles: Dict[str, List[RemovableHandle]] = {}
+        self._records: dict[str, record_function] = {}
+        self._handles: dict[str, list[RemovableHandle]] = {}
 
     def _start_recording_forward(self, _: nn.Module, input: Tensor, record_name: str) -> Tensor:
         # Add [pl][module] in name for pytorch profiler to recognize
@@ -239,7 +240,7 @@ class PyTorchProfiler(Profiler):
         row_limit: int = 20,
         sort_by_key: Optional[str] = None,
         record_module_names: bool = True,
-        table_kwargs: Optional[Dict[str, Any]] = None,
+        table_kwargs: Optional[dict[str, Any]] = None,
         **profiler_kwargs: Any,
     ) -> None:
         r"""This profiler uses PyTorch's Autograd Profiler and lets you inspect the cost of
@@ -305,8 +306,8 @@ class PyTorchProfiler(Profiler):
         self.function_events: Optional[EventList] = None
         self._lightning_module: Optional[LightningModule] = None  # set by ProfilerConnector
         self._register: Optional[RegisterRecordFunction] = None
-        self._parent_profiler: Optional[ContextManager] = None
-        self._recording_map: Dict[str, record_function] = {}
+        self._parent_profiler: Optional[AbstractContextManager] = None
+        self._recording_map: dict[str, record_function] = {}
         self._start_action_name: Optional[str] = None
         self._schedule: Optional[ScheduleWrapper] = None
 
@@ -400,8 +401,8 @@ class PyTorchProfiler(Profiler):
             return torch.profiler.schedule(wait=1, warmup=1, active=3)
         return None
 
-    def _default_activities(self) -> List["ProfilerActivity"]:
-        activities: List[ProfilerActivity] = []
+    def _default_activities(self) -> list["ProfilerActivity"]:
+        activities: list[ProfilerActivity] = []
         if not _KINETO_AVAILABLE:
             return activities
         if _TORCH_GREATER_EQUAL_2_4:
@@ -530,7 +531,7 @@ class PyTorchProfiler(Profiler):
                 torch.profiler.profile if _KINETO_AVAILABLE else torch.autograd.profiler.profile
             )
 
-    def _create_profiler(self, profiler: Type[_PROFILER]) -> _PROFILER:
+    def _create_profiler(self, profiler: type[_PROFILER]) -> _PROFILER:
         init_parameters = inspect.signature(profiler.__init__).parameters
         kwargs = {k: v for k, v in self._profiler_kwargs.items() if k in init_parameters}
         return profiler(**kwargs)
