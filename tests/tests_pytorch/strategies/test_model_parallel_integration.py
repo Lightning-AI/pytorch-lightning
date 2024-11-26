@@ -86,7 +86,7 @@ def _parallelize_with_compile(parallelize):
     return fn
 
 
-@pytest.fixture
+@pytest.fixture()
 def distributed():
     yield
     if torch.distributed.is_initialized():

@@ -29,7 +29,7 @@ from tests_fabric.helpers.datasets import RandomDataset
 from tests_fabric.helpers.runif import RunIf
 
 
-@pytest.fixture
+@pytest.fixture()
 def distributed():
     yield
     if torch.distributed.is_initialized():
