@@ -104,7 +104,10 @@ def pl_worker_init_function(worker_id: int, rank: Optional[int] = None) -> None:
     if _NUMPY_AVAILABLE:
         import numpy as np
 
-        np.random.seed(seed_sequence[3] & 0xFFFFFFFF)  # numpy takes 32-bit seed only
+        ss = np.random.SeedSequence([base_seed, worker_id, global_rank])
+        np_rng_seed = ss.generate_state(4)
+
+        np.random.seed(np_rng_seed)
 
 
 def _generate_seed_sequence(base_seed: int, worker_id: int, global_rank: int, count: int) -> list[int]:
