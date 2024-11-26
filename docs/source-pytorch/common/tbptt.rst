@@ -10,6 +10,8 @@ hidden states should be kept in-between each time-dimension split.
 
 
 .. code-block:: python
+
+    import torch
     import torch.optim as optim
     import pytorch_lightning as pl
     from pytorch_lightning import LightningModule
@@ -31,7 +33,9 @@ hidden states should be kept in-between each time-dimension split.
             # 3. Split the batch in chunks along the time dimension
             split_batches = split_batch(batch, self.truncated_bptt_steps)
 
-            hiddens = ... # Choose the initial hidden state
+            batch_size = 10
+            hidden_dim = 20
+            hiddens = torch.zeros(1, batch_size, hidden_dim, device=self.device)
             for split_batch in range(split_batches):
                 # 4. Perform the optimization in a loop
                 loss, hiddens = self.my_rnn(split_batch, hiddens)
