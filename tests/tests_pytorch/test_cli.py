@@ -973,6 +973,29 @@ def test_lightning_cli_save_hyperparameters_untyped_module(cleandir):
     assert model.kwargs == {"x": 1}
 
 
+class TestDataSaveHparams(BoringDataModule):
+    def __init__(self, batch_size: int = 32, num_workers: int = 4):
+        super().__init__()
+        self.save_hyperparameters()
+        self.batch_size = batch_size
+        self.num_workers = num_workers
+
+
+def test_lightning_cli_save_hyperparameters_merge(cleandir):
+    config = {
+        "model": {
+            "class_path": f"{__name__}.TestModelSaveHparams",
+        },
+        "data": {
+            "class_path": f"{__name__}.TestDataSaveHparams",
+        },
+    }
+    with mock.patch("sys.argv", ["any.py", "fit", f"--config={json.dumps(config)}", "--trainer.max_epochs=1"]):
+        cli = LightningCLI(auto_configure_optimizers=False)
+    assert set(cli.model.hparams) == {"optimizer", "scheduler", "activation", "_instantiator", "_class_path"}
+    assert set(cli.datamodule.hparams) == {"batch_size", "num_workers", "_instantiator", "_class_path"}
+
+
 @pytest.mark.parametrize("fn", [fn.value for fn in TrainerFn])
 def test_lightning_cli_trainer_fn(fn):
     class TestCLI(LightningCLI):
