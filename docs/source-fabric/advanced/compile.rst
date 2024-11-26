@@ -121,7 +121,7 @@ always exclude the first call to ``forward()`` from your measurements, since it 
 Apply torch.compile with ModelParallelStrategy
 **********************************************
 
-:func:`torch.compile` can also be invoked as part of the :func:`parallelize_fn` argument of :class:`~lightning.fabric.strategies.model_parallel.ModelParallelStrategy`.
+:func:`torch.compile` can also be invoked as part of the `parallelize_fn` argument of :class:`~lightning.fabric.strategies.model_parallel.ModelParallelStrategy`.
 
 This is particularly handy when :func:`torch.compile` is used in combination with the `torch.distributed.tensor` API.
 
