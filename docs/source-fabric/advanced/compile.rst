@@ -128,6 +128,7 @@ This is particularly handy when :func:`torch.compile` is used in combination wit
 Here is an example:
 
 .. code-block:: python
+
     import lightning as L
     import torch
     import torch.nn as nn
@@ -173,6 +174,7 @@ that need to be applied in a similar fashion, it's easy to reason about the sequ
 needed to achieve the equivalent of `compile(distributed(quantized(model)))`:
 
 .. code-block:: python
+
     import lightning as L
     import torch
     import torch.nn as nn
