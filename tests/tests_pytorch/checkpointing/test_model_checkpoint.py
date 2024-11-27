@@ -26,11 +26,14 @@ from unittest import mock
 from unittest.mock import Mock, call, patch
 
 import cloudpickle
-import lightning.pytorch as pl
 import pytest
 import torch
 import yaml
 from jsonargparse import ArgumentParser
+from tests_pytorch.helpers.runif import RunIf
+from torch import optim
+
+import lightning.pytorch as pl
 from lightning.fabric.utilities.cloud_io import _load as pl_load
 from lightning.fabric.utilities.imports import _TORCH_EQUAL_2_4_0
 from lightning.pytorch import Trainer, seed_everything
@@ -39,9 +42,6 @@ from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.loggers import CSVLogger, TensorBoardLogger
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.imports import _OMEGACONF_AVAILABLE
-from torch import optim
-
-from tests_pytorch.helpers.runif import RunIf
 
 if _OMEGACONF_AVAILABLE:
     from omegaconf import Container, OmegaConf
@@ -706,6 +706,7 @@ def test_model_checkpoint_save_last_none_monitor(tmp_path, caplog):
     assert checkpoint_callback.best_model_path == str(tmp_path / "epoch=1-step=20.ckpt")
     assert checkpoint_callback.last_model_path == str(tmp_path / "last.ckpt")
     assert checkpoint_callback.best_model_score is None
+    assert checkpoint_callback.best_model_metrics is None
     assert checkpoint_callback.best_k_models == {}
     assert checkpoint_callback.kth_best_model_path == ""
 
@@ -812,6 +813,7 @@ def test_model_checkpoint_topk_zero(tmp_path):
     assert checkpoint_callback.monitor is None
     assert checkpoint_callback.best_model_path == ""
     assert checkpoint_callback.best_model_score is None
+    assert checkpoint_callback.best_model_metrics is None
     assert checkpoint_callback.best_k_models == {}
     assert checkpoint_callback.kth_best_model_path == ""
     # check that only the last ckpt was created
@@ -891,11 +893,13 @@ def test_default_checkpoint_behavior(tmp_path):
     assert len(results) == 1
     save_dir = tmp_path / "checkpoints"
     save_weights_only = trainer.checkpoint_callback.save_weights_only
-    save_mock.assert_has_calls([
-        call(str(save_dir / "epoch=0-step=5.ckpt"), save_weights_only),
-        call(str(save_dir / "epoch=1-step=10.ckpt"), save_weights_only),
-        call(str(save_dir / "epoch=2-step=15.ckpt"), save_weights_only),
-    ])
+    save_mock.assert_has_calls(
+        [
+            call(str(save_dir / "epoch=0-step=5.ckpt"), save_weights_only),
+            call(str(save_dir / "epoch=1-step=10.ckpt"), save_weights_only),
+            call(str(save_dir / "epoch=2-step=15.ckpt"), save_weights_only),
+        ]
+    )
     ckpts = os.listdir(save_dir)
     assert len(ckpts) == 1
     assert ckpts[0] == "epoch=2-step=15.ckpt"
@@ -1477,6 +1481,8 @@ def test_save_last_versioning(tmp_path):
     assert {"last.ckpt", "last-v1.ckpt"} == set(os.listdir(tmp_path))
     # 'last.ckpt' is not a symlink since `save_top_k=0` didn't save any other checkpoints to link to
     assert all(not os.path.islink(tmp_path / path) for path in set(os.listdir(tmp_path)))
+
+
 
 
 def test_none_monitor_saves_correct_best_model_path(tmp_path):
