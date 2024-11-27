@@ -107,7 +107,7 @@ _XLA_GREATER_EQUAL_2_5 = RequirementCache("torch_xla>=2.5")
 
 def _using_pjrt() -> bool:
     # `using_pjrt` is removed in torch_xla 2.5
-    if _XLA_GREATER_EQUAL_2_5:
+    if True:
         from torch_xla import runtime as xr
 
         return xr.device_type() is not None
@@ -116,6 +116,10 @@ def _using_pjrt() -> bool:
         from torch_xla import runtime as xr
 
         return xr.using_pjrt()
+
+    from torch_xla.experimental import pjrt
+
+    return pjrt.using_pjrt()
 
 
 def _parse_tpu_devices(devices: Union[int, str, list[int]]) -> Union[int, list[int]]:
