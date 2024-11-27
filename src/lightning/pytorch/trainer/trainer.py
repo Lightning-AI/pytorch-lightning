@@ -25,7 +25,7 @@ import math
 import os
 from contextlib import contextmanager
 from datetime import timedelta
-from typing import Any, Callable, Dict, Generator, Iterable, List, Optional, Union
+from typing import Any, Dict, Generator, Iterable, List, Optional, Union
 from weakref import proxy
 
 import torch
@@ -79,6 +79,10 @@ from lightning.pytorch.utilities.types import (
     LRSchedulerConfig,
 )
 from lightning.pytorch.utilities.warnings import PossibleUserWarning
+from lightning.fabric.wrappers import (
+    _unwrap_compiled,
+    _to_compiled
+)
 
 log = logging.getLogger(__name__)
 
@@ -127,7 +131,7 @@ class Trainer:
         sync_batchnorm: bool = False,
         reload_dataloaders_every_n_epochs: int = 0,
         default_root_dir: Optional[_PATH] = None,
-        compile_fn: Optional[Callable] = None,
+        reapply_compile = False
     ) -> None:
         r"""Customize every aspect of training via flags.
 
@@ -290,9 +294,6 @@ class Trainer:
                 Default: ``os.getcwd()``.
                 Can be remote file paths such as `s3://mybucket/path` or 'hdfs://path/'
 
-            compile_fn: Provide torch.compile function to be applied after configuring strategy
-                Default: ``None``.
-
         Raises:
             TypeError:
                 If ``gradient_clip_val`` is not an int or float.
@@ -307,6 +308,8 @@ class Trainer:
         if default_root_dir is not None:
             default_root_dir = os.fspath(default_root_dir)
 
+        self._reapply_compile = reapply_compile
+        
         self.barebones = barebones
         if barebones:
             # opt-outs
@@ -472,8 +475,6 @@ class Trainer:
         self.should_stop = False
         self.state = TrainerState()
 
-        self.compile_fn = compile_fn
-
         # configure profiler
         setup._init_profiler(self, profiler)
 
@@ -535,19 +536,20 @@ class Trainer:
         For more information about multiple dataloaders, see this :ref:`section <multiple-dataloaders>`.
 
         """
-        model = _maybe_unwrap_optimized(model)
+        model, compile_kwargs = _unwrap_compiled(model) if self._reapply_compile else (_maybe_unwrap_optimized(model), None)
         self.strategy._lightning_module = model
         _verify_strategy_supports_compile(model, self.strategy)
         self.state.fn = TrainerFn.FITTING
         self.state.status = TrainerStatus.RUNNING
         self.training = True
         call._call_and_handle_interrupt(
-            self, self._fit_impl, model, train_dataloaders, val_dataloaders, datamodule, ckpt_path
+            self, self._fit_impl, model, compile_kwargs, train_dataloaders, val_dataloaders, datamodule, ckpt_path
         )
 
     def _fit_impl(
         self,
         model: "pl.LightningModule",
+        compile_kwargs,
         train_dataloaders: Optional[Union[TRAIN_DATALOADERS, LightningDataModule]] = None,
         val_dataloaders: Optional[EVAL_DATALOADERS] = None,
         datamodule: Optional[LightningDataModule] = None,
@@ -577,7 +579,7 @@ class Trainer:
             model_provided=True,
             model_connected=self.lightning_module is not None,
         )
-        self._run(model, ckpt_path=ckpt_path)
+        self._run(model, compile_kwargs, ckpt_path=ckpt_path)
 
         assert self.state.stopped
         self.training = False
@@ -908,7 +910,7 @@ class Trainer:
         return results
 
     def _run(
-        self, model: "pl.LightningModule", ckpt_path: Optional[_PATH] = None
+        self, model: "pl.LightningModule", compile_kwargs, ckpt_path: Optional[_PATH] = None
     ) -> Optional[Union[_EVALUATE_OUTPUT, _PREDICT_OUTPUT]]:
         if self.state.fn == TrainerFn.FITTING:
             min_epochs, max_epochs = _parse_loop_limits(
@@ -962,10 +964,9 @@ class Trainer:
         # strategy will configure model and move it to the device
         self.strategy.setup(self)
 
-        # compile if compile_fn provided after configured strategy
-        if self.compile_fn is not None:
-            self.strategy.model = self.compile_fn(self.strategy.model)
-
+        if compile_kwargs is not None:
+            self.strategy.model = _to_compiled(self.strategy.model, compile_kwargs)
+        
         # hook
         if self.state.fn == TrainerFn.FITTING:
             call._call_callback_hooks(self, "on_fit_start")
