@@ -35,6 +35,7 @@ import lightning.pytorch as pl
 from lightning.fabric.utilities.apply_func import convert_tensors_to_scalars
 from lightning.fabric.utilities.cloud_io import _is_local_file_protocol
 from lightning.fabric.utilities.types import _PATH
+from lightning.fabric.wrappers import _to_compiled, _unwrap_compiled
 from lightning.pytorch.accelerators import Accelerator
 from lightning.pytorch.callbacks import Callback, Checkpoint, EarlyStopping, ProgressBar
 from lightning.pytorch.core.datamodule import LightningDataModule
@@ -79,10 +80,6 @@ from lightning.pytorch.utilities.types import (
     LRSchedulerConfig,
 )
 from lightning.pytorch.utilities.warnings import PossibleUserWarning
-from lightning.fabric.wrappers import (
-    _unwrap_compiled,
-    _to_compiled
-)
 
 log = logging.getLogger(__name__)
 
@@ -131,7 +128,7 @@ class Trainer:
         sync_batchnorm: bool = False,
         reload_dataloaders_every_n_epochs: int = 0,
         default_root_dir: Optional[_PATH] = None,
-        reapply_compile = False
+        reapply_compile=False,
     ) -> None:
         r"""Customize every aspect of training via flags.
 
@@ -309,7 +306,7 @@ class Trainer:
             default_root_dir = os.fspath(default_root_dir)
 
         self._reapply_compile = reapply_compile
-        
+
         self.barebones = barebones
         if barebones:
             # opt-outs
@@ -536,7 +533,9 @@ class Trainer:
         For more information about multiple dataloaders, see this :ref:`section <multiple-dataloaders>`.
 
         """
-        model, compile_kwargs = _unwrap_compiled(model) if self._reapply_compile else (_maybe_unwrap_optimized(model), None)
+        model, compile_kwargs = (
+            _unwrap_compiled(model) if self._reapply_compile else (_maybe_unwrap_optimized(model), None)
+        )
         self.strategy._lightning_module = model
         _verify_strategy_supports_compile(model, self.strategy)
         self.state.fn = TrainerFn.FITTING
@@ -966,7 +965,7 @@ class Trainer:
 
         if compile_kwargs is not None:
             self.strategy.model = _to_compiled(self.strategy.model, compile_kwargs)
-        
+
         # hook
         if self.state.fn == TrainerFn.FITTING:
             call._call_callback_hooks(self, "on_fit_start")
