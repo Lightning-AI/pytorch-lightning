@@ -117,10 +117,6 @@ def _using_pjrt() -> bool:
 
         return xr.using_pjrt()
 
-    from torch_xla.experimental import pjrt
-
-    return pjrt.using_pjrt()
-
 
 def _parse_tpu_devices(devices: Union[int, str, list[int]]) -> Union[int, list[int]]:
     """Parses the TPU devices given in the format as accepted by the
