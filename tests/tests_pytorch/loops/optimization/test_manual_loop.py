@@ -42,3 +42,38 @@ def test_warning_invalid_trainstep_output(tmp_path):
 
     with pytest.raises(MisconfigurationException, match="return a Tensor or have no return"):
         trainer.fit(model)
+
+
+def test_amp_training_updates_weights(tmp_path):
+    """Test that model weights are properly updated with mixed precision training."""
+
+    class TestModel(BoringModel):
+        def __init__(self):
+            super().__init__()
+            self.previous_params = None
+            self.layer = torch.nn.Linear(32, 32)  # Same input/output size
+
+        def training_step(self, batch, batch_idx):
+            # Track parameter changes
+            params = torch.cat([param.view(-1) for param in self.parameters()])
+            if self.previous_params is not None:
+                num_different_values = (self.previous_params != params).sum().item()
+                assert num_different_values > 0, f"Parameters did not update at step {batch_idx}"
+            self.previous_params = params.clone().detach()
+
+            # Regular training step
+            x = batch[0]
+            output = self.layer(x)
+            loss = torch.nn.functional.mse_loss(output, x)  # Autoencoder-style loss
+            return loss
+
+    model = TestModel()
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        max_epochs=1,
+        limit_train_batches=10,
+        precision="16-mixed",
+        accelerator="auto",
+        devices=1,
+    )
+    trainer.fit(model)
