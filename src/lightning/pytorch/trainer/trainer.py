@@ -127,7 +127,7 @@ class Trainer:
         plugins: Optional[Union[_PLUGIN_INPUT, List[_PLUGIN_INPUT]]] = None,
         sync_batchnorm: bool = False,
         reload_dataloaders_every_n_epochs: int = 0,
-        default_root_dir: Optional[_PATH] = None
+        default_root_dir: Optional[_PATH] = None,
     ) -> None:
         r"""Customize every aspect of training via flags.
 
@@ -532,7 +532,9 @@ class Trainer:
         """
         # when provided compiled model, unwrap and re-do after applied strategy
         model, compile_kwargs = (
-            _unwrap_compiled(model) if isinstance(model, torch._dynamo.OptimizedModule) else (_maybe_unwrap_optimized(model), None)
+            _unwrap_compiled(model)
+            if isinstance(model, torch._dynamo.OptimizedModule)
+            else (_maybe_unwrap_optimized(model), None)
         )
         self.strategy._lightning_module = model
         _verify_strategy_supports_compile(model, self.strategy)
@@ -907,7 +909,10 @@ class Trainer:
         return results
 
     def _run(
-        self, model: "pl.LightningModule", compile_kwargs: Optional[Dict[str, Any]] = None, ckpt_path: Optional[_PATH] = None
+        self,
+        model: "pl.LightningModule",
+        compile_kwargs: Optional[Dict[str, Any]] = None,
+        ckpt_path: Optional[_PATH] = None,
     ) -> Optional[Union[_EVALUATE_OUTPUT, _PREDICT_OUTPUT]]:
         if self.state.fn == TrainerFn.FITTING:
             min_epochs, max_epochs = _parse_loop_limits(
