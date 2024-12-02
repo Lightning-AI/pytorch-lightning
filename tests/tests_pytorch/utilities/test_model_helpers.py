@@ -43,6 +43,7 @@ def test_is_overridden():
 def test_mixed_imports_unified():
     from lightning.pytorch.utilities.compile import _maybe_unwrap_optimized as new_unwrap
     from lightning.pytorch.utilities.model_helpers import is_overridden as new_is_overridden
+
     from pytorch_lightning.callbacks import EarlyStopping as OldEarlyStopping
     from pytorch_lightning.demos.boring_classes import BoringModel as OldBoringModel
 
