@@ -15,7 +15,9 @@ import os
 import shutil
 import sys
 from collections import ChainMap, OrderedDict, defaultdict
-from typing import Any, DefaultDict, Iterable, Iterator, List, Optional, Tuple, Union
+from collections.abc import Iterable, Iterator
+from dataclasses import dataclass
+from typing import Any, Optional, Union
 
 from lightning_utilities.core.apply_func import apply_to_collection
 from torch import Tensor
@@ -45,6 +47,12 @@ from lightning.pytorch.utilities.model_helpers import _ModuleMode, is_overridden
 from lightning.pytorch.utilities.signature_utils import is_param_in_hook_signature
 
 
+@dataclass
+class RestartStage:
+    NONE = "none"
+    RESTARTED_MID_EVALUATION = "restarted_mid_evaluation"
+
+
 class _EvaluationLoop(_Loop):
     """Top-level loop where validation/testing starts."""
 
@@ -60,19 +68,20 @@ class _EvaluationLoop(_Loop):
         self.verbose = verbose
         self.inference_mode = inference_mode
         self.batch_progress = _BatchProgress()  # across dataloaders
-        self._max_batches: List[Union[int, float]] = []
+        self._max_batches: list[Union[int, float]] = []
 
         self._results = _ResultCollection(training=False)
-        self._logged_outputs: List[_OUT_DICT] = []
+        self._logged_outputs: list[_OUT_DICT] = []
         self._has_run: bool = False
         self._trainer_fn = trainer_fn
         self._stage = stage
         self._data_source = _DataLoaderSource(None, f"{stage.dataloader_prefix}_dataloader")
         self._combined_loader: Optional[CombinedLoader] = None
         self._data_fetcher: Optional[_DataFetcher] = None
-        self._seen_batches_per_dataloader: DefaultDict[int, int] = defaultdict(int)
+        self._seen_batches_per_dataloader: defaultdict[int, int] = defaultdict(int)
         self._last_val_dl_reload_epoch = float("-inf")
         self._module_mode = _ModuleMode()
+        self._restart_stage = RestartStage.NONE
 
     @property
     def num_dataloaders(self) -> int:
@@ -82,7 +91,7 @@ class _EvaluationLoop(_Loop):
         return len(combined_loader.flattened)
 
     @property
-    def max_batches(self) -> List[Union[int, float]]:
+    def max_batches(self) -> list[Union[int, float]]:
         """The max number of batches to run per dataloader."""
         max_batches = self._max_batches
         if not self.trainer.sanity_checking:
@@ -106,7 +115,7 @@ class _EvaluationLoop(_Loop):
         return self._combined_loader._mode == "sequential"
 
     @_no_grad_context
-    def run(self) -> List[_OUT_DICT]:
+    def run(self) -> list[_OUT_DICT]:
         self.setup_data()
         if self.skip:
             return []
@@ -137,7 +146,7 @@ class _EvaluationLoop(_Loop):
                 # this needs to wrap the `*_step` call too (not just `next`) for `dataloader_iter` support
                 break
             finally:
-                self._restarting = False
+                self.on_iteration_done()
         self._store_dataloader_outputs()
         return self.on_run_end()
 
@@ -197,6 +206,24 @@ class _EvaluationLoop(_Loop):
         # this depends on the data used, so reset it too
         self._seen_batches_per_dataloader = defaultdict(int)
 
+    @property
+    def restarted_mid_evaluation(self) -> bool:
+        return self._restart_stage == RestartStage.RESTARTED_MID_EVALUATION
+
+    def update_restart_stage(self) -> None:
+        if (
+            self.restarting
+            and self.batch_progress.total.started == self.batch_progress.total.ready
+            and self.batch_progress.total.processed == self.batch_progress.total.started - 1
+            and self.batch_progress.total.completed == self.batch_progress.total.processed
+        ):
+            self._restart_stage = RestartStage.RESTARTED_MID_EVALUATION
+        else:
+            self._restart_stage = RestartStage.NONE
+
+    def reset_restart_stage(self) -> None:
+        self._restart_stage = RestartStage.NONE
+
     def reset(self) -> None:
         """Resets the internal state of the loop."""
         trainer = self.trainer
@@ -236,6 +263,16 @@ class _EvaluationLoop(_Loop):
         data_fetcher._stop_profiler = self._on_after_fetch
         self._data_fetcher = data_fetcher
 
+    def increment_progress_to_evaluation_end(self) -> None:
+        self.setup_data()
+        if self.skip:
+            return
+        self.reset()
+        max_batch = int(max(self.max_batches))
+        if max_batch == -1:
+            return
+        self.batch_progress.increment_by(max_batch, True)
+
     def on_run_start(self) -> None:
         """Runs the ``_on_evaluation_model_eval``, ``_on_evaluation_start`` and ``_on_evaluation_epoch_start``
         hooks."""
@@ -244,7 +281,7 @@ class _EvaluationLoop(_Loop):
         self._on_evaluation_start()
         self._on_evaluation_epoch_start()
 
-    def on_run_end(self) -> List[_OUT_DICT]:
+    def on_run_end(self) -> list[_OUT_DICT]:
         """Runs the ``_on_evaluation_epoch_end`` hook."""
         # if `done` returned True before any iterations were done, this won't have been called in `on_advance_end`
         self.trainer._logger_connector.epoch_end_reached()
@@ -472,7 +509,7 @@ class _EvaluationLoop(_Loop):
         )
 
     @staticmethod
-    def _get_keys(data: dict) -> Iterable[Tuple[str, ...]]:
+    def _get_keys(data: dict) -> Iterable[tuple[str, ...]]:
         for k, v in data.items():
             if isinstance(v, dict):
                 for new_key in apply_to_collection(v, dict, _EvaluationLoop._get_keys):
@@ -491,7 +528,7 @@ class _EvaluationLoop(_Loop):
         return _EvaluationLoop._find_value(result, rest)
 
     @staticmethod
-    def _print_results(results: List[_OUT_DICT], stage: str) -> None:
+    def _print_results(results: list[_OUT_DICT], stage: str) -> None:
         # remove the dl idx suffix
         results = [{k.split("/dataloader_idx_")[0]: v for k, v in result.items()} for result in results]
         metrics_paths = {k for keys in apply_to_collection(results, dict, _EvaluationLoop._get_keys) for k in keys}
@@ -508,7 +545,7 @@ class _EvaluationLoop(_Loop):
         term_size = shutil.get_terminal_size(fallback=(120, 30)).columns or 120
         max_length = int(min(max(len(max(metrics_strs, key=len)), len(max(headers, key=len)), 25), term_size / 2))
 
-        rows: List[List[Any]] = [[] for _ in metrics_paths]
+        rows: list[list[Any]] = [[] for _ in metrics_paths]
 
         for result in results:
             for metric, row in zip(metrics_paths, rows):

@@ -2,7 +2,7 @@ import json
 import operator
 import os
 import warnings
-from typing import TYPE_CHECKING, Any, Dict, List, Literal, Optional, Union
+from typing import TYPE_CHECKING, Any, Literal, Optional, Union
 
 import torch
 from lightning_utilities.core.imports import compare_version
@@ -66,7 +66,7 @@ class SpikeDetection:
         self.warmup = warmup
         self.atol = atol
         self.rtol = rtol
-        self.bad_batches: List[int] = []
+        self.bad_batches: list[int] = []
         self.exclude_batches_path = exclude_batches_path
         self.finite_only = finite_only
 
@@ -147,7 +147,7 @@ class SpikeDetection:
         self.running_mean.update(val)
         self.last_val = val
 
-    def state_dict(self) -> Dict[str, Any]:
+    def state_dict(self) -> dict[str, Any]:
         return {
             "last_val": self.last_val.item() if isinstance(self.last_val, torch.Tensor) else self.last_val,
             "mode": self.mode,
@@ -160,7 +160,7 @@ class SpikeDetection:
             "mean": self.running_mean.base_metric.state_dict(),
         }
 
-    def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
+    def load_state_dict(self, state_dict: dict[str, Any]) -> None:
         self.last_val = state_dict.pop("last_val")
         self.mode = state_dict.pop("mode")
         self.warmup = state_dict.pop("warmup")
