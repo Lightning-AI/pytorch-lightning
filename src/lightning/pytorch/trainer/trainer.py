@@ -127,8 +127,7 @@ class Trainer:
         plugins: Optional[Union[_PLUGIN_INPUT, List[_PLUGIN_INPUT]]] = None,
         sync_batchnorm: bool = False,
         reload_dataloaders_every_n_epochs: int = 0,
-        default_root_dir: Optional[_PATH] = None,
-        reapply_compile=False,
+        default_root_dir: Optional[_PATH] = None
     ) -> None:
         r"""Customize every aspect of training via flags.
 
@@ -304,8 +303,6 @@ class Trainer:
 
         if default_root_dir is not None:
             default_root_dir = os.fspath(default_root_dir)
-
-        self._reapply_compile = reapply_compile
 
         self.barebones = barebones
         if barebones:
@@ -533,8 +530,9 @@ class Trainer:
         For more information about multiple dataloaders, see this :ref:`section <multiple-dataloaders>`.
 
         """
+        # when provided compiled model, unwrap and re-do after applied strategy
         model, compile_kwargs = (
-            _unwrap_compiled(model) if self._reapply_compile else (_maybe_unwrap_optimized(model), None)
+            _unwrap_compiled(model) if isinstance(model, torch._dynamo.OptimizedModule) else (_maybe_unwrap_optimized(model), None)
         )
         self.strategy._lightning_module = model
         _verify_strategy_supports_compile(model, self.strategy)
@@ -548,7 +546,7 @@ class Trainer:
     def _fit_impl(
         self,
         model: "pl.LightningModule",
-        compile_kwargs,
+        compile_kwargs: Optional[Dict[str, Any]] = None,
         train_dataloaders: Optional[Union[TRAIN_DATALOADERS, LightningDataModule]] = None,
         val_dataloaders: Optional[EVAL_DATALOADERS] = None,
         datamodule: Optional[LightningDataModule] = None,
@@ -909,7 +907,7 @@ class Trainer:
         return results
 
     def _run(
-        self, model: "pl.LightningModule", compile_kwargs, ckpt_path: Optional[_PATH] = None
+        self, model: "pl.LightningModule", compile_kwargs: Optional[Dict[str, Any]] = None, ckpt_path: Optional[_PATH] = None
     ) -> Optional[Union[_EVALUATE_OUTPUT, _PREDICT_OUTPUT]]:
         if self.state.fn == TrainerFn.FITTING:
             min_epochs, max_epochs = _parse_loop_limits(
@@ -963,6 +961,7 @@ class Trainer:
         # strategy will configure model and move it to the device
         self.strategy.setup(self)
 
+        # when provided compiled model, unwrap is done in fit method, re-apply compile after applying strategy
         if compile_kwargs is not None:
             self.strategy.model = _to_compiled(self.strategy.model, compile_kwargs)
 
