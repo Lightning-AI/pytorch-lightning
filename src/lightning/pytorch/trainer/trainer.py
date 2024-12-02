@@ -548,7 +548,7 @@ class Trainer:
     def _fit_impl(
         self,
         model: "pl.LightningModule",
-        compile_kwargs: Optional[Dict[str, Any]] = None,
+        compile_kwargs: Optional[dict[str, Any]] = None,
         train_dataloaders: Optional[Union[TRAIN_DATALOADERS, LightningDataModule]] = None,
         val_dataloaders: Optional[EVAL_DATALOADERS] = None,
         datamodule: Optional[LightningDataModule] = None,
@@ -911,7 +911,7 @@ class Trainer:
     def _run(
         self,
         model: "pl.LightningModule",
-        compile_kwargs: Optional[Dict[str, Any]] = None,
+        compile_kwargs: Optional[dict[str, Any]] = None,
         ckpt_path: Optional[_PATH] = None,
     ) -> Optional[Union[_EVALUATE_OUTPUT, _PREDICT_OUTPUT]]:
         if self.state.fn == TrainerFn.FITTING:
