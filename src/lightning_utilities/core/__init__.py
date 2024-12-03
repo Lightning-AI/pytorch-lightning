@@ -7,10 +7,10 @@ from lightning_utilities.core.overrides import is_overridden
 from lightning_utilities.core.rank_zero import WarningCache
 
 __all__ = [
-    "apply_to_collection",
     "StrEnum",
-    "module_available",
+    "WarningCache",
+    "apply_to_collection",
     "compare_version",
     "is_overridden",
-    "WarningCache",
+    "module_available",
 ]

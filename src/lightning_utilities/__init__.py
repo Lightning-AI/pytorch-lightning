@@ -14,10 +14,10 @@ _PROJECT_ROOT = os.path.dirname(_PACKAGE_ROOT)
 
 
 __all__ = [
-    "apply_to_collection",
     "StrEnum",
-    "module_available",
+    "WarningCache",
+    "apply_to_collection",
     "compare_version",
     "is_overridden",
-    "WarningCache",
+    "module_available",
 ]

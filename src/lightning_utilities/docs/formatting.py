@@ -63,7 +63,7 @@ def _linkcode_resolve(
     if domain != "py" or not info["module"]:
         return ""
     try:
-        filename = "%s#L%d-L%d" % find_source()
+        filename = "%s#L%d-L%d" % find_source()  # noqa: UP031
     except Exception:
         filename = info["module"].replace(".", "/") + ".py"
     # import subprocess
