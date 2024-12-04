@@ -478,8 +478,8 @@ def test_lightning_cli_print_config():
         "any.py",
         "predict",
         "--seed_everything=1234",
-        "--model=lightning.pytorch.demos.boring_classes.BoringModel",
-        "--data=lightning.pytorch.demos.boring_classes.BoringDataModule",
+        "--model=lightning.pytorch.demos.BoringModel",
+        "--data=lightning.pytorch.demos.BoringDataModule",
         "--print_config",
     ]
     out = StringIO()
@@ -492,8 +492,8 @@ def test_lightning_cli_print_config():
 
     outval = yaml.safe_load(text)
     assert outval["seed_everything"] == 1234
-    assert outval["model"]["class_path"] == "lightning.pytorch.demos.boring_classes.BoringModel"
-    assert outval["data"]["class_path"] == "lightning.pytorch.demos.boring_classes.BoringDataModule"
+    assert outval["model"]["class_path"] == "lightning.pytorch.demos.BoringModel"
+    assert outval["data"]["class_path"] == "lightning.pytorch.demos.BoringDataModule"
     assert outval["ckpt_path"] is None
 
 
