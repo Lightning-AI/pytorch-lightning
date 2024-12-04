@@ -25,9 +25,9 @@ from lightning.pytorch import LightningDataModule, Trainer, seed_everything
 from lightning.pytorch.callbacks import ModelCheckpoint
 from lightning.pytorch.demos.boring_classes import (
     BoringDataModule,
-    BoringDataModuleLenNotImplemented,
     BoringDataModuleNoLen,
     BoringModel,
+    IterableBoringDataModule,
 )
 from lightning.pytorch.profilers.simple import SimpleProfiler
 from lightning.pytorch.trainer.states import TrainerFn
@@ -518,33 +518,39 @@ def test_datamodule_hooks_are_profiled(tmp_path):
         assert durations[0] > 0
 
 
-def test_datamodule_string_no_datasets():
+# TODO: Remove last os.linesep
+def test_datamodule_string_not_available():
     dm = BoringDataModule()
-    del dm.random_full
-    expected_output = "No datasets are set up."
-    assert str(dm) == expected_output
+
+    expected_output = (
+        f"{{Train dataset: available=no, size=unknown}}{os.linesep}"
+        f"{{Validation dataset: available=no, size=unknown}}{os.linesep}"
+        f"{{Test dataset: available=no, size=unknown}}{os.linesep}"
+        f"{{Prediction dataset: available=no, size=unknown}}{os.linesep}"
+    )
+    out = str(dm)
+
+    assert out == expected_output
 
 
-def test_datamodule_string_no_length():
-    dm = BoringDataModuleNoLen()
-    expected_output = "name=random_full, size=Unavailable"
-    assert str(dm) == expected_output
-
-
-def test_datamodule_string_length_not_implemented():
-    dm = BoringDataModuleLenNotImplemented()
-    expected_output = "name=random_full, size=Unavailable"
-    assert str(dm) == expected_output
-
-
+# TODO Remove prints
 def test_datamodule_string_fit_setup():
     dm = BoringDataModule()
     dm.setup(stage="fit")
 
     expected_output = (
-        f"name=random_full, size=256{os.linesep}" f"name=random_train, size=64{os.linesep}" f"name=random_val, size=64"
+        f"{{Train dataset: available=yes, size=64}}{os.linesep}"
+        f"{{Validation dataset: available=yes, size=64}}{os.linesep}"
+        f"{{Test dataset: available=no, size=unknown}}{os.linesep}"
+        f"{{Prediction dataset: available=no, size=unknown}}{os.linesep}"
     )
     output = str(dm)
+
+    print()
+    print(repr(expected_output))
+    print()
+    print(repr(output))
+    print()
 
     assert expected_output == output
 
@@ -553,7 +559,12 @@ def test_datamodule_string_validation_setup():
     dm = BoringDataModule()
     dm.setup(stage="validate")
 
-    expected_output = f"name=random_full, size=256{os.linesep}" f"name=random_val, size=64"
+    expected_output = (
+        f"{{Train dataset: available=no, size=unknown}}{os.linesep}"
+        f"{{Validation dataset: available=yes, size=64}}{os.linesep}"
+        f"{{Test dataset: available=no, size=unknown}}{os.linesep}"
+        f"{{Prediction dataset: available=no, size=unknown}}{os.linesep}"
+    )
     output = str(dm)
 
     assert expected_output == output
@@ -563,7 +574,12 @@ def test_datamodule_string_test_setup():
     dm = BoringDataModule()
     dm.setup(stage="test")
 
-    expected_output = f"name=random_full, size=256{os.linesep}" f"name=random_test, size=64"
+    expected_output = (
+        f"{{Train dataset: available=no, size=unknown}}{os.linesep}"
+        f"{{Validation dataset: available=no, size=unknown}}{os.linesep}"
+        f"{{Test dataset: available=yes, size=64}}{os.linesep}"
+        f"{{Prediction dataset: available=no, size=unknown}}{os.linesep}"
+    )
     output = str(dm)
 
     assert expected_output == output
@@ -573,7 +589,42 @@ def test_datamodule_string_predict_setup():
     dm = BoringDataModule()
     dm.setup(stage="predict")
 
-    expected_output = f"name=random_full, size=256{os.linesep}" f"name=random_predict, size=64"
+    expected_output = (
+        f"{{Train dataset: available=no, size=unknown}}{os.linesep}"
+        f"{{Validation dataset: available=no, size=unknown}}{os.linesep}"
+        f"{{Test dataset: available=no, size=unknown}}{os.linesep}"
+        f"{{Prediction dataset: available=yes, size=64}}{os.linesep}"
+    )
     output = str(dm)
 
     assert expected_output == output
+
+
+def test_datamodule_string_no_len():
+    dm = BoringDataModuleNoLen()
+    dm.setup("fit")
+
+    expected_output = (
+        f"{{Train dataset: available=yes, size=unknown}}{os.linesep}"
+        f"{{Validation dataset: available=yes, size=unknown}}{os.linesep}"
+        f"{{Test dataset: available=no, size=unknown}}{os.linesep}"
+        f"{{Prediction dataset: available=no, size=unknown}}{os.linesep}"
+    )
+    output = str(dm)
+
+    assert output == expected_output
+
+
+def test_datamodule_string_iterable():
+    dm = IterableBoringDataModule()
+    dm.setup("fit")
+
+    expected_output = (
+        f"{{Train dataset: 1. available=yes, size=16 ; 2. available=yes, size=unknown}}{os.linesep}"
+        f"{{Validation dataset: 1. available=yes, size=32 ; 2. available=yes, size=unknown}}{os.linesep}"
+        f"{{Test dataset: available=no, size=unknown}}{os.linesep}"
+        f"{{Prediction dataset: available=no, size=unknown}}{os.linesep}"
+    )
+    output = str(dm)
+
+    assert output == expected_output

@@ -257,57 +257,48 @@ class LightningDataModule(DataHooks, HyperparametersMixin):
         def dataset_info(loader: DataLoader) -> tuple[str, str]:
             """Helper function to compute dataset information."""
             dataset = loader.dataset
-            size: str
-            size = str(len(dataset)) if isinstance(dataset, Sized) else "size: unknown"
+            size: str = str(len(dataset)) if isinstance(dataset, Sized) else "unknown"
 
-            return str(dataset), size
+            return "yes", size
 
         def loader_info(loader_instance: Union[DataLoader, Iterable[DataLoader]]) -> str:
             """Helper function to compute dataset information."""
-            return apply_to_collection(loader_instance, tuple[str, str], dataset_info)
+            result = apply_to_collection(loader_instance, DataLoader, dataset_info)
 
-        dataloader_methods: dict[str, str] = {
+            return result
+
+        dataloader_methods: list[tuple[str, str]] = [
             ("Train dataset", "train_dataloader"),
             ("Validation dataset", "val_dataloader"),
             ("Test dataset", "test_dataloader"),
             ("Prediction dataset", "predict_dataloader"),
-        }
+        ]
         dataloader_info: dict[str, Union[tuple[str, str], Iterable[tuple[str, str]]]] = {}
 
         # Retrieve information for each dataloader method
         for method_pair in dataloader_methods:
             method_str, method_name = method_pair
             loader_method = getattr(self, method_name, None)
-            print("Method name: ", method_name)
 
-            if loader_method and callable(loader_method):
-                try:
-                    loader_instance = loader_method()
-                    dataloader_info[method_str] = loader_info(loader_instance)
-                    print("loader instance")
-                except Exception as _:
-                    dataloader_info[method_str] = (f"{method_str}: not available", "size: unknown")
-                    print("Misconfiguration")
-            else:
-                dataloader_info[method_str] = (f"{method_name}: not callable", "size: unknown")
-
-        print()
+            try:
+                loader_instance = loader_method()
+                dataloader_info[method_str] = loader_info(loader_instance)
+            except Exception:
+                dataloader_info[method_str] = ("no", "unknown")
 
         # Format the information
         dataloader_str: str = ""
         for method_str, method_info in dataloader_info.items():
             # Single data set
-            print("Method info: ", method_info)
-            print(type(method_info))
             if isinstance(method_info, tuple):
                 dataloader_str += f"{{{method_str}: "
-                dataloader_str += f"name={method_info[0]}, size={method_info[1]}"
+                dataloader_str += f"available={method_info[0]}, size={method_info[1]}"
                 dataloader_str += f"}}{os.linesep}"
             else:
                 # Iterable of datasets
                 dataloader_str += f"{{{method_str}: "
-                for info in method_info:
-                    dataloader_str += f"name={info[0]}, size={info[1]} ; "
+                for i, info in enumerate(method_info, start=1):
+                    dataloader_str += f"{i}. available={info[0]}, size={info[1]} ; "
                 dataloader_str = dataloader_str[:-3]
                 dataloader_str += f"}}{os.linesep}"
 
