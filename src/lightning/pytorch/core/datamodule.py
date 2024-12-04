@@ -27,7 +27,6 @@ from lightning.fabric.utilities.types import _MAP_LOCATION_TYPE, _PATH
 from lightning.pytorch.core.hooks import DataHooks
 from lightning.pytorch.core.mixins import HyperparametersMixin
 from lightning.pytorch.core.saving import _load_from_checkpoint
-from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.model_helpers import _restricted_classmethod
 from lightning.pytorch.utilities.types import EVAL_DATALOADERS, TRAIN_DATALOADERS
 
@@ -267,38 +266,45 @@ class LightningDataModule(DataHooks, HyperparametersMixin):
             """Helper function to compute dataset information."""
             return apply_to_collection(loader_instance, tuple[str, str], dataset_info)
 
-        dataloader_methods: list[tuple[str, str]] = [
+        dataloader_methods: dict[str, str] = {
             ("Train dataset", "train_dataloader"),
             ("Validation dataset", "val_dataloader"),
             ("Test dataset", "test_dataloader"),
             ("Prediction dataset", "predict_dataloader"),
-        ]
+        }
         dataloader_info: dict[str, Union[tuple[str, str], Iterable[tuple[str, str]]]] = {}
 
         # Retrieve information for each dataloader method
         for method_pair in dataloader_methods:
             method_str, method_name = method_pair
             loader_method = getattr(self, method_name, None)
+            print("Method name: ", method_name)
 
             if loader_method and callable(loader_method):
                 try:
                     loader_instance = loader_method()
                     dataloader_info[method_str] = loader_info(loader_instance)
-                except MisconfigurationException:
-                    dataloader_info[method_str] = f"{method_str}: not implemented"
-                except Exception as e:
-                    dataloader_info[method_str] = f"{method_name}: error - {str(e)}"
+                    print("loader instance")
+                except Exception as _:
+                    dataloader_info[method_str] = (f"{method_str}: not available", "size: unknown")
+                    print("Misconfiguration")
             else:
-                dataloader_info[method_str] = f"{method_name}: not callable"
+                dataloader_info[method_str] = (f"{method_name}: not callable", "size: unknown")
+
+        print()
 
         # Format the information
         dataloader_str: str = ""
         for method_str, method_info in dataloader_info.items():
-            if isinstance(method_info, tuple[str, str]):
+            # Single data set
+            print("Method info: ", method_info)
+            print(type(method_info))
+            if isinstance(method_info, tuple):
                 dataloader_str += f"{{{method_str}: "
                 dataloader_str += f"name={method_info[0]}, size={method_info[1]}"
                 dataloader_str += f"}}{os.linesep}"
             else:
+                # Iterable of datasets
                 dataloader_str += f"{{{method_str}: "
                 for info in method_info:
                     dataloader_str += f"name={info[0]}, size={info[1]} ; "
