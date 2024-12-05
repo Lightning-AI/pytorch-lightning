@@ -263,51 +263,49 @@ class LightningDataModule(DataHooks, HyperparametersMixin):
             """Helper function to compute dataset information."""
             dataset = loader.dataset
             size: str = str(len(dataset)) if isinstance(dataset, Sized) else "unknown"
-            output = dataset_info("yes", size)
-            return output
+
+            return dataset_info("yes", size)
 
         def loader_info(
-            loader_instance: Union[DataLoader, Iterable[DataLoader]],
+            loader: Union[DataLoader, Iterable[DataLoader]],
         ) -> Union[dataset_info, Iterable[dataset_info]]:
             """Helper function to compute dataset information."""
-            result = apply_to_collection(loader_instance, DataLoader, retrieve_dataset_info)
-
-            return result
+            return apply_to_collection(loader, DataLoader, retrieve_dataset_info)
 
         def extract_loader_info(methods: list[tuple[str, str]]) -> dict:
             """Helper function to extract information for each dataloader method."""
             info: dict[str, Union[dataset_info, Iterable[dataset_info]]] = {}
-            for method_str, function_name in methods:
-                loader_method = getattr(self, function_name, None)
+            for loader_name, func_name in methods:
+                loader_callback = getattr(self, func_name, None)
 
                 try:
-                    loader_instance = loader_method()
-                    info[method_str] = loader_info(loader_instance)
+                    loader = loader_callback()
+                    info[loader_name] = loader_info(loader)
                 except Exception:
-                    info[method_str] = dataset_info("no", "unknown")
+                    info[loader_name] = dataset_info("no", "unknown")
 
             return info
 
         def format_loader_info(info: dict[str, Union[dataset_info, Iterable[dataset_info]]]) -> str:
             """Helper function to format loader information."""
-            lines = []
-            for method_str, method_info in info.items():
+            output = []
+            for loader_name, loader_info in info.items():
                 # Single dataset
-                if isinstance(method_info, dataset_info):
-                    data_info = f"{{{method_str}: available={method_info.available}, size={method_info.length}}}"
-                    lines.append(data_info)
+                if isinstance(loader_info, dataset_info):
+                    loader_info_formatted = f"available={loader_info.available}, size={loader_info.length}"
                 # Iterable of datasets
                 else:
-                    itr_data_info = " ; ".join(
-                        f"{i}. available={dataset.available}, size={dataset.length}"
-                        for i, dataset in enumerate(method_info, start=1)
+                    loader_info_formatted = " ; ".join(
+                        f"{i}. available={loader_info_i.available}, size={loader_info_i.length}"
+                        for i, loader_info_i in enumerate(loader_info, start=1)
                     )
-                    lines.append(f"{{{method_str}: {itr_data_info}}}")
 
-            return os.linesep.join(lines)
+                output.append(f"{{{loader_name}: {loader_info_formatted}}}")
+
+            return os.linesep.join(output)
 
         # Available dataloader methods
-        dataloader_methods: list[tuple[str, str]] = [
+        datamodule_loader_methods: list[tuple[str, str]] = [
             ("Train dataset", "train_dataloader"),
             ("Validation dataset", "val_dataloader"),
             ("Test dataset", "test_dataloader"),
@@ -315,7 +313,7 @@ class LightningDataModule(DataHooks, HyperparametersMixin):
         ]
 
         # Retrieve information for each dataloader method
-        dataloader_info = extract_loader_info(dataloader_methods)
+        dataloader_info = extract_loader_info(datamodule_loader_methods)
         # Format the information
         dataloader_str = format_loader_info(dataloader_info)
         return dataloader_str
