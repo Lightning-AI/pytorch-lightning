@@ -254,52 +254,68 @@ class LightningDataModule(DataHooks, HyperparametersMixin):
 
         """
 
-        def dataset_info(loader: DataLoader) -> tuple[str, str]:
+        class dataset_info:
+            def __init__(self, available: str, length: str) -> None:
+                self.available = available
+                self.length = length
+
+        def retrieve_dataset_info(loader: DataLoader) -> dataset_info:
             """Helper function to compute dataset information."""
             dataset = loader.dataset
             size: str = str(len(dataset)) if isinstance(dataset, Sized) else "unknown"
+            output = dataset_info("yes", size)
+            return output
 
-            return "yes", size
-
-        def loader_info(loader_instance: Union[DataLoader, Iterable[DataLoader]]) -> str:
+        def loader_info(
+            loader_instance: Union[DataLoader, Iterable[DataLoader]],
+        ) -> Union[dataset_info, Iterable[dataset_info]]:
             """Helper function to compute dataset information."""
-            result = apply_to_collection(loader_instance, DataLoader, dataset_info)
+            result = apply_to_collection(loader_instance, DataLoader, retrieve_dataset_info)
 
             return result
 
+        def extract_loader_info(methods: list[tuple[str, str]]) -> dict:
+            """Helper function to extract information for each dataloader method."""
+            info: dict[str, Union[dataset_info, Iterable[dataset_info]]] = {}
+            for method_str, function_name in methods:
+                loader_method = getattr(self, function_name, None)
+
+                try:
+                    loader_instance = loader_method()
+                    info[method_str] = loader_info(loader_instance)
+                except Exception:
+                    info[method_str] = dataset_info("no", "unknown")
+
+            return info
+
+        def format_loader_info(info: dict[str, Union[dataset_info, Iterable[dataset_info]]]) -> str:
+            """Helper function to format loader information."""
+            lines = []
+            for method_str, method_info in info.items():
+                # Single dataset
+                if isinstance(method_info, dataset_info):
+                    data_info = f"{{{method_str}: available={method_info.available}, size={method_info.length}}}"
+                    lines.append(data_info)
+                # Iterable of datasets
+                else:
+                    itr_data_info = " ; ".join(
+                        f"{i}. available={dataset.available}, size={dataset.length}"
+                        for i, dataset in enumerate(method_info, start=1)
+                    )
+                    lines.append(f"{{{method_str}: {itr_data_info}}}")
+
+            return os.linesep.join(lines)
+
+        # Available dataloader methods
         dataloader_methods: list[tuple[str, str]] = [
             ("Train dataset", "train_dataloader"),
             ("Validation dataset", "val_dataloader"),
             ("Test dataset", "test_dataloader"),
             ("Prediction dataset", "predict_dataloader"),
         ]
-        dataloader_info: dict[str, Union[tuple[str, str], Iterable[tuple[str, str]]]] = {}
 
         # Retrieve information for each dataloader method
-        for method_pair in dataloader_methods:
-            method_str, method_name = method_pair
-            loader_method = getattr(self, method_name, None)
-
-            try:
-                loader_instance = loader_method()
-                dataloader_info[method_str] = loader_info(loader_instance)
-            except Exception:
-                dataloader_info[method_str] = ("no", "unknown")
-
+        dataloader_info = extract_loader_info(dataloader_methods)
         # Format the information
-        dataloader_str: str = ""
-        for method_str, method_info in dataloader_info.items():
-            # Single data set
-            if isinstance(method_info, tuple):
-                dataloader_str += f"{{{method_str}: "
-                dataloader_str += f"available={method_info[0]}, size={method_info[1]}"
-                dataloader_str += f"}}{os.linesep}"
-            else:
-                # Iterable of datasets
-                dataloader_str += f"{{{method_str}: "
-                for i, info in enumerate(method_info, start=1):
-                    dataloader_str += f"{i}. available={info[0]}, size={info[1]} ; "
-                dataloader_str = dataloader_str[:-3]
-                dataloader_str += f"}}{os.linesep}"
-
+        dataloader_str = format_loader_info(dataloader_info)
         return dataloader_str

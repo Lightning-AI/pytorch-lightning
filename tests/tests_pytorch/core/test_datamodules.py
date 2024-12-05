@@ -518,7 +518,6 @@ def test_datamodule_hooks_are_profiled(tmp_path):
         assert durations[0] > 0
 
 
-# TODO: Remove last os.linesep
 def test_datamodule_string_not_available():
     dm = BoringDataModule()
 
@@ -526,14 +525,13 @@ def test_datamodule_string_not_available():
         f"{{Train dataset: available=no, size=unknown}}{os.linesep}"
         f"{{Validation dataset: available=no, size=unknown}}{os.linesep}"
         f"{{Test dataset: available=no, size=unknown}}{os.linesep}"
-        f"{{Prediction dataset: available=no, size=unknown}}{os.linesep}"
+        f"{{Prediction dataset: available=no, size=unknown}}"
     )
     out = str(dm)
 
     assert out == expected_output
 
 
-# TODO Remove prints
 def test_datamodule_string_fit_setup():
     dm = BoringDataModule()
     dm.setup(stage="fit")
@@ -542,15 +540,9 @@ def test_datamodule_string_fit_setup():
         f"{{Train dataset: available=yes, size=64}}{os.linesep}"
         f"{{Validation dataset: available=yes, size=64}}{os.linesep}"
         f"{{Test dataset: available=no, size=unknown}}{os.linesep}"
-        f"{{Prediction dataset: available=no, size=unknown}}{os.linesep}"
+        f"{{Prediction dataset: available=no, size=unknown}}"
     )
     output = str(dm)
-
-    print()
-    print(repr(expected_output))
-    print()
-    print(repr(output))
-    print()
 
     assert expected_output == output
 
@@ -563,7 +555,7 @@ def test_datamodule_string_validation_setup():
         f"{{Train dataset: available=no, size=unknown}}{os.linesep}"
         f"{{Validation dataset: available=yes, size=64}}{os.linesep}"
         f"{{Test dataset: available=no, size=unknown}}{os.linesep}"
-        f"{{Prediction dataset: available=no, size=unknown}}{os.linesep}"
+        f"{{Prediction dataset: available=no, size=unknown}}"
     )
     output = str(dm)
 
@@ -578,7 +570,7 @@ def test_datamodule_string_test_setup():
         f"{{Train dataset: available=no, size=unknown}}{os.linesep}"
         f"{{Validation dataset: available=no, size=unknown}}{os.linesep}"
         f"{{Test dataset: available=yes, size=64}}{os.linesep}"
-        f"{{Prediction dataset: available=no, size=unknown}}{os.linesep}"
+        f"{{Prediction dataset: available=no, size=unknown}}"
     )
     output = str(dm)
 
@@ -593,7 +585,7 @@ def test_datamodule_string_predict_setup():
         f"{{Train dataset: available=no, size=unknown}}{os.linesep}"
         f"{{Validation dataset: available=no, size=unknown}}{os.linesep}"
         f"{{Test dataset: available=no, size=unknown}}{os.linesep}"
-        f"{{Prediction dataset: available=yes, size=64}}{os.linesep}"
+        f"{{Prediction dataset: available=yes, size=64}}"
     )
     output = str(dm)
 
@@ -608,7 +600,7 @@ def test_datamodule_string_no_len():
         f"{{Train dataset: available=yes, size=unknown}}{os.linesep}"
         f"{{Validation dataset: available=yes, size=unknown}}{os.linesep}"
         f"{{Test dataset: available=no, size=unknown}}{os.linesep}"
-        f"{{Prediction dataset: available=no, size=unknown}}{os.linesep}"
+        f"{{Prediction dataset: available=no, size=unknown}}"
     )
     output = str(dm)
 
@@ -623,7 +615,7 @@ def test_datamodule_string_iterable():
         f"{{Train dataset: 1. available=yes, size=16 ; 2. available=yes, size=unknown}}{os.linesep}"
         f"{{Validation dataset: 1. available=yes, size=32 ; 2. available=yes, size=unknown}}{os.linesep}"
         f"{{Test dataset: available=no, size=unknown}}{os.linesep}"
-        f"{{Prediction dataset: available=no, size=unknown}}{os.linesep}"
+        f"{{Prediction dataset: available=no, size=unknown}}"
     )
     output = str(dm)
 
