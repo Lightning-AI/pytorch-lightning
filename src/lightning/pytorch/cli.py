@@ -390,6 +390,7 @@ class LightningCLI:
         self._add_instantiators()
         self.before_instantiate_classes()
         self.instantiate_classes()
+        self.after_instantiate_classes()
 
         if self.subcommand is not None:
             self._run_subcommand(self.subcommand)
@@ -560,6 +561,9 @@ class LightningCLI:
         self.model = self._get(self.config_init, "model")
         self._add_configure_optimizers_method_to_model(self.subcommand)
         self.trainer = self.instantiate_trainer()
+
+    def after_instantiate_classes(self) -> None:
+        """Implement to run some code after instantiating the classes."""
 
     def instantiate_trainer(self, **kwargs: Any) -> Trainer:
         """Instantiates the trainer.
