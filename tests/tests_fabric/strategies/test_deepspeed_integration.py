@@ -423,9 +423,9 @@ def test_deepspeed_multigpu_stage_3_MiCS_support():
     strategy.config["zero_optimization"]["stage"] = 3
     strategy.config["zero_optimization"]["mics_shard_size"] = 1
     strategy.config["zero_optimization"]["mics_hierarchical_params_gather"] = False
-    
+
     fabric = Fabric(
-        strategy= strategy,
+        strategy=strategy,
         accelerator="cuda",
         devices=2,
         precision="16-mixed",
@@ -451,16 +451,17 @@ def test_deepspeed_multigpu_stage_3_MiCS_support():
     optimizer.step()
     optimizer.zero_grad()
 
+
 @RunIf(min_cuda_gpus=2, standalone=True, deepspeed=True)
 def test_deepspeed_multigpu_stage_3_MiCS_offload_param_support():
-    """Test to ensure we can use DeepSpeed with ZeRO Stage param offload 3 MiCS Support"""
+    """Test to ensure we can use DeepSpeed with ZeRO Stage param offload 3 MiCS Support."""
     strategy = DeepSpeedStrategy(stage=3, offload_params_device="cpu")
     strategy.config["zero_optimization"]["stage"] = 3
     strategy.config["zero_optimization"]["mics_shard_size"] = 1
     strategy.config["zero_optimization"]["mics_hierarchical_params_gather"] = False
-    
+
     fabric = Fabric(
-        strategy= strategy,
+        strategy=strategy,
         accelerator="cuda",
         devices=2,
         precision="16-mixed",
@@ -494,9 +495,9 @@ def test_deepspeed_multigpu_stage_3_MiCS_offload_param_optimizer_support():
     strategy.config["zero_optimization"]["stage"] = 3
     strategy.config["zero_optimization"]["mics_shard_size"] = 1
     strategy.config["zero_optimization"]["mics_hierarchical_params_gather"] = False
-    
+
     fabric = Fabric(
-        strategy= strategy,
+        strategy=strategy,
         accelerator="cuda",
         devices=2,
         precision="16-mixed",
@@ -522,6 +523,7 @@ def test_deepspeed_multigpu_stage_3_MiCS_offload_param_optimizer_support():
     optimizer.step()
     optimizer.zero_grad()
 
+
 @RunIf(min_cuda_gpus=4, standalone=True, deepspeed=True)
 def test_deepspeed_multigpu_stage_3_hierarchical_MiCS_support():
     """Test to ensure we can use DeepSpeed with ZeRO Stage 3 MiCS Support ('mics_hierarchical_params_gather' =
@@ -532,9 +534,9 @@ def test_deepspeed_multigpu_stage_3_hierarchical_MiCS_support():
     strategy.config["zero_optimization"]["offload_param"] = {}
     strategy.config["zero_optimization"]["offload_optimizer"] = {}
     strategy.config["zero_optimization"]["mics_hierarchical_params_gather"] = True
-    
+
     fabric = Fabric(
-        strategy= strategy,
+        strategy=strategy,
         accelerator="cuda",
         devices=2,
         precision="16-mixed",

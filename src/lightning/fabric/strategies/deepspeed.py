@@ -374,9 +374,13 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
 
         assert self._config_initialized
         assert self.config is not None
-        
-        if 'zero_optimization' in self.config and 'mics_shard_size' in self.config['zero_optimization']\
-            and self.config['zero_optimization']['mics_shard_size'] > 0 and self.zero_stage_3:
+
+        if (
+            "zero_optimization" in self.config
+            and "mics_shard_size" in self.config["zero_optimization"]
+            and self.config["zero_optimization"]["mics_shard_size"] > 0
+            and self.zero_stage_3
+        ):
             return deepspeed.zero.MiCS_Init(
                 enabled=self.zero_stage_3,
                 remote_device=self.remote_device,
