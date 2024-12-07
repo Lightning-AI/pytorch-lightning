@@ -97,6 +97,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         load_full_weights: bool = False,
         precision: Optional[Precision] = None,
         process_group_backend: Optional[str] = None,
+        **kwargs: Any,
     ) -> None:
         """Provides capabilities to run training using the DeepSpeed library, with training optimizations for large
         billion parameter models. `For more information: https://pytorch-
@@ -239,6 +240,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
             cluster_environment=cluster_environment,
             precision=precision,
             process_group_backend=process_group_backend,
+            **kwargs,
         )
         self._backward_sync_control = None  # DeepSpeed handles gradient accumulation internally
 

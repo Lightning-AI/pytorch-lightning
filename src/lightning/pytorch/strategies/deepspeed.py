@@ -119,6 +119,7 @@ class DeepSpeedStrategy(DDPStrategy):
         load_full_weights: bool = False,
         precision_plugin: Optional[Precision] = None,
         process_group_backend: Optional[str] = None,
+        **kwargs: Any,
     ) -> None:
         """Provides capabilities to run training using the DeepSpeed library, with training optimizations for large
         billion parameter models. `For more information: https://pytorch-
@@ -263,6 +264,7 @@ class DeepSpeedStrategy(DDPStrategy):
             cluster_environment=cluster_environment,
             precision_plugin=precision_plugin,
             process_group_backend=process_group_backend,
+            **kwargs,
         )
 
         self.config = self._load_config(config)
