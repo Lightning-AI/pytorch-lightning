@@ -650,7 +650,9 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
                 f"MEMBER: {self.global_rank + 1}/{self.world_size}"
             )
         self._process_group_backend = self._get_process_group_backend()
-        deepspeed.init_distributed(self._process_group_backend, distributed_port=self.cluster_environment.main_port, timeout=self._timeout)
+        deepspeed.init_distributed(
+            self._process_group_backend, distributed_port=self.cluster_environment.main_port, timeout=self._timeout
+        )
 
     def _set_node_environment_variables(self) -> None:
         assert self.cluster_environment is not None
