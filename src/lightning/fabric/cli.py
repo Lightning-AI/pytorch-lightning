@@ -215,7 +215,7 @@ def _get_num_processes(accelerator: str, devices: str) -> int:
             accelerator = "mps"
         else:
             accelerator = "cpu"
-            
+
     if accelerator == "gpu":
         parsed_devices = _parse_gpu_ids(devices, include_cuda=True, include_mps=True)
     elif accelerator == "cuda":
