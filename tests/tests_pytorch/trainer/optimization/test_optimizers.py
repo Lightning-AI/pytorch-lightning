@@ -657,6 +657,7 @@ def test_invalid_lr_scheduler_with_custom_step_method(override):
         with pytest.raises(MisconfigurationException, match="CustomScheduler` doesn't follow"):
             _init_optimizers_and_lr_schedulers(model)
 
+
 def test_lr_scheduler_step_across_epoch_boundaries(mocked_sched, tmp_path):
     class StepAcrossEpochsModel(LightningModule):
         def __init__(self):
