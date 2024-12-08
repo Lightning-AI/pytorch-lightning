@@ -18,6 +18,7 @@ import os
 import platform
 from collections.abc import Mapping
 from contextlib import AbstractContextManager, ExitStack
+from datetime import timedelta
 from itertools import chain
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable, Optional, Union
@@ -31,6 +32,7 @@ from typing_extensions import override
 from lightning.fabric.accelerators import Accelerator, CUDAAccelerator
 from lightning.fabric.plugins.environments.cluster_environment import ClusterEnvironment
 from lightning.fabric.plugins.precision import Precision
+from lightning.fabric.plugins.collectives.torch_collective import default_pg_timeout
 from lightning.fabric.strategies.ddp import DDPStrategy
 from lightning.fabric.strategies.registry import _StrategyRegistry
 from lightning.fabric.strategies.strategy import _Sharded
@@ -97,7 +99,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         load_full_weights: bool = False,
         precision: Optional[Precision] = None,
         process_group_backend: Optional[str] = None,
-        **kwargs: Any,
+        timeout: Optional[timedelta] = default_pg_timeout,
     ) -> None:
         """Provides capabilities to run training using the DeepSpeed library, with training optimizations for large
         billion parameter models. `For more information: https://pytorch-
@@ -240,9 +242,9 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
             cluster_environment=cluster_environment,
             precision=precision,
             process_group_backend=process_group_backend,
-            **kwargs,
         )
         self._backward_sync_control = None  # DeepSpeed handles gradient accumulation internally
+        self._timeout: Optional[timedelta] = timeout
 
         self.config = self._load_config(config)
         if self.config is None:
@@ -650,7 +652,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
                 f"MEMBER: {self.global_rank + 1}/{self.world_size}"
             )
         self._process_group_backend = self._get_process_group_backend()
-        deepspeed.init_distributed(self._process_group_backend, distributed_port=self.cluster_environment.main_port)
+        deepspeed.init_distributed(self._process_group_backend, distributed_port=self.cluster_environment.main_port, timeout=self._timeout)
 
     def _set_node_environment_variables(self) -> None:
         assert self.cluster_environment is not None
