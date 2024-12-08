@@ -19,6 +19,7 @@ import platform
 from collections import OrderedDict
 from collections.abc import Generator, Mapping
 from contextlib import contextmanager
+from datetime import timedelta
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Optional, Union
 
@@ -30,6 +31,7 @@ from typing_extensions import override
 
 import lightning.pytorch as pl
 from lightning.fabric.plugins import ClusterEnvironment
+from lightning.fabric.plugins.collectives.torch_collective import default_pg_timeout
 from lightning.fabric.strategies import _StrategyRegistry
 from lightning.fabric.strategies.deepspeed import (
     _DEEPSPEED_AVAILABLE,
@@ -119,6 +121,7 @@ class DeepSpeedStrategy(DDPStrategy):
         load_full_weights: bool = False,
         precision_plugin: Optional[Precision] = None,
         process_group_backend: Optional[str] = None,
+        timeout: Optional[timedelta] = default_pg_timeout,
     ) -> None:
         """Provides capabilities to run training using the DeepSpeed library, with training optimizations for large
         billion parameter models. `For more information: https://pytorch-
@@ -264,6 +267,7 @@ class DeepSpeedStrategy(DDPStrategy):
             precision_plugin=precision_plugin,
             process_group_backend=process_group_backend,
         )
+        self._timeout: Optional[timedelta] = timeout
 
         self.config = self._load_config(config)
         if self.config is None:
@@ -364,7 +368,9 @@ class DeepSpeedStrategy(DDPStrategy):
                 f"MEMBER: {self.global_rank + 1}/{self.world_size}"
             )
         self._process_group_backend = self._get_process_group_backend()
-        deepspeed.init_distributed(self._process_group_backend, distributed_port=self.cluster_environment.main_port)
+        deepspeed.init_distributed(
+            self._process_group_backend, distributed_port=self.cluster_environment.main_port, timeout=self._timeout
+        )
 
     def _set_node_environment_variables(self) -> None:
         assert self.cluster_environment is not None
