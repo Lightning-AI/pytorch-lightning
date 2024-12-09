@@ -37,6 +37,18 @@ from lightning.pytorch.utilities.rank_zero import rank_zero_warn
 
 _JSONARGPARSE_SIGNATURES_AVAILABLE = RequirementCache("jsonargparse[signatures]>=4.27.7")
 
+
+def patch_jsonargparse_python_3_12_8() -> None:
+    if sys.version_info < (3, 12, 8):
+        return
+
+    def _parse_known_args_patch(self: ArgumentParser, args: Any = None, namespace: Any = None) -> tuple[Any, Any]:
+        namespace, args = super(ArgumentParser, self)._parse_known_args(args, namespace, intermixed=False)  # type: ignore
+        return namespace, args
+
+    setattr(ArgumentParser, "_parse_known_args", _parse_known_args_patch)
+
+
 if _JSONARGPARSE_SIGNATURES_AVAILABLE:
     import docstring_parser
     from jsonargparse import (
@@ -47,6 +59,8 @@ if _JSONARGPARSE_SIGNATURES_AVAILABLE:
         register_unresolvable_import_paths,
         set_config_read_mode,
     )
+
+    patch_jsonargparse_python_3_12_8()  # Required until fix https://github.com/omni-us/jsonargparse/issues/641
 
     register_unresolvable_import_paths(torch)  # Required until fix https://github.com/pytorch/pytorch/issues/74483
     set_config_read_mode(fsspec_enabled=True)
