@@ -483,8 +483,20 @@ class AssistantCLI:
 
 
 if __name__ == "__main__":
+    import sys
+
     import jsonargparse
-    from lightning.pytorch.cli import patch_jsonargparse_python_3_12_8
+    from jsonargparse import ArgumentParser
+
+    def patch_jsonargparse_python_3_12_8():
+        if sys.version_info < (3, 12, 8):
+            return
+
+        def _parse_known_args_patch(self: ArgumentParser, args: Any = None, namespace: Any = None) -> tuple[Any, Any]:
+            namespace, args = super(ArgumentParser, self)._parse_known_args(args, namespace, intermixed=False)  # type: ignore
+            return namespace, args
+
+        setattr(ArgumentParser, "_parse_known_args", _parse_known_args_patch)
 
     patch_jsonargparse_python_3_12_8()  # Required until fix https://github.com/omni-us/jsonargparse/issues/641
 
