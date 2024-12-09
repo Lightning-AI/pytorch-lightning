@@ -162,5 +162,8 @@ def run_parity_test(accelerator: str = "cpu", devices: int = 2, tolerance: float
 
 if __name__ == "__main__":
     from jsonargparse import CLI
+    from lightning.pytorch.cli import patch_jsonargparse_python_3_12_8
+
+    patch_jsonargparse_python_3_12_8()  # Required until fix https://github.com/omni-us/jsonargparse/issues/641
 
     CLI(run_parity_test)
