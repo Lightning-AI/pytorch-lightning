@@ -1,6 +1,6 @@
-##############
+##############################################
 Truncated Backpropagation Through Time (TBPTT)
-##############
+##############################################
 
 Truncated Backpropagation Through Time (TBPTT) performs perform backpropogation every k steps of
 a much longer sequence. This is made possible by passing training batches
