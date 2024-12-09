@@ -38,7 +38,7 @@ from lightning.pytorch.utilities.rank_zero import rank_zero_warn
 _JSONARGPARSE_SIGNATURES_AVAILABLE = RequirementCache("jsonargparse[signatures]>=4.27.7")
 
 
-def patch_jsonargparse_python_3_12_8():
+def patch_jsonargparse_python_3_12_8() -> None:
     if sys.version_info < (3, 12, 8):
         return
 
