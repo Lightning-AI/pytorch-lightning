@@ -48,6 +48,13 @@ if _JSONARGPARSE_SIGNATURES_AVAILABLE:
         set_config_read_mode,
     )
 
+    def _parse_known_args_patch(self: ArgumentParser, args: Any = None, namespace: Any = None) -> tuple[Any, Any]:
+        namespace, args = super(ArgumentParser, self)._parse_known_args(args, namespace, intermixed=False)  # type: ignore
+        return namespace, args
+
+    if sys.version_info >= (3, 12, 8):
+        setattr(ArgumentParser, "_parse_known_args", _parse_known_args_patch)
+
     register_unresolvable_import_paths(torch)  # Required until fix https://github.com/pytorch/pytorch/issues/74483
     set_config_read_mode(fsspec_enabled=True)
 else:
