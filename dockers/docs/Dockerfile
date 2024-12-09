@@ -44,7 +44,7 @@ RUN \
         dvipng \
         texlive-pictures \
         python3 \
-        python3-distutils \
+        python3-setuptools \
         python3-dev \
     && \
     update-alternatives --install /usr/bin/python python /usr/bin/python3 1 && \
