@@ -20,6 +20,13 @@ PyTorch Lightning checkpoints are fully usable in plain PyTorch.
 
 ----
 
+.. important::
+
+   **Important Update: Deprecated Method**
+
+   Starting from PyTorch Lightning v1.0.0, the `resume_from_checkpoint` parameter has been deprecated. To resume training from a checkpoint, use the `ckpt_path` parameter in the `fit()` method.
+   Please update your code accordingly to avoid potential compatibility issues.
+
 ************************
 Contents of a checkpoint
 ************************
@@ -197,11 +204,26 @@ You can disable checkpointing by passing:
 
 ----
 
+
 *********************
 Resume training state
 *********************
 
 If you don't just want to load weights, but instead restore the full training, do the following:
+
+.. warning::
+
+   The parameter `resume_from_checkpoint` has been deprecated in recent versions of PyTorch Lightning. 
+   Please use the `ckpt_path` argument in the `fit()` method instead.
+
+Incorrect (deprecated) usage:
+
+.. code-block:: python
+
+   trainer = Trainer(resume_from_checkpoint="path/to/your/checkpoint.ckpt")
+   trainer.fit(model)
+
+Correct usage:
 
 .. code-block:: python
 
@@ -209,4 +231,4 @@ If you don't just want to load weights, but instead restore the full training, d
    trainer = Trainer()
 
    # automatically restores model, epoch, step, LR schedulers, etc...
-   trainer.fit(model, ckpt_path="some/path/to/my_checkpoint.ckpt")
+   trainer.fit(model, ckpt_path="path/to/your/checkpoint.ckpt")
