@@ -211,18 +211,6 @@ Resume training state
 
 If you don't just want to load weights, but instead restore the full training, do the following:
 
-.. warning::
-
-   The parameter `resume_from_checkpoint` has been deprecated in recent versions of PyTorch Lightning. 
-   Please use the `ckpt_path` argument in the `fit()` method instead.
-
-Incorrect (deprecated) usage:
-
-.. code-block:: python
-
-   trainer = Trainer(resume_from_checkpoint="path/to/your/checkpoint.ckpt")
-   trainer.fit(model)
-
 Correct usage:
 
 .. code-block:: python
