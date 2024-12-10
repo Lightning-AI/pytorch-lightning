@@ -276,7 +276,7 @@ class LightningDataModule(DataHooks, HyperparametersMixin):
             """Helper function to extract information for each dataloader method."""
             info: dict[str, Union[dataset_info, Iterable[dataset_info]]] = {}
             for loader_name, func_name in methods:
-                loader_callback = getattr(self, func_name, None)
+                loader_method = getattr(self, func_name, None)
 
                 try:
                     loader = loader_method()  # type: ignore
