@@ -30,12 +30,9 @@ from pathlib import Path
 from typing import Any, Literal, Optional, Union, cast
 from weakref import proxy
 
+import pytorch_lightning as pl
 import torch
 import yaml
-from torch import Tensor
-from typing_extensions import override
-
-import pytorch_lightning as pl
 from lightning_fabric.utilities.cloud_io import (
     _is_dir,
     _is_local_file_protocol,
@@ -50,6 +47,8 @@ from pytorch_lightning.utilities.rank_zero import (
     rank_zero_warn,
 )
 from pytorch_lightning.utilities.types import STEP_OUTPUT
+from torch import Tensor
+from typing_extensions import override
 
 log = logging.getLogger(__name__)
 warning_cache = WarningCache()
