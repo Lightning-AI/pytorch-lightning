@@ -202,6 +202,13 @@ How-to Guides
     :col_css: col-md-4
     :height: 180
 
+.. displayitem::
+    :header: Truncated Back-Propagation Through Time
+    :description: Efficiently step through time when training recurrent models
+    :button_link: ../common/tbtt.html
+    :col_css: col-md-4
+    :height: 180
+
 .. raw:: html
 
         </div>
