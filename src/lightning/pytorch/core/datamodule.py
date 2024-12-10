@@ -255,16 +255,16 @@ class LightningDataModule(DataHooks, HyperparametersMixin):
         """
 
         class dataset_info:
-            def __init__(self, available: str, length: str) -> None:
+            def __init__(self, available: bool, length: str) -> None:
                 self.available = available
                 self.length = length
 
         def retrieve_dataset_info(loader: DataLoader) -> dataset_info:
             """Helper function to compute dataset information."""
             dataset = loader.dataset
-            size: str = str(len(dataset)) if isinstance(dataset, Sized) else "unknown"
+            size: str = str(len(dataset)) if isinstance(dataset, Sized) else "NA"
 
-            return dataset_info("yes", size)
+            return dataset_info(True, size)
 
         def loader_info(
             loader: Union[DataLoader, Iterable[DataLoader]],
@@ -282,7 +282,7 @@ class LightningDataModule(DataHooks, HyperparametersMixin):
                     loader = loader_callback()
                     info[loader_name] = loader_info(loader)
                 except Exception:
-                    info[loader_name] = dataset_info("no", "unknown")
+                    info[loader_name] = dataset_info(False, "")
 
             return info
 
@@ -292,11 +292,11 @@ class LightningDataModule(DataHooks, HyperparametersMixin):
             for loader_name, loader_info in info.items():
                 # Single dataset
                 if isinstance(loader_info, dataset_info):
-                    loader_info_formatted = f"available={loader_info.available}, size={loader_info.length}"
+                    loader_info_formatted = "None" if not loader_info.available else f"size={loader_info.length}"
                 # Iterable of datasets
                 else:
                     loader_info_formatted = " ; ".join(
-                        f"{i}. available={loader_info_i.available}, size={loader_info_i.length}"
+                        "None" if not loader_info_i.available else f"{i}. size={loader_info_i.length}"
                         for i, loader_info_i in enumerate(loader_info, start=1)
                     )
 
@@ -306,10 +306,10 @@ class LightningDataModule(DataHooks, HyperparametersMixin):
 
         # Available dataloader methods
         datamodule_loader_methods: list[tuple[str, str]] = [
-            ("Train dataset", "train_dataloader"),
-            ("Validation dataset", "val_dataloader"),
-            ("Test dataset", "test_dataloader"),
-            ("Prediction dataset", "predict_dataloader"),
+            ("Train dataloader", "train_dataloader"),
+            ("Validation dataloader", "val_dataloader"),
+            ("Test dataloader", "test_dataloader"),
+            ("Predict dataloader", "predict_dataloader"),
         ]
 
         # Retrieve information for each dataloader method

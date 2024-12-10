@@ -522,10 +522,10 @@ def test_datamodule_string_not_available():
     dm = BoringDataModule()
 
     expected_output = (
-        f"{{Train dataset: available=no, size=unknown}}{os.linesep}"
-        f"{{Validation dataset: available=no, size=unknown}}{os.linesep}"
-        f"{{Test dataset: available=no, size=unknown}}{os.linesep}"
-        f"{{Prediction dataset: available=no, size=unknown}}"
+        f"{{Train dataloader: None}}{os.linesep}"
+        f"{{Validation dataloader: None}}{os.linesep}"
+        f"{{Test dataloader: None}}{os.linesep}"
+        f"{{Predict dataloader: None}}"
     )
     out = str(dm)
 
@@ -537,10 +537,10 @@ def test_datamodule_string_fit_setup():
     dm.setup(stage="fit")
 
     expected_output = (
-        f"{{Train dataset: available=yes, size=64}}{os.linesep}"
-        f"{{Validation dataset: available=yes, size=64}}{os.linesep}"
-        f"{{Test dataset: available=no, size=unknown}}{os.linesep}"
-        f"{{Prediction dataset: available=no, size=unknown}}"
+        f"{{Train dataloader: size=64}}{os.linesep}"
+        f"{{Validation dataloader: size=64}}{os.linesep}"
+        f"{{Test dataloader: None}}{os.linesep}"
+        f"{{Predict dataloader: None}}"
     )
     output = str(dm)
 
@@ -552,10 +552,10 @@ def test_datamodule_string_validation_setup():
     dm.setup(stage="validate")
 
     expected_output = (
-        f"{{Train dataset: available=no, size=unknown}}{os.linesep}"
-        f"{{Validation dataset: available=yes, size=64}}{os.linesep}"
-        f"{{Test dataset: available=no, size=unknown}}{os.linesep}"
-        f"{{Prediction dataset: available=no, size=unknown}}"
+        f"{{Train dataloader: None}}{os.linesep}"
+        f"{{Validation dataloader: size=64}}{os.linesep}"
+        f"{{Test dataloader: None}}{os.linesep}"
+        f"{{Predict dataloader: None}}"
     )
     output = str(dm)
 
@@ -567,10 +567,10 @@ def test_datamodule_string_test_setup():
     dm.setup(stage="test")
 
     expected_output = (
-        f"{{Train dataset: available=no, size=unknown}}{os.linesep}"
-        f"{{Validation dataset: available=no, size=unknown}}{os.linesep}"
-        f"{{Test dataset: available=yes, size=64}}{os.linesep}"
-        f"{{Prediction dataset: available=no, size=unknown}}"
+        f"{{Train dataloader: None}}{os.linesep}"
+        f"{{Validation dataloader: None}}{os.linesep}"
+        f"{{Test dataloader: size=64}}{os.linesep}"
+        f"{{Predict dataloader: None}}"
     )
     output = str(dm)
 
@@ -582,10 +582,10 @@ def test_datamodule_string_predict_setup():
     dm.setup(stage="predict")
 
     expected_output = (
-        f"{{Train dataset: available=no, size=unknown}}{os.linesep}"
-        f"{{Validation dataset: available=no, size=unknown}}{os.linesep}"
-        f"{{Test dataset: available=no, size=unknown}}{os.linesep}"
-        f"{{Prediction dataset: available=yes, size=64}}"
+        f"{{Train dataloader: None}}{os.linesep}"
+        f"{{Validation dataloader: None}}{os.linesep}"
+        f"{{Test dataloader: None}}{os.linesep}"
+        f"{{Predict dataloader: size=64}}"
     )
     output = str(dm)
 
@@ -597,10 +597,10 @@ def test_datamodule_string_no_len():
     dm.setup("fit")
 
     expected_output = (
-        f"{{Train dataset: available=yes, size=unknown}}{os.linesep}"
-        f"{{Validation dataset: available=yes, size=unknown}}{os.linesep}"
-        f"{{Test dataset: available=no, size=unknown}}{os.linesep}"
-        f"{{Prediction dataset: available=no, size=unknown}}"
+        f"{{Train dataloader: size=NA}}{os.linesep}"
+        f"{{Validation dataloader: size=NA}}{os.linesep}"
+        f"{{Test dataloader: None}}{os.linesep}"
+        f"{{Predict dataloader: None}}"
     )
     output = str(dm)
 
@@ -612,10 +612,10 @@ def test_datamodule_string_iterable():
     dm.setup("fit")
 
     expected_output = (
-        f"{{Train dataset: 1. available=yes, size=16 ; 2. available=yes, size=unknown}}{os.linesep}"
-        f"{{Validation dataset: 1. available=yes, size=32 ; 2. available=yes, size=unknown}}{os.linesep}"
-        f"{{Test dataset: available=no, size=unknown}}{os.linesep}"
-        f"{{Prediction dataset: available=no, size=unknown}}"
+        f"{{Train dataloader: 1. size=16 ; 2. size=NA}}{os.linesep}"
+        f"{{Validation dataloader: 1. size=32 ; 2. size=NA}}{os.linesep}"
+        f"{{Test dataloader: None}}{os.linesep}"
+        f"{{Predict dataloader: None}}"
     )
     output = str(dm)
 
