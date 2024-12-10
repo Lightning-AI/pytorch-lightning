@@ -213,7 +213,7 @@ If you don't just want to load weights, but instead restore the full training, d
 
 .. warning::
 
-   The argument `resume_from_checkpoint` has been deprecated in versions of PyTorch Lightning >= 1.0.0.
+   The parameter `resume_from_checkpoint` has been deprecated in recent versions of PyTorch Lightning. 
    Please use the `ckpt_path` argument in the `fit()` method instead.
 
 Incorrect (deprecated) usage:
@@ -232,3 +232,15 @@ Correct usage:
 
    # automatically restores model, epoch, step, LR schedulers, etc...
    trainer.fit(model, ckpt_path="path/to/your/checkpoint.ckpt")
+
+.. warning::
+
+   The argument `resume_from_checkpoint` has been deprecated in versions of PyTorch Lightning >= 1.0.0. 
+   To resume training from a checkpoint, use the `ckpt_path` argument in the `fit()` method instead.
+
+Incorrect (deprecated) usage:
+
+.. code-block:: python
+
+   trainer = Trainer(resume_from_checkpoint="path/to/your/checkpoint.ckpt")
+   trainer.fit(model)
