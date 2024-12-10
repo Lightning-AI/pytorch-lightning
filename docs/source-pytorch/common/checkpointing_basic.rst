@@ -213,7 +213,7 @@ If you don't just want to load weights, but instead restore the full training, d
 
 .. warning::
 
-   The parameter `resume_from_checkpoint` has been deprecated in recent versions of PyTorch Lightning.
+   The argument `resume_from_checkpoint` has been deprecated in versions of PyTorch Lightning >= 1.0.0.
    Please use the `ckpt_path` argument in the `fit()` method instead.
 
 Incorrect (deprecated) usage:
