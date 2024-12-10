@@ -24,7 +24,7 @@ PyTorch Lightning checkpoints are fully usable in plain PyTorch.
 
    **Important Update: Deprecated Method**
 
-   Starting from PyTorch Lightning v1.0.0, the `resume_from_checkpoint` parameter has been deprecated. To resume training from a checkpoint, use the `ckpt_path` parameter in the `fit()` method.
+   Starting from PyTorch Lightning v1.0.0, the `resume_from_checkpoint` argument has been deprecated. To resume training from a checkpoint, use the `ckpt_path` argument in the `fit()` method.
    Please update your code accordingly to avoid potential compatibility issues.
 
 ************************
