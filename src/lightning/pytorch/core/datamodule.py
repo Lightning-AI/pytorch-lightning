@@ -279,7 +279,7 @@ class LightningDataModule(DataHooks, HyperparametersMixin):
                 loader_callback = getattr(self, func_name, None)
 
                 try:
-                    loader = loader_callback()
+                    loader = loader_method()  # type: ignore
                     info[loader_name] = loader_info(loader)
                 except Exception:
                     info[loader_name] = dataset_info(False, "")
