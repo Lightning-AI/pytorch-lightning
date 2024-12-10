@@ -23,6 +23,7 @@
    ../data/data
    ../model/own_your_loop
    ../advanced/model_init
+   ../common/tbptt
 
 
 #############
@@ -205,7 +206,7 @@ How-to Guides
 .. displayitem::
     :header: Truncated Back-Propagation Through Time
     :description: Efficiently step through time when training recurrent models
-    :button_link: ../common/tbtt.html
+    :button_link: ../common/tbptt.html
     :col_css: col-md-4
     :height: 180
 
