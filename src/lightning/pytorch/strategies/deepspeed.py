@@ -522,7 +522,7 @@ class DeepSpeedStrategy(DDPStrategy):
 
         self._init_config_if_needed()
         assert self.config is not None
-        # If detect 'mics_shard_size'>0 in config['zero_optimization'], alter to use deepspeed.zero.MiCS_Init()
+        # If we detect `'mics_shard_size' > 0` in `config['zero_optimization']`, use `deepspeed.zero.MiCS_Init(...)` instead of `deepspeed.zero.Init(...)`
         # https://deepspeed.readthedocs.io/en/latest/zero3.html#mics-configurations
         #! default deepspeed 0.9.0 is not compatible
         if (
