@@ -41,8 +41,9 @@ def test_parse_cli_args(args, expected):
 def test_process_cli_args(tmp_path, caplog, monkeypatch):
     # PyTorch version < 2.3
     monkeypatch.setattr(lightning.fabric.utilities.consolidate_checkpoint, "_TORCH_GREATER_EQUAL_2_3", False)
-    with caplog.at_level(logging.ERROR, logger="lightning.fabric.utilities.consolidate_checkpoint"), pytest.raises(
-        SystemExit
+    with (
+        caplog.at_level(logging.ERROR, logger="lightning.fabric.utilities.consolidate_checkpoint"),
+        pytest.raises(SystemExit),
     ):
         _process_cli_args(Namespace())
     assert "requires PyTorch >= 2.3." in caplog.text
@@ -51,8 +52,9 @@ def test_process_cli_args(tmp_path, caplog, monkeypatch):
 
     # Checkpoint does not exist
     checkpoint_folder = Path("does/not/exist")
-    with caplog.at_level(logging.ERROR, logger="lightning.fabric.utilities.consolidate_checkpoint"), pytest.raises(
-        SystemExit
+    with (
+        caplog.at_level(logging.ERROR, logger="lightning.fabric.utilities.consolidate_checkpoint"),
+        pytest.raises(SystemExit),
     ):
         _process_cli_args(Namespace(checkpoint_folder=checkpoint_folder))
     assert f"checkpoint folder does not exist: {checkpoint_folder}" in caplog.text
@@ -61,8 +63,9 @@ def test_process_cli_args(tmp_path, caplog, monkeypatch):
     # Checkpoint exists but is not a folder
     file = tmp_path / "checkpoint_file"
     file.touch()
-    with caplog.at_level(logging.ERROR, logger="lightning.fabric.utilities.consolidate_checkpoint"), pytest.raises(
-        SystemExit
+    with (
+        caplog.at_level(logging.ERROR, logger="lightning.fabric.utilities.consolidate_checkpoint"),
+        pytest.raises(SystemExit),
     ):
         _process_cli_args(Namespace(checkpoint_folder=file))
     assert "checkpoint path must be a folder" in caplog.text
@@ -71,8 +74,9 @@ def test_process_cli_args(tmp_path, caplog, monkeypatch):
     # Checkpoint exists but is not an FSDP checkpoint
     folder = tmp_path / "checkpoint_folder"
     folder.mkdir()
-    with caplog.at_level(logging.ERROR, logger="lightning.fabric.utilities.consolidate_checkpoint"), pytest.raises(
-        SystemExit
+    with (
+        caplog.at_level(logging.ERROR, logger="lightning.fabric.utilities.consolidate_checkpoint"),
+        pytest.raises(SystemExit),
     ):
         _process_cli_args(Namespace(checkpoint_folder=folder))
     assert "Only FSDP-sharded checkpoints saved with Lightning are supported" in caplog.text
@@ -89,8 +93,9 @@ def test_process_cli_args(tmp_path, caplog, monkeypatch):
     # Checkpoint is a FSDP folder, output file already exists
     file = tmp_path / "ouput_file"
     file.touch()
-    with caplog.at_level(logging.ERROR, logger="lightning.fabric.utilities.consolidate_checkpoint"), pytest.raises(
-        SystemExit
+    with (
+        caplog.at_level(logging.ERROR, logger="lightning.fabric.utilities.consolidate_checkpoint"),
+        pytest.raises(SystemExit),
     ):
         _process_cli_args(Namespace(checkpoint_folder=folder, output_file=file))
     assert "path for the converted checkpoint already exists" in caplog.text

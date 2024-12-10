@@ -36,6 +36,10 @@ You can update ``refresh_rate`` (rate (number of batches) at which the progress 
 
     trainer = Trainer(callbacks=[TQDMProgressBar(refresh_rate=10)])
 
+.. note::
+
+    The ``smoothing`` option has no effect when using the default implementation of :class:`~lightning.pytorch.callbacks.TQDMProgressBar`, as the progress bar is updated using the ``bar.refresh()`` method instead of ``bar.update()``. This can cause the progress bar to become desynchronized with the actual progress. To avoid this issue, you can use the ``bar.update()`` method instead, but this may require customizing the :class:`~lightning.pytorch.callbacks.TQDMProgressBar` class.
+
 By default the training progress bar is reset (overwritten) at each new epoch.
 If you wish for a new progress bar to be displayed at the end of every epoch, set
 :paramref:`TQDMProgressBar.leave <lightning.pytorch.callbacks.TQDMProgressBar.leave>` to ``True``.

@@ -15,10 +15,10 @@ import os
 import signal
 import sys
 import threading
+from concurrent.futures.process import _ExecutorManagerThread
 from functools import partial
 from http.server import SimpleHTTPRequestHandler
 from pathlib import Path
-from typing import List
 from unittest.mock import Mock
 
 import lightning.fabric
@@ -34,9 +34,6 @@ from lightning.pytorch.trainer.connectors.signal_connector import _SignalConnect
 from tqdm import TMonitor
 
 from tests_pytorch import _PATH_DATASETS
-
-if sys.version_info >= (3, 9):
-    from concurrent.futures.process import _ExecutorManagerThread
 
 
 @pytest.fixture(scope="session")
@@ -323,7 +320,7 @@ def leave_no_artifacts_behind():
     assert not difference, f"Test left artifacts behind: {difference}"
 
 
-def pytest_collection_modifyitems(items: List[pytest.Function], config: pytest.Config) -> None:
+def pytest_collection_modifyitems(items: list[pytest.Function], config: pytest.Config) -> None:
     initial_size = len(items)
     conditions = []
     filtered, skipped = 0, 0

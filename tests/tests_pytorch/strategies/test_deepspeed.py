@@ -15,7 +15,7 @@ import contextlib
 import json
 import os
 from re import escape
-from typing import Any, Dict
+from typing import Any
 from unittest import mock
 from unittest.mock import ANY, Mock
 
@@ -48,7 +48,7 @@ class ModelParallelBoringModel(BoringModel):
         if self.layer is None:
             self.layer = torch.nn.Linear(32, 2)
 
-    def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
+    def on_load_checkpoint(self, checkpoint: dict[str, Any]) -> None:
         self.configure_model()
 
 
@@ -73,7 +73,7 @@ class ModelParallelBoringModelManualOptim(BoringModel):
         if self.layer is None:
             self.layer = torch.nn.Linear(32, 2)
 
-    def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
+    def on_load_checkpoint(self, checkpoint: dict[str, Any]) -> None:
         self.configure_model()
 
     @property
@@ -623,7 +623,7 @@ class ModelParallelClassificationModel(LightningModule):
         lr_scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.99)
         return [optimizer], [{"scheduler": lr_scheduler, "interval": "step"}]
 
-    def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
+    def on_load_checkpoint(self, checkpoint: dict[str, Any]) -> None:
         if not hasattr(self, "model"):
             self.configure_model()
 
