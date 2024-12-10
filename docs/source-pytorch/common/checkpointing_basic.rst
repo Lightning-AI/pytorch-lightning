@@ -223,7 +223,7 @@ Correct usage:
 
 .. warning::
 
-   The argument `resume_from_checkpoint` has been deprecated in versions of PyTorch Lightning >= 1.0.0. 
+   The argument `resume_from_checkpoint` has been deprecated in versions of PyTorch Lightning >= 1.0.0.
    To resume training from a checkpoint, use the `ckpt_path` argument in the `fit()` method instead.
 
 Incorrect (deprecated) usage:
