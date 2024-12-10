@@ -104,11 +104,11 @@ class LRSchedulerConfigType(TypedDict, total=False):
     strict: bool
 
 
-class OptimizerConfigDict(TypedDict):
+class OptimizerConfigType(TypedDict):
     optimizer: Optimizer
 
 
-class OptimizerLRSchedulerConfigDict(TypedDict):
+class OptimizerLRSchedulerConfigType(TypedDict):
     optimizer: Optimizer
     lr_scheduler: Union[LRSchedulerTypeUnion, LRSchedulerConfigType]
     monitor: NotRequired[str]
@@ -119,10 +119,10 @@ OptimizerLRScheduler = Optional[
         Optimizer,
         Sequence[Optimizer],
         tuple[Sequence[Optimizer], Sequence[Union[LRSchedulerTypeUnion, LRSchedulerConfig]]],
-        OptimizerConfigDict,
-        OptimizerLRSchedulerConfigDict,
-        Sequence[OptimizerConfigDict],
-        Sequence[OptimizerLRSchedulerConfigDict],
+        OptimizerConfigType,
+        OptimizerLRSchedulerConfigType,
+        Sequence[OptimizerConfigType],
+        Sequence[OptimizerLRSchedulerConfigType],
     ]
 ]
 
