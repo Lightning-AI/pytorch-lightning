@@ -74,7 +74,7 @@ repos:
     hooks:
       # try to fix what is possible
       - id: ruff
-        args: ["--fix"]
+        args: ["--fix", "--unsafe-fixes"]
       # perform formatting updates
       - id: ruff-format
       # validate if all is fine with preview mode

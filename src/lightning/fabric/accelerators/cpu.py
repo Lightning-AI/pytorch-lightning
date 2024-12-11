@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import List, Union
+from typing import Union
 
 import torch
 from typing_extensions import override
@@ -45,7 +45,7 @@ class CPUAccelerator(Accelerator):
 
     @staticmethod
     @override
-    def get_parallel_devices(devices: Union[int, str]) -> List[torch.device]:
+    def get_parallel_devices(devices: Union[int, str]) -> list[torch.device]:
         """Gets parallel devices for the Accelerator."""
         devices = _parse_cpu_cores(devices)
         return [torch.device("cpu")] * devices

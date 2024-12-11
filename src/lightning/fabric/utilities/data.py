@@ -16,9 +16,10 @@ import functools
 import inspect
 import os
 from collections import OrderedDict
+from collections.abc import Generator, Iterable, Sized
 from contextlib import contextmanager
 from functools import partial
-from typing import Any, Callable, Dict, Generator, Iterable, Optional, Sized, Tuple, Type, Union
+from typing import Any, Callable, Optional, Union
 
 from lightning_utilities.core.inheritance import get_all_subclasses
 from torch.utils.data import BatchSampler, DataLoader, IterableDataset, Sampler
@@ -79,7 +80,7 @@ def _update_dataloader(dataloader: DataLoader, sampler: Union[Sampler, Iterable]
 def _get_dataloader_init_args_and_kwargs(
     dataloader: DataLoader,
     sampler: Union[Sampler, Iterable],
-) -> Tuple[Tuple[Any], Dict[str, Any]]:
+) -> tuple[tuple[Any], dict[str, Any]]:
     if not isinstance(dataloader, DataLoader):
         raise ValueError(f"The dataloader {dataloader} needs to subclass `torch.utils.data.DataLoader`")
 
@@ -172,7 +173,7 @@ def _get_dataloader_init_args_and_kwargs(
 def _dataloader_init_kwargs_resolve_sampler(
     dataloader: DataLoader,
     sampler: Union[Sampler, Iterable],
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """This function is used to handle the sampler, batch_sampler arguments associated within a DataLoader for its re-
     instantiation."""
     batch_sampler = getattr(dataloader, "batch_sampler")
@@ -249,7 +250,7 @@ def _auto_add_worker_init_fn(dataloader: object, rank: int) -> None:
         dataloader.worker_init_fn = partial(pl_worker_init_function, rank=rank)
 
 
-def _reinstantiate_wrapped_cls(orig_object: Any, *args: Any, explicit_cls: Optional[Type] = None, **kwargs: Any) -> Any:
+def _reinstantiate_wrapped_cls(orig_object: Any, *args: Any, explicit_cls: Optional[type] = None, **kwargs: Any) -> Any:
     constructor = type(orig_object) if explicit_cls is None else explicit_cls
 
     try:
@@ -355,7 +356,7 @@ def _wrap_attr_method(method: Callable, tag: _WrapAttrTag) -> Callable:
 
 
 @contextmanager
-def _replace_dunder_methods(base_cls: Type, store_explicit_arg: Optional[str] = None) -> Generator[None, None, None]:
+def _replace_dunder_methods(base_cls: type, store_explicit_arg: Optional[str] = None) -> Generator[None, None, None]:
     """This context manager is used to add support for re-instantiation of custom (subclasses) of `base_cls`.
 
     It patches the ``__init__``, ``__setattr__`` and ``__delattr__`` methods.
@@ -366,8 +367,8 @@ def _replace_dunder_methods(base_cls: Type, store_explicit_arg: Optional[str] = 
         # Check that __init__ belongs to the class
         # https://stackoverflow.com/a/5253424
         if "__init__" in cls.__dict__:
-            cls.__old__init__ = cls.__init__
-            cls.__init__ = _wrap_init_method(cls.__init__, store_explicit_arg)
+            cls.__old__init__ = cls.__init__  # type: ignore[misc]
+            cls.__init__ = _wrap_init_method(cls.__init__, store_explicit_arg)  # type: ignore[misc]
 
         # we want at least one setattr/delattr in the chain to be patched and it can happen, that none of the subclasses
         # implement `__setattr__`/`__delattr__`. Therefore, we are always patching the `base_cls`
@@ -389,11 +390,11 @@ def _replace_dunder_methods(base_cls: Type, store_explicit_arg: Optional[str] = 
 def _replace_value_in_saved_args(
     replace_key: str,
     replace_value: Any,
-    args: Tuple[Any, ...],
-    kwargs: Dict[str, Any],
-    default_kwargs: Dict[str, Any],
-    arg_names: Tuple[str, ...],
-) -> Tuple[bool, Tuple[Any, ...], Dict[str, Any]]:
+    args: tuple[Any, ...],
+    kwargs: dict[str, Any],
+    default_kwargs: dict[str, Any],
+    arg_names: tuple[str, ...],
+) -> tuple[bool, tuple[Any, ...], dict[str, Any]]:
     """Tries to replace an argument value in a saved list of args and kwargs.
 
     Returns a tuple indicating success of the operation and modified saved args and kwargs
@@ -420,7 +421,7 @@ def _set_sampler_epoch(dataloader: object, epoch: int) -> None:
 
     """
     # cannot use a set because samplers might be unhashable: use a dict based on the id to drop duplicates
-    objects: Dict[int, Any] = {}
+    objects: dict[int, Any] = {}
     # check dataloader.sampler
     if (sampler := getattr(dataloader, "sampler", None)) is not None:
         objects[id(sampler)] = sampler
@@ -458,7 +459,7 @@ def _num_cpus_available() -> int:
     return 1 if cpu_count is None else cpu_count
 
 
-class AttributeDict(Dict):
+class AttributeDict(dict):
     """A container to store state variables of your program.
 
     This is a drop-in replacement for a Python dictionary, with the additional functionality to access and modify keys
