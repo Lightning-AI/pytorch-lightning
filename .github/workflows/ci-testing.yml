@@ -65,7 +65,7 @@ jobs:
           pytest-args: "--timeout=120"
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v5.0.7
+        uses: codecov/codecov-action@v5.1.1
         continue-on-error: true
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
