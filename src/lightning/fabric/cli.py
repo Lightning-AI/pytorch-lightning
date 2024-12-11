@@ -17,7 +17,7 @@ import re
 import subprocess
 import sys
 from argparse import Namespace
-from typing import Any, List, Optional
+from typing import Any, Optional
 
 import torch
 from lightning_utilities.core.imports import RequirementCache
@@ -39,7 +39,7 @@ _LIGHTNING_SDK_AVAILABLE = RequirementCache("lightning_sdk")
 _SUPPORTED_ACCELERATORS = ("cpu", "gpu", "cuda", "mps", "tpu")
 
 
-def _get_supported_strategies() -> List[str]:
+def _get_supported_strategies() -> list[str]:
     """Returns strategy choices from the registry, with the ones removed that are incompatible to be launched from the
     CLI or ones that require further configuration by the user."""
     available_strategies = STRATEGY_REGISTRY.available_strategies()
@@ -221,7 +221,7 @@ def _get_num_processes(accelerator: str, devices: str) -> int:
     return len(parsed_devices) if parsed_devices is not None else 0
 
 
-def _torchrun_launch(args: Namespace, script_args: List[str]) -> None:
+def _torchrun_launch(args: Namespace, script_args: list[str]) -> None:
     """This will invoke `torchrun` programmatically to launch the given script in new processes."""
     import torch.distributed.run as torchrun
 
@@ -242,7 +242,7 @@ def _torchrun_launch(args: Namespace, script_args: List[str]) -> None:
     torchrun.main(torchrun_args)
 
 
-def main(args: Namespace, script_args: Optional[List[str]] = None) -> None:
+def main(args: Namespace, script_args: Optional[list[str]] = None) -> None:
     _set_env_variables(args)
     _torchrun_launch(args, script_args or [])
 

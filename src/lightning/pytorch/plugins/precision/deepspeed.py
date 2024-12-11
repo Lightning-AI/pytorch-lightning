@@ -11,8 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from contextlib import nullcontext
-from typing import TYPE_CHECKING, Any, Callable, ContextManager, Optional, Union
+from contextlib import AbstractContextManager, nullcontext
+from typing import TYPE_CHECKING, Any, Callable, Optional, Union
 
 import torch
 from lightning_utilities import apply_to_collection
@@ -80,13 +80,13 @@ class DeepSpeedPrecision(Precision):
         return apply_to_collection(data, function=_convert_fp_tensor, dtype=Tensor, dst_type=self._desired_dtype)
 
     @override
-    def tensor_init_context(self) -> ContextManager:
+    def tensor_init_context(self) -> AbstractContextManager:
         if "true" not in self.precision:
             return nullcontext()
         return _DtypeContextManager(self._desired_dtype)
 
     @override
-    def module_init_context(self) -> ContextManager:
+    def module_init_context(self) -> AbstractContextManager:
         return self.tensor_init_context()
 
     @override

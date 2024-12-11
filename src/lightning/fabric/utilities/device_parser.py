@@ -11,7 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import List, MutableSequence, Optional, Tuple, Union
+from collections.abc import MutableSequence
+from typing import Optional, Union
 
 import torch
 
@@ -19,7 +20,7 @@ from lightning.fabric.utilities.exceptions import MisconfigurationException
 from lightning.fabric.utilities.types import _DEVICE
 
 
-def _determine_root_gpu_device(gpus: List[_DEVICE]) -> Optional[_DEVICE]:
+def _determine_root_gpu_device(gpus: list[_DEVICE]) -> Optional[_DEVICE]:
     """
     Args:
         gpus: Non-empty list of ints representing which GPUs to use
@@ -46,10 +47,10 @@ def _determine_root_gpu_device(gpus: List[_DEVICE]) -> Optional[_DEVICE]:
 
 
 def _parse_gpu_ids(
-    gpus: Optional[Union[int, str, List[int]]],
+    gpus: Optional[Union[int, str, list[int]]],
     include_cuda: bool = False,
     include_mps: bool = False,
-) -> Optional[List[int]]:
+) -> Optional[list[int]]:
     """Parses the GPU IDs given in the format as accepted by the :class:`~lightning.pytorch.trainer.trainer.Trainer`.
 
     Args:
@@ -102,7 +103,7 @@ def _parse_gpu_ids(
     return _sanitize_gpu_ids(gpus, include_cuda=include_cuda, include_mps=include_mps)
 
 
-def _normalize_parse_gpu_string_input(s: Union[int, str, List[int]]) -> Union[int, List[int]]:
+def _normalize_parse_gpu_string_input(s: Union[int, str, list[int]]) -> Union[int, list[int]]:
     if not isinstance(s, str):
         return s
     if s == "-1":
@@ -112,7 +113,7 @@ def _normalize_parse_gpu_string_input(s: Union[int, str, List[int]]) -> Union[in
     return int(s.strip())
 
 
-def _sanitize_gpu_ids(gpus: List[int], include_cuda: bool = False, include_mps: bool = False) -> List[int]:
+def _sanitize_gpu_ids(gpus: list[int], include_cuda: bool = False, include_mps: bool = False) -> list[int]:
     """Checks that each of the GPUs in the list is actually available. Raises a MisconfigurationException if any of the
     GPUs is not available.
 
@@ -139,8 +140,8 @@ def _sanitize_gpu_ids(gpus: List[int], include_cuda: bool = False, include_mps: 
 
 
 def _normalize_parse_gpu_input_to_list(
-    gpus: Union[int, List[int], Tuple[int, ...]], include_cuda: bool, include_mps: bool
-) -> Optional[List[int]]:
+    gpus: Union[int, list[int], tuple[int, ...]], include_cuda: bool, include_mps: bool
+) -> Optional[list[int]]:
     assert gpus is not None
     if isinstance(gpus, (MutableSequence, tuple)):
         return list(gpus)
@@ -154,7 +155,7 @@ def _normalize_parse_gpu_input_to_list(
     return list(range(gpus))
 
 
-def _get_all_available_gpus(include_cuda: bool = False, include_mps: bool = False) -> List[int]:
+def _get_all_available_gpus(include_cuda: bool = False, include_mps: bool = False) -> list[int]:
     """
     Returns:
         A list of all available GPUs
@@ -167,7 +168,7 @@ def _get_all_available_gpus(include_cuda: bool = False, include_mps: bool = Fals
     return cuda_gpus + mps_gpus
 
 
-def _check_unique(device_ids: List[int]) -> None:
+def _check_unique(device_ids: list[int]) -> None:
     """Checks that the device_ids are unique.
 
     Args:
