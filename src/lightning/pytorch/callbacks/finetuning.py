@@ -19,7 +19,8 @@ Freeze and unfreeze models for finetuning purposes.
 """
 
 import logging
-from typing import Any, Callable, Dict, Generator, Iterable, List, Optional, Union
+from collections.abc import Generator, Iterable
+from typing import Any, Callable, Optional, Union
 
 import torch
 from torch.nn import Module, ModuleDict
@@ -85,17 +86,17 @@ class BaseFinetuning(Callback):
     """
 
     def __init__(self) -> None:
-        self._internal_optimizer_metadata: Dict[int, List[Dict[str, Any]]] = {}
+        self._internal_optimizer_metadata: dict[int, list[dict[str, Any]]] = {}
         self._restarting = False
 
     @override
-    def state_dict(self) -> Dict[str, Any]:
+    def state_dict(self) -> dict[str, Any]:
         return {
             "internal_optimizer_metadata": self._internal_optimizer_metadata,
         }
 
     @override
-    def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
+    def load_state_dict(self, state_dict: dict[str, Any]) -> None:
         self._restarting = True
         if "internal_optimizer_metadata" in state_dict:  # noqa: SIM401
             self._internal_optimizer_metadata = state_dict["internal_optimizer_metadata"]
@@ -116,7 +117,7 @@ class BaseFinetuning(Callback):
             self._restarting = False
 
     @staticmethod
-    def flatten_modules(modules: Union[Module, Iterable[Union[Module, Iterable]]]) -> List[Module]:
+    def flatten_modules(modules: Union[Module, Iterable[Union[Module, Iterable]]]) -> list[Module]:
         """This function is used to flatten a module or an iterable of modules into a list of its leaf modules (modules
         with no children) and parent modules that have parameters directly themselves.
 
@@ -215,7 +216,7 @@ class BaseFinetuning(Callback):
                 BaseFinetuning.freeze_module(mod)
 
     @staticmethod
-    def filter_on_optimizer(optimizer: Optimizer, params: Iterable) -> List:
+    def filter_on_optimizer(optimizer: Optimizer, params: Iterable) -> list:
         """This function is used to exclude any parameter which already exists in this optimizer.
 
         Args:
@@ -285,7 +286,7 @@ class BaseFinetuning(Callback):
             )
 
     @staticmethod
-    def _apply_mapping_to_param_groups(param_groups: List[Dict[str, Any]], mapping: dict) -> List[Dict[str, Any]]:
+    def _apply_mapping_to_param_groups(param_groups: list[dict[str, Any]], mapping: dict) -> list[dict[str, Any]]:
         output = []
         for g in param_groups:
             # skip params to save memory
@@ -299,7 +300,7 @@ class BaseFinetuning(Callback):
         pl_module: "pl.LightningModule",
         opt_idx: int,
         num_param_groups: int,
-        current_param_groups: List[Dict[str, Any]],
+        current_param_groups: list[dict[str, Any]],
     ) -> None:
         mapping = {p: n for n, p in pl_module.named_parameters()}
         if opt_idx not in self._internal_optimizer_metadata:
@@ -387,14 +388,14 @@ class BackboneFinetuning(BaseFinetuning):
         self.previous_backbone_lr: Optional[float] = None
 
     @override
-    def state_dict(self) -> Dict[str, Any]:
+    def state_dict(self) -> dict[str, Any]:
         return {
             "internal_optimizer_metadata": self._internal_optimizer_metadata,
             "previous_backbone_lr": self.previous_backbone_lr,
         }
 
     @override
-    def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
+    def load_state_dict(self, state_dict: dict[str, Any]) -> None:
         self.previous_backbone_lr = state_dict["previous_backbone_lr"]
         super().load_state_dict(state_dict)
 

@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Optional, Union
 
 import torch
 from torch import Tensor
@@ -35,7 +35,7 @@ class DataParallelStrategy(ParallelStrategy):
     def __init__(
         self,
         accelerator: Optional[Accelerator] = None,
-        parallel_devices: Optional[List[torch.device]] = None,
+        parallel_devices: Optional[list[torch.device]] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
         precision: Optional[Precision] = None,
     ):
@@ -95,14 +95,14 @@ class DataParallelStrategy(ParallelStrategy):
         return decision
 
     @override
-    def get_module_state_dict(self, module: Module) -> Dict[str, Union[Any, Tensor]]:
+    def get_module_state_dict(self, module: Module) -> dict[str, Union[Any, Tensor]]:
         if isinstance(module, DataParallel):
             module = module.module
         return super().get_module_state_dict(module)
 
     @override
     def load_module_state_dict(
-        self, module: Module, state_dict: Dict[str, Union[Any, Tensor]], strict: bool = True
+        self, module: Module, state_dict: dict[str, Union[Any, Tensor]], strict: bool = True
     ) -> None:
         if isinstance(module, DataParallel):
             module = module.module

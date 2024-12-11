@@ -43,8 +43,9 @@ def test_throughput_monitor_fit(tmp_path):
     )
     # these timing results are meant to precisely match the `test_throughput_monitor` test in fabric
     timings = [0.0] + [0.5 + i for i in range(1, 6)]
-    with mock.patch("lightning.pytorch.callbacks.throughput_monitor.get_available_flops", return_value=100), mock.patch(
-        "time.perf_counter", side_effect=timings
+    with (
+        mock.patch("lightning.pytorch.callbacks.throughput_monitor.get_available_flops", return_value=100),
+        mock.patch("time.perf_counter", side_effect=timings),
     ):
         trainer.fit(model)
 
@@ -179,8 +180,9 @@ def test_throughput_monitor_fit_gradient_accumulation(log_every_n_steps, tmp_pat
         enable_progress_bar=False,
     )
     timings = [0.0] + [0.5 + i for i in range(1, 11)]
-    with mock.patch("lightning.pytorch.callbacks.throughput_monitor.get_available_flops", return_value=100), mock.patch(
-        "time.perf_counter", side_effect=timings
+    with (
+        mock.patch("lightning.pytorch.callbacks.throughput_monitor.get_available_flops", return_value=100),
+        mock.patch("time.perf_counter", side_effect=timings),
     ):
         trainer.fit(model)
 

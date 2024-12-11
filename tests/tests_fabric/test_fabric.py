@@ -746,9 +746,10 @@ def test_no_backward_sync():
 
     # pretend that the strategy does not support skipping backward sync
     fabric._strategy = Mock(spec=ParallelStrategy, _backward_sync_control=None)
-    with pytest.warns(
-        PossibleUserWarning, match="The `ParallelStrategy` does not support skipping the"
-    ), fabric.no_backward_sync(model):
+    with (
+        pytest.warns(PossibleUserWarning, match="The `ParallelStrategy` does not support skipping the"),
+        fabric.no_backward_sync(model),
+    ):
         pass
 
     # for single-device strategies, it becomes a no-op without warning

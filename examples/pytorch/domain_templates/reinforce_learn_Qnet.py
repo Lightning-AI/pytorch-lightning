@@ -35,7 +35,7 @@ Second-Edition/blob/master/Chapter06/02_dqn_pong.py
 import argparse
 import random
 from collections import OrderedDict, deque, namedtuple
-from typing import Iterator, List, Tuple
+from collections.abc import Iterator
 
 import gym
 import torch
@@ -102,7 +102,7 @@ class ReplayBuffer:
         """
         self.buffer.append(experience)
 
-    def sample(self, batch_size: int) -> Tuple:
+    def sample(self, batch_size: int) -> tuple:
         indices = random.sample(range(len(self.buffer)), batch_size)
         states, actions, rewards, dones, next_states = zip(*(self.buffer[idx] for idx in indices))
 
@@ -190,7 +190,7 @@ class Agent:
         return action
 
     @torch.no_grad()
-    def play_step(self, net: nn.Module, epsilon: float = 0.0, device: str = "cpu") -> Tuple[float, bool]:
+    def play_step(self, net: nn.Module, epsilon: float = 0.0, device: str = "cpu") -> tuple[float, bool]:
         """Carries out a single interaction step between the agent and the environment.
 
         Args:
@@ -295,7 +295,7 @@ class DQNLightning(LightningModule):
         """
         return self.net(x)
 
-    def dqn_mse_loss(self, batch: Tuple[torch.Tensor, torch.Tensor]) -> torch.Tensor:
+    def dqn_mse_loss(self, batch: tuple[torch.Tensor, torch.Tensor]) -> torch.Tensor:
         """Calculates the mse loss using a mini batch from the replay buffer.
 
         Args:
@@ -318,7 +318,7 @@ class DQNLightning(LightningModule):
 
         return nn.MSELoss()(state_action_values, expected_state_action_values)
 
-    def training_step(self, batch: Tuple[torch.Tensor, torch.Tensor], nb_batch) -> OrderedDict:
+    def training_step(self, batch: tuple[torch.Tensor, torch.Tensor], nb_batch) -> OrderedDict:
         """Carries out a single step through the environment to update the replay buffer. Then calculates loss based on
         the minibatch received.
 
@@ -356,7 +356,7 @@ class DQNLightning(LightningModule):
 
         return OrderedDict({"loss": loss, "log": log, "progress_bar": log})
 
-    def configure_optimizers(self) -> List[Optimizer]:
+    def configure_optimizers(self) -> list[Optimizer]:
         """Initialize Adam optimizer."""
         optimizer = optim.Adam(self.net.parameters(), lr=self.lr)
         return [optimizer]
