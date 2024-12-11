@@ -61,12 +61,7 @@ def test_on_before_zero_grad_called(tmp_path, max_steps):
 
     model = CurrentTestModel()
 
-    trainer = Trainer(
-        devices=1,
-        default_root_dir=tmp_path,
-        max_steps=max_steps,
-        max_epochs=2
-    )
+    trainer = Trainer(devices=1, default_root_dir=tmp_path, max_steps=max_steps, max_epochs=2)
     assert model.on_before_zero_grad_called == 0
     trainer.fit(model)
     assert max_steps == model.on_before_zero_grad_called
@@ -744,7 +739,8 @@ def test_trainer_model_hook_system_predict(tmp_path):
         devices=1,
         default_root_dir=tmp_path,
         limit_predict_batches=batches,
-        enable_progress_bar=False, callbacks=[callback]
+        enable_progress_bar=False,
+        callbacks=[callback],
     )
     trainer.predict(model)
     expected = [
