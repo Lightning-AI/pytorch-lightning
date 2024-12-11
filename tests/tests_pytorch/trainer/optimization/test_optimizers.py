@@ -13,6 +13,8 @@
 # limitations under the License.
 from unittest import mock
 from unittest.mock import call
+from unittest.mock import patch
+
 
 import pytest
 import torch
@@ -657,7 +659,6 @@ def test_invalid_lr_scheduler_with_custom_step_method(override):
         with pytest.raises(MisconfigurationException, match="CustomScheduler` doesn't follow"):
             _init_optimizers_and_lr_schedulers(model)
 
-from unittest.mock import patch
 
 @patch("torch.optim.lr_scheduler.StepLR.step")
 def test_lr_scheduler_step_across_epoch_boundaries(mocked_sched, tmp_path):
