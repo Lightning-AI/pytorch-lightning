@@ -25,7 +25,6 @@ from unittest import mock
 from unittest.mock import Mock, call, patch
 
 import cloudpickle
-import lightning.pytorch as pl
 import pytest
 import torch
 import yaml
@@ -702,6 +701,7 @@ def test_model_checkpoint_save_last_none_monitor(tmp_path, caplog):
     assert checkpoint_callback.best_model_path == str(tmp_path / "epoch=1-step=20.ckpt")
     assert checkpoint_callback.last_model_path == str(tmp_path / "last.ckpt")
     assert checkpoint_callback.best_model_score is None
+    assert checkpoint_callback.best_model_metrics is None
     assert checkpoint_callback.best_k_models == {}
     assert checkpoint_callback.kth_best_model_path == ""
 
@@ -808,6 +808,7 @@ def test_model_checkpoint_topk_zero(tmp_path):
     assert checkpoint_callback.monitor is None
     assert checkpoint_callback.best_model_path == ""
     assert checkpoint_callback.best_model_score is None
+    assert checkpoint_callback.best_model_metrics is None
     assert checkpoint_callback.best_k_models == {}
     assert checkpoint_callback.kth_best_model_path == ""
     # check that only the last ckpt was created
@@ -1073,7 +1074,7 @@ def test_checkpoint_repeated_strategy_extended(tmp_path):
 
         # load from checkpoint
         trainer_config["logger"] = TensorBoardLogger(tmp_path)
-        trainer = pl.Trainer(**trainer_config)
+        trainer = Trainer(**trainer_config)
         assert_trainer_init(trainer)
 
         model = ExtendedBoringModel()
