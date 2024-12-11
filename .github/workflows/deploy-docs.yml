@@ -58,7 +58,7 @@ jobs:
         run: make html --jobs 2
 
       - name: Deploy 🚀
-        uses: JamesIves/github-pages-deploy-action@v4.7.1
+        uses: JamesIves/github-pages-deploy-action@v4.7.2
         if: github.ref == 'refs/heads/main'
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
