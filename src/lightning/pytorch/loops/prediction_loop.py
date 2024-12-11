@@ -233,8 +233,9 @@ class _PredictionLoop(_Loop):
 
         self.batch_progress.increment_ready()
 
-        if not using_dataloader_iter:
-            any_on_epoch = self._store_data_for_prediction_writer(batch_idx, dataloader_idx)
+        any_on_epoch = (
+            self._store_data_for_prediction_writer(batch_idx, dataloader_idx) if not using_dataloader_iter else False
+        )
 
         # the `_step` methods don't take a batch_idx when `dataloader_iter` is used, but all other hooks still do,
         # so we need different kwargs
