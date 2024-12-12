@@ -21,7 +21,7 @@ CSV logger for basic experiment logging that does not require opening ports
 
 import os
 from argparse import Namespace
-from typing import Any, Dict, Optional, Union
+from typing import Any, Optional, Union
 
 from typing_extensions import override
 
@@ -52,9 +52,9 @@ class ExperimentWriter(_FabricExperimentWriter):
 
     def __init__(self, log_dir: str) -> None:
         super().__init__(log_dir=log_dir)
-        self.hparams: Dict[str, Any] = {}
+        self.hparams: dict[str, Any] = {}
 
-    def log_hparams(self, params: Dict[str, Any]) -> None:
+    def log_hparams(self, params: dict[str, Any]) -> None:
         """Record hparams."""
         self.hparams.update(params)
 
@@ -144,7 +144,7 @@ class CSVLogger(Logger, FabricCSVLogger):
 
     @override
     @rank_zero_only
-    def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:
+    def log_hyperparams(self, params: Union[dict[str, Any], Namespace]) -> None:
         params = _convert_params(params)
         self.experiment.log_hparams(params)
 

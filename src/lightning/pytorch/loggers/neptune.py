@@ -20,8 +20,9 @@ import contextlib
 import logging
 import os
 from argparse import Namespace
+from collections.abc import Generator
 from functools import wraps
-from typing import TYPE_CHECKING, Any, Callable, Dict, Generator, List, Optional, Set, Union
+from typing import TYPE_CHECKING, Any, Callable, Optional, Union
 
 from lightning_utilities.core.imports import RequirementCache
 from torch import Tensor
@@ -286,8 +287,8 @@ class NeptuneLogger(Logger):
             self._run_name = "offline-name"
 
     @property
-    def _neptune_init_args(self) -> Dict:
-        args: Dict = {}
+    def _neptune_init_args(self) -> dict:
+        args: dict = {}
         # Backward compatibility in case of previous version retrieval
         with contextlib.suppress(AttributeError):
             args = self._neptune_run_kwargs
@@ -337,13 +338,13 @@ class NeptuneLogger(Logger):
                 " parameters."
             )
 
-    def __getstate__(self) -> Dict[str, Any]:
+    def __getstate__(self) -> dict[str, Any]:
         state = self.__dict__.copy()
         # Run instance can't be pickled
         state["_run_instance"] = None
         return state
 
-    def __setstate__(self, state: Dict[str, Any]) -> None:
+    def __setstate__(self, state: dict[str, Any]) -> None:
         import neptune
 
         self.__dict__ = state
@@ -395,7 +396,7 @@ class NeptuneLogger(Logger):
     @override
     @rank_zero_only
     @_catch_inactive
-    def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:
+    def log_hyperparams(self, params: Union[dict[str, Any], Namespace]) -> None:
         r"""Log hyperparameters to the run.
 
         Hyperparameters will be logged under the "<prefix>/hyperparams" namespace.
@@ -443,7 +444,7 @@ class NeptuneLogger(Logger):
     @override
     @rank_zero_only
     @_catch_inactive
-    def log_metrics(self, metrics: Dict[str, Union[Tensor, float]], step: Optional[int] = None) -> None:
+    def log_metrics(self, metrics: dict[str, Union[Tensor, float]], step: Optional[int] = None) -> None:
         """Log metrics (numeric values) in Neptune runs.
 
         Args:
@@ -563,16 +564,16 @@ class NeptuneLogger(Logger):
         return model_path.replace(os.sep, "/")
 
     @classmethod
-    def _get_full_model_names_from_exp_structure(cls, exp_structure: Dict[str, Any], namespace: str) -> Set[str]:
+    def _get_full_model_names_from_exp_structure(cls, exp_structure: dict[str, Any], namespace: str) -> set[str]:
         """Returns all paths to properties which were already logged in `namespace`"""
-        structure_keys: List[str] = namespace.split(cls.LOGGER_JOIN_CHAR)
+        structure_keys: list[str] = namespace.split(cls.LOGGER_JOIN_CHAR)
         for key in structure_keys:
             exp_structure = exp_structure[key]
         uploaded_models_dict = exp_structure
         return set(cls._dict_paths(uploaded_models_dict))
 
     @classmethod
-    def _dict_paths(cls, d: Dict[str, Any], path_in_build: Optional[str] = None) -> Generator:
+    def _dict_paths(cls, d: dict[str, Any], path_in_build: Optional[str] = None) -> Generator:
         for k, v in d.items():
             path = f"{path_in_build}/{k}" if path_in_build is not None else k
             if not isinstance(v, dict):

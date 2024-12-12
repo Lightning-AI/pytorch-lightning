@@ -1887,8 +1887,9 @@ def test_detect_anomaly_nan(tmp_path):
 
     model = NanModel()
     trainer = Trainer(default_root_dir=tmp_path, detect_anomaly=True)
-    with pytest.raises(RuntimeError, match=r"returned nan values in its 0th output."), pytest.warns(
-        UserWarning, match=r".*Error detected in.* Traceback of forward call that caused the error.*"
+    with (
+        pytest.raises(RuntimeError, match=r"returned nan values in its 0th output."),
+        pytest.warns(UserWarning, match=r".*Error detected in.* Traceback of forward call that caused the error.*"),
     ):
         trainer.fit(model)
 
@@ -2067,8 +2068,9 @@ def test_trainer_calls_strategy_on_exception(exception_type, tmp_path):
             raise exception
 
     trainer = Trainer(default_root_dir=tmp_path)
-    with mock.patch("lightning.pytorch.strategies.strategy.Strategy.on_exception") as on_exception_mock, suppress(
-        Exception, SystemExit
+    with (
+        mock.patch("lightning.pytorch.strategies.strategy.Strategy.on_exception") as on_exception_mock,
+        suppress(Exception, SystemExit),
     ):
         trainer.fit(ExceptionModel())
     on_exception_mock.assert_called_once_with(exception)

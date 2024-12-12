@@ -60,7 +60,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           # Python version here needs to be supported by all PL versions listed in back-compatible-versions.txt.
-          python-version: 3.8
+          python-version: "3.9"
 
       - name: Install PL from source
         env:

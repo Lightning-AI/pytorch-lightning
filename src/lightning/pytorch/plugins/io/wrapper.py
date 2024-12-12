@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 from typing_extensions import override
 
@@ -66,7 +66,7 @@ class _WrappingCheckpointIO(CheckpointIO):
         self.checkpoint_io.remove_checkpoint(*args, **kwargs)
 
     @override
-    def load_checkpoint(self, *args: Any, **kwargs: Any) -> Dict[str, Any]:
+    def load_checkpoint(self, *args: Any, **kwargs: Any) -> dict[str, Any]:
         """Uses the base ``checkpoint_io`` to load the checkpoint."""
         assert self.checkpoint_io is not None
         return self.checkpoint_io.load_checkpoint(*args, **kwargs)

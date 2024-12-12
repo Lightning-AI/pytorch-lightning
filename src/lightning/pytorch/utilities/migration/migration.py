@@ -31,17 +31,17 @@ For the Lightning developer: How to add a new migration?
 """
 
 import re
-from typing import Any, Callable, Dict, List
+from typing import Any, Callable
 
 from lightning.fabric.utilities.warnings import PossibleUserWarning
 from lightning.pytorch.callbacks.early_stopping import EarlyStopping
 from lightning.pytorch.callbacks.model_checkpoint import ModelCheckpoint
 from lightning.pytorch.utilities.rank_zero import rank_zero_warn
 
-_CHECKPOINT = Dict[str, Any]
+_CHECKPOINT = dict[str, Any]
 
 
-def _migration_index() -> Dict[str, List[Callable[[_CHECKPOINT], _CHECKPOINT]]]:
+def _migration_index() -> dict[str, list[Callable[[_CHECKPOINT], _CHECKPOINT]]]:
     """Migration functions returned here will get executed in the order they are listed."""
     return {
         "0.10.0": [_migrate_model_checkpoint_early_stopping],
@@ -133,7 +133,7 @@ def _migrate_loop_batches_that_stepped(checkpoint: _CHECKPOINT) -> _CHECKPOINT:
     return checkpoint
 
 
-def _get_fit_loop_initial_state_1_6_0() -> Dict:
+def _get_fit_loop_initial_state_1_6_0() -> dict:
     return {
         "epoch_loop.batch_loop.manual_loop.optim_step_progress": {
             "current": {"completed": 0, "ready": 0},

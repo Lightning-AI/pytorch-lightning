@@ -19,7 +19,6 @@ from unittest import mock
 import lightning.pytorch as pl
 import pytest
 import torch
-from lightning.fabric.utilities.imports import _TORCH_EQUAL_2_4_0
 from lightning.fabric.utilities.warnings import PossibleUserWarning
 from lightning.pytorch import Trainer
 from lightning.pytorch.callbacks import OnExceptionCheckpoint
@@ -254,8 +253,7 @@ def test_result_collection_restoration(tmp_path):
         }
 
         # make sure can be pickled
-        with pytest.warns(FutureWarning, match="`weights_only=False`") if _TORCH_EQUAL_2_4_0 else nullcontext():
-            pickle.loads(pickle.dumps(result))
+        pickle.loads(pickle.dumps(result))
         # make sure can be torch.loaded
         filepath = str(tmp_path / "result")
         torch.save(result, filepath)
@@ -627,8 +625,9 @@ def test_logger_sync_dist(distributed_env, log_val):
         else nullcontext()
     )
 
-    with warning_ctx(
-        PossibleUserWarning, match=r"recommended to use `self.log\('bar', ..., sync_dist=True\)`"
-    ), patch_ctx:
+    with (
+        warning_ctx(PossibleUserWarning, match=r"recommended to use `self.log\('bar', ..., sync_dist=True\)`"),
+        patch_ctx,
+    ):
         value = _ResultCollection._get_cache(result_metric, on_step=False)
     assert value == 0.5

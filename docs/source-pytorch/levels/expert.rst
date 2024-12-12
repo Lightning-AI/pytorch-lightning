@@ -41,7 +41,7 @@ Customize and extend Lightning for things like custom hardware or distributed st
    :header: Level 24: Add a new accelerator or Strategy
    :description: Integrate a new accelerator or distributed strategy.
    :col_css: col-md-6
-   :button_link: expert_level_27.html
+   :button_link: expert_level_24.html
    :height: 150
    :tag: expert
 
