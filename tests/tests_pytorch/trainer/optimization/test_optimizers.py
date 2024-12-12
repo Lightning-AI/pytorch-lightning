@@ -18,7 +18,7 @@ from unittest.mock import patch
 
 import pytest
 import torch
-from lightning.pytorch import Trainer
+from lightning.pytorch import Trainer, LightningModule
 from lightning.pytorch.callbacks import ModelCheckpoint
 from lightning.pytorch.core.optimizer import (
     _configure_optimizers,
