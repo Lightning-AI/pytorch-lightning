@@ -27,6 +27,7 @@ from lightning.pytorch.demos.boring_classes import BoringDataModule, BoringModel
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.types import LRSchedulerConfig
 from torch import optim
+from torch.utils.data import DataLoader, TensorDataset
 
 from tests_pytorch.helpers.runif import RunIf
 
@@ -670,6 +671,11 @@ def test_lr_scheduler_step_across_epoch_boundaries(mocked_sched, tmp_path):
 
         def training_step(self, batch, batch_idx):
             return {"loss": torch.tensor(0.1, requires_grad=True)}
+        
+        def train_dataloader(self):
+            x = torch.randn(21, 32)  
+            y = torch.randn(21, 2)
+            return DataLoader(TensorDataset(x, y), batch_size=3)
 
         def configure_optimizers(self):
             optimizer = torch.optim.SGD(self.layer.parameters(), lr=0.1)
