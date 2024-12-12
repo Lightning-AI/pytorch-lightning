@@ -672,9 +672,9 @@ def test_lr_scheduler_step_across_epoch_boundaries(mocked_sched, tmp_path):
 
         def training_step(self, batch, batch_idx):
             return {"loss": torch.tensor(0.1, requires_grad=True)}
-        
+
         def train_dataloader(self):
-            x = torch.randn(21, 32)  
+            x = torch.randn(21, 32)
             y = torch.randn(21, 2)
             return DataLoader(TensorDataset(x, y), batch_size=3)
 
