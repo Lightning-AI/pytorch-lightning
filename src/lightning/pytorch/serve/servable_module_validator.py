@@ -2,7 +2,7 @@ import contextlib
 import logging
 import time
 from multiprocessing import Process
-from typing import Any, Dict, Literal, Optional
+from typing import Any, Literal, Optional
 
 import requests
 import torch
@@ -136,7 +136,7 @@ class ServableModuleValidator(Callback):
         return self.resp.status_code == 200 if self.resp else None
 
     @override
-    def state_dict(self) -> Dict[str, Any]:
+    def state_dict(self) -> dict[str, Any]:
         return {"successful": self.successful, "optimization": self.optimization, "server": self.server}
 
     @staticmethod
@@ -157,7 +157,7 @@ class ServableModuleValidator(Callback):
             return True
 
         @app.post("/serve")
-        async def serve(payload: dict = Body(...)) -> Dict[str, Any]:
+        async def serve(payload: dict = Body(...)) -> dict[str, Any]:
             body = payload["body"]
 
             for key, deserializer in deserializers.items():

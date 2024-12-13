@@ -13,7 +13,8 @@
 # limitations under the License.
 import math
 from collections import OrderedDict
-from typing import Any, Dict, Optional, Union
+from dataclasses import dataclass
+from typing import Any, Optional, Union
 
 from typing_extensions import override
 
@@ -35,6 +36,13 @@ from lightning.pytorch.utilities.rank_zero import WarningCache, rank_zero_warn
 from lightning.pytorch.utilities.signature_utils import is_param_in_hook_signature
 
 _BATCH_OUTPUTS_TYPE = Optional[Union[_OPTIMIZER_LOOP_OUTPUTS_TYPE, _MANUAL_LOOP_OUTPUTS_TYPE]]
+
+
+@dataclass
+class RestartStage:
+    NONE = "none"
+    RESTARTED_ON_TRAIN_BATCH_END = "restarted_on_train_batch_end"
+    RESTARTED_ON_LAST = "restarted_on_last"
 
 
 class _TrainingEpochLoop(loops._Loop):
@@ -81,6 +89,8 @@ class _TrainingEpochLoop(loops._Loop):
         self._results = _ResultCollection(training=True)
         self._warning_cache = WarningCache()
         self._batches_that_stepped: int = 0
+        self._restart_stage = RestartStage.NONE
+        self._skip_next_val = False
 
     @property
     def total_batch_idx(self) -> int:
@@ -139,13 +149,63 @@ class _TrainingEpochLoop(loops._Loop):
             try:
                 self.advance(data_fetcher)
                 self.on_advance_end(data_fetcher)
-                self._restarting = False
             except StopIteration:
                 break
-        self._restarting = False
+            finally:
+                self.on_iteration_done()
+
+    @property
+    def restarted_on_train_batch_end(self) -> bool:
+        return self._restart_stage == RestartStage.RESTARTED_ON_TRAIN_BATCH_END
+
+    @property
+    def restarted_on_last(self) -> bool:
+        return self._restart_stage == RestartStage.RESTARTED_ON_LAST
+
+    def update_restart_stage(self) -> None:
+        if (
+            self.restarting
+            and self.batch_progress.total.started == self.batch_progress.total.ready
+            and self.batch_progress.total.processed == self.batch_progress.total.started
+            and self.batch_progress.total.completed == self.batch_progress.total.processed - 1
+        ):
+            self._restart_stage = RestartStage.RESTARTED_ON_TRAIN_BATCH_END
+        elif (
+            self.restarting
+            and self.batch_progress.total.started == self.batch_progress.total.ready
+            and self.batch_progress.total.processed == self.batch_progress.total.started
+            and self.batch_progress.total.completed == self.batch_progress.total.processed
+        ):
+            self._restart_stage = RestartStage.RESTARTED_ON_LAST
+        else:
+            self._restart_stage = RestartStage.NONE
+
+        self.val_loop.update_restart_stage()
+
+    def reset_restart_stage(self) -> None:
+        self._restart_stage = RestartStage.NONE
 
     def reset(self) -> None:
         """Resets the internal state of the loop for a new run."""
+        if (
+            self.restarting
+            and not self._should_accumulate()
+            and (self.restarted_on_train_batch_end or not self.restarted_on_last)
+        ):
+            # batches_that_stepped is never set prior to saving a checkpoint, even when saving
+            # happens on_validation_end
+            # we could set it in the checkpoint but we prefer to keep checkpoints backward compatible
+            self._batches_that_stepped += 1
+
+        if self.restarted_on_train_batch_end:
+            self.batch_progress.increment_completed()
+            # handle situation in which save happened on_train_batch_end and epoch is at end
+            if self.batch_progress.current.completed >= self.trainer.num_training_batches:
+                self.batch_progress.reset_on_run()
+                self.scheduler_progress.reset_on_run()
+                self.automatic_optimization.optim_progress.reset_on_run()
+                self.val_loop.batch_progress.total.reset()
+
         if self.restarting:
             self.batch_progress.reset_on_restart()
             self.scheduler_progress.reset_on_restart()
@@ -197,8 +257,18 @@ class _TrainingEpochLoop(loops._Loop):
 
         """
         if self.restarting and self._should_check_val_fx(data_fetcher):
-            # skip training and run validation in `on_advance_end`
-            return
+            if self.val_loop.restarted_mid_evaluation:
+                # Go back and finish running validation
+                return
+
+            if self.restarted_on_last:
+                # Avoid running validation again if we saved on last
+                self._skip_next_val = True
+                return
+
+            # fast forward progress counters to end of validation
+            self.val_loop.increment_progress_to_evaluation_end()
+
         # we are going to train first so the val loop does not need to restart
         self.val_loop.restarting = False
 
@@ -282,6 +352,11 @@ class _TrainingEpochLoop(loops._Loop):
         # VALIDATE IF NEEDED
         # -----------------------------------------
         should_check_val = self._should_check_val_fx(data_fetcher)
+
+        if self._skip_next_val:
+            should_check_val = False
+            self._skip_next_val = False
+
         if should_check_val:
             # this needs to be set so the correct `trainer._active_loop` is picked
             self.trainer.validating = True
@@ -315,13 +390,13 @@ class _TrainingEpochLoop(loops._Loop):
         self.val_loop.teardown()
 
     @override
-    def on_save_checkpoint(self) -> Dict:
+    def on_save_checkpoint(self) -> dict:
         state_dict = super().on_save_checkpoint()
         state_dict["_batches_that_stepped"] = self._batches_that_stepped
         return state_dict
 
     @override
-    def on_load_checkpoint(self, state_dict: Dict) -> None:
+    def on_load_checkpoint(self, state_dict: dict) -> None:
         self._batches_that_stepped = state_dict.get("_batches_that_stepped", 0)
 
     def _accumulated_batches_reached(self) -> bool:

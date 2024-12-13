@@ -593,9 +593,10 @@ def test_lr_scheduler_step_hook(tmp_path):
         limit_train_batches=limit_train_batches,
         limit_val_batches=0,
     )
-    with mock.patch.object(CustomEpochScheduler, "step") as mock_method_epoch, mock.patch.object(
-        torch.optim.lr_scheduler.StepLR, "step"
-    ) as mock_method_step:
+    with (
+        mock.patch.object(CustomEpochScheduler, "step") as mock_method_epoch,
+        mock.patch.object(torch.optim.lr_scheduler.StepLR, "step") as mock_method_step,
+    ):
         trainer.fit(model)
 
     assert mock_method_epoch.mock_calls == [call(epoch=e) for e in range(max_epochs)]
@@ -671,9 +672,9 @@ def test_lr_scheduler_step_across_epoch_boundaries(mocked_sched, tmp_path):
 
         def training_step(self, batch, batch_idx):
             return {"loss": torch.tensor(0.1, requires_grad=True)}
-        
+
         def train_dataloader(self):
-            x = torch.randn(21, 32)  
+            x = torch.randn(21, 32)
             y = torch.randn(21, 2)
             return DataLoader(TensorDataset(x, y), batch_size=3)
 
