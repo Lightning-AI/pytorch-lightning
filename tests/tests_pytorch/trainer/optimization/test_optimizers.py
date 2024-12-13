@@ -704,7 +704,7 @@ def test_lr_scheduler_step_across_epoch_boundaries(mocked_sched, tmp_path):
 
     # Calculate the total number of steps (iterations) and expected scheduler calls
     total_steps = 7 * 3  # Total iterations (7 batches per epoch * 3 epochs)
-    expected_steps = (total_steps-1) // 5  # Scheduler steps every 5 iterations
+    expected_steps = (total_steps - 1) // 5  # Scheduler steps every 5 iterations
 
     # Assert that the scheduler was called the expected number of times
     assert mocked_sched.call_count == expected_steps
