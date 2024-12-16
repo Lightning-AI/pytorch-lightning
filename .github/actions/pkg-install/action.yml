@@ -1,14 +1,14 @@
 name: Install and check package
-description: installing and validationg the package
+description: installing and validation the package
 
 inputs:
-  artifact-name:
-    description: "Unique name for collecting artifacts"
-    required: false
-    default: ""
   import-name:
     description: "Import name to test with after installation"
     required: true
+  pkg-folder:
+    description: "Unique name for collecting artifacts"
+    required: false
+    default: "pypi"
   pkg-extras:
     description: "optional extras which are needed to include also []"
     required: false
@@ -25,14 +25,8 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - name: Download 📥 all packages
-      if: ${{ inputs.artifact-name != '' }}
-      uses: actions/download-artifact@v3
-      with:
-        name: ${{ inputs.artifact-name }}
-        path: pypi
     - name: show packages
-      working-directory: pypi/
+      working-directory: ${{ inputs.pkg-folder }}
       run: |
         ls -lh
         echo "PKG_WHEEL=$(ls *.whl | head -n1)" >> $GITHUB_ENV
@@ -41,7 +35,7 @@ runs:
       shell: bash
 
     - name: Install package (wheel)
-      working-directory: pypi/
+      working-directory: ${{ inputs.pkg-folder }}
       run: |
         set -ex
         pip install '${{ env.PKG_WHEEL }}${{ inputs.pkg-extras }}' \

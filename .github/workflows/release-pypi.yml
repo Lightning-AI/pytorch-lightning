@@ -27,18 +27,16 @@ jobs:
       - name: Set up Python 🐍
         uses: actions/setup-python@v5
         with:
-          python-version: "3.9"
-
+          python-version: "3.x"
       - name: Prepare build env.
         run: pip install -r ./requirements/gha-package.txt
       - name: Create 📦 package
         uses: ./.github/actions/pkg-create
-      - name: Upload 📤 to the share store
-        uses: actions/upload-artifact@v3
+      - name: Upload 📤 packages
+        uses: actions/upload-artifact@v4
         with:
           name: pypi-packages-${{ github.sha }}
           path: dist
-          include-hidden-files: true
 
   upload-package:
     needs: build-package
@@ -48,10 +46,8 @@ jobs:
     steps:
       - name: Checkout 🛎️
         uses: actions/checkout@v4
-        with:
-          submodules: recursive
       - name: Download 📥 artifact
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: pypi-packages-${{ github.sha }}
           path: dist
@@ -64,18 +60,9 @@ jobs:
           files: "dist/*"
           repo-token: ${{ secrets.GITHUB_TOKEN }}
 
-  delay-publish:
+  publish-package:
     needs: build-package
     if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags')
-    runs-on: ubuntu-latest
-    steps:
-      - name: Delay ⏰ releasing
-        uses: juliangruber/sleep-action@v2
-        with:
-          time: 5m
-
-  publish-package:
-    needs: delay-publish
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -84,7 +71,7 @@ jobs:
         with:
           submodules: recursive
       - name: Download 📥 artifact
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: pypi-packages-${{ github.sha }}
           path: dist

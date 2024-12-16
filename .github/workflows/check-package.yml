@@ -8,7 +8,7 @@ on:
         required: true
         type: string
       artifact-name:
-        description: "Unique name for collecting artifacts"
+        description: "Unique name for collecting artifacts, it shall be unique for all workflows"
         required: true
         type: string
       install-extras:
@@ -63,30 +63,12 @@ defaults:
     shell: bash
 
 jobs:
-  init-store: #  todo: remove this wne download will be fault tolerant
-    runs-on: ubuntu-20.04
-    steps:
-      - name: Checkout 🛎️
-        uses: actions/checkout@v4
-        with:
-          submodules: recursive
-      - run: mkdir dist && touch dist/.placeholder
-      - name: Upload 📤
-        uses: actions/upload-artifact@v3
-        with:
-          name: ${{ inputs.artifact-name }}
-          path: dist
-          include-hidden-files: true
-
   pkg-build:
-    needs: init-store
     runs-on: ${{ matrix.os }}
     env: ${{ fromJSON(inputs.env-vars) }}
     strategy:
-      max-parallel: 1 # run sequential to prevent download/upload collisions
       fail-fast: false
       matrix: ${{ fromJSON(inputs.build-matrix) }}
-
     steps:
       - name: Checkout 🛎️
         uses: actions/checkout@v4
@@ -108,17 +90,42 @@ jobs:
         run: pip install -r ./.cicd/requirements/gha-package.txt
       - name: Create package 📦
         uses: ./.cicd/.github/actions/pkg-create
+      - name: Upload 📤 packages
+        if: ${{ inputs.artifact-name != '' }}
+        uses: actions/upload-artifact@v4
         with:
-          artifact-name: ${{ inputs.artifact-name }}
+          name: ${{ inputs.artifact-name }}-build-${{ strategy.job-index }}
+          path: dist
+
+  merge-artifacts:
+    needs: pkg-build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download 📥
+        uses: actions/download-artifact@v4
+        with:
+          # download all build artifacts
+          pattern: ${{ inputs.artifact-name }}-build-*
+          merge-multiple: true
+          path: dist
+      - name: Brief look
+        run: |
+          ls -lh dist/
+          pip install -q twine
+          twine check dist/*
+      - name: Upload 📤
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.artifact-name }}
+          path: dist
 
   pkg-check:
-    needs: pkg-build
+    needs: merge-artifacts
     runs-on: ${{ matrix.os }}
     env: ${{ fromJSON(inputs.env-vars) }}
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(inputs.testing-matrix) }}
-
     steps:
       - name: Checkout 🛎️
         uses: actions/checkout@v4
@@ -135,6 +142,12 @@ jobs:
           ref: ${{ inputs.actions-ref }}
           path: .cicd
           repository: Lightning-AI/utilities
+      - name: Download 📥 all packages
+        if: ${{ inputs.artifact-name != '' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ inputs.artifact-name }}
+          path: pypi
       - name: Installing package 📦
         timeout-minutes: 20
         uses: ./.cicd/.github/actions/pkg-install
@@ -145,7 +158,7 @@ jobs:
           import-name: ${{ inputs.import-name }}
           custom-import-code: ${{ inputs.custom-import-code }}
 
-    # TODO: add run doctests
+  # TODO: add run doctests
 
   pkg-guardian:
     runs-on: ubuntu-latest
