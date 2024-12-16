@@ -14,7 +14,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CLI: update parsing inputs ([#333](https://github.com/Lightning-AI/utilities/pull/333))
 
 
-- CI: bump upload/download artifact `v4` ([#344](https://github.com/Lightning-AI/utilities/pull/344))
+- CI: bump upload/download artifact `v4` ([#344](https://github.com/Lightning-AI/utilities/pull/344), [#345](https://github.com/Lightning-AI/utilities/pull/345))
+
+
+- CI: make `actions-ref` optional if used only for listing packages ([#345](https://github.com/Lightning-AI/utilities/pull/345))
 
 
 - Bump minimal Python version to be 3.9 ([#331](https://github.com/Lightning-AI/utilities/pull/331))

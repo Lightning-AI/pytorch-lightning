@@ -79,6 +79,7 @@ jobs:
   check-docs:
     uses: ./.github/workflows/check-docs.yml
     with:
+      actions-ref: ${{ github.sha }} # use local version
       requirements-file: "requirements/_docs.txt"
       install-tex: true
 

@@ -3,6 +3,11 @@ name: Building docs
 on:
   workflow_call:
     inputs:
+      actions-ref:
+        description: "Version of actions, normally the same as workflow"
+        required: false
+        type: string
+        default: ""
       python-version:
         description: "Python version to use"
         default: "3.9"
@@ -71,6 +76,7 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: ${{ inputs.python-version }}
+          cache: "pip"
 
       - name: Install pandoc & texlive
         if: ${{ inputs.install-tex == 'true' }}
@@ -83,7 +89,6 @@ jobs:
             dvipng \
             texlive-pictures \
             latexmk
-      # todo: consider adding cache with separate restore/save
       - name: Install dependencies
         timeout-minutes: 20
         run: |
@@ -91,8 +96,16 @@ jobs:
           pip install -e . -U -r ${{ inputs.requirements-file }} -f ${TORCH_URL}
           pip list
 
-      # TODO: re-enable after the external usage is resolved, see #51
-      # - uses: ./.github/actions/pip-list
+      - name: Pull reusable 🤖 actions️
+        if: ${{ inputs.actions-ref != '' }}
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.actions-ref }}
+          path: .cicd
+          repository: Lightning-AI/utilities
+      - name: Print 🖨️ dependencies
+        if: ${{ inputs.actions-ref != '' }}
+        uses: ./.cicd/.github/actions/pip-list
 
       - name: Build documentation
         working-directory: ${{ inputs.docs-dir }}
@@ -104,7 +117,7 @@ jobs:
         if: startsWith(github.event_name, 'pull_request')
         run: echo "KEEP_DAYS=7" >> $GITHUB_ENV
       - name: Upload built docs
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: docs-${{ matrix.target }}-${{ github.sha }}
           path: ${{ inputs.docs-dir }}/build/

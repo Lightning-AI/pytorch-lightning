@@ -5,8 +5,9 @@ on:
     inputs:
       actions-ref:
         description: "Version of actions, normally the same as workflow"
-        required: true
+        required: false
         type: string
+        default: ""
       python-version:
         description: "Python version to use"
         default: "3.9"
@@ -50,12 +51,14 @@ jobs:
           pip list
 
       - name: Pull reusable 🤖 actions️
+        if: ${{ inputs.actions-ref != '' }}
         uses: actions/checkout@v4
         with:
           ref: ${{ inputs.actions-ref }}
           path: .cicd
           repository: Lightning-AI/utilities
       - name: Print 🖨️ dependencies
+        if: ${{ inputs.actions-ref != '' }}
         uses: ./.cicd/.github/actions/pip-list
         with:
           unfold: true
