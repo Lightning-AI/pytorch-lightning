@@ -1,3 +1,5 @@
 mypy>=1.0.0
 
 types-setuptools
+
+fire

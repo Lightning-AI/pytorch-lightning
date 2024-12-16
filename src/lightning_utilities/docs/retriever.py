@@ -5,7 +5,6 @@ import glob
 import logging
 import os
 import re
-from typing import List, Tuple
 
 import requests
 
@@ -23,7 +22,7 @@ def _download_file(file_url: str, folder: str) -> str:
     return fname
 
 
-def _search_all_occurrences(list_files: List[str], pattern: str) -> List[str]:
+def _search_all_occurrences(list_files: list[str], pattern: str) -> list[str]:
     """Search for all occurrences of specific pattern in a collection of files.
 
     Args:
@@ -40,7 +39,7 @@ def _search_all_occurrences(list_files: List[str], pattern: str) -> List[str]:
     return collected
 
 
-def _replace_remote_with_local(file_path: str, docs_folder: str, pairs_url_path: List[Tuple[str, str]]) -> None:
+def _replace_remote_with_local(file_path: str, docs_folder: str, pairs_url_path: list[tuple[str, str]]) -> None:
     """Replace all URL with local files in a given file.
 
     Args:

@@ -9,7 +9,7 @@ from lightning_utilities.cli.dependencies import prune_pkgs_in_requirements, rep
 
 def main() -> None:
     """CLI entry point."""
-    from fire import Fire
+    from fire import Fire  # type: ignore[import-untyped]
 
     Fire({
         "requirements": {

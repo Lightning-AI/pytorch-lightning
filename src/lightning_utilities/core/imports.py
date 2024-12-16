@@ -11,7 +11,7 @@ from importlib.metadata import PackageNotFoundError, distribution
 from importlib.metadata import version as _version
 from importlib.util import find_spec
 from types import ModuleType
-from typing import Any, Callable, List, Optional, TypeVar
+from typing import Any, Callable, Optional, TypeVar
 
 from packaging.requirements import Requirement
 from packaging.version import InvalidVersion, Version
@@ -187,7 +187,7 @@ class RequirementCache:
 
         return True
 
-    def _get_extra_requirements(self, requirement: Requirement) -> List[Requirement]:
+    def _get_extra_requirements(self, requirement: Requirement) -> list[Requirement]:
         dist = distribution(requirement.name)
         # Get the required dependencies for the specified extras
         extra_requirements = dist.metadata.get_all("Requires-Dist") or []
@@ -272,7 +272,7 @@ class LazyModule(ModuleType):
 
         return getattr(self._module, item)
 
-    def __dir__(self) -> List[str]:
+    def __dir__(self) -> list[str]:
         """Overwrite attribute access for dictionary."""
         if self._module is None:
             self._import_module()

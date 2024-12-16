@@ -7,7 +7,6 @@
 import glob
 import os
 import re
-from typing import List
 
 import pt_lightning_sphinx_theme
 
@@ -272,7 +271,7 @@ def setup(app):
 
 # Ignoring Third-party packages
 # https://stackoverflow.com/questions/15889621/sphinx-how-to-exclude-imports-in-automodule
-def _package_list_from_file(file: str) -> List[str]:
+def _package_list_from_file(file: str) -> list[str]:
     list_pkgs = []
     with open(file) as fp:
         lines = fp.readlines()

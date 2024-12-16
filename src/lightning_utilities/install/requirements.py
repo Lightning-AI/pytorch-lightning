@@ -2,9 +2,10 @@
 #     http://www.apache.org/licenses/LICENSE-2.0
 #
 import re
+from collections.abc import Iterable, Iterator
 from distutils.version import LooseVersion
 from pathlib import Path
-from typing import Any, Iterable, Iterator, List, Optional, Union
+from typing import Any, Optional, Union
 
 from pkg_resources import Requirement, yield_lines
 
@@ -103,7 +104,7 @@ def _parse_requirements(strs: Union[str, Iterable[str]]) -> Iterator[_Requiremen
         pip_argument = None
 
 
-def load_requirements(path_dir: str, file_name: str = "base.txt", unfreeze: str = "all") -> List[str]:
+def load_requirements(path_dir: str, file_name: str = "base.txt", unfreeze: str = "all") -> list[str]:
     """Load requirements from a file.
 
     >>> import os

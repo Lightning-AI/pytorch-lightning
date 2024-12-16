@@ -5,7 +5,7 @@ requires = [
 ]
 
 [tool.ruff]
-target-version = "py38"
+target-version = "py39"
 
 line-length = 120
 format.preview = true
@@ -152,4 +152,3 @@ files = [
   "src/lightning_utilities",
 ]
 disallow_untyped_defs = true
-ignore_missing_imports = true

@@ -2,7 +2,7 @@ import dataclasses
 import numbers
 from collections import OrderedDict, defaultdict, namedtuple
 from dataclasses import InitVar
-from typing import Any, ClassVar, List, Optional
+from typing import Any, ClassVar, Optional
 
 import pytest
 from unittests.mocks import torch
@@ -27,7 +27,7 @@ class Feature:
 
 @dataclasses.dataclass
 class ModelExample:
-    example_ids: List[str]
+    example_ids: list[str]
     feature: Feature
     label: torch.Tensor
     some_constant: int = dataclasses.field(init=False)

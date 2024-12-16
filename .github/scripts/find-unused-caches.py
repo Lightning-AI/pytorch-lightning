@@ -2,10 +2,9 @@
 
 import os
 from datetime import timedelta
-from typing import List
 
 
-def fetch_all_caches(repository: str, token: str, per_page: int = 100, max_pages: int = 100) -> List[dict]:
+def fetch_all_caches(repository: str, token: str, per_page: int = 100, max_pages: int = 100) -> list[dict]:
     """Fetch list of al caches from a given repository.
 
     Args:

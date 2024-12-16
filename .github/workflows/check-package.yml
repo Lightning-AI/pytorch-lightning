@@ -47,7 +47,7 @@ on:
         default: |
           {
             "os": ["ubuntu-20.04", "macos-11", "windows-2022"],
-            "python-version": ["3.8", "3.9"]
+            "python-version": ["3.9", "3.12"]
           }
       env-vars:
         description: "custom environment variables in json format"

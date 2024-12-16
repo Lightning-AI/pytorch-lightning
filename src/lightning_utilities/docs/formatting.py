@@ -8,7 +8,8 @@ import logging
 import os
 import re
 import sys
-from typing import Iterable, List, Optional, Tuple, Union
+from collections.abc import Iterable
+from typing import Optional, Union
 
 
 def _transform_changelog(path_in: str, path_out: str) -> None:
@@ -41,7 +42,7 @@ def _linkcode_resolve(
     main_branch: str = "master",
     stable_branch: str = "release/stable",
 ) -> str:
-    def find_source() -> Tuple[str, int, int]:
+    def find_source() -> tuple[str, int, int]:
         # try to find the file and line number, based on code from numpy:
         # https://github.com/numpy/numpy/blob/master/doc/source/conf.py#L286
         obj = sys.modules[info["module"]]
@@ -76,7 +77,7 @@ def _linkcode_resolve(
     return f"https://github.com/{github_user}/{github_repo}/blob/{filename}"
 
 
-def _load_pypi_versions(package_name: str) -> List[str]:
+def _load_pypi_versions(package_name: str) -> list[str]:
     """Load the versions of the package from PyPI.
 
     >>> _load_pypi_versions("numpy")  # doctest: +ELLIPSIS

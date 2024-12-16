@@ -7,7 +7,7 @@ import logging
 import os
 import re
 import sys
-from typing import Dict, List, Optional
+from typing import Optional
 
 
 def _determine_torchaudio(torch_version: str) -> str:
@@ -103,7 +103,7 @@ def _determine_torchvision(torch_version: str) -> str:
     return ".".join(map(str, tv_ver_array))
 
 
-def find_latest(ver: str) -> Dict[str, str]:
+def find_latest(ver: str) -> dict[str, str]:
     """Find the latest version.
 
     >>> from pprint import pprint
@@ -136,7 +136,7 @@ def find_latest(ver: str) -> Dict[str, str]:
     }
 
 
-def adjust(requires: List[str], pytorch_version: Optional[str] = None) -> List[str]:
+def adjust(requires: list[str], pytorch_version: Optional[str] = None) -> list[str]:
     """Adjust the versions to be paired within pytorch ecosystem.
 
     >>> from pprint import pprint
@@ -175,7 +175,7 @@ def adjust(requires: List[str], pytorch_version: Optional[str] = None) -> List[s
     return requires_
 
 
-def _offset_print(reqs: List[str], offset: str = "\t|\t") -> str:
+def _offset_print(reqs: list[str], offset: str = "\t|\t") -> str:
     """Adding offset to each line for the printing requirements."""
     reqs = [offset + r for r in reqs]
     return os.linesep.join(reqs)

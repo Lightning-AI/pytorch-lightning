@@ -4,7 +4,7 @@
 #
 import warnings
 from enum import Enum
-from typing import List, Optional
+from typing import Optional
 
 from typing_extensions import Literal
 
@@ -67,7 +67,7 @@ class StrEnum(str, Enum):
         return None
 
     @classmethod
-    def _allowed_matches(cls, source: str) -> List[str]:
+    def _allowed_matches(cls, source: str) -> list[str]:
         keys, vals = [], []
         for enum_key, enum_val in cls.__members__.items():
             keys.append(enum_key)

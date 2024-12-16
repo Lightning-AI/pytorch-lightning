@@ -62,7 +62,7 @@ setup(
     include_package_data=True,
     zip_safe=False,
     keywords=["Utilities", "DevOps", "CI/CD"],
-    python_requires=">=3.8",
+    python_requires=">=3.9",
     setup_requires=[],
     install_requires=requirements,
     extras_require=_requirement_extras(),
