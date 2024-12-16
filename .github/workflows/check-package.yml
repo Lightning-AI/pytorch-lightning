@@ -46,8 +46,8 @@ on:
         # https://docs.github.com/en/actions/using-github-hosted-runners/about-github-hosted-runners#supported-runners-and-hardware-resources
         default: |
           {
-            "os": ["ubuntu-20.04", "macos-11", "windows-2022"],
-            "python-version": ["3.9", "3.12"]
+            "os": ["ubuntu-22.04", "macos-13", "windows-2022"],
+            "python-version": ["3.9", "3.13"]
           }
       env-vars:
         description: "custom environment variables in json format"

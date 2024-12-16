@@ -17,10 +17,10 @@ jobs:
       fail-fast: false
       matrix:
         os: ["ubuntu-22.04", "macos-13", "windows-2022"]
-        python-version: ["3.9", "3.10", "3.12"]
+        python-version: ["3.9", "3.11", "3.13"]
         requires: ["oldest", "latest"]
         exclude:
-          - { requires: "oldest", python-version: "3.12" }
+          - { requires: "oldest", python-version: "3.13" }
     timeout-minutes: 35
     steps:
       - name: Checkout 🛎

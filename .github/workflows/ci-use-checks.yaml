@@ -51,8 +51,8 @@ jobs:
         }
       testing-matrix: |
         {
-          "os": ["ubuntu-22.04", "macos-13", "windows-2022"],
-          "python-version": ["3.9", "3.12"]
+          "os": ["ubuntu-22.04", "macos-14", "windows-2022"],
+          "python-version": ["3.9", "3.13"]
         }
 
   check-package-extras:
