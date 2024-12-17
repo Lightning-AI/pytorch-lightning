@@ -38,13 +38,14 @@ jobs:
           nb-dirs: ${{ env.NB_DIRS }}
 
       - run: |
-          mkdir pypi/${{ matrix.pkg-name }}
+          mkdir -p pypi/${{ matrix.pkg-name }}
           cp dist/* pypi/${{ matrix.pkg-name }}/
 
       - uses: actions/upload-artifact@v4
         with:
           name: ${{ inputs.artifact-name }}-${{ matrix.pkg-name }}
           path: pypi
+          retention-days: 1
 
   merge-artifacts:
     runs-on: ubuntu-22.04
