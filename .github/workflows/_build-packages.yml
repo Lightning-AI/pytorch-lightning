@@ -54,9 +54,9 @@ jobs:
         with: # download all build artifacts
           pattern: ${{ inputs.artifact-name }}-*
           merge-multiple: true
-          path: pypi
       - name: Keep artifact
         run: python -c "print('DAYS=' + str(5 if '${{ github.event_name }}'.startswith('pull_request') else 0))" >> $GITHUB_ENV
+      - run: ls -lh pypi/
       - uses: actions/upload-artifact@v4
         with:
           name: ${{ inputs.artifact-name }}
