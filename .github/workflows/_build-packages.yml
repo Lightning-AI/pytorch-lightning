@@ -57,7 +57,7 @@ jobs:
           merge-multiple: true
           path: pypi
       - run: |
-          apt-get install tree
+          sudo apt-get install -y tree
           tree pypi
 
       - name: Keep artifact
