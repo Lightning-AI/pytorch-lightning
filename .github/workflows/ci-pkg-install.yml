@@ -54,7 +54,6 @@ jobs:
         with:
           name: dist-packages-${{ github.sha }}
           path: dist
-          merge-multiple: true
 
       - name: Set package dir
         run: |

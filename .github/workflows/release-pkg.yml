@@ -42,7 +42,6 @@ jobs:
         with:
           name: dist-packages-${{ github.sha }}
           path: dist
-          merge-multiple: true
       - run: ls -lh dist/
       - name: Upload to release
         uses: AButler/upload-release-assets@v3.0
@@ -145,7 +144,6 @@ jobs:
         with:
           name: dist-packages-${{ github.sha }}
           path: dist
-          merge-multiple: true
       - name: Browse folder
         id: folder
         run: |
@@ -171,7 +169,6 @@ jobs:
         with:
           name: dist-packages-${{ github.sha }}
           path: dist
-          merge-multiple: true
       - name: Browse folder
         id: folder
         run: |

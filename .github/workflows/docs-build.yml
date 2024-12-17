@@ -162,7 +162,6 @@ jobs:
         with:
           name: docs-${{ matrix.pkg-name }}-${{ github.sha }}
           path: docs/build/html/
-          merge-multiple: true
 
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2
