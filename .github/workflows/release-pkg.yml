@@ -38,10 +38,11 @@ jobs:
     if: github.event_name == 'release'
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: dist-packages-${{ github.sha }}
           path: dist
+          merge-multiple: true
       - run: ls -lh dist/
       - name: Upload to release
         uses: AButler/upload-release-assets@v3.0
@@ -140,10 +141,11 @@ jobs:
         name: ["FABRIC", "PYTORCH", "LIGHTNING"]
     steps:
       - uses: actions/checkout@v4 # needed for local action below
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: dist-packages-${{ github.sha }}
           path: dist
+          merge-multiple: true
       - name: Browse folder
         id: folder
         run: |
@@ -165,10 +167,11 @@ jobs:
         name: ["FABRIC", "PYTORCH", "LIGHTNING"]
     steps:
       - uses: actions/checkout@v4 # needed for local action below
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: dist-packages-${{ github.sha }}
           path: dist
+          merge-multiple: true
       - name: Browse folder
         id: folder
         run: |
