@@ -37,10 +37,14 @@ jobs:
           pkg-name: ${{ matrix.pkg-name }}
           nb-dirs: ${{ env.NB_DIRS }}
 
+      - run: |
+          mkdir pypi/${{ matrix.pkg-name }}
+          cp dist/* pypi/${{ matrix.pkg-name }}/
+
       - uses: actions/upload-artifact@v4
         with:
           name: ${{ inputs.artifact-name }}-${{ matrix.pkg-name }}
-          path: dist
+          path: pypi
 
   merge-artifacts:
     runs-on: ubuntu-22.04
@@ -49,12 +53,11 @@ jobs:
         with: # download all build artifacts
           pattern: ${{ inputs.artifact-name }}-*
           merge-multiple: true
-          path: dist
+          path: pypi
       - name: Keep artifact
         run: python -c "print('DAYS=' + str(5 if '${{ github.event_name }}'.startswith('pull_request') else 0))" >> $GITHUB_ENV
-      - run: ls -lh dist/
       - uses: actions/upload-artifact@v4
         with:
           name: ${{ inputs.artifact-name }}
-          path: dist
+          path: pypi
           retention-days: ${{ env.DAYS }}
