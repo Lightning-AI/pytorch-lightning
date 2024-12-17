@@ -43,16 +43,17 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: ${{ inputs.artifact-name }}-${{ strategy.job-index }}
+          name: ${{ inputs.artifact-name }}-${{ matrix.pkg-name }}
           path: pypi
           retention-days: 1
 
   merge-artifacts:
+    needs: build-packages
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/download-artifact@v4
         with: # download all build artifacts
-          pattern: ${{ inputs.artifact-name }}*
+          pattern: ${{ inputs.artifact-name }}-*
           merge-multiple: true
       - run: ls -lh pypi/
 
