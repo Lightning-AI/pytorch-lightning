@@ -481,6 +481,25 @@ class AssistantCLI:
         with open(ver_file, "w") as fo:
             fo.write(version + os.linesep)
 
+    @staticmethod
+    def generate_docker_tags(
+        release_version: str,
+        python_version: str,
+        torch_version: str,
+        cuda_version: str,
+        docker_project: str = "pytorchlightning/pytorch_lightning",
+        add_latest: bool = False,
+    ) -> None:
+        """Generate docker tags for the given versions."""
+        tags = [f"latest-py{python_version}-torch{torch_version}-cuda{cuda_version}"]
+        if release_version:
+            tags += [f"{release_version}-py{python_version}-torch{torch_version}-cuda{cuda_version}"]
+        if add_latest:
+            tags += ["latest"]
+
+        tags = [f"{docker_project}:{tag}" for tag in tags]
+        print(",".join(tags))
+
 
 if __name__ == "__main__":
     import sys
