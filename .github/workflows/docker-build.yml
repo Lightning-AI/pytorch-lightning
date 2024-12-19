@@ -66,7 +66,7 @@ jobs:
       - name: Set tags
         run: |
           pip install -q -r .actions/requirements.txt
-          tags = $(python .actions/assistant.py generate_docker_tags \
+          tags=$(python .actions/assistant.py generate_docker_tags \
             --release_version="${{ env.RELEASE_VERSION }}" \
             --python_version="${{ matrix.python_version }}" \
             --torch_version="${{ matrix.pytorch_version }}" \

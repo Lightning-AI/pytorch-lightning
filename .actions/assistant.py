@@ -489,7 +489,7 @@ class AssistantCLI:
         cuda_version: str,
         docker_project: str = "pytorchlightning/pytorch_lightning",
         add_latest: bool = False,
-    ) -> str:
+    ) -> None:
         """Generate docker tags for the given versions."""
         tags = [f"latest-py{python_version}-torch{torch_version}-cuda{cuda_version}"]
         if release_version:
@@ -498,7 +498,7 @@ class AssistantCLI:
             tags += ["latest"]
 
         tags = [f"{docker_project}:{tag}" for tag in tags]
-        return ",".join(tags)
+        print(",".join(tags))
 
 
 if __name__ == "__main__":
