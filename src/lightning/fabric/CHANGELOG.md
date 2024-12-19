@@ -4,6 +4,26 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
+## [2.5.0] - 2024-12-19
+
+### Added
+
+- Added `step` parameter to `TensorBoardLogger.log_hyperparams` to visualize changes during training ([#20176](https://github.com/Lightning-AI/pytorch-lightning/pull/20176))
+- Added timeout to DeepSpeedStrategy ([#20474](https://github.com/Lightning-AI/pytorch-lightning/pull/20474))
+- Added FP8 + FSDP2 + torch.compile examples for Fabric ([#20440](https://github.com/Lightning-AI/pytorch-lightning/pull/20440))
+- Added RTX 4080 super to chips dictionary ([#20285](https://github.com/Lightning-AI/pytorch-lightning/pull/20285))
+- Added device property to lazy load functionality ([#20183](https://github.com/Lightning-AI/pytorch-lightning/pull/20183))
+- Added `ddp_find_unused_parameters_true` alias in Fabric's DDPStrategy ([#20125](https://github.com/Lightning-AI/pytorch-lightning/pull/20125))
+
+### Changed
+
+- Changed seeding NumPy using `np.random.SeedSequence()` in `pl_worker_init_function()` to robustly seed NumPy-dependent dataloader workers ([#20369](https://github.com/Lightning-AI/pytorch-lightning/pull/20369))
+- Bumped PyTorch to version `2.5` ([#20351](https://github.com/Lightning-AI/pytorch-lightning/pull/20351))
+- Update BitsAndBytes version ([#20313](https://github.com/Lightning-AI/pytorch-lightning/pull/20313))
+
+### Fixed
+
+- Fixed use of `convert_module` in FSDP to avoid using more memory than necessary during initialization ([#20323](https://github.com/Lightning-AI/pytorch-lightning/pull/20323))
 
 ## [2.4.0] - 2024-08-06
 
