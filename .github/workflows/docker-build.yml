@@ -47,7 +47,7 @@ jobs:
           - { python_version: "3.11", pytorch_version: "2.2", cuda_version: "12.1.0" }
           - { python_version: "3.11", pytorch_version: "2.3", cuda_version: "12.1.0" }
           - { python_version: "3.11", pytorch_version: "2.4", cuda_version: "12.1.0" }
-          - { python_version: "3.12", pytorch_version: "2.5", cuda_version: "12.1.0", latest: true }
+          - { python_version: "3.12", pytorch_version: "2.5", cuda_version: "12.1.0", tag: "--add_latest" }
     steps:
       - uses: actions/checkout@v4
         with:
@@ -67,11 +67,10 @@ jobs:
         run: |
           pip install -q -r .actions/requirements.txt
           tags = $(python .actions/assistant.py generate_docker_tags \
-            --release-version="${{ env.RELEASE_VERSION }}" \
-            --python-version="${{ matrix.python_version }}" \
-            --torch-version="${{ matrix.pytorch_version }}" \
-            --cuda-version="${{ matrix.cuda_version }}" \
-            --add_latest="${{ matrix.latest }}")
+            --release_version="${{ env.RELEASE_VERSION }}" \
+            --python_version="${{ matrix.python_version }}" \
+            --torch_version="${{ matrix.pytorch_version }}" \
+            --cuda_version="${{ matrix.cuda_version }}" ${{ matrix.tag }} )
           echo "DOCKER_TAGS=$tags" >> $GITHUB_ENV
 
       - uses: docker/build-push-action@v6
