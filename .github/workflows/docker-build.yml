@@ -65,6 +65,7 @@ jobs:
         run: echo "RELEASE_VERSION=$(echo ${GITHUB_REF##*/})" >> $GITHUB_ENV
       - name: Set tags
         run: |
+          pip install -q -r .actions/requirements.txt
           tags = $(python .actions/assistant.py generate_docker_tags \
             --release-version="${{ env.RELEASE_VERSION }}" \
             --python-version="${{ matrix.python_version }}" \
