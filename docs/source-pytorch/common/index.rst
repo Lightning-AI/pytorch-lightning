@@ -23,6 +23,7 @@
    ../data/data
    ../model/own_your_loop
    ../advanced/model_init
+   ../common/tbptt
 
 
 #############
@@ -199,6 +200,13 @@ How-to Guides
     :header: Use a pure PyTorch training loop
     :description: Run your pure PyTorch loop with Lightning
     :button_link: ../model/own_your_loop.html
+    :col_css: col-md-4
+    :height: 180
+
+.. displayitem::
+    :header: Truncated Back-Propagation Through Time
+    :description: Efficiently step through time when training recurrent models
+    :button_link: ../common/tbptt.html
     :col_css: col-md-4
     :height: 180
 
