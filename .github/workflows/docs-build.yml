@@ -21,8 +21,9 @@ on:
       - "src/pytorch_lightning/*"
       - "setup.py"
       - "pyproject.toml" # includes metadata used in the package creation
-      - "!*.md"
-      - "!**/*.md"
+      - "!*.md" # exclude all markdown files
+      - "!**/*.md" # exclude all markdown files
+      - "src/version.info" # once you try to make release try to compile complete docs
   workflow_dispatch:
     inputs:
       checkout:
