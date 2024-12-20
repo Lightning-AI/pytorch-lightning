@@ -299,7 +299,10 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
 
         self._deepspeed_engine: Optional[DeepSpeedEngine] = None
 
-        self.device_type = self.root_device.type
+        if isinstance(self.accelerator, Accelerator):
+            self.device_type = self.accelerator.get_device_type()
+        else:
+            self.device_type = "cuda"
         self.torch_lib = getattr(torch, self.device_type)
 
     @property

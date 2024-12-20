@@ -319,7 +319,10 @@ class DeepSpeedStrategy(DDPStrategy):
         self.hysteresis = hysteresis
         self.min_loss_scale = min_loss_scale
 
-        self.device_type = self.root_device.type
+        try:
+            self.device_type = self.accelerator.get_device_type()
+        except Exception:
+            self.device_type = "cuda"
         self.torch_lib = getattr(torch, self.device_type)
 
     @override

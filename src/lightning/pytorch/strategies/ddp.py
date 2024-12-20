@@ -103,8 +103,10 @@ class DDPStrategy(ParallelStrategy):
         self._timeout: Optional[timedelta] = timeout
         self._start_method = start_method
 
-        self.device_type = self.root_device.type
-        self.torch_lib = getattr(torch, self.device_type)
+        try:
+            self.device_type = self.accelerator.get_device_type()
+        except Exception:
+            self.device_type = "cuda"
 
     @property
     def is_distributed(self) -> bool:  # pragma: no-cover
