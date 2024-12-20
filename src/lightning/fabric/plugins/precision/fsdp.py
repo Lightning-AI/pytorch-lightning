@@ -50,7 +50,7 @@ class FSDPPrecision(Precision):
     """
 
     def __init__(
-        self, precision: _PRECISION_INPUT, scaler: Optional["ShardedGradScaler"] = None, device: Optional[str] = None
+        self, precision: _PRECISION_INPUT, scaler: Optional["ShardedGradScaler"] = None, device_type: Optional[str] = None
     ) -> None:
         supported_precision = get_args(_PRECISION_INPUT)
         if precision not in supported_precision:
@@ -58,7 +58,7 @@ class FSDPPrecision(Precision):
                 f"`precision={precision!r})` is not supported in FSDP."
                 f" `precision` must be one of: {supported_precision}."
             )
-        self.device = device if device is not None else "cuda"
+        self.device_type = device_type if device_type is not None else "cuda"
 
         from torch.distributed.fsdp.sharded_grad_scaler import ShardedGradScaler
 
@@ -121,7 +121,7 @@ class FSDPPrecision(Precision):
     def forward_context(self) -> AbstractContextManager:
         if "mixed" in self.precision:
             return torch.autocast(
-                self.device, dtype=(torch.bfloat16 if self.precision == "bf16-mixed" else torch.float16)
+                self.device_type, dtype=(torch.bfloat16 if self.precision == "bf16-mixed" else torch.float16)
             )
         return self.tensor_init_context()
 

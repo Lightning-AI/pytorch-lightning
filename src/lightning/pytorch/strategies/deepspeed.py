@@ -325,7 +325,7 @@ class DeepSpeedStrategy(DDPStrategy):
 
         if (
             not isinstance(self.accelerator, CUDAAccelerator)
-        ) and self.accelerator.get_device() != get_accelerator().device_name():  # type: ignore[union-attr]
+        ) and self.accelerator.get_device_type() != get_accelerator().device_name():  # type: ignore[union-attr]
             raise RuntimeError(
                 f"The DeepSpeed strategy is only supported on {get_accelerator().device_name().upper()} GPUs, "
                 f"but `{self.accelerator.__class__.__name__}` is used."

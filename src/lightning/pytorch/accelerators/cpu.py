@@ -82,7 +82,7 @@ class CPUAccelerator(Accelerator):
 
     @staticmethod
     @override
-    def get_device() -> str:
+    def get_device_type() -> str:
         return "cpu"
 
 

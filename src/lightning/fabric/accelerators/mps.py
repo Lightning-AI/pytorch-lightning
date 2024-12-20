@@ -62,7 +62,7 @@ class MPSAccelerator(Accelerator):
 
     @staticmethod
     @override
-    def get_device() -> str:
+    def get_device_type() -> str:
         return "mps"
 
     @staticmethod

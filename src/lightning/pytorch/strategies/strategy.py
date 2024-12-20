@@ -364,7 +364,7 @@ class Strategy(ABC):
         return self._lightning_module
 
     def load_checkpoint(self, checkpoint_path: _PATH) -> dict[str, Any]:
-        if isinstance(self.accelerator, pl.accelerators.Accelerator) and self.accelerator.get_device() != "cpu":
+        if isinstance(self.accelerator, pl.accelerators.Accelerator) and self.accelerator.get_device_type() != "cpu":
             getattr(torch, self.root_device.type.split(":")[0]).empty_cache()
         else:
             torch.cuda.empty_cache()

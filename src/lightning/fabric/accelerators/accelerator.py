@@ -48,7 +48,7 @@ class Accelerator(ABC):
 
     @staticmethod
     @abstractmethod
-    def get_device() -> Any:
+    def get_device_type() -> Any:
         """Get the device for the current Accelerator."""
 
     @staticmethod

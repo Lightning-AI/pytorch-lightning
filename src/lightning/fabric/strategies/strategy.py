@@ -326,7 +326,7 @@ class Strategy(ABC):
             given, the full checkpoint will be returned.
 
         """
-        if isinstance(self.accelerator, Accelerator) and self.accelerator.get_device() != "cpu":
+        if isinstance(self.accelerator, Accelerator) and self.accelerator.get_device_type() != "cpu":
             getattr(torch, self.root_device.type.split(":")[0]).empty_cache()
         else:
             torch.cuda.empty_cache()

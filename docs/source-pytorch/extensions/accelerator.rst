@@ -96,7 +96,7 @@ Let's pretend we want to integrate the fictional XPU accelerator and we have acc
 
         @staticmethod
         @override
-        def get_device() -> str:
+        def get_device_type() -> str:
             return "xpu"
 
 
