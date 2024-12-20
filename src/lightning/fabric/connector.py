@@ -466,7 +466,9 @@ class _Connector:
         if isinstance(self.strategy, FSDPStrategy):
             return FSDPPrecision(
                 precision=self._precision_input,  # type: ignore[arg-type]
-                device_type=self._accelerator_flag.get_device_type() if isinstance(self._accelerator_flag, Accelerator) else None,
+                device_type=self._accelerator_flag.get_device_type()
+                if isinstance(self._accelerator_flag, Accelerator)
+                else None,
             )
         mp_precision_supported = ("32-true", "bf16-mixed", "bf16-true", "16-true")
         if isinstance(self.strategy, ModelParallelStrategy) and self._precision_input not in mp_precision_supported:

@@ -50,7 +50,10 @@ class FSDPPrecision(Precision):
     """
 
     def __init__(
-        self, precision: _PRECISION_INPUT, scaler: Optional["ShardedGradScaler"] = None, device_type: Optional[str] = None
+        self,
+        precision: _PRECISION_INPUT,
+        scaler: Optional["ShardedGradScaler"] = None,
+        device_type: Optional[str] = None,
     ) -> None:
         supported_precision = get_args(_PRECISION_INPUT)
         if precision not in supported_precision:

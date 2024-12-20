@@ -510,7 +510,9 @@ class _AcceleratorConnector:
         if isinstance(self.strategy, FSDPStrategy):
             return FSDPPrecision(
                 precision=self._precision_flag,  # type: ignore[arg-type]
-                device_type=self._accelerator_flag.get_device_type() if isinstance(self._accelerator_flag, Accelerator) else None,
+                device_type=self._accelerator_flag.get_device_type()
+                if isinstance(self._accelerator_flag, Accelerator)
+                else None,
             )
         if self._precision_flag in ("16-true", "bf16-true"):
             return HalfPrecision(self._precision_flag)  # type: ignore
