@@ -190,13 +190,7 @@ class DDPStrategy(ParallelStrategy):
         device_ids = self.determine_ddp_device_ids()
         log.debug(f"setting up DDP model with device ids: {device_ids}, kwargs: {self._ddp_kwargs}")
         # https://pytorch.org/docs/stable/notes/cuda.html#id5
-        ctx = (
-            getattr(torch, f"{self.root_device.type.split(':')[0]}").stream(
-                getattr(torch, f"{self.root_device.type.split(':')[0]}").Stream()
-            )
-            if device_ids is not None
-            else nullcontext()
-        )
+        ctx = self._create_stream_context(device_ids=device_ids)
         with ctx:
             return DistributedDataParallel(module=model, device_ids=device_ids, **self._ddp_kwargs)
 
@@ -423,6 +417,18 @@ class DDPStrategy(ParallelStrategy):
             self.model = self._layer_sync.revert(self.model)
 
         super().teardown()
+
+    def _create_stream_context(self, device_ids=None):
+        """Create a stream context for the current device, if supported."""
+
+        torch_lib = getattr(torch, self.root_device.type)
+        # Check if the device type supports streams and has the necessary attributes.
+        if hasattr(torch_lib, "Stream") and hasattr(torch_lib, "stream") and device_ids is not None:
+            stream = torch_lib.Stream()
+            ctx = torch_lib.stream(stream)
+        else:
+            ctx = nullcontext()
+        return ctx
 
 
 class _DDPForwardRedirection(_ForwardRedirection):
