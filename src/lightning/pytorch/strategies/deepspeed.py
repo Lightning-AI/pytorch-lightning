@@ -677,7 +677,7 @@ class DeepSpeedStrategy(DDPStrategy):
 
         if hasattr(torch, self.device_type) and callable(self.torch_lib.empty_cache):
             self.torch_lib.empty_cache()
-        
+
         _, client_state = self.deepspeed_engine.load_checkpoint(
             checkpoint_path,
             load_optimizer_states=is_fitting,

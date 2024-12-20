@@ -235,8 +235,12 @@ class DDPStrategy(ParallelStrategy):
         """Create a stream context for the current device, if supported."""
 
         # Check if the device type supports streams and has the necessary attributes.
-        if hasattr(self.torch_lib) and hasattr(self.torch_lib, "Stream") \
-            and hasattr(self.torch_lib, "stream") and device_ids is not None:
+        if (
+            hasattr(self.torch_lib)
+            and hasattr(self.torch_lib, "Stream")
+            and hasattr(self.torch_lib, "stream")
+            and device_ids is not None
+        ):
             stream = self.torch_lib.Stream()
             return self.torch_lib.stream(stream)
         else:

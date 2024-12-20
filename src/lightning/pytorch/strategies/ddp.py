@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import logging
-from contextlib import nullcontext
 from datetime import timedelta
 from typing import TYPE_CHECKING, Any, Callable, Literal, Optional, Union
 
@@ -420,13 +419,17 @@ class DDPStrategy(ParallelStrategy):
             self.model = self._layer_sync.revert(self.model)
 
         super().teardown()
-    
+
     def _create_stream_context(self, device_ids=None):
         """Create a stream context for the current device, if supported."""
 
         # Check if the device type supports streams and has the necessary attributes.
-        if hasattr(self.torch_lib) and hasattr(self.torch_lib, "Stream") \
-            and hasattr(self.torch_lib, "stream") and device_ids is not None:
+        if (
+            hasattr(self.torch_lib)
+            and hasattr(self.torch_lib, "Stream")
+            and hasattr(self.torch_lib, "stream")
+            and device_ids is not None
+        ):
             stream = self.torch_lib.Stream()
             return self.torch_lib.stream(stream)
         else:
