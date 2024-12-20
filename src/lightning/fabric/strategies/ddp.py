@@ -242,11 +242,11 @@ class DDPStrategy(ParallelStrategy):
             and device_ids is not None
         ):
             stream = self.torch_lib.Stream()
-            return self.torch_lib.stream(stream)
+            ctx = self.torch_lib.stream(stream)
         else:
             from contextlib import nullcontext
-
-            return nullcontext()
+            ctx = nullcontext()
+        return ctx
 
 
 class _DDPBackwardSyncControl(_BackwardSyncControl):
