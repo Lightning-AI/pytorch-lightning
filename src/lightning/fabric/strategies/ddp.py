@@ -245,6 +245,7 @@ class DDPStrategy(ParallelStrategy):
             ctx = self.torch_lib.stream(stream)
         else:
             from contextlib import nullcontext
+
             ctx = nullcontext()
         return ctx
 
