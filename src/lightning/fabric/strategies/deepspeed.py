@@ -299,6 +299,9 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
 
         self._deepspeed_engine: Optional[DeepSpeedEngine] = None
 
+        self.device_type = self.root_device.type
+        self.torch_lib = getattr(torch, self.device_type)
+
     @property
     def zero_stage_3(self) -> bool:
         assert isinstance(self.config, dict)
@@ -511,10 +514,8 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
 
         optimzer_state_requested = any(isinstance(item, (Optimizer, DeepSpeedOptimizer)) for item in state.values())
 
-        if isinstance(self.accelerator, Accelerator) and self.accelerator.get_device_type() != "cpu":
-            getattr(torch, self.root_device.type).empty_cache()
-        else:
-            torch.cuda.empty_cache()
+        if hasattr(torch, self.device_type) and callable(self.torch_lib.empty_cache):
+            self.torch_lib.empty_cache()
 
         _, client_state = engine.load_checkpoint(
             path,

@@ -319,6 +319,9 @@ class DeepSpeedStrategy(DDPStrategy):
         self.hysteresis = hysteresis
         self.min_loss_scale = min_loss_scale
 
+        self.device_type = self.root_device.type
+        self.torch_lib = getattr(torch, self.device_type)
+
     @override
     def setup_environment(self) -> None:
         from deepspeed.runtime.utils import get_accelerator
@@ -672,6 +675,9 @@ class DeepSpeedStrategy(DDPStrategy):
 
         is_fitting = self.lightning_module.trainer.state.fn == TrainerFn.FITTING
 
+        if hasattr(torch, self.device_type) and callable(self.torch_lib.empty_cache):
+            self.torch_lib.empty_cache()
+        
         _, client_state = self.deepspeed_engine.load_checkpoint(
             checkpoint_path,
             load_optimizer_states=is_fitting,
