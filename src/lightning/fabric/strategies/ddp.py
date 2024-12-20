@@ -78,6 +78,12 @@ class DDPStrategy(ParallelStrategy):
         self._backward_sync_control = _DDPBackwardSyncControl()
         self._ddp_kwargs = kwargs
 
+        if isinstance(self.accelerator, Accelerator):
+            self.device_type = self.accelerator.get_device_type()
+        else:
+            self.device_type = "cuda"
+        self.torch_lib = getattr(torch, self.device_type)
+
     @property
     @override
     def root_device(self) -> torch.device:
@@ -124,7 +130,7 @@ class DDPStrategy(ParallelStrategy):
         """Wraps the model into a :class:`~torch.nn.parallel.distributed.DistributedDataParallel` module."""
         device_ids = self._determine_ddp_device_ids()
         # https://pytorch.org/docs/stable/notes/cuda.html#id5
-        ctx = torch.cuda.stream(torch.cuda.Stream()) if device_ids is not None else nullcontext()
+        ctx = self._create_stream_context(device_ids=device_ids)
         with ctx:
             return DistributedDataParallel(module=module, device_ids=device_ids, **self._ddp_kwargs)
 
@@ -227,6 +233,24 @@ class DDPStrategy(ParallelStrategy):
 
     def _determine_ddp_device_ids(self) -> Optional[list[int]]:
         return None if self.root_device.type == "cpu" else [self.root_device.index]
+
+    def _create_stream_context(self, device_ids=None):
+        """Create a stream context for the current device, if supported."""
+
+        # Check if the device type supports streams and has the necessary attributes.
+        if (
+            hasattr(self.torch_lib)
+            and hasattr(self.torch_lib, "Stream")
+            and hasattr(self.torch_lib, "stream")
+            and device_ids is not None
+        ):
+            stream = self.torch_lib.Stream()
+            ctx = self.torch_lib.stream(stream)
+        else:
+            from contextlib import nullcontext
+
+            ctx = nullcontext()
+        return ctx
 
 
 class _DDPBackwardSyncControl(_BackwardSyncControl):

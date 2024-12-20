@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import logging
-from contextlib import nullcontext
 from datetime import timedelta
 from typing import TYPE_CHECKING, Any, Callable, Literal, Optional, Union
 
@@ -104,6 +103,11 @@ class DDPStrategy(ParallelStrategy):
         self._timeout: Optional[timedelta] = timeout
         self._start_method = start_method
 
+        try:
+            self.device_type = self.accelerator.get_device_type()
+        except Exception:
+            self.device_type = "cuda"
+
     @property
     def is_distributed(self) -> bool:  # pragma: no-cover
         """Legacy property kept for backwards compatibility."""
@@ -190,7 +194,7 @@ class DDPStrategy(ParallelStrategy):
         device_ids = self.determine_ddp_device_ids()
         log.debug(f"setting up DDP model with device ids: {device_ids}, kwargs: {self._ddp_kwargs}")
         # https://pytorch.org/docs/stable/notes/cuda.html#id5
-        ctx = torch.cuda.stream(torch.cuda.Stream()) if device_ids is not None else nullcontext()
+        ctx = self._create_stream_context(device_ids=device_ids)
         with ctx:
             return DistributedDataParallel(module=model, device_ids=device_ids, **self._ddp_kwargs)
 
@@ -417,6 +421,24 @@ class DDPStrategy(ParallelStrategy):
             self.model = self._layer_sync.revert(self.model)
 
         super().teardown()
+
+    def _create_stream_context(self, device_ids=None):
+        """Create a stream context for the current device, if supported."""
+
+        # Check if the device type supports streams and has the necessary attributes.
+        if (
+            hasattr(self.torch_lib)
+            and hasattr(self.torch_lib, "Stream")
+            and hasattr(self.torch_lib, "stream")
+            and device_ids is not None
+        ):
+            stream = self.torch_lib.Stream()
+            ctx = self.torch_lib.stream(stream)
+        else:
+            from contextlib import nullcontext
+
+            ctx = nullcontext()
+        return ctx
 
 
 class _DDPForwardRedirection(_ForwardRedirection):
