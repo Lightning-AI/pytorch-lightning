@@ -4,21 +4,45 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
-
-## [unreleased] - YYYY-MM-DD
+## [2.5.0] - 2024-12-19
 
 ### Added
 
+- Added `step` parameter to `TensorBoardLogger.log_hyperparams` to visualize changes during training ([#20176](https://github.com/Lightning-AI/pytorch-lightning/pull/20176))
+- Added `str` method to datamodule ([#20301](https://github.com/Lightning-AI/pytorch-lightning/pull/20301))
+- Added timeout to DeepSpeedStrategy ([#20474](https://github.com/Lightning-AI/pytorch-lightning/pull/20474))
+- Added doc for Truncated Back-Propagation Through Time ([#20422](https://github.com/Lightning-AI/pytorch-lightning/pull/20422))
+- Added FP8 + FSDP2 + torch.compile examples for PyTorch Lightning ([#20440](https://github.com/Lightning-AI/pytorch-lightning/pull/20440))
+- Added profiling to `Trainer.save_checkpoint` ([#20405](https://github.com/Lightning-AI/pytorch-lightning/pull/20405))
+- Added after_instantiate_classes hook to CLI ([#20401](https://github.com/Lightning-AI/pytorch-lightning/pull/20401))
+
 ### Changed
 
-- Merging of hparams when logging now ignores parameter names that begin with underscore `_` ([#20221](https://github.com/Lightning-AI/pytorch-lightning/pull/20221))
+- Updated checkpointing documentation to mark `resume_from_checkpoint` as deprecated ([#20477](https://github.com/Lightning-AI/pytorch-lightning/pull/20477))
+- Made plugin type checks more flexible ([#20186](https://github.com/Lightning-AI/pytorch-lightning/pull/20186))
+- Changed seeding NumPy using `np.random.SeedSequence()` in `pl_worker_init_function()` to robustly seed NumPy-dependent dataloader workers ([#20369](https://github.com/Lightning-AI/pytorch-lightning/pull/20369))
+- Allowed callbacks to be restored not just during training ([#20403](https://github.com/Lightning-AI/pytorch-lightning/pull/20403))
+- Changed LightningCLI tests to account for future fix in jsonargparse ([#20372](https://github.com/Lightning-AI/pytorch-lightning/pull/20372))
+- Bumped PyTorch to version `2.5` ([#20351](https://github.com/Lightning-AI/pytorch-lightning/pull/20351))
+- Decoupled checkpoint artifact path from model artifact path ([#20325](https://github.com/Lightning-AI/pytorch-lightning/pull/20325))
+- Updated BitsAndBytes version ([#20313](https://github.com/Lightning-AI/pytorch-lightning/pull/20313))
+- Changed merging of hparams when logging to ignore parameter names that start with an underscore `_` ([#20221](https://github.com/Lightning-AI/pytorch-lightning/pull/20221))
+- Re-enabled passing `BytesIO` as path in `.to_onnx()` ([#20172](https://github.com/Lightning-AI/pytorch-lightning/pull/20172))
 
 ### Removed
 
+- Removed `List[int]` as input type for Trainer when `accelerator="cpu"` ([#20399](https://github.com/Lightning-AI/pytorch-lightning/pull/20399))
+
 ### Fixed
 
-- Fix LightningCLI failing when both module and data module save hyperparameters due to conflicting internal `_class_path` parameter ([#20221](https://github.com/Lightning-AI/pytorch-lightning/pull/20221))
-
+- Fixed UnboundLocalError when using the predict method with return_predictions=False. ([#20484](https://github.com/Lightning-AI/pytorch-lightning/pull/20484))
+- Fixed use of `convert_module` in FSDP to avoid using more memory than necessary during initialization ([#20323](https://github.com/Lightning-AI/pytorch-lightning/pull/20323))
+- Fixed TypeError in `configure_optimizers` when running with `ReduceLROnPlateau` ([#20471](https://github.com/Lightning-AI/pytorch-lightning/pull/20471))
+- Fixed return type in `configure_optimizers` example ([#20420](https://github.com/Lightning-AI/pytorch-lightning/pull/20420))
+- Fixed in ncorrect URI prefix stripping in MLFlowLogger ([#20365](https://github.com/Lightning-AI/pytorch-lightning/pull/20365))
+- Fixed shuffling behavior when using a custom sampler in data module ([#20327](https://github.com/Lightning-AI/pytorch-lightning/pull/20327))
+- Ensured restarting from checkpoints leads to consistent internal counters compared to uninterrupted training ([#20379](https://github.com/Lightning-AI/pytorch-lightning/pull/20379))
+- Fixed LightningCLI failing when both module and data module save hyperparameters due to conflicting internal `_class_path` parameter ([#20221](https://github.com/Lightning-AI/pytorch-lightning/pull/20221))
 
 ## [2.4.0] - 2024-08-06
 
