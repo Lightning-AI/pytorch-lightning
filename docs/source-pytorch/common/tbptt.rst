@@ -36,12 +36,16 @@ hidden states should be kept in-between each time-dimension split.
             batch_size = 10
             hidden_dim = 20
             hiddens = torch.zeros(1, batch_size, hidden_dim, device=self.device)
+            # get optimizer
+            optimizer = self.optimizers()
+
             for split_batch in range(split_batches):
                 # 4. Perform the optimization in a loop
                 loss, hiddens = self.my_rnn(split_batch, hiddens)
-                self.backward(loss)
-                self.optimizer.step()
-                self.optimizer.zero_grad()
+
+                optimizer.zero_grad()
+                self.manual_backward(loss)
+                optimizer.step()
 
                 # 5. "Truncate"
                 hiddens = hiddens.detach()
