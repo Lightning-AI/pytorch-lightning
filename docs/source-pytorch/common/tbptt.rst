@@ -16,8 +16,8 @@ hidden states should be kept in-between each time-dimension split.
     import torch.nn.functional as F
     import torch.optim as optim
     from torch.utils.data import Dataset, DataLoader
-    import pytorch_lightning as pl
-    from pytorch_lightning import LightningModule
+
+    import lightning as L
 
 
     class AverageDataset(Dataset):
@@ -35,7 +35,7 @@ hidden states should be kept in-between each time-dimension split.
             return self.input_seq[item], self.output_seq[item]
 
 
-    class LitModel(LightningModule):
+    class LitModel(L.LightningModule):
 
         def __init__(self):
             super().__init__()
@@ -98,5 +98,5 @@ hidden states should be kept in-between each time-dimension split.
 
     if __name__ == "__main__":
         model = LitModel()
-        trainer = pl.Trainer(max_epochs=5)
+        trainer = L.Trainer(max_epochs=5)
         trainer.fit(model)
