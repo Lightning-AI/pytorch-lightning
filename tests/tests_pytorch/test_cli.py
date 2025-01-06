@@ -754,6 +754,7 @@ def test_lightning_cli_optimizer_and_lr_scheduler_subclasses(cleandir):
 
 
 @_xfail_python_ge_3_11_9
+@RunIf(min_torch="2.2")
 @pytest.mark.parametrize("use_generic_base_class", [False, True])
 def test_lightning_cli_optimizers_and_lr_scheduler_with_link_to(use_generic_base_class):
     class MyLightningCLI(LightningCLI):
@@ -801,6 +802,7 @@ def test_lightning_cli_optimizers_and_lr_scheduler_with_link_to(use_generic_base
 
 
 @_xfail_python_ge_3_11_9
+@RunIf(min_torch="2.2")
 def test_lightning_cli_optimizers_and_lr_scheduler_with_callable_type():
     class TestModel(BoringModel):
         def __init__(
