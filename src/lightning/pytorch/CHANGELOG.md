@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
+## [Unreleased]
+
+- Added support for MPS mixed-precision autocast ([#20531](https://github.com/Lightning-AI/pytorch-lightning/pull/20531))
+
 ## [2.5.0] - 2024-12-19
 
 ### Added
