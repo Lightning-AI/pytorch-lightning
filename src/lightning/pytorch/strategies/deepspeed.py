@@ -166,7 +166,7 @@ class DeepSpeedStrategy(DDPStrategy):
             nvme_path: Filesystem path for NVMe device for optimizer/parameter state offloading.
 
             optimizer_buffer_count: Number of buffers in buffer pool for optimizer state offloading
-                when ``offload_optimizer_device`` is set to to ``nvme``.
+                when ``offload_optimizer_device`` is set to ``nvme``.
                 This should be at least the number of states maintained per parameter by the optimizer.
                 For example, Adam optimizer has 4 states (parameter, gradient, momentum, and variance).
 
