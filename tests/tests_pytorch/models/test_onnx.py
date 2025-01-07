@@ -111,6 +111,7 @@ def test_model_saves_on_multi_gpu(tmp_path):
     assert os.path.exists(file_path) is True
 
 
+# todo: investigate where the logging happening in torch.onnx for PT 2.6+
 @RunIf(onnx=True, max_torch="2.6.0")
 def test_verbose_param(tmp_path, capsys):
     """Test that output is present when verbose parameter is set."""
