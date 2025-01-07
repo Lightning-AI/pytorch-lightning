@@ -118,10 +118,9 @@ def test_verbose_param(tmp_path, capsys):
     model.example_input_array = torch.randn(5, 32)
     file_path = os.path.join(tmp_path, "model.onnx")
 
-    with patch("torch.onnx.log", autospec=True) as test:
+    with patch("torch.onnx.log", autospec=True) as mocked:
         model.to_onnx(file_path, verbose=True)
-    args, _ = test.call_args
-    prefix, _ = args
+    (prefix, _), _ = mocked.call_args
     assert prefix == "Exported graph: "
 
 

@@ -90,9 +90,9 @@ jobs:
     timeout-minutes: 50
     env:
       PACKAGE_NAME: ${{ matrix.pkg-name }}
-      TORCH_URL: "https://download.pytorch.org/whl/cpu/torch_stable.html"
-      TORCH_URL_STABLE: "https://download.pytorch.org/whl/cpu/torch_stable.html"
-      TORCH_URL_TEST: "https://download.pytorch.org/whl/test/cpu/torch"
+      TORCH_URL: "https://download.pytorch.org/whl/cpu/"
+      TORCH_URL_STABLE: "https://download.pytorch.org/whl/cpu/"
+      TORCH_URL_TEST: "https://download.pytorch.org/whl/test/cpu/"
       FREEZE_REQUIREMENTS: ${{ ! (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/')) }}
       PYPI_CACHE_DIR: "_pip-wheels"
       # TODO: Remove this - Enable running MPS tests on this platform
@@ -150,7 +150,7 @@ jobs:
         run: |
           pip install ".[${EXTRA_PREFIX}extra,${EXTRA_PREFIX}test,${EXTRA_PREFIX}strategies]" -U --prefer-binary \
             -r requirements/_integrations/accelerators.txt \
-            --find-links="${TORCH_URL}" --find-links="${PYPI_CACHE_DIR}"
+            --extra-index-url="${TORCH_URL}" --find-links="${PYPI_CACHE_DIR}"
           pip list
       - name: Drop LAI from extensions
         if: ${{ matrix.pkg-name != 'lightning' }}
