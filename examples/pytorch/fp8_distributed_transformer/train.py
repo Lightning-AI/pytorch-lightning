@@ -1,12 +1,13 @@
-import lightning as L
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from lightning.pytorch.demos import Transformer, WikiText2
-from lightning.pytorch.strategies import ModelParallelStrategy
 from torch.distributed._composable.fsdp.fully_shard import fully_shard
 from torch.utils.data import DataLoader
 from torchao.float8 import Float8LinearConfig, convert_to_float8_training
+
+import lightning as L
+from lightning.pytorch.demos import Transformer, WikiText2
+from lightning.pytorch.strategies import ModelParallelStrategy
 
 
 class LanguageModel(L.LightningModule):
