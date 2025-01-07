@@ -111,7 +111,7 @@ def test_model_saves_on_multi_gpu(tmp_path):
     assert os.path.exists(file_path) is True
 
 
-@RunIf(onnx=True)
+@RunIf(onnx=True, max_torch="2.6.0")
 def test_verbose_param(tmp_path, capsys):
     """Test that output is present when verbose parameter is set."""
     model = BoringModel()
