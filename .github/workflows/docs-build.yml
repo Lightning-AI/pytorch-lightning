@@ -174,6 +174,21 @@ jobs:
         with:
           project_id: ${{ secrets.GCS_PROJECT }}
 
+      # Uploading docs as archive to GCS, so they can be as backup
+      - name: Upload docs as archive to GCS 🪣
+        if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
+        working-directory: docs/build
+        run: |
+          zip ${{ env.VERSION }}.zip -r html/
+          gsutil cp ${{ env.VERSION }}.zip ${GCP_TARGET}
+
+      - name: Inject version selector
+        working-directory: docs/build
+        run: |
+          pip install -q wget
+          python -m wget https://raw.githubusercontent.com/Lightning-AI/utilities/main/scripts/inject-selector-script.py
+          python inject-selector-script.py html ${{ matrix.pkg-name }}
+
       # Uploading docs to GCS, so they can be served on lightning.ai
       - name: Upload docs/${{ matrix.pkg-name }}/stable to GCS 🪣
         if: startsWith(github.ref, 'refs/heads/release/') && github.event_name == 'push'
@@ -188,11 +203,3 @@ jobs:
       - name: Upload docs/${{ matrix.pkg-name }}/release to GCS 🪣
         if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
         run: gsutil -m rsync -d -R docs/build/html/ ${GCP_TARGET}/${{ env.VERSION }}
-
-      # Uploading docs as archive to GCS, so they can be as backup
-      - name: Upload docs as archive to GCS 🪣
-        if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
-        working-directory: docs/build
-        run: |
-          zip ${{ env.VERSION }}.zip -r html/
-          gsutil cp ${{ env.VERSION }}.zip ${GCP_TARGET}
