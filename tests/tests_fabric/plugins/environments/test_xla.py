@@ -14,11 +14,11 @@
 import os
 from unittest import mock
 
-import lightning.fabric
 import pytest
+
+import lightning.fabric
 from lightning.fabric.accelerators.xla import _XLA_GREATER_EQUAL_2_1
 from lightning.fabric.plugins.environments import XLAEnvironment
-
 from tests_fabric.helpers.runif import RunIf
 
 

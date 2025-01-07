@@ -21,11 +21,11 @@ import numpy as np
 import onnxruntime
 import pytest
 import torch
-from lightning.pytorch import Trainer
-from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning_utilities import compare_version
 
 import tests_pytorch.helpers.pipelines as tpipes
+from lightning.pytorch import Trainer
+from lightning.pytorch.demos.boring_classes import BoringModel
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.utilities.test_model_summary import UnorderedModel
 
