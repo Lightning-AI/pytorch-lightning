@@ -329,8 +329,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         """
         if len(optimizers) != 1:
             raise ValueError(
-                f"Currently only one optimizer is supported with DeepSpeed."
-                f" Got {len(optimizers)} optimizers instead."
+                f"Currently only one optimizer is supported with DeepSpeed. Got {len(optimizers)} optimizers instead."
             )
 
         self._deepspeed_engine, optimizer = self._initialize_engine(module, optimizers[0])

@@ -13,6 +13,8 @@
 # limitations under the License.
 import pytest
 import torch
+from torch import optim
+
 from lightning.pytorch import Trainer
 from lightning.pytorch.callbacks import EarlyStopping, LearningRateMonitor
 from lightning.pytorch.callbacks.callback import Callback
@@ -20,8 +22,6 @@ from lightning.pytorch.callbacks.finetuning import BackboneFinetuning
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.loggers import CSVLogger
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from torch import optim
-
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.simple_models import ClassificationModel
@@ -44,9 +44,9 @@ def test_lr_monitor_single_lr(tmp_path):
 
     assert lr_monitor.lrs, "No learning rates logged"
     assert all(v is None for v in lr_monitor.last_momentum_values.values()), "Momentum should not be logged by default"
-    assert all(
-        v is None for v in lr_monitor.last_weight_decay_values.values()
-    ), "Weight decay should not be logged by default"
+    assert all(v is None for v in lr_monitor.last_weight_decay_values.values()), (
+        "Weight decay should not be logged by default"
+    )
     assert len(lr_monitor.lrs) == len(trainer.lr_scheduler_configs)
     assert list(lr_monitor.lrs) == ["lr-SGD"]
 
@@ -87,9 +87,9 @@ def test_lr_monitor_single_lr_with_momentum(tmp_path, opt: str):
     assert len(lr_monitor.last_momentum_values) == len(trainer.lr_scheduler_configs)
     assert all(k == f"lr-{opt}-momentum" for k in lr_monitor.last_momentum_values)
 
-    assert all(
-        v is not None for v in lr_monitor.last_weight_decay_values.values()
-    ), "Expected weight decay to be logged"
+    assert all(v is not None for v in lr_monitor.last_weight_decay_values.values()), (
+        "Expected weight decay to be logged"
+    )
     assert len(lr_monitor.last_weight_decay_values) == len(trainer.lr_scheduler_configs)
     assert all(k == f"lr-{opt}-weight_decay" for k in lr_monitor.last_weight_decay_values)
 

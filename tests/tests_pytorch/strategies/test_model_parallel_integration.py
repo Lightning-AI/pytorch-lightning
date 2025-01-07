@@ -18,12 +18,12 @@ import pytest
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from lightning.pytorch import LightningModule, Trainer, seed_everything
-from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
-from lightning.pytorch.strategies import ModelParallelStrategy
 from torch.utils.data import DataLoader, DistributedSampler
 from torchmetrics.classification import Accuracy
 
+from lightning.pytorch import LightningModule, Trainer, seed_everything
+from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
+from lightning.pytorch.strategies import ModelParallelStrategy
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -86,7 +86,7 @@ def _parallelize_with_compile(parallelize):
     return fn
 
 
-@pytest.fixture()
+@pytest.fixture
 def distributed():
     yield
     if torch.distributed.is_initialized():

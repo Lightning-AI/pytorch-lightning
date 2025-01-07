@@ -6,6 +6,7 @@ from unittest.mock import Mock
 import numpy
 import pytest
 import torch
+
 from lightning.fabric.utilities.seed import (
     _collect_rng_states,
     _set_rng_states,

@@ -182,7 +182,7 @@ We welcome any useful contribution! For your convenience here's a recommended wo
 1. Use tags in PR name for the following cases:
 
    - **\[blocked by #<number>\]** if your work is dependent on other PRs.
-   - **\[wip\]** when you start to re-edit your work, mark it so no one will accidentally merge it in meantime.
+   - **[wip]** when you start to re-edit your work, mark it so no one will accidentally merge it in meantime.
 
 ### Question & Answer
 

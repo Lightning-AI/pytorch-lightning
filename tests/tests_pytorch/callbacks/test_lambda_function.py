@@ -14,10 +14,10 @@
 from functools import partial
 
 import pytest
+
 from lightning.pytorch import Trainer, seed_everything
 from lightning.pytorch.callbacks import Callback, LambdaCallback
 from lightning.pytorch.demos.boring_classes import BoringModel
-
 from tests_pytorch.models.test_hooks import get_members
 
 

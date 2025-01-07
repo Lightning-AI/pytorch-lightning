@@ -14,10 +14,11 @@
 import sys
 from unittest.mock import Mock
 
-import lightning.fabric
 import pytest
 import torch
 import torch.distributed
+
+import lightning.fabric
 from lightning.fabric.plugins.precision.bitsandbytes import _BITSANDBYTES_AVAILABLE
 from lightning.pytorch import LightningModule, Trainer
 from lightning.pytorch.plugins.precision.bitsandbytes import BitsandbytesPrecision

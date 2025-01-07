@@ -16,10 +16,11 @@ import logging
 
 import pytest
 import torch.nn
+from lightning_utilities import module_available
+
 from lightning.pytorch import LightningDataModule
 from lightning.pytorch.demos.boring_classes import BoringDataModule, BoringModel
 from lightning.pytorch.utilities.model_helpers import _ModuleMode, _restricted_classmethod, is_overridden
-from lightning_utilities import module_available
 
 
 def test_is_overridden():

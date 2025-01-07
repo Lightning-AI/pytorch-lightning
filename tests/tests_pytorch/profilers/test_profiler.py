@@ -22,6 +22,7 @@ from unittest.mock import patch
 import numpy as np
 import pytest
 import torch
+
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_4
 from lightning.pytorch import Callback, Trainer
 from lightning.pytorch.callbacks import EarlyStopping, StochasticWeightAveraging
@@ -30,7 +31,6 @@ from lightning.pytorch.loggers import CSVLogger, TensorBoardLogger
 from lightning.pytorch.profilers import AdvancedProfiler, PassThroughProfiler, PyTorchProfiler, SimpleProfiler
 from lightning.pytorch.profilers.pytorch import _KINETO_AVAILABLE, RegisterRecordFunction, warning_cache
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-
 from tests_pytorch.helpers.runif import RunIf
 
 PROFILER_OVERHEAD_MAX_TOLERANCE = 0.0005
@@ -55,7 +55,7 @@ def _sleep_generator(durations):
         yield duration
 
 
-@pytest.fixture()
+@pytest.fixture
 def simple_profiler():
     return SimpleProfiler()
 
@@ -264,7 +264,7 @@ def test_simple_profiler_summary(tmp_path, extended):
     assert expected_text == summary
 
 
-@pytest.fixture()
+@pytest.fixture
 def advanced_profiler(tmp_path):
     return AdvancedProfiler(dirpath=tmp_path, filename="profiler")
 
@@ -336,7 +336,7 @@ def test_advanced_profiler_deepcopy(advanced_profiler):
     assert deepcopy(advanced_profiler)
 
 
-@pytest.fixture()
+@pytest.fixture
 def pytorch_profiler(tmp_path):
     return PyTorchProfiler(dirpath=tmp_path, filename="profiler")
 

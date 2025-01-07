@@ -21,18 +21,18 @@ from http.server import SimpleHTTPRequestHandler
 from pathlib import Path
 from unittest.mock import Mock
 
-import lightning.fabric
-import lightning.pytorch
 import pytest
 import torch.distributed
+from tqdm import TMonitor
+
+import lightning.fabric
+import lightning.pytorch
 from lightning.fabric.plugins.environments.lightning import find_free_network_port
 from lightning.fabric.strategies.launchers.subprocess_script import _ChildProcessObserver
 from lightning.fabric.utilities.distributed import _destroy_dist_connection, _distributed_is_initialized
 from lightning.fabric.utilities.imports import _IS_WINDOWS
 from lightning.pytorch.accelerators import XLAAccelerator
 from lightning.pytorch.trainer.connectors.signal_connector import _SignalConnector
-from tqdm import TMonitor
-
 from tests_pytorch import _PATH_DATASETS
 
 
@@ -44,9 +44,10 @@ def datadir():
 @pytest.fixture(autouse=True)
 def preserve_global_rank_variable():
     """Ensures that the rank_zero_only.rank global variable gets reset in each test."""
+    from lightning_utilities.core.rank_zero import rank_zero_only as rank_zero_only_utilities
+
     from lightning.fabric.utilities.rank_zero import rank_zero_only as rank_zero_only_fabric
     from lightning.pytorch.utilities.rank_zero import rank_zero_only as rank_zero_only_pytorch
-    from lightning_utilities.core.rank_zero import rank_zero_only as rank_zero_only_utilities
 
     functions = (rank_zero_only_pytorch, rank_zero_only_fabric, rank_zero_only_utilities)
     ranks = [getattr(fn, "rank", None) for fn in functions]
@@ -176,22 +177,22 @@ def mock_cuda_count(monkeypatch, n: int) -> None:
     monkeypatch.setattr(lightning.pytorch.accelerators.cuda, "num_cuda_devices", lambda: n)
 
 
-@pytest.fixture()
+@pytest.fixture
 def cuda_count_0(monkeypatch):
     mock_cuda_count(monkeypatch, 0)
 
 
-@pytest.fixture()
+@pytest.fixture
 def cuda_count_1(monkeypatch):
     mock_cuda_count(monkeypatch, 1)
 
 
-@pytest.fixture()
+@pytest.fixture
 def cuda_count_2(monkeypatch):
     mock_cuda_count(monkeypatch, 2)
 
 
-@pytest.fixture()
+@pytest.fixture
 def cuda_count_4(monkeypatch):
     mock_cuda_count(monkeypatch, 4)
 
@@ -201,12 +202,12 @@ def mock_mps_count(monkeypatch, n: int) -> None:
     monkeypatch.setattr(lightning.fabric.accelerators.mps.MPSAccelerator, "is_available", lambda *_: n > 0)
 
 
-@pytest.fixture()
+@pytest.fixture
 def mps_count_0(monkeypatch):
     mock_mps_count(monkeypatch, 0)
 
 
-@pytest.fixture()
+@pytest.fixture
 def mps_count_1(monkeypatch):
     mock_mps_count(monkeypatch, 1)
 
@@ -222,7 +223,7 @@ def mock_xla_available(monkeypatch: pytest.MonkeyPatch, value: bool = True) -> N
     monkeypatch.setattr(lightning.fabric.strategies.launchers.xla, "_XLA_AVAILABLE", value)
 
 
-@pytest.fixture()
+@pytest.fixture
 def xla_available(monkeypatch: pytest.MonkeyPatch) -> None:
     mock_xla_available(monkeypatch)
 
@@ -238,12 +239,12 @@ def mock_tpu_available(monkeypatch: pytest.MonkeyPatch, value: bool = True) -> N
     monkeypatch.setitem(sys.modules, "torch_xla.experimental", Mock())
 
 
-@pytest.fixture()
+@pytest.fixture
 def tpu_available(monkeypatch) -> None:
     mock_tpu_available(monkeypatch)
 
 
-@pytest.fixture()
+@pytest.fixture
 def caplog(caplog):
     """Workaround for https://github.com/pytest-dev/pytest/issues/3697.
 
@@ -271,7 +272,7 @@ def caplog(caplog):
         logging.getLogger(name).propagate = propagate
 
 
-@pytest.fixture()
+@pytest.fixture
 def tmpdir_server(tmp_path):
     Handler = partial(SimpleHTTPRequestHandler, directory=str(tmp_path))
     from http.server import ThreadingHTTPServer
@@ -285,7 +286,7 @@ def tmpdir_server(tmp_path):
         server.shutdown()
 
 
-@pytest.fixture()
+@pytest.fixture
 def single_process_pg():
     """Initialize the default process group with only the current process for testing purposes.
 

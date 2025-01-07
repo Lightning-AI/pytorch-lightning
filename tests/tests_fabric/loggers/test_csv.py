@@ -17,6 +17,7 @@ from unittest.mock import MagicMock
 
 import pytest
 import torch
+
 from lightning.fabric.loggers import CSVLogger
 from lightning.fabric.loggers.csv_logs import _ExperimentWriter
 

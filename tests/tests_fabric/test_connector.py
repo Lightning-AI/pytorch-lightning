@@ -19,10 +19,12 @@ from typing import Any
 from unittest import mock
 from unittest.mock import Mock
 
-import lightning.fabric
 import pytest
 import torch
 import torch.distributed
+from lightning_utilities.test.warning import no_warning_call
+
+import lightning.fabric
 from lightning.fabric import Fabric
 from lightning.fabric.accelerators import XLAAccelerator
 from lightning.fabric.accelerators.accelerator import Accelerator
@@ -63,8 +65,6 @@ from lightning.fabric.strategies import (
 from lightning.fabric.strategies.ddp import _DDP_FORK_ALIASES
 from lightning.fabric.strategies.launchers.subprocess_script import _SubprocessScriptLauncher
 from lightning.fabric.utilities.imports import _IS_WINDOWS
-from lightning_utilities.test.warning import no_warning_call
-
 from tests_fabric.conftest import mock_tpu_available
 from tests_fabric.helpers.runif import RunIf
 
