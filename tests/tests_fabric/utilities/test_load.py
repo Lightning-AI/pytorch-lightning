@@ -56,7 +56,7 @@ def test_lazy_load_tensor(tmp_path):
     for t0, t1 in zip(expected.values(), loaded.values()):
         assert isinstance(t1, _NotYetLoadedTensor)
         t1_materialized = _materialize_tensors(t1)
-        assert type(t0) == type(t1_materialized)
+        assert type(t0) == type(t1_materialized)  # noqa: E721
         assert torch.equal(t0, t1_materialized)
 
 
@@ -92,7 +92,7 @@ def test_materialize_tensors(tmp_path):
     loaded = _lazy_load(tmp_path / "tensor.pt")
     materialized = _materialize_tensors(loaded)
     assert torch.equal(materialized, tensor)
-    assert type(tensor) == type(materialized)
+    assert type(tensor) == type(materialized)  # noqa: E721
 
     # Collection of tensors
     collection = {
