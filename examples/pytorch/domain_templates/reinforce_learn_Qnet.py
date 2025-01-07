@@ -41,10 +41,11 @@ import gym
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from lightning.pytorch import LightningModule, Trainer, cli_lightning_logo, seed_everything
 from torch.optim.optimizer import Optimizer
 from torch.utils.data import DataLoader
 from torch.utils.data.dataset import IterableDataset
+
+from lightning.pytorch import LightningModule, Trainer, cli_lightning_logo, seed_everything
 
 
 class DQN(nn.Module):

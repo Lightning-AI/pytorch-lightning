@@ -21,6 +21,7 @@ from unittest.mock import Mock, PropertyMock, call
 
 import pytest
 import torch
+
 from lightning.pytorch import LightningDataModule, Trainer, seed_everything
 from lightning.pytorch.callbacks import ModelCheckpoint
 from lightning.pytorch.demos.boring_classes import (
@@ -34,7 +35,6 @@ from lightning.pytorch.trainer.states import TrainerFn
 from lightning.pytorch.utilities import AttributeDict
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.imports import _OMEGACONF_AVAILABLE
-
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.simple_models import ClassificationModel
