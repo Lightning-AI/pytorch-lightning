@@ -19,10 +19,11 @@ from argparse import ArgumentParser, Namespace
 import torch
 import torch.nn.functional as F
 import torchvision.transforms as transforms
-from lightning.pytorch import LightningModule, Trainer, cli_lightning_logo
 from PIL import Image
 from torch import nn
 from torch.utils.data import DataLoader, Dataset
+
+from lightning.pytorch import LightningModule, Trainer, cli_lightning_logo
 
 DEFAULT_VOID_LABELS = (0, 1, 2, 3, 4, 5, 6, 9, 10, 14, 15, 16, 18, 29, 30, -1)
 DEFAULT_VALID_LABELS = (7, 8, 11, 12, 13, 17, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 31, 32, 33)

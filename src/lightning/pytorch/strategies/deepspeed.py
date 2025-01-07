@@ -400,8 +400,7 @@ class DeepSpeedStrategy(DDPStrategy):
         """
         if len(optimizers) != 1:
             raise ValueError(
-                f"Currently only one optimizer is supported with DeepSpeed."
-                f" Got {len(optimizers)} optimizers instead."
+                f"Currently only one optimizer is supported with DeepSpeed. Got {len(optimizers)} optimizers instead."
             )
 
         # train_micro_batch_size_per_gpu is used for throughput logging purposes

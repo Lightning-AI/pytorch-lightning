@@ -5,9 +5,11 @@ from pathlib import Path
 from unittest import mock
 from unittest.mock import Mock
 
-import lightning.fabric
 import pytest
 import torch
+from lightning_utilities.core.imports import RequirementCache
+
+import lightning.fabric
 from lightning.fabric.accelerators import CPUAccelerator, CUDAAccelerator, MPSAccelerator
 from lightning.fabric.plugins.environments import LightningEnvironment
 from lightning.fabric.strategies import DDPStrategy, SingleDeviceStrategy
@@ -23,8 +25,6 @@ from lightning.fabric.utilities.distributed import (
     _sync_ddp,
     is_shared_filesystem,
 )
-from lightning_utilities.core.imports import RequirementCache
-
 from tests_fabric.helpers.runif import RunIf
 
 

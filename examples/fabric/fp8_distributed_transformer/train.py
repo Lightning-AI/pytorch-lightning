@@ -1,14 +1,15 @@
-import lightning as L
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from lightning.fabric.strategies import ModelParallelStrategy
-from lightning.pytorch.demos import Transformer, WikiText2
 from torch.distributed._composable.fsdp.fully_shard import fully_shard
 from torch.distributed.device_mesh import DeviceMesh
 from torch.utils.data import DataLoader
 from torchao.float8 import Float8LinearConfig, convert_to_float8_training
 from tqdm import tqdm
+
+import lightning as L
+from lightning.fabric.strategies import ModelParallelStrategy
+from lightning.pytorch.demos import Transformer, WikiText2
 
 
 def configure_model(model: nn.Module, device_mesh: DeviceMesh) -> nn.Module:

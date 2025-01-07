@@ -20,11 +20,11 @@ from unittest.mock import Mock
 import pytest
 import torch
 import torch.nn as nn
+
 from lightning.fabric.strategies.model_parallel import _is_sharded_checkpoint
 from lightning.pytorch import LightningModule
 from lightning.pytorch.plugins.environments import LightningEnvironment
 from lightning.pytorch.strategies import ModelParallelStrategy
-
 from tests_pytorch.helpers.runif import RunIf
 
 

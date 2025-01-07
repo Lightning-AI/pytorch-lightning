@@ -13,9 +13,10 @@
 # limitations under the License.
 import pytest
 import torch
+from torch.utils.data import Dataset
+
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
-from torch.utils.data import Dataset
 
 
 class RandomDatasetA(Dataset):
