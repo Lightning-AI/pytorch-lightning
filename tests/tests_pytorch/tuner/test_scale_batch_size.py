@@ -18,14 +18,14 @@ from unittest.mock import patch
 
 import pytest
 import torch
+from lightning_utilities.test.warning import no_warning_call
+from torch.utils.data import DataLoader
+
 from lightning.pytorch import Trainer
 from lightning.pytorch.callbacks.batch_size_finder import BatchSizeFinder
 from lightning.pytorch.demos.boring_classes import BoringDataModule, BoringModel, RandomDataset
 from lightning.pytorch.tuner.tuning import Tuner
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning_utilities.test.warning import no_warning_call
-from torch.utils.data import DataLoader
-
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -114,9 +114,9 @@ def test_trainer_reset_correctly(tmp_path, trainer_fn):
 
     after_state_dict = model.state_dict()
     for key in before_state_dict:
-        assert torch.all(
-            torch.eq(before_state_dict[key], after_state_dict[key])
-        ), "Model was not reset correctly after scaling batch size"
+        assert torch.all(torch.eq(before_state_dict[key], after_state_dict[key])), (
+            "Model was not reset correctly after scaling batch size"
+        )
 
     assert not any(f for f in os.listdir(tmp_path) if f.startswith(".scale_batch_size_temp_model"))
 

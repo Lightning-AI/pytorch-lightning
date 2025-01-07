@@ -3,6 +3,7 @@ from unittest.mock import Mock, call
 
 import pytest
 import torch
+
 from lightning.fabric import Fabric
 from lightning.fabric.plugins import Precision
 from lightning.fabric.utilities.throughput import (
@@ -12,7 +13,6 @@ from lightning.fabric.utilities.throughput import (
     get_available_flops,
     measure_flops,
 )
-
 from tests_fabric.test_fabric import BoringModel
 
 

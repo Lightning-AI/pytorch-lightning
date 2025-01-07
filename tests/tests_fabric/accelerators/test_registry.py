@@ -14,6 +14,7 @@
 from typing import Any
 
 import torch
+
 from lightning.fabric.accelerators import ACCELERATOR_REGISTRY, Accelerator
 
 
