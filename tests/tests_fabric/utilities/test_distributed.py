@@ -106,7 +106,7 @@ def _test_all_reduce(strategy):
 
 
 # flaky with "process 0 terminated with signal SIGABRT" (GLOO)
-@pytest.mark.flaky(reruns=3, only_rerun=torch.multiprocessing.spawn.ProcessExitedException)
+@pytest.mark.flaky(reruns=3, only_rerun="torch.multiprocessing.spawn.ProcessExitedException")
 @RunIf(skip_windows=True)
 @pytest.mark.parametrize(
     "process",
