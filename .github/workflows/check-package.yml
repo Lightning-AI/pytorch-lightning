@@ -148,10 +148,21 @@ jobs:
         with:
           name: ${{ inputs.artifact-name }}
           path: pypi
-      - name: Installing package 📦
-        timeout-minutes: 20
+      - name: Installing package 📦 as Archive
+        timeout-minutes: 10
         uses: ./.cicd/.github/actions/pkg-install
         with:
+          install-from: "archive"
+          artifact-name: ${{ inputs.artifact-name }}
+          pkg-extras: ${{ inputs.install-extras }}
+          pip-flags: ${{ inputs.install-flags }}
+          import-name: ${{ inputs.import-name }}
+          custom-import-code: ${{ inputs.custom-import-code }}
+      - name: Installing package 📦 as Wheel
+        timeout-minutes: 10
+        uses: ./.cicd/.github/actions/pkg-install
+        with:
+          install-from: "wheel"
           artifact-name: ${{ inputs.artifact-name }}
           pkg-extras: ${{ inputs.install-extras }}
           pip-flags: ${{ inputs.install-flags }}

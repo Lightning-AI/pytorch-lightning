@@ -6,12 +6,12 @@ runs:
   steps:
     - name: Create package 📦
       # python setup.py clean
-      run: python -m build
+      run: python -m build --verbose
       shell: bash
 
     - name: Check package 📦
       working-directory: dist
       run: |
         ls -lh .
-        twine check *
+        twine check * --strict
       shell: bash

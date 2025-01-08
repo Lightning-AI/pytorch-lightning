@@ -23,6 +23,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Bump minimal Python version to be 3.9 ([#331](https://github.com/Lightning-AI/utilities/pull/331))
 
 
+- CI: split install action for archive and wheel ([#347](https://github.com/Lightning-AI/utilities/pull/347))
+
+
 ## [0.11.9] - 2024-11-19
 
 ### Changed

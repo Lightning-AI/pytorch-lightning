@@ -54,7 +54,6 @@ setup(
     url=about.__homepage__,
     download_url="https://github.com/Lightning-AI/utilities",
     license=about.__license__,
-    # fixme: somehow the `.cli` is missing in created package
     packages=find_packages(where="src"),
     package_dir={"": "src"},
     long_description=readme,
