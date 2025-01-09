@@ -225,7 +225,8 @@ class Fabric:
                 FSDP etc.). Set it to ``False`` if compiling DDP/FSDP is causing issues.
 
         Returns:
-            The tuple containing wrapped module and the optimizers, in the same order they were passed in.
+            The tuple containing wrapped module, optimizers, and an optional learning rate scheduler,
+            in the same order they were passed in.
 
         """
         self._validate_setup(module, optimizers)
@@ -269,7 +270,7 @@ class Fabric:
 
         if optimizers:
             # join both types in a tuple for API convenience
-            return (module, *optimizers, scheduler)
+            return (module, *optimizers, scheduler) if scheduler is not None else (module, *optimizers)
         return module
 
     def setup_module(
