@@ -4,10 +4,11 @@ import logging
 import os
 import signal
 import time
+from collections.abc import Iterable, Iterator, Sized
 from contextlib import nullcontext
 from datetime import timedelta
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Iterable, Iterator, List, Optional, Sized, Union
+from typing import TYPE_CHECKING, Any, Optional, Union
 
 import torch
 import torch.nn.functional as F
@@ -99,7 +100,7 @@ def is_shared_filesystem(strategy: "Strategy", path: Optional[_PATH] = None, tim
     return all_found
 
 
-def _gather_all_tensors(result: Tensor, group: Optional[Any] = None) -> List[Tensor]:
+def _gather_all_tensors(result: Tensor, group: Optional[Any] = None) -> list[Tensor]:
     """Function to gather all tensors from several DDP processes onto a list that is broadcasted to all processes.
 
     Works on tensors that have the same number of dimensions, but where each dimension may differ. In this case
@@ -153,7 +154,7 @@ def _gather_all_tensors(result: Tensor, group: Optional[Any] = None) -> List[Ten
     return gathered_result
 
 
-def _simple_gather_all_tensors(result: Tensor, group: Any, world_size: int) -> List[Tensor]:
+def _simple_gather_all_tensors(result: Tensor, group: Any, world_size: int) -> list[Tensor]:
     gathered_result = [torch.zeros_like(result) for _ in range(world_size)]
     torch.distributed.all_gather(gathered_result, result, group)
     return gathered_result
@@ -345,7 +346,7 @@ class _DatasetSamplerWrapper(Dataset):
             )
         self._sampler = sampler
         # defer materializing an iterator until it is necessary
-        self._sampler_list: Optional[List[Any]] = None
+        self._sampler_list: Optional[list[Any]] = None
 
     @override
     def __getitem__(self, index: int) -> Any:

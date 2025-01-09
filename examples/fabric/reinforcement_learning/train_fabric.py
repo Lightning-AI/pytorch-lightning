@@ -21,24 +21,24 @@ import argparse
 import os
 import time
 from datetime import datetime
-from typing import Dict
 
 import gymnasium as gym
 import torch
 import torchmetrics
-from lightning.fabric import Fabric
-from lightning.fabric.loggers import TensorBoardLogger
 from rl.agent import PPOLightningAgent
 from rl.utils import linear_annealing, make_env, parse_args, test
 from torch import Tensor
 from torch.utils.data import BatchSampler, DistributedSampler, RandomSampler
+
+from lightning.fabric import Fabric
+from lightning.fabric.loggers import TensorBoardLogger
 
 
 def train(
     fabric: Fabric,
     agent: PPOLightningAgent,
     optimizer: torch.optim.Optimizer,
-    data: Dict[str, Tensor],
+    data: dict[str, Tensor],
     global_step: int,
     args: argparse.Namespace,
 ):

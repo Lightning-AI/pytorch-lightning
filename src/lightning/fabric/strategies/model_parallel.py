@@ -13,10 +13,11 @@
 # limitations under the License.
 import itertools
 import shutil
-from contextlib import ExitStack
+from collections.abc import Generator
+from contextlib import AbstractContextManager, ExitStack
 from datetime import timedelta
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable, ContextManager, Dict, Generator, Literal, Optional, TypeVar, Union
+from typing import TYPE_CHECKING, Any, Callable, Literal, Optional, TypeVar, Union
 
 import torch
 from lightning_utilities.core.rank_zero import rank_zero_only as utils_rank_zero_only
@@ -144,7 +145,7 @@ class ModelParallelStrategy(ParallelStrategy):
 
     @property
     @override
-    def distributed_sampler_kwargs(self) -> Dict[str, Any]:
+    def distributed_sampler_kwargs(self) -> dict[str, Any]:
         assert self.device_mesh is not None
         data_parallel_mesh = self.device_mesh["data_parallel"]
         return {"num_replicas": data_parallel_mesh.size(), "rank": data_parallel_mesh.get_local_rank()}
@@ -194,7 +195,7 @@ class ModelParallelStrategy(ParallelStrategy):
         pass
 
     @override
-    def module_init_context(self, empty_init: Optional[bool] = None) -> ContextManager:
+    def module_init_context(self, empty_init: Optional[bool] = None) -> AbstractContextManager:
         precision_init_ctx = self.precision.module_init_context()
         stack = ExitStack()
         if empty_init:
@@ -234,9 +235,9 @@ class ModelParallelStrategy(ParallelStrategy):
     def save_checkpoint(
         self,
         path: _PATH,
-        state: Dict[str, Union[Module, Optimizer, Any]],
+        state: dict[str, Union[Module, Optimizer, Any]],
         storage_options: Optional[Any] = None,
-        filter: Optional[Dict[str, Callable[[str, Any], bool]]] = None,
+        filter: Optional[dict[str, Callable[[str, Any], bool]]] = None,
     ) -> None:
         """Save model, optimizer, and other state to a checkpoint on disk.
 
@@ -272,9 +273,9 @@ class ModelParallelStrategy(ParallelStrategy):
     def load_checkpoint(
         self,
         path: _PATH,
-        state: Optional[Union[Module, Optimizer, Dict[str, Union[Module, Optimizer, Any]]]] = None,
+        state: Optional[Union[Module, Optimizer, dict[str, Union[Module, Optimizer, Any]]]] = None,
         strict: bool = True,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Load the contents from a checkpoint and restore the state of the given objects."""
         if not state:
             raise ValueError(
@@ -291,8 +292,7 @@ class ModelParallelStrategy(ParallelStrategy):
 
         if isinstance(state, Optimizer):
             raise NotImplementedError(
-                f"Loading a single optimizer object from a checkpoint is not supported yet with"
-                f" {type(self).__name__}."
+                f"Loading a single optimizer object from a checkpoint is not supported yet with {type(self).__name__}."
             )
 
         return _load_checkpoint(path=path, state=state, strict=strict)
@@ -318,12 +318,12 @@ class ModelParallelStrategy(ParallelStrategy):
 
 class _ParallelBackwardSyncControl(_BackwardSyncControl):
     @override
-    def no_backward_sync(self, module: Module, enabled: bool) -> ContextManager:
+    def no_backward_sync(self, module: Module, enabled: bool) -> AbstractContextManager:
         """Blocks gradient synchronization inside the FSDP2 modules."""
         return _FSDPNoSync(module=module, enabled=enabled)
 
 
-class _FSDPNoSync(ContextManager):
+class _FSDPNoSync(AbstractContextManager):
     def __init__(self, module: Module, enabled: bool) -> None:
         self._module = module
         self._enabled = enabled
@@ -344,10 +344,10 @@ class _FSDPNoSync(ContextManager):
 
 def _save_checkpoint(
     path: Path,
-    state: Dict[str, Union[Module, Optimizer, Any]],
+    state: dict[str, Union[Module, Optimizer, Any]],
     full_state_dict: bool,
     rank: int,
-    filter: Optional[Dict[str, Callable[[str, Any], bool]]] = None,
+    filter: Optional[dict[str, Callable[[str, Any], bool]]] = None,
 ) -> None:
     if path.is_dir() and full_state_dict and not _is_sharded_checkpoint(path):
         raise IsADirectoryError(f"The checkpoint path exists and is a directory: {path}")
@@ -373,8 +373,8 @@ def _save_checkpoint(
 
     # replace the modules and optimizer objects in the state with their local state dict
     # and separate the user's metadata
-    converted_state: Dict[str, Any] = {}
-    metadata: Dict[str, Any] = {}
+    converted_state: dict[str, Any] = {}
+    metadata: dict[str, Any] = {}
     for key, obj in state.items():
         converted: Any
         if isinstance(obj, Module):
@@ -405,10 +405,10 @@ def _save_checkpoint(
 
 def _load_checkpoint(
     path: Path,
-    state: Dict[str, Union[Module, Optimizer, Any]],
+    state: dict[str, Union[Module, Optimizer, Any]],
     strict: bool = True,
     optimizer_states_from_list: bool = False,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     from torch.distributed.checkpoint.state_dict import (
         StateDictOptions,
         get_model_state_dict,
@@ -537,7 +537,7 @@ def _load_raw_module_state_from_path(path: Path, module: Module, world_size: int
 
 
 def _load_raw_module_state(
-    state_dict: Dict[str, Any], module: Module, world_size: int = 1, strict: bool = True
+    state_dict: dict[str, Any], module: Module, world_size: int = 1, strict: bool = True
 ) -> None:
     """Loads the state dict into the module by gathering all weights first and then and writing back to each shard."""
     from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
@@ -583,7 +583,7 @@ def _named_parameters_and_buffers_to_load(module: Module) -> Generator:
         yield param_name, param
 
 
-def _rekey_optimizer_state_if_needed(optimizer_state_dict: Dict[str, Any], module: Module) -> Dict[str, Any]:
+def _rekey_optimizer_state_if_needed(optimizer_state_dict: dict[str, Any], module: Module) -> dict[str, Any]:
     """Handles the case where the optimizer state is saved from a normal optimizer and converts the keys to parameter
     names."""
     from torch.distributed.fsdp import FullyShardedDataParallel as FSDP

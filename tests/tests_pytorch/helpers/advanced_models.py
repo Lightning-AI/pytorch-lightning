@@ -16,9 +16,9 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from lightning.pytorch.core.module import LightningModule
 from torch.utils.data import DataLoader
 
+from lightning.pytorch.core.module import LightningModule
 from tests_pytorch import _PATH_DATASETS
 from tests_pytorch.helpers.datasets import MNIST, AverageDataset, TrialMNIST
 
@@ -219,3 +219,54 @@ class ParityModuleMNIST(LightningModule):
 
     def train_dataloader(self):
         return DataLoader(MNIST(root=_PATH_DATASETS, train=True, download=True), batch_size=128, num_workers=1)
+
+
+class TBPTTModule(LightningModule):
+    def __init__(self):
+        super().__init__()
+
+        self.batch_size = 10
+        self.in_features = 10
+        self.out_features = 5
+        self.hidden_dim = 20
+
+        self.automatic_optimization = False
+        self.truncated_bptt_steps = 10
+
+        self.rnn = nn.LSTM(self.in_features, self.hidden_dim, batch_first=True)
+        self.linear_out = nn.Linear(in_features=self.hidden_dim, out_features=self.out_features)
+
+    def forward(self, x, hs):
+        seq, hs = self.rnn(x, hs)
+        return self.linear_out(seq), hs
+
+    def training_step(self, batch, batch_idx):
+        x, y = batch
+        split_x, split_y = [
+            x.tensor_split(self.truncated_bptt_steps, dim=1),
+            y.tensor_split(self.truncated_bptt_steps, dim=1),
+        ]
+
+        hiddens = None
+        optimizer = self.optimizers()
+        losses = []
+
+        for x, y in zip(split_x, split_y):
+            y_pred, hiddens = self(x, hiddens)
+            loss = F.mse_loss(y_pred, y)
+
+            optimizer.zero_grad()
+            self.manual_backward(loss)
+            optimizer.step()
+
+            # "Truncate"
+            hiddens = [h.detach() for h in hiddens]
+            losses.append(loss.detach())
+
+        return
+
+    def configure_optimizers(self):
+        return torch.optim.Adam(self.parameters(), lr=0.001)
+
+    def train_dataloader(self):
+        return DataLoader(AverageDataset(), batch_size=self.batch_size)

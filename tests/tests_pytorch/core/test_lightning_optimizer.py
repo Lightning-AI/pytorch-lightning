@@ -15,13 +15,13 @@ from copy import deepcopy
 from unittest.mock import DEFAULT, Mock, patch
 
 import torch
+from torch.optim import SGD, Adam, Optimizer
+
 from lightning.pytorch import Trainer, seed_everything
 from lightning.pytorch.core.optimizer import LightningOptimizer
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.loops.optimization.automatic import Closure
 from lightning.pytorch.tuner.tuning import Tuner
-from torch.optim import SGD, Adam, Optimizer
-
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -110,9 +110,10 @@ def test_lightning_optimizer_manual_optimization_and_accumulated_gradients(tmp_p
         default_root_dir=tmp_path, limit_train_batches=8, limit_val_batches=1, max_epochs=1, enable_model_summary=False
     )
 
-    with patch.multiple(torch.optim.SGD, zero_grad=DEFAULT, step=DEFAULT) as sgd, patch.multiple(
-        torch.optim.Adam, zero_grad=DEFAULT, step=DEFAULT
-    ) as adam:
+    with (
+        patch.multiple(torch.optim.SGD, zero_grad=DEFAULT, step=DEFAULT) as sgd,
+        patch.multiple(torch.optim.Adam, zero_grad=DEFAULT, step=DEFAULT) as adam,
+    ):
         trainer.fit(model)
 
     assert sgd["step"].call_count == 4

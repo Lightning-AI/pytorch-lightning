@@ -15,22 +15,23 @@ import glob
 import logging as log
 import os
 import pickle
+from collections.abc import Mapping
 from copy import deepcopy
-from typing import Generic, Mapping, TypeVar
+from typing import Generic, TypeVar
 
 import cloudpickle
 import pytest
 import torch
-from lightning.fabric import seed_everything
-from lightning.pytorch import Callback, Trainer
-from lightning.pytorch.callbacks import ModelCheckpoint
-from lightning.pytorch.demos.boring_classes import BoringModel
-from lightning.pytorch.trainer.states import TrainerFn
 from lightning_utilities.test.warning import no_warning_call
 from torch import Tensor
 
 import tests_pytorch.helpers.pipelines as tpipes
 import tests_pytorch.helpers.utils as tutils
+from lightning.fabric import seed_everything
+from lightning.pytorch import Callback, Trainer
+from lightning.pytorch.callbacks import ModelCheckpoint
+from lightning.pytorch.demos.boring_classes import BoringModel
+from lightning.pytorch.trainer.states import TrainerFn
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.simple_models import ClassificationModel

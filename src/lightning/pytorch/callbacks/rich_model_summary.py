@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Dict, List, Tuple
+from typing import Any
 
 from typing_extensions import override
 
@@ -67,11 +67,11 @@ class RichModelSummary(ModelSummary):
     @staticmethod
     @override
     def summarize(
-        summary_data: List[Tuple[str, List[str]]],
+        summary_data: list[tuple[str, list[str]]],
         total_parameters: int,
         trainable_parameters: int,
         model_size: float,
-        total_training_modes: Dict[str, int],
+        total_training_modes: dict[str, int],
         **summarize_kwargs: Any,
     ) -> None:
         from rich import get_console

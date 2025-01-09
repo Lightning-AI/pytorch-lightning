@@ -15,9 +15,9 @@ from unittest.mock import Mock
 
 import pytest
 import torch
+
 from lightning.fabric.plugins import FSDPPrecision
 from lightning.fabric.plugins.precision.utils import _DtypeContextManager
-
 from tests_fabric.helpers.runif import RunIf
 
 
@@ -127,3 +127,21 @@ def test_invalid_precision_with_fsdp_precision():
 
     with pytest.raises(ValueError, match="is not supported in FSDP. `precision` must be one of"):
         FSDPPrecision(precision="64-true")
+
+
+@pytest.mark.parametrize(
+    ("precision", "expected_dtype"),
+    [
+        ("32-true", torch.float32),
+        ("bf16-mixed", torch.float32),
+        ("16-mixed", torch.float32),
+        ("bf16-true", torch.bfloat16),
+        ("16-true", torch.float16),
+    ],
+)
+def test_convert_module(precision, expected_dtype):
+    precision = FSDPPrecision(precision=precision)
+    module = torch.nn.Linear(2, 2)
+    assert module.weight.dtype == module.bias.dtype == torch.float32
+    module = precision.convert_module(module)
+    assert module.weight.dtype == module.bias.dtype == expected_dtype

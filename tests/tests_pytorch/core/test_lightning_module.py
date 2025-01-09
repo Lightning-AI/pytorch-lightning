@@ -17,15 +17,15 @@ from unittest.mock import Mock
 
 import pytest
 import torch
+from torch import nn
+from torch.optim import SGD, Adam
+
 from lightning.fabric import Fabric
 from lightning.pytorch import LightningModule, Trainer
 from lightning.pytorch.core.module import _TrainerFabricShim
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.loggers import TensorBoardLogger
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from torch import nn
-from torch.optim import SGD, Adam
-
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -336,9 +336,9 @@ def test_sharded_tensor_state_dict(single_process_pg):
     ), "Expect the shards to be different before `m_1` loading `m_0`'s state dict"
 
     m_1.load_state_dict(m_0.state_dict(), strict=False)
-    assert torch.allclose(
-        m_1.sharded_tensor.local_shards()[0].tensor, m_0.sharded_tensor.local_shards()[0].tensor
-    ), "Expect the shards to be same after `m_1` loading `m_0`'s state dict"
+    assert torch.allclose(m_1.sharded_tensor.local_shards()[0].tensor, m_0.sharded_tensor.local_shards()[0].tensor), (
+        "Expect the shards to be same after `m_1` loading `m_0`'s state dict"
+    )
 
 
 def test_lightning_module_configure_gradient_clipping(tmp_path):

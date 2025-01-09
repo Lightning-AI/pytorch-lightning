@@ -27,6 +27,12 @@ import cloudpickle
 import pytest
 import torch
 import torch.nn as nn
+from torch.multiprocessing import ProcessRaisedException
+from torch.nn.parallel.distributed import DistributedDataParallel
+from torch.optim import SGD
+from torch.utils.data import DataLoader, IterableDataset
+
+import tests_pytorch.helpers.utils as tutils
 from lightning.fabric.utilities.cloud_io import _load as pl_load
 from lightning.fabric.utilities.imports import _IS_WINDOWS
 from lightning.fabric.utilities.seed import seed_everything
@@ -50,12 +56,6 @@ from lightning.pytorch.strategies.launchers import _MultiProcessingLauncher, _Su
 from lightning.pytorch.trainer.states import RunningStage, TrainerFn
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.imports import _OMEGACONF_AVAILABLE
-from torch.multiprocessing import ProcessRaisedException
-from torch.nn.parallel.distributed import DistributedDataParallel
-from torch.optim import SGD
-from torch.utils.data import DataLoader, IterableDataset
-
-import tests_pytorch.helpers.utils as tutils
 from tests_pytorch.conftest import mock_cuda_count, mock_mps_count
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.runif import RunIf
@@ -335,9 +335,9 @@ def test_model_checkpoint_options(tmp_path, save_top_k, save_last, expected_file
 
     file_lists = set(os.listdir(tmp_path))
 
-    assert len(file_lists) == len(
-        expected_files
-    ), f"Should save {len(expected_files)} models when save_top_k={save_top_k} but found={file_lists}"
+    assert len(file_lists) == len(expected_files), (
+        f"Should save {len(expected_files)} models when save_top_k={save_top_k} but found={file_lists}"
+    )
 
     # verify correct naming
     for fname in expected_files:
@@ -1887,8 +1887,9 @@ def test_detect_anomaly_nan(tmp_path):
 
     model = NanModel()
     trainer = Trainer(default_root_dir=tmp_path, detect_anomaly=True)
-    with pytest.raises(RuntimeError, match=r"returned nan values in its 0th output."), pytest.warns(
-        UserWarning, match=r".*Error detected in.* Traceback of forward call that caused the error.*"
+    with (
+        pytest.raises(RuntimeError, match=r"returned nan values in its 0th output."),
+        pytest.warns(UserWarning, match=r".*Error detected in.* Traceback of forward call that caused the error.*"),
     ):
         trainer.fit(model)
 
@@ -2067,8 +2068,9 @@ def test_trainer_calls_strategy_on_exception(exception_type, tmp_path):
             raise exception
 
     trainer = Trainer(default_root_dir=tmp_path)
-    with mock.patch("lightning.pytorch.strategies.strategy.Strategy.on_exception") as on_exception_mock, suppress(
-        Exception, SystemExit
+    with (
+        mock.patch("lightning.pytorch.strategies.strategy.Strategy.on_exception") as on_exception_mock,
+        suppress(Exception, SystemExit),
     ):
         trainer.fit(ExceptionModel())
     on_exception_mock.assert_called_once_with(exception)

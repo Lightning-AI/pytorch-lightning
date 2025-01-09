@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Dict, Optional
+from typing import Optional
 
 import lightning.pytorch as pl
 from lightning.pytorch.loops.progress import _BaseProgress
@@ -41,7 +41,7 @@ class _Loop:
     def reset_restart_stage(self) -> None:
         pass
 
-    def on_save_checkpoint(self) -> Dict:
+    def on_save_checkpoint(self) -> dict:
         """Called when saving a model checkpoint, use to persist loop state.
 
         Returns:
@@ -50,10 +50,10 @@ class _Loop:
         """
         return {}
 
-    def on_load_checkpoint(self, state_dict: Dict) -> None:
+    def on_load_checkpoint(self, state_dict: dict) -> None:
         """Called when loading a model checkpoint, use to reload loop state."""
 
-    def state_dict(self, destination: Optional[Dict] = None, prefix: str = "") -> Dict:
+    def state_dict(self, destination: Optional[dict] = None, prefix: str = "") -> dict:
         """The state dict is determined by the state and progress of this loop and all its children.
 
         Args:
@@ -77,7 +77,7 @@ class _Loop:
 
     def load_state_dict(
         self,
-        state_dict: Dict,
+        state_dict: dict,
         prefix: str = "",
     ) -> None:
         """Loads the state of this loop and all its children."""
@@ -88,7 +88,7 @@ class _Loop:
         self.restarting = True
         self._loaded_from_state_dict = True
 
-    def _load_from_state_dict(self, state_dict: Dict, prefix: str) -> None:
+    def _load_from_state_dict(self, state_dict: dict, prefix: str) -> None:
         for k, v in self.__dict__.items():
             key = prefix + k
             if key not in state_dict:

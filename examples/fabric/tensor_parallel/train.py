@@ -1,12 +1,13 @@
-import lightning as L
 import torch
 import torch.nn.functional as F
 from data import RandomTokenDataset
-from lightning.fabric.strategies import ModelParallelStrategy
 from model import ModelArgs, Transformer
 from parallelism import parallelize
 from torch.distributed.tensor.parallel import loss_parallel
 from torch.utils.data import DataLoader
+
+import lightning as L
+from lightning.fabric.strategies import ModelParallelStrategy
 
 
 def train():
