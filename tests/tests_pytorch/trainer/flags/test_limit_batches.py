@@ -14,6 +14,7 @@
 import logging
 
 import pytest
+
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.trainer.states import TrainerFn

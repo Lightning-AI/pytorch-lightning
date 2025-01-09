@@ -14,10 +14,17 @@
 import os
 from unittest.mock import Mock, call, patch
 
-import lightning.pytorch
 import numpy
 import pytest
 import torch
+from lightning_utilities.test.warning import no_warning_call
+from torch.utils.data import RandomSampler
+from torch.utils.data.dataloader import DataLoader
+from torch.utils.data.dataset import Dataset, IterableDataset
+from torch.utils.data.distributed import DistributedSampler
+from torch.utils.data.sampler import SequentialSampler
+
+import lightning.pytorch
 from lightning.fabric.utilities.data import _auto_add_worker_init_fn, has_iterable_dataset
 from lightning.pytorch import Callback, Trainer, seed_everything
 from lightning.pytorch.callbacks import ModelCheckpoint
@@ -33,13 +40,6 @@ from lightning.pytorch.trainer.states import RunningStage
 from lightning.pytorch.utilities.combined_loader import CombinedLoader
 from lightning.pytorch.utilities.data import has_len_all_ranks
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning_utilities.test.warning import no_warning_call
-from torch.utils.data import RandomSampler
-from torch.utils.data.dataloader import DataLoader
-from torch.utils.data.dataset import Dataset, IterableDataset
-from torch.utils.data.distributed import DistributedSampler
-from torch.utils.data.sampler import SequentialSampler
-
 from tests_pytorch.helpers.dataloaders import CustomInfDataloader, CustomNotImplementedErrorDataloader
 from tests_pytorch.helpers.runif import RunIf
 

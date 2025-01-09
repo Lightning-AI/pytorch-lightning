@@ -6,12 +6,12 @@ from unittest import mock
 
 import pytest
 import torch
+
 from lightning.fabric.accelerators import CPUAccelerator, CUDAAccelerator
 from lightning.fabric.plugins.collectives import TorchCollective
 from lightning.fabric.plugins.environments import LightningEnvironment
 from lightning.fabric.strategies.ddp import DDPStrategy
 from lightning.fabric.strategies.launchers.multiprocessing import _MultiProcessingLauncher
-
 from tests_fabric.helpers.runif import RunIf
 
 if TorchCollective.is_available():

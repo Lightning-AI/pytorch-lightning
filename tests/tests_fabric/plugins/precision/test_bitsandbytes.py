@@ -14,16 +14,16 @@
 import sys
 from unittest.mock import Mock
 
-import lightning.fabric
 import pytest
 import torch
 import torch.distributed
+
+import lightning.fabric
 from lightning.fabric import Fabric
 from lightning.fabric.connector import _Connector
 from lightning.fabric.plugins.precision.bitsandbytes import _BITSANDBYTES_AVAILABLE, BitsandbytesPrecision
 from lightning.fabric.utilities.init import _materialize_meta_tensors
 from lightning.fabric.utilities.load import _lazy_load
-
 from tests_fabric.helpers.runif import RunIf
 
 

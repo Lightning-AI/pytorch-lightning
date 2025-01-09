@@ -16,6 +16,7 @@ from unittest import mock
 from unittest.mock import MagicMock, Mock
 
 import pytest
+
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.loggers.mlflow import (
