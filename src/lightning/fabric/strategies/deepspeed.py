@@ -318,13 +318,13 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
     @override
     def setup_module_and_optimizers(
         self, module: Module, optimizers: list[Optimizer], scheduler: Optional[_LRScheduler] = None
-    ) -> tuple["DeepSpeedEngine", list[Optimizer], Optional[_LRScheduler]]:
+    ) -> tuple["DeepSpeedEngine", list[Optimizer], Any]:
         """Set up a model and multiple optimizers together, along with an optional learning rate scheduler. Currently,
         only a single optimizer is supported.
 
         Return:
-            The model wrapped into a :class:`deepspeed.DeepSpeedEngine` and a list with a single
-            deepspeed optimizer.
+            The model wrapped into a :class:`deepspeed.DeepSpeedEngine`, a list with a single
+            deepspeed optimizer, and an optional learning rate scheduler.
 
         """
         if len(optimizers) != 1:
@@ -597,7 +597,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
 
     def _initialize_engine(
         self, model: Module, optimizer: Optional[Optimizer] = None, scheduler: Optional[_LRScheduler] = None
-    ) -> tuple["DeepSpeedEngine", Optimizer, Optional[_LRScheduler]]:
+    ) -> tuple["DeepSpeedEngine", Optimizer, Any]:
         """Initialize one model and one optimizer with an optional learning rate scheduler.
 
         This calls ``deepspeed.initialize`` internally.
