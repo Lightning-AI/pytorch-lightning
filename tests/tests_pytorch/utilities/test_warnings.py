@@ -24,10 +24,11 @@ from contextlib import redirect_stderr
 from io import StringIO
 from unittest import mock
 
-import lightning.pytorch
 import pytest
-from lightning.pytorch.utilities.warnings import PossibleUserWarning
 from lightning_utilities.test.warning import no_warning_call
+
+import lightning.pytorch
+from lightning.pytorch.utilities.warnings import PossibleUserWarning
 
 if __name__ == "__main__":
     # check that logging is properly configured

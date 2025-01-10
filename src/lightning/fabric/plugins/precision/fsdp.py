@@ -74,6 +74,12 @@ class FSDPPrecision(Precision):
         }
         self._desired_input_dtype = precision_to_type[self.precision]
 
+    @override
+    def convert_module(self, module: Module) -> Module:
+        if "true" in self.precision:
+            return module.to(dtype=self._desired_input_dtype)
+        return module
+
     @property
     def mixed_precision_config(self) -> "TorchMixedPrecision":
         from torch.distributed.fsdp.fully_sharded_data_parallel import MixedPrecision as TorchMixedPrecision

@@ -25,6 +25,10 @@ import cloudpickle
 import pytest
 import torch
 from fsspec.implementations.local import LocalFileSystem
+from lightning_utilities.core.imports import RequirementCache
+from lightning_utilities.test.warning import no_warning_call
+from torch.utils.data import DataLoader
+
 from lightning.pytorch import LightningModule, Trainer
 from lightning.pytorch.callbacks import ModelCheckpoint
 from lightning.pytorch.core.datamodule import LightningDataModule
@@ -34,10 +38,6 @@ from lightning.pytorch.demos.boring_classes import BoringDataModule, BoringModel
 from lightning.pytorch.loggers import CSVLogger, TensorBoardLogger
 from lightning.pytorch.utilities import AttributeDict, is_picklable
 from lightning.pytorch.utilities.imports import _OMEGACONF_AVAILABLE
-from lightning_utilities.core.imports import RequirementCache
-from lightning_utilities.test.warning import no_warning_call
-from torch.utils.data import DataLoader
-
 from tests_pytorch.helpers.runif import RunIf
 
 if _OMEGACONF_AVAILABLE:
