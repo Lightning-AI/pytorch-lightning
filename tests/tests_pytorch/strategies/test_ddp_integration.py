@@ -18,6 +18,7 @@ from unittest.mock import Mock
 import lightning.pytorch as pl
 import pytest
 import torch
+from torch._dynamo import OptimizedModule
 from lightning.fabric.plugins.environments import ClusterEnvironment, LightningEnvironment
 from lightning.fabric.utilities.distributed import _distributed_is_initialized
 from lightning.pytorch import Trainer
@@ -448,3 +449,31 @@ def test_incorrect_ddp_script_spawning(tmp_path):
         RuntimeError, match="Lightning attempted to launch new distributed processes with `local_rank > 0`."
     ):
         trainer.fit(model)
+
+
+@RunIf(dynamo=True)
+@mock.patch("lightning.fabric.wrappers.torch.compile", Mock(wraps=torch.compile))
+@mock.patch.dict(os.environ, {})
+def test_reapply_compile(tmp_path):
+    """Test that Trainer can rewrap a compiled module such that compilation happens over the DDP-wrapper."""
+    trainer = Trainer(accelerator="cpu", devices=2, strategy="ddp", max_steps=2, logger=False)
+
+    model = BoringModel()
+    compile_kwargs = {"mode": "reduce-overhead"}
+    compiled_model = torch.compile(model, **compile_kwargs)
+    torch.compile.reset_mock()
+
+    trainer.fit(compiled_model)
+    trainer_model = trainer.strategy.model
+
+    assert isinstance(trainer_model, OptimizedModule)
+    assert isinstance(trainer_model._orig_mod, DistributedDataParallel)
+    # Assert we called compile again with the same arguments, but on the DDP-wrapped module
+    torch.compile.assert_called_with(trainer_model._orig_mod, **compile_kwargs)
+
+    assert trainer_model._orig_mod.module == model
+
+    # Smoke-testing forward to ensure we don't get compilation errors
+    for _ in range(3):
+        trainer_model(torch.randn(2, 32, device="cpu")).sum().backward()
+    assert True
