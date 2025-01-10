@@ -454,7 +454,7 @@ def test_incorrect_ddp_script_spawning(tmp_path):
 @RunIf(min_cuda_gpus=2, standalone=True, dynamo=True)
 @mock.patch("lightning.fabric.wrappers.torch.compile", Mock(wraps=torch.compile))
 @mock.patch.dict(os.environ, {})
-def test_reapply_compile(tmp_path):
+def test_reapply_compile():
     """Test that Trainer can rewrap a compiled module such that compilation happens over the DDP-wrapper."""
     trainer = Trainer(accelerator="gpu", devices=2, strategy="ddp", max_steps=2, logger=False)
 
