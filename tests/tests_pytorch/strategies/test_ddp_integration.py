@@ -476,4 +476,3 @@ def test_reapply_compile(tmp_path):
     # Smoke-testing forward to ensure we don't get compilation errors
     for _ in range(3):
         trainer_model(torch.randn(2, 32, device="gpu")).sum().backward()
-    assert True
