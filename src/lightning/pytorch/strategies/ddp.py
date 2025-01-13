@@ -228,7 +228,7 @@ class DDPStrategy(ParallelStrategy):
 
     def _enable_model_averaging(self) -> None:
         log.debug(f"{self.__class__.__name__}: reinitializing optimizers with post localSGD")
-        if self._model_averaging_period is None:
+        if self._model_averaging_period is None: # type: ignore[no-untyped-def]
             raise ValueError(
                 "Post-localSGD algorithm is used, but model averaging period is not provided to DDP strategy."
             )
@@ -418,7 +418,7 @@ class DDPStrategy(ParallelStrategy):
 
         super().teardown()
 
-    def _create_stream_context(self, device_ids=None):
+    def _create_stream_context(self, device_ids=None): # type: ignore[no-untyped-def]
         """Create a stream context for the current device, if supported."""
 
         torch_lib = getattr(torch, self.root_device.type)

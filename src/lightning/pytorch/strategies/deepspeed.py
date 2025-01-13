@@ -320,7 +320,7 @@ class DeepSpeedStrategy(DDPStrategy):
         self.min_loss_scale = min_loss_scale
 
         try:
-            self.device_type = self.accelerator.get_device_type()
+            self.device_type = self.accelerator.get_device_type() # type: ignore[union-attr]
         except Exception:
             self.device_type = "cuda"
         self.torch_lib = getattr(torch, self.device_type)
