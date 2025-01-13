@@ -18,10 +18,10 @@ import sys
 from unittest import mock
 
 import pytest
-from lightning.fabric.plugins.environments import SLURMEnvironment
-from lightning.fabric.utilities.warnings import PossibleUserWarning
 from lightning_utilities.test.warning import no_warning_call
 
+from lightning.fabric.plugins.environments import SLURMEnvironment
+from lightning.fabric.utilities.warnings import PossibleUserWarning
 from tests_fabric.helpers.runif import RunIf
 
 

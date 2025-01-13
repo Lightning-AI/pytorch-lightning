@@ -70,7 +70,7 @@ def nice_print(details: dict, level: int = 0) -> list:
             lines += [level * LEVEL_OFFSET + key]
             lines += [(level + 1) * LEVEL_OFFSET + "- " + v for v in details[k]]
         else:
-            template = "{:%is} {}" % KEY_PADDING
+            template = "{:%is} {}" % KEY_PADDING  # noqa: UP031
             key_val = template.format(key, details[k])
             lines += [(level * LEVEL_OFFSET) + key_val]
     return lines

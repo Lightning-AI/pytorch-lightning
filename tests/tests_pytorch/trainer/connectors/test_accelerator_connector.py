@@ -19,11 +19,12 @@ from typing import Any
 from unittest import mock
 from unittest.mock import Mock
 
-import lightning.fabric
-import lightning.pytorch
 import pytest
 import torch
 import torch.distributed
+
+import lightning.fabric
+import lightning.pytorch
 from lightning.fabric.plugins.environments import (
     KubeflowEnvironment,
     LightningEnvironment,
@@ -61,7 +62,6 @@ from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.imports import (
     _LIGHTNING_HABANA_AVAILABLE,
 )
-
 from tests_pytorch.conftest import mock_cuda_count, mock_mps_count, mock_tpu_available, mock_xla_available
 from tests_pytorch.helpers.runif import RunIf
 

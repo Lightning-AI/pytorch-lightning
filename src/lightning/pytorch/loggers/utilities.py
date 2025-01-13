@@ -74,7 +74,7 @@ def _log_hyperparams(trainer: "pl.Trainer") -> None:
                 continue
             lm_val, dm_val = lightning_hparams[key], datamodule_hparams[key]
             if (
-                type(lm_val) != type(dm_val)
+                type(lm_val) != type(dm_val)  # noqa: E721
                 or (isinstance(lm_val, Tensor) and id(lm_val) != id(dm_val))
                 or lm_val != dm_val
             ):
