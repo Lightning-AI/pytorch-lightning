@@ -436,7 +436,7 @@ def test_mlflow_log_model_with_checkpoint_artifact_path_prefix(mlflow_mock, tmp_
 
     # Get model, logger, trainer and train
     model = BoringModel()
-    logger = MLFlowLogger("test", save_dir=str(tmp_path), log_model="all", checkpoint_artifact_path_prefix="my_prefix")
+    logger = MLFlowLogger("test", save_dir=str(tmp_path), log_model="all", checkpoint_path_prefix="my_prefix")
     logger = mock_mlflow_run_creation(logger, experiment_id="test-id")
 
     trainer = Trainer(

@@ -60,13 +60,13 @@ Track and Visualize Experiments
 MLflow Logger
 -------------
 
-The MLflow logger in PyTorch Lightning now includes a `checkpoint_artifact_path_prefix` parameter. This parameter allows you to prefix the checkpoint artifact's path when logging checkpoints as artifacts.
+The MLflow logger in PyTorch Lightning now includes a `checkpoint_path_prefix` parameter. This parameter allows you to prefix the checkpoint artifact's path when logging checkpoints as artifacts.
 
 Example usage:
 
 .. code-block:: python
 
-    from lightning.pytorch import Trainer
+    import lightning as L
     from lightning.pytorch.loggers import MLFlowLogger
 
     mlf_logger = MLFlowLogger(
@@ -74,10 +74,10 @@ Example usage:
         tracking_uri="file:./ml-runs",
         checkpoint_artifact_path_prefix="my_prefix"
     )
-    trainer = Trainer(logger=mlf_logger)
+    trainer = L.Trainer(logger=mlf_logger)
 
     # Your LightningModule definition
-    class LitModel(LightningModule):
+    class LitModel(L.LightningModule):
         def training_step(self, batch, batch_idx):
             # example
             self.logger.experiment.whatever_ml_flow_supports(...)
