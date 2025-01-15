@@ -430,7 +430,7 @@ def test_set_tracking_uri(mlflow_mock):
 
 
 @mock.patch("lightning.pytorch.loggers.mlflow._get_resolve_tags", Mock())
-def test_mlflow_log_model_with_checkpoint_artifact_path_prefix(mlflow_mock, tmp_path):
+def test_mlflow_log_model_with_checkpoint_path_prefix(mlflow_mock, tmp_path):
     """Test that the logger creates the folders and files in the right place with a prefix."""
     client = mlflow_mock.tracking.MlflowClient
 
@@ -455,4 +455,5 @@ def test_mlflow_log_model_with_checkpoint_artifact_path_prefix(mlflow_mock, tmp_
 
     # Check that the prefix is used in the artifact path
     for call in client.return_value.log_artifact.call_args_list:
-        assert call[1]["artifact_path"].startswith("my_prefix")
+        args, _ = call
+        assert str(args[2]).startswith("my_prefix")
