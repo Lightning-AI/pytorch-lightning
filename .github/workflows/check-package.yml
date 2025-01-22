@@ -101,6 +101,15 @@ jobs:
     needs: pkg-build
     runs-on: ubuntu-latest
     steps:
+      - name: Pull reusable 🤖 actions️
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.actions-ref }}
+          path: .cicd
+          repository: Lightning-AI/utilities
+      - name: Prepare build env.
+        run: pip install -r ./.cicd/requirements/gha-package.txt
+
       - name: Download 📥
         uses: actions/download-artifact@v4
         with:
@@ -111,7 +120,6 @@ jobs:
       - name: Brief look
         run: |
           ls -lh dist/
-          pip install -q twine
           twine check dist/*
       - name: Upload 📤
         uses: actions/upload-artifact@v4
