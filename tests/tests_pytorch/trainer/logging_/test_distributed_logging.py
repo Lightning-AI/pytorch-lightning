@@ -12,14 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-from typing import Any, Dict, Optional, Union
+from typing import Any, Optional, Union
 from unittest.mock import Mock
 
 import lightning.pytorch as pl
 from lightning.pytorch import Callback, Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.loggers.logger import Logger
-
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -38,7 +37,7 @@ class AllRankLogger(Logger):
     def experiment(self) -> Any:
         return self.exp
 
-    def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None):
+    def log_metrics(self, metrics: dict[str, float], step: Optional[int] = None):
         self.logs.update(metrics)
 
     def version(self) -> Union[int, str]:
@@ -144,7 +143,7 @@ def test_logger_after_fit_predict_test_calls(tmp_path):
             self.buffer = {}
             self.logs = {}
 
-        def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
+        def log_metrics(self, metrics: dict[str, float], step: Optional[int] = None) -> None:
             self.buffer.update(metrics)
 
         def finalize(self, status: str) -> None:

@@ -13,23 +13,24 @@
 # limitations under the License.
 import logging
 import os
+from contextlib import AbstractContextManager
 from pathlib import Path
-from typing import ContextManager, Optional
+from typing import Optional
 from unittest import mock
 
 import pytest
 import torch
+from torch import nn
+from torch.optim.lr_scheduler import LambdaLR
+from torch.optim.swa_utils import SWALR
+from torch.utils.data import DataLoader
+
 from lightning.pytorch import Trainer
 from lightning.pytorch.callbacks import StochasticWeightAveraging
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset, RandomIterableDataset
 from lightning.pytorch.strategies import Strategy
 from lightning.pytorch.strategies.launchers import _MultiProcessingLauncher
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from torch import nn
-from torch.optim.lr_scheduler import LambdaLR
-from torch.optim.swa_utils import SWALR
-from torch.utils.data import DataLoader
-
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -382,5 +383,5 @@ def test_misconfiguration_error_with_sharded_model(tmp_path, strategy: str):
         trainer.fit(model)
 
 
-def _backward_patch(trainer: Trainer) -> ContextManager:
+def _backward_patch(trainer: Trainer) -> AbstractContextManager:
     return mock.patch.object(Strategy, "backward", wraps=trainer.strategy.backward)

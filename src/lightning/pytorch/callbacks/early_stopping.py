@@ -20,7 +20,7 @@ Monitor a metric and stop training when it stops improving.
 """
 
 import logging
-from typing import Any, Callable, Dict, Optional, Tuple
+from typing import Any, Callable, Optional
 
 import torch
 from torch import Tensor
@@ -139,13 +139,13 @@ class EarlyStopping(Callback):
             # validation, then we run after validation instead of on train epoch end
             self._check_on_train_epoch_end = trainer.val_check_interval == 1.0 and trainer.check_val_every_n_epoch == 1
 
-    def _validate_condition_metric(self, logs: Dict[str, Tensor]) -> bool:
+    def _validate_condition_metric(self, logs: dict[str, Tensor]) -> bool:
         monitor_val = logs.get(self.monitor)
 
         error_msg = (
             f"Early stopping conditioned on metric `{self.monitor}` which is not available."
             " Pass in or modify your `EarlyStopping` callback to use any of the following:"
-            f' `{"`, `".join(list(logs.keys()))}`'
+            f" `{'`, `'.join(list(logs.keys()))}`"
         )
 
         if monitor_val is None:
@@ -163,7 +163,7 @@ class EarlyStopping(Callback):
         return self.mode_dict[self.mode]
 
     @override
-    def state_dict(self) -> Dict[str, Any]:
+    def state_dict(self) -> dict[str, Any]:
         return {
             "wait_count": self.wait_count,
             "stopped_epoch": self.stopped_epoch,
@@ -172,7 +172,7 @@ class EarlyStopping(Callback):
         }
 
     @override
-    def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
+    def load_state_dict(self, state_dict: dict[str, Any]) -> None:
         self.wait_count = state_dict["wait_count"]
         self.stopped_epoch = state_dict["stopped_epoch"]
         self.best_score = state_dict["best_score"]
@@ -215,7 +215,7 @@ class EarlyStopping(Callback):
         if reason and self.verbose:
             self._log_info(trainer, reason, self.log_rank_zero_only)
 
-    def _evaluate_stopping_criteria(self, current: Tensor) -> Tuple[bool, Optional[str]]:
+    def _evaluate_stopping_criteria(self, current: Tensor) -> tuple[bool, Optional[str]]:
         should_stop = False
         reason = None
         if self.check_finite and not torch.isfinite(current):

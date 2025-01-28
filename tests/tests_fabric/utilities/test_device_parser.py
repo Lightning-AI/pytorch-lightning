@@ -14,6 +14,7 @@
 from unittest import mock
 
 import pytest
+
 from lightning.fabric.utilities import device_parser
 from lightning.fabric.utilities.exceptions import MisconfigurationException
 

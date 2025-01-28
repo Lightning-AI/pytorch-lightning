@@ -60,7 +60,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           # Python version here needs to be supported by all PL versions listed in back-compatible-versions.txt.
-          python-version: 3.8
+          python-version: "3.9"
 
       - name: Install PL from source
         env:
@@ -104,7 +104,7 @@ jobs:
           python -c "print('AWS_RUN=' + str('' if '${{inputs.push_to_s3}}' == 'true' else '--dryrun'))" >> $GITHUB_ENV
 
       - name: Upload checkpoints to GitHub Actions artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: checkpoints-${{ github.sha }}
           path: ${{ env.LEGACY_FOLDER }}/checkpoints/

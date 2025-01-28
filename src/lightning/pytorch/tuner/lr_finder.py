@@ -16,7 +16,7 @@ import logging
 import os
 import uuid
 from copy import deepcopy
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Union
+from typing import TYPE_CHECKING, Any, Optional, Union
 
 import torch
 from lightning_utilities.core.imports import RequirementCache
@@ -101,7 +101,7 @@ class _LRFinder:
         self.lr_max = lr_max
         self.num_training = num_training
 
-        self.results: Dict[str, Any] = {}
+        self.results: dict[str, Any] = {}
         self._total_batch_idx = 0  # for debug purpose
 
     def _exchange_scheduler(self, trainer: "pl.Trainer") -> None:
@@ -310,7 +310,7 @@ def _lr_find(
     return lr_finder
 
 
-def __lr_finder_dump_params(trainer: "pl.Trainer") -> Dict[str, Any]:
+def __lr_finder_dump_params(trainer: "pl.Trainer") -> dict[str, Any]:
     return {
         "optimizers": trainer.strategy.optimizers,
         "lr_scheduler_configs": trainer.strategy.lr_scheduler_configs,
@@ -335,7 +335,7 @@ def __lr_finder_reset_params(trainer: "pl.Trainer", num_training: int, early_sto
     trainer.limit_val_batches = num_training
 
 
-def __lr_finder_restore_params(trainer: "pl.Trainer", params: Dict[str, Any]) -> None:
+def __lr_finder_restore_params(trainer: "pl.Trainer", params: dict[str, Any]) -> None:
     trainer.strategy.optimizers = params["optimizers"]
     trainer.strategy.lr_scheduler_configs = params["lr_scheduler_configs"]
     trainer.callbacks = params["callbacks"]
@@ -376,8 +376,8 @@ class _LRCallback(Callback):
         self.num_training = num_training
         self.early_stop_threshold = early_stop_threshold
         self.beta = beta
-        self.losses: List[float] = []
-        self.lrs: List[float] = []
+        self.losses: list[float] = []
+        self.lrs: list[float] = []
         self.avg_loss = 0.0
         self.best_loss = 0.0
         self.progress_bar_refresh_rate = progress_bar_refresh_rate
@@ -463,7 +463,7 @@ class _LinearLR(LRScheduler):
         super().__init__(optimizer, last_epoch)
 
     @override
-    def get_lr(self) -> List[float]:
+    def get_lr(self) -> list[float]:
         curr_iter = self.last_epoch + 1
         r = curr_iter / self.num_iter
 
@@ -475,7 +475,7 @@ class _LinearLR(LRScheduler):
         return val
 
     @property
-    def lr(self) -> Union[float, List[float]]:
+    def lr(self) -> Union[float, list[float]]:
         return self._lr
 
 
@@ -500,7 +500,7 @@ class _ExponentialLR(LRScheduler):
         super().__init__(optimizer, last_epoch)
 
     @override
-    def get_lr(self) -> List[float]:
+    def get_lr(self) -> list[float]:
         curr_iter = self.last_epoch + 1
         r = curr_iter / self.num_iter
 
@@ -512,11 +512,11 @@ class _ExponentialLR(LRScheduler):
         return val
 
     @property
-    def lr(self) -> Union[float, List[float]]:
+    def lr(self) -> Union[float, list[float]]:
         return self._lr
 
 
-def _try_loop_run(trainer: "pl.Trainer", params: Dict[str, Any]) -> None:
+def _try_loop_run(trainer: "pl.Trainer", params: dict[str, Any]) -> None:
     loop = trainer.fit_loop
     loop.load_state_dict(deepcopy(params["loop_state_dict"]))
     loop.restarting = False

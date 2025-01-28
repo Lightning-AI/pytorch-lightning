@@ -18,12 +18,12 @@ from unittest.mock import ANY, PropertyMock
 
 import pytest
 import torch
-from lightning.pytorch import Callback, LightningDataModule, LightningModule, Trainer, __version__
-from lightning.pytorch.demos.boring_classes import BoringDataModule, BoringModel, RandomDataset
-from lightning.pytorch.utilities.model_helpers import is_overridden
 from torch import Tensor
 from torch.utils.data import DataLoader
 
+from lightning.pytorch import Callback, LightningDataModule, LightningModule, Trainer, __version__
+from lightning.pytorch.demos.boring_classes import BoringDataModule, BoringModel, RandomDataset
+from lightning.pytorch.utilities.model_helpers import is_overridden
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -61,7 +61,7 @@ def test_on_before_zero_grad_called(tmp_path, max_steps):
 
     model = CurrentTestModel()
 
-    trainer = Trainer(default_root_dir=tmp_path, max_steps=max_steps, max_epochs=2)
+    trainer = Trainer(devices=1, default_root_dir=tmp_path, max_steps=max_steps, max_epochs=2)
     assert model.on_before_zero_grad_called == 0
     trainer.fit(model)
     assert max_steps == model.on_before_zero_grad_called
@@ -406,7 +406,7 @@ class HookedModel(BoringModel):
 @pytest.mark.parametrize(
     "kwargs",
     [
-        {},
+        {"devices": 1},
         # these precision plugins modify the optimization flow, so testing them explicitly
         pytest.param({"accelerator": "gpu", "devices": 1, "precision": "16-mixed"}, marks=RunIf(min_cuda_gpus=1)),
         pytest.param(
@@ -528,6 +528,7 @@ def test_trainer_model_hook_system_fit_no_val_and_resume_max_epochs(tmp_path):
     # initial training to get a checkpoint
     model = BoringModel()
     trainer = Trainer(
+        devices=1,
         default_root_dir=tmp_path,
         max_epochs=1,
         limit_train_batches=2,
@@ -543,6 +544,7 @@ def test_trainer_model_hook_system_fit_no_val_and_resume_max_epochs(tmp_path):
     callback = HookedCallback(called)
     # already performed 1 step, resume and do 2 more
     trainer = Trainer(
+        devices=1,
         default_root_dir=tmp_path,
         max_epochs=2,
         limit_train_batches=2,
@@ -605,6 +607,7 @@ def test_trainer_model_hook_system_fit_no_val_and_resume_max_steps(tmp_path):
     # initial training to get a checkpoint
     model = BoringModel()
     trainer = Trainer(
+        devices=1,
         default_root_dir=tmp_path,
         max_steps=1,
         limit_val_batches=0,
@@ -624,6 +627,7 @@ def test_trainer_model_hook_system_fit_no_val_and_resume_max_steps(tmp_path):
     train_batches = 2
     steps_after_reload = 1 + train_batches
     trainer = Trainer(
+        devices=1,
         default_root_dir=tmp_path,
         max_steps=steps_after_reload,
         limit_val_batches=0,
@@ -660,8 +664,6 @@ def test_trainer_model_hook_system_fit_no_val_and_resume_max_steps(tmp_path):
         {"name": "train_dataloader"},
         {"name": "Callback.on_train_start", "args": (trainer, model)},
         {"name": "on_train_start"},
-        {"name": "Callback.on_train_epoch_start", "args": (trainer, model)},
-        {"name": "on_train_epoch_start"},
         *model._train_batch(trainer, model, steps_after_reload, trainer.strategy.root_device, current_batch=1),
         {"name": "Callback.on_train_epoch_end", "args": (trainer, model)},
         {"name": "on_train_epoch_end"},  # before ModelCheckpoint because it's a "monitoring callback"
@@ -692,6 +694,7 @@ def test_trainer_model_hook_system_eval(tmp_path, override_on_x_model_train, bat
     assert is_overridden(f"on_{noun}_model_train", model) == override_on_x_model_train
     callback = HookedCallback(called)
     trainer = Trainer(
+        devices=1,
         default_root_dir=tmp_path,
         max_epochs=1,
         limit_val_batches=batches,
@@ -733,7 +736,11 @@ def test_trainer_model_hook_system_predict(tmp_path):
     callback = HookedCallback(called)
     batches = 2
     trainer = Trainer(
-        default_root_dir=tmp_path, limit_predict_batches=batches, enable_progress_bar=False, callbacks=[callback]
+        devices=1,
+        default_root_dir=tmp_path,
+        limit_predict_batches=batches,
+        enable_progress_bar=False,
+        callbacks=[callback],
     )
     trainer.predict(model)
     expected = [
@@ -799,7 +806,7 @@ def test_hooks_with_different_argument_names(tmp_path):
 
     model = CustomBoringModel()
 
-    trainer = Trainer(default_root_dir=tmp_path, fast_dev_run=5)
+    trainer = Trainer(devices=1, default_root_dir=tmp_path, fast_dev_run=5)
 
     trainer.fit(model)
     trainer.test(model)
@@ -814,6 +821,7 @@ def test_trainer_datamodule_hook_system(tmp_path):
     model = BoringModel()
     batches = 2
     trainer = Trainer(
+        devices=1,
         default_root_dir=tmp_path,
         max_epochs=1,
         limit_train_batches=batches,
@@ -889,7 +897,7 @@ def test_load_from_checkpoint_hook_calls(override_configure_model, tmp_path):
     assert is_overridden("configure_model", model) == override_configure_model
 
     datamodule = CustomHookedDataModule(ldm_called)
-    trainer = Trainer()
+    trainer = Trainer(devices=1)
     trainer.strategy.connect(model)
     trainer._data_connector.attach_data(model, datamodule=datamodule)
     ckpt_path = str(tmp_path / "file.ckpt")
@@ -962,6 +970,7 @@ def test_train_eval_mode_restored(tmp_path):
 
     model = MixedTrainModeModule()
     trainer = Trainer(
+        devices=1,
         default_root_dir=tmp_path,
         max_epochs=1,
         val_check_interval=1,

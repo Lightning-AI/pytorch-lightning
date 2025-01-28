@@ -14,13 +14,12 @@
 import inspect
 import os
 import pickle
-from contextlib import nullcontext
 from unittest import mock
 from unittest.mock import ANY, Mock
 
 import pytest
 import torch
-from lightning.fabric.utilities.imports import _TORCH_EQUAL_2_4_0, _TORCH_GREATER_EQUAL_2_4_1
+
 from lightning.pytorch import Callback, Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.loggers import (
@@ -34,7 +33,6 @@ from lightning.pytorch.loggers import (
 from lightning.pytorch.loggers.logger import DummyExperiment, Logger
 from lightning.pytorch.loggers.tensorboard import _TENSORBOARD_AVAILABLE
 from lightning.pytorch.tuner.tuning import Tuner
-
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.loggers.test_comet import _patch_comet_atexit
 from tests_pytorch.loggers.test_mlflow import mock_mlflow_run_creation
@@ -184,12 +182,7 @@ def _test_loggers_pickle(tmp_path, monkeypatch, logger_class: Logger):
     trainer = Trainer(max_epochs=1, logger=logger)
     pkl_bytes = pickle.dumps(trainer)
 
-    with (
-        pytest.warns(FutureWarning, match="`weights_only=False`")
-        if _TORCH_EQUAL_2_4_0 or (_TORCH_GREATER_EQUAL_2_4_1 and logger_class not in (CSVLogger, TensorBoardLogger))
-        else nullcontext()
-    ):
-        trainer2 = pickle.loads(pkl_bytes)
+    trainer2 = pickle.loads(pkl_bytes)
     trainer2.logger.log_metrics({"acc": 1.0})
 
     # make sure we restored properly

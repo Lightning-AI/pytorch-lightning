@@ -16,8 +16,8 @@ from unittest.mock import ANY, Mock
 
 import pytest
 import torch
-from lightning.fabric.strategies.launchers.multiprocessing import _GlobalStateSnapshot, _MultiProcessingLauncher
 
+from lightning.fabric.strategies.launchers.multiprocessing import _GlobalStateSnapshot, _MultiProcessingLauncher
 from tests_fabric.helpers.runif import RunIf
 
 
@@ -100,8 +100,11 @@ def test_check_for_bad_cuda_fork(mp_mock, _, start_method):
 
 def test_check_for_missing_main_guard():
     launcher = _MultiProcessingLauncher(strategy=Mock(), start_method="spawn")
-    with mock.patch(
-        "lightning.fabric.strategies.launchers.multiprocessing.mp.current_process",
-        return_value=Mock(_inheriting=True),  # pretend that main is importing itself
-    ), pytest.raises(RuntimeError, match="requires that your script guards the main"):
+    with (
+        mock.patch(
+            "lightning.fabric.strategies.launchers.multiprocessing.mp.current_process",
+            return_value=Mock(_inheriting=True),  # pretend that main is importing itself
+        ),
+        pytest.raises(RuntimeError, match="requires that your script guards the main"),
+    ):
         launcher.launch(function=Mock())

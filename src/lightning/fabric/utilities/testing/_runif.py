@@ -14,7 +14,7 @@
 import operator
 import os
 import sys
-from typing import Dict, List, Optional, Tuple
+from typing import Optional
 
 import torch
 from lightning_utilities.core.imports import RequirementCache, compare_version
@@ -40,7 +40,7 @@ def _runif_reasons(
     standalone: bool = False,
     deepspeed: bool = False,
     dynamo: bool = False,
-) -> Tuple[List[str], Dict[str, bool]]:
+) -> tuple[list[str], dict[str, bool]]:
     """Construct reasons for pytest skipif.
 
     Args:
