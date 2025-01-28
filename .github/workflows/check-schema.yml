@@ -26,6 +26,10 @@ jobs:
         uses: actions/checkout@v4
         with:
           submodules: recursive
+      - name: Set up Python 🐍
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
 
       # if actions version is given install defined versions
       - name: "[optional] Pull reusable 🤖 actions"
@@ -51,7 +55,7 @@ jobs:
 
       - name: Scan repo
         id: folders
-        run: python -c "import os; print('gh_actions=' + str(int(os.path.isdir('.github/actions'))))" >> $GITHUB_OUTPUT
+        run: python -c "import os; print('GH-ACTIONS=' + str(int(os.path.isdir('.github/actions'))))" >> $GITHUB_ENV
 
       # https://github.com/SchemaStore/schemastore/blob/master/src/schemas/json/github-workflow.json
       - name: GitHub Actions - workflow
@@ -64,7 +68,7 @@ jobs:
 
       # https://github.com/SchemaStore/schemastore/blob/master/src/schemas/json/github-action.json
       - name: GitHub Actions - action
-        if: steps.folders.outputs.gh_actions == '1'
+        if: env.GH-ACTIONS == '1'
         run: |
           files=$(find .github/actions -name '*.yml' -or -name '*.yaml')
           for f in $files; do
@@ -76,7 +80,7 @@ jobs:
       - name: Azure Pipelines
         if: ${{ inputs.azure-dir != '' }}
         env:
-          SCHEMA_FILE: https://raw.githubusercontent.com/microsoft/azure-pipelines-vscode/v1.208.0/service-schema.json
+          SCHEMA_FILE: https://raw.githubusercontent.com/microsoft/azure-pipelines-vscode/v1.249.0/service-schema.json
         run: |
           files=$(find ${{ inputs.azure-dir }} -name '*.yml' -or -name '*.yaml')
           for f in $files; do
