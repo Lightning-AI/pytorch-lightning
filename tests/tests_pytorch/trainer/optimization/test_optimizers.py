@@ -17,6 +17,7 @@ from unittest.mock import call, patch
 import pytest
 import torch
 from torch import optim
+from torch.utils.data import DataLoader, TensorDataset
 
 from lightning.pytorch import LightningModule, Trainer
 from lightning.pytorch.callbacks import ModelCheckpoint
@@ -28,9 +29,6 @@ from lightning.pytorch.core.optimizer import (
 from lightning.pytorch.demos.boring_classes import BoringDataModule, BoringModel
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.types import LRSchedulerConfig
-
-from torch import optim
-from torch.utils.data import DataLoader, TensorDataset
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -674,7 +672,7 @@ def test_lr_scheduler_step_across_epoch_boundaries(mocked_sched, tmp_path):
 
         def training_step(self, batch, batch_idx):
             # Add print statement to track batch index and global step
-            if hasattr(self, 'trainer'):
+            if hasattr(self, "trainer"):
                 print(f"Batch idx: {batch_idx}, Global step: {self.trainer.global_step}")
             return {"loss": torch.tensor(0.1, requires_grad=True)}
 
@@ -721,6 +719,5 @@ def test_lr_scheduler_step_across_epoch_boundaries(mocked_sched, tmp_path):
     # Assert that the scheduler was called the expected number of times
     # Allow for a small difference due to environment or rounding discrepancies
     assert abs(mocked_sched.call_count - expected_steps) <= 1, (
-        f"Scheduler was called {mocked_sched.call_count} times, "
-        f"but expected {expected_steps} calls."
+        f"Scheduler was called {mocked_sched.call_count} times, but expected {expected_steps} calls."
     )
