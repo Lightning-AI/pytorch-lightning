@@ -16,6 +16,7 @@ from copy import deepcopy
 from unittest.mock import Mock
 
 import torch
+
 from lightning.fabric import Fabric
 from lightning.pytorch.demos.boring_classes import BoringModel, ManualOptimBoringModel
 

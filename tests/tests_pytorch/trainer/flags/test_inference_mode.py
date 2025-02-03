@@ -16,6 +16,7 @@ from unittest.mock import Mock
 
 import pytest
 import torch
+
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.loops import _Loop

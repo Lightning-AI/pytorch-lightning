@@ -16,9 +16,9 @@
 import pytest
 import torch
 import torch.nn as nn
+
 from lightning.fabric import Fabric, seed_everything
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_4
-
 from tests_fabric.helpers.runif import RunIf
 
 

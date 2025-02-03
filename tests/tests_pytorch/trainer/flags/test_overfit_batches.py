@@ -16,11 +16,11 @@ from unittest import mock
 
 import pytest
 import torch
+from torch.utils.data import DataLoader, DistributedSampler, RandomSampler, Sampler, SequentialSampler
+
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
 from lightning.pytorch.trainer.states import RunningStage
-from torch.utils.data import DataLoader, DistributedSampler, RandomSampler, Sampler, SequentialSampler
-
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.datasets import SklearnDataset
 from tests_pytorch.helpers.runif import RunIf
