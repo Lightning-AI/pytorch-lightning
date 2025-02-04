@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+from copy import deepcopy
 from pathlib import Path
 from typing import Any, Optional
 
@@ -19,7 +20,7 @@ import pytest
 import torch
 from torch import Tensor, nn
 from torch.optim.swa_utils import get_swa_avg_fn
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, Dataset
 
 from lightning.pytorch import LightningModule, Trainer
 from lightning.pytorch.callbacks import WeightAveraging
@@ -27,27 +28,20 @@ from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset, R
 from tests_pytorch.helpers.runif import RunIf
 
 
-class WeightAveragingTestModel(BoringModel):
-    def __init__(
-        self, batch_norm: bool = True, iterable_dataset: bool = False, crash_on_epoch: Optional[int] = None
-    ) -> None:
+class TestModel(BoringModel):
+    def __init__(self, batch_norm: bool = True) -> None:
         super().__init__()
         layers = [nn.Linear(32, 32)]
         if batch_norm:
             layers.append(nn.BatchNorm1d(32))
         layers += [nn.ReLU(), nn.Linear(32, 2)]
         self.layer = nn.Sequential(*layers)
-        self.iterable_dataset = iterable_dataset
-        self.crash_on_epoch = crash_on_epoch
+        self.crash_on_epoch = None
 
     def training_step(self, batch: Tensor, batch_idx: int) -> None:
         if self.crash_on_epoch and self.trainer.current_epoch >= self.crash_on_epoch:
-            raise Exception("CRASH TEST")
+            raise Exception("CRASH")
         return super().training_step(batch, batch_idx)
-
-    def train_dataloader(self) -> None:
-        dataset_class = RandomIterableDataset if self.iterable_dataset else RandomDataset
-        return DataLoader(dataset_class(32, 32), batch_size=4)
 
     def configure_optimizers(self) -> None:
         return torch.optim.SGD(self.layer.parameters(), lr=0.1)
@@ -119,14 +113,14 @@ class EMATestCallback(WeightAveraging):
 
 class SWATestCallback(WeightAveraging):
     def __init__(self, **kwargs: Any) -> None:
-        avg_fn = get_swa_avg_fn()
-        update_on_epoch = lambda x: x in (3, 5, 7)
-        super().__init__(avg_fn=avg_fn, update_on_epoch=update_on_epoch, **kwargs)
-
+        super().__init__(avg_fn=get_swa_avg_fn(), **kwargs)
         self.swap_calls = 0
         self.copy_calls = 0
         # Record the first epoch, as if we are resuming from a checkpoint this may not be equal to 0.
         self.first_epoch: Optional[int] = None
+
+    def should_update(self, step_idx: Optional[int] = None, epoch_idx: Optional[int] = None) -> bool:
+        return epoch_idx in (3, 5, 7)
 
     def _swap_models(self, *args: Any, **kwargs: Any):
         self.swap_calls += 1
@@ -194,95 +188,115 @@ def test_weight_averaging_deepcopy(tmp_path):
 @pytest.mark.parametrize("batch_norm", [True, False])
 @pytest.mark.parametrize("iterable_dataset", [True, False])
 def test_ema(tmp_path, batch_norm: bool, iterable_dataset: bool):
-    _train(tmp_path, EMATestCallback(), batch_norm=batch_norm, iterable_dataset=iterable_dataset)
+    model = TestModel(batch_norm=batch_norm)
+    dataset = RandomIterableDataset(32, 32) if iterable_dataset else RandomDataset(32, 32)
+    _train(model, dataset, tmp_path, EMATestCallback())
 
 
 @pytest.mark.parametrize(
     "accelerator", [pytest.param("gpu", marks=RunIf(min_cuda_gpus=1)), pytest.param("mps", marks=RunIf(mps=True))]
 )
 def test_ema_accelerator(tmp_path, accelerator):
-    _train(tmp_path, EMATestCallback(), accelerator=accelerator, devices=1)
+    model = TestModel()
+    dataset = RandomDataset(32, 32)
+    _train(model, dataset, tmp_path, EMATestCallback(), accelerator=accelerator, devices=1)
 
 
 @RunIf(min_cuda_gpus=2, standalone=True)
 def test_ema_ddp(tmp_path):
-    _train(tmp_path, EMATestCallback(devices=2), strategy="ddp", accelerator="gpu", devices=2)
+    model = TestModel()
+    dataset = RandomDataset(32, 32)
+    _train(model, dataset, tmp_path, EMATestCallback(devices=2), strategy="ddp", accelerator="gpu", devices=2)
 
 
 @RunIf(min_cuda_gpus=2)
 def test_ema_ddp_spawn(tmp_path):
-    _train(tmp_path, EMATestCallback(devices=2), strategy="ddp_spawn", accelerator="gpu", devices=2)
+    model = TestModel()
+    dataset = RandomDataset(32, 32)
+    _train(model, dataset, tmp_path, EMATestCallback(devices=2), strategy="ddp_spawn", accelerator="gpu", devices=2)
 
 
 @RunIf(skip_windows=True)
 def test_ema_ddp_spawn_cpu(tmp_path):
-    _train(tmp_path, EMATestCallback(devices=2), strategy="ddp_spawn", accelerator="cpu", devices=2)
+    model = TestModel()
+    dataset = RandomDataset(32, 32)
+    _train(model, dataset, tmp_path, EMATestCallback(devices=2), strategy="ddp_spawn", accelerator="cpu", devices=2)
 
 
-@pytest.mark.parametrize("crash_on_epoch", [1, 3])
+@pytest.mark.parametrize("crash_on_epoch", [1, 3, 5])
 def test_ema_resume(tmp_path, crash_on_epoch):
-    _train_and_resume(tmp_path, crash_on_epoch=crash_on_epoch)
+    dataset = RandomDataset(32, 32)
+    model1 = TestModel()
+    model2 = deepcopy(model1)
+
+    _train(model1, dataset, tmp_path, EMATestCallback())
+
+    model2.crash_on_epoch = crash_on_epoch
+    model2 = _train_and_resume(model2, dataset, tmp_path)
+
+    for param1, param2 in zip(model1.parameters(), model2.parameters()):
+        assert torch.allclose(param1, param2, atol=0.001)
 
 
 @RunIf(skip_windows=True)
 def test_ema_resume_ddp(tmp_path):
-    _train_and_resume(tmp_path, crash_on_epoch=3, use_ddp=True)
+    model = TestModel()
+    model.crash_on_epoch = 3
+    dataset = RandomDataset(32, 32)
+    _train_and_resume(model, dataset, tmp_path, strategy="ddp_spawn", devices=2)
 
 
 def test_swa(tmp_path):
-    _train(tmp_path, SWATestCallback())
+    model = TestModel()
+    dataset = RandomDataset(32, 32)
+    _train(model, dataset, tmp_path, SWATestCallback())
 
 
 def _train(
+    model: TestModel,
+    dataset: Dataset,
     tmp_path: str,
     callback: WeightAveraging,
-    batch_norm: bool = True,
     strategy: str = "auto",
     accelerator: str = "cpu",
     devices: int = 1,
-    iterable_dataset: bool = False,
     checkpoint_path: Optional[str] = None,
-    crash_on_epoch: Optional[int] = None,
-) -> None:
+    will_crash: bool = False,
+) -> TestModel:
+    deterministic = accelerator == "cpu"
     trainer = Trainer(
-        default_root_dir=tmp_path,
-        enable_progress_bar=False,
-        enable_model_summary=False,
+        accelerator=accelerator,
+        strategy=strategy,
+        devices=devices,
         logger=False,
+        callbacks=callback,
         max_epochs=8,
         num_sanity_val_steps=0,
-        callbacks=callback,
+        enable_checkpointing=will_crash,
+        enable_progress_bar=False,
+        enable_model_summary=False,
         accumulate_grad_batches=2,
-        strategy=strategy,
-        accelerator=accelerator,
-        devices=devices,
+        deterministic=deterministic,
+        default_root_dir=tmp_path,
     )
-    model = WeightAveragingTestModel(
-        batch_norm=batch_norm, iterable_dataset=iterable_dataset, crash_on_epoch=crash_on_epoch
-    )
-
-    if crash_on_epoch is None:
-        trainer.fit(model, ckpt_path=checkpoint_path)
+    dataloader = DataLoader(dataset, batch_size=4, shuffle=False)
+    if will_crash:
+        with pytest.raises(Exception, match="CRASH"):
+            trainer.fit(model, dataloader, ckpt_path=checkpoint_path)
     else:
-        with pytest.raises(Exception, match="CRASH TEST"):
-            trainer.fit(model, ckpt_path=checkpoint_path)
-
+        trainer.fit(model, dataloader, ckpt_path=checkpoint_path)
     assert trainer.lightning_module == model
 
 
-def _train_and_resume(tmp_path: str, crash_on_epoch: int, use_ddp: bool = False) -> None:
-    strategy = "ddp_spawn" if use_ddp else "auto"
-    devices = 2 if use_ddp else 1
-
-    _train(
-        tmp_path, EMATestCallback(devices=devices), strategy=strategy, devices=devices, crash_on_epoch=crash_on_epoch
-    )
+def _train_and_resume(model: TestModel, dataset: Dataset, tmp_path: str, devices: int = 1, **kwargs) -> TestModel:
+    _train(model, dataset, tmp_path, EMATestCallback(devices=devices), devices=devices, will_crash=True, **kwargs)
 
     checkpoint_dir = Path(tmp_path) / "checkpoints"
     checkpoint_names = os.listdir(checkpoint_dir)
     assert len(checkpoint_names) == 1
     checkpoint_path = str(checkpoint_dir / checkpoint_names[0])
 
-    _train(
-        tmp_path, EMATestCallback(devices=devices), strategy=strategy, devices=devices, checkpoint_path=checkpoint_path
-    )
+    model = TestModel.load_from_checkpoint(checkpoint_path)
+    callback = EMATestCallback(devices=devices)
+    _train(model, dataset, tmp_path, callback, devices=devices, checkpoint_path=checkpoint_path, **kwargs)
+    return model
