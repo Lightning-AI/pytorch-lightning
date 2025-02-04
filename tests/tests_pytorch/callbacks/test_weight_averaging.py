@@ -119,14 +119,14 @@ class EMATestCallback(WeightAveraging):
 
 class SWATestCallback(WeightAveraging):
     def __init__(self, **kwargs: Any) -> None:
-        avg_fn = get_swa_avg_fn()
-        update_on_epoch = lambda x: x in (3, 5, 7)
-        super().__init__(avg_fn=avg_fn, update_on_epoch=update_on_epoch, **kwargs)
-
+        super().__init__(avg_fn=get_swa_avg_fn(), **kwargs)
         self.swap_calls = 0
         self.copy_calls = 0
         # Record the first epoch, as if we are resuming from a checkpoint this may not be equal to 0.
         self.first_epoch: Optional[int] = None
+
+    def should_update(self, step_idx: Optional[int] = None, epoch_idx: Optional[int] = None) -> bool:
+        return epoch_idx in (3, 5, 7)
 
     def _swap_models(self, *args: Any, **kwargs: Any):
         self.swap_calls += 1
