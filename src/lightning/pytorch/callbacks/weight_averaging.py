@@ -23,6 +23,7 @@ from typing import Any, Callable, Optional, Union
 import torch
 from torch import Tensor
 from torch.optim.swa_utils import AveragedModel
+from typing_extensions import override
 
 import lightning.pytorch as pl
 from lightning.pytorch.callbacks.callback import Callback
@@ -50,10 +51,15 @@ class WeightAveraging(Callback):
 
     def __init__(
         self,
-        device: Optional[Union[torch.device, int]] = torch.device("cpu"),
+        device: Optional[Union[torch.device, str, int]] = "cpu",
         avg_fn: Optional[Callable[[Tensor, Tensor, Union[Tensor, int]], Tensor]] = None,
     ):
-        self._device = device
+        # The default value is a string so that jsonargparse knows how to serialize it.
+        if isinstance(device, str):
+            self._device: Optional[Union[torch.device, int]] = torch.device(device)
+        else:
+            self._device = device
+
         self._avg_fn = avg_fn
         self._average_model: Optional[AveragedModel] = None
 
@@ -83,6 +89,7 @@ class WeightAveraging(Callback):
         """
         return step_idx is not None
 
+    @override
     def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: str) -> None:
         """Called when fit, validate, test, predict, or tune begins.
 
@@ -98,6 +105,7 @@ class WeightAveraging(Callback):
             device = self._device or pl_module.device
             self._average_model = AveragedModel(model=pl_module, device=device, avg_fn=self._avg_fn, use_buffers=True)
 
+    @override
     def on_train_batch_end(
         self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", outputs: STEP_OUTPUT, batch: Any, batch_idx: int
     ) -> None:
@@ -121,6 +129,7 @@ class WeightAveraging(Callback):
             self._average_model.update_parameters(pl_module)
             self._latest_update_step = trainer.global_step
 
+    @override
     def on_train_epoch_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         """Called when a training epoch ends.
 
@@ -136,6 +145,7 @@ class WeightAveraging(Callback):
             self._average_model.update_parameters(pl_module)
             self._latest_update_epoch = trainer.current_epoch
 
+    @override
     def on_train_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         """Called when training ends.
 
@@ -147,8 +157,10 @@ class WeightAveraging(Callback):
 
         """
         assert self._average_model is not None
+        rank_zero_info("Loading the average model parameters to the final model.")
         self._copy_average_to_current(pl_module)
 
+    @override
     def on_validation_epoch_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         """Called when a validation epoch begins.
 
@@ -163,6 +175,7 @@ class WeightAveraging(Callback):
             rank_zero_info("Loading the average model parameters for validation.")
             self._swap_models(pl_module)
 
+    @override
     def on_validation_epoch_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         """Called when a validation epoch ends.
 
@@ -177,6 +190,7 @@ class WeightAveraging(Callback):
             rank_zero_info("Recovering the current model parameters after validation.")
             self._swap_models(pl_module)
 
+    @override
     def state_dict(self) -> dict[str, Any]:
         """Called when saving a checkpoint.
 
@@ -188,6 +202,7 @@ class WeightAveraging(Callback):
         """
         return {"latest_update_step": self._latest_update_step}
 
+    @override
     def load_state_dict(self, state_dict: dict[str, Any]) -> None:
         """Called when loading a checkpoint.
 
@@ -199,6 +214,7 @@ class WeightAveraging(Callback):
         """
         self._latest_update_step = state_dict["latest_update_step"]
 
+    @override
     def on_save_checkpoint(
         self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", checkpoint: dict[str, Any]
     ) -> None:
@@ -231,6 +247,7 @@ class WeightAveraging(Callback):
                 name: value for name, value in average_model_state.items() if not name.startswith("module.")
             }
 
+    @override
     def on_load_checkpoint(
         self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", checkpoint: dict[str, Any]
     ) -> None:
