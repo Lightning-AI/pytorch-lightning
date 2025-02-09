@@ -72,7 +72,7 @@ Example usage:
     mlf_logger = MLFlowLogger(
         experiment_name="lightning_logs",
         tracking_uri="file:./ml-runs",
-        checkpoint_artifact_path_prefix="my_prefix"
+        checkpoint_path_prefix="my_prefix"
     )
     trainer = L.Trainer(logger=mlf_logger)
 
