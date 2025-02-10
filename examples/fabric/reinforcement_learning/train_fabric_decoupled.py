@@ -274,7 +274,7 @@ def trainer(
         if group_rank == 0:
             metrics = {}
 
-        # Lerning rate annealing
+        # Learning rate annealing
         if args.anneal_lr:
             linear_annealing(optimizer, update, num_updates, args.learning_rate)
         if group_rank == 0:

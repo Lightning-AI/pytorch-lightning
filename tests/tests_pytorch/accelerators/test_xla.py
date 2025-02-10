@@ -148,7 +148,7 @@ class ManualOptimizationModel(BoringModel):
 
     def on_train_end(self):
         # this might fail if run in an environment with too many ranks, as the total
-        # length of the dataloader will be distrbuted among them and then each rank might not do 3 steps
+        # length of the dataloader will be distributed among them and then each rank might not do 3 steps
         assert self.called["training_step"] == 3
         assert self.called["on_train_batch_start"] == 3
         assert self.called["on_train_batch_end"] == 3
