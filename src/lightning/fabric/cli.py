@@ -14,8 +14,6 @@
 import logging
 import os
 import re
-import subprocess
-import sys
 from argparse import Namespace
 from typing import Any, Optional
 
