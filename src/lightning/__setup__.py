@@ -98,7 +98,6 @@ def _setup_args() -> dict[str, Any]:
         "entry_points": {
             "console_scripts": [
                 "fabric = lightning.fabric.cli:_main",
-                "lightning = lightning.fabric.cli:_legacy_main",
             ],
         },
         "setup_requires": [],
