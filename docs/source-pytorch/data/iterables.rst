@@ -50,7 +50,7 @@ To choose a different mode, you can use the :class:`~lightning.pytorch.utilities
 
 
 Currently, the ``trainer.predict`` method only supports the ``"sequential"`` mode, while ``trainer.fit`` method does not support it.
-Support for this feature is tracked in this `issue <https://github.com/Lightning-AI/lightning/issues/16830>`__.
+Support for this feature is tracked in this `issue <https://github.com/Lightning-AI/pytorch-lightning/issues/16830>`__.
 
 Note that when using the ``"sequential"`` mode, you need to add an additional argument ``dataloader_idx`` to some specific hooks.
 Lightning will `raise an error <https://github.com/Lightning-AI/lightning/pull/16837>`__ informing you of this requirement.
