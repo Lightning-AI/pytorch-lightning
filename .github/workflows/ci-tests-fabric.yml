@@ -60,9 +60,9 @@ jobs:
           - { os: "ubuntu-22.04", pkg-name: "fabric", python-version: "3.12.7", pytorch-version: "2.6" }
           - { os: "windows-2022", pkg-name: "fabric", python-version: "3.12.7", pytorch-version: "2.6" }
           # "oldest" versions tests, only on minimum Python
-          - { os: "macOS-14", python-version: "3.9", pytorch-version: "2.1", requires: "oldest" }
-          - { os: "ubuntu-20.04", python-version: "3.9", pytorch-version: "2.1", requires: "oldest" }
-          - { os: "windows-2022", python-version: "3.9", pytorch-version: "2.1", requires: "oldest" }
+          - { os: "macOS-14", pkg-name: "fabric", pytorch-version: "2.1", requires: "oldest" }
+          - { os: "ubuntu-20.04", pkg-name: "fabric", pytorch-version: "2.1", requires: "oldest" }
+          - { os: "windows-2022", pkg-name: "fabric", pytorch-version: "2.1", requires: "oldest" }
           # "fabric" installs the standalone package
           - { os: "macOS-14", pkg-name: "fabric", python-version: "3.10", pytorch-version: "2.5" }
           - { os: "ubuntu-20.04", pkg-name: "fabric", python-version: "3.10", pytorch-version: "2.5" }
@@ -86,7 +86,7 @@ jobs:
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: ${{ matrix.python-version || '3.x' }}
 
       - name: basic setup
         run: pip install -q -r .actions/requirements.txt
