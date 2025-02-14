@@ -563,7 +563,7 @@ def test_log_invalid_raises(tmp_path, value):
 
 
 def test_log_tensor_and_clone_no_torch_warning(tmp_path):
-    """Regression test for issue https://github.com/Lightning-AI/lightning/issues/14594."""
+    """Regression test for issue https://github.com/Lightning-AI/pytorch-lightning/issues/14594."""
 
     class TestModel(BoringModel):
         def training_step(self, *args):
