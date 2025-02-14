@@ -90,7 +90,7 @@ the desired GPU in your pipeline. When moving data to a specific device, you can
 WebDataset
 ^^^^^^^^^^
 
-The `WebDataset <https://webdataset.github.io/webdataset>`__ makes it easy to write I/O pipelines for large datasets.
+The `WebDataset <https://github.com/webdataset/webdataset>`__ makes it easy to write I/O pipelines for large datasets.
 Datasets can be stored locally or in the cloud. ``WebDataset`` is just an instance of a standard IterableDataset.
 The webdataset library contains a small wrapper (``WebLoader``) that adds a fluid interface to the DataLoader (and is otherwise identical).
 
