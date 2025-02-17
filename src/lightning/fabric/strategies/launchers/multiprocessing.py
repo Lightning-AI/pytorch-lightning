@@ -78,7 +78,7 @@ class _MultiProcessingLauncher(_Launcher):
     def is_interactive_compatible(self) -> bool:
         # The start method 'spawn' is not supported in interactive environments
         # The start method 'fork' is the only one supported in Jupyter environments, with constraints around CUDA
-        # initialization. For more context, see https://github.com/Lightning-AI/lightning/issues/7550
+        # initialization. For more context, see https://github.com/Lightning-AI/pytorch-lightning/issues/7550
         return self._start_method == "fork"
 
     @override

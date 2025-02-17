@@ -123,7 +123,7 @@ It is possible to perform some computation manually and log the reduced result o
 
         # When you call `self.log` only on rank 0, don't forget to add
         # `rank_zero_only=True` to avoid deadlocks on synchronization.
-        # Caveat: monitoring this is unimplemented, see https://github.com/Lightning-AI/lightning/issues/15852
+        # Caveat: monitoring this is unimplemented, see https://github.com/Lightning-AI/pytorch-lightning/issues/15852
         if self.trainer.is_global_zero:
             self.log("my_reduced_metric", mean, rank_zero_only=True)
 
