@@ -25,20 +25,20 @@ from unittest import mock
 from unittest.mock import Mock, call, patch
 
 import cloudpickle
-import lightning.pytorch as pl
 import pytest
 import torch
 import yaml
+from jsonargparse import ArgumentParser
+from torch import optim
+
+import lightning.pytorch as pl
 from lightning.fabric.utilities.cloud_io import _load as pl_load
 from lightning.pytorch import Trainer, seed_everything
 from lightning.pytorch.callbacks import ModelCheckpoint
-from lightning.pytorch.cli import LightningArgumentParser as ArgumentParser
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.loggers import CSVLogger, TensorBoardLogger
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.imports import _OMEGACONF_AVAILABLE
-from torch import optim
-
 from tests_pytorch.helpers.runif import RunIf
 
 if _OMEGACONF_AVAILABLE:

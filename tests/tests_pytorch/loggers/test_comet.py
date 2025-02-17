@@ -15,8 +15,13 @@ import os
 from unittest import mock
 from unittest.mock import Mock, call
 
-from lightning.pytorch.loggers import CometLogger
+import pytest
 from torch import tensor
+
+from lightning.pytorch import Trainer
+from lightning.pytorch.demos.boring_classes import BoringModel
+from lightning.pytorch.loggers import CometLogger
+from lightning.pytorch.utilities.exceptions import MisconfigurationException
 
 FRAMEWORK_NAME = "pytorch-lightning"
 

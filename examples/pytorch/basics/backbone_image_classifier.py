@@ -21,12 +21,13 @@ from os import path
 from typing import Optional
 
 import torch
+from torch.nn import functional as F
+from torch.utils.data import DataLoader, random_split
+
 from lightning.pytorch import LightningDataModule, LightningModule, cli_lightning_logo
 from lightning.pytorch.cli import LightningCLI
 from lightning.pytorch.demos.mnist_datamodule import MNIST
 from lightning.pytorch.utilities.imports import _TORCHVISION_AVAILABLE
-from torch.nn import functional as F
-from torch.utils.data import DataLoader, random_split
 
 if _TORCHVISION_AVAILABLE:
     from torchvision import transforms

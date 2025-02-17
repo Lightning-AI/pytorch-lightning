@@ -17,14 +17,14 @@ from unittest import mock
 
 import pytest
 import torch
+from torch.nn.parallel import DistributedDataParallel
+
 from lightning.fabric.plugins.environments import LightningEnvironment
 from lightning.pytorch import LightningModule, Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.plugins import DoublePrecision, HalfPrecision, Precision
 from lightning.pytorch.strategies import DDPStrategy
 from lightning.pytorch.trainer.states import TrainerFn
-from torch.nn.parallel import DistributedDataParallel
-
 from tests_pytorch.helpers.runif import RunIf
 
 

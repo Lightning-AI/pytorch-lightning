@@ -20,12 +20,12 @@ from unittest import mock
 from unittest.mock import Mock
 
 import pytest
-from lightning.fabric.cli import _consolidate, _get_supported_strategies, _run
 
+from lightning.fabric.cli import _consolidate, _get_supported_strategies, _run
 from tests_fabric.helpers.runif import RunIf
 
 
-@pytest.fixture()
+@pytest.fixture
 def fake_script(tmp_path):
     script = tmp_path / "script.py"
     script.touch()
@@ -176,19 +176,6 @@ def test_run_through_fabric_entry_point():
     result = subprocess.run("fabric run --help", capture_output=True, text=True, shell=True)
 
     message = "Usage: fabric run [OPTIONS] SCRIPT [SCRIPT_ARGS]"
-    assert message in result.stdout or message in result.stderr
-
-
-@pytest.mark.skipif("lightning.fabric" == "lightning_fabric", reason="standalone package")
-def test_run_through_lightning_entry_point():
-    result = subprocess.run("lightning run model --help", capture_output=True, text=True, shell=True)
-
-    deprecation_message = (
-        "`lightning run model` is deprecated and will be removed in future versions. "
-        "Please call `fabric run` instead"
-    )
-    message = "Usage: lightning run [OPTIONS] SCRIPT [SCRIPT_ARGS]"
-    assert deprecation_message in result.stdout
     assert message in result.stdout or message in result.stderr
 
 

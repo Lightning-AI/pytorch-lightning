@@ -20,17 +20,17 @@ from unittest import mock
 
 import pytest
 import torch
+from torch import nn
+from torch.optim.lr_scheduler import LambdaLR
+from torch.optim.swa_utils import SWALR
+from torch.utils.data import DataLoader
+
 from lightning.pytorch import Trainer
 from lightning.pytorch.callbacks import StochasticWeightAveraging
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset, RandomIterableDataset
 from lightning.pytorch.strategies import Strategy
 from lightning.pytorch.strategies.launchers import _MultiProcessingLauncher
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from torch import nn
-from torch.optim.lr_scheduler import LambdaLR
-from torch.optim.swa_utils import SWALR
-from torch.utils.data import DataLoader
-
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -347,7 +347,7 @@ def test_swa_resume_training_from_checkpoint(tmp_path, crash_on_epoch):
 
 @pytest.mark.parametrize("crash_on_epoch", [1, 3])
 def test_swa_resume_training_from_checkpoint_custom_scheduler(tmp_path, crash_on_epoch):
-    # Reproduces the bug reported in https://github.com/Lightning-AI/lightning/issues/11665
+    # Reproduces the bug reported in https://github.com/Lightning-AI/pytorch-lightning/issues/11665
     model = CustomSchedulerModel(crash_on_epoch=crash_on_epoch)
     resume_model = CustomSchedulerModel()
     _swa_resume_training_from_checkpoint(tmp_path, model, resume_model)

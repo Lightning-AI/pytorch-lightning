@@ -16,5 +16,7 @@ policy:
             keys: ["v2_3", "v2.3", "2.3.x"]
           - name: "ver: 2.4.x"
             keys: ["v2_4", "v2.4", "2.4.x"]
-          - name: "ver: 2.4.x"
+          - name: "ver: 2.5.x"
+            keys: ["v2_5", "v2.5", "2.5.x"]
+          - name: "ver: 2.5.x"
             keys: ["master"]

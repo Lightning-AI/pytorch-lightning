@@ -21,6 +21,7 @@ from unittest.mock import Mock, PropertyMock, call
 
 import pytest
 import torch
+
 from lightning.pytorch import LightningDataModule, Trainer, seed_everything
 from lightning.pytorch.callbacks import ModelCheckpoint
 from lightning.pytorch.demos.boring_classes import (
@@ -34,7 +35,6 @@ from lightning.pytorch.trainer.states import TrainerFn
 from lightning.pytorch.utilities import AttributeDict
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.imports import _OMEGACONF_AVAILABLE
-
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.simple_models import ClassificationModel
@@ -112,7 +112,7 @@ def test_can_prepare_data(local_rank, node_rank):
 
 def test_hooks_no_recursion_error():
     # hooks were appended in cascade every tine a new data module was instantiated leading to a recursion error.
-    # See https://github.com/Lightning-AI/lightning/issues/3652
+    # See https://github.com/Lightning-AI/pytorch-lightning/issues/3652
     class DummyDM(LightningDataModule):
         def setup(self, *args, **kwargs):
             pass
