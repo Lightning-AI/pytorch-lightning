@@ -139,7 +139,7 @@ class CSVLogger(Logger, FabricCSVLogger):
 
     @override
     @rank_zero_only
-    def log_hyperparams(self, params: Union[dict[str, Any], Namespace]) -> None:
+    def log_hyperparams(self, params: Optional[Union[dict[str, Any], Namespace]] = None) -> None:
         params = _convert_params(params)
         self.experiment.log_hparams(params)
 
