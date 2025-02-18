@@ -59,7 +59,7 @@ class ExperimentWriter(_FabricExperimentWriter):
         self.hparams.update(params)
         hparams_file = os.path.join(self.log_dir, self.NAME_HPARAMS_FILE)
         save_hparams_to_yaml(hparams_file, self.hparams)
-        
+
 
 class CSVLogger(Logger, FabricCSVLogger):
     r"""Log to local file system in yaml and CSV format.
