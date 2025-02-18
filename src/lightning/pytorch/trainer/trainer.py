@@ -128,7 +128,7 @@ class Trainer:
         sync_batchnorm: bool = False,
         reload_dataloaders_every_n_epochs: int = 0,
         default_root_dir: Optional[_PATH] = None,
-        log_hyperparams_enabled: bool = True,
+        enable_autolog_hparams: bool = True,
     ) -> None:
         r"""Customize every aspect of training via flags.
 
@@ -291,7 +291,7 @@ class Trainer:
                 Default: ``os.getcwd()``.
                 Can be remote file paths such as `s3://mybucket/path` or 'hdfs://path/'
 
-            log_hyperparams_enabled: Whether to log hyperparameters at the start of a run.
+            enable_autolog_hparams: Whether to log hyperparameters at the start of a run.
                 Default: ``True``.
 
         Raises:
@@ -500,7 +500,7 @@ class Trainer:
             num_sanity_val_steps,
         )
 
-        self.log_hyperparams_enabled = log_hyperparams_enabled
+        self.enable_autolog_hparams = enable_autolog_hparams
 
     def fit(
         self,
@@ -969,7 +969,7 @@ class Trainer:
             call._call_lightning_module_hook(self, "on_fit_start")
 
         # only log hparams if enabled
-        if self.log_hyperparams_enabled:
+        if self.enable_autolog_hparams:
             _log_hyperparams(self)
 
         if self.strategy.restore_checkpoint_after_setup:
