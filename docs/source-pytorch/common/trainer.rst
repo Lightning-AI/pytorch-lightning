@@ -1102,7 +1102,7 @@ With the parameter set to false, you can add custom code to log hyperparameters.
         else:
             logger.log_hyperparams(hparams_dict_2)
 
-You can also use `self.logger.log_hyperparams(...)` inside `LightningModule` to log. 
+You can also use `self.logger.log_hyperparams(...)` inside `LightningModule` to log.
 
 -----
 
