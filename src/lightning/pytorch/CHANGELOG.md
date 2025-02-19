@@ -14,7 +14,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
-- Fix CSVLogger loggging hyperparameter at every write which increase latency  ([#20594](https://github.com/Lightning-AI/pytorch-lightning/pull/20594))
+- Fix CSVLogger logging hyperparameter at every write which increase latency  ([#20594](https://github.com/Lightning-AI/pytorch-lightning/pull/20594))
 
 
 ## [2.5.0] - 2024-12-19
