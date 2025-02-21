@@ -116,7 +116,6 @@ def test_log_hyperparams(tmp_path):
         "layer": torch.nn.BatchNorm1d,
     }
     logger.log_hyperparams(hparams)
-    logger.save()
 
     path_yaml = os.path.join(logger.log_dir, ExperimentWriter.NAME_HPARAMS_FILE)
     params = load_hparams_from_yaml(path_yaml)
