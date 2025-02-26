@@ -41,6 +41,10 @@ else:
             """Perform equal operation."""
             return self.data == other
 
+        def add_(self, value):
+            self.data += value
+            return self.data
+
     class TorchMock:
         Tensor = TensorMock
 

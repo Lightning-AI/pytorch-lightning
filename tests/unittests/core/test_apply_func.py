@@ -2,6 +2,7 @@ import dataclasses
 import numbers
 from collections import OrderedDict, defaultdict, namedtuple
 from dataclasses import InitVar
+from functools import cached_property
 from typing import Any, ClassVar, Optional
 
 import pytest
@@ -360,3 +361,19 @@ def test_apply_to_collection_allow_frozen_dataclass():
     foo = Foo(0)
     result = apply_to_collection(foo, int, lambda x: x + 1, allow_frozen=True)
     assert foo == result
+
+
+def test_apply_to_collection_with_cached_property_dataclass():
+    @dataclasses.dataclass
+    class Foo:
+        var: torch.Tensor
+
+        @cached_property
+        def cached_property(self):
+            return self.var * 2
+
+    foo = Foo(torch.tensor(1))
+    assert torch.equal(foo.cached_property, torch.tensor(2))
+    result = apply_to_collection(foo, torch.Tensor, lambda x: x.add_(3))
+    assert torch.equal(result.var, torch.tensor(4))
+    assert torch.equal(result.cached_property, torch.tensor(8))

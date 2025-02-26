@@ -16,7 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
--
+- fix: resetting dataclass's `cached_property` once `apply_to_collection` is called ([#363](https://github.com/Lightning-AI/utilities/pull/363))
 
 
 ---

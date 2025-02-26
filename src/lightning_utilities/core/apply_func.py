@@ -6,6 +6,7 @@ import dataclasses
 from collections import OrderedDict, defaultdict
 from collections.abc import Mapping, Sequence
 from copy import deepcopy
+from functools import cached_property
 from typing import Any, Callable, Optional, Union
 
 
@@ -173,6 +174,12 @@ def _apply_to_collection_slow(
                 raise ValueError(
                     "A frozen dataclass was passed to `apply_to_collection` but this is not allowed."
                 ) from e
+
+        # Explicitly resetting cached property.
+        for cached_name in filter(
+            lambda k: isinstance(getattr(type(data), k), cached_property), vars(type(data)).keys()
+        ):
+            vars(result).pop(cached_name, None)
         return result
 
     # data is neither of dtype, nor a collection
