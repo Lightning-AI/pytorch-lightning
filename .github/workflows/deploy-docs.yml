@@ -37,13 +37,13 @@ jobs:
           key: pip-${{ hashFiles('requirements/*.txt') }}
           restore-keys: pip-
 
-      - name: Install texlive
-        timeout-minutes: 20
-        run: |
-          # install Texlive, see https://linuxconfig.org/how-to-install-latex-on-ubuntu-20-04-focal-fossa-linux
-          sudo apt-get update --fix-missing
-          sudo apt-get install -y texlive-latex-extra dvipng texlive-pictures
-        shell: bash
+      #- name: Install texlive
+      #  timeout-minutes: 20
+      #  run: |
+      #    # install Texlive, see https://linuxconfig.org/how-to-install-latex-on-ubuntu-20-04-focal-fossa-linux
+      #    sudo apt-get update --fix-missing
+      #    sudo apt-get install -y texlive-latex-extra dvipng texlive-pictures
+      #  shell: bash
 
       - name: Install dependencies
         timeout-minutes: 20
