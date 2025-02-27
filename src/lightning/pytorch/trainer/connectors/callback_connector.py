@@ -18,6 +18,8 @@ from collections.abc import Sequence
 from datetime import timedelta
 from typing import Optional, Union
 
+from lightning_utilities import module_available
+
 import lightning.pytorch as pl
 from lightning.fabric.utilities.registry import _load_external_callbacks
 from lightning.pytorch.callbacks import (
@@ -91,7 +93,12 @@ class _CallbackConnector:
                     " but found `ModelCheckpoint` in callbacks list."
                 )
         elif enable_checkpointing:
-            self.trainer.callbacks.append(ModelCheckpoint())
+            if module_available("litmodels") and self.trainer._model_name:
+                from litmodels.integrations.lightning_checkpoint import LitModelCheckpoint
+                model_checkpoint = LitModelCheckpoint(model_name=self.trainer._model_name)
+            else:
+                model_checkpoint = ModelCheckpoint()
+            self.trainer.callbacks.append(model_checkpoint)
 
     def _configure_model_summary_callback(self, enable_model_summary: bool) -> None:
         if not enable_model_summary:
