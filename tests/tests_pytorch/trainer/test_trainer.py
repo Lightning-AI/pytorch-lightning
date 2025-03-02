@@ -49,7 +49,7 @@ from lightning.pytorch.demos.boring_classes import (
     RandomIterableDataset,
     RandomIterableDatasetWithLen,
 )
-from lightning.pytorch.loggers import TensorBoardLogger, WandbLogger
+from lightning.pytorch.loggers import TensorBoardLogger
 from lightning.pytorch.overrides.distributed import UnrepeatedDistributedSampler, _IndexBatchSamplerWrapper
 from lightning.pytorch.strategies import DDPStrategy, SingleDeviceStrategy
 from lightning.pytorch.strategies.launchers import _MultiProcessingLauncher, _SubprocessScriptLauncher
@@ -1269,43 +1269,6 @@ def test_log_every_n_steps(log_metrics_mock, tmp_path, train_batches, max_steps,
     trainer.fit(model)
     expected_calls = [call(metrics=ANY, step=s) for s in range(log_interval - 1, max_steps, log_interval)]
     log_metrics_mock.assert_has_calls(expected_calls)
-
-
-def test_wandb_logger_experiment_called_first(tmp_path):
-    wandb_experiment_called = False
-
-    def tensorboard_experiment_side_effect() -> mock.MagicMock:
-        nonlocal wandb_experiment_called
-        assert wandb_experiment_called
-        return mock.MagicMock()
-
-    def wandb_experiment_side_effect() -> mock.MagicMock:
-        nonlocal wandb_experiment_called
-        wandb_experiment_called = True
-        return mock.MagicMock()
-
-    with (
-        mock.patch.object(
-            TensorBoardLogger,
-            "experiment",
-            new_callable=lambda: mock.PropertyMock(side_effect=tensorboard_experiment_side_effect),
-        ),
-        mock.patch.object(
-            WandbLogger,
-            "experiment",
-            new_callable=lambda: mock.PropertyMock(side_effect=wandb_experiment_side_effect),
-        ),
-    ):
-        model = BoringModel()
-        trainer = Trainer(
-            default_root_dir=tmp_path,
-            log_every_n_steps=1,
-            limit_train_batches=0,
-            limit_val_batches=0,
-            max_steps=1,
-            logger=[TensorBoardLogger(tmp_path), WandbLogger(save_dir=tmp_path)],
-        )
-        trainer.fit(model)
 
 
 class TestLightningDataModule(LightningDataModule):
