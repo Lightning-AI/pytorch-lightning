@@ -88,7 +88,7 @@ class _MultiProcessingLauncher(_Launcher):
     def is_interactive_compatible(self) -> bool:
         # The start method 'spawn' is not supported in interactive environments
         # The start method 'fork' is the only one supported in Jupyter environments, with constraints around CUDA
-        # initialization. For more context, see https://github.com/Lightning-AI/lightning/issues/7550
+        # initialization. For more context, see https://github.com/Lightning-AI/pytorch-lightning/issues/7550
         return self._start_method == "fork"
 
     @override
@@ -111,7 +111,7 @@ class _MultiProcessingLauncher(_Launcher):
         if self._start_method == "spawn":
             _check_missing_main_guard()
         if self._already_fit and trainer is not None and trainer.state.fn == TrainerFn.FITTING:
-            # resolving https://github.com/Lightning-AI/lightning/issues/18775 will lift this restriction
+            # resolving https://github.com/Lightning-AI/pytorch-lightning/issues/18775 will lift this restriction
             raise NotImplementedError(
                 "Calling `trainer.fit()` twice on the same Trainer instance using a spawn-based strategy is not"
                 " supported. You can work around this limitation by creating a new Trainer instance and passing the"
