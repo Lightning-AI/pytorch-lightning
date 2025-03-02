@@ -15,6 +15,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ### Fixed
 
 - Fix CSVLogger logging hyperparameter at every write which increase latency  ([#20594](https://github.com/Lightning-AI/pytorch-lightning/pull/20594))
+- always call `WandbLogger.experiment` first in `_call_setup_hook` to ensure `tensorboard` logs can sync to `wandb` ([#20610](https://github.com/Lightning-AI/pytorch-lightning/pull/20610))
 
 
 ## [2.5.0] - 2024-12-19
