@@ -126,6 +126,24 @@ def test_wandb_logger_init(wandb_mock):
     assert logger.version == wandb_mock.init().id
 
 
+def test_wandb_logger_sync_tensorboard(wandb_mock):
+    logger = WandbLogger(sync_tensorboard=True)
+    wandb_mock.run = None
+    logger.experiment
+
+    # test that tensorboard's global_step is set as the default x-axis if sync_tensorboard=True
+    wandb_mock.init.return_value.define_metric.assert_called_once_with("*", step_metric="global_step")
+
+
+def test_wandb_logger_sync_tensorboard_log_metrics(wandb_mock):
+    logger = WandbLogger(sync_tensorboard=True)
+    metrics = {"loss": 1e-3, "accuracy": 0.99}
+    logger.log_metrics(metrics)
+
+    # test that trainer/global_step is not added to the logged metrics if sync_tensorboard=True
+    wandb_mock.run.log.assert_called_once_with(metrics)
+
+
 def test_wandb_logger_init_before_spawn(wandb_mock):
     logger = WandbLogger()
     assert logger._experiment is None
