@@ -410,8 +410,11 @@ class WandbLogger(Logger):
                 if isinstance(self._experiment, (Run, RunDisabled)) and getattr(
                     self._experiment, "define_metric", None
                 ):
-                    self._experiment.define_metric("trainer/global_step")
-                    self._experiment.define_metric("*", step_metric="trainer/global_step", step_sync=True)
+                    if self._wandb_init.get("sync_tensorboard"):
+                        self._experiment.define_metric("*", step_metric="global_step")
+                    else:
+                        self._experiment.define_metric("trainer/global_step")
+                        self._experiment.define_metric("*", step_metric="trainer/global_step", step_sync=True)
 
         return self._experiment
 
@@ -434,7 +437,7 @@ class WandbLogger(Logger):
         assert rank_zero_only.rank == 0, "experiment tried to log from global_rank != 0"
 
         metrics = _add_prefix(metrics, self._prefix, self.LOGGER_JOIN_CHAR)
-        if step is not None:
+        if step is not None and not self._wandb_init.get("sync_tensorboard"):
             self.experiment.log(dict(metrics, **{"trainer/global_step": step}))
         else:
             self.experiment.log(metrics)
