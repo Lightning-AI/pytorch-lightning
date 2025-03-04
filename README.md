@@ -54,7 +54,7 @@ on: [push]
 
 jobs:
   pytest:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     steps:
     - uses: actions/checkout@v3
     - uses: actions/setup-python@v4
