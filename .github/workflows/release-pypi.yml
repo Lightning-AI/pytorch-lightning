@@ -17,17 +17,15 @@ defaults:
 jobs:
   # based on https://github.com/pypa/gh-action-pypi-publish
   build-package:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     timeout-minutes: 10
     steps:
       - name: Checkout 🛎️
         uses: actions/checkout@v4
-        with:
-          submodules: recursive
       - name: Set up Python 🐍
         uses: actions/setup-python@v5
         with:
-          python-version: "3.x"
+          python-version: "3.10"
       - name: Prepare build env.
         run: pip install -r ./requirements/gha-package.txt
       - name: Create 📦 package
