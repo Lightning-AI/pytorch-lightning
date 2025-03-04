@@ -5,19 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
----
 
-## [UnReleased] - 2025-MM-DD
+## [Unreleased] - 2024-MM-DD
 
 ### Changed
 
 -
 
+### Fixed
+
+-
+
+
+---
+
+## [0.13.0] - 2025-03-04
 
 ### Fixed
 
-- fix: resetting dataclass's `cached_property` once `apply_to_collection` is called ([#363](https://github.com/Lightning-AI/utilities/pull/363))
-
+- Fixed resetting dataclass's `cached_property` once `apply_to_collection` is called ([#363](https://github.com/Lightning-AI/utilities/pull/363))
 
 ---
 
@@ -29,7 +35,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CI: bump upload/download artifact `v4` ([#344](https://github.com/Lightning-AI/utilities/pull/344), [#345](https://github.com/Lightning-AI/utilities/pull/345))
 - CI: make `actions-ref` optional if used only for listing packages ([#345](https://github.com/Lightning-AI/utilities/pull/345))
 - Bump minimal Python version to be 3.9 ([#331](https://github.com/Lightning-AI/utilities/pull/331))
-- CI: split install action for archive and wheel ([#347](https://github.com/Lightning-AI/utilities/pull/347))
+- CI: split `install` action for archive and wheel ([#347](https://github.com/Lightning-AI/utilities/pull/347))
 
 ---
 
@@ -41,7 +47,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- fixed missing package's CLI ([#332](https://github.com/Lightning-AI/utilities/pull/332))
+- Fixed missing package's CLI ([#332](https://github.com/Lightning-AI/utilities/pull/332))
 
 
 ## [0.11.8] - 2024-10-15
