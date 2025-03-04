@@ -15,7 +15,7 @@ on:
         type: string
       azure-schema-version:
         description: "Version of Azure Pipelines schema to use. Provide an empty string to skip checking on Azure Pipelines files."
-        default: "1.208.0"
+        default: "v1.208.0"
         required: false
         type: string
 
