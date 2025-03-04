@@ -14,7 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
--
+- CI: enable `azure-schema-version` forAzure schema check ([#369](https://github.com/Lightning-AI/utilities/pull/369))
 
 
 ---

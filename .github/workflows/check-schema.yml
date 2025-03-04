@@ -13,6 +13,11 @@ on:
         default: ".azure/"
         required: false
         type: string
+      azure-schema-version:
+        description: "Version of Azure Pipelines schema to use. Provide an empty string to skip checking on Azure Pipelines files."
+        default: "1.208.0"
+        required: false
+        type: string
 
 defaults:
   run:
@@ -76,7 +81,7 @@ jobs:
       - name: Azure Pipelines
         if: ${{ inputs.azure-dir != '' }}
         env:
-          SCHEMA_FILE: https://raw.githubusercontent.com/microsoft/azure-pipelines-vscode/v1.208.0/service-schema.json
+          SCHEMA_FILE: https://raw.githubusercontent.com/microsoft/azure-pipelines-vscode/${{ inputs.azure-schema-version }}/service-schema.json
         run: |
           files=$(find ${{ inputs.azure-dir }} -name '*.yml' -or -name '*.yaml')
           for f in $files; do
