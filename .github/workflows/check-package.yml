@@ -161,7 +161,6 @@ jobs:
         uses: ./.cicd/.github/actions/pkg-install
         with:
           install-from: "archive"
-          artifact-name: ${{ inputs.artifact-name }}
           pkg-extras: ${{ inputs.install-extras }}
           pip-flags: ${{ inputs.install-flags }}
           import-name: ${{ inputs.import-name }}
@@ -171,7 +170,6 @@ jobs:
         uses: ./.cicd/.github/actions/pkg-install
         with:
           install-from: "wheel"
-          artifact-name: ${{ inputs.artifact-name }}
           pkg-extras: ${{ inputs.install-extras }}
           pip-flags: ${{ inputs.install-flags }}
           import-name: ${{ inputs.import-name }}

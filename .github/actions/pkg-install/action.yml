@@ -5,9 +5,6 @@ inputs:
   install-from:
     description: "Define if the package is from archive or wheel"
     required: true
-  import-name:
-    description: "Import name to test with after installation"
-    required: true
   pkg-folder:
     description: "Unique name for collecting artifacts"
     required: false
@@ -20,6 +17,9 @@ inputs:
     description: "additional pip install flags"
     required: false
     default: "-f https://download.pytorch.org/whl/cpu/torch_stable.html"
+  import-name:
+    description: "Import name to test with after installation"
+    required: true
   custom-import-code:
     description: "additional import statement, need to be full python code"
     required: false

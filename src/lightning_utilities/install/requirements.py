@@ -7,7 +7,7 @@ from distutils.version import LooseVersion
 from pathlib import Path
 from typing import Any, Optional, Union
 
-from pkg_resources import Requirement, yield_lines
+from pkg_resources import Requirement, yield_lines  # type: ignore[import-untyped]
 
 
 class _RequirementWithComment(Requirement):
