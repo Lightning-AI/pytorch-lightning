@@ -13,6 +13,7 @@
 # limitations under the License.
 from functools import partial
 
+import pytest
 import torch
 import torch.distributed as dist
 
@@ -48,6 +49,8 @@ def result_reduce_ddp_fn(strategy):
     assert actual.item() == dist.get_world_size()
 
 
+# flaky with "process 0 terminated with signal SIGABRT"
+@pytest.mark.flaky(reruns=3, only_rerun="torch.multiprocessing.spawn.ProcessExitedException")
 @RunIf(skip_windows=True)
 def test_result_reduce_ddp():
     spawn_launch(result_reduce_ddp_fn, [torch.device("cpu")] * 2)
