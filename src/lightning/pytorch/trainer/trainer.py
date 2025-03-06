@@ -128,7 +128,7 @@ class Trainer:
         sync_batchnorm: bool = False,
         reload_dataloaders_every_n_epochs: int = 0,
         default_root_dir: Optional[_PATH] = None,
-        model_name: Optional[str] = None,
+        model_registry: Optional[str] = None,
     ) -> None:
         r"""Customize every aspect of training via flags.
 
@@ -291,7 +291,7 @@ class Trainer:
                 Default: ``os.getcwd()``.
                 Can be remote file paths such as `s3://mybucket/path` or 'hdfs://path/'
 
-            model_name: The name of the model being uploaded to Model hub.
+            model_registry: The name of the model being uploaded to Model hub.
 
         Raises:
             TypeError:
@@ -307,7 +307,7 @@ class Trainer:
         if default_root_dir is not None:
             default_root_dir = os.fspath(default_root_dir)
 
-        self._model_name = model_name
+        self._model_registry = model_registry
 
         self.barebones = barebones
         if barebones:
