@@ -19,6 +19,7 @@ from typing import Any, Optional
 import torch
 from fsspec.core import url_to_fs
 from fsspec.implementations.local import LocalFileSystem
+from lightning_utilities import module_available
 from torch import Tensor
 
 import lightning.pytorch as pl
@@ -194,9 +195,23 @@ class _CheckpointConnector:
             if not self._hpc_resume_path:
                 raise ValueError(
                     f'`.{fn}(ckpt_path="hpc")` is set but no HPC checkpoint was found.'
-                    " Please pass an exact checkpoint path to `.{fn}(ckpt_path=...)`"
+                    f" Please pass an exact checkpoint path to `.{fn}(ckpt_path=...)`"
                 )
             ckpt_path = self._hpc_resume_path
+
+        elif ckpt_path is True and module_available("litmodels") and self.trainer._model_registry:
+            from litmodels import download_model
+
+            # download the latest checkpoint from the model registry
+            local_model_dir = os.path.join(
+                self.trainer.default_root_dir, self.trainer._model_registry.replace("/", "_")
+            )
+            model_files = download_model(self.trainer._model_registry, download_dir=local_model_dir)
+            model_files = [f for f in model_files if f.endswith(".ckpt")]
+            if not model_files:
+                raise RuntimeError(f"Download model failed - {self.trainer._model_registry}")
+            # todo: resolve if there are multiple checkpoints
+            ckpt_path = os.path.join(local_model_dir, model_files[0])
 
         if not ckpt_path:
             raise ValueError(
