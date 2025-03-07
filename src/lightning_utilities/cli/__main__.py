@@ -4,7 +4,11 @@
 #
 
 import lightning_utilities
-from lightning_utilities.cli.dependencies import prune_pkgs_in_requirements, replace_oldest_ver
+from lightning_utilities.cli.dependencies import (
+    prune_packages_in_requirements,
+    replace_oldest_version,
+    replace_package_in_requirements,
+)
 
 
 def main() -> None:
@@ -13,8 +17,9 @@ def main() -> None:
 
     Fire({
         "requirements": {
-            "prune-pkgs": prune_pkgs_in_requirements,
-            "set-oldest": replace_oldest_ver,
+            "prune-pkgs": prune_packages_in_requirements,
+            "set-oldest": replace_oldest_version,
+            "replace-pkg": replace_package_in_requirements,
         },
         "version": lambda: print(lightning_utilities.__version__),
     })
