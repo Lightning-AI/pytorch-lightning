@@ -5,22 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased] - 2025-MM-DD
+## [0.14.0] - 2025-03-07
 
 ### Added
 
 - CLI: replace package name in requirements ([#372](https://github.com/Lightning-AI/utilities/pull/372))
-
-
-### Changed
-
--
-
-
-### Fixed
-
--
-
 
 ---
 
@@ -31,6 +20,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CI: enable `azure-schema-version` forAzure schema check ([#369](https://github.com/Lightning-AI/utilities/pull/369))
 
 ## [0.13.0] - 2025-03-04
+
+### Changed
+
+- CI: bump all runners from `20.04` to `24.04` ([#368](https://github.com/Lightning-AI/utilities/pull/368))
 
 ### Fixed
 
