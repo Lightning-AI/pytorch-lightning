@@ -53,7 +53,8 @@ setup(
     author_email=about.__author_email__,
     url=about.__homepage__,
     download_url="https://github.com/Lightning-AI/utilities",
-    license=about.__license__,
+    license=about.__license__,  # Should be a license identifier like "MIT"
+    license_files=["LICENSE"],  # Path to your license file
     packages=find_packages(where="src"),
     package_dir={"": "src"},
     long_description=readme,

@@ -87,7 +87,9 @@ jobs:
           path: .cicd
           repository: Lightning-AI/utilities
       - name: Prepare build env.
-        run: pip install -r ./.cicd/requirements/gha-package.txt
+        run: |
+          pip install -q -r ./.cicd/requirements/gha-package.txt
+          pip list
       - name: Create package 📦
         uses: ./.cicd/.github/actions/pkg-create
       - name: Upload 📤 packages
@@ -108,7 +110,9 @@ jobs:
           path: .cicd
           repository: Lightning-AI/utilities
       - name: Prepare build env.
-        run: pip install -r ./.cicd/requirements/gha-package.txt
+        run: |
+          pip install -q -r ./.cicd/requirements/gha-package.txt
+          pip list
 
       - name: Download 📥
         uses: actions/download-artifact@v4
