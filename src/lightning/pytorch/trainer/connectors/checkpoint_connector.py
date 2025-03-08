@@ -199,19 +199,23 @@ class _CheckpointConnector:
                 )
             ckpt_path = self._hpc_resume_path
 
-        elif ckpt_path is True and module_available("litmodels") and self.trainer._model_registry:
+        elif module_available("litmodels") and self.trainer._model_registry:
             from litmodels import download_model
 
-            # download the latest checkpoint from the model registry
-            local_model_dir = os.path.join(
-                self.trainer.default_root_dir, self.trainer._model_registry.replace("/", "_")
-            )
-            model_files = download_model(self.trainer._model_registry, download_dir=local_model_dir)
-            model_files = [f for f in model_files if f.endswith(".ckpt")]
-            if not model_files:
-                raise RuntimeError(f"Download model failed - {self.trainer._model_registry}")
-            # todo: resolve if there are multiple checkpoints
-            ckpt_path = os.path.join(local_model_dir, model_files[0])
+            # try to find a version
+            parts = ckpt_path.split(":")
+            if parts[0] == "registry":
+                model_registry = self.trainer._model_registry.split(":")[0]
+                if len(parts) > 1:
+                    model_registry += ":" + parts[1]
+                # download the latest checkpoint from the model registry
+                local_model_dir = os.path.join(self.trainer.default_root_dir, model_registry.replace("/", "_"))
+                model_files = download_model(model_registry, download_dir=local_model_dir)
+                model_files = [f for f in model_files if f.endswith(".ckpt")]
+                if not model_files:
+                    raise RuntimeError(f"Download model failed - {model_registry}")
+                # todo: resolve if there are multiple checkpoints
+                ckpt_path = os.path.join(local_model_dir, model_files[0])
 
         if not ckpt_path:
             raise ValueError(
