@@ -307,7 +307,8 @@ class Trainer:
         if default_root_dir is not None:
             default_root_dir = os.fspath(default_root_dir)
 
-        self._model_registry = model_registry
+        # remove version if accidentally passed
+        self._model_registry = model_registry.split(":")[0]
 
         self.barebones = barebones
         if barebones:
