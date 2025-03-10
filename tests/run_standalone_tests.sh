@@ -135,10 +135,12 @@ if [[ ${#failed_tests[@]} -gt 0 ]]; then
   for i in "${failed_tests[@]}"; do
     printf '\n%.s' {1..5}
     printf '=%.s' {1..80}
-    printf "${tests[$i]}\n"
+    printf "\n${tests[$i]}\n"
     printf '-%.s' {1..80}
+    printf "\n"
     # show the output of the failed test
     cat "parallel_test_output-$i.txt"
+    printf "\n"
     printf '=%.s' {1..80}
   done
 else
