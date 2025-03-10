@@ -52,6 +52,11 @@ sed -i '$d' $COLLECTED_TESTS_FILE
 
 # Get test list and run each test individually
 tests=($(grep -oP '\S+::test_\S+' "$COLLECTED_TESTS_FILE"))
+# remove everything before "$test_dir/" in each array element
+for i in "${!tests[@]}"; do
+    tests[$i]=${tests[$i]#*${test_dir}/}
+done
+
 test_count=${#tests[@]}
 # present the collected tests
 printf "collected $test_count tests:\n-------------------\n"
