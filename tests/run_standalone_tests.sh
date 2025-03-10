@@ -80,11 +80,11 @@ fi
 # clear all the collected reports
 rm -f parallel_test_output-*.txt  # in case it exists, remove it
 
-
 status=0 # reset the script status
 report="" # final report
 pids=() # array of PID for running tests
 test_ids=() # array of indexes of running tests
+failed_tests=() # array of failed tests
 printf "Running $test_count tests in batches of $test_batch_size\n"
 for i in "${!tests[@]}"; do
   test=${tests[$i]}
@@ -112,8 +112,8 @@ for i in "${!tests[@]}"; do
       # add row to the final report
       report+="Ran\t$test\t>> exit:$test_status\n"
       if [[ $test_status != 0 ]]; then
-        # show the output of the failed test
-        cat "parallel_test_output-$i.txt"
+        # add the test to the failed tests array
+        failed_tests+=($i)
         # Process exited with a non-zero exit status
         status=$test_status
       fi
@@ -123,11 +123,27 @@ for i in "${!tests[@]}"; do
   fi
 done
 
-# echo test report
+# print test report
 printf '=%.s' {1..80}
 printf "\n$report"
 printf '=%.s' {1..80}
 printf '\n'
+
+# print failed tests
+if [[ ${#failed_tests[@]} -gt 0 ]]; then
+  printf "Failed tests:\n"
+  for i in "${failed_tests[@]}"; do
+    printf "\n\n"
+    pritf "=" * 80
+    printf "${tests[$i]}\n"
+    pritf "-" * 80
+    # show the output of the failed test
+    cat "parallel_test_output-$i.txt"
+    pritf "=" * 80
+  done
+else
+  printf "All tests passed!\n"
+fi
 
 # exit with the worse test result
 exit $status
