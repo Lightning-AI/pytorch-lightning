@@ -36,8 +36,7 @@ cd ${test_dir}
 ls -lh .  # show the contents of the directory
 
 # python arguments
-defaults=" -m coverage run --source ${codecov_source} --append " \
-         "-m pytest --no-header -v -s --color=yes --timeout=${test_timeout} --durations=0 "
+defaults=" -m coverage run --source ${codecov_source} --append -m pytest --no-header -v -s --color=yes --timeout=${test_timeout} --durations=0 "
 echo "Using defaults: ${defaults}"
 
 # get the list of parametrizations. we need to call them separately. the last two lines are removed.
