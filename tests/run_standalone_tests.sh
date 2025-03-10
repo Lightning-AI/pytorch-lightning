@@ -32,7 +32,6 @@ test_dir=$1 # parse the first argument
 test_timeout="${TEST_TIMEOUT:-1200}" # set the test timeout
 COLLECTED_TESTS_FILE="collected_tests.txt"
 
-cd ${test_dir}
 ls -lh .  # show the contents of the directory
 
 # python arguments
@@ -41,7 +40,7 @@ echo "Using defaults: ${defaults}"
 
 # get the list of parametrizations. we need to call them separately. the last two lines are removed.
 # note: if there's a syntax error, this will fail with some garbled output
-python -um pytest -q --collect-only --pythonwarnings ignore 2>&1 > $COLLECTED_TESTS_FILE
+python -um pytest ${test_dir} -q --collect-only --pythonwarnings ignore 2>&1 > $COLLECTED_TESTS_FILE
 # early terminate if collection failed (e.g. syntax error)
 if [[ $? != 0 ]]; then
   cat $COLLECTED_TESTS_FILE
@@ -56,7 +55,7 @@ tests=($(grep -oP '\S+::test_\S+' "$COLLECTED_TESTS_FILE"))
 test_count=${#tests[@]}
 # present the collected tests
 printf "collected $test_count tests:\n-------------------\n"
-echo $(IFS='\n'; echo "${tests[@]}")
+printf "%s\n" "${tests[@]}"
 printf "\n===================\n"
 
 # if test count is one print warning
