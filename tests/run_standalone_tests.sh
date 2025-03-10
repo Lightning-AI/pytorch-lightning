@@ -32,6 +32,8 @@ test_dir=$1 # parse the first argument
 test_timeout="${TEST_TIMEOUT:-1200}" # set the test timeout
 COLLECTED_TESTS_FILE="collected_tests.txt"
 
+printenv
+
 cd ${test_dir}
 ls -lh .  # show the contents of the directory
 
