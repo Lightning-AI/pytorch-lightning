@@ -44,21 +44,27 @@ python -um pytest ${test_dir} -q --collect-only --pythonwarnings ignore 2>&1 > $
 # early terminate if collection failed (e.g. syntax error)
 if [[ $? != 0 ]]; then
   cat $COLLECTED_TESTS_FILE
+  printf "ERROR: test collection failed!\n"
   exit 1
 fi
 
-# removes the last line of the file
-sed -i '$d' $COLLECTED_TESTS_FILE
+# Initialize empty array
+tests=()
 
-# Get test list and run each test individually
-tests=($(grep -oP '\S+::test_\S+' "$COLLECTED_TESTS_FILE"))
-# remove everything before "$test_dir/" in each array element
-for i in "${!tests[@]}"; do
-    tests[$i]=${tests[$i]#*${test_dir}/}
-done
+# Read from file line by line
+while IFS= read -r line; do
+    # Only keep lines containing "test_"
+    if [[ $line == *"test_"* ]]; then
+        # Extract part after test_dir/
+        pruned_line="${line#*${test_dir}/}"
+        tests+=("${test_dir}/$pruned_line")
+    fi
+done < $COLLECTED_TESTS_FILE
 
+# Count tests
 test_count=${#tests[@]}
-# present the collected tests
+
+# Display results
 printf "collected $test_count tests:\n-------------------\n"
 printf "%s\n" "${tests[@]}"
 printf "\n===================\n"
