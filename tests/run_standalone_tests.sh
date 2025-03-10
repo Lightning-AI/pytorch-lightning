@@ -93,7 +93,7 @@ for i in "${!tests[@]}"; do
   # execute the test in the background
   # redirect to a log file that buffers test output. since the tests will run in the background,
   # we cannot let them output to std{out,err} because the outputs would be garbled together
-  python ${defaults} "$test" 2>&1 > "parallel_test_output-$i.txt" &
+  python ${defaults} "$test" &> "parallel_test_output-$i.txt" &
   test_ids+=($i) # save the test's id in an array with running tests
   pids+=($!) # save the PID in an array with running tests
 
@@ -133,13 +133,13 @@ printf '\n'
 if [[ ${#failed_tests[@]} -gt 0 ]]; then
   printf "Failed tests:\n"
   for i in "${failed_tests[@]}"; do
-    printf "\n\n"
-    pritf "=" * 80
+    printf "\n" * 5
+    printf "=" * 80
     printf "${tests[$i]}\n"
-    pritf "-" * 80
+    printf "-" * 80
     # show the output of the failed test
     cat "parallel_test_output-$i.txt"
-    pritf "=" * 80
+    printf "=" * 80
   done
 else
   printf "All tests passed!\n"
