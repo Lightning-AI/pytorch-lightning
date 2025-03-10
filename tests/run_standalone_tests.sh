@@ -13,27 +13,36 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 set -e
-# THIS FILE ASSUMES IT IS RUN INSIDE THE tests/tests_<package> DIRECTORY
+
+# THIS FILE ASSUMES IT IS RUN INSIDE THE tests-sdk DIRECTORY. SEE BELOW FOR CUSTOMIZATION.
 
 # Batch size for testing: Determines how many standalone test invocations run in parallel
-# It can be set through the env variable PL_STANDALONE_TESTS_BATCH_SIZE and defaults to 6 if not set
-test_batch_size="${PL_STANDALONE_TESTS_BATCH_SIZE:-3}"
-source="${PL_STANDALONE_TESTS_SOURCE:-"lightning"}"
+# It can be set through the env variable NUM_PARALLEL_TESTS and defaults to 10 if not set
+
+# Source directory for coverage runs can be set with PARALLEL_TESTS_SOURCE and defaults to
+# lightning_sdk.
+
+# The directory to run tests from (in parallel) can be set with PARALLEL_TESTS_DIR and
+# defaults to the directory of this file. Should be set correctly for each test suite
+# (e.g. to "tests_filesystem" to run filesystem tests)
+test_batch_size="${NUM_PARALLEL_TESTS:-5}"
+codecov_source="${CODECOV_SOURCE:-"lightning"}"
 # this is the directory where the tests are located
 test_dir=$1 # parse the first argument
+test_timeout="${TEST_TIMEOUT:-1200}" # set the test timeout
 COLLECTED_TESTS_FILE="collected_tests.txt"
 
+cd ${test_dir}
 ls -lh .  # show the contents of the directory
 
-# this environment variable allows special tests to run
-export PL_RUN_STANDALONE_TESTS=1
 # python arguments
-defaults=" -m coverage run --source ${source} --append -m pytest --no-header -v -s --timeout 120 "
+defaults=" -m coverage run --source ${codecov_source} --append " \
+         "-m pytest --no-header -v -s --color=yes --timeout=${test_timeout} --durations=0 "
 echo "Using defaults: ${defaults}"
 
 # get the list of parametrizations. we need to call them separately. the last two lines are removed.
 # note: if there's a syntax error, this will fail with some garbled output
-python3 -um pytest $test_dir -q --collect-only --pythonwarnings ignore 2>&1 > $COLLECTED_TESTS_FILE
+python -um pytest ${test_dir} -q --collect-only --pythonwarnings ignore 2>&1 > $COLLECTED_TESTS_FILE
 # early terminate if collection failed (e.g. syntax error)
 if [[ $? != 0 ]]; then
   cat $COLLECTED_TESTS_FILE
@@ -48,8 +57,7 @@ tests=($(grep -oP '\S+::test_\S+' "$COLLECTED_TESTS_FILE"))
 test_count=${#tests[@]}
 # present the collected tests
 printf "collected $test_count tests:\n-------------------\n"
-# replace space with new line
-echo "${tests[@]}" | tr ' ' '\n'
+echo $(IFS='\n'; echo "${tests[@]}")
 printf "\n===================\n"
 
 # if test count is one print warning
@@ -70,14 +78,13 @@ pids=() # array of PID for running tests
 test_ids=() # array of indexes of running tests
 printf "Running $test_count tests in batches of $test_batch_size\n"
 for i in "${!tests[@]}"; do
-  # remove initial "tests/" from the test name
-  test=${tests[$i]/tests\//}
+  test=${tests[$i]}
   printf "Running test $((i+1))/$test_count: $test\n"
 
   # execute the test in the background
   # redirect to a log file that buffers test output. since the tests will run in the background,
   # we cannot let them output to std{out,err} because the outputs would be garbled together
-  python3 ${defaults} "$test" 2>&1 > "standalone_test_output-$i.txt" &
+  python ${defaults} "$test" 2>&1 > "parallel_test_output-$i.txt" &
   test_ids+=($i) # save the test's id in an array with running tests
   pids+=($!) # save the PID in an array with running tests
 
@@ -89,7 +96,7 @@ for i in "${!tests[@]}"; do
       i=${test_ids[$j]} # restore the global test's id
       pid=${pids[$j]} # restore the particular PID
       test=${tests[$i]} # restore the test name
-      printf "Waiting for $tests >> standalone_test_output-$i.txt (PID: $pid)\n"
+      printf "Waiting for $tests >> parallel_test_output-$i.txt (PID: $pid)\n"
       wait -n $pid
       # get the exit status of the test
       test_status=$?
@@ -97,7 +104,7 @@ for i in "${!tests[@]}"; do
       report+="Ran\t$test\t>> exit:$test_status\n"
       if [[ $test_status != 0 ]]; then
         # show the output of the failed test
-        cat "standalone_test_output-$i.txt"
+        cat "parallel_test_output-$i.txt"
         # Process exited with a non-zero exit status
         status=$test_status
       fi
@@ -113,5 +120,5 @@ printf "\n$report"
 printf '=%.s' {1..80}
 printf '\n'
 
-# exit with the worst test result
+# exit with the worse test result
 exit $status
