@@ -133,13 +133,13 @@ printf '\n'
 if [[ ${#failed_tests[@]} -gt 0 ]]; then
   printf "Failed tests:\n"
   for i in "${failed_tests[@]}"; do
-    printf "\n" * 5
-    printf "=" * 80
+    printf '\n%.s' {1..5}
+    printf '=%.s' {1..80}
     printf "${tests[$i]}\n"
-    printf "-" * 80
+    printf '-%.s' {1..80}
     # show the output of the failed test
     cat "parallel_test_output-$i.txt"
-    printf "=" * 80
+    printf '=%.s' {1..80}
   done
 else
   printf "All tests passed!\n"
