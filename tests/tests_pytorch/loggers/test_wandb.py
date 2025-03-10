@@ -24,7 +24,7 @@ from lightning.pytorch import Trainer
 from lightning.pytorch.callbacks import ModelCheckpoint
 from lightning.pytorch.cli import LightningCLI
 from lightning.pytorch.demos.boring_classes import BoringModel
-from lightning.pytorch.loggers import WandbLogger
+from lightning.pytorch.loggers import TensorBoardLogger, WandbLogger
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from tests_pytorch.test_cli import _xfail_python_ge_3_11_9
 
@@ -149,6 +149,43 @@ def test_wandb_logger_init_before_spawn(wandb_mock):
     assert logger._experiment is None
     logger.__getstate__()
     assert logger._experiment is not None
+
+
+def test_wandb_logger_experiment_called_first(wandb_mock, tmp_path):
+    wandb_experiment_called = False
+
+    def tensorboard_experiment_side_effect() -> mock.MagicMock:
+        nonlocal wandb_experiment_called
+        assert wandb_experiment_called
+        return mock.MagicMock()
+
+    def wandb_experiment_side_effect() -> mock.MagicMock:
+        nonlocal wandb_experiment_called
+        wandb_experiment_called = True
+        return mock.MagicMock()
+
+    with (
+        mock.patch.object(
+            TensorBoardLogger,
+            "experiment",
+            new_callable=lambda: mock.PropertyMock(side_effect=tensorboard_experiment_side_effect),
+        ),
+        mock.patch.object(
+            WandbLogger,
+            "experiment",
+            new_callable=lambda: mock.PropertyMock(side_effect=wandb_experiment_side_effect),
+        ),
+    ):
+        model = BoringModel()
+        trainer = Trainer(
+            default_root_dir=tmp_path,
+            log_every_n_steps=1,
+            limit_train_batches=0,
+            limit_val_batches=0,
+            max_steps=1,
+            logger=[TensorBoardLogger(tmp_path), WandbLogger(save_dir=tmp_path)],
+        )
+        trainer.fit(model)
 
 
 def test_wandb_pickle(wandb_mock, tmp_path):
