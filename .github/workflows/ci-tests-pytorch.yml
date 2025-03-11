@@ -224,7 +224,6 @@ jobs:
           name: CPU-coverage
           fail_ci_if_error: false
 
-
   pl-cpu-guardian:
     runs-on: ubuntu-latest
     needs: pl-cpu

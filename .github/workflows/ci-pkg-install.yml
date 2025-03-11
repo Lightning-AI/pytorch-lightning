@@ -104,7 +104,6 @@ jobs:
           PY_IGNORE_IMPORTMISMATCH: 1
         run: python -m pytest src/lit/${PKG_NAME} --ignore-glob="**/cli/*-template/**" --doctest-plus
 
-
   install-pkg-guardian:
     runs-on: ubuntu-latest
     needs: install-pkg
