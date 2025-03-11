@@ -27,7 +27,7 @@ from lightning.fabric.utilities.load import _lazy_load
 from tests_fabric.helpers.runif import RunIf
 
 
-@pytest.mark.skipif(_BITSANDBYTES_AVAILABLE, reason="bitsandbytes needs to be unavailable")
+@pytest.mark.skipif(not _BITSANDBYTES_AVAILABLE, reason="bitsandbytes needs to be unavailable")
 def test_bitsandbytes_plugin(monkeypatch):
     module = lightning.fabric.plugins.precision.bitsandbytes
     monkeypatch.setattr(module, "_BITSANDBYTES_AVAILABLE", lambda: True)
