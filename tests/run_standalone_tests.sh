@@ -85,7 +85,7 @@ report="" # final report
 pids=() # array of PID for running tests
 test_ids=() # array of indexes of running tests
 failed_tests=() # array of failed tests
-printf "Running $test_count tests in batches of $test_batch_size\n"
+printf "Running $test_count tests in batches of $test_batch_size:\n"
 for i in "${!tests[@]}"; do
   test=${tests[$i]}
   printf "* Running test $((i+1))/$test_count: $test\n"
@@ -105,7 +105,7 @@ for i in "${!tests[@]}"; do
       i=${test_ids[$j]} # restore the global test's id
       pid=${pids[$j]} # restore the particular PID
       test=${tests[$i]} # restore the test name
-      printf "- Waiting for $tests >> parallel_test_output-$i.txt (PID: $pid)\n"
+      printf "? Waiting for $tests >> parallel_test_output-$i.txt (PID: $pid)\n"
       wait -n $pid
       # get the exit status of the test
       test_status=$?
