@@ -28,6 +28,7 @@ from tests_fabric.helpers.runif import RunIf
 
 
 @pytest.mark.skipif(_BITSANDBYTES_AVAILABLE, reason="bitsandbytes needs to be unavailable")
+@RunIf(mps=False)  # skip on MPS as Bitsandbytes is only supported on CUDA GPUs
 def test_bitsandbytes_plugin(monkeypatch):
     module = lightning.fabric.plugins.precision.bitsandbytes
     monkeypatch.setattr(module, "_BITSANDBYTES_AVAILABLE", lambda: True)
