@@ -88,7 +88,7 @@ failed_tests=() # array of failed tests
 printf "Running $test_count tests in batches of $test_batch_size\n"
 for i in "${!tests[@]}"; do
   test=${tests[$i]}
-  printf "Running test $((i+1))/$test_count: $test\n"
+  printf "* Running test $((i+1))/$test_count: $test\n"
 
   # execute the test in the background
   # redirect to a log file that buffers test output. since the tests will run in the background,
@@ -99,13 +99,13 @@ for i in "${!tests[@]}"; do
 
   # if we reached the batch size, wait for all tests to finish
   if (( (($i + 1) % $test_batch_size == 0) || $i == $test_count-1 )); then
-    printf "Waiting for batch to finish: $(IFS=' '; echo "${pids[@]}")\n"
+    printf "-> Waiting for batch to finish: $(IFS=' '; echo "${pids[@]}")\n"
     # wait for running tests
     for j in "${!test_ids[@]}"; do
       i=${test_ids[$j]} # restore the global test's id
       pid=${pids[$j]} # restore the particular PID
       test=${tests[$i]} # restore the test name
-      printf "Waiting for $tests >> parallel_test_output-$i.txt (PID: $pid)\n"
+      printf "- Waiting for $tests >> parallel_test_output-$i.txt (PID: $pid)\n"
       wait -n $pid
       # get the exit status of the test
       test_status=$?
@@ -118,6 +118,7 @@ for i in "${!tests[@]}"; do
         status=$test_status
       fi
     done
+    printf "Starting over with a new batch...\n"
     test_ids=()  # reset the test's id array
     pids=()  # reset the PID array
   fi
