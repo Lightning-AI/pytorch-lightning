@@ -36,7 +36,7 @@ ls -lh .  # show the contents of the directory
 
 # Python arguments for running the tests and coverage
 defaults=" -m coverage run --source ${codecov_source} --append -m pytest --no-header -v -s --color=yes --timeout=${test_timeout} --durations=0 "
-echo "Using defaults: ${defaults}"
+printf "\e[35mUsing defaults: ${defaults}\e[0m\n"
 
 # Get the list of parametrizations. we need to call them separately. the last two lines are removed.
 # note: if there's a syntax error, this will fail with some garbled output
@@ -65,10 +65,11 @@ done < $COLLECTED_TESTS_FILE
 test_count=${#tests[@]}
 
 # Display results
-printf "COLLECTED $test_count TESTS:\n"
-printf "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n"
-printf "%s\n" "${tests[@]}"
-printf "================================================================================\n"
+printf "\e[34m================================================================================\e[0m\n"
+printf "\e[34mCOLLECTED $test_count TESTS:\e[0m\n"
+printf "\e[34m~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\e[0m\n"
+printf "\e[34m%s\e[0m\n" "${tests[@]}"
+printf "\e[34m================================================================================\e[0m\n"
 
 # if test count is one print warning
 if [[ $test_count -eq 1 ]]; then
@@ -82,14 +83,14 @@ fi
 rm -f parallel_test_output-*.txt  # in case it exists, remove it
 
 status=0 # aggregated script status
-report="" # final report
+report=() # final report
 pids=() # array of PID for running tests
 test_ids=() # array of indexes of running tests
 failed_tests=() # array of failed tests
 printf "Running $test_count tests in batches of $test_batch_size:\n"
 for i in "${!tests[@]}"; do
   test=${tests[$i]}
-  printf "* Running test $((i+1))/$test_count: $test\n"
+  printf "\e[95m* Running test $((i+1))/$test_count: $test\e[0m\n"
 
   # execute the test in the background
   # redirect to a log file that buffers test output. since the tests will run in the background,
@@ -106,12 +107,12 @@ for i in "${!tests[@]}"; do
       i=${test_ids[$j]} # restore the global test's id
       pid=${pids[$j]} # restore the particular PID
       test=${tests[$i]} # restore the test name
-      printf "? Waiting for $test @ parallel_test_output-$i.txt (PID: $pid)\n"
+      printf "\e[33m? Waiting for $test @ parallel_test_output-$i.txt (PID: $pid)\e[0m\n"
       wait -n $pid
       # get the exit status of the test
       test_status=$?
       # add row to the final report
-      report+="Ran\t$test\t>> exit:$test_status\n"
+      report+=("Ran $test >> exit:$test_status")
       if [[ $test_status != 0 ]]; then
         # add the test to the failed tests array
         failed_tests+=($i)
@@ -126,26 +127,31 @@ for i in "${!tests[@]}"; do
 done
 
 # print test report with exit code for each test
-printf '=%.s' {1..80}
-printf "\n$report"
-printf '=%.s' {1..80}
-printf '\n'
+printf "\e[35m================================================================================\e[0m\n"
+for line in "${report[@]}"; do
+    if [[ "$line" == *"exit:0"* ]]; then
+        printf "\e[32m%s\e[0m\n" "$line"  # Green for lines containing exit:0
+    else
+        printf "\e[31m%s\e[0m\n" "$line" # Red for all other lines
+    fi
+done
+printf "\e[35m================================================================================\e[0m\n"
 
 # print failed tests from duped logs
 if [[ ${#failed_tests[@]} -gt 0 ]]; then
-  printf "FAILED TESTS:\n"
+  printf "\e[34mFAILED TESTS:\e[0m\n"
   for i in "${failed_tests[@]}"; do
-    printf '\n\n\n'
-    printf "================================================================================\n"
-    printf "=== ${tests[$i]} ===\n"
-    printf "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n\n"
+    printf "\e[34m================================================================================\e[0m\n"
+    printf "\e[34m=== ${tests[$i]} ===\e[0m\n"
+    printf "\e[34m~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\e[0m\n\n"
     # show the output of the failed test
     cat "parallel_test_output-$i.txt"
-    printf "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n"
-    printf "================================================================================\n"
+    printf "\e[34m~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\e[0m\n"
+    printf "\e[34m================================================================================\e[0m\n"
+    printf '\n\n\n'
   done
 else
-  printf "All tests passed!\n"
+  printf "\e[32mAll tests passed!\e[0m\n"
 fi
 
 # exit with the worse test result
