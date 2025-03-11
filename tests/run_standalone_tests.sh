@@ -12,36 +12,36 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-# set -e
 
-# THIS FILE ASSUMES IT IS RUN INSIDE THE tests-sdk DIRECTORY. SEE BELOW FOR CUSTOMIZATION.
+# THIS FILE ASSUMES IT IS RUN INSIDE THE tests DIRECTORY.
 
 # Batch size for testing: Determines how many standalone test invocations run in parallel
-# It can be set through the env variable NUM_PARALLEL_TESTS and defaults to 10 if not set
-
-# Source directory for coverage runs can be set with PARALLEL_TESTS_SOURCE and defaults to
-# lightning_sdk.
-
-# The directory to run tests from (in parallel) can be set with PARALLEL_TESTS_DIR and
-# defaults to the directory of this file. Should be set correctly for each test suite
-# (e.g. to "tests_filesystem" to run filesystem tests)
+# It can be set through the env variable NUM_PARALLEL_TESTS and defaults to 5 if not set
 test_batch_size="${NUM_PARALLEL_TESTS:-5}"
+
+# Source directory for coverage runs can be set with CODECOV_SOURCE and defaults to lightning.
 codecov_source="${CODECOV_SOURCE:-"lightning"}"
-# this is the directory where the tests are located
+
+# The test directory is passed as the first argument to the script
 test_dir=$1 # parse the first argument
-test_timeout="${TEST_TIMEOUT:-1200}" # set the test timeout
+
+# There is also timeout for the tests.
+# It can be set through the env variable TEST_TIMEOUT and defaults to 1200 seconds if not set 1200 seconds
+test_timeout="${TEST_TIMEOUT:-1200}"
+
+# Temporary file to store the collected tests
 COLLECTED_TESTS_FILE="collected_tests.txt"
 
 ls -lh .  # show the contents of the directory
 
-# python arguments
+# Python arguments for running the tests and coverage
 defaults=" -m coverage run --source ${codecov_source} --append -m pytest --no-header -v -s --color=yes --timeout=${test_timeout} --durations=0 "
 echo "Using defaults: ${defaults}"
 
-# get the list of parametrizations. we need to call them separately. the last two lines are removed.
+# Get the list of parametrizations. we need to call them separately. the last two lines are removed.
 # note: if there's a syntax error, this will fail with some garbled output
 python -um pytest ${test_dir} -q --collect-only --pythonwarnings ignore 2>&1 > $COLLECTED_TESTS_FILE
-# early terminate if collection failed (e.g. syntax error)
+# Early terminate if collection failed (e.g. syntax error)
 if [[ $? != 0 ]]; then
   cat $COLLECTED_TESTS_FILE
   printf "ERROR: test collection failed!\n"
@@ -80,7 +80,7 @@ fi
 # clear all the collected reports
 rm -f parallel_test_output-*.txt  # in case it exists, remove it
 
-status=0 # reset the script status
+status=0 # aggregated script status
 report="" # final report
 pids=() # array of PID for running tests
 test_ids=() # array of indexes of running tests
@@ -123,13 +123,13 @@ for i in "${!tests[@]}"; do
   fi
 done
 
-# print test report
+# print test report with exit code for each test
 printf '=%.s' {1..80}
 printf "\n$report"
 printf '=%.s' {1..80}
 printf '\n'
 
-# print failed tests
+# print failed tests from duped logs
 if [[ ${#failed_tests[@]} -gt 0 ]]; then
   printf "Failed tests:\n"
   for i in "${failed_tests[@]}"; do

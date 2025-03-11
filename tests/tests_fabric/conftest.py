@@ -191,7 +191,9 @@ def caplog(caplog):
 
 @pytest.fixture(autouse=True)
 def leave_no_artifacts_behind():
+    """Checks that no artifacts are left behind after the test."""
     tests_root = Path(__file__).parent.parent
+    # Ignore the __pycache__ directories
     files_before = {p for p in tests_root.rglob("*") if "__pycache__" not in p.parts}
     yield
     files_after = {p for p in tests_root.rglob("*") if "__pycache__" not in p.parts}
