@@ -29,6 +29,7 @@ from torch.utils.data import DataLoader
 from lightning.fabric import Fabric
 from lightning.fabric.plugins import FSDPPrecision
 from lightning.fabric.strategies import FSDPStrategy
+from lightning.fabric.utilities.imports import _TORCH_LESS_EQUAL_2_6
 from lightning.fabric.utilities.load import _load_distributed_checkpoint
 from lightning.fabric.wrappers import _FabricOptimizer
 from tests_fabric.helpers.datasets import RandomDataset
@@ -411,7 +412,9 @@ def test_reapply_compile():
     fabric.launch()
 
     model = BoringModel()
-    compile_kwargs = {"mode": "reduce-overhead"}
+    # currently (PyTorch 2.6) using ruduce-overhead here casues a RuntimeError:
+    # Error: accessing tensor output of CUDAGraphs that has been overwritten by a subsequent run.
+    compile_kwargs = {"mode": "reduce-overhead"} if _TORCH_LESS_EQUAL_2_6 else {}
     compiled_model = torch.compile(model, **compile_kwargs)
     torch.compile.reset_mock()
 
