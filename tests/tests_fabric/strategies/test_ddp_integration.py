@@ -23,6 +23,7 @@ from torch._dynamo import OptimizedModule
 from torch.nn.parallel.distributed import DistributedDataParallel
 
 from lightning.fabric import Fabric
+from lightning.fabric.utilities.imports import _TORCH_LESS_EQUAL_2_6
 from tests_fabric.helpers.runif import RunIf
 from tests_fabric.strategies.test_single_device import _run_test_clip_gradients
 from tests_fabric.test_fabric import BoringModel
@@ -84,8 +85,10 @@ def test_reapply_compile():
     fabric.launch()
 
     model = BoringModel()
-    # compile_kwargs = {"mode": "reduce-overhead"}
-    compiled_model = torch.compile(model)  # , **compile_kwargs
+    # currently (PyTorch 2.6) using ruduce-overhead here casues a RuntimeError:
+    # Error: accessing tensor output of CUDAGraphs that has been overwritten by a subsequent run.
+    compile_kwargs = {"mode": "reduce-overhead"} if _TORCH_LESS_EQUAL_2_6 else {}
+    compiled_model = torch.compile(model, **compile_kwargs)
     torch.compile.reset_mock()
 
     fabric_model = fabric.setup(compiled_model, _reapply_compile=True)
@@ -93,7 +96,7 @@ def test_reapply_compile():
     assert isinstance(fabric_model._forward_module, OptimizedModule)
     assert isinstance(fabric_model._forward_module._orig_mod, DistributedDataParallel)
     # Assert we called compile again with the same arguments, but on the DDP-wrapped module
-    torch.compile.assert_called_with(fabric_model._forward_module._orig_mod)  # , **compile_kwargs
+    torch.compile.assert_called_with(fabric_model._forward_module._orig_mod, **compile_kwargs)
 
     assert fabric_model._original_module == model
     assert fabric_model._forward_module._orig_mod.module == model
