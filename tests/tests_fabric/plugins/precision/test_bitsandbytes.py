@@ -95,6 +95,7 @@ def test_bitsandbytes_plugin(monkeypatch):
 
 
 @RunIf(min_cuda_gpus=1, max_torch="2.4")
+@pytest.mark.filterwarnings("ignore::FutureWarning")
 @pytest.mark.skipif(not _BITSANDBYTES_AVAILABLE, reason="bitsandbytes unavailable")
 @pytest.mark.parametrize(
     ("args", "expected"),
