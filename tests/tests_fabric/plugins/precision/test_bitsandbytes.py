@@ -29,7 +29,7 @@ from tests_fabric.helpers.runif import RunIf
 
 
 @pytest.mark.skipif(_BITSANDBYTES_AVAILABLE, reason="bitsandbytes needs to be unavailable")
-@pytest.mark.skipif(platform.system() == "Darwin")  # skip on Mac as Bitsandbytes is only supported on CUDA GPUs
+@pytest.mark.skipif(platform.system() == "Darwin", reason="Bitsandbytes is only supported on CUDA GPUs")  # skip on Mac
 def test_bitsandbytes_plugin(monkeypatch):
     module = lightning.fabric.plugins.precision.bitsandbytes
     monkeypatch.setattr(module, "_BITSANDBYTES_AVAILABLE", lambda: True)
