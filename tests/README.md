@@ -64,9 +64,9 @@ You can rely on our CI to make sure all these tests pass.
 There are certain standalone tests, which you can run using:
 
 ```bash
-./tests/run_standalone_tests.sh tests/tests_pytorch/trainer/
-# or run a specific test
-./tests/run_standalone_tests.sh -k test_multi_gpu_model_ddp
+cd tests/
+wget https://raw.githubusercontent.com/Lightning-AI/utilities/main/scripts/run_standalone_tests.sh
+./tests/run_standalone_tests.sh tests_pytorch/
 ```
 
 ## Running Coverage
