@@ -20,7 +20,7 @@
 test_batch_size="${NUM_PARALLEL_TESTS:-5}"
 
 # Source directory for coverage runs can be set with CODECOV_SOURCE and defaults to lightning.
-codecov_source="${CODECOV_SOURCE:-"lightning"}"
+codecov_source="${COVERAGE_SOURCE:-"lightning"}"
 
 # The test directory is passed as the first argument to the script
 test_dir=$1 # parse the first argument
