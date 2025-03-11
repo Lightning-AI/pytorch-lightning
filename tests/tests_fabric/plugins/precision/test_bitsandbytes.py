@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License
+import platform
 import sys
 from unittest.mock import Mock
 
@@ -28,6 +29,7 @@ from tests_fabric.helpers.runif import RunIf
 
 
 @pytest.mark.skipif(_BITSANDBYTES_AVAILABLE, reason="bitsandbytes needs to be unavailable")
+@pytest.mark.skipif(platform.system() == "Darwin", reason="Bitsandbytes is only supported on CUDA GPUs")  # skip on Mac
 def test_bitsandbytes_plugin(monkeypatch):
     module = lightning.fabric.plugins.precision.bitsandbytes
     monkeypatch.setattr(module, "_BITSANDBYTES_AVAILABLE", lambda: True)
@@ -95,6 +97,7 @@ def test_bitsandbytes_plugin(monkeypatch):
 
 
 @RunIf(min_cuda_gpus=1, max_torch="2.4")
+@pytest.mark.filterwarnings("ignore::FutureWarning")
 @pytest.mark.skipif(not _BITSANDBYTES_AVAILABLE, reason="bitsandbytes unavailable")
 @pytest.mark.parametrize(
     ("args", "expected"),
