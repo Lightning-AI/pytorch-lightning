@@ -65,9 +65,10 @@ done < $COLLECTED_TESTS_FILE
 test_count=${#tests[@]}
 
 # Display results
-printf "collected $test_count tests:\n-------------------\n"
+printf "COLLECTED $test_count TESTS:\n"
+printf "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n"
 printf "%s\n" "${tests[@]}"
-printf "\n===================\n"
+printf "================================================================================\n"
 
 # if test count is one print warning
 if [[ $test_count -eq 1 ]]; then
@@ -99,13 +100,13 @@ for i in "${!tests[@]}"; do
 
   # if we reached the batch size, wait for all tests to finish
   if (( (($i + 1) % $test_batch_size == 0) || $i == $test_count-1 )); then
-    printf "-> Waiting for batch to finish: $(IFS=' '; echo "${pids[@]}")\n"
+    printf "Waiting for batch to finish: $(IFS=' '; echo "${pids[@]}")\n"
     # wait for running tests
     for j in "${!test_ids[@]}"; do
       i=${test_ids[$j]} # restore the global test's id
       pid=${pids[$j]} # restore the particular PID
       test=${tests[$i]} # restore the test name
-      printf "? Waiting for $tests >> parallel_test_output-$i.txt (PID: $pid)\n"
+      printf "? Waiting for $test @ parallel_test_output-$i.txt (PID: $pid)\n"
       wait -n $pid
       # get the exit status of the test
       test_status=$?
@@ -132,17 +133,16 @@ printf '\n'
 
 # print failed tests from duped logs
 if [[ ${#failed_tests[@]} -gt 0 ]]; then
-  printf "Failed tests:\n"
+  printf "FAILED TESTS:\n"
   for i in "${failed_tests[@]}"; do
-    printf '\n%.s' {1..5}
-    printf '=%.s' {1..80}
-    printf "\n${tests[$i]}\n"
-    printf '-%.s' {1..80}
-    printf "\n"
+    printf '\n\n\n'
+    printf "================================================================================\n"
+    printf "=== ${tests[$i]} ===\n"
+    printf "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n\n"
     # show the output of the failed test
     cat "parallel_test_output-$i.txt"
-    printf "\n"
-    printf '=%.s' {1..80}
+    printf "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n"
+    printf "================================================================================\n"
   done
 else
   printf "All tests passed!\n"
