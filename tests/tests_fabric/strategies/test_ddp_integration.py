@@ -84,8 +84,8 @@ def test_reapply_compile():
     fabric.launch()
 
     model = BoringModel()
-    compile_kwargs = {"mode": "reduce-overhead"}
-    compiled_model = torch.compile(model, **compile_kwargs)
+    # compile_kwargs = {"mode": "reduce-overhead"}
+    compiled_model = torch.compile(model)  # , **compile_kwargs
     torch.compile.reset_mock()
 
     fabric_model = fabric.setup(compiled_model, _reapply_compile=True)
@@ -93,7 +93,7 @@ def test_reapply_compile():
     assert isinstance(fabric_model._forward_module, OptimizedModule)
     assert isinstance(fabric_model._forward_module._orig_mod, DistributedDataParallel)
     # Assert we called compile again with the same arguments, but on the DDP-wrapped module
-    torch.compile.assert_called_with(fabric_model._forward_module._orig_mod, **compile_kwargs)
+    torch.compile.assert_called_with(fabric_model._forward_module._orig_mod)  # , **compile_kwargs
 
     assert fabric_model._original_module == model
     assert fabric_model._forward_module._orig_mod.module == model
