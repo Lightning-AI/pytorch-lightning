@@ -7,4 +7,3 @@
 #  shall be resolved by https://github.com/microsoft/DeepSpeed/issues/4372
 deepspeed >=0.8.2, <=0.9.3; platform_system != "Windows" and platform_system != "Darwin"  # strict
 bitsandbytes >=0.45.2,<0.45.3; platform_system != "Darwin"
-
