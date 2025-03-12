@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import inspect
 import logging
 import os
 from collections.abc import Sequence
@@ -94,10 +94,14 @@ class _CallbackConnector:
                 )
         elif enable_checkpointing:
             if module_available("litmodels") and self.trainer._model_registry:
-                # fixme: this need to imported based on the actual package lightning/pytorch_lightning
-                from litmodels.integrations.checkpoints import LightningModelCheckpoint
+                trainer_source = inspect.getmodule(self.trainer).__package__
+                # this need to imported based on the actual package lightning/pytorch_lightning
+                if "pytorch_lightning" in trainer_source:
+                    from litmodels.integrations.checkpoints import PytorchLightningModelCheckpoint as LitModelCheckpoint
+                else:
+                    from litmodels.integrations.checkpoints import LightningModelCheckpoint as LitModelCheckpoint
 
-                model_checkpoint = LightningModelCheckpoint(model_name=self.trainer._model_registry)
+                model_checkpoint = LitModelCheckpoint(model_name=self.trainer._model_registry)
             else:
                 model_checkpoint = ModelCheckpoint()
             self.trainer.callbacks.append(model_checkpoint)
