@@ -18,7 +18,8 @@ MemoryFormat
 changes the model memory format
 """
 
-from typing import Any, MutableSequence, Optional
+from collections.abc import MutableSequence
+from typing import Any, Optional
 
 import torch
 
