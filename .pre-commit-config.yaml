@@ -23,11 +23,11 @@ ci:
 
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.4.0
+    rev: v5.0.0
     hooks:
       - id: end-of-file-fixer
       - id: trailing-whitespace
-        # ignoring Wills's wild changes
+        # keep formatting in README flexible
         exclude: README.md
       - id: check-json
       - id: check-yaml
@@ -50,61 +50,38 @@ repos:
           )$
       - id: detect-private-key
 
-  - repo: https://github.com/asottile/pyupgrade
-    rev: v3.14.0
-    hooks:
-      - id: pyupgrade
-        args: ["--py38-plus"]
-        name: Upgrade code
-
   - repo: https://github.com/codespell-project/codespell
-    rev: v2.2.6
+    rev: v2.3.0
     hooks:
       - id: codespell
         additional_dependencies: [tomli]
         #args: ["--write-changes"] # uncomment if you want to get automatic fixing
 
   - repo: https://github.com/PyCQA/docformatter
-    rev: v1.7.5
+    rev: 06907d0267368b49b9180eed423fae5697c1e909 # todo: fix for docformatter after last 1.7.5
     hooks:
       - id: docformatter
         additional_dependencies: [tomli]
         args: ["--in-place"]
 
-  - repo: https://github.com/asottile/yesqa
-    rev: v1.5.0
+  - repo: https://github.com/sphinx-contrib/sphinx-lint
+    rev: v1.0.0
     hooks:
-      - id: yesqa
-        name: Unused noqa
-        additional_dependencies:
-          #- pep8-naming
-          - flake8-pytest-style
-          - flake8-bandit
-          - flake8-simplify
-          - flake8-return
+      - id: sphinx-lint
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: "v0.1.3"
+    rev: v0.8.6
     hooks:
+      # try to fix what is possible
       - id: ruff
-        args: ["--fix", "--preview"]
-
-  - repo: https://github.com/psf/black
-    rev: 23.9.1
-    hooks:
-      - id: black
-        name: Format code
-        exclude: docs/source-app
-
-  - repo: https://github.com/asottile/blacken-docs
-    rev: 1.16.0
-    hooks:
-      - id: blacken-docs
-        args: ["--line-length=120"]
-        exclude: docs/source-app
+        args: ["--fix", "--unsafe-fixes"]
+      # perform formatting updates
+      - id: ruff-format
+      # validate if all is fine with preview mode
+      - id: ruff
 
   - repo: https://github.com/executablebooks/mdformat
-    rev: 0.7.17
+    rev: 0.7.21
     hooks:
       - id: mdformat
         additional_dependencies:
@@ -113,16 +90,15 @@ repos:
           - mdformat_frontmatter
         exclude: |
           (?x)^(
-              src/lightning/app/CHANGELOG.md|
-              src/lightning/data/CHANGELOG.md|
               src/lightning/fabric/CHANGELOG.md|
               src/lightning/pytorch/CHANGELOG.md|
               README.md
           )$
 
   - repo: https://github.com/pre-commit/mirrors-prettier
-    rev: v3.0.3
+    rev: v3.1.0
     hooks:
       - id: prettier
         # https://prettier.io/docs/en/options.html#print-width
+        files: \.(json|yml|yaml|toml)
         args: ["--print-width=120"]

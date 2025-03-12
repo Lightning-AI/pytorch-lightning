@@ -108,7 +108,7 @@ There are cases in which training on TPUs is slower when compared with GPUs, for
 - XLA Graph compilation during the initial steps `Reference <https://github.com/pytorch/xla/issues/2383#issuecomment-666519998>`_
 - Some tensor ops are not fully supported on TPU, or not supported at all. These operations will be performed on CPU (context switch).
 
-The official PyTorch XLA `performance guide <https://github.com/pytorch/xla/blob/master/TROUBLESHOOTING.md#known-performance-caveats>`_
+The official PyTorch XLA `performance guide <https://github.com/pytorch/xla/blob/v2.5.0/TROUBLESHOOTING.md#known-performance-caveats>`_
 has more detailed information on how PyTorch code can be optimized for TPU. In particular, the
-`metrics report <https://github.com/pytorch/xla/blob/master/TROUBLESHOOTING.md#get-a-metrics-report>`_ allows
+`metrics report <https://github.com/pytorch/xla/blob/v2.5.0/TROUBLESHOOTING.md#get-a-metrics-report>`_ allows
 one to identify operations that lead to context switching.

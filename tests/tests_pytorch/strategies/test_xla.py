@@ -16,20 +16,18 @@ from unittest import mock
 from unittest.mock import Mock
 
 import torch
-from lightning.fabric.accelerators.xla import _using_pjrt
+
 from lightning.pytorch import Trainer
 from lightning.pytorch.accelerators import XLAAccelerator
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.strategies import XLAStrategy
-
 from tests_pytorch.helpers.runif import RunIf
 
 
 class BoringModelTPU(BoringModel):
     def on_train_start(self) -> None:
-        index = 0 if _using_pjrt() else 1
         # assert strategy attributes for device setting
-        assert self.device == torch.device("xla", index=index)
+        assert self.device == torch.device("xla", index=0)
         assert os.environ.get("PT_XLA_DEBUG") == "1"
 
 
@@ -38,11 +36,7 @@ class BoringModelTPU(BoringModel):
 def test_xla_strategy_debug_state():
     """Tests if device/debug flag is set correctly when training and after teardown for XLAStrategy."""
     model = BoringModelTPU()
-    trainer_kwargs = {}
-    if not _using_pjrt():
-        # only XRT supports XLA with a single process
-        trainer_kwargs["devices"] = 1
-    trainer = Trainer(fast_dev_run=True, strategy=XLAStrategy(debug=True), **trainer_kwargs)
+    trainer = Trainer(fast_dev_run=True, strategy=XLAStrategy(debug=True))
     assert isinstance(trainer.accelerator, XLAAccelerator)
     assert isinstance(trainer.strategy, XLAStrategy)
     trainer.fit(model)

@@ -3,21 +3,28 @@ import os
 from functools import partial
 from pathlib import Path
 from unittest import mock
+from unittest.mock import Mock
 
 import pytest
 import torch
+from lightning_utilities.core.imports import RequirementCache
+
+import lightning.fabric
 from lightning.fabric.accelerators import CPUAccelerator, CUDAAccelerator, MPSAccelerator
 from lightning.fabric.plugins.environments import LightningEnvironment
 from lightning.fabric.strategies import DDPStrategy, SingleDeviceStrategy
 from lightning.fabric.strategies.launchers.multiprocessing import _MultiProcessingLauncher
 from lightning.fabric.utilities.distributed import (
+    _destroy_dist_connection,
     _gather_all_tensors,
+    _InfiniteBarrier,
+    _init_dist_connection,
+    _is_dtensor,
     _set_num_threads_if_needed,
     _suggested_max_num_threads,
     _sync_ddp,
     is_shared_filesystem,
 )
-
 from tests_fabric.helpers.runif import RunIf
 
 
@@ -98,6 +105,8 @@ def _test_all_reduce(strategy):
         assert result is tensor  # inplace
 
 
+# flaky with "process 0 terminated with signal SIGABRT" (GLOO)
+@pytest.mark.flaky(reruns=3, only_rerun="torch.multiprocessing.spawn.ProcessExitedException")
 @RunIf(skip_windows=True)
 @pytest.mark.parametrize(
     "process",
@@ -118,6 +127,10 @@ def test_collective_operations(devices, process):
     spawn_launch(process, devices)
 
 
+@pytest.mark.skipif(
+    RequirementCache("torch<2.4") and RequirementCache("numpy>=2.0"),
+    reason="torch.distributed not compatible with numpy>=2.0",
+)
 @pytest.mark.flaky(reruns=3)  # flaky with "process 0 terminated with signal SIGABRT" (GLOO)
 def test_is_shared_filesystem(tmp_path, monkeypatch):
     # In the non-distributed case, every location is interpreted as 'shared'
@@ -189,3 +202,52 @@ def test_set_num_threads_if_needed(_, set_num_threads_mock, num_processes, expec
     _set_num_threads_if_needed(1)
     set_num_threads_mock.assert_not_called()
     assert os.environ["OMP_NUM_THREADS"] == str(expected)
+
+
+def test_infinite_barrier():
+    # distributed not available
+    barrier = _InfiniteBarrier()
+    assert barrier.group is None
+    with mock.patch("lightning.fabric.utilities.distributed._distributed_is_initialized", return_value=False):
+        barrier.__enter__()
+        assert barrier.group is None
+        barrier()
+        barrier.__exit__(None, None, None)
+        assert barrier.group is None
+
+    # distributed available
+    barrier = _InfiniteBarrier()
+    with (
+        mock.patch("lightning.fabric.utilities.distributed._distributed_is_initialized", return_value=True),
+        mock.patch("lightning.fabric.utilities.distributed.torch.distributed") as dist_mock,
+    ):
+        barrier.__enter__()
+        dist_mock.new_group.assert_called_once()
+        assert barrier.barrier == barrier.group.monitored_barrier
+        assert barrier.barrier.call_count == 0
+        barrier()
+        assert barrier.barrier.call_count == 1
+        barrier.__exit__(None, None, None)
+        assert barrier.barrier.call_count == 2
+        dist_mock.destroy_process_group.assert_called_once()
+
+
+@mock.patch("lightning.fabric.utilities.distributed.atexit")
+@mock.patch("lightning.fabric.utilities.distributed.torch.distributed.init_process_group")
+def test_init_dist_connection_registers_destruction_handler(_, atexit_mock):
+    _init_dist_connection(LightningEnvironment(), "nccl")
+    atexit_mock.register.assert_called_once_with(_destroy_dist_connection)
+    atexit_mock.reset_mock()
+    _init_dist_connection(LightningEnvironment(), "gloo")
+    atexit_mock.register.assert_not_called()
+
+
+@RunIf(min_torch="2.4")
+def test_is_dtensor(monkeypatch):
+    from torch.distributed._tensor import DTensor
+
+    assert _is_dtensor(Mock(spec=DTensor))
+    assert not _is_dtensor(torch.zeros(2, 2))
+
+    monkeypatch.setattr(lightning.fabric.utilities.distributed, "_TORCH_GREATER_EQUAL_2_4", False)
+    assert not _is_dtensor(Mock(spec=DTensor))

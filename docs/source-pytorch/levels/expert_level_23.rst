@@ -1,8 +1,8 @@
 :orphan:
 
-##################################
-Level 22: Extend the Lightning CLI
-##################################
+####################################
+Level 22: Integrate a custom cluster
+####################################
 
 Extend the functionality of the Lightning CLI.
 
@@ -16,18 +16,10 @@ Extend the functionality of the Lightning CLI.
 .. Add callout items below this line
 
 .. displayitem::
-   :header: Customize configs for complex projects
-   :description: Learn how to connect complex projects with each Registry.
+   :header: Integrate your own cluster
+   :description: Learn how to integrate your own cluster
    :col_css: col-md-6
-   :button_link: ../cli/lightning_cli_advanced_3.html
-   :height: 150
-   :tag: expert
-
-.. displayitem::
-   :header: Extend the Lightning CLI
-   :description: Customize the Lightning CLI
-   :col_css: col-md-6
-   :button_link: ../cli/lightning_cli_expert.html
+   :button_link: ../clouds/cluster_expert.html
    :height: 150
    :tag: expert
 

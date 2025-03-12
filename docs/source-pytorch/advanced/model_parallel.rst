@@ -117,41 +117,4 @@ Third-party strategies
 **********************
 
 Cutting-edge Lightning strategies are being developed by third-parties outside of Lightning.
-If you want to try some of the latest and greatest features for model-parallel training, check out these integrations:
-
-.. raw:: html
-
-    <div class="display-card-container">
-        <div class="row">
-
-.. Add callout items below this line
-
-.. displayitem::
-   :header: Colossal-AI
-   :description: Has advanced distributed training algorithms and system optimizations
-   :col_css: col-md-4
-   :button_link: ../integrations/strategies/colossalai.html
-   :height: 160
-   :tag: advanced
-
-.. displayitem::
-   :header: Bagua
-   :description: Has advanced distributed training algorithms and system optimizations
-   :col_css: col-md-4
-   :button_link: ../integrations/strategies/bagua.html
-   :height: 160
-   :tag: advanced
-
-.. displayitem::
-   :header: Hivemind
-   :description: For training on unreliable mixed GPUs across the internet
-   :col_css: col-md-4
-   :button_link: ../integrations/strategies/hivemind.html
-   :height: 160
-   :tag: advanced
-
-
-.. raw:: html
-
-        </div>
-    </div>
+If you want to try some of the latest and greatest features for model-parallel training, check out these :doc:`strategies <../integrations/strategies/index>`.

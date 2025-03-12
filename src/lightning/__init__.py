@@ -1,6 +1,6 @@
 """Root package info."""
+
 import logging
-import sys
 
 # explicitly don't set root logger's propagation and leave this to subpackages to manage
 _logger = logging.getLogger(__name__)
@@ -14,7 +14,7 @@ _console.setFormatter(formatter)
 _logger.addHandler(_console)
 
 from lightning.__about__ import *  # noqa: E402, F403
-from lightning.__version__ import version as __version__  # noqa: E402, F401
+from lightning.__version__ import version as __version__  # noqa: E402
 from lightning.fabric.fabric import Fabric  # noqa: E402
 from lightning.fabric.utilities.seed import seed_everything  # noqa: E402
 from lightning.pytorch.callbacks import Callback  # noqa: E402
@@ -28,20 +28,5 @@ __all__ = [
     "Callback",
     "seed_everything",
     "Fabric",
+    "__version__",
 ]
-
-
-def _cli_entry_point() -> None:
-    from lightning_utilities.core.imports import ModuleAvailableCache, RequirementCache
-
-    if not (
-        ModuleAvailableCache("lightning.app")
-        if RequirementCache("lightning-utilities<0.10.0")
-        else RequirementCache(module="lightning.app")  # type: ignore[call-arg]
-    ):
-        print("The `lightning` command requires additional dependencies: `pip install lightning[app]`")
-        sys.exit(1)
-
-    from lightning.app.cli.lightning_cli import main
-
-    main()

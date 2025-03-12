@@ -78,11 +78,6 @@ class SingleDeviceStrategy(Strategy):
         assert self.model is not None, "self.model must be set before self.model.to()"
         self.model.to(self.root_device)
 
-    @override
-    def setup(self, trainer: pl.Trainer) -> None:
-        self.model_to_device()
-        super().setup(trainer)
-
     @property
     @override
     def is_global_zero(self) -> bool:

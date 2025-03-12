@@ -20,6 +20,7 @@ Machine learning code requires debugging mathematical correctness, which is not 
 **************************************
 Overfit your model on a Subset of Data
 **************************************
+
 A good debugging technique is to take a tiny portion of your data (say 2 samples per class),
 and try to get your model to overfit. If it can't, it's a sign it won't work with large datasets.
 
@@ -28,14 +29,17 @@ argument of :class:`~lightning.pytorch.trainer.trainer.Trainer`)
 
 .. testcode::
 
-    # use only 1% of training data (and turn off validation)
+    # use only 1% of training data
     trainer = Trainer(overfit_batches=0.01)
 
     # similar, but with a fixed 10 batches
     trainer = Trainer(overfit_batches=10)
 
-When using this argument, the validation loop will be disabled. We will also replace the sampler
-in the training set to turn off shuffle for you.
+    # equivalent to
+    trainer = Trainer(limit_train_batches=10, limit_val_batches=10)
+
+Setting ``overfit_batches`` is the same as setting ``limit_train_batches`` and ``limit_val_batches`` to the same value, but in addition will also turn off shuffling in the training dataloader.
+
 
 ----
 

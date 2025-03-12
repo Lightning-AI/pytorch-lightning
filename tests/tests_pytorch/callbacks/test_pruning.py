@@ -19,13 +19,13 @@ from typing import Union
 import pytest
 import torch
 import torch.nn.utils.prune as pytorch_prune
+from torch import nn
+from torch.nn import Sequential
+
 from lightning.pytorch import Trainer, seed_everything
 from lightning.pytorch.callbacks import ModelCheckpoint, ModelPruning
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from torch import nn
-from torch.nn import Sequential
-
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -33,9 +33,11 @@ class TestModel(BoringModel):
     def __init__(self):
         super().__init__()
         self.layer = Sequential(
-            OrderedDict(
-                [("mlp_1", nn.Linear(32, 32)), ("mlp_2", nn.Linear(32, 32, bias=False)), ("mlp_3", nn.Linear(32, 2))]
-            )
+            OrderedDict([
+                ("mlp_1", nn.Linear(32, 32)),
+                ("mlp_2", nn.Linear(32, 32, bias=False)),
+                ("mlp_3", nn.Linear(32, 2)),
+            ])
         )
 
     def training_step(self, batch, batch_idx):
@@ -58,7 +60,7 @@ class TestPruningMethod(pytorch_prune.BasePruningMethod):
 
 
 def train_with_pruning_callback(
-    tmpdir,
+    tmp_path,
     parameters_to_prune=False,
     use_global_unstructured=False,
     pruning_fn="l1_unstructured",
@@ -105,7 +107,7 @@ def train_with_pruning_callback(
     pruning = ModelPruning(**pruning_kwargs)
 
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         enable_progress_bar=False,
         enable_model_summary=False,
         enable_checkpointing=False,
@@ -146,14 +148,14 @@ def test_pruning_misconfiguration():
 )
 @pytest.mark.parametrize("use_lottery_ticket_hypothesis", [False, True])
 def test_pruning_callback(
-    tmpdir,
+    tmp_path,
     use_global_unstructured: bool,
     parameters_to_prune: bool,
     pruning_fn: Union[str, pytorch_prune.BasePruningMethod],
     use_lottery_ticket_hypothesis: bool,
 ):
     train_with_pruning_callback(
-        tmpdir,
+        tmp_path,
         parameters_to_prune=parameters_to_prune,
         use_global_unstructured=use_global_unstructured,
         pruning_fn=pruning_fn,
@@ -164,9 +166,9 @@ def test_pruning_callback(
 @RunIf(min_cuda_gpus=2, standalone=True)
 @pytest.mark.parametrize("parameters_to_prune", [False, True])
 @pytest.mark.parametrize("use_global_unstructured", [False, True])
-def test_pruning_callback_ddp(tmpdir, parameters_to_prune, use_global_unstructured):
+def test_pruning_callback_ddp(tmp_path, parameters_to_prune, use_global_unstructured):
     train_with_pruning_callback(
-        tmpdir,
+        tmp_path,
         parameters_to_prune=parameters_to_prune,
         use_global_unstructured=use_global_unstructured,
         strategy="ddp",
@@ -176,19 +178,19 @@ def test_pruning_callback_ddp(tmpdir, parameters_to_prune, use_global_unstructur
 
 
 @RunIf(min_cuda_gpus=2, skip_windows=True)
-def test_pruning_callback_ddp_spawn(tmpdir):
+def test_pruning_callback_ddp_spawn(tmp_path):
     train_with_pruning_callback(
-        tmpdir, use_global_unstructured=True, strategy="ddp_spawn", accelerator="gpu", devices=2
+        tmp_path, use_global_unstructured=True, strategy="ddp_spawn", accelerator="gpu", devices=2
     )
 
 
 @RunIf(skip_windows=True)
-def test_pruning_callback_ddp_cpu(tmpdir):
-    train_with_pruning_callback(tmpdir, parameters_to_prune=True, strategy="ddp_spawn", accelerator="cpu", devices=2)
+def test_pruning_callback_ddp_cpu(tmp_path):
+    train_with_pruning_callback(tmp_path, parameters_to_prune=True, strategy="ddp_spawn", accelerator="cpu", devices=2)
 
 
 @pytest.mark.parametrize("resample_parameters", [False, True])
-def test_pruning_lth_callable(tmpdir, resample_parameters: bool):
+def test_pruning_lth_callable(tmp_path, resample_parameters):
     model = TestModel()
 
     class ModelPruningTestCallback(ModelPruning):
@@ -204,14 +206,14 @@ def test_pruning_lth_callable(tmpdir, resample_parameters: bool):
                     curr, curr_name = self._parameters_to_prune[i]
                     assert name == curr_name
                     actual, expected = getattr(curr, name).data, getattr(copy, name).data
-                    allclose = torch.allclose(actual, expected)
+                    allclose = torch.allclose(actual.cpu(), expected)
                     assert not allclose if self._resample_parameters else allclose
 
     pruning = ModelPruningTestCallback(
         "l1_unstructured", use_lottery_ticket_hypothesis=lambda e: bool(e % 2), resample_parameters=resample_parameters
     )
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         enable_progress_bar=False,
         enable_model_summary=False,
         enable_checkpointing=False,
@@ -227,7 +229,7 @@ def test_pruning_lth_callable(tmpdir, resample_parameters: bool):
 
 
 @pytest.mark.parametrize("make_pruning_permanent", [False, True])
-def test_multiple_pruning_callbacks(tmpdir, caplog, make_pruning_permanent: bool):
+def test_multiple_pruning_callbacks(tmp_path, caplog, make_pruning_permanent: bool):
     model = TestModel()
     pruning_kwargs = {
         "parameters_to_prune": [(model.layer.mlp_1, "weight"), (model.layer.mlp_3, "weight")],
@@ -238,7 +240,7 @@ def test_multiple_pruning_callbacks(tmpdir, caplog, make_pruning_permanent: bool
     p2 = ModelPruning("random_unstructured", amount=0.25, apply_pruning=lambda e: e % 2, **pruning_kwargs)
 
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         enable_progress_bar=False,
         enable_model_summary=False,
         enable_checkpointing=False,
@@ -268,10 +270,10 @@ def test_multiple_pruning_callbacks(tmpdir, caplog, make_pruning_permanent: bool
     expected = [re.compile(s) for s in expected]
     assert all(regex.match(s) for s, regex in zip(actual, expected))
 
-    filepath = str(tmpdir / "foo.ckpt")
+    filepath = str(tmp_path / "foo.ckpt")
     trainer.save_checkpoint(filepath)
 
-    model.load_state_dict(torch.load(filepath), strict=False)
+    model.load_state_dict(torch.load(filepath, weights_only=True), strict=False)
     has_pruning = hasattr(model.layer.mlp_1, "weight_orig")
     assert not has_pruning if make_pruning_permanent else has_pruning
 
@@ -279,7 +281,7 @@ def test_multiple_pruning_callbacks(tmpdir, caplog, make_pruning_permanent: bool
 @pytest.mark.parametrize("prune_on_train_epoch_end", [False, True])
 @pytest.mark.parametrize("save_on_train_epoch_end", [False, True])
 def test_permanent_when_model_is_saved_multiple_times(
-    tmpdir, caplog, prune_on_train_epoch_end, save_on_train_epoch_end
+    tmp_path, caplog, prune_on_train_epoch_end, save_on_train_epoch_end
 ):
     """When a model is saved multiple times and make_permanent=True, we need to make sure a copy is pruned and not the
     trained model if we want to continue with the same pruning buffers."""
@@ -308,7 +310,13 @@ def test_permanent_when_model_is_saved_multiple_times(
     ckpt_callback = ModelCheckpoint(
         monitor="test", save_top_k=2, save_last=True, save_on_train_epoch_end=save_on_train_epoch_end
     )
-    trainer = Trainer(callbacks=[pruning_callback, ckpt_callback], max_epochs=3, enable_progress_bar=False)
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        logger=False,
+        callbacks=[pruning_callback, ckpt_callback],
+        max_epochs=3,
+        enable_progress_bar=False,
+    )
     with caplog.at_level(INFO):
         trainer.fit(model)
 

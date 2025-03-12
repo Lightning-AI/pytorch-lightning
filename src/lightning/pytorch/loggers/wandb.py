@@ -15,17 +15,24 @@
 Weights and Biases Logger
 -------------------------
 """
+
 import os
 from argparse import Namespace
+from collections.abc import Mapping
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Dict, List, Literal, Mapping, Optional, Union
+from typing import TYPE_CHECKING, Any, Literal, Optional, Union
 
 import torch.nn as nn
 from lightning_utilities.core.imports import RequirementCache
 from torch import Tensor
 from typing_extensions import override
 
-from lightning.fabric.utilities.logger import _add_prefix, _convert_params, _sanitize_callable_params
+from lightning.fabric.utilities.logger import (
+    _add_prefix,
+    _convert_json_serializable,
+    _convert_params,
+    _sanitize_callable_params,
+)
 from lightning.fabric.utilities.types import _PATH
 from lightning.pytorch.callbacks.model_checkpoint import ModelCheckpoint
 from lightning.pytorch.loggers.logger import Logger, rank_zero_experiment
@@ -42,7 +49,7 @@ _WANDB_AVAILABLE = RequirementCache("wandb>=0.12.10")
 
 
 class WandbLogger(Logger):
-    r"""Log using `Weights and Biases <https://docs.wandb.ai/integrations/lightning>`_.
+    r"""Log using `Weights and Biases <https://docs.wandb.ai/guides/integrations/lightning>`_.
 
     **Installation and set-up**
 
@@ -247,7 +254,7 @@ class WandbLogger(Logger):
 
     See Also:
         - `Demo in Google Colab <http://wandb.me/lightning>`__ with hyperparameter search and model logging
-        - `W&B Documentation <https://docs.wandb.ai/integrations/lightning>`__
+        - `W&B Documentation <https://docs.wandb.ai/guides/integrations/lightning>`__
 
     Args:
         name: Display name for the run.
@@ -314,7 +321,7 @@ class WandbLogger(Logger):
         self._log_model = log_model
         self._prefix = prefix
         self._experiment = experiment
-        self._logged_model_time: Dict[str, float] = {}
+        self._logged_model_time: dict[str, float] = {}
         self._checkpoint_callback: Optional[ModelCheckpoint] = None
 
         # paths are processed as strings
@@ -326,7 +333,7 @@ class WandbLogger(Logger):
         project = project or os.environ.get("WANDB_PROJECT", "lightning_logs")
 
         # set wandb init arguments
-        self._wandb_init: Dict[str, Any] = {
+        self._wandb_init: dict[str, Any] = {
             "name": name,
             "project": project,
             "dir": save_dir or dir,
@@ -342,7 +349,7 @@ class WandbLogger(Logger):
         self._id = self._wandb_init.get("id")
         self._checkpoint_name = checkpoint_name
 
-    def __getstate__(self) -> Dict[str, Any]:
+    def __getstate__(self) -> dict[str, Any]:
         import wandb
 
         # Hack: If the 'spawn' launch method is used, the logger will get pickled and this `__getstate__` gets called.
@@ -403,19 +410,25 @@ class WandbLogger(Logger):
                 if isinstance(self._experiment, (Run, RunDisabled)) and getattr(
                     self._experiment, "define_metric", None
                 ):
-                    self._experiment.define_metric("trainer/global_step")
-                    self._experiment.define_metric("*", step_metric="trainer/global_step", step_sync=True)
+                    if self._wandb_init.get("sync_tensorboard"):
+                        self._experiment.define_metric("*", step_metric="global_step")
+                    else:
+                        self._experiment.define_metric("trainer/global_step")
+                        self._experiment.define_metric("*", step_metric="trainer/global_step", step_sync=True)
 
         return self._experiment
 
-    def watch(self, model: nn.Module, log: str = "gradients", log_freq: int = 100, log_graph: bool = True) -> None:
+    def watch(
+        self, model: nn.Module, log: Optional[str] = "gradients", log_freq: int = 100, log_graph: bool = True
+    ) -> None:
         self.experiment.watch(model, log=log, log_freq=log_freq, log_graph=log_graph)
 
     @override
     @rank_zero_only
-    def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:  # type: ignore[override]
+    def log_hyperparams(self, params: Union[dict[str, Any], Namespace]) -> None:
         params = _convert_params(params)
         params = _sanitize_callable_params(params)
+        params = _convert_json_serializable(params)
         self.experiment.config.update(params, allow_val_change=True)
 
     @override
@@ -424,7 +437,7 @@ class WandbLogger(Logger):
         assert rank_zero_only.rank == 0, "experiment tried to log from global_rank != 0"
 
         metrics = _add_prefix(metrics, self._prefix, self.LOGGER_JOIN_CHAR)
-        if step is not None:
+        if step is not None and not self._wandb_init.get("sync_tensorboard"):
             self.experiment.log(dict(metrics, **{"trainer/global_step": step}))
         else:
             self.experiment.log(metrics)
@@ -433,8 +446,8 @@ class WandbLogger(Logger):
     def log_table(
         self,
         key: str,
-        columns: Optional[List[str]] = None,
-        data: Optional[List[List[Any]]] = None,
+        columns: Optional[list[str]] = None,
+        data: Optional[list[list[Any]]] = None,
         dataframe: Any = None,
         step: Optional[int] = None,
     ) -> None:
@@ -452,8 +465,8 @@ class WandbLogger(Logger):
     def log_text(
         self,
         key: str,
-        columns: Optional[List[str]] = None,
-        data: Optional[List[List[str]]] = None,
+        columns: Optional[list[str]] = None,
+        data: Optional[list[list[str]]] = None,
         dataframe: Any = None,
         step: Optional[int] = None,
     ) -> None:
@@ -466,7 +479,7 @@ class WandbLogger(Logger):
         self.log_table(key, columns, data, dataframe, step)
 
     @rank_zero_only
-    def log_image(self, key: str, images: List[Any], step: Optional[int] = None, **kwargs: Any) -> None:
+    def log_image(self, key: str, images: list[Any], step: Optional[int] = None, **kwargs: Any) -> None:
         """Log images (tensors, numpy arrays, PIL Images or file paths).
 
         Optional kwargs are lists passed to each image (ex: caption, masks, boxes).
@@ -486,7 +499,7 @@ class WandbLogger(Logger):
         self.log_metrics(metrics, step)  # type: ignore[arg-type]
 
     @rank_zero_only
-    def log_audio(self, key: str, audios: List[Any], step: Optional[int] = None, **kwargs: Any) -> None:
+    def log_audio(self, key: str, audios: list[Any], step: Optional[int] = None, **kwargs: Any) -> None:
         r"""Log audios (numpy arrays, or file paths).
 
         Args:
@@ -512,7 +525,7 @@ class WandbLogger(Logger):
         self.log_metrics(metrics, step)  # type: ignore[arg-type]
 
     @rank_zero_only
-    def log_video(self, key: str, videos: List[Any], step: Optional[int] = None, **kwargs: Any) -> None:
+    def log_video(self, key: str, videos: list[Any], step: Optional[int] = None, **kwargs: Any) -> None:
         """Log videos (numpy arrays, or file paths).
 
         Args:

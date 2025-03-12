@@ -13,7 +13,8 @@
 # limitations under the License.
 import os
 from collections import Counter
-from typing import Any, Dict, List, Optional, Union, cast
+from collections.abc import Iterable
+from typing import Any, Optional, Union, cast
 
 import torch
 from typing_extensions import get_args
@@ -24,6 +25,7 @@ from lightning.fabric.accelerators.cuda import CUDAAccelerator
 from lightning.fabric.accelerators.mps import MPSAccelerator
 from lightning.fabric.accelerators.xla import XLAAccelerator
 from lightning.fabric.plugins import (
+    BitsandbytesPrecision,
     CheckpointIO,
     DeepSpeedPrecision,
     HalfPrecision,
@@ -61,6 +63,7 @@ from lightning.fabric.strategies import (
 )
 from lightning.fabric.strategies.ddp import _DDP_FORK_ALIASES
 from lightning.fabric.strategies.fsdp import _FSDP_ALIASES, FSDPStrategy
+from lightning.fabric.strategies.model_parallel import ModelParallelStrategy
 from lightning.fabric.utilities import rank_zero_info, rank_zero_warn
 from lightning.fabric.utilities.device_parser import _determine_root_gpu_device
 from lightning.fabric.utilities.imports import _IS_INTERACTIVE
@@ -97,10 +100,10 @@ class _Connector:
         self,
         accelerator: Union[str, Accelerator] = "auto",
         strategy: Union[str, Strategy] = "auto",
-        devices: Union[List[int], str, int] = "auto",
+        devices: Union[list[int], str, int] = "auto",
         num_nodes: int = 1,
         precision: Optional[_PRECISION_INPUT] = None,
-        plugins: Optional[Union[_PLUGIN_INPUT, List[_PLUGIN_INPUT]]] = None,
+        plugins: Optional[Union[_PLUGIN_INPUT, Iterable[_PLUGIN_INPUT]]] = None,
     ) -> None:
         # These arguments can be set through environment variables set by the CLI
         accelerator = self._argument_from_env("accelerator", accelerator, default="auto")
@@ -122,7 +125,7 @@ class _Connector:
         self._precision_input: _PRECISION_INPUT_STR = "32-true"
         self._precision_instance: Optional[Precision] = None
         self._cluster_environment_flag: Optional[Union[ClusterEnvironment, str]] = None
-        self._parallel_devices: List[Union[int, torch.device, str]] = []
+        self._parallel_devices: list[Union[int, torch.device, str]] = []
         self.checkpoint_io: Optional[CheckpointIO] = None
 
         self._check_config_and_set_final_flags(
@@ -163,7 +166,7 @@ class _Connector:
         strategy: Union[str, Strategy],
         accelerator: Union[str, Accelerator],
         precision: Optional[_PRECISION_INPUT],
-        plugins: Optional[Union[_PLUGIN_INPUT, List[_PLUGIN_INPUT]]],
+        plugins: Optional[Union[_PLUGIN_INPUT, Iterable[_PLUGIN_INPUT]]],
     ) -> None:
         """This method checks:
 
@@ -178,7 +181,7 @@ class _Connector:
 
         """
         if plugins is not None:
-            plugins = [plugins] if not isinstance(plugins, list) else plugins
+            plugins = [plugins] if not isinstance(plugins, Iterable) else plugins
 
         if isinstance(strategy, str):
             strategy = strategy.lower()
@@ -222,7 +225,7 @@ class _Connector:
         precision_input = _convert_precision_to_unified_args(precision)
 
         if plugins:
-            plugins_flags_types: Dict[str, int] = Counter()
+            plugins_flags_types: dict[str, int] = Counter()
             for plugin in plugins:
                 if isinstance(plugin, Precision):
                     self._precision_instance = plugin
@@ -248,8 +251,7 @@ class _Connector:
 
             if plugins_flags_types.get(Precision.__name__) and precision_input is not None:
                 raise ValueError(
-                    f"Received both `precision={precision_input}` and `plugins={self._precision_instance}`."
-                    f" Choose one."
+                    f"Received both `precision={precision_input}` and `plugins={self._precision_instance}`. Choose one."
                 )
 
         self._precision_input = "32-true" if precision_input is None else precision_input
@@ -293,7 +295,7 @@ class _Connector:
                     self._accelerator_flag = "cuda"
                 self._parallel_devices = self._strategy_flag.parallel_devices
 
-    def _check_device_config_and_set_final_flags(self, devices: Union[List[int], str, int], num_nodes: int) -> None:
+    def _check_device_config_and_set_final_flags(self, devices: Union[list[int], str, int], num_nodes: int) -> None:
         if not isinstance(num_nodes, int) or num_nodes < 1:
             raise ValueError(f"`num_nodes` must be a positive integer, but got {num_nodes}.")
 
@@ -311,7 +313,8 @@ class _Connector:
                 f" using {accelerator_name} accelerator."
             )
 
-    def _choose_auto_accelerator(self) -> str:
+    @staticmethod
+    def _choose_auto_accelerator() -> str:
         """Choose the accelerator type (str) based on availability when ``accelerator='auto'``."""
         if XLAAccelerator.is_available():
             return "tpu"
@@ -428,7 +431,7 @@ class _Connector:
                 f" platform. We recommed `Fabric(strategy='ddp_spawn')` instead."
             )
         if (
-            strategy_flag in _FSDP_ALIASES or isinstance(self._strategy_flag, FSDPStrategy)
+            strategy_flag in _FSDP_ALIASES or type(self._strategy_flag) is FSDPStrategy
         ) and self._accelerator_flag not in ("cuda", "gpu"):
             raise ValueError(
                 "You selected the FSDP strategy but FSDP is only available on GPU. Set `Fabric(accelerator='gpu', ...)`"
@@ -448,6 +451,10 @@ class _Connector:
 
     def _check_and_init_precision(self) -> Precision:
         if isinstance(self._precision_instance, Precision):
+            if isinstance(self._precision_instance, BitsandbytesPrecision) and not isinstance(
+                self.accelerator, CUDAAccelerator
+            ):
+                raise RuntimeError("Bitsandbytes is only supported on CUDA GPUs.")
             return self._precision_instance
         if isinstance(self.strategy, (SingleDeviceXLAStrategy, XLAStrategy, XLAFSDPStrategy)):
             return XLAPrecision(self._precision_input)  # type: ignore
@@ -455,6 +462,12 @@ class _Connector:
             return DeepSpeedPrecision(self._precision_input)  # type: ignore
         if isinstance(self.strategy, FSDPStrategy):
             return FSDPPrecision(precision=self._precision_input)  # type: ignore[arg-type]
+        mp_precision_supported = ("32-true", "bf16-mixed", "bf16-true", "16-true")
+        if isinstance(self.strategy, ModelParallelStrategy) and self._precision_input not in mp_precision_supported:
+            raise ValueError(
+                f"The `ModelParallelStrategy` does not support `Fabric(..., precision={self._precision_input!r})`."
+                f" Choose a different precision among: {', '.join(mp_precision_supported)}."
+            )
         if self._precision_input in ("16-true", "bf16-true"):
             return HalfPrecision(self._precision_input)  # type: ignore
         if self._precision_input == "32-true":

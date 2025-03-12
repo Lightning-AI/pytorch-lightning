@@ -16,9 +16,14 @@ from unittest import mock
 from unittest.mock import MagicMock, Mock
 
 import pytest
+
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
-from lightning.pytorch.loggers.mlflow import _MLFLOW_AVAILABLE, MLFlowLogger, _get_resolve_tags
+from lightning.pytorch.loggers.mlflow import (
+    _MLFLOW_AVAILABLE,
+    MLFlowLogger,
+    _get_resolve_tags,
+)
 
 
 def mock_mlflow_run_creation(logger, experiment_name=None, experiment_id=None, run_id=None):
@@ -260,6 +265,56 @@ def test_mlflow_logger_experiment_calls(mlflow_mock, tmp_path):
     )
 
 
+@pytest.mark.parametrize("synchronous", [False, True])
+@mock.patch("lightning.pytorch.loggers.mlflow._get_resolve_tags", Mock())
+def test_mlflow_logger_experiment_calls_with_synchronous(mlflow_mock, tmp_path, synchronous):
+    """Test that the logger calls methods on the mlflow experiment with the specified synchronous flag."""
+
+    time = mlflow_mock.entities.time
+    metric = mlflow_mock.entities.Metric
+    param = mlflow_mock.entities.Param
+    time.return_value = 1
+
+    mlflow_client = mlflow_mock.tracking.MlflowClient.return_value
+    mlflow_client.get_experiment_by_name.return_value = None
+    logger = MLFlowLogger(
+        "test", save_dir=str(tmp_path), artifact_location="my_artifact_location", synchronous=synchronous
+    )
+
+    params = {"test": "test_param"}
+    logger.log_hyperparams(params)
+
+    mlflow_client.log_batch.assert_called_once_with(
+        run_id=logger.run_id, params=[param(key="test", value="test_param")], synchronous=synchronous
+    )
+    param.assert_called_with(key="test", value="test_param")
+
+    metrics = {"some_metric": 10}
+    logger.log_metrics(metrics)
+
+    mlflow_client.log_batch.assert_called_with(
+        run_id=logger.run_id,
+        metrics=[metric(key="some_metric", value=10, timestamp=1000, step=0)],
+        synchronous=synchronous,
+    )
+    metric.assert_called_with(key="some_metric", value=10, timestamp=1000, step=0)
+
+    mlflow_client.create_experiment.assert_called_once_with(name="test", artifact_location="my_artifact_location")
+
+
+@mock.patch("lightning.pytorch.loggers.mlflow._get_resolve_tags", Mock())
+@mock.patch.dict("lightning.pytorch.loggers.mlflow.__dict__", {"_MLFLOW_SYNCHRONOUS_AVAILABLE": False})
+def test_mlflow_logger_no_synchronous_support(mlflow_mock, tmp_path):
+    """Test that the logger does not support synchronous flag."""
+    time = mlflow_mock.entities.time
+    time.return_value = 1
+
+    mlflow_client = mlflow_mock.tracking.MlflowClient.return_value
+    mlflow_client.get_experiment_by_name.return_value = None
+    with pytest.raises(ModuleNotFoundError):
+        MLFlowLogger("test", save_dir=str(tmp_path), artifact_location="my_artifact_location", synchronous=True)
+
+
 @mock.patch("lightning.pytorch.loggers.mlflow._get_resolve_tags", Mock())
 def test_mlflow_logger_with_long_param_value(mlflow_mock, tmp_path):
     """Test that long parameter values are truncated to 250 characters."""
@@ -372,3 +427,33 @@ def test_set_tracking_uri(mlflow_mock):
     mlflow_mock.set_tracking_uri.assert_not_called()
     _ = logger.experiment
     mlflow_mock.set_tracking_uri.assert_called_with("the_tracking_uri")
+
+
+@mock.patch("lightning.pytorch.loggers.mlflow._get_resolve_tags", Mock())
+def test_mlflow_log_model_with_checkpoint_path_prefix(mlflow_mock, tmp_path):
+    """Test that the logger creates the folders and files in the right place with a prefix."""
+    client = mlflow_mock.tracking.MlflowClient
+
+    # Get model, logger, trainer and train
+    model = BoringModel()
+    logger = MLFlowLogger("test", save_dir=str(tmp_path), log_model="all", checkpoint_path_prefix="my_prefix")
+    logger = mock_mlflow_run_creation(logger, experiment_id="test-id")
+
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        logger=logger,
+        max_epochs=2,
+        limit_train_batches=3,
+        limit_val_batches=3,
+    )
+    trainer.fit(model)
+
+    # Checkpoint log
+    assert client.return_value.log_artifact.call_count == 2
+    # Metadata and aliases log
+    assert client.return_value.log_artifacts.call_count == 2
+
+    # Check that the prefix is used in the artifact path
+    for call in client.return_value.log_artifact.call_args_list:
+        args, _ = call
+        assert str(args[2]).startswith("my_prefix")

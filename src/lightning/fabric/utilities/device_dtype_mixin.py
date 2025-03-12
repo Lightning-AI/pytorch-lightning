@@ -12,15 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any, List, Optional, Union
+from typing import Any, Optional, Union
 
 import torch
 from torch.nn import Module
-from typing_extensions import Self
+from typing_extensions import Self, override
 
 
 class _DeviceDtypeModuleMixin(Module):
-    __jit_unused_properties__: List[str] = ["device", "dtype"]
+    __jit_unused_properties__: list[str] = ["device", "dtype"]
 
     def __init__(self) -> None:
         super().__init__()
@@ -46,6 +46,7 @@ class _DeviceDtypeModuleMixin(Module):
 
         return device
 
+    @override
     def to(self, *args: Any, **kwargs: Any) -> Self:
         """See :meth:`torch.nn.Module.to`."""
         # this converts `str` device to `torch.device`
@@ -53,6 +54,7 @@ class _DeviceDtypeModuleMixin(Module):
         _update_properties(self, device=device, dtype=dtype)
         return super().to(*args, **kwargs)
 
+    @override
     def cuda(self, device: Optional[Union[torch.device, int]] = None) -> Self:
         """Moves all model parameters and buffers to the GPU. This also makes associated parameters and buffers
         different objects. So it should be called before constructing optimizer if the module will live on GPU while
@@ -73,26 +75,31 @@ class _DeviceDtypeModuleMixin(Module):
         _update_properties(self, device=device)
         return super().cuda(device=device)
 
+    @override
     def cpu(self) -> Self:
         """See :meth:`torch.nn.Module.cpu`."""
         _update_properties(self, device=torch.device("cpu"))
         return super().cpu()
 
+    @override
     def type(self, dst_type: Union[str, torch.dtype]) -> Self:
         """See :meth:`torch.nn.Module.type`."""
         _update_properties(self, dtype=dst_type)
         return super().type(dst_type=dst_type)
 
+    @override
     def float(self) -> Self:
         """See :meth:`torch.nn.Module.float`."""
         _update_properties(self, dtype=torch.float)
         return super().float()
 
+    @override
     def double(self) -> Self:
         """See :meth:`torch.nn.Module.double`."""
         _update_properties(self, dtype=torch.double)
         return super().double()
 
+    @override
     def half(self) -> Self:
         """See :meth:`torch.nn.Module.half`."""
         _update_properties(self, dtype=torch.half)
@@ -102,14 +109,12 @@ class _DeviceDtypeModuleMixin(Module):
 def _update_properties(
     root: torch.nn.Module, device: Optional[torch.device] = None, dtype: Optional[Union[str, torch.dtype]] = None
 ) -> None:
-    def apply_fn(module: Union[_DeviceDtypeModuleMixin, Module]) -> None:
+    for module in root.modules():
         if not isinstance(module, _DeviceDtypeModuleMixin):
-            return
+            continue
         # cannot use `module.to()` because we don't actually want to move the model in case there are multiple
         # devices types (such as partial meta parameters)
         if device is not None:
             module._device = device
         if dtype is not None:
             module._dtype = dtype
-
-    root.apply(apply_fn)

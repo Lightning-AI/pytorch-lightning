@@ -18,7 +18,7 @@ from typing import TYPE_CHECKING, Any, Callable, Optional, Union
 import torch.multiprocessing as mp
 from typing_extensions import override
 
-from lightning.fabric.accelerators.xla import _XLA_AVAILABLE, _using_pjrt
+from lightning.fabric.accelerators.xla import _XLA_AVAILABLE
 from lightning.fabric.strategies.launchers.xla import _rank_teardown
 from lightning.fabric.utilities import move_data_to_device
 from lightning.pytorch.strategies.launchers.multiprocessing import (
@@ -76,24 +76,21 @@ class _XLALauncher(_MultiProcessingLauncher):
 
         """
         if self._already_fit and trainer is not None and trainer.state.fn == TrainerFn.FITTING:
-            # resolving https://github.com/Lightning-AI/lightning/issues/18775 will lift this restriction
+            # resolving https://github.com/Lightning-AI/pytorch-lightning/issues/18775 will lift this restriction
             raise NotImplementedError(
                 "Calling `trainer.fit()` twice on the same Trainer instance using a spawn-based strategy is not"
                 " supported. You can work around this by creating a new Trainer instance and passing the"
                 " `fit(ckpt_path=...)` argument."
             )
 
-        using_pjrt = _using_pjrt()
         # pjrt requires that the queue is serializable
-        return_queue: Union[queue.Queue, mp.SimpleQueue] = (
-            mp.Manager().Queue() if using_pjrt else mp.get_context(self._start_method).SimpleQueue()
-        )
+        return_queue = mp.Manager().Queue()
 
         import torch_xla.distributed.xla_multiprocessing as xmp
 
         spawn_kwargs = {}
         nprocs = self._strategy.num_processes
-        if not using_pjrt or nprocs == 1:
+        if nprocs == 1:
             # avoid warning: "Unsupported nprocs". If it's 1, it will call the launched function directly.
             # otherwise it will use all devices
             spawn_kwargs["nprocs"] = nprocs
@@ -134,7 +131,7 @@ class _XLALauncher(_MultiProcessingLauncher):
     ) -> None:
         import torch_xla.core.xla_model as xm
 
-        if _using_pjrt() and len(xm.get_xla_supported_devices()) > 1:
+        if len(xm.get_xla_supported_devices()) > 1:
             # `get_xla_supported_devices` in the spawned process returns the logical devices (2 for v2/v3 and 1 for v4)
             # so when there's more than one (multithreading), objects need to be deep-copied
             import copy

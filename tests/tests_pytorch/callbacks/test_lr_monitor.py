@@ -13,6 +13,8 @@
 # limitations under the License.
 import pytest
 import torch
+from torch import optim
+
 from lightning.pytorch import Trainer
 from lightning.pytorch.callbacks import EarlyStopping, LearningRateMonitor
 from lightning.pytorch.callbacks.callback import Callback
@@ -20,36 +22,37 @@ from lightning.pytorch.callbacks.finetuning import BackboneFinetuning
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.loggers import CSVLogger
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from torch import optim
-
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.simple_models import ClassificationModel
 
 
-def test_lr_monitor_single_lr(tmpdir):
+def test_lr_monitor_single_lr(tmp_path):
     """Test that learning rates are extracted and logged for single lr scheduler."""
     model = BoringModel()
 
     lr_monitor = LearningRateMonitor()
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         max_epochs=2,
         limit_val_batches=0.1,
         limit_train_batches=0.5,
         callbacks=[lr_monitor],
-        logger=CSVLogger(tmpdir),
+        logger=CSVLogger(tmp_path),
     )
     trainer.fit(model)
 
     assert lr_monitor.lrs, "No learning rates logged"
     assert all(v is None for v in lr_monitor.last_momentum_values.values()), "Momentum should not be logged by default"
+    assert all(v is None for v in lr_monitor.last_weight_decay_values.values()), (
+        "Weight decay should not be logged by default"
+    )
     assert len(lr_monitor.lrs) == len(trainer.lr_scheduler_configs)
     assert list(lr_monitor.lrs) == ["lr-SGD"]
 
 
 @pytest.mark.parametrize("opt", ["SGD", "Adam"])
-def test_lr_monitor_single_lr_with_momentum(tmpdir, opt: str):
+def test_lr_monitor_single_lr_with_momentum(tmp_path, opt: str):
     """Test that learning rates, momentum and weight decay are extracted and logged for single lr scheduler."""
 
     class LogMomentumModel(BoringModel):
@@ -70,13 +73,13 @@ def test_lr_monitor_single_lr_with_momentum(tmpdir, opt: str):
     model = LogMomentumModel(opt=opt)
     lr_monitor = LearningRateMonitor(log_momentum=True, log_weight_decay=True)
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         max_epochs=2,
         limit_val_batches=2,
         limit_train_batches=5,
         log_every_n_steps=1,
         callbacks=[lr_monitor],
-        logger=CSVLogger(tmpdir),
+        logger=CSVLogger(tmp_path),
     )
     trainer.fit(model)
 
@@ -84,14 +87,14 @@ def test_lr_monitor_single_lr_with_momentum(tmpdir, opt: str):
     assert len(lr_monitor.last_momentum_values) == len(trainer.lr_scheduler_configs)
     assert all(k == f"lr-{opt}-momentum" for k in lr_monitor.last_momentum_values)
 
-    assert all(
-        v is not None for v in lr_monitor.last_weight_decay_values.values()
-    ), "Expected weight decay to be logged"
+    assert all(v is not None for v in lr_monitor.last_weight_decay_values.values()), (
+        "Expected weight decay to be logged"
+    )
     assert len(lr_monitor.last_weight_decay_values) == len(trainer.lr_scheduler_configs)
     assert all(k == f"lr-{opt}-weight_decay" for k in lr_monitor.last_weight_decay_values)
 
 
-def test_log_momentum_no_momentum_optimizer(tmpdir):
+def test_log_momentum_no_momentum_optimizer(tmp_path):
     """Test that if optimizer doesn't have momentum then a warning is raised with log_momentum=True."""
 
     class LogMomentumModel(BoringModel):
@@ -103,13 +106,13 @@ def test_log_momentum_no_momentum_optimizer(tmpdir):
     model = LogMomentumModel()
     lr_monitor = LearningRateMonitor(log_momentum=True)
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         max_epochs=1,
         limit_val_batches=2,
         limit_train_batches=5,
         log_every_n_steps=1,
         callbacks=[lr_monitor],
-        logger=CSVLogger(tmpdir),
+        logger=CSVLogger(tmp_path),
     )
     with pytest.warns(RuntimeWarning, match="optimizers do not have momentum."):
         trainer.fit(model)
@@ -119,7 +122,7 @@ def test_log_momentum_no_momentum_optimizer(tmpdir):
     assert all(k == "lr-ASGD-momentum" for k in lr_monitor.last_momentum_values)
 
 
-def test_lr_monitor_no_lr_scheduler_single_lr(tmpdir):
+def test_lr_monitor_no_lr_scheduler_single_lr(tmp_path):
     """Test that learning rates are extracted and logged for no lr scheduler."""
 
     class CustomBoringModel(BoringModel):
@@ -130,12 +133,12 @@ def test_lr_monitor_no_lr_scheduler_single_lr(tmpdir):
 
     lr_monitor = LearningRateMonitor()
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         max_epochs=2,
         limit_val_batches=0.1,
         limit_train_batches=0.5,
         callbacks=[lr_monitor],
-        logger=CSVLogger(tmpdir),
+        logger=CSVLogger(tmp_path),
     )
 
     trainer.fit(model)
@@ -146,7 +149,7 @@ def test_lr_monitor_no_lr_scheduler_single_lr(tmpdir):
 
 
 @pytest.mark.parametrize("opt", ["SGD", "Adam"])
-def test_lr_monitor_no_lr_scheduler_single_lr_with_momentum(tmpdir, opt: str):
+def test_lr_monitor_no_lr_scheduler_single_lr_with_momentum(tmp_path, opt: str):
     """Test that learning rates and momentum are extracted and logged for no lr scheduler."""
 
     class LogMomentumModel(BoringModel):
@@ -166,13 +169,13 @@ def test_lr_monitor_no_lr_scheduler_single_lr_with_momentum(tmpdir, opt: str):
     model = LogMomentumModel(opt=opt)
     lr_monitor = LearningRateMonitor(log_momentum=True)
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         max_epochs=2,
         limit_val_batches=2,
         limit_train_batches=5,
         log_every_n_steps=1,
         callbacks=[lr_monitor],
-        logger=CSVLogger(tmpdir),
+        logger=CSVLogger(tmp_path),
     )
     trainer.fit(model)
 
@@ -181,7 +184,7 @@ def test_lr_monitor_no_lr_scheduler_single_lr_with_momentum(tmpdir, opt: str):
     assert all(k == f"lr-{opt}-momentum" for k in lr_monitor.last_momentum_values)
 
 
-def test_log_momentum_no_momentum_optimizer_no_lr_scheduler(tmpdir):
+def test_log_momentum_no_momentum_optimizer_no_lr_scheduler(tmp_path):
     """Test that if optimizer doesn't have momentum then a warning is raised with log_momentum=True."""
 
     class LogMomentumModel(BoringModel):
@@ -192,13 +195,13 @@ def test_log_momentum_no_momentum_optimizer_no_lr_scheduler(tmpdir):
     model = LogMomentumModel()
     lr_monitor = LearningRateMonitor(log_momentum=True)
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         max_epochs=1,
         limit_val_batches=2,
         limit_train_batches=5,
         log_every_n_steps=1,
         callbacks=[lr_monitor],
-        logger=CSVLogger(tmpdir),
+        logger=CSVLogger(tmp_path),
     )
     with pytest.warns(RuntimeWarning, match="optimizers do not have momentum."):
         trainer.fit(model)
@@ -208,18 +211,18 @@ def test_log_momentum_no_momentum_optimizer_no_lr_scheduler(tmpdir):
     assert all(k == "lr-ASGD-momentum" for k in lr_monitor.last_momentum_values)
 
 
-def test_lr_monitor_no_logger(tmpdir):
+def test_lr_monitor_no_logger(tmp_path):
     model = BoringModel()
 
     lr_monitor = LearningRateMonitor()
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, callbacks=[lr_monitor], logger=False)
+    trainer = Trainer(default_root_dir=tmp_path, max_epochs=1, callbacks=[lr_monitor], logger=False)
 
     with pytest.raises(MisconfigurationException, match="`Trainer` that has no logger"):
         trainer.fit(model)
 
 
 @pytest.mark.parametrize("logging_interval", ["step", "epoch"])
-def test_lr_monitor_multi_lrs(tmpdir, logging_interval: str):
+def test_lr_monitor_multi_lrs(tmp_path, logging_interval: str):
     """Test that learning rates are extracted and logged for multi lr schedulers."""
 
     class CustomBoringModel(BoringModel):
@@ -258,13 +261,13 @@ def test_lr_monitor_multi_lrs(tmpdir, logging_interval: str):
     log_every_n_steps = 2
 
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         max_epochs=2,
         log_every_n_steps=log_every_n_steps,
         limit_train_batches=7,
         limit_val_batches=0.1,
         callbacks=[lr_monitor],
-        logger=CSVLogger(tmpdir),
+        logger=CSVLogger(tmp_path),
     )
     trainer.fit(model)
 
@@ -282,7 +285,7 @@ def test_lr_monitor_multi_lrs(tmpdir, logging_interval: str):
 
 
 @pytest.mark.parametrize("logging_interval", ["step", "epoch"])
-def test_lr_monitor_no_lr_scheduler_multi_lrs(tmpdir, logging_interval: str):
+def test_lr_monitor_no_lr_scheduler_multi_lrs(tmp_path, logging_interval: str):
     """Test that learning rates are extracted and logged for multi optimizers but no lr scheduler."""
 
     class CustomBoringModel(BoringModel):
@@ -315,13 +318,13 @@ def test_lr_monitor_no_lr_scheduler_multi_lrs(tmpdir, logging_interval: str):
     log_every_n_steps = 2
 
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         max_epochs=2,
         log_every_n_steps=log_every_n_steps,
         limit_train_batches=7,
         limit_val_batches=0.1,
         callbacks=[lr_monitor],
-        logger=CSVLogger(tmpdir),
+        logger=CSVLogger(tmp_path),
     )
     trainer.fit(model)
 
@@ -339,7 +342,7 @@ def test_lr_monitor_no_lr_scheduler_multi_lrs(tmpdir, logging_interval: str):
 
 
 @RunIf(sklearn=True)
-def test_lr_monitor_param_groups(tmpdir):
+def test_lr_monitor_param_groups(tmp_path):
     """Test that learning rates are extracted and logged for single lr scheduler."""
 
     class CustomClassificationModel(ClassificationModel):
@@ -358,12 +361,12 @@ def test_lr_monitor_param_groups(tmpdir):
 
     lr_monitor = LearningRateMonitor()
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         max_epochs=2,
         limit_val_batches=0.1,
         limit_train_batches=0.5,
         callbacks=[lr_monitor],
-        logger=CSVLogger(tmpdir),
+        logger=CSVLogger(tmp_path),
     )
     trainer.fit(model, datamodule=dm)
 
@@ -372,7 +375,7 @@ def test_lr_monitor_param_groups(tmpdir):
     assert list(lr_monitor.lrs) == ["lr-Adam/pg1", "lr-Adam/pg2"], "Names of learning rates not set correctly"
 
 
-def test_lr_monitor_custom_name(tmpdir):
+def test_lr_monitor_custom_name(tmp_path):
     class TestModel(BoringModel):
         def configure_optimizers(self):
             optimizer, [scheduler] = super().configure_optimizers()
@@ -381,20 +384,20 @@ def test_lr_monitor_custom_name(tmpdir):
 
     lr_monitor = LearningRateMonitor()
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         max_epochs=2,
         limit_val_batches=0.1,
         limit_train_batches=0.5,
         callbacks=[lr_monitor],
         enable_progress_bar=False,
         enable_model_summary=False,
-        logger=CSVLogger(tmpdir),
+        logger=CSVLogger(tmp_path),
     )
     trainer.fit(TestModel())
     assert list(lr_monitor.lrs) == ["my_logging_name"]
 
 
-def test_lr_monitor_custom_pg_name(tmpdir):
+def test_lr_monitor_custom_pg_name(tmp_path):
     class TestModel(BoringModel):
         def configure_optimizers(self):
             optimizer = torch.optim.SGD([{"params": list(self.layer.parameters()), "name": "linear"}], lr=0.1)
@@ -403,12 +406,12 @@ def test_lr_monitor_custom_pg_name(tmpdir):
 
     lr_monitor = LearningRateMonitor()
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         max_epochs=2,
         limit_val_batches=2,
         limit_train_batches=2,
         callbacks=[lr_monitor],
-        logger=CSVLogger(tmpdir),
+        logger=CSVLogger(tmp_path),
         enable_progress_bar=False,
         enable_model_summary=False,
     )
@@ -416,7 +419,7 @@ def test_lr_monitor_custom_pg_name(tmpdir):
     assert list(lr_monitor.lrs) == ["lr-SGD/linear"]
 
 
-def test_lr_monitor_duplicate_custom_pg_names(tmpdir):
+def test_lr_monitor_duplicate_custom_pg_names(tmp_path):
     class TestModel(BoringModel):
         def __init__(self):
             super().__init__()
@@ -439,12 +442,12 @@ def test_lr_monitor_duplicate_custom_pg_names(tmpdir):
 
     lr_monitor = LearningRateMonitor()
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         max_epochs=2,
         limit_val_batches=2,
         limit_train_batches=2,
         callbacks=[lr_monitor],
-        logger=CSVLogger(tmpdir),
+        logger=CSVLogger(tmp_path),
         enable_progress_bar=False,
         enable_model_summary=False,
     )
@@ -455,7 +458,7 @@ def test_lr_monitor_duplicate_custom_pg_names(tmpdir):
         trainer.fit(TestModel())
 
 
-def test_multiple_optimizers_basefinetuning(tmpdir):
+def test_multiple_optimizers_basefinetuning(tmp_path):
     class TestModel(BoringModel):
         def __init__(self):
             super().__init__()
@@ -545,22 +548,22 @@ def test_multiple_optimizers_basefinetuning(tmpdir):
             """Called when the epoch begins."""
             if epoch == 1 and isinstance(optimizer, torch.optim.SGD):
                 self.unfreeze_and_add_param_group(pl_module.backbone[0], optimizer, lr=0.1)
-            if epoch == 2 and isinstance(optimizer, torch.optim.Adam):
+            if epoch == 2 and type(optimizer) is torch.optim.Adam:
                 self.unfreeze_and_add_param_group(pl_module.layer, optimizer, lr=0.1)
 
-            if epoch == 3 and isinstance(optimizer, torch.optim.Adam):
+            if epoch == 3 and type(optimizer) is torch.optim.Adam:
                 assert len(optimizer.param_groups) == 2
                 self.unfreeze_and_add_param_group(pl_module.backbone[1], optimizer, lr=0.1)
                 assert len(optimizer.param_groups) == 3
 
     lr_monitor = LearningRateMonitor()
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         max_epochs=5,
         limit_val_batches=0,
         limit_train_batches=2,
         callbacks=[TestFinetuning(), lr_monitor, Check()],
-        logger=CSVLogger(tmpdir),
+        logger=CSVLogger(tmp_path),
         enable_progress_bar=False,
         enable_model_summary=False,
         enable_checkpointing=False,
@@ -587,7 +590,7 @@ def test_multiple_optimizers_basefinetuning(tmpdir):
     assert lr_monitor.lrs["lr-Adam/pg3"] == expected
 
 
-def test_lr_monitor_multiple_param_groups_no_lr_scheduler(tmpdir):
+def test_lr_monitor_multiple_param_groups_no_lr_scheduler(tmp_path):
     """Test that the `LearningRateMonitor` is able to log correct keys with multiple param groups and no
     lr_scheduler."""
 
@@ -618,12 +621,12 @@ def test_lr_monitor_multiple_param_groups_no_lr_scheduler(tmpdir):
 
     lr_monitor = LearningRateMonitor(log_momentum=True, log_weight_decay=True)
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         max_epochs=2,
         limit_val_batches=2,
         limit_train_batches=2,
         callbacks=[lr_monitor],
-        logger=CSVLogger(tmpdir),
+        logger=CSVLogger(tmp_path),
         enable_progress_bar=False,
         enable_model_summary=False,
     )
@@ -643,7 +646,7 @@ def test_lr_monitor_multiple_param_groups_no_lr_scheduler(tmpdir):
     assert all(all(val == lr for val in lr_monitor.lrs[lr_key]) for lr_key in lr_monitor.lrs)
 
 
-def test_lr_monitor_update_callback_metrics(tmpdir):
+def test_lr_monitor_update_callback_metrics(tmp_path):
     """Test that the `LearningRateMonitor` callback updates trainer.callback_metrics."""
 
     class TestModel(BoringModel):
@@ -661,12 +664,12 @@ def test_lr_monitor_update_callback_metrics(tmpdir):
         monitor=monitor_key, mode="min", stopping_threshold=stop_threshold, check_on_train_epoch_end=True
     )
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         callbacks=[lr_monitor, lr_es],
         max_epochs=5,
         limit_val_batches=0,
         limit_train_batches=2,
-        logger=CSVLogger(tmpdir),
+        logger=CSVLogger(tmp_path),
     )
     model = TestModel()
     trainer.fit(model)

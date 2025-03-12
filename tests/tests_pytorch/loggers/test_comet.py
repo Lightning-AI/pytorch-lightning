@@ -16,11 +16,12 @@ from unittest import mock
 from unittest.mock import DEFAULT, Mock, patch
 
 import pytest
+from torch import tensor
+
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.loggers import CometLogger
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from torch import tensor
 
 
 def _patch_comet_atexit(monkeypatch):
@@ -64,6 +65,20 @@ def test_comet_logger_online(comet_mock):
     api = comet_mock.api.API
     CometLogger(api_key="key", workspace="dummy-test", project_name="general", rest_api_key="rest")
     api.assert_called_once_with("rest")
+
+
+@mock.patch.dict(os.environ, {})
+def test_comet_experiment_resets_if_not_alive(comet_mock):
+    """Test that the CometLogger creates a new experiment if the old one is not alive anymore."""
+    logger = CometLogger()
+    assert logger._experiment is None
+    alive_experiment = Mock(alive=True)
+    logger._experiment = alive_experiment
+    assert logger.experiment is alive_experiment
+
+    unalive_experiment = Mock(alive=False)
+    logger._experiment = unalive_experiment
+    assert logger.experiment is not unalive_experiment
 
 
 @mock.patch.dict(os.environ, {})

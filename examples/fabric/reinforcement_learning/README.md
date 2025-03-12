@@ -40,7 +40,7 @@ torchrun --nproc_per_node=2 --standalone train_torch.py
 ### Lightning Fabric:
 
 ```bash
-lightning run model --accelerator=cpu --strategy=ddp --devices=2 train_fabric.py
+fabric run --accelerator=cpu --strategy=ddp --devices=2 train_fabric.py
 ```
 
 ### Visualizing logs
@@ -71,7 +71,7 @@ The following video shows a trained agent on the [LunarLander-v2 environment](ht
 The agent was trained with the following:
 
 ```bash
-lightning run model \
+fabric run \
   --accelerator=cpu \
   --strategy=ddp \
   --devices=2 \
@@ -98,25 +98,25 @@ where, differently from the previous example, we have completely decoupled the e
 So for example:
 
 ```bash
-lightning run model --devices=3 train_fabric_decoupled.py --num-envs 4
+fabric run --devices=3 train_fabric_decoupled.py --num-envs 4
 ```
 
 will spawn 3 processes, one is the Player and the others the Trainers, with the Player running 4 independent environments, where every process runs on the CPU;
 
 ```bash
-lightning run model --devices=3 train_fabric_decoupled.py --num-envs 4 --cuda
+fabric run --devices=3 train_fabric_decoupled.py --num-envs 4 --cuda
 ```
 
 will instead run only the Trainers on the GPU.
 If one wants to run both the Player and the Trainers on the GPU, then both the flags `--cuda` and `--player-on-gpu` must be provided:
 
 ```bash
-lightning run model --devices=3 train_fabric_decoupled.py --num-envs 4 --cuda --player-on-gpu
+fabric run --devices=3 train_fabric_decoupled.py --num-envs 4 --cuda --player-on-gpu
 ```
 
 > **Warning**
 >
-> With this second example, there is no need for the user to provide the `accelerator` and the `strategy` to the `lightning run model` script.
+> With this second example, there is no need for the user to provide the `accelerator` and the `strategy` to the `fabric run` script.
 
 ## Number of updates, environment steps and share data
 

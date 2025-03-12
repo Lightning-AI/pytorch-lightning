@@ -14,7 +14,7 @@ Requirements:
 
 
 Run it with:
-    lightning run model --devices=2 train_fabric_decoupled.py
+    fabric run --devices=2 train_fabric_decoupled.py
 """
 
 import argparse
@@ -25,16 +25,17 @@ from datetime import datetime
 
 import gymnasium as gym
 import torch
-from lightning.fabric import Fabric
-from lightning.fabric.loggers import TensorBoardLogger
-from lightning.fabric.plugins.collectives import TorchCollective
-from lightning.fabric.plugins.collectives.collective import CollectibleGroup
-from lightning.fabric.strategies import DDPStrategy
 from rl.agent import PPOLightningAgent
 from rl.utils import linear_annealing, make_env, parse_args, test
 from torch.distributed.algorithms.join import Join
 from torch.utils.data import BatchSampler, DistributedSampler, RandomSampler
 from torchmetrics import MeanMetric
+
+from lightning.fabric import Fabric
+from lightning.fabric.loggers import TensorBoardLogger
+from lightning.fabric.plugins.collectives import TorchCollective
+from lightning.fabric.plugins.collectives.collective import CollectibleGroup
+from lightning.fabric.strategies import DDPStrategy
 
 
 @torch.no_grad()
@@ -55,13 +56,13 @@ def player(args, world_collective: TorchCollective, player_trainer_collective: T
     # Log hyperparameters
     logger.experiment.add_text(
         "hyperparameters",
-        "|param|value|\n|-|-|\n%s" % ("\n".join([f"|{key}|{value}|" for key, value in vars(args).items()])),
+        "|param|value|\n|-|-|\n{}".format("\n".join([f"|{key}|{value}|" for key, value in vars(args).items()])),
     )
 
     # Environment setup
-    envs = gym.vector.SyncVectorEnv(
-        [make_env(args.env_id, args.seed + i, 0, args.capture_video, log_dir, "train") for i in range(args.num_envs)]
-    )
+    envs = gym.vector.SyncVectorEnv([
+        make_env(args.env_id, args.seed + i, 0, args.capture_video, log_dir, "train") for i in range(args.num_envs)
+    ])
     assert isinstance(envs.single_action_space, gym.spaces.Discrete), "only discrete action space is supported"
 
     # Define the agent
@@ -104,10 +105,9 @@ def player(args, world_collective: TorchCollective, player_trainer_collective: T
     if not args.share_data:
         if single_global_step < world_collective.world_size - 1:
             raise RuntimeError(
-                "The number of trainers ({}) is greater than the available collected data ({}). ".format(
-                    world_collective.world_size - 1, single_global_step
-                )
-                + "Consider to lower the number of trainers at least to the size of available collected data"
+                f"The number of trainers ({world_collective.world_size - 1})"
+                f" is greater than the available collected data ({single_global_step})."
+                f" Consider to lower the number of trainers at least to the size of available collected data"
             )
         chunks_sizes = [
             len(chunk)
@@ -136,7 +136,7 @@ def player(args, world_collective: TorchCollective, player_trainer_collective: T
             # Single environment step
             next_obs, reward, done, truncated, info = envs.step(action.cpu().numpy())
             done = torch.logical_or(torch.tensor(done), torch.tensor(truncated))
-            rewards[step] = torch.tensor(reward, device=device).view(-1)
+            rewards[step] = torch.tensor(reward, device=device, dtype=torch.float32).view(-1)
             next_obs, next_done = torch.tensor(next_obs, device=device), done.to(device)
 
             if "final_info" in info:
@@ -274,7 +274,7 @@ def trainer(
         if group_rank == 0:
             metrics = {}
 
-        # Lerning rate annealing
+        # Learning rate annealing
         if args.anneal_lr:
             linear_annealing(optimizer, update, num_updates, args.learning_rate)
         if group_rank == 0:

@@ -4,10 +4,14 @@ import random
 from unittest import mock
 from unittest.mock import Mock
 
-import lightning.fabric
 import numpy as np
 import pytest
 import torch
+from lightning_utilities.test.warning import no_warning_call
+from torch import Tensor
+from torch.utils.data import BatchSampler, DataLoader, RandomSampler
+
+import lightning.fabric
 from lightning.fabric.utilities.data import (
     AttributeDict,
     _get_dataloader_init_args_and_kwargs,
@@ -21,11 +25,7 @@ from lightning.fabric.utilities.data import (
     suggested_max_num_workers,
 )
 from lightning.fabric.utilities.exceptions import MisconfigurationException
-from lightning_utilities.test.warning import no_warning_call
-from torch import Tensor
-from torch.utils.data import BatchSampler, DataLoader, RandomSampler
-
-from tests_fabric.helpers.models import RandomDataset, RandomIterableDataset
+from tests_fabric.helpers.datasets import RandomDataset, RandomIterableDataset
 
 
 def test_has_iterable_dataset():
@@ -560,7 +560,7 @@ def test_dataloader_kwargs_replacement_with_array_default_comparison():
             self.indices = np.random.rand(2, 2)  # an attribute we can't compare with ==
 
     dataloader = ArrayAttributeDataloader(dataset)
-    dl_args, dl_kwargs = _get_dataloader_init_args_and_kwargs(dataloader, dataloader.sampler)
+    _, dl_kwargs = _get_dataloader_init_args_and_kwargs(dataloader, dataloader.sampler)
     assert dl_kwargs["indices"] is dataloader.indices
 
 

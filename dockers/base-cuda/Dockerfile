@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-ARG UBUNTU_VERSION=20.04
+ARG UBUNTU_VERSION=22.04
 ARG CUDA_VERSION=11.7.1
 
 
@@ -20,7 +20,7 @@ FROM nvidia/cuda:${CUDA_VERSION}-runtime-ubuntu${UBUNTU_VERSION}
 
 ARG PYTHON_VERSION=3.10
 ARG PYTORCH_VERSION=2.1
-ARG MAX_ALLOWED_NCCL=2.17.1
+ARG MAX_ALLOWED_NCCL=2.22.3
 
 SHELL ["/bin/bash", "-c"]
 # https://techoverflow.net/2019/05/18/how-to-fix-configuring-tzdata-interactive-input-when-building-docker-images/
@@ -34,13 +34,7 @@ ENV \
     MAKEFLAGS="-j2"
 
 RUN \
-    # TODO: Remove the manual key installation once the base image is updated.
-    # https://github.com/NVIDIA/nvidia-docker/issues/1631
-    # https://github.com/NVIDIA/nvidia-docker/issues/1631#issuecomment-1264715214
     apt-get update && apt-get install -y wget && \
-    wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2004/x86_64/3bf863cc.pub && \
-    mkdir -p /etc/apt/keyrings/ && mv 3bf863cc.pub /etc/apt/keyrings/ && \
-    echo "deb [signed-by=/etc/apt/keyrings/3bf863cc.pub] https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/ /" /etc/apt/sources.list.d/cuda.list && \
     apt-get update -qq --fix-missing && \
     NCCL_VER=$(dpkg -s libnccl2 | grep '^Version:' | awk -F ' ' '{print $2}' | awk -F '-' '{print $1}' | grep -ve '^\s*$') && \
     CUDA_VERSION_MM=${CUDA_VERSION%.*} && \
@@ -65,7 +59,6 @@ RUN \
     add-apt-repository ppa:deadsnakes/ppa && \
     apt-get install -y \
         python${PYTHON_VERSION} \
-        python${PYTHON_VERSION}-distutils \
         python${PYTHON_VERSION}-dev \
     && \
     update-alternatives --install /usr/bin/python${PYTHON_VERSION%%.*} python${PYTHON_VERSION%%.*} /usr/bin/python${PYTHON_VERSION} 1 && \
@@ -82,11 +75,11 @@ COPY requirements/_integrations/ requirements/_integrations/
 ENV PYTHONPATH="/usr/lib/python${PYTHON_VERSION}/site-packages"
 
 RUN \
-    wget https://bootstrap.pypa.io/get-pip.py --progress=bar:force:noscroll --no-check-certificate && \
-    python${PYTHON_VERSION} get-pip.py && \
-    rm get-pip.py && \
+    curl https://bootstrap.pypa.io/get-pip.py | python${PYTHON_VERSION} && \
     # Disable cache \
     pip config set global.cache-dir false && \
+    # Install recent setuptools to obtain pkg_resources \
+    pip install setuptools==75.6.0 && \
     # set particular PyTorch version \
     pip install -q wget packaging && \
     python -m wget https://raw.githubusercontent.com/Lightning-AI/utilities/main/scripts/adjust-torch-versions.py  && \
@@ -99,7 +92,8 @@ RUN \
       -r requirements/pytorch/extra.txt \
       -r requirements/pytorch/test.txt \
       -r requirements/pytorch/strategies.txt \
-      --find-links "https://download.pytorch.org/whl/cu${CUDA_VERSION_MM//'.'/''}/torch_stable.html"
+      --extra-index-url="https://download.pytorch.org/whl/cu${CUDA_VERSION_MM//'.'/''}/" \
+      --extra-index-url="https://download.pytorch.org/whl/test/cu${CUDA_VERSION_MM//'.'/''}/"
 
 RUN \
     # Show what we have

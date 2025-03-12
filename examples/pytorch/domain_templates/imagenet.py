@@ -30,6 +30,7 @@ or show all options you can change:
     python imagenet.py fit --help
 
 """
+
 import os
 from typing import Optional
 
@@ -42,13 +43,14 @@ import torch.utils.data
 import torch.utils.data.distributed
 import torchvision.datasets as datasets
 import torchvision.transforms as transforms
+from torch.utils.data import Dataset
+from torchmetrics import Accuracy
+
 from lightning.pytorch import LightningModule
 from lightning.pytorch.callbacks import ModelCheckpoint, TQDMProgressBar
 from lightning.pytorch.cli import LightningCLI
 from lightning.pytorch.strategies import ParallelStrategy
 from lightning.pytorch.utilities.model_helpers import get_torchvision_model
-from torch.utils.data import Dataset
-from torchmetrics import Accuracy
 
 
 class ImageNetLightningModel(LightningModule):
@@ -139,14 +141,12 @@ class ImageNetLightningModel(LightningModule):
             train_dir = os.path.join(self.data_path, "train")
             self.train_dataset = datasets.ImageFolder(
                 train_dir,
-                transforms.Compose(
-                    [
-                        transforms.RandomResizedCrop(224),
-                        transforms.RandomHorizontalFlip(),
-                        transforms.ToTensor(),
-                        normalize,
-                    ]
-                ),
+                transforms.Compose([
+                    transforms.RandomResizedCrop(224),
+                    transforms.RandomHorizontalFlip(),
+                    transforms.ToTensor(),
+                    normalize,
+                ]),
             )
         # all stages will use the eval dataset
         normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])

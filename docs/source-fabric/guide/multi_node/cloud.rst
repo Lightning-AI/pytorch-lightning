@@ -1,14 +1,13 @@
 :orphan:
 
-##########################
-Run in the Lightning Cloud
-##########################
+#############################################
+Run single or multi-node on Lightning Studios
+#############################################
 
 **Audience**: Users who don't want to waste time on cluster configuration and maintenance.
 
-
-The Lightning AI cloud is a platform where you can build, train, finetune and deploy models without worrying about infrastructure, cost management, scaling, and other technical headaches.
-In this guide, and within just 10 minutes, you will learn how to run a Fabric training script across multiple nodes in the cloud.
+`Lightning Studios <https://lightning.ai>`_ is a cloud platform where you can build, train, finetune and deploy models without worrying about infrastructure, cost management, scaling, and other technical headaches.
+This guide shows you how easy it is to run a Fabric training script across multiple machines on Lightning Studios.
 
 
 ----
@@ -19,13 +18,8 @@ Initial Setup
 *************
 
 First, create a free `Lightning AI account <https://lightning.ai/>`_.
-Then, log in from the CLI:
-
-.. code-block:: bash
-
-    lightning login
-
-A page opens in your browser where you can follow the instructions to complete the setup.
+You get free credits every month you can spend on GPU compute.
+To use machines with multiple GPUs or run jobs across machines, you need to be on the `Pro or Teams plan <https://lightning.ai/pricing>`_.
 
 
 ----
@@ -35,66 +29,107 @@ A page opens in your browser where you can follow the instructions to complete t
 Launch multi-node training in the cloud
 ***************************************
 
-**Step 1:** Put your code inside a ``lightning.app.core.work.LightningWork``:
+**Step 1:** Start a new Studio.
 
-.. code-block:: python
-    :emphasize-lines: 5
-    :caption: app.py
+.. video:: https://pl-public-data.s3.amazonaws.com/assets_lightning/fabric/videos/start-studio-for-mmt.mp4
+    :width: 800
+    :loop:
+    :muted:
 
-    import lightning as L
-    from lightning.app.components import FabricMultiNode
+|
+
+**Step 2:** Bring your code into the Studio. You can clone a GitHub repo, drag and drop local files, or use the following demo example:
+
+.. collapse:: Code Example
+
+    .. code-block:: python
+
+        import lightning as L
+        import torch
+        import torch.nn.functional as F
+        from lightning.pytorch.demos import Transformer, WikiText2
+        from torch.utils.data import DataLoader
 
 
-    # 1. Put your code inside a LightningWork
-    class MyTrainingComponent(L.LightningWork):
-        def run(self):
-            # Set up Fabric
-            # The `devices` and `num_nodes` gets set by Lightning automatically
-            fabric = L.Fabric(strategy="ddp", precision="16-mixed")
+        def main():
+            L.seed_everything(42)
 
-            # Your training code
-            model = ...
-            optimizer = ...
+            fabric = L.Fabric()
+            fabric.launch()
+
+            # Data
+            with fabric.rank_zero_first():
+                dataset = WikiText2()
+
+            train_dataloader = DataLoader(dataset, batch_size=20, shuffle=True)
+
+            # Model
+            model = Transformer(vocab_size=dataset.vocab_size)
+
+            # Optimizer
+            optimizer = torch.optim.SGD(model.parameters(), lr=0.1)
+
             model, optimizer = fabric.setup(model, optimizer)
-            ...
+            train_dataloader = fabric.setup_dataloaders(train_dataloader)
 
-**Step 2:** Init a ``lightning.app.core.app.LightningApp`` with the ``FabricMultiNode`` component.
-Configure the number of nodes, the number of GPUs per node, and the type of GPU:
+            for batch_idx, batch in enumerate(train_dataloader):
+                input, target = batch
+                output = model(input, target)
+                loss = F.nll_loss(output, target.view(-1))
+                fabric.backward(loss)
+                optimizer.step()
+                optimizer.zero_grad()
+
+                if batch_idx % 10 == 0:
+                    fabric.print(f"iteration: {batch_idx} - loss {loss.item():.4f}")
+
+
+        if __name__ == "__main__":
+            main()
+
+|
+
+**Step 3:** Remove hardcoded accelerator settings if any and let Lightning automatically set them for you. No other changes are required in your script.
 
 .. code-block:: python
-    :emphasize-lines: 5,7
-    :caption: app.py
 
-    # 2. Create the app with the FabricMultiNode component inside
-    app = L.LightningApp(
-        FabricMultiNode(
-            MyTrainingComponent,
-            # Run with 2 nodes
-            num_nodes=2,
-            # Each with 4 x V100 GPUs, total 8 GPUs
-            cloud_compute=L.CloudCompute("gpu-fast-multi"),
-        )
-    )
+    # These are the defaults
+    fabric = L.Fabric(accelerator="auto", devices="auto")
 
+    # DON'T hardcode these, leave them default/auto
+    # fabric = L.Fabric(accelerator="cpu", devices=3)
 
-**Step 3:** Run your code from the CLI:
+|
 
-.. code-block:: bash
+**Step 4:** Install dependencies and download all necessary data. Test that your script runs in the Studio first. If it runs in the Studio, it will run in multi-node!
 
-    lightning run app app.py --cloud
+|
 
-This command will upload your Python file and then opens the app admin view, where you can see the logs of what's happening.
+**Step 5:** Open the Multi-Machine Training (MMT) app. Type the command to run your script, select the machine type and how many machines you want to launch it on. Click "Run" to start the job.
 
-.. figure:: https://pl-public-data.s3.amazonaws.com/assets_lightning/fabric/fabric-multi-node-admin.png
-   :alt: The Lightning AI admin page of an app running a multi-node fabric training script
-   :width: 100%
+.. video:: https://pl-public-data.s3.amazonaws.com/assets_lightning/fabric/videos/lightning-ai-mmt-demo-fabric.mp4
+    :width: 800
+    :loop:
+    :muted:
+
+After submitting the job, you will be redirected to a page where you can monitor the machine metrics and logs in real-time.
 
 
 ----
 
 
+****************************
+Bring your own cloud account
+****************************
+
+As a `Teams or Enterprise <https://lightning.ai/pricing>`_ customer, you have the option to connect your existing cloud account to Lightning AI.
+This gives your organization the ability to keep all compute and data on your own cloud account and your Virtual Private Cloud (VPC).
+
+
+----
+
 **********
-Next steps
+Learn more
 **********
 
 .. raw:: html
@@ -103,8 +138,8 @@ Next steps
         <div class="row">
 
 .. displayitem::
-    :header: Lightning Platform
-    :description: Develop, Train and Deploy models on the cloud
+    :header: Lightning Studios
+    :description: Code together. Prototype. Train. Deploy. Host AI web apps. From your browser - with zero setup.
     :col_css: col-md-4
     :button_link: https://lightning.ai
     :height: 150

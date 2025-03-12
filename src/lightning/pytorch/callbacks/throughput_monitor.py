@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import time
-from typing import TYPE_CHECKING, Any, Callable, Dict, Optional, Union
+from typing import TYPE_CHECKING, Any, Callable, Optional, Union
 
 import torch
 from typing_extensions import override
@@ -50,7 +50,7 @@ class ThroughputMonitor(Callback):
                     model = MyModel()
 
                     def sample_forward():
-                        batch = torch.randn(...)
+                        batch = torch.randn(..., device="meta")
                         return model(batch)
 
                     self.flops_per_batch = measure_flops(model, sample_forward, loss_fn=torch.Tensor.sum)
@@ -84,30 +84,19 @@ class ThroughputMonitor(Callback):
         self.batch_size_fn = batch_size_fn
         self.length_fn = length_fn
         self.available_flops: Optional[int] = None
-        self._throughputs: Dict[RunningStage, Throughput] = {}
-        self._t0s: Dict[RunningStage, float] = {}
-        self._lengths: Dict[RunningStage, int] = {}
+        self._throughputs: dict[RunningStage, Throughput] = {}
+        self._t0s: dict[RunningStage, float] = {}
+        self._lengths: dict[RunningStage, int] = {}
 
     @override
     def setup(self, trainer: "Trainer", pl_module: "LightningModule", stage: str) -> None:
         dtype = _plugin_to_compute_dtype(trainer.precision_plugin)
         self.available_flops = get_available_flops(trainer.strategy.root_device, dtype)
 
-        if stage == TrainerFn.FITTING:
-            if trainer.accumulate_grad_batches % trainer.log_every_n_steps != 0:
-                raise ValueError(
-                    "The `ThroughputMonitor` only logs when gradient accumulation is finished. You set"
-                    f" `Trainer(accumulate_grad_batches={trainer.accumulate_grad_batches},"
-                    f" log_every_n_steps={trainer.log_every_n_steps})` but these are not divisible and thus will not"
-                    " log anything."
-                )
-
-            if trainer.enable_validation:
-                # `fit` includes validation inside
-                throughput = Throughput(
-                    available_flops=self.available_flops, world_size=trainer.world_size, **self.kwargs
-                )
-                self._throughputs[RunningStage.VALIDATING] = throughput
+        if stage == TrainerFn.FITTING and trainer.enable_validation:
+            # `fit` includes validation inside
+            throughput = Throughput(available_flops=self.available_flops, world_size=trainer.world_size, **self.kwargs)
+            self._throughputs[RunningStage.VALIDATING] = throughput
 
         throughput = Throughput(available_flops=self.available_flops, world_size=trainer.world_size, **self.kwargs)
         stage = trainer.state.stage

@@ -103,15 +103,15 @@
      - `PR11871`_
 
    * - used  ``Trainer.validated_ckpt_path`` attribute
-     - rely on generic read-only property ``Trainer.ckpt_path`` which is set when checkpoints are loaded via ``Trainer.validate(````ckpt_path=...)``
+     - rely on generic read-only property ``Trainer.ckpt_path`` which is set when checkpoints are loaded via ``Trainer.validate(ckpt_path=...)``
      - `PR11696`_
 
    * - used  ``Trainer.tested_ckpt_path`` attribute
-     - rely on generic read-only property ``Trainer.ckpt_path`` which is set when checkpoints are loaded via ``Trainer.test(````ckpt_path=...)``
+     - rely on generic read-only property ``Trainer.ckpt_path`` which is set when checkpoints are loaded via ``Trainer.test(ckpt_path=...)``
      - `PR11696`_
 
    * - used  ``Trainer.predicted_ckpt_path`` attribute
-     - rely on generic read-only property ``Trainer.ckpt_path``, which is set when checkpoints are loaded via ``Trainer.predict(````ckpt_path=...)``
+     - rely on generic read-only property ``Trainer.ckpt_path``, which is set when checkpoints are loaded via ``Trainer.predict(ckpt_path=...)``
      - `PR11696`_
 
    * - rely on the returned dictionary from  ``Callback.on_save_checkpoint``

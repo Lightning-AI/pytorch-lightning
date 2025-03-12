@@ -11,11 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 import pytest
 import torch
 import torch.nn as nn
-from lightning.fabric import Fabric
 
+from lightning.fabric import Fabric
 from tests_fabric.helpers.runif import RunIf
 
 

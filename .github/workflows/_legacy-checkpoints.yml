@@ -42,8 +42,8 @@ on:
         type: boolean
 
 env:
-  legacy_dir: "tests/legacy"
-  TORCH_URL: "https://download.pytorch.org/whl/cpu/torch_stable.html"
+  LEGACY_FOLDER: "tests/legacy"
+  TORCH_URL: "https://download.pytorch.org/whl/cpu/"
 
 defaults:
   run:
@@ -57,22 +57,22 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
           # Python version here needs to be supported by all PL versions listed in back-compatible-versions.txt.
-          python-version: 3.8
+          python-version: "3.9"
 
       - name: Install PL from source
         env:
           PACKAGE_NAME: pytorch
           FREEZE_REQUIREMENTS: 1
         timeout-minutes: 20
-        run: pip install . -f ${TORCH_URL}
+        run: pip install . --extra-index-url="${TORCH_URL}"
         if: inputs.pl_version == ''
 
       - name: Install PL version
         timeout-minutes: 20
-        run: pip install "pytorch-lightning==${{ inputs.pl_version }}" -f ${TORCH_URL}
+        run: pip install "pytorch-lightning==${{ inputs.pl_version }}" --extra-index-url="${TORCH_URL}"
         if: inputs.pl_version != ''
 
       - name: Adjust tests -> PL
@@ -91,11 +91,11 @@ jobs:
         run: python -c "import pytorch_lightning as pl; print(f'pl-version={pl.__version__}')" >> $GITHUB_OUTPUT || echo pl-version='' >> $GITHUB_OUTPUT
 
       - name: Generate checkpoints
-        working-directory: ${{ env.legacy_dir }}
+        working-directory: ${{ env.LEGACY_FOLDER }}
         run: bash generate_checkpoints.sh ${{ inputs.pl_version }}
       - name: Rename local to actual version
         if: inputs.upload_local
-        working-directory: ${{ env.legacy_dir }}
+        working-directory: ${{ env.LEGACY_FOLDER }}
         run: mv checkpoints/local checkpoints/${{ steps.decide-version.outputs.pl-version }}
 
       - name: "Determine: Keep artifact & DryRun"
@@ -104,18 +104,19 @@ jobs:
           python -c "print('AWS_RUN=' + str('' if '${{inputs.push_to_s3}}' == 'true' else '--dryrun'))" >> $GITHUB_ENV
 
       - name: Upload checkpoints to GitHub Actions artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: checkpoints-${{ github.sha }}
-          path: ${{ env.legacy_dir }}/checkpoints/
+          path: ${{ env.LEGACY_FOLDER }}/checkpoints/
           retention-days: ${{ env.KEEP_DAYS }}
+          include-hidden-files: true
 
       - run: pip install -r requirements/ci.txt
       - name: Upload checkpoints to S3
-        working-directory: ${{ env.legacy_dir }}
+        working-directory: ${{ env.LEGACY_FOLDER }}
         env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_PUB_ACCESS_KEY }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_PUB_SECRET_KEY }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_KEY }}
           AWS_DEFAULT_REGION: ${{ secrets.AWS_REGION }}
         run: |
           aws s3 sync $AWS_RUN checkpoints/ s3://pl-public-data/legacy/checkpoints/
@@ -134,11 +135,11 @@ jobs:
           ref: master
 
       - name: Append a new version to legacy checkpoint list
-        working-directory: ${{ env.legacy_dir }}
+        working-directory: ${{ env.LEGACY_FOLDER }}
         run: echo ${PL_VERSION} >> back-compatible-versions.txt
 
       - name: Create Pull Request
-        uses: peter-evans/create-pull-request@v5
+        uses: peter-evans/create-pull-request@v7
         with:
           title: Adding test for legacy checkpoint created with ${{ env.PL_VERSION }}
           committer: GitHub <noreply@github.com>

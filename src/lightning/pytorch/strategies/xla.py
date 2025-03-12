@@ -13,7 +13,7 @@
 # limitations under the License.
 import io
 import os
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Union
+from typing import TYPE_CHECKING, Any, Optional, Union
 
 import torch
 from torch import Tensor
@@ -21,7 +21,7 @@ from torch.nn import Module
 from typing_extensions import override
 
 import lightning.pytorch as pl
-from lightning.fabric.accelerators.xla import _XLA_AVAILABLE, _XLA_GREATER_EQUAL_2_1, _using_pjrt
+from lightning.fabric.accelerators.xla import _XLA_AVAILABLE, _XLA_GREATER_EQUAL_2_1
 from lightning.fabric.plugins import XLACheckpointIO
 from lightning.fabric.plugins.environments import XLAEnvironment
 from lightning.fabric.strategies import _StrategyRegistry
@@ -49,7 +49,7 @@ class XLAStrategy(DDPStrategy):
     def __init__(
         self,
         accelerator: Optional["pl.accelerators.Accelerator"] = None,
-        parallel_devices: Optional[List[torch.device]] = None,
+        parallel_devices: Optional[list[torch.device]] = None,
         checkpoint_io: Optional[Union[XLACheckpointIO, _WrappingCheckpointIO]] = None,
         precision_plugin: Optional[XLAPrecision] = None,
         debug: bool = False,
@@ -70,7 +70,7 @@ class XLAStrategy(DDPStrategy):
         self._launched = False
         self._sync_module_states = sync_module_states
 
-    @property  # type: ignore[override]
+    @property
     @override
     def checkpoint_io(self) -> Union[XLACheckpointIO, _WrappingCheckpointIO]:
         plugin = self._checkpoint_io
@@ -86,7 +86,7 @@ class XLAStrategy(DDPStrategy):
             raise TypeError(f"The XLA strategy can only work with the `XLACheckpointIO` plugin, found {io}")
         self._checkpoint_io = io
 
-    @property  # type: ignore[override]
+    @property
     @override
     def precision_plugin(self) -> XLAPrecision:
         plugin = self._precision_plugin
@@ -137,18 +137,20 @@ class XLAStrategy(DDPStrategy):
 
     @override
     def setup(self, trainer: "pl.Trainer") -> None:
-        assert self.accelerator
+        assert self.accelerator is not None
         self.accelerator.setup(trainer)
 
         if self.debug:
             os.environ["PT_XLA_DEBUG"] = "1"
 
-        assert self.lightning_module
-        shared_params = find_shared_parameters(self.lightning_module)
-        self.model_to_device()
+        assert self.model is not None
+        self.precision_plugin.convert_module(self.model)
 
-        set_shared_parameters(self.lightning_module, shared_params)
-        self.setup_precision_plugin()
+        shared_params = find_shared_parameters(self.model)
+        self.model_to_device()
+        set_shared_parameters(self.model, shared_params)
+
+        self.model = self._setup_model(self.model)
 
         if self._sync_module_states:
             if _XLA_GREATER_EQUAL_2_1:
@@ -160,6 +162,8 @@ class XLAStrategy(DDPStrategy):
 
         if trainer.state.fn == TrainerFn.FITTING:
             self.setup_optimizers(trainer)
+        self.setup_precision_plugin()
+        if trainer.state.fn == TrainerFn.FITTING:
             _optimizers_to_device(self.optimizers, self.root_device)
 
     @override
@@ -168,7 +172,7 @@ class XLAStrategy(DDPStrategy):
 
     @property
     @override
-    def distributed_sampler_kwargs(self) -> Dict[str, int]:
+    def distributed_sampler_kwargs(self) -> dict[str, int]:
         return {"num_replicas": self.world_size, "rank": self.global_rank}
 
     @override
@@ -266,17 +270,20 @@ class XLAStrategy(DDPStrategy):
         return output
 
     @override
+    def setup_environment(self) -> None:
+        self._launched = True
+        super().setup_environment()
+
+    @override
     def setup_distributed(self) -> None:
         assert self.parallel_devices is not None
-        if _using_pjrt() and len(self.parallel_devices) == 1:
+        if len(self.parallel_devices) == 1:
             # spawning only 1 device with PjRT is not supported:
             # https://github.com/Lightning-AI/lightning/pull/17408#discussion_r1170671732
             raise NotImplementedError(
                 "The `XLAStrategy` does not support running on a single device with the PjRT runtime."
                 " Try using all devices or the `SingleDeviceXLAStrategy` strategy"
             )
-
-        self._launched = True
         rank_zero_only.rank = self.global_rank
 
     @override
@@ -287,12 +294,8 @@ class XLAStrategy(DDPStrategy):
         pass
 
     @override
-    def on_train_batch_start(self, batch: Any, batch_idx: int) -> None:
-        _pod_progress_bar_force_stdout(self.global_rank)
-
-    @override
     def save_checkpoint(
-        self, checkpoint: Dict[str, Any], filepath: _PATH, storage_options: Optional[Any] = None
+        self, checkpoint: dict[str, Any], filepath: _PATH, storage_options: Optional[Any] = None
     ) -> None:
         import torch_xla.core.xla_model as xm
 
@@ -357,19 +360,3 @@ class XLAStrategy(DDPStrategy):
             cls,
             description=cls.__name__,
         )
-
-
-def _pod_progress_bar_force_stdout(global_rank: int) -> None:
-    if _using_pjrt():
-        # this was removed in https://github.com/pytorch/xla/pull/5240
-        return
-
-    # Why is it required? The way `pytorch_xla.distributed` streams logs
-    # from different vms to the main worker doesn't work well with tqdm
-    # Ref: https://github.com/pytorch/xla/blob/v2.0.0/torch_xla/distributed/xla_dist.py#L227
-    # The print statement seems to force tqdm to flush stdout.
-    import torch_xla.core.xla_env_vars as xenv
-    from torch_xla.utils.utils import getenv_as
-
-    if global_rank == 0 and getenv_as(xenv.TPUVM_MODE, int, 0) == 1:
-        print()

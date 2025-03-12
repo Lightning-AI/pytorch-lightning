@@ -16,6 +16,7 @@ from copy import deepcopy
 from unittest.mock import Mock
 
 import torch
+
 from lightning.fabric import Fabric
 from lightning.pytorch.demos.boring_classes import BoringModel, ManualOptimBoringModel
 
@@ -51,7 +52,7 @@ def test_fabric_boring_lightning_module_manual():
     optimizers, _ = module.configure_optimizers()
     dataloader = module.train_dataloader()
 
-    model, optimizer = fabric.setup(module, optimizers[0])
+    model, _ = fabric.setup(module, optimizers[0])
     dataloader = fabric.setup_dataloaders(dataloader)
 
     batch = next(iter(dataloader))

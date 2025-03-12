@@ -90,6 +90,21 @@ Check out our before-and-after example for `image classification <https://github
 ----
 
 
+****************
+Optional changes
+****************
+
+Here are a few optional upgrades you can make to your code, if applicable:
+
+- Replace ``torch.save()`` and ``torch.load()`` with Fabric's :doc:`save and load methods <../guide/checkpoint/checkpoint>`.
+- Replace collective operations from ``torch.distributed`` (barrier, broadcast, etc.) with Fabric's :doc:`collective methods <../advanced/distributed_communication>`.
+- Use Fabric's :doc:`no_backward_sync() context manager <../advanced/gradient_accumulation>` if you implemented gradient accumulation.
+- Initialize your model under the :doc:`init_module() <../advanced/model_init>` context manager.
+
+
+----
+
+
 **********
 Next steps
 **********

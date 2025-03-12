@@ -61,7 +61,7 @@ Multiple loggers support visualizing the model topology. Here's an example that 
 .. code-block:: python
 
     def any_lightning_module_function_or_hook(self):
-        tensorboard_logger = self.logger.experiment
+        tensorboard_logger = self.logger
 
         prototype_array = torch.Tensor(32, 1, 28, 27)
         tensorboard_logger.log_graph(model=self, input_array=prototype_array)

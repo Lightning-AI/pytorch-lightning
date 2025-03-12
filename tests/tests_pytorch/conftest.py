@@ -15,26 +15,25 @@ import os
 import signal
 import sys
 import threading
+from concurrent.futures.process import _ExecutorManagerThread
 from functools import partial
 from http.server import SimpleHTTPRequestHandler
 from pathlib import Path
-from typing import List
 from unittest.mock import Mock
+
+import pytest
+import torch.distributed
+from tqdm import TMonitor
 
 import lightning.fabric
 import lightning.pytorch
-import pytest
-import torch.distributed
 from lightning.fabric.plugins.environments.lightning import find_free_network_port
 from lightning.fabric.strategies.launchers.subprocess_script import _ChildProcessObserver
-from lightning.fabric.utilities.distributed import _distributed_is_initialized
+from lightning.fabric.utilities.distributed import _destroy_dist_connection, _distributed_is_initialized
 from lightning.fabric.utilities.imports import _IS_WINDOWS
+from lightning.pytorch.accelerators import XLAAccelerator
 from lightning.pytorch.trainer.connectors.signal_connector import _SignalConnector
-
 from tests_pytorch import _PATH_DATASETS
-
-if sys.version_info >= (3, 9):
-    from concurrent.futures.process import _ExecutorManagerThread
 
 
 @pytest.fixture(scope="session")
@@ -45,9 +44,10 @@ def datadir():
 @pytest.fixture(autouse=True)
 def preserve_global_rank_variable():
     """Ensures that the rank_zero_only.rank global variable gets reset in each test."""
+    from lightning_utilities.core.rank_zero import rank_zero_only as rank_zero_only_utilities
+
     from lightning.fabric.utilities.rank_zero import rank_zero_only as rank_zero_only_fabric
     from lightning.pytorch.utilities.rank_zero import rank_zero_only as rank_zero_only_pytorch
-    from lightning_utilities.core.rank_zero import rank_zero_only as rank_zero_only_utilities
 
     functions = (rank_zero_only_pytorch, rank_zero_only_fabric, rank_zero_only_utilities)
     ranks = [getattr(fn, "rank", None) for fn in functions]
@@ -81,12 +81,12 @@ def restore_env_variables():
         "WANDB_REQUIRE_SERVICE",
         "WANDB_SERVICE",
         "RANK",  # set by DeepSpeed
-        "POPLAR_ENGINE_OPTIONS",  # set by IPUStrategy
-        "CUDA_MODULE_LOADING",  # leaked since PyTorch 1.13
-        "KMP_INIT_AT_FORK",  # leaked since PyTorch 1.13
-        "KMP_DUPLICATE_LIB_OK",  # leaked since PyTorch 1.13
+        "CUDA_MODULE_LOADING",  # leaked by PyTorch
+        "KMP_INIT_AT_FORK",  # leaked by PyTorch
+        "KMP_DUPLICATE_LIB_OK",  # leaked by PyTorch
         "CRC32C_SW_MODE",  # leaked by tensorboardX
         "TRITON_CACHE_DIR",  # leaked by torch.compile
+        "_TORCHINDUCTOR_PYOBJECT_TENSOR_DATA_PTR",  # leaked by torch.compile
         "OMP_NUM_THREADS",  # set by our launchers
         # leaked by XLA
         "ALLOW_MULTIPLE_LIBTPU_LOAD",
@@ -94,6 +94,7 @@ def restore_env_variables():
         "TF_CPP_MIN_LOG_LEVEL",
         "TF_GRPC_DEFAULT_OPTIONS",
         "XLA_FLAGS",
+        "TORCHINDUCTOR_CACHE_DIR",  # leaked by torch.compile
     }
     leaked_vars.difference_update(allowlist)
     assert not leaked_vars, f"test is leaking environment variable(s): {set(leaked_vars)}"
@@ -121,8 +122,7 @@ def restore_signal_handlers():
 def teardown_process_group():
     """Ensures that the distributed process group gets closed before the next test runs."""
     yield
-    if _distributed_is_initialized():
-        torch.distributed.destroy_process_group()
+    _destroy_dist_connection()
 
 
 @pytest.fixture(autouse=True)
@@ -139,6 +139,10 @@ def thread_police_duuu_daaa_duuu_daaa():
     yield
     active_threads_after = set(threading.enumerate())
 
+    if XLAAccelerator.is_available():
+        # Ignore the check when running XLA tests for now
+        return
+
     for thread in active_threads_after - active_threads_before:
         stop = getattr(thread, "stop", None) or getattr(thread, "exit", None)
         if thread.daemon and callable(stop):
@@ -148,8 +152,14 @@ def thread_police_duuu_daaa_duuu_daaa():
             assert not thread.is_alive()
         elif isinstance(thread, _ChildProcessObserver):
             thread.join(timeout=10)
-        elif thread.name == "QueueFeederThread":  # tensorboardX
+        elif (
+            thread.name == "QueueFeederThread"  # tensorboardX
+            or thread.name == "QueueManagerThread"  # torch.compile
+            or "(_read_thread)" in thread.name  # torch.compile
+        ):
             thread.join(timeout=20)
+        elif isinstance(thread, TMonitor):
+            thread.exit()
         elif (
             sys.version_info >= (3, 9)
             and isinstance(thread, _ExecutorManagerThread)
@@ -168,22 +178,22 @@ def mock_cuda_count(monkeypatch, n: int) -> None:
     monkeypatch.setattr(lightning.pytorch.accelerators.cuda, "num_cuda_devices", lambda: n)
 
 
-@pytest.fixture()
+@pytest.fixture
 def cuda_count_0(monkeypatch):
     mock_cuda_count(monkeypatch, 0)
 
 
-@pytest.fixture()
+@pytest.fixture
 def cuda_count_1(monkeypatch):
     mock_cuda_count(monkeypatch, 1)
 
 
-@pytest.fixture()
+@pytest.fixture
 def cuda_count_2(monkeypatch):
     mock_cuda_count(monkeypatch, 2)
 
 
-@pytest.fixture()
+@pytest.fixture
 def cuda_count_4(monkeypatch):
     mock_cuda_count(monkeypatch, 4)
 
@@ -193,12 +203,12 @@ def mock_mps_count(monkeypatch, n: int) -> None:
     monkeypatch.setattr(lightning.fabric.accelerators.mps.MPSAccelerator, "is_available", lambda *_: n > 0)
 
 
-@pytest.fixture()
+@pytest.fixture
 def mps_count_0(monkeypatch):
     mock_mps_count(monkeypatch, 0)
 
 
-@pytest.fixture()
+@pytest.fixture
 def mps_count_1(monkeypatch):
     mock_mps_count(monkeypatch, 1)
 
@@ -214,7 +224,7 @@ def mock_xla_available(monkeypatch: pytest.MonkeyPatch, value: bool = True) -> N
     monkeypatch.setattr(lightning.fabric.strategies.launchers.xla, "_XLA_AVAILABLE", value)
 
 
-@pytest.fixture()
+@pytest.fixture
 def xla_available(monkeypatch: pytest.MonkeyPatch) -> None:
     mock_xla_available(monkeypatch)
 
@@ -230,12 +240,12 @@ def mock_tpu_available(monkeypatch: pytest.MonkeyPatch, value: bool = True) -> N
     monkeypatch.setitem(sys.modules, "torch_xla.experimental", Mock())
 
 
-@pytest.fixture()
+@pytest.fixture
 def tpu_available(monkeypatch) -> None:
     mock_tpu_available(monkeypatch)
 
 
-@pytest.fixture()
+@pytest.fixture
 def caplog(caplog):
     """Workaround for https://github.com/pytest-dev/pytest/issues/3697.
 
@@ -263,9 +273,9 @@ def caplog(caplog):
         logging.getLogger(name).propagate = propagate
 
 
-@pytest.fixture()
-def tmpdir_server(tmpdir):
-    Handler = partial(SimpleHTTPRequestHandler, directory=str(tmpdir))
+@pytest.fixture
+def tmpdir_server(tmp_path):
+    Handler = partial(SimpleHTTPRequestHandler, directory=str(tmp_path))
     from http.server import ThreadingHTTPServer
 
     with ThreadingHTTPServer(("localhost", 0), Handler) as server:
@@ -277,7 +287,7 @@ def tmpdir_server(tmpdir):
         server.shutdown()
 
 
-@pytest.fixture()
+@pytest.fixture
 def single_process_pg():
     """Initialize the default process group with only the current process for testing purposes.
 
@@ -301,7 +311,22 @@ def single_process_pg():
         os.environ.update(orig_environ)
 
 
-def pytest_collection_modifyitems(items: List[pytest.Function], config: pytest.Config) -> None:
+@pytest.fixture(autouse=True)
+def leave_no_artifacts_behind():
+    """Checks that no artifacts are left behind after the test."""
+    tests_root = Path(__file__).parent.parent
+    # Ignore the __pycache__ directories
+    files_before = {p for p in tests_root.rglob("*") if "__pycache__" not in p.parts}
+    yield
+    files_after = {p for p in tests_root.rglob("*") if "__pycache__" not in p.parts}
+    difference = files_after - files_before
+    difference = {str(f.relative_to(tests_root)) for f in difference}
+    # ignore the .coverage files
+    difference = {f for f in difference if not f.endswith(".coverage")}
+    assert not difference, f"Test left artifacts behind: {difference}"
+
+
+def pytest_collection_modifyitems(items: list[pytest.Function], config: pytest.Config) -> None:
     initial_size = len(items)
     conditions = []
     filtered, skipped = 0, 0

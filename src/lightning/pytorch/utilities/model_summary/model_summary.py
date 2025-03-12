@@ -17,7 +17,7 @@ import contextlib
 import logging
 import math
 from collections import OrderedDict
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Optional, Union
 
 import torch
 import torch.nn as nn
@@ -25,7 +25,7 @@ from torch import Tensor
 from torch.utils.hooks import RemovableHandle
 
 import lightning.pytorch as pl
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
+from lightning.fabric.utilities.distributed import _is_dtensor
 from lightning.pytorch.utilities.model_helpers import _ModuleMode
 from lightning.pytorch.utilities.rank_zero import WarningCache
 
@@ -73,8 +73,8 @@ class LayerSummary:
         super().__init__()
         self._module = module
         self._hook_handle = self._register_hook()
-        self._in_size: Optional[Union[str, List]] = None
-        self._out_size: Optional[Union[str, List]] = None
+        self._in_size: Optional[Union[str, list]] = None
+        self._out_size: Optional[Union[str, list]] = None
 
     def __del__(self) -> None:
         self.detach_hook()
@@ -107,10 +107,7 @@ class LayerSummary:
 
         handle = None
         if not isinstance(self._module, torch.jit.ScriptModule):
-            if _TORCH_GREATER_EQUAL_2_0:
-                handle = self._module.register_forward_hook(hook_with_kwargs, with_kwargs=True)
-            else:
-                handle = self._module.register_forward_hook(hook)
+            handle = self._module.register_forward_hook(hook_with_kwargs, with_kwargs=True)
 
         return handle
 
@@ -124,11 +121,11 @@ class LayerSummary:
             self._hook_handle.remove()
 
     @property
-    def in_size(self) -> Union[str, List]:
+    def in_size(self) -> Union[str, list]:
         return self._in_size or UNKNOWN_SIZE
 
     @property
-    def out_size(self) -> Union[str, List]:
+    def out_size(self) -> Union[str, list]:
         return self._out_size or UNKNOWN_SIZE
 
     @property
@@ -139,7 +136,12 @@ class LayerSummary:
     @property
     def num_parameters(self) -> int:
         """Returns the number of parameters in this module."""
-        return sum(math.prod(p.shape) if not _is_lazy_weight_tensor(p) else 0 for p in self._module.parameters())
+        return sum(p.numel() if not _tensor_has_shape(p) else 0 for p in self._module.parameters())
+
+    @property
+    def training(self) -> bool:
+        """Returns whether the module is in training mode."""
+        return self._module.training
 
 
 class ModelSummary:
@@ -178,25 +180,29 @@ class ModelSummary:
         ...
         >>> model = LitModel()
         >>> ModelSummary(model, max_depth=1)  # doctest: +NORMALIZE_WHITESPACE
-          | Name | Type       | Params | In sizes  | Out sizes
-        ------------------------------------------------------------
-        0 | net  | Sequential | 132 K  | [10, 256] | [10, 512]
-        ------------------------------------------------------------
+          | Name | Type       | Params | Mode  | In sizes  | Out sizes
+        --------------------------------------------------------------------
+        0 | net  | Sequential | 132 K  | train | [10, 256] | [10, 512]
+        --------------------------------------------------------------------
         132 K     Trainable params
         0         Non-trainable params
         132 K     Total params
         0.530     Total estimated model params size (MB)
+        3         Modules in train mode
+        0         Modules in eval mode
         >>> ModelSummary(model, max_depth=-1)  # doctest: +NORMALIZE_WHITESPACE
-          | Name  | Type        | Params | In sizes  | Out sizes
-        --------------------------------------------------------------
-        0 | net   | Sequential  | 132 K  | [10, 256] | [10, 512]
-        1 | net.0 | Linear      | 131 K  | [10, 256] | [10, 512]
-        2 | net.1 | BatchNorm1d | 1.0 K    | [10, 512] | [10, 512]
-        --------------------------------------------------------------
+          | Name  | Type        | Params | Mode  | In sizes  | Out sizes
+        ----------------------------------------------------------------------
+        0 | net   | Sequential  | 132 K  | train | [10, 256] | [10, 512]
+        1 | net.0 | Linear      | 131 K  | train | [10, 256] | [10, 512]
+        2 | net.1 | BatchNorm1d | 1.0 K  | train | [10, 512] | [10, 512]
+        ----------------------------------------------------------------------
         132 K     Trainable params
         0         Non-trainable params
         132 K     Total params
         0.530     Total estimated model params size (MB)
+        3         Modules in train mode
+        0         Modules in eval mode
 
     """
 
@@ -215,8 +221,8 @@ class ModelSummary:
         self._precision_megabytes = (precision / 8.0) * 1e-6
 
     @property
-    def named_modules(self) -> List[Tuple[str, nn.Module]]:
-        mods: List[Tuple[str, nn.Module]]
+    def named_modules(self) -> list[tuple[str, nn.Module]]:
+        mods: list[tuple[str, nn.Module]]
         if self._max_depth == 0:
             mods = []
         elif self._max_depth == 1:
@@ -228,34 +234,42 @@ class ModelSummary:
         return mods
 
     @property
-    def layer_names(self) -> List[str]:
+    def layer_names(self) -> list[str]:
         return list(self._layer_summary.keys())
 
     @property
-    def layer_types(self) -> List[str]:
+    def layer_types(self) -> list[str]:
         return [layer.layer_type for layer in self._layer_summary.values()]
 
     @property
-    def in_sizes(self) -> List:
+    def in_sizes(self) -> list:
         return [layer.in_size for layer in self._layer_summary.values()]
 
     @property
-    def out_sizes(self) -> List:
+    def out_sizes(self) -> list:
         return [layer.out_size for layer in self._layer_summary.values()]
 
     @property
-    def param_nums(self) -> List[int]:
+    def param_nums(self) -> list[int]:
         return [layer.num_parameters for layer in self._layer_summary.values()]
 
     @property
+    def training_modes(self) -> list[bool]:
+        return [layer.training for layer in self._layer_summary.values()]
+
+    @property
+    def total_training_modes(self) -> dict[str, int]:
+        modes = [layer.training for layer in self._model.modules()]
+        modes = modes[1:]  # exclude the root module
+        return {"train": modes.count(True), "eval": modes.count(False)}
+
+    @property
     def total_parameters(self) -> int:
-        return sum(p.numel() if not _is_lazy_weight_tensor(p) else 0 for p in self._model.parameters())
+        return sum(p.numel() if not _tensor_has_shape(p) else 0 for p in self._model.parameters())
 
     @property
     def trainable_parameters(self) -> int:
-        return sum(
-            p.numel() if not _is_lazy_weight_tensor(p) else 0 for p in self._model.parameters() if p.requires_grad
-        )
+        return sum(p.numel() if not _tensor_has_shape(p) else 0 for p in self._model.parameters() if p.requires_grad)
 
     @property
     def total_layer_params(self) -> int:
@@ -265,7 +279,7 @@ class ModelSummary:
     def model_size(self) -> float:
         return self.total_parameters * self._precision_megabytes
 
-    def summarize(self) -> Dict[str, LayerSummary]:
+    def summarize(self) -> dict[str, LayerSummary]:
         summary = OrderedDict((name, LayerSummary(module)) for name, module in self.named_modules)
         if self._model.example_input_array is not None:
             self._forward_example_input()
@@ -304,7 +318,7 @@ class ModelSummary:
                 model(input_)
         mode.restore(model)
 
-    def _get_summary_data(self) -> List[Tuple[str, List[str]]]:
+    def _get_summary_data(self) -> list[tuple[str, list[str]]]:
         """Makes a summary listing with:
 
         Layer Name, Layer Type, Number of Parameters, Input Sizes, Output Sizes, Model Size
@@ -315,6 +329,7 @@ class ModelSummary:
             ("Name", self.layer_names),
             ("Type", self.layer_types),
             ("Params", list(map(get_human_readable_count, self.param_nums))),
+            ("Mode", ["train" if mode else "eval" for mode in self.training_modes]),
         ]
         if self._model.example_input_array is not None:
             arrays.append(("In sizes", [str(x) for x in self.in_sizes]))
@@ -326,13 +341,14 @@ class ModelSummary:
 
         return arrays
 
-    def _add_leftover_params_to_summary(self, arrays: List[Tuple[str, List[str]]], total_leftover_params: int) -> None:
+    def _add_leftover_params_to_summary(self, arrays: list[tuple[str, list[str]]], total_leftover_params: int) -> None:
         """Add summary of params not associated with module or layer to model summary."""
         layer_summaries = dict(arrays)
         layer_summaries[" "].append(" ")
         layer_summaries["Name"].append(LEFTOVER_PARAMS_NAME)
         layer_summaries["Type"].append(NOT_APPLICABLE)
         layer_summaries["Params"].append(get_human_readable_count(total_leftover_params))
+        layer_summaries["Mode"].append(NOT_APPLICABLE)
         if "In sizes" in layer_summaries:
             layer_summaries["In sizes"].append(NOT_APPLICABLE)
         if "Out sizes" in layer_summaries:
@@ -344,14 +360,15 @@ class ModelSummary:
         total_parameters = self.total_parameters
         trainable_parameters = self.trainable_parameters
         model_size = self.model_size
+        total_training_modes = self.total_training_modes
 
-        return _format_summary_table(total_parameters, trainable_parameters, model_size, *arrays)
+        return _format_summary_table(total_parameters, trainable_parameters, model_size, total_training_modes, *arrays)
 
     def __repr__(self) -> str:
         return str(self)
 
 
-def parse_batch_shape(batch: Any) -> Union[str, List]:
+def parse_batch_shape(batch: Any) -> Union[str, list]:
     if hasattr(batch, "shape"):
         return list(batch.shape)
 
@@ -365,7 +382,8 @@ def _format_summary_table(
     total_parameters: int,
     trainable_parameters: int,
     model_size: float,
-    *cols: Tuple[str, List[str]],
+    total_training_modes: dict[str, int],
+    *cols: tuple[str, list[str]],
 ) -> str:
     """Takes in a number of arrays, each specifying a column in the summary table, and combines them all into one big
     string defining the summary table that are nicely formatted."""
@@ -401,6 +419,10 @@ def _format_summary_table(
     summary += "Total params"
     summary += "\n" + s.format(get_formatted_model_size(model_size), 10)
     summary += "Total estimated model params size (MB)"
+    summary += "\n" + s.format(total_training_modes["train"], 10)
+    summary += "Modules in train mode"
+    summary += "\n" + s.format(total_training_modes["eval"], 10)
+    summary += "Modules in eval mode"
 
     return summary
 
@@ -447,13 +469,15 @@ def get_human_readable_count(number: int) -> str:
     return f"{number:,.1f} {labels[index]}"
 
 
-def _is_lazy_weight_tensor(p: Tensor) -> bool:
+def _tensor_has_shape(p: Tensor) -> bool:
     from torch.nn.parameter import UninitializedParameter
 
-    if isinstance(p, UninitializedParameter):
+    # DTensor is a subtype of `UninitializedParameter`, but the shape is known
+    if isinstance(p, UninitializedParameter) and not _is_dtensor(p):
         warning_cache.warn(
-            "A layer with UninitializedParameter was found. "
-            "Thus, the total number of parameters detected may be inaccurate."
+            "The total number of parameters detected may be inaccurate because the model contains"
+            " an instance of `UninitializedParameter`. To get an accurate number, set `self.example_input_array`"
+            " in your LightningModule."
         )
         return True
     return False

@@ -14,12 +14,11 @@
 import os
 from unittest import mock
 
-import lightning.fabric
 import pytest
-import torch
-from lightning.fabric.accelerators.xla import _XLA_GREATER_EQUAL_2_1, _using_pjrt
-from lightning.fabric.plugins.environments import XLAEnvironment
 
+import lightning.fabric
+from lightning.fabric.accelerators.xla import _XLA_GREATER_EQUAL_2_1
+from lightning.fabric.plugins.environments import XLAEnvironment
 from tests_fabric.helpers.runif import RunIf
 
 
@@ -28,29 +27,21 @@ from tests_fabric.helpers.runif import RunIf
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_default_attributes(monkeypatch):
     """Test the default attributes when no environment variables are set."""
-    if _using_pjrt():
-        # calling these creates side effects in other tests
-        if _XLA_GREATER_EQUAL_2_1:
-            from torch_xla import runtime
+    # calling these creates side effects in other tests
+    if _XLA_GREATER_EQUAL_2_1:
+        from torch_xla import runtime
 
-            monkeypatch.setattr(runtime, "world_size", lambda: 2)
-            monkeypatch.setattr(runtime, "global_ordinal", lambda: 0)
-            monkeypatch.setattr(runtime, "local_ordinal", lambda: 0)
-            monkeypatch.setattr(runtime, "host_index", lambda: 1)
-        else:
-            from torch_xla.experimental import pjrt
-
-            monkeypatch.setattr(pjrt, "world_size", lambda: 2)
-            monkeypatch.setattr(pjrt, "global_ordinal", lambda: 0)
-            monkeypatch.setattr(pjrt, "local_ordinal", lambda: 0)
-            os.environ["XRT_HOST_ORDINAL"] = "1"
+        monkeypatch.setattr(runtime, "world_size", lambda: 2)
+        monkeypatch.setattr(runtime, "global_ordinal", lambda: 0)
+        monkeypatch.setattr(runtime, "local_ordinal", lambda: 0)
+        monkeypatch.setattr(runtime, "host_index", lambda: 1)
     else:
-        from torch_xla import _XLAC
+        from torch_xla.experimental import pjrt
 
-        os.environ["XRT_SHARD_WORLD_SIZE"] = "2"
+        monkeypatch.setattr(pjrt, "world_size", lambda: 2)
+        monkeypatch.setattr(pjrt, "global_ordinal", lambda: 0)
+        monkeypatch.setattr(pjrt, "local_ordinal", lambda: 0)
         os.environ["XRT_HOST_ORDINAL"] = "1"
-        # avoid: "Cannot replicate if number of devices ... is different from ..."
-        monkeypatch.setattr(_XLAC, "_xla_get_default_device", lambda: torch.device("xla:0"))
 
     env = XLAEnvironment()
     assert not env.creates_processes_externally
@@ -69,31 +60,20 @@ def test_default_attributes(monkeypatch):
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_attributes_from_environment_variables(monkeypatch):
     """Test that the default cluster environment takes the attributes from the environment variables."""
-    if not _using_pjrt():
-        os.environ.update(
-            {
-                "XRT_SHARD_WORLD_SIZE": "2",
-                "XRT_SHARD_ORDINAL": "0",
-                "XRT_SHARD_LOCAL_ORDINAL": "2",
-                "XRT_HOST_ORDINAL": "1",
-            }
-        )
+    if _XLA_GREATER_EQUAL_2_1:
+        from torch_xla import runtime
+
+        monkeypatch.setattr(runtime, "world_size", lambda: 2)
+        monkeypatch.setattr(runtime, "global_ordinal", lambda: 0)
+        monkeypatch.setattr(runtime, "local_ordinal", lambda: 2)
+        monkeypatch.setattr(runtime, "host_index", lambda: 1)
     else:
-        # PJRT doesn't pull these from envvars
-        if _XLA_GREATER_EQUAL_2_1:
-            from torch_xla import runtime
+        from torch_xla.experimental import pjrt
 
-            monkeypatch.setattr(runtime, "world_size", lambda: 2)
-            monkeypatch.setattr(runtime, "global_ordinal", lambda: 0)
-            monkeypatch.setattr(runtime, "local_ordinal", lambda: 2)
-            monkeypatch.setattr(runtime, "host_index", lambda: 1)
-        else:
-            from torch_xla.experimental import pjrt
-
-            monkeypatch.setattr(pjrt, "world_size", lambda: 2)
-            monkeypatch.setattr(pjrt, "global_ordinal", lambda: 0)
-            monkeypatch.setattr(pjrt, "local_ordinal", lambda: 2)
-            os.environ["XRT_HOST_ORDINAL"] = "1"
+        monkeypatch.setattr(pjrt, "world_size", lambda: 2)
+        monkeypatch.setattr(pjrt, "global_ordinal", lambda: 0)
+        monkeypatch.setattr(pjrt, "local_ordinal", lambda: 2)
+        os.environ["XRT_HOST_ORDINAL"] = "1"
 
     env = XLAEnvironment()
     with pytest.raises(NotImplementedError):

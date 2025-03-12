@@ -5,38 +5,6 @@
 TPU training (FAQ)
 ==================
 
-*****************************
-XLA configuration is missing?
-*****************************
-
-.. code-block::
-
-    File "/usr/local/lib/python3.8/dist-packages/torch_xla/core/xla_model.py", line 18, in <lambda>
-        _DEVICES = xu.LazyProperty(lambda: torch_xla._XLAC._xla_get_devices())
-    RuntimeError: tensorflow/compiler/xla/xla_client/computation_client.cc:273 : Missing XLA configuration
-    Traceback (most recent call last):
-    ...
-    File "/home/kaushikbokka/pytorch-lightning/pytorch_lightning/utilities/device_parser.py", line 125, in parse_tpu_cores
-        raise MisconfigurationException('No TPU devices were found.')
-    lightning.pytorch.utilities.exceptions.MisconfigurationException: No TPU devices were found.
-
-This means the system is missing XLA configuration. You would need to set up XRT TPU device configuration.
-
-For TPUVM architecture, you could set it in your terminal by:
-
-.. code-block:: bash
-
-    export XRT_TPU_CONFIG="localservice;0;localhost:51011"
-
-And for the old TPU + 2VM architecture, you could set it by:
-
-.. code-block:: bash
-
-    export TPU_IP_ADDRESS=10.39.209.42  # You could get the IP Address in the GCP TPUs section
-    export XRT_TPU_CONFIG="tpu_worker;0;$TPU_IP_ADDRESS:8470"
-
-----
-
 **********************************************************
 How to clear up the programs using TPUs in the background?
 **********************************************************
@@ -72,9 +40,9 @@ Unsupported datatype transfer to TPUs?
 
 .. code-block::
 
-    File "/usr/local/lib/python3.8/dist-packages/torch_xla/utils/utils.py", line 205, in _for_each_instance_rewrite
+    File "/usr/local/lib/python3.9/dist-packages/torch_xla/utils/utils.py", line 205, in _for_each_instance_rewrite
         v = _for_each_instance_rewrite(result.__dict__[k], select_fn, fn, rwmap)
-    File "/usr/local/lib/python3.8/dist-packages/torch_xla/utils/utils.py", line 206, in _for_each_instance_rewrite
+    File "/usr/local/lib/python3.9/dist-packages/torch_xla/utils/utils.py", line 206, in _for_each_instance_rewrite
         result.__dict__[k] = v
     TypeError: 'mappingproxy' object does not support item assignment
 
@@ -110,7 +78,7 @@ A lot of PyTorch operations aren't lowered to XLA, which could lead to significa
 These operations are moved to the CPU memory and evaluated, and then the results are transferred back to the XLA device(s).
 By using the `xla_debug` Strategy, users could create a metrics report to diagnose issues.
 
-The report includes things like (`XLA Reference <https://github.com/pytorch/xla/blob/master/TROUBLESHOOTING.md#troubleshooting>`_):
+The report includes things like (`XLA Reference <https://github.com/pytorch/xla/blob/v2.5.0/TROUBLESHOOTING.md#troubleshooting>`_):
 
 * how many times we issue XLA compilations and time spent on issuing.
 * how many times we execute and time spent on execution

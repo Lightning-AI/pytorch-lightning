@@ -4,22 +4,25 @@ from unittest.mock import Mock
 import numpy as np
 import pytest
 import torch
+from lightning_utilities.test.warning import no_warning_call
+from torch import Tensor
+from torch.utils.data import BatchSampler, DataLoader, RandomSampler, SequentialSampler
+
 from lightning.fabric.utilities.data import _replace_dunder_methods
+from lightning.fabric.utilities.warnings import PossibleUserWarning
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import RandomDataset, RandomIterableDataset
 from lightning.pytorch.overrides.distributed import _IndexBatchSamplerWrapper
 from lightning.pytorch.trainer.states import RunningStage
 from lightning.pytorch.utilities.data import (
     _get_dataloader_init_args_and_kwargs,
+    _is_dataloader_shuffled,
     _update_dataloader,
     extract_batch_size,
     has_len_all_ranks,
     warning_cache,
 )
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning_utilities.test.warning import no_warning_call
-from torch import Tensor
-from torch.utils.data import BatchSampler, DataLoader, RandomSampler
 
 
 def test_extract_batch_size():
@@ -230,7 +233,8 @@ def test_custom_torch_batch_sampler_doppelganger(predicting):
     assert batch_sampler.drop_last == (not predicting)
 
 
-def test_custom_batch_sampler():
+@pytest.mark.parametrize("predicting", [True, False])
+def test_custom_batch_sampler(predicting):
     """Test that a custom (non-PyTorch) batch sampler requires the user to set `use_distributed_sampler=False`."""
 
     class CustomBatchSampler:  # not inheriting from `BatchSampler`
@@ -240,8 +244,13 @@ def test_custom_batch_sampler():
 
     batch_sampler = CustomBatchSampler()
     dataloader = DataLoader(range(100), batch_sampler=batch_sampler)
-    with pytest.raises(TypeError, match=r"can't inject a \(distributed\) sampler into your batch sampler"):
-        _ = _update_dataloader(dataloader, sampler=Mock())
+
+    if predicting:
+        with pytest.warns(PossibleUserWarning, match=r"Make sure your sampler is configured correctly to return all"):
+            _ = _update_dataloader(dataloader, sampler=Mock(), mode=RunningStage.PREDICTING)
+    else:
+        with pytest.raises(TypeError, match=r"can't inject a \(distributed\) sampler into your batch sampler"):
+            _ = _update_dataloader(dataloader, sampler=Mock(), mode=None)
 
 
 def test_custom_batch_sampler_no_drop_last():
@@ -297,6 +306,31 @@ def test_custom_batch_sampler_no_sampler():
         _ = _update_dataloader(dataloader, dataloader.sampler, mode=RunningStage.PREDICTING)
 
 
+def test_batch_sampler_shuffle_setting():
+    """Test whether the `shuffle` state is correctly set in the `BatchSampler`."""
+
+    random_sampler = RandomSampler(range(10))
+    seq_sampler = SequentialSampler(range(10))
+    shuffled_dataloader = DataLoader(
+        range(10), batch_sampler=BatchSampler(random_sampler, batch_size=2, drop_last=False)
+    )
+    sequential_dataloader = DataLoader(
+        range(10), batch_sampler=BatchSampler(seq_sampler, batch_size=2, drop_last=False)
+    )
+
+    # if batch_size is 1, the pytorch init a default SequentialSampler and set BatchSampler to None
+    single_dataloader = DataLoader(range(10), batch_sampler=BatchSampler(seq_sampler, batch_size=1, drop_last=False))
+    assert _is_dataloader_shuffled(shuffled_dataloader)
+    assert not _is_dataloader_shuffled(sequential_dataloader)
+    assert not _is_dataloader_shuffled(single_dataloader)
+
+    # if batch_size is 1, and no batch_sampler is set, the pytorch will set BatchSampler to None
+    single_dataloader = DataLoader(range(10), batch_size=1)
+    shuffled_single_dataloader = DataLoader(range(10), batch_size=1, shuffle=True)
+    assert not _is_dataloader_shuffled(single_dataloader)
+    assert _is_dataloader_shuffled(shuffled_single_dataloader)
+
+
 @pytest.mark.parametrize("mode", [RunningStage.TRAINING, RunningStage.PREDICTING, RunningStage.TESTING])
 def test_dataloader_kwargs_replacement_with_iterable_dataset(mode):
     """Test that DataLoader kwargs are not replaced when using Iterable Dataset."""
@@ -324,5 +358,5 @@ def test_dataloader_kwargs_replacement_with_array_default_comparison():
             self.indices = np.random.rand(2, 2)  # an attribute we can't compare with ==
 
     dataloader = ArrayAttributeDataloader(dataset)
-    dl_args, dl_kwargs = _get_dataloader_init_args_and_kwargs(dataloader, dataloader.sampler)
+    _, dl_kwargs = _get_dataloader_init_args_and_kwargs(dataloader, dataloader.sampler)
     assert dl_kwargs["indices"] is dataloader.indices

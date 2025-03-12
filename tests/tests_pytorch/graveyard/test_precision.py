@@ -1,3 +1,6 @@
+import pytest
+
+
 def test_precision_plugin_renamed_imports():
     # base class
     from lightning.pytorch.plugins import PrecisionPlugin as PrecisionPlugin2
@@ -8,6 +11,10 @@ def test_precision_plugin_renamed_imports():
     assert issubclass(PrecisionPlugin0, Precision)
     assert issubclass(PrecisionPlugin1, Precision)
     assert issubclass(PrecisionPlugin2, Precision)
+
+    for plugin_cls in [PrecisionPlugin0, PrecisionPlugin1, PrecisionPlugin2]:
+        with pytest.warns(DeprecationWarning, match="The `PrecisionPlugin` is deprecated"):
+            plugin_cls()
 
     # bitsandbytes
     from lightning.pytorch.plugins import BitsandbytesPrecisionPlugin as BnbPlugin2
@@ -39,6 +46,10 @@ def test_precision_plugin_renamed_imports():
     assert issubclass(DoublePlugin1, DoublePrecision)
     assert issubclass(DoublePlugin2, DoublePrecision)
 
+    for plugin_cls in [DoublePlugin0, DoublePlugin1, DoublePlugin2]:
+        with pytest.warns(DeprecationWarning, match="The `DoublePrecisionPlugin` is deprecated"):
+            plugin_cls()
+
     # fsdp
     from lightning.pytorch.plugins import FSDPPrecisionPlugin as FSDPPlugin2
     from lightning.pytorch.plugins.precision import FSDPPrecisionPlugin as FSDPPlugin1
@@ -48,6 +59,10 @@ def test_precision_plugin_renamed_imports():
     assert issubclass(FSDPPlugin0, FSDPPrecision)
     assert issubclass(FSDPPlugin1, FSDPPrecision)
     assert issubclass(FSDPPlugin2, FSDPPrecision)
+
+    for plugin_cls in [FSDPPlugin0, FSDPPlugin1, FSDPPlugin2]:
+        with pytest.warns(DeprecationWarning, match="The `FSDPPrecisionPlugin` is deprecated"):
+            plugin_cls(precision="16-mixed")
 
     # half
     from lightning.pytorch.plugins import HalfPrecisionPlugin as HalfPlugin2
@@ -59,6 +74,10 @@ def test_precision_plugin_renamed_imports():
     assert issubclass(HalfPlugin1, HalfPrecision)
     assert issubclass(HalfPlugin2, HalfPrecision)
 
+    for plugin_cls in [HalfPlugin0, HalfPlugin1, HalfPlugin2]:
+        with pytest.warns(DeprecationWarning, match="The `HalfPrecisionPlugin` is deprecated"):
+            plugin_cls()
+
     # mixed
     from lightning.pytorch.plugins import MixedPrecisionPlugin as MixedPlugin2
     from lightning.pytorch.plugins.precision import MixedPrecisionPlugin as MixedPlugin1
@@ -68,6 +87,10 @@ def test_precision_plugin_renamed_imports():
     assert issubclass(MixedPlugin0, MixedPrecision)
     assert issubclass(MixedPlugin1, MixedPrecision)
     assert issubclass(MixedPlugin2, MixedPrecision)
+
+    for plugin_cls in [MixedPlugin0, MixedPlugin1, MixedPlugin2]:
+        with pytest.warns(DeprecationWarning, match="The `MixedPrecisionPlugin` is deprecated"):
+            plugin_cls(precision="bf16-mixed", device="cuda:0")
 
     # transformer_engine
     from lightning.pytorch.plugins import TransformerEnginePrecisionPlugin as TEPlugin2

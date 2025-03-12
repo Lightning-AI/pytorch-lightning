@@ -19,15 +19,13 @@ from unittest.mock import MagicMock, Mock
 
 import pytest
 import torch
+from torch.nn.parallel import DistributedDataParallel
+
 from lightning.fabric.plugins import DoublePrecision, HalfPrecision, Precision
 from lightning.fabric.plugins.environments import LightningEnvironment
 from lightning.fabric.strategies import DDPStrategy
 from lightning.fabric.strategies.ddp import _DDPBackwardSyncControl
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
-from torch.nn.parallel import DistributedDataParallel
-
 from tests_fabric.helpers.runif import RunIf
-from tests_fabric.strategies.test_single_device import _MyFabricGradNorm, _MyFabricGradVal
 
 
 @pytest.mark.parametrize(
@@ -60,15 +58,20 @@ def test_ddp_no_backward_sync():
     strategy = DDPStrategy()
     assert isinstance(strategy._backward_sync_control, _DDPBackwardSyncControl)
 
-    with pytest.raises(
-        TypeError, match="is only possible if the module passed to .* is wrapped in `DistributedDataParallel`"
-    ), strategy._backward_sync_control.no_backward_sync(Mock()):
+    with (
+        pytest.raises(
+            TypeError, match="is only possible if the module passed to .* is wrapped in `DistributedDataParallel`"
+        ),
+        strategy._backward_sync_control.no_backward_sync(Mock(), True),
+    ):
         pass
 
     module = MagicMock(spec=DistributedDataParallel)
-    with strategy._backward_sync_control.no_backward_sync(module):
+    with strategy._backward_sync_control.no_backward_sync(module, False):
         pass
-
+    module.no_sync.assert_not_called()
+    with strategy._backward_sync_control.no_backward_sync(module, True):
+        pass
     module.no_sync.assert_called_once()
 
 
@@ -113,28 +116,6 @@ def test_ddp_module_state_dict():
     strategy.load_module_state_dict(wrapped_module, original_state_dict)
 
 
-@pytest.mark.parametrize(
-    ("clip_type", "accelerator", "precision"),
-    [
-        ("norm", "cpu", "32-true"),
-        ("val", "cpu", "32-true"),
-        ("norm", "cpu", "bf16-mixed"),
-        ("val", "cpu", "bf16-mixed"),
-        pytest.param("norm", "cuda", "32-true", marks=RunIf(min_cuda_gpus=2)),
-        pytest.param("val", "cuda", "32-true", marks=RunIf(min_cuda_gpus=2)),
-        pytest.param("norm", "cuda", "16-mixed", marks=RunIf(min_cuda_gpus=2)),
-        pytest.param("val", "cuda", "16-mixed", marks=RunIf(min_cuda_gpus=2)),
-        pytest.param("norm", "cuda", "bf16-mixed", marks=RunIf(min_cuda_gpus=2, bf16_cuda=True)),
-        pytest.param("val", "cuda", "bf16-mixed", marks=RunIf(min_cuda_gpus=2, bf16_cuda=True)),
-    ],
-)
-@RunIf(standalone=True)
-def test_ddp_grad_clipping(clip_type, accelerator, precision):
-    clipping_test_cls = _MyFabricGradNorm if clip_type == "norm" else _MyFabricGradVal
-    fabric = clipping_test_cls(accelerator=accelerator, devices=2, precision=precision, strategy="ddp")
-    fabric.run()
-
-
 @RunIf(min_cuda_gpus=2)
 @pytest.mark.parametrize(
     ("precision", "expected_dtype"),
@@ -149,7 +130,7 @@ def test_ddp_grad_clipping(clip_type, accelerator, precision):
 def test_module_init_context(precision, expected_dtype):
     """Test that the module under the init-context gets moved to the right device and dtype."""
     parallel_devices = [torch.device("cuda", 0), torch.device("cuda", 1)]
-    expected_device = parallel_devices[1] if _TORCH_GREATER_EQUAL_2_0 else torch.device("cpu")
+    expected_device = parallel_devices[1]
 
     strategy = DDPStrategy(
         parallel_devices=parallel_devices, precision=precision, cluster_environment=LightningEnvironment()

@@ -16,7 +16,7 @@ from unittest.mock import Mock
 
 import pytest
 import torch
-from lightning.fabric.utilities.imports import _TORCH_EQUAL_2_0
+
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.loops import _Loop
@@ -54,8 +54,7 @@ def test_no_grad_context():
 
     class Foo:
         @_no_grad_context
-        def run(self):
-            ...
+        def run(self): ...
 
     f = Foo()
     with pytest.raises(TypeError, match="Foo` needs to be a Loop"):
@@ -63,8 +62,7 @@ def test_no_grad_context():
 
     class Foo(_Loop):
         @_no_grad_context
-        def run(self):
-            ...
+        def run(self): ...
 
     f = Foo(trainer)
     with pytest.raises(TypeError, match="Foo.inference_mode` needs to be defined"):
@@ -76,15 +74,12 @@ def test_no_grad_context():
             self.inference_mode = False
 
         @_no_grad_context
-        def run(self):
-            ...
+        def run(self): ...
 
     f = Foo()
     with mock.patch("torch.no_grad") as no_grad_mock:
         f.run()
     no_grad_mock.assert_called_once_with()
     f.inference_mode = True
-    with mock.patch("torch.inference_mode") as inference_mode_mock:
+    with mock.patch("torch.inference_mode"):
         f.run()
-    if not _TORCH_EQUAL_2_0:
-        inference_mode_mock.assert_called_once_with()

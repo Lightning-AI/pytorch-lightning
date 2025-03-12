@@ -16,11 +16,11 @@ from unittest.mock import MagicMock
 
 import pytest
 import torch
+from torch.utils.data import DataLoader, Dataset
+
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
 from lightning.pytorch.plugins.precision.double import DoublePrecision
-from torch.utils.data import DataLoader, Dataset
-
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -39,7 +39,7 @@ class RandomFloatIntDataset(Dataset):
 
 class DoublePrecisionBoringModel(BoringModel):
     def training_step(self, batch, batch_idx):
-        float_data, int_data = batch
+        float_data, _ = batch
         assert torch.tensor([0.0]).dtype == torch.float64
         assert torch.tensor([0.0], dtype=torch.float16).dtype == torch.float16
         assert float_data.dtype == torch.float64
@@ -134,6 +134,7 @@ class DoublePrecisionBoringModelComplexBuffer(BoringModel):
         return super().training_step(batch, batch_idx)
 
 
+@RunIf(mps=False)  # mps does not support float64
 @pytest.mark.parametrize(
     "boring_model",
     [
@@ -142,22 +143,22 @@ class DoublePrecisionBoringModelComplexBuffer(BoringModel):
         DoublePrecisionBoringModelComplexBuffer,
     ],
 )
-def test_double_precision(tmpdir, boring_model):
+def test_double_precision(tmp_path, boring_model):
     model = boring_model()
 
-    trainer = Trainer(max_epochs=2, default_root_dir=tmpdir, fast_dev_run=2, precision="64-true", log_every_n_steps=1)
+    trainer = Trainer(max_epochs=2, default_root_dir=tmp_path, fast_dev_run=2, precision="64-true", log_every_n_steps=1)
     trainer.fit(model)
     trainer.test(model)
     trainer.predict(model)
 
 
 @RunIf(min_cuda_gpus=2)
-def test_double_precision_ddp(tmpdir):
+def test_double_precision_ddp(tmp_path):
     model = DoublePrecisionBoringModel()
 
     trainer = Trainer(
         max_epochs=1,
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         strategy="ddp_spawn",
         accelerator="gpu",
         devices=2,

@@ -13,20 +13,14 @@
 # limitations under the License.
 import inspect
 import os
-from contextlib import contextmanager, nullcontext
+from collections.abc import Generator, Mapping, Sequence
+from contextlib import AbstractContextManager, contextmanager, nullcontext
 from functools import partial
 from pathlib import Path
 from typing import (
     Any,
     Callable,
-    ContextManager,
-    Dict,
-    Generator,
-    List,
-    Mapping,
     Optional,
-    Sequence,
-    Tuple,
     Union,
     cast,
     overload,
@@ -40,6 +34,7 @@ from torch import Tensor
 from torch.optim import Optimizer
 from torch.utils.data import BatchSampler, DataLoader, DistributedSampler, RandomSampler, SequentialSampler
 
+import lightning.fabric
 from lightning.fabric.accelerators.accelerator import Accelerator
 from lightning.fabric.connector import _PLUGIN_INPUT, _PRECISION_INPUT, _Connector, _is_using_cli
 from lightning.fabric.loggers import Logger
@@ -50,10 +45,8 @@ from lightning.fabric.strategies import (
     FSDPStrategy,
     SingleDeviceStrategy,
     Strategy,
-    XLAFSDPStrategy,
     XLAStrategy,
 )
-from lightning.fabric.strategies.fsdp import _has_meta_device_parameters
 from lightning.fabric.strategies.launchers import _MultiProcessingLauncher, _XLALauncher
 from lightning.fabric.strategies.strategy import TBroadcast, _Sharded
 from lightning.fabric.utilities import move_data_to_device
@@ -65,8 +58,8 @@ from lightning.fabric.utilities.data import (
     has_iterable_dataset,
 )
 from lightning.fabric.utilities.device_dtype_mixin import _update_properties
-from lightning.fabric.utilities.distributed import DistributedSamplerWrapper
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
+from lightning.fabric.utilities.distributed import DistributedSamplerWrapper, _InfiniteBarrier
+from lightning.fabric.utilities.init import _has_meta_device_parameters_or_buffers
 from lightning.fabric.utilities.rank_zero import rank_zero_deprecation, rank_zero_warn
 from lightning.fabric.utilities.registry import _load_external_callbacks
 from lightning.fabric.utilities.seed import seed_everything
@@ -76,6 +69,7 @@ from lightning.fabric.wrappers import (
     _FabricDataLoader,
     _FabricModule,
     _FabricOptimizer,
+    _to_compiled,
     _unwrap_compiled,
     _unwrap_objects,
 )
@@ -118,12 +112,12 @@ class Fabric:
         *,
         accelerator: Union[str, Accelerator] = "auto",
         strategy: Union[str, Strategy] = "auto",
-        devices: Union[List[int], str, int] = "auto",
+        devices: Union[list[int], str, int] = "auto",
         num_nodes: int = 1,
         precision: Optional[_PRECISION_INPUT] = None,
-        plugins: Optional[Union[_PLUGIN_INPUT, List[_PLUGIN_INPUT]]] = None,
-        callbacks: Optional[Union[List[Any], Any]] = None,
-        loggers: Optional[Union[Logger, List[Logger]]] = None,
+        plugins: Optional[Union[_PLUGIN_INPUT, list[_PLUGIN_INPUT]]] = None,
+        callbacks: Optional[Union[list[Any], Any]] = None,
+        loggers: Optional[Union[Logger, list[Logger]]] = None,
     ) -> None:
         self._connector = _Connector(
             accelerator=accelerator,
@@ -192,7 +186,7 @@ class Fabric:
         return self._strategy.is_global_zero
 
     @property
-    def loggers(self) -> List[Logger]:
+    def loggers(self) -> list[Logger]:
         """Returns all loggers passed to Fabric."""
         return self._loggers
 
@@ -213,6 +207,7 @@ class Fabric:
         module: nn.Module,
         *optimizers: Optimizer,
         move_to_device: bool = True,
+        _reapply_compile: bool = True,
     ) -> Any:  # no specific return because the way we want our API to look does not play well with mypy
         r"""Set up a model and its optimizers for accelerated training.
 
@@ -221,12 +216,17 @@ class Fabric:
             *optimizers: The optimizer(s) to set up (no optimizers is also possible)
             move_to_device: If set ``True`` (default), moves the model to the correct device. Set this to ``False``
                 and alternatively use :meth:`to_device` manually.
+            _reapply_compile: If ``True`` (default), and the model was ``torch.compile``d before, the
+                corresponding :class:`~torch._dynamo.OptimizedModule` wrapper will be removed and reapplied with the
+                same settings after the model was set up by the strategy (e.g., after the model was wrapped by DDP,
+                FSDP etc.). Set it to ``False`` if compiling DDP/FSDP is causing issues.
 
         Returns:
             The tuple containing wrapped module and the optimizers, in the same order they were passed in.
 
         """
         self._validate_setup(module, optimizers)
+        module, compile_kwargs = _unwrap_compiled(module) if _reapply_compile else (module, None)
         original_module = module
 
         module = self._precision.convert_module(module)
@@ -242,7 +242,9 @@ class Fabric:
         else:
             module = self._strategy.setup_module(module)
 
-        module = _FabricModule(module, self._precision, original_module=original_module)
+        if compile_kwargs is not None:
+            module = _to_compiled(module, compile_kwargs)
+        module = _FabricModule(module, self._strategy, original_module=original_module)
 
         # Update the _DeviceDtypeModuleMixin's device parameter
         # NOTE: for sharded strategies or manual device placement, there's no single root device
@@ -250,16 +252,13 @@ class Fabric:
             module, device=self.device if move_to_device else next(module.parameters(), torch.tensor(0)).device
         )
 
-        optimizers = [
-            _FabricOptimizer(optimizer=optimizer, strategy=self._strategy, callbacks=self._callbacks)
-            for optimizer in optimizers
-        ]
+        optimizers = [_FabricOptimizer(optimizer, self._strategy, self._callbacks) for optimizer in optimizers]
 
         self._models_setup += 1
 
         if hasattr(original_module, "_fabric"):  # this is probably a LightningModule
-            original_module._fabric = self  # type: ignore[assignment]
-            original_module._fabric_optimizers = optimizers  # type: ignore[assignment]
+            original_module._fabric = self
+            original_module._fabric_optimizers = optimizers
             if original_module not in self._callbacks:
                 self._callbacks.append(original_module)
 
@@ -270,7 +269,9 @@ class Fabric:
             return (module, *optimizers)
         return module
 
-    def setup_module(self, module: nn.Module, move_to_device: bool = True) -> _FabricModule:
+    def setup_module(
+        self, module: nn.Module, move_to_device: bool = True, _reapply_compile: bool = True
+    ) -> _FabricModule:
         r"""Set up a model for accelerated training or inference.
 
         This is the same as calling ``.setup(model)`` with no optimizers. It is useful for inference or for certain
@@ -281,12 +282,16 @@ class Fabric:
             module: A :class:`torch.nn.Module` to set up
             move_to_device: If set ``True`` (default), moves the model to the correct device. Set this to ``False``
                 and alternatively use :meth:`to_device` manually.
-
+            _reapply_compile: If ``True`` (default), and the model was ``torch.compile``d before, the
+                corresponding :class:`~torch._dynamo.OptimizedModule` wrapper will be removed and reapplied with the
+                same settings after the model was set up by the strategy (e.g., after the model was wrapped by DDP,
+                FSDP etc.). Set it to ``False`` if compiling DDP/FSDP is causing issues.
         Returns:
             The wrapped model.
 
         """
         self._validate_setup_module(module)
+        module, compile_kwargs = _unwrap_compiled(module) if _reapply_compile else (module, None)
         original_module = module
 
         module = self._precision.convert_module(module)
@@ -296,7 +301,10 @@ class Fabric:
 
         # Let strategy wrap and connect the module alone
         module = self._strategy.setup_module(module)
-        module = _FabricModule(module, self._precision, original_module=original_module)
+
+        if compile_kwargs is not None:
+            module = _to_compiled(module, compile_kwargs)
+        module = _FabricModule(module, self._strategy, original_module=original_module)
 
         # Update the _DeviceDtypeModuleMixin's device parameter
         # NOTE: for sharded strategies or manual device placement, there's no single root device
@@ -305,14 +313,14 @@ class Fabric:
         )
 
         if hasattr(original_module, "_fabric"):  # this is probably a LightningModule
-            original_module._fabric = self  # type: ignore[assignment]
+            original_module._fabric = self
             if original_module not in self._callbacks:
                 self._callbacks.append(original_module)
 
         self._models_setup += 1
         return module
 
-    def setup_optimizers(self, *optimizers: Optimizer) -> Union[_FabricOptimizer, Tuple[_FabricOptimizer, ...]]:
+    def setup_optimizers(self, *optimizers: Optimizer) -> Union[_FabricOptimizer, tuple[_FabricOptimizer, ...]]:
         r"""Set up one or more optimizers for accelerated training.
 
         Some strategies do not allow setting up model and optimizer independently. For them, you should call
@@ -335,7 +343,7 @@ class Fabric:
 
     def setup_dataloaders(
         self, *dataloaders: DataLoader, use_distributed_sampler: bool = True, move_to_device: bool = True
-    ) -> Union[DataLoader, List[DataLoader]]:
+    ) -> Union[DataLoader, list[DataLoader]]:
         r"""Set up one or multiple dataloaders for accelerated training. If you need different settings for each
         dataloader, call this method individually for each one.
 
@@ -410,6 +418,7 @@ class Fabric:
 
         """
         module = model._forward_module if model is not None else model
+        module, _ = _unwrap_compiled(module)
         if isinstance(self._strategy, DeepSpeedStrategy):
             if model is None:
                 if self._models_setup == 0:
@@ -424,7 +433,11 @@ class Fabric:
                 # requires to attach the current `DeepSpeedEngine` for the `_FabricOptimizer.step` call.
                 self._strategy._deepspeed_engine = module
 
-        self._strategy.backward(tensor, module, *args, **kwargs)
+        lightning.fabric.wrappers._in_fabric_backward = True
+        try:
+            self._strategy.backward(tensor, module, *args, **kwargs)
+        finally:
+            lightning.fabric.wrappers._in_fabric_backward = False
 
     def clip_gradients(
         self,
@@ -447,6 +460,10 @@ class Fabric:
                 Default is the 2-norm.
             error_if_nonfinite: An error is raised if the total norm of the gradients is NaN or infinite.
 
+        Return:
+            The total norm of the gradients (before clipping was applied) as a scalar tensor if ``max_norm`` was
+            passed, otherwise ``None``.
+
         """
         if clip_val is not None and max_norm is not None:
             raise ValueError(
@@ -466,7 +483,7 @@ class Fabric:
             )
         raise ValueError("You have to specify either `clip_val` or `max_norm` to do gradient clipping!")
 
-    def autocast(self) -> ContextManager:
+    def autocast(self) -> AbstractContextManager:
         """A context manager to automatically convert operations for the chosen precision.
 
         Use this only if the `forward` method of your model does not cover all operations you wish to run with the
@@ -476,16 +493,13 @@ class Fabric:
         return self._precision.forward_context()
 
     @overload
-    def to_device(self, obj: nn.Module) -> nn.Module:
-        ...
+    def to_device(self, obj: nn.Module) -> nn.Module: ...
 
     @overload
-    def to_device(self, obj: Tensor) -> Tensor:
-        ...
+    def to_device(self, obj: Tensor) -> Tensor: ...
 
     @overload
-    def to_device(self, obj: Any) -> Any:
-        ...
+    def to_device(self, obj: Any) -> Any: ...
 
     def to_device(self, obj: Union[nn.Module, Tensor, Any]) -> Union[nn.Module, Tensor, Any]:
         r"""Move a :class:`torch.nn.Module` or a collection of tensors to the current device, if it is not already on
@@ -544,8 +558,8 @@ class Fabric:
         return self._strategy.broadcast(obj, src=src)
 
     def all_gather(
-        self, data: Union[Tensor, Dict, List, Tuple], group: Optional[Any] = None, sync_grads: bool = False
-    ) -> Union[Tensor, Dict, List, Tuple]:
+        self, data: Union[Tensor, dict, list, tuple], group: Optional[Any] = None, sync_grads: bool = False
+    ) -> Union[Tensor, dict, list, tuple]:
         """Gather tensors or collections of tensors from multiple processes.
 
         This method needs to be called on all processes and the tensors need to have the same shape across all
@@ -558,7 +572,8 @@ class Fabric:
 
         Return:
             A tensor of shape (world_size, batch, ...), or if the input was a collection
-            the output will also be a collection with tensors of this shape.
+            the output will also be a collection with tensors of this shape. For the special case where
+            world_size is 1, no additional dimension is added to the tensor(s).
 
         """
         self._validate_launched()
@@ -568,10 +583,10 @@ class Fabric:
 
     def all_reduce(
         self,
-        data: Union[Tensor, Dict, List, Tuple],
+        data: Union[Tensor, dict, list, tuple],
         group: Optional[Any] = None,
         reduce_op: Optional[Union[ReduceOp, str]] = "mean",
-    ) -> Union[Tensor, Dict, List, Tuple]:
+    ) -> Union[Tensor, dict, list, tuple]:
         """Reduce tensors or collections of tensors from multiple processes.
 
         The reduction on tensors is applied in-place, meaning the result will be placed back into the input tensor.
@@ -611,14 +626,14 @@ class Fabric:
 
         """
         rank = self.local_rank if local else self.global_rank
-        if rank > 0:
-            self.barrier()
-        yield
-        if rank == 0:
-            self.barrier()
-        self.barrier()
+        with _InfiniteBarrier() as barrier:
+            if rank > 0:
+                barrier()
+            yield
+            if rank == 0:
+                barrier()
 
-    def no_backward_sync(self, module: _FabricModule, enabled: bool = True) -> ContextManager:
+    def no_backward_sync(self, module: _FabricModule, enabled: bool = True) -> AbstractContextManager:
         r"""Skip gradient synchronization during backward to avoid redundant communication overhead.
 
         Use this context manager when performing gradient accumulation to speed up training with multiple devices.
@@ -641,13 +656,13 @@ class Fabric:
                 skip.
 
         """
-        module = _unwrap_compiled(module)
+        module, _ = _unwrap_compiled(module)
         if not isinstance(module, _FabricModule):
             raise TypeError(
                 "You need to set up the model first before you can call `fabric.no_backward_sync()`:"
                 " `model = fabric.setup(model, ...)`"
             )
-        if not enabled or isinstance(self._strategy, (SingleDeviceStrategy, XLAStrategy)):
+        if isinstance(self._strategy, (SingleDeviceStrategy, XLAStrategy)):
             return nullcontext()
         if self._strategy._backward_sync_control is None:
             rank_zero_warn(
@@ -656,9 +671,11 @@ class Fabric:
                 category=PossibleUserWarning,
             )
             return nullcontext()
-        return self._strategy._backward_sync_control.no_backward_sync(module._forward_module)
 
-    def sharded_model(self) -> ContextManager:
+        forward_module, _ = _unwrap_compiled(module._forward_module)
+        return self._strategy._backward_sync_control.no_backward_sync(forward_module, enabled)
+
+    def sharded_model(self) -> AbstractContextManager:
         r"""Instantiate a model under this context manager to prepare it for model-parallel sharding.
 
         .. deprecated:: This context manager is deprecated in favor of :meth:`init_module`, use it instead.
@@ -670,50 +687,31 @@ class Fabric:
             return self.strategy.module_sharded_context()
         return nullcontext()
 
-    def init_tensor(self) -> ContextManager:
+    def init_tensor(self) -> AbstractContextManager:
         """Tensors that you instantiate under this context manager will be created on the device right away and have
-        the right data type depending on the precision setting in Fabric.
-
-        The automatic device placement under this context manager is only supported with PyTorch 2.0 and newer.
-
-        """
-        if not _TORCH_GREATER_EQUAL_2_0 and self.device.type != "cpu":
-            rank_zero_warn(
-                "`Fabric.init_tensor()` can't place tensors on the device directly"
-                " with PyTorch < 2.0. Parameters will remain on CPU until `Fabric.setup()` is called."
-                " Upgrade to PyTorch >= 2.0 to fully utilize this feature.",
-                category=PossibleUserWarning,
-            )
+        the right data type depending on the precision setting in Fabric."""
         return self._strategy.tensor_init_context()
 
-    def init_module(self, empty_init: Optional[bool] = None) -> ContextManager:
+    def init_module(self, empty_init: Optional[bool] = None) -> AbstractContextManager:
         """Instantiate the model and its parameters under this context manager to reduce peak memory usage.
 
         The parameters get created on the device and with the right data type right away without wasting memory being
-        allocated unnecessarily. The automatic device placement under this context manager is only supported with
-        PyTorch 2.0 and newer.
+        allocated unnecessarily.
 
         Args:
             empty_init: Whether to initialize the model with empty weights (uninitialized memory).
                 If ``None``, the strategy will decide. Some strategies may not support all options.
-                Set this to ``True`` if you are loading a checkpoint into a large model. Requires ``torch >= 1.13``.
+                Set this to ``True`` if you are loading a checkpoint into a large model.
 
         """
         self._validate_launched()
-        if not _TORCH_GREATER_EQUAL_2_0 and self.device.type != "cpu":
-            rank_zero_warn(
-                "`Fabric.init_module()` can't place the model parameters on the device directly"
-                " with PyTorch < 2.0. Parameters will remain on CPU until `Fabric.setup()` is called."
-                " Upgrade to PyTorch >= 2.0 to fully utilize this feature.",
-                category=PossibleUserWarning,
-            )
         return self._strategy.module_init_context(empty_init=empty_init)
 
     def save(
         self,
         path: Union[str, Path],
-        state: Dict[str, Union[nn.Module, Optimizer, Any]],
-        filter: Optional[Dict[str, Callable[[str, Any], bool]]] = None,
+        state: dict[str, Union[nn.Module, Optimizer, Any]],
+        filter: Optional[dict[str, Callable[[str, Any], bool]]] = None,
     ) -> None:
         r"""Save checkpoint contents to a file.
 
@@ -746,9 +744,9 @@ class Fabric:
     def load(
         self,
         path: Union[str, Path],
-        state: Optional[Dict[str, Union[nn.Module, Optimizer, Any]]] = None,
+        state: Optional[dict[str, Union[nn.Module, Optimizer, Any]]] = None,
         strict: bool = True,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Load a checkpoint from a file and restore the state of objects (modules, optimizers, etc.)
 
         How and which processes load gets determined by the `strategy`.
@@ -772,7 +770,7 @@ class Fabric:
             # We need to unwrap objects (see above) but this creates a new dictionary. In-place updates
             # (for user metadata) wouldn't show up in the original dict, so we need to copy the data back.
             for k in list(unwrapped_state.keys()):
-                obj = _unwrap_compiled(state[k])
+                obj, _ = _unwrap_compiled(state[k])
                 if isinstance(obj, (_FabricModule, _FabricOptimizer, _FabricDataLoader)):
                     continue
                 state[k] = unwrapped_state[k]
@@ -809,7 +807,7 @@ class Fabric:
             Returns the output of the function that ran in worker process with rank 0.
 
         The ``launch()`` method should only be used if you intend to specify accelerator, devices, and so on in
-        the code (programmatically). If you are launching with the Lightning CLI, ``lightning run model ...``, remove
+        the code (programmatically). If you are launching with the Lightning CLI, ``fabric run ...``, remove
         ``launch()`` from your code.
 
         The ``launch()`` is a no-op when called multiple times and no function is passed in.
@@ -905,7 +903,7 @@ class Fabric:
             logger.log_metrics(metrics=metrics, step=step)
 
     @staticmethod
-    def seed_everything(seed: Optional[int] = None, workers: Optional[bool] = None) -> int:
+    def seed_everything(seed: Optional[int] = None, workers: Optional[bool] = None, verbose: bool = True) -> int:
         r"""Helper function to seed everything without explicitly importing Lightning.
 
         See :func:`~lightning.fabric.utilities.seed.seed_everything` for more details.
@@ -915,7 +913,7 @@ class Fabric:
             # Lightning sets `workers=False` by default to avoid breaking reproducibility, but since this is a new
             # release, we can afford to do it.
             workers = True
-        return seed_everything(seed=seed, workers=workers)
+        return seed_everything(seed=seed, workers=workers, verbose=verbose)
 
     def _wrap_and_launch(self, to_run: Callable, *args: Any, **kwargs: Any) -> Any:
         self._launched = True
@@ -929,7 +927,7 @@ class Fabric:
         with _replace_dunder_methods(DataLoader, "dataset"), _replace_dunder_methods(BatchSampler):
             return to_run(*args, **kwargs)
 
-    def _move_model_to_device(self, model: nn.Module, optimizers: List[Optimizer]) -> nn.Module:
+    def _move_model_to_device(self, model: nn.Module, optimizers: list[Optimizer]) -> nn.Module:
         try:
             initial_name, initial_param = next(model.named_parameters())
         except StopIteration:
@@ -998,7 +996,7 @@ class Fabric:
         if not self._launched and not isinstance(self._strategy, (SingleDeviceStrategy, DataParallelStrategy)):
             raise RuntimeError(
                 "To use Fabric with more than one device, you must call `.launch()` or use the CLI:"
-                " `lightning run model --help`."
+                " `fabric run --help`."
             )
 
     def _validate_setup(self, module: nn.Module, optimizers: Sequence[Optimizer]) -> None:
@@ -1009,14 +1007,8 @@ class Fabric:
         if any(isinstance(opt, _FabricOptimizer) for opt in optimizers):
             raise ValueError("An optimizer should be passed only once to the `setup` method.")
 
-        if isinstance(self._strategy, (FSDPStrategy, XLAFSDPStrategy)) and not _TORCH_GREATER_EQUAL_2_0:
-            raise RuntimeError(
-                f"The `{type(self).__name__}` requires the model and optimizer(s) to be set up separately."
-                " Create and set up the model first through `model = self.setup_module(model)`. Then create the"
-                " optimizer and set it up: `optimizer = self.setup_optimizer(optimizer)`."
-            )
         if isinstance(self._strategy, FSDPStrategy) and any(
-            _has_meta_device_parameters(optimizer) for optimizer in optimizers
+            _has_meta_device_parameters_or_buffers(optimizer) for optimizer in optimizers
         ):
             raise RuntimeError(
                 "The optimizer has references to the model's meta-device parameters. Materializing them is"
@@ -1044,7 +1036,7 @@ class Fabric:
         if any(isinstance(opt, _FabricOptimizer) for opt in optimizers):
             raise ValueError("An optimizer should be passed only once to the `setup_optimizers` method.")
 
-        if any(_has_meta_device_parameters(optimizer) for optimizer in optimizers):
+        if any(_has_meta_device_parameters_or_buffers(optimizer) for optimizer in optimizers):
             raise RuntimeError(
                 "The optimizer has references to the model's meta-device parameters. Materializing them is"
                 " is currently not supported. Create the optimizer after setting up the model, then call"
@@ -1063,7 +1055,7 @@ class Fabric:
             raise TypeError("Only PyTorch DataLoader are currently supported in `setup_dataloaders`.")
 
     @staticmethod
-    def _configure_callbacks(callbacks: Optional[Union[List[Any], Any]]) -> List[Any]:
+    def _configure_callbacks(callbacks: Optional[Union[list[Any], Any]]) -> list[Any]:
         callbacks = callbacks if callbacks is not None else []
         callbacks = callbacks if isinstance(callbacks, list) else [callbacks]
         callbacks.extend(_load_external_callbacks("lightning.fabric.callbacks_factory"))

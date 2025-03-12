@@ -18,13 +18,13 @@ from unittest import mock
 from unittest.mock import Mock
 
 import pytest
+
 from lightning.fabric.plugins.environments import SLURMEnvironment
 from lightning.fabric.utilities.imports import _IS_WINDOWS
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.trainer.connectors.signal_connector import _SignalConnector
 from lightning.pytorch.utilities.exceptions import SIGTERMException
-
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -43,7 +43,7 @@ def test_signal_handlers_restored_in_teardown():
 
 
 @RunIf(skip_windows=True)
-def test_sigterm_handler_can_be_added(tmpdir):
+def test_sigterm_handler_can_be_added(tmp_path):
     handler_ran = False
 
     def handler(*_):
@@ -57,7 +57,7 @@ def test_sigterm_handler_can_be_added(tmpdir):
             os.kill(os.getpid(), signal.SIGTERM)
 
     model = TestModel()
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, limit_train_batches=2, limit_val_batches=0)
+    trainer = Trainer(default_root_dir=tmp_path, max_epochs=1, limit_train_batches=2, limit_val_batches=0)
 
     assert not trainer.received_sigterm
     assert not handler_ran
@@ -118,6 +118,18 @@ def test_auto_requeue_array_job(call_mock):
     connector = _SignalConnector(trainer)
     connector._slurm_sigusr_handler_fn(None, None)
     call_mock.assert_called_once_with(["scontrol", "requeue", "12345_2"])
+
+
+@RunIf(skip_windows=True)
+@mock.patch("lightning.pytorch.trainer.connectors.signal_connector.call")
+@mock.patch("lightning.pytorch.trainer.Trainer.save_checkpoint", mock.MagicMock())
+@mock.patch.dict(os.environ, {"SLURM_JOB_ID": "invalid"})
+def test_auto_requeue_invalid_job_id(call_mock):
+    call_mock.return_value = 0
+    trainer = Trainer(plugins=[SLURMEnvironment()])
+    connector = _SignalConnector(trainer)
+    with pytest.raises(AssertionError):
+        connector._slurm_sigusr_handler_fn(None, None)
 
 
 def _registering_signals():

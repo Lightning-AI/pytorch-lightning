@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Enumerated utilities."""
+
 from __future__ import annotations
 
 from lightning_utilities.core.enums import StrEnum as LightningEnum

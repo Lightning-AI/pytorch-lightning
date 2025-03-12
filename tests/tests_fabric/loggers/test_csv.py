@@ -12,10 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+from unittest import mock
 from unittest.mock import MagicMock
 
 import pytest
 import torch
+
 from lightning.fabric.loggers import CSVLogger
 from lightning.fabric.loggers.csv_logs import _ExperimentWriter
 
@@ -48,6 +50,21 @@ def test_manual_versioning(tmp_path):
     (root_dir / "version_2").mkdir()
     logger = CSVLogger(root_dir=root_dir, name="exp", version=1)
     assert logger.version == 1
+
+
+def test_manual_versioning_file_exists(tmp_path):
+    """Test that a warning is emitted and existing files get overwritten."""
+
+    # Simulate an existing 'version_0' vrom a previous run
+    (tmp_path / "exp" / "version_0").mkdir(parents=True)
+    previous_metrics_file = tmp_path / "exp" / "version_0" / "metrics.csv"
+    previous_metrics_file.touch()
+
+    logger = CSVLogger(root_dir=tmp_path, name="exp", version=0)
+    assert previous_metrics_file.exists()
+    with pytest.warns(UserWarning, match="Experiment logs directory .* exists and is not empty"):
+        _ = logger.experiment
+    assert not previous_metrics_file.exists()
 
 
 def test_named_version(tmp_path):
@@ -130,7 +147,11 @@ def test_automatic_step_tracking(tmp_path):
     assert logger.experiment.metrics[2]["step"] == 2
 
 
-def test_append_metrics_file(tmp_path):
+@mock.patch(
+    # Mock the existence check, so we can simulate appending to the metrics file
+    "lightning.fabric.loggers.csv_logs._ExperimentWriter._check_log_dir_exists"
+)
+def test_append_metrics_file(_, tmp_path):
     """Test that the logger appends to the file instead of rewriting it on every save."""
     logger = CSVLogger(tmp_path, name="test", version=0, flush_logs_every_n_steps=1)
 
@@ -167,7 +188,11 @@ def test_append_columns(tmp_path):
         assert set(header.split(",")) == {"step", "a", "b", "c"}
 
 
-def test_rewrite_with_new_header(tmp_path):
+@mock.patch(
+    # Mock the existence check, so we can simulate appending to the metrics file
+    "lightning.fabric.loggers.csv_logs._ExperimentWriter._check_log_dir_exists"
+)
+def test_rewrite_with_new_header(_, tmp_path):
     # write a csv file manually
     with open(tmp_path / "metrics.csv", "w") as file:
         file.write("step,metric1,metric2\n")

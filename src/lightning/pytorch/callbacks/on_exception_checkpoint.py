@@ -17,6 +17,7 @@ On exception checkpointing
 
 Automatically save a checkpoints on exception.
 """
+
 import os
 from typing import Any
 

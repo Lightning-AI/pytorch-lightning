@@ -16,11 +16,11 @@ from unittest import mock
 
 import pytest
 import torch
+
 from lightning.pytorch import Trainer
 from lightning.pytorch.callbacks import RichModelSummary, RichProgressBar
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.utilities.model_summary import summarize
-
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -56,10 +56,16 @@ def test_rich_summary_tuples(mock_table_add_row, mock_console):
     summary = summarize(model)
     summary_data = summary._get_summary_data()
 
-    model_summary.summarize(summary_data=summary_data, total_parameters=1, trainable_parameters=1, model_size=1)
+    model_summary.summarize(
+        summary_data=summary_data,
+        total_parameters=1,
+        trainable_parameters=1,
+        model_size=1,
+        total_training_modes=summary.total_training_modes,
+    )
 
     # ensure that summary was logged + the breakdown of model parameters
     assert mock_console.call_count == 2
     # assert that the input summary data was converted correctly
-    args, kwargs = mock_table_add_row.call_args_list[0]
-    assert args[1:] == ("0", "layer", "Linear", "66  ", "[4, 32]", "[4, 2]")
+    args, _ = mock_table_add_row.call_args_list[0]
+    assert args[1:] == ("0", "layer", "Linear", "66  ", "train", "[4, 32]", "[4, 2]")

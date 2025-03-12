@@ -1,2 +1,0 @@
-torchmetrics  # necessary because old PL versions don't have it as dependency
-scikit-learn

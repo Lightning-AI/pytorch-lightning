@@ -16,12 +16,12 @@ from lightning.pytorch.loggers import CSVLogger
 from lightning.pytorch.loggers.utilities import _version
 
 
-def test_version(tmpdir):
+def test_version(tmp_path):
     """Verify versions of loggers are concatenated properly."""
-    logger1 = CSVLogger(tmpdir, version=0)
-    logger2 = CSVLogger(tmpdir, version=2)
-    logger3 = CSVLogger(tmpdir, version=1)
-    logger4 = CSVLogger(tmpdir, version=0)
+    logger1 = CSVLogger(tmp_path, version=0)
+    logger2 = CSVLogger(tmp_path, version=2)
+    logger3 = CSVLogger(tmp_path, version=1)
+    logger4 = CSVLogger(tmp_path, version=0)
     loggers = [logger1, logger2, logger3, logger4]
     version = _version([])
     assert version == ""

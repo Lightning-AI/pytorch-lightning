@@ -31,22 +31,22 @@ Once the **.fit()** function has completed, you'll see an output like this:
 
     FIT Profiler Report
 
-    -----------------------------------------------------------------------------------------------
-    |  Action                                          |  Mean duration (s)	|  Total time (s) |
-    -----------------------------------------------------------------------------------------------
-    |  [LightningModule]BoringModel.prepare_data       |  10.0001       	|  20.00          |
-    |  run_training_epoch                              |  6.1558         	|  6.1558         |
-    |  run_training_batch                              |  0.0022506      	|  0.015754       |
-    |  [LightningModule]BoringModel.optimizer_step     |  0.0017477      	|  0.012234       |
-    |  [LightningModule]BoringModel.val_dataloader     |  0.00024388     	|  0.00024388     |
-    |  on_train_batch_start                            |  0.00014637     	|  0.0010246      |
-    |  [LightningModule]BoringModel.teardown           |  2.15e-06       	|  2.15e-06       |
-    |  [LightningModule]BoringModel.on_train_start     |  1.644e-06      	|  1.644e-06      |
-    |  [LightningModule]BoringModel.on_train_end       |  1.516e-06      	|  1.516e-06      |
-    |  [LightningModule]BoringModel.on_fit_end         |  1.426e-06      	|  1.426e-06      |
-    |  [LightningModule]BoringModel.setup              |  1.403e-06      	|  1.403e-06      |
-    |  [LightningModule]BoringModel.on_fit_start       |  1.226e-06      	|  1.226e-06      |
-    -----------------------------------------------------------------------------------------------
+    -------------------------------------------------------------------------------------------
+    |  Action                                          |  Mean duration (s) |  Total time (s) |
+    -------------------------------------------------------------------------------------------
+    |  [LightningModule]BoringModel.prepare_data       |  10.0001           |  20.00          |
+    |  run_training_epoch                              |  6.1558            |  6.1558         |
+    |  run_training_batch                              |  0.0022506         |  0.015754       |
+    |  [LightningModule]BoringModel.optimizer_step     |  0.0017477         |  0.012234       |
+    |  [LightningModule]BoringModel.val_dataloader     |  0.00024388        |  0.00024388     |
+    |  on_train_batch_start                            |  0.00014637        |  0.0010246      |
+    |  [LightningModule]BoringModel.teardown           |  2.15e-06          |  2.15e-06       |
+    |  [LightningModule]BoringModel.on_train_start     |  1.644e-06         |  1.644e-06      |
+    |  [LightningModule]BoringModel.on_train_end       |  1.516e-06         |  1.516e-06      |
+    |  [LightningModule]BoringModel.on_fit_end         |  1.426e-06         |  1.426e-06      |
+    |  [LightningModule]BoringModel.setup              |  1.403e-06         |  1.403e-06      |
+    |  [LightningModule]BoringModel.on_fit_start       |  1.226e-06         |  1.226e-06      |
+    -------------------------------------------------------------------------------------------
 
 In this report we can see that the slowest function is **prepare_data**. Now you can figure out why data preparation is slowing down your training.
 
@@ -110,7 +110,7 @@ If the profiler report becomes too long, you can stream the report to a file:
 *************************
 Measure accelerator usage
 *************************
-Another helpful technique to detect bottlenecks is to ensure that you're using the full capacity of your accelerator (GPU/TPU/IPU/HPU).
+Another helpful technique to detect bottlenecks is to ensure that you're using the full capacity of your accelerator (GPU/TPU/HPU).
 This can be measured with the :class:`~lightning.pytorch.callbacks.device_stats_monitor.DeviceStatsMonitor`:
 
 .. testcode::

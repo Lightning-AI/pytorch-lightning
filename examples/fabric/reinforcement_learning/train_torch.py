@@ -22,7 +22,6 @@ import os
 import random
 import time
 from datetime import datetime
-from typing import Dict
 
 import gymnasium as gym
 import torch
@@ -41,7 +40,7 @@ from torch.utils.tensorboard import SummaryWriter
 def train(
     agent: PPOAgent,
     optimizer: torch.optim.Optimizer,
-    data: Dict[str, Tensor],
+    data: dict[str, Tensor],
     logger: SummaryWriter,
     global_step: int,
     args: argparse.Namespace,
@@ -138,23 +137,21 @@ def main(args: argparse.Namespace):
     if global_rank == 0:
         logger.add_text(
             "hyperparameters",
-            "|param|value|\n|-|-|\n%s" % ("\n".join([f"|{key}|{value}|" for key, value in vars(args).items()])),
+            "|param|value|\n|-|-|\n{}".format("\n".join([f"|{key}|{value}|" for key, value in vars(args).items()])),
         )
 
     # Environment setup
-    envs = gym.vector.SyncVectorEnv(
-        [
-            make_env(
-                args.env_id,
-                args.seed + global_rank * args.num_envs + i,
-                global_rank,
-                args.capture_video,
-                logger.log_dir if global_rank == 0 else None,
-                "train",
-            )
-            for i in range(args.num_envs)
-        ]
-    )
+    envs = gym.vector.SyncVectorEnv([
+        make_env(
+            args.env_id,
+            args.seed + global_rank * args.num_envs + i,
+            global_rank,
+            args.capture_video,
+            logger.log_dir if global_rank == 0 else None,
+            "train",
+        )
+        for i in range(args.num_envs)
+    ])
     assert isinstance(envs.single_action_space, gym.spaces.Discrete), "only discrete action space is supported"
 
     # Define the agent and the optimizer and setup them with DistributedDataParallel

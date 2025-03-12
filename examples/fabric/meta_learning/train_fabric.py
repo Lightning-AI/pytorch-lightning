@@ -12,11 +12,13 @@ Requirements:
 - gym<=0.22
 
 Run it with:
-    lightning run model train_fabric.py --accelerator=cuda --devices=2 --strategy=ddp
+    fabric run train_fabric.py --accelerator=cuda --devices=2 --strategy=ddp
 """
+
 import cherry
 import learn2learn as l2l
 import torch
+
 from lightning.fabric import Fabric, seed_everything
 
 
@@ -58,7 +60,7 @@ def main(
     seed=42,
 ):
     # Create the Fabric object
-    # Arguments get parsed from the command line, see `lightning run model --help`
+    # Arguments get parsed from the command line, see `fabric run --help`
     fabric = Fabric()
 
     meta_batch_size = meta_batch_size // fabric.world_size

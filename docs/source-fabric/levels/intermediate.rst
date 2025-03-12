@@ -5,7 +5,7 @@
     <../guide/lightning_module>
     <../guide/callbacks>
     <../guide/logging>
-    <../guide/checkpoint>
+    <../guide/checkpoint/checkpoint>
     <../guide/trainer_template>
 
 
@@ -45,7 +45,7 @@ Intermediate skills
 .. displayitem::
     :header: Save and load model progress
     :description: Efficient saving and loading of model weights, training state, hyperparameters and more.
-    :button_link: ../guide/checkpoint.html
+    :button_link: ../guide/checkpoint/checkpoint.html
     :col_css: col-md-4
     :height: 180
     :tag: intermediate

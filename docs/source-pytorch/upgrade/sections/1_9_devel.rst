@@ -26,7 +26,7 @@
      - use DDP instead
      - `PR16386`_ :doc:`DDP <../../accelerators/gpu_expert>`
 
-   * - used the pl.plugins.ApexMixedPrecisionPlugin`` plugin
+   * - used the ``pl.plugins.ApexMixedPrecisionPlugin`` plugin
      - use PyTorch native mixed precision
      - `PR16039`_
 

@@ -12,8 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+from collections.abc import Iterable
 from dataclasses import dataclass, field
-from typing import Any, Iterable, Optional, Tuple, Union
+from typing import Any, Optional, Union
 
 import torch.multiprocessing as mp
 from torch.utils.data import BatchSampler, DataLoader, RandomSampler, Sampler, SequentialSampler
@@ -27,14 +28,13 @@ from lightning.fabric.utilities.data import (
     has_iterable_dataset,
     suggested_max_num_workers,
 )
-from lightning.fabric.utilities.distributed import DistributedSamplerWrapper
+from lightning.fabric.utilities.distributed import DistributedSamplerWrapper, _InfiniteBarrier
 from lightning.pytorch.overrides.distributed import UnrepeatedDistributedSamplerWrapper
 from lightning.pytorch.trainer import call
 from lightning.pytorch.trainer.states import RunningStage, TrainerFn
 from lightning.pytorch.utilities.combined_loader import CombinedLoader
 from lightning.pytorch.utilities.data import _is_dataloader_shuffled, _update_dataloader
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning.pytorch.utilities.imports import _graphcore_available_and_importable
 from lightning.pytorch.utilities.model_helpers import is_overridden
 from lightning.pytorch.utilities.rank_zero import WarningCache, rank_zero_warn
 from lightning.pytorch.utilities.types import EVAL_DATALOADERS, TRAIN_DATALOADERS
@@ -87,17 +87,18 @@ class _DataConnector:
         datamodule = trainer.datamodule
         lightning_module = trainer.lightning_module
         # handle datamodule prepare data:
-        # check for prepare_data_per_node & datamodule lifecycle properties before calling datamodule.prepare_data
-        if datamodule is not None:
-            dm_prepare_data_per_node = datamodule.prepare_data_per_node
-            if (dm_prepare_data_per_node and local_rank_zero) or (not dm_prepare_data_per_node and global_rank_zero):
-                call._call_lightning_datamodule_hook(trainer, "prepare_data")
+        if datamodule is not None and is_overridden("prepare_data", datamodule):
+            prepare_data_per_node = datamodule.prepare_data_per_node
+            with _InfiniteBarrier():
+                if (prepare_data_per_node and local_rank_zero) or (not prepare_data_per_node and global_rank_zero):
+                    call._call_lightning_datamodule_hook(trainer, "prepare_data")
+
         # handle lightning module prepare data:
-        # check for prepare_data_per_node before calling lightning_module.prepare_data
-        if lightning_module is not None:
-            lm_prepare_data_per_node = lightning_module.prepare_data_per_node
-            if (lm_prepare_data_per_node and local_rank_zero) or (not lm_prepare_data_per_node and global_rank_zero):
-                call._call_lightning_module_hook(trainer, "prepare_data")
+        if lightning_module is not None and is_overridden("prepare_data", lightning_module):
+            prepare_data_per_node = lightning_module.prepare_data_per_node
+            with _InfiniteBarrier():
+                if (prepare_data_per_node and local_rank_zero) or (not prepare_data_per_node and global_rank_zero):
+                    call._call_lightning_module_hook(trainer, "prepare_data")
 
     def attach_data(
         self,
@@ -165,19 +166,11 @@ class _DataConnector:
         datamodule.trainer = trainer
 
     def _requires_distributed_sampler(self, dataloader: DataLoader) -> bool:
-        if _graphcore_available_and_importable():
-            from lightning_graphcore import IPUAccelerator
-
-            # `DistributedSampler` is never used with `poptorch.DataLoader`
-            is_ipu = isinstance(self.trainer.accelerator, IPUAccelerator)
-        else:
-            is_ipu = False
         return (
             self.trainer._accelerator_connector.use_distributed_sampler
             and self.trainer._accelerator_connector.is_distributed
             and not isinstance(dataloader.sampler, DistributedSampler)
             and not has_iterable_dataset(dataloader)
-            and not is_ipu
         )
 
     def _prepare_dataloader(self, dataloader: object, shuffle: bool, mode: RunningStage) -> object:
@@ -190,18 +183,9 @@ class _DataConnector:
         # don't do anything if it's not a dataloader
         if not isinstance(dataloader, DataLoader):
             return dataloader
-
-        if _graphcore_available_and_importable():
-            from lightning_graphcore import IPUAccelerator
-
-            # IPUs use a custom `poptorch.DataLoader` which we might need to convert to
-            is_ipu = isinstance(self.trainer.accelerator, IPUAccelerator)
-        else:
-            is_ipu = False
         if (
             self._requires_distributed_sampler(dataloader)  # sets the distributed sampler
             or mode == RunningStage.PREDICTING  # to track indices for the predictions
-            or is_ipu
         ):
             sampler = self._resolve_sampler(dataloader, shuffle=shuffle, mode=mode)
             return _update_dataloader(dataloader, sampler, mode=mode)
@@ -359,7 +343,7 @@ class _DataHookSelector:
 
     model: "pl.LightningModule"
     datamodule: Optional["pl.LightningDataModule"]
-    _valid_hooks: Tuple[str, ...] = field(
+    _valid_hooks: tuple[str, ...] = field(
         default=("on_before_batch_transfer", "transfer_batch_to_device", "on_after_batch_transfer")
     )
 
@@ -436,7 +420,7 @@ def _worker_check(trainer: "pl.Trainer", dataloader: object, name: str) -> None:
         rank_zero_warn(
             f"Consider setting `persistent_workers=True` in '{name}' to speed up the dataloader worker initialization."
         )
-    elif dataloader.num_workers < 2:
+    elif dataloader.num_workers < 2 and upper_bound > 1:
         # if changed, update the `filterwarnings` snippet in 'advanced/warnings.rst'
         rank_zero_warn(
             f"The '{name}' does not have many workers which may be a bottleneck. Consider increasing the value of the"

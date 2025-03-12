@@ -17,33 +17,33 @@ from datetime import timedelta
 from unittest.mock import Mock, patch
 
 import pytest
+
 from lightning.pytorch import Trainer
 from lightning.pytorch.callbacks import ModelCheckpoint
 from lightning.pytorch.callbacks.timer import Timer
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-
 from tests_pytorch.helpers.runif import RunIf
 
 
-def test_trainer_flag(caplog):
+def test_trainer_flag(caplog, tmp_path):
     class TestModel(BoringModel):
         def on_fit_start(self):
             raise SystemExit()
 
-    trainer = Trainer(max_time={"seconds": 1337})
+    trainer = Trainer(default_root_dir=tmp_path, logger=False, max_time={"seconds": 1337})
     with pytest.raises(SystemExit):
         trainer.fit(TestModel())
     timer = [c for c in trainer.callbacks if isinstance(c, Timer)][0]
     assert timer._duration == 1337
 
-    trainer = Trainer(max_time={"seconds": 1337}, callbacks=[Timer()])
+    trainer = Trainer(default_root_dir=tmp_path, logger=False, max_time={"seconds": 1337}, callbacks=[Timer()])
     with pytest.raises(SystemExit), caplog.at_level(level=logging.INFO):
         trainer.fit(TestModel())
     assert "callbacks list already contains a Timer" in caplog.text
 
     # Make sure max_time still honored even if max_epochs == -1
-    trainer = Trainer(max_time={"seconds": 1}, max_epochs=-1)
+    trainer = Trainer(default_root_dir=tmp_path, logger=False, max_time={"seconds": 1}, max_epochs=-1)
     with pytest.raises(SystemExit):
         trainer.fit(TestModel())
     timer = [c for c in trainer.callbacks if isinstance(c, Timer)][0]
@@ -65,6 +65,12 @@ def test_trainer_flag(caplog):
 def test_timer_parse_duration(duration, expected):
     timer = Timer(duration=duration)
     assert (timer.time_remaining() == expected is None) or (timer.time_remaining() == expected.total_seconds())
+
+
+@pytest.mark.parametrize("duration", ["6:00:00", "60 minutes"])
+def test_timer_parse_duration_misconfiguration(duration):
+    with pytest.raises(MisconfigurationException, match="format DD:HH:MM:SS"):
+        Timer(duration=duration)
 
 
 def test_timer_interval_choice():
@@ -103,13 +109,13 @@ def test_timer_time_remaining(time_mock):
     assert round(timer.time_elapsed()) == 3
 
 
-def test_timer_stops_training(tmpdir, caplog):
+def test_timer_stops_training(tmp_path, caplog):
     """Test that the timer stops training before reaching max_epochs."""
     model = BoringModel()
     duration = timedelta(milliseconds=100)
     timer = Timer(duration=duration)
 
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1000, callbacks=[timer])
+    trainer = Trainer(default_root_dir=tmp_path, max_epochs=1000, callbacks=[timer])
     with caplog.at_level(logging.INFO):
         trainer.fit(model)
     assert trainer.global_step > 1
@@ -119,23 +125,23 @@ def test_timer_stops_training(tmpdir, caplog):
 
 
 @pytest.mark.parametrize("interval", ["step", "epoch"])
-def test_timer_zero_duration_stop(tmpdir, interval):
+def test_timer_zero_duration_stop(tmp_path, interval):
     """Test that the timer stops training immediately after the first check occurs."""
     model = BoringModel()
     duration = timedelta(0)
     timer = Timer(duration=duration, interval=interval)
-    trainer = Trainer(default_root_dir=tmpdir, callbacks=[timer])
+    trainer = Trainer(default_root_dir=tmp_path, callbacks=[timer])
     trainer.fit(model)
     assert trainer.global_step == 0
     assert trainer.current_epoch == 0
 
 
 @pytest.mark.parametrize(("min_steps", "min_epochs"), [(None, 2), (3, None), (3, 2)])
-def test_timer_duration_min_steps_override(tmpdir, min_steps, min_epochs):
+def test_timer_duration_min_steps_override(tmp_path, min_steps, min_epochs):
     model = BoringModel()
     duration = timedelta(0)
     timer = Timer(duration=duration)
-    trainer = Trainer(default_root_dir=tmpdir, callbacks=[timer], min_steps=min_steps, min_epochs=min_epochs)
+    trainer = Trainer(default_root_dir=tmp_path, callbacks=[timer], min_steps=min_steps, min_epochs=min_epochs)
     trainer.fit(model)
     if min_epochs:
         assert trainer.current_epoch >= min_epochs
@@ -144,15 +150,15 @@ def test_timer_duration_min_steps_override(tmpdir, min_steps, min_epochs):
     assert timer.time_elapsed() > duration.total_seconds()
 
 
-def test_timer_resume_training(tmpdir):
+def test_timer_resume_training(tmp_path):
     """Test that the timer can resume together with the Trainer."""
     model = BoringModel()
     timer = Timer(duration=timedelta(milliseconds=200))
-    checkpoint_callback = ModelCheckpoint(dirpath=tmpdir, save_top_k=-1)
+    checkpoint_callback = ModelCheckpoint(dirpath=tmp_path, save_top_k=-1)
 
     # initial training
     trainer = Trainer(
-        default_root_dir=tmpdir,
+        default_root_dir=tmp_path,
         max_epochs=100,
         callbacks=[timer, checkpoint_callback],
     )
@@ -164,19 +170,19 @@ def test_timer_resume_training(tmpdir):
 
     # resume training (with depleted timer)
     timer = Timer(duration=timedelta(milliseconds=200))
-    trainer = Trainer(default_root_dir=tmpdir, callbacks=timer)
+    trainer = Trainer(default_root_dir=tmp_path, callbacks=timer)
     trainer.fit(model, ckpt_path=checkpoint_callback.best_model_path)
     assert timer._offset > 0
     assert trainer.global_step == saved_global_step
 
 
 @RunIf(skip_windows=True)
-def test_timer_track_stages(tmpdir):
+def test_timer_track_stages(tmp_path):
     """Test that the timer tracks time also for other stages (train/val/test)."""
     # note: skipped on windows because time resolution of time.monotonic() is not high enough for this fast test
     model = BoringModel()
     timer = Timer()
-    trainer = Trainer(default_root_dir=tmpdir, max_steps=5, callbacks=[timer])
+    trainer = Trainer(default_root_dir=tmp_path, max_steps=5, callbacks=[timer])
     trainer.fit(model)
     assert timer.time_elapsed() == timer.time_elapsed("train") > 0
     assert timer.time_elapsed("validate") > 0

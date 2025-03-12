@@ -32,8 +32,8 @@ As datasets grow in size and the number of nodes scales, loading training data c
 The `StreamingDataset <https://github.com/mosaicml/streaming>`__ can make training on large datasets from cloud storage
 as fast, cheap, and scalable as possible.
 
-This library uses a custom built class:`~torch.utils.data.IterableDataset`. The library recommends iterating through it
-via a regular class:`~torch.utils.data.DataLoader`. This means that support in the ``Trainer`` is seamless:
+This library uses a custom built :class:`~torch.utils.data.IterableDataset`. The library recommends iterating through it
+via a regular :class:`~torch.utils.data.DataLoader`. This means that support in the ``Trainer`` is seamless:
 
 .. code-block:: python
 
@@ -90,7 +90,7 @@ the desired GPU in your pipeline. When moving data to a specific device, you can
 WebDataset
 ^^^^^^^^^^
 
-The `WebDataset <https://webdataset.github.io/webdataset>`__ makes it easy to write I/O pipelines for large datasets.
+The `WebDataset <https://github.com/webdataset/webdataset>`__ makes it easy to write I/O pipelines for large datasets.
 Datasets can be stored locally or in the cloud. ``WebDataset`` is just an instance of a standard IterableDataset.
 The webdataset library contains a small wrapper (``WebLoader``) that adds a fluid interface to the DataLoader (and is otherwise identical).
 

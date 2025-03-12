@@ -236,6 +236,11 @@ Full example:
     result = fabric.all_gather(data)
     print("Result of all-gather:", result)  # tensor([ 0, 10, 20, 30])
 
+.. warning::
+
+    For the special case where ``world_size`` is 1, no additional dimension is added to the tensor(s). This inconsistency
+    is kept for backward compatibility and you may need to handle this special case in your code to make it agnostic.
+
 
 ----
 

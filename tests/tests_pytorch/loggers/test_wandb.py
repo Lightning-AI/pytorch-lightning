@@ -13,17 +13,20 @@
 # limitations under the License.
 import os
 import pickle
+from pathlib import Path
 from unittest import mock
 
 import pytest
 import yaml
+from lightning_utilities.test.warning import no_warning_call
+
 from lightning.pytorch import Trainer
 from lightning.pytorch.callbacks import ModelCheckpoint
 from lightning.pytorch.cli import LightningCLI
 from lightning.pytorch.demos.boring_classes import BoringModel
-from lightning.pytorch.loggers import WandbLogger
+from lightning.pytorch.loggers import TensorBoardLogger, WandbLogger
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning_utilities.test.warning import no_warning_call
+from tests_pytorch.test_cli import _xfail_python_ge_3_11_9
 
 
 def test_wandb_project_name(wandb_mock):
@@ -111,9 +114,10 @@ def test_wandb_logger_init(wandb_mock):
     wandb_mock.init().log.assert_called_with({"acc": 1.0, "trainer/global_step": 6})
 
     # log hyper parameters
-    hparams = {"test": None, "nested": {"a": 1}, "b": [2, 3, 4]}
+    hparams = {"none": None, "dict": {"a": 1}, "b": [2, 3, 4], "path": Path("path")}
+    expected = {"none": None, "dict": {"a": 1}, "b": [2, 3, 4], "path": "path"}
     logger.log_hyperparams(hparams)
-    wandb_mock.init().config.update.assert_called_once_with(hparams, allow_val_change=True)
+    wandb_mock.init().config.update.assert_called_once_with(expected, allow_val_change=True)
 
     # watch a model
     logger.watch("model", "log", 10, False)
@@ -122,11 +126,66 @@ def test_wandb_logger_init(wandb_mock):
     assert logger.version == wandb_mock.init().id
 
 
+def test_wandb_logger_sync_tensorboard(wandb_mock):
+    logger = WandbLogger(sync_tensorboard=True)
+    wandb_mock.run = None
+    logger.experiment
+
+    # test that tensorboard's global_step is set as the default x-axis if sync_tensorboard=True
+    wandb_mock.init.return_value.define_metric.assert_called_once_with("*", step_metric="global_step")
+
+
+def test_wandb_logger_sync_tensorboard_log_metrics(wandb_mock):
+    logger = WandbLogger(sync_tensorboard=True)
+    metrics = {"loss": 1e-3, "accuracy": 0.99}
+    logger.log_metrics(metrics)
+
+    # test that trainer/global_step is not added to the logged metrics if sync_tensorboard=True
+    wandb_mock.run.log.assert_called_once_with(metrics)
+
+
 def test_wandb_logger_init_before_spawn(wandb_mock):
     logger = WandbLogger()
     assert logger._experiment is None
     logger.__getstate__()
     assert logger._experiment is not None
+
+
+def test_wandb_logger_experiment_called_first(wandb_mock, tmp_path):
+    wandb_experiment_called = False
+
+    def tensorboard_experiment_side_effect() -> mock.MagicMock:
+        nonlocal wandb_experiment_called
+        assert wandb_experiment_called
+        return mock.MagicMock()
+
+    def wandb_experiment_side_effect() -> mock.MagicMock:
+        nonlocal wandb_experiment_called
+        wandb_experiment_called = True
+        return mock.MagicMock()
+
+    with (
+        mock.patch.object(
+            TensorBoardLogger,
+            "experiment",
+            new_callable=lambda: mock.PropertyMock(side_effect=tensorboard_experiment_side_effect),
+        ),
+        mock.patch.object(
+            WandbLogger,
+            "experiment",
+            new_callable=lambda: mock.PropertyMock(side_effect=wandb_experiment_side_effect),
+        ),
+    ):
+        model = BoringModel()
+        trainer = Trainer(
+            default_root_dir=tmp_path,
+            log_every_n_steps=1,
+            limit_train_batches=0,
+            limit_val_batches=0,
+            max_steps=1,
+            logger=[TensorBoardLogger(tmp_path), WandbLogger(save_dir=tmp_path)],
+        )
+        trainer.fit(model)
 
 
 def test_wandb_pickle(wandb_mock, tmp_path):
@@ -436,9 +495,10 @@ def test_wandb_log_media(wandb_mock, tmp_path):
     wandb_mock.init().log.reset_mock()
     logger.log_image(key="samples", images=["1.jpg", "2.jpg"], step=5)
     wandb_mock.Image.assert_called_with("2.jpg")
-    wandb_mock.init().log.assert_called_once_with(
-        {"samples": [wandb_mock.Image(), wandb_mock.Image()], "trainer/global_step": 5}
-    )
+    wandb_mock.init().log.assert_called_once_with({
+        "samples": [wandb_mock.Image(), wandb_mock.Image()],
+        "trainer/global_step": 5,
+    })
 
     # test log_image with captions
     wandb_mock.init().log.reset_mock()
@@ -465,9 +525,10 @@ def test_wandb_log_media(wandb_mock, tmp_path):
     wandb_mock.init().log.reset_mock()
     logger.log_audio(key="samples", audios=["1.mp3", "2.mp3"], step=5)
     wandb_mock.Audio.assert_called_with("2.mp3")
-    wandb_mock.init().log.assert_called_once_with(
-        {"samples": [wandb_mock.Audio(), wandb_mock.Audio()], "trainer/global_step": 5}
-    )
+    wandb_mock.init().log.assert_called_once_with({
+        "samples": [wandb_mock.Audio(), wandb_mock.Audio()],
+        "trainer/global_step": 5,
+    })
 
     # test log_audio with captions
     wandb_mock.init().log.reset_mock()
@@ -494,9 +555,10 @@ def test_wandb_log_media(wandb_mock, tmp_path):
     wandb_mock.init().log.reset_mock()
     logger.log_video(key="samples", videos=["1.mp4", "2.mp4"], step=5)
     wandb_mock.Video.assert_called_with("2.mp4")
-    wandb_mock.init().log.assert_called_once_with(
-        {"samples": [wandb_mock.Video(), wandb_mock.Video()], "trainer/global_step": 5}
-    )
+    wandb_mock.init().log.assert_called_once_with({
+        "samples": [wandb_mock.Video(), wandb_mock.Video()],
+        "trainer/global_step": 5,
+    })
 
     # test log_video with captions
     wandb_mock.init().log.reset_mock()
@@ -545,6 +607,7 @@ def test_wandb_logger_download_artifact(wandb_mock, tmp_path):
     wandb_mock.Api().artifact.assert_called_once_with("test_artifact", type="model")
 
 
+@_xfail_python_ge_3_11_9
 @pytest.mark.parametrize(("log_model", "expected"), [("True", True), ("False", False), ("all", "all")])
 def test_wandb_logger_cli_integration(log_model, expected, wandb_mock, monkeypatch, tmp_path):
     """Test that the WandbLogger can be used with the LightningCLI."""

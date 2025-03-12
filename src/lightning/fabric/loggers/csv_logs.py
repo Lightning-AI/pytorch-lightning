@@ -16,7 +16,7 @@ import csv
 import logging
 import os
 from argparse import Namespace
-from typing import Any, Dict, List, Optional, Set, Union
+from typing import Any, Optional, Union
 
 from torch import Tensor
 from typing_extensions import override
@@ -37,9 +37,12 @@ class CSVLogger(Logger):
 
     Args:
         root_dir: The root directory in which all your experiments with different names and versions will be stored.
-        name: Experiment name. Defaults to ``'lightning_logs'``.
+        name: Experiment name. Defaults to ``'lightning_logs'``. If name is ``None``, logs
+            (versions) will be stored to the save dir directly.
         version: Experiment version. If version is not specified the logger inspects the save
             directory for existing versions, then automatically assigns the next available version.
+            If the version is specified, and the directory already contains a metrics file for that version, it will be
+            overwritten.
         prefix: A string to put at the beginning of metric keys.
         flush_logs_every_n_steps: How often to flush logs to disk (defaults to every 100 steps).
 
@@ -58,7 +61,7 @@ class CSVLogger(Logger):
     def __init__(
         self,
         root_dir: _PATH,
-        name: str = "lightning_logs",
+        name: Optional[str] = "lightning_logs",
         version: Optional[Union[int, str]] = None,
         prefix: str = "",
         flush_logs_every_n_steps: int = 100,
@@ -135,13 +138,13 @@ class CSVLogger(Logger):
 
     @override
     @rank_zero_only
-    def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:  # type: ignore[override]
+    def log_hyperparams(self, params: Union[dict[str, Any], Namespace]) -> None:
         raise NotImplementedError("The `CSVLogger` does not yet support logging hyperparameters.")
 
     @override
     @rank_zero_only
     def log_metrics(  # type: ignore[override]
-        self, metrics: Dict[str, Union[Tensor, float]], step: Optional[int] = None
+        self, metrics: dict[str, Union[Tensor, float]], step: Optional[int] = None
     ) -> None:
         metrics = _add_prefix(metrics, self._prefix, self.LOGGER_JOIN_CHAR)
         if step is None:
@@ -169,7 +172,6 @@ class CSVLogger(Logger):
         versions_root = os.path.join(self._root_dir, self.name)
 
         if not _is_dir(self._fs, versions_root, strict=True):
-            log.warning("Missing logger folder: %s", versions_root)
             return 0
 
         existing_versions = []
@@ -198,21 +200,17 @@ class _ExperimentWriter:
     NAME_METRICS_FILE = "metrics.csv"
 
     def __init__(self, log_dir: str) -> None:
-        self.metrics: List[Dict[str, float]] = []
-        self.metrics_keys: List[str] = []
+        self.metrics: list[dict[str, float]] = []
+        self.metrics_keys: list[str] = []
 
         self._fs = get_filesystem(log_dir)
         self.log_dir = log_dir
-        if self._fs.exists(self.log_dir) and self._fs.listdir(self.log_dir):
-            rank_zero_warn(
-                f"Experiment logs directory {self.log_dir} exists and is not empty."
-                " Previous log files in this directory will be deleted when the new ones are saved!"
-            )
-        self._fs.makedirs(self.log_dir, exist_ok=True)
-
         self.metrics_file_path = os.path.join(self.log_dir, self.NAME_METRICS_FILE)
 
-    def log_metrics(self, metrics_dict: Dict[str, float], step: Optional[int] = None) -> None:
+        self._check_log_dir_exists()
+        self._fs.makedirs(self.log_dir, exist_ok=True)
+
+    def log_metrics(self, metrics_dict: dict[str, float], step: Optional[int] = None) -> None:
         """Record metrics."""
 
         def _handle_value(value: Union[Tensor, Any]) -> Any:
@@ -248,7 +246,7 @@ class _ExperimentWriter:
 
         self.metrics = []  # reset
 
-    def _record_new_keys(self) -> Set[str]:
+    def _record_new_keys(self) -> set[str]:
         """Records new keys that have not been logged before."""
         current_keys = set().union(*self.metrics)
         new_keys = current_keys - set(self.metrics_keys)
@@ -256,7 +254,7 @@ class _ExperimentWriter:
         self.metrics_keys.sort()
         return new_keys
 
-    def _rewrite_with_new_header(self, fieldnames: List[str]) -> None:
+    def _rewrite_with_new_header(self, fieldnames: list[str]) -> None:
         with self._fs.open(self.metrics_file_path, "r", newline="") as file:
             metrics = list(csv.DictReader(file))
 
@@ -264,3 +262,12 @@ class _ExperimentWriter:
             writer = csv.DictWriter(file, fieldnames=fieldnames)
             writer.writeheader()
             writer.writerows(metrics)
+
+    def _check_log_dir_exists(self) -> None:
+        if self._fs.exists(self.log_dir) and self._fs.listdir(self.log_dir):
+            rank_zero_warn(
+                f"Experiment logs directory {self.log_dir} exists and is not empty."
+                " Previous log files in this directory will be deleted when the new ones are saved!"
+            )
+            if self._fs.isfile(self.metrics_file_path):
+                self._fs.rm_file(self.metrics_file_path)

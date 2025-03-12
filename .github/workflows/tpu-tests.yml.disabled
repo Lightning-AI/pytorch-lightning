@@ -1,0 +1,175 @@
+name: Test PyTorch - TPU
+
+on:
+  push:
+    branches: [master, "release/*"]
+  pull_request_target:
+    branches: [master, "release/*"]
+    types: [opened, reopened, ready_for_review, labeled, synchronize]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  test-on-tpus:
+    runs-on: ubuntu-22.04
+    # run only when the PR title contains 'TPU' or is a merge to master
+    if: |
+      (github.event_name == 'push' && github.ref == 'refs/heads/master') ||
+      (startsWith(github.event_name, 'pull_request') && contains(github.event.pull_request.labels.*.name, 'run TPU'))
+    strategy:
+      fail-fast: false
+      matrix:
+        pkg-name: ["fabric", "pytorch"]
+        accelerator_type: ["v4-8"]
+    timeout-minutes: 30
+    env:
+      XLA_VER: "2.0"
+      PR_NUMBER: ${{ github.event.pull_request.number && github.event.pull_request.number || 'master' }}
+      SHA: ${{ github.event.pull_request.head.sha && github.event.pull_request.head.sha || github.sha }}
+      CLOUDSDK_CORE_DISABLE_PROMPTS: 1 # default to --quiet
+    steps:
+      - name: Set env
+        run: |
+          # define --zone: https://cloud.google.com/tpu/docs/regions-zones
+          if [[ "${{ matrix.accelerator_type }}" == v4* ]]; then
+            echo "CLOUDSDK_COMPUTE_ZONE=us-central2-b" >> $GITHUB_ENV
+          else
+            echo "CLOUDSDK_COMPUTE_ZONE=us-west4-a" >> $GITHUB_ENV
+          fi
+
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GKE_SA_KEY_BASE64 }}
+      - uses: "google-github-actions/setup-gcloud@v2"
+
+      - name: Time-based job cleanup
+        if: always()
+        run: |
+          gcloud compute tpus tpu-vm list --format='value(name,createTime)' > creation_times.txt
+          cat creation_times.txt
+
+          if [ ! -s "creation_times.txt" ]; then
+            echo "No existing jobs"
+            exit 0
+          fi
+
+          jobs_deleted=false
+          while read -r job_name created_at; do
+            # Skip jobs with "keepalive" in the name
+            if [[ "$job_name" == *"keepalive"* ]]; then
+              echo "Skipping $job_name, has keepalive in name"
+              continue
+            fi
+
+            # Convert the creation time to Unix timestamp
+            created_timestamp=$(date -d "${created_at}" +%s)
+
+            # Calculate the difference between the current time and the creation time
+            current_timestamp=$(date +%s)
+            age=$((current_timestamp - created_timestamp))
+
+            # Check if the age has surpassed a timeout
+            if ((age > 35 * 60)); then
+              # delete the job
+              gcloud compute tpus tpu-vm delete "$job_name" --async
+              jobs_deleted=true
+            else
+              echo "Skipping $job_name, alive for $age seconds"
+            fi
+          done < creation_times.txt
+
+          if [ "$jobs_deleted" = true ]; then
+            sleep 5
+            # diagnostics
+            gcloud compute tpus tpu-vm list
+          fi
+
+      - name: Update script
+        run: |
+          import os
+          fname = f'tests/tests_${{ matrix.pkg-name }}/run_tpu_tests.sh'
+          with open(fname) as fopen:
+              data = fopen.read()
+          data = data.replace('{PYTORCH_VERSION}', os.environ["XLA_VER"])
+          print(data)
+          with open(fname, "w") as fopen:
+              fopen.write(data)
+        shell: python
+
+      - name: Create node
+        id: tpu-create
+        # TPU capacity is very limited so this workflow's success is optional. continue normally if creation fails
+        continue-on-error: true
+        env:
+          JOB_NAME: ${{ env.PR_NUMBER }}-${{ matrix.pkg-name }}-${{ matrix.accelerator_type }}-${{ env.SHA }}
+        run: |
+          if [[ "${{ matrix.accelerator_type }}" == v4* ]]; then
+            gcloud compute tpus tpu-vm create "$JOB_NAME" \
+              --accelerator-type=${{ matrix.accelerator_type }} \
+              --version="tpu-vm-v4-pt-$XLA_VER" \
+              --preemptible
+          fi
+
+      - name: Run tests
+        if: steps.tpu-create.outcome == 'success'
+        env:
+          JOB_NAME: ${{ env.PR_NUMBER }}-${{ matrix.pkg-name }}-${{ matrix.accelerator_type }}-${{ env.SHA }}
+        run: |
+          set -uex
+
+          # zip-copy-unzip the repository
+          zip -q -r repo.zip . -x .git/
+          gcloud compute tpus tpu-vm scp --worker=all repo.zip "$JOB_NAME":~
+          gcloud compute tpus tpu-vm ssh "$JOB_NAME" --worker=all --command="cd ~; unzip -q -o repo.zip"
+
+          # run script
+          gcloud compute tpus tpu-vm ssh "$JOB_NAME" --worker=all --command="cd ~; bash tests/tests_${{ matrix.pkg-name }}/run_tpu_tests.sh"
+          exit_code=$?
+
+          # pull out the coverage file
+          gcloud compute tpus tpu-vm scp "$JOB_NAME":~/coverage.xml .
+
+          exit $exit_code
+
+      - name: Cleanup job
+        if: always()
+        env:
+          JOB_NAME: ${{ env.PR_NUMBER }}-${{ matrix.pkg-name }}-${{ matrix.accelerator_type }}-${{ env.SHA }}
+        run: |
+          if ! gcloud compute tpus tpu-vm list | grep -q "$JOB_NAME"; then
+            echo "$JOB_NAME wasn't created"
+            exit 0
+          fi
+
+          # diagnostics
+          gcloud compute tpus tpu-vm describe "$JOB_NAME"
+
+          # delete the job
+          gcloud compute tpus tpu-vm delete "$JOB_NAME" --async
+          sleep 5
+
+          # diagnostics
+          gcloud compute tpus tpu-vm list
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        continue-on-error: true
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          file: coverage.xml
+          flags: tpu,pytest
+          name: TPU-coverage
+          fail_ci_if_error: false

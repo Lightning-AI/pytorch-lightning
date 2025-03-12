@@ -7,6 +7,7 @@
    ../generated/CONTRIBUTING.md
    ../generated/BECOMING_A_CORE_CONTRIBUTOR.md
    governance
+   ecosystem-ci
    ../versioning
    ../past_versions
    ../generated/CHANGELOG.md
@@ -35,7 +36,7 @@ Community
    :height: 100
 
 .. displayitem::
-   :header: How to Become a core contributor
+   :header: How to become a core contributor
    :description: Steps to be a core contributor
    :col_css: col-md-12
    :button_link: ../generated/BECOMING_A_CORE_CONTRIBUTOR.html
@@ -67,6 +68,13 @@ Community
    :description: All notable changes to PyTorch Lightning
    :col_css: col-md-12
    :button_link: ../generated/CHANGELOG.html
+   :height: 100
+
+.. displayitem::
+   :header: Ecosystem CI
+   :description: Automate issue discovery for your projects against Lightning nightly and releases
+   :col_css: col-md-12
+   :button_link: ecosystem-ci.html
    :height: 100
 
 .. raw:: html

@@ -15,11 +15,10 @@ from unittest.mock import Mock
 
 import pytest
 import torch
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
+
 from lightning.pytorch import Trainer
 from lightning.pytorch.plugins import DoublePrecision, HalfPrecision, Precision
 from lightning.pytorch.strategies import SingleDeviceStrategy
-
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.simple_models import ClassificationModel
@@ -34,11 +33,11 @@ from tests_pytorch.helpers.simple_models import ClassificationModel
     ],
 )
 @RunIf(sklearn=True)
-def test_evaluate(tmpdir, trainer_kwargs):
+def test_evaluate(tmp_path, trainer_kwargs):
     dm = ClassifDataModule()
     model = ClassificationModel()
     trainer = Trainer(
-        default_root_dir=tmpdir, max_epochs=2, limit_train_batches=10, limit_val_batches=10, **trainer_kwargs
+        default_root_dir=tmp_path, max_epochs=2, limit_train_batches=10, limit_val_batches=10, **trainer_kwargs
     )
 
     trainer.fit(model, datamodule=dm)
@@ -54,7 +53,6 @@ def test_evaluate(tmpdir, trainer_kwargs):
     torch.testing.assert_close(old_weights, new_weights)
 
 
-@RunIf(min_torch="1.13")
 @pytest.mark.parametrize(
     "device",
     [
@@ -83,8 +81,7 @@ def test_module_init_context(device, precision, dtype, empty_init, monkeypatch):
     with strategy.tensor_init_context(empty_init=empty_init):
         module = torch.nn.Linear(2, 2)
 
-    expected_device = device if _TORCH_GREATER_EQUAL_2_0 else torch.device("cpu")
-    assert module.weight.device == module.bias.device == expected_device
+    assert module.weight.device == module.bias.device == device
     assert module.weight.dtype == module.bias.dtype == dtype
     if not empty_init:
         init_mock.assert_called()

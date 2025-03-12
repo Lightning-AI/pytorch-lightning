@@ -11,22 +11,27 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import os
 import sys
+from contextlib import nullcontext
 from unittest import mock
 
 import pytest
 import torch
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_1
+from lightning_utilities.core.imports import RequirementCache
+
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_2, _TORCH_GREATER_EQUAL_2_4
 from lightning.pytorch import LightningModule, Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.utilities.compile import from_compiled, to_uncompiled
-from lightning_utilities.core import module_available
-
 from tests_pytorch.conftest import mock_cuda_count
 from tests_pytorch.helpers.runif import RunIf
 
+_PYTHON_GREATER_EQUAL_3_9_0 = (sys.version_info.major, sys.version_info.minor) >= (3, 9)
 
-@pytest.mark.skipif(sys.platform == "darwin" and not _TORCH_GREATER_EQUAL_2_1, reason="Fix for MacOS in PyTorch 2.1")
+
+# https://github.com/pytorch/pytorch/issues/95708
+@pytest.mark.skipif(sys.platform == "darwin", reason="fatal error: 'omp.h' file not found")
 @RunIf(dynamo=True)
 @mock.patch("lightning.pytorch.trainer.call._call_and_handle_interrupt")
 def test_trainer_compiled_model(_, tmp_path, monkeypatch, mps_count_0):
@@ -64,10 +69,20 @@ def test_trainer_compiled_model(_, tmp_path, monkeypatch, mps_count_0):
     assert trainer.model._compiler_ctx is None
 
     # some strategies do not support it
-    if module_available("deepspeed"):
+    if RequirementCache("deepspeed"):
         compiled_model = torch.compile(model)
         mock_cuda_count(monkeypatch, 2)
-        trainer = Trainer(strategy="deepspeed", accelerator="cuda", **trainer_kwargs)
+
+        # TODO: Update deepspeed to avoid deprecation warning for `torch.cuda.amp.custom_fwd` on import
+        warn_context = (
+            pytest.warns(FutureWarning, match="torch.cuda.amp.*is deprecated")
+            if _TORCH_GREATER_EQUAL_2_4
+            else nullcontext()
+        )
+
+        with warn_context:
+            trainer = Trainer(strategy="deepspeed", accelerator="cuda", **trainer_kwargs)
+
         with pytest.raises(RuntimeError, match="Using a compiled model is incompatible with the current strategy.*"):
             trainer.fit(compiled_model)
 
@@ -112,8 +127,14 @@ def test_compile_uncompile():
     assert not has_dynamo(to_uncompiled_model.predict_step)
 
 
-@pytest.mark.skipif(sys.platform == "darwin" and not _TORCH_GREATER_EQUAL_2_1, reason="Fix for MacOS in PyTorch 2.1")
+# https://github.com/pytorch/pytorch/issues/95708
+@pytest.mark.skipif(sys.platform == "darwin", reason="fatal error: 'omp.h' file not found")
+@pytest.mark.skipif(not _PYTHON_GREATER_EQUAL_3_9_0, reason="AssertionError: failed to reach fixed point")
+@pytest.mark.xfail(
+    sys.platform == "win32" and _TORCH_GREATER_EQUAL_2_2, strict=False, reason="RuntimeError: Failed to import"
+)
 @RunIf(dynamo=True)
+@mock.patch.dict(os.environ, {})
 def test_trainer_compiled_model_that_logs(tmp_path):
     class MyModel(BoringModel):
         def training_step(self, batch, batch_idx):
@@ -137,8 +158,14 @@ def test_trainer_compiled_model_that_logs(tmp_path):
     assert set(trainer.callback_metrics) == {"loss"}
 
 
-@pytest.mark.skipif(sys.platform == "darwin" and not _TORCH_GREATER_EQUAL_2_1, reason="Fix for MacOS in PyTorch 2.1")
+# https://github.com/pytorch/pytorch/issues/95708
+@pytest.mark.skipif(sys.platform == "darwin", reason="fatal error: 'omp.h' file not found")
+@pytest.mark.skipif(not _PYTHON_GREATER_EQUAL_3_9_0, reason="AssertionError: failed to reach fixed point")
+@pytest.mark.xfail(
+    sys.platform == "win32" and _TORCH_GREATER_EQUAL_2_2, strict=False, reason="RuntimeError: Failed to import"
+)
 @RunIf(dynamo=True)
+@mock.patch.dict(os.environ, {})
 def test_trainer_compiled_model_test(tmp_path):
     model = BoringModel()
     compiled_model = torch.compile(model)

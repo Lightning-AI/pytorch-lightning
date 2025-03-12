@@ -18,14 +18,14 @@ from unittest.mock import ANY, MagicMock, Mock
 
 import pytest
 import torch
-from lightning.fabric.accelerators.xla import _XLA_GREATER_EQUAL_2_1, XLAAccelerator, _using_pjrt
+from torch.utils.data import DataLoader
+
+from lightning.fabric.accelerators.xla import _XLA_GREATER_EQUAL_2_1, XLAAccelerator
 from lightning.fabric.strategies import XLAStrategy
 from lightning.fabric.strategies.launchers.xla import _XLALauncher
 from lightning.fabric.utilities.distributed import ReduceOp
 from lightning.fabric.utilities.seed import seed_everything
-from torch.utils.data import DataLoader
-
-from tests_fabric.helpers.models import RandomDataset
+from tests_fabric.helpers.datasets import RandomDataset
 from tests_fabric.helpers.runif import RunIf
 
 
@@ -63,19 +63,12 @@ def broadcast_on_tpu_fn(strategy):
     assert result.device.type == "cpu"  # the original device is preserved
 
     # test broadcasting an arbitrary object
-    if _using_pjrt():
-        tensor = torch.tensor(strategy.global_rank, device=strategy.root_device, dtype=torch.bfloat16)
-        obj = ("ver_0.5", "logger_name", strategy.global_rank, tensor)
-        result = strategy.broadcast(obj, src=src)
-        assert result == ("ver_0.5", "logger_name", src, ANY)
-        assert result[3].device.type == "xla"  # the original device is preserved
-        assert result[3].dtype == torch.bfloat16
-    else:
-        # XRT fails to unpickle tensors, segfaults with
-        # RuntimeError: vector::_M_range_check: __n (which is 1) >= this->size() (which is 1)
-        obj = ("ver_0.5", "logger_name", strategy.global_rank)
-        result = strategy.broadcast(obj, src=src)
-        assert result == ("ver_0.5", "logger_name", src)
+    tensor = torch.tensor(strategy.global_rank, device=strategy.root_device, dtype=torch.bfloat16)
+    obj = ("ver_0.5", "logger_name", strategy.global_rank, tensor)
+    result = strategy.broadcast(obj, src=src)
+    assert result == ("ver_0.5", "logger_name", src, ANY)
+    assert result[3].device.type == "xla"  # the original device is preserved
+    assert result[3].dtype == torch.bfloat16
 
 
 @RunIf(tpu=True)
@@ -168,7 +161,7 @@ def test_tpu_all_gather():
 
 
 def tpu_sync_module_states_fn(sync_module_states, strategy):
-    seed_everything()
+    seed_everything(strategy.local_rank)  # force the model to have different weights across ranks
     model = torch.nn.Linear(1, 1).to(strategy.root_device)
     model = strategy.setup_module(model)
     gathered = strategy.all_gather(model.weight)

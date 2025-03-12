@@ -12,23 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import time
-from unittest import mock
 from unittest.mock import Mock
 
 import pytest
 import torch.nn
-from lightning.fabric.utilities.init import _EmptyInit, _materialize_meta_tensors
 
+from lightning.fabric.utilities.init import (
+    _EmptyInit,
+    _has_meta_device_parameters_or_buffers,
+    _materialize_meta_tensors,
+)
 from tests_fabric.helpers.runif import RunIf
 
 
-@mock.patch("lightning.fabric.utilities.init._TORCH_GREATER_EQUAL_1_13", False)
-def test_module_init_context_empty_init_support():
-    with pytest.raises(NotImplementedError, match="Emtpy weight initialization requires PyTorch >= 1.13"), _EmptyInit():
-        pass
-
-
-@RunIf(min_cuda_gpus=1, min_torch="1.13")
+@RunIf(min_cuda_gpus=1)
 def test_empty_init(monkeypatch):
     """Test that `_EmptyInit()` skips initialization and allocates uninitialized memory."""
     init_mock = Mock()
@@ -43,7 +40,7 @@ def test_empty_init(monkeypatch):
     init_mock.assert_called()
 
 
-@RunIf(min_cuda_gpus=1, min_torch="1.13")
+@RunIf(min_cuda_gpus=1)
 def test_empty_init_speed():
     """Test that `_EmptyInit()` is faster than regular initialization."""
     t0 = time.perf_counter()
@@ -61,7 +58,6 @@ def test_empty_init_speed():
     assert normal_init_time > 2 * empty_init_time
 
 
-@RunIf(min_torch="2.1")
 def test_materialize_meta_tensors():
     class Submodule(torch.nn.Module):
         def __init__(self):
@@ -92,3 +88,30 @@ def test_materialize_meta_tensors():
     assert model.buf.device.type == "cpu"
     assert len(list(model.parameters())) == 4
     assert all(p.device.type == "cpu" for p in model.parameters())
+
+
+def test_has_meta_device_parameters_or_buffers():
+    """Test that the `_has_meta_device_parameters_or_buffers` function can find meta-device parameters in models and
+    optimizers."""
+
+    class BufferModule(torch.nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.register_buffer("buffer", torch.ones(2, device="meta"))
+
+    # nn.Module
+    module = torch.nn.Linear(2, 2)
+    meta_module = torch.nn.Linear(2, 2, device="meta")
+    buffer_meta_module = BufferModule()
+    assert not _has_meta_device_parameters_or_buffers(module)
+    assert _has_meta_device_parameters_or_buffers(meta_module)
+    assert _has_meta_device_parameters_or_buffers(torch.nn.Sequential(module, meta_module, torch.nn.ReLU()))
+    assert _has_meta_device_parameters_or_buffers(buffer_meta_module)
+    # optim.Optimizer
+    optimizer = torch.optim.SGD(module.parameters(), lr=0.1)
+    meta_optimizer = torch.optim.SGD(meta_module.parameters(), lr=0.1)
+    assert not _has_meta_device_parameters_or_buffers(optimizer)
+    assert _has_meta_device_parameters_or_buffers(meta_optimizer)
+    # unsupported objects
+    with pytest.raises(TypeError, match="Expected `torch.nn.Module` or `torch.optim.Optimizer`"):
+        _has_meta_device_parameters_or_buffers(None)

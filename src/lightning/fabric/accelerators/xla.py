@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import functools
-from typing import Any, List, Union
+from typing import Any, Union
 
 import torch
 from lightning_utilities.core.imports import RequirementCache
@@ -33,6 +33,8 @@ class XLAAccelerator(Accelerator):
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         if not _XLA_AVAILABLE:
             raise ModuleNotFoundError(str(_XLA_AVAILABLE))
+        if not _using_pjrt():
+            raise RuntimeError("The XLA XRT runtime is not supported anymore.")
         super().__init__(*args, **kwargs)
 
     @override
@@ -45,23 +47,19 @@ class XLAAccelerator(Accelerator):
 
     @staticmethod
     @override
-    def parse_devices(devices: Union[int, str, List[int]]) -> Union[int, List[int]]:
+    def parse_devices(devices: Union[int, str, list[int]]) -> Union[int, list[int]]:
         """Accelerator device parsing logic."""
         return _parse_tpu_devices(devices)
 
     @staticmethod
     @override
-    def get_parallel_devices(devices: Union[int, List[int]]) -> List[torch.device]:
+    def get_parallel_devices(devices: Union[int, list[int]]) -> list[torch.device]:
         """Gets parallel devices for the Accelerator."""
         devices = _parse_tpu_devices(devices)
-        # In XLA XRT index 0 maps to CPU, in fact, a `xla_device()` with no arguments has index 1
-        # since the user passes a 0-based index, we need to adjust the indices
-        device_offset = 0 if _using_pjrt() else 1
-
         if isinstance(devices, int):
-            return [torch.device("xla", i) for i in range(device_offset, devices + device_offset)]
+            return [torch.device("xla", i) for i in range(devices)]
         # list of devices is not supported, just a specific index, fine to access [0]
-        return [torch.device("xla", devices[0] + device_offset)]
+        return [torch.device("xla", devices[0])]
         # we cannot create `xla_device` here because processes have not been spawned yet (this is called in the
         # accelerator connector init). However, there doesn't seem to be a problem with instantiating `torch.device`.
         # it will be replaced with `xla_device` (also a torch.device`, but with extra logic) in the strategy
@@ -75,19 +73,14 @@ class XLAAccelerator(Accelerator):
         """Get the devices when set to auto."""
         if not _XLA_AVAILABLE:
             return 0
-        import torch_xla.core.xla_env_vars as xenv
-        from torch_xla.utils.utils import getenv_as
+        if _XLA_GREATER_EQUAL_2_1:
+            from torch_xla._internal import tpu
 
-        if _using_pjrt():
-            if _XLA_GREATER_EQUAL_2_1:
-                from torch_xla._internal import tpu
+            return tpu.num_available_devices()
+        from torch_xla.experimental import tpu
 
-                return tpu.num_available_devices()
-            from torch_xla.experimental import tpu
-
-            device_count_on_version = {2: 8, 3: 8, 4: 4}
-            return device_count_on_version.get(tpu.version(), 8)
-        return getenv_as(xenv.TPU_NUM_DEVICES, int, 8)
+        device_count_on_version = {2: 8, 3: 8, 4: 4}
+        return device_count_on_version.get(tpu.version(), 8)
 
     @staticmethod
     @override
@@ -109,20 +102,27 @@ class XLAAccelerator(Accelerator):
 # PJRT support requires this minimum version
 _XLA_AVAILABLE = RequirementCache("torch_xla>=1.13", "torch_xla")
 _XLA_GREATER_EQUAL_2_1 = RequirementCache("torch_xla>=2.1")
+_XLA_GREATER_EQUAL_2_5 = RequirementCache("torch_xla>=2.5")
 
 
 def _using_pjrt() -> bool:
+    # `using_pjrt` is removed in torch_xla 2.5
+    if _XLA_GREATER_EQUAL_2_5:
+        from torch_xla import runtime as xr
+
+        return xr.device_type() is not None
     # delete me when torch_xla 2.2 is the min supported version, where XRT support has been dropped.
     if _XLA_GREATER_EQUAL_2_1:
         from torch_xla import runtime as xr
 
         return xr.using_pjrt()
+
     from torch_xla.experimental import pjrt
 
     return pjrt.using_pjrt()
 
 
-def _parse_tpu_devices(devices: Union[int, str, List[int]]) -> Union[int, List[int]]:
+def _parse_tpu_devices(devices: Union[int, str, list[int]]) -> Union[int, list[int]]:
     """Parses the TPU devices given in the format as accepted by the
     :class:`~lightning.pytorch.trainer.trainer.Trainer` and :class:`~lightning.fabric.Fabric`.
 
@@ -159,7 +159,7 @@ def _check_tpu_devices_valid(devices: object) -> None:
     )
 
 
-def _parse_tpu_devices_str(devices: str) -> Union[int, List[int]]:
+def _parse_tpu_devices_str(devices: str) -> Union[int, list[int]]:
     devices = devices.strip()
     try:
         return int(devices)
