@@ -45,5 +45,5 @@ Training successfully completed!
 Peak memory usage: 36.73 GB
 ```
 
-> \[!NOTE\]
+> [!NOTE]
 > The `ModelParallelStrategy` is experimental and subject to change. Report issues on [GitHub](https://github.com/Lightning-AI/pytorch-lightning/issues).

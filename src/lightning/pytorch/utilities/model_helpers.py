@@ -104,7 +104,7 @@ _P = ParamSpec("_P")  # parameters of the decorated method
 _R_co = TypeVar("_R_co", covariant=True)  # return type of the decorated method
 
 
-class _restricted_classmethod_impl(Generic[_T, _P, _R_co]):
+class _restricted_classmethod_impl(Generic[_T, _R_co, _P]):
     """Drop-in replacement for @classmethod, but raises an exception when the decorated method is called on an instance
     instead of a class type."""
 

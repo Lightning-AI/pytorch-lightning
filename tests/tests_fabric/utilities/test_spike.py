@@ -3,6 +3,7 @@ import sys
 
 import pytest
 import torch
+
 from lightning.fabric import Fabric
 from lightning.fabric.utilities.spike import _TORCHMETRICS_GREATER_EQUAL_1_0_0, SpikeDetection, TrainingSpikeException
 

@@ -1,9 +1,10 @@
 import sys
 from unittest.mock import Mock
 
-import lightning.fabric
 import pytest
 import torch.nn
+
+import lightning.fabric
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.plugins.precision.double import LightningDoublePrecisionModule

@@ -145,7 +145,7 @@ class EarlyStopping(Callback):
         error_msg = (
             f"Early stopping conditioned on metric `{self.monitor}` which is not available."
             " Pass in or modify your `EarlyStopping` callback to use any of the following:"
-            f' `{"`, `".join(list(logs.keys()))}`'
+            f" `{'`, `'.join(list(logs.keys()))}`"
         )
 
         if monitor_val is None:

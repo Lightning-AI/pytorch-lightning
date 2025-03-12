@@ -15,9 +15,10 @@ import sys
 from contextlib import nullcontext
 from unittest.mock import ANY, Mock
 
-import lightning.fabric
 import pytest
 import torch
+
+import lightning.fabric
 from lightning.pytorch import LightningModule, Trainer
 from lightning.pytorch.plugins import TransformerEnginePrecision
 from lightning.pytorch.trainer.connectors.accelerator_connector import _AcceleratorConnector

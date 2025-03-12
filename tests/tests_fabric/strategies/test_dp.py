@@ -16,9 +16,9 @@ from unittest.mock import MagicMock, Mock
 
 import pytest
 import torch
+
 from lightning.fabric import Fabric
 from lightning.fabric.strategies import DataParallelStrategy
-
 from tests_fabric.helpers.runif import RunIf
 from tests_fabric.strategies.test_single_device import _run_test_clip_gradients
 

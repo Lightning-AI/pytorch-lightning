@@ -20,16 +20,16 @@ import pytest
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from torch.utils.data import DataLoader, DistributedSampler
+
 from lightning.fabric import Fabric
 from lightning.fabric.strategies.model_parallel import ModelParallelStrategy, _load_raw_module_state
 from lightning.fabric.utilities.load import _load_distributed_checkpoint
-from torch.utils.data import DataLoader, DistributedSampler
-
 from tests_fabric.helpers.datasets import RandomDataset
 from tests_fabric.helpers.runif import RunIf
 
 
-@pytest.fixture()
+@pytest.fixture
 def distributed():
     yield
     if torch.distributed.is_initialized():

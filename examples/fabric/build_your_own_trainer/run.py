@@ -1,7 +1,8 @@
-import lightning as L
 import torch
 from torchmetrics.functional.classification.accuracy import accuracy
 from trainer import MyCustomTrainer
+
+import lightning as L
 
 
 class MNISTModule(L.LightningModule):

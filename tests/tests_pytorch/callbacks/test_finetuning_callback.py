@@ -15,14 +15,14 @@ from collections import OrderedDict
 
 import pytest
 import torch
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_3
-from lightning.pytorch import LightningModule, Trainer, seed_everything
-from lightning.pytorch.callbacks import BackboneFinetuning, BaseFinetuning, ModelCheckpoint
-from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
 from torch import nn
 from torch.optim import SGD, Optimizer
 from torch.utils.data import DataLoader
 
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_3
+from lightning.pytorch import LightningModule, Trainer, seed_everything
+from lightning.pytorch.callbacks import BackboneFinetuning, BaseFinetuning, ModelCheckpoint
+from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
 from tests_pytorch.helpers.runif import RunIf
 
 

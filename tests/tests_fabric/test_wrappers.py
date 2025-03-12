@@ -16,6 +16,10 @@ from unittest.mock import Mock, call
 
 import pytest
 import torch
+from torch._dynamo import OptimizedModule
+from torch.utils.data import BatchSampler, DistributedSampler
+from torch.utils.data.dataloader import DataLoader
+
 from lightning.fabric.fabric import Fabric
 from lightning.fabric.plugins import Precision
 from lightning.fabric.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
@@ -28,10 +32,6 @@ from lightning.fabric.wrappers import (
     _unwrap_objects,
     is_wrapped,
 )
-from torch._dynamo import OptimizedModule
-from torch.utils.data import BatchSampler, DistributedSampler
-from torch.utils.data.dataloader import DataLoader
-
 from tests_fabric.helpers.runif import RunIf
 
 

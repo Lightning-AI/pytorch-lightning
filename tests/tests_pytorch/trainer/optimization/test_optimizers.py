@@ -16,6 +16,8 @@ from unittest.mock import call
 
 import pytest
 import torch
+from torch import optim
+
 from lightning.pytorch import Trainer
 from lightning.pytorch.callbacks import ModelCheckpoint
 from lightning.pytorch.core.optimizer import (
@@ -26,8 +28,6 @@ from lightning.pytorch.core.optimizer import (
 from lightning.pytorch.demos.boring_classes import BoringDataModule, BoringModel
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.types import LRSchedulerConfig
-from torch import optim
-
 from tests_pytorch.helpers.runif import RunIf
 
 

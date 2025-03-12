@@ -43,13 +43,14 @@ import torch.utils.data
 import torch.utils.data.distributed
 import torchvision.datasets as datasets
 import torchvision.transforms as transforms
+from torch.utils.data import Dataset
+from torchmetrics import Accuracy
+
 from lightning.pytorch import LightningModule
 from lightning.pytorch.callbacks import ModelCheckpoint, TQDMProgressBar
 from lightning.pytorch.cli import LightningCLI
 from lightning.pytorch.strategies import ParallelStrategy
 from lightning.pytorch.utilities.model_helpers import get_torchvision_model
-from torch.utils.data import Dataset
-from torchmetrics import Accuracy
 
 
 class ImageNetLightningModel(LightningModule):

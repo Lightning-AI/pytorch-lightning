@@ -17,6 +17,7 @@ from unittest import mock
 
 import pytest
 import torch
+
 from lightning.fabric.plugins import XLAPrecision
 
 

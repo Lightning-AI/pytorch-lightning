@@ -14,9 +14,10 @@
 from unittest.mock import Mock
 
 import pytest
+from torch.optim import Optimizer
+
 from lightning.pytorch.plugins import MixedPrecision
 from lightning.pytorch.utilities import GradClipAlgorithmType
-from torch.optim import Optimizer
 
 
 def test_clip_gradients():

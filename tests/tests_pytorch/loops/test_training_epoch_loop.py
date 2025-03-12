@@ -16,11 +16,12 @@ from unittest.mock import Mock, patch
 
 import pytest
 import torch
+from lightning_utilities.test.warning import no_warning_call
+
 from lightning.fabric.utilities.warnings import PossibleUserWarning
 from lightning.pytorch.callbacks import ModelCheckpoint
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.trainer.trainer import Trainer
-from lightning_utilities.test.warning import no_warning_call
 
 
 def test_no_val_on_train_epoch_loop_restart(tmp_path):

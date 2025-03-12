@@ -3,15 +3,16 @@ from collections.abc import Iterable, Mapping
 from functools import partial
 from typing import Any, Literal, Optional, Union, cast
 
-import lightning as L
 import torch
+from lightning_utilities import apply_to_collection
+from tqdm import tqdm
+
+import lightning as L
 from lightning.fabric.accelerators import Accelerator
 from lightning.fabric.loggers import Logger
 from lightning.fabric.strategies import Strategy
 from lightning.fabric.wrappers import _unwrap_objects
 from lightning.pytorch.utilities.model_helpers import is_overridden
-from lightning_utilities import apply_to_collection
-from tqdm import tqdm
 
 
 class MyCustomTrainer:

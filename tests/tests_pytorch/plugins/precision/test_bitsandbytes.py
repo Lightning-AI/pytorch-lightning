@@ -11,19 +11,22 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License
+import platform
 import sys
 from unittest.mock import Mock
 
-import lightning.fabric
 import pytest
 import torch
 import torch.distributed
+
+import lightning.fabric
 from lightning.fabric.plugins.precision.bitsandbytes import _BITSANDBYTES_AVAILABLE
 from lightning.pytorch import LightningModule, Trainer
 from lightning.pytorch.plugins.precision.bitsandbytes import BitsandbytesPrecision
 
 
 @pytest.mark.skipif(_BITSANDBYTES_AVAILABLE, reason="bitsandbytes needs to be unavailable")
+@pytest.mark.skipif(platform.system() == "Darwin", reason="Bitsandbytes is only supported on CUDA GPUs")  # skip on Mac
 def test_bitsandbytes_plugin(monkeypatch):
     module = lightning.fabric.plugins.precision.bitsandbytes
     monkeypatch.setattr(module, "_BITSANDBYTES_AVAILABLE", lambda: True)

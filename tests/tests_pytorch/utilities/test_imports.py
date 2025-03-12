@@ -19,10 +19,10 @@ from textwrap import dedent
 from unittest import mock
 
 import pytest
-from lightning.pytorch.utilities.imports import _OMEGACONF_AVAILABLE
 from lightning_utilities.core.imports import RequirementCache
 from torch.distributed import is_available
 
+from lightning.pytorch.utilities.imports import _OMEGACONF_AVAILABLE
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -60,7 +60,7 @@ def _shortcut_patch(orig_fn, shortcut_case, attr_names=None):
     return new_fn
 
 
-@pytest.fixture()
+@pytest.fixture
 def clean_import():
     """This fixture allows test to import {pytorch_}lightning* modules completely cleanly, regardless of the current
     state of the imported modules.

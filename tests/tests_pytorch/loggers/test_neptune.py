@@ -17,9 +17,10 @@ from collections import namedtuple
 from unittest import mock
 from unittest.mock import MagicMock, call
 
-import lightning.pytorch as pl
 import pytest
 import torch
+
+import lightning.pytorch as pl
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.loggers import NeptuneLogger

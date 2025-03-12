@@ -1,11 +1,13 @@
 import os
 import random
+import warnings
 from unittest import mock
 from unittest.mock import Mock
 
 import numpy
 import pytest
 import torch
+
 from lightning.fabric.utilities.seed import (
     _collect_rng_states,
     _set_rng_states,
@@ -29,9 +31,9 @@ def test_seed_stays_same_with_multiple_seed_everything_calls():
         seed_everything()
     initial_seed = os.environ.get("PL_GLOBAL_SEED")
 
-    with pytest.warns(None) as record:
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
         seed_everything()
-    assert not record  # does not warn
     seed = os.environ.get("PL_GLOBAL_SEED")
 
     assert initial_seed == seed

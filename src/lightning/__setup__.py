@@ -98,14 +98,13 @@ def _setup_args() -> dict[str, Any]:
         "entry_points": {
             "console_scripts": [
                 "fabric = lightning.fabric.cli:_main",
-                "lightning = lightning.fabric.cli:_legacy_main",
             ],
         },
         "setup_requires": [],
         "install_requires": install_requires,
         "extras_require": _prepare_extras(),
         "project_urls": {
-            "Bug Tracker": "https://github.com/Lightning-AI/lightning/issues",
+            "Bug Tracker": "https://github.com/Lightning-AI/pytorch-lightning/issues",
             "Documentation": "https://lightning.ai/lightning-docs",
             "Source Code": "https://github.com/Lightning-AI/lightning",
         },

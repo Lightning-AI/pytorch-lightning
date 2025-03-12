@@ -14,10 +14,11 @@
 import logging
 
 import pytest
+from torch.utils.data import DataLoader
+
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset, RandomIterableDataset
 from lightning.pytorch.trainer.trainer import Trainer
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from torch.utils.data import DataLoader
 
 
 @pytest.mark.parametrize("max_epochs", [1, 2, 3])

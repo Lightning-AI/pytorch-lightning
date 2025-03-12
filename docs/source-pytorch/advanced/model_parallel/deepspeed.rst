@@ -319,7 +319,7 @@ Additionally, DeepSpeed supports offloading to NVMe drives for even larger model
     )
     trainer.fit(model)
 
-When offloading to NVMe you may notice that the speed is slow. There are parameters that need to be tuned based on the drives that you are using. Running the `aio_bench_perf_sweep.py <https://github.com/microsoft/DeepSpeed/blob/master/csrc/aio/py_test/aio_bench_perf_sweep.py>`__ script can help you to find optimum parameters. See the `issue <https://github.com/microsoft/DeepSpeed/issues/998>`__ for more information on how to parse the information.
+When offloading to NVMe you may notice that the speed is slow. There are parameters that need to be tuned based on the drives that you are using. Running the `aio_bench_perf_sweep.py <https://github.com/microsoft/DeepSpeed/blob/master/csrc/aio/py_test/aio_bench_perf_sweep.py>`__ script can help you to find optimum parameters. See the `issue <https://github.com/deepspeedai/DeepSpeed/issues/998>`__ for more information on how to parse the information.
 
 .. _deepspeed-activation-checkpointing:
 

@@ -156,7 +156,7 @@ class _SubprocessScriptLauncher(_Launcher):
 
 
 def _basic_subprocess_cmd() -> Sequence[str]:
-    import __main__  # local import to avoid https://github.com/Lightning-AI/lightning/issues/15218
+    import __main__  # local import to avoid https://github.com/Lightning-AI/pytorch-lightning/issues/15218
 
     if __main__.__spec__ is None:  # pragma: no-cover
         return [sys.executable, os.path.abspath(sys.argv[0])] + sys.argv[1:]
@@ -167,7 +167,7 @@ def _hydra_subprocess_cmd(local_rank: int) -> tuple[Sequence[str], str]:
     from hydra.core.hydra_config import HydraConfig
     from hydra.utils import get_original_cwd, to_absolute_path
 
-    import __main__  # local import to avoid https://github.com/Lightning-AI/lightning/issues/15218
+    import __main__  # local import to avoid https://github.com/Lightning-AI/pytorch-lightning/issues/15218
 
     # when user is using hydra find the absolute path
     if __main__.__spec__ is None:  # pragma: no-cover

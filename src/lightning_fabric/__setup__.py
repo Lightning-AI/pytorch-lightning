@@ -85,7 +85,7 @@ def _setup_args() -> dict[str, Any]:
         },
         "extras_require": _prepare_extras(),
         "project_urls": {
-            "Bug Tracker": "https://github.com/Lightning-AI/lightning/issues",
+            "Bug Tracker": "https://github.com/Lightning-AI/pytorch-lightning/issues",
             "Documentation": "https://pytorch-lightning.rtfd.io/en/latest/",
             "Source Code": "https://github.com/Lightning-AI/lightning",
         },

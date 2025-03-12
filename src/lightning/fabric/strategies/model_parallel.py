@@ -292,8 +292,7 @@ class ModelParallelStrategy(ParallelStrategy):
 
         if isinstance(state, Optimizer):
             raise NotImplementedError(
-                f"Loading a single optimizer object from a checkpoint is not supported yet with"
-                f" {type(self).__name__}."
+                f"Loading a single optimizer object from a checkpoint is not supported yet with {type(self).__name__}."
             )
 
         return _load_checkpoint(path=path, state=state, strict=strict)

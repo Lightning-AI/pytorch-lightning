@@ -144,7 +144,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
             nvme_path: Filesystem path for NVMe device for optimizer/parameter state offloading.
 
             optimizer_buffer_count: Number of buffers in buffer pool for optimizer state offloading
-                when ``offload_optimizer_device`` is set to to ``nvme``.
+                when ``offload_optimizer_device`` is set to ``nvme``.
                 This should be at least the number of states maintained per parameter by the optimizer.
                 For example, Adam optimizer has 4 states (parameter, gradient, momentum, and variance).
 
@@ -329,8 +329,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         """
         if len(optimizers) != 1:
             raise ValueError(
-                f"Currently only one optimizer is supported with DeepSpeed."
-                f" Got {len(optimizers)} optimizers instead."
+                f"Currently only one optimizer is supported with DeepSpeed. Got {len(optimizers)} optimizers instead."
             )
 
         self._deepspeed_engine, optimizer = self._initialize_engine(module, optimizers[0])

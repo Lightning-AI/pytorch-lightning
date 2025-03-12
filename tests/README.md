@@ -39,7 +39,7 @@ Note: if your computer does not have multi-GPU or TPU these tests are skipped.
 **GitHub Actions:** For convenience, you can also use your own GHActions building which will be triggered with each commit.
 This is useful if you do not test against all required dependency versions.
 
-**Docker:** Another option is to utilize the [pytorch lightning cuda base docker image](https://hub.docker.com/repository/docker/pytorchlightning/pytorch_lightning/tags?page=1&name=cuda). You can then run:
+**Docker:** Another option is to utilize the [pytorch lightning cuda base docker image](https://hub.docker.com/r/pytorchlightning/pytorch_lightning/tags?name=cuda). You can then run:
 
 ```bash
 python -m pytest src/lightning/pytorch tests/tests_pytorch -v
@@ -64,9 +64,9 @@ You can rely on our CI to make sure all these tests pass.
 There are certain standalone tests, which you can run using:
 
 ```bash
-./tests/run_standalone_tests.sh tests/tests_pytorch/trainer/
-# or run a specific test
-./tests/run_standalone_tests.sh -k test_multi_gpu_model_ddp
+cd tests/
+wget https://raw.githubusercontent.com/Lightning-AI/utilities/main/scripts/run_standalone_tests.sh
+./tests/run_standalone_tests.sh tests_pytorch/
 ```
 
 ## Running Coverage

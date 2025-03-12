@@ -21,11 +21,11 @@ import pytest
 import torch
 import torch.distributed as torch_distrib
 import torch.nn.functional as F
+
 from lightning.fabric.utilities.exceptions import MisconfigurationException
 from lightning.pytorch import Trainer, seed_everything
 from lightning.pytorch.demos.boring_classes import BoringModel, ManualOptimBoringModel
 from lightning.pytorch.strategies import Strategy
-
 from tests_pytorch.helpers.runif import RunIf
 
 
