@@ -58,6 +58,8 @@ def _get_logger_args(logger_class, save_dir):
         logger_args.update(offline=True)
     if issubclass(logger_class, NeptuneLogger):
         logger_args.update(mode="offline")
+    if issubclass(logger_class, CometLogger):
+        logger_args.update(online=False)
     return logger_args
 
 
