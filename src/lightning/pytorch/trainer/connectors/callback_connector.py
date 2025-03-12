@@ -94,9 +94,10 @@ class _CallbackConnector:
                 )
         elif enable_checkpointing:
             if module_available("litmodels") and self.trainer._model_registry:
-                from litmodels.integrations.lightning_checkpoint import LitModelCheckpoint
+                # fixme: this need to imported based on the actual package lightning/pytorch_lightning
+                from litmodels.integrations.checkpoints import LightningModelCheckpoint
 
-                model_checkpoint = LitModelCheckpoint(model_name=self.trainer._model_registry)
+                model_checkpoint = LightningModelCheckpoint(model_name=self.trainer._model_registry)
             else:
                 model_checkpoint = ModelCheckpoint()
             self.trainer.callbacks.append(model_checkpoint)
