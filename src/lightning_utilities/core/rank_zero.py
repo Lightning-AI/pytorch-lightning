@@ -5,7 +5,6 @@
 """Utilities that can be used for calling functions on a particular rank."""
 
 import logging
-import sys
 import warnings
 from functools import wraps
 from typing import Any, Callable, Optional, TypeVar, Union
@@ -46,8 +45,7 @@ def rank_zero_only(fn: Callable[P, T], default: Optional[T] = None) -> Callable[
 
 
 def _debug(*args: Any, stacklevel: int = 2, **kwargs: Any) -> None:
-    if sys.version_info >= (3, 8, 0):  # noqa: UP036
-        kwargs["stacklevel"] = stacklevel
+    kwargs["stacklevel"] = stacklevel
     log.debug(*args, **kwargs)
 
 
@@ -58,8 +56,7 @@ def rank_zero_debug(*args: Any, stacklevel: int = 4, **kwargs: Any) -> None:
 
 
 def _info(*args: Any, stacklevel: int = 2, **kwargs: Any) -> None:
-    if sys.version_info >= (3, 8, 0):  # noqa: UP036
-        kwargs["stacklevel"] = stacklevel
+    kwargs["stacklevel"] = stacklevel
     log.info(*args, **kwargs)
 
 
