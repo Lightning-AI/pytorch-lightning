@@ -260,7 +260,6 @@ class _CheckpointConnector:
             ckpt_path = self._hpc_resume_path
 
         elif _is_registry(ckpt_path) and module_available("litmodels"):
-            print(f"Local RANK {self.trainer.local_rank}")
 
             from lightning_sdk.lightning_cloud.login import Auth
             from litmodels import download_model
@@ -282,12 +281,14 @@ class _CheckpointConnector:
                 model_registry += f":{model_version}" if model_version else ""
                 # download the latest checkpoint from the model registry
                 local_model_dir = os.path.join(self.trainer.default_root_dir, model_registry.replace("/", "_"))
+                print(f"_parse_ckpt_path: local RANK {self.trainer.local_rank} started | folder {local_model_dir} exists {os.path.exists(local_model_dir)}")
                 model_files = download_model(model_registry, download_dir=local_model_dir)
                 model_files = [f for f in model_files if f.endswith(".ckpt")]
                 if not model_files:
                     raise RuntimeError(f"Download model failed - {model_registry}")
                 # todo: resolve if there are multiple checkpoints
                 ckpt_path = os.path.join(local_model_dir, model_files[0])
+                print(f"_parse_ckpt_path: local RANK {self.trainer.local_rank} finished")
 
         if not ckpt_path:
             raise ValueError(
