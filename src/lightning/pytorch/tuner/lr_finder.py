@@ -16,7 +16,7 @@ import logging
 import os
 import uuid
 from copy import deepcopy
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Union
+from typing import TYPE_CHECKING, Any, Optional, Union
 
 import torch
 from lightning_utilities.core.imports import RequirementCache
@@ -101,7 +101,7 @@ class _LRFinder:
         self.lr_max = lr_max
         self.num_training = num_training
 
-        self.results: Dict[str, Any] = {}
+        self.results: dict[str, Any] = {}
         self._total_batch_idx = 0  # for debug purpose
 
     def _exchange_scheduler(self, trainer: "pl.Trainer") -> None:
@@ -132,7 +132,9 @@ class _LRFinder:
         trainer.strategy.lr_scheduler_configs = [LRSchedulerConfig(scheduler, interval="step")]
         _validate_optimizers_attached(trainer.optimizers, trainer.lr_scheduler_configs)
 
-    def plot(self, suggest: bool = False, show: bool = False, ax: Optional["Axes"] = None) -> Optional["plt.Figure"]:
+    def plot(
+        self, suggest: bool = False, show: bool = False, ax: Optional["Axes"] = None
+    ) -> Optional[Union["plt.Figure", "plt.SubFigure"]]:
         """Plot results from lr_find run
         Args:
             suggest: if True, will mark suggested lr to use with a red point
@@ -151,10 +153,11 @@ class _LRFinder:
         lrs = self.results["lr"]
         losses = self.results["loss"]
 
+        fig: Optional[Union[plt.Figure, plt.SubFigure]]
         if ax is None:
             fig, ax = plt.subplots()
         else:
-            fig = ax.figure  # type: ignore[assignment]
+            fig = ax.figure
 
         # Plot loss as a function of the learning rate
         ax.plot(lrs, losses)
@@ -190,7 +193,7 @@ class _LRFinder:
         losses = losses[torch.isfinite(losses)]
 
         if len(losses) < 2:
-            # computing np.gradient requires at least 2 points
+            # computing torch.gradient requires at least 2 points
             log.error(
                 "Failed to compute suggestion for learning rate because there are not enough points. Increase the loop"
                 " iteration limits or the size of your dataset/dataloader."
@@ -301,12 +304,13 @@ def _lr_find(
     trainer._checkpoint_connector.restore(ckpt_path)
     trainer.strategy.remove_checkpoint(ckpt_path)
     trainer.fit_loop.restarting = False  # reset restarting flag as checkpoint restoring sets it to True
+    trainer.fit_loop.epoch_loop.restarting = False  # reset restarting flag as checkpoint restoring sets it to True
     trainer.fit_loop.epoch_loop.val_loop._combined_loader = None
 
     return lr_finder
 
 
-def __lr_finder_dump_params(trainer: "pl.Trainer") -> Dict[str, Any]:
+def __lr_finder_dump_params(trainer: "pl.Trainer") -> dict[str, Any]:
     return {
         "optimizers": trainer.strategy.optimizers,
         "lr_scheduler_configs": trainer.strategy.lr_scheduler_configs,
@@ -331,7 +335,7 @@ def __lr_finder_reset_params(trainer: "pl.Trainer", num_training: int, early_sto
     trainer.limit_val_batches = num_training
 
 
-def __lr_finder_restore_params(trainer: "pl.Trainer", params: Dict[str, Any]) -> None:
+def __lr_finder_restore_params(trainer: "pl.Trainer", params: dict[str, Any]) -> None:
     trainer.strategy.optimizers = params["optimizers"]
     trainer.strategy.lr_scheduler_configs = params["lr_scheduler_configs"]
     trainer.callbacks = params["callbacks"]
@@ -372,8 +376,8 @@ class _LRCallback(Callback):
         self.num_training = num_training
         self.early_stop_threshold = early_stop_threshold
         self.beta = beta
-        self.losses: List[float] = []
-        self.lrs: List[float] = []
+        self.losses: list[float] = []
+        self.lrs: list[float] = []
         self.avg_loss = 0.0
         self.best_loss = 0.0
         self.progress_bar_refresh_rate = progress_bar_refresh_rate
@@ -459,7 +463,7 @@ class _LinearLR(LRScheduler):
         super().__init__(optimizer, last_epoch)
 
     @override
-    def get_lr(self) -> List[float]:  # type: ignore[override]
+    def get_lr(self) -> list[float]:
         curr_iter = self.last_epoch + 1
         r = curr_iter / self.num_iter
 
@@ -471,7 +475,7 @@ class _LinearLR(LRScheduler):
         return val
 
     @property
-    def lr(self) -> Union[float, List[float]]:
+    def lr(self) -> Union[float, list[float]]:
         return self._lr
 
 
@@ -496,7 +500,7 @@ class _ExponentialLR(LRScheduler):
         super().__init__(optimizer, last_epoch)
 
     @override
-    def get_lr(self) -> List[float]:  # type: ignore[override]
+    def get_lr(self) -> list[float]:
         curr_iter = self.last_epoch + 1
         r = curr_iter / self.num_iter
 
@@ -508,11 +512,11 @@ class _ExponentialLR(LRScheduler):
         return val
 
     @property
-    def lr(self) -> Union[float, List[float]]:
+    def lr(self) -> Union[float, list[float]]:
         return self._lr
 
 
-def _try_loop_run(trainer: "pl.Trainer", params: Dict[str, Any]) -> None:
+def _try_loop_run(trainer: "pl.Trainer", params: dict[str, Any]) -> None:
     loop = trainer.fit_loop
     loop.load_state_dict(deepcopy(params["loop_state_dict"]))
     loop.restarting = False

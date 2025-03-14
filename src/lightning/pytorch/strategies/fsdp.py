@@ -13,10 +13,18 @@
 # limitations under the License.
 import logging
 import shutil
+from collections.abc import Generator, Mapping
 from contextlib import contextmanager, nullcontext
 from datetime import timedelta
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable, Dict, Generator, List, Literal, Mapping, Optional, Set, Type, Union
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    Literal,
+    Optional,
+    Union,
+)
 
 import torch
 from lightning_utilities.core.rank_zero import rank_zero_only as utils_rank_zero_only
@@ -37,16 +45,15 @@ from lightning.fabric.strategies.fsdp import (
     _distributed_checkpoint_save,
     _get_full_state_dict_context,
     _get_sharded_state_dict_context,
-    _has_meta_device_parameters,
     _init_cpu_offload,
     _init_sharding_strategy,
     _is_full_checkpoint,
     _is_sharded_checkpoint,
-    _load_raw_module_state,
     _move_torchmetrics_to_device,
     _optimizer_has_flat_params,
     _setup_activation_checkpointing,
 )
+from lightning.fabric.strategies.model_parallel import _load_raw_module_state
 from lightning.fabric.utilities.distributed import (
     _distributed_is_initialized,
     _get_default_process_group_backend_for_device,
@@ -54,8 +61,8 @@ from lightning.fabric.utilities.distributed import (
     _sync_ddp_if_available,
 )
 from lightning.fabric.utilities.distributed import group as _group
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_1
-from lightning.fabric.utilities.init import _EmptyInit
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_2
+from lightning.fabric.utilities.init import _has_meta_device_parameters_or_buffers
 from lightning.fabric.utilities.load import _lazy_load, _materialize_tensors
 from lightning.fabric.utilities.optimizer import _optimizers_to_device
 from lightning.fabric.utilities.seed import reset_seed
@@ -71,10 +78,11 @@ from lightning.pytorch.utilities.model_helpers import is_overridden
 from lightning.pytorch.utilities.rank_zero import rank_zero_info, rank_zero_only, rank_zero_warn
 
 if TYPE_CHECKING:
+    from torch.distributed.device_mesh import DeviceMesh
     from torch.distributed.fsdp.fully_sharded_data_parallel import CPUOffload, MixedPrecision, ShardingStrategy
     from torch.distributed.fsdp.wrap import ModuleWrapPolicy
 
-    _POLICY = Union[Set[Type[Module]], Callable[[Module, bool, int], bool], ModuleWrapPolicy]
+    _POLICY = Union[set[type[Module]], Callable[[Module, bool, int], bool], ModuleWrapPolicy]
     _SHARDING_STRATEGY = Union[ShardingStrategy, Literal["FULL_SHARD", "SHARD_GRAD_OP", "NO_SHARD", "HYBRID_SHARD"]]
 
 
@@ -83,8 +91,6 @@ log = logging.getLogger(__name__)
 
 class FSDPStrategy(ParallelStrategy):
     r"""Strategy for Fully Sharded Data Parallel provided by torch.distributed.
-
-    .. warning::  This is an :ref:`experimental <versioning:Experimental API>` feature.
 
     Fully Sharded Training shards the entire model across all available GPUs, allowing you to scale model
     size, whilst using efficient communication to reduce overhead. In practice, this means we can remain
@@ -117,9 +123,13 @@ class FSDPStrategy(ParallelStrategy):
             - ``"SHARD_GRAD_OP"``: Shards gradients and optimizer states only. Model parameters get replicated.
             - ``"NO_SHARD"``: No sharding (identical to regular DDP).
             - ``"HYBRID_SHARD"``: Shards model parameters, gradients, and optimizer states within a single machine, but
-              replicates across machines.
+              replicates across machines. See also the `device_mesh` parameter below.
 
             Also accepts a :class:`torch.distributed.fsdp.ShardingStrategy` enum value.
+
+        device_mesh: A tuple `(replication size, sharding size)` that defines over how many devices to shard and
+            replicate the model. The product of the two numbers must equal the world size. Only valid in combination
+            with the `HYBRID_SHARD` sharding strategy.
 
         state_dict_type: The format in which the state of the model and optimizers gets saved into the checkpoint.
 
@@ -132,12 +142,12 @@ class FSDPStrategy(ParallelStrategy):
     """
 
     strategy_name = "fsdp"
-    _registered_strategies: List[str] = []
+    _registered_strategies: list[str] = []
 
     def __init__(
         self,
         accelerator: Optional["pl.accelerators.Accelerator"] = None,
-        parallel_devices: Optional[List[torch.device]] = None,
+        parallel_devices: Optional[list[torch.device]] = None,
         cluster_environment: Optional[ClusterEnvironment] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
         precision_plugin: Optional[Precision] = None,
@@ -146,10 +156,11 @@ class FSDPStrategy(ParallelStrategy):
         cpu_offload: Union[bool, "CPUOffload", None] = None,
         mixed_precision: Optional["MixedPrecision"] = None,
         auto_wrap_policy: Optional["_POLICY"] = None,
-        activation_checkpointing: Optional[Union[Type[Module], List[Type[Module]]]] = None,
+        activation_checkpointing: Optional[Union[type[Module], list[type[Module]]]] = None,
         activation_checkpointing_policy: Optional["_POLICY"] = None,
         sharding_strategy: "_SHARDING_STRATEGY" = "FULL_SHARD",
         state_dict_type: Literal["full", "sharded"] = "full",
+        device_mesh: Optional[Union[tuple[int], "DeviceMesh"]] = None,
         **kwargs: Any,
     ) -> None:
         super().__init__(
@@ -165,6 +176,12 @@ class FSDPStrategy(ParallelStrategy):
         self.cpu_offload = _init_cpu_offload(cpu_offload)
         self.mixed_precision = mixed_precision
         self.kwargs = _auto_wrap_policy_kwargs(auto_wrap_policy, kwargs)
+
+        if device_mesh is not None:
+            if not _TORCH_GREATER_EQUAL_2_2:
+                raise ValueError("The `device_mesh` argument is only supported in torch >= 2.2.")
+            self.kwargs["device_mesh"] = device_mesh
+
         self.sharding_strategy = _init_sharding_strategy(sharding_strategy, self.kwargs)
 
         # Avoids the need for user to reference params in `configure_optimizers` via
@@ -219,7 +236,7 @@ class FSDPStrategy(ParallelStrategy):
 
     @property
     @override
-    def distributed_sampler_kwargs(self) -> Dict:
+    def distributed_sampler_kwargs(self) -> dict:
         return {"num_replicas": (self.num_nodes * self.num_processes), "rank": self.global_rank}
 
     @property
@@ -245,6 +262,12 @@ class FSDPStrategy(ParallelStrategy):
         assert self.cluster_environment is not None
         _init_dist_connection(self.cluster_environment, self._process_group_backend, timeout=self._timeout)
 
+        # if 'device_mesh' in the `kwargs` is provided as a tuple, update it into the `DeviceMesh` object here
+        if isinstance(self.kwargs.get("device_mesh"), tuple):
+            from torch.distributed.device_mesh import init_device_mesh
+
+            self.kwargs["device_mesh"] = init_device_mesh("cuda", self.kwargs["device_mesh"])
+
     def _get_process_group_backend(self) -> str:
         return self._process_group_backend or _get_default_process_group_backend_for_device(self.root_device)
 
@@ -269,7 +292,7 @@ class FSDPStrategy(ParallelStrategy):
         from torch.distributed.fsdp import FullyShardedDataParallel
 
         if any(isinstance(mod, FullyShardedDataParallel) for mod in model.modules()):
-            if _has_meta_device_parameters(model):
+            if _has_meta_device_parameters_or_buffers(model):
                 rank_zero_warn(
                     "The model is already wrapped in `FSDP` but there are still parameters on the meta device."
                 )
@@ -306,10 +329,6 @@ class FSDPStrategy(ParallelStrategy):
         if trainer.state.fn == TrainerFn.FITTING and self._layer_sync:
             self.model = self._layer_sync.apply(self.model)
 
-        # we set the device so that optimizers can be created with distributed comms.
-        assert self.lightning_module is not None
-        self.lightning_module._device = self.root_device
-
         self.model = self.precision_plugin.convert_module(self.model)
 
         if is_overridden("configure_sharded_model", self.lightning_module):
@@ -340,8 +359,8 @@ class FSDPStrategy(ParallelStrategy):
 
         invalid_params_error = False
         try:
-            # In PyTorch < 2.0, or if `use_orig_params=False` the user needs to do access
-            # `self.trainer.model.parameters()` in configure_optimizers()
+            # If `use_orig_params=False` the user needs to do access `self.trainer.model.parameters()` in
+            # `configure_optimizers()`
             super().setup_optimizers(trainer)
         except ValueError as ex:
             if "optimizer got an empty parameter list" not in str(ex):
@@ -349,7 +368,7 @@ class FSDPStrategy(ParallelStrategy):
             invalid_params_error = True
 
         if invalid_params_error or any(not _optimizer_has_flat_params(optimizer) for optimizer in self.optimizers):
-            # We avoid this limitation in PyTorch >= 2.0 by setting `use_orig_params=True`
+            # We avoid this limitation by setting `use_orig_params=True`
             raise ValueError(
                 "The optimizer does not seem to reference any FSDP parameters. HINT: Make sure to create the"
                 " optimizer after setting up the model by referencing `self.trainer.model.parameters()` in the"
@@ -365,14 +384,10 @@ class FSDPStrategy(ParallelStrategy):
     @contextmanager
     @override
     def tensor_init_context(self, empty_init: Optional[bool] = None) -> Generator[None, None, None]:
-        empty_init_context: Union[torch.device, _EmptyInit, nullcontext]
-        if _TORCH_GREATER_EQUAL_2_1 and empty_init:
-            # Materialization happens in `setup`. When modules get wrapped by FSDP, the sequence of operations is:
-            # 1) materialize module 2) call `reset_parameters()` 3) shard the module.
-            # These operations are applied to each submodule 'bottom up' in the module hierarchy.
-            empty_init_context = torch.device("meta")
-        else:
-            empty_init_context = _EmptyInit(enabled=bool(empty_init))
+        # Materialization happens in `setup`. When modules get wrapped by FSDP, the sequence of operations is:
+        # 1) materialize module 2) call `reset_parameters()` 3) shard the module.
+        # These operations are applied to each submodule 'bottom up' in the module hierarchy.
+        empty_init_context = torch.device("meta") if empty_init else nullcontext()
         with empty_init_context, self.precision_plugin.tensor_init_context():
             yield
 
@@ -434,7 +449,7 @@ class FSDPStrategy(ParallelStrategy):
             return _sync_ddp_if_available(tensor, group, reduce_op=reduce_op)
         return tensor
 
-    def _determine_device_ids(self) -> List[int]:
+    def _determine_device_ids(self) -> list[int]:
         return [self.root_device.index]
 
     @override
@@ -460,7 +475,7 @@ class FSDPStrategy(ParallelStrategy):
         self.accelerator.teardown()
 
     @classmethod
-    def get_registered_strategies(cls) -> List[str]:
+    def get_registered_strategies(cls) -> list[str]:
         return cls._registered_strategies
 
     @classmethod
@@ -484,7 +499,7 @@ class FSDPStrategy(ParallelStrategy):
         cls._registered_strategies.append("fsdp_cpu_offload")
 
     @override
-    def lightning_module_state_dict(self) -> Dict[str, Any]:
+    def lightning_module_state_dict(self) -> dict[str, Any]:
         assert self.model is not None
         if self._state_dict_type == "sharded":
             state_dict_ctx = _get_sharded_state_dict_context(self.model)
@@ -501,7 +516,7 @@ class FSDPStrategy(ParallelStrategy):
         pass
 
     @override
-    def optimizer_state(self, optimizer: Optimizer) -> Dict[str, Tensor]:
+    def optimizer_state(self, optimizer: Optimizer) -> dict[str, Tensor]:
         from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
         from torch.distributed.fsdp import OptimStateKeyType
 
@@ -530,7 +545,7 @@ class FSDPStrategy(ParallelStrategy):
 
     @override
     def save_checkpoint(
-        self, checkpoint: Dict[str, Any], filepath: _PATH, storage_options: Optional[Any] = None
+        self, checkpoint: dict[str, Any], filepath: _PATH, storage_options: Optional[Any] = None
     ) -> None:
         if storage_options is not None:
             raise TypeError(
@@ -565,7 +580,7 @@ class FSDPStrategy(ParallelStrategy):
             raise ValueError(f"Unknown state_dict_type: {self._state_dict_type}")
 
     @override
-    def load_checkpoint(self, checkpoint_path: _PATH) -> Dict[str, Any]:
+    def load_checkpoint(self, checkpoint_path: _PATH) -> dict[str, Any]:
         # broadcast the path from rank 0 to ensure all the states are loaded from a common path
         path = Path(self.broadcast(checkpoint_path))
 

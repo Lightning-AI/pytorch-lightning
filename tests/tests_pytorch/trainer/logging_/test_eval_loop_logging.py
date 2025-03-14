@@ -24,7 +24,8 @@ from unittest.mock import ANY, call
 import numpy as np
 import pytest
 import torch
-from lightning.fabric.utilities.imports import _PYTHON_GREATER_EQUAL_3_8_0
+from torch import Tensor
+
 from lightning.pytorch import Trainer, callbacks
 from lightning.pytorch.callbacks.progress.rich_progress import _RICH_AVAILABLE
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
@@ -32,8 +33,6 @@ from lightning.pytorch.loggers import TensorBoardLogger
 from lightning.pytorch.loops import _EvaluationLoop
 from lightning.pytorch.trainer.states import RunningStage
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from torch import Tensor
-
 from tests_pytorch.helpers.runif import RunIf
 
 if _RICH_AVAILABLE:
@@ -545,7 +544,7 @@ def test_validation_step_log_with_tensorboard(mock_log_metrics, tmp_path):
         "valid_loss_1",
     }
     assert mock_log_metrics.mock_calls == [
-        call({"hp_metric": -1}, 0),
+        call({"hp_metric": -1}, None),
         call(metrics={"train_loss": ANY, "epoch": 0}, step=0),
         call(metrics={"valid_loss_0_step": ANY, "valid_loss_2": ANY}, step=0),
         call(metrics={"valid_loss_0_step": ANY, "valid_loss_2": ANY}, step=1),
@@ -557,8 +556,7 @@ def test_validation_step_log_with_tensorboard(mock_log_metrics, tmp_path):
     ]
 
     def get_metrics_at_idx(idx):
-        mock_call = mock_log_metrics.mock_calls[idx]
-        return mock_call.kwargs["metrics"] if _PYTHON_GREATER_EQUAL_3_8_0 else mock_call[2]["metrics"]
+        return mock_log_metrics.mock_calls[idx].kwargs["metrics"]
 
     assert get_metrics_at_idx(2)["valid_loss_0_step"] == model.val_losses[2]
     assert get_metrics_at_idx(3)["valid_loss_0_step"] == model.val_losses[3]
@@ -736,8 +734,7 @@ def test_logging_multi_dataloader_on_epoch_end(mock_log_metrics, tmp_path):
     cb_metrics = set(trainer.callback_metrics)
     assert cb_metrics == {"foo/dataloader_idx_0", "foo/dataloader_idx_1", "foobar"}
 
-    mock_call = mock_log_metrics.mock_calls[0]
-    logged_metrics = mock_call.kwargs["metrics"] if _PYTHON_GREATER_EQUAL_3_8_0 else mock_call[2]["metrics"]
+    logged_metrics = mock_log_metrics.mock_calls[0].kwargs["metrics"]
     cb_metrics.add("epoch")
     assert set(logged_metrics) == cb_metrics
 

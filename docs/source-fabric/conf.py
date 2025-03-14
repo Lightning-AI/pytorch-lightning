@@ -39,11 +39,6 @@ version = lightning.__version__
 # The full version, including alpha/beta/rc tags
 release = lightning.__version__
 
-# Options for the linkcode extension
-# ----------------------------------
-github_user = "Lightning-AI"
-github_repo = project
-
 # -- Project documents -------------------------------------------------------
 
 if _FETCH_S3_ASSETS:
@@ -291,6 +286,7 @@ nitpick_ignore_regex = [
     # These seem to be missing in reference generated API
     ("py:class", "torch.distributed.fsdp.wrap.ModuleWrapPolicy"),
     ("py:class", "torch.distributed.fsdp.sharded_grad_scaler.ShardedGradScaler"),
+    ("py:class", "torch.amp.grad_scaler.GradScaler"),
     # Mocked optional packages
     ("py:class", "deepspeed.*"),
     ("py:.*", "torch_xla.*"),
@@ -337,44 +333,6 @@ if _SPHINX_MOCK_REQUIREMENTS:
 MOCK_PACKAGES = [PACKAGE_MAPPING.get(pkg, pkg) for pkg in MOCK_PACKAGES]
 
 autodoc_mock_imports = MOCK_PACKAGES
-
-
-# Resolve function
-# This function is used to populate the (source) links in the API
-def linkcode_resolve(domain, info):
-    def find_source():
-        # try to find the file and line number, based on code from numpy:
-        # https://github.com/numpy/numpy/blob/master/doc/source/conf.py#L286
-        obj = sys.modules[info["module"]]
-        for part in info["fullname"].split("."):
-            obj = getattr(obj, part)
-        fname = inspect.getsourcefile(obj)
-        # https://github.com/rtfd/readthedocs.org/issues/5735
-        if any(s in fname for s in ("readthedocs", "rtfd", "checkouts")):
-            # /home/docs/checkouts/readthedocs.org/user_builds/pytorch_lightning/checkouts/
-            #  devel/pytorch_lightning/utilities/cls_experiment.py#L26-L176
-            path_top = os.path.abspath(os.path.join("..", "..", ".."))
-            fname = os.path.relpath(fname, start=path_top)
-        else:
-            # Local build, imitate master
-            fname = "master/" + os.path.relpath(fname, start=os.path.abspath(".."))
-        source, lineno = inspect.getsourcelines(obj)
-        return fname, lineno, lineno + len(source) - 1
-
-    if domain != "py" or not info["module"]:
-        return None
-    try:
-        filename = "%s#L%d-L%d" % find_source()
-    except Exception:
-        filename = info["module"].replace(".", "/") + ".py"
-    # import subprocess
-    # tag = subprocess.Popen(['git', 'rev-parse', 'HEAD'], stdout=subprocess.PIPE,
-    #                        universal_newlines=True).communicate()[0][:-1]
-    branch = filename.split("/")[0]
-    # do mapping from latest tags to master
-    branch = {"latest": "master", "stable": "master"}.get(branch, branch)
-    filename = "/".join([branch] + filename.split("/")[1:])
-    return f"https://github.com/{github_user}/{github_repo}/blob/{filename}"
 
 
 autosummary_generate = True

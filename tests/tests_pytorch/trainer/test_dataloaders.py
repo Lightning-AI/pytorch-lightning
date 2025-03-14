@@ -14,10 +14,17 @@
 import os
 from unittest.mock import Mock, call, patch
 
-import lightning.pytorch
 import numpy
 import pytest
 import torch
+from lightning_utilities.test.warning import no_warning_call
+from torch.utils.data import RandomSampler
+from torch.utils.data.dataloader import DataLoader
+from torch.utils.data.dataset import Dataset, IterableDataset
+from torch.utils.data.distributed import DistributedSampler
+from torch.utils.data.sampler import SequentialSampler
+
+import lightning.pytorch
 from lightning.fabric.utilities.data import _auto_add_worker_init_fn, has_iterable_dataset
 from lightning.pytorch import Callback, Trainer, seed_everything
 from lightning.pytorch.callbacks import ModelCheckpoint
@@ -33,13 +40,6 @@ from lightning.pytorch.trainer.states import RunningStage
 from lightning.pytorch.utilities.combined_loader import CombinedLoader
 from lightning.pytorch.utilities.data import has_len_all_ranks
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning_utilities.test.warning import no_warning_call
-from torch.utils.data import RandomSampler
-from torch.utils.data.dataloader import DataLoader
-from torch.utils.data.dataset import Dataset, IterableDataset
-from torch.utils.data.distributed import DistributedSampler
-from torch.utils.data.sampler import SequentialSampler
-
 from tests_pytorch.helpers.dataloaders import CustomInfDataloader, CustomNotImplementedErrorDataloader
 from tests_pytorch.helpers.runif import RunIf
 
@@ -641,6 +641,8 @@ class MultiProcessModel(BoringModel):
 
     def training_step(self, batch, batch_idx):
         self.batches_seen.append(batch)
+        # the actual training step is not needed for the assertions below
+        return super().training_step(torch.rand(1, 32, device=self.device), batch_idx)
 
     def on_train_epoch_end(self):
         world_size = 2
@@ -810,8 +812,10 @@ class TestModelUniqueDDPSampling(BoringModel):
         super().__init__()
         self.seen_samples = []
 
-    def training_step(self, batch):
+    def training_step(self, batch, batch_idx):
         self.seen_samples.extend(batch.tolist())
+        # the actual training step is not needed for the test
+        return super().training_step(torch.rand(1, 32, device=self.device), batch_idx)
 
     def on_train_end(self):
         seen_samples = self.all_gather(self.seen_samples)

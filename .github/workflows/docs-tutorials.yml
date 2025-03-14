@@ -48,7 +48,7 @@ jobs:
 
       - name: Create Pull Request
         if: ${{ github.event_name != 'pull_request' && env.SHA_ACTUAL != env.SHA_LATEST }}
-        uses: peter-evans/create-pull-request@v6
+        uses: peter-evans/create-pull-request@v7
         with:
           title: "docs: update ref to latest tutorials"
           committer: GitHub <noreply@github.com>

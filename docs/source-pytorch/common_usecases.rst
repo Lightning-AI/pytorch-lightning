@@ -109,7 +109,7 @@ Customize and extend Lightning for things like custom hardware or distributed st
    :header: Train models with billions of parameters
    :description: Scale GPU training to models with billions of parameters
    :col_css: col-md-12
-   :button_link: advanced/model_parallel.html
+   :button_link: advanced/model_parallel/index.html
    :height: 100
 
 .. displayitem::

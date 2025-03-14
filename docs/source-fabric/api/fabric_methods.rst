@@ -49,7 +49,7 @@ Moves the model and optimizer to the correct device automatically.
 
 
 The setup method also prepares the model for the selected precision choice so that operations during ``forward()`` get
-cast automatically.
+cast automatically. Advanced users should read :doc:`the notes on models wrapped by Fabric <../api/wrappers>`.
 
 setup_dataloaders
 =================

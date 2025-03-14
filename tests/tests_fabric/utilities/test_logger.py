@@ -17,6 +17,7 @@ from pathlib import Path
 
 import numpy as np
 import torch
+
 from lightning.fabric.utilities.logger import (
     _add_prefix,
     _convert_json_serializable,
@@ -92,7 +93,7 @@ def test_flatten_dict():
 
 
 def test_sanitize_callable_params():
-    """Callback function are not serializiable.
+    """Callback functions are not serializable.
 
     Therefore, we get them a chance to return something and if the returned type is not accepted, return None.
 
@@ -104,11 +105,21 @@ def test_sanitize_callable_params():
     def wrapper_something():
         return return_something
 
+    class ClassNoArgs:
+        def __init__(self):
+            pass
+
+    class ClassWithCall:
+        def __call__(self):
+            return "name"
+
     params = Namespace(
         foo="bar",
         something=return_something,
         wrapper_something_wo_name=(lambda: lambda: "1"),
         wrapper_something=wrapper_something,
+        class_no_args=ClassNoArgs,
+        class_with_call=ClassWithCall,
     )
 
     params = _convert_params(params)
@@ -118,6 +129,8 @@ def test_sanitize_callable_params():
     assert params["something"] == "something"
     assert params["wrapper_something"] == "wrapper_something"
     assert params["wrapper_something_wo_name"] == "<lambda>"
+    assert params["class_no_args"] == "ClassNoArgs"
+    assert params["class_with_call"] == "ClassWithCall"
 
 
 def test_sanitize_params():

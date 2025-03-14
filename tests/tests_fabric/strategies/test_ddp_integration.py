@@ -18,15 +18,21 @@ from unittest.mock import Mock
 
 import pytest
 import torch
-from lightning.fabric import Fabric
+from lightning_utilities.core.imports import RequirementCache
 from torch._dynamo import OptimizedModule
 from torch.nn.parallel.distributed import DistributedDataParallel
 
+from lightning.fabric import Fabric
+from lightning.fabric.utilities.imports import _TORCH_LESS_EQUAL_2_6
 from tests_fabric.helpers.runif import RunIf
 from tests_fabric.strategies.test_single_device import _run_test_clip_gradients
 from tests_fabric.test_fabric import BoringModel
 
 
+@pytest.mark.skipif(
+    RequirementCache("torch<2.4") and RequirementCache("numpy>=2.0"),
+    reason="torch.distributed not compatible with numpy>=2.0",
+)
 @pytest.mark.parametrize(
     "accelerator",
     [
@@ -70,7 +76,7 @@ def _run_ddp_save_load(fabric, tmp_path):
     assert_params_equal(params_before, wrapped_model.parameters())
 
 
-@RunIf(min_cuda_gpus=2, standalone=True, min_torch="2.1.0", dynamo=True)
+@RunIf(min_cuda_gpus=2, standalone=True, dynamo=True)
 @mock.patch("lightning.fabric.wrappers.torch.compile", Mock(wraps=torch.compile))
 @mock.patch.dict(os.environ, {})
 def test_reapply_compile():
@@ -79,7 +85,9 @@ def test_reapply_compile():
     fabric.launch()
 
     model = BoringModel()
-    compile_kwargs = {"mode": "reduce-overhead"}
+    # currently (PyTorch 2.6) using ruduce-overhead here casues a RuntimeError:
+    # Error: accessing tensor output of CUDAGraphs that has been overwritten by a subsequent run.
+    compile_kwargs = {"mode": "reduce-overhead"} if _TORCH_LESS_EQUAL_2_6 else {}
     compiled_model = torch.compile(model, **compile_kwargs)
     torch.compile.reset_mock()
 

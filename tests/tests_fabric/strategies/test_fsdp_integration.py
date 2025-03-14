@@ -20,18 +20,18 @@ from unittest.mock import Mock
 import pytest
 import torch
 import torch.nn as nn
-from lightning.fabric import Fabric
-from lightning.fabric.plugins import FSDPPrecision
-from lightning.fabric.strategies import FSDPStrategy
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_1
-from lightning.fabric.utilities.load import _load_distributed_checkpoint
-from lightning.fabric.wrappers import _FabricOptimizer
 from torch._dynamo import OptimizedModule
 from torch.distributed.fsdp import FlatParameter, FullyShardedDataParallel, OptimStateKeyType
 from torch.distributed.fsdp.wrap import always_wrap_policy, wrap
 from torch.nn import Parameter
 from torch.utils.data import DataLoader
 
+from lightning.fabric import Fabric
+from lightning.fabric.plugins import FSDPPrecision
+from lightning.fabric.strategies import FSDPStrategy
+from lightning.fabric.utilities.imports import _TORCH_LESS_EQUAL_2_6
+from lightning.fabric.utilities.load import _load_distributed_checkpoint
+from lightning.fabric.wrappers import _FabricOptimizer
 from tests_fabric.helpers.datasets import RandomDataset
 from tests_fabric.helpers.runif import RunIf
 from tests_fabric.test_fabric import BoringModel
@@ -119,10 +119,10 @@ class _TrainerManualWrapping(_Trainer):
         return model
 
 
-@RunIf(min_cuda_gpus=2, standalone=True)
+@RunIf(min_cuda_gpus=2, standalone=True, max_torch="2.4")
 @pytest.mark.parametrize("precision", ["16-mixed", pytest.param("bf16-mixed", marks=RunIf(bf16_cuda=True))])
 @pytest.mark.parametrize("manual_wrapping", [True, False])
-def test_fsdp_train_save_load(tmp_path, manual_wrapping, precision):
+def test_train_save_load(tmp_path, manual_wrapping, precision):
     """Test FSDP training, saving and loading with different wrapping and precision settings."""
     trainer_cls = _TrainerManualWrapping if manual_wrapping else _Trainer
     fabric = Fabric(
@@ -174,8 +174,9 @@ def test_fsdp_train_save_load(tmp_path, manual_wrapping, precision):
     assert state["coconut"] == 11
 
 
+@pytest.mark.filterwarnings("ignore::FutureWarning")
 @RunIf(min_cuda_gpus=2, standalone=True)
-def test_fsdp_save_full_state_dict(tmp_path):
+def test_save_full_state_dict(tmp_path):
     """Test that FSDP saves the full state into a single file with `state_dict_type="full"`."""
     fabric = Fabric(
         accelerator="cuda",
@@ -191,7 +192,7 @@ def test_fsdp_save_full_state_dict(tmp_path):
     state = {"model": trainer.model, "optimizer": trainer.optimizer, "steps": 1}
     fabric.save(checkpoint_path, state)
 
-    checkpoint = torch.load(checkpoint_path)
+    checkpoint = torch.load(checkpoint_path, weights_only=True)
     assert checkpoint["steps"] == 1
     loaded_state_dict = checkpoint["model"]
 
@@ -248,7 +249,7 @@ def test_fsdp_save_full_state_dict(tmp_path):
     # get optimizer state after loading
     normal_checkpoint_path = Path(fabric.broadcast(str(tmp_path / "normal-checkpoint.pt")))
     fabric.save(normal_checkpoint_path, {"model": trainer.model, "optimizer": trainer.optimizer, "steps": 2})
-    optimizer_state_after = torch.load(normal_checkpoint_path)["optimizer"]
+    optimizer_state_after = torch.load(normal_checkpoint_path, weights_only=True)["optimizer"]
     optimizer_state_after = FullyShardedDataParallel.rekey_optim_state_dict(
         optimizer_state_after, optim_state_key_type=OptimStateKeyType.PARAM_NAME, model=trainer.model
     )
@@ -288,8 +289,9 @@ def test_fsdp_save_full_state_dict(tmp_path):
     trainer.run()
 
 
+@pytest.mark.filterwarnings("ignore::FutureWarning")
 @RunIf(min_cuda_gpus=2, standalone=True)
-def test_fsdp_load_full_state_dict_into_sharded_model(tmp_path):
+def test_load_full_state_dict_into_sharded_model(tmp_path):
     """Test that the strategy can load a full-state checkpoint into a FSDP sharded model."""
     from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
 
@@ -329,7 +331,7 @@ def test_fsdp_load_full_state_dict_into_sharded_model(tmp_path):
     # Create a raw state-dict checkpoint to test `Fabric.load_raw` too
     raw_checkpoint_path = checkpoint_path.with_name("model-state-dict")
     if fabric.global_rank == 0:
-        checkpoint = torch.load(checkpoint_path)
+        checkpoint = torch.load(checkpoint_path, weights_only=True)
         torch.save(checkpoint["model"], raw_checkpoint_path)
     fabric.barrier()
 
@@ -400,7 +402,7 @@ def test_setup_with_orig_params_and_multiple_param_groups():
         assert not isinstance(layer.weight, FlatParameter)
 
 
-@RunIf(min_cuda_gpus=2, standalone=True, min_torch="2.1.0", dynamo=True, skip_windows=True)
+@RunIf(min_cuda_gpus=2, standalone=True, dynamo=True, skip_windows=True)
 @mock.patch("lightning.fabric.wrappers.torch.compile", Mock(wraps=torch.compile))
 @mock.patch.dict(os.environ, {})
 def test_reapply_compile():
@@ -410,7 +412,9 @@ def test_reapply_compile():
     fabric.launch()
 
     model = BoringModel()
-    compile_kwargs = {"mode": "reduce-overhead"}
+    # currently (PyTorch 2.6) using ruduce-overhead here casues a RuntimeError:
+    # Error: accessing tensor output of CUDAGraphs that has been overwritten by a subsequent run.
+    compile_kwargs = {"mode": "reduce-overhead"} if _TORCH_LESS_EQUAL_2_6 else {}
     compiled_model = torch.compile(model, **compile_kwargs)
     torch.compile.reset_mock()
 
@@ -466,16 +470,13 @@ def test_module_init_context(precision, expected_dtype):
     # Case 1: No empty init
     _run_setup_assertions(empty_init=False, expected_device=torch.device("cpu"))
 
-    if _TORCH_GREATER_EQUAL_2_1:
-        # Case 2: Empty-init with PyTorch >= 2.1 supports meta device
-        _run_setup_assertions(empty_init=True, expected_device=torch.device("meta"))
-    else:
-        # Case 2: Empty-init with PyTorch < 2.1 only supports `torch.empty()`-init
-        _run_setup_assertions(empty_init=True, expected_device=torch.device("cpu"))
+    # Case 2: Empty-init with meta device
+    _run_setup_assertions(empty_init=True, expected_device=torch.device("meta"))
 
 
+@pytest.mark.filterwarnings("ignore::FutureWarning")
 @RunIf(min_cuda_gpus=2, standalone=True)
-def test_fsdp_save_filter(tmp_path):
+def test_save_filter(tmp_path):
     fabric = Fabric(accelerator="cuda", strategy=FSDPStrategy(state_dict_type="full"), devices=2)
     fabric.launch()
     model = nn.Linear(32, 2)
@@ -487,9 +488,9 @@ def test_fsdp_save_filter(tmp_path):
 
     checkpoint_path = tmp_path / "full.pth"
     fabric.save(checkpoint_path, state, filter=filter)
-    checkpoint = torch.load(checkpoint_path)["model"]
+    checkpoint = torch.load(checkpoint_path, weights_only=True)["model"]
     assert set(checkpoint) == {"bias"}
-    assert isinstance(checkpoint["bias"], torch.Tensor)
+    assert type(checkpoint["bias"]) is torch.Tensor
 
     fabric.strategy._state_dict_type = "sharded"
     checkpoint_path = tmp_path / "sharded"
@@ -498,7 +499,7 @@ def test_fsdp_save_filter(tmp_path):
 
 
 @RunIf(min_cuda_gpus=1)
-def test_fsdp_manual_activation_checkpointing():
+def test_manual_activation_checkpointing():
     model = torch.nn.Sequential(torch.nn.Linear(1, 1), torch.nn.Linear(1, 1))
     strategy = FSDPStrategy(activation_checkpointing_policy={torch.nn.Linear})
     fabric = Fabric(devices=1, accelerator="cuda", strategy=strategy)
@@ -537,9 +538,6 @@ def test_rewrap_warnings():
         model = fabric.setup(model)
     assert not isinstance(model._forward_module, FullyShardedDataParallel)
     assert isinstance(model._forward_module[2], FullyShardedDataParallel)
-
-    if not _TORCH_GREATER_EQUAL_2_1:
-        return
 
     with fabric.init_module(empty_init=True):
         model = torch.nn.Sequential(torch.nn.Linear(1, 1), torch.nn.ReLU(), wrap(torch.nn.Linear(1, 1)))
@@ -610,6 +608,7 @@ def test_clip_gradients(clip_type, precision):
     optimizer.zero_grad()
 
 
+@pytest.mark.filterwarnings("ignore::FutureWarning")
 @RunIf(min_cuda_gpus=2, standalone=True, min_torch="2.3.0")
 def test_save_sharded_and_consolidate_and_load(tmp_path):
     """Test the consolidation of a FSDP-sharded checkpoint into a single file."""

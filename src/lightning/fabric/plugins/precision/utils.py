@@ -11,7 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Mapping, Type, Union
+from collections.abc import Mapping
+from typing import Any, Union
 
 import torch
 from torch import Tensor
@@ -43,7 +44,7 @@ class _DtypeContextManager:
 class _ClassReplacementContextManager:
     """A context manager to monkeypatch classes."""
 
-    def __init__(self, mapping: Mapping[str, Type]) -> None:
+    def __init__(self, mapping: Mapping[str, type]) -> None:
         self._mapping = mapping
         self._originals = {}
         self._modules = {}
