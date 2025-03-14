@@ -18,6 +18,7 @@ from unittest.mock import ANY
 
 import pytest
 import torch
+
 from lightning.pytorch.utilities.upgrade_checkpoint import main as upgrade_main
 
 

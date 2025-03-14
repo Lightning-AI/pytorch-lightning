@@ -16,8 +16,9 @@ from argparse import Namespace
 from pathlib import Path
 from unittest import mock
 
-import lightning.fabric
 import pytest
+
+import lightning.fabric
 from lightning.fabric.utilities.consolidate_checkpoint import _parse_cli_args, _process_cli_args
 from lightning.fabric.utilities.load import _METADATA_FILENAME
 

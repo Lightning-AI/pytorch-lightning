@@ -18,6 +18,11 @@ from unittest.mock import Mock
 
 import pytest
 import torch
+from lightning_utilities.core.imports import compare_version
+from torch.utils.data import DataLoader
+from torchmetrics import Accuracy, MeanAbsoluteError, MeanSquaredError, MetricCollection
+from torchmetrics import AveragePrecision as AvgPre
+
 from lightning.pytorch import LightningModule
 from lightning.pytorch.callbacks.callback import Callback
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
@@ -28,11 +33,6 @@ from lightning.pytorch.trainer.connectors.logger_connector.result import _Result
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.imports import _TORCHMETRICS_GREATER_EQUAL_0_9_1
 from lightning.pytorch.utilities.imports import _TORCHMETRICS_GREATER_EQUAL_0_11 as _TM_GE_0_11
-from lightning_utilities.core.imports import compare_version
-from torch.utils.data import DataLoader
-from torchmetrics import Accuracy, MeanAbsoluteError, MeanSquaredError, MetricCollection
-from torchmetrics import AveragePrecision as AvgPre
-
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.models.test_hooks import get_members
 

@@ -14,10 +14,11 @@
 import itertools
 
 import pytest
+from torch.utils.data import DataLoader, DistributedSampler, SequentialSampler
+
 from lightning.pytorch import LightningModule, Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
 from lightning.pytorch.overrides.distributed import _IndexBatchSamplerWrapper
-from torch.utils.data import DataLoader, DistributedSampler, SequentialSampler
 
 
 def test_prediction_loop_stores_predictions(tmp_path):

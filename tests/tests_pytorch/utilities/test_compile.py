@@ -18,12 +18,12 @@ from unittest import mock
 
 import pytest
 import torch
+from lightning_utilities.core.imports import RequirementCache
+
 from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_2, _TORCH_GREATER_EQUAL_2_4
 from lightning.pytorch import LightningModule, Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.utilities.compile import from_compiled, to_uncompiled
-from lightning_utilities.core.imports import RequirementCache
-
 from tests_pytorch.conftest import mock_cuda_count
 from tests_pytorch.helpers.runif import RunIf
 

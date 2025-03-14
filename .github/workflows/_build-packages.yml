@@ -19,38 +19,16 @@ defaults:
     shell: bash
 
 jobs:
-  init:
-    runs-on: ubuntu-22.04
-    steps:
-      - uses: actions/checkout@v4
-      - run: |
-          mkdir dist && touch dist/.placeholder
-      - name: Keep artifact
-        id: keep-artifact
-        run: python -c "print('DAYS=' + str(5 if '${{ github.event_name }}'.startswith('pull_request') else 0))" >> $GITHUB_OUTPUT
-      - uses: actions/upload-artifact@v3
-        with:
-          name: ${{ inputs.artifact-name }}
-          path: dist
-          retention-days: ${{ steps.keep-artifact.outputs.DAYS }}
-          include-hidden-files: true
-
   build-packages:
-    needs: init
     runs-on: ubuntu-22.04
     strategy:
-      max-parallel: 1 # run sequential to prevent download/upload collisions
       matrix:
         pkg-name: ${{ fromJSON(inputs.pkg-names) }}
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v3
-        with:
-          name: ${{ inputs.artifact-name }}
-          path: pypi
       - uses: actions/setup-python@v5
         with:
-          python-version: 3.9
+          python-version: "3.x"
 
       - run: python -c "print('NB_DIRS=' + str(2 if '${{ matrix.pkg-name }}' == 'pytorch' else 1))" >> $GITHUB_ENV
       - name: Build & check package
@@ -60,11 +38,33 @@ jobs:
           nb-dirs: ${{ env.NB_DIRS }}
 
       - run: |
-          mkdir pypi/${{ matrix.pkg-name }}
+          mkdir -p pypi/${{ matrix.pkg-name }}
           cp dist/* pypi/${{ matrix.pkg-name }}/
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.artifact-name }}-${{ matrix.pkg-name }}
+          path: pypi
+          retention-days: 1
+
+  merge-artifacts:
+    needs: build-packages
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/download-artifact@v4
+        with: # download all build artifacts
+          pattern: ${{ inputs.artifact-name }}-*
+          merge-multiple: true
+          path: pypi
+      - run: |
+          sudo apt-get install -y tree
+          tree pypi
+
+      - name: Keep artifact
+        run: python -c "print('DAYS=' + str(5 if '${{ github.event_name }}'.startswith('pull_request') else 0))" >> $GITHUB_ENV
+      - uses: actions/upload-artifact@v4
         with:
           name: ${{ inputs.artifact-name }}
           path: pypi
-          include-hidden-files: true
+          retention-days: ${{ env.DAYS }}
+          if-no-files-found: error

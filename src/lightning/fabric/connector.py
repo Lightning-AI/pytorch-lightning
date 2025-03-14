@@ -251,8 +251,7 @@ class _Connector:
 
             if plugins_flags_types.get(Precision.__name__) and precision_input is not None:
                 raise ValueError(
-                    f"Received both `precision={precision_input}` and `plugins={self._precision_instance}`."
-                    f" Choose one."
+                    f"Received both `precision={precision_input}` and `plugins={self._precision_instance}`. Choose one."
                 )
 
         self._precision_input = "32-true" if precision_input is None else precision_input

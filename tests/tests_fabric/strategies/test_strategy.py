@@ -16,10 +16,10 @@ from unittest.mock import Mock, PropertyMock
 
 import pytest
 import torch
+
 from lightning.fabric.plugins import DoublePrecision, HalfPrecision, Precision
 from lightning.fabric.strategies import SingleDeviceStrategy
 from lightning.fabric.utilities.types import _Stateful
-
 from tests_fabric.helpers.runif import RunIf
 
 
