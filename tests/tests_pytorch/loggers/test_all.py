@@ -19,6 +19,7 @@ from unittest.mock import ANY, Mock
 
 import pytest
 import torch
+
 from lightning.pytorch import Callback, Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.loggers import (
@@ -32,7 +33,6 @@ from lightning.pytorch.loggers import (
 from lightning.pytorch.loggers.logger import DummyExperiment, Logger
 from lightning.pytorch.loggers.tensorboard import _TENSORBOARD_AVAILABLE
 from lightning.pytorch.tuner.tuning import Tuner
-
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.loggers.test_comet import _patch_comet_atexit
 from tests_pytorch.loggers.test_mlflow import mock_mlflow_run_creation
@@ -58,6 +58,8 @@ def _get_logger_args(logger_class, save_dir):
         logger_args.update(offline=True)
     if issubclass(logger_class, NeptuneLogger):
         logger_args.update(mode="offline")
+    if issubclass(logger_class, CometLogger):
+        logger_args.update(online=False)
     return logger_args
 
 
@@ -105,7 +107,9 @@ def test_loggers_fit_test_all(logger_class, mlflow_mock, wandb_mock, comet_mock,
 
     if logger_class == CometLogger:
         logger.experiment.id = "foo"
-        logger.experiment.project_name = "bar"
+        logger._comet_config.offline_directory = None
+        logger._project_name = "bar"
+        logger.experiment.get_key.return_value = "SOME_KEY"
 
     if logger_class == NeptuneLogger:
         logger._retrieve_run_data = Mock()
@@ -292,7 +296,9 @@ def test_logger_with_prefix_all(mlflow_mock, wandb_mock, comet_mock, neptune_moc
     _patch_comet_atexit(monkeypatch)
     logger = _instantiate_logger(CometLogger, save_dir=tmp_path, prefix=prefix)
     logger.log_metrics({"test": 1.0}, step=0)
-    logger.experiment.log_metrics.assert_called_once_with({"tmp-test": 1.0}, epoch=None, step=0)
+    logger.experiment.__internal_api__log_metrics__.assert_called_once_with(
+        {"test": 1.0}, epoch=None, step=0, prefix=prefix, framework="pytorch-lightning"
+    )
 
     # MLflow
     Metric = mlflow_mock.entities.Metric

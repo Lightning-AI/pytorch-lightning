@@ -15,15 +15,16 @@
 import inspect
 import json
 from argparse import Namespace
+from collections.abc import Mapping, MutableMapping
 from dataclasses import asdict, is_dataclass
-from typing import Any, Dict, Mapping, MutableMapping, Optional, Union
+from typing import Any, Optional, Union
 
 from torch import Tensor
 
 from lightning.fabric.utilities.imports import _NUMPY_AVAILABLE
 
 
-def _convert_params(params: Optional[Union[Dict[str, Any], Namespace]]) -> Dict[str, Any]:
+def _convert_params(params: Optional[Union[dict[str, Any], Namespace]]) -> dict[str, Any]:
     """Ensure parameters are a dict or convert to dict if necessary.
 
     Args:
@@ -43,7 +44,7 @@ def _convert_params(params: Optional[Union[Dict[str, Any], Namespace]]) -> Dict[
     return params
 
 
-def _sanitize_callable_params(params: Dict[str, Any]) -> Dict[str, Any]:
+def _sanitize_callable_params(params: dict[str, Any]) -> dict[str, Any]:
     """Sanitize callable params dict, e.g. ``{'a': <function_**** at 0x****>} -> {'a': 'function_****'}``.
 
     Args:
@@ -73,7 +74,7 @@ def _sanitize_callable_params(params: Dict[str, Any]) -> Dict[str, Any]:
     return {key: _sanitize_callable(val) for key, val in params.items()}
 
 
-def _flatten_dict(params: MutableMapping[Any, Any], delimiter: str = "/", parent_key: str = "") -> Dict[str, Any]:
+def _flatten_dict(params: MutableMapping[Any, Any], delimiter: str = "/", parent_key: str = "") -> dict[str, Any]:
     """Flatten hierarchical dict, e.g. ``{'a': {'b': 'c'}} -> {'a/b': 'c'}``.
 
     Args:
@@ -94,7 +95,7 @@ def _flatten_dict(params: MutableMapping[Any, Any], delimiter: str = "/", parent
         {'dl/0/a': 1, 'dl/0/c': 3, 'dl/1/b': 2, 'dl/1/d': 5, 'l': [1, 2, 3, 4]}
 
     """
-    result: Dict[str, Any] = {}
+    result: dict[str, Any] = {}
     for k, v in params.items():
         new_key = parent_key + delimiter + str(k) if parent_key else str(k)
         if is_dataclass(v) and not isinstance(v, type):
@@ -113,7 +114,7 @@ def _flatten_dict(params: MutableMapping[Any, Any], delimiter: str = "/", parent
     return result
 
 
-def _sanitize_params(params: Dict[str, Any]) -> Dict[str, Any]:
+def _sanitize_params(params: dict[str, Any]) -> dict[str, Any]:
     """Returns params with non-primitvies converted to strings for logging.
 
     >>> import torch
@@ -146,7 +147,7 @@ def _sanitize_params(params: Dict[str, Any]) -> Dict[str, Any]:
     return params
 
 
-def _convert_json_serializable(params: Dict[str, Any]) -> Dict[str, Any]:
+def _convert_json_serializable(params: dict[str, Any]) -> dict[str, Any]:
     """Convert non-serializable objects in params to string."""
     return {k: str(v) if not _is_json_serializable(v) else v for k, v in params.items()}
 

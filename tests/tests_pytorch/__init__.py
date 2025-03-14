@@ -25,7 +25,7 @@ _PATH_LEGACY = _TEST_ROOT / "legacy"
 # todo: this setting `PYTHONPATH` may not be used by other evns like Conda for import packages
 if str(_PROJECT_ROOT) not in os.getenv("PYTHONPATH", ""):
     splitter = ":" if os.environ.get("PYTHONPATH", "") else ""
-    os.environ["PYTHONPATH"] = f'{_PROJECT_ROOT}{splitter}{os.environ.get("PYTHONPATH", "")}'
+    os.environ["PYTHONPATH"] = f"{_PROJECT_ROOT}{splitter}{os.environ.get('PYTHONPATH', '')}"
 
 # Ignore cleanup warnings from pytest (rarely happens due to a race condition when executing pytest in parallel)
 warnings.filterwarnings("ignore", category=pytest.PytestWarning, message=r".*\(rm_rf\) error removing.*")

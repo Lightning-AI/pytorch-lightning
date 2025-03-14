@@ -17,9 +17,10 @@ from collections import namedtuple
 from unittest import mock
 from unittest.mock import MagicMock, call
 
-import lightning.pytorch as pl
 import pytest
 import torch
+
+import lightning.pytorch as pl
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.loggers import NeptuneLogger
@@ -255,11 +256,10 @@ def test_after_save_checkpoint(neptune_mock):
         mock_file.side_effect = mock.Mock()
         logger.after_save_checkpoint(cb_mock)
 
-        assert run_instance_mock.__setitem__.call_count == 3
-        assert run_instance_mock.__getitem__.call_count == 2
-        assert run_attr_mock.upload.call_count == 2
-
-        assert mock_file.from_stream.call_count == 2
+        assert run_instance_mock.__setitem__.call_count == 1  # best_model_path
+        assert run_instance_mock.__getitem__.call_count == 4  # last_model_path, best_k_models, best_model_path
+        assert run_attr_mock.upload.call_count == 4  # last_model_path, best_k_models, best_model_path
+        assert mock_file.from_stream.call_count == 0
 
         run_instance_mock.__getitem__.assert_any_call(f"{model_key_prefix}/checkpoints/model1")
         run_instance_mock.__getitem__.assert_any_call(f"{model_key_prefix}/checkpoints/model2/with/slashes")

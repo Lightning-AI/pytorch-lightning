@@ -12,13 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+from collections.abc import Iterator
 from copy import deepcopy
 from dataclasses import dataclass
-from typing import Any, Dict, Iterator
+from typing import Any
 from unittest.mock import ANY, Mock
 
 import pytest
 import torch
+from torch.utils.data.dataloader import DataLoader, _MultiProcessingDataLoaderIter
+
 from lightning.pytorch import LightningModule, Trainer
 from lightning.pytorch.callbacks import Callback, ModelCheckpoint, OnExceptionCheckpoint
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
@@ -26,8 +29,6 @@ from lightning.pytorch.loops import _Loop
 from lightning.pytorch.loops.progress import _BaseProgress
 from lightning.pytorch.utilities import CombinedLoader
 from lightning.pytorch.utilities.types import STEP_OUTPUT
-from torch.utils.data.dataloader import DataLoader, _MultiProcessingDataLoaderIter
-
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -87,10 +88,10 @@ def test_loop_restore():
 
             self.outputs.append(value)
 
-        def state_dict(self) -> Dict:
+        def state_dict(self) -> dict:
             return {"iteration_count": self.iteration_count, "outputs": self.outputs}
 
-        def load_state_dict(self, state_dict: Dict) -> None:
+        def load_state_dict(self, state_dict: dict) -> None:
             self.iteration_count = state_dict["iteration_count"]
             self.outputs = state_dict["outputs"]
 
@@ -140,10 +141,10 @@ def test_loop_hierarchy():
                 return
             loop.run()
 
-        def on_save_checkpoint(self) -> Dict:
+        def on_save_checkpoint(self) -> dict:
             return {"a": self.a}
 
-        def on_load_checkpoint(self, state_dict: Dict) -> None:
+        def on_load_checkpoint(self, state_dict: dict) -> None:
             self.a = state_dict["a"]
 
     trainer = Trainer()

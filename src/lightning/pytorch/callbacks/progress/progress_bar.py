@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Dict, Optional, Union
+from typing import Any, Optional, Union
 
 from typing_extensions import override
 
@@ -176,7 +176,7 @@ class ProgressBar(Callback):
 
     def get_metrics(
         self, trainer: "pl.Trainer", pl_module: "pl.LightningModule"
-    ) -> Dict[str, Union[int, str, float, Dict[str, float]]]:
+    ) -> dict[str, Union[int, str, float, dict[str, float]]]:
         r"""Combines progress bar metrics collected from the trainer with standard metrics from get_standard_metrics.
         Implement this to override the items displayed in the progress bar.
 
@@ -207,7 +207,7 @@ class ProgressBar(Callback):
         return {**standard_metrics, **pbar_metrics}
 
 
-def get_standard_metrics(trainer: "pl.Trainer") -> Dict[str, Union[int, str]]:
+def get_standard_metrics(trainer: "pl.Trainer") -> dict[str, Union[int, str]]:
     r"""Returns the standard metrics displayed in the progress bar. Currently, it only includes the version of the
     experiment when using a logger.
 
@@ -219,7 +219,7 @@ def get_standard_metrics(trainer: "pl.Trainer") -> Dict[str, Union[int, str]]:
         Dictionary with the standard metrics to be displayed in the progress bar.
 
     """
-    items_dict: Dict[str, Union[int, str]] = {}
+    items_dict: dict[str, Union[int, str]] = {}
     if trainer.loggers:
         from lightning.pytorch.loggers.utilities import _version
 

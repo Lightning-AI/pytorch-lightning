@@ -11,11 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import TYPE_CHECKING, Any, Callable, ContextManager, Dict, Optional
+from contextlib import AbstractContextManager
+from typing import TYPE_CHECKING, Any, Callable, Optional
 
 import torch
 from lightning_utilities import apply_to_collection
 from torch import Tensor
+from torch.nn import Module
 from typing_extensions import get_args, override
 
 import lightning.pytorch as pl
@@ -73,6 +75,12 @@ class FSDPPrecision(Precision):
         self._desired_input_dtype = precision_to_type[self.precision]
 
     @override
+    def convert_module(self, module: Module) -> Module:
+        if "true" in self.precision:
+            return module.to(dtype=self._desired_input_dtype)
+        return module
+
+    @override
     def clip_grad_by_norm(self, *_: Any, **__: Any) -> None:
         # see https://pytorch.org/docs/stable/fsdp.html#torch.distributed.fsdp.FullyShardedDataParallel.clip_grad_norm_
         # section `Gradient Clipping`, using `torch.nn.utils.clip_grad_norm_` is incorrect with FSDP.
@@ -109,15 +117,15 @@ class FSDPPrecision(Precision):
         )
 
     @override
-    def tensor_init_context(self) -> ContextManager:
+    def tensor_init_context(self) -> AbstractContextManager:
         return _DtypeContextManager(self._desired_input_dtype)
 
     @override
-    def module_init_context(self) -> ContextManager:
+    def module_init_context(self) -> AbstractContextManager:
         return _DtypeContextManager(self.mixed_precision_config.param_dtype or torch.float32)
 
     @override
-    def forward_context(self) -> ContextManager:
+    def forward_context(self) -> AbstractContextManager:
         if "mixed" in self.precision:
             return torch.autocast("cuda", dtype=(torch.bfloat16 if self.precision == "bf16-mixed" else torch.float16))
         return _DtypeContextManager(self._desired_input_dtype)
@@ -166,12 +174,12 @@ class FSDPPrecision(Precision):
         return closure_result
 
     @override
-    def state_dict(self) -> Dict[str, Any]:
+    def state_dict(self) -> dict[str, Any]:
         if self.scaler is not None:
             return self.scaler.state_dict()
         return {}
 
     @override
-    def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
+    def load_state_dict(self, state_dict: dict[str, Any]) -> None:
         if self.scaler is not None:
             self.scaler.load_state_dict(state_dict)

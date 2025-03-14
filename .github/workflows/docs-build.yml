@@ -21,8 +21,9 @@ on:
       - "src/pytorch_lightning/*"
       - "setup.py"
       - "pyproject.toml" # includes metadata used in the package creation
-      - "!*.md"
-      - "!**/*.md"
+      - "!*.md" # exclude all markdown files
+      - "!**/*.md" # exclude all markdown files
+      - "src/version.info" # once you try to make release try to compile complete docs
   workflow_dispatch:
     inputs:
       checkout:
@@ -45,7 +46,7 @@ defaults:
 
 env:
   FREEZE_REQUIREMENTS: "1"
-  TORCH_URL: "https://download.pytorch.org/whl/cpu/torch_stable.html"
+  TORCH_URL: "https://download.pytorch.org/whl/cpu/"
   PYPI_CACHE_DIR: "_pip-wheels"
   PYPI_LOCAL_DIR: "pypi_pkgs/"
 
@@ -105,7 +106,7 @@ jobs:
           mkdir -p ${PYPI_CACHE_DIR}  # in case cache was not hit
           ls -lh ${PYPI_CACHE_DIR}
           pip install .[all] -U -r requirements/${{ matrix.pkg-name }}/docs.txt \
-            -f ${PYPI_LOCAL_DIR} -f ${PYPI_CACHE_DIR} -f ${TORCH_URL}
+            -f ${PYPI_LOCAL_DIR} -f ${PYPI_CACHE_DIR} --extra-index-url="${TORCH_URL}"
           pip list
       - name: Install req. for Notebooks/tutorials
         if: matrix.pkg-name == 'pytorch'
@@ -129,7 +130,7 @@ jobs:
         run: echo "ARTIFACT_DAYS=7" >> $GITHUB_ENV
       - name: Upload built docs
         if: ${{ matrix.target == 'html' }}
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: docs-${{ matrix.pkg-name }}-${{ github.sha }}
           path: docs/build/html/
@@ -158,7 +159,7 @@ jobs:
       # use input if dispatch or git tag
       VERSION: ${{ inputs.version || github.ref_name }}
     steps:
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: docs-${{ matrix.pkg-name }}-${{ github.sha }}
           path: docs/build/html/
@@ -172,6 +173,21 @@ jobs:
         uses: google-github-actions/setup-gcloud@v2
         with:
           project_id: ${{ secrets.GCS_PROJECT }}
+
+      # Uploading docs as archive to GCS, so they can be as backup
+      - name: Upload docs as archive to GCS 🪣
+        if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
+        working-directory: docs/build
+        run: |
+          zip ${{ env.VERSION }}.zip -r html/
+          gsutil cp ${{ env.VERSION }}.zip ${GCP_TARGET}
+
+      - name: Inject version selector
+        working-directory: docs/build
+        run: |
+          pip install -q wget
+          python -m wget https://raw.githubusercontent.com/Lightning-AI/utilities/main/scripts/inject-selector-script.py
+          python inject-selector-script.py html ${{ matrix.pkg-name }}
 
       # Uploading docs to GCS, so they can be served on lightning.ai
       - name: Upload docs/${{ matrix.pkg-name }}/stable to GCS 🪣
@@ -187,11 +203,3 @@ jobs:
       - name: Upload docs/${{ matrix.pkg-name }}/release to GCS 🪣
         if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
         run: gsutil -m rsync -d -R docs/build/html/ ${GCP_TARGET}/${{ env.VERSION }}
-
-      # Uploading docs as archive to GCS, so they can be as backup
-      - name: Upload docs as archive to GCS 🪣
-        if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
-        working-directory: docs/build
-        run: |
-          zip ${{ env.VERSION }}.zip -r html/
-          gsutil cp ${{ env.VERSION }}.zip ${GCP_TARGET}

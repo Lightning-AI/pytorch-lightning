@@ -13,9 +13,9 @@
 # limitations under the License.
 
 import pytest
+
 from lightning.pytorch import Trainer
 from lightning.pytorch.loggers import TensorBoardLogger
-
 from tests_pytorch.loggers.test_logger import CustomLogger
 
 

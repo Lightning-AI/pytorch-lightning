@@ -16,7 +16,7 @@ import csv
 import logging
 import os
 from argparse import Namespace
-from typing import Any, Dict, List, Optional, Set, Union
+from typing import Any, Optional, Union
 
 from torch import Tensor
 from typing_extensions import override
@@ -138,13 +138,13 @@ class CSVLogger(Logger):
 
     @override
     @rank_zero_only
-    def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:
+    def log_hyperparams(self, params: Union[dict[str, Any], Namespace]) -> None:
         raise NotImplementedError("The `CSVLogger` does not yet support logging hyperparameters.")
 
     @override
     @rank_zero_only
     def log_metrics(  # type: ignore[override]
-        self, metrics: Dict[str, Union[Tensor, float]], step: Optional[int] = None
+        self, metrics: dict[str, Union[Tensor, float]], step: Optional[int] = None
     ) -> None:
         metrics = _add_prefix(metrics, self._prefix, self.LOGGER_JOIN_CHAR)
         if step is None:
@@ -200,8 +200,8 @@ class _ExperimentWriter:
     NAME_METRICS_FILE = "metrics.csv"
 
     def __init__(self, log_dir: str) -> None:
-        self.metrics: List[Dict[str, float]] = []
-        self.metrics_keys: List[str] = []
+        self.metrics: list[dict[str, float]] = []
+        self.metrics_keys: list[str] = []
 
         self._fs = get_filesystem(log_dir)
         self.log_dir = log_dir
@@ -210,7 +210,7 @@ class _ExperimentWriter:
         self._check_log_dir_exists()
         self._fs.makedirs(self.log_dir, exist_ok=True)
 
-    def log_metrics(self, metrics_dict: Dict[str, float], step: Optional[int] = None) -> None:
+    def log_metrics(self, metrics_dict: dict[str, float], step: Optional[int] = None) -> None:
         """Record metrics."""
 
         def _handle_value(value: Union[Tensor, Any]) -> Any:
@@ -246,7 +246,7 @@ class _ExperimentWriter:
 
         self.metrics = []  # reset
 
-    def _record_new_keys(self) -> Set[str]:
+    def _record_new_keys(self) -> set[str]:
         """Records new keys that have not been logged before."""
         current_keys = set().union(*self.metrics)
         new_keys = current_keys - set(self.metrics_keys)
@@ -254,7 +254,7 @@ class _ExperimentWriter:
         self.metrics_keys.sort()
         return new_keys
 
-    def _rewrite_with_new_header(self, fieldnames: List[str]) -> None:
+    def _rewrite_with_new_header(self, fieldnames: list[str]) -> None:
         with self._fs.open(self.metrics_file_path, "r", newline="") as file:
             metrics = list(csv.DictReader(file))
 

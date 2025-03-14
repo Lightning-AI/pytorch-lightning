@@ -14,7 +14,7 @@
 import math
 from collections import OrderedDict
 from dataclasses import dataclass
-from typing import Any, Dict, Optional, Union
+from typing import Any, Optional, Union
 
 from typing_extensions import override
 
@@ -390,13 +390,13 @@ class _TrainingEpochLoop(loops._Loop):
         self.val_loop.teardown()
 
     @override
-    def on_save_checkpoint(self) -> Dict:
+    def on_save_checkpoint(self) -> dict:
         state_dict = super().on_save_checkpoint()
         state_dict["_batches_that_stepped"] = self._batches_that_stepped
         return state_dict
 
     @override
-    def on_load_checkpoint(self, state_dict: Dict) -> None:
+    def on_load_checkpoint(self, state_dict: dict) -> None:
         self._batches_that_stepped = state_dict.get("_batches_that_stepped", 0)
 
     def _accumulated_batches_reached(self) -> bool:

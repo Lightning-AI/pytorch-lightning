@@ -44,7 +44,7 @@ ignore-words-list = "te, compiletime"
 
 [tool.ruff]
 line-length = 120
-target-version = "py38"
+target-version = "py39"
 # Exclude a variety of commonly ignored directories.
 exclude = [
     ".git",
