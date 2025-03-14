@@ -11,11 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from collections.abc import Iterator, Mapping
 from contextlib import nullcontext
-from typing import Dict, Generic, Iterator, Mapping, TypeVar
+from typing import Generic, TypeVar
 
 import pytest
 import torch
+
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.loops.optimization.automatic import ClosureResult
@@ -49,8 +51,8 @@ T = TypeVar("T")
 
 
 class OutputMapping(Generic[T], Mapping[str, T]):
-    def __init__(self, d: Dict[str, T]) -> None:
-        self.d: Dict[str, T] = d
+    def __init__(self, d: dict[str, T]) -> None:
+        self.d: dict[str, T] = d
 
     def __iter__(self) -> Iterator[str]:
         return iter(self.d)

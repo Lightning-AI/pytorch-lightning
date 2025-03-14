@@ -23,7 +23,7 @@ defaults:
 
 env:
   FREEZE_REQUIREMENTS: 1
-  TORCH_URL: "https://download.pytorch.org/whl/cpu/torch_stable.html"
+  TORCH_URL: "https://download.pytorch.org/whl/cpu/"
   PYTHON_VER: "3.9"
 
 jobs:
@@ -38,7 +38,7 @@ jobs:
     if: github.event_name == 'release'
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: dist-packages-${{ github.sha }}
           path: dist
@@ -60,7 +60,7 @@ jobs:
           python-version: ${{ env.PYTHON_VER }}
       - name: install Package
         run: |
-          pip install . -f ${TORCH_URL}
+          pip install . --extra-index-url="${TORCH_URL}"
           pip list
       - name: package Version
         id: lai-package
@@ -140,7 +140,7 @@ jobs:
         name: ["FABRIC", "PYTORCH", "LIGHTNING"]
     steps:
       - uses: actions/checkout@v4 # needed for local action below
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: dist-packages-${{ github.sha }}
           path: dist
@@ -165,7 +165,7 @@ jobs:
         name: ["FABRIC", "PYTORCH", "LIGHTNING"]
     steps:
       - uses: actions/checkout@v4 # needed for local action below
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: dist-packages-${{ github.sha }}
           path: dist

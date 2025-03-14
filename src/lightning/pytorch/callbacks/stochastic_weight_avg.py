@@ -17,7 +17,7 @@ Stochastic Weight Averaging Callback
 """
 
 from copy import deepcopy
-from typing import Any, Callable, Dict, List, Literal, Optional, Union, cast
+from typing import Any, Callable, Literal, Optional, Union, cast
 
 import torch
 from torch import Tensor, nn
@@ -39,7 +39,7 @@ _AVG_FN = Callable[[Tensor, Tensor, Tensor], Tensor]
 class StochasticWeightAveraging(Callback):
     def __init__(
         self,
-        swa_lrs: Union[float, List[float]],
+        swa_lrs: Union[float, list[float]],
         swa_epoch_start: Union[int, float] = 0.8,
         annealing_epochs: int = 10,
         annealing_strategy: Literal["cos", "linear"] = "cos",
@@ -126,10 +126,10 @@ class StochasticWeightAveraging(Callback):
         self._average_model: Optional[pl.LightningModule] = None
         self._initialized = False
         self._swa_scheduler: Optional[LRScheduler] = None
-        self._scheduler_state: Optional[Dict] = None
+        self._scheduler_state: Optional[dict] = None
         self._init_n_averaged = 0
         self._latest_update_epoch = -1
-        self.momenta: Dict[nn.modules.batchnorm._BatchNorm, Optional[float]] = {}
+        self.momenta: dict[nn.modules.batchnorm._BatchNorm, Optional[float]] = {}
         self._max_epochs: int
 
     @property
@@ -331,7 +331,7 @@ class StochasticWeightAveraging(Callback):
         return averaged_model_parameter + (model_parameter - averaged_model_parameter) / (num_averaged + 1)
 
     @override
-    def state_dict(self) -> Dict[str, Any]:
+    def state_dict(self) -> dict[str, Any]:
         return {
             "n_averaged": 0 if self.n_averaged is None else self.n_averaged.item(),
             "latest_update_epoch": self._latest_update_epoch,
@@ -340,7 +340,7 @@ class StochasticWeightAveraging(Callback):
         }
 
     @override
-    def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
+    def load_state_dict(self, state_dict: dict[str, Any]) -> None:
         self._init_n_averaged = state_dict["n_averaged"]
         self._latest_update_epoch = state_dict["latest_update_epoch"]
         self._scheduler_state = state_dict["scheduler_state"]
@@ -354,7 +354,7 @@ class StochasticWeightAveraging(Callback):
         # Note that this relies on the callback state being restored before the scheduler state is
         # restored, and doesn't work if restore_checkpoint_after_setup is True, but at the time of
         # writing that is only True for deepspeed which is already not supported by SWA.
-        # See https://github.com/Lightning-AI/lightning/issues/11665 for background.
+        # See https://github.com/Lightning-AI/pytorch-lightning/issues/11665 for background.
         if trainer.lr_scheduler_configs:
             assert len(trainer.lr_scheduler_configs) == 1
             trainer.lr_scheduler_configs.clear()

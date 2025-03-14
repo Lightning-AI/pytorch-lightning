@@ -8,7 +8,7 @@ https://github.com/pytorch/examples/blob/main/word_language_model
 import math
 import os
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Optional
 
 import torch
 import torch.nn as nn
@@ -88,7 +88,7 @@ class PositionalEncoding(nn.Module):
             # TODO: Could make this a `nn.Parameter` with `requires_grad=False`
             self.pe = self._init_pos_encoding(device=x.device)
 
-        x = x + self.pe[: x.size(0), :]
+        x = x + self.pe[:, x.size(1)]
         return self.dropout(x)
 
     def _init_pos_encoding(self, device: torch.device) -> Tensor:
@@ -97,7 +97,7 @@ class PositionalEncoding(nn.Module):
         div_term = torch.exp(torch.arange(0, self.dim, 2, device=device).float() * (-math.log(10000.0) / self.dim))
         pe[:, 0::2] = torch.sin(position * div_term)
         pe[:, 1::2] = torch.cos(position * div_term)
-        pe = pe.unsqueeze(0).transpose(0, 1)
+        pe = pe.unsqueeze(0)
         return pe
 
 
@@ -119,7 +119,7 @@ class WikiText2(Dataset):
     def __len__(self) -> int:
         return len(self.data) // self.block_size - 1
 
-    def __getitem__(self, index: int) -> Tuple[Tensor, Tensor]:
+    def __getitem__(self, index: int) -> tuple[Tensor, Tensor]:
         start = index * self.block_size
         end = start + self.block_size
         inputs = self.data[start:end]
@@ -143,8 +143,8 @@ class WikiText2(Dataset):
 
 class Dictionary:
     def __init__(self) -> None:
-        self.word2idx: Dict[str, int] = {}
-        self.idx2word: List[str] = []
+        self.word2idx: dict[str, int] = {}
+        self.idx2word: list[str] = []
 
     def add_word(self, word: str) -> int:
         if word not in self.word2idx:
@@ -156,7 +156,7 @@ class Dictionary:
         return len(self.idx2word)
 
 
-def tokenize(path: Path) -> Tuple[Tensor, Dictionary]:
+def tokenize(path: Path) -> tuple[Tensor, Dictionary]:
     dictionary = Dictionary()
 
     assert os.path.exists(path)
@@ -169,10 +169,10 @@ def tokenize(path: Path) -> Tuple[Tensor, Dictionary]:
 
     # Tokenize file content
     with open(path, encoding="utf8") as f:
-        idss: List[Tensor] = []
+        idss: list[Tensor] = []
         for line in f:
             words = line.split() + ["<eos>"]
-            ids: List[int] = []
+            ids: list[int] = []
             for word in words:
                 ids.append(dictionary.word2idx[word])
             idss.append(torch.tensor(ids).type(torch.int64))
@@ -188,7 +188,7 @@ class LightningTransformer(LightningModule):
     def forward(self, inputs: Tensor, target: Tensor) -> Tensor:
         return self.model(inputs, target)
 
-    def training_step(self, batch: Tuple[Tensor, Tensor], batch_idx: int) -> Tensor:
+    def training_step(self, batch: tuple[Tensor, Tensor], batch_idx: int) -> Tensor:
         inputs, target = batch
         output = self(inputs, target)
         loss = torch.nn.functional.nll_loss(output, target.view(-1))

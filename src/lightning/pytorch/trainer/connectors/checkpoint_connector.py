@@ -14,7 +14,7 @@
 import logging
 import os
 import re
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 import torch
 from fsspec.core import url_to_fs
@@ -44,7 +44,7 @@ class _CheckpointConnector:
         self._ckpt_path: Optional[_PATH] = None
         # flag to know if the user is changing the checkpoint path statefully. See `trainer.ckpt_path.setter`
         self._user_managed: bool = False
-        self._loaded_checkpoint: Dict[str, Any] = {}
+        self._loaded_checkpoint: dict[str, Any] = {}
 
     @property
     def _hpc_resume_path(self) -> Optional[str]:
@@ -397,9 +397,7 @@ class _CheckpointConnector:
         self.resume_start(checkpoint_path)
         self.restore_model()
         self.restore_datamodule()
-        if self.trainer.state.fn == TrainerFn.FITTING:
-            # restore callback states
-            self.restore_callbacks()
+        self.restore_callbacks()
 
     def dump_checkpoint(self, weights_only: bool = False) -> dict:
         """Creating a model checkpoint dictionary object from various component states.
@@ -493,10 +491,10 @@ class _CheckpointConnector:
         call._call_lightning_module_hook(trainer, "on_save_checkpoint", checkpoint)
         return checkpoint
 
-    def _get_lightning_module_state_dict(self) -> Dict[str, Tensor]:
+    def _get_lightning_module_state_dict(self) -> dict[str, Tensor]:
         return self.trainer.strategy.lightning_module_state_dict()
 
-    def _get_loops_state_dict(self) -> Dict[str, Any]:
+    def _get_loops_state_dict(self) -> dict[str, Any]:
         return {
             "fit_loop": self.trainer.fit_loop.state_dict(),
             "validate_loop": self.trainer.validate_loop.state_dict(),

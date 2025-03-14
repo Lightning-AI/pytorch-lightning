@@ -18,7 +18,7 @@ Role: All final decisions related to Lightning.
 
 Maintainers
 -----------
-- Adrian Wälchli (`awaelchli <https://github.com/awaelchli>`_)
+- Luca Antiga (`lantiga <https://github.com/lantiga>`_)
 - Jirka Borovec (`Borda <https://github.com/Borda>`_)
 - Justus Schock (`justusschock <https://github.com/justusschock>`_)
 
@@ -32,6 +32,7 @@ Emeritus Maintainers
 
 Alumni
 ------
+- Adrian Wälchli (`awaelchli <https://github.com/awaelchli>`_)
 - Carlos Mocholí (`carmocca <https://github.com/carmocca>`_)
 - Akihiro Nitta (`akihironitta <https://github.com/akihironitta>`_)
 - Ananth Subramaniam (`ananthsub <https://github.com/ananthsub>`_)

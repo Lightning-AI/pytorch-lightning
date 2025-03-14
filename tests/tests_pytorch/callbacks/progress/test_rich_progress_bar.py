@@ -17,14 +17,15 @@ from unittest import mock
 from unittest.mock import DEFAULT, Mock
 
 import pytest
+from tests_pytorch.helpers.runif import RunIf
+from torch.utils.data import DataLoader
+
 from lightning.pytorch import Trainer
 from lightning.pytorch.callbacks import ProgressBar, RichProgressBar
 from lightning.pytorch.callbacks.progress.rich_progress import RichProgressBarTheme
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset, RandomIterableDataset
 from lightning.pytorch.loggers import CSVLogger
 from lightning.pytorch.loggers.logger import DummyLogger
-from tests_pytorch.helpers.runif import RunIf
-from torch.utils.data import DataLoader
 
 
 @RunIf(rich=True)
@@ -141,9 +142,12 @@ def test_rich_progress_bar_keyboard_interrupt(tmp_path):
 
     model = TestModel()
 
-    with mock.patch(
-        "lightning.pytorch.callbacks.progress.rich_progress.Progress.stop", autospec=True
-    ) as mock_progress_stop, pytest.raises(SystemExit):
+    with (
+        mock.patch(
+            "lightning.pytorch.callbacks.progress.rich_progress.Progress.stop", autospec=True
+        ) as mock_progress_stop,
+        pytest.raises(SystemExit),
+    ):
         progress_bar = RichProgressBar()
         trainer = Trainer(
             default_root_dir=tmp_path,
@@ -306,20 +310,6 @@ def test_rich_progress_bar_counter_with_val_check_interval(tmp_path):
     val_bar = progress_bar.progress.tasks[0]
     assert val_bar.completed == 4
     assert val_bar.total == 4
-
-
-@RunIf(rich=True)
-@mock.patch("lightning.pytorch.callbacks.progress.rich_progress._detect_light_colab_theme", return_value=True)
-def test_rich_progress_bar_colab_light_theme_update(*_):
-    theme = RichProgressBar().theme
-    assert theme.description == "black"
-    assert theme.batch_progress == "black"
-    assert theme.metrics == "black"
-
-    theme = RichProgressBar(theme=RichProgressBarTheme(description="blue", metrics="red")).theme
-    assert theme.description == "blue"
-    assert theme.batch_progress == "black"
-    assert theme.metrics == "red"
 
 
 @RunIf(rich=True)

@@ -14,26 +14,25 @@
 import os
 import sys
 import threading
+from concurrent.futures.process import _ExecutorManagerThread
 from pathlib import Path
-from typing import List
 from unittest.mock import Mock
 
-import lightning.fabric
 import pytest
 import torch.distributed
+
+import lightning.fabric
 from lightning.fabric.accelerators import XLAAccelerator
 from lightning.fabric.strategies.launchers.subprocess_script import _ChildProcessObserver
 from lightning.fabric.utilities.distributed import _destroy_dist_connection
-
-if sys.version_info >= (3, 9):
-    from concurrent.futures.process import _ExecutorManagerThread
 
 
 @pytest.fixture(autouse=True)
 def preserve_global_rank_variable():
     """Ensures that the rank_zero_only.rank global variable gets reset in each test."""
-    from lightning.fabric.utilities.rank_zero import rank_zero_only as rank_zero_only_fabric
     from lightning_utilities.core.rank_zero import rank_zero_only as rank_zero_only_utilities
+
+    from lightning.fabric.utilities.rank_zero import rank_zero_only as rank_zero_only_fabric
 
     functions = (rank_zero_only_fabric, rank_zero_only_utilities)
     ranks = [getattr(fn, "rank", None) for fn in functions]
@@ -69,6 +68,7 @@ def restore_env_variables():
         "OMP_NUM_THREADS",  # set by our launchers
         # set by torchdynamo
         "TRITON_CACHE_DIR",
+        "TORCHINDUCTOR_CACHE_DIR",
     }
     leaked_vars.difference_update(allowlist)
     assert not leaked_vars, f"test is leaking environment variable(s): {set(leaked_vars)}"
@@ -128,7 +128,7 @@ def reset_in_fabric_backward():
     wrappers._in_fabric_backward = False
 
 
-@pytest.fixture()
+@pytest.fixture
 def reset_deterministic_algorithm():
     """Ensures that torch determinism settings are reset before the next test runs."""
     yield
@@ -136,7 +136,7 @@ def reset_deterministic_algorithm():
     torch.use_deterministic_algorithms(False)
 
 
-@pytest.fixture()
+@pytest.fixture
 def reset_cudnn_benchmark():
     """Ensures that the `torch.backends.cudnn.benchmark` setting gets reset before the next test runs."""
     yield
@@ -157,7 +157,7 @@ def mock_xla_available(monkeypatch: pytest.MonkeyPatch, value: bool = True) -> N
     monkeypatch.setitem(sys.modules, "torch_xla.distributed.fsdp.wrap", Mock())
 
 
-@pytest.fixture()
+@pytest.fixture
 def xla_available(monkeypatch: pytest.MonkeyPatch) -> None:
     mock_xla_available(monkeypatch)
 
@@ -168,12 +168,12 @@ def mock_tpu_available(monkeypatch: pytest.MonkeyPatch, value: bool = True) -> N
     monkeypatch.setattr(lightning.fabric.accelerators.xla.XLAAccelerator, "auto_device_count", lambda *_: 8)
 
 
-@pytest.fixture()
+@pytest.fixture
 def tpu_available(monkeypatch: pytest.MonkeyPatch) -> None:
     mock_tpu_available(monkeypatch)
 
 
-@pytest.fixture()
+@pytest.fixture
 def caplog(caplog):
     """Workaround for https://github.com/pytest-dev/pytest/issues/3697.
 
@@ -191,16 +191,20 @@ def caplog(caplog):
 
 @pytest.fixture(autouse=True)
 def leave_no_artifacts_behind():
+    """Checks that no artifacts are left behind after the test."""
     tests_root = Path(__file__).parent.parent
+    # Ignore the __pycache__ directories
     files_before = {p for p in tests_root.rglob("*") if "__pycache__" not in p.parts}
     yield
     files_after = {p for p in tests_root.rglob("*") if "__pycache__" not in p.parts}
     difference = files_after - files_before
     difference = {str(f.relative_to(tests_root)) for f in difference}
+    # ignore the .coverage files
+    difference = {f for f in difference if not f.endswith(".coverage")}
     assert not difference, f"Test left artifacts behind: {difference}"
 
 
-def pytest_collection_modifyitems(items: List[pytest.Function], config: pytest.Config) -> None:
+def pytest_collection_modifyitems(items: list[pytest.Function], config: pytest.Config) -> None:
     """An adaptation of `tests/tests_pytorch/conftest.py::pytest_collection_modifyitems`"""
     initial_size = len(items)
     conditions = []
