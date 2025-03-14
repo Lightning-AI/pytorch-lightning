@@ -260,7 +260,29 @@ class _CheckpointConnector:
             ckpt_path = self._hpc_resume_path
 
         elif _is_registry(ckpt_path) and module_available("litmodels"):
+            # try to find model and version
+            model_name, model_version = _parse_registry_model_version(ckpt_path)
+            # omitted model name try to use the model registry from Trainer
+            if not model_name:
+                model_name = self.trainer._model_registry
+            # if model name is not set download it and use it
+            if model_name:
+                ckpt_path = self._download_model_registry(model_name, model_version)
 
+        if not ckpt_path:
+            raise ValueError(
+                f"`.{fn}()` found no path for the best weights: {ckpt_path!r}. Please"
+                f" specify a path for a checkpoint `.{fn}(ckpt_path=PATH)`"
+            )
+        return ckpt_path
+
+    def _download_model_registry(self, model_name: str, model_version: str) -> str:
+        model_registry = model_name
+        model_registry += f":{model_version}" if model_version else ""
+        # download the latest checkpoint from the model registry
+        local_model_dir = os.path.join(self.trainer.default_root_dir, model_registry.replace("/", "_"))
+
+        if self.trainer.local_rank == 0:
             from lightning_sdk.lightning_cloud.login import Auth
             from litmodels import download_model
 
@@ -270,32 +292,22 @@ class _CheckpointConnector:
             except Exception:
                 raise ConnectionError("Unable to authenticate with Lightning Cloud. Check your credentials.")
 
-            # try to find model and version
-            model_name, model_version = _parse_registry_model_version(ckpt_path)
-            # omitted model name try to use the model registry from Trainer
-            if not model_name:
-                model_name = self.trainer._model_registry
-            # if model name is not set download it and use it
-            if model_name:
-                model_registry = model_name
-                model_registry += f":{model_version}" if model_version else ""
-                # download the latest checkpoint from the model registry
-                local_model_dir = os.path.join(self.trainer.default_root_dir, model_registry.replace("/", "_"))
-                print(f"_parse_ckpt_path: local RANK {self.trainer.local_rank} started | folder {local_model_dir} exists {os.path.exists(local_model_dir)}")
-                model_files = download_model(model_registry, download_dir=local_model_dir)
-                model_files = [f for f in model_files if f.endswith(".ckpt")]
-                if not model_files:
-                    raise RuntimeError(f"Download model failed - {model_registry}")
-                # todo: resolve if there are multiple checkpoints
-                ckpt_path = os.path.join(local_model_dir, model_files[0])
-                print(f"_parse_ckpt_path: local RANK {self.trainer.local_rank} finished")
-
-        if not ckpt_path:
-            raise ValueError(
-                f"`.{fn}()` found no path for the best weights: {ckpt_path!r}. Please"
-                f" specify a path for a checkpoint `.{fn}(ckpt_path=PATH)`"
+            print(
+                f"_parse_ckpt_path: local RANK {self.trainer.local_rank} started | folder {local_model_dir} exists {os.path.exists(local_model_dir)}"  # noqa: E501
             )
-        return ckpt_path
+            model_files = download_model(model_registry, download_dir=local_model_dir)
+            if not model_files:
+                raise RuntimeError(f"Download model failed - {model_registry}")
+            print(f"_parse_ckpt_path: local RANK {self.trainer.local_rank} finished")
+
+        # wait for all to catch up
+        self.trainer.strategy.barrier("_CheckpointConnector._download_model_registry")
+
+        # todo: resolve if there are multiple checkpoints
+        folder_files = [fn for fn in os.listdir(local_model_dir) if fn.endswith(".ckpt")]
+        if not folder_files:
+            raise RuntimeError(f"Parsing files from downloaded model failed - {model_registry}")
+        return os.path.join(model_name, folder_files[0])
 
     def resume_end(self) -> None:
         """Signal the connector that all states have resumed and memory for the checkpoint object can be released."""
