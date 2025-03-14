@@ -260,6 +260,8 @@ class _CheckpointConnector:
             ckpt_path = self._hpc_resume_path
 
         elif _is_registry(ckpt_path) and module_available("litmodels"):
+            print(f"Local RANK {self.trainer.local_rank}")
+
             from lightning_sdk.lightning_cloud.login import Auth
             from litmodels import download_model
 
