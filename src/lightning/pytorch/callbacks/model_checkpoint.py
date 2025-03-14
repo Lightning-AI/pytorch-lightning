@@ -273,7 +273,7 @@ class ModelCheckpoint(Checkpoint):
     def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: str) -> None:
         self.__init_state()
         self.__set_monitor_mode(self._mode)
-        self.__set_ckpt_dir(self._dirpath, self.filename)
+        self.__set_ckpt_dir(self.dirpath, self.filename)
 
         dirpath = self.__resolve_ckpt_dir(trainer)
         dirpath = trainer.strategy.broadcast(dirpath)
