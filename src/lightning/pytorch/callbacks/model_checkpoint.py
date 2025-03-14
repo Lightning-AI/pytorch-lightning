@@ -238,12 +238,10 @@ class ModelCheckpoint(Checkpoint):
         self.auto_insert_metric_name = auto_insert_metric_name
         self._save_on_train_epoch_end = save_on_train_epoch_end
         self._enable_version_counter = enable_version_counter
-        self._dirpath = dirpath
-        self._filename = filename
-        self._mode = mode
-
+        self.dirpath: Optional[_PATH] = dirpath
+        self.filename = filename
         self.kth_value: Optional[Tensor] = None
-        self.dirpath: Optional[_PATH]
+        self._mode = mode
 
         self.__init_state()
         self.__init_triggers(every_n_train_steps, every_n_epochs, train_time_interval)
@@ -275,7 +273,7 @@ class ModelCheckpoint(Checkpoint):
     def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: str) -> None:
         self.__init_state()
         self.__set_monitor_mode(self._mode)
-        self.__set_ckpt_dir(self._dirpath, self._filename)
+        self.__set_ckpt_dir(self._dirpath, self.filename)
 
         dirpath = self.__resolve_ckpt_dir(trainer)
         dirpath = trainer.strategy.broadcast(dirpath)
@@ -350,7 +348,7 @@ class ModelCheckpoint(Checkpoint):
             "best_model_score": self.best_model_score,
             "best_model_path": self.best_model_path,
             "current_score": self.current_score,
-            "dirpath": self._dirpath,
+            "dirpath": self.dirpath,
             "best_k_models": self.best_k_models,
             "kth_best_model_path": self.kth_best_model_path,
             "kth_value": self.kth_value,
@@ -627,9 +625,9 @@ class ModelCheckpoint(Checkpoint):
         The path gets extended with subdirectory "checkpoints".
 
         """
-        if self._dirpath is not None:
+        if self.dirpath is not None:
             # short circuit if dirpath was passed to ModelCheckpoint
-            return self._dirpath
+            return self.dirpath
 
         if len(trainer.loggers) > 0:
             if trainer.loggers[0].save_dir is not None:
