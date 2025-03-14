@@ -24,55 +24,55 @@ from lightning_fabric.accelerators.accelerator import Accelerator
 from lightning_fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12, _TORCH_GREATER_EQUAL_2_0
 
 
-class CUDAAccelerator(Accelerator):
-    """Accelerator for NVIDIA CUDA devices."""
+class MUSAAccelerator(Accelerator):
+    """Accelerator for NVIDIA MUSA devices."""
 
     def setup_device(self, device: torch.device) -> None:
         """
         Raises:
             ValueError:
-                If the selected device is not of type CUDA.
+                If the selected device is not of type MUSA.
         """
-        if device.type != "cuda":
-            raise ValueError(f"Device should be CUDA, got {device} instead.")
-        _check_cuda_matmul_precision(device)
-        torch.cuda.set_device(device)
+        if device.type != "musa":
+            raise ValueError(f"Device should be MUSA, got {device} instead.")
+        _check_musa_matmul_precision(device)
+        torch.musa.set_device(device)
 
     def teardown(self) -> None:
-        _clear_cuda_memory()
+        _clear_musa_memory()
 
     @staticmethod
     def parse_devices(devices: Union[int, str, List[int]]) -> Optional[List[int]]:
         """Accelerator device parsing logic."""
         from lightning_fabric.utilities.device_parser import _parse_gpu_ids
 
-        return _parse_gpu_ids(devices, include_cuda=True)
+        return _parse_gpu_ids(devices, include_musa=True)
 
     @staticmethod
     def get_parallel_devices(devices: List[int]) -> List[torch.device]:
         """Gets parallel devices for the Accelerator."""
-        return [torch.device("cuda", i) for i in devices]
+        return [torch.device("musa", i) for i in devices]
 
     @staticmethod
     def auto_device_count() -> int:
         """Get the devices when set to auto."""
-        return num_cuda_devices()
+        return num_musa_devices()
 
     @staticmethod
     def is_available() -> bool:
-        return num_cuda_devices() > 0
+        return num_musa_devices() > 0
 
     @classmethod
     def register_accelerators(cls, accelerator_registry: Dict) -> None:
         accelerator_registry.register(
-            "cuda",
+            "musa",
             cls,
             description=cls.__class__.__name__,
         )
 
 
-def find_usable_cuda_devices(num_devices: int = -1) -> List[int]:
-    """Returns a list of all available and usable CUDA GPU devices.
+def find_usable_musa_devices(num_devices: int = -1) -> List[int]:
+    """Returns a list of all available and usable MUSA GPU devices.
 
     A GPU is considered usable if we can successfully move a tensor to the device, and this is what this function
     tests for each GPU on the system until the target number of usable devices is found.
@@ -82,16 +82,16 @@ def find_usable_cuda_devices(num_devices: int = -1) -> List[int]:
 
     Args:
         num_devices: The number of devices you want to request. By default, this function will return as many as there
-            are usable CUDA GPU devices available.
+            are usable MUSA GPU devices available.
 
     Warning:
         If multiple processes call this function at the same time, there can be race conditions in the case where
         both processes determine that the device is unoccupied, leading into one of them crashing later on.
     """
-    visible_devices = _get_all_visible_cuda_devices()
+    visible_devices = _get_all_visible_musa_devices()
     if not visible_devices:
         raise ValueError(
-            f"You requested to find {num_devices} devices but there are no visible CUDA devices on this machine."
+            f"You requested to find {num_devices} devices but there are no visible MUSA devices on this machine."
         )
     if num_devices > len(visible_devices):
         raise ValueError(
@@ -103,7 +103,7 @@ def find_usable_cuda_devices(num_devices: int = -1) -> List[int]:
 
     for gpu_idx in visible_devices:
         try:
-            torch.tensor(0, device=torch.device("cuda", gpu_idx))
+            torch.tensor(0, device=torch.device("musa", gpu_idx))
         except RuntimeError:
             unavailable_devices.append(gpu_idx)
             continue
@@ -121,64 +121,64 @@ def find_usable_cuda_devices(num_devices: int = -1) -> List[int]:
     return available_devices
 
 
-def _get_all_visible_cuda_devices() -> List[int]:
-    """Returns a list of all visible CUDA GPU devices.
+def _get_all_visible_musa_devices() -> List[int]:
+    """Returns a list of all visible MUSA GPU devices.
 
-    Devices masked by the environment variabale ``CUDA_VISIBLE_DEVICES`` won't be returned here. For example, assume you
-    have 8 physical GPUs. If ``CUDA_VISIBLE_DEVICES="1,3,6"``, then this function will return the list ``[0, 1, 2]``
-    because these are the three visible GPUs after applying the mask ``CUDA_VISIBLE_DEVICES``.
+    Devices masked by the environment variabale ``MUSA_VISIBLE_DEVICES`` won't be returned here. For example, assume you
+    have 8 physical GPUs. If ``MUSA_VISIBLE_DEVICES="1,3,6"``, then this function will return the list ``[0, 1, 2]``
+    because these are the three visible GPUs after applying the mask ``MUSA_VISIBLE_DEVICES``.
     """
-    return list(range(num_cuda_devices()))
+    return list(range(num_musa_devices()))
 
 
 # TODO: Remove once minimum supported PyTorch version is 2.0
 @contextmanager
-def _patch_cuda_is_available() -> Generator:
-    """Context manager that safely patches :func:`torch.cuda.is_available` with its NVML-based version if
+def _patch_musa_is_available() -> Generator:
+    """Context manager that safely patches :func:`torch.musa.is_available` with its NVML-based version if
     possible."""
-    if hasattr(torch._C, "_cuda_getDeviceCount") and _device_count_nvml() >= 0 and not _TORCH_GREATER_EQUAL_2_0:
-        # we can safely patch is_available if both torch has CUDA compiled and the NVML count is succeeding
+    if hasattr(torch._C, "_musa_getDeviceCount") and _device_count_nvml() >= 0 and not _TORCH_GREATER_EQUAL_2_0:
+        # we can safely patch is_available if both torch has MUSA compiled and the NVML count is succeeding
         # otherwise, patching is_available could lead to attribute errors or infinite recursion
-        orig_check = torch.cuda.is_available
-        torch.cuda.is_available = is_cuda_available
+        orig_check = torch.musa.is_available
+        torch.musa.is_available = is_musa_available
         try:
             yield
         finally:
-            torch.cuda.is_available = orig_check
+            torch.musa.is_available = orig_check
     else:
         yield
 
 
 @lru_cache(1)
-def num_cuda_devices() -> int:
-    """Returns the number of available CUDA devices.
+def num_musa_devices() -> int:
+    """Returns the number of available MUSA devices.
 
-    Unlike :func:`torch.cuda.device_count`, this function does its best not to create a CUDA context for fork support,
+    Unlike :func:`torch.musa.device_count`, this function does its best not to create a MUSA context for fork support,
     if the platform allows it.
     """
     if _TORCH_GREATER_EQUAL_2_0:
-        return torch.cuda.device_count()
+        return torch.musa.device_count()
 
     # Implementation copied from upstream: https://github.com/pytorch/pytorch/pull/84879
     # TODO: Remove once minimum supported PyTorch version is 2.0
     nvml_count = _device_count_nvml()
-    return torch.cuda.device_count() if nvml_count < 0 else nvml_count
+    return torch.musa.device_count() if nvml_count < 0 else nvml_count
 
 
-def is_cuda_available() -> bool:
-    """Returns a bool indicating if CUDA is currently available.
+def is_musa_available() -> bool:
+    """Returns a bool indicating if MUSA is currently available.
 
-    Unlike :func:`torch.cuda.is_available`, this function does its best not to create a CUDA context for fork support,
+    Unlike :func:`torch.musa.is_available`, this function does its best not to create a MUSA context for fork support,
     if the platform allows it.
     """
-    # We set `PYTORCH_NVML_BASED_CUDA_CHECK=1` in lightning_fabric.__init__.py
-    return torch.cuda.is_available() if _TORCH_GREATER_EQUAL_2_0 else num_cuda_devices() > 0
+    # We set `PYTORCH_NVML_BASED_MUSA_CHECK=1` in lightning_fabric.__init__.py
+    return torch.musa.is_available() if _TORCH_GREATER_EQUAL_2_0 else num_musa_devices() > 0
 
 
 # TODO: Remove once minimum supported PyTorch version is 2.0
 def _parse_visible_devices() -> Union[List[int], List[str]]:
-    """Parse CUDA_VISIBLE_DEVICES environment variable."""
-    var = os.getenv("CUDA_VISIBLE_DEVICES")
+    """Parse MUSA_VISIBLE_DEVICES environment variable."""
+    var = os.getenv("MUSA_VISIBLE_DEVICES")
     if var is None:
         return list(range(64))
 
@@ -209,7 +209,7 @@ def _parse_visible_devices() -> Union[List[int], List[str]]:
         return parse_list_with_prefix(var, "GPU-")
     if var.startswith("MIG-"):
         return parse_list_with_prefix(var, "MIG-")
-    # CUDA_VISIBLE_DEVICES uses something like strtoul
+    # MUSA_VISIBLE_DEVICES uses something like strtoul
     # which makes `1gpu2,2ampere` is equivalent to `1,2`
     rc: List[int] = []
     for elem in var.split(","):
@@ -307,7 +307,7 @@ def _transform_uuid_to_ordinals(candidates: List[str], uuids: List[str]) -> List
 
 # TODO: Remove once minimum supported PyTorch version is 2.0
 def _device_count_nvml() -> int:
-    """Return number of devices as reported by NVML taking CUDA_VISIBLE_DEVICES into account.
+    """Return number of devices as reported by NVML taking MUSA_VISIBLE_DEVICES into account.
 
     Negative value is returned if NVML discovery or initialization has failed.
     """
@@ -338,11 +338,11 @@ def _device_count_nvml() -> int:
     return len(visible_devices)
 
 
-def _check_cuda_matmul_precision(device: torch.device) -> None:
+def _check_musa_matmul_precision(device: torch.device) -> None:
     if not _TORCH_GREATER_EQUAL_1_12:
         # before 1.12, tf32 was used by default
         return
-    major, _ = torch.cuda.get_device_capability(device)
+    major, _ = torch.musa.get_device_capability(device)
     ampere_or_later = major >= 8  # Ampere and later leverage tensor cores, where this setting becomes useful
     if not ampere_or_later:
         return
@@ -350,17 +350,17 @@ def _check_cuda_matmul_precision(device: torch.device) -> None:
     # `set_float32_matmul_precision`
     if torch.get_float32_matmul_precision() == "highest":  # default
         rank_zero_info(
-            f"You are using a CUDA device ({torch.cuda.get_device_name(device)!r}) that has Tensor Cores. To properly"
+            f"You are using a MUSA device ({torch.musa.get_device_name(device)!r}) that has Tensor Cores. To properly"
             " utilize them, you should set `torch.set_float32_matmul_precision('medium' | 'high')` which will trade-off"
             " precision for performance. For more details, read https://pytorch.org/docs/stable/generated/"
             "torch.set_float32_matmul_precision.html#torch.set_float32_matmul_precision"
         )
     # note: no need change `torch.backends.cudnn.allow_tf32` as it's enabled by default:
-    # https://pytorch.org/docs/stable/notes/cuda.html#tensorfloat-32-tf32-on-ampere-devices
+    # https://pytorch.org/docs/stable/notes/musa.html#tensorfloat-32-tf32-on-ampere-devices
 
 
-def _clear_cuda_memory() -> None:
+def _clear_musa_memory() -> None:
     if _TORCH_GREATER_EQUAL_2_0:
         # https://github.com/pytorch/pytorch/issues/95668
-        torch._C._cuda_clearCublasWorkspaces()
-    torch.cuda.empty_cache()
+        torch._C._musa_clearCublasWorkspaces()
+    torch.musa.empty_cache()

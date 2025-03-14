@@ -162,7 +162,7 @@ class BaguaStrategy(DDPStrategy):
 
         # need to set device first before initialize Bagua distributed environment
         # Note: setup_environment calls super().setup_distributed after calling init_distributed()
-        torch.cuda.set_device(self.local_rank)
+        torch.musa.set_device(self.local_rank)
 
         if not is_initialized():
             bagua.init_process_group()

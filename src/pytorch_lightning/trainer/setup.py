@@ -18,7 +18,7 @@ from typing import Optional, Union
 import pytorch_lightning as pl
 from lightning_fabric.utilities.warnings import PossibleUserWarning
 from pytorch_lightning.accelerators import (
-    CUDAAccelerator,
+    MUSAAccelerator,
     HPUAccelerator,
     IPUAccelerator,
     MPSAccelerator,
@@ -149,9 +149,9 @@ def _init_profiler(trainer: "pl.Trainer", profiler: Optional[Union[Profiler, str
 
 
 def _log_device_info(trainer: "pl.Trainer") -> None:
-    if CUDAAccelerator.is_available():
+    if MUSAAccelerator.is_available():
         gpu_available = True
-        gpu_type = " (cuda)"
+        gpu_type = " (musa)"
     elif MPSAccelerator.is_available():
         gpu_available = True
         gpu_type = " (mps)"
@@ -159,7 +159,7 @@ def _log_device_info(trainer: "pl.Trainer") -> None:
         gpu_available = False
         gpu_type = ""
 
-    gpu_used = isinstance(trainer.accelerator, (CUDAAccelerator, MPSAccelerator))
+    gpu_used = isinstance(trainer.accelerator, (MUSAAccelerator, MPSAccelerator))
     rank_zero_info(f"GPU available: {gpu_available}{gpu_type}, used: {gpu_used}")
 
     num_tpu_cores = trainer.num_devices if isinstance(trainer.accelerator, TPUAccelerator) else 0
@@ -172,10 +172,10 @@ def _log_device_info(trainer: "pl.Trainer") -> None:
     rank_zero_info(f"HPU available: {_HPU_AVAILABLE}, using: {num_hpus} HPUs")
 
     # TODO: Integrate MPS Accelerator here, once gpu maps to both
-    if CUDAAccelerator.is_available() and not isinstance(trainer.accelerator, CUDAAccelerator):
+    if MUSAAccelerator.is_available() and not isinstance(trainer.accelerator, MUSAAccelerator):
         rank_zero_warn(
             "GPU available but not used. Set `accelerator` and `devices` using"
-            f" `Trainer(accelerator='gpu', devices={CUDAAccelerator.auto_device_count()})`.",
+            f" `Trainer(accelerator='gpu', devices={MUSAAccelerator.auto_device_count()})`.",
             category=PossibleUserWarning,
         )
 

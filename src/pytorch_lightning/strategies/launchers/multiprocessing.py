@@ -28,7 +28,7 @@ from typing_extensions import Literal
 
 import pytorch_lightning as pl
 from lightning_fabric.strategies.launchers.base import _Launcher
-from lightning_fabric.strategies.launchers.multiprocessing import _check_bad_cuda_fork
+from lightning_fabric.strategies.launchers.multiprocessing import _check_bad_musa_fork
 from lightning_fabric.utilities import move_data_to_device
 from lightning_fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_11
 from lightning_fabric.utilities.seed import _collect_rng_states, _set_rng_states
@@ -47,8 +47,8 @@ class _MultiProcessingLauncher(_Launcher):
     Note:
         - This launcher requires all objects to be pickleable.
         - It is important that the entry point to the program/script is guarded by ``if __name__ == "__main__"``.
-        - With start method 'fork' the user must ensure that no CUDA context gets created in the main process before
-          the launcher is invoked. E.g., one should avoid creating cuda tensors or calling ``torch.cuda.*`` functions
+        - With start method 'fork' the user must ensure that no MUSA context gets created in the main process before
+          the launcher is invoked. E.g., one should avoid creating musa tensors or calling ``torch.musa.*`` functions
           before calling ``Trainer.fit``.
 
     Args:
@@ -74,7 +74,7 @@ class _MultiProcessingLauncher(_Launcher):
     @property
     def is_interactive_compatible(self) -> bool:
         # The start method 'spawn' is not supported in interactive environments
-        # The start method 'fork' is the only one supported in Jupyter environments, with constraints around CUDA
+        # The start method 'fork' is the only one supported in Jupyter environments, with constraints around MUSA
         # initialization. For more context, see https://github.com/Lightning-AI/lightning/issues/7550
         return self._start_method == "fork"
 
@@ -93,7 +93,7 @@ class _MultiProcessingLauncher(_Launcher):
         """
         self._check_torchdistx_support()
         if self._start_method in ("fork", "forkserver"):
-            _check_bad_cuda_fork()
+            _check_bad_musa_fork()
 
         # The default cluster environment in Lightning chooses a random free port number
         # This needs to be done in the main process here before starting processes to ensure each rank will connect

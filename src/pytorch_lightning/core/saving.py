@@ -112,7 +112,7 @@ class ModelIO:
             model = MyLightningModule.load_from_checkpoint('path/to/checkpoint.ckpt')
 
             # or load weights mapping all weights from GPU 1 to GPU 0 ...
-            map_location = {'cuda:1':'cuda:0'}
+            map_location = {'musa:1':'musa:0'}
             model = MyLightningModule.load_from_checkpoint(
                 'path/to/checkpoint.ckpt',
                 map_location=map_location

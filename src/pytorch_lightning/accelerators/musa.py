@@ -20,7 +20,7 @@ from typing import Any, Dict, List, Optional, Union
 import torch
 
 import pytorch_lightning as pl
-from lightning_fabric.accelerators.cuda import _check_cuda_matmul_precision, _clear_cuda_memory, num_cuda_devices
+from lightning_fabric.accelerators.musa import _check_musa_matmul_precision, _clear_musa_memory, num_musa_devices
 from lightning_fabric.utilities.device_parser import _parse_gpu_ids
 from lightning_fabric.utilities.types import _DEVICE
 from pytorch_lightning.accelerators.accelerator import Accelerator
@@ -29,8 +29,8 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 _log = logging.getLogger(__name__)
 
 
-class CUDAAccelerator(Accelerator):
-    """Accelerator for NVIDIA CUDA devices."""
+class MUSAAccelerator(Accelerator):
+    """Accelerator for NVIDIA MUSA devices."""
 
     def setup_device(self, device: torch.device) -> None:
         """
@@ -38,23 +38,23 @@ class CUDAAccelerator(Accelerator):
             MisconfigurationException:
                 If the selected device is not GPU.
         """
-        if device.type != "cuda":
+        if device.type != "musa":
             raise MisconfigurationException(f"Device should be GPU, got {device} instead")
-        _check_cuda_matmul_precision(device)
-        torch.cuda.set_device(device)
+        _check_musa_matmul_precision(device)
+        torch.musa.set_device(device)
 
     def setup(self, trainer: "pl.Trainer") -> None:
         # TODO refactor input from trainer to local_rank @four4fish
         self.set_nvidia_flags(trainer.local_rank)
-        _clear_cuda_memory()
+        _clear_musa_memory()
 
     @staticmethod
     def set_nvidia_flags(local_rank: int) -> None:
-        # set the correct cuda visible devices (using pci order)
-        os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-        all_gpu_ids = ",".join(str(x) for x in range(num_cuda_devices()))
-        devices = os.getenv("CUDA_VISIBLE_DEVICES", all_gpu_ids)
-        _log.info(f"LOCAL_RANK: {local_rank} - CUDA_VISIBLE_DEVICES: [{devices}]")
+        # set the correct musa visible devices (using pci order)
+        os.environ["MUSA_DEVICE_ORDER"] = "PCI_BUS_ID"
+        all_gpu_ids = ",".join(str(x) for x in range(num_musa_devices()))
+        devices = os.getenv("MUSA_VISIBLE_DEVICES", all_gpu_ids)
+        _log.info(f"LOCAL_RANK: {local_rank} - MUSA_VISIBLE_DEVICES: [{devices}]")
 
     def get_device_stats(self, device: _DEVICE) -> Dict[str, Any]:
         """Gets stats for the given GPU device.
@@ -69,34 +69,34 @@ class CUDAAccelerator(Accelerator):
             FileNotFoundError:
                 If nvidia-smi installation not found
         """
-        return torch.cuda.memory_stats(device)
+        return torch.musa.memory_stats(device)
 
     def teardown(self) -> None:
-        _clear_cuda_memory()
+        _clear_musa_memory()
 
     @staticmethod
     def parse_devices(devices: Union[int, str, List[int]]) -> Optional[List[int]]:
         """Accelerator device parsing logic."""
-        return _parse_gpu_ids(devices, include_cuda=True)
+        return _parse_gpu_ids(devices, include_musa=True)
 
     @staticmethod
     def get_parallel_devices(devices: List[int]) -> List[torch.device]:
         """Gets parallel devices for the Accelerator."""
-        return [torch.device("cuda", i) for i in devices]
+        return [torch.device("musa", i) for i in devices]
 
     @staticmethod
     def auto_device_count() -> int:
         """Get the devices when set to auto."""
-        return num_cuda_devices()
+        return num_musa_devices()
 
     @staticmethod
     def is_available() -> bool:
-        return num_cuda_devices() > 0
+        return num_musa_devices() > 0
 
     @classmethod
     def register_accelerators(cls, accelerator_registry: Dict) -> None:
         accelerator_registry.register(
-            "cuda",
+            "musa",
             cls,
             description=f"{cls.__class__.__name__}",
         )
@@ -154,7 +154,7 @@ def get_nvidia_gpu_stats(device: _DEVICE) -> Dict[str, float]:  # pragma: no-cov
 
 def _get_gpu_id(device_id: int) -> str:
     """Get the unmasked real GPU IDs."""
-    # All devices if `CUDA_VISIBLE_DEVICES` unset
-    default = ",".join(str(i) for i in range(num_cuda_devices()))
-    cuda_visible_devices = os.getenv("CUDA_VISIBLE_DEVICES", default=default).split(",")
-    return cuda_visible_devices[device_id].strip()
+    # All devices if `MUSA_VISIBLE_DEVICES` unset
+    default = ",".join(str(i) for i in range(num_musa_devices()))
+    musa_visible_devices = os.getenv("MUSA_VISIBLE_DEVICES", default=default).split(",")
+    return musa_visible_devices[device_id].strip()

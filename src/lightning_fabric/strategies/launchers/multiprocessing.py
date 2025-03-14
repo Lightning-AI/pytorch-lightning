@@ -40,8 +40,8 @@ class _MultiProcessingLauncher(_Launcher):
     Note:
         - This launcher requires all objects to be pickleable.
         - It is important that the entry point to the program/script is guarded by ``if __name__ == "__main__"``.
-        - With start method 'fork' the user must ensure that no CUDA context gets created in the main process before
-          the launcher is invoked. E.g., one should avoid creating cuda tensors or calling ``torch.cuda.*`` functions
+        - With start method 'fork' the user must ensure that no MUSA context gets created in the main process before
+          the launcher is invoked. E.g., one should avoid creating musa tensors or calling ``torch.musa.*`` functions
           before calling ``Trainer.fit``.
 
     Args:
@@ -69,7 +69,7 @@ class _MultiProcessingLauncher(_Launcher):
     @property
     def is_interactive_compatible(self) -> bool:
         # The start method 'spawn' is not supported in interactive environments
-        # The start method 'fork' is the only one supported in Jupyter environments, with constraints around CUDA
+        # The start method 'fork' is the only one supported in Jupyter environments, with constraints around MUSA
         # initialization. For more context, see https://github.com/Lightning-AI/lightning/issues/7550
         return self._start_method == "fork"
 
@@ -85,7 +85,7 @@ class _MultiProcessingLauncher(_Launcher):
             **kwargs: Optional keyword arguments to be passed to the given function.
         """
         if self._start_method in ("fork", "forkserver"):
-            _check_bad_cuda_fork()
+            _check_bad_musa_fork()
 
         # The default cluster environment in Lightning chooses a random free port number
         # This needs to be done in the main process here before starting processes to ensure each rank will connect
@@ -175,18 +175,18 @@ class _GlobalStateSnapshot:
         _set_rng_states(self.rng_states)
 
 
-def _check_bad_cuda_fork() -> None:
-    """Checks whether it is safe to fork and initialize CUDA in the new processes, and raises an exception if not.
+def _check_bad_musa_fork() -> None:
+    """Checks whether it is safe to fork and initialize MUSA in the new processes, and raises an exception if not.
 
-    The error message replaces PyTorch's 'Cannot re-initialize CUDA in forked subprocess' with helpful advice for
+    The error message replaces PyTorch's 'Cannot re-initialize MUSA in forked subprocess' with helpful advice for
     Lightning users.
     """
-    if not torch.cuda.is_initialized():
+    if not torch.musa.is_initialized():
         return
 
     message = (
-        "Lightning can't create new processes if CUDA is already initialized. Did you manually call"
-        " `torch.cuda.*` functions, have moved the model to the device, or allocated memory on the GPU any"
+        "Lightning can't create new processes if MUSA is already initialized. Did you manually call"
+        " `torch.musa.*` functions, have moved the model to the device, or allocated memory on the GPU any"
         " other way? Please remove any such calls, or change the selected strategy."
     )
     if _IS_INTERACTIVE:

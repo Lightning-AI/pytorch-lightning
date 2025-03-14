@@ -22,10 +22,10 @@ from torch.optim.optimizer import Optimizer
 from typing_extensions import OrderedDict
 
 import pytorch_lightning as pl
-from lightning_fabric.accelerators.cuda import _patch_cuda_is_available
+from lightning_fabric.accelerators.musa import _patch_musa_is_available
 from lightning_fabric.plugins.environments.cluster_environment import ClusterEnvironment
 from lightning_fabric.utilities.distributed import ReduceOp
-from pytorch_lightning.accelerators.cuda import CUDAAccelerator
+from pytorch_lightning.accelerators.musa import MUSAAccelerator
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase, _LightningPrecisionModuleWrapperBase
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import ColossalAIPrecisionPlugin
@@ -38,7 +38,7 @@ from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 _COLOSSALAI_AVAILABLE = RequirementCache("colossalai")
 if TYPE_CHECKING and _COLOSSALAI_AVAILABLE:
-    with _patch_cuda_is_available():
+    with _patch_musa_is_available():
         from colossalai.utils.model.colo_init_context import ColoInitContext
 else:
     ColoInitContext = Any
@@ -51,7 +51,7 @@ class ColossalAIStrategy(DDPStrategy):
     More details can be found in the below example.
 
     It configures accelerator and precision, and you should not configure them when initializing ``Trainer``.
-    CUDA is essential for this strategy. Please make sure CUDA is available.
+    MUSA is essential for this strategy. Please make sure MUSA is available.
 
     Example::
 
@@ -73,14 +73,14 @@ class ColossalAIStrategy(DDPStrategy):
         enable_distributed_storage: Whether to storage model in a distributed manner.
             It reduces memory from 1 to 1/N, but it may slow down training.
 
-        placement_policy: It can be "cpu", "cuda" and "auto".
+        placement_policy: It can be "cpu", "musa" and "auto".
 
             * If it's "cpu", parameters, gradients and optimizer states will be offloaded to CPU,
-                which means min CUDA memory will be used.
-            * If it's "cuda", they won't be offloaded, which means max CUDA memory will be used. It's the fastest.
-            * If it's "auto", they are moving dynamically based on CPU and CUDA memory usage.
+                which means min MUSA memory will be used.
+            * If it's "musa", they won't be offloaded, which means max MUSA memory will be used. It's the fastest.
+            * If it's "auto", they are moving dynamically based on CPU and MUSA memory usage.
                 It will utilize heterogeneous memory space evenly and well.
-                Note that "auto" policy can only work well when no other processes use CUDA during your training.
+                Note that "auto" policy can only work well when no other processes use MUSA during your training.
 
         force_outputs_fp32: Whether to cast outputs to fp32.
 
@@ -149,7 +149,7 @@ class ColossalAIStrategy(DDPStrategy):
                 "To use the `ColossalAIStrategy`, please install `colossalai` first. "
                 "Download `colossalai` by consulting `https://colossalai.org/download`."
             )
-        with _patch_cuda_is_available():
+        with _patch_musa_is_available():
             from colossalai.logging import get_dist_logger
 
         super().__init__(
@@ -185,7 +185,7 @@ class ColossalAIStrategy(DDPStrategy):
 
     @property
     def root_device(self) -> torch.device:
-        with _patch_cuda_is_available():
+        with _patch_musa_is_available():
             from colossalai.utils import get_current_device
 
         if self.parallel_devices is not None:
@@ -203,7 +203,7 @@ class ColossalAIStrategy(DDPStrategy):
         return True
 
     def setup_distributed(self) -> None:
-        with _patch_cuda_is_available():
+        with _patch_musa_is_available():
             from colossalai.context import ParallelMode
             from colossalai.core import global_context as gpc
             from colossalai.logging import disable_existing_loggers
@@ -215,7 +215,7 @@ class ColossalAIStrategy(DDPStrategy):
             gpc.init_global_dist(
                 rank=self.global_rank,
                 world_size=self.world_size,
-                backend="nccl",
+                backend="mccl",
                 host=self.cluster_environment.main_address,
                 port=self.cluster_environment.main_port,
             )
@@ -228,7 +228,7 @@ class ColossalAIStrategy(DDPStrategy):
 
         Returns: Model parallel context.
         """
-        with _patch_cuda_is_available():
+        with _patch_musa_is_available():
             from colossalai.utils.model.colo_init_context import ColoInitContext
 
         class ModelShardedContext(ColoInitContext):
@@ -242,7 +242,7 @@ class ColossalAIStrategy(DDPStrategy):
         return ModelShardedContext()
 
     def setup_precision_plugin(self) -> None:
-        with _patch_cuda_is_available():
+        with _patch_musa_is_available():
             from colossalai.nn.optimizer import CPUAdam, HybridAdam
             from colossalai.zero import ZeroOptimizer
 
@@ -263,7 +263,7 @@ class ColossalAIStrategy(DDPStrategy):
         pl_module = self.model
 
         if not hasattr(pl_module, "_colossalai_zero"):
-            with _patch_cuda_is_available():
+            with _patch_musa_is_available():
                 from colossalai.nn.parallel import GeminiDDP
                 from colossalai.utils import get_current_device
             if not self.use_chunk:
@@ -303,9 +303,9 @@ class ColossalAIStrategy(DDPStrategy):
                 " Consider setting `precision=16`."
             )
 
-        if not isinstance(self.accelerator, CUDAAccelerator):
+        if not isinstance(self.accelerator, MUSAAccelerator):
             raise ValueError(
-                "`ColossalAIStrategy` is only supported on `CUDAAccelerator`, "
+                "`ColossalAIStrategy` is only supported on `MUSAAccelerator`, "
                 f"but `{self.accelerator.__class__.__name__}` is used."
             )
 
@@ -341,7 +341,7 @@ class ColossalAIStrategy(DDPStrategy):
 
     def ignore_no_grad_parameters(self, running_device: torch.device) -> None:
         # for those parameters with no gradients
-        # we shold ignore them on DDP and move them to CUDA
+        # we shold ignore them on DDP and move them to MUSA
         assert self.model is not None
         for param in self.model.parameters():
             if not param.requires_grad:
@@ -392,7 +392,7 @@ class ColossalAIStrategy(DDPStrategy):
             rank_zero_only: If True, only process rank 0 gets the correct dictionary.
                 Otherwise, all processes get the same dictionary.
         """
-        with _patch_cuda_is_available():
+        with _patch_musa_is_available():
             from colossalai.nn.parallel import ZeroDDP
 
         assert isinstance(self.model, ZeroDDP)
@@ -449,7 +449,7 @@ class ColossalAIStrategy(DDPStrategy):
     def reduce(
         self, tensor: Tensor, group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = "sum"
     ) -> Tensor:
-        with _patch_cuda_is_available():
+        with _patch_musa_is_available():
             from colossalai.communication.collective import reduce
             from colossalai.context import ParallelMode
             from colossalai.core import global_context as gpc
@@ -476,7 +476,7 @@ class ColossalAIStrategy(DDPStrategy):
             obj: the object to broadcast
             src: source rank
         """
-        with _patch_cuda_is_available():
+        with _patch_musa_is_available():
             from colossalai.communication.collective import broadcast
             from colossalai.context import ParallelMode
             from colossalai.core import global_context as gpc
@@ -490,7 +490,7 @@ class ColossalAIStrategy(DDPStrategy):
 
     def all_gather(self, tensor: Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> Tensor:
         """Perform a all_gather on all processes."""
-        with _patch_cuda_is_available():
+        with _patch_musa_is_available():
             from colossalai.communication.collective import all_gather
             from colossalai.context import ParallelMode
 

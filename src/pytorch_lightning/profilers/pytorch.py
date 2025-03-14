@@ -23,7 +23,7 @@ import torch
 from torch import nn, Tensor
 from torch.autograd.profiler import record_function
 
-from lightning_fabric.accelerators.cuda import is_cuda_available
+from lightning_fabric.accelerators.musa import is_musa_available
 from pytorch_lightning.profilers.profiler import Profiler
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _KINETO_AVAILABLE
@@ -220,13 +220,13 @@ class PyTorchProfiler(Profiler):
     STEP_FUNCTIONS = {"training_step", "validation_step", "test_step", "predict_step"}
     AVAILABLE_SORT_KEYS = {
         "cpu_time",
-        "cuda_time",
+        "musa_time",
         "cpu_time_total",
-        "cuda_time_total",
+        "musa_time_total",
         "cpu_memory_usage",
-        "cuda_memory_usage",
+        "musa_memory_usage",
         "self_cpu_memory_usage",
-        "self_cuda_memory_usage",
+        "self_musa_memory_usage",
         "count",
     }
 
@@ -274,9 +274,9 @@ class PyTorchProfiler(Profiler):
 
             sort_by_key: Attribute used to sort entries. By default
                 they are printed in the same order as they were registered.
-                Valid keys include: ``cpu_time``, ``cuda_time``, ``cpu_time_total``,
-                ``cuda_time_total``, ``cpu_memory_usage``, ``cuda_memory_usage``,
-                ``self_cpu_memory_usage``, ``self_cuda_memory_usage``, ``count``.
+                Valid keys include: ``cpu_time``, ``musa_time``, ``cpu_time_total``,
+                ``musa_time_total``, ``cpu_memory_usage``, ``musa_memory_usage``,
+                ``self_cpu_memory_usage``, ``self_musa_memory_usage``, ``count``.
 
             record_module_names: Whether to add module names while recording autograd operation.
 
@@ -294,7 +294,7 @@ class PyTorchProfiler(Profiler):
         self._emit_nvtx = emit_nvtx
         self._export_to_chrome = export_to_chrome
         self._row_limit = row_limit
-        self._sort_by_key = sort_by_key or f"{'cuda' if profiler_kwargs.get('use_cuda', False) else 'cpu'}_time_total"
+        self._sort_by_key = sort_by_key or f"{'musa' if profiler_kwargs.get('use_musa', False) else 'cpu'}_time_total"
         self._record_module_names = record_module_names
         self._profiler_kwargs = profiler_kwargs
 
@@ -376,8 +376,8 @@ class PyTorchProfiler(Profiler):
             return activities
         if self._profiler_kwargs.get("use_cpu", True):
             activities.append(ProfilerActivity.CPU)
-        if self._profiler_kwargs.get("use_cuda", is_cuda_available()):
-            activities.append(ProfilerActivity.CUDA)
+        if self._profiler_kwargs.get("use_musa", is_musa_available()):
+            activities.append(ProfilerActivity.MUSA)
         return activities
 
     def start(self, action_name: str) -> None:
@@ -483,7 +483,7 @@ class PyTorchProfiler(Profiler):
 
         if self._emit_nvtx:
             if self._parent_profiler is None:
-                self._parent_profiler = torch.cuda.profiler.profile()
+                self._parent_profiler = torch.musa.profiler.profile()
             self.profiler = self._create_profiler(torch.autograd.profiler.emit_nvtx)
         else:
             self._parent_profiler = None

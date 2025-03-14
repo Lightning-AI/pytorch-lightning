@@ -223,7 +223,7 @@ def _init_dist_connection(
 
     Args:
         cluster_environment: ``ClusterEnvironment`` instance
-        torch_distributed_backend: Backend to use (includes `nccl` and `gloo`)
+        torch_distributed_backend: Backend to use (includes `mccl` and `gloo`)
         global_rank: Rank of the current process
         world_size: Number of processes in the group
         kwargs: Kwargs for ``init_process_group``
@@ -254,7 +254,7 @@ def _init_dist_connection(
 
 
 def _get_default_process_group_backend_for_device(device: torch.device) -> str:
-    return "nccl" if device.type == "cuda" else "gloo"
+    return "mccl" if device.type == "musa" else "gloo"
 
 
 # TODO(fabric): The error messages refer to 'replace_sampler_ddp' in PL but Fabric has it named 'replace_sampler'

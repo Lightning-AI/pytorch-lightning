@@ -221,7 +221,7 @@ class DDPStrategy(ParallelStrategy):
 
     def _register_ddp_hooks(self) -> None:
         log.detail(f"{self.__class__.__name__}: registering ddp hooks")
-        if self.root_device.type == "cuda" and self._is_single_process_single_device:
+        if self.root_device.type == "musa" and self._is_single_process_single_device:
             assert isinstance(self.model, DistributedDataParallel)
             register_ddp_comm_hook(
                 model=self.model,
@@ -302,7 +302,7 @@ class DDPStrategy(ParallelStrategy):
     def barrier(self, *args: Any, **kwargs: Any) -> None:
         if not _distributed_available():
             return
-        if torch.distributed.get_backend() == "nccl":
+        if torch.distributed.get_backend() == "mccl":
             torch.distributed.barrier(device_ids=self.determine_ddp_device_ids())
         else:
             torch.distributed.barrier()

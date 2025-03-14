@@ -18,14 +18,14 @@ from typing import Any, List, Optional
 
 from lightning_utilities.core.imports import RequirementCache
 
-from lightning_fabric.accelerators import CPUAccelerator, CUDAAccelerator, MPSAccelerator
+from lightning_fabric.accelerators import CPUAccelerator, MUSAAccelerator, MPSAccelerator
 from lightning_fabric.utilities.device_parser import _parse_gpu_ids
 
 _log = logging.getLogger(__name__)
 
 _CLICK_AVAILABLE = RequirementCache("click")
 
-_SUPPORTED_ACCELERATORS = ("cpu", "gpu", "cuda", "mps", "tpu")
+_SUPPORTED_ACCELERATORS = ("cpu", "gpu", "musa", "mps", "tpu")
 _SUPPORTED_STRATEGIES = ("ddp", "dp", "deepspeed")
 _SUPPORTED_PRECISION = ("64", "32", "16", "bf16")
 
@@ -135,9 +135,9 @@ def _set_env_variables(args: Namespace) -> None:
 def _get_num_processes(accelerator: str, devices: str) -> int:
     """Parse the `devices` argument to determine how many processes need to be launched on the current machine."""
     if accelerator == "gpu":
-        parsed_devices = _parse_gpu_ids(devices, include_cuda=True, include_mps=True)
-    elif accelerator == "cuda":
-        parsed_devices = CUDAAccelerator.parse_devices(devices)
+        parsed_devices = _parse_gpu_ids(devices, include_musa=True, include_mps=True)
+    elif accelerator == "musa":
+        parsed_devices = MUSAAccelerator.parse_devices(devices)
     elif accelerator == "mps":
         parsed_devices = MPSAccelerator.parse_devices(devices)
     elif accelerator == "tpu":

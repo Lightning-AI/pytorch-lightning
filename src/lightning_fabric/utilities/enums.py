@@ -33,6 +33,6 @@ class _AcceleratorType(LightningEnum):
     """Define Accelerator type by its nature."""
 
     CPU = "CPU"
-    CUDA = "CUDA"
+    MUSA = "MUSA"
     TPU = "TPU"
     MPS = "MPS"

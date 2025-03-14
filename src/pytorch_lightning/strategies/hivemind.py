@@ -171,10 +171,10 @@ class HivemindStrategy(Strategy):
     @property
     def root_device(self) -> torch.device:
         from pytorch_lightning.accelerators.cpu import CPUAccelerator
-        from pytorch_lightning.accelerators.cuda import CUDAAccelerator
+        from pytorch_lightning.accelerators.musa import MUSAAccelerator
 
-        if isinstance(self.accelerator, CUDAAccelerator):
-            return torch.device(f"cuda:{torch.cuda.current_device()}")
+        if isinstance(self.accelerator, MUSAAccelerator):
+            return torch.device(f"musa:{torch.musa.current_device()}")
         elif isinstance(self.accelerator, CPUAccelerator):
             return torch.device("cpu")
         raise MisconfigurationException(

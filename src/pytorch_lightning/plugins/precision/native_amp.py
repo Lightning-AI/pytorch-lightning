@@ -20,7 +20,7 @@ from torch.optim import LBFGS, Optimizer
 from typing_extensions import Literal
 
 import pytorch_lightning as pl
-from lightning_fabric.accelerators.cuda import _patch_cuda_is_available
+from lightning_fabric.accelerators.musa import _patch_musa_is_available
 from lightning_fabric.utilities.types import Optimizable
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
 from pytorch_lightning.utilities import GradClipAlgorithmType
@@ -34,17 +34,17 @@ class MixedPrecisionPlugin(PrecisionPlugin):
     Args:
         precision: Whether to use ``torch.float16`` (``16``) or ``torch.bfloat16`` (``'bf16'``).
         device: The device for ``torch.autocast``.
-        scaler: An optional :class:`torch.cuda.amp.GradScaler` to use.
+        scaler: An optional :class:`torch.musa.amp.GradScaler` to use.
     """
 
     def __init__(
-        self, precision: Literal["16", 16, "bf16"], device: str, scaler: Optional[torch.cuda.amp.GradScaler] = None
+        self, precision: Literal["16", 16, "bf16"], device: str, scaler: Optional[torch.musa.amp.GradScaler] = None
     ) -> None:
         self.precision = cast(Literal["16", "bf16"], str(precision))
         if scaler is None and self.precision == "16":
-            with _patch_cuda_is_available():
-                # if possible, we defer CUDA initialization to support strategies that will attempt forks
-                scaler = torch.cuda.amp.GradScaler()
+            with _patch_musa_is_available():
+                # if possible, we defer MUSA initialization to support strategies that will attempt forks
+                scaler = torch.musa.amp.GradScaler()
         if scaler is not None and self.precision == "bf16":
             raise MisconfigurationException(f"`precision='bf16'` does not use a scaler, found {scaler}.")
         self.device = device
@@ -137,7 +137,7 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
 
 def _optimizer_handles_unscaling(optimizer: Any) -> bool:
     """Determines whether a PyTorch optimizer handles unscaling gradients in the step method rather than through the
-    :class:`torch.cuda.amp.GradScaler`.
+    :class:`torch.musa.amp.GradScaler`.
 
     Since, the current implementation of this function checks a PyTorch internal variable on the optimizer, the return
     value will only be reliable for built-in PyTorch optimizers.

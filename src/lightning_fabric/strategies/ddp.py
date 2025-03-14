@@ -141,7 +141,7 @@ class DDPStrategy(ParallelStrategy):
     def barrier(self, *args: Any, **kwargs: Any) -> None:
         if not _distributed_available():
             return
-        if torch.distributed.get_backend() == "nccl":
+        if torch.distributed.get_backend() == "mccl":
             torch.distributed.barrier(device_ids=self._determine_ddp_device_ids())
         else:
             torch.distributed.barrier()

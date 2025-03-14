@@ -255,7 +255,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
     def barrier(self, *args: Any, **kwargs: Any) -> None:
         if not _distributed_available():
             return
-        if torch.distributed.get_backend() == "nccl":
+        if torch.distributed.get_backend() == "mccl":
             torch.distributed.barrier(device_ids=[self.root_device.index])
         else:
             torch.distributed.barrier()

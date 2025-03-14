@@ -15,7 +15,7 @@ class GPUAccelerator:
     def __init__(self, *_: Any, **__: Any) -> None:
         raise NotImplementedError(
             "`pytorch_lightning.accelerators.gpu.GPUAccelerator` was deprecated in v1.7.0 and is no"
-            " longer supported as of v1.9.0. Please use `pytorch_lightning.accelerators.CUDAAccelerator` instead"
+            " longer supported as of v1.9.0. Please use `pytorch_lightning.accelerators.MUSAAccelerator` instead"
         )
 
 

@@ -12,7 +12,7 @@
 # limitations under the License.
 from lightning_fabric.accelerators.accelerator import Accelerator  # noqa: F401
 from lightning_fabric.accelerators.cpu import CPUAccelerator  # noqa: F401
-from lightning_fabric.accelerators.cuda import CUDAAccelerator, find_usable_cuda_devices  # noqa: F401
+from lightning_fabric.accelerators.musa import MUSAAccelerator, find_usable_musa_devices  # noqa: F401
 from lightning_fabric.accelerators.mps import MPSAccelerator  # noqa: F401
 from lightning_fabric.accelerators.registry import _AcceleratorRegistry, call_register_accelerators
 from lightning_fabric.accelerators.tpu import TPUAccelerator  # noqa: F401

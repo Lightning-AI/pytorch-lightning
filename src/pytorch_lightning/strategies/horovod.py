@@ -152,14 +152,14 @@ class HorovodStrategy(ParallelStrategy):
         return obj
 
     def model_to_device(self) -> None:
-        if self.root_device.type == "cuda":
+        if self.root_device.type == "musa":
             # this can potentially be removed after #8312. Not done due to lack of horovod testing
-            torch.cuda.set_device(self.root_device)
+            torch.musa.set_device(self.root_device)
         assert self.model is not None
         self.model.to(self.root_device)
 
     def join(self) -> None:
-        if self.root_device.type == "cuda":
+        if self.root_device.type == "musa":
             hvd.join(self.local_rank)
         else:
             hvd.join()

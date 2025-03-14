@@ -25,7 +25,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed `num_nodes` not being set for `DDPFullyShardedNativeStrategy` ([#17160](https://github.com/Lightning-AI/lightning/pull/17160))
 - Fixed parsing the precision config for inference in `DeepSpeedStrategy` ([#16973](https://github.com/Lightning-AI/lightning/pull/16973))
 - Fixed the availability check for `rich` that prevented Lightning to be imported in Google Colab ([#17156](https://github.com/Lightning-AI/lightning/pull/17156))
-- Fixed for all `_cuda_clearCublasWorkspaces` on teardown ([#16907](https://github.com/Lightning-AI/lightning/pull/16907))
+- Fixed for all `_musa_clearCublasWorkspaces` on teardown ([#16907](https://github.com/Lightning-AI/lightning/pull/16907))
 - The `psutil` package is now required for CPU monitoring ([#17010](https://github.com/Lightning-AI/lightning/pull/17010))
 - Improved the error message for installing tensorboard or tensorboardx ([#17053](https://github.com/Lightning-AI/lightning/pull/17053))
 
@@ -92,7 +92,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added `LightningCLI` support for optimizer and learning schedulers via callable type dependency injection ([#15869](https://github.com/Lightning-AI/lightning/pull/15869))
 - Added support for activation checkpointing for the `DDPFullyShardedNativeStrategy` strategy ([#15826](https://github.com/Lightning-AI/lightning/pull/15826))
 - Added the option to set `DDPFullyShardedNativeStrategy(cpu_offload=True|False)` via bool instead of needing to pass a configuration object ([#15832](https://github.com/Lightning-AI/lightning/pull/15832))
-- Added info message for Ampere CUDA GPU users to enable tf32 matmul precision ([#16037](https://github.com/Lightning-AI/lightning/pull/16037))
+- Added info message for Ampere MUSA GPU users to enable tf32 matmul precision ([#16037](https://github.com/Lightning-AI/lightning/pull/16037))
 - Added support for returning optimizer-like classes in `LightningModule.configure_optimizers` ([#16189](https://github.com/Lightning-AI/lightning/pull/16189))
 
 
@@ -112,8 +112,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Deprecated `description`, `env_prefix` and `env_parse` parameters in `LightningCLI.__init__` in favour of giving them through `parser_kwargs` ([#15651](https://github.com/Lightning-AI/lightning/pull/15651))
 - Deprecated `pytorch_lightning.profiler` in favor of `pytorch_lightning.profilers` ([#16059](https://github.com/PyTorchLightning/pytorch-lightning/pull/16059))
-- Deprecated `Trainer(auto_select_gpus=...)` in favor of `pytorch_lightning.accelerators.find_usable_cuda_devices` ([#16147](https://github.com/PyTorchLightning/pytorch-lightning/pull/16147))
-- Deprecated `pytorch_lightning.tuner.auto_gpu_select.{pick_single_gpu,pick_multiple_gpus}` in favor of `pytorch_lightning.accelerators.find_usable_cuda_devices` ([#16147](https://github.com/PyTorchLightning/pytorch-lightning/pull/16147))
+- Deprecated `Trainer(auto_select_gpus=...)` in favor of `pytorch_lightning.accelerators.find_usable_musa_devices` ([#16147](https://github.com/PyTorchLightning/pytorch-lightning/pull/16147))
+- Deprecated `pytorch_lightning.tuner.auto_gpu_select.{pick_single_gpu,pick_multiple_gpus}` in favor of `pytorch_lightning.accelerators.find_usable_musa_devices` ([#16147](https://github.com/PyTorchLightning/pytorch-lightning/pull/16147))
 - `nvidia/apex` deprecation ([#16039](https://github.com/PyTorchLightning/pytorch-lightning/pull/16039))
   * Deprecated `pytorch_lightning.plugins.NativeMixedPrecisionPlugin` in favor of `pytorch_lightning.plugins.MixedPrecisionPlugin`
   * Deprecated the `LightningModule.optimizer_step(using_native_amp=...)` argument
@@ -138,13 +138,13 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Removed
 
-- Removed deprecated `pytorch_lightning.utilities.memory.get_gpu_memory_map` in favor of `pytorch_lightning.accelerators.cuda.get_nvidia_gpu_stats` ([#15617](https://github.com/Lightning-AI/lightning/pull/15617))
+- Removed deprecated `pytorch_lightning.utilities.memory.get_gpu_memory_map` in favor of `pytorch_lightning.accelerators.musa.get_nvidia_gpu_stats` ([#15617](https://github.com/Lightning-AI/lightning/pull/15617))
 - Temporarily removed support for Hydra multi-run ([#15737](https://github.com/Lightning-AI/lightning/pull/15737))
 - Removed deprecated `pytorch_lightning.profiler.base.AbstractProfiler` in favor of `pytorch_lightning.profilers.profiler.Profiler` ([#15637](https://github.com/Lightning-AI/lightning/pull/15637))
 - Removed deprecated `pytorch_lightning.profiler.base.BaseProfiler` in favor of `pytorch_lightning.profilers.profiler.Profiler` ([#15637](https://github.com/Lightning-AI/lightning/pull/15637))
 - Removed deprecated code in `pytorch_lightning.utilities.meta` ([#16038](https://github.com/Lightning-AI/lightning/pull/16038))
 - Removed the deprecated `LightningDeepSpeedModule` ([#16041](https://github.com/Lightning-AI/lightning/pull/16041))
-- Removed the deprecated `pytorch_lightning.accelerators.GPUAccelerator` in favor of `pytorch_lightning.accelerators.CUDAAccelerator` ([#16050](https://github.com/Lightning-AI/lightning/pull/16050))
+- Removed the deprecated `pytorch_lightning.accelerators.GPUAccelerator` in favor of `pytorch_lightning.accelerators.MUSAAccelerator` ([#16050](https://github.com/Lightning-AI/lightning/pull/16050))
 - Removed the deprecated `pytorch_lightning.profiler.*` classes in favor of `pytorch_lightning.profilers` ([#16059](https://github.com/PyTorchLightning/pytorch-lightning/pull/16059))
 - Removed the deprecated `pytorch_lightning.utilities.cli` module in favor of `pytorch_lightning.cli` ([#16116](https://github.com/PyTorchLightning/pytorch-lightning/pull/16116))
 - Removed the deprecated `pytorch_lightning.loggers.base` module in favor of `pytorch_lightning.loggers.logger` ([#16120](https://github.com/PyTorchLightning/pytorch-lightning/pull/16120))
@@ -238,7 +238,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ### Added
 
 - Added support for requeueing slurm array jobs ([#15040](https://github.com/Lightning-AI/lightning/pull/15040))
-- Added native AMP support for `ddp_fork` (and associated alias strategies) with CUDA GPUs ([#14983](https://github.com/Lightning-AI/lightning/pull/14983))
+- Added native AMP support for `ddp_fork` (and associated alias strategies) with MUSA GPUs ([#14983](https://github.com/Lightning-AI/lightning/pull/14983))
 - Added `BatchSizeFinder` callback ([#11089](https://github.com/Lightning-AI/lightning/pull/11089))
 - Added `LearningRateFinder` callback ([#13802](https://github.com/Lightning-AI/lightning/pull/13802))
 - Tuner now supports a new `method` argument which will determine when to run the `BatchSizeFinder`: one of `fit`, `validate`, `test` or `predict` ([#11089](https://github.com/Lightning-AI/lightning/pull/11089))
@@ -260,7 +260,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added a warning when the model passed to `LightningLite.setup()` does not have all parameters on the same device ([#14822](https://github.com/Lightning-AI/lightning/pull/14822))
 - The `CometLogger` now flags the Comet Experiments as being created from Lightning for analytics purposes ([#14906](https://github.com/Lightning-AI/lightning/pull/14906))
 - Introduce `ckpt_path="hpc"` keyword for checkpoint loading ([#14911](https://github.com/Lightning-AI/lightning/pull/14911))
-- Added a more descriptive error message when attempting to fork processes with pre-initialized CUDA context ([#14709](https://github.com/Lightning-AI/lightning/pull/14709))
+- Added a more descriptive error message when attempting to fork processes with pre-initialized MUSA context ([#14709](https://github.com/Lightning-AI/lightning/pull/14709))
 - Added support for custom parameters in subclasses of `SaveConfigCallback` ([#14998](https://github.com/Lightning-AI/lightning/pull/14998))
 - Added `inference_mode` flag to Trainer to let users enable/disable inference mode during evaluation ([#15034](https://github.com/Lightning-AI/lightning/pull/15034))
 - Added `LightningLite.no_backward_sync` for control over efficient gradient accumulation with distributed strategies ([#14966](https://github.com/Lightning-AI/lightning/pull/14966))
@@ -274,7 +274,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Replaced the unwrapping logic in strategies with direct access to unwrapped `LightningModule` ([#13738](https://github.com/Lightning-AI/lightning/pull/13738))
 - Enabled `on_before_batch_transfer` for `DPStrategy` and `IPUAccelerator` ([#14023](https://github.com/Lightning-AI/lightning/pull/14023))
 - When resuming training with Apex enabled, the `Trainer` will now raise an error ([#14341](https://github.com/Lightning-AI/lightning/pull/14341))
-- Included `torch.cuda` rng state to the aggregate `_collect_rng_states()` and `_set_rng_states()` ([#14384](https://github.com/Lightning-AI/lightning/pull/14384))
+- Included `torch.musa` rng state to the aggregate `_collect_rng_states()` and `_set_rng_states()` ([#14384](https://github.com/Lightning-AI/lightning/pull/14384))
 - Changed `trainer.should_stop` to not stop in between an epoch and run until `min_steps/min_epochs` only ([#13890](https://github.com/Lightning-AI/lightning/pull/13890))
 - The `pyDeprecate` dependency is no longer installed ([#14472](https://github.com/Lightning-AI/lightning/pull/14472))
 - When using multiple loggers, by default checkpoints and profiler output now get saved to the log dir of the first logger in the list ([#14325](https://github.com/Lightning-AI/lightning/pull/14325))
@@ -285,13 +285,13 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
   * The `PrecisionPlugin.backward` signature changed: The `closure_loss` argument was renamed to `tensor`
   * The `PrecisionPlugin.{pre_,post_}backward` signature changed: The `closure_loss` argument was renamed to `tensor` and moved as the first argument
   * The `PrecisionPlugin.optimizer_step` signature changed: The `model`, `optimizer_idx` and `closure` arguments need to be passed as keyword arguments now
-- Trainer queries the CUDA devices through NVML if available to avoid initializing CUDA before forking, which eliminates the need for the `PL_DISABLE_FORK` environment variable introduced in v1.7.4 ([#14631](https://github.com/Lightning-AI/lightning/pull/14631))
+- Trainer queries the MUSA devices through NVML if available to avoid initializing MUSA before forking, which eliminates the need for the `PL_DISABLE_FORK` environment variable introduced in v1.7.4 ([#14631](https://github.com/Lightning-AI/lightning/pull/14631))
 - The `MLFlowLogger.finalize()` now sets the status to `FAILED` when an exception occurred in `Trainer`, and sets the status to `FINISHED` on successful completion ([#12292](https://github.com/Lightning-AI/lightning/pull/12292))
 - It is no longer needed to call `model.double()` when using `precision=64` in Lightning Lite ([#14827](https://github.com/Lightning-AI/lightning/pull/14827))
 - HPC checkpoints are now loaded automatically only in slurm environment when no specific value for `ckpt_path` has been set ([#14911](https://github.com/Lightning-AI/lightning/pull/14911))
 - The `Callback.on_load_checkpoint` now gets the full checkpoint dictionary and the `callback_state` argument was renamed `checkpoint` ([#14835](https://github.com/Lightning-AI/lightning/pull/14835))
 - Moved the warning about saving nn.Module in `save_hyperparameters()` to before the deepcopy ([#15132](https://github.com/Lightning-AI/lightning/pull/15132))
-- To avoid issues with forking processes, from PyTorch 1.13 and higher, Lightning will directly use the PyTorch NVML-based check for `torch.cuda.device_count` and from PyTorch 2.0 and higher, Lightning will configure PyTorch to use a NVML-based check for `torch.cuda.is_available`. ([#15110](https://github.com/Lightning-AI/lightning/pull/15110), [#15133](https://github.com/Lightning-AI/lightning/pull/15133))
+- To avoid issues with forking processes, from PyTorch 1.13 and higher, Lightning will directly use the PyTorch NVML-based check for `torch.musa.device_count` and from PyTorch 2.0 and higher, Lightning will configure PyTorch to use a NVML-based check for `torch.musa.is_available`. ([#15110](https://github.com/Lightning-AI/lightning/pull/15110), [#15133](https://github.com/Lightning-AI/lightning/pull/15133))
 - The `NeptuneLogger` now uses `neptune.init_run` instead of the deprecated `neptune.init` to initialize a run ([#15393](https://github.com/Lightning-AI/lightning/pull/15393))
 
 ### Deprecated
@@ -314,8 +314,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Deprecated all functions in `pytorch_lightning.utilities.device_parser` ([#14492](https://github.com/Lightning-AI/lightning/pull/14492), [#14753](https://github.com/Lightning-AI/lightning/pull/14753))
   * Deprecated the `pytorch_lightning.utilities.device_parser.determine_root_gpu_device` in favor of `lightning_lite.utilities.device_parser.determine_root_gpu_device`
   * Deprecated the `pytorch_lightning.utilities.device_parser.parse_gpu_ids` in favor of `lightning_lite.utilities.device_parser.parse_gpu_ids`
-  * Deprecated the `pytorch_lightning.utilities.device_parser.is_cuda_available` in favor of `lightning_lite.accelerators.cuda.is_cuda_available`
-  * Deprecated the `pytorch_lightning.utilities.device_parser.num_cuda_devices` in favor of `lightning_lite.accelerators.cuda.num_cuda_devices`
+  * Deprecated the `pytorch_lightning.utilities.device_parser.is_musa_available` in favor of `lightning_lite.accelerators.musa.is_musa_available`
+  * Deprecated the `pytorch_lightning.utilities.device_parser.num_musa_devices` in favor of `lightning_lite.accelerators.musa.num_musa_devices`
   * Deprecated the `pytorch_lightning.utilities.device_parser.parse_cpu_cores` in favor of `lightning_lite.accelerators.cpu.parse_cpu_cores`
   * Deprecated the `pytorch_lightning.utilities.device_parser.parse_tpu_cores` in favor of `lightning_lite.accelerators.tpu.parse_tpu_cores`
   * Deprecated the `pytorch_lightning.utilities.device_parser.parse_hpus` in favor of `pytorch_lightning.accelerators.hpu.parse_hpus`
@@ -480,7 +480,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed a bug that caused spurious `AttributeError` when multiple `DataLoader` classes are imported ([#14117](https://github.com/Lightning-AI/lightning/pull/14117))
 - Fixed epoch-end logging results not being reset after the end of the epoch ([#14061](https://github.com/Lightning-AI/lightning/pull/14061))
 - Fixed resuming from a checkpoint when using Stochastic Weight Averaging (SWA) ([#9938](https://github.com/Lightning-AI/lightning/pull/9938))
-- Fixed the device placement when `LightningModule.cuda()` gets called without specifying a device index and the current cuda device was not 0 ([#14128](https://github.com/Lightning-AI/lightning/pull/14128))
+- Fixed the device placement when `LightningModule.musa()` gets called without specifying a device index and the current musa device was not 0 ([#14128](https://github.com/Lightning-AI/lightning/pull/14128))
 - Avoided false positive warning about using `sync_dist` when using torchmetrics ([#14143](https://github.com/Lightning-AI/lightning/pull/14143))
 - Avoid `metadata.entry_points` deprecation warning on Python 3.10 ([#14052](https://github.com/Lightning-AI/lightning/pull/14052))
 - Fixed epoch-end logging results not being reset after the end of the epoch ([#14061](https://github.com/Lightning-AI/lightning/pull/14061))
@@ -550,7 +550,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
-- `accelerator="gpu"` now automatically selects an available GPU backend (CUDA and MPS currently) ([#13642](https://github.com/Lightning-AI/lightning/pull/13642))
+- `accelerator="gpu"` now automatically selects an available GPU backend (MUSA and MPS currently) ([#13642](https://github.com/Lightning-AI/lightning/pull/13642))
 - Enable validation during overfitting ([#12527](https://github.com/Lightning-AI/lightning/pull/12527))
 - Added dataclass support to `extract_batch_size` ([#12573](https://github.com/Lightning-AI/lightning/pull/12573))
 - Changed checkpoints save path in the case of one logger and user-provided weights_save_path from `weights_save_path/name/version/checkpoints` to `weights_save_path/checkpoints` ([#12372](https://github.com/Lightning-AI/lightning/pull/12372))
@@ -572,7 +572,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Deprecated
 
-- Deprecated `pytorch_lightning.accelerators.gpu.GPUAccelerator` in favor of `pytorch_lightning.accelerators.cuda.CUDAAccelerator` ([#13636](https://github.com/Lightning-AI/lightning/pull/13636))
+- Deprecated `pytorch_lightning.accelerators.gpu.GPUAccelerator` in favor of `pytorch_lightning.accelerators.musa.MUSAAccelerator` ([#13636](https://github.com/Lightning-AI/lightning/pull/13636))
 - Deprecated `pytorch_lightning.loggers.base.LightningLoggerBase` in favor of `pytorch_lightning.loggers.logger.Logger`, and deprecated `pytorch_lightning.loggers.base` in favor of `pytorch_lightning.loggers.logger` ([#120148](https://github.com/Lightning-AI/lightning/pull/12014))
 - Deprecated `pytorch_lightning.callbacks.base.Callback` in favor of `pytorch_lightning.callbacks.callback.Callback` ([#13031](https://github.com/Lightning-AI/lightning/pull/13031))
 - Deprecated `num_processes`, `gpus`, `tpu_cores,` and `ipus` from the `Trainer` constructor in favor of using the `accelerator` and `devices` arguments ([#11040](https://github.com/Lightning-AI/lightning/pull/11040))
@@ -1590,7 +1590,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed reduction using `self.log(sync_dict=True, reduce_fx={mean,max})` ([#9142](https://github.com/Lightning-AI/lightning/pull/9142))
 - Fixed not setting a default value for `max_epochs` if `max_time` was specified on the `Trainer` constructor ([#9072](https://github.com/Lightning-AI/lightning/pull/9072))
 - Fixed the CometLogger, no longer modifies the metrics in place. Instead creates a copy of metrics before performing any operations ([#9150](https://github.com/Lightning-AI/lightning/pull/9150))
-- Fixed `DDP` "CUDA error: initialization error" due to a `copy` instead of `deepcopy` on `ResultCollection` ([#9239](https://github.com/Lightning-AI/lightning/pull/9239))
+- Fixed `DDP` "MUSA error: initialization error" due to a `copy` instead of `deepcopy` on `ResultCollection` ([#9239](https://github.com/Lightning-AI/lightning/pull/9239))
 
 
 ## [1.4.4] - 2021-08-24
@@ -1770,7 +1770,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Dropped the `LightningCLI` `ArgumentParser` when pickling ([#8017](https://github.com/Lightning-AI/lightning/pull/8017))
 - Skip `broadcast` if distributed not initialized for the spawn plugins ([#8017](https://github.com/Lightning-AI/lightning/pull/8017))
 - `Trainer(resume_from_checkpoint=...)` now restores the model directly after `LightningModule.setup()`, which is before `LightningModule.configure_sharded_model()` ([#7652](https://github.com/Lightning-AI/lightning/pull/7652))
-- Moved `torch.cuda.set_device()` to enable collective calls earlier in setup ([#8312](https://github.com/Lightning-AI/lightning/pull/8312))
+- Moved `torch.musa.set_device()` to enable collective calls earlier in setup ([#8312](https://github.com/Lightning-AI/lightning/pull/8312))
 - Used XLA utility API to move data to CPU (Single TPU core) ([#8078](https://github.com/Lightning-AI/lightning/pull/8078))
 - Improved error messages in `replace_sampler` when the `DataLoader` attributes are not included in the signature or the signature is missing optional arguments ([#8519](https://github.com/Lightning-AI/lightning/pull/8519))
 - Moved `DeviceDtypeModuleMixin` and `HyperparametersMixin` mixin to `core` ([#8396](https://github.com/Lightning-AI/lightning/pull/8396))
@@ -1815,7 +1815,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
-- Fixed the `GPUStatsMonitor` callbacks to use the correct GPU IDs if `CUDA_VISIBLE_DEVICES` set ([#8260](https://github.com/Lightning-AI/lightning/pull/8260))
+- Fixed the `GPUStatsMonitor` callbacks to use the correct GPU IDs if `MUSA_VISIBLE_DEVICES` set ([#8260](https://github.com/Lightning-AI/lightning/pull/8260))
 - Fixed `lr_scheduler` checkpointed state by calling `update_lr_schedulers` before saving checkpoints ([#7877](https://github.com/Lightning-AI/lightning/pull/7877))
 - Fixed ambiguous warning when both overfit and train dataloader shuffling are enabled ([#7685](https://github.com/Lightning-AI/lightning/pull/7685))
 - Fixed dev debugger memory growing due to tracking events even when disabled ([#7875](https://github.com/Lightning-AI/lightning/pull/7875))
@@ -2183,7 +2183,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Set better defaults for `rank_zero_only.rank` when training is launched with SLURM and torchelastic ([#6802](https://github.com/Lightning-AI/lightning/pull/6802))
 - Fixed matching the number of outputs of backward with forward for AllGatherGrad ([#6625](https://github.com/Lightning-AI/lightning/pull/6625))
 - Fixed the `gradient_clip_algorithm` has no effect ([#6928](https://github.com/Lightning-AI/lightning/pull/6928))
-- Fixed CUDA OOM detection and handling ([#6934](https://github.com/Lightning-AI/lightning/pull/6934))
+- Fixed MUSA OOM detection and handling ([#6934](https://github.com/Lightning-AI/lightning/pull/6934))
 - Fixed `unfreeze_and_add_param_group` expects `modules` rather than `module` ([#6822](https://github.com/Lightning-AI/lightning/pull/6822))
 - Fixed DPP + SyncBN when move on device ([#6838](https://github.com/Lightning-AI/lightning/pull/6838))
 - Fixed missing arguments in `lr_find` call ([#6784](https://github.com/Lightning-AI/lightning/pull/6784))
@@ -3273,7 +3273,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed logging interval ([#2694](https://github.com/Lightning-AI/lightning/pull/2694))
 - Fixed loss value in the progress bar is wrong when `accumulate_grad_batches > 1` ([#2738](https://github.com/Lightning-AI/lightning/pull/2738))
 - Fixed correct CWD for ddp sub-processes when using Hydra ([#2719](https://github.com/Lightning-AI/lightning/pull/2719))
-- Fixed selecting GPUs using `CUDA_VISIBLE_DEVICES` ([#2739](https://github.com/Lightning-AI/lightning/pull/2739))
+- Fixed selecting GPUs using `MUSA_VISIBLE_DEVICES` ([#2739](https://github.com/Lightning-AI/lightning/pull/2739))
 - Fixed false `num_classes` warning in metrics ([#2781](https://github.com/Lightning-AI/lightning/pull/2781))
 - Fixed shell injection vulnerability in subprocess call ([#2786](https://github.com/Lightning-AI/lightning/pull/2786))
 - Fixed LR finder and `hparams` compatibility ([#2821](https://github.com/Lightning-AI/lightning/pull/2821))
@@ -3376,7 +3376,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fix for `load_from_checkpoint()` not working with absolute path on Windows ([#2294](https://github.com/Lightning-AI/lightning/pull/2294))
 - Fixed an issue how _has_len handles `NotImplementedError` e.g. raised by `torchtext.data.Iterator` ([#2293](https://github.com/Lightning-AI/lightning/pull/2293)), ([#2307](https://github.com/Lightning-AI/lightning/pull/2307))
 - Fixed `average_precision` metric ([#2319](https://github.com/Lightning-AI/lightning/pull/2319))
-- Fixed ROC metric for CUDA tensors ([#2304](https://github.com/Lightning-AI/lightning/pull/2304))
+- Fixed ROC metric for MUSA tensors ([#2304](https://github.com/Lightning-AI/lightning/pull/2304))
 - Fixed lost compatibility with custom datatypes implementing `.to` ([#2335](https://github.com/Lightning-AI/lightning/pull/2335))
 - Fixed loading model with kwargs ([#2387](https://github.com/Lightning-AI/lightning/pull/2387))
 - Fixed sum(0) for `trainer.num_val_batches` ([#2268](https://github.com/Lightning-AI/lightning/pull/2268))
@@ -3827,7 +3827,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
-- Fixed a bug which occurred when using Adagrad with cuda ([#554](https://github.com/Lightning-AI/lightning/pull/554))
+- Fixed a bug which occurred when using Adagrad with musa ([#554](https://github.com/Lightning-AI/lightning/pull/554))
 - Fixed a bug where training would be on the GPU despite setting `gpus=0` or `gpus=[]` ([#561](https://github.com/Lightning-AI/lightning/pull/561))
 - Fixed an error with `print_nan_gradients` when some parameters do not require gradient ([#579](https://github.com/Lightning-AI/lightning/pull/579))
 - Fixed a bug where the progress bar would show an incorrect number of total steps during the validation sanity check when using multiple validation data loaders ([#597](https://github.com/Lightning-AI/lightning/pull/597))
@@ -3856,7 +3856,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added `CometLogger` for use with Comet.ml
 - Added `val_check_interval` argument to `Trainer` allowing validition to be performed at every given number of batches
 - Added functionality to save and load hyperparameters using the standard checkpoint mechanism
-- Added call to `torch.cuda.empty_cache` before training starts
+- Added call to `torch.musa.empty_cache` before training starts
 - Added option for user to override the call t `backward`
 - Added support for truncated backprop through time via the `truncated_bptt_steps` argument in `Trainer`
 - Added option to operate on all outputs from `training_step` in DDP2
@@ -3972,7 +3972,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
-- Fixed a bug where data types that implement `.to` but not `.cuda` would not be properly moved onto the GPU
+- Fixed a bug where data types that implement `.to` but not `.musa` would not be properly moved onto the GPU
 - Fixed a bug where data would not be re-shuffled every epoch when using a `DistributedSampler`
 
 ## [0.4.8] - 2019-08-31

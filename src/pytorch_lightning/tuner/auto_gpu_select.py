@@ -15,7 +15,7 @@ from typing import List
 
 import torch
 
-from lightning_fabric.accelerators.cuda import num_cuda_devices
+from lightning_fabric.accelerators.musa import num_musa_devices
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation
 
@@ -25,7 +25,7 @@ def pick_multiple_gpus(nb: int, _show_deprecation: bool = True) -> List[int]:
 
     .. deprecated:: v1.9.0
         The function ``pick_multiple_gpus`` has been deprecated in v1.9.0 and will be removed in v2.0.0.
-        Please use the function ``pytorch_lightning.accelerators.find_usable_cuda_devices`` instead.
+        Please use the function ``pytorch_lightning.accelerators.find_usable_musa_devices`` instead.
 
     Raises:
         MisconfigurationException:
@@ -35,7 +35,7 @@ def pick_multiple_gpus(nb: int, _show_deprecation: bool = True) -> List[int]:
     if _show_deprecation:
         rank_zero_deprecation(
             "The function `pick_multiple_gpus` has been deprecated in v1.9.0 and will be removed in v2.0.0."
-            " Please use the function `pytorch_lightning.accelerators.find_usable_cuda_devices` instead."
+            " Please use the function `pytorch_lightning.accelerators.find_usable_musa_devices` instead."
         )
 
     if nb == 0:
@@ -44,7 +44,7 @@ def pick_multiple_gpus(nb: int, _show_deprecation: bool = True) -> List[int]:
             " Please select a valid number of GPU resources when using auto_select_gpus."
         )
 
-    num_gpus = num_cuda_devices()
+    num_gpus = num_musa_devices()
     if nb > num_gpus:
         raise MisconfigurationException(f"You requested {nb} GPUs but your machine only has {num_gpus} GPUs.")
     nb = num_gpus if nb == -1 else nb
@@ -61,7 +61,7 @@ def pick_single_gpu(exclude_gpus: List[int], _show_deprecation: bool = True) -> 
 
     .. deprecated:: v1.9.0
         The function ``pick_single_gpu`` has been deprecated in v1.9.0 and will be removed in v2.0.0.
-        Please use the function ``pytorch_lightning.accelerators.find_usable_cuda_devices`` instead.
+        Please use the function ``pytorch_lightning.accelerators.find_usable_musa_devices`` instead.
 
     Raises:
         RuntimeError:
@@ -70,16 +70,16 @@ def pick_single_gpu(exclude_gpus: List[int], _show_deprecation: bool = True) -> 
     if _show_deprecation:
         rank_zero_deprecation(
             "The function `pick_single_gpu` has been deprecated in v1.9.0 and will be removed in v2.0.0."
-            " Please use the function `pytorch_lightning.accelerators.find_usable_cuda_devices` instead."
+            " Please use the function `pytorch_lightning.accelerators.find_usable_musa_devices` instead."
         )
 
     previously_used_gpus = []
     unused_gpus = []
-    for i in range(num_cuda_devices()):
+    for i in range(num_musa_devices()):
         if i in exclude_gpus:
             continue
 
-        if torch.cuda.memory_reserved(f"cuda:{i}") > 0:
+        if torch.musa.memory_reserved(f"musa:{i}") > 0:
             previously_used_gpus.append(i)
         else:
             unused_gpus.append(i)
@@ -87,7 +87,7 @@ def pick_single_gpu(exclude_gpus: List[int], _show_deprecation: bool = True) -> 
     # Prioritize previously used GPUs
     for i in previously_used_gpus + unused_gpus:
         # Try to allocate on device:
-        device = torch.device(f"cuda:{i}")
+        device = torch.device(f"musa:{i}")
         try:
             torch.ones(1).to(device)
         except RuntimeError:

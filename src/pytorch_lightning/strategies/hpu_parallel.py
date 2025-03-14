@@ -200,24 +200,24 @@ def _hpu_broadcast_object_list(object_list, src=0, group=None, device=None):  # 
     # Current device selection.
     # To preserve backwards compatibility, ``device`` is default to ``None``
     # in which case we run current logic of device selection, i.e.
-    # ``current_device`` is CUDA if backend is NCCL otherwise CPU device. In the
+    # ``current_device`` is MUSA if backend is NCCL otherwise CPU device. In the
     # case it is not ``None`` we move the size and object tensors to be
     # broadcasted to this device.
     group_backend = get_backend(group)
-    is_nccl_backend = group_backend == Backend.NCCL
+    is_mccl_backend = group_backend == Backend.NCCL
     is_hpu_backend = os.environ.get("HCCL_DISTRIBUTED_BACKEND") == "1"
     if device is not None:
-        if is_nccl_backend and device.type != "cuda":
-            raise ValueError("device type must be cuda for nccl backend")
+        if is_mccl_backend and device.type != "musa":
+            raise ValueError("device type must be musa for mccl backend")
         current_device = device
     else:
         current_device = torch.device("cpu")
-        if is_nccl_backend:
-            # See note about using torch.cuda.current_device() here in
+        if is_mccl_backend:
+            # See note about using torch.musa.current_device() here in
             # docstring. We cannot simply use my_rank since rank == device is
             # not necessarily true.
-            current_device = torch.device("cuda", torch.cuda.current_device())
-    if is_nccl_backend:
+            current_device = torch.device("musa", torch.musa.current_device())
+    if is_mccl_backend:
         object_sizes_tensor = object_sizes_tensor.to(current_device)
 
     elif is_hpu_backend:
@@ -241,7 +241,7 @@ def _hpu_broadcast_object_list(object_list, src=0, group=None, device=None):  # 
             dtype=torch.uint8,
         )
 
-    if is_nccl_backend or is_hpu_backend:
+    if is_mccl_backend or is_hpu_backend:
         object_tensor = object_tensor.to(current_device)
 
     broadcast(object_tensor, src=src, group=group)

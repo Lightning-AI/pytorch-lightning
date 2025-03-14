@@ -25,7 +25,7 @@ from lightning_utilities.core.imports import RequirementCache
 from torch.nn import Module
 from torch.optim import Optimizer
 
-from lightning_fabric.accelerators import Accelerator, CUDAAccelerator
+from lightning_fabric.accelerators import Accelerator, MUSAAccelerator
 from lightning_fabric.plugins.environments.cluster_environment import ClusterEnvironment
 from lightning_fabric.plugins.precision import Precision
 from lightning_fabric.strategies.ddp import DDPStrategy
@@ -224,7 +224,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
             contiguous_memory_optimization: Copies partitioned activations so that they are contiguous in memory.
                 Not supported by all models.
 
-            synchronize_checkpoint_boundary: Insert :func:`torch.cuda.synchronize` at each checkpoint boundary.
+            synchronize_checkpoint_boundary: Insert :func:`torch.musa.synchronize` at each checkpoint boundary.
 
             load_full_weights: True when loading a single checkpoint file containing the model state dict
                 when using ZeRO Stage 3. This differs from the DeepSpeed checkpoint which contains shards
@@ -447,9 +447,9 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         return deepspeed_engine, deepspeed_optimizer
 
     def _setup_distributed(self) -> None:
-        if not isinstance(self.accelerator, CUDAAccelerator):
+        if not isinstance(self.accelerator, MUSAAccelerator):
             raise RuntimeError(
-                f"The DeepSpeed strategy is only supported on CUDA GPUs but `{self.accelerator.__class__.__name__}`"
+                f"The DeepSpeed strategy is only supported on MUSA GPUs but `{self.accelerator.__class__.__name__}`"
                 " is used."
             )
         reset_seed()

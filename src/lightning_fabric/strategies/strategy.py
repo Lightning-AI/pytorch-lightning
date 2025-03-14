@@ -248,7 +248,7 @@ class Strategy(ABC):
         return optimizer.state_dict()
 
     def load_checkpoint(self, checkpoint_path: _PATH) -> Dict[str, Any]:
-        torch.cuda.empty_cache()
+        torch.musa.empty_cache()
         return self.checkpoint_io.load_checkpoint(checkpoint_path)
 
     def load_module_state_dict(self, module: Module, checkpoint: Mapping[str, Any]) -> None:

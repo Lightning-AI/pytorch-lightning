@@ -18,7 +18,7 @@ from copy import deepcopy
 from typing import Any, Dict, Optional, Tuple
 
 import pytorch_lightning as pl
-from pytorch_lightning.utilities.memory import garbage_collection_cuda, is_oom_error
+from pytorch_lightning.utilities.memory import garbage_collection_musa, is_oom_error
 from pytorch_lightning.utilities.parsing import lightning_getattr, lightning_setattr
 from pytorch_lightning.utilities.rank_zero import rank_zero_info, rank_zero_warn
 
@@ -58,7 +58,7 @@ def scale_batch_size(
     elif mode == "binsearch":
         new_size = _run_binary_scaling(trainer, model, new_size, batch_arg_name, max_trials, params)
 
-    garbage_collection_cuda()
+    garbage_collection_musa()
 
     log.info(f"Finished batch size finder, will continue with full run using batch size {new_size}")
 
@@ -151,7 +151,7 @@ def _run_power_scaling(
     # if it was we exit, else we continue downscaling in case we haven't encountered a single optimal batch size
     any_success = False
     for _ in range(max_trials):
-        garbage_collection_cuda()
+        garbage_collection_musa()
 
         # reset after each try
         _reset_progress(trainer)
@@ -169,7 +169,7 @@ def _run_power_scaling(
         except RuntimeError as exception:
             if is_oom_error(exception):
                 # If we fail in power mode, half the size and return
-                garbage_collection_cuda()
+                garbage_collection_musa()
                 new_size, _ = _adjust_batch_size(trainer, batch_arg_name, factor=0.5, desc="failed")
                 # Force the train dataloader to reset as the batch size has changed
                 _reset_dataloaders(trainer, pl_module)
@@ -198,7 +198,7 @@ def _run_binary_scaling(
     high = None
     count = 0
     while True:
-        garbage_collection_cuda()
+        garbage_collection_musa()
 
         # reset after each try
         _reset_progress(trainer)
@@ -229,7 +229,7 @@ def _run_binary_scaling(
             # Only these errors should trigger an adjustment
             if is_oom_error(exception):
                 # If we fail in power mode, half the size and return
-                garbage_collection_cuda()
+                garbage_collection_musa()
 
                 high = new_size
                 midval = (high + low) // 2

@@ -170,7 +170,7 @@ class DDPFullyShardedStrategy(DDPStrategy):
         super().connect(model)
 
     def setup_distributed(self) -> None:
-        if not self.root_device.type == "cuda":
+        if not self.root_device.type == "musa":
             raise MisconfigurationException(
                 "You selected strategy to be `ddp_fully_sharded`, but GPU is not available."
             )
@@ -261,7 +261,7 @@ class DDPFullyShardedStrategy(DDPStrategy):
     def configure_ddp(self) -> None:
         log.detail(f"{self.__class__.__name__}: configuring FSDP... (cpu_offload: [{self.cpu_offload}])")
         if not self.cpu_offload:
-            # When using CPU Offload, FSDP will manage the CUDA movement for us.
+            # When using CPU Offload, FSDP will manage the MUSA movement for us.
             # Note: this would be problematic for large model (which could not fit in one GPU)
             # as FSDP module.to(device) would first summon all parameters
             # (TODO: need to figure out solution)

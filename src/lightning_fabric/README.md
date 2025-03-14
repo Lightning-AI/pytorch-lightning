@@ -26,7 +26,7 @@ ______________________________________________________________________
 
 With just a few code changes, run any PyTorch model on any distributed hardware, no boilerplate!
 
-- Easily switch from running on CPU to GPU (Apple Silicon, CUDA, …), TPU, multi-GPU or even multi-node training
+- Easily switch from running on CPU to GPU (Apple Silicon, MUSA, …), TPU, multi-GPU or even multi-node training
 - Use state-of-the-art distributed training strategies (DDP, FSDP, DeepSpeed) and mixed precision out of the box
 - All the device logic boilerplate is handled for you
 - Designed with multi-billion parameter models in mind
@@ -45,10 +45,10 @@ With just a few code changes, run any PyTorch model on any distributed hardware,
   class PyTorchDataset(Dataset):
       ...
 
-+ fabric = L.Fabric(accelerator="cuda", devices=8, strategy="ddp")
++ fabric = L.Fabric(accelerator="musa", devices=8, strategy="ddp")
 + fabric.launch()
 
-- device = "cuda" if torch.cuda.is_available() else "cpu
+- device = "musa" if torch.musa.is_available() else "cpu
   model = PyTorchModel(...)
   optimizer = torch.optim.SGD(model.parameters())
 + model, optimizer = fabric.setup(model, optimizer)
@@ -107,7 +107,7 @@ pip install -U lightning
    dataloader = fabric.setup_dataloaders(dataloader)
    ```
 
-1. Remove all `.to` and `.cuda` calls -> Fabric will take care of it.
+1. Remove all `.to` and `.musa` calls -> Fabric will take care of it.
 
    ```diff
    - model.to(device)

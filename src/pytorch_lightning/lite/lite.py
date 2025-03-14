@@ -72,7 +72,7 @@ class LightningLite(Fabric, ABC):
 
     Args:
         accelerator: The hardware to run on. Possible choices are:
-            ``"cpu"``, ``"cuda"``, ``"mps"``, ``"gpu"``, ``"tpu"``, ``"auto"``.
+            ``"cpu"``, ``"musa"``, ``"mps"``, ``"gpu"``, ``"tpu"``, ``"auto"``.
         strategy: Strategy for how to run across multiple devices. Possible choices are:
             ``"dp"``, ``"ddp"``, ``"ddp_spawn"``, ``"deepspeed"``, ``"fsdp"``.
         devices: Number of devices to train on (``int``), which GPUs to train on (``list`` or ``str``), or ``"auto"``.
@@ -191,7 +191,7 @@ def _convert_deprecated_device_flags(
             if tpu_cores:
                 accelerator = "tpu"
             if gpus:
-                accelerator = "cuda"
+                accelerator = "musa"
 
     return deprecated_devices_specific_flag, accelerator
 

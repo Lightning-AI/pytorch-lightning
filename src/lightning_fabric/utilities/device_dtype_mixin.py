@@ -41,8 +41,8 @@ class _DeviceDtypeModuleMixin(Module):
         device = self._device
 
         # make this more explicit to always include the index
-        if device.type == "cuda" and device.index is None:
-            return torch.device(f"cuda:{torch.cuda.current_device()}")
+        if device.type == "musa" and device.index is None:
+            return torch.device(f"musa:{torch.musa.current_device()}")
 
         return device
 
@@ -53,24 +53,24 @@ class _DeviceDtypeModuleMixin(Module):
         self.__update_properties(device=device, dtype=dtype)
         return super().to(*args, **kwargs)
 
-    def cuda(self, device: Optional[Union[torch.device, int]] = None) -> Self:
+    def musa(self, device: Optional[Union[torch.device, int]] = None) -> Self:
         """Moves all model parameters and buffers to the GPU. This also makes associated parameters and buffers
         different objects. So it should be called before constructing optimizer if the module will live on GPU
         while being optimized.
 
         Arguments:
-            device: If specified, all parameters will be copied to that device. If `None`, the current CUDA device
+            device: If specified, all parameters will be copied to that device. If `None`, the current MUSA device
                 index will be used.
 
         Returns:
             Module: self
         """
         if device is None:
-            device = torch.device("cuda", torch.cuda.current_device())
+            device = torch.device("musa", torch.musa.current_device())
         elif isinstance(device, int):
-            device = torch.device("cuda", index=device)
+            device = torch.device("musa", index=device)
         self.__update_properties(device=device)
-        return super().cuda(device=device)
+        return super().musa(device=device)
 
     def cpu(self) -> Self:
         """See :meth:`torch.nn.Module.cpu`."""

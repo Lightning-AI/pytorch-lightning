@@ -321,20 +321,20 @@ class InterBatchParallelDataFetcher(DataFetcher):
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
-        self.cuda_stream = torch.cuda.Stream()
-        self.events: List[torch.cuda.Event] = []
+        self.musa_stream = torch.musa.Stream()
+        self.events: List[torch.musa.Event] = []
 
     def move_to_device(self, batch: Any) -> Any:
-        with torch.cuda.stream(self.cuda_stream):
+        with torch.musa.stream(self.musa_stream):
             return super().move_to_device(batch)
 
-    def on_fetch_start(self) -> "torch.cuda.Event":
-        # create a cuda event used to record the async stream of data to device.
-        event = torch.cuda.Event()
+    def on_fetch_start(self) -> "torch.musa.Event":
+        # create a musa event used to record the async stream of data to device.
+        event = torch.musa.Event()
         self._start_profiler()
         return event
 
-    def on_fetch_end(self, batch: Any, event: torch.cuda.Event) -> None:
+    def on_fetch_end(self, batch: Any, event: torch.musa.Event) -> None:
         self._stop_profiler()
         self.batches.append(batch)
         event.record()

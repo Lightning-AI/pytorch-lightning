@@ -48,7 +48,7 @@ class _PyTorchSpawnRunExecutor(WorkRunExecutor):
         import torch
 
         with self.enable_spawn():
-            nprocs = torch.cuda.device_count() if torch.cuda.is_available() else 1
+            nprocs = torch.musa.device_count() if torch.musa.is_available() else 1
             queue = self.delta_queue if isinstance(self.delta_queue, MultiProcessQueue) else self.delta_queue.to_dict()
             torch.multiprocessing.spawn(
                 self.dispatch_run,
@@ -93,7 +93,7 @@ class _PyTorchSpawnRunExecutor(WorkRunExecutor):
         if torch.distributed.is_available():
             if not torch.distributed.is_initialized():
                 torch.distributed.init_process_group(
-                    "nccl" if torch.cuda.is_available() else "gloo",
+                    "mccl" if torch.musa.is_available() else "gloo",
                     rank=global_rank,
                     world_size=world_size,
                     init_method=f"tcp://{main_address}:{main_port}",

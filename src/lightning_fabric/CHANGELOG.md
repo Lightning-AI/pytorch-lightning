@@ -12,7 +12,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
-- fixed for all `_cuda_clearCublasWorkspaces` on teardown ([#16907](https://github.com/Lightning-AI/lightning/pull/16907))
+- fixed for all `_musa_clearCublasWorkspaces` on teardown ([#16907](https://github.com/Lightning-AI/lightning/pull/16907))
 - Improved the error message for installing tensorboard or tensorboardx ([#17053](https://github.com/Lightning-AI/lightning/pull/17053))
 
 
@@ -26,7 +26,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Fixed edge cases in parsing device ids using NVML ([#16795](https://github.com/Lightning-AI/lightning/pull/16795))
 - Fixed DDP spawn hang on TPU Pods ([#16844](https://github.com/Lightning-AI/lightning/pull/16844))
-- Fixed an error when passing `find_usable_cuda_devices(num_devices=-1)` ([#16866](https://github.com/Lightning-AI/lightning/pull/16866))
+- Fixed an error when passing `find_usable_musa_devices(num_devices=-1)` ([#16866](https://github.com/Lightning-AI/lightning/pull/16866))
 
 
 ## [1.9.3] - 2023-02-21
@@ -61,7 +61,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added the option to launch Fabric scripts from the CLI, without the need to wrap the code into the `run` method ([#14992](https://github.com/Lightning-AI/lightning/issues/14992))
 - Added `Fabric.setup_module()` and `Fabric.setup_optimizers()` to support strategies that need to set up the model before an optimizer can be created ([#15185](https://github.com/Lightning-AI/lightning/pull/15185))
 - Added support for Fully Sharded Data Parallel (FSDP) training in Lightning Lite ([#14967](https://github.com/Lightning-AI/lightning/issues/14967))
-- Added `lightning_fabric.accelerators.find_usable_cuda_devices` utility function ([#16147](https://github.com/PyTorchLightning/pytorch-lightning/pull/16147))
+- Added `lightning_fabric.accelerators.find_usable_musa_devices` utility function ([#16147](https://github.com/PyTorchLightning/pytorch-lightning/pull/16147))
 - Added basic support for LightningModules ([#16048](https://github.com/Lightning-AI/lightning/issues/16048))
 - Added support for managing callbacks via `Fabric(callbacks=...)` and emitting events through `Fabric.call()` ([#16074](https://github.com/Lightning-AI/lightning/issues/16074))
 - Added Logger support ([#16121](https://github.com/Lightning-AI/lightning/issues/16121))

@@ -33,7 +33,7 @@ from lightning_fabric.plugins import ClusterEnvironment
 from lightning_fabric.utilities.optimizer import _optimizers_to_device
 from lightning_fabric.utilities.seed import reset_seed
 from lightning_fabric.utilities.types import _PATH, LRScheduler, ReduceLROnPlateau
-from pytorch_lightning.accelerators.cuda import CUDAAccelerator
+from pytorch_lightning.accelerators.musa import MUSAAccelerator
 from pytorch_lightning.core.optimizer import _init_optimizers_and_lr_schedulers
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase, _LightningPrecisionModuleWrapperBase
 from pytorch_lightning.plugins.precision import PrecisionPlugin
@@ -240,7 +240,7 @@ class DeepSpeedStrategy(DDPStrategy):
             contiguous_memory_optimization: Copies partitioned activations so that they are contiguous in memory.
                 Not supported by all models.
 
-            synchronize_checkpoint_boundary: Insert :func:`torch.cuda.synchronize` at each checkpoint boundary.
+            synchronize_checkpoint_boundary: Insert :func:`torch.musa.synchronize` at each checkpoint boundary.
 
             load_full_weights: True when loading a single checkpoint file containing the model state dict
                 when using ZeRO Stage 3. This differs from the DeepSpeed checkpoint which contains shards
@@ -437,7 +437,7 @@ class DeepSpeedStrategy(DDPStrategy):
         if self.lightning_module.trainer.gradient_clip_algorithm == GradClipAlgorithmType.VALUE:
             raise MisconfigurationException("DeepSpeed does not support clipping gradients by value.")
 
-        if not isinstance(self.accelerator, CUDAAccelerator):
+        if not isinstance(self.accelerator, MUSAAccelerator):
             raise MisconfigurationException(
                 f"DeepSpeed strategy is only supported on GPU but `{self.accelerator.__class__.__name__}` is used."
             )
