@@ -307,7 +307,7 @@ class _CheckpointConnector:
         folder_files = [fn for fn in os.listdir(local_model_dir) if fn.endswith(".ckpt")]
         if not folder_files:
             raise RuntimeError(f"Parsing files from downloaded model failed - {model_registry}")
-        return os.path.join(model_name, folder_files[0])
+        return os.path.join(local_model_dir, folder_files[0])
 
     def resume_end(self) -> None:
         """Signal the connector that all states have resumed and memory for the checkpoint object can be released."""
