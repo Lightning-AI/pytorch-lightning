@@ -21,7 +21,13 @@ export PL_RUN_STANDALONE_TESTS=1
 # test that a user can manually launch individual processes
 echo "Running manual ddp launch test"
 export PYTHONPATH="${PYTHONPATH}:$(pwd)"
-args="fit --trainer.accelerator gpu --trainer.devices 2 --trainer.strategy ddp --trainer.max_epochs=1 --trainer.limit_train_batches=1 --trainer.limit_val_batches=1 --trainer.limit_test_batches=1"
+args="fit --trainer.accelerator gpu \
+--trainer.devices 2 \
+--trainer.strategy ddp \
+--trainer.max_epochs=1 \
+--trainer.limit_train_batches=1 \
+--trainer.limit_val_batches=1 \
+--trainer.limit_test_batches=1"
 MASTER_ADDR="localhost" MASTER_PORT=1234 LOCAL_RANK=1 python strategies/scripts/cli_script.py ${args} &
 MASTER_ADDR="localhost" MASTER_PORT=1234 LOCAL_RANK=0 python strategies/scripts/cli_script.py ${args}
 

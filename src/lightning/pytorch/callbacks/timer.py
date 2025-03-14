@@ -20,7 +20,7 @@ import logging
 import re
 import time
 from datetime import timedelta
-from typing import Any, Dict, Optional, Union
+from typing import Any, Optional, Union
 
 from typing_extensions import override
 
@@ -83,7 +83,7 @@ class Timer(Callback):
 
     def __init__(
         self,
-        duration: Optional[Union[str, timedelta, Dict[str, int]]] = None,
+        duration: Optional[Union[str, timedelta, dict[str, int]]] = None,
         interval: str = Interval.step,
         verbose: bool = True,
     ) -> None:
@@ -111,8 +111,8 @@ class Timer(Callback):
         self._duration = duration.total_seconds() if duration is not None else None
         self._interval = interval
         self._verbose = verbose
-        self._start_time: Dict[RunningStage, Optional[float]] = {stage: None for stage in RunningStage}
-        self._end_time: Dict[RunningStage, Optional[float]] = {stage: None for stage in RunningStage}
+        self._start_time: dict[RunningStage, Optional[float]] = {stage: None for stage in RunningStage}
+        self._end_time: dict[RunningStage, Optional[float]] = {stage: None for stage in RunningStage}
         self._offset = 0
 
     def start_time(self, stage: str = RunningStage.TRAINING) -> Optional[float]:
@@ -187,11 +187,11 @@ class Timer(Callback):
         self._check_time_remaining(trainer)
 
     @override
-    def state_dict(self) -> Dict[str, Any]:
+    def state_dict(self) -> dict[str, Any]:
         return {"time_elapsed": {stage.value: self.time_elapsed(stage) for stage in RunningStage}}
 
     @override
-    def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
+    def load_state_dict(self, state_dict: dict[str, Any]) -> None:
         time_elapsed = state_dict.get("time_elapsed", {})
         self._offset = time_elapsed.get(RunningStage.TRAINING.value, 0)
 

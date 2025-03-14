@@ -42,7 +42,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: ["ubuntu-22.04", "macOS-12", "windows-2022"]
+        os: ["ubuntu-22.04", "macOS-14", "windows-2022"]
         pkg-name: ["fabric", "pytorch", "lightning", "notset"]
         python-version: ["3.9", "3.11"]
     steps:
@@ -50,7 +50,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: dist-packages-${{ github.sha }}
           path: dist
@@ -103,3 +103,17 @@ jobs:
           LIGHTING_TESTING: 1 # path for require wrapper
           PY_IGNORE_IMPORTMISMATCH: 1
         run: python -m pytest src/lit/${PKG_NAME} --ignore-glob="**/cli/*-template/**" --doctest-plus
+
+  install-pkg-guardian:
+    runs-on: ubuntu-latest
+    needs: install-pkg
+    if: always()
+    steps:
+      - run: echo "${{ needs.install-pkg.result }}"
+      - name: failing...
+        if: needs.install-pkg.result == 'failure'
+        run: exit 1
+      - name: cancelled or skipped...
+        if: contains(fromJSON('["cancelled", "skipped"]'), needs.install-pkg.result)
+        timeout-minutes: 1
+        run: sleep 90

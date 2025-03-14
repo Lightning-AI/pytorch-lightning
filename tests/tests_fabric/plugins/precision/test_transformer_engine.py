@@ -14,10 +14,11 @@
 import sys
 from unittest.mock import Mock
 
-import lightning.fabric
 import pytest
 import torch
 import torch.distributed
+
+import lightning.fabric
 from lightning.fabric.connector import _Connector
 from lightning.fabric.plugins.precision.transformer_engine import TransformerEnginePrecision
 

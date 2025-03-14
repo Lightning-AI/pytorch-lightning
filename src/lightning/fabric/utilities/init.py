@@ -12,7 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import itertools
-from typing import Any, Callable, Dict, Optional, Sequence, Union
+from collections.abc import Sequence
+from typing import Any, Callable, Optional, Union
 
 import torch
 from torch.nn import Module, Parameter
@@ -46,7 +47,7 @@ class _EmptyInit(TorchFunctionMode):
         func: Callable,
         types: Sequence,
         args: Sequence[Any] = (),
-        kwargs: Optional[Dict] = None,
+        kwargs: Optional[dict] = None,
     ) -> Any:
         kwargs = kwargs or {}
         if not self.enabled:

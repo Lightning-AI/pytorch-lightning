@@ -20,7 +20,7 @@ import os
 import pstats
 import tempfile
 from pathlib import Path
-from typing import Dict, Optional, Tuple, Union
+from typing import Optional, Union
 
 from typing_extensions import override
 
@@ -66,7 +66,7 @@ class AdvancedProfiler(Profiler):
                 If you attempt to stop recording an action which was never started.
         """
         super().__init__(dirpath=dirpath, filename=filename)
-        self.profiled_actions: Dict[str, cProfile.Profile] = {}
+        self.profiled_actions: dict[str, cProfile.Profile] = {}
         self.line_count_restriction = line_count_restriction
         self.dump_stats = dump_stats
 
@@ -89,9 +89,10 @@ class AdvancedProfiler(Profiler):
         dst_fs = get_filesystem(dst_filepath)
         dst_fs.mkdirs(self.dirpath, exist_ok=True)
         # temporarily save to local since pstats can only dump into a local file
-        with tempfile.TemporaryDirectory(
-            prefix="test", suffix=str(rank_zero_only.rank), dir=os.getcwd()
-        ) as tmp_dir, dst_fs.open(dst_filepath, "wb") as dst_file:
+        with (
+            tempfile.TemporaryDirectory(prefix="test", suffix=str(rank_zero_only.rank), dir=os.getcwd()) as tmp_dir,
+            dst_fs.open(dst_filepath, "wb") as dst_file,
+        ):
             src_filepath = os.path.join(tmp_dir, "tmp.prof")
             profile.dump_stats(src_filepath)
             src_fs = get_filesystem(src_filepath)
@@ -115,7 +116,7 @@ class AdvancedProfiler(Profiler):
         super().teardown(stage=stage)
         self.profiled_actions = {}
 
-    def __reduce__(self) -> Tuple:
+    def __reduce__(self) -> tuple:
         # avoids `TypeError: cannot pickle 'cProfile.Profile' object`
         return (
             self.__class__,

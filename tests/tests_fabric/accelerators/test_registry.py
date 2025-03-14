@@ -11,9 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Dict
+from typing import Any
 
 import torch
+
 from lightning.fabric.accelerators import ACCELERATOR_REGISTRY, Accelerator
 
 
@@ -30,7 +31,7 @@ def test_accelerator_registry_with_new_accelerator():
         def setup_device(self, device: torch.device) -> None:
             pass
 
-        def get_device_stats(self, device: torch.device) -> Dict[str, Any]:
+        def get_device_stats(self, device: torch.device) -> dict[str, Any]:
             pass
 
         def teardown(self) -> None:

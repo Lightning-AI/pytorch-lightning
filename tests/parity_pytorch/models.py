@@ -14,11 +14,12 @@
 
 import torch
 import torch.nn.functional as F
+from tests_pytorch import _PATH_DATASETS
+from torch.utils.data import DataLoader
+
 from lightning.pytorch.core.module import LightningModule
 from lightning.pytorch.utilities.imports import _TORCHVISION_AVAILABLE
 from lightning.pytorch.utilities.model_helpers import get_torchvision_model
-from tests_pytorch import _PATH_DATASETS
-from torch.utils.data import DataLoader
 
 if _TORCHVISION_AVAILABLE:
     from torchvision import transforms

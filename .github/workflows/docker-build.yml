@@ -43,10 +43,11 @@ jobs:
         include:
           # We only release one docker image per PyTorch version.
           # Make sure the matrix here matches the one below.
-          - { python_version: "3.11", pytorch_version: "2.1", cuda_version: "12.1.0" }
-          - { python_version: "3.11", pytorch_version: "2.2", cuda_version: "12.1.0" }
-          - { python_version: "3.11", pytorch_version: "2.3", cuda_version: "12.1.0" }
-          - { python_version: "3.12", pytorch_version: "2.4", cuda_version: "12.1.0" }
+          - { python_version: "3.10", pytorch_version: "2.1", cuda_version: "12.1.1" }
+          - { python_version: "3.11", pytorch_version: "2.2", cuda_version: "12.1.1" }
+          - { python_version: "3.11", pytorch_version: "2.3", cuda_version: "12.1.1" }
+          - { python_version: "3.11", pytorch_version: "2.4", cuda_version: "12.1.1" }
+          - { python_version: "3.12", pytorch_version: "2.5", cuda_version: "12.1.1", latest: "true" }
     steps:
       - uses: actions/checkout@v4
         with:
@@ -64,23 +65,14 @@ jobs:
         run: echo "RELEASE_VERSION=$(echo ${GITHUB_REF##*/})" >> $GITHUB_ENV
       - name: Set tags
         run: |
-          import os
-
-          repo = "pytorchlightning/pytorch_lightning"
-          ver = os.getenv('RELEASE_VERSION')
-          py_ver = "${{ matrix.python_version }}"
-          pt_ver = "${{ matrix.pytorch_version }}"
-          cuda_ver = "${{ matrix.cuda_version }}"
-          tags = [f"latest-py{py_ver}-torch{pt_ver}-cuda{cuda_ver}"]
-          if ver:
-            tags += [f"{ver}-py{py_ver}-torch{pt_ver}-cuda{cuda_ver}"]
-          if py_ver == '3.11' and pt_ver == '2.3' and cuda_ver == '12.1.0':
-            tags += ["latest"]
-
-          tags = [f"{repo}:{tag}" for tag in tags]
-          with open(os.getenv('GITHUB_ENV'), "a") as gh_env:
-              gh_env.write("DOCKER_TAGS=" + ",".join(tags))
-        shell: python
+          pip install -q -r .actions/requirements.txt
+          tags=$(python .actions/assistant.py generate_docker_tags \
+            --release_version="${{ env.RELEASE_VERSION }}" \
+            --python_version="${{ matrix.python_version }}" \
+            --torch_version="${{ matrix.pytorch_version }}" \
+            --cuda_version="${{ matrix.cuda_version }}" \
+            --add_latest="${{ matrix.latest || 'false' }}")
+          echo "DOCKER_TAGS=$tags" >> $GITHUB_ENV
 
       - uses: docker/build-push-action@v6
         with:
@@ -103,10 +95,12 @@ jobs:
         include:
           # These are the base images for PL release docker images.
           # Make sure the matrix here matches the one above.
-          - { python_version: "3.11", pytorch_version: "2.1", cuda_version: "12.1.0" }
-          - { python_version: "3.11", pytorch_version: "2.2", cuda_version: "12.1.0" }
-          - { python_version: "3.11", pytorch_version: "2.3", cuda_version: "12.1.0" }
-          - { python_version: "3.12", pytorch_version: "2.4", cuda_version: "12.1.0" }
+          - { python_version: "3.10", pytorch_version: "2.1.2", cuda_version: "12.1.1" }
+          - { python_version: "3.11", pytorch_version: "2.2.2", cuda_version: "12.1.1" }
+          - { python_version: "3.11", pytorch_version: "2.3.1", cuda_version: "12.1.1" }
+          - { python_version: "3.11", pytorch_version: "2.4.1", cuda_version: "12.1.1" }
+          - { python_version: "3.12", pytorch_version: "2.5.1", cuda_version: "12.1.1" }
+          - { python_version: "3.12", pytorch_version: "2.6.0", cuda_version: "12.4.1" }
     steps:
       - uses: actions/checkout@v4
       - uses: docker/setup-buildx-action@v3
@@ -115,6 +109,12 @@ jobs:
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: shorten Torch version
+        run: |
+          # convert 1.10.2 to 1.10
+          pt_version=$(echo ${{ matrix.pytorch_version }} | cut -d. -f1,2)
+          echo "PT_VERSION=$pt_version" >> $GITHUB_ENV
       - uses: docker/build-push-action@v6
         with:
           build-args: |
@@ -123,7 +123,7 @@ jobs:
             CUDA_VERSION=${{ matrix.cuda_version }}
           file: dockers/base-cuda/Dockerfile
           push: ${{ env.PUSH_NIGHTLY }}
-          tags: "pytorchlightning/pytorch_lightning:base-cuda-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }}-cuda${{ matrix.cuda_version }}"
+          tags: "pytorchlightning/pytorch_lightning:base-cuda-py${{ matrix.python_version }}-torch${{ env.PT_VERSION }}-cuda${{ matrix.cuda_version }}"
         timeout-minutes: 95
       - uses: ravsamhq/notify-slack-action@v2
         if: failure() && env.PUSH_NIGHTLY == 'true'

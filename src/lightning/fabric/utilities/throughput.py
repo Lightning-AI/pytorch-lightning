@@ -13,7 +13,7 @@
 # limitations under the License.
 # Adapted from https://github.com/mosaicml/composer/blob/f2a2dc820/composer/callbacks/speed_monitor.py
 from collections import deque
-from typing import TYPE_CHECKING, Any, Callable, Deque, Dict, List, Optional, TypeVar, Union
+from typing import TYPE_CHECKING, Any, Callable, Optional, TypeVar, Union
 
 import torch
 from typing_extensions import override
@@ -24,7 +24,7 @@ if TYPE_CHECKING:
     from lightning.fabric import Fabric
     from lightning.fabric.plugins import Precision
 
-_THROUGHPUT_METRICS = Dict[str, Union[int, float]]
+_THROUGHPUT_METRICS = dict[str, Union[int, float]]
 
 
 # The API design of this class follows `torchmetrics.Metric` but it doesn't need to be an actual Metric because there's
@@ -108,7 +108,7 @@ class Throughput:
         self._batches: _MonotonicWindow[int] = _MonotonicWindow(maxlen=window_size)
         self._samples: _MonotonicWindow[int] = _MonotonicWindow(maxlen=window_size)
         self._lengths: _MonotonicWindow[int] = _MonotonicWindow(maxlen=window_size)
-        self._flops: Deque[int] = deque(maxlen=window_size)
+        self._flops: deque[int] = deque(maxlen=window_size)
 
     def update(
         self,
@@ -302,7 +302,7 @@ def measure_flops(
     return flop_counter.get_total_flops()
 
 
-_CUDA_FLOPS: Dict[str, Dict[Union[str, torch.dtype], float]] = {
+_CUDA_FLOPS: dict[str, dict[Union[str, torch.dtype], float]] = {
     # Hopper
     # source: https://resources.nvidia.com/en-us-tensor-core
     "h100 nvl": {
@@ -346,6 +346,14 @@ _CUDA_FLOPS: Dict[str, Dict[Union[str, torch.dtype], float]] = {
         torch.float16: 48.7e12,
         torch.int8: 389.9e12,
         "int4": 779.8e12,
+    },
+    "rtx 4080 super": {
+        torch.float32: 52.2e12,
+        "tfloat32": 52.2e12,
+        torch.bfloat16: 52.2e12,
+        torch.float16: 52.2e12,
+        torch.int8: 417.6e12,
+        "int4": 835.2e12,
     },
     "l4": {
         torch.float32: 30.3e12,
@@ -640,7 +648,7 @@ def _plugin_to_compute_dtype(plugin: "Precision") -> torch.dtype:
 T = TypeVar("T", bound=float)
 
 
-class _MonotonicWindow(List[T]):
+class _MonotonicWindow(list[T]):
     """Custom fixed size list that only supports right-append and ensures that all values increase monotonically."""
 
     def __init__(self, maxlen: int) -> None:

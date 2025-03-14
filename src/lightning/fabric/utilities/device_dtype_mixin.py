@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any, List, Optional, Union
+from typing import Any, Optional, Union
 
 import torch
 from torch.nn import Module
@@ -20,7 +20,7 @@ from typing_extensions import Self, override
 
 
 class _DeviceDtypeModuleMixin(Module):
-    __jit_unused_properties__: List[str] = ["device", "dtype"]
+    __jit_unused_properties__: list[str] = ["device", "dtype"]
 
     def __init__(self) -> None:
         super().__init__()

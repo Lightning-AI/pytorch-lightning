@@ -13,8 +13,9 @@
 # limitations under the License.
 import logging
 from abc import ABC, abstractmethod
+from collections.abc import Generator, Mapping
 from contextlib import contextmanager
-from typing import Any, Callable, Dict, Generator, List, Mapping, Optional, Tuple, TypeVar, Union
+from typing import Any, Callable, Optional, TypeVar, Union
 
 import torch
 from torch import Tensor
@@ -61,9 +62,9 @@ class Strategy(ABC):
         self._model: Optional[Module] = None
         self._launcher: Optional[_Launcher] = None
         self._forward_redirection: _ForwardRedirection = _ForwardRedirection()
-        self._optimizers: List[Optimizer] = []
-        self._lightning_optimizers: List[LightningOptimizer] = []
-        self.lr_scheduler_configs: List[LRSchedulerConfig] = []
+        self._optimizers: list[Optimizer] = []
+        self._lightning_optimizers: list[LightningOptimizer] = []
+        self.lr_scheduler_configs: list[LRSchedulerConfig] = []
 
     @property
     def launcher(self) -> Optional[_Launcher]:
@@ -99,11 +100,11 @@ class Strategy(ABC):
         self._precision_plugin = precision_plugin
 
     @property
-    def optimizers(self) -> List[Optimizer]:
+    def optimizers(self) -> list[Optimizer]:
         return self._optimizers
 
     @optimizers.setter
-    def optimizers(self, optimizers: List[Optimizer]) -> None:
+    def optimizers(self, optimizers: list[Optimizer]) -> None:
         self._optimizers = optimizers
         self._lightning_optimizers = [LightningOptimizer._to_lightning_optimizer(opt, self) for opt in optimizers]
 
@@ -170,7 +171,7 @@ class Strategy(ABC):
         self.optimizers = optimizers
         self.lr_scheduler_configs = lr_scheduler_configs
 
-    def optimizer_state(self, optimizer: Optimizer) -> Dict[str, Tensor]:
+    def optimizer_state(self, optimizer: Optimizer) -> dict[str, Tensor]:
         """Returns state of an optimizer.
 
         Allows for syncing/collating optimizer state from processes in custom strategies.
@@ -237,7 +238,7 @@ class Strategy(ABC):
         assert isinstance(model, pl.LightningModule)
         return self.precision_plugin.optimizer_step(optimizer, model=model, closure=closure, **kwargs)
 
-    def _setup_model_and_optimizers(self, model: Module, optimizers: List[Optimizer]) -> Tuple[Module, List[Optimizer]]:
+    def _setup_model_and_optimizers(self, model: Module, optimizers: list[Optimizer]) -> tuple[Module, list[Optimizer]]:
         """Setup a model and multiple optimizers together.
 
         The returned objects are expected to be in the same order they were passed in. The default implementation will
@@ -362,7 +363,7 @@ class Strategy(ABC):
         """Returns the pure LightningModule without potential wrappers."""
         return self._lightning_module
 
-    def load_checkpoint(self, checkpoint_path: _PATH) -> Dict[str, Any]:
+    def load_checkpoint(self, checkpoint_path: _PATH) -> dict[str, Any]:
         torch.cuda.empty_cache()
         return self.checkpoint_io.load_checkpoint(checkpoint_path)
 
@@ -470,13 +471,13 @@ class Strategy(ABC):
         """Whether the strategy handles gradient accumulation internally."""
         return False
 
-    def lightning_module_state_dict(self) -> Dict[str, Any]:
+    def lightning_module_state_dict(self) -> dict[str, Any]:
         """Returns model state."""
         assert self.lightning_module is not None
         return self.lightning_module.state_dict()
 
     def save_checkpoint(
-        self, checkpoint: Dict[str, Any], filepath: _PATH, storage_options: Optional[Any] = None
+        self, checkpoint: dict[str, Any], filepath: _PATH, storage_options: Optional[Any] = None
     ) -> None:
         """Save model/training states as a checkpoint file through state-dump and file-write.
 
@@ -587,13 +588,13 @@ class Strategy(ABC):
         self._lightning_optimizers = []
         self.lr_scheduler_configs = []
 
-    def __getstate__(self) -> Dict:
+    def __getstate__(self) -> dict:
         # `LightningOptimizer` overrides `self.__class__` so they cannot be pickled
         state = dict(vars(self))  # copy
         state["_lightning_optimizers"] = []
         return state
 
-    def __setstate__(self, state: Dict) -> None:
+    def __setstate__(self, state: dict) -> None:
         self.__dict__ = state
         self.optimizers = self.optimizers  # re-create the `_lightning_optimizers`
 

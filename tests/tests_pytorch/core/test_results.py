@@ -13,14 +13,15 @@
 # limitations under the License.
 from functools import partial
 
+import pytest
 import torch
 import torch.distributed as dist
+
 from lightning.fabric.plugins.environments import LightningEnvironment
 from lightning.pytorch.accelerators import CPUAccelerator, CUDAAccelerator, MPSAccelerator
 from lightning.pytorch.strategies import DDPStrategy
 from lightning.pytorch.strategies.launchers import _MultiProcessingLauncher
 from lightning.pytorch.trainer.connectors.logger_connector.result import _Sync
-
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.models.test_tpu import wrap_launch_function
 
@@ -48,6 +49,8 @@ def result_reduce_ddp_fn(strategy):
     assert actual.item() == dist.get_world_size()
 
 
+# flaky with "process 0 terminated with signal SIGABRT"
+@pytest.mark.flaky(reruns=3, only_rerun="torch.multiprocessing.spawn.ProcessExitedException")
 @RunIf(skip_windows=True)
 def test_result_reduce_ddp():
     spawn_launch(result_reduce_ddp_fn, [torch.device("cpu")] * 2)

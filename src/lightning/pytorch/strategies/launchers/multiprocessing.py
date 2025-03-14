@@ -18,7 +18,7 @@ import queue
 import tempfile
 from contextlib import suppress
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, List, Literal, NamedTuple, Optional, Union
+from typing import Any, Callable, Literal, NamedTuple, Optional, Union
 
 import torch
 import torch.backends.cudnn
@@ -80,7 +80,7 @@ class _MultiProcessingLauncher(_Launcher):
                 f"The start method '{self._start_method}' is not available on this platform. Available methods are:"
                 f" {', '.join(mp.get_all_start_methods())}"
             )
-        self.procs: List[mp.Process] = []
+        self.procs: list[mp.Process] = []
         self._already_fit = False
 
     @property
@@ -88,7 +88,7 @@ class _MultiProcessingLauncher(_Launcher):
     def is_interactive_compatible(self) -> bool:
         # The start method 'spawn' is not supported in interactive environments
         # The start method 'fork' is the only one supported in Jupyter environments, with constraints around CUDA
-        # initialization. For more context, see https://github.com/Lightning-AI/lightning/issues/7550
+        # initialization. For more context, see https://github.com/Lightning-AI/pytorch-lightning/issues/7550
         return self._start_method == "fork"
 
     @override
@@ -111,7 +111,7 @@ class _MultiProcessingLauncher(_Launcher):
         if self._start_method == "spawn":
             _check_missing_main_guard()
         if self._already_fit and trainer is not None and trainer.state.fn == TrainerFn.FITTING:
-            # resolving https://github.com/Lightning-AI/lightning/issues/18775 will lift this restriction
+            # resolving https://github.com/Lightning-AI/pytorch-lightning/issues/18775 will lift this restriction
             raise NotImplementedError(
                 "Calling `trainer.fit()` twice on the same Trainer instance using a spawn-based strategy is not"
                 " supported. You can work around this limitation by creating a new Trainer instance and passing the"
@@ -224,7 +224,7 @@ class _MultiProcessingLauncher(_Launcher):
 
         return _WorkerOutput(best_model_path, weights_path, trainer.state, results, extra)
 
-    def get_extra_results(self, trainer: "pl.Trainer") -> Dict[str, Any]:
+    def get_extra_results(self, trainer: "pl.Trainer") -> dict[str, Any]:
         """Gather extra state from the Trainer and return it as a dictionary for sending back to the main process. To
         avoid issues with memory sharing, we convert tensors to bytes.
 
@@ -242,7 +242,7 @@ class _MultiProcessingLauncher(_Launcher):
         # send tensors as bytes to avoid issues with memory sharing
         return {"callback_metrics_bytes": buffer.getvalue()}
 
-    def update_main_process_results(self, trainer: "pl.Trainer", extra: Dict[str, Any]) -> None:
+    def update_main_process_results(self, trainer: "pl.Trainer", extra: dict[str, Any]) -> None:
         """Retrieve the :attr:`trainer.callback_metrics` dictionary from the given queue. To preserve consistency, we
         convert bytes back to ``torch.Tensor``.
 
@@ -265,7 +265,7 @@ class _MultiProcessingLauncher(_Launcher):
                 with suppress(ProcessLookupError):
                     os.kill(proc.pid, signum)
 
-    def __getstate__(self) -> Dict:
+    def __getstate__(self) -> dict:
         state = self.__dict__.copy()
         state["procs"] = []  # SpawnProcess can't be pickled
         return state
@@ -276,7 +276,7 @@ class _WorkerOutput(NamedTuple):
     weights_path: Optional[_PATH]
     trainer_state: TrainerState
     trainer_results: Any
-    extra: Dict[str, Any]
+    extra: dict[str, Any]
 
 
 @dataclass
@@ -301,7 +301,7 @@ class _GlobalStateSnapshot:
     use_deterministic_algorithms: bool
     use_deterministic_algorithms_warn_only: bool
     cudnn_benchmark: bool
-    rng_states: Dict[str, Any]
+    rng_states: dict[str, Any]
 
     @classmethod
     def capture(cls) -> "_GlobalStateSnapshot":

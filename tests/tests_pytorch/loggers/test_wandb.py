@@ -13,21 +13,19 @@
 # limitations under the License.
 import os
 import pickle
-from contextlib import nullcontext
 from pathlib import Path
 from unittest import mock
 
 import pytest
 import yaml
-from lightning.fabric.utilities.imports import _TORCH_EQUAL_2_4_0
+from lightning_utilities.test.warning import no_warning_call
+
 from lightning.pytorch import Trainer
 from lightning.pytorch.callbacks import ModelCheckpoint
 from lightning.pytorch.cli import LightningCLI
 from lightning.pytorch.demos.boring_classes import BoringModel
-from lightning.pytorch.loggers import WandbLogger
+from lightning.pytorch.loggers import TensorBoardLogger, WandbLogger
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning_utilities.test.warning import no_warning_call
-
 from tests_pytorch.test_cli import _xfail_python_ge_3_11_9
 
 
@@ -128,11 +126,66 @@ def test_wandb_logger_init(wandb_mock):
     assert logger.version == wandb_mock.init().id
 
 
+def test_wandb_logger_sync_tensorboard(wandb_mock):
+    logger = WandbLogger(sync_tensorboard=True)
+    wandb_mock.run = None
+    logger.experiment
+
+    # test that tensorboard's global_step is set as the default x-axis if sync_tensorboard=True
+    wandb_mock.init.return_value.define_metric.assert_called_once_with("*", step_metric="global_step")
+
+
+def test_wandb_logger_sync_tensorboard_log_metrics(wandb_mock):
+    logger = WandbLogger(sync_tensorboard=True)
+    metrics = {"loss": 1e-3, "accuracy": 0.99}
+    logger.log_metrics(metrics)
+
+    # test that trainer/global_step is not added to the logged metrics if sync_tensorboard=True
+    wandb_mock.run.log.assert_called_once_with(metrics)
+
+
 def test_wandb_logger_init_before_spawn(wandb_mock):
     logger = WandbLogger()
     assert logger._experiment is None
     logger.__getstate__()
     assert logger._experiment is not None
+
+
+def test_wandb_logger_experiment_called_first(wandb_mock, tmp_path):
+    wandb_experiment_called = False
+
+    def tensorboard_experiment_side_effect() -> mock.MagicMock:
+        nonlocal wandb_experiment_called
+        assert wandb_experiment_called
+        return mock.MagicMock()
+
+    def wandb_experiment_side_effect() -> mock.MagicMock:
+        nonlocal wandb_experiment_called
+        wandb_experiment_called = True
+        return mock.MagicMock()
+
+    with (
+        mock.patch.object(
+            TensorBoardLogger,
+            "experiment",
+            new_callable=lambda: mock.PropertyMock(side_effect=tensorboard_experiment_side_effect),
+        ),
+        mock.patch.object(
+            WandbLogger,
+            "experiment",
+            new_callable=lambda: mock.PropertyMock(side_effect=wandb_experiment_side_effect),
+        ),
+    ):
+        model = BoringModel()
+        trainer = Trainer(
+            default_root_dir=tmp_path,
+            log_every_n_steps=1,
+            limit_train_batches=0,
+            limit_val_batches=0,
+            max_steps=1,
+            logger=[TensorBoardLogger(tmp_path), WandbLogger(save_dir=tmp_path)],
+        )
+        trainer.fit(model)
 
 
 def test_wandb_pickle(wandb_mock, tmp_path):
@@ -162,8 +215,7 @@ def test_wandb_pickle(wandb_mock, tmp_path):
     assert trainer.logger.experiment, "missing experiment"
     assert trainer.log_dir == logger.save_dir
     pkl_bytes = pickle.dumps(trainer)
-    with pytest.warns(FutureWarning, match="`weights_only=False`") if _TORCH_EQUAL_2_4_0 else nullcontext():
-        trainer2 = pickle.loads(pkl_bytes)
+    trainer2 = pickle.loads(pkl_bytes)
 
     assert os.environ["WANDB_MODE"] == "dryrun"
     assert trainer2.logger.__class__.__name__ == WandbLogger.__name__
