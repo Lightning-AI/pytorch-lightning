@@ -15,11 +15,11 @@ from collections.abc import Iterable
 
 import pytest
 import torch
+from torch.utils.data import BatchSampler, SequentialSampler
+
 from lightning.fabric.utilities.data import has_len
 from lightning.pytorch import LightningModule, Trainer, seed_everything
 from lightning.pytorch.overrides.distributed import UnrepeatedDistributedSampler, _IndexBatchSamplerWrapper
-from torch.utils.data import BatchSampler, SequentialSampler
-
 from tests_pytorch.helpers.runif import RunIf
 
 

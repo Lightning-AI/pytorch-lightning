@@ -14,6 +14,7 @@
 from typing import Any
 
 import torch
+
 from lightning.pytorch import Trainer
 from lightning.pytorch.accelerators import Accelerator
 from lightning.pytorch.strategies import DDPStrategy

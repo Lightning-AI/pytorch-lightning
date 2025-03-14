@@ -27,6 +27,14 @@ from unittest.mock import ANY
 import pytest
 import torch
 import yaml
+from lightning_utilities import compare_version
+from lightning_utilities.test.warning import no_warning_call
+from packaging.version import Version
+from tensorboard.backend.event_processing import event_accumulator
+from tensorboard.plugins.hparams.plugin_data_pb2 import HParamsPluginData
+from torch.optim import SGD
+from torch.optim.lr_scheduler import ReduceLROnPlateau, StepLR
+
 from lightning.fabric.plugins.environments import SLURMEnvironment
 from lightning.pytorch import Callback, LightningDataModule, LightningModule, Trainer, __version__, seed_everything
 from lightning.pytorch.callbacks import LearningRateMonitor, ModelCheckpoint
@@ -46,14 +54,6 @@ from lightning.pytorch.strategies import DDPStrategy
 from lightning.pytorch.trainer.states import TrainerFn
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.imports import _TORCHVISION_AVAILABLE
-from lightning_utilities import compare_version
-from lightning_utilities.test.warning import no_warning_call
-from packaging.version import Version
-from tensorboard.backend.event_processing import event_accumulator
-from tensorboard.plugins.hparams.plugin_data_pb2 import HParamsPluginData
-from torch.optim import SGD
-from torch.optim.lr_scheduler import ReduceLROnPlateau, StepLR
-
 from tests_pytorch.helpers.runif import RunIf
 
 if _JSONARGPARSE_SIGNATURES_AVAILABLE:
@@ -84,7 +84,7 @@ def mock_subclasses(baseclass, *subclasses):
         yield None
 
 
-@pytest.fixture()
+@pytest.fixture
 def cleandir(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     return
@@ -666,7 +666,7 @@ def test_lightning_cli_optimizer(run):
         def add_arguments_to_parser(self, parser):
             parser.add_optimizer_args(torch.optim.Adam)
 
-    match = "BoringModel.configure_optimizers` will be overridden by " "`MyLightningCLI.configure_optimizers`"
+    match = "BoringModel.configure_optimizers` will be overridden by `MyLightningCLI.configure_optimizers`"
     argv = ["fit", "--trainer.fast_dev_run=1"] if run else []
     with mock.patch("sys.argv", ["any.py"] + argv), pytest.warns(UserWarning, match=match):
         cli = MyLightningCLI(BoringModel, run=run)
@@ -754,6 +754,7 @@ def test_lightning_cli_optimizer_and_lr_scheduler_subclasses(cleandir):
 
 
 @_xfail_python_ge_3_11_9
+@RunIf(min_torch="2.2")
 @pytest.mark.parametrize("use_generic_base_class", [False, True])
 def test_lightning_cli_optimizers_and_lr_scheduler_with_link_to(use_generic_base_class):
     class MyLightningCLI(LightningCLI):
@@ -801,6 +802,7 @@ def test_lightning_cli_optimizers_and_lr_scheduler_with_link_to(use_generic_base
 
 
 @_xfail_python_ge_3_11_9
+@RunIf(min_torch="2.2")
 def test_lightning_cli_optimizers_and_lr_scheduler_with_callable_type():
     class TestModel(BoringModel):
         def __init__(
@@ -971,6 +973,29 @@ def test_lightning_cli_save_hyperparameters_untyped_module(cleandir):
     assert model.learning_rate == 1e-2
     assert model.step_size is None
     assert model.kwargs == {"x": 1}
+
+
+class TestDataSaveHparams(BoringDataModule):
+    def __init__(self, batch_size: int = 32, num_workers: int = 4):
+        super().__init__()
+        self.save_hyperparameters()
+        self.batch_size = batch_size
+        self.num_workers = num_workers
+
+
+def test_lightning_cli_save_hyperparameters_merge(cleandir):
+    config = {
+        "model": {
+            "class_path": f"{__name__}.TestModelSaveHparams",
+        },
+        "data": {
+            "class_path": f"{__name__}.TestDataSaveHparams",
+        },
+    }
+    with mock.patch("sys.argv", ["any.py", "fit", f"--config={json.dumps(config)}", "--trainer.max_epochs=1"]):
+        cli = LightningCLI(auto_configure_optimizers=False)
+    assert set(cli.model.hparams) == {"optimizer", "scheduler", "activation", "_instantiator", "_class_path"}
+    assert set(cli.datamodule.hparams) == {"batch_size", "num_workers", "_instantiator", "_class_path"}
 
 
 @pytest.mark.parametrize("fn", [fn.value for fn in TrainerFn])
@@ -1622,8 +1647,13 @@ def _test_logger_init_args(logger_name, init, unresolved=None):
 def test_comet_logger_init_args():
     _test_logger_init_args(
         "CometLogger",
-        init={"save_dir": "comet"},  # Resolve from CometLogger.__init__
-        unresolved={"workspace": "comet"},  # Resolve from Comet{,Existing,Offline}Experiment.__init__
+        init={
+            "experiment_key": "some_key",  # Resolve from CometLogger.__init__
+            "workspace": "comet",
+        },
+        unresolved={
+            "save_dir": "comet",  # Resolve from CometLogger.__init__ as kwarg
+        },
     )
 
 

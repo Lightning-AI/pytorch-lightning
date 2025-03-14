@@ -22,6 +22,9 @@ from unittest.mock import ANY, Mock, PropertyMock, call
 
 import pytest
 import torch
+from tests_pytorch.helpers.runif import RunIf
+from torch.utils.data.dataloader import DataLoader
+
 from lightning.pytorch import Trainer
 from lightning.pytorch.callbacks import ModelCheckpoint, ProgressBar, TQDMProgressBar
 from lightning.pytorch.callbacks.progress.tqdm_progress import Tqdm
@@ -30,8 +33,6 @@ from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
 from lightning.pytorch.loggers import CSVLogger
 from lightning.pytorch.loggers.logger import DummyLogger
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from tests_pytorch.helpers.runif import RunIf
-from torch.utils.data.dataloader import DataLoader
 
 
 class MockTqdm(Tqdm):

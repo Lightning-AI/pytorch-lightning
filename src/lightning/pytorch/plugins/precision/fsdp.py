@@ -17,6 +17,7 @@ from typing import TYPE_CHECKING, Any, Callable, Optional
 import torch
 from lightning_utilities import apply_to_collection
 from torch import Tensor
+from torch.nn import Module
 from typing_extensions import get_args, override
 
 import lightning.pytorch as pl
@@ -72,6 +73,12 @@ class FSDPPrecision(Precision):
             "32-true": torch.float32,
         }
         self._desired_input_dtype = precision_to_type[self.precision]
+
+    @override
+    def convert_module(self, module: Module) -> Module:
+        if "true" in self.precision:
+            return module.to(dtype=self._desired_input_dtype)
+        return module
 
     @override
     def clip_grad_by_norm(self, *_: Any, **__: Any) -> None:

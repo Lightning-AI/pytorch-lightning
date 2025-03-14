@@ -18,13 +18,13 @@ from unittest.mock import ANY, Mock, call, patch
 
 import pytest
 import torch
+
 from lightning.fabric.plugins import ClusterEnvironment
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.strategies import DDPStrategy
 from lightning.pytorch.strategies.launchers.multiprocessing import _GlobalStateSnapshot, _MultiProcessingLauncher
 from lightning.pytorch.trainer.states import TrainerFn
-
 from tests_pytorch.helpers.runif import RunIf
 
 

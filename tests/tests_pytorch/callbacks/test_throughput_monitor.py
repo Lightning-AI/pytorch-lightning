@@ -3,6 +3,7 @@ from unittest.mock import ANY, Mock, call
 
 import pytest
 import torch
+
 from lightning.fabric.utilities.throughput import measure_flops
 from lightning.pytorch import Trainer
 from lightning.pytorch.callbacks.throughput_monitor import ThroughputMonitor
