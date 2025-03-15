@@ -294,9 +294,9 @@ class _CheckpointConnector:
 
             print(f"Rank {self.trainer.local_rank} downloads model checkpoint '{model_registry}'")
             model_files = download_model(model_registry, download_dir=local_model_dir)
+            print(f"Model checkpoint '{model_registry}' was downloaded to '{local_model_dir}'")
             if not model_files:
                 raise RuntimeError(f"Download model failed - {model_registry}")
-            print(f"Model checkpoint '{model_registry}' was downloaded to '{local_model_dir}'")
 
         # wait for all to catch up
         self.trainer.strategy.barrier("_CheckpointConnector._download_model_registry")
