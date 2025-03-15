@@ -303,6 +303,7 @@ class _CheckpointConnector:
         folder_files = [fn for fn in os.listdir(local_model_dir) if fn.endswith(".ckpt")]
         if not folder_files:
             raise RuntimeError(f"Parsing files from downloaded model failed - {model_registry}")
+        print(f"local RANK {self.trainer.local_rank}: using model files: {folder_files}")
         return os.path.join(local_model_dir, folder_files[0])
 
     def resume_end(self) -> None:
