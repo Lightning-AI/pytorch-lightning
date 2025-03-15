@@ -292,13 +292,9 @@ class _CheckpointConnector:
             except Exception:
                 raise ConnectionError("Unable to authenticate with Lightning Cloud. Check your credentials.")
 
-            print(
-                f"_parse_ckpt_path: local RANK {self.trainer.local_rank} started | folder {local_model_dir} exists {os.path.exists(local_model_dir)}"  # noqa: E501
-            )
             model_files = download_model(model_registry, download_dir=local_model_dir)
             if not model_files:
                 raise RuntimeError(f"Download model failed - {model_registry}")
-            print(f"_parse_ckpt_path: local RANK {self.trainer.local_rank} finished")
 
         # wait for all to catch up
         self.trainer.strategy.barrier("_CheckpointConnector._download_model_registry")
