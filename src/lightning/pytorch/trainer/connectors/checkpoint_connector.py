@@ -292,9 +292,9 @@ class _CheckpointConnector:
             except Exception:
                 raise ConnectionError("Unable to authenticate with Lightning Cloud. Check your credentials.")
 
-            print(f"Rank {self.trainer.local_rank} downloads model checkpoint '{model_registry}'")
+            # print(f"Rank {self.trainer.local_rank} downloads model checkpoint '{model_registry}'")
             model_files = download_model(model_registry, download_dir=local_model_dir)
-            print(f"Model checkpoint '{model_registry}' was downloaded to '{local_model_dir}'")
+            # print(f"Model checkpoint '{model_registry}' was downloaded to '{local_model_dir}'")
             if not model_files:
                 raise RuntimeError(f"Download model failed - {model_registry}")
 
@@ -305,7 +305,7 @@ class _CheckpointConnector:
         folder_files = [fn for fn in os.listdir(local_model_dir) if fn.endswith(".ckpt")]
         if not folder_files:
             raise RuntimeError(f"Parsing files from downloaded model failed - {model_registry}")
-        print(f"local RANK {self.trainer.local_rank}: using model files: {folder_files}")
+        # print(f"local RANK {self.trainer.local_rank}: using model files: {folder_files}")
         return os.path.join(local_model_dir, folder_files[0])
 
     def resume_end(self) -> None:
