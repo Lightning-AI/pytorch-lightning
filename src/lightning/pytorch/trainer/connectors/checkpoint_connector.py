@@ -292,6 +292,7 @@ class _CheckpointConnector:
             except Exception:
                 raise ConnectionError("Unable to authenticate with Lightning Cloud. Check your credentials.")
 
+            print(f"Rank {self.trainer.local_rank} downloads model checkpoint '{model_registry}'")
             model_files = download_model(model_registry, download_dir=local_model_dir)
             if not model_files:
                 raise RuntimeError(f"Download model failed - {model_registry}")
