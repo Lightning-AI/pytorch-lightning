@@ -543,8 +543,7 @@ class Trainer:
         _verify_strategy_supports_compile(model, self.strategy)
         self.state.fn = TrainerFn.FITTING
         self.state.status = TrainerStatus.RUNNING
-        if _is_registry(ckpt_path) and module_available("litmodels"):
-            print(f"downloading model from global {self.global_rank} | local {self.local_rank}")
+        if _is_registry(ckpt_path) and module_available("litmodels") and self.local_rank == 0:
             download_model_from_registry(
                 ckpt_path, default_model_registry=self._model_registry, default_root_dir=self.default_root_dir
             )
