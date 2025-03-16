@@ -562,8 +562,6 @@ class Trainer:
         _verify_strategy_supports_compile(model, self.strategy)
         self.state.fn = TrainerFn.FITTING
         self.state.status = TrainerStatus.RUNNING
-        if _is_registry(ckpt_path) and module_available("litmodels"):
-            download_model_from_registry(ckpt_path, self)
         self.training = True
         self.should_stop = False
         call._call_and_handle_interrupt(
@@ -579,6 +577,9 @@ class Trainer:
         ckpt_path: Optional[_PATH] = None,
     ) -> None:
         log.debug(f"{self.__class__.__name__}: trainer fit stage")
+
+        if _is_registry(ckpt_path) and module_available("litmodels"):
+            download_model_from_registry(ckpt_path, self)
 
         # if a datamodule comes in as the second arg, then fix it for the user
         if isinstance(train_dataloaders, LightningDataModule):
