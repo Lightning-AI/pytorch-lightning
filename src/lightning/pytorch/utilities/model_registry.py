@@ -16,6 +16,8 @@ import re
 
 from lightning_utilities import module_available
 
+import lightning.pytorch as pl
+
 
 def _is_registry(text: str) -> bool:
     """Check if a string equals 'registry' or starts with 'registry:'.
@@ -141,25 +143,23 @@ def find_model_local_ckpt_path(ckpt_path: str, default_model_registry: str, defa
     return os.path.join(local_model_dir, folder_files[0])
 
 
-def download_model_from_registry(ckpt_path: str, default_model_registry: str, default_root_dir: str) -> None:
+def download_model_from_registry(ckpt_path: str, trainer: "pl.Trainer") -> None:
     """Download a model from the Lightning Model Registry."""
-    if not module_available("litmodels"):
-        raise ImportError("The `litmodels` package is not installed. Please install it with `pip install litmodels`.")
+    if trainer.local_rank == 0:
+        if not module_available("litmodels"):
+            raise ImportError(
+                "The `litmodels` package is not installed. Please install it with `pip install litmodels`."
+            )
 
-    from lightning_sdk.lightning_cloud.login import Auth
-    from litmodels import download_model
+        from litmodels import download_model
 
-    try:  # authenticate before anything else starts
-        auth = Auth()
-        auth.authenticate()
-    except Exception:
-        raise ConnectionError("Unable to authenticate with Lightning Cloud. Check your credentials.")
+        model_registry = _determine_model_name(ckpt_path, trainer._model_registry)
+        local_model_dir = _determine_model_folder(model_registry, trainer.default_root_dir)
 
-    model_registry = _determine_model_name(ckpt_path, default_model_registry)
-    local_model_dir = _determine_model_folder(model_registry, default_root_dir)
+        # print(f"Rank {self.trainer.local_rank} downloads model checkpoint '{model_registry}'")
+        model_files = download_model(model_registry, download_dir=local_model_dir)
+        # print(f"Model checkpoint '{model_registry}' was downloaded to '{local_model_dir}'")
+        if not model_files:
+            raise RuntimeError(f"Download model failed - {model_registry}")
 
-    # print(f"Rank {self.trainer.local_rank} downloads model checkpoint '{model_registry}'")
-    model_files = download_model(model_registry, download_dir=local_model_dir)
-    # print(f"Model checkpoint '{model_registry}' was downloaded to '{local_model_dir}'")
-    if not model_files:
-        raise RuntimeError(f"Download model failed - {model_registry}")
+    trainer.strategy.barrier("download_model_from_registry")
