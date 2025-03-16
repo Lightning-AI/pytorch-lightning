@@ -34,69 +34,13 @@ from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.imports import _OMEGACONF_AVAILABLE
 from lightning.pytorch.utilities.migration import pl_legacy_patch
 from lightning.pytorch.utilities.migration.utils import _pl_migrate_checkpoint
+from lightning.pytorch.utilities.model_registry import (
+    _is_registry,
+    find_model_local_ckpt_path,
+)
 from lightning.pytorch.utilities.rank_zero import rank_zero_info, rank_zero_warn
 
 log = logging.getLogger(__name__)
-
-
-def _is_registry(text: str) -> bool:
-    """Check if a string equals 'registry' or starts with 'registry:'.
-
-    Args:
-        text (str): The string to check
-
-    >>> _is_registry("registry")
-    True
-    >>> _is_registry("REGISTRY:model-name")
-    True
-    >>> _is_registry("something_registry")
-    False
-    >>> _is_registry("")
-    False
-
-    """
-    if not isinstance(text, str):
-        return False
-
-    # Pattern matches exactly 'registry' or 'registry:' followed by any characters
-    pattern = r"^registry(:.*|$)"
-    return bool(re.match(pattern, text.lower()))
-
-
-def _parse_registry_model_version(ckpt_path: str) -> tuple[str, str]:
-    """Parse the model version from a registry path.
-
-    Args:
-        ckpt_path (str): The checkpoint path
-
-    Returns:
-        string name and version of the model
-
-    >>> _parse_registry_model_version("registry:model-name:version:1.0")
-    ('model-name', '1.0')
-    >>> _parse_registry_model_version("registry:model-name")
-    ('model-name', '')
-    >>> _parse_registry_model_version("registry:version:v2")
-    ('', 'v2')
-
-    """
-    if not _is_registry(ckpt_path):
-        raise ValueError(f"Invalid registry path: {ckpt_path}")
-
-    # Split the path by ':'
-    parts = ckpt_path.lower().split(":")
-    # Default values
-    model_name, version = "", ""
-
-    # Extract the model name and version based on the parts
-    if len(parts) >= 2 and parts[1] != "version":
-        model_name = parts[1]
-    if len(parts) == 3 and parts[1] == "version":
-        version = parts[2]
-    elif len(parts) == 4 and parts[2] == "version":
-        version = parts[3]
-
-    return model_name, version
 
 
 class _CheckpointConnector:
@@ -260,14 +204,11 @@ class _CheckpointConnector:
             ckpt_path = self._hpc_resume_path
 
         elif _is_registry(ckpt_path) and module_available("litmodels"):
-            # try to find model and version
-            model_name, model_version = _parse_registry_model_version(ckpt_path)
-            # omitted model name try to use the model registry from Trainer
-            if not model_name:
-                model_name = self.trainer._model_registry
-            # if model name is not set download it and use it
-            if model_name:
-                ckpt_path = self._download_model_registry(model_name, model_version)
+            ckpt_path = find_model_local_ckpt_path(
+                ckpt_path,
+                default_model_registry=self.trainer._model_registry,
+                default_root_dir=self.trainer.default_root_dir,
+            )
 
         if not ckpt_path:
             raise ValueError(

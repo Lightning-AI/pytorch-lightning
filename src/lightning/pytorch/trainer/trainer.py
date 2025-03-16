@@ -30,6 +30,7 @@ from typing import Any, Optional, Union
 from weakref import proxy
 
 import torch
+from lightning_utilities import module_available
 from torch.optim import Optimizer
 
 import lightning.pytorch as pl
@@ -70,6 +71,7 @@ from lightning.pytorch.utilities.argparse import _defaults_from_env_vars
 from lightning.pytorch.utilities.compile import _maybe_unwrap_optimized, _verify_strategy_supports_compile
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.model_helpers import is_overridden
+from lightning.pytorch.utilities.model_registry import _is_registry, download_model_from_registry
 from lightning.pytorch.utilities.rank_zero import rank_zero_info, rank_zero_warn
 from lightning.pytorch.utilities.seed import isolate_rng
 from lightning.pytorch.utilities.types import (
@@ -541,6 +543,11 @@ class Trainer:
         _verify_strategy_supports_compile(model, self.strategy)
         self.state.fn = TrainerFn.FITTING
         self.state.status = TrainerStatus.RUNNING
+        if _is_registry(ckpt_path) and module_available("litmodels"):
+            print(f"downloading model from global {self.global_rank} | local {self.local_rank}")
+            download_model_from_registry(
+                ckpt_path, default_model_registry=self._model_registry, default_root_dir=self.default_root_dir
+            )
         self.training = True
         call._call_and_handle_interrupt(
             self, self._fit_impl, model, train_dataloaders, val_dataloaders, datamodule, ckpt_path

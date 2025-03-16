@@ -103,6 +103,10 @@ class _CallbackConnector:
 
                 model_checkpoint = LitModelCheckpoint(model_name=self.trainer._model_registry)
             else:
+                rank_zero_info(
+                    "You are using the plain ModelCheckpoint callback."
+                    " Consider using LitModelCheckpoint which with seamless uploading to Model registry."
+                )
                 model_checkpoint = ModelCheckpoint()
             self.trainer.callbacks.append(model_checkpoint)
 
