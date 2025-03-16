@@ -130,6 +130,7 @@ class Trainer:
         sync_batchnorm: bool = False,
         reload_dataloaders_every_n_epochs: int = 0,
         default_root_dir: Optional[_PATH] = None,
+        enable_autolog_hparams: bool = True,
         model_registry: Optional[str] = None,
     ) -> None:
         r"""Customize every aspect of training via flags.
@@ -292,6 +293,9 @@ class Trainer:
             default_root_dir: Default path for logs and weights when no logger/ckpt_callback passed.
                 Default: ``os.getcwd()``.
                 Can be remote file paths such as `s3://mybucket/path` or 'hdfs://path/'
+
+            enable_autolog_hparams: Whether to log hyperparameters at the start of a run.
+                Default: ``True``.
 
             model_registry: The name of the model being uploaded to Model hub.
 
@@ -504,6 +508,8 @@ class Trainer:
             num_sanity_val_steps,
         )
 
+        self.enable_autolog_hparams = enable_autolog_hparams
+
     def fit(
         self,
         model: "pl.LightningModule",
@@ -546,6 +552,7 @@ class Trainer:
         if _is_registry(ckpt_path) and module_available("litmodels"):
             download_model_from_registry(ckpt_path, self)
         self.training = True
+        self.should_stop = False
         call._call_and_handle_interrupt(
             self, self._fit_impl, model, train_dataloaders, val_dataloaders, datamodule, ckpt_path
         )
@@ -972,7 +979,9 @@ class Trainer:
             call._call_callback_hooks(self, "on_fit_start")
             call._call_lightning_module_hook(self, "on_fit_start")
 
-        _log_hyperparams(self)
+        # only log hparams if enabled
+        if self.enable_autolog_hparams:
+            _log_hyperparams(self)
 
         if self.strategy.restore_checkpoint_after_setup:
             log.debug(f"{self.__class__.__name__}: restoring module and callbacks from checkpoint path: {ckpt_path}")
