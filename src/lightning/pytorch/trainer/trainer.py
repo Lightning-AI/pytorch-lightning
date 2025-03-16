@@ -533,7 +533,20 @@ class Trainer:
                 the :class:`~lightning.pytorch.core.hooks.DataHooks.train_dataloader` hook.
 
             ckpt_path: Path/URL of the checkpoint from which training is resumed. Could also be one of two special
-                keywords ``"last"`` and ``"hpc"``. If there is no checkpoint file at the path, an exception is raised.
+                keywords ``"last"``, ``"hpc"`` and ``"registry"``.
+                Otherwise, if there is no checkpoint file at the path, an exception is raised.
+
+                    - best: the best model checkpoint from the previous ``trainer.fit`` call will be loaded
+                    - last: the last model checkpoint from the previous ``trainer.fit`` call will be loaded
+                    - registry: the model will be downloaded from the Lightning Model Registry with following notations:
+
+                        - ``'registry'``: uses the latest/default version of default model set
+                          with ``Tainer(..., model_registry="my-model")``
+                        - ``'registry:model-name'``: uses the latest/default version of this model `model-name`
+                        - ``'registry:model-name:version:v2'``: uses the specific version 'v2' of the model `model-name`
+                        - ``'registry:version:v2'``: uses the default model set
+                          with ``Tainer(..., model_registry="my-model")`` and version 'v2'
+
 
         Raises:
             TypeError:

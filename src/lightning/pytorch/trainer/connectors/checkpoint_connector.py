@@ -53,8 +53,7 @@ class _CheckpointConnector:
 
     @property
     def _hpc_resume_path(self) -> Optional[str]:
-        dir_path_hpc = self.trainer.default_root_dir
-        dir_path_hpc = str(dir_path_hpc)
+        dir_path_hpc = str(self.trainer.default_root_dir)
         fs, path = url_to_fs(dir_path_hpc)
         if not _is_dir(fs, path):
             return None
