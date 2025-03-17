@@ -216,38 +216,6 @@ class _CheckpointConnector:
             )
         return ckpt_path
 
-    def _download_model_registry(self, model_name: str, model_version: str) -> str:
-        model_registry = model_name
-        model_registry += f":{model_version}" if model_version else ""
-        # download the latest checkpoint from the model registry
-        local_model_dir = os.path.join(self.trainer.default_root_dir, model_registry.replace("/", "_"))
-
-        if self.trainer.local_rank == 0:
-            from lightning_sdk.lightning_cloud.login import Auth
-            from litmodels import download_model
-
-            try:  # authenticate before anything else starts
-                auth = Auth()
-                auth.authenticate()
-            except Exception:
-                raise ConnectionError("Unable to authenticate with Lightning Cloud. Check your credentials.")
-
-            # print(f"Rank {self.trainer.local_rank} downloads model checkpoint '{model_registry}'")
-            model_files = download_model(model_registry, download_dir=local_model_dir)
-            # print(f"Model checkpoint '{model_registry}' was downloaded to '{local_model_dir}'")
-            if not model_files:
-                raise RuntimeError(f"Download model failed - {model_registry}")
-
-        # wait for all to catch up
-        self.trainer.strategy.barrier("_CheckpointConnector._download_model_registry")
-
-        # todo: resolve if there are multiple checkpoints
-        folder_files = [fn for fn in os.listdir(local_model_dir) if fn.endswith(".ckpt")]
-        if not folder_files:
-            raise RuntimeError(f"Parsing files from downloaded model failed - {model_registry}")
-        # print(f"local RANK {self.trainer.local_rank}: using model files: {folder_files}")
-        return os.path.join(local_model_dir, folder_files[0])
-
     def resume_end(self) -> None:
         """Signal the connector that all states have resumed and memory for the checkpoint object can be released."""
         assert self.trainer.state.fn is not None
