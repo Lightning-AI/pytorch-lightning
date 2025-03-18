@@ -95,7 +95,7 @@ class _CallbackConnector:
         elif enable_checkpointing:
             if module_available("litmodels") and self.trainer._model_registry:
                 trainer_source = inspect.getmodule(self.trainer)
-                if trainer_source is None:
+                if trainer_source is None or not isinstance(trainer_source.__package__, str):
                     raise RuntimeError("Unable to determine the source of the trainer.")
                 # this need to imported based on the actual package lightning/pytorch_lightning
                 if "pytorch_lightning" in trainer_source.__package__:
