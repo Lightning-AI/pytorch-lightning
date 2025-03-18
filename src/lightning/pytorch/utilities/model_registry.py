@@ -67,11 +67,11 @@ def _parse_registry_model_version(ckpt_path: Optional[_PATH]) -> tuple[str, str]
     ('', 'v2')
 
     """
-    if not _is_registry(ckpt_path):
+    if not ckpt_path or not _is_registry(ckpt_path):
         raise ValueError(f"Invalid registry path: {ckpt_path}")
 
     # Split the path by ':'
-    parts = ckpt_path.lower().split(":")
+    parts = str(ckpt_path).lower().split(":")
     # Default values
     model_name, version = "", ""
 
@@ -156,7 +156,7 @@ def find_model_local_ckpt_path(
     return os.path.join(local_model_dir, folder_files[0])
 
 
-def download_model_from_registry(ckpt_path: str, trainer: "pl.Trainer") -> None:
+def download_model_from_registry(ckpt_path: Optional[_PATH], trainer: "pl.Trainer") -> None:
     """Download a model from the Lightning Model Registry."""
     if trainer.local_rank == 0:
         if not module_available("litmodels"):
