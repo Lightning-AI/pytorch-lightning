@@ -117,7 +117,7 @@ def _determine_model_folder(model_name: str, default_root_dir: str) -> str:
     Returns:
         string path to the local model folder
 
-    >>> _determine_model_folder("registry:model-name", "/path/to/root")
+    >>> _determine_model_folder("model-name", "/path/to/root")
     '/path/to/root/model-name'
     >>> _determine_model_folder("model-name:1.0", "/path/to/root")
     '/path/to/root/model-name_1.0'
