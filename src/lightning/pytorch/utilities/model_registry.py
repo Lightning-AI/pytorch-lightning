@@ -13,18 +13,20 @@
 # limitations under the License.
 import os
 import re
+from typing import Optional
 
 from lightning_utilities import module_available
 
 import lightning.pytorch as pl
 from lightning.fabric.utilities.imports import _IS_WINDOWS
+from lightning.fabric.utilities.types import _PATH
 
 # skip these test on Windows as the path notation differ
 if _IS_WINDOWS:
     __doctest_skip__ = ["_determine_model_folder"]
 
 
-def _is_registry(text: str) -> bool:
+def _is_registry(text: Optional[_PATH]) -> bool:
     """Check if a string equals 'registry' or starts with 'registry:'.
 
     Args:
@@ -48,7 +50,7 @@ def _is_registry(text: str) -> bool:
     return bool(re.match(pattern, text.lower()))
 
 
-def _parse_registry_model_version(ckpt_path: str) -> tuple[str, str]:
+def _parse_registry_model_version(ckpt_path: Optional[_PATH]) -> tuple[str, str]:
     """Parse the model version from a registry path.
 
     Args:
@@ -84,7 +86,7 @@ def _parse_registry_model_version(ckpt_path: str) -> tuple[str, str]:
     return model_name, version
 
 
-def _determine_model_name(ckpt_path: str, default_model_registry: str) -> str:
+def _determine_model_name(ckpt_path: Optional[_PATH], default_model_registry: Optional[str]) -> str:
     """Determine the model name from the checkpoint path.
 
     Args:
@@ -105,8 +107,10 @@ def _determine_model_name(ckpt_path: str, default_model_registry: str) -> str:
     # try to find model and version
     model_name, model_version = _parse_registry_model_version(ckpt_path)
     # omitted model name try to use the model registry from Trainer
-    if not model_name:
+    if not model_name and default_model_registry:
         model_name = default_model_registry
+    if not model_name:
+        raise ValueError(f"Invalid model registry: '{ckpt_path}'")
     model_registry = model_name
     model_registry += f":{model_version}" if model_version else ""
     return model_registry
@@ -137,7 +141,9 @@ def _determine_model_folder(model_name: str, default_root_dir: str) -> str:
     return local_model_dir
 
 
-def find_model_local_ckpt_path(ckpt_path: str, default_model_registry: str, default_root_dir: str) -> str:
+def find_model_local_ckpt_path(
+    ckpt_path: Optional[_PATH], default_model_registry: Optional[str], default_root_dir: str
+) -> str:
     """Find the local checkpoint path for a model."""
     model_registry = _determine_model_name(ckpt_path, default_model_registry)
     local_model_dir = _determine_model_folder(model_registry, default_root_dir)
