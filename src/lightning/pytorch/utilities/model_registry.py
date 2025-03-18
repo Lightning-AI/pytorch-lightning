@@ -126,7 +126,9 @@ def _determine_model_folder(model_name: str, default_root_dir: str) -> str:
     if not model_name:
         raise ValueError(f"Invalid model registry: '{model_name}'")
     # download the latest checkpoint from the model registry
-    local_model_dir = os.path.join(default_root_dir, model_name.replace("/", "_"))
+    model_name = model_name.replace("/", "_")
+    model_name = model_name.replace(":", "_")
+    local_model_dir = os.path.join(default_root_dir, model_name)
     return local_model_dir
 
 
