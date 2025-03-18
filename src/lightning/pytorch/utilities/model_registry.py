@@ -17,6 +17,11 @@ import re
 from lightning_utilities import module_available
 
 import lightning.pytorch as pl
+from lightning.fabric.utilities.imports import _IS_WINDOWS
+
+# skip these test on Windows as the path notation differ
+if _IS_WINDOWS:
+    __doctest_skip__ = ["_determine_model_folder"]
 
 
 def _is_registry(text: str) -> bool:
