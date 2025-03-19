@@ -68,9 +68,9 @@ jobs:
           - { os: "ubuntu-22.04", pkg-name: "fabric", python-version: "3.10", pytorch-version: "2.5" }
           - { os: "windows-2022", pkg-name: "fabric", python-version: "3.10", pytorch-version: "2.5" }
           # adding recently cut Torch 2.7 - FUTURE
-          #  - { os: "macOS-14", pkg-name: "fabric", python-version: "3.12", pytorch-version: "2.7" }
-          #  - { os: "ubuntu-22.04", pkg-name: "fabric", python-version: "3.12", pytorch-version: "2.7" }
-          #  - { os: "windows-2022", pkg-name: "fabric", python-version: "3.12", pytorch-version: "2.7" }
+          - { os: "macOS-14", pkg-name: "fabric", python-version: "3.12", pytorch-version: "2.7" }
+          - { os: "ubuntu-22.04", pkg-name: "fabric", python-version: "3.12", pytorch-version: "2.7" }
+          - { os: "windows-2022", pkg-name: "fabric", python-version: "3.12", pytorch-version: "2.7" }
     timeout-minutes: 25 # because of building grpcio on Mac
     env:
       PACKAGE_NAME: ${{ matrix.pkg-name }}
