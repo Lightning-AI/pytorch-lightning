@@ -180,7 +180,7 @@ class MLFlowLogger(Logger):
 
         if self._experiment_id is None:
             expt = self._mlflow_client.get_experiment_by_name(self._experiment_name)
-            if expt is not None:
+            if expt is not None and expt.lifecycle_stage != "deleted":
                 self._experiment_id = expt.experiment_id
             else:
                 log.warning(f"Experiment with name {self._experiment_name} not found. Creating it.")
@@ -369,7 +369,7 @@ class MLFlowLogger(Logger):
             self.experiment.log_artifact(self._run_id, p, artifact_path)
 
             # Create a temporary directory to log on mlflow
-            with tempfile.TemporaryDirectory(prefix="test", suffix="test", dir=os.getcwd()) as tmp_dir:
+            with tempfile.TemporaryDirectory() as tmp_dir:
                 # Log the metadata
                 with open(f"{tmp_dir}/metadata.yaml", "w") as tmp_file_metadata:
                     yaml.dump(metadata, tmp_file_metadata, default_flow_style=False)
