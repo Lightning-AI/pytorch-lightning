@@ -63,7 +63,7 @@ def _parse_registry_model_version(ckpt_path: Optional[_PATH]) -> tuple[str, str]
     ('model-name', '1.0')
     >>> _parse_registry_model_version("registry:model-name")
     ('model-name', '')
-    >>> _parse_registry_model_version("registry:version:v2")
+    >>> _parse_registry_model_version("registry:VERSION:v2")
     ('', 'v2')
 
     """
@@ -71,16 +71,16 @@ def _parse_registry_model_version(ckpt_path: Optional[_PATH]) -> tuple[str, str]
         raise ValueError(f"Invalid registry path: {ckpt_path}")
 
     # Split the path by ':'
-    parts = str(ckpt_path).lower().split(":")
+    parts = str(ckpt_path).split(":")
     # Default values
     model_name, version = "", ""
 
     # Extract the model name and version based on the parts
-    if len(parts) >= 2 and parts[1] != "version":
+    if len(parts) >= 2 and parts[1].lower() != "version":
         model_name = parts[1]
-    if len(parts) == 3 and parts[1] == "version":
+    if len(parts) == 3 and parts[1].lower() == "version":
         version = parts[2]
-    elif len(parts) == 4 and parts[2] == "version":
+    elif len(parts) == 4 and parts[2].lower() == "version":
         version = parts[3]
 
     return model_name, version
