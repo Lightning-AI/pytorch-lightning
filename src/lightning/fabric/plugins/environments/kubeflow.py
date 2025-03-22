@@ -28,7 +28,7 @@ class KubeflowEnvironment(ClusterEnvironment):
     This environment, unlike others, does not get auto-detected and needs to be passed to the Fabric/Trainer
     constructor manually.
 
-    .. _PyTorchJob: https://www.kubeflow.org/docs/components/training/pytorch/
+    .. _PyTorchJob: https://www.kubeflow.org/docs/components/trainer/legacy-v1/user-guides/pytorch/
     .. _Kubeflow: https://www.kubeflow.org
 
     """

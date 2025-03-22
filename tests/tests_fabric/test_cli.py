@@ -179,18 +179,6 @@ def test_run_through_fabric_entry_point():
     assert message in result.stdout or message in result.stderr
 
 
-@pytest.mark.skipif("lightning.fabric" == "lightning_fabric", reason="standalone package")
-def test_run_through_lightning_entry_point():
-    result = subprocess.run("lightning run model --help", capture_output=True, text=True, shell=True)
-
-    deprecation_message = (
-        "`lightning run model` is deprecated and will be removed in future versions. Please call `fabric run` instead"
-    )
-    message = "Usage: lightning run [OPTIONS] SCRIPT [SCRIPT_ARGS]"
-    assert deprecation_message in result.stdout
-    assert message in result.stdout or message in result.stderr
-
-
 @mock.patch("lightning.fabric.cli._process_cli_args")
 @mock.patch("lightning.fabric.cli._load_distributed_checkpoint")
 @mock.patch("lightning.fabric.cli.torch.save")

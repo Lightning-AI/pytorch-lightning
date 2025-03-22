@@ -53,7 +53,7 @@ docs-fabric: clean sphinx-theme
 	cd docs/source-fabric && $(MAKE) html --jobs $(nproc)
 
 docs-pytorch: clean sphinx-theme
-	pip install -e .[all] --quiet -r requirements/pytorch/docs.txt -r _notebooks/.actions/requires.txt
+	pip install -e .[all] --quiet -r requirements/pytorch/docs.txt
 	cd docs/source-pytorch && $(MAKE) html --jobs $(nproc)
 
 update:
