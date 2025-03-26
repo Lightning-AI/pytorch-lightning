@@ -198,8 +198,9 @@ def main(requirements_path: str, torch_version: Optional[str] = None) -> None:
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
     try:
-        from fire import Fire
+        from jsonargparse import auto_cli, set_parsing_settings
 
-        Fire(main)
+        set_parsing_settings(parse_optionals_as_positionals=True)
+        auto_cli(main)
     except (ModuleNotFoundError, ImportError):
         main(*sys.argv[1:])

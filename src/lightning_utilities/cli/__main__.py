@@ -11,17 +11,24 @@ from lightning_utilities.cli.dependencies import (
 )
 
 
+def _get_version() -> None:
+    """Prints the version of the lightning_utilities package."""
+    print(lightning_utilities.__version__)
+
+
 def main() -> None:
     """CLI entry point."""
-    from fire import Fire  # type: ignore[import-untyped]
+    from jsonargparse import auto_cli, set_parsing_settings
 
-    Fire({
+    set_parsing_settings(parse_optionals_as_positionals=True)
+    auto_cli({
         "requirements": {
+            "_help": "Manage requirements files.",
             "prune-pkgs": prune_packages_in_requirements,
             "set-oldest": replace_oldest_version,
             "replace-pkg": replace_package_in_requirements,
         },
-        "version": lambda: print(lightning_utilities.__version__),
+        "version": _get_version,
     })
 
 

@@ -1,1 +1,1 @@
-fire
+jsonargparse[signatures] >=4.38.0

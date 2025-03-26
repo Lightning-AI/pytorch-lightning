@@ -12,6 +12,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CI: fix using schema action ([#376](https://github.com/Lightning-AI/utilities/pull/376))
 
 
+## [Unreleased] - YYYY-MM-DD
+
+### Added
+
+-
+
+
+### Changed
+
+- CLI: switch from `fire` to `jsonargparse` ([#371](https://github.com/Lightning-AI/utilities/pull/371))
+
+
+### Fixed
+
+-
+
+
 ## [0.14.1] - 2025-03-14
 
 ### Fixed

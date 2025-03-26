@@ -21,15 +21,6 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - name: install assitant's deps
-      run: pip install fire requests packaging
-      shell: bash
-
-    - name: Set min. dependencies
-      if: inputs.requires == 'oldest'
-      run: python .github/assistant.py set-oldest-versions
-      shell: bash
-
     - name: Determine caches
       id: cache_dirs
       run: echo "pip_dir=$(pip cache dir)" >> $GITHUB_OUTPUT
