@@ -124,7 +124,7 @@ Configure the logger and pass it to the :class:`~lightning.pytorch.trainer.train
     )
     trainer = Trainer(logger=neptune_scale_logger)
 
-Access the neptune scale logger from any function (except the LightningModule *init*) to use its API for tracking advanced artifacts
+Access the Neptune Scale logger from any function (except the LightningModule *init*) to use its API for tracking advanced artifacts
 
 .. code-block:: python
 

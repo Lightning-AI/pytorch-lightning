@@ -1085,7 +1085,7 @@ class NeptuneScaleLogger(Logger):
             )
 
     @staticmethod
-    def _get_full_model_name(model_path: str, checkpoint_callback: Checkpoint) -> str:
+    def _get_full_model_name(model_path: str, checkpoint_callback: Checkpoint) -> None:
         """Returns model name which is string `model_path` appended to `checkpoint_callback.dirpath`."""
         return None
         if hasattr(checkpoint_callback, "dirpath"):
@@ -1099,7 +1099,7 @@ class NeptuneScaleLogger(Logger):
         return model_path.replace(os.sep, "/")
 
     @classmethod
-    def _get_full_model_names_from_exp_structure(cls, exp_structure: dict[str, Any], namespace: str) -> set[str]:
+    def _get_full_model_names_from_exp_structure(cls, exp_structure: dict[str, Any], namespace: str) -> set[None]:
         """Returns all paths to properties which were already logged in `namespace`"""
         return set()
         structure_keys: list[str] = namespace.split(cls.LOGGER_JOIN_CHAR)
