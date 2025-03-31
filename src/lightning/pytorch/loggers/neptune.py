@@ -980,7 +980,7 @@ class NeptuneScaleLogger(Logger):
 
     @override
     @rank_zero_only
-    def log_metrics(self, metrics: dict[str, Union[Tensor, float]], step: int) -> None:
+    def log_metrics(self, metrics: dict[str, Union[Tensor, float]], step: Optional[int] = None) -> None:
         """Log metrics (numeric values) in Neptune runs.
 
         Args:
@@ -1025,88 +1025,25 @@ class NeptuneScaleLogger(Logger):
 
     @rank_zero_only
     def log_model_summary(self, model: "pl.LightningModule", max_depth: int = -1) -> None:
+        """Not implemented for Neptune Scale."""
         log.warning("Neptune Scale does not support logging model summaries.")
         return
-        from neptune.types import File
-
-        model_str = str(ModelSummary(model=model, max_depth=max_depth))
-        self.run[self._construct_path_with_prefix("model/summary")] = File.from_content(
-            content=model_str, extension="txt"
-        )
 
     @override
     @rank_zero_only
     def after_save_checkpoint(self, checkpoint_callback: Checkpoint) -> None:
-        """Automatically log checkpointed model. Called after model checkpoint callback saves a new checkpoint.
-
-        Args:
-            checkpoint_callback: the model checkpoint callback instance
-
-        """
-        if not self._log_model_checkpoints:
-            return
-
-        file_names = set()
-        checkpoints_namespace = self._construct_path_with_prefix("model/checkpoints")
-
-        # save last model
-        if hasattr(checkpoint_callback, "last_model_path") and checkpoint_callback.last_model_path:
-            model_last_name = self._get_full_model_name(checkpoint_callback.last_model_path, checkpoint_callback)
-            file_names.add(model_last_name)
-            self.run[f"{checkpoints_namespace}/{model_last_name}"].upload(checkpoint_callback.last_model_path)
-
-        # save best k models
-        if hasattr(checkpoint_callback, "best_k_models"):
-            for key in checkpoint_callback.best_k_models:
-                model_name = self._get_full_model_name(key, checkpoint_callback)
-                file_names.add(model_name)
-                self.run[f"{checkpoints_namespace}/{model_name}"].upload(key)
-
-        # log best model path and checkpoint
-        if hasattr(checkpoint_callback, "best_model_path") and checkpoint_callback.best_model_path:
-            self.run[self._construct_path_with_prefix("model/best_model_path")] = checkpoint_callback.best_model_path
-
-            model_name = self._get_full_model_name(checkpoint_callback.best_model_path, checkpoint_callback)
-            file_names.add(model_name)
-            self.run[f"{checkpoints_namespace}/{model_name}"].upload(checkpoint_callback.best_model_path)
-
-        # remove old models logged to experiment if they are not part of best k models at this point
-        if self.run.exists(checkpoints_namespace):
-            exp_structure = self.run.get_structure()
-            uploaded_model_names = self._get_full_model_names_from_exp_structure(exp_structure, checkpoints_namespace)
-
-            for file_to_drop in list(uploaded_model_names - file_names):
-                del self.run[f"{checkpoints_namespace}/{file_to_drop}"]
-
-        # log best model score
-        if hasattr(checkpoint_callback, "best_model_score") and checkpoint_callback.best_model_score:
-            self.run[self._construct_path_with_prefix("model/best_model_score")] = (
-                checkpoint_callback.best_model_score.cpu().detach().numpy()
-            )
+        """Not implemented for Neptune Scale."""
+        return
 
     @staticmethod
     def _get_full_model_name(model_path: str, checkpoint_callback: Checkpoint) -> None:
         """Returns model name which is string `model_path` appended to `checkpoint_callback.dirpath`."""
-        return None
-        if hasattr(checkpoint_callback, "dirpath"):
-            model_path = os.path.normpath(model_path)
-            expected_model_path = os.path.normpath(checkpoint_callback.dirpath)
-            if not model_path.startswith(expected_model_path):
-                raise ValueError(f"{model_path} was expected to start with {expected_model_path}.")
-            # Remove extension from filepath
-            filepath, _ = os.path.splitext(model_path[len(expected_model_path) + 1 :])
-            return filepath.replace(os.sep, "/")
-        return model_path.replace(os.sep, "/")
+        return
 
     @classmethod
     def _get_full_model_names_from_exp_structure(cls, exp_structure: dict[str, Any], namespace: str) -> set[None]:
         """Returns all paths to properties which were already logged in `namespace`"""
         return set()
-        structure_keys: list[str] = namespace.split(cls.LOGGER_JOIN_CHAR)
-        for key in structure_keys:
-            exp_structure = exp_structure[key]
-        uploaded_models_dict = exp_structure
-        return set(cls._dict_paths(uploaded_models_dict))
 
     @classmethod
     def _dict_paths(cls, d: dict[str, Any], path_in_build: Optional[str] = None) -> Generator:
