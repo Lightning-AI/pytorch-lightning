@@ -29,6 +29,15 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [unreleased] - 2025-03-31
+
+### Added
+
+- Add support for Neptune Scale logger ([#20686](https://github.com/Lightning-AI/pytorch-lightning/pull/20686))
+
+
+---
+
 ## [2.5.1] - 2025-03-18
 
 ### Changed
