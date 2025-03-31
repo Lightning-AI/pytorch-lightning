@@ -279,6 +279,9 @@ trainer = Trainer(logger=loggers.MLFlowLogger())
 # neptune
 trainer = Trainer(logger=loggers.NeptuneLogger())
 
+# neptune scale
+trainer = Trainer(logger=loggers.NeptuneScaleLogger())
+
 # ... and dozens more
 ```
 
