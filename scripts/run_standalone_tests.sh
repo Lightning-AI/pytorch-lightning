@@ -19,14 +19,14 @@
 # It can be set through the env variable NUM_PARALLEL_TESTS and defaults to 5 if not set
 test_batch_size="${NUM_PARALLEL_TESTS:-5}"
 
-# Source directory for coverage runs can be set with CODECOV_SOURCE and defaults to lightning.
-codecov_source="${COVERAGE_SOURCE:-"lightning"}"
+# Source directory for coverage runs can be set with CODECOV_SOURCE.
+codecov_source="${COVERAGE_SOURCE}"
 
 # The test directory is passed as the first argument to the script
 test_dir=$1 # parse the first argument
 
 # There is also timeout for the tests.
-# It can be set through the env variable TEST_TIMEOUT and defaults to 1200 seconds if not set 1200 seconds
+# It can be set through the env variable TEST_TIMEOUT and defaults to 1200 seconds.
 test_timeout="${TEST_TIMEOUT:-1200}"
 
 # Temporary file to store the collected tests
@@ -34,8 +34,21 @@ COLLECTED_TESTS_FILE="collected_tests.txt"
 
 ls -lh .  # show the contents of the directory
 
-# Python arguments for running the tests and coverage
-defaults=" -m coverage run --source ${codecov_source} --append -m pytest --no-header -v -s --color=yes --timeout=${test_timeout} --durations=0 "
+# Clean up the coverage file if it exists
+if [ -n "$codecov_source" ]; then
+  rm -f .coverage
+fi
+
+# Check if the coverage source is empty.
+defaults=""
+# If codecov_source is set, prepend the coverage command
+if [ -n "$codecov_source" ]; then
+  defaults=" -m coverage run --source ${codecov_source} --append "
+fi
+# Append the common pytest arguments
+defaults="${defaults}  -m pytest --no-header -v -s --color=yes --timeout=${test_timeout} --durations=0 "
+
+# Python arguments for running the tests and optional coverage
 printf "\e[35mUsing defaults: ${defaults}\e[0m\n"
 
 # Get the list of parametrizations. we need to call them separately. the last two lines are removed.
@@ -79,8 +92,9 @@ elif [ $test_count -eq 0 ]; then
   exit 1
 fi
 
-# clear all the collected reports
-rm -f parallel_test_output-*.txt  # in case it exists, remove it
+if [ -n "$codecov_source" ]; then
+  coverage combine
+fi
 
 status=0 # aggregated script status
 report=() # final report

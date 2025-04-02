@@ -5,12 +5,6 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.14.2] - 2025-03-20
-
-### Fixed
-
-- CI: fix using schema action ([#376](https://github.com/Lightning-AI/utilities/pull/376))
-
 
 ## [Unreleased] - YYYY-MM-DD
 
@@ -24,9 +18,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CLI: switch from `fire` to `jsonargparse` ([#371](https://github.com/Lightning-AI/utilities/pull/371))
 
 
+- script: update usage of coverage in standalone ([#383](https://github.com/Lightning-AI/utilities/pull/383))
+
+
 ### Fixed
 
 -
+
+
+---
+
+## [0.14.2] - 2025-03-20
+
+### Fixed
+
+- CI: fix using schema action ([#376](https://github.com/Lightning-AI/utilities/pull/376))
 
 
 ## [0.14.1] - 2025-03-14
