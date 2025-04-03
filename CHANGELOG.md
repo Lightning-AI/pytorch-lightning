@@ -23,7 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
--
+- CI: fix parsing Azure schema ([#384](https://github.com/Lightning-AI/utilities/pull/384))
 
 
 ---

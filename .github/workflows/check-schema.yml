@@ -90,5 +90,5 @@ jobs:
           files=$(find ${{ inputs.azure-dir }} -name '*.yml' -or -name '*.yaml')
           for f in $files; do
             echo $f;
-            check-jsonschema -v $f --schemafile "$SCHEMA_FILE";
+            check-jsonschema -v $f --schemafile "$SCHEMA_FILE" --regex-variant="nonunicode";
           done
