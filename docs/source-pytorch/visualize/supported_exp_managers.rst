@@ -101,6 +101,43 @@ Here's the full documentation for the :class:`~lightning.pytorch.loggers.Neptune
 
 ----
 
+Neptune Scale
+==========
+To use `Neptune Scale <https://docs-beta.neptune.ai/>`_ first install the neptune-scale package:
+
+.. code-block:: bash
+
+    pip install neptune-scale
+
+
+Configure the logger and pass it to the :class:`~lightning.pytorch.trainer.trainer.Trainer`:
+
+.. testcode::
+    :skipif: not _NEPTUNE_SCALE_AVAILABLE
+
+    from neptune_scale import Run
+    from lightning.pytorch.loggers import NeptuneScaleLogger
+
+    neptune_scale_logger = NeptuneScaleLogger(
+        api_key=<YOUR_NEPTUNE_SCALE_API_KEY>,  # replace with your own
+        project="common/pytorch-lightning-integration",  # format "<WORKSPACE/PROJECT>"
+    )
+    trainer = Trainer(logger=neptune_scale_logger)
+
+Access the Neptune Scale logger from any function (except the LightningModule *init*) to use its API for tracking advanced artifacts
+
+.. code-block:: python
+
+    class LitModel(LightningModule):
+        def any_lightning_module_function_or_hook(self):
+            neptune_scale_logger = self.logger.experiment
+            neptune_scale_logger.log_metrics(data={"path/to/metadata": metadata}, step=step)
+            neptune_scale_logger.log_configs(data={"path/to/config": config})
+
+Here's the full documentation for the :class:`~lightning.pytorch.loggers.NeptuneScaleLogger`.
+
+----
+
 Tensorboard
 ===========
 `TensorBoard <https://pytorch.org/docs/stable/tensorboard.html>`_ can be installed with:
