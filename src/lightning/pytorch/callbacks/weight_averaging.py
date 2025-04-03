@@ -304,7 +304,10 @@ class WeightAveraging(Callback):
             average_model_state = {"module." + name: value for name, value in checkpoint["state_dict"].items()}
             average_model_state |= checkpoint["averaging_state"]
             self._average_model.load_state_dict(average_model_state)
-            checkpoint["state_dict"] = checkpoint["current_model_state"]
+            # The current model state has already been loaded from "state_dict" (which contains the average model
+            # weights) at this point, so overwriting "state_dict" in the checkpoint dictionary makes no difference. We
+            # have to reload the model state from "current_model_state".
+            pl_module.load_state_dict(checkpoint["current_model_state"])
         else:
             rank_zero_warn(
                 "The checkpoint was not created with WeightAveraging. Both the current and the average model will be "

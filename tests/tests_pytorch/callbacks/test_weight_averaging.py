@@ -235,7 +235,7 @@ def test_ema_resume(tmp_path, crash_on_epoch):
     model2 = _train_and_resume(model2, dataset, tmp_path)
 
     for param1, param2 in zip(model1.parameters(), model2.parameters()):
-        assert torch.allclose(param1, param2, atol=0.001)
+        assert torch.allclose(param1, param2)
 
 
 @RunIf(skip_windows=True)
