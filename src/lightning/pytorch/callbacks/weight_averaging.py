@@ -52,6 +52,9 @@ class WeightAveraging(Callback):
     During validation and after the training finishes, the current model parameters will be replaced with the averaged
     values.
 
+    See also the documentation on the :ref:`weight averaging callbacks <advanced/training_tricks:Weight Averaging>`
+    provided by Lightning.
+
     Example::
 
         from lightning.pytorch.callbacks import WeightAveraging
