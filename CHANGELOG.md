@@ -18,15 +18,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CLI: switch from `fire` to `jsonargparse` ([#371](https://github.com/Lightning-AI/utilities/pull/371))
 
 
-- script: update usage of coverage in standalone ([#383](https://github.com/Lightning-AI/utilities/pull/383))
+### Fixed
 
+-
+
+
+---
+
+
+## [0.14.3] - 2025-04-03
+
+### Changed
+
+- script: update usage of coverage in standalone ([#383](https://github.com/Lightning-AI/utilities/pull/383))
 
 ### Fixed
 
 - CI: fix parsing Azure schema ([#384](https://github.com/Lightning-AI/utilities/pull/384))
 
-
----
 
 ## [0.14.2] - 2025-03-20
 
