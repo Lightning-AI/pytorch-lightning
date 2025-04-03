@@ -190,7 +190,6 @@ class WeightAveraging(Callback):
 
         """
         assert self._average_model is not None
-        rank_zero_info("Loading the average model parameters to the final model.")
         self._copy_average_to_current(pl_module)
 
     @override
@@ -205,7 +204,6 @@ class WeightAveraging(Callback):
 
         """
         if self._average_model is not None:
-            rank_zero_info("Loading the average model parameters for validation.")
             self._swap_models(pl_module)
 
     @override
@@ -220,7 +218,6 @@ class WeightAveraging(Callback):
 
         """
         if self._average_model is not None:
-            rank_zero_info("Recovering the current model parameters after validation.")
             self._swap_models(pl_module)
 
     @override
@@ -270,7 +267,6 @@ class WeightAveraging(Callback):
                 "average model parameters will be saved to the state_dict in the checkpoint."
             )
         else:
-            rank_zero_info("The average model parameters will be saved to the state_dict in the checkpoint.")
             average_model_state = self._average_model.state_dict()
             checkpoint["current_model_state"] = checkpoint["state_dict"]
             checkpoint["state_dict"] = {
