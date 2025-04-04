@@ -196,7 +196,8 @@ jobs:
         run: |
           echo $GITHUB_RUN_ID
           python -m coverage run --source ${{ env.COVERAGE_SCOPE }} \
-            -m pytest . -v --timeout=60 --durations=50 --random-order-seed=$GITHUB_RUN_ID
+            -m pytest . -v --timeout=60 --durations=50 --random-order-seed=$GITHUB_RUN_ID \
+            --junitxml=junit.xml -o junit_family=legacy  # NOTE: for Codecov's test results
 
       - name: Statistics
         if: success()
@@ -204,6 +205,12 @@ jobs:
         run: |
           coverage report
           coverage xml
+
+      - name: Upload test results to Codecov
+        if: ${{ !cancelled() }}  # Run even if tests fail
+        uses: codecov/test-results-action@v1
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
