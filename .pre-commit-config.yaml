@@ -51,14 +51,14 @@ repos:
       - id: detect-private-key
 
   - repo: https://github.com/codespell-project/codespell
-    rev: v2.3.0
+    rev: v2.4.1
     hooks:
       - id: codespell
         additional_dependencies: [tomli]
         #args: ["--write-changes"] # uncomment if you want to get automatic fixing
 
   - repo: https://github.com/PyCQA/docformatter
-    rev: 06907d0267368b49b9180eed423fae5697c1e909 # todo: fix for docformatter after last 1.7.5
+    rev: v1.7.5 # todo: fix for docformatter after last 1.7.5
     hooks:
       - id: docformatter
         additional_dependencies: [tomli]
@@ -70,7 +70,7 @@ repos:
       - id: sphinx-lint
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.8.6
+    rev: v0.11.4
     hooks:
       # try to fix what is possible
       - id: ruff
@@ -81,7 +81,7 @@ repos:
       - id: ruff
 
   - repo: https://github.com/executablebooks/mdformat
-    rev: 0.7.21
+    rev: 0.7.22
     hooks:
       - id: mdformat
         additional_dependencies:
@@ -96,7 +96,7 @@ repos:
           )$
 
   - repo: https://github.com/pre-commit/mirrors-prettier
-    rev: v3.1.0
+    rev: v4.0.0-alpha.8
     hooks:
       - id: prettier
         # https://prettier.io/docs/en/options.html#print-width
