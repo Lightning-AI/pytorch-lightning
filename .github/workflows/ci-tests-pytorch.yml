@@ -207,7 +207,7 @@ jobs:
           coverage xml
 
       - name: Upload test results to Codecov
-        if: ${{ !cancelled() }}  # Run even if tests fail
+        if: ${{ !cancelled() }} # Run even if tests fail
         uses: codecov/test-results-action@v1
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
