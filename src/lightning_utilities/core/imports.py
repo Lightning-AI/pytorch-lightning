@@ -124,7 +124,8 @@ class RequirementCache:
         self.module = module
 
     def _check_requirement(self) -> None:
-        assert self.requirement  # noqa: S101; needed for typing
+        if not self.requirement:
+            raise ValueError("Requirement name is required.")
         try:
             req = Requirement(self.requirement)
             pkg_version = Version(_version(req.name))
@@ -150,7 +151,8 @@ class RequirementCache:
             )
 
     def _check_module(self) -> None:
-        assert self.module  # noqa: S101; needed for typing
+        if not self.module:
+            raise ValueError("Module name is required.")
         self.available = module_available(self.module)
         if self.available:
             self.message = f"Module {self.module!r} available"
