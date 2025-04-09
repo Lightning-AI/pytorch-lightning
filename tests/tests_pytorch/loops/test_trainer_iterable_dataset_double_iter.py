@@ -37,6 +37,10 @@ def train_model(queue, maxEpochs, ckptPath):
     return trainer
 
 def test_training():
+    """
+    Test that reproduces issue in calling iter twice on a queue-based
+    IterableDataset leads to Queue Empty errors when resuming from a checkpoint.
+    """
     queue = create_queue()
 
     ckpt_path = "model.ckpt"
