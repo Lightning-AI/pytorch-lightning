@@ -15,7 +15,7 @@ class QueueDataset(IterableDataset):
 
     def __iter__(self) -> Iterator:
         for _ in range(5):
-            tensor, _ = self.queue.get(timeout=10)
+            tensor, _ = self.queue.get(timeout=5)
             yield tensor
 
 def create_queue():
@@ -28,7 +28,6 @@ def create_queue():
 def train_model(queue, maxEpochs, ckptPath):
     dataloader = DataLoader(QueueDataset(queue), num_workers=1, batch_size=None, persistent_workers=True)
     trainer = Trainer(max_epochs=maxEpochs, enable_progress_bar=False, devices=1)
-    trainer.fit(BoringModel(), dataloader)
     if os.path.exists(ckptPath):
         trainer.fit(BoringModel(), dataloader, ckpt_path=ckptPath)
     else:
@@ -52,8 +51,5 @@ def test_training():
     ckpt_size = os.path.getsize(ckpt_path)
     assert ckpt_size > 0, f"Checkpoint file is empty (size: {ckpt_size} bytes)"
     
-    trainer = train_model(queue, 1, ckpt_path)
+    trainer = train_model(queue, 2, ckpt_path)
     assert trainer is not None
-
-if __name__ == "__main__":
-    test_training()
