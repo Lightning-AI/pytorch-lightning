@@ -124,7 +124,7 @@ class Trainer:
         inference_mode: bool = True,
         use_distributed_sampler: bool = True,
         profiler: Optional[Union[Profiler, str]] = None,
-        detect_anomaly: bool = False,
+        detect_anomaly: bool = True,
         barebones: bool = False,
         plugins: Optional[Union[_PLUGIN_INPUT, list[_PLUGIN_INPUT]]] = None,
         sync_batchnorm: bool = False,
