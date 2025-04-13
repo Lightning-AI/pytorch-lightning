@@ -217,7 +217,7 @@ class _FabricModule(_DeviceDtypeModuleMixin):
         hook = partial(_backward_hook, (strategy_requires or precision_requires))
         tensor.register_hook(hook)
         return tensor
-    
+
     def wrap_forward_method(self, method: Callable) -> Callable:
         @wraps(method)
         def wrapper(*args: Any, **kwargs: Any) -> Any:
@@ -231,6 +231,7 @@ class _FabricModule(_DeviceDtypeModuleMixin):
 
             apply_to_collection(output, dtype=Tensor, function=self._register_backward_hook)
             return output
+
         return wrapper
 
     @override
