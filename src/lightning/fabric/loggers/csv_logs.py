@@ -259,7 +259,7 @@ class _ExperimentWriter:
         metrics = self._fetch_recorded_metrics()
         self.metrics = metrics + self.metrics
 
-    def _fetch_recorded_metrics(self) -> List[Dict[str, Any]]:
+    def _fetch_recorded_metrics(self) -> list[dict[str, Any]]:
         """Fetches the previous recorded metrics."""
         with self._fs.open(self.metrics_file_path, "r", newline="") as file:
             return list(csv.DictReader(file))
