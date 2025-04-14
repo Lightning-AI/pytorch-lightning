@@ -17,9 +17,12 @@ from copy import deepcopy
 from unittest import mock
 from unittest.mock import MagicMock, call, patch
 
-import lightning.fabric
 import pytest
 import torch
+from torch import nn
+from torch.utils.data import DataLoader
+
+import lightning.fabric
 from lightning.fabric.utilities.imports import _IS_WINDOWS
 from lightning.pytorch import Trainer
 from lightning.pytorch.accelerators import CPUAccelerator, XLAAccelerator
@@ -27,9 +30,6 @@ from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
 from lightning.pytorch.plugins import Precision, XLACheckpointIO, XLAPrecision
 from lightning.pytorch.strategies import DDPStrategy, XLAStrategy
 from lightning.pytorch.utilities import find_shared_parameters
-from torch import nn
-from torch.utils.data import DataLoader
-
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.trainer.connectors.test_accelerator_connector import DeviceMock
 from tests_pytorch.trainer.optimization.test_manual_optimization import assert_emtpy_grad
@@ -67,7 +67,7 @@ def test_resume_training_on_cpu(tmp_path):
     model_path = trainer.checkpoint_callback.best_model_path
 
     # Verify saved Tensors are on CPU
-    ckpt = torch.load(model_path)
+    ckpt = torch.load(model_path, weights_only=True)
     weight_tensor = list(ckpt["state_dict"].values())[0]
     assert weight_tensor.device == torch.device("cpu")
 
@@ -148,7 +148,7 @@ class ManualOptimizationModel(BoringModel):
 
     def on_train_end(self):
         # this might fail if run in an environment with too many ranks, as the total
-        # length of the dataloader will be distrbuted among them and then each rank might not do 3 steps
+        # length of the dataloader will be distributed among them and then each rank might not do 3 steps
         assert self.called["training_step"] == 3
         assert self.called["on_train_batch_start"] == 3
         assert self.called["on_train_batch_end"] == 3

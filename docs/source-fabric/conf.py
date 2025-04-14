@@ -286,6 +286,7 @@ nitpick_ignore_regex = [
     # These seem to be missing in reference generated API
     ("py:class", "torch.distributed.fsdp.wrap.ModuleWrapPolicy"),
     ("py:class", "torch.distributed.fsdp.sharded_grad_scaler.ShardedGradScaler"),
+    ("py:class", "torch.amp.grad_scaler.GradScaler"),
     # Mocked optional packages
     ("py:class", "deepspeed.*"),
     ("py:.*", "torch_xla.*"),

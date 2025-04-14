@@ -33,7 +33,7 @@ Installation
 Prerequisites
 =============
 
-Python version: 3.8, 3.9, 3.10
+Python version: 3.9, 3.10
 
 Install Intel® Neural Compressor
 ================================

@@ -17,11 +17,15 @@ from re import escape
 from unittest import mock
 from unittest.mock import ANY, MagicMock, Mock, PropertyMock, call
 
-import lightning.fabric
 import pytest
 import torch
 import torch.distributed
 import torch.nn.functional
+from lightning_utilities.test.warning import no_warning_call
+from torch import nn
+from torch.utils.data import DataLoader, DistributedSampler, RandomSampler, Sampler, SequentialSampler, TensorDataset
+
+import lightning.fabric
 from lightning.fabric.fabric import Fabric
 from lightning.fabric.strategies import (
     DataParallelStrategy,
@@ -37,10 +41,6 @@ from lightning.fabric.utilities.exceptions import MisconfigurationException
 from lightning.fabric.utilities.seed import pl_worker_init_function, seed_everything
 from lightning.fabric.utilities.warnings import PossibleUserWarning
 from lightning.fabric.wrappers import _FabricDataLoader, _FabricModule, _FabricOptimizer
-from lightning_utilities.test.warning import no_warning_call
-from torch import nn
-from torch.utils.data import DataLoader, DistributedSampler, RandomSampler, Sampler, SequentialSampler, TensorDataset
-
 from tests_fabric.helpers.runif import RunIf
 
 
@@ -289,7 +289,7 @@ def test_setup_optimizers_not_supported(strategy_cls):
         fabric.setup_optimizers(optimizer)
 
 
-@RunIf(min_cuda_gpus=1, min_torch="2.1")
+@RunIf(min_cuda_gpus=1)
 def test_setup_optimizer_on_meta_device():
     """Test that the setup-methods validate that the optimizer doesn't have references to meta-device parameters."""
     fabric = Fabric(strategy="fsdp", devices=1)
@@ -746,9 +746,10 @@ def test_no_backward_sync():
 
     # pretend that the strategy does not support skipping backward sync
     fabric._strategy = Mock(spec=ParallelStrategy, _backward_sync_control=None)
-    with pytest.warns(
-        PossibleUserWarning, match="The `ParallelStrategy` does not support skipping the"
-    ), fabric.no_backward_sync(model):
+    with (
+        pytest.warns(PossibleUserWarning, match="The `ParallelStrategy` does not support skipping the"),
+        fabric.no_backward_sync(model),
+    ):
         pass
 
     # for single-device strategies, it becomes a no-op without warning
@@ -867,8 +868,6 @@ def test_init_module_context(monkeypatch):
 
 
 def test_init_tensor_context(monkeypatch):
-    """Test that `.init_tensor()` warns if using PyTorch < 2.0."""
-
     fabric = Fabric(accelerator="cpu")
     strategy = SingleDeviceStrategy(device=torch.device("cuda"))
     strategy.tensor_init_context = Mock(wraps=strategy.tensor_init_context)

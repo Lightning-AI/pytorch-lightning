@@ -12,10 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import shutil
+from collections.abc import Generator, Mapping
 from contextlib import contextmanager, nullcontext
 from datetime import timedelta
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Dict, Generator, List, Literal, Mapping, Optional, Union
+from typing import TYPE_CHECKING, Any, Literal, Optional, Union
 
 import torch
 from lightning_utilities.core.rank_zero import rank_zero_only as utils_rank_zero_only
@@ -38,7 +39,7 @@ from lightning.fabric.utilities.distributed import (
     _sync_ddp_if_available,
 )
 from lightning.fabric.utilities.distributed import group as _group
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_3
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_4
 from lightning.fabric.utilities.init import _materialize_distributed_module
 from lightning.fabric.utilities.load import _METADATA_FILENAME
 from lightning.fabric.utilities.optimizer import _optimizers_to_device
@@ -64,7 +65,7 @@ class ModelParallelStrategy(ParallelStrategy):
     Currently supports up to 2D parallelism. Specifically, it supports the combination of
     Fully Sharded Data-Parallel 2 (FSDP2) with Tensor Parallelism (DTensor). These PyTorch APIs are currently still
     experimental in PyTorch (see https://pytorch.org/docs/stable/distributed.tensor.parallel.html).
-    Requires PyTorch 2.3 or newer.
+    Requires PyTorch 2.4 or newer.
 
     Arguments:
         data_parallel_size: The number of devices within a data-parallel group. Defaults to ``"auto"``, which
@@ -86,14 +87,14 @@ class ModelParallelStrategy(ParallelStrategy):
         timeout: Optional[timedelta] = default_pg_timeout,
     ) -> None:
         super().__init__()
-        if not _TORCH_GREATER_EQUAL_2_3:
-            raise ImportError(f"{type(self).__name__} requires PyTorch 2.3 or higher.")
+        if not _TORCH_GREATER_EQUAL_2_4:
+            raise ImportError(f"{type(self).__name__} requires PyTorch 2.4 or higher.")
         self._data_parallel_size = data_parallel_size
         self._tensor_parallel_size = tensor_parallel_size
         self._save_distributed_checkpoint = save_distributed_checkpoint
         self._process_group_backend: Optional[str] = process_group_backend
         self._timeout: Optional[timedelta] = timeout
-        self._device_mesh: Optional["DeviceMesh"] = None
+        self._device_mesh: Optional[DeviceMesh] = None
         self.num_nodes = 1
 
     @property
@@ -114,7 +115,7 @@ class ModelParallelStrategy(ParallelStrategy):
 
     @property
     @override
-    def distributed_sampler_kwargs(self) -> Dict[str, Any]:
+    def distributed_sampler_kwargs(self) -> dict[str, Any]:
         assert self.device_mesh is not None
         data_parallel_mesh = self.device_mesh["data_parallel"]
         return {"num_replicas": data_parallel_mesh.size(), "rank": data_parallel_mesh.get_local_rank()}
@@ -170,7 +171,7 @@ class ModelParallelStrategy(ParallelStrategy):
         if any(isinstance(mod, FullyShardedDataParallel) for mod in self.model.modules()):
             raise TypeError(
                 "Found modules that are wrapped with `torch.distributed.fsdp.FullyShardedDataParallel`."
-                f" The `{self.__class__.__name__}` only supports the new FSDP2 APIs in PyTorch >= 2.3."
+                f" The `{self.__class__.__name__}` only supports the new FSDP2 APIs in PyTorch >= 2.4."
             )
 
         _materialize_distributed_module(self.model, self.root_device)
@@ -237,7 +238,7 @@ class ModelParallelStrategy(ParallelStrategy):
             return _sync_ddp_if_available(tensor, group, reduce_op=reduce_op)
         return tensor
 
-    def _determine_device_ids(self) -> List[int]:
+    def _determine_device_ids(self) -> list[int]:
         return [self.root_device.index]
 
     @override
@@ -249,7 +250,7 @@ class ModelParallelStrategy(ParallelStrategy):
         self.accelerator.teardown()
 
     @override
-    def lightning_module_state_dict(self) -> Dict[str, Any]:
+    def lightning_module_state_dict(self) -> dict[str, Any]:
         """Collects the state dict of the model.
 
         Only returns a non-empty state dict on rank 0 if ``save_distributed_checkpoint=False``.
@@ -267,7 +268,7 @@ class ModelParallelStrategy(ParallelStrategy):
         pass
 
     @override
-    def optimizer_state(self, optimizer: Optimizer) -> Dict[str, Any]:
+    def optimizer_state(self, optimizer: Optimizer) -> dict[str, Any]:
         """Collects the state of the given optimizer.
 
         Only returns a non-empty state dict on rank 0 if ``save_distributed_checkpoint=False``.
@@ -296,7 +297,7 @@ class ModelParallelStrategy(ParallelStrategy):
 
     @override
     def save_checkpoint(
-        self, checkpoint: Dict[str, Any], filepath: _PATH, storage_options: Optional[Any] = None
+        self, checkpoint: dict[str, Any], filepath: _PATH, storage_options: Optional[Any] = None
     ) -> None:
         if storage_options is not None:
             raise TypeError(
@@ -328,7 +329,7 @@ class ModelParallelStrategy(ParallelStrategy):
             return super().save_checkpoint(checkpoint=checkpoint, filepath=path)
 
     @override
-    def load_checkpoint(self, checkpoint_path: _PATH) -> Dict[str, Any]:
+    def load_checkpoint(self, checkpoint_path: _PATH) -> dict[str, Any]:
         # broadcast the path from rank 0 to ensure all the states are loaded from a common path
         path = Path(self.broadcast(checkpoint_path))
         state = {

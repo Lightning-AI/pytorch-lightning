@@ -19,7 +19,7 @@ Monitors and logs device stats during training.
 
 """
 
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 from typing_extensions import override
 
@@ -158,5 +158,5 @@ class DeviceStatsMonitor(Callback):
         self._get_and_log_device_stats(trainer, "on_test_batch_end")
 
 
-def _prefix_metric_keys(metrics_dict: Dict[str, float], prefix: str, separator: str) -> Dict[str, float]:
+def _prefix_metric_keys(metrics_dict: dict[str, float], prefix: str, separator: str) -> dict[str, float]:
     return {prefix + separator + k: v for k, v in metrics_dict.items()}

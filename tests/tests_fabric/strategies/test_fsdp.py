@@ -16,10 +16,13 @@ from re import escape
 from unittest import mock
 from unittest.mock import ANY, MagicMock, Mock
 
-import lightning.fabric
 import pytest
 import torch
 import torch.nn as nn
+from torch.distributed.fsdp.fully_sharded_data_parallel import CPUOffload, FullyShardedDataParallel, MixedPrecision
+from torch.distributed.fsdp.wrap import ModuleWrapPolicy
+from torch.optim import Adam
+
 from lightning.fabric.plugins import HalfPrecision
 from lightning.fabric.plugins.environments import LightningEnvironment
 from lightning.fabric.strategies import FSDPStrategy
@@ -28,9 +31,7 @@ from lightning.fabric.strategies.fsdp import (
     _get_full_state_dict_context,
     _is_sharded_checkpoint,
 )
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_1, _TORCH_GREATER_EQUAL_2_2
-from torch.distributed.fsdp.fully_sharded_data_parallel import CPUOffload, FullyShardedDataParallel, MixedPrecision
-from torch.optim import Adam
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_2
 
 
 def test_custom_mixed_precision():
@@ -72,7 +73,7 @@ def test_sharding_strategy():
 
 
 @pytest.mark.parametrize("sharding_strategy", ["HYBRID_SHARD", "_HYBRID_SHARD_ZERO2"])
-def test_hybrid_shard_configuration(sharding_strategy):
+def test_hybrid_shard_configuration(sharding_strategy, monkeypatch):
     """Test that the hybrid sharding strategies can only be used with automatic wrapping or a manually specified pg."""
     with pytest.raises(RuntimeError, match="The hybrid sharding strategy requires you to pass at least one of"):
         FSDPStrategy(sharding_strategy=sharding_strategy)
@@ -85,6 +86,11 @@ def test_hybrid_shard_configuration(sharding_strategy):
     assert strategy.sharding_strategy.name == sharding_strategy
     assert strategy._fsdp_kwargs["process_group"] is process_group
 
+    monkeypatch.setattr("lightning.fabric.strategies.fsdp._TORCH_GREATER_EQUAL_2_2", False)
+    with pytest.raises(ValueError, match="`device_mesh` argument is only supported in torch >= 2.2."):
+        FSDPStrategy(device_mesh=Mock())
+
+    monkeypatch.setattr("lightning.fabric.strategies.fsdp._TORCH_GREATER_EQUAL_2_2", True)
     device_mesh = Mock()
     strategy = FSDPStrategy(sharding_strategy=sharding_strategy, device_mesh=device_mesh)
     assert strategy.sharding_strategy.name == sharding_strategy
@@ -128,9 +134,12 @@ def test_no_backward_sync():
     strategy = FSDPStrategy()
     assert isinstance(strategy._backward_sync_control, _FSDPBackwardSyncControl)
 
-    with pytest.raises(
-        TypeError, match="is only possible if the module passed to .* is wrapped in `FullyShardedDataParallel`"
-    ), strategy._backward_sync_control.no_backward_sync(Mock(), True):
+    with (
+        pytest.raises(
+            TypeError, match="is only possible if the module passed to .* is wrapped in `FullyShardedDataParallel`"
+        ),
+        strategy._backward_sync_control.no_backward_sync(Mock(), True),
+    ):
         pass
 
     module = MagicMock(spec=FullyShardedDataParallel)
@@ -140,13 +149,6 @@ def test_no_backward_sync():
     with strategy._backward_sync_control.no_backward_sync(module, True):
         pass
     module.no_sync.assert_called_once()
-
-
-def test_activation_checkpointing_support(monkeypatch):
-    """Test that we error out if activation checkpointing requires a newer PyTorch version."""
-    monkeypatch.setattr(lightning.fabric.strategies.fsdp, "_TORCH_GREATER_EQUAL_2_1", False)
-    with pytest.raises(ValueError, match="activation_checkpointing_policy` requires torch >= 2.1.0"):
-        FSDPStrategy(activation_checkpointing_policy=Mock())
 
 
 def test_activation_checkpointing():
@@ -165,33 +167,21 @@ def test_activation_checkpointing():
             self.layer1 = Block2(2, 2)
             self.layer2 = nn.Linear(3, 3)
 
-    if _TORCH_GREATER_EQUAL_2_1:
-        from torch.distributed.fsdp.wrap import ModuleWrapPolicy
+    strategy = FSDPStrategy(activation_checkpointing_policy={Block1})
+    assert set(strategy._activation_checkpointing_kwargs) == {"auto_wrap_policy"}
+    assert isinstance(strategy._activation_checkpointing_kwargs["auto_wrap_policy"], ModuleWrapPolicy)
 
-        strategy = FSDPStrategy(activation_checkpointing_policy={Block1})
-        assert set(strategy._activation_checkpointing_kwargs) == {"auto_wrap_policy"}
-        assert isinstance(strategy._activation_checkpointing_kwargs["auto_wrap_policy"], ModuleWrapPolicy)
-
-        strategy = FSDPStrategy(activation_checkpointing_policy=ModuleWrapPolicy({Block1, Block2}))
-        assert set(strategy._activation_checkpointing_kwargs) == {"auto_wrap_policy"}
-        assert isinstance(strategy._activation_checkpointing_kwargs["auto_wrap_policy"], ModuleWrapPolicy)
-    else:
-        strategy = FSDPStrategy(activation_checkpointing=Block1)
-        assert set(strategy._activation_checkpointing_kwargs) == {"check_fn"}
-
-        strategy = FSDPStrategy(activation_checkpointing=[Block1, Block2])
-        assert set(strategy._activation_checkpointing_kwargs) == {"check_fn"}
-
-        strategy = FSDPStrategy(activation_checkpointing_policy={Block1})
-        assert set(strategy._activation_checkpointing_kwargs) == {"check_fn"}
-
-        strategy = FSDPStrategy(activation_checkpointing_policy={Block1, Block2})
-        assert set(strategy._activation_checkpointing_kwargs) == {"check_fn"}
+    strategy = FSDPStrategy(activation_checkpointing_policy=ModuleWrapPolicy({Block1, Block2}))
+    assert set(strategy._activation_checkpointing_kwargs) == {"auto_wrap_policy"}
+    assert isinstance(strategy._activation_checkpointing_kwargs["auto_wrap_policy"], ModuleWrapPolicy)
 
     strategy._parallel_devices = [torch.device("cuda", 0)]
-    with mock.patch("torch.distributed.fsdp.FullyShardedDataParallel", new=MagicMock), mock.patch(
-        "torch.distributed.algorithms._checkpoint.checkpoint_wrapper.apply_activation_checkpointing"
-    ) as apply_mock:
+    with (
+        mock.patch("torch.distributed.fsdp.FullyShardedDataParallel", new=MagicMock),
+        mock.patch(
+            "torch.distributed.algorithms._checkpoint.checkpoint_wrapper.apply_activation_checkpointing"
+        ) as apply_mock,
+    ):
         wrapped = strategy.setup_module(Model())
     apply_mock.assert_called_with(wrapped, checkpoint_wrapper_fn=ANY, **strategy._activation_checkpointing_kwargs)
 
@@ -396,15 +386,13 @@ def test_set_timeout(init_process_group_mock):
     )
 
 
-@pytest.mark.parametrize("torch_ge_2_1", [True, False])
 @mock.patch("torch.distributed.fsdp.fully_sharded_data_parallel.FullyShardedDataParallel.set_state_dict_type")
-def test_get_full_state_dict_context_offload(set_type_mock, monkeypatch, torch_ge_2_1):
-    """Test that the state dict context manager handles CPU offloading depending on the PyTorch version."""
-    monkeypatch.setattr("lightning.fabric.strategies.fsdp._TORCH_GREATER_EQUAL_2_1", torch_ge_2_1)
+def test_get_full_state_dict_context_offload(set_type_mock, monkeypatch):
+    """Test that the state dict context manager handles CPU offloading."""
 
     with _get_full_state_dict_context(module=Mock(spec=FullyShardedDataParallel), world_size=1):
-        assert set_type_mock.call_args_list[0][0][2].offload_to_cpu is torch_ge_2_1  # model config
-        assert set_type_mock.call_args_list[0][0][3].offload_to_cpu is torch_ge_2_1  # optim config
+        assert set_type_mock.call_args_list[0][0][2].offload_to_cpu  # model config
+        assert set_type_mock.call_args_list[0][0][3].offload_to_cpu  # optim config
 
     set_type_mock.reset_mock()
 

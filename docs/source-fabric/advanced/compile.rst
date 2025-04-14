@@ -5,10 +5,6 @@ Speed up models by compiling them
 Compiling your PyTorch model can result in significant speedups, especially on the latest generations of GPUs.
 This guide shows you how to apply `torch.compile <https://pytorch.org/docs/2.2/generated/torch.compile.html>`_ correctly in your code.
 
-.. note::
-
-    This requires PyTorch >= 2.0.
-
 
 ----
 
@@ -119,9 +115,115 @@ always exclude the first call to ``forward()`` from your measurements, since it 
         Compile median time: 0.0185 seconds
         Speedup: 1.4x
 
-
 ----
 
+**********************************************
+Apply torch.compile with ModelParallelStrategy
+**********************************************
+
+:func:`torch.compile` can also be invoked as part of the `parallelize_fn` argument of :class:`~lightning.fabric.strategies.model_parallel.ModelParallelStrategy`.
+
+This is particularly handy when :func:`torch.compile` is used in combination with the `torch.distributed.tensor` API.
+
+Here is an example:
+
+.. code-block:: python
+
+    import lightning as L
+    import torch
+    import torch.nn as nn
+    import torch.nn.functional as F
+    from lightning.pytorch.demos import Transformer
+    from lightning.fabric.strategies.model_parallel import ModelParallelStrategy
+    from torch.distributed._composable.fsdp.fully_shard import fully_shard
+    from torch.distributed.device_mesh import DeviceMesh
+
+    def parallelize(model: nn.Module, device_mesh: DeviceMesh) -> nn.Module:
+        for module in model.modules():
+            if isinstance(module, (torch.nn.TransformerEncoderLayer, torch.nn.TransformerDecoderLayer)):
+                fully_shard(module, mesh=device_mesh)
+
+        fully_shard(model, mesh=device_mesh)
+
+        return torch.compile(model)
+
+    def train():
+        L.seed_everything(42)
+
+        with torch.device("meta"):
+            model = Transformer(
+                vocab_size=50257,
+                nlayers=16,
+                nhid=4096,
+                ninp=1024,
+                nhead=32,
+            )
+
+        strategy = ModelParallelStrategy(data_parallel_size=4, tensor_parallel_size=1, parallelize_fn=parallelize)
+
+        fabric = L.Fabric(precision="bf16-true", strategy=strategy)
+        fabric.launch()
+
+        model = fabric.setup(model)
+
+The advantage here is that `parallelize` is called when sharding the model,
+so :func:`torch.compile` is guaranteed to run on model shards and capture distributed operations.
+
+Also, when using other libraries like `torch ao <https://github.com/pytorch/ao>`_
+that need to be applied in a similar fashion, it's easy to reason about the sequence of calls
+needed to achieve the equivalent of `compile(distributed(quantized(model)))`:
+
+.. code-block:: python
+
+    import lightning as L
+    import torch
+    import torch.nn as nn
+    import torch.nn.functional as F
+    from lightning.pytorch.demos import Transformer
+    from torch.distributed._composable.fsdp.fully_shard import fully_shard
+    from torch.distributed.device_mesh import DeviceMesh
+    from torchao.float8 import Float8LinearConfig, convert_to_float8_training
+
+    def parallelize(model: nn.Module, device_mesh: DeviceMesh) -> nn.Module:
+        float8_config = Float8LinearConfig(
+            pad_inner_dim=True,
+        )
+
+        def module_filter_fn(mod: torch.nn.Module, fqn: str):
+            return fqn != "decoder"
+
+        convert_to_float8_training(model, config=float8_config, module_filter_fn=module_filter_fn)
+
+        for module in model.modules():
+            if isinstance(module, (torch.nn.TransformerEncoderLayer, torch.nn.TransformerDecoderLayer)):
+                fully_shard(module, mesh=device_mesh)
+
+        fully_shard(model, mesh=device_mesh)
+
+        return torch.compile(model)
+
+    def train():
+        L.seed_everything(42)
+
+        with torch.device("meta"):
+            model = Transformer(
+                vocab_size=50257,
+                nlayers=16,
+                nhid=4096,
+                ninp=1024,
+                nhead=32,
+            )
+
+        strategy = ModelParallelStrategy(data_parallel_size=4, tensor_parallel_size=1, parallelize_fn=parallelize)
+
+        fabric = L.Fabric(precision="bf16-true", strategy=strategy)
+        fabric.launch()
+
+        model = fabric.setup(model)
+
+For a full example, see our `FP8 Distributed Transformer example <https://github.com/Lightning-AI/lightning/blob/master/examples/fabric/fp8_distributed_transformer>`_.
+
+----
 
 ******************
 Avoid graph breaks
@@ -276,6 +378,8 @@ As a note, the compilation phase itself will take some time, taking up to severa
 For these reasons, we recommend that you don't invest too much time trying to apply ``torch.compile`` during development, and rather evaluate its effectiveness toward the end when you are about to launch long-running, expensive experiments.
 Always compare the speed and memory usage of the compiled model against the original model!
 
+For a thorough troubleshooting guide, see `Torch.compile: the missing manual <https://docs.google.com/document/d/1y5CRfMLdwEoF1nTk9q8qEu1mgMUuUtvhklPKJ2emLU8/edit?usp=sharing>`_.
+
 
 ----
 
@@ -317,5 +421,6 @@ Here are a few resources for further reading after you complete this tutorial:
 - `GenAI with PyTorch 2.0 blog post series <https://pytorch.org/blog/accelerating-generative-ai-4/>`_
 - `Training Production AI Models with PyTorch 2.0 <https://pytorch.org/blog/training-production-ai-models/>`_
 - `Empowering Models with Performance: The Art of Generalized Model Transformation Approach <https://pytorch.org/blog/empowering-models-performance/>`_
+- `Torch.compile: the missing manual <https://docs.google.com/document/d/1y5CRfMLdwEoF1nTk9q8qEu1mgMUuUtvhklPKJ2emLU8/edit?usp=sharing>`_
 
 |

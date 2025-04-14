@@ -182,14 +182,14 @@ We welcome any useful contribution! For your convenience here's a recommended wo
 1. Use tags in PR name for the following cases:
 
    - **\[blocked by #<number>\]** if your work is dependent on other PRs.
-   - **\[wip\]** when you start to re-edit your work, mark it so no one will accidentally merge it in meantime.
+   - **[wip]** when you start to re-edit your work, mark it so no one will accidentally merge it in meantime.
 
 ### Question & Answer
 
 #### How can I help/contribute?
 
 All types of contributions are welcome - reporting bugs, fixing documentation, adding test cases, solving issues, and preparing bug fixes.
-To get started with code contributions, look for issues marked with the label [good first issue](https://github.com/Lightning-AI/lightning/issues?q=is%3Aopen+is%3Aissue+label%3A%22good+first+issue%22) or chose something close to your domain with the label [help wanted](https://github.com/Lightning-AI/lightning/issues?q=is%3Aopen+is%3Aissue+label%3A%22help+wanted%22). Before coding, make sure that the issue description is clear and comment on the issue so that we can assign it to you (or simply self-assign if you can).
+To get started with code contributions, look for issues marked with the label [good first issue](https://github.com/Lightning-AI/pytorch-lightning/issues?q=is%3Aopen+is%3Aissue+label%3A%22good+first+issue%22) or chose something close to your domain with the label [help wanted](https://github.com/Lightning-AI/pytorch-lightning/issues?q=is%3Aopen+is%3Aissue+label%3A%22help+wanted%22). Before coding, make sure that the issue description is clear and comment on the issue so that we can assign it to you (or simply self-assign if you can).
 
 #### Is there a recommendation for branch names?
 
@@ -309,20 +309,6 @@ and the last true master commit is `ccc111` and your first commit is `mmm222`.
   # when all done, push back to the open PR
   git push -f
   ```
-
-#### How to run an app on the cloud with a local version of lightning
-
-The lightning cloud uses the latest release by default. However, you might want to run your app with some local changes you've made to the lightning framework. To use your local version of lightning on the cloud, set the following environment variable:
-
-```bash
-git clone https://github.com/Lightning-AI/lightning.git
-cd lightning
-pip install -e .
-export PACKAGE_LIGHTNING=1  # <- this is the magic to use your version (not mainstream PyPI)!
-lightning run app app.py --cloud
-```
-
-By setting `PACKAGE_LIGHTNING=1`, lightning packages the lightning source code in your local directory in addition to your app source code and uploads them to the cloud.
 
 ### Bonus Workflow Tip
 

@@ -4,57 +4,159 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
-## [unReleased] - 2024-MM-DD
+
+## [unreleased] - YYYY-MM-DD
 
 ### Added
 
-- The `ModelSummary` and `RichModelSummary` callbacks now display the training mode of each layer in the column "Mode" ([#19468](https://github.com/Lightning-AI/lightning/pull/19468))
-
-- Added `load_from_checkpoint` support for `LightningCLI` when using dependency injection ([#18105](https://github.com/Lightning-AI/lightning/pull/18105))
-
-- Added robust timer duration parsing with an informative error message when parsing fails ([#19513](https://github.com/Lightning-AI/pytorch-lightning/pull/19513))
-
-- Added `on_exception` hook to `LightningDataModule` ([#19601](https://github.com/Lightning-AI/pytorch-lightning/pull/19601))
-
-- Added support for PyTorch 2.3 ([#19708](https://github.com/Lightning-AI/pytorch-lightning/pull/19708))
-
-- Added `ModelParallelStrategy` to support 2D parallelism ([#19878](https://github.com/Lightning-AI/pytorch-lightning/pull/19878), [#19888](https://github.com/Lightning-AI/pytorch-lightning/pull/19888))
-
+- Add enable_autolog_hparams argument to Trainer ([#20593](https://github.com/Lightning-AI/pytorch-lightning/pull/20593))
 
 
 ### Changed
 
+-
+
+
+### Removed
+
+-
+
+
+### Fixed
+
+-
+
+
+---
+
+## [2.5.1] - 2025-03-18
+
+### Changed
+
+- Allow LightningCLI to use a customized argument parser class ([#20596](https://github.com/Lightning-AI/pytorch-lightning/pull/20596))
+- Change `wandb` default x-axis to `tensorboard`'s `global_step` when `sync_tensorboard=True` ([#20611](https://github.com/Lightning-AI/pytorch-lightning/pull/20611))
+- Added a new `checkpoint_path_prefix` parameter to the MLflow logger which can control the path to where the MLflow artifacts for the model checkpoints are stored ([#20538](https://github.com/Lightning-AI/pytorch-lightning/pull/20538))
+- CometML logger was updated to support the recent Comet SDK ([#20275](https://github.com/Lightning-AI/pytorch-lightning/pull/20275))
+- bump: testing with latest `torch` 2.6 ([#20509](https://github.com/Lightning-AI/pytorch-lightning/pull/20509))
+
+### Fixed
+
+- Fixed CSVLogger logging hyperparameter at every write which increase latency  ([#20594](https://github.com/Lightning-AI/pytorch-lightning/pull/20594))
+- Fixed OverflowError when resuming from checkpoint with an iterable dataset ([#20565](https://github.com/Lightning-AI/pytorch-lightning/issues/20565))
+- Fixed swapped _R_co and _P to prevent type error ([#20508](https://github.com/Lightning-AI/pytorch-lightning/issues/20508))
+- Always call `WandbLogger.experiment` first in `_call_setup_hook` to ensure `tensorboard` logs can sync to `wandb` ([#20610](https://github.com/Lightning-AI/pytorch-lightning/pull/20610))
+- Fixed TBPTT example ([#20528](https://github.com/Lightning-AI/pytorch-lightning/pull/20528))
+- Fixed test compatibility as AdamW became subclass of Adam ([#20574](https://github.com/Lightning-AI/pytorch-lightning/pull/20574))
+- Fixed file extension of model checkpoints uploaded by NeptuneLogger ([#20581](https://github.com/Lightning-AI/pytorch-lightning/pull/20581))
+- Reset trainer variable `should_stop` when `fit` is called ([#19177](https://github.com/Lightning-AI/pytorch-lightning/pull/19177))
+- Fixed making `WandbLogger` upload models from all `ModelCheckpoint` callbacks, not just one ([#20191](https://github.com/Lightning-AI/pytorch-lightning/pull/20191))
+- Error when logging to MLFlow deleted experiment ([#20556](https://github.com/Lightning-AI/pytorch-lightning/pull/20556))
+
+
+## [2.5.0] - 2024-12-19
+
+### Added
+
+- Added `step` parameter to `TensorBoardLogger.log_hyperparams` to visualize changes during training ([#20176](https://github.com/Lightning-AI/pytorch-lightning/pull/20176))
+- Added `str` method to datamodule ([#20301](https://github.com/Lightning-AI/pytorch-lightning/pull/20301))
+- Added timeout to DeepSpeedStrategy ([#20474](https://github.com/Lightning-AI/pytorch-lightning/pull/20474))
+- Added doc for Truncated Back-Propagation Through Time ([#20422](https://github.com/Lightning-AI/pytorch-lightning/pull/20422))
+- Added FP8 + FSDP2 + torch.compile examples for PyTorch Lightning ([#20440](https://github.com/Lightning-AI/pytorch-lightning/pull/20440))
+- Added profiling to `Trainer.save_checkpoint` ([#20405](https://github.com/Lightning-AI/pytorch-lightning/pull/20405))
+- Added after_instantiate_classes hook to CLI ([#20401](https://github.com/Lightning-AI/pytorch-lightning/pull/20401))
+
+### Changed
+
+- Updated checkpointing documentation to mark `resume_from_checkpoint` as deprecated ([#20477](https://github.com/Lightning-AI/pytorch-lightning/pull/20477))
+- Made plugin type checks more flexible ([#20186](https://github.com/Lightning-AI/pytorch-lightning/pull/20186))
+- Changed seeding NumPy using `np.random.SeedSequence()` in `pl_worker_init_function()` to robustly seed NumPy-dependent dataloader workers ([#20369](https://github.com/Lightning-AI/pytorch-lightning/pull/20369))
+- Allowed callbacks to be restored not just during training ([#20403](https://github.com/Lightning-AI/pytorch-lightning/pull/20403))
+- Changed LightningCLI tests to account for future fix in jsonargparse ([#20372](https://github.com/Lightning-AI/pytorch-lightning/pull/20372))
+- Bumped PyTorch to version `2.5` ([#20351](https://github.com/Lightning-AI/pytorch-lightning/pull/20351))
+- Decoupled checkpoint artifact path from model artifact path ([#20325](https://github.com/Lightning-AI/pytorch-lightning/pull/20325))
+- Updated BitsAndBytes version ([#20313](https://github.com/Lightning-AI/pytorch-lightning/pull/20313))
+- Changed merging of hparams when logging to ignore parameter names that start with an underscore `_` ([#20221](https://github.com/Lightning-AI/pytorch-lightning/pull/20221))
+- Re-enabled passing `BytesIO` as path in `.to_onnx()` ([#20172](https://github.com/Lightning-AI/pytorch-lightning/pull/20172))
+
+### Removed
+
+- Removed `List[int]` as input type for Trainer when `accelerator="cpu"` ([#20399](https://github.com/Lightning-AI/pytorch-lightning/pull/20399))
+
+### Fixed
+
+- Fixed UnboundLocalError when using the predict method with return_predictions=False. ([#20484](https://github.com/Lightning-AI/pytorch-lightning/pull/20484))
+- Fixed use of `convert_module` in FSDP to avoid using more memory than necessary during initialization ([#20323](https://github.com/Lightning-AI/pytorch-lightning/pull/20323))
+- Fixed TypeError in `configure_optimizers` when running with `ReduceLROnPlateau` ([#20471](https://github.com/Lightning-AI/pytorch-lightning/pull/20471))
+- Fixed return type in `configure_optimizers` example ([#20420](https://github.com/Lightning-AI/pytorch-lightning/pull/20420))
+- Fixed in ncorrect URI prefix stripping in MLFlowLogger ([#20365](https://github.com/Lightning-AI/pytorch-lightning/pull/20365))
+- Fixed shuffling behavior when using a custom sampler in data module ([#20327](https://github.com/Lightning-AI/pytorch-lightning/pull/20327))
+- Ensured restarting from checkpoints leads to consistent internal counters compared to uninterrupted training ([#20379](https://github.com/Lightning-AI/pytorch-lightning/pull/20379))
+- Fixed LightningCLI failing when both module and data module save hyperparameters due to conflicting internal `_class_path` parameter ([#20221](https://github.com/Lightning-AI/pytorch-lightning/pull/20221))
+
+## [2.4.0] - 2024-08-06
+
+### Added
+
+- Made saving non-distributed checkpoints fully atomic ([#20011](https://github.com/Lightning-AI/pytorch-lightning/pull/20011))
+- Added `dump_stats` flag to `AdvancedProfiler` ([#19703](https://github.com/Lightning-AI/pytorch-lightning/issues/19703))
+- Added a flag `verbose` to the `seed_everything()` function ([#20108](https://github.com/Lightning-AI/pytorch-lightning/pull/20108))
+- Added support for PyTorch 2.4 ([#20010](https://github.com/Lightning-AI/pytorch-lightning/pull/20010))
+- Added support for Python 3.12 ([20078](https://github.com/Lightning-AI/pytorch-lightning/pull/20078))
+- The `TQDMProgressBar` now provides an option to retain prior training epoch bars ([#19578](https://github.com/Lightning-AI/pytorch-lightning/pull/19578))
+- Added the count of modules in train and eval mode to the printed `ModelSummary` table ([#20159](https://github.com/Lightning-AI/pytorch-lightning/pull/20159))
+
+### Changed
+
+- Triggering KeyboardInterrupt (Ctrl+C) during `.fit()`, `.evaluate()`, `.test()` or `.predict()` now terminates all processes launched by the Trainer and exits the program ([#19976](https://github.com/Lightning-AI/pytorch-lightning/pull/19976))
+- Changed the implementation of how seeds are chosen for dataloader workers when using `seed_everything(..., workers=True)` ([#20055](https://github.com/Lightning-AI/pytorch-lightning/pull/20055))
+- NumPy is no longer a required dependency ([#20090](https://github.com/Lightning-AI/pytorch-lightning/issues/20090))
+
+### Removed
+
+- Removed support for PyTorch 2.1 ([#20009](https://github.com/Lightning-AI/lightning/pull/20009))
+- Removed support for Python 3.8 ([#20071](https://github.com/Lightning-AI/lightning/pull/20071))
+
+### Fixed
+
+- Avoid LightningCLI saving hyperparameters with `class_path` and `init_args` since this would be a breaking change ([#20068](https://github.com/Lightning-AI/pytorch-lightning/pull/20068))
+- Fixed an issue that would cause too many printouts of the seed info when using `seed_everything()` ([#20108](https://github.com/Lightning-AI/pytorch-lightning/pull/20108))
+- Fixed `_LoggerConnector`'s `_ResultMetric` to move all registered keys to the device of the logged value if needed ([#19814](https://github.com/Lightning-AI/pytorch-lightning/issues/19814))
+- Fixed `_optimizer_to_device` logic for special 'step' key in optimizer state causing performance regression ([#20019](https://github.com/Lightning-AI/lightning/pull/20019))
+- Fixed parameter counts in `ModelSummary` when model has distributed parameters (DTensor) ([#20163](https://github.com/Lightning-AI/pytorch-lightning/pull/20163))
+- Fixed PyTorch Lightning FSDP takes more memory than PyTorch FSDP ([#20323](https://github.com/Lightning-AI/pytorch-lightning/pull/20323))
+
+
+## [2.3.0] - 2024-06-13
+
+### Added
+
+- The `ModelSummary` and `RichModelSummary` callbacks now display the training mode of each layer in the column "Mode" ([#19468](https://github.com/Lightning-AI/lightning/pull/19468))
+- Added `load_from_checkpoint` support for `LightningCLI` when using dependency injection ([#18105](https://github.com/Lightning-AI/lightning/pull/18105))
+- Added robust timer duration parsing with an informative error message when parsing fails ([#19513](https://github.com/Lightning-AI/pytorch-lightning/pull/19513))
+- Added `on_exception` hook to `LightningDataModule` ([#19601](https://github.com/Lightning-AI/pytorch-lightning/pull/19601))
+- Added support for PyTorch 2.3 ([#19708](https://github.com/Lightning-AI/pytorch-lightning/pull/19708))
+- Added `ModelParallelStrategy` to support 2D parallelism ([#19878](https://github.com/Lightning-AI/pytorch-lightning/pull/19878), [#19888](https://github.com/Lightning-AI/pytorch-lightning/pull/19888))
+- Added a call to `torch.distributed.destroy_process_group` in atexit handler if process group needs destruction ([#19931](https://github.com/Lightning-AI/pytorch-lightning/pull/19931))
+- Added support for configuring hybrid-sharding by passing a tuple for the `FSDPStrategy(device_mesh=...)` argument ([#19504](https://github.com/Lightning-AI/pytorch-lightning/pull/19504))
+
+### Changed
+
 - The `prepare_data()` hook in `LightningModule` and `LightningDataModule` is now subject to a barrier without timeout to avoid long-running tasks to be interrupted ([#19448](https://github.com/Lightning-AI/lightning/pull/19448))
-
 - Relaxed the requirement for custom batch samplers to expose `drop_last` for prediction ([#19678](https://github.com/Lightning-AI/pytorch-lightning/pull/19678))
-
 - It is no longer allowed to skip `training_step()` by returning `None` in distributed training ([#19918](https://github.com/Lightning-AI/pytorch-lightning/pull/19918))
-
-
-### Deprecated
-
--
-
--
-
--
 
 ### Removed
 
 - Removed the Bagua integration (`Trainer(strategy="bagua")`) ([#19445](https://github.com/Lightning-AI/lightning/pull/19445))
-
 - Removed support for PyTorch 1.13 ([#19706](https://github.com/Lightning-AI/lightning/pull/19706))
-
--
 
 ### Fixed
 
 - Fixed a matrix shape mismatch issue when running a model loaded from a quantized checkpoint (bitsandbytes) ([#19886](https://github.com/Lightning-AI/lightning/pull/19886))
-
-
 - Fixed `WandbLogger.log_hyperparameters()` raising an error if hyperparameters are not JSON serializable ([#19769](https://github.com/Lightning-AI/pytorch-lightning/pull/19769))
-
--
+- Fixed an issue with the LightningCLI not being able to set the `ModelCheckpoint(save_last=...)` argument ([#19808](https://github.com/Lightning-AI/pytorch-lightning/pull/19808))
+- Fixed an issue causing ValueError for certain object such as TorchMetrics when dumping hyperparameters to YAML ([#19804](https://github.com/Lightning-AI/pytorch-lightning/pull/19804))
+- Fixed resetting `epoch_loop.restarting` to avoid full validation run after `LearningRateFinder` ([#19818](https://github.com/Lightning-AI/pytorch-lightning/issues/19818))
 
 
 ## [2.2.2] - 2024-04-11
@@ -146,16 +248,16 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed handling checkpoint dirpath suffix in NeptuneLogger ([#18863](https://github.com/Lightning-AI/lightning/pull/18863))
 - Fixed an edge case where `ModelCheckpoint` would alternate between versioned and unversioned filename ([#19064](https://github.com/Lightning-AI/lightning/pull/19064))
 - Fixed broadcast at initialization in `MPIEnvironment` ([#19074](https://github.com/Lightning-AI/lightning/pull/19074))
-- Fixed the tensor conversion in `self.log` to respect the default dtype ([#19046](https://github.com/Lightning-AI/lightning/issues/19046))
+- Fixed the tensor conversion in `self.log` to respect the default dtype ([#19046](https://github.com/Lightning-AI/pytorch-lightning/issues/19046))
 
 
 ## [2.1.2] - 2023-11-15
 
 ### Fixed
 
-- Fixed an issue causing permission errors on Windows when attempting to create a symlink for the "last" checkpoint ([#18942](https://github.com/Lightning-AI/lightning/issues/18942))
-- Fixed an issue where Metric instances from `torchmetrics` wouldn't get moved to the device when using FSDP ([#18954](https://github.com/Lightning-AI/lightning/issues/18954))
-- Fixed an issue preventing the user to `Trainer.save_checkpoint()` an FSDP model when `Trainer.test/validate/predict()` ran after `Trainer.fit()` ([#18992](https://github.com/Lightning-AI/lightning/issues/18992))
+- Fixed an issue causing permission errors on Windows when attempting to create a symlink for the "last" checkpoint ([#18942](https://github.com/Lightning-AI/pytorch-lightning/issues/18942))
+- Fixed an issue where Metric instances from `torchmetrics` wouldn't get moved to the device when using FSDP ([#18954](https://github.com/Lightning-AI/pytorch-lightning/issues/18954))
+- Fixed an issue preventing the user to `Trainer.save_checkpoint()` an FSDP model when `Trainer.test/validate/predict()` ran after `Trainer.fit()` ([#18992](https://github.com/Lightning-AI/pytorch-lightning/issues/18992))
 
 
 ## [2.1.1] - 2023-11-06
@@ -163,10 +265,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ### Fixed
 
 - Fixed an issue when replacing an existing `last.ckpt` file with a symlink ([#18793](https://github.com/Lightning-AI/lightning/pull/18793))
-- Fixed an issue when `BatchSizeFinder` `steps_per_trial` parameter ends up defining how many validation batches to run during the entire training ([#18394](https://github.com/Lightning-AI/lightning/issues/18394))
-- Fixed an issue saving the `last.ckpt` file when using `ModelCheckpoint` on a remote filesystem and no logger is used ([#18867](https://github.com/Lightning-AI/lightning/issues/18867))
+- Fixed an issue when `BatchSizeFinder` `steps_per_trial` parameter ends up defining how many validation batches to run during the entire training ([#18394](https://github.com/Lightning-AI/pytorch-lightning/issues/18394))
+- Fixed an issue saving the `last.ckpt` file when using `ModelCheckpoint` on a remote filesystem and no logger is used ([#18867](https://github.com/Lightning-AI/pytorch-lightning/issues/18867))
 - Refined the FSDP saving logic and error messaging when path exists ([#18884](https://github.com/Lightning-AI/lightning/pull/18884))
-- Fixed an issue parsing the version from folders that don't include a version number in `TensorBoardLogger` and `CSVLogger` ([#18897](https://github.com/Lightning-AI/lightning/issues/18897))
+- Fixed an issue parsing the version from folders that don't include a version number in `TensorBoardLogger` and `CSVLogger` ([#18897](https://github.com/Lightning-AI/pytorch-lightning/issues/18897))
 
 
 ## [2.1.0] - 2023-10-11

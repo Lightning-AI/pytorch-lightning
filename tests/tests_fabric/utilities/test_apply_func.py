@@ -13,8 +13,9 @@
 # limitations under the License.
 import pytest
 import torch
-from lightning.fabric.utilities.apply_func import convert_tensors_to_scalars, move_data_to_device
 from torch import Tensor
+
+from lightning.fabric.utilities.apply_func import convert_tensors_to_scalars, move_data_to_device
 
 
 @pytest.mark.parametrize("should_return", [False, True])

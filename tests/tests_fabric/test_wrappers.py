@@ -16,10 +16,14 @@ from unittest.mock import Mock, call
 
 import pytest
 import torch
+from torch._dynamo import OptimizedModule
+from torch.utils.data import BatchSampler, DistributedSampler
+from torch.utils.data.dataloader import DataLoader
+
 from lightning.fabric.fabric import Fabric
 from lightning.fabric.plugins import Precision
 from lightning.fabric.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_1
+from lightning.fabric.utilities.types import Optimizable
 from lightning.fabric.wrappers import (
     _FabricDataLoader,
     _FabricModule,
@@ -28,10 +32,6 @@ from lightning.fabric.wrappers import (
     _unwrap_objects,
     is_wrapped,
 )
-from torch._dynamo import OptimizedModule
-from torch.utils.data import BatchSampler, DistributedSampler
-from torch.utils.data.dataloader import DataLoader
-
 from tests_fabric.helpers.runif import RunIf
 
 
@@ -268,14 +268,13 @@ def test_fabric_module_state_dict_access():
     assert torch.equal(fabric_module.layer.weight, weight)
     assert torch.equal(fabric_module.layer.bias, bias)
 
-    if _TORCH_GREATER_EQUAL_2_1:
-        # Can use additional `assign` argument in PyTorch >= 2.1
-        with torch.device("meta"):
-            original_module = OriginalModule()
-        fabric_module = _FabricModule(wrapped_module, Mock(), original_module=original_module)
-        assert fabric_module.layer.weight.is_meta
-        fabric_module.load_state_dict({"layer.weight": weight, "layer.bias": bias}, assign=True)
-        assert not fabric_module.layer.weight.is_meta
+    # Can use additional `assign` argument
+    with torch.device("meta"):
+        original_module = OriginalModule()
+    fabric_module = _FabricModule(wrapped_module, Mock(), original_module=original_module)
+    assert fabric_module.layer.weight.is_meta
+    fabric_module.load_state_dict({"layer.weight": weight, "layer.bias": bias}, assign=True)
+    assert not fabric_module.layer.weight.is_meta
 
 
 @pytest.mark.parametrize(
@@ -499,6 +498,7 @@ def test_fabric_optimizer_steps():
 
     # with model as optimizer
     strategy = Mock(spec=["optimizer_step", "model"])
+    strategy.model = Mock(spec=Optimizable)
     fabric_optimizer = _FabricOptimizer(optimizer=optimizer, strategy=strategy)
     fabric_optimizer.step()
     strategy.optimizer_step.assert_called_once_with(strategy.model)
@@ -687,7 +687,7 @@ def test_unwrap_compiled():
     assert unwrapped is compiled._orig_mod
     assert compile_kwargs == {"fullgraph": True, "dynamic": True, "disable": False}
 
-    del compiled._compile_kwargs
+    compiled._compile_kwargs = None
     with pytest.raises(RuntimeError, match="Failed to determine the arguments that were used to compile the module"):
         _unwrap_compiled(compiled)
 

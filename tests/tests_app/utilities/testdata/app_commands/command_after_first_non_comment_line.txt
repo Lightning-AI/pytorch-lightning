@@ -1,4 +1,0 @@
-
-# !echo "foo"
-import lighting
-# !echo "bar"

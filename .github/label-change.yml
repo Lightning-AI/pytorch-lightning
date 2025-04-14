@@ -1,27 +1,8 @@
-app:
-  - changed-files:
-      - any-glob-to-any-file:
-          - "src/lightning/app/**"
-          - "src/lightning_app/*"
-          - "tests/tests_app/**"
-          - "tests/integrations_app/**"
-          - "tests/integrations_app_examples/**"
-          - "examples/app/**"
-          - "docs/source-app/**"
-          - "requirements/app/**"
-
 data:
   - changed-files:
       - any-glob-to-any-file:
           - "src/lightning/data/**"
           - "requirements/data/**"
-
-store:
-  - changed-files:
-      - any-glob-to-any-file:
-          - "src/lightning/store/**"
-          - "tests/tests_store/**"
-          - "requirements/store/**"
 
 pl:
   - changed-files:
@@ -70,7 +51,6 @@ package:
           - "src/version.info"
           - "src/lightning/*/__setup__.py"
           - "src/lightning/*/__version__.py"
-          - "src/lightning_app/*"
           - "src/lightning_fabric/*"
           - "src/pytorch_lightning/*"
 

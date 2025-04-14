@@ -3,7 +3,7 @@ import os
 from importlib.util import module_from_spec, spec_from_file_location
 from pathlib import Path
 from types import ModuleType
-from typing import Any, Dict
+from typing import Any
 
 from pkg_resources import parse_requirements
 from setuptools import find_packages
@@ -29,7 +29,7 @@ def _load_assistant() -> ModuleType:
     return _load_py_module("assistant", location)
 
 
-def _prepare_extras() -> Dict[str, Any]:
+def _prepare_extras() -> dict[str, Any]:
     assistant = _load_assistant()
     # https://setuptools.readthedocs.io/en/latest/setuptools.html#declaring-extras
     # Define package extras. These are only installed if you specify them.
@@ -49,7 +49,7 @@ def _prepare_extras() -> Dict[str, Any]:
     return extras
 
 
-def _setup_args() -> Dict[str, Any]:
+def _setup_args() -> dict[str, Any]:
     assistant = _load_assistant()
     about = _load_py_module("about", os.path.join(_PACKAGE_ROOT, "__about__.py"))
     version = _load_py_module("version", os.path.join(_PACKAGE_ROOT, "__version__.py"))
@@ -73,7 +73,7 @@ def _setup_args() -> Dict[str, Any]:
         "include_package_data": True,
         "zip_safe": False,
         "keywords": ["deep learning", "pytorch", "AI"],
-        "python_requires": ">=3.8",
+        "python_requires": ">=3.9",
         "setup_requires": ["wheel"],
         "install_requires": assistant.load_requirements(
             _PATH_REQUIREMENTS, unfreeze="none" if _FREEZE_REQUIREMENTS else "all"
@@ -85,7 +85,7 @@ def _setup_args() -> Dict[str, Any]:
         },
         "extras_require": _prepare_extras(),
         "project_urls": {
-            "Bug Tracker": "https://github.com/Lightning-AI/lightning/issues",
+            "Bug Tracker": "https://github.com/Lightning-AI/pytorch-lightning/issues",
             "Documentation": "https://pytorch-lightning.rtfd.io/en/latest/",
             "Source Code": "https://github.com/Lightning-AI/lightning",
         },
@@ -105,7 +105,6 @@ def _setup_args() -> Dict[str, Any]:
             # Specify the Python versions you support here. In particular, ensure
             # that you indicate whether you support Python 2, Python 3 or both.
             "Programming Language :: Python :: 3",
-            "Programming Language :: Python :: 3.8",
             "Programming Language :: Python :: 3.9",
             "Programming Language :: Python :: 3.10",
             "Programming Language :: Python :: 3.11",

@@ -19,13 +19,13 @@ from typing import Union
 import pytest
 import torch
 import torch.nn.utils.prune as pytorch_prune
+from torch import nn
+from torch.nn import Sequential
+
 from lightning.pytorch import Trainer, seed_everything
 from lightning.pytorch.callbacks import ModelCheckpoint, ModelPruning
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from torch import nn
-from torch.nn import Sequential
-
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -273,7 +273,7 @@ def test_multiple_pruning_callbacks(tmp_path, caplog, make_pruning_permanent: bo
     filepath = str(tmp_path / "foo.ckpt")
     trainer.save_checkpoint(filepath)
 
-    model.load_state_dict(torch.load(filepath), strict=False)
+    model.load_state_dict(torch.load(filepath, weights_only=True), strict=False)
     has_pruning = hasattr(model.layer.mlp_1, "weight_orig")
     assert not has_pruning if make_pruning_permanent else has_pruning
 

@@ -15,9 +15,10 @@ import copy
 import inspect
 import types
 from argparse import Namespace
+from collections.abc import Iterator, MutableMapping, Sequence
 from contextlib import contextmanager
 from contextvars import ContextVar
-from typing import Any, Iterator, List, MutableMapping, Optional, Sequence, Union
+from typing import Any, Optional, Union
 
 from lightning.fabric.utilities.data import AttributeDict
 from lightning.pytorch.utilities.parsing import save_hyperparameters
@@ -41,7 +42,7 @@ def _given_hyperparameters_context(hparams: dict, instantiator: str) -> Iterator
 
 
 class HyperparametersMixin:
-    __jit_unused_properties__: List[str] = ["hparams", "hparams_initial"]
+    __jit_unused_properties__: list[str] = ["hparams", "hparams_initial"]
 
     def __init__(self) -> None:
         super().__init__()

@@ -20,7 +20,7 @@ FROM nvidia/cuda:${CUDA_VERSION}-runtime-ubuntu${UBUNTU_VERSION}
 
 ARG PYTHON_VERSION=3.10
 ARG PYTORCH_VERSION=2.1
-ARG MAX_ALLOWED_NCCL=2.17.1
+ARG MAX_ALLOWED_NCCL=2.22.3
 
 SHELL ["/bin/bash", "-c"]
 # https://techoverflow.net/2019/05/18/how-to-fix-configuring-tzdata-interactive-input-when-building-docker-images/
@@ -59,7 +59,6 @@ RUN \
     add-apt-repository ppa:deadsnakes/ppa && \
     apt-get install -y \
         python${PYTHON_VERSION} \
-        python${PYTHON_VERSION}-distutils \
         python${PYTHON_VERSION}-dev \
     && \
     update-alternatives --install /usr/bin/python${PYTHON_VERSION%%.*} python${PYTHON_VERSION%%.*} /usr/bin/python${PYTHON_VERSION} 1 && \
@@ -79,6 +78,8 @@ RUN \
     curl https://bootstrap.pypa.io/get-pip.py | python${PYTHON_VERSION} && \
     # Disable cache \
     pip config set global.cache-dir false && \
+    # Install recent setuptools to obtain pkg_resources \
+    pip install setuptools==75.6.0 && \
     # set particular PyTorch version \
     pip install -q wget packaging && \
     python -m wget https://raw.githubusercontent.com/Lightning-AI/utilities/main/scripts/adjust-torch-versions.py  && \
@@ -91,8 +92,8 @@ RUN \
       -r requirements/pytorch/extra.txt \
       -r requirements/pytorch/test.txt \
       -r requirements/pytorch/strategies.txt \
-      --find-links="https://download.pytorch.org/whl/cu${CUDA_VERSION_MM//'.'/''}/torch_stable.html" \
-      --find-links="https://download.pytorch.org/whl/test/cu${CUDA_VERSION_MM//'.'/''}/torch_test.html"
+      --extra-index-url="https://download.pytorch.org/whl/cu${CUDA_VERSION_MM//'.'/''}/" \
+      --extra-index-url="https://download.pytorch.org/whl/test/cu${CUDA_VERSION_MM//'.'/''}/"
 
 RUN \
     # Show what we have

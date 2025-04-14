@@ -12,7 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import itertools
-from typing import Any, Callable, Dict, Optional, Sequence, Union
+from collections.abc import Sequence
+from typing import Any, Callable, Optional, Union
 
 import torch
 from torch.nn import Module, Parameter
@@ -20,7 +21,6 @@ from torch.optim import Optimizer
 from torch.overrides import TorchFunctionMode
 from typing_extensions import override
 
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_1
 from lightning.fabric.utilities.rank_zero import rank_zero_warn
 from lightning.fabric.utilities.types import _DEVICE
 
@@ -47,7 +47,7 @@ class _EmptyInit(TorchFunctionMode):
         func: Callable,
         types: Sequence,
         args: Sequence[Any] = (),
-        kwargs: Optional[Dict] = None,
+        kwargs: Optional[dict] = None,
     ) -> Any:
         kwargs = kwargs or {}
         if not self.enabled:
@@ -61,8 +61,6 @@ class _EmptyInit(TorchFunctionMode):
 
 def _materialize(module: Module, device: _DEVICE) -> None:
     """Materialize a module."""
-    if not _TORCH_GREATER_EQUAL_2_1:
-        raise RuntimeError("recurse=False requires torch 2.1")
     module.to_empty(device=device, recurse=False)
     if not hasattr(module, "reset_parameters"):
         raise TypeError(

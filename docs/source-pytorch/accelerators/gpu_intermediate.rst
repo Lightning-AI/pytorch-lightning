@@ -25,10 +25,6 @@ Lightning supports multiple ways of doing distributed training.
 .. note::
     If you request multiple GPUs or nodes without setting a strategy, DDP will be automatically used.
 
-For a deeper understanding of what Lightning is doing, feel free to read this
-`guide <https://medium.com/@_willfalcon/9-tips-for-training-lightning-fast-neural-networks-in-pytorch-8e63a502f565>`_.
-
-
 ----
 
 

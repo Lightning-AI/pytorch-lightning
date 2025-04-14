@@ -16,7 +16,7 @@ import os
 from dataclasses import dataclass
 from multiprocessing.queues import SimpleQueue
 from textwrap import dedent
-from typing import TYPE_CHECKING, Any, Callable, Dict, Literal, Optional
+from typing import TYPE_CHECKING, Any, Callable, Literal, Optional
 
 import torch
 import torch.backends.cudnn
@@ -78,7 +78,7 @@ class _MultiProcessingLauncher(_Launcher):
     def is_interactive_compatible(self) -> bool:
         # The start method 'spawn' is not supported in interactive environments
         # The start method 'fork' is the only one supported in Jupyter environments, with constraints around CUDA
-        # initialization. For more context, see https://github.com/Lightning-AI/lightning/issues/7550
+        # initialization. For more context, see https://github.com/Lightning-AI/pytorch-lightning/issues/7550
         return self._start_method == "fork"
 
     @override
@@ -167,7 +167,7 @@ class _GlobalStateSnapshot:
     use_deterministic_algorithms: bool
     use_deterministic_algorithms_warn_only: bool
     cudnn_benchmark: bool
-    rng_states: Dict[str, Any]
+    rng_states: dict[str, Any]
 
     @classmethod
     def capture(cls) -> "_GlobalStateSnapshot":
