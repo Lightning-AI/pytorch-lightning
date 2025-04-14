@@ -49,7 +49,7 @@ def test_training():
     trainer = train_model(queue, 1, ckpt_path)
     assert trainer is not None
 
-    assert os.path.exists(ckpt_path), "Checkpoint file wasn't created"
+    assert os.path.exists(ckpt_path), f"Checkpoint file '{ckpt_path}' wasn't created"
 
     ckpt_size = os.path.getsize(ckpt_path)
     assert ckpt_size > 0, f"Checkpoint file is empty (size: {ckpt_size} bytes)"
