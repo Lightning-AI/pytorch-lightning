@@ -14,7 +14,6 @@
 import csv
 import itertools
 import os
-from typing import Dict, List, Set, Tuple
 from unittest import mock
 from unittest.mock import MagicMock
 
@@ -209,8 +208,8 @@ def test_append_columns(tmp_path):
 
 def _assert_csv_content(
     path: str,
-    expected_headers: Set[str],
-    expected_content: List[Dict[str, str]],
+    expected_headers: set[str],
+    expected_content: list[dict[str, str]],
 ) -> None:
     """Verifies the content of a local csv file with the expected ones."""
     headers, content = _read_csv(path)
@@ -219,7 +218,7 @@ def _assert_csv_content(
         assert actual == expected
 
 
-def _read_csv(path: str) -> Tuple[Set[str], List[Dict[str, str]]]:
+def _read_csv(path: str) -> tuple[set[str], list[dict[str, str]]]:
     """Reads a local csv file and returns the headers and content."""
     with open(path) as file:
         reader = csv.DictReader(file)
