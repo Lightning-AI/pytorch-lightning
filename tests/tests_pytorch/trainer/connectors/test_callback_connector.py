@@ -18,6 +18,7 @@ from unittest.mock import MagicMock, Mock
 
 import pytest
 import torch
+
 from lightning.fabric.utilities.imports import _PYTHON_GREATER_EQUAL_3_10_0
 from lightning.pytorch import Callback, LightningModule, Trainer
 from lightning.pytorch.callbacks import (

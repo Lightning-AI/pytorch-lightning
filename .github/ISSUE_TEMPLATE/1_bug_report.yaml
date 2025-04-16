@@ -37,6 +37,7 @@ body:
         - "v2.2"
         - "v2.3"
         - "v2.4"
+        - "v2.5"
         - "master"
     validations:
       required: true
@@ -91,8 +92,8 @@ body:
           <summary>Current environment</summary>
 
         ```
-        #- PyTorch Lightning Version (e.g., 2.4.0):
-        #- PyTorch Version (e.g., 2.4):
+        #- PyTorch Lightning Version (e.g., 2.5.0):
+        #- PyTorch Version (e.g., 2.5):
         #- Python version (e.g., 3.12):
         #- OS (e.g., Linux):
         #- CUDA/cuDNN version:

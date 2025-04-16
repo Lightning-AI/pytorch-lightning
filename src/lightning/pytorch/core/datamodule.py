@@ -14,7 +14,8 @@
 """LightningDataModule for loading DataLoaders with ease."""
 
 import inspect
-from collections.abc import Iterable
+import os
+from collections.abc import Iterable, Sized
 from typing import IO, Any, Optional, Union, cast
 
 from lightning_utilities import apply_to_collection
@@ -244,3 +245,75 @@ class LightningDataModule(DataHooks, HyperparametersMixin):
             **kwargs,
         )
         return cast(Self, loaded)
+
+    def __str__(self) -> str:
+        """Return a string representation of the datasets that are set up.
+
+        Returns:
+            A string representation of the datasets that are setup.
+
+        """
+
+        class dataset_info:
+            def __init__(self, available: bool, length: str) -> None:
+                self.available = available
+                self.length = length
+
+        def retrieve_dataset_info(loader: DataLoader) -> dataset_info:
+            """Helper function to compute dataset information."""
+            dataset = loader.dataset
+            size: str = str(len(dataset)) if isinstance(dataset, Sized) else "NA"
+
+            return dataset_info(True, size)
+
+        def loader_info(
+            loader: Union[DataLoader, Iterable[DataLoader]],
+        ) -> Union[dataset_info, Iterable[dataset_info]]:
+            """Helper function to compute dataset information."""
+            return apply_to_collection(loader, DataLoader, retrieve_dataset_info)
+
+        def extract_loader_info(methods: list[tuple[str, str]]) -> dict:
+            """Helper function to extract information for each dataloader method."""
+            info: dict[str, Union[dataset_info, Iterable[dataset_info]]] = {}
+            for loader_name, func_name in methods:
+                loader_method = getattr(self, func_name, None)
+
+                try:
+                    loader = loader_method()  # type: ignore
+                    info[loader_name] = loader_info(loader)
+                except Exception:
+                    info[loader_name] = dataset_info(False, "")
+
+            return info
+
+        def format_loader_info(info: dict[str, Union[dataset_info, Iterable[dataset_info]]]) -> str:
+            """Helper function to format loader information."""
+            output = []
+            for loader_name, loader_info in info.items():
+                # Single dataset
+                if isinstance(loader_info, dataset_info):
+                    loader_info_formatted = "None" if not loader_info.available else f"size={loader_info.length}"
+                # Iterable of datasets
+                else:
+                    loader_info_formatted = " ; ".join(
+                        "None" if not loader_info_i.available else f"{i}. size={loader_info_i.length}"
+                        for i, loader_info_i in enumerate(loader_info, start=1)
+                    )
+
+                output.append(f"{{{loader_name}: {loader_info_formatted}}}")
+
+            return os.linesep.join(output)
+
+        # Available dataloader methods
+        datamodule_loader_methods: list[tuple[str, str]] = [
+            ("Train dataloader", "train_dataloader"),
+            ("Validation dataloader", "val_dataloader"),
+            ("Test dataloader", "test_dataloader"),
+            ("Predict dataloader", "predict_dataloader"),
+        ]
+
+        # Retrieve information for each dataloader method
+        dataloader_info = extract_loader_info(datamodule_loader_methods)
+        # Format the information
+        dataloader_str = format_loader_info(dataloader_info)
+        return dataloader_str

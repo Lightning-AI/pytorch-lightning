@@ -20,11 +20,11 @@ import pytest
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from torch.utils.data import DataLoader
+
 from lightning.fabric import Fabric
 from lightning.fabric.plugins import DeepSpeedPrecision
 from lightning.fabric.strategies import DeepSpeedStrategy
-from torch.utils.data import DataLoader
-
 from tests_fabric.helpers.datasets import RandomDataset, RandomIterableDataset
 from tests_fabric.helpers.runif import RunIf
 from tests_fabric.test_fabric import BoringModel

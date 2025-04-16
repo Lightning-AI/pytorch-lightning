@@ -21,6 +21,7 @@ from packaging.version import Version
 import lightning.pytorch as pl
 from lightning.fabric.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
 from lightning.pytorch.callbacks import Checkpoint, EarlyStopping
+from lightning.pytorch.loggers import WandbLogger
 from lightning.pytorch.strategies.launchers import _SubprocessScriptLauncher
 from lightning.pytorch.trainer.connectors.signal_connector import _get_sigkill_signal
 from lightning.pytorch.trainer.states import TrainerStatus
@@ -91,8 +92,12 @@ def _call_setup_hook(trainer: "pl.Trainer") -> None:
         if isinstance(module, _DeviceDtypeModuleMixin):
             module._device = trainer.strategy.root_device
 
+    # wandb.init must be called before any tensorboard writers are created in order to sync tensorboard logs to wandb:
+    # https://github.com/wandb/wandb/issues/1782#issuecomment-779161203
+    loggers = sorted(trainer.loggers, key=lambda logger: not isinstance(logger, WandbLogger))
+
     # Trigger lazy creation of experiment in loggers so loggers have their metadata available
-    for logger in trainer.loggers:
+    for logger in loggers:
         if hasattr(logger, "experiment"):
             _ = logger.experiment
 

@@ -22,6 +22,10 @@ from unittest.mock import ANY, Mock
 import pytest
 import torch
 import torch.nn.functional as F
+from torch import Tensor, nn
+from torch.utils.data import DataLoader
+from torchmetrics import Accuracy
+
 from lightning.pytorch import LightningModule, Trainer
 from lightning.pytorch.accelerators import CUDAAccelerator
 from lightning.pytorch.callbacks import Callback, LearningRateMonitor, ModelCheckpoint
@@ -31,10 +35,6 @@ from lightning.pytorch.plugins import DeepSpeedPrecision
 from lightning.pytorch.strategies.deepspeed import DeepSpeedStrategy
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.imports import _TORCHMETRICS_GREATER_EQUAL_0_11 as _TM_GE_0_11
-from torch import Tensor, nn
-from torch.utils.data import DataLoader
-from torchmetrics import Accuracy
-
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.runif import RunIf
 
@@ -81,7 +81,7 @@ class ModelParallelBoringModelManualOptim(BoringModel):
         return False
 
 
-@pytest.fixture()
+@pytest.fixture
 def deepspeed_config():
     return {
         "optimizer": {"type": "SGD", "params": {"lr": 3e-5}},
@@ -92,7 +92,7 @@ def deepspeed_config():
     }
 
 
-@pytest.fixture()
+@pytest.fixture
 def deepspeed_zero_config(deepspeed_config):
     return {**deepspeed_config, "zero_allow_untested_optimizer": True, "zero_optimization": {"stage": 2}}
 

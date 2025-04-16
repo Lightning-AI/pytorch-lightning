@@ -12,16 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import pytest
-from lightning.pytorch import Trainer
-from lightning.pytorch.core.module import LightningModule
-from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
-from lightning.pytorch.loops.optimization.automatic import Closure
-from lightning.pytorch.trainer.states import RunningStage
 from lightning_utilities.test.warning import no_warning_call
 from torch import Tensor
 from torch.utils.data import DataLoader
 from torch.utils.data._utils.collate import default_collate
 
+from lightning.pytorch import Trainer
+from lightning.pytorch.core.module import LightningModule
+from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
+from lightning.pytorch.loops.optimization.automatic import Closure
+from lightning.pytorch.trainer.states import RunningStage
 from tests_pytorch.helpers.deterministic_model import DeterministicModel
 
 
