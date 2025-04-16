@@ -61,7 +61,7 @@ body:
     attributes:
       label: How to reproduce the bug
       description: >
-        In a special case when the issues can't be reproduced in a studio, provide steps and example code here.
+        In the special case when the issue can't be reproduced in a studio, provide steps and example code here.
       placeholder: |
         ```python
         # Sample code to reproduce the problem
