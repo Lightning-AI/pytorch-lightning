@@ -35,21 +35,21 @@ import yaml
 from torch import Tensor
 from typing_extensions import override
 
-import pytorch_lightning as pl
+import lightning.pytorch as pl
+from lightning.pytorch.callbacks import Checkpoint
+from lightning.pytorch.utilities.exceptions import MisconfigurationException
+from lightning.pytorch.utilities.rank_zero import (
+    WarningCache,
+    rank_zero_info,
+    rank_zero_warn,
+)
+from lightning.pytorch.utilities.types import STEP_OUTPUT
 from lightning_fabric.utilities.cloud_io import (
     _is_dir,
     _is_local_file_protocol,
     get_filesystem,
 )
 from lightning_fabric.utilities.types import _PATH
-from pytorch_lightning.callbacks import Checkpoint
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.rank_zero import (
-    WarningCache,
-    rank_zero_info,
-    rank_zero_warn,
-)
-from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 log = logging.getLogger(__name__)
 warning_cache = WarningCache()
