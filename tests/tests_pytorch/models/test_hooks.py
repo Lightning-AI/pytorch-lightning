@@ -18,12 +18,12 @@ from unittest.mock import ANY, PropertyMock
 
 import pytest
 import torch
-from lightning.pytorch import Callback, LightningDataModule, LightningModule, Trainer, __version__
-from lightning.pytorch.demos.boring_classes import BoringDataModule, BoringModel, RandomDataset
-from lightning.pytorch.utilities.model_helpers import is_overridden
 from torch import Tensor
 from torch.utils.data import DataLoader
 
+from lightning.pytorch import Callback, LightningDataModule, LightningModule, Trainer, __version__
+from lightning.pytorch.demos.boring_classes import BoringDataModule, BoringModel, RandomDataset
+from lightning.pytorch.utilities.model_helpers import is_overridden
 from tests_pytorch.helpers.runif import RunIf
 
 

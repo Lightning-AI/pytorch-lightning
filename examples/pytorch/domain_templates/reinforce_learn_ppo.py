@@ -35,11 +35,12 @@ from typing import Callable
 
 import gym
 import torch
-from lightning.pytorch import LightningModule, Trainer, cli_lightning_logo, seed_everything
 from torch import nn
 from torch.distributions import Categorical, Normal
 from torch.optim.optimizer import Optimizer
 from torch.utils.data import DataLoader, IterableDataset
+
+from lightning.pytorch import LightningModule, Trainer, cli_lightning_logo, seed_everything
 
 
 def create_mlp(input_shape: tuple[int], n_actions: int, hidden_size: int = 128):

@@ -157,7 +157,7 @@ class _Metadata:
 
     def forked_name(self, on_step: bool) -> str:
         if self.forked:
-            return f'{self.name}_{"step" if on_step else "epoch"}'
+            return f"{self.name}_{'step' if on_step else 'epoch'}"
         return self.name
 
     @property

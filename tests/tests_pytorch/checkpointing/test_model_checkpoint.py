@@ -25,20 +25,21 @@ from unittest import mock
 from unittest.mock import Mock, call, patch
 
 import cloudpickle
-import lightning.pytorch as pl
 import pytest
 import torch
 import yaml
 from jsonargparse import ArgumentParser
+from torch import optim
+from torch.utils.data.dataloader import DataLoader
+
+import lightning.pytorch as pl
 from lightning.fabric.utilities.cloud_io import _load as pl_load
 from lightning.pytorch import Trainer, seed_everything
 from lightning.pytorch.callbacks import ModelCheckpoint
-from lightning.pytorch.demos.boring_classes import BoringModel
+from lightning.pytorch.demos.boring_classes import BoringModel, RandomIterableDataset
 from lightning.pytorch.loggers import CSVLogger, TensorBoardLogger
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.imports import _OMEGACONF_AVAILABLE
-from torch import optim
-
 from tests_pytorch.helpers.runif import RunIf
 
 if _OMEGACONF_AVAILABLE:
@@ -1624,3 +1625,44 @@ def test_save_last_cli(val, expected):
     parser.add_argument("--a", type=annot)
     args = parser.parse_args(["--a", val])
     assert args.a == expected
+
+
+def test_load_with_inf_data_loader(tmp_path):
+    """Test loading from a checkpoint with a dataloader that does not have a length."""
+    # Test for https://github.com/Lightning-AI/pytorch-lightning/issues/20565
+    dataset = RandomIterableDataset(size=32, count=10)
+
+    class ModelWithIterableDataset(BoringModel):
+        def train_dataloader(self) -> DataLoader:
+            return DataLoader(dataset)
+
+        def val_dataloader(self) -> DataLoader:
+            return DataLoader(dataset)
+
+    model = ModelWithIterableDataset()
+    with pytest.raises(TypeError):
+        len(model.train_dataloader())
+
+    trainer_kwargs = {
+        "default_root_dir": tmp_path,
+        "max_epochs": 2,
+        "limit_train_batches": 2,
+        "limit_val_batches": None,
+        "check_val_every_n_epoch": 1,
+        "enable_model_summary": False,
+        "logger": False,
+    }
+    mc_kwargs = {
+        "save_last": True,
+        "every_n_train_steps": 1,
+    }
+    trainer = Trainer(**trainer_kwargs, callbacks=ModelCheckpoint(**mc_kwargs))
+    trainer.fit(model)
+
+    checkpoint_path = tmp_path / "checkpoints" / "epoch=1-step=4.ckpt"
+    assert checkpoint_path.name in os.listdir(tmp_path / "checkpoints")
+
+    # Resume from checkpoint and run for more epochs
+    trainer_kwargs["max_epochs"] = 4
+    trainer = Trainer(**trainer_kwargs, callbacks=ModelCheckpoint(**mc_kwargs))
+    trainer.fit(model, ckpt_path=checkpoint_path)

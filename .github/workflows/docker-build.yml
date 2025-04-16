@@ -47,7 +47,8 @@ jobs:
           - { python_version: "3.11", pytorch_version: "2.2", cuda_version: "12.1.1" }
           - { python_version: "3.11", pytorch_version: "2.3", cuda_version: "12.1.1" }
           - { python_version: "3.11", pytorch_version: "2.4", cuda_version: "12.1.1" }
-          - { python_version: "3.12", pytorch_version: "2.5", cuda_version: "12.1.1", latest: "true" }
+          - { python_version: "3.12", pytorch_version: "2.5", cuda_version: "12.1.1" }
+          - { python_version: "3.12", pytorch_version: "2.6", cuda_version: "12.4.1", latest: "true" }
     steps:
       - uses: actions/checkout@v4
         with:
@@ -100,6 +101,8 @@ jobs:
           - { python_version: "3.11", pytorch_version: "2.3.1", cuda_version: "12.1.1" }
           - { python_version: "3.11", pytorch_version: "2.4.1", cuda_version: "12.1.1" }
           - { python_version: "3.12", pytorch_version: "2.5.1", cuda_version: "12.1.1" }
+          - { python_version: "3.12", pytorch_version: "2.6.0", cuda_version: "12.4.1" }
+          - { python_version: "3.12", pytorch_version: "2.7.0", cuda_version: "12.6.3" }
     steps:
       - uses: actions/checkout@v4
       - uses: docker/setup-buildx-action@v3
@@ -130,7 +133,7 @@ jobs:
           status: ${{ job.status }}
           token: ${{ secrets.GITHUB_TOKEN }}
           notification_title: ${{ format('CUDA; {0} py{1} for *{2}*', runner.os, matrix.python_version, matrix.pytorch_version) }}
-          message_format: "{emoji} *{workflow}* {status_message}, see <{run_url}|detail>, cc: <@U01A5T7EY9M>" # akihironitta
+          message_format: "{emoji} *{workflow}* {status_message}, see <{run_url}|detail>, cc: <@U01A5T7EY9M>"
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
