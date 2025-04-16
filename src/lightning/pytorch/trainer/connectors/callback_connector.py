@@ -18,7 +18,6 @@ from collections.abc import Sequence
 from datetime import timedelta
 from typing import Optional, Union
 
-from lightning_utilities import module_available
 from lightning_utilities.core.imports import RequirementCache
 
 import lightning.pytorch as pl
