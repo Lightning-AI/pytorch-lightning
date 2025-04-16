@@ -481,23 +481,27 @@ class AssistantCLI:
         with open(ver_file, "w") as fo:
             fo.write(version + os.linesep)
 
+    @staticmethod
+    def generate_docker_tags(
+        release_version: str,
+        python_version: str,
+        torch_version: str,
+        cuda_version: str,
+        docker_project: str = "pytorchlightning/pytorch_lightning",
+        add_latest: bool = False,
+    ) -> None:
+        """Generate docker tags for the given versions."""
+        tags = [f"latest-py{python_version}-torch{torch_version}-cuda{cuda_version}"]
+        if release_version:
+            tags += [f"{release_version}-py{python_version}-torch{torch_version}-cuda{cuda_version}"]
+        if add_latest:
+            tags += ["latest"]
+
+        tags = [f"{docker_project}:{tag}" for tag in tags]
+        print(",".join(tags))
+
 
 if __name__ == "__main__":
-    import sys
-
     import jsonargparse
-    from jsonargparse import ArgumentParser
-
-    def patch_jsonargparse_python_3_12_8():
-        if sys.version_info < (3, 12, 8):
-            return
-
-        def _parse_known_args_patch(self: ArgumentParser, args: Any = None, namespace: Any = None) -> tuple[Any, Any]:
-            namespace, args = super(ArgumentParser, self)._parse_known_args(args, namespace, intermixed=False)  # type: ignore
-            return namespace, args
-
-        setattr(ArgumentParser, "_parse_known_args", _parse_known_args_patch)
-
-    patch_jsonargparse_python_3_12_8()  # Required until fix https://github.com/omni-us/jsonargparse/issues/641
 
     jsonargparse.CLI(AssistantCLI, as_positional=False)

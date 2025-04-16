@@ -37,18 +37,6 @@ from lightning.pytorch.utilities.rank_zero import rank_zero_warn
 
 _JSONARGPARSE_SIGNATURES_AVAILABLE = RequirementCache("jsonargparse[signatures]>=4.27.7")
 
-
-def patch_jsonargparse_python_3_12_8() -> None:
-    if sys.version_info < (3, 12, 8):
-        return
-
-    def _parse_known_args_patch(self: ArgumentParser, args: Any = None, namespace: Any = None) -> tuple[Any, Any]:
-        namespace, args = super(ArgumentParser, self)._parse_known_args(args, namespace, intermixed=False)  # type: ignore
-        return namespace, args
-
-    setattr(ArgumentParser, "_parse_known_args", _parse_known_args_patch)
-
-
 if _JSONARGPARSE_SIGNATURES_AVAILABLE:
     import docstring_parser
     from jsonargparse import (
@@ -59,8 +47,6 @@ if _JSONARGPARSE_SIGNATURES_AVAILABLE:
         register_unresolvable_import_paths,
         set_config_read_mode,
     )
-
-    patch_jsonargparse_python_3_12_8()  # Required until fix https://github.com/omni-us/jsonargparse/issues/641
 
     register_unresolvable_import_paths(torch)  # Required until fix https://github.com/pytorch/pytorch/issues/74483
     set_config_read_mode(fsspec_enabled=True)
@@ -328,6 +314,7 @@ class LightningCLI:
         trainer_defaults: Optional[dict[str, Any]] = None,
         seed_everything_default: Union[bool, int] = True,
         parser_kwargs: Optional[Union[dict[str, Any], dict[str, dict[str, Any]]]] = None,
+        parser_class: type[LightningArgumentParser] = LightningArgumentParser,
         subclass_mode_model: bool = False,
         subclass_mode_data: bool = False,
         args: ArgsType = None,
@@ -381,6 +368,7 @@ class LightningCLI:
         self.trainer_defaults = trainer_defaults or {}
         self.seed_everything_default = seed_everything_default
         self.parser_kwargs = parser_kwargs or {}
+        self.parser_class = parser_class
         self.auto_configure_optimizers = auto_configure_optimizers
 
         self.model_class = model_class
@@ -418,7 +406,7 @@ class LightningCLI:
     def init_parser(self, **kwargs: Any) -> LightningArgumentParser:
         """Method that instantiates the argument parser."""
         kwargs.setdefault("dump_header", [f"lightning.pytorch=={pl.__version__}"])
-        parser = LightningArgumentParser(**kwargs)
+        parser = self.parser_class(**kwargs)
         parser.add_argument(
             "-c", "--config", action=ActionConfigFile, help="Path to a configuration file in json or yaml format."
         )

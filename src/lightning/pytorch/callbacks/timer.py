@@ -111,8 +111,8 @@ class Timer(Callback):
         self._duration = duration.total_seconds() if duration is not None else None
         self._interval = interval
         self._verbose = verbose
-        self._start_time: dict[RunningStage, Optional[float]] = {stage: None for stage in RunningStage}
-        self._end_time: dict[RunningStage, Optional[float]] = {stage: None for stage in RunningStage}
+        self._start_time: dict[RunningStage, Optional[float]] = dict.fromkeys(RunningStage)
+        self._end_time: dict[RunningStage, Optional[float]] = dict.fromkeys(RunningStage)
         self._offset = 0
 
     def start_time(self, stage: str = RunningStage.TRAINING) -> Optional[float]:

@@ -14,6 +14,7 @@
 from typing import Any
 
 import torch
+
 from lightning.fabric.accelerators import ACCELERATOR_REGISTRY, Accelerator
 
 
@@ -69,4 +70,4 @@ def test_accelerator_registry_with_new_accelerator():
 
 
 def test_available_accelerators_in_registry():
-    assert ACCELERATOR_REGISTRY.available_accelerators() == ["cpu", "cuda", "mps", "tpu"]
+    assert ACCELERATOR_REGISTRY.available_accelerators() == {"cpu", "cuda", "mps", "tpu"}
