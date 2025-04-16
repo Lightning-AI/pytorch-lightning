@@ -442,39 +442,38 @@ def test_save_hyperparameters_under_composition(base_class):
 
 @pytest.mark.parametrize("base_class", [HyperparametersMixin, LightningModule, LightningDataModule])
 def test_save_hyperparameters_ignore(base_class):
-    """Test if `save_hyperparameter` applies the ignore of the save_hyperparameters function to args."""
+    """Test if `save_hyperparameter` applies the ignore list correctly during initialization."""
 
     class PLSubclass(base_class):
-        def __init__(self, arg1="arg1", arg2="arg2"):
+        def __init__(self, learning_rate=1e-3, optimizer="adam"):
             super().__init__()
-            self.save_hyperparameters(ignore=["arg1"])
+            self.save_hyperparameters(ignore=["learning_rate"])
 
-    pl_instance = PLSubclass(arg1="arg1", arg2="arg2")
-    assert pl_instance.hparams == {"arg2": "arg2"}
+    pl_instance = PLSubclass(learning_rate=0.01, optimizer="sgd")
+    assert pl_instance.hparams == {"optimizer": "sgd"}
+
 
 
 @pytest.mark.parametrize("base_class", [HyperparametersMixin, LightningModule, LightningDataModule])
 def test_save_hyperparameters_ignore_under_composition(base_class):
-    """Test that in a composition where the parent is not a Lightning-like module, the parent's arguments don't get
-    collected and ignore is respected."""
+    """Test that in a composed system, hyperparameter saving skips ignored fields from nested modules."""
 
-    class ChildInComposition(base_class):
-        def __init__(self, fav_fruit, fav_animal, fav_language):
+    class ChildModule(base_class):
+        def __init__(self, dropout, activation, init_method):
             super().__init__()
-            self.save_hyperparameters(ignore=["fav_fruit", "fav_animal"])
+            self.save_hyperparameters(ignore=["dropout", "activation"])
 
-    class ParentInComposition(base_class):
-        def __init__(self, fav_fruit, fav_framework):
+    class ParentModule(base_class):
+        def __init__(self, batch_size, optimizer):
             super().__init__()
-            self.child = ChildInComposition(fav_fruit="dragonfruit", fav_animal="dog", fav_language="python")
+            self.child = ChildModule(dropout=0.1, activation="relu", init_method="xavier")
 
-    class NotPLSubclass:  # intentionally not subclassing LightningModule/LightningDataModule
-        def __init__(self, parent_arg="parent_default", other_arg="other"):
-            self.pl_parent = ParentInComposition(fav_fruit="cocofruit", fav_framework="lightning")
+    class PipelineWrapper:  # not a Lightning subclass on purpose
+        def __init__(self, run_id="abc123", seed=42):
+            self.parent_module = ParentModule(batch_size=64, optimizer="adam")
 
-    parent = NotPLSubclass()
-    assert parent.pl_parent.child.hparams == {"fav_framework": "lightning", "fav_language": "python"}
-
+    pipeline = PipelineWrapper()
+    assert pipeline.parent_module.child.hparams == {"init_method": "xavier", "batch_size": 64, "optimizer": "adam"}
 
 class LocalVariableModelSuperLast(BoringModel):
     """This model has the super().__init__() call at the end."""
