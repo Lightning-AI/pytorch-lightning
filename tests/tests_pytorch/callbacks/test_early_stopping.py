@@ -61,8 +61,8 @@ class EarlyStoppingTestRestore(EarlyStopping):
 def test_resume_early_stopping_from_checkpoint(tmp_path):
     """Prevent regressions to bugs:
 
-    https://github.com/Lightning-AI/lightning/issues/1464
-    https://github.com/Lightning-AI/lightning/issues/1463
+    https://github.com/Lightning-AI/pytorch-lightning/issues/1464
+    https://github.com/Lightning-AI/pytorch-lightning/issues/1463
 
     """
     seed_everything(42)
