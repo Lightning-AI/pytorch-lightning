@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import math
 import os
 import shutil
 import sys
@@ -268,7 +269,10 @@ class _EvaluationLoop(_Loop):
         if self.skip:
             return
         self.reset()
-        max_batch = int(max(self.max_batches))
+        max_batch = max(self.max_batches)
+        if isinstance(max_batch, float) and math.isinf(max_batch):
+            return
+        max_batch = int(max_batch)
         if max_batch == -1:
             return
         self.batch_progress.increment_by(max_batch, True)

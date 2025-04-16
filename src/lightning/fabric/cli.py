@@ -14,8 +14,6 @@
 import logging
 import os
 import re
-import subprocess
-import sys
 from argparse import Namespace
 from typing import Any, Optional
 
@@ -49,25 +47,6 @@ def _get_supported_strategies() -> list[str]:
 
 if _CLICK_AVAILABLE:
     import click
-
-    def _legacy_main() -> None:
-        """Legacy CLI handler for fabric.
-
-        Raises deprecation warning and runs through fabric cli if necessary, else runs the entrypoint directly
-
-        """
-        hparams = sys.argv[1:]
-        if len(hparams) >= 2 and hparams[0] == "run" and hparams[1] == "model":
-            print(
-                "`lightning run model` is deprecated and will be removed in future versions."
-                " Please call `fabric run` instead."
-            )
-            _main()
-            return
-
-        if _LIGHTNING_SDK_AVAILABLE:
-            subprocess.run([sys.executable, "-m", "lightning_sdk.cli.entrypoint"] + hparams)
-            return
 
     @click.group()
     def _main() -> None:

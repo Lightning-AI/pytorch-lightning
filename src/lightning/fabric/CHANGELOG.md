@@ -4,6 +4,32 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
+
+## [unreleased] - YYYY-MM-DD
+
+### Added
+
+-
+
+
+### Removed
+
+-
+
+
+---
+
+## [2.5.1] - 2025-03-18
+
+### Changed
+
+- Added logging support for list of dicts without collapsing to a single key ([#19957](https://github.com/Lightning-AI/pytorch-lightning/issues/19957))
+
+### Removed
+
+- Removed legacy support for `lightning run model`. Use `fabric run` instead. ([#20588](https://github.com/Lightning-AI/pytorch-lightning/pull/20588))
+
+
 ## [2.5.0] - 2024-12-19
 
 ### Added
@@ -331,7 +357,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ### Fixed
 
 - Fixed computing the next version folder in `CSVLogger` ([#17139](https://github.com/Lightning-AI/lightning/pull/17139))
-- Fixed inconsistent settings for FSDP Precision ([#17670](https://github.com/Lightning-AI/lightning/issues/17670))
+- Fixed inconsistent settings for FSDP Precision ([#17670](https://github.com/Lightning-AI/pytorch-lightning/issues/17670))
 
 
 ## [2.0.2] - 2023-04-24
