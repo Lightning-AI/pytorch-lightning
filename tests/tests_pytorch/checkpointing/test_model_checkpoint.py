@@ -32,7 +32,6 @@ from jsonargparse import ArgumentParser
 from torch import optim
 from torch.utils.data.dataloader import DataLoader
 
-import lightning.pytorch as pl
 from lightning.fabric.utilities.cloud_io import _load as pl_load
 from lightning.pytorch import Trainer, seed_everything
 from lightning.pytorch.callbacks import ModelCheckpoint
