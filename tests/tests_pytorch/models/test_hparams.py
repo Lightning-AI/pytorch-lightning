@@ -440,6 +440,42 @@ def test_save_hyperparameters_under_composition(base_class):
     assert parent.child.hparams == {"same_arg": "cocofruit"}
 
 
+@pytest.mark.parametrize("base_class", [HyperparametersMixin, LightningModule, LightningDataModule])
+def test_save_hyperparameters_ignore(base_class):
+    """Test if `save_hyperparameter` applies the ignore of the save_hyperparameters function to args."""
+
+    class PLSubclass(base_class):
+        def __init__(self, arg1="arg1", arg2="arg2"):
+            super().__init__()
+            self.save_hyperparameters(ignore=["arg1"])
+
+    pl_instance = PLSubclass(arg1="arg1", arg2="arg2")
+    assert pl_instance.hparams == {"arg2": "arg2"}
+
+
+@pytest.mark.parametrize("base_class", [HyperparametersMixin, LightningModule, LightningDataModule])
+def test_save_hyperparameters_ignore_under_composition(base_class):
+    """Test that in a composition where the parent is not a Lightning-like module, the parent's arguments don't get
+    collected and ignore is respected."""
+
+    class ChildInComposition(base_class):
+        def __init__(self, fav_fruit, fav_animal, fav_language):
+            super().__init__()
+            self.save_hyperparameters(ignore=["fav_fruit", "fav_animal"])
+
+    class ParentInComposition(base_class):
+        def __init__(self, fav_fruit, fav_framework):
+            super().__init__()
+            self.child = ChildInComposition(fav_fruit="dragonfruit", fav_animal="dog", fav_language="python")
+
+    class NotPLSubclass:  # intentionally not subclassing LightningModule/LightningDataModule
+        def __init__(self, parent_arg="parent_default", other_arg="other"):
+            self.pl_parent = ParentInComposition(fav_fruit="cocofruit", fav_framework="lightning")
+
+    parent = NotPLSubclass()
+    assert parent.pl_parent.child.hparams == {"fav_framework": "lightning", "fav_language": "python"}
+
+
 class LocalVariableModelSuperLast(BoringModel):
     """This model has the super().__init__() call at the end."""
 
