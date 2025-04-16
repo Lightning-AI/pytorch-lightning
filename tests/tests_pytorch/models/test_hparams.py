@@ -453,7 +453,6 @@ def test_save_hyperparameters_ignore(base_class):
     assert pl_instance.hparams == {"optimizer": "sgd"}
 
 
-
 @pytest.mark.parametrize("base_class", [HyperparametersMixin, LightningModule, LightningDataModule])
 def test_save_hyperparameters_ignore_under_composition(base_class):
     """Test that in a composed system, hyperparameter saving skips ignored fields from nested modules."""
@@ -474,6 +473,7 @@ def test_save_hyperparameters_ignore_under_composition(base_class):
 
     pipeline = PipelineWrapper()
     assert pipeline.parent_module.child.hparams == {"init_method": "xavier", "batch_size": 64, "optimizer": "adam"}
+
 
 class LocalVariableModelSuperLast(BoringModel):
     """This model has the super().__init__() call at the end."""
