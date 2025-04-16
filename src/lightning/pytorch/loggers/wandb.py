@@ -324,7 +324,7 @@ class WandbLogger(Logger):
         self._prefix = prefix
         self._experiment = experiment
         self._logged_model_time: dict[str, float] = {}
-        self._checkpoint_callback: Optional[ModelCheckpoint] = None
+        self._checkpoint_callbacks: dict[int, ModelCheckpoint] = {}
         self.add_file_policy = add_file_policy
 
         # paths are processed as strings
@@ -413,8 +413,11 @@ class WandbLogger(Logger):
                 if isinstance(self._experiment, (Run, RunDisabled)) and getattr(
                     self._experiment, "define_metric", None
                 ):
-                    self._experiment.define_metric("trainer/global_step")
-                    self._experiment.define_metric("*", step_metric="trainer/global_step", step_sync=True)
+                    if self._wandb_init.get("sync_tensorboard"):
+                        self._experiment.define_metric("*", step_metric="global_step")
+                    else:
+                        self._experiment.define_metric("trainer/global_step")
+                        self._experiment.define_metric("*", step_metric="trainer/global_step", step_sync=True)
 
         return self._experiment
 
@@ -437,7 +440,7 @@ class WandbLogger(Logger):
         assert rank_zero_only.rank == 0, "experiment tried to log from global_rank != 0"
 
         metrics = _add_prefix(metrics, self._prefix, self.LOGGER_JOIN_CHAR)
-        if step is not None:
+        if step is not None and not self._wandb_init.get("sync_tensorboard"):
             self.experiment.log(dict(metrics, **{"trainer/global_step": step}))
         else:
             self.experiment.log(metrics)
@@ -591,7 +594,7 @@ class WandbLogger(Logger):
         if self._log_model == "all" or self._log_model is True and checkpoint_callback.save_top_k == -1:
             self._scan_and_log_checkpoints(checkpoint_callback)
         elif self._log_model is True:
-            self._checkpoint_callback = checkpoint_callback
+            self._checkpoint_callbacks[id(checkpoint_callback)] = checkpoint_callback
 
     @staticmethod
     @rank_zero_only
@@ -644,8 +647,9 @@ class WandbLogger(Logger):
             # Currently, checkpoints only get logged on success
             return
         # log checkpoints as artifacts
-        if self._checkpoint_callback and self._experiment is not None:
-            self._scan_and_log_checkpoints(self._checkpoint_callback)
+        if self._experiment is not None:
+            for checkpoint_callback in self._checkpoint_callbacks.values():
+                self._scan_and_log_checkpoints(checkpoint_callback)
 
     def _scan_and_log_checkpoints(self, checkpoint_callback: ModelCheckpoint) -> None:
         import wandb

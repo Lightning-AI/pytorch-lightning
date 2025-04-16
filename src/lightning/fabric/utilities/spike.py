@@ -52,7 +52,7 @@ class SpikeDetection:
             from torchmetrics.aggregation import MeanMetric
             from torchmetrics.wrappers import Running
         else:
-            raise RuntimeError("SpikeDetection requires torchmetrics>=1.0.0! Please upgrade your version!")
+            raise RuntimeError("SpikeDetection requires `torchmetrics>=1.0.0` Please upgrade your version.")
         super().__init__()
 
         self.last_val: Union[torch.Tensor, float] = 0.0
