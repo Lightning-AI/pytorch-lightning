@@ -389,12 +389,11 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
                 remote_device=self.remote_device,
                 config_dict_or_path=self.config,
             )
-        else:
-            return deepspeed.zero.Init(
-                enabled=self.zero_stage_3,
-                remote_device=self.remote_device,
-                config_dict_or_path=self.config,
-            )
+        return deepspeed.zero.Init(
+            enabled=self.zero_stage_3,
+            remote_device=self.remote_device,
+            config_dict_or_path=self.config,
+        )
 
     @override
     def save_checkpoint(
