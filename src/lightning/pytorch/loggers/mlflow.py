@@ -180,7 +180,7 @@ class MLFlowLogger(Logger):
 
         if self._experiment_id is None:
             expt = self._mlflow_client.get_experiment_by_name(self._experiment_name)
-            if expt is not None:
+            if expt is not None and expt.lifecycle_stage != "deleted":
                 self._experiment_id = expt.experiment_id
             else:
                 log.warning(f"Experiment with name {self._experiment_name} not found. Creating it.")
@@ -363,7 +363,7 @@ class MLFlowLogger(Logger):
             aliases = ["latest", "best"] if p == checkpoint_callback.best_model_path else ["latest"]
 
             # Artifact path on mlflow
-            artifact_path = Path(self._checkpoint_path_prefix) / Path(p).stem
+            artifact_path = Path(self._checkpoint_path_prefix, Path(p).stem).as_posix()
 
             # Log the checkpoint
             self.experiment.log_artifact(self._run_id, p, artifact_path)
