@@ -30,6 +30,7 @@ from typing import Any, Optional, Union
 from weakref import proxy
 
 import torch
+from lightning_utilities import module_available
 from torch.optim import Optimizer
 
 import lightning.pytorch as pl
@@ -70,6 +71,7 @@ from lightning.pytorch.utilities.argparse import _defaults_from_env_vars
 from lightning.pytorch.utilities.compile import _maybe_unwrap_optimized, _verify_strategy_supports_compile
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.model_helpers import is_overridden
+from lightning.pytorch.utilities.model_registry import _is_registry, download_model_from_registry
 from lightning.pytorch.utilities.rank_zero import rank_zero_info, rank_zero_warn
 from lightning.pytorch.utilities.seed import isolate_rng
 from lightning.pytorch.utilities.types import (
@@ -128,6 +130,8 @@ class Trainer:
         sync_batchnorm: bool = False,
         reload_dataloaders_every_n_epochs: int = 0,
         default_root_dir: Optional[_PATH] = None,
+        enable_autolog_hparams: bool = True,
+        model_registry: Optional[str] = None,
     ) -> None:
         r"""Customize every aspect of training via flags.
 
@@ -290,6 +294,11 @@ class Trainer:
                 Default: ``os.getcwd()``.
                 Can be remote file paths such as `s3://mybucket/path` or 'hdfs://path/'
 
+            enable_autolog_hparams: Whether to log hyperparameters at the start of a run.
+                Default: ``True``.
+
+            model_registry: The name of the model being uploaded to Model hub.
+
         Raises:
             TypeError:
                 If ``gradient_clip_val`` is not an int or float.
@@ -303,6 +312,9 @@ class Trainer:
 
         if default_root_dir is not None:
             default_root_dir = os.fspath(default_root_dir)
+
+        # remove version if accidentally passed
+        self._model_registry = model_registry.split(":")[0] if model_registry else None
 
         self.barebones = barebones
         if barebones:
@@ -496,6 +508,8 @@ class Trainer:
             num_sanity_val_steps,
         )
 
+        self.enable_autolog_hparams = enable_autolog_hparams
+
     def fit(
         self,
         model: "pl.LightningModule",
@@ -519,7 +533,20 @@ class Trainer:
                 the :class:`~lightning.pytorch.core.hooks.DataHooks.train_dataloader` hook.
 
             ckpt_path: Path/URL of the checkpoint from which training is resumed. Could also be one of two special
-                keywords ``"last"`` and ``"hpc"``. If there is no checkpoint file at the path, an exception is raised.
+                keywords ``"last"``, ``"hpc"`` and ``"registry"``.
+                Otherwise, if there is no checkpoint file at the path, an exception is raised.
+
+                    - best: the best model checkpoint from the previous ``trainer.fit`` call will be loaded
+                    - last: the last model checkpoint from the previous ``trainer.fit`` call will be loaded
+                    - registry: the model will be downloaded from the Lightning Model Registry with following notations:
+
+                        - ``'registry'``: uses the latest/default version of default model set
+                          with ``Tainer(..., model_registry="my-model")``
+                        - ``'registry:model-name'``: uses the latest/default version of this model `model-name`
+                        - ``'registry:model-name:version:v2'``: uses the specific version 'v2' of the model `model-name`
+                        - ``'registry:version:v2'``: uses the default model set
+                          with ``Tainer(..., model_registry="my-model")`` and version 'v2'
+
 
         Raises:
             TypeError:
@@ -536,6 +563,7 @@ class Trainer:
         self.state.fn = TrainerFn.FITTING
         self.state.status = TrainerStatus.RUNNING
         self.training = True
+        self.should_stop = False
         call._call_and_handle_interrupt(
             self, self._fit_impl, model, train_dataloaders, val_dataloaders, datamodule, ckpt_path
         )
@@ -566,6 +594,8 @@ class Trainer:
         )
 
         assert self.state.fn is not None
+        if _is_registry(ckpt_path) and module_available("litmodels"):
+            download_model_from_registry(ckpt_path, self)
         ckpt_path = self._checkpoint_connector._select_ckpt_path(
             self.state.fn,
             ckpt_path,
@@ -595,8 +625,8 @@ class Trainer:
                 Alternatively, a :class:`~lightning.pytorch.core.datamodule.LightningDataModule` that defines
                 the :class:`~lightning.pytorch.core.hooks.DataHooks.val_dataloader` hook.
 
-            ckpt_path: Either ``"best"``, ``"last"``, ``"hpc"`` or path to the checkpoint you wish to validate.
-                If ``None`` and the model instance was passed, use the current weights.
+            ckpt_path: Either ``"best"``, ``"last"``, ``"hpc"``, ``"registry"`` or path to the checkpoint you wish
+                to validate. If ``None`` and the model instance was passed, use the current weights.
                 Otherwise, the best model checkpoint from the previous ``trainer.fit`` call will be loaded
                 if a checkpoint callback is configured.
 
@@ -674,6 +704,8 @@ class Trainer:
         self._data_connector.attach_data(model, val_dataloaders=dataloaders, datamodule=datamodule)
 
         assert self.state.fn is not None
+        if _is_registry(ckpt_path) and module_available("litmodels"):
+            download_model_from_registry(ckpt_path, self)
         ckpt_path = self._checkpoint_connector._select_ckpt_path(
             self.state.fn, ckpt_path, model_provided=model_provided, model_connected=self.lightning_module is not None
         )
@@ -704,8 +736,8 @@ class Trainer:
                 Alternatively, a :class:`~lightning.pytorch.core.datamodule.LightningDataModule` that defines
                 the :class:`~lightning.pytorch.core.hooks.DataHooks.test_dataloader` hook.
 
-            ckpt_path: Either ``"best"``, ``"last"``, ``"hpc"`` or path to the checkpoint you wish to test.
-                If ``None`` and the model instance was passed, use the current weights.
+            ckpt_path: Either ``"best"``, ``"last"``, ``"hpc"``, ``"registry"`` or path to the checkpoint you wish
+                to test. If ``None`` and the model instance was passed, use the current weights.
                 Otherwise, the best model checkpoint from the previous ``trainer.fit`` call will be loaded
                 if a checkpoint callback is configured.
 
@@ -783,6 +815,8 @@ class Trainer:
         self._data_connector.attach_data(model, test_dataloaders=dataloaders, datamodule=datamodule)
 
         assert self.state.fn is not None
+        if _is_registry(ckpt_path) and module_available("litmodels"):
+            download_model_from_registry(ckpt_path, self)
         ckpt_path = self._checkpoint_connector._select_ckpt_path(
             self.state.fn, ckpt_path, model_provided=model_provided, model_connected=self.lightning_module is not None
         )
@@ -819,8 +853,8 @@ class Trainer:
             return_predictions: Whether to return predictions.
                 ``True`` by default except when an accelerator that spawns processes is used (not supported).
 
-            ckpt_path: Either ``"best"``, ``"last"``, ``"hpc"`` or path to the checkpoint you wish to predict.
-                If ``None`` and the model instance was passed, use the current weights.
+            ckpt_path: Either ``"best"``, ``"last"``, ``"hpc"``, ``"registry"`` or path to the checkpoint you wish
+                to predict. If ``None`` and the model instance was passed, use the current weights.
                 Otherwise, the best model checkpoint from the previous ``trainer.fit`` call will be loaded
                 if a checkpoint callback is configured.
 
@@ -892,6 +926,8 @@ class Trainer:
         self._data_connector.attach_data(model, predict_dataloaders=dataloaders, datamodule=datamodule)
 
         assert self.state.fn is not None
+        if _is_registry(ckpt_path) and module_available("litmodels"):
+            download_model_from_registry(ckpt_path, self)
         ckpt_path = self._checkpoint_connector._select_ckpt_path(
             self.state.fn, ckpt_path, model_provided=model_provided, model_connected=self.lightning_module is not None
         )
@@ -962,7 +998,9 @@ class Trainer:
             call._call_callback_hooks(self, "on_fit_start")
             call._call_lightning_module_hook(self, "on_fit_start")
 
-        _log_hyperparams(self)
+        # only log hparams if enabled
+        if self.enable_autolog_hparams:
+            _log_hyperparams(self)
 
         if self.strategy.restore_checkpoint_after_setup:
             log.debug(f"{self.__class__.__name__}: restoring module and callbacks from checkpoint path: {ckpt_path}")

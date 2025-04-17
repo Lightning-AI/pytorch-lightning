@@ -246,7 +246,7 @@ def test_fx_validator_integration(tmp_path):
     })
     trainer.test(model, verbose=False)
 
-    not_supported.update({k: "result collection is not registered yet" for k in not_supported})
+    not_supported.update(dict.fromkeys(not_supported, "result collection is not registered yet"))
     not_supported.update({
         "predict_dataloader": "result collection is not registered yet",
         "on_predict_model_eval": "result collection is not registered yet",

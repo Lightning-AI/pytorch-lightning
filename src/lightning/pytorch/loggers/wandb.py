@@ -278,6 +278,7 @@ class WandbLogger(Logger):
         prefix: A string to put at the beginning of metric keys.
         experiment: WandB experiment object. Automatically set when creating a run.
         checkpoint_name: Name of the model checkpoint artifact being logged.
+        add_file_policy: If "mutable", copies file to tempdirectory before upload.
         \**kwargs: Arguments passed to :func:`wandb.init` like `entity`, `group`, `tags`, etc.
 
     Raises:
@@ -304,6 +305,7 @@ class WandbLogger(Logger):
         experiment: Union["Run", "RunDisabled", None] = None,
         prefix: str = "",
         checkpoint_name: Optional[str] = None,
+        add_file_policy: Literal["mutable", "immutable"] = "mutable",
         **kwargs: Any,
     ) -> None:
         if not _WANDB_AVAILABLE:
@@ -322,7 +324,8 @@ class WandbLogger(Logger):
         self._prefix = prefix
         self._experiment = experiment
         self._logged_model_time: dict[str, float] = {}
-        self._checkpoint_callback: Optional[ModelCheckpoint] = None
+        self._checkpoint_callbacks: dict[int, ModelCheckpoint] = {}
+        self.add_file_policy = add_file_policy
 
         # paths are processed as strings
         if save_dir is not None:
@@ -591,7 +594,7 @@ class WandbLogger(Logger):
         if self._log_model == "all" or self._log_model is True and checkpoint_callback.save_top_k == -1:
             self._scan_and_log_checkpoints(checkpoint_callback)
         elif self._log_model is True:
-            self._checkpoint_callback = checkpoint_callback
+            self._checkpoint_callbacks[id(checkpoint_callback)] = checkpoint_callback
 
     @staticmethod
     @rank_zero_only
@@ -644,8 +647,9 @@ class WandbLogger(Logger):
             # Currently, checkpoints only get logged on success
             return
         # log checkpoints as artifacts
-        if self._checkpoint_callback and self._experiment is not None:
-            self._scan_and_log_checkpoints(self._checkpoint_callback)
+        if self._experiment is not None:
+            for checkpoint_callback in self._checkpoint_callbacks.values():
+                self._scan_and_log_checkpoints(checkpoint_callback)
 
     def _scan_and_log_checkpoints(self, checkpoint_callback: ModelCheckpoint) -> None:
         import wandb
@@ -675,7 +679,7 @@ class WandbLogger(Logger):
             if not self._checkpoint_name:
                 self._checkpoint_name = f"model-{self.experiment.id}"
             artifact = wandb.Artifact(name=self._checkpoint_name, type="model", metadata=metadata)
-            artifact.add_file(p, name="model.ckpt")
+            artifact.add_file(p, name="model.ckpt", policy=self.add_file_policy)
             aliases = ["latest", "best"] if p == checkpoint_callback.best_model_path else ["latest"]
             self.experiment.log_artifact(artifact, aliases=aliases)
             # remember logged models - timestamp needed in case filename didn't change (lastkckpt or custom name)

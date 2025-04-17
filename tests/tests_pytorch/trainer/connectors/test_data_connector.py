@@ -497,7 +497,7 @@ def test_dataloader_source_request_from_module():
 
 
 @pytest.mark.parametrize(
-    "hook_name", ("on_before_batch_transfer", "transfer_batch_to_device", "on_after_batch_transfer")
+    "hook_name", ["on_before_batch_transfer", "transfer_batch_to_device", "on_after_batch_transfer"]
 )
 class TestDataHookSelector:
     def overridden_func(self, batch, *args, **kwargs):

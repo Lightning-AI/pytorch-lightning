@@ -148,7 +148,7 @@ class TrialMNIST(MNIST):
 
     @staticmethod
     def _prepare_subset(full_data: Tensor, full_targets: Tensor, num_samples: int, digits: Sequence):
-        classes = {d: 0 for d in digits}
+        classes = dict.fromkeys(digits, 0)
         indexes = []
         for idx, target in enumerate(full_targets):
             label = target.item()
