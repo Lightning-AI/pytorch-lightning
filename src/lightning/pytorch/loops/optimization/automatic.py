@@ -23,13 +23,14 @@ from torch.optim import Optimizer
 from typing_extensions import override
 
 import lightning.pytorch as pl
+from lightning.fabric.utilities.warnings import PossibleUserWarning
 from lightning.pytorch.loops.loop import _Loop
 from lightning.pytorch.loops.optimization.closure import AbstractClosure, OutputResult
 from lightning.pytorch.loops.progress import _OptimizationProgress
 from lightning.pytorch.loops.utilities import _block_parallel_sync_behavior
 from lightning.pytorch.trainer import call
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning.pytorch.utilities.rank_zero import WarningCache
+from lightning.pytorch.utilities.rank_zero import WarningCache, rank_zero_warn
 from lightning.pytorch.utilities.types import STEP_OUTPUT
 
 
@@ -320,10 +321,11 @@ class _AutomaticOptimization(_Loop):
         self.trainer.strategy.post_training_step()  # unused hook - call anyway for backward compatibility
 
         if training_step_output is None and trainer.world_size > 1:
-            raise RuntimeError(
+            rank_zero_warn(
                 "Skipping the `training_step` by returning None in distributed training is not supported."
                 " It is recommended that you rewrite your training logic to avoid having to skip the step in the first"
                 " place."
+                category=PossibleUserWarning,
             )
 
         return self.output_result_cls.from_training_step_output(training_step_output, trainer.accumulate_grad_batches)
