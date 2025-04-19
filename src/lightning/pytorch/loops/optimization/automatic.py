@@ -324,7 +324,7 @@ class _AutomaticOptimization(_Loop):
             rank_zero_warn(
                 "Skipping the `training_step` by returning None in distributed training is not supported."
                 " It is recommended that you rewrite your training logic to avoid having to skip the step in the first"
-                " place."
+                " place.",
                 category=PossibleUserWarning,
             )
 
