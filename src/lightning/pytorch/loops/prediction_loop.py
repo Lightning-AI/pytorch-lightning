@@ -15,11 +15,9 @@ from collections import OrderedDict
 from collections.abc import Iterator
 from typing import Any, Optional, Union
 
-import torch
 from lightning_utilities import WarningCache
 
 import lightning.pytorch as pl
-from lightning.fabric.utilities import move_data_to_device
 from lightning.pytorch.callbacks import BasePredictionWriter
 from lightning.pytorch.loops.fetchers import _DataFetcher, _DataLoaderIterDataFetcher
 from lightning.pytorch.loops.loop import _Loop
@@ -262,6 +260,7 @@ class _PredictionLoop(_Loop):
         else:
             # Clear memory if not returning predictions
             import gc
+
             gc.collect()
 
         call._call_callback_hooks(trainer, "on_predict_batch_end", step_output, *hook_kwargs.values())
