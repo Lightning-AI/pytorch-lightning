@@ -273,17 +273,17 @@ def _resolve_overfit_batches(combined_loader: CombinedLoader, mode: RunningStage
                 class SingleBatchSampler(Sampler):
                     def __init__(self, batch):
                         self.batch = batch
-                    
+
                     def __iter__(self):
                         yield self.batch
-                    
+
                     def __len__(self):
                         return 1
-                
+
                 sampler = SingleBatchSampler(first_batch)
             else:
                 sampler = SequentialSampler(dl.dataset)
-            
+
             # Create a new dataloader with the new sampler
             new_dl = DataLoader(
                 dataset=dl.dataset,
@@ -303,7 +303,7 @@ def _resolve_overfit_batches(combined_loader: CombinedLoader, mode: RunningStage
             updated.append(new_dl)
         else:
             updated.append(dl)
-    
+
     combined_loader.flattened = updated
 
 
