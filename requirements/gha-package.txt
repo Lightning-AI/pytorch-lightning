@@ -3,4 +3,4 @@ setuptools ==78.1.*
 wheel ==0.45.*
 build ==1.2.*
 importlib_metadata ==8.6.*
-packaging ==24.2
+packaging ==25.0
