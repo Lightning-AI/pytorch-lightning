@@ -11,9 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from collections.abc import Generator
+from collections.abc import Generator, Iterable
 from contextlib import AbstractContextManager, contextmanager
-from typing import Any, Literal, Iterable
+from typing import Any, Literal
 
 import torch
 import torch.nn as nn
@@ -71,6 +71,7 @@ class LightningDoublePrecisionModule(_DeviceDtypeModuleMixin, nn.Module):
         pl_module: the model to wrap
 
     """
+
     _ddp_params_and_buffers_to_ignore: Iterable[str]
 
     def __init__(self, pl_module: "pl.LightningModule") -> None:
