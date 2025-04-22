@@ -61,7 +61,7 @@ class _Stateful(Protocol[_DictKey]):
 
 
 @runtime_checkable
-class CollectibleGroup(Protocol, ProcessGroup):
+class CollectibleGroup(Protocol):
     def size(self) -> int: ...
 
     def rank(self) -> int: ...
@@ -81,7 +81,7 @@ class Steppable(Protocol):
 
 
 @runtime_checkable
-class Optimizable(Steppable):
+class Optimizable(Steppable, Protocol):
     """To structurally type ``optimizer``"""
 
     param_groups: list[dict[Any, Any]]
