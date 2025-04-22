@@ -1,6 +1,6 @@
 import datetime
 import os
-from typing import Any, Optional, Union, cast
+from typing import Any, Optional, Union
 
 import torch
 import torch.distributed as dist
@@ -8,7 +8,7 @@ from torch import Tensor
 from typing_extensions import Self, override
 
 from lightning.fabric.plugins.collectives.collective import Collective
-from lightning.fabric.utilities.types import CollectibleGroup, RedOpType, ReduceOp, ProcessGroup
+from lightning.fabric.utilities.types import CollectibleGroup, RedOpType, ReduceOp
 
 if dist.is_available():
     from torch.distributed.constants import default_pg_timeout
@@ -32,10 +32,10 @@ class TorchCollective(Collective):
 
     @property
     @override
-    def group(self) -> ProcessGroup:
+    def group(self) -> CollectibleGroup:
         if self._group is None:
             self._group = dist.GroupMember.WORLD
-        return cast(super().group, ProcessGroup)
+        return super().group
 
     @property
     @override
