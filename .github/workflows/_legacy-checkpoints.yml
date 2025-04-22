@@ -101,7 +101,7 @@ jobs:
       - name: "Determine: Keep artifact & DryRun"
         run: |
           python -c "print('KEEP_DAYS=' + str(30 if '${{ github.event_name }}'.startswith('pull_request') else 0))" >> $GITHUB_ENV
-          python -c "print('AWS_RUN=' + str('' if '${{inputs.push_to_s3}}' == 'true' else '--region us-east-1 --dryrun'))" >> $GITHUB_ENV
+          python -c "print('AWS_RUN=' + str('' if '${{inputs.push_to_s3}}' == 'true' else '--dryrun'))" >> $GITHUB_ENV
 
       - name: Upload checkpoints to GitHub Actions artifact
         uses: actions/upload-artifact@v4
@@ -113,6 +113,7 @@ jobs:
 
       - run: pip install -r requirements/ci.txt
       - name: Upload checkpoints to S3
+        if: secrets.AWS_REGION != ''
         working-directory: ${{ env.LEGACY_FOLDER }}
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY }}
