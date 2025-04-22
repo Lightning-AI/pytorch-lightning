@@ -2,5 +2,5 @@
 #  in case you want to preserve/enforce restrictions on the latest compatible version, add "strict" as an in-line comment
 
 torchvision >=0.16.0, <0.21.0
-torchmetrics >=0.10.0, <1.5.0
+torchmetrics >=0.10.0, <1.8.0
 lightning-utilities >=0.8.0, <0.12.0
