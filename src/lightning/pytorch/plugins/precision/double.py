@@ -13,7 +13,7 @@
 # limitations under the License.
 from collections.abc import Generator
 from contextlib import AbstractContextManager, contextmanager
-from typing import Any, Literal
+from typing import Any, Literal, Iterable
 
 import torch
 import torch.nn as nn
@@ -71,6 +71,7 @@ class LightningDoublePrecisionModule(_DeviceDtypeModuleMixin, nn.Module):
         pl_module: the model to wrap
 
     """
+    _ddp_params_and_buffers_to_ignore: Iterable[str]
 
     def __init__(self, pl_module: "pl.LightningModule") -> None:
         super().__init__()

@@ -125,7 +125,7 @@ class ThroughputMonitor(Callback):
             self._lengths[stage] += self.length_fn(batch)
 
         if hasattr(pl_module, "flops_per_batch"):
-            flops_per_batch = pl_module.flops_per_batch
+            flops_per_batch = int(pl_module.flops_per_batch)
         else:
             rank_zero_warn(
                 "When using the `ThroughputMonitor`, you need to define a `flops_per_batch` attribute or property"
