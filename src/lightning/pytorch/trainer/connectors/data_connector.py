@@ -285,7 +285,7 @@ def _resolve_overfit_batches(combined_loader: CombinedLoader, mode: RunningStage
                 sampler = SequentialSampler(dl.dataset)
 
             # Create a new dataloader with the new sampler
-            new_dl = DataLoader(
+            dl = DataLoader(
                 dataset=dl.dataset,
                 batch_size=dl.batch_size,
                 sampler=sampler,
@@ -300,9 +300,7 @@ def _resolve_overfit_batches(combined_loader: CombinedLoader, mode: RunningStage
                 prefetch_factor=dl.prefetch_factor,
                 persistent_workers=dl.persistent_workers,
             )
-            updated.append(new_dl)
-        else:
-            updated.append(dl)
+        updated.append(dl)
 
     combined_loader.flattened = updated
 
