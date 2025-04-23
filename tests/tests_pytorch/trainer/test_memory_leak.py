@@ -1,4 +1,5 @@
 import os
+
 import psutil
 import pytest
 import torch
@@ -25,16 +26,13 @@ class LargeDataset(Dataset):
     def __len__(self):
         return len(self.data)
 
-    def __getitem__(self, idx):
-        return self.data[idx], self.targets[idx]
-
     def __iter__(self):
         for i in range(len(self)):
             yield self[i]
 
     def __getitem__(self, idx):
         # During prediction, return only the input tensor
-        if hasattr(self, 'prediction_mode') and self.prediction_mode:
+        if hasattr(self, "prediction_mode") and self.prediction_mode:
             return self.data[idx]
         return self.data[idx], self.targets[idx]
 
@@ -66,18 +64,18 @@ def test_prediction_memory_leak(tmp_path, return_predictions):
         devices=1,
         max_epochs=1,
     )
-    
-    predictions = trainer.predict(model, dataloaders=dataloader, return_predictions=return_predictions)
-    
+
+    trainer.predict(model, dataloaders=dataloader, return_predictions=return_predictions)
+
     # Get final memory usage
     final_memory = get_memory_usage()
-    
+
     # Calculate memory growth
     memory_growth = final_memory - initial_memory
-    
+
     # When return_predictions=False, memory growth should be minimal
     if not return_predictions:
         assert memory_growth < 100, f"Memory growth {memory_growth}MB is too high when return_predictions=False"
     else:
         # When return_predictions=True, we expect some memory growth due to storing predictions
-        assert memory_growth > 0, "Expected memory growth when storing predictions" 
+        assert memory_growth > 0, "Expected memory growth when storing predictions"
