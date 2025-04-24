@@ -50,7 +50,7 @@ class TorchCollective(Collective):
 
     @override
     def broadcast(self, tensor: Tensor, src: int) -> Tensor:
-        dist.broadcast(tensor, src, group=self.group)
+        dist.broadcast(tensor, src, group=self.group)  # type: ignore[arg-type]
         return tensor
 
     @override
@@ -62,7 +62,7 @@ class TorchCollective(Collective):
     @override
     def reduce(self, tensor: Tensor, dst: int, op: Union[str, ReduceOp, RedOpType] = "sum") -> Tensor:
         op = self._convert_to_native_op(op)
-        dist.reduce(tensor, dst, op=op, group=self.group)
+        dist.reduce(tensor, dst, op=op, group=self.group)  # type: ignore[arg-type]
         return tensor
 
     @override
@@ -72,12 +72,12 @@ class TorchCollective(Collective):
 
     @override
     def gather(self, tensor: Tensor, gather_list: list[Tensor], dst: int = 0) -> list[Tensor]:
-        dist.gather(tensor, gather_list, dst, group=self.group)
+        dist.gather(tensor, gather_list, dst, group=self.group)  # type: ignore[arg-type]
         return gather_list
 
     @override
     def scatter(self, tensor: Tensor, scatter_list: list[Tensor], src: int = 0) -> Tensor:
-        dist.scatter(tensor, scatter_list, src, group=self.group)
+        dist.scatter(tensor, scatter_list, src, group=self.group)  # type: ignore[arg-type]
         return tensor
 
     @override
@@ -109,27 +109,27 @@ class TorchCollective(Collective):
     def broadcast_object_list(
         self, object_list: list[Any], src: int, device: Optional[torch.device] = None
     ) -> list[Any]:
-        dist.broadcast_object_list(object_list, src, group=self.group, device=device)
+        dist.broadcast_object_list(object_list, src, group=self.group, device=device)  # type: ignore[arg-type]
         return object_list
 
     def gather_object(self, obj: Any, object_gather_list: list[Any], dst: int = 0) -> list[Any]:
-        dist.gather_object(obj, object_gather_list, dst, group=self.group)
+        dist.gather_object(obj, object_gather_list, dst, group=self.group)  # type: ignore[arg-type]
         return object_gather_list
 
     def scatter_object_list(
         self, scatter_object_output_list: list[Any], scatter_object_input_list: list[Any], src: int = 0
     ) -> list[Any]:
-        dist.scatter_object_list(scatter_object_output_list, scatter_object_input_list, src, group=self.group)
+        dist.scatter_object_list(scatter_object_output_list, scatter_object_input_list, src, group=self.group)  # type: ignore[arg-type]
         return scatter_object_output_list
 
     @override
     def barrier(self, device_ids: Optional[list[int]] = None) -> None:
         if self.group == dist.GroupMember.NON_GROUP_MEMBER:
             return
-        dist.barrier(group=self.group, device_ids=device_ids)
+        dist.barrier(group=self.group, device_ids=device_ids)  # type: ignore[arg-type]
 
     def monitored_barrier(self, timeout: Optional[datetime.timedelta] = None, wait_all_ranks: bool = False) -> None:
-        dist.monitored_barrier(group=self.group, timeout=timeout, wait_all_ranks=wait_all_ranks)
+        dist.monitored_barrier(group=self.group, timeout=timeout, wait_all_ranks=wait_all_ranks)  # type: ignore[arg-type]
 
     @override
     def setup(self, main_address: Optional[str] = None, main_port: Optional[str] = None, **kwargs: Any) -> Self:

@@ -140,7 +140,7 @@ class ThroughputMonitor(Callback):
             # this assumes that all iterations used the same batch size
             samples=iter_num * batch_size,
             lengths=None if self.length_fn is None else self._lengths[stage],
-            flops=flops_per_batch,
+            flops=flops_per_batch,  # type: ignore[arg-type]
         )
 
     def _compute(self, trainer: "Trainer", iter_num: Optional[int] = None) -> None:
