@@ -141,10 +141,10 @@ exclude_lines = [
   "pragma: no cover",
   "pass",
 ]
-[tool.coverage.run]
-parallel = true
-concurrency = "thread"
-relative_files = true
+#[tool.coverage.run]
+#parallel = true
+#concurrency = ['thread']
+#relative_files = true
 
 [tool.mypy]
 files = [

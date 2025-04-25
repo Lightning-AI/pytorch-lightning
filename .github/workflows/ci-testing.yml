@@ -22,6 +22,8 @@ jobs:
         exclude:
           - { requires: "oldest", python-version: "3.13" }
     timeout-minutes: 35
+    env:
+      TORCH_URL: "https://download.pytorch.org/whl/cpu/torch_stable.html"
     steps:
       - name: Checkout 🛎
         uses: actions/checkout@v4
@@ -47,8 +49,8 @@ jobs:
       - name: Install dependencies
         timeout-minutes: 20
         run: |
-          pip install -e . -U -r requirements/_tests.txt \
-            -f https://download.pytorch.org/whl/cpu/torch_stable.html
+          set -e
+          pip install -e . -U -r requirements/_tests.txt -f $TORCH_URL
           pip --version
           pip list
 
@@ -74,7 +76,7 @@ jobs:
           name: codecov-umbrella
           fail_ci_if_error: false
 
-      - name: test Scripts
+      - name: test CI scripts
         working-directory: ./tests
         run: python -m pytest scripts --durations=50 --timeout=120
 
