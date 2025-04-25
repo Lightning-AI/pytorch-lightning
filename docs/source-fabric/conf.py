@@ -293,7 +293,7 @@ nitpick_ignore_regex = [
     ("py:class", "transformer_engine.*"),
     ("py:class", "bitsandbytes.*"),
     # loggers
-    ('py:class', 'tensorboardX.writer.SummaryWriter'),  # todo: this is unexpected as the imports locally works
+    ('py:class', 'tensorboardX.SummaryWriter'),  # todo: this is unexpected as the imports locally works
 ]
 
 # -- Options for todo extension ----------------------------------------------

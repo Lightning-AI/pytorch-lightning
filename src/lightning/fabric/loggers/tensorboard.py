@@ -43,7 +43,7 @@ if TYPE_CHECKING:
 class TensorBoardLogger(Logger):
     r"""Log to local file system in `TensorBoard <https://www.tensorflow.org/tensorboard>`_ format.
 
-    Implemented using :class:`~tensorboardX.writer.SummaryWriter`. Logs are saved to
+    Implemented using :class:`~tensorboardX.SummaryWriter`. Logs are saved to
     ``os.path.join(root_dir, name, version)``. This is the recommended logger in Lightning Fabric.
 
     Args:
@@ -60,7 +60,7 @@ class TensorBoardLogger(Logger):
         sub_dir: Sub-directory to group TensorBoard logs. If a ``sub_dir`` argument is passed
             then logs are saved in ``/root_dir/name/version/sub_dir/``. Defaults to ``None`` in which case
             logs are saved in ``/root_dir/name/version/``.
-        \**kwargs: Additional arguments used by :class:`tensorboardX.writer.SummaryWriter` can be passed as keyword
+        \**kwargs: Additional arguments used by :class:`tensorboardX.SummaryWriter` can be passed as keyword
             arguments in this logger. To automatically flush to disk, `max_queue` sets the size
             of the queue for pending logs before flushing. `flush_secs` determines how many seconds
             elapses before flushing.

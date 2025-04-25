@@ -377,7 +377,7 @@ nitpick_ignore = [
     # missing in generated API
     ("py:exc", "MisconfigurationException"),
     # TODO: generated list of all existing ATM, need to be fixed
-    ('py:class', 'tensorboardX.writer.SummaryWriter'),
+    ('py:class', 'tensorboardX.SummaryWriter'),
     ("py:class", "AveragedModel"),
     ("py:class", "CometExperiment"),
     ("py:meth", "DataModule.__init__"),
