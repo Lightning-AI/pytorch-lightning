@@ -21,5 +21,3 @@ lightning-utilities >=0.11.1, <0.15.0
 
 # installed from S3 location and fetched in advance
 lai-sphinx-theme
-
-tensorboardX

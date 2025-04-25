@@ -39,7 +39,7 @@ from lightning.pytorch.utilities.rank_zero import rank_zero_only, rank_zero_warn
 class TensorBoardLogger(Logger, FabricTensorBoardLogger):
     r"""Log to local or remote file system in `TensorBoard <https://www.tensorflow.org/tensorboard>`_ format.
 
-    Implemented using :class:`~tensorboardX.SummaryWriter`. Logs are saved to
+    Implemented using :class:`~tensorboardX.writer.SummaryWriter`. Logs are saved to
     ``os.path.join(save_dir, name, version)``. This is the default logger in Lightning, it comes
     preinstalled.
 
@@ -74,7 +74,7 @@ class TensorBoardLogger(Logger, FabricTensorBoardLogger):
         sub_dir: Sub-directory to group TensorBoard logs. If a sub_dir argument is passed
             then logs are saved in ``/save_dir/name/version/sub_dir/``. Defaults to ``None`` in which
             logs are saved in ``/save_dir/name/version/``.
-        \**kwargs: Additional arguments used by :class:`tensorboardX.SummaryWriter` can be passed as keyword
+        \**kwargs: Additional arguments used by :class:`tensorboardX.writer.SummaryWriter` can be passed as keyword
             arguments in this logger. To automatically flush to disk, `max_queue` sets the size
             of the queue for pending logs before flushing. `flush_secs` determines how many seconds
             elapses before flushing.
