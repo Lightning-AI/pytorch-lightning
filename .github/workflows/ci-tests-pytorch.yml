@@ -45,13 +45,13 @@ jobs:
         include:
           # only run PyTorch latest
           - { os: "macOS-14", pkg-name: "lightning", python-version: "3.10", pytorch-version: "2.1" }
-          - { os: "ubuntu-20.04", pkg-name: "lightning", python-version: "3.10", pytorch-version: "2.1" }
+          - { os: "ubuntu-22.04", pkg-name: "lightning", python-version: "3.10", pytorch-version: "2.1" }
           - { os: "windows-2022", pkg-name: "lightning", python-version: "3.10", pytorch-version: "2.1" }
           - { os: "macOS-14", pkg-name: "lightning", python-version: "3.11", pytorch-version: "2.2.2" }
-          - { os: "ubuntu-20.04", pkg-name: "lightning", python-version: "3.11", pytorch-version: "2.2.2" }
+          - { os: "ubuntu-22.04", pkg-name: "lightning", python-version: "3.11", pytorch-version: "2.2.2" }
           - { os: "windows-2022", pkg-name: "lightning", python-version: "3.11", pytorch-version: "2.2.2" }
           - { os: "macOS-14", pkg-name: "lightning", python-version: "3.11", pytorch-version: "2.3" }
-          - { os: "ubuntu-20.04", pkg-name: "lightning", python-version: "3.11", pytorch-version: "2.3" }
+          - { os: "ubuntu-22.04", pkg-name: "lightning", python-version: "3.11", pytorch-version: "2.3" }
           - { os: "windows-2022", pkg-name: "lightning", python-version: "3.11", pytorch-version: "2.3" }
           - { os: "macOS-14", pkg-name: "lightning", python-version: "3.12.7", pytorch-version: "2.4.1" }
           - { os: "ubuntu-22.04", pkg-name: "lightning", python-version: "3.12.7", pytorch-version: "2.4.1" }
@@ -65,11 +65,11 @@ jobs:
           - { os: "windows-2022", pkg-name: "pytorch", python-version: "3.12.7", pytorch-version: "2.6" }
           # "oldest" versions tests, only on minimum Python
           - { os: "macOS-14", pkg-name: "pytorch", pytorch-version: "2.1", requires: "oldest" }
-          - { os: "ubuntu-20.04", pkg-name: "pytorch", pytorch-version: "2.1", requires: "oldest" }
+          - { os: "ubuntu-22.04", pkg-name: "pytorch", pytorch-version: "2.1", requires: "oldest" }
           - { os: "windows-2022", pkg-name: "pytorch", pytorch-version: "2.1", requires: "oldest" }
           # "pytorch" installs the standalone package
           - { os: "macOS-14", pkg-name: "pytorch", python-version: "3.10", pytorch-version: "2.5" }
-          - { os: "ubuntu-20.04", pkg-name: "pytorch", python-version: "3.10", pytorch-version: "2.5" }
+          - { os: "ubuntu-22.04", pkg-name: "pytorch", python-version: "3.10", pytorch-version: "2.5" }
           - { os: "windows-2022", pkg-name: "pytorch", python-version: "3.10", pytorch-version: "2.5" }
           # adding recently cut Torch 2.7 - FUTURE
           - { os: "macOS-14", pkg-name: "pytorch", python-version: "3.12", pytorch-version: "2.7" }
@@ -196,7 +196,8 @@ jobs:
         run: |
           echo $GITHUB_RUN_ID
           python -m coverage run --source ${{ env.COVERAGE_SCOPE }} \
-            -m pytest . -v --timeout=60 --durations=50 --random-order-seed=$GITHUB_RUN_ID
+            -m pytest . -v --timeout=60 --durations=50 --random-order-seed=$GITHUB_RUN_ID \
+            --junitxml=junit.xml -o junit_family=legacy  # NOTE: for Codecov's test results
 
       - name: Statistics
         if: success()
@@ -204,6 +205,12 @@ jobs:
         run: |
           coverage report
           coverage xml
+
+      - name: Upload test results to Codecov
+        if: ${{ !cancelled() }} # Run even if tests fail
+        uses: codecov/test-results-action@v1
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5

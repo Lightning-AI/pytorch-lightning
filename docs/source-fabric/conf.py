@@ -292,6 +292,8 @@ nitpick_ignore_regex = [
     ("py:.*", "torch_xla.*"),
     ("py:class", "transformer_engine.*"),
     ("py:class", "bitsandbytes.*"),
+    # loggers
+    ('py:class', 'tensorboardX.SummaryWriter'),  # todo: this is unexpected as the imports locally works
 ]
 
 # -- Options for todo extension ----------------------------------------------
