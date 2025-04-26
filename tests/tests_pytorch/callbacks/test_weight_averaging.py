@@ -47,6 +47,19 @@ class TestModel(BoringModel):
         return torch.optim.SGD(self.layer.parameters(), lr=0.1)
 
 
+class LargeTestModel(BoringModel):
+    def __init__(self):
+        super().__init__()
+        self.layer = None
+
+    def configure_model(self):
+        print("XXX configure_model")
+        self.layer = nn.Sequential(nn.Linear(32, 32), nn.ReLU(), nn.Linear(32, 2))
+
+    def configure_optimizers(self):
+        return torch.optim.SGD(self.parameters(), lr=0.01)
+
+
 class EMAAveragingFunction:
     """EMA averaging function.
 
@@ -252,8 +265,26 @@ def test_swa(tmp_path):
     _train(model, dataset, tmp_path, SWATestCallback())
 
 
+@pytest.mark.parametrize(
+    ("strategy", "accelerator", "devices"),
+    [
+        ("auto", "cpu", 1),
+        pytest.param("auto", "gpu", 1, marks=RunIf(min_cuda_gpus=1)),
+        pytest.param("fsdp", "gpu", 1, marks=RunIf(min_cuda_gpus=1)),
+        pytest.param("ddp", "gpu", 2, marks=RunIf(min_cuda_gpus=2)),
+        pytest.param("fsdp", "gpu", 2, marks=RunIf(min_cuda_gpus=2)),
+    ],
+)
+def test_ema_configure_model(tmp_path, strategy, accelerator, devices):
+    model = LargeTestModel()
+    dataset = RandomDataset(32, 32)
+    callback = EMATestCallback()
+    _train(model, dataset, tmp_path, callback, strategy=strategy, accelerator=accelerator, devices=devices)
+    assert isinstance(callback._average_model.module.layer, nn.Sequential)
+
+
 def _train(
-    model: TestModel,
+    model: BoringModel,
     dataset: Dataset,
     tmp_path: str,
     callback: WeightAveraging,
@@ -262,7 +293,7 @@ def _train(
     devices: int = 1,
     checkpoint_path: Optional[str] = None,
     will_crash: bool = False,
-) -> TestModel:
+) -> None:
     deterministic = accelerator == "cpu"
     trainer = Trainer(
         accelerator=accelerator,

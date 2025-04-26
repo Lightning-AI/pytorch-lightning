@@ -26,6 +26,7 @@ from typing_extensions import override
 
 import lightning.pytorch as pl
 from lightning.pytorch.callbacks.callback import Callback
+from lightning.pytorch.utilities.model_helpers import is_overridden
 from lightning.pytorch.utilities.rank_zero import rank_zero_info, rank_zero_warn
 from lightning.pytorch.utilities.types import STEP_OUTPUT
 
@@ -54,6 +55,13 @@ class WeightAveraging(Callback):
 
     See also the documentation on the :ref:`weight averaging callbacks <advanced/training_tricks:Weight Averaging>`
     provided by Lightning.
+
+    Note:
+        To ensure that the :class:`AveragedModel` will contain all layers,
+        :meth:`~lightning.pytorch.callbacks.weight_averaging.WeightAveraging.setup` will call
+        :meth:`~lightning.pytorch.core.hooks.ModelHooks.configure_model` before instantiating the
+        :class:`AveragedModel`. However, that hook is not called in a strategy aware context, sharded models do not work
+        with weight averaging, and a warning will be issued.
 
     Example::
 
@@ -137,6 +145,16 @@ class WeightAveraging(Callback):
         """
         if stage == "fit":
             device = self._device or pl_module.device
+
+            # If the configure_model hook is overridden, call it to create the layers before constructing the
+            # AveragedModel. However, sharding will not be done and a warning will be issued.
+            if is_overridden("configure_model", pl_module):
+                rank_zero_warn(
+                    "You're using the WeightAveraging callback with a model that overrides the configure_model "
+                    "callback. WeightAveraging doesn't support sharding model layers, so you may run out of memory."
+                )
+                pl_module.configure_model()
+
             self._average_model = AveragedModel(
                 model=pl_module, device=device, use_buffers=self._use_buffers, **self._kwargs
             )
