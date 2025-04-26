@@ -12,21 +12,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+from collections.abc import Iterator
 from copy import deepcopy
 from dataclasses import dataclass
-from typing import Dict, Iterator
+from typing import Any
 from unittest.mock import ANY, Mock
 
 import pytest
 import torch
+from torch.utils.data.dataloader import DataLoader, _MultiProcessingDataLoaderIter
+
 from lightning.pytorch import LightningModule, Trainer
 from lightning.pytorch.callbacks import Callback, ModelCheckpoint, OnExceptionCheckpoint
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
 from lightning.pytorch.loops import _Loop
 from lightning.pytorch.loops.progress import _BaseProgress
 from lightning.pytorch.utilities import CombinedLoader
-from torch.utils.data.dataloader import DataLoader, _MultiProcessingDataLoaderIter
-
+from lightning.pytorch.utilities.types import STEP_OUTPUT
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -86,10 +88,10 @@ def test_loop_restore():
 
             self.outputs.append(value)
 
-        def state_dict(self) -> Dict:
+        def state_dict(self) -> dict:
             return {"iteration_count": self.iteration_count, "outputs": self.outputs}
 
-        def load_state_dict(self, state_dict: Dict) -> None:
+        def load_state_dict(self, state_dict: dict) -> None:
             self.iteration_count = state_dict["iteration_count"]
             self.outputs = state_dict["outputs"]
 
@@ -139,10 +141,10 @@ def test_loop_hierarchy():
                 return
             loop.run()
 
-        def on_save_checkpoint(self) -> Dict:
+        def on_save_checkpoint(self) -> dict:
             return {"a": self.a}
 
-        def on_load_checkpoint(self, state_dict: Dict) -> None:
+        def on_load_checkpoint(self, state_dict: dict) -> None:
             self.a = state_dict["a"]
 
     trainer = Trainer()
@@ -396,12 +398,13 @@ def test_loop_state_on_exception(accumulate_grad_batches, stop_epoch, stop_batch
     assert state_dict == checkpoint["loops"]["fit_loop"]
 
     trainer.fit_loop.load_state_dict(checkpoint["loops"]["fit_loop"])
-    # test resetting manually, we expect all `ready` counters to be reset to `completed`
+    # test resetting manually, we expect the `ready` counter for batch to be reset to `completed`
+    # but the `ready` counter for epoch to not be reset, since we are still mid epoch
     trainer.fit_loop.reset()
     trainer.fit_loop.epoch_loop.reset()
 
     epoch_progress = trainer.fit_loop.epoch_progress
-    assert epoch_progress.current.ready == stop_epoch
+    assert epoch_progress.current.ready == stop_epoch + 1
     assert epoch_progress.current.completed == stop_epoch
 
     batch_progress = trainer.fit_loop.epoch_loop.batch_progress
@@ -417,7 +420,7 @@ def test_loop_state_on_exception(accumulate_grad_batches, stop_epoch, stop_batch
     state_dict = trainer.fit_loop.state_dict()
     assert state_dict != checkpoint["loops"]["fit_loop"]
     assert state_dict["epoch_progress"]["total"]["started"] == stop_epoch + 1
-    assert state_dict["epoch_progress"]["current"]["started"] == stop_epoch
+    assert state_dict["epoch_progress"]["current"]["started"] == stop_epoch + 1
 
 
 def test_loop_state_on_complete_run(tmp_path):
@@ -557,23 +560,38 @@ def test_fit_loop_reset(tmp_path):
 
     # we load exactly what was saved - no reset yet
     fit_loop.load_state_dict(mid_epoch_ckpt["loops"]["fit_loop"])
-    # resetting from a mid-of-epoch checkpoint SHOULD NOT reset the current counters to 0
-    fit_loop.reset()
-    epoch_loop.reset()
 
     assert fit_loop.restarting
     assert fit_loop.epoch_progress.total.ready == 1
     assert fit_loop.epoch_progress.total.completed == 0  # the checkpoint was saved mid epoch
-    assert fit_loop.epoch_progress.current.ready == 0
+    assert fit_loop.epoch_progress.current.ready == 1
     assert fit_loop.epoch_progress.current.completed == 0
 
-    assert epoch_loop.restarting
     assert epoch_loop.batch_progress.total.ready == 2
     assert epoch_loop.batch_progress.total.processed == 2
     assert epoch_loop.batch_progress.total.completed == 1  # the checkpoint was saved on train_batch_end
-    assert epoch_loop.batch_progress.current.ready == 1  # currents get set to the completed value
-    assert epoch_loop.batch_progress.current.processed == 1
+    assert epoch_loop.batch_progress.current.ready == 2  # currents get set to the completed value
+    assert epoch_loop.batch_progress.current.processed == 2
     assert epoch_loop.batch_progress.current.completed == 1
+
+    fit_loop.reset()
+    epoch_loop.reset()
+
+    # resetting from a mid-of-epoch checkpoint SHOULD NOT reset the current counters to 0
+    assert fit_loop.restarting
+    assert fit_loop.epoch_progress.total.ready == 1
+    assert fit_loop.epoch_progress.total.completed == 0  # the checkpoint was saved mid epoch
+    assert fit_loop.epoch_progress.current.ready == 1
+    assert fit_loop.epoch_progress.current.completed == 0
+
+    # however it should increment completed batch progress, since it was saved immediately prior
+    assert epoch_loop.restarting
+    assert epoch_loop.batch_progress.total.ready == 2
+    assert epoch_loop.batch_progress.total.processed == 2
+    assert epoch_loop.batch_progress.total.completed == 2
+    assert epoch_loop.batch_progress.current.ready == 2
+    assert epoch_loop.batch_progress.current.processed == 2
+    assert epoch_loop.batch_progress.current.completed == 2
 
     assert optimizer_loop.restarting
 
@@ -587,23 +605,326 @@ def test_fit_loop_reset(tmp_path):
 
     # we load exactly what was saved - no reset yet
     fit_loop.load_state_dict(end_of_epoch_ckpt["loops"]["fit_loop"])
+
+    assert fit_loop.restarting
+    assert fit_loop.epoch_progress.total.ready == 1
+    assert fit_loop.epoch_progress.total.completed == 0
+    assert fit_loop.epoch_progress.current.ready == 1
+    assert fit_loop.epoch_progress.current.completed == 0
+
     # resetting from a end-of-epoch checkpoint SHOULD reset the current counters to 0
     fit_loop.reset()
     epoch_loop.reset()
 
+    # resetting from a mid-of-epoch checkpoint SHOULD NOT reset the current counters to 0
+    # since we are restarting at the end of epoch, we need to see `completed` being updated after reset
     assert fit_loop.restarting
     assert fit_loop.epoch_progress.total.ready == 1
-    assert fit_loop.epoch_progress.total.completed == 0  # the checkpoint saves before the epoch completes
-    assert fit_loop.epoch_progress.current.ready == 0
-    assert fit_loop.epoch_progress.current.completed == 0
+    assert fit_loop.epoch_progress.total.completed == 1
+    assert fit_loop.epoch_progress.current.ready == 1
+    assert fit_loop.epoch_progress.current.completed == 1
 
+    # however it should increment completed batch progress, since it was saved immediately prior
     assert epoch_loop.restarting
     assert epoch_loop.batch_progress.total.ready == 4
     assert epoch_loop.batch_progress.total.processed == 4
-    assert epoch_loop.batch_progress.total.completed == 3  # the checkpoint was saved on train_batch_end
-    assert epoch_loop.batch_progress.current.ready == 3  # currents get set to the completed value
-    assert epoch_loop.batch_progress.current.processed == 3
-    assert epoch_loop.batch_progress.current.completed == 3
+    assert epoch_loop.batch_progress.total.completed == 4
+    assert epoch_loop.batch_progress.current.ready == 0
+    assert epoch_loop.batch_progress.current.processed == 0
+    assert epoch_loop.batch_progress.current.completed == 0
+
+
+def compare_state_dicts(dict1, dict2):
+    def compare_leaves(d1, d2):
+        result = {}
+        all_keys = set(d1.keys()).union(d2.keys())
+
+        for key in all_keys:
+            val1 = d1.get(key, None)
+            val2 = d2.get(key, None)
+
+            if isinstance(val1, dict) and isinstance(val2, dict):
+                res = compare_leaves(val1, val2)
+                if res:
+                    result[key] = res
+            elif isinstance(val1, dict) or isinstance(val2, dict):
+                raise ValueError("dicts have different leaves")
+            elif isinstance(val1, torch.Tensor) and isinstance(val2, torch.Tensor):
+                diff = torch.norm(val1 - val2)
+                if diff > 1e-8:
+                    result[key] = f"{diff} > 1e-8"
+            elif isinstance(val1, float) and isinstance(val2, float):
+                if abs(val1 - val2) > 1e-8:
+                    result[key] = f"{val1} != {val2}"
+            elif val1 != val2:
+                result[key] = f"{val1} != {val2}"
+        return result
+
+    return compare_leaves(dict1, dict2)
+
+
+class RangeDataset(torch.utils.data.Dataset):
+    def __init__(self, size: int, length: int):
+        self.len = length
+        data = torch.arange(0, size) / size
+        self.data = data.unsqueeze(0).repeat(length, 1)
+
+    def __getitem__(self, index: int) -> torch.Tensor:
+        return self.data[index]
+
+    def __len__(self) -> int:
+        return self.len
+
+
+class PredictableBoringModel(BoringModel):
+    def __init__(self) -> None:
+        super().__init__()
+        self.last_loss = float("inf")
+
+    def train_dataloader(self) -> DataLoader:
+        return DataLoader(RangeDataset(32, 64))
+
+    def val_dataloader(self) -> DataLoader:
+        return DataLoader(RangeDataset(32, 64))
+
+    def test_dataloader(self) -> DataLoader:
+        return DataLoader(RangeDataset(32, 64))
+
+    def predict_dataloader(self) -> DataLoader:
+        return DataLoader(RangeDataset(32, 64))
+
+    def training_step(self, batch: Any, batch_idx: int) -> STEP_OUTPUT:
+        loss = self.step(batch)
+        self.last_loss = loss
+        return {"loss": loss}
+
+
+def test_restart_parity(tmp_path):
+    model = PredictableBoringModel()
+    checkpoint_callback = ModelCheckpoint(
+        dirpath=tmp_path,
+        every_n_train_steps=2,
+        save_top_k=-1,
+    )
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        limit_train_batches=4,
+        max_epochs=4,
+        callbacks=[checkpoint_callback],
+        logger=False,
+        enable_model_summary=False,
+        enable_progress_bar=False,
+    )
+    trainer.fit(model)
+    loss = model.last_loss
+
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        limit_train_batches=4,
+        max_epochs=4,
+        callbacks=[checkpoint_callback],
+        logger=False,
+        enable_model_summary=False,
+        enable_progress_bar=False,
+    )
+    trainer.fit(model, ckpt_path=str(tmp_path / "epoch=0-step=2.ckpt"))
+    loss_v1 = model.last_loss
+
+    assert abs(loss - loss_v1) < 1e-8
+
+    end_of_epoch_ckpt = torch.load(str(tmp_path / "epoch=0-step=4.ckpt"), weights_only=True)
+    end_of_epoch_ckpt_v1 = torch.load(str(tmp_path / "epoch=0-step=4-v1.ckpt"), weights_only=True)
+
+    assert compare_state_dicts(end_of_epoch_ckpt["loops"], end_of_epoch_ckpt_v1["loops"]) == {}
+    assert compare_state_dicts(end_of_epoch_ckpt["lr_schedulers"][0], end_of_epoch_ckpt_v1["lr_schedulers"][0]) == {}
+    assert end_of_epoch_ckpt["epoch"] == end_of_epoch_ckpt_v1["epoch"]
+    assert end_of_epoch_ckpt["global_step"] == end_of_epoch_ckpt_v1["global_step"]
+    assert compare_state_dicts(end_of_epoch_ckpt["state_dict"], end_of_epoch_ckpt_v1["state_dict"]) == {}
+
+    mid_epoch_ckpt = torch.load(str(tmp_path / "epoch=1-step=6.ckpt"), weights_only=True)
+    mid_epoch_ckpt_v1 = torch.load(str(tmp_path / "epoch=1-step=6-v1.ckpt"), weights_only=True)
+
+    assert compare_state_dicts(mid_epoch_ckpt["loops"], mid_epoch_ckpt_v1["loops"]) == {}
+    assert compare_state_dicts(mid_epoch_ckpt["lr_schedulers"][0], mid_epoch_ckpt_v1["lr_schedulers"][0]) == {}
+    assert mid_epoch_ckpt["epoch"] == mid_epoch_ckpt_v1["epoch"]
+    assert mid_epoch_ckpt["global_step"] == mid_epoch_ckpt_v1["global_step"]
+    assert compare_state_dicts(mid_epoch_ckpt["state_dict"], mid_epoch_ckpt_v1["state_dict"]) == {}
+
+    end_of_epoch_ckpt = torch.load(str(tmp_path / "epoch=1-step=8.ckpt"), weights_only=True)
+    end_of_epoch_ckpt_v1 = torch.load(str(tmp_path / "epoch=1-step=8-v1.ckpt"), weights_only=True)
+
+    assert compare_state_dicts(end_of_epoch_ckpt["loops"], end_of_epoch_ckpt_v1["loops"]) == {}
+    assert compare_state_dicts(end_of_epoch_ckpt["lr_schedulers"][0], end_of_epoch_ckpt_v1["lr_schedulers"][0]) == {}
+    assert end_of_epoch_ckpt["epoch"] == end_of_epoch_ckpt_v1["epoch"]
+    assert end_of_epoch_ckpt["global_step"] == end_of_epoch_ckpt_v1["global_step"]
+    assert compare_state_dicts(end_of_epoch_ckpt["state_dict"], end_of_epoch_ckpt_v1["state_dict"]) == {}
+
+
+def test_restart_with_val_parity(tmp_path):
+    model = PredictableBoringModel()
+    checkpoint_callback = ModelCheckpoint(
+        dirpath=tmp_path,
+        every_n_train_steps=2,
+        save_top_k=-1,
+    )
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        limit_train_batches=4,
+        max_epochs=4,
+        callbacks=[checkpoint_callback],
+        logger=False,
+        enable_model_summary=False,
+        enable_progress_bar=False,
+        limit_val_batches=4,
+        val_check_interval=2,
+    )
+    trainer.fit(model)
+    loss = model.last_loss
+
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        limit_train_batches=4,
+        max_epochs=4,
+        callbacks=[checkpoint_callback],
+        logger=False,
+        enable_model_summary=False,
+        enable_progress_bar=False,
+        limit_val_batches=4,
+        val_check_interval=2,
+    )
+    trainer.fit(model, ckpt_path=str(tmp_path / "epoch=0-step=2.ckpt"))
+    loss_v1 = model.last_loss
+
+    assert abs(loss - loss_v1) < 1e-8
+
+    end_of_epoch_ckpt = torch.load(str(tmp_path / "epoch=0-step=4.ckpt"), weights_only=True)
+    end_of_epoch_ckpt_v1 = torch.load(str(tmp_path / "epoch=0-step=4-v1.ckpt"), weights_only=True)
+
+    assert compare_state_dicts(end_of_epoch_ckpt["loops"], end_of_epoch_ckpt_v1["loops"]) == {}
+    assert compare_state_dicts(end_of_epoch_ckpt["lr_schedulers"][0], end_of_epoch_ckpt_v1["lr_schedulers"][0]) == {}
+    assert end_of_epoch_ckpt["epoch"] == end_of_epoch_ckpt_v1["epoch"]
+    assert end_of_epoch_ckpt["global_step"] == end_of_epoch_ckpt_v1["global_step"]
+    assert compare_state_dicts(end_of_epoch_ckpt["state_dict"], end_of_epoch_ckpt_v1["state_dict"]) == {}
+
+    mid_epoch_ckpt = torch.load(str(tmp_path / "epoch=1-step=6.ckpt"), weights_only=True)
+    mid_epoch_ckpt_v1 = torch.load(str(tmp_path / "epoch=1-step=6-v1.ckpt"), weights_only=True)
+
+    assert compare_state_dicts(mid_epoch_ckpt["loops"], mid_epoch_ckpt_v1["loops"]) == {}
+    assert compare_state_dicts(mid_epoch_ckpt["lr_schedulers"][0], mid_epoch_ckpt_v1["lr_schedulers"][0]) == {}
+    assert mid_epoch_ckpt["epoch"] == mid_epoch_ckpt_v1["epoch"]
+    assert mid_epoch_ckpt["global_step"] == mid_epoch_ckpt_v1["global_step"]
+    assert compare_state_dicts(mid_epoch_ckpt["state_dict"], mid_epoch_ckpt_v1["state_dict"]) == {}
+
+    end_of_epoch_ckpt = torch.load(str(tmp_path / "epoch=1-step=8.ckpt"), weights_only=True)
+    end_of_epoch_ckpt_v1 = torch.load(str(tmp_path / "epoch=1-step=8-v1.ckpt"), weights_only=True)
+
+    assert compare_state_dicts(end_of_epoch_ckpt["loops"], end_of_epoch_ckpt_v1["loops"]) == {}
+    assert compare_state_dicts(end_of_epoch_ckpt["lr_schedulers"][0], end_of_epoch_ckpt_v1["lr_schedulers"][0]) == {}
+    assert end_of_epoch_ckpt["epoch"] == end_of_epoch_ckpt_v1["epoch"]
+    assert end_of_epoch_ckpt["global_step"] == end_of_epoch_ckpt_v1["global_step"]
+    assert compare_state_dicts(end_of_epoch_ckpt["state_dict"], end_of_epoch_ckpt_v1["state_dict"]) == {}
+
+
+def test_restart_from_last_parity(tmp_path):
+    model = PredictableBoringModel()
+    checkpoint_callback = ModelCheckpoint(
+        dirpath=tmp_path,
+        save_last=True,
+        save_top_k=-1,
+    )
+
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        limit_train_batches=2,
+        max_epochs=4,
+        callbacks=[checkpoint_callback],
+        logger=False,
+        enable_model_summary=False,
+        enable_progress_bar=False,
+    )
+    trainer.fit(model)
+
+    last_ckpt_1 = torch.load(str(tmp_path / "last.ckpt"), weights_only=True)
+
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        limit_train_batches=2,
+        max_epochs=2,
+        callbacks=[checkpoint_callback],
+        logger=False,
+        enable_model_summary=False,
+        enable_progress_bar=False,
+    )
+    trainer.fit(model)
+
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        limit_train_batches=2,
+        max_epochs=4,
+        callbacks=[checkpoint_callback],
+        logger=False,
+        enable_model_summary=False,
+        enable_progress_bar=False,
+    )
+    trainer.fit(model, ckpt_path=str(tmp_path / "last.ckpt"))
+
+    last_ckpt_2 = torch.load(str(tmp_path / "last.ckpt"), weights_only=True)
+
+    assert compare_state_dicts(last_ckpt_1["loops"], last_ckpt_2["loops"]) == {}
+
+
+def test_restart_from_last_with_val_parity(tmp_path):
+    model = PredictableBoringModel()
+    checkpoint_callback = ModelCheckpoint(
+        dirpath=tmp_path,
+        save_last=True,
+        save_top_k=-1,
+    )
+
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        limit_train_batches=2,
+        max_epochs=4,
+        callbacks=[checkpoint_callback],
+        logger=False,
+        enable_model_summary=False,
+        enable_progress_bar=False,
+        limit_val_batches=2,
+        val_check_interval=2,
+    )
+    trainer.fit(model)
+
+    last_ckpt_1 = torch.load(str(tmp_path / "last.ckpt"), weights_only=True)
+
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        limit_train_batches=2,
+        max_epochs=2,
+        callbacks=[checkpoint_callback],
+        logger=False,
+        enable_model_summary=False,
+        enable_progress_bar=False,
+        limit_val_batches=2,
+        val_check_interval=2,
+    )
+    trainer.fit(model)
+
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        limit_train_batches=2,
+        max_epochs=4,
+        callbacks=[checkpoint_callback],
+        logger=False,
+        enable_model_summary=False,
+        enable_progress_bar=False,
+        limit_val_batches=2,
+        val_check_interval=2,
+    )
+    trainer.fit(model, ckpt_path=str(tmp_path / "last.ckpt"))
+
+    last_ckpt_2 = torch.load(str(tmp_path / "last.ckpt"), weights_only=True)
+
+    assert compare_state_dicts(last_ckpt_1["loops"], last_ckpt_2["loops"]) == {}
 
 
 @pytest.mark.parametrize(

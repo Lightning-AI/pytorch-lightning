@@ -13,7 +13,8 @@
 # limitations under the License.
 import os
 from collections import Counter
-from typing import Any, Dict, List, Optional, Union, cast
+from collections.abc import Iterable
+from typing import Any, Optional, Union, cast
 
 import torch
 from typing_extensions import get_args
@@ -99,10 +100,10 @@ class _Connector:
         self,
         accelerator: Union[str, Accelerator] = "auto",
         strategy: Union[str, Strategy] = "auto",
-        devices: Union[List[int], str, int] = "auto",
+        devices: Union[list[int], str, int] = "auto",
         num_nodes: int = 1,
         precision: Optional[_PRECISION_INPUT] = None,
-        plugins: Optional[Union[_PLUGIN_INPUT, List[_PLUGIN_INPUT]]] = None,
+        plugins: Optional[Union[_PLUGIN_INPUT, Iterable[_PLUGIN_INPUT]]] = None,
     ) -> None:
         # These arguments can be set through environment variables set by the CLI
         accelerator = self._argument_from_env("accelerator", accelerator, default="auto")
@@ -124,7 +125,7 @@ class _Connector:
         self._precision_input: _PRECISION_INPUT_STR = "32-true"
         self._precision_instance: Optional[Precision] = None
         self._cluster_environment_flag: Optional[Union[ClusterEnvironment, str]] = None
-        self._parallel_devices: List[Union[int, torch.device, str]] = []
+        self._parallel_devices: list[Union[int, torch.device, str]] = []
         self.checkpoint_io: Optional[CheckpointIO] = None
 
         self._check_config_and_set_final_flags(
@@ -165,7 +166,7 @@ class _Connector:
         strategy: Union[str, Strategy],
         accelerator: Union[str, Accelerator],
         precision: Optional[_PRECISION_INPUT],
-        plugins: Optional[Union[_PLUGIN_INPUT, List[_PLUGIN_INPUT]]],
+        plugins: Optional[Union[_PLUGIN_INPUT, Iterable[_PLUGIN_INPUT]]],
     ) -> None:
         """This method checks:
 
@@ -180,7 +181,7 @@ class _Connector:
 
         """
         if plugins is not None:
-            plugins = [plugins] if not isinstance(plugins, list) else plugins
+            plugins = [plugins] if not isinstance(plugins, Iterable) else plugins
 
         if isinstance(strategy, str):
             strategy = strategy.lower()
@@ -224,7 +225,7 @@ class _Connector:
         precision_input = _convert_precision_to_unified_args(precision)
 
         if plugins:
-            plugins_flags_types: Dict[str, int] = Counter()
+            plugins_flags_types: dict[str, int] = Counter()
             for plugin in plugins:
                 if isinstance(plugin, Precision):
                     self._precision_instance = plugin
@@ -250,8 +251,7 @@ class _Connector:
 
             if plugins_flags_types.get(Precision.__name__) and precision_input is not None:
                 raise ValueError(
-                    f"Received both `precision={precision_input}` and `plugins={self._precision_instance}`."
-                    f" Choose one."
+                    f"Received both `precision={precision_input}` and `plugins={self._precision_instance}`. Choose one."
                 )
 
         self._precision_input = "32-true" if precision_input is None else precision_input
@@ -295,7 +295,7 @@ class _Connector:
                     self._accelerator_flag = "cuda"
                 self._parallel_devices = self._strategy_flag.parallel_devices
 
-    def _check_device_config_and_set_final_flags(self, devices: Union[List[int], str, int], num_nodes: int) -> None:
+    def _check_device_config_and_set_final_flags(self, devices: Union[list[int], str, int], num_nodes: int) -> None:
         if not isinstance(num_nodes, int) or num_nodes < 1:
             raise ValueError(f"`num_nodes` must be a positive integer, but got {num_nodes}.")
 

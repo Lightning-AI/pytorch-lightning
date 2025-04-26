@@ -15,7 +15,7 @@
 
 import warnings
 from pathlib import Path
-from typing import Optional, Type, Union
+from typing import Optional, Union
 
 from lightning.fabric.utilities.rank_zero import LightningDeprecationWarning
 
@@ -38,7 +38,7 @@ def disable_possible_user_warnings(module: str = "") -> None:
 
 
 def _custom_format_warning(
-    message: Union[Warning, str], category: Type[Warning], filename: str, lineno: int, line: Optional[str] = None
+    message: Union[Warning, str], category: type[Warning], filename: str, lineno: int, line: Optional[str] = None
 ) -> str:
     """Custom formatting that avoids an extra line in case warnings are emitted from the `rank_zero`-functions."""
     if _is_path_in_lightning(Path(filename)):

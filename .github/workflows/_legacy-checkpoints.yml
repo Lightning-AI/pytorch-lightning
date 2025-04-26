@@ -43,7 +43,7 @@ on:
 
 env:
   LEGACY_FOLDER: "tests/legacy"
-  TORCH_URL: "https://download.pytorch.org/whl/cpu/torch_stable.html"
+  TORCH_URL: "https://download.pytorch.org/whl/cpu/"
 
 defaults:
   run:
@@ -51,7 +51,7 @@ defaults:
 
 jobs:
   create-legacy-ckpts:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     outputs:
       pl-version: ${{ steps.decide-version.outputs.pl-version }}
     steps:
@@ -60,19 +60,19 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           # Python version here needs to be supported by all PL versions listed in back-compatible-versions.txt.
-          python-version: 3.8
+          python-version: "3.9"
 
       - name: Install PL from source
         env:
           PACKAGE_NAME: pytorch
           FREEZE_REQUIREMENTS: 1
         timeout-minutes: 20
-        run: pip install . -f ${TORCH_URL}
+        run: pip install . --extra-index-url="${TORCH_URL}"
         if: inputs.pl_version == ''
 
       - name: Install PL version
         timeout-minutes: 20
-        run: pip install "pytorch-lightning==${{ inputs.pl_version }}" -f ${TORCH_URL}
+        run: pip install "pytorch-lightning==${{ inputs.pl_version }}" --extra-index-url="${TORCH_URL}"
         if: inputs.pl_version != ''
 
       - name: Adjust tests -> PL
@@ -104,7 +104,7 @@ jobs:
           python -c "print('AWS_RUN=' + str('' if '${{inputs.push_to_s3}}' == 'true' else '--dryrun'))" >> $GITHUB_ENV
 
       - name: Upload checkpoints to GitHub Actions artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: checkpoints-${{ github.sha }}
           path: ${{ env.LEGACY_FOLDER }}/checkpoints/
@@ -113,6 +113,7 @@ jobs:
 
       - run: pip install -r requirements/ci.txt
       - name: Upload checkpoints to S3
+        if: secrets.AWS_REGION != ''
         working-directory: ${{ env.LEGACY_FOLDER }}
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY }}
@@ -124,7 +125,7 @@ jobs:
           aws s3 cp $AWS_RUN checkpoints.zip s3://pl-public-data/legacy/ --acl public-read
 
   add-ckpt-test:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     if: inputs.create_pr
     needs: create-legacy-ckpts
     env:
@@ -144,7 +145,7 @@ jobs:
           title: Adding test for legacy checkpoint created with ${{ env.PL_VERSION }}
           committer: GitHub <noreply@github.com>
           author: ${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>
-          commit-message: "update tutorials to `${{ env.PL_VERSION }}`"
+          commit-message: "adding `${{ env.PL_VERSION }}` checkpoint"
           body: "**This is automated addition of created checkpoints with the latest `lightning` release!**"
           delete-branch: true
           token: ${{ secrets.PAT_GHOST }}

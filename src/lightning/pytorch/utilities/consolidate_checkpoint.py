@@ -1,5 +1,5 @@
 import re
-from typing import Any, Dict
+from typing import Any
 
 import torch
 
@@ -7,7 +7,7 @@ from lightning.fabric.utilities.consolidate_checkpoint import _parse_cli_args, _
 from lightning.fabric.utilities.load import _load_distributed_checkpoint
 
 
-def _format_checkpoint(checkpoint: Dict[str, Any]) -> Dict[str, Any]:
+def _format_checkpoint(checkpoint: dict[str, Any]) -> dict[str, Any]:
     """Converts the special FSDP checkpoint format to the standard format the Lightning Trainer can load."""
     # Rename the model key
     checkpoint["state_dict"] = checkpoint.pop("model")

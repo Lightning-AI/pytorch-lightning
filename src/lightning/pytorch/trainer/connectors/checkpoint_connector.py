@@ -14,11 +14,12 @@
 import logging
 import os
 import re
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 import torch
 from fsspec.core import url_to_fs
 from fsspec.implementations.local import LocalFileSystem
+from lightning_utilities import module_available
 from torch import Tensor
 
 import lightning.pytorch as pl
@@ -33,6 +34,10 @@ from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.imports import _OMEGACONF_AVAILABLE
 from lightning.pytorch.utilities.migration import pl_legacy_patch
 from lightning.pytorch.utilities.migration.utils import _pl_migrate_checkpoint
+from lightning.pytorch.utilities.model_registry import (
+    _is_registry,
+    find_model_local_ckpt_path,
+)
 from lightning.pytorch.utilities.rank_zero import rank_zero_info, rank_zero_warn
 
 log = logging.getLogger(__name__)
@@ -44,12 +49,11 @@ class _CheckpointConnector:
         self._ckpt_path: Optional[_PATH] = None
         # flag to know if the user is changing the checkpoint path statefully. See `trainer.ckpt_path.setter`
         self._user_managed: bool = False
-        self._loaded_checkpoint: Dict[str, Any] = {}
+        self._loaded_checkpoint: dict[str, Any] = {}
 
     @property
     def _hpc_resume_path(self) -> Optional[str]:
-        dir_path_hpc = self.trainer.default_root_dir
-        dir_path_hpc = str(dir_path_hpc)
+        dir_path_hpc = str(self.trainer.default_root_dir)
         fs, path = url_to_fs(dir_path_hpc)
         if not _is_dir(fs, path):
             return None
@@ -194,9 +198,16 @@ class _CheckpointConnector:
             if not self._hpc_resume_path:
                 raise ValueError(
                     f'`.{fn}(ckpt_path="hpc")` is set but no HPC checkpoint was found.'
-                    " Please pass an exact checkpoint path to `.{fn}(ckpt_path=...)`"
+                    f" Please pass an exact checkpoint path to `.{fn}(ckpt_path=...)`"
                 )
             ckpt_path = self._hpc_resume_path
+
+        elif _is_registry(ckpt_path) and module_available("litmodels"):
+            ckpt_path = find_model_local_ckpt_path(
+                ckpt_path,
+                default_model_registry=self.trainer._model_registry,
+                default_root_dir=self.trainer.default_root_dir,
+            )
 
         if not ckpt_path:
             raise ValueError(
@@ -397,9 +408,7 @@ class _CheckpointConnector:
         self.resume_start(checkpoint_path)
         self.restore_model()
         self.restore_datamodule()
-        if self.trainer.state.fn == TrainerFn.FITTING:
-            # restore callback states
-            self.restore_callbacks()
+        self.restore_callbacks()
 
     def dump_checkpoint(self, weights_only: bool = False) -> dict:
         """Creating a model checkpoint dictionary object from various component states.
@@ -493,10 +502,10 @@ class _CheckpointConnector:
         call._call_lightning_module_hook(trainer, "on_save_checkpoint", checkpoint)
         return checkpoint
 
-    def _get_lightning_module_state_dict(self) -> Dict[str, Tensor]:
+    def _get_lightning_module_state_dict(self) -> dict[str, Tensor]:
         return self.trainer.strategy.lightning_module_state_dict()
 
-    def _get_loops_state_dict(self) -> Dict[str, Any]:
+    def _get_loops_state_dict(self) -> dict[str, Any]:
         return {
             "fit_loop": self.trainer.fit_loop.state_dict(),
             "validate_loop": self.trainer.validate_loop.state_dict(),

@@ -3,7 +3,7 @@ import os.path
 from importlib.util import module_from_spec, spec_from_file_location
 from pathlib import Path
 from types import ModuleType
-from typing import Any, Dict
+from typing import Any
 
 from setuptools import find_namespace_packages
 
@@ -26,7 +26,7 @@ def _load_py_module(name: str, location: str) -> ModuleType:
 _ASSISTANT = _load_py_module(name="assistant", location=os.path.join(_PROJECT_ROOT, ".actions", "assistant.py"))
 
 
-def _prepare_extras() -> Dict[str, Any]:
+def _prepare_extras() -> dict[str, Any]:
     # https://setuptools.readthedocs.io/en/latest/setuptools.html#declaring-extras
     # Define package extras. These are only installed if you specify them.
     # From remote, use like `pip install "lightning[dev, docs]"`
@@ -63,7 +63,7 @@ def _prepare_extras() -> Dict[str, Any]:
     return extras
 
 
-def _setup_args() -> Dict[str, Any]:
+def _setup_args() -> dict[str, Any]:
     about = _load_py_module("about", os.path.join(_PACKAGE_ROOT, "__about__.py"))
     version = _load_py_module("version", os.path.join(_PACKAGE_ROOT, "__version__.py"))
     long_description = _ASSISTANT.load_readme_description(
@@ -98,14 +98,13 @@ def _setup_args() -> Dict[str, Any]:
         "entry_points": {
             "console_scripts": [
                 "fabric = lightning.fabric.cli:_main",
-                "lightning = lightning.fabric.cli:_legacy_main",
             ],
         },
         "setup_requires": [],
         "install_requires": install_requires,
         "extras_require": _prepare_extras(),
         "project_urls": {
-            "Bug Tracker": "https://github.com/Lightning-AI/lightning/issues",
+            "Bug Tracker": "https://github.com/Lightning-AI/pytorch-lightning/issues",
             "Documentation": "https://lightning.ai/lightning-docs",
             "Source Code": "https://github.com/Lightning-AI/lightning",
         },

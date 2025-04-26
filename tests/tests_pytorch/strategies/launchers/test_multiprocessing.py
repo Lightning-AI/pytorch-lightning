@@ -18,13 +18,13 @@ from unittest.mock import ANY, Mock, call, patch
 
 import pytest
 import torch
+
 from lightning.fabric.plugins import ClusterEnvironment
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.strategies import DDPStrategy
 from lightning.pytorch.strategies.launchers.multiprocessing import _GlobalStateSnapshot, _MultiProcessingLauncher
 from lightning.pytorch.trainer.states import TrainerFn
-
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -209,10 +209,13 @@ def test_memory_sharing_disabled(tmp_path):
 
 def test_check_for_missing_main_guard():
     launcher = _MultiProcessingLauncher(strategy=Mock(), start_method="spawn")
-    with mock.patch(
-        "lightning.pytorch.strategies.launchers.multiprocessing.mp.current_process",
-        return_value=Mock(_inheriting=True),  # pretend that main is importing itself
-    ), pytest.raises(RuntimeError, match="requires that your script guards the main"):
+    with (
+        mock.patch(
+            "lightning.pytorch.strategies.launchers.multiprocessing.mp.current_process",
+            return_value=Mock(_inheriting=True),  # pretend that main is importing itself
+        ),
+        pytest.raises(RuntimeError, match="requires that your script guards the main"),
+    ):
         launcher.launch(function=Mock())
 
 

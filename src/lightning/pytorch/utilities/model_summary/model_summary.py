@@ -17,7 +17,7 @@ import contextlib
 import logging
 import math
 from collections import OrderedDict
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Optional, Union
 
 import torch
 import torch.nn as nn
@@ -73,8 +73,8 @@ class LayerSummary:
         super().__init__()
         self._module = module
         self._hook_handle = self._register_hook()
-        self._in_size: Optional[Union[str, List]] = None
-        self._out_size: Optional[Union[str, List]] = None
+        self._in_size: Optional[Union[str, list]] = None
+        self._out_size: Optional[Union[str, list]] = None
 
     def __del__(self) -> None:
         self.detach_hook()
@@ -121,11 +121,11 @@ class LayerSummary:
             self._hook_handle.remove()
 
     @property
-    def in_size(self) -> Union[str, List]:
+    def in_size(self) -> Union[str, list]:
         return self._in_size or UNKNOWN_SIZE
 
     @property
-    def out_size(self) -> Union[str, List]:
+    def out_size(self) -> Union[str, list]:
         return self._out_size or UNKNOWN_SIZE
 
     @property
@@ -221,8 +221,8 @@ class ModelSummary:
         self._precision_megabytes = (precision / 8.0) * 1e-6
 
     @property
-    def named_modules(self) -> List[Tuple[str, nn.Module]]:
-        mods: List[Tuple[str, nn.Module]]
+    def named_modules(self) -> list[tuple[str, nn.Module]]:
+        mods: list[tuple[str, nn.Module]]
         if self._max_depth == 0:
             mods = []
         elif self._max_depth == 1:
@@ -234,31 +234,31 @@ class ModelSummary:
         return mods
 
     @property
-    def layer_names(self) -> List[str]:
+    def layer_names(self) -> list[str]:
         return list(self._layer_summary.keys())
 
     @property
-    def layer_types(self) -> List[str]:
+    def layer_types(self) -> list[str]:
         return [layer.layer_type for layer in self._layer_summary.values()]
 
     @property
-    def in_sizes(self) -> List:
+    def in_sizes(self) -> list:
         return [layer.in_size for layer in self._layer_summary.values()]
 
     @property
-    def out_sizes(self) -> List:
+    def out_sizes(self) -> list:
         return [layer.out_size for layer in self._layer_summary.values()]
 
     @property
-    def param_nums(self) -> List[int]:
+    def param_nums(self) -> list[int]:
         return [layer.num_parameters for layer in self._layer_summary.values()]
 
     @property
-    def training_modes(self) -> List[bool]:
+    def training_modes(self) -> list[bool]:
         return [layer.training for layer in self._layer_summary.values()]
 
     @property
-    def total_training_modes(self) -> Dict[str, int]:
+    def total_training_modes(self) -> dict[str, int]:
         modes = [layer.training for layer in self._model.modules()]
         modes = modes[1:]  # exclude the root module
         return {"train": modes.count(True), "eval": modes.count(False)}
@@ -279,7 +279,7 @@ class ModelSummary:
     def model_size(self) -> float:
         return self.total_parameters * self._precision_megabytes
 
-    def summarize(self) -> Dict[str, LayerSummary]:
+    def summarize(self) -> dict[str, LayerSummary]:
         summary = OrderedDict((name, LayerSummary(module)) for name, module in self.named_modules)
         if self._model.example_input_array is not None:
             self._forward_example_input()
@@ -318,7 +318,7 @@ class ModelSummary:
                 model(input_)
         mode.restore(model)
 
-    def _get_summary_data(self) -> List[Tuple[str, List[str]]]:
+    def _get_summary_data(self) -> list[tuple[str, list[str]]]:
         """Makes a summary listing with:
 
         Layer Name, Layer Type, Number of Parameters, Input Sizes, Output Sizes, Model Size
@@ -341,7 +341,7 @@ class ModelSummary:
 
         return arrays
 
-    def _add_leftover_params_to_summary(self, arrays: List[Tuple[str, List[str]]], total_leftover_params: int) -> None:
+    def _add_leftover_params_to_summary(self, arrays: list[tuple[str, list[str]]], total_leftover_params: int) -> None:
         """Add summary of params not associated with module or layer to model summary."""
         layer_summaries = dict(arrays)
         layer_summaries[" "].append(" ")
@@ -368,7 +368,7 @@ class ModelSummary:
         return str(self)
 
 
-def parse_batch_shape(batch: Any) -> Union[str, List]:
+def parse_batch_shape(batch: Any) -> Union[str, list]:
     if hasattr(batch, "shape"):
         return list(batch.shape)
 
@@ -382,8 +382,8 @@ def _format_summary_table(
     total_parameters: int,
     trainable_parameters: int,
     model_size: float,
-    total_training_modes: Dict[str, int],
-    *cols: Tuple[str, List[str]],
+    total_training_modes: dict[str, int],
+    *cols: tuple[str, list[str]],
 ) -> str:
     """Takes in a number of arrays, each specifying a column in the summary table, and combines them all into one big
     string defining the summary table that are nicely formatted."""

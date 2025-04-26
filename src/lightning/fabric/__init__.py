@@ -2,6 +2,7 @@
 
 import logging
 import os
+import sys
 
 from lightning_utilities.core.imports import package_available
 
@@ -25,6 +26,10 @@ if not _root_logger.hasHandlers():
 # to use an NVML-based implementation that doesn't poison forks.
 # https://github.com/pytorch/pytorch/issues/83973
 os.environ["PYTORCH_NVML_BASED_CUDA_CHECK"] = "1"
+
+# see https://github.com/pytorch/pytorch/issues/139990
+if sys.platform == "win32":
+    os.environ["USE_LIBUV"] = "0"
 
 
 from lightning.fabric.fabric import Fabric  # noqa: E402
