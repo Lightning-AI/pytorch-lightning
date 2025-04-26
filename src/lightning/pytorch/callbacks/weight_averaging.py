@@ -57,8 +57,7 @@ class WeightAveraging(Callback):
     provided by Lightning.
 
     Note:
-        To ensure that the :class:`AveragedModel` will contain all layers,
-        :meth:`~lightning.pytorch.callbacks.weight_averaging.WeightAveraging.setup` will call
+        To ensure that the :class:`AveragedModel` will contain all layers, ``setup()`` will call
         :meth:`~lightning.pytorch.core.hooks.ModelHooks.configure_model` before instantiating the
         :class:`AveragedModel`. However, that hook is not called in a strategy aware context, sharded models do not work
         with weight averaging, and a warning will be issued.

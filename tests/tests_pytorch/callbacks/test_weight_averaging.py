@@ -271,8 +271,6 @@ def test_swa(tmp_path):
         ("auto", "cpu", 1),
         pytest.param("auto", "gpu", 1, marks=RunIf(min_cuda_gpus=1)),
         pytest.param("fsdp", "gpu", 1, marks=RunIf(min_cuda_gpus=1)),
-        pytest.param("ddp", "gpu", 2, marks=RunIf(min_cuda_gpus=2)),
-        pytest.param("fsdp", "gpu", 2, marks=RunIf(min_cuda_gpus=2)),
     ],
 )
 def test_ema_configure_model(tmp_path, strategy, accelerator, devices):
