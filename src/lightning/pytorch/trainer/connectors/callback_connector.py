@@ -11,12 +11,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import inspect
 import logging
 import os
 from collections.abc import Sequence
 from datetime import timedelta
 from typing import Optional, Union
+
+from lightning_utilities.core.imports import RequirementCache
 
 import lightning.pytorch as pl
 from lightning.fabric.utilities.registry import _load_external_callbacks
@@ -91,7 +93,24 @@ class _CallbackConnector:
                     " but found `ModelCheckpoint` in callbacks list."
                 )
         elif enable_checkpointing:
-            self.trainer.callbacks.append(ModelCheckpoint())
+            if RequirementCache("litmodels >=0.1.7") and self.trainer._model_registry:
+                trainer_source = inspect.getmodule(self.trainer)
+                if trainer_source is None or not isinstance(trainer_source.__package__, str):
+                    raise RuntimeError("Unable to determine the source of the trainer.")
+                # this need to imported based on the actual package lightning/pytorch_lightning
+                if "pytorch_lightning" in trainer_source.__package__:
+                    from litmodels.integrations.checkpoints import PytorchLightningModelCheckpoint as LitModelCheckpoint
+                else:
+                    from litmodels.integrations.checkpoints import LightningModelCheckpoint as LitModelCheckpoint
+
+                model_checkpoint = LitModelCheckpoint(model_registry=self.trainer._model_registry)
+            else:
+                rank_zero_info(
+                    "Using default `ModelCheckpoint`. Consider installing `litmodels` package to enable"
+                    " `LitModelCheckpoint` for automatic upload to the Lightning model registry."
+                )
+                model_checkpoint = ModelCheckpoint()
+            self.trainer.callbacks.append(model_checkpoint)
 
     def _configure_model_summary_callback(self, enable_model_summary: bool) -> None:
         if not enable_model_summary:
