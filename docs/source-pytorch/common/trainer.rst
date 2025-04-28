@@ -771,24 +771,12 @@ Useful for quickly debugging or trying to overfit on purpose.
 
     # use only 1% of the train & val set
     trainer = Trainer(overfit_batches=0.01)
-<<<<<<< HEAD
     
     # overfit on 10 consistent train batches & 10 consistent val batches
     trainer = Trainer(overfit_batches=10)
     
     # debug using a single consistent train batch and a single consistent val batch
-=======
 
-    # overfit on 10 (same) train batches & 10 (same) val batches
-    trainer = Trainer(overfit_batches=10)
-
-    # debug by training and validating on exactly the same single batch
-    # (useful for verifying model implementation)
->>>>>>> 01ce1c130a52b6bcf7983fc7d7ca432ee26f421a
-    trainer = Trainer(overfit_batches=1)
-
-plugins
-^^^^^^^
 
 :ref:`Plugins` allow you to connect arbitrary backends, precision libraries, clusters etc. For example:
 
