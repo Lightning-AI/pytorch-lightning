@@ -1,2 +1,2 @@
 # validation accelerator connectors
-lightning-habana >=1.2.0, <1.3.0
+lightning-habana >=1.2.0, <1.6.0
