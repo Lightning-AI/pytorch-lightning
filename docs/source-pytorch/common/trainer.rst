@@ -771,10 +771,10 @@ Useful for quickly debugging or trying to overfit on purpose.
 
     # use only 1% of the train & val set
     trainer = Trainer(overfit_batches=0.01)
-    
+
     # overfit on 10 (same) train batches & 10 (same) val batches
     trainer = Trainer(overfit_batches=10)
-    
+
     # debug by training and validating on exactly the same single batch
     # (useful for verifying model implementation)
     trainer = Trainer(overfit_batches=1)
