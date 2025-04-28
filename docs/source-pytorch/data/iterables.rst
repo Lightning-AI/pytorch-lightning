@@ -53,7 +53,7 @@ Currently, the ``trainer.predict`` method only supports the ``"sequential"`` mod
 Support for this feature is tracked in this `issue <https://github.com/Lightning-AI/pytorch-lightning/issues/16830>`__.
 
 Note that when using the ``"sequential"`` mode, you need to add an additional argument ``dataloader_idx`` to some specific hooks.
-Lightning will `raise an error <https://github.com/Lightning-AI/lightning/pull/16837>`__ informing you of this requirement.
+Lightning will `raise an error <https://github.com/Lightning-AI/pytorch-lightning/pull/16837>`__ informing you of this requirement.
 
 Using LightningDataModule
 -------------------------

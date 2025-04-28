@@ -163,7 +163,7 @@ def _no_grad_context(loop_run: Callable) -> Callable:
         context_manager: type[AbstractContextManager]
         if _distributed_is_initialized() and dist.get_backend() == "gloo":
             # gloo backend does not work properly.
-            # https://github.com/Lightning-AI/lightning/pull/12715/files#r854569110
+            # https://github.com/Lightning-AI/pytorch-lightning/pull/12715/files#r854569110
             # TODO: explore why and possibly open an issue in PyTorch repository
             context_manager = torch.no_grad
         elif isinstance(self.trainer.accelerator, XLAAccelerator):
