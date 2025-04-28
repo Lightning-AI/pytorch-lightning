@@ -251,7 +251,7 @@ class LearningRateMonitor(Callback):
                 elif new_name not in self.lrs:
                     self.lrs[new_name] = []
 
-    def _extract_momentum(self, param_group: dict[str, list], name: str, use_betas: bool) -> dict[str, float]:
+    def _extract_momentum(self, param_group: dict[str, list[float]], name: str, use_betas: bool) -> dict[str, float]:
         if not self.log_momentum:
             return {}
 
