@@ -204,6 +204,11 @@ class _FitLoop(_Loop):
         # so we cannot use it solely
         return self.done or self.trainer.limit_train_batches == 0
 
+    @property
+    def _is_resuming(self) -> bool:
+        """Whether we're resuming training from a checkpoint."""
+        return self._loaded_from_state_dict
+
     def run(self) -> None:
         self.setup_data()
         if self.skip:
