@@ -257,7 +257,7 @@ class LearningRateMonitor(Callback):
 
         momentum = param_group["betas"][0] if use_betas else param_group.get("momentum", 0)
         self.last_momentum_values[name] = momentum  # type: ignore[assignment]
-        return {name: momentum}
+        return {name: momentum}  # type: ignore[dict-item]
 
     def _extract_weight_decay(self, param_group: dict[str, Any], name: str) -> dict[str, Any]:
         """Extracts the weight decay statistics from a parameter group."""
