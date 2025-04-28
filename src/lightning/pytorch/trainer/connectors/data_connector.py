@@ -244,7 +244,12 @@ def _get_distributed_sampler(
 
 
 def _resolve_overfit_batches(combined_loader: CombinedLoader, mode: RunningStage) -> None:
-    """Resolve overfit batches by ensuring the same batch is used for both training and validation."""
+    """Resolve overfit batches by disabling shuffling.
+    
+    When overfit_batches > 0, this function ensures that sequential sampling is used
+    without shuffling for consistent batches across epochs. Training and validation
+    use different sets of data.
+    """
     all_have_sequential_sampler = all(
         isinstance(dl.sampler, SequentialSampler) for dl in combined_loader.flattened if hasattr(dl, "sampler")
     )
@@ -255,53 +260,11 @@ def _resolve_overfit_batches(combined_loader: CombinedLoader, mode: RunningStage
         f"You requested to overfit but enabled {mode.dataloader_prefix} dataloader shuffling."
         f" We are turning off the {mode.dataloader_prefix} dataloader shuffling for you."
     )
-
-    # Get the first batch from the training dataloader
-    first_batch = None
-    if mode == RunningStage.TRAINING:
-        for dl in combined_loader.flattened:
-            if hasattr(dl, "dataset"):
-                first_batch = next(iter(dl))
-                break
-
-    # Create new dataloaders with SequentialSampler
-    updated = []
-    for dl in combined_loader.flattened:
-        if hasattr(dl, "dataset"):
-            if mode == RunningStage.VALIDATING and first_batch is not None:
-                # For validation, create a custom sampler that always returns the first batch
-                class SingleBatchSampler(Sampler):
-                    def __init__(self, batch):
-                        self.batch = batch
-
-                    def __iter__(self):
-                        yield self.batch
-
-                    def __len__(self):
-                        return 1
-
-                sampler = SingleBatchSampler(first_batch)
-            else:
-                sampler = SequentialSampler(dl.dataset)
-
-            # Create a new dataloader with the new sampler
-            dl = DataLoader(
-                dataset=dl.dataset,
-                batch_size=dl.batch_size,
-                sampler=sampler,
-                num_workers=dl.num_workers,
-                collate_fn=dl.collate_fn,
-                pin_memory=dl.pin_memory,
-                drop_last=dl.drop_last,
-                timeout=dl.timeout,
-                worker_init_fn=dl.worker_init_fn,
-                multiprocessing_context=dl.multiprocessing_context,
-                generator=dl.generator,
-                prefetch_factor=dl.prefetch_factor,
-                persistent_workers=dl.persistent_workers,
-            )
-        updated.append(dl)
-
+    
+    updated = [
+        _update_dataloader(dl, sampler=SequentialSampler(dl.dataset), mode=mode) if hasattr(dl, "dataset") else dl
+        for dl in combined_loader.flattened
+    ]
     combined_loader.flattened = updated
 
 

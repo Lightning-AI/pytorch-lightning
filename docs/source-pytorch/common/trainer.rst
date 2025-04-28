@@ -759,8 +759,8 @@ overfit_batches
 Uses this much data of the training & validation set.
 If the training & validation dataloaders have ``shuffle=True``, Lightning will automatically disable it.
 
-* When set to exactly 1, the same batch is used for both training and validation steps, which is useful for debugging model implementation
-* For other values, sequential sampling (no shuffling) is used
+* When set to a value > 0, sequential sampling (no shuffling) is used
+* Consistent batches are used for both training and validation across epochs, but training and validation use different sets of data
 
 Useful for quickly debugging or trying to overfit on purpose.
 
@@ -772,11 +772,10 @@ Useful for quickly debugging or trying to overfit on purpose.
     # use only 1% of the train & val set
     trainer = Trainer(overfit_batches=0.01)
     
-    # overfit on 10 (same) train batches & 10 (same) val batches
+    # overfit on 10 consistent train batches & 10 consistent val batches
     trainer = Trainer(overfit_batches=10)
     
-    # debug by training and validating on exactly the same single batch
-    # (useful for verifying model implementation)
+    # debug using a single consistent train batch and a single consistent val batch
     trainer = Trainer(overfit_batches=1)
 
 plugins
@@ -902,7 +901,7 @@ DataSource can be a ``LightningModule`` or a ``LightningDataModule``.
 
     # if 0 (default)
     train_loader = model.train_dataloader()
-    # or if using data module: datamodule.train_dataloader()
+    # or if using data module: datamodule.train_dataloaders()
     for epoch in epochs:
         for batch in train_loader:
             ...
@@ -966,7 +965,7 @@ Additionally, you can pass a strategy object.
 See Also:
     - :ref:`Multi GPU Training <multi_gpu>`.
     - :doc:`Model Parallel GPU training guide <../advanced/model_parallel>`.
-    - :doc:`TPU training guide <../accelerators/tpu>`.
+    - :doc:`TPU training guide <../accelerators/tpu>`. 
 
 
 sync_batchnorm
