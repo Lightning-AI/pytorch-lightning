@@ -1148,7 +1148,7 @@ class LightningModule(
         :meth:`untoggle_optimizer` into context manager.
 
         Args:
-            optimizer: The optimizer to untoggle.
+            optimizer: The optimizer to toggle.
 
         Example::
 
