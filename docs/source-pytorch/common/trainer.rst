@@ -772,10 +772,10 @@ Useful for quickly debugging or trying to overfit on purpose.
     # use only 1% of the train & val set
     trainer = Trainer(overfit_batches=0.01)
 <<<<<<< HEAD
-    
+
     # overfit on 10 consistent train batches & 10 consistent val batches
     trainer = Trainer(overfit_batches=10)
-    
+
     # debug using a single consistent train batch and a single consistent val batch
 =======
 
@@ -974,7 +974,7 @@ Additionally, you can pass a strategy object.
 See Also:
     - :ref:`Multi GPU Training <multi_gpu>`.
     - :doc:`Model Parallel GPU training guide <../advanced/model_parallel>`.
-    - :doc:`TPU training guide <../accelerators/tpu>`. 
+    - :doc:`TPU training guide <../accelerators/tpu>`.
 
 
 sync_batchnorm
