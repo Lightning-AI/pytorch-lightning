@@ -1141,6 +1141,30 @@ class LightningModule(
         # save memory
         self._param_requires_grad_state = {}
 
+    @contextmanager
+    def toggled_optimizer(self, optimizer: Union[Optimizer, LightningOptimizer]) -> Generator:
+        """Makes sure only the gradients of the current optimizer's parameters are calculated in the training step to
+        prevent dangling gradients in multiple-optimizer setup. Combines :meth:`toggle_optimizer` and 
+        :meth:`untoggle_optimizer` into context manager.
+
+        Args:
+            optimizer: The optimizer to untoggle.
+
+        Example::
+
+            def training_step(...):
+                opt = self.optimizers()
+                with self.toggled_optimizer(opt):
+                    loss = ...
+                    opt.zero_grad()
+                    self.manual_backward(loss)
+                    opt.step()
+        """
+        try:
+            yield self.toggle_optimizer(optimizer)
+        finally:
+            self.untoggle_optimizer(optimizer)
+
     def clip_gradients(
         self,
         optimizer: Optimizer,

@@ -118,6 +118,21 @@ def test_1_optimizer_toggle_model():
     model.untoggle_optimizer(optimizer)
     assert not model._param_requires_grad_state
 
+def test_1_optimizer_toggle_model_context_manager():
+    """Test toggle_model runs when only one optimizer is used."""
+    model = BoringModel()
+    trainer = Mock()
+    model.trainer = trainer
+    params = model.parameters()
+    optimizer = torch.optim.SGD(params, lr=0.1)
+    trainer.optimizers = [optimizer]
+
+    assert not model._param_requires_grad_state
+    # toggle optimizer was failing with a single optimizer
+    with model.toggled_optimizer(optimizer):
+        assert model._param_requires_grad_state
+    assert not model._param_requires_grad_state
+
 
 def test_toggle_untoggle_2_optimizers_no_shared_parameters(tmp_path):
     class TestModel(BoringModel):
