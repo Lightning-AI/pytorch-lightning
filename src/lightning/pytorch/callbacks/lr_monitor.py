@@ -255,7 +255,8 @@ class LearningRateMonitor(Callback):
         if not self.log_momentum:
             return {}
 
-        momentum = param_group["betas"][0] if use_betas else param_group.get("momentum", 0)
+        momentum = param_group["betas"][0] if use_betas else param_group.get("momentum")
+        momentum = momentum if momentum is not None else 0
         self.last_momentum_values[name] = momentum
         return {name: momentum}
 
