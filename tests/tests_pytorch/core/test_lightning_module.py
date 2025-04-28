@@ -118,6 +118,7 @@ def test_1_optimizer_toggle_model():
     model.untoggle_optimizer(optimizer)
     assert not model._param_requires_grad_state
 
+
 def test_1_optimizer_toggle_model_context_manager():
     """Test toggle_model runs when only one optimizer is used."""
     model = BoringModel()
