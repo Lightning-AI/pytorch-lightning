@@ -505,3 +505,36 @@ def test_early_stopping_log_info(log_rank_zero_only, world_size, global_rank, ex
         log_mock.assert_called_once_with(expected_log)
     else:
         log_mock.assert_not_called()
+
+
+def test_early_stopping_start_from_epoch(tmp_path):
+    """Test that early stopping checks only activate after start_from_epoch."""
+    losses = [6, 5, 4, 3, 2, 1]  # decreasing losses
+    start_from_epoch = 3
+    expected_stop_epoch = None  # Should not stop early
+
+    class CurrentModel(BoringModel):
+        def on_validation_epoch_end(self):
+            val_loss = losses[self.current_epoch]
+            self.log("val_loss", val_loss)
+
+    model = CurrentModel()
+    
+    # Mock the _run_early_stopping_check method to verify when it's called
+    with mock.patch("lightning.pytorch.callbacks.early_stopping.EarlyStopping._evaluate_stopping_criteria") as es_mock:
+        es_mock.return_value = (False, "")
+        early_stopping = EarlyStopping(monitor="val_loss", start_from_epoch=start_from_epoch)
+        trainer = Trainer(
+            default_root_dir=tmp_path,
+            callbacks=[early_stopping],
+            limit_train_batches=0.2,
+            limit_val_batches=0.2,
+            max_epochs=len(losses),
+        )
+        trainer.fit(model)
+
+        # Check that _evaluate_stopping_criteria is not called for epochs before start_from_epoch
+        assert es_mock.call_count == len(losses) - start_from_epoch
+        # Check that only the correct epochs were processed
+        for i, call_args in enumerate(es_mock.call_args_list):
+            assert torch.allclose(call_args[0][0], torch.tensor(losses[i + start_from_epoch]))
