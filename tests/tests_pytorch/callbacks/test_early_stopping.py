@@ -511,7 +511,6 @@ def test_early_stopping_start_from_epoch(tmp_path):
     """Test that early stopping checks only activate after start_from_epoch."""
     losses = [6, 5, 4, 3, 2, 1]  # decreasing losses
     start_from_epoch = 3
-    expected_stop_epoch = None  # Should not stop early
 
     class CurrentModel(BoringModel):
         def on_validation_epoch_end(self):
@@ -519,7 +518,7 @@ def test_early_stopping_start_from_epoch(tmp_path):
             self.log("val_loss", val_loss)
 
     model = CurrentModel()
-    
+
     # Mock the _run_early_stopping_check method to verify when it's called
     with mock.patch("lightning.pytorch.callbacks.early_stopping.EarlyStopping._evaluate_stopping_criteria") as es_mock:
         es_mock.return_value = (False, "")

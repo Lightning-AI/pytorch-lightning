@@ -79,7 +79,7 @@ class EarlyStopping(Callback):
         >>> from pytorch_lightning.callbacks import EarlyStopping
         >>> early_stopping = EarlyStopping('val_loss')
         >>> trainer = Trainer(callbacks=[early_stopping])
-        
+
         >>> # Start monitoring only from epoch 5
         >>> early_stopping = EarlyStopping('val_loss', start_from_epoch=5)
         >>> trainer = Trainer(callbacks=[early_stopping])
