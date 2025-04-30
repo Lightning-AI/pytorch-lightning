@@ -24,7 +24,7 @@ from queue import Queue
 import numpy as np
 from torch.utils.data import DataLoader, IterableDataset
 
-from lightning import Trainer
+from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
 
 
