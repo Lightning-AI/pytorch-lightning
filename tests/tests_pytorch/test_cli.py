@@ -572,7 +572,7 @@ class BoringDataModuleBatchSizeAndClasses(BoringDataModule):
         self.num_classes = 5  # only available after instantiation
 
 
-def test_lightning_cli_link_arguments():
+def test_lightning_cli_link_arguments(cleandir):
     class MyLightningCLI(LightningCLI):
         def add_arguments_to_parser(self, parser):
             parser.link_arguments("data.batch_size", "model.batch_size")
