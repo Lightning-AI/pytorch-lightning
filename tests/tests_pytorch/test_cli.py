@@ -560,6 +560,7 @@ def test_lightning_cli_torch_modules(cleandir):
 class BoringModelRequiredClasses(BoringModel):
     def __init__(self, num_classes: int, batch_size: int = 8):
         super().__init__()
+        self.save_hyperparameters()
         self.num_classes = num_classes
         self.batch_size = batch_size
 
@@ -577,7 +578,7 @@ def test_lightning_cli_link_arguments():
             parser.link_arguments("data.batch_size", "model.batch_size")
             parser.link_arguments("data.num_classes", "model.num_classes", apply_on="instantiate")
 
-    cli_args = ["--data.batch_size=12"]
+    cli_args = ["--data.batch_size=12", "--trainer.max_epochs=1"]
 
     with mock.patch("sys.argv", ["any.py"] + cli_args):
         cli = MyLightningCLI(BoringModelRequiredClasses, BoringDataModuleBatchSizeAndClasses, run=False)
@@ -585,20 +586,88 @@ def test_lightning_cli_link_arguments():
     assert cli.model.batch_size == 12
     assert cli.model.num_classes == 5
 
-    class MyLightningCLI(LightningCLI):
+    cli.trainer.fit(cli.model)
+    hparams_path = Path(cli.trainer.log_dir) / "hparams.yaml"
+    assert hparams_path.is_file()
+    hparams = yaml.safe_load(hparams_path.read_text())
+
+    hparams.pop("_instantiator")
+    assert hparams == {"batch_size": 12, "num_classes": 5}
+
+    class MyLightningCLI2(LightningCLI):
         def add_arguments_to_parser(self, parser):
             parser.link_arguments("data.batch_size", "model.init_args.batch_size")
             parser.link_arguments("data.num_classes", "model.init_args.num_classes", apply_on="instantiate")
 
-    cli_args[-1] = "--model=tests_pytorch.test_cli.BoringModelRequiredClasses"
+    cli_args[0] = "--model=tests_pytorch.test_cli.BoringModelRequiredClasses"
 
     with mock.patch("sys.argv", ["any.py"] + cli_args):
-        cli = MyLightningCLI(
+        cli = MyLightningCLI2(
             BoringModelRequiredClasses, BoringDataModuleBatchSizeAndClasses, subclass_mode_model=True, run=False
         )
 
     assert cli.model.batch_size == 8
     assert cli.model.num_classes == 5
+
+    cli.trainer.fit(cli.model)
+    hparams_path = Path(cli.trainer.log_dir) / "hparams.yaml"
+    assert hparams_path.is_file()
+    hparams = yaml.safe_load(hparams_path.read_text())
+
+    hparams.pop("_instantiator")
+    assert hparams == {"batch_size": 8, "num_classes": 5}
+
+
+class CustomAdam(torch.optim.Adam):
+    def __init__(self, params, num_classes: Optional[int] = None, **kwargs):
+        super().__init__(params, **kwargs)
+
+
+class DeepLinkTargetModel(BoringModel):
+    def __init__(
+        self,
+        optimizer: OptimizerCallable = torch.optim.Adam,
+    ):
+        super().__init__()
+        self.save_hyperparameters()
+        self.optimizer = optimizer
+
+    def configure_optimizers(self):
+        optimizer = self.optimizer(self.parameters())
+        return {"optimizer": optimizer}
+
+
+def test_lightning_cli_link_arguments_subcommands_nested_target(cleandir):
+    class MyLightningCLI(LightningCLI):
+        def add_arguments_to_parser(self, parser):
+            parser.link_arguments(
+                "data.num_classes",
+                "model.init_args.optimizer.init_args.num_classes",
+                apply_on="instantiate",
+            )
+
+    cli_args = [
+        "fit",
+        "--data.batch_size=12",
+        "--trainer.max_epochs=1",
+        "--model=tests_pytorch.test_cli.DeepLinkTargetModel",
+        "--model.optimizer=tests_pytorch.test_cli.CustomAdam",
+    ]
+
+    with mock.patch("sys.argv", ["any.py"] + cli_args):
+        cli = MyLightningCLI(
+            DeepLinkTargetModel,
+            BoringDataModuleBatchSizeAndClasses,
+            subclass_mode_model=True,
+            auto_configure_optimizers=False,
+        )
+
+    hparams_path = Path(cli.trainer.log_dir) / "hparams.yaml"
+    assert hparams_path.is_file()
+    hparams = yaml.safe_load(hparams_path.read_text())
+
+    assert hparams["optimizer"]["class_path"] == "tests_pytorch.test_cli.CustomAdam"
+    assert hparams["optimizer"]["init_args"]["num_classes"] == 5
 
 
 class EarlyExitTestModel(BoringModel):
