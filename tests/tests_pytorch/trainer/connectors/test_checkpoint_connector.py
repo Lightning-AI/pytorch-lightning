@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import errno
 import os
 from unittest import mock
 from unittest.mock import ANY, Mock
@@ -105,7 +106,7 @@ def test_hpc_max_ckpt_version(tmp_path):
     )
 
 
-def test_ckpt_for_fsspec():
+def test_ckpt_for_fsspec(tmpdir):
     """Test that the _CheckpointConnector is able to write to fsspec file systems."""
     model = BoringModel()
     # hardcoding dir since `tmp_path` can be windows path
@@ -117,6 +118,13 @@ def test_ckpt_for_fsspec():
     trainer.save_checkpoint("memory://test_ckpt_for_fsspec/hpc_ckpt_0.ckpt")
     trainer.save_checkpoint("memory://test_ckpt_for_fsspec/hpc_ckpt_3.ckpt")
     trainer.save_checkpoint("memory://test_ckpt_for_fsspec/hpc_ckpt_33.ckpt")
+
+    # Simulate the behavior of fsspec when writing to a local file system but other device.
+    with (
+        mock.patch("os.rename", side_effect=OSError(errno.EXDEV, "Invalid cross-device link")),
+        mock.patch("os.chmod", side_effect=PermissionError("Operation not permitted")),
+    ):
+        trainer.save_checkpoint(tmpdir + "/test_ckpt_for_fsspec/hpc_ckpt_18.ckpt")
 
     assert trainer._checkpoint_connector._hpc_resume_path == "memory://test_ckpt_for_fsspec/hpc_ckpt_33.ckpt"
     assert (
