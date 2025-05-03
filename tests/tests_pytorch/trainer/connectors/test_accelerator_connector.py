@@ -14,15 +14,17 @@
 import inspect
 import os
 import sys
-from typing import Any, Dict
+from contextlib import nullcontext
+from typing import Any
 from unittest import mock
 from unittest.mock import Mock
 
-import lightning.fabric
-import lightning.pytorch
 import pytest
 import torch
 import torch.distributed
+
+import lightning.fabric
+import lightning.pytorch
 from lightning.fabric.plugins.environments import (
     KubeflowEnvironment,
     LightningEnvironment,
@@ -48,6 +50,7 @@ from lightning.pytorch.strategies import (
     DDPStrategy,
     DeepSpeedStrategy,
     FSDPStrategy,
+    ModelParallelStrategy,
     SingleDeviceStrategy,
     SingleDeviceXLAStrategy,
     XLAStrategy,
@@ -59,7 +62,6 @@ from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.imports import (
     _LIGHTNING_HABANA_AVAILABLE,
 )
-
 from tests_pytorch.conftest import mock_cuda_count, mock_mps_count, mock_tpu_available, mock_xla_available
 from tests_pytorch.helpers.runif import RunIf
 
@@ -176,7 +178,7 @@ def test_custom_accelerator(cuda_count_0):
         def setup_device(self, device: torch.device) -> None:
             pass
 
-        def get_device_stats(self, device: torch.device) -> Dict[str, Any]:
+        def get_device_stats(self, device: torch.device) -> dict[str, Any]:
             pass
 
         def teardown(self) -> None:
@@ -564,11 +566,18 @@ def test_strategy_choice_ddp_cpu_slurm(cuda_count_0, strategy):
 
 
 def test_check_fsdp_strategy_and_fallback():
-    with pytest.raises(
-        MisconfigurationException,
-        match=f"You selected strategy to be `{FSDPStrategy.strategy_name}`, but GPU accelerator is not used.",
-    ):
+    with pytest.raises(ValueError, match="The strategy `fsdp` requires a GPU accelerator"):
         Trainer(accelerator="cpu", strategy="fsdp")
+
+    class FSDPStrategySubclass(FSDPStrategy):
+        pass
+
+    class AcceleratorSubclass(CPUAccelerator):
+        pass
+
+    # we allow subclasses of FSDPStrategy to be used with other accelerators
+    Trainer(accelerator="cpu", strategy=FSDPStrategySubclass())
+    Trainer(accelerator=AcceleratorSubclass(), strategy=FSDPStrategySubclass())
 
 
 @mock.patch.dict(os.environ, {}, clear=True)
@@ -1056,3 +1065,14 @@ def test_bitsandbytes_precision_cuda_required(monkeypatch):
     monkeypatch.setitem(sys.modules, "bitsandbytes", Mock())
     with pytest.raises(RuntimeError, match="Bitsandbytes is only supported on CUDA GPUs"):
         _AcceleratorConnector(accelerator="cpu", plugins=BitsandbytesPrecision(mode="int8"))
+
+
+@RunIf(min_torch="2.4")
+@pytest.mark.parametrize(
+    ("precision", "raises"),
+    [("32-true", False), ("16-true", False), ("bf16-true", False), ("16-mixed", True), ("bf16-mixed", False)],
+)
+def test_precision_selection_model_parallel(precision, raises, mps_count_0):
+    error_context = pytest.raises(ValueError, match=f"does not support .*{precision}") if raises else nullcontext()
+    with error_context:
+        _AcceleratorConnector(precision=precision, strategy=ModelParallelStrategy())

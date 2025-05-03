@@ -20,11 +20,11 @@ import pytest
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from torch.utils.data import DataLoader
+
 from lightning.fabric import Fabric
 from lightning.fabric.plugins import DeepSpeedPrecision
 from lightning.fabric.strategies import DeepSpeedStrategy
-from torch.utils.data import DataLoader
-
 from tests_fabric.helpers.datasets import RandomDataset, RandomIterableDataset
 from tests_fabric.helpers.runif import RunIf
 from tests_fabric.test_fabric import BoringModel
@@ -312,11 +312,11 @@ def _assert_saved_model_is_equal(fabric, model, checkpoint_path):
             single_ckpt_path = checkpoint_path / "single_model.pt"
             # the tag is hardcoded in DeepSpeedStrategy
             convert_zero_checkpoint_to_fp32_state_dict(checkpoint_path, single_ckpt_path, tag="checkpoint")
-            state_dict = torch.load(single_ckpt_path)
+            state_dict = torch.load(single_ckpt_path, weights_only=False)
         else:
             # 'checkpoint' is the tag, hardcoded in DeepSpeedStrategy
             single_ckpt_path = checkpoint_path / "checkpoint" / "mp_rank_00_model_states.pt"
-            state_dict = torch.load(single_ckpt_path)["module"]
+            state_dict = torch.load(single_ckpt_path, weights_only=False)["module"]
 
         model = model.cpu()
 
@@ -404,9 +404,11 @@ def test_deepspeed_init_module_with_stages_1_2(stage, empty_init):
     fabric = Fabric(accelerator="cuda", devices=2, strategy=strategy, precision="bf16-true")
     fabric.launch()
 
-    with mock.patch("deepspeed.zero.Init") as zero_init_mock, mock.patch(
-        "torch.Tensor.uniform_"
-    ) as init_mock, fabric.init_module(empty_init=empty_init):
+    with (
+        mock.patch("deepspeed.zero.Init") as zero_init_mock,
+        mock.patch("torch.Tensor.uniform_") as init_mock,
+        fabric.init_module(empty_init=empty_init),
+    ):
         model = BoringModel()
 
     zero_init_mock.assert_called_with(enabled=False, remote_device=None, config_dict_or_path=ANY)

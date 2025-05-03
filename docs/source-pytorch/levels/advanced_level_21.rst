@@ -25,9 +25,9 @@ Scale to billions of parameters with multiple distributed strategies.
 
 .. displayitem::
    :header: Train models with billions of parameters
-   :description: Scale to billions of params on GPUs with FSDP or Deepspeed.
+   :description: Scale to billions of params on GPUs with FSDP, TP or Deepspeed.
    :col_css: col-md-6
-   :button_link: ../advanced/model_parallel.html
+   :button_link: ../advanced/model_parallel/index.html
    :height: 150
    :tag: advanced
 

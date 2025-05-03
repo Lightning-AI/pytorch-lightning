@@ -12,10 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from collections import Counter
-from typing import Any, Iterator
+from collections.abc import Iterator
+from typing import Any
 
 import pytest
 import torch
+from torch import Tensor
+from torch.utils.data import DataLoader, Dataset, IterableDataset
+
 from lightning.pytorch import LightningDataModule, Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
 from lightning.pytorch.loops.fetchers import _DataLoaderIterDataFetcher, _PrefetchDataFetcher
@@ -23,9 +27,6 @@ from lightning.pytorch.profilers import SimpleProfiler
 from lightning.pytorch.utilities.combined_loader import CombinedLoader
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.types import STEP_OUTPUT
-from torch import Tensor
-from torch.utils.data import DataLoader, Dataset, IterableDataset
-
 from tests_pytorch.helpers.runif import RunIf
 
 

@@ -134,7 +134,7 @@ Here's the full documentation for the :class:`~lightning.pytorch.loggers.TensorB
 
 Weights and Biases
 ==================
-To use `Weights and Biases <https://docs.wandb.ai/integrations/lightning/>`_ (wandb) first install the wandb package:
+To use `Weights and Biases <https://docs.wandb.ai/guides/integrations/lightning>`_ (wandb) first install the wandb package:
 
 .. code-block:: bash
 

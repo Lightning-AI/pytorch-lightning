@@ -18,13 +18,13 @@ from unittest.mock import ANY, Mock, call, patch
 
 import pytest
 import torch
+
 from lightning.fabric.plugins import ClusterEnvironment
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.strategies import DDPStrategy
 from lightning.pytorch.strategies.launchers.multiprocessing import _GlobalStateSnapshot, _MultiProcessingLauncher
 from lightning.pytorch.trainer.states import TrainerFn
-
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -194,27 +194,32 @@ class SimpleModel(BoringModel):
         assert torch.equal(self.layer.weight.data, self.tied_layer.weight.data)
 
 
-def test_memory_sharing_disabled():
+def test_memory_sharing_disabled(tmp_path):
     """Test that the multiprocessing launcher disables memory sharing on model parameters and buffers to avoid race
     conditions on model updates."""
     model = SimpleModel()
     assert not model.layer.weight.is_shared()
     assert model.layer.weight.data_ptr() == model.tied_layer.weight.data_ptr()
 
-    trainer = Trainer(accelerator="cpu", devices=2, strategy="ddp_spawn", max_steps=0)
+    trainer = Trainer(
+        default_root_dir=tmp_path, logger=False, accelerator="cpu", devices=2, strategy="ddp_spawn", max_steps=0
+    )
     trainer.fit(model)
 
 
 def test_check_for_missing_main_guard():
     launcher = _MultiProcessingLauncher(strategy=Mock(), start_method="spawn")
-    with mock.patch(
-        "lightning.pytorch.strategies.launchers.multiprocessing.mp.current_process",
-        return_value=Mock(_inheriting=True),  # pretend that main is importing itself
-    ), pytest.raises(RuntimeError, match="requires that your script guards the main"):
+    with (
+        mock.patch(
+            "lightning.pytorch.strategies.launchers.multiprocessing.mp.current_process",
+            return_value=Mock(_inheriting=True),  # pretend that main is importing itself
+        ),
+        pytest.raises(RuntimeError, match="requires that your script guards the main"),
+    ):
         launcher.launch(function=Mock())
 
 
-def test_fit_twice_raises():
+def test_fit_twice_raises(mps_count_0):
     model = BoringModel()
     trainer = Trainer(
         limit_train_batches=1,

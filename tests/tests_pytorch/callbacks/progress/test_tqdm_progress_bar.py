@@ -18,10 +18,13 @@ import sys
 from collections import defaultdict
 from typing import Union
 from unittest import mock
-from unittest.mock import ANY, PropertyMock, call
+from unittest.mock import ANY, Mock, PropertyMock, call
 
 import pytest
 import torch
+from tests_pytorch.helpers.runif import RunIf
+from torch.utils.data.dataloader import DataLoader
+
 from lightning.pytorch import Trainer
 from lightning.pytorch.callbacks import ModelCheckpoint, ProgressBar, TQDMProgressBar
 from lightning.pytorch.callbacks.progress.tqdm_progress import Tqdm
@@ -30,8 +33,6 @@ from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset
 from lightning.pytorch.loggers import CSVLogger
 from lightning.pytorch.loggers.logger import DummyLogger
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from tests_pytorch.helpers.runif import RunIf
-from torch.utils.data.dataloader import DataLoader
 
 
 class MockTqdm(Tqdm):
@@ -550,9 +551,10 @@ def test_tqdm_progress_bar_print_disabled(tqdm_write, mock_print, tmp_path):
     tqdm_write.assert_not_called()
 
 
-def test_tqdm_progress_bar_can_be_pickled():
+def test_tqdm_progress_bar_can_be_pickled(tmp_path):
     bar = TQDMProgressBar()
     trainer = Trainer(
+        default_root_dir=tmp_path,
         callbacks=[bar],
         max_epochs=1,
         limit_train_batches=1,
@@ -782,3 +784,20 @@ def test_tqdm_progress_bar_disabled_when_not_rank_zero(is_global_zero):
     pbar.enable()
     trainer.test(model)
     assert pbar.is_disabled
+
+
+@pytest.mark.parametrize("leave", [True, False])
+def test_tqdm_leave(leave, tmp_path):
+    pbar = TQDMProgressBar(leave=leave)
+    pbar.init_train_tqdm = Mock(wraps=pbar.init_train_tqdm)
+    model = BoringModel()
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        callbacks=[pbar],
+        max_epochs=3,
+        limit_train_batches=1,
+        limit_val_batches=1,
+        benchmark=True,
+    )
+    trainer.fit(model)
+    assert pbar.init_train_tqdm.call_count == (4 if leave else 1)

@@ -14,10 +14,17 @@
 import os
 from unittest.mock import Mock, call, patch
 
-import lightning.pytorch
 import numpy
 import pytest
 import torch
+from lightning_utilities.test.warning import no_warning_call
+from torch.utils.data import RandomSampler
+from torch.utils.data.dataloader import DataLoader
+from torch.utils.data.dataset import Dataset, IterableDataset
+from torch.utils.data.distributed import DistributedSampler
+from torch.utils.data.sampler import SequentialSampler
+
+import lightning.pytorch
 from lightning.fabric.utilities.data import _auto_add_worker_init_fn, has_iterable_dataset
 from lightning.pytorch import Callback, Trainer, seed_everything
 from lightning.pytorch.callbacks import ModelCheckpoint
@@ -33,13 +40,6 @@ from lightning.pytorch.trainer.states import RunningStage
 from lightning.pytorch.utilities.combined_loader import CombinedLoader
 from lightning.pytorch.utilities.data import has_len_all_ranks
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning_utilities.test.warning import no_warning_call
-from torch.utils.data import RandomSampler
-from torch.utils.data.dataloader import DataLoader
-from torch.utils.data.dataset import Dataset, IterableDataset
-from torch.utils.data.distributed import DistributedSampler
-from torch.utils.data.sampler import SequentialSampler
-
 from tests_pytorch.helpers.dataloaders import CustomInfDataloader, CustomNotImplementedErrorDataloader
 from tests_pytorch.helpers.runif import RunIf
 
@@ -641,6 +641,8 @@ class MultiProcessModel(BoringModel):
 
     def training_step(self, batch, batch_idx):
         self.batches_seen.append(batch)
+        # the actual training step is not needed for the assertions below
+        return super().training_step(torch.rand(1, 32, device=self.device), batch_idx)
 
     def on_train_epoch_end(self):
         world_size = 2
@@ -679,7 +681,11 @@ def test_warning_with_small_dataloader_and_logging_interval(tmp_path):
 
     with pytest.warns(UserWarning, match=r"The number of training batches \(1\) is smaller than the logging interval"):
         trainer = Trainer(
-            default_root_dir=tmp_path, max_epochs=1, log_every_n_steps=2, limit_train_batches=1, logger=CSVLogger(".")
+            default_root_dir=tmp_path,
+            max_epochs=1,
+            log_every_n_steps=2,
+            limit_train_batches=1,
+            logger=CSVLogger(tmp_path),
         )
         trainer.fit(model)
 
@@ -727,7 +733,7 @@ def test_warning_with_iterable_dataset_and_len(tmp_path):
 
 
 @pytest.mark.parametrize("yield_at_all", [False, True])
-def test_iterable_dataset_stop_iteration_at_epoch_beginning(yield_at_all):
+def test_iterable_dataset_stop_iteration_at_epoch_beginning(yield_at_all, tmp_path):
     """Test that the training loop skips execution if the iterator is empty from the start."""
 
     class TestDataset(IterableDataset):
@@ -748,7 +754,8 @@ def test_iterable_dataset_stop_iteration_at_epoch_beginning(yield_at_all):
     model = TestModel()
     train_dataloader = DataLoader(TestDataset(model.gen), batch_size=2)
     trainer = Trainer(
-        default_root_dir=os.getcwd(),
+        default_root_dir=tmp_path,
+        logger=False,
         max_epochs=2,
         enable_model_summary=False,
     )
@@ -805,8 +812,10 @@ class TestModelUniqueDDPSampling(BoringModel):
         super().__init__()
         self.seen_samples = []
 
-    def training_step(self, batch):
+    def training_step(self, batch, batch_idx):
         self.seen_samples.extend(batch.tolist())
+        # the actual training step is not needed for the test
+        return super().training_step(torch.rand(1, 32, device=self.device), batch_idx)
 
     def on_train_end(self):
         seen_samples = self.all_gather(self.seen_samples)

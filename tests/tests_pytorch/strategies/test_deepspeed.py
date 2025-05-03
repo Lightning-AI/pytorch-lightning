@@ -15,33 +15,28 @@ import contextlib
 import json
 import os
 from re import escape
-from typing import Any, Dict
+from typing import Any
 from unittest import mock
 from unittest.mock import ANY, Mock
 
 import pytest
 import torch
 import torch.nn.functional as F
+from torch import Tensor, nn
+from torch.utils.data import DataLoader
+from torchmetrics import Accuracy
+
 from lightning.pytorch import LightningModule, Trainer
 from lightning.pytorch.accelerators import CUDAAccelerator
 from lightning.pytorch.callbacks import Callback, LearningRateMonitor, ModelCheckpoint
 from lightning.pytorch.demos.boring_classes import BoringModel, RandomDataset, RandomIterableDataset
 from lightning.pytorch.loggers import CSVLogger
 from lightning.pytorch.plugins import DeepSpeedPrecision
-from lightning.pytorch.strategies.deepspeed import _DEEPSPEED_AVAILABLE, DeepSpeedStrategy
+from lightning.pytorch.strategies.deepspeed import DeepSpeedStrategy
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.imports import _TORCHMETRICS_GREATER_EQUAL_0_11 as _TM_GE_0_11
-from torch import Tensor, nn
-from torch.utils.data import DataLoader
-from torchmetrics import Accuracy
-
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.runif import RunIf
-
-if _DEEPSPEED_AVAILABLE:
-    import deepspeed
-    from deepspeed.runtime.zero.stage_1_and_2 import DeepSpeedZeroOptimizer
-    from deepspeed.utils.zero_to_fp32 import convert_zero_checkpoint_to_fp32_state_dict
 
 
 class ModelParallelBoringModel(BoringModel):
@@ -53,7 +48,7 @@ class ModelParallelBoringModel(BoringModel):
         if self.layer is None:
             self.layer = torch.nn.Linear(32, 2)
 
-    def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
+    def on_load_checkpoint(self, checkpoint: dict[str, Any]) -> None:
         self.configure_model()
 
 
@@ -78,7 +73,7 @@ class ModelParallelBoringModelManualOptim(BoringModel):
         if self.layer is None:
             self.layer = torch.nn.Linear(32, 2)
 
-    def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
+    def on_load_checkpoint(self, checkpoint: dict[str, Any]) -> None:
         self.configure_model()
 
     @property
@@ -86,7 +81,7 @@ class ModelParallelBoringModelManualOptim(BoringModel):
         return False
 
 
-@pytest.fixture()
+@pytest.fixture
 def deepspeed_config():
     return {
         "optimizer": {"type": "SGD", "params": {"lr": 3e-5}},
@@ -97,7 +92,7 @@ def deepspeed_config():
     }
 
 
-@pytest.fixture()
+@pytest.fixture
 def deepspeed_zero_config(deepspeed_config):
     return {**deepspeed_config, "zero_allow_untested_optimizer": True, "zero_optimization": {"stage": 2}}
 
@@ -245,6 +240,7 @@ def test_deepspeed_auto_batch_size_config_select(_, __, tmp_path, dataset_cls, v
 def test_deepspeed_run_configure_optimizers(tmp_path):
     """Test end to end that deepspeed works with defaults (without ZeRO as that requires compilation), whilst using
     configure_optimizers for optimizers and schedulers."""
+    from deepspeed.runtime.zero.stage_1_and_2 import DeepSpeedZeroOptimizer
 
     class TestCB(Callback):
         def on_train_start(self, trainer, pl_module) -> None:
@@ -284,6 +280,7 @@ def test_deepspeed_run_configure_optimizers(tmp_path):
 def test_deepspeed_config(tmp_path, deepspeed_zero_config):
     """Test to ensure deepspeed works correctly when passed a DeepSpeed config object including optimizers/schedulers
     and saves the model weights to load correctly."""
+    from deepspeed.runtime.zero.stage_1_and_2 import DeepSpeedZeroOptimizer
 
     class TestCB(Callback):
         def on_train_start(self, trainer, pl_module) -> None:
@@ -397,6 +394,8 @@ def test_deepspeed_custom_activation_checkpointing_params():
 def test_deepspeed_custom_activation_checkpointing_params_forwarded(tmp_path):
     """Ensure if we modify the activation checkpointing parameters, we pass these to deepspeed.checkpointing.configure
     correctly."""
+    import deepspeed
+
     ds = DeepSpeedStrategy(
         partition_activations=True,
         cpu_checkpointing=True,
@@ -453,6 +452,8 @@ def test_deepspeed_assert_config_zero_offload_disabled(tmp_path, deepspeed_zero_
 @RunIf(min_cuda_gpus=2, standalone=True, deepspeed=True)
 def test_deepspeed_multigpu(tmp_path):
     """Test to ensure that DeepSpeed with multiple GPUs works and deepspeed distributed is initialized correctly."""
+    import deepspeed
+
     model = BoringModel()
     trainer = Trainer(
         default_root_dir=tmp_path,
@@ -622,7 +623,7 @@ class ModelParallelClassificationModel(LightningModule):
         lr_scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.99)
         return [optimizer], [{"scheduler": lr_scheduler, "interval": "step"}]
 
-    def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
+    def on_load_checkpoint(self, checkpoint: dict[str, Any]) -> None:
         if not hasattr(self, "model"):
             self.configure_model()
 
@@ -978,6 +979,8 @@ def test_deepspeed_strategy_env_variables(mock_deepspeed_distributed, tmp_path, 
 
 
 def _assert_save_model_is_equal(model, tmp_path, trainer):
+    from deepspeed.utils.zero_to_fp32 import convert_zero_checkpoint_to_fp32_state_dict
+
     checkpoint_path = os.path.join(tmp_path, "model.pt")
     checkpoint_path = trainer.strategy.broadcast(checkpoint_path)
     trainer.save_checkpoint(checkpoint_path)
@@ -986,7 +989,7 @@ def _assert_save_model_is_equal(model, tmp_path, trainer):
     if trainer.is_global_zero:
         single_ckpt_path = os.path.join(tmp_path, "single_model.pt")
         convert_zero_checkpoint_to_fp32_state_dict(checkpoint_path, single_ckpt_path)
-        state_dict = torch.load(single_ckpt_path)
+        state_dict = torch.load(single_ckpt_path, weights_only=False)
 
         model = model.cpu()
         # Assert model parameters are identical after loading

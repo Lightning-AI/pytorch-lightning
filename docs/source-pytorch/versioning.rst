@@ -16,8 +16,6 @@ A Lightning release number is in the format of ``MAJOR.MINOR.PATCH``.
 
 With every release, we publish a changelog where we list additions, removals, deprecations, changed functionality and fixes.
 
-The ``lightning.app`` package is an exception to this rule, as it may contain any change with or without deprecations in any of the releases.
-
 API Stability
 *************
 
@@ -63,8 +61,8 @@ For API removal, renaming or other forms of backwards-incompatible changes, the 
 #. From that version onward, the deprecation warning gets converted into a helpful error, which will remain until next major release.
 
 This policy is not strict. Shorter or longer deprecation cycles may apply to some cases.
-For example, in the past DDP2 was removed without a deprecation process because the feature was broken and unusable beyond fixing as discussed in `#12584 <https://github.com/Lightning-AI/lightning/issues/12584>`_.
-Also, `#10410 <https://github.com/Lightning-AI/lightning/issues/10410>`_ is an example that a longer deprecation applied to. We deprecated the accelerator arguments, such as ``Trainer(gpus=...)``, in 1.7, however, because the APIs were so core that they would impact almost all use cases, we decided not to introduce the breaking change until 2.0.
+For example, in the past DDP2 was removed without a deprecation process because the feature was broken and unusable beyond fixing as discussed in `#12584 <https://github.com/Lightning-AI/pytorch-lightning/issues/12584>`_.
+Also, `#10410 <https://github.com/Lightning-AI/pytorch-lightning/issues/10410>`_ is an example that a longer deprecation applied to. We deprecated the accelerator arguments, such as ``Trainer(gpus=...)``, in 1.7, however, because the APIs were so core that they would impact almost all use cases, we decided not to introduce the breaking change until 2.0.
 
 Compatibility matrix
 ********************
@@ -81,6 +79,18 @@ The table below indicates the coverage of tested versions in our CI. Versions ou
      - ``torch``
      - ``torchmetrics``
      - Python
+   * - 2.4
+     - 2.4
+     - 2.4
+     - ≥2.1, ≤2.4
+     - ≥0.7.0
+     - ≥3.9, ≤3.12
+   * - 2.3
+     - 2.3
+     - 2.3
+     - ≥2.0, ≤2.3
+     - ≥0.7.0
+     - ≥3.8, ≤3.11
    * - 2.2
      - 2.2
      - 2.2

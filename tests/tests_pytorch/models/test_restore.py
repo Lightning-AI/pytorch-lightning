@@ -15,22 +15,23 @@ import glob
 import logging as log
 import os
 import pickle
+from collections.abc import Mapping
 from copy import deepcopy
-from typing import Generic, Mapping, TypeVar
+from typing import Generic, TypeVar
 
 import cloudpickle
 import pytest
 import torch
-from lightning.fabric import seed_everything
-from lightning.pytorch import Callback, Trainer
-from lightning.pytorch.callbacks import ModelCheckpoint
-from lightning.pytorch.demos.boring_classes import BoringModel
-from lightning.pytorch.trainer.states import TrainerFn
 from lightning_utilities.test.warning import no_warning_call
 from torch import Tensor
 
 import tests_pytorch.helpers.pipelines as tpipes
 import tests_pytorch.helpers.utils as tutils
+from lightning.fabric import seed_everything
+from lightning.pytorch import Callback, Trainer
+from lightning.pytorch.callbacks import ModelCheckpoint
+from lightning.pytorch.demos.boring_classes import BoringModel
+from lightning.pytorch.trainer.states import TrainerFn
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.simple_models import ClassificationModel
@@ -131,7 +132,7 @@ def test_trainer_properties_restore_ckpt_path(tmp_path):
     trainer.fit(model, datamodule=dm)
 
     resume_ckpt = str(tmp_path / "last.ckpt")
-    state_dict = torch.load(resume_ckpt)
+    state_dict = torch.load(resume_ckpt, weights_only=True)
 
     trainer_args.update({"max_epochs": 3, "enable_checkpointing": False, "callbacks": []})
 
@@ -208,7 +209,7 @@ def test_correct_step_and_epoch(tmp_path):
     ckpt_path = str(tmp_path / "model.ckpt")
     trainer.save_checkpoint(ckpt_path)
 
-    ckpt = torch.load(ckpt_path)
+    ckpt = torch.load(ckpt_path, weights_only=True)
     assert ckpt["epoch"] == first_max_epochs
     assert ckpt["global_step"] == first_max_epochs * train_batches
 
@@ -258,7 +259,7 @@ def test_fit_twice(tmp_path):
 def test_try_resume_from_non_existing_checkpoint(tmp_path):
     """Test that trying to resume from non-existing `ckpt_path` fails with an error."""
     model = BoringModel()
-    trainer = Trainer()
+    trainer = Trainer(logger=False)
 
     with pytest.raises(FileNotFoundError, match="Checkpoint file not found"):
         trainer.fit(model, ckpt_path=str(tmp_path / "non_existing.ckpt"))
@@ -461,7 +462,7 @@ def test_load_model_from_checkpoint(tmp_path, model_template):
     last_checkpoint = sorted(glob.glob(os.path.join(trainer.checkpoint_callback.dirpath, "*.ckpt")))[-1]
 
     # Since `BoringModel` has `_save_hparams = True` by default, check that ckpt has hparams
-    ckpt = torch.load(last_checkpoint)
+    ckpt = torch.load(last_checkpoint, weights_only=True)
     assert model_template.CHECKPOINT_HYPER_PARAMS_KEY in ckpt, "hyper_parameters missing from checkpoints"
 
     # Ensure that model can be correctly restored from checkpoint

@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import logging
 import os
 from argparse import Namespace
 from unittest import mock
@@ -21,12 +20,12 @@ import numpy as np
 import pytest
 import torch
 import yaml
+
 from lightning.pytorch import Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.loggers import TensorBoardLogger
 from lightning.pytorch.loggers.tensorboard import _TENSORBOARD_AVAILABLE
 from lightning.pytorch.utilities.imports import _OMEGACONF_AVAILABLE
-
 from tests_pytorch.helpers.runif import RunIf
 
 if _OMEGACONF_AVAILABLE:
@@ -109,7 +108,6 @@ def test_tensorboard_no_name(tmp_path, name):
     assert os.listdir(tmp_path / "version_0")
 
 
-@mock.patch.dict(os.environ, {}, clear=True)
 def test_tensorboard_log_sub_dir(tmp_path):
     class TestLogger(TensorBoardLogger):
         # for reproducibility
@@ -141,14 +139,15 @@ def test_tensorboard_log_sub_dir(tmp_path):
     trainer = Trainer(**trainer_args, logger=logger)
     assert trainer.logger.log_dir == os.path.join(explicit_save_dir, "name", "version", "sub_dir")
 
-    # test env var (`$`) handling
-    test_env_dir = "some_directory"
-    os.environ["TEST_ENV_DIR"] = test_env_dir
-    save_dir = "$TEST_ENV_DIR/tmp"
-    explicit_save_dir = f"{test_env_dir}/tmp"
-    logger = TestLogger(save_dir, sub_dir="sub_dir")
-    trainer = Trainer(**trainer_args, logger=logger)
-    assert trainer.logger.log_dir == os.path.join(explicit_save_dir, "name", "version", "sub_dir")
+    with mock.patch.dict(os.environ, {}):
+        # test env var (`$`) handling
+        test_env_dir = "some_directory"
+        os.environ["TEST_ENV_DIR"] = test_env_dir
+        save_dir = "$TEST_ENV_DIR/tmp"
+        explicit_save_dir = f"{test_env_dir}/tmp"
+        logger = TestLogger(save_dir, sub_dir="sub_dir")
+        trainer = Trainer(**trainer_args, logger=logger)
+        assert trainer.logger.log_dir == os.path.join(explicit_save_dir, "name", "version", "sub_dir")
 
 
 @pytest.mark.parametrize("step_idx", [10, None])
@@ -312,8 +311,7 @@ def test_tensorboard_save_hparams_to_yaml_once(tmp_path):
     assert not os.path.isfile(os.path.join(tmp_path, hparams_file))
 
 
-@mock.patch("lightning.pytorch.loggers.tensorboard.log")
-def test_tensorboard_with_symlink(log, tmp_path, monkeypatch):
+def test_tensorboard_with_symlink(tmp_path, monkeypatch):
     """Tests a specific failure case when tensorboard logger is used with empty name, symbolic link ``save_dir``, and
     relative paths."""
     monkeypatch.chdir(tmp_path)  # need to use relative paths
@@ -325,16 +323,3 @@ def test_tensorboard_with_symlink(log, tmp_path, monkeypatch):
 
     logger = TensorBoardLogger(save_dir=dest, name="")
     _ = logger.version
-
-    log.warning.assert_not_called()
-
-
-def test_tensorboard_missing_folder_warning(tmp_path, caplog):
-    """Verify that the logger throws a warning for invalid directory."""
-    name = "fake_dir"
-    logger = TensorBoardLogger(save_dir=tmp_path, name=name)
-
-    with caplog.at_level(logging.WARNING):
-        assert logger.version == 0
-
-    assert "Missing logger folder:" in caplog.text

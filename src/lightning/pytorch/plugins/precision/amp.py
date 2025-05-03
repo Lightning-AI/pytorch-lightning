@@ -9,8 +9,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from collections.abc import Generator
 from contextlib import contextmanager
-from typing import Any, Callable, Dict, Generator, Literal, Optional, Union
+from typing import Any, Callable, Literal, Optional, Union
 
 import torch
 from torch import Tensor
@@ -18,8 +19,8 @@ from torch.optim import LBFGS, Optimizer
 from typing_extensions import override
 
 import lightning.pytorch as pl
-from lightning.fabric.accelerators.cuda import _patch_cuda_is_available
 from lightning.fabric.plugins.precision.amp import _optimizer_handles_unscaling
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_4
 from lightning.fabric.utilities.types import Optimizable
 from lightning.pytorch.plugins.precision.precision import Precision
 from lightning.pytorch.utilities import GradClipAlgorithmType
@@ -40,7 +41,7 @@ class MixedPrecision(Precision):
         self,
         precision: Literal["16-mixed", "bf16-mixed"],
         device: str,
-        scaler: Optional[torch.cuda.amp.GradScaler] = None,
+        scaler: Optional["torch.amp.GradScaler"] = None,
     ) -> None:
         if precision not in ("16-mixed", "bf16-mixed"):
             raise ValueError(
@@ -50,9 +51,7 @@ class MixedPrecision(Precision):
 
         self.precision = precision
         if scaler is None and self.precision == "16-mixed":
-            with _patch_cuda_is_available():
-                # if possible, we defer CUDA initialization to support strategies that will attempt forks
-                scaler = torch.cuda.amp.GradScaler()
+            scaler = torch.amp.GradScaler(device=device) if _TORCH_GREATER_EQUAL_2_4 else torch.cuda.amp.GradScaler()
         if scaler is not None and self.precision == "bf16-mixed":
             raise MisconfigurationException(f"`precision='bf16-mixed'` does not use a scaler, found {scaler}.")
         self.device = device
@@ -123,12 +122,12 @@ class MixedPrecision(Precision):
             yield
 
     @override
-    def state_dict(self) -> Dict[str, Any]:
+    def state_dict(self) -> dict[str, Any]:
         if self.scaler is not None:
             return self.scaler.state_dict()
         return {}
 
     @override
-    def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
+    def load_state_dict(self, state_dict: dict[str, Any]) -> None:
         if self.scaler is not None:
             self.scaler.load_state_dict(state_dict)

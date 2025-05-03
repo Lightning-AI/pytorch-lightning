@@ -16,19 +16,19 @@ import logging
 import os
 import uuid
 from copy import deepcopy
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Union, cast
+from typing import TYPE_CHECKING, Any, Optional, Union
 
 import torch
 from lightning_utilities.core.imports import RequirementCache
+from torch.optim.lr_scheduler import LRScheduler
 from typing_extensions import override
 
 import lightning.pytorch as pl
-from lightning.fabric.utilities.types import _TORCH_LRSCHEDULER
 from lightning.pytorch.callbacks import Callback
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from lightning.pytorch.utilities.parsing import lightning_hasattr, lightning_setattr
 from lightning.pytorch.utilities.rank_zero import rank_zero_warn
-from lightning.pytorch.utilities.types import STEP_OUTPUT, LRScheduler, LRSchedulerConfig
+from lightning.pytorch.utilities.types import STEP_OUTPUT, LRSchedulerConfig
 
 # check if ipywidgets is installed before importing tqdm.auto
 # to ensure it won't fail and a progress bar is displayed
@@ -101,7 +101,7 @@ class _LRFinder:
         self.lr_max = lr_max
         self.num_training = num_training
 
-        self.results: Dict[str, Any] = {}
+        self.results: dict[str, Any] = {}
         self._total_batch_idx = 0  # for debug purpose
 
     def _exchange_scheduler(self, trainer: "pl.Trainer") -> None:
@@ -127,13 +127,14 @@ class _LRFinder:
 
         args = (optimizer, self.lr_max, self.num_training)
         scheduler = _LinearLR(*args) if self.mode == "linear" else _ExponentialLR(*args)
-        scheduler = cast(LRScheduler, scheduler)
 
         trainer.strategy.optimizers = [optimizer]
         trainer.strategy.lr_scheduler_configs = [LRSchedulerConfig(scheduler, interval="step")]
         _validate_optimizers_attached(trainer.optimizers, trainer.lr_scheduler_configs)
 
-    def plot(self, suggest: bool = False, show: bool = False, ax: Optional["Axes"] = None) -> Optional["plt.Figure"]:
+    def plot(
+        self, suggest: bool = False, show: bool = False, ax: Optional["Axes"] = None
+    ) -> Optional[Union["plt.Figure", "plt.SubFigure"]]:
         """Plot results from lr_find run
         Args:
             suggest: if True, will mark suggested lr to use with a red point
@@ -152,10 +153,11 @@ class _LRFinder:
         lrs = self.results["lr"]
         losses = self.results["loss"]
 
+        fig: Optional[Union[plt.Figure, plt.SubFigure]]
         if ax is None:
             fig, ax = plt.subplots()
         else:
-            fig = ax.figure  # type: ignore[assignment]
+            fig = ax.figure
 
         # Plot loss as a function of the learning rate
         ax.plot(lrs, losses)
@@ -191,7 +193,7 @@ class _LRFinder:
         losses = losses[torch.isfinite(losses)]
 
         if len(losses) < 2:
-            # computing np.gradient requires at least 2 points
+            # computing torch.gradient requires at least 2 points
             log.error(
                 "Failed to compute suggestion for learning rate because there are not enough points. Increase the loop"
                 " iteration limits or the size of your dataset/dataloader."
@@ -302,12 +304,13 @@ def _lr_find(
     trainer._checkpoint_connector.restore(ckpt_path)
     trainer.strategy.remove_checkpoint(ckpt_path)
     trainer.fit_loop.restarting = False  # reset restarting flag as checkpoint restoring sets it to True
+    trainer.fit_loop.epoch_loop.restarting = False  # reset restarting flag as checkpoint restoring sets it to True
     trainer.fit_loop.epoch_loop.val_loop._combined_loader = None
 
     return lr_finder
 
 
-def __lr_finder_dump_params(trainer: "pl.Trainer") -> Dict[str, Any]:
+def __lr_finder_dump_params(trainer: "pl.Trainer") -> dict[str, Any]:
     return {
         "optimizers": trainer.strategy.optimizers,
         "lr_scheduler_configs": trainer.strategy.lr_scheduler_configs,
@@ -332,7 +335,7 @@ def __lr_finder_reset_params(trainer: "pl.Trainer", num_training: int, early_sto
     trainer.limit_val_batches = num_training
 
 
-def __lr_finder_restore_params(trainer: "pl.Trainer", params: Dict[str, Any]) -> None:
+def __lr_finder_restore_params(trainer: "pl.Trainer", params: dict[str, Any]) -> None:
     trainer.strategy.optimizers = params["optimizers"]
     trainer.strategy.lr_scheduler_configs = params["lr_scheduler_configs"]
     trainer.callbacks = params["callbacks"]
@@ -373,8 +376,8 @@ class _LRCallback(Callback):
         self.num_training = num_training
         self.early_stop_threshold = early_stop_threshold
         self.beta = beta
-        self.losses: List[float] = []
-        self.lrs: List[float] = []
+        self.losses: list[float] = []
+        self.lrs: list[float] = []
         self.avg_loss = 0.0
         self.best_loss = 0.0
         self.progress_bar_refresh_rate = progress_bar_refresh_rate
@@ -439,7 +442,7 @@ class _LRCallback(Callback):
         self.losses.append(smoothed_loss)
 
 
-class _LinearLR(_TORCH_LRSCHEDULER):
+class _LinearLR(LRScheduler):
     """Linearly increases the learning rate between two boundaries over a number of iterations.
 
     Args:
@@ -459,9 +462,8 @@ class _LinearLR(_TORCH_LRSCHEDULER):
         self.num_iter = num_iter
         super().__init__(optimizer, last_epoch)
 
-    # mypy can't follow the _TORCH_LRSCHEDULER TypeAlias, so ignore "no base method" error
-    @override  # type: ignore[misc]
-    def get_lr(self) -> List[float]:
+    @override
+    def get_lr(self) -> list[float]:
         curr_iter = self.last_epoch + 1
         r = curr_iter / self.num_iter
 
@@ -473,11 +475,11 @@ class _LinearLR(_TORCH_LRSCHEDULER):
         return val
 
     @property
-    def lr(self) -> Union[float, List[float]]:
+    def lr(self) -> Union[float, list[float]]:
         return self._lr
 
 
-class _ExponentialLR(_TORCH_LRSCHEDULER):
+class _ExponentialLR(LRScheduler):
     """Exponentially increases the learning rate between two boundaries over a number of iterations.
 
     Arguments:
@@ -497,9 +499,8 @@ class _ExponentialLR(_TORCH_LRSCHEDULER):
         self.num_iter = num_iter
         super().__init__(optimizer, last_epoch)
 
-    # mypy can't follow the _TORCH_LRSCHEDULER TypeAlias, so ignore "no base method" error
-    @override  # type: ignore[misc]
-    def get_lr(self) -> List[float]:
+    @override
+    def get_lr(self) -> list[float]:
         curr_iter = self.last_epoch + 1
         r = curr_iter / self.num_iter
 
@@ -511,11 +512,11 @@ class _ExponentialLR(_TORCH_LRSCHEDULER):
         return val
 
     @property
-    def lr(self) -> Union[float, List[float]]:
+    def lr(self) -> Union[float, list[float]]:
         return self._lr
 
 
-def _try_loop_run(trainer: "pl.Trainer", params: Dict[str, Any]) -> None:
+def _try_loop_run(trainer: "pl.Trainer", params: dict[str, Any]) -> None:
     loop = trainer.fit_loop
     loop.load_state_dict(deepcopy(params["loop_state_dict"]))
     loop.restarting = False

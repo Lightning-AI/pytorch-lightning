@@ -17,15 +17,14 @@ from unittest import mock
 
 import pytest
 import torch
+from torch.nn.parallel import DistributedDataParallel
+
 from lightning.fabric.plugins.environments import LightningEnvironment
-from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 from lightning.pytorch import LightningModule, Trainer
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.plugins import DoublePrecision, HalfPrecision, Precision
 from lightning.pytorch.strategies import DDPStrategy
 from lightning.pytorch.trainer.states import TrainerFn
-from torch.nn.parallel import DistributedDataParallel
-
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -102,7 +101,7 @@ def test_ddp_kwargs_from_registry(strategy_name, expected_ddp_kwargs, mps_count_
 def test_tensor_init_context(precision_plugin, expected_dtype):
     """Test that the module under the init-context gets moved to the right device and dtype."""
     parallel_devices = [torch.device("cuda", 0), torch.device("cuda", 1)]
-    expected_device = parallel_devices[1] if _TORCH_GREATER_EQUAL_2_0 else torch.device("cpu")
+    expected_device = parallel_devices[1]
 
     strategy = DDPStrategy(
         parallel_devices=parallel_devices, precision_plugin=precision_plugin, cluster_environment=LightningEnvironment()

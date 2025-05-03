@@ -13,17 +13,20 @@
 # limitations under the License.
 import os
 import pickle
+from pathlib import Path
 from unittest import mock
 
 import pytest
 import yaml
+from lightning_utilities.test.warning import no_warning_call
+
 from lightning.pytorch import Trainer
 from lightning.pytorch.callbacks import ModelCheckpoint
 from lightning.pytorch.cli import LightningCLI
 from lightning.pytorch.demos.boring_classes import BoringModel
-from lightning.pytorch.loggers import WandbLogger
+from lightning.pytorch.loggers import TensorBoardLogger, WandbLogger
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from lightning_utilities.test.warning import no_warning_call
+from tests_pytorch.test_cli import _xfail_python_ge_3_11_9
 
 
 def test_wandb_project_name(wandb_mock):
@@ -111,9 +114,10 @@ def test_wandb_logger_init(wandb_mock):
     wandb_mock.init().log.assert_called_with({"acc": 1.0, "trainer/global_step": 6})
 
     # log hyper parameters
-    hparams = {"test": None, "nested": {"a": 1}, "b": [2, 3, 4]}
+    hparams = {"none": None, "dict": {"a": 1}, "b": [2, 3, 4], "path": Path("path")}
+    expected = {"none": None, "dict": {"a": 1}, "b": [2, 3, 4], "path": "path"}
     logger.log_hyperparams(hparams)
-    wandb_mock.init().config.update.assert_called_once_with(hparams, allow_val_change=True)
+    wandb_mock.init().config.update.assert_called_once_with(expected, allow_val_change=True)
 
     # watch a model
     logger.watch("model", "log", 10, False)
@@ -122,11 +126,66 @@ def test_wandb_logger_init(wandb_mock):
     assert logger.version == wandb_mock.init().id
 
 
+def test_wandb_logger_sync_tensorboard(wandb_mock):
+    logger = WandbLogger(sync_tensorboard=True)
+    wandb_mock.run = None
+    logger.experiment
+
+    # test that tensorboard's global_step is set as the default x-axis if sync_tensorboard=True
+    wandb_mock.init.return_value.define_metric.assert_called_once_with("*", step_metric="global_step")
+
+
+def test_wandb_logger_sync_tensorboard_log_metrics(wandb_mock):
+    logger = WandbLogger(sync_tensorboard=True)
+    metrics = {"loss": 1e-3, "accuracy": 0.99}
+    logger.log_metrics(metrics)
+
+    # test that trainer/global_step is not added to the logged metrics if sync_tensorboard=True
+    wandb_mock.run.log.assert_called_once_with(metrics)
+
+
 def test_wandb_logger_init_before_spawn(wandb_mock):
     logger = WandbLogger()
     assert logger._experiment is None
     logger.__getstate__()
     assert logger._experiment is not None
+
+
+def test_wandb_logger_experiment_called_first(wandb_mock, tmp_path):
+    wandb_experiment_called = False
+
+    def tensorboard_experiment_side_effect() -> mock.MagicMock:
+        nonlocal wandb_experiment_called
+        assert wandb_experiment_called
+        return mock.MagicMock()
+
+    def wandb_experiment_side_effect() -> mock.MagicMock:
+        nonlocal wandb_experiment_called
+        wandb_experiment_called = True
+        return mock.MagicMock()
+
+    with (
+        mock.patch.object(
+            TensorBoardLogger,
+            "experiment",
+            new_callable=lambda: mock.PropertyMock(side_effect=tensorboard_experiment_side_effect),
+        ),
+        mock.patch.object(
+            WandbLogger,
+            "experiment",
+            new_callable=lambda: mock.PropertyMock(side_effect=wandb_experiment_side_effect),
+        ),
+    ):
+        model = BoringModel()
+        trainer = Trainer(
+            default_root_dir=tmp_path,
+            log_every_n_steps=1,
+            limit_train_batches=0,
+            limit_val_batches=0,
+            max_steps=1,
+            logger=[TensorBoardLogger(tmp_path), WandbLogger(save_dir=tmp_path)],
+        )
+        trainer.fit(model)
 
 
 def test_wandb_pickle(wandb_mock, tmp_path):
@@ -367,6 +426,44 @@ def test_wandb_log_model(wandb_mock, tmp_path):
     )
     wandb_mock.init().log_artifact.assert_called_with(wandb_mock.Artifact(), aliases=["latest", "best"])
 
+    # Test wandb artifact with two checkpoint_callbacks
+    wandb_mock.init().log_artifact.reset_mock()
+    wandb_mock.init.reset_mock()
+    wandb_mock.Artifact.reset_mock()
+    logger = WandbLogger(save_dir=tmp_path, log_model=True)
+    logger.experiment.id = "1"
+    logger.experiment.name = "run_name"
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        logger=logger,
+        max_epochs=3,
+        limit_train_batches=3,
+        limit_val_batches=3,
+        callbacks=[
+            ModelCheckpoint(monitor="epoch", save_top_k=2),
+            ModelCheckpoint(monitor="step", save_top_k=2),
+        ],
+    )
+    trainer.fit(model)
+    for name, val, version in [("epoch", 0, 2), ("step", 3, 3)]:
+        wandb_mock.Artifact.assert_any_call(
+            name="model-1",
+            type="model",
+            metadata={
+                "score": val,
+                "original_filename": f"epoch=0-step=3-v{version}.ckpt",
+                "ModelCheckpoint": {
+                    "monitor": name,
+                    "mode": "min",
+                    "save_last": None,
+                    "save_top_k": 2,
+                    "save_weights_only": False,
+                    "_every_n_train_steps": 0,
+                },
+            },
+        )
+        wandb_mock.init().log_artifact.assert_any_call(wandb_mock.Artifact(), aliases=["latest"])
+
 
 def test_wandb_log_model_with_score(wandb_mock, tmp_path):
     """Test to prevent regression on #15543, ensuring the score is logged as a Python number, not a scalar tensor."""
@@ -548,6 +645,7 @@ def test_wandb_logger_download_artifact(wandb_mock, tmp_path):
     wandb_mock.Api().artifact.assert_called_once_with("test_artifact", type="model")
 
 
+@_xfail_python_ge_3_11_9
 @pytest.mark.parametrize(("log_model", "expected"), [("True", True), ("False", False), ("all", "all")])
 def test_wandb_logger_cli_integration(log_model, expected, wandb_mock, monkeypatch, tmp_path):
     """Test that the WandbLogger can be used with the LightningCLI."""

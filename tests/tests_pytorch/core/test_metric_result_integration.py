@@ -16,9 +16,15 @@ import pickle
 from contextlib import nullcontext, suppress
 from unittest import mock
 
-import lightning.pytorch as pl
 import pytest
 import torch
+from lightning_utilities.test.warning import no_warning_call
+from torch import Tensor, tensor
+from torch.nn import ModuleDict, ModuleList
+from torchmetrics import Metric, MetricCollection
+from torchmetrics.classification import Accuracy
+
+import lightning.pytorch as pl
 from lightning.fabric.utilities.warnings import PossibleUserWarning
 from lightning.pytorch import Trainer
 from lightning.pytorch.callbacks import OnExceptionCheckpoint
@@ -30,12 +36,6 @@ from lightning.pytorch.trainer.connectors.logger_connector.result import (
     _Sync,
 )
 from lightning.pytorch.utilities.imports import _TORCHMETRICS_GREATER_EQUAL_0_11 as _TM_GE_0_11
-from lightning_utilities.test.warning import no_warning_call
-from torch import Tensor, tensor
-from torch.nn import ModuleDict, ModuleList
-from torchmetrics import Metric, MetricCollection
-from torchmetrics.classification import Accuracy
-
 from tests_pytorch.core.test_results import spawn_launch
 from tests_pytorch.helpers.runif import RunIf
 
@@ -257,7 +257,7 @@ def test_result_collection_restoration(tmp_path):
         # make sure can be torch.loaded
         filepath = str(tmp_path / "result")
         torch.save(result, filepath)
-        torch.load(filepath)
+        torch.load(filepath, weights_only=False)
 
         # assert metric state reset to default values
         result.reset()
@@ -395,7 +395,7 @@ def result_collection_reload(default_root_dir, accelerator="auto", devices=1, **
 @pytest.mark.parametrize(
     "kwargs",
     [
-        {},
+        pytest.param({}, marks=RunIf(mps=False)),
         pytest.param({"strategy": "ddp", "accelerator": "gpu", "devices": 1}, marks=RunIf(min_cuda_gpus=1)),
         pytest.param(
             {"strategy": "ddp", "accelerator": "gpu", "devices": 2}, marks=RunIf(min_cuda_gpus=2, standalone=True)
@@ -625,8 +625,9 @@ def test_logger_sync_dist(distributed_env, log_val):
         else nullcontext()
     )
 
-    with warning_ctx(
-        PossibleUserWarning, match=r"recommended to use `self.log\('bar', ..., sync_dist=True\)`"
-    ), patch_ctx:
+    with (
+        warning_ctx(PossibleUserWarning, match=r"recommended to use `self.log\('bar', ..., sync_dist=True\)`"),
+        patch_ctx,
+    ):
         value = _ResultCollection._get_cache(result_metric, on_step=False)
     assert value == 0.5

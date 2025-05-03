@@ -1,11 +1,11 @@
-# https://docs.github.com/en/actions/using-workflows/caching-dependencies-to-speed-up-workflows#force-deleting-cache-entries
-name: cleanup caches by a branch
+name: cleanup caches on a branch
 on:
   pull_request:
     types: [closed]
 
 jobs:
   pr-cleanup:
+    # https://docs.github.com/en/actions/using-workflows/caching-dependencies-to-speed-up-workflows#force-deleting-cache-entries
     runs-on: ubuntu-latest
     steps:
       - name: Check out code

@@ -16,15 +16,15 @@ from unittest import mock
 
 import pytest
 import torch
+
 from lightning.pytorch import Trainer, callbacks
 from lightning.pytorch.demos.boring_classes import BoringModel
-
 from tests_pytorch.helpers.runif import RunIf
 
 
 def test_disabled_checkpointing():
     # no callback
-    trainer = Trainer(max_epochs=3, enable_checkpointing=False)
+    trainer = Trainer(logger=False, max_epochs=3, enable_checkpointing=False)
     assert not trainer.checkpoint_callbacks
     trainer.fit(BoringModel())
     assert not trainer.checkpoint_callbacks

@@ -3,6 +3,7 @@ import sys
 
 import pytest
 import torch
+
 from lightning.fabric.utilities.spike import _TORCHMETRICS_GREATER_EQUAL_1_0_0, TrainingSpikeException
 from lightning.pytorch import LightningModule, Trainer
 from lightning.pytorch.callbacks.spike import SpikeDetection
@@ -213,6 +214,8 @@ def test_trainer_spike_detection_integration(tmp_path, global_rank_spike, num_de
     cb.should_raise = spike_value is None or finite_only or spike_value == float("inf")
 
     trainer = Trainer(
+        default_root_dir=tmp_path,
+        logger=False,
         callbacks=[cb],
         accelerator="cpu",
         devices=num_devices,

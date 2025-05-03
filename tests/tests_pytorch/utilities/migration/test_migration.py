@@ -13,9 +13,10 @@
 # limitations under the License.
 from unittest.mock import ANY, MagicMock
 
-import lightning.pytorch as pl
 import pytest
 import torch
+
+import lightning.pytorch as pl
 from lightning.fabric.utilities.warnings import PossibleUserWarning
 from lightning.pytorch import Trainer
 from lightning.pytorch.callbacks import EarlyStopping, ModelCheckpoint
@@ -93,7 +94,7 @@ def test_migrate_loop_batches_that_stepped(tmp_path, model_class):
     ckpt_path = trainer.checkpoint_callback.best_model_path
 
     # pretend we have a checkpoint produced in < v1.6.5; the key "_batches_that_stepped" didn't exist back then
-    ckpt = torch.load(ckpt_path)
+    ckpt = torch.load(ckpt_path, weights_only=True)
     del ckpt["loops"]["fit_loop"]["epoch_loop.state_dict"]["_batches_that_stepped"]
     _set_version(ckpt, "1.6.4")
     torch.save(ckpt, ckpt_path)

@@ -19,13 +19,13 @@ from typing import Union
 import pytest
 import torch
 import torch.nn.utils.prune as pytorch_prune
+from torch import nn
+from torch.nn import Sequential
+
 from lightning.pytorch import Trainer, seed_everything
 from lightning.pytorch.callbacks import ModelCheckpoint, ModelPruning
 from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.utilities.exceptions import MisconfigurationException
-from torch import nn
-from torch.nn import Sequential
-
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -190,7 +190,7 @@ def test_pruning_callback_ddp_cpu(tmp_path):
 
 
 @pytest.mark.parametrize("resample_parameters", [False, True])
-def test_pruning_lth_callable(tmp_path, resample_parameters: bool):
+def test_pruning_lth_callable(tmp_path, resample_parameters):
     model = TestModel()
 
     class ModelPruningTestCallback(ModelPruning):
@@ -206,7 +206,7 @@ def test_pruning_lth_callable(tmp_path, resample_parameters: bool):
                     curr, curr_name = self._parameters_to_prune[i]
                     assert name == curr_name
                     actual, expected = getattr(curr, name).data, getattr(copy, name).data
-                    allclose = torch.allclose(actual, expected)
+                    allclose = torch.allclose(actual.cpu(), expected)
                     assert not allclose if self._resample_parameters else allclose
 
     pruning = ModelPruningTestCallback(
@@ -273,7 +273,7 @@ def test_multiple_pruning_callbacks(tmp_path, caplog, make_pruning_permanent: bo
     filepath = str(tmp_path / "foo.ckpt")
     trainer.save_checkpoint(filepath)
 
-    model.load_state_dict(torch.load(filepath), strict=False)
+    model.load_state_dict(torch.load(filepath, weights_only=True), strict=False)
     has_pruning = hasattr(model.layer.mlp_1, "weight_orig")
     assert not has_pruning if make_pruning_permanent else has_pruning
 
@@ -310,7 +310,13 @@ def test_permanent_when_model_is_saved_multiple_times(
     ckpt_callback = ModelCheckpoint(
         monitor="test", save_top_k=2, save_last=True, save_on_train_epoch_end=save_on_train_epoch_end
     )
-    trainer = Trainer(callbacks=[pruning_callback, ckpt_callback], max_epochs=3, enable_progress_bar=False)
+    trainer = Trainer(
+        default_root_dir=tmp_path,
+        logger=False,
+        callbacks=[pruning_callback, ckpt_callback],
+        max_epochs=3,
+        enable_progress_bar=False,
+    )
     with caplog.at_level(INFO):
         trainer.fit(model)
 
