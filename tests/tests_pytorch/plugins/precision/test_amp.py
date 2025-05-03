@@ -14,6 +14,7 @@
 from unittest.mock import Mock
 
 import pytest
+from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
 from torch.nn import Module
 from torch.optim import Optimizer
 
@@ -23,7 +24,7 @@ from lightning.pytorch.utilities import GradClipAlgorithmType
 
 def test_clip_gradients():
     """Test that `.clip_gradients()` is a no-op when clipping is disabled."""
-    module = Mock(spec=Module)
+    module = FSDP(Mock(spec=Module))
     optimizer = Mock(spec=Optimizer)
     precision = MixedPrecision(precision="16-mixed", device="cuda:0", scaler=Mock())
     precision.clip_grad_by_value = Mock()
