@@ -15,6 +15,7 @@ from typing import Any, Callable, Literal, Optional, Union
 
 import torch
 from torch import Tensor
+from torch.nn import Module
 from torch.optim import LBFGS, Optimizer
 from typing_extensions import override
 
@@ -100,6 +101,7 @@ class MixedPrecision(Precision):
     @override
     def clip_gradients(
         self,
+        module: Module,
         optimizer: Optimizer,
         clip_val: Union[int, float] = 0.0,
         gradient_clip_algorithm: GradClipAlgorithmType = GradClipAlgorithmType.NORM,
@@ -109,7 +111,9 @@ class MixedPrecision(Precision):
                 f"The current optimizer, {type(optimizer).__qualname__}, does not allow for gradient clipping"
                 " because it performs unscaling of gradients internally. HINT: Are you using a 'fused' optimizer?"
             )
-        super().clip_gradients(optimizer=optimizer, clip_val=clip_val, gradient_clip_algorithm=gradient_clip_algorithm)
+        super().clip_gradients(
+            module=module, optimizer=optimizer, clip_val=clip_val, gradient_clip_algorithm=gradient_clip_algorithm
+        )
 
     def autocast_context_manager(self) -> torch.autocast:
         return torch.autocast(self.device, dtype=(torch.bfloat16 if self.precision == "bf16-mixed" else torch.half))

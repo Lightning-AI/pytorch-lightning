@@ -14,6 +14,7 @@
 from unittest.mock import Mock
 
 import pytest
+from torch.nn import Module
 from torch.optim import Optimizer
 
 from lightning.pytorch.plugins import MixedPrecision
@@ -22,22 +23,23 @@ from lightning.pytorch.utilities import GradClipAlgorithmType
 
 def test_clip_gradients():
     """Test that `.clip_gradients()` is a no-op when clipping is disabled."""
+    module = Mock(spec=Module)
     optimizer = Mock(spec=Optimizer)
     precision = MixedPrecision(precision="16-mixed", device="cuda:0", scaler=Mock())
     precision.clip_grad_by_value = Mock()
     precision.clip_grad_by_norm = Mock()
-    precision.clip_gradients(optimizer)
+    precision.clip_gradients(module, optimizer)
     precision.clip_grad_by_value.assert_not_called()
     precision.clip_grad_by_norm.assert_not_called()
 
-    precision.clip_gradients(optimizer, clip_val=1.0, gradient_clip_algorithm=GradClipAlgorithmType.VALUE)
+    precision.clip_gradients(module, optimizer, clip_val=1.0, gradient_clip_algorithm=GradClipAlgorithmType.VALUE)
     precision.clip_grad_by_value.assert_called_once()
     precision.clip_grad_by_norm.assert_not_called()
 
     precision.clip_grad_by_value.reset_mock()
     precision.clip_grad_by_norm.reset_mock()
 
-    precision.clip_gradients(optimizer, clip_val=1.0, gradient_clip_algorithm=GradClipAlgorithmType.NORM)
+    precision.clip_gradients(module, optimizer, clip_val=1.0, gradient_clip_algorithm=GradClipAlgorithmType.NORM)
     precision.clip_grad_by_value.assert_not_called()
     precision.clip_grad_by_norm.assert_called_once()
 

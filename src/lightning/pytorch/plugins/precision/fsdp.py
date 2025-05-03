@@ -12,12 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from contextlib import AbstractContextManager
-from typing import TYPE_CHECKING, Any, Callable, Optional
+from typing import TYPE_CHECKING, Any, Callable, Optional, Union
 
 import torch
 from lightning_utilities import apply_to_collection
 from torch import Tensor
 from torch.nn import Module
+from torch.optim import Optimizer
 from typing_extensions import get_args, override
 
 import lightning.pytorch as pl
@@ -81,11 +82,9 @@ class FSDPPrecision(Precision):
         return module
 
     @override
-    def clip_grad_by_norm(self, *_: Any, **__: Any) -> None:
+    def clip_grad_by_norm(self, module: Module, optimizer: Optimizer, clip_val: Union[int, float]) -> None:
         # see https://pytorch.org/docs/stable/fsdp.html#torch.distributed.fsdp.FullyShardedDataParallel.clip_grad_norm_
-        raise MisconfigurationException(
-            f"`gradient_clip_algorithm='norm'` is currently not supported for `{self.__class__.__name__}`"
-        )
+        module.clip_grad_norm_(clip_val)
 
     @property
     def mixed_precision_config(self) -> "TorchMixedPrecision":
