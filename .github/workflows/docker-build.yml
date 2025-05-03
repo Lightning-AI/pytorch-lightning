@@ -48,7 +48,8 @@ jobs:
           - { python_version: "3.11", pytorch_version: "2.3", cuda_version: "12.1.1" }
           - { python_version: "3.11", pytorch_version: "2.4", cuda_version: "12.1.1" }
           - { python_version: "3.12", pytorch_version: "2.5", cuda_version: "12.1.1" }
-          - { python_version: "3.12", pytorch_version: "2.6", cuda_version: "12.4.1", latest: "true" }
+          - { python_version: "3.12", pytorch_version: "2.6", cuda_version: "12.4.1" }
+          - { python_version: "3.12", pytorch_version: "2.7", cuda_version: "12.6.3", latest: "true" }
     steps:
       - uses: actions/checkout@v4
         with:

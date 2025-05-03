@@ -371,8 +371,7 @@ class Fabric:
             )
             for dataloader in dataloaders
         ]
-        dataloaders = dataloaders[0] if len(dataloaders) == 1 else dataloaders
-        return dataloaders  # type: ignore[return-value]
+        return dataloaders[0] if len(dataloaders) == 1 else dataloaders
 
     def _setup_dataloader(
         self, dataloader: DataLoader, use_distributed_sampler: bool = True, move_to_device: bool = True

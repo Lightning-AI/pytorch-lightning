@@ -1,10 +1,7 @@
 {
   "ignorePatterns": [
     {
-      "pattern": "^https://github.com/Lightning-AI/lightning/pull/.*"
-    },
-    {
-      "pattern": "^https://dev.azure.com/Lightning-AI/lightning/_apis/build/status.*"
+      "pattern": "^https://github.com/Lightning-AI/pytorch-lightning/pull/"
     }
   ],
   "httpHeaders": [
