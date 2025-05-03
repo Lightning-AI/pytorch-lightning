@@ -14,7 +14,6 @@
 from unittest.mock import Mock
 
 import pytest
-from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
 from torch.nn import Module
 from torch.optim import Optimizer
 
@@ -24,7 +23,7 @@ from lightning.pytorch.utilities import GradClipAlgorithmType
 
 def test_clip_gradients():
     """Test that `.clip_gradients()` is a no-op when clipping is disabled."""
-    module = FSDP(Mock(spec=Module))
+    module = Mock(spec=Module)
     optimizer = Mock(spec=Optimizer)
     precision = MixedPrecision(precision="16-mixed", device="cuda:0", scaler=Mock())
     precision.clip_grad_by_value = Mock()
@@ -49,8 +48,9 @@ def test_optimizer_amp_scaling_support_in_step_method():
     """Test that the plugin checks if the optimizer takes over unscaling in its step, making it incompatible with
     gradient clipping (example: fused Adam)."""
 
+    module = Mock(spec=Module)
     optimizer = Mock(_step_supports_amp_scaling=True)
     precision = MixedPrecision(precision="16-mixed", device="cuda:0", scaler=Mock())
 
     with pytest.raises(RuntimeError, match="The current optimizer.*does not allow for gradient clipping"):
-        precision.clip_gradients(optimizer, clip_val=1.0)
+        precision.clip_gradients(module, optimizer, clip_val=1.0)
