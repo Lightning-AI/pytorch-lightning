@@ -76,6 +76,7 @@ if TYPE_CHECKING:
     from torch.distributed.device_mesh import DeviceMesh
 
 _ONNX_AVAILABLE = RequirementCache("onnx")
+_TORCH_TRT_AVAILABLE = RequirementCache("torch_tensorrt")
 
 warning_cache = WarningCache()
 log = logging.getLogger(__name__)
@@ -1488,6 +1489,79 @@ class LightningModule(
                 torch.jit.save(torchscript_module, f)
 
         return torchscript_module
+
+    @torch.no_grad()
+    def to_tensorrt(
+        self,
+        file_path: str | Path | BytesIO | None = None,
+        inputs: Any | None = None,
+        ir: Literal["default", "dynamo", "ts"] = "default",
+        output_format: Literal["exported_program", "torchscript"] = "exported_program",
+        retrace: bool = False,
+        **compile_kwargs,
+    ) -> torch.ScriptModule | torch.fx.GraphModule:
+        """Export the model to ScriptModule or GraphModule using TensorRT compile backend.
+
+        Args:
+            file_path: Path where to save the tensorrt model. Default: None (no file saved).
+            inputs: inputs to be used during `torch_tensorrt.compile`. Default: None (Use self.example_input_array).
+            ir: The IR mode to use for TensorRT compilation. Default: "default".
+            output_format: The format of the output model. Default: "exported_program".
+            retrace: Whether to retrace the model. Default: False.
+            **compile_kwargs: Additional arguments that will be passed to the TensorRT compile function.
+
+        Example::
+
+            class SimpleModel(LightningModule):
+                def __init__(self):
+                    super().__init__()
+                    self.l1 = torch.nn.Linear(in_features=64, out_features=4)
+
+                def forward(self, x):
+                    return torch.relu(self.l1(x.view(x.size(0), -1)
+
+            model = SimpleModel()
+            input_sample = torch.randn(1, 64)
+            exported_program = model.to_tensorrt(
+                file_path="export.ep",
+                inputs=input_sample,
+            )
+
+        """
+
+        if not _TORCH_TRT_AVAILABLE:
+            raise ModuleNotFoundError(
+                f"`{type(self).__name__}.to_tensorrt` requires `torch_tensorrt` to be installed. "
+            )
+
+        import torch_tensorrt
+
+        mode = self.training
+
+        if inputs is None:
+            if self.example_input_array is None:
+                raise ValueError("Please provide an example input for the model.")
+            inputs = self.example_input_array
+            inputs = self._on_before_batch_transfer(inputs)
+            inputs = self._apply_batch_transfer_handler(inputs)
+
+        trt_obj = torch_tensorrt.compile(
+            module=self.eval(),
+            ir=ir,
+            inputs=inputs,
+            **compile_kwargs,
+        )
+        self.train(mode)
+
+        if file_path is not None:
+            torch_tensorrt.save(
+                trt_obj,
+                file_path,
+                inputs=inputs,
+                output_format=output_format,
+                retrace=retrace,
+            )
+        return trt_obj
 
     @_restricted_classmethod
     def load_from_checkpoint(
