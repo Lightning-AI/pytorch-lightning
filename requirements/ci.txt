@@ -4,5 +4,5 @@ awscli >=1.30.0, <1.41.0
 twine ==6.0.1
 importlib-metadata <8.0.0
 wget
-pkginfo ==1.12.0
+pkginfo ==1.12.1.2
 packaging <25.1
