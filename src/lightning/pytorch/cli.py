@@ -51,9 +51,11 @@ if _JSONARGPARSE_SIGNATURES_AVAILABLE:
 
     try:
         from jsonargparse import set_parsing_settings
+
         set_parsing_settings(config_read_mode_fsspec_enabled=True)
     except ImportError:
         from jsonargparse import set_config_read_mode
+
         set_config_read_mode(fsspec_enabled=True)
 else:
     locals()["ArgumentParser"] = object
