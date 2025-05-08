@@ -45,11 +45,18 @@ if _JSONARGPARSE_SIGNATURES_AVAILABLE:
         Namespace,
         class_from_function,
         register_unresolvable_import_paths,
-        set_config_read_mode,
     )
 
     register_unresolvable_import_paths(torch)  # Required until fix https://github.com/pytorch/pytorch/issues/74483
-    set_config_read_mode(fsspec_enabled=True)
+
+    try:
+        from jsonargparse import set_parsing_settings
+
+        set_parsing_settings(config_read_mode_fsspec_enabled=True)
+    except ImportError:
+        from jsonargparse import set_config_read_mode
+
+        set_config_read_mode(fsspec_enabled=True)
 else:
     locals()["ArgumentParser"] = object
     locals()["Namespace"] = object
