@@ -155,6 +155,10 @@ class ModelCheckpoint(Checkpoint):
         If the checkpoint's ``dirpath`` changed from what it was before while resuming the training,
         only ``best_model_path`` will be reloaded and a warning will be issued.
 
+        If you provide a ``filename`` on a mounted device where changing permissions is not allowed (causing ``chmod``
+        to raise ``PermissionError``), Lightning will catch the error, leave the file's permissions as-is, and still
+        save the checkpoint.
+
     Raises:
         MisconfigurationException:
             If ``save_top_k`` is smaller than ``-1``,
