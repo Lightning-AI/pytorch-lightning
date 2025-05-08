@@ -123,23 +123,23 @@
      - `PR12182`_
 
 
-.. _pr14415: https://github.com/Lightning-AI/lightning/pull/14415
-.. _pr11000: https://github.com/Lightning-AI/lightning/pull/11000
-.. _pr11747: https://github.com/Lightning-AI/lightning/pull/11747
-.. _pr12072: https://github.com/Lightning-AI/lightning/pull/12072
-.. _pr14401: https://github.com/Lightning-AI/lightning/pull/14401
-.. _pr12150: https://github.com/Lightning-AI/lightning/pull/12150
-.. _pr11745: https://github.com/Lightning-AI/lightning/pull/11745
-.. _pr11978: https://github.com/Lightning-AI/lightning/pull/11978
-.. _pr12262: https://github.com/Lightning-AI/lightning/pull/12262
-.. _pr12312: https://github.com/Lightning-AI/lightning/pull/12312
-.. _pr12315: https://github.com/Lightning-AI/lightning/pull/12315
-.. _pr10931: https://github.com/Lightning-AI/lightning/pull/10931
-.. _pr11068: https://github.com/Lightning-AI/lightning/pull/11068
-.. _pr11155: https://github.com/Lightning-AI/lightning/pull/11155
-.. _pr11282: https://github.com/Lightning-AI/lightning/pull/11282
-.. _pr11444: https://github.com/Lightning-AI/lightning/pull/11444
-.. _pr10979: https://github.com/Lightning-AI/lightning/pull/10979
-.. _pr12102: https://github.com/Lightning-AI/lightning/pull/12102
-.. _pr11254: https://github.com/Lightning-AI/lightning/pull/11254
-.. _pr12182: https://github.com/Lightning-AI/lightning/pull/12182
+.. _pr14415: https://github.com/Lightning-AI/pytorch-lightning/pull/14415
+.. _pr11000: https://github.com/Lightning-AI/pytorch-lightning/pull/11000
+.. _pr11747: https://github.com/Lightning-AI/pytorch-lightning/pull/11747
+.. _pr12072: https://github.com/Lightning-AI/pytorch-lightning/pull/12072
+.. _pr14401: https://github.com/Lightning-AI/pytorch-lightning/pull/14401
+.. _pr12150: https://github.com/Lightning-AI/pytorch-lightning/pull/12150
+.. _pr11745: https://github.com/Lightning-AI/pytorch-lightning/pull/11745
+.. _pr11978: https://github.com/Lightning-AI/pytorch-lightning/pull/11978
+.. _pr12262: https://github.com/Lightning-AI/pytorch-lightning/pull/12262
+.. _pr12312: https://github.com/Lightning-AI/pytorch-lightning/pull/12312
+.. _pr12315: https://github.com/Lightning-AI/pytorch-lightning/pull/12315
+.. _pr10931: https://github.com/Lightning-AI/pytorch-lightning/pull/10931
+.. _pr11068: https://github.com/Lightning-AI/pytorch-lightning/pull/11068
+.. _pr11155: https://github.com/Lightning-AI/pytorch-lightning/pull/11155
+.. _pr11282: https://github.com/Lightning-AI/pytorch-lightning/pull/11282
+.. _pr11444: https://github.com/Lightning-AI/pytorch-lightning/pull/11444
+.. _pr10979: https://github.com/Lightning-AI/pytorch-lightning/pull/10979
+.. _pr12102: https://github.com/Lightning-AI/pytorch-lightning/pull/12102
+.. _pr11254: https://github.com/Lightning-AI/pytorch-lightning/pull/11254
+.. _pr12182: https://github.com/Lightning-AI/pytorch-lightning/pull/12182

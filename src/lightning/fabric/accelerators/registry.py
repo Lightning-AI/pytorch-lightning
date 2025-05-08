@@ -107,9 +107,9 @@ class _AcceleratorRegistry(dict):
         """Removes the registered accelerator by name."""
         self.pop(name)
 
-    def available_accelerators(self) -> list[str]:
-        """Returns a list of registered accelerators."""
-        return list(self.keys())
+    def available_accelerators(self) -> set[str]:
+        """Returns a set of registered accelerators."""
+        return set(self.keys())
 
     def __str__(self) -> str:
         return "Registered Accelerators: {}".format(", ".join(self.available_accelerators()))
