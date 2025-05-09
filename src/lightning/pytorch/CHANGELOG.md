@@ -11,6 +11,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Add enable_autolog_hparams argument to Trainer ([#20593](https://github.com/Lightning-AI/pytorch-lightning/pull/20593))
 
+- Added `MemoryFormat` callback to easily change the model memory format ([#15175](https://github.com/Lightning-AI/lightning/pull/17680))
 
 ### Changed
 
