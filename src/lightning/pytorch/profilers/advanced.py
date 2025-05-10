@@ -19,9 +19,9 @@ import logging
 import os
 import pstats
 import tempfile
+from collections import defaultdict
 from pathlib import Path
 from typing import Optional, Union
-from collections import defaultdict
 
 from typing_extensions import override
 
