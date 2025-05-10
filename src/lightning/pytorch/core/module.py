@@ -13,11 +13,12 @@
 # limitations under the License.
 """The LightningModule - an nn.Module with many additional features."""
 
+import copy
 import logging
 import numbers
 import weakref
 from collections.abc import Generator, Mapping, Sequence
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
 from io import BytesIO
 from pathlib import Path
 from typing import (
@@ -1494,20 +1495,23 @@ class LightningModule(
     def to_tensorrt(
         self,
         file_path: str | Path | BytesIO | None = None,
-        inputs: Any | None = None,
+        input_sample: Any | None = None,
         ir: Literal["default", "dynamo", "ts"] = "default",
         output_format: Literal["exported_program", "torchscript"] = "exported_program",
         retrace: bool = False,
+        default_device: str | torch.device = "cuda",
         **compile_kwargs,
-    ) -> torch.ScriptModule | torch.fx.GraphModule:
+    ) -> ScriptModule | torch.fx.GraphModule:
         """Export the model to ScriptModule or GraphModule using TensorRT compile backend.
 
         Args:
             file_path: Path where to save the tensorrt model. Default: None (no file saved).
-            inputs: inputs to be used during `torch_tensorrt.compile`. Default: None (Use self.example_input_array).
+            input_sample: inputs to be used during `torch_tensorrt.compile`.
+                Default: None (Use :attr:`example_input_array`).
             ir: The IR mode to use for TensorRT compilation. Default: "default".
             output_format: The format of the output model. Default: "exported_program".
             retrace: Whether to retrace the model. Default: False.
+            default_device: The device to use for the model when the current model is not in CUDA. Default: "cuda".
             **compile_kwargs: Additional arguments that will be passed to the TensorRT compile function.
 
         Example::
@@ -1537,27 +1541,48 @@ class LightningModule(
         import torch_tensorrt
 
         mode = self.training
+        device = self.device
+        if self.device.type != "cuda":
+            default_device = torch.device(default_device) if isinstance(default_device, str) else default_device
+            if default_device.type != "cuda":
+                raise ValueError(
+                    f"TensorRT only supports CUDA devices. The current device is {self.device}."
+                    f" Please set the `default_device` argument to a CUDA device."
+                )
 
-        if inputs is None:
+            self.to(default_device)
+
+        if input_sample is None:
             if self.example_input_array is None:
-                raise ValueError("Please provide an example input for the model.")
-            inputs = self.example_input_array
-            inputs = self._on_before_batch_transfer(inputs)
-            inputs = self._apply_batch_transfer_handler(inputs)
+                raise ValueError(
+                    "Could not export to TensorRT since neither `input_sample` nor"
+                    " `model.example_input_array` attribute is set."
+                )
+            input_sample = self.example_input_array
+        input_sample = copy.deepcopy((input_sample,) if isinstance(input_sample, torch.Tensor) else input_sample)
+        input_sample = self._on_before_batch_transfer(input_sample)
+        input_sample = self._apply_batch_transfer_handler(input_sample)
 
-        trt_obj = torch_tensorrt.compile(
-            module=self.eval(),
-            ir=ir,
-            inputs=inputs,
-            **compile_kwargs,
-        )
+        with _jit_is_scripting() if ir == "ts" else nullcontext():
+            trt_obj = torch_tensorrt.compile(
+                module=self.eval(),
+                ir=ir,
+                inputs=input_sample,
+                **compile_kwargs,
+            )
         self.train(mode)
+        self.to(device)
 
         if file_path is not None:
+            if ir == "ts" and output_format != "torchscript":
+                raise ValueError(
+                    "TensorRT with IR mode 'ts' only supports output format 'torchscript'."
+                    f" The current output format is {output_format}."
+                )
             torch_tensorrt.save(
                 trt_obj,
                 file_path,
-                inputs=inputs,
+                inputs=input_sample,
                 output_format=output_format,
                 retrace=retrace,
             )
