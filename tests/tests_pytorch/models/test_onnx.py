@@ -13,7 +13,6 @@
 # limitations under the License.
 import operator
 import os
-import warnings
 from io import BytesIO
 from pathlib import Path
 from unittest.mock import patch
@@ -176,8 +175,5 @@ def test_model_return_type():
     model.example_input_array = torch.randn((1, 32))
     model.eval()
 
-    # Temporarily suppress FutureWarning from onnxscript internal function.
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore", FutureWarning)
-        ret = model.to_onnx(dynamo=True)
+    ret = model.to_onnx(dynamo=True)
     assert isinstance(ret, torch.onnx.ONNXProgram)
