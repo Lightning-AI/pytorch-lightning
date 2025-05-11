@@ -13,6 +13,7 @@
 # limitations under the License.
 import operator
 import os
+import warnings
 from io import BytesIO
 from pathlib import Path
 from unittest.mock import patch
@@ -167,3 +168,16 @@ def test_if_inference_output_is_valid(tmp_path):
 
     # compare ONNX Runtime and PyTorch results
     assert np.allclose(to_numpy(torch_out), ort_outs[0], rtol=1e-03, atol=1e-05)
+
+
+@RunIf(onnx=True, min_torch="2.7.0", dynamo=True, onnxscript=True)
+def test_model_return_type():
+    model = BoringModel()
+    model.example_input_array = torch.randn((1, 32))
+    model.eval()
+
+    # Temporarily suppress FutureWarning from onnxscript internal function.
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", FutureWarning)
+        ret = model.to_onnx(dynamo=True)
+    assert isinstance(ret, torch.onnx.ONNXProgram)
