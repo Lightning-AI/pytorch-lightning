@@ -74,8 +74,10 @@ from lightning.pytorch.utilities.types import (
 
 if TYPE_CHECKING:
     from torch.distributed.device_mesh import DeviceMesh
+    from torch.onnx import ONNXProgram
 
 _ONNX_AVAILABLE = RequirementCache("onnx")
+_ONNXSCRIPT_AVAILABLE = RequirementCache("onnxscript")
 
 warning_cache = WarningCache()
 log = logging.getLogger(__name__)
@@ -1360,12 +1362,18 @@ class LightningModule(
             )
 
     @torch.no_grad()
-    def to_onnx(self, file_path: Union[str, Path, BytesIO], input_sample: Optional[Any] = None, **kwargs: Any) -> None:
+    def to_onnx(
+        self,
+        file_path: Union[str, Path, BytesIO, None] = None,
+        input_sample: Optional[Any] = None,
+        **kwargs: Any,
+    ) -> Union["ONNXProgram", None]:
         """Saves the model in ONNX format.
 
         Args:
-            file_path: The path of the file the onnx model should be saved to.
+            file_path: The path of the file the onnx model should be saved to. Default: None (no file saved).
             input_sample: An input for tracing. Default: None (Use self.example_input_array)
+
             **kwargs: Will be passed to torch.onnx.export function.
 
         Example::
@@ -1386,6 +1394,11 @@ class LightningModule(
         if not _ONNX_AVAILABLE:
             raise ModuleNotFoundError(f"`{type(self).__name__}.to_onnx()` requires `onnx` to be installed.")
 
+        if kwargs.get("dynamo", False) and not _ONNXSCRIPT_AVAILABLE:
+            raise ModuleNotFoundError(
+                f"`{type(self).__name__}.to_onnx(dynamo=True)` requires `onnxscript` to be installed."
+            )
+
         mode = self.training
 
         if input_sample is None:
@@ -1402,8 +1415,9 @@ class LightningModule(
         file_path = str(file_path) if isinstance(file_path, Path) else file_path
         # PyTorch (2.5) declares file_path to be str | PathLike[Any] | None, but
         #               BytesIO does work, too.
-        torch.onnx.export(self, input_sample, file_path, **kwargs)  # type: ignore
+        ret = torch.onnx.export(self, input_sample, file_path, **kwargs)  # type: ignore
         self.train(mode)
+        return ret
 
     @torch.no_grad()
     def to_torchscript(
