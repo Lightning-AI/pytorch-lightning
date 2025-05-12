@@ -2,7 +2,7 @@
 #  in case you want to preserve/enforce restrictions on the latest compatible version, add "strict" as an in-line comment
 
 torch >=2.1.0, <2.8.0
-tqdm >=4.57.0, <4.67.0
+tqdm >=4.57.0, <4.68.0
 PyYAML >=5.4, <6.1.0
 fsspec[http] >=2022.5.0, <2025.4.0
 torchmetrics >=0.7.0, <1.8.0

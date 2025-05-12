@@ -1,7 +1,7 @@
-setuptools <70.1.1
+setuptools <80.4.1
 wheel <0.46.0
 awscli >=1.30.0, <1.41.0
-twine ==6.0.1
+twine ==6.1.0
 importlib-metadata <9.0.0
 wget
 pkginfo ==1.12.1.2

@@ -5,5 +5,5 @@ pytest-cov ==6.1.1
 pytest-timeout ==2.3.1
 pytest-rerunfailures ==12.0
 pytest-random-order ==1.1.1
-click ==8.1.7
+click ==8.1.8
 tensorboardX >=2.2, <2.7.0  # min version is set by torch.onnx missing attribute
