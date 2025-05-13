@@ -16,6 +16,9 @@ from collections import OrderedDict
 from dataclasses import dataclass
 from typing import Any, Optional, Union
 
+import torch
+import torch.distributed as dist
+
 from typing_extensions import override
 
 import lightning.pytorch as pl
@@ -272,6 +275,21 @@ class _TrainingEpochLoop(loops._Loop):
         # we are going to train first so the val loop does not need to restart
         self.val_loop.restarting = False
 
+        # =====================================================================
+        # NEW: Check for SIGTERM broadcast and exit synchronously across ranks
+        import torch
+        import torch.distributed as dist
+        from lightning.pytorch.utilities.exceptions import SIGTERMException
+        if dist.is_available() and dist.is_initialized() and self.trainer.world_size > 1:
+            # Create a tensor to receive the SIGTERM flag.
+            sigterm_tensor = torch.tensor([0], device=self.trainer.strategy.root_device)
+            dist.broadcast(sigterm_tensor, src=0)
+            if sigterm_tensor.item() == 1:
+                # synchronize all ranks before exit to prevent deadlock
+                dist.barrier()
+                raise SIGTERMException()
+        # =====================================================================
+
         if using_dataloader_iter := isinstance(data_fetcher, _DataLoaderIterDataFetcher):
             dataloader_iter = next(data_fetcher)
             # hook's batch_idx and dataloader_idx arguments correctness cannot be guaranteed in this setting
@@ -346,6 +364,7 @@ class _TrainingEpochLoop(loops._Loop):
         # SAVE METRICS TO LOGGERS AND PROGRESS_BAR
         # -----------------------------------------
         trainer._logger_connector.update_train_step_metrics()
+
 
     def on_advance_end(self, data_fetcher: _DataFetcher) -> None:
         # -----------------------------------------
