@@ -6,6 +6,7 @@ import threading
 from subprocess import call
 from types import FrameType
 from typing import Any, Callable, Union
+
 import torch
 import torch.distributed as dist
 
@@ -117,7 +118,6 @@ class _SignalConnector:
             dist.broadcast(sigterm_tensor, src=0)
 
         self.received_sigterm = True
-
 
     def _sigterm_handler_fn(self, signum: _SIGNUM, _: FrameType) -> None:
         log.info(f"Bypassing SIGTERM: {signum}")

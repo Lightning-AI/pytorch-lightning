@@ -18,7 +18,6 @@ from typing import Any, Optional, Union
 
 import torch
 import torch.distributed as dist
-
 from typing_extensions import override
 
 import lightning.pytorch as pl
@@ -277,9 +276,8 @@ class _TrainingEpochLoop(loops._Loop):
 
         # =====================================================================
         # NEW: Check for SIGTERM broadcast and exit synchronously across ranks
-        import torch
-        import torch.distributed as dist
         from lightning.pytorch.utilities.exceptions import SIGTERMException
+
         if dist.is_available() and dist.is_initialized() and self.trainer.world_size > 1:
             # Create a tensor to receive the SIGTERM flag.
             sigterm_tensor = torch.tensor([0], device=self.trainer.strategy.root_device)
@@ -364,7 +362,6 @@ class _TrainingEpochLoop(loops._Loop):
         # SAVE METRICS TO LOGGERS AND PROGRESS_BAR
         # -----------------------------------------
         trainer._logger_connector.update_train_step_metrics()
-
 
     def on_advance_end(self, data_fetcher: _DataFetcher) -> None:
         # -----------------------------------------

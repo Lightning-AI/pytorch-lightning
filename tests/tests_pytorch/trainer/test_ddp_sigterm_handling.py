@@ -1,14 +1,16 @@
 import os
 import signal
 import time
+
 import pytest
 import torch
-import torch.distributed as dist
 import torch.multiprocessing as mp
-from lightning.pytorch import Trainer, seed_everything, LightningModule
+
+from lightning.pytorch import LightningModule, Trainer, seed_everything
 from lightning.pytorch.demos.boring_classes import BoringDataModule
 from lightning.pytorch.strategies.ddp import DDPStrategy
 from lightning.pytorch.utilities.exceptions import SIGTERMException
+
 
 class DummyModel(LightningModule):
     def training_step(self, batch, batch_idx):
@@ -17,6 +19,7 @@ class DummyModel(LightningModule):
             time.sleep(3)  # Let other ranks proceed to the next batch
             os.kill(os.getpid(), signal.SIGTERM)
         return super().training_step(batch, batch_idx)
+
 
 def run_ddp_sigterm(rank, world_size, tmpdir):
     os.environ["MASTER_ADDR"] = "localhost"
@@ -51,6 +54,7 @@ def run_ddp_sigterm(rank, world_size, tmpdir):
         print(f"[Rank {rank}] Caught SIGTERMException successfully.")
     except Exception as e:
         pytest.fail(f"[Rank {rank}] Unexpected exception: {e}")
+
 
 def test_ddp_sigterm_handling(tmp_path):
     world_size = 2
