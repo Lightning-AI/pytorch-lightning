@@ -237,9 +237,9 @@ class _TrainingEpochLoop(loops._Loop):
 
     def on_run_start(self, data_fetcher: _DataFetcher) -> None:
         # `iter()` was called once in `FitLoop.setup_data()` already
-        # Only call iter() if:
-        # 1. Not restarting AND
-        # 2. Not resuming from checkpoint (not _is_resuming) AND
+        # Only call `iter()` if all following cases:
+        # 1. Not restarting
+        # 2. Not resuming from checkpoint (not _is_resuming)
         # 3. Past first epoch (current_epoch > 0)
         if (self.trainer.current_epoch > 0 and not self.trainer.fit_loop._is_resuming) and not self.restarting:
             iter(data_fetcher)  # creates the iterator inside the fetcher
