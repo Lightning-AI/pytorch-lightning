@@ -5,5 +5,5 @@ torch >=2.1.0, <2.8.0
 #fsspec[http] >=2025.3.3, <2025.4.0
 fsspec[http] @ git+https://github.com/fsspec/filesystem_spec
 packaging >=20.0, <=25.0
-typing-extensions >=4.4.0, <4.11.0
+typing-extensions >=4.4.0, <4.14.0
 lightning-utilities >=0.10.0, <0.15.0
