@@ -47,7 +47,7 @@ def create_queue() -> Queue:
     return q
 
 
-def train_model(queue: Queue, max_epochs: int, ckpt_path: Path) -> Trainer:
+def train_model(queue: Queue, max_epochs: int, ckpt_path: Path) -> None:
     dataloader = DataLoader(QueueDataset(queue), num_workers=1, batch_size=None, persistent_workers=True)
     trainer = Trainer(
         max_epochs=max_epochs,
@@ -61,7 +61,6 @@ def train_model(queue: Queue, max_epochs: int, ckpt_path: Path) -> Trainer:
     else:
         trainer.fit(BoringModel(), dataloader)
         trainer.save_checkpoint(str(ckpt_path))
-    return trainer
 
 
 def test_resume_training_with(tmp_path):
@@ -69,13 +68,10 @@ def test_resume_training_with(tmp_path):
     queue = create_queue()
     max_epoch = 2
     ckpt_path = tmp_path / "model.ckpt"
-    trainer = train_model(queue, max_epoch, ckpt_path)
-    assert trainer is not None
+    train_model(queue, max_epoch, ckpt_path)
 
     assert os.path.exists(ckpt_path), f"Checkpoint file '{ckpt_path}' wasn't created"
-
     ckpt_size = os.path.getsize(ckpt_path)
     assert ckpt_size > 0, f"Checkpoint file is empty (size: {ckpt_size} bytes)"
 
-    trainer = train_model(queue, max_epoch + 2, ckpt_path)
-    assert trainer is not None
+    train_model(queue, max_epoch + 2, ckpt_path)
