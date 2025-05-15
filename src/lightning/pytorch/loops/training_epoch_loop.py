@@ -287,22 +287,18 @@ class _TrainingEpochLoop(loops._Loop):
             try:
                 sigterm_tensor = torch.tensor([0], device=self.trainer.strategy.root_device)
                 dist.broadcast(sigterm_tensor, src=0)
-            except Exception as e:
+            except Exception:
                 # log or pass silently to avoid crashing tests on CPU CI
                 pass
 
-        if (
-            dist.is_available()
-            and dist.is_initialized()
-            and self.trainer.world_size > 1
-        ):
+        if dist.is_available() and dist.is_initialized() and self.trainer.world_size > 1:
             sigterm_tensor = torch.tensor([0], device=self.trainer.strategy.root_device)
             try:
                 dist.broadcast(sigterm_tensor, src=0)
                 if sigterm_tensor.item() == 1:
                     dist.barrier()
                     raise SIGTERMException()
-            except Exception as e:
+            except Exception:
                 # Fallback safety: log and skip gracefully
                 pass
         # =====================================================================
