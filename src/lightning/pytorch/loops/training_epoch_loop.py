@@ -275,9 +275,10 @@ class _TrainingEpochLoop(loops._Loop):
         self.val_loop.restarting = False
 
         # =====================================================================
-        # NEW: Check for SIGTERM broadcast and exit synchronously across ranks
+        # FINAL: Check for SIGTERM broadcast and exit synchronously across ranks
         from lightning.pytorch.utilities.exceptions import SIGTERMException
-
+        
+        # Rank 0 broadcasts SIGTERM status
         if (
             dist.is_available()
             and dist.is_initialized()
@@ -285,23 +286,30 @@ class _TrainingEpochLoop(loops._Loop):
             and self.trainer.world_size > 1
         ):
             try:
-                sigterm_tensor = torch.tensor([0], device=self.trainer.strategy.root_device)
+                sigterm_tensor = torch.tensor(
+                    [1 if self.trainer.received_sigterm else 0],
+                    device=self.trainer.strategy.root_device,
+                )
                 dist.broadcast(sigterm_tensor, src=0)
             except Exception:
-                # log or pass silently to avoid crashing tests on CPU CI
-                pass
-
-        if dist.is_available() and dist.is_initialized() and self.trainer.world_size > 1:
-            sigterm_tensor = torch.tensor([0], device=self.trainer.strategy.root_device)
+                pass  # Ignore broadcast error on non-DDP setups
+        
+        # All ranks listen for SIGTERM
+        if (
+            dist.is_available()
+            and dist.is_initialized()
+            and self.trainer.world_size > 1
+        ):
             try:
+                sigterm_tensor = torch.tensor([0], device=self.trainer.strategy.root_device)
                 dist.broadcast(sigterm_tensor, src=0)
                 if sigterm_tensor.item() == 1:
                     dist.barrier()
                     raise SIGTERMException()
             except Exception:
-                # Fallback safety: log and skip gracefully
-                pass
+                pass  # Fallback for CPU/CI environments
         # =====================================================================
+
 
         if using_dataloader_iter := isinstance(data_fetcher, _DataLoaderIterDataFetcher):
             dataloader_iter = next(data_fetcher)
