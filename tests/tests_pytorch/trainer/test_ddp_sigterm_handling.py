@@ -14,8 +14,9 @@ from lightning.pytorch.utilities.exceptions import SIGTERMException
 # Skip the test if DDP or multiple devices are not available
 pytestmark = pytest.mark.skipif(
     not torch.distributed.is_available() or torch.cuda.device_count() < 2,
-    reason="Test requires torch.distributed and at least 2 CUDA devices"
+    reason="Test requires torch.distributed and at least 2 CUDA devices",
 )
+
 
 class DummyModel(LightningModule):
     def training_step(self, batch, batch_idx):
