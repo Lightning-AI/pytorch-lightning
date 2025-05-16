@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
+## [unreleased] - YYYY-MM-DD
+
+### Added
+
+-
+
+
+### Changed
+
+-
+
+
+### Removed
+
+-
+
+
+### Fixed
+
+- Fixed `logger_connector` has edge case where step can be a float ([#20692](https://github.com/Lightning-AI/pytorch-lightning/issues/20692))
+
+
+---
+
 ## [2.5.1] - 2025-03-18
 
 ### Changed
