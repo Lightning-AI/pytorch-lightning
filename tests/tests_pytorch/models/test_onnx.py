@@ -167,3 +167,13 @@ def test_if_inference_output_is_valid(tmp_path):
 
     # compare ONNX Runtime and PyTorch results
     assert np.allclose(to_numpy(torch_out), ort_outs[0], rtol=1e-03, atol=1e-05)
+
+
+@RunIf(onnx=True, min_torch="2.7.0", dynamo=True, onnxscript=True)
+def test_model_return_type():
+    model = BoringModel()
+    model.example_input_array = torch.randn((1, 32))
+    model.eval()
+
+    ret = model.to_onnx(dynamo=True)
+    assert isinstance(ret, torch.onnx.ONNXProgram)
