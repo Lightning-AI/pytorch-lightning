@@ -277,33 +277,24 @@ class _TrainingEpochLoop(loops._Loop):
         # =====================================================================
         # FINAL: Check for SIGTERM broadcast and exit synchronously across ranks
         from lightning.pytorch.utilities.exceptions import SIGTERMException
-
-        # Rank 0 broadcasts SIGTERM status
+        
         if (
             dist.is_available()
             and dist.is_initialized()
-            and getattr(self.trainer.strategy, "global_rank", 0) == 0
             and self.trainer.world_size > 1
         ):
             try:
                 sigterm_tensor = torch.tensor(
-                    [1 if self.trainer.received_sigterm else 0],
+                    [1 if getattr(self.trainer, "received_sigterm", False) else 0],
                     device=self.trainer.strategy.root_device,
                 )
                 dist.broadcast(sigterm_tensor, src=0)
-            except Exception:
-                pass  # Ignore broadcast error on non-DDP setups
-
-        # All ranks listen for SIGTERM
-        if dist.is_available() and dist.is_initialized() and self.trainer.world_size > 1:
-            try:
-                sigterm_tensor = torch.tensor([0], device=self.trainer.strategy.root_device)
-                dist.broadcast(sigterm_tensor, src=0)
+        
                 if sigterm_tensor.item() == 1:
                     dist.barrier()
                     raise SIGTERMException()
             except Exception:
-                pass  # Fallback for CPU/CI environments
+                pass  # never crash CI
         # =====================================================================
 
         if using_dataloader_iter := isinstance(data_fetcher, _DataLoaderIterDataFetcher):
