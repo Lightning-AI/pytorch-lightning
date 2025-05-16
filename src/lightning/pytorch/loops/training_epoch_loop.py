@@ -277,19 +277,15 @@ class _TrainingEpochLoop(loops._Loop):
         # =====================================================================
         # FINAL: Check for SIGTERM broadcast and exit synchronously across ranks
         from lightning.pytorch.utilities.exceptions import SIGTERMException
-        
-        if (
-            dist.is_available()
-            and dist.is_initialized()
-            and self.trainer.world_size > 1
-        ):
+
+        if dist.is_available() and dist.is_initialized() and self.trainer.world_size > 1:
             try:
                 sigterm_tensor = torch.tensor(
                     [1 if getattr(self.trainer, "received_sigterm", False) else 0],
                     device=self.trainer.strategy.root_device,
                 )
                 dist.broadcast(sigterm_tensor, src=0)
-        
+
                 if sigterm_tensor.item() == 1:
                     dist.barrier()
                     raise SIGTERMException()
