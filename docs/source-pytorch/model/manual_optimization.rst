@@ -17,7 +17,7 @@ To manually optimize, do the following:
   * ``optimizer.zero_grad()`` to clear the gradients from the previous training step
   * ``self.manual_backward(loss)`` instead of ``loss.backward()``
   * ``optimizer.step()`` to update your model parameters
-  * ``self.toggle_optimizer()`` and ``self.untoggle_optimizer()`` if needed
+  * ``self.toggle_optimizer()`` and ``self.untoggle_optimizer()``, or ``self.toggled_optimizer()`` if needed
 
 Here is a minimal example of manual optimization.
 
