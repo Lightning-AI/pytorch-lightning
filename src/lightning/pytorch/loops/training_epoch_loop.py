@@ -16,6 +16,8 @@ from collections import OrderedDict
 from dataclasses import dataclass
 from typing import Any, Optional, Union
 
+import torch
+import torch.distributed as dist
 from typing_extensions import override
 
 import lightning.pytorch as pl
@@ -271,6 +273,32 @@ class _TrainingEpochLoop(loops._Loop):
 
         # we are going to train first so the val loop does not need to restart
         self.val_loop.restarting = False
+
+        # =====================================================================
+        from lightning.pytorch.utilities.exceptions import SIGTERMException
+
+        if dist.is_available() and dist.is_initialized() and self.trainer.world_size > 1:
+            try:
+                # Prepare the SIGTERM signal tensor (1 if signal received, else 0)
+                sigterm_tensor = torch.tensor(
+                    [1 if getattr(self.trainer, "received_sigterm", False) else 0],
+                    device=self.trainer.strategy.root_device,
+                )
+                # Broadcast the SIGTERM flag from rank 0 to all other ranks
+                dist.broadcast(sigterm_tensor, src=0)
+            except Exception:
+                # In case broadcast fails (e.g., CPU-only or non-DDP), fallback to no SIGTERM
+                sigterm_tensor = torch.tensor([0], device=self.trainer.strategy.root_device)
+
+            # If SIGTERM flag is set, synchronize all ranks and raise exception to exit
+            if sigterm_tensor.item() == 1:
+                try:
+                    dist.barrier()  # prevent deadlocks by syncing all ranks before exit
+                except Exception:
+                    pass  # Don't fail if barrier fails in fallback mode
+                raise SIGTERMException()
+
+        # =====================================================================
 
         if using_dataloader_iter := isinstance(data_fetcher, _DataLoaderIterDataFetcher):
             dataloader_iter = next(data_fetcher)
