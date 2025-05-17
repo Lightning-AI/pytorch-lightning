@@ -13,7 +13,6 @@
 # limitations under the License.
 import math
 from collections import OrderedDict
-from contextlib import suppress
 from dataclasses import dataclass
 from typing import Any, Optional, Union
 
@@ -277,7 +276,7 @@ class _TrainingEpochLoop(loops._Loop):
 
         # =====================================================================
         from lightning.pytorch.utilities.exceptions import SIGTERMException
-        
+
         if dist.is_available() and dist.is_initialized() and self.trainer.world_size > 1:
             try:
                 # Prepare the SIGTERM signal tensor (1 if signal received, else 0)
@@ -290,7 +289,7 @@ class _TrainingEpochLoop(loops._Loop):
             except Exception:
                 # In case broadcast fails (e.g., CPU-only or non-DDP), fallback to no SIGTERM
                 sigterm_tensor = torch.tensor([0], device=self.trainer.strategy.root_device)
-        
+
             # If SIGTERM flag is set, synchronize all ranks and raise exception to exit
             if sigterm_tensor.item() == 1:
                 try:
