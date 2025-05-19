@@ -94,6 +94,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        # adding dome more images as Thunder mainly using python 3.10,
+        # and we need to support integrations as for example LitGPT
+        python-version: ["3.10"]
+        pytorch-version: ["2.3.1", "2.4.1", "2.5.1", "2.6.0", "2.7.0"]
+        cuda-version: ["12.4.1"]
         include:
           # These are the base images for PL release docker images.
           # Make sure the matrix here matches the one above.
