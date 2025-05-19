@@ -179,7 +179,6 @@ jobs:
         with:
           pkg-folder: dist/${{ steps.folder.outputs.pkg }}
           pypi-token: ${{ secrets[format('PYPI_TOKEN_{0}', matrix.name)] }}
-
 # FIXME: this is not working suddenly, Unrecognized named-value: 'secrets'
 #  legacy-checkpoints:
 #    needs: [build-packages]

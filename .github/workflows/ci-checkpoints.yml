@@ -15,7 +15,7 @@ on:
 
 jobs:
   try-legacy-checkpoints:
-    if: false  # FIXME: this is not working suddenly, Unrecognized named-value: 'secrets'
+    if: false # FIXME: this is not working suddenly, Unrecognized named-value: 'secrets'
     uses: ./.github/workflows/_legacy-checkpoints.yml
     with:
       push_to_s3: false
