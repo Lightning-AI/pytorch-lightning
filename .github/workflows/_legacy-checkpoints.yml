@@ -113,7 +113,7 @@ jobs:
 
       - run: pip install -r requirements/ci.txt
       - name: Upload checkpoints to S3
-        if: secrets.AWS_REGION != ''
+        if: ${{ secrets.AWS_REGION != '' }}
         working-directory: ${{ env.LEGACY_FOLDER }}
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY }}
