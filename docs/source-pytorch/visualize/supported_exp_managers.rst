@@ -60,9 +60,9 @@ Here's the full documentation for the :class:`~lightning.pytorch.loggers.MLFlowL
 
 ----
 
-Neptune.ai
+Neptune 2.x
 ==========
-To use `Neptune.ai <https://www.neptune.ai/>`_ first install the neptune package:
+To use `Neptune 2.x <https://docs-legacy.neptune.ai/>`_ first install the neptune package:
 
 .. code-block:: bash
 
@@ -101,9 +101,9 @@ Here's the full documentation for the :class:`~lightning.pytorch.loggers.Neptune
 
 ----
 
-Neptune Scale
+Neptune 3.x (Neptune Scale)
 ==========
-To use `Neptune Scale <https://docs-beta.neptune.ai/>`_ first install the neptune-scale package:
+To use `Neptune 3.x <https://docs.neptune.ai/>`_ first install the neptune-scale package:
 
 .. code-block:: bash
 
@@ -120,7 +120,7 @@ Configure the logger and pass it to the :class:`~lightning.pytorch.trainer.train
 
     neptune_scale_logger = NeptuneScaleLogger(
         api_key=<YOUR_NEPTUNE_SCALE_API_KEY>,  # replace with your own
-        project="common/pytorch-lightning-integration",  # format "<WORKSPACE/PROJECT>"
+        project=<YOUR_NEPTUNE_SCALE_WORKSPACE>/<YOUR_NEPTUNE_SCALE_PROJECT>,  # replace with your own
     )
     trainer = Trainer(logger=neptune_scale_logger)
 

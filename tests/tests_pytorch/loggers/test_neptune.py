@@ -472,13 +472,24 @@ def test_neptune_scale_logger_invalid_run():
 
 
 @pytest.mark.skipif(not _NEPTUNE_SCALE_AVAILABLE, reason="Neptune-Scale is required for this test.")
-def test_neptune_scale_logger_log_model_summary(neptune_scale_logger, caplog):
-    """Test that log_model_summary shows warning."""
-    logger = NeptuneScaleLogger(log_model_checkpoints=True)
-    model = BoringModel()
+def test_neptune_scale_logger_log_model_summary(neptune_scale_logger):
+    from neptune_scale.types import File
 
-    logger.log_model_summary(model)
-    assert "Neptune Scale does not support logging model summaries" in caplog.text
+    model = BoringModel()
+    test_variants = [
+        ({}, "training/model/summary"),
+        ({"prefix": "custom_prefix"}, "custom_prefix/model/summary"),
+        ({"prefix": "custom/nested/prefix"}, "custom/nested/prefix/model/summary"),
+    ]
+
+    for prefix, model_summary_key in test_variants:
+        logger, run_instance_mock, _ = _get_logger_with_mocks(api_key="test", project="project", **prefix)
+
+        logger.log_model_summary(model)
+
+        assert run_instance_mock.__setitem__.call_count == 1
+        assert run_instance_mock.__getitem__.call_count == 0
+        run_instance_mock.__setitem__.assert_called_once_with(model_summary_key, File)
 
 
 @pytest.mark.skipif(not _NEPTUNE_SCALE_AVAILABLE, reason="Neptune-Scale is required for this test.")
@@ -496,3 +507,39 @@ def test_neptune_scale_logger_with_prefix(neptune_scale_logger):
     metrics = {"loss": 1.23}
     logger.log_metrics(metrics, step=5)
     mock_run.log_metrics.assert_called_once_with({"training/loss": 1.23}, step=5)
+
+
+@pytest.mark.skipif(not _NEPTUNE_SCALE_AVAILABLE, reason="Neptune-Scale is required for this test.")
+def test_neptune_scale_logger_after_save_checkpoint(neptune_scale_logger):
+    test_variants = [
+        ({}, "training/model"),
+        ({"prefix": "custom_prefix"}, "custom_prefix/model"),
+        ({"prefix": "custom/nested/prefix"}, "custom/nested/prefix/model"),
+    ]
+
+    for prefix, model_key_prefix in test_variants:
+        logger, run_instance_mock, run_attr_mock = _get_logger_with_mocks(api_key="test", project="project", **prefix)
+        models_root_dir = os.path.join("path", "to", "models")
+        cb_mock = MagicMock(
+            dirpath=models_root_dir,
+            last_model_path=os.path.join(models_root_dir, "last"),
+            best_k_models={
+                f"{os.path.join(models_root_dir, 'model1')}": None,
+                f"{os.path.join(models_root_dir, 'model2/with/slashes')}": None,
+            },
+            best_model_path=os.path.join(models_root_dir, "best_model"),
+            best_model_score=None,
+        )
+
+        mock_file = neptune_scale_logger.types.File
+        mock_file.reset_mock()
+        mock_file.side_effect = mock.Mock()
+        logger.after_save_checkpoint(cb_mock)
+
+        run_instance_mock.__getitem__.assert_any_call(f"{model_key_prefix}/checkpoints/model1")
+        run_instance_mock.__getitem__.assert_any_call(f"{model_key_prefix}/checkpoints/model2/with/slashes")
+
+        run_attr_mock.upload.assert_has_calls([
+            call(os.path.join(models_root_dir, "model1")),
+            call(os.path.join(models_root_dir, "model2/with/slashes")),
+        ])
