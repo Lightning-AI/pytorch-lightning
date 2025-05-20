@@ -184,7 +184,7 @@ class XLAFSDPStrategy(ParallelStrategy, _Sharded):
         assert self.parallel_devices is not None
         if len(self.parallel_devices) == 1:
             # spawning only 1 device with PjRT is not supported:
-            # https://github.com/Lightning-AI/lightning/pull/17408#discussion_r1170671732
+            # https://github.com/Lightning-AI/pytorch-lightning/pull/17408#discussion_r1170671732
             raise NotImplementedError(
                 f"The {type(self).__name__} does not support running on a single device with the PjRT runtime."
                 " Try using all devices or the `SingleDeviceXLAStrategy` strategy"
@@ -295,6 +295,7 @@ class XLAFSDPStrategy(ParallelStrategy, _Sharded):
     ) -> Tensor:
         """Clip gradients by norm."""
         self.precision.unscale_gradients(optimizer)
+        assert callable(module.clip_grad_norm_)
         return module.clip_grad_norm_(max_norm=max_norm, norm_type=norm_type)
 
     @override
