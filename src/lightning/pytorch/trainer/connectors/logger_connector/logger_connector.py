@@ -106,12 +106,13 @@ class _LoggerConnector:
         scalar_metrics = convert_tensors_to_scalars(metrics)
 
         if step is None:
-            step = scalar_metrics.pop("step", None)
-
-        if step is None:
-            # added metrics for convenience
-            scalar_metrics.setdefault("epoch", self.trainer.current_epoch)
-            step = self.trainer.fit_loop.epoch_loop._batches_that_stepped
+            step_metric = scalar_metrics.pop("step", None)
+            if step_metric is not None:
+                step = int(step_metric)
+            else:
+                # added metrics for convenience
+                scalar_metrics.setdefault("epoch", self.trainer.current_epoch)
+                step = self.trainer.fit_loop.epoch_loop._batches_that_stepped
 
         # log actual metrics
         for logger in self.trainer.loggers:
