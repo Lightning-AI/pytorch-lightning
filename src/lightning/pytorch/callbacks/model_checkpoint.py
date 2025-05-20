@@ -156,8 +156,8 @@ class ModelCheckpoint(Checkpoint):
         only ``best_model_path`` will be reloaded and a warning will be issued.
 
         If you provide a ``filename`` on a mounted device where changing permissions is not allowed (causing ``chmod``
-        to raise ``PermissionError``), Lightning will catch the error, leave the file's permissions as-is, and still
-        save the checkpoint.
+        to raise a ``PermissionError``), the error is cached, the file's permissions remain unchanged, and the
+        checkpoint is still saved.
 
     Raises:
         MisconfigurationException:
