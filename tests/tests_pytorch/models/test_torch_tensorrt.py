@@ -5,12 +5,12 @@ from pathlib import Path
 import pytest
 import torch
 
-import tests_pytorch.helpers.pipelines as tpipes
+import tests_pytorch.helpers.pipelines as pipes
 from lightning.pytorch.demos.boring_classes import BoringModel
 from tests_pytorch.helpers.runif import RunIf
 
 
-@RunIf(tensorrt=True, min_cuda_gpus=1)
+@RunIf(tensorrt=True, min_cuda_gpus=1, min_torch="2.2.0")
 def test_tensorrt_saves_with_input_sample(tmp_path):
     model = BoringModel()
     ori_device = model.device
@@ -34,6 +34,7 @@ def test_tensorrt_saves_with_input_sample(tmp_path):
     assert len(file_path.getvalue()) > 4e2
 
 
+@RunIf(tensorrt=True, min_cuda_gpus=1, min_torch="2.2.0")
 def test_tensorrt_error_if_no_input(tmp_path):
     model = BoringModel()
     model.example_input_array = None
@@ -47,7 +48,7 @@ def test_tensorrt_error_if_no_input(tmp_path):
         model.to_tensorrt(file_path)
 
 
-@RunIf(tensorrt=True, min_cuda_gpus=2)
+@RunIf(tensorrt=True, min_cuda_gpus=2, min_torch="2.2.0")
 def test_tensorrt_saves_on_multi_gpu(tmp_path):
     trainer_options = {
         "default_root_dir": tmp_path,
@@ -63,7 +64,7 @@ def test_tensorrt_saves_on_multi_gpu(tmp_path):
     model = BoringModel()
     model.example_input_array = torch.randn((4, 32))
 
-    tpipes.run_model_test(trainer_options, model, min_acc=0.08)
+    pipes.run_model_test(trainer_options, model, min_acc=0.08)
 
     file_path = os.path.join(tmp_path, "model.trt")
     model.to_tensorrt(file_path)
@@ -79,7 +80,7 @@ def test_tensorrt_saves_on_multi_gpu(tmp_path):
         ("ts", torch.jit.ScriptModule),
     ],
 )
-@RunIf(tensorrt=True, min_cuda_gpus=1)
+@RunIf(tensorrt=True, min_cuda_gpus=1, min_torch="2.2.0")
 def test_tensorrt_save_ir_type(ir, export_type):
     model = BoringModel()
     model.example_input_array = torch.randn((4, 32))
@@ -96,7 +97,7 @@ def test_tensorrt_save_ir_type(ir, export_type):
     "ir",
     ["default", "dynamo", "ts"],
 )
-@RunIf(tensorrt=True, min_cuda_gpus=1)
+@RunIf(tensorrt=True, min_cuda_gpus=1, min_torch="2.2.0")
 def test_tensorrt_export_reload(output_format, ir, tmp_path):
     import torch_tensorrt
 
