@@ -139,8 +139,15 @@ def test_error_if_no_input(tmp_path):
         model.to_onnx(file_path)
 
 
+@pytest.mark.parametrize(
+    "dynamo",
+    [
+        False,
+        pytest.param(True, marks=RunIf(min_torch="2.7.0", dynamo=True, onnxscript=True)),
+    ],
+)
 @RunIf(onnx=True)
-def test_if_inference_output_is_valid(tmp_path):
+def test_if_inference_output_is_valid(tmp_path, dynamo):
     """Test that the output inferred from ONNX model is same as from PyTorch."""
     model = BoringModel()
     model.example_input_array = torch.randn(5, 32)
@@ -153,7 +160,7 @@ def test_if_inference_output_is_valid(tmp_path):
         torch_out = model(model.example_input_array)
 
     file_path = os.path.join(tmp_path, "model.onnx")
-    model.to_onnx(file_path, model.example_input_array, export_params=True)
+    model.to_onnx(file_path, model.example_input_array, export_params=True, dynamo=dynamo)
 
     ort_kwargs = {"providers": "CPUExecutionProvider"} if compare_version("onnxruntime", operator.ge, "1.16.0") else {}
     ort_session = onnxruntime.InferenceSession(file_path, **ort_kwargs)
