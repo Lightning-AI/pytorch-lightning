@@ -1500,8 +1500,8 @@ class LightningModule(
         output_format: Literal["exported_program", "torchscript"] = "exported_program",
         retrace: bool = False,
         default_device: str | torch.device = "cuda",
-        **compile_kwargs,
-    ) -> ScriptModule | torch.fx.GraphModule:
+        **compile_kwargs: Any,
+    ) -> Union[ScriptModule, torch.fx.GraphModule]:
         """Export the model to ScriptModule or GraphModule using TensorRT compile backend.
 
         Args:
