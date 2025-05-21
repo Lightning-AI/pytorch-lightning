@@ -182,5 +182,10 @@ def test_model_return_type():
     model.example_input_array = torch.randn((1, 32))
     model.eval()
 
-    ret = model.to_onnx(dynamo=True)
-    assert isinstance(ret, torch.onnx.ONNXProgram)
+    onnx_pg = model.to_onnx(dynamo=True)
+    assert isinstance(onnx_pg, torch.onnx.ONNXProgram)
+
+    model_ret = model(model.example_input_array)
+    inf_ret = onnx_pg(model.example_input_array)
+
+    assert torch.allclose(model_ret, inf_ret[0], rtol=1e-03, atol=1e-05)
