@@ -2,6 +2,6 @@
 
 nbformat  # used for generate empty notebook
 ipython[notebook] <8.19.0
-setuptools<58.0  # workaround for `error in ipython setup command: use_2to3 is invalid.`
+setuptools<81.0  # workaround for `error in ipython setup command: use_2to3 is invalid.`
 
 #-r ../../_notebooks/.actions/requires.txt
