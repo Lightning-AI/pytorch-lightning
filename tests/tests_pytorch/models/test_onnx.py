@@ -142,7 +142,8 @@ def test_error_if_no_input(tmp_path):
 @pytest.mark.parametrize(
     "dynamo",
     [
-        False,
+        None,
+        pytest.param(False, marks=RunIf(min_torch="2.7.0", dynamo=True, onnxscript=True)),
         pytest.param(True, marks=RunIf(min_torch="2.7.0", dynamo=True, onnxscript=True)),
     ],
 )
@@ -160,7 +161,12 @@ def test_if_inference_output_is_valid(tmp_path, dynamo):
         torch_out = model(model.example_input_array)
 
     file_path = os.path.join(tmp_path, "model.onnx")
-    model.to_onnx(file_path, model.example_input_array, export_params=True, dynamo=dynamo)
+    kwargs = {
+        "export_params": True,
+    }
+    if dynamo is not None:
+        kwargs["dynamo"] = dynamo
+    model.to_onnx(file_path, model.example_input_array, **kwargs)
 
     ort_kwargs = {"providers": "CPUExecutionProvider"} if compare_version("onnxruntime", operator.ge, "1.16.0") else {}
     ort_session = onnxruntime.InferenceSession(file_path, **ort_kwargs)
