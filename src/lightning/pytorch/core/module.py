@@ -1367,7 +1367,7 @@ class LightningModule(
         file_path: Union[str, Path, BytesIO, None] = None,
         input_sample: Optional[Any] = None,
         **kwargs: Any,
-    ) -> Union["ONNXProgram", None]:
+    ) -> Optional["ONNXProgram"]:
         """Saves the model in ONNX format.
 
         Args:
