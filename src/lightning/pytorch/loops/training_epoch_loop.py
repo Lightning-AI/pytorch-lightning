@@ -275,9 +275,10 @@ class _TrainingEpochLoop(loops._Loop):
         self.val_loop.restarting = False
 
         # =====================================================================
-        from lightning.pytorch.utilities.exceptions import SIGTERMException
         import contextlib
-        
+
+        from lightning.pytorch.utilities.exceptions import SIGTERMException
+
         if dist.is_available() and dist.is_initialized() and self.trainer.world_size > 1:
             try:
                 sigterm_tensor = torch.tensor(
@@ -287,7 +288,7 @@ class _TrainingEpochLoop(loops._Loop):
                 dist.broadcast(sigterm_tensor, src=0)
             except Exception:
                 sigterm_tensor = torch.tensor([0], device=self.trainer.strategy.root_device)
-        
+
             if sigterm_tensor.item() == 1:
                 with contextlib.suppress(Exception):
                     dist.barrier()  # prevent deadlocks by syncing all ranks before exit
