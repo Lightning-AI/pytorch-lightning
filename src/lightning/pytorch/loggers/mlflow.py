@@ -235,10 +235,9 @@ class MLFlowLogger(Logger):
         import mlflow.utils.validation
         from mlflow.entities import Param
 
-        # Check maximum param value length is available and use it
-        if hasattr(mlflow.utils.validation, "MAX_PARAM_VAL_LENGTH"):
+        try: # Check maximum param value length is available and use it
             param_length_limit = mlflow.utils.validation.MAX_PARAM_VAL_LENGTH
-        else:  # Fallback
+        except:  # Fallback
             param_length_limit = 250  # Historical default value
 
         # Use mlflow default limit or truncate parameter values to 250 characters if limit is not available
