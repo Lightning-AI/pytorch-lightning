@@ -52,7 +52,7 @@ def _set_layer_param(
     param: torch.Tensor,
     layer_name: str,
 ) -> None:
-    """Helper"""
+    """Helper."""
     layer = getattr(dpgrucell, layer_name)
     if "weight" in name:
         layer.weight = torch.nn.Parameter(deepcopy(param))
@@ -94,7 +94,7 @@ def params(
 
 
 class DPOptimizer(OpacusDPOptimizer):
-    """Brainiac-2's DP-Optimizer"""
+    """Brainiac-2's DP-Optimizer."""
 
     def __init__(
         self,
@@ -108,21 +108,20 @@ class DPOptimizer(OpacusDPOptimizer):
 
     @property
     def params(self) -> list[torch.nn.Parameter]:
-        """
-        Returns a flat list of ``nn.Parameter`` managed by the optimizer
-        """
+        """Returns a flat list of ``nn.Parameter`` managed by the optimizer."""
         return params(self, self.param_group_names)
 
 
 class DifferentialPrivacy(pl.callbacks.EarlyStopping):
-    """Enables differential privacy using Opacus.
-    Converts optimizers to instances of the :class:`~opacus.optimizers.DPOptimizer` class.
-    This callback inherits from `EarlyStopping`, thus it is also able to stop the
-    training when enough privacy budget has been spent.
-    Please beware that Opacus does not support multi-optimizer training.
+    """Enables differential privacy using Opacus. Converts optimizers to instances of the
+    :class:`~opacus.optimizers.DPOptimizer` class. This callback inherits from `EarlyStopping`, thus it is also able to
+    stop the training when enough privacy budget has been spent. Please beware that Opacus does not support multi-
+    optimizer training.
+
     For more info, check the following links:
     * https://opacus.ai/tutorials/
     * https://blog.openmined.org/differentially-private-deep-learning-using-opacus-in-20-lines-of-code/
+
     """
 
     def __init__(
@@ -140,6 +139,7 @@ class DifferentialPrivacy(pl.callbacks.EarlyStopping):
         **gsm_kwargs: ty.Any,
     ) -> None:
         """Enables differential privacy using Opacus.
+
         Converts optimizers to instances of the :class:`~opacus.optimizers.DPOptimizer` class.
         This callback inherits from `EarlyStopping`,
         thus it is also able to stop the training when enough privacy budget has been spent.
@@ -177,6 +177,7 @@ class DifferentialPrivacy(pl.callbacks.EarlyStopping):
                 Whether to make the dataloader private. Defaults to False.
             **gsm_kwargs:
                 Input arguments for the :class:`~opacus.GradSampleModule` class.
+
         """
         # inputs
         self.budget = budget
@@ -227,7 +228,11 @@ class DifferentialPrivacy(pl.callbacks.EarlyStopping):
         trainer: pl.Trainer,
         pl_module: pl.LightningModule,
     ) -> None:
-        """Called when the training epoch begins. Use this to make optimizers private."""
+        """Called when the training epoch begins.
+
+        Use this to make optimizers private.
+
+        """
         # idx
         if self.idx is None:
             self.idx = range(len(trainer.optimizers))
@@ -289,7 +294,11 @@ class DifferentialPrivacy(pl.callbacks.EarlyStopping):
         batch_idx: int,
         *args: ty.Any,
     ) -> None:
-        """Called after the batched has been digested. Use this to understand whether to stop or not."""
+        """Called after the batched has been digested.
+
+        Use this to understand whether to stop or not.
+
+        """
         self._log_and_stop_criterion(trainer, pl_module)
 
     def on_train_epoch_end(

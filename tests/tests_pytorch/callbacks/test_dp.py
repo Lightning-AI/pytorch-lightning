@@ -68,6 +68,7 @@ def test_privacy_callback() -> None:
     * the privacy budget has been spent (`epsilon > 0`);
     * spent budget is  greater than max privacy budget;
     * traininng did not stop because `max_steps` has been reached, but because the total budget has been spent.
+
     """
     # choose dataset
     datamodule = MockDataModule()
@@ -92,12 +93,12 @@ def test_privacy_callback() -> None:
     epsilon, best_alpha = dp_cb.get_privacy_spent()
     print(f"Total spent budget {epsilon} with alpha: {best_alpha}")
     assert epsilon > 0, f"No privacy budget has been spent: {epsilon}"
-    assert (
-        epsilon >= dp_cb.budget
-    ), f"Spent budget is not greater than max privacy budget: epsilon = {epsilon} and budget = {dp_cb.budget}"
-    assert (
-        trainer.global_step < max_steps
-    ), "Traininng stopped because max_steps has been reached, not because the total budget has been spent."
+    assert epsilon >= dp_cb.budget, (
+        f"Spent budget is not greater than max privacy budget: epsilon = {epsilon} and budget = {dp_cb.budget}"
+    )
+    assert trainer.global_step < max_steps, (
+        "Traininng stopped because max_steps has been reached, not because the total budget has been spent."
+    )
 
 
 if __name__ == "__main__":
