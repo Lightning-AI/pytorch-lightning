@@ -97,7 +97,7 @@ _**Note**, even if you do not find the solution, sending a PR with a test coveri
 
 1. Add/update the relevant tests!
 
-- [This PR](https://github.com/Lightning-AI/lightning/pull/2671) is a good example for adding a new metric, and [this one for a new logger](https://github.com/Lightning-AI/lightning/pull/2721).
+- [This PR](https://github.com/Lightning-AI/pytorch-lightning/pull/2671) is a good example for adding a new metric, and [this one for a new logger](https://github.com/Lightning-AI/pytorch-lightning/pull/2721).
 
 ### Test cases:
 
