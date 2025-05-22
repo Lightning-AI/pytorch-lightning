@@ -276,26 +276,21 @@ class _TrainingEpochLoop(loops._Loop):
 
         # =====================================================================
         from lightning.pytorch.utilities.exceptions import SIGTERMException
-
+        import contextlib
+        
         if dist.is_available() and dist.is_initialized() and self.trainer.world_size > 1:
             try:
-                # Prepare the SIGTERM signal tensor (1 if signal received, else 0)
                 sigterm_tensor = torch.tensor(
                     [1 if getattr(self.trainer, "received_sigterm", False) else 0],
                     device=self.trainer.strategy.root_device,
                 )
-                # Broadcast the SIGTERM flag from rank 0 to all other ranks
                 dist.broadcast(sigterm_tensor, src=0)
             except Exception:
-                # In case broadcast fails (e.g., CPU-only or non-DDP), fallback to no SIGTERM
                 sigterm_tensor = torch.tensor([0], device=self.trainer.strategy.root_device)
-
-            # If SIGTERM flag is set, synchronize all ranks and raise exception to exit
+        
             if sigterm_tensor.item() == 1:
-                try:
+                with contextlib.suppress(Exception):
                     dist.barrier()  # prevent deadlocks by syncing all ranks before exit
-                except Exception:
-                    pass  # Don't fail if barrier fails in fallback mode
                 raise SIGTERMException()
 
         # =====================================================================
