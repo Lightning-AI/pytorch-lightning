@@ -102,7 +102,7 @@ def test_parallelize_fn_call():
     strategy = ModelParallelStrategy(parallelize_fn=parallelize_fn)
     strategy._device_mesh = Mock()
     strategy.parallel_devices = [torch.device("cpu")]
-    model_setup, [optimizer_setup] = strategy.setup_module_and_optimizers(model, [optimizer])
+    model_setup, [optimizer_setup], _ = strategy.setup_module_and_optimizers(model, [optimizer])
     assert model_setup is parallel_model_mock
     assert optimizer_setup is optimizer
     parallelize_fn.assert_called_with(model, strategy.device_mesh)
