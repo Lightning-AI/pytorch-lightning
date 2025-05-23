@@ -139,8 +139,16 @@ def test_error_if_no_input(tmp_path):
         model.to_onnx(file_path)
 
 
+@pytest.mark.parametrize(
+    "dynamo",
+    [
+        None,
+        pytest.param(False, marks=RunIf(min_torch="2.7.0", dynamo=True, onnxscript=True)),
+        pytest.param(True, marks=RunIf(min_torch="2.7.0", dynamo=True, onnxscript=True)),
+    ],
+)
 @RunIf(onnx=True)
-def test_if_inference_output_is_valid(tmp_path):
+def test_if_inference_output_is_valid(tmp_path, dynamo):
     """Test that the output inferred from ONNX model is same as from PyTorch."""
     model = BoringModel()
     model.example_input_array = torch.randn(5, 32)
@@ -153,7 +161,12 @@ def test_if_inference_output_is_valid(tmp_path):
         torch_out = model(model.example_input_array)
 
     file_path = os.path.join(tmp_path, "model.onnx")
-    model.to_onnx(file_path, model.example_input_array, export_params=True)
+    kwargs = {
+        "export_params": True,
+    }
+    if dynamo is not None:
+        kwargs["dynamo"] = dynamo
+    model.to_onnx(file_path, model.example_input_array, **kwargs)
 
     ort_kwargs = {"providers": "CPUExecutionProvider"} if compare_version("onnxruntime", operator.ge, "1.16.0") else {}
     ort_session = onnxruntime.InferenceSession(file_path, **ort_kwargs)
@@ -167,3 +180,18 @@ def test_if_inference_output_is_valid(tmp_path):
 
     # compare ONNX Runtime and PyTorch results
     assert np.allclose(to_numpy(torch_out), ort_outs[0], rtol=1e-03, atol=1e-05)
+
+
+@RunIf(onnx=True, min_torch="2.7.0", dynamo=True, onnxscript=True)
+def test_model_return_type():
+    model = BoringModel()
+    model.example_input_array = torch.randn((1, 32))
+    model.eval()
+
+    onnx_pg = model.to_onnx(dynamo=True)
+    assert isinstance(onnx_pg, torch.onnx.ONNXProgram)
+
+    model_ret = model(model.example_input_array)
+    inf_ret = onnx_pg(model.example_input_array)
+
+    assert torch.allclose(model_ret, inf_ret[0], rtol=1e-03, atol=1e-05)
