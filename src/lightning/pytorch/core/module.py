@@ -1494,12 +1494,12 @@ class LightningModule(
     @torch.no_grad()
     def to_tensorrt(
         self,
-        file_path: str | Path | BytesIO | None = None,
-        input_sample: Any | None = None,
+        file_path: Optional[Union[str, Path, BytesIO]] = None,
+        input_sample: Optional[Any] = None,
         ir: Literal["default", "dynamo", "ts"] = "default",
         output_format: Literal["exported_program", "torchscript"] = "exported_program",
         retrace: bool = False,
-        default_device: str | torch.device = "cuda",
+        default_device: Union[str, torch.device] = "cuda",
         **compile_kwargs: Any,
     ) -> Union[ScriptModule, torch.fx.GraphModule]:
         """Export the model to ScriptModule or GraphModule using TensorRT compile backend.
