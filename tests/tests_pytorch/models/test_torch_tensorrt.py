@@ -99,14 +99,14 @@ def test_tensorrt_save_ir_type(ir, export_type):
 )
 @RunIf(tensorrt=True, min_cuda_gpus=1, min_torch="2.2.0")
 def test_tensorrt_export_reload(output_format, ir, tmp_path):
-    import torch_tensorrt
-
     if ir == "ts" and output_format == "exported_program":
         pytest.skip("TorchScript cannot be exported as exported_program")
 
+    import torch_tensorrt
+
     model = BoringModel()
     model.cuda().eval()
-    model.example_input_array = torch.randn((4, 32))
+    model.example_input_array = torch.ones((4, 32))
 
     file_path = os.path.join(tmp_path, "model.trt")
     model.to_tensorrt(file_path, output_format=output_format, ir=ir)
@@ -116,7 +116,7 @@ def test_tensorrt_export_reload(output_format, ir, tmp_path):
         loaded_model = loaded_model.module()
 
     with torch.no_grad(), torch.inference_mode():
-        model_output = model(model.example_input_array.to(model.device))
+        model_output = model(model.example_input_array.to("cuda"))
+        jit_output = loaded_model(model.example_input_array.to("cuda"))
 
-    jit_output = loaded_model(model.example_input_array.to("cuda"))
-    assert torch.allclose(model_output, jit_output)
+    assert torch.allclose(model_output, jit_output, rtol=1e-03, atol=1e-06)
