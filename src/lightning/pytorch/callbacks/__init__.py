@@ -15,6 +15,7 @@ from lightning.pytorch.callbacks.batch_size_finder import BatchSizeFinder
 from lightning.pytorch.callbacks.callback import Callback
 from lightning.pytorch.callbacks.checkpoint import Checkpoint
 from lightning.pytorch.callbacks.device_stats_monitor import DeviceStatsMonitor
+from lightning.pytorch.callbacks.differential_privacy import DifferentialPrivacy
 from lightning.pytorch.callbacks.early_stopping import EarlyStopping
 from lightning.pytorch.callbacks.finetuning import BackboneFinetuning, BaseFinetuning
 from lightning.pytorch.callbacks.gradient_accumulation_scheduler import GradientAccumulationScheduler
@@ -58,4 +59,5 @@ __all__ = [
     "ThroughputMonitor",
     "Timer",
     "TQDMProgressBar",
+    "DifferentialPrivacy",
 ]
