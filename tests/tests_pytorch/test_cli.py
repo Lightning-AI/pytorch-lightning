@@ -1789,3 +1789,33 @@ def test_lightning_cli_with_args_given(args):
 def test_lightning_cli_args_and_sys_argv_warning():
     with mock.patch("sys.argv", ["", "--model.foo=456"]), pytest.warns(Warning, match="LightningCLI's args parameter "):
         LightningCLI(TestModel, run=False, args=["--model.foo=789"])
+
+
+def test_add_class_args_required_false_skips_addition(tmp_path):
+    from lightning.pytorch import cli, callbacks
+
+    class FooCheckpoint(callbacks.ModelCheckpoint):
+        def __init__(self, dirpath, *args, **kwargs):
+            super().__init__(dirpath, *args, **kwargs)
+
+    class SimpleModel:
+        def __init__(self): pass
+
+    class SimpleDataModule:
+        def __init__(self): pass
+
+    class FooCLI(cli.LightningCLI):
+        def __init__(self):
+            super().__init__(
+                model_class=SimpleModel,
+                datamodule_class=SimpleDataModule,
+                run=False,
+                save_config_callback=None
+            )
+
+        def add_arguments_to_parser(self, parser):
+            parser.add_lightning_class_args(FooCheckpoint, "checkpoint", required=False)
+
+    # Expectation: No error raised even though FooCheckpoint requires `dirpath`
+    FooCLI()
+
