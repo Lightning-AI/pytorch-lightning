@@ -126,36 +126,37 @@ class LightningArgumentParser(ArgumentParser):
         required: bool = True,
     ) -> list[str]:
         """Adds arguments from a lightning class to a nested key of the parser.
-    
+
         Args:
             lightning_class: A callable or any subclass of {Trainer, LightningModule, LightningDataModule, Callback}.
             nested_key: Name of the nested namespace to store arguments.
             subclass_mode: Whether to allow any subclass of the given class.
             required: Whether the argument group is required.
-    
+
         Returns:
             A list with the names of the class arguments added.
+
         """
         if callable(lightning_class) and not isinstance(lightning_class, type):
             lightning_class = class_from_function(lightning_class)
-    
+
         if isinstance(lightning_class, type) and issubclass(
             lightning_class, (Trainer, LightningModule, LightningDataModule, Callback)
         ):
             if issubclass(lightning_class, Callback):
                 self.callback_keys.append(nested_key)
-    
+
             # NEW LOGIC: If subclass_mode=False and required=False, only add if config provides this key
             if not subclass_mode and not required:
                 config_path = f"{self.subcommand}.{nested_key}" if getattr(self, "subcommand", None) else nested_key
                 config = getattr(self, "config", {})
-                if not any(k.startswith(config_path) for k in config.keys()):
+                if not any(k.startswith(config_path) for k in config):
                     # Skip adding class arguments
                     return []
-    
+
             if subclass_mode:
                 return self.add_subclass_arguments(lightning_class, nested_key, fail_untyped=False, required=required)
-    
+
             return self.add_class_arguments(
                 lightning_class,
                 nested_key,
@@ -163,12 +164,11 @@ class LightningArgumentParser(ArgumentParser):
                 instantiate=not issubclass(lightning_class, Trainer),
                 sub_configs=True,
             )
-    
+
         raise MisconfigurationException(
             f"Cannot add arguments from: {lightning_class}. You should provide either a callable or a subclass of: "
             "Trainer, LightningModule, LightningDataModule, or Callback."
         )
-
 
     def add_optimizer_args(
         self,

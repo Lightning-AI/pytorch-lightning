@@ -1792,25 +1792,24 @@ def test_lightning_cli_args_and_sys_argv_warning():
 
 
 def test_add_class_args_required_false_skips_addition(tmp_path):
-    from lightning.pytorch import cli, callbacks
+    from lightning.pytorch import callbacks, cli
 
     class FooCheckpoint(callbacks.ModelCheckpoint):
         def __init__(self, dirpath, *args, **kwargs):
             super().__init__(dirpath, *args, **kwargs)
 
     class SimpleModel:
-        def __init__(self): pass
+        def __init__(self):
+            pass
 
     class SimpleDataModule:
-        def __init__(self): pass
+        def __init__(self):
+            pass
 
     class FooCLI(cli.LightningCLI):
         def __init__(self):
             super().__init__(
-                model_class=SimpleModel,
-                datamodule_class=SimpleDataModule,
-                run=False,
-                save_config_callback=None
+                model_class=SimpleModel, datamodule_class=SimpleDataModule, run=False, save_config_callback=None
             )
 
         def add_arguments_to_parser(self, parser):
@@ -1818,4 +1817,3 @@ def test_add_class_args_required_false_skips_addition(tmp_path):
 
     # Expectation: No error raised even though FooCheckpoint requires `dirpath`
     FooCLI()
-
