@@ -13,9 +13,11 @@
 # limitations under the License.
 import errno
 import os
+import re
 from unittest import mock
 from unittest.mock import ANY, Mock
 
+import fsspec
 import pytest
 import torch
 
@@ -106,7 +108,32 @@ def test_hpc_max_ckpt_version(tmp_path):
     )
 
 
-def test_ckpt_for_fsspec(tmpdir):
+def test_local_cross_device_checkpoint(tmpdir):
+    """Test that the _CheckpointConnector can write local cross-device files or raises an error if fsspec<2025.5.0."""
+    model = BoringModel()
+    # hardcoding dir since `tmp_path` can be windows path
+    trainer = Trainer(
+        default_root_dir="memory://test_ckpt_for_fsspec", limit_train_batches=1, limit_val_batches=1, max_epochs=1
+    )
+    trainer.fit(model)
+    # Simulate the behavior of fsspec when writing to a local file system but other device.
+    with (
+        mock.patch("os.rename", side_effect=OSError(errno.EXDEV, "Invalid cross-device link")),
+        mock.patch("os.chmod", side_effect=PermissionError("Operation not permitted")),
+    ):
+        if fsspec.__version__ < "2025.5.0":
+            with pytest.raises(
+                RuntimeError,
+                match=re.escape(
+                    'Upgrade fsspec to enable cross-device local checkpoints: pip install "fsspec[http]>=2025.5.0"'
+                ),
+            ):
+                trainer.save_checkpoint(tmpdir + "/test_ckpt_for_fsspec/hpc_ckpt.ckpt")
+        else:
+            trainer.save_checkpoint(tmpdir + "/test_ckpt_for_fsspec/hpc_ckpt.ckpt")
+
+
+def test_ckpt_for_fsspec():
     """Test that the _CheckpointConnector is able to write to fsspec file systems."""
     model = BoringModel()
     # hardcoding dir since `tmp_path` can be windows path
@@ -118,13 +145,6 @@ def test_ckpt_for_fsspec(tmpdir):
     trainer.save_checkpoint("memory://test_ckpt_for_fsspec/hpc_ckpt_0.ckpt")
     trainer.save_checkpoint("memory://test_ckpt_for_fsspec/hpc_ckpt_3.ckpt")
     trainer.save_checkpoint("memory://test_ckpt_for_fsspec/hpc_ckpt_33.ckpt")
-
-    # Simulate the behavior of fsspec when writing to a local file system but other device.
-    with (
-        mock.patch("os.rename", side_effect=OSError(errno.EXDEV, "Invalid cross-device link")),
-        mock.patch("os.chmod", side_effect=PermissionError("Operation not permitted")),
-    ):
-        trainer.save_checkpoint(tmpdir + "/test_ckpt_for_fsspec/hpc_ckpt_18.ckpt")
 
     assert trainer._checkpoint_connector._hpc_resume_path == "memory://test_ckpt_for_fsspec/hpc_ckpt_33.ckpt"
     assert (
