@@ -461,7 +461,8 @@ def test_neptune_scale_logger_finalize(neptune_scale_logger):
     """Test finalize method sets status correctly."""
     logger, mock_run = neptune_scale_logger
     logger.finalize("success")
-    assert mock_run._status == "success"
+    expected_key = logger._construct_path_with_prefix("status")
+    mock_run.log_configs.assert_any_call({expected_key: "success"})
 
 
 @pytest.mark.skipif(not _NEPTUNE_SCALE_AVAILABLE, reason="Neptune-Scale is required for this test.")
@@ -472,13 +473,20 @@ def test_neptune_scale_logger_invalid_run():
 
 
 @pytest.mark.skipif(not _NEPTUNE_SCALE_AVAILABLE, reason="Neptune-Scale is required for this test.")
-def test_neptune_scale_logger_log_model_summary(neptune_scale_logger, caplog):
-    """Test that log_model_summary shows warning."""
-    logger = NeptuneScaleLogger(log_model_checkpoints=True)
-    model = BoringModel()
+def test_neptune_scale_logger_log_model_summary(neptune_scale_logger, monkeypatch):
+    from neptune_scale.types import File
 
+    model = BoringModel()
+    logger, mock_run = neptune_scale_logger
+    # Patch assign_files to track calls
+    assign_files_mock = mock.MagicMock()
+    monkeypatch.setattr(mock_run, "assign_files", assign_files_mock)
     logger.log_model_summary(model)
-    assert "Neptune Scale does not support logging model summaries" in caplog.text
+    # Check that assign_files was called with the correct key and a File instance
+    called_args = assign_files_mock.call_args[0][0]
+    assert list(called_args.keys())[0].endswith("model/summary")
+    file_val = list(called_args.values())[0]
+    assert isinstance(file_val, File)
 
 
 @pytest.mark.skipif(not _NEPTUNE_SCALE_AVAILABLE, reason="Neptune-Scale is required for this test.")
@@ -496,3 +504,32 @@ def test_neptune_scale_logger_with_prefix(neptune_scale_logger):
     metrics = {"loss": 1.23}
     logger.log_metrics(metrics, step=5)
     mock_run.log_metrics.assert_called_once_with({"training/loss": 1.23}, step=5)
+
+
+@pytest.mark.skipif(not _NEPTUNE_SCALE_AVAILABLE, reason="Neptune-Scale is required for this test.")
+def test_neptune_scale_logger_after_save_checkpoint(neptune_scale_logger):
+    logger, mock_run = neptune_scale_logger
+    models_root_dir = os.path.join("path", "to", "models")
+    cb_mock = MagicMock(
+        dirpath=models_root_dir,
+        last_model_path=os.path.join(models_root_dir, "last"),
+        best_k_models={
+            f"{os.path.join(models_root_dir, 'model1')}": None,
+            f"{os.path.join(models_root_dir, 'model2/with/slashes')}": None,
+        },
+        best_model_path=os.path.join(models_root_dir, "best_model"),
+        best_model_score=None,
+    )
+    logger.after_save_checkpoint(cb_mock)
+    prefix = logger._prefix
+    model_key_prefix = f"{prefix}/model" if prefix else "model"
+    expected_calls = [
+        call.log_configs({f"{model_key_prefix}/checkpoints/model1": os.path.join(models_root_dir, "model1")}),
+        call.log_configs({
+            f"{model_key_prefix}/checkpoints/model2/with/slashes": os.path.join(models_root_dir, "model2/with/slashes")
+        }),
+        call.log_configs({f"{model_key_prefix}/checkpoints/last": os.path.join(models_root_dir, "last")}),
+        call.log_configs({f"{model_key_prefix}/checkpoints/best_model": os.path.join(models_root_dir, "best_model")}),
+        call.log_configs({f"{model_key_prefix}/best_model_path": os.path.join(models_root_dir, "best_model")}),
+    ]
+    mock_run.log_configs.assert_has_calls(expected_calls, any_order=True)

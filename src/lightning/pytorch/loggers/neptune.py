@@ -69,7 +69,7 @@ def _catch_inactive(func: Callable) -> Callable:
 
 
 class NeptuneLogger(Logger):
-    r"""Log using `Neptune <https://docs.neptune.ai/integrations/lightning/>`_.
+    r"""Log using `Neptune <https://docs-legacy.neptune.ai/integrations/lightning/>`_.
 
     Install it with pip:
 
@@ -129,7 +129,7 @@ class NeptuneLogger(Logger):
     Note that the syntax ``self.logger.experiment["your/metadata/structure"].append(metadata)`` is specific to
     Neptune and extends the logger capabilities. It lets you log various types of metadata, such as
     scores, files, images, interactive visuals, and CSVs.
-    Refer to the `Neptune docs <https://docs.neptune.ai/logging/methods>`_
+    Refer to the `Neptune docs <https://docs-legacy.neptune.ai/logging/methods>`_
     for details.
     You can also use the regular logger methods ``log_metrics()``, and ``log_hyperparams()`` with NeptuneLogger.
 
@@ -184,7 +184,7 @@ class NeptuneLogger(Logger):
         )
         trainer = Trainer(max_epochs=3, logger=neptune_logger)
 
-    Check `run documentation <https://docs.neptune.ai/api/neptune/#init_run>`_
+    Check `run documentation <https://docs-legacy.neptune.ai/api/neptune/#init_run>`_
     for more info about additional run parameters.
 
     **Details about Neptune run structure**
@@ -196,18 +196,18 @@ class NeptuneLogger(Logger):
 
     See also:
         - Read about
-          `what objects you can log to Neptune <https://docs.neptune.ai/logging/what_you_can_log/>`_.
+          `what objects you can log to Neptune <https://docs-legacy.neptune.ai/logging/what_you_can_log/>`_.
         - Check out an `example run <https://app.neptune.ai/o/common/org/pytorch-lightning-integration/e/PTL-1/all>`_
           with multiple types of metadata logged.
         - For more detailed examples, see the
-          `user guide <https://docs.neptune.ai/integrations/lightning/>`_.
+          `user guide <https://docs-legacy.neptune.ai/integrations/lightning/>`_.
 
     Args:
         api_key: Optional.
             Neptune API token, found on https://www.neptune.ai upon registration.
             You should save your token to the `NEPTUNE_API_TOKEN`
             environment variable and leave the api_key argument out of your code.
-            Instructions: `Setting your API token <https://docs.neptune.ai/setup/setting_api_token/>`_.
+            Instructions: `Setting your API token <https://docs-legacy.neptune.ai/setup/setting_api_token/>`_.
         project: Optional.
             Name of a project in the form "workspace-name/project-name", for example "tom/mask-rcnn".
             If ``None``, the value of `NEPTUNE_PROJECT` environment variable is used.
@@ -377,7 +377,7 @@ class NeptuneLogger(Logger):
         is specific to Neptune and extends the logger capabilities.
         It lets you log various types of metadata, such as scores, files,
         images, interactive visuals, and CSVs. Refer to the
-        `Neptune docs <https://docs.neptune.ai/logging/methods>`_
+        `Neptune docs <https://docs-legacy.neptune.ai/logging/methods>`_
         for more detailed explanations.
         You can also use the regular logger methods ``log_metrics()``, and ``log_hyperparams()``
         with NeptuneLogger.
@@ -600,7 +600,7 @@ class NeptuneLogger(Logger):
 
 
 class NeptuneScaleLogger(Logger):
-    r"""Log using `Neptune Scale <https://docs-beta.neptune.ai/>`_.
+    r"""Log using `Neptune Scale <https://docs.neptune.ai/>`_.
 
     Install it with pip:
 
@@ -630,7 +630,6 @@ class NeptuneScaleLogger(Logger):
 
     .. code-block:: python
 
-        from neptune.types import File
         from lightning.pytorch import LightningModule
 
 
@@ -647,7 +646,7 @@ class NeptuneScaleLogger(Logger):
 
     Note that the syntax ``self.logger.run.log_metrics(data={"your/metadata/structure": metadata}, step=step)``
     is specific to Neptune Scale.
-    Refer to the `Neptune Scale docs <https://docs-beta.neptune.ai/log_metadata>`_ for details.
+    Refer to the `Neptune Scale docs <https://docs.neptune.ai/log_metadata>`_ for details.
     You can also use the regular logger methods ``log_metrics()``, and ``log_hyperparams()`` with NeptuneScaleLogger.
 
     **Log after fitting or testing is finished**
@@ -670,6 +669,18 @@ class NeptuneScaleLogger(Logger):
         neptune_logger.run.log_configs(data={"your/metadata/structure": metadata})
         neptune_logger.run.add_tags(["tag1", "tag2"])
 
+    **Log model checkpoint paths**
+
+    If you have :class:`~lightning.pytorch.callbacks.ModelCheckpoint` configured,
+    the Neptune logger can log model checkpoint paths.
+    Paths will be logged to the "model/checkpoints" namespace in the Neptune run.
+    You can disable this option with:
+
+    .. code-block:: python
+
+        neptune_logger = NeptuneScaleLogger(log_model_checkpoints=False)
+
+    Note: All model checkpoint paths will be logged. ``save_last`` and ``save_top_k`` are currently not supported.
 
     **Pass additional parameters to the Neptune run**
 
@@ -688,7 +699,7 @@ class NeptuneScaleLogger(Logger):
         )
         trainer = Trainer(max_epochs=3, logger=neptune_scale_logger)
 
-    Check `run documentation <https://docs-beta.neptune.ai/run>`_ for more info about additional run
+    Check `run documentation <https://docs.neptune.ai/run>`_ for more info about additional run
     parameters.
 
     **Details about Neptune run structure**
@@ -712,26 +723,30 @@ class NeptuneScaleLogger(Logger):
             Neptune API token, found on https://scale.neptune.ai upon registration.
             You should save your token to the `NEPTUNE_API_TOKEN` environment variable and leave
             the api_token argument out of your code.
-            Instructions: `Setting your API token <https://docs-beta.neptune.ai/setup#3-get-your-api-token>`_.
+            Instructions: `Setting your API token <https://docs.neptune.ai/setup#3-get-your-api-token>`_.
         resume: Optional.
             If `False`, creates a new run.
             To continue an existing run, set to `True` and pass the ID of an existing run to the `run_id` argument.
             In this case, omit the `experiment_name` parameter.
             To fork a run, use `fork_run_id` and `fork_step` instead.
         mode: Optional.
-            `Mode <https://docs-beta.neptune.ai/modes>`_ of operation.
+            `Mode <https://docs.neptune.ai/modes>`_ of operation.
             If "disabled", the run doesn't log any metadata.
-            If "offline", the run is only stored locally. For details, see `Offline logging <https://docs-beta.neptune.ai/offline>`_.
+            If "offline", the run is only stored locally. For details, see `Offline logging <https://docs.neptune.ai/offline>`_.
             If this parameter and the
-            `NEPTUNE_MODE <https://docs-beta.neptune.ai/environment_variables/neptune_scale#neptune_mode>`_
+            `NEPTUNE_MODE <https://docs.neptune.ai/environment_variables/neptune_scale#neptune_mode>`_
             environment variable are not set, the default is "async".
         experiment_name: Optional.
-            Name of the experiment <https://docs-beta.neptune.ai/experiments> to associate the run with.
+            Name of the experiment <https://docs.neptune.ai/experiments> to associate the run with.
             Can't be used together with the `resume` parameter.
             To make the name easy to read in the app, ensure that it's at most 190 characters long.
         run: Optional. Default is ``None``. A Neptune ``Run`` object.
             If specified, this existing run will be used for logging, instead of a new run being created.
         prefix: Optional. Default is ``"training"``. Root namespace for all metadata logging.
+        log_model_checkpoints: Optional. Default is ``True``. Log model checkpoint paths to Neptune.
+            Works only if ``ModelCheckpoint`` is passed to the ``Trainer``.
+            NOTE: All model checkpoint paths will be logged.
+            ``save_last`` and ``save_top_k`` are currently not supported.
         neptune_run_kwargs: Additional arguments like ``creation_time``, ``log_directory``,
             ``fork_run_id``, ``fork_step``, ``*_callback``, etc. used when a run is created.
 
@@ -757,6 +772,7 @@ class NeptuneScaleLogger(Logger):
         experiment_name: Optional[str] = None,
         run: Optional["Run"] = None,
         prefix: str = "training",
+        log_model_checkpoints: Optional[bool] = True,
         **neptune_run_kwargs: Any,
     ):
         if not _NEPTUNE_SCALE_AVAILABLE:
@@ -778,15 +794,11 @@ class NeptuneScaleLogger(Logger):
         self._run_id = run_id
         self._experiment_name = experiment_name
         self._prefix = prefix
+        self._log_model_checkpoints = log_model_checkpoints
         self._neptune_run_kwargs = neptune_run_kwargs
         self._description = self._neptune_run_kwargs.pop("description", None)
         self._tags = self._neptune_run_kwargs.pop("tags", None)
         self._group_tags = self._neptune_run_kwargs.pop("group_tags", None)
-
-        if "log_model_checkpoints" in self._neptune_run_kwargs:
-            log.warning("Neptune Scale does not support logging model checkpoints.")
-            del self._neptune_run_kwargs["log_model_checkpoints"]
-        self._log_model_checkpoints = False
 
         if self._run_instance is not None:
             self._retrieve_run_data()
@@ -887,7 +899,7 @@ class NeptuneScaleLogger(Logger):
 
         Note that the syntax ``self.logger.run.log_metrics(data={"your/metadata/structure": metadata}, step=step)``
         is specific to Neptune Scale. Refer to the
-        `Neptune Scale docs <https://docs-beta.neptune.ai/log_metadata>`_
+        `Neptune Scale docs <https://docs.neptune.ai/log_metadata>`_
         for more detailed explanations.
         You can also use the regular logger methods ``log_metrics()``, and ``log_hyperparams()``
         with NeptuneScaleLogger.
@@ -1004,7 +1016,7 @@ class NeptuneScaleLogger(Logger):
             # initialized there
             return
         if status:
-            self.run._status = status
+            self.run.log_configs({self._construct_path_with_prefix("status"): status})
 
         super().finalize(status)
 
@@ -1025,25 +1037,100 @@ class NeptuneScaleLogger(Logger):
 
     @rank_zero_only
     def log_model_summary(self, model: "pl.LightningModule", max_depth: int = -1) -> None:
-        """Not implemented for Neptune Scale."""
-        log.warning("Neptune Scale does not support logging model summaries.")
-        return
+        """Logs a summary of all layers in the model to Neptune as a text file."""
+        from neptune_scale.types import File
+
+        model_str = str(ModelSummary(model=model, max_depth=max_depth))
+        self.run.assign_files({
+            self._construct_path_with_prefix("model/summary"): File(
+                source=model_str.encode("utf-8"), mime_type="text/plain"
+            )
+        })
 
     @override
     @rank_zero_only
     def after_save_checkpoint(self, checkpoint_callback: Checkpoint) -> None:
-        """Not implemented for Neptune Scale."""
-        return
+        """Automatically log checkpointed model's path. Called after model checkpoint callback saves a new checkpoint.
+
+        Args:
+            checkpoint_callback: the model checkpoint callback instance
+
+        """
+        if not self._log_model_checkpoints:
+            return
+
+        file_names = set()
+        checkpoints_namespace = self._construct_path_with_prefix("model/checkpoints")
+
+        # save last model
+        if hasattr(checkpoint_callback, "last_model_path") and checkpoint_callback.last_model_path:
+            model_last_name = self._get_full_model_name(checkpoint_callback.last_model_path, checkpoint_callback)
+            file_names.add(model_last_name)
+            self.run.log_configs({
+                f"{checkpoints_namespace}/{model_last_name}": checkpoint_callback.last_model_path,
+            })
+
+        # save best k models
+        if hasattr(checkpoint_callback, "best_k_models"):
+            for key in checkpoint_callback.best_k_models:
+                model_name = self._get_full_model_name(key, checkpoint_callback)
+                file_names.add(model_name)
+                self.run.log_configs({
+                    f"{checkpoints_namespace}/{model_name}": key,
+                })
+
+        # log best model path and checkpoint
+        if hasattr(checkpoint_callback, "best_model_path") and checkpoint_callback.best_model_path:
+            self.run.log_configs({
+                self._construct_path_with_prefix("model/best_model_path"): checkpoint_callback.best_model_path,
+            })
+
+            model_name = self._get_full_model_name(checkpoint_callback.best_model_path, checkpoint_callback)
+            file_names.add(model_name)
+            self.run.log_configs({
+                f"{checkpoints_namespace}/{model_name}": checkpoint_callback.best_model_path,
+            })
+
+        # remove old models logged to experiment if they are not part of best k models at this point
+        # TODO: Implement after Neptune Scale supports `del`
+        # if self.run.exists(checkpoints_namespace):
+        #     exp_structure = self.run.get_structure()
+        #     uploaded_model_names = self._get_full_model_names_from_exp_structure(
+        #         exp_structure, checkpoints_namespace
+        #     )
+
+        #     for file_to_drop in list(uploaded_model_names - file_names):
+        #         del self.run[f"{checkpoints_namespace}/{file_to_drop}"]
+
+        # log best model score
+        if hasattr(checkpoint_callback, "best_model_score") and checkpoint_callback.best_model_score:
+            self.run.log_configs({
+                self._construct_path_with_prefix("model/best_model_score"): float(
+                    checkpoint_callback.best_model_score.cpu().detach().numpy()
+                ),
+            })
 
     @staticmethod
-    def _get_full_model_name(model_path: str, checkpoint_callback: Checkpoint) -> None:
+    def _get_full_model_name(model_path: str, checkpoint_callback: Checkpoint) -> str:
         """Returns model name which is string `model_path` appended to `checkpoint_callback.dirpath`."""
-        return
+        if hasattr(checkpoint_callback, "dirpath"):
+            model_path = os.path.normpath(model_path)
+            expected_model_path = os.path.normpath(checkpoint_callback.dirpath)
+            if not model_path.startswith(expected_model_path):
+                raise ValueError(f"{model_path} was expected to start with {expected_model_path}.")
+            # Remove extension from filepath
+            filepath, _ = os.path.splitext(model_path[len(expected_model_path) + 1 :])
+            return filepath.replace(os.sep, "/")
+        return model_path.replace(os.sep, "/")
 
     @classmethod
-    def _get_full_model_names_from_exp_structure(cls, exp_structure: dict[str, Any], namespace: str) -> set[None]:
+    def _get_full_model_names_from_exp_structure(cls, exp_structure: dict[str, Any], namespace: str) -> set[str]:
         """Returns all paths to properties which were already logged in `namespace`"""
-        return set()
+        structure_keys: list[str] = namespace.split(cls.LOGGER_JOIN_CHAR)
+        for key in structure_keys:
+            exp_structure = exp_structure[key]
+        uploaded_models_dict = exp_structure
+        return set(cls._dict_paths(uploaded_models_dict))
 
     @classmethod
     def _dict_paths(cls, d: dict[str, Any], path_in_build: Optional[str] = None) -> Generator:
