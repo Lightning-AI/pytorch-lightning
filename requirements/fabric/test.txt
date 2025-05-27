@@ -1,4 +1,4 @@
-coverage ==7.8.0
+coverage ==7.8.2
 numpy >=1.17.2, <1.27.0
 pytest ==8.3.5
 pytest-cov ==6.1.1
