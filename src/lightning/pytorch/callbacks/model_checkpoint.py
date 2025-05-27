@@ -155,6 +155,10 @@ class ModelCheckpoint(Checkpoint):
         If the checkpoint's ``dirpath`` changed from what it was before while resuming the training,
         only ``best_model_path`` will be reloaded and a warning will be issued.
 
+        If you provide a ``filename`` on a mounted device where changing permissions is not allowed (causing ``chmod``
+        to raise a ``PermissionError``), install `fsspec>=2025.5.0`. Then the error is caught, the file's permissions
+        remain unchanged, and the checkpoint is still saved. Otherwise, no checkpoint will be saved and training stops.
+
     Raises:
         MisconfigurationException:
             If ``save_top_k`` is smaller than ``-1``,
