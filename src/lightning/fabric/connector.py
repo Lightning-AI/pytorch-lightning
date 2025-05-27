@@ -239,7 +239,7 @@ class _Connector:
                 else:
                     raise TypeError(
                         f"Found invalid type for plugin {plugin}. Expected one of: Precision, "
-                        "CheckpointIO, ClusterEnviroment."
+                        "CheckpointIO, ClusterEnvironment."
                     )
 
             duplicated_plugin_key = [k for k, v in plugins_flags_types.items() if v > 1]
