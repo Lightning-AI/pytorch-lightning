@@ -11,11 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import contextlib
 import math
 from collections import OrderedDict
 from dataclasses import dataclass
 from typing import Any, Optional, Union
 
+import torch
 from typing_extensions import override
 
 import lightning.pytorch as pl
@@ -249,6 +251,21 @@ class _TrainingEpochLoop(loops._Loop):
     def _on_after_fetch(self) -> None:
         self.trainer.profiler.stop(f"[{self.__class__.__name__}].train_dataloader_next")
 
+    def _broadcast_sigterm_tensor(self) -> None:
+        try:
+            sigterm_tensor = torch.tensor(
+                [1 if getattr(self.trainer, "received_sigterm", False) else 0],
+                device=self.trainer.strategy.root_device,
+            )
+            torch.distributed.broadcast(sigterm_tensor, src=0)
+        except Exception:
+            sigterm_tensor = torch.tensor([0], device=self.trainer.strategy.root_device)
+
+        if sigterm_tensor.item() == 1:
+            with contextlib.suppress(Exception):
+                torch.distributed.barrier()  # prevent deadlocks by syncing all ranks before exit
+            raise SIGTERMException()
+
     def advance(self, data_fetcher: _DataFetcher) -> None:
         """Runs a single training batch.
 
@@ -271,6 +288,13 @@ class _TrainingEpochLoop(loops._Loop):
 
         # we are going to train first so the val loop does not need to restart
         self.val_loop.restarting = False
+
+        # =====================================================================
+
+        if torch.distributed.is_available() and torch.distributed.is_initialized() and self.trainer.world_size > 1:
+            self._broadcast_sigterm_tensor()
+
+        # =====================================================================
 
         if using_dataloader_iter := isinstance(data_fetcher, _DataLoaderIterDataFetcher):
             dataloader_iter = next(data_fetcher)
