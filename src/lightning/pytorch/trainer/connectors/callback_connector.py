@@ -106,8 +106,9 @@ class _CallbackConnector:
                 model_checkpoint = LitModelCheckpoint(model_registry=self.trainer._model_registry)
             else:
                 rank_zero_info(
-                    "Using default `ModelCheckpoint`. Consider installing `litmodels` package to enable"
-                    " `LitModelCheckpoint` for automatic upload to the Lightning model registry."
+                    "💡 Tip: For seamless cloud uploads and versioning,"
+                    " try installing [litmodels](https://pypi.org/project/litmodels/) to enable LitModelCheckpoint,"
+                    " which syncs automatically with the Lightning model registry."
                 )
                 model_checkpoint = ModelCheckpoint()
             self.trainer.callbacks.append(model_checkpoint)
