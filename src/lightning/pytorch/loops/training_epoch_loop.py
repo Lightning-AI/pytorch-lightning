@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import contextlib
 import math
 from collections import OrderedDict
 from dataclasses import dataclass
@@ -251,6 +252,21 @@ class _TrainingEpochLoop(loops._Loop):
     def _on_after_fetch(self) -> None:
         self.trainer.profiler.stop(f"[{self.__class__.__name__}].train_dataloader_next")
 
+    def _broadcast_sigterm_tensor(self):
+        try:
+            sigterm_tensor = torch.tensor(
+                [1 if getattr(self.trainer, "received_sigterm", False) else 0],
+                device=self.trainer.strategy.root_device,
+            )
+            dist.broadcast(sigterm_tensor, src=0)
+        except Exception:
+            sigterm_tensor = torch.tensor([0], device=self.trainer.strategy.root_device)
+
+        if sigterm_tensor.item() == 1:
+            with contextlib.suppress(Exception):
+                dist.barrier()  # prevent deadlocks by syncing all ranks before exit
+            raise SIGTERMException()
+
     def advance(self, data_fetcher: _DataFetcher) -> None:
         """Runs a single training batch.
 
@@ -275,24 +291,9 @@ class _TrainingEpochLoop(loops._Loop):
         self.val_loop.restarting = False
 
         # =====================================================================
-        import contextlib
-
-        from lightning.pytorch.utilities.exceptions import SIGTERMException
 
         if dist.is_available() and dist.is_initialized() and self.trainer.world_size > 1:
-            try:
-                sigterm_tensor = torch.tensor(
-                    [1 if getattr(self.trainer, "received_sigterm", False) else 0],
-                    device=self.trainer.strategy.root_device,
-                )
-                dist.broadcast(sigterm_tensor, src=0)
-            except Exception:
-                sigterm_tensor = torch.tensor([0], device=self.trainer.strategy.root_device)
-
-            if sigterm_tensor.item() == 1:
-                with contextlib.suppress(Exception):
-                    dist.barrier()  # prevent deadlocks by syncing all ranks before exit
-                raise SIGTERMException()
+            self._broadcast_sigterm_tensor()
 
         # =====================================================================
 
