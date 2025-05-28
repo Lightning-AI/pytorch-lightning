@@ -7,7 +7,7 @@ Find bottlenecks in your code
 .. warning::
 
     **Do not wrap** ``Trainer.fit()``, ``Trainer.validate()``, or other Trainer methods
-    inside a manual ``torch.profiler.profile`` context manager.  
+    inside a manual ``torch.profiler.profile`` context manager.
     This will cause unexpected crashes and cryptic errors due to incompatibility between
     PyTorch Profiler's context management and Lightning's internal training loop.
     Instead, always use the ``profiler`` argument in the ``Trainer`` constructor.
