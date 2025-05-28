@@ -4,25 +4,36 @@
 Find bottlenecks in your code
 #############################
 
+.. warning::
+
+    **Do not wrap** ``Trainer.fit()``, ``Trainer.validate()``, or other Trainer methods
+    inside a manual ``torch.profiler.profile`` context manager.  
+    This will cause unexpected crashes and cryptic errors due to incompatibility between
+    PyTorch Profiler's context management and Lightning's internal training loop.
+    Instead, always use the ``profiler`` argument in the ``Trainer`` constructor.
+
+    Example (correct usage):
+
+    .. code-block:: python
+
+        import pytorch_lightning as pl
+
+        trainer = pl.Trainer(
+            profiler="pytorch",  # <- This enables built-in profiling safely!
+            ...
+        )
+        trainer.fit(model, train_dataloaders=...)
+
+    **References:**
+      - https://github.com/pytorch/pytorch/issues/88472
+      - https://github.com/Lightning-AI/lightning/issues/16958
+
 .. raw:: html
 
     <div class="display-card-container">
         <div class="row">
 
 .. Add callout items below this line
-
-.. warning::
-
-    Do **not** wrap ``Trainer.fit()``, ``Trainer.validate()``, or similar Trainer methods inside a manual ``torch.profiler.profile`` context manager.
-    This will cause unexpected crashes and cryptic errors due to incompatibility between PyTorch Profiler's context and Lightning's training loop.
-    Instead, use the ``profiler`` argument of the ``Trainer``:
-
-    .. code-block:: python
-
-        trainer = pl.Trainer(
-            profiler="pytorch",  # This is the correct and supported way
-            ...
-        )
 
 .. displayitem::
    :header: Basic
