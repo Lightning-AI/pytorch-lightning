@@ -18,7 +18,6 @@ from dataclasses import dataclass
 from typing import Any, Optional, Union
 
 import torch
-import torch.distributed as dist
 from typing_extensions import override
 
 import lightning.pytorch as pl
@@ -258,13 +257,13 @@ class _TrainingEpochLoop(loops._Loop):
                 [1 if getattr(self.trainer, "received_sigterm", False) else 0],
                 device=self.trainer.strategy.root_device,
             )
-            dist.broadcast(sigterm_tensor, src=0)
+            torch.distributed.broadcast(sigterm_tensor, src=0)
         except Exception:
             sigterm_tensor = torch.tensor([0], device=self.trainer.strategy.root_device)
 
         if sigterm_tensor.item() == 1:
             with contextlib.suppress(Exception):
-                dist.barrier()  # prevent deadlocks by syncing all ranks before exit
+                torch.distributed.barrier()  # prevent deadlocks by syncing all ranks before exit
             raise SIGTERMException()
 
     def advance(self, data_fetcher: _DataFetcher) -> None:
@@ -292,7 +291,7 @@ class _TrainingEpochLoop(loops._Loop):
 
         # =====================================================================
 
-        if dist.is_available() and dist.is_initialized() and self.trainer.world_size > 1:
+        if torch.distributed.is_available() and torch.distributed.is_initialized() and self.trainer.world_size > 1:
             self._broadcast_sigterm_tensor()
 
         # =====================================================================
