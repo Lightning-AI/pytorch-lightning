@@ -44,7 +44,9 @@ def test_torchscript_input_output(modelclass):
         model_output = model(model.example_input_array)
 
     script_output = script(model.example_input_array)
-    assert torch.allclose(script_output, model_output)
+    assert torch.allclose(script_output, model_output, rtol=1e-5, atol=1e-8), (
+        f"Scripted output {script_output} does not match model output {model_output}."
+    )
 
 
 @pytest.mark.skipif(_IS_WINDOWS and _TORCH_GREATER_EQUAL_2_4, reason="not close on Windows + PyTorch 2.4")
