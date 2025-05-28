@@ -1,8 +1,8 @@
-setuptools <70.1.1
-wheel <0.44.0
-awscli >=1.30.0, <1.31.0
-twine ==6.0.1
-importlib-metadata <8.0.0
+setuptools <80.8.1
+wheel <0.46.0
+awscli >=1.30.0, <1.41.0
+twine ==6.1.0
+importlib-metadata <9.0.0
 wget
-pkginfo ==1.12.0
-packaging <24.2
+pkginfo ==1.12.1.2
+packaging <25.1

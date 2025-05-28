@@ -24,7 +24,7 @@
      - `PR8229`_
 
 
-.. _pr7652: https://github.com/Lightning-AI/lightning/pull/7652
-.. _pr7422: https://github.com/Lightning-AI/lightning/pull/7422
-.. _pr8025: https://github.com/Lightning-AI/lightning/pull/8025
-.. _pr8229: https://github.com/Lightning-AI/lightning/pull/8229
+.. _pr7652: https://github.com/Lightning-AI/pytorch-lightning/pull/7652
+.. _pr7422: https://github.com/Lightning-AI/pytorch-lightning/pull/7422
+.. _pr8025: https://github.com/Lightning-AI/pytorch-lightning/pull/8025
+.. _pr8229: https://github.com/Lightning-AI/pytorch-lightning/pull/8229

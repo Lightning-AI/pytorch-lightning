@@ -31,7 +31,7 @@ from tests_fabric.helpers.runif import RunIf
 
 def wrap_launch_function(fn, strategy, *args, **kwargs):
     # the launcher does not manage this automatically. explanation available in:
-    # https://github.com/Lightning-AI/lightning/pull/14926#discussion_r982976718
+    # https://github.com/Lightning-AI/pytorch-lightning/pull/14926#discussion_r982976718
     strategy.setup_environment()
     return fn(*args, **kwargs)
 
