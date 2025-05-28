@@ -251,7 +251,7 @@ class _TrainingEpochLoop(loops._Loop):
     def _on_after_fetch(self) -> None:
         self.trainer.profiler.stop(f"[{self.__class__.__name__}].train_dataloader_next")
 
-    def _broadcast_sigterm_tensor(self):
+    def _broadcast_sigterm_tensor(self) -> None:
         try:
             sigterm_tensor = torch.tensor(
                 [1 if getattr(self.trainer, "received_sigterm", False) else 0],
