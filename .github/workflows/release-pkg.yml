@@ -13,7 +13,7 @@ on:
       - "requirements/ci.txt"
       - ".github/actions/pkg-check/*"
       - ".github/actions/pkg-publish/*"
-      - ".github/workflows/_legacy-checkpoints.yml.yml"
+      - ".github/workflows/_legacy-checkpoints.yml"
       - ".github/workflows/_build-packages.yml"
       - ".github/workflows/release-pypi.yml"
 
@@ -179,12 +179,12 @@ jobs:
         with:
           pkg-folder: dist/${{ steps.folder.outputs.pkg }}
           pypi-token: ${{ secrets[format('PYPI_TOKEN_{0}', matrix.name)] }}
-
-  legacy-checkpoints:
-    needs: [build-packages]
-    uses: ./.github/workflows/_legacy-checkpoints.yml
-    with:
-      push_to_s3: ${{ startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release' }}
-      upload_local: ${{ startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release' }}
-      create_pr: ${{ startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release' }}
-    secrets: inherit
+# FIXME: this is not working suddenly, Unrecognized named-value: 'secrets'
+#  legacy-checkpoints:
+#    needs: [build-packages]
+#    uses: ./.github/workflows/_legacy-checkpoints.yml
+#    with:
+#      push_to_s3: ${{ startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release' }}
+#      upload_local: ${{ startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release' }}
+#      create_pr: ${{ startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release' }}
+#    secrets: inherit

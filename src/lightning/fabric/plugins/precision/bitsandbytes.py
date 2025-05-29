@@ -403,7 +403,7 @@ def _import_bitsandbytes() -> ModuleType:
         def __init__(self, *args: Any, **kwargs: Any) -> None:
             super().__init__(*args, quant_type="nf4", compress_statistics=True, **kwargs)
 
-    # these classes are defined programatically like this to avoid importing bitsandbytes in environments that have
+    # these classes are defined programmatically like this to avoid importing bitsandbytes in environments that have
     # it available but will not use it
     classes = {
         "_Linear8bitLt": _Linear8bitLt,
