@@ -334,8 +334,13 @@ class ModelSummary:
         mode.capture(model)
         model.eval()
 
+        flop_context = self._flop_counter
+        if not _TORCH_GREATER_EQUAL_2_4 and any(isinstance(m, torch.jit.ScriptModule) for m in self._model.modules()):
+            # FlopCounterMode does not support ScriptModules before torch 2.4.0, so we use a null context
+            flop_context = contextlib.nullcontext()
+
         forward_context = contextlib.nullcontext() if trainer is None else trainer.precision_plugin.forward_context()
-        with torch.no_grad(), forward_context, self._flop_counter:
+        with torch.no_grad(), forward_context, flop_context:
             # let the model hooks collect the input- and output shapes
             if isinstance(input_, (list, tuple)):
                 model(*input_)
