@@ -377,6 +377,7 @@ class ModelSummary:
         layer_summaries["Type"].append(NOT_APPLICABLE)
         layer_summaries["Params"].append(get_human_readable_count(total_leftover_params))
         layer_summaries["Mode"].append(NOT_APPLICABLE)
+        layer_summaries["FLOPs"].append(NOT_APPLICABLE)
         if "In sizes" in layer_summaries:
             layer_summaries["In sizes"].append(NOT_APPLICABLE)
         if "Out sizes" in layer_summaries:
