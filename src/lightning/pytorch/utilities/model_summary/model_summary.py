@@ -27,6 +27,7 @@ from torch.utils.hooks import RemovableHandle
 
 import lightning.pytorch as pl
 from lightning.fabric.utilities.distributed import _is_dtensor
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_4
 from lightning.pytorch.utilities.model_helpers import _ModuleMode
 from lightning.pytorch.utilities.rank_zero import WarningCache
 
@@ -216,7 +217,11 @@ class ModelSummary:
             raise ValueError(f"`max_depth` can be -1, 0 or > 0, got {max_depth}.")
 
         # The max-depth needs to be plus one because the root module is already counted as depth 0.
-        self._flop_counter = FlopCounterMode(display=False, depth=max_depth + 1)
+        self._flop_counter = FlopCounterMode(
+            mods=None if _TORCH_GREATER_EQUAL_2_4 else self._model,
+            display=False,
+            depth=max_depth + 1,
+        )
 
         self._max_depth = max_depth
         self._layer_summary = self.summarize()
