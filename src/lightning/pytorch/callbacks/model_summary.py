@@ -67,7 +67,9 @@ class ModelSummary(Callback):
         trainable_parameters = model_summary.trainable_parameters
         model_size = model_summary.model_size
         total_training_modes = model_summary.total_training_modes
-        total_flops = model_summary.total_flops
+
+        # todo Add `total_flops` in DeepSpeedSummary.
+        total_flops = model_summary.total_flops if hasattr(model_summary, "total_flops") else 0
 
         if trainer.is_global_zero:
             self.summarize(
