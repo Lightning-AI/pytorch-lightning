@@ -173,6 +173,7 @@ def test_empty_model_summary_shapes(max_depth):
     assert summary.in_sizes == []
     assert summary.out_sizes == []
     assert summary.param_nums == []
+    assert summary.total_flops == 0
 
 
 @pytest.mark.parametrize("max_depth", [-1, 1])
