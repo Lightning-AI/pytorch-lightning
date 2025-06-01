@@ -220,7 +220,7 @@ class ModelSummary:
         self._flop_counter = FlopCounterMode(
             mods=None if _TORCH_GREATER_EQUAL_2_4 else self._model,
             display=False,
-            depth=max_depth + 1 if max_depth >= 0 else None,
+            depth=max_depth + 1,
         )
 
         self._max_depth = max_depth
