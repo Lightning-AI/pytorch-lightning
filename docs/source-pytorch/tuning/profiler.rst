@@ -26,7 +26,6 @@ Find bottlenecks in your code
 
     **References:**
       - https://github.com/pytorch/pytorch/issues/88472
-      - https://github.com/Lightning-AI/lightning/issues/16958
 
 .. raw:: html
 
