@@ -132,7 +132,6 @@ class MLFlowLogger(Logger):
         run_id: Optional[str] = None,
         synchronous: Optional[bool] = None,
     ):
-
         if not _MLFLOW_AVAILABLE:
             raise ModuleNotFoundError(str(_MLFLOW_AVAILABLE))
         if synchronous is not None and not _MLFLOW_SYNCHRONOUS_AVAILABLE:
@@ -209,7 +208,7 @@ class MLFlowLogger(Logger):
             resolve_tags = _get_resolve_tags()
             run = self._mlflow_client.create_run(experiment_id=self._experiment_id, tags=resolve_tags(self.tags))
             self._run_id = run.info.run_id
-            self._logged_metrics.clear() 
+            self._logged_metrics.clear()
         self._initialized = True
         return self._mlflow_client
 
@@ -266,7 +265,7 @@ class MLFlowLogger(Logger):
             if isinstance(v, str):
                 log.warning(f"Discarding metric with string value {k}={v}.")
                 continue
-        
+
             new_k = re.sub("[^a-zA-Z0-9_/. -]+", "", k)
             if k != new_k:
                 rank_zero_warn(
@@ -275,14 +274,13 @@ class MLFlowLogger(Logger):
                     category=RuntimeWarning,
                 )
                 k = new_k
-        
+
             metric_id = (k, step or 0)
             if metric_id in self._logged_metrics:
-                continue 
+                continue
             self._logged_metrics.add(metric_id)
-        
-            metrics_list.append(Metric(key=k, value=v, timestamp=timestamp_ms, step=step or 0))
 
+            metrics_list.append(Metric(key=k, value=v, timestamp=timestamp_ms, step=step or 0))
 
         self.experiment.log_batch(run_id=self.run_id, metrics=metrics_list, **self._log_batch_kwargs)
 
