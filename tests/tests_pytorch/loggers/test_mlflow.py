@@ -427,3 +427,35 @@ def test_set_tracking_uri(mlflow_mock):
     mlflow_mock.set_tracking_uri.assert_not_called()
     _ = logger.experiment
     mlflow_mock.set_tracking_uri.assert_called_with("the_tracking_uri")
+
+def test_mlflowlogger_metric_deduplication(monkeypatch):
+    import types
+    from lightning.pytorch.loggers.mlflow import MLFlowLogger
+
+    # Dummy MLflow client to record log_batch calls
+    logged_metrics = []
+    class DummyMlflowClient:
+        def log_batch(self, run_id, metrics, **kwargs):
+            logged_metrics.extend(metrics)
+        def set_tracking_uri(self, uri): pass
+        def create_run(self, experiment_id, tags): 
+            class Run: info = types.SimpleNamespace(run_id="dummy_run_id")
+            return Run()
+        def get_run(self, run_id):
+            class Run: info = types.SimpleNamespace(experiment_id="dummy_experiment_id")
+            return Run()
+        def get_experiment_by_name(self, name): return None
+        def create_experiment(self, name, artifact_location=None): return "dummy_experiment_id"
+
+    # Patch the MLFlowLogger to use DummyMlflowClient
+    monkeypatch.setattr("mlflow.tracking.MlflowClient", lambda *a, **k: DummyMlflowClient())
+
+    logger = MLFlowLogger(experiment_name="test_exp")
+    logger.log_metrics({'foo': 1.0}, step=5)
+    logger.log_metrics({'foo': 1.0}, step=5)  # duplicate
+
+    # Only the first metric should be logged
+    assert len(logged_metrics) == 1
+    assert logged_metrics[0].key == "foo"
+    assert logged_metrics[0].value == 1.0
+    assert logged_metrics[0].step == 5
