@@ -219,10 +219,7 @@ def test_tqdm_total_steps_with_iterator_no_length(tmp_path, max_steps):
 
     # Infinite generator (no __len__)
     # NOTE: 32 for BoringModel
-    infinite_iter = (
-        torch.randn(batch_size, 32, dtype=torch.float32)
-        for _ in itertools.count(0)
-    )
+    infinite_iter = (torch.randn(batch_size, 32, dtype=torch.float32) for _ in itertools.count(0))
 
     trainer = Trainer(
         default_root_dir=tmp_path,
@@ -245,19 +242,20 @@ def test_tqdm_total_steps_with_iterator_no_length(tmp_path, max_steps):
 @pytest.mark.parametrize("max_steps", [10, 15])
 def test_progress_bar_steps(tmp_path, max_steps):
     batch_size = 4
-    
+
     model = BoringModel()
     # Create dataloader here, outside the model
     # NOTE: 32 for boring model
     x = torch.randn(100, 32)
+
     class SingleTensorDataset(torch.utils.data.IterableDataset):
         def __init__(self, data):
             super().__init__()
             self.data = data
 
         def __iter__(self):
-            for x in self.data:
-                yield x  # yield just a tensor, not a tuple
+            yield from self.data  # yield just a tensor, not a tuple
+
     dataset = SingleTensorDataset(x)
     dataloader = DataLoader(dataset, batch_size=batch_size)
 
