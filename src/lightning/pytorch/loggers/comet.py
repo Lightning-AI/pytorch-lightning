@@ -276,8 +276,7 @@ class CometLogger(Logger):
         import comet_ml
 
         config_kwargs = self._kwargs.copy()
-        if online is False:
-            config_kwargs["disabled"] = True
+
         self._comet_config = comet_ml.ExperimentConfig(**config_kwargs)
 
         # create real experiment only on main node/process (when strategy=auto/ddp)
