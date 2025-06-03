@@ -1023,17 +1023,14 @@ class NeptuneScaleLogger(Logger):
     @property
     @override
     def save_dir(self) -> Optional[str]:
-        """Gets the save directory of the run.
+        """Gets the save directory of the experiment which in this case is ``None`` because Neptune does not save
+        locally.
 
         Returns:
-            the directory where experiment logs get saved
+            the root directory where experiment logs get saved
 
         """
-        return (
-            self.run._neptune_run_kwargs.get("log_directory", os.path.join(os.getcwd(), ".neptune"))
-            if hasattr(self.run, "_neptune_run_kwargs")
-            else os.path.join(os.getcwd(), ".neptune")
-        )
+        return os.path.join(os.getcwd(), ".neptune")
 
     @rank_zero_only
     def log_model_summary(self, model: "pl.LightningModule", max_depth: int = -1) -> None:
