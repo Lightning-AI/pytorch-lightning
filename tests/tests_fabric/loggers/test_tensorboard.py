@@ -146,7 +146,9 @@ def test_tensorboard_log_hparams_and_metrics(tmp_path):
     logger.log_hyperparams(hparams, metrics)
 
 
-@pytest.mark.parametrize("model_cls", [BoringModel, pytest.importorskip("lightning.pytorch.demos.boring_classes").BoringModel])
+@pytest.mark.parametrize(
+    "model_cls", [BoringModel, pytest.importorskip("lightning.pytorch.demos.boring_classes").BoringModel]
+)
 @pytest.mark.parametrize("example_input_array", [None, torch.rand(2, 32)])
 def test_tensorboard_log_graph(tmp_path, example_input_array, model_cls):
     """Test that log graph works with both model.example_input_array and if array is passed externally."""
@@ -160,7 +162,9 @@ def test_tensorboard_log_graph(tmp_path, example_input_array, model_cls):
     if isinstance(model, torch.nn.Module) and hasattr(model, "_apply_batch_transfer_handler"):
         with (
             mock.patch.object(model, "_on_before_batch_transfer", return_value=example_input_array) as before_mock,
-            mock.patch.object(model, "_apply_batch_transfer_handler", return_value=example_input_array) as transfer_mock,
+            mock.patch.object(
+                model, "_apply_batch_transfer_handler", return_value=example_input_array
+            ) as transfer_mock,
         ):
             logger.log_graph(model, example_input_array)
             logger._experiment.reset_mock()
