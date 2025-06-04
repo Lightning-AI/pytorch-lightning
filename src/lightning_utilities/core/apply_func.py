@@ -100,44 +100,6 @@ def _apply_to_collection_slow(
     elem_type = type(data)
 
     # Recursively apply to collection items
-    if isinstance(data, Mapping):
-        out = []
-        for k, v in data.items():
-            v = _apply_to_collection_slow(
-                v,
-                dtype,
-                function,
-                *args,
-                wrong_dtype=wrong_dtype,
-                include_none=include_none,
-                allow_frozen=allow_frozen,
-                **kwargs,
-            )
-            if include_none or v is not None:
-                out.append((k, v))
-        if isinstance(data, defaultdict):
-            return elem_type(data.default_factory, OrderedDict(out))
-        return elem_type(OrderedDict(out))
-
-    is_namedtuple_ = is_namedtuple(data)
-    is_sequence = isinstance(data, Sequence) and not isinstance(data, str)
-    if is_namedtuple_ or is_sequence:
-        out = []
-        for d in data:
-            v = _apply_to_collection_slow(
-                d,
-                dtype,
-                function,
-                *args,
-                wrong_dtype=wrong_dtype,
-                include_none=include_none,
-                allow_frozen=allow_frozen,
-                **kwargs,
-            )
-            if include_none or v is not None:
-                out.append(v)
-        return elem_type(*out) if is_namedtuple_ else elem_type(out)
-
     if is_dataclass_instance(data):
         # make a deepcopy of the data,
         # but do not deepcopy mapped fields since the computation would
@@ -181,6 +143,44 @@ def _apply_to_collection_slow(
         ):
             vars(result).pop(cached_name, None)
         return result
+
+    if isinstance(data, Mapping):
+        out = []
+        for k, v in data.items():
+            v = _apply_to_collection_slow(
+                v,
+                dtype,
+                function,
+                *args,
+                wrong_dtype=wrong_dtype,
+                include_none=include_none,
+                allow_frozen=allow_frozen,
+                **kwargs,
+            )
+            if include_none or v is not None:
+                out.append((k, v))
+        if isinstance(data, defaultdict):
+            return elem_type(data.default_factory, OrderedDict(out))
+        return elem_type(OrderedDict(out))
+
+    is_namedtuple_ = is_namedtuple(data)
+    is_sequence = isinstance(data, Sequence) and not isinstance(data, str)
+    if is_namedtuple_ or is_sequence:
+        out = []
+        for d in data:
+            v = _apply_to_collection_slow(
+                d,
+                dtype,
+                function,
+                *args,
+                wrong_dtype=wrong_dtype,
+                include_none=include_none,
+                allow_frozen=allow_frozen,
+                **kwargs,
+            )
+            if include_none or v is not None:
+                out.append(v)
+        return elem_type(*out) if is_namedtuple_ else elem_type(out)
 
     # data is neither of dtype, nor a collection
     return data
