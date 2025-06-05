@@ -735,6 +735,7 @@ def test_autocast():
         fabric._precision.forward_context().__enter__.assert_called()
     fabric._precision.forward_context().__exit__.assert_called()
 
+
 @RunIf(mps=True)
 @pytest.mark.parametrize("precision", ["16-mixed", "bf16-mixed"])
 def test_autocast_does_not_use_cuda_on_mps(precision):
@@ -749,6 +750,7 @@ def test_autocast_does_not_use_cuda_on_mps(precision):
 
     for warning in w:
         assert "device_type of 'cuda'" not in str(warning.message)
+
 
 def test_no_backward_sync():
     """Test that `Fabric.no_backward_sync()` validates the strategy and model is compatible."""
