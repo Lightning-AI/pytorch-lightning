@@ -404,6 +404,12 @@ def test_unsupported_strategy_types_on_cpu_and_fallback():
         connector = _Connector(accelerator="cpu", strategy="dp", devices=2)
     assert isinstance(connector.strategy, DDPStrategy)
 
+@RunIf(mps=True)
+@pytest.mark.parametrize("precision", ["16-mixed", "bf16-mixed"])
+def test_mps_enabled_with_float16_or_bfloat16_precision(precision):
+    connector = _Connector(accelerator="mps", precision=precision)
+    assert connector.precision.device == "mps"
+
 
 def test_invalid_accelerator_choice():
     with pytest.raises(ValueError, match="You selected an invalid accelerator name: `accelerator='cocofruit'`"):
