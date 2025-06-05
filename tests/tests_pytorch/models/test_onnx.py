@@ -13,6 +13,7 @@
 # limitations under the License.
 import operator
 import os
+import re
 from io import BytesIO
 from pathlib import Path
 from unittest.mock import patch
@@ -25,6 +26,7 @@ from lightning_utilities import compare_version
 
 import tests_pytorch.helpers.pipelines as tpipes
 from lightning.pytorch import Trainer
+from lightning.pytorch.core.module import _ONNXSCRIPT_AVAILABLE
 from lightning.pytorch.demos.boring_classes import BoringModel
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.utilities.test_model_summary import UnorderedModel
@@ -180,6 +182,20 @@ def test_if_inference_output_is_valid(tmp_path, dynamo):
 
     # compare ONNX Runtime and PyTorch results
     assert np.allclose(to_numpy(torch_out), ort_outs[0], rtol=1e-03, atol=1e-05)
+
+
+@RunIf(min_torch="2.7.0", dynamo=True)
+@pytest.mark.skipif(_ONNXSCRIPT_AVAILABLE, reason="Run this test only if onnxscript is not available.")
+def test_model_onnx_export_missing_onnxscript():
+    """Test that an error is raised if onnxscript is not available."""
+    model = BoringModel()
+    model.example_input_array = torch.randn(5, 32)
+
+    with pytest.raises(
+        ModuleNotFoundError,
+        match=re.escape(f"`{type(model).__name__}.to_onnx(dynamo=True)` requires `onnxscript` to be installed."),
+    ):
+        model.to_onnx(dynamo=True)
 
 
 @RunIf(onnx=True, min_torch="2.7.0", dynamo=True, onnxscript=True)
