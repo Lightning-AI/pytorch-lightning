@@ -85,6 +85,9 @@ class ProgressBar(Callback):
         dataloader is of infinite size.
 
         """
+        if self.trainer.max_epochs == -1 and self.trainer.max_steps is not None and self.trainer.max_steps > 0:
+            remaining_steps = self.trainer.max_steps - self.trainer.global_step
+            return min(self.trainer.num_training_batches, remaining_steps)
         return self.trainer.num_training_batches
 
     @property
