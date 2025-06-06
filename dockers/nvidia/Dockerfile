@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-ARG PYTORCH_VERSION=22.09
+ARG PYTORCH_VERSION=25.04
 
 # https://docs.nvidia.com/deeplearning/frameworks/pytorch-release-notes
 FROM nvcr.io/nvidia/pytorch:${PYTORCH_VERSION}-py3
@@ -44,7 +44,6 @@ RUN \
     cp -r pytorch-lightning/*examples . && \
 
 # Installations \
-    pip install "Pillow>=8.2, !=8.3.0" "cryptography>=3.4" "py>=1.10" --no-cache-dir && \
     PACKAGE_NAME=pytorch pip install './lightning[extra,loggers,strategies]' --no-cache-dir && \
     rm -rf pytorch-lightning && \
     pip list

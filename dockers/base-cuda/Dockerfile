@@ -12,14 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-ARG UBUNTU_VERSION=22.04
-ARG CUDA_VERSION=11.7.1
+ARG UBUNTU_VERSION=24.04
+ARG CUDA_VERSION=12.6.3
 
 
 FROM nvidia/cuda:${CUDA_VERSION}-runtime-ubuntu${UBUNTU_VERSION}
 
 ARG PYTHON_VERSION=3.10
-ARG PYTORCH_VERSION=2.1
+ARG PYTORCH_VERSION=2.7
 ARG MAX_ALLOWED_NCCL=2.22.3
 
 SHELL ["/bin/bash", "-c"]
