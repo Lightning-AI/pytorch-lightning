@@ -99,16 +99,17 @@ jobs:
         python_version: ["3.10"]
         pytorch_version: ["2.6.0", "2.7.1"]
         cuda_version: ["12.6.3"]
+        ubuntu: ["24.04"]
         include:
           # These are the base images for PL release docker images.
           # Make sure the matrix here matches the one above.
-          - { python_version: "3.10", pytorch_version: "2.1.2", cuda_version: "12.1.1" }
-          - { python_version: "3.11", pytorch_version: "2.2.2", cuda_version: "12.1.1" }
-          - { python_version: "3.11", pytorch_version: "2.3.1", cuda_version: "12.1.1" }
-          - { python_version: "3.11", pytorch_version: "2.4.1", cuda_version: "12.1.1" }
-          - { python_version: "3.12", pytorch_version: "2.5.1", cuda_version: "12.1.1" }
-          - { python_version: "3.12", pytorch_version: "2.6.0", cuda_version: "12.4.1" }
-          - { python_version: "3.12", pytorch_version: "2.7.1", cuda_version: "12.6.3" }
+          - { ubuntu: "22.04", python_version: "3.10", pytorch_version: "2.1.2", cuda_version: "12.1.1" }
+          - { ubuntu: "22.04", python_version: "3.11", pytorch_version: "2.2.2", cuda_version: "12.1.1" }
+          - { ubuntu: "22.04", python_version: "3.11", pytorch_version: "2.3.1", cuda_version: "12.1.1" }
+          - { ubuntu: "22.04", python_version: "3.11", pytorch_version: "2.4.1", cuda_version: "12.1.1" }
+          - { ubuntu: "22.04", python_version: "3.12", pytorch_version: "2.5.1", cuda_version: "12.1.1" }
+          - { ubuntu: "24.04", python_version: "3.12", pytorch_version: "2.6.0", cuda_version: "12.4.1" }
+          - { ubuntu: "24.04", python_version: "3.12", pytorch_version: "2.7.1", cuda_version: "12.6.3" }
     steps:
       - uses: actions/checkout@v4
       - uses: docker/setup-buildx-action@v3
@@ -126,6 +127,7 @@ jobs:
       - uses: docker/build-push-action@v6
         with:
           build-args: |
+            UBUNTU_VERSION=${{ matrix.ubuntu }}
             PYTHON_VERSION=${{ matrix.python_version }}
             PYTORCH_VERSION=${{ matrix.pytorch_version }}
             CUDA_VERSION=${{ matrix.cuda_version }}
