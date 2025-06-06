@@ -1207,7 +1207,9 @@ class LightningModule(
             )
 
         gradient_clip_algorithm = GradClipAlgorithmType(gradient_clip_algorithm)
-        self.trainer.precision_plugin.clip_gradients(optimizer, gradient_clip_val, gradient_clip_algorithm)
+        self.trainer.precision_plugin.clip_gradients(
+            self.trainer.model, optimizer, gradient_clip_val, gradient_clip_algorithm
+        )
 
     def configure_gradient_clipping(
         self,
