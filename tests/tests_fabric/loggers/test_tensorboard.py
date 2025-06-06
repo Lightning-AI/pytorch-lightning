@@ -146,48 +146,50 @@ def test_tensorboard_log_hparams_and_metrics(tmp_path):
     logger.log_hyperparams(hparams, metrics)
 
 
-@pytest.mark.parametrize(
-    "model_cls", [BoringModel, pytest.importorskip("lightning.pytorch.demos.boring_classes").BoringModel]
-)
 @pytest.mark.parametrize("example_input_array", [None, torch.rand(2, 32)])
-def test_tensorboard_log_graph(tmp_path, example_input_array, model_cls):
-    """Test that log graph works with both model.example_input_array and if array is passed externally."""
-    model = model_cls()
-    if example_input_array is not None:
-        model.example_input_array = None
-
+def test_tensorboard_log_graph_plain_module(tmp_path, example_input_array):
+    model = BoringModel()
     logger = TensorBoardLogger(tmp_path)
     logger._experiment = Mock()
 
-    if isinstance(model, torch.nn.Module) and hasattr(model, "_apply_batch_transfer_handler"):
-        with (
-            mock.patch.object(model, "_on_before_batch_transfer", return_value=example_input_array) as before_mock,
-            mock.patch.object(
-                model, "_apply_batch_transfer_handler", return_value=example_input_array
-            ) as transfer_mock,
-        ):
-            logger.log_graph(model, example_input_array)
-            logger._experiment.reset_mock()
-            wrapped = _FabricModule(model, strategy=Mock())
-            logger.log_graph(wrapped, example_input_array)
-            if example_input_array is not None:
-                assert before_mock.call_count == 2
-                assert transfer_mock.call_count == 2
-                logger.experiment.add_graph.assert_called_with(model, example_input_array)
-            else:
-                before_mock.assert_not_called()
-                transfer_mock.assert_not_called()
-                logger.experiment.add_graph.assert_not_called()
+    logger.log_graph(model, example_input_array)
+    if example_input_array is not None:
+        logger.experiment.add_graph.assert_called_with(model, example_input_array)
     else:
+        logger.experiment.add_graph.assert_not_called()
+
+    logger._experiment.reset_mock()
+
+    wrapped = _FabricModule(model, strategy=Mock())
+    logger.log_graph(wrapped, example_input_array)
+    if example_input_array is not None:
+        logger.experiment.add_graph.assert_called_with(model, example_input_array)
+
+
+@pytest.mark.parametrize("example_input_array", [None, torch.rand(2, 32)])
+def test_tensorboard_log_graph_with_batch_transfer_hooks(tmp_path, example_input_array):
+    model = pytest.importorskip("lightning.pytorch.demos.boring_classes").BoringModel()
+    logger = TensorBoardLogger(tmp_path)
+    logger._experiment = Mock()
+
+    with (
+        mock.patch.object(model, "_on_before_batch_transfer", return_value=example_input_array) as before_mock,
+        mock.patch.object(model, "_apply_batch_transfer_handler", return_value=example_input_array) as transfer_mock,
+    ):
         logger.log_graph(model, example_input_array)
-        if example_input_array is not None:
-            logger.experiment.add_graph.assert_called_with(model, example_input_array)
         logger._experiment.reset_mock()
 
         wrapped = _FabricModule(model, strategy=Mock())
         logger.log_graph(wrapped, example_input_array)
+
         if example_input_array is not None:
+            assert before_mock.call_count == 2
+            assert transfer_mock.call_count == 2
             logger.experiment.add_graph.assert_called_with(model, example_input_array)
+        else:
+            before_mock.assert_not_called()
+            transfer_mock.assert_not_called()
+            logger.experiment.add_graph.assert_not_called()
 
 
 @pytest.mark.skipif(not _TENSORBOARD_AVAILABLE, reason="tensorboard is required")
