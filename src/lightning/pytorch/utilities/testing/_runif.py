@@ -97,7 +97,7 @@ def _runif_reasons(
     if onnx and not _ONNX_AVAILABLE:
         reasons.append("onnx")
 
-    if onnx and not _TORCH_TRT_AVAILABLE:
+    if tensorrt and not _TORCH_TRT_AVAILABLE:
         reasons.append("torch-tensorrt")
 
     return reasons, kwargs
