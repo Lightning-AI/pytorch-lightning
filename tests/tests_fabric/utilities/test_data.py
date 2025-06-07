@@ -53,8 +53,9 @@ def test_has_len():
 def test_replace_dunder_methods_multiple_loaders_without_init():
     """In case of a class, that inherits from a class that we are patching, but doesn't define its own `__init__`
     method (the one we are wrapping), it can happen, that `hasattr(cls, "__old__init__")` is True because of parent
-    class, but it is impossible to delete, because that method is owned by parent class. Furthermore, the error occured
-    only sometimes because it depends on the order in which we are iterating over a set of classes we are patching.
+    class, but it is impossible to delete, because that method is owned by parent class. Furthermore, the error
+    occurred only sometimes because it depends on the order in which we are iterating over a set of classes we are
+    patching.
 
     This test simulates the behavior by generating sufficient number of dummy classes, which do not define `__init__`
     and are children of `DataLoader`. We are testing that a) context manager `_replace_dunder_method` exits cleanly, and
