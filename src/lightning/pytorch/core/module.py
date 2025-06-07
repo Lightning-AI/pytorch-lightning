@@ -1548,8 +1548,9 @@ class LightningModule(
         device = self.device
         if self.device.type != "cuda":
             default_device = torch.device(default_device) if isinstance(default_device, str) else default_device
-            if default_device.type != "cuda":
-                raise ValueError(
+
+            if not torch.cuda.is_available() or default_device.type != "cuda":
+                raise MisconfigurationException(
                     f"TensorRT only supports CUDA devices. The current device is {self.device}."
                     f" Please set the `default_device` argument to a CUDA device."
                 )
