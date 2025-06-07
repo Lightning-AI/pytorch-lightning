@@ -9,6 +9,7 @@ import torch
 import tests_pytorch.helpers.pipelines as pipes
 from lightning.pytorch.core.module import _TORCH_TRT_AVAILABLE
 from lightning.pytorch.demos.boring_classes import BoringModel
+from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -20,6 +21,15 @@ def test_missing_tensorrt_package():
         match=re.escape(f"`{type(model).__name__}.to_tensorrt` requires `torch_tensorrt` to be installed. "),
     ):
         model.to_tensorrt("model.trt")
+
+
+@RunIf(tensorrt=True, min_torch="2.2.0")
+def test_tensorrt_with_wrong_default_device(tmp_path):
+    model = BoringModel()
+    input_sample = torch.randn((1, 32))
+    file_path = os.path.join(tmp_path, "model.trt")
+    with pytest.raises(MisconfigurationException):
+        model.to_tensorrt(file_path, input_sample, default_device="cpu")
 
 
 @RunIf(tensorrt=True, min_cuda_gpus=1, min_torch="2.2.0")
