@@ -1542,8 +1542,6 @@ class LightningModule(
                 f"`{type(self).__name__}.to_tensorrt` requires `torch_tensorrt` to be installed. "
             )
 
-        import torch_tensorrt
-
         mode = self.training
         device = self.device
         if self.device.type != "cuda":
@@ -1564,6 +1562,9 @@ class LightningModule(
                     " `model.example_input_array` attribute is set."
                 )
             input_sample = self.example_input_array
+
+        import torch_tensorrt
+
         input_sample = copy.deepcopy((input_sample,) if isinstance(input_sample, torch.Tensor) else input_sample)
         input_sample = self._on_before_batch_transfer(input_sample)
         input_sample = self._apply_batch_transfer_handler(input_sample)
