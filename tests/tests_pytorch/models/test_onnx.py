@@ -145,8 +145,8 @@ def test_error_if_no_input(tmp_path):
     "dynamo",
     [
         None,
-        pytest.param(False, marks=RunIf(min_torch="2.7.0", dynamo=True, onnxscript=True)),
-        pytest.param(True, marks=RunIf(min_torch="2.7.0", dynamo=True, onnxscript=True)),
+        pytest.param(False, marks=RunIf(min_torch="2.6.0", dynamo=True, onnxscript=True)),
+        pytest.param(True, marks=RunIf(min_torch="2.6.0", dynamo=True, onnxscript=True)),
     ],
 )
 @RunIf(onnx=True)
@@ -184,7 +184,7 @@ def test_if_inference_output_is_valid(tmp_path, dynamo):
     assert np.allclose(to_numpy(torch_out), ort_outs[0], rtol=1e-03, atol=1e-05)
 
 
-@RunIf(min_torch="2.7.0", dynamo=True)
+@RunIf(min_torch="2.6.0", dynamo=True)
 @pytest.mark.skipif(_ONNXSCRIPT_AVAILABLE, reason="Run this test only if onnxscript is not available.")
 def test_model_onnx_export_missing_onnxscript():
     """Test that an error is raised if onnxscript is not available."""
@@ -198,7 +198,7 @@ def test_model_onnx_export_missing_onnxscript():
         model.to_onnx(dynamo=True)
 
 
-@RunIf(onnx=True, min_torch="2.7.0", dynamo=True, onnxscript=True)
+@RunIf(onnx=True, min_torch="2.6.0", dynamo=True, onnxscript=True)
 def test_model_return_type():
     model = BoringModel()
     model.example_input_array = torch.randn((1, 32))
