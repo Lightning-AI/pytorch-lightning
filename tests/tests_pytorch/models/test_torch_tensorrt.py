@@ -1,4 +1,5 @@
 import os
+import re
 from io import BytesIO
 from pathlib import Path
 
@@ -6,8 +7,19 @@ import pytest
 import torch
 
 import tests_pytorch.helpers.pipelines as pipes
+from lightning.pytorch.core.module import _TORCH_TRT_AVAILABLE
 from lightning.pytorch.demos.boring_classes import BoringModel
 from tests_pytorch.helpers.runif import RunIf
+
+
+@pytest.mark.skipif(_TORCH_TRT_AVAILABLE, reason="Run this test only if tensorrt is not available.")
+def test_missing_tensorrt_package():
+    model = BoringModel()
+    with pytest.raises(
+        ModuleNotFoundError,
+        match=re.escape(f"`{type(model).__name__}.to_tensorrt` requires `torch_tensorrt` to be installed. "),
+    ):
+        model.to_tensorrt("model.trt")
 
 
 @RunIf(tensorrt=True, min_cuda_gpus=1, min_torch="2.2.0")
