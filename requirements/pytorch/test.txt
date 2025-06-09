@@ -12,7 +12,7 @@ numpy >=1.17.2, <1.27.0
 onnx >=1.12.0, <1.19.0
 onnxruntime >=1.12.0, <1.21.0
 psutil <7.0.1 # for `DeviceStatsMonitor`
-pandas >1.0, <2.3.0  # needed in benchmarks
+pandas >1.0, <2.4.0  # needed in benchmarks
 fastapi  # for `ServableModuleValidator`  # not setting version as re-defined in App
 uvicorn  # for `ServableModuleValidator`  # not setting version as re-defined in App
 
