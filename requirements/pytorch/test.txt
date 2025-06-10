@@ -1,5 +1,5 @@
 coverage ==7.8.2
-pytest ==8.3.5
+pytest ==8.4.0
 pytest-cov ==6.1.1
 pytest-timeout ==2.4.0
 pytest-rerunfailures ==15.1
