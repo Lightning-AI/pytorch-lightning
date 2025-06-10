@@ -233,10 +233,11 @@ def test_tqdm_total_steps_with_iterator_no_length(tmp_path, max_steps):
 
     # Override train_dataloader with infinite iterator
     model.train_dataloader = lambda: infinite_iter
+    pbar = trainer.progress_bar_callback
     trainer.fit(model)
 
-    # tqdm total steps should equal max_steps for iterator with no length
-    assert trainer.estimated_stepping_batches == max_steps
+    # assert progress bar callback uses correct total steps
+    assert pbar.train_progress_bar.total == max_steps
 
 
 @pytest.mark.parametrize("max_steps", [10, 15])
@@ -271,7 +272,8 @@ def test_progress_bar_steps(tmp_path, max_steps):
         enable_model_summary=False,
         accelerator="cpu",
     )
+    pbar = trainer.progress_bar_callback
     trainer.fit(model)
-
-    # tqdm total steps should equal max_steps for iterator with no length
-    assert trainer.estimated_stepping_batches == max_steps
+    
+    # assert progress bar callback uses correct total steps
+    assert pbar.train_progress_bar.total == max_steps
