@@ -274,6 +274,6 @@ def test_progress_bar_steps(tmp_path, max_steps):
     )
     pbar = trainer.progress_bar_callback
     trainer.fit(model)
-    
+
     # assert progress bar callback uses correct total steps
     assert pbar.train_progress_bar.total == max_steps
