@@ -1161,8 +1161,9 @@ class LightningModule(
                     opt.step()
 
         """
+        self.toggle_optimizer(optimizer)
         try:
-            yield self.toggle_optimizer(optimizer)
+            yield
         finally:
             self.untoggle_optimizer(optimizer)
 
