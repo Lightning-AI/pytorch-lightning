@@ -83,7 +83,7 @@ class _Connector:
             1. strategy class
             2. strategy str registered with STRATEGY_REGISTRY
             3. strategy str in _strategy_type enum which listed in each strategy as
-               backend (registed these too, and _strategy_type could be deprecated)
+               backend (registered these too, and _strategy_type could be deprecated)
 
         C. plugins flag could be:
             1. precision class (should be removed, and precision flag should allow user pass classes)

@@ -20,7 +20,7 @@ FROM nvidia/cuda:${CUDA_VERSION}-runtime-ubuntu${UBUNTU_VERSION}
 
 ARG PYTHON_VERSION=3.10
 ARG PYTORCH_VERSION=2.1
-ARG MAX_ALLOWED_NCCL=2.22.3
+ARG MAX_ALLOWED_NCCL=2.26.0
 
 SHELL ["/bin/bash", "-c"]
 # https://techoverflow.net/2019/05/18/how-to-fix-configuring-tzdata-interactive-input-when-building-docker-images/
@@ -34,11 +34,12 @@ ENV \
     MAKEFLAGS="-j2"
 
 RUN \
-    apt-get update --fix-missing && apt-get install -y wget && \
-    apt-get update -qq --fix-missing && \
-    NCCL_VER=$(dpkg -s libnccl2 | grep '^Version:' | awk -F ' ' '{print $2}' | awk -F '-' '{print $1}' | grep -ve '^\s*$') && \
     CUDA_VERSION_MM=${CUDA_VERSION%.*} && \
+    apt-get update -qq --fix-missing && apt-get install -y wget && \
+    NCCL_VER=$(dpkg -s libnccl2 | grep '^Version:' | awk -F ' ' '{print $2}' | awk -F '-' '{print $1}' | grep -ve '^\s*$') && \
+    echo "NCCL version found: $NCCL_VER" && \
     TO_INSTALL_NCCL=$(echo -e "$MAX_ALLOWED_NCCL\n$NCCL_VER" | sort -V  | head -n1)-1+cuda${CUDA_VERSION_MM} && \
+    echo "NCCL version to install: $TO_INSTALL_NCCL" && \
     apt-get install -y --no-install-recommends --allow-downgrades --allow-change-held-packages \
         build-essential \
         pkg-config \
@@ -96,7 +97,7 @@ RUN \
       --extra-index-url="https://download.pytorch.org/whl/test/cu${CUDA_VERSION_MM//'.'/''}/"
 
 RUN \
-    # Show what we have
+    # Show what we have \
     pip --version && \
     pip list && \
     python -c "import sys; ver = sys.version_info ; assert f'{ver.major}.{ver.minor}' == '$PYTHON_VERSION', ver" && \

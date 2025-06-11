@@ -430,7 +430,7 @@ class RichProgressBar(ProgressBar):
             if self.val_progress_bar_id is not None:
                 self.progress.update(self.val_progress_bar_id, advance=0, visible=False)
 
-            # TODO: remove old tasks when new onces are created
+            # TODO: remove old tasks when new once they are created
             self.val_progress_bar_id = self._add_task(
                 self.total_val_batches_current_dataloader,
                 self.validation_description,
