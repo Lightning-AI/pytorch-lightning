@@ -34,6 +34,23 @@ class DeviceStatsMonitor(Callback):
     r"""Automatically monitors and logs device stats during training, validation and testing stage.
     ``DeviceStatsMonitor`` is a special callback as it requires a ``logger`` to passed as argument to the ``Trainer``.
 
+    Logged Metrics:
+        Device statistics are logged with keys prefixed as
+        ``DeviceStatsMonitor.{hook_name}/{base_metric_name}`` (e.g.,
+        ``DeviceStatsMonitor.on_train_batch_start/cpu_percent``).
+	    The source of these metrics depends on the ``cpu_stats`` flag
+	    and the active accelerator.
+
+        CPU (via ``psutil``): Logs ``cpu_percent``, ``cpu_vm_percent``, ``cpu_swap_percent``.
+        All are percentages (%).
+        CUDA GPU (via :func:`torch.cuda.memory_stats`): Logs detailed memory statistics from
+        PyTorch's allocator (e.g., ``allocated_bytes.all.current``, ``num_ooms``; all in Bytes).
+        GPU compute utilization is not logged by default.
+        Other Accelerators (e.g., TPU, MPS): Logs device-specific stats.
+        - TPU example: ``avg. free memory (MB)``.
+        - MPS example: ``mps.current_allocated_bytes``.
+        Observe logs or check accelerator documentation for details.
+
     Args:
         cpu_stats: if ``None``, it will log CPU stats only if the accelerator is CPU.
             If ``True``, it will log CPU stats regardless of the accelerator.
@@ -44,6 +61,7 @@ class DeviceStatsMonitor(Callback):
             If ``Trainer`` has no logger.
         ModuleNotFoundError:
             If ``psutil`` is not installed and CPU stats are monitored.
+
 
     Example::
 
