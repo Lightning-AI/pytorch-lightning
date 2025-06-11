@@ -34,7 +34,7 @@ ENV \
     MAKEFLAGS="-j2"
 
 RUN \
-    apt-get update && apt-get install -y wget && \
+    apt-get update --fix-missing && apt-get install -y wget && \
     apt-get update -qq --fix-missing && \
     NCCL_VER=$(dpkg -s libnccl2 | grep '^Version:' | awk -F ' ' '{print $2}' | awk -F '-' '{print $1}' | grep -ve '^\s*$') && \
     CUDA_VERSION_MM=${CUDA_VERSION%.*} && \
