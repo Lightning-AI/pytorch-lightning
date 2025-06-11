@@ -110,7 +110,8 @@ def _set_manifest_path(manifest_dir: str, aggregate: bool = False, mapping: Mapp
         assert os.path.exists(manifest_path)
     # avoid error: setup script specifies an absolute path
     manifest_path = os.path.relpath(manifest_path, _PATH_ROOT)
-    logging.info("Set manifest path to", manifest_path)
+    # Use lazy logging formatting
+    logging.info("Set manifest path to %s", manifest_path)
     setuptools.command.egg_info.manifest_maker.template = manifest_path
     yield
     # cleanup
