@@ -109,98 +109,98 @@ def test_tqdm_progress_bar_misconfiguration():
         Trainer(callbacks=TQDMProgressBar(), enable_progress_bar=False)
 
 
+@patch("lightning.pytorch.trainer.connectors.callback_connector._RICH_AVAILABLE", False)
 @pytest.mark.parametrize("num_dl", [1, 2])
 def test_tqdm_progress_bar_totals(tmp_path, num_dl):
     """Test that the progress finishes with the correct total steps processed."""
-    with patch("lightning.pytorch.trainer.connectors.callback_connector._RICH_AVAILABLE", False):
 
-        class CustomModel(BoringModel):
-            def _get_dataloaders(self):
-                dls = [DataLoader(RandomDataset(32, 64)), DataLoader(RandomDataset(32, 64))]
-                return dls[0] if num_dl == 1 else dls
+    class CustomModel(BoringModel):
+        def _get_dataloaders(self):
+            dls = [DataLoader(RandomDataset(32, 64)), DataLoader(RandomDataset(32, 64))]
+            return dls[0] if num_dl == 1 else dls
 
-            def val_dataloader(self):
-                return self._get_dataloaders()
+        def val_dataloader(self):
+            return self._get_dataloaders()
 
-            def test_dataloader(self):
-                return self._get_dataloaders()
+        def test_dataloader(self):
+            return self._get_dataloaders()
 
-            def predict_dataloader(self):
-                return self._get_dataloaders()
+        def predict_dataloader(self):
+            return self._get_dataloaders()
 
-            def validation_step(self, batch, batch_idx, dataloader_idx=0):
-                return
+        def validation_step(self, batch, batch_idx, dataloader_idx=0):
+            return
 
-            def test_step(self, batch, batch_idx, dataloader_idx=0):
-                return
+        def test_step(self, batch, batch_idx, dataloader_idx=0):
+            return
 
-            def predict_step(self, batch, batch_idx, dataloader_idx=0):
-                return
+        def predict_step(self, batch, batch_idx, dataloader_idx=0):
+            return
 
-        model = CustomModel()
+    model = CustomModel()
 
-        # check the sanity dataloaders
-        num_sanity_val_steps = 4
-        trainer = Trainer(
-            default_root_dir=tmp_path, max_epochs=1, limit_train_batches=0, num_sanity_val_steps=num_sanity_val_steps
-        )
-        pbar = trainer.progress_bar_callback
-        with mock.patch("lightning.pytorch.callbacks.progress.tqdm_progress.Tqdm", MockTqdm):
-            trainer.fit(model)
+    # check the sanity dataloaders
+    num_sanity_val_steps = 4
+    trainer = Trainer(
+        default_root_dir=tmp_path, max_epochs=1, limit_train_batches=0, num_sanity_val_steps=num_sanity_val_steps
+    )
+    pbar = trainer.progress_bar_callback
+    with mock.patch("lightning.pytorch.callbacks.progress.tqdm_progress.Tqdm", MockTqdm):
+        trainer.fit(model)
 
-        expected_sanity_steps = [num_sanity_val_steps] * num_dl
-        assert not pbar.val_progress_bar.leave
-        assert trainer.num_sanity_val_batches == expected_sanity_steps
-        assert pbar.val_progress_bar.total_values == expected_sanity_steps
-        assert pbar.val_progress_bar.n_values == list(range(num_sanity_val_steps + 1)) * num_dl
-        assert pbar.val_progress_bar.descriptions == [f"Sanity Checking DataLoader {i}: " for i in range(num_dl)]
+    expected_sanity_steps = [num_sanity_val_steps] * num_dl
+    assert not pbar.val_progress_bar.leave
+    assert trainer.num_sanity_val_batches == expected_sanity_steps
+    assert pbar.val_progress_bar.total_values == expected_sanity_steps
+    assert pbar.val_progress_bar.n_values == list(range(num_sanity_val_steps + 1)) * num_dl
+    assert pbar.val_progress_bar.descriptions == [f"Sanity Checking DataLoader {i}: " for i in range(num_dl)]
 
-        # fit
-        trainer = Trainer(default_root_dir=tmp_path, max_epochs=1)
-        pbar = trainer.progress_bar_callback
-        with mock.patch("lightning.pytorch.callbacks.progress.tqdm_progress.Tqdm", MockTqdm):
-            trainer.fit(model)
+    # fit
+    trainer = Trainer(default_root_dir=tmp_path, max_epochs=1)
+    pbar = trainer.progress_bar_callback
+    with mock.patch("lightning.pytorch.callbacks.progress.tqdm_progress.Tqdm", MockTqdm):
+        trainer.fit(model)
 
-        n = trainer.num_training_batches
-        m = trainer.num_val_batches
-        assert len(trainer.train_dataloader) == n
-        # train progress bar should have reached the end
-        assert pbar.train_progress_bar.total == n
-        assert pbar.train_progress_bar.n == n
-        assert pbar.train_progress_bar.leave
+    n = trainer.num_training_batches
+    m = trainer.num_val_batches
+    assert len(trainer.train_dataloader) == n
+    # train progress bar should have reached the end
+    assert pbar.train_progress_bar.total == n
+    assert pbar.train_progress_bar.n == n
+    assert pbar.train_progress_bar.leave
 
-        # check val progress bar total
-        assert pbar.val_progress_bar.total_values == m
-        assert pbar.val_progress_bar.n_values == list(range(m[0] + 1)) * num_dl
-        assert pbar.val_progress_bar.descriptions == [f"Validation DataLoader {i}: " for i in range(num_dl)]
-        assert not pbar.val_progress_bar.leave
+    # check val progress bar total
+    assert pbar.val_progress_bar.total_values == m
+    assert pbar.val_progress_bar.n_values == list(range(m[0] + 1)) * num_dl
+    assert pbar.val_progress_bar.descriptions == [f"Validation DataLoader {i}: " for i in range(num_dl)]
+    assert not pbar.val_progress_bar.leave
 
-        # validate
-        with mock.patch("lightning.pytorch.callbacks.progress.tqdm_progress.Tqdm", MockTqdm):
-            trainer.validate(model)
-        assert trainer.num_val_batches == m
-        assert pbar.val_progress_bar.total_values == m
-        assert pbar.val_progress_bar.n_values == list(range(m[0] + 1)) * num_dl
-        assert pbar.val_progress_bar.descriptions == [f"Validation DataLoader {i}: " for i in range(num_dl)]
+    # validate
+    with mock.patch("lightning.pytorch.callbacks.progress.tqdm_progress.Tqdm", MockTqdm):
+        trainer.validate(model)
+    assert trainer.num_val_batches == m
+    assert pbar.val_progress_bar.total_values == m
+    assert pbar.val_progress_bar.n_values == list(range(m[0] + 1)) * num_dl
+    assert pbar.val_progress_bar.descriptions == [f"Validation DataLoader {i}: " for i in range(num_dl)]
 
-        # test
-        with mock.patch("lightning.pytorch.callbacks.progress.tqdm_progress.Tqdm", MockTqdm):
-            trainer.test(model)
-        assert pbar.test_progress_bar.leave
-        k = trainer.num_test_batches
-        assert pbar.test_progress_bar.total_values == k
-        assert pbar.test_progress_bar.n_values == list(range(k[0] + 1)) * num_dl
-        assert pbar.test_progress_bar.descriptions == [f"Testing DataLoader {i}: " for i in range(num_dl)]
-        assert pbar.test_progress_bar.leave
+    # test
+    with mock.patch("lightning.pytorch.callbacks.progress.tqdm_progress.Tqdm", MockTqdm):
+        trainer.test(model)
+    assert pbar.test_progress_bar.leave
+    k = trainer.num_test_batches
+    assert pbar.test_progress_bar.total_values == k
+    assert pbar.test_progress_bar.n_values == list(range(k[0] + 1)) * num_dl
+    assert pbar.test_progress_bar.descriptions == [f"Testing DataLoader {i}: " for i in range(num_dl)]
+    assert pbar.test_progress_bar.leave
 
-        # predict
-        with mock.patch("lightning.pytorch.callbacks.progress.tqdm_progress.Tqdm", MockTqdm):
-            trainer.predict(model)
-        assert pbar.predict_progress_bar.leave
-        k = trainer.num_predict_batches
-        assert pbar.predict_progress_bar.total_values == k
-        assert pbar.predict_progress_bar.n_values == list(range(k[0] + 1)) * num_dl
-        assert pbar.predict_progress_bar.descriptions == [f"Predicting DataLoader {i}: " for i in range(num_dl)]
+    # predict
+    with mock.patch("lightning.pytorch.callbacks.progress.tqdm_progress.Tqdm", MockTqdm):
+        trainer.predict(model)
+    assert pbar.predict_progress_bar.leave
+    k = trainer.num_predict_batches
+    assert pbar.predict_progress_bar.total_values == k
+    assert pbar.predict_progress_bar.n_values == list(range(k[0] + 1)) * num_dl
+    assert pbar.predict_progress_bar.descriptions == [f"Predicting DataLoader {i}: " for i in range(num_dl)]
     assert pbar.predict_progress_bar.leave
 
 
@@ -414,24 +414,30 @@ def test_test_progress_bar_update_amount(tmp_path, test_batches: int, refresh_ra
     assert progress_bar.test_progress_bar.n_values == updates
 
 
+@patch("lightning.pytorch.trainer.connectors.callback_connector._RICH_AVAILABLE", False)
 def test_tensor_to_float_conversion(tmp_path):
     """Check tensor gets converted to float."""
-    with patch("lightning.pytorch.trainer.connectors.callback_connector._RICH_AVAILABLE", False):
 
-        class TestModel(BoringModel):
-            def training_step(self, batch, batch_idx):
-                self.log("a", torch.tensor(0.123), prog_bar=True, on_epoch=False)
-                self.log("b", torch.tensor([1]), prog_bar=True, on_epoch=False)
-                self.log("c", 2, prog_bar=True, on_epoch=False)
-                return super().training_step(batch, batch_idx)
+    class TestModel(BoringModel):
+        def training_step(self, batch, batch_idx):
+            self.log("a", torch.tensor(0.123), prog_bar=True, on_epoch=False)
+            self.log("b", torch.tensor([1]), prog_bar=True, on_epoch=False)
+            self.log("c", 2, prog_bar=True, on_epoch=False)
+            return super().training_step(batch, batch_idx)
 
-        trainer = Trainer(
-            default_root_dir=tmp_path, max_epochs=1, limit_train_batches=2, logger=False, enable_checkpointing=False
-        )
+    trainer = Trainer(
+        default_root_dir=tmp_path, max_epochs=1, limit_train_batches=2, logger=False, enable_checkpointing=False
+    )
+
+    with mock.patch.object(sys.stdout, "write") as mock_write:
         trainer.fit(TestModel())
+    bar_updates = "".join(call.args[0] for call in mock_write.call_args_list)
+    assert "a=0.123" in bar_updates
+    assert "b=1.000" in bar_updates
+    assert "c=2.000" in bar_updates
 
-        torch.testing.assert_close(trainer.progress_bar_metrics["a"], 0.123)
-        assert trainer.progress_bar_metrics["b"] == 1.0
+    torch.testing.assert_close(trainer.progress_bar_metrics["a"], 0.123)
+    assert trainer.progress_bar_metrics["b"] == 1.0
     assert trainer.progress_bar_metrics["c"] == 2.0
     pbar = trainer.progress_bar_callback.train_progress_bar
     actual = str(pbar.postfix)
