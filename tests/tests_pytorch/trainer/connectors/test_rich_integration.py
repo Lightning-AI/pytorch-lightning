@@ -14,8 +14,12 @@
 
 from unittest.mock import patch
 
+import pytest
+import torch
+
 from lightning.pytorch import Trainer
 from lightning.pytorch.callbacks import ModelSummary, ProgressBar, RichModelSummary, RichProgressBar, TQDMProgressBar
+from lightning.pytorch.demos.boring_classes import BoringModel
 
 
 class TestRichIntegration:
@@ -133,3 +137,33 @@ class TestRichIntegration:
             default_root_dir=tmp_path, enable_model_summary=False, logger=False, enable_checkpointing=False
         )
         assert not any(isinstance(cb, ModelSummary) for cb in trainer.callbacks)
+
+    @patch("lightning.pytorch.trainer.connectors.callback_connector._RICH_AVAILABLE", True)
+    def test_rich_progress_bar_tensor_metric(self, tmp_path):
+        """Test that tensor metrics are converted to float for RichProgressBar."""
+
+        class MyModel(BoringModel):
+            def training_step(self, batch, batch_idx):
+                self.log("my_tensor_metric", torch.tensor(1.23), prog_bar=True)
+                return super().training_step(batch, batch_idx)
+
+        model = MyModel()
+        trainer = Trainer(
+            default_root_dir=tmp_path,
+            limit_train_batches=1,
+            limit_val_batches=0,
+            max_epochs=1,
+            logger=False,
+            enable_checkpointing=False,
+        )
+
+        with patch("lightning.pytorch.callbacks.progress.rich_progress.MetricsTextColumn.update") as mock_update:
+            trainer.fit(model)
+
+        assert mock_update.call_count > 0
+        # The metrics are updated multiple times, check the last call
+        last_call_metrics = mock_update.call_args[0][0]
+        assert "my_tensor_metric" in last_call_metrics
+        metric_val = last_call_metrics["my_tensor_metric"]
+        assert isinstance(metric_val, float)
+        assert metric_val == pytest.approx(1.23)

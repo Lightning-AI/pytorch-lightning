@@ -17,6 +17,7 @@ from dataclasses import dataclass
 from datetime import timedelta
 from typing import Any, Optional, Union, cast
 
+import torch
 from lightning_utilities.core.imports import RequirementCache
 from typing_extensions import override
 
@@ -611,6 +612,17 @@ class RichProgressBar(ProgressBar):
         self.val_progress_bar_id = None
         self.test_progress_bar_id = None
         self.predict_progress_bar_id = None
+
+    @override
+    def get_metrics(
+        self, trainer: "pl.Trainer", pl_module: "pl.LightningModule"
+    ) -> dict[str, Union[int, str, float, dict[str, float]]]:
+        items = super().get_metrics(trainer, pl_module)
+        # convert all metrics to float before sending to rich
+        for k, v in items.items():
+            if isinstance(v, torch.Tensor):
+                items[k] = v.item()
+        return items
 
     def _update_metrics(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         metrics = self.get_metrics(trainer, pl_module)
