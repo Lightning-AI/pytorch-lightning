@@ -1859,11 +1859,11 @@ def test_lightning_cli_args_and_sys_argv_warning():
     with mock.patch("sys.argv", ["", "--model.foo=456"]), pytest.warns(Warning, match="LightningCLI's args parameter "):
         LightningCLI(TestModel, run=False, args=["--model.foo=789"])
 
+
 def test_lightning_cli_jsonnet(cleandir):
     class MainModule(BoringModel):
         def __init__(self, main_param: int = 1):
             super().__init__()
-            
 
     config = """{
         "model":{
