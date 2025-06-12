@@ -35,73 +35,73 @@ from lightning.pytorch.demos.boring_classes import BoringModel
 from lightning.pytorch.trainer.connectors.callback_connector import _CallbackConnector
 
 
+@patch("lightning.pytorch.trainer.connectors.callback_connector._RICH_AVAILABLE", False)
 def test_checkpoint_callbacks_are_last(tmp_path):
     """Test that checkpoint callbacks always come last."""
-    with patch("lightning.pytorch.trainer.connectors.callback_connector._RICH_AVAILABLE", False):
-        checkpoint1 = ModelCheckpoint(tmp_path / "path1", filename="ckpt1", monitor="val_loss_c1")
-        checkpoint2 = ModelCheckpoint(tmp_path / "path2", filename="ckpt2", monitor="val_loss_c2")
-        early_stopping = EarlyStopping(monitor="foo")
-        lr_monitor = LearningRateMonitor()
-        model_summary = ModelSummary()
-        progress_bar = TQDMProgressBar()
+    checkpoint1 = ModelCheckpoint(tmp_path / "path1", filename="ckpt1", monitor="val_loss_c1")
+    checkpoint2 = ModelCheckpoint(tmp_path / "path2", filename="ckpt2", monitor="val_loss_c2")
+    early_stopping = EarlyStopping(monitor="foo")
+    lr_monitor = LearningRateMonitor()
+    model_summary = ModelSummary()
+    progress_bar = TQDMProgressBar()
 
-        # no model reference
-        trainer = Trainer(callbacks=[checkpoint1, progress_bar, lr_monitor, model_summary, checkpoint2])
-        assert trainer.callbacks == [
-            progress_bar,
-            lr_monitor,
-            model_summary,
-            checkpoint1,
-            checkpoint2,
-        ]
+    # no model reference
+    trainer = Trainer(callbacks=[checkpoint1, progress_bar, lr_monitor, model_summary, checkpoint2])
+    assert trainer.callbacks == [
+        progress_bar,
+        lr_monitor,
+        model_summary,
+        checkpoint1,
+        checkpoint2,
+    ]
 
-        # no model callbacks
-        model = LightningModule()
-        model.configure_callbacks = lambda: []
-        trainer.strategy._lightning_module = model
-        cb_connector = _CallbackConnector(trainer)
-        cb_connector._attach_model_callbacks()
-        assert trainer.callbacks == [
-            progress_bar,
-            lr_monitor,
-            model_summary,
-            checkpoint1,
-            checkpoint2,
-        ]
+    # no model callbacks
+    model = LightningModule()
+    model.configure_callbacks = lambda: []
+    trainer.strategy._lightning_module = model
+    cb_connector = _CallbackConnector(trainer)
+    cb_connector._attach_model_callbacks()
+    assert trainer.callbacks == [
+        progress_bar,
+        lr_monitor,
+        model_summary,
+        checkpoint1,
+        checkpoint2,
+    ]
 
-        # with model-specific callbacks that substitute ones in Trainer
-        model = LightningModule()
-        model.configure_callbacks = lambda: [checkpoint1, early_stopping, model_summary, checkpoint2]
-        trainer = Trainer(callbacks=[progress_bar, lr_monitor, ModelCheckpoint(tmp_path, filename="ckpt_trainer")])
-        trainer.strategy._lightning_module = model
-        cb_connector = _CallbackConnector(trainer)
-        cb_connector._attach_model_callbacks()
-        assert trainer.callbacks == [
-            progress_bar,
-            lr_monitor,
-            early_stopping,
-            model_summary,
-            checkpoint1,
-            checkpoint2,
-        ]
+    # with model-specific callbacks that substitute ones in Trainer
+    model = LightningModule()
+    model.configure_callbacks = lambda: [checkpoint1, early_stopping, model_summary, checkpoint2]
+    trainer = Trainer(callbacks=[progress_bar, lr_monitor, ModelCheckpoint(tmp_path, filename="ckpt_trainer")])
+    trainer.strategy._lightning_module = model
+    cb_connector = _CallbackConnector(trainer)
+    cb_connector._attach_model_callbacks()
+    assert trainer.callbacks == [
+        progress_bar,
+        lr_monitor,
+        early_stopping,
+        model_summary,
+        checkpoint1,
+        checkpoint2,
+    ]
 
-        # with tuner-specific callbacks that substitute ones in Trainer
-        model = LightningModule()
-        batch_size_finder = BatchSizeFinder()
-        model.configure_callbacks = lambda: [checkpoint2, early_stopping, batch_size_finder, model_summary, checkpoint1]
-        trainer = Trainer(callbacks=[progress_bar, lr_monitor])
-        trainer.strategy._lightning_module = model
-        cb_connector = _CallbackConnector(trainer)
-        cb_connector._attach_model_callbacks()
-        assert trainer.callbacks == [
-            batch_size_finder,
-            progress_bar,
-            lr_monitor,
-            early_stopping,
-            model_summary,
-            checkpoint2,
-            checkpoint1,
-        ]
+    # with tuner-specific callbacks that substitute ones in Trainer
+    model = LightningModule()
+    batch_size_finder = BatchSizeFinder()
+    model.configure_callbacks = lambda: [checkpoint2, early_stopping, batch_size_finder, model_summary, checkpoint1]
+    trainer = Trainer(callbacks=[progress_bar, lr_monitor])
+    trainer.strategy._lightning_module = model
+    cb_connector = _CallbackConnector(trainer)
+    cb_connector._attach_model_callbacks()
+    assert trainer.callbacks == [
+        batch_size_finder,
+        progress_bar,
+        lr_monitor,
+        early_stopping,
+        model_summary,
+        checkpoint2,
+        checkpoint1,
+    ]
 
 
 class StatefulCallback0(Callback):
@@ -162,81 +162,81 @@ def test_all_callback_states_saved_before_checkpoint_callback(tmp_path):
     )
 
 
+@patch("lightning.pytorch.trainer.connectors.callback_connector._RICH_AVAILABLE", False)
 def test_attach_model_callbacks():
     """Test that the callbacks defined in the model and through Trainer get merged correctly."""
-    with patch("lightning.pytorch.trainer.connectors.callback_connector._RICH_AVAILABLE", False):
 
-        def _attach_callbacks(trainer_callbacks, model_callbacks):
-            model = LightningModule()
-            model.configure_callbacks = lambda: model_callbacks
-            has_progress_bar = any(isinstance(cb, ProgressBar) for cb in trainer_callbacks + model_callbacks)
-            trainer = Trainer(
-                enable_checkpointing=False,
-                enable_progress_bar=has_progress_bar,
-                enable_model_summary=False,
-                callbacks=trainer_callbacks,
-            )
-            trainer.strategy._lightning_module = model
-            cb_connector = _CallbackConnector(trainer)
-            cb_connector._attach_model_callbacks()
-            return trainer
-
-        early_stopping1 = EarlyStopping(monitor="red")
-        early_stopping2 = EarlyStopping(monitor="blue")
-        progress_bar = TQDMProgressBar()
-        lr_monitor = LearningRateMonitor()
-        grad_accumulation = GradientAccumulationScheduler({1: 1})
-
-        # no callbacks
-        trainer = _attach_callbacks(trainer_callbacks=[], model_callbacks=[])
-        assert trainer.callbacks == []
-
-        # callbacks of different types
-        trainer = _attach_callbacks(trainer_callbacks=[early_stopping1], model_callbacks=[progress_bar])
-        assert trainer.callbacks == [early_stopping1, progress_bar]
-
-        # same callback type twice, different instance
-        trainer = _attach_callbacks(
-            trainer_callbacks=[progress_bar, EarlyStopping(monitor="red")],
-            model_callbacks=[early_stopping1],
+    def _attach_callbacks(trainer_callbacks, model_callbacks):
+        model = LightningModule()
+        model.configure_callbacks = lambda: model_callbacks
+        has_progress_bar = any(isinstance(cb, ProgressBar) for cb in trainer_callbacks + model_callbacks)
+        trainer = Trainer(
+            enable_checkpointing=False,
+            enable_progress_bar=has_progress_bar,
+            enable_model_summary=False,
+            callbacks=trainer_callbacks,
         )
-        assert trainer.callbacks == [progress_bar, early_stopping1]
+        trainer.strategy._lightning_module = model
+        cb_connector = _CallbackConnector(trainer)
+        cb_connector._attach_model_callbacks()
+        return trainer
 
-        # multiple callbacks of the same type in trainer
-        trainer = _attach_callbacks(
-            trainer_callbacks=[
-                LearningRateMonitor(),
-                EarlyStopping(monitor="yellow"),
-                LearningRateMonitor(),
-                EarlyStopping(monitor="black"),
-            ],
-            model_callbacks=[early_stopping1, lr_monitor],
-        )
-        assert trainer.callbacks == [early_stopping1, lr_monitor]
+    early_stopping1 = EarlyStopping(monitor="red")
+    early_stopping2 = EarlyStopping(monitor="blue")
+    progress_bar = TQDMProgressBar()
+    lr_monitor = LearningRateMonitor()
+    grad_accumulation = GradientAccumulationScheduler({1: 1})
 
-        # multiple callbacks of the same type, in both trainer and model
-        trainer = _attach_callbacks(
-            trainer_callbacks=[
-                LearningRateMonitor(),
-                progress_bar,
-                EarlyStopping(monitor="yellow"),
-                LearningRateMonitor(),
-                EarlyStopping(monitor="black"),
-            ],
-            model_callbacks=[early_stopping1, lr_monitor, grad_accumulation, early_stopping2],
-        )
-        assert trainer.callbacks == [progress_bar, early_stopping1, lr_monitor, grad_accumulation, early_stopping2]
+    # no callbacks
+    trainer = _attach_callbacks(trainer_callbacks=[], model_callbacks=[])
+    assert trainer.callbacks == []
 
-        class CustomProgressBar(TQDMProgressBar): ...
+    # callbacks of different types
+    trainer = _attach_callbacks(trainer_callbacks=[early_stopping1], model_callbacks=[progress_bar])
+    assert trainer.callbacks == [early_stopping1, progress_bar]
 
-        custom_progress_bar = CustomProgressBar()
-        # a custom callback that overrides ours
-        trainer = _attach_callbacks(trainer_callbacks=[progress_bar], model_callbacks=[custom_progress_bar])
-        assert trainer.callbacks == [custom_progress_bar]
+    # same callback type twice, different instance
+    trainer = _attach_callbacks(
+        trainer_callbacks=[progress_bar, EarlyStopping(monitor="red")],
+        model_callbacks=[early_stopping1],
+    )
+    assert trainer.callbacks == [progress_bar, early_stopping1]
 
-        # edge case
-        bare_callback = Callback()
-        trainer = _attach_callbacks(trainer_callbacks=[bare_callback], model_callbacks=[custom_progress_bar])
+    # multiple callbacks of the same type in trainer
+    trainer = _attach_callbacks(
+        trainer_callbacks=[
+            LearningRateMonitor(),
+            EarlyStopping(monitor="yellow"),
+            LearningRateMonitor(),
+            EarlyStopping(monitor="black"),
+        ],
+        model_callbacks=[early_stopping1, lr_monitor],
+    )
+    assert trainer.callbacks == [early_stopping1, lr_monitor]
+
+    # multiple callbacks of the same type, in both trainer and model
+    trainer = _attach_callbacks(
+        trainer_callbacks=[
+            LearningRateMonitor(),
+            progress_bar,
+            EarlyStopping(monitor="yellow"),
+            LearningRateMonitor(),
+            EarlyStopping(monitor="black"),
+        ],
+        model_callbacks=[early_stopping1, lr_monitor, grad_accumulation, early_stopping2],
+    )
+    assert trainer.callbacks == [progress_bar, early_stopping1, lr_monitor, grad_accumulation, early_stopping2]
+
+    class CustomProgressBar(TQDMProgressBar): ...
+
+    custom_progress_bar = CustomProgressBar()
+    # a custom callback that overrides ours
+    trainer = _attach_callbacks(trainer_callbacks=[progress_bar], model_callbacks=[custom_progress_bar])
+    assert trainer.callbacks == [custom_progress_bar]
+
+    # edge case
+    bare_callback = Callback()
+    trainer = _attach_callbacks(trainer_callbacks=[bare_callback], model_callbacks=[custom_progress_bar])
     assert trainer.callbacks == [bare_callback, custom_progress_bar]
 
 
