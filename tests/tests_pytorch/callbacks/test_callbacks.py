@@ -119,21 +119,21 @@ class OldStatefulCallback(Callback):
         self.state = state_dict["state"]
 
 
+@patch("lightning.pytorch.trainer.connectors.callback_connector._RICH_AVAILABLE", False)
 def test_resume_callback_state_saved_by_type_stateful(tmp_path):
     """Test that a legacy checkpoint that didn't use a state key before can still be loaded, using
     state_dict/load_state_dict."""
-    with patch("lightning.pytorch.trainer.connectors.callback_connector._RICH_AVAILABLE", False):
-        model = BoringModel()
-        callback = OldStatefulCallback(state=111)
-        trainer = Trainer(default_root_dir=tmp_path, max_steps=1, callbacks=[callback])
-        trainer.fit(model)
-        ckpt_path = Path(trainer.checkpoint_callback.best_model_path)
-        assert ckpt_path.exists()
+    model = BoringModel()
+    callback = OldStatefulCallback(state=111)
+    trainer = Trainer(default_root_dir=tmp_path, max_steps=1, callbacks=[callback])
+    trainer.fit(model)
+    ckpt_path = Path(trainer.checkpoint_callback.best_model_path)
+    assert ckpt_path.exists()
 
-        callback = OldStatefulCallback(state=222)
-        trainer = Trainer(default_root_dir=tmp_path, max_steps=2, callbacks=[callback])
-        trainer.fit(model, ckpt_path=ckpt_path)
-        assert callback.state == 111
+    callback = OldStatefulCallback(state=222)
+    trainer = Trainer(default_root_dir=tmp_path, max_steps=2, callbacks=[callback])
+    trainer.fit(model, ckpt_path=ckpt_path)
+    assert callback.state == 111
 
 
 def test_resume_incomplete_callbacks_list_warning(tmp_path):

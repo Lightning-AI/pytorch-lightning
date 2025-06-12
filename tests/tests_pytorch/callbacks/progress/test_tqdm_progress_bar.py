@@ -204,30 +204,30 @@ def test_tqdm_progress_bar_totals(tmp_path, num_dl):
     assert pbar.predict_progress_bar.leave
 
 
+@patch("lightning.pytorch.trainer.connectors.callback_connector._RICH_AVAILABLE", False)
 def test_tqdm_progress_bar_fast_dev_run(tmp_path):
-    with patch("lightning.pytorch.trainer.connectors.callback_connector._RICH_AVAILABLE", False):
-        model = BoringModel()
+    model = BoringModel()
 
-        trainer = Trainer(default_root_dir=tmp_path, fast_dev_run=True)
+    trainer = Trainer(default_root_dir=tmp_path, fast_dev_run=True)
 
-        trainer.fit(model)
+    trainer.fit(model)
 
-        pbar = trainer.progress_bar_callback
+    pbar = trainer.progress_bar_callback
 
-        assert pbar.val_progress_bar.n == 1
-        assert pbar.val_progress_bar.total == 1
+    assert pbar.val_progress_bar.n == 1
+    assert pbar.val_progress_bar.total == 1
 
-        # the train progress bar should display 1 batch
-        assert pbar.train_progress_bar.total == 1
-        assert pbar.train_progress_bar.n == 1
+    # the train progress bar should display 1 batch
+    assert pbar.train_progress_bar.total == 1
+    assert pbar.train_progress_bar.n == 1
 
-        trainer.validate(model)
+    trainer.validate(model)
 
-        # the validation progress bar should display 1 batch
-        assert pbar.val_progress_bar.total == 1
-        assert pbar.val_progress_bar.n == 1
+    # the validation progress bar should display 1 batch
+    assert pbar.val_progress_bar.total == 1
+    assert pbar.val_progress_bar.n == 1
 
-        trainer.test(model)
+    trainer.test(model)
 
     # the test progress bar should display 1 batch
     assert pbar.test_progress_bar.total == 1
@@ -325,17 +325,17 @@ def test_tqdm_progress_bar_default_value(tmp_path):
 
 
 @mock.patch.dict(os.environ, {"COLAB_GPU": "1"})
+@patch("lightning.pytorch.trainer.connectors.callback_connector._RICH_AVAILABLE", False)
 def test_tqdm_progress_bar_value_on_colab(tmp_path):
     """Test that Trainer will override the default in Google COLAB."""
-    with patch("lightning.pytorch.trainer.connectors.callback_connector._RICH_AVAILABLE", False):
-        trainer = Trainer(default_root_dir=tmp_path)
-        assert trainer.progress_bar_callback.refresh_rate == 20
+    trainer = Trainer(default_root_dir=tmp_path)
+    assert trainer.progress_bar_callback.refresh_rate == 20
 
-        trainer = Trainer(default_root_dir=tmp_path, callbacks=TQDMProgressBar())
-        assert trainer.progress_bar_callback.refresh_rate == 20
+    trainer = Trainer(default_root_dir=tmp_path, callbacks=TQDMProgressBar())
+    assert trainer.progress_bar_callback.refresh_rate == 20
 
-        trainer = Trainer(default_root_dir=tmp_path, callbacks=TQDMProgressBar(refresh_rate=19))
-        assert trainer.progress_bar_callback.refresh_rate == 19
+    trainer = Trainer(default_root_dir=tmp_path, callbacks=TQDMProgressBar(refresh_rate=19))
+    assert trainer.progress_bar_callback.refresh_rate == 19
 
 
 @pytest.mark.parametrize(
