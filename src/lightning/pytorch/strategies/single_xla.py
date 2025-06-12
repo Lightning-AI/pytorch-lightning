@@ -19,7 +19,7 @@ from typing_extensions import override
 
 import lightning.pytorch as pl
 from lightning.fabric.accelerators.xla import _XLA_AVAILABLE
-from lightning.fabric.plugins import XLACheckpointIO, CheckpointIO, Precision
+from lightning.fabric.plugins import CheckpointIO, Precision, XLACheckpointIO
 from lightning.fabric.strategies import _StrategyRegistry
 from lightning.fabric.utilities.optimizer import _optimizers_to_device
 from lightning.fabric.utilities.types import _DEVICE

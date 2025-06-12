@@ -18,7 +18,7 @@ from typing_extensions import override
 
 from lightning.fabric.accelerators import Accelerator
 from lightning.fabric.accelerators.xla import _XLA_AVAILABLE
-from lightning.fabric.plugins import XLAPrecision, CheckpointIO, Precision
+from lightning.fabric.plugins import CheckpointIO, Precision, XLAPrecision
 from lightning.fabric.plugins.io.xla import XLACheckpointIO
 from lightning.fabric.strategies import _StrategyRegistry
 from lightning.fabric.strategies.single_device import SingleDeviceStrategy

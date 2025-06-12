@@ -35,7 +35,6 @@ from typing_extensions import override
 
 import lightning.pytorch as pl
 from lightning.fabric.plugins import CheckpointIO, ClusterEnvironment
-from lightning.pytorch.plugins import Precision
 from lightning.fabric.plugins.collectives.torch_collective import default_pg_timeout
 from lightning.fabric.strategies import _StrategyRegistry
 from lightning.fabric.strategies.fsdp import (
@@ -69,6 +68,7 @@ from lightning.fabric.utilities.optimizer import _optimizers_to_device
 from lightning.fabric.utilities.seed import reset_seed
 from lightning.fabric.utilities.types import _PATH, ReduceOp
 from lightning.pytorch.core.optimizer import LightningOptimizer
+from lightning.pytorch.plugins import Precision
 from lightning.pytorch.plugins.precision import Precision
 from lightning.pytorch.plugins.precision.fsdp import FSDPPrecision
 from lightning.pytorch.strategies.launchers.subprocess_script import _SubprocessScriptLauncher

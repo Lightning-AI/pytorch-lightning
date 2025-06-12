@@ -23,7 +23,7 @@ from typing_extensions import override
 
 from lightning.fabric.accelerators import Accelerator
 from lightning.fabric.accelerators.xla import _XLA_GREATER_EQUAL_2_1
-from lightning.fabric.plugins import XLAPrecision, CheckpointIO, Precision
+from lightning.fabric.plugins import CheckpointIO, Precision, XLAPrecision
 from lightning.fabric.plugins.environments import XLAEnvironment
 from lightning.fabric.plugins.io.xla import XLACheckpointIO
 from lightning.fabric.strategies import ParallelStrategy, _StrategyRegistry
