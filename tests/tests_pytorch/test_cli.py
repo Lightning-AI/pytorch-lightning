@@ -1858,3 +1858,23 @@ def test_lightning_cli_with_args_given(args):
 def test_lightning_cli_args_and_sys_argv_warning():
     with mock.patch("sys.argv", ["", "--model.foo=456"]), pytest.warns(Warning, match="LightningCLI's args parameter "):
         LightningCLI(TestModel, run=False, args=["--model.foo=789"])
+
+def test_lightning_cli_jsonnet(cleandir):
+    class MainModule(BoringModel):
+        def __init__(self, main_param: int = 1):
+            super().__init__()
+            
+
+    config = """{
+        "model":{
+            "main_param": 2
+        }
+    }"""
+    config_path = Path("config.jsonnet")
+    config_path.write_text(config)
+
+    cli_args = [f"--config={config_path}"]
+    with mock.patch("sys.argv", ["any.py"] + cli_args):
+        cli = LightningCLI(MainModule, run=False, parser_kwargs={"parser_mode": "jsonnet"})
+
+    assert cli.config["model"]["main_param"] == 2
