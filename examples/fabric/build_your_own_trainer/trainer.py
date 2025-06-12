@@ -35,7 +35,7 @@ class MyCustomTrainer:
         checkpoint_dir: str = "./checkpoints",
         checkpoint_frequency: int = 1,
     ) -> None:
-        """Exemplary Trainer with Fabric. This is a very simple trainer focused on readablity but with reduced
+        """Exemplary Trainer with Fabric. This is a very simple trainer focused on readability but with reduced
         featureset. As a trainer with more included features, we recommend using the
         :class:`lightning.pytorch.Trainer`.
 
