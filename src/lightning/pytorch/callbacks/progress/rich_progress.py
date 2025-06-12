@@ -171,7 +171,7 @@ if _RICH_AVAILABLE:
                 return Text()
             if self._trainer.training and task.id not in self._tasks:
                 self._tasks[task.id] = "None"
-                if self._renderable_cache:
+                if self._renderable_cache and self._current_task_id in self._renderable_cache:
                     self._current_task_id = cast(TaskID, self._current_task_id)
                     self._tasks[self._current_task_id] = self._renderable_cache[self._current_task_id][1]
                 self._current_task_id = task.id
@@ -185,7 +185,10 @@ if _RICH_AVAILABLE:
         def _generate_metrics_texts(self) -> Generator[str, None, None]:
             for name, value in self._metrics.items():
                 if not isinstance(value, str):
-                    value = f"{value:{self._metrics_format}}"
+                    try:
+                        value = f"{value:{self._metrics_format}}"
+                    except (TypeError, ValueError):
+                        value = str(value)
                 yield f"{name}: {value}"
 
 
@@ -448,17 +451,12 @@ class RichProgressBar(ProgressBar):
         )
 
     def _update(self, progress_bar_id: Optional["TaskID"], current: int, visible: bool = True) -> None:
-        if self.progress is not None and self.is_enabled:
-            assert progress_bar_id is not None
+        if self.progress is not None and self.is_enabled and progress_bar_id is not None:
             total = self.progress.tasks[progress_bar_id].total
             assert total is not None
             if not self._should_update(current, total):
                 return
-
-            leftover = current % self.refresh_rate
-            advance = leftover if (current == total and leftover != 0) else self.refresh_rate
-            self.progress.update(progress_bar_id, advance=advance, visible=visible)
-            self.refresh()
+            self.progress.update(progress_bar_id, completed=current, visible=visible)
 
     def _should_update(self, current: int, total: Union[int, float]) -> bool:
         return current % self.refresh_rate == 0 or current == total
@@ -552,9 +550,13 @@ class RichProgressBar(ProgressBar):
         if self.is_disabled:
             return
         if trainer.sanity_checking:
-            self._update(self.val_sanity_progress_bar_id, batch_idx + 1)
-        elif self.val_progress_bar_id is not None:
-            self._update(self.val_progress_bar_id, batch_idx + 1)
+            if self.val_sanity_progress_bar_id is not None:
+                self._update(self.val_sanity_progress_bar_id, batch_idx + 1)
+            return
+
+        if self.val_progress_bar_id is None:
+            return
+        self._update(self.val_progress_bar_id, batch_idx + 1)
         self.refresh()
 
     @override
@@ -567,9 +569,8 @@ class RichProgressBar(ProgressBar):
         batch_idx: int,
         dataloader_idx: int = 0,
     ) -> None:
-        if self.is_disabled:
+        if self.is_disabled or self.test_progress_bar_id is None:
             return
-        assert self.test_progress_bar_id is not None
         self._update(self.test_progress_bar_id, batch_idx + 1)
         self.refresh()
 
@@ -583,9 +584,8 @@ class RichProgressBar(ProgressBar):
         batch_idx: int,
         dataloader_idx: int = 0,
     ) -> None:
-        if self.is_disabled:
+        if self.is_disabled or self.predict_progress_bar_id is None:
             return
-        assert self.predict_progress_bar_id is not None
         self._update(self.predict_progress_bar_id, batch_idx + 1)
         self.refresh()
 
