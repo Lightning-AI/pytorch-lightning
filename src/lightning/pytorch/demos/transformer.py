@@ -84,7 +84,7 @@ class PositionalEncoding(nn.Module):
     def forward(self, x: Tensor) -> Tensor:
         if self.pe is None:
             # 1) can't use buffer, see https://github.com/pytorch/pytorch/issues/68407
-            # 2) can't use parameter becauses pe gets sliced and DDP requires all params to participate in forward
+            # 2) can't use parameter because pe gets sliced and DDP requires all params to participate in forward
             # TODO: Could make this a `nn.Parameter` with `requires_grad=False`
             self.pe = self._init_pos_encoding(device=x.device)
 

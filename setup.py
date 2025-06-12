@@ -27,7 +27,7 @@ There are considered three main scenarios for installing this project:
      - for `pytorch-lightning` use `export PACKAGE_NAME=pytorch ; pip install .`
      - for `lightning-fabric` use `export PACKAGE_NAME=fabric ; pip install .`
 
-3. Building packages as sdist or binary wheel and installing or publish to PyPI afterwords you use command
+3. Building packages as sdist or binary wheel and installing or publish to PyPI afterwards you use command
     `python setup.py sdist` or `python setup.py bdist_wheel` accordingly.
    In case you want to build just a particular package you want to set an environment variable:
    `PACKAGE_NAME=lightning|pytorch|fabric python setup.py sdist|bdist_wheel`

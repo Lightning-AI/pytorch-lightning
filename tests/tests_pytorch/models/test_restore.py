@@ -547,7 +547,7 @@ def test_strict_model_load_more_params(monkeypatch, tmp_path, tmpdir_server, url
     )
     trainer.fit(model)
 
-    # traning complete
+    # training complete
     assert trainer.state.finished, f"Training failed with {trainer.state}"
 
     # save model
@@ -587,7 +587,7 @@ def test_strict_model_load_less_params(monkeypatch, tmp_path, tmpdir_server, url
     )
     trainer.fit(model)
 
-    # traning complete
+    # training complete
     assert trainer.state.finished, f"Training failed with {trainer.state}"
 
     # save model
