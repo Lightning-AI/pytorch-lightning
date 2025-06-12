@@ -707,7 +707,7 @@ def test_tqdm_progress_bar_correct_value_epoch_end(tmp_path):
             del items["v_num"]
             # this is equivalent to mocking `set_postfix` as this method gets called every time
             self.calls[trainer.state.fn].append((
-                trainer.state.stage,
+                trainer.state.stage.value,
                 trainer.current_epoch,
                 trainer.global_step,
                 items,
