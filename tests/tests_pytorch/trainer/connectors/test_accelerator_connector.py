@@ -207,23 +207,23 @@ def test_custom_accelerator(cuda_count_0):
     class Prec(Precision):
         pass
 
-    class Strat(SingleDeviceStrategy):
+    class TestStrategy(SingleDeviceStrategy):
         pass
 
-    strategy = Strat(device=torch.device("cpu"), accelerator=Accel(), precision_plugin=Prec())
+    strategy = TestStrategy(device=torch.device("cpu"), accelerator=Accel(), precision_plugin=Prec())
     trainer = Trainer(strategy=strategy, fast_dev_run=True, devices=2)
     assert isinstance(trainer.accelerator, Accel)
-    assert isinstance(trainer.strategy, Strat)
+    assert isinstance(trainer.strategy, TestStrategy)
     assert isinstance(trainer.precision_plugin, Prec)
     assert trainer._accelerator_connector.strategy is strategy
 
-    class Strat(DDPStrategy):
+    class TestStrategy(DDPStrategy):
         pass
 
-    strategy = Strat(accelerator=Accel(), precision_plugin=Prec())
+    strategy = TestStrategy(accelerator=Accel(), precision_plugin=Prec())
     trainer = Trainer(strategy=strategy, fast_dev_run=True, devices=2)
     assert isinstance(trainer.accelerator, Accel)
-    assert isinstance(trainer.strategy, Strat)
+    assert isinstance(trainer.strategy, TestStrategy)
     assert isinstance(trainer.precision_plugin, Prec)
     assert trainer._accelerator_connector.strategy is strategy
 

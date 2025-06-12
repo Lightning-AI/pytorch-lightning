@@ -262,7 +262,7 @@ class LightningModule(
     def global_step(self) -> int:
         """Total training batches seen across all epochs.
 
-        If no Trainer is attached, this propery is 0.
+        If no Trainer is attached, this property is 0.
 
         """
         return self.trainer.global_step if self._trainer else 0

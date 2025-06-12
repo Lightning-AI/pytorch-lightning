@@ -1251,7 +1251,7 @@ def test_lightning_cli_datamodule_short_arguments():
 
     with mock.patch("sys.argv", ["any.py"]):
         cli = LightningCLI(BoringModel, BoringDataModule, run=False)
-        # since we are passing the DataModule, that's whats added to the parser
+        # since we are passing the DataModule, that's what's added to the parser
         assert cli.parser.groups["data"].group_class is BoringDataModule
 
 

@@ -418,7 +418,7 @@ class MyCustomTrainer:
         """Loads a checkpoint from a given file into state.
 
         Args:
-            state: a mapping contaning model, optimizer and lr scheduler
+            state: a mapping containing model, optimizer and lr scheduler
             path: the path to load the checkpoint from
 
         """
