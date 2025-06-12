@@ -239,7 +239,7 @@ class _Connector:
                 else:
                     raise TypeError(
                         f"Found invalid type for plugin {plugin}. Expected one of: Precision, "
-                        "CheckpointIO, ClusterEnviroment."
+                        "CheckpointIO, ClusterEnvironment."
                     )
 
             duplicated_plugin_key = [k for k, v in plugins_flags_types.items() if v > 1]
@@ -428,7 +428,7 @@ class _Connector:
         if strategy_flag in _DDP_FORK_ALIASES and "fork" not in torch.multiprocessing.get_all_start_methods():
             raise ValueError(
                 f"You selected `Fabric(strategy='{strategy_flag}')` but process forking is not supported on this"
-                f" platform. We recommed `Fabric(strategy='ddp_spawn')` instead."
+                f" platform. We recommend `Fabric(strategy='ddp_spawn')` instead."
             )
         if (
             strategy_flag in _FSDP_ALIASES or type(self._strategy_flag) is FSDPStrategy
@@ -492,7 +492,7 @@ class _Connector:
                 if self._precision_input == "16-mixed"
                 else "Using bfloat16 Automatic Mixed Precision (AMP)"
             )
-            device = "cpu" if self._accelerator_flag == "cpu" else "cuda"
+            device = self._accelerator_flag if self._accelerator_flag in ("cpu", "mps") else "cuda"
             return MixedPrecision(precision=self._precision_input, device=device)  # type: ignore[arg-type]
 
         raise RuntimeError("No precision set")
