@@ -20,7 +20,7 @@ FROM nvidia/cuda:${CUDA_VERSION}-runtime-ubuntu${UBUNTU_VERSION}
 
 ARG PYTHON_VERSION=3.10
 ARG PYTORCH_VERSION=2.1
-ARG MAX_ALLOWED_NCCL=2.26.0
+ARG MAX_ALLOWED_NCCL=2.22.3
 
 SHELL ["/bin/bash", "-c"]
 # https://techoverflow.net/2019/05/18/how-to-fix-configuring-tzdata-interactive-input-when-building-docker-images/
