@@ -48,6 +48,7 @@ from lightning.fabric.loggers import Logger as FabricLogger
 from lightning.fabric.utilities.apply_func import convert_to_tensors
 from lightning.fabric.utilities.cloud_io import get_filesystem
 from lightning.fabric.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_2
 from lightning.fabric.utilities.types import _MAP_LOCATION_TYPE, _PATH
 from lightning.fabric.wrappers import _FabricOptimizer
 from lightning.pytorch.callbacks.callback import Callback
@@ -1536,6 +1537,10 @@ class LightningModule(
             )
 
         """
+        if not _TORCH_GREATER_EQUAL_2_2:
+            raise MisconfigurationException(
+                f"TensorRT export requires PyTorch 2.2 or higher. Current version is {torch.__version__}."
+            )
 
         if not _TORCH_TRT_AVAILABLE:
             raise ModuleNotFoundError(
