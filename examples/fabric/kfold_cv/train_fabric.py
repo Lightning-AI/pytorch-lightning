@@ -102,7 +102,7 @@ def validate_dataloader(model, data_loader, fabric, hparams, fold, acc_metric):
 
 
 def run(hparams):
-    # Create the Lightning Fabric object. The parameters like accelerator, strategy, devices etc. will be proided
+    # Create the Lightning Fabric object. The parameters like accelerator, strategy, devices etc. will be provided
     # by the command line. See all options: `fabric run --help`
     fabric = Fabric()
 
