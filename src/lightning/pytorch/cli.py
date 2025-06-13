@@ -554,7 +554,9 @@ class LightningCLI:
     def _dump_config(self) -> None:
         if hasattr(self, "config_dump"):
             return
-        self.config_dump = yaml.safe_load(self.parser.dump(self.config, skip_link_targets=False, skip_none=False))
+        self.config_dump = yaml.safe_load(
+            self.parser.dump(self.config, skip_link_targets=False, skip_none=False, format="yaml")
+        )
         if "subcommand" in self.config:
             self.config_dump = self.config_dump[self.config.subcommand]
 
