@@ -13,6 +13,16 @@ from lightning.pytorch.utilities.exceptions import MisconfigurationException
 from tests_pytorch.helpers.runif import RunIf
 
 
+@RunIf(max_torch="2.2.0")
+def test_torch_minimum_version():
+    model = BoringModel()
+    with pytest.raises(
+        MisconfigurationException,
+        match=re.escape(f"TensorRT export requires PyTorch 2.2 or higher. Current version is {torch.__version__}."),
+    ):
+        model.to_tensorrt("model.trt")
+
+
 @pytest.mark.skipif(_TORCH_TRT_AVAILABLE, reason="Run this test only if tensorrt is not available.")
 def test_missing_tensorrt_package():
     model = BoringModel()
