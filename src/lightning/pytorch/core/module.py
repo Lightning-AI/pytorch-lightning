@@ -218,7 +218,7 @@ class LightningModule(
     def trainer(self, trainer: Optional["pl.Trainer"]) -> None:
         for v in self.children():
             if isinstance(v, LightningModule):
-                v.trainer = trainer  # type: ignore[assignment]
+                v.trainer = trainer
         self._trainer = trainer
 
     @property

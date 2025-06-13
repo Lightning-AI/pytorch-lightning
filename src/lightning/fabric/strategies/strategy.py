@@ -52,7 +52,7 @@ class Strategy(ABC):
         self._checkpoint_io: Optional[CheckpointIO] = checkpoint_io
         self._precision: Optional[Precision] = None
         # Call the precision setter for input validation
-        self.precision = precision  # type: ignore[assignment]
+        self.precision = precision
         self._launcher: Optional[_Launcher] = None
         self._backward_sync_control: Optional[_BackwardSyncControl] = None
 
