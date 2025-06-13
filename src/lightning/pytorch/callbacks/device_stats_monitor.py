@@ -45,6 +45,23 @@ class DeviceStatsMonitor(Callback):
         ModuleNotFoundError:
             If ``psutil`` is not installed and CPU stats are monitored.
 
+    Logged Metrics:
+        Device statistics are logged with keys prefixed as
+        ``DeviceStatsMonitor.{hook_name}/{base_metric_name}`` (e.g.,
+        ``DeviceStatsMonitor.on_train_batch_start/cpu_percent``). The source of these
+        metrics depends on the active :class:`~lightning.pytorch.accelerators.accelerator.Accelerator`
+        and the ``cpu_stats`` flag.
+
+        CPU (via ``psutil``): Logs ``cpu_percent``, ``cpu_vm_percent``, ``cpu_swap_percent``.
+        All are percentages (%).
+        CUDA GPU (via :func:`torch.cuda.memory_stats`): Logs detailed memory statistics from
+        PyTorch's allocator (e.g., ``allocated_bytes.all.current``, ``num_ooms``; all in Bytes).
+        GPU compute utilization is not logged by default.
+        Other Accelerators (e.g., TPU, MPS): Logs device-specific stats.
+        - TPU example: ``avg. free memory (MB)``.
+        - MPS example: ``mps.current_allocated_bytes``.
+        Observe logs or check accelerator documentation for details.
+
     Example::
 
         from lightning import Trainer
