@@ -28,7 +28,8 @@ _TORCHMETRICS_GREATER_EQUAL_1_0_0 = RequirementCache("torchmetrics>=1.0.0")
 
 _OMEGACONF_AVAILABLE = package_available("omegaconf")
 _TORCHVISION_AVAILABLE = RequirementCache("torchvision")
-_RICH_AVAILABLE = RequirementCache("rich")
+_RICH_MIN_VERSION = "10.2.2"
+_RICH_AVAILABLE = RequirementCache(f"rich>={_RICH_MIN_VERSION}")
 
 
 @functools.lru_cache(maxsize=128)
