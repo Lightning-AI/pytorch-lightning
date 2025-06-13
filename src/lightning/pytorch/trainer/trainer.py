@@ -901,7 +901,7 @@ class Trainer:
         # --------------------
         log.debug(f"{self.__class__.__name__}: trainer predict stage")
 
-        self.predict_loop.return_predictions = return_predictions  # type: ignore[assignment]
+        self.predict_loop.return_predictions = return_predictions
 
         # if a datamodule comes in as the second arg, then fix it for the user
         if isinstance(dataloaders, LightningDataModule):
