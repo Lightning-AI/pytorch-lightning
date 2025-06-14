@@ -226,7 +226,7 @@ def _import_bitsandbytes() -> ModuleType:
         def __init__(self, *args: Any, device: Optional[_DEVICE] = None, threshold: float = 6.0, **kwargs: Any) -> None:
             super().__init__(*args, device=device, threshold=threshold, **kwargs)
             self.weight = cast(bnb.nn.Int8Params, self.weight)  # type: ignore[has-type]
-            self.bias = cast(Optional[torch.nn.Parameter], self.bias)  # type: ignore[has-type]
+            self.bias: Optional[torch.nn.Parameter] = self.bias
             # if the device is CUDA or we are under a CUDA context manager, quantize the weight here, so we don't end up
             # filling the device memory with float32 weights which could lead to OOM
             if torch.tensor(0, device=device).device.type == "cuda":
@@ -310,7 +310,7 @@ def _import_bitsandbytes() -> ModuleType:
         def __init__(self, *args: Any, device: Optional[_DEVICE] = None, **kwargs: Any) -> None:
             super().__init__(*args, device=device, **kwargs)
             self.weight = cast(bnb.nn.Params4bit, self.weight)  # type: ignore[has-type]
-            self.bias = cast(Optional[torch.nn.Parameter], self.bias)  # type: ignore[has-type]
+            self.bias: Optional[torch.nn.Parameter] = self.bias
             # if the device is CUDA or we are under a CUDA context manager, quantize the weight here, so we don't end up
             # filling the device memory with float32 weights which could lead to OOM
             if torch.tensor(0, device=device).device.type == "cuda":
@@ -403,7 +403,7 @@ def _import_bitsandbytes() -> ModuleType:
         def __init__(self, *args: Any, **kwargs: Any) -> None:
             super().__init__(*args, quant_type="nf4", compress_statistics=True, **kwargs)
 
-    # these classes are defined programatically like this to avoid importing bitsandbytes in environments that have
+    # these classes are defined programmatically like this to avoid importing bitsandbytes in environments that have
     # it available but will not use it
     classes = {
         "_Linear8bitLt": _Linear8bitLt,

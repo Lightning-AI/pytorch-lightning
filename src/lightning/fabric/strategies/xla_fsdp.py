@@ -26,7 +26,7 @@ from typing_extensions import override
 
 from lightning.fabric.accelerators import Accelerator
 from lightning.fabric.accelerators.xla import _XLA_AVAILABLE
-from lightning.fabric.plugins import XLAPrecision
+from lightning.fabric.plugins import CheckpointIO, Precision, XLAPrecision
 from lightning.fabric.plugins.environments import XLAEnvironment
 from lightning.fabric.plugins.io.xla import XLACheckpointIO
 from lightning.fabric.strategies import ParallelStrategy, _StrategyRegistry
@@ -134,7 +134,7 @@ class XLAFSDPStrategy(ParallelStrategy, _Sharded):
 
     @checkpoint_io.setter
     @override
-    def checkpoint_io(self, io: Optional[XLACheckpointIO]) -> None:
+    def checkpoint_io(self, io: Optional[CheckpointIO]) -> None:
         if io is not None and not isinstance(io, XLACheckpointIO):
             raise TypeError(f"The XLA strategy can only work with the `XLACheckpointIO` plugin, found {io}")
         self._checkpoint_io = io
@@ -150,7 +150,7 @@ class XLAFSDPStrategy(ParallelStrategy, _Sharded):
 
     @precision.setter
     @override
-    def precision(self, precision: Optional[XLAPrecision]) -> None:
+    def precision(self, precision: Optional[Precision]) -> None:
         if precision is not None and not isinstance(precision, XLAPrecision):
             raise TypeError(f"The XLA FSDP strategy can only work with the `XLAPrecision` plugin, found {precision}")
         self._precision = precision
@@ -184,7 +184,7 @@ class XLAFSDPStrategy(ParallelStrategy, _Sharded):
         assert self.parallel_devices is not None
         if len(self.parallel_devices) == 1:
             # spawning only 1 device with PjRT is not supported:
-            # https://github.com/Lightning-AI/lightning/pull/17408#discussion_r1170671732
+            # https://github.com/Lightning-AI/pytorch-lightning/pull/17408#discussion_r1170671732
             raise NotImplementedError(
                 f"The {type(self).__name__} does not support running on a single device with the PjRT runtime."
                 " Try using all devices or the `SingleDeviceXLAStrategy` strategy"
@@ -295,6 +295,7 @@ class XLAFSDPStrategy(ParallelStrategy, _Sharded):
     ) -> Tensor:
         """Clip gradients by norm."""
         self.precision.unscale_gradients(optimizer)
+        assert callable(module.clip_grad_norm_)
         return module.clip_grad_norm_(max_norm=max_norm, norm_type=norm_type)
 
     @override

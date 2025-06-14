@@ -29,7 +29,6 @@ import torch
 import yaml
 from lightning_utilities import compare_version
 from lightning_utilities.test.warning import no_warning_call
-from packaging.version import Version
 from tensorboard.backend.event_processing import event_accumulator
 from tensorboard.plugins.hparams.plugin_data_pb2 import HParamsPluginData
 from torch.optim import SGD
@@ -63,14 +62,6 @@ else:
 
     def lazy_instance(*args, **kwargs):
         return None
-
-
-_xfail_python_ge_3_11_9 = pytest.mark.xfail(
-    # https://github.com/omni-us/jsonargparse/issues/484
-    Version(f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}") >= Version("3.11.9"),
-    strict=False,
-    reason="jsonargparse + Python 3.11.9 compatibility issue",
-)
 
 
 @contextmanager
@@ -356,7 +347,6 @@ def test_save_to_log_dir_false_error():
         )
 
 
-@_xfail_python_ge_3_11_9
 def test_lightning_cli_logger_save_config(cleandir):
     class LoggerSaveConfigCallback(SaveConfigCallback):
         def __init__(self, *args, **kwargs) -> None:
@@ -560,6 +550,7 @@ def test_lightning_cli_torch_modules(cleandir):
 class BoringModelRequiredClasses(BoringModel):
     def __init__(self, num_classes: int, batch_size: int = 8):
         super().__init__()
+        self.save_hyperparameters()
         self.num_classes = num_classes
         self.batch_size = batch_size
 
@@ -571,13 +562,13 @@ class BoringDataModuleBatchSizeAndClasses(BoringDataModule):
         self.num_classes = 5  # only available after instantiation
 
 
-def test_lightning_cli_link_arguments():
+def test_lightning_cli_link_arguments(cleandir):
     class MyLightningCLI(LightningCLI):
         def add_arguments_to_parser(self, parser):
             parser.link_arguments("data.batch_size", "model.batch_size")
             parser.link_arguments("data.num_classes", "model.num_classes", apply_on="instantiate")
 
-    cli_args = ["--data.batch_size=12"]
+    cli_args = ["--data.batch_size=12", "--trainer.max_epochs=1"]
 
     with mock.patch("sys.argv", ["any.py"] + cli_args):
         cli = MyLightningCLI(BoringModelRequiredClasses, BoringDataModuleBatchSizeAndClasses, run=False)
@@ -585,20 +576,88 @@ def test_lightning_cli_link_arguments():
     assert cli.model.batch_size == 12
     assert cli.model.num_classes == 5
 
-    class MyLightningCLI(LightningCLI):
+    cli.trainer.fit(cli.model)
+    hparams_path = Path(cli.trainer.log_dir) / "hparams.yaml"
+    assert hparams_path.is_file()
+    hparams = yaml.safe_load(hparams_path.read_text())
+
+    hparams.pop("_instantiator")
+    assert hparams == {"batch_size": 12, "num_classes": 5}
+
+    class MyLightningCLI2(LightningCLI):
         def add_arguments_to_parser(self, parser):
             parser.link_arguments("data.batch_size", "model.init_args.batch_size")
             parser.link_arguments("data.num_classes", "model.init_args.num_classes", apply_on="instantiate")
 
-    cli_args[-1] = "--model=tests_pytorch.test_cli.BoringModelRequiredClasses"
+    cli_args[0] = "--model=tests_pytorch.test_cli.BoringModelRequiredClasses"
 
     with mock.patch("sys.argv", ["any.py"] + cli_args):
-        cli = MyLightningCLI(
+        cli = MyLightningCLI2(
             BoringModelRequiredClasses, BoringDataModuleBatchSizeAndClasses, subclass_mode_model=True, run=False
         )
 
     assert cli.model.batch_size == 8
     assert cli.model.num_classes == 5
+
+    cli.trainer.fit(cli.model)
+    hparams_path = Path(cli.trainer.log_dir) / "hparams.yaml"
+    assert hparams_path.is_file()
+    hparams = yaml.safe_load(hparams_path.read_text())
+
+    hparams.pop("_instantiator")
+    assert hparams == {"batch_size": 8, "num_classes": 5}
+
+
+class CustomAdam(torch.optim.Adam):
+    def __init__(self, params, num_classes: Optional[int] = None, **kwargs):
+        super().__init__(params, **kwargs)
+
+
+class DeepLinkTargetModel(BoringModel):
+    def __init__(
+        self,
+        optimizer: OptimizerCallable = torch.optim.Adam,
+    ):
+        super().__init__()
+        self.save_hyperparameters()
+        self.optimizer = optimizer
+
+    def configure_optimizers(self):
+        optimizer = self.optimizer(self.parameters())
+        return {"optimizer": optimizer}
+
+
+def test_lightning_cli_link_arguments_subcommands_nested_target(cleandir):
+    class MyLightningCLI(LightningCLI):
+        def add_arguments_to_parser(self, parser):
+            parser.link_arguments(
+                "data.num_classes",
+                "model.init_args.optimizer.init_args.num_classes",
+                apply_on="instantiate",
+            )
+
+    cli_args = [
+        "fit",
+        "--data.batch_size=12",
+        "--trainer.max_epochs=1",
+        "--model=tests_pytorch.test_cli.DeepLinkTargetModel",
+        "--model.optimizer=tests_pytorch.test_cli.CustomAdam",
+    ]
+
+    with mock.patch("sys.argv", ["any.py"] + cli_args):
+        cli = MyLightningCLI(
+            DeepLinkTargetModel,
+            BoringDataModuleBatchSizeAndClasses,
+            subclass_mode_model=True,
+            auto_configure_optimizers=False,
+        )
+
+    hparams_path = Path(cli.trainer.log_dir) / "hparams.yaml"
+    assert hparams_path.is_file()
+    hparams = yaml.safe_load(hparams_path.read_text())
+
+    assert hparams["optimizer"]["class_path"] == "tests_pytorch.test_cli.CustomAdam"
+    assert hparams["optimizer"]["init_args"]["num_classes"] == 5
 
 
 class EarlyExitTestModel(BoringModel):
@@ -753,7 +812,6 @@ def test_lightning_cli_optimizer_and_lr_scheduler_subclasses(cleandir):
     assert cli.trainer.lr_scheduler_configs[0].scheduler.step_size == 50
 
 
-@_xfail_python_ge_3_11_9
 @RunIf(min_torch="2.2")
 @pytest.mark.parametrize("use_generic_base_class", [False, True])
 def test_lightning_cli_optimizers_and_lr_scheduler_with_link_to(use_generic_base_class):
@@ -801,7 +859,6 @@ def test_lightning_cli_optimizers_and_lr_scheduler_with_link_to(use_generic_base
     assert isinstance(cli.model.scheduler, torch.optim.lr_scheduler.ExponentialLR)
 
 
-@_xfail_python_ge_3_11_9
 @RunIf(min_torch="2.2")
 def test_lightning_cli_optimizers_and_lr_scheduler_with_callable_type():
     class TestModel(BoringModel):
@@ -1118,7 +1175,6 @@ class TestModel(BoringModel):
         self.bar = bar
 
 
-@_xfail_python_ge_3_11_9
 def test_lightning_cli_model_short_arguments():
     with (
         mock.patch("sys.argv", ["any.py", "fit", "--model=BoringModel"]),
@@ -1146,7 +1202,6 @@ class MyDataModule(BoringDataModule):
         self.bar = bar
 
 
-@_xfail_python_ge_3_11_9
 def test_lightning_cli_datamodule_short_arguments():
     # with set model
     with (
@@ -1196,11 +1251,10 @@ def test_lightning_cli_datamodule_short_arguments():
 
     with mock.patch("sys.argv", ["any.py"]):
         cli = LightningCLI(BoringModel, BoringDataModule, run=False)
-        # since we are passing the DataModule, that's whats added to the parser
+        # since we are passing the DataModule, that's what's added to the parser
         assert cli.parser.groups["data"].group_class is BoringDataModule
 
 
-@_xfail_python_ge_3_11_9
 @pytest.mark.parametrize("use_class_path_callbacks", [False, True])
 def test_callbacks_append(use_class_path_callbacks):
     """This test validates registries are used when simplified command line are being used."""
@@ -1244,7 +1298,6 @@ def test_callbacks_append(use_class_path_callbacks):
     assert all(t in callback_types for t in expected)
 
 
-@_xfail_python_ge_3_11_9
 def test_optimizers_and_lr_schedulers_reload(cleandir):
     base = ["any.py", "--trainer.max_epochs=1"]
     input = base + [
@@ -1276,7 +1329,6 @@ def test_optimizers_and_lr_schedulers_reload(cleandir):
         LightningCLI(BoringModel, run=False)
 
 
-@_xfail_python_ge_3_11_9
 def test_optimizers_and_lr_schedulers_add_arguments_to_parser_implemented_reload(cleandir):
     class TestLightningCLI(LightningCLI):
         def __init__(self, *args):
@@ -1540,7 +1592,6 @@ def test_cli_help_message():
     assert "Implements Adam" in shorthand_help.getvalue()
 
 
-@_xfail_python_ge_3_11_9
 def test_cli_reducelronplateau():
     with mock.patch(
         "sys.argv", ["any.py", "--optimizer=Adam", "--lr_scheduler=ReduceLROnPlateau", "--lr_scheduler.monitor=foo"]
@@ -1551,7 +1602,6 @@ def test_cli_reducelronplateau():
     assert config["lr_scheduler"]["scheduler"].monitor == "foo"
 
 
-@_xfail_python_ge_3_11_9
 def test_cli_configureoptimizers_can_be_overridden():
     class MyCLI(LightningCLI):
         def __init__(self):
@@ -1596,7 +1646,6 @@ def test_cli_parameter_with_lazy_instance_default():
         assert cli.model.activation is not model.activation
 
 
-@_xfail_python_ge_3_11_9
 def test_ddpstrategy_instantiation_and_find_unused_parameters(mps_count_0):
     strategy_default = lazy_instance(DDPStrategy, find_unused_parameters=True)
     with mock.patch("sys.argv", ["any.py", "--trainer.strategy.process_group_backend=group"]):
@@ -1612,7 +1661,6 @@ def test_ddpstrategy_instantiation_and_find_unused_parameters(mps_count_0):
     assert strategy_default is not cli.config_init.trainer.strategy
 
 
-@_xfail_python_ge_3_11_9
 def test_cli_logger_shorthand():
     with mock.patch("sys.argv", ["any.py"]):
         cli = LightningCLI(TestModel, run=False, trainer_defaults={"logger": False})
@@ -1643,7 +1691,6 @@ def _test_logger_init_args(logger_name, init, unresolved=None):
         assert data["dict_kwargs"] == unresolved
 
 
-@_xfail_python_ge_3_11_9
 def test_comet_logger_init_args():
     _test_logger_init_args(
         "CometLogger",
@@ -1664,7 +1711,6 @@ def test_comet_logger_init_args():
     strict=False,
     reason="TypeError on Windows when parsing",
 )
-@_xfail_python_ge_3_11_9
 def test_neptune_logger_init_args():
     _test_logger_init_args(
         "NeptuneLogger",
@@ -1673,7 +1719,6 @@ def test_neptune_logger_init_args():
     )
 
 
-@_xfail_python_ge_3_11_9
 def test_tensorboard_logger_init_args():
     _test_logger_init_args(
         "TensorBoardLogger",
@@ -1685,7 +1730,6 @@ def test_tensorboard_logger_init_args():
     )
 
 
-@_xfail_python_ge_3_11_9
 def test_wandb_logger_init_args():
     _test_logger_init_args(
         "WandbLogger",
@@ -1770,7 +1814,6 @@ def test_unresolvable_import_paths():
     assert "a_func: torch.nn.Softmax" in out.getvalue()
 
 
-@_xfail_python_ge_3_11_9
 def test_pytorch_profiler_init_args():
     from lightning.pytorch.profilers import Profiler, PyTorchProfiler
 

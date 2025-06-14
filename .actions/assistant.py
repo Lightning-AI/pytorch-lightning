@@ -154,8 +154,8 @@ def load_readme_description(path_dir: str, homepage: str, version: str) -> str:
 
     """
     path_readme = os.path.join(path_dir, "README.md")
-    with open(path_readme, encoding="utf-8") as fo:
-        text = fo.read()
+    with open(path_readme, encoding="utf-8") as fopen:
+        text = fopen.read()
 
     # drop images from readme
     text = text.replace(
@@ -308,17 +308,17 @@ def copy_replace_imports(
         if ext in (".pyc",):
             continue
         # Try to parse everything else
-        with open(fp, encoding="utf-8") as fo:
+        with open(fp, encoding="utf-8") as fopen:
             try:
-                lines = fo.readlines()
+                lines = fopen.readlines()
             except UnicodeDecodeError:
                 # a binary file, skip
                 print(f"Skipped replacing imports for {fp}")
                 continue
         lines = _replace_imports(lines, list(zip(source_imports, target_imports)), lightning_by=lightning_by)
         os.makedirs(os.path.dirname(fp_new), exist_ok=True)
-        with open(fp_new, "w", encoding="utf-8") as fo:
-            fo.writelines(lines)
+        with open(fp_new, "w", encoding="utf-8") as fopen:
+            fopen.writelines(lines)
 
 
 def create_mirror_package(source_dir: str, package_mapping: dict[str, str]) -> None:
@@ -370,10 +370,10 @@ class AssistantCLI:
 
     @staticmethod
     def _replace_min(fname: str) -> None:
-        with open(fname, encoding="utf-8") as fo:
-            req = fo.read().replace(">=", "==")
-        with open(fname, "w", encoding="utf-8") as fw:
-            fw.write(req)
+        with open(fname, encoding="utf-8") as fopen:
+            req = fopen.read().replace(">=", "==")
+        with open(fname, "w", encoding="utf-8") as fwrite:
+            fwrite.write(req)
 
     @staticmethod
     def replace_oldest_ver(requirement_fnames: Sequence[str] = REQUIREMENT_FILES_ALL) -> None:
@@ -471,15 +471,15 @@ class AssistantCLI:
         """Load the actual version and convert it to the nightly version."""
         from datetime import datetime
 
-        with open(ver_file) as fo:
-            version = fo.read().strip()
+        with open(ver_file) as fopen:
+            version = fopen.read().strip()
         # parse X.Y.Z version and prune any suffix
         vers = re.match(r"(\d+)\.(\d+)\.(\d+).*", version)
         # create timestamp  YYYYMMDD
         timestamp = datetime.now().strftime("%Y%m%d")
         version = f"{'.'.join(vers.groups())}.dev{timestamp}"
-        with open(ver_file, "w") as fo:
-            fo.write(version + os.linesep)
+        with open(ver_file, "w") as fopen:
+            fopen.write(version + os.linesep)
 
     @staticmethod
     def generate_docker_tags(

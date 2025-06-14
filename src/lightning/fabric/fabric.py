@@ -327,7 +327,7 @@ class Fabric:
         ``.setup(model, optimizer, ...)`` instead to jointly set them up.
 
         Args:
-            *optimizers: One or more optmizers to set up.
+            *optimizers: One or more optimizers to set up.
 
         Returns:
             The wrapped optimizer(s).
@@ -367,8 +367,7 @@ class Fabric:
             )
             for dataloader in dataloaders
         ]
-        dataloaders = dataloaders[0] if len(dataloaders) == 1 else dataloaders
-        return dataloaders  # type: ignore[return-value]
+        return dataloaders[0] if len(dataloaders) == 1 else dataloaders
 
     def _setup_dataloader(
         self, dataloader: DataLoader, use_distributed_sampler: bool = True, move_to_device: bool = True
