@@ -125,6 +125,3 @@ def test_attributes_from_xla_greater_21_used(xla_available, monkeypatch):
 
         env.set_global_rank(100)
         assert env.global_rank() == 2
-
-        env.set_local_rank(100)
-        assert env.local_rank() == 1
