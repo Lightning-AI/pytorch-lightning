@@ -16,7 +16,7 @@ from typing import Any
 from typing_extensions import override
 
 from lightning.pytorch.callbacks import ModelSummary
-from lightning.pytorch.callbacks.progress.rich_progress import _RICH_AVAILABLE
+from lightning.pytorch.utilities.imports import _RICH_AVAILABLE
 from lightning.pytorch.utilities.model_summary import get_human_readable_count
 
 
