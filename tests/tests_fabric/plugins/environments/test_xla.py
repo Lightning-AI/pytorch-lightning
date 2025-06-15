@@ -97,3 +97,34 @@ def test_detect(monkeypatch):
 
     monkeypatch.setattr(lightning.fabric.accelerators.xla.XLAAccelerator, "is_available", lambda: True)
     assert XLAEnvironment.detect()
+
+
+@mock.patch.dict(os.environ, {}, clear=True)
+def test_attributes_from_xla_greater_21_used(xla_available, monkeypatch):
+    """Test XLA environment attributes when using XLA runtime >= 2.1."""
+    monkeypatch.setattr(lightning.fabric.accelerators.xla, "_XLA_GREATER_EQUAL_2_1", True)
+    monkeypatch.setattr(lightning.fabric.plugins.environments.xla, "_XLA_GREATER_EQUAL_2_1", True)
+
+    env = XLAEnvironment()
+
+    with (
+        mock.patch("torch_xla.runtime.world_size", return_value=4),
+        mock.patch("torch_xla.runtime.global_ordinal", return_value=2),
+        mock.patch("torch_xla.runtime.local_ordinal", return_value=1),
+    ):
+        env.world_size.cache_clear()
+        env.global_rank.cache_clear()
+        env.local_rank.cache_clear()
+
+        assert env.world_size() == 4
+        assert env.global_rank() == 2
+        assert env.local_rank() == 1
+
+        env.set_world_size(100)
+        assert env.world_size() == 4
+
+        env.set_global_rank(100)
+        assert env.global_rank() == 2
+
+        env.set_local_rank(100)
+        assert env.local_rank() == 1
