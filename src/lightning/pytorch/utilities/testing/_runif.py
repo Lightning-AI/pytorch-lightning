@@ -17,9 +17,8 @@ from lightning_utilities.core.imports import RequirementCache
 
 from lightning.fabric.utilities.testing import _runif_reasons as fabric_run_if
 from lightning.pytorch.accelerators.cpu import _PSUTIL_AVAILABLE
-from lightning.pytorch.callbacks.progress.rich_progress import _RICH_AVAILABLE
 from lightning.pytorch.core.module import _ONNX_AVAILABLE
-from lightning.pytorch.utilities.imports import _OMEGACONF_AVAILABLE
+from lightning.pytorch.utilities.imports import _OMEGACONF_AVAILABLE, _RICH_AVAILABLE
 
 _SKLEARN_AVAILABLE = RequirementCache("scikit-learn")
 
