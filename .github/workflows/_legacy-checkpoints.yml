@@ -113,7 +113,7 @@ jobs:
 
       - name: access secrets
         # export to env bool if secrets.AWS_REGION is not empty
-        run: echo "WITH_SECRETS=$([ -n '${{ secrets.AWS_REGION }}' ] && echo 0 || echo 1)" >> $GITHUB_ENV
+        run: echo "WITH_SECRETS=$([ -n '${{ secrets.AWS_REGION }}' ] && echo 1 || echo 0)" >> $GITHUB_ENV
 
       - run: pip install -r requirements/ci.txt
       - name: Upload checkpoints to S3
