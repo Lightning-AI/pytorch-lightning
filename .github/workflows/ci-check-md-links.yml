@@ -18,3 +18,4 @@ jobs:
     with:
       config-file: ".github/markdown-links-config.json"
       base-branch: "master"
+      force-check-all: "yes"
