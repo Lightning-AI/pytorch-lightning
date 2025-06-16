@@ -256,9 +256,10 @@ def _import_bitsandbytes() -> ModuleType:
             if int8params.has_fp16_weights:
                 int8params.data = B
             else:
-                CB, CBt, SCB, SCBt, _ = bnb.functional.double_quant(B)
-                del CBt
-                del SCBt
+                if hasattr(bnb.functional, "double_quant"):
+                    CB, _, SCB, _, _ = bnb.functional.double_quant(B)
+                else:  # for versions 0.46+
+                    CB, SCB = bnb.functional.int8_double_quant(B)
                 int8params.data = CB
                 setattr(int8params, "CB", CB)
                 setattr(int8params, "SCB", SCB)
