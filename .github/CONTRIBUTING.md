@@ -166,7 +166,7 @@ We welcome any useful contribution! For your convenience here's a recommended wo
 1. If any of the existing tests fail in your PR on our CI, refer to the following READMEs to identify what's failing and try to address it.
 
    - [Test README](https://github.com/Lightning-AI/lightning/blob/master/tests/README.md)
-   - [CI/CD README](https://github.com/Lightning-AI/lightning/blob/master/.github/workflows/README.md)
+   - [CI/CD README](https://github.com/Lightning-AI/pytorch-lightning/tree/master/.github/workflows#readme)
 
 1. When you feel ready for integrating your work, mark your PR "Ready for review".
 
