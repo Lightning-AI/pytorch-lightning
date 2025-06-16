@@ -14,6 +14,11 @@ on:
         required: false
         type: string
         default: ""
+      force-check-all:
+        description: "Force check all files, even if not modified (keep empty for default behavior)"
+        required: false
+        type: string
+        default: ""
 
 jobs:
   markdown-link-check:
@@ -48,7 +53,7 @@ jobs:
         run: cat ${{ env.CONFIG_FILE }}
 
       - name: narrow scope for PR
-        if: startsWith(github.event_name, 'pull_request')
+        if: startsWith(github.event_name, 'pull_request') && inputs.force-check-all == ''
         run: echo "MODIFIED_ONLY=yes" >> $GITHUB_ENV
       - name: Checking markdown link
         uses: gaurav-nelson/github-action-markdown-link-check@v1

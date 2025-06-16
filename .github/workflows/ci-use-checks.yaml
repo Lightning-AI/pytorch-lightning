@@ -41,7 +41,7 @@ jobs:
   check-package:
     uses: ./.github/workflows/check-package.yml
     with:
-      actions-ref: ${{ github.sha }} # use local version
+      actions-ref: ${{ github.sha }} # use this/local version
       artifact-name: dist-packages-${{ github.sha }}
       import-name: "lightning_utilities"
       build-matrix: |
@@ -58,7 +58,7 @@ jobs:
   check-package-extras:
     uses: ./.github/workflows/check-package.yml
     with:
-      actions-ref: ${{ github.sha }} # use local version
+      actions-ref: ${{ github.sha }} # use this/local version
       artifact-name: dist-packages-extras-${{ github.sha }}
       import-name: "lightning_utilities"
       install-extras: "[cli]"
@@ -79,7 +79,7 @@ jobs:
   check-docs:
     uses: ./.github/workflows/check-docs.yml
     with:
-      actions-ref: ${{ github.sha }} # use local version
+      actions-ref: ${{ github.sha }} # use this/local version
       requirements-file: "requirements/_docs.txt"
       install-tex: true
 
@@ -87,6 +87,7 @@ jobs:
     uses: ./.github/workflows/check-md-links.yml
     with:
       base-branch: main
+      force-check-all: "yes"
 
   check-md-links-w-config:
     uses: ./.github/workflows/check-md-links.yml
