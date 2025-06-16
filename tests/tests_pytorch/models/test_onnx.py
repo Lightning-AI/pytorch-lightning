@@ -145,8 +145,8 @@ def test_error_if_no_input(tmp_path):
     "dynamo",
     [
         None,
-        pytest.param(False, marks=RunIf(min_torch="2.6.0", dynamo=True, onnxscript=True)),
-        pytest.param(True, marks=RunIf(min_torch="2.6.0", dynamo=True, onnxscript=True)),
+        pytest.param(False, marks=RunIf(min_torch="2.5.0", dynamo=True, onnxscript=True)),
+        pytest.param(True, marks=RunIf(min_torch="2.5.0", dynamo=True, onnxscript=True)),
     ],
 )
 @RunIf(onnx=True)
@@ -184,7 +184,7 @@ def test_if_inference_output_is_valid(tmp_path, dynamo):
     assert np.allclose(to_numpy(torch_out), ort_outs[0], rtol=1e-03, atol=1e-05)
 
 
-@RunIf(min_torch="2.6.0", dynamo=True)
+@RunIf(min_torch="2.5.0", dynamo=True)
 @pytest.mark.skipif(_ONNXSCRIPT_AVAILABLE, reason="Run this test only if onnxscript is not available.")
 def test_model_onnx_export_missing_onnxscript():
     """Test that an error is raised if onnxscript is not available."""
@@ -193,21 +193,41 @@ def test_model_onnx_export_missing_onnxscript():
 
     with pytest.raises(
         ModuleNotFoundError,
-        match=re.escape(f"`{type(model).__name__}.to_onnx(dynamo=True)` requires `onnxscript` to be installed."),
+        match=re.escape(
+            f"`{type(model).__name__}.to_onnx(dynamo=True)` requires `onnxscript` and `torch>=2.5.0` to be installed.",
+        ),
     ):
         model.to_onnx(dynamo=True)
 
 
-@RunIf(onnx=True, min_torch="2.6.0", dynamo=True, onnxscript=True)
+@RunIf(onnx=True, min_torch="2.5.0", dynamo=True, onnxscript=True)
 def test_model_return_type():
     model = BoringModel()
     model.example_input_array = torch.randn((1, 32))
     model.eval()
 
     onnx_pg = model.to_onnx(dynamo=True)
-    assert isinstance(onnx_pg, torch.onnx.ONNXProgram)
+
+    onnx_cls = torch.onnx.ONNXProgram if torch.__version__ >= "2.6.0" else torch.onnx._internal.exporter.ONNXProgram
+
+    assert isinstance(onnx_pg, onnx_cls)
 
     model_ret = model(model.example_input_array)
     inf_ret = onnx_pg(model.example_input_array)
 
     assert torch.allclose(model_ret, inf_ret[0], rtol=1e-03, atol=1e-05)
+
+
+@RunIf(max_torch="2.5.0")
+def test_model_onnx_export_wrong_torch_version():
+    """Test that an error is raised if onnxscript is not available."""
+    model = BoringModel()
+    model.example_input_array = torch.randn(5, 32)
+
+    with pytest.raises(
+        ModuleNotFoundError,
+        match=re.escape(
+            f"`{type(model).__name__}.to_onnx(dynamo=True)` requires `onnxscript` and `torch>=2.5.0` to be installed.",
+        ),
+    ):
+        model.to_onnx(dynamo=True)

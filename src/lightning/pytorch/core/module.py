@@ -47,6 +47,7 @@ from lightning.fabric.loggers import Logger as FabricLogger
 from lightning.fabric.utilities.apply_func import convert_to_tensors
 from lightning.fabric.utilities.cloud_io import get_filesystem
 from lightning.fabric.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
+from lightning.fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_5
 from lightning.fabric.utilities.types import _MAP_LOCATION_TYPE, _PATH
 from lightning.fabric.wrappers import _FabricOptimizer
 from lightning.pytorch.callbacks.callback import Callback
@@ -1394,9 +1395,10 @@ class LightningModule(
         if not _ONNX_AVAILABLE:
             raise ModuleNotFoundError(f"`{type(self).__name__}.to_onnx()` requires `onnx` to be installed.")
 
-        if kwargs.get("dynamo", False) and not _ONNXSCRIPT_AVAILABLE:
+        if kwargs.get("dynamo", False) and not (_ONNXSCRIPT_AVAILABLE and _TORCH_GREATER_EQUAL_2_5):
             raise ModuleNotFoundError(
-                f"`{type(self).__name__}.to_onnx(dynamo=True)` requires `onnxscript` to be installed."
+                f"`{type(self).__name__}.to_onnx(dynamo=True)` "
+                "requires `onnxscript` and `torch>=2.5.0` to be installed."
             )
 
         mode = self.training
