@@ -251,7 +251,7 @@ needed to achieve the equivalent of `compile(distributed(quantized(model)))`:
 
             self.model = torch.compile(model)
 
-For a full example, see our `FP8 Distributed Transformer example <https://github.com/Lightning-AI/lightning/blob/master/examples/pytorch/fp8_distributed_transformer>`_.
+For a full example, see our `FP8 Distributed Transformer example <https://github.com/Lightning-AI/pytorch-lightning/blob/master/examples/pytorch/fp8_distributed_transformer>`_.
 
 ----
 
