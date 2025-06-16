@@ -5,6 +5,9 @@
     },
     {
       "pattern": "^https://dev.azure.com/Lightning-AI/lightning/_apis/build/status"
+    },
+    {
+      "pattern": "^https://codecov.io/gh/Lightning-AI/pytorch-lightning/graph/badge.svg"
     }
   ],
   "httpHeaders": [
