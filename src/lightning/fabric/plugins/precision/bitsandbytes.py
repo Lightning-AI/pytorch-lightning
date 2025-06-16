@@ -258,7 +258,7 @@ def _import_bitsandbytes() -> ModuleType:
             else:
                 if hasattr(bnb.functional, "double_quant"):
                     CB, _, SCB, _, _ = bnb.functional.double_quant(B)
-                else:  # for versions 0.46+
+                else:  # for bitsandbytes versions ≥0.46
                     CB, SCB = bnb.functional.int8_double_quant(B)
                 int8params.data = CB
                 setattr(int8params, "CB", CB)
