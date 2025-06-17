@@ -34,7 +34,7 @@ _log = logging.getLogger(__name__)
 _CLICK_AVAILABLE = RequirementCache("click")
 _LIGHTNING_SDK_AVAILABLE = RequirementCache("lightning_sdk")
 
-_SUPPORTED_ACCELERATORS = ("cpu", "gpu", "cuda", "mps", "tpu")
+_SUPPORTED_ACCELERATORS = ("cpu", "gpu", "cuda", "mps", "tpu", "auto")
 
 
 def _get_supported_strategies() -> list[str]:
@@ -187,6 +187,8 @@ def _set_env_variables(args: Namespace) -> None:
 
 def _get_num_processes(accelerator: str, devices: str) -> int:
     """Parse the `devices` argument to determine how many processes need to be launched on the current machine."""
+    if devices == "auto":
+        devices = "1"  # default to 1 device if 'auto' is specified
     if accelerator == "gpu":
         parsed_devices = _parse_gpu_ids(devices, include_cuda=True, include_mps=True)
     elif accelerator == "cuda":
@@ -195,9 +197,20 @@ def _get_num_processes(accelerator: str, devices: str) -> int:
         parsed_devices = MPSAccelerator.parse_devices(devices)
     elif accelerator == "tpu":
         raise ValueError("Launching processes for TPU through the CLI is not supported.")
+    elif accelerator == "auto" or accelerator is None:
+        if torch.cuda.is_available():
+            parsed_devices = CUDAAccelerator.parse_devices(devices)
+        elif torch.backends.mps.is_available() and torch.backends.mps.is_built():
+            parsed_devices = MPSAccelerator.parse_devices(devices)
+        else:
+            parsed_devices = CPUAccelerator.parse_devices(devices)
     else:
         return CPUAccelerator.parse_devices(devices)
-    return len(parsed_devices) if parsed_devices is not None else 0
+    return (
+        len(parsed_devices)
+        if isinstance(parsed_devices, list)
+        else (parsed_devices if isinstance(parsed_devices, int) else 0)
+    )
 
 
 def _torchrun_launch(args: Namespace, script_args: list[str]) -> None:
