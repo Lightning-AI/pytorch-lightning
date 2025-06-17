@@ -205,7 +205,7 @@ def _get_num_processes(accelerator: str, devices: str) -> int:
         else:
             parsed_devices = CPUAccelerator.parse_devices(devices)
     else:
-        return CPUAccelerator.parse_devices(devices)
+        parsed_devices = CPUAccelerator.parse_devices(devices)
     return (
         len(parsed_devices)
         if isinstance(parsed_devices, list)
