@@ -123,7 +123,6 @@ def _test_all_reduce(strategy):
         [torch.device("cpu"), torch.device("cpu")],
     ],
 )
-@pytest.mark.flaky(reruns=3)  # flaky with "process 0 terminated with signal SIGABRT" (GLOO)
 def test_collective_operations(devices, process):
     spawn_launch(process, devices)
 
