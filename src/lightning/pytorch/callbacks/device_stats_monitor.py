@@ -38,8 +38,8 @@ class DeviceStatsMonitor(Callback):
         Device statistics are logged with keys prefixed as
         ``DeviceStatsMonitor.{hook_name}/{base_metric_name}`` (e.g.,
         ``DeviceStatsMonitor.on_train_batch_start/cpu_percent``).
-	    The source of these metrics depends on the ``cpu_stats`` flag
-	    and the active accelerator.
+            The source of these metrics depends on the ``cpu_stats`` flag
+            and the active accelerator.
 
         CPU (via ``psutil``): Logs ``cpu_percent``, ``cpu_vm_percent``, ``cpu_swap_percent``.
         All are percentages (%).
