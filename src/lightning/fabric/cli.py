@@ -198,7 +198,7 @@ def _get_num_processes(accelerator: str, devices: str) -> int:
     elif accelerator == "tpu":
         raise ValueError("Launching processes for TPU through the CLI is not supported.")
     elif accelerator == "auto" or accelerator is None:
-        if torch.cuda.is_available():
+        if torch.cuda.is_available() and torch.cuda.device_count() > 0:
             parsed_devices = CUDAAccelerator.parse_devices(devices)
         elif torch.backends.mps.is_available() and torch.backends.mps.is_built():
             parsed_devices = MPSAccelerator.parse_devices(devices)
