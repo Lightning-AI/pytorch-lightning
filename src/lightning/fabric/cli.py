@@ -203,14 +203,10 @@ def _get_num_processes(accelerator: str, devices: str) -> int:
         elif torch.backends.mps.is_available() and torch.backends.mps.is_built():
             parsed_devices = MPSAccelerator.parse_devices(devices)
         else:
-            parsed_devices = CPUAccelerator.parse_devices(devices)
+            return CPUAccelerator.parse_devices(devices)
     else:
-        parsed_devices = CPUAccelerator.parse_devices(devices)
-    return (
-        len(parsed_devices)
-        if isinstance(parsed_devices, list)
-        else (parsed_devices if isinstance(parsed_devices, int) else 0)
-    )
+        return CPUAccelerator.parse_devices(devices)
+    return len(parsed_devices) if parsed_devices is not None else 0
 
 
 def _torchrun_launch(args: Namespace, script_args: list[str]) -> None:
