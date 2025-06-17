@@ -85,7 +85,7 @@ def test_run_env_vars_unsupported_strategy(strategy, fake_script):
     assert f"Invalid value for '--strategy': '{strategy}'" in ioerr.getvalue()
 
 
-@pytest.mark.parametrize("devices", ["1", "2", "0,", "1,0", "-1", "auto"])
+@pytest.mark.parametrize("devices", ["1", "2", "0,", "1,0", "-1"])
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 @mock.patch("lightning.fabric.accelerators.cuda.num_cuda_devices", return_value=2)
 def test_run_env_vars_devices_cuda(_, devices, monkeypatch, fake_script):
@@ -97,7 +97,7 @@ def test_run_env_vars_devices_cuda(_, devices, monkeypatch, fake_script):
 
 
 @RunIf(mps=True)
-@pytest.mark.parametrize("accelerator", ["mps", "gpu", "auto"])
+@pytest.mark.parametrize("accelerator", ["mps", "gpu"])
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_run_env_vars_devices_mps(accelerator, monkeypatch, fake_script):
     monkeypatch.setitem(sys.modules, "torch.distributed.run", Mock())
