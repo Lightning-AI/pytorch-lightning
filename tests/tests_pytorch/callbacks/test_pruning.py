@@ -398,20 +398,10 @@ def test_original_issue_reproduction():
 
     model = ProblematicModel()
 
-    try:
-        parameters_to_prune = ModelPruning.sanitize_parameters_to_prune(
-            model, parameters_to_prune=(), parameter_names=["weight", "bias", "training", "requires_grad"]
-        )
+    parameters_to_prune = ModelPruning.sanitize_parameters_to_prune(
+        model, parameters_to_prune=(), parameter_names=["weight", "bias", "training", "requires_grad"]
+    )
 
-        for module, param_name in parameters_to_prune:
-            param = getattr(module, param_name)
-            assert isinstance(param, nn.Parameter), f"Non-parameter found: {type(param)}"
-
-        success = True
-    except AttributeError as e:
-        if "'bool' object has no attribute 'is_cuda'" in str(e):
-            success = False  # Original bug still present
-        else:
-            raise  # Different error
-
-    assert success, "The fix for issue #10835 is not working correctly"
+    for module, param_name in parameters_to_prune:
+        param = getattr(module, param_name)
+        assert isinstance(param, nn.Parameter), f"Non-parameter found: {type(param)}"
