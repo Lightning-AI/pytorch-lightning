@@ -22,7 +22,7 @@ from typing_extensions import override
 
 import lightning.pytorch as pl
 from lightning.fabric.accelerators.xla import _XLA_AVAILABLE, _XLA_GREATER_EQUAL_2_1
-from lightning.fabric.plugins import XLACheckpointIO
+from lightning.fabric.plugins import CheckpointIO, Precision, XLACheckpointIO
 from lightning.fabric.plugins.environments import XLAEnvironment
 from lightning.fabric.strategies import _StrategyRegistry
 from lightning.fabric.utilities.optimizer import _optimizers_to_device
@@ -81,7 +81,7 @@ class XLAStrategy(DDPStrategy):
 
     @checkpoint_io.setter
     @override
-    def checkpoint_io(self, io: Optional[Union[XLACheckpointIO, _WrappingCheckpointIO]]) -> None:
+    def checkpoint_io(self, io: Optional[CheckpointIO]) -> None:
         if io is not None and not isinstance(io, (XLACheckpointIO, _WrappingCheckpointIO)):
             raise TypeError(f"The XLA strategy can only work with the `XLACheckpointIO` plugin, found {io}")
         self._checkpoint_io = io
@@ -97,7 +97,7 @@ class XLAStrategy(DDPStrategy):
 
     @precision_plugin.setter
     @override
-    def precision_plugin(self, precision_plugin: Optional[XLAPrecision]) -> None:
+    def precision_plugin(self, precision_plugin: Optional[Precision]) -> None:
         if precision_plugin is not None and not isinstance(precision_plugin, XLAPrecision):
             raise TypeError(f"The XLA strategy can only work with the `XLAPrecision` plugin, found {precision_plugin}")
         self._precision_plugin = precision_plugin

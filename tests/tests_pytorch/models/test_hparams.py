@@ -250,8 +250,7 @@ def test_explicit_missing_args_hparams(tmp_path):
     model = LocalModel.load_from_checkpoint(raw_checkpoint_path, test_arg2=123)
     assert model.hparams.test_arg == 14
     assert "test_arg2" not in model.hparams  # test_arg2 is not registered in class init
-
-    return raw_checkpoint_path
+    assert raw_checkpoint_path
 
 
 # -------------------------

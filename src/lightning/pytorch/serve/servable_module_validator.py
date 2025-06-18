@@ -93,7 +93,7 @@ class ServableModuleValidator(Callback):
 
         # Note: The Trainer needs to be detached from the pl_module before starting the process.
         # This would fail during the deepcopy with DDP.
-        servable_module.trainer = None  # type: ignore[assignment]
+        servable_module.trainer = None
 
         process = Process(target=self._start_server, args=(servable_module, self.host, self.port, self.optimization))
         process.start()
