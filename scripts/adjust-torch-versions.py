@@ -140,11 +140,14 @@ def adjust(requires: list[str], pytorch_version: Optional[str] = None) -> list[s
     """Adjust the versions to be paired within pytorch ecosystem.
 
     >>> from pprint import pprint
-    >>> pprint(adjust(["torch>=1.9.0", "torchvision>=0.10.0", "torchtext>=0.10.0", "torchaudio>=0.9.0"], "2.1.0"))
+    >>> pprint(adjust([
+    ...     "torch>=1.9.0", "torchvision>=0.10.0", "torchtext>=0.10.0", "torchaudio>=0.9.0", "vmaf-torch >=1.1.0"
+    ... ], "2.1.0"))
     ['torch==2.1.0',
      'torchvision==0.16.0',
      'torchtext==0.16.0',
-     'torchaudio==2.1.0']
+     'torchaudio==2.1.0',
+     'vmaf-torch >=1.1.0']
 
     """
     if not pytorch_version:
@@ -164,12 +167,12 @@ def adjust(requires: list[str], pytorch_version: Optional[str] = None) -> list[s
         # anything after # in the line is comment
         comment = "" if len(req_split) < 2 else "  #" + req_split[1]
         if not req:
-            # if only comment make it short
+            # if only comment, so make it short
             requires_.append(comment.strip())
             continue
         for lib, version in options.items():
             replace = f"{lib}=={version}" if version else ""
-            req = re.sub(rf"\b{lib}(?![-_\w]).*", replace, req)
+            req = re.sub(rf"^{lib}(?![-_\w]).*", replace, req)
         requires_.append(req + comment.rstrip())
 
     return requires_
