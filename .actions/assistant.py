@@ -33,6 +33,7 @@ REQUIREMENT_FILES = {
         "requirements/pytorch/extra.txt",
         "requirements/pytorch/strategies.txt",
         "requirements/pytorch/examples.txt",
+        "requirements/pytorch/serve.txt",
     ),
     "fabric": (
         "requirements/fabric/base.txt",
