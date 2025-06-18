@@ -17,7 +17,7 @@ import sys
 from typing import Optional
 
 import torch
-from lightning_utilities.core.imports import RequirementCache, compare_version
+from lightning_utilities.core.imports import compare_version
 from packaging.version import Version
 
 from lightning.fabric.accelerators import XLAAccelerator
