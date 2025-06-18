@@ -248,7 +248,7 @@ class _AcceleratorConnector:
                 else:
                     raise MisconfigurationException(
                         f"Found invalid type for plugin {plugin}. Expected one of: Precision, "
-                        "CheckpointIO, ClusterEnviroment, or LayerSync."
+                        "CheckpointIO, ClusterEnvironment, or LayerSync."
                     )
 
             duplicated_plugin_key = [k for k, v in plugins_flags_types.items() if v > 1]
@@ -467,7 +467,7 @@ class _AcceleratorConnector:
         if strategy_flag in _DDP_FORK_ALIASES and "fork" not in torch.multiprocessing.get_all_start_methods():
             raise ValueError(
                 f"You selected `Trainer(strategy='{strategy_flag}')` but process forking is not supported on this"
-                f" platform. We recommed `Trainer(strategy='ddp_spawn')` instead."
+                f" platform. We recommend `Trainer(strategy='ddp_spawn')` instead."
             )
         if strategy_flag:
             self._strategy_flag = strategy_flag
