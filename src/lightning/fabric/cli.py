@@ -21,7 +21,7 @@ import torch
 from lightning_utilities.core.imports import RequirementCache
 from typing_extensions import get_args
 
-from lightning.fabric.accelerators import CPUAccelerator, CUDAAccelerator, MPSAccelerator
+from lightning.fabric.accelerators import CPUAccelerator, CUDAAccelerator, MPSAccelerator, XLAAccelerator
 from lightning.fabric.plugins.precision.precision import _PRECISION_INPUT_STR, _PRECISION_INPUT_STR_ALIAS
 from lightning.fabric.strategies import STRATEGY_REGISTRY
 from lightning.fabric.utilities.consolidate_checkpoint import _process_cli_args
@@ -35,6 +35,17 @@ _CLICK_AVAILABLE = RequirementCache("click")
 _LIGHTNING_SDK_AVAILABLE = RequirementCache("lightning_sdk")
 
 _SUPPORTED_ACCELERATORS = ("cpu", "gpu", "cuda", "mps", "tpu", "auto")
+
+
+def _choose_auto_accelerator() -> str:
+    """Choose the best available accelerator for the current environment."""
+    if CUDAAccelerator.is_available():
+        return "cuda"
+    if MPSAccelerator.is_available():
+        return "mps"
+    if XLAAccelerator.is_available():
+        return "tpu"
+    return "cpu"
 
 
 def _get_supported_strategies() -> list[str]:
@@ -187,10 +198,9 @@ def _set_env_variables(args: Namespace) -> None:
 
 def _get_num_processes(accelerator: str, devices: str) -> int:
     """Parse the `devices` argument to determine how many processes need to be launched on the current machine."""
-    from lightning.pytorch.trainer.connectors.accelerator_connector import _AcceleratorConnector
 
     if accelerator == "auto" or accelerator is None:
-        accelerator = _AcceleratorConnector._choose_auto_accelerator()
+        accelerator = _choose_auto_accelerator()
     if devices == "auto":
         if accelerator == "cuda" or accelerator == "mps" or accelerator == "cpu":
             devices = "1"
