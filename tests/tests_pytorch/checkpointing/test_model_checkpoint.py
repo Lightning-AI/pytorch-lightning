@@ -827,66 +827,100 @@ def test_model_checkpoint_save_on_exception_in_train_callback_on_train_epoch_end
     assert os.path.isfile(tmp_path / f"step={2*epoch_length}.ckpt")
 
 
-# def test_model_checkpoint_save_on_exception_in_train_callback(tmp_path):
-#     """Test that the checkpoint is saved when an exception is raised in a callback on different events."""
-#     class TroublemakerOnTrainBatchStart(Callback):
-#         def on_train_batch_start(self, trainer, pl_module, batch, batch_idx):
-#             if batch_idx == 1:
-#                 raise RuntimeError("Trouble!")
+def test_model_checkpoint_save_on_exception_in_val_callback(tmp_path):
+    """Test that the checkpoint is saved when an exception is raised in a callback on validation_batch_start."""
+    class TroublemakerOnValidationBatchStart(Callback):
+        def on_validation_batch_start(self, trainer, pl_module, batch, batch_idx):
+                if not trainer.sanity_checking and batch_idx == 1:
+                    raise RuntimeError("Trouble!")
 
-#     class TroublemakerOnTrainBatchEnd(Callback):
-#         def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
-#             if batch_idx == 1:
-#                 raise RuntimeError("Trouble!")
-
-#     class TroublemakerOnTrainEpochStart(Callback):
-#         def on_train_epoch_start(self, trainer, pl_module):
-#             if trainer.current_epoch == 1:
-#                 raise RuntimeError("Trouble!")
-
-#     class TroublemakerOnTrainEpochEnd(Callback):
-#         def on_train_epoch_end(self, trainer, pl_module):
-#             if trainer.current_epoch == 1:
-#                 raise RuntimeError("Trouble!")
+    model = BoringModel()
+    epoch_length = 64
+    checkpoint_callback = ModelCheckpoint(dirpath=tmp_path, filename="{step}", save_on_exception=True, every_n_epochs=4)
+    trainer = Trainer(default_root_dir=tmp_path, callbacks=[checkpoint_callback, TroublemakerOnValidationBatchStart()], max_epochs=5, logger=False)
+    with pytest.raises(RuntimeError, match="Trouble!"):
+        trainer.fit(model)
+    assert os.path.isfile(tmp_path / f"step={epoch_length}.ckpt")
 
 
-#     epoch_length = 64
-#     model = BoringModel()
-#     # use every_n_epochs so that we can differentiate between the normal and the troublemaker checkpoints
-#     checkpoint_callback = ModelCheckpoint(dirpath=tmp_path, filename="{step}", save_on_exception=True, every_n_epochs=4)
-
-#     troublemakers = [
-#                      TroublemakerOnTrainBatchStart(),
-#                      TroublemakerOnTrainBatchEnd(),
-#                      TroublemakerOnTrainEpochStart(),
-#                      TroublemakerOnTrainEpochEnd()
-#                      ]
-
-#     expected_ckpts = ["step=1.ckpt",
-#                       'step=2.ckpt',
-#                       f'step={epoch_length}.ckpt',
-#                       f'step={2*epoch_length}.ckpt',
-#                      ]
-
-#     for troublemaker in troublemakers:
-#         trainer = Trainer(default_root_dir=tmp_path, callbacks=[checkpoint_callback, troublemaker], max_epochs=5, logger=False)
-
-#         with pytest.raises(RuntimeError, match="Trouble!"):
-#             trainer.fit(model)
-
-#     assert set(os.listdir(tmp_path)) == set(expected_ckpts)
+def test_model_checkpoint_save_on_exception_in_val_callback_on_validation_batch_end(tmp_path):
+    """Test that the checkpoint is saved when an exception is raised in a callback on validation_batch_end."""
+    class TroublemakerOnValidationBatchEnd(Callback):
+        def on_validation_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
+                if not trainer.sanity_checking and batch_idx == 1:
+                    raise RuntimeError("Trouble!")
+                    
+    model = BoringModel()
+    epoch_length = 64
+    checkpoint_callback = ModelCheckpoint(dirpath=tmp_path, filename="{step}", save_on_exception=True, every_n_epochs=4)
+    trainer = Trainer(default_root_dir=tmp_path, callbacks=[checkpoint_callback, TroublemakerOnValidationBatchEnd()], max_epochs=5, logger=False)
+    with pytest.raises(RuntimeError, match="Trouble!"):
+        trainer.fit(model)
+    assert os.path.isfile(tmp_path / f"step={epoch_length}.ckpt")
 
 
-#     # use every_n_epochs so that we can differentiate between the normal and the troublemaker checkpoints
-#     checkpoint_callback = ModelCheckpoint(dirpath=tmp_path, filename="{step}", save_on_exception=True, every_n_epochs=4)
+def test_model_checkpoint_save_on_exception_in_val_callback_on_validation_epoch_start(tmp_path):
+    """Test that the checkpoint is saved when an exception is raised in a callback on validation_epoch_start."""
+    class TroublemakerOnValidationEpochStart(Callback):
+        def on_validation_epoch_start(self, trainer, pl_module):
+            if not trainer.sanity_checking and trainer.current_epoch == 0:
+                raise RuntimeError("Trouble!")
 
-#     troublemakers = [
-#                     #  TroublemakerOnValidationBatchStart(),
-#                      TroublemakerOnValidationBatchEnd(),
-#     expected_ckpts = [f"step={2*epoch_length}.ckpt",
+    model = BoringModel()
+    epoch_length = 64
+    checkpoint_callback = ModelCheckpoint(dirpath=tmp_path, filename="{step}", save_on_exception=True, every_n_epochs=4)
+    trainer = Trainer(default_root_dir=tmp_path, callbacks=[checkpoint_callback, TroublemakerOnValidationEpochStart()], max_epochs=5, logger=False)
+    with pytest.raises(RuntimeError, match="Trouble!"):
+        trainer.fit(model)
+    assert os.path.isfile(tmp_path / f"step={epoch_length}.ckpt")
+    
 
-    assert set(os.listdir(tmp_path)) == set(expected_ckpts)
+def test_model_checkpoint_save_on_exception_in_val_callback_on_validation_epoch_end(tmp_path):
+    """Test that the checkpoint is saved when an exception is raised in a callback on validation_epoch_end."""
+    class TroublemakerOnValidationEpochEnd(Callback):
+        def on_validation_epoch_end(self, trainer, pl_module):
+            if not trainer.sanity_checking and trainer.current_epoch == 0:
+                raise RuntimeError("Trouble!")
+                
+    model = BoringModel()
+    epoch_length = 64
+    checkpoint_callback = ModelCheckpoint(dirpath=tmp_path, filename="{step}", save_on_exception=True, every_n_epochs=4)
+    trainer = Trainer(default_root_dir=tmp_path, callbacks=[checkpoint_callback, TroublemakerOnValidationEpochEnd()], max_epochs=5, logger=False)
+    with pytest.raises(RuntimeError, match="Trouble!"):
+        trainer.fit(model)
+    assert os.path.isfile(tmp_path / f"step={epoch_length}.ckpt")
 
+def test_model_checkpoint_save_on_exception_in_val_callback_on_validation_start(tmp_path):
+    """Test that the checkpoint is saved when an exception is raised in a callback on validation_start."""
+    class TroublemakerOnValidationStart(Callback):
+        def on_validation_start(self, trainer, pl_module):
+            if not trainer.sanity_checking:
+                raise RuntimeError("Trouble!")
+            
+    model = BoringModel()
+    epoch_length = 64
+    checkpoint_callback = ModelCheckpoint(dirpath=tmp_path, filename="{step}", save_on_exception=True, every_n_epochs=4)
+    trainer = Trainer(default_root_dir=tmp_path, callbacks=[checkpoint_callback, TroublemakerOnValidationStart()], max_epochs=5, logger=False)
+    with pytest.raises(RuntimeError, match="Trouble!"):
+        trainer.fit(model)
+    assert os.path.isfile(tmp_path / f"step={epoch_length}.ckpt")
+
+def test_model_checkpoint_save_on_exception_in_val_callback_on_validation_end(tmp_path):
+    """Test that the checkpoint is saved when an exception is raised in a callback on validation_end."""
+    class TroublemakerOnValidationEnd(Callback):
+        def on_validation_end(self, trainer, pl_module):
+            if not trainer.sanity_checking:
+                raise RuntimeError("Trouble!")
+                
+    model = BoringModel()
+    epoch_length = 64
+    checkpoint_callback = ModelCheckpoint(dirpath=tmp_path, filename="{step}", save_on_exception=True, every_n_epochs=4)
+    trainer = Trainer(default_root_dir=tmp_path, callbacks=[checkpoint_callback, TroublemakerOnValidationEnd()], max_epochs=5, logger=False)
+    with pytest.raises(RuntimeError, match="Trouble!"):
+        trainer.fit(model)
+    assert os.path.isfile(tmp_path / f"step={epoch_length}.ckpt")
+
+                
 @mock.patch("lightning.pytorch.callbacks.model_checkpoint.time")
 def test_model_checkpoint_train_time_interval(mock_datetime, tmp_path) -> None:
     """Tests that the checkpoints are saved at the specified time interval."""
