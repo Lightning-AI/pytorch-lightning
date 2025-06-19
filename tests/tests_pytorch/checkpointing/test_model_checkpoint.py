@@ -796,12 +796,13 @@ def test_model_checkpoint_save_on_exception_in_validation_step(tmp_path):
                 raise RuntimeError("Trouble!")
 
     model = TroubledModel()
-    epoch_length = 64
+    epoch_length = 2
     checkpoint_callback = ModelCheckpoint(dirpath=tmp_path, filename="{step}", save_on_exception=True, every_n_epochs=4)
     trainer = Trainer(
         default_root_dir=tmp_path,
         callbacks=[checkpoint_callback],
         max_epochs=5,
+        limit_train_batches=epoch_length,
         logger=False,
         enable_progress_bar=False,
     )
@@ -864,12 +865,13 @@ def test_model_checkpoint_save_on_exception_in_train_callback_on_train_epoch_sta
                 raise RuntimeError("Trouble!")
 
     model = BoringModel()
-    epoch_length = 64
+    epoch_length = 2
     checkpoint_callback = ModelCheckpoint(dirpath=tmp_path, filename="{step}", save_on_exception=True, every_n_epochs=4)
     trainer = Trainer(
         default_root_dir=tmp_path,
         callbacks=[checkpoint_callback, TroublemakerOnTrainEpochStart()],
         max_epochs=5,
+        limit_train_batches=epoch_length,
         logger=False,
         enable_progress_bar=False,
     )
@@ -887,12 +889,13 @@ def test_model_checkpoint_save_on_exception_in_train_callback_on_train_epoch_end
                 raise RuntimeError("Trouble!")
 
     model = BoringModel()
-    epoch_length = 64
+    epoch_length = 2
     checkpoint_callback = ModelCheckpoint(dirpath=tmp_path, filename="{step}", save_on_exception=True, every_n_epochs=4)
     trainer = Trainer(
         default_root_dir=tmp_path,
         callbacks=[checkpoint_callback, TroublemakerOnTrainEpochEnd()],
         max_epochs=5,
+        limit_train_batches=epoch_length,
         logger=False,
         enable_progress_bar=False,
     )
@@ -956,12 +959,13 @@ def test_model_checkpoint_save_on_exception_in_val_callback_on_validation_epoch_
                 raise RuntimeError("Trouble!")
 
     model = BoringModel()
-    epoch_length = 64
+    epoch_length = 2
     checkpoint_callback = ModelCheckpoint(dirpath=tmp_path, filename="{step}", save_on_exception=True, every_n_epochs=4)
     trainer = Trainer(
         default_root_dir=tmp_path,
         callbacks=[checkpoint_callback, TroublemakerOnValidationEpochStart()],
         max_epochs=5,
+        limit_train_batches=epoch_length,
         logger=False,
         enable_progress_bar=False,
     )
@@ -979,12 +983,13 @@ def test_model_checkpoint_save_on_exception_in_val_callback_on_validation_epoch_
                 raise RuntimeError("Trouble!")
 
     model = BoringModel()
-    epoch_length = 64
+    epoch_length = 2
     checkpoint_callback = ModelCheckpoint(dirpath=tmp_path, filename="{step}", save_on_exception=True, every_n_epochs=4)
     trainer = Trainer(
         default_root_dir=tmp_path,
         callbacks=[checkpoint_callback, TroublemakerOnValidationEpochEnd()],
         max_epochs=5,
+        limit_train_batches=epoch_length,
         logger=False,
         enable_progress_bar=False,
     )
@@ -1002,12 +1007,13 @@ def test_model_checkpoint_save_on_exception_in_val_callback_on_validation_start(
                 raise RuntimeError("Trouble!")
 
     model = BoringModel()
-    epoch_length = 64
+    epoch_length = 2
     checkpoint_callback = ModelCheckpoint(dirpath=tmp_path, filename="{step}", save_on_exception=True, every_n_epochs=4)
     trainer = Trainer(
         default_root_dir=tmp_path,
         callbacks=[checkpoint_callback, TroublemakerOnValidationStart()],
         max_epochs=5,
+        limit_train_batches=epoch_length,
         logger=False,
         enable_progress_bar=False,
     )
@@ -1025,12 +1031,13 @@ def test_model_checkpoint_save_on_exception_in_val_callback_on_validation_end(tm
                 raise RuntimeError("Trouble!")
 
     model = BoringModel()
-    epoch_length = 64
+    epoch_length = 2
     checkpoint_callback = ModelCheckpoint(dirpath=tmp_path, filename="{step}", save_on_exception=True, every_n_epochs=4)
     trainer = Trainer(
         default_root_dir=tmp_path,
         callbacks=[checkpoint_callback, TroublemakerOnValidationEnd()],
         max_epochs=5,
+        limit_train_batches=epoch_length,
         logger=False,
         enable_progress_bar=False,
     )
