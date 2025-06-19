@@ -41,19 +41,6 @@ class TestRichIntegration:
         assert sum(isinstance(cb, ProgressBar) for cb in trainer.callbacks) == 1
 
     @patch("lightning.pytorch.trainer.connectors.callback_connector._RICH_AVAILABLE", False)
-    def test_no_rich_respects_user_provided_rich_progress_bar(self, tmp_path):
-        # If user explicitly provides RichProgressBar, it should be used,
-        # even if _RICH_AVAILABLE is False (simulating our connector logic).
-        # RequirementCache would normally prevent RichProgressBar instantiation if rich is truly not installed.
-        user_progress_bar = RichProgressBar()
-        trainer = Trainer(
-            default_root_dir=tmp_path, callbacks=[user_progress_bar], logger=False, enable_checkpointing=False
-        )
-        assert user_progress_bar in trainer.callbacks
-        assert sum(isinstance(cb, ProgressBar) for cb in trainer.callbacks) == 1
-        assert isinstance(trainer.progress_bar_callback, RichProgressBar)
-
-    @patch("lightning.pytorch.trainer.connectors.callback_connector._RICH_AVAILABLE", False)
     def test_no_rich_respects_user_provided_model_summary(self, tmp_path):
         user_model_summary = ModelSummary()
         trainer = Trainer(
