@@ -764,6 +764,55 @@ def test_ckpt_every_n_train_steps(tmp_path):
     assert set(os.listdir(tmp_path)) == set(expected)
 
 
+def test_model_checkpoint_save_on_exception_in_train_callback(tmp_path):
+    """Test that the checkpoint is saved when an exception is raised in a callback on different events."""
+    class TroublemakerOnTrainBatchStart(Callback):
+        def on_train_batch_start(self, trainer, pl_module, batch, batch_idx):
+            if batch_idx == 1:
+                raise RuntimeError("Trouble!")
+
+    class TroublemakerOnTrainBatchEnd(Callback):
+        def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
+            if batch_idx == 1:
+                raise RuntimeError("Trouble!")
+
+    class TroublemakerOnTrainEpochStart(Callback):
+        def on_train_epoch_start(self, trainer, pl_module):
+            if trainer.current_epoch == 1:
+                raise RuntimeError("Trouble!")
+
+    class TroublemakerOnTrainEpochEnd(Callback):
+        def on_train_epoch_end(self, trainer, pl_module):
+            if trainer.current_epoch == 1:
+                raise RuntimeError("Trouble!")
+
+
+    epoch_length = 64
+    model = BoringModel()
+    # use every_n_epochs so that we can differentiate between the normal and the troublemaker checkpoints
+    checkpoint_callback = ModelCheckpoint(dirpath=tmp_path, filename="{step}", save_on_exception=True, every_n_epochs=4)
+
+    troublemakers = [
+                     TroublemakerOnTrainBatchStart(),
+                     TroublemakerOnTrainBatchEnd(),
+                     TroublemakerOnTrainEpochStart(),
+                     TroublemakerOnTrainEpochEnd()
+                     ]
+
+    expected_ckpts = ["step=1.ckpt",
+                      'step=2.ckpt',
+                      f'step={epoch_length}.ckpt',
+                      f'step={2*epoch_length}.ckpt',
+                     ]
+
+    for troublemaker in troublemakers:
+        trainer = Trainer(default_root_dir=tmp_path, callbacks=[checkpoint_callback, troublemaker], max_epochs=5, logger=False)
+
+        with pytest.raises(RuntimeError, match="Trouble!"):
+            trainer.fit(model)
+
+    assert set(os.listdir(tmp_path)) == set(expected_ckpts)
+
 @mock.patch("lightning.pytorch.callbacks.model_checkpoint.time")
 def test_model_checkpoint_train_time_interval(mock_datetime, tmp_path) -> None:
     """Tests that the checkpoints are saved at the specified time interval."""
