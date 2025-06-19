@@ -343,10 +343,9 @@ class ModelCheckpoint(Checkpoint):
 
     @override
     def on_exception(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", exception: Exception) -> None:
-        if self.save_on_exception and not self._should_skip_saving_checkpoint(trainer):
+        if self._should_save_on_exception(trainer):
             monitor_candidates = self._monitor_candidates(trainer)
             filepath = self.format_checkpoint_name(metrics=monitor_candidates)
-            print(type(exception))
             self._save_checkpoint(trainer, filepath)
             self._save_last_checkpoint(trainer, monitor_candidates)
             rank_zero_info(f"An exception was raised saved checkpoint to {filepath}")
@@ -438,6 +437,14 @@ class ModelCheckpoint(Checkpoint):
             or trainer.state.fn != TrainerFn.FITTING  # don't save anything during non-fit
             or trainer.sanity_checking  # don't save anything during sanity check
             or self._last_global_step_saved == trainer.global_step  # already saved at the last step
+        )
+    
+    def _should_save_on_exception(self, trainer: "pl.Trainer") -> bool:
+        return (
+                self.save_on_exception
+                and not bool(trainer.fast_dev_run)  # disable checkpointing with fast_dev_run
+                and not trainer.sanity_checking  # don't save anything during sanity check
+                and not self._last_global_step_saved == trainer.global_step  # already saved at the last step)
         )
 
     def _should_save_on_train_epoch_end(self, trainer: "pl.Trainer") -> bool:
